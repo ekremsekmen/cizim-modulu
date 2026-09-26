@@ -6,6 +6,7 @@
     python3 calistir.py --aski Doğrudan → 1:1 askı düzeniyle
     python3 calistir.py --cizim kabin_ustu → kabin üstü planı
     python3 calistir.py --cizim kuyu_dibi  → kuyu dibi planı
+    python3 calistir.py --cizim kuyu_ustu  → kuyu üstü planı ( MRL )
 
 Hesap programından BAĞIMSIZDIR;  girdiyi cizim/girdi.py içindeki ÖRNEK
 sözlüğünden alır.  İleride köprü ( cizim/kopru.py ) bu sözlüğü hesabın
@@ -21,6 +22,7 @@ from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kabin_ustu as CKU
 from cizim import kuyu_dibi as CKD
+from cizim import kuyu_ustu as CKT
 from cizim import svg as CSV
 
 KOK = os.path.dirname(os.path.abspath(__file__))
@@ -32,6 +34,8 @@ CIZIMLER = {
                    "KABİN ÜSTÜ PLANI  ( kabin tavanı hizasından yatay kesit )"),
     "kuyu_dibi": (CKD.dogrula, CKD.ciz,
                   "KUYU DİBİ PLANI  ( kuyu tabanından yatay kesit )"),
+    "kuyu_ustu": (CKT.dogrula, CKT.ciz,
+                  "KUYU ÜSTÜ PLANI  ( makine dairesiz — kuyu tepesinden yatay kesit )"),
 }
 
 

@@ -64,6 +64,25 @@ SABIT = {
     "merdiven_eni": 350,
     "merdiven_derinlik": 100,
 
+    #  ── KUYU ÜSTÜ  ( makine dairesiz ) ───────────────────────────────
+    #  ELEport'un MRL paftasındaki "Machine Room" çiziminin vektör
+    #  geometrisinden ölçüldü ( 1/20 ).  Tek bir makinenin ölçüleridir —
+    #  kullanılan makinenin kataloğu gelince buradan değiştirilir.
+    "tahrik_kasnak_kalinlik": 105,   # tahrik kasnağının planda görünen eni
+    "makine_en": 298,                # makine gövdesi ( kasnak ekseni boyunca )
+    "makine_boy": 279,
+    "makine_kasnak_boslugu": 15,     # kasnak ile gövde arası
+    #  Halat bağlantıları ( 2:1 askıda halatın kuyu tepesine bağlandığı yer )
+    "agirlik_baglanti_en": 264, "agirlik_baglanti_boy": 120,
+    "agirlik_baglanti_x": 12,        # halattan plakanın duvar tarafı kenarına
+    "agirlik_baglanti_y": 39,        # halattan plakanın kasnak tarafı kenarına
+    "kabin_baglanti_en": 127, "kabin_baglanti_boy": 200,
+    "kabin_baglanti_x": 100,         # halattan plakanın kabin tarafı kenarına
+    #  Hız regülatörü:  kasnak eni ve gövde
+    "regulator_eni": 80, "regulator_govde_en": 130, "regulator_govde_boy": 180,
+    #  Acil kurtarma ve test panosu ( TS EN 81-20 m.5.2.6.6 ) — ELEport: 400 × 300
+    "acil_pano_en": 400, "acil_pano_derinlik": 300,
+
     #  ── KUMANDA PANOSU ───────────────────────────────────────────────
     "pano_en": 400,
     "pano_derinlik": 90,

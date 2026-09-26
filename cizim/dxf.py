@@ -24,6 +24,7 @@ KATMAN = {
     "OLCU": (5, 13), "EKSEN": (1, 13), "YAZI": (7, 0),
     "KORKULUK": (6, 50), "SIGINMA": (3, 25),
     "TAMPON": (200, 25), "PERDE": (6, 50), "MERDIVEN": (32, 25), "GIZLI": (8, 13), "YUK": (1, 0),
+    "MAKINE": (5, 30), "BAGLANTI": (8, 25),
 }
 YAZI_TIPI = "ASANSOR"
 

@@ -29,6 +29,7 @@ python3 -m venv .venv
 | `cizim/geometri.py` | Girdiden **çizim elemanları** üretir ( saf veri ) — kuyu planı |
 | `cizim/kabin_ustu.py` | Kabin üstü planı:  kuyu planının elemanlarını okur, tavanı ekler |
 | `cizim/kuyu_dibi.py` | Kuyu dibi planı:  tamponlar, perde, gergi, sığınma alanı, merdiven |
+| `cizim/kuyu_ustu.py` | Kuyu üstü planı ( MRL ):  makine, halat bağlantıları, regülatör, acil pano |
 | `cizim/svg.py` | Elemanları SVG'ye yazar |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
 | `testler/test_cizim.py` | 81 test |
@@ -110,9 +111,34 @@ ekseninin arkasında durur ( girdi:  yan, eksene uzaklık, kasnak çapı ).
 Çizilmeyenler:  kuyu dibi durdurma düğmesi ve revizyon kutusu ( yer kuralları
 m.5.2.1.5.1 — ölçüleri yok ).
 
+**Kuyu üstü planı** ( makine dairesiz — kuyu tepesinden yatay kesit;  ELEport'un
+MRL paftasındaki "Machine Room" çizimi ):  duvarlar, raylar, konsollar kuyu
+planından;  kabin, karşı ağırlık ve kat kapısı yalnız izleriyle ( kesik ).
+
+- **Halatlar düşey iner.**  Tahrik kasnağının bir teğeti kabinin yakın
+  halatının ( kabin kasnağının dış teğeti ) hizasındadır;  öbür teğetinden inen
+  halat karşı ağırlık kasnağının teğetine düşmelidir.  Düşmüyorsa sapma
+  **HALAT SAPMASI** ölçüsüyle gösterilir.  ELEport'ta birebir tutar:
+  370 − 240 = 130 ( ağırlık ekseni ).
+- **Makine** tahrik kasnağının ağırlık eksenine bakan tarafında;  **halat
+  bağlantıları** ağırlık kasnağının öbür teğetinin ve kabinin uzak halatının
+  üstünde;  **regülatör** kuyu dibindeki gergi kasnağının tam üstünde.
+- **Acil kurtarma ve test panosu** ( m.5.2.6.6 ) kuyunun dışında, en üst katta
+  kapının seçilen yanında;  önünde **0,70 m** derin, **en az 0,50 m** ya da pano
+  eni kadar çalışma alanı ( m.5.2.6.6.4 → m.5.2.6.3.2.1 a ).
+- Ölçüler ELEport'un makinesinden ( `sabitler.py` ):  kasnak 240 × 105, gövde
+  298 × 279, bağlantı plakaları 264 × 120 ve 127 × 200, regülatör 80 × 300
+  ( gövde 130 × 180 ), pano 400 × 300.  Başka makinede katalogdan değiştirilir.
+- Karşı ağırlığın ekseni artık girdidir ( `agirlik.eksen_kaciklik`, ELEport
+  −50 ):  kabin ray ekseninde sabit dururken halat ağırlık kasnağına 95 mm
+  kaçık düşüyordu.
+- Bugün yalnız yandaki karşı ağırlık + kabin altı 2:1 askı çizilir;  öteki
+  düzenler açıkça reddedilir.
+
 ## Sırada ne var
 
-1. Makine dairesi / kuyu üstü yatay kesiti
+1. Makine daireli asansör:  makine dairesi yerleşim planı ve **döşeme halat
+   delik planı** ( m.5.2.6.3.2 çalışma alanları, m.5.2.6.3.3 delik bileziği )
 2. Düşey kesitler ( kabin en altta · en üstte · tampona oturmuş ) ve kat kotları
 3. `cizim/kopru.py` — girdilerin hesap programından dolması.  Önce iki tanım
    eşitlenmeli:  ray – kapı arası hesapta kat kapısı düzleminden ( RK ),

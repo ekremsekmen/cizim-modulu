@@ -19,7 +19,7 @@ from cizim import sabitler as CS
 KATMANLAR = ("KUYU-DUVAR", "TARAMA", "BINA", "KUYU-IC", "KABIN", "KABIN-IC",
              "SASE", "KAPI", "AGIRLIK", "RAY", "KONSOL", "CIVATA", "PATEN",
              "KASNAK", "PANO", "OLCU", "EKSEN", "YAZI", "CERCEVE", "KORKULUK", "SIGINMA",
-             "TAMPON", "PERDE", "MERDIVEN", "GIZLI", "YUK")
+             "TAMPON", "PERDE", "MERDIVEN", "GIZLI", "YUK", "MAKINE", "BAGLANTI")
 
 #  T profilinde flanş / gövde et kalınlığı;  1/20 planda ayrıntı okunmaz,
 #  flanş + gövde yeterlidir.
@@ -254,8 +254,12 @@ def plan(g, cizim_sabitleri=None):
     #  O ray, iki ağırlık rayı konsolunun taşıdığı dikine bir ARA KİRİŞE
     #  bağlanır  ( ELEport'un paftasındaki çözüm ).
     ag_yan = ag["yeri"] if ag["yeri"] in ("Sağ", "Sol") else None
-    ag_alt = ry - ag["ray_arasi"] / 2.0 - ag["h"]          # ağırlık rayı arkaları
-    ag_ust = ry + ag["ray_arasi"] / 2.0 + ag["h"]
+    #  KARŞI AĞIRLIĞIN EKSENİ ( yandaki ağırlıkta ):  kabin ray ekseninden
+    #  eksen_kaciklik kadar kayık — ELEport'ta 50 mm önde.  Ağırlığın halatı
+    #  tahrik kasnağının altına düşsün diye kabinin ray ekseninden ayrı durur.
+    ag_y = ry + ag["eksen_kaciklik"]
+    ag_alt = ag_y - ag["ray_arasi"] / 2.0 - ag["h"]        # ağırlık rayı arkaları
+    ag_ust = ag_y + ag["ray_arasi"] / 2.0 + ag["h"]
     for yon, yuz in ((-1, sol_yuz), (+1, sag_yuz)):
         e += [_ad(r, "kabin_ray") for r in _ray_yatay(yuz, ry, kr["b"], kr["h"], yon)]
         arka = yuz + kr["h"] * yon          # rayın duvara bakan yüzü
@@ -313,7 +317,7 @@ def plan(g, cizim_sabitleri=None):
     if ag_yan:
         sol = ag_yan == "Sol"
         ex = ag["ray_duvar"] if sol else G - ag["ray_duvar"]         # ağırlık ekseni
-        ax, ay = ex - ag["derinlik"] / 2.0, ry - ag["genislik"] / 2.0
+        ax, ay = ex - ag["derinlik"] / 2.0, ag_y - ag["genislik"] / 2.0
         e.append(_ad(_dik("AGIRLIK", ax, ay, ag["derinlik"], ag["genislik"]), "agirlik_blok"))
         e.append(_dik("AGIRLIK", ax + cer, ay + cer,
                       ag["derinlik"] - 2 * cer, ag["genislik"] - 2 * cer))
@@ -321,7 +325,7 @@ def plan(g, cizim_sabitleri=None):
         #  kirişe uzanır  ( ağırlığın boyunun DIŞINDAN geçer ).
         kiris_ic = (sol_yuz - kr["h"] - S["ara_kiris_en"]) if sol else (sag_yuz + kr["h"]
                                                                         + S["ara_kiris_en"])
-        for yuz, y_yon in ((ry + ag["ray_arasi"] / 2.0, +1), (ry - ag["ray_arasi"] / 2.0, -1)):
+        for yuz, y_yon in ((ag_y + ag["ray_arasi"] / 2.0, +1), (ag_y - ag["ray_arasi"] / 2.0, -1)):
             e += [_ad(r, "agirlik_ray") for r in _ray_dusey(yuz, ex, ag["b"], ag["h"], y_yon)]
             duvar_x = 0 if sol else G
             plaka_x = duvar_x if sol else duvar_x - S["konsol_agirlik_en"]
@@ -338,9 +342,9 @@ def plan(g, cizim_sabitleri=None):
                               kol_son - kol_bas, S["konsol_agirlik_boy"] / 3.0, ad="kol"))
         if ag.get("kasnak_capi"):
             dc = ag["kasnak_capi"]
-            e.append(_ad(_dik("KASNAK", ex - ag["derinlik"] / 2.0 + cer, ry - dc / 2.0,
+            e.append(_ad(_dik("KASNAK", ex - ag["derinlik"] / 2.0 + cer, ag_y - dc / 2.0,
                           ag["derinlik"] - 2 * cer, dc), "agirlik_kasnak"))
-            e.append(_ad(_yazi(ex, ry, f"ø {dc:g}", 40, aci=90), "agirlik_kasnak_yazi"))
+            e.append(_ad(_yazi(ex, ag_y, f"ø {dc:g}", 40, aci=90), "agirlik_kasnak_yazi"))
     else:
         ey = D - ag["ray_duvar"]
         ex = G / 2.0
@@ -562,7 +566,7 @@ def plan(g, cizim_sabitleri=None):
         blok_ic = ex + ag["derinlik"] / 2.0 if ag_yan == "Sol" else ex - ag["derinlik"] / 2.0
         bos = abs(kiris_ic - blok_ic)
         yx = (blok_ic + kiris_ic) / 2.0 if bos >= 60 else ex
-        e.append(_ad(_yazi(yx, ry, "KARŞI AĞIRLIK", 40, aci=90), "agirlik_yazi"))
+        e.append(_ad(_yazi(yx, ag_y, "KARŞI AĞIRLIK", 40, aci=90), "agirlik_yazi"))
     else:
         e.append(_ad(_yazi(ex, ey - ag["derinlik"] / 2.0 - 45, "KARŞI AĞIRLIK", 40), "agirlik_yazi"))
     _yazilari_yerlestir(e)

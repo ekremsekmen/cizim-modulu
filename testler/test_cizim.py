@@ -812,5 +812,102 @@ class KuyuDibiYerlesim(unittest.TestCase):
         self.assertEqual(sum(1 for el in plakalar if abs(el["y"] + el["d"] - D) < 1e-6), 2)
 
 
+#  ─────────────────────────────────────────────────────────────────────
+#  KUYU ÜSTÜ PLANI  ( makine dairesiz )
+#  ─────────────────────────────────────────────────────────────────────
+from cizim import kuyu_ustu as CKT         # noqa: E402
+
+
+def _ust_projeler():
+    yield "Sol", _ornek()
+    g = _sag_ayna()
+    g["kuyu_dibi"] = dict(g["kuyu_dibi"], regulator_yan="Sol")
+    g["kuyu_ustu"] = dict(g["kuyu_ustu"], acil_pano_yan="Sağ")
+    yield "Sağ", g
+    yield "Kasnak 200 ( sapmalı )", _ornek(kuyu_ustu={"tahrik_kasnak_capi": 200})
+
+
+class KuyuUstu(unittest.TestCase):
+    def test_ornekler_gecerli(self):
+        for ad, g in _ust_projeler():
+            with self.subTest(proje=ad):
+                self.assertEqual(CKT.dogrula(g), [])
+
+    def test_elepport_olculeriyle_birebir(self):
+        """ELEport MRL paftasının vektör ölçüleri ( mm, kuyunun sol-ön iç köşesinden )."""
+        Y = CKT.yerlesim(_ornek())
+        self.assertEqual((Y["kasnak"][0], Y["kasnak"][2]), (130, 370))
+        self.assertEqual((Y["govde"][0], Y["govde"][2]), (101, 399))
+        self.assertEqual((Y["agirlik_baglanti"][0], Y["agirlik_baglanti"][2]), (118, 382))
+        self.assertEqual((Y["kabin_baglanti"][0], Y["kabin_baglanti"][2]), (1890, 2017))
+        self.assertEqual(Y["sapma"], (0, 0))
+
+    def test_halatlar_duseye_iner(self):
+        for ad, g in _ust_projeler():
+            Y = CKT.yerlesim(g)
+            xl, xr = Y["halatlar"][0][0], Y["halatlar"][1][0]
+            ks = Y["kasnak"]
+            with self.subTest(proje=ad):
+                #  tahrik kasnağının bir teğeti kabinin yakın halatında
+                self.assertTrue(abs(ks[2] - xl) < 1e-9 or abs(ks[0] - xr) < 1e-9)
+                self.assertAlmostEqual(ks[2] - ks[0], g["kuyu_ustu"]["tahrik_kasnak_capi"])
+                sapma = [el for el in CKT.ciz(g) if el["tip"] == "olcu"
+                         and el["metin"].startswith("HALAT SAPMASI")]
+                self.assertEqual(bool(sapma), any(abs(v) > 0.5 for v in Y["sapma"]))
+        self.assertEqual(CKT.yerlesim(_ornek(kuyu_ustu={"tahrik_kasnak_capi": 200}))["sapma"],
+                         (40, 0))
+
+    def test_regulator_gergi_kasnaginin_ustunde(self):
+        for ad, g in _ust_projeler():
+            ust, dip = CKT.yerlesim(g)["reg_kasnak"], CKD.yerlesim(g)["gergi"]
+            with self.subTest(proje=ad):
+                self.assertAlmostEqual((ust[0] + ust[2]) / 2.0, (dip[0] + dip[2]) / 2.0)
+                self.assertAlmostEqual((ust[1] + ust[3]) / 2.0, (dip[1] + dip[3]) / 2.0)
+
+    def test_acil_pano_ve_calisma_alani(self):
+        """m.5.2.6.6.4 → m.5.2.6.3.2.1 a:  0,70 m derin, en az 0,50 m ya da pano eni."""
+        for en, beklenen in ((400, 500), (600, 600)):
+            g = _ornek()
+            g["_cizim_sabitleri"] = {"acil_pano_en": en}
+            Y = CKT.yerlesim(g)
+            p, c = Y["pano"], Y["calisma"]
+            with self.subTest(pano_eni=en):
+                self.assertLessEqual(p[3], -g["kuyu"]["duvar_on"])       # kuyunun dışında
+                self.assertEqual(c[3] - c[1], 700)
+                self.assertEqual(c[2] - c[0], beklenen)
+                self.assertEqual(c[3], p[1])
+
+    def test_desteklenmeyen_duzenler_reddedilir(self):
+        self.assertTrue(CKT.dogrula(_ornek(agirlik={"yeri": "Arka"})))
+        self.assertTrue(CKT.dogrula(_ornek(aski={"duzen": "Kabin üstü"})))
+        self.assertTrue(CKT.dogrula(_ornek(kuyu_ustu={"acil_pano_yan": "Arka"})))
+
+    def test_parcalar_ust_uste_binmez(self):
+        #  Regülatör kabin halat bağlantısının üstüne kaydırılınca reddedilir
+        h = CKT.dogrula(_ornek(kuyu_dibi={"regulator_kaciklik": -250}))
+        self.assertTrue(any("üst üste" in x for x in h), h)
+
+    def test_olcu_zincirleri_yazilar_dxf(self):
+        import itertools
+        from cizim import dxf as CDX
+        from ezdxf.audit import Auditor
+        for ad, g in _ust_projeler():
+            e = CKT.ciz(g)
+            for z in CGE.zincirler(e):
+                with self.subTest(proje=ad, zincir=z):
+                    self.assertAlmostEqual(z["toplam"], z["son"] - z["bas"])
+            k = OlcuYazilari._kutular(None, e)
+            for a, b in itertools.combinations(k, 2):
+                with self.subTest(proje=ad, a=a[0]["metin"], b=b[0]["metin"]):
+                    self.assertFalse(a[1] < b[3] and b[1] < a[3] and a[2] < b[4] and b[2] < a[4])
+            d = CDX.belge(e, "KUYU ÜSTÜ", 20)
+            a = Auditor(d)
+            a.run()
+            self.assertEqual(list(a.errors), [])
+
+    def test_calisma_alani_standart_sayilari(self):
+        self.assertEqual((CKT.CALISMA_DERINLIK, CKT.CALISMA_EN_ASGARI), (700.0, 500.0))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

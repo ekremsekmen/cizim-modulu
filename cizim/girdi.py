@@ -23,7 +23,8 @@ ZORUNLU = {
     "kabin": ("genislik", "derinlik", "kaciklik_y", "on_pay"),
     "kapi": ("genislik", "sol_pay"),
     "kabin_ray": ("arasi", "kapi_arasi", "b", "h"),
-    "agirlik": ("yeri", "genislik", "derinlik", "ray_arasi", "ray_duvar", "b", "h"),
+    "agirlik": ("yeri", "genislik", "derinlik", "ray_arasi", "ray_duvar", "eksen_kaciklik",
+                "b", "h"),
     #  2:1 askıda kasnak ölçüleri, 1:1'de askı noktası aralığı kullanılır.
     "aski": ("duzen",),
 }
@@ -75,7 +76,7 @@ def dogrula(g):
                 continue                       # aşağıda ayrıca denetlenir
             if not isinstance(v, (int, float)) or isinstance(v, bool):
                 hata.append(f"{bolum}.{a}: sayı olmalı ( {v!r} ).")
-            elif a in ("kaciklik_y",):
+            elif a in ("kaciklik_y", "eksen_kaciklik"):
                 continue                      # işaretli olabilir
             elif v <= 0:
                 hata.append(f"{bolum}.{a}: sıfırdan büyük olmalı ( {v!r} ).")
@@ -114,8 +115,9 @@ def dogrula(g):
         hata.append("Kabin veya şasesi kuyunun dışına taşıyor.")
     if ag["yeri"] in ("Sağ", "Sol"):
         ex = ag["ray_duvar"] if ag["yeri"] == "Sol" else k["genislik"] - ag["ray_duvar"]
-        ag_kutu = (ex - ag["derinlik"] / 2.0, g["kabin_ray"]["kapi_arasi"] - ag["genislik"] / 2.0,
-                   ex + ag["derinlik"] / 2.0, g["kabin_ray"]["kapi_arasi"] + ag["genislik"] / 2.0)
+        ag_y = g["kabin_ray"]["kapi_arasi"] + ag["eksen_kaciklik"]
+        ag_kutu = (ex - ag["derinlik"] / 2.0, ag_y - ag["genislik"] / 2.0,
+                   ex + ag["derinlik"] / 2.0, ag_y + ag["genislik"] / 2.0)
     else:
         ey = k["derinlik"] - ag["ray_duvar"]
         ag_kutu = (k["genislik"] / 2.0 - ag["genislik"] / 2.0, ey - ag["derinlik"] / 2.0,
@@ -205,15 +207,21 @@ ORNEK = {
     #  ölçüldü:  790 ( raylar boyunca ) × 160 mm — DBGW 850'nin içinde,
     #  iki uçta 30 mm paten payı.  ( Eski 1.250 × 250, makine dairesi
     #  çiziminden yanlış okunmuştu;  blok kendi raylarının dışına taşıyordu. )
+    #  eksen_kaciklik:  yandaki ağırlığın ekseni kabin ray ekseninin 50 mm
+    #  önünde ( ELEport paftasındaki "50" ölçüsü;  − = kapıya doğru ).
     "agirlik": {"yeri": "Sol", "genislik": 790, "derinlik": 160,
-                "ray_arasi": 850, "ray_duvar": 130, "b": 70, "h": 65,
+                "ray_arasi": 850, "ray_duvar": 130, "eksen_kaciklik": -50, "b": 70, "h": 65,
                 "kasnak_capi": 400},
-    #  2:1 askı, kasnaklar kabinin altında;  eksenleri kabin merkezinden
-    #  125 mm kapıya doğru kaçık  ( ELEport örneğindeki yerleşim ).
-    #  Kasnaklar arası ELEport paftasında 690 + 690 = 1.380 ( eski 1.470
-    #  yanlış okunmuştu;  halat kabin rayının ara kirişinin içinden geçiyordu ).
+    #  2:1 askı, kasnaklar kabinin altında.  Kasnaklar arası ELEport
+    #  paftasında 690 + 690 = 1.380 ( eski 1.470 yanlış okunmuştu;  halat
+    #  kabin rayının ara kirişinin içinden geçiyordu ).
+    #  KAÇIKLIK HALATLARI DÜŞEY İNDİRİR:  ELEport'ta kabin kasnaklarının
+    #  çizgisi = tahrik kasnağının çizgisi = ağırlık kasnağının ön teğeti
+    #  ( ağırlık ekseni − 200 ).  Bu örnekte ağırlık ekseni 1.017 − 50 = 967,
+    #  teğet 767;  kabin merkezi 130 + 1.433 / 2 = 846,5 → kaçıklık −79,5.
+    #  ( Eski −125, halatı ağırlık kasnağına 95 mm kaçık düşürüyordu. )
     "aski": {"duzen": "Kabin altı", "kasnak_capi": 240, "kasnak_arasi": 1380,
-             "kasnak_kaciklik": -125},
+             "kasnak_kaciklik": -79.5},
     #  Kabin üstü planı:  sığınma alanı tipi  ( TS EN 81-20 Çizelge 3 ).
     #  Hesap programındaki "Kabin üstü sığınma hacmi tipi" ile aynı seçim.
     "kabin_ustu": {"siginma_tipi": "Çömelme"},
@@ -227,4 +235,8 @@ ORNEK = {
                   "kabin_tampon_adedi": 1, "agirlik_tampon_adedi": 1,
                   "regulator_yan": "Sağ", "regulator_kaciklik": 280,
                   "regulator_kasnak_capi": 300},
+    #  Kuyu üstü planı ( makine dairesiz ).  Tahrik kasnağı çapı hesap
+    #  programında var ( D1 );  acil kurtarma panosu en üst kattaki kapının
+    #  hangi yanında.
+    "kuyu_ustu": {"tahrik_kasnak_capi": 240, "acil_pano_yan": "Sol"},
 }
