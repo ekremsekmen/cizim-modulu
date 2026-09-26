@@ -20,18 +20,22 @@ KALEM = {
     "PANO": ("#2f6fb5", 5), "BINA": ("#a06a4a", 3),
     "CIVATA": ("#2f6f2f", 3), "CERCEVE": ("#1a1a1a", 8),
     "OLCU": ("#0a6ebd", 3), "EKSEN": ("#c01c1c", 3), "YAZI": ("#1a1a1a", 0),
+    "KORKULUK": ("#d11a6a", 12), "SIGINMA": ("#1d8a3a", 6),
 }
+#  Kesik çizilen katmanlar  ( sığınma alanı gerçek bir parça değil, alandır )
+KESIK = {"SIGINMA": "80 40"}
 DOLGU = {"KABIN-IC": "none", "AGIRLIK": "#fde9d7", "RAY": "#dff0df",
          "KAPI": "#ffffff", "KABIN": "#ffffff", "SASE": "#fbe6f6",
          "KONSOL": "#eef7ee", "PATEN": "#efe4f8", "KASNAK": "#d8f0e2",
-         "PANO": "#dbe8f7"}
+         "PANO": "#dbe8f7", "SIGINMA": "#e6f6ea"}
 
 
 def _dikdortgen(el, renk, kalinlik):
     dolgu = DOLGU.get(el["katman"], "none")
+    kesik = (f' stroke-dasharray="{KESIK[el["katman"]]}"' if el["katman"] in KESIK else "")
     return (f'<rect x="{el["x"]:.1f}" y="{el["y"]:.1f}" width="{el["g"]:.1f}" '
             f'height="{el["d"]:.1f}" fill="{dolgu}" stroke="{renk}" '
-            f'stroke-width="{kalinlik}"/>')
+            f'stroke-width="{kalinlik}"{kesik}/>')
 
 
 def _olcu(el, renk, kalinlik):

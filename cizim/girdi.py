@@ -92,6 +92,12 @@ def dogrula(g):
         hata.append("Ray – kapı arası kuyu derinliğinden büyük olamaz.")
     if g["kabin_ray"]["arasi"] > k["genislik"]:
         hata.append("Kabin rayları arası kuyu genişliğine sığmıyor.")
+    #  KABİN RAYLARININ ARASINDA GİDER:  ray ekseni kabinin derinliği içinden
+    #  geçmeli;  geçmezse patenler kabine değil boşluğa bağlanır.
+    if not (kb["on_pay"] <= g["kabin_ray"]["kapi_arasi"] <= kb["on_pay"] + kb["derinlik"]):
+        hata.append(f"Kabin rayı ekseni ( kapıdan {g['kabin_ray']['kapi_arasi']:g} ) kabinin "
+                    f"derinliği içinden geçmiyor ( kabin {kb['on_pay']:g} – "
+                    f"{kb['on_pay'] + kb['derinlik']:g} ).")
     #  KABİN İLE KARŞI AĞIRLIK ÇAKIŞAMAZ.  Blok, ağırlık rayı eksenine
     #  ortalanır;  kabinin yanından en az ASGARI_ACIKLIK kadar uzak durmalı.
     ag = g["agirlik"]
@@ -200,6 +206,11 @@ ORNEK = {
                 "kasnak_capi": 400},
     #  2:1 askı, kasnaklar kabinin altında;  eksenleri kabin merkezinden
     #  125 mm kapıya doğru kaçık  ( ELEport örneğindeki yerleşim ).
-    "aski": {"duzen": "Kabin altı", "kasnak_capi": 240, "kasnak_arasi": 1470,
+    #  Kasnaklar arası ELEport paftasında 690 + 690 = 1.380 ( eski 1.470
+    #  yanlış okunmuştu;  halat kabin rayının ara kirişinin içinden geçiyordu ).
+    "aski": {"duzen": "Kabin altı", "kasnak_capi": 240, "kasnak_arasi": 1380,
              "kasnak_kaciklik": -125},
+    #  Kabin üstü planı:  sığınma alanı tipi  ( TS EN 81-20 Çizelge 3 ).
+    #  Hesap programındaki "Kabin üstü sığınma hacmi tipi" ile aynı seçim.
+    "kabin_ustu": {"siginma_tipi": "Çömelme"},
 }

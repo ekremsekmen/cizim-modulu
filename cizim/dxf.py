@@ -22,6 +22,7 @@ KATMAN = {
     "KASNAK": (90, 20), "PANO": (150, 20),
     "CIVATA": (3, 13), "CERCEVE": (7, 40),
     "OLCU": (5, 13), "EKSEN": (1, 13), "YAZI": (7, 0),
+    "KORKULUK": (6, 50), "SIGINMA": (3, 25),
 }
 YAZI_TIPI = "ASANSOR"
 
@@ -31,6 +32,7 @@ def _katmanlari_kur(d):
         if ad not in d.layers:
             d.layers.add(ad, color=renk, lineweight=kalinlik)
     d.layers.get("EKSEN").dxf.linetype = "CENTER"
+    d.layers.get("SIGINMA").dxf.linetype = "DASHED"
 
 
 def _dikdortgen(msp, el):

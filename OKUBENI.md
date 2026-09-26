@@ -26,10 +26,11 @@ python3 -m venv .venv
 |---|---|
 | `cizim/girdi.py` | Çizim girdisinin **sözleşmesi**, doğrulaması ve deneme ölçüleri |
 | `cizim/sabitler.py` | Ofisin ürün ölçüleri ( konsol, paten, kasa, pano … ) |
-| `cizim/geometri.py` | Girdiden **çizim elemanları** üretir ( saf veri ) |
+| `cizim/geometri.py` | Girdiden **çizim elemanları** üretir ( saf veri ) — kuyu planı |
+| `cizim/kabin_ustu.py` | Kabin üstü planı:  kuyu planının elemanlarını okur, tavanı ekler |
 | `cizim/svg.py` | Elemanları SVG'ye yazar |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/test_cizim.py` | 50 test |
+| `testler/test_cizim.py` | 67 test |
 | `ornekler/` | `calistir.py`'nin ürettiği örnek çizimler |
 
 ## Kurallar
@@ -66,17 +67,38 @@ kapı boşluğu · kasa · eşik · kanatlar · açılış oku, kabin panosu ve 
 kasnağı, karşı ağırlık rayları ve konsolları, askı kasnakları ya da askı
 noktaları, kumanda panosu, eksenler, 46 ölçü ve çerçeve + künye şeridi.
 
+**Kabin üstü planı** ( kabin tavanı hizasından yatay kesit ):  duvarlar, raylar,
+konsollar ve karşı ağırlık kuyu planından aynen alınır ( ikinci kez
+hesaplanmaz );  ön duvar dolu çizilir ( kesit kapı lentosunun üstünden geçer ).
+Tavanda:  kabin tavanı ve şase dikmeleri, kapı operatörü ( kapı tipine göre
+kanatların kaydığı boy ), askı ( kabin üstünde kasnaklar · kabin altında
+halatların tavan dışından geçtiği yer · doğrudan askıda askı noktaları ).
+Standarttan hesaplananlar:
+
+| Kural | Madde | Ne yapılır |
+|---|---|---|
+| Tavan kenarından duvara boşluk **> 0,30 m** ise korkuluk | m.5.4.7.2 b | Her kenar ayrı;  gerekli kenara küpeşte çizilir |
+| Küpeşte kuyudaki parçalardan **≥ 0,10 m** | m.5.4.7.4 d | Gerekirse kenardan içeri alınır, ölçüsü yazılır |
+| Küpeşte kenardan **≤ 0,15 m** içeride | m.5.4.7.4 c | Aşılırsa çizim reddedilir |
+| Yükseklik:  küpeşte – duvar **≤ 0,50 m → 0,70 m**, aşarsa **1,10 m** | m.5.4.7.4 b | Küpeştenin yanına yazılır |
+| Sığınma alanı **0,40 × 0,50** ( dik duruş ) / **0,50 × 0,70** ( çömelme ) | m.5.2.5.7.1 · Çizelge 3 | Korkulukların içinde, operatör ve askı dışında, kapıya en yakın yere konur;  yer yoksa reddedilir |
+
+Ayrıca:  kabin altı askıda halat kuyudaki bir parçanın içinden geçemez;
+kabin üstü kasnağı korkuluğun yolunu kesemez;  pano halatın ve konsolların
+yolundan kayar;  kabin rayı ekseni kabinin derinliği içinden geçmelidir.
+Çizilmeyenler:  şase üst kirişi ve revizyon kutusu ( tedarikçi ölçüsü yok ),
+etek tahtası ( planda tavan kenarıyla çakışır ).
+
 ## Sırada ne var
 
-1. Kabin üstü yatay kesiti ( sığınma alanı m.5.2.5.7, korkuluk m.5.4.7 )
-2. Kuyu dibi yatay kesiti ( tamponlar, regülatör gergisi, merdiven )
-3. Makine dairesi / kuyu üstü yatay kesiti
-4. Düşey kesitler ( kabin en altta · en üstte · tampona oturmuş ) ve kat kotları
-5. `cizim/kopru.py` — girdilerin hesap programından dolması.  Önce iki tanım
+1. Kuyu dibi yatay kesiti ( tamponlar, regülatör gergisi, merdiven )
+2. Makine dairesi / kuyu üstü yatay kesiti
+3. Düşey kesitler ( kabin en altta · en üstte · tampona oturmuş ) ve kat kotları
+4. `cizim/kopru.py` — girdilerin hesap programından dolması.  Önce iki tanım
    eşitlenmeli:  ray – kapı arası hesapta kat kapısı düzleminden ( RK ),
    çizimde kuyu iç yüzünden;  kabin kaçıklığı hesapta ray ekseninden ( yc ),
    çizimde kuyu ortasından ölçülüyor.
-6. Ofis şablonuna ( TİP PROJE FORMATI ) yerleştirme
+5. Ofis şablonuna ( TİP PROJE FORMATI ) yerleştirme
 
 **Başka bir referans:**  kullanıcının LiftDesigner çıktıları ( `12744-3 lift.dwg` ):
 kuyu planı, düşey kesit, makine odası, kuyu üstü ve kuyu dibi kesitleri, kuyu
@@ -88,7 +110,8 @@ verilir;  uzatma çizgileri kısadır, planı kesmez.
 
 `cizim/sabitler.py` içindeki ürün ölçüleri ve `girdi.ORNEK`, ELEport'un
 yayımlanmış örnek projesinin çizim geometrisinden ölçülerek alındı ( karşı
-ağırlık çerçevesi 790 × 160, kapı kasaya 610 → boşluğa 730, ara kiriş 50 );  ölçek 1/20 üzerinden
+ağırlık çerçevesi 790 × 160, kapı kasaya 610 → boşluğa 730, kasnaklar arası
+690 + 690 = 1.380, ara kiriş 50 );  ölçek 1/20 üzerinden
 kalibre edildi ve kalibrasyon ray profilleriyle doğrulandı ( T89/B 89 × 62 ve
 T70/A 70 × 65 tam çıktı ).  Tek bir projenin donanımıdır — tedarikçi verisi
 gelince değiştirilmelidir.

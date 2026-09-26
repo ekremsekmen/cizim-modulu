@@ -4,6 +4,7 @@
 
     python3 calistir.py                 → ornekler/ klasörüne SVG + DXF yazar
     python3 calistir.py --aski Doğrudan → 1:1 askı düzeniyle
+    python3 calistir.py --cizim kabin_ustu → kabin üstü planı
 
 Hesap programından BAĞIMSIZDIR;  girdiyi cizim/girdi.py içindeki ÖRNEK
 sözlüğünden alır.  İleride köprü ( cizim/kopru.py ) bu sözlüğü hesabın
@@ -17,19 +18,28 @@ import sys
 from cizim import dxf as CDX
 from cizim import geometri as CGE
 from cizim import girdi as CG
+from cizim import kabin_ustu as CKU
 from cizim import svg as CSV
 
 KOK = os.path.dirname(os.path.abspath(__file__))
 
 
-def uret(g, ad, baslik, olcek=20):
-    hata = CG.dogrula(g)
+CIZIMLER = {
+    "kuyu_plani": (CG.dogrula, CGE.plan, "KUYU PLANI  ( kabin hizasından yatay kesit )"),
+    "kabin_ustu": (CKU.dogrula, CKU.ciz,
+                   "KABİN ÜSTÜ PLANI  ( kabin tavanı hizasından yatay kesit )"),
+}
+
+
+def uret(g, ad, baslik, olcek=20, cizim="kuyu_plani"):
+    dogrula, ciz, _ = CIZIMLER[cizim]
+    hata = dogrula(g)
     if hata:
         print("GİRDİ REDDEDİLDİ:")
         for h in hata:
             print("   ·", h)
         return 1
-    elemanlar = CGE.cerceveli(CGE.plan(g), baslik, olcek,
+    elemanlar = CGE.cerceveli(ciz(g), baslik, olcek,
                               seritler=(f"{g['proje']['ad']}  ·  {g['proje']['asansor']}",))
     klasor = os.path.join(KOK, "ornekler")
     os.makedirs(klasor, exist_ok=True)
@@ -45,7 +55,9 @@ def main(argv):
     ayrıştırıcı = argparse.ArgumentParser(description="Kuyu planı çizer")
     ayrıştırıcı.add_argument("--aski", choices=CG.ASKI_DUZENLERI, default="Kabin altı")
     ayrıştırıcı.add_argument("--agirlik", choices=CG.AGIRLIK_YERLERI, default=None)
-    ayrıştırıcı.add_argument("--ad", default="kuyu_plani")
+    ayrıştırıcı.add_argument("--cizim", choices=tuple(CIZIMLER), default="kuyu_plani")
+    ayrıştırıcı.add_argument("--siginma", choices=tuple(CKU.SIGINMA), default=None)
+    ayrıştırıcı.add_argument("--ad", default=None)
     a = ayrıştırıcı.parse_args(argv)
 
     g = copy.deepcopy(CG.ORNEK)
@@ -55,7 +67,9 @@ def main(argv):
         g["aski"]["duzen"] = a.aski
     if a.agirlik:
         g["agirlik"]["yeri"] = a.agirlik
-    return uret(g, a.ad, "KUYU PLANI  ( kabin hizasından yatay kesit )")
+    if a.siginma:
+        g["kabin_ustu"]["siginma_tipi"] = a.siginma
+    return uret(g, a.ad or a.cizim, CIZIMLER[a.cizim][2], cizim=a.cizim)
 
 
 if __name__ == "__main__":
