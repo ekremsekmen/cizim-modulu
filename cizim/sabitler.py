@@ -20,6 +20,10 @@ SABIT = {
     "konsol_agirlik_boy": 100,
     "konsol_civata_araligi": 65,   # konsol plakasındaki cıvata deliklerinin arası
     "konsol_civata_capi": 14,
+    #  KARŞI AĞIRLIK YANDAYSA o taraftaki kabin rayı, iki ağırlık rayı
+    #  konsoluna bağlı dikine bir ara kirişe tutturulur;  kirişin plandaki
+    #  eni  ( ELEport paftası:  50 mm ).
+    "ara_kiris_en": 50,
 
     #  ── PATEN  ( kaymalı gövde;  makaralıda da aynı iz kullanılır ) ──
     "paten_en": 50,               # ray yüzüne dik

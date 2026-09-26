@@ -7,6 +7,7 @@ aşağı baktığı için çizim bir kez ters çevrilir, metinler kendi içinde 
 çevrilir ki okunaklı kalsın.
 """
 import html
+import math
 
 #  Katman → ( renk, çizgi kalınlığı mm )
 KALEM = {
@@ -34,36 +35,30 @@ def _dikdortgen(el, renk, kalinlik):
 
 
 def _olcu(el, renk, kalinlik):
-    yatay = el["yon"] == "yatay"
-    if yatay:
+    """Ölçü çizgisi + iki uçtaki kısa çizgi + yazı.
+
+    Yazının yeri geometride bulunur ( el["yazi"] = yazının MERKEZİ );  DXF de
+    aynı yeri kullanır.  UZATMA ÇİZGİSİ YOK:  ölçülen noktadan ölçü çizgisine
+    uzanan kesik çizgiler bütün planı boydan boya kesiyor, çizimi okunmaz
+    yapıyordu ( kullanıcı kararı ).
+    """
+    if el["yon"] == "yatay":
         x1, x2, y = el["a"][0], el["b"][0], el["kot"]
         cizgi = f'<line x1="{x1:.1f}" y1="{y:.1f}" x2="{x2:.1f}" y2="{y:.1f}"'
         uc = "".join(f'<line x1="{x:.1f}" y1="{y - 45:.1f}" x2="{x:.1f}" y2="{y + 45:.1f}" '
                      f'stroke="{renk}" stroke-width="{kalinlik}"/>' for x in (x1, x2))
-        #  Ölçülen noktalardan ölçü çizgisine uzanan ince bağlantılar
-        bag = "".join(f'<line x1="{x:.1f}" y1="{el["a"][1]:.1f}" x2="{x:.1f}" y2="{y:.1f}" '
-                      f'stroke="{renk}" stroke-width="{kalinlik * 0.5:.1f}" '
-                      f'stroke-dasharray="30 20"/>' for x in (x1, x2))
-        #  Yazı ölçüye sığmıyorsa ÇİZİMDEN UZAĞA kaydırılır;  içeri itilirse
-        #  kabinin üstüne biniyordu.
-        yon = -1 if y < 0 else 1
-        tx, ty, aci = (x1 + x2) / 2.0, y + 55 * yon, 0
-        if abs(x2 - x1) < len(el["metin"]) * 32:
-            ty += yon * (130 if int(abs(tx) // 100) % 2 == 0 else 280)
     else:
         y1, y2, x = el["a"][1], el["b"][1], el["kot"]
         cizgi = f'<line x1="{x:.1f}" y1="{y1:.1f}" x2="{x:.1f}" y2="{y2:.1f}"'
         uc = "".join(f'<line x1="{x - 45:.1f}" y1="{y:.1f}" x2="{x + 45:.1f}" y2="{y:.1f}" '
                      f'stroke="{renk}" stroke-width="{kalinlik}"/>' for y in (y1, y2))
-        bag = "".join(f'<line x1="{el["a"][0]:.1f}" y1="{y:.1f}" x2="{x:.1f}" y2="{y:.1f}" '
-                      f'stroke="{renk}" stroke-width="{kalinlik * 0.5:.1f}" '
-                      f'stroke-dasharray="30 20"/>' for y in (y1, y2))
-        yon = -1 if x < 0 else 1
-        tx, ty, aci = x + 55 * yon, (y1 + y2) / 2.0, -90
-        if abs(y2 - y1) < len(el["metin"]) * 32:
-            tx += yon * (130 if int(abs(ty) // 100) % 2 == 0 else 280)
-    return (cizgi + f' stroke="{renk}" stroke-width="{kalinlik}"/>' + uc + bag
-            + _metin(tx, ty, el["metin"], 52, renk, aci))
+    yz = el["yazi"]
+    #  Merkezden taban çizgisine:  yazının "yukarı" yönünün tersine 0,35·h
+    a = math.radians(yz["aci"])
+    bx = yz["x"] + 0.35 * yz["h"] * math.sin(a)
+    by = yz["y"] - 0.35 * yz["h"] * math.cos(a)
+    return (cizgi + f' stroke="{renk}" stroke-width="{kalinlik}"/>' + uc
+            + _metin(bx, by, el["metin"], yz["h"], renk, -yz["aci"]))
 
 
 def _metin(x, y, metin, yukseklik, renk, aci=0, hiza="orta"):  # noqa: D401

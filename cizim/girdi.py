@@ -118,6 +118,35 @@ def dogrula(g):
                     "ya da kabin ölçülerini gözden geçirin.")
     if ag_kutu[0] < 0 or ag_kutu[2] > k["genislik"] or ag_kutu[1] < 0 or ag_kutu[3] > k["derinlik"]:
         hata.append("Karşı ağırlık kuyunun dışına taşıyor.")
+    #  PARÇALAR KENDİ RAYLARININ ARASINA SIĞMALI.  Çerçeve / şase, iki rayın
+    #  birbirine bakan yüzleri arasında kalır;  patenler bu aralıkta kayar.
+    if ag["genislik"] >= ag["ray_arasi"]:
+        hata.append(f"Karşı ağırlık genişliği ({ag['genislik']:g}) ağırlık rayları arasından "
+                    f"( DBGW {ag['ray_arasi']:g} ) küçük olmalı — çerçeve iki rayın arasında durur.")
+    sase_dis = kabin_kutu[2] - kabin_kutu[0]
+    if sase_dis >= g["kabin_ray"]["arasi"]:
+        hata.append(f"Kabin şasesinin dış genişliği ({sase_dis:g}) kabin rayları arasından "
+                    f"( DBG {g['kabin_ray']['arasi']:g} ) küçük olmalı.")
+    #  KAPI KABİNİN ÖNÜNE DÜŞMELİ:  kat kapısının net boşluğu kabin iç
+    #  genişliğinin dışına taşarsa kabin kapısıyla karşılaşmaz.
+    if kp["sol_pay"] < kx - kb["genislik"] / 2.0 or \
+            kp["sol_pay"] + kp["genislik"] > kx + kb["genislik"] / 2.0:
+        hata.append("Kat kapısı boşluğu kabinin önüne düşmüyor — kapının soldan uzaklığını "
+                    "ya da kabinin yana kaçıklığını gözden geçirin.")
+    #  AĞIRLIK YANDAYSA o taraftaki kabin rayı ağırlık konsollarına bağlı
+    #  bir ara kirişte durur;  kiriş ağırlıkla kabin rayı arasına sığmalı.
+    if ag["yeri"] in ("Sağ", "Sol"):
+        kr_ = g["kabin_ray"]
+        if ag["yeri"] == "Sol":
+            ray_arkasi = kx - kr_["arasi"] / 2.0 - kr_["h"]
+            bosluk = ray_arkasi - S["ara_kiris_en"] - ag_kutu[2]
+        else:
+            ray_arkasi = kx + kr_["arasi"] / 2.0 + kr_["h"]
+            bosluk = ag_kutu[0] - (ray_arkasi + S["ara_kiris_en"])
+        if bosluk < ASGARI_ACIKLIK:
+            hata.append(f"Karşı ağırlık ile kabin rayının ara kirişi arasında {bosluk:g} mm kalıyor "
+                        f"( en az {ASGARI_ACIKLIK:g} ) — ağırlık rayı – duvar ölçüsünü ya da "
+                        "kabinin yana kaçıklığını gözden geçirin.")
     #  ASKI DÜZENİ
     a = g.get("aski") or {}
     if a.get("duzen") not in ASKI_DUZENLERI:
@@ -157,9 +186,16 @@ ORNEK = {
     #  kabin 40 ) düşülünce kalan açıklık m.5.3.4.1'in 35 mm sınırını
     #  aşmamalı → en çok 135.
     "kabin": {"genislik": 1350, "derinlik": 1400, "kaciklik_y": 130, "on_pay": 130},
-    "kapi": {"genislik": 900, "sol_pay": 610, "yukseklik": 2100, "tip": "Teleskopik Sol"},
+    #  sol_pay:  kuyunun sol iç yüzünden kapının NET BOŞLUĞUNA ( kasa içi ).
+    #  ELEport'un yazdığı 610, kasaya kadardır:  610 + kasa 120 = 730;  kapı
+    #  ekseni böylece kabin ekseniyle aynı ( 1.180 ) olur.
+    "kapi": {"genislik": 900, "sol_pay": 730, "yukseklik": 2100, "tip": "Teleskopik Sol"},
     "kabin_ray": {"arasi": 1550, "kapi_arasi": 1017, "b": 89, "h": 62},
-    "agirlik": {"yeri": "Sol", "genislik": 1250, "derinlik": 250,
+    #  Karşı ağırlık çerçevesi ELEport paftasının vektör geometrisinden
+    #  ölçüldü:  790 ( raylar boyunca ) × 160 mm — DBGW 850'nin içinde,
+    #  iki uçta 30 mm paten payı.  ( Eski 1.250 × 250, makine dairesi
+    #  çiziminden yanlış okunmuştu;  blok kendi raylarının dışına taşıyordu. )
+    "agirlik": {"yeri": "Sol", "genislik": 790, "derinlik": 160,
                 "ray_arasi": 850, "ray_duvar": 130, "b": 70, "h": 65,
                 "kasnak_capi": 400},
     #  2:1 askı, kasnaklar kabinin altında;  eksenleri kabin merkezinden

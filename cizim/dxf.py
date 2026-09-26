@@ -50,11 +50,17 @@ def _olcu(msp, el):
         p1, p2 = (a[0], a[1]), (a[0], b[1])
         taban = (kot, a[1])
         aci = 90
+    yz = el["yazi"]
+    #  Yazı geometrinin bulduğu yerde durur  ( SVG ile aynı merkez ).
     olcu = msp.add_linear_dim(base=taban, p1=p1, p2=p2, angle=aci,
+                              location=(yz["x"], yz["y"]), text_rotation=yz["aci"],
                               text=el["metin"],
                               dxfattribs={"layer": "OLCU"},
-                              override={"dimtxt": 55, "dimasz": 35, "dimexe": 30,
-                                        "dimexo": 25, "dimgap": 15, "dimclrt": 5})
+                              #  dimse1 / dimse2:  uzatma çizgileri çizilmez —
+                              #  SVG ile aynı görünüm ( kullanıcı kararı ).
+                              override={"dimtxt": yz["h"], "dimasz": 35, "dimexe": 30,
+                                        "dimexo": 25, "dimgap": 15, "dimclrt": 5,
+                                        "dimse1": 1, "dimse2": 1})
     olcu.render()
 
 
