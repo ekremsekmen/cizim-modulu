@@ -45,9 +45,17 @@ def _sayi(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
-def yerlesim(g, cizim_sabitleri=None):
+def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
+    """Makinenin, halatların, bağlantıların ve regülatörün yeri.
+
+    Makine daireli projede de AYNEN kullanılır ( makine_dairesi.py ):  makine
+    kuyunun üstündeyse halatlar aynı noktalardan iner, yalnız bu kez döşeme
+    deliklerinden geçer.  acil_pano = False iken acil kurtarma panosu
+    aranmaz — makine dairesinde bütün düzenekler odanın içindedir.
+    """
     S = CS.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     ku, kd, ag = g.get("kuyu_ustu") or {}, g.get("kuyu_dibi") or {}, g["agirlik"]
+    mk = g.get("makine") or {}
     hata = []
     if (g.get("aski") or {}).get("duzen") != "Kabin altı":
         hata.append("Kuyu üstü planı bugün yalnız kabin altı 2:1 askıyı çizer.")
@@ -55,9 +63,9 @@ def yerlesim(g, cizim_sabitleri=None):
         hata.append("Kuyu üstü planı bugün yalnız yandaki karşı ağırlığı çizer.")
     if not (_sayi(ag.get("kasnak_capi")) and ag["kasnak_capi"] > 0):
         hata.append("agirlik.kasnak_capi:  2:1 askıda karşı ağırlık kasnağının çapı girilmeli.")
-    if not (_sayi(ku.get("tahrik_kasnak_capi")) and ku["tahrik_kasnak_capi"] > 0):
-        hata.append(f"kuyu_ustu.tahrik_kasnak_capi: sayı olmalı ( {ku.get('tahrik_kasnak_capi')!r} ).")
-    if ku.get("acil_pano_yan") not in YANLAR:
+    if not (_sayi(mk.get("tahrik_kasnak_capi")) and mk["tahrik_kasnak_capi"] > 0):
+        hata.append(f"makine.tahrik_kasnak_capi: sayı olmalı ( {mk.get('tahrik_kasnak_capi')!r} ).")
+    if acil_pano and ku.get("acil_pano_yan") not in YANLAR:
         hata.append(f"kuyu_ustu.acil_pano_yan: {YANLAR} içinden olmalı ( {ku.get('acil_pano_yan')!r} ).")
     for alan in ("regulator_kaciklik", "regulator_kasnak_capi"):
         if not _sayi(kd.get(alan)):
@@ -80,7 +88,7 @@ def yerlesim(g, cizim_sabitleri=None):
     #  ── HALATLAR ─────────────────────────────────────────────────────
     (xl, y0), (xr, _) = CGE.halat_konumlari(g, S)
     yakin, uzak = (xl, xr) if sol else (xr, xl)
-    D1 = ku["tahrik_kasnak_capi"]
+    D1 = mk["tahrik_kasnak_capi"]
     y_ = -1.0 if sol else 1.0                       # kabinden ağırlığa doğru
     ag_dusus_x = yakin + y_ * D1                    # tahrik kasnağının öbür teğeti
     R = ag["kasnak_capi"] / 2.0
@@ -133,15 +141,17 @@ def yerlesim(g, cizim_sabitleri=None):
 
     #  ── ACİL KURTARMA VE TEST PANOSU ─────────────────────────────────
     kp, don = g["kapi"], k["duvar_on"]
+    pano = calisma = None
     x0, x1 = kp["sol_pay"], kp["sol_pay"] + kp["genislik"]
     kasa, pe, pd = S["kasa_yan"], S["acil_pano_en"], S["acil_pano_derinlik"]
-    if ku["acil_pano_yan"] == "Sol":
-        pano = (x0 - kasa - pe, -don - pd, x0 - kasa, -don)
-    else:
-        pano = (x1 + kasa, -don - pd, x1 + kasa + pe, -don)
-    ce = max(CALISMA_EN_ASGARI, pe)
-    pm = (pano[0] + pano[2]) / 2.0
-    calisma = (pm - ce / 2.0, pano[1] - CALISMA_DERINLIK, pm + ce / 2.0, pano[1])
+    if acil_pano:
+        if ku["acil_pano_yan"] == "Sol":
+            pano = (x0 - kasa - pe, -don - pd, x0 - kasa, -don)
+        else:
+            pano = (x1 + kasa, -don - pd, x1 + kasa + pe, -don)
+        ce = max(CALISMA_EN_ASGARI, pe)
+        pm = (pano[0] + pano[2]) / 2.0
+        calisma = (pm - ce / 2.0, pano[1] - CALISMA_DERINLIK, pm + ce / 2.0, pano[1])
 
     #  ── ÇAKIŞMALAR ───────────────────────────────────────────────────
     parcalar = {"makine": govde, "tahrik kasnağı": kasnak, "ağırlık halat bağlantısı": agirlik_baglanti,
@@ -162,6 +172,7 @@ def yerlesim(g, cizim_sabitleri=None):
             "sapma": sapma, "kasnak": kasnak, "govde": govde, "agirlik_baglanti": agirlik_baglanti,
             "kabin_baglanti": kabin_baglanti, "reg_kasnak": reg_kasnak, "reg_govde": reg_govde,
             "reg_ayak": reg_ayak, "pano": pano, "calisma": calisma, "D1": D1,
+            "rgx": rx, "rgy": rgy, "yakin": yakin, "uzak": uzak,
             "ag_y": ag_y, "ry": ry, "ex": ex, "hata": hata, "S": S}
 
 

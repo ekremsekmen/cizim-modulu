@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from cizim import geometri as CGE            # noqa: E402
 from cizim import girdi as CG                # noqa: E402
 from cizim import svg as CSV                 # noqa: E402
+from cizim import sabitler as CS_           # noqa: E402
 
 
 def _ornek(**ezme):
@@ -824,7 +825,7 @@ def _ust_projeler():
     g["kuyu_dibi"] = dict(g["kuyu_dibi"], regulator_yan="Sol")
     g["kuyu_ustu"] = dict(g["kuyu_ustu"], acil_pano_yan="Sağ")
     yield "Sağ", g
-    yield "Kasnak 200 ( sapmalı )", _ornek(kuyu_ustu={"tahrik_kasnak_capi": 200})
+    yield "Kasnak 200 ( sapmalı )", _ornek(makine={"tahrik_kasnak_capi": 200})
 
 
 class KuyuUstu(unittest.TestCase):
@@ -850,11 +851,11 @@ class KuyuUstu(unittest.TestCase):
             with self.subTest(proje=ad):
                 #  tahrik kasnağının bir teğeti kabinin yakın halatında
                 self.assertTrue(abs(ks[2] - xl) < 1e-9 or abs(ks[0] - xr) < 1e-9)
-                self.assertAlmostEqual(ks[2] - ks[0], g["kuyu_ustu"]["tahrik_kasnak_capi"])
+                self.assertAlmostEqual(ks[2] - ks[0], g["makine"]["tahrik_kasnak_capi"])
                 sapma = [el for el in CKT.ciz(g) if el["tip"] == "olcu"
                          and el["metin"].startswith("HALAT SAPMASI")]
                 self.assertEqual(bool(sapma), any(abs(v) > 0.5 for v in Y["sapma"]))
-        self.assertEqual(CKT.yerlesim(_ornek(kuyu_ustu={"tahrik_kasnak_capi": 200}))["sapma"],
+        self.assertEqual(CKT.yerlesim(_ornek(makine={"tahrik_kasnak_capi": 200}))["sapma"],
                          (40, 0))
 
     def test_regulator_gergi_kasnaginin_ustunde(self):
@@ -907,6 +908,112 @@ class KuyuUstu(unittest.TestCase):
 
     def test_calisma_alani_standart_sayilari(self):
         self.assertEqual((CKT.CALISMA_DERINLIK, CKT.CALISMA_EN_ASGARI), (700.0, 500.0))
+
+
+#  ─────────────────────────────────────────────────────────────────────
+#  MAKİNE DAİRESİ PLANI  ve  DÖŞEME HALAT DELİK PLANI
+#  ─────────────────────────────────────────────────────────────────────
+from cizim import makine_dairesi as CMD    # noqa: E402
+
+
+def _md_projeler():
+    yield "Sol", _ornek()
+    g = _sag_ayna()
+    g["kuyu_dibi"] = dict(g["kuyu_dibi"], regulator_yan="Sol")
+    g["makine_dairesi"] = dict(g["makine_dairesi"], pano_duvar="Sol", kapi_konum=1500)
+    yield "Sağ", g
+    yield "Pano ön duvarda", _ornek(makine_dairesi={"pano_duvar": "Ön"})
+
+
+class MakineDairesi(unittest.TestCase):
+    def test_ornekler_gecerli(self):
+        for ad, g in _md_projeler():
+            with self.subTest(proje=ad):
+                self.assertEqual(CMD.dogrula(g), [])
+
+    def test_makine_ve_halatlar_kuyu_ustuyle_ayni(self):
+        """Makine daireli ve dairesiz projede halatlar aynı noktalardan iner."""
+        g = _ornek()
+        M, K = CMD.yerlesim(g)["M"], CKT.yerlesim(g)
+        for anahtar in ("kasnak", "govde", "halatlar", "ag_dusus", "ag_teget2", "reg_kasnak"):
+            self.assertEqual(M[anahtar], K[anahtar], anahtar)
+
+    def test_delikler_halat_demetine_gore(self):
+        g = _ornek()
+        Y = CMD.yerlesim(g)
+        a, p = g["aski"], CS_.sabitler()["halat_delik_payi"]
+        demet = (a["halat_adedi"] - 1) * 1.6 * a["halat_capi"] + a["halat_capi"]
+        self.assertAlmostEqual(Y["demet"], demet)
+        d = dict(Y["delikler"][:4])
+        boy, en = demet + 2 * p, a["halat_capi"] + 2 * p
+        for ad in ("KABİN", "AĞIRLIK", "KABİN BAĞLANTISI"):          # kasnak ekseni ( y ) boyunca
+            self.assertAlmostEqual(d[ad][2] - d[ad][0], en)
+            self.assertAlmostEqual(d[ad][3] - d[ad][1], boy)
+        k = d["AĞIRLIK BAĞLANTISI"]                                   # ağırlık kasnağı ekseni ( x )
+        self.assertAlmostEqual(k[2] - k[0], boy)
+        self.assertAlmostEqual(k[3] - k[1], en)
+        #  Delikler halatların tam üstünde
+        M = Y["M"]
+        merkez = lambda q: ((q[0] + q[2]) / 2.0, (q[1] + q[3]) / 2.0)
+        self.assertEqual(merkez(d["KABİN"]), (M["yakin"], M["halatlar"][0][1]))
+        self.assertEqual(merkez(d["AĞIRLIK BAĞLANTISI"]), M["ag_teget2"])
+
+    def test_delik_kuyunun_disina_dusmez(self):
+        h = CMD.dogrula(_ornek(kuyu_dibi={"regulator_kasnak_capi": 1600}))
+        self.assertTrue(any("kuyunun dışına" in x for x in h), h)
+
+    def test_kapi_600_sinirinda(self):
+        for en, uygun in ((600, True), (599, False)):
+            h = CMD.dogrula(_ornek(makine_dairesi={"kapi_genislik": en}))
+            with self.subTest(kapi=en):
+                self.assertEqual(not any("m.5.2.3.2 a" in x for x in h), uygun)
+
+    def test_pano_calisma_alani_ve_bakim_alani(self):
+        for ad, g in _md_projeler():
+            Y = CMD.yerlesim(g)
+            p, c, b, oda = Y["pano"], Y["calisma"], Y["bakim"], Y["oda"]
+            with self.subTest(proje=ad):
+                pe = CS_.sabitler()["kumanda_pano_en"]
+                olcu = sorted((c[2] - c[0], c[3] - c[1]))
+                self.assertEqual(olcu, sorted((700.0, max(500.0, pe))))
+                self.assertEqual(sorted((b[2] - b[0], b[3] - b[1])), [500.0, 600.0])
+                engel = [q for _, q in Y["delikler"]] + [Y["makine"], Y["kapi_onu"]]
+                for alan in (p, c, b):
+                    self.assertTrue(CMD._icinde(alan, oda))
+                    for q in engel:
+                        self.assertFalse(CKT._ortusur(alan, q), (alan, q))
+                #  bakım alanı makineye bitişik
+                m = Y["makine"]
+                self.assertTrue(b[0] == m[2] or b[2] == m[0] or b[1] == m[3] or b[3] == m[1])
+
+    def test_kucuk_odada_reddedilir(self):
+        h = CMD.dogrula(_ornek(makine_dairesi={"derinlik": 2100}))
+        self.assertTrue(any("m.5.2.6.3.2.1" in x for x in h), h)
+        h = CMD.dogrula(_ornek(makine_dairesi={"x": 600}))
+        self.assertTrue(any("dışına taşıyor" in x for x in h), h)
+
+    def test_standart_sayilari(self):
+        self.assertEqual((CMD.KAPI_ASGARI, CMD.BAKIM_ALANI, CMD.CALISMA_DERINLIK,
+                          CMD.CALISMA_EN_ASGARI), (600.0, (500.0, 600.0), 700.0, 500.0))
+
+    def test_olcu_zincirleri_yazilar_dxf(self):
+        import itertools
+        from cizim import dxf as CDX
+        from ezdxf.audit import Auditor
+        for ad, g in _md_projeler():
+            for ciz in (CMD.ciz, CMD.delik_plani):
+                e = ciz(g)
+                for z in CGE.zincirler(e):
+                    with self.subTest(proje=ad, cizim=ciz.__name__, zincir=z):
+                        self.assertAlmostEqual(z["toplam"], z["son"] - z["bas"])
+                k = OlcuYazilari._kutular(None, e)
+                for a, b in itertools.combinations(k, 2):
+                    with self.subTest(proje=ad, cizim=ciz.__name__, a=a[0]["metin"], b=b[0]["metin"]):
+                        self.assertFalse(a[1] < b[3] and b[1] < a[3] and a[2] < b[4] and b[2] < a[4])
+                d = CDX.belge(e, "MAKİNE DAİRESİ", 20)
+                au = Auditor(d)
+                au.run()
+                self.assertEqual(list(au.errors), [])
 
 
 if __name__ == "__main__":

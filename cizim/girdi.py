@@ -221,7 +221,7 @@ ORNEK = {
     #  teğet 767;  kabin merkezi 130 + 1.433 / 2 = 846,5 → kaçıklık −79,5.
     #  ( Eski −125, halatı ağırlık kasnağına 95 mm kaçık düşürüyordu. )
     "aski": {"duzen": "Kabin altı", "kasnak_capi": 240, "kasnak_arasi": 1380,
-             "kasnak_kaciklik": -79.5},
+             "kasnak_kaciklik": -79.5, "halat_adedi": 7, "halat_capi": 6.5},
     #  Kabin üstü planı:  sığınma alanı tipi  ( TS EN 81-20 Çizelge 3 ).
     #  Hesap programındaki "Kabin üstü sığınma hacmi tipi" ile aynı seçim.
     "kabin_ustu": {"siginma_tipi": "Çömelme"},
@@ -235,8 +235,20 @@ ORNEK = {
                   "kabin_tampon_adedi": 1, "agirlik_tampon_adedi": 1,
                   "regulator_yan": "Sağ", "regulator_kaciklik": 280,
                   "regulator_kasnak_capi": 300},
-    #  Kuyu üstü planı ( makine dairesiz ).  Tahrik kasnağı çapı hesap
-    #  programında var ( D1 );  acil kurtarma panosu en üst kattaki kapının
-    #  hangi yanında.
-    "kuyu_ustu": {"tahrik_kasnak_capi": 240, "acil_pano_yan": "Sol"},
+    #  Makine:  tahrik kasnağı çapı hesap programında var ( D1 ).  Kuyu üstü
+    #  ( MRL ) ve makine dairesi planları ortak okur.
+    "makine": {"tahrik_kasnak_capi": 240},
+    #  Kuyu üstü planı ( makine dairesiz ):  acil kurtarma panosu en üst
+    #  kattaki kapının hangi yanında.
+    "kuyu_ustu": {"acil_pano_yan": "Sol"},
+    #  Makine dairesi ( makine daireli asansör ).  İç ölçüler hesap
+    #  programında var ( makine dairesi uzunluğu / genişliği;  örnek:  o
+    #  programın kendi test verisi 3.800 × 2.600 ).  x, y:  odanın iç sol-ön
+    #  köşesinin kuyunun iç sol-ön köşesine göre yeri — oda kuyunun üstünde,
+    #  iki yana 100 mm taşar, önü kuyunun ön duvarıyla aynı hizada.
+    #  Kapı ve pano duvarı:  "Ön" · "Arka" · "Sol" · "Sağ";  kapı konumu
+    #  duvarın sol ( ön ) iç köşesinden kapı boşluğuna.
+    "makine_dairesi": {"genislik": 2600, "derinlik": 3800, "duvar": 200, "x": -250, "y": -150,
+                       "kapi_duvar": "Arka", "kapi_konum": 300, "kapi_genislik": 800,
+                       "pano_duvar": "Sağ"},
 }

@@ -30,6 +30,7 @@ python3 -m venv .venv
 | `cizim/kabin_ustu.py` | Kabin üstü planı:  kuyu planının elemanlarını okur, tavanı ekler |
 | `cizim/kuyu_dibi.py` | Kuyu dibi planı:  tamponlar, perde, gergi, sığınma alanı, merdiven |
 | `cizim/kuyu_ustu.py` | Kuyu üstü planı ( MRL ):  makine, halat bağlantıları, regülatör, acil pano |
+| `cizim/makine_dairesi.py` | Makine dairesi planı + döşeme halat delik planı |
 | `cizim/svg.py` | Elemanları SVG'ye yazar |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
 | `testler/test_cizim.py` | 81 test |
@@ -135,16 +136,32 @@ planından;  kabin, karşı ağırlık ve kat kapısı yalnız izleriyle ( kesik
 - Bugün yalnız yandaki karşı ağırlık + kabin altı 2:1 askı çizilir;  öteki
   düzenler açıkça reddedilir.
 
+**Makine dairesi planı** ve **kuyu üstü döşeme halat delik planı** ( makine
+daireli asansör ):  makinenin, halatların, bağlantıların ve regülatörün yeri
+kuyu üstü planıyla AYNIDIR ( `kuyu_ustu.yerlesim(…, acil_pano=False)` ) —
+halatlar aynı noktalardan iner, bu kez döşeme deliklerinden geçer.
+
+| Kural | Madde | Ne yapılır |
+|---|---|---|
+| Kapı en az **0,60 m** | m.5.2.3.2 a | Altı reddedilir |
+| Kumanda panosunun önünde **0,70 m** derin, **en az 0,50 m** ya da pano eni | m.5.2.6.3.2.1 a | Pano seçilen duvar boyunca kapıya en yakın boş yere;  sığmazsa reddedilir |
+| Makinenin başında **0,50 × 0,60 m** bakım alanı | m.5.2.6.3.2.1 b | Makineye bitişik ilk boş yere;  yoksa reddedilir |
+| Döşeme delikleri **amacı için en küçük** | m.5.2.6.3.3 | Halat demeti ( n halat, aralık 1,6 · dh ) + çevresine `halat_delik_payi` ( 30 mm, çizim kabulü );  regülatör halatı 200 × 200 ( LiftDesigner ) |
+
+Delik planı delikleri **eksenlerinden** ölçer ve boyutlarını üstlerine yazar.
+Kapının önü ( kapı eni × 0,70 m ) boş bırakılır.  Deliklerin kenarındaki
+en az 50 mm'lik bilezik ( m.5.2.6.3.3 ) düşey bir ölçüdür, planda görünmez.
+Örnek oda 3.800 × 2.600 ( hesap programının test verisi ), pano 600 × 400
+( LiftDesigner ).
+
 ## Sırada ne var
 
-1. Makine daireli asansör:  makine dairesi yerleşim planı ve **döşeme halat
-   delik planı** ( m.5.2.6.3.2 çalışma alanları, m.5.2.6.3.3 delik bileziği )
-2. Düşey kesitler ( kabin en altta · en üstte · tampona oturmuş ) ve kat kotları
-3. `cizim/kopru.py` — girdilerin hesap programından dolması.  Önce iki tanım
+1. Düşey kesitler ( kabin en altta · en üstte · tampona oturmuş ) ve kat kotları
+2. `cizim/kopru.py` — girdilerin hesap programından dolması.  Önce iki tanım
    eşitlenmeli:  ray – kapı arası hesapta kat kapısı düzleminden ( RK ),
    çizimde kuyu iç yüzünden;  kabin kaçıklığı hesapta ray ekseninden ( yc ),
    çizimde kuyu ortasından ölçülüyor.
-4. Ofis şablonuna ( TİP PROJE FORMATI ) yerleştirme
+3. Ofis şablonuna ( TİP PROJE FORMATI ) yerleştirme
 
 **Başka bir referans:**  kullanıcının LiftDesigner çıktıları ( `12744-3 lift.dwg` ):
 kuyu planı, düşey kesit, makine odası, kuyu üstü ve kuyu dibi kesitleri, kuyu

@@ -80,6 +80,15 @@ SABIT = {
     "kabin_baglanti_x": 100,         # halattan plakanın kabin tarafı kenarına
     #  Hız regülatörü:  kasnak eni ve gövde
     "regulator_eni": 80, "regulator_govde_en": 130, "regulator_govde_boy": 180,
+    #  ── MAKİNE DAİRESİ ───────────────────────────────────────────────
+    #  Kumanda panosu:  LiftDesigner makine dairesi planındaki pano 600 × 400.
+    "kumanda_pano_en": 600, "kumanda_pano_derinlik": 400,
+    #  Regülatör halatı deliği:  LiftDesigner planında 200 × 200.
+    "regulator_delik": 200,
+    #  Askı halatı deliğinde halat demetinin çevresine bırakılan pay ( mm ).
+    #  STANDARDIN SAYISI DEĞİLDİR:  m.5.2.6.3.3 yalnız "amacı için en küçük"
+    #  der;  çizim kabulüdür, proje ölçüsüyle değiştirilir.
+    "halat_delik_payi": 30,
     #  Acil kurtarma ve test panosu ( TS EN 81-20 m.5.2.6.6 ) — ELEport: 400 × 300
     "acil_pano_en": 400, "acil_pano_derinlik": 300,
 
