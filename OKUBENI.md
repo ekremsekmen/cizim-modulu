@@ -28,9 +28,10 @@ python3 -m venv .venv
 | `cizim/sabitler.py` | Ofisin ürün ölçüleri ( konsol, paten, kasa, pano … ) |
 | `cizim/geometri.py` | Girdiden **çizim elemanları** üretir ( saf veri ) — kuyu planı |
 | `cizim/kabin_ustu.py` | Kabin üstü planı:  kuyu planının elemanlarını okur, tavanı ekler |
+| `cizim/kuyu_dibi.py` | Kuyu dibi planı:  tamponlar, perde, gergi, sığınma alanı, merdiven |
 | `cizim/svg.py` | Elemanları SVG'ye yazar |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/test_cizim.py` | 67 test |
+| `testler/test_cizim.py` | 81 test |
 | `ornekler/` | `calistir.py`'nin ürettiği örnek çizimler |
 
 ## Kurallar
@@ -89,16 +90,35 @@ yolundan kayar;  kabin rayı ekseni kabinin derinliği içinden geçmelidir.
 Çizilmeyenler:  şase üst kirişi ve revizyon kutusu ( tedarikçi ölçüsü yok ),
 etek tahtası ( planda tavan kenarıyla çakışır ).
 
+**Kuyu dibi planı** ( kuyu tabanından yatay kesit ):  duvarlar, raylar ve
+konsollar kuyu planından;  kabinin izi ve kat kapısı yalnız yer göstermek için
+kesik çizilir.  Kuyu tabanına yük aktaran noktalar hesap paftasının 9.
+bölümündeki adlarla işaretlenir:  **FKR** kabin rayı · **Fkt** kabin tamponu ·
+**FAR** ağırlık rayı · **Fat** ağırlık tamponu ( değerleri köprüyle gelecek ).
+
+| Kural | Madde | Ne yapılır |
+|---|---|---|
+| Kabin ve karşı ağırlık tamponu | m.5.8.1.1 | Kabin tamponu kabin ekseninde, ray ekseni üstünde;  ağırlık tamponu ağırlığın ortasında ( 1 ya da 2 adet ).  Ağırlığın / kabinin altına düşmezse, raya çarparsa reddedilir |
+| Karşı ağırlık perdesi, en az ağırlık genişliğinde | m.5.2.5.5.1 d | Ağırlık rayları arasının tamamı boyunca, ağırlığın kuyuya bakan yüzünde |
+| Kabin ile karşı ağırlık arası **≥ 50 mm** | m.5.2.5.5.1 h | Kuyu planının doğrulamasında ( önce 20 mm'lik bir çizim kalkanıydı ) |
+| Sığınma alanı **0,40 × 0,50** / **0,50 × 0,70** / **0,70 × 1,00** | m.5.2.5.8.1 · Çizelge 4 | Kabinin izinin altında, tampon / gergi / merdiven dışında, kapıya en yakın yere |
+| Kuyu dibi **≤ 2,50 m** ise merdiven, aşarsa erişim kapısı | m.5.2.2.4 | Merdiven yalnız 2,50 m'ye kadar çizilir |
+| Merdiven kat girişinin kenarına **≤ 800 mm** | Ek F.5 b | Kapıya yakın yan duvara yaslanır;  sığmazsa reddedilir.  Ölçüsü 350 × 100 ( Ek F.3 ) |
+
+Regülatör gergi kasnağı seçilen yandaki kabin rayının hizasında, ray
+ekseninin arkasında durur ( girdi:  yan, eksene uzaklık, kasnak çapı ).
+Çizilmeyenler:  kuyu dibi durdurma düğmesi ve revizyon kutusu ( yer kuralları
+m.5.2.1.5.1 — ölçüleri yok ).
+
 ## Sırada ne var
 
-1. Kuyu dibi yatay kesiti ( tamponlar, regülatör gergisi, merdiven )
-2. Makine dairesi / kuyu üstü yatay kesiti
-3. Düşey kesitler ( kabin en altta · en üstte · tampona oturmuş ) ve kat kotları
-4. `cizim/kopru.py` — girdilerin hesap programından dolması.  Önce iki tanım
+1. Makine dairesi / kuyu üstü yatay kesiti
+2. Düşey kesitler ( kabin en altta · en üstte · tampona oturmuş ) ve kat kotları
+3. `cizim/kopru.py` — girdilerin hesap programından dolması.  Önce iki tanım
    eşitlenmeli:  ray – kapı arası hesapta kat kapısı düzleminden ( RK ),
    çizimde kuyu iç yüzünden;  kabin kaçıklığı hesapta ray ekseninden ( yc ),
    çizimde kuyu ortasından ölçülüyor.
-5. Ofis şablonuna ( TİP PROJE FORMATI ) yerleştirme
+4. Ofis şablonuna ( TİP PROJE FORMATI ) yerleştirme
 
 **Başka bir referans:**  kullanıcının LiftDesigner çıktıları ( `12744-3 lift.dwg` ):
 kuyu planı, düşey kesit, makine odası, kuyu üstü ve kuyu dibi kesitleri, kuyu

@@ -36,10 +36,13 @@ KAPI_ARASI_AZAMI = 150.0
 #  TS EN 81-20 m.5.3.4.1:  kabin eşiği ile kat kapısı eşiği arası 35 mm.
 ESIK_ARASI_AZAMI = 35.0
 
-#  Çizimde kabin ile karşı ağırlık arasında aranan en küçük açıklık ( mm ).
-#  Standardın sayısı DEĞİLDİR;  çizimin kendi tutarlılık kalkanıdır — iki
-#  parçanın üst üste binmesini yakalar.
+#  Kuyudaki iki sabit parça ( ara kiriş ile karşı ağırlık ) arasında aranan
+#  en küçük açıklık ( mm ).  Standardın sayısı DEĞİLDİR;  çizimin kendi
+#  tutarlılık kalkanıdır — iki parçanın üst üste binmesini yakalar.
 ASGARI_ACIKLIK = 20.0
+#  TS EN 81-20 m.5.2.5.5.1 h:  kabin ve ona bağlı parçalar karşı ağırlıktan
+#  ve ona bağlı parçalardan en az 50 mm uzakta olmalıdır.
+KABIN_AGIRLIK_ACIKLIGI = 50.0
 
 
 def _aski_olculeri(g):
@@ -117,11 +120,12 @@ def dogrula(g):
         ey = k["derinlik"] - ag["ray_duvar"]
         ag_kutu = (k["genislik"] / 2.0 - ag["genislik"] / 2.0, ey - ag["derinlik"] / 2.0,
                    k["genislik"] / 2.0 + ag["genislik"] / 2.0, ey + ag["derinlik"] / 2.0)
-    if (ag_kutu[0] < kabin_kutu[2] + ASGARI_ACIKLIK and kabin_kutu[0] < ag_kutu[2] + ASGARI_ACIKLIK
-            and ag_kutu[1] < kabin_kutu[3] + ASGARI_ACIKLIK
-            and kabin_kutu[1] < ag_kutu[3] + ASGARI_ACIKLIK):
-        hata.append("Karşı ağırlık kabin/şaseyle çakışıyor veya gerekli açıklık sağlanmıyor — ağırlık rayı – duvar ölçüsünü "
-                    "ya da kabin ölçülerini gözden geçirin.")
+    A = KABIN_AGIRLIK_ACIKLIGI
+    if (ag_kutu[0] < kabin_kutu[2] + A and kabin_kutu[0] < ag_kutu[2] + A
+            and ag_kutu[1] < kabin_kutu[3] + A and kabin_kutu[1] < ag_kutu[3] + A):
+        hata.append(f"Karşı ağırlık ile kabin arasında {A:g} mm açıklık yok ( TS EN 81-20 "
+                    "m.5.2.5.5.1 h ) — ağırlık rayı – duvar ölçüsünü ya da kabin ölçülerini "
+                    "gözden geçirin.")
     if ag_kutu[0] < 0 or ag_kutu[2] > k["genislik"] or ag_kutu[1] < 0 or ag_kutu[3] > k["derinlik"]:
         hata.append("Karşı ağırlık kuyunun dışına taşıyor.")
     #  PARÇALAR KENDİ RAYLARININ ARASINA SIĞMALI.  Çerçeve / şase, iki rayın
@@ -213,4 +217,14 @@ ORNEK = {
     #  Kabin üstü planı:  sığınma alanı tipi  ( TS EN 81-20 Çizelge 3 ).
     #  Hesap programındaki "Kabin üstü sığınma hacmi tipi" ile aynı seçim.
     "kabin_ustu": {"siginma_tipi": "Çömelme"},
+    #  Kuyu dibi planı.  derinlik, sığınma tipi ve tampon adetleri hesap
+    #  programında zaten vardır ( kuyu dibi yüksekliği KY, "Kuyu dibi sığınma
+    #  hacmi tipi", kabin / ağırlık tamponu adedi );  köprü onları taşır.
+    #  Regülatör gergi kasnağı ELEport paftasındaki gibi karşı ağırlığın
+    #  karşısındaki kabin rayının hizasında, ray ekseninin 280 mm arkasında
+    #  ( ELEport:  eksenden 160, kasnak boyu 240 ).
+    "kuyu_dibi": {"derinlik": 1600, "siginma_tipi": "Çömelme",
+                  "kabin_tampon_adedi": 1, "agirlik_tampon_adedi": 1,
+                  "regulator_yan": "Sağ", "regulator_kaciklik": 280,
+                  "regulator_kasnak_capi": 300},
 }

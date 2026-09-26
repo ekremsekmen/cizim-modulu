@@ -47,6 +47,13 @@ _PLANDAN_AD = ("agirlik_kasnak", "agirlik_kasnak_yazi", "agirlik_yazi", "pano_ya
                "sase_dikme")
 
 
+#  Planın kabinle ve askıyla gelen elemanları — kabin üstünde kendi
+#  biçimleriyle yeniden çizilir ya da askıya göre seçilir.  AÇIK LİSTE:
+#  ad önekine bakılsaydı "kabin_ray" gibi yeni bir ad sessizce düşerdi.
+_PLANDAN_DISLA = frozenset(("kabin_dis", "sase_dikme", "sase_kiris", "kabin_kasnak",
+                            "kabin_kasnak_yazi", "aski_yazi", "aski_nokta"))
+
+
 def _kutu(el):
     return (el["x"], el["y"], el["x"] + el["g"], el["y"] + el["d"])
 
@@ -216,8 +223,8 @@ def ciz(g, cizim_sabitleri=None):
                             else ("aski_nokta",) if duzen == "Doğrudan" else ())
     e = [el for el in Y["taban"]
          if el.get("ad") in ad_sec
-         or (el["katman"] in _PLANDAN_KATMAN and el["tip"] != "yazi" and not el.get("ad", "").startswith(
-             ("kabin", "aski", "sase")))]
+         or (el["katman"] in _PLANDAN_KATMAN and el["tip"] != "yazi"
+             and el.get("ad") not in _PLANDAN_DISLA)]
 
     #  ── KABİN TAVANI ─────────────────────────────────────────────────
     tg, td = tavan[2] - tavan[0], tavan[3] - tavan[1]

@@ -594,6 +594,18 @@ class KabinUstuYerlesim(unittest.TestCase):
                 for p in Y["engeller"]:
                     self.assertFalse(CKU._ortusur(s, p), p)
 
+    def test_kuyu_parcalari_plandan_eksiksiz_gelir(self):
+        """Raylar, konsollar ve karşı ağırlık kuyu planındakinin aynısı."""
+        for ad, g in _ustu_projeler():
+            plan, ustu = CGE.plan(g), CKU.ciz(g)
+            for kat in ("RAY", "KONSOL", "AGIRLIK", "CIVATA"):
+                with self.subTest(proje=ad, katman=kat):
+                    self.assertEqual(
+                        sorted(_kutu for _kutu in (tuple(round(el[a], 3) for a in ("x", "y", "g", "d"))
+                                                   for el in _dikdortgenler(plan, kat))),
+                        sorted(tuple(round(el[a], 3) for a in ("x", "y", "g", "d"))
+                               for el in _dikdortgenler(ustu, kat)))
+
     def test_on_duvar_dolu_kapi_gorunmez(self):
         e = CKU.ciz(_ornek())
         self.assertFalse([el for el in e if el["katman"] == "KAPI" and el["tip"] == "dikdortgen"
@@ -639,6 +651,165 @@ class KabinUstuYerlesim(unittest.TestCase):
         self.assertEqual(list(a.errors), [])
         self.assertIn("KORKULUK", d.layers)
         self.assertIn("SIGINMA", d.layers)
+
+
+#  ─────────────────────────────────────────────────────────────────────
+#  KUYU DİBİ PLANI
+#  ─────────────────────────────────────────────────────────────────────
+from cizim import kuyu_dibi as CKD         # noqa: E402
+
+
+def _dip_projeler():
+    yield "Sol", _ornek()
+    g = _sag_ayna()
+    g["kuyu_dibi"] = dict(g["kuyu_dibi"], regulator_yan="Sol")
+    yield "Sağ", g
+    yield "Arka", _arka()
+    yield "İki tampon · yatarak", _ornek(kuyu_dibi={
+        "kabin_tampon_adedi": 2, "kabin_tampon_arasi": 600, "agirlik_tampon_adedi": 2,
+        "agirlik_tampon_arasi": 400, "siginma_tipi": "Yatarak"})
+    yield "Derin kuyu · dik duruş", _ornek(kuyu_dibi={"derinlik": 2600, "siginma_tipi": "Dik duruş"})
+
+
+class KuyuDibiSozlesme(unittest.TestCase):
+    def test_ornekler_gecerli(self):
+        for ad, g in _dip_projeler():
+            with self.subTest(proje=ad):
+                self.assertEqual(CKD.dogrula(g), [])
+
+    def test_kabin_agirlik_arasi_50_mm(self):
+        #  TS EN 81-20 m.5.2.5.5.1 h — arka ağırlığın ön yüzü kabinin arkasına
+        #  ray_duvar = 157 → tam 50 mm,  160 → 47 mm
+        for duvar, uygun in ((157, True), (160, False)):
+            g = _ornek(agirlik={"yeri": "Arka", "ray_duvar": duvar})
+            with self.subTest(ray_duvar=duvar):
+                self.assertEqual(not any("m.5.2.5.5.1 h" in h for h in CG.dogrula(g)), uygun)
+
+    def test_hatali_girdiler(self):
+        for ezme, parca in (({"siginma_tipi": "Oturarak"}, "siginma_tipi"),
+                            ({"kabin_tampon_adedi": 3}, "kabin_tampon_adedi"),
+                            ({"kabin_tampon_adedi": 2}, "kabin_tampon_arasi"),
+                            ({"kabin_tampon_adedi": 2, "kabin_tampon_arasi": 100}, "üst üste"),
+                            ({"agirlik_tampon_adedi": 2, "agirlik_tampon_arasi": 900},
+                             "karşı ağırlığın altına"),
+                            ({"regulator_yan": "Orta"}, "regulator_yan")):
+            with self.subTest(ezme=ezme):
+                self.assertTrue(any(parca in h for h in CKD.dogrula(_ornek(kuyu_dibi=ezme))),
+                                CKD.dogrula(_ornek(kuyu_dibi=ezme)))
+
+
+class KuyuDibiYerlesim(unittest.TestCase):
+    def test_tamponlar_eksenlerde(self):
+        g = _ornek()
+        Y = CKD.yerlesim(g)
+        kx = g["kuyu"]["genislik"] / 2.0 + g["kabin"]["kaciklik_y"]
+        ry = g["kabin_ray"]["kapi_arasi"]
+        self.assertEqual(CKD._merkez(Y["kabin_tamponlari"][0]), (kx, ry))
+        self.assertEqual(CKD._merkez(Y["agirlik_tamponlari"][0]), CKD._merkez(Y["blok"]))
+        Y = CKD.yerlesim(_ornek(kuyu_dibi={"kabin_tampon_adedi": 2, "kabin_tampon_arasi": 600}))
+        self.assertEqual([CKD._merkez(t) for t in Y["kabin_tamponlari"]],
+                         [(kx - 300, ry), (kx + 300, ry)])
+
+    def test_perde_agirligin_boyunca(self):
+        """m.5.2.5.5.1 d:  perde en az ağırlığın genişliği kadar."""
+        for ad, g in _dip_projeler():
+            Y = CKD.yerlesim(g)
+            p, b = Y["perde"], Y["blok"]
+            with self.subTest(proje=ad):
+                if p[0] == p[2]:
+                    self.assertLessEqual(p[1], b[1]); self.assertGreaterEqual(p[3], b[3])
+                    self.assertTrue(b[2] < p[0] or p[0] < b[0])
+                else:
+                    self.assertLessEqual(p[0], b[0]); self.assertGreaterEqual(p[2], b[2])
+                    self.assertLess(p[1], b[1])
+
+    def test_siginma_cizelge_4_kabinin_altinda(self):
+        for ad, g in _dip_projeler():
+            Y = CKD.yerlesim(g)
+            s, kb = Y["siginma"], Y["kabin"]
+            with self.subTest(proje=ad):
+                self.assertEqual(sorted((s[2] - s[0], s[3] - s[1])),
+                                 sorted(CKD.SIGINMA[g["kuyu_dibi"]["siginma_tipi"]]))
+                self.assertTrue(kb[0] <= s[0] and s[2] <= kb[2] and kb[1] <= s[1] and s[3] <= kb[3])
+                engel = (Y["kabin_tamponlari"] + Y["agirlik_tamponlari"] + [Y["gergi"]]
+                         + Y["kabin_raylari"] + Y["agirlik_raylari"]
+                         + ([Y["merdiven"]] if Y["merdiven"] else []))
+                for p in engel:
+                    self.assertFalse(CKD._ortusur(s, p), p)
+
+    def test_merdiven_ek_f(self):
+        for ad, g in _dip_projeler():
+            Y = CKD.yerlesim(g)
+            m = Y["merdiven"]
+            with self.subTest(proje=ad):
+                if g["kuyu_dibi"]["derinlik"] > CKD.MERDIVEN_AZAMI_DERINLIK:
+                    self.assertIsNone(m)
+                    continue
+                G, kp = g["kuyu"]["genislik"], g["kapi"]
+                self.assertTrue(m[0] == 0 or m[2] == G)             # yan duvara yaslı
+                kenar = kp["sol_pay"] if m[0] == 0 else kp["sol_pay"] + kp["genislik"]
+                dx = max(0.0, m[0] - kenar, kenar - m[2])
+                self.assertLessEqual((dx ** 2 + m[1] ** 2) ** 0.5, CKD.MERDIVEN_KAPI_AZAMI)
+
+    def test_merdiven_kapidan_800_ustunde_reddedilir(self):
+        #  3 m genişlikte kuyu, kapı kabin ekseninde:  sağ duvara 820, sola 1.080
+        g = _ornek(kuyu={"genislik": 3000}, kapi={"sol_pay": 1180})
+        self.assertEqual(CG.dogrula(g), [])
+        self.assertTrue(any("Ek F.5 b" in h for h in CKD.dogrula(g)), CKD.dogrula(g))
+
+    def test_standart_tablolari(self):
+        """Ölçüler standardın kendi sayılarıyla sabitlenir ( tablo kendisiyle
+        kıyaslanırsa yanlış bir sayı testten geçerdi )."""
+        self.assertEqual(CKD.SIGINMA, {"Dik duruş": (400.0, 500.0), "Çömelme": (500.0, 700.0),
+                                       "Yatarak": (700.0, 1000.0)})           # Çizelge 4
+        self.assertEqual(CKU.SIGINMA, {"Dik duruş": (400.0, 500.0),
+                                       "Çömelme": (500.0, 700.0)})            # Çizelge 3
+        self.assertEqual((CKD.MERDIVEN_AZAMI_DERINLIK, CKD.MERDIVEN_KAPI_AZAMI), (2500.0, 800.0))
+        self.assertEqual((CKU.KORKULUK_BOSLUK, CKU.KORKULUK_KENAR_AZAMI, CKU.KORKULUK_PARCA_ASGARI,
+                          CKU.KORKULUK_YUKSEKLIK_SINIRI, CKU.KORKULUK_ALCAK, CKU.KORKULUK_YUKSEK),
+                         (300.0, 150.0, 100.0, 500.0, 700.0, 1100.0))
+        self.assertEqual((CG.KAPI_ARASI_AZAMI, CG.ESIK_ARASI_AZAMI, CG.KABIN_AGIRLIK_ACIKLIGI),
+                         (150.0, 35.0, 50.0))
+
+    def test_merdiven_2500_sinirinda(self):
+        for derinlik, var in ((2500, True), (2501, False)):
+            Y = CKD.yerlesim(_ornek(kuyu_dibi={"derinlik": derinlik}))
+            with self.subTest(derinlik=derinlik):
+                self.assertEqual(Y["merdiven"] is not None, var)
+
+    def test_yuk_noktalari_hesap_paftasi_adlariyla(self):
+        e = CKD.ciz(_ornek(kuyu_dibi={"kabin_tampon_adedi": 2, "kabin_tampon_arasi": 600}))
+        adlar = [el["metin"] for el in e if el.get("ad") == "yuk"]
+        self.assertEqual(sorted(adlar), sorted(["FKR", "FKR", "FAR", "FAR", "Fkt", "Fkt", "Fat"]))
+
+    def test_olcu_zincirleri_ve_yazilar(self):
+        import itertools
+        for ad, g in _dip_projeler():
+            e = CKD.ciz(g)
+            for z in CGE.zincirler(e):
+                with self.subTest(proje=ad, zincir=z):
+                    self.assertAlmostEqual(z["toplam"], z["son"] - z["bas"])
+            k = OlcuYazilari._kutular(None, e)
+            for a, b in itertools.combinations(k, 2):
+                with self.subTest(proje=ad, a=a[0]["metin"], b=b[0]["metin"]):
+                    self.assertFalse(a[1] < b[3] and b[1] < a[3] and a[2] < b[4] and b[2] < a[4])
+
+    def test_dxf_temiz(self):
+        from cizim import dxf as CDX
+        from ezdxf.audit import Auditor
+        d = CDX.belge(CKD.ciz(_ornek()), "KUYU DİBİ", 20)
+        a = Auditor(d)
+        a.run()
+        self.assertEqual(list(a.errors), [])
+        for kat in ("TAMPON", "PERDE", "MERDIVEN", "GIZLI"):
+            self.assertIn(kat, d.layers)
+
+    def test_arka_agirlik_raylari_konsollu(self):
+        e = CGE.plan(_arka())
+        plakalar = [el for el in _dikdortgenler(e, "KONSOL") if el.get("ad") == "plaka"]
+        self.assertEqual(len(plakalar), 4)
+        D = _arka()["kuyu"]["derinlik"]
+        self.assertEqual(sum(1 for el in plakalar if abs(el["y"] + el["d"] - D) < 1e-6), 2)
 
 
 if __name__ == "__main__":

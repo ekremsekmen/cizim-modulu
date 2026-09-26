@@ -5,6 +5,7 @@
     python3 calistir.py                 → ornekler/ klasörüne SVG + DXF yazar
     python3 calistir.py --aski Doğrudan → 1:1 askı düzeniyle
     python3 calistir.py --cizim kabin_ustu → kabin üstü planı
+    python3 calistir.py --cizim kuyu_dibi  → kuyu dibi planı
 
 Hesap programından BAĞIMSIZDIR;  girdiyi cizim/girdi.py içindeki ÖRNEK
 sözlüğünden alır.  İleride köprü ( cizim/kopru.py ) bu sözlüğü hesabın
@@ -19,6 +20,7 @@ from cizim import dxf as CDX
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kabin_ustu as CKU
+from cizim import kuyu_dibi as CKD
 from cizim import svg as CSV
 
 KOK = os.path.dirname(os.path.abspath(__file__))
@@ -28,6 +30,8 @@ CIZIMLER = {
     "kuyu_plani": (CG.dogrula, CGE.plan, "KUYU PLANI  ( kabin hizasından yatay kesit )"),
     "kabin_ustu": (CKU.dogrula, CKU.ciz,
                    "KABİN ÜSTÜ PLANI  ( kabin tavanı hizasından yatay kesit )"),
+    "kuyu_dibi": (CKD.dogrula, CKD.ciz,
+                  "KUYU DİBİ PLANI  ( kuyu tabanından yatay kesit )"),
 }
 
 

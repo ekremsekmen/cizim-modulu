@@ -21,13 +21,16 @@ KALEM = {
     "CIVATA": ("#2f6f2f", 3), "CERCEVE": ("#1a1a1a", 8),
     "OLCU": ("#0a6ebd", 3), "EKSEN": ("#c01c1c", 3), "YAZI": ("#1a1a1a", 0),
     "KORKULUK": ("#d11a6a", 12), "SIGINMA": ("#1d8a3a", 6),
+    "TAMPON": ("#8a2be2", 6), "PERDE": ("#d11a6a", 14), "MERDIVEN": ("#6b4f2a", 6),
+    "GIZLI": ("#7a7a7a", 4), "YUK": ("#c01c1c", 0),
 }
 #  Kesik çizilen katmanlar  ( sığınma alanı gerçek bir parça değil, alandır )
-KESIK = {"SIGINMA": "80 40"}
+KESIK = {"SIGINMA": "80 40", "GIZLI": "40 30"}
 DOLGU = {"KABIN-IC": "none", "AGIRLIK": "#fde9d7", "RAY": "#dff0df",
          "KAPI": "#ffffff", "KABIN": "#ffffff", "SASE": "#fbe6f6",
          "KONSOL": "#eef7ee", "PATEN": "#efe4f8", "KASNAK": "#d8f0e2",
-         "PANO": "#dbe8f7", "SIGINMA": "#e6f6ea"}
+         "PANO": "#dbe8f7", "SIGINMA": "#e6f6ea", "TAMPON": "#efe4f8",
+         "MERDIVEN": "#f3ead9"}
 
 
 def _dikdortgen(el, renk, kalinlik):

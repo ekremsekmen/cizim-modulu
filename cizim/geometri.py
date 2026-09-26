@@ -18,7 +18,8 @@ from cizim import sabitler as CS
 
 KATMANLAR = ("KUYU-DUVAR", "TARAMA", "BINA", "KUYU-IC", "KABIN", "KABIN-IC",
              "SASE", "KAPI", "AGIRLIK", "RAY", "KONSOL", "CIVATA", "PATEN",
-             "KASNAK", "PANO", "OLCU", "EKSEN", "YAZI", "CERCEVE", "KORKULUK", "SIGINMA")
+             "KASNAK", "PANO", "OLCU", "EKSEN", "YAZI", "CERCEVE", "KORKULUK", "SIGINMA",
+             "TAMPON", "PERDE", "MERDIVEN", "GIZLI", "YUK")
 
 #  T profilinde flanş / gövde et kalınlığı;  1/20 planda ayrıntı okunmaz,
 #  flanş + gövde yeterlidir.
@@ -256,7 +257,7 @@ def plan(g, cizim_sabitleri=None):
     ag_alt = ry - ag["ray_arasi"] / 2.0 - ag["h"]          # ağırlık rayı arkaları
     ag_ust = ry + ag["ray_arasi"] / 2.0 + ag["h"]
     for yon, yuz in ((-1, sol_yuz), (+1, sag_yuz)):
-        e += _ray_yatay(yuz, ry, kr["b"], kr["h"], yon)
+        e += [_ad(r, "kabin_ray") for r in _ray_yatay(yuz, ry, kr["b"], kr["h"], yon)]
         arka = yuz + kr["h"] * yon          # rayın duvara bakan yüzü
         if ag_yan == ("Sol" if yon < 0 else "Sağ"):
             kiris_x = arka - S["ara_kiris_en"] if yon < 0 else arka
@@ -313,7 +314,7 @@ def plan(g, cizim_sabitleri=None):
         sol = ag_yan == "Sol"
         ex = ag["ray_duvar"] if sol else G - ag["ray_duvar"]         # ağırlık ekseni
         ax, ay = ex - ag["derinlik"] / 2.0, ry - ag["genislik"] / 2.0
-        e.append(_dik("AGIRLIK", ax, ay, ag["derinlik"], ag["genislik"]))
+        e.append(_ad(_dik("AGIRLIK", ax, ay, ag["derinlik"], ag["genislik"]), "agirlik_blok"))
         e.append(_dik("AGIRLIK", ax + cer, ay + cer,
                       ag["derinlik"] - 2 * cer, ag["genislik"] - 2 * cer))
         #  Kabin rayının ara kirişi bu konsollara bağlanır:  kol plakadan
@@ -321,7 +322,7 @@ def plan(g, cizim_sabitleri=None):
         kiris_ic = (sol_yuz - kr["h"] - S["ara_kiris_en"]) if sol else (sag_yuz + kr["h"]
                                                                         + S["ara_kiris_en"])
         for yuz, y_yon in ((ry + ag["ray_arasi"] / 2.0, +1), (ry - ag["ray_arasi"] / 2.0, -1)):
-            e += _ray_dusey(yuz, ex, ag["b"], ag["h"], y_yon)
+            e += [_ad(r, "agirlik_ray") for r in _ray_dusey(yuz, ex, ag["b"], ag["h"], y_yon)]
             duvar_x = 0 if sol else G
             plaka_x = duvar_x if sol else duvar_x - S["konsol_agirlik_en"]
             ray_arkasi = yuz + ag["h"] * y_yon
@@ -344,12 +345,21 @@ def plan(g, cizim_sabitleri=None):
         ey = D - ag["ray_duvar"]
         ex = G / 2.0
         ax, ay = G / 2.0 - ag["genislik"] / 2.0, ey - ag["derinlik"] / 2.0
-        e.append(_dik("AGIRLIK", ax, ay, ag["genislik"], ag["derinlik"]))
+        e.append(_ad(_dik("AGIRLIK", ax, ay, ag["genislik"], ag["derinlik"]), "agirlik_blok"))
         e.append(_dik("AGIRLIK", ax + cer, ay + cer,
                       ag["genislik"] - 2 * cer, ag["derinlik"] - 2 * cer))
         for yuz, x_yon in ((G / 2.0 + ag["ray_arasi"] / 2.0, +1),
                            (G / 2.0 - ag["ray_arasi"] / 2.0, -1)):
-            e += _ray_yatay(yuz, ey, ag["b"], ag["h"], x_yon)
+            e += [_ad(r, "agirlik_ray") for r in _ray_yatay(yuz, ey, ag["b"], ag["h"], x_yon)]
+            #  AĞIRLIK RAYI KONSOLU  ( arka duvar ):  yan yerleşimdeki konsolun
+            #  aynısı, 90° dönük — rayın arkasında, duvara dayanır.
+            ray_arkasi = yuz + ag["h"] * x_yon
+            plaka_y = D - S["konsol_agirlik_en"]
+            e.append(_dik("KONSOL", ray_arkasi - S["konsol_agirlik_boy"] / 2.0, plaka_y,
+                          S["konsol_agirlik_boy"], S["konsol_agirlik_en"], ad="plaka"))
+            for cy in (plaka_y + S["konsol_agirlik_en"] / 2.0 - S["konsol_civata_araligi"],
+                       plaka_y + S["konsol_agirlik_en"] / 2.0 + S["konsol_civata_araligi"]):
+                e.append(_daire("CIVATA", ray_arkasi, cy, S["konsol_civata_capi"] / 2.0))
         if ag.get("kasnak_capi"):
             dc = ag["kasnak_capi"]
             e.append(_ad(_dik("KASNAK", ex - dc / 2.0, ey - ag["derinlik"] / 2.0 + cer,

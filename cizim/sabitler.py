@@ -51,6 +51,19 @@ SABIT = {
     #  ── KARŞI AĞIRLIK ────────────────────────────────────────────────
     "agirlik_cerceve": 40,        # çerçeve profilinin kalınlığı
 
+    #  ── KUYU DİBİ ────────────────────────────────────────────────────
+    #  Tampon gövdesi ve taban plakası ( planda ):  ELEport kuyu dibi
+    #  paftasından ölçüldü ( ~100 mm gövde, ~150 mm kare taban ).
+    "tampon_capi": 100,
+    "tampon_taban": 150,
+    #  Regülatör gergi kasnağının planda görünen eni ( ELEport:  ~67 mm ).
+    "gergi_kasnak_eni": 65,
+    #  Kuyu dibi merdiveni  ( TS EN 81-20 Ek F ):  basamak net eni en az
+    #  280 mm ( F.3.2 a ) + iki dikme en çok 35'er mm ( F.3.1 a ) = 350;
+    #  dikme derinliği en çok 100 mm ( F.3.1 a ).  Duvara yaslı saklanır.
+    "merdiven_eni": 350,
+    "merdiven_derinlik": 100,
+
     #  ── KUMANDA PANOSU ───────────────────────────────────────────────
     "pano_en": 400,
     "pano_derinlik": 90,
