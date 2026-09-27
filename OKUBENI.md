@@ -40,7 +40,7 @@ python3 -m venv .venv
 | `cizim/kuyu_kesiti.py` | Tam boy A-A ( yan ) ve B-B ( ön ) kuyu düşey kesitleri, 1/50 |
 | `cizim/svg.py` | Elemanları SVG'ye yazar |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/test_cizim.py` | 124 test |
+| `testler/test_cizim.py` | 127 test |
 | `ornekler/` | `calistir.py`'nin ürettiği örnek çizimler |
 
 ## Kurallar
@@ -203,6 +203,19 @@ kırarak 1/30 çizer ).  İki kesit, planda A-A ve B-B işaretleriyle:
 |---|---|---|---|
 | A-A yan | kuyu derinliği boyunca, kabin ekseninden karşı ağırlığa;  kat kapıları solda | en alt durakta | seyir kadar yukarıda |
 | B-B ön | kuyunun arkasından kat kapılarına ( plandaki sol sağda görünür ) | en üst durakta | tamponunun çarpma arası üstünde |
+
+**Planların seviyeleri** ( LiftDesigner'ın X-X · Y-Y · Z-Z'si gibi ):  her iki
+kesitte kesik çizgi, uçlarında ▽ ve harf;  plan başlıkları aynı harfi taşır
+( "KUYU PLANI  C-C" ).  A ve B düşey kesitlerindir.  Çok yakın iki seviyeden
+alttakinin işareti dışarı kayar.
+
+| Harf | Plan | Hangi yükseklikten |
+|---|---|---|
+| C | kuyu planı | en alt durakta kapının orta yüksekliği |
+| D | kabin üstü planı | kesitteki kabinin tavanı |
+| E | kuyu dibi planı | kuyu dibinin ortası |
+| F | kuyu üstü planı / makine dairesi planı | tahrik kasnağının ekseni |
+| G | döşeme halat delik planı ( makine daireli ) | makine dairesi döşemesinin ortası |
 
 **Kesit düzleminin gerisi çizilmez:**  A-A karşı ağırlık tarafını gösterir
 ( makine, şase, ağırlık bağlantısı, ağırlık rayları ve o yandaki kabin rayı );

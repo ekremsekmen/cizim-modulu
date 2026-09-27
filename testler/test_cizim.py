@@ -1364,5 +1364,65 @@ class KuyuKesitleri(unittest.TestCase):
                          if x["katman"] == "KESIT"])
 
 
+class PlanSeviyeleri(unittest.TestCase):
+    """Düşey kesitlerde planların hangi yükseklikten alındığı ( C-C … G-G )."""
+
+    def _seviyeler(self, e):
+        return {x["ad"][len("plan_seviyesi_"):]: x["y1"] for x in e
+                if x.get("ad", "").startswith("plan_seviyesi_")}
+
+    def test_kotlar(self):
+        #  C:  en alt durak + kapı / 2 = 1.050;  D:  kabinin tavanı ( A-A kabin
+        #  altta 2.310, B-B üstte 21.000 + 2.310 );  E:  kuyu dibinin ortası −750;
+        #  F:  tahrik kasnağı ekseni ( kuyu tavanı 26.000 − 446 );  makine
+        #  dairesinde döşeme 150 + kaide 200 + 149 → 26.499, G döşemenin ortası 26.075.
+        g = _ornek()
+        self.assertEqual(self._seviyeler(CKK.yan_kesit(g)),
+                         {"kuyu_plani": 1050, "kabin_ustu": 2310, "kuyu_dibi": -750, "kuyu_ustu": 25554})
+        self.assertEqual(self._seviyeler(CKK.on_kesit(g))["kabin_ustu"], 23310)
+        md = _ornek(makine={"yeri": "Makine dairesi"})
+        sev = self._seviyeler(CKK.on_kesit(md))
+        self.assertEqual((sev["makine_dairesi"], sev["delik_plani"]), (26499, 26075))
+        self.assertNotIn("kuyu_ustu", sev)
+
+    def test_harfler_cakismaz(self):
+        import itertools
+        for g in (_ornek(), _ornek(makine={"yeri": "Makine dairesi"})):
+            for ciz in (CKK.yan_kesit, CKK.on_kesit):
+                e = ciz(g)
+                harfler = [x for x in e if x.get("ad") == "plan_harfi"]
+                self.assertEqual(len(harfler), 2 * len(self._seviyeler(e)))
+                kutular = [(x["x"] - x["yukseklik"] * 0.3, x["y"] - x["yukseklik"] / 2,
+                            x["x"] + x["yukseklik"] * 0.3, x["y"] + x["yukseklik"] / 2) for x in harfler]
+                for a, b in itertools.combinations(kutular, 2):
+                    with self.subTest(cizim=ciz.__name__, makine=g["makine"]["yeri"]):
+                        self.assertFalse(a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3])
+                #  Harf başka bir seviyenin çizgisinin üstüne düşmez
+                cizgiler = [x for x in e if x.get("ad", "").startswith("plan_seviyesi_")]
+                for (x0, y0, x1, y1), c in itertools.product(kutular, cizgiler):
+                    if y0 < c["y1"] < y1:
+                        self.assertFalse(c["x1"] < x1 and x0 < c["x2"], (c["ad"], (x0, y0)))
+
+    def test_plan_basliklari(self):
+        import calistir
+        b = "KUYU PLANI  ( kabin hizasından yatay kesit )"
+        self.assertEqual(calistir.plan_basligi(_ornek(), "kuyu_plani", b),
+                         "KUYU PLANI  C-C  ( kabin hizasından yatay kesit )")
+        md = _ornek(makine={"yeri": "Makine dairesi"})
+        self.assertEqual(calistir.plan_basligi(md, "makine_dairesi", "MAKİNE DAİRESİ PLANI"),
+                         "MAKİNE DAİRESİ PLANI  F-F")
+        self.assertEqual(calistir.plan_basligi(md, "delik_plani", "DELİK PLANI"), "DELİK PLANI  G-G")
+        #  Makine dairesizde F kuyu üstü planınındır;  makine dairesi / delik planı harfsiz
+        self.assertEqual(calistir.plan_basligi(_ornek(), "makine_dairesi", "MAKİNE DAİRESİ PLANI"),
+                         "MAKİNE DAİRESİ PLANI")
+        self.assertEqual(calistir.plan_basligi(_ornek(), "delik_plani", "X"), "X")
+        self.assertEqual(calistir.plan_basligi(md, "kuyu_ustu", "KUYU ÜSTÜ PLANI"), "KUYU ÜSTÜ PLANI")
+        self.assertEqual(calistir.plan_basligi(_ornek(), "kuyu_ustu", "KUYU ÜSTÜ PLANI"),
+                         "KUYU ÜSTÜ PLANI  F-F")
+        #  Düşey kesit çizilemeyen düzende harf yok
+        self.assertEqual(calistir.plan_basligi(_arka(), "kuyu_plani", b), b)
+        self.assertEqual(calistir.plan_basligi(_ornek(), "kuyu_kesiti_yan", "X"), "X")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

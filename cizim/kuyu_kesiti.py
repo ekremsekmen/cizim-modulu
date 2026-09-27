@@ -33,6 +33,18 @@ from cizim import kesit_parcalari as CKP
 
 OLCEK = 50
 
+#  Planların düşey kesitlerdeki seviye işaretleri ( LiftDesigner'ın X-X · Y-Y ·
+#  Z-Z'si gibi ):  A ve B düşey kesitlerindir, planlar C'den başlar.  Plan
+#  başlıkları aynı harfi taşır ( calistir.py ).  Hangi yükseklikten:
+#    C  kuyu planı       en alt durakta kapının orta yüksekliği ( kabin ve kapı kesilir )
+#    D  kabin üstü       kabinin tavanı ( kesitteki kabinin )
+#    E  kuyu dibi        kuyu dibinin ortası ( tamponlar kesilir )
+#    F  kuyu üstü        tahrik kasnağının ekseni ( makine kesilir );
+#       makine dairesi   makine daireli projede aynı kural, odada
+#    G  delik planı      makine dairesi döşemesinin ortası
+PLAN_HARFLERI = {"kuyu_plani": "C", "kabin_ustu": "D", "kuyu_dibi": "E", "kuyu_ustu": "F",
+                 "makine_dairesi": "F", "delik_plani": "G"}
+
 
 def yerlesim(g, cizim_sabitleri=None):
     return CDU.yerlesim(g, cizim_sabitleri)
@@ -108,6 +120,40 @@ def _oda_olculeri(e, M, md, D1, kot_makine, kot_oda):
     _zincir(e, kot_oda, [M["tavan"], zd, ztv, ztv + t],
             {0: f"DÖŞEME {t:g}", 1: f"MAKİNE DAİRESİ {md['yukseklik']:g} ≥ {CDN.ODA_YUKSEKLIK:g}",
              2: f"{t:g}"})
+
+
+def plan_seviyeleri(g, Y, kt):
+    """( harf, kot, plan ) — kt:  kesitteki kabinin kotları."""
+    M = Y["M"]
+    oda = "MD" in M
+    sev = [(PLAN_HARFLERI["kuyu_plani"], Y["kotlar"][0] + g["kapi"]["yukseklik"] / 2.0, "kuyu_plani"),
+           (PLAN_HARFLERI["kabin_ustu"], kt["tavan"], "kabin_ustu"),
+           (PLAN_HARFLERI["kuyu_dibi"], Y["taban"] / 2.0, "kuyu_dibi"),
+           (PLAN_HARFLERI["kuyu_ustu"], M["kasnak"][4], "makine_dairesi" if oda else "kuyu_ustu")]
+    if oda:
+        sev.append((PLAN_HARFLERI["delik_plani"], M["tavan"] + g["makine_dairesi"]["doseme"] / 2.0,
+                    "delik_plani"))
+    return sev
+
+
+def _seviye_isaretleri(e, sev, K):
+    """Çizimin iki yanına uzanan kesik çizgi, uçlarında ▽ ve harf ( bakış aşağı )."""
+    u0, _, u1, _ = CGE.sinir(e)
+    u0, u1 = u0 - 150 * K, u1 + 150 * K
+    w, h = 45 * K, 60 * K
+    #  İşaretin boyu ( ▽ + harf ):  daha yakın iki seviyeden ALTTAKİNİN işareti
+    #  dışarı kayar — üstteki çizgi onun harfinin üstünden geçmesin.
+    boy, kay = h + 120 * K, 2 * w + 60 * K
+    sira, onceki = 0, None
+    for harf, z, ad in sorted(sev, key=lambda s_: -s_[1]):
+        sira = sira + 1 if onceki is not None and onceki - z < boy else 0
+        onceki = z
+        a0, a1 = u0 - sira * kay, u1 + sira * kay
+        e.append(CGE._ad(CGE._cizgi("SEVIYE", a0, z, a1, z, tip="eksen"), "plan_seviyesi_" + ad))
+        for u in (a0 + w, a1 - w):
+            for a, b in (((u - w, z + h), (u + w, z + h)), ((u - w, z + h), (u, z)), ((u, z), (u + w, z + h))):
+                e.append(CGE._cizgi("SEVIYE", a[0], a[1], b[0], b[1]))
+            e.append(CGE._ad(CGE._yazi(u, z + h + 70 * K, harf, 80 * K), "plan_harfi"))
 
 
 def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon):
@@ -214,6 +260,7 @@ def yan_kesit(g, cizim_sabitleri=None):
     e.append(CGE._olcu("dusey", (0, 0.0), (0, kapi_h), -don - 120 * K, f"KAPI {kapi_h:g}"))
     e.append(CGE._olcu("yatay", (0, taban), (D, taban), taban - don - 250 * K, f"KUYU DERİNLİĞİ {D:g}"))
     CGE._yazilari_yerlestir(e, CGE.OLCU_YAZI * K)
+    _seviye_isaretleri(e, plan_seviyeleri(g, Y, kt), K)
     return e
 
 
@@ -278,4 +325,5 @@ def on_kesit(g, cizim_sabitleri=None):
     e.append(CGE._olcu("yatay", (0, taban), (G, taban), taban - don - 250 * K,
                        f"KUYU GENİŞLİĞİ {G:g}"))
     CGE._yazilari_yerlestir(e, CGE.OLCU_YAZI * K)
+    _seviye_isaretleri(e, plan_seviyeleri(g, Y, kt), K)
     return e

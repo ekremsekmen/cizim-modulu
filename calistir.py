@@ -59,6 +59,20 @@ CIZIMLER = {
 OLCEKLER = {"kuyu_kesiti_yan": CKK.OLCEK, "kuyu_kesiti_on": CKK.OLCEK}
 
 
+def plan_basligi(g, cizim, baslik):
+    """Plan başlığına düşey kesitlerdeki seviye harfi:  "KUYU PLANI  C-C  ( … )".
+    Düşey kesitler çizilemeyen düzende harf de yazılmaz."""
+    harf = CKK.PLAN_HARFLERI.get(cizim)
+    #  Makine dairesiz projede makine dairesi ve delik planının, makine daireli
+    #  projede kuyu üstü planının kesitlerde seviyesi yok
+    oda = (g.get("makine") or {}).get("yeri") == "Makine dairesi"
+    gecerli = oda if cizim in ("makine_dairesi", "delik_plani") else (not oda if cizim == "kuyu_ustu" else True)
+    if not harf or not gecerli or CKK.dogrula(g):
+        return baslik
+    ad, _, ek = baslik.partition("  (")
+    return f"{ad}  {harf}-{harf}" + (f"  ({ek}" if ek else "")
+
+
 def uret(g, ad, baslik, olcek=20, cizim="kuyu_plani"):
     dogrula, ciz, _ = CIZIMLER[cizim]
     hata = dogrula(g)
@@ -100,7 +114,8 @@ def main(argv):
         g["kabin_ustu"]["siginma_tipi"] = a.siginma
     if a.makine:
         g["makine"]["yeri"] = a.makine
-    return uret(g, a.ad or a.cizim, CIZIMLER[a.cizim][2], OLCEKLER.get(a.cizim, 20), cizim=a.cizim)
+    return uret(g, a.ad or a.cizim, plan_basligi(g, a.cizim, CIZIMLER[a.cizim][2]),
+                OLCEKLER.get(a.cizim, 20), cizim=a.cizim)
 
 
 if __name__ == "__main__":

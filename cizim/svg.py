@@ -24,7 +24,7 @@ KALEM = {
     "TAMPON": ("#8a2be2", 6), "PERDE": ("#d11a6a", 14), "MERDIVEN": ("#6b4f2a", 6),
     "GIZLI": ("#7a7a7a", 4), "YUK": ("#c01c1c", 0),
     "MAKINE": ("#1f4fbf", 7), "BAGLANTI": ("#444444", 5), "DELIK": ("#1f4fbf", 6),
-    "HALAT": ("#c2185b", 4), "KESIT": ("#1a1a1a", 14),
+    "HALAT": ("#c2185b", 4), "KESIT": ("#1a1a1a", 14), "SEVIYE": ("#c79a00", 4),
 }
 #  Kesik çizilen katmanlar  ( sığınma alanı gerçek bir parça değil, alandır )
 KESIK = {"SIGINMA": "80 40", "GIZLI": "40 30", "DELIK": "50 25"}
