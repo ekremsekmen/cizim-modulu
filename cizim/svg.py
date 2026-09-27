@@ -22,7 +22,7 @@ KALEM = {
     "OLCU": ("#0a6ebd", 3), "EKSEN": ("#c01c1c", 3), "YAZI": ("#1a1a1a", 0),
     "KORKULUK": ("#d11a6a", 12), "SIGINMA": ("#1d8a3a", 6),
     "TAMPON": ("#8a2be2", 6), "PERDE": ("#d11a6a", 14), "MERDIVEN": ("#6b4f2a", 6),
-    "GIZLI": ("#7a7a7a", 4), "YUK": ("#c01c1c", 0),
+    "GIZLI": ("#7a7a7a", 4), "YUK": ("#c01c1c", 5),
     "MAKINE": ("#1f4fbf", 7), "BAGLANTI": ("#444444", 5), "DELIK": ("#1f4fbf", 6),
     "HALAT": ("#c2185b", 4), "KESIT": ("#1a1a1a", 14), "SEVIYE": ("#c79a00", 4),
 }
@@ -32,7 +32,8 @@ DOLGU = {"KABIN-IC": "none", "AGIRLIK": "#fde9d7", "RAY": "#dff0df",
          "KAPI": "#ffffff", "KABIN": "#ffffff", "SASE": "#fbe6f6",
          "KONSOL": "#eef7ee", "PATEN": "#efe4f8", "KASNAK": "#d8f0e2",
          "PANO": "#dbe8f7", "SIGINMA": "#e6f6ea", "TAMPON": "#efe4f8",
-         "MERDIVEN": "#f3ead9", "MAKINE": "#dbe4fa", "BAGLANTI": "#e6e6e6"}
+         "MERDIVEN": "#f3ead9", "MAKINE": "#dbe4fa", "BAGLANTI": "#e6e6e6",
+         "YUK": "#ffffff"}
 
 
 def _dikdortgen(el, renk, kalinlik, k=1.0):

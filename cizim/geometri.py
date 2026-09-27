@@ -70,6 +70,11 @@ def _yazi_eni(metin, h=OLCU_YAZI):
     return len(metin) * h * 0.6
 
 
+#  Ölçü yazısının üstüne düşmemesi gereken parçalar
+PARCA_KATMANLARI = ("RAY", "KONSOL", "SASE", "TAMPON", "KASNAK", "MERDIVEN", "PERDE",
+                    "MAKINE", "PANO", "PATEN")
+
+
 def _yazilari_yerlestir(elemanlar, h=OLCU_YAZI):
     """Yeri verilmemiş ölçü yazılarını yerleştirir — SVG ve DXF AYNI yeri kullanır.
 
@@ -77,8 +82,22 @@ def _yazilari_yerlestir(elemanlar, h=OLCU_YAZI):
     sıradaki bir yazıyla çakışırsa sıranın ucundaysa ucun dışına, değilse
     bir kat dışarı alınır.  Eskiden sığmayan yazı 130 – 280 mm öteye, BAŞKA
     BİR SIRANIN üstüne itiliyordu;  okuyan onu o sıranın ölçüsü sanıyordu.
+
+    Parçasına sığmayan bir ARA ölçünün yazısı ortada bir parçanın ( şase,
+    ray, konsol … ) üstüne düşüyorsa uzatma çizgisinin hemen dışına, geniş
+    komşu tarafa yazılır ( AutoCAD'in sığmayan yazısı gibi ):  kuyu planında
+    kabin duvarının "75"i şase dikmesinin üstündeydi.
     """
     k = h / OLCU_YAZI                                 # 1/50'de yazı ve aralıklar büyür
+    parcalar = None
+
+    def _biner(yon, kot, kat, orta, w):
+        c = kot + (-1.0 if kot < 0 else 1.0) * (50.0 + 60.0 * kat) * k
+        kutu = ((orta - w / 2.0, c - h / 2.0, orta + w / 2.0, c + h / 2.0) if yon == "yatay"
+                else (c - h / 2.0, orta - w / 2.0, c + h / 2.0, orta + w / 2.0))
+        return any(kutu[0] < p[2] and p[0] < kutu[2] and kutu[1] < p[3] and p[1] < kutu[3]
+                   for p in parcalar)
+
     siralar = {}
     for el in elemanlar:
         if el["tip"] == "olcu" and "yazi" not in el:
@@ -96,7 +115,18 @@ def _yazilari_yerlestir(elemanlar, h=OLCU_YAZI):
                     ([(0, son + w / 2.0 + 30 * k)] if n == len(liste) - 1 else [])
             #  Yazı parçasına sığmıyorsa ve sıranın ucundaysa ucun dışına yazılır
             #  ( ELEport'un "62 83"ü gibi );  sığıyorsa parçanın ortasında durur.
-            aday = uclar + aday if w > son - bas - 20 * k else aday + uclar
+            sigmaz = w > son - bas - 20 * k
+            aday = uclar + aday if sigmaz else aday + uclar
+            if sigmaz and not uclar:
+                if parcalar is None:
+                    parcalar = [sinir([x]) for x in elemanlar
+                                if x.get("katman") in PARCA_KATMANLARI and x["tip"] != "yazi"]
+                if _biner(yon, kot, 0, (bas + son) / 2.0, w):
+                    boy = [abs(liste[m]["b"][i] - liste[m]["a"][i]) for m in (n - 1, n + 1)]
+                    yanlar = [(0, son + w / 2.0 + 30 * k), (0, bas - w / 2.0 - 30 * k)]
+                    if boy[0] > boy[1]:
+                        yanlar.reverse()
+                    aday = [a for a in yanlar if not _biner(yon, kot, a[0], a[1], w)] + aday
             aday += [(1, (bas + son) / 2.0), (2, (bas + son) / 2.0)]
             secilen = aday[-1]
             for kat, orta in aday:
@@ -643,8 +673,10 @@ def sinir(elemanlar, pay=0.0):
     for el in elemanlar:
         if el["tip"] in ("dikdortgen", "tarama"):
             xs += [el["x"], el["x"] + el["g"]]; ys += [el["y"], el["y"] + el["d"]]
-        elif el["tip"] in ("cizgi", "eksen"):
+        elif el["tip"] in ("cizgi", "eksen", "ok"):
             xs += [el["x1"], el["x2"]]; ys += [el["y1"], el["y2"]]
+        elif el["tip"] == "daire":
+            xs += [el["x"] - el["r"], el["x"] + el["r"]]; ys += [el["y"] - el["r"], el["y"] + el["r"]]
         elif el["tip"] == "olcu":
             if el["yon"] == "yatay":
                 xs += [el["a"][0], el["b"][0]]; ys += [el["kot"]]
@@ -659,7 +691,14 @@ def sinir(elemanlar, pay=0.0):
                     w, h = h, w
                 xs += [y_["x"] - w, y_["x"] + w]; ys += [y_["y"] - h, y_["y"] + h]
         elif el["tip"] == "yazi":
-            xs.append(el["x"]); ys.append(el["y"])
+            #  Yazının eni de:  sola hizalı bir tablo satırı çerçeveden taşıyordu
+            w, h = _yazi_eni(el["metin"], el["yukseklik"]), el["yukseklik"] / 2.0
+            a, b = {"sol": (0.0, w), "sag": (-w, 0.0)}.get(el.get("hiza"), (-w / 2.0, w / 2.0))
+            if abs(abs(el.get("aci", 0)) - 90) < 1e-6:
+                xs += [el["x"] - h, el["x"] + h]
+                ys += [el["y"] + a, el["y"] + b] if el["aci"] > 0 else [el["y"] - b, el["y"] - a]
+            else:
+                xs += [el["x"] + a, el["x"] + b]; ys += [el["y"] - h, el["y"] + h]
     return (min(xs) - pay, min(ys) - pay, max(xs) + pay, max(ys) + pay)
 
 

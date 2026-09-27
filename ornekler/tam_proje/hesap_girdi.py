@@ -16,6 +16,11 @@ ASANSOR = {
     "kasnak_tek_yon": 2, "kasnak_ters_yon": 0, "acil_frenleme_a": 0.5,
     "denge_zinciri": "Var", "kasnak_belgesi": "Var",
     "motor_gucu": 11.3, "makine_tst": 3400, "makine_verimi": 0.8415, "makine_tipi": "Dişlisiz",
+    #  MRL:  makine şasesi raylara oturur ( ELEport "Motor Bedplate Calculation":
+    #  şase kabin ve ağırlık raylarına dayanır;  motor 250 kg ).  Hesap programı
+    #  bir raya ( Gm + Tst ) / 4 yükler ( m.5.7.2.3.7 );  ELEport kendi paftasında
+    #  raya 800 kg ( ray hesabında 1.000 kg ) KABUL eder.
+    "makine_raya_biniyor": "Kılavuz raylara", "makine_agirligi": 250,
     "kablo_birim_kutle": 0.44,
     "kabin_ray_profili": "89 x 62 x 15,88", "agirlik_ray_profili": "70 x 65 x 9",
     "kabin_konsol_arasi": 1500, "agirlik_konsol_arasi": 1500, "ray_celigi_rm": 450,

@@ -260,6 +260,21 @@ class DxfCiktisi(unittest.TestCase):
     def test_birim_milimetre(self):
         self.assertEqual(self.d.header["$INSUNITS"], 4)
 
+    def test_yazi_boyu_svg_ile_ayni(self):
+        """DXF'te TEXT / ölçü yazısı yüksekliği BÜYÜK HARF yüksekliğidir, SVG'de
+        em:  Arial'de büyük harf 0,716 em.  Çarpılmazsa DXF yazısı 1,4 kat büyük
+        çıkıp yerleşimin ayırdığı yere sığmıyordu."""
+        self.assertEqual(self.CDX.BUYUK_HARF, 0.716)
+        yazilar = sorted(x["yukseklik"] for x in self.e if x["tip"] == "yazi")
+        dxf = sorted(t.dxf.height for t in self.d.modelspace().query("TEXT"))
+        self.assertEqual(len(dxf), len(yazilar) + 1)              # + belge başlığı
+        for h in yazilar:
+            self.assertTrue(any(abs(v - h * 0.716) < 1e-6 for v in dxf), h)
+        olcu = sorted(round(x["yazi"]["h"] * 0.716, 6) for x in self.e if x["tip"] == "olcu")
+        boy = sorted(round(dim.override().get("dimtxt"), 6)
+                     for dim in self.d.modelspace().query("DIMENSION"))
+        self.assertEqual(boy, olcu)
+
     def test_kullanilan_katmanlar_tanimli(self):
         for el in self.e:
             self.assertIn(el["katman"], self.d.layers, el["katman"])
@@ -694,13 +709,181 @@ class KuyuDibiSozlesme(unittest.TestCase):
                             ({"kabin_tampon_adedi": 2, "kabin_tampon_arasi": 100}, "üst üste"),
                             ({"agirlik_tampon_adedi": 2, "agirlik_tampon_arasi": 900},
                              "karşı ağırlığın altına"),
-                            ({"regulator_yan": "Orta"}, "regulator_yan")):
+                            ({"regulator_yan": "Orta"}, "regulator_yan"),
+                            ({"kuvvetler": {"FKR": 1, "FAR": 1, "Fkt": 1}}, "kuyu_dibi.kuvvetler"),
+                            ({"kuvvetler": {"FKR": 1, "FAR": 1, "Fkt": 1, "Fat": 1}},
+                             "kuyu_dibi.kuvvetler"),
+                            ({"kuvvetler": dict.fromkeys(CKD.KUVVETLER, 1) | {"Fat": 0}},
+                             "kuvvetler.Fat"),
+                            ({"kuvvetler": dict.fromkeys(CKD.KUVVETLER, 1) | {"FKR": "22 kN"}},
+                             "kuvvetler.FKR"),
+                            ({"kuvvetler": dict.fromkeys(CKD.KUVVETLER, 1) | {"Fx_kabin": -5}},
+                             "kuvvetler.Fx_kabin")):
             with self.subTest(ezme=ezme):
                 self.assertTrue(any(parca in h for h in CKD.dogrula(_ornek(kuyu_dibi=ezme))),
                                 CKD.dogrula(_ornek(kuyu_dibi=ezme)))
 
 
 class KuyuDibiYerlesim(unittest.TestCase):
+    KV = {"FKR": 30683.19, "FAR": 11545.12, "Fkt": 69810.08, "Fat": 54114.08,
+          "Fx_kabin": 1543.39, "Fy_kabin": 802.64, "Fx_agirlik": 86.18, "Fy_agirlik": 457.84}
+
+    def _tablo(self, e):
+        return [x for x in e if x.get("ad") == "kuvvet_tablosu"]
+
+    def test_kuvvet_tablosu(self):
+        """Kuyu tabanı:  hesabın 9. bölümü, hesap paftasındaki adlarla;  iki
+        tamponda her birine düşen de ( m.5.2.1.8.5 / 6 ).  Ray konsolu:  7. ve
+        8. bölümlerin en büyük Fx / Fy'si ( ELEport "Building Forces" gibi )."""
+        self.assertEqual(CKD.KUVVETLER, ("FKR", "FAR", "Fkt", "Fat", "Fx_kabin", "Fy_kabin",
+                                         "Fx_agirlik", "Fy_agirlik"))
+        self.assertEqual(self._tablo(CKD.ciz(_ornek())), [])      # girilmemiş:  tablo yok
+        e = CKD.ciz(_ornek(kuyu_dibi={"kuvvetler": self.KV}))
+        self.assertEqual([x["metin"] for x in self._tablo(e)],
+                         ["RAY KONSOLUNA YATAY YÜKLER", "( yük durumlarının en büyüğü )",
+                          "Kabin rayı:  Fx = 1,54 kN  ·  Fy = 0,80 kN",
+                          "Ağırlık rayı:  Fx = 0,09 kN  ·  Fy = 0,46 kN"])
+        #  Kuyu tabanı yükleri noktalarında, kN:  bir rayın / tamponun altına
+        self.assertEqual(sorted(x["metin"] for x in e if x.get("ad") == "yuk"),
+                         sorted(["FKR = 30,68 kN"] * 2 + ["FAR = 11,55 kN"] * 2 +
+                                ["Fkt = 69,81 kN", "Fat = 54,11 kN"]))
+        e = CKD.ciz(_ornek(kuyu_dibi={"kuvvetler": self.KV, "kabin_tampon_adedi": 2,
+                                      "kabin_tampon_arasi": 600, "agirlik_tampon_adedi": 2,
+                                      "agirlik_tampon_arasi": 400}))
+        self.assertEqual(sorted(x["metin"] for x in e if x.get("ad") == "yuk" and x["metin"][1] != "K"
+                                and x["metin"][1] != "A"),
+                         sorted(["Fkt1 = 34,91 kN"] * 2 + ["Fat1 = 27,06 kN"] * 2))
+        #  Ray kuvveti sıfır olabilir ( yük ekseni ray ekseninde ), kuyu tabanı yükü olamaz
+        self.assertEqual(CKD.dogrula(_ornek(kuyu_dibi={"kuvvetler": dict(self.KV, Fy_agirlik=0)})), [])
+        self.assertTrue(CKD.dogrula(_ornek(kuyu_dibi={"kuvvetler": dict(self.KV, FAR=0)})))
+
+    def test_yuk_oklari_ve_kutulari(self):
+        """Her yük noktasına bir ok ve çerçeveli kutu ( LiftDesigner "View of Pit"
+        gibi ):  ok noktada biter, kutunun kenarından çıkar;  kutu kuyunun
+        içinde, hiçbir parçaya, yazıya, ölçüye ve başka kutuya binmez;  ok başka
+        bir kutuyu, yazıyı ya da oku kesmez."""
+        projeler = list(_dip_projeler()) + [
+            ("yatarak", _ornek(kuyu_dibi={"siginma_tipi": "Yatarak"})),
+            ("iki tampon · çömelme", _ornek(kuyu_dibi={
+                "kabin_tampon_adedi": 2, "kabin_tampon_arasi": 600,
+                "agirlik_tampon_adedi": 2, "agirlik_tampon_arasi": 400}))]
+        for ad, g in projeler:
+            for kv in (None, self.KV):
+                if kv:
+                    g["kuyu_dibi"]["kuvvetler"] = dict(kv)
+                e = CKD.ciz(g)
+                Y = CKD.yerlesim(g)
+                G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
+                noktalar = sorted(CKD._merkez(k) for k in Y["kabin_tamponlari"] + Y["agirlik_tamponlari"]
+                                  + Y["kabin_raylari"] + Y["agirlik_raylari"])
+                kutu = [CGE.sinir([x]) for x in e if x.get("ad") == "yuk_kutusu"]
+                oklar = [x for x in e if x.get("ad") == "yuk_oku"]
+                yazi = [x for x in e if x.get("ad") == "yuk"]
+                geri = [x for x in e if x.get("ad") not in ("yuk_kutusu", "yuk_oku", "yuk")]
+                #  Tek tamponda sığınma alanının yüzeyine de binmez;  iki tamponda
+                #  ( 8 nokta ) yüzeyine binebilir, yazısına binmez
+                iki = g["kuyu_dibi"]["kabin_tampon_adedi"] + g["kuyu_dibi"]["agirlik_tampon_adedi"] > 2
+                kutular, yazilar = CKD._engeller(geri, siginma=not iki)
+                with self.subTest(proje=ad, degerli=bool(kv)):
+                    self.assertEqual(len(kutu), len(noktalar))
+                    self.assertEqual(sorted((o["x2"], o["y2"]) for o in oklar), noktalar)
+                    for o in oklar:
+                        #  ok kutunun kenarından çıkar
+                        self.assertTrue(any(abs(o["x1"] - k[0]) < 1e-6 or abs(o["x1"] - k[2]) < 1e-6
+                                            or abs(o["y1"] - k[1]) < 1e-6 or abs(o["y1"] - k[3]) < 1e-6
+                                            for k in kutu if k[0] - 1e-6 <= o["x1"] <= k[2] + 1e-6
+                                            and k[1] - 1e-6 <= o["y1"] <= k[3] + 1e-6))
+                    for k, y_ in zip(kutu, yazi):
+                        self.assertTrue(0 < k[0] and k[2] < G and 0 < k[1] and k[3] < D)
+                        self.assertLessEqual(CGE._yazi_eni(y_["metin"], y_["yukseklik"]), k[2] - k[0])
+                    for i, k in enumerate(kutu):
+                        engel = kutular + yazilar + kutu[:i] + kutu[i + 1:]
+                        self.assertFalse([b for b in engel if CKD._ortusur(k, b)], k)
+                    for i, o in enumerate(oklar):
+                        p, q = (o["x2"], o["y2"]), (o["x1"], o["y1"])
+                        self.assertFalse([b for b in yazilar if CKD._kesisir(p, q, b)])
+                        for j, o2 in enumerate(oklar):
+                            if i != j:
+                                self.assertFalse(CKD._cakisir(p, q, (o2["x2"], o2["y2"]), (o2["x1"], o2["y1"])))
+                        for k in kutu:
+                            if not (k[0] - 1e-6 <= q[0] <= k[2] + 1e-6 and k[1] - 1e-6 <= q[1] <= k[3] + 1e-6):
+                                self.assertFalse(CKD._kesisir(p, q, k))
+
+    def test_kuvvet_semasi_yonleri(self):
+        """Ray şemasında Fy ağzın doğrultusunda ( ağzın ucuna ), Fx ağza yandan
+        ( EN 81-50 m.5.10.5 )."""
+        e = CKD.ciz(_ornek(kuyu_dibi={"kuvvetler": self.KV}))
+        sema = [x for x in e if x.get("ad") == "kuvvet_semasi"]
+        taban, agiz = [x for x in sema if x["tip"] == "dikdortgen"]
+        oklar = {y["metin"]: y for y in sema if y["tip"] == "yazi"}
+        ok = [x for x in sema if x["tip"] == "ok"]
+        fy = min(ok, key=lambda o: abs(o["x2"] - o["x1"]))       # düşey ok
+        fx = min(ok, key=lambda o: abs(o["y2"] - o["y1"]))       # yatay ok
+        self.assertGreater(taban["g"], taban["d"])               # taban yatay, ağız düşey
+        self.assertGreater(agiz["d"], agiz["g"])
+        self.assertAlmostEqual(fy["x2"], agiz["x"] + agiz["g"] / 2.0)
+        self.assertGreater(fy["y1"], fy["y2"])
+        self.assertGreaterEqual(fy["y2"], agiz["y"] + agiz["d"])  # ağzın ucuna iner
+        self.assertTrue(agiz["y"] < fx["y2"] < agiz["y"] + agiz["d"])
+        self.assertLessEqual(fx["x2"], agiz["x"])                 # ağza yandan
+        self.assertEqual(set(oklar), {"Fx", "Fy"})
+
+    def test_cerceve_yazilarin_enini_kapsar(self):
+        """Sola hizalı tablo satırları çerçevenin içinde kalır ( taşıyordu )."""
+        Y = CGE._yazi
+        self.assertEqual(CGE.sinir([Y(0, 0, "ABCDE", 40, hiza="sol")]), (0, -20, 120, 20))
+        self.assertEqual(CGE.sinir([Y(0, 0, "ABCDE", 40, hiza="sag")]), (-120, -20, 0, 20))
+        self.assertEqual(CGE.sinir([Y(0, 0, "ABCDE", 40)]), (-60, -20, 60, 20))
+        self.assertEqual(CGE.sinir([Y(0, 0, "ABCDE", 40, hiza="sol", aci=90)]), (-20, 0, 20, 120))
+        e = CGE.cerceveli(CKD.ciz(_ornek(kuyu_dibi={"kuvvetler": self.KV})), "KUYU DİBİ PLANI")
+        c = next(x for x in e if x["katman"] == "CERCEVE" and x["tip"] == "dikdortgen")
+        for x in self._tablo(e):
+            self.assertLessEqual(x["x"] + CGE._yazi_eni(x["metin"], x["yukseklik"]), c["x"] + c["g"])
+
+    def test_olcu_yazisi_parcaya_binmez(self):
+        """Kuyunun içindeki ölçü yazıları tampon, gergi, merdiven, ray, konsol,
+        perde ve nokta adlarının üstüne düşmez ( Yatarak sığınmada "1000"
+        kabin tamponunun üstündeydi )."""
+        projeler = list(_dip_projeler()) + [
+            ("Yatarak", _ornek(kuyu_dibi={"siginma_tipi": "Yatarak"})),
+            ("Yatarak · ELEport tamponu", _ornek(kuyu_dibi={"siginma_tipi": "Yatarak",
+                                                           "regulator_kasnak_capi": 240}))]
+        for ad, g in projeler:
+            e = CKD.ciz(g)
+            G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
+            engel = [CGE.sinir([x]) for x in e if x["katman"] in CGE.PARCA_KATMANLARI
+                     or (x["tip"] == "yazi" and x["katman"] == "YAZI")]
+            for o in e:
+                if o["tip"] != "olcu":
+                    continue
+                y_ = o["yazi"]
+                if not (0 < y_["x"] < G and 0 < y_["y"] < D):
+                    continue
+                w, h = CGE._yazi_eni(o["metin"], y_["h"]) / 2.0, y_["h"] / 2.0
+                if y_["aci"]:
+                    w, h = h, w
+                k = (y_["x"] - w, y_["y"] - h, y_["x"] + w, y_["y"] + h)
+                with self.subTest(proje=ad, olcu=o["metin"]):
+                    self.assertFalse([b for b in engel if CKD._ortusur(k, b)])
+
+    def test_kuvvet_tablosu_cizimin_disinda(self):
+        """Tablo planın ve ölçülerin sağında;  satırlar üst üste binmez."""
+        for ad, g in _dip_projeler():
+            g["kuyu_dibi"]["kuvvetler"] = dict(self.KV)
+            e = CKD.ciz(g)
+            t = self._tablo(e)
+            sag = max(max(x.get("x", 0), x.get("x2", 0), x.get("x", 0) + x.get("g", 0),
+                          x["yazi"]["x"] + x["yazi"]["h"] / 2.0 if x["tip"] == "olcu" else 0)
+                      for x in e if x.get("ad") not in ("kuvvet_tablosu", "kuvvet_semasi"))
+            sema = [x for x in e if x.get("ad") == "kuvvet_semasi"]
+            with self.subTest(proje=ad):
+                self.assertGreater(min(x["x"] for x in t), sag)
+                self.assertGreater(CGE.sinir(sema)[0], sag)
+                #  Şema tablonun altında, son satıra binmez
+                self.assertLess(CGE.sinir(sema)[3], min(x["y"] for x in t) - 40)
+                ys = [x["y"] for x in t]
+                self.assertTrue(all(a - b >= 1.5 * 45 for a, b in zip(ys, ys[1:])))
+
     def test_kabin_cizilmez(self):
         """Kesit en alt duraktaki kabinin altından geçer:  kabin bu planda yoktur,
         izi de çizilmez."""
@@ -792,7 +975,8 @@ class KuyuDibiYerlesim(unittest.TestCase):
     def test_yuk_noktalari_hesap_paftasi_adlariyla(self):
         e = CKD.ciz(_ornek(kuyu_dibi={"kabin_tampon_adedi": 2, "kabin_tampon_arasi": 600}))
         adlar = [el["metin"] for el in e if el.get("ad") == "yuk"]
-        self.assertEqual(sorted(adlar), sorted(["FKR", "FKR", "FAR", "FAR", "Fkt", "Fkt", "Fat"]))
+        #  İki tamponda her birine düşen:  hesap paftasındaki Fkt1 = Fkt / ncar
+        self.assertEqual(sorted(adlar), sorted(["FKR", "FKR", "FAR", "FAR", "Fkt1", "Fkt1", "Fat"]))
 
     def test_olcu_zincirleri_ve_yazilar(self):
         import itertools
@@ -1503,6 +1687,41 @@ class KirikKesit(unittest.TestCase):
 
 
 from cizim import pafta as CPF              # noqa: E402
+from cizim import cizimler as CZ_           # noqa: E402
+
+
+class OlcuYazisiParcayaBinmez(unittest.TestCase):
+    """Hiçbir çizimde ölçü yazısı bir parçanın ( ray, konsol, şase, tampon,
+    kasnak, merdiven, perde, makine, pano, paten ) ya da bir etiketin üstüne
+    düşmez.  Kuyu planında kabin duvarının "75"i şase dikmesinin, kuyu
+    dibinde Yatarak sığınmanın "1000"i kabin tamponunun üstündeydi."""
+
+    def test_butun_cizimler(self):
+        projeler = [("örnek", _ornek()), ("sağ", _sag_ayna()), ("arka", _arka()),
+                    ("makine dairesi", _ornek(makine={"yeri": "Makine dairesi"})),
+                    ("yatarak", _ornek(kuyu_dibi={"siginma_tipi": "Yatarak"})),
+                    ("dik duruş", _ornek(kabin_ustu={"siginma_tipi": "Dik duruş"}))]
+        sayi = 0
+        for ad, g in projeler:
+            for cizim, (dogrula, ciz, _) in CZ_.CIZIMLER.items():
+                if dogrula(g):
+                    continue
+                e = ciz(g)
+                engel = [CGE.sinir([x]) for x in e if x["katman"] in CGE.PARCA_KATMANLARI
+                         or (x["tip"] == "yazi" and x["katman"] == "YAZI")
+                         or x.get("ad") == "yuk_kutusu"]
+                for o in e:
+                    if o["tip"] != "olcu":
+                        continue
+                    y_ = o["yazi"]
+                    w, h = CGE._yazi_eni(o["metin"], y_["h"]) / 2.0, y_["h"] / 2.0
+                    if y_["aci"]:
+                        w, h = h, w
+                    k = (y_["x"] - w, y_["y"] - h, y_["x"] + w, y_["y"] + h)
+                    sayi += 1
+                    with self.subTest(proje=ad, cizim=cizim, olcu=o["metin"]):
+                        self.assertFalse([b for b in engel if CKD._ortusur(k, b)])
+        self.assertGreater(sayi, 500)
 
 
 class Pafta(unittest.TestCase):

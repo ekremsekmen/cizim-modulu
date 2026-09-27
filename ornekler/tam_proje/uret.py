@@ -22,7 +22,7 @@ os.makedirs(CIKTI, exist_ok=True)
 from hesap_girdi import ASANSOR, ORTAK
 from engine.uygulama import hesap as E_UYG
 from exports import pdf_export as X_PDF, dxf_export as X_DXF, kapak_export as X_KAPAK
-from cizim import girdi as CG, pafta as CPF, kuyu_kesiti as CKK
+from cizim import girdi as CG, pafta as CPF, kuyu_kesiti as CKK, kuyu_dibi as CKD
 
 #  ── HESAP ─────────────────────────────────────────────────────────────
 A = dict(ASANSOR, siginma_tipi_dip="Yatarak")
@@ -64,6 +64,28 @@ g["dusey"].update({
     "kabin_konsol_arasi": 1500, "agirlik_konsol_arasi": 1500,
 })
 g["kuyu_dibi"].update({"siginma_tipi": "Yatarak", "regulator_kasnak_capi": 240})
+#  Binaya gelen yükler ( N ):  kuyu tabanı hesabın 9. bölümünden;  ray
+#  konsoluna gelen yatay kuvvetler 7. ve 8. bölümlerin bütün yük durumlarındaki
+#  paten kuvvetlerinin en büyüğü.  Tampon adetleri iki girdide aynı olmalı ki
+#  "her tampona düşen" doğru bölünsün.
+_a = s["asansorler"][0]
+
+
+def _en_buyuk(kimlik, sembol):
+    b = next(b for b in _a["bolumler"] if b.get("kimlik") == kimlik)
+    d = [abs(x["deger"]) for x in b["adimlar"]
+         if str(x.get("formul") or "").startswith(sembol + " =") and isinstance(x.get("deger"), (int, float))]
+    assert d, (kimlik, sembol)
+    return max(d)
+
+
+g["kuyu_dibi"]["kuvvetler"] = dict(
+    {k: _a["ozet"][k] for k in ("FKR", "FAR", "Fkt", "Fat")},
+    Fx_kabin=_en_buyuk("kabin_raylari", "Fx"), Fy_kabin=_en_buyuk("kabin_raylari", "Fy"),
+    Fx_agirlik=_en_buyuk("agirlik_raylari", "Fx"), Fy_agirlik=_en_buyuk("agirlik_raylari", "Fy"))
+print("binaya gelen yükler ( N ):", {k: round(v) for k, v in g["kuyu_dibi"]["kuvvetler"].items()})
+for a in ("kabin_tampon_adedi", "agirlik_tampon_adedi"):
+    assert int(A.get(a) or 1) == g["kuyu_dibi"][a], (a, A.get(a), g["kuyu_dibi"][a])
 g["kabin_ustu"]["siginma_tipi"] = "Çömelme"
 h = CKK.dogrula(g)
 assert not h, h

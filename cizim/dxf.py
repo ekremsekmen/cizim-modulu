@@ -23,11 +23,17 @@ KATMAN = {
     "CIVATA": (3, 13), "CERCEVE": (7, 40),
     "OLCU": (5, 13), "EKSEN": (1, 13), "YAZI": (7, 0),
     "KORKULUK": (6, 50), "SIGINMA": (3, 25),
-    "TAMPON": (200, 25), "PERDE": (6, 50), "MERDIVEN": (32, 25), "GIZLI": (8, 13), "YUK": (1, 0),
+    "TAMPON": (200, 25), "PERDE": (6, 50), "MERDIVEN": (32, 25), "GIZLI": (8, 13), "YUK": (1, 18),
     "MAKINE": (5, 30), "BAGLANTI": (8, 25), "DELIK": (5, 30),
     "HALAT": (6, 18), "KESIT": (7, 50), "SEVIYE": (2, 13),
 }
 YAZI_TIPI = "ASANSOR"
+#  Yazı yüksekliği:  geometri yazının boyunu SVG'deki gibi EM ( font-size ) olarak
+#  verir;  DXF'te TEXT ve ölçü yazısı yüksekliği BÜYÜK HARF yüksekliğidir.  Arial'de
+#  büyük harf = 0,716 em ( 1467 / 2048 ).  Çarpılmazsa DXF yazısı 1,4 kat büyük
+#  çıkıyor, yerleşimin ayırdığı yere sığmıyordu ( pafta ve DWG'de yazılar birbirine
+#  ve kutularına biniyordu ).
+BUYUK_HARF = 0.716
 
 
 def _katmanlari_kur(d):
@@ -65,7 +71,7 @@ def _olcu(msp, el, k=1.0):
                               dxfattribs={"layer": "OLCU"},
                               #  dimse1 / dimse2:  uzatma çizgileri çizilmez —
                               #  SVG ile aynı görünüm ( kullanıcı kararı ).
-                              override={"dimtxt": yz["h"], "dimasz": 35 * k, "dimexe": 30 * k,
+                              override={"dimtxt": yz["h"] * BUYUK_HARF, "dimasz": 35 * k, "dimexe": 30 * k,
                                         "dimexo": 25 * k, "dimgap": 15 * k, "dimclrt": 5,
                                         "dimse1": 1, "dimse2": 1})
     olcu.render()
@@ -120,7 +126,7 @@ def ciz(hedef, elemanlar, olcek=20):
         elif tur == "olcu":
             _olcu(hedef, el, k)
         elif tur == "yazi":
-            hedef.add_text(el["metin"], height=el["yukseklik"],
+            hedef.add_text(el["metin"], height=el["yukseklik"] * BUYUK_HARF,
                            dxfattribs={"layer": kat, "style": YAZI_TIPI,
                                        "rotation": el.get("aci", 0)}
                            ).set_placement((el["x"], el["y"]), align={
@@ -139,7 +145,7 @@ def belge(elemanlar, baslik="", olcek=20):
     if baslik:
         x1 = min(el.get("x", el.get("x1", 0)) for el in elemanlar if el["tip"] != "olcu")
         y1 = min(el.get("y", el.get("y1", 0)) for el in elemanlar if el["tip"] != "olcu")
-        msp.add_text(f"{baslik}   1/{olcek:g}", height=90,
+        msp.add_text(f"{baslik}   1/{olcek:g}", height=90 * BUYUK_HARF,
                      dxfattribs={"layer": "YAZI", "style": YAZI_TIPI}
                      ).set_placement((x1, y1 - 400), align=TextEntityAlignment.LEFT)
     return d

@@ -69,8 +69,17 @@ python3 -m venv .venv
    Bir iç parçayı ölçen ölçü ( eşikler, askı aralığı ve kaçıklığı ) planın
    dışında değil, parçanın yanında durur.  Yazının yeri geometride bulunur
    ( `_yazilari_yerlestir` );  sığmayan yazı sıranın ucunun dışına ya da bir
-   kat dışarı alınır, başka bir sıranın üstüne itilmez.  Test:  hiçbir iki
-   ölçü yazısı üst üste binmez, hepsi çerçevenin içindedir.
+   kat dışarı alınır, başka bir sıranın üstüne itilmez.  Sığmayan bir ARA
+   ölçünün yazısı ortada bir parçanın ( ray, konsol, şase, tampon … —
+   `PARCA_KATMANLARI` ) üstüne düşüyorsa uzatma çizgisinin hemen dışına, geniş
+   komşu tarafa yazılır ( AutoCAD gibi;  kabin duvarının "75"i şase dikmesinin
+   üstündeydi ).  Testler:  hiçbir iki ölçü yazısı üst üste binmez, hepsi
+   çerçevenin içindedir, hiçbir çizimde ölçü yazısı bir parçanın ya da etiketin
+   üstüne düşmez.  Çerçeve yazıların enini ve hizasını da kapsar.
+7. **Yazı boyu SVG'de ve DXF'te aynıdır.**  Geometri yazının boyunu em
+   ( font-size ) olarak verir;  DXF'te TEXT ve ölçü yazısı yüksekliği büyük harf
+   yüksekliğidir ( Arial 0,716 em ) — `dxf.BUYUK_HARF` ile çarpılır.  Eskiden DXF
+   yazıları 1,4 kat büyük çıkıyor, pafta ve DWG'de ayrılan yere sığmıyordu.
 
 ## Bugün ne çiziliyor
 
@@ -104,10 +113,29 @@ yolundan kayar;  kabin rayı ekseni kabinin derinliği içinden geçmelidir.
 etek tahtası ( planda tavan kenarıyla çakışır ).
 
 **Kuyu dibi planı** ( kuyu tabanından yatay kesit ):  duvarlar, raylar ve
-konsollar kuyu planından;  kabinin izi ve kat kapısı yalnız yer göstermek için
-kesik çizilir.  Kuyu tabanına yük aktaran noktalar hesap paftasının 9.
-bölümündeki adlarla işaretlenir:  **FKR** kabin rayı · **Fkt** kabin tamponu ·
-**FAR** ağırlık rayı · **Fat** ağırlık tamponu ( değerleri köprüyle gelecek ).
+konsollar kuyu planından;  kabin bu kesitte yoktur ve çizilmez, kat kapısı
+yalnız yer göstermek için kesik çizilir.  Kuyu tabanına yük aktaran noktalar
+hesap paftasının 9. bölümündeki adlarla işaretlenir ( LiftDesigner "View of
+Pit" gibi, ama değeriyle ):  her rayın ve tamponun ortasına **ok**, çerçeveli
+**kutuda** adı ve değeri — **FKR** bir kabin rayı · **FAR** bir ağırlık rayı ·
+**Fkt** kabin tamponu · **Fat** ağırlık tamponu ( iki tamponda her birine düşen
+**Fkt1** / **Fat1**, kN ).  Kutu noktanın çevresinde, kuyunun içinde, hiçbir
+parçaya, yazıya, ölçüye ve başka kutuya binmeyen yere konur;  ok başka bir
+kutuyu, yazıyı ya da oku kesmez ( en sıkışık nokta önce, gerekirse geri izleme;
+yer yoksa kutu sığınma alanının yüzeyine binebilir ).  Perde etiketi okların
+arasına kayar, sığmazsa kısalır.  Değerler `kuyu_dibi.kuvvetler`'den ( N );
+girilmezse kutuda yalnız ad yazar.
+
+| Değer | Kaynak ( hesap programı ) | Nerede |
+|---|---|---|
+| FKR · FAR | 9. bölüm | Her rayın altında, oklu kutuda |
+| Fkt · Fat ( Fkt1 · Fat1 ) | 9. bölüm | Her tamponun altında, oklu kutuda |
+| Kabin rayı Fx · Fy | 7. bölüm:  bütün yük durumlarının ( C.2.1 · C.2.2 · C.2.3 ) en büyüğü | "RAY KONSOLUNA YATAY YÜKLER" tablosu — her konsola gelir, tek noktaya değil |
+| Ağırlık rayı Fx · Fy | 8. bölüm | Aynı tablo |
+
+Tablonun altındaki ray şeması yönleri gösterir:  **Fx** ray ağzına yandan, **Fy**
+ağzın doğrultusunda ( EN 81-50 m.5.10.5:  "Fx … by a guide shoe to the flange" ).
+Tam proje örneği değerleri hesap motorundan okur.
 
 | Kural | Madde | Ne yapılır |
 |---|---|---|
@@ -305,6 +333,15 @@ girdileriyle hesap programının MOTORUNU çağırır ( program değiştirilmez 
 kapak ve hesap paftalarını hesap programının kendi dışa aktarımıyla şablona
 dizer, çizimleri `pafta.birlestir` ile son hesap sayfasının sağına ekler.
 Çıktılar ( DXF · DWG · pafta PDF · hesap PDF ) git'e girmez, betik yeniden üretir.
+
+Makine dairesiz tesiste makine şasesi raylara oturur ( ELEport "Motor Bedplate
+Calculation" ):  hesap girdisinde "Makine yükünün yolu = Kılavuz raylara" ve
+makine ağırlığı 250 kg ( ELEport motoru ).  Hesap programı bir raya
+( Gm + Tst ) / 4 = 4.490 N yükler ( m.5.7.2.3.7 );  ELEport aynı yere kendi
+kabulüyle 800 kg ( ray hesabında 1.000 kg ) koyar.  **Hesap programının
+modelinde olmayanlar** ( çizim işi bitince ele alınacak ):  şasenin kendi
+ağırlığı ( ELEport 150 kg ) ve şaseye bağlı halat bağlantısının yükü ( ELEport
+M3 = 686 kg ).
 
 ## Pafta ( TİP PROJE FORMATI )
 
