@@ -139,6 +139,17 @@ SABIT = {
     #  boyunca ağırlık raylarının dış yüzlerinden 8'er mm taşar.
     "makine_sase_duvar": 20,
     "makine_sase_ray_payi": 8,
+    #  MAKİNE DAİRESİNDE AYAKLI ŞASE ÇERÇEVESİ ( sehpa ) — LiftDesigner 12744-3
+    #  "kasnak düzenlemesi" ve makine odası planından ( A 160 makine ):  döşemeden
+    #  makine tabanına 1.050, ayaklar 100 × 100, uzun kenarlarda UPN 200, uçlarda
+    #  UPN 100, ayak plakaları 150 × 150 × 20;  çerçeve makinenin ve saptırma
+    #  kasnağının izinden her yana 100 taşar.  Saptırma kasnağının merkezi
+    #  döşemenin 400 üstünde ( LiftDesigner:  tahrik kasnağının 842 altı ).
+    "md_cerceve_yukseklik": 1050,
+    "md_cerceve_ayak": 100,
+    "md_cerceve_pay": 100,
+    "md_cerceve_ayak_plakasi": 150, "md_cerceve_ayak_plakasi_kalinlik": 20,
+    "md_saptirma_yukseklik": 400,
     #  Şasenin altındaki raylar şase üstünün 55 altında biter ( tavandan 650 );
     #  öbür kabin rayı tavanın 50 altına çıkar, kabin halat bağlantısı onun
     #  başındadır ( tavandan 280 – 645 ).  Ağırlık halat bağlantısı şasenin

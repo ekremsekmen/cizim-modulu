@@ -23,6 +23,8 @@ ELEport'un düzeni ).  Öteki düzenler için doğrulama açıkça reddeder.
 """
 from cizim import geometri as CGE
 from cizim import girdi as CG
+from cizim import kuyu_dibi as CKD
+from cizim import makine as CMK
 from cizim import sabitler as CS
 
 #  TS EN 81-20 m.5.2.6.6.4 → m.5.2.6.3.2.1 a:  panonun önünde en az 0,70 m
@@ -65,6 +67,14 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
         hata.append("agirlik.kasnak_capi:  2:1 askıda karşı ağırlık kasnağının çapı girilmeli.")
     if not (_sayi(mk.get("tahrik_kasnak_capi")) and mk["tahrik_kasnak_capi"] > 0):
         hata.append(f"makine.tahrik_kasnak_capi: sayı olmalı ( {mk.get('tahrik_kasnak_capi')!r} ).")
+    if mk.get("tip") not in CMK.TIPLER:
+        hata.append(f"makine.tip: {CMK.TIPLER} içinden olmalı ( {mk.get('tip')!r} ).")
+    elif mk["tip"] == "Dişli" and mk.get("yeri", "Kuyu üstü") == "Kuyu üstü":
+        #  LiftDesigner'ın dişli makinesi 1.316 × 590:  kuyu tepesindeki,
+        #  karşı ağırlık rayları arasındaki şaseye sığmaz;  makine dairesiz
+        #  asansörler dişlisizdir ( ofisin 4815-6'sı ve ELEport da öyle ).
+        hata.append("Makine dairesiz ( kuyu üstü ) tesiste dişli makine çizilmez — "
+                    "makine.tip Dişlisiz olmalı ya da makine.yeri Makine dairesi.")
     if acil_pano and ku.get("acil_pano_yan") not in YANLAR:
         hata.append(f"kuyu_ustu.acil_pano_yan: {YANLAR} içinden olmalı ( {ku.get('acil_pano_yan')!r} ).")
     for alan in ("regulator_kaciklik", "regulator_kasnak_capi"):
@@ -106,6 +116,17 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
     g0 = y0 + s * (kt + S["makine_kasnak_boslugu"])
     g1 = g0 + s * S["makine_boy"]
     govde = (kmx - S["makine_en"] / 2.0, min(g0, g1), kmx + S["makine_en"] / 2.0, max(g0, g1))
+
+    #  ── MAKİNE ŞASESİ ( makine dairesizde ) ───────────────────────────
+    #  Karşı ağırlık rayları boyunca, duvardan ağırlık tarafındaki kabin
+    #  rayına ( ELEport:  şase kabin rayına ve ağırlık raylarına oturur ).
+    kab_r = sorted(CKD._raylar(taban, "kabin_ray"), key=lambda r: r[0])
+    ag_r = CKD._raylar(taban, "agirlik_ray")
+    yakin_ray = kab_r[0] if sol else kab_r[-1]
+    sase = ((S["makine_sase_duvar"], min(r[1] for r in ag_r) - S["makine_sase_ray_payi"],
+             yakin_ray[0], max(r[3] for r in ag_r) + S["makine_sase_ray_payi"]) if sol else
+            (yakin_ray[2], min(r[1] for r in ag_r) - S["makine_sase_ray_payi"],
+             G - S["makine_sase_duvar"], max(r[3] for r in ag_r) + S["makine_sase_ray_payi"]))
 
     #  ── HALAT BAĞLANTILARI ───────────────────────────────────────────
     #  Ağırlık tarafı:  ağırlık kasnağının öbür teğetinin üstünde;  plaka
@@ -153,10 +174,39 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
         pm = (pano[0] + pano[2]) / 2.0
         calisma = (pm - ce / 2.0, pano[1] - CALISMA_DERINLIK, pm + ce / 2.0, pano[1])
 
+    #  ── MAKİNENİN PARÇALARI ( makine.py ) ────────────────────────────
+    #  Planda kot yalnız çizim sırası için:  kasnak merkezi 0.  Dişli makine
+    #  ( yalnız makine dairesinde ):  dişli kutusu kasnağın iki yanından
+    #  birinde, motor kasnak eksenine dik iki yöndan birinde — bağlantılara ve
+    #  regülatöre binmeyen, odaya sığan ilk düzen ( önce ağırlık tarafı ve
+    #  kuyunun ortası ).
+    m_yon = 1.0 if kmx < G / 2.0 else -1.0
+    oda_ = None
+    if mk.get("yeri") == "Makine dairesi" and all(
+            _sayi((g.get("makine_dairesi") or {}).get(a)) for a in ("x", "y", "genislik", "derinlik")):
+        md = g["makine_dairesi"]
+        oda_ = (md["x"], md["y"], md["x"] + md["genislik"], md["y"] + md["derinlik"])
+    if mk["tip"] == "Dişli":
+        engel = (agirlik_baglanti, kabin_baglanti, reg_govde)
+        for s_, m_ in ((s, m_yon), (-s, m_yon), (s, -m_yon), (-s, -m_yon)):
+            z = CMK.disli_zarfi((kmx, y0, 0.0), s_, m_)
+            if not any(_ortusur(z, p) for p in engel) and (
+                    oda_ is None or (oda_[0] <= z[0] and oda_[1] <= z[1] and z[2] <= oda_[2] and z[3] <= oda_[3])):
+                s, m_yon = s_, m_
+                break
+        makine = CMK.disli((kmx, y0, 0.0), D1, 2 * kt, s, m_yon)
+        govde = CMK.disli_zarfi((kmx, y0, 0.0), s, m_yon)
+    else:
+        makine = CMK.dislisiz((kmx, y0, 0.0), D1, 2 * kt, s, S["makine_en"],
+                              S["makine_kasnak_boslugu"] + S["makine_boy"])
+
     #  ── ÇAKIŞMALAR ───────────────────────────────────────────────────
     parcalar = {"makine": govde, "tahrik kasnağı": kasnak, "ağırlık halat bağlantısı": agirlik_baglanti,
                 "kabin halat bağlantısı": kabin_baglanti, "regülatör": reg_govde}
     for ad, p in parcalar.items():
+        #  Makine dairesinde makine odanın içindedir ( makine_dairesi denetler )
+        if oda_ is not None and ad in ("makine", "tahrik kasnağı"):
+            continue
         if p[0] < 0 or p[1] < 0 or p[2] > G or p[3] > D:
             hata.append(f"{ad.capitalize()} kuyunun dışına taşıyor.")
     adlar = list(parcalar)
@@ -170,6 +220,7 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
     return {"taban": taban, "kabin": kabin, "blok": blok, "halatlar": [(xl, y0), (xr, y0)],
             "ag_dusus": (ag_dusus_x, y0), "ag_teget": (ex, teget1), "ag_teget2": (ex, teget2),
             "sapma": sapma, "kasnak": kasnak, "govde": govde, "agirlik_baglanti": agirlik_baglanti,
+            "makine": makine, "m_yon": m_yon, "s": s, "sase": sase, "tip": mk["tip"],
             "kabin_baglanti": kabin_baglanti, "reg_kasnak": reg_kasnak, "reg_govde": reg_govde,
             "reg_ayak": reg_ayak, "pano": pano, "calisma": calisma, "D1": D1,
             "rgx": rx, "rgy": rgy, "yakin": yakin, "uzak": uzak,
@@ -199,11 +250,9 @@ def ciz(g, cizim_sabitleri=None):
     kp = g["kapi"]
     kutu("GIZLI", (kp["sol_pay"], -don, kp["sol_pay"] + kp["genislik"], 0), "kapi_izi")
 
-    #  Makine
-    kutu("MAKINE", Y["govde"], "makine")
-    kutu("KASNAK", Y["kasnak"], "tahrik_kasnagi")
-    gv, ks = Y["govde"], Y["kasnak"]
-    e.append(CGE._yazi((gv[0] + gv[2]) / 2.0, (gv[1] + gv[3]) / 2.0, "MAKİNE", 40))
+    #  Makine şasesi ( 2 × UPN 200 ) ve makine — parça parça ( makine.py )
+    e += CMK.plan(CMK.plan_parcalari(Y, Y["S"]), CGE._dik, CGE._daire, CGE._cizgi)
+    ks = Y["kasnak"]
     e.append(CGE._yazi((ks[0] + ks[2]) / 2.0, (ks[1] + ks[3]) / 2.0, f"ø {Y['D1']:g}", 38))
 
     #  Halat bağlantıları, sonra halatlar ( işaret plakanın üstünde görünsün )

@@ -16,6 +16,7 @@ kesitte daire ).
 """
 from cizim import donanim as CDN
 from cizim import geometri as CGE
+from cizim import makine as CMK
 
 
 class Bakis:
@@ -184,25 +185,19 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     kt = CDN.kabin_kotlari(dy, S, kabin_z)
     if "sase" not in M:
         return AK, kt
-    #  Kuyu tepesinde ya da makine dairesinde:  makine şasesi ( kaidesi ),
-    #  bağlantılar, makine, regülatör, ( odada ) kumanda panosu
-    sa = M["sase"]
-    B.kutu(e, "KONSOL", sa[:4], sa[4], sa[5], "makine_sasesi")
+    #  Kuyu tepesinde ya da makine dairesinde:  makine şasesi, bağlantılar,
+    #  makine ( makine.py:  parça parça, izdüşümüyle ), regülatör, ( odada )
+    #  kumanda panosu
     for ad in ("agirlik_baglanti", "kabin_baglanti"):
         p = M[ad]
         B.kutu(e, "BAGLANTI", p[:4], p[4], p[5], ad)
-    gv = M["govde"]
-    zt = M["kasnak"][4]
-    if B.tur == "on":
-        if B.gorunur(gv[:4]):
-            u = B.u((gv[0] + gv[2]) / 2.0, 0)
-            e.append(CGE._ad(CGE._daire("MAKINE", u, zt, (gv[2] - gv[0]) / 2.0), "makine"))
-    else:
-        B.kutu(e, "MAKINE", gv[:4], gv[4], gv[5], "makine")
-    kp = M["kapak"]
-    B.kutu(e, "MAKINE", kp[:4], kp[4], kp[5], "makine_kapagi")
-    D1 = g["makine"]["tahrik_kasnak_capi"]
-    kasnak(e, B, M["kasnak"][:4], zt, D1, "x", "tahrik_kasnagi")
+    e += CMK.gorunus(M["sase_parcalari"] + M["makine"], B, CGE._dik, CGE._daire, CGE._cizgi)
+    #  Makine dairesinde halatın tahrik kasnağındaki sarım açısı ( LiftDesigner
+    #  "kasnak düzenlemesi" gibi ) — kasnağın daire göründüğü ön kesitte
+    if "MD" in M and B.tur == "on" and B.gorunur(M["kasnak"][:4]):
+        ks = M["kasnak"]
+        e.append(CGE._ad(CGE._yazi(B.u((ks[0] + ks[2]) / 2.0, 0), ks[4] + g["makine"]["tahrik_kasnak_capi"] / 2.0
+                                   + 180 * K, f"SARIM AÇISI {M['sarim_acisi']:.0f}°", 40 * K), "sarim_acisi"))
     rg = M["regulator"]
     B.kutu(e, "MAKINE", rg[:4], rg[4], rg[5], "regulator")
     if "pano" in M:
@@ -213,6 +208,7 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     #  Halatlar
     KU = M["KU"]
     zk = kt["kasnak_merkez"]
+    zt = M["kasnak"][4]
     (xl, y0), (xr, _) = KU["halatlar"]
     yakin, uzak_x = KU["yakin"], KU["uzak"]
     zkb = M["kabin_baglanti"][4]
@@ -221,11 +217,17 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     dx, dy_ = KU["ag_dusus"]
     tx1, ty1 = KU["ag_teget"]
     tx2, ty2 = KU["ag_teget2"]
-    for (x0_, y0_, z0), (x1_, y1_, z1) in (
+    #  Ağırlık tarafı:  saptırma kasnağı varsa ( makine dairesi ) tahrik
+    #  kasnağından ona ortak teğet, ondan ağırlık kasnağına dik iner.
+    if M.get("agirlik_yolu"):
+        ad_, ay_, az_ = M["agirlik_dusus"]
+        agirlik = list(M["agirlik_yolu"]) + [((ad_, ay_, az_), (tx1, ty1, za))]
+    else:
+        agirlik = [((dx, dy_, zt), (tx1, ty1, za))]         # tahrik kasnağı → ağırlık kasnağı
+    for (x0_, y0_, z0), (x1_, y1_, z1) in [
             ((yakin, y0, zk), (yakin, y0, zt)),                 # kabin → tahrik kasnağı
-            ((uzak_x, y0, zk), (uzak_x, y0, zkb)),              # kabin → kabin bağlantısı
-            ((dx, dy_, zt), (tx1, ty1, za)),                    # tahrik kasnağı → ağırlık kasnağı
-            ((tx2, ty2, za), (tx2, ty2, zab))):                 # ağırlık kasnağı → bağlantı
+            ((uzak_x, y0, zk), (uzak_x, y0, zkb))] + agirlik + [   # kabin → kabin bağlantısı
+            ((tx2, ty2, za), (tx2, ty2, zab))]:                 # ağırlık kasnağı → bağlantı
         if B.gorunur((x0_, y0_, x0_, y0_)):
             e.append(CGE._ad(CGE._cizgi("HALAT", B.u(x0_, y0_), z0, B.u(x1_, y1_), z1), "aski_halati"))
     if B.tur == "on":

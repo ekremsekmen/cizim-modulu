@@ -109,13 +109,13 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
 
 
 def _oda_olculeri(e, M, md, D1, kot_makine, kot_oda):
-    """Makine dairesinde:  kaide · kasnak · kasnak üstü ( m.5.2.6.3.2.3 ) ve
+    """Makine dairesinde:  şase · kasnak · kasnak üstü ( m.5.2.6.3.2.3 ) ve
     döşeme · temiz yükseklik ( m.5.2.6.3.2.1 ) · çatı."""
     zd, ztv, t = M["oda_doseme"], M["oda_tavan"], md["doseme"]
     sa = M["sase"]
     ku = M["kasnak"][4] + D1 / 2.0
     _zincir(e, kot_makine, [zd, sa[5], ku, ztv],
-            {0: f"KAİDE {sa[5] - zd:g}",
+            {0: f"ŞASE {sa[5] - zd:g}",
              2: f"KASNAK ÜSTÜ {ztv - ku:g} ≥ {CDN.DONEN_PARCA_USTU:g}"})
     _zincir(e, kot_oda, [M["tavan"], zd, ztv, ztv + t],
             {0: f"DÖŞEME {t:g}", 1: f"MAKİNE DAİRESİ {md['yukseklik']:g} ≥ {CDN.ODA_YUKSEKLIK:g}",

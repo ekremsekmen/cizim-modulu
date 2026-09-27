@@ -175,6 +175,39 @@ planından;  kabin, karşı ağırlık ve kat kapısı yalnız izleriyle ( kesik
 - Bugün yalnız yandaki karşı ağırlık + kabin altı 2:1 askı çizilir;  öteki
   düzenler açıkça reddedilir.
 
+**Makine ve şase** ( `makine.py` ):  makine ve şase üç boyutlu basit
+cisimlerdir ( silindir, kutu, profil kenarı );  plan, A-A ve B-B aynı cisimlerin
+izdüşümünü çizer — ekseni bakış yönündeki silindir daire, öbürü dikdörtgen;
+kesit düzleminin gerisi çizilmez, bakana yakın olan öne gelir.  Tip girdiden
+( `makine.tip`:  Dişlisiz / Dişli — hesap programının "Makine tipi" ).
+Ölçüler ofisin LiftDesigner projelerinden ( kullanıcı kararı ):
+
+| Tip | Kaynak | Parçalar |
+|---|---|---|
+| Dişlisiz | 4815-6 ( MRL ) | kasnak ekseni üstünde:  kasnak · göbek ø100 × 15 · flanş ø220 × 28 · yatak flanşı ø320 × 50 · gövde ø400 × 206 · fren ø320 × 70 · fren diski ø240 × 18 · enkoder ø270 × 102 ( toplam 489 ) + klemens kutusu.  Biçim bu;  ölçü projenin makine ZARFINA oranlanır ( ELEport'un makinesi ø298 × 279 ve kotları ölçülü ) |
+| Dişli | 12744-3 A 160 ( makine daireli ) | sonsuz vidalı:  motor ekseni kasnak eksenine dik — el çarkı, motor ø300 + klemens, motor flanşı, fren ve fren kasnağı ø260, dişli kutusu 320 × 260 × 422, vida yuvası, arka yatak, taban;  kasnak dişli kutusunun yanında, dış yataklı.  Zarf 1.316 × 590 × 600, kasnak ekseni tabanın 195 üstünde |
+
+Makine dairesizde yalnız dişlisiz çizilir ( dişli makine kuyu tepesindeki
+şaseye sığmaz ).  Dişli makinenin yönü ( dişli kutusu kasnağın hangi yanında,
+motor hangi yöne ) bağlantılara ve regülatöre binmeyen, odaya sığan ilk düzendir.
+
+| Şase | Nerede | Ne |
+|---|---|---|
+| 2 × UPN 200 ( DIN 1026 ) | kuyu üstü | ELEport'un şase hesabındaki kiriş ( Wx 191 cm³ ):  karşı ağırlık rayları boyunca, sırtları dışta;  aralarında üstle aynı hizada 700 mm motor plakası, uçlarda bağlantı levhaları.  Kotlar ELEport'unki ( tavandan 595 – 795 ) |
+| Ayaklı şase çerçevesi | makine dairesi:  dişli makine ya da saptırma kasnağı | LiftDesigner 12744-3:  döşemeden makine tabanına 1.050, ayaklar 100 × 100, uzun kenarlar UPN 200, kısalar UPN 100, ayak plakaları 150 × 150 × 20;  makinenin ( ve saptırma kasnağının ) izinden her yana 100 — ayak bir döşeme deliğine basıyorsa 200, 300 |
+| 2 × UPN 200 döşemede | makine dairesi:  dişlisiz, saptırmasız | makinenin izi kadar |
+
+**Saptırma kasnağı** ( makine dairesi ):  karşı ağırlık halatı tahrik
+kasnağının öbür teğetinden daha dışarıda inmeliyse ( halat aralığı kasnak
+çapından büyük ) saptırma kasnağı onu ağırlık kasnağının teğetine indirir —
+çerçevenin içinde, döşemenin 400 üstünde ( LiftDesigner ), döşemedeki bir
+bağlantının üstüne düşerse 50 mm açık kalacak kadar yukarıda;  çapı girdiden
+( `makine.saptirma_kasnak_capi`, hesap programında "Saptırma kasnağı çapı" ).
+İçeride inmesi gerekiyorsa saptırma kasnağıyla çözülmez, reddedilir.
+**Sarım açısı** iki kasnağın ortak dış teğetinden hesaplanır ve B-B'de
+yazılır ( saptırmasız 180° );  LiftDesigner 12744-3'ün kendi ölçüleriyle
+( ø540 · ø480 · 560 yana · 842 aşağı ) 148° — paftasındaki "Sarim acisi 148".
+
 **Makine dairesi planı** ve **kuyu üstü döşeme halat delik planı** ( makine
 daireli asansör ):  makinenin, halatların, bağlantıların ve regülatörün yeri
 kuyu üstü planıyla AYNIDIR ( `kuyu_ustu.yerlesim(…, acil_pano=False)` ) —

@@ -10,6 +10,7 @@
     python3 calistir.py --cizim makine_dairesi / delik_plani
     python3 calistir.py --cizim kuyu_kesiti_yan / kuyu_kesiti_on → tam boy A-A / B-B ( 1/50 )
     python3 calistir.py --cizim kuyu_kesiti_on --makine "Makine dairesi" → makine daireli
+    python3 calistir.py --cizim makine_dairesi --makine "Makine dairesi" --makine_tipi Dişli
     python3 calistir.py --pafta          → bütün çizimler TİP PROJE FORMATINDA ( ornekler/pafta.dxf )
 
 Hesap programından BAĞIMSIZDIR;  girdiyi cizim/girdi.py içindeki ÖRNEK
@@ -27,6 +28,7 @@ from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kabin_ustu as CKU
 from cizim import donanim as CDN
+from cizim import makine as CMK
 from cizim import pafta as CPF
 from cizim import svg as CSV
 
@@ -81,6 +83,7 @@ def main(argv):
     ayrıştırıcı.add_argument("--cizim", choices=tuple(CIZIMLER), default="kuyu_plani")
     ayrıştırıcı.add_argument("--siginma", choices=tuple(CKU.SIGINMA), default=None)
     ayrıştırıcı.add_argument("--makine", choices=CDN.MAKINE_YERLERI, default=None)
+    ayrıştırıcı.add_argument("--makine_tipi", choices=CMK.TIPLER, default=None)
     ayrıştırıcı.add_argument("--pafta", action="store_true",
                              help="bütün çizimleri TİP PROJE FORMATINA yerleştir")
     ayrıştırıcı.add_argument("--ad", default=None)
@@ -104,6 +107,8 @@ def main(argv):
         g["kabin_ustu"]["siginma_tipi"] = a.siginma
     if a.makine:
         g["makine"]["yeri"] = a.makine
+    if a.makine_tipi:
+        g["makine"]["tip"] = a.makine_tipi
     if a.pafta:
         return pafta_uret(g, a.ad or "pafta")
     return uret(g, a.ad or a.cizim, plan_basligi(g, a.cizim, CIZIMLER[a.cizim][2]),

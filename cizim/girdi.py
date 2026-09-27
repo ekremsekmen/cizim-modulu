@@ -294,7 +294,9 @@ ORNEK = {
     #  ( MRL ) ve makine dairesi planları ortak okur.
     #  Makinenin yeri:  "Kuyu üstü" ( makine dairesiz — ELEport ) ya da
     #  "Makine dairesi";  hesap programındaki "Makine dairesiz ( MRL )" seçimi.
-    "makine": {"tahrik_kasnak_capi": 240, "yeri": "Kuyu üstü"},
+    #  Makine tipi:  hesap programının "Makine tipi" ( Dişlisiz / Dişli );  çizim
+    #  makineyi buna göre çizer ( makine.py:  LiftDesigner makineleri ).
+    "makine": {"tahrik_kasnak_capi": 240, "yeri": "Kuyu üstü", "tip": "Dişlisiz"},
     #  Kuyu üstü planı ( makine dairesiz ):  acil kurtarma panosu en üst
     #  kattaki kapının hangi yanında.
     "kuyu_ustu": {"acil_pano_yan": "Sol"},
