@@ -164,7 +164,12 @@ def yerlesim(g, S, H, tavan, taban):
     kd = g["kuyu_dibi"]
     ry = g["kabin_ray"]["kapi_arasi"]
     rgy = M["regulator_y"]
-    s = 1.0 if rgy >= ry else -1.0                 # kol raydan kasnağa, öteye uzanır
+    #  Kol raydan kasnağa ve öteye uzanır;  ağırlık o yönde kuyuya sığmıyorsa
+    #  kol öbür yöne döner ( montajcı da böyle yapar ).
+    D = g["kuyu"]["derinlik"]
+    s = 1.0 if rgy >= ry else -1.0
+    if not 0 <= rgy + s * S["gergi_agirlik_uzak"] <= D:
+        s = -s
     kol = sorted((ry - s * S["gergi_kol_ray"], rgy + s * S["gergi_kol_uc"]))
     agr = sorted((rgy + s * S["gergi_agirlik_yakin"], rgy + s * S["gergi_agirlik_uzak"]))
     M["gergi"] = {"merkez": taban + S["gergi_kasnak_merkez"], "cap": kd["regulator_kasnak_capi"],
@@ -173,10 +178,9 @@ def yerlesim(g, S, H, tavan, taban):
                   "agirlik": (agr[0], agr[1], taban + S["gergi_agirlik_alt"],
                               taban + S["gergi_agirlik_alt"] + S["gergi_agirlik_yukseklik"]),
                   "plan": KD["gergi"]}
-    D = g["kuyu"]["derinlik"]
     if agr[0] < 0 or agr[1] > D:
-        hata.append("Regülatör gergi ağırlığı kuyunun dışına taşıyor ( ELEport düzeni:  kol "
-                    f"kasnağın {S['gergi_agirlik_uzak']:g} mm ötesine uzanır ).")
+        hata.append("Regülatör gergi ağırlığı iki yönde de kuyunun dışına taşıyor ( ELEport "
+                    f"düzeni:  kol kasnağın {S['gergi_agirlik_uzak']:g} mm ötesine uzanır ).")
 
     #  ── RAYLAR:  konsollar ve ekler ─────────────────────────────────────
     raylar = []

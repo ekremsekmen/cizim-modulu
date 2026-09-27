@@ -36,14 +36,22 @@ SABIT = {
     "kabin_kasnak_genislik": 92,  # 2:1 askıda kabin kasnağının genişliği
 
     #  ── KAPI ─────────────────────────────────────────────────────────
+    #  ELEport'un kuyu planı vektörlerinden ( 1/20 ) ve "Door Detail 1/35"
+    #  paftasından:  kat kapısı ünitesi = kasa 60 + eşik 90 = 150;  kanatlar
+    #  40 kalın, EŞİĞİN ÜSTÜNDE — teleskopikte iki düzlemde ( eşiğin 5 mm
+    #  içinden başlar, düzlemler 45 arayla:  65 – 105 · 110 – 150 ).  Kabin
+    #  eşiği de 90;  kabin kapısı kanatları onun üstünde, aynı düzende.
+    #  ( Eski 60 / 40 / 30 / 50 değerleri kanatları eşiğin ARKASINA, kabin
+    #  eşiğinin ve kabinin içine düşürüyordu. )
     "kasa_yan": 120,              # kat kapısı kasasının yan genişliği
     "kasa_derinlik": 60,
-    "kanat_kalinlik": 30,
-    "kanat_araligi": 50,          # teleskopik kanatlar arası
+    "kanat_kalinlik": 40,
+    "kanat_araligi": 45,          # teleskopik kanat düzlemleri arası
+    "kanat_esik_payi": 5,         # ilk kanat düzlemi eşiğin kenarından içeride
     "kabin_kapisi_kutu_en": 270,  # kabin kapısı mekanizma kutusu
     "kabin_kapisi_kutu_boy": 140,
-    "esik_derinlik": 60,          # kat kapısı eşiği  ( kuyu içine taşan )
-    "kabin_esik_derinlik": 40,
+    "esik_derinlik": 90,          # kat kapısı eşiği
+    "kabin_esik_derinlik": 90,
     #  Kapı yanlarındaki bina duvarı ÇİZİLMEZ ( 0 ):  kuyu paftasında işe
     #  yaramıyor, ölçü yazılarının altına giriyordu.  Gerekirse >0 yapılır.
     "bina_duvari": 0,

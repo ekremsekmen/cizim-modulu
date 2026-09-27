@@ -20,6 +20,7 @@ python3 -m venv .venv
 .venv/bin/python calistir.py --cizim kuyu_kesiti_yan  # A-A tam boy düşey kesit ( 1/50 )
 .venv/bin/python calistir.py --cizim kuyu_kesiti_on   # B-B tam boy düşey kesit ( 1/50 )
 .venv/bin/python calistir.py --cizim kuyu_kesiti_on --makine "Makine dairesi"   # makine daireli
+.venv/bin/python calistir.py --pafta               # bütün çizimler TİP PROJE FORMATINDA ( DXF + SVG önizleme )
 .venv/bin/python -m unittest testler.test_cizim   # testler
 ```
 
@@ -37,10 +38,13 @@ python3 -m venv .venv
 | `cizim/dusey.py` | Düşey kesitlerin açıklık denetimleri + kuyu dibi ve kuyu üstü detay kesitleri |
 | `cizim/donanim.py` | Kuyu donanımının KOTLARI:  makine, şase, bağlantılar, regülatör, gergi, raylar, konsollar, karşı ağırlık |
 | `cizim/kesit_parcalari.py` | Düşey kesitlerde parça çizimi ( yan ve ön bakış ortak ) |
-| `cizim/kuyu_kesiti.py` | Tam boy A-A ( yan ) ve B-B ( ön ) kuyu düşey kesitleri, 1/50 |
+| `cizim/kuyu_kesiti.py` | Tam boy A-A ( yan ) ve B-B ( ön ) kuyu düşey kesitleri, 1/50 ( gerekirse kırık ) |
+| `cizim/cizimler.py` | Çizimlerin listesi:  doğrulama, çizici, başlık, ölçek ( calistir ve pafta ortak ) |
+| `cizim/pafta.py` | Çizimleri ofisin TİP PROJE FORMATINA yerleştirir, anteti doldurur |
+| `sablon/proje_formati.dxf` | Ofisin pafta şablonu ( TİP PROJE FORMATI.dwg'den;  hesap programınınkiyle aynı ) |
 | `cizim/svg.py` | Elemanları SVG'ye yazar |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/test_cizim.py` | 127 test |
+| `testler/test_cizim.py` | 142 test |
 | `ornekler/` | `calistir.py`'nin ürettiği örnek çizimler |
 
 ## Kurallar
@@ -271,13 +275,67 @@ kat yüksekliği kat kapısından büyük olmalı.
 Yazılar, oklar, kalem kalınlıkları ve tarama 1/20'ye göre tanımlıdır;  başka
 ölçekte `olcek / 20` ile büyür, paftada aynı boyda kalır.
 
+## Kapı bölgesi ( kat kapısı · eşikler · kabin kapısı )
+
+Ölçüler ELEport'un kuyu planı vektörlerinden ve "Door Detail 1/35" paftasından:
+kat kapısı ünitesi kasa 60 + eşik 90;  kanatlar 40 kalın ve **EŞİĞİN ÜSTÜNDE**
+( teleskopikte iki düzlem, 45 arayla );  kabin eşiği 90, kabin kapısı
+kanatları onun üstünde.  `kapi.montaj`:
+
+| Montaj | Kasa | Kat eşiği | Kapı hattı | m.5.2.5.3.1'in "kuyu iç yüzü" |
+|---|---|---|---|---|
+| Duvar boşluğuna | −60 – 0 ( duvarda ) | 0 – 90 | 90 | duvar |
+| Kuyu içine ( ELEport ) | 0 – 60 | 60 – 150 | 150 | kapı hattı ( kapı altı / üstü sac kaplama ) |
+
+Açıklıklar kabin EŞİĞİNİN ön kenarından ölçülür:  eşik aralığı 0 – 35 mm
+( m.5.3.4.1 ), kuyu yüzü – kabin eşiği ≤ 150 ( m.5.2.5.3.1 ).  `kabin_ray.kapi_arasi`
+kuyunun ön İÇ yüzünden ölçülür — hesap programının RK'sı kapı hattındandır
+( ELEport:  iç yüzden 1.167 = kapı hattından 1.017 ).
+
+( Eskiden kanatlar eşiğin arkasına, kabin eşiğinin ve kabinin içine düşüyordu;
+örnek girdi ELEport'un 1017'sini iç yüzden okuyup arka duvarı 150 mm geride
+bırakıyordu.  İkisi de düzeltildi. )
+
+## Tam proje ( hesap + çizim, tek pafta )
+
+`ornekler/tam_proje/uret.py` gerçek bir projenin ( ELEport PROJE 5 · Elevator 3 )
+girdileriyle hesap programının MOTORUNU çağırır ( program değiştirilmez ),
+kapak ve hesap paftalarını hesap programının kendi dışa aktarımıyla şablona
+dizer, çizimleri `pafta.birlestir` ile son hesap sayfasının sağına ekler.
+Çıktılar ( DXF · DWG · pafta PDF · hesap PDF ) git'e girmez, betik yeniden üretir.
+
+## Pafta ( TİP PROJE FORMATI )
+
+`pafta.py` ofisin şablonunu okur ( 3.242 × 600 mm:  solda notlar ve antet,
+sağda serbest alan ) ve çizimleri gerçek ölçüde BLOK olarak tanımlayıp
+paftaya 1/ölçek ile yerleştirir — CAD'de blok açılınca ölçüler gerçek boyda.
+Sıra ofisin 477-8 projesindeki gibi:  düşey kesitler ( 1/50 ), sonra planlar
+ve detay kesitler ( 1/20 ), konu sırasıyla sütun sütun;  alan yetmezse
+çerçeve SAĞA uzar ( hesap programı gibi ).
+
+**Kırık kesit:**  1/50 düşey kesit 600 mm'lik paftaya sığmazsa ara katlar
+kırılır ( ELEport ve LiftDesigner gibi ):  alttan ve üstten SIĞAN EN ÇOK
+durak kalır, kırık kabine ve karşı ağırlığa değmez;  kırığı geçen ölçüler
+gerçek değerini yazar ( "5 × 3000", "SEYİR 21000" ).
+
+**Antet:**  çizimin bildiği değerler yazılır ( hız, durak, seyir, kabin,
+askı, ray, ölçek );  bilmedikleri ( taşıma kapasitesi, sınıf, motor gücü )
+BOŞ kalır — şablonun örnek değerleri projeyi yanlış tanıtırdı.  Şablon
+değişirse ( çerçeve, kapak hücresi, antet hücreleri ) pafta üretilmez.
+
+**AutoCAD ile doğrulandı:**  AutoCAD 2027'nin AcCoreConsole'unda açılıp
+REGENALL, AUDIT ( 0 hata ) ve DWG kaydı.  Şablonun dört katmanı olmayan
+malzeme / çizim stili kayıtlarını gösteriyordu ( AUDIT 16 hata );  pafta
+bunları onarır.  Kesik ve eksen çizgilerine ölçek × 2,5 çizgi tipi ölçeği
+verilir — yoksa desen paftada 0,1 mm'ye iner, çizgi düz görünürdü.
+
 ## Sırada ne var
 
 1. `cizim/kopru.py` — girdilerin hesap programından dolması.  Önce iki tanım
    eşitlenmeli:  ray – kapı arası hesapta kat kapısı düzleminden ( RK ),
    çizimde kuyu iç yüzünden;  kabin kaçıklığı hesapta ray ekseninden ( yc ),
    çizimde kuyu ortasından ölçülüyor.
-2. Ofis şablonuna ( TİP PROJE FORMATI ) yerleştirme
+2. Hesap paftalarıyla çizimlerin aynı şeritte birleşmesi ( köprüyle )
 
 **Başka bir referans:**  kullanıcının LiftDesigner çıktıları ( `12744-3 lift.dwg` ):
 kuyu planı, düşey kesit, makine odası, kuyu üstü ve kuyu dibi kesitleri, kuyu

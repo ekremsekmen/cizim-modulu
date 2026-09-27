@@ -11,6 +11,7 @@
     python3 calistir.py --cizim kuyu_dibi_kesiti / kuyu_ustu_kesiti
     python3 calistir.py --cizim kuyu_kesiti_yan / kuyu_kesiti_on → tam boy A-A / B-B ( 1/50 )
     python3 calistir.py --cizim kuyu_kesiti_on --makine "Makine dairesi" → makine daireli
+    python3 calistir.py --pafta          → bütün çizimler TİP PROJE FORMATINDA ( ornekler/pafta.dxf )
 
 Hesap programından BAĞIMSIZDIR;  girdiyi cizim/girdi.py içindeki ÖRNEK
 sözlüğünden alır.  İleride köprü ( cizim/kopru.py ) bu sözlüğü hesabın
@@ -21,56 +22,20 @@ import copy
 import os
 import sys
 
+from cizim import cizimler as CZ
 from cizim import dxf as CDX
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kabin_ustu as CKU
-from cizim import kuyu_dibi as CKD
-from cizim import kuyu_ustu as CKT
-from cizim import makine_dairesi as CMD
 from cizim import donanim as CDN
-from cizim import dusey as CDU
-from cizim import kuyu_kesiti as CKK
+from cizim import pafta as CPF
 from cizim import svg as CSV
 
 KOK = os.path.dirname(os.path.abspath(__file__))
 
 
-CIZIMLER = {
-    "kuyu_plani": (CG.dogrula, CGE.plan, "KUYU PLANI  ( kabin hizasından yatay kesit )"),
-    "kabin_ustu": (CKU.dogrula, CKU.ciz,
-                   "KABİN ÜSTÜ PLANI  ( kabin tavanı hizasından yatay kesit )"),
-    "kuyu_dibi": (CKD.dogrula, CKD.ciz,
-                  "KUYU DİBİ PLANI  ( kuyu tabanından yatay kesit )"),
-    "kuyu_ustu": (CKT.dogrula, CKT.ciz,
-                  "KUYU ÜSTÜ PLANI  ( makine dairesiz — kuyu tepesinden yatay kesit )"),
-    "makine_dairesi": (CMD.dogrula, CMD.ciz, "MAKİNE DAİRESİ PLANI"),
-    "delik_plani": (CMD.dogrula, CMD.delik_plani, "KUYU ÜSTÜ DÖŞEME HALAT DELİK PLANI"),
-    "kuyu_dibi_kesiti": (CDU.dogrula, CDU.kuyu_dibi_kesiti,
-                         "KUYU DİBİ DÜŞEY KESİTİ  ( kabin tam ezilmiş tamponunda )"),
-    "kuyu_ustu_kesiti": (CDU.dogrula, CDU.kuyu_ustu_kesiti,
-                         "KUYU ÜSTÜ DÜŞEY KESİTİ  ( kabin en üst konumunda )"),
-    "kuyu_kesiti_yan": (CKK.dogrula, CKK.yan_kesit,
-                        "A-A KUYU DÜŞEY KESİTİ  ( yan — kabin en alt durakta )"),
-    "kuyu_kesiti_on": (CKK.dogrula, CKK.on_kesit,
-                       "B-B KUYU DÜŞEY KESİTİ  ( arkadan kat kapılarına — kabin en üst durakta )"),
-}
-#  1/20 dışındaki çizimler
-OLCEKLER = {"kuyu_kesiti_yan": CKK.OLCEK, "kuyu_kesiti_on": CKK.OLCEK}
-
-
-def plan_basligi(g, cizim, baslik):
-    """Plan başlığına düşey kesitlerdeki seviye harfi:  "KUYU PLANI  C-C  ( … )".
-    Düşey kesitler çizilemeyen düzende harf de yazılmaz."""
-    harf = CKK.PLAN_HARFLERI.get(cizim)
-    #  Makine dairesiz projede makine dairesi ve delik planının, makine daireli
-    #  projede kuyu üstü planının kesitlerde seviyesi yok
-    oda = (g.get("makine") or {}).get("yeri") == "Makine dairesi"
-    gecerli = oda if cizim in ("makine_dairesi", "delik_plani") else (not oda if cizim == "kuyu_ustu" else True)
-    if not harf or not gecerli or CKK.dogrula(g):
-        return baslik
-    ad, _, ek = baslik.partition("  (")
-    return f"{ad}  {harf}-{harf}" + (f"  ({ek}" if ek else "")
+#  Çizimlerin listesi, başlıkları ve ölçekleri tek yerde ( pafta da okur )
+CIZIMLER, OLCEKLER, plan_basligi = CZ.CIZIMLER, CZ.OLCEKLER, CZ.plan_basligi
 
 
 def uret(g, ad, baslik, olcek=20, cizim="kuyu_plani"):
@@ -93,6 +58,23 @@ def uret(g, ad, baslik, olcek=20, cizim="kuyu_plani"):
     return 0
 
 
+def pafta_uret(g, ad):
+    try:
+        d, bilgi = CPF.belge(g)
+    except ValueError as h:
+        print(h)
+        return 1
+    klasor = os.path.join(KOK, "ornekler")
+    os.makedirs(klasor, exist_ok=True)
+    d.saveas(os.path.join(klasor, ad + ".dxf"))
+    open(os.path.join(klasor, ad + ".svg"), "w", encoding="utf-8").write(CPF.onizleme(d))
+    print(f"{ad}:  {len(bilgi['cizimler'])} çizim → ornekler/{ad}.dxf + .svg ( önizleme )")
+    for c in bilgi["cizimler"]:
+        x0, y0, x1, y1 = c["kutu"]
+        print(f"   1/{c['olcek']:<3g} {x1 - x0:6.1f} × {y1 - y0:5.1f} mm   {c['baslik']}")
+    return 0
+
+
 def main(argv):
     ayrıştırıcı = argparse.ArgumentParser(description="Kuyu planı çizer")
     ayrıştırıcı.add_argument("--aski", choices=CG.ASKI_DUZENLERI, default="Kabin altı")
@@ -100,6 +82,8 @@ def main(argv):
     ayrıştırıcı.add_argument("--cizim", choices=tuple(CIZIMLER), default="kuyu_plani")
     ayrıştırıcı.add_argument("--siginma", choices=tuple(CKU.SIGINMA), default=None)
     ayrıştırıcı.add_argument("--makine", choices=CDN.MAKINE_YERLERI, default=None)
+    ayrıştırıcı.add_argument("--pafta", action="store_true",
+                             help="bütün çizimleri TİP PROJE FORMATINA yerleştir")
     ayrıştırıcı.add_argument("--ad", default=None)
     a = ayrıştırıcı.parse_args(argv)
 
@@ -110,10 +94,19 @@ def main(argv):
         g["aski"]["duzen"] = a.aski
     if a.agirlik:
         g["agirlik"]["yeri"] = a.agirlik
+        if a.agirlik == "Arka":
+            #  Arkadaki ağırlık kabinin arkasına sığmalı ( m.5.2.5.5.1 h, 50 mm ):
+            #  örnek kuyu 2.100 derinlikte, kabin ortada, kapı ona göre
+            #  ( testlerdeki _arka düzeni ).
+            g["kuyu"]["derinlik"] = 2100
+            g["kabin"]["kaciklik_y"] = 0
+            g["kapi"]["sol_pay"] = 600
     if a.siginma:
         g["kabin_ustu"]["siginma_tipi"] = a.siginma
     if a.makine:
         g["makine"]["yeri"] = a.makine
+    if a.pafta:
+        return pafta_uret(g, a.ad or "pafta")
     return uret(g, a.ad or a.cizim, plan_basligi(g, a.cizim, CIZIMLER[a.cizim][2]),
                 OLCEKLER.get(a.cizim, 20), cizim=a.cizim)
 

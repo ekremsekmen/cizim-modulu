@@ -14,6 +14,7 @@ eksene değil.  ( ELEport'un paftasında da böyle ölçülüyor:  sağ ray 1955
 başlıyor, sol rayın yüzü 405'te bitiyor → 1550 = DBG. )  Ray, bu yüzden
 DUVARA DOĞRU kendi yüksekliği ( h ) kadar uzanır.
 """
+from cizim import girdi as CG
 from cizim import sabitler as CS
 
 KATMANLAR = ("KUYU-DUVAR", "TARAMA", "BINA", "KUYU-IC", "KABIN", "KABIN-IC",
@@ -190,24 +191,35 @@ def plan(g, cizim_sabitleri=None):
     e.append(_dik("KUYU-IC", 0, 0, G, D))
 
     #  ── KAPI:  boşluk · kasa · eşik · kanatlar ───────────────────────
-    #  Kanatlar ve eşik KUYUNUN İÇİNDEDİR;  kasa duvarın içine oturur.
+    #  Kat kapısı ünitesi ( kasa + eşik ) montaja göre ya duvar boşluğunda
+    #  ( kasa duvarda, eşik kuyuya taşar ) ya da duvarın iç yüzünde durur
+    #  ( ünitenin tamamı kuyunun içinde ).  KANATLAR EŞİĞİN ÜSTÜNDEDİR:
+    #  kapalı konumda, teleskopikte iki düzlemde ( ELEport kapı detayı ).
+    KB = CG.kapi_bolgesi(g, S)
     x0 = kp["sol_pay"]
     kg = kp["genislik"]
-    e.append(_dik("KAPI", x0, -don, kg, don))                       # boşluk
+    e.append(_ad(_dik("KAPI", x0, -don, kg, don), "kapi_boslugu"))
     for kx0 in (x0 - S["kasa_yan"], x0 + kg):                       # kasa yanları
-        e.append(_dik("KAPI", kx0, -S["kasa_derinlik"], S["kasa_yan"], S["kasa_derinlik"]))
-    e.append(_dik("KAPI", x0, 0, kg, S["esik_derinlik"]))           # kat kapısı eşiği
-    #  KANATLAR:  kapalı konumda çizilir, eşiğin hemen arkasında dururlar.
-    #  Teleskopik kapıda kanatlar AYRI DERİNLİKTE ( biri öbürünün önünde ),
-    #  merkezi kapıda aynı hizadadır.
+        e.append(_ad(_dik("KAPI", kx0, KB["kasa"][0], S["kasa_yan"], S["kasa_derinlik"]),
+                     "kapi_kasasi"))
+    e.append(_ad(_dik("KAPI", x0, KB["esik"][0], kg, S["esik_derinlik"]), "kat_esigi"))
     kanat = kg / 2.0
     tel = str(kp.get("tip", "")).startswith("Teleskopik")
-    for i in range(2):
-        kx0 = x0 + i * kanat
-        ky0 = S["esik_derinlik"] + (i * S["kanat_araligi"] if tel else 0)
-        e.append(_dik("KAPI", kx0, ky0, kanat, S["kanat_kalinlik"]))
+
+    def kanatlar(esik0, esik1, ad):
+        #  Teleskopik:  iki düzlem, eşiğin kenarından kanat_esik_payi içeride;
+        #  merkezi:  iki kanat eşiğin ortasında aynı düzlemde.
+        orta = (esik0 + esik1) / 2.0 - S["kanat_kalinlik"] / 2.0
+        yer = []
+        for i in range(2):
+            ky0 = (esik0 + S["kanat_esik_payi"] + i * S["kanat_araligi"]) if tel else orta
+            e.append(_ad(_dik("KAPI", x0 + i * kanat, ky0, kanat, S["kanat_kalinlik"]), ad))
+            yer.append(ky0)
+        return yer
+
+    kat_kanat = kanatlar(KB["esik"][0], KB["esik"][1], "kat_kanadi")
     #  Açılış yönü oku:  teleskopik kapı hangi yana açılıyorsa o yöne bakar.
-    ok_y = S["esik_derinlik"] + S["kanat_kalinlik"] / 2.0
+    ok_y = kat_kanat[0] + S["kanat_kalinlik"] / 2.0
     if tel:
         sag = str(kp.get("tip", "")).endswith("Sağ")
         e.append(_ok("KAPI", x0 + (kg * 0.65 if sag else kg * 0.35), ok_y,
@@ -502,8 +514,16 @@ def plan(g, cizim_sabitleri=None):
         e += sira(G + dg + 120 + i * ARA)
 
     #  İÇ — kabin iç genişliği ve kabin – ray boşlukları  ( kabinin arkasında;
-    #  ağırlık arkadaysa o şerit dolu olduğu için kabinin içinde, önde )
-    kab_kot = ic_on + dis_d + 90 if ag_yan else ic_on + 150
+    #  ağırlık arkadaysa o şerit dolu olduğu için kabinin içinde, önde ).
+    #  Arkadaki şerit yazıya yetmiyorsa ( ELEport:  147 mm ) kabinin içinde,
+    #  arka panelin önünde durur — yazı arka duvara taşıyordu.
+    arka_serit = D - (ic_on + dis_d)
+    if not ag_yan:
+        kab_kot = ic_on + 150
+    elif arka_serit >= 90 + 50 + OLCU_YAZI / 2.0 + 40:
+        kab_kot = ic_on + dis_d + 90
+    else:
+        kab_kot = ic_on + dis_d - 200
     e += [
         _olcu("yatay", (0, 0), (ic_sol, 0), kab_kot),
         _olcu("yatay", (ic_sol, 0), (kx - kb["genislik"] / 2.0, 0), kab_kot),
@@ -516,9 +536,13 @@ def plan(g, cizim_sabitleri=None):
     #  İÇ — EŞİKLER  ( kat eşiği · aradaki açıklık · kabin eşiği ).  Kapının
     #  yanındaki boş şeritte, kuyu ön duvarı ile kabin arasında durur;  yazılar
     #  yatay ve ölçünün dışındadır ( parçalar 30 – 60 mm, yazı sığmaz ).
-    esik = [(0.0, S["esik_derinlik"], f"KAT EŞİĞİ {S['esik_derinlik']:g}"),
-            (S["esik_derinlik"], ic_on - S["kabin_esik_derinlik"], None),
-            (ic_on - S["kabin_esik_derinlik"], ic_on,
+    #  İç yüzden kapı hattına:  duvar boşluğuna montajda kat eşiğinin taşan
+    #  kısmı, kuyu içine montajda kat kapısı ünitesinin tamamı.
+    hat_metni = (f"KAT EŞİĞİ {KB['hat']:g}" if kp["montaj"] == "Duvar boşluğuna"
+                 else f"KAT KAPISI {KB['hat']:g}")
+    esik = [(0.0, KB["hat"], hat_metni),
+            (KB["hat"], KB["kabin_esik"][0], None),
+            (KB["kabin_esik"][0], KB["kabin_esik"][1],
              f"KABİN EŞİĞİ {S['kabin_esik_derinlik']:g}")]
     h_esik = 40.0
     sol_bos = min(ic_sol, x0)                  # kapının solundaki boş şerit
@@ -553,7 +577,9 @@ def plan(g, cizim_sabitleri=None):
                                  "y": (aski_y + ic_on + dis_d / 2.0) / 2.0, "aci": 0}))
 
     #  ── YAZILAR ──────────────────────────────────────────────────────
-    e.append(_dik("KABIN", x0, ic_on - S["kabin_esik_derinlik"], kg, S["kabin_esik_derinlik"]))
+    e.append(_ad(_dik("KABIN", x0, KB["kabin_esik"][0], kg, S["kabin_esik_derinlik"]),
+                 "kabin_esigi"))
+    kanatlar(KB["kabin_esik"][0], KB["kabin_esik"][1], "kabin_kanadi")
     #  Askı noktaları kabin ortasına yakınsa kabin yazısı arkaya kayar.
     kabin_yazi_y = ky if abs(aski_y - ky) >= 150 else ky + 200
     e.append(_yazi(kx, kabin_yazi_y, f"KABİN  {kb['genislik']:g} x {kb['derinlik']:g}", 55))

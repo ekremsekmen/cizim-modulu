@@ -112,17 +112,18 @@ def plan_parcalari(KD, g):
     kb = KD["kabin"]
     kx = (kb[0] + kb[2]) / 2.0
     sol = g["agirlik"]["yeri"] == "Sol"
-    kapi = [kutu_(el) for el in taban if el["katman"] == "KAPI" and el["tip"] == "dikdortgen"]
+    def ad(a):
+        return [kutu_(el) for el in taban if el.get("ad") == a]
+
     konsol = [kutu_(el) for el in taban if el["katman"] == "KONSOL" and el["tip"] == "dikdortgen"]
 
     def agirlik_tarafi(k):
         return ((k[0] + k[2]) / 2.0 < kx) == sol
 
     return {
-        "kasa": [k for k in kapi if k[1] < 0 and k[3] <= 0 and k[1] > -g["kuyu"]["duvar_on"]],
-        "esik": [k for k in kapi if k[1] == 0],
-        "kanat": [k for k in kapi if k[1] > 0],
-        "bosluk": [k for k in kapi if k[1] <= -g["kuyu"]["duvar_on"]],
+        "kasa": ad("kapi_kasasi"), "esik": ad("kat_esigi"), "kanat": ad("kat_kanadi"),
+        "bosluk": ad("kapi_boslugu"), "kabin_esik": ad("kabin_esigi"),
+        "kabin_kanat": ad("kabin_kanadi"),
         "konsol_agirlik": [k for k in konsol if agirlik_tarafi(k)],
         "konsol_kabin": [k for k in konsol if not agirlik_tarafi(k)],
         "paten": [kutu_(el) for el in taban if el["katman"] == "PATEN"],

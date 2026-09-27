@@ -40,10 +40,10 @@ def _katmanlari_kur(d):
     d.layers.get("DELIK").dxf.linetype = "DASHED"
 
 
-def _dikdortgen(msp, el):
+def _dikdortgen(msp, el, lt=None):
     x, y, g, h = el["x"], el["y"], el["g"], el["d"]
     msp.add_lwpolyline([(x, y), (x + g, y), (x + g, y + h), (x, y + h)],
-                       close=True, dxfattribs={"layer": el["katman"]})
+                       close=True, dxfattribs={"layer": el["katman"], **(lt or {})})
 
 
 def _olcu(msp, el, k=1.0):
@@ -71,53 +71,71 @@ def _olcu(msp, el, k=1.0):
     olcu.render()
 
 
-def belge(elemanlar, baslik="", olcek=20):
-    """Eleman listesinden ezdxf belgesi kurar."""
-    d = ezdxf.new("R2018", setup=True)
-    d.header["$INSUNITS"] = 4                    # milimetre
+#  Çizgi tipi ölçeği:  CENTER deseni 5,08, DASHED 1,524 birim;  çizim gerçek
+#  ölçüde ( mm ) olduğu için desen paftada 1/ölçek küçülür ve kesik çizgi DÜZ
+#  görünürdü.  Her varlığa ölçek × 2,5 verilir:  paftada CENTER ~12,7 mm,
+#  DASHED ~3,8 mm — tek başına açılan DXF'te de, paftadaki blokta da.
+CIZGI_TIPI_OLCEGI = 2.5
+
+
+def hazirla(d):
+    """Belgeye çizimin katmanlarını ve yazı biçimini ekler ( şablon da olabilir )."""
     _katmanlari_kur(d)
     if YAZI_TIPI not in d.styles:
         d.styles.add(YAZI_TIPI, font="arial.ttf")
-    msp = d.modelspace()
+
+
+def ciz(hedef, elemanlar, olcek=20):
+    """Elemanları `hedef` yerleşimine ( model alanı ya da blok ) yazar."""
     k = olcek / 20.0                   # ok, tarama ve boşluklar 1/20'ye göre
+    lt = {"ltscale": CIZGI_TIPI_OLCEGI * olcek}
     for el in elemanlar:
         tur, kat = el["tip"], el["katman"]
         if tur in ("dikdortgen", "tarama", "tarama_tugla"):
-            _dikdortgen(msp, el)
+            _dikdortgen(hedef, el, lt)
             if tur in ("tarama", "tarama_tugla"):
                 #  Duvar kesiti taraması:  CAD'in kendi HATCH varlığı
-                tarama = msp.add_hatch(color=KATMAN[kat][0], dxfattribs={"layer": kat})
+                tarama = hedef.add_hatch(color=KATMAN[kat][0], dxfattribs={"layer": kat})
                 tarama.set_pattern_fill("ANSI31" if tur == "tarama" else "ANSI32", scale=20 * k)
                 tarama.paths.add_polyline_path(
                     [(el["x"], el["y"]), (el["x"] + el["g"], el["y"]),
                      (el["x"] + el["g"], el["y"] + el["d"]), (el["x"], el["y"] + el["d"])],
                     is_closed=True)
         elif tur in ("cizgi", "eksen"):
-            msp.add_line((el["x1"], el["y1"]), (el["x2"], el["y2"]),
-                         dxfattribs={"layer": kat,
-                                     "linetype": "CENTER" if tur == "eksen" else "BYLAYER"})
+            hedef.add_line((el["x1"], el["y1"]), (el["x2"], el["y2"]),
+                           dxfattribs={"layer": kat, **lt,
+                                       "linetype": "CENTER" if tur == "eksen" else "BYLAYER"})
         elif tur == "daire":
-            msp.add_circle((el["x"], el["y"]), el["r"], dxfattribs={"layer": kat})
+            hedef.add_circle((el["x"], el["y"]), el["r"], dxfattribs={"layer": kat, **lt})
         elif tur == "ok":
-            msp.add_line((el["x1"], el["y1"]), (el["x2"], el["y2"]),
-                         dxfattribs={"layer": kat})
+            hedef.add_line((el["x1"], el["y1"]), (el["x2"], el["y2"]),
+                           dxfattribs={"layer": kat})
             dx, dy = el["x2"] - el["x1"], el["y2"] - el["y1"]
             boy = max((dx * dx + dy * dy) ** 0.5, 1e-6)
             ux, uy, u = dx / boy, dy / boy, 55 * k
-            msp.add_solid([(el["x2"], el["y2"]),
-                           (el["x2"] - ux * u - uy * u * 0.4, el["y2"] - uy * u + ux * u * 0.4),
-                           (el["x2"] - ux * u + uy * u * 0.4, el["y2"] - uy * u - ux * u * 0.4)],
-                          dxfattribs={"layer": kat})
+            hedef.add_solid([(el["x2"], el["y2"]),
+                             (el["x2"] - ux * u - uy * u * 0.4, el["y2"] - uy * u + ux * u * 0.4),
+                             (el["x2"] - ux * u + uy * u * 0.4, el["y2"] - uy * u - ux * u * 0.4)],
+                            dxfattribs={"layer": kat})
         elif tur == "olcu":
-            _olcu(msp, el, k)
+            _olcu(hedef, el, k)
         elif tur == "yazi":
-            msp.add_text(el["metin"], height=el["yukseklik"],
-                         dxfattribs={"layer": kat, "style": YAZI_TIPI,
-                                     "rotation": el.get("aci", 0)}
-                         ).set_placement((el["x"], el["y"]), align={
-                             "sol": TextEntityAlignment.MIDDLE_LEFT,
-                             "sag": TextEntityAlignment.MIDDLE_RIGHT,
-                         }.get(el.get("hiza"), TextEntityAlignment.MIDDLE_CENTER))
+            hedef.add_text(el["metin"], height=el["yukseklik"],
+                           dxfattribs={"layer": kat, "style": YAZI_TIPI,
+                                       "rotation": el.get("aci", 0)}
+                           ).set_placement((el["x"], el["y"]), align={
+                               "sol": TextEntityAlignment.MIDDLE_LEFT,
+                               "sag": TextEntityAlignment.MIDDLE_RIGHT,
+                           }.get(el.get("hiza"), TextEntityAlignment.MIDDLE_CENTER))
+
+
+def belge(elemanlar, baslik="", olcek=20):
+    """Eleman listesinden ezdxf belgesi kurar."""
+    d = ezdxf.new("R2018", setup=True)
+    d.header["$INSUNITS"] = 4                    # milimetre
+    hazirla(d)
+    msp = d.modelspace()
+    ciz(msp, elemanlar, olcek)
     if baslik:
         x1 = min(el.get("x", el.get("x1", 0)) for el in elemanlar if el["tip"] != "olcu")
         y1 = min(el.get("y", el.get("y1", 0)) for el in elemanlar if el["tip"] != "olcu")

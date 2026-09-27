@@ -21,7 +21,7 @@ ASKI_DUZENLERI = ("Kabin altı", "Kabin üstü", "Doğrudan")
 ZORUNLU = {
     "kuyu": ("genislik", "derinlik", "duvar_on", "duvar_arka", "duvar_sol", "duvar_sag"),
     "kabin": ("genislik", "derinlik", "kaciklik_y", "on_pay"),
-    "kapi": ("genislik", "sol_pay"),
+    "kapi": ("genislik", "sol_pay", "montaj"),
     "kabin_ray": ("arasi", "kapi_arasi", "b", "h"),
     "agirlik": ("yeri", "genislik", "derinlik", "ray_arasi", "ray_duvar", "eksen_kaciklik",
                 "b", "h"),
@@ -30,6 +30,11 @@ ZORUNLU = {
 }
 
 AGIRLIK_YERLERI = ("Sağ", "Sol", "Arka")
+#  KAT KAPISININ MONTAJI:  kapı ünitesi ( kasa + eşik ) ya kuyu ön duvarının
+#  boşluğuna oturur ( kasa duvarda, eşik kuyuya taşar ) ya da duvarın İÇ
+#  YÜZÜNE monte edilir ( ünitenin tamamı kuyunun içinde — ELEport ).  İkisi de
+#  aynı üründür;  yalnız kuyu içindeki yeri değişir.
+KAPI_MONTAJLARI = ("Duvar boşluğuna", "Kuyu içine")
 
 #  TS EN 81-20 m.5.2.5.3.1:  kuyunun iç yüzü ile kabin eşiği / kapı kasası
 #  arası 0,15 m'yi aşamaz  ( kısa yükseklikte 0,20 m'ye çıkabilir ).
@@ -44,6 +49,28 @@ ASGARI_ACIKLIK = 20.0
 #  TS EN 81-20 m.5.2.5.5.1 h:  kabin ve ona bağlı parçalar karşı ağırlıktan
 #  ve ona bağlı parçalardan en az 50 mm uzakta olmalıdır.
 KABIN_AGIRLIK_ACIKLIGI = 50.0
+
+
+def kapi_bolgesi(g, S):
+    """Kapı bölgesinin derinlik kotları ( y, kuyu ön iç yüzünden ):
+
+      kasa        kat kapısı kasası
+      esik        kat kapısı eşiği ( kanatlar üstünde )
+      hat         kapı hattı:  kat eşiğinin kabine bakan kenarı
+      kabin_esik  kabin eşiği ( kabin kapısı kanatları üstünde ) — ön ucu
+                  kabin ön yüzünden kabin_esik_derinlik kadar önde
+      yuzey       m.5.2.5.3.1'in "kuyunun iç yüzü":  duvar boşluğuna montajda
+                  duvarın kendisi;  kuyu içine montajda kapı hattı — kapıların
+                  altında ve üstünde yüzey hat boyunca sac kaplamayla sürer
+                  ( ELEport'un düzeni ).
+    """
+    bas = -S["kasa_derinlik"] if g["kapi"]["montaj"] == "Duvar boşluğuna" else 0.0
+    kasa = (bas, bas + S["kasa_derinlik"])
+    esik = (kasa[1], kasa[1] + S["esik_derinlik"])
+    on = g["kabin"]["on_pay"]
+    kabin_esik = (on - S["kabin_esik_derinlik"], on)
+    return {"kasa": kasa, "esik": esik, "hat": esik[1], "kabin_esik": kabin_esik,
+            "yuzey": 0.0 if g["kapi"]["montaj"] == "Duvar boşluğuna" else esik[1]}
 
 
 def _aski_olculeri(g):
@@ -74,6 +101,10 @@ def dogrula(g):
                 continue
             if a == "duzen":
                 continue                       # aşağıda ayrıca denetlenir
+            if a == "montaj":
+                if v not in KAPI_MONTAJLARI:
+                    hata.append(f"kapi.montaj: {KAPI_MONTAJLARI} içinden olmalı ( {v!r} ).")
+                continue
             if not isinstance(v, (int, float)) or isinstance(v, bool):
                 hata.append(f"{bolum}.{a}: sayı olmalı ( {v!r} ).")
             elif a in ("kaciklik_y", "eksen_kaciklik"):
@@ -175,14 +206,21 @@ def dogrula(g):
             if kx - yari < 0 or kx + yari > k["genislik"]:
                 hata.append("Askı kasnakları / noktaları kuyunun dışına taşıyor.")
 
-    #  KAPI AÇIKLIKLARI — standardın kendi sınırları
-    if kb["on_pay"] > KAPI_ARASI_AZAMI:
-        hata.append(f"Kuyu iç yüzü ile kabin ön yüzü arası {kb['on_pay']:g} mm — "
-                    f"TS EN 81-20 m.5.2.5.3.1 en çok {KAPI_ARASI_AZAMI:g} mm verir.")
-    esik_arasi = kb["on_pay"] - S["kabin_esik_derinlik"] - S["esik_derinlik"]
-    if esik_arasi > ESIK_ARASI_AZAMI:
+    #  KAPI AÇIKLIKLARI — standardın kendi sınırları, kabin EŞİĞİNİN ön
+    #  kenarından ölçülür ( kabin gövdesinden değil )
+    KB = kapi_bolgesi(g, S)
+    kabin_esigi = KB["kabin_esik"][0]
+    esik_arasi = kabin_esigi - KB["hat"]
+    if esik_arasi <= 0:
+        hata.append(f"Kabin eşiği kat kapısı eşiğine biniyor ( {esik_arasi:g} mm ):  kabin "
+                    f"ön yüzü ( on_pay {kb['on_pay']:g} ) en az "
+                    f"{KB['hat'] + S['kabin_esik_derinlik']:g} olmalı.")
+    elif esik_arasi > ESIK_ARASI_AZAMI:
         hata.append(f"Kabin eşiği ile kat kapısı eşiği arası {esik_arasi:g} mm — "
                     f"TS EN 81-20 m.5.3.4.1 en çok {ESIK_ARASI_AZAMI:g} mm verir.")
+    if kabin_esigi - KB["yuzey"] > KAPI_ARASI_AZAMI:
+        hata.append(f"Kuyu iç yüzü ile kabin eşiği arası {kabin_esigi - KB['yuzey']:g} mm — "
+                    f"TS EN 81-20 m.5.2.5.3.1 en çok {KAPI_ARASI_AZAMI:g} mm verir.")
     return hata
 
 
@@ -194,15 +232,19 @@ ORNEK = {
     "proje": {"ad": "PROJE 5", "asansor": "Elevator 3", "olcek": 20},
     "kuyu": {"genislik": 2100, "derinlik": 1850,
              "duvar_on": 150, "duvar_arka": 150, "duvar_sol": 150, "duvar_sag": 150},
-    #  on_pay:  kuyu iç yüzü ile kabin ön yüzü arası.  Eşikler ( kat 60 +
-    #  kabin 40 ) düşülünce kalan açıklık m.5.3.4.1'in 35 mm sınırını
-    #  aşmamalı → en çok 135.
-    "kabin": {"genislik": 1350, "derinlik": 1400, "kaciklik_y": 130, "on_pay": 130},
+    #  KAPI BÖLGESİ ( ELEport kuyu planı vektörleri, iç yüzden ):  kat kapısı
+    #  ünitesi duvarın İÇ YÜZÜNE monte — kasa 0 – 60, eşik 60 – 150, kapı hattı
+    #  150;  eşik aralığı 30;  kabin eşiği 180 – 270 → kabin ön yüzü 270.
+    "kabin": {"genislik": 1350, "derinlik": 1400, "kaciklik_y": 130, "on_pay": 270},
     #  sol_pay:  kuyunun sol iç yüzünden kapının NET BOŞLUĞUNA ( kasa içi ).
     #  ELEport'un yazdığı 610, kasaya kadardır:  610 + kasa 120 = 730;  kapı
     #  ekseni böylece kabin ekseniyle aynı ( 1.180 ) olur.
-    "kapi": {"genislik": 900, "sol_pay": 730, "yukseklik": 2100, "tip": "Teleskopik Sol"},
-    "kabin_ray": {"arasi": 1550, "kapi_arasi": 1017, "b": 89, "h": 62},
+    "kapi": {"genislik": 900, "sol_pay": 730, "yukseklik": 2100, "tip": "Teleskopik Sol",
+             "montaj": "Kuyu içine"},
+    #  kapi_arasi:  ray ekseni kuyunun ön İÇ YÜZÜNDEN.  ELEport'un "1017"si
+    #  KAPI HATTINDAN ölçülür ( zincir 150 + 1017 + 682 = 1850 ):  iç yüzden
+    #  1.167.  ( Eskiden 1.017 iç yüzden alınmıştı — arka duvar 150 geride kalıyordu. )
+    "kabin_ray": {"arasi": 1550, "kapi_arasi": 1167, "b": 89, "h": 62},
     #  Karşı ağırlık çerçevesi ELEport paftasının vektör geometrisinden
     #  ölçüldü:  790 ( raylar boyunca ) × 160 mm — DBGW 850'nin içinde,
     #  iki uçta 30 mm paten payı.  ( Eski 1.250 × 250, makine dairesi
@@ -217,11 +259,10 @@ ORNEK = {
     #  kabin rayının ara kirişinin içinden geçiyordu ).
     #  KAÇIKLIK HALATLARI DÜŞEY İNDİRİR:  ELEport'ta kabin kasnaklarının
     #  çizgisi = tahrik kasnağının çizgisi = ağırlık kasnağının ön teğeti
-    #  ( ağırlık ekseni − 200 ).  Bu örnekte ağırlık ekseni 1.017 − 50 = 967,
-    #  teğet 767;  kabin merkezi 130 + 1.433 / 2 = 846,5 → kaçıklık −79,5.
-    #  ( Eski −125, halatı ağırlık kasnağına 95 mm kaçık düşürüyordu. )
+    #  ( ağırlık ekseni − 200 ).  Bu örnekte ağırlık ekseni 1.167 − 50 = 1.117,
+    #  teğet 917;  kabin merkezi 270 + 1.433 / 2 = 986,5 → kaçıklık −69,5.
     "aski": {"duzen": "Kabin altı", "kasnak_capi": 240, "kasnak_arasi": 1380,
-             "kasnak_kaciklik": -79.5, "halat_adedi": 7, "halat_capi": 6.5},
+             "kasnak_kaciklik": -69.5, "halat_adedi": 7, "halat_capi": 6.5},
     #  Kabin üstü planı:  sığınma alanı tipi  ( TS EN 81-20 Çizelge 3 ).
     #  Hesap programındaki "Kabin üstü sığınma hacmi tipi" ile aynı seçim.
     "kabin_ustu": {"siginma_tipi": "Çömelme"},

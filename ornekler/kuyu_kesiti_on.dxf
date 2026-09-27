@@ -493,7 +493,7 @@ $SKPOLY
   9
 $TDCREATE
  40
-2461311.174513889
+2461311.707708333
   9
 $TDUCREATE
  40
@@ -501,7 +501,7 @@ $TDUCREATE
   9
 $TDUPDATE
  40
-2461311.174513889
+2461311.707708333
   9
 $TDUUPDATE
  40
@@ -933,11 +933,11 @@ $PSTYLEMODE
   9
 $FINGERPRINTGUID
   2
-{5BC22511-70F6-462E-A7E3-8D1F57F98959}
+{0D8EC9D8-09F9-4532-8DFE-83ADE0291BB1}
   9
 $VERSIONGUID
   2
-{AB18EA50-526B-4463-B0EF-485AFF1AA20C}
+{8627916D-0859-4D8F-A3F7-AD18DB7C447E}
   9
 $EXTNAMES
 290
@@ -9185,7 +9185,7 @@ AcDbMText
  71
 5
   1
-1500
+KABİN RAYI KONSOL ARASI 1500
   7
 OpenSansCondensed-Light
  50
@@ -10769,7 +10769,7 @@ AcDbMText
  71
 5
   1
-KABİN RAYI KONSOL ARASI 1500
+1500
   7
 OpenSansCondensed-Light
  50
@@ -13426,6 +13426,8 @@ AB
 AcDbEntity
   8
 TARAMA
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -13544,6 +13546,8 @@ AD
 AcDbEntity
   8
 KUYU-DUVAR
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -13576,6 +13580,8 @@ AE
 AcDbEntity
   8
 TARAMA
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -13694,6 +13700,8 @@ B0
 AcDbEntity
   8
 KUYU-DUVAR
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -13726,6 +13734,8 @@ B1
 AcDbEntity
   8
 TARAMA
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -13844,6 +13854,8 @@ B3
 AcDbEntity
   8
 KUYU-DUVAR
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -13876,6 +13888,8 @@ B4
 AcDbEntity
   8
 TARAMA
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -13994,6 +14008,8 @@ B6
 AcDbEntity
   8
 KUYU-DUVAR
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14026,6 +14042,8 @@ B7
 AcDbEntity
   8
 TARAMA
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14144,6 +14162,8 @@ B9
 AcDbEntity
   8
 KUYU-DUVAR
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14176,6 +14196,8 @@ BA
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14208,6 +14230,8 @@ BB
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14240,6 +14264,8 @@ BC
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbLine
  10
@@ -14300,6 +14326,8 @@ BE
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14332,6 +14360,8 @@ BF
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14364,6 +14394,8 @@ C0
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbLine
  10
@@ -14424,6 +14456,8 @@ C2
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14456,6 +14490,8 @@ C3
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14488,6 +14524,8 @@ C4
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbLine
  10
@@ -14548,6 +14586,8 @@ C6
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14580,6 +14620,8 @@ C7
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14612,6 +14654,8 @@ C8
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbLine
  10
@@ -14672,6 +14716,8 @@ CA
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14704,6 +14750,8 @@ CB
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14736,6 +14784,8 @@ CC
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbLine
  10
@@ -14796,6 +14846,8 @@ CE
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14828,6 +14880,8 @@ CF
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14860,6 +14914,8 @@ D0
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbLine
  10
@@ -14920,6 +14976,8 @@ D2
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14952,6 +15010,8 @@ D3
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -14984,6 +15044,8 @@ D4
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15044,6 +15106,8 @@ D6
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -15076,6 +15140,8 @@ D7
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -15108,6 +15174,8 @@ D8
 AcDbEntity
   8
 KAPI
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15168,6 +15236,8 @@ DA
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15192,6 +15262,8 @@ DB
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15216,6 +15288,8 @@ DC
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15312,6 +15386,8 @@ DF
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15336,6 +15412,8 @@ E0
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15360,6 +15438,8 @@ E1
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15456,6 +15536,8 @@ E4
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15480,6 +15562,8 @@ E5
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15504,6 +15588,8 @@ E6
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15600,6 +15686,8 @@ E9
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15624,6 +15712,8 @@ EA
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15648,6 +15738,8 @@ EB
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15744,6 +15836,8 @@ EE
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15768,6 +15862,8 @@ EF
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15792,6 +15888,8 @@ F0
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15888,6 +15986,8 @@ F3
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15912,6 +16012,8 @@ F4
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -15936,6 +16038,8 @@ F5
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -16032,6 +16136,8 @@ F8
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -16056,6 +16162,8 @@ F9
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -16080,6 +16188,8 @@ FA
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -16176,6 +16286,8 @@ FD
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -16200,6 +16312,8 @@ FE
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -16224,6 +16338,8 @@ FF
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -16320,6 +16436,8 @@ LINE
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -16344,6 +16462,8 @@ LINE
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -16368,6 +16488,8 @@ LINE
 AcDbEntity
   8
 KUYU-IC
+ 48
+125.0
 100
 AcDbLine
  10
@@ -16428,6 +16550,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16460,6 +16584,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16492,6 +16618,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16524,6 +16652,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16556,6 +16686,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16588,6 +16720,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16620,6 +16754,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16652,6 +16788,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16684,6 +16822,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16716,6 +16856,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16748,6 +16890,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16780,6 +16924,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16812,6 +16958,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16844,6 +16992,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16876,6 +17026,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16908,6 +17060,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16940,6 +17094,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -16972,6 +17128,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17004,6 +17162,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17036,6 +17196,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17068,6 +17230,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17100,6 +17264,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17132,6 +17298,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17164,6 +17332,8 @@ LWPOLYLINE
 AcDbEntity
   8
 RAY
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17196,6 +17366,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17228,6 +17400,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17260,6 +17434,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17292,6 +17468,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17324,6 +17502,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17356,6 +17536,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17388,6 +17570,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17420,6 +17604,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17452,6 +17638,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17484,6 +17672,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17516,6 +17706,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17548,6 +17740,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17580,6 +17774,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17612,6 +17808,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17644,6 +17842,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17676,6 +17876,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17708,6 +17910,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17740,6 +17944,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17772,6 +17978,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17804,6 +18012,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17836,6 +18046,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17868,6 +18080,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17900,6 +18114,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17932,6 +18148,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17964,6 +18182,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -17996,6 +18216,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18028,6 +18250,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18060,6 +18284,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18092,6 +18318,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18124,6 +18352,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18156,6 +18386,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18188,6 +18420,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18220,6 +18454,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18252,6 +18488,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18284,6 +18522,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18316,6 +18556,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18348,6 +18590,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18380,6 +18624,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18412,6 +18658,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18444,6 +18692,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18476,6 +18726,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18508,6 +18760,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18540,6 +18794,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18572,6 +18828,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18604,6 +18862,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18636,6 +18896,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18668,6 +18930,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18700,6 +18964,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18732,6 +18998,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18764,6 +19032,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18796,6 +19066,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18828,6 +19100,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18860,6 +19134,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18892,6 +19168,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18924,6 +19202,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18956,6 +19236,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -18988,6 +19270,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19020,6 +19304,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19052,6 +19338,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19084,6 +19372,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19116,6 +19406,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19148,6 +19440,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19180,6 +19474,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19212,6 +19508,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19244,6 +19542,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19276,6 +19576,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19308,6 +19610,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19340,6 +19644,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19372,6 +19678,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19404,6 +19712,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19436,6 +19746,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19468,6 +19780,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19500,6 +19814,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19532,6 +19848,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19564,6 +19882,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19596,6 +19916,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19628,6 +19950,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19660,6 +19984,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19692,6 +20018,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19724,6 +20052,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19756,6 +20086,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19788,6 +20120,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19820,6 +20154,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19852,6 +20188,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19884,6 +20222,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19916,6 +20256,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19948,6 +20290,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -19980,6 +20324,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20012,6 +20358,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20044,6 +20392,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20076,6 +20426,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20108,6 +20460,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20140,6 +20494,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20172,6 +20528,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20204,6 +20562,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20236,6 +20596,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20268,6 +20630,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20300,6 +20664,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20332,6 +20698,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20364,6 +20732,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20396,6 +20766,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20428,6 +20800,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20460,6 +20834,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20492,6 +20868,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20524,6 +20902,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20556,6 +20936,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20588,6 +20970,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20620,6 +21004,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20652,6 +21038,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20684,6 +21072,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20716,6 +21106,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20748,6 +21140,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20780,6 +21174,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20812,6 +21208,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20844,6 +21242,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20876,6 +21276,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20908,6 +21310,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20940,6 +21344,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -20972,6 +21378,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21004,6 +21412,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21036,6 +21446,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21068,6 +21480,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21100,6 +21514,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21132,6 +21548,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21164,6 +21582,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21196,6 +21616,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21228,6 +21650,8 @@ LWPOLYLINE
 AcDbEntity
   8
 TAMPON
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21260,6 +21684,8 @@ LWPOLYLINE
 AcDbEntity
   8
 TAMPON
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21292,6 +21718,8 @@ LWPOLYLINE
 AcDbEntity
   8
 TAMPON
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21324,6 +21752,8 @@ LWPOLYLINE
 AcDbEntity
   8
 TAMPON
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21356,6 +21786,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21388,6 +21820,8 @@ LWPOLYLINE
 AcDbEntity
   8
 MAKINE
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21420,6 +21854,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KASNAK
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21452,6 +21888,8 @@ LWPOLYLINE
 AcDbEntity
   8
 AGIRLIK
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21484,6 +21922,8 @@ LWPOLYLINE
 AcDbEntity
   8
 AGIRLIK
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21516,6 +21956,8 @@ LWPOLYLINE
 AcDbEntity
   8
 PATEN
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21548,6 +21990,8 @@ LWPOLYLINE
 AcDbEntity
   8
 PATEN
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21580,6 +22024,8 @@ LWPOLYLINE
 AcDbEntity
   8
 PATEN
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21612,6 +22058,8 @@ LWPOLYLINE
 AcDbEntity
   8
 PATEN
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21644,6 +22092,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KASNAK
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21714,6 +22164,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KONSOL
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21746,6 +22198,8 @@ LWPOLYLINE
 AcDbEntity
   8
 BAGLANTI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21778,6 +22232,8 @@ LWPOLYLINE
 AcDbEntity
   8
 BAGLANTI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21810,6 +22266,8 @@ CIRCLE
 AcDbEntity
   8
 MAKINE
+ 48
+125.0
 100
 AcDbCircle
  10
@@ -21830,6 +22288,8 @@ LWPOLYLINE
 AcDbEntity
   8
 MAKINE
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21862,6 +22322,8 @@ CIRCLE
 AcDbEntity
   8
 KASNAK
+ 48
+125.0
 100
 AcDbCircle
  10
@@ -21882,6 +22344,8 @@ LWPOLYLINE
 AcDbEntity
   8
 MAKINE
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21914,6 +22378,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KASNAK
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -21946,6 +22412,8 @@ LINE
 AcDbEntity
   8
 HALAT
+ 48
+125.0
 100
 AcDbLine
  10
@@ -21970,6 +22438,8 @@ LINE
 AcDbEntity
   8
 HALAT
+ 48
+125.0
 100
 AcDbLine
  10
@@ -21994,6 +22464,8 @@ LINE
 AcDbEntity
   8
 HALAT
+ 48
+125.0
 100
 AcDbLine
  10
@@ -22018,6 +22490,8 @@ LINE
 AcDbEntity
   8
 HALAT
+ 48
+125.0
 100
 AcDbLine
  10
@@ -22042,6 +22516,8 @@ LINE
 AcDbEntity
   8
 HALAT
+ 48
+125.0
 100
 AcDbLine
  10
@@ -22066,6 +22542,8 @@ LINE
 AcDbEntity
   8
 HALAT
+ 48
+125.0
 100
 AcDbLine
  10
@@ -22090,6 +22568,8 @@ LINE
 AcDbEntity
   8
 HALAT
+ 48
+125.0
 100
 AcDbLine
  10
@@ -22114,6 +22594,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KABIN
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -22146,6 +22628,8 @@ LWPOLYLINE
 AcDbEntity
   8
 KABIN-IC
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -22178,6 +22662,8 @@ LWPOLYLINE
 AcDbEntity
   8
 GIZLI
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -22210,6 +22696,8 @@ LWPOLYLINE
 AcDbEntity
   8
 SASE
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -22242,6 +22730,8 @@ LWPOLYLINE
 AcDbEntity
   8
 SASE
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -22274,6 +22764,8 @@ LWPOLYLINE
 AcDbEntity
   8
 SASE
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -22306,6 +22798,8 @@ LWPOLYLINE
 AcDbEntity
   8
 SASE
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -22338,6 +22832,8 @@ LWPOLYLINE
 AcDbEntity
   8
 PATEN
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -22370,6 +22866,8 @@ LWPOLYLINE
 AcDbEntity
   8
 PATEN
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -22402,6 +22900,8 @@ LWPOLYLINE
 AcDbEntity
   8
 SASE
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -22434,6 +22934,8 @@ LWPOLYLINE
 AcDbEntity
   8
 PATEN
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -22466,6 +22968,8 @@ LWPOLYLINE
 AcDbEntity
   8
 PATEN
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -22498,6 +23002,8 @@ LWPOLYLINE
 AcDbEntity
   8
 SASE
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -22530,6 +23036,8 @@ CIRCLE
 AcDbEntity
   8
 KASNAK
+ 48
+125.0
 100
 AcDbCircle
  10
@@ -22550,6 +23058,8 @@ CIRCLE
 AcDbEntity
   8
 KASNAK
+ 48
+125.0
 100
 AcDbCircle
  10
@@ -23795,7 +24305,7 @@ EZDXF
  71
 5
   1
-1500
+KABİN RAYI KONSOL ARASI 1500
  53
 90.0
 100
@@ -24595,7 +25105,7 @@ EZDXF
  71
 5
   1
-KABİN RAYI KONSOL ARASI 1500
+1500
  53
 90.0
 100
@@ -25970,6 +26480,8 @@ AcDbEntity
 SEVIYE
   6
 CENTER
+ 48
+125.0
 100
 AcDbLine
  10
@@ -25994,6 +26506,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26018,6 +26532,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26042,6 +26558,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26102,6 +26620,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26126,6 +26646,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26150,6 +26672,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26212,6 +26736,8 @@ AcDbEntity
 SEVIYE
   6
 CENTER
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26236,6 +26762,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26260,6 +26788,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26284,6 +26814,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26344,6 +26876,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26368,6 +26902,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26392,6 +26928,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26454,6 +26992,8 @@ AcDbEntity
 SEVIYE
   6
 CENTER
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26478,6 +27018,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26502,6 +27044,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26526,6 +27070,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26586,6 +27132,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26610,6 +27158,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26634,6 +27184,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26696,6 +27248,8 @@ AcDbEntity
 SEVIYE
   6
 CENTER
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26720,6 +27274,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26744,6 +27300,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26768,6 +27326,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26828,6 +27388,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26852,6 +27414,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26876,6 +27440,8 @@ LINE
 AcDbEntity
   8
 SEVIYE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -26936,6 +27502,8 @@ LWPOLYLINE
 AcDbEntity
   8
 CERCEVE
+ 48
+125.0
 100
 AcDbPolyline
  90
@@ -26968,6 +27536,8 @@ LINE
 AcDbEntity
   8
 CERCEVE
+ 48
+125.0
 100
 AcDbLine
  10
@@ -28155,7 +28725,7 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-09-27T01:11:18.128595+00:00
+1.4.4 @ 2026-09-27T13:59:06.601241+00:00
   0
 VISUALSTYLE
   5
@@ -34717,7 +35287,7 @@ DictionaryVariables
 280
 0
   1
-1.4.4 @ 2026-09-27T01:11:18.162867+00:00
+1.4.4 @ 2026-09-27T13:59:06.625355+00:00
   0
 ENDSEC
   0

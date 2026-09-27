@@ -178,9 +178,146 @@ def _olculer_sol(e, Y, u0, K, kotlar, tavan, g):
 
 def _konsol_zinciri(e, kot, r, tavan, ad, aralik):
     noktalar = [r["alt"]] + r["konsollar"] + [r["ust"], tavan]
-    orta = len(r["konsollar"]) // 2
+    #  Etiket ikinci aralıkta:  kırık gösterimde de görünür kalır
     _zincir(e, kot, noktalar, {0: f"İLK KONSOL {r['konsollar'][0] - r['alt']:g}",
-                               orta: f"{ad} KONSOL ARASI {aralik:g}"})
+                               1: f"{ad} KONSOL ARASI {aralik:g}"})
+
+
+KIRIK_BOSLUK = 1200.0       # kırık gösterimde atlanan katların yerine kalan yükseklik
+KIRIK_PAY = 300.0           # kırık çizgisi ile en yakın parça arası
+
+
+def _sayisal(m):
+    return m.replace(".", "").isdigit()
+
+
+def _birlesik_metin(parcalar, uzunluk):
+    """Kırığın üstünden geçen ölçünün yazısı:  eşit aralıklar "n × a",
+    değilse gerçek toplam."""
+    metinler = [p[2]["metin"] for p in parcalar]
+    if all(_sayisal(m) for m in metinler) and len(set(metinler)) == 1 and len(metinler) > 1:
+        return f"{len(metinler)} × {metinler[0]}"
+    return f"{uzunluk:g}"
+
+
+def _kir(e, za, zu, bosluk):
+    """( za, zu ) aralığını çizimden çıkarır, yerine `bosluk` bırakır.
+
+    Aralığın içindeki parçalar ( ara katların kapıları, konsollar, kotlar )
+    düşer;  aralığı geçen dikdörtgen ve düşey çizgiler ( duvar, ray, halat )
+    ikiye bölünür;  düşey ölçü zincirleri yeniden kurulur — aralığı geçen
+    ölçü gerçek değerini yazar.  Dönen:  ( elemanlar, kot eşlemesi, içinde mi ).
+    """
+    kay = (zu - za) - bosluk
+
+    def ic(z):
+        return za + 1e-9 < z < zu - 1e-9
+
+    def m(z):
+        return z if z <= za + 1e-9 else z - kay
+
+    def bol(y0, y1):
+        lo, hi = sorted((y0, y1))
+        return [(a, b) for a, b in ((lo, min(hi, za)), (max(lo, zu), hi)) if b - a > 1e-6]
+
+    out, olculer = [], {}
+    for el in e:
+        t = el["tip"]
+        if t == "olcu":
+            if el["yon"] == "dusey":
+                olculer.setdefault(round(el["kot"], 3), []).append(el)
+            elif not (ic(el["a"][1]) or ic(el["kot"])):
+                n = dict(el)
+                n["a"], n["b"], n["kot"] = (el["a"][0], m(el["a"][1])), (el["b"][0], m(el["b"][1])), m(el["kot"])
+                out.append(n)
+        elif t in ("dikdortgen", "tarama"):
+            for a, b in bol(el["y"], el["y"] + el["d"]):
+                n = dict(el)
+                n["y"], n["d"] = m(a), b - a
+                out.append(n)
+        elif t in ("cizgi", "eksen", "ok"):
+            y1, y2 = el["y1"], el["y2"]
+            if abs(y1 - y2) < 1e-9:
+                if not ic(y1):
+                    n = dict(el)
+                    n["y1"] = n["y2"] = m(y1)
+                    out.append(n)
+                continue
+            for a, b in bol(y1, y2):
+                n = dict(el)
+                ta, tb = ((a - y1) / (y2 - y1), (b - y1) / (y2 - y1))
+                n["x1"], n["x2"] = el["x1"] + (el["x2"] - el["x1"]) * ta, el["x1"] + (el["x2"] - el["x1"]) * tb
+                n["y1"], n["y2"] = m(a), m(b)
+                out.append(n)
+        elif t in ("daire", "yazi"):
+            if not ic(el["y"]):
+                n = dict(el)
+                n["y"] = m(el["y"])
+                out.append(n)
+        else:
+            out.append(el)
+    for kot, liste in olculer.items():
+        parcalar = sorted((min(el["a"][1], el["b"][1]), max(el["a"][1], el["b"][1]), el) for el in liste)
+        noktalar = sorted({p for q in parcalar for p in q[:2]})
+        tut = [p for p in noktalar if not ic(p)]
+        for p, q in zip(tut, tut[1:]):
+            icinde = [r for r in parcalar if r[0] >= p - 1e-9 and r[1] <= q + 1e-9]
+            if not icinde:
+                continue
+            tek = len(icinde) == 1 and abs(icinde[0][0] - p) < 1e-9 and abs(icinde[0][1] - q) < 1e-9
+            metin = icinde[0][2]["metin"] if tek else _birlesik_metin(icinde, q - p)
+            x = icinde[0][2]["a"][0]
+            out.append(CGE._olcu("dusey", (x, m(p)), (x, m(q)), kot, metin))
+    return out, m, ic
+
+
+def _kirik_cizgileri(e, za, bosluk, u0, u1, K):
+    """Kırığın iki ucunda, kuyunun iki duvarını aşan kırık çizgisi."""
+    for z in (za, za + bosluk):
+        um = (u0 + u1) / 2.0
+        d, t = 60 * K, 30 * K
+        nok = [(u0 - 150 * K, z), (um - d, z), (um - t, z + d), (um + t, z - d), (um + d, z),
+               (u1 + 150 * K, z)]
+        for a, b in zip(nok, nok[1:]):
+            e.append(CGE._ad(CGE._cizgi("KUYU-IC", a[0], a[1], b[0], b[1]), "kirik_cizgisi"))
+
+
+def _yukseklik(e, K):
+    """Çerçeveli çizimin yüksekliği ( cerceveli:  2 · pay + künye şeridi )."""
+    _, y0, _, y1 = CGE.sinir(e)
+    return (y1 - y0) + 2 * 300 * K + 220 * K
+
+
+def _bitir(e, g, Y, kt, K, alt_ust, ust_alt, bosluk_h, duvarlar, azami):
+    """Yazıları yerleştirir, plan seviyelerini ekler.  Çizim `azami`
+    yüksekliğe ( çerçevesiyle, çizim birimi ) sığmıyorsa ara katları kırar:
+    alttan ve üstten SIĞAN EN ÇOK durak kalır ( en az birer ).  Kırık
+    hareketli parçalara ( kabin, karşı ağırlık ) değmez."""
+    sev = plan_seviyeleri(g, Y, kt)
+
+    def son(e_, m=None, ic=None):
+        e_ = [dict(x) for x in e_]
+        CGE._yazilari_yerlestir(e_, CGE.OLCU_YAZI * K)
+        s_ = [(h, m(z) if m else z, ad) for h, z, ad in sev if not (ic and ic(z))]
+        _seviye_isaretleri(e_, s_, K)
+        return e_
+
+    tam = son(e)
+    if azami is None or _yukseklik(tam, K) <= azami:
+        return tam
+    kotlar = Y["kotlar"]
+    doseme = Y["S"]["kat_doseme_kalinlik"]
+    for i in range(len(kotlar) // 2 - 1, -1, -1):
+        za = max(alt_ust, kotlar[i] + bosluk_h) + KIRIK_PAY
+        zu = min(ust_alt, kotlar[-1 - i] - doseme) - KIRIK_PAY
+        if zu - za <= KIRIK_BOSLUK:
+            continue
+        k, m, ic = _kir(e, za, zu, KIRIK_BOSLUK)
+        _kirik_cizgileri(k, za, KIRIK_BOSLUK, duvarlar[0], duvarlar[1], K)
+        k = son(k, m, ic)
+        if _yukseklik(k, K) <= azami or i == 0:
+            return k
+    return tam
 
 
 def yan_bakis(g):
@@ -189,8 +326,9 @@ def yan_bakis(g):
                      ("x", CGE.kesit_duzlemleri(g)[0], -1.0 if g["agirlik"]["yeri"] == "Sol" else 1.0))
 
 
-def yan_kesit(g, cizim_sabitleri=None):
-    """A-A:  kabin en alt durakta."""
+def yan_kesit(g, cizim_sabitleri=None, azami=None):
+    """A-A:  kabin en alt durakta.  azami:  çerçevesiyle en çok yükseklik
+    ( çizim birimi ) — aşılırsa ara katlar kırılır."""
     Y = yerlesim(g, cizim_sabitleri)
     S, M, KD, dy = Y["S"], Y["M"], Y["KD"], g["dusey"]
     k = g["kuyu"]
@@ -244,6 +382,12 @@ def yan_kesit(g, cizim_sabitleri=None):
     kb = KD["kabin"]
     ky = [(kz[1] + kz[3]) / 2.0 for kz in P["kabin_kasnak"]]
     CDU._kabin(e, kt, (kb[1], kb[3]), g["kabin_ray"]["kapi_arasi"], S, ky[:1], g["aski"]["kasnak_capi"])
+    #  Kabin eşiği ve kabin kapısı kanatları ( kabinin önünde, kendi döşemesinde )
+    for kk in P["kabin_esik"]:
+        e.append(CGE._ad(CGE._dik("KABIN", kk[1], kt["doseme"] - S["esik_kalinlik"], kk[3] - kk[1],
+                                  S["esik_kalinlik"]), "kabin_esigi"))
+    for kk in P["kabin_kanat"]:
+        e.append(CGE._ad(CGE._dik("KAPI", kk[1], kt["doseme"], kk[3] - kk[1], kapi_h), "kabin_kanadi"))
     #  Ölçüler
     _olculer_sol(e, Y, -don - L - 700 * K, K, kotlar, tavan, g)
     #  Görünen raylar karşı ağırlık tarafındakiler:  konsol zinciri onların
@@ -259,12 +403,11 @@ def yan_kesit(g, cizim_sabitleri=None):
                 {0: f"ŞASE {sa[5] - sa[4]:g}", 1: f"MAKİNE {M['kapak'][5] - sa[5]:g}"})
     e.append(CGE._olcu("dusey", (0, 0.0), (0, kapi_h), -don - 120 * K, f"KAPI {kapi_h:g}"))
     e.append(CGE._olcu("yatay", (0, taban), (D, taban), taban - don - 250 * K, f"KUYU DERİNLİĞİ {D:g}"))
-    CGE._yazilari_yerlestir(e, CGE.OLCU_YAZI * K)
-    _seviye_isaretleri(e, plan_seviyeleri(g, Y, kt), K)
-    return e
+    #  Kırık:  altta kabin ( ve paten ), üstte karşı ağırlık kalmalı
+    return _bitir(e, g, Y, kt, K, kt["ust_paten"], AK["alt_paten"], bosluk_h, (-don, D + dar), azami)
 
 
-def on_kesit(g, cizim_sabitleri=None):
+def on_kesit(g, cizim_sabitleri=None, azami=None):
     """B-B:  kabin en üst durakta;  kuyunun arkasından kat kapılarına bakış."""
     Y = yerlesim(g, cizim_sabitleri)
     S, M, dy = Y["S"], Y["M"], g["dusey"]
@@ -324,6 +467,7 @@ def on_kesit(g, cizim_sabitleri=None):
         _oda_olculeri(e, M, g["makine_dairesi"], g["makine"]["tahrik_kasnak_capi"], r1, r1 + 250 * K)
     e.append(CGE._olcu("yatay", (0, taban), (G, taban), taban - don - 250 * K,
                        f"KUYU GENİŞLİĞİ {G:g}"))
-    CGE._yazilari_yerlestir(e, CGE.OLCU_YAZI * K)
-    _seviye_isaretleri(e, plan_seviyeleri(g, Y, kt), K)
-    return e
+    #  Kırık:  altta karşı ağırlık, üstte kabin ( etek, fren bloğu, paten ) kalmalı
+    return _bitir(e, g, Y, kt, K, AK["ust_paten"],
+                  min(kt["etek_alti"], kt["alt_paten"], kt["fren_alti"]),
+                  kapi_h + S["kapi_ust_payi"], (-dg, G + ds), azami)

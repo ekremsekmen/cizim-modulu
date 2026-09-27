@@ -3,3 +3,8 @@ __pycache__/
 .venv/
 ornekler/*.png
 .DS_Store
+# Tam proje çıktıları büyük;  uret.py yeniden üretir
+ornekler/tam_proje/*.dxf
+ornekler/tam_proje/*.dwg
+ornekler/tam_proje/*.pdf
+ornekler/tam_proje/*.svg
