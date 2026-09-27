@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-DÜŞEY KESİTLER  ( kuyunun derinliği boyunca, kabin ekseninden )
+DÜŞEY KESİTLERİN YERLEŞİMİ VE AÇIKLIK DENETİMİ
 
-  KUYU DİBİ DÜŞEY KESİTİ   kabin tam ezilmiş tamponunun üstünde
-  KUYU ÜSTÜ DÜŞEY KESİTİ   kabin en üst konumunda:  karşı ağırlık tam ezilmiş
-                           tamponunun üstünde + 0,035 · v²  ( m.5.2.5.6.1 )
-  KUYU DÜŞEY KESİTİ        tam boy, 1/50:  bütün duraklar, kat kapıları ve kotlar;
-                           kabin en alt durakta  ( ELEport "Cabin at Bottom Floor",
-                           LiftDesigner "Dikey 1:50" gibi — LiftDesigner da tam
-                           boy gerçek ölçekte çizer, ELEport ara katları kırar )
+Tam boy A-A / B-B kesitleri ( kuyu_kesiti.py ) bu yerleşimi kullanır.  Açıklıklar
+iki konumda denetlenir:
+  kuyu dibi   kabin tam ezilmiş tamponunun üstünde
+  kuyu üstü   kabin en üst konumunda:  karşı ağırlık tam ezilmiş tamponunun
+              üstünde + 0,035 · v²  ( m.5.2.5.6.1 )
+Kuyu dibi ve kuyu üstü ayrıca DÜŞEY detay kesitle çizilmez:  ofisin paftalarında
+( 477-8, 12744-3 ) ikisi de YATAY kesittir ( kuyu dibi planı E-E, kuyu üstü /
+makine dairesi planı F-F ).
 
 Yatay eksen kuyu derinliğidir ( 0 = ön duvarın iç yüzü );  plan çizimleriyle
 aynı koordinat — kabin, ray, tampon ve sığınma alanı plandaki yerlerinden
@@ -39,7 +40,6 @@ from cizim import donanim as CDN
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kabin_ustu as CKU
-from cizim import kesit_parcalari as CKP
 from cizim import kuyu_dibi as CKD
 from cizim import sabitler as CS
 
@@ -230,9 +230,6 @@ AD = {"siginma": "Sığınma yüksekliği", "en_alt": "Kuyu tabanı – kabinin 
       "paten": "Üst paten – kuyu tavanı", "ray": "Üst paten – rayın üst ucu",
       "korkuluk": "Korkuluk – kuyu tavanı",
       "agirlik_ray": "Karşı ağırlık üst pateni – rayın üst ucu"}
-#  Paftadaki kısa adlar ( uzun ad ölçüye sığmayıp dışarı taşıyordu )
-KISA = {"siginma": "SIĞINMA", "en_alt": "EN ALT", "etek": "ETEK", "sase": "ŞASE",
-        "paten": "PATEN", "ray": "RAY", "korkuluk": "KORKULUK", "agirlik_ray": "AĞIRLIK RAYI"}
 
 
 def dogrula(g):
@@ -273,184 +270,3 @@ def _kabin(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89):
         e.append(CGE._ad(D("KASNAK", ky - S["kabin_kasnak_genislik"] / 2.0,
                              kt["kasnak_merkez"] - kasnak_capi / 2.0,
                              S["kabin_kasnak_genislik"], kasnak_capi), "kabin_kasnak"))
-
-
-def _duvarlar(e, g, z0, z1, taban=None, tavan=None):
-    k = g["kuyu"]
-    D, don, dar = k["derinlik"], k["duvar_on"], k["duvar_arka"]
-    for x, w in ((-don, don), (D, dar)):
-        e.append(CGE._dik("TARAMA", x, z0, w, z1 - z0, tip="tarama"))
-        e.append(CGE._dik("KUYU-DUVAR", x, z0, w, z1 - z0))
-    if taban is not None:
-        e.append(CGE._dik("TARAMA", -don, taban - don, D + don + dar, don, tip="tarama"))
-        e.append(CGE._dik("KUYU-DUVAR", -don, taban - don, D + don + dar, don))
-    if tavan is not None:
-        e.append(CGE._dik("TARAMA", -don, tavan, D + don + dar, don, tip="tarama"))
-        e.append(CGE._dik("KUYU-DUVAR", -don, tavan, D + don + dar, don))
-
-
-def _kat_kapisi(e, g, z):
-    """Ön duvardaki kat kapısı boşluğu ve kat döşemesi."""
-    k, kp = g["kuyu"], g["kapi"]
-    don = k["duvar_on"]
-    e.append(CGE._ad(CGE._dik("KAPI", -don, z, don, kp.get("yukseklik", 2100)), "kat_kapisi"))
-    e.append(CGE._cizgi("KUYU-DUVAR", -don - 600, z, -don, z))
-    e.append(CGE._ad(CGE._yazi(-don - 300, z + 60, _kot(z), 40), "kot"))
-
-
-def _kirp(elemanlar, z0, z1, dz=0.0):
-    """Tam boy donanım çizimini detay kesitin penceresine kırpar ve kaydırır."""
-    cikti = []
-    for el in elemanlar:
-        el = dict(el)
-        if el["tip"] in ("dikdortgen", "tarama"):
-            a, b = max(el["y"], z0), min(el["y"] + el["d"], z1)
-            if b - a <= 1e-6:
-                continue
-            el["y"], el["d"] = a + dz, b - a
-        elif el["tip"] == "cizgi":
-            (x1, y1), (x2, y2) = (el["x1"], el["y1"]), (el["x2"], el["y2"])
-            if abs(y2 - y1) < 1e-9:
-                if not z0 <= y1 <= z1:
-                    continue
-            else:
-                t0, t1 = sorted(((z0 - y1) / (y2 - y1), (z1 - y1) / (y2 - y1)))
-                t0, t1 = max(t0, 0.0), min(t1, 1.0)
-                if t1 - t0 <= 1e-9:
-                    continue
-                x1, y1, x2, y2 = (x1 + (x2 - x1) * t0, el["y1"] + (y2 - el["y1"]) * t0,
-                                  x1 + (x2 - x1) * t1, el["y1"] + (y2 - el["y1"]) * t1)
-            el.update(x1=x1, y1=y1 + dz, x2=x2, y2=y2 + dz)
-        elif el["tip"] in ("daire", "yazi"):
-            if not z0 <= el["y"] <= z1:
-                continue
-            el["y"] += dz
-        cikti.append(el)
-    return cikti
-
-
-def _donanim(g, Y, kabin_z, ag_alt, kabin_ezilme=0.0):
-    """Raylar, konsollar, tamponlar, gergi, kuyu tepesi, halatlar ( yan bakış,
-    tam boy kesitlerle aynı çizim );  detay kesit _kirp ile penceresine alır."""
-    B = CKP.Bakis("yan", g["kuyu"]["genislik"],
-                  ("x", CGE.kesit_duzlemleri(g)[0], -1.0 if g["agirlik"]["yeri"] == "Sol" else 1.0))
-    P = CKP.plan_parcalari(Y["KD"], g)
-    d = []
-    CKP.donanim(d, B, g, Y, P, kabin_z, ag_alt, 1.0, kabin_ezilme)
-    return d
-
-
-def _acikliklar(e, olculer, x0):
-    """Açıklıklar:  her biri kendi sırasında, değeri ve standardın sınırıyla."""
-    for i, (z0, z1, ad, deger, asgari) in enumerate(olculer):
-        kot = x0 - 120 - i * 200
-        metin = f"{KISA[ad]} {deger:g} ≥ {asgari:g}"
-        e.append(CGE._olcu("dusey", (0, z0), (0, z1), kot, metin))
-
-
-def kuyu_dibi_kesiti(g, cizim_sabitleri=None):
-    Y = yerlesim(g, cizim_sabitleri)
-    S, dip, KD = Y["S"], Y["dip"], Y["KD"]
-    k = g["kuyu"]
-    D = k["derinlik"]
-    kb = KD["kabin"]
-    ry = g["kabin_ray"]["kapi_arasi"]
-    dy = g["dusey"]
-    z_ust = dip["sase_ust"] + 300
-    e = []
-    _duvarlar(e, g, Y["taban"], z_ust, taban=Y["taban"])
-    _kat_kapisi(e, g, 0.0)
-    #  Raylar ve konsollar, tamponlar ( kabininki tam ezilmiş ), gergi düzeni,
-    #  halatlar — tam boy kesitlerle aynı çizim, pencereye kırpılmış
-    M, H = Y["M"], Y["kotlar"][-1]
-    ag_alt = (M["agirlik"]["tampon_ustu"] + dy["agirlik_carpma_arasi"] + H
-              + dy["kabin_carpma_arasi"] + dy["kabin_tampon_ezilme"])
-    e += _kirp(_donanim(g, Y, dip["doseme"], ag_alt, dy["kabin_tampon_ezilme"]),
-               Y["taban"], z_ust)
-    #  Sığınma alanı ( planda yeri, yüksekliği Çizelge 4 )
-    sg = KD["siginma"]
-    h = SIGINMA_DIP_YUKSEKLIK[g["kuyu_dibi"]["siginma_tipi"]]
-    e.append(CGE._ad(CGE._dik("SIGINMA", sg[1], Y["taban"], sg[3] - sg[1], h), "siginma"))
-    e.append(CGE._yazi((sg[1] + sg[3]) / 2.0, Y["taban"] + h / 2.0, "SIĞINMA", 36))
-    ky = [(kz[1] + kz[3]) / 2.0 for kz in Y["kasnaklar"]]
-    _kabin(e, dip, (kb[1], kb[3]), ry, S, ky[:1], Y["kasnak_capi"])
-    #  Kotlar ve açıklıklar
-    e.append(CGE._yazi(-k["duvar_on"] - 300, Y["taban"] + 60, _kot(Y["taban"]), 40))
-    A = Y["dip_aciklik"]
-    kasnak_alti = dip["kasnak_merkez"] - Y["kasnak_capi"] / 2.0
-    olculer = [(Y["taban"], Y["taban"] + A["siginma"][0], "siginma") + A["siginma"][:2],
-               (Y["taban"], Y["taban"] + A["en_alt"][0], "en_alt") + A["en_alt"][:2],
-               (Y["taban"], dip["etek_alti"], "etek") + A["etek"][:2],
-               (Y["taban"], Y["taban"] + A["sase"][0], "sase") + A["sase"][:2]]
-    _acikliklar(e, olculer, -k["duvar_on"] - 700)
-    #  Sağ:  kuyu dibi zinciri ( kaide · tampon · çarpma arası · şase altı )
-    O = CGE._olcu
-    s0, s1 = D + k["duvar_arka"] + 120, D + k["duvar_arka"] + 320
-    zs = [Y["taban"], Y["taban"] + dy["kabin_tampon_baba"],
-          Y["taban"] + dy["kabin_tampon_baba"] + dy["kabin_tampon_boyu"], 0.0]
-    e += [O("dusey", (0, zs[0]), (0, zs[1]), s0, f"KAİDE {dy['kabin_tampon_baba']:g}"),
-          O("dusey", (0, zs[1]), (0, zs[2]), s0, f"TAMPON {dy['kabin_tampon_boyu']:g}"),
-          O("dusey", (0, zs[2]), (0, zs[3]), s0),
-          O("dusey", (0, Y["taban"]), (0, 0.0), s1, f"KUYU DİBİ {g['kuyu_dibi']['derinlik']:g}")]
-    e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
-    CGE._yazilari_yerlestir(e)
-    return e
-
-
-def kuyu_ustu_kesiti(g, cizim_sabitleri=None):
-    Y = yerlesim(g, cizim_sabitleri)
-    S, ust, KU = Y["S"], Y["ust"], Y["KU"]
-    k = g["kuyu"]
-    D = k["derinlik"]
-    kb = KU["tavan"]
-    ry = g["kabin_ray"]["kapi_arasi"]
-    dy = g["dusey"]
-    z_alt = -1200.0
-    SK = dy["son_kat"]
-    e = []
-    _duvarlar(e, g, z_alt, SK + k["duvar_on"], tavan=SK)
-    _kat_kapisi(e, g, 0.0)
-    #  Kuyu tavanının en alt kısmı ( kiriş )
-    e.append(CGE._ad(CGE._dik("TARAMA", 0, Y["tavan_alti"], D, S["tavan_kirisi"], tip="tarama"), "tavan_kirisi"))
-    e.append(CGE._dik("KUYU-DUVAR", 0, Y["tavan_alti"], D, S["tavan_kirisi"]))
-    #  Raylar, makine şasesi, makine, halat bağlantıları, regülatör, halatlar —
-    #  tam boy kesitlerle aynı çizim;  karşı ağırlık tam ezilmiş tamponunda
-    M, H = Y["M"], Y["kotlar"][-1]
-    ag_alt = M["agirlik"]["tampon_ustu"] - dy["agirlik_tampon_ezilme"]
-    e += _kirp(_donanim(g, Y, H + Y["yukselme"], ag_alt), H + z_alt, H + SK, -H)
-    ky = [(kz[1] + kz[3]) / 2.0 for kz in Y["kasnaklar"]]
-    _kabin(e, ust, (kb[1], kb[3]), ry, S, ky[:1], Y["kasnak_capi"])
-    #  Tavanda:  etek tahtası ve ( gerekiyorsa ) korkuluk
-    e.append(CGE._ad(CGE._dik("KORKULUK", kb[1], ust["tavan"], kb[3] - kb[1], S["etek_tahtasi"]),
-                     "etek_tahtasi"))
-    if Y["korkuluk"]:
-        z = ust["tavan"] + Y["korkuluk"]
-        e.append(CGE._ad(CGE._cizgi("KORKULUK", kb[1], z, kb[3], z), "korkuluk"))
-        for x in (kb[1], kb[3]):
-            e.append(CGE._cizgi("KORKULUK", x, ust["tavan"], x, z))
-    #  Sığınma alanı ( kabin tavanında, yüksekliği Çizelge 3 )
-    sg = KU["siginma"]
-    h = SIGINMA_UST_YUKSEKLIK[g["kabin_ustu"]["siginma_tipi"]]
-    e.append(CGE._ad(CGE._dik("SIGINMA", sg[1], ust["tavan"], sg[3] - sg[1], h), "siginma"))
-    e.append(CGE._yazi((sg[1] + sg[3]) / 2.0, ust["tavan"] + h / 2.0, "SIĞINMA", 36))
-    e.append(CGE._yazi(-k["duvar_on"] - 300, SK + 60, _kot(SK), 40))
-    #  Her açıklık kendi engeline:  kuyu tavanı ya da altındaki parça ( şase … )
-    A, E = Y["ust_aciklik"], Y["ust_engel"]
-    olculer = [(ust["tavan"], E["siginma"][0], "siginma") + A["siginma"][:2],
-               (ust["ust_paten"], E["paten"][0], "paten") + A["paten"][:2]]
-    if "korkuluk" in A:
-        olculer.append((ust["tavan"] + Y["korkuluk"], E["korkuluk"][0], "korkuluk") + A["korkuluk"][:2])
-    _acikliklar(e, olculer, -k["duvar_on"] - 700)
-    #  Sağ:  kabinin yükselmesi ve son kat
-    O = CGE._olcu
-    s0, s1 = D + k["duvar_arka"] + 120, D + k["duvar_arka"] + 320
-    e += [O("dusey", (0, 0.0), (0, Y["yukselme"]), s0, f"YÜKSELME {Y['yukselme']:g}"),
-          O("dusey", (0, Y["yukselme"]), (0, Y["tavan_alti"]), s0),
-          O("dusey", (0, Y["tavan_alti"]), (0, SK), s0),
-          O("dusey", (0, 0.0), (0, SK), s1, f"SON KAT {SK:g}"),
-          O("dusey", (0, ust["ust_paten"]), (0, Y["ray_ustu"]), ry + 150,
-            f"RAY {Y['ust_aciklik']['ray'][0]:g} ≥ {RAY_UZANTISI:g}")]
-    e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
-    CGE._yazilari_yerlestir(e)
-    return e
-

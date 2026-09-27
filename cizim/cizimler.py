@@ -5,7 +5,6 @@
 calistir.py ( tek tek çizim ) ve pafta.py ( TİP PROJE FORMATI ) buradan okur;
 başlıklar ve ölçekler iki yerde ayrı yazılıp zamanla ayrışmasın.
 """
-from cizim import dusey as CDU
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kabin_ustu as CKU
@@ -25,10 +24,6 @@ CIZIMLER = {
                   "KUYU ÜSTÜ PLANI  ( makine dairesiz — kuyu tepesinden yatay kesit )"),
     "makine_dairesi": (CMD.dogrula, CMD.ciz, "MAKİNE DAİRESİ PLANI"),
     "delik_plani": (CMD.dogrula, CMD.delik_plani, "KUYU ÜSTÜ DÖŞEME HALAT DELİK PLANI"),
-    "kuyu_dibi_kesiti": (CDU.dogrula, CDU.kuyu_dibi_kesiti,
-                         "KUYU DİBİ DÜŞEY KESİTİ  ( kabin tam ezilmiş tamponunda )"),
-    "kuyu_ustu_kesiti": (CDU.dogrula, CDU.kuyu_ustu_kesiti,
-                         "KUYU ÜSTÜ DÜŞEY KESİTİ  ( kabin en üst konumunda )"),
     "kuyu_kesiti_yan": (CKK.dogrula, CKK.yan_kesit,
                         "A-A KUYU DÜŞEY KESİTİ  ( yan — kabin en alt durakta )"),
     "kuyu_kesiti_on": (CKK.dogrula, CKK.on_kesit,

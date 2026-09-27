@@ -35,7 +35,7 @@ python3 -m venv .venv
 | `cizim/kuyu_dibi.py` | Kuyu dibi planı:  tamponlar, perde, gergi, sığınma alanı, merdiven |
 | `cizim/kuyu_ustu.py` | Kuyu üstü planı ( MRL ):  makine, halat bağlantıları, regülatör, acil pano |
 | `cizim/makine_dairesi.py` | Makine dairesi planı + döşeme halat delik planı |
-| `cizim/dusey.py` | Düşey kesitlerin açıklık denetimleri + kuyu dibi ve kuyu üstü detay kesitleri |
+| `cizim/dusey.py` | Düşey kesitlerin yerleşimi ve açıklık denetimleri |
 | `cizim/donanim.py` | Kuyu donanımının KOTLARI:  makine, şase, bağlantılar, regülatör, gergi, raylar, konsollar, karşı ağırlık |
 | `cizim/kesit_parcalari.py` | Düşey kesitlerde parça çizimi ( yan ve ön bakış ortak ) |
 | `cizim/kuyu_kesiti.py` | Tam boy A-A ( yan ) ve B-B ( ön ) kuyu düşey kesitleri, 1/50 ( gerekirse kırık ) |
@@ -165,10 +165,12 @@ en az 50 mm'lik bilezik ( m.5.2.6.3.3 ) düşey bir ölçüdür, planda görünm
 Örnek oda 3.800 × 2.600 ( hesap programının test verisi ), pano 600 × 400
 ( LiftDesigner ).
 
-**Düşey kesitler** ( kuyunun derinliği boyunca;  yatay eksen plandakiyle aynı ):
-kuyu dibi kesiti kabini **tam ezilmiş tamponunda**, kuyu üstü kesiti **en üst
-konumunda** ( karşı ağırlık tam ezilmiş tamponunda + 0,035·v², m.5.2.5.6.1 Çizelge 2 )
-gösterir.  Kabinin düşey ölçüleri ELEport kabininden ölçüldü ( iç 2.250,
+**Düşey açıklıklar** ( `dusey.py` ):  kuyu dibinde kabin **tam ezilmiş
+tamponunda**, kuyu üstünde **en üst konumunda** ( karşı ağırlık tam ezilmiş
+tamponunda + 0,035·v², m.5.2.5.6.1 Çizelge 2 ) denetlenir.  Kuyu dibi ve kuyu
+üstü ayrıca düşey detay kesitle ÇİZİLMEZ:  ofisin paftalarında ( 477-8,
+12744-3 ) ikisi de yatay kesittir ( kuyu dibi planı E-E, kuyu üstü / makine
+dairesi planı F-F ).  Kabinin düşey ölçüleri ELEport kabininden ölçüldü ( iç 2.250,
 tavan 60, taban 120, şase altı −480, üst kiriş −480 + paten arası, paten 140,
 fren bloğu 350, kasnak merkezi −295 );  etek 750 ( m.5.4.5.1 ).
 
@@ -217,7 +219,7 @@ alttakinin işareti dışarı kayar.
 |---|---|---|
 | C | kuyu planı | en alt durakta kapının orta yüksekliği |
 | D | kabin üstü planı | kesitteki kabinin tavanı |
-| E | kuyu dibi planı | kuyu dibinin ortası |
+| E | kuyu dibi planı | en alt duraktaki kabinin en alt noktasıyla ilk konsolun üstü arasının ortası — kabin bu planda yoktur ve çizilmez |
 | F | kuyu üstü planı / makine dairesi planı | tahrik kasnağının ekseni |
 | G | döşeme halat delik planı ( makine daireli ) | makine dairesi döşemesinin ortası |
 
@@ -310,7 +312,7 @@ dizer, çizimleri `pafta.birlestir` ile son hesap sayfasının sağına ekler.
 sağda serbest alan ) ve çizimleri gerçek ölçüde BLOK olarak tanımlayıp
 paftaya 1/ölçek ile yerleştirir — CAD'de blok açılınca ölçüler gerçek boyda.
 Sıra ofisin 477-8 projesindeki gibi:  düşey kesitler ( 1/50 ), sonra planlar
-ve detay kesitler ( 1/20 ), konu sırasıyla sütun sütun;  alan yetmezse
+( 1/20 ), konu sırasıyla sütun sütun;  alan yetmezse
 çerçeve SAĞA uzar ( hesap programı gibi ).
 
 **Kırık kesit:**  1/50 düşey kesit 600 mm'lik paftaya sığmazsa ara katlar

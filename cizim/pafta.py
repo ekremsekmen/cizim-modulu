@@ -10,7 +10,7 @@ alan.  Şablonun birimi PAFTA milimetresidir;  çizimler gerçek ölçüde
 CAD'de blok açılınca ölçüler gerçek boyundadır.
 
 YERLEŞİM ( ofisin 477-8 uygulama projesindeki düzen ):  önce düşey
-kesitler ( 1/50 ), sonra planlar ve detay kesitler ( 1/20 ) konu sırasıyla
+kesitler ( 1/50 ), sonra planlar ( 1/20 ) konu sırasıyla
 sütunlara dizilir;  çizim sütuna sığmazsa yeni sütun açılır.  Düşey
 kesitler paftanın yüksekliğine sığmazsa ara katlar kırılır ( ELEport ve
 LiftDesigner gibi ).  Serbest alan yetmezse çerçeve SAĞA uzatılır — hesap
@@ -64,9 +64,9 @@ ANTET = {
 #  Paftadaki çizimler, sırasıyla ( makine dairesizde kuyu üstü planı,
 #  makine dairelide makine dairesi ve delik planı )
 SIRA_MRL = ("kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu", "kuyu_dibi",
-            "kuyu_dibi_kesiti", "kuyu_ustu", "kuyu_ustu_kesiti")
+            "kuyu_ustu")
 SIRA_MD = ("kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu", "kuyu_dibi",
-           "kuyu_dibi_kesiti", "makine_dairesi", "delik_plani", "kuyu_ustu_kesiti")
+           "makine_dairesi", "delik_plani")
 
 
 def _nokta(e):

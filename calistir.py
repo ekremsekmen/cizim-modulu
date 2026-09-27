@@ -8,7 +8,6 @@
     python3 calistir.py --cizim kuyu_dibi  → kuyu dibi planı
     python3 calistir.py --cizim kuyu_ustu  → kuyu üstü planı ( MRL )
     python3 calistir.py --cizim makine_dairesi / delik_plani
-    python3 calistir.py --cizim kuyu_dibi_kesiti / kuyu_ustu_kesiti
     python3 calistir.py --cizim kuyu_kesiti_yan / kuyu_kesiti_on → tam boy A-A / B-B ( 1/50 )
     python3 calistir.py --cizim kuyu_kesiti_on --makine "Makine dairesi" → makine daireli
     python3 calistir.py --pafta          → bütün çizimler TİP PROJE FORMATINDA ( ornekler/pafta.dxf )

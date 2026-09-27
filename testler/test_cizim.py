@@ -701,6 +701,16 @@ class KuyuDibiSozlesme(unittest.TestCase):
 
 
 class KuyuDibiYerlesim(unittest.TestCase):
+    def test_kabin_cizilmez(self):
+        """Kesit en alt duraktaki kabinin altından geçer:  kabin bu planda yoktur,
+        izi de çizilmez."""
+        for ad, g in _dip_projeler():
+            e = CKD.ciz(g)
+            with self.subTest(proje=ad):
+                self.assertFalse([x.get("ad") for x in e if "kabin" in (x.get("ad") or "")
+                                  and x.get("ad") not in ("kabin_tamponu", "kabin_ray")])
+                self.assertFalse([x["katman"] for x in e if x["katman"].startswith("KABIN")])
+
     def test_tamponlar_eksenlerde(self):
         g = _ornek()
         Y = CKD.yerlesim(g)
@@ -1111,25 +1121,6 @@ class DuseyKesitler(unittest.TestCase):
                           CDU.RAY_UZANTISI, CDU.ETEK_BOYU),
                          (500.0, 100.0, 100.0, 100.0, 300.0, 100.0, 400.0, 100.0, 750.0))
 
-    def test_olcu_zincirleri_yazilar_dxf(self):
-        import itertools
-        from cizim import dxf as CDX
-        from ezdxf.audit import Auditor
-        g = _ornek()
-        for ciz in (CDU.kuyu_dibi_kesiti, CDU.kuyu_ustu_kesiti):
-            e = ciz(g)
-            for z in CGE.zincirler(e):
-                with self.subTest(cizim=ciz.__name__, zincir=z):
-                    self.assertAlmostEqual(z["toplam"], z["son"] - z["bas"])
-            k = OlcuYazilari._kutular(None, e)
-            for a, b in itertools.combinations(k, 2):
-                with self.subTest(cizim=ciz.__name__, a=a[0]["metin"], b=b[0]["metin"]):
-                    self.assertFalse(a[1] < b[3] and b[1] < a[3] and a[2] < b[4] and b[2] < a[4])
-            d = CDX.belge(e, "DÜŞEY", 20)
-            au = Auditor(d)
-            au.run()
-            self.assertEqual(list(au.errors), [])
-
 
 class TamBoyKesit(unittest.TestCase):
     def test_durak_kotlari(self):
@@ -1376,17 +1367,37 @@ class PlanSeviyeleri(unittest.TestCase):
 
     def test_kotlar(self):
         #  C:  en alt durak + kapı / 2 = 1.050;  D:  kabinin tavanı ( A-A kabin
-        #  altta 2.310, B-B üstte 21.000 + 2.310 );  E:  kuyu dibinin ortası −750;
-        #  F:  tahrik kasnağı ekseni ( kuyu tavanı 26.000 − 446 );  makine
+        #  altta 2.310, B-B üstte 21.000 + 2.310 );  E:  ilk konsolun üstü
+        #  −1.500 + 500 = −1.000 ile kabinin en alt noktası ( etek −750 ) arası
+        #  → −875;  F:  tahrik kasnağı ekseni ( kuyu tavanı 26.000 − 446 );  makine
         #  dairesinde döşeme 150 + kaide 200 + 149 → 26.499, G döşemenin ortası 26.075.
         g = _ornek()
         self.assertEqual(self._seviyeler(CKK.yan_kesit(g)),
-                         {"kuyu_plani": 1050, "kabin_ustu": 2310, "kuyu_dibi": -750, "kuyu_ustu": 25554})
+                         {"kuyu_plani": 1050, "kabin_ustu": 2310, "kuyu_dibi": -875, "kuyu_ustu": 25554})
         self.assertEqual(self._seviyeler(CKK.on_kesit(g))["kabin_ustu"], 23310)
         md = _ornek(makine={"yeri": "Makine dairesi"})
         sev = self._seviyeler(CKK.on_kesit(md))
         self.assertEqual((sev["makine_dairesi"], sev["delik_plani"]), (26499, 26075))
         self.assertNotIn("kuyu_ustu", sev)
+
+    def test_kuyu_dibi_kesiti_kabinden_gecmez(self):
+        """E-E kuyu dibi planıdır:  A-A'da en alt durakta duran kabinin hiçbir
+        parçasına değmez ( kabin o planda yoktur ), ilk konsolların üstündedir."""
+        parcalar = ("kabin", "etek", "sase", "alt_paten", "fren", "kabin_kasnak", "kabin_esigi",
+                    "kabin_kanadi")
+        for g in (_ornek(), _ornek(makine={"yeri": "Makine dairesi"}),
+                  _ornek(dusey={"kabin_ic_yukseklik": 2100})):
+            e = CKK.yan_kesit(g)
+            z = self._seviyeler(e)["kuyu_dibi"]
+            alt = {}
+            for x in e:
+                if x["tip"] == "dikdortgen" and x.get("ad") in parcalar:
+                    alt[x["ad"]] = min(alt.get(x["ad"], x["y"]), x["y"])
+            with self.subTest(makine=g["makine"]["yeri"]):
+                self.assertEqual(set(alt), set(parcalar))
+                self.assertLess(z, min(alt.values()))
+                Y = CKK.yerlesim(g)
+                self.assertGreater(z, max(r["konsollar"][0] for r in Y["M"]["raylar"]))
 
     def test_harfler_cakismaz(self):
         import itertools
@@ -1503,8 +1514,14 @@ class Pafta(unittest.TestCase):
         cls.d_md, cls.bilgi_md = CPF.belge(_ornek(makine={"yeri": "Makine dairesi"}))
 
     def test_cizimler_ve_olcekler(self):
-        self.assertEqual([c["ad"] for c in self.bilgi["cizimler"]], list(CPF.SIRA_MRL))
-        self.assertEqual([c["ad"] for c in self.bilgi_md["cizimler"]], list(CPF.SIRA_MD))
+        #  Düşey kesit yalnız tam boy A-A / B-B;  kuyu dibi ve kuyu üstü / makine
+        #  dairesi YATAY kesittir ( ofisin 477-8 ve 12744-3 paftaları gibi )
+        self.assertEqual([c["ad"] for c in self.bilgi["cizimler"]],
+                         ["kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu",
+                          "kuyu_dibi", "kuyu_ustu"])
+        self.assertEqual([c["ad"] for c in self.bilgi_md["cizimler"]],
+                         ["kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu",
+                          "kuyu_dibi", "makine_dairesi", "delik_plani"])
         bloklar = {e.dxf.name: e for e in self.d.modelspace().query("INSERT")
                    if e.dxf.name.startswith("CIZIM_")}
         for c in self.bilgi["cizimler"]:

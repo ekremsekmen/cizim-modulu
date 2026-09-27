@@ -4,9 +4,11 @@ KUYU DİBİ PLANI  ( kuyu tabanından yatay kesit )
 
 Kuyu planının duvarlarını, raylarını ve konsollarını AYNEN kullanır:  yerleşim
 ikinci kez hesaplanmaz, plan() elemanlarından okunur.  Kabin ve karşı ağırlık
-bu kesitte yoktur ( kabin en altta iken bile kesit tamponların hizasından
-geçer );  kabinin izi ve kat kapısı yalnız KESİK çizgiyle, yer göstermek için
-çizilir.  Üstüne kuyu dibinde olanlar gelir:
+bu kesitte yoktur ve ÇİZİLMEZ:  kesit, en alt duraktaki kabinin en alt
+noktasının altından geçer ( düşey kesitlerdeki E-E ).  Kat kapısı yalnız
+KESİK çizgiyle, merdivenin ve sığınma alanının yerini göstermek için
+çizilir ( ofisin "View of Pit" planındaki gibi ).  Üstüne kuyu dibinde
+olanlar gelir:
 
   · kabin ve karşı ağırlık tamponları                 m.5.8.1.1
   · karşı ağırlık perdesi                             m.5.2.5.5.1
@@ -246,9 +248,7 @@ def ciz(g, cizim_sabitleri=None):
     e = [el for el in Y["taban"] if el["katman"] in _PLANDAN_KATMAN and el["tip"] != "yazi"]
     O = CGE._olcu
 
-    #  Kabinin izi ve kat kapısı:  yalnız yer göstermek için, kesik
-    kb = Y["kabin"]
-    e.append(CGE._ad(CGE._dik("GIZLI", kb[0], kb[1], kb[2] - kb[0], kb[3] - kb[1]), "kabin_izi"))
+    #  Kat kapısı:  yalnız yer göstermek için, kesik ( kabin bu kesitte yok )
     kp = g["kapi"]
     e.append(CGE._ad(CGE._dik("GIZLI", kp["sol_pay"], -don, kp["genislik"], don), "kapi_izi"))
 
@@ -304,9 +304,7 @@ def ciz(g, cizim_sabitleri=None):
         e.append(CGE._yazi(yx, (p[1] + bl[1]) / 2.0, "KARŞI AĞIRLIK PERDESİ", 30))
 
     #  ── ÖLÇÜLER ──────────────────────────────────────────────────────
-    kx = (kb[0] + kb[2]) / 2.0
     ry = g["kabin_ray"]["kapi_arasi"]
-    bx, by = _merkez(Y["blok"])
     u0, u1 = D + dar + 120, D + dar + 320
     s0, s1 = G + dg + 120, G + dg + 320
     a0 = -don - 120

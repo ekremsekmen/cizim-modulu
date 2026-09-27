@@ -122,13 +122,27 @@ def _oda_olculeri(e, M, md, D1, kot_makine, kot_oda):
              2: f"{t:g}"})
 
 
+def kuyu_dibi_seviyesi(g, Y):
+    """Kuyu dibi planının ( E-E ) kesit kotu.  Kabin bu planda YOKTUR:  kesit,
+    en alt duraktaki kabinin en alt noktasının ( etek, alt paten, fren bloğu,
+    kabin kasnağı ) altından geçer;  ilk konsolların üstünde kalır ki konsollar,
+    gergi ve tamponlar planda görünsün — ikisinin ortası.  Konsol kabinin
+    altına sığmıyorsa kuyu tabanıyla kabinin ortası."""
+    kt = CDN.kabin_kotlari(g["dusey"], Y["S"], Y["kotlar"][0])
+    kabin_alti = min(kt["etek_alti"], kt["alt_paten"], kt["fren_alti"])
+    if Y["kasnaklar"]:
+        kabin_alti = min(kabin_alti, kt["kasnak_merkez"] - Y["kasnak_capi"] / 2.0)
+    konsol = max((r["konsollar"][0] for r in Y["M"]["raylar"] if r["konsollar"]), default=Y["taban"])
+    return ((konsol if konsol < kabin_alti else Y["taban"]) + kabin_alti) / 2.0
+
+
 def plan_seviyeleri(g, Y, kt):
     """( harf, kot, plan ) — kt:  kesitteki kabinin kotları."""
     M = Y["M"]
     oda = "MD" in M
     sev = [(PLAN_HARFLERI["kuyu_plani"], Y["kotlar"][0] + g["kapi"]["yukseklik"] / 2.0, "kuyu_plani"),
            (PLAN_HARFLERI["kabin_ustu"], kt["tavan"], "kabin_ustu"),
-           (PLAN_HARFLERI["kuyu_dibi"], Y["taban"] / 2.0, "kuyu_dibi"),
+           (PLAN_HARFLERI["kuyu_dibi"], kuyu_dibi_seviyesi(g, Y), "kuyu_dibi"),
            (PLAN_HARFLERI["kuyu_ustu"], M["kasnak"][4], "makine_dairesi" if oda else "kuyu_ustu")]
     if oda:
         sev.append((PLAN_HARFLERI["delik_plani"], M["tavan"] + g["makine_dairesi"]["doseme"] / 2.0,
