@@ -25,6 +25,7 @@ KATMAN = {
     "KORKULUK": (6, 50), "SIGINMA": (3, 25),
     "TAMPON": (200, 25), "PERDE": (6, 50), "MERDIVEN": (32, 25), "GIZLI": (8, 13), "YUK": (1, 0),
     "MAKINE": (5, 30), "BAGLANTI": (8, 25), "DELIK": (5, 30),
+    "HALAT": (6, 18), "KESIT": (7, 50),
 }
 YAZI_TIPI = "ASANSOR"
 
@@ -45,7 +46,7 @@ def _dikdortgen(msp, el):
                        close=True, dxfattribs={"layer": el["katman"]})
 
 
-def _olcu(msp, el):
+def _olcu(msp, el, k=1.0):
     """Gerçek DIMENSION varlığı — CAD'de ölçü olarak tanınır, metin değil."""
     a, b, kot = el["a"], el["b"], el["kot"]
     if el["yon"] == "yatay":
@@ -64,8 +65,8 @@ def _olcu(msp, el):
                               dxfattribs={"layer": "OLCU"},
                               #  dimse1 / dimse2:  uzatma çizgileri çizilmez —
                               #  SVG ile aynı görünüm ( kullanıcı kararı ).
-                              override={"dimtxt": yz["h"], "dimasz": 35, "dimexe": 30,
-                                        "dimexo": 25, "dimgap": 15, "dimclrt": 5,
+                              override={"dimtxt": yz["h"], "dimasz": 35 * k, "dimexe": 30 * k,
+                                        "dimexo": 25 * k, "dimgap": 15 * k, "dimclrt": 5,
                                         "dimse1": 1, "dimse2": 1})
     olcu.render()
 
@@ -78,6 +79,7 @@ def belge(elemanlar, baslik="", olcek=20):
     if YAZI_TIPI not in d.styles:
         d.styles.add(YAZI_TIPI, font="arial.ttf")
     msp = d.modelspace()
+    k = olcek / 20.0                   # ok, tarama ve boşluklar 1/20'ye göre
     for el in elemanlar:
         tur, kat = el["tip"], el["katman"]
         if tur in ("dikdortgen", "tarama", "tarama_tugla"):
@@ -85,7 +87,7 @@ def belge(elemanlar, baslik="", olcek=20):
             if tur in ("tarama", "tarama_tugla"):
                 #  Duvar kesiti taraması:  CAD'in kendi HATCH varlığı
                 tarama = msp.add_hatch(color=KATMAN[kat][0], dxfattribs={"layer": kat})
-                tarama.set_pattern_fill("ANSI31" if tur == "tarama" else "ANSI32", scale=20)
+                tarama.set_pattern_fill("ANSI31" if tur == "tarama" else "ANSI32", scale=20 * k)
                 tarama.paths.add_polyline_path(
                     [(el["x"], el["y"]), (el["x"] + el["g"], el["y"]),
                      (el["x"] + el["g"], el["y"] + el["d"]), (el["x"], el["y"] + el["d"])],
@@ -101,13 +103,13 @@ def belge(elemanlar, baslik="", olcek=20):
                          dxfattribs={"layer": kat})
             dx, dy = el["x2"] - el["x1"], el["y2"] - el["y1"]
             boy = max((dx * dx + dy * dy) ** 0.5, 1e-6)
-            ux, uy, u = dx / boy, dy / boy, 55
+            ux, uy, u = dx / boy, dy / boy, 55 * k
             msp.add_solid([(el["x2"], el["y2"]),
                            (el["x2"] - ux * u - uy * u * 0.4, el["y2"] - uy * u + ux * u * 0.4),
                            (el["x2"] - ux * u + uy * u * 0.4, el["y2"] - uy * u - ux * u * 0.4)],
                           dxfattribs={"layer": kat})
         elif tur == "olcu":
-            _olcu(msp, el)
+            _olcu(msp, el, k)
         elif tur == "yazi":
             msp.add_text(el["metin"], height=el["yukseklik"],
                          dxfattribs={"layer": kat, "style": YAZI_TIPI,

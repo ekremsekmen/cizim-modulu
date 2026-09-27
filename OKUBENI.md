@@ -17,6 +17,8 @@ python3 -m venv .venv
 .venv/bin/python calistir.py                      # kuyu planı  →  ornekler/
 .venv/bin/python calistir.py --aski Doğrudan      # 1:1 askı düzeniyle
 .venv/bin/python calistir.py --agirlik Arka       # karşı ağırlık arkada
+.venv/bin/python calistir.py --cizim kuyu_kesiti_yan  # A-A tam boy düşey kesit ( 1/50 )
+.venv/bin/python calistir.py --cizim kuyu_kesiti_on   # B-B tam boy düşey kesit ( 1/50 )
 .venv/bin/python -m unittest testler.test_cizim   # testler
 ```
 
@@ -31,10 +33,13 @@ python3 -m venv .venv
 | `cizim/kuyu_dibi.py` | Kuyu dibi planı:  tamponlar, perde, gergi, sığınma alanı, merdiven |
 | `cizim/kuyu_ustu.py` | Kuyu üstü planı ( MRL ):  makine, halat bağlantıları, regülatör, acil pano |
 | `cizim/makine_dairesi.py` | Makine dairesi planı + döşeme halat delik planı |
-| `cizim/dusey.py` | Düşey kesitler:  kuyu dibi ( kabin tamponda ) ve kuyu üstü ( kabin en üstte ) |
+| `cizim/dusey.py` | Düşey kesitlerin açıklık denetimleri + kuyu dibi ve kuyu üstü detay kesitleri |
+| `cizim/donanim.py` | Kuyu donanımının KOTLARI:  makine, şase, bağlantılar, regülatör, gergi, raylar, konsollar, karşı ağırlık |
+| `cizim/kesit_parcalari.py` | Düşey kesitlerde parça çizimi ( yan ve ön bakış ortak ) |
+| `cizim/kuyu_kesiti.py` | Tam boy A-A ( yan ) ve B-B ( ön ) kuyu düşey kesitleri, 1/50 |
 | `cizim/svg.py` | Elemanları SVG'ye yazar |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/test_cizim.py` | 81 test |
+| `testler/test_cizim.py` | 123 test |
 | `ornekler/` | `calistir.py`'nin ürettiği örnek çizimler |
 
 ## Kurallar
@@ -157,7 +162,7 @@ en az 50 mm'lik bilezik ( m.5.2.6.3.3 ) düşey bir ölçüdür, planda görünm
 
 **Düşey kesitler** ( kuyunun derinliği boyunca;  yatay eksen plandakiyle aynı ):
 kuyu dibi kesiti kabini **tam ezilmiş tamponunda**, kuyu üstü kesiti **en üst
-konumunda** ( karşı ağırlık tam ezilmiş tamponunda + 0,035·v², m.5.2.5.6.1 )
+konumunda** ( karşı ağırlık tam ezilmiş tamponunda + 0,035·v², m.5.2.5.6.1 Çizelge 2 )
 gösterir.  Kabinin düşey ölçüleri ELEport kabininden ölçüldü ( iç 2.250,
 tavan 60, taban 120, şase altı −480, üst kiriş −480 + paten arası, paten 140,
 fren bloğu 350, kasnak merkezi −295 );  etek 750 ( m.5.4.5.1 ).
@@ -169,9 +174,18 @@ fren bloğu 350, kasnak merkezi −295 );  etek 750 ( m.5.4.5.1 ).
 | Kuyu tabanı – etek | m.5.2.5.8.2 a 1 | 0,10 m |
 | Kuyu tabanı – şase / paten / fren bloğu ( raya yakın ) | m.5.2.5.8.2 a 2 · Şekil 7 | 0,10 m |
 | Kabin üstü sığınma yüksekliği | m.5.2.5.7.1 · Çizelge 3 | 2,00 / 1,00 m |
-| Üst paten – kuyu tavanı | m.5.2.5.7.2 b | 0,10 m |
-| Korkuluk – kuyu tavanı | m.5.2.5.7.2 c | 0,30 m |
-| Üst paten – rayın üst ucu | m.5.2.5.6.1 | 0,10 m |
+| Üst paten – 0,40 m yakınındaki tavan parçası | m.5.2.5.7.2 b | 0,10 m |
+| Korkuluk – kabin izdüşümündeki tavan parçası | m.5.2.5.7.2 c 1 | 0,30 m |
+| Korkuluk – korkuluğun dışındaki tavan parçası | m.5.2.5.7.2 c 1 | 0,10 m |
+| Kabin üst pateni – rayın üst ucu ( kabin en üstte ) | m.5.2.5.6.2 | 0,10 m |
+| Karşı ağırlık üst pateni – rayın üst ucu ( ağırlık en üstte ) | m.5.2.5.6.2 | 0,10 m |
+
+**"Kuyu tavanının en alt kısmı" tavanın altındaki parçaları da kapsar**
+( m.5.2.5.7.2 ):  makine dairesizde makine şasesi, kabin ve ağırlık halat
+bağlantıları, regülatör.  Her açıklık kendi üstündeki en alçak parçaya
+ölçülür ( `donanim.tavan_engeli` );  örnekte paten ve korkuluk şaseye,
+sığınma kuyu tavanına gider.  Karşı ağırlık en üst konumunda ( kabin tam
+ezilmiş tamponunda + 0,035·v² ) makine şasesine çarpıyorsa çizim durur.
 
 **Kuyu dibi zinciri kabinle kapanmalı:**  kaide + tampon + çarpma arası +
 şase altı = kuyu dibi ( ELEport:  764 + 160 + 96 + 480 = 1.500 );  tutmazsa
@@ -180,15 +194,58 @@ paylarıyla hesaplanır ( üst paten bir satırda 2.700, bir başkasında 2.900;
 varsayılan girdiler şase altını örtük 350 alır ) — bu kabin modeline göre
 düzeltilene kadar iki program aynı açıklığa farklı sayı verir.
 
+**Tam boy kuyu düşey kesitleri** ( 1/50, `kuyu_kesiti.py` ):  LiftDesigner'ın
+"Dikey 1:50"si gibi gerçek ölçekte, bütün duraklarla ( ELEport ara katları
+kırarak 1/30 çizer ).  İki kesit, planda A-A ve B-B işaretleriyle:
+
+| Kesit | Bakış | Kabin | Karşı ağırlık |
+|---|---|---|---|
+| A-A yan | kuyu derinliği boyunca, kabin ekseninden karşı ağırlığa;  kat kapıları solda | en alt durakta | seyir kadar yukarıda |
+| B-B ön | kuyunun arkasından kat kapılarına ( plandaki sol sağda görünür ) | en üst durakta | tamponunun çarpma arası üstünde |
+
+İkisinde de:  kuyu duvarları, kuyu dibi ve tavan döşemesi, kat döşemeleri
+( 150 ), kat kapıları ( yanda kasa · eşik · kanatlar;  önde kasa · boşluk ·
+durak numarası ), ▽ kotlar ve durak adları;  kabin ve karşı ağırlık
+raylarının tamamı üst uçlarıyla, **konsolları** ( tabandan 500, sonra
+`dusey.kabin_konsol_arasi` / `agirlik_konsol_arasi` — hesap programının
+"konsollar arası" girdileri ) ve **ek yerleri** ( 5.000'de bir );  kabin
+( şase, patenler, fren blokları, 2:1 kasnakları );  karşı ağırlık ( çerçeve
+2.920, kasnak, patenler );  kuyu tepesinde **makine şasesi, makine, tahrik
+kasnağı, halat bağlantıları, hız regülatörü**;  kuyu dibinde tamponlar ve
+**gergi düzeni**;  **askı halatları** ( 2:1:  kabin kasnaklarından tahrik
+kasnağına ve bağlantıya, tahrik kasnağından ağırlık kasnağına ) ve
+**regülatör halatı**.  Kasnaklar dönme düzlemine göre bir kesitte daire,
+öbüründe dikdörtgen görünür;  halatlar dairelere teğettir ( test ).
+
+Ölçüler:  solda kuyu dibi + kat yükseklikleri + son kat zinciri, seyir, kuyu
+yüksekliği ( ELEport:  1.500 + 29.000 + 5.000 = 35.500 );  sağda konsol
+zinciri tabandan tavana ( ilk konsol, konsollar arası, ray ucu ), A-A'da
+makine ( şase 200 · makine 345 · tepe 250 ), B-B'de karşı ağırlık ( çarpma
+arası, çerçeve );  altta kuyu derinliği / genişliği.
+
+Kuyu tepesi ve karşı ağırlığın kotları ELEport kesitlerinin vektörlerinden
+ölçüldü ( `sabitler.py`, "KUYU ÜSTÜ DONANIMININ DÜŞEY ÖLÇÜLERİ" );  planda
+aynı parçaların yeri kuyu_ustu.yerlesim'dekiyle birebir tuttu.  Makinenin
+yeri `makine.yeri` ( "Kuyu üstü" / "Makine dairesi" — hesap programının
+"Makine dairesiz ( MRL )" seçimi ).  Makine daireli projede detay kesitler
+çizilir, tam boy kesitler bugün durur:  makine dairesinin yüksekliği ve
+döşemesi girdide yok.
+
+`kat_yuksekligi` tek sayı ya da alttan üste `durak_adedi − 1` sayılık liste
+( LiftDesigner örneği 3.400, 3.400, 3.000 … ).  Ardışık iki eşik arası 11 m'yi
+aşarsa çizim durur ( m.5.2.3.1:  ara acil kapı gerekir, bu çizim çizmez );
+kat yüksekliği kat kapısından büyük olmalı.
+
+Yazılar, oklar, kalem kalınlıkları ve tarama 1/20'ye göre tanımlıdır;  başka
+ölçekte `olcek / 20` ile büyür, paftada aynı boyda kalır.
+
 ## Sırada ne var
 
-1. Tam boy kuyu düşey kesiti ( 1/50, kat kotlarıyla ) — girdisi hazır
-   ( `dusey.durak_adedi` · `kat_yuksekligi` )
-2. `cizim/kopru.py` — girdilerin hesap programından dolması.  Önce iki tanım
+1. `cizim/kopru.py` — girdilerin hesap programından dolması.  Önce iki tanım
    eşitlenmeli:  ray – kapı arası hesapta kat kapısı düzleminden ( RK ),
    çizimde kuyu iç yüzünden;  kabin kaçıklığı hesapta ray ekseninden ( yc ),
    çizimde kuyu ortasından ölçülüyor.
-3. Ofis şablonuna ( TİP PROJE FORMATI ) yerleştirme
+2. Ofis şablonuna ( TİP PROJE FORMATI ) yerleştirme
 
 **Başka bir referans:**  kullanıcının LiftDesigner çıktıları ( `12744-3 lift.dwg` ):
 kuyu planı, düşey kesit, makine odası, kuyu üstü ve kuyu dibi kesitleri, kuyu

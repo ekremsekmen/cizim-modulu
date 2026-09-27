@@ -110,6 +110,67 @@ SABIT = {
     #  programının "kuyu tavanı payı" ( 150 ) ile aynı kabul.
     "tavan_kirisi": 150,
 
+    #  ── KUYU ÜSTÜ DONANIMININ DÜŞEY ÖLÇÜLERİ ( makine dairesiz ) ──────
+    #  ELEport'un "Cabin at Bottom Floor", "Cabin at Top Floor" ve "Cabin
+    #  Sits on Buffer" kesitlerinin vektörlerinden ( 1/30 );  kuyu tavanından
+    #  AŞAĞI ölçülür.  Plandaki yerleri kuyu_ustu.yerlesim'dekiyle birebir
+    #  tuttu ( makine gövdesi 101 – 399, kasnak ekseni 250, bağlantılar ).
+    #  Makine kapağının üstü tavanın 250 altında;  gövde Ø 298 ( makine_en ) +
+    #  kapak 47 = 345;  şase 200 → şase üstü tavandan 595, altı 795;
+    #  tahrik kasnağının merkezi gövdenin ortası ( tavandan 446 ).
+    "makine_tepe_boslugu": 250,
+    "makine_kapak_yukseklik": 47,
+    "makine_kapak_en": 160,          # kasnak ekseni boyunca  ( ön kesitte )
+    "makine_kapak_boy": 212,         # yan kesitte
+    "makine_sase_yukseklik": 200,
+    #  Şase ağırlık raylarının ve o taraftaki kabin rayının başına oturur:
+    #  duvardan 20 mm açıkta başlar, kabin rayının arkasında biter;  derinlik
+    #  boyunca ağırlık raylarının dış yüzlerinden 8'er mm taşar.
+    "makine_sase_duvar": 20,
+    "makine_sase_ray_payi": 8,
+    #  Şasenin altındaki raylar şase üstünün 55 altında biter ( tavandan 650 );
+    #  öbür kabin rayı tavanın 50 altına çıkar, kabin halat bağlantısı onun
+    #  başındadır ( tavandan 280 – 645 ).  Ağırlık halat bağlantısı şasenin
+    #  üstündedir ( 298 ).
+    "ray_sase_icinde": 55,
+    "kabin_rayi_tepe": 50,
+    "kabin_baglanti_ust": 280, "kabin_baglanti_alt": 645,
+    "agirlik_baglanti_yukseklik": 298,
+    #  Hız regülatörü:  kasnak merkezi tavandan 462, gövde 433 – 645.
+    "regulator_kasnak_merkez": 462,
+    "regulator_govde_ust": 433, "regulator_govde_alt": 645,
+    #  Kuyu dibindeki gergi düzeni ( ELEport "Cabin at Top Floor" ):  kasnak
+    #  merkezi tabandan 520;  kol tabandan 500 – 540, kabin ray ekseninin 80
+    #  önünden kasnağın 360 ötesine;  ağırlık 160 × 175, tabandan 390,
+    #  kasnağın 260 – 420 ötesinde.
+    "gergi_kasnak_merkez": 520,
+    "gergi_kol_alt": 500, "gergi_kol_yukseklik": 40, "gergi_kol_ray": 80, "gergi_kol_uc": 360,
+    "gergi_agirlik_alt": 390, "gergi_agirlik_yukseklik": 175,
+    "gergi_agirlik_yakin": 260, "gergi_agirlik_uzak": 420,
+
+    #  ── KARŞI AĞIRLIK ( düşey ) ──────────────────────────────────────
+    #  ELEport "Counterweight Sits on Buffer" ( 1/30 ):  çerçeve alt kirişin
+    #  altından üst kirişin üstüne 2.920;  kasnak merkezi üst kirişin 110
+    #  altında;  patenler çerçevenin üstünde ve altında 140 ( paten_yukseklik ).
+    "agirlik_yukseklik": 2920,
+    "agirlik_kasnak_ust": 110,
+    "agirlik_kiris": 10,
+
+    #  ── RAY KONSOLU VE EK ( düşey ) ───────────────────────────────────
+    #  ELEport "Rail Bracket 1/42":  ilk konsolun üstü kuyu tabanından 500,
+    #  konsol 60 yüksek;  ray ekleri 5.000'de bir ( ray boyu ), ek laması 305.
+    "konsol_ilk": 500,
+    "konsol_yukseklik": 60,
+    "ray_boyu": 5000,
+    "ek_lama_boyu": 305,
+
+    #  ── KATLAR ───────────────────────────────────────────────────────
+    #  Kat döşemesi 150 ( LiftDesigner "Dikey 1:50" ve ELEport kesitleri );
+    #  duvardaki kapı boşluğu kapıdan 200 yüksek ( ELEport:  2.100 / 2.300 ).
+    "kat_doseme_kalinlik": 150,
+    "kapi_ust_payi": 200,
+    "esik_kalinlik": 30,
+
     #  ── KUMANDA PANOSU ───────────────────────────────────────────────
     "pano_en": 400,
     "pano_derinlik": 90,

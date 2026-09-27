@@ -8,6 +8,8 @@
     python3 calistir.py --cizim kuyu_dibi  → kuyu dibi planı
     python3 calistir.py --cizim kuyu_ustu  → kuyu üstü planı ( MRL )
     python3 calistir.py --cizim makine_dairesi / delik_plani
+    python3 calistir.py --cizim kuyu_dibi_kesiti / kuyu_ustu_kesiti
+    python3 calistir.py --cizim kuyu_kesiti_yan / kuyu_kesiti_on → tam boy A-A / B-B ( 1/50 )
 
 Hesap programından BAĞIMSIZDIR;  girdiyi cizim/girdi.py içindeki ÖRNEK
 sözlüğünden alır.  İleride köprü ( cizim/kopru.py ) bu sözlüğü hesabın
@@ -26,6 +28,7 @@ from cizim import kuyu_dibi as CKD
 from cizim import kuyu_ustu as CKT
 from cizim import makine_dairesi as CMD
 from cizim import dusey as CDU
+from cizim import kuyu_kesiti as CKK
 from cizim import svg as CSV
 
 KOK = os.path.dirname(os.path.abspath(__file__))
@@ -45,7 +48,13 @@ CIZIMLER = {
                          "KUYU DİBİ DÜŞEY KESİTİ  ( kabin tam ezilmiş tamponunda )"),
     "kuyu_ustu_kesiti": (CDU.dogrula, CDU.kuyu_ustu_kesiti,
                          "KUYU ÜSTÜ DÜŞEY KESİTİ  ( kabin en üst konumunda )"),
+    "kuyu_kesiti_yan": (CKK.dogrula, CKK.yan_kesit,
+                        "A-A KUYU DÜŞEY KESİTİ  ( yan — kabin en alt durakta )"),
+    "kuyu_kesiti_on": (CKK.dogrula, CKK.on_kesit,
+                       "B-B KUYU DÜŞEY KESİTİ  ( arkadan kat kapılarına — kabin en üst durakta )"),
 }
+#  1/20 dışındaki çizimler
+OLCEKLER = {"kuyu_kesiti_yan": CKK.OLCEK, "kuyu_kesiti_on": CKK.OLCEK}
 
 
 def uret(g, ad, baslik, olcek=20, cizim="kuyu_plani"):
@@ -60,7 +69,7 @@ def uret(g, ad, baslik, olcek=20, cizim="kuyu_plani"):
                               seritler=(f"{g['proje']['ad']}  ·  {g['proje']['asansor']}",))
     klasor = os.path.join(KOK, "ornekler")
     os.makedirs(klasor, exist_ok=True)
-    svg = CSV.yaz(elemanlar, CGE.sinir(elemanlar, 120), "", olcek)
+    svg = CSV.yaz(elemanlar, CGE.sinir(elemanlar, 120 * olcek / 20.0), "", olcek)
     open(os.path.join(klasor, ad + ".svg"), "w", encoding="utf-8").write(svg)
     open(os.path.join(klasor, ad + ".dxf"), "wb").write(CDX.yaz(elemanlar, "", olcek))
     olcu = sum(1 for x in elemanlar if x["tip"] == "olcu")
@@ -86,7 +95,7 @@ def main(argv):
         g["agirlik"]["yeri"] = a.agirlik
     if a.siginma:
         g["kabin_ustu"]["siginma_tipi"] = a.siginma
-    return uret(g, a.ad or a.cizim, CIZIMLER[a.cizim][2], cizim=a.cizim)
+    return uret(g, a.ad or a.cizim, CIZIMLER[a.cizim][2], OLCEKLER.get(a.cizim, 20), cizim=a.cizim)
 
 
 if __name__ == "__main__":

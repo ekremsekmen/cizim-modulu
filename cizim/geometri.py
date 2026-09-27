@@ -19,7 +19,7 @@ from cizim import sabitler as CS
 KATMANLAR = ("KUYU-DUVAR", "TARAMA", "BINA", "KUYU-IC", "KABIN", "KABIN-IC",
              "SASE", "KAPI", "AGIRLIK", "RAY", "KONSOL", "CIVATA", "PATEN",
              "KASNAK", "PANO", "OLCU", "EKSEN", "YAZI", "CERCEVE", "KORKULUK", "SIGINMA",
-             "TAMPON", "PERDE", "MERDIVEN", "GIZLI", "YUK", "MAKINE", "BAGLANTI", "DELIK")
+             "TAMPON", "PERDE", "MERDIVEN", "GIZLI", "YUK", "MAKINE", "BAGLANTI", "DELIK", "HALAT", "KESIT")
 
 #  T profilinde flanş / gövde et kalınlığı;  1/20 planda ayrıntı okunmaz,
 #  flanş + gövde yeterlidir.
@@ -69,7 +69,7 @@ def _yazi_eni(metin, h=OLCU_YAZI):
     return len(metin) * h * 0.6
 
 
-def _yazilari_yerlestir(elemanlar):
+def _yazilari_yerlestir(elemanlar, h=OLCU_YAZI):
     """Yeri verilmemiş ölçü yazılarını yerleştirir — SVG ve DXF AYNI yeri kullanır.
 
     Yazı önce kendi parçasının ortasına, ölçü çizgisinin dışına konur.  Aynı
@@ -77,6 +77,7 @@ def _yazilari_yerlestir(elemanlar):
     bir kat dışarı alınır.  Eskiden sığmayan yazı 130 – 280 mm öteye, BAŞKA
     BİR SIRANIN üstüne itiliyordu;  okuyan onu o sıranın ölçüsü sanıyordu.
     """
+    k = h / OLCU_YAZI                                 # 1/50'de yazı ve aralıklar büyür
     siralar = {}
     for el in elemanlar:
         if el["tip"] == "olcu" and "yazi" not in el:
@@ -88,25 +89,25 @@ def _yazilari_yerlestir(elemanlar):
         yerlesen = []                                  # ( kat, bas, son )
         for n, q in enumerate(liste):
             bas, son = sorted((q["a"][i], q["b"][i]))
-            w = _yazi_eni(q["metin"])
+            w = _yazi_eni(q["metin"], h)
             aday = [(0, (bas + son) / 2.0)]
-            uclar = ([(0, bas - w / 2.0 - 30)] if n == 0 else []) + \
-                    ([(0, son + w / 2.0 + 30)] if n == len(liste) - 1 else [])
+            uclar = ([(0, bas - w / 2.0 - 30 * k)] if n == 0 else []) + \
+                    ([(0, son + w / 2.0 + 30 * k)] if n == len(liste) - 1 else [])
             #  Yazı parçasına sığmıyorsa ve sıranın ucundaysa ucun dışına yazılır
             #  ( ELEport'un "62 83"ü gibi );  sığıyorsa parçanın ortasında durur.
-            aday = uclar + aday if w > son - bas - 20 else aday + uclar
+            aday = uclar + aday if w > son - bas - 20 * k else aday + uclar
             aday += [(1, (bas + son) / 2.0), (2, (bas + son) / 2.0)]
             secilen = aday[-1]
             for kat, orta in aday:
-                if not any(k == kat and orta - w / 2.0 < s + 25 and b < orta + w / 2.0 + 25
-                           for k, b, s in yerlesen):
+                if not any(kt == kat and orta - w / 2.0 < s + 25 * k and b < orta + w / 2.0 + 25 * k
+                           for kt, b, s in yerlesen):
                     secilen = (kat, orta)
                     break
             kat, orta = secilen
             yerlesen.append((kat, orta - w / 2.0, orta + w / 2.0))
-            capraz = kot + dis * (50.0 + 60.0 * kat)
-            q["yazi"] = ({"x": orta, "y": capraz, "aci": 0.0, "h": OLCU_YAZI} if yon == "yatay"
-                         else {"x": capraz, "y": orta, "aci": 90.0, "h": OLCU_YAZI})
+            capraz = kot + dis * (50.0 + 60.0 * kat) * k
+            q["yazi"] = ({"x": orta, "y": capraz, "aci": 0.0, "h": h} if yon == "yatay"
+                         else {"x": capraz, "y": orta, "aci": 90.0, "h": h})
 
 
 def _daire(katman, x, y, r):
@@ -570,7 +571,40 @@ def plan(g, cizim_sabitleri=None):
     else:
         e.append(_ad(_yazi(ex, ey - ag["derinlik"] / 2.0 - 45, "KARŞI AĞIRLIK", 40), "agirlik_yazi"))
     _yazilari_yerlestir(e)
+    e += kesit_isaretleri(g, e)
     return e
+
+
+def kesit_isaretleri(g, e):
+    """A-A ve B-B düşey kesitlerinin plandaki işaretleri ( kuyu_kesiti.py ).
+
+    Standart çizim kuralı:  kesit düzlemi yalnız uçlarında kalın kısa bir
+    çizgiyle, bakış yönü okla ve harfle gösterilir;  planın ölçülerinin
+    dışında durur.  A-A kabin ekseninden karşı ağırlığa bakar;  B-B kabinin
+    arkasından kat kapılarına.  Kesitler çizilebiliyorsa konur:  yandaki
+    karşı ağırlık, kabin altı 2:1, makine kuyu üstünde.
+    """
+    ag, kb = g["agirlik"], g["kabin"]
+    if not (ag.get("yeri") in ("Sol", "Sağ") and (g.get("aski") or {}).get("duzen") == "Kabin altı"
+            and (g.get("makine") or {}).get("yeri") == "Kuyu üstü"):
+        return []
+    k = g["kuyu"]
+    G, D = k["genislik"], k["derinlik"]
+    x1, y1, x2, y2 = sinir(e)
+    kx = G / 2.0 + kb["kaciklik_y"]
+    arka = kb["on_pay"] + kb["derinlik"] + CS.sabitler(g.get("_cizim_sabitleri"))["kabin_pano_arka"]
+    yb = (arka + D) / 2.0
+    yon_a = -1.0 if ag["yeri"] == "Sol" else 1.0
+    L, O, P = 300.0, 260.0, 150.0
+    cikti = []
+    for harf, (px, py), (dx, dy), (ox, oy) in (
+            ("A", (kx, y2 + P), (0, 1), (yon_a, 0)), ("A", (kx, y1 - P), (0, -1), (yon_a, 0)),
+            ("B", (x1 - P, yb), (-1, 0), (0, -1)), ("B", (x2 + P, yb), (1, 0), (0, -1))):
+        cikti.append(_ad(_cizgi("KESIT", px, py, px + dx * L, py + dy * L), "kesit_isareti"))
+        tx, ty = px + dx * L / 2.0, py + dy * L / 2.0
+        cikti.append(_ok("KESIT", tx, ty, tx + ox * O, ty + oy * O))
+        cikti.append(_ad(_yazi(tx + ox * (O + 90), ty + oy * (O + 90), harf, 90), "kesit_harfi"))
+    return cikti
 
 
 def sinir(elemanlar, pay=0.0):
@@ -622,21 +656,22 @@ def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=()):
     ELEport'ta da her çizim ayrı bir çerçevededir ve altında adı ile ölçeği
     yazar.  Çerçeve ölçüleri de kapsar;  yazılar dışarıda kalmaz.
     """
-    x1, y1, x2, y2 = sinir(elemanlar, pay)
-    serit = 220.0
+    k = olcek / 20.0                     # yazılar paftada 1/20'deki boyda kalır
+    x1, y1, x2, y2 = sinir(elemanlar, pay * k)
+    serit = 220.0 * k
     #  Künye şeridi başlığı ve sağdaki yazıları taşımalı:  sığmıyorsa
     #  çerçeve iki yana eşit genişler  ( başlık proje adının üstüne biniyordu ).
-    gerek = 120 + _yazi_eni(f"{baslik}   1/{olcek:g}", 95) + 200 + \
-        max([_yazi_eni(m, 70) for m in seritler] or [0]) + 120
+    gerek = (120 + 200 + 120) * k + _yazi_eni(f"{baslik}   1/{olcek:g}", 95 * k) + \
+        max([_yazi_eni(m, 70 * k) for m in seritler] or [0])
     if x2 - x1 < gerek:
         fark = (gerek - (x2 - x1)) / 2.0
         x1, x2 = x1 - fark, x2 + fark
     e = list(elemanlar)
     e.append(_dik("CERCEVE", x1, y1 - serit, x2 - x1, (y2 - y1) + serit))
     e.append(_cizgi("CERCEVE", x1, y1, x2, y1))
-    e.append(_yazi(x1 + 120, y1 - serit / 2.0, f"{baslik}   1/{olcek:g}", 95, hiza="sol",
+    e.append(_yazi(x1 + 120 * k, y1 - serit / 2.0, f"{baslik}   1/{olcek:g}", 95 * k, hiza="sol",
                    katman="CERCEVE"))
     for i, metin in enumerate(seritler):
-        e.append(_yazi(x2 - 120, y1 - serit / 2.0 - i * 120, metin, 70, hiza="sag",
+        e.append(_yazi(x2 - 120 * k, y1 - serit / 2.0 - i * 120 * k, metin, 70 * k, hiza="sag",
                        katman="CERCEVE"))
     return e

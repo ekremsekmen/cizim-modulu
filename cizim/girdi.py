@@ -245,10 +245,15 @@ ORNEK = {
               "son_kat": 5000, "beyan_hizi": 1.0, "durak_adedi": 8, "kat_yuksekligi": 3000,
               "kabin_tampon_baba": 764, "kabin_tampon_boyu": 160, "kabin_carpma_arasi": 96,
               "kabin_tampon_ezilme": 90, "agirlik_tampon_baba": 300, "agirlik_tampon_boyu": 160,
-              "agirlik_carpma_arasi": 150, "agirlik_tampon_ezilme": 90},
+              "agirlik_carpma_arasi": 150, "agirlik_tampon_ezilme": 90,
+              #  Konsollar arası ( hesap programının "kabin / ağırlık rayı
+              #  konsollar arası en uzun mesafe" girdileri ) — ELEport 1.500.
+              "kabin_konsol_arasi": 1500, "agirlik_konsol_arasi": 1500},
     #  Makine:  tahrik kasnağı çapı hesap programında var ( D1 ).  Kuyu üstü
     #  ( MRL ) ve makine dairesi planları ortak okur.
-    "makine": {"tahrik_kasnak_capi": 240},
+    #  Makinenin yeri:  "Kuyu üstü" ( makine dairesiz — ELEport ) ya da
+    #  "Makine dairesi";  hesap programındaki "Makine dairesiz ( MRL )" seçimi.
+    "makine": {"tahrik_kasnak_capi": 240, "yeri": "Kuyu üstü"},
     #  Kuyu üstü planı ( makine dairesiz ):  acil kurtarma panosu en üst
     #  kattaki kapının hangi yanında.
     "kuyu_ustu": {"acil_pano_yan": "Sol"},

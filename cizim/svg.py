@@ -24,6 +24,7 @@ KALEM = {
     "TAMPON": ("#8a2be2", 6), "PERDE": ("#d11a6a", 14), "MERDIVEN": ("#6b4f2a", 6),
     "GIZLI": ("#7a7a7a", 4), "YUK": ("#c01c1c", 0),
     "MAKINE": ("#1f4fbf", 7), "BAGLANTI": ("#444444", 5), "DELIK": ("#1f4fbf", 6),
+    "HALAT": ("#c2185b", 4), "KESIT": ("#1a1a1a", 14),
 }
 #  Kesik çizilen katmanlar  ( sığınma alanı gerçek bir parça değil, alandır )
 KESIK = {"SIGINMA": "80 40", "GIZLI": "40 30", "DELIK": "50 25"}
@@ -34,15 +35,15 @@ DOLGU = {"KABIN-IC": "none", "AGIRLIK": "#fde9d7", "RAY": "#dff0df",
          "MERDIVEN": "#f3ead9", "MAKINE": "#dbe4fa", "BAGLANTI": "#e6e6e6"}
 
 
-def _dikdortgen(el, renk, kalinlik):
+def _dikdortgen(el, renk, kalinlik, k=1.0):
     dolgu = DOLGU.get(el["katman"], "none")
-    kesik = (f' stroke-dasharray="{KESIK[el["katman"]]}"' if el["katman"] in KESIK else "")
+    kesik = (f' stroke-dasharray="{_kesik(KESIK[el["katman"]], k)}"' if el["katman"] in KESIK else "")
     return (f'<rect x="{el["x"]:.1f}" y="{el["y"]:.1f}" width="{el["g"]:.1f}" '
             f'height="{el["d"]:.1f}" fill="{dolgu}" stroke="{renk}" '
             f'stroke-width="{kalinlik}"{kesik}/>')
 
 
-def _olcu(el, renk, kalinlik):
+def _olcu(el, renk, kalinlik, k=1.0):
     """Ölçü çizgisi + iki uçtaki kısa çizgi + yazı.
 
     Yazının yeri geometride bulunur ( el["yazi"] = yazının MERKEZİ );  DXF de
@@ -53,12 +54,12 @@ def _olcu(el, renk, kalinlik):
     if el["yon"] == "yatay":
         x1, x2, y = el["a"][0], el["b"][0], el["kot"]
         cizgi = f'<line x1="{x1:.1f}" y1="{y:.1f}" x2="{x2:.1f}" y2="{y:.1f}"'
-        uc = "".join(f'<line x1="{x:.1f}" y1="{y - 45:.1f}" x2="{x:.1f}" y2="{y + 45:.1f}" '
+        uc = "".join(f'<line x1="{x:.1f}" y1="{y - 45 * k:.1f}" x2="{x:.1f}" y2="{y + 45 * k:.1f}" '
                      f'stroke="{renk}" stroke-width="{kalinlik}"/>' for x in (x1, x2))
     else:
         y1, y2, x = el["a"][1], el["b"][1], el["kot"]
         cizgi = f'<line x1="{x:.1f}" y1="{y1:.1f}" x2="{x:.1f}" y2="{y2:.1f}"'
-        uc = "".join(f'<line x1="{x - 45:.1f}" y1="{y:.1f}" x2="{x + 45:.1f}" y2="{y:.1f}" '
+        uc = "".join(f'<line x1="{x - 45 * k:.1f}" y1="{y:.1f}" x2="{x + 45 * k:.1f}" y2="{y:.1f}" '
                      f'stroke="{renk}" stroke-width="{kalinlik}"/>' for y in (y1, y2))
     yz = el["yazi"]
     #  Merkezden taban çizgisine:  yazının "yukarı" yönünün tersine 0,35·h
@@ -73,17 +74,33 @@ def _metin(x, y, metin, yukseklik, renk, aci=0, hiza="orta"):  # noqa: D401
     #  Çizim ters çevrildiği için yazı kendi ekseninde geri çevrilir.
     tutucu = {"orta": "middle", "sol": "start", "sag": "end"}.get(hiza, "middle")
     return (f'<g transform="translate({x:.1f},{y:.1f}) scale(1,-1) rotate({aci})">'
-            f'<text x="0" y="0" font-family="DejaVu Sans, Arial" font-size="{yukseklik}" '
+            f'<text x="0" y="0" font-family="DejaVu Sans, Arial" font-size="{yukseklik:g}" '
             f'fill="{renk}" text-anchor="{tutucu}">{html.escape(metin)}</text></g>')
+
+
+def _kesik(desen, k):
+    return desen if k == 1 else " ".join(f"{float(v) * k:g}" for v in desen.split())
+
+
+def _olcekle(k):
+    return "" if k == 1 else f" scale({k:g})"
+
+
+def _desen(k):
+    return "" if k == 1 else f' patternTransform="scale({k:g})"'
 
 
 def yaz(elemanlar, sinir, baslik="", olcek=20):
     """Eleman listesini SVG metnine çevirir."""
     x1, y1, x2, y2 = sinir
     g, d = x2 - x1, y2 - y1
+    #  Kalem kalınlıkları, tarama ve oklar 1/20'ye göre;  başka ölçekte
+    #  paftadaki boyları aynı kalsın diye k ile büyür.
+    k = olcek / 20.0
     parcalar = []
     for el in elemanlar:
         renk, kal = KALEM.get(el["katman"], ("#000", 4))
+        kal = f"{kal * k:g}"
         if el["tip"] == "tarama_tugla":
             parcalar.append(f'<rect x="{el["x"]:.1f}" y="{el["y"]:.1f}" width="{el["g"]:.1f}" '
                             f'height="{el["d"]:.1f}" fill="url(#tugla)" stroke="{renk}" '
@@ -92,9 +109,9 @@ def yaz(elemanlar, sinir, baslik="", olcek=20):
             parcalar.append(f'<rect x="{el["x"]:.1f}" y="{el["y"]:.1f}" width="{el["g"]:.1f}" '
                             f'height="{el["d"]:.1f}" fill="url(#tarama)" stroke="none"/>')
         elif el["tip"] == "dikdortgen":
-            parcalar.append(_dikdortgen(el, renk, kal))
+            parcalar.append(_dikdortgen(el, renk, kal, k))
         elif el["tip"] in ("cizgi", "eksen"):
-            kesik = ' stroke-dasharray="120 40 20 40"' if el["tip"] == "eksen" else ""
+            kesik = f' stroke-dasharray="{_kesik("120 40 20 40", k)}"' if el["tip"] == "eksen" else ""
             parcalar.append(f'<line x1="{el["x1"]:.1f}" y1="{el["y1"]:.1f}" x2="{el["x2"]:.1f}" '
                             f'y2="{el["y2"]:.1f}" stroke="{renk}" stroke-width="{kal}"{kesik}/>')
         elif el["tip"] == "daire":
@@ -106,7 +123,7 @@ def yaz(elemanlar, sinir, baslik="", olcek=20):
             boy = max((dx * dx + dy * dy) ** 0.5, 1e-6)
             ux, uy = dx / boy, dy / boy
             ux2, uy2 = -uy, ux
-            u = 55
+            u = 55 * k
             parcalar.append(
                 f'<line x1="{el["x1"]:.1f}" y1="{el["y1"]:.1f}" x2="{el["x2"]:.1f}" '
                 f'y2="{el["y2"]:.1f}" stroke="{renk}" stroke-width="{kal}"/>'
@@ -115,7 +132,7 @@ def yaz(elemanlar, sinir, baslik="", olcek=20):
                 f'{el["x2"] - ux * u - ux2 * u * 0.4:.1f},{el["y2"] - uy * u - uy2 * u * 0.4:.1f}" '
                 f'fill="{renk}"/>')
         elif el["tip"] == "olcu":
-            parcalar.append(_olcu(el, renk, kal))
+            parcalar.append(_olcu(el, renk, kal, k))
         elif el["tip"] == "yazi":
             parcalar.append(_metin(el["x"], el["y"], el["metin"], el["yukseklik"], renk,
                                    -el.get("aci", 0), el.get("hiza", "orta")))
@@ -124,9 +141,10 @@ def yaz(elemanlar, sinir, baslik="", olcek=20):
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x1:.0f} {-y2 - 300:.0f} '
             f'{g:.0f} {d + 600:.0f}" width="{g / olcek:.0f}mm" height="{(d + 600) / olcek:.0f}mm">'
             '<defs><pattern id="tarama" width="120" height="120" patternUnits="userSpaceOnUse" '
-            'patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="120" '
+            f'patternTransform="rotate(45){_olcekle(k)}"><line x1="0" y1="0" x2="0" y2="120" '
             'stroke="#9a9a9a" stroke-width="6"/></pattern>'
-            '<pattern id="tugla" width="240" height="120" patternUnits="userSpaceOnUse">'
+            f'<pattern id="tugla" width="240" height="120" patternUnits="userSpaceOnUse"'
+            f'{_desen(k)}>'
             '<rect width="240" height="120" fill="#fdf3ee"/>'
             '<path d="M0 0 H240 M0 60 H240 M120 0 V60 M0 60 V120 M240 60 V120" '
             'stroke="#c08a6a" stroke-width="5" fill="none"/></pattern></defs>'
