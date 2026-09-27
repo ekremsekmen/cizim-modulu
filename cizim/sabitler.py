@@ -92,6 +92,24 @@ SABIT = {
     #  Acil kurtarma ve test panosu ( TS EN 81-20 m.5.2.6.6 ) — ELEport: 400 × 300
     "acil_pano_en": 400, "acil_pano_derinlik": 300,
 
+    #  ── KABİNİN DÜŞEY ÖLÇÜLERİ ( döşemeden, mm ) ──────────────────────
+    #  ELEport'un "Cabin at Bottom / Top Floor" kesitlerinin vektör
+    #  geometrisinden ölçüldü ( 1/30 ):  iç yükseklik 2.250, tavan 60 →
+    #  tavan üstü 2.310;  taban 20 + 100;  şase alt kirişinin altı −480,
+    #  üst kirişin üstü −480 + paten arası ( 3.300 ) = 2.820;  paten 140;
+    #  fren bloğu platformun altında 350;  kabin kasnağı merkezi −295.
+    "kabin_tavan_kalinlik": 60,
+    "kabin_taban_kalinlik": 120,
+    "sase_alt_derinlik": 480,       # döşemeden şase alt kirişinin altına
+    "paten_yukseklik": 140,
+    "fren_blogu_yukseklik": 350,
+    "kabin_kasnak_derinlik": 295,   # döşemeden kabin kasnağının merkezine
+    "sase_dikme_derinlik": 300,     # şase dikmesinin kesitteki eni ( ray ekseninde )
+    "etek_tahtasi": 100,            # TS EN 81-20 m.5.4.7.2 a — en az 0,10 m
+    #  Kuyu tavanının en alt kısmı ( kiriş vb. ) döşeme altından — hesap
+    #  programının "kuyu tavanı payı" ( 150 ) ile aynı kabul.
+    "tavan_kirisi": 150,
+
     #  ── KUMANDA PANOSU ───────────────────────────────────────────────
     "pano_en": 400,
     "pano_derinlik": 90,

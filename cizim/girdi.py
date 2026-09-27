@@ -231,10 +231,21 @@ ORNEK = {
     #  Regülatör gergi kasnağı ELEport paftasındaki gibi karşı ağırlığın
     #  karşısındaki kabin rayının hizasında, ray ekseninin 280 mm arkasında
     #  ( ELEport:  eksenden 160, kasnak boyu 240 ).
-    "kuyu_dibi": {"derinlik": 1600, "siginma_tipi": "Çömelme",
+    "kuyu_dibi": {"derinlik": 1500, "siginma_tipi": "Çömelme",
                   "kabin_tampon_adedi": 1, "agirlik_tampon_adedi": 1,
                   "regulator_yan": "Sağ", "regulator_kaciklik": 280,
                   "regulator_kasnak_capi": 300},
+    #  DÜŞEY:  kabinin iç yüksekliği ve paten arası, son kat yüksekliği,
+    #  beyan hızı, duraklar ve tamponlar — hepsi hesap programında var
+    #  ( paten arası 3.300, beyan hızı, tampon kaideleri / boyları / ezilme /
+    #  çarpma arası ).  Kuyu dibi ELEport'unki:  1.500 = kaide 764 + tampon
+    #  160 + çarpma arası 96 + kabinin şase altı 480.  Son kat ELEport 5.000.
+    #  Duraklar:  8 × 3.000 → seyir 21 m ( hesap programının varsayılanı ).
+    "dusey": {"kabin_ic_yukseklik": 2250, "kabin_paten_arasi": 3300,
+              "son_kat": 5000, "beyan_hizi": 1.0, "durak_adedi": 8, "kat_yuksekligi": 3000,
+              "kabin_tampon_baba": 764, "kabin_tampon_boyu": 160, "kabin_carpma_arasi": 96,
+              "kabin_tampon_ezilme": 90, "agirlik_tampon_baba": 300, "agirlik_tampon_boyu": 160,
+              "agirlik_carpma_arasi": 150, "agirlik_tampon_ezilme": 90},
     #  Makine:  tahrik kasnağı çapı hesap programında var ( D1 ).  Kuyu üstü
     #  ( MRL ) ve makine dairesi planları ortak okur.
     "makine": {"tahrik_kasnak_capi": 240},

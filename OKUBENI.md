@@ -31,6 +31,7 @@ python3 -m venv .venv
 | `cizim/kuyu_dibi.py` | Kuyu dibi planı:  tamponlar, perde, gergi, sığınma alanı, merdiven |
 | `cizim/kuyu_ustu.py` | Kuyu üstü planı ( MRL ):  makine, halat bağlantıları, regülatör, acil pano |
 | `cizim/makine_dairesi.py` | Makine dairesi planı + döşeme halat delik planı |
+| `cizim/dusey.py` | Düşey kesitler:  kuyu dibi ( kabin tamponda ) ve kuyu üstü ( kabin en üstte ) |
 | `cizim/svg.py` | Elemanları SVG'ye yazar |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
 | `testler/test_cizim.py` | 81 test |
@@ -154,9 +155,35 @@ en az 50 mm'lik bilezik ( m.5.2.6.3.3 ) düşey bir ölçüdür, planda görünm
 Örnek oda 3.800 × 2.600 ( hesap programının test verisi ), pano 600 × 400
 ( LiftDesigner ).
 
+**Düşey kesitler** ( kuyunun derinliği boyunca;  yatay eksen plandakiyle aynı ):
+kuyu dibi kesiti kabini **tam ezilmiş tamponunda**, kuyu üstü kesiti **en üst
+konumunda** ( karşı ağırlık tam ezilmiş tamponunda + 0,035·v², m.5.2.5.6.1 )
+gösterir.  Kabinin düşey ölçüleri ELEport kabininden ölçüldü ( iç 2.250,
+tavan 60, taban 120, şase altı −480, üst kiriş −480 + paten arası, paten 140,
+fren bloğu 350, kasnak merkezi −295 );  etek 750 ( m.5.4.5.1 ).
+
+| Açıklık | Madde | En az |
+|---|---|---|
+| Kuyu dibi sığınma yüksekliği | m.5.2.5.8.1 · Çizelge 4 | 2,00 / 1,00 / 0,50 m |
+| Kuyu tabanı – kabinin en alt kısmı | m.5.2.5.8.2 a | 0,50 m |
+| Kuyu tabanı – etek | m.5.2.5.8.2 a 1 | 0,10 m |
+| Kuyu tabanı – şase / paten / fren bloğu ( raya yakın ) | m.5.2.5.8.2 a 2 · Şekil 7 | 0,10 m |
+| Kabin üstü sığınma yüksekliği | m.5.2.5.7.1 · Çizelge 3 | 2,00 / 1,00 m |
+| Üst paten – kuyu tavanı | m.5.2.5.7.2 b | 0,10 m |
+| Korkuluk – kuyu tavanı | m.5.2.5.7.2 c | 0,30 m |
+| Üst paten – rayın üst ucu | m.5.2.5.6.1 | 0,10 m |
+
+**Kuyu dibi zinciri kabinle kapanmalı:**  kaide + tampon + çarpma arası +
+şase altı = kuyu dibi ( ELEport:  764 + 160 + 96 + 480 = 1.500 );  tutmazsa
+reddedilir.  **Hesap programıyla fark:**  onun sığınma satırları ofisin
+paylarıyla hesaplanır ( üst paten bir satırda 2.700, bir başkasında 2.900;
+varsayılan girdiler şase altını örtük 350 alır ) — bu kabin modeline göre
+düzeltilene kadar iki program aynı açıklığa farklı sayı verir.
+
 ## Sırada ne var
 
-1. Düşey kesitler ( kabin en altta · en üstte · tampona oturmuş ) ve kat kotları
+1. Tam boy kuyu düşey kesiti ( 1/50, kat kotlarıyla ) — girdisi hazır
+   ( `dusey.durak_adedi` · `kat_yuksekligi` )
 2. `cizim/kopru.py` — girdilerin hesap programından dolması.  Önce iki tanım
    eşitlenmeli:  ray – kapı arası hesapta kat kapısı düzleminden ( RK ),
    çizimde kuyu iç yüzünden;  kabin kaçıklığı hesapta ray ekseninden ( yc ),

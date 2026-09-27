@@ -25,6 +25,7 @@ from cizim import kabin_ustu as CKU
 from cizim import kuyu_dibi as CKD
 from cizim import kuyu_ustu as CKT
 from cizim import makine_dairesi as CMD
+from cizim import dusey as CDU
 from cizim import svg as CSV
 
 KOK = os.path.dirname(os.path.abspath(__file__))
@@ -40,6 +41,10 @@ CIZIMLER = {
                   "KUYU ÜSTÜ PLANI  ( makine dairesiz — kuyu tepesinden yatay kesit )"),
     "makine_dairesi": (CMD.dogrula, CMD.ciz, "MAKİNE DAİRESİ PLANI"),
     "delik_plani": (CMD.dogrula, CMD.delik_plani, "KUYU ÜSTÜ DÖŞEME HALAT DELİK PLANI"),
+    "kuyu_dibi_kesiti": (CDU.dogrula, CDU.kuyu_dibi_kesiti,
+                         "KUYU DİBİ DÜŞEY KESİTİ  ( kabin tam ezilmiş tamponunda )"),
+    "kuyu_ustu_kesiti": (CDU.dogrula, CDU.kuyu_ustu_kesiti,
+                         "KUYU ÜSTÜ DÜŞEY KESİTİ  ( kabin en üst konumunda )"),
 }
 
 

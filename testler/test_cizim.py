@@ -1016,5 +1016,79 @@ class MakineDairesi(unittest.TestCase):
                 self.assertEqual(list(au.errors), [])
 
 
+#  ─────────────────────────────────────────────────────────────────────
+#  DÜŞEY KESİTLER
+#  ─────────────────────────────────────────────────────────────────────
+from cizim import dusey as CDU             # noqa: E402
+
+
+class DuseyKesitler(unittest.TestCase):
+    def test_ornek_gecerli_ve_elle_hesapla_ayni(self):
+        g = _ornek()
+        self.assertEqual(CDU.dogrula(g), [])
+        Y = CDU.yerlesim(g)
+        #  Kuyu dibi:  kabin döşemesi −( 96 + 90 ) = −186;  platform altı −306,
+        #  kasnak altı −186 − 295 − 120 = −601,  etek −936,  alt paten −806
+        self.assertEqual({k: v[0] for k, v in Y["dip_aciklik"].items()},
+                         {"siginma": 1194, "en_alt": 899, "etek": 564, "sase": 694})
+        #  Kuyu üstü:  yükselme 150 + 90 + 35 = 275;  tavan 275 + 2.310 = 2.585,
+        #  kiriş altı 5.000 − 150 = 4.850;  üst paten 275 − 480 + 3.300 + 140 = 3.235
+        self.assertEqual(Y["yukselme"], 275)
+        self.assertEqual({k: v[0] for k, v in Y["ust_aciklik"].items()},
+                         {"siginma": 2265, "paten": 1615, "ray": 1615, "korkuluk": 1165})
+
+    def test_kabin_modeli_tutarli(self):
+        g, S = _ornek(), CS_.sabitler()
+        k = CDU.kabin_kotlari(g["dusey"], S, 0.0)
+        self.assertEqual(k["sase_ust"] - k["sase_alt"], g["dusey"]["kabin_paten_arasi"])
+        self.assertEqual(k["tavan"], g["dusey"]["kabin_ic_yukseklik"] + S["kabin_tavan_kalinlik"])
+        self.assertEqual(k["etek_alti"], -750)                      # m.5.4.5.1
+
+    def test_kuyu_dibi_zinciri_kabinle_kapanmali(self):
+        h = CDU.dogrula(_ornek(kuyu_dibi={"derinlik": 1600}))
+        self.assertTrue(any("kabinle çelişiyor" in x for x in h), h)
+
+    def test_korkuluk_300_sinirinda(self):
+        #  kiriş altı − ( tavan 2.585 + korkuluk 1.100 ) = 300  →  son kat 4.135
+        for sk, uygun in ((4135, True), (4134, False)):
+            h = CDU.dogrula(_ornek(dusey={"son_kat": sk}))
+            with self.subTest(son_kat=sk):
+                self.assertEqual(not any("m.5.2.5.7.2 c" in x for x in h), uygun)
+
+    def test_kabin_ustu_siginma_yuksekligi(self):
+        #  dik duruş 2.000:  kiriş altı − 2.585 ≥ 2.000  →  son kat en az 4.735
+        g = _ornek(dusey={"son_kat": 4734}, kabin_ustu={"siginma_tipi": "Dik duruş"})
+        self.assertTrue(any("m.5.2.5.7.1" in x for x in CDU.dogrula(g)))
+        g = _ornek(dusey={"son_kat": 4735}, kabin_ustu={"siginma_tipi": "Dik duruş"})
+        self.assertFalse(any("m.5.2.5.7.1" in x for x in CDU.dogrula(g)))
+
+    def test_standart_sayilari(self):
+        self.assertEqual(CDU.SIGINMA_UST_YUKSEKLIK, {"Dik duruş": 2000.0, "Çömelme": 1000.0})
+        self.assertEqual(CDU.SIGINMA_DIP_YUKSEKLIK,
+                         {"Dik duruş": 2000.0, "Çömelme": 1000.0, "Yatarak": 500.0})
+        self.assertEqual((CDU.DIP_EN_ALT, CDU.DIP_ETEK, CDU.DIP_RAYA_YAKIN, CDU.UST_PATEN,
+                          CDU.UST_KORKULUK, CDU.RAY_UZANTISI, CDU.ETEK_BOYU),
+                         (500.0, 100.0, 100.0, 100.0, 300.0, 100.0, 750.0))
+
+    def test_olcu_zincirleri_yazilar_dxf(self):
+        import itertools
+        from cizim import dxf as CDX
+        from ezdxf.audit import Auditor
+        g = _ornek()
+        for ciz in (CDU.kuyu_dibi_kesiti, CDU.kuyu_ustu_kesiti):
+            e = ciz(g)
+            for z in CGE.zincirler(e):
+                with self.subTest(cizim=ciz.__name__, zincir=z):
+                    self.assertAlmostEqual(z["toplam"], z["son"] - z["bas"])
+            k = OlcuYazilari._kutular(None, e)
+            for a, b in itertools.combinations(k, 2):
+                with self.subTest(cizim=ciz.__name__, a=a[0]["metin"], b=b[0]["metin"]):
+                    self.assertFalse(a[1] < b[3] and b[1] < a[3] and a[2] < b[4] and b[2] < a[4])
+            d = CDX.belge(e, "DÜŞEY", 20)
+            au = Auditor(d)
+            au.run()
+            self.assertEqual(list(au.errors), [])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
