@@ -10,6 +10,7 @@
     python3 calistir.py --cizim makine_dairesi / delik_plani
     python3 calistir.py --cizim kuyu_dibi_kesiti / kuyu_ustu_kesiti
     python3 calistir.py --cizim kuyu_kesiti_yan / kuyu_kesiti_on → tam boy A-A / B-B ( 1/50 )
+    python3 calistir.py --cizim kuyu_kesiti_on --makine "Makine dairesi" → makine daireli
 
 Hesap programından BAĞIMSIZDIR;  girdiyi cizim/girdi.py içindeki ÖRNEK
 sözlüğünden alır.  İleride köprü ( cizim/kopru.py ) bu sözlüğü hesabın
@@ -27,6 +28,7 @@ from cizim import kabin_ustu as CKU
 from cizim import kuyu_dibi as CKD
 from cizim import kuyu_ustu as CKT
 from cizim import makine_dairesi as CMD
+from cizim import donanim as CDN
 from cizim import dusey as CDU
 from cizim import kuyu_kesiti as CKK
 from cizim import svg as CSV
@@ -83,6 +85,7 @@ def main(argv):
     ayrıştırıcı.add_argument("--agirlik", choices=CG.AGIRLIK_YERLERI, default=None)
     ayrıştırıcı.add_argument("--cizim", choices=tuple(CIZIMLER), default="kuyu_plani")
     ayrıştırıcı.add_argument("--siginma", choices=tuple(CKU.SIGINMA), default=None)
+    ayrıştırıcı.add_argument("--makine", choices=CDN.MAKINE_YERLERI, default=None)
     ayrıştırıcı.add_argument("--ad", default=None)
     a = ayrıştırıcı.parse_args(argv)
 
@@ -95,6 +98,8 @@ def main(argv):
         g["agirlik"]["yeri"] = a.agirlik
     if a.siginma:
         g["kabin_ustu"]["siginma_tipi"] = a.siginma
+    if a.makine:
+        g["makine"]["yeri"] = a.makine
     return uret(g, a.ad or a.cizim, CIZIMLER[a.cizim][2], OLCEKLER.get(a.cizim, 20), cizim=a.cizim)
 
 

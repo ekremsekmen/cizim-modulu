@@ -332,7 +332,8 @@ def _kirp(elemanlar, z0, z1, dz=0.0):
 def _donanim(g, Y, kabin_z, ag_alt, kabin_ezilme=0.0):
     """Raylar, konsollar, tamponlar, gergi, kuyu tepesi, halatlar ( yan bakış,
     tam boy kesitlerle aynı çizim );  detay kesit _kirp ile penceresine alır."""
-    B = CKP.Bakis("yan", g["kuyu"]["genislik"])
+    B = CKP.Bakis("yan", g["kuyu"]["genislik"],
+                  ("x", CGE.kesit_duzlemleri(g)[0], -1.0 if g["agirlik"]["yeri"] == "Sol" else 1.0))
     P = CKP.plan_parcalari(Y["KD"], g)
     d = []
     CKP.donanim(d, B, g, Y, P, kabin_z, ag_alt, 1.0, kabin_ezilme)

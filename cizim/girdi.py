@@ -266,5 +266,10 @@ ORNEK = {
     #  duvarın sol ( ön ) iç köşesinden kapı boşluğuna.
     "makine_dairesi": {"genislik": 2600, "derinlik": 3800, "duvar": 200, "x": -250, "y": -150,
                        "kapi_duvar": "Arka", "kapi_konum": 300, "kapi_genislik": 800,
-                       "pano_duvar": "Sağ"},
+                       "pano_duvar": "Sağ",
+                       #  Düşey kesit için:  iç ( temiz ) yükseklik ve döşeme kalınlığı
+                       #  ( LiftDesigner "477-8":  3.500 ve 150;  çatı döşemesi de
+                       #  aynı kalınlıkta çizilir ).  Kapı yüksekliği:  TS EN 81-20
+                       #  m.5.2.3.2 a'nın en azı 2.000.
+                       "yukseklik": 3500, "doseme": 150, "kapi_yukseklik": 2000},
 }

@@ -19,9 +19,21 @@ from cizim import geometri as CGE
 
 
 class Bakis:
-    def __init__(self, tur, G):
+    """kesit:  ( eksen, kot, yön ) — kesit düzlemi ve bakış yönü.  Düzlemin
+    arkasında ( bakanın gerisinde ) kalan parçalar çizilmez:  A-A kabin
+    ekseninden karşı ağırlığa bakar ( ELEport da öbür yanı ayrı bir kesitte
+    gösterir ), B-B kabinin arkasından kat kapılarına."""
+
+    def __init__(self, tur, G, kesit=None):
         assert tur in ("yan", "on")
-        self.tur, self.G = tur, G
+        self.tur, self.G, self.kesit = tur, G, kesit
+
+    def gorunur(self, k):
+        if not self.kesit:
+            return True
+        eksen, c, yon = self.kesit
+        lo, hi = (k[0], k[2]) if eksen == "x" else (k[1], k[3])
+        return lo < c if yon < 0 else hi > c
 
     def u(self, x, y):
         return y if self.tur == "yan" else self.G - x
@@ -30,6 +42,8 @@ class Bakis:
         return (k[1], k[3]) if self.tur == "yan" else (self.G - k[2], self.G - k[0])
 
     def kutu(self, e, katman, k, z0, z1, ad=None, tip="dikdortgen"):
+        if not self.gorunur(k):
+            return None
         u0, u1 = self.aralik(k)
         el = CGE._dik(katman, u0, min(z0, z1), u1 - u0, abs(z1 - z0), tip=tip)
         if ad:
@@ -44,6 +58,8 @@ class Bakis:
 
 def kasnak(e, B, kutu, z, cap, duzlem, ad):
     """duzlem:  "x" ( x–z düzleminde döner ) ya da "y"."""
+    if not B.gorunur(kutu):
+        return
     daire = (duzlem == "x") == (B.tur == "on")
     if daire:
         u = B.u((kutu[0] + kutu[2]) / 2.0, (kutu[1] + kutu[3]) / 2.0)
@@ -161,12 +177,14 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     kasnak(e, B, P["agirlik_kasnak"], AK["kasnak_merkez"], g["agirlik"]["kasnak_capi"], "y",
                "agirlik_kasnagi")
     um = sum(B.aralik(blok)) / 2.0
-    e.append(CGE._ad(CGE._yazi(um, (AK["alt"] + AK["kasnak_merkez"]) / 2.0 - 200, "KARŞI AĞIRLIK",
-                               40 * K, aci=90), "agirlik_yazi"))
+    if B.gorunur(blok):
+        e.append(CGE._ad(CGE._yazi(um, (AK["alt"] + AK["kasnak_merkez"]) / 2.0 - 200,
+                                   "KARŞI AĞIRLIK", 40 * K, aci=90), "agirlik_yazi"))
     kt = CDN.kabin_kotlari(dy, S, kabin_z)
-    if not M["mrl"]:
-        return AK, kt                      # makine dairesinde tepe donanımı odadadır
-    #  Kuyu tepesi:  makine şasesi, bağlantılar, makine, regülatör
+    if "sase" not in M:
+        return AK, kt
+    #  Kuyu tepesinde ya da makine dairesinde:  makine şasesi ( kaidesi ),
+    #  bağlantılar, makine, regülatör, ( odada ) kumanda panosu
     sa = M["sase"]
     B.kutu(e, "KONSOL", sa[:4], sa[4], sa[5], "makine_sasesi")
     for ad in ("agirlik_baglanti", "kabin_baglanti"):
@@ -175,8 +193,9 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     gv = M["govde"]
     zt = M["kasnak"][4]
     if B.tur == "on":
-        u = B.u((gv[0] + gv[2]) / 2.0, 0)
-        e.append(CGE._ad(CGE._daire("MAKINE", u, zt, (gv[2] - gv[0]) / 2.0), "makine"))
+        if B.gorunur(gv[:4]):
+            u = B.u((gv[0] + gv[2]) / 2.0, 0)
+            e.append(CGE._ad(CGE._daire("MAKINE", u, zt, (gv[2] - gv[0]) / 2.0), "makine"))
     else:
         B.kutu(e, "MAKINE", gv[:4], gv[4], gv[5], "makine")
     kp = M["kapak"]
@@ -185,6 +204,9 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     kasnak(e, B, M["kasnak"][:4], zt, D1, "x", "tahrik_kasnagi")
     rg = M["regulator"]
     B.kutu(e, "MAKINE", rg[:4], rg[4], rg[5], "regulator")
+    if "pano" in M:
+        p = M["pano"]
+        B.kutu(e, "PANO", p[:4], p[4], p[5], "kumanda_panosu")
     rk = M["regulator_kasnak"]
     kasnak(e, B, rk[:4], rk[4], gr["cap"], "y", "regulator_kasnagi")
     #  Halatlar
@@ -203,7 +225,8 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
             ((uzak_x, y0, zk), (uzak_x, y0, zkb)),              # kabin → kabin bağlantısı
             ((dx, dy_, zt), (tx1, ty1, za)),                    # tahrik kasnağı → ağırlık kasnağı
             ((tx2, ty2, za), (tx2, ty2, zab))):                 # ağırlık kasnağı → bağlantı
-        e.append(CGE._ad(CGE._cizgi("HALAT", B.u(x0_, y0_), z0, B.u(x1_, y1_), z1), "aski_halati"))
+        if B.gorunur((x0_, y0_, x0_, y0_)):
+            e.append(CGE._ad(CGE._cizgi("HALAT", B.u(x0_, y0_), z0, B.u(x1_, y1_), z1), "aski_halati"))
     if B.tur == "on":
         #  Kabinin altında iki kasnak arası
         r = g["aski"]["kasnak_capi"] / 2.0
@@ -213,8 +236,9 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     R = gr["cap"] / 2.0
     ry_ = M["regulator_y"]
     for yy in (ry_ - R, ry_ + R):
-        e.append(CGE._ad(CGE._cizgi("HALAT", B.u(rgx, yy), rk[4], B.u(rgx, yy), gr["merkez"]),
-                         "regulator_halati"))
+        if B.gorunur((rgx, yy, rgx, yy)):
+            e.append(CGE._ad(CGE._cizgi("HALAT", B.u(rgx, yy), rk[4], B.u(rgx, yy), gr["merkez"]),
+                             "regulator_halati"))
     return AK, kt
 
 

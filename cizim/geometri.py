@@ -575,6 +575,14 @@ def plan(g, cizim_sabitleri=None):
     return e
 
 
+def kesit_duzlemleri(g):
+    """A-A düzleminin x'i ( kabin ekseni ) ve B-B düzleminin y'si ( kabinin
+    arkası ile arka duvarın ortası )."""
+    k, kb = g["kuyu"], g["kabin"]
+    arka = kb["on_pay"] + kb["derinlik"] + CS.sabitler(g.get("_cizim_sabitleri"))["kabin_pano_arka"]
+    return k["genislik"] / 2.0 + kb["kaciklik_y"], (arka + k["derinlik"]) / 2.0
+
+
 def kesit_isaretleri(g, e):
     """A-A ve B-B düşey kesitlerinin plandaki işaretleri ( kuyu_kesiti.py ).
 
@@ -584,16 +592,12 @@ def kesit_isaretleri(g, e):
     arkasından kat kapılarına.  Kesitler çizilebiliyorsa konur:  yandaki
     karşı ağırlık, kabin altı 2:1, makine kuyu üstünde.
     """
-    ag, kb = g["agirlik"], g["kabin"]
+    ag = g["agirlik"]
     if not (ag.get("yeri") in ("Sol", "Sağ") and (g.get("aski") or {}).get("duzen") == "Kabin altı"
-            and (g.get("makine") or {}).get("yeri") == "Kuyu üstü"):
+            and (g.get("makine") or {}).get("yeri") in ("Kuyu üstü", "Makine dairesi")):
         return []
-    k = g["kuyu"]
-    G, D = k["genislik"], k["derinlik"]
     x1, y1, x2, y2 = sinir(e)
-    kx = G / 2.0 + kb["kaciklik_y"]
-    arka = kb["on_pay"] + kb["derinlik"] + CS.sabitler(g.get("_cizim_sabitleri"))["kabin_pano_arka"]
-    yb = (arka + D) / 2.0
+    kx, yb = kesit_duzlemleri(g)
     yon_a = -1.0 if ag["yeri"] == "Sol" else 1.0
     L, O, P = 300.0, 260.0, 150.0
     cikti = []

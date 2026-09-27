@@ -15,15 +15,25 @@ açıklıkları denetleyebilsin:
 Kotlar sabitler.py'deki ELEport ölçüleridir.  Düşey eksen döşeme kotudur
 ( 0 = en alt durak );  kuyu tavanı = en üst durak + son kat.
 
-Makine daireli projede makine, bağlantılar ve regülatör odadadır;  kuyuda
-yalnız raylar ve karşı ağırlık kalır.  Rayların üst ucu o zaman kuyu
-tavanının en alt kısmıdır ( tavan_kirisi ) — makine dairesinin düşey kesiti
-henüz çizilmiyor.
+Makine daireli projede makine, bağlantılar, regülatör ve kumanda panosu
+kuyunun üstündeki odadadır ( yerleri makine_dairesi.yerlesim ):  oda
+döşemesi kuyu tavanıdır, parçalar oda döşemesinden yükselir, halatlar
+döşeme deliklerinden kuyuya iner.  Kuyuda raylar ve karşı ağırlık kalır;
+rayların üst ucu kuyu tavanının en alt kısmıdır ( tavan_kirisi ).
+
+MAKİNE DAİRESİNİN DENETİMLERİ ( TS EN 81-20 )
+  m.5.2.6.3.2.1  çalışma alanlarında temiz yükseklik ≥ 2,10 m
+  m.5.2.6.3.2.3  korumasız dönen parçaların ( tahrik kasnağı ) üstünde ≥ 0,30 m
+  m.5.2.3.2 a    makine dairesi kapısı ≥ 2,0 m yüksek ( eni makine_dairesi.py'de )
 """
 from cizim import kuyu_dibi as CKD
 from cizim import kuyu_ustu as CKT
+from cizim import makine_dairesi as CMD
 
 MAKINE_YERLERI = ("Kuyu üstü", "Makine dairesi")
+ODA_YUKSEKLIK = 2100.0      # m.5.2.6.3.2.1
+DONEN_PARCA_USTU = 300.0    # m.5.2.6.3.2.3
+ODA_KAPI_YUKSEKLIK = 2000.0 # m.5.2.3.2 a
 ETEK_BOYU = 750.0           # m.5.4.5.1:  kabin eteğinin düşey kısmı en az 0,75 m
 
 
@@ -146,6 +156,9 @@ def yerlesim(g, S, H, tavan, taban):
         rg = KD["gergi"]
         M["regulator_x"] = (rg[0] + rg[2]) / 2.0
         M["regulator_y"] = (rg[1] + rg[3]) / 2.0
+        oda = _makine_dairesi(g, S, tavan, M)
+        if oda:
+            return {"hata": oda}
 
     #  ── GERGİ DÜZENİ ( kuyu dibi ) ──────────────────────────────────────
     kd = g["kuyu_dibi"]
@@ -179,6 +192,61 @@ def yerlesim(g, S, H, tavan, taban):
                     "kasnak_ust": S["agirlik_kasnak_ust"], "paten": S["paten_yukseklik"],
                     "tampon_ustu": taban + dy["agirlik_tampon_baba"] + dy["agirlik_tampon_boyu"]}
     return M
+
+
+def _makine_dairesi(g, S, tavan, M):
+    """Makine dairesindeki parçaların kotları;  hata listesi döner ( boşsa tamam ).
+
+    Makine, bağlantılar ve regülatör kuyu üstündekiyle aynı ürünlerdir
+    ( ELEport ölçüleri ):  makine kaidesi ( makine_sase_yukseklik ) üstünde,
+    bağlantılar ve regülatör döşemeye oturur.  Kaide makinenin izi kadardır.
+    """
+    md = g.get("makine_dairesi") or {}
+    hata = []
+    for alan in ("yukseklik", "doseme", "kapi_yukseklik"):
+        if not (_sayi(md.get(alan)) and md[alan] > 0):
+            hata.append(f"makine_dairesi.{alan}: sıfırdan büyük bir sayı olmalı ( {md.get(alan)!r} ).")
+    if hata:
+        return hata
+    MD = CMD.yerlesim(g, S)
+    if MD["hata"]:
+        return MD["hata"]
+    KU = MD["M"]
+    zd = tavan + md["doseme"]                   # oda döşemesinin üstü
+    ztv = zd + md["yukseklik"]                  # oda tavanı
+    kx0, ky0, kx1, ky1 = KU["kasnak"]
+    gx0, gy0, gx1, gy1 = KU["govde"]
+    zs = zd + S["makine_sase_yukseklik"]
+    mx, my = (kx0 + kx1) / 2.0, (gy0 + gy1) / 2.0
+    kab = S["kabin_baglanti_alt"] - S["kabin_baglanti_ust"]
+    rg = S["regulator_govde_alt"] - S["regulator_govde_ust"]
+    M.update({
+        "KU": KU, "MD": MD, "oda_doseme": zd, "oda_tavan": ztv, "oda_kalinlik": md["doseme"],
+        "sase": (min(kx0, gx0), min(ky0, gy0), max(kx1, gx1), max(ky1, gy1), zd, zs),
+        "govde": (gx0, gy0, gx1, gy1, zs, zs + S["makine_en"]),
+        "kapak": (mx - S["makine_kapak_en"] / 2.0, my - S["makine_kapak_boy"] / 2.0,
+                  mx + S["makine_kapak_en"] / 2.0, my + S["makine_kapak_boy"] / 2.0,
+                  zs + S["makine_en"], zs + S["makine_en"] + S["makine_kapak_yukseklik"]),
+        "kasnak": KU["kasnak"] + (zs + S["makine_en"] / 2.0,),
+        "agirlik_baglanti": KU["agirlik_baglanti"] + (zd, zd + S["agirlik_baglanti_yukseklik"]),
+        "kabin_baglanti": KU["kabin_baglanti"] + (zd, zd + kab),
+        "regulator": KU["reg_govde"] + (zd, zd + rg),
+        "regulator_kasnak": KU["reg_kasnak"] + (zd + S["regulator_govde_alt"]
+                                                - S["regulator_kasnak_merkez"],),
+        "pano": MD["pano"] + (zd, zd + S["kumanda_pano_yukseklik"]),
+        "regulator_x": KU["rgx"], "regulator_y": KU["rgy"],
+    })
+    kasnak_ustu = M["kasnak"][4] + g["makine"]["tahrik_kasnak_capi"] / 2.0
+    if md["yukseklik"] < ODA_YUKSEKLIK - 1e-9:
+        hata.append(f"Makine dairesinin temiz yüksekliği {md['yukseklik']:g} mm < "
+                    f"{ODA_YUKSEKLIK:g} mm ( TS EN 81-20 m.5.2.6.3.2.1 ).")
+    if ztv - kasnak_ustu < DONEN_PARCA_USTU - 1e-9:
+        hata.append(f"Tahrik kasnağının üstünde {ztv - kasnak_ustu:g} mm boşluk < "
+                    f"{DONEN_PARCA_USTU:g} mm ( TS EN 81-20 m.5.2.6.3.2.3 ).")
+    if md["kapi_yukseklik"] < ODA_KAPI_YUKSEKLIK - 1e-9:
+        hata.append(f"Makine dairesi kapısı {md['kapi_yukseklik']:g} mm yüksek < "
+                    f"{ODA_KAPI_YUKSEKLIK:g} mm ( TS EN 81-20 m.5.2.3.2 a ).")
+    return hata
 
 
 def agirlik_kotlari(M, alt):

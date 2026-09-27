@@ -19,6 +19,7 @@ python3 -m venv .venv
 .venv/bin/python calistir.py --agirlik Arka       # karşı ağırlık arkada
 .venv/bin/python calistir.py --cizim kuyu_kesiti_yan  # A-A tam boy düşey kesit ( 1/50 )
 .venv/bin/python calistir.py --cizim kuyu_kesiti_on   # B-B tam boy düşey kesit ( 1/50 )
+.venv/bin/python calistir.py --cizim kuyu_kesiti_on --makine "Makine dairesi"   # makine daireli
 .venv/bin/python -m unittest testler.test_cizim   # testler
 ```
 
@@ -39,7 +40,7 @@ python3 -m venv .venv
 | `cizim/kuyu_kesiti.py` | Tam boy A-A ( yan ) ve B-B ( ön ) kuyu düşey kesitleri, 1/50 |
 | `cizim/svg.py` | Elemanları SVG'ye yazar |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/test_cizim.py` | 123 test |
+| `testler/test_cizim.py` | 124 test |
 | `ornekler/` | `calistir.py`'nin ürettiği örnek çizimler |
 
 ## Kurallar
@@ -203,6 +204,12 @@ kırarak 1/30 çizer ).  İki kesit, planda A-A ve B-B işaretleriyle:
 | A-A yan | kuyu derinliği boyunca, kabin ekseninden karşı ağırlığa;  kat kapıları solda | en alt durakta | seyir kadar yukarıda |
 | B-B ön | kuyunun arkasından kat kapılarına ( plandaki sol sağda görünür ) | en üst durakta | tamponunun çarpma arası üstünde |
 
+**Kesit düzleminin gerisi çizilmez:**  A-A karşı ağırlık tarafını gösterir
+( makine, şase, ağırlık bağlantısı, ağırlık rayları ve o yandaki kabin rayı );
+öbür yandaki regülatör, kabin halat bağlantısı, gergi ve kabin rayı B-B'de
+görünür ( ELEport da iki yan kesitte ayrı gösterir ).  B-B kabinin arkasından
+bakar;  makine dairesinin arka yarısındaki pano görünmez.
+
 İkisinde de:  kuyu duvarları, kuyu dibi ve tavan döşemesi, kat döşemeleri
 ( 150 ), kat kapıları ( yanda kasa · eşik · kanatlar;  önde kasa · boşluk ·
 durak numarası ), ▽ kotlar ve durak adları;  kabin ve karşı ağırlık
@@ -226,10 +233,22 @@ arası, çerçeve );  altta kuyu derinliği / genişliği.
 Kuyu tepesi ve karşı ağırlığın kotları ELEport kesitlerinin vektörlerinden
 ölçüldü ( `sabitler.py`, "KUYU ÜSTÜ DONANIMININ DÜŞEY ÖLÇÜLERİ" );  planda
 aynı parçaların yeri kuyu_ustu.yerlesim'dekiyle birebir tuttu.  Makinenin
-yeri `makine.yeri` ( "Kuyu üstü" / "Makine dairesi" — hesap programının
-"Makine dairesiz ( MRL )" seçimi ).  Makine daireli projede detay kesitler
-çizilir, tam boy kesitler bugün durur:  makine dairesinin yüksekliği ve
-döşemesi girdide yok.
+yeri `makine.yeri` ( "Kuyu üstü" / "Makine dairesi" ).
+
+**Makine daireli projede** oda kuyunun üstündedir ( plan yeri
+`makine_dairesi.x · y · genislik · derinlik` );  döşemesi kuyu tavanıdır.
+Girdiler:  `yukseklik` ( temiz ), `doseme` ( döşeme ve çatı kalınlığı ),
+`kapi_yukseklik` ( LiftDesigner "477-8":  3.500 · 150;  kapı standardın en azı
+2.000 ).  Makine kaidede ( 200 ), halat bağlantıları ve regülatör döşemede,
+kumanda panosu 2.000 yüksek ( LiftDesigner ), halatlar döşeme deliklerinden
+iner ( kesik ).  Kesilen oda duvarında kapı kesitteyse boşluk, karşı duvarda
+ise görünüş olarak çizilir.  Denetimler:
+
+| Kural | Madde | Sınır |
+|---|---|---|
+| Makine dairesinin temiz yüksekliği | m.5.2.6.3.2.1 | ≥ 2,10 m |
+| Tahrik kasnağının üstünde boşluk | m.5.2.6.3.2.3 | ≥ 0,30 m |
+| Makine dairesi kapısının yüksekliği | m.5.2.3.2 a | ≥ 2,0 m |
 
 `kat_yuksekligi` tek sayı ya da alttan üste `durak_adedi − 1` sayılık liste
 ( LiftDesigner örneği 3.400, 3.400, 3.000 … ).  Ardışık iki eşik arası 11 m'yi

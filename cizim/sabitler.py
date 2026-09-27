@@ -85,6 +85,9 @@ SABIT = {
     "kumanda_pano_en": 600, "kumanda_pano_derinlik": 400,
     #  Regülatör halatı deliği:  LiftDesigner planında 200 × 200.
     "regulator_delik": 200,
+    #  Kumanda panosunun yüksekliği:  LiftDesigner "477-8" projesinin
+    #  "Dikey 1:50" kesitinde yere oturan pano 2.000 mm.
+    "kumanda_pano_yukseklik": 2000,
     #  Askı halatı deliğinde halat demetinin çevresine bırakılan pay ( mm ).
     #  STANDARDIN SAYISI DEĞİLDİR:  m.5.2.6.3.3 yalnız "amacı için en küçük"
     #  der;  çizim kabulüdür, proje ölçüsüyle değiştirilir.
