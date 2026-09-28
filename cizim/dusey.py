@@ -15,7 +15,7 @@ Yatay eksen kuyu derinliğidir ( 0 = ön duvarın iç yüzü );  plan çizimleri
 aynı koordinat — kabin, ray, tampon ve sığınma alanı plandaki yerlerinden
 okunur.  Düşey eksen döşeme kotudur ( 0 = en alt / en üst durak ).
 
-KABİNİN DÜŞEY ÖLÇÜLERİ ELEport kabininden ( sabitler.py ).  Hesap
+KABİNİN DÜŞEY ÖLÇÜLERİ referans proje kabininden ( sabitler.py ).  Hesap
 programının sığınma satırları bu kabinle değil ofisin paylarıyla hesaplanır
 ( üst paten bir satırda 2.700, bir başkasında 2.900 );  o paylar bu modele
 göre düzeltilene kadar çizimin açıklıkları hesap paftasındakilerle birebir
@@ -74,7 +74,7 @@ def durak_kotlari(g):
     """Durakların döşeme kotları ( en alt durak ±0 ) ve girdi hataları.
 
     kat_yuksekligi tek sayıysa bütün katlar o yükseklikte;  liste ise alttan
-    üste ardışık iki durak arası ( durak_adedi − 1 tane ).  ELEport'ta
+    üste ardışık iki durak arası ( durak_adedi − 1 tane ).  Referans projede
     hepsi 2.900;  LiftDesigner örneğinde 3.400, 3.400, 3.000 … karışık.
     """
     dy, kp = g.get("dusey") or {}, g.get("kapi") or {}
@@ -139,7 +139,7 @@ def yerlesim(g, cizim_sabitleri=None):
     #  ── KUYU DİBİ:  kabin tam ezilmiş tamponunda ──────────────────────
     KY = kd["derinlik"]
     #  Kuyu dibi zinciri kabinin şase altıyla kapanmalı:  kaide + tampon +
-    #  çarpma arası + şase altı = kuyu dibi ( ELEport:  764 + 160 + 96 + 480 )
+    #  çarpma arası + şase altı = kuyu dibi ( referans proje:  764 + 160 + 96 + 480 )
     zincir = dy["kabin_tampon_baba"] + dy["kabin_tampon_boyu"] + dy["kabin_carpma_arasi"] + \
         S["sase_alt_derinlik"]
     if abs(zincir - KY) > 0.5:
@@ -259,7 +259,7 @@ def _kabin(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89):
     #  Etek:  kabin eşiğinin altında, ön yüzde
     e.append(CGE._ad(D("KABIN", y0, kt["etek_alti"], 30, kt["taban_alti"] - kt["etek_alti"]), "etek"))
     #  Şase:  ray ekseninde dikme, alt ve üst kiriş
-    #  Dikme iki ince profil olarak çizilir ( ELEport:  50 + 200 + 50 );
+    #  Dikme iki ince profil olarak çizilir ( referans proje:  50 + 200 + 50 );
     #  dolu çizilince kabinin kesitini örtüyordu.
     sd = S["sase_dikme_derinlik"]
     for x in (ry - sd / 2.0, ry + sd / 2.0 - 50):

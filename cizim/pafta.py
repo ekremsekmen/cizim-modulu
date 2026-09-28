@@ -12,7 +12,7 @@ CAD'de blok açılınca ölçüler gerçek boyundadır.
 YERLEŞİM ( ofisin 477-8 uygulama projesindeki düzen ):  önce düşey
 kesitler ( 1/50 ), sonra planlar ( 1/20 ) konu sırasıyla
 sütunlara dizilir;  çizim sütuna sığmazsa yeni sütun açılır.  Düşey
-kesitler paftanın yüksekliğine sığmazsa ara katlar kırılır ( ELEport ve
+kesitler paftanın yüksekliğine sığmazsa ara katlar kırılır ( referans proje ve
 LiftDesigner gibi ).  Serbest alan yetmezse çerçeve SAĞA uzatılır — hesap
 programının yaptığı gibi;  aşağı taşmaz.
 

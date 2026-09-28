@@ -4,13 +4,13 @@ KUYU DÜŞEY KESİTLERİ  ( tam boy, 1/50 )
 
   A-A  YAN KESİT   kuyu derinliği boyunca;  ön duvar ( kat kapıları ) solda.
                    Kabin EN ALT durakta, karşı ağırlık yukarıda
-                   ( ELEport "Cabin at Bottom Floor" ).
+                   ( referans proje "Cabin at Bottom Floor" ).
   B-B  ÖN KESİT    kuyu genişliği boyunca, kuyunun arkasından kat kapılarına
                    bakış ( plandaki sol duvar sağda görünür ).  Kabin EN ÜST
-                   durakta, karşı ağırlık aşağıda ( ELEport "Cabin at Top
+                   durakta, karşı ağırlık aşağıda ( referans proje "Cabin at Top
                    Floor", LiftDesigner "Dikey 1:50" ).
 
-İkisi de gerçek ölçekte, bütün duraklarla ( LiftDesigner gibi;  ELEport ara
+İkisi de gerçek ölçekte, bütün duraklarla ( LiftDesigner gibi;  referans proje ara
 katları kırar ).  Çizilenler:
 
   · kuyu duvarları, kuyu dibi ve tavan döşemesi, kat döşemeleri, kat kapıları

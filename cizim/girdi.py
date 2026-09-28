@@ -39,7 +39,7 @@ ZORUNLU = {
 AGIRLIK_YERLERI = ("Sağ", "Sol", "Arka")
 #  KAT KAPISININ MONTAJI:  kapı ünitesi ( kasa + eşik ) ya kuyu ön duvarının
 #  boşluğuna oturur ( kasa duvarda, eşik kuyuya taşar ) ya da duvarın İÇ
-#  YÜZÜNE monte edilir ( ünitenin tamamı kuyunun içinde — ELEport ).  İkisi de
+#  YÜZÜNE monte edilir ( ünitenin tamamı kuyunun içinde — referans proje ).  İkisi de
 #  aynı üründür;  yalnız kuyu içindeki yeri değişir.
 KAPI_MONTAJLARI = ("Duvar boşluğuna", "Kuyu içine")
 
@@ -69,7 +69,7 @@ def kapi_bolgesi(g, S):
       yuzey       m.5.2.5.3.1'in "kuyunun iç yüzü":  duvar boşluğuna montajda
                   duvarın kendisi;  kuyu içine montajda kapı hattı — kapıların
                   altında ve üstünde yüzey hat boyunca sac kaplamayla sürer
-                  ( ELEport'un düzeni ).
+                  ( referans projenin düzeni ).
     """
     bas = -S["kasa_derinlik"] if g["kapi"]["montaj"] == "Duvar boşluğuna" else 0.0
     kasa = (bas, bas + S["kasa_derinlik"])
@@ -252,39 +252,39 @@ def dogrula(g):
 
 
 #  ── DENEME GİRDİSİ  ─────────────────────────────────────────────────
-#  ELEport'un yayımlanmış örnek projesinin ( PROJE 5 ) ölçüleri.  Kendi
+#  Yayımlanmış bir referans projenin ölçüleri.  Kendi
 #  çizimimizi onun paftasıyla ölçü ölçü karşılaştırabilmek için duruyor;
 #  çizim mantığı ORADAN KOPYALANMAZ, yalnız sayılar denemede kullanılır.
 ORNEK = {
-    "proje": {"ad": "PROJE 5", "asansor": "Elevator 3", "olcek": 20},
+    "proje": {"ad": "ÖRNEK PROJE", "asansor": "ASANSÖR 1", "olcek": 20},
     "kuyu": {"genislik": 2100, "derinlik": 1850,
              "duvar_on": 150, "duvar_arka": 150, "duvar_sol": 150, "duvar_sag": 150},
-    #  KAPI BÖLGESİ ( ELEport kuyu planı vektörleri, iç yüzden ):  kat kapısı
+    #  KAPI BÖLGESİ ( referans proje kuyu planı vektörleri, iç yüzden ):  kat kapısı
     #  ünitesi duvarın İÇ YÜZÜNE monte — kasa 0 – 60, eşik 60 – 150, kapı hattı
     #  150;  eşik aralığı 30;  kabin eşiği 180 – 270 → kabin ön yüzü 270.
     "kabin": {"genislik": 1350, "derinlik": 1400, "kaciklik_y": 130, "on_pay": 270},
     #  sol_pay:  kuyunun sol iç yüzünden kapının NET BOŞLUĞUNA ( kasa içi ).
-    #  ELEport'un yazdığı 610, kasaya kadardır:  610 + kasa 120 = 730;  kapı
+    #  Referans projenin yazdığı 610, kasaya kadardır:  610 + kasa 120 = 730;  kapı
     #  ekseni böylece kabin ekseniyle aynı ( 1.180 ) olur.
     "kapi": {"genislik": 900, "sol_pay": 730, "yukseklik": 2100, "tip": "Teleskopik Sol",
              "montaj": "Kuyu içine"},
-    #  kapi_arasi:  ray ekseni kuyunun ön İÇ YÜZÜNDEN.  ELEport'un "1017"si
+    #  kapi_arasi:  ray ekseni kuyunun ön İÇ YÜZÜNDEN.  Referans projenin "1017"si
     #  KAPI HATTINDAN ölçülür ( zincir 150 + 1017 + 682 = 1850 ):  iç yüzden
     #  1.167.  ( Eskiden 1.017 iç yüzden alınmıştı — arka duvar 150 geride kalıyordu. )
     "kabin_ray": {"arasi": 1550, "kapi_arasi": 1167, "b": 89, "h": 62},
-    #  Karşı ağırlık çerçevesi ELEport paftasının vektör geometrisinden
+    #  Karşı ağırlık çerçevesi referans proje paftasının vektör geometrisinden
     #  ölçüldü:  790 ( raylar boyunca ) × 160 mm — DBGW 850'nin içinde,
     #  iki uçta 30 mm paten payı.  ( Eski 1.250 × 250, makine dairesi
     #  çiziminden yanlış okunmuştu;  blok kendi raylarının dışına taşıyordu. )
     #  eksen_kaciklik:  yandaki ağırlığın ekseni kabin ray ekseninin 50 mm
-    #  önünde ( ELEport paftasındaki "50" ölçüsü;  − = kapıya doğru ).
+    #  önünde ( referans proje paftasındaki "50" ölçüsü;  − = kapıya doğru ).
     "agirlik": {"yeri": "Sol", "genislik": 790, "derinlik": 160,
                 "ray_arasi": 850, "ray_duvar": 130, "eksen_kaciklik": -50, "b": 70, "h": 65,
                 "kasnak_capi": 400},
-    #  2:1 askı, kasnaklar kabinin altında.  Kasnaklar arası ELEport
+    #  2:1 askı, kasnaklar kabinin altında.  Kasnaklar arası referans proje
     #  paftasında 690 + 690 = 1.380 ( eski 1.470 yanlış okunmuştu;  halat
     #  kabin rayının ara kirişinin içinden geçiyordu ).
-    #  KAÇIKLIK HALATLARI DÜŞEY İNDİRİR:  ELEport'ta kabin kasnaklarının
+    #  KAÇIKLIK HALATLARI DÜŞEY İNDİRİR:  referans projede kabin kasnaklarının
     #  çizgisi = tahrik kasnağının çizgisi = ağırlık kasnağının ön teğeti
     #  ( ağırlık ekseni − 200 ).  Bu örnekte ağırlık ekseni 1.167 − 50 = 1.117,
     #  teğet 917;  kabin merkezi 270 + 1.433 / 2 = 986,5 → kaçıklık −69,5.
@@ -296,27 +296,27 @@ ORNEK = {
     #  Kuyu dibi planı.  derinlik, sığınma tipi ve tampon adetleri hesap
     #  programında zaten vardır ( kuyu dibi yüksekliği KY, "Kuyu dibi sığınma
     #  hacmi tipi", kabin / ağırlık tamponu adedi );  köprü onları taşır.
-    #  Regülatör gergi kasnağı ELEport paftasındaki gibi karşı ağırlığın
+    #  Regülatör gergi kasnağı referans proje paftasındaki gibi karşı ağırlığın
     #  karşısındaki kabin rayının hizasında, ray ekseninin 280 mm arkasında;
-    #  gergi ağırlığı kasnağın 380 ötesine uzanır ( ELEport hesabı A = 300 ):
+    #  gergi ağırlığı kasnağın 380 ötesine uzanır ( referans proje hesabı A = 300 ):
     #  1167 + 280 + 380 = 1827, arka duvara 23.  Üst regülatör de aynı ekseni
     #  kullanır.
     "kuyu_dibi": {"derinlik": 1500, "siginma_tipi": "Çömelme",
                   "kabin_tampon_adedi": 1, "agirlik_tampon_adedi": 1,
                   "regulator_yan": "Sağ", "regulator_kaciklik": 280,
                   #  Regülatör halatının çapı ( hesap programında "Regülatör
-                  #  halatı çapı";  ELEport regülatör hesabı 6,0 ):  makine
+                  #  halatı çapı";  referans proje regülatör hesabı 6,0 ):  makine
                   #  dairesinde döşeme deliği bundan çıkar.
                   "regulator_halat_capi": 6,
                   "regulator_kasnak_capi": 300},
     #  DÜŞEY:  kabinin iç yüksekliği ve paten arası, son kat yüksekliği,
     #  beyan hızı, duraklar ve tamponlar — hepsi hesap programında var
     #  ( paten arası 3.300, beyan hızı, tampon kaideleri / boyları / ezilme /
-    #  çarpma arası ).  Kuyu dibi ELEport'unki:  1.500 = kaide 764 + tampon
-    #  160 + çarpma arası 96 + kabinin şase altı 480.  Son kat ELEport 5.000.
+    #  çarpma arası ).  Kuyu dibi referans projeninki:  1.500 = kaide 764 + tampon
+    #  160 + çarpma arası 96 + kabinin şase altı 480.  Son kat referans proje 5.000.
     #  Duraklar:  8 × 3.000 → seyir 21 m ( hesap programının varsayılanı ).
     #  Ağırlık paten arası = karşı ağırlık çerçevesinin yüksekliği ( patenler
-    #  uçlarında ):  ELEport çiziminde 2.920 ( hesabı 1.500 alır — kendi çizimiyle
+    #  uçlarında ):  referans proje çiziminde 2.920 ( hesabı 1.500 alır — kendi çizimiyle
     #  çelişir;  örnek çizimi izler ).
     "dusey": {"kabin_ic_yukseklik": 2250, "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 2920,
               "son_kat": 5000, "beyan_hizi": 1.0, "durak_adedi": 8, "kat_yuksekligi": 3000,
@@ -324,17 +324,17 @@ ORNEK = {
               "kabin_tampon_ezilme": 90, "agirlik_tampon_baba": 300, "agirlik_tampon_boyu": 160,
               "agirlik_carpma_arasi": 150, "agirlik_tampon_ezilme": 90,
               #  Konsollar arası ( hesap programının "kabin / ağırlık rayı
-              #  konsollar arası en uzun mesafe" girdileri ) — ELEport 1.500.
+              #  konsollar arası en uzun mesafe" girdileri ) — referans proje 1.500.
               "kabin_konsol_arasi": 1500, "agirlik_konsol_arasi": 1500},
     #  Makine:  tahrik kasnağı çapı hesap programında var ( D1 ).  Kuyu üstü
     #  ( MRL ) ve makine dairesi planları ortak okur.
-    #  Makinenin yeri:  "Kuyu üstü" ( makine dairesiz — ELEport ) ya da
+    #  Makinenin yeri:  "Kuyu üstü" ( makine dairesiz — referans proje ) ya da
     #  "Makine dairesi";  hesap programındaki "Makine dairesiz ( MRL )" seçimi.
     #  Makine tipi:  hesap programının "Makine tipi" ( Dişlisiz / Dişli );  çizim
     #  makineyi buna göre çizer ( makine.py:  LiftDesigner makineleri ).
     #  Yan yatak:  hesap programının "F ( yan yatak — makine kirişi )" NPU'su —
     #  makinenin oturduğu iki kiriş ( kuyu üstünde raylara, makine dairesinde
-    #  kaidenin dikine kirişlerine oturur ).  ELEport:  UPN 200 ( şase hesabında
+    #  kaidenin dikine kirişlerine oturur ).  Referans proje:  UPN 200 ( şase hesabında
     #  Wx 191 cm³ ).
     "makine": {"tahrik_kasnak_capi": 240, "yeri": "Kuyu üstü", "tip": "Dişlisiz", "yan_yatak": 200},
     #  Kuyu üstü planı ( makine dairesiz ):  acil kurtarma panosu en üst

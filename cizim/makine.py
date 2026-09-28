@@ -19,7 +19,7 @@ MAKİNE TİPLERİ  ( kullanıcı kararı:  ölçüler LiftDesigner makinelerinde
              enkoder — hepsi kasnak ekseni üstünde.  Biçim LiftDesigner'ın;
              ölçüler projenin makine ZARFINA oranlanır ( gövde çapı
              makine_en, kasnak arkası boy makine_kasnak_boslugu + makine_boy ):
-             ELEport'un gerçek makinesi LiftDesigner'ınkinden küçüktür ve
+             referans projenin gerçek makinesi LiftDesigner'ınkinden küçüktür ve
              kotları ölçülmüştür.  Kasnak kendi çapı ve eniyle çizilir.
   Dişli      LiftDesigner'ın A 160 sonsuz vidalı makinesi ( 12744-3 ):  motor
              ekseni kasnak eksenine DİK;  el çarkı, motor, fren, dişli kutusu,
@@ -27,9 +27,9 @@ MAKİNE TİPLERİ  ( kullanıcı kararı:  ölçüler LiftDesigner makinelerinde
              Ölçüler aynen ( zarfı 1.316 × 590 × 600 ).
 
 ŞASE  ( profiller hesap programının seçtiği NPU'lar — DIN 1026-1 ölçüleriyle )
-  Kuyu üstü  2 yan yatak ( makine.yan_yatak;  ELEport'ta UPN 200, Wx 191 cm³ ) —
+  Kuyu üstü  2 yan yatak ( makine.yan_yatak;  referans projede UPN 200, Wx 191 cm³ ) —
              kirişler karşı ağırlık rayları boyunca, aralarında üstle aynı
-             hizada motor plakası ( ELEport:  700 mm ) ve uçlarda bağlantı
+             hizada motor plakası ( referans proje:  700 mm ) ve uçlarda bağlantı
              levhaları.
   Makine     hesap programının kaidesi ( bölüm 2 ):  dört dikine kiriş ( NPU
   dairesi    makine_dairesi.dikine_kiris, boyu şase yüksekliği — döşemeden
@@ -77,7 +77,7 @@ NPU = {"30x15": (30, 15, 4, 4.5), 30: (30, 33, 5, 7), "40x20": (40, 20, 5, 5.5),
        300: (300, 100, 10, 16)}
 #  Kaidenin uçlarındaki kısa kirişler ( hesaba girmez ):  LiftDesigner 12744-3'te UPN 100.
 KAIDE_KISA = 100
-MOTOR_PLAKASI_BOY = 700.0          # ELEport şase hesabı:  "motor bedplate length m"
+MOTOR_PLAKASI_BOY = 700.0          # referans proje şase hesabı:  "motor bedplate length m"
 MOTOR_PLAKASI_KALINLIK = 15.0
 UC_LEVHASI = 10.0
 

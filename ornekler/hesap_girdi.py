@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""ELEport PROJE 5 · Elevator 3 — hesap motoru girdisi.
-Kaynak:  ~/asansör projeleri/sample-project.pdf ( ELEport, 3 Eylül 2025 ) ve hesap
-programının TEST 12'si.  Tampon ELEport'ta belirsiz:  OLEO LB 16 ( oleoelevator.com )."""
+"""Örnek projelerin hesap motoru girdisi ( yayımlanmış bir referans proje ).
+Kaynak:  ~/asansör projeleri/sample-project.pdf ( referans proje, 3 Eylül 2025 ) ve hesap
+programının TEST 12'si.  Tampon referans projede belirsiz:  OLEO LB 16 ( oleoelevator.com )."""
 ASANSOR = {
-    "asansor_adi": "Elevator 3",
+    "asansor_adi": "ASANSÖR 1",
     "asansor_tipi": "İnsan asansörü",
     "beyan_yuku": 800, "kabin_agirligi": 900, "beyan_hizi": 1.6,
     "aski_orani": 2, "seyir_mesafesi": 29.0, "son_kat_yuksekligi": 5000, "kuyu_dibi": 1500,
@@ -16,25 +16,25 @@ ASANSOR = {
     "kasnak_tek_yon": 2, "kasnak_ters_yon": 0, "acil_frenleme_a": 0.5,
     "denge_zinciri": "Var", "kasnak_belgesi": "Var",
     "motor_gucu": 11.3, "makine_tst": 3400, "makine_verimi": 0.8415, "makine_tipi": "Dişlisiz",
-    #  MRL:  makine şasesi raylara oturur ( ELEport "Motor Bedplate Calculation":
+    #  MRL:  makine şasesi raylara oturur ( referans proje "Motor Bedplate Calculation":
     #  şase kabin ve ağırlık raylarına dayanır;  motor 250 kg ).  Hesap programı
-    #  bir raya ( Gm + Tst ) / 4 yükler ( m.5.7.2.3.7 );  ELEport kendi paftasında
+    #  bir raya ( Gm + Tst ) / 4 yükler ( m.5.7.2.3.7 );  referans proje kendi paftasında
     #  raya 800 kg ( ray hesabında 1.000 kg ) KABUL eder.
     "makine_raya_biniyor": "Kılavuz raylara", "makine_agirligi": 250,
-    #  Makinenin oturduğu kirişler ( bölüm 2 ):  ELEport "Motor Bedplate
+    #  Makinenin oturduğu kirişler ( bölüm 2 ):  referans proje "Motor Bedplate
     #  Calculation" — Wa 191.000 mm³ ( UPN 200 ), L 850 ( karşı ağırlık rayları
     #  arası;  kirişler o raylara oturur ).
     "yan_yatak": 200, "yan_yatak_boyu": 850,
     "kablo_birim_kutle": 0.44,
     "kabin_ray_profili": "89 x 62 x 15,88", "agirlik_ray_profili": "70 x 65 x 9",
     "kabin_konsol_arasi": 1500, "agirlik_konsol_arasi": 1500, "ray_celigi_rm": 450,
-    #  Ağırlık paten arası:  ELEport hesabında 1.500, çiziminde patenler 2.920'lik
+    #  Ağırlık paten arası:  referans proje hesabında 1.500, çiziminde patenler 2.920'lik
     #  çerçevenin uçlarında.  Çizim çerçeveyi bu girdiden kurar ( patenler uçlarda );
-    #  hesap ile pafta aynı şeyi söylesin diye ELEport'un çizimindeki 2.920.
+    #  hesap ile pafta aynı şeyi söylesin diye referans projenin çizimindeki 2.920.
     "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 2920,
     "paten_tipi": "Kaymalı", "agirlik_paten_tipi": "Makaralı", "guvenlik_tertibati": "Kaymalı",
     "agirlik_yeri": "Sol", "agirlik_genisligi": 850, "agirlik_derinligi": 160,
-    #  Regülatör:  ELEport "Speed Governor Calculation" — kasnak ø240, halat ø6,0
+    #  Regülatör:  referans proje "Speed Governor Calculation" — kasnak ø240, halat ø6,0
     "reg_kasnak_capi": 240, "reg_halat_capi": 6,
     "tampon_tipi": "Hidrolik  ( enerji yutmalı )",
     "kabin_tampon_adedi": 1, "agirlik_tampon_adedi": 1,
@@ -48,19 +48,19 @@ ASANSOR = {
 ORTAK = {"mk_yok": True}
 
 #  ── MAKİNE DAİRELİ, DİŞLİ MAKİNELİ ÇEŞİT ─────────────────────────────────
-#  ELEport'ta böyle bir proje yok:  AYNI asansör ( kuyu, kabin, raylar, halatlar,
-#  tamponlar ELEport PROJE 5'in ), makine kuyunun üstündeki odada, dişli.
+#  referans projede böyle bir proje yok:  AYNI asansör ( kuyu, kabin, raylar, halatlar,
+#  tamponlar referans projenin ), makine kuyunun üstündeki odada, dişli.
 #  Yalnız makineye ve odaya ait girdiler değişir;  kaynakları:
 #    makine_tipi        Dişli — çizim LiftDesigner 12744-3'ün A 160'ını çizer
 #    makine_verimi      boş:  ofisin dişli makine verimi ( hesap programı sabiti 0,50 )
 #    makine_agirligi    350 kg — ofisin 12744-3 hesabı ( A 160 ), "Gm:mak-motor ağırlığı"
 #    motor_gucu         15 kW — dişli verimiyle gereken 12,75 kW;  bir üstteki IEC
-#                       motor gücü ( 11 · 15 · 18,5 ).  ELEport'un 11,3'ü dişlisizindi.
+#                       motor gücü ( 11 · 15 · 18,5 ).  Referans projenin 11,3'ü dişlisizindi.
 #    tabliye, kaide     hesap programının makine daireli varsayılanları ( ofis
 #                       şablonu ):  tabliye 1.200, şase 1.100, dikine kiriş NPU 120,
 #                       yan yatak NPU 140, boyu 1.400
 #    makine dairesi     3.800 × 2.600 ( çizim örneğinin odası )
-#    makine_tst         3.400 kg — ELEport makinesinin değeri AYNEN kaldı ( A 160'ın
+#    makine_tst         3.400 kg — referans proje makinesinin değeri AYNEN kaldı ( A 160'ın
 #                       katalog değeri elde yok );  hesapta kasnağa gelen 1.581 kg
 ASANSOR_MD = {k: v for k, v in ASANSOR.items() if k not in ("makine_verimi", "makine_raya_biniyor")}
 ASANSOR_MD.update({

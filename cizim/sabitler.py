@@ -5,7 +5,7 @@
 Bunlar hesabın ofis sabitleri DEĞİLDİR;  yalnız çizimin ayrıntısını belirler
 ve hiçbir hesaba girmez.  Paftada kaynakları KABUL sayılır.
 
-NEREDEN GELDİLER:  ELEport'un yayımlanmış örnek projesinin ( PROJE 5 )
+NEREDEN GELDİLER:  Yayımlanmış bir referans projenin
 paftasındaki çizimin VEKTÖR GEOMETRİSİNDEN ölçüldüler;  ölçek 1/20 üzerinden
 kalibre edildi ve kalibrasyon ray profilleriyle doğrulandı ( T89/B 89 × 62 ve
 T70/A 70 × 65 tam çıktı ).  Yani tek bir projenin donanımıdır;  tedarikçinin
@@ -22,7 +22,7 @@ SABIT = {
     "konsol_civata_capi": 14,
     #  KARŞI AĞIRLIK YANDAYSA o taraftaki kabin rayı, iki ağırlık rayı
     #  konsoluna bağlı dikine bir ara kirişe tutturulur;  kirişin plandaki
-    #  eni  ( ELEport paftası:  50 mm ).
+    #  eni  ( referans proje paftası:  50 mm ).
     "ara_kiris_en": 50,
 
     #  ── PATEN  ( kaymalı gövde;  makaralıda da aynı iz kullanılır ) ──
@@ -36,7 +36,7 @@ SABIT = {
     "kabin_kasnak_genislik": 92,  # 2:1 askıda kabin kasnağının genişliği
 
     #  ── KAPI ─────────────────────────────────────────────────────────
-    #  ELEport'un kuyu planı vektörlerinden ( 1/20 ) ve "Door Detail 1/35"
+    #  referans projenin kuyu planı vektörlerinden ( 1/20 ) ve "Door Detail 1/35"
     #  paftasından:  kat kapısı ünitesi = kasa 60 + eşik 90 = 150;  kanatlar
     #  40 kalın, EŞİĞİN ÜSTÜNDE — teleskopikte iki düzlemde ( eşiğin 5 mm
     #  içinden başlar, düzlemler 45 arayla:  65 – 105 · 110 – 150 ).  Kabin
@@ -60,11 +60,11 @@ SABIT = {
     "agirlik_cerceve": 40,        # çerçeve profilinin kalınlığı
 
     #  ── KUYU DİBİ ────────────────────────────────────────────────────
-    #  Tampon gövdesi ve taban plakası ( planda ):  ELEport kuyu dibi
+    #  Tampon gövdesi ve taban plakası ( planda ):  referans proje kuyu dibi
     #  paftasından ölçüldü ( ~100 mm gövde, ~150 mm kare taban ).
     "tampon_capi": 100,
     "tampon_taban": 150,
-    #  Regülatör gergi kasnağının planda görünen eni ( ELEport:  ~67 mm ).
+    #  Regülatör gergi kasnağının planda görünen eni ( referans proje:  ~67 mm ).
     "gergi_kasnak_eni": 65,
     #  Kuyu dibi merdiveni  ( TS EN 81-20 Ek F ):  basamak net eni en az
     #  280 mm ( F.3.2 a ) + iki dikme en çok 35'er mm ( F.3.1 a ) = 350;
@@ -73,7 +73,7 @@ SABIT = {
     "merdiven_derinlik": 100,
 
     #  ── KUYU ÜSTÜ  ( makine dairesiz ) ───────────────────────────────
-    #  ELEport'un MRL paftasındaki "Machine Room" çiziminin vektör
+    #  referans projenin MRL paftasındaki "Machine Room" çiziminin vektör
     #  geometrisinden ölçüldü ( 1/20 ).  Tek bir makinenin ölçüleridir —
     #  kullanılan makinenin kataloğu gelince buradan değiştirilir.
     "tahrik_kasnak_kalinlik": 105,   # tahrik kasnağının planda görünen eni
@@ -98,11 +98,11 @@ SABIT = {
     #  STANDARDIN SAYISI DEĞİLDİR:  m.5.2.6.3.3 yalnız "amacı için en küçük"
     #  der;  çizim kabulüdür, proje ölçüsüyle değiştirilir.
     "halat_delik_payi": 30,
-    #  Acil kurtarma ve test panosu ( TS EN 81-20 m.5.2.6.6 ) — ELEport: 400 × 300
+    #  Acil kurtarma ve test panosu ( TS EN 81-20 m.5.2.6.6 ) — referans proje: 400 × 300
     "acil_pano_en": 400, "acil_pano_derinlik": 300,
 
     #  ── KABİNİN DÜŞEY ÖLÇÜLERİ ( döşemeden, mm ) ──────────────────────
-    #  ELEport'un "Cabin at Bottom / Top Floor" kesitlerinin vektör
+    #  referans projenin "Cabin at Bottom / Top Floor" kesitlerinin vektör
     #  geometrisinden ölçüldü ( 1/30 ):  iç yükseklik 2.250, tavan 60 →
     #  tavan üstü 2.310;  taban 20 + 100;  şase alt kirişinin altı −480,
     #  üst kirişin üstü −480 + paten arası ( 3.300 ) = 2.820;  paten 140;
@@ -120,12 +120,12 @@ SABIT = {
     "tavan_kirisi": 150,
 
     #  ── KUYU ÜSTÜ DONANIMININ DÜŞEY ÖLÇÜLERİ ( makine dairesiz ) ──────
-    #  ELEport'un "Cabin at Bottom Floor", "Cabin at Top Floor" ve "Cabin
+    #  referans projenin "Cabin at Bottom Floor", "Cabin at Top Floor" ve "Cabin
     #  Sits on Buffer" kesitlerinin vektörlerinden ( 1/30 );  kuyu tavanından
     #  AŞAĞI ölçülür.  Plandaki yerleri kuyu_ustu.yerlesim'dekiyle birebir
     #  tuttu ( makine gövdesi 101 – 399, kasnak ekseni 250, bağlantılar ).
     #  Makine kapağının üstü tavanın 250 altında;  gövde Ø 298 ( makine_en ) +
-    #  kapak 47 = 345;  şase ( yan yatak, ELEport'ta UPN 200 ) → şase üstü
+    #  kapak 47 = 345;  şase ( yan yatak, referans projede UPN 200 ) → şase üstü
     #  tavandan 595, altı 795;
     #  tahrik kasnağının merkezi gövdenin ortası ( tavandan 446 ).
     "makine_tepe_boslugu": 250,
@@ -162,13 +162,13 @@ SABIT = {
     #  Hız regülatörü:  kasnak merkezi tavandan 462, gövde 433 – 645.
     "regulator_kasnak_merkez": 462,
     "regulator_govde_ust": 433, "regulator_govde_alt": 645,
-    #  Kuyu dibindeki gergi düzeni ( ELEport "Cabin at Top Floor" ):  kasnak
+    #  Kuyu dibindeki gergi düzeni ( referans proje "Cabin at Top Floor" ):  kasnak
     #  merkezi tabandan 520;  kol tabandan 500 – 540, kabin ray ekseninin 80
     #  önünden kasnağın 360 ötesine;  ağırlık 160 × 175, tabandan 390.
-    #  Ağırlığın merkezi kasnak merkezinden 300 ( ELEport regülatör hesabı:
+    #  Ağırlığın merkezi kasnak merkezinden 300 ( referans proje regülatör hesabı:
     #  "Distance from the center of the suspended weight to the center of the
     #  tension pulley A : 300 mm" ) → kasnağın 220 – 380 ötesinde.  Kesitteki
-    #  sembolden 260 – 420 ( merkez 340 ) ölçülmüştü:  ELEport'un 280'lik
+    #  sembolden 260 – 420 ( merkez 340 ) ölçülmüştü:  referans projenin 280'lik
     #  regülatör kaçıklığında ağırlık kuyudan taşıyordu.
     "gergi_kasnak_merkez": 520,
     "gergi_kol_alt": 500, "gergi_kol_yukseklik": 40, "gergi_kol_ray": 80, "gergi_kol_uc": 360,
@@ -176,7 +176,7 @@ SABIT = {
     "gergi_agirlik_yakin": 220, "gergi_agirlik_uzak": 380,
 
     #  ── KARŞI AĞIRLIK ( düşey ) ──────────────────────────────────────
-    #  ELEport "Counterweight Sits on Buffer" ( 1/30 ):  çerçeve alt kirişin
+    #  referans proje "Counterweight Sits on Buffer" ( 1/30 ):  çerçeve alt kirişin
     #  altından üst kirişin üstüne 2.920, patenler çerçevenin üstünde ve altında;
     #  kasnak merkezi üst kirişin 110 altında.  Çerçevenin yüksekliği girdidir:
     #  hesap programının AĞIRLIK PATEN ARASI ( kabin şasesindeki gibi ), patenler
@@ -185,7 +185,7 @@ SABIT = {
     "agirlik_kiris": 10,
 
     #  ── RAY KONSOLU VE EK ( düşey ) ───────────────────────────────────
-    #  ELEport "Rail Bracket 1/42":  ilk konsolun üstü kuyu tabanından 500,
+    #  referans proje "Rail Bracket 1/42":  ilk konsolun üstü kuyu tabanından 500,
     #  konsol 60 yüksek;  ray ekleri 5.000'de bir ( ray boyu ), ek laması 305.
     "konsol_ilk": 500,
     "konsol_yukseklik": 60,
@@ -193,8 +193,8 @@ SABIT = {
     "ek_lama_boyu": 305,
 
     #  ── KATLAR ───────────────────────────────────────────────────────
-    #  Kat döşemesi 150 ( LiftDesigner "Dikey 1:50" ve ELEport kesitleri );
-    #  duvardaki kapı boşluğu kapıdan 200 yüksek ( ELEport:  2.100 / 2.300 ).
+    #  Kat döşemesi 150 ( LiftDesigner "Dikey 1:50" ve referans proje kesitleri );
+    #  duvardaki kapı boşluğu kapıdan 200 yüksek ( referans proje:  2.100 / 2.300 ).
     "kat_doseme_kalinlik": 150,
     "kapi_ust_payi": 200,
     "esik_kalinlik": 30,

@@ -389,7 +389,7 @@ class ParcaTutarliligi(unittest.TestCase):
     def test_kapi_kabinin_onune_duser(self):
         g = _ornek()
         kx = g["kuyu"]["genislik"] / 2.0 + g["kabin"]["kaciklik_y"]
-        #  Örnekte kapı ekseni kabin ekseniyle aynı  ( ELEport:  1.180 )
+        #  Örnekte kapı ekseni kabin ekseniyle aynı  ( referans proje:  1.180 )
         self.assertEqual(g["kapi"]["sol_pay"] + g["kapi"]["genislik"] / 2.0, kx)
         self.assertTrue(any("kabinin önüne düşmüyor" in h
                             for h in CG.dogrula(_ornek(kapi={"sol_pay": 300}))))
@@ -734,7 +734,7 @@ class KuyuDibiYerlesim(unittest.TestCase):
     def test_kuvvet_tablosu(self):
         """Kuyu tabanı:  hesabın 9. bölümü, hesap paftasındaki adlarla;  iki
         tamponda her birine düşen de ( m.5.2.1.8.5 / 6 ).  Ray konsolu:  7. ve
-        8. bölümlerin en büyük Fx / Fy'si ( ELEport "Building Forces" gibi )."""
+        8. bölümlerin en büyük Fx / Fy'si ( referans proje "Building Forces" gibi )."""
         self.assertEqual(CKD.KUVVETLER, ("FKR", "FAR", "Fkt", "Fat", "Fx_kabin", "Fy_kabin",
                                          "Fx_agirlik", "Fy_agirlik"))
         self.assertEqual(self._tablo(CKD.ciz(_ornek())), [])      # girilmemiş:  tablo yok
@@ -849,7 +849,7 @@ class KuyuDibiYerlesim(unittest.TestCase):
         kabin tamponunun üstündeydi )."""
         projeler = list(_dip_projeler()) + [
             ("Yatarak", _ornek(kuyu_dibi={"siginma_tipi": "Yatarak"})),
-            ("Yatarak · ELEport tamponu", _ornek(kuyu_dibi={"siginma_tipi": "Yatarak",
+            ("Yatarak · referans proje tamponu", _ornek(kuyu_dibi={"siginma_tipi": "Yatarak",
                                                            "regulator_kasnak_capi": 240}))]
         for ad, g in projeler:
             e = CKD.ciz(g)
@@ -1032,8 +1032,8 @@ class KuyuUstu(unittest.TestCase):
             with self.subTest(proje=ad):
                 self.assertEqual(CKT.dogrula(g), [])
 
-    def test_elepport_olculeriyle_birebir(self):
-        """ELEport MRL paftasının vektör ölçüleri ( mm, kuyunun sol-ön iç köşesinden )."""
+    def test_referans_olculeriyle_birebir(self):
+        """referans proje MRL paftasının vektör ölçüleri ( mm, kuyunun sol-ön iç köşesinden )."""
         Y = CKT.yerlesim(_ornek())
         self.assertEqual((Y["kasnak"][0], Y["kasnak"][2]), (130, 370))
         self.assertEqual((Y["govde"][0], Y["govde"][2]), (101, 399))
@@ -1257,7 +1257,7 @@ class DuseyKesitler(unittest.TestCase):
                          {"siginma": 1194, "en_alt": 899, "etek": 564, "sase": 764})
         #  Kuyu üstü:  yükselme 150 + 90 + 35 = 275;  tavan 275 + 2.310 = 2.585,
         #  kiriş altı 5.000 − 150 = 4.850;  üst paten 275 − 480 + 3.300 + 70 = 3.165.
-        #  Makine şasesinin altı 5.000 − 250 − 345 − 200 = 4.205 ( ELEport ) ve
+        #  Makine şasesinin altı 5.000 − 250 − 345 − 200 = 4.205 ( referans proje ) ve
         #  şase soldaki patenin 0,40 m yakınında:  paten 4.205 − 3.165 = 1.040.
         #  Yakın kabin rayı şasede biter:  5.000 − 650 = 4.350 → 1.185.
         #  Korkuluk ( 3.685 ) — şase korkuluğun dışında ( 0,10 m ) → 520.
@@ -1387,7 +1387,7 @@ class TamBoyKesit(unittest.TestCase):
                     self.assertEqual({x["metin"] for x in e if x.get("ad") == "kot"},
                                      {CDU._kot(z) for z in kotlar + [-g["kuyu_dibi"]["derinlik"]] + oda})
                     #  Sol zincir:  kuyu dibi + kat yükseklikleri + son kat = kuyu yüksekliği
-                    #  ( ELEport:  1.500 + 29.000 + 5.000 = 35.500 )
+                    #  ( referans proje:  1.500 + 29.000 + 5.000 = 35.500 )
                     toplam = g["kuyu_dibi"]["derinlik"] + kotlar[-1] + dy["son_kat"]
                     metinler = {x["metin"] for x in e if x["tip"] == "olcu"}
                     self.assertIn(f"KUYU YÜKSEKLİĞİ {toplam:g}", metinler)
@@ -1424,8 +1424,8 @@ class KuyuKesitleri(unittest.TestCase):
     def _elemanlar(self, e, ad):
         return [x for x in e if x.get("ad") == ad]
 
-    def test_eleport_kotlari(self):
-        #  ELEport kesitlerinin vektörlerinden ölçülenler:  tavandan makine
+    def test_referans_kotlari(self):
+        #  referans proje kesitlerinin vektörlerinden ölçülenler:  tavandan makine
         #  kapağının üstü 250, tahrik kasnağı merkezi 446, şase 595 – 795;
         #  şasenin altındaki raylar 650'de biter, regülatör kasnağı 462,
         #  gergi kasnağı tabandan 520, karşı ağırlık çerçevesi 2.920.
@@ -1437,11 +1437,11 @@ class KuyuKesitleri(unittest.TestCase):
         self.assertEqual(T - M["kapak"][5], 250)
         self.assertEqual(T - M["kasnak"][4], 446)
         self.assertEqual((T - M["sase"][5], T - M["sase"][4]), (595, 795))
-        #  Şase ağırlık raylarının dış yüzlerinden 8 taşar:  ELEport kesitinde
+        #  Şase ağırlık raylarının dış yüzlerinden 8 taşar:  referans proje kesitinde
         #  raylar iç yüzden 627 – 1.607 ( yan kesit vektörleri ) → 619 – 1.615
         self.assertEqual(M["sase"][:4], (20, 619.0, 343.0, 1615.0))
         ustler = sorted(T - r["ust"] for r in M["raylar"])
-        #  Öbür kabin rayı ELEport'ta tavanın 50 altında biter;  tavanın en alt
+        #  Öbür kabin rayı referans projede tavanın 50 altında biter;  tavanın en alt
         #  kısmı kuyu tavanı payı ( 150 ) olunca onun 50 altında:  200 ( eskiden
         #  payın alt yüzüne tam değiyordu:  150 )
         self.assertEqual(ustler, [200, 650, 650, 650])
@@ -1499,7 +1499,7 @@ class KuyuKesitleri(unittest.TestCase):
     def test_parcalar_var_ve_gorunurluk(self):
         #  A-A kabin ekseninden karşı ağırlığa bakar:  regülatör, kabin halat
         #  bağlantısı, gergi ve öbür kabin rayı bakanın gerisinde kalır;
-        #  onlar B-B'de görünür ( ELEport da iki yan kesitte ayrı gösterir ).
+        #  onlar B-B'de görünür ( referans proje de iki yan kesitte ayrı gösterir ).
         A = ("makine", "makine_sasesi", "tahrik_kasnagi", "agirlik_baglanti", "agirlik",
              "agirlik_kasnagi", "kabin_tamponu", "agirlik_tamponu", "kat_kapisi", "kat_dosemesi",
              "tavan_kirisi")
@@ -1668,7 +1668,7 @@ class PlanSeviyeleri(unittest.TestCase):
 
 
 class KirikKesit(unittest.TestCase):
-    """Paftaya sığmayan düşey kesitte ara katlar kırılır ( ELEport, LiftDesigner )."""
+    """Paftaya sığmayan düşey kesitte ara katlar kırılır ( referans proje, LiftDesigner )."""
 
     def _yukseklik(self, e):
         return CKK._yukseklik(e, CKK.OLCEK / 20.0)
@@ -1793,8 +1793,8 @@ class MakineVeSase(unittest.TestCase):
         self.assertEqual((Y["govde"][0], Y["govde"][2]), (101, 399))
 
     def test_kuyu_ustu_sase_upn(self):
-        """2 yan yatak ( ELEport:  UPN 200 ) karşı ağırlık rayları boyunca;
-        ELEport kotları değişmez ( şase tavandan 595 – 795 );  motor plakası
+        """2 yan yatak ( referans proje:  UPN 200 ) karşı ağırlık rayları boyunca;
+        referans proje kotları değişmez ( şase tavandan 595 – 795 );  motor plakası
         700, gövdenin ortasında.  Profil hesabın yan yatağıdır:  NPU 160'ta
         şasenin üstü yine 595, altı 755."""
         for olcu, alt in ((200, 795), (160, 755)):
@@ -2154,7 +2154,7 @@ class Pafta(unittest.TestCase):
 
 
 class KapiBolgesi(unittest.TestCase):
-    """Kat kapısı ve kabin kapısı ( ELEport kuyu planı vektörleri ve kapı detayı )."""
+    """Kat kapısı ve kabin kapısı ( referans proje kuyu planı vektörleri ve kapı detayı )."""
 
     def _kutular(self, e, ad):
         return [(x["x"], x["y"], x["x"] + x["g"], x["y"] + x["d"]) for x in e if x.get("ad") == ad]
@@ -2233,8 +2233,8 @@ class KapiBolgesi(unittest.TestCase):
                 with self.subTest(montaj=montaj, on_pay=on):
                     self.assertEqual(not any("eşiğ" in x for x in h), uygun, h)
 
-    def test_eleport_kapi_zinciri(self):
-        #  ELEport:  iç yüzden kapı hattına 150, oradan ray eksenine 1.017,
+    def test_referans_kapi_zinciri(self):
+        #  referans proje:  iç yüzden kapı hattına 150, oradan ray eksenine 1.017,
         #  ray ekseninden arka iç yüze 682 ( 150 + 1.017 + 682 = 1.849 ≈ 1.850 )
         g = _ornek()
         KB = CG.kapi_bolgesi(g, CS_.sabitler())

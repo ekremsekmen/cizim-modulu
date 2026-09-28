@@ -24,7 +24,7 @@ from cizim import baglantilar as CB
 class Bakis:
     """kesit:  ( eksen, kot, yön ) — kesit düzlemi ve bakış yönü.  Düzlemin
     arkasında ( bakanın gerisinde ) kalan parçalar çizilmez:  A-A kabin
-    ekseninden karşı ağırlığa bakar ( ELEport da öbür yanı ayrı bir kesitte
+    ekseninden karşı ağırlığa bakar ( referans proje de öbür yanı ayrı bir kesitte
     gösterir ), B-B kabinin arkasından kat kapılarına."""
 
     def __init__(self, tur, G, kesit=None):
@@ -104,7 +104,7 @@ def tamponlar(e, B, kutular, taban, baba, boy, ezilme, S, ad):
 
 
 def kot_isareti(e, u, z, metin, K, yon=1.0):
-    """▽ kot işareti:  ucu döşemede, yazı yanında  ( ELEport / LiftDesigner )."""
+    """▽ kot işareti:  ucu döşemede, yazı yanında  ( referans proje / LiftDesigner )."""
     w, h = 40 * K, 55 * K
     for a, b in (((u - w, z + h), (u + w, z + h)), ((u - w, z + h), (u, z)), ((u, z), (u + w, z + h))):
         e.append(CGE._cizgi("KUYU-IC", a[0], a[1], b[0], b[1]))

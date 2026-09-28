@@ -3,7 +3,7 @@
 KUYU ÜSTÜ PLANI  ( makine dairesiz asansör — kuyu tepesinden yatay kesit )
 
 Makine dairesi olmayan asansörde makine kuyunun tepesindedir;  bu plan
-ELEport'un MRL paftasındaki "Machine Room" çiziminin karşılığıdır.  Kuyu
+referans projenin MRL paftasındaki "Machine Room" çiziminin karşılığıdır.  Kuyu
 planının duvarlarını, raylarını ve konsollarını AYNEN kullanır;  kabin ve
 karşı ağırlık yalnız izleriyle ( kesik ) görünür.  Üstüne gelenler:
 
@@ -16,10 +16,10 @@ karşı ağırlık yalnız izleriyle ( kesik ) görünür.  Üstüne gelenler:
 HALATLAR DÜŞEY İNER.  Tahrik kasnağının bir teğeti kabinin yakın halatının
 hizasındadır ( kabin kasnağının dış teğeti );  öbür teğetinden inen halat
 karşı ağırlık kasnağının teğetine düşmelidir.  Düşmüyorsa sapma ölçüyle
-gösterilir — bu ELEport'un paftasında birebir tutar ( 370 − 240 = 130 ).
+gösterilir — bu referans projenin paftasında birebir tutar ( 370 − 240 = 130 ).
 
 Bugün çizilen düzen:  karşı ağırlık yanda, kabin altı 2:1 askı ( ofisin ve
-ELEport'un düzeni ).  Öteki düzenler için doğrulama açıkça reddeder.
+referans projenin düzeni ).  Öteki düzenler için doğrulama açıkça reddeder.
 """
 from cizim import geometri as CGE
 from cizim import girdi as CG
@@ -73,7 +73,7 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
     elif mk["tip"] == "Dişli" and mk.get("yeri", "Kuyu üstü") == "Kuyu üstü":
         #  LiftDesigner'ın dişli makinesi 1.316 × 590:  kuyu tepesindeki,
         #  karşı ağırlık rayları arasındaki şaseye sığmaz;  makine dairesiz
-        #  asansörler dişlisizdir ( ofisin 4815-6'sı ve ELEport da öyle ).
+        #  asansörler dişlisizdir ( ofisin 4815-6'sı ve referans proje de öyle ).
         hata.append("Makine dairesiz ( kuyu üstü ) tesiste dişli makine çizilmez — "
                     "makine.tip Dişlisiz olmalı ya da makine.yeri Makine dairesi.")
     aski = g.get("aski") or {}
@@ -115,7 +115,7 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
 
     #  ── MAKİNE:  tahrik kasnağı + gövde ───────────────────────────────
     #  Kasnak halat çizgisinde;  gövde kasnağın ağırlık eksenine bakan
-    #  tarafında ( ELEport:  kasnak 865–970, gövde 985–1.264 ).
+    #  tarafında ( referans proje:  kasnak 865–970, gövde 985–1.264 ).
     kx0, kx1 = sorted((yakin, ag_dusus_x))
     kt = S["tahrik_kasnak_kalinlik"] / 2.0
     kasnak = (kx0, y0 - kt, kx1, y0 + kt)
@@ -127,7 +127,7 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
 
     #  ── MAKİNE ŞASESİ ( makine dairesizde ) ───────────────────────────
     #  Karşı ağırlık rayları boyunca, duvardan ağırlık tarafındaki kabin
-    #  rayına ( ELEport:  şase kabin rayına ve ağırlık raylarına oturur ).
+    #  rayına ( referans proje:  şase kabin rayına ve ağırlık raylarına oturur ).
     kab_r = sorted(CKD._raylar(taban, "kabin_ray"), key=lambda r: r[0])
     ag_r = CKD._raylar(taban, "agirlik_ray")
     yakin_ray = kab_r[0] if sol else kab_r[-1]

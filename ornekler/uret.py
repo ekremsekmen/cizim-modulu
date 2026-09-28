@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""ÖRNEK TAM PROJELER — ELEport PROJE 5 · Elevator 3  ( gerçek, yayımlanmış bir proje )
+"""ÖRNEK TAM PROJELER — yayımlanmış gerçek bir referans projenin girdileriyle
 
 İki çıktı üretir, ikisi de hesap + bütün çizimler tek paftada:
 
-  ELEport PROJE 5 - Makine Dairesiz         ELEport'un kendisi ( dişlisiz, MRL )
-  ELEport PROJE 5 - Makine Daireli Dişli    aynı asansör, makine kuyunun üstündeki
+  ÖRNEK PROJE - Makine Dairesiz             referans projenin kendisi ( dişlisiz, MRL )
+  ÖRNEK PROJE - Makine Daireli Dişli        aynı asansör, makine kuyunun üstündeki
                                             odada ve dişli ( hesap_girdi.ASANSOR_MD;
-                                            ELEport'ta yok — değişen girdiler ve
+                                            referans projede yok — değişen girdiler ve
                                             kaynakları orada )
 
 Hesap programı DEĞİŞTİRİLMEDEN, motoru çağrılarak hesaplar;  kapak ve hesap
@@ -18,7 +18,7 @@ paftaları hesap programının kendi dışa aktarımıyla TİP PROJE FORMATINA d
 Her proje için bu klasöre ( git'e girmez ):  .dwg ( AutoCAD'in AUDIT'inden
 geçirilip kaydedilir;  AutoCAD yoksa .dxf kalır ) ve .pdf ( paftanın görüntüsü;
 rsvg-convert yoksa .svg kalır ).  Köprü ( cizim/kopru.py ) gelince girdiler iki
-yerde ayrı yazılmayacak;  şimdilik ikisi de ELEport'tan elle.
+yerde ayrı yazılmayacak;  şimdilik ikisi de referans projeden elle.
 """
 import copy, os, re, shutil, subprocess, sys, tempfile
 HESAP = "/Users/ekremsekmen/mycodes/AVAN HESAPLAMA PROGRAMI"
@@ -61,7 +61,7 @@ def _dwg(dxf, dwg):
 
 
 def uret(md):
-    ad = "ELEport PROJE 5 - Makine Daireli Dişli" if md else "ELEport PROJE 5 - Makine Dairesiz"
+    ad = "ÖRNEK PROJE - Makine Daireli Dişli" if md else "ÖRNEK PROJE - Makine Dairesiz"
     ort = ORTAK_MD if md else ORTAK
     #  ── HESAP ─────────────────────────────────────────────────────────
     A = dict(ASANSOR_MD if md else ASANSOR, siginma_tipi_dip="Yatarak")
@@ -69,7 +69,7 @@ def uret(md):
     assert s.get("aktif"), s.get("hata")
     kapak = {
         "project_title": "ASANSÖR UYGULAMA PROJESİ",
-        #  BLOK:  bina bloğu — ELEport projesinde yok, boş
+        #  BLOK:  bina bloğu — referans proje projesinde yok, boş
         "capacity": "800 KG ( 10 KİŞİ )", "speed": "1,60 m/sn", "stops": "11 DURAK",
         "travel": "29000", "cabin_width": "1350", "cabin_depth": "1400",
         "standard": "TS EN 81-20", "elevator_class": "Sınıf I", "suspension": "2:1",
@@ -80,9 +80,9 @@ def uret(md):
     hesap_pdf = X_PDF.uygulama_pdf(s)
     hesap_dxf = X_DXF.proje_dxf([("Kapak", kapak_pdf), ("Uygulama Projesi", hesap_pdf)])
 
-    #  ── ÇİZİM GİRDİSİ:  ELEport'un gerçek ölçüleri ─────────────────────
+    #  ── ÇİZİM GİRDİSİ:  referans projenin gerçek ölçüleri ─────────────────────
     g = copy.deepcopy(CG.ORNEK)
-    g["proje"] = {"ad": "PROJE 5", "asansor": "Elevator 3", "olcek": 20}
+    g["proje"] = {"ad": "ÖRNEK PROJE", "asansor": "ASANSÖR 1", "olcek": 20}
     g["dusey"].update({
         "kabin_paten_arasi": A["kabin_paten_arasi"],
         "agirlik_paten_arasi": A["agirlik_paten_arasi"],

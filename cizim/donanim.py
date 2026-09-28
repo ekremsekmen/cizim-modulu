@@ -12,7 +12,7 @@ açıklıkları denetleyebilsin:
   · rayların üst uçları, konsolları, ek yerleri
   · karşı ağırlığın çerçevesi, kasnağı, patenleri
 
-Kotlar sabitler.py'deki ELEport ölçüleridir.  Düşey eksen döşeme kotudur
+Kotlar sabitler.py'deki referans proje ölçüleridir.  Düşey eksen döşeme kotudur
 ( 0 = en alt durak );  kuyu tavanı = en üst durak + son kat.
 
 Makine daireli projede makine, bağlantılar, regülatör ve kumanda panosu
@@ -20,7 +20,7 @@ kuyunun üstündeki odadadır ( yerleri makine_dairesi.yerlesim ):  oda
 döşemesi kuyu tavanıdır, parçalar oda döşemesinden yükselir, halatlar
 döşeme deliklerinden kuyuya iner.  Kuyuda raylar ve karşı ağırlık kalır;
 rayların üst ucu kuyu tavanının en alt kısmının ( tavan_kirisi ) kabin_rayi_tepe
-kadar altındadır — tavana değmez ( ELEport:  tavanın 50 altı ).
+kadar altındadır — tavana değmez ( referans proje:  tavanın 50 altı ).
 
 MAKİNE DAİRESİNİN DENETİMLERİ ( TS EN 81-20 )
   m.5.2.6.3.2.1  çalışma alanlarında temiz yükseklik ≥ 2,10 m
@@ -48,7 +48,7 @@ def _ortusur(a, b):
 
 
 def kabin_kotlari(dy, S, z):
-    """Döşemesi z kotundaki kabinin parça kotları ( ELEport kabini )."""
+    """Döşemesi z kotundaki kabinin parça kotları ( referans proje kabini )."""
     tavan = z + dy["kabin_ic_yukseklik"] + S["kabin_tavan_kalinlik"]
     sase_alt = z - S["sase_alt_derinlik"]
     sase_ust = sase_alt + dy["kabin_paten_arasi"]
@@ -65,7 +65,7 @@ def kabin_kotlari(dy, S, z):
 
 def konsol_kotlari(taban, ust, aralik, S):
     """Konsolların ÜST kotları:  tabandan konsol_ilk, sonra `aralik`;  rayın
-    üst ucunu geçmez ( ELEport:  500 + 1.500 · n )."""
+    üst ucunu geçmez ( referans proje:  500 + 1.500 · n )."""
     z, kotlar = taban + S["konsol_ilk"], []
     while z <= ust + 1e-6:
         kotlar.append(z)
@@ -148,7 +148,7 @@ def yerlesim(g, S, H, tavan, taban):
         for ad in ("sase", "kabin_baglanti", "agirlik_baglanti", "regulator"):
             p = M[ad]
             M["parcalar"].append((ad, p[:4], p[4]))
-        #  Öbür kabin rayı ELEport'ta tavanın 50 altına çıkar;  tavanın en alt
+        #  Öbür kabin rayı referans projede tavanın 50 altına çıkar;  tavanın en alt
         #  kısmı ( tavan_kirisi payı ) hesaba katılınca onun 50 altına — eskiden
         #  payın alt yüzüne tam değiyordu.
         ray_ust = {"yakin": zs - S["ray_sase_icinde"],
@@ -200,7 +200,7 @@ def yerlesim(g, S, H, tavan, taban):
 
 def _makine_parcalari(g, KU, zk, kapak):
     """Makinenin cisimleri ( makine.py ) kasnak merkezi zk kotunda;  dişlisizde
-    üstteki kapak ( ELEport'un makinesinde 47 mm ) klemens kutusu olarak."""
+    üstteki kapak ( referans projenin makinesinde 47 mm ) klemens kutusu olarak."""
     p = CMK.kaydir(KU["makine"], zk)
     if g["makine"]["tip"] == "Dişlisiz":
         p.append(CMK.kutu(*kapak[:4], kapak[4], kapak[5], parca="klemens_kutusu"))
@@ -212,7 +212,7 @@ def _makine_dairesi(g, S, tavan, M):
 
     Oda döşemesi hesap programının TABLİYESİDİR ( tabliye beton yüksekliği:
     kuyu tavanından oda döşemesinin üstüne ).  Bağlantılar ve regülatör kuyu
-    üstündekiyle aynı ürünlerdir ( ELEport ölçüleri ) ve döşemeye oturur.
+    üstündekiyle aynı ürünlerdir ( referans proje ölçüleri ) ve döşemeye oturur.
     Makine hesap programının kaidesindedir ( bölüm 2 ):  dikine kirişler
     döşemeden şase yüksekliği kadar çıkar, yan yataklar üstleri hizasında;
     saptırma kasnağı gerekiyorsa yan yataklara asılır ( LiftDesigner ).

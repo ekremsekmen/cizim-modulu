@@ -25,7 +25,7 @@ olanlar gelir:
   · RAY KONSOLUNA YATAY YÜKLER:  hesabın 7. ve 8. bölümlerindeki paten
     kuvvetlerinin bütün yük durumlarındaki EN BÜYÜĞÜ ( Fx ray ağzına yandan,
     Fy ağız doğrultusunda — EN 81-50 m.5.10.5 );  tek bir noktaya değil her
-    konsola gelir, tablo ve ray şemasıyla ( ELEport "Building Forces" gibi )
+    konsola gelir, tablo ve ray şemasıyla ( referans proje "Building Forces" gibi )
 """
 from cizim import geometri as CGE
 from cizim import girdi as CG
@@ -333,7 +333,7 @@ def yerlesim(g, cizim_sabitleri=None):
     kx = (kabin[0] + kabin[2]) / 2.0
 
     #  ── TAMPONLAR ────────────────────────────────────────────────────
-    #  Kabin tamponu kabin ekseninde, ray ekseni üstünde durur ( ELEport ve
+    #  Kabin tamponu kabin ekseninde, ray ekseni üstünde durur ( referans proje ve
     #  LiftDesigner paftaları ).  İki tamponda ray ekseni boyunca simetrik.
     #  Ağırlık tamponu ağırlığın ortasında;  iki tamponda ağırlığın boyu
     #  doğrultusunda simetrik.

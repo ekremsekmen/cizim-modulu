@@ -10,7 +10,7 @@ EKSEN DÜZENİ:  x kuyu genişliği boyunca, y derinlik;  ( 0 , 0 ) kuyu iç
 boşluğunun sol-ön ( kapı ) köşesidir.
 
 DBG / DBGW:  rayların BİRBİRİNE BAKAN YÜZLERİ arasındaki açıklıktır, eksenden
-eksene değil.  ( ELEport'un paftasında da böyle ölçülüyor:  sağ ray 1955'te
+eksene değil.  ( referans projenin paftasında da böyle ölçülüyor:  sağ ray 1955'te
 başlıyor, sol rayın yüzü 405'te bitiyor → 1550 = DBG. )  Ray, bu yüzden
 DUVARA DOĞRU kendi yüksekliği ( h ) kadar uzanır.
 """
@@ -114,7 +114,7 @@ def _yazilari_yerlestir(elemanlar, h=OLCU_YAZI):
             uclar = ([(0, bas - w / 2.0 - 30 * k)] if n == 0 else []) + \
                     ([(0, son + w / 2.0 + 30 * k)] if n == len(liste) - 1 else [])
             #  Yazı parçasına sığmıyorsa ve sıranın ucundaysa ucun dışına yazılır
-            #  ( ELEport'un "62 83"ü gibi );  sığıyorsa parçanın ortasında durur.
+            #  ( referans projenin "62 83"ü gibi );  sığıyorsa parçanın ortasında durur.
             sigmaz = w > son - bas - 20 * k
             aday = uclar + aday if sigmaz else aday + uclar
             if sigmaz and not uclar:
@@ -230,7 +230,7 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
     #  Kat kapısı ünitesi ( kasa + eşik ) montaja göre ya duvar boşluğunda
     #  ( kasa duvarda, eşik kuyuya taşar ) ya da duvarın iç yüzünde durur
     #  ( ünitenin tamamı kuyunun içinde ).  KANATLAR EŞİĞİN ÜSTÜNDEDİR:
-    #  kapalı konumda, teleskopikte iki düzlemde ( ELEport kapı detayı ).
+    #  kapalı konumda, teleskopikte iki düzlemde ( referans proje kapı detayı ).
     KB = CG.kapi_bolgesi(g, S)
     x0 = kp["sol_pay"]
     kg = kp["genislik"]
@@ -289,7 +289,7 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
         e.append(_ad(_dik("SASE", kx - dis_g / 2.0 - S["sase_dikme"], sy,
                       dis_g + 2 * S["sase_dikme"], S["sase_dikme"]), "sase_kiris"))
     #  Kabin kapısı mekanizma kutusu KABİN ÖN YÜZÜNDE durur  ( kapı ile kabin
-    #  arasında;  kullanıcı kararı — ELEport'un paftasındaki yerleşimin aynısı ).
+    #  arasında;  kullanıcı kararı — referans projenin paftasındaki yerleşimin aynısı ).
     e.append(_dik("KABIN", x0 + kg / 2.0 - S["kabin_kapisi_kutu_en"] / 2.0,
                   ic_on - S["kabin_kapisi_kutu_boy"] + 20,
                   S["kabin_kapisi_kutu_en"], S["kabin_kapisi_kutu_boy"]))
@@ -302,10 +302,10 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
     #  KARŞI AĞIRLIK YANDAYSA o taraftaki kabin rayının duvara giden konsolu
     #  ağırlığın İÇİNDEN geçerdi:  ray ekseni ağırlığın boyu içinde kalır.
     #  O ray, iki ağırlık rayı konsolunun taşıdığı dikine bir ARA KİRİŞE
-    #  bağlanır  ( ELEport'un paftasındaki çözüm ).
+    #  bağlanır  ( referans projenin paftasındaki çözüm ).
     ag_yan = ag["yeri"] if ag["yeri"] in ("Sağ", "Sol") else None
     #  KARŞI AĞIRLIĞIN EKSENİ ( yandaki ağırlıkta ):  kabin ray ekseninden
-    #  eksen_kaciklik kadar kayık — ELEport'ta 50 mm önde.  Ağırlığın halatı
+    #  eksen_kaciklik kadar kayık — referans projede 50 mm önde.  Ağırlığın halatı
     #  tahrik kasnağının altına düşsün diye kabinin ray ekseninden ayrı durur.
     ag_y = ry + ag["eksen_kaciklik"]
     ag_alt = ag_y - ag["ray_arasi"] / 2.0 - ag["h"]        # ağırlık rayı arkaları
@@ -534,7 +534,7 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
 
     #  İÇ — kabin iç genişliği ve kabin – ray boşlukları  ( kabinin arkasında;
     #  ağırlık arkadaysa o şerit dolu olduğu için kabinin içinde, önde ).
-    #  Arkadaki şerit yazıya yetmiyorsa ( ELEport:  147 mm ) kabinin içinde,
+    #  Arkadaki şerit yazıya yetmiyorsa ( referans proje:  147 mm ) kabinin içinde,
     #  arka panelin önünde durur — yazı arka duvara taşıyordu.
     arka_serit = D - (ic_on + dis_d)
     if not ag_yan:
@@ -602,7 +602,7 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
     #  Askı noktaları kabin ortasına yakınsa kabin yazısı arkaya kayar.
     kabin_yazi_y = ky if abs(aski_y - ky) >= 150 else ky + 200
     e.append(_yazi(kx, kabin_yazi_y, f"KABİN  {kb['genislik']:g} x {kb['derinlik']:g}", 55))
-    #  Ölçü zincirlerinin sıfır noktaları  ( ELEport'ta da "0" yazar )
+    #  Ölçü zincirlerinin sıfır noktaları  ( referans projede de "0" yazar )
     for zx in (0, G):
         e.append(_yazi(zx, -don - S["bina_duvari"] - 420, "0", 45))
     if ag_yan:
@@ -711,7 +711,7 @@ def zincirler(elemanlar):
 def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=()):
     """Çizimi kendi çerçevesine alır ve altına başlık şeridi ekler.
 
-    ELEport'ta da her çizim ayrı bir çerçevededir ve altında adı ile ölçeği
+    Referans projede de her çizim ayrı bir çerçevededir ve altında adı ile ölçeği
     yazar.  Çerçeve ölçüleri de kapsar;  yazılar dışarıda kalmaz.
     """
     k = olcek / 20.0                     # yazılar paftada 1/20'deki boyda kalır

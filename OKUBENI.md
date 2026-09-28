@@ -49,7 +49,7 @@ python3 -m venv .venv
 | `cizim/svg.py` | Elemanları SVG'ye yazar |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
 | `testler/` | 187 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py` ) |
-| `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( ELEport PROJE 5 ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve `hesap_girdi.py` |
+| `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 
 ## Kurallar
@@ -99,11 +99,11 @@ kullanılır; merdiven ve sığınma alanı bu kutuların dışında yerleştiri
 Kolun raydaki bağlantısı bilinçlidir; ağırlığın rayla veya tamponla
 çakışmasına izin verilmez.
 
-Gergi ağırlığının merkezi kasnak merkezinden 300 mm ötededir ( ELEport regülatör
+Gergi ağırlığının merkezi kasnak merkezinden 300 mm ötededir ( referans proje regülatör
 hesabı, "A = 300";  ağırlık 160 boyunda:  kasnağın 220 – 380 ötesi ).  Kesitteki
-sembolden 340 ölçülmüştü;  ELEport'un 280'lik regülatör kaçıklığında ağırlık
+sembolden 340 ölçülmüştü;  referans projenin 280'lik regülatör kaçıklığında ağırlık
 kuyudan taşıyor, örnek 260'a çekilmişti ( arka duvara 3 mm ).  Örnek yine
-ELEport'un 280'i:  `1167 + 280 + 380 = 1827`, duvara 23 mm.  Ağırlık duvarlara
+referans projenin 280'i:  `1167 + 280 + 380 = 1827`, duvara 23 mm.  Ağırlık duvarlara
 en az çizimin çakışma payı ( `girdi.ASGARI_ACIKLIK`, 20 ) kadar uzak durur;
 bir yönde sığmazsa kol öbür yöne döner, ikisinde de sığmazsa çizim durur.  Üst
 regülatör aynı girdiyi kullanarak gergi kasnağıyla hizalı kalır.
@@ -114,7 +114,7 @@ kabinde şasenin alt ve üst kirişine, karşı ağırlıkta çerçevenin alt ve
 ucuna ortalı — iki çerçevenin yüksekliği de hesabın paten arasıdır.  Eskiden
 paten arası şase yüksekliği gibi kullanılıp patenler onun dışına ekleniyordu
 ( merkezler kabinde 3.440, ağırlıkta 3.060 ), sonra ağırlıkta 1.500 aralıkla
-2.920'lik çerçevenin ortasına dizilmişti.  ELEport'un kendisi de tutarsız:
+2.920'lik çerçevenin ortasına dizilmişti.  Referans projenin kendisi de tutarsız:
 hesabı ağırlıkta 1.500 alır, çiziminde patenler 2.920'lik çerçevenin
 uçlarındadır;  örnek hesap girdisi çizimi izler ( 2.920 ).  Kasnağına ve
 patenlerine yetmeyen çerçeve reddedilir.
@@ -205,14 +205,14 @@ ekseninin arkasında durur ( girdi:  yan, eksene uzaklık, kasnak çapı ).
 Çizilmeyenler:  kuyu dibi durdurma düğmesi ve revizyon kutusu ( yer kuralları
 m.5.2.1.5.1 — ölçüleri yok ).
 
-**Kuyu üstü planı** ( makine dairesiz — kuyu tepesinden yatay kesit;  ELEport'un
+**Kuyu üstü planı** ( makine dairesiz — kuyu tepesinden yatay kesit;  referans projenin
 MRL paftasındaki "Machine Room" çizimi ):  duvarlar, raylar, konsollar kuyu
 planından;  kabin, karşı ağırlık ve kat kapısı yalnız izleriyle ( kesik ).
 
 - **Halatlar düşey iner.**  Tahrik kasnağının bir teğeti kabinin yakın
   halatının ( kabin kasnağının dış teğeti ) hizasındadır;  öbür teğetinden inen
   halat karşı ağırlık kasnağının teğetine düşmelidir.  Düşmüyorsa sapma
-  **HALAT SAPMASI** ölçüsüyle gösterilir.  ELEport'ta birebir tutar:
+  **HALAT SAPMASI** ölçüsüyle gösterilir.  Referans projede birebir tutar:
   370 − 240 = 130 ( ağırlık ekseni ).
 - **Makine** tahrik kasnağının ağırlık eksenine bakan tarafında;  **halat
   bağlantıları** ağırlık kasnağının öbür teğetinin ve kabinin uzak halatının
@@ -220,10 +220,10 @@ planından;  kabin, karşı ağırlık ve kat kapısı yalnız izleriyle ( kesik
 - **Acil kurtarma ve test panosu** ( m.5.2.6.6 ) kuyunun dışında, en üst katta
   kapının seçilen yanında;  önünde **0,70 m** derin, **en az 0,50 m** ya da pano
   eni kadar çalışma alanı ( m.5.2.6.6.4 → m.5.2.6.3.2.1 a ).
-- Ölçüler ELEport'un makinesinden ( `sabitler.py` ):  kasnak 240 × 105, gövde
+- Ölçüler referans projenin makinesinden ( `sabitler.py` ):  kasnak 240 × 105, gövde
   298 × 279, bağlantı plakaları 264 × 120 ve 127 × 200, regülatör 80 × 300
   ( gövde 130 × 180 ), pano 400 × 300.  Başka makinede katalogdan değiştirilir.
-- Karşı ağırlığın ekseni artık girdidir ( `agirlik.eksen_kaciklik`, ELEport
+- Karşı ağırlığın ekseni artık girdidir ( `agirlik.eksen_kaciklik`, referans proje
   −50 ):  kabin ray ekseninde sabit dururken halat ağırlık kasnağına 95 mm
   kaçık düşüyordu.
 - Bugün yalnız yandaki karşı ağırlık + kabin altı 2:1 askı çizilir;  öteki
@@ -238,7 +238,7 @@ kesit düzleminin gerisi çizilmez, bakana yakın olan öne gelir.  Tip girdiden
 
 | Tip | Kaynak | Parçalar |
 |---|---|---|
-| Dişlisiz | 4815-6 ( MRL ) | kasnak ekseni üstünde:  kasnak · göbek ø100 × 15 · flanş ø220 × 28 · yatak flanşı ø320 × 50 · gövde ø400 × 206 · fren ø320 × 70 · fren diski ø240 × 18 · enkoder ø270 × 102 ( toplam 489 ) + klemens kutusu.  Biçim bu;  ölçü projenin makine ZARFINA oranlanır ( ELEport'un makinesi ø298 × 279 ve kotları ölçülü ) |
+| Dişlisiz | 4815-6 ( MRL ) | kasnak ekseni üstünde:  kasnak · göbek ø100 × 15 · flanş ø220 × 28 · yatak flanşı ø320 × 50 · gövde ø400 × 206 · fren ø320 × 70 · fren diski ø240 × 18 · enkoder ø270 × 102 ( toplam 489 ) + klemens kutusu.  Biçim bu;  ölçü projenin makine ZARFINA oranlanır ( referans projenin makinesi ø298 × 279 ve kotları ölçülü ) |
 | Dişli | 12744-3 A 160 ( makine daireli ) | sonsuz vidalı:  motor ekseni kasnak eksenine dik — el çarkı, motor ø300 + klemens, motor flanşı, fren ve fren kasnağı ø260, dişli kutusu 320 × 260 × 422, vida yuvası, arka yatak, taban;  kasnak dişli kutusunun yanında, dış yataklı.  Zarf 1.316 × 590 × 600, kasnak ekseni tabanın 195 üstünde |
 
 Makine dairesizde yalnız dişlisiz çizilir ( dişli makine kuyu tepesindeki
@@ -252,7 +252,7 @@ anahtarları hesap programının NPU listesi ).
 
 | Şase | Nerede | Girdi | Ne |
 |---|---|---|---|
-| 2 yan yatak | kuyu üstü | `makine.yan_yatak` ( ELEport:  UPN 200, Wx 191 cm³ ) | karşı ağırlık rayları boyunca, sırtları dışta, raylara oturur ( mesnet aralığı raylar arası — hesabın L'si;  ELEport 850 );  aralarında üstle aynı hizada 700 mm motor plakası, uçlarda bağlantı levhaları.  Plakadan inen halatlar ( karşı ağırlık tarafı ve bağlantısı ) için plakada delik ( eskiden deliksiz plakanın içinden geçiyorlardı ).  Şase üstü ELEport'unki ( tavandan 595 ), altı profil yüksekliği kadar aşağıda |
+| 2 yan yatak | kuyu üstü | `makine.yan_yatak` ( referans proje:  UPN 200, Wx 191 cm³ ) | karşı ağırlık rayları boyunca, sırtları dışta, raylara oturur ( mesnet aralığı raylar arası — hesabın L'si;  referans proje 850 );  aralarında üstle aynı hizada 700 mm motor plakası, uçlarda bağlantı levhaları.  Plakadan inen halatlar ( karşı ağırlık tarafı ve bağlantısı ) için plakada delik ( eskiden deliksiz plakanın içinden geçiyorlardı ).  Şase üstü referans projeninki ( tavandan 595 ), altı profil yüksekliği kadar aşağıda |
 | Kaide | makine dairesi ( HER ZAMAN — hesap burada kolonların burkulmasını da denetler ) | `makine_dairesi.sase_yuksekligi` · `dikine_kiris` · `yan_yatak_boyu`, `makine.yan_yatak` | dört dikine kiriş ( kolon ) döşemeden şase yüksekliği kadar, üstleri hizasında iki yan yatak makinenin uzun ekseni boyunca;  dikine kirişlerin eksenleri arası = yan yatak boyu ( L ).  Uçlarda kısa kirişler UPN 100 ve ayak plakaları 150 × 150 × 20 ( LiftDesigner 12744-3 ).  Makine yan yatakların arasındaki, üstleri hizasındaki **makine plakasına** oturur ( yük iki yan yatağa — hesabın F / 2'si;  eskiden plaka yoktu, makine iki kirişin arasında havada duruyordu );  plakayı kesen halatlar için delik, eğik saptırma halatı için kestiği yerde delik, plakanın altına sarkan tahrik kasnağı için yuva;  saptırma kasnağının askıları plakaya asılır.  Enine makinenin ( ve saptırma kasnağının ) izinden her yana 100.  Ayak plakası bir döşeme deliğine basıyorsa kaide önce uzun ekseninde kayar ( 25'er ), kayacak yer yoksa enine büyür ( 200, 300 ).  Makine kaideye sığmıyorsa ( izi > L + dikine kiriş ) çizilmez, yan yatak boyunu büyütmesi söylenir |
 
 **Saptırma kasnağı** ( makine dairesi ):  karşı ağırlık halatı tahrik
@@ -276,7 +276,7 @@ halatlar aynı noktalardan iner, bu kez döşeme deliklerinden geçer.
 | Kapı en az **0,60 m** | m.5.2.3.2 a | Altı reddedilir |
 | Kumanda panosunun önünde **0,70 m** derin, **en az 0,50 m** ya da pano eni | m.5.2.6.3.2.1 a | Pano seçilen duvar boyunca kapıya en yakın boş yere;  sığmazsa reddedilir |
 | Makinenin başında **0,50 × 0,60 m** bakım alanı | m.5.2.6.3.2.1 b | Makineye bitişik ilk boş yere;  yoksa reddedilir |
-| Döşeme delikleri **amacı için en küçük** | m.5.2.6.3.3 | Halat demeti ( n halat, aralık 1,6 · dh ) + çevresine `halat_delik_payi` ( 30 mm, çizim kabulü );  regülatör halatı da aynı kuralla:  `kuyu_dibi.regulator_halat_capi` + 2 × pay ( ELEport ø6 → 66 × 66;  eskiden LiftDesigner'ın 200 × 200'ü — ø240 regülatörde iki delik arasında 40 mm, duvara 14 mm kalıyordu ) |
+| Döşeme delikleri **amacı için en küçük** | m.5.2.6.3.3 | Halat demeti ( n halat, aralık 1,6 · dh ) + çevresine `halat_delik_payi` ( 30 mm, çizim kabulü );  regülatör halatı da aynı kuralla:  `kuyu_dibi.regulator_halat_capi` + 2 × pay ( referans proje ø6 → 66 × 66;  eskiden LiftDesigner'ın 200 × 200'ü — ø240 regülatörde iki delik arasında 40 mm, duvara 14 mm kalıyordu ) |
 
 Delik planı delikleri **eksenlerinden** ölçer ve boyutlarını üstlerine yazar.
 Kapının önü ( kapı eni × 0,70 m ) boş bırakılır.  Deliklerin kenarındaki
@@ -289,7 +289,7 @@ tamponunda**, kuyu üstünde **en üst konumunda** ( karşı ağırlık tam ezil
 tamponunda + 0,035·v², m.5.2.5.6.1 Çizelge 2 ) denetlenir.  Kuyu dibi ve kuyu
 üstü ayrıca düşey detay kesitle ÇİZİLMEZ:  ofisin paftalarında ( 477-8,
 12744-3 ) ikisi de yatay kesittir ( kuyu dibi planı E-E, kuyu üstü / makine
-dairesi planı F-F ).  Kabinin düşey ölçüleri ELEport kabininden ölçüldü ( iç 2.250,
+dairesi planı F-F ).  Kabinin düşey ölçüleri referans proje kabininden ölçüldü ( iç 2.250,
 tavan 60, taban 120, şase altı −480, üst kiriş −480 + paten arası, paten 140
 ( kirişlere ortalı ),
 fren bloğu 350, kasnak merkezi −295 );  etek 750 ( m.5.4.5.1 ).
@@ -315,14 +315,14 @@ sığınma kuyu tavanına gider.  Karşı ağırlık en üst konumunda ( kabin t
 ezilmiş tamponunda + 0,035·v² ) makine şasesine çarpıyorsa çizim durur.
 
 **Kuyu dibi zinciri kabinle kapanmalı:**  kaide + tampon + çarpma arası +
-şase altı = kuyu dibi ( ELEport:  764 + 160 + 96 + 480 = 1.500 );  tutmazsa
+şase altı = kuyu dibi ( referans proje:  764 + 160 + 96 + 480 = 1.500 );  tutmazsa
 reddedilir.  **Hesap programıyla fark:**  onun sığınma satırları ofisin
 paylarıyla hesaplanır ( üst paten bir satırda 2.700, bir başkasında 2.900;
 varsayılan girdiler şase altını örtük 350 alır ) — bu kabin modeline göre
 düzeltilene kadar iki program aynı açıklığa farklı sayı verir.
 
 **Tam boy kuyu düşey kesitleri** ( 1/50, `kuyu_kesiti.py` ):  LiftDesigner'ın
-"Dikey 1:50"si gibi gerçek ölçekte, bütün duraklarla ( ELEport ara katları
+"Dikey 1:50"si gibi gerçek ölçekte, bütün duraklarla ( referans proje ara katları
 kırarak 1/30 çizer ).  İki kesit, planda A-A ve B-B işaretleriyle:
 
 | Kesit | Bakış | Kabin | Karşı ağırlık |
@@ -346,7 +346,7 @@ alttakinin işareti dışarı kayar.
 **Kesit düzleminin gerisi çizilmez:**  A-A karşı ağırlık tarafını gösterir
 ( makine, şase, ağırlık bağlantısı, ağırlık rayları ve o yandaki kabin rayı );
 öbür yandaki regülatör, kabin halat bağlantısı, gergi ve kabin rayı B-B'de
-görünür ( ELEport da iki yan kesitte ayrı gösterir ).  B-B kabinin arkasından
+görünür ( referans proje de iki yan kesitte ayrı gösterir ).  B-B kabinin arkasından
 bakar;  makine dairesinin arka yarısındaki pano görünmez.
 
 İkisinde de:  kuyu duvarları, kuyu dibi ve tavan döşemesi, kat döşemeleri
@@ -364,12 +364,12 @@ kasnağına ve bağlantıya, tahrik kasnağından ağırlık kasnağına ) ve
 öbüründe dikdörtgen görünür;  halatlar dairelere teğettir ( test ).
 
 Ölçüler:  solda kuyu dibi + kat yükseklikleri + son kat zinciri, seyir, kuyu
-yüksekliği ( ELEport:  1.500 + 29.000 + 5.000 = 35.500 );  sağda konsol
+yüksekliği ( referans proje:  1.500 + 29.000 + 5.000 = 35.500 );  sağda konsol
 zinciri tabandan tavana ( ilk konsol, konsollar arası, ray ucu ), A-A'da
 makine ( şase = yan yatak 200 · makine 345 · tepe 250 ), B-B'de karşı ağırlık ( çarpma
 arası, çerçeve );  altta kuyu derinliği / genişliği.
 
-Kuyu tepesi ve karşı ağırlığın kotları ELEport kesitlerinin vektörlerinden
+Kuyu tepesi ve karşı ağırlığın kotları referans proje kesitlerinin vektörlerinden
 ölçüldü ( `sabitler.py`, "KUYU ÜSTÜ DONANIMININ DÜŞEY ÖLÇÜLERİ" );  planda
 aynı parçaların yeri kuyu_ustu.yerlesim'dekiyle birebir tuttu.  Makinenin
 yeri `makine.yeri` ( "Kuyu üstü" / "Makine dairesi" ).
@@ -378,7 +378,7 @@ Kuyu tavanının en alt kısmı ( hesap programının "kuyu tavanı payı", 150:
 kirişler vb. ) bir KABULDÜR:  kesitte kesik bir sınır çizgisi olarak çizilir
 ( eskiden taralı bir beton katman gibi çiziliyor, tavan iki kat kalın
 görünüyordu ).  Raylar ona değmez:  şasede bitmeyen raylar bu çizginin
-`kabin_rayi_tepe` ( 50, ELEport'ta tavanın 50 altı ) altında biter — eskiden
+`kabin_rayi_tepe` ( 50, referans projede tavanın 50 altı ) altında biter — eskiden
 uzak kabin rayı ( makine dairelide bütün raylar ) çizgiye tam değiyordu.
 
 **Makine daireli projede** oda kuyunun üstündedir ( plan yeri
@@ -409,7 +409,7 @@ Yazılar, oklar, kalem kalınlıkları ve tarama 1/20'ye göre tanımlıdır;  b
 
 ## Kapı bölgesi ( kat kapısı · eşikler · kabin kapısı )
 
-Ölçüler ELEport'un kuyu planı vektörlerinden ve "Door Detail 1/35" paftasından:
+Ölçüler referans projenin kuyu planı vektörlerinden ve "Door Detail 1/35" paftasından:
 kat kapısı ünitesi kasa 60 + eşik 90;  kanatlar 40 kalın ve **EŞİĞİN ÜSTÜNDE**
 ( teleskopikte iki düzlem, 45 arayla );  kabin eşiği 90, kabin kapısı
 kanatları onun üstünde.  `kapi.montaj`:
@@ -417,12 +417,12 @@ kanatları onun üstünde.  `kapi.montaj`:
 | Montaj | Kasa | Kat eşiği | Kapı hattı | m.5.2.5.3.1'in "kuyu iç yüzü" |
 |---|---|---|---|---|
 | Duvar boşluğuna | −60 – 0 ( duvarda ) | 0 – 90 | 90 | duvar |
-| Kuyu içine ( ELEport ) | 0 – 60 | 60 – 150 | 150 | kapı hattı ( kapı altı / üstü sac kaplama ) |
+| Kuyu içine ( referans proje ) | 0 – 60 | 60 – 150 | 150 | kapı hattı ( kapı altı / üstü sac kaplama ) |
 
 Açıklıklar kabin EŞİĞİNİN ön kenarından ölçülür:  eşik aralığı 0 – 35 mm
 ( m.5.3.4.1 ), kuyu yüzü – kabin eşiği ≤ 150 ( m.5.2.5.3.1 ).  `kabin_ray.kapi_arasi`
 kuyunun ön İÇ yüzünden ölçülür — hesap programının RK'sı kapı hattındandır
-( ELEport:  iç yüzden 1.167 = kapı hattından 1.017 ).
+( referans proje:  iç yüzden 1.167 = kapı hattından 1.017 ).
 
 Kapının olduğu duvar boşluğun iki yanında iki parçadır, tarama boşluktan
 geçmez:  kuyu planında ( C-C, kapı hizası ) ön duvar kapı boşluğunda ( duvar
@@ -432,13 +432,13 @@ ya da altından kesilen planlarda ( kabin üstü, kuyu dibi, kuyu üstü, delik
 planı ) ön duvar kesintisizdir ( `geometri.plan(…, kapi_duzeyi=False)` ).
 
 ( Eskiden kanatlar eşiğin arkasına, kabin eşiğinin ve kabinin içine düşüyordu;
-örnek girdi ELEport'un 1017'sini iç yüzden okuyup arka duvarı 150 mm geride
+örnek girdi referans projenin 1017'sini iç yüzden okuyup arka duvarı 150 mm geride
 bırakıyordu.  Duvar taraması da kapı boşluklarından geçiyordu — önizleme
 taramayı seyrek çizdiği için görünmüyordu, DWG'de vardı.  Hepsi düzeltildi. )
 
 ## Tam proje ( hesap + çizim, tek pafta )
 
-`ornekler/uret.py` gerçek bir projenin ( ELEport PROJE 5 · Elevator 3 )
+`ornekler/uret.py` yayımlanmış gerçek bir referans projenin
 girdileriyle hesap programının MOTORUNU çağırır ( program değiştirilmez ),
 kapak ve hesap paftalarını hesap programının kendi dışa aktarımıyla şablona
 dizer, çizimleri `pafta.birlestir` ile son hesap sayfasının sağına ekler.  İki
@@ -447,8 +447,8 @@ kaydedilir ) + `.pdf` ( paftanın görüntüsü );  git'e girmezler:
 
 | Örnek | Ne |
 |---|---|
-| ELEport PROJE 5 - Makine Dairesiz | ELEport'un kendisi:  dişlisiz, kuyu üstünde |
-| ELEport PROJE 5 - Makine Daireli Dişli | aynı asansör ( kuyu, kabin, raylar, halatlar, tamponlar ), makine kuyunun üstündeki odada, dişli ( ELEport'ta yok ).  Değişen girdiler ve kaynakları `hesap_girdi.ASANSOR_MD`'de:  Gm 350 ( ofisin 12744-3 hesabı, A 160 ), verim ofisin dişli sabiti 0,50 → gereken 12,75 kW, motor bir üstteki IEC gücü 15 kW;  tabliye ve kaide hesap programının varsayılanları ( 1.200 · 1.100 · NPU 120 · NPU 140 · 1.400 ), oda 3.800 × 2.600.  Tst ELEport makinesinin 3.400'ü ( A 160'ın katalog değeri elde yok ) |
+| ÖRNEK PROJE - Makine Dairesiz | referans projenin kendisi:  dişlisiz, kuyu üstünde |
+| ÖRNEK PROJE - Makine Daireli Dişli | aynı asansör ( kuyu, kabin, raylar, halatlar, tamponlar ), makine kuyunun üstündeki odada, dişli ( referans projede yok ).  Değişen girdiler ve kaynakları `hesap_girdi.ASANSOR_MD`'de:  Gm 350 ( ofisin 12744-3 hesabı, A 160 ), verim ofisin dişli sabiti 0,50 → gereken 12,75 kW, motor bir üstteki IEC gücü 15 kW;  tabliye ve kaide hesap programının varsayılanları ( 1.200 · 1.100 · NPU 120 · NPU 140 · 1.400 ), oda 3.800 × 2.600.  Tst referans proje makinesinin 3.400'ü ( A 160'ın katalog değeri elde yok ) |
 
 Çizim girdisi hesap girdisinden kurulur ve betik tutarlılığı DENETLER:  makine
 tipi, yeri, tahrik kasnağı, yan yatak aynı;  makine dairesinde tabliye, kaide ve
@@ -456,13 +456,13 @@ oda ölçüleri aynı;  kuyu üstünde yan yatak boyu ( L ) karşı ağırlık r
 arasına eşit;  çizimin halat geometrisinden çıkan sarım açısı hesabın α'sına
 eşit;  tampon adetleri aynı.  Birisi tutmazsa proje üretilmez.
 
-Makine dairesiz tesiste makine şasesi raylara oturur ( ELEport "Motor Bedplate
+Makine dairesiz tesiste makine şasesi raylara oturur ( referans proje "Motor Bedplate
 Calculation" ):  hesap girdisinde "Makine yükünün yolu = Kılavuz raylara" ve
-makine ağırlığı 250 kg ( ELEport motoru ).  Hesap programı bir raya
-( Gm + Tst ) / 4 = 4.490 N yükler ( m.5.7.2.3.7 );  ELEport aynı yere kendi
+makine ağırlığı 250 kg ( referans proje motoru ).  Hesap programı bir raya
+( Gm + Tst ) / 4 = 4.490 N yükler ( m.5.7.2.3.7 );  referans proje aynı yere kendi
 kabulüyle 800 kg ( ray hesabında 1.000 kg ) koyar.  **Hesap programının
 modelinde olmayanlar** ( çizim işi bitince ele alınacak ):  şasenin kendi
-ağırlığı ( ELEport 150 kg ) ve şaseye bağlı halat bağlantısının yükü ( ELEport
+ağırlığı ( referans proje 150 kg ) ve şaseye bağlı halat bağlantısının yükü ( referans proje
 M3 = 686 kg ).
 
 ## Pafta ( TİP PROJE FORMATI )
@@ -481,7 +481,7 @@ desenlerini yeniden kurar — DXF'e dokunulmaz, AutoCAD deseni zaten doğru
 ölçekler.  Önizleme Pillow ister ( `requirements.txt` ).
 
 **Kırık kesit:**  1/50 düşey kesit 600 mm'lik paftaya sığmazsa ara katlar
-kırılır ( ELEport ve LiftDesigner gibi ):  alttan ve üstten SIĞAN EN ÇOK
+kırılır ( referans proje ve LiftDesigner gibi ):  alttan ve üstten SIĞAN EN ÇOK
 durak kalır, kırık kabine ve karşı ağırlığa değmez;  kırığı geçen ölçüler
 gerçek değerini yazar ( "5 × 3000", "SEYİR 21000" ).
 
@@ -512,7 +512,7 @@ verilir;  uzatma çizgileri kısadır, planı kesmez.
 
 ## Ölçülerin kaynağı
 
-`cizim/sabitler.py` içindeki ürün ölçüleri ve `girdi.ORNEK`, ELEport'un
+`cizim/sabitler.py` içindeki ürün ölçüleri ve `girdi.ORNEK`, referans projenin
 yayımlanmış örnek projesinin çizim geometrisinden ölçülerek alındı ( karşı
 ağırlık çerçevesi 790 × 160, kapı kasaya 610 → boşluğa 730, kasnaklar arası
 690 + 690 = 1.380, ara kiriş 50 );  ölçek 1/20 üzerinden

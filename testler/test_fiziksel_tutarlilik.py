@@ -75,9 +75,9 @@ class FizikselTutarlilik(unittest.TestCase):
         300 reddedilir ( arkada 3 mm, öbür yönde ağırlık raya biner )."""
         from cizim import girdi as CG_, sabitler as CS_
         S = CS_.sabitler()
-        #  ELEport regülatör hesabı:  ağırlığın merkezi kasnak merkezinden A = 300
+        #  referans proje regülatör hesabı:  ağırlığın merkezi kasnak merkezinden A = 300
         self.assertEqual((S['gergi_agirlik_yakin'] + S['gergi_agirlik_uzak']) / 2.0, 300)
-        self.assertEqual(G.ORNEK['kuyu_dibi']['regulator_kaciklik'], 280)          # ELEport
+        self.assertEqual(G.ORNEK['kuyu_dibi']['regulator_kaciklik'], 280)          # referans proje
         self.assertEqual(D.dogrula(_ornek()), [])
         self.assertTrue(D.dogrula(_ornek(kuyu_dibi={'regulator_kaciklik': 300})))
         #  Kaçıklık −780:  önde ağırlık ön duvara 7 mm kalırdı — kol arkaya döner, kabul
@@ -181,7 +181,7 @@ class FizikselTutarlilik(unittest.TestCase):
     def test_raylar_tavana_degmez_ve_tavan_payi_beton_degil(self):
         """Tavanın en alt kısmı ( kuyu tavanı payı ) bir kabuldür:  kesikle
         çizilir, taralı katman değildir.  Hiçbir ray ona değmez — en az
-        kabin_rayi_tepe ( ELEport 50 ) altında biter;  eskiden uzak kabin rayı
+        kabin_rayi_tepe ( referans proje 50 ) altında biter;  eskiden uzak kabin rayı
         ( makine dairelide bütün raylar ) payın alt yüzüne tam değiyordu."""
         for g in (_ornek(), _ornek(makine={'yeri': 'Makine dairesi'})):
             Y = K.yerlesim(g)
