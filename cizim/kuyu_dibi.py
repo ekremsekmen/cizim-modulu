@@ -261,6 +261,24 @@ def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar):
     return yeni
 
 
+def gergi_parcalari(g, S, kasnak):
+    """Gerginin ortak plan kutuları; kol rayı, kasnağı ve ağırlığı birleştirir."""
+    gx, gy = _merkez(kasnak)
+    ry = g["kabin_ray"]["kapi_arasi"]
+    yon = 1.0 if gy >= ry else -1.0
+    D = g["kuyu"]["derinlik"]
+    if not 0 <= gy + yon * S["gergi_agirlik_uzak"] <= D:
+        yon = -yon
+    agirlik_y = sorted((gy + yon * S["gergi_agirlik_yakin"],
+                        gy + yon * S["gergi_agirlik_uzak"]))
+    en = S["gergi_agirlik_uzak"] - S["gergi_agirlik_yakin"]
+    # Yön ters dönse de kolun zarfı kasnak milini ve raydaki mesnedi içerir.
+    kol_y = (min(ry - S["gergi_kol_ray"], gy, gy + yon * S["gergi_kol_uc"]),
+             max(ry + S["gergi_kol_ray"], gy, gy + yon * S["gergi_kol_uc"]))
+    return {"kol": (kasnak[0], kol_y[0], kasnak[2], kol_y[1]),
+            "agirlik": (gx - en / 2.0, agirlik_y[0], gx + en / 2.0, agirlik_y[1])}
+
+
 def yerlesim(g, cizim_sabitleri=None):
     """Kuyu dibinin yerleşimi — çizim de doğrulama da bunu kullanır."""
     S = CS.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
@@ -297,7 +315,7 @@ def yerlesim(g, cizim_sabitleri=None):
     if hata:
         return {"hata": hata}
 
-    taban = CGE.plan(g, S)
+    taban = CGE.plan(g, S, kapi_duzeyi=False)
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
     kabin = _kutu(next(el for el in taban if el.get("ad") == "kabin_dis"))
     blok = _kutu(next(el for el in taban if el.get("ad") == "agirlik_blok"))
@@ -355,6 +373,7 @@ def yerlesim(g, cizim_sabitleri=None):
     gx, gy = _merkez(ray)[0], ry + kd["regulator_kaciklik"]
     dg_, eg = kd["regulator_kasnak_capi"] / 2.0, S["gergi_kasnak_eni"] / 2.0
     gergi = (gx - eg, gy - dg_, gx + eg, gy + dg_)
+    gergi_donanim = gergi_parcalari(g, S, gergi)
 
     #  ── MERDİVEN  ( m.5.2.2.4 · Ek F ) ───────────────────────────────
     #  Yan duvara yaslı saklanır, kapıya yakın yan seçilir.  Kuyu dibi
@@ -362,7 +381,7 @@ def yerlesim(g, cizim_sabitleri=None):
     kp = g["kapi"]
     x0, x1 = kp["sol_pay"], kp["sol_pay"] + kp["genislik"]
     sabit = konsollar + kabin_raylari + agirlik_raylari + [blok] + kabin_tamponlari + \
-        agirlik_tamponlari + [gergi]
+        agirlik_tamponlari + [gergi] + list(gergi_donanim.values())
     merdiven = None
     if kd["derinlik"] <= MERDIVEN_AZAMI_DERINLIK:
         me, md = S["merdiven_eni"], S["merdiven_derinlik"]
@@ -393,6 +412,15 @@ def yerlesim(g, cizim_sabitleri=None):
                 hata.append(f"{ad.capitalize()} kuyunun dışına taşıyor.")
             elif any(_ortusur(k, p) for p in konsollar + kabin_raylari + agirlik_raylari):
                 hata.append(f"{ad.capitalize()} bir ray ya da konsolla çakışıyor.")
+    for ad, parca in gergi_donanim.items():
+        if parca[0] < 0 or parca[1] < 0 or parca[2] > G or parca[3] > D:
+            hata.append(f"Regülatör gergisi {ad} kuyunun dışına taşıyor.")
+        # Kol raydaki mesnede bağlanır; ağırlık rayların içine giremez.
+        engeller = kabin_tamponlari + agirlik_tamponlari
+        if ad == "agirlik":
+            engeller += kabin_raylari + agirlik_raylari
+        if any(_ortusur(parca, p) for p in engeller):
+            hata.append(f"Regülatör gergisi {ad} tampon veya rayla çakışıyor.")
     for k in agirlik_tamponlari:
         if not (blok[0] <= _merkez(k)[0] <= blok[2] and blok[1] <= _merkez(k)[1] <= blok[3]):
             hata.append("Ağırlık tamponu karşı ağırlığın altına düşmüyor — tamponlar arasını daraltın.")
@@ -432,7 +460,7 @@ def yerlesim(g, cizim_sabitleri=None):
     return {"taban": taban, "kabin": kabin, "blok": blok, "kabin_raylari": kabin_raylari,
             "agirlik_raylari": agirlik_raylari, "kabin_tamponlari": kabin_tamponlari,
             "agirlik_tamponlari": agirlik_tamponlari, "perde": perde, "gergi": gergi,
-            "merdiven": merdiven, "siginma": siginma, "siginma_tipi": tip, "hata": hata,
+            "gergi_donanim": gergi_donanim, "merdiven": merdiven, "siginma": siginma, "siginma_tipi": tip, "hata": hata,
             "S": S, "ag_yan": ag_yan}
 
 
@@ -470,6 +498,10 @@ def ciz(g, cizim_sabitleri=None):
     e.append(CGE._ad(CGE._cizgi("PERDE", *p), "perde"))
     gr = Y["gergi"]
     e.append(CGE._ad(CGE._dik("KASNAK", gr[0], gr[1], gr[2] - gr[0], gr[3] - gr[1]), "gergi"))
+    for ad, kutu in Y["gergi_donanim"].items():
+        e.append(CGE._ad(CGE._dik("KONSOL" if ad == "kol" else "MAKINE",
+                                  kutu[0], kutu[1], kutu[2] - kutu[0], kutu[3] - kutu[1]),
+                         "gergi_" + ad))
     if Y["merdiven"]:
         m = Y["merdiven"]
         e.append(CGE._ad(CGE._dik("MERDIVEN", m[0], m[1], m[2] - m[0], m[3] - m[1]), "merdiven"))

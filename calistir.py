@@ -2,7 +2,7 @@
 """
 ÖRNEK ÇİZİM ÜRETİCİ
 
-    python3 calistir.py                 → ornekler/ klasörüne SVG + DXF yazar
+    python3 calistir.py                 → cikti/ klasörüne SVG + DXF yazar ( git'e girmez )
     python3 calistir.py --aski Doğrudan → 1:1 askı düzeniyle
     python3 calistir.py --cizim kabin_ustu → kabin üstü planı
     python3 calistir.py --cizim kuyu_dibi  → kuyu dibi planı
@@ -11,7 +11,7 @@
     python3 calistir.py --cizim kuyu_kesiti_yan / kuyu_kesiti_on → tam boy A-A / B-B ( 1/50 )
     python3 calistir.py --cizim kuyu_kesiti_on --makine "Makine dairesi" → makine daireli
     python3 calistir.py --cizim makine_dairesi --makine "Makine dairesi" --makine_tipi Dişli
-    python3 calistir.py --pafta          → bütün çizimler TİP PROJE FORMATINDA ( ornekler/pafta.dxf )
+    python3 calistir.py --pafta          → bütün çizimler TİP PROJE FORMATINDA ( cikti/pafta.dxf )
 
 Hesap programından BAĞIMSIZDIR;  girdiyi cizim/girdi.py içindeki ÖRNEK
 sözlüğünden alır.  İleride köprü ( cizim/kopru.py ) bu sözlüğü hesabın
@@ -49,13 +49,13 @@ def uret(g, ad, baslik, olcek=20, cizim="kuyu_plani"):
         return 1
     elemanlar = CGE.cerceveli(ciz(g), baslik, olcek,
                               seritler=(f"{g['proje']['ad']}  ·  {g['proje']['asansor']}",))
-    klasor = os.path.join(KOK, "ornekler")
+    klasor = os.path.join(KOK, "cikti")
     os.makedirs(klasor, exist_ok=True)
     svg = CSV.yaz(elemanlar, CGE.sinir(elemanlar, 120 * olcek / 20.0), "", olcek)
     open(os.path.join(klasor, ad + ".svg"), "w", encoding="utf-8").write(svg)
     open(os.path.join(klasor, ad + ".dxf"), "wb").write(CDX.yaz(elemanlar, "", olcek))
     olcu = sum(1 for x in elemanlar if x["tip"] == "olcu")
-    print(f"{ad}:  {len(elemanlar)} eleman · {olcu} ölçü  →  ornekler/{ad}.svg + .dxf")
+    print(f"{ad}:  {len(elemanlar)} eleman · {olcu} ölçü  →  cikti/{ad}.svg + .dxf")
     return 0
 
 
@@ -65,11 +65,11 @@ def pafta_uret(g, ad):
     except ValueError as h:
         print(h)
         return 1
-    klasor = os.path.join(KOK, "ornekler")
+    klasor = os.path.join(KOK, "cikti")
     os.makedirs(klasor, exist_ok=True)
     d.saveas(os.path.join(klasor, ad + ".dxf"))
     open(os.path.join(klasor, ad + ".svg"), "w", encoding="utf-8").write(CPF.onizleme(d))
-    print(f"{ad}:  {len(bilgi['cizimler'])} çizim → ornekler/{ad}.dxf + .svg ( önizleme )")
+    print(f"{ad}:  {len(bilgi['cizimler'])} çizim → cikti/{ad}.dxf + .svg ( önizleme )")
     for c in bilgi["cizimler"]:
         x0, y0, x1, y1 = c["kutu"]
         print(f"   1/{c['olcek']:<3g} {x1 - x0:6.1f} × {y1 - y0:5.1f} mm   {c['baslik']}")
@@ -96,6 +96,10 @@ def main(argv):
         g["aski"]["duzen"] = a.aski
     if a.agirlik:
         g["agirlik"]["yeri"] = a.agirlik
+        if a.agirlik == "Sağ":
+            g["kabin"]["kaciklik_y"] = -g["kabin"]["kaciklik_y"]
+            g["kapi"]["sol_pay"] = (g["kuyu"]["genislik"]
+                                      - g["kapi"]["sol_pay"] - g["kapi"]["genislik"])
         if a.agirlik == "Arka":
             #  Arkadaki ağırlık kabinin arkasına sığmalı ( m.5.2.5.5.1 h, 50 mm ):
             #  örnek kuyu 2.100 derinlikte, kabin ortada, kapı ona göre

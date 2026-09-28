@@ -1,10 +1,11 @@
 __pycache__/
 *.pyc
 .venv/
-ornekler/*.png
 .DS_Store
-# Tam proje çıktıları büyük;  uret.py yeniden üretir
-ornekler/tam_proje/*.dxf
-ornekler/tam_proje/*.dwg
-ornekler/tam_proje/*.pdf
-ornekler/tam_proje/*.svg
+# Örnek tam projeler büyük;  ornekler/uret.py yeniden üretir
+ornekler/*.dxf
+ornekler/*.dwg
+ornekler/*.pdf
+ornekler/*.svg
+# calistir.py'nin tek tek çizimleri
+cikti/

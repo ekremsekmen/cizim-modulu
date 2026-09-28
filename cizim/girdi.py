@@ -12,6 +12,13 @@ EKSEN DÜZENİ  ( plan )
     Kuyu iç boşluğunun sol-ön köşesi orijindir.
 """
 
+import math
+
+
+def _sonlu_sayi(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+
+
 #  Hiçbir değer "varsayılan" değildir:  çizim uydurma ölçüyle çizilmez.
 #  Eksik anahtar dogrula() tarafından reddedilir.
 #  ASKI DÜZENİ:  kasnakların ve askı noktalarının yeri buradan gelir.
@@ -105,7 +112,7 @@ def dogrula(g):
                 if v not in KAPI_MONTAJLARI:
                     hata.append(f"kapi.montaj: {KAPI_MONTAJLARI} içinden olmalı ( {v!r} ).")
                 continue
-            if not isinstance(v, (int, float)) or isinstance(v, bool):
+            if not _sonlu_sayi(v):
                 hata.append(f"{bolum}.{a}: sayı olmalı ( {v!r} ).")
             elif a in ("kaciklik_y", "eksen_kaciklik"):
                 continue                      # işaretli olabilir
@@ -166,6 +173,20 @@ def dogrula(g):
     if ag["genislik"] >= ag["ray_arasi"]:
         hata.append(f"Karşı ağırlık genişliği ({ag['genislik']:g}) ağırlık rayları arasından "
                     f"( DBGW {ag['ray_arasi']:g} ) küçük olmalı — çerçeve iki rayın arasında durur.")
+    # Rayların arkasındaki konsol plakaları da kuyu içinde kalmalı.
+    # Yan yerleşimde bu zarf derinlikte, arka yerleşimde genişliktedir.
+    ray_yari = ag["ray_arasi"] / 2.0 + ag["h"] + S["konsol_agirlik_boy"] / 2.0
+    if ag["yeri"] in ("Sağ", "Sol"):
+        tasiyor = (ag_y - ray_yari < 0 or ag_y + ray_yari > k["derinlik"]
+                   or ex - ag["b"] / 2.0 < 0 or ex + ag["b"] / 2.0 > k["genislik"]
+                   or S["konsol_agirlik_en"] > k["genislik"])
+    else:
+        tasiyor = (k["genislik"] / 2.0 - ray_yari < 0
+                   or k["genislik"] / 2.0 + ray_yari > k["genislik"]
+                   or ey - ag["b"] / 2.0 < 0 or ey + ag["b"] / 2.0 > k["derinlik"]
+                   or S["konsol_agirlik_en"] > k["derinlik"])
+    if tasiyor:
+        hata.append("Karşı ağırlık rayları veya konsolları kuyunun dışına taşıyor.")
     sase_dis = kabin_kutu[2] - kabin_kutu[0]
     if sase_dis >= g["kabin_ray"]["arasi"]:
         hata.append(f"Kabin şasesinin dış genişliği ({sase_dis:g}) kabin rayları arasından "
@@ -198,12 +219,18 @@ def dogrula(g):
         tur, cap, aralik, kaciklik = _aski_olculeri(g)
         gerekli = [("aralık", aralik)] + ([("kasnak çapı", cap)] if tur == "kasnak" else [])
         for ad, v in gerekli:
-            if not isinstance(v, (int, float)) or isinstance(v, bool) or v <= 0:
+            if not _sonlu_sayi(v) or v <= 0:
                 hata.append(f"aski: {ad} sıfırdan büyük bir sayı olmalı ( {v!r} ).")
-        if isinstance(aralik, (int, float)) and not isinstance(aralik, bool):
-            yari = aralik / 2.0 + (cap / 2.0 if tur == "kasnak" and isinstance(cap, (int, float)) else 0)
+        if not _sonlu_sayi(kaciklik):
+            hata.append(f"aski: kaçıklık sonlu bir sayı olmalı ( {kaciklik!r} ).")
+        if (all(_sonlu_sayi(v) and v > 0 for _, v in gerekli)
+                and _sonlu_sayi(kaciklik)):
+            yari = aralik / 2.0 + (cap / 2.0 if tur == "kasnak" else 45.0)
             kx = k["genislik"] / 2.0 + kb["kaciklik_y"]
-            if kx - yari < 0 or kx + yari > k["genislik"]:
+            aski_y = kb["on_pay"] + (kb["derinlik"] + S["kabin_pano_arka"]) / 2.0 + kaciklik
+            yari_y = S["kabin_kasnak_genislik"] / 2.0 if tur == "kasnak" else 45.0
+            if (kx - yari < 0 or kx + yari > k["genislik"]
+                    or aski_y - yari_y < 0 or aski_y + yari_y > k["derinlik"]):
                 hata.append("Askı kasnakları / noktaları kuyunun dışına taşıyor.")
 
     #  KAPI AÇIKLIKLARI — standardın kendi sınırları, kabin EŞİĞİNİN ön
@@ -270,11 +297,12 @@ ORNEK = {
     #  programında zaten vardır ( kuyu dibi yüksekliği KY, "Kuyu dibi sığınma
     #  hacmi tipi", kabin / ağırlık tamponu adedi );  köprü onları taşır.
     #  Regülatör gergi kasnağı ELEport paftasındaki gibi karşı ağırlığın
-    #  karşısındaki kabin rayının hizasında, ray ekseninin 280 mm arkasında
-    #  ( ELEport:  eksenden 160, kasnak boyu 240 ).
+    #  karşısındaki kabin rayının hizasında, ray ekseninin 260 mm arkasında
+    #  Gergi ağırlığının 420 mm uzantısı da sığsın diye 280 yerine 260:
+    #  1167 + 260 + 420 = 1847 < 1850. Üst regülatör de aynı ekseni kullanır.
     "kuyu_dibi": {"derinlik": 1500, "siginma_tipi": "Çömelme",
                   "kabin_tampon_adedi": 1, "agirlik_tampon_adedi": 1,
-                  "regulator_yan": "Sağ", "regulator_kaciklik": 280,
+                  "regulator_yan": "Sağ", "regulator_kaciklik": 260,
                   "regulator_kasnak_capi": 300},
     #  DÜŞEY:  kabinin iç yüksekliği ve paten arası, son kat yüksekliği,
     #  beyan hızı, duraklar ve tamponlar — hepsi hesap programında var
@@ -282,7 +310,7 @@ ORNEK = {
     #  çarpma arası ).  Kuyu dibi ELEport'unki:  1.500 = kaide 764 + tampon
     #  160 + çarpma arası 96 + kabinin şase altı 480.  Son kat ELEport 5.000.
     #  Duraklar:  8 × 3.000 → seyir 21 m ( hesap programının varsayılanı ).
-    "dusey": {"kabin_ic_yukseklik": 2250, "kabin_paten_arasi": 3300,
+    "dusey": {"kabin_ic_yukseklik": 2250, "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 1500,
               "son_kat": 5000, "beyan_hizi": 1.0, "durak_adedi": 8, "kat_yuksekligi": 3000,
               "kabin_tampon_baba": 764, "kabin_tampon_boyu": 160, "kabin_carpma_arasi": 96,
               "kabin_tampon_ezilme": 90, "agirlik_tampon_baba": 300, "agirlik_tampon_boyu": 160,
@@ -296,7 +324,11 @@ ORNEK = {
     #  "Makine dairesi";  hesap programındaki "Makine dairesiz ( MRL )" seçimi.
     #  Makine tipi:  hesap programının "Makine tipi" ( Dişlisiz / Dişli );  çizim
     #  makineyi buna göre çizer ( makine.py:  LiftDesigner makineleri ).
-    "makine": {"tahrik_kasnak_capi": 240, "yeri": "Kuyu üstü", "tip": "Dişlisiz"},
+    #  Yan yatak:  hesap programının "F ( yan yatak — makine kirişi )" NPU'su —
+    #  makinenin oturduğu iki kiriş ( kuyu üstünde raylara, makine dairesinde
+    #  kaidenin dikine kirişlerine oturur ).  ELEport:  UPN 200 ( şase hesabında
+    #  Wx 191 cm³ ).
+    "makine": {"tahrik_kasnak_capi": 240, "yeri": "Kuyu üstü", "tip": "Dişlisiz", "yan_yatak": 200},
     #  Kuyu üstü planı ( makine dairesiz ):  acil kurtarma panosu en üst
     #  kattaki kapının hangi yanında.
     "kuyu_ustu": {"acil_pano_yan": "Sol"},
@@ -310,9 +342,16 @@ ORNEK = {
     "makine_dairesi": {"genislik": 2600, "derinlik": 3800, "duvar": 200, "x": -250, "y": -150,
                        "kapi_duvar": "Arka", "kapi_konum": 300, "kapi_genislik": 800,
                        "pano_duvar": "Sağ",
-                       #  Düşey kesit için:  iç ( temiz ) yükseklik ve döşeme kalınlığı
-                       #  ( LiftDesigner "477-8":  3.500 ve 150;  çatı döşemesi de
-                       #  aynı kalınlıkta çizilir ).  Kapı yüksekliği:  TS EN 81-20
-                       #  m.5.2.3.2 a'nın en azı 2.000.
-                       "yukseklik": 3500, "doseme": 150, "kapi_yukseklik": 2000},
+                       #  Düşey kesit için:  iç ( temiz ) yükseklik ( LiftDesigner
+                       #  "477-8":  3.500 ).  Kapı yüksekliği:  TS EN 81-20 m.5.2.3.2 a'nın
+                       #  en azı 2.000.
+                       "yukseklik": 3500, "kapi_yukseklik": 2000,
+                       #  Hesap programının makine dairesi girdileri ( adları aynı;
+                       #  değerler o programın varsayılanları ):  tabliye beton
+                       #  yüksekliği = oda döşemesinin ( kuyunun üstündeki betonun )
+                       #  kalınlığı;  makine kaidesi:  şase yüksekliği ( dikine kirişin
+                       #  boyu, döşemeden kaidenin üstüne ), dikine kiriş NPU'su ve yan
+                       #  yatakların mesnet aralığı.
+                       "tabliye_yuksekligi": 1200, "sase_yuksekligi": 1100, "dikine_kiris": 120,
+                       "yan_yatak_boyu": 1400},
 }

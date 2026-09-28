@@ -26,11 +26,16 @@ MAKİNE TİPLERİ  ( kullanıcı kararı:  ölçüler LiftDesigner makinelerinde
              arka yatak, taban;  kasnak dişli kutusunun yanında, dış yatakla.
              Ölçüler aynen ( zarfı 1.316 × 590 × 600 ).
 
-ŞASE
-  Kuyu üstü  2 × UPN 200 ( DIN 1026:  h 200 · b 75 · gövde 8,5 · flanş 11,5 ) —
-             ELEport'un şase hesabındaki kiriş ( Wx 191 cm³ );  kirişler
-             karşı ağırlık rayları boyunca, aralarında üstle aynı hizada motor
-             plakası ( ELEport:  700 mm ) ve uçlarda bağlantı levhaları.
+ŞASE  ( profiller hesap programının seçtiği NPU'lar — DIN 1026-1 ölçüleriyle )
+  Kuyu üstü  2 yan yatak ( makine.yan_yatak;  ELEport'ta UPN 200, Wx 191 cm³ ) —
+             kirişler karşı ağırlık rayları boyunca, aralarında üstle aynı
+             hizada motor plakası ( ELEport:  700 mm ) ve uçlarda bağlantı
+             levhaları.
+  Makine     hesap programının kaidesi ( bölüm 2 ):  dört dikine kiriş ( NPU
+  dairesi    makine_dairesi.dikine_kiris, boyu şase yüksekliği — döşemeden
+             kaidenin üstüne ) ve üstlerinde iki yan yatak ( makine.yan_yatak,
+             mesnet aralığı makine_dairesi.yan_yatak_boyu );  uçlarda kısa
+             kirişler ve ayak plakaları LiftDesigner 12744-3'ünki gibi.
 """
 
 TIPLER = ("Dişlisiz", "Dişli")
@@ -62,11 +67,27 @@ DISLI_KUTU = (("klemens_kutusu", -715, -575, 158, 302, 305, 380),
 DISLI_EKSEN = (("dis_yatak", -160, -75, 300), ("kasnak_mili", -175, 100, 55))
 DISLI_ZARF = {"m": (-1000.0, 320.0), "a": (-175.0, 415.0), "z": (-195.0, 410.0)}
 
-#  UPN 200  ( DIN 1026-1 )
-UPN = {"h": 200.0, "b": 75.0, "s": 8.5, "t": 11.5}
+#  NPU ( UPN ) profilleri, DIN 1026-1:  ( h, b, gövde s, flanş t ) mm.  Anahtarlar
+#  hesap programının NPU listesiyle aynı ( mukavemet_tablolari.NPU_OLCULERI ).
+NPU = {"30x15": (30, 15, 4, 4.5), 30: (30, 33, 5, 7), "40x20": (40, 20, 5, 5.5),
+       40: (40, 35, 5, 7), "50x25": (50, 25, 5, 6), 50: (50, 38, 5, 7), 60: (60, 30, 6, 6),
+       65: (65, 42, 5.5, 7.5), 80: (80, 45, 6, 8), 100: (100, 50, 6, 8.5), 120: (120, 55, 7, 9),
+       140: (140, 60, 7, 10), 160: (160, 65, 7.5, 10.5), 180: (180, 70, 8, 11),
+       200: (200, 75, 8.5, 11.5), 240: (240, 85, 9.5, 13), 280: (280, 95, 10, 15),
+       300: (300, 100, 10, 16)}
+#  Kaidenin uçlarındaki kısa kirişler ( hesaba girmez ):  LiftDesigner 12744-3'te UPN 100.
+KAIDE_KISA = 100
 MOTOR_PLAKASI_BOY = 700.0          # ELEport şase hesabı:  "motor bedplate length m"
 MOTOR_PLAKASI_KALINLIK = 15.0
 UC_LEVHASI = 10.0
+
+
+def npu(olcu):
+    """NPU ölçüsünün profili:  { h, b, s, t } — tabloda yoksa None."""
+    v = NPU.get(olcu)
+    if v is None and isinstance(olcu, float) and olcu.is_integer():
+        v = NPU.get(int(olcu))
+    return None if v is None else dict(zip("hbst", map(float, v)))
 
 
 def _parca(tur, katman, ad, parca, **v):
@@ -148,27 +169,42 @@ def disli_zarfi(kasnak, s, m_yon):
 
 
 # ── ŞASE ─────────────────────────────────────────────────────────────────
-def upn_sase(sase, motor_y):
-    """sase:  ( x0, y0, x1, y1, zb, zt );  iki UPN kiriş y boyunca, sırtları
-    dışarıda ( ağızlar birbirine bakar );  motor plakası motor_y çevresinde
-    kirişlerin arasında, üstle aynı hizada;  uçlarda bağlantı levhaları."""
-    x0, y0, x1, y1, zb, zt = sase
-    h, b, s_, t = UPN["h"], UPN["b"], UPN["s"], UPN["t"]
+def u_kirisi(k, P, uzun_x, sirt, parca, ad="makine_sasesi"):
+    """U profil kiriş:  k ( x0, y0, x1, y1, z0, z1 ) kutusu, boyu uzun eksen
+    boyunca;  sirt:  sırtın ( gövdenin ) enine eksendeki yeri — ağız öbür
+    yana bakar.  Uçlardan bakınca C, yandan bakınca flanş çizgileri."""
+    x0, y0, x1, y1, zb, zt = k
+    s_, t = P["s"], P["t"]
+    p = [kutu(x0, y0, x1, y1, zb, zt, "KONSOL", ad, parca)]
+    a0, a1 = (y0, y1) if uzun_x else (x0, x1)
+    ag = a1 if abs(sirt - a0) < abs(sirt - a1) else a0
+    yon = 1.0 if ag > sirt else -1.0
+    g_ = sirt + yon * s_
+    uclar = (x0, x1) if uzun_x else (y0, y1)
+
+    def nokta(u, e, z):                     # u:  uzun eksen, e:  enine eksen
+        return (u, e, z) if uzun_x else (e, u, z)
+    for (ea, za), (eb, zb_) in (((ag, zt - t), (g_, zt - t)), ((g_, zt - t), (g_, zb + t)),
+                                ((g_, zb + t), (ag, zb + t))):
+        for u in uclar:
+            p.append(cizgi(nokta(u, ea, za), nokta(u, eb, zb_), ad=ad, parca=parca + "_ici"))
+    for zz in (zt - t, zb + t):
+        p.append(cizgi(nokta(uclar[0], ag, zz), nokta(uclar[1], ag, zz), ad=ad, parca=parca + "_flansi"))
+    return p
+
+
+def upn_sase(sase, motor_y, P):
+    """sase:  ( x0, y0, x1, y1, zb, zt );  P:  yan yatak profili ( npu ).  İki
+    kiriş y boyunca, sırtları dışarıda ( ağızlar birbirine bakar );  motor
+    plakası motor_y çevresinde kirişlerin arasında, üstle aynı hizada;  uçlarda
+    bağlantı levhaları."""
+    x0, y0, x1, y1, _, zt = sase
+    h, b, t = P["h"], P["b"], P["t"]
     zb = zt - h
     p = []
     for sirt, yon in ((x0, 1.0), (x1, -1.0)):
-        ag = sirt + yon * b
-        xa, xb = sorted((sirt, ag))
-        p.append(kutu(xa, y0, xb, y1, zb, zt, "KONSOL", "makine_sasesi", "upn_200"))
-        #  Profilin iç kenarları:  gövde ve flanşlar ( uçtan bakınca C, yandan
-        #  bakınca flanş çizgileri )
-        xg = sirt + yon * s_
-        for (ax, az), (bx, bz) in (((ag, zt - t), (xg, zt - t)), ((xg, zt - t), (xg, zb + t)),
-                                   ((xg, zb + t), (ag, zb + t))):
-            for yy in (y0, y1):
-                p.append(cizgi((ax, yy, az), (bx, yy, bz), parca="upn_ici"))
-        for zz in (zt - t, zb + t):
-            p.append(cizgi((ag, y0, zz), (ag, y1, zz), parca="upn_flansi"))
+        xa, xb = sorted((sirt, sirt + yon * b))
+        p += u_kirisi((xa, y0, xb, y1, zb, zt), P, False, sirt, "yan_yatak")
     ic0, ic1 = x0 + b, x1 - b
     if ic1 > ic0:
         my0 = max(y0, motor_y - MOTOR_PLAKASI_BOY / 2.0)
@@ -189,7 +225,7 @@ def plan_parcalari(Y, S, sase=True):
     my = (gv[1] + gv[3]) / 2.0
     p = []
     if sase:
-        p += upn_sase(Y["sase"] + (-1000.0 - UPN["h"], -1000.0), my)
+        p += upn_sase(Y["sase"] + (-1000.0 - Y["yan_yatak"]["h"], -1000.0), my, Y["yan_yatak"])
     p += Y["makine"]
     if Y["tip"] == "Dişlisiz":
         mx = (Y["kasnak"][0] + Y["kasnak"][2]) / 2.0
@@ -220,44 +256,62 @@ def kaydir(parcalar, dz):
     return out
 
 
-# ── MAKİNE DAİRESİ:  AYAKLI ŞASE ÇERÇEVESİ VE SAPTIRMA KASNAĞI ──────────────
-def cerceve(iz, zd, S):
-    """iz:  çerçevenin plandaki kutusu;  zd:  döşeme.  Dört ayak, uzun
-    kenarlarda UPN 200, kısa kenarlarda UPN 100, ayak plakaları."""
-    x0, y0, x1, y1 = iz
-    H, a = S["md_cerceve_yukseklik"], S["md_cerceve_ayak"]
+# ── MAKİNE DAİRESİ:  KAİDE VE SAPTIRMA KASNAĞI ─────────────────────────────
+def ayak_plakasi(E, S):
+    """Dikine kirişin altındaki plakanın kenarı:  LiftDesigner'ın 150'si,
+    profil büyükse her yana 15 mm taşar."""
+    return max(S["md_cerceve_ayak_plakasi"], E["h"] + 30.0, E["b"] + 30.0)
+
+
+def ayaklar(c, E, F, uzun_x):
+    """Kaidenin dört dikine kirişinin plandaki eksenleri:  uzun eksen boyunca
+    uçlardan E.h / 2 içeride ( mesnet aralığı = boy − E.h ), enine eksende
+    yan yatakların ortasında."""
+    x0, y0, x1, y1 = c
+    (u0, u1), (e0, e1) = ((x0, x1), (y0, y1)) if uzun_x else ((y0, y1), (x0, x1))
+    us = (u0 + E["h"] / 2.0, u1 - E["h"] / 2.0)
+    es = (e0 + F["b"] / 2.0, e1 - F["b"] / 2.0)
+    return [(u, e) if uzun_x else (e, u) for u in us for e in es]
+
+
+def kaide(c, zd, H, E, F, uzun_x, S):
+    """Hesap programının makine kaidesi.  c:  plandaki dış kutusu;  zd:
+    döşeme;  H:  şase yüksekliği ( dikine kirişin boyu — döşemeden kaidenin
+    üstüne );  E / F:  dikine kiriş ve yan yatak profilleri;  uzun_x:  yan
+    yataklar x boyunca mı.  Dikine kirişler ayak plakalarında, yan yataklar
+    üstleriyle kaidenin üstü hizasında;  uçlarda kısa kirişler."""
+    x0, y0, x1, y1 = c
     zt = zd + H
-    uzun_x = (x1 - x0) >= (y1 - y0)
+    ap, at = ayak_plakasi(E, S), S["md_cerceve_ayak_plakasi_kalinlik"]
     p = []
-    ap, at = S["md_cerceve_ayak_plakasi"], S["md_cerceve_ayak_plakasi_kalinlik"]
-    for x in (x0, x1 - a):
-        for y in (y0, y1 - a):
-            p.append(kutu(x, y, x + a, y + a, zd + at, zt - UPN["h"], "KONSOL", "makine_sasesi", "ayak"))
-            cx, cy = x + a / 2.0, y + a / 2.0
-            p.append(kutu(cx - ap / 2.0, cy - ap / 2.0, cx + ap / 2.0, cy + ap / 2.0, zd, zd + at,
-                          "KONSOL", "makine_sasesi", "ayak_plakasi"))
-    b = UPN["b"]
+    for cx, cy in ayaklar(c, E, F, uzun_x):
+        wx, wy = (E["h"], E["b"]) if uzun_x else (E["b"], E["h"])
+        p.append(kutu(cx - wx / 2.0, cy - wy / 2.0, cx + wx / 2.0, cy + wy / 2.0, zd + at, zt - F["h"],
+                      "KONSOL", "makine_sasesi", "dikine_kiris"))
+        p.append(kutu(cx - ap / 2.0, cy - ap / 2.0, cx + ap / 2.0, cy + ap / 2.0, zd, zd + at,
+                      "KONSOL", "makine_sasesi", "ayak_plakasi"))
+    b, K = F["b"], npu(KAIDE_KISA)
     if uzun_x:
-        uzun = [(x0, y0, x1, y0 + b), (x0, y1 - b, x1, y1)]
-        kisa = [(x0, y0 + b, x0 + b, y1 - b), (x1 - b, y0 + b, x1, y1 - b)]
+        yanlar = [((x0, y0, x1, y0 + b), y0), ((x0, y1 - b, x1, y1), y1)]
+        kisa = [(x0, y0 + b, x0 + K["b"], y1 - b), (x1 - K["b"], y0 + b, x1, y1 - b)]
     else:
-        uzun = [(x0, y0, x0 + b, y1), (x1 - b, y0, x1, y1)]
-        kisa = [(x0 + b, y0, x1 - b, y0 + b), (x0 + b, y1 - b, x1 - b, y1)]
-    for k in uzun:
-        p.append(kutu(*k, zt - UPN["h"], zt, "KONSOL", "makine_sasesi", "upn_200"))
+        yanlar = [((x0, y0, x0 + b, y1), x0), ((x1 - b, y0, x1, y1), x1)]
+        kisa = [(x0 + b, y0, x1 - b, y0 + K["b"]), (x0 + b, y1 - K["b"], x1 - b, y1)]
+    for k, sirt in yanlar:
+        p += u_kirisi(k + (zt - F["h"], zt), F, uzun_x, sirt, "yan_yatak")
     for k in kisa:
-        p.append(kutu(*k, zt - 100.0, zt, "KONSOL", "makine_sasesi", "upn_100"))
+        p.append(kutu(*k, zt - K["h"], zt, "KONSOL", "makine_sasesi", "kisa_kiris"))
     return p
 
 
-def saptirma(merkez, D, bk, zt):
-    """Saptırma kasnağı ( ekseni y ) ve çerçevenin üst kirişine asılı iki
-    taşıyıcı levha."""
+def saptirma(merkez, D, bk, zt, kiris_h):
+    """Saptırma kasnağı ( ekseni y ) ve kaidenin yan yataklarına ( üstü zt,
+    yüksekliği kiriş_h ) asılı iki taşıyıcı levha."""
     x, y, z = merkez
     p = [silindir("y", (x, 0, z), D, y - bk / 2.0, y + bk / 2.0, "KASNAK", "saptirma_kasnagi",
                   "saptirma_kasnagi")]
     for yy in (y - bk / 2.0 - 25, y + bk / 2.0 + 5):
-        p.append(kutu(x - 50, yy, x + 50, yy + 20, z - 60, zt - UPN["h"], "KONSOL", "makine_sasesi",
+        p.append(kutu(x - 50, yy, x + 50, yy + 20, z - 60, zt - kiris_h, "KONSOL", "makine_sasesi",
                       "saptirma_levhasi"))
     return p
 

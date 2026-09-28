@@ -54,7 +54,10 @@ def kabin_kotlari(dy, S, z):
     return {"doseme": z, "taban_alti": z - S["kabin_taban_kalinlik"],
             "etek_alti": z - ETEK_BOYU, "fren_alti": z - S["kabin_taban_kalinlik"]
             - S["fren_blogu_yukseklik"], "sase_alt": sase_alt, "sase_ust": sase_ust,
-            "alt_paten": sase_alt - S["paten_yukseklik"], "ust_paten": sase_ust + S["paten_yukseklik"],
+            "alt_paten": sase_alt - S["paten_yukseklik"] / 2.0,
+            "alt_paten_ust": sase_alt + S["paten_yukseklik"] / 2.0,
+            "ust_paten_alt": sase_ust - S["paten_yukseklik"] / 2.0,
+            "ust_paten": sase_ust + S["paten_yukseklik"] / 2.0,
             "ic_ust": z + dy["kabin_ic_yukseklik"], "tavan": tavan,
             "kasnak_merkez": z - S["kabin_kasnak_derinlik"]}
 
@@ -114,7 +117,7 @@ def yerlesim(g, S, H, tavan, taban):
         uzak_ray = kabin_raylari[-1] if sol else kabin_raylari[0]
         z_ust = tavan - S["makine_tepe_boslugu"]
         zs = z_ust - S["makine_kapak_yukseklik"] - S["makine_en"]      # şase üstü
-        sase = KU["sase"] + (zs - S["makine_sase_yukseklik"], zs)       # plandaki yeri kuyu_ustu'dan
+        sase = KU["sase"] + (zs - KU["yan_yatak"]["h"], zs)            # plandaki yeri kuyu_ustu'dan
         kx0, ky0, kx1, ky1 = KU["kasnak"]
         gx0, gy0, gx1, gy1 = KU["govde"]
         mx, my = (kx0 + kx1) / 2.0, (gy0 + gy1) / 2.0
@@ -124,7 +127,7 @@ def yerlesim(g, S, H, tavan, taban):
                  zs + S["makine_en"], z_ust)
         M.update({
             "makine": _makine_parcalari(g, KU, zk, kapak),
-            "sase_parcalari": CMK.upn_sase(sase, my),
+            "sase_parcalari": CMK.upn_sase(sase, my, KU["yan_yatak"]),
             "sase": sase,
             "govde": (gx0, gy0, gx1, gy1, zs, zs + S["makine_en"]),
             "kapak": kapak,
@@ -136,6 +139,8 @@ def yerlesim(g, S, H, tavan, taban):
                                             tavan - S["regulator_govde_ust"]),
             "regulator_kasnak": KU["reg_kasnak"] + (tavan - S["regulator_kasnak_merkez"],),
         })
+        M["halat_konsolu"] = CMK.kaydir(KU["halat_konsolu"],
+                                         (M["kabin_baglanti"][4] + M["kabin_baglanti"][5]) / 2)
         #  Tavanın altındaki parçalar:  sığınma ve açıklıklar bunlara da ölçülür
         #  ( m.5.2.5.7.2:  "kuyu tavanının en alt kısımları — kirişler ve
         #  tavanın altına yerleştirilmiş parçalar dahil" ).
@@ -163,26 +168,15 @@ def yerlesim(g, S, H, tavan, taban):
 
     #  ── GERGİ DÜZENİ ( kuyu dibi ) ──────────────────────────────────────
     kd = g["kuyu_dibi"]
-    ry = g["kabin_ray"]["kapi_arasi"]
-    rgy = M["regulator_y"]
-    #  Kol raydan kasnağa ve öteye uzanır;  ağırlık o yönde kuyuya sığmıyorsa
-    #  kol öbür yöne döner ( montajcı da böyle yapar ).
-    D = g["kuyu"]["derinlik"]
-    s = 1.0 if rgy >= ry else -1.0
-    if not 0 <= rgy + s * S["gergi_agirlik_uzak"] <= D:
-        s = -s
-    kol = sorted((ry - s * S["gergi_kol_ray"], rgy + s * S["gergi_kol_uc"]))
-    agr = sorted((rgy + s * S["gergi_agirlik_yakin"], rgy + s * S["gergi_agirlik_uzak"]))
+    gp = KD["gergi_donanim"]
+    kol = (gp["kol"][1], gp["kol"][3])
+    agr = (gp["agirlik"][1], gp["agirlik"][3])
     M["gergi"] = {"merkez": taban + S["gergi_kasnak_merkez"], "cap": kd["regulator_kasnak_capi"],
                   "kol": (kol[0], kol[1], taban + S["gergi_kol_alt"],
                           taban + S["gergi_kol_alt"] + S["gergi_kol_yukseklik"]),
                   "agirlik": (agr[0], agr[1], taban + S["gergi_agirlik_alt"],
                               taban + S["gergi_agirlik_alt"] + S["gergi_agirlik_yukseklik"]),
                   "plan": KD["gergi"]}
-    if agr[0] < 0 or agr[1] > D:
-        hata.append("Regülatör gergi ağırlığı iki yönde de kuyunun dışına taşıyor ( ELEport "
-                    f"düzeni:  kol kasnağın {S['gergi_agirlik_uzak']:g} mm ötesine uzanır ).")
-
     #  ── RAYLAR:  konsollar ve ekler ─────────────────────────────────────
     raylar = []
     for tur, kutu, ust in M["raylar"]:
@@ -195,6 +189,7 @@ def yerlesim(g, S, H, tavan, taban):
     #  ── KARŞI AĞIRLIK ────────────────────────────────────────────────────
     M["agirlik"] = {"kutu": KD["blok"], "yukseklik": S["agirlik_yukseklik"],
                     "kasnak_ust": S["agirlik_kasnak_ust"], "paten": S["paten_yukseklik"],
+                    "paten_arasi": dy["agirlik_paten_arasi"],
                     "tampon_ustu": taban + dy["agirlik_tampon_baba"] + dy["agirlik_tampon_boyu"]}
     return M
 
@@ -211,14 +206,16 @@ def _makine_parcalari(g, KU, zk, kapak):
 def _makine_dairesi(g, S, tavan, M):
     """Makine dairesindeki parçaların kotları;  hata listesi döner ( boşsa tamam ).
 
-    Bağlantılar ve regülatör kuyu üstündekiyle aynı ürünlerdir ( ELEport
-    ölçüleri ) ve döşemeye oturur.  Makine:  dişliyse ya da saptırma kasnağı
-    gerekiyorsa LiftDesigner'ınki gibi ayaklı şase çerçevesinde ( 1.050 ),
-    değilse döşemede 2 × UPN 200 şasede ( makine_sase_yukseklik ).
+    Oda döşemesi hesap programının TABLİYESİDİR ( tabliye beton yüksekliği:
+    kuyu tavanından oda döşemesinin üstüne ).  Bağlantılar ve regülatör kuyu
+    üstündekiyle aynı ürünlerdir ( ELEport ölçüleri ) ve döşemeye oturur.
+    Makine hesap programının kaidesindedir ( bölüm 2 ):  dikine kirişler
+    döşemeden şase yüksekliği kadar çıkar, yan yataklar üstleri hizasında;
+    saptırma kasnağı gerekiyorsa yan yataklara asılır ( LiftDesigner ).
     """
     md = g.get("makine_dairesi") or {}
     hata = []
-    for alan in ("yukseklik", "doseme", "kapi_yukseklik"):
+    for alan in ("yukseklik", "tabliye_yuksekligi", "kapi_yukseklik"):
         if not (_sayi(md.get(alan)) and md[alan] > 0):
             hata.append(f"makine_dairesi.{alan}: sıfırdan büyük bir sayı olmalı ( {md.get(alan)!r} ).")
     if hata:
@@ -227,23 +224,18 @@ def _makine_dairesi(g, S, tavan, M):
     if MD["hata"]:
         return MD["hata"]
     KU = MD["M"]
-    zd = tavan + md["doseme"]                   # oda döşemesinin üstü
+    zd = tavan + md["tabliye_yuksekligi"]       # oda döşemesinin üstü
     ztv = zd + md["yukseklik"]                  # oda tavanı
     kx0, ky0, kx1, ky1 = KU["kasnak"]
     gx0, gy0, gx1, gy1 = KU["govde"]
     mx, my = (kx0 + kx1) / 2.0, (gy0 + gy1) / 2.0
     kab = S["kabin_baglanti_alt"] - S["kabin_baglanti_ust"]
     rg = S["regulator_govde_alt"] - S["regulator_govde_ust"]
-    #  Makinenin oturduğu yer:  ayaklı şase çerçevesi ( dişli makine ya da
-    #  saptırma kasnağı varsa — LiftDesigner ) ya da döşemede 2 × UPN 200
-    if MD["cerceve"]:
-        zs = zd + S["md_cerceve_yukseklik"]
-        sase = MD["cerceve"] + (zd, zs)
-        parcalar = CMK.cerceve(MD["cerceve"], zd, S)
-    else:
-        zs = zd + S["makine_sase_yukseklik"]
-        sase = MD["makine_izi"] + (zd, zs)
-        parcalar = CMK.upn_sase(sase, my)
+    #  Makinenin oturduğu yer:  hesap programının kaidesi
+    K = MD["kaide"]
+    zs = zd + md["sase_yuksekligi"]
+    sase = MD["cerceve"] + (zd, zs)
+    parcalar = CMK.kaide(MD["cerceve"], zd, md["sase_yuksekligi"], K["E"], K["F"], K["uzun_x"], S)
     dis = g["makine"]["tip"] == "Dişli"
     zk = zs - CMK.DISLI_ZARF["z"][0] if dis else zs + S["makine_en"] / 2.0     # kasnak merkezi
     kapak = (mx - S["makine_kapak_en"] / 2.0, my - S["makine_kapak_boy"] / 2.0,
@@ -263,10 +255,10 @@ def _makine_dairesi(g, S, tavan, M):
                           (KU["kabin_baglanti"], kab), (KU["reg_govde"], rg)):
             if _ortusur(kutu_, sp["kutu"]):
                 zd_ = max(zd_, zd + h_ + 50.0 + R2)
-        if zd_ + R2 > zs - CMK.UPN["h"] - 50.0:
-            hata.append(f"Saptırma kasnağı ( ø {sp['D']:g} ) döşemedeki bağlantıların üstünde, şase "
-                        "çerçevesinin üst kirişinin altına sığmıyor.")
-        parcalar += CMK.saptirma((sp["x"], sp["y"], zd_), sp["D"], sp["bk"], zs)
+        if zd_ + R2 > zs - K["F"]["h"] - 50.0:
+            hata.append(f"Saptırma kasnağı ( ø {sp['D']:g} ) döşemedeki bağlantıların üstünde, kaidenin "
+                        "yan yataklarının altına sığmıyor — şase yüksekliğini büyütün.")
+        parcalar += CMK.saptirma((sp["x"], sp["y"], zd_), sp["D"], sp["bk"], zs, K["F"]["h"])
         P1, P2, n = CMK.teget((mx, zk), D1 / 2.0, (sp["x"], zd_), sp["D"] / 2.0, y_)
         sarim = CMK.sarim_acisi(y_, n)
         yol = [((P1[0], sp["y"], P1[1]), (P2[0], sp["y"], P2[1]))]
@@ -278,7 +270,7 @@ def _makine_dairesi(g, S, tavan, M):
         "sase_parcalari": parcalar,
         "sarim_acisi": sarim, "agirlik_yolu": yol,
         "agirlik_dusus": MD["agirlik_dusus"] + (dusus_z,),
-        "KU": KU, "MD": MD, "oda_doseme": zd, "oda_tavan": ztv, "oda_kalinlik": md["doseme"],
+        "KU": KU, "MD": MD, "oda_doseme": zd, "oda_tavan": ztv, "cati": S["md_cati_kalinlik"],
         "sase": sase,
         "govde": (gx0, gy0, gx1, gy1, zs, zs + S["makine_en"]),
         "kapak": kapak,
@@ -308,8 +300,14 @@ def agirlik_kotlari(M, alt):
     """Alt kirişi `alt` kotundaki karşı ağırlığın parça kotları."""
     A = M["agirlik"]
     ust = alt + A["yukseklik"]
+    merkez = (alt + ust) / 2.0
+    alt_merkez = merkez - A["paten_arasi"] / 2.0
+    ust_merkez = merkez + A["paten_arasi"] / 2.0
     return {"alt": alt, "ust": ust, "kasnak_merkez": ust - A["kasnak_ust"],
-            "alt_paten": alt - A["paten"], "ust_paten": ust + A["paten"]}
+            "alt_paten": alt_merkez - A["paten"] / 2.0,
+            "alt_paten_ust": alt_merkez + A["paten"] / 2.0,
+            "ust_paten_alt": ust_merkez - A["paten"] / 2.0,
+            "ust_paten": ust_merkez + A["paten"] / 2.0}
 
 
 def tavan_engeli(M, kutu):

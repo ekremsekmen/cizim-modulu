@@ -56,7 +56,7 @@ YATAY_UZAKLIK = 400.0       # m.5.2.5.7.2 b / c 1)  "0,40 m yatay uzaklık için
 RAY_UZANTISI = 100.0        # m.5.2.5.6.2  ( en üst konum m.5.2.5.6.1:  + 0,035·v² )
 ETEK_BOYU = CDN.ETEK_BOYU   # m.5.4.5.1:  kabin eteğinin düşey kısmı en az 0,75 m
 ESIK_ARASI = 11000.0        # m.5.2.3.1:  ardışık kat kapısı eşikleri arası
-DUSEY_ALANLAR = ("kabin_ic_yukseklik", "kabin_paten_arasi", "son_kat", "beyan_hizi",
+DUSEY_ALANLAR = ("kabin_ic_yukseklik", "kabin_paten_arasi", "agirlik_paten_arasi", "son_kat", "beyan_hizi",
                  "kabin_tampon_baba", "kabin_tampon_boyu",
                  "kabin_carpma_arasi", "kabin_tampon_ezilme", "agirlik_tampon_baba",
                  "agirlik_tampon_boyu", "agirlik_carpma_arasi", "agirlik_tampon_ezilme")
@@ -105,10 +105,7 @@ def durak_kotlari(g):
 
 def _korkuluk_cizgileri(KU):
     """Gerekli korkulukların plandaki çizgileri ( ince kutu )."""
-    x0, y0, x1, y1 = KU["tavan"]
-    cizgi = {"Sol": lambda i: (x0 + i, y0, x0 + i, y1), "Sağ": lambda i: (x1 - i, y0, x1 - i, y1),
-             "Ön": lambda i: (x0, y0 + i, x1, y0 + i), "Arka": lambda i: (x0, y1 - i, x1, y1 - i)}
-    return [cizgi[ad](k["iceri"]) for ad, k in KU["kenarlar"].items() if k["gerekli"]]
+    return [k for k, _ in CKU.korkuluklar(KU)]
 
 
 kabin_kotlari = CDN.kabin_kotlari
@@ -123,6 +120,10 @@ def yerlesim(g, cizim_sabitleri=None):
     hata += durak_hata
     if hata:
         return {"hata": hata}
+    if dy["agirlik_paten_arasi"] + S["paten_yukseklik"] > S["agirlik_yukseklik"]:
+        return {"hata": ["Ağırlık patenleri çerçeve yüksekliğine sığmıyor."]}
+    if dy["kabin_paten_arasi"] <= S["paten_yukseklik"]:
+        return {"hata": ["Kabin patenleri üst üste biniyor."]}
     KD, KU = CKD.yerlesim(g, S), CKU.yerlesim(g, S)
     if KD["hata"] or KU["hata"]:
         return {"hata": KD["hata"] + KU["hata"]}
@@ -261,7 +262,7 @@ def _kabin(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89):
     for z in (kt["sase_alt"], kt["sase_ust"] - 10):
         e.append(D("KABIN-IC", ry - sd / 2.0, z, sd, 10))
     #  Patenler ve fren bloğu
-    e.append(CGE._ad(D("PATEN", ry - 35, kt["sase_ust"], 70, S["paten_yukseklik"]), "ust_paten"))
+    e.append(CGE._ad(D("PATEN", ry - 35, kt["ust_paten_alt"], 70, S["paten_yukseklik"]), "ust_paten"))
     e.append(CGE._ad(D("PATEN", ry - 35, kt["alt_paten"], 70, S["paten_yukseklik"]), "alt_paten"))
     for x in (ry - sd / 2.0, ry + sd / 2.0 - 50):
         e.append(CGE._ad(D("SASE", x, kt["fren_alti"], 50, S["fren_blogu_yukseklik"]), "fren"))

@@ -14,14 +14,18 @@ dolacak.
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 
-.venv/bin/python calistir.py                      # kuyu planı  →  ornekler/
+.venv/bin/python calistir.py                      # kuyu planı  →  cikti/ ( git'e girmez )
 .venv/bin/python calistir.py --aski Doğrudan      # 1:1 askı düzeniyle
 .venv/bin/python calistir.py --agirlik Arka       # karşı ağırlık arkada
 .venv/bin/python calistir.py --cizim kuyu_kesiti_yan  # A-A tam boy düşey kesit ( 1/50 )
 .venv/bin/python calistir.py --cizim kuyu_kesiti_on   # B-B tam boy düşey kesit ( 1/50 )
 .venv/bin/python calistir.py --cizim kuyu_kesiti_on --makine "Makine dairesi"   # makine daireli
 .venv/bin/python calistir.py --pafta               # bütün çizimler TİP PROJE FORMATINDA ( DXF + SVG önizleme )
-.venv/bin/python -m unittest testler.test_cizim   # testler
+.venv/bin/python -m unittest discover -s testler     # testler ( hepsi )
+
+# Örnek tam projeler ( hesap + çizim, tek pafta ) → ornekler/ — hesap programının
+# motorunu çağırır, onun .venv'iyle:
+"…/AVAN HESAPLAMA PROGRAMI/.venv/bin/python" ornekler/uret.py
 ```
 
 ## Klasörler
@@ -44,8 +48,9 @@ python3 -m venv .venv
 | `sablon/proje_formati.dxf` | Ofisin pafta şablonu ( TİP PROJE FORMATI.dwg'den;  hesap programınınkiyle aynı ) |
 | `cizim/svg.py` | Elemanları SVG'ye yazar |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/test_cizim.py` | 142 test |
-| `ornekler/` | `calistir.py`'nin ürettiği örnek çizimler |
+| `testler/` | 179 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py` ) |
+| `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( ELEport PROJE 5 ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve `hesap_girdi.py` |
+| `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 
 ## Kurallar
 
@@ -80,6 +85,38 @@ python3 -m venv .venv
    ( font-size ) olarak verir;  DXF'te TEXT ve ölçü yazısı yüksekliği büyük harf
    yüksekliğidir ( Arial 0,716 em ) — `dxf.BUYUK_HARF` ile çarpılır.  Eskiden DXF
    yazıları 1,4 kat büyük çıkıyor, pafta ve DWG'de ayrılan yere sığmıyordu.
+
+## Plan ve kesitte ortak donanım
+
+Şase dikmesinin plan derinliği, yan kesitte de kullanılan
+`sase_dikme_derinlik` değeridir ( örnekte 300 mm ); dikmeler ray eksenine
+ortalanır. Kabin üstü korkulukları plan, düşey kesit ve açıklık kontrolünde
+aynı konumları kullanır; kesit kırığı korkuluğu kesmez.
+
+Regülatör gergisinin kasnağı, taşıyıcı kolu ve ağırlığı kuyu dibi planında
+birlikte gösterilir. Kol ve ağırlığın plan kutuları düşey kesitte de
+kullanılır; merdiven ve sığınma alanı bu kutuların dışında yerleştirilir.
+Kolun raydaki bağlantısı bilinçlidir; ağırlığın rayla veya tamponla
+çakışmasına izin verilmez.
+
+Örnek girdide regülatör kaçıklığı 280 yerine 260 mm'dir: ağırlığın 420 mm
+uzantısı `1167 + 260 + 420 = 1847 mm` ile 1850 mm kuyuya sığar. Eski
+280 mm düzeni ters çevrildiğinde ağırlık rayla çakıştığından reddedilir.
+Üst regülatör aynı girdiyi kullanarak gergi kasnağıyla hizalı kalır.
+
+Patenlerin MERKEZLERİ arası hesap programının paten arasıdır
+( `dusey.kabin_paten_arasi` 3.300, `dusey.agirlik_paten_arasi` 1.500 ):  kabinde
+şasenin alt ve üst kirişine ortalı, karşı ağırlıkta çerçevenin ortasına göre.
+Eskiden paten arası şase yüksekliği gibi kullanılıp patenler onun dışına
+ekleniyordu ( merkezler kabinde 3.440, ağırlıkta 3.060 çıkıyordu ).  ELEport'un
+kendisi de burada tutarsız:  hesabı ağırlıkta 1.500 alır, çiziminde patenler
+çerçevenin uçlarındadır.
+
+Kabin altı kasnakların şaseye, kuyu tepesindeki kabin halat bağlantısı
+plakasının kabin rayının başına bağlantısı ŞEMATİK çizgiyle gösterilir
+( `baglantilar.py`;  plan ve kesit aynı üç boyutlu çizgilerden ):  taşıyıcının
+profili, yatağı ve cıvatası girdide yok, ölçü uydurulmaz.  Makine dairesinde
+kabin halat bağlantısı döşemededir, yol çizilmez.
 
 ## Bugün ne çiziliyor
 
@@ -191,11 +228,15 @@ Makine dairesizde yalnız dişlisiz çizilir ( dişli makine kuyu tepesindeki
 şaseye sığmaz ).  Dişli makinenin yönü ( dişli kutusu kasnağın hangi yanında,
 motor hangi yöne ) bağlantılara ve regülatöre binmeyen, odaya sığan ilk düzendir.
 
-| Şase | Nerede | Ne |
-|---|---|---|
-| 2 × UPN 200 ( DIN 1026 ) | kuyu üstü | ELEport'un şase hesabındaki kiriş ( Wx 191 cm³ ):  karşı ağırlık rayları boyunca, sırtları dışta;  aralarında üstle aynı hizada 700 mm motor plakası, uçlarda bağlantı levhaları.  Kotlar ELEport'unki ( tavandan 595 – 795 ) |
-| Ayaklı şase çerçevesi | makine dairesi:  dişli makine ya da saptırma kasnağı | LiftDesigner 12744-3:  döşemeden makine tabanına 1.050, ayaklar 100 × 100, uzun kenarlar UPN 200, kısalar UPN 100, ayak plakaları 150 × 150 × 20;  makinenin ( ve saptırma kasnağının ) izinden her yana 100 — ayak bir döşeme deliğine basıyorsa 200, 300 |
-| 2 × UPN 200 döşemede | makine dairesi:  dişlisiz, saptırmasız | makinenin izi kadar |
+Şase HESAP PROGRAMININ bölüm 2'sindeki yapıdır ( "Makine konstrüksiyonu" );
+profiller ve ölçüler onun girdileri, adları da aynı — pafta ile hesap aynı
+şeyi söyler.  Profiller NPU ( UPN ), DIN 1026-1 ölçüleriyle ( `makine.NPU`,
+anahtarları hesap programının NPU listesi ).
+
+| Şase | Nerede | Girdi | Ne |
+|---|---|---|---|
+| 2 yan yatak | kuyu üstü | `makine.yan_yatak` ( ELEport:  UPN 200, Wx 191 cm³ ) | karşı ağırlık rayları boyunca, sırtları dışta, raylara oturur ( mesnet aralığı raylar arası — hesabın L'si;  ELEport 850 );  aralarında üstle aynı hizada 700 mm motor plakası, uçlarda bağlantı levhaları.  Şase üstü ELEport'unki ( tavandan 595 ), altı profil yüksekliği kadar aşağıda |
+| Kaide | makine dairesi ( HER ZAMAN — hesap burada kolonların burkulmasını da denetler ) | `makine_dairesi.sase_yuksekligi` · `dikine_kiris` · `yan_yatak_boyu`, `makine.yan_yatak` | dört dikine kiriş ( kolon ) döşemeden şase yüksekliği kadar, üstleri hizasında iki yan yatak makinenin uzun ekseni boyunca;  dikine kirişlerin eksenleri arası = yan yatak boyu ( L ).  Uçlarda kısa kirişler UPN 100 ve ayak plakaları 150 × 150 × 20 ( LiftDesigner 12744-3 ).  Enine makinenin ( ve saptırma kasnağının ) izinden her yana 100.  Ayak plakası bir döşeme deliğine basıyorsa kaide önce uzun ekseninde kayar ( 25'er ), kayacak yer yoksa enine büyür ( 200, 300 ).  Makine kaideye sığmıyorsa ( izi > L + dikine kiriş ) çizilmez, yan yatak boyunu büyütmesi söylenir |
 
 **Saptırma kasnağı** ( makine dairesi ):  karşı ağırlık halatı tahrik
 kasnağının öbür teğetinden daha dışarıda inmeliyse ( halat aralığı kasnak
@@ -232,7 +273,8 @@ tamponunda + 0,035·v², m.5.2.5.6.1 Çizelge 2 ) denetlenir.  Kuyu dibi ve kuyu
 üstü ayrıca düşey detay kesitle ÇİZİLMEZ:  ofisin paftalarında ( 477-8,
 12744-3 ) ikisi de yatay kesittir ( kuyu dibi planı E-E, kuyu üstü / makine
 dairesi planı F-F ).  Kabinin düşey ölçüleri ELEport kabininden ölçüldü ( iç 2.250,
-tavan 60, taban 120, şase altı −480, üst kiriş −480 + paten arası, paten 140,
+tavan 60, taban 120, şase altı −480, üst kiriş −480 + paten arası, paten 140
+( kirişlere ortalı ),
 fren bloğu 350, kasnak merkezi −295 );  etek 750 ( m.5.4.5.1 ).
 
 | Açıklık | Madde | En az |
@@ -307,7 +349,7 @@ kasnağına ve bağlantıya, tahrik kasnağından ağırlık kasnağına ) ve
 Ölçüler:  solda kuyu dibi + kat yükseklikleri + son kat zinciri, seyir, kuyu
 yüksekliği ( ELEport:  1.500 + 29.000 + 5.000 = 35.500 );  sağda konsol
 zinciri tabandan tavana ( ilk konsol, konsollar arası, ray ucu ), A-A'da
-makine ( şase 200 · makine 345 · tepe 250 ), B-B'de karşı ağırlık ( çarpma
+makine ( şase = yan yatak 200 · makine 345 · tepe 250 ), B-B'de karşı ağırlık ( çarpma
 arası, çerçeve );  altta kuyu derinliği / genişliği.
 
 Kuyu tepesi ve karşı ağırlığın kotları ELEport kesitlerinin vektörlerinden
@@ -316,10 +358,13 @@ aynı parçaların yeri kuyu_ustu.yerlesim'dekiyle birebir tuttu.  Makinenin
 yeri `makine.yeri` ( "Kuyu üstü" / "Makine dairesi" ).
 
 **Makine daireli projede** oda kuyunun üstündedir ( plan yeri
-`makine_dairesi.x · y · genislik · derinlik` );  döşemesi kuyu tavanıdır.
-Girdiler:  `yukseklik` ( temiz ), `doseme` ( döşeme ve çatı kalınlığı ),
-`kapi_yukseklik` ( LiftDesigner "477-8":  3.500 · 150;  kapı standardın en azı
-2.000 ).  Makine kaidede ( 200 ), halat bağlantıları ve regülatör döşemede,
+`makine_dairesi.x · y · genislik · derinlik` ).  Odanın döşemesi hesap
+programının **tabliyesidir**:  `tabliye_yuksekligi` ( "Tabliye beton
+yüksekliği" — kuyu tavanından oda döşemesinin üstüne;  kesitte "TABLİYE" ).
+Öbür girdiler:  `yukseklik` ( temiz;  LiftDesigner "477-8" 3.500 ),
+`kapi_yukseklik` ( standardın en azı 2.000 );  çatı 150 ( LiftDesigner,
+`md_cati_kalinlik` ).  Makine kaidede ( yukarıdaki tablo;  kesitte "ŞASE" ),
+halat bağlantıları ve regülatör döşemede,
 kumanda panosu 2.000 yüksek ( LiftDesigner ), halatlar döşeme deliklerinden
 iner ( kesik ).  Kesilen oda duvarında kapı kesitteyse boşluk, karşı duvarda
 ise görünüş olarak çizilir.  Denetimler:
@@ -355,17 +400,37 @@ Açıklıklar kabin EŞİĞİNİN ön kenarından ölçülür:  eşik aralığı
 kuyunun ön İÇ yüzünden ölçülür — hesap programının RK'sı kapı hattındandır
 ( ELEport:  iç yüzden 1.167 = kapı hattından 1.017 ).
 
+Kapının olduğu duvar boşluğun iki yanında iki parçadır, tarama boşluktan
+geçmez:  kuyu planında ( C-C, kapı hizası ) ön duvar kapı boşluğunda ( duvar
+boşluğuna montajda kasayla birlikte ), A-A'da kapı ünitesi duvardaysa boşluk
+eşiğin altından başlar, makine dairesi planında oda kapısında.  Kapının üstünden
+ya da altından kesilen planlarda ( kabin üstü, kuyu dibi, kuyu üstü, delik
+planı ) ön duvar kesintisizdir ( `geometri.plan(…, kapi_duzeyi=False)` ).
+
 ( Eskiden kanatlar eşiğin arkasına, kabin eşiğinin ve kabinin içine düşüyordu;
 örnek girdi ELEport'un 1017'sini iç yüzden okuyup arka duvarı 150 mm geride
-bırakıyordu.  İkisi de düzeltildi. )
+bırakıyordu.  Duvar taraması da kapı boşluklarından geçiyordu — önizleme
+taramayı seyrek çizdiği için görünmüyordu, DWG'de vardı.  Hepsi düzeltildi. )
 
 ## Tam proje ( hesap + çizim, tek pafta )
 
-`ornekler/tam_proje/uret.py` gerçek bir projenin ( ELEport PROJE 5 · Elevator 3 )
+`ornekler/uret.py` gerçek bir projenin ( ELEport PROJE 5 · Elevator 3 )
 girdileriyle hesap programının MOTORUNU çağırır ( program değiştirilmez ),
 kapak ve hesap paftalarını hesap programının kendi dışa aktarımıyla şablona
-dizer, çizimleri `pafta.birlestir` ile son hesap sayfasının sağına ekler.
-Çıktılar ( DXF · DWG · pafta PDF · hesap PDF ) git'e girmez, betik yeniden üretir.
+dizer, çizimleri `pafta.birlestir` ile son hesap sayfasının sağına ekler.  İki
+örnek üretir, her biri `.dwg` ( AutoCAD çekirdeğinde AUDIT'ten geçirilip
+kaydedilir ) + `.pdf` ( paftanın görüntüsü );  git'e girmezler:
+
+| Örnek | Ne |
+|---|---|
+| ELEport PROJE 5 - Makine Dairesiz | ELEport'un kendisi:  dişlisiz, kuyu üstünde |
+| ELEport PROJE 5 - Makine Daireli Dişli | aynı asansör ( kuyu, kabin, raylar, halatlar, tamponlar ), makine kuyunun üstündeki odada, dişli ( ELEport'ta yok ).  Değişen girdiler ve kaynakları `hesap_girdi.ASANSOR_MD`'de:  Gm 350 ( ofisin 12744-3 hesabı, A 160 ), verim ofisin dişli sabiti 0,50 → gereken 12,75 kW, motor bir üstteki IEC gücü 15 kW;  tabliye ve kaide hesap programının varsayılanları ( 1.200 · 1.100 · NPU 120 · NPU 140 · 1.400 ), oda 3.800 × 2.600.  Tst ELEport makinesinin 3.400'ü ( A 160'ın katalog değeri elde yok ) |
+
+Çizim girdisi hesap girdisinden kurulur ve betik tutarlılığı DENETLER:  makine
+tipi, yeri, tahrik kasnağı, yan yatak aynı;  makine dairesinde tabliye, kaide ve
+oda ölçüleri aynı;  kuyu üstünde yan yatak boyu ( L ) karşı ağırlık rayları
+arasına eşit;  çizimin halat geometrisinden çıkan sarım açısı hesabın α'sına
+eşit;  tampon adetleri aynı.  Birisi tutmazsa proje üretilmez.
 
 Makine dairesiz tesiste makine şasesi raylara oturur ( ELEport "Motor Bedplate
 Calculation" ):  hesap girdisinde "Makine yükünün yolu = Kılavuz raylara" ve
@@ -384,6 +449,12 @@ paftaya 1/ölçek ile yerleştirir — CAD'de blok açılınca ölçüler gerçe
 Sıra ofisin 477-8 projesindeki gibi:  düşey kesitler ( 1/50 ), sonra planlar
 ( 1/20 ), konu sırasıyla sütun sütun;  alan yetmezse
 çerçeve SAĞA uzar ( hesap programı gibi ).
+
+Önizleme ( pafta PDF'i ) ezdxf'in çizicisiyle DXF'ten çizilir.  ezdxf 1.4
+ölçekli bloğun içindeki taramanın desenini ölçeklemiyordu ( 1/50 kesitte
+duvarda tek çizgi );  önizleme bir kopyada taramaları bloklardan çıkarıp
+desenlerini yeniden kurar — DXF'e dokunulmaz, AutoCAD deseni zaten doğru
+ölçekler.  Önizleme Pillow ister ( `requirements.txt` ).
 
 **Kırık kesit:**  1/50 düşey kesit 600 mm'lik paftaya sığmazsa ara katlar
 kırılır ( ELEport ve LiftDesigner gibi ):  alttan ve üstten SIĞAN EN ÇOK

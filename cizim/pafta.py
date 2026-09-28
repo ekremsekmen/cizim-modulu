@@ -285,8 +285,36 @@ def yaz(g) -> bytes:
 
 def onizleme(d) -> str:
     """Paftanın SVG önizlemesi ( ezdxf'in kendi çizicisiyle, DXF'ten ) —
-    ekranda görmek için;  asıl çıktı DXF'tir."""
+    ekranda görmek için;  asıl çıktı DXF'tir.
+
+    ezdxf ( 1.4 ) ölçekli bloğun içindeki taramanın desen çizgilerini
+    ölçeklemiyor:  desen blok ölçeğinin tersi kadar seyrek çıkıyordu ( 1/50
+    kesitte duvarda tek çizgi ).  AutoCAD deseni doğru ölçekler;  DXF'e
+    dokunulmaz — önizleme bir KOPYADA yalnız taramaları bloklardan çıkarır
+    ( öbür parçalar blokta kalır:  bütün blok açılınca ölçü yazıları da
+    yanlış ölçekleniyordu ), desenlerini adından ve ( doğru ölçeklenmiş )
+    desen ölçeğinden yeniden kurar."""
     from ezdxf.addons.drawing import Frontend, RenderContext, config, layout, svg
+    from ezdxf.entities import factory
+    akis = io.StringIO()
+    d.write(akis)
+    akis.seek(0)
+    k = ezdxf.read(akis)
+    msp, bloklar = k.modelspace(), set()
+    for ins in list(msp.query("INSERT")):
+        for e in ins.virtual_entities():
+            if e.dxftype() == "HATCH" and e.pattern and e.dxf.pattern_name in ezdxf.pattern.ISO_PATTERN:
+                e.set_pattern_fill(e.dxf.pattern_name, color=e.dxf.color, angle=e.dxf.pattern_angle,
+                                   scale=e.dxf.pattern_scale)
+                factory.bind(e, k)
+                msp.add_entity(e)
+                bloklar.add(ins.dxf.name)
+    for ad in bloklar:
+        blok = k.blocks[ad]
+        for e in list(blok.query("HATCH")):
+            if e.pattern and e.dxf.pattern_name in ezdxf.pattern.ISO_PATTERN:
+                blok.delete_entity(e)
+    d = k
     arka = svg.SVGBackend()
     ayar = config.Configuration(background_policy=config.BackgroundPolicy.WHITE,
                                 color_policy=config.ColorPolicy.COLOR)

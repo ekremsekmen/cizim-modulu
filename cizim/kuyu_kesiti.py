@@ -79,10 +79,11 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
     M, md = Y["M"], g["makine_dairesi"]
     MD = M["MD"]
     x0, y0, x1, y1 = MD["oda"]
-    w, t = md["duvar"], md["doseme"]
+    w = md["duvar"]
     tv, zd, ztv = M["tavan"], M["oda_doseme"], M["oda_tavan"]
     dis = (x0 - w, y0 - w, x1 + w, y1 + w)
-    for z0, z1, ad in ((tv, zd, "oda_dosemesi"), (ztv, ztv + t, "oda_catisi")):
+    #  Döşeme:  hesap programının tabliyesi ( kuyu tavanından oda döşemesine )
+    for z0, z1, ad in ((tv, zd, "oda_dosemesi"), (ztv, ztv + M["cati"], "oda_catisi")):
         B.kutu(e, "TARAMA", dis, z0, z1, tip="tarama")
         B.kutu(e, "KUYU-DUVAR", dis, z0, z1, ad)
     duvarlar = {"Ön": (x0 - w, y0 - w, x1 + w, y0), "Arka": (x0 - w, y1, x1 + w, y1 + w),
@@ -110,16 +111,16 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
 
 def _oda_olculeri(e, M, md, D1, kot_makine, kot_oda):
     """Makine dairesinde:  şase · kasnak · kasnak üstü ( m.5.2.6.3.2.3 ) ve
-    döşeme · temiz yükseklik ( m.5.2.6.3.2.1 ) · çatı."""
-    zd, ztv, t = M["oda_doseme"], M["oda_tavan"], md["doseme"]
+    tabliye · temiz yükseklik ( m.5.2.6.3.2.1 ) · çatı."""
+    zd, ztv, t, c = M["oda_doseme"], M["oda_tavan"], md["tabliye_yuksekligi"], M["cati"]
     sa = M["sase"]
     ku = M["kasnak"][4] + D1 / 2.0
     _zincir(e, kot_makine, [zd, sa[5], ku, ztv],
             {0: f"ŞASE {sa[5] - zd:g}",
              2: f"KASNAK ÜSTÜ {ztv - ku:g} ≥ {CDN.DONEN_PARCA_USTU:g}"})
-    _zincir(e, kot_oda, [M["tavan"], zd, ztv, ztv + t],
-            {0: f"DÖŞEME {t:g}", 1: f"MAKİNE DAİRESİ {md['yukseklik']:g} ≥ {CDN.ODA_YUKSEKLIK:g}",
-             2: f"{t:g}"})
+    _zincir(e, kot_oda, [M["tavan"], zd, ztv, ztv + c],
+            {0: f"TABLİYE {t:g}", 1: f"MAKİNE DAİRESİ {md['yukseklik']:g} ≥ {CDN.ODA_YUKSEKLIK:g}",
+             2: f"{c:g}"})
 
 
 def kuyu_dibi_seviyesi(g, Y):
@@ -145,7 +146,7 @@ def plan_seviyeleri(g, Y, kt):
            (PLAN_HARFLERI["kuyu_dibi"], kuyu_dibi_seviyesi(g, Y), "kuyu_dibi"),
            (PLAN_HARFLERI["kuyu_ustu"], M["kasnak"][4], "makine_dairesi" if oda else "kuyu_ustu")]
     if oda:
-        sev.append((PLAN_HARFLERI["delik_plani"], M["tavan"] + g["makine_dairesi"]["doseme"] / 2.0,
+        sev.append((PLAN_HARFLERI["delik_plani"], M["tavan"] + g["makine_dairesi"]["tabliye_yuksekligi"] / 2.0,
                     "delik_plani"))
     return sev
 
@@ -359,10 +360,13 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     oda = "MD" in M
     ust = tavan if oda else tavan + don          # makine dairesinde döşemesi odanınkidir
     e = []
-    #  Ön duvar kapı boşluklarıyla, arka duvar, kuyu dibi ve tavan döşemesi
+    #  Ön duvar kapı boşluklarıyla, arka duvar, kuyu dibi ve tavan döşemesi.
+    #  Kapı ünitesi duvar boşluğundaysa boşluk eşiğin altından başlar ( kasa ve
+    #  eşik döşemenin esik_kalinlik altına iner;  tarama onlara binmez ).
+    alt = S["esik_kalinlik"] if g["kapi"]["montaj"] == "Duvar boşluğuna" else 0.0
     z = taban - don
     for zk in kotlar:
-        _duvar(e, -don, z, don, zk - z)
+        _duvar(e, -don, z, don, zk - alt - z)
         z = zk + bosluk_h
     _duvar(e, -don, z, don, ust - z)
     _duvar(e, D, taban - don, dar, ust - (taban - don))
@@ -396,6 +400,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     kb = KD["kabin"]
     ky = [(kz[1] + kz[3]) / 2.0 for kz in P["kabin_kasnak"]]
     CDU._kabin(e, kt, (kb[1], kb[3]), g["kabin_ray"]["kapi_arasi"], S, ky[:1], g["aski"]["kasnak_capi"])
+    CKP.korkuluk(e, B, Y, kt)
     #  Kabin eşiği ve kabin kapısı kanatları ( kabinin önünde, kendi döşemesinde )
     for kk in P["kabin_esik"]:
         e.append(CGE._ad(CGE._dik("KABIN", kk[1], kt["doseme"] - S["esik_kalinlik"], kk[3] - kk[1],
@@ -418,7 +423,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     e.append(CGE._olcu("dusey", (0, 0.0), (0, kapi_h), -don - 120 * K, f"KAPI {kapi_h:g}"))
     e.append(CGE._olcu("yatay", (0, taban), (D, taban), taban - don - 250 * K, f"KUYU DERİNLİĞİ {D:g}"))
     #  Kırık:  altta kabin ( ve paten ), üstte karşı ağırlık kalmalı
-    return _bitir(e, g, Y, kt, K, kt["ust_paten"], AK["alt_paten"], bosluk_h, (-don, D + dar), azami)
+    return _bitir(e, g, Y, kt, K, max(kt["ust_paten"], kt["tavan"] + Y["korkuluk"]), min(AK["alt"], AK["alt_paten"]), bosluk_h, (-don, D + dar), azami)
 
 
 def on_kesit(g, cizim_sabitleri=None, azami=None):
@@ -468,6 +473,7 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
         u_oda = _oda(e, B, g, Y, K, "Ön", ("Sol", "Sağ"), -dg - 200 * K)
     AK, kt = CKP.donanim(e, B, g, Y, P, H, M["agirlik"]["tampon_ustu"] + dy["agirlik_carpma_arasi"], K)
     CKP.kabin_on(e, B, g, Y, P, kt)
+    CKP.korkuluk(e, B, Y, kt)
     #  Ölçüler
     _olculer_sol(e, Y, -dg - 700 * K, K, kotlar, tavan, g)
     uzak = max((r for r in M["raylar"] if r["tur"] == "kabin"), key=lambda r: r["ust"])
@@ -482,6 +488,6 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     e.append(CGE._olcu("yatay", (0, taban), (G, taban), taban - don - 250 * K,
                        f"KUYU GENİŞLİĞİ {G:g}"))
     #  Kırık:  altta karşı ağırlık, üstte kabin ( etek, fren bloğu, paten ) kalmalı
-    return _bitir(e, g, Y, kt, K, AK["ust_paten"],
+    return _bitir(e, g, Y, kt, K, max(AK["ust"], AK["ust_paten"], AK["kasnak_merkez"] + g["agirlik"]["kasnak_capi"] / 2.0),
                   min(kt["etek_alti"], kt["alt_paten"], kt["fren_alti"]),
                   kapi_h + S["kapi_ust_payi"], (-dg, G + ds), azami)

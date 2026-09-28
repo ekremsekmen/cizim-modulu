@@ -1,1 +1,3 @@
 ezdxf>=1.4
+# pafta önizlemesi ( ezdxf çizicisi ) için
+Pillow

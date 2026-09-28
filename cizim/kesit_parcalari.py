@@ -17,6 +17,8 @@ kesitte daire ).
 from cizim import donanim as CDN
 from cizim import geometri as CGE
 from cizim import makine as CMK
+from cizim import kabin_ustu as CKU
+from cizim import baglantilar as CB
 
 
 class Bakis:
@@ -174,8 +176,8 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
             pk = (k[0], blok[1] - S["paten_en"], k[2], blok[1])
         else:
             pk = (k[0], blok[3], k[2], blok[3] + S["paten_en"])
-        B.kutu(e, "PATEN", pk, AK["ust"], AK["ust_paten"], "agirlik_paten")
-        B.kutu(e, "PATEN", pk, AK["alt_paten"], AK["alt"], "agirlik_paten")
+        B.kutu(e, "PATEN", pk, AK["ust_paten_alt"], AK["ust_paten"], "agirlik_paten")
+        B.kutu(e, "PATEN", pk, AK["alt_paten"], AK["alt_paten_ust"], "agirlik_paten")
     kasnak(e, B, P["agirlik_kasnak"], AK["kasnak_merkez"], g["agirlik"]["kasnak_capi"], "y",
                "agirlik_kasnagi")
     um = sum(B.aralik(blok)) / 2.0
@@ -183,6 +185,8 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
         e.append(CGE._ad(CGE._yazi(um, (AK["alt"] + AK["kasnak_merkez"]) / 2.0 - 200,
                                    "KARŞI AĞIRLIK", 40 * K, aci=90), "agirlik_yazi"))
     kt = CDN.kabin_kotlari(dy, S, kabin_z)
+    e += CMK.gorunus(CB.kasnak_tasiyicilari(g, S, kt["kasnak_merkez"]),
+                     B, CGE._dik, CGE._daire, CGE._cizgi)
     if "sase" not in M:
         return AK, kt
     #  Kuyu tepesinde ya da makine dairesinde:  makine şasesi, bağlantılar,
@@ -198,6 +202,8 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
         ks = M["kasnak"]
         e.append(CGE._ad(CGE._yazi(B.u((ks[0] + ks[2]) / 2.0, 0), ks[4] + g["makine"]["tahrik_kasnak_capi"] / 2.0
                                    + 180 * K, f"SARIM AÇISI {M['sarim_acisi']:.0f}°", 40 * K), "sarim_acisi"))
+    if M["mrl"]:
+        e += CMK.gorunus(M["halat_konsolu"], B, CGE._dik, CGE._daire, CGE._cizgi)
     rg = M["regulator"]
     B.kutu(e, "MAKINE", rg[:4], rg[4], rg[5], "regulator")
     if "pano" in M:
@@ -260,11 +266,25 @@ def kabin_on(e, B, g, Y, P, kt):
     sx1 = max(k[2] for k in P["sase_dikme"])
     for k in P["sase_dikme"]:
         B.kutu(e, "SASE", k, kt["sase_alt"], kt["sase_ust"], "sase")
+    sy0 = min(k[1] for k in P["sase_dikme"])
+    sy1 = max(k[3] for k in P["sase_dikme"])
     for z in (kt["sase_alt"], kt["sase_ust"] - 10):
-        B.kutu(e, "SASE", (sx0, kb[1], sx1, kb[3]), z, z + 10, "sase_kirisi")
+        B.kutu(e, "SASE", (sx0, sy0, sx1, sy1), z, z + 10, "sase_kirisi")
     for p in P["paten"]:
-        B.kutu(e, "PATEN", p, kt["sase_ust"], kt["ust_paten"], "ust_paten")
-        B.kutu(e, "PATEN", p, kt["alt_paten"], kt["sase_alt"], "alt_paten")
+        B.kutu(e, "PATEN", p, kt["ust_paten_alt"], kt["ust_paten"], "ust_paten")
+        B.kutu(e, "PATEN", p, kt["alt_paten"], kt["alt_paten_ust"], "alt_paten")
         B.kutu(e, "SASE", p, kt["fren_alti"], kt["fren_alti"] + S["fren_blogu_yukseklik"], "fren")
     for k in P["kabin_kasnak"]:
         kasnak(e, B, k, kt["kasnak_merkez"], g["aski"]["kasnak_capi"], "x", "kabin_kasnagi")
+
+
+def korkuluk(e, B, Y, kt):
+    """Küpeşte ve uç dikmeleri, planla aynı konum ve kenara özgü yükseklikte."""
+    for kutu, yukseklik in CKU.korkuluklar(Y["KU"]):
+        if not B.gorunur(kutu):
+            continue
+        u0, u1 = B.aralik(kutu)
+        z0, z1 = kt["tavan"], kt["tavan"] + yukseklik
+        for a, b in (((u0, z0), (u0, z1)), ((u0, z1), (u1, z1)), ((u1, z1), (u1, z0))):
+            if a != b:
+                e.append(CGE._ad(CGE._cizgi("KORKULUK", *a, *b), "korkuluk"))

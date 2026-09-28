@@ -95,6 +95,13 @@ def yerlesim(g, cizim_sabitleri=None):
     for alan in ("halat_adedi", "halat_capi"):
         if not (_sayi(a.get(alan)) and a[alan] > 0):
             hata.append(f"aski.{alan}: döşeme deliği için gerekli ( {a.get(alan)!r} ).")
+    #  Makine kaidesi:  hesap programının girdileri ( bölüm 2 )
+    for alan in ("sase_yuksekligi", "yan_yatak_boyu"):
+        if not (_sayi(md.get(alan)) and md[alan] > 0):
+            hata.append(f"makine_dairesi.{alan}: sıfırdan büyük bir sayı olmalı ( {md.get(alan)!r} ).")
+    if CMK.npu(md.get("dikine_kiris")) is None:
+        hata.append(f"makine_dairesi.dikine_kiris: kaidenin kolonlarının NPU ölçüsü — "
+                    f"{tuple(CMK.NPU)} içinden olmalı ( {md.get('dikine_kiris')!r} ).")
     if hata:
         return {"hata": hata}
     if md["kapi_genislik"] < KAPI_ASGARI:
@@ -135,13 +142,15 @@ def yerlesim(g, cizim_sabitleri=None):
     agirlik_dusus = (M["ex"], y0) if saptirma else M["ag_dusus"]
     makine_izi = (min(M["govde"][0], M["kasnak"][0]), min(M["govde"][1], M["kasnak"][1]),
                   max(M["govde"][2], M["kasnak"][2]), max(M["govde"][3], M["kasnak"][3]))
-    #  Dişli makine ya da saptırma kasnağı:  LiftDesigner'ınki gibi ayaklı şase
-    #  çerçevesi;  yoksa döşemede 2 × UPN 200 ( makinenin izi kadar ).
-    cerceve = iz = None
-    if mkg.get("tip") == "Dişli" or saptirma:
-        iz = makine_izi if not saptirma else (
-            min(makine_izi[0], saptirma["kutu"][0]), min(makine_izi[1], saptirma["kutu"][1]),
-            max(makine_izi[2], saptirma["kutu"][2]), max(makine_izi[3], saptirma["kutu"][3]))
+    #  Makine kaidesi ( hesap programının bölüm 2'si ):  makinenin ve saptırma
+    #  kasnağının izini taşır;  yan yataklar izin uzun ekseni boyunca.
+    iz = makine_izi if not saptirma else (
+        min(makine_izi[0], saptirma["kutu"][0]), min(makine_izi[1], saptirma["kutu"][1]),
+        max(makine_izi[2], saptirma["kutu"][2]), max(makine_izi[3], saptirma["kutu"][3]))
+    uzun_x = (iz[2] - iz[0]) >= (iz[3] - iz[1])
+    E, F = CMK.npu(md["dikine_kiris"]), M["yan_yatak"]
+    kaide = {"E": E, "F": F, "uzun_x": uzun_x, "boy": md["yan_yatak_boyu"] + E["h"]}
+    cerceve = None
 
     #  ── DÖŞEME DELİKLERİ ─────────────────────────────────────────────
     n, dh, p = a["halat_adedi"], a["halat_capi"], S["halat_delik_payi"]
@@ -165,21 +174,37 @@ def yerlesim(g, cizim_sabitleri=None):
             if _ortusur(d1, d2):
                 hata.append(f"{a1.capitalize()} ve {a2.lower()} delikleri üst üste biniyor.")
 
-    #  Şase çerçevesi:  makinenin ( ve saptırma kasnağının ) izinden her yana
-    #  payı kadar;  ayakları döşeme deliklerine basmaz, çerçeve odaya sığar —
-    #  basıyorsa çerçeve büyütülür ( pay 100 → 200 → 300 ).
-    if iz:
-        a, ay_ = S["md_cerceve_ayak_plakasi"], S["md_cerceve_ayak"]
+    #  Kaide:  uzun eksende boyu yan yatak mesnet aralığı + dikine kiriş
+    #  ( hesabın L'si );  makinenin izi bu boya sığmalı.  Enine eksende izden
+    #  her yana payı kadar.  Ayak plakaları döşeme deliklerine basmaz ve kaide
+    #  odaya sığar:  basıyorsa kaide uzun eksende kaydırılır, olmazsa enine pay
+    #  büyür ( 100 → 200 → 300 ).
+    u0, u1 = (iz[0], iz[2]) if uzun_x else (iz[1], iz[3])
+    e0, e1 = (iz[1], iz[3]) if uzun_x else (iz[0], iz[2])
+    boy, bosluk = kaide["boy"], kaide["boy"] - (u1 - u0)
+    ad = "Makine ve saptırma kasnağı" if saptirma else "Makine"
+    if bosluk < -1e-6:
+        hata.append(f"{ad} kaideye sığmıyor:  izi {u1 - u0:g} mm, kaide {boy:g} mm ( yan yatak "
+                    f"boyu {md['yan_yatak_boyu']:g} + dikine kiriş {E['h']:g} ) — makine_dairesi."
+                    "yan_yatak_boyu büyümeli ( hesap programında 'Yan yatak boyu' ).")
+    else:
+        kaymalar = sorted({0.0} | {k * yon * 25.0 for k in range(1, int(bosluk / 50.0) + 1)
+                                   for yon in (1, -1)}, key=lambda d: (abs(d), d))
+        a = CMK.ayak_plakasi(E, S)
+        orta = (u0 + u1) / 2.0
         for pay in (S["md_cerceve_pay"], 2 * S["md_cerceve_pay"], 3 * S["md_cerceve_pay"]):
-            c = (iz[0] - pay, iz[1] - pay, iz[2] + pay, iz[3] + pay)
-            ayaklar = [(x - a / 2.0, y - a / 2.0, x + a / 2.0, y + a / 2.0)
-                       for x in (c[0] + ay_ / 2.0, c[2] - ay_ / 2.0) for y in (c[1] + ay_ / 2.0, c[3] - ay_ / 2.0)]
-            if _icinde(c, oda) and not any(_ortusur(p, d) for p in ayaklar for _, d in delikler):
-                cerceve = c
+            for d in kaymalar:
+                ua, ub = orta + d - boy / 2.0, orta + d + boy / 2.0
+                c = (ua, e0 - pay, ub, e1 + pay) if uzun_x else (e0 - pay, ua, e1 + pay, ub)
+                plakalar = [(x - a / 2.0, y - a / 2.0, x + a / 2.0, y + a / 2.0)
+                            for x, y in CMK.ayaklar(c, E, F, uzun_x)]
+                if _icinde(c, oda) and not any(_ortusur(p, d_) for p in plakalar for _, d_ in delikler):
+                    cerceve = c
+                    break
+            if cerceve:
                 break
         else:
-            hata.append("Makine şase çerçevesi odaya sığmıyor ya da ayakları döşeme deliklerine "
-                        "basıyor.")
+            hata.append("Makine kaidesi odaya sığmıyor ya da ayakları döşeme deliklerine basıyor.")
 
     #  ── KAPI ─────────────────────────────────────────────────────────
     #  Kapının önündeki geçiş payı:  kapı eni × çalışma derinliği, boş kalır.
@@ -239,7 +264,7 @@ def yerlesim(g, cizim_sabitleri=None):
 
     return {"M": M, "oda": oda, "delikler": delikler, "kapi": kapi, "kapi_onu": kapi_onu,
             "pano": pano, "calisma": calisma, "bakim": bakim, "makine": mk,
-            "makine_izi": makine_izi, "cerceve": cerceve, "saptirma": saptirma,
+            "makine_izi": makine_izi, "cerceve": cerceve, "kaide": kaide, "saptirma": saptirma,
             "agirlik_dusus": agirlik_dusus,
             "demet": demet, "hata": hata, "S": S}
 
@@ -264,12 +289,22 @@ def dogrula(g):
     return yerlesim(g)["hata"]
 
 
-def _duvarlar(e, oda, t):
+def _duvarlar(e, oda, t, kapi):
+    """Oda duvarları;  kapının duvarı kapı boşluğunun iki yanında iki parça
+    ( tarama boşluktan geçmez ).  kapi:  duvardaki boşluğun kutusu."""
     x0, y0, x1, y1 = oda
     for x, y, w, h in ((x0 - t, y0 - t, x1 - x0 + 2 * t, t), (x0 - t, y1, x1 - x0 + 2 * t, t),
                        (x0 - t, y0, t, y1 - y0), (x1, y0, t, y1 - y0)):
-        e.append(CGE._dik("TARAMA", x, y, w, h, tip="tarama"))
-        e.append(CGE._dik("KUYU-DUVAR", x, y, w, h))
+        parcalar = [(x, y, x + w, y + h)]
+        if _ortusur(parcalar[0], kapi):
+            if w >= h:
+                parcalar = [(x, y, kapi[0], y + h), (kapi[2], y, x + w, y + h)]
+            else:
+                parcalar = [(x, y, x + w, kapi[1]), (x, kapi[3], x + w, y + h)]
+        for a, b, c, d in parcalar:
+            if c - a > 1e-6 and d - b > 1e-6:
+                e.append(CGE._dik("TARAMA", a, b, c - a, d - b, tip="tarama"))
+                e.append(CGE._dik("KUYU-DUVAR", a, b, c - a, d - b))
     e.append(CGE._dik("KUYU-IC", x0, y0, x1 - x0, y1 - y0))
 
 
@@ -284,17 +319,20 @@ def ciz(g, cizim_sabitleri=None):
     M, oda, md = Y["M"], Y["oda"], g["makine_dairesi"]
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
     e = []
-    _duvarlar(e, oda, md["duvar"])
     #  Kapı:  duvardaki boşluk
     kp, t = Y["kapi"], md["duvar"]
     if kp[1] == kp[3]:                                   # ön / arka duvar
         y = kp[1] if kp[1] > oda[1] else kp[1] - t
-        e.append(CGE._ad(CGE._dik("KAPI", kp[0], y, kp[2] - kp[0], t), "oda_kapisi"))
-        e.append(CGE._yazi((kp[0] + kp[2]) / 2.0, y + t / 2.0, f"KAPI {md['kapi_genislik']:g}", 34))
+        bosluk = (kp[0], y, kp[2], y + t)
+        yazi = CGE._yazi((kp[0] + kp[2]) / 2.0, y + t / 2.0, f"KAPI {md['kapi_genislik']:g}", 34)
     else:
         x = kp[0] if kp[0] > oda[0] else kp[0] - t
-        e.append(CGE._ad(CGE._dik("KAPI", x, kp[1], t, kp[3] - kp[1]), "oda_kapisi"))
-        e.append(CGE._yazi(x + t / 2.0, (kp[1] + kp[3]) / 2.0, f"KAPI {md['kapi_genislik']:g}", 34, aci=90))
+        bosluk = (x, kp[1], x + t, kp[3])
+        yazi = CGE._yazi(x + t / 2.0, (kp[1] + kp[3]) / 2.0, f"KAPI {md['kapi_genislik']:g}", 34, aci=90)
+    _duvarlar(e, oda, t, bosluk)
+    e.append(CGE._ad(CGE._dik("KAPI", bosluk[0], bosluk[1], bosluk[2] - bosluk[0], bosluk[3] - bosluk[1]),
+                     "oda_kapisi"))
+    e.append(yazi)
     #  Kuyunun izi
     e.append(CGE._ad(CGE._dik("GIZLI", 0, 0, G, D), "kuyu_izi"))
     _delik_elemanlari(e, Y)
@@ -302,18 +340,14 @@ def ciz(g, cizim_sabitleri=None):
     def kutu(katman, p, ad):
         e.append(CGE._ad(CGE._dik(katman, p[0], p[1], p[2] - p[0], p[3] - p[1]), ad))
 
-    #  Makinenin şasesi ( ayaklı çerçeve ya da döşemede 2 × UPN 200 ), saptırma
-    #  kasnağı ve makine — parça parça ( makine.py );  kotlar yalnız çizim
-    #  sırası için:  çerçeve ve saptırma kasnağı makinenin altında
-    S_ = M["S"]
-    if Y["cerceve"]:
-        alt = CMK.cerceve(Y["cerceve"], -3000.0, S_)
-    else:
-        gv = M["govde"]
-        alt = CMK.upn_sase(Y["makine_izi"] + (-2000.0 - CMK.UPN["h"], -2000.0), (gv[1] + gv[3]) / 2.0)
+    #  Makinenin kaidesi, saptırma kasnağı ve makine — parça parça ( makine.py );
+    #  kotlar yalnız çizim sırası için:  kaide ve saptırma kasnağı makinenin altında
+    S_, K = M["S"], Y["kaide"]
+    H = md["sase_yuksekligi"]
+    alt = CMK.kaide(Y["cerceve"], -3000.0 - H, H, K["E"], K["F"], K["uzun_x"], S_) if Y["cerceve"] else []
     sp = Y["saptirma"]
     if sp:
-        alt += CMK.saptirma((sp["x"], sp["y"], -2600.0), sp["D"], sp["bk"], -3000.0 + S_["md_cerceve_yukseklik"])
+        alt += CMK.saptirma((sp["x"], sp["y"], -3000.0 - H / 2.0), sp["D"], sp["bk"], -3000.0, K["F"]["h"])
     e += CMK.plan(alt + CMK.plan_parcalari(M, S_, sase=False), CGE._dik, CGE._daire, CGE._cizgi)
     ks = M["kasnak"]
     e.append(CGE._yazi((ks[0] + ks[2]) / 2.0, (ks[1] + ks[3]) / 2.0, f"ø {M['D1']:g}", 38))
@@ -370,7 +404,7 @@ def delik_plani(g, cizim_sabitleri=None):
     Y = yerlesim(g, cizim_sabitleri)
     k = g["kuyu"]
     G, D, dg, dar, ds = k["genislik"], k["derinlik"], k["duvar_sag"], k["duvar_arka"], k["duvar_sol"]
-    e = [el for el in CGE.plan(g, Y["S"])
+    e = [el for el in CGE.plan(g, Y["S"], kapi_duzeyi=False)
          if el["katman"] in ("TARAMA", "KUYU-DUVAR", "KUYU-IC", "EKSEN") and el["tip"] != "yazi"]
     _delik_elemanlari(e, Y)
     for ad, d in Y["delikler"]:

@@ -25,6 +25,7 @@ from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kuyu_dibi as CKD
 from cizim import makine as CMK
+from cizim import baglantilar as CB
 from cizim import sabitler as CS
 
 #  TS EN 81-20 m.5.2.6.6.4 → m.5.2.6.3.2.1 a:  panonun önünde en az 0,70 m
@@ -75,6 +76,9 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
         #  asansörler dişlisizdir ( ofisin 4815-6'sı ve ELEport da öyle ).
         hata.append("Makine dairesiz ( kuyu üstü ) tesiste dişli makine çizilmez — "
                     "makine.tip Dişlisiz olmalı ya da makine.yeri Makine dairesi.")
+    if CMK.npu(mk.get("yan_yatak")) is None:
+        hata.append(f"makine.yan_yatak: makinenin oturduğu kirişin NPU ölçüsü ( hesap programında "
+                    f"'F ( yan yatak )' ) — {tuple(CMK.NPU)} içinden olmalı ( {mk.get('yan_yatak')!r} ).")
     if acil_pano and ku.get("acil_pano_yan") not in YANLAR:
         hata.append(f"kuyu_ustu.acil_pano_yan: {YANLAR} içinden olmalı ( {ku.get('acil_pano_yan')!r} ).")
     for alan in ("regulator_kaciklik", "regulator_kasnak_capi"):
@@ -85,7 +89,7 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
     if hata:
         return {"hata": hata}
 
-    taban = CGE.plan(g, S)
+    taban = CGE.plan(g, S, kapi_duzeyi=False)
     k = g["kuyu"]
     G, D = k["genislik"], k["derinlik"]
     kabin = _kutu(next(el for el in taban if el.get("ad") == "kabin_dis"))
@@ -221,7 +225,10 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
             "ag_dusus": (ag_dusus_x, y0), "ag_teget": (ex, teget1), "ag_teget2": (ex, teget2),
             "sapma": sapma, "kasnak": kasnak, "govde": govde, "agirlik_baglanti": agirlik_baglanti,
             "makine": makine, "m_yon": m_yon, "s": s, "sase": sase, "tip": mk["tip"],
-            "kabin_baglanti": kabin_baglanti, "reg_kasnak": reg_kasnak, "reg_govde": reg_govde,
+            "yan_yatak": CMK.npu(mk["yan_yatak"]),
+            "kabin_baglanti": kabin_baglanti,
+            "halat_konsolu": CB.halat_konsolu(kabin_baglanti, kab_r[-1] if sol else kab_r[0], 0),
+            "reg_kasnak": reg_kasnak, "reg_govde": reg_govde,
             "reg_ayak": reg_ayak, "pano": pano, "calisma": calisma, "D1": D1,
             "rgx": rx, "rgy": rgy, "yakin": yakin, "uzak": uzak,
             "ag_y": ag_y, "ry": ry, "ex": ex, "hata": hata, "S": S}
@@ -250,7 +257,7 @@ def ciz(g, cizim_sabitleri=None):
     kp = g["kapi"]
     kutu("GIZLI", (kp["sol_pay"], -don, kp["sol_pay"] + kp["genislik"], 0), "kapi_izi")
 
-    #  Makine şasesi ( 2 × UPN 200 ) ve makine — parça parça ( makine.py )
+    #  Makine şasesi ( 2 yan yatak ) ve makine — parça parça ( makine.py )
     e += CMK.plan(CMK.plan_parcalari(Y, Y["S"]), CGE._dik, CGE._daire, CGE._cizgi)
     ks = Y["kasnak"]
     e.append(CGE._yazi((ks[0] + ks[2]) / 2.0, (ks[1] + ks[3]) / 2.0, f"ø {Y['D1']:g}", 38))
@@ -258,6 +265,8 @@ def ciz(g, cizim_sabitleri=None):
     #  Halat bağlantıları, sonra halatlar ( işaret plakanın üstünde görünsün )
     kutu("BAGLANTI", Y["agirlik_baglanti"], "agirlik_baglanti")
     kutu("BAGLANTI", Y["kabin_baglanti"], "kabin_baglanti")
+    if g["makine"]["yeri"] == "Kuyu üstü":
+        e += CMK.plan(Y["halat_konsolu"], CGE._dik, CGE._daire, CGE._cizgi)
     for p in (Y["agirlik_baglanti"], Y["kabin_baglanti"]):
         e.append(CGE._yazi((p[0] + p[2]) / 2.0, p[3] + 40, "HALAT BAĞLANTISI", 30))
     for hx, hy in Y["halatlar"] + [Y["ag_dusus"], Y["ag_teget2"]]:

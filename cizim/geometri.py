@@ -204,8 +204,13 @@ def halat_konumlari(g, S=None):
     return [(kx - yari, y), (kx + yari, y)]
 
 
-def plan(g, cizim_sabitleri=None):
-    """Kuyu planının elemanları  ( liste )."""
+def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
+    """Kuyu planının elemanları  ( liste ).
+
+    kapi_duzeyi:  plan kat kapısı hizasından kesilir ( C-C ) — ön duvar kapı
+    boşluğunun iki yanında iki parçadır, tarama boşluktan geçmez.  Kapının
+    üstünden / altından kesilen planlar ( kabin üstü, kuyu dibi, kuyu üstü,
+    delik planı ) duvarı kesintisiz alır:  False."""
     S = CS.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     k, kb, kp = g["kuyu"], g["kabin"], g["kapi"]
     kr, ag = g["kabin_ray"], g["agirlik"]
@@ -214,8 +219,14 @@ def plan(g, cizim_sabitleri=None):
     e = []
 
     #  ── DUVARLAR  ( tarama yalnız duvar kesitinde ) ───────────────────
-    for x, y, g_, d_ in ((-ds, -don, G + ds + dg, don), (-ds, D, G + ds + dg, dar),
-                         (-ds, 0, ds, D), (G, 0, dg, D)):
+    #  Duvar boşluğuna monte kapıda kasa da boşluktadır.
+    kasa = S["kasa_yan"] if kp["montaj"] == "Duvar boşluğuna" else 0.0
+    b0, b1 = kp["sol_pay"] - kasa, kp["sol_pay"] + kp["genislik"] + kasa
+    on = [(-ds, -don, b0 + ds, don), (b1, -don, G + dg - b1, don)] if kapi_duzeyi else \
+        [(-ds, -don, G + ds + dg, don)]
+    for x, y, g_, d_ in on + [(-ds, D, G + ds + dg, dar), (-ds, 0, ds, D), (G, 0, dg, D)]:
+        if g_ <= 1e-6:
+            continue
         e.append(_dik("TARAMA", x, y, g_, d_, tip="tarama"))
         e.append(_dik("KUYU-DUVAR", x, y, g_, d_))
     e.append(_dik("KUYU-IC", 0, 0, G, D))
@@ -273,12 +284,13 @@ def plan(g, cizim_sabitleri=None):
     e.append(_ad(_dik("KABIN", kx - dis_g / 2.0, ic_on, dis_g, dis_d), "kabin_dis"))          # kabin dışı
     e.append(_dik("KABIN-IC", kx - kb["genislik"] / 2.0, ic_on,
                   kb["genislik"], kb["derinlik"]))                          # kabin içi
-    #  şase dikmeleri:  kabinin iki yanında, ray eksenine dik
+    #  Şase dikmeleri ray ekseninde; plan ve kesit aynı derinliği kullanır.
+    sd = S["sase_dikme_derinlik"]
+    sy0 = kr["kapi_arasi"] - sd / 2.0
     for sx in (kx - dis_g / 2.0 - S["sase_dikme"], kx + dis_g / 2.0):
-        e.append(_ad(_dik("SASE", sx, ic_on, S["sase_dikme"], dis_d), "sase_dikme"))
-    #  şase ALT / ÜST kirişleri:  iki dikmeyi bağlar  ( planda kabinin ön ve
-    #  arka kenarında görünür )
-    for sy in (ic_on, ic_on + dis_d - S["sase_dikme"]):
+        e.append(_ad(_dik("SASE", sx, sy0, S["sase_dikme"], sd), "sase_dikme"))
+    #  Şase kirişlerinin plan zarfı, ray eksenindeki iki dikmeyi bağlar.
+    for sy in (sy0, sy0 + sd - S["sase_dikme"]):
         e.append(_ad(_dik("SASE", kx - dis_g / 2.0 - S["sase_dikme"], sy,
                       dis_g + 2 * S["sase_dikme"], S["sase_dikme"]), "sase_kiris"))
     #  Kabin kapısı mekanizma kutusu KABİN ÖN YÜZÜNDE durur  ( kapı ile kabin
@@ -354,6 +366,10 @@ def plan(g, cizim_sabitleri=None):
             e.append(_ad(_cizgi("KASNAK", merkez - 70, aski_y, merkez + 70, aski_y), "aski_nokta"))
             e.append(_ad(_cizgi("KASNAK", merkez, aski_y - 70, merkez, aski_y + 70), "aski_nokta"))
         e.append(_ad(_yazi(kx, aski_y - aski_yari - 230, "ASKI:  DOĞRUDAN  ·  1:1", 44), "aski_yazi"))
+
+    from cizim import baglantilar as CB, makine as CMK
+    e += CMK.plan(CB.kasnak_tasiyicilari(g, S, -S["kabin_kasnak_derinlik"]),
+                  _dik, _daire, _cizgi)
 
     #  ── KARŞI AĞIRLIK:  çerçeve · dolgu · kasnak · raylar ────────────
     cer = S["agirlik_cerceve"]

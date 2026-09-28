@@ -85,7 +85,7 @@ def yerlesim(g, cizim_sabitleri=None):
               siginma ( kutu ya da None ), hata [ … ] }
     """
     S = CS.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
-    taban = CGE.plan(g, S)
+    taban = CGE.plan(g, S, kapi_duzeyi=False)
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
     tavan = _kutu(next(el for el in taban if el.get("ad") == "kabin_dis"))
     parcalar = [_kutu(el) for el in taban
@@ -212,6 +212,14 @@ def dogrula(g):
     return yerlesim(g)["hata"]
 
 
+def korkuluklar(Y):
+    """Plan, kesit ve açıklık denetiminin ortak küpeşte konumları."""
+    x0, y0, x1, y1 = Y["ic"]
+    kenarlar = {"Sol": (x0, y0, x0, y1), "Sağ": (x1, y0, x1, y1),
+                "Ön": (x0, y0, x1, y0), "Arka": (x0, y1, x1, y1)}
+    return [(kenarlar[ad], k["yukseklik"]) for ad, k in Y["kenarlar"].items() if k["gerekli"]]
+
+
 def ciz(g, cizim_sabitleri=None):
     """Kabin üstü planının elemanları."""
     Y = yerlesim(g, cizim_sabitleri)
@@ -245,15 +253,8 @@ def ciz(g, cizim_sabitleri=None):
     #  ── KORKULUK ─────────────────────────────────────────────────────
     #  Küpeşte çizgisi, gerekli olan her kenarda iceri kadar içeride durur.
     ic = Y["ic"]
-    for yan, k in ken.items():
-        if not k["gerekli"]:
-            continue
-        if yan in ("Sol", "Sağ"):
-            x = ic[0] if yan == "Sol" else ic[2]
-            e.append(CGE._ad(CGE._cizgi("KORKULUK", x, ic[1], x, ic[3]), "korkuluk"))
-        else:
-            y = ic[3] if yan == "Arka" else ic[1]
-            e.append(CGE._ad(CGE._cizgi("KORKULUK", ic[0], y, ic[2], y), "korkuluk"))
+    for kutu, _ in korkuluklar(Y):
+        e.append(CGE._ad(CGE._cizgi("KORKULUK", *kutu), "korkuluk"))
 
     #  ── SIĞINMA ALANI ────────────────────────────────────────────────
     sg = Y["siginma"]
