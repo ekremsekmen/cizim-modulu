@@ -19,7 +19,8 @@ Makine daireli projede makine, bağlantılar, regülatör ve kumanda panosu
 kuyunun üstündeki odadadır ( yerleri makine_dairesi.yerlesim ):  oda
 döşemesi kuyu tavanıdır, parçalar oda döşemesinden yükselir, halatlar
 döşeme deliklerinden kuyuya iner.  Kuyuda raylar ve karşı ağırlık kalır;
-rayların üst ucu kuyu tavanının en alt kısmıdır ( tavan_kirisi ).
+rayların üst ucu kuyu tavanının en alt kısmının ( tavan_kirisi ) kabin_rayi_tepe
+kadar altındadır — tavana değmez ( ELEport:  tavanın 50 altı ).
 
 MAKİNE DAİRESİNİN DENETİMLERİ ( TS EN 81-20 )
   m.5.2.6.3.2.1  çalışma alanlarında temiz yükseklik ≥ 2,10 m
@@ -127,7 +128,7 @@ def yerlesim(g, S, H, tavan, taban):
                  zs + S["makine_en"], z_ust)
         M.update({
             "makine": _makine_parcalari(g, KU, zk, kapak),
-            "sase_parcalari": CMK.upn_sase(sase, my, KU["yan_yatak"]),
+            "sase_parcalari": CMK.upn_sase(sase, my, KU["yan_yatak"], KU["sase_delikleri"]),
             "sase": sase,
             "govde": (gx0, gy0, gx1, gy1, zs, zs + S["makine_en"]),
             "kapak": kapak,
@@ -147,18 +148,20 @@ def yerlesim(g, S, H, tavan, taban):
         for ad in ("sase", "kabin_baglanti", "agirlik_baglanti", "regulator"):
             p = M[ad]
             M["parcalar"].append((ad, p[:4], p[4]))
-        #  Öbür kabin rayı ELEport'ta tavanın 50 altına çıkar;  kuyu tavanı payı
-        #  ( tavan_kirisi ) daha büyükse onun altında kalır.
+        #  Öbür kabin rayı ELEport'ta tavanın 50 altına çıkar;  tavanın en alt
+        #  kısmı ( tavan_kirisi payı ) hesaba katılınca onun 50 altına — eskiden
+        #  payın alt yüzüne tam değiyordu.
         ray_ust = {"yakin": zs - S["ray_sase_icinde"],
-                   "uzak": min(tavan - S["kabin_rayi_tepe"], tavan_alti),
+                   "uzak": tavan_alti - S["kabin_rayi_tepe"],
                    "agirlik": zs - S["ray_sase_icinde"]}
         M["raylar"] = [("kabin", yakin_ray, ray_ust["yakin"]),
                        ("kabin", uzak_ray, ray_ust["uzak"])] + \
                       [("agirlik", r, ray_ust["agirlik"]) for r in agirlik_raylari]
         M["regulator_x"], M["regulator_y"] = KU["rgx"], KU["rgy"]
     else:
-        M["raylar"] = [("kabin", r, tavan_alti) for r in kabin_raylari] + \
-                      [("agirlik", r, tavan_alti) for r in agirlik_raylari]
+        ray_ust = tavan_alti - S["kabin_rayi_tepe"]
+        M["raylar"] = [("kabin", r, ray_ust) for r in kabin_raylari] + \
+                      [("agirlik", r, ray_ust) for r in agirlik_raylari]
         rg = KD["gergi"]
         M["regulator_x"] = (rg[0] + rg[2]) / 2.0
         M["regulator_y"] = (rg[1] + rg[3]) / 2.0
@@ -187,7 +190,8 @@ def yerlesim(g, S, H, tavan, taban):
     M["raylar"] = raylar
 
     #  ── KARŞI AĞIRLIK ────────────────────────────────────────────────────
-    M["agirlik"] = {"kutu": KD["blok"], "yukseklik": S["agirlik_yukseklik"],
+    #  Çerçevenin yüksekliği hesabın ağırlık paten arasıdır ( kabin şasesi gibi )
+    M["agirlik"] = {"kutu": KD["blok"], "yukseklik": dy["agirlik_paten_arasi"],
                     "kasnak_ust": S["agirlik_kasnak_ust"], "paten": S["paten_yukseklik"],
                     "paten_arasi": dy["agirlik_paten_arasi"],
                     "tampon_ustu": taban + dy["agirlik_tampon_baba"] + dy["agirlik_tampon_boyu"]}
@@ -235,7 +239,8 @@ def _makine_dairesi(g, S, tavan, M):
     K = MD["kaide"]
     zs = zd + md["sase_yuksekligi"]
     sase = MD["cerceve"] + (zd, zs)
-    parcalar = CMK.kaide(MD["cerceve"], zd, md["sase_yuksekligi"], K["E"], K["F"], K["uzun_x"], S)
+    parcalar = CMK.kaide(MD["cerceve"], zd, md["sase_yuksekligi"], K["E"], K["F"], K["uzun_x"], S,
+                         K["plaka"], MD["kaide_delikleri"])
     dis = g["makine"]["tip"] == "Dişli"
     zk = zs - CMK.DISLI_ZARF["z"][0] if dis else zs + S["makine_en"] / 2.0     # kasnak merkezi
     kapak = (mx - S["makine_kapak_en"] / 2.0, my - S["makine_kapak_boy"] / 2.0,
@@ -243,24 +248,14 @@ def _makine_dairesi(g, S, tavan, M):
              zs + S["makine_en"], zs + S["makine_en"] + S["makine_kapak_yukseklik"])
     #  Halatın tahrik kasnağındaki sarım açısı ve ağırlık tarafının yolu:
     #  saptırma kasnağı varsa kasnaktan ona ( ortak teğet ), ondan dik iner.
-    D1 = g["makine"]["tahrik_kasnak_capi"]
-    y_ = -1.0 if g["agirlik"]["yeri"] == "Sol" else 1.0
+    #  Saptırma kasnağının kotu ve teğet makine dairesi yerleşiminde ( döşemeden;
+    #  plakadaki delik de oradan );  askı levhaları makine plakasına asılır.
     sp = MD["saptirma"]
     if sp:
-        #  Döşemedeki bağlantıların / regülatörün üstünde kalır ( 50 mm açık ):
-        #  LiftDesigner'ın 400'ü yetmezse yükselir;  üst kirişe sığmazsa durur.
-        R2 = sp["D"] / 2.0
-        zd_ = zd + S["md_saptirma_yukseklik"]
-        for kutu_, h_ in ((KU["agirlik_baglanti"], S["agirlik_baglanti_yukseklik"]),
-                          (KU["kabin_baglanti"], kab), (KU["reg_govde"], rg)):
-            if _ortusur(kutu_, sp["kutu"]):
-                zd_ = max(zd_, zd + h_ + 50.0 + R2)
-        if zd_ + R2 > zs - K["F"]["h"] - 50.0:
-            hata.append(f"Saptırma kasnağı ( ø {sp['D']:g} ) döşemedeki bağlantıların üstünde, kaidenin "
-                        "yan yataklarının altına sığmıyor — şase yüksekliğini büyütün.")
-        parcalar += CMK.saptirma((sp["x"], sp["y"], zd_), sp["D"], sp["bk"], zs, K["F"]["h"])
-        P1, P2, n = CMK.teget((mx, zk), D1 / 2.0, (sp["x"], zd_), sp["D"] / 2.0, y_)
-        sarim = CMK.sarim_acisi(y_, n)
+        zd_ = zd + sp["z"]
+        parcalar += CMK.saptirma((sp["x"], sp["y"], zd_), sp["D"], sp["bk"], zs, CMK.MOTOR_PLAKASI_KALINLIK)
+        P1, P2 = (sp["P1"][0], sp["P1"][1] + zd), (sp["P2"][0], sp["P2"][1] + zd)
+        sarim = sp["sarim"]
         yol = [((P1[0], sp["y"], P1[1]), (P2[0], sp["y"], P2[1]))]
         dusus_z = zd_
     else:
@@ -297,17 +292,18 @@ def _makine_dairesi(g, S, tavan, M):
 
 
 def agirlik_kotlari(M, alt):
-    """Alt kirişi `alt` kotundaki karşı ağırlığın parça kotları."""
+    """Alt kirişi `alt` kotundaki karşı ağırlığın parça kotları.  Patenler
+    çerçevenin alt ve üst ucuna ortalıdır ( kabin şasesinin kirişlerindeki
+    gibi ):  merkezleri arası çerçevenin yüksekliği = hesabın paten arası.
+    Eskiden çerçevenin ortasına göre 1.500 aralıkla dizilip 2.920'lik
+    çerçevenin ortasında duruyorlardı."""
     A = M["agirlik"]
     ust = alt + A["yukseklik"]
-    merkez = (alt + ust) / 2.0
-    alt_merkez = merkez - A["paten_arasi"] / 2.0
-    ust_merkez = merkez + A["paten_arasi"] / 2.0
     return {"alt": alt, "ust": ust, "kasnak_merkez": ust - A["kasnak_ust"],
-            "alt_paten": alt_merkez - A["paten"] / 2.0,
-            "alt_paten_ust": alt_merkez + A["paten"] / 2.0,
-            "ust_paten_alt": ust_merkez - A["paten"] / 2.0,
-            "ust_paten": ust_merkez + A["paten"] / 2.0}
+            "alt_paten": alt - A["paten"] / 2.0,
+            "alt_paten_ust": alt + A["paten"] / 2.0,
+            "ust_paten_alt": ust - A["paten"] / 2.0,
+            "ust_paten": ust + A["paten"] / 2.0}
 
 
 def tavan_engeli(M, kutu):

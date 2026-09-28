@@ -95,7 +95,8 @@ def uret(md):
         "agirlik_tampon_ezilme": 203,
         "kabin_konsol_arasi": 1500, "agirlik_konsol_arasi": 1500,
     })
-    g["kuyu_dibi"].update({"siginma_tipi": "Yatarak", "regulator_kasnak_capi": 240})
+    g["kuyu_dibi"].update({"siginma_tipi": "Yatarak", "regulator_kasnak_capi": A["reg_kasnak_capi"],
+                           "regulator_halat_capi": A["reg_halat_capi"]})
     #  Binaya gelen yükler ( N ):  kuyu tabanı hesabın 9. bölümünden;  ray
     #  konsoluna gelen yatay kuvvetler 7. ve 8. bölümlerin bütün yük durumlarındaki
     #  paten kuvvetlerinin en büyüğü.  Tampon adetleri iki girdide aynı olmalı ki

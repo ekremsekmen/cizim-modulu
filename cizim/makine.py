@@ -90,6 +90,34 @@ def npu(olcu):
     return None if v is None else dict(zip("hbst", map(float, v)))
 
 
+def halat_deligi(x, y, n, dh, pay, eksen="y"):
+    """n halatlık demetin geçtiği delik:  halatlar kanal aralığıyla ( 1,6 · dh —
+    hesap programının kasnak genişliği bağıntısı ) `eksen` boyunca dizilir,
+    çevresinde pay.  Döşemede de şase plakasında da aynı kural ( m.5.2.6.3.3:
+    "amacı için en küçük" ).  Döner:  ( x0, y0, x1, y1 )."""
+    demet = (n - 1) * 1.6 * dh + dh
+    boy, en = demet + 2 * pay, dh + 2 * pay
+    a, b = (en, boy) if eksen == "y" else (boy, en)
+    return (x - a / 2.0, y - b / 2.0, x + a / 2.0, y + b / 2.0)
+
+
+def plaka_delikleri(plaka, delikler):
+    """Plakadan geçen halatların delikleri:  merkezi plakanın içinde olanlar,
+    plakanın kenarına kırpılmış."""
+    x0, y0, x1, y1 = plaka
+    out = []
+    for d in delikler:
+        cx, cy = (d[0] + d[2]) / 2.0, (d[1] + d[3]) / 2.0
+        if x0 < cx < x1 and y0 < cy < y1:
+            out.append((max(d[0], x0), max(d[1], y0), min(d[2], x1), min(d[3], y1)))
+    return out
+
+
+def _delikler(plaka, delikler, zt, katman_ad="makine_sasesi"):
+    return [kutu(*d, zt - MOTOR_PLAKASI_KALINLIK, zt, "DELIK", katman_ad, "halat_deligi")
+            for d in plaka_delikleri(plaka, delikler)]
+
+
 def _parca(tur, katman, ad, parca, **v):
     return dict(tur=tur, katman=katman, ad=ad, parca=parca, **v)
 
@@ -193,11 +221,13 @@ def u_kirisi(k, P, uzun_x, sirt, parca, ad="makine_sasesi"):
     return p
 
 
-def upn_sase(sase, motor_y, P):
+def upn_sase(sase, motor_y, P, delikler=()):
     """sase:  ( x0, y0, x1, y1, zb, zt );  P:  yan yatak profili ( npu ).  İki
     kiriş y boyunca, sırtları dışarıda ( ağızlar birbirine bakar );  motor
     plakası motor_y çevresinde kirişlerin arasında, üstle aynı hizada;  uçlarda
-    bağlantı levhaları."""
+    bağlantı levhaları.  delikler:  şaseden aşağı inen halatların delikleri
+    ( halat_deligi );  plakaya düşenler plakada açılır — eskiden karşı ağırlık
+    halatları deliksiz plakanın içinden geçiyordu."""
     x0, y0, x1, y1, _, zt = sase
     h, b, t = P["h"], P["b"], P["t"]
     zb = zt - h
@@ -211,6 +241,7 @@ def upn_sase(sase, motor_y, P):
         my1 = min(y1, motor_y + MOTOR_PLAKASI_BOY / 2.0)
         p.append(kutu(ic0, my0, ic1, my1, zt - MOTOR_PLAKASI_KALINLIK, zt, "KONSOL", "makine_sasesi",
                       "motor_plakasi"))
+        p += _delikler((ic0, my0, ic1, my1), delikler, zt)
         for yy in (y0, y1 - UC_LEVHASI):
             p.append(kutu(ic0, yy, ic1, yy + UC_LEVHASI, zb + t, zt - t, "KONSOL", "makine_sasesi",
                           "uc_levhasi"))
@@ -225,7 +256,8 @@ def plan_parcalari(Y, S, sase=True):
     my = (gv[1] + gv[3]) / 2.0
     p = []
     if sase:
-        p += upn_sase(Y["sase"] + (-1000.0 - Y["yan_yatak"]["h"], -1000.0), my, Y["yan_yatak"])
+        p += upn_sase(Y["sase"] + (-1000.0 - Y["yan_yatak"]["h"], -1000.0), my, Y["yan_yatak"],
+                      Y["sase_delikleri"])
     p += Y["makine"]
     if Y["tip"] == "Dişlisiz":
         mx = (Y["kasnak"][0] + Y["kasnak"][2]) / 2.0
@@ -274,12 +306,14 @@ def ayaklar(c, E, F, uzun_x):
     return [(u, e) if uzun_x else (e, u) for u in us for e in es]
 
 
-def kaide(c, zd, H, E, F, uzun_x, S):
+def kaide(c, zd, H, E, F, uzun_x, S, plaka=None, delikler=()):
     """Hesap programının makine kaidesi.  c:  plandaki dış kutusu;  zd:
     döşeme;  H:  şase yüksekliği ( dikine kirişin boyu — döşemeden kaidenin
     üstüne );  E / F:  dikine kiriş ve yan yatak profilleri;  uzun_x:  yan
     yataklar x boyunca mı.  Dikine kirişler ayak plakalarında, yan yataklar
-    üstleriyle kaidenin üstü hizasında;  uçlarda kısa kirişler."""
+    üstleriyle kaidenin üstü hizasında;  uçlarda kısa kirişler.  plaka:  makinenin
+    oturduğu plaka ( yan yatakların arasında, üstleriyle aynı hizada;  yük iki
+    yan yatağa geçer — hesabın F / 2'si );  delikler:  plakadan geçen halatlar."""
     x0, y0, x1, y1 = c
     zt = zd + H
     ap, at = ayak_plakasi(E, S), S["md_cerceve_ayak_plakasi_kalinlik"]
@@ -301,12 +335,15 @@ def kaide(c, zd, H, E, F, uzun_x, S):
         p += u_kirisi(k + (zt - F["h"], zt), F, uzun_x, sirt, "yan_yatak")
     for k in kisa:
         p.append(kutu(*k, zt - K["h"], zt, "KONSOL", "makine_sasesi", "kisa_kiris"))
+    if plaka:
+        p.append(kutu(*plaka, zt - MOTOR_PLAKASI_KALINLIK, zt, "KONSOL", "makine_sasesi", "makine_plakasi"))
+        p += _delikler(plaka, delikler, zt)
     return p
 
 
 def saptirma(merkez, D, bk, zt, kiris_h):
-    """Saptırma kasnağı ( ekseni y ) ve kaidenin yan yataklarına ( üstü zt,
-    yüksekliği kiriş_h ) asılı iki taşıyıcı levha."""
+    """Saptırma kasnağı ( ekseni y ) ve üstündeki taşıyıcıya ( üstü zt,
+    kalınlığı kiriş_h — makine plakası ) asılı iki levha."""
     x, y, z = merkez
     p = [silindir("y", (x, 0, z), D, y - bk / 2.0, y + bk / 2.0, "KASNAK", "saptirma_kasnagi",
                   "saptirma_kasnagi")]

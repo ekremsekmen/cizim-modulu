@@ -91,8 +91,6 @@ SABIT = {
     #  ── MAKİNE DAİRESİ ───────────────────────────────────────────────
     #  Kumanda panosu:  LiftDesigner makine dairesi planındaki pano 600 × 400.
     "kumanda_pano_en": 600, "kumanda_pano_derinlik": 400,
-    #  Regülatör halatı deliği:  LiftDesigner planında 200 × 200.
-    "regulator_delik": 200,
     #  Kumanda panosunun yüksekliği:  LiftDesigner "477-8" projesinin
     #  "Dikey 1:50" kesitinde yere oturan pano 2.000 mm.
     "kumanda_pano_yukseklik": 2000,
@@ -153,7 +151,8 @@ SABIT = {
     "md_cati_kalinlik": 150,
     "md_saptirma_yukseklik": 400,
     #  Şasenin altındaki raylar şase üstünün 55 altında biter ( tavandan 650 );
-    #  öbür kabin rayı tavanın 50 altına çıkar, kabin halat bağlantısı onun
+    #  öbür kabin rayı tavanın 50 altına çıkar ( çizimde tavanın en alt kısmının —
+    #  tavan_kirisi payının — 50 altına;  makine dairelide bütün raylar ), kabin halat bağlantısı onun
     #  başındadır ( tavandan 280 – 645 ).  Ağırlık halat bağlantısı şasenin
     #  üstündedir ( 298 ).
     "ray_sase_icinde": 55,
@@ -165,18 +164,23 @@ SABIT = {
     "regulator_govde_ust": 433, "regulator_govde_alt": 645,
     #  Kuyu dibindeki gergi düzeni ( ELEport "Cabin at Top Floor" ):  kasnak
     #  merkezi tabandan 520;  kol tabandan 500 – 540, kabin ray ekseninin 80
-    #  önünden kasnağın 360 ötesine;  ağırlık 160 × 175, tabandan 390,
-    #  kasnağın 260 – 420 ötesinde.
+    #  önünden kasnağın 360 ötesine;  ağırlık 160 × 175, tabandan 390.
+    #  Ağırlığın merkezi kasnak merkezinden 300 ( ELEport regülatör hesabı:
+    #  "Distance from the center of the suspended weight to the center of the
+    #  tension pulley A : 300 mm" ) → kasnağın 220 – 380 ötesinde.  Kesitteki
+    #  sembolden 260 – 420 ( merkez 340 ) ölçülmüştü:  ELEport'un 280'lik
+    #  regülatör kaçıklığında ağırlık kuyudan taşıyordu.
     "gergi_kasnak_merkez": 520,
     "gergi_kol_alt": 500, "gergi_kol_yukseklik": 40, "gergi_kol_ray": 80, "gergi_kol_uc": 360,
     "gergi_agirlik_alt": 390, "gergi_agirlik_yukseklik": 175,
-    "gergi_agirlik_yakin": 260, "gergi_agirlik_uzak": 420,
+    "gergi_agirlik_yakin": 220, "gergi_agirlik_uzak": 380,
 
     #  ── KARŞI AĞIRLIK ( düşey ) ──────────────────────────────────────
     #  ELEport "Counterweight Sits on Buffer" ( 1/30 ):  çerçeve alt kirişin
-    #  altından üst kirişin üstüne 2.920;  kasnak merkezi üst kirişin 110
-    #  altında;  patenler çerçevenin üstünde ve altında 140 ( paten_yukseklik ).
-    "agirlik_yukseklik": 2920,
+    #  altından üst kirişin üstüne 2.920, patenler çerçevenin üstünde ve altında;
+    #  kasnak merkezi üst kirişin 110 altında.  Çerçevenin yüksekliği girdidir:
+    #  hesap programının AĞIRLIK PATEN ARASI ( kabin şasesindeki gibi ), patenler
+    #  çerçevenin alt ve üst ucuna ortalı ( donanim.agirlik_kotlari ).
     "agirlik_kasnak_ust": 110,
     "agirlik_kiris": 10,
 
@@ -194,11 +198,6 @@ SABIT = {
     "kat_doseme_kalinlik": 150,
     "kapi_ust_payi": 200,
     "esik_kalinlik": 30,
-
-    #  ── KUMANDA PANOSU ───────────────────────────────────────────────
-    "pano_en": 400,
-    "pano_derinlik": 90,
-    "pano_duvar": "Sağ",
 }
 
 

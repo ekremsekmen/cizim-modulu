@@ -373,10 +373,10 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     _duvar(e, 0, taban - don, D, don)
     if not oda:
         _duvar(e, 0, tavan, D, don)
-    #  Kuyu tavanının en alt kısmı ( kiriş payı )
-    e.append(CGE._dik("TARAMA", 0, Y["tavan_alti"] + H, D, S["tavan_kirisi"], tip="tarama"))
-    e.append(CGE._ad(CGE._dik("KUYU-DUVAR", 0, Y["tavan_alti"] + H, D, S["tavan_kirisi"]),
-                     "tavan_kirisi"))
+    #  Kuyu tavanının en alt kısmı ( kiriş payı — hesap programının "kuyu tavanı
+    #  payı" ):  bir KABULDÜR, beton değil;  kesik sınır çizgisi ( eskiden taralı
+    #  150 mm bir katman gibi çiziliyor, tavan iki kat kalın görünüyordu ).
+    e.append(CGE._ad(CGE._cizgi("GIZLI", 0, Y["tavan_alti"] + H, D, Y["tavan_alti"] + H), "tavan_kirisi"))
     #  Katlar:  döşeme, kat kapısı ( kasa, eşik, kanatlar )
     L = 240 * K
     for zk in kotlar:
@@ -449,9 +449,7 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     _duvar(e, 0, taban - don, G, don)
     if not oda:
         _duvar(e, 0, tavan, G, don)
-    e.append(CGE._dik("TARAMA", 0, Y["tavan_alti"] + H, G, S["tavan_kirisi"], tip="tarama"))
-    e.append(CGE._ad(CGE._dik("KUYU-DUVAR", 0, Y["tavan_alti"] + H, G, S["tavan_kirisi"]),
-                     "tavan_kirisi"))
+    e.append(CGE._ad(CGE._cizgi("GIZLI", 0, Y["tavan_alti"] + H, G, Y["tavan_alti"] + H), "tavan_kirisi"))
     #  Kat kapıları ön duvarda ( görünüş ):  kasa, boşluk, kanat ayrımı, durak numarası
     bos = P["bosluk"][0]
     kasa_x0 = min(kk[0] for kk in P["kasa"])

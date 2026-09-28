@@ -76,6 +76,10 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
         #  asansörler dişlisizdir ( ofisin 4815-6'sı ve ELEport da öyle ).
         hata.append("Makine dairesiz ( kuyu üstü ) tesiste dişli makine çizilmez — "
                     "makine.tip Dişlisiz olmalı ya da makine.yeri Makine dairesi.")
+    aski = g.get("aski") or {}
+    for alan in ("halat_adedi", "halat_capi"):
+        if not (_sayi(aski.get(alan)) and aski[alan] > 0):
+            hata.append(f"aski.{alan}: şase plakasındaki halat deliği için gerekli ( {aski.get(alan)!r} ).")
     if CMK.npu(mk.get("yan_yatak")) is None:
         hata.append(f"makine.yan_yatak: makinenin oturduğu kirişin NPU ölçüsü ( hesap programında "
                     f"'F ( yan yatak )' ) — {tuple(CMK.NPU)} içinden olmalı ( {mk.get('yan_yatak')!r} ).")
@@ -226,6 +230,12 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
             "sapma": sapma, "kasnak": kasnak, "govde": govde, "agirlik_baglanti": agirlik_baglanti,
             "makine": makine, "m_yon": m_yon, "s": s, "sase": sase, "tip": mk["tip"],
             "yan_yatak": CMK.npu(mk["yan_yatak"]),
+            #  Şaseden aşağı inen halatların delikleri ( plakaya düşenler açılır ):
+            #  tahrik kasnağının iki yanı ve karşı ağırlık bağlantısı
+            "sase_delikleri": [CMK.halat_deligi(x_, y0, aski["halat_adedi"], aski["halat_capi"],
+                                                S["halat_delik_payi"]) for x_ in (yakin, ag_dusus_x)] +
+                              [CMK.halat_deligi(ex, teget2, aski["halat_adedi"], aski["halat_capi"],
+                                                S["halat_delik_payi"], "x")],
             "kabin_baglanti": kabin_baglanti,
             "halat_konsolu": CB.halat_konsolu(kabin_baglanti, kab_r[-1] if sol else kab_r[0], 0),
             "reg_kasnak": reg_kasnak, "reg_govde": reg_govde,

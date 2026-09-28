@@ -181,11 +181,6 @@ def _ray_dusey(yuz_y, eksen_x, b, h, yon):
     ]
 
 
-#  Halatın çevresinde başka bir parçanın bulunmaması gereken pay ( mm ).
-#  Standardın sayısı DEĞİLDİR;  çizimin çakışma kalkanıdır.
-HALAT_PAYI = 60.0
-
-
 def halat_konumlari(g, S=None):
     """Kabin altı askıda halatların kuyudan geçtiği noktalar ( planda ).
 
@@ -429,33 +424,11 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
                           dc, ag["derinlik"] - 2 * cer), "agirlik_kasnak"))
             e.append(_ad(_yazi(ex, ey, f"ø {dc:g}", 40), "agirlik_kasnak_yazi"))
 
-    #  ── KUMANDA PANOSU ───────────────────────────────────────────────
-    #  Karşı ağırlık aynı duvardaysa pano karşı duvara geçer:  ağırlık kuyu
-    #  boyunca o duvarın önünden geçer, pano yolunu keserdi.
-    pano_duvar = S["pano_duvar"]
-    if pano_duvar == ag_yan:
-        pano_duvar = "Sol" if pano_duvar == "Sağ" else "Sağ"
-    if pano_duvar in ("Sağ", "Sol"):
-        px = (G - S["pano_derinlik"]) if pano_duvar == "Sağ" else 0
-        #  PANO, O DUVARDAKİ HALATIN VE KONSOLLARIN YOLUNA KONMAZ.  Halat ve
-        #  konsol kuyu boyunca aynı yerden geçer;  pano üstüne binerse gerçekte
-        #  sığmaz.  Pano ön duvardan kabin ön payı + 200'de başlar, doluysa en
-        #  yakın boş yere kaydırılır.
-        dolu = []
-        for el in e:
-            if el["tip"] == "dikdortgen" and el["katman"] == "KONSOL" and \
-                    el["x"] < px + S["pano_derinlik"] and px < el["x"] + el["g"]:
-                dolu.append((el["y"], el["y"] + el["d"]))
-        for hx, hy in halat_konumlari(g, S):
-            if px - HALAT_PAYI <= hx <= px + S["pano_derinlik"] + HALAT_PAYI:
-                dolu.append((hy - HALAT_PAYI, hy + HALAT_PAYI))
-        py0 = kb["on_pay"] + 200
-        adaylar = [py0 + i * 25.0 * yon for i in range(0, int(D / 25.0) + 1) for yon in (1, -1)]
-        py = next((y for y in adaylar if 0 <= y and y + S["pano_en"] <= D and
-                   not any(y < b and a < y + S["pano_en"] for a, b in dolu)), py0)
-        e.append(_dik("PANO", px, py, S["pano_derinlik"], S["pano_en"]))
-        e.append(_ad(_yazi(px + S["pano_derinlik"] / 2.0,
-                       py + S["pano_en"] / 2.0, "PANO", 42), "pano_yazi"))
+    #  KUMANDA PANOSU KUYU PLANINDA YOK:  makine dairesiz tesiste en üst katta
+    #  kuyunun dışındaki acil kurtarma panosundadır ( kuyu üstü planı ), makine
+    #  daireli tesiste makine dairesindedir.  Eskiden kuyunun içinde, yan
+    #  duvarda kaynağı belirsiz 400 × 90'lık bir "PANO" çiziliyordu:  kesitlerde
+    #  karşılığı yoktu, makine dairelide makine dairesindekiyle çift oluyordu.
 
     #  ── ÖLÇÜLER ──────────────────────────────────────────────────────
     #  Uzatma çizgisi yoktur:  ölçü, ölçtüğü noktaların hizasında durur.

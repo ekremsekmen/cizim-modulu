@@ -120,8 +120,13 @@ def yerlesim(g, cizim_sabitleri=None):
     hata += durak_hata
     if hata:
         return {"hata": hata}
-    if dy["agirlik_paten_arasi"] + S["paten_yukseklik"] > S["agirlik_yukseklik"]:
-        return {"hata": ["Ağırlık patenleri çerçeve yüksekliğine sığmıyor."]}
+    #  Karşı ağırlık çerçevesinin yüksekliği paten arasıdır:  kasnağını ( üst
+    #  kirişin agirlik_kasnak_ust altında ) ve patenlerini taşıyacak kadar olmalı
+    R = (g["agirlik"].get("kasnak_capi") or 0) / 2.0
+    if dy["agirlik_paten_arasi"] <= max(S["paten_yukseklik"], S["agirlik_kasnak_ust"] + R):
+        return {"hata": [f"dusey.agirlik_paten_arasi:  karşı ağırlık çerçevesinin yüksekliğidir "
+                         f"( patenler uçlarında );  {dy['agirlik_paten_arasi']:g} mm kasnağına ve "
+                         "patenlerine yetmiyor."]}
     if dy["kabin_paten_arasi"] <= S["paten_yukseklik"]:
         return {"hata": ["Kabin patenleri üst üste biniyor."]}
     KD, KU = CKD.yerlesim(g, S), CKU.yerlesim(g, S)

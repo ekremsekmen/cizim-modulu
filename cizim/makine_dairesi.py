@@ -21,8 +21,8 @@ DELİKLER ( m.5.2.6.3.3:  "amacı için en küçük" ):  askı halatı demeti
 ( n halat, kanal aralığı 1,6 · dh — hesap programının kasnak genişliği
 bağıntısı ) çevresine halat_delik_payi bırakılır;  demet tahrik ve kabin
 tarafında kasnak ekseni ( y ) boyunca, karşı ağırlık bağlantısında ağırlık
-kasnağının ekseni ( x ) boyunca dizilir.  Regülatör halatı için
-LiftDesigner'ın 200 × 200 deliği kullanılır.
+kasnağının ekseni ( x ) boyunca dizilir.  Regülatör halatının deliği de aynı
+kuralla ( tek halat:  çap + 2 × pay ).
 """
 from cizim import geometri as CGE
 from cizim import girdi as CG
@@ -75,10 +75,6 @@ def _onunde(kutu, yon, derinlik, en):
     return (x, cy - en / 2.0, x + derinlik, cy + en / 2.0)
 
 
-def _delik(cx, cy, ex, ey):
-    return (cx - ex / 2.0, cy - ey / 2.0, cx + ex / 2.0, cy + ey / 2.0)
-
-
 def yerlesim(g, cizim_sabitleri=None):
     S = CS.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     md, a = g.get("makine_dairesi") or {}, g.get("aski") or {}
@@ -95,6 +91,10 @@ def yerlesim(g, cizim_sabitleri=None):
     for alan in ("halat_adedi", "halat_capi"):
         if not (_sayi(a.get(alan)) and a[alan] > 0):
             hata.append(f"aski.{alan}: döşeme deliği için gerekli ( {a.get(alan)!r} ).")
+    rdh = (g.get("kuyu_dibi") or {}).get("regulator_halat_capi")
+    if not (_sayi(rdh) and rdh > 0):
+        hata.append(f"kuyu_dibi.regulator_halat_capi: regülatör halatının döşeme deliği için gerekli "
+                    f"( hesap programında 'Regülatör halatı çapı' ) ( {rdh!r} ).")
     #  Makine kaidesi:  hesap programının girdileri ( bölüm 2 )
     for alan in ("sase_yuksekligi", "yan_yatak_boyu"):
         if not (_sayi(md.get(alan)) and md[alan] > 0):
@@ -155,17 +155,19 @@ def yerlesim(g, cizim_sabitleri=None):
     #  ── DÖŞEME DELİKLERİ ─────────────────────────────────────────────
     n, dh, p = a["halat_adedi"], a["halat_capi"], S["halat_delik_payi"]
     demet = (n - 1) * 1.6 * dh + dh                  # kasnak ekseni boyunca
-    boy, en = demet + 2 * p, dh + 2 * p
     delikler = [
-        ("KABİN", _delik(M["yakin"], y0, en, boy)),
-        ("AĞIRLIK", _delik(agirlik_dusus[0], y0, en, boy)),
-        ("AĞIRLIK BAĞLANTISI", _delik(M["ag_teget2"][0], M["ag_teget2"][1], boy, en)),
-        ("KABİN BAĞLANTISI", _delik(M["uzak"], y0, en, boy)),
+        ("KABİN", CMK.halat_deligi(M["yakin"], y0, n, dh, p)),
+        ("AĞIRLIK", CMK.halat_deligi(agirlik_dusus[0], y0, n, dh, p)),
+        ("AĞIRLIK BAĞLANTISI", CMK.halat_deligi(M["ag_teget2"][0], M["ag_teget2"][1], n, dh, p, "x")),
+        ("KABİN BAĞLANTISI", CMK.halat_deligi(M["uzak"], y0, n, dh, p)),
     ]
-    rd = S["regulator_delik"]
+    #  Regülatör halatı ( tek halat ) da aynı kuralla:  eskiden LiftDesigner'ın
+    #  200 × 200'ü kullanılıyordu — ø240 regülatörde iki delik arasında 40 mm,
+    #  kuyu duvarına 14 mm kalıyordu.
     rg = g["kuyu_dibi"]["regulator_kasnak_capi"] / 2.0
-    delikler += [("REGÜLATÖR", _delik(M["rgx"], M["rgy"] - rg, rd, rd)),
-                 ("REGÜLATÖR", _delik(M["rgx"], M["rgy"] + rg, rd, rd))]
+    rdh = g["kuyu_dibi"]["regulator_halat_capi"]
+    delikler += [("REGÜLATÖR", CMK.halat_deligi(M["rgx"], M["rgy"] - rg, 1, rdh, p)),
+                 ("REGÜLATÖR", CMK.halat_deligi(M["rgx"], M["rgy"] + rg, 1, rdh, p))]
     for ad, d in delikler:
         if d[0] < 0 or d[1] < 0 or d[2] > G or d[3] > D:
             hata.append(f"{ad.capitalize()} halatı deliği kuyunun dışına düşüyor.")
@@ -205,6 +207,50 @@ def yerlesim(g, cizim_sabitleri=None):
                 break
         else:
             hata.append("Makine kaidesi odaya sığmıyor ya da ayakları döşeme deliklerine basıyor.")
+
+    #  ── MAKİNE PLAKASI, SAPTIRMA KASNAĞININ KOTU, PLAKADAKİ DELİKLER ───
+    #  Makine kaidenin iki yan yatağının arasındaki plakaya oturur ( hesap:  yük
+    #  iki yan yatağa, F / 2 ):  plaka yan yatakların arasında, üstleriyle aynı
+    #  hizada, uzun eksende makinenin izi kadar ( uçtaki kısa kirişlerin içinde ).
+    #  Eskiden plaka yoktu:  makine iki yan yatağın arasında havada duruyordu.
+    #  Kotlar DÖŞEMEDEN ( düşey kesit döşemenin kotunu ekler ).
+    t = CMK.MOTOR_PLAKASI_KALINLIK
+    hs = md["sase_yuksekligi"]
+    hk = hs - CMK.DISLI_ZARF["z"][0] if mkg["tip"] == "Dişli" else hs + S["makine_en"] / 2.0
+    kaide.update(hs=hs, hk=hk, plaka=None)
+    kaide_delikleri = []
+    if cerceve:
+        kb = CMK.npu(CMK.KAIDE_KISA)["b"]
+        if uzun_x:
+            plaka = (max(makine_izi[0], cerceve[0] + kb), cerceve[1] + F["b"],
+                     min(makine_izi[2], cerceve[2] - kb), cerceve[3] - F["b"])
+        else:
+            plaka = (cerceve[0] + F["b"], max(makine_izi[1], cerceve[1] + kb),
+                     cerceve[2] - F["b"], min(makine_izi[3], cerceve[3] - kb))
+        kaide["plaka"] = plaka
+        if saptirma:
+            saptirma.update(saptirma_kotu(M, saptirma, M["kasnak"], M["D1"], hs, hk, y_, S))
+            if saptirma["z"] + saptirma["D"] / 2.0 > hs - t - 50.0:
+                hata.append(f"Saptırma kasnağı ( ø {saptirma['D']:g} ) döşemedeki bağlantıların üstünde, "
+                            "makine plakasının altına sığmıyor — şase yüksekliğini büyütün.")
+        #  Plakadan geçen halatlar:  tahrik kasnağının iki yanından inenler;
+        #  saptırmada ağırlık tarafı eğik iner — plakayı kestiği yerde delik.
+        #  Kasnak plakanın altına sarkıyorsa kasnağın kendisi için yuva açılır.
+        adaylar = []
+        ks = M["kasnak"]
+        if hk - M["D1"] / 2.0 < hs:
+            adaylar.append((ks[0] - p, ks[1] - p, ks[2] + p, ks[3] + p))
+        adaylar.append(CMK.halat_deligi(M["yakin"], y0, n, dh, p))
+        if saptirma:
+            (x1, z1), (x2, z2) = saptirma["P1"], saptirma["P2"]
+            xs = [x1 + (z - z1) * (x2 - x1) / (z2 - z1) for z in (hs, hs - t)]
+            a_, b_ = dh / 2.0 + p, demet / 2.0 + p
+            adaylar.append((min(xs) - a_, y0 - b_, max(xs) + a_, y0 + b_))
+        else:
+            adaylar.append(CMK.halat_deligi(M["ag_dusus"][0], y0, n, dh, p))
+        yuva = adaylar[0] if hk - M["D1"] / 2.0 < hs else None
+        kaide_delikleri = CMK.plaka_delikleri(plaka, [d for d in adaylar if d is yuva or not (
+            yuva and yuva[0] <= (d[0] + d[2]) / 2.0 <= yuva[2] and yuva[1] <= (d[1] + d[3]) / 2.0 <= yuva[3])])
 
     #  ── KAPI ─────────────────────────────────────────────────────────
     #  Kapının önündeki geçiş payı:  kapı eni × çalışma derinliği, boş kalır.
@@ -265,8 +311,25 @@ def yerlesim(g, cizim_sabitleri=None):
     return {"M": M, "oda": oda, "delikler": delikler, "kapi": kapi, "kapi_onu": kapi_onu,
             "pano": pano, "calisma": calisma, "bakim": bakim, "makine": mk,
             "makine_izi": makine_izi, "cerceve": cerceve, "kaide": kaide, "saptirma": saptirma,
-            "agirlik_dusus": agirlik_dusus,
+            "kaide_delikleri": kaide_delikleri, "agirlik_dusus": agirlik_dusus,
             "demet": demet, "hata": hata, "S": S}
+
+
+def saptirma_kotu(M, sp, kasnak, D1, hs, hk, y_, S):
+    """Saptırma kasnağının merkezinin döşemeden yüksekliği ve tahrik kasnağıyla
+    ortak teğeti ( kotlar döşemeden ).  LiftDesigner'ın 400'ü;  döşemedeki bir
+    bağlantının / regülatörün üstüne düşerse onun 50 mm üstüne yükselir.
+    Döner:  { z, P1, P2, sarim }."""
+    R2 = sp["D"] / 2.0
+    z = S["md_saptirma_yukseklik"]
+    for kutu_, h_ in ((M["agirlik_baglanti"], S["agirlik_baglanti_yukseklik"]),
+                      (M["kabin_baglanti"], S["kabin_baglanti_alt"] - S["kabin_baglanti_ust"]),
+                      (M["reg_govde"], S["regulator_govde_alt"] - S["regulator_govde_ust"])):
+        if _ortusur(kutu_, sp["kutu"]):
+            z = max(z, h_ + 50.0 + R2)
+    mx = (kasnak[0] + kasnak[2]) / 2.0
+    P1, P2, n = CMK.teget((mx, hk), D1 / 2.0, (sp["x"], z), R2, y_)
+    return {"z": z, "P1": P1, "P2": P2, "sarim": CMK.sarim_acisi(y_, n)}
 
 
 def _bitisik_adaylar(mk, w, h, adim=25.0):
@@ -344,10 +407,12 @@ def ciz(g, cizim_sabitleri=None):
     #  kotlar yalnız çizim sırası için:  kaide ve saptırma kasnağı makinenin altında
     S_, K = M["S"], Y["kaide"]
     H = md["sase_yuksekligi"]
-    alt = CMK.kaide(Y["cerceve"], -3000.0 - H, H, K["E"], K["F"], K["uzun_x"], S_) if Y["cerceve"] else []
+    alt = CMK.kaide(Y["cerceve"], -3000.0 - H, H, K["E"], K["F"], K["uzun_x"], S_, K["plaka"],
+                    Y["kaide_delikleri"]) if Y["cerceve"] else []
     sp = Y["saptirma"]
     if sp:
-        alt += CMK.saptirma((sp["x"], sp["y"], -3000.0 - H / 2.0), sp["D"], sp["bk"], -3000.0, K["F"]["h"])
+        alt += CMK.saptirma((sp["x"], sp["y"], -3000.0 - H / 2.0), sp["D"], sp["bk"], -3000.0,
+                            CMK.MOTOR_PLAKASI_KALINLIK)
     e += CMK.plan(alt + CMK.plan_parcalari(M, S_, sase=False), CGE._dik, CGE._daire, CGE._cizgi)
     ks = M["kasnak"]
     e.append(CGE._yazi((ks[0] + ks[2]) / 2.0, (ks[1] + ks[3]) / 2.0, f"ø {M['D1']:g}", 38))

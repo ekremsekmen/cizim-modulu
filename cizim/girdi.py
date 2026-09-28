@@ -297,12 +297,17 @@ ORNEK = {
     #  programında zaten vardır ( kuyu dibi yüksekliği KY, "Kuyu dibi sığınma
     #  hacmi tipi", kabin / ağırlık tamponu adedi );  köprü onları taşır.
     #  Regülatör gergi kasnağı ELEport paftasındaki gibi karşı ağırlığın
-    #  karşısındaki kabin rayının hizasında, ray ekseninin 260 mm arkasında
-    #  Gergi ağırlığının 420 mm uzantısı da sığsın diye 280 yerine 260:
-    #  1167 + 260 + 420 = 1847 < 1850. Üst regülatör de aynı ekseni kullanır.
+    #  karşısındaki kabin rayının hizasında, ray ekseninin 280 mm arkasında;
+    #  gergi ağırlığı kasnağın 380 ötesine uzanır ( ELEport hesabı A = 300 ):
+    #  1167 + 280 + 380 = 1827, arka duvara 23.  Üst regülatör de aynı ekseni
+    #  kullanır.
     "kuyu_dibi": {"derinlik": 1500, "siginma_tipi": "Çömelme",
                   "kabin_tampon_adedi": 1, "agirlik_tampon_adedi": 1,
-                  "regulator_yan": "Sağ", "regulator_kaciklik": 260,
+                  "regulator_yan": "Sağ", "regulator_kaciklik": 280,
+                  #  Regülatör halatının çapı ( hesap programında "Regülatör
+                  #  halatı çapı";  ELEport regülatör hesabı 6,0 ):  makine
+                  #  dairesinde döşeme deliği bundan çıkar.
+                  "regulator_halat_capi": 6,
                   "regulator_kasnak_capi": 300},
     #  DÜŞEY:  kabinin iç yüksekliği ve paten arası, son kat yüksekliği,
     #  beyan hızı, duraklar ve tamponlar — hepsi hesap programında var
@@ -310,7 +315,10 @@ ORNEK = {
     #  çarpma arası ).  Kuyu dibi ELEport'unki:  1.500 = kaide 764 + tampon
     #  160 + çarpma arası 96 + kabinin şase altı 480.  Son kat ELEport 5.000.
     #  Duraklar:  8 × 3.000 → seyir 21 m ( hesap programının varsayılanı ).
-    "dusey": {"kabin_ic_yukseklik": 2250, "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 1500,
+    #  Ağırlık paten arası = karşı ağırlık çerçevesinin yüksekliği ( patenler
+    #  uçlarında ):  ELEport çiziminde 2.920 ( hesabı 1.500 alır — kendi çizimiyle
+    #  çelişir;  örnek çizimi izler ).
+    "dusey": {"kabin_ic_yukseklik": 2250, "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 2920,
               "son_kat": 5000, "beyan_hizi": 1.0, "durak_adedi": 8, "kat_yuksekligi": 3000,
               "kabin_tampon_baba": 764, "kabin_tampon_boyu": 160, "kabin_carpma_arasi": 96,
               "kabin_tampon_ezilme": 90, "agirlik_tampon_baba": 300, "agirlik_tampon_boyu": 160,

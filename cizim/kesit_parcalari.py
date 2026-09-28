@@ -59,6 +59,13 @@ class Bakis:
         e.append(CGE._ad(CGE._cizgi("HALAT", u, z0, u, z1), ad))
 
 
+def uzaklik(B, k):
+    """Plandaki kutunun bakana uzaklığı ( büyük olan uzakta;  makine.gorunus ile aynı )."""
+    yon = B.kesit[2] if B.kesit else 1.0
+    eks = 0 if B.tur == "yan" else 1
+    return yon * (k[eks] + k[eks + 2]) / 2.0
+
+
 def kasnak(e, B, kutu, z, cap, duzlem, ad):
     """duzlem:  "x" ( x–z düzleminde döner ) ya da "y"."""
     if not B.gorunur(kutu):
@@ -140,50 +147,75 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     """Raylar, karşı ağırlık, kuyu tepesi, kuyu dibi, halatlar ( iki bakışta ortak )."""
     S, M, dy = Y["S"], Y["M"], g["dusey"]
     taban = Y["taban"]
-    #  Raylar ve konsollar
+    #  Raylar, konsollar ve karşı ağırlık BAKANA UZAKLIKLARINA GÖRE çizilir
+    #  ( uzaktaki önce ):  A-A'da ağırlık tarafındaki kabin rayı ve ara kiriş
+    #  karşı ağırlığın önündedir;  önce hepsi, sonra ağırlık çizildiğinde ray
+    #  ağırlık boyunca kayboluyordu.  gruplar:  ( plandaki kutu, elemanlar )
+    gruplar = []
     for r in M["raylar"]:
-        ray(e, B, r, S, r["tur"] + "_rayi")
+        el = []
+        ray(el, B, r, S, r["tur"] + "_rayi")
+        gruplar.append((r["kutu"], el))
     ag_raylari = [r for r in M["raylar"] if r["tur"] == "agirlik"]
     kabin_raylari = [r for r in M["raylar"] if r["tur"] == "kabin"]
     uzak = max(kabin_raylari, key=lambda r: r["ust"])
-    konsollar(e, B, P["konsol_agirlik"], ag_raylari[0]["konsollar"], S, "agirlik_konsolu")
-    konsollar(e, B, P["konsol_kabin"], uzak["konsollar"], S, "kabin_konsolu")
+    for parcalar, kotlar, ad in ((P["konsol_agirlik"], ag_raylari[0]["konsollar"], "agirlik_konsolu"),
+                                 (P["konsol_kabin"], uzak["konsollar"], "kabin_konsolu")):
+        for p in parcalar:
+            el = []
+            konsollar(el, B, [p], kotlar, S, ad)
+            gruplar.append((p, el))
     #  Kuyu dibi:  tamponlar ( ikisi de serbest ) ve gergi düzeni
     KD = Y["KD"]
-    tamponlar(e, B, KD["kabin_tamponlari"], taban, dy["kabin_tampon_baba"],
-                  dy["kabin_tampon_boyu"], kabin_ezilme, S, "kabin")
-    tamponlar(e, B, KD["agirlik_tamponlari"], taban, dy["agirlik_tampon_baba"],
-                  dy["agirlik_tampon_boyu"], 0.0, S, "agirlik")
+    for kutular, baba, boy, ezilme, ad in (
+            (KD["kabin_tamponlari"], dy["kabin_tampon_baba"], dy["kabin_tampon_boyu"], kabin_ezilme, "kabin"),
+            (KD["agirlik_tamponlari"], dy["agirlik_tampon_baba"], dy["agirlik_tampon_boyu"], 0.0, "agirlik")):
+        for k in kutular:
+            el = []
+            tamponlar(el, B, [k], taban, baba, boy, ezilme, S, ad)
+            gruplar.append((k, el))
     gr = M["gergi"]
     gp = gr["plan"]
     rgx = (gp[0] + gp[2]) / 2.0
-    B.kutu(e, "KONSOL", (gp[0], gr["kol"][0], gp[2], gr["kol"][1]), gr["kol"][2], gr["kol"][3],
-           "gergi_kolu")
+    kol = (gp[0], gr["kol"][0], gp[2], gr["kol"][1])
+    el = []
+    B.kutu(el, "KONSOL", kol, gr["kol"][2], gr["kol"][3], "gergi_kolu")
+    gruplar.append((kol, el))
     ge = S["gergi_agirlik_yakin"] - S["gergi_agirlik_uzak"]          # < 0:  ağırlığın eni
-    B.kutu(e, "MAKINE", (rgx + ge / 2.0, gr["agirlik"][0], rgx - ge / 2.0, gr["agirlik"][1]),
-           gr["agirlik"][2], gr["agirlik"][3], "gergi_agirligi")
-    kasnak(e, B, gp, gr["merkez"], gr["cap"], "y", "gergi_kasnagi")
-    #  Karşı ağırlık
+    agr = (rgx + ge / 2.0, gr["agirlik"][0], rgx - ge / 2.0, gr["agirlik"][1])
+    el = []
+    B.kutu(el, "MAKINE", agr, gr["agirlik"][2], gr["agirlik"][3], "gergi_agirligi")
+    gruplar.append((agr, el))
+    el = []
+    kasnak(el, B, gp, gr["merkez"], gr["cap"], "y", "gergi_kasnagi")
+    gruplar.append((gp, el))
+    #  Karşı ağırlık:  çerçeve, dolgu, kasnak ve yazı bir grup;  patenler ayrı
     AK = CDN.agirlik_kotlari(M, ag_alt)
     blok = M["agirlik"]["kutu"]
     cer = S["agirlik_cerceve"]
-    B.kutu(e, "AGIRLIK", blok, AK["alt"], AK["ust"], "agirlik")
-    B.kutu(e, "AGIRLIK", (blok[0] + cer, blok[1] + cer, blok[2] - cer, blok[3] - cer),
+    el = []
+    B.kutu(el, "AGIRLIK", blok, AK["alt"], AK["ust"], "agirlik")
+    B.kutu(el, "AGIRLIK", (blok[0] + cer, blok[1] + cer, blok[2] - cer, blok[3] - cer),
            AK["alt"] + S["agirlik_kiris"], AK["ust"] - S["agirlik_kiris"], "agirlik_dolgu")
+    kasnak(el, B, P["agirlik_kasnak"], AK["kasnak_merkez"], g["agirlik"]["kasnak_capi"], "y",
+           "agirlik_kasnagi")
+    um = sum(B.aralik(blok)) / 2.0
+    if B.gorunur(blok):
+        el.append(CGE._ad(CGE._yazi(um, (AK["alt"] + AK["kasnak_merkez"]) / 2.0 - 200,
+                                    "KARŞI AĞIRLIK", 40 * K, aci=90), "agirlik_yazi"))
+    gruplar.append((blok, el))
     for r in ag_raylari:
         k = r["kutu"]
         if k[3] <= blok[1]:
             pk = (k[0], blok[1] - S["paten_en"], k[2], blok[1])
         else:
             pk = (k[0], blok[3], k[2], blok[3] + S["paten_en"])
-        B.kutu(e, "PATEN", pk, AK["ust_paten_alt"], AK["ust_paten"], "agirlik_paten")
-        B.kutu(e, "PATEN", pk, AK["alt_paten"], AK["alt_paten_ust"], "agirlik_paten")
-    kasnak(e, B, P["agirlik_kasnak"], AK["kasnak_merkez"], g["agirlik"]["kasnak_capi"], "y",
-               "agirlik_kasnagi")
-    um = sum(B.aralik(blok)) / 2.0
-    if B.gorunur(blok):
-        e.append(CGE._ad(CGE._yazi(um, (AK["alt"] + AK["kasnak_merkez"]) / 2.0 - 200,
-                                   "KARŞI AĞIRLIK", 40 * K, aci=90), "agirlik_yazi"))
+        el = []
+        B.kutu(el, "PATEN", pk, AK["ust_paten_alt"], AK["ust_paten"], "agirlik_paten")
+        B.kutu(el, "PATEN", pk, AK["alt_paten"], AK["alt_paten_ust"], "agirlik_paten")
+        gruplar.append((pk, el))
+    for _, el in sorted(gruplar, key=lambda ge: uzaklik(B, ge[0]), reverse=True):
+        e += el
     kt = CDN.kabin_kotlari(dy, S, kabin_z)
     e += CMK.gorunus(CB.kasnak_tasiyicilari(g, S, kt["kasnak_merkez"]),
                      B, CGE._dik, CGE._daire, CGE._cizgi)

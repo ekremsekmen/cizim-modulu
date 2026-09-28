@@ -28,10 +28,14 @@ ASANSOR = {
     "kablo_birim_kutle": 0.44,
     "kabin_ray_profili": "89 x 62 x 15,88", "agirlik_ray_profili": "70 x 65 x 9",
     "kabin_konsol_arasi": 1500, "agirlik_konsol_arasi": 1500, "ray_celigi_rm": 450,
-    "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 1500,
+    #  Ağırlık paten arası:  ELEport hesabında 1.500, çiziminde patenler 2.920'lik
+    #  çerçevenin uçlarında.  Çizim çerçeveyi bu girdiden kurar ( patenler uçlarda );
+    #  hesap ile pafta aynı şeyi söylesin diye ELEport'un çizimindeki 2.920.
+    "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 2920,
     "paten_tipi": "Kaymalı", "agirlik_paten_tipi": "Makaralı", "guvenlik_tertibati": "Kaymalı",
     "agirlik_yeri": "Sol", "agirlik_genisligi": 850, "agirlik_derinligi": 160,
-    "reg_kasnak_capi": 240,
+    #  Regülatör:  ELEport "Speed Governor Calculation" — kasnak ø240, halat ø6,0
+    "reg_kasnak_capi": 240, "reg_halat_capi": 6,
     "tampon_tipi": "Hidrolik  ( enerji yutmalı )",
     "kabin_tampon_adedi": 1, "agirlik_tampon_adedi": 1,
     "kabin_tampon_baba": 306, "kabin_tampon_boyu": 618, "kabin_tampon_ezilme": 203,

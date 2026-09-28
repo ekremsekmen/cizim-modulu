@@ -199,16 +199,19 @@ def _yuk_etiketleri(e, noktalar, G, D):
 
 
 def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar):
-    #  16 yön:  eksenler, köşegenler ve aralarındaki ( 1 : 2 ) doğrultular
+    #  24 yön:  eksenler, köşegenler ve aralarındaki ( 1 : 2 ve 1 : 3 ) doğrultular;
+    #  ok boyları 75'er artar ( 16 yön ve 150'lik adımla sağ aynalı düzende
+    #  ağırlık tamponunun kutusu ölçü çizgisine biniyordu )
     yonler = [(1, 1), (-1, 1), (1, -1), (-1, -1), (1, 0), (-1, 0), (0, 1), (0, -1),
-              (2, 1), (-2, 1), (2, -1), (-2, -1), (1, 2), (-1, 2), (1, -2), (-1, -2)]
+              (2, 1), (-2, 1), (2, -1), (-2, -1), (1, 2), (-1, 2), (1, -2), (-1, -2),
+              (3, 1), (-3, 1), (3, -1), (-3, -1), (1, 3), (-1, 3), (1, -3), (-1, -3)]
 
     def adaylar(p, metin):
         px, py = p
         w, h = CGE._yazi_eni(metin, YUK_YAZI) + 2 * YUK_PAY, YUK_YAZI + 2 * YUK_PAY
         ox, oy = G / 2.0 - px, D / 2.0 - py
         sira = sorted(yonler, key=lambda u: -(u[0] * ox + u[1] * oy) / (u[0] ** 2 + u[1] ** 2) ** 0.5)
-        for L in (220, 350, 500, 650, 800, 1000, 1200):
+        for L in (220, 285, 350, 425, 500, 575, 650, 725, 800, 900, 1000, 1100, 1200, 1400):
             for ux, uy in sira:
                 n = (ux * ux + uy * uy) ** 0.5
                 q = (px + L * ux / n, py + L * uy / n)
@@ -267,7 +270,10 @@ def gergi_parcalari(g, S, kasnak):
     ry = g["kabin_ray"]["kapi_arasi"]
     yon = 1.0 if gy >= ry else -1.0
     D = g["kuyu"]["derinlik"]
-    if not 0 <= gy + yon * S["gergi_agirlik_uzak"] <= D:
+    #  Ağırlık duvara en az ASGARI_ACIKLIK ( çizimin çakışma payı ) kalmalı:
+    #  sığmıyorsa kol öbür yöne döner ( montajcı da böyle yapar )
+    a = CG.ASGARI_ACIKLIK
+    if not a <= gy + yon * S["gergi_agirlik_uzak"] <= D - a:
         yon = -yon
     agirlik_y = sorted((gy + yon * S["gergi_agirlik_yakin"],
                         gy + yon * S["gergi_agirlik_uzak"]))
@@ -415,6 +421,11 @@ def yerlesim(g, cizim_sabitleri=None):
     for ad, parca in gergi_donanim.items():
         if parca[0] < 0 or parca[1] < 0 or parca[2] > G or parca[3] > D:
             hata.append(f"Regülatör gergisi {ad} kuyunun dışına taşıyor.")
+        elif ad == "agirlik" and min(parca[0], parca[1], G - parca[2], D - parca[3]) < CG.ASGARI_ACIKLIK:
+            #  Eskiden örnekte arka duvara 3 mm kalıyordu:  pratikte değiyordu
+            hata.append(f"Regülatör gergisinin ağırlığı duvara "
+                        f"{min(parca[0], parca[1], G - parca[2], D - parca[3]):g} mm ( en az "
+                        f"{CG.ASGARI_ACIKLIK:g} — çizimin çakışma payı ) — regülatör kaçıklığını değiştirin.")
         # Kol raydaki mesnede bağlanır; ağırlık rayların içine giremez.
         engeller = kabin_tamponlari + agirlik_tamponlari
         if ad == "agirlik":

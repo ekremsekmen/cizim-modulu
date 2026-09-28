@@ -39,12 +39,11 @@ KORKULUK_YUKSEKLIK_SINIRI = 500.0
 KORKULUK_ALCAK, KORKULUK_YUKSEK = 700.0, 1100.0
 
 #  Kuyuda duran ( kabinle birlikte gitmeyen ) parçaların katmanları
-_KUYU_PARCALARI = ("RAY", "KONSOL", "AGIRLIK", "PANO")
+_KUYU_PARCALARI = ("RAY", "KONSOL", "AGIRLIK")
 #  Kuyu planından alınan katmanlar ve adlar
 _PLANDAN_KATMAN = ("TARAMA", "KUYU-DUVAR", "KUYU-IC", "RAY", "KONSOL", "CIVATA",
-                   "PATEN", "AGIRLIK", "PANO", "EKSEN")
-_PLANDAN_AD = ("agirlik_kasnak", "agirlik_kasnak_yazi", "agirlik_yazi", "pano_yazi",
-               "sase_dikme")
+                   "PATEN", "AGIRLIK", "EKSEN")
+_PLANDAN_AD = ("agirlik_kasnak", "agirlik_kasnak_yazi", "agirlik_yazi", "sase_dikme")
 
 
 #  Planın kabinle ve askıyla gelen elemanları — kabin üstünde kendi
@@ -213,10 +212,20 @@ def dogrula(g):
 
 
 def korkuluklar(Y):
-    """Plan, kesit ve açıklık denetiminin ortak küpeşte konumları."""
+    """Plan, kesit ve açıklık denetiminin ortak küpeşte konumları.
+
+    Kapı operatörü tavanın önünde durur;  küpeşte onun içinden geçemez:  yan
+    kenardaki korkuluk operatörün arka yüzünden başlar ( operatör o kenara
+    uzanıyorsa ), ön kenarda korkuluk gerekirse operatörün arkasına geçer.
+    Eskiden yan korkuluk tavanın bütün derinliğince çiziliyor, ön dikmesi
+    operatörün içinde duruyordu."""
     x0, y0, x1, y1 = Y["ic"]
-    kenarlar = {"Sol": (x0, y0, x0, y1), "Sağ": (x1, y0, x1, y1),
-                "Ön": (x0, y0, x1, y0), "Arka": (x0, y1, x1, y1)}
+    op = Y["operator"]
+
+    def on(x):
+        return op[3] if op[0] - 1e-9 <= x <= op[2] + 1e-9 and op[1] - 1e-9 <= y0 < op[3] else y0
+    kenarlar = {"Sol": (x0, on(x0), x0, y1), "Sağ": (x1, on(x1), x1, y1),
+                "Ön": (x0, max(y0, op[3]), x1, max(y0, op[3])), "Arka": (x0, y1, x1, y1)}
     return [(kenarlar[ad], k["yukseklik"]) for ad, k in Y["kenarlar"].items() if k["gerekli"]]
 
 
