@@ -44,8 +44,12 @@ def _dikdortgen(el, renk, kalinlik, k=1.0):
             f'stroke-width="{kalinlik}"{kesik}/>')
 
 
-def _olcu(el, renk, kalinlik, k=1.0):
+def _olcu(el, renk, kalinlik, k=1.0, tutamak=False):
     """Ölçü çizgisi + iki uçtaki kısa çizgi + yazı.
+
+    tutamak:  ekranda tıklanacak ölçü için çizginin ve yazının üstüne
+    görünmez, geniş bir tutma yüzeyi ( ince çizgiye ve harflere tam
+    denk getirmek gerekmesin ).
 
     Yazının yeri geometride bulunur ( el["yazi"] = yazının MERKEZİ );  DXF de
     aynı yeri kullanır.  UZATMA ÇİZGİSİ YOK:  ölçülen noktadan ölçü çizgisine
@@ -67,8 +71,15 @@ def _olcu(el, renk, kalinlik, k=1.0):
     a = math.radians(yz["aci"])
     bx = yz["x"] + 0.35 * yz["h"] * math.sin(a)
     by = yz["y"] - 0.35 * yz["h"] * math.cos(a)
+    tut = ""
+    if tutamak:
+        h, w = yz["h"], len(el["metin"]) * yz["h"] * 0.6
+        tut = (cizgi + f' class="tut" stroke="transparent" stroke-width="{60 * k:g}"/>'
+               f'<g transform="translate({bx:.1f},{by:.1f}) scale(1,-1) rotate({-yz["aci"]})">'
+               f'<rect class="tut" x="{-w / 2 - 0.3 * h:.1f}" y="{-1.05 * h:.1f}" '
+               f'width="{w + 0.6 * h:.1f}" height="{1.4 * h:.1f}" fill="transparent"/></g>')
     return (cizgi + f' stroke="{renk}" stroke-width="{kalinlik}"/>' + uc
-            + _metin(bx, by, el["metin"], yz["h"], renk, -yz["aci"]))
+            + _metin(bx, by, el["metin"], yz["h"], renk, -yz["aci"]) + tut)
 
 
 def _metin(x, y, metin, yukseklik, renk, aci=0, hiza="orta"):  # noqa: D401
@@ -91,24 +102,30 @@ def _desen(k):
     return "" if k == 1 else f' patternTransform="scale({k:g})"'
 
 
-def yaz(elemanlar, sinir, baslik="", olcek=20):
-    """Eleman listesini SVG metnine çevirir."""
+def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False):
+    """Eleman listesini SVG metnine çevirir.
+
+    onek:  desen kimliklerinin öneki — aynı sayfada birden çok SVG satır içi
+    durunca kimlikler çakışmasın ( ölçekleri farklı, desenleri de farklı ).
+    etkilesimli:  her ölçü  <g class="olcu" data-olcu="sıra">  içinde ve
+    tutamaklı ( ekranda tıklanır;  sıra eleman listesindeki ölçülerin sırası —
+    olcu_kaynagi.olculer ile aynı )."""
     x1, y1, x2, y2 = sinir
     g, d = x2 - x1, y2 - y1
     #  Kalem kalınlıkları, tarama ve oklar 1/20'ye göre;  başka ölçekte
     #  paftadaki boyları aynı kalsın diye k ile büyür.
     k = olcek / 20.0
-    parcalar = []
+    parcalar, n_olcu = [], 0
     for el in elemanlar:
         renk, kal = KALEM.get(el["katman"], ("#000", 4))
         kal = f"{kal * k:g}"
         if el["tip"] == "tarama_tugla":
             parcalar.append(f'<rect x="{el["x"]:.1f}" y="{el["y"]:.1f}" width="{el["g"]:.1f}" '
-                            f'height="{el["d"]:.1f}" fill="url(#tugla)" stroke="{renk}" '
+                            f'height="{el["d"]:.1f}" fill="url(#{onek}tugla)" stroke="{renk}" '
                             f'stroke-width="{kal}"/>')
         elif el["tip"] == "tarama":
             parcalar.append(f'<rect x="{el["x"]:.1f}" y="{el["y"]:.1f}" width="{el["g"]:.1f}" '
-                            f'height="{el["d"]:.1f}" fill="url(#tarama)" stroke="none"/>')
+                            f'height="{el["d"]:.1f}" fill="url(#{onek}tarama)" stroke="none"/>')
         elif el["tip"] == "dikdortgen":
             parcalar.append(_dikdortgen(el, renk, kal, k))
         elif el["tip"] in ("cizgi", "eksen"):
@@ -133,7 +150,13 @@ def yaz(elemanlar, sinir, baslik="", olcek=20):
                 f'{el["x2"] - ux * u - ux2 * u * 0.4:.1f},{el["y2"] - uy * u - uy2 * u * 0.4:.1f}" '
                 f'fill="{renk}"/>')
         elif el["tip"] == "olcu":
-            parcalar.append(_olcu(el, renk, kal, k))
+            if etkilesimli:
+                parcalar.append(f'<g class="olcu" data-olcu="{n_olcu}" tabindex="0" role="button" '
+                                f'aria-label="Ölçü {html.escape(el["metin"])}">'
+                                + _olcu(el, renk, kal, k, tutamak=True) + '</g>')
+            else:
+                parcalar.append(_olcu(el, renk, kal, k))
+            n_olcu += 1
         elif el["tip"] == "yazi":
             parcalar.append(_metin(el["x"], el["y"], el["metin"], el["yukseklik"], renk,
                                    -el.get("aci", 0), el.get("hiza", "orta")))
@@ -141,10 +164,10 @@ def yaz(elemanlar, sinir, baslik="", olcek=20):
            if baslik else "")
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x1:.0f} {-y2 - 300:.0f} '
             f'{g:.0f} {d + 600:.0f}" width="{g / olcek:.0f}mm" height="{(d + 600) / olcek:.0f}mm">'
-            '<defs><pattern id="tarama" width="120" height="120" patternUnits="userSpaceOnUse" '
+            f'<defs><pattern id="{onek}tarama" width="120" height="120" patternUnits="userSpaceOnUse" '
             f'patternTransform="rotate(45){_olcekle(k)}"><line x1="0" y1="0" x2="0" y2="120" '
             'stroke="#9a9a9a" stroke-width="6"/></pattern>'
-            f'<pattern id="tugla" width="240" height="120" patternUnits="userSpaceOnUse"'
+            f'<pattern id="{onek}tugla" width="240" height="120" patternUnits="userSpaceOnUse"'
             f'{_desen(k)}>'
             '<rect width="240" height="120" fill="#fdf3ee"/>'
             '<path d="M0 0 H240 M0 60 H240 M120 0 V60 M0 60 V120 M240 60 V120" '

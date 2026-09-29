@@ -1299,6 +1299,9 @@ function cizCizimler(c){
   let h = `<div class="pafta-bas"><h2>ÇİZİMLER  ·  ASANSÖR ${MUK_AKTIF + 1}${ad ? ' · ' + kacis(ad) : ''}</h2>
     <div class="alt">Kuyu düşey kesitleri ve planları — hesabın girdisinden ve sonucundan.
       Paftaya "Projeyi paketle" ile hesap sayfalarının sağına girer.</div></div><div class="kart-ic">`;
+  //  Ölçüden yapılan son değişiklik:  çizim kurulamadıysa da görünür ( hatayı
+  //  neyin getirdiği bilinsin ).
+  h += `<div id="m_olcu_bildirim" class="olcu-bildirim" hidden></div>`;
   if(!c.aktif){
     h += `<div class="uyari kirmizi"><b>Çizimler kurulamadı.</b> Aşağıdakiler düzeltilince
             çizilir ( girdiler solda:  hesabın grupları ve "Çizim" grubu ).
@@ -1307,14 +1310,289 @@ function cizCizimler(c){
     if(!c.hesap)
       h += `<div class="uyari sari">Hesap yapılamadı:  kuyu tabanına ve ray konsollarına gelen
               kuvvetler çizimlere yazılmadı.</div>`;
+    h += `<div class="ipucu olcu-ipucu">Bir ölçüye tıklayın:  hangi girdiden geldiği görünür,
+            yeni değeri buradan yazılabilir ( o girdi değişir, çizim ve hesap birlikte yenilenir ).</div>`;
+    //  SVG satır içi:  ölçüler tıklanır.  Sunucunun ürettiği metindir ( yazılar
+    //  kaçışlı — cizim/svg.py ), desen kimlikleri her çizimde önekli.
     for(const z of c.cizimler || []){
-      const src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(z.svg);
       h += `<figure class="cizim" data-cizim="${kacis(z.ad)}">
               <figcaption>${kacis(z.baslik)} <span class="ipucu">1/${kacis(z.olcek)}</span></figcaption>
-              <img alt="${kacis(z.baslik)}" src="${src}"></figure>`;
+              <div class="cizim-svg">${z.svg}</div></figure>`;
     }
   }
+  M_OLCU = null;
+  M_OLCU_ISINAN.clear();
   kutu.innerHTML = h + '</div>';
+  mOlcuOlaylari(kutu);
+  if(M_OLCU_SON_BILDIRIM) mOlcuBildir(M_OLCU_SON_BILDIRIM, true);
+}
+
+/* ==========================================================================
+   ÖLÇÜYE TIKLAMA  —  ölçünün kaynağı ve ölçüden değiştirme
+   --------------------------------------------------------------------------
+   Çizim elle değişmez:  ölçünün yeni değeri, ölçünün geldiği GİRDİ KUTUSUNA
+   yazılır ve form kendi akışıyla hesabı ve çizimi yeniler — hesap ile çizim
+   aynı sayıyı kullanmaya devam eder.  Hangi girdiden geldiğini sunucu çizimi
+   yeniden kurarak bulur ( cizim/olcu_kaynagi.py );  yeni değer de çizim
+   yeniden kurularak doğrulanır.
+   ========================================================================== */
+let M_OLCU = null;                         // açık ölçü kutusu:  { g, ad, i, metin, kutu, c }
+const M_OLCU_ISINAN = new Set();           // önceden çözümlemesi istenen çizimler
+let M_OLCU_SON_BILDIRIM = '';              // çizim yenilenince de görünsün
+
+function mOlcuIstek(ek){
+  return JSON.stringify({kapak: mukavemetKimlik(), ...mukavemetIstek(), asansor: MUK_AKTIF, ...ek});
+}
+
+async function mOlcuPost(yol, ek){
+  const r = await fetch(yol, {method: 'POST', headers: {'Content-Type': 'application/json'},
+                              body: mOlcuIstek(ek)});
+  return r.json();
+}
+
+function mOlcuOlaylari(kutu){
+  if(!kutu || kutu.dataset.olcuOlay) return;
+  kutu.dataset.olcuOlay = '1';
+  kutu.addEventListener('click', e => {
+    const g = e.target.closest('.cizim-svg .olcu');
+    if(g){ e.stopPropagation(); mOlcuAc(g, e); return; }
+    if(!e.target.closest('.olcu-kutu')) mOlcuKapat();
+  });
+  kutu.addEventListener('keydown', e => {
+    const g = e.target.closest && e.target.closest('.cizim-svg .olcu');
+    if(g && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); mOlcuAc(g, null); }
+  });
+  //  Fare çizimin üstüne gelince çözümleme önceden istenir:  tıklandığında
+  //  çoğu zaman hazırdır ( bir çizimin çözümlemesi bir saniye kadar sürer ).
+  kutu.addEventListener('mouseover', e => {
+    const f = e.target.closest('figure.cizim');
+    if(f) mOlcuOnceden(f.dataset.cizim);
+  });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') mOlcuKapat(); });
+}
+
+function mOlcuOnceden(ad){
+  if(!ad || M_OLCU_ISINAN.has(ad)) return;
+  const g = document.querySelector(`#m_cizimler figure[data-cizim="${ad}"] .olcu`);
+  if(!g) return;
+  M_OLCU_ISINAN.add(ad);
+  mOlcuPost('/api/uygulama/olcu', {cizim: ad, olcu: Number(g.dataset.olcu)}).catch(() => {});
+}
+
+function mOlcuKapat(){
+  if(!M_OLCU) return;
+  M_OLCU.g.classList.remove('secili');
+  M_OLCU.kutu.remove();
+  M_OLCU = null;
+}
+
+async function mOlcuAc(g, olay){
+  mOlcuKapat();
+  const fig = g.closest('figure.cizim'), alan = fig.querySelector('.cizim-svg');
+  const ad = fig.dataset.cizim, i = Number(g.dataset.olcu);
+  const metin = (g.querySelector('text') || {}).textContent || '';
+  g.classList.add('secili');
+  const kutu = document.createElement('div');
+  kutu.className = 'olcu-kutu';
+  kutu.setAttribute('role', 'dialog');
+  kutu.setAttribute('aria-label', 'Ölçü ' + metin);
+  //  Tıklanan yerin yanında;  kutunun kenarına taşmadan.
+  const r = alan.getBoundingClientRect();
+  const nx = olay ? olay.clientX : g.getBoundingClientRect().left;
+  const ny = olay ? olay.clientY : g.getBoundingClientRect().bottom;
+  kutu.style.left = Math.max(8, Math.min(nx - r.left + 12, r.width - 348)) + 'px';
+  kutu.style.top = Math.max(8, ny - r.top + 12) + 'px';
+  kutu.innerHTML = `<div class="olcu-bas"><b>${kacis(metin)}</b>
+      <button class="olcu-kapat" aria-label="Kapat" onclick="mOlcuKapat()">×</button></div>
+    <div class="olcu-ic"><span class="ipucu">Ölçünün kaynağı bulunuyor…</span></div>`;
+  alan.appendChild(kutu);
+  M_OLCU = {g, ad, i, metin, kutu, c: null};
+  const bu = M_OLCU;
+  let c;
+  try{ c = await mOlcuPost('/api/uygulama/olcu', {cizim: ad, olcu: i, metin}); }
+  catch(e){ c = {aktif: false, hata: ['Bağlantı hatası: ' + e]}; }
+  if(M_OLCU !== bu) return;                 // bu arada kapandı ya da başka ölçü açıldı
+  bu.c = c;
+  mOlcuYaz(bu);
+}
+
+const M_OLCU_YER = {asansor: 'bu asansörün girdisi', proje: 'proje geneli',
+                    ofis: 'ofis standardı ( Sabitler sekmesi )', urun: 'ürün ölçüsü ( çizim kabulü )'};
+
+function mOlcuBirimli(v, birim){
+  const b = (birim && birim !== '—') ? ' ' + birim : '';
+  return `${kacis(mSayi(v))}${kacis(b)}`;
+}
+
+function mOlcuYaz(bu){
+  const c = bu.c, ic = bu.kutu.querySelector('.olcu-ic');
+  if(!c.aktif){
+    ic.innerHTML = `<div class="uyari kirmizi">${(c.hata || []).map(kacis).join('<br>')}</div>`;
+    return;
+  }
+  const ks = c.kaynaklar || [];
+  const sayi = ks.filter(k => k.degistirilir && k.tur === 'sayi');
+  const secim = ks.filter(k => k.degistirilir && k.tur === 'secim');
+  const diger = ks.filter(k => !k.degistirilir);
+  let h = `<div class="olcu-deger">Ölçü:  <b>${mOlcuBirimli(Math.round(c.deger * 100) / 100, 'mm')}</b></div>`;
+  if(c.kural) h += `<div class="olcu-kural">${kacis(c.kural)}</div>`;
+  if(sayi.length){
+    h += `<label class="olcu-etiket" for="m_olcu_hedef">Yeni ölçü</label>
+          <div class="olcu-giris"><input id="m_olcu_hedef" class="girdi" inputmode="decimal"
+            value="${kacis(mSayi(Math.round(c.deger * 100) / 100))}"> <span>mm</span></div>`;
+    h += `<div class="olcu-alt">${sayi.length > 1 ? 'Hangi girdi değişsin?' : 'Değişecek girdi:'}</div>`;
+    sayi.forEach((k, n) => {
+      h += `<div class="olcu-kaynak"><div><b>${kacis(k.etiket)}</b>
+              <span class="ipucu">şimdi ${mOlcuBirimli(k.deger, k.birim)} · ${kacis(M_OLCU_YER[k.yer])}
+              ${k.bagli ? ' · bağlı alanlar da güncellenir' : ''}</span></div>
+            <div class="dugmeler"><button class="dg kucuk${n === 0 ? ' ana' : ''}"
+                onclick="mOlcuUygula('${kacis(k.anahtar)}')">${sayi.length > 1 ? 'Bununla uygula' : 'Uygula'}</button>
+              <button class="dg kucuk" onclick="mAlanGoster('${kacis(k.anahtar)}')">Formda göster</button></div></div>`;
+    });
+  }
+  secim.forEach(k => {
+    h += `<div class="olcu-kaynak"><div><b>${kacis(k.etiket)}</b>
+            <span class="ipucu">seçimle değişir · ${kacis(M_OLCU_YER[k.yer])}</span></div>
+          <div class="dugmeler"><select class="girdi olcu-secim" data-anahtar="${kacis(k.anahtar)}">
+            ${(k.secenekler || []).map(v => `<option value="${kacis(v)}"${String(v) === String(k.deger) ? ' selected' : ''}>${kacis(mSayi(v))}</option>`).join('')}
+          </select>
+          <button class="dg kucuk" onclick="mOlcuSecimUygula('${kacis(k.anahtar)}', this)">Uygula</button>
+          <button class="dg kucuk" onclick="mAlanGoster('${kacis(k.anahtar)}')">Formda göster</button></div></div>`;
+  });
+  if(diger.length){
+    h += `<div class="olcu-alt">${sayi.length || secim.length ? 'Ayrıca şunlara bağlı:' : 'Bu ölçü şunlardan gelir:'}</div>`;
+    diger.forEach(k => {
+      let dg = '';
+      if(k.yer === 'asansor' || k.yer === 'proje')
+        dg = `<button class="dg kucuk" onclick="mAlanGoster('${kacis(k.anahtar)}')">Formda göster</button>`;
+      else if(k.yer === 'ofis')
+        dg = `<button class="dg kucuk" onclick="mSabitGoster('${kacis(k.anahtar)}')">Sabitlerde göster</button>`;
+      const nasil = k.tur === 'tam' ? 'tam sayı — formdan değiştirilir'
+        : k.tur === 'secim' ? 'seçimle değişir' : '';
+      h += `<div class="olcu-kaynak"><div><b>${kacis(k.etiket)}</b>
+              <span class="ipucu">${k.tur === 'secim' ? kacis(mSayi(k.deger)) : mOlcuBirimli(k.deger, k.birim)}
+              · ${kacis(M_OLCU_YER[k.yer])}${nasil ? ' · ' + nasil : ''}</span></div>
+            ${dg ? `<div class="dugmeler">${dg}</div>` : ''}</div>`;
+    });
+  }
+  if(!ks.length && !c.kural)
+    h += `<div class="olcu-alt">Bu ölçü hiçbir girdiye bağlı değil.</div>`;
+  h += `<div class="olcu-hata uyari kirmizi" hidden></div>`;
+  ic.innerHTML = h;
+  const giris = ic.querySelector('#m_olcu_hedef');
+  if(giris){
+    giris.addEventListener('keydown', e => {
+      if(e.key === 'Enter'){ e.preventDefault(); mOlcuUygula(sayi[0].anahtar); }
+    });
+    giris.focus(); giris.select();
+  }
+}
+
+function mOlcuHata(metin){
+  if(!M_OLCU) return;
+  const e = M_OLCU.kutu.querySelector('.olcu-hata');
+  if(e){ e.textContent = metin; e.hidden = false; }
+}
+
+async function mOlcuUygula(anahtar){
+  if(!M_OLCU) return;
+  const giris = M_OLCU.kutu.querySelector('#m_olcu_hedef');
+  const hedef = giris ? giris.value.trim().replace(',', '.') : '';
+  if(hedef === '' || !isFinite(Number(hedef))){ mOlcuHata('Yeni ölçüyü sayı olarak yazın.'); return; }
+  await mOlcuDegistir(anahtar, Number(hedef));
+}
+
+async function mOlcuSecimUygula(anahtar, dugme){
+  const s = dugme.parentElement.querySelector('select');
+  if(s) await mOlcuDegistir(anahtar, s.value);
+}
+
+async function mOlcuDegistir(anahtar, hedef){
+  const bu = M_OLCU; if(!bu) return;
+  bu.kutu.classList.add('bekliyor');
+  let c;
+  try{
+    c = await mOlcuPost('/api/uygulama/olcu_degistir',
+                        {cizim: bu.ad, olcu: bu.i, metin: bu.metin, anahtar, hedef});
+  }catch(e){ c = {aktif: false, hata: ['Bağlantı hatası: ' + e]}; }
+  if(M_OLCU !== bu) return;
+  bu.kutu.classList.remove('bekliyor');
+  if(!c.aktif){ mOlcuHata((c.hata || []).join(' ')); return; }
+  //  Yeni değerle çizim kurulamayacaksa önce sorulur:  sebep görünür,
+  //  kullanıcı yine de uygulayabilir ( formda elle yazmak gibi ).
+  if((c.uyarilar || []).length){
+    bu.bekleyen = c;
+    const ic = bu.kutu.querySelector('.olcu-ic');
+    ic.innerHTML = `<div class="olcu-alt">Bu değerle çizim kurulamıyor:</div>
+      <ul class="cizim-liste">${c.uyarilar.map(x => `<li>${kacis(x)}</li>`).join('')}</ul>
+      <div class="ipucu">${(c.degisiklikler || []).map(d =>
+        `${kacis(d.etiket)}:  ${kacis(mSayi(d.eski))} → ${kacis(mSayi(d.deger))}`).join('<br>')}</div>
+      <div class="dugmeler"><button class="dg kucuk ana" onclick="mOlcuYazdir()">Yine de uygula</button>
+        <button class="dg kucuk" onclick="mOlcuKapat()">Vazgeç</button></div>`;
+    return;
+  }
+  bu.bekleyen = c;
+  mOlcuYazdir();
+}
+
+/*  Değerler kutulara yazılır;  form kendi akışıyla ( kayıt, hesap, çizim )
+    yenilenir — elle yazılmış gibi. */
+function mOlcuYazdir(){
+  const bu = M_OLCU; if(!bu || !bu.bekleyen) return;
+  const c = bu.bekleyen;
+  const yazilan = [];
+  for(const d of c.degisiklikler || []){
+    const e = $(M_ID(d.anahtar));
+    if(!e) continue;
+    if(e.tagName === 'SELECT'){
+      const o = [...e.options].find(o => o.value === String(d.deger) || Number(o.value) === Number(d.deger));
+      if(o) e.value = o.value;
+    }else{
+      e.value = mSayi(d.deger);
+    }
+    e.dispatchEvent(new Event(e.tagName === 'SELECT' ? 'change' : 'input', {bubbles: true}));
+    yazilan.push(`${d.etiket}:  ${mSayi(d.eski)} → ${mSayi(d.deger)}`);
+  }
+  mOlcuKapat();
+  const not = c.dogrulandi ? ''
+    : '  ( Ölçü çizimde yeniden bulunamadığı için ayrıca doğrulanamadı. )';
+  mOlcuBildir(yazilan.join('  ·  ') + not);
+}
+
+function mOlcuBildir(metin, kalici){
+  M_OLCU_SON_BILDIRIM = metin;
+  const e = $('m_olcu_bildirim'); if(!e) return;
+  e.textContent = metin;
+  e.hidden = !metin;
+  clearTimeout(mOlcuBildir.zaman);
+  mOlcuBildir.zaman = setTimeout(() => {
+    M_OLCU_SON_BILDIRIM = '';
+    const x = $('m_olcu_bildirim'); if(x) x.hidden = true;
+  }, kalici ? 6000 : 8000);
+}
+
+/*  FORMDA GÖSTER:  alanın grubu ( ve Gelişmiş bölümü ) açılır, alan görünür
+    yere kaydırılır ve bir an vurgulanır. */
+function mAlanGoster(anahtar){
+  const e = $(M_ID(anahtar)); if(!e) return;
+  const gr = e.closest('.m-grup');
+  if(gr) mGrupAc(Number(gr.dataset.grup), true);
+  const gel = e.closest('.m-gelismis');
+  if(gel) mGelismisAc(gel, true);
+  mOlcuKapat();
+  const alan = e.closest('.alan') || e;
+  alan.scrollIntoView({block: 'center', behavior: 'smooth'});
+  alan.classList.remove('alan-vurgu'); void alan.offsetWidth; alan.classList.add('alan-vurgu');
+  e.focus({preventScroll: true});
+}
+
+function mSabitGoster(anahtar){
+  sekmeGoster('sabitler');
+  const e = $(UOF(anahtar)); if(!e) return;
+  const alan = e.closest('.alan') || e;
+  alan.scrollIntoView({block: 'center', behavior: 'smooth'});
+  alan.classList.remove('alan-vurgu'); void alan.offsetWidth; alan.classList.add('alan-vurgu');
+  e.focus({preventScroll: true});
 }
 
 /*  ÇİZİMDEN GELEN HESAP GİRDİLERİ ( MUK.cizimden ):  kutu boşsa değer

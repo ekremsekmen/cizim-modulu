@@ -630,5 +630,34 @@ tr.m-gidilir.etkin td{background:#EEF4FB;font-weight:600}
 .cizim figcaption{font-weight:600;font-size:12.5px;margin:0 0 6px}
 .cizim img{display:block;width:100%;height:auto;border:1px solid var(--cizgi);
   border-radius:6px;background:#fff}
+/*  Satır içi SVG:  ölçüler tıklanır ( üstüne gelince turuncu ).  Görünmez
+    tutamaklar ( .tut ) renk almaz. */
+.cizim-svg{position:relative;border:1px solid var(--cizgi);border-radius:6px;background:#fff}
+.cizim-svg>svg{display:block;width:100%;height:auto}
+.cizim-svg .olcu{cursor:pointer;outline:none}
+.cizim-svg .olcu:hover line:not(.tut),.cizim-svg .olcu.secili line:not(.tut),
+.cizim-svg .olcu:focus-visible line:not(.tut){stroke:#e2680c}
+.cizim-svg .olcu:hover text,.cizim-svg .olcu.secili text,.cizim-svg .olcu:focus-visible text{fill:#e2680c}
+.olcu-ipucu{margin:0 0 10px}
+.olcu-bildirim{margin:0 0 10px;padding:8px 12px;border-radius:7px;background:var(--mavi-cok-ac);
+  border:1px solid var(--mavi-ac);color:var(--mavi);font-size:12.5px}
+.olcu-kutu{position:absolute;z-index:30;width:340px;max-width:calc(100% - 16px);background:#fff;
+  border:1px solid var(--cizgi);border-radius:9px;box-shadow:var(--golge);font-size:12.5px;
+  text-align:left;max-height:min(560px,80vh);overflow:auto}
+.olcu-kutu.bekliyor{opacity:.6;pointer-events:none}
+.olcu-bas{display:flex;justify-content:space-between;align-items:center;gap:8px;
+  padding:8px 10px;border-bottom:1px solid var(--cizgi2);color:var(--mavi)}
+.olcu-kapat{border:none;background:none;font-size:18px;line-height:1;cursor:pointer;color:var(--gri)}
+.olcu-ic{padding:10px;display:flex;flex-direction:column;gap:8px}
+.olcu-kural{padding:6px 8px;border-radius:6px;background:var(--gri-ac);color:var(--gri)}
+.olcu-etiket{font-weight:600}
+.olcu-giris{display:flex;align-items:center;gap:6px}
+.olcu-giris input{width:120px}
+.olcu-alt{font-weight:600;color:var(--gri);margin-top:2px}
+.olcu-kaynak{display:flex;flex-direction:column;gap:5px;padding:7px 8px;border:1px solid var(--cizgi2);
+  border-radius:7px}
+.olcu-kaynak .ipucu{display:block}
+.olcu-secim{width:auto}
+.alan-vurgu{animation:m-vurgu 2.2s ease-out}
 .cizim-liste{margin:6px 0 0 18px;padding:0}
 .cizim-liste li{margin:3px 0}

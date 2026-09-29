@@ -470,9 +470,11 @@ def ciz(g, cizim_sabitleri=None):
     ys = sorted({0.0, D, t1, t2, Y["ag_y"], Y["ry"]})
     e += [O("dusey", (0, a), (0, b), -ds - 120) for a, b in zip(ys, ys[1:])]
     #  Acil pano çalışma alanı  ( m.5.2.6.3.2.1 a )
-    e.append(O("yatay", (ca[0], 0), (ca[2], 0), ca[1] - 90, f"{ca[2] - ca[0]:g}"))
+    kural = ("Acil pano önündeki çalışma alanı:  derinliği 0,70 m, eni panonun eni ya "
+             "da en az 0,50 m ( TS EN 81-20 m.5.2.6.3.2.1 a ).")
+    e.append(O("yatay", (ca[0], 0), (ca[2], 0), ca[1] - 90, f"{ca[2] - ca[0]:g}", kural=kural))
     e.append(O("dusey", (0, ca[1]), (0, ca[3]), ca[0] - 90 if ca[0] > G / 2 else ca[2] + 90,
-               f"{ca[3] - ca[1]:g}"))
+               f"{ca[3] - ca[1]:g}", kural=kural))
     #  Halat sapması — varsa
     dx, dy = Y["sapma"]
     if abs(dx) > 0.5:

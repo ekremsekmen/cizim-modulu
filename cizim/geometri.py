@@ -47,9 +47,12 @@ def _cizgi(katman, x1, y1, x2, y2, tip="cizgi"):
             "x2": float(x2), "y2": float(y2)}
 
 
-def _olcu(yon, a, b, kot, metin=None, yazi=None):
+def _olcu(yon, a, b, kot, metin=None, yazi=None, kural=None):
     """Ölçü.  `yazi` verilmezse yazının yeri _yazilari_yerlestir'de bulunur;
-    verilirse { x, y ( yazının MERKEZİ ), aci, h } olduğu gibi kullanılır."""
+    verilirse { x, y ( yazının MERKEZİ ), aci, h } olduğu gibi kullanılır.
+    `kural`:  ölçü bir girdiden değil standarttan ya da programın yerleşiminden
+    geliyorsa onu söyleyen metin — ekranda ölçüye tıklanınca gösterilir
+    ( olcu_kaynagi;  girdiye bağlı ölçülerin kaynağı ölçülerek bulunur )."""
     uzunluk = abs(b[0] - a[0]) if yon == "yatay" else abs(b[1] - a[1])
     el = {"tip": "olcu", "katman": "OLCU", "yon": yon, "a": tuple(map(float, a)),
           "b": tuple(map(float, b)), "kot": float(kot),
@@ -58,6 +61,8 @@ def _olcu(yon, a, b, kot, metin=None, yazi=None):
     if yazi:
         el["yazi"] = {"x": float(yazi["x"]), "y": float(yazi["y"]),
                       "aci": float(yazi.get("aci", 0)), "h": float(yazi.get("h", OLCU_YAZI))}
+    if kural:
+        el["kural"] = kural
     return el
 
 

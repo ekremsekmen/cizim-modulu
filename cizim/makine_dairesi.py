@@ -471,11 +471,17 @@ def ciz(g, cizim_sabitleri=None):
           for a_, b_ in zip(ys, ys[1:])]
     e.append(O("dusey", (0, oda[1]), (0, oda[3]), s1, f"MAKİNE DAİRESİ {oda[3] - oda[1]:g}"))
     #  Çalışma ve bakım alanlarının ölçüleri  ( standardın sayıları )
-    for alan in (Y["calisma"], Y["bakim"]):
+    for alan, kural in (
+            (Y["calisma"], "Kumanda panosu önündeki çalışma alanı:  derinliği 0,70 m, eni "
+                           "panonun eni ya da en az 0,50 m ( TS EN 81-20 m.5.2.6.3.2.1 a ).  "
+                           "Yerini program kapıya en yakın uygun yere koyar."),
+            (Y["bakim"], "Makinenin başındaki bakım alanı:  0,50 × 0,60 m ( TS EN 81-20 "
+                         "m.5.2.6.3.2.1 b ).  Yerini program makineye en yakın boş yere koyar.")):
         if alan:
             e.append(O("yatay", (alan[0], 0), (alan[2], 0), alan[1] + 60, f"{alan[2] - alan[0]:g}",
-                       yazi={"x": (alan[0] + alan[2]) / 2.0, "y": alan[1] + 110, "h": 34}))
+                       kural=kural, yazi={"x": (alan[0] + alan[2]) / 2.0, "y": alan[1] + 110, "h": 34}))
             e.append(O("dusey", (0, alan[1]), (0, alan[3]), alan[0] + 60, f"{alan[3] - alan[1]:g}",
+                       kural=kural,
                        yazi={"x": alan[0] + 110, "y": (alan[1] + alan[3]) / 2.0, "aci": 90, "h": 34}))
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     CGE._yazilari_yerlestir(e)

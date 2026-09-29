@@ -2555,6 +2555,86 @@ def calistir():
                       '<div class="serit"><span>B' + bilgiSimgesi([]) +
                       '</span><span class="kaynak">K</span></div>'"""))
 
+        #  ── ÇİZİMLER:  ÖLÇÜYE TIKLAMA ──────────────────────────────────
+        #  Ölçü tıklanınca hangi girdiden geldiği söylenir;  yeni değer ölçünün
+        #  geldiği GİRDİ KUTUSUNA yazılır, çizim ve hesap birlikte yenilenir
+        #  ( çizim elle değişmez ).
+        pg.evaluate("window.scrollTo(0, 0); mGorunumSec('cizim')")
+        pg.wait_for_selector("#m_cizimler .cizim-svg .olcu", timeout=30000)
+        r.kontrol("çizimler satır içi SVG, ölçüler tıklanır",
+                  pg.evaluate("document.querySelectorAll('#m_cizimler .cizim-svg svg').length") >= 5
+                  and pg.evaluate("document.querySelectorAll('#m_cizimler .olcu').length") > 50)
+        r.esit("çizimlerin kimlikleri birbiriyle çakışmıyor",
+               pg.evaluate("(() => { const i = [...document.querySelectorAll('#m_cizimler [id]')]"
+                           ".map(e => e.id); return i.length - new Set(i).size; })()"), 0)
+        _kp = '#m_cizimler figure[data-cizim="kuyu_plani"] .olcu'
+        _kg = pg.evaluate(f"""() => {{
+            const g = [...document.querySelectorAll('{_kp}')].find(
+                x => /^KUYU GENİŞLİĞİ/.test(x.querySelector('text').textContent));
+            g.scrollIntoView({{block: 'center'}});
+            return +g.querySelector('text').textContent.replace(/\\D+/g, '');
+        }}""")
+        pg.wait_for_timeout(300)
+        pg.locator(_kp).filter(has_text="KUYU GENİŞLİĞİ").first.locator("text").click()
+        pg.wait_for_selector(".olcu-kutu #m_olcu_hedef", timeout=20000)
+        r.kontrol("ölçü kutusu kaynağı söylüyor", "Kuyu genişliği" in pg.inner_text(".olcu-kutu"),
+                  f"→ {pg.inner_text('.olcu-kutu')[:200]!r}")
+        #  Çizimi bozan değer önce sorulur:  varsayılan asansörde kuyu 100 mm
+        #  genişleyince kabin – duvar 0,30 m'yi aşar, korkuluk gerekir ve tavana
+        #  sığmaz — "Yine de uygula" ya da "Vazgeç".
+        pg.fill("#m_olcu_hedef", str(_kg + 100))
+        pg.press("#m_olcu_hedef", "Enter")
+        pg.wait_for_selector(".olcu-kutu .cizim-liste", timeout=30000)
+        r.kontrol("çizimi bozacak değer önce soruluyor ( sebebiyle )",
+                  "Korkuluk" in pg.inner_text(".olcu-kutu"), f"→ {pg.inner_text('.olcu-kutu')[:200]!r}")
+        r.esit("sorulan değer henüz kutuya yazılmadı", pg.input_value("#m_kuyu_genisligi"), str(_kg))
+        pg.click(".olcu-kutu >> text=Vazgeç")
+        r.esit("vazgeçince kutu kapanıyor, değer aynı",
+               (pg.evaluate("document.querySelectorAll('.olcu-kutu').length"),
+                pg.input_value("#m_kuyu_genisligi")), (0, str(_kg)))
+        #  Kurulabilen değer doğrudan uygulanır
+        pg.locator(_kp).filter(has_text="KUYU GENİŞLİĞİ").first.locator("text").click()
+        pg.wait_for_selector(".olcu-kutu #m_olcu_hedef", timeout=20000)
+        pg.fill("#m_olcu_hedef", str(_kg - 50))
+        pg.press("#m_olcu_hedef", "Enter")
+        pg.wait_for_function(
+            f"[...document.querySelectorAll('{_kp}')].some(g => "
+            f"g.querySelector('text').textContent === 'KUYU GENİŞLİĞİ {_kg - 50}')", timeout=30000)
+        r.esit("ölçüden yazılan değer girdi kutusunda", pg.input_value("#m_kuyu_genisligi"),
+               str(_kg - 50))
+        r.kontrol("değişiklik bildiriliyor",
+                  "→" in (pg.evaluate("(document.getElementById('m_olcu_bildirim') || {}).textContent")
+                          or ""))
+        #  Girdiye bağlı olmayan ölçü kuralını söyler ( sığınma alanının yeri )
+        pg.evaluate("""() => { const g = [...document.querySelectorAll(
+                '#m_cizimler figure[data-cizim="kabin_ustu"] .olcu')].find(
+                x => x.querySelector('text') && /^\\d+$/.test(x.querySelector('text').textContent));
+            g.scrollIntoView({block: 'center'}); }""")
+        _kural = pg.evaluate("""async () => {
+            for (const g of document.querySelectorAll('#m_cizimler figure[data-cizim="kabin_ustu"] .olcu')) {
+                g.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+                for (let n = 0; n < 60 && !(document.querySelector('.olcu-kutu .olcu-deger')
+                                             || document.querySelector('.olcu-kutu .uyari')); n++)
+                    await new Promise(r => setTimeout(r, 100));
+                const k = document.querySelector('.olcu-kural');
+                if (k) return k.textContent;
+            }
+            return null; }""")
+        r.kontrol("kurala bağlı ölçü kuralını söylüyor", bool(_kural), f"→ {_kural!r}")
+        pg.keyboard.press("Escape")
+        r.esit("Esc ölçü kutusunu kapatıyor",
+               pg.evaluate("document.querySelectorAll('.olcu-kutu').length"), 0)
+        #  "Formda göster":  alanın grubu açılır, alan odaklanır.  Sonra kuyu
+        #  genişliği eski değerine ( sonraki denetimler varsayılan projeyi okur ).
+        pg.evaluate("mAlanGoster('kuyu_genisligi')")
+        pg.wait_for_timeout(400)
+        r.kontrol("'Formda göster' alanı açıp odaklıyor",
+                  pg.is_visible("#m_kuyu_genisligi")
+                  and pg.evaluate("document.activeElement.id") == "m_kuyu_genisligi")
+        pg.fill("#m_kuyu_genisligi", str(_kg))
+        pg.wait_for_timeout(1500)
+        pg.evaluate("mGorunumSec('hesap')")
+
         pg.emulate_media(media="print")
         r.esit("yazdırırken 'Hesaba git' ve 'Özete dön' basılmıyor",
                pg.evaluate("[...document.querySelectorAll('.m-hesaba-git, .m-ozete-don')]"

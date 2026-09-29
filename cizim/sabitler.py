@@ -11,6 +11,8 @@ kalibre edildi ve kalibrasyon ray profilleriyle doğrulandı ( T89/B 89 × 62 ve
 T70/A 70 × 65 tam çıktı ).  Yani tek bir projenin donanımıdır;  tedarikçinin
 kendi ölçüleri gelince buradan değiştirilir.
 """
+import contextlib
+import threading
 
 SABIT = {
     #  ── RAY KONSOLU ──────────────────────────────────────────────────
@@ -206,10 +208,147 @@ SABIT = {
 }
 
 
+#  Ekranda ölçünün kaynağı söylenirken kullanılan adlar ( olcu_kaynagi ):
+#  bir ölçü sabit bir ürün ölçüsünden geliyorsa "kat kapısı eşiği derinliği
+#  90" diye anılır.  Her sabitin adı vardır ( test ).
+ETIKET = {
+    "konsol_kabin_en": "Kabin rayı konsolunun duvara dik eni",
+    "konsol_kabin_boy": "Kabin rayı konsolunun boyu",
+    "konsol_agirlik_en": "Ağırlık rayı konsolunun duvara dik eni",
+    "konsol_agirlik_boy": "Ağırlık rayı konsolunun boyu",
+    "konsol_civata_araligi": "Konsol cıvata delikleri arası",
+    "konsol_civata_capi": "Konsol cıvata deliği çapı",
+    "ara_kiris_en": "Ray ara kirişinin eni",
+    "paten_en": "Patenin ray yüzüne dik eni",
+    "paten_boy": "Patenin ray boyunca boyu",
+    "kabin_pano_yan": "Kabin yan panosu kalınlığı",
+    "kabin_pano_arka": "Kabin arka panosu kalınlığı",
+    "sase_dikme": "Kabin şasesi dikmesinin plandaki kalınlığı",
+    "kabin_kasnak_genislik": "Kabin kasnağının genişliği",
+    "kasa_yan": "Kat kapısı kasasının yan genişliği",
+    "kasa_derinlik": "Kat kapısı kasasının derinliği",
+    "kanat_kalinlik": "Kapı kanadı kalınlığı",
+    "kanat_araligi": "Teleskopik kapı kanatları arası",
+    "kanat_esik_payi": "Kapı kanadının eşik kenarından payı",
+    "kabin_kapisi_kutu_en": "Kabin kapısı mekanizma kutusunun eni",
+    "kabin_kapisi_kutu_boy": "Kabin kapısı mekanizma kutusunun boyu",
+    "esik_derinlik": "Kat kapısı eşiği derinliği",
+    "kabin_esik_derinlik": "Kabin eşiği derinliği",
+    "bina_duvari": "Kapı yanındaki bina duvarı",
+    "agirlik_cerceve": "Karşı ağırlık çerçeve profili kalınlığı",
+    "tampon_capi": "Tampon gövdesi çapı",
+    "tampon_taban": "Tampon taban plakası",
+    "gergi_kasnak_eni": "Regülatör gergi kasnağının eni",
+    "merdiven_eni": "Kuyu dibi merdiveninin eni",
+    "merdiven_derinlik": "Kuyu dibi merdiveninin derinliği",
+    "tahrik_kasnak_kalinlik": "Tahrik kasnağının planda görünen eni",
+    "makine_en": "Makine gövdesinin eni",
+    "makine_boy": "Makine gövdesinin boyu",
+    "makine_kasnak_boslugu": "Tahrik kasnağı ile makine gövdesi arası",
+    "agirlik_baglanti_en": "Ağırlık halat bağlantısının eni",
+    "agirlik_baglanti_boy": "Ağırlık halat bağlantısının boyu",
+    "agirlik_baglanti_x": "Ağırlık halat bağlantısının duvar tarafı payı",
+    "agirlik_baglanti_y": "Ağırlık halat bağlantısının kasnak tarafı payı",
+    "kabin_baglanti_en": "Kabin halat bağlantısının eni",
+    "kabin_baglanti_boy": "Kabin halat bağlantısının boyu",
+    "kabin_baglanti_x": "Kabin halat bağlantısının kabin tarafı payı",
+    "regulator_eni": "Hız regülatörü kasnağının eni",
+    "regulator_govde_en": "Hız regülatörü gövdesinin eni",
+    "regulator_govde_boy": "Hız regülatörü gövdesinin boyu",
+    "kumanda_pano_en": "Kumanda panosunun eni",
+    "kumanda_pano_derinlik": "Kumanda panosunun derinliği",
+    "kumanda_pano_yukseklik": "Kumanda panosunun yüksekliği",
+    "halat_delik_payi": "Halat deliğinde demetin çevresine pay",
+    "acil_pano_en": "Acil kurtarma panosunun eni",
+    "acil_pano_derinlik": "Acil kurtarma panosunun derinliği",
+    "kabin_tavan_kalinlik": "Kabin tavanı kalınlığı",
+    "kabin_taban_kalinlik": "Kabin tabanı kalınlığı",
+    "sase_alt_derinlik": "Kabin döşemesinden şase altına",
+    "paten_yukseklik": "Kabin pateninin yüksekliği",
+    "fren_blogu_yukseklik": "Fren bloğunun yüksekliği",
+    "kabin_kasnak_derinlik": "Kabin döşemesinden kabin kasnağı merkezine",
+    "kabin_ustu_kasnak_boslugu": "Kabin üstü kasnağının kirişten boşluğu",
+    "sase_dikme_derinlik": "Kabin şasesi dikmesinin kesitteki eni",
+    "etek_tahtasi": "Kabin eteği ( etek tahtası )",
+    "tavan_kirisi": "Kuyu tavanı kiriş payı",
+    "makine_tepe_boslugu": "Kuyu tavanından makinenin tepesine",
+    "makine_kapak_yukseklik": "Makine kapağının yüksekliği",
+    "makine_kapak_en": "Makine kapağının eni",
+    "makine_kapak_boy": "Makine kapağının boyu",
+    "makine_sase_duvar": "Makine şasesinin duvardan açıklığı",
+    "makine_sase_ray_payi": "Makine şasesinin raylardan taşması",
+    "md_cerceve_pay": "Makine kaidesinin makine izinden taşması",
+    "md_cerceve_ayak_plakasi": "Kaide ayak plakasının ölçüsü",
+    "md_cerceve_ayak_plakasi_kalinlik": "Kaide ayak plakasının kalınlığı",
+    "md_cati_kalinlik": "Makine dairesi çatı döşemesi kalınlığı",
+    "md_saptirma_yukseklik": "Saptırma kasnağı merkezinin döşemeden yüksekliği",
+    "ray_sase_icinde": "Rayların şase üstünün altında bittiği pay",
+    "kabin_rayi_tepe": "Kabin rayının tavan payının altında bittiği pay",
+    "kabin_baglanti_ust": "Kuyu tavanından kabin halat bağlantısının üstüne",
+    "kabin_baglanti_alt": "Kuyu tavanından kabin halat bağlantısının altına",
+    "agirlik_baglanti_yukseklik": "Ağırlık halat bağlantısının yüksekliği",
+    "regulator_kasnak_merkez": "Kuyu tavanından regülatör kasnağı merkezine",
+    "regulator_govde_ust": "Kuyu tavanından regülatör gövdesinin üstüne",
+    "regulator_govde_alt": "Kuyu tavanından regülatör gövdesinin altına",
+    "gergi_kasnak_merkez": "Kuyu tabanından gergi kasnağı merkezine",
+    "gergi_kol_alt": "Kuyu tabanından gergi kolunun altına",
+    "gergi_kol_yukseklik": "Gergi kolunun yüksekliği",
+    "gergi_kol_ray": "Gergi kolunun kabin ray ekseninden payı",
+    "gergi_kol_uc": "Gergi kolunun kasnaktan ötesi",
+    "gergi_agirlik_alt": "Kuyu tabanından gergi ağırlığının altına",
+    "gergi_agirlik_yukseklik": "Gergi ağırlığının yüksekliği",
+    "gergi_agirlik_yakin": "Gergi ağırlığının kasnağa yakın ucu",
+    "gergi_agirlik_uzak": "Gergi ağırlığının kasnağa uzak ucu",
+    "agirlik_kasnak_ust": "Ağırlık kasnağı merkezinin üst kirişten derinliği",
+    "agirlik_kiris": "Karşı ağırlık kirişinin kalınlığı",
+    "konsol_ilk": "Kuyu tabanından ilk ray konsolunun üstüne",
+    "konsol_yukseklik": "Ray konsolunun yüksekliği",
+    "ray_boyu": "Ray boyu ( ekler arası )",
+    "ek_lama_boyu": "Ray ek lamasının boyu",
+    "kat_doseme_kalinlik": "Kat döşemesi kalınlığı",
+    "kapi_ust_payi": "Kapı boşluğunun kapıdan yüksekliği",
+    "esik_kalinlik": "Eşik kalınlığı",
+}
+
+
 def sabitler(ozel=None):
     """Ofis çizim sabitleri + projeye özel ezmeler."""
     s = dict(SABIT)
     for k, v in (ozel or {}).items():
         if k in SABIT and v is not None:
             s[k] = v
-    return s
+    kume = getattr(_KAYIT, "kume", None)
+    return _Okunan(s, kume) if kume is not None else s
+
+
+#  OKUNAN SABİTLER:  ölçü kaynağı çözümlemesi ( olcu_kaynagi ) bir çizimin
+#  hangi ürün ölçülerini okuduğunu bilirse yalnız onları oynatır ( doksan
+#  küsur sabitin hepsini değil ).  Kayıt iş parçacığına özeldir:  aynı anda
+#  kurulan başka çizimlere dokunmaz.  Sabitlere yalnız sabitler() ile
+#  erişilir ( SABIT'i doğrudan okuyan çizim kodu yok — test ).
+_KAYIT = threading.local()
+
+
+class _Okunan(dict):
+    def __init__(self, d, kume):
+        super().__init__(d)
+        self._kume = kume
+
+    def __getitem__(self, k):
+        self._kume.add(k)
+        return super().__getitem__(k)
+
+    def get(self, k, v=None):
+        self._kume.add(k)
+        return super().get(k, v)
+
+
+@contextlib.contextmanager
+def okunanlar():
+    """Blok içinde okunan sabitlerin kümesi."""
+    eski, kume = getattr(_KAYIT, "kume", None), set()
+    _KAYIT.kume = kume
+    try:
+        yield kume
+    finally:
+        _KAYIT.kume = eski

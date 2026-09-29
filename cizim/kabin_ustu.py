@@ -30,6 +30,9 @@ SIGINMA = {"Dik duruş": (400.0, 500.0), "Çömelme": (500.0, 700.0)}
 KORKULUK_BOSLUK = 300.0
 #  m.5.4.7.4 c:  korkuluk tavan kenarından en çok 0,15 m içeride durur.
 KORKULUK_KENAR_AZAMI = 150.0
+_ICERI = ("Korkuluğun kenardan içeri alınması:  küpeşte kuyudaki parçalardan en az "
+          "0,10 m uzak durur ( TS EN 81-20 m.5.4.7.4 d ), kenardan en çok 0,15 m "
+          "içeride ( m.5.4.7.4 c ).")
 #  m.5.4.7.4 d:  küpeştenin dış kenarı kuyudaki parçalardan ( karşı ağırlık,
 #  raylar, konsollar … ) en az 0,10 m uzakta olmalıdır.
 KORKULUK_PARCA_ASGARI = 100.0
@@ -303,27 +306,31 @@ def ciz(g, cizim_sabitleri=None):
             #  Her kenarın ölçüsü kendi sırasında  ( iki kenar aynı sırada
             #  kopuk bir zincir oluştururdu )
             kot = tavan[3] - (120 if yan == "Sol" else 200)
-            e.append(O("yatay", (x1, 0), (x2, 0), kot, f"{k['iceri']:g}",
+            e.append(O("yatay", (x1, 0), (x2, 0), kot, f"{k['iceri']:g}", kural=_ICERI,
                        yazi={"x": (x2 + 30 + CGE._yazi_eni(f"{k['iceri']:g}", 40) / 2.0)
                              if yan == "Sol" else (x1 - 30 - CGE._yazi_eni(f"{k['iceri']:g}", 40) / 2.0),
                              "y": kot, "h": 40}))
         else:
             y1, y2 = (ic[3], tavan[3]) if yan == "Arka" else (tavan[1], ic[1])
             kot = tavan[0] + (120 if yan == "Arka" else 200)
-            e.append(O("dusey", (0, y1), (0, y2), kot, f"{k['iceri']:g}",
+            e.append(O("dusey", (0, y1), (0, y2), kot, f"{k['iceri']:g}", kural=_ICERI,
                        yazi={"x": kot + 30 + CGE._yazi_eni(f"{k['iceri']:g}", 40) / 2.0,
                              "y": (y1 + y2) / 2.0, "h": 40}))
     #  Sığınma alanının yeri — tavan kenarlarından
     if sg:
         kot_y = sg[3] + 90 if sg[3] + 200 < tavan[3] else sg[1] - 90
         kot_x = sg[2] + 90 if sg[2] + 200 < tavan[2] else sg[0] - 90
+        yer = ("Sığınma alanının yeri:  program alanı kapıya en yakın, sonra kabin "
+               "eksenine en yakın boş yere koyar ( 25 mm adımla ).")
+        buyukluk = (f"Sığınma alanının ölçüsü:  TS EN 81-20 Çizelge 3 "
+                    f"( {str(g['kabin_ustu']['siginma_tipi']).lower()} ).")
         e += [
-            O("yatay", (tavan[0], 0), (sg[0], 0), kot_y),
-            O("yatay", (sg[0], 0), (sg[2], 0), kot_y),
-            O("yatay", (sg[2], 0), (tavan[2], 0), kot_y),
-            O("dusey", (0, tavan[1]), (0, sg[1]), kot_x),
-            O("dusey", (0, sg[1]), (0, sg[3]), kot_x),
-            O("dusey", (0, sg[3]), (0, tavan[3]), kot_x),
+            O("yatay", (tavan[0], 0), (sg[0], 0), kot_y, kural=yer),
+            O("yatay", (sg[0], 0), (sg[2], 0), kot_y, kural=buyukluk),
+            O("yatay", (sg[2], 0), (tavan[2], 0), kot_y, kural=yer),
+            O("dusey", (0, tavan[1]), (0, sg[1]), kot_x, kural=yer),
+            O("dusey", (0, sg[1]), (0, sg[3]), kot_x, kural=buyukluk),
+            O("dusey", (0, sg[3]), (0, tavan[3]), kot_x, kural=yer),
         ]
     #  KORKULUK YAZISI:  küpeşte boyunca, operatöre ve sığınma ölçüsüne
     #  denk gelmeyen en uzun boş parçanın ortasına

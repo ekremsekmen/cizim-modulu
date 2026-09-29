@@ -179,9 +179,41 @@ OFIS_SABITLERI = {
 
 
 def cizim_sabitleri(A):
-    """Hesabın ofis standardındaki ( A["_ofis"] ) çizim sabitleri — ezme sözlüğü."""
+    """Hesabın ofis standardındaki ( A["_ofis"] ) çizim sabitleri — ezme sözlüğü.
+    A["_urun_ezme"] ( { cizim/sabitler anahtarı : değer } ) ürün ölçülerini
+    ezer:  ölçü kaynağı çözümlemesi ( olcu_kaynagi ) bir ürün ölçüsünü
+    oynatıp hangi ölçülerin ona bağlı olduğunu böyle bulur."""
     ofis = A.get("_ofis") if isinstance(A.get("_ofis"), dict) else {}
-    return {c: float(ofis[o]) for o, c in OFIS_SABITLERI.items() if _sayi(ofis.get(o)) and ofis[o] > 0}
+    d = {c: float(ofis[o]) for o, c in OFIS_SABITLERI.items() if _sayi(ofis.get(o)) and ofis[o] > 0}
+    ez = A.get("_urun_ezme")
+    if isinstance(ez, dict):
+        d.update({k: float(v) for k, v in ez.items() if k in CS.SABIT and _sayi(v)})
+    return d
+
+
+#  BOŞSA KURALLA DOLAN ÇİZİM ALANLARI ( varsayılanı None ):  kutu boşken
+#  değer bir kuraldan gelir ( "boşsa Gy + 60" … ).  Ölçü kaynağı çözümlemesi
+#  kutunun ETKİN değerini çizimin girdisinden okur — okumasaydı DBGW ölçüsü
+#  "karşı ağırlık genişliğinden geliyor" görünür, ölçüyü değiştirmek Gy'yi
+#  değiştirirdi.  Yol:  çizim girdisinde ( g ) değerin durduğu yer.
+KURALLI = {
+    "kabin_ray_arasi": ("kabin_ray", "arasi"),
+    "agirlik_ray_arasi": ("agirlik", "ray_arasi"),
+    "agirlik_ray_duvar": ("agirlik", "ray_duvar"),
+    "kabin_kasnak_arasi": ("aski", "kasnak_arasi"),
+    "regulator_kaciklik": ("kuyu_dibi", "regulator_kaciklik"),
+    "agirlik_tampon_boyu": ("dusey", "agirlik_tampon_boyu"),
+    "md_x": ("makine_dairesi", "x"),
+    "md_y": ("makine_dairesi", "y"),
+}
+
+
+def etkin_deger(g, anahtar):
+    """Kuralla dolan bir çizim alanının çizimde kullanılan değeri ( yoksa None:
+    ör. 1:1 askıda kasnak arası, makine dairesizde odanın yeri )."""
+    b, a = KURALLI[anahtar]
+    v = (g.get(b) or {}).get(a)
+    return float(v) if _sayi(v) else None
 
 
 def _mrl(A):
@@ -658,12 +690,13 @@ def sarim_acisi(g):
         return None
 
 
-def tutarlilik(g, A):
-    """Hesabın girdisi ile çizimin geometrisi aynı şeyi söylüyor mu?  Aynı
-    fiziksel büyüklük iki yerde modelleniyorsa ikisi eşit olmalıdır;
-    uyuşmazlık metin listesi olarak döner ( doğru değeriyle ).  g geçerli
-    olmalı ( çizimlerin doğrulamasından geçmiş )."""
-    hata = []
+def _uyusmazliklar(g, A):
+    """[ ( ileti , düzeltme ) ] — hesabın girdisi ile çizimin geometrisinin
+    ayrı söylediği büyüklükler.  Düzeltme { girdi : çizimdeki değer } ( ya
+    da çizilemeyen bir durumda None ):  ölçüden değiştirmede bağlı büyüklükler
+    birlikte güncellenir ( kuyu genişliği değişince L = DBGW … ).  İleti ile
+    düzeltme aynı yerde kurulur:  biri değişip öteki eskimesin."""
+    liste = []
     #  HALAT SARILMA AÇISI:  tahrik kasnağı ile karşı ağırlığa inen halatın
     #  geometrisinden çıkar;  hesabın tahrik ( kayma ) kontrolüne girer.  Boşsa
     #  çizimden gelir ( cizimden );  girilmişse çizimle aynı olmalı.
@@ -672,12 +705,13 @@ def tutarlilik(g, A):
     #  sayısından bağımsızdır — yalnız çizim durur.
     alfa, sarim = A.get("sarilma_acisi"), sarim_acisi(g)
     if _cift_sarim(A):
-        hata.append("Çift sarımlı kanal:  çizim halatı tahrik kasnağının üzerinden bir kez "
-                    "geçirir — çift sarım ( ikinci kasnak, iki geçiş ) henüz çizilemiyor.")
+        liste.append(("Çift sarımlı kanal:  çizim halatı tahrik kasnağının üzerinden bir kez "
+                      "geçirir — çift sarım ( ikinci kasnak, iki geçiş ) henüz çizilemiyor.", None))
         sarim = None
     if sarim is not None and _sayi(alfa) and abs(alfa - sarim) >= 0.5:
-        hata.append(f"Halat sarılma açısı:  çizimdeki halat geometrisi α = {sarim:.1f}° veriyor, "
-                    f"hesapta {alfa:g}° — α'yı boş bırakın ( çizimden gelir ).")
+        liste.append((f"Halat sarılma açısı:  çizimdeki halat geometrisi α = {sarim:.1f}° veriyor, "
+                      f"hesapta {alfa:g}° — α'yı boş bırakın ( çizimden gelir ).",
+                      {"sarilma_acisi": round(sarim, 1)}))
     #  SAPTIRMA KASNAKLARI:  hesabın D2'si çizilen kasnakların ortalaması,
     #  Ds'si en küçüğü ( TS EN 81-50 m.5.12:  Dp ortalama çap ).
     cap = kasnaklar(g)
@@ -687,17 +721,36 @@ def tutarlilik(g, A):
         Ds = Ds if _sayi(Ds) else D2
         yazi = " · ".join(f"{c:g}" for c in cap)
         if _sayi(D2) and abs(D2 - ort) >= 1.0:
-            hata.append(f"Saptırma kasnakları:  çizimdeki kasnaklar ( {yazi} ) ortalaması "
-                        f"{ort:.1f} mm, hesaptaki D2 {D2:g} — D2'yi boş bırakın ( çizimden gelir ) "
-                        "ya da kasnak çaplarını düzeltin.")
+            liste.append((f"Saptırma kasnakları:  çizimdeki kasnaklar ( {yazi} ) ortalaması "
+                          f"{ort:.1f} mm, hesaptaki D2 {D2:g} — D2'yi boş bırakın ( çizimden gelir ) "
+                          "ya da kasnak çaplarını düzeltin.",
+                          {"saptirma_kasnak_capi": round(ort, 1)}))
         if _sayi(Ds) and abs(Ds - en_kucuk) >= 0.5:
-            hata.append(f"Saptırma kasnakları:  çizimdeki en küçük kasnak {en_kucuk:g} mm, hesaptaki "
-                        f"Ds {Ds:g} — Ds'yi boş bırakın ( çizimden gelir ).")
+            liste.append((f"Saptırma kasnakları:  çizimdeki en küçük kasnak {en_kucuk:g} mm, hesaptaki "
+                          f"Ds {Ds:g} — Ds'yi boş bırakın ( çizimden gelir ).",
+                          {"saptirma_kasnak_min_capi": en_kucuk}))
     #  MAKİNE KİRİŞLERİ RAYLARA OTURUYORSA mesnet aralıkları raylar arasıdır.
     if (g["makine"]["yeri"] == "Kuyu üstü" and A.get("makine_raya_biniyor") == "Kılavuz raylara"
             and _sayi(A.get("yan_yatak_boyu"))
             and abs(A["yan_yatak_boyu"] - g["agirlik"]["ray_arasi"]) >= 0.5):
-        hata.append(f"Makine kirişleri karşı ağırlık raylarına oturuyor:  mesnet aralığı raylar "
-                    f"arasıdır ( DBGW {g['agirlik']['ray_arasi']:g} ), hesaptaki yan yatak boyu "
-                    f"{A['yan_yatak_boyu']:g} — yan yatak boyuna {g['agirlik']['ray_arasi']:g} girin.")
-    return hata
+        liste.append((f"Makine kirişleri karşı ağırlık raylarına oturuyor:  mesnet aralığı raylar "
+                      f"arasıdır ( DBGW {g['agirlik']['ray_arasi']:g} ), hesaptaki yan yatak boyu "
+                      f"{A['yan_yatak_boyu']:g} — yan yatak boyuna {g['agirlik']['ray_arasi']:g} girin.",
+                      {"yan_yatak_boyu": g["agirlik"]["ray_arasi"]}))
+    return liste
+
+
+def tutarlilik(g, A):
+    """Hesabın girdisi ile çizimin geometrisi aynı şeyi söylüyor mu?  Aynı
+    fiziksel büyüklük iki yerde modelleniyorsa ikisi eşit olmalıdır;
+    uyuşmazlık metin listesi olarak döner ( doğru değeriyle ).  g geçerli
+    olmalı ( çizimlerin doğrulamasından geçmiş )."""
+    return [m for m, _d in _uyusmazliklar(g, A)]
+
+
+def tutarlilik_duzeltmeleri(g, A):
+    """Uyuşmazlıkları gideren girdi değerleri ( { girdi : değer } )."""
+    d = {}
+    for _m, duz in _uyusmazliklar(g, A):
+        d.update(duz or {})
+    return d

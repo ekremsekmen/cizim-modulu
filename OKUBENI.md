@@ -92,6 +92,40 @@ geçer;  çizimler aktif asansörün, girdi değiştikçe tazelenir
 ( `hesap/static/uygulama.js`, uç `POST /api/uygulama/cizimler` —
 `hesap/api/cizim.py` ).
 
+**Ölçüye tıklama.**  Çizimlerdeki her ölçü tıklanır ( klavyeyle de ):  küçük
+bir kutu ölçünün **hangi girdiden geldiğini** söyler ve yeni değer yazılabilir.
+Çizim elle değişmez — yeni değer ölçünün geldiği **girdi kutusuna** yazılır,
+form kendi akışıyla hesabı ve çizimi yeniler ( hesap ile çizim aynı sayıyı
+kullanmaya devam eder ).  "Formda göster" alanın grubunu açıp alanı gösterir.
+
+- **Kaynak ölçülür, elle etiketlenmez** ( `cizim/olcu_kaynagi.py` ):  her
+  girdi 1 mm oynatılıp çizim yeniden kurulur, ölçünün değişimine bakılır
+  ( eğim ).  Yüz kadar ölçü ve zincirleri — sonradan eklenenler de —
+  kendiliğinden kapsanır.  Kaynak türleri:  formun sayı kutusu
+  ( değiştirilir ), tam sayı ve seçim kutusu ( gösterilir;  sayılı seçimde
+  seçenek seçilir ), Sabitler sekmesindeki ofis standardı ve ürün ölçüsü
+  ( `cizim/sabitler.ETIKET` — gösterilir ).  Ölçünün kendisi olan girdi
+  ( değeri eşit, eğimi 1 ) önce gelir:  DBGW'nin kaynağı "boşsa Gy + 60"
+  kuralından önce ağırlık rayları arası kutusudur ( `kopru.KURALLI` —
+  kuralla dolan alanların etkin değeri ).  Bir girdiye bağlı olmayan ölçü
+  dayandığı kuralı söyler ( sığınma alanının yeri, pano önü çalışma alanı —
+  `geometri._olcu(kural=…)` ).  Test:  bütün düzenlerde her ölçünün bir
+  kaynağı ya da kuralı var.
+- **Değiştirme doğrulanır:**  yeni değer eğimden bulunur, çizim adım adım
+  yeniden kurularak ölçü izlenir ( zincirde uçlar yer değiştirir, konsol
+  sayısı değişir ) ve hedefte olduğu görülür;  doğrusal değilse kiriş
+  yöntemi.  Birden çok girdiye bağlı ölçüde hangisinin değişeceği sorulur.
+- **Bağlı büyüklükler birlikte değişir:**  girilmiş kaide ile kuyu dibi
+  ( zincir:  kuyu dibi 1.500 → 1.600, kaide 306 → 406 ), makine kirişleri
+  raylara oturuyorsa yan yatak boyu = DBGW, girilmiş D2 · Ds · α çizimdeki
+  değere ( `kopru.tutarlilik_duzeltmeleri` — tutarlılık denetimiyle aynı yerde ).
+- **Çizimi bozacak değer önce sorulur:**  sebepleriyle ( kuyu genişleyince
+  korkuluk gerekir, tavana sığmaz … ) "Yine de uygula / Vazgeç";  uygulanan
+  değişiklik çizim kurulamasa da panelde yazar.
+- Çözümleme bir çizim için 0,1 – 2,5 saniye;  fare çizimin üstüne gelince
+  önceden istenir, sunucu önbelleğinde tutulur.  Uçlar
+  `POST /api/uygulama/olcu` ( kaynaklar ) ve `/api/uygulama/olcu_degistir`.
+
 **Paket.**  "Projeyi paketle" her asansörün çizimlerini hesap sayfalarının
 sağına ekler ( çok asansörlüde şeritte asansörün adı ).  Bir asansörün çizimi
 kurulamıyorsa paket inmez, sebebi söylenir — eksik proje teslim edilmesin
@@ -100,14 +134,14 @@ kurulamıyorsa paket inmez, sebebi söylenir — eksik proje teslim edilmesin
 **Kopyanın orijinalden farkları** ( `hesap/` ):  `api/cizim.py` ( yeni ),
 `api/uygulama.py` ( çizim alanları, paket ), `main.py` ( port 8780, çizim
 uçları ), `exports/dxf_export.py` ( paketin son işlemi ), `static/` ( Hesap |
-Çizimler );  hesap motorunda `engine/uygulama/mukavemet.py` ( bölüm 11 çizimden ),
+Çizimler, ölçüye tıklama );  hesap motorunda `engine/uygulama/mukavemet.py` ( bölüm 11 çizimden ),
 `mukavemet_girdi.py` ( çizimden türeyen beş girdi:  varsayılanı boş,
 `tamamla` türetir;  son kat yüksekliğinin varsayılanı 3.750 → 4.200 — projelerde girilen
 değer;  3.750'de varsayılan asansörün üst pateni kuyu tavanına giriyordu ), `sabitler.py` ( kabinin düşey ölçüleri ), `girdi.py` ( makine yerleşimine göre gizlenen alanlar çizim grubununkileri de içerir — ekran, API ve motor tek liste ), `__init__.py`
 ( çizim modülünün yolu ).  Testler yeni modele göre güncellendi, TEST 7 ve
 TEST 10'un dondurulmuş referansları farklar incelenerek yeniden üretildi
 ( fark:  bölüm 11, xs'in ray hesabı, D2'nin halat ve tahrik hesabı;  α'nın çizimden geldiği senaryolarda tahrik sınırları — düşey inişli 180°, makine daireli 1:1'de 134,3° — ve α uyarısının metni ).  Motor doğrudan çağrılınca da ( testler ) türetme uygulama alanlarının varsayılanlarıyla yapılır — program ile motor aynı α'yı, aynı D2'yi bulur.
-Arayüz testleri ( TEST 5 ) birleşik formun sözleşmesine göre:  12 grup ( çizim grubu ), hesaptan kaldırılan KD · ağırlık ray arası · ray–duvar yalnız çizim grubunda ( aynı anlam, hesaba girmez ), son kat 4.200.  Testlerin varsayılan adresi 8780.
+Arayüz testleri ( TEST 5 ) birleşik formun sözleşmesine göre:  12 grup ( çizim grubu ), hesaptan kaldırılan KD · ağırlık ray arası · ray–duvar yalnız çizim grubunda ( aynı anlam, hesaba girmez ), son kat 4.200;  çizimlerde ölçüye tıklama ( kutu, önce sorma, uygulama, Formda göster ).  Testlerin varsayılan adresi 8780.
 
 ## Kurulum ve çalıştırma
 
@@ -157,7 +191,8 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/cizimler.py` | Çizimlerin listesi:  doğrulama, çizici, başlık, ölçek ( calistir ve pafta ortak ) |
 | `cizim/pafta.py` | Çizimleri ofisin TİP PROJE FORMATINA yerleştirir, anteti doldurur |
 | `sablon/proje_formati.dxf` | Ofisin pafta şablonu ( TİP PROJE FORMATI.dwg'den;  hesap programınınkiyle aynı ) |
-| `cizim/svg.py` | Elemanları SVG'ye yazar |
+| `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
+| `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( girdiler oynatılarak ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
 | `testler/` | 207 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py` ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
