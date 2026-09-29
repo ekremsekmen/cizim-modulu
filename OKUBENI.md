@@ -194,7 +194,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( girdiler oynatılarak ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/` | 207 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py` ) |
+| `testler/` | 257 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 
@@ -302,7 +302,7 @@ Standarttan hesaplananlar:
 | Küpeşte kuyudaki parçalardan **≥ 0,10 m** | m.5.4.7.4 d | Gerekirse kenardan içeri alınır, ölçüsü yazılır |
 | Küpeşte kenardan **≤ 0,15 m** içeride | m.5.4.7.4 c | Aşılırsa çizim reddedilir |
 | Yükseklik:  küpeşte – duvar **≤ 0,50 m → 0,70 m**, aşarsa **1,10 m** | m.5.4.7.4 b | Küpeştenin yanına yazılır |
-| Sığınma alanı **0,40 × 0,50** ( dik duruş ) / **0,50 × 0,70** ( çömelme ) | m.5.2.5.7.1 · Çizelge 3 | Korkulukların içinde, operatör ve askı dışında, kapıya en yakın yere konur;  yer yoksa reddedilir |
+| Sığınma alanı **0,40 × 0,50** ( dik duruş ) / **0,50 × 0,70** ( çömelme ) | m.5.2.5.7.1 · Çizelge 3 | Korkulukların içinde, operatör ve askı dışında, kapıya en yakın yere konur ( 25 mm adımla;  dar boşlukta engelin kenarına yaslanarak );  yer yoksa reddedilir |
 
 Ayrıca:  kabin altı askıda halat kuyudaki bir parçanın içinden geçemez;
 kabin üstü kasnağı korkuluğun yolunu kesemez;  yan korkuluk kapı operatörünün
@@ -342,12 +342,15 @@ Tam proje örneği değerleri hesap motorundan okur.
 | Kabin ve karşı ağırlık tamponu | m.5.8.1.1 | Kabin tamponu kabin ekseninde, ray ekseni üstünde;  ağırlık tamponu ağırlığın ortasında ( 1 ya da 2 adet ).  Ağırlığın / kabinin altına düşmezse, raya çarparsa reddedilir |
 | Karşı ağırlık perdesi, en az ağırlık genişliğinde | m.5.2.5.5.1 d | Ağırlık rayları arasının tamamı boyunca, ağırlığın kuyuya bakan yüzünde |
 | Kabin ile karşı ağırlık arası **≥ 50 mm** | m.5.2.5.5.1 h | Kuyu planının doğrulamasında ( önce 20 mm'lik bir çizim kalkanıydı ) |
-| Sığınma alanı **0,40 × 0,50** / **0,50 × 0,70** / **0,70 × 1,00** | m.5.2.5.8.1 · Çizelge 4 | Kabinin izinin altında, tampon / gergi / merdiven dışında, kapıya en yakın yere |
+| Sığınma alanı **0,40 × 0,50** / **0,50 × 0,70** / **0,70 × 1,00** | m.5.2.5.8.1 · Çizelge 4 | Önce kabinin izinin altında, tampon / gergi / merdiven ve kabin altı kasnaklarıyla aralarındaki halat dışında, kapıya en yakın yere;  sığmazsa kuyu tabanının başka yerinde ( madde yalnız "kuyu tabanında" der ), karşı ağırlığın şeridine girmeden.  25 mm'lik ızgaraya sığmayan dar boşlukta alan engelin kenarına yaslanır |
 | Kuyu dibi **≤ 2,50 m** ise merdiven, aşarsa erişim kapısı | m.5.2.2.4 | Merdiven yalnız 2,50 m'ye kadar çizilir |
-| Merdiven kat girişinin kenarına **≤ 800 mm** | Ek F.5 b | Kapıya yakın yan duvara yaslanır;  sığmazsa reddedilir.  Ölçüsü 350 × 100 ( Ek F.3 ) |
+| Merdiven kat girişinin kenarına **≤ 800 mm** | Ek F.5 b | Kapıya yakın yan duvara yaslanır;  yan duvar uzaksa ön duvara, kapının yanına ( kapıdan 25 mm adımla en çok 800 );  ikisi de olmazsa reddedilir.  Ölçüsü 350 × 100 ( Ek F.3 ) |
 
 Regülatör gergi kasnağı seçilen yandaki kabin rayının hizasında, ray
 ekseninin arkasında durur ( girdi:  yan, eksene uzaklık, kasnak çapı ).
+Eksene uzaklık boşsa program, gergi kolu ve ağırlığı tampona ya da raya,
+regülatör tepede makineye ya da bağlantılara çarpmayan en yakın yeri seçer;
+girilen değer değiştirilmez ( çarpıyorsa çizim söyler ).
 Çizilmeyenler:  kuyu dibi durdurma düğmesi ve revizyon kutusu ( yer kuralları
 m.5.2.1.5.1 — ölçüleri yok ).
 
@@ -359,7 +362,10 @@ planından;  kabin, karşı ağırlık ve kat kapısı yalnız izleriyle ( kesik
   halatının ( kabin kasnağının dış teğeti ) hizasındadır;  öbür teğetinden inen
   halat karşı ağırlık kasnağının teğetine düşmelidir.  Düşmüyorsa sapma
   **HALAT SAPMASI** ölçüsüyle gösterilir.  Referans projede birebir tutar:
-  370 − 240 = 130 ( ağırlık ekseni ).
+  370 − 240 = 130 ( ağırlık ekseni ).  Kabin kasnakları arası boşsa program
+  onu halat ağırlığa düşey inecek biçimde seçer ( sapma 0, α çizimden 180° );
+  halat kabinin panosuna ya da ray ara kirişine çarpacaksa eski kural
+  ( kabin genişliği + 30 — halat eğik iner, α girilir ).
 - **Makine** tahrik kasnağının ağırlık eksenine bakan tarafında;  **halat
   bağlantıları** ağırlık kasnağının öbür teğetinin ve kabinin uzak halatının
   üstünde;  **regülatör** kuyu dibindeki gergi kasnağının tam üstünde.

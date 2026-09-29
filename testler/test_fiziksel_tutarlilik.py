@@ -35,7 +35,7 @@ class FizikselTutarlilik(unittest.TestCase):
     def test_eski_gergi_yeri_rayla_cakistigi_icin_reddedilir(self):
         #  300:  arkada ağırlık duvara 3 mm — kol öne döner, önde rayla çakışır
         hata = D.dogrula(_ornek(kuyu_dibi={'regulator_kaciklik': 300}))
-        self.assertTrue(any('gergisi agirlik' in h and 'çakışıyor' in h for h in hata), hata)
+        self.assertTrue(any('gergisinin ağırlığı' in h and 'çarpıyor' in h for h in hata), hata)
 
     def test_gergi_plan_kesit_ayni_kutular_ve_siginma_bos(self):
         for factory in (_ornek, _sag_ayna):

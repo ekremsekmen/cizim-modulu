@@ -108,10 +108,14 @@ ALANLAR = (
      "hesabın D2 ortalamasına da girer."),
     ("kabin_kasnak_arasi", "Kabin askı kasnakları arası  ( 2:1 )", "mm",
      "sayi", None, None, True,
-     "İki kasnağın eksenleri arası.  Kabin altında boşsa kabin genişliği + 30:  halatlar "
-     "kabinin yanlarından geçer ( referans proje:  1.350 mm kabinde 1.380 ).  Kabin üstünde "
-     "boşsa kasnakların dış ucu kabin kenarından 200 içeride:  korkuluğun içinde kalır "
-     "( korkuluk kenardan en çok 150 içeride — m.5.4.7.4 c )."),
+     "İki kasnağın eksenleri arası.  Kabin altında boşsa halat karşı ağırlık kasnağına "
+     "DÜŞEY iner:  kabinin ağırlık tarafındaki halat tahrik kasnağının bir teğetinde, "
+     "öbür teğeti ağırlığın ekseninde ( sarım açısı 180°, çizimden bulunur ).  Halat "
+     "kabinin panosuna yaklaşıyorsa ya da düşey inen halat ray ara kirişine çarpıyorsa "
+     "kabin genişliği + 30 ( referans proje:  1.350 mm kabinde 1.380;  halat eğik iner, "
+     "α girilir ).  Kabin üstünde boşsa kasnakların dış ucu kabin kenarından 200 "
+     "içeride:  korkuluğun içinde kalır ( korkuluk kenardan en çok 150 içeride — "
+     "m.5.4.7.4 c )."),
     ("regulator_yani", "Regülatör halatının yanı", "—", "secim",
      ("Karşı ağırlığın karşısı", "Sağ", "Sol"), "Karşı ağırlığın karşısı", True,
      "Hız regülatörü halatının ve gergi kasnağının hangi kabin rayının yanından "
@@ -121,7 +125,8 @@ ALANLAR = (
      "Regülatör halatının ray ekseninden uzaklığı ( referans proje:  280 arkada ).  Boşsa "
      "280, askı halatlarının çizgisinin öbür yanında:  kabin halat bağlantısı ile "
      "regülatör aynı rayın başında durur, üst üste binmesinler.  Gergi ağırlığı "
-     "kasnağın ötesine uzanır, kuyuya sığmazsa kol öbür yöne döner."),
+     "kasnağın ötesine uzanır, kuyuya sığmazsa kol öbür yöne döner;  o zaman raya ya da "
+     "tampona çarpıyorsa program çarpmayan en yakın yeri seçer."),
     ("agirlik_tampon_boyu", "Ağırlık tamponu uzunluğu  ( boşsa kabin tamponununki )", "mm", "sayi",
      None, None, True,
      "Karşı ağırlık tamponunun serbest boyu ( kaideden tepesine ).  Düşey "
@@ -284,6 +289,25 @@ def _bos(v):
     return v is None or (isinstance(v, str) and not v.strip())
 
 
+def _dusey_kasnak_arasi(kx, kb_g, Dk, D1, G, ray_duvar, yer, S):
+    """Kabin altı 2:1, ağırlık yanda, kasnaklar arası boş:  halat karşı ağırlık
+    kasnağına DÜŞEY insin.  Tahrik kasnağının bir teğeti kabinin ağırlık
+    tarafındaki halatın üstünde, öbür teğeti ağırlığın ekseninde olmalı:
+    halat = ağırlık ekseni − D1 ( ağırlık solda:  + D1 ).  Eski kural ( kabin
+    genişliği + 30 ) halatı kabin rayının ara kirişinin 20 mm dibine koyuyor
+    ( kasnak 20 mm büyüyünce çizim reddediliyordu ) ve ağırlığa 25 mm eğik
+    indiriyordu ( sarım açısı çizimden bulunamıyor, makine dairesinde "halat
+    içeride inmeli" hatası ).  Halat kabinin panosuna 20 mm'den yaklaşırsa
+    None ( eski kural ).  Ara kirişe ya da konsola çarpıyorsa çizim söyler."""
+    y_ = 1.0 if yer == "Sağ" else -1.0
+    ex = G - ray_duvar if yer == "Sağ" else ray_duvar
+    halat = ex - y_ * D1
+    yari = y_ * (halat - kx)                       # kabin ekseninden halata
+    if yari < kb_g / 2.0 + S["kabin_pano_yan"] + 20.0:
+        return None
+    return round(2.0 * yari - Dk, 3)
+
+
 def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
     """Tek asansörün çizim girdisi.
 
@@ -407,14 +431,18 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
     aski_y = kapi_arasi + xs
     kabin_merkez = on_pay + (kb_d + S["kabin_pano_arka"]) / 2.0
     aralik = sayi("kabin_kasnak_arasi", bos=True)
+    D1_, dusey_ara, eski_kural = D1 or 0.0, None, None
     if oran == 1:
         #  1:1:  tek bağlantı, kabin şasesinin üst kirişinin ortasında
         aski = {"duzen": "Doğrudan", "nokta_kaciklik": aski_y - kabin_merkez}
     else:
         duzen, Dk = secim("aski_duzeni"), sayi("kabin_kasnak_capi")
+        eski_kural = kb_g + 30.0 if duzen == "Kabin altı" else kb_g - 2 * 200.0 - (Dk or 0)
+        if not aralik and duzen == "Kabin altı" and ag_yeri in ("Sağ", "Sol") and Dk:
+            ray_duvar = sayi("agirlik_ray_duvar", bos=True) or Gx / 2.0 + 50.0
+            dusey_ara = _dusey_kasnak_arasi(kx, kb_g, Dk, D1_, G, ray_duvar, ag_yeri, S)
         aski = {"duzen": duzen, "kasnak_capi": Dk,
-                "kasnak_arasi": aralik or (kb_g + 30.0 if duzen == "Kabin altı"
-                                           else kb_g - 2 * 200.0 - (Dk or 0)),
+                "kasnak_arasi": aralik or dusey_ara or eski_kural,
                 "kasnak_kaciklik": aski_y - kabin_merkez}
     aski.update(halat_adedi=halat_n, halat_capi=halat_d)
 
@@ -423,7 +451,8 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
     #  Regülatör ile kabin halat bağlantısı aynı rayın başındadır:  boşsa
     #  regülatör askı halatlarının çizgisinin öbür yanına ( referans proje:  halatlar
     #  ray ekseninin 250 önünde, regülatör 280 arkasında ).
-    if reg_kacik is None:
+    reg_bos = reg_kacik is None
+    if reg_bos:
         reg_kacik = -280.0 if xs > 0 else 280.0
     agirlik_tampon_boyu = sayi("agirlik_tampon_boyu", bos=True) or sayi("kabin_tampon_boyu",
                                                                           "Kabin tamponu uzunluğu")
@@ -503,7 +532,59 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
                 "yan_yatak_boyu": sayi("yan_yatak_boyu", "Yan yatak boyu")}
     if hata:
         return None, hata
+    if dusey_ara:
+        _kasnak_arasi_sec(g, eski_kural)
+    if reg_bos:
+        _regulator_yeri(g)
     return g, []
+
+
+def _kasnak_arasi_sec(g, eski_kural):
+    """Düşey iniş için bulunan kasnaklar arası halatı kuyudaki bir parçaya
+    ( kabin rayının ara kirişi, konsol ) çarptırıyorsa eski kural:  kuyu
+    kabinden geniş, ağırlık duvarla birlikte uzaklaşmışsa halat kabine yakın
+    kalır, ağırlığa eğik iner ( sapma ölçüsü;  sarım açısı girilmeli )."""
+    from cizim import kabin_ustu as CKUS
+    try:
+        carpar = any(h.startswith("Halat (") for h in CKUS.yerlesim(g)["hata"])
+    except Exception:                                      # noqa: BLE001
+        carpar = True
+    if carpar:
+        g["aski"]["kasnak_arasi"] = eski_kural
+
+
+def _regulator_yeri(g):
+    """Regülatör kaçıklığı boşsa:  varsayılan yer ( 280, askı halatlarının
+    öbür yanında ) gergiyi bir raya ya da tampona çarptırıyorsa ( sığ kuyuda
+    kol döner, ağırlık raya iner — 320 kg kabinlerde ) çarpmayan en yakın yer
+    seçilir:  öbür yan, sonra 200 · 360 · 440.  Hiçbiri çarpmaktan
+    kurtulmuyorsa varsayılan kalır ( çizim hatayı söyler )."""
+    from cizim import kuyu_dibi as CKD
+    from cizim import kuyu_ustu as CKT
+    from cizim import makine_dairesi as CMD
+    kd = g["kuyu_dibi"]
+    ilk = kd["regulator_kaciklik"]
+
+    def carpisma(c):
+        #  Gergi kuyu dibinde, regülatörün kendisi kuyu tepesinde ( ya da
+        #  makine dairesinde ):  ikisi de çarpmamalı.
+        kd["regulator_kaciklik"] = c
+        try:
+            h = list(CKD.yerlesim(g)["hata"])
+            h += (CKT.yerlesim(g) if g["makine"]["yeri"] == "Kuyu üstü"
+                  else CMD.yerlesim(g)).get("hata") or []
+        except Exception:                                  # noqa: BLE001
+            return ["?"]
+        return [x for x in h if "egülatör" in x]
+
+    if not carpisma(ilk):
+        return
+    for c in (-ilk, 200.0 * (1 if ilk > 0 else -1), -200.0 * (1 if ilk > 0 else -1),
+              360.0 * (1 if ilk > 0 else -1), -360.0 * (1 if ilk > 0 else -1),
+              440.0 * (1 if ilk > 0 else -1), -440.0 * (1 if ilk > 0 else -1)):
+        if not carpisma(c):
+            return
+    kd["regulator_kaciklik"] = ilk
 
 
 #  HESABIN ÇİZİMDEN TÜRETİLEN GİRDİLERİ:  hesapta BOŞ bırakılırsa değeri

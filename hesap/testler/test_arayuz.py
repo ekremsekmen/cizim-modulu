@@ -718,7 +718,7 @@ def calistir():
         #  TEMİZLİK.  Girdiler tarayıcıda saklanıyor ve testler arasında
         #  silinmiyor;  bu blok motor gücünü değiştirdiği için bırakıldığı
         #  gibi kalırsa BİR SONRAKİ KOŞUDA daha erken bir kontrolü
-        #  ( "varsayılanda üç bölüm kalıyor" ) bozar.  Dokunulan alanlar
+        #  ( "varsayılanda iki bölüm kalıyor" ) bozar.  Dokunulan alanlar
         #  varsayılanına döndürülür ve ikinci asansör atılır.
         pg.evaluate("mAdetDegisti(1); MUK_ASANSORLER = [{}]; MUK_AKTIF = 0;")
         pg.wait_for_timeout(1200)
@@ -753,12 +753,16 @@ def calistir():
         #      300 N denetlenir, fren bloğuna Fçekme / 2 şartı yazılır ( ⑲ ).
         _kalan = pg.evaluate("SON.m.bolumler.filter(b=>b.sonuc && "
                              "b.sonuc.uygun===false).map(b=>b.baslik)")
-        #    · TAHRİK YETENEĞİ — acil frenlemede ivme işaretleri Ek D'ye göre
-        #      düzeltilince ( sapma ㊳ ) oran %36 büyüdü;  kitabın örneği
-        #      139°'lik sarılma ve sertleştirilmemiş kanalla sınırı aşıyor.
-        r.esit("varsayılanda üç bölüm kalıyor", len(_kalan), 3)
-        r.kontrol("kalanlar motor gücü, askı halatları ve tahrik",
-                  sorted(x[:1] for x in _kalan) == ["1", "4", "6"], f"→ {_kalan}")
+        #    · TAHRİK YETENEĞİ artık kalmıyor:  α boşken çizimden gelir —
+        #      varsayılan asansörde halat ağırlığa düşey iner, α = 180°.
+        #      ( Kitabın örneği 139°'lik sarılma ve sertleştirilmemiş kanalla
+        #      acil frenlemede sınırı aşıyordu — sapma ㊳. )
+        r.esit("varsayılanda iki bölüm kalıyor", len(_kalan), 2)
+        r.kontrol("kalanlar motor gücü ve askı halatları",
+                  sorted(x[:1] for x in _kalan) == ["1", "4"], f"→ {_kalan}")
+        r.esit("tahrik α'yı çizimden alıyor ( kutu boş, halat düşey iner )",
+               (pg.input_value("#m_sarilma_acisi"), pg.evaluate("SON.m.girdi.sarilma_acisi")),
+               ("", 180))
         #  GİRDİ AKORDEONU.  Alanlar artık gruplara ayrıldı ve kapalı gruptaki
         #  alan "görünür değil" sayılır — Playwright dolduramaz.  Test alanları
         #  id ile doldurduğu için bütün grupları açıyoruz;  akordeonun kendi
@@ -796,9 +800,9 @@ def calistir():
         #  6,5 mm HALAT 8 mm'NİN ALTINDADIR ( m.5.5.1.2 a) ):  sahadaki gibi
         #  onaylanmış kuruluş belgesiyle kullanılır — seçim formda yapılabilmeli.
         pg.select_option("#m_kasnak_belgesi", "Var")
-        #  Sarılma açısı ZORUNLU girdidir ve varsayılanı yoktur;  girilmezse
-        #  tahrik sınırları hesaplanmaz.  Formda gerçekten doldurulabildiği
-        #  de böylece sınanır.
+        #  Sarılma açısının varsayılanı yoktur:  boşsa açı çizimden kesin
+        #  bulunabiliyorsa oradan gelir, yoksa tahrik sınırları hesaplanmaz.
+        #  Formda gerçekten doldurulabildiği de böylece sınanır.
         r.kontrol("sarılma açısı alanı formda ve boş başlıyor",
                   pg.is_visible("#m_sarilma_acisi")
                   and pg.input_value("#m_sarilma_acisi") == "",
@@ -2378,9 +2382,8 @@ def calistir():
                   _d["sekme"] <= _d["ust"] and _d["alt"] <= _d["ekran"], f"→ {_d}")
         pg.evaluate("document.querySelector('#s-avan .sol').scrollTop = 0")
 
-        #  Uygulama projesi temiz girdiyle:  α varsayılanı yoktur, girilmezse
-        #  tahrik bölümü HESAP EKSİK kalır — tabloda en az bir "uygun değil"
-        #  satırı her zaman bulunur.
+        #  Uygulama projesi temiz girdiyle:  kasnaklar arası boşken halat karşı
+        #  ağırlığa düşey iner, α çizimden 180 gelir ( kutu boş, içinde gri ).
         pg.evaluate("localStorage.removeItem('uygulama_program_v1')")
         pg.reload(wait_until="networkidle")
         pg.wait_for_timeout(600)
@@ -2389,6 +2392,19 @@ def calistir():
         pg.click('.sekme[data-sekme="mukavemet"]')
         pg.wait_for_timeout(1500)
         _yapiskan("uygulama", "#s-mukavemet")
+        r.esit("temiz projede α çizimden geliyor ( halat düşey iner )",
+               (pg.input_value("#m_sarilma_acisi"),
+                pg.get_attribute("#m_sarilma_acisi", "placeholder")), ("", "çizimden:  180"))
+        #  Kasnaklar arası eski kurala ( varsayılan kabin 1.450 + 30 ):  halat
+        #  ağırlığa eğik iner, açı çizimden bulunamaz — girilmezse tahrik
+        #  bölümü HESAP EKSİK kalır, tabloda en az bir "uygun değil" satırı
+        #  bulunur.  Aşağıdaki "α girilince" denetimleri bu projeyi okur.
+        pg.evaluate("""() => { const e = document.getElementById('m_kabin_kasnak_arasi');
+            e.value = '1480'; e.dispatchEvent(new Event('input', {bubbles: true}));
+            e.dispatchEvent(new Event('change', {bubbles: true})); }""")
+        pg.wait_for_timeout(1800)
+        r.esit("halat eğik inince α çizimden gelmiyor",
+               pg.get_attribute("#m_sarilma_acisi", "placeholder"), "")
 
         # ==============================================================
         #  v3.1 — SONUÇ HÜCRESİ HÜKMÜN RENGİYLE YAZILIR

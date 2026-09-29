@@ -602,7 +602,10 @@ def calistir():
              "UYGUN DEĞİLDİR.")):
         r.esit(f"⑬ {_ad}", MK.genel_hukum(_bol, _tu, _eks)[0], _bek)
     #  GERÇEK PROJEDE:  varsayılan girdide hem kalan bölüm hem eksik vardır.
-    _s13 = UY.hesapla(UG.tamamla(dict(UG.varsayilanlar(), **TAM)))
+    #  Eksik:  α — kanal çift sarımlı ( çizim tek sarım çizer, α çizimden
+    #  bulunamaz;  varsayılanın α'sı artık çizimden gelir:  halat düşey iner ).
+    _s13 = UY.hesapla(UG.tamamla(dict(UG.varsayilanlar(), **TAM,
+                                      kanal_sekli="Yarım Daire Kanal (Çift Sarım)")))
     _o13 = _s13["ozet"]
     _kalan13 = [b["baslik"][:34] for b in _s13["bolumler"]
                 if (b.get("sonuc") or {}).get("uygun") is False
@@ -638,11 +641,15 @@ def calistir():
     #  Ama bölüm ERKEN DÖNMEZ:  bir ara sürüm boş bölüm döndürüp T1 · T2'yi
     #  bile hesaplamıyordu.
     _CS15 = "Yarım Daire Kanal (Çift Sarım)"
-    _s15y = MK.hesapla({})
+    #  α BİLİNMİYOR:  girilmemiş ve çizimden de bulunamıyor — çift sarım ( çizim
+    #  tek sarım çizer ).  Varsayılan asansörde α artık çizimden gelir ( 180°,
+    #  halat düşey iner ):  "yok" durumunu çift sarım sınar.
+    _s15y = MK.hesapla({"kanal_sekli": _CS15})
     _s15b = MK.hesapla({"sarilma_acisi": 150})
     _s15t = MK.hesapla({"sarilma_acisi": 180})
     _b15y = next(x for x in _s15y["bolumler"] if x["kimlik"] == "tahrik_yetenegi")
-    r.kontrol("⑮ α varsayılanı yok", _s15y["girdi"].get("sarilma_acisi") is None,
+    r.kontrol("⑮ α varsayılanı yok ( çizimden bulunamayınca )",
+              _s15y["girdi"].get("sarilma_acisi") is None,
               f"→ {_s15y['girdi'].get('sarilma_acisi')!r}")
     r.kontrol("⑮ α yokken bölüm HESAP EKSİK",
               "α girilmedi" in str(_b15y.get("eksik_hesap") or ""),
@@ -677,7 +684,7 @@ def calistir():
     r.esit("⑮ paftada α kaynağı 'GİRİŞ'", _a15[0].get("kaynak") if _a15 else None,
            "GİRİŞ")
     #  GEVŞEK HALAT, EKSİK AÇIYLA ÖRTÜLMEZ — kesin başarısızlık eksikten güçlü
-    _s15g = MK.hesapla({"acil_frenleme_a": 9.81})
+    _s15g = MK.hesapla({"acil_frenleme_a": 9.81, "kanal_sekli": _CS15})
     _b15g = next(x for x in _s15g["bolumler"] if x["kimlik"] == "tahrik_yetenegi")
     r.kontrol("⑮ α yokken gevşek halat 'UYGUN DEĞİL' kalıyor, eksikle örtülmüyor",
               not _b15g.get("eksik_hesap")
@@ -1404,7 +1411,8 @@ def _muhendis_okumasi(r):
     #  basılıyordu.  Eksik LİSTESİ ( özet · genel hüküm ) değişmemeli.
     def _alfa_sayisi(u):
         return sum(("α GİRİLMEDİ" in x) or ("α girilmedi" in x) for x in u)
-    _a = UH.hesapla(UG.tamamla(dict(UG.varsayilanlar(), temel_a=10, temel_b=None)))
+    _a = UH.hesapla(UG.tamamla(dict(UG.varsayilanlar(), temel_a=10, temel_b=None,
+                                    kanal_sekli="Yarım Daire Kanal (Çift Sarım)")))
     r.esit("③ α yokken α uyarısı BİR kez", _alfa_sayisi(_a["uyarilar"]), 1)
     r.kontrol("③ kalan uyarı ne yapılacağını anlatan uzun uyarı",
               MG.ALFA_UYARI in _a["uyarilar"])

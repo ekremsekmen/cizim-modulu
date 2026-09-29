@@ -949,11 +949,19 @@ class KuyuDibiYerlesim(unittest.TestCase):
                 dx = max(0.0, m[0] - kenar, kenar - m[2])
                 self.assertLessEqual((dx ** 2 + m[1] ** 2) ** 0.5, CKD.MERDIVEN_KAPI_AZAMI)
 
-    def test_merdiven_kapidan_800_ustunde_reddedilir(self):
-        #  3 m genişlikte kuyu, kapı kabin ekseninde:  sağ duvara 820, sola 1.080
+    def test_genis_kuyuda_merdiven_kapinin_yaninda(self):
+        #  3 m genişlikte kuyu, kapı kabin ekseninde:  sağ duvara 820, sola 1.080 —
+        #  yan duvara yaslanan merdiven kapıdan 800'den uzak.  Ek F.5 b yalnız
+        #  kapı kenarına uzaklığı sınırlar:  merdiven kapının yanında ön duvara
+        #  yaslanır ( eskiden proje reddediliyordu ).
         g = _ornek(kuyu={"genislik": 3000}, kapi={"sol_pay": 1180})
         self.assertEqual(CG.dogrula(g), [])
-        self.assertTrue(any("Ek F.5 b" in h for h in CKD.dogrula(g)), CKD.dogrula(g))
+        self.assertFalse(any("Ek F.5 b" in h for h in CKD.dogrula(g)), CKD.dogrula(g))
+        m, kp = CKD.yerlesim(g)["merdiven"], g["kapi"]
+        x0, x1 = kp["sol_pay"], kp["sol_pay"] + kp["genislik"]
+        self.assertEqual(m[1], 0.0)                                   # ön duvarda
+        self.assertTrue(m[2] <= x0 or m[0] >= x1, m)                  # kapı boşluğunun dışında
+        self.assertLessEqual(max(x0 - m[2], m[0] - x1), CKD.MERDIVEN_KAPI_AZAMI)
 
     def test_standart_tablolari(self):
         """Ölçüler standardın kendi sayılarıyla sabitlenir ( tablo kendisiyle

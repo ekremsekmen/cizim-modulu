@@ -1161,7 +1161,9 @@ class GenelHukumDenetimi(unittest.TestCase):
             self.assertTrue(uzun.startswith(kisa.split()[0]), (uzun, kisa))
 
     def test_gercek_projede_kalan_bolum_soyleniyor(self):
-        s = M.hesapla({})
+        #  Eksik:  α ( çift sarım — çizim tek sarım çizer, α çizimden bulunamaz;
+        #  varsayılan asansörün α'sı çizimden gelir ).
+        s = M.hesapla({"kanal_sekli": "Yarım Daire Kanal (Çift Sarım)"})
         o = s["ozet"]
         kalan = [b for b in s["bolumler"]
                  if (b.get("sonuc") or {}).get("uygun") is False

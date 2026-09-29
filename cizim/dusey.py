@@ -156,13 +156,16 @@ def yerlesim(g, cizim_sabitleri=None):
     aski = g.get("aski") or {}
     dip = kabin_kotlari(dy, S, -(dy["kabin_carpma_arasi"] + dy["kabin_tampon_ezilme"]), aski)
     taban = -KY
-    #  Kabin kasnaklarının planda sığınma alanının üstüne düşüp düşmediği
-    #  ( yalnız kabin altı askıda kasnaklar kabinin altındadır )
-    kasnaklar = [_kutu(el) for el in KU["taban"] if el.get("ad") == "kabin_kasnak"] \
-        if aski.get("duzen") == "Kabin altı" else []
+    #  Kabin kasnaklarının ve aralarındaki halatın planda sığınma alanının
+    #  üstüne düşüp düşmediği ( yalnız kabin altı askıda kabinin altındadırlar ).
+    #  Kuyu dibinin yerleşimiyle AYNI kutular ( alan önce onların dışında aranır );
+    #  eskiden yalnız x'e bakılıyordu:  kasnağın önünde duran alan da "altında"
+    #  sayılıyor, kasnaklar arasındaki halat hiç sayılmıyordu.
+    kasnaklar = CKD.kabin_alti_askisi(g, S, KD["taban"])
     kasnak_capi = (g.get("aski") or {}).get("kasnak_capi") or 0
     sg = KD["siginma"]
-    ustunde_kasnak = bool(kasnaklar) and any(k[0] < sg[2] and sg[0] < k[2] for k in kasnaklar)
+    ustunde_kasnak = any(k[0] < sg[2] and sg[0] < k[2] and k[1] < sg[3] and sg[1] < k[3]
+                         for k in kasnaklar)
     kasnak_alti = dip["kasnak_merkez"] - kasnak_capi / 2.0
     en_alt = min(dip["taban_alti"], kasnak_alti) if kasnaklar else dip["taban_alti"]
     siginma_ustu = min(dip["taban_alti"], kasnak_alti) if ustunde_kasnak else dip["taban_alti"]

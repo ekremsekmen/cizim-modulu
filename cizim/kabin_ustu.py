@@ -184,16 +184,12 @@ def yerlesim(g, cizim_sabitleri=None):
     else:
         kx = (tavan[0] + tavan[2]) / 2.0
         adaylar = []
-        for w, h in {SIGINMA[tip], SIGINMA[tip][::-1]}:
-            y = ic[1]
-            while y + h <= ic[3] + 1e-9:
-                x = ic[0]
-                while x + w <= ic[2] + 1e-9:
-                    kutu = (x, y, x + w, y + h)
-                    if not any(_ortusur(kutu, e) for e in engeller):
-                        adaylar.append((round(y, 3), abs(x + w / 2.0 - kx), kutu))
-                    x += 25.0
-                y += 25.0
+        for kenar in (False, True):
+            adaylar = [(round(k[1], 3), abs((k[0] + k[2]) / 2.0 - kx), k)
+                       for w, h in {SIGINMA[tip], SIGINMA[tip][::-1]}
+                       for k in CGE.yer_adaylari(ic, w, h, engeller, kenar)]
+            if adaylar:
+                break
         if adaylar:
             siginma = min(adaylar)[2]
         else:
@@ -321,7 +317,8 @@ def ciz(g, cizim_sabitleri=None):
         kot_y = sg[3] + 90 if sg[3] + 200 < tavan[3] else sg[1] - 90
         kot_x = sg[2] + 90 if sg[2] + 200 < tavan[2] else sg[0] - 90
         yer = ("Sığınma alanının yeri:  program alanı kapıya en yakın, sonra kabin "
-               "eksenine en yakın boş yere koyar ( 25 mm adımla ).")
+               "eksenine en yakın boş yere koyar ( 25 mm adımla;  dar boşlukta engelin "
+               "kenarına yaslanarak ).")
         buyukluk = (f"Sığınma alanının ölçüsü:  TS EN 81-20 Çizelge 3 "
                     f"( {str(g['kabin_ustu']['siginma_tipi']).lower()} ).")
         e += [

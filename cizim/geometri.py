@@ -42,6 +42,28 @@ def _dik(katman, x, y, g, d, tip="dikdortgen", ad=""):
     return el
 
 
+def yer_adaylari(bolge, w, h, engeller, kenar=False, adim=25.0):
+    """Bölgede ( x0, y0, x1, y1 ) engellere basmayan w × h kutular.
+
+    Konumlar bölgenin köşesinden adım ızgarasıyla aranır;  kenar=True ise
+    ızgaraya engellerin kenarlarına yaslanan konumlar da eklenir — ızgara dar
+    ama yeterli bir boşluğu kaçırmasın ( 507 mm'lik banda 500'lük alan
+    ızgarada ya şeride 1 mm değiyor ya bölgeden taşıyordu ).  Ekleme yalnız
+    ızgara yer bulamayınca istenir:  bulunan yerler değişmesin."""
+    x0, y0, x1, y1 = bolge
+
+    def konumlar(a0, a1, boy, yasla):
+        s = {a0 + i * adim for i in range(int((a1 - boy - a0) / adim + 1e-9) + 1)}
+        if kenar:
+            s |= {a1 - boy} | set(yasla)
+        return sorted(a for a in s if a0 - 1e-9 <= a and a + boy <= a1 + 1e-9)
+
+    xs = konumlar(x0, x1, w, [p[2] for p in engeller] + [p[0] - w for p in engeller])
+    ys = konumlar(y0, y1, h, [p[3] for p in engeller] + [p[1] - h for p in engeller])
+    return [(x, y, x + w, y + h) for y in ys for x in xs
+            if not any(x < p[2] and p[0] < x + w and y < p[3] and p[1] < y + h for p in engeller)]
+
+
 def _cizgi(katman, x1, y1, x2, y2, tip="cizgi"):
     return {"tip": tip, "katman": katman, "x1": float(x1), "y1": float(y1),
             "x2": float(x2), "y2": float(y2)}
