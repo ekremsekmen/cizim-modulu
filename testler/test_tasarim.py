@@ -29,7 +29,12 @@ GRUP_SIRASI = ("Asansör ve düzen", "Kuyu ve katlar", "Kabin ve kapı", "Raylar
 #  değerler ( kararlar 1 · 7 ) ve hesabın kendi türettikleri.
 FORMDA_YOK = {"saptirma_kasnak_capi", "saptirma_kasnak_min_capi", "kabin_tampon_baba",
               "kabin_kaciklik", "aski_kaciklik_y", "kabin_ray_sayisi", "agirlik_ray_sayisi",
-              "karsi_agirlik", "kuyu_boyu", "kablo_tipi_2"}
+              "karsi_agirlik", "kuyu_boyu", "kablo_tipi_2",
+              #  3. adım:  yerleşimin ölçü listesi ( cizim/olculer.py )
+              "kabin_merkezi_x", "esik_x", "kabin_ray_boyu", "agirlik_ray_boyu",
+              "aski_halat_boyu", "reg_halat_boyu", "kasnak_tek_yon", "kasnak_ters_yon",
+              "kasnak_kabin_adedi", "kasnak_agirlik_adedi", "saptirma_agirlik_capi",
+              "makine_yuku_x"}
 
 
 def _form():
@@ -119,8 +124,13 @@ class Sozluk(unittest.TestCase):
     def test_cozulen_sorunlar_sozlukten_silindi(self):
         #  2. adımda çözülenler:  ray sayısı, yc · ys, D2 · Ds · kaide formdan kalktı
         for k in ("kabin_ray_sayisi", "agirlik_ray_sayisi", "kabin_kaciklik", "aski_kaciklik_y",
-                  "saptirma_kasnak_capi", "kabin_tampon_baba", "aski_orani"):
+                  "saptirma_kasnak_capi", "kabin_tampon_baba", "aski_orani",
+                  #  3. adım:  Nps · Npr çizilen kasnaklardan
+                  "kasnak_tek_yon", "kasnak_ters_yon"):
             self.assertNotIn(k, TZ.SORUNLAR)
+        #  3. adım:  hesabın geometri tahminleri çizimden geliyor;  yalnız
+        #  çizimde olmayan revizyon kutusu kaldı ( karar 10 ).
+        self.assertEqual([r[0] for r in TZ.ICSEL], ["Revizyon kutusu"])
 
 
 if __name__ == "__main__":

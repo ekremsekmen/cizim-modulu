@@ -135,6 +135,49 @@ def tamamla(g):
     return g
 
 
+#  ÇİZİMDEN ÖLÇÜLEN HESAP GİRDİLERİ ( tasarım şeması:  kaynağı ÇİZİM, formda
+#  kutusu yok;  cizim/olculer.py ).
+YERLESIM_OLCULERI = ("kabin_merkezi_x", "esik_x", "kabin_ray_boyu", "agirlik_ray_boyu",
+                     "aski_halat_boyu", "reg_halat_boyu", "kasnak_tek_yon", "kasnak_ters_yon",
+                     "kasnak_kabin_adedi", "kasnak_agirlik_adedi", "saptirma_agirlik_capi",
+                     "makine_yuku_x")
+
+
+def yerlesim_olculeri(g):
+    """PROGRAMIN HESABI geometriyi çizimden alır:  çizim girdisi köprüden
+    kurulur, yerleşimin ölçüleri okunur ( cizim/olculer ).  { girdi : değer }
+    ve kaynak işareti ( _cizimden ) döner.  Çizim kurulamıyorsa boş:  hesap
+    kendi yaklaşığıyla sürer ve raporda KABUL yazar.
+
+    Makine kirişinde yükün yeri yalnız kiriş çizildiği yere oturuyorsa
+    alınır:  makine dairesizde raylara ( "Kılavuz raylar" ), makine dairelide
+    kaideye.  "Bina yapısına" oturan kiriş henüz çizilmiyor ( karar 3 ).
+
+    Motor doğrudan çağrılınca ( hesap programının kendi referans testleri )
+    bu adım yoktur:  motorun davranışı asıl programınkiyle aynı kalır."""
+    from cizim import kopru as _CK
+    from cizim import olculer as _CO
+    try:
+        gc, _hata = _CK.cizim_girdisi(g)
+        o = _CO.hesap_olculeri(gc) if gc is not None else {}
+    except Exception:                                      # noqa: BLE001 — çizim kendi hatasını söyler
+        o = {}
+    if evet_mi(g.get("mk_yok")) and not MT.makine_raya_mi(g.get("makine_raya_biniyor")):
+        o.pop("makine_yuku_x", None)
+    #  X kirişin çizimdeki açıklığında ölçülür;  hesabın açıklığı yan yatak
+    #  boyudur ( L ).  İkisi ayrıysa X, L ile birlikte kullanılamaz ( moment
+    #  başka bir kirişin olur ):  hesap ofis kabulüyle sürer, çizim uyuşmazlığı
+    #  kendi söyler ( makine dairesizde "yan yatak boyuna DBGW girin" ).
+    L, acik = g.get("yan_yatak_boyu"), o.get("makine_kiris_acikligi")
+    if not (isinstance(L, (int, float)) and isinstance(acik, (int, float))
+            and abs(L - acik) < 0.5):
+        o.pop("makine_yuku_x", None)
+    d = {k: o[k] for k in YERLESIM_OLCULERI if k in o}
+    if d:
+        d["_cizimden"] = {**(g.get("_cizimden") or {}), **{k: "yerleşim" for k in d}}
+    return d
+
+
 def uygulanmayan_alanlar(mk_yok):
     """Makine yerleşimine göre HESABA GİRMEYEN alanlar  —  ekranda gizlenirler.
 

@@ -47,6 +47,33 @@ açısı formda sorulur, boşsa çizimden — ekranda kutunun içinde gri yazar 
 | Kabin tamponu kaidesi | Kuyu dibi zinciri:  kuyu dibi − tampon − çarpma arası − kabinin şase altı ( 480 ) |
 | Sarılma açısı α | Yalnız açı sabitse:  tahrik kasnağının iki inişi düşey ( 180° ) ya da makine dairesinde saptırma kasnağı ( ortak teğetler — makine daireli 1:1 örnekte 134,3° ).  Makine dairesizde ağırlık tarafındaki iniş kasnağın düzleminde eğikse ( kuyu üstü planında HALAT SAPMASI ) açı ağırlığın konumuyla değişir — ağırlık tepedeyken halat kısa, sapma birkaç derece tutar;  hesabın tek açısı buradan seçilemez ( çekiş ve kayma denetimleri açıya ters yönde bağlıdır, hesap programının α kuralının sebebi ) ve türetilmez.  Çift sarımda ( çizim tek sarım çizer ) ya da çizim kurulamıyorsa da türetilmez:  girilmezse tahrik kontrolleri HESAP EKSİK |
 
+**Yerleşimin ölçü listesi** ( `cizim/olculer.py` ).  Çizim de girdilerden
+kurulur;  "çizimden" demek girdi değil, girdilerin yerleşimde ortaya çıkardığı
+ölçü demektir.  Hesap aşağıdaki büyüklükleri eskiden kendi kaba formülleriyle
+tahmin ediyordu ve aynı girdiden çizimle iki ayrı sayı çıkıyordu;  artık
+program hesabı onları çizimin kurduğu yerleşimden okur ( `girdi.yerlesim_olculeri`,
+raporda kaynak **ÇİZİMDEN** ).  Formda kutuları yoktur.  Çizim kurulamazsa hesap
+eski yaklaşığıyla sürer ve raporda KABUL yazar;  hesap motoru doğrudan
+çağrılınca ( hesap programının kendi referans testleri ) bu adım yoktur.
+
+| Ölçü | Eski tahmin | Çizimden |
+|---|---|---|
+| Kabin merkezi – kabin ray ekseni ( xc ) | derinlik / 2 + 130 − RK ( varsayılanda 155 ) | ön yüz + derinlik / 2 − ray ekseni ( 145 ) |
+| Eşik kuvvetinin noktası ( xi ) | − RK ( kapı çizgisi, −650 ) | eşiğin ortası, m.5.7.2.3.6 ( −575 ) |
+| Kabin · ağırlık ray boyu | seyir + son kat + tabliye − 200 + kuyu dibi − 300 | en uzun çizilen ray:  kuyu tabanından tavanın 200 altına |
+| Askı halatı boyu ( lh ) | kuyu boyu − yığın + 5 m | halatın çizilen yolu, kabin en alt durakta ( 2:1'de kabin kasnaklarının altından tavandaki bağlantıya ) |
+| Regülatör halatı boyu | ( alt duraktan tavana + tabliye − 200 ) × 2 | regülatör – gergi kasnağı arası iki kez + iki yarım sarım |
+| Nps · Npr ( Ek E ) | askı oranından | çizilen kasnaklar ( makine dairesinde saptırma kasnağı dahil );  Npr 0 |
+| Atalete giren kasnaklar | ofis:  kabin 2 · ağırlık 1;  saptırma kasnağı 0 | çizilen kasnaklar;  makine dairesindeki sabit saptırma kasnağı koşul II'ye mDP = J / R² · r² ( m.5.11.2.2 ) |
+| Makinenin kirişteki yeri ( X ) | L − 335 | tahrik kasnağının mesnede uzaklığı:  makine dairesinde kaidede, makine dairesizde raylara oturan kirişte — yalnız kirişin çizimdeki açıklığı yan yatak boyuna eşitse |
+
+**Kurma ile denetim ayrıdır.**  Çizimin denetim hataları ( çakışma, sığınma
+alanı … ) ölçüleri durdurmaz;  yalnız geometri kurulamazsa ( girdi eksik, kaide
+makineye sığmıyor, ağırlık halatının yolu çözülmüyor ) ilgili ölçü verilmez.
+Ağırlık halatı tahrik kasnağının öbür teğetinden içeride inmeliyse ( ya da
+saptırma kasnağının çapı yoksa ) sarılma açısı ve kasnak sayıları çizimden
+alınmaz.
+
 **Sığınma alanları ve açıklıklar ( hesabın bölüm 11'i ) çizimden ölçülür.**
 Kabin ve karşı ağırlık uç konumlarındayken parçaların gerçek kotları ve
 plandaki yerleri kullanılır ( `cizim/dusey.py` ):  kuyu tavanının en alt kısmı
@@ -196,6 +223,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `tasarim/gorunum.py` | Şemadan türetilenler:  motorların alan sözleşmeleri, form, yerleşime göre gizlenenler, çizimden gelenler |
 | `tasarim/sozluk.py` | Sayı sözlüğü:  her sayının kaynağı, açık sorunlar ve hesabın içindeki geometri tahminleri |
 | `cizim/kopru.py` | **Hesap → çizim köprüsü**:  çizim girdisinin kurulması, çizimden türeyen hesap girdileri, tutarlılık denetimi |
+| `cizim/olculer.py` | **Yerleşimin ölçü listesi**:  hesabın çizimden aldığı geometri ( xc · xi · ray ve halat boyları · kasnak sayıları · makinenin kirişteki yeri ) |
 | `cizim/girdi.py` | Çizim girdisinin **sözleşmesi**, doğrulaması ve deneme ölçüleri |
 | `cizim/sabitler.py` | Ofisin ürün ölçüleri ( konsol, paten, kasa, pano … ) |
 | `cizim/geometri.py` | Girdiden **çizim elemanları** üretir ( saf veri ) — kuyu planı |
@@ -213,7 +241,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( girdiler oynatılarak ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/` | 271 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması ) |
+| `testler/` | 285 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 

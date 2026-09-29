@@ -622,12 +622,14 @@ def sarim_acisi(g):
         if g["makine"]["yeri"] == "Kuyu üstü":
             from cizim import kuyu_ustu as CKU
             Y = CKU.yerlesim(g)
-            if Y.get("hata"):
+            #  Kurma ile denetim ayrı:  kuyu üstündeki bir çakışma açıyı
+            #  değiştirmez;  yalnız geometri kurulamadıysa açı yok.
+            if "sapma" not in Y:
                 return None
             return 180.0 if abs(Y["sapma"][0]) <= 0.5 else None
         from cizim import makine_dairesi as CMD
         Y = CMD.yerlesim(g)
-        if Y.get("hata"):
+        if "saptirma" not in Y or Y.get("halat_kurulamadi"):
             return None
         sp = Y.get("saptirma")
         if not sp:

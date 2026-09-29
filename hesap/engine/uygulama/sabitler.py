@@ -306,9 +306,9 @@ ETIKET = {
     "kasnak_gobek_orani": ("Kasnak göbek genişlik oranı",
                            "A₁ = A × oran — göbeğin incelmiş bölümünün genişliği"),
     "kasnak_adet_kabin": ("Kabin tarafındaki kasnak sayısı iPcar (adet)",
-                          "TS EN 81-50 Ek D'nin 2:1 örneği  mPcar·2·a/2  yazar"),
+                          "TS EN 81-50 Ek D'nin 2:1 örneği  mPcar·2·a/2  yazar  ( yalnız çizim kurulamazsa — program bunu çizimden alır )"),
     "kasnak_adet_agirlik": ("Ağırlık tarafındaki kasnak sayısı iPcwt (adet)",
-                            "Ek D'nin aynı örneği  mPcwt·1·a/2  yazar"),
+                            "Ek D'nin aynı örneği  mPcwt·1·a/2  yazar  ( yalnız çizim kurulamazsa — program bunu çizimden alır )"),
     #  ── kuyu sürtünmesi  ( TS EN 81-50 m.5.11.2.2 )
     "kuyu_surtunme_kabin": ("Kabin tarafı kuyu sürtünmesi FRcar (%)",
                             "( P + Q + MCR + MTrav )·( gn ± a ) kuvvetinin yüzdesi"),
@@ -333,7 +333,7 @@ ETIKET = {
                             "karşıladığı — %100 = tam dengeleme"),
     "Gs": ("Sürtünme yükü Gs (kg)", "Gmax = F1 + Gs − Ga"),
     "q_denge": ("Denge faktörü q", "karşı ağırlık = P + q·Q;  0,50 yükün yarısını dengeler"),
-    "halat_pay_m": ("Halat boyu payı (m)", "kuyu boyuna eklenen pay"),
+    "halat_pay_m": ("Halat boyu payı (m)", "kuyu boyuna eklenen pay  ( yalnız çizim kurulamazsa — program bunu çizimden alır )"),
     "kanal_gama_v": ("V kanal açısı γ (°)",
                      "TS EN 81-50 m.5.11.2.3.1.2 — asansörlerde 35°'den küçük olamaz"),
     "kanal_gama_yd": ("Yarım daire kanal açısı γ (°)",
@@ -344,7 +344,7 @@ ETIKET = {
     "k1_kaymali": ("k1 — kaymalı güvenlik tertibatı", "makine kaidesi darbe katsayısı"),
     "k1_makarali": ("k1 — ani frenlemeli makaralı", "makine kaidesi darbe katsayısı"),
     "k1_ani": ("k1 — ani frenlemeli", "makine kaidesi darbe katsayısı;  kaideyi kaymalıya göre 2,5 kat büyütür"),
-    "yan_yatak_L_X": ("Yan yatak mesnet payı (mm)", "X = L − bu değer"),
+    "yan_yatak_L_X": ("Yan yatak mesnet payı (mm)", "X = L − bu değer  ( yalnız çizim kurulamazsa — program bunu çizimden alır )"),
     "kaide_zayif_eksen_mesnetli": (
         "Kaide zayıf ekseni mesnetli  ( 0 / 1 )",
         "0 = mesnet yok, λ en küçük atalet yarıçapından ( emniyetli ) · "

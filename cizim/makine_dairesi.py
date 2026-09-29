@@ -108,8 +108,11 @@ def yerlesim(g, cizim_sabitleri=None):
         hata.append(f"Makine dairesi kapısı {md['kapi_genislik']:g} mm — TS EN 81-20 m.5.2.3.2 a "
                     f"en az {KAPI_ASGARI:g} mm ister.")
     M = CKT.yerlesim(g, S, acil_pano=False)
-    if M["hata"]:
+    #  Kurma ile denetim ayrı ( bkz. donanim.yerlesim ):  kuyu üstünün denetim
+    #  hatası odanın yerleşimini durdurmaz, yalnız girdisi eksikse dur.
+    if "kasnak" not in M:
         return {"hata": hata + M["hata"]}
+    hata += M["hata"]
     k = g["kuyu"]
     G, D = k["genislik"], k["derinlik"]
     oda = (md["x"], md["y"], md["x"] + md["genislik"], md["y"] + md["derinlik"])
@@ -326,6 +329,10 @@ def yerlesim(g, cizim_sabitleri=None):
     return {"M": M, "oda": oda, "delikler": delikler, "kapi": kapi, "kapi_onu": kapi_onu,
             "pano": pano, "calisma": calisma, "bakim": bakim, "makine": mk,
             "makine_izi": makine_izi, "cerceve": cerceve, "kaide": kaide, "saptirma": saptirma,
+            #  Ağırlık halatının yolu kurulamadı ( içeride inmeli ya da saptırma
+            #  kasnağının çapı yok ):  saptirma None iken iniş düşey DEĞİLDİR —
+            #  sarım açısı ve kasnak sayıları buradan okunmaz.
+            "halat_kurulamadi": fark < -1e-6 or (fark > 1e-6 and saptirma is None),
             "kaide_delikleri": kaide_delikleri, "agirlik_dusus": agirlik_dusus,
             "demet": demet, "duzlem": dz, "y_": y_, "hata": hata, "S": S}
 

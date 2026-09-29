@@ -139,7 +139,7 @@ class BagimsizDenetim(unittest.TestCase):
         M._motor(g, o)
         t = M._terimler(g, o, durum)
         self.assertEqual(t["r"], 2, "Ek D örneği 2:1 askı içindir")
-        for sifir in ("MComp", "iPDT", "mPTD", "mDP", "MCRcar", "MCRcwt"):
+        for sifir in ("MComp", "iPDT", "mPTD", "mDPcar", "mDPcwt", "MCRcar", "MCRcwt"):
             self.assertEqual(t[sifir], 0.0, f"{sifir} Ek D örneğinde yoktur")
         gn, a = t["gn"], t["a"]
         k_car = o["ofis"]["kuyu_surtunme_kabin"] / 100

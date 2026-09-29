@@ -906,9 +906,17 @@ def calistir():
 
     #  Mukavemet sonucu tek başına koşturulanla AYNI olmalı  ( kirlenme yok )
     #  Uygulama projesinin varsayılan yerleşimi MRL'dir;  mukavemet tek başına
-    #  aynı yerleşimle koşturulur ( tabliye MRL'de hesaba girmez ).
-    tek = MK.hesapla(dict(TAM, mk_yok=UG.EK_ALAN["mk_yok"][5]))
+    #  aynı yerleşimle koşturulur ( tabliye MRL'de hesaba girmez ).  Program
+    #  geometriyi çizimden alır ( UG.yerlesim_olculeri ):  tek başına koşan
+    #  motora da aynı ölçüler verilir.
+    _olc = UG.yerlesim_olculeri(UG.tamamla(dict(UG.varsayilanlar(), **TAM)))
+    r.kontrol("çizimden ölçü geliyor ( kabin rayı · askı halatı · Nps )",
+              all(k in _olc for k in ("kabin_ray_boyu", "aski_halat_boyu",
+                                      "kasnak_tek_yon")), f"→ {sorted(_olc)}")
+    tek = MK.hesapla(dict(TAM, mk_yok=UG.EK_ALAN["mk_yok"][5], **_olc))
     birlikte = UY.hesapla(TAM)
+    r.esit("ray boyu çizimdeki en uzun kabin rayı",
+           birlikte["ozet"]["ray_boyu"], _olc.get("kabin_ray_boyu"))
     r.esit("mukavemet bölümleri tek başına koşanla birebir aynı",
            [b["baslik"] for b in birlikte["bolumler"][:len(MK.BOLUM_URETICILERI)]],
            [b["baslik"] for b in tek["bolumler"]])

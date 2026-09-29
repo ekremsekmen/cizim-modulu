@@ -108,6 +108,10 @@ def hesapla(veriler=None):
     g = UG.varsayilanlar()
     g.update(veriler or {})
     g = UG.tamamla(g)
+    #  GEOMETRİ ÇİZİMDEN:  kabinin ve eşiğin ray eksenine uzaklığı, ray ve halat
+    #  boyları, kasnak sayıları, makine yükünün kirişteki yeri — hesap bunları
+    #  kendi tahmin etmez, çizimin girdilerden kurduğu yerleşimden alır.
+    g.update(UG.yerlesim_olculeri(g))
     hata = UG.dogrula(g)
     if hata:
         return {"aktif": False, "hata": hata, "girdi": g}

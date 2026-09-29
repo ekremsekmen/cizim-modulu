@@ -367,12 +367,11 @@ def calistir():
         r.kontrol("gelişmiş: varsayılana dönünce işaret kalkıyor",
                   not pg.evaluate("$('m_acil_frenleme_a').closest('.alan')"
                                   ".classList.contains('degisti')"))
-        #  Nps boş = askı oranından ( varsayılan ) — değiştirilmiş sayılmaz
-        r.kontrol("gelişmiş: Nps boş açılıyor ve değiştirilmiş sayılmıyor",
-                  pg.input_value("#m_kasnak_tek_yon") == ""
-                  and not pg.evaluate("$('m_kasnak_tek_yon').closest('.alan')"
-                                      ".classList.contains('degisti')"),
-                  f"→ {pg.input_value('#m_kasnak_tek_yon')!r}")
+        #  Nps · Npr çizilen kasnaklardan sayılır ( cizim/olculer ):  formda
+        #  kutuları yok — girilen bir sayı çizimle çelişemez.
+        r.kontrol("Nps · Npr formda yok ( çizimden gelir )",
+                  pg.evaluate("['m_kasnak_tek_yon','m_kasnak_ters_yon']"
+                              ".every(k => document.getElementById(k) === null)"))
         #  BOŞ BIRAKILAN ALAN "DEĞİŞTİRİLDİ" SAYILMAZ  ( S1 · S2 boşken motor
         #  varsayılana düşer;  işaret "2 değiştirildi" diyordu ).
         _s1 = pg.input_value("#m_kolon_kesit")
@@ -871,9 +870,12 @@ def calistir():
         pg.wait_for_timeout(1400)
         r.esit("kuyu boyu = seyir + son kat + kuyu dibi",
                pg.evaluate("SON.m.girdi.kuyu_boyu"), 24750 + 4000 + 1600)
-        #  Varsayılan yerleşim MRL'dir:  tabliye yoktur ( 0 − 200 ).
-        r.esit("ray boyu seyir ve son kattan  ( MRL — tabliye yok )",
-               pg.evaluate("SON.m.ozet.ray_boyu"), (24750 + 4000 - 200 + 1300) / 1000)
+        #  Ray boyu çizimden ( cizim/olculer ):  en uzun kabin rayı kuyu
+        #  tabanından ( kuyu dibi 1.600 ) kuyu tavanının 200 altına çizilir.
+        r.esit("ray boyu çizimdeki raydan  ( seyir + son kat − 200 + kuyu dibi )",
+               pg.evaluate("SON.m.ozet.ray_boyu"), (24750 + 4000 - 200 + 1600) / 1000)
+        r.esit("ray boyu çizimin ölçüsüyle aynı",
+               pg.evaluate("SON.m.ozet.ray_boyu"), pg.evaluate("SON.m.girdi.kabin_ray_boyu"))
         pg.fill("#m_seyir_mesafesi", "21")
         pg.fill("#m_son_kat_yuksekligi", "3750")
         pg.wait_for_timeout(1400)

@@ -109,8 +109,15 @@ def yerlesim(g, S, H, tavan, taban):
     if hata:
         return {"hata": hata}
     KD = CKD.yerlesim(g, S)
-    if KD["hata"]:
+    #  KURMA İLE DENETİM AYRI.  Kuyu dibinin, kuyu üstünün, makine dairesinin
+    #  DENETİM hatası ( sığınma alanı sığmıyor, gergi çarpıyor, parçalar üst
+    #  üste biniyor … ) kotları durdurmaz:  hesabın çizimden aldığı ölçüler
+    #  ( halat, ray, regülatör halatı boyları — cizim/olculer.py ) kurulan
+    #  geometriden okunur;  hatalar M["hata"] ile çağırana yine gider.  Yalnız
+    #  girdi eksikse ( geometri hiç kurulamadıysa ) durulur.
+    if "taban" not in KD:
         return {"hata": KD["hata"]}
+    hata.extend(KD["hata"])
     mrl = yeri == "Kuyu üstü"
     ag = g["agirlik"]
     sol = ag["yeri"] == "Sol"
@@ -122,8 +129,9 @@ def yerlesim(g, S, H, tavan, taban):
 
     if mrl:
         KU = CKT.yerlesim(g, S, acil_pano=False)
-        if KU["hata"]:
-            return {"hata": KU["hata"]}
+        if "kasnak" not in KU:
+            return {"hata": hata + KU["hata"]}
+        hata.extend(KU["hata"])
         M["KU"] = KU
         G = g["kuyu"]["genislik"]
         #  ── MAKİNE ŞASESİ ve MAKİNE ────────────────────────────────────
@@ -179,8 +187,9 @@ def yerlesim(g, S, H, tavan, taban):
         M["regulator_x"] = (rg[0] + rg[2]) / 2.0
         M["regulator_y"] = (rg[1] + rg[3]) / 2.0
         oda = _makine_dairesi(g, S, tavan, M)
-        if oda:
-            return {"hata": oda}
+        if "kasnak" not in M:
+            return {"hata": hata + oda}
+        hata.extend(oda)
 
     #  ── GERGİ DÜZENİ ( kuyu dibi ) ──────────────────────────────────────
     kd = g["kuyu_dibi"]
@@ -238,8 +247,10 @@ def _makine_dairesi(g, S, tavan, M):
     if hata:
         return hata
     MD = CMD.yerlesim(g, S)
-    if MD["hata"]:
-        return MD["hata"]
+    #  Kaide makineye sığmıyorsa çerçeve hiç kurulmaz:  kurma hatası, dur.
+    if "M" not in MD or MD.get("cerceve") is None:
+        return hata + MD["hata"]
+    hata.extend(MD["hata"])
     KU = MD["M"]
     d = MD["duzlem"]                            # halat düzlemi ( kuyu_ustu.Duzlem )
     zd = tavan + md["tabliye_yuksekligi"]       # oda döşemesinin üstü

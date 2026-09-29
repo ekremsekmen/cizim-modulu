@@ -139,6 +139,33 @@ def _sayi_mi(x):
     return isinstance(x, (int, float)) and not isinstance(x, bool)
 
 
+#  BİRLEŞİK PROGRAM:  geometri çizimden.  Program hesabı yaparken çizimin
+#  kurduğu yerleşimden ölçülen değerleri girdiye yazar ( engine/uygulama/
+#  girdi.yerlesim_olculeri ) ve kaynağını işaretler ( g["_cizimden"] ).  Değer
+#  yoksa ( motor doğrudan çağrıldı ya da çizim kurulamadı ) hesabın eski
+#  yaklaşığı kullanılır;  rapor hangisinin kullanıldığını yazar.
+CIZIMDEN = "ÇİZİMDEN"
+
+
+def _kaynak(g, anahtar, girildi="GİRİŞ"):
+    """Rapordaki kaynak yazısı:  çizimden geldiyse ÇİZİMDEN ve kuralı."""
+    kural = (g.get("_cizimden") or {}).get(anahtar)
+    if kural is None:
+        return girildi
+    if kural == "yerleşim":
+        return CIZIMDEN
+    kural = kural.replace("Boşsa çizimden:", "").replace("Boşsa çizimden", "").strip(" ,.:")
+    if kural.startswith("(") and kural.endswith(")"):
+        kural = kural[1:-1].strip()
+    return f"{CIZIMDEN}  ·  {kural}" if kural else CIZIMDEN
+
+
+def _cizim_olcusu(g, anahtar):
+    """Çizimden ölçülmüş değer ya da None."""
+    v = g.get(anahtar)
+    return v if (_sayi_mi(v) and anahtar in (g.get("_cizimden") or {})) else None
+
+
 #  MAKİNE YÜKÜ DÖRT RAYA EŞİT DAĞILIR  ( MRL · "Kılavuz raylara" ).
 #  MRL makinesinin şasesi kabin raylarıyla birlikte karşı ağırlık raylarına da
 #  oturur;  referans projenin örnek projesi de yükü dört raya birden verir ( bina
@@ -239,14 +266,20 @@ def _motor(g, o):
                      g["halat_adedi"], g["aski_orani"])
     gh, _Tmin_h, gh_kaynak, _Tmin_kaynak = _halat_verisi(g)
 
-    #  Halat boyu:  kuyu boyundan tampon/paten yığını düşülür, 5 m pay eklenir;
-    #  2:1 askıda halat iki kat gider.
+    #  Halat boyu:  kabin tarafındaki halat, kabin en alt durakta.  Program
+    #  çizimden ölçer ( tahrik kasnağından kabine, 2:1'de kabin kasnaklarının
+    #  altından kuyu tavanındaki bağlantıya ).  Yoksa eski yaklaşık:  kuyu
+    #  boyundan tampon/paten yığını düşülür, 5 m pay eklenir;  2:1'de iki kat.
     yigin = (g["agirlik_tampon_baba"] + g["agirlik_carpma_arasi"]
              - g["agirlik_tampon_ezilme"] + g["agirlik_paten_arasi"]
              + g["kabin_paten_arasi"])
-    lh = (g["kuyu_boyu"] - yigin) / 1000.0 + O["halat_pay_m"]
-    if r != 1:
-        lh *= 2
+    lh_ciz = _cizim_olcusu(g, "aski_halat_boyu")
+    if lh_ciz:
+        lh = float(lh_ciz)
+    else:
+        lh = (g["kuyu_boyu"] - yigin) / 1000.0 + O["halat_pay_m"]
+        if r != 1:
+            lh *= 2
     Gh = gh * lh * nh
     F1 = Q + P + Gh                       # kabin ve aksesuarlarının yükü
     #  KARŞI AĞIRLIK TEK YERDEN GELİR  ( MG.tamamla → 'karsi_agirlik' ).
@@ -413,6 +446,13 @@ def _motor(g, o):
         veri("dh", "Halat çapı", dh, "mm", "GİRİŞ"),
         veri("nh", "Halat sayısı", nh, "adet", "GİRİŞ"),
         veri("gh", "Halatın 1 m'deki ağırlığı", gh, "kg/m", gh_kaynak, 4),
+    ] + ([
+        #  ÇİZİMDEN:  halatın gerçek yolu ( cizim/olculer ).
+        veri("lh", "Kabin tarafındaki halat boyu  ( kabin en alt durakta )", lh, "m",
+             CIZIMDEN + ("  ·  tahrik kasnağından kabin kasnaklarının altından kuyu "
+                         "tavanındaki bağlantıya" if r != 1 else
+                         "  ·  tahrik kasnağından kabin şasesindeki bağlantıya"), 3),
+    ] if lh_ciz else [
         #  YIĞIN PAFTADA AÇIK YAZILIR:  eskiden halat boyu satırında yalnız
         #  toplamı ( ör. 6.660 mm ) görünüyordu;  elle yeniden hesaplayan
         #  hangi beş ölçünün toplandığını paftadan okuyamıyordu.
@@ -432,6 +472,7 @@ def _motor(g, o):
               (f"( {trn(g['kuyu_boyu'], 0)} − {trn(yigin, 0)} ) / 1000 + "
                f"{trn(O['halat_pay_m'])}"),
               lh, "m", "KABUL  ·  halat payı"),
+    ]) + [
         hesap("Gh = gh × lh × nh", f"{_trh(gh)} × {tr(lh)} × {trn(nh, 0)}",
               Gh, "kg"),
         hesap("F1 = P + Q + Gh", f"{trn(P, 0)} + {trn(Q, 0)} + {tr(Gh)}", F1, "kg"),
@@ -574,7 +615,12 @@ def _makine(g, o):
     Wx = MT.npu(g["yan_yatak"], "Wx") * 1000            # cm³ → mm³
     F = k1 * gn * (o["Q"] + o["P"] + o["Gh"] + o["Ga"] + Gm)
     F1 = F / 2.0                                        # yan yatak putreli
-    X = L - O["yan_yatak_L_X"]
+    #  YÜKÜN KİRİŞTEKİ YERİ çizimden ( tahrik kasnağı:  makine dairesizde
+    #  ağırlık raylarına oturan kirişte, makine dairelide kaidede );  yoksa
+    #  ofis kabulü:  mesnetten L − 335.
+    X_ciz = _cizim_olcusu(g, "makine_yuku_x")
+    X_ciz = X_ciz if (X_ciz is not None and 0 < X_ciz < L) else None
+    X = float(X_ciz) if X_ciz is not None else L - O["yan_yatak_L_X"]
     FB = F1 * X / L
     FA = F1 - FB
     Mmax = FA * X
@@ -649,7 +695,11 @@ def _makine(g, o):
               f"{tr(o['Gh'])} + {tr(o['Ga'])} + {trn(Gm, 0)} )", F, "N"),
         metin("Yan yatak putreline gelen kuvvet :"),
         hesap("F1 = F / 2", f"{tr(F)} / 2", F1, "N"),
-        hesap("X = L − 335", f"{trn(L, 0)} − {O['yan_yatak_L_X']}", X, "mm"),
+        (veri("X", "Makine yükünün ( tahrik kasnağının ) mesnetten uzaklığı", X, "mm",
+              CIZIMDEN + ("  ·  kirişler karşı ağırlık raylarına oturur" if _mrl
+                          else "  ·  kaidenin yan yatağında"), 0)
+         if X_ciz is not None else
+         hesap("X = L − 335", f"{trn(L, 0)} − {O['yan_yatak_L_X']}", X, "mm")),
         hesap("FB = F1 × X / L", f"{tr(F1)} × {trn(X, 0)} / {trn(L, 0)}", FB, "N"),
         hesap("FA = F1 − FB", f"{tr(F1)} − {tr(FB)}", FA, "N"),
         metin("Makine kirişlerinde eğilme momenti ve gerilmesi :" if _mrl
@@ -954,7 +1004,7 @@ def _aski_halatlari(g, o):
         _dd_kontrol("Dt / dh", oran, oran_std),
     ] + ([
         veri("Ds", "Kasnakların EN KÜÇÜK çapı", Ds, "mm",
-             "GİRİŞ" if Ds_verildi else "ortalama çap kullanıldı", 0),
+             _kaynak(g, "saptirma_kasnak_min_capi") if Ds_verildi else "ortalama çap kullanıldı", 0),
         hesap("Ds / dh", f"{trn(Ds, 0)} / {tr(dh)}", oran_p, ""),
         _dd_kontrol("Ds / dh", oran_p, oran_p_std),
     ] if kasnak_var else [
@@ -978,10 +1028,13 @@ def _aski_halatlari(g, o):
              + (f"  ×  {trn(MT.kanal_gecis_sayisi(sekil), 0)} geçiş"
                 if (MT.kanal_gecis_sayisi(sekil) or 1) > 1 else ""), 2),
         veri("Nps", "Tek yönde bükülmeli kasnak sayısı", Nps, "adet",
-             "GİRİŞ" if Nps_girildi else
+             (CIZIMDEN + "  ·  çizilen kasnaklar  ·  TS EN 81-50 Ek E"
+              if "kasnak_tek_yon" in (g.get("_cizimden") or {}) else "GİRİŞ") if Nps_girildi else
              f"askı oranından  ·  TS EN 81-50 Ek E Şekil E.{2 if r == 1 else 1}", 0),
-        veri("Npr", "Ters yönde bükülmeli kasnak sayısı", Npr, "adet", "GİRİŞ", 0),
-        veri("Dp", "Tahrik kasnağı hariç kasnakların ortalama çapı", Dp, "mm", "GİRİŞ"),
+        veri("Npr", "Ters yönde bükülmeli kasnak sayısı", Npr, "adet",
+             _kaynak(g, "kasnak_ters_yon"), 0),
+        veri("Dp", "Tahrik kasnağı hariç kasnakların ortalama çapı", Dp, "mm",
+             _kaynak(g, "saptirma_kasnak_capi")),
         #  ORAN GÖSTERİMİYLE BASILIR.  Çıplak "2" okuyan, 2:1 mi 1:2 mi
         #  olduğunu ayırt edemiyordu;  n : 1 sektör gösterimidir ve avan
         #  paftası zaten böyle basıyor ( tablolar.aski_orani_metni ).
@@ -1111,10 +1164,12 @@ def _regulator(g, o):
     #  sorulmaz — küçültülürse halat emniyet katsayısı olduğundan iyi çıkar.
     mu, gama = O["reg_mu"], g["reg_kanal_acisi"]
     alfa = S["reg_sarilma_aci"]
-    #  Regülatör halatı kuyu boyunca iki kat gider
-    #  Tabliye makine dairesiz tesiste 0'dır ( MG.tabliye ).
-    boy = ((MG.alt_duraktan_tavana(g) + MG.tabliye(g)
-            - S["ray_kaide_payi"]) * 2) / 1000.0
+    #  Regülatör halatı:  program çizimden ölçer ( regülatör kasnağı ile gergi
+    #  kasnağı arası iki kez + iki yarım sarım ).  Yoksa eski yaklaşık:  kuyu
+    #  boyunca iki kat ( tabliye makine dairesiz tesiste 0 — MG.tabliye ).
+    boy_ciz = _cizim_olcusu(g, "reg_halat_boyu")
+    boy = float(boy_ciz) if boy_ciz else ((MG.alt_duraktan_tavana(g) + MG.tabliye(g)
+                                            - S["ray_kaide_payi"]) * 2) / 1000.0
     #  REGÜLATÖR HALATINDA DA KATALOG VERİSİ GEÇERLİDİR.  Askı halatında
     #  imalatçı alanları vardı, regülatörde yoktu ve değerler HER ZAMAN
     #  TS 12385-5'in lif özlü tablosundan okunuyordu.  O tablo küçük çaplı
@@ -1202,8 +1257,12 @@ def _regulator(g, o):
         veri("γ", "Kanal açısı", gama, "°", "GİRİŞ", 0),
         veri("α'", "Regülatör kasnağı sarılma açısı", alfa, "°", "KABUL", 0),
         veri("", "Regülatör halatı 1 m ağırlığı", gh_m, "kg/m", gh_kaynak),
-        hesap("gh = ( 1 m ağırlık ) × ( H × 1000 + son kat + tabliye − 200 ) × 2 / 1000",
-              f"{_trh(gh_m)} × {tr(boy)}", gh, "kg"),
+        *([veri("", "Regülatör halatı boyu", boy, "m",
+                 CIZIMDEN + "  ·  regülatör kasnağından gergi kasnağına iki kez + iki yarım sarım", 3),
+           hesap("gh = ( 1 m ağırlık ) × halat boyu", f"{_trh(gh_m)} × {tr(boy)}", gh, "kg")]
+          if boy_ciz else
+          [hesap("gh = ( 1 m ağırlık ) × ( H × 1000 + son kat + tabliye − 200 ) × 2 / 1000",
+                 f"{_trh(gh_m)} × {tr(boy)}", gh, "kg")]),
         veri("Gra", "Regülatör gergi ağırlığı — kasnak merkezindeki kuvvetin eşdeğeri",
              Gra, "kg", "GİRİŞ"),
         veri("Fgt", "Güvenlik tertibatını devreye sokma kuvveti",
@@ -1308,11 +1367,15 @@ def _terimler(g, o, durum):
     #  ASKI KASNAKLARININ ATALETİ  —  yalnız askı oranı > 1 iken  ( koşul III )
     mP, _J, _A = _kasnak_atalet(g, o["ofis"])
     _cok = r > 1
+    iPcar, iPcwt, mDPcwt = _kasnak_adetleri(g, o["ofis"], r)
     t = {"P": P, "Q": 0.0, "Mcwt": Mcwt, "MCRcar": 0.0, "MCRcwt": 0.0,
-         "MComp": 0.0, "MTrav": 0.0, "mPTD": 0.0, "mDP": 0.0, "iPDT": 0.0,
+         "MComp": 0.0, "MTrav": 0.0, "mPTD": 0.0, "iPDT": 0.0,
+         #  Saptırma kasnağının ataleti TARAFINA göre ( koşul I:  kabin, II:
+         #  karşı ağırlık tarafı ).  Çizilen düzenlerde saptırma kasnağı
+         #  yalnız makine dairesinde, ağırlık tarafındadır.
+         "mDPcar": 0.0, "mDPcwt": mDPcwt,
          "mPcar": mP if _cok else 0.0, "mPcwt": mP if _cok else 0.0,
-         "iPcar": o["ofis"]["kasnak_adet_kabin"] if _cok else 0,
-         "iPcwt": o["ofis"]["kasnak_adet_agirlik"] if _cok else 0,
+         "iPcar": iPcar, "iPcwt": iPcwt,
          "r": r, "gn": S["gn"], "a": 0.0,
          "MSRcar": 0.0, "MSRcwt": 0.0, "FRcar": 0.0, "FRcwt": 0.0}
     #  MSR:  askı halatlarının kabin / karşı ağırlık tarafındaki indirgenmiş
@@ -1380,7 +1443,31 @@ def _terimler(g, o, durum):
     return t
 
 
-def _kasnak_atalet(g, O):
+def _kasnak_adetleri(g, O, r):
+    """( iPcar , iPcwt , mDPcwt ) — atalete giren kasnaklar.
+
+    Program çizilen kasnakları sayar ( cizim/olculer ):  kabinle ve karşı
+    ağırlıkla hareket eden kasnaklar ve makine dairesinde ağırlık tarafındaki
+    sabit saptırma kasnağı.  Saptırma kasnağının indirgenmiş kütlesi
+    ( EN 81-50 m.5.11.2.2 ):  mDP = J · ( v_kasnak / v )² / R²;  sabit
+    kasnakta halat hızı r·v olduğundan ( v_kasnak / v )² = r².  Çizimden
+    değer yoksa ofis kabulü ( askı oranı > 1 iken kabin 2, ağırlık 1 ) ve
+    saptırma ataleti 0."""
+    ik, ia = _cizim_olcusu(g, "kasnak_kabin_adedi"), _cizim_olcusu(g, "kasnak_agirlik_adedi")
+    if ik is not None and ia is not None:
+        iPcar, iPcwt = int(ik), int(ia)
+    else:
+        iPcar = O["kasnak_adet_kabin"] if r > 1 else 0
+        iPcwt = O["kasnak_adet_agirlik"] if r > 1 else 0
+    Ds = _cizim_olcusu(g, "saptirma_agirlik_capi")
+    mDP = 0.0
+    if Ds:
+        mP_s, _J, _A = _kasnak_atalet(g, O, Ds)
+        mDP = mP_s * r * r
+    return iPcar, iPcwt, mDP
+
+
+def _kasnak_atalet(g, O, Dp=None):
     """Saptırma kasnaklarının indirgenmiş kütlesi  mP = J / R²   [ kg ].
 
     TS EN 81-50 m.5.11.2.2 a) tahrik kuvvetlerine kasnak ataletini de katar:
@@ -1404,7 +1491,7 @@ def _kasnak_atalet(g, O):
     DOĞRULAMA:  referans projenin yayımlanmış örnek paftasında Dp = 294 mm ve
     7 × 6,5 mm halat için J = 0,29 kg·m² yazar;  bu bağıntı 0,2920 verir.
     """
-    Dp = g.get("saptirma_kasnak_capi")
+    Dp = g.get("saptirma_kasnak_capi") if Dp is None else Dp
     ns, dr = g.get("halat_adedi"), g.get("halat_capi")
     if not (Dp and ns and dr) or Dp <= O["kasnak_gobek_pay"]:
         return 0.0, 0.0, 0.0
@@ -1437,7 +1524,7 @@ def _T1(t, FRcar, s):
             + t["MComp"] / (2.0 * r) * gn
             + t["MSRcar"] * (gn + s * a * (r * r + 2) / 3.0)
             + s * (t["iPDT"] * t["mPTD"] * a) / (2.0 * r)
-            + s * t["mDP"] * a / r
+            + s * t["mDPcar"] * a / r
             #  Σ( mPcar · iPcar · a ) / r   —  askı kasnaklarının ataleti
             #  ( m.5.11.2.2, koşul III:  yalnız askı oranı > 1 iken )
             + s * (t["mPcar"] * t["iPcar"] * a) / r
@@ -1456,7 +1543,7 @@ def _T2(t, FRcwt, s):
             + t["MComp"] * gn / (2.0 * r)
             + t["MSRcwt"] * (gn - s * a * (r * r + 2) / 3.0)
             - s * (t["iPDT"] * t["mPTD"] * a) / (2.0 * r)
-            - s * t["mDP"] * a / r
+            - s * t["mDPcwt"] * a / r
             - s * (t["mPcwt"] * t["iPcwt"] * a) / r
             + s * FRcwt / r)
 
@@ -1603,7 +1690,7 @@ def _tahrik(g, o):
     b["adimlar"] = [
         veri("R1", "Tahrik kasnağı yarıçapı", R1, "mm"),
         veri("α", "Halat sarılma açısı", alfa_derece, "°",
-             "GİRİŞ" if alfa_var else "GİRİLMEDİ"),
+             _kaynak(g, "sarilma_acisi") if alfa_var else "GİRİLMEDİ"),
         (kontrol(f"α = {tr(alfa_derece)}°  —  "
                  f"{'çift' if cift_sarim else 'tek'} sarımlı kasnakta "
                  f"{trn(alt, 0)}° < α ≤ {trn(ust, 0)}°", alfa_uygun)
@@ -1634,12 +1721,15 @@ def _tahrik(g, o):
     #  Paftada GÖRÜNÜR:  terim ofis kabulleriyle modellenen bir kasnaktan
     #  çıkıyor, okuyan mühendis nereden geldiğini görebilmeli.
     _mP, _J, _A = _kasnak_atalet(g, O)
+    _iPcar, _iPcwt, _mDPcwt = _kasnak_adetleri(g, O, o["r"])
+    _adet_kaynak = (CIZIMDEN + "  ·  çizilen kasnaklar"
+                    if _cizim_olcusu(g, "kasnak_kabin_adedi") is not None else "KABUL")
     if o["r"] > 1 and _mP:
         b["adimlar"] += [
             metin("Askı kasnaklarının ataleti  ( m.5.11.2.2 · koşul III ) :",
                   vurgu=True),
             veri("Dp", "Saptırma kasnaklarının ortalama çapı",
-                 g["saptirma_kasnak_capi"], "mm", "GİRİŞ", 0),
+                 g["saptirma_kasnak_capi"], "mm", _kaynak(g, "saptirma_kasnak_capi"), 0),
             hesap("A = ( ns − 1 ) × 1,6 × dr + pay",
                   f"( {trn(g['halat_adedi'], 0)} − 1 ) × 1,6 × {tr(g['halat_capi'])}"
                   f" + {trn(O['kasnak_kanal_payi'], 0)}", _A * 1000, "mm",
@@ -1651,9 +1741,19 @@ def _tahrik(g, o):
             hesap("mP = J / R²", f"{_trh(_J)} / ( {_trh(g['saptirma_kasnak_capi'] / 2000)} )²",
                   _mP, "kg"),
             veri("iPcar", "Kabin tarafındaki kasnak sayısı",
-                 O["kasnak_adet_kabin"], "adet", "KABUL", 0),
+                 _iPcar, "adet", _adet_kaynak, 0),
             veri("iPcwt", "Ağırlık tarafındaki kasnak sayısı",
-                 O["kasnak_adet_agirlik"], "adet", "KABUL", 0),
+                 _iPcwt, "adet", _adet_kaynak, 0),
+        ]
+    if _mDPcwt:
+        _Dsap = g["saptirma_agirlik_capi"]
+        b["adimlar"] += [
+            metin("Saptırma kasnağının ataleti  ( m.5.11.2.2 · koşul II — ağırlık tarafı ) :",
+                  vurgu=True),
+            veri("Dsap", "Makine dairesindeki saptırma kasnağının çapı", _Dsap, "mm",
+                 CIZIMDEN, 0),
+            hesap("mDP = J / R² × r²   ( sabit kasnakta halat hızı r·v )",
+                  f"J / ( {_trh(_Dsap / 2000)} )² × {trn(o['r'], 0)}²", _mDPcwt, "kg"),
         ]
 
     #  ── KUYU SÜRTÜNMESİ  ( m.5.11.2.2 · yalnız acil frenlemede ) ──────
@@ -2102,7 +2202,10 @@ def _kabin_raylari(g, o):
     n, h, l = g["kabin_ray_sayisi"], g["kabin_paten_arasi"], g["kabin_konsol_arasi"]
     W, D = g["kabin_genisligi"], g["kabin_derinligi"]
 
-    ray_boyu = MG.toplam_ray_boyu(g)
+    #  RAY BOYU çizimden ( en uzun kabin rayı:  kuyu tabanından üst ucuna );
+    #  yoksa eski yaklaşık ( seyir + son kat + tabliye − 200 + kuyu dibi − 300 ).
+    ray_ciz = _cizim_olcusu(g, "kabin_ray_boyu")
+    ray_boyu = float(ray_ciz) if ray_ciz else MG.toplam_ray_boyu(g)
     Mg = ray_boyu * MT.ray(prof, "Gr")
     #  ── RAYA BAĞLI YARDIMCI DONANIM  Maux  ( m.5.7.2.3.1 b) 2) ) ──────
     #  Ofisin 150 N'u ≈ 15 kg'dır:  raya cıvatalanan şalter, kam, kanal.  MAKİNE DAİRESİ OLAN bir asansörde doğrudur —
@@ -2170,7 +2273,10 @@ def _kabin_raylari(g, o):
     sperm_n = MT.sigma_perm_normal(g["ray_celigi_rm"])
     dperm = S["dperm_kabin"]
 
-    xc = (D / 2.0 + S["kabin_merkez_payi"]) - g["ray_kapi_arasi"]
+    #  KABİN MERKEZİ çizimden ( kabinin iç tabanının ortası:  eşik arası +
+    #  kabin eşiği + derinlik / 2 − RK );  yoksa eski yaklaşık D/2 + 130 − RK.
+    xc_ciz = _cizim_olcusu(g, "kabin_merkezi_x")
+    xc = float(xc_ciz) if xc_ciz is not None else (D / 2.0 + S["kabin_merkez_payi"]) - g["ray_kapi_arasi"]
     #  KABİN MERKEZİNİN y KAÇIKLIĞI HESABA GİRER.
     #  Ek C.1.2 yc'yi "kabin merkezinin ray koordinatlarına göre konumu",
     #  yp'yi "boş kabin kütlesinin (P) konumu" diye tanımlar;  ikisi de
@@ -2244,7 +2350,11 @@ def _kabin_raylari(g, o):
     #  ( xc < 0 ) iki terim yanlış yönde toplanıyor ve eşik kuvveti boş
     #  kabinin momentini DENGELİYORDU:  1400 mm derinlikte RK = 1.200 mm iken
     #  Fx 8,2 N çıkıyor, doğrusu 864,4 N — 105 kat, EMNİYETSİZ taraf.
-    xi, yi = -g["ray_kapi_arasi"], g["kabin_kaciklik"]
+    #  Program eşik kuvvetinin noktasını çizimden alır:  m.5.7.2.3.6 onu kabin
+    #  girişinin EŞİĞİNİN ORTASINA koyar ( kat eşiğinin kenarı değil ).
+    xi_ciz = _cizim_olcusu(g, "esik_x")
+    xi = float(xi_ciz) if xi_ciz is not None else -g["ray_kapi_arasi"]
+    yi = g["kabin_kaciklik"]
     balata, balata_kaynak = _balata_boyu(g, p)
     #  KATSAYI ASANSÖRÜN TİPİNDEN GELİR  ( m.5.7.2.3.6 ) — beyan yükünden değil.
     tip = g.get("asansor_tipi") or MT.ASANSOR_TIPLERI[0]
@@ -2282,7 +2392,7 @@ def _kabin_raylari(g, o):
         veri("n", "Ray sayısı", n, "adet", "GİRİŞ", 0),
         veri("", "Ray profili", prof, "", "ISO 7465"),
         hesap("Mg = ray boyu × Gr", f"{tr(ray_boyu)} m × {tr(MT.ray(prof, 'Gr'))} kg/m",
-              Mg, "kg"),
+              Mg, "kg", CIZIMDEN + "  ·  en uzun kabin rayı" if ray_ciz else ""),
         *( [veri("", "Makine yükünün yolu",
                  MT.MAKINE_YUK_YOLU[1] if _raya else MT.MAKINE_YUK_YOLU[0], "",
                  "GİRİŞ  ·  TS EN 81-20 m.5.7.2.3.7")]
@@ -2302,7 +2412,8 @@ def _kabin_raylari(g, o):
              "EN 81-20 Çizelge 14  ·  Running", 1),
         veri("k3", "Yardımcı donanım darbe katsayısı", k3, "",
              "KABUL  ·  EN 81-20 Çiz.14 sayı vermez, imalatçı belirler", 1),
-        veri("xc", "Kabin merkezinin x mesafesi", xc, "mm"),
+        veri("xc", "Kabin merkezinin x mesafesi", xc, "mm",
+             CIZIMDEN + "  ·  kabinin iç tabanının ortası" if xc_ciz is not None else ""),
         veri("yc", "Kabin merkezinin y mesafesi", yc, "mm"),
         *( [] if xp_verildi else
            [veri("", "Kabin kapısı ağırlığı  ( panel + mekanizma )", m_kapi, "kg",
@@ -2315,9 +2426,11 @@ def _kabin_raylari(g, o):
              "gövde kabin merkezinde kabul edilir"),
         veri("yp", "Boş kabin ağırlık merkezinin y mesafesi", yp, "mm",
              "GİRİŞ  ·  P'nin ağırlık merkezi" if yp_verildi else ""),
-        veri("xs", "Askı noktasının x mesafesi", xs, "mm"),
+        veri("xs", "Askı noktasının x mesafesi", xs, "mm", _kaynak(g, "aski_kaciklik_x", "")),
         veri("ys", "Askı noktasının y mesafesi", ys, "mm"),
-        veri("xi", "Kabin kapısının x mesafesi", xi, "mm"),
+        veri("xi", "Kabin eşiğinin ortasının x mesafesi" if xi_ciz is not None
+             else "Kabin kapısının x mesafesi", xi, "mm",
+             CIZIMDEN + "  ·  m.5.7.2.3.6" if xi_ciz is not None else ""),
         veri("yi", "Kabin kapısının y mesafesi", yi, "mm"),
         #  E BİR OFİS KABULÜ DEĞİLDİR — kaynağı "KABUL" yazıyordu.  Çeliğin
         #  elastisite modülü standardın kendi verdiği sayıdır ve ofis
@@ -2664,7 +2777,10 @@ def _agirlik_raylari(g, o):
     Dya = S["Dya_katsayi"] * genislik
     xsa = ysa = 0.0
 
-    Mg = o["ray_boyu"] * MT.ray(prof, "Gr")
+    ray_a = _cizim_olcusu(g, "agirlik_ray_boyu")
+    ray_boyu_a = float(ray_a) if ray_a else MG.toplam_ray_boyu(g)
+    o["ray_boyu_agirlik"] = ray_boyu_a
+    Mg = ray_boyu_a * MT.ray(prof, "Gr")
     #  Ek C.2.2.1:  katsayı k2'dir ve Fy'nin paydası ( n / 2 ) · h'dir.
     Fx = (k2 * gn * Mcwt * (Dxa - xsa)) / (n * h)
     Fy = (k2 * gn * Mcwt * (Dya - ysa)) / ((n / 2.0) * h)
@@ -2757,7 +2873,8 @@ def _agirlik_raylari(g, o):
              "Makaralı paten  ( EN 81-50 m.5.10.5 makara formülü geçerlidir )"
              if makarali else balata_kaynak, 0),
         hesap("Mg = ray boyu × Gr",
-              f"{tr(o['ray_boyu'])} m × {tr(MT.ray(prof, 'Gr'))} kg/m", Mg, "kg"),
+              f"{tr(ray_boyu_a)} m × {tr(MT.ray(prof, 'Gr'))} kg/m", Mg, "kg",
+              CIZIMDEN + "  ·  en uzun ağırlık rayı" if ray_a else ""),
         metin("Eğilme gerilmesi  ( TS EN 81-50 m.C.2.2 ) :", vurgu=True),
         hesap("Fx = k2 × gn × Mcwt × ( Dxa − xsa ) / ( n × h )",
               f"{tr(k2)} × {tr(gn)} × {trn(Mcwt, 0)} × {tr(Dxa)} / "
@@ -2911,7 +3028,9 @@ def _kuyu_tabani(g, o):
     S, gn, O = SABIT, SABIT["gn"], o["ofis"]
     #  P STANDARTTAKİ TANIMIYLA  ( m.5.2.1.8.5 / m.5.2.1.8.6 ).
     Q, P = o["Q"], o["P_std"]
-    LR = o["ray_boyu"] * 1000.0                      # mm
+    LR = o["ray_boyu"] * 1000.0                      # mm — kabin rayı
+    LRa = (o.get("ray_boyu_agirlik") or o["ray_boyu"]) * 1000.0   # ağırlık rayı
+    _lr_ciz = bool(_cizim_olcusu(g, "kabin_ray_boyu"))
     Gr_k = MT.ray(g["kabin_ray_profili"], "Gr")
     Gr_a = MT.ray(g["agirlik_ray_profili"], "Gr")
     #  RAY AĞIRLIĞI BİR KEZ SAYILIR.  TS EN 81-20 m.5.2.1.8.4 kalemleri tek
@@ -2961,7 +3080,7 @@ def _kuyu_tabani(g, o):
     #  Ray kütlesinin payı burada da bir kez sayılır ( Fk − Mg·gn − Fp ).
     agirlik_tepkisi = (o["Fk_agirlik"] - o["Mg_agirlik"] * gn - Fp
                        if o.get("Fk_agirlik") is not None else 0.0)
-    FAR = (gn * Gr_a * LR / 1000.0) + k3 * MY_a + agirlik_tepkisi + Fp
+    FAR = (gn * Gr_a * LRa / 1000.0) + k3 * MY_a + agirlik_tepkisi + Fp
     #  m.5.2.1.8.5 ve m.5.2.1.8.6 iki bağıntıyı da AÇIKÇA bu P ile yazar
     #  ( sembol listesinde "i.e. part of the travelling cable, compensating
     #  ropes/chains (if any)" ).  Ağırlık tamponunda da standardın kendi
@@ -2982,9 +3101,12 @@ def _kuyu_tabani(g, o):
               f"{trn(o['P'], 0)} + {tr(o.get('MTrav') or 0)} + {tr(o.get('MCR') or 0)}",
               o["P_std"], "kg",
               "TS EN 81-20 m.5.2.1.8.5  ·  P'nin standarttaki tanımı"),
-        veri("LR", "Kılavuz ray boyu", LR, "mm",
-             "H × 1000 + son kat + tabliye − 200 + kuyu dibi − 300"
-             + ( "  ·  MRL:  tabliye yok ( 0 )" if evet_mi(g.get("mk_yok")) else ""), 0),
+        *([veri("LR", "Kabin rayı boyu", LR, "mm", CIZIMDEN + "  ·  en uzun kabin rayı", 0),
+           veri("Lar", "Ağırlık rayı boyu", LRa, "mm", CIZIMDEN + "  ·  en uzun ağırlık rayı", 0)]
+          if _lr_ciz else
+          [veri("LR", "Kılavuz ray boyu", LR, "mm",
+                "H × 1000 + son kat + tabliye − 200 + kuyu dibi − 300"
+                + ( "  ·  MRL:  tabliye yok ( 0 )" if evet_mi(g.get("mk_yok")) else ""), 0)]),
         #  FKR / FAR TEK BİR RAYIN KUVVETİDİR:  ray kütlesi bir rayındır,
         #  güvenlik tertibatı tepkisi ( P + Q ) / n'dir ( bölüm 7, Fk ).
         #  Başlık eskiden "raylarına" diyordu;  inşaat mühendisi sayıyı toplam
@@ -3009,7 +3131,7 @@ def _kuyu_tabani(g, o):
         metin("Bir ağırlık rayına gelen kuvvet  ( her ray altına ayrı ayrı ) :"),
         hesap("FAR = gn × Gar × Lar / 1000 + k3 × Ma"
               + ("  +  Fgt" if agirlik_tepkisi else "") + ("  +  Fp" if Fp else ""),
-              f"{tr(gn)} × {tr(Gr_a)} × {trn(LR, 0)} / 1000 + "
+              f"{tr(gn)} × {tr(Gr_a)} × {trn(LRa, 0)} / 1000 + "
               f"{tr(k3)} × {trn(MY_a, 0)}"
               + (f" + {tr(agirlik_tepkisi)}" if agirlik_tepkisi else "")
               + (f" + {tr(Fp)}" if Fp else ""),

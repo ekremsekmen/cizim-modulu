@@ -293,6 +293,18 @@ _GRUPLAR = (
           bilgi=('yc — KABİN GÖVDESİNİN merkezi, iki rayı birleştiren doğrultuda ray ekseninden ne '
                  'kadar kaçık. Kabin rayların tam ortasındaysa 0 girin. Bu, ağırlığın NEREDE '
                  'DURDUĞUDUR.')),
+        #  YERLEŞİMİN ÖLÇÜLERİ ( cizim/olculer.py ):  hesap bunları eskiden kendi
+        #  formülüyle tahmin ediyordu;  program çizimin kurduğu yerleşimden alır.
+        #  Boşsa ( motor doğrudan çağrılınca ) hesabın eski yaklaşığı kullanılır.
+        A('kabin_merkezi_x', 'Kabin merkezinin ray eksenine uzaklığı  ( xc )', 'mm', 'sayi', None, None,
+          kaynak=CIZIM, sozlesme=MUK, formda=False, isaretli=True, opsiyonel=True,
+          bilgi=('xc — kabinin iç tabanının ortası ile kabin ray ekseni arası ( arkaya + ). Çizim '
+                 'kabini eşik arası, kabin eşiği ve ray – kapı arasıyla yerleştirir;  hesap eskiden '
+                 'derinlik / 2 + 130 − RK diye tahmin ediyordu.')),
+        A('esik_x', 'Kabin eşiği ortasının ray eksenine uzaklığı  ( xi )', 'mm', 'sayi', None, None,
+          kaynak=CIZIM, sozlesme=MUK, formda=False, isaretli=True, opsiyonel=True,
+          bilgi=('xi — yükleme sırasında eşik kuvvetinin noktası:  kabin girişinin eşiğinin ortası '
+                 '( m.5.7.2.3.6 ). Hesap eskiden kat eşiğinin kenarını ( −RK ) alıyordu.')),
     )),
     # ═══ RAYLAR VE PATENLER ════════════════════════════════════════════════
     ('Raylar ve patenler', (
@@ -400,6 +412,13 @@ _GRUPLAR = (
         A('agirlik_ray_sayisi', 'Ağırlık rayı sayısı', 'adet', 'sayi', None, 2,
           kaynak=CIZIM, sozlesme=MUK, formda=False, tam_sayi=True, bolen=True,
           bilgi='Karşı ağırlığı kılavuzlayan ray sayısı.'),
+        A('kabin_ray_boyu', 'Kabin rayı boyu', 'm', 'sayi', None, None,
+          kaynak=CIZIM, sozlesme=MUK, formda=False, opsiyonel=True,
+          bilgi=('En uzun kabin rayı:  kuyu tabanından üst ucuna ( rayın kütlesi ray ve kuyu tabanı '
+                 'hesaplarına girer ).')),
+        A('agirlik_ray_boyu', 'Ağırlık rayı boyu', 'm', 'sayi', None, None,
+          kaynak=CIZIM, sozlesme=MUK, formda=False, opsiyonel=True,
+          bilgi='En uzun karşı ağırlık rayı:  kuyu tabanından üst ucuna.'),
     )),
     # ═══ KARŞI AĞIRLIK ═════════════════════════════════════════════════════
     ('Karşı ağırlık', (
@@ -617,13 +636,15 @@ _GRUPLAR = (
           bilgi=('Kuyuda kabin ile karşı ağırlık arasına asılan denge ( kompanzasyon ) zinciri var mı.'
                  ' Varsa halat dengesizliğini karşılar ve gereken motor gücü düşer.')),
         #  EN 81-50 m.5.12.2 — Nequiv(p).  Sabit değil, tesisin askı düzenine bağlıdır.
-        #  BOŞ BIRAKILIRSA ASKI ORANINDAN GELİR  ( bkz. kasnak_tek_yon_askidan ).
-        A('kasnak_tek_yon', 'Tek yönde bükülmeli kasnak sayısı  ( Nps — boşsa askı oranından )', 'adet', 'sayi', None, None,
-          kaynak=GIRDI, sozlesme=MUK, gelismis=True, tam_sayi=True, opsiyonel=True,
-          bilgi=('Nps — halatın AYNI yönde büküldüğü kasnak sayısı. Boş bırakılırsa askı oranından '
-                 'alınır. Halat yorulmasını ( Nequiv ) büyütür.')),
+        #  Program çizilen kasnakları sayar ( cizim/olculer );  motor doğrudan
+        #  çağrılıp boş bırakılırsa askı oranından ( bkz. kasnak_tek_yon_askidan ).
+        A('kasnak_tek_yon', 'Tek yönde bükülmeli kasnak sayısı  ( Nps )', 'adet', 'sayi', None, None,
+          kaynak=CIZIM, sozlesme=MUK, formda=False, tam_sayi=True, opsiyonel=True,
+          bilgi=('Nps — halatın AYNI yönde büküldüğü kasnak sayısı:  halatın bir kesitinin üzerinden '
+                 'geçtiği çizilen kasnaklar ( tahrik kasnağı hariç ). Halat yorulmasını ( Nequiv ) '
+                 'büyütür.')),
         A('kasnak_ters_yon', 'Ters yönde bükülmeli kasnak sayısı  ( Npr )', 'adet', 'sayi', None, 0,
-          kaynak=GIRDI, sozlesme=MUK, gelismis=True, tam_sayi=True,
+          kaynak=CIZIM, sozlesme=MUK, formda=False, tam_sayi=True,
           bilgi=('Npr — halatın TERS yönde büküldüğü kasnak sayısı. Ters bükülme halatı dört kat daha '
                  'çok yorar.')),
         #  VARSAYILAN = STANDARDIN KENDİ TABANI ( ACIL_FRENLEME_ASGARI = 0,5 ).
@@ -657,7 +678,7 @@ _GRUPLAR = (
         #  D2 · Ds BOŞSA ÇİZİMDEN:  çizilen kasnakların ortalaması ve en küçüğü.
         A('saptirma_kasnak_capi', 'D2 — saptırma kasnaklarının ORTALAMA çapı  ( boşsa çizimden )', 'mm', 'sayi', None, None,
           kaynak=CIZIM, sozlesme=MUK, formda=False, bolen=True,
-          cizimden='Boşsa çizimden:  çizilen kasnakların ortalaması ( çapları formun Çizim grubunda ).',
+          cizimden='Boşsa çizimden:  çizilen kasnakların ortalaması.',
           bilgi=('D2 — tahrik kasnağı HARİÇ bütün kasnakların ORTALAMA çapı. Halatın bükülme şiddeti '
                  'katsayısı Kp = (D1/D2)⁴ bundan çıkar.')),
         #  Ds — EN KÜÇÜK kasnak çapı.  Sf formülündeki Kp = (Dt/Dp)⁴ ORTALAMA
@@ -670,6 +691,25 @@ _GRUPLAR = (
           cizimden='Boşsa çizimden:  çizilen kasnakların en küçüğü.',
           bilgi=('Ds — aynı kasnakların EN KÜÇÜĞÜNÜN çapı. D/d ≥ 40 sınırı her kasnak için ayrı '
                  'geçerlidir.')),
+        A('aski_halat_boyu', 'Askı halatının kabin tarafındaki boyu  ( kabin en alt durakta )', 'm', 'sayi',
+          None, None,
+          kaynak=CIZIM, sozlesme=MUK, formda=False, opsiyonel=True,
+          bilgi=('Bir halatın tahrik kasnağından kabine;  2:1\'de kabin kasnaklarının altından '
+                 'geçip kuyu tavanındaki bağlantıya kadar boyu. Kabin tarafındaki halat kütlesi Gh '
+                 'buradan ( motor, kaide, halat güvenliği ).  Hesap eskiden kuyu boyu − yığın + 5 m '
+                 'diye tahmin ediyordu.')),
+        A('kasnak_kabin_adedi', 'Kabinle hareket eden kasnak sayısı', 'adet', 'sayi', None, None,
+          kaynak=CIZIM, sozlesme=MUK, formda=False, tam_sayi=True, opsiyonel=True,
+          bilgi='iPcar — tahrikte ataleti sayılan kabin kasnakları ( 2:1\'de iki, 1:1\'de yok ).'),
+        A('kasnak_agirlik_adedi', 'Karşı ağırlıkla hareket eden kasnak sayısı', 'adet', 'sayi', None, None,
+          kaynak=CIZIM, sozlesme=MUK, formda=False, tam_sayi=True, opsiyonel=True,
+          bilgi='iPcwt — tahrikte ataleti sayılan karşı ağırlık kasnakları.'),
+        A('saptirma_agirlik_capi', 'Karşı ağırlık tarafındaki saptırma kasnağının çapı', 'mm', 'sayi', None,
+          None,
+          kaynak=CIZIM, sozlesme=MUK, formda=False, opsiyonel=True,
+          bilgi=('Makine dairesinde karşı ağırlık halatını saptıran sabit kasnak ( yoksa 0 ). '
+                 'Tahrikte ataleti mDP olarak ağırlık tarafına girer ( EN 81-50 m.5.11.2.2, koşul II '
+                 ').')),
     )),
     # ═══ MAKINE ════════════════════════════════════════════════════════════
     ('Makine', (
@@ -759,6 +799,11 @@ _GRUPLAR = (
           kaynak=GIRDI, sozlesme=MUK, gelismis=True, pozitif=True, bolen=True,
           bilgi=('Makine kirişinin mesnetleri arasındaki açıklık. Eğilme momenti bu açıklıkla doğru '
                  'orantılı büyür.')),
+        A('makine_yuku_x', 'Makine yükünün kiriş mesnedine uzaklığı  ( X )', 'mm', 'sayi', None, None,
+          kaynak=CIZIM, sozlesme=MUK, formda=False, opsiyonel=True,
+          bilgi=('X — tahrik kasnağının kiriş boyunca mesnetten uzaklığı:  makine dairesizde '
+                 'kirişler karşı ağırlık raylarına oturur, makine dairesinde kaidenin yan '
+                 'yataklarıdır. Hesap eskiden L − 335 alıyordu.')),
         A('makine_saptirma_capi', 'Saptırma kasnağı çapı  ( makine dairesinde, gerekirse )', 'mm', 'sayi', None, 400,
           kaynak=KATALOG, sozlesme=CIZ, gelismis=True, yerlesim="daireli",
           bilgi=('Makine dairesinde karşı ağırlık halatı tahrik kasnağının öbür teğetinden daha '
@@ -948,6 +993,10 @@ _GRUPLAR = (
           kaynak=KATALOG, sozlesme=MUK, gelismis=True, opsiyonel=True,
           bilgi=('Regülatörün fren bloğunu tetiklediği hız ( regülatörün etiketinde yazar ). Boşsa '
                  'paftaya standardın izin verdiği aralık yazılır.')),
+        A('reg_halat_boyu', 'Regülatör halatı boyu', 'm', 'sayi', None, None,
+          kaynak=CIZIM, sozlesme=MUK, formda=False, opsiyonel=True,
+          bilgi=('Regülatör kasnağı ile kuyu dibindeki gergi kasnağı arası iki kez ve iki yarım '
+                 'sarım. Hesap eskiden ( alt duraktan tavana + tabliye − 200 ) × 2 alıyordu.')),
     )),
     # ═══ ELEKTRIK VE TOPRAKLAMA ════════════════════════════════════════════
     ('Elektrik ve topraklama', (

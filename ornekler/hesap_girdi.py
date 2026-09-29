@@ -22,7 +22,8 @@ ASANSOR = {
     "tahrik_kasnak_capi": 240,
     "halat_capi": 6.5, "halat_adedi": 7, "halat_birim_kutle": 0.179, "halat_kopma_kN": 31.5,
     "sarilma_acisi": 180, "kanal_sekli": "V Kanal", "kanal_isleme": "Sertleştirilmiş",
-    "kasnak_tek_yon": 2, "kasnak_ters_yon": 0, "acil_frenleme_a": 0.5,
+    #  Nps · Npr formda yok:  çizilen kasnaklardan ( 2:1 → 2 · 0, referans projeyle aynı )
+    "acil_frenleme_a": 0.5,
     "denge_zinciri": "Var", "kasnak_belgesi": "Var",
     "motor_gucu": 11.3, "makine_tst": 3400, "makine_verimi": 0.8415, "makine_tipi": "Dişlisiz",
     #  MRL:  makine şasesi raylara oturur ( referans proje "Motor Bedplate Calculation":

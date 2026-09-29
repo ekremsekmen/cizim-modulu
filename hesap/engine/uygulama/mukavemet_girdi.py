@@ -272,6 +272,9 @@ def varsayilanlar():
     #  girdide de kalırdı ( kuyu dibi değişse de kaide 870 ).
     for _k in _TG.cizimden():
         g[_k] = None
+    #  Kaynak işaretleri de gider:  kalsaydı kullanıcının girdiği α raporda
+    #  "ÇİZİMDEN" yazardı ( işaret varsayılandan girdiye taşınırdı ).
+    g.pop("_cizimden", None)
     return g
 
 
@@ -331,7 +334,12 @@ def tamamla(g):
     #  sabit tablo;  girdi.varsayilanlar() buraya döner, döngü olurdu.
     from cizim import kopru as _CK
     from engine.uygulama import girdi as _UG
-    g.update(_CK.cizimden({**{a[0]: a[5] for a in _UG.EK_ALANLAR}, **g}))
+    _cd = _CK.cizimden({**{a[0]: a[5] for a in _UG.EK_ALANLAR}, **g})
+    g.update(_cd)
+    #  KAYNAK İŞARETİ:  çizimden gelen değer raporda "ÇİZİMDEN" yazar ( girilmiş
+    #  sanılmasın ).  Anahtar → kuralı.
+    if _cd:
+        g["_cizimden"] = {**(g.get("_cizimden") or {}), **{k: _CK.CIZIMDEN[k] for k in _cd}}
     #  ESKİ BİÇİM:  makine yükünün yolu bir zamanlar ONAY KUTUSUYDU ve
     #  True / "EVET" olarak kaydediliyordu.  Eski .uygulama dosyaları bu
     #  değeri taşır;  seçime çevrilmezse

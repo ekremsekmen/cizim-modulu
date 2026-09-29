@@ -85,6 +85,10 @@ def uret(md):
     print(f"── {ad}")
     print("   çizimden gelen hesap girdileri:",
           {k: a["girdi"][k] for k in UC_CIZIM.CK.CIZIMDEN if veri["asansorler"][0].get(k) is None})
+    #  Yerleşimin ölçüleri ( cizim/olculer ):  hesabın eskiden tahmin ettiği geometri
+    print("   yerleşimden ölçülenler:",
+          {k: a["girdi"][k] for k in (a["girdi"].get("_cizimden") or {})
+           if a["girdi"]["_cizimden"][k] == "yerleşim"})
 
     #  ── PAFTA ─────────────────────────────────────────────────────────
     with tempfile.TemporaryDirectory() as t:
