@@ -119,21 +119,22 @@ class CizimdenTuretilen(unittest.TestCase):
         (g, hata), = _kur(v)[0]
         self.assertEqual(hata, [])
 
-    def test_d2_girilmis_ds_bos(self):
-        #  Ds boşsa D2 girilmiş olsa da çizimden ( en küçük kasnak ):  eskiden
-        #  hesap Ds'yi D2'ye ( 294 ) düşürüyor, çizim "Ds'yi boş bırakın"
-        #  diyerek duruyordu — Ds zaten boştu.
-        v = _veri(saptirma_kasnak_capi=294, saptirma_kasnak_min_capi=None)
-        self.assertEqual(_tam(v)["saptirma_kasnak_min_capi"], 240)
+    def test_d2_ds_formdan_okunmaz(self):
+        #  Saptırma kasnaklarının çapları formda sorulmaz ( tasarım şeması:
+        #  kaynağı çizim ):  eski bir proje dosyasında yazılı olsa da okunmaz,
+        #  değer çizilen kasnaklardan gelir ve çizim durmaz.
+        v = _veri(saptirma_kasnak_capi=294, saptirma_kasnak_min_capi=200)
+        self.assertEqual((_tam(v)["saptirma_kasnak_capi"], _tam(v)["saptirma_kasnak_min_capi"]),
+                         (293.3, 240))
         (g, hata), = _kur(v)[0]
         self.assertEqual(hata, [])
-        #  D2 çizimin en küçük kasnağından da küçükse Ds türetilmez ( hesap
-        #  Ds'yi "D2'den büyük" diye reddetmesin );  çizim D2'yi söyler.
-        v = _veri(saptirma_kasnak_capi=200, saptirma_kasnak_min_capi=None)
-        self.assertIsNone(_tam(v)["saptirma_kasnak_min_capi"])
-        ((g, hata),), s, _a = _kur(v)
-        self.assertTrue(s["aktif"], s.get("hata"))
-        self.assertTrue(any("hesaptaki D2 200" in h for h in hata), hata)
+
+    def test_motora_dogrudan_verilen_d2(self):
+        #  Formu atlayan çağrıda ( motor doğrudan ) D2 çizimin en küçük kasnağından
+        #  da küçükse Ds türetilmez:  hesap Ds'yi "D2'den büyük" diye reddetmesin.
+        A = _tam(_veri())
+        A.update(saptirma_kasnak_capi=200, saptirma_kasnak_min_capi=None)
+        self.assertNotIn("saptirma_kasnak_min_capi", CK.cizimden(A))
 
     def test_bos_alan_iletisi_formun_adiyla(self):
         #  Boş bırakılan alan "( None )" ya da çizim modülünün iç adıyla
@@ -150,7 +151,11 @@ class CizimdenTuretilen(unittest.TestCase):
         v = UC_UYG.uygulama_alanlari()
         alan = {f["anahtar"]: f for gr in v["gruplar"] for f in gr["alanlar"]}
         self.assertEqual(sorted(v["cizimden"]), sorted(CK.CIZIMDEN))
-        for a in CK.CIZIMDEN:
+        #  Kasnak çapları ve kaide formda sorulmaz;  askı kaçıklığı ve sarılma
+        #  açısı sorulur ( boşsa çizimden )
+        self.assertEqual(sorted(set(CK.CIZIMDEN) - set(alan)),
+                         ["kabin_tampon_baba", "saptirma_kasnak_capi", "saptirma_kasnak_min_capi"])
+        for a in set(CK.CIZIMDEN) & set(alan):
             self.assertIsNone(alan[a]["varsayilan"], a)
             self.assertIn("boşsa çizimden", alan[a]["etiket"])
             self.assertEqual(alan[a]["etiket"].count("boşsa"), 1, alan[a]["etiket"])
@@ -208,10 +213,14 @@ class Tutarlilik(unittest.TestCase):
             self.assertFalse(any("girin" in h and "180" in h for h in hata), hata)
 
     def test_saptirma_kasnaklari(self):
-        hata = self._hata(saptirma_kasnak_capi=240)
-        self.assertTrue(any("ortalaması 293.3" in h for h in hata), hata)
-        hata = self._hata(saptirma_kasnak_min_capi=200)
-        self.assertTrue(any("en küçük kasnak 240" in h for h in hata), hata)
+        #  Formdan gelmez;  motora doğrudan verilmişse çizimle karşılaştırılır.
+        self.assertEqual(self._hata(saptirma_kasnak_capi=240, saptirma_kasnak_min_capi=200), [])
+        (g, _h), = _kur(_veri())[0]
+        A = _tam(_veri())
+        self.assertTrue(any("ortalaması 293.3" in h
+                            for h in CK.tutarlilik(g, dict(A, saptirma_kasnak_capi=240))))
+        self.assertTrue(any("en küçük kasnak 240" in h
+                            for h in CK.tutarlilik(g, dict(A, saptirma_kasnak_min_capi=200))))
 
     def test_raylara_oturan_kirisin_mesnet_araligi(self):
         hata = self._hata(yan_yatak_boyu=900)
@@ -220,12 +229,19 @@ class Tutarlilik(unittest.TestCase):
         self.assertEqual(self._hata(yan_yatak_boyu=900, makine_raya_biniyor="Bina yapısına"), [])
 
     def test_kuyu_dibi_zinciri(self):
-        hata = self._hata(kabin_tampon_baba=400)
+        #  Kaide formdan gelmez ( zincirden );  motora doğrudan verilmişse zincir denetlenir.
+        self.assertEqual(self._hata(kabin_tampon_baba=400), [])
+        _g, hata = CK.cizim_girdisi(dict(_tam(_veri()), kabin_tampon_baba=400))
         self.assertTrue(any("zinciri kapanmıyor" in h and "306" in h for h in hata), hata)
 
     def test_cizilemeyen_kaciklik_soylenir(self):
-        self.assertTrue(any("( yc )" in h for h in self._hata(kabin_kaciklik=40)))
-        self.assertTrue(any("( ys )" in h for h in self._hata(aski_kaciklik_y=40)))
+        #  yc · ys formda sorulmaz ( çizim kabini iki rayın, askıyı kabinin
+        #  ortasına koyar );  eski dosyada yazılı olsa da okunmaz.  Motora
+        #  doğrudan verilmişse çizim söyler.
+        self.assertEqual(self._hata(kabin_kaciklik=40, aski_kaciklik_y=40), [])
+        A = _tam(_veri())
+        self.assertTrue(any("( yc )" in h for h in CK.cizim_girdisi(dict(A, kabin_kaciklik=40))[1]))
+        self.assertTrue(any("( ys )" in h for h in CK.cizim_girdisi(dict(A, aski_kaciklik_y=40))[1]))
 
     def test_regulator_halat_cizgisinin_obur_yaninda(self):
         #  Halat çizgisi ray ekseninin arkasındaysa regülatör öne geçer

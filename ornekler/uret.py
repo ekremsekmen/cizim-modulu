@@ -84,7 +84,7 @@ def uret(md):
     a = s["asansorler"][0]
     print(f"── {ad}")
     print("   çizimden gelen hesap girdileri:",
-          {k: a["girdi"][k] for k in UC_CIZIM.CK.CIZIMDEN if veri["asansorler"][0].get(k, 0) is None})
+          {k: a["girdi"][k] for k in UC_CIZIM.CK.CIZIMDEN if veri["asansorler"][0].get(k) is None})
 
     #  ── PAFTA ─────────────────────────────────────────────────────────
     with tempfile.TemporaryDirectory() as t:

@@ -113,6 +113,7 @@ async function mukavemetKur(){
   mMakineDairesiKutulari();
   mIkiliTazele();
   mKanalUyumu();
+  mSecenekKosullari();
   mAsansorSekmeleriTazele();
   mGkBoslariIsaretle();
   mGelismisTazele();
@@ -307,6 +308,24 @@ function mKanalUyumu(){
   };
   for(const o of i.options) kapat(o, k.value === 'V Kanal' && o.value === 'Sertleştirilmemiş');
   for(const o of k.options) kapat(o, i.value === 'Sertleştirilmemiş' && o.value === 'V Kanal');
+}
+
+/*  YERLEŞİME BAĞLI SEÇENEK ( tasarım şemasının secenek_kosulu'su ):  bir seçenek
+    yalnız bir makine yerleşiminde seçilebilir — makine dairesizde 1:1 askı
+    çizilmez.  Öbür yerleşimde seçenek KAPATILIR ve sebebi üstüne yazılır.
+    Mevcut seçim sessizce değiştirilmez ( bkz. mKanalUyumu );  eski bir dosyadan
+    böyle gelirse çizim sebebini söyler. */
+function mSecenekKosullari(){
+  const mk = $(M_ID('mk_yok'));
+  const yer = mk && mk.checked ? 'mrl' : 'daireli';
+  for(const f of mAlanlar(x => x.secenek_kosulu)){
+    const e = $(M_ID(f.anahtar)); if(!e || !e.options) continue;
+    for(const o of e.options){
+      const k = f.secenek_kosulu[o.value];
+      o.disabled = !!(k && k.yerlesim !== yer);
+      o.title = o.disabled ? k.sebep : '';
+    }
+  }
 }
 
 /*  Checkbox nereden değişirse değişsin ( düğme · geri yükleme · test )
@@ -514,6 +533,7 @@ function mFormaYaz(harita, sec){
     mAlanYaz(f, harita[f.anahtar]);
   }
   mKanalUyumu();
+  mSecenekKosullari();
 }
 
 function mukavemetGirdi(){
@@ -585,6 +605,7 @@ function mukavemetPlanla(hedef){
   mMakineDairesiKutulari();
   mIkiliTazele();
   mKanalUyumu();
+  mSecenekKosullari();
   mGelismisTazele();
   yaz();                              // girdiler tarayıcıda saklansın
   clearTimeout(mZaman);

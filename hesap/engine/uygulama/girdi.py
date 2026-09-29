@@ -33,6 +33,7 @@ from engine.uygulama import mukavemet as MK
 from engine.uygulama import sabitler as US
 from engine.uygulama import mukavemet_girdi as MG
 from engine.uygulama import mukavemet_tablolari as MT
+from tasarim import alanlar as _TS, gorunum as _TG
 
 #  Tanınmayan makine tipinde geri düşülecek verim.  Gerçek verim makine
 #  tipinden ve projenin kendi ofis sabitlerinden gelir ( US.verim ).
@@ -46,23 +47,10 @@ MK_VERIM = US.OFIS.VARSAYILAN_VERIM
 #  girilir ve her asansörün girdi setine karıştırılır — elektrik köprüsü
 #  onları orada bekler.  Liste burada durur ki API ve arayüz aynı yerden
 #  okusun;  iki yerde tutulsaydı ayrışırlardı.
-PROJE_GENELI_ALANLAR = ("temel_a", "temel_b",
-                        "mk_yok", "mk_uzunluk", "mk_genislik")
+PROJE_GENELI_ALANLAR = _TG.anahtarlar(_TS.ELK, proje_geneli=True)
 
-EK_ALANLAR = (
-    ("kuyu_genisligi",  "Kuyu genişliği  ( KG )",            "mm",   "sayi", None, 2400),
-    #  S1 = 6 mm²:  avan motoru ve ofisin avan Excel'i de 6 kullanır;  eskiden
-    #  burada kaynaksız 16 vardı ve aynı asansöre iki proje farklı kesit
-    #  veriyordu.  4,9 – 15 kW'lık motorlarda ε ≤ %1,6 ve akım yeter;  daha
-    #  büyük motorda yetmezse gerilim düşümü bölümü "kesiti büyütün" der.
-    ("kolon_kesit",     "S1 — Kolon hattı kesiti",           "mm²",  "sayi", None, 6),
-    ("makine_kesit",    "S2 — Makine besleme kesiti",        "mm²",  "sayi", None, 6),
-    ("temel_a",         "Temel uzunluğu",                    "m",    "sayi", None, None),
-    ("temel_b",         "Temel genişliği",                   "m",    "sayi", None, None),
-    ("mk_yok",          "Makine dairesiz  ( MRL )",          "—",    "onay", None, True),
-    ("mk_uzunluk",      "Makine dairesi uzunluğu",           "mm",   "sayi", None, None),
-    ("mk_genislik",     "Makine dairesi genişliği",          "mm",   "sayi", None, None),
-)
+#  Tanımlar tasarım şemasında ( tasarim/alanlar.py, sözleşmesi ELK ).
+EK_ALANLAR = _TG.sozlesme(_TS.ELK)
 
 EK_ALAN = {a[0]: a for a in EK_ALANLAR}
 
@@ -76,32 +64,17 @@ AVAN_SINIRLI = {"kolon_kesit": "S1", "makine_kesit": "S2",
 
 
 #  Elektrik / topraklama alanlarının ⓘ metinleri  ( bkz. MG.ACIKLAMA ).
-EK_ACIKLAMA = {
-    "kuyu_genisligi": "KG — kuyunun plandaki genişliği. Yalnız kuyu "
-              "aydınlatmasının bölge indeksine girer; mukavemet hesabına "
-              "girmez.",
-    "kolon_kesit": "S1 — panodan asansör tablosuna gelen kolon hattının "
-              "iletken kesiti. Gerilim düşümü ve koruma iletkeni bundan çıkar.",
-    "makine_kesit": "S2 — tablodan makineye giden besleme hattının kesiti.",
-    "temel_a": "Binanın temelinin uzunluğu. Temel topraklamasının eşdeğer "
-              "direnci temel ALANINDAN hesaplanır.",
-    "temel_b": "Binanın temelinin genişliği.",
-    "mk_yok": "Makine dairesi var mı yok mu. Dairesiz ( MRL ) seçilirse "
-              "tabliye betonu ve makine kaidesi kolonu yoktur: kiriş burkulma "
-              "kontrolü yapılmaz, ray boyuna tabliye eklenmez.",
-    "mk_uzunluk": "Makine dairesinin plandaki uzunluğu. Makine dairesi "
-              "aydınlatmasına girer.",
-    "mk_genislik": "Makine dairesinin plandaki genişliği.",
-}
+EK_ACIKLAMA = {a.anahtar: a.bilgi for a in _TS.ALANLAR
+               if a.sozlesme == _TS.ELK}
 
 #  "Gelişmiş" bölümündeki elektrik alanları  ( bkz. MG.GELISMIS_ALANLAR ).
 #  Kesitler ofisin alışılmış kesitleridir;  yetmezlerse gerilim düşümü ve
 #  koruma iletkeni bölümleri bunu hüküm olarak söyler.  Uzunluklar binaya
 #  bağlıdır, görünür kalır.
-EK_GELISMIS = frozenset(("kolon_kesit", "makine_kesit"))
+EK_GELISMIS = frozenset(_TG.anahtarlar(_TS.ELK, gelismis=True, formda=True))
 
-EK_GRUP = ("Elektrik ve topraklama  ( uygulama projesi )",
-           tuple(a[0] for a in EK_ALANLAR))
+EK_GRUP = ("Elektrik ve topraklama",
+           _TG.anahtarlar(_TS.ELK))
 
 #  ELEKTRİK VE PROJE GENELİ BÖLÜMLERİN GİRDİ GRUPLARI.
 #  mukavemet_girdi.BOLUM_GRUBU'nun devamı — oradaki on bölüm mukavemetin,
@@ -113,81 +86,38 @@ EK_GRUP = ("Elektrik ve topraklama  ( uygulama projesi )",
 #  PROJE GENELİ BÖLÜMLER DE ARTIK EŞLENİYOR.  Numara ile eşlenemiyorlardı:
 #  makine dairesi varsa topraklama 16'dan, yoksa 15'ten başlıyordu.
 #  Grup adı iki yerde geçtiği için tek sabitte durur.
-YERLESIM_GRUBU_ADI = "Makine yerleşimi"
+YERLESIM_GRUBU_ADI = "Asansör ve düzen"
 
 EK_BOLUM_GRUBU = {
-    "kabin_aydinlatma":          ("Kabin ve kapı",),        # ← kabin ölçüleri
-    "kuyu_aydinlatma":           (EK_GRUP[0], "Durak ve kuyu"),   # ← KG · kuyu boyu
-    #  ELEKTRİK GRUBU DEĞİL.  Cetvelde kuyu aydınlatması var, ama armatür
-    #  ADEDİ kuyu YÜKSEKLİĞİNDEN gelir;  kuyu genişliği yalnız lux kontrolüne
-    #  girer ve kurulu gücü değiştirmez.  Gücü belirleyenler motor ( Nsç ) ve
-    #  kabin ölçüsü ( kabin armatür adedi ).
-    "kurulu_guc":                ("Makine ve motor", "Kabin ve kapı"),
-    "gerilim_dusumu":            (EK_GRUP[0], "Makine ve motor"),  # ← S1 · L1 · S2 · L2
-    #  MAKİNE DAİRESİ ÖLÇÜLERİ ARTIK "Makine yerleşimi" GRUBUNDA  ( en üstte ):
-    #  seçim 11 bölümden üçünü belirlediği için elektrik grubunun dibinden
-    #  alındı  ( bkz. YERLESIM_GRUBU ).
-    #  Ölçüler elektrik grubunda, MRL kutusu yerleşim grubunda:  ikisi de
-    #  bu bölümü besler, sonuçtan tıklanınca ikisi de açılmalı.
-    "makine_dairesi_aydinlatma": (EK_GRUP[0], YERLESIM_GRUBU_ADI),
+    "kabin_aydinlatma":          ("Kabin ve kapı",),         # ← kabin ölçüleri
+    "kuyu_aydinlatma":           ("Kuyu ve katlar",),        # ← KG · kuyu boyu
+    #  Cetvelde kuyu aydınlatması var, ama armatür ADEDİ kuyu YÜKSEKLİĞİNDEN
+    #  gelir;  gücü belirleyenler motor ( Nsç ) ve kabin ölçüsü.
+    "kurulu_guc":                ("Makine", "Kabin ve kapı"),
+    "gerilim_dusumu":            (EK_GRUP[0], "Makine"),     # ← S1 · L1 · S2 · L2
+    #  Ölçüler makine dairesi grubunda, makine yeri ( MRL ) düzen grubunda.
+    "makine_dairesi_aydinlatma": ("Makine dairesi", YERLESIM_GRUBU_ADI),
     "topraklama_yatay":          (EK_GRUP[0],),             # ← temel a · b · şerit L
     "topraklama_dikey":          (EK_GRUP[0],),
     "topraklama_toplam":         (EK_GRUP[0],),
-    #  KESİTLER TESİSİN EN BÜYÜK KORUMA İLETKENİNDEN TÜRER;  o da yalnız
-    #  S1 · S2'den — gerilim düşümünün aksine motor gücü buraya girmez, bu
-    #  yüzden "Makine ve motor" grubu bu bölümü etkilemez.
+    #  KESİTLER TESİSİN EN BÜYÜK KORUMA İLETKENİNDEN TÜRER;  o da yalnız S1 · S2'den.
     "topraklama_iletkenleri":    (EK_GRUP[0],),
 }
 
 
-
-#  MAKİNE YERLEŞİMİ EN BAŞTA SORULUR.  Bu iki soru birlikte 11 bölümden
-#  üçünü belirler:
-#     · makine dairesi var mı        →  bölüm 2 ( kaide ) uygulanır mı ·
-#                                       aydınlatma ve elektrik hesapları
-#     · makine yükü raylara biniyor mu →  bölüm 7 · 8 ( kabin ve karşı
-#                                       ağırlık rayları ) Maux ·
-#                                       bölüm 9 ( kuyu tabanı ) FKR · FAR
-#  Bu kadar şey belirleyen bir seçim formun dibinde duramaz;  eskiden
-#  "Elektrik ve topraklama" grubunun içinde, en altta duruyordu — çünkü o
-#  zamanlar YALNIZ aydınlatma hesabını etkiliyordu.
-#  ÖLÇÜLER BURADA DEĞİL.  mk_uzunluk / mk_genislik YALNIZ makine dairesi
-#  aydınlatma hesabına girer ( engine/avan/hesap.hesapla_makine_dairesi );
-#  mukavemetin 11 bölümünün hiçbirini etkilemezler.  Formun en üstünde,
-#  üç bölüm belirleyen mk_yok ile yan yana durmaları önem sırasını
-#  bozuyordu — ölçüler kendi hesabının yanında, "Elektrik ve topraklama"
-#  grubunda durur.
-YERLESIM_GRUBU = (YERLESIM_GRUBU_ADI,
-                  ("mk_yok", "makine_raya_biniyor"))
+#  MAKİNE YERİ FORMUN İLK GRUBUNDA ( "Asansör ve düzen" ):  makine dairesi
+#  var mı sorusu 11 bölümden üçünü belirler ( bölüm 2 kaide · aydınlatma ve
+#  elektrik · rayların Maux'u ) ve çizimin yarısını.  Makine dairesinin ölçüleri
+#  kendi grubunda ( "Makine dairesi" ) — tasarım şeması.
 
 
 def arayuz_alanlari():
-    """Formun kendini üretmesi için tüm gruplar  ( mukavemet + elektrik )."""
+    """Formun kendini kurduğu sözleşme:  bütün gruplar ( mukavemet · çizim ·
+    elektrik ) tasarım şemasından, tasarım sırasıyla;  hesap bölümü → girdi
+    grubu eşlemesi motorlardan."""
     veri = MG.arayuz_alanlari()
-    _ek = {a: {"anahtar": a, "hucre": "", "etiket": et, "birim": b,
-               "tur": t, "secenekler": list(s) if s is not None else None,
-               "varsayilan": v, "gelismis": a in EK_GELISMIS,
-               "bilgi": EK_ACIKLAMA.get(a, "")}
-           for a, et, b, t, s, v in EK_ALANLAR}
-    veri["gruplar"].append({
-        "ad": EK_GRUP[0],
-        "alanlar": [_ek[a] for a, *_x in EK_ALANLAR
-                    if a not in YERLESIM_GRUBU[1]],
-    })
-    #  Yerleşim grubu İKİ KAYNAKTAN toplanır:  makine dairesi alanları proje
-    #  geneli ( burada ), makine yükünün yolu asansör başına ( mukavemet ).
-    _muk = {f["anahtar"]: f for gr in veri["gruplar"] for f in gr["alanlar"]}
-    _yer = [(_ek.get(a) or _muk.get(a)) for a in YERLESIM_GRUBU[1]]
-    for gr in veri["gruplar"]:
-        gr["alanlar"] = [f for f in gr["alanlar"]
-                         if f["anahtar"] not in YERLESIM_GRUBU[1]]
-    veri["gruplar"].insert(0, {"ad": YERLESIM_GRUBU[0],
-                               "alanlar": [f for f in _yer if f]})
-    veri["bolum_grubu"].update({no: list(gr)
-                                for no, gr in EK_BOLUM_GRUBU.items()})
-    #  Arayüz gizleyeceği alanları buradan okur — motorun atladığıyla aynı liste.
-    veri["yerlesime_gore_gizli"] = {"mrl": sorted(uygulanmayan_alanlar(True)),
-                                    "daireli": sorted(uygulanmayan_alanlar(False))}
+    veri.update(_TG.form())
+    veri["bolum_grubu"].update({no: list(gr) for no, gr in EK_BOLUM_GRUBU.items()})
     return veri
 
 
@@ -211,14 +141,10 @@ def uygulanmayan_alanlar(mk_yok):
     Gizli bir alanda kalmış değer ( makine dairesizde "4.000" yazılı makine
     dairesi ölçüsü, makine dairelide geçersiz bir makine yükü yolu ) projeyi
     durduruyordu:  kullanıcı hatayı göremiyor, düzeltemiyordu.  API bu
-    alanları okumaz, motor da doğrulamaz.
+    alanları okumaz, motor da doğrulamaz.  Liste tasarım şemasından
+    ( alanın yerleşimi ) — mukavemet, çizim ve elektrik alanları birlikte.
     """
-    mrl = evet_mi(mk_yok)
-    #  Formun "Çizim" grubundaki yerleşime bağlı alanlar da ( makine dairesinin
-    #  ölçüleri · acil pano ) — ekran ve API bu tek listeyi kullanır.
-    from cizim import kopru as _CK
-    alanlar = MG.uygulanmayan({"mk_yok": mrl}) | _CK.uygulanmayan(mrl)
-    return alanlar | {"mk_uzunluk", "mk_genislik"} if mrl else alanlar
+    return _TG.uygulanmayan(evet_mi(mk_yok))
 
 
 def dogrula(g):

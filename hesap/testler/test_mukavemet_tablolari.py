@@ -401,8 +401,11 @@ KALDIRILAN_ALANLAR = ("kuyu_derinligi", "agirlik_ray_duvar",
 
 
 def _gelismis_sozlesmesi(r):
-    """Formun "Gelişmiş" bölümleri  ( MG.GELISMIS_ALANLAR · girdi.EK_GELISMIS )."""
+    """Formun "Gelişmiş" bölümleri  ( MG.GELISMIS_ALANLAR · girdi.EK_GELISMIS ·
+    çizim alanlarının gelişmiş işareti — form üçünü tasarım şemasından birlikte kurar )."""
     from engine.uygulama import girdi as UG
+    from cizim import kopru as CK
+    _ck_gelismis = frozenset(a[0] for a in CK.ALANLAR if a[6])
     for a in sorted(MG.GELISMIS_ALANLAR):
         r.kontrol(f"gelişmiş {a}: sözleşmede var ve kullanıcıdan alınıyor",
                   a in MG.ALAN and MG.ALAN[a][3] != "hesap")
@@ -429,14 +432,14 @@ def _gelismis_sozlesmesi(r):
         r.kontrol(f"grup '{gr['ad']}': en az bir görünür alan",
                   any(not f["gelismis"] for f in gr["alanlar"]))
         for f in gr["alanlar"]:
-            bek = f["anahtar"] in (MG.GELISMIS_ALANLAR | UG.EK_GELISMIS)
+            bek = f["anahtar"] in (MG.GELISMIS_ALANLAR | UG.EK_GELISMIS | _ck_gelismis)
             if f["gelismis"] != bek:
                 r.kontrol(f"arayüz {f['anahtar']}: gelişmiş işareti", False,
                           f"→ {f['gelismis']!r}, beklenen {bek!r}")
     _hepsi = [f for gr in veri["gruplar"] for f in gr["alanlar"]]
     r.esit("arayüz: gelişmiş alan sayısı",
            sum(f["gelismis"] for f in _hepsi),
-           len(MG.GELISMIS_ALANLAR) + len(UG.EK_GELISMIS))
+           len(MG.GELISMIS_ALANLAR) + len(UG.EK_GELISMIS) + len(_ck_gelismis))
 
     #  ── ALAN AÇIKLAMALARI  ( formdaki ⓘ )  ────────────────────────────
     #  SÖZLEŞMENİN PARÇASIDIR.  Açıklamasız bir girdi, kullanıcının ne

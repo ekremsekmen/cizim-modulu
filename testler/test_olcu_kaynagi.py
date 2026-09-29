@@ -149,13 +149,15 @@ class Kaynak(unittest.TestCase):
         self.assertEqual(k[0]["yer"], "urun")
         self.assertEqual(k[0]["etiket"], CS.ETIKET["kabin_esik_derinlik"])
 
-    def test_girilmis_kaide_ile_kuyu_dibi_bagli(self):
-        #  Örnekte kaide girilmiş ( 306 ):  kuyu dibi tek başına değişemez
-        #  ( zincir ), kaideyle birlikte değişir.
+    def test_kuyu_dibi_dogrudan_kaide_zincirden(self):
+        #  Kabin tamponu kaidesinin formda kutusu yok ( tasarım şeması:  kaynağı
+        #  çizim ):  kuyu dibi zincirinden gelir.  Kuyu dibi tek başına değişir,
+        #  kaide onu izler — eskiden girilmiş kaide yüzünden ikisi bağlıydı.
         r = UC._cozumleme(self.v, "kuyu_kesiti_yan")
         k = UC._kaynaklar(r, _olcu(r, "KUYU DİBİ"))
         self.assertEqual(k[0]["anahtar"], "kuyu_dibi")
-        self.assertTrue(k[0]["bagli"])
+        self.assertFalse(k[0]["bagli"])
+        self.assertTrue(k[0]["dogrudan"])
 
     def test_ofis_standardi(self):
         #  Kuyu tavanı payı ( Sabitler sekmesi ) ön kesitte raylarla kabin rayının
@@ -257,9 +259,15 @@ class Degistirme(unittest.TestCase):
         self.assertEqual(y["degisiklikler"][0]["deger"], 2014)          # 2.100 − 2 × 43
 
     def test_bagli_alan_birlikte_degisir(self):
-        #  Kuyu dibi 1.500 → 1.600:  girilmiş kaide de 306 → 406 ( zincir kapanır )
+        #  Makine kirişleri karşı ağırlık raylarına oturuyor:  kirişin mesnet
+        #  aralığı raylar arasıdır ( L = DBGW ).  DBGW 850 → 900 ise yan yatak
+        #  boyu da 900 olur — tutarlılık denetiminin düzeltmesi.
+        self._dene(_veri(), "kuyu_plani", "DBGW", "agirlik_ray_arasi", 900,
+                   beklenen={"agirlik_ray_arasi": 900, "yan_yatak_boyu": 900})
+
+    def test_kuyu_dibi_degisince_kaide_izler(self):
         self._dene(_veri(), "kuyu_kesiti_yan", "KUYU DİBİ", "kuyu_dibi", 1600,
-                   beklenen={"kuyu_dibi": 1600, "kabin_tampon_baba": 406})
+                   beklenen={"kuyu_dibi": 1600})
 
     def test_baska_birimdeki_girdi(self):
         #  Kat yüksekliği = seyir / ( durak − 1 ):  seyir metre

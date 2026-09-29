@@ -276,9 +276,11 @@ def calistir():
                   pg.is_visible("#m_halat_capi")
                   and pg.is_visible("#m_tahrik_kasnak_capi"))
         pg.evaluate("mGirdiyeGit('siginma_alanlari')")
-        r.kontrol("sığınma bölümü hem kuyuyu hem tampon babasını açıyor",
+        #  Kabin tamponu kaidesi formda sorulmaz ( kuyu dibi zincirinden );
+        #  tampon grubunun görünür alanı ağırlık tamponu kaidesidir.
+        r.kontrol("sığınma bölümü hem kuyuyu hem tamponları açıyor",
                   pg.is_visible("#m_son_kat_yuksekligi")
-                  and pg.is_visible("#m_kabin_tampon_baba"))
+                  and pg.is_visible("#m_agirlik_tampon_baba"))
         #  ÜÇ GRUP AÇILMAZ — akordeon listeye dönerse aranan alan yine kaybolur
         r.esit("atlama en çok iki grup açıyor",
                pg.evaluate("Math.max(...Object.values(MUK.bolum_grubu)"
@@ -314,19 +316,19 @@ def calistir():
                pg.evaluate("mAlanlar(f=>!f.gelismis).filter(f=>{const e=$(M_ID(f.anahtar));"
                            "return e && e.closest('.m-gelismis-ic');}).map(f=>f.anahtar)"), [])
         #  Hesaba girmediği için kaldırılan alanlar hesabın gruplarına dönmez;
-        #  çizim kullanıyorsa yalnız "Çizim" grubunda sorulur ( aynı anlamla:
-        #  KD, ağırlık ray ekseni – duvar ).
-        for _yok in ("kuyu_derinligi", "agirlik_ray_duvar", "dikine_kiris_tipi",
-                     "yan_yatak_tipi"):
-            if _yok in _CKp.ALAN:
-                r.kontrol(f"gelişmiş: kaldırılan '{_yok}' yalnız çizim grubunda",
-                          pg.evaluate(f"(()=>{{const e=$(M_ID('{_yok}'));const i=MUK.gruplar"
-                                      f".findIndex(g=>g.alanlar.some(f=>f.anahtar==='{_yok}'));"
-                                      f"return !!e && MUK.gruplar[i].ad==={json.dumps(_CKp.GRUP)};}})()"))
+        #  çizim kullanıyorsa ( KD, ağırlık ray ekseni – duvar ) kendi tasarım
+        #  grubunda bir kez sorulur ( tasarım şeması ).
+        for _yok, _grup in (("kuyu_derinligi", "Kuyu ve katlar"),
+                            ("agirlik_ray_duvar", "Karşı ağırlık"),
+                            ("dikine_kiris_tipi", None), ("yan_yatak_tipi", None)):
+            if _grup:
+                r.kontrol(f"gelişmiş: '{_yok}' bir kez, '{_grup}' grubunda",
+                          pg.evaluate(f"MUK.gruplar.filter(g=>g.alanlar.some(f=>f.anahtar==="
+                                      f"'{_yok}')).map(g=>g.ad)") == [_grup])
             else:
                 r.kontrol(f"gelişmiş: kaldırılan '{_yok}' formda yok",
                           pg.query_selector(f"#m_{_yok}") is None)
-        _gi = pg.evaluate("MUK.gruplar.findIndex(g=>g.ad==='Askı halatları')")
+        _gi = pg.evaluate("MUK.gruplar.findIndex(g=>g.ad==='Askı ve halatlar')")
         pg.evaluate(f"mGrupAc({_gi})")
         pg.wait_for_timeout(200)
         r.kontrol("gelişmiş: grup açılınca görünür alan görünüyor, gelişmiş kapalı",
@@ -498,11 +500,11 @@ def calistir():
         #  kaldırıldı.  Malzeme seçimi artık yalnız kutuyu DOLDURUR — hesap
         #  her hâlükârda kutudaki sayıyı okur.
         pg.evaluate("mTumGruplariAc()")
-        #  Ağırlık ray arası hesapta sorulmaz ( hesaba girmiyordu );  kuyu
-        #  planını kurar, yalnız "Çizim" grubundadır ( DBGW — boşsa Gy + 60 ).
-        r.kontrol("ağırlık ray arası yalnız çizim grubunda",
+        #  Ağırlık ray arası hesaba girmez;  kuyu planını kurar ( DBGW — boşsa
+        #  Gy + 60 ) ve karşı ağırlık grubunda bir kez sorulur.
+        r.kontrol("ağırlık ray arası bir kez, karşı ağırlık grubunda",
                   pg.evaluate("MUK.gruplar.filter(g=>g.alanlar.some(f=>f.anahtar==="
-                              "'agirlik_ray_arasi')).map(g=>g.ad)") == [_CKp.GRUP])
+                              "'agirlik_ray_arasi')).map(g=>g.ad)") == ["Karşı ağırlık"])
         r.kontrol("karşı ağırlık ölçüleri formda",
                   pg.eval_on_selector_all("#m_agirlik_genisligi", "e=>e.length") == 1
                   and pg.eval_on_selector_all("#m_agirlik_derinligi", "e=>e.length") == 1)
@@ -768,9 +770,9 @@ def calistir():
         #  id ile doldurduğu için bütün grupları açıyoruz;  akordeonun kendi
         #  davranışı aşağıda ayrıca denetleniyor.
         pg.evaluate("mTumGruplariAc()")
-        #  Üçü de giderilince hepsi geçmeli
+        #  İkisi de giderilince hepsi geçmeli.  D2 formda sorulmaz:  çizilen
+        #  kasnaklardan gelir ( tasarım şeması ).
         pg.fill("#m_tahrik_kasnak_capi", "280")
-        pg.fill("#m_saptirma_kasnak_capi", "280")
         pg.fill("#m_motor_gucu", "7.5")
         pg.fill("#m_guvenlik_devreye_kuvvet", "200")
         #  Tahrik için iki bileşen bilgisi daha:  sertleştirilmiş kanal

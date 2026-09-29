@@ -30,143 +30,26 @@ import math
 
 from cizim import girdi as CG
 from cizim import sabitler as CS
+from tasarim import alanlar as _TS, gorunum as _TG
 
 
 def _sayi(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
 
 
-GRUP = "Çizim  ( kuyu yerleşimi )"
-
 #  ( anahtar , etiket , birim , tür , seçenekler , varsayılan , gelişmiş , açıklama )
 #  Varsayılanı None olan alan boş bırakılabilir:  değeri açıklamada yazan
-#  kuraldan gelir ( _varsayilan ).  Gelişmiş alanlar grubun altında kapalı durur.
-ALANLAR = (
-    ("kuyu_derinligi", "Kuyu derinliği  ( KD )", "mm", "sayi", None, 1800, False,
-     "Kuyunun plandaki iç derinliği:  kapı duvarının iç yüzünden arka duvarın iç "
-     "yüzüne.  Kuyu genişliği ile birlikte kuyu planını kurar."),
-    ("durak_adedi", "Durak adedi", "adet", "sayi", None, 8, False,
-     "Kat kapısı sayısı.  Kat yüksekliği seyir mesafesinden çıkar:  "
-     "seyir / ( durak − 1 ).  Düşey kesitlerde duraklar bu aralıkla dizilir."),
-    ("kabin_yana_kaciklik", "Kabinin kuyu ortasından sağa kaçıklığı  ( sola − )", "mm", "sayi",
-     None, 0, False,
-     "Kapıya bakana göre kabin ekseninin kuyu genişliğinin ortasından uzaklığı. "
-     "Karşı ağırlık yandaysa kabin çoğunlukla öbür yana kaçar.  Kabin rayları "
-     "ve kat kapısı kabinle birlikte kayar."),
-    ("aski_duzeni", "Askı kasnaklarının yeri  ( 2:1 )", "—", "secim", ("Kabin altı", "Kabin üstü"),
-     "Kabin altı", False,
-     "2:1 askıda kabin kasnaklarının kabinin altında mı üstünde mi olduğu. "
-     "1:1 askıda halatlar kabine doğrudan bağlanır, bu seçim kullanılmaz."),
-    ("kuyu_duvar_kalinligi", "Kuyu duvarı kalınlığı", "mm", "sayi", None, 150, True,
-     "Kuyunun dört duvarı bu kalınlıkta çizilir ( referans proje:  150 )."),
-    ("kapi_montaji", "Kat kapısının montajı", "—", "secim", tuple(CG.KAPI_MONTAJLARI),
-     "Kuyu içine", True,
-     "Duvar boşluğuna:  kasa duvarın boşluğunda, eşik kuyuya taşar.  Kuyu içine:  "
-     "kapı ünitesi duvarın iç yüzüne monte ( referans proje ).  Kapı hattının ve "
-     "kabinin kuyudaki yeri buna göre değişir."),
-    ("esik_arasi", "Kabin eşiği – kat eşiği arası", "mm", "sayi", None, 30, True,
-     "TS EN 81-20 m.5.3.4.1:  en çok 35 mm ( referans proje:  30 ).  Kabinin ön "
-     "yüzü kapı hattından bu açıklık + kabin eşiği derinliği kadar geridedir."),
-    ("kapi_kaciklik", "Kat kapısının kabin ekseninden sağa kaçıklığı", "mm", "sayi", None, 0, True,
-     "Kapı boşluğunun ekseni kabinin ekseninde değilse ( sola − )."),
-    ("kapi_yuksekligi", "Kat kapısı yüksekliği", "mm", "sayi", None, 2000, True,
-     "Kapının net geçiş yüksekliği;  TS EN 81-20 m.5.3.1.1 en az 2.000 mm."),
-    ("kabin_ic_yuksekligi", "Kabin iç yüksekliği", "mm", "sayi", None, 2200, True,
-     "TS EN 81-20 m.5.4.1 en az 2.000 mm.  Düşey kesitlerde kabin bu yükseklikte "
-     "çizilir."),
-    ("kabin_ray_arasi", "Kabin rayları arası  ( DBG — boşsa kabin genişliği + 200 )", "mm", "sayi",
-     None, None, True,
-     "İki kabin rayının birbirine bakan uçları arası.  Kabin şasesi bu aralığa "
-     "sığmalıdır ( referans proje:  1.350 mm kabinde 1.550 )."),
-    ("agirlik_ray_arasi", "Ağırlık rayları arası  ( DBGW — boşsa Gy + 60 )", "mm", "sayi",
-     None, None, True,
-     "İki karşı ağırlık rayının birbirine bakan uçları arası.  Ağırlık çerçevesi "
-     "( Gy ) bu aralıkta durur, iki uçta paten payı kalır ( referans proje:  790 "
-     "çerçevede 850 ).  Makine dairesizde makine kirişleri bu raylara oturuyorsa "
-     "kirişlerin mesnet aralığı ( yan yatak boyu ) da budur."),
-    ("agirlik_ray_duvar", "Karşı ağırlık ekseni – duvar arası  ( boşsa Gx / 2 + 50 )", "mm", "sayi",
-     None, None, True,
-     "Karşı ağırlığın ekseninin yakın duvara uzaklığı:  yandaysa yan duvara, "
-     "arkadaysa arka duvara."),
-    ("agirlik_eksen_kaciklik", "Karşı ağırlık ekseninin kabin rayından kaçıklığı  ( arkaya + )",
-     "mm", "sayi", None, 0, True,
-     "Yandaki karşı ağırlığın ekseni kabin ray ekseninin önünde ( − ) ya da "
-     "arkasında ( + ) olabilir ( referans proje:  50 mm önde, −50 )."),
-    ("agirlik_kasnak_capi", "Karşı ağırlık kasnağı çapı  ( 2:1 )", "mm", "sayi",
-     None, 400, True,
-     "2:1 askıda karşı ağırlığın üstündeki kasnak ( referans proje:  400 ).  Hesabın "
-     "D2'si ( saptırma kasnaklarının ortalaması ) ve Ds'si ( en küçüğü ) boş "
-     "bırakılırsa çizilen kasnaklardan gelir."),
-    ("kabin_kasnak_capi", "Kabin askı kasnakları çapı  ( 2:1 )", "mm", "sayi",
-     None, 240, True,
-     "Kabinin altındaki ( ya da üstündeki ) iki askı kasnağının çapı ( referans proje:  "
-     "240 )."),
-    ("makine_saptirma_capi", "Saptırma kasnağı çapı  ( makine dairesinde, gerekirse )", "mm", "sayi",
-     None, 400, True,
-     "Makine dairesinde karşı ağırlık halatı tahrik kasnağının öbür teğetinden daha "
-     "dışarıda inmeliyse saptırma kasnağı çizilir;  o zaman bu çapta.  Çizildiyse "
-     "hesabın D2 ortalamasına da girer."),
-    ("kabin_kasnak_arasi", "Kabin askı kasnakları arası  ( 2:1 )", "mm",
-     "sayi", None, None, True,
-     "İki kasnağın eksenleri arası.  Kabin altında boşsa halat karşı ağırlık kasnağına "
-     "DÜŞEY iner:  kabinin ağırlık tarafındaki halat tahrik kasnağının bir teğetinde, "
-     "öbür teğeti ağırlığın ekseninde ( sarım açısı 180°, çizimden bulunur ).  Halat "
-     "kabinin panosuna yaklaşıyorsa ya da düşey inen halat ray ara kirişine çarpıyorsa "
-     "kabin genişliği + 30 ( referans proje:  1.350 mm kabinde 1.380;  halat eğik iner, "
-     "α girilir ).  Kabin üstünde boşsa kasnakların dış ucu kabin kenarından 200 "
-     "içeride:  korkuluğun içinde kalır ( korkuluk kenardan en çok 150 içeride — "
-     "m.5.4.7.4 c )."),
-    ("regulator_yani", "Regülatör halatının yanı", "—", "secim",
-     ("Karşı ağırlığın karşısı", "Sağ", "Sol"), "Karşı ağırlığın karşısı", True,
-     "Hız regülatörü halatının ve gergi kasnağının hangi kabin rayının yanından "
-     "indiği.  Karşı ağırlık arkadaysa \"karşısı\" sağ yan sayılır."),
-    ("regulator_kaciklik", "Regülatör halatı – kabin ray ekseni arası  ( arkaya + )", "mm", "sayi",
-     None, None, True,
-     "Regülatör halatının ray ekseninden uzaklığı ( referans proje:  280 arkada ).  Boşsa "
-     "280, askı halatlarının çizgisinin öbür yanında:  kabin halat bağlantısı ile "
-     "regülatör aynı rayın başında durur, üst üste binmesinler.  Gergi ağırlığı "
-     "kasnağın ötesine uzanır, kuyuya sığmazsa kol öbür yöne döner;  o zaman raya ya da "
-     "tampona çarpıyorsa program çarpmayan en yakın yeri seçer."),
-    ("agirlik_tampon_boyu", "Ağırlık tamponu uzunluğu  ( boşsa kabin tamponununki )", "mm", "sayi",
-     None, None, True,
-     "Karşı ağırlık tamponunun serbest boyu ( kaideden tepesine ).  Düşey "
-     "kesitlerde ağırlık tamponu bu boyda çizilir."),
-    ("acil_pano_yani", "Acil kurtarma panosunun yanı  ( makine dairesiz )", "—", "secim",
-     ("Sol", "Sağ"), "Sol", True,
-     "Makine dairesizde acil kurtarma panosu en üst kattaki kat kapısının bu "
-     "yanında durur."),
-    #  ── MAKİNE DAİRESİ ( proje geneli:  oda binaya aittir ) ────────────
-    ("md_duvar", "Makine dairesi duvar kalınlığı", "mm", "sayi", None, 200, True,
-     "Makine dairesi duvarlarının kalınlığı."),
-    ("md_x", "Makine dairesinin kuyuya göre yeri — x  ( boşsa ortalı )", "mm", "sayi", None, None,
-     True,
-     "Odanın sol iç yüzünün kuyunun sol iç yüzüne göre yeri ( sola − ).  Boşsa oda "
-     "kuyunun dış genişliğine ortalanır."),
-    ("md_y", "Makine dairesinin kuyuya göre yeri — y  ( boşsa ön duvarla hizalı )", "mm", "sayi",
-     None, None, True,
-     "Odanın ön iç yüzünün kuyunun ön iç yüzüne göre yeri ( öne − ).  Boşsa odanın "
-     "önü kuyunun ön duvarının dış yüzüyle hizalıdır."),
-    ("md_yukseklik", "Makine dairesi iç yüksekliği", "mm", "sayi", None, 3500, True,
-     "Döşemeden tavana temiz yükseklik;  TS EN 81-20 m.5.2.6.3.2 çalışma alanlarında "
-     "en az 2.100 mm."),
-    ("md_kapi_duvar", "Makine dairesi kapısının duvarı", "—", "secim", ("Ön", "Arka", "Sol", "Sağ"),
-     "Arka", True, "Kapının açıldığı duvar."),
-    ("md_kapi_konum", "Makine dairesi kapısının köşeden uzaklığı", "mm", "sayi", None, 300, True,
-     "Kapının bulunduğu duvarın sol ( ön ) iç köşesinden kapı boşluğuna."),
-    ("md_kapi_genislik", "Makine dairesi kapısı genişliği", "mm", "sayi", None, 800, True,
-     "TS EN 81-20 m.5.2.3.2 a:  en az 600 mm."),
-    ("md_kapi_yukseklik", "Makine dairesi kapısı yüksekliği", "mm", "sayi", None, 2000, True,
-     "TS EN 81-20 m.5.2.3.2 a:  en az 1.800 mm."),
-    ("md_pano_duvar", "Kumanda panosunun duvarı", "—", "secim", ("Ön", "Arka", "Sol", "Sağ"),
-     "Sağ", True, "Kumanda panosunun durduğu duvar."),
-)
+#  kuraldan gelir ( _varsayilan ).  Tanımlar tasarım şemasında
+#  ( tasarim/alanlar.py, sözleşmesi CIZ );  formda kendi tasarım grubunda durur.
+ALANLAR = tuple((a.anahtar, a.etiket, a.birim, a.tur, a.secenekler, a.varsayilan,
+                 a.gelismis, a.bilgi) for a in _TS.ALANLAR if a.sozlesme == _TS.CIZ)
 ALAN = {a[0]: a for a in ALANLAR}
 
 #  Makine dairesi binaya aittir:  bütün asansörlerde tek değer.
-PROJE_GENELI = tuple(a for a in ALAN if a.startswith("md_"))
+PROJE_GENELI = _TG.anahtarlar(_TS.CIZ, proje_geneli=True)
 #  Makine yerleşimine göre çizime girmeyen alanlar ( ekran gizler ).
-YALNIZ_DAIRELI = PROJE_GENELI
-YALNIZ_MRL = ("acil_pano_yani",)
+YALNIZ_DAIRELI = _TG.anahtarlar(_TS.CIZ, yerlesim="daireli")
+YALNIZ_MRL = _TG.anahtarlar(_TS.CIZ, yerlesim="mrl")
 
 
 #  HESABIN OFİS STANDARDINDAN ÇİZİME GEÇEN KABİN VE KUYU ÖLÇÜLERİ:  hesabın
@@ -230,14 +113,6 @@ def uygulanmayan(mk_yok):
     return set(YALNIZ_DAIRELI) if mk_yok else set(YALNIZ_MRL)
 
 
-def arayuz_grubu():
-    """Hesap formunun bir grubu olarak çizim alanları ( hesap programının
-    alan sözlüğü biçiminde )."""
-    return {"ad": GRUP, "alanlar": [
-        {"anahtar": a, "hucre": "", "etiket": et, "birim": b, "tur": t,
-         "secenekler": list(s) if s is not None else None, "varsayilan": v,
-         "gelismis": gel, "bilgi": bilgi}
-        for a, et, b, t, s, v, gel, bilgi in ALANLAR]}
 
 
 def _profil(p):
@@ -591,17 +466,8 @@ def _regulator_yeri(g):
 #  çizimin geometrisinden gelir ve hesaba o değer girer ( ekranda kutunun
 #  içinde gri yazar ).  Girilmişse girilen kullanılır ve çizimle
 #  karşılaştırılır ( tutarlilik ).
-CIZIMDEN = {
-    "aski_kaciklik_x": "Boşsa çizimden ( 2:1 halat çizgisi;  1:1 ve arkada 0 ).",
-    "saptirma_kasnak_capi": "Boşsa çizimden:  çizilen kasnakların ortalaması ( çapları "
-                            "formun Çizim grubunda ).",
-    "saptirma_kasnak_min_capi": "Boşsa çizimden:  çizilen kasnakların en küçüğü.",
-    "kabin_tampon_baba": "Boşsa çizimden:  kuyu dibi − tampon − çarpma arası − kabinin "
-                         "şase altı.",
-    "sarilma_acisi": "Boşsa çizimden, açı sabitse:  iki iniş düşey ( 180° ) ya da saptırma "
-                     "kasnağı.  Halat eğik iniyorsa ( HALAT SAPMASI:  açı ağırlığın konumuyla "
-                     "değişir ), çift sarımda ya da çizim kurulamıyorsa girilmeli.",
-}
+#  Kuralları tasarım şemasındadır ( Alan.cizimden ).
+CIZIMDEN = _TG.cizimden()
 
 
 def kasnaklar(g):

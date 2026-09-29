@@ -22,6 +22,7 @@ from engine.uygulama import sabitler as E_US
 from engine.uygulama import tablolar_gorunum as E_UTB
 from engine.uygulama import hesap as E_UYG
 from engine.uygulama import mukavemet_girdi as E_MGR
+from tasarim import gorunum as _TG
 from exports import kapak_export as X_KAPAK
 from exports import pdf_export as X_PDF
 
@@ -60,18 +61,6 @@ def uygulama_alanlari():
     #  ekranda görünmüyordu — uygulama yapan mühendis kullandığı ray
     #  tablosuna bakamıyordu.
     veri["tablolar"] = E_UTB.arayuz_tablolari()
-    #  Çoklu projede asansöre özel OLMAYAN alanlar — arayüz bunları asansör
-    #  formunun dışında bir kez sorar ve asansörden asansöre taşımaz.
-    veri["proje_geneli"] = list(PROJE_GENELI_ALANLAR)
-    #  ÇİZİM ALANLARI:  hesabın bilmediği, yalnız çizimin ihtiyaç duyduğu
-    #  ölçüler ( cizim/kopru.ALANLAR ).  Elektrik grubunun önünde tek grup.
-    _yer = next((i for i, gr in enumerate(veri["gruplar"]) if gr["ad"] == E_UGR.EK_GRUP[0]),
-                len(veri["gruplar"]))
-    veri["gruplar"].insert(_yer, UC_CIZIM.CK.arayuz_grubu())
-    #  ÇİZİMDEN TÜRETİLEN HESAP GİRDİLERİ ( cizim/kopru.CIZIMDEN ):  boşsa
-    #  değer çizimin geometrisinden gelir ( motorun tamamla'sı );  ekran
-    #  kutunun içine hangi sayıyla hesaplandığını gri yazar.
-    veri["cizimden"] = list(UC_CIZIM.CK.CIZIMDEN)
     veri["asansor_azami"] = E_UYG.ASANSOR_AZAMI
     return veri
 
@@ -115,7 +104,7 @@ def _girdi_coz(v, veri, atla=frozenset()):
     #  temel ölçüleri · makine dairesi ).  Onay kutusu mantıksal, geri kalanı
     #  serbest sayıdır;  boş bırakılabilir — hesap eksikliği kendisi bildirir.
     for anahtar, _et, _b2, tur2, _s2, _v2 in E_UGR.EK_ALANLAR:
-        if anahtar not in v:
+        if anahtar not in v or anahtar not in _FORMDA:
             continue
         if anahtar in atla:
             g[anahtar] = None
@@ -125,7 +114,7 @@ def _girdi_coz(v, veri, atla=frozenset()):
     #  Çizim alanları:  sayılar okunur ( okunamayan yazım reddedilir ),
     #  seçimler olduğu gibi;  boş alan None — köprü kuralını uygular.
     for anahtar, _et, _b3, tur3, _s3, _v3, _gel, _bil in UC_CIZIM.CK.ALANLAR:
-        if anahtar not in v:
+        if anahtar not in v or anahtar not in _FORMDA:
             continue
         if anahtar in atla:
             g[anahtar] = None
@@ -134,7 +123,7 @@ def _girdi_coz(v, veri, atla=frozenset()):
         g[anahtar] = _sayi_oku(ham, _et) if tur3 == "sayi" else (
             ham if str(ham).strip() != "" else None)
     for anahtar, etiket, _b, tur, secenekler, _var in E_MGR.ALANLAR:
-        if tur == "hesap" or anahtar not in v:
+        if tur == "hesap" or anahtar not in v or anahtar not in _FORMDA:
             continue
         if anahtar in atla:
             g[anahtar] = None
@@ -167,6 +156,10 @@ def _girdi_coz(v, veri, atla=frozenset()):
 
 #  Makine dairesinin çizim ölçüleri de binaya aittir.
 PROJE_GENELI_ALANLAR = E_UGR.PROJE_GENELI_ALANLAR + UC_CIZIM.CK.PROJE_GENELI
+#  FORMDA KUTUSU OLAN alanlar okunur ( tasarım şeması ).  Çizimden ya da
+#  hesaptan gelen alan istekte olsa da okunmaz — eski proje dosyalarında
+#  saptırma kasnağı çapı, kaide, ray sayısı yazılı olabilir.
+_FORMDA = frozenset(_TG.anahtarlar(formda=True))
 
 
 def _asansor_girdileri(veri):

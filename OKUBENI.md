@@ -14,17 +14,31 @@ planlar ) aynı paftada.  Çizimler ekranda **SVG**, paftada **DXF / DWG** olur.
 
 ## Hesap ile çizimin bağlantısı
 
-**Tek girdi.**  Ekrandaki form hem hesabı hem çizimi besler.  Hesapta olan bir
-ölçü çizimde ikinci kez sorulmaz ( `cizim/kopru.py` );  hesabın bilmediği,
-çizimin gerektirdiği ölçüler formun **"Çizim ( kuyu yerleşimi )"** grubundadır:
-kuyu derinliği, durak adedi, kabinin ve kapının kuyudaki yeri, kasnak çapları,
-regülatörün yeri, makine dairesinin yeri ve kapısı …  Kuyu tabanına ve ray
-konsollarına gelen kuvvetler hesabın **sonucundan** çizime yazılır.
+**Tek girdi, tek şema.**  Ekrandaki form hem hesabı hem çizimi besler.  Bütün
+girdiler **tasarım şemasında** ( `tasarim/alanlar.py` ) tasarım sırasıyla bir kez
+tanımlıdır:  etiketi, birimi, seçenekleri, varsayılanı, formdaki grubu, doğrulama
+bayrakları ve **kaynağı** — GİRDİ ( tasarım kararı ), KURAL ( boşsa yerleşim
+kuralından ), KATALOG ( ürün / imalatçı verisi ), ÇİZİM ( yerleşimden ölçülür ),
+HESAP ( hesabın kendi türettiği ).  Hesap motorunun, elektrik hesaplarının ve
+köprünün alan listeleri, formun grupları, "Gelişmiş" alanları, ⓘ metinleri ve
+sayı sözlüğü ( `tasarim/sozluk.py` ) bu şemadan türetilir ( `tasarim/gorunum.py` ).
 
-**Çizimden gelen hesap girdileri.**  Aynı fiziksel büyüklük hem hesapta hem
-çizimde varsa tek kaynaktan gelir.  Hesapta boş bırakılırsa değer çizimin
-geometrisinden türetilir ve hesaba o girer ( ekranda kutunun içinde gri yazar;
-`kopru.CIZIMDEN` ):
+Form gruplarının sırası tasarımın sırasıdır:  **Asansör ve düzen** ( yük, hız,
+makine yeri, askı oranı, askı kasnaklarının yeri, karşı ağırlığın yeri ) →
+Kuyu ve katlar → Kabin ve kapı → Raylar ve patenler → Karşı ağırlık → Askı ve
+halatlar → Makine → Makine dairesi → Tamponlar → Hız regülatörü → Elektrik ve
+topraklama.  Makine dairesizde 1:1 askı seçilemez ( çizim 2:1 çizer ).
+
+**Formda sorulmayanlar.**  Çizimin tek çizebildiği değerler ( iki kabin ve iki
+ağırlık rayı;  kabin iki rayın, askı kabinin ortasında — yc = ys = 0 ) ve
+çizimden gelenler ( saptırma kasnaklarının çapı D2 · Ds, kabin tamponu kaidesi )
+formda yoktur;  eski bir proje dosyasında yazılı olsalar da okunmazlar.  Hesap
+motoru onları hâlâ bekler ( doğrudan çağrıda verilebilir, çizim o zaman
+uyuşmazlığı söyler ).  Kuyu tabanına ve ray konsollarına gelen kuvvetler
+hesabın **sonucundan** çizime yazılır.
+
+**Çizimden gelen hesap girdileri** ( `kopru.CIZIMDEN`;  askı kaçıklığı ve sarılma
+açısı formda sorulur, boşsa çizimden — ekranda kutunun içinde gri yazar ):
 
 | Hesap girdisi | Çizimden |
 |---|---|
@@ -135,13 +149,15 @@ kurulamıyorsa paket inmez, sebebi söylenir — eksik proje teslim edilmesin
 `api/uygulama.py` ( çizim alanları, paket ), `main.py` ( port 8780, çizim
 uçları ), `exports/dxf_export.py` ( paketin son işlemi ), `static/` ( Hesap |
 Çizimler, ölçüye tıklama );  hesap motorunda `engine/uygulama/mukavemet.py` ( bölüm 11 çizimden ),
-`mukavemet_girdi.py` ( çizimden türeyen beş girdi:  varsayılanı boş,
-`tamamla` türetir;  son kat yüksekliğinin varsayılanı 3.750 → 4.200 — projelerde girilen
-değer;  3.750'de varsayılan asansörün üst pateni kuyu tavanına giriyordu ), `sabitler.py` ( kabinin düşey ölçüleri ), `girdi.py` ( makine yerleşimine göre gizlenen alanlar çizim grubununkileri de içerir — ekran, API ve motor tek liste ), `__init__.py`
+`mukavemet_girdi.py` ( alan tanımları, gruplar, "Gelişmiş" listesi, ⓘ metinleri ve
+doğrulama listeleri artık tasarım şemasından türetilir — `tasarim/alanlar.py`;
+motorun sözleşmesinin biçimi ve içeriği aynı kaldı.  Çizimden türeyen beş girdi:
+varsayılanı boş, `tamamla` türetir;  son kat yüksekliğinin varsayılanı 3.750 → 4.200 — projelerde girilen
+değer;  3.750'de varsayılan asansörün üst pateni kuyu tavanına giriyordu ), `sabitler.py` ( kabinin düşey ölçüleri ), `girdi.py` ( elektrik alanları ve formun sözleşmesi şemadan;  makine yerleşimine göre gizlenen alanlar şemanın yerleşim bayrağından — ekran, API ve motor tek liste ), `__init__.py`
 ( çizim modülünün yolu ).  Testler yeni modele göre güncellendi, TEST 7 ve
 TEST 10'un dondurulmuş referansları farklar incelenerek yeniden üretildi
 ( fark:  bölüm 11, xs'in ray hesabı, D2'nin halat ve tahrik hesabı;  α'nın çizimden geldiği senaryolarda tahrik sınırları — düşey inişli 180°, makine daireli 1:1'de 134,3° — ve α uyarısının metni ).  Motor doğrudan çağrılınca da ( testler ) türetme uygulama alanlarının varsayılanlarıyla yapılır — program ile motor aynı α'yı, aynı D2'yi bulur.
-Arayüz testleri ( TEST 5 ) birleşik formun sözleşmesine göre:  12 grup ( çizim grubu ), hesaptan kaldırılan KD · ağırlık ray arası · ray–duvar yalnız çizim grubunda ( aynı anlam, hesaba girmez ), son kat 4.200;  çizimlerde ölçüye tıklama ( kutu, önce sorma, uygulama, Formda göster ).  Testlerin varsayılan adresi 8780.
+Arayüz testleri ( TEST 5 ) birleşik formun sözleşmesine göre:  tasarım sırasıyla 11 grup, hesaptan kaldırılan KD · ağırlık ray arası · ray–duvar kendi tasarım grubunda bir kez ( aynı anlam, hesaba girmez ), D2 formda yok, son kat 4.200;  çizimlerde ölçüye tıklama ( kutu, önce sorma, uygulama, Formda göster ).  Testlerin varsayılan adresi 8780.
 
 ## Kurulum ve çalıştırma
 
@@ -176,7 +192,10 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 |---|---|
 | `hesap/` | Hesap programının kopyası ( sunucu, arayüz, hesap motoru, kendi testleri ) |
 | `baslat.command` · `baslat.bat` | Birleşik programın başlatıcıları ( `.venv` + `hesap/main.py` ) |
-| `cizim/kopru.py` | **Hesap → çizim köprüsü**:  formun çizim alanları, çizim girdisinin kurulması, çizimden türeyen hesap girdileri, tutarlılık denetimi |
+| `tasarim/alanlar.py` | **Tasarım şeması**:  bütün girdilerin tek tanımı, tasarım sırasıyla ( grup, kaynak, formda mı, yerleşim, doğrulama bayrakları, ⓘ metni ) |
+| `tasarim/gorunum.py` | Şemadan türetilenler:  motorların alan sözleşmeleri, form, yerleşime göre gizlenenler, çizimden gelenler |
+| `tasarim/sozluk.py` | Sayı sözlüğü:  her sayının kaynağı, açık sorunlar ve hesabın içindeki geometri tahminleri |
+| `cizim/kopru.py` | **Hesap → çizim köprüsü**:  çizim girdisinin kurulması, çizimden türeyen hesap girdileri, tutarlılık denetimi |
 | `cizim/girdi.py` | Çizim girdisinin **sözleşmesi**, doğrulaması ve deneme ölçüleri |
 | `cizim/sabitler.py` | Ofisin ürün ölçüleri ( konsol, paten, kasa, pano … ) |
 | `cizim/geometri.py` | Girdiden **çizim elemanları** üretir ( saf veri ) — kuyu planı |
@@ -194,7 +213,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( girdiler oynatılarak ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/` | 257 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir ) |
+| `testler/` | 271 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 
