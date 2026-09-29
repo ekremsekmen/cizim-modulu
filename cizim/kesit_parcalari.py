@@ -126,8 +126,12 @@ def plan_parcalari(KD, g):
         return [kutu_(el) for el in taban if el.get("ad") == a]
 
     konsol = [kutu_(el) for el in taban if el["katman"] == "KONSOL" and el["tip"] == "dikdortgen"]
+    arka = g["agirlik"]["yeri"] == "Arka"
 
     def agirlik_tarafi(k):
+        #  Arkadaki ağırlığın konsolları kabinin arkasında ( 1:1 askı )
+        if arka:
+            return (k[1] + k[3]) / 2.0 > kb[3]
         return ((k[0] + k[2]) / 2.0 < kx) == sol
 
     return {
@@ -139,7 +143,8 @@ def plan_parcalari(KD, g):
         "paten": [kutu_(el) for el in taban if el["katman"] == "PATEN"],
         "sase_dikme": [kutu_(el) for el in taban if el.get("ad") == "sase_dikme"],
         "kabin_kasnak": [kutu_(el) for el in taban if el.get("ad") == "kabin_kasnak"],
-        "agirlik_kasnak": next(kutu_(el) for el in taban if el.get("ad") == "agirlik_kasnak"),
+        #  1:1 askıda karşı ağırlıkta kasnak yok:  halat çerçevenin ortasına bağlanır
+        "agirlik_kasnak": next((kutu_(el) for el in taban if el.get("ad") == "agirlik_kasnak"), None),
     }
 
 
@@ -197,8 +202,9 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     B.kutu(el, "AGIRLIK", blok, AK["alt"], AK["ust"], "agirlik")
     B.kutu(el, "AGIRLIK", (blok[0] + cer, blok[1] + cer, blok[2] - cer, blok[3] - cer),
            AK["alt"] + S["agirlik_kiris"], AK["ust"] - S["agirlik_kiris"], "agirlik_dolgu")
-    kasnak(el, B, P["agirlik_kasnak"], AK["kasnak_merkez"], g["agirlik"]["kasnak_capi"], "y",
-           "agirlik_kasnagi")
+    if P["agirlik_kasnak"]:
+        kasnak(el, B, P["agirlik_kasnak"], AK["kasnak_merkez"], g["agirlik"]["kasnak_capi"],
+               "x" if g["agirlik"]["yeri"] == "Arka" else "y", "agirlik_kasnagi")
     um = sum(B.aralik(blok)) / 2.0
     if B.gorunur(blok):
         el.append(CGE._ad(CGE._yazi(um, (AK["alt"] + AK["kasnak_merkez"]) / 2.0 - 200,
@@ -216,7 +222,7 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
         gruplar.append((pk, el))
     for _, el in sorted(gruplar, key=lambda ge: uzaklik(B, ge[0]), reverse=True):
         e += el
-    kt = CDN.kabin_kotlari(dy, S, kabin_z)
+    kt = CDN.kabin_kotlari(dy, S, kabin_z, g.get("aski"))
     e += CMK.gorunus(CB.kasnak_tasiyicilari(g, S, kt["kasnak_merkez"]),
                      B, CGE._dik, CGE._daire, CGE._cizgi)
     if "sase" not in M:
@@ -224,13 +230,18 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     #  Kuyu tepesinde ya da makine dairesinde:  makine şasesi, bağlantılar,
     #  makine ( makine.py:  parça parça, izdüşümüyle ), regülatör, ( odada )
     #  kumanda panosu
-    for ad in ("agirlik_baglanti", "kabin_baglanti"):
+    for ad in ("agirlik_baglanti", "kabin_baglanti"):          # 1:1 askıda yok
         p = M[ad]
-        B.kutu(e, "BAGLANTI", p[:4], p[4], p[5], ad)
+        if p:
+            B.kutu(e, "BAGLANTI", p[:4], p[4], p[5], ad)
     e += CMK.gorunus(M["sase_parcalari"] + M["makine"], B, CGE._dik, CGE._daire, CGE._cizgi)
     #  Makine dairesinde halatın tahrik kasnağındaki sarım açısı ( LiftDesigner
     #  "kasnak düzenlemesi" gibi ) — kasnağın daire göründüğü ön kesitte
-    if "MD" in M and B.tur == "on" and B.gorunur(M["kasnak"][:4]):
+    #  Kasnak, ekseni bakış yönündeyse daire görünür:  yan ağırlıkta B-B'de,
+    #  arkadaki ağırlıkta ( halat düzlemi derinlik boyunca ) A-A'da
+    duz_ = (M.get("KU") or {}).get("duzlem")
+    daire_bakis = "yan" if duz_ is not None and duz_.yon == "y" else "on"
+    if "MD" in M and B.tur == daire_bakis and B.gorunur(M["kasnak"][:4]):
         ks = M["kasnak"]
         e.append(CGE._ad(CGE._yazi(B.u((ks[0] + ks[2]) / 2.0, 0), ks[4] + g["makine"]["tahrik_kasnak_capi"] / 2.0
                                    + 180 * K, f"SARIM AÇISI {M['sarim_acisi']:.0f}°", 40 * K), "sarim_acisi"))
@@ -247,6 +258,10 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     KU = M["KU"]
     zk = kt["kasnak_merkez"]
     zt = M["kasnak"][4]
+    if KU.get("dogrudan"):
+        _halatlar_1_1(e, B, g, M, KU, kt, AK, zt)
+        _regulator_halati(e, B, M, gr, rk, rgx)
+        return AK, kt
     (xl, y0), (xr, _) = KU["halatlar"]
     yakin, uzak_x = KU["yakin"], KU["uzak"]
     zkb = M["kabin_baglanti"][4]
@@ -273,14 +288,45 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
         r = g["aski"]["kasnak_capi"] / 2.0
         us = sorted(B.u((k[0] + k[2]) / 2.0, 0) for k in P["kabin_kasnak"])
         e.append(CGE._ad(CGE._cizgi("HALAT", us[0], zk - r, us[-1], zk - r), "aski_halati"))
-    #  Regülatör halatı:  tepedeki kasnaktan gergi kasnağına ( iki kol )
+    _regulator_halati(e, B, M, gr, rk, rgx)
+    return AK, kt
+
+
+def _regulator_halati(e, B, M, gr, rk, rgx):
+    """Regülatör halatı:  tepedeki kasnaktan gergi kasnağına ( iki kol )."""
     R = gr["cap"] / 2.0
     ry_ = M["regulator_y"]
     for yy in (ry_ - R, ry_ + R):
         if B.gorunur((rgx, yy, rgx, yy)):
             e.append(CGE._ad(CGE._cizgi("HALAT", B.u(rgx, yy), rk[4], B.u(rgx, yy), gr["merkez"]),
                              "regulator_halati"))
-    return AK, kt
+
+
+def _halatlar_1_1(e, B, g, M, KU, kt, AK, zt):
+    """1:1 askıda halatlar:  kabin şasesinin üst kirişinin ortasındaki
+    bağlantıdan tahrik kasnağına;  kasnağın öbür teğetinden ( saptırma varsa
+    ondan ) karşı ağırlığın ortasındaki bağlantıya.  Kabin bağlantısı üst
+    kirişin üstünde, halat soketlerinin boyunda ( donanim.kabin_kotlari )."""
+    hx, hy = KU["kabin_nokta"]
+    ax, ay = KU["ag_nokta"]
+    a = g["aski"]
+    #  Kabin bağlantısı:  halat demetinin izi, üst kirişten soketlerin tepesine
+    dk = CMK.halat_deligi(hx, hy, a["halat_adedi"], a["halat_capi"], 0.0, KU["duzlem"].eksen)
+    B.kutu(e, "BAGLANTI", dk, kt["sase_ust"], kt["baglanti_ust"], "kabin_halat_baglantisi")
+    if M.get("agirlik_yolu"):
+        ad_, ay_, az_ = M["agirlik_dusus"]
+        agirlik = list(M["agirlik_yolu"]) + [((ad_, ay_, az_), (ax, ay, AK["ust"]))]
+    else:
+        dx, dy_ = KU["ag_dusus"]
+        agirlik = [((dx, dy_, zt), (ax, ay, AK["ust"]))]
+    #  Halat düzlemi kesit düzleminin İÇİNDE olabilir ( arkadaki ağırlıkta 1:1
+    #  askı kabin ekseninde, A-A de oradan geçer ):  düzlemdeki halat kesilir ve
+    #  çizilir — nokta 1 mm'lik kutuyla sorulur.
+    def gorunur(x, y):
+        return B.gorunur((x - 1.0, y - 1.0, x + 1.0, y + 1.0))
+    for (x0_, y0_, z0), (x1_, y1_, z1) in [((hx, hy, kt["baglanti_ust"]), (hx, hy, zt))] + agirlik:
+        if gorunur(x0_, y0_) or gorunur(x1_, y1_):
+            e.append(CGE._ad(CGE._cizgi("HALAT", B.u(x0_, y0_), z0, B.u(x1_, y1_), z1), "aski_halati"))
 
 
 def kabin_on(e, B, g, Y, P, kt):

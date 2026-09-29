@@ -182,15 +182,17 @@ def _ray_dusey(yuz_y, eksen_x, b, h, yon):
 
 
 def halat_konumlari(g, S=None):
-    """Kabin altı askıda halatların kuyudan geçtiği noktalar ( planda ).
+    """2:1 askıda halatların kuyudan geçtiği noktalar ( planda ).
 
-    Halat kabinin altındaki iki kasnağın DIŞ teğetinden yukarı çıkar:
-    x = kabin ekseni ± ( kasnaklar arası / 2 + çap / 2 ).  Kabin üstü ve
-    doğrudan askıda halat kabinin tepesine iner;  kuyuda ayrıca yer tutmaz.
+    Halat kabinin iki kasnağının DIŞ teğetinden yukarı çıkar:
+    x = kabin ekseni ± ( kasnaklar arası / 2 + çap / 2 ).  Kasnaklar kabinin
+    altındaysa halat kabinin yanından, üstündeyse kabinin üstünden kuyu
+    tepesine yükselir — ikisinde de kuyudaki parçaların arasından geçer.
+    Doğrudan ( 1:1 ) askıda halat kabinin tepesindeki bağlantıdan çıkar.
     """
     S = S or CS.sabitler(g.get("_cizim_sabitleri"))
     a = g.get("aski") or {}
-    if a.get("duzen") != "Kabin altı":
+    if a.get("duzen") not in ("Kabin altı", "Kabin üstü"):
         return []
     k, kb = g["kuyu"], g["kabin"]
     kx = k["genislik"] / 2.0 + kb["kaciklik_y"]
@@ -354,12 +356,13 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
         e.append(_ad(_yazi(kx, aski_y - aski_yari - 230,
                        f"ASKI:  {duzen.upper()}  ·  2:1", 44), "aski_yazi"))
     elif duzen == "Doğrudan":
-        aralik = aski["nokta_arasi"]
+        #  1:1:  halatlar kabin şasesinin üst kirişinin ortasındaki TEK
+        #  bağlantıda biter ( tek tahrik kasnağı — LiftDesigner 12744-3 );  kiriş
+        #  ray ekseni üstündedir, kaçıklık hesabın xs'idir.
         aski_yari = 45.0
-        for merkez in (kx - aralik / 2.0, kx + aralik / 2.0):
-            e.append(_ad(_daire("KASNAK", merkez, aski_y, 45), "aski_nokta"))
-            e.append(_ad(_cizgi("KASNAK", merkez - 70, aski_y, merkez + 70, aski_y), "aski_nokta"))
-            e.append(_ad(_cizgi("KASNAK", merkez, aski_y - 70, merkez, aski_y + 70), "aski_nokta"))
+        e.append(_ad(_daire("KASNAK", kx, aski_y, 45), "aski_nokta"))
+        e.append(_ad(_cizgi("KASNAK", kx - 70, aski_y, kx + 70, aski_y), "aski_nokta"))
+        e.append(_ad(_cizgi("KASNAK", kx, aski_y - 70, kx, aski_y + 70), "aski_nokta"))
         e.append(_ad(_yazi(kx, aski_y - aski_yari - 230, "ASKI:  DOĞRUDAN  ·  1:1", 44), "aski_yazi"))
 
     from cizim import baglantilar as CB, makine as CMK
@@ -583,10 +586,11 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
     #  İÇ — ASKI:  kasnak / nokta aralığı askı elemanlarının hemen yanında,
     #  kaçıklık ise kabin merkezi ile askı ekseni arasında
     if duzen in ("Kabin altı", "Kabin üstü", "Doğrudan"):
-        aralik = aski.get("kasnak_arasi") if duzen != "Doğrudan" else aski.get("nokta_arasi")
-        e.append(_olcu("yatay", (kx - aralik / 2.0, 0), (kx + aralik / 2.0, 0),
-                       aski_y - aski_yari - 70, f"ASKI ARASI {aralik:g}",
-                       yazi={"x": kx, "y": aski_y - aski_yari - 70 + 50, "aci": 0}))
+        if duzen != "Doğrudan":                   # 1:1'de tek bağlantı:  aralık yok
+            aralik = aski.get("kasnak_arasi")
+            e.append(_olcu("yatay", (kx - aralik / 2.0, 0), (kx + aralik / 2.0, 0),
+                           aski_y - aski_yari - 70, f"ASKI ARASI {aralik:g}",
+                           yazi={"x": kx, "y": aski_y - aski_yari - 70 + 50, "aci": 0}))
         kac = aski_y - (ic_on + dis_d / 2.0)
         if abs(kac) > 1e-9:
             kac_x = kx - kb["genislik"] / 2.0 + 150
@@ -638,8 +642,13 @@ def kesit_isaretleri(g, e):
     karşı ağırlık, kabin altı 2:1, makine kuyu üstünde.
     """
     ag = g["agirlik"]
-    if not (ag.get("yeri") in ("Sol", "Sağ") and (g.get("aski") or {}).get("duzen") == "Kabin altı"
-            and (g.get("makine") or {}).get("yeri") in ("Kuyu üstü", "Makine dairesi")):
+    #  Kesitler kuyu üstü düzeni çizilebiliyorsa konur ( kuyu_ustu.yerlesim )
+    duzen = (g.get("aski") or {}).get("duzen")
+    md_ = (g.get("makine") or {}).get("yeri") == "Makine dairesi"
+    if not ((ag.get("yeri") in ("Sol", "Sağ") and (duzen in ("Kabin altı", "Kabin üstü")
+                                                     or (duzen == "Doğrudan" and md_)))
+            or (ag.get("yeri") == "Arka" and duzen == "Doğrudan" and md_)) or \
+            (g.get("makine") or {}).get("yeri") not in ("Kuyu üstü", "Makine dairesi"):
         return []
     x1, y1, x2, y2 = sinir(e)
     kx, yb = kesit_duzlemleri(g)

@@ -1,0 +1,16 @@
+.DS_Store
+.venv/
+__pycache__/
+*.pyc
+
+#  Program Excel kullanmadığı günlerden kalan üretilmiş kopya — silinebilir.
+MUKAVEMET_HESABI_DUZELTILMIS.xlsx
+
+#  ÜRETİLEN VE GEÇİCİ KLASÖRLER — depoya girmezler.
+#  tmp/ bir keresinde 273 MB'lık bir pymupdf kurulumuyla ( .so · .dylib )
+#  birlikte commit'lendi;  output/ ise programın kendi ürettiği teslim
+#  dosyalarıdır ( PDF · DXF · ZIP ) — kaynak değil, çıktıdırlar.
+tmp/
+output/*
+#  ...  ama elle yazılmış betikler görünür kalsın, unutulmasınlar.
+!output/*.py

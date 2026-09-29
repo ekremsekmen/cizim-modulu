@@ -9,37 +9,30 @@
                                             referans projede yok — değişen girdiler ve
                                             kaynakları orada )
 
-Hesap programı DEĞİŞTİRİLMEDEN, motoru çağrılarak hesaplar;  kapak ve hesap
-paftaları hesap programının kendi dışa aktarımıyla TİP PROJE FORMATINA dizilir;
-çizim modülü çizimleri son hesap sayfasının sağına ekler ( pafta.birlestir ).
+PROGRAMIN KENDİ YOLUNDAN geçer:  girdi formun girdisidir ( hesap_girdi ), hesap
+ve çizim girdisi "Projeyi paketle" düğmesinin kullandığı fonksiyonlarla kurulur
+( hesap/api/uygulama · hesap/api/cizim · cizim/kopru ).  Kapak ve hesap paftaları
+hesap programının dışa aktarımıyla TİP PROJE FORMATINA dizilir;  çizimler son
+hesap sayfasının sağına eklenir ( pafta.birlestir ).
 
-    "…/AVAN HESAPLAMA PROGRAMI/.venv/bin/python" ornekler/uret.py
+    .venv/bin/python ornekler/uret.py
 
 Her proje için bu klasöre ( git'e girmez ):  .dwg ( AutoCAD'in AUDIT'inden
 geçirilip kaydedilir;  AutoCAD yoksa .dxf kalır ) ve .pdf ( paftanın görüntüsü;
-rsvg-convert yoksa .svg kalır ).  Köprü ( cizim/kopru.py ) gelince girdiler iki
-yerde ayrı yazılmayacak;  şimdilik ikisi de referans projeden elle.
+rsvg-convert yoksa .svg kalır ).
 """
-import copy, os, re, shutil, subprocess, sys, tempfile
-HESAP = "/Users/ekremsekmen/mycodes/AVAN HESAPLAMA PROGRAMI"
-CIZIM = "/Users/ekremsekmen/mycodes/cizim-modulu"
+import os, re, shutil, subprocess, sys, tempfile
+KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CIKTI = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HESAP); sys.path.insert(0, CIZIM); sys.path.insert(0, CIKTI)
+sys.path.insert(0, os.path.join(KOK, "hesap")); sys.path.append(KOK); sys.path.insert(0, CIKTI)
 ACC = ("/Applications/Autodesk/AutoCAD 2027/AutoCAD 2027.app/Contents/Helpers/"
        "AcCoreConsole.app/Contents/MacOS/AcCoreConsole")
 
-from hesap_girdi import ASANSOR, ORTAK, ASANSOR_MD, ORTAK_MD
+from hesap_girdi import ASANSOR, ORTAK, ASANSOR_MD, ORTAK_MD, SABITLER
+from api import cizim as UC_CIZIM, uygulama as UC_UYG
 from engine.uygulama import hesap as E_UYG
 from exports import pdf_export as X_PDF, dxf_export as X_DXF, kapak_export as X_KAPAK
-from cizim import girdi as CG, pafta as CPF, kuyu_kesiti as CKK
-
-
-def _en_buyuk(a, kimlik, sembol):
-    b = next(b for b in a["bolumler"] if b.get("kimlik") == kimlik)
-    d = [abs(x["deger"]) for x in b["adimlar"]
-         if str(x.get("formul") or "").startswith(sembol + " =") and isinstance(x.get("deger"), (int, float))]
-    assert d, (kimlik, sembol)
-    return max(d)
+from cizim import pafta as CPF
 
 
 def _dwg(dxf, dwg):
@@ -62,11 +55,13 @@ def _dwg(dxf, dwg):
 
 def uret(md):
     ad = "ÖRNEK PROJE - Makine Daireli Dişli" if md else "ÖRNEK PROJE - Makine Dairesiz"
-    ort = ORTAK_MD if md else ORTAK
-    #  ── HESAP ─────────────────────────────────────────────────────────
-    A = dict(ASANSOR_MD if md else ASANSOR, siginma_tipi_dip="Yatarak")
-    s = E_UYG.hesapla_coklu([A], dict(ort))
+    #  ── HESAP:  formun isteğiyle ( proje geneli ayrı, ofis standardı ayrı ) ──
+    veri = {"asansorler": [dict(ASANSOR_MD if md else ASANSOR, siginma_tipi_dip="Yatarak")],
+            "proje_geneli": dict(ORTAK_MD if md else ORTAK), "sabitler": dict(SABITLER)}
+    asansorler, ortak = UC_UYG._asansor_girdileri(veri)
+    s = E_UYG.hesapla_coklu(asansorler, ortak)
     assert s.get("aktif"), s.get("hata")
+    A = asansorler[0]
     kapak = {
         "project_title": "ASANSÖR UYGULAMA PROJESİ",
         #  BLOK:  bina bloğu — referans proje projesinde yok, boş
@@ -80,52 +75,16 @@ def uret(md):
     hesap_pdf = X_PDF.uygulama_pdf(s)
     hesap_dxf = X_DXF.proje_dxf([("Kapak", kapak_pdf), ("Uygulama Projesi", hesap_pdf)])
 
-    #  ── ÇİZİM GİRDİSİ:  referans projenin gerçek ölçüleri ─────────────────────
-    g = copy.deepcopy(CG.ORNEK)
-    g["proje"] = {"ad": "ÖRNEK PROJE", "asansor": "ASANSÖR 1", "olcek": 20}
-    g["dusey"].update({
-        "kabin_paten_arasi": A["kabin_paten_arasi"],
-        "agirlik_paten_arasi": A["agirlik_paten_arasi"],
-        "beyan_hizi": 1.6, "durak_adedi": 11, "kat_yuksekligi": 2900, "son_kat": 5000,
-        #  OLEO LB 16 hidrolik tampon ( strok 203, serbest boy 618 ):  kaide
-        #  1.500 − 618 − 96 − 480 = 306
-        "kabin_tampon_baba": 306, "kabin_tampon_boyu": 618, "kabin_carpma_arasi": 96,
-        "kabin_tampon_ezilme": 203,
-        "agirlik_tampon_baba": 300, "agirlik_tampon_boyu": 618, "agirlik_carpma_arasi": 150,
-        "agirlik_tampon_ezilme": 203,
-        "kabin_konsol_arasi": 1500, "agirlik_konsol_arasi": 1500,
-    })
-    g["kuyu_dibi"].update({"siginma_tipi": "Yatarak", "regulator_kasnak_capi": A["reg_kasnak_capi"],
-                           "regulator_halat_capi": A["reg_halat_capi"]})
-    #  Binaya gelen yükler ( N ):  kuyu tabanı hesabın 9. bölümünden;  ray
-    #  konsoluna gelen yatay kuvvetler 7. ve 8. bölümlerin bütün yük durumlarındaki
-    #  paten kuvvetlerinin en büyüğü.  Tampon adetleri iki girdide aynı olmalı ki
-    #  "her tampona düşen" doğru bölünsün.
+    #  ── ÇİZİM GİRDİSİ:  köprüden ( "Projeyi paketle" ile aynı ) ─────────
+    #  Hesabın girdisi + çizim alanları;  binaya gelen yükler hesabın
+    #  sonucundan;  hesapla çizimin tutarlılığı ( sarılma açısı, kasnaklar,
+    #  kiriş aralığı, kuyu dibi zinciri ) orada denetlenir.
+    (g, hata), = UC_CIZIM.girdiler(veri, asansorler, ortak, s, "ÖRNEK PROJE")
+    assert not hata, hata
     a = s["asansorler"][0]
-    g["kuyu_dibi"]["kuvvetler"] = dict(
-        {k: a["ozet"][k] for k in ("FKR", "FAR", "Fkt", "Fat")},
-        Fx_kabin=_en_buyuk(a, "kabin_raylari", "Fx"), Fy_kabin=_en_buyuk(a, "kabin_raylari", "Fy"),
-        Fx_agirlik=_en_buyuk(a, "agirlik_raylari", "Fx"), Fy_agirlik=_en_buyuk(a, "agirlik_raylari", "Fy"))
-    for k in ("kabin_tampon_adedi", "agirlik_tampon_adedi"):
-        assert int(A.get(k) or 1) == g["kuyu_dibi"][k], (k, A.get(k), g["kuyu_dibi"][k])
-    g["kabin_ustu"]["siginma_tipi"] = "Çömelme"
-    #  Makine ve oturduğu kirişler hesabın girdileriyle AYNI:  tip, yer, tahrik
-    #  kasnağı, yan yatak;  makine dairesinde tabliye ( oda döşemesi ), kaide ve oda
-    #  ölçüleri.  Kuyu üstünde kirişler karşı ağırlık raylarına oturur:  mesnet
-    #  aralığı ( hesabın L'si ) raylar arasıdır.
-    g["makine"].update(tip=A["makine_tipi"], yeri="Kuyu üstü" if ort["mk_yok"] else "Makine dairesi",
-                       tahrik_kasnak_capi=A["tahrik_kasnak_capi"], yan_yatak=A["yan_yatak"])
-    if ort["mk_yok"]:
-        assert A["yan_yatak_boyu"] == g["agirlik"]["ray_arasi"], (A["yan_yatak_boyu"], g["agirlik"]["ray_arasi"])
-    else:
-        g["makine_dairesi"].update({k: A[k] for k in ("tabliye_yuksekligi", "sase_yuksekligi", "dikine_kiris",
-                                                       "yan_yatak_boyu")},
-                                   genislik=ort["mk_genislik"], derinlik=ort["mk_uzunluk"])
-    h = CKK.dogrula(g)
-    assert not h, h
-    #  Sarım açısı:  çizimin halat geometrisi hesabın beyan ettiği α'yı vermeli
-    sarim = CKK.yerlesim(g)["M"].get("sarim_acisi", 180.0)
-    assert abs(sarim - A["sarilma_acisi"]) < 0.5, (sarim, A["sarilma_acisi"])
+    print(f"── {ad}")
+    print("   çizimden gelen hesap girdileri:",
+          {k: a["girdi"][k] for k in UC_CIZIM.CK.CIZIMDEN if veri["asansorler"][0].get(k, 0) is None})
 
     #  ── PAFTA ─────────────────────────────────────────────────────────
     with tempfile.TemporaryDirectory() as t:
@@ -144,7 +103,6 @@ def uret(md):
         else:
             shutil.copy(svg, yol + ".svg")
 
-    print(f"── {ad}")
     print("   binaya gelen yükler ( N ):", {k: round(v) for k, v in g["kuyu_dibi"]["kuvvetler"].items()})
     print("   AutoCAD:", denetim or "yok — .dxf bırakıldı")
     for c in bilgi["cizimler"]:

@@ -1078,8 +1078,15 @@ class KuyuUstu(unittest.TestCase):
 
     def test_desteklenmeyen_duzenler_reddedilir(self):
         self.assertTrue(CKT.dogrula(_ornek(agirlik={"yeri": "Arka"})))
-        self.assertTrue(CKT.dogrula(_ornek(aski={"duzen": "Kabin üstü"})))
         self.assertTrue(CKT.dogrula(_ornek(kuyu_ustu={"acil_pano_yan": "Arka"})))
+
+    def test_kabin_ustu_askida_halatlar_ayni_yerden_iner(self):
+        #  Kasnaklar kabinin üstünde de planda aynı yerde:  halat, makine ve
+        #  bağlantılar kabin altı askıdakiyle aynı noktalarda
+        alt, ust = CKT.yerlesim(_ornek()), CKT.yerlesim(_ornek(aski={"duzen": "Kabin üstü"}))
+        self.assertEqual(ust["hata"], [])
+        for k in ("halatlar", "kasnak", "agirlik_baglanti", "kabin_baglanti"):
+            self.assertEqual(ust[k], alt[k], k)
 
     def test_parcalar_ust_uste_binmez(self):
         #  Regülatör kabin halat bağlantısının üstüne kaydırılınca reddedilir

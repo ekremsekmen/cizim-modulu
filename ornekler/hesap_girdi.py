@@ -1,7 +1,16 @@
 # -*- coding: utf-8 -*-
-"""Örnek projelerin hesap motoru girdisi ( yayımlanmış bir referans proje ).
+"""Örnek projelerin girdisi ( yayımlanmış bir referans proje ) — programın
+formunun girdisiyle AYNI:  hesabın alanları + çizim alanları ( cizim/kopru.ALANLAR ).
 Kaynak:  ~/asansör projeleri/sample-project.pdf ( referans proje, 3 Eylül 2025 ) ve hesap
-programının TEST 12'si.  Tampon referans projede belirsiz:  OLEO LB 16 ( oleoelevator.com )."""
+programının TEST 12'si.  Tampon referans projede belirsiz:  OLEO LB 16 ( oleoelevator.com ).
+
+İKİ DEĞER referans projenin HESABINDAN değil ÇİZİMİNDEN alındı — birleşik programda
+hesap ile çizim aynı sayıyı kullanır, referans projenin ikisi ise çelişiyordu:
+  agirlik_genisligi   790   karşı ağırlık çerçevesi ( çizimden ölçüldü );  referans
+                            hesabı 850 alır — o raylar arasıdır ( DBGW ).
+  aski_kaciklik_x     boş   çizimden:  halatlar ağırlık kasnağının kabine yakın
+                            teğetinden iner, askı ray ekseninin 250 önünde ( −250 );
+                            referans hesabı 0 alır ( askı ray ekseninde )."""
 ASANSOR = {
     "asansor_adi": "ASANSÖR 1",
     "asansor_tipi": "İnsan asansörü",
@@ -33,7 +42,7 @@ ASANSOR = {
     #  hesap ile pafta aynı şeyi söylesin diye referans projenin çizimindeki 2.920.
     "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 2920,
     "paten_tipi": "Kaymalı", "agirlik_paten_tipi": "Makaralı", "guvenlik_tertibati": "Kaymalı",
-    "agirlik_yeri": "Sol", "agirlik_genisligi": 850, "agirlik_derinligi": 160,
+    "agirlik_yeri": "Sol", "agirlik_genisligi": 790, "agirlik_derinligi": 160,
     #  Regülatör:  referans proje "Speed Governor Calculation" — kasnak ø240, halat ø6,0
     "reg_kasnak_capi": 240, "reg_halat_capi": 6,
     "tampon_tipi": "Hidrolik  ( enerji yutmalı )",
@@ -42,9 +51,25 @@ ASANSOR = {
     "kabin_carpma_arasi": 96,
     "agirlik_tampon_baba": 300, "agirlik_tampon_ezilme": 203, "agirlik_carpma_arasi": 150,
     "siginma_tipi_ust": "Çömelme", "siginma_tipi_dip": "Çömelme",
-    "_ofis": {"q_denge": 0.50, "kanal_gama_v": 38},
     "kuyu_genisligi": 2100,
+    #  Boş:  çizimden ( cizim/kopru.CIZIMDEN )
+    "aski_kaciklik_x": None,
+    #  ── ÇİZİM ALANLARI ( referans projenin kuyu planı ve kesitlerinden ) ─────
+    #  Kuyu 2.100 × 1.850;  kabin kuyu ortasının 130 sağında ( ağırlık solda );
+    #  11 durak, seyir 29 m → kat 2.900;  kapı 2.100, kabin içi 2.250;  ağırlık
+    #  ekseni ray ekseninin 50 önünde, kasnağı ø400;  kabin kasnakları ø240,
+    #  1.380 arayla;  ağırlık tamponu da OLEO LB 16 ( 618 );  regülatör ray
+    #  ekseninin 280 arkasında.  Öbür çizim alanları formun varsayılanıyla aynı:
+    #  duvar 150, kapı kuyu içine, eşik arası 30, DBG 1.350 + 200, DBGW 790 + 60,
+    #  ağırlık ekseni – duvar 160 / 2 + 50.
+    "kuyu_derinligi": 1850, "durak_adedi": 11, "kabin_yana_kaciklik": 130,
+    "kapi_yuksekligi": 2100, "kabin_ic_yuksekligi": 2250,
+    "agirlik_eksen_kaciklik": -50, "agirlik_kasnak_capi": 400,
+    "kabin_kasnak_capi": 240, "kabin_kasnak_arasi": 1380,
+    "agirlik_tampon_boyu": 618, "regulator_kaciklik": 280,
 }
+#  Ofis standardı ( Sabitler sekmesi ):  referans projenin kabulleri
+SABITLER = {"q_denge": 0.50, "kanal_gama_v": 38}
 ORTAK = {"mk_yok": True}
 
 #  ── MAKİNE DAİRELİ, DİŞLİ MAKİNELİ ÇEŞİT ─────────────────────────────────
@@ -59,7 +84,8 @@ ORTAK = {"mk_yok": True}
 #    tabliye, kaide     hesap programının makine daireli varsayılanları ( ofis
 #                       şablonu ):  tabliye 1.200, şase 1.100, dikine kiriş NPU 120,
 #                       yan yatak NPU 140, boyu 1.400
-#    makine dairesi     3.800 × 2.600 ( çizim örneğinin odası )
+#    makine dairesi     3.800 × 2.600 ( çizim örneğinin odası );  odanın yeri ve
+#                       kapısı formun varsayılanı ( kuyuya ortalı, önü hizalı )
 #    makine_tst         3.400 kg — referans proje makinesinin değeri AYNEN kaldı ( A 160'ın
 #                       katalog değeri elde yok );  hesapta kasnağa gelen 1.581 kg
 ASANSOR_MD = {k: v for k, v in ASANSOR.items() if k not in ("makine_verimi", "makine_raya_biniyor")}

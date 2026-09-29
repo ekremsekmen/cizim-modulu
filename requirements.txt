@@ -1,3 +1,9 @@
+#  BİRLEŞİK PROGRAM ( hesap + çizim ) — tek sanal ortam ( .venv ).
+#  Hesap programının gerekenleri ve doğrulama paketinin isteğe bağlı
+#  kitaplıkları kendi dosyasında:
+-r hesap/requirements.txt
+
+#  Çizim modülü
 ezdxf>=1.4
-# pafta önizlemesi ( ezdxf çizicisi ) için
+#  pafta önizlemesi ( ezdxf çizicisi ) için
 Pillow

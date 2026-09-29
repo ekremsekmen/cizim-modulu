@@ -113,6 +113,11 @@ SABIT = {
     "paten_yukseklik": 140,
     "fren_blogu_yukseklik": 350,
     "kabin_kasnak_derinlik": 295,   # döşemeden kabin kasnağının merkezine
+    #  KABİN ÜSTÜ ASKI ( 2:1 ):  kasnaklar şasenin üst kirişinin üstünde;  alt
+    #  uçları kirişin bu kadar üstünde.  ÇİZİM KABULÜ — referans projede ve
+    #  LiftDesigner örneklerinde kabin üstü askı yok;  tedarikçi ölçüsü gelince
+    #  değiştirilir.
+    "kabin_ustu_kasnak_boslugu": 30,
     "sase_dikme_derinlik": 300,     # şase dikmesinin kesitteki eni ( ray ekseninde )
     "etek_tahtasi": 100,            # TS EN 81-20 m.5.4.7.2 a — en az 0,10 m
     #  Kuyu tavanının en alt kısmı ( kiriş vb. ) döşeme altından — hesap

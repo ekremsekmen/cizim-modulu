@@ -1,18 +1,124 @@
-# ASANSÖR ÇİZİM MODÜLÜ
+# ASANSÖR PROJE PROGRAMI  ( HESAP + ÇİZİM )
 
-Asansör kuyusunun **proje çizimlerini** girdilerden üreten bağımsız modül.
-Çıktı hem **SVG** ( ekranda görmek için ) hem **DXF** ( AutoCAD ) olarak verilir.
+Asansörün **uygulama projesini** tek girdiden üretir:  hesap ( mukavemet,
+elektrik, topraklama ) ve kuyunun **proje çizimleri** ( düşey kesitler ve
+planlar ) aynı paftada.  Çizimler ekranda **SVG**, paftada **DXF / DWG** olur.
 
-Hesap programından ( `AVAN HESAPLAMA PROGRAMI` ) **tamamen ayrıdır**:  ondan
-hiçbir şey import etmez, onun dosyalarına dokunmaz.  İleride ikisi bir köprüyle
-birleştirilecek;  o zaman çizim girdisinin bir bölümü hesabın sonuçlarından
-dolacak.
+İki parça:
+
+- `hesap/` — hesap programının ( `AVAN HESAPLAMA PROGRAMI` ) **kopyası**.
+  Orijinaline dokunulmaz;  kopyanın farkları yalnız bağlantı noktalarıdır
+  ( aşağıda ).
+- `cizim/` — çizim modülü.  Hesap programından bağımsız da çalışır
+  ( `calistir.py`, deneme girdisi `cizim/girdi.ORNEK` ).
+
+## Hesap ile çizimin bağlantısı
+
+**Tek girdi.**  Ekrandaki form hem hesabı hem çizimi besler.  Hesapta olan bir
+ölçü çizimde ikinci kez sorulmaz ( `cizim/kopru.py` );  hesabın bilmediği,
+çizimin gerektirdiği ölçüler formun **"Çizim ( kuyu yerleşimi )"** grubundadır:
+kuyu derinliği, durak adedi, kabinin ve kapının kuyudaki yeri, kasnak çapları,
+regülatörün yeri, makine dairesinin yeri ve kapısı …  Kuyu tabanına ve ray
+konsollarına gelen kuvvetler hesabın **sonucundan** çizime yazılır.
+
+**Çizimden gelen hesap girdileri.**  Aynı fiziksel büyüklük hem hesapta hem
+çizimde varsa tek kaynaktan gelir.  Hesapta boş bırakılırsa değer çizimin
+geometrisinden türetilir ve hesaba o girer ( ekranda kutunun içinde gri yazar;
+`kopru.CIZIMDEN` ):
+
+| Hesap girdisi | Çizimden |
+|---|---|
+| Askı noktasının x kaçıklığı ( xs ) | Kabin altı / kabin üstü 2:1, ağırlık yanda:  halatlar karşı ağırlık kasnağının kabine yakın teğetinden düşey iner ( referans proje:  −250 ).  1:1:  0 ( bağlantı ray eksenindeki üst kirişte ) |
+| D2 · Ds ( saptırma kasnakları ortalaması · en küçüğü ) | Çizilen kasnaklar:  iki kabin kasnağı, ağırlık kasnağı, makine dairesinde saptırma kasnağı.  Hiç kasnak yoksa ( 1:1, saptırmasız ) tahrik kasnağının çapı — hesapta etkisiz ( Kp = 1 ).  Ds boşsa D2 girilmiş olsa da çizimden ( hesabın kendi kuralı Ds'yi D2'ye, yani ortalamaya düşürürdü — 240'lık kasnağın D/d'si 294 ile ölçülürdü );  girilen D2 en küçük kasnaktan da küçükse türetilmez, çizim D2'nin uyuşmadığını söyler |
+| Kabin tamponu kaidesi | Kuyu dibi zinciri:  kuyu dibi − tampon − çarpma arası − kabinin şase altı ( 480 ) |
+| Sarılma açısı α | Yalnız açı sabitse:  tahrik kasnağının iki inişi düşey ( 180° ) ya da makine dairesinde saptırma kasnağı ( ortak teğetler — makine daireli 1:1 örnekte 134,3° ).  Makine dairesizde ağırlık tarafındaki iniş kasnağın düzleminde eğikse ( kuyu üstü planında HALAT SAPMASI ) açı ağırlığın konumuyla değişir — ağırlık tepedeyken halat kısa, sapma birkaç derece tutar;  hesabın tek açısı buradan seçilemez ( çekiş ve kayma denetimleri açıya ters yönde bağlıdır, hesap programının α kuralının sebebi ) ve türetilmez.  Çift sarımda ( çizim tek sarım çizer ) ya da çizim kurulamıyorsa da türetilmez:  girilmezse tahrik kontrolleri HESAP EKSİK |
+
+**Sığınma alanları ve açıklıklar ( hesabın bölüm 11'i ) çizimden ölçülür.**
+Kabin ve karşı ağırlık uç konumlarındayken parçaların gerçek kotları ve
+plandaki yerleri kullanılır ( `cizim/dusey.py` ):  kuyu tavanının en alt kısmı
+sığınma alanının, patenlerin, korkuluğun tam üstündeki parçadır ( makine
+şasesi, halat bağlantısı, regülatör ).  Paftadaki tablo ile kesitteki ölçü aynı
+sayıdır.  Eskiden hesap ofis paylarıyla ayrı bir model kuruyordu ( kabin gövdesi
+2.400, üst paten bir satırda 2.700, bir başkasında 2.900;  girilen paten arası
+kullanılmıyordu ) ve hesabın varsayılan asansöründe çizim üst patenin kuyu
+tavanına 150 mm girdiğini bulurken hesap "uygun" diyordu.  Kabinin düşey
+ölçüleri ( şase altı, taban / tavan kalınlığı, paten, fren bloğu, kabin
+kasnağı, tavan payı ) hesabın **Sabitler** sekmesindedir ve çizim de onları
+kullanır ( `kopru.OFIS_SABITLERI`;  değerler `cizim/sabitler.py`'den );
+revizyon kutusunun yüksekliği de oradadır ( çizim onu çizmez ).  Çizim
+kurulamıyorsa bölüm 11 **HESAP EKSİK** der ve sebebini yazar.
+
+**Askı düzenleri** ( hepsi hem çizilir hem bölüm 11'de ölçülür ):
+
+| Düzen | Makine dairesiz | Makine daireli |
+|---|---|---|
+| 2:1 kabin altı, ağırlık yanda | ✓ | ✓ |
+| 2:1 kabin üstü, ağırlık yanda | ✓ | ✓ ( varsayılan kasnak arasıyla dişli makine plakada üst bağlantılarla çakışabilir — çizim reddeder, söyler ) |
+| 1:1, ağırlık yanda ya da arkada | ✗ reddedilir | ✓ |
+| 2:1, ağırlık arkada | ✗ reddedilir | ✗ reddedilir |
+
+- **Kabin üstü 2:1:**  iki kasnak kabin şasesinin üst kirişinin üstünde;
+  kasnağın alt ucu kirişten 30 mm yukarıda ( `kabin_ustu_kasnak_boslugu` —
+  ÇİZİM KABULÜ, tedarikçi ölçüsü gelince değişir ).  Bölüm 11'de kasnağın
+  tepesi ile kuyu tavanı arası ayrı satırdır ( m.5.2.5.7.2 a:  ≥ 0,50 m ).
+- **1:1** ( LiftDesigner 12744-3 ):  halatlar kabin şasesinin üst kirişinin
+  ortasındaki tek bağlantıda biter ( ray ekseninde;  bağlantı yüksekliği
+  365 = kabin bağlantısının alt − üst ucu );  tahrik kasnağının yakın teğeti
+  bağlantının tam üstündedir, saptırma kasnağı halatı karşı ağırlığın eksenine
+  taşır.  Kuyu tavanında halat bağlantısı yoktur.  Bölüm 11'de bağlantının
+  tepesi ile kuyu tavanı ayrı satırdır.
+- **Reddedilenler** ( `kuyu_ustu.duzen_hatalari`;  kesitteki öteki hatalardan
+  önce söylenir ):  makine dairesizde 1:1 — halatın tahrik kasnağından kabinin
+  ortasına ve ağırlığa inmesi için kuyu tepesinde saptırma düzeni gerekir,
+  referansı yok;  arkadaki ağırlıkla 2:1 — kabin kasnaklarının halat çizgisi
+  ile ağırlık kasnağı aynı düzlemde değildir, referansı yok.
+- Ağırlık arkadayken halat düzlemi y yönündedir:  makine, saptırma ve plaka
+  delikleri aynı fonksiyonlarla çizilir, eksenler takas edilir
+  ( `kuyu_ustu.Duzlem`, `makine.takas` ).
+
+**Girilmişse denetlenir.**  Değer girilmişse kullanılır ve çizimle
+karşılaştırılır;  uyuşmazsa çizim durur ve doğru değeri söyler
+( `kopru.tutarlilik` ):  halat sarılma açısı, D2 · Ds, kuyu dibi zinciri,
+makine kirişleri raylara oturuyorsa mesnet aralığı = ağırlık rayları arası
+( DBGW ).  α yalnız çizim onu tek bir sayı olarak biliyorsa karşılaştırılır
+( `kopru.sarim_acisi` ).  Boş bırakılmış bir alan formdaki adıyla söylenir
+( "Karşı ağırlık yeri:  seçilmemiş" — çizim modülünün iç adı ya da "None"
+değil ).  Çizimin henüz modellemediği kaçıklıklar ( kabin merkezi yc, askı
+ys ≠ 0 ) ve çift sarımlı kanal açıkça söylenir ( çift sarımda bölüm 11 yine
+çizimden ölçülür — kuyunun geometrisi sarım sayısından bağımsızdır ).
+
+**Ekran.**  Asansör sekmesinin sağ sütunu **Hesap | Çizimler** arasında
+geçer;  çizimler aktif asansörün, girdi değiştikçe tazelenir
+( `hesap/static/uygulama.js`, uç `POST /api/uygulama/cizimler` —
+`hesap/api/cizim.py` ).
+
+**Paket.**  "Projeyi paketle" her asansörün çizimlerini hesap sayfalarının
+sağına ekler ( çok asansörlüde şeritte asansörün adı ).  Bir asansörün çizimi
+kurulamıyorsa paket inmez, sebebi söylenir — eksik proje teslim edilmesin
+( hesap PDF'i yine iner ).
+
+**Kopyanın orijinalden farkları** ( `hesap/` ):  `api/cizim.py` ( yeni ),
+`api/uygulama.py` ( çizim alanları, paket ), `main.py` ( port 8780, çizim
+uçları ), `exports/dxf_export.py` ( paketin son işlemi ), `static/` ( Hesap |
+Çizimler );  hesap motorunda `engine/uygulama/mukavemet.py` ( bölüm 11 çizimden ),
+`mukavemet_girdi.py` ( çizimden türeyen beş girdi:  varsayılanı boş,
+`tamamla` türetir;  son kat yüksekliğinin varsayılanı 3.750 → 4.200 — projelerde girilen
+değer;  3.750'de varsayılan asansörün üst pateni kuyu tavanına giriyordu ), `sabitler.py` ( kabinin düşey ölçüleri ), `girdi.py` ( makine yerleşimine göre gizlenen alanlar çizim grubununkileri de içerir — ekran, API ve motor tek liste ), `__init__.py`
+( çizim modülünün yolu ).  Testler yeni modele göre güncellendi, TEST 7 ve
+TEST 10'un dondurulmuş referansları farklar incelenerek yeniden üretildi
+( fark:  bölüm 11, xs'in ray hesabı, D2'nin halat ve tahrik hesabı;  α'nın çizimden geldiği senaryolarda tahrik sınırları — düşey inişli 180°, makine daireli 1:1'de 134,3° — ve α uyarısının metni ).  Motor doğrudan çağrılınca da ( testler ) türetme uygulama alanlarının varsayılanlarıyla yapılır — program ile motor aynı α'yı, aynı D2'yi bulur.
+Arayüz testleri ( TEST 5 ) birleşik formun sözleşmesine göre:  12 grup ( çizim grubu ), hesaptan kaldırılan KD · ağırlık ray arası · ray–duvar yalnız çizim grubunda ( aynı anlam, hesaba girmez ), son kat 4.200.  Testlerin varsayılan adresi 8780.
 
 ## Kurulum ve çalıştırma
+
+`baslat.command` ( Windows:  `baslat.bat` ) çift tıklanır:  ilk açılışta
+`.venv` kurulur, program **http://127.0.0.1:8780**'de açılır ( orijinal hesap
+programı 8760'ta açık kalabilir, çakışmazlar ).
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
+.venv/bin/python hesap/main.py                    # birleşik program ( 8780 )
 
 .venv/bin/python calistir.py                      # kuyu planı  →  cikti/ ( git'e girmez )
 .venv/bin/python calistir.py --aski Doğrudan      # 1:1 askı düzeniyle
@@ -21,17 +127,22 @@ python3 -m venv .venv
 .venv/bin/python calistir.py --cizim kuyu_kesiti_on   # B-B tam boy düşey kesit ( 1/50 )
 .venv/bin/python calistir.py --cizim kuyu_kesiti_on --makine "Makine dairesi"   # makine daireli
 .venv/bin/python calistir.py --pafta               # bütün çizimler TİP PROJE FORMATINDA ( DXF + SVG önizleme )
-.venv/bin/python -m unittest discover -s testler     # testler ( hepsi )
+.venv/bin/python -m unittest discover -s testler     # çizim ve köprü testleri
+cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paketi
+# ( arayüz testleri 3 · 5 · 6 · 13 açık bir programa karşı:  AVAN_TEST_URL=http://127.0.0.1:8790 )
 
-# Örnek tam projeler ( hesap + çizim, tek pafta ) → ornekler/ — hesap programının
-# motorunu çağırır, onun .venv'iyle:
-"…/AVAN HESAPLAMA PROGRAMI/.venv/bin/python" ornekler/uret.py
+# Örnek tam projeler ( hesap + çizim, tek pafta ) → ornekler/ — programın
+# "Projeyi paketle" yolundan:
+.venv/bin/python ornekler/uret.py
 ```
 
 ## Klasörler
 
 | Yol | Ne var |
 |---|---|
+| `hesap/` | Hesap programının kopyası ( sunucu, arayüz, hesap motoru, kendi testleri ) |
+| `baslat.command` · `baslat.bat` | Birleşik programın başlatıcıları ( `.venv` + `hesap/main.py` ) |
+| `cizim/kopru.py` | **Hesap → çizim köprüsü**:  formun çizim alanları, çizim girdisinin kurulması, çizimden türeyen hesap girdileri, tutarlılık denetimi |
 | `cizim/girdi.py` | Çizim girdisinin **sözleşmesi**, doğrulaması ve deneme ölçüleri |
 | `cizim/sabitler.py` | Ofisin ürün ölçüleri ( konsol, paten, kasa, pano … ) |
 | `cizim/geometri.py` | Girdiden **çizim elemanları** üretir ( saf veri ) — kuyu planı |
@@ -48,8 +159,8 @@ python3 -m venv .venv
 | `sablon/proje_formati.dxf` | Ofisin pafta şablonu ( TİP PROJE FORMATI.dwg'den;  hesap programınınkiyle aynı ) |
 | `cizim/svg.py` | Elemanları SVG'ye yazar |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/` | 187 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py` ) |
-| `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve `hesap_girdi.py` |
+| `testler/` | 207 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py` ) |
+| `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 
 ## Kurallar
@@ -498,11 +609,15 @@ verilir — yoksa desen paftada 0,1 mm'ye iner, çizgi düz görünürdü.
 
 ## Sırada ne var
 
-1. `cizim/kopru.py` — girdilerin hesap programından dolması.  Önce iki tanım
-   eşitlenmeli:  ray – kapı arası hesapta kat kapısı düzleminden ( RK ),
-   çizimde kuyu iç yüzünden;  kabin kaçıklığı hesapta ray ekseninden ( yc ),
-   çizimde kuyu ortasından ölçülüyor.
-2. Hesap paftalarıyla çizimlerin aynı şeritte birleşmesi ( köprüyle )
+1. Çizimin henüz modellemediği düzenler:  kabin raylara göre kaçık ( yc ),
+   yana kaçık askı ( ys ) — ikisi de çizimde söylenir;  makine dairesizde 1:1
+   ve arkadaki ağırlıkla 2:1 ( referans gelirse );  makine yükü "Bina yapısına"
+   iken şase.
+
+( Köprü ve hesap paftalarıyla çizimlerin aynı şeritte birleşmesi yapıldı —
+yukarıda "Hesap ile çizimin bağlantısı".  RK ile çizimin ray ekseni:  kapi_arasi
+= kapı hattı + RK;  hesabın yc'si ile çizimin kaciklik_y'si ayrı büyüklüklerdir:
+çizim kabini kuyuda kaydırır, raylar kabinle birlikte kayar. )
 
 **Başka bir referans:**  kullanıcının LiftDesigner çıktıları ( `12744-3 lift.dwg` ):
 kuyu planı, düşey kesit, makine odası, kuyu üstü ve kuyu dibi kesitleri, kuyu

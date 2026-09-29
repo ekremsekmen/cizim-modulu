@@ -1,0 +1,296 @@
+# -*- coding: utf-8 -*-
+"""
+UYGULAMA PROJESİ UÇLARI
+
+Mukavemet + elektrik + topraklama hesabı ve çıktıları.  Avandan bağımsızdır;
+elektrik hesapları avan MOTORUNU çağırır ( engine/uygulama/hesap.py ), ama
+uçlar ayrıdır.
+"""
+import json
+import os
+
+from fastapi import APIRouter, Body
+from fastapi.responses import JSONResponse
+
+from api import cizim as UC_CIZIM
+from api.ortak import (_BELIRSIZ, _RED, _belirsiz_hata, _dosya_adi, _indir,
+                       _paket_ekleri, _proje_kimligi, _sabitler_coz, _sayi,
+                       _sayi_oku, _uretilemedi, belirsiz_sayi_mi)
+from engine.ortak.steps import evet_mi
+from engine.uygulama import girdi as E_UGR
+from engine.uygulama import sabitler as E_US
+from engine.uygulama import tablolar_gorunum as E_UTB
+from engine.uygulama import hesap as E_UYG
+from engine.uygulama import mukavemet_girdi as E_MGR
+from exports import kapak_export as X_KAPAK
+from exports import pdf_export as X_PDF
+
+try:
+    from exports import dxf_export as X_DXF
+    _DXF_HATA = None
+except Exception as _e:                                   # noqa: BLE001
+    X_DXF, _DXF_HATA = None, _e
+_BASLATICI = "baslat.command" if os.name != "nt" else "baslat.bat"
+
+router = APIRouter()
+
+@router.get("/api/uygulama/alanlar")
+def uygulama_alanlari():
+    """Formun kendini üretmesi için girdi sözleşmesi.
+
+    Mukavemet alanları + elektrik hesaplarının mukavemette KARŞILIĞI OLMAYAN
+    alanları.  Ortak girdiler burada BİR KEZ geçer ( bkz. uygulama_girdi ).
+    """
+    veri = E_UGR.arayuz_alanlari()
+    veri["ortak_kopru"] = [{"mukavemet": ad, "anahtar": a, "avan": av}
+                           for ad, a, av in E_UGR.ORTAK_KOPRU]
+    #  UYGULAMANIN KENDİ OFİS STANDARDI  —  avanınkinden ayrıdır.
+    #  Ekran bu listeden kurulur;  avanın MMO/697 kuvvet sabitleri burada
+    #  YOKTUR, uygulamanın mukavemet kabulleri ( σem · k1 · paylar ) ise
+    #  yalnız burada vardır.
+    veri["sabitler"] = {
+        "varsayilan": E_US.VARSAYILAN,
+        "metin": list(E_US.METIN),
+        "gruplar": [{"baslik": b, "aciklama": a, "alanlar": list(al)}
+                    for b, a, al in E_US.GRUPLAR],
+        "etiket": {k: list(v) for k, v in E_US.ETIKET.items()},
+    }
+    #  Tablolar sekmesi:  uygulamanın kendi tabloları  ( ray · NPU · halat ·
+    #  ω · kabin alanı … ).  Bunlar bugüne kadar yalnız motorun içindeydi,
+    #  ekranda görünmüyordu — uygulama yapan mühendis kullandığı ray
+    #  tablosuna bakamıyordu.
+    veri["tablolar"] = E_UTB.arayuz_tablolari()
+    #  Çoklu projede asansöre özel OLMAYAN alanlar — arayüz bunları asansör
+    #  formunun dışında bir kez sorar ve asansörden asansöre taşımaz.
+    veri["proje_geneli"] = list(PROJE_GENELI_ALANLAR)
+    #  ÇİZİM ALANLARI:  hesabın bilmediği, yalnız çizimin ihtiyaç duyduğu
+    #  ölçüler ( cizim/kopru.ALANLAR ).  Elektrik grubunun önünde tek grup.
+    _yer = next((i for i, gr in enumerate(veri["gruplar"]) if gr["ad"] == E_UGR.EK_GRUP[0]),
+                len(veri["gruplar"]))
+    veri["gruplar"].insert(_yer, UC_CIZIM.CK.arayuz_grubu())
+    #  ÇİZİMDEN TÜRETİLEN HESAP GİRDİLERİ ( cizim/kopru.CIZIMDEN ):  boşsa
+    #  değer çizimin geometrisinden gelir ( motorun tamamla'sı );  ekran
+    #  kutunun içine hangi sayıyla hesaplandığını gri yazar.
+    veri["cizimden"] = list(UC_CIZIM.CK.CIZIMDEN)
+    veri["asansor_azami"] = E_UYG.ASANSOR_AZAMI
+    return veri
+
+
+def _mukavemet_girdi(veri: dict):
+    """Arayüzden gelen ham metinleri sözleşmenin beklediği türlere çevirir.
+
+    Seçim alanları LİSTEDEKİ değere eşlenir:  arayüz her şeyi metin olarak
+    yollar, oysa seçeneklerin çoğu sayıdır ( 800 · 1,6 · 370 ).  Eşleme
+    burada yapılmazsa motorun doğrulaması "geçersiz seçim" der.
+    """
+    _BELIRSIZ.clear(); _RED.clear()
+    girdiler = (veri or {}).get("girdiler")
+    return _girdi_coz(girdiler, veri,
+                      _uygulanmayan((girdiler or {}) if isinstance(girdiler, dict) else {}))
+
+
+def _uygulanmayan(ham):
+    """Ham girdideki makine yerleşimine göre hesaba girmeyen alanlar.
+
+    Kutu gönderilmemişse sözleşmenin varsayılanı ( makine dairesiz ) geçerlidir.
+    """
+    mk_yok = evet_mi(ham["mk_yok"]) if "mk_yok" in ham else E_UGR.EK_ALAN["mk_yok"][5]
+    return E_UGR.uygulanmayan_alanlar(mk_yok)
+
+
+def _girdi_coz(v, veri, atla=frozenset()):
+    """Tek asansörün ham alanlarını türlerine çevirir.
+
+    ``atla``:  makine yerleşimine göre hesaba girmeyen ( ekranda gizli )
+    alanlar.  OKUNMAZLAR — içlerinde kalmış "4.000" ya da "-3" projeyi
+    durdurmaz, çünkü kullanıcı gizli alanı göremez ve düzeltemez.
+
+    _BELIRSIZ / _RED KASITLI OLARAK TEMİZLENMEZ:  çoklu projede her asansör
+    ayrı çağrılır ve belirsiz girdiler hepsinden TOPLANMALIDIR — temizlik
+    çağıranın işidir ( bkz. _asansor_girdileri ).
+    """
+    v = v if isinstance(v, dict) else {}
+    g = {}
+    #  Elektrik hesaplarının ek alanları  ( kuyu genişliği · kesitler ·
+    #  temel ölçüleri · makine dairesi ).  Onay kutusu mantıksal, geri kalanı
+    #  serbest sayıdır;  boş bırakılabilir — hesap eksikliği kendisi bildirir.
+    for anahtar, _et, _b2, tur2, _s2, _v2 in E_UGR.EK_ALANLAR:
+        if anahtar not in v:
+            continue
+        if anahtar in atla:
+            g[anahtar] = None
+            continue
+        ham = v[anahtar]
+        g[anahtar] = evet_mi(ham) if tur2 == "onay" else _sayi_oku(ham, _et)
+    #  Çizim alanları:  sayılar okunur ( okunamayan yazım reddedilir ),
+    #  seçimler olduğu gibi;  boş alan None — köprü kuralını uygular.
+    for anahtar, _et, _b3, tur3, _s3, _v3, _gel, _bil in UC_CIZIM.CK.ALANLAR:
+        if anahtar not in v:
+            continue
+        if anahtar in atla:
+            g[anahtar] = None
+            continue
+        ham = v[anahtar]
+        g[anahtar] = _sayi_oku(ham, _et) if tur3 == "sayi" else (
+            ham if str(ham).strip() != "" else None)
+    for anahtar, etiket, _b, tur, secenekler, _var in E_MGR.ALANLAR:
+        if tur == "hesap" or anahtar not in v:
+            continue
+        if anahtar in atla:
+            g[anahtar] = None
+            continue
+        ham = v[anahtar]
+        if secenekler is None:
+            #  Serbest sayı:  okunamayan yazım boş SAYILMAZ, sebebiyle
+            #  reddedilir ( boş kabin kütlesi gibi tablodan doldurulan bir
+            #  alanda "abc" eskiden tablo değerine dönüşürdü ).
+            g[anahtar] = _sayi_oku(ham, etiket) if tur == "sayi" else ham
+            continue
+        if belirsiz_sayi_mi(ham):
+            _BELIRSIZ.append(f"{etiket} = {str(ham).strip()}")
+        #  Seçenek listesi:  önce birebir, sonra sayısal eşleşme aranır
+        if ham in secenekler:
+            g[anahtar] = ham
+            continue
+        sayi = _sayi(ham)
+        esles = next((o for o in secenekler
+                      if isinstance(o, (int, float)) and not isinstance(o, bool)
+                      and sayi is not None and abs(o - sayi) < 1e-9), None)
+        g[anahtar] = esles if esles is not None else (
+            ham if str(ham).strip() != "" else None)
+    #  Ofis standardı ( Sabitler sekmesi ) — elektrik ve topraklama hesapları
+    #  buradan besleniyor;  avan tarafındaki ile aynı biçimde alınır.
+    g["_ofis"] = _sabitler_coz((veri or {}).get("sabitler"), E_US.METIN,
+                               lambda k: E_US.ETIKET.get(k, (k,))[0])
+    return g
+
+
+#  Makine dairesinin çizim ölçüleri de binaya aittir.
+PROJE_GENELI_ALANLAR = E_UGR.PROJE_GENELI_ALANLAR + UC_CIZIM.CK.PROJE_GENELI
+
+
+def _asansor_girdileri(veri):
+    """Arayüzden gelen isteği ( 1 - 4 asansör ) çözer.
+
+    Döner:  ( [ asansör girdi sözlükleri ] , ortak )
+
+    GERİYE DÖNÜK:  "asansorler" yoksa eski tek asansörlük "girdiler" alanı
+    kullanılır — kayıtlı eski projeler ve eski istekler çalışmaya devam eder.
+    """
+    _BELIRSIZ.clear(); _RED.clear()
+    veri = veri or {}
+    ham = veri.get("asansorler")
+    if not isinstance(ham, list) or not ham:
+        ham = [veri.get("girdiler")]
+    ham = [x for x in ham if isinstance(x, dict)][:E_UYG.ASANSOR_AZAMI] or [{}]
+
+    #  Proje geneli alanlar:  ayrı gönderilmişse oradan, yoksa İLK asansörün
+    #  girdisinden ( eski tek asansörlük istekler bunları orada taşıyor ).
+    pg_ham = veri.get("proje_geneli")
+    if isinstance(pg_ham, dict):
+        #  Ayrı gönderildiyse asansörün İÇİNDEKİ kopyalar okunmaz:  eski bir
+        #  proje dosyasından kalmış olabilirler, ekranda görünmezler ve motor
+        #  zaten ortaktakini kullanır ( bkz. hesap.hesapla_coklu ).
+        ham = [{k: v for k, v in x.items() if k not in PROJE_GENELI_ALANLAR}
+               for x in ham]
+    else:
+        pg_ham = {k: ham[0][k] for k in PROJE_GENELI_ALANLAR if k in ham[0]}
+    #  Makine yerleşimi proje genelidir:  gizli alanlar bütün asansörlerde aynı.
+    atla = _uygulanmayan(pg_ham)
+    ortak = {k: v for k, v in _girdi_coz(pg_ham, veri, atla).items()
+             if k in PROJE_GENELI_ALANLAR or k == "_ofis"}
+    return [_girdi_coz(x, veri, atla) for x in ham], ortak
+
+
+def _coklu_sonuc(veri):
+    """Çoklu uygulama hesabı.  ( sonuc , hata_yaniti )"""
+    asansorler, ortak = _asansor_girdileri(veri)
+    belirsiz = _belirsiz_hata()
+    if belirsiz:
+        return None, JSONResponse({"aktif": False, "hata": [belirsiz]},
+                                  status_code=200)
+    s = E_UYG.hesapla_coklu(asansorler, ortak)
+    if not s.get("aktif"):
+        return None, JSONResponse(
+            {"aktif": False,
+             "hata": s.get("hata") or ["HESAP HATASI"]}, status_code=200)
+    return s, None
+
+
+@router.post("/api/uygulama/coklu")
+def api_uygulama_coklu(veri: dict = Body(...)):
+    """1 - 4 asansörlük uygulama projesi."""
+    try:
+        s, yanit = _coklu_sonuc(veri)
+        if yanit is not None:
+            return yanit
+        for a in s.get("asansorler") or []:
+            a.pop("ara", None)         # ara değerler testler içindir, arayüze gerekmez
+        return JSONResponse(json.loads(json.dumps(s, default=str)))
+    except Exception as e:                                    # noqa: BLE001
+        return JSONResponse({"aktif": False, "hata": [f"HESAP HATASI: {e}"]},
+                            status_code=200)
+
+
+@router.post("/api/indir/uygulama-pdf")
+def indir_uygulama_pdf(veri: dict = Body(...)):
+    try:
+        _p = _proje_kimligi(veri)
+        s, yanit = _coklu_sonuc(veri)
+        if yanit is not None:
+            return yanit
+        return _indir(X_PDF.uygulama_pdf(s, _p),
+                      _dosya_adi(_p, "Uygulama Projesi Hesaplari", "pdf"),
+                      "application/pdf")
+    except Exception as e:                                    # noqa: BLE001
+        return _uretilemedi(e)
+
+
+@router.post("/api/indir/uygulama-dwg")
+def indir_uygulama_dwg(veri: dict = Body(...)):
+    """Uygulama projesi paftası — ofis tip proje formatına yerleştirilmiş CAD."""
+    if X_DXF is None:
+        return JSONResponse(
+            {"hata": "HESAP HATASI: CAD çıktısı için gereken kitaplıklar kurulu değil "
+                     f"( {_DXF_HATA} ).  Programı kapatıp {_BASLATICI} dosyasını "
+                     "yeniden çalıştırın; eksik kitaplıklar kendiliğinden kurulur."},
+            status_code=200)
+    try:
+        _p = _proje_kimligi(veri)
+        s, yanit = _coklu_sonuc(veri)
+        if yanit is not None:
+            return yanit
+        paftalar = []
+        #  KAPAK.  Uygulama projesinin kapağı MMO'nun ayrı kitabındadır;  ama
+        #  paket bir teslim dosyasıdır ve kapaksız gitmesi için sebep yok —
+        #  kapak alanları doldurulmuşsa pakete de girer.
+        kapak = veri.get("kapak_sayfasi")
+        if isinstance(kapak, dict) and any(str(x).strip() for x in kapak.values()):
+            paftalar.append(("Kapak", X_KAPAK.pdf_bytes(kapak)))
+        paftalar.append(("Uygulama Projesi", X_PDF.uygulama_pdf(s)))
+        #  ÇİZİMLER:  her asansörün kuyu kesitleri ve planları hesap
+        #  sayfalarının sağına dizilir.  Bir asansörün çizimi kurulamıyorsa
+        #  paket ÇİZİMSİZ inmez — eksik bir proje teslim edilmesin, sebep
+        #  söylenir ( girdi formun "Çizim" grubunda ya da hesapta düzeltilir ).
+        asansorler, ortak = _asansor_girdileri(veri)
+        cizim = UC_CIZIM.girdiler(veri, asansorler, ortak, s, _p["proje_adi"])
+        eksik = [f"{i}. asansör — {h}" for i, (_g, hata) in enumerate(cizim, 1) for h in hata]
+        if eksik:
+            return JSONResponse({"aktif": False,
+                                 "hata": "ÇİZİMLER KURULAMADI:\n· " + "\n· ".join(eksik)},
+                                status_code=200)
+        ad = _dosya_adi(_p, "Uygulama Projesi", "zip")
+        #  Pakete PROJE DOSYASI da girer:  teslim paketi ile geri dönüş
+        #  noktası aynı arşivde dursun.
+        paket, sebep, tasti = X_DXF.proje_paketi(
+            paftalar, os.path.splitext(ad)[0], list(_paket_ekleri(veri, "uygulama")),
+            son_islem=UC_CIZIM.paftaya_ekle([g for g, _h in cizim]))
+        yanit = _indir(paket, ad, "application/zip")
+        notlar = (["DXF"] if sebep else []) + (["TASMA"] if tasti else [])
+        if notlar:
+            yanit.headers["X-Avan-Not"] = ",".join(notlar)
+        return yanit
+    except Exception as e:                                    # noqa: BLE001
+        return _uretilemedi(e)
+
+

@@ -260,12 +260,42 @@ def plan_parcalari(Y, S, sase=True):
                       Y["sase_delikleri"])
     p += Y["makine"]
     if Y["tip"] == "Dişlisiz":
-        mx = (Y["kasnak"][0] + Y["kasnak"][2]) / 2.0
-        p.append(kutu(mx - S["makine_kapak_en"] / 2.0, my - S["makine_kapak_boy"] / 2.0,
-                      mx + S["makine_kapak_en"] / 2.0, my + S["makine_kapak_boy"] / 2.0,
-                      S["makine_en"] / 2.0, S["makine_en"] / 2.0 + S["makine_kapak_yukseklik"],
+        #  Kapak kasnağın düzlem boyundaki ortasında, gövdenin ortasında — 1:1
+        #  askıda arkadaki ağırlıkta halat düzlemi y boyuncadır ( Y["duzlem"] ).
+        d = Y.get("duzlem")
+        ks = d.kanonik(Y["kasnak"]) if d else Y["kasnak"]
+        gv_ = d.kanonik(gv) if d else gv
+        mx, mv = (ks[0] + ks[2]) / 2.0, (gv_[1] + gv_[3]) / 2.0
+        k_ = (mx - S["makine_kapak_en"] / 2.0, mv - S["makine_kapak_boy"] / 2.0,
+              mx + S["makine_kapak_en"] / 2.0, mv + S["makine_kapak_boy"] / 2.0)
+        if d:
+            k_ = d.kutu(k_[0], k_[2], k_[1], k_[3])
+        p.append(kutu(*k_, S["makine_en"] / 2.0, S["makine_en"] / 2.0 + S["makine_kapak_yukseklik"],
                       parca="klemens_kutusu"))
     return p
+
+
+def takas(parcalar):
+    """Cisimleri x ↔ y takasıyla çevirir ( planda köşegene göre ayna ):  x
+    boyunca dizilmiş bir düzen y boyunca dizilir.  Arkadaki karşı ağırlıkta
+    halat düzlemi kuyu derinliği boyuncadır;  makine ve saptırma kasnağı yan
+    ağırlıktaki kuralla kurulup buradan geçer.  Silindirin ekseni de takas
+    olur ( x ekseninde merkezin x'i kullanılmaz — y'de de öyle )."""
+    out = []
+    for p in parcalar:
+        q = dict(p)
+        if p["tur"] == "silindir":
+            x, y, z = p["merkez"]
+            q["merkez"] = (y, x, z)
+            q["eksen"] = {"x": "y", "y": "x"}.get(p["eksen"], p["eksen"])
+        elif p["tur"] == "kutu":
+            x0, y0, x1, y1, z0, z1 = p["k"]
+            q["k"] = (y0, x0, y1, x1, z0, z1)
+        else:
+            q["p0"] = (p["p0"][1], p["p0"][0], p["p0"][2])
+            q["p1"] = (p["p1"][1], p["p1"][0], p["p1"][2])
+        out.append(q)
+    return out
 
 
 def kaydir(parcalar, dz):

@@ -14,8 +14,8 @@
     python3 calistir.py --pafta          → bütün çizimler TİP PROJE FORMATINDA ( cikti/pafta.dxf )
 
 Hesap programından BAĞIMSIZDIR;  girdiyi cizim/girdi.py içindeki ÖRNEK
-sözlüğünden alır.  İleride köprü ( cizim/kopru.py ) bu sözlüğü hesabın
-sonuçlarından dolduracaktır.
+sözlüğünden alır.  Birleşik programda ( hesap/main.py ) çizim girdisini
+köprü ( cizim/kopru.py ) formun girdisinden ve hesabın sonucundan kurar.
 """
 import argparse
 import copy
@@ -91,7 +91,9 @@ def main(argv):
 
     g = copy.deepcopy(CG.ORNEK)
     if a.aski == "Doğrudan":
-        g["aski"] = {"duzen": "Doğrudan", "nokta_arasi": 450}
+        #  1:1:  kasnak yok, halatlar ( adet · çap ) aynı
+        g["aski"] = {"duzen": "Doğrudan", "halat_adedi": g["aski"]["halat_adedi"],
+                     "halat_capi": g["aski"]["halat_capi"]}
     else:
         g["aski"]["duzen"] = a.aski
     if a.agirlik:

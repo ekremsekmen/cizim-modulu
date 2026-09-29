@@ -88,7 +88,8 @@ def _aski_olculeri(g):
         return ("kasnak", a.get("kasnak_capi"), a.get("kasnak_arasi"),
                 a.get("kasnak_kaciklik", 0))
     if duzen == "Doğrudan":
-        return ("nokta", None, a.get("nokta_arasi"), a.get("nokta_kaciklik", 0))
+        #  1:1:  tek bağlantı ( şasenin üst kirişinin ortası ) — aralığı yok
+        return ("nokta", None, 0.0, a.get("nokta_kaciklik", 0))
     return (None, None, None, None)
 
 
@@ -217,7 +218,7 @@ def dogrula(g):
         hata.append(f"aski.duzen: {ASKI_DUZENLERI} içinden olmalı ( {a.get('duzen')!r} ).")
     else:
         tur, cap, aralik, kaciklik = _aski_olculeri(g)
-        gerekli = [("aralık", aralik)] + ([("kasnak çapı", cap)] if tur == "kasnak" else [])
+        gerekli = ([("aralık", aralik), ("kasnak çapı", cap)] if tur == "kasnak" else [])
         for ad, v in gerekli:
             if not _sonlu_sayi(v) or v <= 0:
                 hata.append(f"aski: {ad} sıfırdan büyük bir sayı olmalı ( {v!r} ).")

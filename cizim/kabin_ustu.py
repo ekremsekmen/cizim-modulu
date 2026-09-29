@@ -236,12 +236,15 @@ def ciz(g, cizim_sabitleri=None):
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
     dg, dar = g["kuyu"]["duvar_sag"], g["kuyu"]["duvar_arka"]
     duzen = (g.get("aski") or {}).get("duzen")
-    ad_sec = _PLANDAN_AD + (("kabin_kasnak", "kabin_kasnak_yazi") if duzen == "Kabin üstü"
-                            else ("aski_nokta",) if duzen == "Doğrudan" else ())
+    #  Tavandaki askı elemanları ( kabin üstü kasnakları, 1:1 bağlantısı )
+    #  TAVANDAN SONRA çizilir:  tavanın dolgusu onları örtüyordu.
+    aski_ad = (("kabin_kasnak", "kabin_kasnak_yazi") if duzen == "Kabin üstü"
+               else ("aski_nokta",) if duzen == "Doğrudan" else ())
     e = [el for el in Y["taban"]
-         if el.get("ad") in ad_sec
+         if el.get("ad") in _PLANDAN_AD
          or (el["katman"] in _PLANDAN_KATMAN and el["tip"] != "yazi"
              and el.get("ad") not in _PLANDAN_DISLA)]
+    aski_el = [el for el in Y["taban"] if el.get("ad") in aski_ad]
 
     #  ── KABİN TAVANI ─────────────────────────────────────────────────
     tg, td = tavan[2] - tavan[0], tavan[3] - tavan[1]
@@ -254,8 +257,9 @@ def ciz(g, cizim_sabitleri=None):
     e.append(CGE._yazi((op[0] + op[2]) / 2.0, (op[1] + op[3]) / 2.0, "KAPI OPERATÖRÜ", 40))
 
     #  Kabin altı askıda halatlar tavanın DIŞINDAN, kasnakların dış
-    #  teğetinden yukarı çıkar
-    for hx, hy in Y["halatlar"]:
+    #  teğetinden yukarı çıkar ( kabin üstü askıda halat tavandaki kasnaktan
+    #  çıkar — kasnak zaten çizili )
+    for hx, hy in (Y["halatlar"] if (g.get("aski") or {}).get("duzen") == "Kabin altı" else ()):
         e.append(CGE._ad(CGE._daire("KASNAK", hx, hy, 20), "halat"))
         e.append(CGE._yazi(hx, hy - 70, "HALAT", 36))
 
@@ -274,6 +278,7 @@ def ciz(g, cizim_sabitleri=None):
         cx, cy = (sg[0] + sg[2]) / 2.0, (sg[1] + sg[3]) / 2.0
         e.append(CGE._yazi(cx, cy + 35, "SIĞINMA ALANI", 38))
         e.append(CGE._yazi(cx, cy - 35, f"{Y['siginma_tipi'].upper()}  {a:g} x {b:g}", 34))
+    e += aski_el
 
     #  ── ÖLÇÜLER ──────────────────────────────────────────────────────
     O = CGE._olcu

@@ -129,7 +129,7 @@ def kuyu_dibi_seviyesi(g, Y):
     kabin kasnağı ) altından geçer;  ilk konsolların üstünde kalır ki konsollar,
     gergi ve tamponlar planda görünsün — ikisinin ortası.  Konsol kabinin
     altına sığmıyorsa kuyu tabanıyla kabinin ortası."""
-    kt = CDN.kabin_kotlari(g["dusey"], Y["S"], Y["kotlar"][0])
+    kt = CDN.kabin_kotlari(g["dusey"], Y["S"], Y["kotlar"][0], g.get("aski"))
     kabin_alti = min(kt["etek_alti"], kt["alt_paten"], kt["fren_alti"])
     if Y["kasnaklar"]:
         kabin_alti = min(kabin_alti, kt["kasnak_merkez"] - Y["kasnak_capi"] / 2.0)
@@ -399,7 +399,8 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     AK, kt = CKP.donanim(e, B, g, Y, P, 0.0, M["agirlik"]["tampon_ustu"] + dy["agirlik_carpma_arasi"] + H, K)
     kb = KD["kabin"]
     ky = [(kz[1] + kz[3]) / 2.0 for kz in P["kabin_kasnak"]]
-    CDU._kabin(e, kt, (kb[1], kb[3]), g["kabin_ray"]["kapi_arasi"], S, ky[:1], g["aski"]["kasnak_capi"])
+    CDU._kabin(e, kt, (kb[1], kb[3]), g["kabin_ray"]["kapi_arasi"], S, ky[:1],
+               g["aski"].get("kasnak_capi") or 0)
     CKP.korkuluk(e, B, Y, kt)
     #  Kabin eşiği ve kabin kapısı kanatları ( kabinin önünde, kendi döşemesinde )
     for kk in P["kabin_esik"]:
@@ -486,6 +487,7 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     e.append(CGE._olcu("yatay", (0, taban), (G, taban), taban - don - 250 * K,
                        f"KUYU GENİŞLİĞİ {G:g}"))
     #  Kırık:  altta karşı ağırlık, üstte kabin ( etek, fren bloğu, paten ) kalmalı
-    return _bitir(e, g, Y, kt, K, max(AK["ust"], AK["ust_paten"], AK["kasnak_merkez"] + g["agirlik"]["kasnak_capi"] / 2.0),
+    return _bitir(e, g, Y, kt, K, max(AK["ust"], AK["ust_paten"],
+                                      AK["kasnak_merkez"] + (g["agirlik"].get("kasnak_capi") or 0) / 2.0),
                   min(kt["etek_alti"], kt["alt_paten"], kt["fren_alti"]),
                   kapi_h + S["kapi_ust_payi"], (-dg, G + ds), azami)

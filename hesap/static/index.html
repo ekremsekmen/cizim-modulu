@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Asansör Proje Programı</title>
+<link rel="stylesheet" href="/static/style.css?v=SURUM">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23123E6B'/><path d='M9 7h14v18H9z' fill='none' stroke='%23fff' stroke-width='2'/><path d='M16 7v18M12 12l0 8M20 12l0 8' stroke='%23fff' stroke-width='1.6'/></svg>">
+</head>
+<body class="giriste">
+
+<!-- ═══════════════════════════ AÇILIŞ EKRANI ═══════════════════════════
+     Program açıldığında önce burası görünür.  Kullanıcı hangi projeyi
+     hazırlayacağını seçer;  "Avan Proje" seçilince alttaki uygulama
+     ( sekmeler + sayfalar ) açılır.  Uygulama projesi bölümü sonra
+     eklenecek — şimdilik yalnız duyurusu var.                        -->
+<section id="giris" class="giris">
+  <div class="giris-ic">
+    <div class="giris-bas">
+      <svg width="46" height="46" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect x="5" y="3" width="22" height="26" rx="2.5" stroke="#FFC65C" stroke-width="2"/>
+        <path d="M16 3v26M10 10v12M22 10v12" stroke="#fff" stroke-width="1.7"/>
+        <path d="M13 8l3-3 3 3M13 24l3 3 3-3" stroke="#FFC65C" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h1>ASANSÖR PROJE PROGRAMI</h1>
+      <p>Hangi projeyi hazırlayacaksınız?</p>
+    </div>
+
+    <div class="giris-kartlar">
+      <button type="button" class="giris-kart" id="gk_avan" onclick="uygulamaAc('avan')">
+        <span class="gk-rozet ok">HAZIR</span>
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 3h11l5 5v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
+          <path d="M15 3v5h5M7 12h10M7 16h7M7 8h4"/>
+        </svg>
+        <span class="gk-ad">AVAN PROJE</span>
+        <span class="gk-alt">Trafik hesabı · avan hesapları · proje kapağı<br>PDF ve CAD çıktısı</span>
+      </button>
+
+      <button type="button" class="giris-kart" id="gk_uygulama" onclick="uygulamaAc('uygulama')">
+        <span class="gk-rozet ok">HAZIR</span>
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 21h18M5 21V8l7-5 7 5v13"/>
+          <path d="M9 21v-6h6v6M9 11h.01M15 11h.01"/>
+        </svg>
+        <span class="gk-ad">UYGULAMA PROJESİ</span>
+        <span class="gk-alt">Mukavemet hesapları<br>TS EN 81-20 · TS EN 81-50 · MMO 208</span>
+      </button>
+    </div>
+
+    <div class="giris-alt">MMO/697 · TS EN 81-20 · ISO 8100-32:2020 · IEEE Std 80 · IEC 60364-5-52 · BYKHY md.4</div>
+  </div>
+</section>
+
+<header class="ust">
+  <div class="ust-ic">
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+        <rect x="5" y="3" width="22" height="26" rx="2.5" stroke="#FFC65C" stroke-width="2"/>
+        <path d="M16 3v26M10 10v12M22 10v12" stroke="#fff" stroke-width="1.7"/>
+        <path d="M13 8l3-3 3 3M13 24l3 3 3-3" stroke="#FFC65C" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span id="ust_ad">ASANSÖR AVAN HESAPLAMA PROGRAMI</span>
+    </div>
+    <button type="button" class="ust-dugme" id="dg_ana_ekran" onclick="anaEkran()"
+            title="Proje seçim ekranına dön">← Ana ekran</button>
+    <div class="kaynak" id="ust_kaynak">
+      MMO/697, 2. Baskı, Ocak 2020 &nbsp;·&nbsp; TS EN 81-20 &nbsp;·&nbsp; ISO 8100-32:2020<br>
+      IEEE Std 80 &nbsp;·&nbsp; IEC 60364-5-52 &nbsp;·&nbsp; BYKHY md.4
+    </div>
+  </div>
+</header>
+
+<nav class="sekmeler">
+  <div class="sekmeler-ic">
+    <!--  İŞLEM ADIMLARI  ( soldan sağa, sırayla )  -->
+    <button class="sekme etkin" data-sekme="trafik" data-mod="avan">1 · Trafik Hesabı</button>
+    <button class="sekme" data-sekme="avan" data-mod="avan">2 · Avan Hesapları</button>
+    <button class="sekme" data-sekme="proje" data-mod="avan">3 · Proje Kapağı</button>
+    <!--  UYGULAMA PROJESİ ADIMLARI  —  avan sekmeleriyle aynı şeritte durur,
+          moda göre biri gizlenir  ( bkz. ortak.js · modAyarla ).            -->
+    <button class="sekme" data-sekme="uygproje" data-mod="uygulama" hidden>1 · Proje</button>
+    <!--  ASANSÖR SEKMELERİ.  Adet seçimine göre burada üretilir
+          ( uygulama.js · mAsansorSekmeleriTazele ).  Hepsi AYNI gövdeyi
+          ( #s-mukavemet ) gösterir ve yalnız aktif asansörü değiştirir;
+          dört ayrı sayfa 4 × 86 alanlık DOM demek olurdu.               -->
+    <span id="m_asansor_sekmeleri" class="m-asansor-sekmeler"></span>
+    <!--  BAŞVURU SEKMELERİ  —  işlem adımı değil, gerektikçe bakılır;
+          bu yüzden şeridin sağ ucuna itilir ( .sekme-ayrac ).            -->
+    <span class="sekme-ayrac"></span>
+    <button class="sekme yan ayrik" data-sekme="sabitler" data-mod="avan uygulama">Sabitler / Ofis Standardı</button>
+    <button class="sekme yan" data-sekme="tablolar" data-mod="avan uygulama">Tablolar</button>
+  </div>
+</nav>
+
+<main class="kabuk">
+
+<!-- ═══════════════════════════ PROJE KAPAĞI ═══════════════════════════ -->
+<section id="s-proje" class="sayfa" hidden>
+  <details class="proje-araclari">
+    <summary>Proje araçları <span>proje dosyası</span></summary>
+    <div class="proje-araclari-ic">
+      <div class="kart">
+        <div class="kart-bas"><span>PROJE DOSYASI</span></div>
+        <div class="kart-ic">
+          <div class="yardim">Girdiler tarayıcıda kendiliğinden saklanır. Ayrıca tüm sekmeleri tek dosyada
+            arşivlemek için <b>proje dosyası</b> olarak kaydedebilirsiniz (.avan).
+            <b>Uygulama projesi dosyaları (.uygulama) buraya yüklenmez</b> — ayrı projelerdir.</div>
+          <div class="dugmeler">
+            <button class="dg ana" onclick="projeKaydet()">Projeyi kaydet</button>
+            <button class="dg" onclick="document.getElementById('dosya_ac').click()">Proje aç (.avan)</button>
+            <button class="dg" onclick="ornekYukle()">Örnek proje yükle</button>
+            <button class="dg" onclick="hepsiniTemizle()">Tümünü temizle</button>
+          </div>
+          <input type="file" id="dosya_ac" accept=".avan,.json" style="display:none" onchange="projeAc(event)">
+        </div>
+      </div>
+    </div>
+  </details>
+<!-- ═══════════════════════ KAPAK DETAY BİLGİLERİ ═══════════════════════ -->
+  <div class="kart kapak-ust">
+    <div class="kart-bas"><span>ASANSÖR AVAN PROJESİ KAPAĞI</span><span class="kaynak">tek sayfa · doğrudan PDF</span></div>
+    <div class="kart-ic">
+      <div class="alan"><label>Kapak başlığı</label><input id="k_project_title" class="girdi" placeholder="ASANSÖR AVAN PROJESİ"></div>
+      <div class="yardim" id="k_turetilen_not"><b>Yapı kullanım amacı</b> ve <b>asansör bilgileri</b>nde
+        boş bıraktığınız kutular projenin trafik ve avan hesabından doldurulur: kutudaki
+        <b>gri yazı kapağa basılacak değerdir</b>. Kutuya yazarsanız sizin değeriniz basılır.
+        Blok, asansör sınıfı, ray ölçüsü ve ölçek hesaptan çıkmaz — yazılmazsa boş kalır.</div>
+    </div>
+  </div>
+  <div class="ikili kapak-ic">
+    <div>
+      <div class="kart">
+        <div class="kart-bas"><span>YAPI VE ARSA BİLGİLERİ</span></div>
+        <div class="kart-ic">
+          <div class="satir i2">
+            <div class="alan"><label>Yapı sahibi / işveren</label><input id="k_owner" class="girdi"></div>
+            <div class="alan"><label>Yapı kullanım amacı</label><input id="k_usage" class="girdi"></div>
+          </div>
+          <div class="satir i2">
+            <div class="alan"><label>Müteahhit</label><input id="k_contractor" class="girdi"></div>
+            <div class="alan"><label>Müteahhit vergi no</label><input id="k_contractor_tax" class="girdi"></div>
+          </div>
+          <div class="satir i2">
+            <div class="alan"><label>İl</label><input id="k_city" class="girdi"></div>
+            <div class="alan"><label>İlçe</label><input id="k_district" class="girdi"></div>
+          </div>
+          <div class="satir i2">
+            <div class="alan"><label>Mahalle</label><input id="k_neighborhood" class="girdi"></div>
+            <div class="alan"><label>Alan (m²)</label><input id="k_area" class="girdi"></div>
+          </div>
+          <div class="satir i3">
+            <div class="alan"><label>Pafta no</label><input id="k_sheet_no" class="girdi"></div>
+            <div class="alan"><label>Ada no</label><input id="k_island_no" class="girdi"></div>
+            <div class="alan"><label>Parsel no</label><input id="k_parcel_no" class="girdi"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="kart">
+        <div class="kart-bas"><span>ASANSÖR BİLGİLERİ</span></div>
+        <div class="kart-ic">
+          <div class="satir i3">
+            <div class="alan"><label>Blok</label><input id="k_block" class="girdi"></div>
+            <div class="alan"><label>Kapasite</label><input id="k_capacity" class="girdi"></div>
+            <div class="alan"><label>Hız</label><input id="k_speed" class="girdi"></div>
+          </div>
+          <div class="satir i3">
+            <div class="alan"><label>Durak sayısı</label><input id="k_stops" class="girdi"></div>
+            <div class="alan"><label>Seyir mesafesi</label><input id="k_travel" class="girdi"></div>
+            <div class="alan"><label>Standart</label><input id="k_standard" class="girdi"></div>
+          </div>
+          <div class="satir i2">
+            <div class="alan"><label>Kabin genişliği</label><input id="k_cabin_width" class="girdi"></div>
+            <div class="alan"><label>Kabin derinliği</label><input id="k_cabin_depth" class="girdi"></div>
+          </div>
+          <div class="satir i3">
+            <div class="alan"><label>Asansör sınıfı</label><input id="k_elevator_class" class="girdi"></div>
+            <div class="alan"><label>Askı tipi</label><input id="k_suspension" class="girdi"></div>
+            <div class="alan"><label>Asansör adedi</label><input id="k_elevator_count" class="girdi"></div>
+          </div>
+          <div class="satir i3">
+            <div class="alan"><label>Tahrik tipi</label><input id="k_drive_type" class="girdi"></div>
+            <div class="alan"><label>Ray ölçüsü</label><input id="k_rail_size" class="girdi"></div>
+            <div class="alan"><label>Motor gücü</label><input id="k_motor_power" class="girdi"></div>
+          </div>
+          <div class="alan"><label>Ölçek</label><input id="k_scale" class="girdi"></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="kart">
+        <div class="kart-bas"><span>MAKİNE VE ELEKTRİK MÜHENDİSİ</span></div>
+        <div class="kart-ic">
+          <div class="bolum-bas">Makine mühendisi</div>
+          <div class="satir i5">
+            <div class="alan"><label>Adı</label><input id="k_mech_name" class="girdi"></div><div class="alan"><label>Soyadı</label><input id="k_mech_surname" class="girdi"></div><div class="alan"><label>Sicil no</label><input id="k_mech_registry" class="girdi"></div><div class="alan"><label>Oda sicil no</label><input id="k_mech_chamber" class="girdi"></div><div class="alan"><label>T.C. / vergi no</label><input id="k_mech_tax" class="girdi"></div>
+          </div>
+          <div class="bolum-bas">Elektrik mühendisi</div>
+          <div class="satir i5">
+            <div class="alan"><label>Adı</label><input id="k_elec_name" class="girdi"></div><div class="alan"><label>Soyadı</label><input id="k_elec_surname" class="girdi"></div><div class="alan"><label>Sicil no</label><input id="k_elec_registry" class="girdi"></div><div class="alan"><label>Oda sicil no</label><input id="k_elec_chamber" class="girdi"></div><div class="alan"><label>T.C. / vergi no</label><input id="k_elec_tax" class="girdi"></div>
+          </div>
+          <div class="bolum-bas">Proje / müşavirlik firması</div>
+          <div class="satir i2"><div class="alan"><label>Firma unvanı</label><input id="k_company_name" class="girdi"></div><div class="alan"><label>Adres</label><input id="k_company_address" class="girdi"></div></div>
+          <div class="satir i2"><div class="alan"><label>Vergi no</label><input id="k_company_tax" class="girdi"></div><div class="alan"><label>Vergi dairesi</label><input id="k_company_tax_office" class="girdi"></div></div>
+          <div class="dugmeler"><button class="dg ana" onclick="indir('kapak-pdf')">Kapağı PDF indir</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ ÇOKLU ═══════════════════════════════ -->
+<section id="s-coklu" class="sayfa">
+  <div class="ikili">
+    <div class="sol">
+      <div class="kart">
+        <div class="kart-bas"><span>GİRDİLER — TRAFİK HESABI <span class="bilgi" tabindex="0" role="button" aria-label="Açıklamayı göster" onclick="bilgiAc(this,event)"><span class="bilgi-im">!</span><span class="bilgi-balon"><p>Farklı kapasitede asansör grubu için grup formülü uygulanır: <b>Reş = ΣRi ≥ B·k</b> &nbsp;ve&nbsp; <b>1/TReş = Σ(1/TRi), TReş ≤ Izul</b></p><p>Nüfus (b, B), taşınacak insan yüzdesi k ve izin verilen bekleme Izul bina genelinde ortaktır; yalnız H, S ve Tablo-2 asgari hızı asansör bazında ayrışır.</p></span></span></span><span class="kaynak">MMO/697 s.12</span></div>
+        <div class="kart-ic">
+          <div class="adet-secici">
+            <span class="adet-et">Kaç asansör tanımlıyorsunuz</span>
+            <div class="adet-dugmeler" id="adet_dugmeler_c"></div>
+            <span class="bilgi" tabindex="0" role="button" aria-label="Açıklamayı göster"
+              onclick="bilgiAc(this,event)"><span class="bilgi-im">!</span><span class="bilgi-balon">
+              <p>Burada <b>yöntem seçmiyorsunuz</b> — planladığınız asansörleri
+                tanımlıyorsunuz. Hesap yolunu program veriden çıkarır.</p>
+              <p><b>1 asansör</b> tanımlarsanız program <b>kaç adet gerektiğini hesaplar</b>
+                ( n = MAX[ taşıma ; bekleme ] ) ve yetmiyorsa tek tıkla o adede geçirir.</p>
+              <p><b>2 – 4 asansör</b> tanımlarsanız <b>tanımladığınız grup denetlenir</b>;
+                gerekli adet ayrıca gösterilir, böylece fazla ya da eksik olduğunu görürsünüz.</p>
+              <p>Asansörlerin <b>hepsi aynı tipse</b> MMO/697 s.11-12 yolu ve <b>PAFTA</b>
+                sayfası kullanılır ( türetme adım adım yazılır ). <b>Farklı tip varsa</b>
+                grup formülü ve <b>PAFTA-COKLU</b> sayfası:
+                Reş = ΣRi ≥ B·k &nbsp;ve&nbsp; 1/TReş = Σ(1/TRi), TReş ≤ Izul.
+                Hangi paftanın üretileceği sonucun altında yazar.</p></span></span>
+          </div>
+          <div class="bolum-bas">Bina</div>
+          <div class="alan"><label>① Bina tipi</label><select id="c_bina_tipi" class="girdi"></select></div>
+          <div class="satir i2">
+            <div class="alan"><label>② Bina yüksekliği <span class="ipucu">(m)</span></label><input id="c_bina_yuksekligi" class="girdi"></div>
+            <div class="alan"><label>④ Yapı yüksekliği <span class="ipucu">(m)</span></label><input id="c_yapi_yuksekligi" class="girdi"></div>
+          </div>
+          <div class="satir i3">
+            <div class="alan"><label>③ Kat sayısı N <span class="ipucu">(grup maksimumu)</span></label><input id="c_N" class="girdi"></div>
+            <div class="alan"><label>⑪ Bodrum durağı <span class="ipucu">(ortak)</span><span class="bilgi" tabindex="0" role="button" aria-label="Açıklamayı göster" onclick="bilgiAc(this,event)"><span class="bilgi-im">!</span><span class="bilgi-balon"><p>Ana giriş katının <b>altında</b> asansörün hizmet verdiği durak adedi (bodrum, otopark vb.). Boş bırakırsanız 0 kabul edilir.</p><p>MMO/697 s.14 ve s.16, H (Tablo-3) ve S (Tablo-5) büyüklüklerini <b>ana giriş üstündeki</b> kat adedi N üzerinden tanımlar; yukarı yoğun trafikte tur ana giriş katından başlar. Bu yüzden bodrum durağı <b>H, S ve TR'yi değiştirmez</b>.</p><p>Girdiği iki yer: Tablo-2 asgari hız seçimindeki durak adedi ( N + 1 + Nb ) ve toplam seyahat mesafesi ( (N + Nb) · h ) — ikincisi avan kuyu yüksekliğinin dayanağıdır.</p></span></span></label><input id="c_bodrum" class="girdi" placeholder="0"></div>
+            <div class="alan"><label>⑦ Kat yüksekliği h <span class="ipucu">(m)</span></label><input id="c_h" class="girdi" placeholder="3,00"></div>
+          </div>
+          <div class="alan"><label id="c_l_hizli1">⑤ Daire sayısı</label><input id="c_hizli1" class="girdi"></div>
+          <div class="alan"><label id="c_l_hizli2">⑥ Daire başına diğer oda sayısı</label><input id="c_hizli2" class="girdi"></div>
+          <div class="bolum-bas katla kapali" onclick="katla(this,'c_manuel')">Manuel değerler
+            <span class="ipucu">— hız ve taşınma yüzdesi k</span><span class="ozel-rozet" id="c_manuel_rozet"></span>
+            <span class="bilgi" tabindex="0" role="button" aria-label="Açıklamayı göster"
+              onclick="bilgiAc(this,event)"><span class="bilgi-im">!</span><span class="bilgi-balon">
+              <p><b>Boş bırakın</b> — normal durumda ikisi de tablodan gelir: hız
+                <b>Tablo-2</b> asgarisinden, k <b>Tablo-9</b>'dan.</p>
+              <p><b>Manuel k</b> yalnız iki durumda kullanılır: <b>Kamu binası</b>
+                ( Tablo-9'da yok, program Büro/İş Merkezi varsayar ) ve
+                <b>Tablo-9'da hiç bulunmayan</b> bina tipleri ( karma bina, poliklinik,
+                katlı otopark ). Tablo-9'da değeri olan bir bina tipinde manuel k
+                <b>girilemez</b> — program hata verir, çünkü standart değer varken
+                sessizce ondan sapılmamalıdır.</p>
+              <p>Elle bir değer kullanırsanız gerekçesi <b>paftaya yazılır</b>.</p></span></span></div>
+          <div id="c_manuel" style="display:none">
+            <div class="satir i2">
+              <div class="alan"><label>Manuel ortak V <span class="ipucu">(m/s)</span></label><select id="c_manuel_V" class="girdi"></select></div>
+              <div class="alan"><label>Manuel k <span class="ipucu">(0 – 1)</span></label><input id="c_manuel_k" class="girdi" placeholder="Tablo-9"></div>
+            </div>
+          </div>
+          <div class="alan" id="c_taahhut_alan"><label>Taahhütname <span class="ipucu">(Tablo-10 şartlı kabul)</span>
+            <span class="bilgi" tabindex="0" role="button" aria-label="Açıklamayı göster"
+              onclick="bilgiAc(this,event)"><span class="bilgi-im">!</span><span class="bilgi-balon">
+              <p><b>Yok</b> — program asansör adedini bina için uygulanan sınırla
+                ( <b>Standart</b> / <b>Yükseltilmiş</b> ) bulur.</p>
+              <p><b>Var</b> — bekleme ölçütü MMO/697 Tablo-10 <b>şartlı kabul</b> sınırıdır
+                ( konutta 120 sn ); o sınırda yeten adet seçilir ve pafta
+                "Şartlı Kabul ( taahhütname ile )" der. Taşıma kapasitesi yine
+                aranır — taahhütname onu gevşetmez.</p>
+              <p>Yalnız tek asansör tanımında görünür; 2–4 asansörde adedi siz
+                belirlersiniz, şartlı kabul kendiliğinden sınıflandırılır.</p></span></span></label>
+            <select id="c_taahhut" class="girdi"><option value="Yok">Yok</option><option value="Var">Var</option></select></div>
+          <div id="c_std_rozet" style="margin:-2px 0 6px"></div>
+
+          <div class="bolum-bas">Asansörler</div>
+          <div id="c_asansorler"></div>
+          <div class="bolum-bas katla kapali" onclick="katla(this,'c_eknufus')">Ek nüfus kalemleri</div>
+          <div id="c_eknufus" style="display:none">
+            <div id="c_eknufus_liste"></div>
+            <button class="dg kucuk" onclick="ekNufusEkle('c')">+ Satır ekle</button>
+          </div>
+        </div>
+      </div>
+      <div class="kart">
+        <div class="kart-bas"><span>ÇIKTI</span></div>
+        <div class="kart-ic"><div class="dugmeler">
+          <button class="dg ana" onclick="indir('trafik-pdf')">PDF indir  (pafta)</button>
+          <button class="dg" onclick="window.print()">Yazdır</button>
+        </div></div>
+      </div>
+    </div>
+    <div><div class="kart"><div id="c_sonuc"></div></div></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ AVAN ═══════════════════════════════ -->
+<section id="s-avan" class="sayfa" hidden>
+  <div class="ikili">
+    <div class="sol">
+      <div class="kart">
+        <div class="kart-bas"><span>ORTAK GİRDİLER</span><span class="kaynak">şebeke / topraklama / makine dairesi</span></div>
+        <div class="kart-ic">
+          <div class="uyari mavi" style="margin:0 0 12px">
+            <b>U — şebeke gerilimi</b>, <b>κ — iletkenlik</b> ve <b>εmax — izin verilen gerilim
+            düşümü</b> buradan kaldırıldı: projeden projeye değişmiyorlar. Değerleri
+            <b>Sabitler / Ofis Standardı</b> sekmesindeki <b>C) Ofis Varsayılanları</b>
+            kartında duruyor.</div>
+          <div class="bolum-bas">Temel topraklama</div>
+          <div class="satir i2">
+            <div class="alan"><label>a — Temel uzunluğu <span class="ipucu">(m)</span></label><input id="a_temel_a" class="girdi"></div>
+            <div class="alan"><label>b — Temel genişliği <span class="ipucu">(m)</span></label><input id="a_temel_b" class="girdi"></div>
+          </div>
+          <!--  ŞERİT BOYU GİRDİ DEĞİLDİR:  hep boş bırakılan bir kutuydu;  boy her
+                zaman temel ölçülerinden hesaplanır ( uygulama projesiyle aynı ) ve
+                paftaya işlemiyle basılır.  Burada yalnız kullanılan boy ve açılımı
+                görünür.  -->
+          <div class="alan"><label>Şerit boyu — <b>topraklama bandı</b>
+            <span class="ipucu">(m — temel ölçülerinden hesaplanır)</span></label>
+            <div class="ipucu" id="a_serit_tahmin" style="margin:2px 0 4px"></div>
+            <div class="ipucu" style="margin:0 0 10px">
+              <b>L = 2·( a + b ) + enine bağlar</b> — band temelin çevresini kapalı ring
+              olarak dolaşır, gözler karelaj aralığını ( Sabitler ) geçmez.
+              <b>Kuyu yüksekliğiyle ilgisi yoktur</b>; asansör kartındaki
+              <b>L1 ( kolon hattı )</b> ayrı bir şeydir.
+              <span id="a_temel_cevre"></span></div></div>
+          <div class="uyari mavi" style="margin:2px 0 0">
+            <b>β — toprak özgül direnci</b> ve <b>Is — çubuk topraklayıcı adedi</b> buradan
+            kaldırıldı: projeden projeye değişmiyorlar. Değerleri <b>Sabitler / Ofis Standardı</b>
+            sekmesindeki <b>④ Temel Topraklama</b> grubunda — zemin etüdü varsa oradan
+            değiştirin, değer bu projenin dosyasıyla birlikte saklanır.</div>
+          <div class="bolum-bas">Makine dairesi</div>
+          <label class="kutu-satir"><input type="checkbox" id="a_mk_yok" onchange="mkYokUygula();planla()">
+            <span>Makine dairesi <b>yok</b> &nbsp;( MRL — makine kuyu içinde )</span>
+            <span class="bilgi" tabindex="0" role="button" aria-label="Açıklamayı göster"
+              onclick="bilgiAc(this,event)"><span class="bilgi-im">!</span><span class="bilgi-balon">
+              <p>İşaretlendiğinde makine dairesi aydınlatma hesabı yapılmaz ve paftada
+                "makine dairesiz ( MRL ) sistem" olarak belirtilir.</p>
+              <p>İşaretli değilse A ve B ölçüleri zorunludur — program eksikse uyarır.</p>
+              <p>Kuyu ve kabin aydınlatması, kuvvet ve gerilim düşümü hesapları bu seçimden
+                etkilenmez.</p></span></span></label>
+          <div class="satir i2" id="a_mk_olculer">
+            <div class="alan"><label>A — Uzunluk <span class="ipucu">(mm)</span></label><input id="a_mk_uzunluk" class="girdi" value="0"></div>
+            <div class="alan"><label>B — Genişlik <span class="ipucu">(mm)</span></label><input id="a_mk_genislik" class="girdi" value="0"></div>
+          </div>
+        </div>
+      </div>
+      <div class="kart">
+        <div class="kart-bas"><span>ASANSÖRLER</span><span class="kaynak">en çok 4 adet</span></div>
+        <div class="kart-ic sikisik">
+          <div class="adet-secici">
+            <span class="adet-et">Asansör adedi</span>
+            <div class="adet-dugmeler" id="adet_dugmeler_a"></div>
+            <span class="bilgi" tabindex="0" role="button" aria-label="Açıklamayı göster"
+              onclick="bilgiAc(this,event)"><span class="bilgi-im">!</span><span class="bilgi-balon">
+              <p>Adet <b>trafik hesabından</b> gelir ve kendiliğinden eşitlenir — 1 asansör
+                seçiliyken trafik hesabının <b>bulduğu</b> adet, 2-4 seçiliyken grupta
+                tanımlanan adet. Bu yüzden trafik adedinin <b>altına inilemez</b>: gruptaki
+                her asansörün elektrik hesabı da yapılmalıdır.</p>
+              <p>Binada trafik hesabına girmeyen ayrı bir asansör varsa ( ör. yalnız yük ya da
+                sedye asansörü ) adedi elle artırın. Fazlalar <b>trafik grubu dışı</b> diye
+                işaretlenir: kurulu güce ve gerilim düşümüne girer, trafik kontrolüne girmez.</p>
+              <p>Kapasite ve hız <b>trafiği izler</b>: trafik hesabındaki değer değiştiğinde
+                buradaki de kendiliğinden güncellenir — hiçbir düğmeye basmanız gerekmez.</p>
+              <p>Elle başka bir değer girerseniz o değer <b>korunur</b> ( trafik yeniden
+                değişene kadar ) ve program aradaki farkı uyarı olarak yazar. Trafiğe geri
+                dönmek için <b>↧ Trafikten güncelle</b> düğmesi yeter.</p></span></span>
+          </div>
+          <div class="ipucu" id="a_adet_aciklama" style="margin:-4px 0 10px"></div>
+          <div class="dugmeler" style="margin:0 0 12px">
+            <button class="dg kucuk" onclick="trafiktenAktar()">↧ Trafikten güncelle  ( kapasite ve hız )</button>
+          </div>
+          <div id="a_asansorler"></div>
+        </div>
+      </div>
+      <div class="kart">
+        <div class="kart-bas"><span>ÇIKTI</span></div>
+        <div class="kart-ic"><div class="dugmeler">
+          <button class="dg ana" onclick="indir('avan-pdf')">PDF indir</button>
+          <button class="dg" onclick="window.print()">Yazdır</button>
+        </div></div>
+      </div>
+      <!-- BÜTÜN PROJE — CAD.  Akışın SONU burasıdır ( kapak → trafik → avan ),
+           bu yüzden proje dosyası da burada verilir. -->
+      <div class="kart">
+        <div class="kart-bas"><span>BÜTÜN PROJE — CAD</span>
+          <span class="kaynak">ofisin tip proje formatı içinde</span></div>
+        <div class="kart-ic">
+          <div class="yardim">Projedeki bütün paftalar, <b>ofisin tip proje formatının içine</b>
+            yerleştirilir: kapak soldaki antet hücresine oturur, hesap paftaları sağdaki
+            büyük alana A4 boyutunda soldan sağa dizilir. AutoCAD'de açtığınızda çizim
+            baskıya hazırdır — ayrıca <b>PDFIMPORT çalıştırmanız gerekmez</b>. Yazılar
+            gerçek metindir, çizgiler tek tek çizgidir; siyah-beyaz baskıya uygundur.</div>
+          <div class="dugmeler">
+            <button class="dg ana" id="dg_proje_dwg" onclick="indirProjeDwg()">
+              Projeyi paketle (ZIP)</button>
+          </div>
+          <div class="ipucu" style="margin-top:6px">
+            ZIP'in içinde <b>.dxf</b> çizim ( AutoCAD çift tıkla açar; DWG için
+            <b>Farklı Kaydet → AutoCAD Çizimi</b> demeniz yeterli ) ve
+            <b>pafta pdf</b> klasöründe kaynak paftalar bulunur.
+            ODA File Converter kuruluysa <b>.dwg</b> de eklenir.</div>
+        </div>
+      </div>
+    </div>
+    <div><div class="kart"><div id="a_sonuc"></div></div></div>
+  </div>
+</section>
+
+<!-- ═══════════════════ UYGULAMA PROJESİ · MUKAVEMET ═══════════════════ -->
+<!-- ═══════════════════ UYGULAMA — PROJE ═══════════════════ -->
+<section id="s-uygproje" class="sayfa" hidden>
+  <div class="ikili">
+    <div class="sol">
+      <div class="kart">
+        <div class="kart-bas"><span>PROJE KİMLİĞİ</span>
+          <span class="kaynak">dosya adı ve belge özellikleri</span></div>
+        <div class="kart-ic">
+          <div class="yardim">Bu üç alan yalnız <b>indirilen dosyanın adında</b> ve
+            belge özelliklerinde kullanılır; paftanın hesap içeriğini değiştirmez.
+            Uygulama projesi kapağı MMO'nun ayrı kitabına aittir — avan kapağı
+            buraya basılmaz.</div>
+          <div class="satir i2">
+            <div class="alan"><label>Proje adı</label>
+              <input id="mk_proje_adi" class="girdi" placeholder="Asansör"></div>
+            <div class="alan"><label>İşveren</label>
+              <input id="mk_isveren" class="girdi"></div>
+          </div>
+          <div class="alan"><label>Pafta no</label>
+            <input id="mk_pafta_no" class="girdi"></div>
+        </div>
+      </div>
+      <div class="kart">
+        <div class="kart-bas"><span>ASANSÖRLER</span>
+          <span class="kaynak">bir binada 1 - 4 asansör</span></div>
+        <div class="kart-ic">
+          <div class="yardim">Her asansör <b>ayrı kuyudadır</b> ve kendi girdilerini
+            taşır; hesap hepsi için aynıdır. Adedi azaltmak girdileri <b>silmez</b> —
+            yalnız hesaba ve paftaya girmezler, artırınca geri gelirler.
+            Yeni asansör <b>1 nolu asansörün kopyası</b> olarak açılır.</div>
+          <div class="satir i2">
+            <div class="alan"><label>Asansör adedi</label>
+              <select id="m_adet" class="girdi" onchange="mAdetDegisti(this.value)">
+                <option value="1">1 asansör</option>
+                <option value="2">2 asansör</option>
+                <option value="3">3 asansör</option>
+                <option value="4">4 asansör</option>
+              </select></div>
+          </div>
+        </div>
+      </div>
+      <div class="kart">
+        <div class="kart-bas"><span>PROJE DOSYASI</span>
+          <span class="kaynak">.uygulama — girdilerin geri dönüş noktası</span></div>
+        <div class="kart-ic">
+          <div class="yardim">Girdiler tarayıcıda kendiliğinden saklanır. Ayrıca projeyi
+            <b>tek dosyada</b> arşivleyebilirsiniz (<b>.uygulama</b>): ne PDF ne CAD —
+            yalnız programın okuyup yazdığı veri. Aylar sonra dosyayı yükleyip
+            değişeni düzeltir, çıktıları yeniden alırsınız.
+            <b>Avan projesi dosyaları (.avan) buraya yüklenmez</b> — ayrı projelerdir.</div>
+          <div class="dugmeler">
+            <button class="dg ana" onclick="projeKaydet()">Projeyi kaydet</button>
+            <button class="dg" onclick="document.getElementById('m_dosya_ac').click()">Proje aç (.uygulama)</button>
+            <button class="dg" onclick="hepsiniTemizle()">Tümünü temizle</button>
+          </div>
+          <input type="file" id="m_dosya_ac" accept=".uygulama,.json" style="display:none" onchange="projeAc(event)">
+        </div>
+      </div>
+      <div class="kart">
+        <div class="kart-bas"><span>ÇIKTILAR</span>
+          <span class="kaynak">pafta · CAD</span></div>
+        <div class="kart-ic">
+          <div class="yardim">PDF <b>bütün hesapları</b> tek paftada verir
+            ( mukavemet + elektrik + topraklama ).
+            <b>Projeyi paketle</b> hepsini tek ZIP'te verir: kapak + pafta PDF'i,
+            DXF/DWG çizimi ve <b>.uygulama proje dosyası</b> —
+            yani teslim paketi ile geri dönüş noktası aynı arşivde.</div>
+          <div class="dugmeler">
+            <button class="dg ana" onclick="indir('uygulama-pdf')">Uygulama Projesi PDF</button>
+            <button class="dg" id="dg_uygulama_dwg" onclick="indir('uygulama-dwg')">Projeyi paketle (ZIP)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="kart"><div id="p_ozet"></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="s-mukavemet" class="sayfa" hidden>
+  <div class="ikili">
+    <div class="sol">
+      <div class="kart">
+        <div class="kart-bas"><span>UYGULAMA PROJESİ GİRDİLERİ</span></div>
+        <div class="kart-ic">
+          <div id="m_form"></div>
+        </div>
+      </div>
+    </div>
+    <div class="m-sag" id="m_sag" data-gorunum="hesap">
+      <!--  HESAP · ÇİZİMLER:  aynı girdinin iki görünümü.  Girdi solda kalır,
+            sağ sütun ya hesabı ya çizimleri gösterir;  ikisi de her girdi
+            değişikliğinde tazelenir ( çizimler yalnız görünürken ).  -->
+      <div class="gorunum-sec" id="m_gorunum" role="tablist">
+        <button type="button" class="gorunum-dg secili" data-gorunum="hesap" role="tab"
+                aria-selected="true" onclick="mGorunumSec('hesap')">Hesap</button>
+        <button type="button" class="gorunum-dg" data-gorunum="cizim" role="tab"
+                aria-selected="false" onclick="mGorunumSec('cizim')">Çizimler</button>
+      </div>
+      <div class="kart m-hesap-gorunum"><div id="m_sonuc"></div></div>
+      <div class="kart m-cizim-gorunum"><div id="m_cizimler"></div></div>
+      <!--  PROJE GENELİ HESAPLAR asansör sekmesindedir, Proje sayfasında
+            değil:  girdileri ( MRL · temel ölçüleri · şerit boyu ) zaten
+            bu sekmenin "Elektrik ve topraklama" grubunda duruyor.  Girdiyle
+            sonucu iki ayrı sayfaya bölmek, kullanıcıyı değiştirdiği kutunun
+            sonucunu görmek için sekme değiştirmeye zorluyordu.  -->
+      <div class="kart m-hesap-gorunum"><div id="p_geneli"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ SABİTLER ═══════════════════════════════ -->
+<section id="s-sabitler" class="sayfa" hidden>
+
+  <!-- ─────────── UYGULAMA PROJESİNİN KENDİ OFİS STANDARDI ───────────
+       Avanınkinden AYRIDIR:  avan ön tasarımdır ve genel kabullerle
+       çalışır, uygulama kesin tasarımdır ve imalatçı verisi vardır.
+       İkisinin aynı sayıyı tutma zorunluluğu yoktur.                 -->
+  <div id="sabitler_uygulama" hidden>
+    <div class="kart">
+      <div class="kart-bas"><span>UYGULAMA PROJESİ — OFİS STANDARDI <span class="bilgi" tabindex="0" role="button"
+        aria-label="Açıklamayı göster" onclick="bilgiAc(this,event)"><span class="bilgi-im">!</span><span class="bilgi-balon">
+        <p>Bunlar <b>uygulama projesinin kendi</b> kabulleridir; avan projesininkinden
+          ayrıdır ve aynı olmak zorunda değildir. Avan ön tasarımdır, genel ve emniyetli
+          kabullerle çalışır; uygulama kesin tasarımdır ve elinizde imalatçı verisi vardır.</p>
+        <p>Buradan değiştirdiğinizde <b>ekrandaki hesap ve PDF paftası birlikte</b> değişir.</p>
+        <p><b>② Mukavemet kabulleri</b> özellikle gözden geçirilmelidir: TS EN 81-20 makine
+          kaidesi için yük modeli <b>vermez</b>, Çizelge 14 (k1) o standartta açıkça
+          <b>kılavuz ray</b> hesabına aittir. Buradaki kullanım ödünçtür ve emniyetli
+          taraftadır — σem = 130, standardın ST 37 için verdiği Rm/1,8 = 205,6 N/mm²'nin
+          yaklaşık yarısıdır.</p>
+        <p>Geçersiz bir değer girilirse yok sayılır, varsayılana dönülür ve hangi alanın
+          reddedildiği hesap sekmesinde bildirilir.</p></span></span></span><span class="kaynak">hesap bazında gruplu</span></div>
+      <div class="kart-ic">
+        <div id="usabit_form"></div>
+        <div class="dugmeler" style="margin-top:12px">
+          <button class="dg" onclick="uygulamaSabitleriSifirla()">Tümünü varsayılana döndür</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ikili" id="sabitler_avan">
+    <div>
+      <div class="kart">
+        <div class="kart-bas"><span>B) OFİS STANDARDI <span class="bilgi" tabindex="0" role="button"
+          aria-label="Açıklamayı göster" onclick="bilgiAc(this,event)"><span class="bilgi-im">!</span><span class="bilgi-balon">
+          <p>Projeden projeye <b>değişmeyen</b> değerler — bir kez ayarlanır, her yeni
+            proje bunları kullanır. Alanlar <b>hangi hesaba girdiklerine göre</b>
+            gruplanmıştır; bir sabiti ararken hangi hesapta kullanıldığına bakın.</p>
+          <p>Buradan değiştirdiğinizde ekrandaki hesap ve PDF paftası <b>birlikte</b>
+            değişir. Geçersiz bir değer girilirse yok sayılır, varsayılana dönülür ve
+            hangi alanın reddedildiği Avan sekmesinde bildirilir.</p>
+          <p>Bir asansörde farklı bir değer gerekiyorsa o asansörün kartındaki
+            <b>"Ofis standardından farklı değerler"</b> bölümünden girilir; girilen değer
+            buradakini ezer ve paftada kaynağı <b>GİRİŞ — asansör bazında</b> diye yazılır.</p>
+          <p>Yönetmelik ve standart sabitleri ( yerçekimi ivmesi, motor sabiti … ) yandaki
+            <b>A</b> kartındadır ve değiştirilemez.</p></span></span></span><span class="kaynak">hesap bazında gruplu</span></div>
+        <div class="kart-ic">
+          <div id="sabit_b_form"></div>
+          <div class="dugmeler" style="margin-top:12px">
+            <button class="dg" onclick="sabitleriSifirla()">Tümünü varsayılana döndür</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="kart">
+        <div class="kart-bas"><span>A) YÖNETMELİK / STANDART SABİTLERİ</span><span class="kaynak">değiştirilemez</span></div>
+        <div class="kart-ic"><div class="kaydir"><table class="veri" id="sabit_a_tablo"></table></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ TABLOLAR ═══════════════════════════════ -->
+<section id="s-tablolar" class="sayfa" hidden>
+  <div id="tablolar_avan">
+    <div class="kart"><div class="kart-bas"><span>HESAPLARDA KULLANILAN TABLOLAR</span>
+      <span class="kaynak">MMO/697 · ISO 8100-32:2020 · IEC 60364-5-52</span></div>
+      <div class="kart-ic" id="tablolar_ic"></div></div>
+  </div>
+  <!--  Uygulamanın tabloları bugüne kadar yalnız motorun içindeydi:  hesaba
+        giriyorlardı ama ekranda görünmüyorlardı.                          -->
+  <div id="tablolar_uygulama" hidden>
+    <div class="kart"><div class="kart-bas"><span>UYGULAMA PROJESİNDE KULLANILAN TABLOLAR</span>
+      <span class="kaynak">TS EN 81-20 · TS EN 81-50 · TS 12385-5 · ISO 7465</span></div>
+      <div class="kart-ic" id="utablolar_ic"></div></div>
+  </div>
+</section>
+
+</main>
+
+<div class="durum" id="durum"></div>
+<!--  Yükleme sırası önemli:  ortak → avan → uygulama.
+      kur() en sonda, uygulama.js içinden çağrılır.            -->
+<script src="/static/ortak.js?v=SURUM"></script>
+<script src="/static/avan.js?v=SURUM"></script>
+<script src="/static/uygulama.js?v=SURUM"></script>
+</body>
+</html>

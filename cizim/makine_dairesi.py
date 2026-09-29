@@ -120,9 +120,17 @@ def yerlesim(g, cizim_sabitleri=None):
     #  tam yerine indirir ( LiftDesigner'ın makine dairelerindeki gibi );
     #  içeride inmeliyse saptırma kasnağıyla çözülmez.
     mkg = g["makine"]
-    y_ = -1.0 if g["agirlik"]["yeri"] == "Sol" else 1.0
-    y0 = M["halatlar"][0][1]
-    fark = y_ * (M["ex"] - M["ag_dusus"][0])
+    #  1:1 askıda halat düzlemi ( kuyu_ustu.Duzlem ) ağırlık arkadaysa derinlik
+    #  boyuncadır;  2:1'de hep genişlik boyunca ( y0 çizgisi ).
+    dz = M.get("duzlem") or CKT.Duzlem("x", M["halatlar"][0][1])
+    if M.get("dogrudan"):
+        y_ = M["y_"]
+        ex, uk = dz.u(M["ag_nokta"]), dz.u(M["kabin_nokta"])
+    else:
+        y_ = -1.0 if g["agirlik"]["yeri"] == "Sol" else 1.0
+        ex, uk = M["ex"], M["yakin"]
+    y0 = dz.v0
+    fark = y_ * (ex - dz.u(M["ag_dusus"]))
     saptirma = None
     if fark < -1e-6:
         hata.append(f"Karşı ağırlık halatı tahrik kasnağının öbür teğetinden {-fark:g} mm içeride "
@@ -135,11 +143,13 @@ def yerlesim(g, cizim_sabitleri=None):
                         "büyük — saptırma kasnağı gerekir, çapı girilmeli ( hesap programında "
                         "'Saptırma kasnağı çapı' ).")
         else:
-            bk = M["kasnak"][3] - M["kasnak"][1]
-            xd = M["ex"] - y_ * D2 / 2.0
-            saptirma = {"x": xd, "y": y0, "D": float(D2), "bk": bk,
-                        "kutu": (xd - D2 / 2.0, y0 - bk / 2.0, xd + D2 / 2.0, y0 + bk / 2.0)}
-    agirlik_dusus = (M["ex"], y0) if saptirma else M["ag_dusus"]
+            ks_ = dz.kanonik(M["kasnak"])
+            bk = ks_[3] - ks_[1]
+            xd = ex - y_ * D2 / 2.0
+            x_, yy_ = dz.p(xd)
+            saptirma = {"u": xd, "x": x_, "y": yy_, "D": float(D2), "bk": bk,
+                        "kutu": dz.kutu(xd - D2 / 2.0, xd + D2 / 2.0, y0 - bk / 2.0, y0 + bk / 2.0)}
+    agirlik_dusus = dz.p(ex) if saptirma else M["ag_dusus"]
     makine_izi = (min(M["govde"][0], M["kasnak"][0]), min(M["govde"][1], M["kasnak"][1]),
                   max(M["govde"][2], M["kasnak"][2]), max(M["govde"][3], M["kasnak"][3]))
     #  Makine kaidesi ( hesap programının bölüm 2'si ):  makinenin ve saptırma
@@ -155,12 +165,17 @@ def yerlesim(g, cizim_sabitleri=None):
     #  ── DÖŞEME DELİKLERİ ─────────────────────────────────────────────
     n, dh, p = a["halat_adedi"], a["halat_capi"], S["halat_delik_payi"]
     demet = (n - 1) * 1.6 * dh + dh                  # kasnak ekseni boyunca
-    delikler = [
-        ("KABİN", CMK.halat_deligi(M["yakin"], y0, n, dh, p)),
-        ("AĞIRLIK", CMK.halat_deligi(agirlik_dusus[0], y0, n, dh, p)),
-        ("AĞIRLIK BAĞLANTISI", CMK.halat_deligi(M["ag_teget2"][0], M["ag_teget2"][1], n, dh, p, "x")),
-        ("KABİN BAĞLANTISI", CMK.halat_deligi(M["uzak"], y0, n, dh, p)),
-    ]
+    if M.get("dogrudan"):
+        #  1:1:  kabin halatı ve ağırlık halatı;  demet kasnak ekseni boyunca
+        delikler = [("KABİN", CMK.halat_deligi(*M["kabin_nokta"], n, dh, p, dz.eksen)),
+                    ("AĞIRLIK", CMK.halat_deligi(*agirlik_dusus, n, dh, p, dz.eksen))]
+    else:
+        delikler = [
+            ("KABİN", CMK.halat_deligi(M["yakin"], y0, n, dh, p)),
+            ("AĞIRLIK", CMK.halat_deligi(agirlik_dusus[0], y0, n, dh, p)),
+            ("AĞIRLIK BAĞLANTISI", CMK.halat_deligi(M["ag_teget2"][0], M["ag_teget2"][1], n, dh, p, "x")),
+            ("KABİN BAĞLANTISI", CMK.halat_deligi(M["uzak"], y0, n, dh, p)),
+        ]
     #  Regülatör halatı ( tek halat ) da aynı kuralla:  eskiden LiftDesigner'ın
     #  200 × 200'ü kullanılıyordu — ø240 regülatörde iki delik arasında 40 mm,
     #  kuyu duvarına 14 mm kalıyordu.
@@ -229,7 +244,7 @@ def yerlesim(g, cizim_sabitleri=None):
                      cerceve[2] - F["b"], min(makine_izi[3], cerceve[3] - kb))
         kaide["plaka"] = plaka
         if saptirma:
-            saptirma.update(saptirma_kotu(M, saptirma, M["kasnak"], M["D1"], hs, hk, y_, S))
+            saptirma.update(saptirma_kotu(M, saptirma, dz.kanonik(M["kasnak"]), M["D1"], hs, hk, y_, S))
             if saptirma["z"] + saptirma["D"] / 2.0 > hs - t - 50.0:
                 hata.append(f"Saptırma kasnağı ( ø {saptirma['D']:g} ) döşemedeki bağlantıların üstünde, "
                             "makine plakasının altına sığmıyor — şase yüksekliğini büyütün.")
@@ -240,14 +255,14 @@ def yerlesim(g, cizim_sabitleri=None):
         ks = M["kasnak"]
         if hk - M["D1"] / 2.0 < hs:
             adaylar.append((ks[0] - p, ks[1] - p, ks[2] + p, ks[3] + p))
-        adaylar.append(CMK.halat_deligi(M["yakin"], y0, n, dh, p))
+        adaylar.append(CMK.halat_deligi(*dz.p(uk), n, dh, p, dz.eksen))
         if saptirma:
             (x1, z1), (x2, z2) = saptirma["P1"], saptirma["P2"]
             xs = [x1 + (z - z1) * (x2 - x1) / (z2 - z1) for z in (hs, hs - t)]
             a_, b_ = dh / 2.0 + p, demet / 2.0 + p
-            adaylar.append((min(xs) - a_, y0 - b_, max(xs) + a_, y0 + b_))
+            adaylar.append(dz.kutu(min(xs) - a_, max(xs) + a_, y0 - b_, y0 + b_))
         else:
-            adaylar.append(CMK.halat_deligi(M["ag_dusus"][0], y0, n, dh, p))
+            adaylar.append(CMK.halat_deligi(*M["ag_dusus"], n, dh, p, dz.eksen))
         yuva = adaylar[0] if hk - M["D1"] / 2.0 < hs else None
         kaide_delikleri = CMK.plaka_delikleri(plaka, [d for d in adaylar if d is yuva or not (
             yuva and yuva[0] <= (d[0] + d[2]) / 2.0 <= yuva[2] and yuva[1] <= (d[1] + d[3]) / 2.0 <= yuva[3])])
@@ -258,8 +273,8 @@ def yerlesim(g, cizim_sabitleri=None):
     kapi_onu = _onunde(kapi, kyon, CALISMA_DERINLIK, md["kapi_genislik"])
 
     #  ── KUMANDA PANOSU:  seçilen duvar boyunca kapıya en yakın boş yer ─
-    sabit = [M["govde"], M["kasnak"], M["agirlik_baglanti"], M["kabin_baglanti"],
-             M["reg_govde"], M["reg_kasnak"]] + [d for _, d in delikler] + \
+    sabit = [k_ for k_ in (M["govde"], M["kasnak"], M["agirlik_baglanti"], M["kabin_baglanti"],
+                           M["reg_govde"], M["reg_kasnak"]) if k_] + [d_ for _, d_ in delikler] + \
         ([cerceve] if cerceve else []) + ([saptirma["kutu"]] if saptirma else [])
     pe, pd = S["kumanda_pano_en"], S["kumanda_pano_derinlik"]
     ce = max(CALISMA_EN_ASGARI, pe)
@@ -304,7 +319,7 @@ def yerlesim(g, cizim_sabitleri=None):
     #  Odada durması gerekenler odanın içinde
     for ad, kutu in (("Makine", mk), ("Ağırlık bağlantısı", M["agirlik_baglanti"]),
                      ("Kabin bağlantısı", M["kabin_baglanti"]), ("Regülatör", M["reg_govde"])):
-        if not _icinde(kutu, oda):
+        if kutu and not _icinde(kutu, oda):
             hata.append(f"{ad} makine dairesinin dışına taşıyor.")
 
 
@@ -312,7 +327,7 @@ def yerlesim(g, cizim_sabitleri=None):
             "pano": pano, "calisma": calisma, "bakim": bakim, "makine": mk,
             "makine_izi": makine_izi, "cerceve": cerceve, "kaide": kaide, "saptirma": saptirma,
             "kaide_delikleri": kaide_delikleri, "agirlik_dusus": agirlik_dusus,
-            "demet": demet, "hata": hata, "S": S}
+            "demet": demet, "duzlem": dz, "y_": y_, "hata": hata, "S": S}
 
 
 def saptirma_kotu(M, sp, kasnak, D1, hs, hk, y_, S):
@@ -325,10 +340,11 @@ def saptirma_kotu(M, sp, kasnak, D1, hs, hk, y_, S):
     for kutu_, h_ in ((M["agirlik_baglanti"], S["agirlik_baglanti_yukseklik"]),
                       (M["kabin_baglanti"], S["kabin_baglanti_alt"] - S["kabin_baglanti_ust"]),
                       (M["reg_govde"], S["regulator_govde_alt"] - S["regulator_govde_ust"])):
-        if _ortusur(kutu_, sp["kutu"]):
+        if kutu_ and _ortusur(kutu_, sp["kutu"]):
             z = max(z, h_ + 50.0 + R2)
+    #  Halat düzleminde ( u, z ):  kasnak kanonik kutu ( u0, v0, u1, v1 )
     mx = (kasnak[0] + kasnak[2]) / 2.0
-    P1, P2, n = CMK.teget((mx, hk), D1 / 2.0, (sp["x"], z), R2, y_)
+    P1, P2, n = CMK.teget((mx, hk), D1 / 2.0, (sp.get("u", sp["x"]), z), R2, y_)
     return {"z": z, "P1": P1, "P2": P2, "sarim": CMK.sarim_acisi(y_, n)}
 
 
@@ -411,19 +427,21 @@ def ciz(g, cizim_sabitleri=None):
                     Y["kaide_delikleri"]) if Y["cerceve"] else []
     sp = Y["saptirma"]
     if sp:
-        alt += CMK.saptirma((sp["x"], sp["y"], -3000.0 - H / 2.0), sp["D"], sp["bk"], -3000.0,
-                            CMK.MOTOR_PLAKASI_KALINLIK)
+        d = Y["duzlem"]
+        alt += d.parcalar(CMK.saptirma((sp["u"], d.v0, -3000.0 - H / 2.0), sp["D"], sp["bk"], -3000.0,
+                                       CMK.MOTOR_PLAKASI_KALINLIK))
     e += CMK.plan(alt + CMK.plan_parcalari(M, S_, sase=False), CGE._dik, CGE._daire, CGE._cizgi)
     ks = M["kasnak"]
     e.append(CGE._yazi((ks[0] + ks[2]) / 2.0, (ks[1] + ks[3]) / 2.0, f"ø {M['D1']:g}", 38))
-    kutu("BAGLANTI", M["agirlik_baglanti"], "agirlik_baglanti")
-    kutu("BAGLANTI", M["kabin_baglanti"], "kabin_baglanti")
+    for ad_ in ("agirlik_baglanti", "kabin_baglanti"):     # 1:1 askıda yok
+        if M[ad_]:
+            kutu("BAGLANTI", M[ad_], ad_)
     kutu("MAKINE", M["reg_govde"], "regulator")
     kutu("KASNAK", M["reg_kasnak"], "regulator_kasnak")
     rg = M["reg_govde"]
     e.append(CGE._yazi(rg[0] - 60 if rg[0] > G / 2 else rg[2] + 60, (rg[1] + rg[3]) / 2.0,
                        "REGÜLATÖR", 34, aci=90))
-    for hx, hy in M["halatlar"] + [Y["agirlik_dusus"], M["ag_teget2"]]:
+    for hx, hy in M["halatlar"] + [Y["agirlik_dusus"]] + ([M["ag_teget2"]] if M.get("ag_teget2") else []):
         e.append(CGE._ad(CGE._daire("KASNAK", hx, hy, 20), "halat"))
     if Y["pano"]:
         kutu("PANO", Y["pano"], "kumanda_panosu")

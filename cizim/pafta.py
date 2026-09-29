@@ -137,13 +137,19 @@ def _antet(d, g, olcekler):
             msp.delete_entity(e)
 
 
-def cizim_listesi(g):
-    """( ad, başlık, ölçek, elemanlar — çerçeveli ) ;  hata varsa ValueError."""
-    oda = (g.get("makine") or {}).get("yeri") == "Makine dairesi"
+def sira(g):
+    """Bu projenin paftasındaki çizimler, sırasıyla."""
+    return SIRA_MD if (g.get("makine") or {}).get("yeri") == "Makine dairesi" else SIRA_MRL
+
+
+def cizim_listesi(g, seritler=()):
+    """( ad, başlık, ölçek, elemanlar — çerçeveli ) ;  hata varsa ValueError.
+    seritler:  çizimlerin künye şeridine yazılacaklar ( çok asansörlü
+    projede asansörün adı — hangi kuyunun çizimi olduğu okunsun )."""
     cikti, hata = [], []
     #  Serbest alanın yüksekliği ( kenarlar düşülünce ), çizim biriminde
     yukseklik = SERBEST[3] - SERBEST[1] - 2 * KENAR
-    for ad in (SIRA_MD if oda else SIRA_MRL):
+    for ad in sira(g):
         dogrula, ciz, baslik = CZ.CIZIMLER[ad]
         h = dogrula(g)
         if h:
@@ -152,7 +158,7 @@ def cizim_listesi(g):
         olcek = CZ.OLCEKLER.get(ad, 20)
         e = ciz(g, azami=yukseklik * olcek) if ad in CZ.OLCEKLER else ciz(g)
         cikti.append((ad, CZ.plan_basligi(g, ad, baslik), olcek,
-                      CGE.cerceveli(e, CZ.plan_basligi(g, ad, baslik), olcek)))
+                      CGE.cerceveli(e, CZ.plan_basligi(g, ad, baslik), olcek, seritler=seritler)))
     if hata:
         raise ValueError("Pafta çizilemiyor:  " + " · ".join(hata))
     return cikti
@@ -214,9 +220,17 @@ def _katmanlari_onar(d):
 
 
 def _yerlestir(d, g, x0=None, sag_eski=None):
-    """Çizimleri belgeye blok olarak yerleştirir;  gerekirse çerçeveyi uzatır."""
+    """Çizimleri belgeye blok olarak yerleştirir;  gerekirse çerçeveyi uzatır.
+    g:  tek asansörün girdisi ya da çok asansörlü projede girdilerin listesi —
+    asansörler sırayla dizilir, her çizimin şeridinde asansörün adı yazar."""
+    gler = g if isinstance(g, (list, tuple)) else [g]
+    cizimler = []
+    for i, g_ in enumerate(gler):
+        coklu = len(gler) > 1
+        for ad, baslik, olcek, e in cizim_listesi(g_, (g_["proje"]["asansor"],) if coklu else ()):
+            #  Blok adı asansörle birlikte:  iki kuyunun kesiti aynı bloğu ezmesin
+            cizimler.append((f"{ad}_{i + 1}" if coklu else ad, baslik, olcek, e))
     CDX.hazirla(d)
-    cizimler = cizim_listesi(g)
     boyutlar, kutular = [], []
     for ad, baslik, olcek, e in cizimler:
         bx0, by0, bx1, by1 = CGE.sinir(e)
@@ -255,7 +269,8 @@ def birlestir(hesap_dxf, g):
     sağından başlayarak;  çerçeve gerekirse sağa uzar.  Antete dokunulmaz:
     hesap programının kapağı onun yerindedir.
 
-    hesap_dxf:  dosya yolu.  Dönen:  ( belge, bilgi )."""
+    hesap_dxf:  dosya yolu.  g:  tek girdi ya da asansörlerin girdileri
+    ( listede sırayla dizilir ).  Dönen:  ( belge, bilgi )."""
     d = ezdxf.readfile(hesap_dxf)
     msp = d.modelspace()
     #  Çerçevenin şimdiki sağ kenarı:  üst kenar çizgisinin en sağ ucu
