@@ -305,7 +305,9 @@ def _makine_dairesi(g, S, tavan, M):
         "regulator": KU["reg_govde"] + (zd, zd + rg),
         "regulator_kasnak": KU["reg_kasnak"] + (zd + S["regulator_govde_alt"]
                                                 - S["regulator_kasnak_merkez"],),
-        "pano": MD["pano"] + (zd, zd + S["kumanda_pano_yukseklik"]),
+        #  Pano odaya sığmadıysa yok ( denetim hatası;  kurma sürer — hesabın
+        #  ölçüleri için çizilmesi gerekmez ).
+        "pano": MD["pano"] + (zd, zd + S["kumanda_pano_yukseklik"]) if MD["pano"] else None,
         "regulator_x": KU["rgx"], "regulator_y": KU["rgy"],
     })
     kasnak_ustu = M["kasnak"][4] + g["makine"]["tahrik_kasnak_capi"] / 2.0

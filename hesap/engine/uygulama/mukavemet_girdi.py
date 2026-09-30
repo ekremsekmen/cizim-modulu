@@ -647,7 +647,9 @@ def dogrula(g):
     if not _sayi(pay):
         from engine.uygulama import sabitler as _US
         pay = _US.VARSAYILAN["yan_yatak_L_X"]
-    if "yan_yatak_boyu" not in atla and _sayi(L) and _sayi(pay) and L - pay <= 0:
+    #  Yükün yeri çizimden geldiyse ( program hesabı ) mesnet payı kullanılmaz.
+    _x_ciz = "makine_yuku_x" in (g.get("_cizimden") or {}) and _sayi(g.get("makine_yuku_x"))
+    if "yan_yatak_boyu" not in atla and not _x_ciz and _sayi(L) and _sayi(pay) and L - pay <= 0:
         hata.append(f"Yan yatak boyu ({L} mm) mesnet payından ({pay} mm) büyük "
                     "olmalıdır. Makine kaidesi hesabı, açıklığı L olan basit "
                     f"kirişte yükün mesnetten X = L − {pay} uzaklıkta olduğunu "
@@ -755,14 +757,11 @@ def uyarilar(g):
     #  KABULDÜR ve sessiz kalmamalıdır:  makine gerçekten raylara biniyorsa
     #  ray ve kuyu tabanı yükü olduğundan küçük çıkar.
     #  ------------------------------------------------------------------
-    #  Makine dairesi VARKEN kutu işaretliyse seçim yok sayılır — sessiz
-    #  kalmamalı, çünkü kullanıcı işaretlediğini sanır.
-    if not evet_mi(g.get("mk_yok")) and MT.makine_raya_mi(g.get("makine_raya_biniyor")):
-        uyari.append(
-            "'Makine yükü kılavuz raylara biniyor' seçimi YOK SAYILDI — proje "
-            "makine daireli. Makine kendi kaidesinde durur ve yükü bölüm "
-            "2'de hesaplanır; aynı yükü raya da bindirmek onu iki kez sayardı. "
-            "Seçim ancak 'Makine dairesiz ( MRL )' işaretliyken uygulanır.")
+    #  Makine dairesi VARKEN seçim uygulanmaz ( makine kendi kaidesinde, yükü
+    #  bölüm 2'de ):  eskiden "YOK SAYILDI" uyarısı basılırdı.  Karar 3'ten
+    #  beri varsayılan "Kılavuz raylara" ve alan makine daireli formda
+    #  gizlidir ( kullanıcı seçemez ):  uyarı her makine daireli projede
+    #  anlamsız çıkardı.
     if evet_mi(g.get("mk_yok")) and not MT.makine_raya_mi(g.get("makine_raya_biniyor")):
         uyari.append(
             "MAKİNE YÜKÜ BİNA YAPISINA AKTARILIYOR — makine dairesiz ( MRL ) "

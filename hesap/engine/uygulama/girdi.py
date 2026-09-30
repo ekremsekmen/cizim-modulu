@@ -140,7 +140,7 @@ def tamamla(g):
 YERLESIM_OLCULERI = ("kabin_merkezi_x", "esik_x", "kabin_ray_boyu", "agirlik_ray_boyu",
                      "aski_halat_boyu", "reg_halat_boyu", "kasnak_tek_yon", "kasnak_ters_yon",
                      "kasnak_kabin_adedi", "kasnak_agirlik_adedi", "saptirma_agirlik_capi",
-                     "makine_yuku_x")
+                     "makine_yuku_x", "yan_yatak_boyu")
 
 
 def yerlesim_olculeri(g):
@@ -163,18 +163,17 @@ def yerlesim_olculeri(g):
     except Exception:                                      # noqa: BLE001 — çizim kendi hatasını söyler
         o = {}
     if evet_mi(g.get("mk_yok")) and not MT.makine_raya_mi(g.get("makine_raya_biniyor")):
+        #  Kirişler bina yapısına ( duvardan duvara ):  henüz çizilmiyor ( karar 3 )
         o.pop("makine_yuku_x", None)
-    #  X kirişin çizimdeki açıklığında ölçülür;  hesabın açıklığı yan yatak
-    #  boyudur ( L ).  İkisi ayrıysa X, L ile birlikte kullanılamaz ( moment
-    #  başka bir kirişin olur ):  hesap ofis kabulüyle sürer, çizim uyuşmazlığı
-    #  kendi söyler ( makine dairesizde "yan yatak boyuna DBGW girin" ).
-    L, acik = g.get("yan_yatak_boyu"), o.get("makine_kiris_acikligi")
-    if not (isinstance(L, (int, float)) and isinstance(acik, (int, float))
-            and abs(L - acik) < 0.5):
-        o.pop("makine_yuku_x", None)
+        o.pop("yan_yatak_boyu", None)
     d = {k: o[k] for k in YERLESIM_OLCULERI if k in o}
-    if d:
-        d["_cizimden"] = {**(g.get("_cizimden") or {}), **{k: "yerleşim" for k in d}}
+    isaret = {k: "yerleşim" for k in d}
+    #  KİRİŞİN AÇIKLIĞI GİRDİ DEĞİLDİR:  çizimden gelmezse boş kalır ( bölüm 2
+    #  HESAP EKSİK ) — şemanın 1.400'ü hesap motorunun kendi varsayılanıdır,
+    #  programda sessizce kullanılmaz.
+    d.setdefault("yan_yatak_boyu", None)
+    if isaret:
+        d["_cizimden"] = {**(g.get("_cizimden") or {}), **isaret}
     return d
 
 

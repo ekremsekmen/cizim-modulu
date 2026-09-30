@@ -26,11 +26,12 @@ içinde çelişiyordu.  Burada o büyüklükler çizimin kurduğu yerleşimden
     kasnak_agirlik_adedi  karşı ağırlıkla hareket eden kasnaklar ( iPcwt )
     saptirma_agirlik_capi  makine dairesinde karşı ağırlık tarafındaki sabit
                         saptırma kasnağının çapı ( atalet:  mDP );  yoksa 0
-    makine_yuku_x       makine yükünün kiriş mesnedine uzaklığı ( bölüm 2'nin X'i ):
-                        makine dairesizde kirişler karşı ağırlık raylarına oturur,
-                        makine dairesinde makine kaidenin yan yataklarındadır
-    makine_kiris_acikligi  X'in ölçüldüğü mesnet aralığı:  X hesaba yalnız bu
-                        açıklık hesabın L'siyle ( yan yatak boyu ) aynıysa girer
+    yan_yatak_boyu      makine kirişinin mesnet aralığı ( bölüm 2'nin L'si ):  makine
+                        dairesizde kirişler karşı ağırlık raylarına oturur ( DBGW ),
+                        makine dairesinde kaidenin dikine kirişleri arası ( kaide
+                        halatlara ortalı, makineyi sarar — makine_dairesi.yerlesim )
+    makine_yuku_x       makine yükünün ( tahrik kasnağının ) aynı kirişte mesnede
+                        uzaklığı ( bölüm 2'nin X'i )
 
 KURMA İLE DENETİM AYRIDIR:  çizimin denetim hataları ( sığınma alanı,
 çakışma … ) bu ölçüleri durdurmaz;  yalnız geometri hiç kurulamazsa ilgili
@@ -79,11 +80,11 @@ def _mrl_kiris_yuku(g, S, KU):
     taban = KU["taban"]
     raylar = sorted(CKD._raylar(taban, "agirlik_ray"), key=lambda r: r[1])
     if len(raylar) < 2:
-        return None
+        return None, None
     a, b = raylar[0][3], raylar[-1][1]                   # ön rayın arka, arka rayın ön yüzü
     y0 = (KU["kasnak"][1] + KU["kasnak"][3]) / 2.0
     X = y0 - a
-    return (round(X, 3), round(b - a, 3)) if 0.0 < X < b - a else None
+    return (round(X, 3) if 0.0 < X < b - a else None), round(b - a, 3)
 
 
 def _md_kiris_yuku(g, S, MD):
@@ -92,13 +93,24 @@ def _md_kiris_yuku(g, S, MD):
     yatak boyu ), yük tahrik kasnağının merkezinde."""
     c, K = MD.get("cerceve"), MD.get("kaide")
     if c is None or not K:
-        return None
+        return None, None
     kasnak = MD["M"]["kasnak"]
     u0 = (c[0] if K["uzun_x"] else c[1]) + K["E"]["h"] / 2.0
     u1 = (c[2] if K["uzun_x"] else c[3]) - K["E"]["h"] / 2.0
     yuk = ((kasnak[0] + kasnak[2]) / 2.0) if K["uzun_x"] else ((kasnak[1] + kasnak[3]) / 2.0)
     X = yuk - u0
-    return (round(X, 3), round(u1 - u0, 3)) if 0.0 < X < u1 - u0 else None
+    return (round(X, 3) if 0.0 < X < u1 - u0 else None), round(u1 - u0, 3)
+
+
+def _kiris(X, L):
+    """Kirişin açıklığı ve yükün yeri:  açıklık varsa L;  X yalnız açıklığın
+    içindeyse ( yoksa hesap ofis kabulüyle sürer, raporda KABUL )."""
+    out = {}
+    if L is not None:
+        out["yan_yatak_boyu"] = L
+        if X is not None:
+            out["makine_yuku_x"] = X
+    return out
 
 
 def hesap_olculeri(g):
@@ -120,9 +132,7 @@ def hesap_olculeri(g):
         halat = "M" in MD and not MD.get("halat_kurulamadi")
         if "M" in MD:
             saptirma = MD.get("saptirma")
-            X = _md_kiris_yuku(g, S, MD)
-            if X is not None:
-                out["makine_yuku_x"], out["makine_kiris_acikligi"] = X
+            out.update(_kiris(*_md_kiris_yuku(g, S, MD)))
     if halat:
         out.update(kasnak_sayilari(g, saptirma))
 
@@ -138,9 +148,7 @@ def hesap_olculeri(g):
     if "raylar" not in M or "kasnak" not in M:
         return out
     if mrl and "KU" in M:
-        X = _mrl_kiris_yuku(g, S, M["KU"])
-        if X is not None:
-            out["makine_yuku_x"], out["makine_kiris_acikligi"] = X
+        out.update(_kiris(*_mrl_kiris_yuku(g, S, M["KU"])))
 
     for tur, anahtar in (("kabin", "kabin_ray_boyu"), ("agirlik", "agirlik_ray_boyu")):
         boy = [r["ust"] - r["alt"] for r in M["raylar"] if r["tur"] == tur]

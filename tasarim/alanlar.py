@@ -772,10 +772,14 @@ _GRUPLAR = (
         #  vermiş oluyordu ve bu yalnız paftadaki uyarı satırında görünüyordu.
         #  Seçim olarak sorulunca hangi yolun kabul edildiği HESAP SATIRI olur.
         #  ( Eski projeler True/'EVET' taşır;  MT.makine_raya_mi ikisini de anlar. )
-        A('makine_raya_biniyor', 'Makine yükünün yolu', '—', 'secim', MT.MAKINE_YUK_YOLU, MT.MAKINE_YUK_YOLU[0],
+        #  KARAR 3 ( 29 Eyl ):  varsayılan raylara — çizim makine kirişlerini
+        #  karşı ağırlık raylarına oturtur ( referans proje de öyle ).  "Bina
+        #  yapısına" ( duvardan duvara kiriş ) henüz çizilmiyor:  çizim durur.
+        A('makine_raya_biniyor', 'Makine yükünün yolu', '—', 'secim', MT.MAKINE_YUK_YOLU, MT.MAKINE_YUK_YOLU[1],
           kaynak=GIRDI, sozlesme=MUK, yerlesim="mrl",
-          bilgi=("Makine ağırlığı ve kasnak yükü nereye iniyor. 'Kılavuz raylara' seçilirse bu yük "
-                 'rayların yardımcı donanım kalemine ( MY ) eklenir ve ray gerilmesini büyütür.')),
+          bilgi=("Makine ağırlığı ve kasnak yükü nereye iniyor. 'Kılavuz raylara':  kirişler karşı "
+                 'ağırlık raylarına oturur, yük rayların yardımcı donanım kalemine ( MY ) eklenir. '
+                 "'Bina yapısına' ( duvardan duvara kiriş ) henüz çizilmiyor.")),
         #  PROJENİN MAKİNESİNE AİT VERİM.  Ofis değeri makine tipine göre tektir
         #  ( dişlisiz · dişli ),  ama her projenin makinesi başkadır ve
         #  imalatçının verdiği verim ondan ayrılabilir.  Tek projenin verimi için
@@ -795,10 +799,17 @@ _GRUPLAR = (
           kaynak=GIRDI, sozlesme=MUK, gelismis=True,
           bilgi=('Makinenin üzerine oturduğu yatay kirişin NPU ölçüsü. Eğilme gerilmesi kontrolüne '
                  'girer.')),
+        #  KİRİŞİN AÇIKLIĞI ÇİZİMDEN ( 29 Eyl, kullanıcı kararı ):  makine
+        #  dairesinde kaide halatlara ortalı ve makineyi sarar, açıklığı buradan;
+        #  makine dairesizde kirişler karşı ağırlık raylarına oturur ( DBGW ).
+        #  Varsayılan 1.400 yalnız hesap motoru doğrudan çağrıldığında ( hesap
+        #  programının kendi referans testleri );  programda çizimden gelmezse boş
+        #  kalır ve bölüm 2 HESAP EKSİK der ( sayı uydurulmaz ).
         A('yan_yatak_boyu', 'Yan yatak ( makine kirişi ) boyu', 'mm', 'sayi', None, 1400,
-          kaynak=GIRDI, sozlesme=MUK, gelismis=True, pozitif=True, bolen=True,
-          bilgi=('Makine kirişinin mesnetleri arasındaki açıklık. Eğilme momenti bu açıklıkla doğru '
-                 'orantılı büyür.')),
+          kaynak=CIZIM, sozlesme=MUK, formda=False, pozitif=True, bolen=True, opsiyonel=True,
+          bilgi=('L — makine kirişinin mesnetleri arasındaki açıklık:  makine dairesinde kaidenin '
+                 'dikine kirişleri arası ( kaide halatlara ortalı, makineyi sarar ), makine '
+                 'dairesizde karşı ağırlık rayları arası ( DBGW ).')),
         A('makine_yuku_x', 'Makine yükünün kiriş mesnedine uzaklığı  ( X )', 'mm', 'sayi', None, None,
           kaynak=CIZIM, sozlesme=MUK, formda=False, opsiyonel=True,
           bilgi=('X — tahrik kasnağının kiriş boyunca mesnetten uzaklığı:  makine dairesizde '

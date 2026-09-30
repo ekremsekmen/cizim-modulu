@@ -50,8 +50,7 @@ DUZENLER = {
     "kabin üstü 2:1": lambda: _yeni_duzen(False, aski_duzeni="Kabin üstü"),
     "makine dairesinde 1:1": lambda: _yeni_duzen(True, aski_orani=1),
     "makine dairesinde 1:1, ağırlık arkada": lambda: _yeni_duzen(
-        True, aski_orani=1, agirlik_yeri="Arka", kuyu_derinligi=2250, kabin_yana_kaciklik=0,
-        yan_yatak_boyu=1750),
+        True, aski_orani=1, agirlik_yeri="Arka", kuyu_derinligi=2250, kabin_yana_kaciklik=0),
     "formun varsayılanı": lambda: {"asansorler": [{}], "proje_geneli": {}, "sabitler": {},
                                    "asansor": 0},
 }
@@ -242,10 +241,10 @@ class Degistirme(unittest.TestCase):
         v = _veri()
         self._dene(v, "kuyu_plani", "KUYU GENİŞLİĞİ", "kuyu_genisligi", 2200,
                    beklenen={"kuyu_genisligi": 2200})
-        #  Makine kirişleri ağırlık raylarına oturuyor:  yan yatak boyu ( L ) = DBGW,
-        #  birlikte değişir ( yoksa çizim "yan yatak boyuna 900 girin" diye dururdu ).
+        #  Makine kirişleri ağırlık raylarına oturuyor:  kirişin açıklığı ( L ) DBGW'dir
+        #  ama girdi değil — çizimden gelir, yalnız DBGW değişir.
         self._dene(v, "kuyu_plani", "DBGW", "agirlik_ray_arasi", 900,
-                   beklenen={"agirlik_ray_arasi": 900, "yan_yatak_boyu": 900})
+                   beklenen={"agirlik_ray_arasi": 900})
 
     def test_zincir_parcasi_iki_ayri_girdiyle(self):
         v = _veri()
@@ -260,10 +259,11 @@ class Degistirme(unittest.TestCase):
 
     def test_bagli_alan_birlikte_degisir(self):
         #  Makine kirişleri karşı ağırlık raylarına oturuyor:  kirişin mesnet
-        #  aralığı raylar arasıdır ( L = DBGW ).  DBGW 850 → 900 ise yan yatak
-        #  boyu da 900 olur — tutarlılık denetiminin düzeltmesi.
+        #  aralığı raylar arasıdır ( L = DBGW ).  Eskiden yan yatak boyu da
+        #  birlikte değişirdi;  artık girdi değildir ( çizimden ) — DBGW 850 → 900
+        #  yalnız DBGW'yi değiştirir, hesabın L'si çizimden 900 olur.
         self._dene(_veri(), "kuyu_plani", "DBGW", "agirlik_ray_arasi", 900,
-                   beklenen={"agirlik_ray_arasi": 900, "yan_yatak_boyu": 900})
+                   beklenen={"agirlik_ray_arasi": 900})
 
     def test_kuyu_dibi_degisince_kaide_izler(self):
         self._dene(_veri(), "kuyu_kesiti_yan", "KUYU DİBİ", "kuyu_dibi", 1600,

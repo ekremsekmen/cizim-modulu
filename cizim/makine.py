@@ -33,8 +33,9 @@ MAKİNE TİPLERİ  ( kullanıcı kararı:  ölçüler LiftDesigner makinelerinde
              levhaları.
   Makine     hesap programının kaidesi ( bölüm 2 ):  dört dikine kiriş ( NPU
   dairesi    makine_dairesi.dikine_kiris, boyu şase yüksekliği — döşemeden
-             kaidenin üstüne ) ve üstlerinde iki yan yatak ( makine.yan_yatak,
-             mesnet aralığı makine_dairesi.yan_yatak_boyu );  uçlarda kısa
+             kaidenin üstüne ) ve üstlerinde iki yan yatak ( makine.yan_yatak );
+             kaide halatlara ortalı ve makineyi sarar, mesnet aralığı ( hesabın
+             L'si ) buradan çıkar ( makine_dairesi.yerlesim );  uçlarda kısa
              kirişler ve ayak plakaları LiftDesigner 12744-3'ünki gibi.
 """
 

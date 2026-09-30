@@ -222,11 +222,13 @@ class Tutarlilik(unittest.TestCase):
         self.assertTrue(any("en küçük kasnak 240" in h
                             for h in CK.tutarlilik(g, dict(A, saptirma_kasnak_min_capi=200))))
 
-    def test_raylara_oturan_kirisin_mesnet_araligi(self):
-        hata = self._hata(yan_yatak_boyu=900)
-        self.assertTrue(any("DBGW 850" in h and "900" in h for h in hata), hata)
-        #  Kiriş binaya oturuyorsa aranmaz
-        self.assertEqual(self._hata(yan_yatak_boyu=900, makine_raya_biniyor="Bina yapısına"), [])
+    def test_makine_kirisi(self):
+        #  Kirişin açıklığı girdi değildir ( çizimden:  raylara oturan kirişte DBGW ):
+        #  formdan gelmez, eski projede yazılı olsa da okunmaz.
+        self.assertEqual(self._hata(yan_yatak_boyu=900), [])
+        #  Karar 3:  bina yapısına ( duvardan duvara ) oturan kiriş henüz çizilmiyor
+        hata = self._hata(makine_raya_biniyor="Bina yapısına")
+        self.assertTrue(any("bina yapısına" in h and "karar 3" in h for h in hata), hata)
 
     def test_kuyu_dibi_zinciri(self):
         #  Kaide formdan gelmez ( zincirden );  motora doğrudan verilmişse zincir denetlenir.
@@ -359,7 +361,7 @@ class YeniDuzenler(unittest.TestCase):
         #  Ofisin 12744-3'ü gibi:  kuyu arkadaki ağırlığa göre derin, kabin ortada,
         #  kaide makineyle saptırmayı taşıyacak boyda
         g, hata, s = self._kur(True, aski_orani=1, agirlik_yeri="Arka", kuyu_derinligi=2250,
-                               kabin_yana_kaciklik=0, yan_yatak_boyu=1750)
+                               kabin_yana_kaciklik=0)
         self.assertEqual(hata, [])
         from cizim import makine_dairesi as CMD, kuyu_kesiti as CKK
         Y = CMD.yerlesim(g)

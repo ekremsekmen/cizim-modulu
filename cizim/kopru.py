@@ -403,8 +403,7 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
                 "yukseklik": sayi("md_yukseklik"), "kapi_yukseklik": sayi("md_kapi_yukseklik"),
                 "tabliye_yuksekligi": sayi("tabliye_yuksekligi", "Tabliye beton yüksekliği"),
                 "sase_yuksekligi": sayi("sase_yuksekligi", "Şase yüksekliği"),
-                "dikine_kiris": secim("dikine_kiris", "E  ( dikine kiriş ölçüsü )", CMK.NPU),
-                "yan_yatak_boyu": sayi("yan_yatak_boyu", "Yan yatak boyu")}
+                "dikine_kiris": secim("dikine_kiris", "E  ( dikine kiriş ölçüsü )", CMK.NPU)}
     if hata:
         return None, hata
     if dusey_ara:
@@ -678,14 +677,15 @@ def _uyusmazliklar(g, A):
             liste.append((f"Saptırma kasnakları:  çizimdeki en küçük kasnak {en_kucuk:g} mm, hesaptaki "
                           f"Ds {Ds:g} — Ds'yi boş bırakın ( çizimden gelir ).",
                           {"saptirma_kasnak_min_capi": en_kucuk}))
-    #  MAKİNE KİRİŞLERİ RAYLARA OTURUYORSA mesnet aralıkları raylar arasıdır.
-    if (g["makine"]["yeri"] == "Kuyu üstü" and A.get("makine_raya_biniyor") == "Kılavuz raylara"
-            and _sayi(A.get("yan_yatak_boyu"))
-            and abs(A["yan_yatak_boyu"] - g["agirlik"]["ray_arasi"]) >= 0.5):
-        liste.append((f"Makine kirişleri karşı ağırlık raylarına oturuyor:  mesnet aralığı raylar "
-                      f"arasıdır ( DBGW {g['agirlik']['ray_arasi']:g} ), hesaptaki yan yatak boyu "
-                      f"{A['yan_yatak_boyu']:g} — yan yatak boyuna {g['agirlik']['ray_arasi']:g} girin.",
-                      {"yan_yatak_boyu": g["agirlik"]["ray_arasi"]}))
+    #  MAKİNE KİRİŞİ BİNA YAPISINA ( karar 3 ):  makine dairesizde çizim
+    #  kirişleri karşı ağırlık raylarına oturtur;  duvardan duvara oturan kiriş
+    #  ( kuyu genişliğince platform ) henüz çizilmiyor — çizim durur, hesabın
+    #  kiriş açıklığı çizimden gelmez ( bölüm 2 HESAP EKSİK ).  Yan yatak boyu
+    #  girdi değildir:  raylara oturan kirişte DBGW, kaidede kaidenin açıklığı.
+    if g["makine"]["yeri"] == "Kuyu üstü" and A.get("makine_raya_biniyor") == "Bina yapısına":
+        liste.append(("Makine kirişleri bina yapısına ( duvardan duvara ) oturuyor:  bu kiriş henüz "
+                      "çizilmiyor ( karar 3 ) — çizim kirişleri karşı ağırlık raylarına oturtur; "
+                      "'Makine yükünün yolu' için 'Kılavuz raylara' seçin.", None))
     return liste
 
 

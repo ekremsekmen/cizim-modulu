@@ -359,8 +359,7 @@ ORNEK = {
                        #  değerler o programın varsayılanları ):  tabliye beton
                        #  yüksekliği = oda döşemesinin ( kuyunun üstündeki betonun )
                        #  kalınlığı;  makine kaidesi:  şase yüksekliği ( dikine kirişin
-                       #  boyu, döşemeden kaidenin üstüne ), dikine kiriş NPU'su ve yan
-                       #  yatakların mesnet aralığı.
-                       "tabliye_yuksekligi": 1200, "sase_yuksekligi": 1100, "dikine_kiris": 120,
-                       "yan_yatak_boyu": 1400},
+                       #  boyu, döşemeden kaidenin üstüne ) ve dikine kiriş NPU'su.
+                       #  Yan yatakların mesnet aralığı çizimden ( kaide makineyi sarar ).
+                       "tabliye_yuksekligi": 1200, "sase_yuksekligi": 1100, "dikine_kiris": 120},
 }

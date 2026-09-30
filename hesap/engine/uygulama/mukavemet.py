@@ -612,6 +612,20 @@ def _makine(g, o):
     #  Kirişin yükü nereye aktardığı ( raylar / bina ) bölüm 7 · 8'dedir.
     _mrl = evet_mi(g.get("mk_yok"))
     Gm, L = g["makine_agirligi"], g["yan_yatak_boyu"]
+    if not (_sayi_mi(L) and L > 0):
+        #  KİRİŞİN AÇIKLIĞI ÇİZİMDEN GELMEDİ ( program hesabı:  yan yatak boyu
+        #  girdi değildir — girdi.yerlesim_olculeri ):  sayı uydurulmaz, bölüm
+        #  EKSİKTİR ve sebebi yazılır.
+        neden = ("makine kirişleri bina yapısına ( duvardan duvara ) oturuyor — bu kiriş henüz "
+                 "çizilmiyor ( karar 3 )"
+                 if _mrl and not MT.makine_raya_mi(g.get("makine_raya_biniyor"))
+                 else "makine kaidesi çizilemedi")
+        metin_ = "HESAP EKSİK — makine kirişinin açıklığı ( L ) çizimden gelmedi:  " + neden
+        b["adimlar"] = [metin("Kirişin açıklığı ve makinenin kirişteki yeri çizimden ölçülür :",
+                              vurgu=True), metin("·  " + neden)]
+        b["sonuc"] = {"baslik": "KONTROL      σe ≤ σem", "metin": metin_, "uygun": False}
+        b["eksik_hesap"] = metin_
+        return b
     Wx = MT.npu(g["yan_yatak"], "Wx") * 1000            # cm³ → mm³
     F = k1 * gn * (o["Q"] + o["P"] + o["Gh"] + o["Ga"] + Gm)
     F1 = F / 2.0                                        # yan yatak putreli
@@ -659,7 +673,11 @@ def _makine(g, o):
         lam = max(20, math.ceil(lam_ham - 1e-9))
         #  Kaide kirişi ST 37'dir ( σem = 130 ) — ω'nın Rm = 370 eğrisi geçerli.
         omega = MT.omega_en8150(lam, MT.OMEGA_RM_ALT)
-        sigma_b = FB * omega / A if omega else None
+        #  EN YÜKLÜ KOLON:  yük iki mesnede FA · FB olarak dağılır;  X = L − 335
+        #  kabulünde yük hep B'ye yakındı ( FB büyük ) ve bağıntı FB'yi okuyordu.
+        #  Yükün yeri çizimden gelince A'ya yakın da olabilir:  büyüğü alınır.
+        F_kolon = max(FA, FB)
+        sigma_b = F_kolon * omega / A if omega else None
         burkulma_uygun = (sigma_b is not None and 0 <= sigma_b <= O["sigma_em"])
         #  σem de kaydedilir:  hükmün sınırıdır ve ofis sabitidir.
         _kay(o, "makine", k1=k1, A=A, imin=imin, Wx=Wx, omega=omega,
@@ -677,7 +695,11 @@ def _makine(g, o):
         veri("k1", "Darbe katsayısı", k1, "",
              f"KABUL  ·  {g['guvenlik_tertibati']}"),
         veri("Gm", "Makine motor ağırlığı", Gm, "kg", "KATALOG"),
-        veri("L", "Yan yatak ( makine kirişi ) boyu", L, "mm", "GİRİŞ"),
+        veri("L", "Yan yatak ( makine kirişi ) boyu", L, "mm",
+             (CIZIMDEN + ("  ·  karşı ağırlık rayları arası ( DBGW )" if _mrl
+                          else "  ·  kaidenin dikine kirişleri arası:  kaide halatlara "
+                               "ortalı, makineyi sarar"))
+             if "yan_yatak_boyu" in (g.get("_cizimden") or {}) else "GİRİŞ", 0),
     ] + ([] if _mrl else [
         veri("L1", "Dikine kirişin boyu", L1, "mm", "GİRİŞ"),
         veri("A", "Dikine kirişin kesit alanı", A, "mm²",
@@ -714,8 +736,8 @@ def _makine(g, o):
         veri("λ", "Yuvarlanmış burkulma narinliği ( en az 20 )", lam, "",
              "ω çizelgesi tam sayı λ ile okunur", 0),
         veri("ω", "Omega değeri", omega, "", f"Burkulma tablosu  λ = {lam}", 4),
-        hesap("σb = FB × ω / A",
-              f"{tr(FB)} × {tr(omega)} / {trn(A, 0)}", sigma_b, "N/mm²"),
+        hesap("σb = max( FA ; FB ) × ω / A",
+              f"{tr(F_kolon)} × {tr(omega)} / {trn(A, 0)}", sigma_b, "N/mm²"),
         kontrol(f"σb = {tr(sigma_b)}  ≤  σem = {tr(O['sigma_em'])} N/mm²  →  "
                 f"NPU {g['dikine_kiris']}", burkulma_uygun),
     ])
@@ -752,7 +774,7 @@ def _makine(g, o):
         + ("  Makine dairesiz tesiste makine kirişleri kuyu üstünde doğrudan "
            "mesnetlenir;  kolon olmadığı için burkulma kontrolü yapılmaz."
            if _mrl else
-           "  Burkulmada σb = FB·ω/A ( omega yöntemi ) ve "
+           "  Burkulmada σb = max( FA ; FB )·ω/A ( omega yöntemi — en yüklü kolon ) ve "
            "λ = L1/imin — yani burkulma boyu Lk = L1 alınır, iki ucu mafsallı "
            "kabulüdür ( β = 1,0 ).  Kolon tek ucundan ankastre, öbür ucu "
            "serbestse bu kabul narinliği OLDUĞUNDAN KÜÇÜK gösterir.")]

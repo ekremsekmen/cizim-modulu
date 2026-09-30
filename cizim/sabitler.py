@@ -145,11 +145,12 @@ SABIT = {
     "makine_sase_duvar": 20,
     "makine_sase_ray_payi": 8,
     #  MAKİNE DAİRESİNDE KAİDE:  yüksekliği ve profilleri hesap programının
-    #  girdileridir ( makine_dairesi.sase_yuksekligi · dikine_kiris ·
-    #  yan_yatak_boyu, makine.yan_yatak ).  Buradakiler LiftDesigner 12744-3
-    #  "kasnak düzenlemesi" ve makine odası planından ( A 160 makine ):  ayak
-    #  plakaları 150 × 150 × 20;  kaide makinenin ve saptırma kasnağının izinden
-    #  enine her yana 100 taşar.  Saptırma kasnağının merkezi döşemenin 400
+    #  girdileridir ( makine_dairesi.sase_yuksekligi · dikine_kiris,
+    #  makine.yan_yatak );  boyu çizimden ( halatlara ortalı, makineyi sarar ).
+    #  Buradakiler LiftDesigner 12744-3 "kasnak düzenlemesi" ve makine odası
+    #  planından ( A 160 makine ):  ayak plakaları 150 × 150 × 20;  kaide
+    #  makinenin ve saptırma kasnağının izinden her yana 100 taşar ( LiftDesigner'da
+    #  enine;  kaide makineyi sardığından beri uzun eksende de ).  Saptırma kasnağının merkezi döşemenin 400
     #  üstünde ( LiftDesigner:  tahrik kasnağının 842 altı;  ofisin makine daireli
     #  şablonu da "saptırma kasnağı merkezi yerden 40 cm" ).  Çatı döşemesi 150
     #  ( LiftDesigner 477-8 ve 12744-3 );  oda döşemesi hesabın tabliyesidir.

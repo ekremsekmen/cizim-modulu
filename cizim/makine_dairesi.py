@@ -75,6 +75,81 @@ def _onunde(kutu, yon, derinlik, en):
     return (x, cy - en / 2.0, x + derinlik, cy + en / 2.0)
 
 
+def _pano_yeri(oda, md, S, engeller, kapi):
+    """Kumanda panosu ve önündeki çalışma alanı ( m.5.2.6.3.2.1 a ):  seçilen
+    duvar boyunca 25 mm adımla, engellere basmadan kapıya en yakın yer;  yoksa
+    ( None, None ).  Her engelin kapattığı adımlar bir kez hesaplanır ( engel ×
+    adım karşılaştırması yerine — kaide adayları için sık çağrılır )."""
+    pe, pd = S["kumanda_pano_en"], S["kumanda_pano_derinlik"]
+    ce = max(CALISMA_EN_ASGARI, pe)
+    duvar = md["pano_duvar"]
+    uzunluk = md["genislik"] if duvar in ("Ön", "Arka") else md["derinlik"]
+    kc = ((kapi[0] + kapi[2]) / 2.0, (kapi[1] + kapi[3]) / 2.0)
+    kay = (ce - pe) / 2.0 if ce > pe else 0.0         # panonun adımdaki yeri
+    adet = int((uzunluk - max(pe, ce)) / 25.0 + 1e-9) + 1 if uzunluk >= max(pe, ce) - 1e-9 else 0
+    x0, y0, x1, y1 = oda
+
+    def _izdusum(k):
+        """Kutunun duvar boyunca ( a0 , a1 ) ve duvardan içeri ( d0 , d1 ) aralığı."""
+        if duvar == "Ön":
+            return k[0] - x0, k[2] - x0, k[1] - y0, k[3] - y0
+        if duvar == "Arka":
+            return k[0] - x0, k[2] - x0, y1 - k[3], y1 - k[1]
+        if duvar == "Sol":
+            return k[1] - y0, k[3] - y0, k[0] - x0, k[2] - x0
+        return k[1] - y0, k[3] - y0, x1 - k[2], x1 - k[0]
+
+    kapali = [False] * adet
+    for e in engeller:
+        a0, a1, d0, d1 = _izdusum(e)
+        araliklar = []
+        if d0 < pd and 0.0 < d1:                                   # pano şeridi
+            araliklar.append((a0 - kay - pe, a1 - kay))
+        if d0 < pd + CALISMA_DERINLIK and pd < d1:                 # çalışma alanı şeridi
+            araliklar.append((a0 - kay - pe / 2.0 - ce / 2.0, a1 - kay - pe / 2.0 + ce / 2.0))
+        for k0, k1 in araliklar:                                   # açık aralık:  k0 < k < k1
+            i0 = max(0, int(k0 // 25.0) + 1 if k0 >= 0 else 0)
+            for i in range(i0, adet):
+                k = i * 25.0
+                if k >= k1:
+                    break
+                if k > k0:
+                    kapali[i] = True
+    en_iyi = None
+    for i in range(adet):
+        if kapali[i]:
+            continue
+        pano, pyon = _duvar_seridi(oda, duvar, pe, pd, i * 25.0 + kay)
+        calisma = _onunde(pano, pyon, CALISMA_DERINLIK, ce)
+        if not (_icinde(pano, oda) and _icinde(calisma, oda)):
+            continue
+        pc = ((pano[0] + pano[2]) / 2.0, (pano[1] + pano[3]) / 2.0)
+        aday = (abs(pc[0] - kc[0]) + abs(pc[1] - kc[1]), i * 25.0, pano, calisma)
+        if en_iyi is None or aday < en_iyi:
+            en_iyi = aday
+    if en_iyi is None:
+        return None, None
+    return en_iyi[2], en_iyi[3]
+
+
+def _bakim_yeri(mk, engeller, oda):
+    """Makinenin başında 0,50 × 0,60 bakım alanı ( m.5.2.6.3.2.1 b ):  makinenin
+    ( kaidenin ) dört yanından birine, engellere basmadan, makineye en yakın;
+    yoksa None."""
+    adaylar = []
+    mc = ((mk[0] + mk[2]) / 2.0, (mk[1] + mk[3]) / 2.0)
+    #  Adaylar makinenin en çok alanın uzun kenarı kadar çevresindedir
+    r = max(BAKIM_ALANI)
+    cevre = (mk[0] - r, mk[1] - r, mk[2] + r, mk[3] + r)
+    engeller = [x for x in engeller if _ortusur(x, cevre)]
+    for w, h in (BAKIM_ALANI, BAKIM_ALANI[::-1]):
+        for kutu in _bitisik_adaylar(mk, w, h):
+            if _icinde(kutu, oda) and not any(_ortusur(kutu, x) for x in engeller):
+                c = ((kutu[0] + kutu[2]) / 2.0, (kutu[1] + kutu[3]) / 2.0)
+                adaylar.append((abs(c[0] - mc[0]) + abs(c[1] - mc[1]), kutu))
+    return min(adaylar)[1] if adaylar else None
+
+
 def yerlesim(g, cizim_sabitleri=None):
     S = CS.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     md, a = g.get("makine_dairesi") or {}, g.get("aski") or {}
@@ -96,9 +171,9 @@ def yerlesim(g, cizim_sabitleri=None):
         hata.append(f"kuyu_dibi.regulator_halat_capi: regülatör halatının döşeme deliği için gerekli "
                     f"( hesap programında 'Regülatör halatı çapı' ) ( {rdh!r} ).")
     #  Makine kaidesi:  hesap programının girdileri ( bölüm 2 )
-    for alan in ("sase_yuksekligi", "yan_yatak_boyu"):
-        if not (_sayi(md.get(alan)) and md[alan] > 0):
-            hata.append(f"makine_dairesi.{alan}: sıfırdan büyük bir sayı olmalı ( {md.get(alan)!r} ).")
+    if not (_sayi(md.get("sase_yuksekligi")) and md["sase_yuksekligi"] > 0):
+        hata.append(f"makine_dairesi.sase_yuksekligi: sıfırdan büyük bir sayı olmalı "
+                    f"( {md.get('sase_yuksekligi')!r} ).")
     if CMK.npu(md.get("dikine_kiris")) is None:
         hata.append(f"makine_dairesi.dikine_kiris: kaidenin kolonlarının NPU ölçüsü — "
                     f"{tuple(CMK.NPU)} içinden olmalı ( {md.get('dikine_kiris')!r} ).")
@@ -162,7 +237,7 @@ def yerlesim(g, cizim_sabitleri=None):
         max(makine_izi[2], saptirma["kutu"][2]), max(makine_izi[3], saptirma["kutu"][3]))
     uzun_x = (iz[2] - iz[0]) >= (iz[3] - iz[1])
     E, F = CMK.npu(md["dikine_kiris"]), M["yan_yatak"]
-    kaide = {"E": E, "F": F, "uzun_x": uzun_x, "boy": md["yan_yatak_boyu"] + E["h"]}
+    kaide = {"E": E, "F": F, "uzun_x": uzun_x}
     cerceve = None
 
     #  ── DÖŞEME DELİKLERİ ─────────────────────────────────────────────
@@ -194,37 +269,94 @@ def yerlesim(g, cizim_sabitleri=None):
             if _ortusur(d1, d2):
                 hata.append(f"{a1.capitalize()} ve {a2.lower()} delikleri üst üste biniyor.")
 
-    #  Kaide:  uzun eksende boyu yan yatak mesnet aralığı + dikine kiriş
-    #  ( hesabın L'si );  makinenin izi bu boya sığmalı.  Enine eksende izden
-    #  her yana payı kadar.  Ayak plakaları döşeme deliklerine basmaz ve kaide
-    #  odaya sığar:  basıyorsa kaide uzun eksende kaydırılır, olmazsa enine pay
-    #  büyür ( 100 → 200 → 300 ).
+    #  KAİDE ( kullanıcı kararı, 29 Eyl ):
+    #   · KAİDE MAKİNEYİ SARAR:  makinenin ve saptırma kasnağının izi + her yana
+    #     payı ( LiftDesigner 800 KG:  şase makinenin boyunda ).  Yan yatakların
+    #     mesnet aralığı ( hesabın L'si ) buradan çıkar:  boy − dikine kiriş;
+    #     eskiden girilen yan yatak boyuydu ve 400 mm'lik dişlisiz makineye
+    #     1.400 mm'lik kaide kuruluyordu.
+    #   · HALATLAR KAİDEYE ORTALANIR:  tahrik kasnağından ve saptırma kasnağından
+    #     inen halatların ortası kaidenin ortasıdır ( S. Tavaslıoğlu, "Asansörde
+    #     karkas imalatları":  "makine kaidesi önden bakıldığında halat
+    #     deliklerini ortalamalıdır … halatlar makine kaidesi içinden akmalıdır"
+    #     — takozlar eşit yüklenir, kaide yatmaz;  enine eksende iki yan yatağa
+    #     eşit yük:  hesabın F1 = F / 2'si ).  Kaide bunun için izin kısa
+    #     tarafına doğru uzar.  Oda ya da döşeme delikleri buna yer vermiyorsa
+    #     ortaya en yakın konum alınır ( LiftDesigner 1022:  kaide halatlara
+    #     165 mm kaçık ) ve kaide["ortali"] yanlış olur.  Önce enine eksen
+    #     ortalanır ( iki yan yatağa eşit yük hesabın kabulüdür ), sonra uzun
+    #     eksen ( dişli makinede motor kasnaktan uzağa uzanır:  kaide ortalanırsa
+    #     motorun boyu kadar öbür yana taşar — oda buna çoğu zaman yer vermez ).
+    #  Ayak plakaları döşeme deliklerine basmaz ve kaide odaya sığar:  basıyorsa
+    #  pay büyür ( 100 → 200 → 300 ) — önce enine, sonra uzun eksende ( uzun
+    #  eksendeki pay açıklığı, yani momenti büyütür ).  Kaide odanın standart
+    #  alanlarına da yer bırakır:  kumanda panosunun önündeki çalışma alanı ve
+    #  makinenin başındaki bakım alanı ( m.5.2.6.3.2.1 ) — bırakmayan aday
+    #  geçilir ( makine daireli 1:1'de ağırlık arkadayken dişli makinede
+    #  halatlara tam ortalı kaide 2,8 m olup panonun önünü kapatıyordu ).
+    #  Hiçbir aday bırakmıyorsa ilk sığan kaide alınır, alanlar hatasını söyler.
+    kapi, kyon = _duvar_seridi(oda, md["kapi_duvar"], md["kapi_genislik"], 0.0, md["kapi_konum"])
+    kapi_onu = _onunde(kapi, kyon, CALISMA_DERINLIK, md["kapi_genislik"])
+    sabit0 = [k_ for k_ in (M["govde"], M["kasnak"], M["agirlik_baglanti"], M["kabin_baglanti"],
+                            M["reg_govde"], M["reg_kasnak"]) if k_] + [d_ for _, d_ in delikler] + \
+        ([saptirma["kutu"]] if saptirma else [])
+
+    def _alanlar(c):
+        """( pano , çalışma alanı , bakım alanı ) — biri yoksa None."""
+        engel = sabit0 + [c, kapi_onu]
+        pano_, calisma_ = _pano_yeri(oda, md, S, engel, kapi)
+        bakim_ = pano_ and _bakim_yeri(c, engel + [pano_, calisma_], oda)
+        return (pano_, calisma_, bakim_) if bakim_ else None
+    kx, ky = dz.p(uk)
+    rc = ((kx + agirlik_dusus[0]) / 2.0, (ky + agirlik_dusus[1]) / 2.0)
     u0, u1 = (iz[0], iz[2]) if uzun_x else (iz[1], iz[3])
     e0, e1 = (iz[1], iz[3]) if uzun_x else (iz[0], iz[2])
-    boy, bosluk = kaide["boy"], kaide["boy"] - (u1 - u0)
-    ad = "Makine ve saptırma kasnağı" if saptirma else "Makine"
-    if bosluk < -1e-6:
-        hata.append(f"{ad} kaideye sığmıyor:  izi {u1 - u0:g} mm, kaide {boy:g} mm ( yan yatak "
-                    f"boyu {md['yan_yatak_boyu']:g} + dikine kiriş {E['h']:g} ) — makine_dairesi."
-                    "yan_yatak_boyu büyümeli ( hesap programında 'Yan yatak boyu' ).")
-    else:
-        kaymalar = sorted({0.0} | {k * yon * 25.0 for k in range(1, int(bosluk / 50.0) + 1)
-                                   for yon in (1, -1)}, key=lambda d: (abs(d), d))
-        a = CMK.ayak_plakasi(E, S)
-        orta = (u0 + u1) / 2.0
-        for pay in (S["md_cerceve_pay"], 2 * S["md_cerceve_pay"], 3 * S["md_cerceve_pay"]):
-            for d in kaymalar:
-                ua, ub = orta + d - boy / 2.0, orta + d + boy / 2.0
-                c = (ua, e0 - pay, ub, e1 + pay) if uzun_x else (e0 - pay, ua, e1 + pay, ub)
-                plakalar = [(x - a / 2.0, y - a / 2.0, x + a / 2.0, y + a / 2.0)
-                            for x, y in CMK.ayaklar(c, E, F, uzun_x)]
-                if _icinde(c, oda) and not any(_ortusur(p, d_) for p in plakalar for _, d_ in delikler):
-                    cerceve = c
-                    break
-            if cerceve:
+    cu, ce = (rc[0], rc[1]) if uzun_x else (rc[1], rc[0])
+
+    def _aralik(a0, a1, c, pay, t):
+        """İz + pay;  kısa taraf, ortaya ( c ) göre simetriye t kadar uzar."""
+        a0, a1 = a0 - pay, a1 + pay
+        eksik = (a1 - c) - (c - a0)                  # > 0:  a0 tarafı kısa
+        return (a0 - t * eksik, a1) if eksik > 0 else (a0, a1 - t * eksik)
+
+    a = CMK.ayak_plakasi(E, S)
+    paylar = [k * S["md_cerceve_pay"] for k in (1, 2, 3)]
+    oranlar = (1.0, 0.75, 0.5, 0.25, 0.0)
+    sigan = None                                     # ilk sığan ( alanlar kalmasa da )
+    alanlar = None                                   # seçilen kaidenin pano / bakım yerleri
+    for te, tu in ((te, tu) for te in oranlar for tu in oranlar):
+        for pu, pe in ((pu, pe) for pu in paylar for pe in paylar):
+            ua, ub = _aralik(u0, u1, cu, pu, tu)
+            ea, eb = _aralik(e0, e1, ce, pe, te)
+            c = (ua, ea, ub, eb) if uzun_x else (ea, ua, eb, ub)
+            plakalar = [(x - a / 2.0, y - a / 2.0, x + a / 2.0, y + a / 2.0)
+                        for x, y in CMK.ayaklar(c, E, F, uzun_x)]
+            if not _icinde(c, oda) or any(_ortusur(p, d_) for p in plakalar for _, d_ in delikler):
+                continue
+            aday = (c, ub - ua, (te, tu) == (1.0, 1.0))
+            alanlar = _alanlar(c)
+            if alanlar:
+                cerceve = aday
                 break
-        else:
-            hata.append("Makine kaidesi odaya sığmıyor ya da ayakları döşeme deliklerine basıyor.")
+            if sigan is None:
+                sigan = aday
+                #  En küçük kaide ( izi + en az pay, ortalamasız ) bile alanlara
+                #  yer bırakmıyorsa büyükleri de bırakmaz:  aramaya gerek yok.
+                k0 = (_aralik(u0, u1, cu, paylar[0], 0.0), _aralik(e0, e1, ce, paylar[0], 0.0))
+                if not _alanlar((k0[0][0], k0[1][0], k0[0][1], k0[1][1]) if uzun_x
+                                else (k0[1][0], k0[0][0], k0[1][1], k0[0][1])):
+                    cerceve = aday
+                    break
+        if cerceve:
+            break
+    cerceve = cerceve or sigan
+    if cerceve:
+        cerceve, boy, ortali = cerceve
+        #  Yan yatakların mesnet aralığı:  dikine kirişlerin eksenleri arası
+        kaide["L"] = boy - E["h"]
+        kaide["ortali"] = ortali
+    else:
+        hata.append("Makine kaidesi odaya sığmıyor ya da ayakları döşeme deliklerine basıyor.")
 
     #  ── MAKİNE PLAKASI, SAPTIRMA KASNAĞININ KOTU, PLAKADAKİ DELİKLER ───
     #  Makine kaidenin iki yan yatağının arasındaki plakaya oturur ( hesap:  yük
@@ -270,33 +402,13 @@ def yerlesim(g, cizim_sabitleri=None):
         kaide_delikleri = CMK.plaka_delikleri(plaka, [d for d in adaylar if d is yuva or not (
             yuva and yuva[0] <= (d[0] + d[2]) / 2.0 <= yuva[2] and yuva[1] <= (d[1] + d[3]) / 2.0 <= yuva[3])])
 
-    #  ── KAPI ─────────────────────────────────────────────────────────
-    #  Kapının önündeki geçiş payı:  kapı eni × çalışma derinliği, boş kalır.
-    kapi, kyon = _duvar_seridi(oda, md["kapi_duvar"], md["kapi_genislik"], 0.0, md["kapi_konum"])
-    kapi_onu = _onunde(kapi, kyon, CALISMA_DERINLIK, md["kapi_genislik"])
-
     #  ── KUMANDA PANOSU:  seçilen duvar boyunca kapıya en yakın boş yer ─
-    sabit = [k_ for k_ in (M["govde"], M["kasnak"], M["agirlik_baglanti"], M["kabin_baglanti"],
-                           M["reg_govde"], M["reg_kasnak"]) if k_] + [d_ for _, d_ in delikler] + \
-        ([cerceve] if cerceve else []) + ([saptirma["kutu"]] if saptirma else [])
-    pe, pd = S["kumanda_pano_en"], S["kumanda_pano_derinlik"]
-    ce = max(CALISMA_EN_ASGARI, pe)
-    uzunluk = md["genislik"] if md["pano_duvar"] in ("Ön", "Arka") else md["derinlik"]
-    kc = ((kapi[0] + kapi[2]) / 2.0, (kapi[1] + kapi[3]) / 2.0)
-    adaylar = []
-    konum = 0.0
-    while konum + max(pe, ce) <= uzunluk + 1e-9:
-        pano, pyon = _duvar_seridi(oda, md["pano_duvar"], pe, pd, konum + (ce - pe) / 2.0 if ce > pe else konum)
-        calisma = _onunde(pano, pyon, CALISMA_DERINLIK, ce)
-        if _icinde(pano, oda) and _icinde(calisma, oda) and not any(
-                _ortusur(x, y) for x in (pano, calisma) for y in sabit + [kapi_onu]):
-            pc = ((pano[0] + pano[2]) / 2.0, (pano[1] + pano[3]) / 2.0)
-            adaylar.append((abs(pc[0] - kc[0]) + abs(pc[1] - kc[1]), konum, pano, calisma))
-        konum += 25.0
-    pano = calisma = None
-    if adaylar:
-        _, _, pano, calisma = min(adaylar)
-    else:
+    #  ( kapı ve önündeki geçiş payı kaideden önce kuruldu )
+    sabit = sabit0 + ([cerceve] if cerceve else [])
+    pano, calisma, bakim = alanlar or (None, None, None)
+    if pano is None:
+        pano, calisma = _pano_yeri(oda, md, S, sabit + [kapi_onu], kapi)
+    if pano is None:
         hata.append(f"Kumanda panosu önündeki {CALISMA_DERINLIK:g} mm çalışma alanıyla "
                     f"{md['pano_duvar'].lower()} duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a ).")
 
@@ -304,18 +416,9 @@ def yerlesim(g, cizim_sabitleri=None):
     #  Makinenin ( gövde + kasnak ) dört yanından birine, deliklere, panoya
     #  ve kapının önüne basmadan;  makineye en yakın yer.
     mk = cerceve or makine_izi
-    engel = sabit + [kapi_onu] + ([pano, calisma] if pano else [])
-    bakim = None
-    adaylar = []
-    for w, h in (BAKIM_ALANI, BAKIM_ALANI[::-1]):
-        for kutu in _bitisik_adaylar(mk, w, h):
-            if _icinde(kutu, oda) and not any(_ortusur(kutu, x) for x in engel):
-                c = ((kutu[0] + kutu[2]) / 2.0, (kutu[1] + kutu[3]) / 2.0)
-                mc = ((mk[0] + mk[2]) / 2.0, (mk[1] + mk[3]) / 2.0)
-                adaylar.append((abs(c[0] - mc[0]) + abs(c[1] - mc[1]), kutu))
-    if adaylar:
-        bakim = min(adaylar)[1]
-    else:
+    if bakim is None:
+        bakim = _bakim_yeri(mk, sabit + [kapi_onu] + ([pano, calisma] if pano else []), oda)
+    if bakim is None:
         hata.append("Makinenin başında 0,50 × 0,60 m bakım alanı kalmıyor ( TS EN 81-20 "
                     "m.5.2.6.3.2.1 b ).")
 

@@ -33,8 +33,8 @@ ASANSOR = {
     "makine_raya_biniyor": "Kılavuz raylara", "makine_agirligi": 250,
     #  Makinenin oturduğu kirişler ( bölüm 2 ):  referans proje "Motor Bedplate
     #  Calculation" — Wa 191.000 mm³ ( UPN 200 ), L 850 ( karşı ağırlık rayları
-    #  arası;  kirişler o raylara oturur ).
-    "yan_yatak": 200, "yan_yatak_boyu": 850,
+    #  arası;  kirişler o raylara oturur ).  L girdi değildir:  çizimden ( DBGW ).
+    "yan_yatak": 200,
     "kablo_birim_kutle": 0.44,
     "kabin_ray_profili": "89 x 62 x 15,88", "agirlik_ray_profili": "70 x 65 x 9",
     "kabin_konsol_arasi": 1500, "agirlik_konsol_arasi": 1500, "ray_celigi_rm": 450,
@@ -97,6 +97,6 @@ ASANSOR_MD = {k: v for k, v in ASANSOR.items() if k not in ("makine_verimi", "ma
 ASANSOR_MD.update({
     "makine_tipi": "Dişli", "makine_agirligi": 350, "motor_gucu": 15,
     "tabliye_yuksekligi": 1200, "sase_yuksekligi": 1100, "dikine_kiris": 120,
-    "yan_yatak": 140, "yan_yatak_boyu": 1400,
+    "yan_yatak": 140,             # kaidenin açıklığı çizimden ( halatlara ortalı, makineyi sarar )
 })
 ORTAK_MD = {"mk_yok": False, "mk_uzunluk": 3800, "mk_genislik": 2600}

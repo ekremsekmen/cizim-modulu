@@ -16,6 +16,7 @@ if _yol not in sys.path:
     sys.path.append(_yol)
 
 from cizim import kopru as CK                             # noqa: E402
+from cizim import makine_dairesi as CMD                   # noqa: E402
 from cizim import olculer as CO                           # noqa: E402
 from cizim import sabitler as CS                          # noqa: E402
 from engine.uygulama import girdi as UG                   # noqa: E402
@@ -101,27 +102,35 @@ class Boylar(unittest.TestCase):
 
 
 class MakineYuku(unittest.TestCase):
-    def test_makine_dairesinde_kaidenin_acikligi_yan_yatak_boyu(self):
+    def test_makine_dairesinde_kaidenin_acikligi(self):
+        #  Kaide halatlara ortalı ve makineyi sarar:  L dikine kirişlerin
+        #  eksenleri arası;  dişlisiz 2:1'de kasnak açıklığın ortasında.
         g = _girdi(**MD)
         gc, _h = CK.cizim_girdisi(g)
-        o = CO.hesap_olculeri(gc)
-        self.assertAlmostEqual(o["makine_kiris_acikligi"], g["yan_yatak_boyu"])
-        self.assertTrue(0 < o["makine_yuku_x"] < g["yan_yatak_boyu"])
-        self.assertEqual(UG.yerlesim_olculeri(g)["makine_yuku_x"], o["makine_yuku_x"])
+        Y = CMD.yerlesim(gc)
+        o = UG.yerlesim_olculeri(g)
+        self.assertAlmostEqual(o["yan_yatak_boyu"], Y["kaide"]["L"])
+        self.assertTrue(Y["kaide"]["ortali"])
+        self.assertAlmostEqual(o["makine_yuku_x"], o["yan_yatak_boyu"] / 2.0)
+        #  Girilen 1.400 kullanılmaz ( formda yok, çizimden )
+        self.assertNotEqual(o["yan_yatak_boyu"], 1400)
 
     def test_raylara_oturan_kiris_acikligi_dbgw(self):
-        raya = {"makine_raya_biniyor": "Kılavuz raylara"}
-        gc, _h = CK.cizim_girdisi(_girdi(**raya))
-        o = CO.hesap_olculeri(gc)
-        self.assertAlmostEqual(o["makine_kiris_acikligi"], gc["agirlik"]["ray_arasi"])
-        #  Yan yatak boyu açıklıktan ayrıysa X o kirişin değildir:  hesaba girmez
-        self.assertNotIn("makine_yuku_x", _olc(**raya))
-        self.assertEqual(_olc(**raya, yan_yatak_boyu=gc["agirlik"]["ray_arasi"])["makine_yuku_x"],
-                         o["makine_yuku_x"])
+        gc, _h = CK.cizim_girdisi(_girdi())
+        o = _olc()
+        self.assertAlmostEqual(o["yan_yatak_boyu"], gc["agirlik"]["ray_arasi"])
+        self.assertTrue(0 < o["makine_yuku_x"] < o["yan_yatak_boyu"])
 
     def test_bina_yapisina_oturan_kiris_cizilmiyor(self):
-        #  Karar 3:  duvardan duvara kiriş henüz çizilmiyor — X ofis kabulü
-        self.assertNotIn("makine_yuku_x", _olc(makine_raya_biniyor="Bina yapısına"))
+        #  Karar 3:  duvardan duvara kiriş henüz çizilmiyor — açıklık yok,
+        #  bölüm 2 HESAP EKSİK ( 1.400 sessizce kullanılmaz )
+        o = _olc(makine_raya_biniyor="Bina yapısına")
+        self.assertIsNone(o["yan_yatak_boyu"])
+        self.assertNotIn("makine_yuku_x", o)
+        s = UY.hesapla({"makine_raya_biniyor": "Bina yapısına"})
+        b2 = next(b for b in s["bolumler"] if b["baslik"].startswith("2 "))
+        self.assertIn("HESAP EKSİK", b2.get("eksik_hesap") or "")
+        self.assertIn("karar 3", b2["eksik_hesap"])
 
 
 class Hesapta(unittest.TestCase):

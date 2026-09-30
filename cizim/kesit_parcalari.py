@@ -249,7 +249,7 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
         e += CMK.gorunus(M["halat_konsolu"], B, CGE._dik, CGE._daire, CGE._cizgi)
     rg = M["regulator"]
     B.kutu(e, "MAKINE", rg[:4], rg[4], rg[5], "regulator")
-    if "pano" in M:
+    if M.get("pano"):
         p = M["pano"]
         B.kutu(e, "PANO", p[:4], p[4], p[5], "kumanda_panosu")
     rk = M["regulator_kasnak"]

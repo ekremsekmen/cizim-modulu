@@ -353,8 +353,10 @@ def calistir():
     #  BİLGİLENDİRİCİ uyarı uygunluğu ENGELLEMEZ.  Örnek eskiden reddedilen
     #  bir ofis sabitiydi ( cosφ = 99 );  o artık bilgilendirici değildir,
     #  hesabı durdurur ( bkz. ④ ).  Makine dairesiz tesiste yükün binaya
-    #  aktarıldığı notu gerçek bir bilgilendirici uyarıdır.
-    _bg = UH.hesapla(UG.tamamla(dict(UG.varsayilanlar(), **_temiz, mk_yok=True)))
+    #  aktarıldığı notu gerçek bir bilgilendirici uyarıdır.  Programda bu
+    #  düzen çizilmiyor ( karar 3:  bölüm 2 EKSİK );  hesap motoru kendi
+    #  varsayılan kirişiyle hesaplar — uyarının yolu orada sınanır.
+    _bg = MK.hesapla(dict(_temiz, mk_yok=True, makine_raya_biniyor="Bina yapısına"))
     r.kontrol("② örnekte bilgilendirici uyarı var",
               any("BİNA YAPISINA" in u for u in _bg["uyarilar"]),
               f"→ {_bg['uyarilar']}")
@@ -1255,7 +1257,7 @@ def calistir():
     #  ( tampon KUVVETİ kütle × g'dir, tampon geometrisi kuvvete girmez ) ve
     #  "kurulu_guc → Elektrik ve topraklama" ( kuyu armatür adedi kuyu
     #  YÜKSEKLİĞİNDEN gelir, genişlik yalnız lux kontrolüne girer ).
-    _ORTAK_T = {"mk_yok": False, "mk_uzunluk": 4.0, "mk_genislik": 3.0,
+    _ORTAK_T = {"mk_yok": False, "mk_uzunluk": 4000.0, "mk_genislik": 3000.0,
                 "temel_a": 20.0, "temel_b": 12.0, "serit_L": 64.0}
 
     def _bolum_icerigi(sonuc):

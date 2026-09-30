@@ -1161,8 +1161,10 @@ def calistir():
         _n1 = pg.evaluate("SON.m.ozet.N_hesap")
         r.kontrol("ofis verimi motor gücünü değiştiriyor", _n1 < _n0,
                   f"→ önce {_n0}, sonra {_n1}")
-        #  NPU 140 makine kirişinde σe ≈ 85 N/mm²:  σem 80'e inince kalmalı.
-        pg.fill("#uof_sigma_em", "80")
+        #  NPU 140 makine kirişinde σe:  makine dairesizde ≈ 72 ( kiriş DBGW
+        #  açıklığında ), makine dairelide ≈ 65 N/mm² ( kaide halatlara ortalı ve
+        #  makineyi sarar — açıklığı kısa ):  σem 50'ye inince ikisi de kalmalı.
+        pg.fill("#uof_sigma_em", "50")
         #  KAİDE HESABI ( kolon burkulması dahil ) MAKİNE DAİRESİ İSTER —
         #  σem'i düşürmenin etkisini tam kaidede görmek için makine dairesi açılır.
         #  ( Kutu akordeon içindedir;  gruplar önce açılır. )
@@ -1187,11 +1189,11 @@ def calistir():
                       "SON.m.bolumler.find(b=>b.baslik.startsWith('2'))"
                       ".adimlar.find(a=>a.sembol==='σem').kaynak"))
         #  MRL'ye dönünce bölüm 2 MAKİNE KİRİŞİNİ denetler:  tabliye ve kolon
-        #  yoktur, burkulma satırı basılmaz;  σem 80'de kiriş kalır.
+        #  yoktur, burkulma satırı basılmaz;  σem 50'de kiriş kalır.
         _mrl_sec(pg, True)
         pg.wait_for_timeout(2200)
         _b2m = pg.evaluate("SON.m.bolumler.find(b=>b.baslik.startsWith('2')).sonuc")
-        r.kontrol("MRL'de bölüm 2 makine kirişini denetliyor ( σem 80'de kalıyor )",
+        r.kontrol("MRL'de bölüm 2 makine kirişini denetliyor ( σem 50'de kalıyor )",
                   _b2m.get("uygun") is False and "makine kirişleri" in _b2m.get("baslik", ""),
                   f"→ {_b2m}")
         r.kontrol("MRL: tabliye beton yüksekliği gizli",

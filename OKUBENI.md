@@ -65,7 +65,26 @@ eski yaklaşığıyla sürer ve raporda KABUL yazar;  hesap motoru doğrudan
 | Regülatör halatı boyu | ( alt duraktan tavana + tabliye − 200 ) × 2 | regülatör – gergi kasnağı arası iki kez + iki yarım sarım |
 | Nps · Npr ( Ek E ) | askı oranından | çizilen kasnaklar ( makine dairesinde saptırma kasnağı dahil );  Npr 0 |
 | Atalete giren kasnaklar | ofis:  kabin 2 · ağırlık 1;  saptırma kasnağı 0 | çizilen kasnaklar;  makine dairesindeki sabit saptırma kasnağı koşul II'ye mDP = J / R² · r² ( m.5.11.2.2 ) |
-| Makinenin kirişteki yeri ( X ) | L − 335 | tahrik kasnağının mesnede uzaklığı:  makine dairesinde kaidede, makine dairesizde raylara oturan kirişte — yalnız kirişin çizimdeki açıklığı yan yatak boyuna eşitse |
+| Makine kirişinin açıklığı ( L, yan yatak boyu ) | girdi ( varsayılan 1.400 ) | makine dairesinde kaidenin dikine kirişleri arası ( aşağıda "Makine kaidesi" );  makine dairesizde karşı ağırlık rayları arası ( DBGW ).  Formda kutusu yok;  çizimden gelmezse bölüm 2 HESAP EKSİK |
+| Makinenin kirişteki yeri ( X ) | L − 335 | tahrik kasnağının aynı kirişte mesnede uzaklığı |
+
+**Makine kaidesi** ( 29 Eyl, kullanıcı kararı;  kaynaklar:  S. Tavaslıoğlu
+"Asansörde karkas imalatları", LiftDesigner örnek projeleri, ofisin Excel
+hesabı ).  Kaide makinenin ve saptırma kasnağının izini her yana 100 sarar;
+halatların ( tahrik ve saptırma kasnağından inenler ) ortası kaidenin
+ortasıdır — enine eksende her zaman ( iki yan yatağa eşit yük:  hesabın
+F1 = F / 2'si ), uzun eksende oda, döşeme delikleri, kumanda panosunun
+çalışma alanı ve makinenin başındaki bakım alanı yer verdiği kadar ( dişli
+makinede motor kasnaktan uzağa uzanır;  tam ortalı kaide 2,8 m olup panonun
+önünü kapatıyordu ).  Açıklık L ve kasnağın yeri X buradan:  dişlisiz 2:1'de
+kasnak açıklığın ortasında ve açıklık kısa ( varsayılanda L 773 ), dişli
+örnekte X = 360 ( ofisin eski "L − 335" kuralı ve LiftDesigner 800 KG'nin
+355'i gibi ).  Kolonların burkulmasında en yüklü kolon alınır:
+σb = max( FA ; FB ) · ω / A ( X = L − 335'te yük hep B'ye yakındı ).
+
+**Karar 3:**  makine dairesizde "Makine yükünün yolu" varsayılanı "Kılavuz
+raylara";  "Bina yapısına" ( duvardan duvara kiriş ) henüz çizilmiyor —
+çizim durur, bölüm 2 HESAP EKSİK.
 
 **Kurma ile denetim ayrıdır.**  Çizimin denetim hataları ( çakışma, sığınma
 alanı … ) ölçüleri durdurmaz;  yalnız geometri kurulamazsa ( girdi eksik, kaide
@@ -157,8 +176,7 @@ kullanmaya devam eder ).  "Formda göster" alanın grubunu açıp alanı göster
   sayısı değişir ) ve hedefte olduğu görülür;  doğrusal değilse kiriş
   yöntemi.  Birden çok girdiye bağlı ölçüde hangisinin değişeceği sorulur.
 - **Bağlı büyüklükler birlikte değişir:**  girilmiş kaide ile kuyu dibi
-  ( zincir:  kuyu dibi 1.500 → 1.600, kaide 306 → 406 ), makine kirişleri
-  raylara oturuyorsa yan yatak boyu = DBGW, girilmiş D2 · Ds · α çizimdeki
+  ( zincir:  kuyu dibi 1.500 → 1.600, kaide 306 → 406 ), girilmiş D2 · Ds · α çizimdeki
   değere ( `kopru.tutarlilik_duzeltmeleri` — tutarlılık denetimiyle aynı yerde ).
 - **Çizimi bozacak değer önce sorulur:**  sebepleriyle ( kuyu genişleyince
   korkuluk gerekir, tavana sığmaz … ) "Yine de uygula / Vazgeç";  uygulanan
@@ -452,7 +470,7 @@ anahtarları hesap programının NPU listesi ).
 | Şase | Nerede | Girdi | Ne |
 |---|---|---|---|
 | 2 yan yatak | kuyu üstü | `makine.yan_yatak` ( referans proje:  UPN 200, Wx 191 cm³ ) | karşı ağırlık rayları boyunca, sırtları dışta, raylara oturur ( mesnet aralığı raylar arası — hesabın L'si;  referans proje 850 );  aralarında üstle aynı hizada 700 mm motor plakası, uçlarda bağlantı levhaları.  Plakadan inen halatlar ( karşı ağırlık tarafı ve bağlantısı ) için plakada delik ( eskiden deliksiz plakanın içinden geçiyorlardı ).  Şase üstü referans projeninki ( tavandan 595 ), altı profil yüksekliği kadar aşağıda |
-| Kaide | makine dairesi ( HER ZAMAN — hesap burada kolonların burkulmasını da denetler ) | `makine_dairesi.sase_yuksekligi` · `dikine_kiris` · `yan_yatak_boyu`, `makine.yan_yatak` | dört dikine kiriş ( kolon ) döşemeden şase yüksekliği kadar, üstleri hizasında iki yan yatak makinenin uzun ekseni boyunca;  dikine kirişlerin eksenleri arası = yan yatak boyu ( L ).  Uçlarda kısa kirişler UPN 100 ve ayak plakaları 150 × 150 × 20 ( LiftDesigner 12744-3 ).  Makine yan yatakların arasındaki, üstleri hizasındaki **makine plakasına** oturur ( yük iki yan yatağa — hesabın F / 2'si;  eskiden plaka yoktu, makine iki kirişin arasında havada duruyordu );  plakayı kesen halatlar için delik, eğik saptırma halatı için kestiği yerde delik, plakanın altına sarkan tahrik kasnağı için yuva;  saptırma kasnağının askıları plakaya asılır.  Enine makinenin ( ve saptırma kasnağının ) izinden her yana 100.  Ayak plakası bir döşeme deliğine basıyorsa kaide önce uzun ekseninde kayar ( 25'er ), kayacak yer yoksa enine büyür ( 200, 300 ).  Makine kaideye sığmıyorsa ( izi > L + dikine kiriş ) çizilmez, yan yatak boyunu büyütmesi söylenir |
+| Kaide | makine dairesi ( HER ZAMAN — hesap burada kolonların burkulmasını da denetler ) | `makine_dairesi.sase_yuksekligi` · `dikine_kiris`, `makine.yan_yatak` | dört dikine kiriş ( kolon ) döşemeden şase yüksekliği kadar, üstleri hizasında iki yan yatak makinenin uzun ekseni boyunca;  dikine kirişlerin eksenleri arası = hesabın L'si ( çizimden ).  Kaide makinenin ve saptırma kasnağının izini her yana 100 sarar ve halatlara ortalanır ( yukarıda "Makine kaidesi" ).  Uçlarda kısa kirişler UPN 100 ve ayak plakaları 150 × 150 × 20 ( LiftDesigner 12744-3 ).  Makine yan yatakların arasındaki, üstleri hizasındaki **makine plakasına** oturur ( yük iki yan yatağa — hesabın F / 2'si;  eskiden plaka yoktu, makine iki kirişin arasında havada duruyordu );  plakayı kesen halatlar için delik, eğik saptırma halatı için kestiği yerde delik, plakanın altına sarkan tahrik kasnağı için yuva;  saptırma kasnağının askıları plakaya asılır.  Ayak plakası bir döşeme deliğine basıyorsa pay büyür ( 200, 300 — önce enine );  oda, pano önü ve bakım alanı yer vermiyorsa kaide ortaya en yakın konumu alır |
 
 **Saptırma kasnağı** ( makine dairesi ):  karşı ağırlık halatı tahrik
 kasnağının öbür teğetinden daha dışarıda inmeliyse ( halat aralığı kasnak
@@ -647,12 +665,11 @@ kaydedilir ) + `.pdf` ( paftanın görüntüsü );  git'e girmezler:
 | Örnek | Ne |
 |---|---|
 | ÖRNEK PROJE - Makine Dairesiz | referans projenin kendisi:  dişlisiz, kuyu üstünde |
-| ÖRNEK PROJE - Makine Daireli Dişli | aynı asansör ( kuyu, kabin, raylar, halatlar, tamponlar ), makine kuyunun üstündeki odada, dişli ( referans projede yok ).  Değişen girdiler ve kaynakları `hesap_girdi.ASANSOR_MD`'de:  Gm 350 ( ofisin 12744-3 hesabı, A 160 ), verim ofisin dişli sabiti 0,50 → gereken 12,75 kW, motor bir üstteki IEC gücü 15 kW;  tabliye ve kaide hesap programının varsayılanları ( 1.200 · 1.100 · NPU 120 · NPU 140 · 1.400 ), oda 3.800 × 2.600.  Tst referans proje makinesinin 3.400'ü ( A 160'ın katalog değeri elde yok ) |
+| ÖRNEK PROJE - Makine Daireli Dişli | aynı asansör ( kuyu, kabin, raylar, halatlar, tamponlar ), makine kuyunun üstündeki odada, dişli ( referans projede yok ).  Değişen girdiler ve kaynakları `hesap_girdi.ASANSOR_MD`'de:  Gm 350 ( ofisin 12744-3 hesabı, A 160 ), verim ofisin dişli sabiti 0,50 → gereken 12,75 kW, motor bir üstteki IEC gücü 15 kW;  tabliye ve kaide hesap programının varsayılanları ( 1.200 · 1.100 · NPU 120 · NPU 140 ), kaidenin açıklığı çizimden ( L 1.400, X 360 ), oda 3.800 × 2.600.  Tst referans proje makinesinin 3.400'ü ( A 160'ın katalog değeri elde yok ) |
 
 Çizim girdisi hesap girdisinden kurulur ve betik tutarlılığı DENETLER:  makine
 tipi, yeri, tahrik kasnağı, yan yatak aynı;  makine dairesinde tabliye, kaide ve
-oda ölçüleri aynı;  kuyu üstünde yan yatak boyu ( L ) karşı ağırlık rayları
-arasına eşit;  çizimin halat geometrisinden çıkan sarım açısı hesabın α'sına
+oda ölçüleri aynı;  çizimin halat geometrisinden çıkan sarım açısı hesabın α'sına
 eşit;  tampon adetleri aynı.  Birisi tutmazsa proje üretilmez.
 
 Makine dairesiz tesiste makine şasesi raylara oturur ( referans proje "Motor Bedplate
@@ -700,7 +717,7 @@ verilir — yoksa desen paftada 0,1 mm'ye iner, çizgi düz görünürdü.
 1. Çizimin henüz modellemediği düzenler:  kabin raylara göre kaçık ( yc ),
    yana kaçık askı ( ys ) — ikisi de çizimde söylenir;  makine dairesizde 1:1
    ve arkadaki ağırlıkla 2:1 ( referans gelirse );  makine yükü "Bina yapısına"
-   iken şase.
+   iken duvardan duvara kiriş ( karar 3 — kullanıcı görsel gönderecek ).
 
 ( Köprü ve hesap paftalarıyla çizimlerin aynı şeritte birleşmesi yapıldı —
 yukarıda "Hesap ile çizimin bağlantısı".  RK ile çizimin ray ekseni:  kapi_arasi

@@ -1219,9 +1219,12 @@ class MakineDairesi(unittest.TestCase):
                 self.assertTrue(b[0] == m[2] or b[2] == m[0] or b[1] == m[3] or b[3] == m[1])
 
     def test_kucuk_odada_reddedilir(self):
-        #  Pano ön duvarda:  2.400'de her şey sığar, 2.200'de makinenin başında bakım alanı kalmaz
+        #  Pano ön duvarda:  2.400'de her şey sığar;  2.100 × 2.300'lük odada makinenin
+        #  başında bakım alanı kalmaz ( kaide makineyi sardığından ve alanlara yer
+        #  bırakan konumu seçtiğinden beri 2.600 genişlikte 2.200 derinlik yetiyor )
         self.assertEqual(CMD.dogrula(_ornek(makine_dairesi={"derinlik": 2400, "pano_duvar": "Ön"})), [])
-        h = CMD.dogrula(_ornek(makine_dairesi={"derinlik": 2200, "pano_duvar": "Ön"}))
+        h = CMD.dogrula(_ornek(makine_dairesi={"genislik": 2100, "x": 0, "derinlik": 2300,
+                                               "pano_duvar": "Ön"}))
         self.assertTrue(any("m.5.2.6.3.2.1" in x for x in h), h)
         h = CMD.dogrula(_ornek(makine_dairesi={"x": 600}))
         self.assertTrue(any("dışına taşıyor" in x for x in h), h)
@@ -1585,7 +1588,7 @@ class KuyuKesitleri(unittest.TestCase):
         self.assertTrue(any("makine_dairesi.yukseklik" in x for x in h(yukseklik=None)))
         #  Hesap programının makine dairesi girdileri eksik / geçersizse çizilmez
         for alan, v in (("tabliye_yuksekligi", None), ("tabliye_yuksekligi", 0), ("sase_yuksekligi", None),
-                        ("yan_yatak_boyu", -1), ("dikine_kiris", 125), ("dikine_kiris", "NPU 120")):
+                        ("dikine_kiris", 125), ("dikine_kiris", "NPU 120")):
             with self.subTest(alan=alan, deger=v):
                 self.assertTrue(any(f"makine_dairesi.{alan}" in x for x in h(**{alan: v})))
         self.assertEqual((CDN.ODA_YUKSEKLIK, CDN.DONEN_PARCA_USTU, CDN.ODA_KAPI_YUKSEKLIK),
@@ -1853,8 +1856,8 @@ class MakineVeSase(unittest.TestCase):
     def test_disli_makine_dairesinde_kaide(self):
         """Dişli makine hesap programının kaidesinde:  döşemeden şase yüksekliği
         ( 1.100 ), dört dikine kiriş ( NPU 120 ), iki yan yatak ( NPU 200 )
-        makinenin uzun ekseni boyunca, dikine kirişlerin eksenleri arası yan
-        yatak boyu ( 1.400 );  kasnak merkezi tabanın 195 üstünde;  motor ekseni
+        makinenin uzun ekseni boyunca, dikine kirişlerin eksenleri arası kaidenin
+        açıklığı ( hesabın L'si );  kasnak merkezi tabanın 195 üstünde;  motor ekseni
         kasnak eksenine dik;  makine odada, bağlantılara binmez."""
         g = _md(tip="Dişli")
         Y = CMD.yerlesim(g)
@@ -1870,9 +1873,9 @@ class MakineVeSase(unittest.TestCase):
             self.assertEqual((k[2] - k[0], k[3] - k[1]), (120, 55))
             self.assertEqual((k[4], k[5]), (zd + 20, M["sase"][5] - 200))
         xs = sorted({(k[0] + k[2]) / 2.0 for k in ayak})
-        self.assertEqual(xs[1] - xs[0], g["makine_dairesi"]["yan_yatak_boyu"])
+        self.assertEqual(xs[1] - xs[0], Y["kaide"]["L"])            # hesabın L'si
         for k in yan:
-            self.assertEqual((k[2] - k[0], k[3] - k[1], k[5] - k[4]), (1400 + 120, 75, 200))
+            self.assertEqual((k[2] - k[0], k[3] - k[1], k[5] - k[4]), (Y["kaide"]["L"] + 120, 75, 200))
             self.assertEqual(k[5], M["sase"][5])
         motor = next(p for p in M["makine"] if p.get("parca") == "motor")
         kasnak = next(p for p in M["makine"] if p["ad"] == "tahrik_kasnagi")
@@ -1889,31 +1892,26 @@ class MakineVeSase(unittest.TestCase):
     def test_kaide_hesabin_girdileriyle(self):
         """Makine dairesinde makine HER ZAMAN kaidededir ( hesap programı
         makine daireli tesiste kolonların burkulmasını denetler ):  dişlisizde de.
-        Ölçüler hesabın girdileridir:  şase yüksekliği 900, dikine NPU 100,
-        yan yatak NPU 160, boyu 1.000 → kaide 1.100 uzun, kasnak 900 + 149."""
+        Profiller ve yükseklik hesabın girdileridir:  şase yüksekliği 900,
+        dikine NPU 100, yan yatak NPU 160 → kasnak 900 + 149.  Boyu çizimden:
+        dikine kirişlerin eksenleri arası kaidenin açıklığı ( hesabın L'si )."""
         g = _ornek(makine={"yeri": "Makine dairesi", "yan_yatak": 160},
-                   makine_dairesi={"sase_yuksekligi": 900, "dikine_kiris": 100, "yan_yatak_boyu": 1000})
+                   makine_dairesi={"sase_yuksekligi": 900, "dikine_kiris": 100})
         self.assertEqual(CKK.dogrula(g), [])
         Y = CMD.yerlesim(g)
         M = CKK.yerlesim(g)["M"]
-        zd = M["oda_doseme"]
+        zd, L = M["oda_doseme"], Y["kaide"]["L"]
         self.assertFalse(Y["kaide"]["uzun_x"])                         # dişlisiz:  kasnak ekseni y
         self.assertEqual((M["sase"][4], M["sase"][5]), (zd, zd + 900))
         self.assertEqual(M["kasnak"][4] - M["sase"][5], 149)
         ayak = self._kutular(M["sase_parcalari"], "dikine_kiris")
         self.assertEqual({(k[2] - k[0], k[3] - k[1]) for k in ayak}, {(50, 100)})
         ys = sorted({(k[1] + k[3]) / 2.0 for k in ayak})
-        self.assertEqual(ys[1] - ys[0], 1000)
+        self.assertEqual(ys[1] - ys[0], L)
         yan = self._kutular(M["sase_parcalari"], "yan_yatak")
-        self.assertEqual({(k[2] - k[0], k[3] - k[1], k[5] - k[4]) for k in yan}, {(65, 1100, 160)})
+        self.assertEqual({(k[2] - k[0], k[3] - k[1], k[5] - k[4]) for k in yan}, {(65, L + 100, 160)})
         c = Y["cerceve"]
-        self.assertEqual(c[3] - c[1], 1100)
-        #  Makine kaideye sığmazsa çizilmez:  dişli makine 1.320 uzun
-        h = CKK.dogrula(_ornek(makine={"yeri": "Makine dairesi", "tip": "Dişli"},
-                                makine_dairesi={"yan_yatak_boyu": 1100}))
-        self.assertTrue(any("kaideye sığmıyor" in x and "yan_yatak_boyu" in x for x in h), h)
-        self.assertEqual(CKK.dogrula(_ornek(makine={"yeri": "Makine dairesi", "tip": "Dişli"},
-                                             makine_dairesi={"yan_yatak_boyu": 1200})), [])
+        self.assertEqual(c[3] - c[1], L + 100)
         self.assertTrue(any("makine.yan_yatak" in x for x in CKK.dogrula(_ornek(makine={"yan_yatak": 210}))))
 
     def test_sarim_acisi_liftdesigner(self):
@@ -1957,36 +1955,48 @@ class MakineVeSase(unittest.TestCase):
                             for h in CKK.dogrula(_md(tip="Dişli", tahrik_kasnak_capi=200))))
         self.assertTrue(any("içeride" in h for h in CKK.dogrula(_md(tahrik_kasnak_capi=280))))
 
-    def test_kaide_ayaklari_deliklere_basmaz(self):
-        """Ayak plakası bir döşeme deliğine basan kaide önce uzun ekseninde
-        kayar ( yan yatak boyu 700:  ortada ayak ağırlık bağlantısı deliğine
-        basıyordu, 25 kayınca basmaz ), kayacak yer yoksa enine büyür ( boy
-        294:  pay 100 → 200 )."""
+    def test_kaide_halatlara_ortali_makineyi_sarar(self):
+        """Kaide ( kullanıcı kararı ):  makinenin ve saptırma kasnağının izini
+        her yana en az payı kadar sarar;  halatların ortası kaidenin ortasıdır
+        ( Tavaslıoğlu:  "halat deliklerini ortalamalıdır" ) — enine eksende her
+        zaman ( iki yan yatağa eşit yük ), uzun eksende oda yer verirse ( dişli
+        makinede motor kasnaktan uzağa uzanır ).  Ayak plakaları deliklere
+        basmaz;  dikine kirişlerin eksenleri arası hesabın L'sidir."""
         S = CS_.sabitler()
-        for boy, kayar in ((700, True), (294, False)):
-            g = _ornek(makine={"yeri": "Makine dairesi", "tahrik_kasnak_capi": 200, "saptirma_kasnak_capi": 294},
-                       makine_dairesi={"yan_yatak_boyu": boy})
-            with self.subTest(yan_yatak_boyu=boy):
+        pay = S["md_cerceve_pay"]
+        for ad, g, ortali in (
+                ("dişlisiz 2:1", _ornek(makine={"yeri": "Makine dairesi"}), True),
+                ("dişlisiz saptırmalı", _md(tahrik_kasnak_capi=200, saptirma_kasnak_capi=294), True),
+                ("dişli", _md(tip="Dişli"), False),
+                ("dişli saptırmalı", _md(tip="Dişli", tahrik_kasnak_capi=200, saptirma_kasnak_capi=294),
+                 False)):
+            with self.subTest(ad):
                 self.assertEqual(CKK.dogrula(g), [])
                 Y = CMD.yerlesim(g)
-                K, c = Y["kaide"], Y["cerceve"]
+                K, c, sp = Y["kaide"], Y["cerceve"], Y["saptirma"]
+                iz = Y["makine_izi"] if not sp else (
+                    min(Y["makine_izi"][0], sp["kutu"][0]), min(Y["makine_izi"][1], sp["kutu"][1]),
+                    max(Y["makine_izi"][2], sp["kutu"][2]), max(Y["makine_izi"][3], sp["kutu"][3]))
+                #  Makineyi sarar
+                self.assertTrue(c[0] <= iz[0] - pay + 1e-6 and c[1] <= iz[1] - pay + 1e-6
+                                and c[2] >= iz[2] + pay - 1e-6 and c[3] >= iz[3] + pay - 1e-6, (c, iz))
+                #  Halatlara ortalı ( enine hep )
+                d = dict(Y["delikler"])
+                hc = [((d["KABİN"][i] + d["KABİN"][i + 2]) / 2.0
+                       + (d["AĞIRLIK"][i] + d["AĞIRLIK"][i + 2]) / 2.0) / 2.0 for i in (0, 1)]
+                kc = [(c[0] + c[2]) / 2.0, (c[1] + c[3]) / 2.0]
+                enine = 1 if K["uzun_x"] else 0
+                self.assertAlmostEqual(kc[enine], hc[enine])
+                self.assertEqual(K["ortali"], ortali)
+                if ortali:
+                    self.assertAlmostEqual(kc[1 - enine], hc[1 - enine])
+                #  Mesnet aralığı ve ayak plakaları
+                ayaklar = CMK_.ayaklar(c, K["E"], K["F"], K["uzun_x"])
+                us = sorted({a_[1 - enine] for a_ in ayaklar})
+                self.assertAlmostEqual(us[1] - us[0], K["L"])
                 a = CMK_.ayak_plakasi(K["E"], S)
-                plakalar = [(x - a / 2.0, y - a / 2.0, x + a / 2.0, y + a / 2.0)
-                            for x, y in CMK_.ayaklar(c, K["E"], K["F"], K["uzun_x"])]
-                self.assertFalse([d for p in plakalar for _, d in Y["delikler"] if CKD._ortusur(p, d)])
-                iz = (min(Y["makine_izi"][0], Y["saptirma"]["kutu"][0]),
-                      min(Y["makine_izi"][1], Y["saptirma"]["kutu"][1]),
-                      max(Y["makine_izi"][2], Y["saptirma"]["kutu"][2]),
-                      max(Y["makine_izi"][3], Y["saptirma"]["kutu"][3]))
-                self.assertFalse(K["uzun_x"])
-                self.assertEqual(iz[0] - c[0] > S["md_cerceve_pay"], not kayar)
-                self.assertEqual(abs((c[1] + c[3]) - (iz[1] + iz[3])) > 1e-6, kayar)
-                #  Ortalı ve paysız yer gerçekten deliğe basıyordu
-                o, b = (iz[1] + iz[3]) / 2.0, boy + K["E"]["h"]
-                c0 = (iz[0] - 100, o - b / 2.0, iz[2] + 100, o + b / 2.0)
-                p0 = [(x - a / 2.0, y - a / 2.0, x + a / 2.0, y + a / 2.0)
-                      for x, y in CMK_.ayaklar(c0, K["E"], K["F"], False)]
-                self.assertTrue([d for p in p0 for _, d in Y["delikler"] if CKD._ortusur(p, d)])
+                plakalar = [(x - a / 2.0, y - a / 2.0, x + a / 2.0, y + a / 2.0) for x, y in ayaklar]
+                self.assertFalse([d_ for p in plakalar for _, d_ in Y["delikler"] if CKD._ortusur(p, d_)])
 
     def test_saptirma_kasnagi_baglantinin_ustunde(self):
         """Saptırma kasnağı döşemenin 400 üstünde;  döşemedeki bir bağlantının

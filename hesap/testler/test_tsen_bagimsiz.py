@@ -674,24 +674,30 @@ class PveMRLDenetimi(unittest.TestCase):
         mrl = M.hesapla({"mk_yok": True, "makine_raya_biniyor": T.MAKINE_YUK_YOLU_RAY})
         self.assertGreater(mrl["ara"]["kabin_ray.MY"], md["ara"]["kabin_ray.MY"])
 
-    def test_yok_sayilan_secim_sessiz_kalmaz(self):
+    def test_gizli_secim_uyari_uretmez(self):
+        """Karar 3:  varsayılan "Kılavuz raylara" ve alan makine daireli formda
+        gizli ( kullanıcı seçemez ) — eskiden basılan "seçim YOK SAYILDI"
+        uyarısı her makine daireli projede anlamsız çıkardı."""
         from engine.uygulama import mukavemet_girdi as MG
         u = MG.uyarilar(MG.tamamla({"mk_yok": False, "mk_uzunluk": 4000,
                                     "mk_genislik": 3000,
                                     "makine_raya_biniyor": T.MAKINE_YUK_YOLU_RAY}))
-        self.assertTrue(any("YOK SAYILDI" in x for x in u), f"→ {u}")
+        self.assertFalse(any("YOK SAYILDI" in x for x in u), f"→ {u}")
 
     def test_bina_yapisina_giden_yuk_bildirilir(self):
         """m.5.2.1.8.1 · Ek E:  yapı makinenin yükünü taşıyacak;  hesabı
         inşaat projesindedir ama SAYIYI pafta vermelidir."""
         from engine.uygulama import mukavemet_girdi as MG
-        bina = MG.uyarilar(MG.tamamla({"mk_yok": True}))
+        _bina = T.MAKINE_YUK_YOLU[0]
+        bina = MG.uyarilar(MG.tamamla({"mk_yok": True, "makine_raya_biniyor": _bina}))
         ray = MG.uyarilar(MG.tamamla({"mk_yok": True,
                                       "makine_raya_biniyor": T.MAKINE_YUK_YOLU_RAY}))
         self.assertTrue(any("BİNA YAPISINA" in u for u in bina), f"→ {bina}")
         self.assertFalse(any("BİNA YAPISINA" in u for u in ray))
+        #  Varsayılan raylara ( karar 3 )
+        self.assertEqual(MG.varsayilanlar()["makine_raya_biniyor"], T.MAKINE_YUK_YOLU_RAY)
         #  Sayı da verilmeli — inşaat mühendisine gidecek değer
-        s = M.hesapla({"mk_yok": True})
+        s = M.hesapla({"mk_yok": True, "makine_raya_biniyor": _bina})
         Gm, Tst = s["girdi"]["makine_agirligi"], s["ozet"]["Tst_hesap"]
         b = next(x for x in s["bolumler"] if x["kimlik"] == "kabin_raylari")
         satir = next(a for a in b["adimlar"]

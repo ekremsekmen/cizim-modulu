@@ -24,12 +24,9 @@ IKI, YOK, INCELE, TEK = "iki", "yok", "incele", "tek"
 
 #  anahtar → ( durum , not , karar no )
 SORUNLAR = {
-    "yan_yatak_boyu": (IKI, "Makine dairesizde raylara oturan kirişin açıklığı ağırlık rayları "
-                            "arasıdır ( DBGW );  yan yatak boyu ondan ayrıysa çizim uyuşmazlığı "
-                            "söyler, hesap makinenin yerini ofis kabulüyle ( L − 335 ) alır.  "
-                            "\"Bina yapısına\" oturan kiriş henüz çizilmiyor.", 3),
-    "makine_raya_biniyor": (YOK, "Çizim makine kirişlerini her zaman raylara oturtuyor; "
-                                 "\"Bina yapısına\" ( duvardan duvara kiriş ) çizilmiyor.", 3),
+    "makine_raya_biniyor": (YOK, "Varsayılan \"Kılavuz raylara\";  \"Bina yapısına\" ( duvardan "
+                                 "duvara kiriş ) henüz çizilmiyor — çizim durur, bölüm 2 HESAP "
+                                 "EKSİK.", 3),
     "paten_tipi": (YOK, "Çizim yalnız kaymalı patenin ölçüsünü biliyor ( 140 mm ).", 2),
     "agirlik_paten_tipi": (YOK, "Çizim yalnız kaymalı patenin ölçüsünü biliyor.", 2),
     "paten_balata_boyu": (INCELE, "Hesaptaki balata ile çizimdeki paten boyu ( 100 mm ) aynı parça mı.",

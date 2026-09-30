@@ -340,7 +340,7 @@ def calistir():
             ("MRL · tabliye beton yüksekliği '1.200' ( gizli )",
              {"tabliye_yuksekligi": "1.200"}, {"mk_yok": True}, True),
             #  Makine kirişi MRL'de de sorulur ve hesaplanır:  görünen alan.
-            ("MRL · yan yatak boyu '1.400' ( görünür )", {"yan_yatak_boyu": "1.400"},
+            ("MRL · yan yatak ölçüsü 'x' ( görünür )", {"yan_yatak": "x"},
              {"mk_yok": True}, False),
             ("daireli · tabliye beton yüksekliği '1.200' ( görünür )",
              {"tabliye_yuksekligi": "1.200"}, _DAIRELI, False),
@@ -348,7 +348,10 @@ def calistir():
              {"makine_raya_biniyor": "Kılavuz raylara"}, _DAIRELI, True),
             ("daireli · makine dairesi ölçüsü '4.000' ( görünür )", {},
              dict(_DAIRELI, mk_uzunluk="4.000"), False),
-            ("daireli · yan yatak boyu '1.400' ( görünür )", {"yan_yatak_boyu": "1.400"}, _DAIRELI, False)):
+            ("daireli · yan yatak ölçüsü 'x' ( görünür )", {"yan_yatak": "x"}, _DAIRELI, False),
+            #  Kirişin açıklığı formda yok ( çizimden ):  eski projede yazılı olsa da okunmaz
+            ("daireli · yan yatak boyu '1.400' ( formda yok )", {"yan_yatak_boyu": "1.400"},
+             _DAIRELI, True)):
         s = _uyg(asansor=asansor, pg=pg)
         r.kontrol(f"uygulama · {ad} → {'hesaplanır' if gecerli else 'reddedilir'}",
                   bool(s.get("aktif")) is gecerli, f"→ {s.get('hata')}")

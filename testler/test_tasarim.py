@@ -34,7 +34,9 @@ FORMDA_YOK = {"saptirma_kasnak_capi", "saptirma_kasnak_min_capi", "kabin_tampon_
               "kabin_merkezi_x", "esik_x", "kabin_ray_boyu", "agirlik_ray_boyu",
               "aski_halat_boyu", "reg_halat_boyu", "kasnak_tek_yon", "kasnak_ters_yon",
               "kasnak_kabin_adedi", "kasnak_agirlik_adedi", "saptirma_agirlik_capi",
-              "makine_yuku_x"}
+              "makine_yuku_x",
+              #  4. adım:  kirişin açıklığı çizimden ( kaide halatlara ortalı, makineyi sarar )
+              "yan_yatak_boyu"}
 
 
 def _form():
@@ -126,7 +128,9 @@ class Sozluk(unittest.TestCase):
         for k in ("kabin_ray_sayisi", "agirlik_ray_sayisi", "kabin_kaciklik", "aski_kaciklik_y",
                   "saptirma_kasnak_capi", "kabin_tampon_baba", "aski_orani",
                   #  3. adım:  Nps · Npr çizilen kasnaklardan
-                  "kasnak_tek_yon", "kasnak_ters_yon"):
+                  "kasnak_tek_yon", "kasnak_ters_yon",
+                  #  4. adım:  kirişin açıklığı çizimden
+                  "yan_yatak_boyu"):
             self.assertNotIn(k, TZ.SORUNLAR)
         #  3. adım:  hesabın geometri tahminleri çizimden geliyor;  yalnız
         #  çizimde olmayan revizyon kutusu kaldı ( karar 10 ).
