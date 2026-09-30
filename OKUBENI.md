@@ -127,11 +127,30 @@ kurulamıyorsa bölüm 11 **HESAP EKSİK** der ve sebebini yazar.
   bağlantının tam üstündedir, saptırma kasnağı halatı karşı ağırlığın eksenine
   taşır.  Kuyu tavanında halat bağlantısı yoktur.  Bölüm 11'de bağlantının
   tepesi ile kuyu tavanı ayrı satırdır.
+- **Arkadaki ağırlıkla 2:1** ( `cizim/arka_aski.py`;  kullanıcı kararı 30 Eyl:
+  "çapraz, iki taraf dengeli";  ofisin 12495-18'i — 1275'te kasnaklar düz,
+  ağırlık kasnağı ağırlıktan kaçık ):  kabin kasnakları KABİN ÜSTÜNDE, çapraz
+  bir düşey düzlemde.  Karşı ağırlık kasnağı ağırlığın ortasında, düzlemi
+  genişlik boyunca;  tahrik kasnağının düzlemi derinlik boyunca, inişleri
+  ağırlık kasnağının teğetinde ( W ) ve D1 önünde ( P );  kabin bağlantısı
+  ( H ) P'nin kabin merkezine göre aynası — askı kabin merkezinde ( hesabın
+  xs'i kabin merkezi – ray ekseni ).  Kasnakların dış teğetleri P ve H'de,
+  aralıkları geometriden.  Ağırlık – duvar ölçüsü boşsa ağırlık kabine göre
+  konur:  P kabin tavanının arka kenarından korkuluk payı ( 100 ) içeride,
+  ağırlık kabine en az 50 mm.  Makine dairesizde makine DUVARDAN DUVARA iki
+  kirişe oturur ( karar 3'ün platformu — yük bina yapısına ):  kirişler
+  derinlik boyunca ön ve arka duvarın iç yüzleri arasında, uçlarda bağlantı
+  levhası, tahrik kasnağının iki yanında simetrik ( her birine F / 2;
+  referans projede kasnak kirişlerin dışında taşkındı ) — hesabın L'si kuyu
+  derinliği, X tahrik kasnağının merkezi.  Makine ve kirişler kabinin
+  üstündedir:  daha yüksek son kat ister ( 1.100 × 1.100 kabinde 4.700 ).
+  Standart kabinlerde kuyu kabinden 700 derin olunca çizilir ( 450'de ağırlık
+  kabinin arkasına sığmaz ).
 - **Reddedilenler** ( `kuyu_ustu.duzen_hatalari`;  kesitteki öteki hatalardan
   önce söylenir ):  makine dairesizde 1:1 — halatın tahrik kasnağından kabinin
   ortasına ve ağırlığa inmesi için kuyu tepesinde saptırma düzeni gerekir,
-  referansı yok;  arkadaki ağırlıkla 2:1 — kabin kasnaklarının halat çizgisi
-  ile ağırlık kasnağı aynı düzlemde değildir, referansı yok.
+  referansı yok;  arkadaki ağırlıkla kabin altı 2:1 — iki referans da kabin
+  üstü.
 - Ağırlık arkadayken halat düzlemi y yönündedir:  makine, saptırma ve plaka
   delikleri aynı fonksiyonlarla çizilir, eksenler takas edilir
   ( `kuyu_ustu.Duzlem`, `makine.takas` ).
@@ -241,6 +260,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `tasarim/gorunum.py` | Şemadan türetilenler:  motorların alan sözleşmeleri, form, yerleşime göre gizlenenler, çizimden gelenler |
 | `tasarim/sozluk.py` | Sayı sözlüğü:  her sayının kaynağı, açık sorunlar ve hesabın içindeki geometri tahminleri |
 | `cizim/kopru.py` | **Hesap → çizim köprüsü**:  çizim girdisinin kurulması, çizimden türeyen hesap girdileri, tutarlılık denetimi |
+| `cizim/arka_aski.py` | **Arkadaki ağırlıkla 2:1**:  kabin üstünde çapraz kasnakların, tahrik ve ağırlık kasnağı inişlerinin ve bağlantıların plandaki geometrisi ( tek yerde ) |
 | `cizim/olculer.py` | **Yerleşimin ölçü listesi**:  hesabın çizimden aldığı geometri ( xc · xi · ray ve halat boyları · kasnak sayıları · makinenin kirişteki yeri ) |
 | `cizim/girdi.py` | Çizim girdisinin **sözleşmesi**, doğrulaması ve deneme ölçüleri |
 | `cizim/sabitler.py` | Ofisin ürün ölçüleri ( konsol, paten, kasa, pano … ) |
@@ -259,7 +279,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( girdiler oynatılarak ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/` | 285 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi ) |
+| `testler/` | 296 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1 ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 
@@ -715,9 +735,9 @@ verilir — yoksa desen paftada 0,1 mm'ye iner, çizgi düz görünürdü.
 ## Sırada ne var
 
 1. Çizimin henüz modellemediği düzenler:  kabin raylara göre kaçık ( yc ),
-   yana kaçık askı ( ys ) — ikisi de çizimde söylenir;  makine dairesizde 1:1
-   ve arkadaki ağırlıkla 2:1 ( referans gelirse );  makine yükü "Bina yapısına"
-   iken duvardan duvara kiriş ( karar 3 — kullanıcı görsel gönderecek ).
+   yana kaçık askı ( ys ) — ikisi de çizimde söylenir;  makine dairesizde 1:1;
+   yandaki ağırlıkta makine yükü "Bina yapısına" iken duvardan duvara kiriş
+   ( karar 3 — arkadaki ağırlıkta çiziliyor ).
 
 ( Köprü ve hesap paftalarıyla çizimlerin aynı şeritte birleşmesi yapıldı —
 yukarıda "Hesap ile çizimin bağlantısı".  RK ile çizimin ray ekseni:  kapi_arasi

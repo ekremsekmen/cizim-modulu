@@ -248,11 +248,17 @@ def yerlesim(g, cizim_sabitleri=None):
         delikler = [("KABİN", CMK.halat_deligi(*M["kabin_nokta"], n, dh, p, dz.eksen)),
                     ("AĞIRLIK", CMK.halat_deligi(*agirlik_dusus, n, dh, p, dz.eksen))]
     else:
+        #  2:1:  halat demetleri kasnak eksenleri boyunca ( tahrik kasnağınınki
+        #  düzleme dik;  ağırlık kasnağınınki yandaki ağırlıkta x, arkadakinde y;
+        #  arkadaki ağırlıkta kabin bağlantısı çapraz düzlemin ucunda — arka_aski )
+        kin = M.get("kabin_inis") or dz.p(M["yakin"])
+        kbn = M.get("kabin_baglanti_nokta") or dz.p(M["uzak"])
         delikler = [
-            ("KABİN", CMK.halat_deligi(M["yakin"], y0, n, dh, p)),
-            ("AĞIRLIK", CMK.halat_deligi(agirlik_dusus[0], y0, n, dh, p)),
-            ("AĞIRLIK BAĞLANTISI", CMK.halat_deligi(M["ag_teget2"][0], M["ag_teget2"][1], n, dh, p, "x")),
-            ("KABİN BAĞLANTISI", CMK.halat_deligi(M["uzak"], y0, n, dh, p)),
+            ("KABİN", CMK.halat_deligi(*kin, n, dh, p, dz.eksen)),
+            ("AĞIRLIK", CMK.halat_deligi(*agirlik_dusus, n, dh, p, dz.eksen)),
+            ("AĞIRLIK BAĞLANTISI", CMK.halat_deligi(M["ag_teget2"][0], M["ag_teget2"][1], n, dh, p,
+                                                    M.get("ag_baglanti_eksen", "x"))),
+            ("KABİN BAĞLANTISI", CMK.halat_deligi(*kbn, n, dh, p, M.get("kabin_baglanti_eksen", dz.eksen))),
         ]
     #  Regülatör halatı ( tek halat ) da aynı kuralla:  eskiden LiftDesigner'ın
     #  200 × 200'ü kullanılıyordu — ø240 regülatörde iki delik arasında 40 mm,

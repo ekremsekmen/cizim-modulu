@@ -87,6 +87,17 @@ def _mrl_kiris_yuku(g, S, KU):
     return (round(X, 3) if 0.0 < X < b - a else None), round(b - a, 3)
 
 
+def _duvar_kiris_yuku(KU):
+    """Arkadaki ağırlıkta makine dairesizde makine duvardan duvara iki kirişe
+    oturur ( kuyu_ustu._arka ):  mesnetler ön ve arka duvarın iç yüzü ( uçlarda
+    bağlantı levhası — "duvarlara monteli" ), açıklık kuyu derinliği;  yük
+    tahrik kasnağının merkezinde ( iki kirişin ortasında:  her birine F / 2 )."""
+    sase, ks = KU["sase"], KU["kasnak"]
+    L = sase[3] - sase[1]
+    X = (ks[1] + ks[3]) / 2.0 - sase[1]
+    return (round(X, 3) if 0.0 < X < L else None), round(L, 3)
+
+
 def _md_kiris_yuku(g, S, MD):
     """Makine dairesinde makine kaidenin yan yataklarındadır:  mesnetler
     dikine kirişlerin eksenleri ( uçlardan E.h / 2 içeride — mesnet aralığı yan
@@ -148,7 +159,9 @@ def hesap_olculeri(g):
     if "raylar" not in M or "kasnak" not in M:
         return out
     if mrl and "KU" in M:
-        out.update(_kiris(*_mrl_kiris_yuku(g, S, M["KU"])))
+        KU = M["KU"]
+        out.update(_kiris(*(_duvar_kiris_yuku(KU) if KU.get("duvardan_duvara")
+                            else _mrl_kiris_yuku(g, S, KU))))
 
     for tur, anahtar in (("kabin", "kabin_ray_boyu"), ("agirlik", "agirlik_ray_boyu")):
         boy = [r["ust"] - r["alt"] for r in M["raylar"] if r["tur"] == tur]

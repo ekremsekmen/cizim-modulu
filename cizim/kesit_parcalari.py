@@ -78,6 +78,19 @@ def kasnak(e, B, kutu, z, cap, duzlem, ad):
         B.kutu(e, "KASNAK", kutu, z - cap / 2.0, z + cap / 2.0, ad)
 
 
+def kasnak_capraz(e, B, merkez, u, R, z, ad, adim=24):
+    """Düşey düzlemi planda u doğrultusunda olan kasnak ( çapraz — arka_aski ):
+    bakışa göre elips ( jant çemberinin izdüşümü, çizgi parçalarıyla )."""
+    import math
+    pts = []
+    for i in range(adim + 1):
+        t = 2.0 * math.pi * i / adim
+        x, y = merkez[0] + R * math.cos(t) * u[0], merkez[1] + R * math.cos(t) * u[1]
+        pts.append((B.u(x, y), z + R * math.sin(t)))
+    for a, b in zip(pts, pts[1:]):
+        e.append(CGE._ad(CGE._cizgi("KASNAK", a[0], a[1], b[0], b[1]), ad))
+
+
 def ray(e, B, r, S, ad):
     """Ray gövdesi tabandan üst ucuna, üstünde ek lamaları."""
     B.kutu(e, "RAY", r["kutu"], r["alt"], r["ust"], ad)
@@ -225,6 +238,12 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     kt = CDN.kabin_kotlari(dy, S, kabin_z, g.get("aski"))
     e += CMK.gorunus(CB.kasnak_tasiyicilari(g, S, kt["kasnak_merkez"]),
                      B, CGE._dik, CGE._daire, CGE._cizgi)
+    capraz = (M.get("KU") or {}).get("capraz")
+    if capraz:
+        #  Arkadaki ağırlıkla 2:1:  kabin üstündeki çapraz kasnaklar ( elips )
+        for m, kutu in zip(capraz["kasnaklar"], capraz["kutular"]):
+            if B.gorunur(kutu):
+                kasnak_capraz(e, B, m, capraz["u"], capraz["Rk"], kt["kasnak_merkez"], "kabin_kasnagi")
     if "sase" not in M:
         return AK, kt
     #  Kuyu tepesinde ya da makine dairesinde:  makine şasesi, bağlantılar,
@@ -260,6 +279,10 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     zt = M["kasnak"][4]
     if KU.get("dogrudan"):
         _halatlar_1_1(e, B, g, M, KU, kt, AK, zt)
+        _regulator_halati(e, B, M, gr, rk, rgx)
+        return AK, kt
+    if KU.get("capraz"):
+        _halatlar_capraz(e, B, M, KU, kt, AK, zt)
         _regulator_halati(e, B, M, gr, rk, rgx)
         return AK, kt
     (xl, y0), (xr, _) = KU["halatlar"]
@@ -300,6 +323,33 @@ def _regulator_halati(e, B, M, gr, rk, rgx):
         if B.gorunur((rgx, yy, rgx, yy)):
             e.append(CGE._ad(CGE._cizgi("HALAT", B.u(rgx, yy), rk[4], B.u(rgx, yy), gr["merkez"]),
                              "regulator_halati"))
+
+
+def _halatlar_capraz(e, B, M, KU, kt, AK, zt):
+    """Arkadaki ağırlıkla 2:1 ( arka_aski ):  kabin bağlantısından ( H ) ön
+    kasnağa, iki kasnağın altından ( jantların alt noktası ) arka kasnağa,
+    oradan ( P ) tahrik kasnağına;  tahrik kasnağından ( W ) ağırlık kasnağına,
+    öbür teğetinden ( Hw ) ağırlığın bağlantısına."""
+    A = KU["capraz"]
+    zk, Rk = kt["kasnak_merkez"], A["Rk"]
+    zkb, zab = M["kabin_baglanti"][4], M["agirlik_baglanti"][4]
+    za = AK["kasnak_merkez"]
+    (px, py), (hx, hy) = A["P"], A["H"]
+    (wx, wy), (bx, by) = A["W"], A["Hw"]
+    if M.get("agirlik_yolu"):
+        ad_, ay_, az_ = M["agirlik_dusus"]
+        agirlik = list(M["agirlik_yolu"]) + [((ad_, ay_, az_), (wx, wy, za))]
+    else:
+        agirlik = [((wx, wy, zt), (wx, wy, za))]
+
+    def gorunur(x, y):
+        return B.gorunur((x - 1.0, y - 1.0, x + 1.0, y + 1.0))
+    (ax_, ay2), (ox_, oy_) = A["kasnaklar"]
+    for (x0_, y0_, z0), (x1_, y1_, z1) in [((px, py, zk), (px, py, zt)),
+                                            ((hx, hy, zk), (hx, hy, zkb))] + agirlik + [
+            ((bx, by, za), (bx, by, zab)), ((ax_, ay2, zk - Rk), (ox_, oy_, zk - Rk))]:
+        if gorunur(x0_, y0_) or gorunur(x1_, y1_):
+            e.append(CGE._ad(CGE._cizgi("HALAT", B.u(x0_, y0_), z0, B.u(x1_, y1_), z1), "aski_halati"))
 
 
 def _halatlar_1_1(e, B, g, M, KU, kt, AK, zt):

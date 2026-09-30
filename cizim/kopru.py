@@ -408,6 +408,17 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         return None, hata
     if dusey_ara:
         _kasnak_arasi_sec(g, eski_kural)
+    from cizim import arka_aski as CAA
+    if CAA.arkada_iki_bir(g):
+        #  Arkadaki ağırlıkla 2:1:  ağırlık – duvar ölçüsü boşsa ağırlık kabine
+        #  göre konur ( tahrik kasnağının kabin inişi kabin tavanının arka
+        #  kenarında );  kabin kasnaklarının aralığı çapraz geometriden
+        #  ( girilmişse uyuşmazlık denetimi karşılaştırır ).
+        if _bos(A.get("agirlik_ray_duvar")) and _sayi(D1):
+            g["agirlik"]["ray_duvar"] = round(CAA.agirlik_ray_duvari(g, S), 1)
+        A_ = CAA.geometri(g, S)
+        if "aralik" in A_:
+            g["aski"]["kasnak_arasi"] = round(A_["aralik"], 1)
     if reg_bos:
         _regulator_yeri(g)
     return g, []
@@ -495,7 +506,10 @@ def _aski_x(A):
             200, ray ekseninin 250 önünde ).
       1:1   halatlar kabin şasesinin üst kirişinin ortasındaki bağlantıda biter;
             kiriş ray ekseni üstündedir:  0 ( LiftDesigner 12744-3 ).
-    Arkadaki ağırlıkla 2:1'de ya da ölçüsü eksikse None.
+      2:1   ağırlık arkadayken ( kabin üstünde çapraz kasnaklar — arka_aski ):
+            iki düşey halatın ortası kabinin ( pano dahil ) derinlik ortasıdır
+            ( kullanıcı kararı:  askı kabin merkezinde ).
+    Ölçüsü eksikse None.
 
     YALNIZ KENDİ ÖLÇÜLERİNDEN hesaplanır:  başka bir girdideki hata ( kuyu
     dibi zinciri, kuyu derinliği … ) türetmeyi durdurmaz — o hata kendi
@@ -503,6 +517,16 @@ def _aski_x(A):
     oran = A.get("aski_orani")
     if oran == 1:
         return 0.0
+    if oran == 2 and A.get("agirlik_yeri") == "Arka" \
+            and _varsayilan(A, "kapi_montaji") in CG.KAPI_MONTAJLARI:
+        v = [A.get("ray_kapi_arasi"), A.get("kabin_derinligi"), _varsayilan(A, "esik_arasi")]
+        if not all(_sayi(x) for x in v):
+            return None
+        RK, kb_d, esik = v
+        S = CS.sabitler(cizim_sabitleri(A))
+        hat = CG.kapi_bolgesi({"kapi": {"montaj": _varsayilan(A, "kapi_montaji")},
+                               "kabin": {"on_pay": 0}}, S)["hat"]
+        return hat + esik + S["kabin_esik_derinlik"] + (kb_d + S["kabin_pano_arka"]) / 2.0 - (hat + RK)
     if (oran != 2 or A.get("agirlik_yeri") not in ("Sağ", "Sol")
             or _varsayilan(A, "kapi_montaji") not in CG.KAPI_MONTAJLARI):
         return None
@@ -682,10 +706,26 @@ def _uyusmazliklar(g, A):
     #  ( kuyu genişliğince platform ) henüz çizilmiyor — çizim durur, hesabın
     #  kiriş açıklığı çizimden gelmez ( bölüm 2 HESAP EKSİK ).  Yan yatak boyu
     #  girdi değildir:  raylara oturan kirişte DBGW, kaidede kaidenin açıklığı.
-    if g["makine"]["yeri"] == "Kuyu üstü" and A.get("makine_raya_biniyor") == "Bina yapısına":
+    arka = g["agirlik"]["yeri"] == "Arka"
+    if g["makine"]["yeri"] == "Kuyu üstü" and A.get("makine_raya_biniyor") == "Bina yapısına" \
+            and not arka:
         liste.append(("Makine kirişleri bina yapısına ( duvardan duvara ) oturuyor:  bu kiriş henüz "
                       "çizilmiyor ( karar 3 ) — çizim kirişleri karşı ağırlık raylarına oturtur; "
                       "'Makine yükünün yolu' için 'Kılavuz raylara' seçin.", None))
+    #  ARKADAKİ AĞIRLIKTA makine dairesizde makine duvardan duvara iki kirişe
+    #  oturur ( kullanıcı kararı — 12495-18 ):  yük bina yapısına gider.
+    if g["makine"]["yeri"] == "Kuyu üstü" and arka and A.get("makine_raya_biniyor") == "Kılavuz raylara":
+        liste.append(("Karşı ağırlık arkadayken makine dairesizde makine duvardan duvara iki kirişe "
+                      "oturur ( kuyu derinliğince ) — yük bina yapısına gider:  'Makine yükünün "
+                      "yolu' için 'Bina yapısına' seçin.", {"makine_raya_biniyor": "Bina yapısına"}))
+    #  Arkadaki ağırlıkla 2:1:  kabin kasnaklarının aralığı çapraz geometriden
+    from cizim import arka_aski as CAA
+    if CAA.arkada_iki_bir(g) and _sayi(A.get("kabin_kasnak_arasi")) \
+            and abs(A["kabin_kasnak_arasi"] - g["aski"]["kasnak_arasi"]) >= 1.0:
+        liste.append((f"Arkadaki ağırlıkla 2:1:  kabin kasnaklarının aralığı çapraz düzlemden "
+                      f"{g['aski']['kasnak_arasi']:g} mm ( askı kabin merkezinde ), girilen "
+                      f"{A['kabin_kasnak_arasi']:g} — kutuyu boş bırakın.",
+                      {"kabin_kasnak_arasi": g["aski"]["kasnak_arasi"]}))
     return liste
 
 

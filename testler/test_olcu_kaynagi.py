@@ -51,6 +51,15 @@ DUZENLER = {
     "makine dairesinde 1:1": lambda: _yeni_duzen(True, aski_orani=1),
     "makine dairesinde 1:1, ağırlık arkada": lambda: _yeni_duzen(
         True, aski_orani=1, agirlik_yeri="Arka", kuyu_derinligi=2250, kabin_yana_kaciklik=0),
+    #  Arkadaki ağırlıkla 2:1 ( kabin üstü, çapraz — arka_aski ):  örnek kuyu
+    #  arkadaki ağırlığa göre derin;  makine dairesizde makine duvardan duvara
+    #  kirişte ( bina yapısına ), kabin üstündeki makineye göre son kat yüksek.
+    "arkada 2:1 makine dairesiz": lambda: _yeni_duzen(
+        False, agirlik_yeri="Arka", aski_duzeni="Kabin üstü", makine_raya_biniyor="Bina yapısına",
+        agirlik_ray_duvar=None, kuyu_derinligi=2100, son_kat_yuksekligi=5500),
+    "arkada 2:1 makine daireli": lambda: _yeni_duzen(
+        True, agirlik_yeri="Arka", aski_duzeni="Kabin üstü", agirlik_ray_duvar=None,
+        kuyu_derinligi=2100),
     "formun varsayılanı": lambda: {"asansorler": [{}], "proje_geneli": {}, "sabitler": {},
                                    "asansor": 0},
 }

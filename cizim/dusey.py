@@ -212,7 +212,7 @@ def yerlesim(g, cizim_sabitleri=None):
     #  noktaları ile kabinin izdüşümündeki en alt tavan parçası arası en az
     #  0,50 m ( m.5.2.5.7.2 a ).
     if aski.get("duzen") == "Kabin üstü":
-        ku_kasnak = [_kutu(el) for el in KU["taban"] if el.get("ad") == "kabin_kasnak"]
+        ku_kasnak = CGE.kabin_kasnak_kutulari(g, S, KU["taban"])
         kasnak_ust = ust["kasnak_merkez"] + (aski.get("kasnak_capi") or 0) / 2.0
         ks_engel = min(engel(k) for k in ku_kasnak)
         ust_engel["kasnak"] = ks_engel

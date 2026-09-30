@@ -129,8 +129,9 @@ class Sozluk(unittest.TestCase):
                   "saptirma_kasnak_capi", "kabin_tampon_baba", "aski_orani",
                   #  3. adım:  Nps · Npr çizilen kasnaklardan
                   "kasnak_tek_yon", "kasnak_ters_yon",
-                  #  4. adım:  kirişin açıklığı çizimden
-                  "yan_yatak_boyu"):
+                  #  4. adım:  kirişin açıklığı çizimden;  arkadaki ağırlıkla 2:1
+                  #  çiziliyor ( kabin üstünde çapraz kasnaklar — karar 4 )
+                  "yan_yatak_boyu", "agirlik_yeri"):
             self.assertNotIn(k, TZ.SORUNLAR)
         #  3. adım:  hesabın geometri tahminleri çizimden geliyor;  yalnız
         #  çizimde olmayan revizyon kutusu kaldı ( karar 10 ).

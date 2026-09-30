@@ -22,6 +22,7 @@ from api import cizim as UC_CIZIM                         # noqa: E402
 from api import uygulama as UC_UYG                        # noqa: E402
 from cizim import girdi as CG                             # noqa: E402
 from cizim import kopru as CK                             # noqa: E402
+from cizim import sabitler as CS                          # noqa: E402
 from engine.uygulama import girdi as E_UGR                # noqa: E402
 from engine.uygulama import hesap as E_UYG                # noqa: E402
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER    # noqa: E402
@@ -102,10 +103,16 @@ class OrnekProjeler(unittest.TestCase):
         v = _veri(); del v["asansorler"][0]["aski_kaciklik_x"]
         self.assertEqual(_tam(v)["aski_kaciklik_x"], -250.0)
         #  1:1 askıda halatlar kabin şasesinin üst kirişinin ortasında biter:  kiriş
-        #  ray ekseni üstünde, 0.  Arkadaki ağırlıkla 2:1 çizilmez — hesabın eski
-        #  varsayılanı 0
+        #  ray ekseni üstünde, 0.  Arkadaki ağırlıkla 2:1 ( kabin üstü, çapraz ):
+        #  askı kabin merkezinde — xs kabinin ( pano dahil ) derinlik ortası ile
+        #  ray ekseni arası.
         self.assertEqual(_tam(_veri(aski_orani=1))["aski_kaciklik_x"], 0.0)
-        self.assertEqual(_tam(_veri(agirlik_yeri="Arka"))["aski_kaciklik_x"], 0.0)
+        a = _tam(_veri(agirlik_yeri="Arka", aski_duzeni="Kabin üstü"))
+        g, _h = CK.cizim_girdisi(a)
+        S = CS.sabitler(g.get("_cizim_sabitleri"))
+        kb = g["kabin"]
+        self.assertAlmostEqual(a["aski_kaciklik_x"], kb["on_pay"] + (kb["derinlik"] + S["kabin_pano_arka"]) / 2.0
+                               - g["kabin_ray"]["kapi_arasi"])
 
 
 class CizimdenTuretilen(unittest.TestCase):
@@ -296,10 +303,12 @@ class Bolum11CizimdenOlculur(unittest.TestCase):
         self.assertEqual(b - a, 100)
 
     def test_cizilemeyen_duzende_hesap_eksik_der(self):
-        #  Makine dairesiz 1:1 ve arkadaki ağırlıkla 2:1 çizilmez ( gerçek
-        #  projelerde yok ):  bölüm 11 HESAP EKSİK der, sebebini yazar
+        #  Makine dairesiz 1:1 ve arkadaki ağırlıkla KABİN ALTI 2:1 çizilmez
+        #  ( gerçek projelerde yok;  arkadakinde kasnaklar kabin üstünde,
+        #  çapraz ):  bölüm 11 HESAP EKSİK der, sebebini yazar
         for ek, metin in (({"aski_orani": 1}, "1:1 askı çizilmez"),
-                          ({"agirlik_yeri": "Arka"}, "yalnız 1:1 askıda çizilir")):
+                          ({"agirlik_yeri": "Arka", "aski_duzeni": "Kabin altı"},
+                           "kabin üstünde çizilir")):
             ((g, hata),), s, _a = _kur(_veri(**ek))
             b = next(b for b in s["asansorler"][0]["bolumler"] if b["kimlik"] == "siginma_alanlari")
             self.assertTrue(b["eksik_hesap"].startswith("HESAP EKSİK — kuyunun çizimi kurulamadı"), ek)

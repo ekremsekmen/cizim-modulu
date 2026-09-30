@@ -162,10 +162,15 @@ def yerlesim_olculeri(g):
         o = _CO.hesap_olculeri(gc) if gc is not None else {}
     except Exception:                                      # noqa: BLE001 — çizim kendi hatasını söyler
         o = {}
-    if evet_mi(g.get("mk_yok")) and not MT.makine_raya_mi(g.get("makine_raya_biniyor")):
-        #  Kirişler bina yapısına ( duvardan duvara ):  henüz çizilmiyor ( karar 3 )
-        o.pop("makine_yuku_x", None)
-        o.pop("yan_yatak_boyu", None)
+    if evet_mi(g.get("mk_yok")):
+        #  Makine dairesizde çizilen kiriş seçilen yük yoluna uymalı:  yandaki
+        #  ağırlıkta kirişler karşı ağırlık raylarına oturur, arkadakinde
+        #  duvardan duvara ( bina yapısına ).  Uymuyorsa çizim durur ( köprü
+        #  uyuşmazlığı ) ve kirişin ölçüsü hesaba girmez.
+        duvar = g.get("agirlik_yeri") == "Arka"
+        if MT.makine_raya_mi(g.get("makine_raya_biniyor")) == duvar:
+            o.pop("makine_yuku_x", None)
+            o.pop("yan_yatak_boyu", None)
     d = {k: o[k] for k in YERLESIM_OLCULERI if k in o}
     isaret = {k: "yerleşim" for k in d}
     #  KİRİŞİN AÇIKLIĞI GİRDİ DEĞİLDİR:  çizimden gelmezse boş kalır ( bölüm 2

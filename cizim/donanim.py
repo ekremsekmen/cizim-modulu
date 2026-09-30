@@ -168,6 +168,16 @@ def yerlesim(g, S, H, tavan, taban):
         #  tavanın altına yerleştirilmiş parçalar dahil" ).
         for ad in ("sase", "kabin_baglanti", "agirlik_baglanti", "regulator"):
             p = M[ad]
+            if ad == "sase" and KU.get("duvardan_duvara"):
+                #  Duvardan duvara iki kiriş kabinin üstünden geçer:  aralarındaki
+                #  boşluk engel değil ( çapraz kasnaklar oradan yükselir ) —
+                #  kirişler ve motor plakası ayrı parçalar.
+                b_ = KU["yan_yatak"]["b"]
+                for kutu in ((p[0], p[1], p[0] + b_, p[3]), (p[2] - b_, p[1], p[2], p[3]),
+                             (p[0] + b_, my - CMK.MOTOR_PLAKASI_BOY / 2.0,
+                              p[2] - b_, my + CMK.MOTOR_PLAKASI_BOY / 2.0)):
+                    M["parcalar"].append((ad, kutu, p[4]))
+                continue
             M["parcalar"].append((ad, p[:4], p[4]))
         #  Öbür kabin rayı referans projede tavanın 50 altına çıkar;  tavanın en alt
         #  kısmı ( tavan_kirisi payı ) hesaba katılınca onun 50 altına — eskiden
@@ -175,6 +185,11 @@ def yerlesim(g, S, H, tavan, taban):
         ray_ust = {"yakin": zs - S["ray_sase_icinde"],
                    "uzak": tavan_alti - S["kabin_rayi_tepe"],
                    "agirlik": zs - S["ray_sase_icinde"]}
+        if KU.get("duvardan_duvara"):
+            #  Makine raylara oturmaz ( duvardan duvara kirişler ):  raylar
+            #  kirişlerin altında biter ( kiriş kuyunun derinliğince uzanır ).
+            alt_ = zs - KU["yan_yatak"]["h"] - S["kabin_rayi_tepe"]
+            ray_ust = {"yakin": alt_, "uzak": alt_, "agirlik": alt_}
         M["raylar"] = [("kabin", yakin_ray, ray_ust["yakin"]),
                        ("kabin", uzak_ray, ray_ust["uzak"])] + \
                       [("agirlik", r, ray_ust["agirlik"]) for r in agirlik_raylari]

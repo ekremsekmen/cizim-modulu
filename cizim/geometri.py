@@ -221,11 +221,30 @@ def halat_konumlari(g, S=None):
     a = g.get("aski") or {}
     if a.get("duzen") not in ("Kabin altı", "Kabin üstü"):
         return []
+    from cizim import arka_aski as CAA
+    if CAA.arkada_iki_bir(g):
+        #  Arkadaki ağırlıkla 2:1:  tahrik kasnağının kabin inişi ve kabin
+        #  bağlantısı ( çapraz düzlemin iki ucu — arka_aski )
+        A = CAA.geometri(g, S)
+        return [A["P"], A["H"]] if "P" in A else []
     k, kb = g["kuyu"], g["kabin"]
     kx = k["genislik"] / 2.0 + kb["kaciklik_y"]
     y = kb["on_pay"] + (kb["derinlik"] + S["kabin_pano_arka"]) / 2.0 + a.get("kasnak_kaciklik", 0)
     yari = a["kasnak_arasi"] / 2.0 + a["kasnak_capi"] / 2.0
     return [(kx - yari, y), (kx + yari, y)]
+
+
+def kabin_kasnak_kutulari(g, S, taban):
+    """Kabin kasnaklarının plandaki kutuları:  çapraz düzende ( arkadaki
+    ağırlıkla 2:1 — arka_aski ) döndürülmüş kasnakların çevreleyen kutusu
+    ( açıklık ve engel denetimleri için emniyetli taraf ), öbür düzenlerde
+    plandaki dikdörtgen."""
+    from cizim import arka_aski as CAA
+    if CAA.arkada_iki_bir(g):
+        A = CAA.geometri(g, S)
+        return list(A.get("kutular") or [])
+    return [(el["x"], el["y"], el["x"] + el["g"], el["y"] + el["d"])
+            for el in taban if el.get("ad") == "kabin_kasnak"]
 
 
 def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
@@ -374,7 +393,24 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
     aski_y = ic_on + dis_d / 2.0 + aski.get(
         "kasnak_kaciklik" if duzen in ("Kabin altı", "Kabin üstü") else "nokta_kaciklik", 0)
     aski_yari = 0.0                      # askı elemanının derinlikteki yarı boyu
-    if duzen in ("Kabin altı", "Kabin üstü"):
+    from cizim import arka_aski as CAA
+    capraz = CAA.geometri(g, S) if CAA.arkada_iki_bir(g) else None
+    if capraz is not None and "P" in capraz:
+        #  ARKADAKİ AĞIRLIKLA 2:1 ( kabin üstü, çapraz — arka_aski ):  kasnaklar
+        #  P–H düzleminde;  planda döndürülmüş dikdörtgen ( kenarları çizgi ),
+        #  düzlem kesik eksen, iki düşey halat noktası.
+        dc = aski["kasnak_capi"]
+        for merkez, iz in zip(capraz["kasnaklar"], capraz["izler"]):
+            for p0, p1 in zip(iz, iz[1:] + iz[:1]):
+                e.append(_ad(_cizgi("KASNAK", p0[0], p0[1], p1[0], p1[1]), "kabin_kasnak_capraz"))
+            e.append(_ad(_yazi(merkez[0] + capraz["n"][0] * 110, merkez[1] + capraz["n"][1] * 110,
+                               f"ø {dc:g}", 45), "kabin_kasnak_yazi"))
+        (px, py), (hx, hy) = capraz["P"], capraz["H"]
+        e.append(_ad(_cizgi("EKSEN", px, py, hx, hy, tip="eksen"), "aski_duzlemi"))
+        e.append(_ad(_yazi(capraz["cx"], capraz["cy"] - 230,
+                           f"ASKI:  {duzen.upper()}  ·  2:1  ·  ÇAPRAZ {capraz['aci']:.0f}°", 44),
+                     "aski_yazi"))
+    elif duzen in ("Kabin altı", "Kabin üstü"):
         dc, aralik = aski["kasnak_capi"], aski["kasnak_arasi"]
         aski_yari = S["kabin_kasnak_genislik"] / 2.0
         for merkez in (kx - aralik / 2.0, kx + aralik / 2.0):
@@ -612,7 +648,7 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
 
     #  İÇ — ASKI:  kasnak / nokta aralığı askı elemanlarının hemen yanında,
     #  kaçıklık ise kabin merkezi ile askı ekseni arasında
-    if duzen in ("Kabin altı", "Kabin üstü", "Doğrudan"):
+    if duzen in ("Kabin altı", "Kabin üstü", "Doğrudan") and capraz is None:
         if duzen != "Doğrudan":                   # 1:1'de tek bağlantı:  aralık yok
             aralik = aski.get("kasnak_arasi")
             e.append(_olcu("yatay", (kx - aralik / 2.0, 0), (kx + aralik / 2.0, 0),

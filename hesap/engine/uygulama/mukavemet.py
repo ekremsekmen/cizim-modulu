@@ -612,14 +612,23 @@ def _makine(g, o):
     #  Kirişin yükü nereye aktardığı ( raylar / bina ) bölüm 7 · 8'dedir.
     _mrl = evet_mi(g.get("mk_yok"))
     Gm, L = g["makine_agirligi"], g["yan_yatak_boyu"]
+    #  Makine dairesizde kirişin türü:  raylara oturan ( yandaki ağırlık ) ya da
+    #  duvardan duvara ( arkadaki ağırlık — bina yapısına )
+    _kiris = ("duvardan duvara kiriş ( kuyu derinliğince, uçları duvarlarda )"
+              if not MT.makine_raya_mi(g.get("makine_raya_biniyor"))
+              else "kirişler karşı ağırlık raylarına oturur")
     if not (_sayi_mi(L) and L > 0):
         #  KİRİŞİN AÇIKLIĞI ÇİZİMDEN GELMEDİ ( program hesabı:  yan yatak boyu
         #  girdi değildir — girdi.yerlesim_olculeri ):  sayı uydurulmaz, bölüm
         #  EKSİKTİR ve sebebi yazılır.
-        neden = ("makine kirişleri bina yapısına ( duvardan duvara ) oturuyor — bu kiriş henüz "
-                 "çizilmiyor ( karar 3 )"
-                 if _mrl and not MT.makine_raya_mi(g.get("makine_raya_biniyor"))
-                 else "makine kaidesi çizilemedi")
+        _raya = MT.makine_raya_mi(g.get("makine_raya_biniyor"))
+        _arka = g.get("agirlik_yeri") == "Arka"
+        neden = ("makine kirişleri bina yapısına ( duvardan duvara ) oturuyor — yandaki ağırlıkta "
+                 "bu kiriş henüz çizilmiyor ( karar 3 )" if _mrl and not _raya and not _arka
+                 else "karşı ağırlık arkadayken makine duvardan duvara kirişlere oturur — "
+                      "'Makine yükünün yolu' 'Bina yapısına' olmalı" if _mrl and _raya and _arka
+                 else "makine kaidesi çizilemedi" if not _mrl
+                 else "makine kirişleri çizilemedi")
         metin_ = "HESAP EKSİK — makine kirişinin açıklığı ( L ) çizimden gelmedi:  " + neden
         b["adimlar"] = [metin("Kirişin açıklığı ve makinenin kirişteki yeri çizimden ölçülür :",
                               vurgu=True), metin("·  " + neden)]
@@ -696,7 +705,9 @@ def _makine(g, o):
              f"KABUL  ·  {g['guvenlik_tertibati']}"),
         veri("Gm", "Makine motor ağırlığı", Gm, "kg", "KATALOG"),
         veri("L", "Yan yatak ( makine kirişi ) boyu", L, "mm",
-             (CIZIMDEN + ("  ·  karşı ağırlık rayları arası ( DBGW )" if _mrl
+             (CIZIMDEN + (("  ·  kuyu derinliği ( duvardan duvara kiriş )"
+                           if not MT.makine_raya_mi(g.get("makine_raya_biniyor"))
+                           else "  ·  karşı ağırlık rayları arası ( DBGW )") if _mrl
                           else "  ·  kaidenin dikine kirişleri arası:  kaide halatlara "
                                "ortalı, makineyi sarar"))
              if "yan_yatak_boyu" in (g.get("_cizimden") or {}) else "GİRİŞ", 0),
@@ -718,8 +729,7 @@ def _makine(g, o):
         metin("Yan yatak putreline gelen kuvvet :"),
         hesap("F1 = F / 2", f"{tr(F)} / 2", F1, "N"),
         (veri("X", "Makine yükünün ( tahrik kasnağının ) mesnetten uzaklığı", X, "mm",
-              CIZIMDEN + ("  ·  kirişler karşı ağırlık raylarına oturur" if _mrl
-                          else "  ·  kaidenin yan yatağında"), 0)
+              CIZIMDEN + ("  ·  " + _kiris if _mrl else "  ·  kaidenin yan yatağında"), 0)
          if X_ciz is not None else
          hesap("X = L − 335", f"{trn(L, 0)} − {O['yan_yatak_L_X']}", X, "mm")),
         hesap("FB = F1 × X / L", f"{tr(F1)} × {trn(X, 0)} / {trn(L, 0)}", FB, "N"),

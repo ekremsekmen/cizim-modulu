@@ -53,6 +53,7 @@ _PLANDAN_AD = ("agirlik_kasnak", "agirlik_kasnak_yazi", "agirlik_yazi", "sase_di
 #  biçimleriyle yeniden çizilir ya da askıya göre seçilir.  AÇIK LİSTE:
 #  ad önekine bakılsaydı "kabin_ray" gibi yeni bir ad sessizce düşerdi.
 _PLANDAN_DISLA = frozenset(("kabin_dis", "sase_dikme", "sase_kiris", "kabin_kasnak",
+                            "kabin_kasnak_capraz", "aski_duzlemi",
                             "kabin_kasnak_yazi", "aski_yazi", "aski_nokta"))
 
 
@@ -152,7 +153,7 @@ def yerlesim(g, cizim_sabitleri=None):
     engeller = [operator]
     duzen = (g.get("aski") or {}).get("duzen")
     if duzen == "Kabin üstü":
-        engeller += [_kutu(el) for el in taban if el.get("ad") == "kabin_kasnak"]
+        engeller += CGE.kabin_kasnak_kutulari(g, S, taban)
     elif duzen == "Doğrudan":
         for el in taban:
             if el.get("ad") == "aski_nokta" and el["tip"] == "daire":
@@ -237,7 +238,8 @@ def ciz(g, cizim_sabitleri=None):
     duzen = (g.get("aski") or {}).get("duzen")
     #  Tavandaki askı elemanları ( kabin üstü kasnakları, 1:1 bağlantısı )
     #  TAVANDAN SONRA çizilir:  tavanın dolgusu onları örtüyordu.
-    aski_ad = (("kabin_kasnak", "kabin_kasnak_yazi") if duzen == "Kabin üstü"
+    aski_ad = (("kabin_kasnak", "kabin_kasnak_capraz", "aski_duzlemi", "kabin_kasnak_yazi")
+               if duzen == "Kabin üstü"
                else ("aski_nokta",) if duzen == "Doğrudan" else ())
     e = [el for el in Y["taban"]
          if el.get("ad") in _PLANDAN_AD

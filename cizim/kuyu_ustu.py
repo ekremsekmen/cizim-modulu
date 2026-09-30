@@ -127,11 +127,10 @@ def duzen_hatalari(g):
                     "oranını 2 seçin ya da makine dairesi olsun.")
     elif duzen not in ("Kabin altı", "Kabin üstü", "Doğrudan"):
         hata.append(f"aski.duzen:  ( 'Kabin altı', 'Kabin üstü', 'Doğrudan' ) içinden olmalı ( {duzen!r} ).")
-    if yer == "Arka" and duzen != "Doğrudan":
-        hata.append("Arkadaki karşı ağırlık yalnız 1:1 askıda çizilir ( ofisin 12744-3 ve 477-8 "
-                    "projeleri ):  2:1 askıda halatlar kabinin iki yanından çıkar, arkadaki "
-                    "ağırlığa ancak ek saptırma kasnaklarıyla ulaşır — bu düzen çizilmez;  "
-                    "ağırlığı yana alın ya da 1:1 askı seçin.")
+    if yer == "Arka" and duzen == "Kabin altı":
+        hata.append("Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — "
+                    "ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri "
+                    "için 'Kabin üstü' seçin ya da ağırlığı yana alın.")
     elif yer not in YANLAR + ("Arka",):
         hata.append(f"agirlik.yeri:  ( 'Sol', 'Sağ', 'Arka' ) içinden olmalı ( {yer!r} ).")
     return hata
@@ -181,6 +180,8 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
         return {"hata": hata}
     if duzen == "Doğrudan":
         return _dogrudan(g, S, mk, ag)
+    if ag.get("yeri") == "Arka":
+        return _arka(g, S, mk, ag, acil_pano)
 
     taban = CGE.plan(g, S, kapi_duzeyi=False)
     k = g["kuyu"]
@@ -395,6 +396,139 @@ def _dogrudan(g, S, mk, ag):
             "reg_kasnak": reg_kasnak, "reg_govde": reg_govde, "reg_ayak": reg_ayak,
             "pano": None, "calisma": None, "D1": D1, "rgx": rx, "rgy": rgy,
             "ry": ry, "hata": hata, "S": S}
+
+
+def _arka(g, S, mk, ag, acil_pano):
+    """ARKADAKİ AĞIRLIKLA 2:1 ( kabin üstü, çapraz — arka_aski ):  tahrik
+    kasnağının düzlemi derinlik boyunca ( Duzlem "y", x = xk ):  inişleri
+    ağırlık kasnağının teğetinde ( W ) ve D1 önünde ( P ).  Makinenin gövdesi
+    ağırlık kasnağının merkezinden uzağa uzanır.  Bağlantılar:  ağırlığınki
+    ağırlık kasnağının öbür teğetinde ( Hw ), kabininki çapraz düzlemin ön
+    ucunda ( H ).
+
+    Makine dairesizde makine DUVARDAN DUVARA iki kirişe oturur ( kullanıcı
+    kararı — 12495-18;  karar 3'ün platformu ):  kirişler derinlik boyunca ön
+    duvarın iç yüzünden arka duvarınkine, tahrik kasnağının İKİ YANINDA
+    SİMETRİK — makinenin yükü ( kasnaktaki halat kuvvetleri ) iki kirişe eşit
+    biner ( hesabın F / 2'si ).  Referans projede kasnak kirişlerin dışında,
+    150 mm taşkındı:  yakın kiriş yükün 1,6 katını taşır, uzak kiriş kalkardı."""
+    from cizim import arka_aski as CAA
+    hata = []
+    A = CAA.geometri(g, S)
+    if "P" not in A:
+        return {"hata": A["hata"]}
+    hata += A["hata"]
+    taban = CGE.plan(g, S, kapi_duzeyi=False)
+    k, a = g["kuyu"], g["aski"]
+    G, D = k["genislik"], k["derinlik"]
+    kabin = _kutu(next(el for el in taban if el.get("ad") == "kabin_dis"))
+    blok = _kutu(next(el for el in taban if el.get("ad") == "agirlik_blok"))
+    ry = g["kabin_ray"]["kapi_arasi"]
+    D1, xk, yon = A["D1"], A["xk"], A["yon"]
+    d = Duzlem("y", xk)
+    (px, py), (hx, hy) = A["P"], A["H"]
+    wy = A["W"][1]
+
+    #  ── MAKİNE:  tahrik kasnağı + gövde ( düzlemin içinde, _dogrudan'daki kural ) ──
+    kt = S["tahrik_kasnak_kalinlik"] / 2.0
+    kasnak = d.kutu(py, wy, xk - kt, xk + kt)
+    kmu = (py + wy) / 2.0
+    s = yon                                          # gövde ağırlık kasnağından uzağa
+    g0 = xk + s * (kt + S["makine_kasnak_boslugu"])
+    govde = d.kutu(kmu - S["makine_en"] / 2.0, kmu + S["makine_en"] / 2.0, g0, g0 + s * S["makine_boy"])
+    rx, rgy, reg_kasnak, reg_govde, reg_ayak = _regulator(g, S, taban, kabin, G)
+    oda_ = None
+    md = g.get("makine_dairesi") or {}
+    if mk.get("yeri") == "Makine dairesi" and all(_sayi(md.get(k_)) for k_ in ("x", "y", "genislik", "derinlik")):
+        oda_ = (md["x"], md["y"], md["x"] + md["genislik"], md["y"] + md["derinlik"])
+    m_yon = 1.0 if kmu < D / 2.0 else -1.0
+    if mk["tip"] == "Dişli":
+        for s_, m_ in ((s, m_yon), (s, -m_yon), (-s, m_yon), (-s, -m_yon)):
+            zk = CMK.disli_zarfi((kmu, xk, 0.0), s_, m_)
+            z = d.kutu(zk[0], zk[2], zk[1], zk[3])
+            if not _ortusur(z, reg_govde) and (
+                    oda_ is None or (oda_[0] <= z[0] and oda_[1] <= z[1] and z[2] <= oda_[2] and z[3] <= oda_[3])):
+                s, m_yon = s_, m_
+                break
+        makine = d.parcalar(CMK.disli((kmu, xk, 0.0), D1, 2 * kt, s, m_yon))
+        zk = CMK.disli_zarfi((kmu, xk, 0.0), s, m_yon)
+        govde = d.kutu(zk[0], zk[2], zk[1], zk[3])
+    else:
+        makine = d.parcalar(CMK.dislisiz((kmu, xk, 0.0), D1, 2 * kt, s, S["makine_en"],
+                                         S["makine_kasnak_boslugu"] + S["makine_boy"]))
+
+    #  ── HALAT BAĞLANTILARI ───────────────────────────────────────────
+    #  Ağırlığınki ağırlık kasnağının öbür teğetinin üstünde ( halat demeti
+    #  ağırlık kasnağının ekseni — derinlik — boyunca );  kabininki çapraz
+    #  düzlemin ön ucunda, o yandaki kabin rayının başına bağlı.
+    #  Plakalar yandaki ağırlıktakinin 90° dönüğü ( referans projeden ölçülmüş
+    #  paylar ):  ağırlığınki halat demeti ( derinlik ) boyunca en, duvar
+    #  tarafında halattan agirlik_baglanti_x, kasnak tarafında _y payla;
+    #  kabininki halat demeti ( genişlik ) boyunca boy, düzlem boyunca en.
+    wx = A["Hw"][0]
+    ay0 = wy + S["agirlik_baglanti_x"]
+    ax0 = wx + yon * S["agirlik_baglanti_y"]
+    ax1 = ax0 - yon * S["agirlik_baglanti_boy"]
+    agirlik_baglanti = (min(ax0, ax1), ay0 - S["agirlik_baglanti_en"], max(ax0, ax1), ay0)
+    ke, kb_ = S["kabin_baglanti_en"] / 2.0, S["kabin_baglanti_boy"] / 2.0
+    kabin_baglanti = (hx - kb_, hy - ke, hx + kb_, hy + ke)
+    kab_r = sorted(CKD._raylar(taban, "kabin_ray"), key=lambda r: r[0])
+    yakin_ray = kab_r[0] if hx < (kabin[0] + kabin[2]) / 2.0 else kab_r[-1]
+
+    #  ── MAKİNE ŞASESİ ( makine dairesizde ):  duvardan duvara iki kiriş ──
+    yy = CMK.npu(mk["yan_yatak"])
+    ic = kt + S["makine_kasnak_boslugu"] + S["makine_boy"]           # kirişlerin iç yüzü
+    sase = (xk - ic - yy["b"], 0.0, xk + ic + yy["b"], D)
+    n_, dh_, pay_ = a["halat_adedi"], a["halat_capi"], S["halat_delik_payi"]
+    sase_delikleri = [CMK.halat_deligi(px, py, n_, dh_, pay_, "x"),
+                      CMK.halat_deligi(xk, wy, n_, dh_, pay_, "x"),
+                      CMK.halat_deligi(wx, wy, n_, dh_, pay_, "y")]
+
+    #  ── ACİL KURTARMA VE TEST PANOSU ( yandaki ağırlıktaki gibi ) ─────
+    pano = calisma = None
+    if acil_pano:
+        kp, don = g["kapi"], k["duvar_on"]
+        x0, x1 = kp["sol_pay"], kp["sol_pay"] + kp["genislik"]
+        kasa, pe, pd = S["kasa_yan"], S["acil_pano_en"], S["acil_pano_derinlik"]
+        if (g.get("kuyu_ustu") or {}).get("acil_pano_yan") == "Sol":
+            pano = (x0 - kasa - pe, -don - pd, x0 - kasa, -don)
+        else:
+            pano = (x1 + kasa, -don - pd, x1 + kasa + pe, -don)
+        ce = max(CALISMA_EN_ASGARI, pe)
+        pm = (pano[0] + pano[2]) / 2.0
+        calisma = (pm - ce / 2.0, pano[1] - CALISMA_DERINLIK, pm + ce / 2.0, pano[1])
+
+    #  ── ÇAKIŞMALAR ───────────────────────────────────────────────────
+    parcalar = {"makine": govde, "tahrik kasnağı": kasnak, "ağırlık halat bağlantısı": agirlik_baglanti,
+                "kabin halat bağlantısı": kabin_baglanti, "regülatör": reg_govde}
+    for ad, p in parcalar.items():
+        if oda_ is not None and ad in ("makine", "tahrik kasnağı"):
+            continue
+        if p[0] < 0 or p[1] < 0 or p[2] > G or p[3] > D:
+            hata.append(f"{ad.capitalize()} kuyunun dışına taşıyor.")
+    adlar = list(parcalar)
+    for i, a_ in enumerate(adlar):
+        for b_ in adlar[i + 1:]:
+            if {a_, b_} == {"makine", "tahrik kasnağı"}:
+                continue
+            if _ortusur(parcalar[a_], parcalar[b_]):
+                hata.append(f"Kuyu üstünde {a_} ile {b_} üst üste biniyor.")
+    if oda_ is None and not (0.0 <= sase[0] and sase[2] <= G):
+        hata.append("Makinenin duvardan duvara kirişleri kuyunun genişliğine sığmıyor.")
+
+    return {"taban": taban, "kabin": kabin, "blok": blok, "capraz": A, "duzlem": d, "y_": 1.0,
+            "halatlar": [A["P"], A["H"]], "kabin_inis": A["P"], "kabin_baglanti_nokta": A["H"],
+            "ag_dusus": A["W"], "ag_teget": A["W"], "ag_teget2": A["Hw"],
+            "ag_baglanti_eksen": "y", "kabin_baglanti_eksen": "x",
+            "sapma": (0.0, 0.0), "kasnak": kasnak, "govde": govde, "agirlik_baglanti": agirlik_baglanti,
+            "makine": makine, "m_yon": m_yon, "s": s, "sase": sase, "duvardan_duvara": True,
+            "tip": mk["tip"], "yan_yatak": yy, "sase_delikleri": sase_delikleri,
+            "kabin_baglanti": kabin_baglanti,
+            "halat_konsolu": CB.halat_konsolu(kabin_baglanti, yakin_ray, 0),
+            "reg_kasnak": reg_kasnak, "reg_govde": reg_govde, "reg_ayak": reg_ayak,
+            "pano": pano, "calisma": calisma, "D1": D1, "rgx": rx, "rgy": rgy,
+            #  Halat düzlemi boyunca ( u = y ) koordinatlar:  kabin inişi, ağırlık inişi
+            "yakin": py, "uzak": hy, "ag_y": wy, "ry": ry, "ex": wy, "hata": hata, "S": S}
 
 
 def dogrula(g):

@@ -24,15 +24,14 @@ IKI, YOK, INCELE, TEK = "iki", "yok", "incele", "tek"
 
 #  anahtar → ( durum , not , karar no )
 SORUNLAR = {
-    "makine_raya_biniyor": (YOK, "Varsayılan \"Kılavuz raylara\";  \"Bina yapısına\" ( duvardan "
-                                 "duvara kiriş ) henüz çizilmiyor — çizim durur, bölüm 2 HESAP "
-                                 "EKSİK.", 3),
+    "makine_raya_biniyor": (YOK, "Varsayılan \"Kılavuz raylara\".  Arkadaki ağırlıkta makine "
+                                 "duvardan duvara kirişe oturur ( \"Bina yapısına\" );  yandaki "
+                                 "ağırlıkta duvardan duvara kiriş henüz çizilmiyor — çizim durur, "
+                                 "bölüm 2 HESAP EKSİK.", 3),
     "paten_tipi": (YOK, "Çizim yalnız kaymalı patenin ölçüsünü biliyor ( 140 mm ).", 2),
     "agirlik_paten_tipi": (YOK, "Çizim yalnız kaymalı patenin ölçüsünü biliyor.", 2),
     "paten_balata_boyu": (INCELE, "Hesaptaki balata ile çizimdeki paten boyu ( 100 mm ) aynı parça mı.",
                           None),
-    "agirlik_yeri": (YOK, "Arkada karşı ağırlıkla 2:1 çizilemiyor ( makine dairesizde kabin altında "
-                          "çapraz kasnaklar, makine dairelide kabin üstünde iki kasnak ).", 4),
     "kanal_sekli": (YOK, "Çift sarımda çizim duruyor.", 6),
     "uzun_pervaz": (YOK, "Kabin girişi girintisi çizilmiyor; yalnız 100 mm'yi aşarsa kabin "
                          "alanına girer.", 8),

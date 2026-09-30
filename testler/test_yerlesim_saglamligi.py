@@ -68,6 +68,26 @@ class StandartAsansorler(unittest.TestCase):
                     d = _cizim(_veri(Q, mrl, yer, **ek))
                     self.assertTrue(d.get("aktif"), (Q, yer, ad, d.get("hata")))
 
+    def test_arkadaki_agirlikla_iki_bir(self):
+        #  Kabin üstünde çapraz kasnaklar ( arka_aski ).  Kuyu kabinden 450 derin
+        #  olunca ağırlık kabinin arkasına sığmaz ( kapı bölgesi + pano sonrası
+        #  147 mm;  ağırlık 160 + 50 açıklık — m.5.2.5.5.1 h ):  gerçek ret.  700
+        #  derinde 320 kg'lık 900 × 1.000 kabin dışında hepsi çizilir ( onun
+        #  tavanına çapraz kasnaklarla çömelme alanı sığmaz ).  Makine dairesizde
+        #  makine duvardan duvara kirişte ( bina yapısına ), kabinin üstünde:
+        #  son kat 5.000.
+        for Q in KABIN:
+            kd = KABIN[Q][1]
+            for mrl, ek in ((True, {"makine_raya_biniyor": "Bina yapısına", "son_kat_yuksekligi": 5000}),
+                            (False, {})):
+                for derin, cizilir in ((450, False), (700, Q != 320)):
+                    v = _veri(Q, mrl, "Arka", aski_duzeni="Kabin üstü", **ek)
+                    v["asansorler"][0]["kuyu_derinligi"] = kd + derin
+                    d = _cizim(v)
+                    self.assertEqual(bool(d.get("aktif")), cizilir, (Q, mrl, derin, d.get("hata")))
+                    if derin == 450:
+                        self.assertTrue(any("m.5.2.5.5.1 h" in h for h in d["hata"]), d["hata"])
+
     def test_kabin_ustu_askiya_yuksek_son_kat_gerekir(self):
         #  Kabin tepede:  tavandaki kasnak, kabinin öbür halatının kuyu tavanındaki
         #  bağlantısının altına gelir ( 645 sarkar );  aralarında en az 0,50 m

@@ -224,7 +224,13 @@ def dogrula(g):
                 hata.append(f"aski: {ad} sıfırdan büyük bir sayı olmalı ( {v!r} ).")
         if not _sonlu_sayi(kaciklik):
             hata.append(f"aski: kaçıklık sonlu bir sayı olmalı ( {kaciklik!r} ).")
-        if (all(_sonlu_sayi(v) and v > 0 for _, v in gerekli)
+        from cizim import arka_aski as CAA
+        if CAA.arkada_iki_bir(g) and _sonlu_sayi(kaciklik):
+            #  Arkadaki ağırlıkla 2:1:  kasnaklar çapraz düzlemde, aralığı
+            #  geometriden ( arka_aski ) — sınırlarını o denetler.
+            A = CAA.geometri(g, S)
+            hata += [h for h in A["hata"] if "kuyunun dışına" in h]
+        elif (all(_sonlu_sayi(v) and v > 0 for _, v in gerekli)
                 and _sonlu_sayi(kaciklik)):
             yari = aralik / 2.0 + (cap / 2.0 if tur == "kasnak" else 45.0)
             kx = k["genislik"] / 2.0 + kb["kaciklik_y"]
