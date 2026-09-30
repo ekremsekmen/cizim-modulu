@@ -14,6 +14,7 @@ kasnakları ve tahrik kasnağı x–z düzleminde döner ( ön kesitte daire ),
 karşı ağırlık kasnağı, regülatör ve gergi kasnağı y–z düzleminde ( yan
 kesitte daire ).
 """
+from cizim import arka_aski as CAA
 from cizim import donanim as CDN
 from cizim import geometri as CGE
 from cizim import makine as CMK
@@ -235,7 +236,7 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
         gruplar.append((pk, el))
     for _, el in sorted(gruplar, key=lambda ge: uzaklik(B, ge[0]), reverse=True):
         e += el
-    kt = CDN.kabin_kotlari(dy, S, kabin_z, g.get("aski"))
+    kt = CDN.kabin_kotlari(dy, S, kabin_z, g.get("aski"), CAA.arkada_iki_bir(g))
     e += CMK.gorunus(CB.kasnak_tasiyicilari(g, S, kt["kasnak_merkez"]),
                      B, CGE._dik, CGE._daire, CGE._cizgi)
     capraz = (M.get("KU") or {}).get("capraz")

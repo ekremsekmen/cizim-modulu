@@ -115,11 +115,17 @@ SABIT = {
     "paten_yukseklik": 140,
     "fren_blogu_yukseklik": 350,
     "kabin_kasnak_derinlik": 295,   # döşemeden kabin kasnağının merkezine
-    #  KABİN ÜSTÜ ASKI ( 2:1 ):  kasnaklar şasenin üst kirişinin üstünde;  alt
-    #  uçları kirişin bu kadar üstünde.  ÇİZİM KABULÜ — referans projede ve
-    #  LiftDesigner örneklerinde kabin üstü askı yok;  tedarikçi ölçüsü gelince
-    #  değiştirilir.
+    #  KABİN ÜSTÜ ASKI ( 2:1, ağırlık yanda ):  kasnaklar şasenin üst kirişinin
+    #  üstünde;  alt uçları kirişin bu kadar üstünde.  ÇİZİM KABULÜ — referans
+    #  projede ve LiftDesigner örneklerinde yandaki ağırlıkla kabin üstü askı
+    #  yok;  tedarikçi ölçüsü gelince değiştirilir.
     "kabin_ustu_kasnak_boslugu": 30,
+    #  ARKADAKİ AĞIRLIKLA 2:1 ( çapraz kasnaklar, arka_aski ):  kasnaklar kabin
+    #  tavanına oturur;  alt uçları tavanın bu kadar üstünde.  LiftDesigner
+    #  12495-18 ( makine dairesiz ):  kabin tepesi 2.000, Ø 240 kasnaklar
+    #  2.080 – 2.320;  1275 ( makine daireli ):  kasnak merkezi tavanın ~210
+    #  üstünde.  Kasnakların arasındaki halat şasenin üst kirişinin altından geçer.
+    "kabin_tavani_kasnak_boslugu": 80,
     "sase_dikme_derinlik": 300,     # şase dikmesinin kesitteki eni ( ray ekseninde )
     "etek_tahtasi": 100,            # TS EN 81-20 m.5.4.7.2 a — en az 0,10 m
     #  Kuyu tavanının en alt kısmı ( kiriş vb. ) döşeme altından — hesap
@@ -136,6 +142,11 @@ SABIT = {
     #  tavandan 595, altı 795;
     #  tahrik kasnağının merkezi gövdenin ortası ( tavandan 446 ).
     "makine_tepe_boslugu": 250,
+    #  DUVARDAN DUVARA KİRİŞTE ( arkada ağırlık, makine dairesiz ) makine
+    #  kirişlerin üstündedir;  tepesi tavanın bu kadar altında.  LiftDesigner
+    #  12495-18:  tavan 4.200, makine 3.750 – 4.150, kirişler ( UPN 100 )
+    #  3.650 – 3.750.  Yukarıdaki 250 raylara oturan makinenin projesinden.
+    "duvar_kirisi_tepe_boslugu": 50,
     "makine_kapak_yukseklik": 47,
     "makine_kapak_en": 160,          # kasnak ekseni boyunca  ( ön kesitte )
     "makine_kapak_boy": 212,         # yan kesitte
@@ -269,10 +280,12 @@ ETIKET = {
     "fren_blogu_yukseklik": "Fren bloğunun yüksekliği",
     "kabin_kasnak_derinlik": "Kabin döşemesinden kabin kasnağı merkezine",
     "kabin_ustu_kasnak_boslugu": "Kabin üstü kasnağının kirişten boşluğu",
+    "kabin_tavani_kasnak_boslugu": "Çapraz kabin kasnağının kabin tavanından boşluğu",
     "sase_dikme_derinlik": "Kabin şasesi dikmesinin kesitteki eni",
     "etek_tahtasi": "Kabin eteği ( etek tahtası )",
     "tavan_kirisi": "Kuyu tavanı kiriş payı",
     "makine_tepe_boslugu": "Kuyu tavanından makinenin tepesine",
+    "duvar_kirisi_tepe_boslugu": "Duvardan duvara kirişte kuyu tavanından makinenin tepesine",
     "makine_kapak_yukseklik": "Makine kapağının yüksekliği",
     "makine_kapak_en": "Makine kapağının eni",
     "makine_kapak_boy": "Makine kapağının boyu",

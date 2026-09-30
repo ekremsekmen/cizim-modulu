@@ -26,6 +26,7 @@ katları kırar ).  Çizilenler:
 Kotlar donanim.py'de, planla aynı yerlerden;  açıklık denetimleri dusey.py'de
 ( bu kesitler de aynı yerleşimle durur ).
 """
+from cizim import arka_aski as CAA
 from cizim import donanim as CDN
 from cizim import dusey as CDU
 from cizim import geometri as CGE
@@ -129,7 +130,7 @@ def kuyu_dibi_seviyesi(g, Y):
     kabin kasnağı ) altından geçer;  ilk konsolların üstünde kalır ki konsollar,
     gergi ve tamponlar planda görünsün — ikisinin ortası.  Konsol kabinin
     altına sığmıyorsa kuyu tabanıyla kabinin ortası."""
-    kt = CDN.kabin_kotlari(g["dusey"], Y["S"], Y["kotlar"][0], g.get("aski"))
+    kt = CDN.kabin_kotlari(g["dusey"], Y["S"], Y["kotlar"][0], g.get("aski"), CAA.arkada_iki_bir(g))
     kabin_alti = min(kt["etek_alti"], kt["alt_paten"], kt["fren_alti"])
     if Y["kasnaklar"]:
         kabin_alti = min(kabin_alti, kt["kasnak_merkez"] - Y["kasnak_capi"] / 2.0)

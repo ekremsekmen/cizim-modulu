@@ -37,6 +37,7 @@ STANDARDIN DENETLEDİĞİ AÇIKLIKLAR
   duraklar    m.5.2.3.1     ardışık iki kat kapısı eşiği arası 11 m'yi aşarsa ara
                             acil kapı gerekir — bu çizim acil kapı çizmez, durur
 """
+from cizim import arka_aski as CAA
 from cizim import donanim as CDN
 from cizim import geometri as CGE
 from cizim import girdi as CG
@@ -154,7 +155,8 @@ def yerlesim(g, cizim_sabitleri=None):
             f"{dy['kabin_tampon_boyu']:g} + çarpma arası {dy['kabin_carpma_arasi']:g} + kabinin "
             f"şase altı {S['sase_alt_derinlik']:g} = {zincir:g} mm — girdiler kabinle çelişiyor.")
     aski = g.get("aski") or {}
-    dip = kabin_kotlari(dy, S, -(dy["kabin_carpma_arasi"] + dy["kabin_tampon_ezilme"]), aski)
+    tavanda = CAA.arkada_iki_bir(g)
+    dip = kabin_kotlari(dy, S, -(dy["kabin_carpma_arasi"] + dy["kabin_tampon_ezilme"]), aski, tavanda)
     taban = -KY
     #  Kabin kasnaklarının ve aralarındaki halatın planda sığınma alanının
     #  üstüne düşüp düşmediği ( yalnız kabin altı askıda kabinin altındadırlar ).
@@ -185,7 +187,7 @@ def yerlesim(g, cizim_sabitleri=None):
     if M["hata"]:
         return {"hata": hata + M["hata"]}
     yukselme = dy["agirlik_carpma_arasi"] + dy["agirlik_tampon_ezilme"] + b35
-    ust = kabin_kotlari(dy, S, yukselme, aski)
+    ust = kabin_kotlari(dy, S, yukselme, aski, tavanda)
     tavan_alti = dy["son_kat"] - S["tavan_kirisi"]
 
     def engel(kutu):

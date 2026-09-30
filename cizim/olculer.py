@@ -39,6 +39,7 @@ KURMA İLE DENETİM AYRIDIR:  çizimin denetim hataları ( sığınma alanı,
 """
 import math
 
+from cizim import arka_aski as CAA
 from cizim import donanim as CDN
 from cizim import dusey as CDY
 from cizim import kuyu_dibi as CKD
@@ -179,7 +180,7 @@ def hesap_olculeri(g):
     #  merkezinden ( halat kasnağı merkez kotunda teğet bırakır ) kabine.
     aski = g.get("aski") or {}
     zk = M["kasnak"][4]
-    kab = CDN.kabin_kotlari(dy, S, 0.0, aski)
+    kab = CDN.kabin_kotlari(dy, S, 0.0, aski, CAA.arkada_iki_bir(g))
     if aski.get("duzen") == "Doğrudan":
         #  1:1:  halatlar kabin şasesinin üst kirişindeki bağlantıda biter
         out["aski_halat_boyu"] = round((zk - kab["baglanti_ust"]) / 1000.0, 4)

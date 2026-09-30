@@ -18,6 +18,7 @@ from cizim import arka_aski as CAA                        # noqa: E402
 from cizim import geometri as CGE                         # noqa: E402
 from cizim import kabin_ustu as CKUS                      # noqa: E402
 from cizim import kopru as CK                             # noqa: E402
+from cizim import dusey as CDY                            # noqa: E402
 from cizim import kuyu_ustu as CKT                        # noqa: E402
 from cizim import makine_dairesi as CMD                   # noqa: E402
 from cizim import sabitler as CS                          # noqa: E402
@@ -28,7 +29,7 @@ from engine.uygulama import hesap as UY                   # noqa: E402
 ARKA = {"agirlik_yeri": "Arka", "aski_orani": 2, "aski_duzeni": "Kabin üstü",
         "kuyu_genisligi": 1750, "kuyu_derinligi": 1950, "kabin_genisligi": 1100,
         "kabin_derinligi": 1100, "kapi_genisligi": 800, "beyan_yuku": 800,
-        "makine_raya_biniyor": "Bina yapısına", "son_kat_yuksekligi": 4700}
+        "makine_raya_biniyor": "Bina yapısına", "son_kat_yuksekligi": 4500}
 MD = {"mk_yok": False, "mk_uzunluk": 3800, "mk_genislik": 2600}
 
 
@@ -122,6 +123,40 @@ class Cizimler(unittest.TestCase):
         self.assertEqual(CK.sarim_acisi(g), 180.0)
 
 
+class Dusey(unittest.TestCase):
+    """Kuyu tepesi ( LiftDesigner 12495-18:  son kat 4.200, kabin 2.000 ):
+    kasnaklar kabin tavanında, makine duvardan duvara kirişlerin üstünde
+    tavana yakın."""
+
+    def test_kasnaklar_tavanda(self):
+        _A, g, S = _cizim()
+        Y = CDY.yerlesim(g)
+        ust, Rk = Y["ust"], g["aski"]["kasnak_capi"] / 2.0
+        self.assertAlmostEqual(ust["kasnak_merkez"] - Rk, ust["tavan"] + S["kabin_tavani_kasnak_boslugu"])
+        #  Kasnaklar şasenin üst kirişinin altında:  aralarındaki halat da
+        self.assertLess(ust["kasnak_merkez"] + Rk, ust["sase_ust"])
+
+    def test_makine_tavana_yakin(self):
+        _A, g, S = _cizim()
+        M = CDY.yerlesim(g)["M"]
+        self.assertAlmostEqual(M["kapak"][5], M["tavan"] - S["duvar_kirisi_tepe_boslugu"])
+        #  Yandaki ağırlıkta makine raylara oturur:  tavandan eski pay
+        g = CK.cizim_girdisi(UG.tamamla(UG.varsayilanlar()))[0]
+        self.assertIn(g["agirlik"]["yeri"], ("Sol", "Sağ"))
+        M = CDY.yerlesim(g)["M"]
+        self.assertFalse(M["KU"].get("duvardan_duvara"))
+        self.assertAlmostEqual(M["kapak"][5], M["tavan"] - S["makine_tepe_boslugu"])
+
+    def test_son_kat(self):
+        #  1.100 × 1.100, kabin 2.200:  4.400'de yalnız arkadaki 1,10 m'lik
+        #  korkuluk kirişe yakın ( m.5.2.5.7.2 c ), 4.470'te hepsi uygun.
+        for son_kat, kalan in ((4400, ["korkuluk"]), (4470, [])):
+            _A, g, _S = _cizim(son_kat_yuksekligi=son_kat)
+            Y = CDY.yerlesim(g)
+            self.assertEqual([k for k, v in Y["ust_aciklik"].items() if v[0] < v[1] - 1e-9], kalan, son_kat)
+            self.assertEqual(Y["korkuluk"], 1100.0)
+
+
 class Kopru(unittest.TestCase):
     def test_kabin_alti_cizilmez(self):
         _A, g, _S = _cizim(aski_duzeni="Kabin altı")
@@ -161,7 +196,7 @@ class Hesap(unittest.TestCase):
         b2 = next(b for b in s["bolumler"] if b["kimlik"] == "makine_konstruksiyonu")
         self.assertTrue(any("duvardan duvara" in str(a.get("kaynak", "")) for a in b2["adimlar"]))
         self.assertFalse(b2.get("eksik_hesap"))
-        #  Son kat 4.700:  makine ve kirişler kabinin üstünde — bölüm 11 uygun
+        #  Son kat 4.500:  makine ve kirişler kabinin üstünde — bölüm 11 uygun
         b11 = next(b for b in s["bolumler"] if b["kimlik"] == "siginma_alanlari")
         self.assertTrue(b11["sonuc"]["uygun"], b11["sonuc"]["metin"])
 

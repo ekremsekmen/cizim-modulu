@@ -47,13 +47,16 @@ def _ortusur(a, b):
     return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
 
 
-def kabin_kotlari(dy, S, z, aski=None):
+def kabin_kotlari(dy, S, z, aski=None, tavanda=False):
     """Döşemesi z kotundaki kabinin parça kotları ( referans proje kabini ).
 
     aski:  çizim girdisinin askı düzeni — kabin kasnaklarının kotu ona bağlı:
     kabin altında döşemenin kabin_kasnak_derinlik altında, kabin üstünde
     şasenin üst kirişinin üstünde ( alt uçları kabin_ustu_kasnak_boslugu kadar
-    yukarıda ).  Doğrudan ( 1:1 ) askıda halatlar üst kirişin üstündeki
+    yukarıda ).  tavanda:  kabin üstü kasnaklar kabin tavanına oturur ( alt
+    uçları kabin_tavani_kasnak_boslugu kadar yukarıda ) — arkadaki ağırlıkla
+    2:1'in çapraz kasnakları ( arka_aski.arkada_iki_bir;  LiftDesigner
+    12495-18 ve 1275 ).  Doğrudan ( 1:1 ) askıda halatlar üst kirişin üstündeki
     bağlantıya biter:  bağlantının tepesi, referans projenin kuyu tepesindeki
     kabin halat bağlantısı boyunda ( kabin_baglanti_alt − kabin_baglanti_ust )."""
     aski = aski or {}
@@ -61,7 +64,9 @@ def kabin_kotlari(dy, S, z, aski=None):
     sase_alt = z - S["sase_alt_derinlik"]
     sase_ust = sase_alt + dy["kabin_paten_arasi"]
     if aski.get("duzen") == "Kabin üstü":
-        kasnak_merkez = sase_ust + S["kabin_ustu_kasnak_boslugu"] + (aski.get("kasnak_capi") or 0) / 2.0
+        kasnak_alti = (tavan + S["kabin_tavani_kasnak_boslugu"] if tavanda
+                       else sase_ust + S["kabin_ustu_kasnak_boslugu"])
+        kasnak_merkez = kasnak_alti + (aski.get("kasnak_capi") or 0) / 2.0
     else:
         kasnak_merkez = z - S["kabin_kasnak_derinlik"]
     return {"doseme": z, "taban_alti": z - S["kabin_taban_kalinlik"],
@@ -137,7 +142,10 @@ def yerlesim(g, S, H, tavan, taban):
         #  ── MAKİNE ŞASESİ ve MAKİNE ────────────────────────────────────
         yakin_ray = kabin_raylari[0] if sol else kabin_raylari[-1]
         uzak_ray = kabin_raylari[-1] if sol else kabin_raylari[0]
-        z_ust = tavan - S["makine_tepe_boslugu"]
+        #  Duvardan duvara kirişte makine kirişlerin üstünde, tavana yakın
+        #  ( 12495-18 );  raylara oturan makinede tavanın 250 altında.
+        z_ust = tavan - (S["duvar_kirisi_tepe_boslugu"] if KU.get("duvardan_duvara")
+                         else S["makine_tepe_boslugu"])
         zs = z_ust - S["makine_kapak_yukseklik"] - S["makine_en"]      # şase üstü
         sase = KU["sase"] + (zs - KU["yan_yatak"]["h"], zs)            # plandaki yeri kuyu_ustu'dan
         kx0, ky0, kx1, ky1 = KU["kasnak"]

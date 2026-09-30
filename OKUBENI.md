@@ -115,9 +115,10 @@ kurulamıyorsa bölüm 11 **HESAP EKSİK** der ve sebebini yazar.
 | 2:1 kabin altı, ağırlık yanda | ✓ | ✓ |
 | 2:1 kabin üstü, ağırlık yanda | ✓ | ✓ ( varsayılan kasnak arasıyla dişli makine plakada üst bağlantılarla çakışabilir — çizim reddeder, söyler ) |
 | 1:1, ağırlık yanda ya da arkada | ✗ reddedilir | ✓ |
-| 2:1, ağırlık arkada | ✗ reddedilir | ✗ reddedilir |
+| 2:1 kabin üstü, ağırlık arkada ( çapraz kasnaklar ) | ✓ | ✓ |
+| 2:1 kabin altı, ağırlık arkada | ✗ reddedilir | ✗ reddedilir |
 
-- **Kabin üstü 2:1:**  iki kasnak kabin şasesinin üst kirişinin üstünde;
+- **Kabin üstü 2:1, ağırlık yanda:**  iki kasnak kabin şasesinin üst kirişinin üstünde;
   kasnağın alt ucu kirişten 30 mm yukarıda ( `kabin_ustu_kasnak_boslugu` —
   ÇİZİM KABULÜ, tedarikçi ölçüsü gelince değişir ).  Bölüm 11'de kasnağın
   tepesi ile kuyu tavanı arası ayrı satırdır ( m.5.2.5.7.2 a:  ≥ 0,50 m ).
@@ -143,7 +144,18 @@ kurulamıyorsa bölüm 11 **HESAP EKSİK** der ve sebebini yazar.
   levhası, tahrik kasnağının iki yanında simetrik ( her birine F / 2;
   referans projede kasnak kirişlerin dışında taşkındı ) — hesabın L'si kuyu
   derinliği, X tahrik kasnağının merkezi.  Makine ve kirişler kabinin
-  üstündedir:  daha yüksek son kat ister ( 1.100 × 1.100 kabinde 4.700 ).
+  üstündedir.  Kasnaklar kabin tavanına oturur ( alt uçları tavanın 80
+  üstünde, `kabin_tavani_kasnak_boslugu`;  12495-18'de kabin tepesi 2.000,
+  Ø 240 kasnaklar 2.080 – 2.320, 1275'te de öyle ) — aralarındaki halat
+  şasenin üst kirişinin altından geçer.  Makinenin tepesi tavanın 50 altında
+  ( `duvar_kirisi_tepe_boslugu`;  12495-18:  makine 3.750 – 4.150, UPN 100
+  kiriş 3.650 – 3.750 );  raylara oturan makinede 250 kalır.  Son kat:
+  1.100 × 1.100 kabinde, kabin 2.200 ile 4.470, kabin 2.000 ile 4.300.  Sınırı
+  arkadaki 1,10 m'lik korkuluk koyar ( kabin – arka duvar 0,50 m'den fazla;
+  küpeşte ile kiriş arası ≥ 0,30 m, m.5.2.5.7.2 c ).  LiftDesigner 12495-18'i
+  4.200 ile çiziyor ama korkuluğu denetlemiyor:  kendi ölçüleriyle ( kabin
+  tepesi 2.000, kirişin altı 3.650 ) bizim 275 mm yükselmemizle küpeşte
+  kirişe 275 mm kalır.
   Standart kabinlerde kuyu kabinden 700 derin olunca çizilir ( 450'de ağırlık
   kabinin arkasına sığmaz ).
 - **Reddedilenler** ( `kuyu_ustu.duzen_hatalari`;  kesitteki öteki hatalardan
@@ -279,7 +291,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( girdiler oynatılarak ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/` | 296 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1 ) |
+| `testler/` | 299 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1 ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 
