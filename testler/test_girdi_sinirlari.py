@@ -23,7 +23,7 @@ class GirdiSinirlari(unittest.TestCase):
         for duzen in CG.ASKI_DUZENLERI:
             g = copy.deepcopy(CG.ORNEK)
             g['aski'].update(duzen=duzen, nokta_arasi=450)
-            S = CS.sabitler()
+            S = CS.sabitler(g.get('_cizim_sabitleri'))
             alan = 'nokta_kaciklik' if duzen == 'Doğrudan' else 'kasnak_kaciklik'
             yari = 45 if duzen == 'Doğrudan' else S['kabin_kasnak_genislik'] / 2
             merkez = g['kabin']['on_pay'] + (g['kabin']['derinlik'] + S['kabin_pano_arka']) / 2

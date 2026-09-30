@@ -760,9 +760,10 @@ def calistir():
     else:
         #  BİRLEŞİK PROGRAM:  paket ÇİZİMLERLE iner ( çizim modülü, ../cizim ).
         #  Paketin içeriği çizilebilen bir asansörle denetlenir:  örnek projenin
-        #  girdisi ( ../ornekler/hesap_girdi — referans proje ).  Son katı 3.750
+        #  girdisi ( ../ornekler/hesap_girdi — referans proje ).  Son katı 3.200
         #  olan asansör çizilemez ( kuyu üstü yetmiyor:  üst paten kuyu tavanına
-        #  giriyor ):  paket inmez, sebebi söylenir.
+        #  giriyor — ofisin kabiniyle 3.750'de yalnız korkuluk kalıyor ):  paket
+        #  inmez, sebebi söylenir.
         _orn = os.path.join(os.path.dirname(KOK), "ornekler")
         if _orn not in sys.path:
             sys.path.append(_orn)
@@ -772,7 +773,7 @@ def calistir():
                                           "proje_dosyasi": {"__mod": "uygulama",
                                                             "alanlar": {}}})
         _r20 = _API20.indir_uygulama_dwg({"girdiler": dict(TAM, sarilma_acisi=180,
-                                                           son_kat_yuksekligi=3750),
+                                                           son_kat_yuksekligi=3200),
                                           "proje_dosyasi": {"__mod": "uygulama",
                                                             "alanlar": {}}})
         r.kontrol("⑳ çizimi kurulamayan girdide paket inmez, sebebi söylenir",

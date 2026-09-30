@@ -200,8 +200,8 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     el = []
     B.kutu(el, "KONSOL", kol, gr["kol"][2], gr["kol"][3], "gergi_kolu")
     gruplar.append((kol, el))
-    ge = S["gergi_agirlik_yakin"] - S["gergi_agirlik_uzak"]          # < 0:  ağırlığın eni
-    agr = (rgx + ge / 2.0, gr["agirlik"][0], rgx - ge / 2.0, gr["agirlik"][1])
+    ge = S["gergi_agirlik_eni"]                   # duvara dik eni
+    agr = (rgx - ge / 2.0, gr["agirlik"][0], rgx + ge / 2.0, gr["agirlik"][1])
     el = []
     B.kutu(el, "MAKINE", agr, gr["agirlik"][2], gr["agirlik"][3], "gergi_agirligi")
     gruplar.append((agr, el))

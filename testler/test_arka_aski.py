@@ -133,8 +133,9 @@ class Dusey(unittest.TestCase):
         Y = CDY.yerlesim(g)
         ust, Rk = Y["ust"], g["aski"]["kasnak_capi"] / 2.0
         self.assertAlmostEqual(ust["kasnak_merkez"] - Rk, ust["tavan"] + S["kabin_tavani_kasnak_boslugu"])
-        #  Kasnaklar şasenin üst kirişinin altında:  aralarındaki halat da
-        self.assertLess(ust["kasnak_merkez"] + Rk, ust["sase_ust"])
+        #  Kasnaklar arasındaki halat ( kasnakların altı ) üst patenin altından
+        #  geçer ( LiftDesigner:  kasnaklar 2.080 – 2.320, üst paten 2.200 – 2.340 )
+        self.assertLess(ust["kasnak_merkez"] - Rk, ust["ust_paten_alt"])
 
     def test_makine_tavana_yakin(self):
         _A, g, S = _cizim()
@@ -148,9 +149,9 @@ class Dusey(unittest.TestCase):
         self.assertAlmostEqual(M["kapak"][5], M["tavan"] - S["makine_tepe_boslugu"])
 
     def test_son_kat(self):
-        #  1.100 × 1.100, kabin 2.200:  4.400'de yalnız arkadaki 1,10 m'lik
-        #  korkuluk kirişe yakın ( m.5.2.5.7.2 c ), 4.470'te hepsi uygun.
-        for son_kat, kalan in ((4400, ["korkuluk"]), (4470, [])):
+        #  1.100 × 1.100, ofisin kabini ( 2.000 ):  4.260'ta yalnız arkadaki 1,10
+        #  m'lik korkuluk kirişe yakın ( m.5.2.5.7.2 c ), 4.270'te hepsi uygun.
+        for son_kat, kalan in ((4260, ["korkuluk"]), (4270, [])):
             _A, g, _S = _cizim(son_kat_yuksekligi=son_kat)
             Y = CDY.yerlesim(g)
             self.assertEqual([k for k, v in Y["ust_aciklik"].items() if v[0] < v[1] - 1e-9], kalan, son_kat)

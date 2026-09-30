@@ -291,7 +291,7 @@ def gergi_parcalari(g, S, kasnak):
         yon = -yon
     agirlik_y = sorted((gy + yon * S["gergi_agirlik_yakin"],
                         gy + yon * S["gergi_agirlik_uzak"]))
-    en = S["gergi_agirlik_uzak"] - S["gergi_agirlik_yakin"]
+    en = S["gergi_agirlik_eni"]                   # duvara dik:  kasnak düzlemine ortalı
     # Yön ters dönse de kolun zarfı kasnak milini ve raydaki mesnedi içerir.
     kol_y = (min(ry - S["gergi_kol_ray"], gy, gy + yon * S["gergi_kol_uc"]),
              max(ry + S["gergi_kol_ray"], gy, gy + yon * S["gergi_kol_uc"]))

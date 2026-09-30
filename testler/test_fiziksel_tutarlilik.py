@@ -84,9 +84,14 @@ class FizikselTutarlilik(unittest.TestCase):
         Y = D.yerlesim(_ornek(kuyu_dibi={'regulator_kaciklik': -780}))
         self.assertEqual(Y['hata'], [])
         self.assertGreater(Y['gergi_donanim']['agirlik'][1], Y['gergi'][1])
-        #  Kabin 15 mm sağa kayınca ray ve gergi de kayar:  ağırlık yan duvara 19 mm —
-        #  yön değiştirmek kurtarmaz, reddedilir
-        self.assertTrue(any('duvara 19 mm' in h for h in D.dogrula(_ornek(kabin={'kaciklik_y': 145}))))
+        #  Ağırlığın duvara dik eni katalogdan ( ASPAR 25 kg:  82 ), kasnak düzlemine
+        #  ortalı — eskiden boyuyla aynı 160 sayılıyordu
+        self.assertEqual(S['gergi_agirlik_eni'], 82)
+        k = D.yerlesim(_ornek())['gergi_donanim']['agirlik']
+        self.assertEqual(k[2] - k[0], 82)
+        #  Kabin 54 mm sağa kayınca ray ve gergi de kayar:  ağırlık yan duvara 19 mm —
+        #  yön değiştirmek kurtarmaz, reddedilir ( 160'lık ağırlıkta 15 mm yetiyordu )
+        self.assertTrue(any('duvara 19 mm' in h for h in D.dogrula(_ornek(kabin={'kaciklik_y': 184}))))
         kabul = 0
         for kac in range(-900, 901, 20):
             g = _ornek(kuyu_dibi={'regulator_kaciklik': kac})

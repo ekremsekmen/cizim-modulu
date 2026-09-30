@@ -11,6 +11,8 @@ hesap ile çizim aynı sayıyı kullanır, referans projenin ikisi ise çelişiy
   aski_kaciklik_x     boş   çizimden:  halatlar ağırlık kasnağının kabine yakın
                             teğetinden iner, askı ray ekseninin 250 önünde ( −250 );
                             referans hesabı 0 alır ( askı ray ekseninde )."""
+from cizim import sabitler as _CS   # noqa: E402
+
 ASANSOR = {
     "asansor_adi": "ASANSÖR 1",
     "asansor_tipi": "İnsan asansörü",
@@ -73,8 +75,13 @@ ASANSOR = {
     "kabin_kasnak_capi": 240, "kabin_kasnak_arasi": 1380,
     "agirlik_tampon_boyu": 618, "regulator_kaciklik": 280,
 }
-#  Ofis standardı ( Sabitler sekmesi ):  referans projenin kabulleri
-SABITLER = {"q_denge": 0.50, "kanal_gama_v": 38}
+#  Ofis standardı ( Sabitler sekmesi ):  referans projenin kabulleri ve KABİNİ.
+#  Programın ofis standardı ofisin kendi ( LiftDesigner ) kabinidir ( 5. adım,
+#  cizim/sabitler.py );  referans projenin kabini onun "Cabin at Bottom / Top
+#  Floor" kesitlerinden ölçülmüştü ( 1/30 ):  şase alt kirişinin altı −480,
+#  paten onun ortasında, taban 120, fren bloğu platformun altında 350, kabin
+#  kasnağı merkezi −295 ( genişliği 92 ), yan pano 45, arka 33.
+SABITLER = {"q_denge": 0.50, "kanal_gama_v": 38, **_CS.REFERANS_PROJE_KABINI}
 ORTAK = {"mk_yok": True}
 
 #  ── MAKİNE DAİRELİ, DİŞLİ MAKİNELİ ÇEŞİT ─────────────────────────────────

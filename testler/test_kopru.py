@@ -77,8 +77,9 @@ class OrnekProjeler(unittest.TestCase):
             for g_ in (g, beklenen):
                 g_["kuyu_dibi"].pop("kuvvetler", None)
                 g_["makine"].pop("saptirma_kasnak_capi", None)
-            #  Hesabın Sabitler sekmesindeki kabin ölçüleri:  örnekte değişmedi
-            self.assertEqual(g.pop("_cizim_sabitleri"), {})
+            #  Hesabın Sabitler sekmesindeki kabin ölçüleri:  örnek referans
+            #  projenin kabiniyle ( elle kurulan girdi de onu taşır )
+            self.assertEqual(g.pop("_cizim_sabitleri"), beklenen.pop("_cizim_sabitleri"))
             self.assertEqual(json.loads(json.dumps(g)), json.loads(json.dumps(beklenen)))
 
     def test_kuvvetler_hesabin_sonucundan(self):
@@ -287,7 +288,7 @@ class Bolum11CizimdenOlculur(unittest.TestCase):
         v["sabitler"]["sase_alt_derinlik"] = 500
         ((g, hata),), s, _a = _kur(v)
         self.assertEqual(hata, [])
-        self.assertEqual(g["_cizim_sabitleri"], {"sase_alt_derinlik": 500.0})
+        self.assertEqual(g["_cizim_sabitleri"]["sase_alt_derinlik"], 500.0)
         self.assertEqual(s["asansorler"][0]["girdi"]["kabin_tampon_baba"], 286)
         ((g0, _h),), s0, _a = _kur(_veri())
         a0, a1 = s0["asansorler"][0]["ara"], s["asansorler"][0]["ara"]

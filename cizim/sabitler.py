@@ -34,10 +34,12 @@ SABIT = {
     "paten_boy": 100,             # ray ekseni boyunca
 
     #  ── KABİN ────────────────────────────────────────────────────────
-    "kabin_pano_yan": 45,         # kabin yan panosu kalınlığı
-    "kabin_pano_arka": 33,
+    #  Kabin panoları ( ofisin kabini:  LiftDesigner PLW = CW + 30, arka 20 —
+    #  referans projede 45 · 33 )
+    "kabin_pano_yan": 15,         # kabin yan panosu kalınlığı
+    "kabin_pano_arka": 20,
     "sase_dikme": 30,             # şase dikmesinin plandaki kalınlığı
-    "kabin_kasnak_genislik": 92,  # 2:1 askıda kabin kasnağının genişliği
+    "kabin_kasnak_genislik": 75,  # 2:1 askıda kabin kasnağının genişliği ( ofisin kabini, 1250 KG )
 
     #  ── KAPI ─────────────────────────────────────────────────────────
     #  referans projenin kuyu planı vektörlerinden ( 1/20 ) ve "Door Detail 1/35"
@@ -106,17 +108,24 @@ SABIT = {
     "acil_pano_en": 400, "acil_pano_derinlik": 300,
 
     #  ── KABİNİN DÜŞEY ÖLÇÜLERİ ( döşemeden, mm ) ──────────────────────
-    #  referans projenin "Cabin at Bottom / Top Floor" kesitlerinin vektör
-    #  geometrisinden ölçüldü ( 1/30 ):  iç yükseklik 2.250, tavan 60 →
-    #  tavan üstü 2.310;  taban 20 + 100;  şase alt kirişinin altı −480,
-    #  üst kirişin üstü −480 + paten arası ( 3.300 ) = 2.820;  paten 140;
-    #  fren bloğu platformun altında 350;  kabin kasnağı merkezi −295.
+    #  OFİSİN KABİNİ ( kullanıcı kararı 30 Eyl — 5. adım ):  ofisin altı
+    #  LiftDesigner projesinin hepsinde aynı kabin ( 1022 · 12495-18 · 1250 KG ·
+    #  1275 · 4815-6 · 800 KG;  kuyu dibi ve tepe kesitleri 1/20, en alt ve en
+    #  üst durakta ):  kabin 2.000 ( CH ), platformun altı −50, alt paten −220 /
+    #  −80 ( merkezi −150 ), en alt parça ( fren bloğu, tamponun çarptığı
+    #  yer ) −320, üst paten 2.200 / 2.340 ( merkezi 2.270:  paten arası
+    #  2.420 ), tampon tepesi −465 ( çarpma arası ~150 );  kabin altı kasnak
+    #  ( 1250 KG, Ø 320 ) −265 / −585, genişliği 75.  Tavan kalınlığı 60
+    #  ÇİZİM KABULÜ:  LiftDesigner kabini 2.000'de tek çizgiyle bitirir.
+    #  Referans projenin kabini ( 480 · 120 · 350 · 295, paten ortada ):
+    #  ornekler/hesap_girdi.SABITLER.
     "kabin_tavan_kalinlik": 60,
-    "kabin_taban_kalinlik": 120,
-    "sase_alt_derinlik": 480,       # döşemeden şase alt kirişinin altına
+    "kabin_taban_kalinlik": 50,
+    "sase_alt_derinlik": 320,       # döşemeden şasenin en alt parçasına ( tampon buraya çarpar )
+    "alt_paten_payi": 170,          # şasenin altından alt patenin merkezine
     "paten_yukseklik": 140,
-    "fren_blogu_yukseklik": 350,
-    "kabin_kasnak_derinlik": 295,   # döşemeden kabin kasnağının merkezine
+    "fren_blogu_yukseklik": 270,
+    "kabin_kasnak_derinlik": 425,   # döşemeden kabin kasnağının merkezine
     #  KABİN ÜSTÜ ASKI ( 2:1, ağırlık yanda ):  kasnaklar şasenin üst kirişinin
     #  üstünde;  alt uçları kirişin bu kadar üstünde.  ÇİZİM KABULÜ — referans
     #  projede ve LiftDesigner örneklerinde yandaki ağırlıkla kabin üstü askı
@@ -195,6 +204,14 @@ SABIT = {
     "gergi_kol_alt": 500, "gergi_kol_yukseklik": 40, "gergi_kol_ray": 80, "gergi_kol_uc": 360,
     "gergi_agirlik_alt": 390, "gergi_agirlik_yukseklik": 175,
     "gergi_agirlik_yakin": 220, "gergi_agirlik_uzak": 380,
+    #  Ağırlığın planda duvara dik ENİ ( kasnak düzlemine ortalı ):  referans
+    #  proje vermiyor ( yalnız 35 kg, A 300, B 150 ve yan kesit ).  Eskiden
+    #  boyuyla aynı 160 sayılıyordu — hiçbir gerçek gergi o kalınlıkta değil;
+    #  ray duvara 35 – 45 mm olan kuyularda ağırlık duvarı aşıyordu ( 1022 ).
+    #  ASPAR / Akşöz OSG-A/B kılavuzu:  gergiler kabin rayına tırnakla bağlanır,
+    #  tabandan ~450;  25 kg ağırlık 296 × 150 × 82 kasnak düzleminde asılı
+    #  ( s. 13 ), gövde 103;  12 kg 2 × 53;  yaylı 108 – 133 ( s. 10 – 12 ).
+    "gergi_agirlik_eni": 82,
 
     #  ── KARŞI AĞIRLIK ( düşey ) ──────────────────────────────────────
     #  referans proje "Counterweight Sits on Buffer" ( 1/30 ):  çerçeve alt kirişin
@@ -281,6 +298,7 @@ ETIKET = {
     "paten_yukseklik": "Kabin pateninin yüksekliği",
     "fren_blogu_yukseklik": "Fren bloğunun yüksekliği",
     "kabin_kasnak_derinlik": "Kabin döşemesinden kabin kasnağı merkezine",
+    "alt_paten_payi": "Şasenin altından alt patenin merkezine",
     "kabin_ustu_kasnak_boslugu": "Kabin üstü kasnağının kirişten boşluğu",
     "kabin_tavani_kasnak_boslugu": "Çapraz kabin kasnağının kabin tavanından boşluğu",
     "sase_dikme_derinlik": "Kabin şasesi dikmesinin kesitteki eni",
@@ -315,6 +333,7 @@ ETIKET = {
     "gergi_agirlik_yukseklik": "Gergi ağırlığının yüksekliği",
     "gergi_agirlik_yakin": "Gergi ağırlığının kasnağa yakın ucu",
     "gergi_agirlik_uzak": "Gergi ağırlığının kasnağa uzak ucu",
+    "gergi_agirlik_eni": "Gergi ağırlığının planda duvara dik eni",
     "agirlik_kasnak_ust": "Ağırlık kasnağı merkezinin üst kirişten derinliği",
     "agirlik_kiris": "Karşı ağırlık kirişinin kalınlığı",
     "konsol_ilk": "Kuyu tabanından ilk ray konsolunun üstüne",
@@ -325,6 +344,18 @@ ETIKET = {
     "kapi_ust_payi": "Kapı boşluğunun kapıdan yüksekliği",
     "esik_kalinlik": "Eşik kalınlığı",
 }
+
+
+#  REFERANS PROJENİN KABİNİ:  programın ofis standardı ofisin kendi kabinidir
+#  ( yukarıda, LiftDesigner projeleri );  referans projenin örnekleri ( cizim/
+#  girdi.ORNEK, ornekler/hesap_girdi ) kendi kabinleriyle çizilir.  Onun "Cabin
+#  at Bottom / Top Floor" kesitlerinden ( 1/30 ):  şase alt kirişinin altı −480,
+#  paten onun ortasında, taban 20 + 100, fren bloğu platformun altında 350,
+#  kabin kasnağı merkezi −295 ( genişliği 92 );  planda yan pano 45, arka 33.
+REFERANS_PROJE_KABINI = {"sase_alt_derinlik": 480, "alt_paten_payi": 0,
+                         "kabin_taban_kalinlik": 120, "fren_blogu_yukseklik": 350,
+                         "kabin_kasnak_derinlik": 295, "kabin_kasnak_genislik": 92,
+                         "kabin_pano_yan": 45, "kabin_pano_arka": 33}
 
 
 #  SABİTLER SEKMESİNDEKİ BÖLÜMLER:  ( başlık , açıklama , anahtarlar ).  Her
@@ -340,7 +371,7 @@ BOLUMLER = (
      "durur, karar 2 );  karşı ağırlıkta referans projenin makaralı pateni, aynı iz",
      ("paten_en", "paten_boy", "paten_yukseklik")),
     ("KABİN", "kabinin planı ve düşey ölçüleri — kabin imalatına bağlı, TS EN 81-20 sayısı değildir",
-     ("kabin_pano_yan", "kabin_pano_arka", "sase_dikme", "sase_dikme_derinlik",
+     ("kabin_pano_yan", "kabin_pano_arka", "sase_dikme", "sase_dikme_derinlik", "alt_paten_payi",
       "kabin_taban_kalinlik", "kabin_tavan_kalinlik", "sase_alt_derinlik",
       "fren_blogu_yukseklik", "etek_tahtasi")),
     ("KABİN KASNAKLARI ( 2:1 )", "kabin altında döşemenin altında;  kabin üstünde şasenin üst "
@@ -357,7 +388,7 @@ BOLUMLER = (
      ("tampon_capi", "tampon_taban", "merdiven_eni", "merdiven_derinlik", "gergi_kasnak_eni",
       "gergi_kasnak_merkez", "gergi_kol_alt", "gergi_kol_yukseklik", "gergi_kol_ray",
       "gergi_kol_uc", "gergi_agirlik_alt", "gergi_agirlik_yukseklik", "gergi_agirlik_yakin",
-      "gergi_agirlik_uzak")),
+      "gergi_agirlik_uzak", "gergi_agirlik_eni")),
     ("MAKİNE", "tek bir makinenin ölçüleri ( referans projenin dişlisiz makinesi ) — başka "
      "makinede buradan değiştirilir",
      ("makine_en", "makine_boy", "tahrik_kasnak_kalinlik", "makine_kasnak_boslugu",
@@ -382,7 +413,7 @@ BOLUMLER = (
 SIFIR_OLABILIR = frozenset((
     "ray_sase_icinde", "kabin_rayi_tepe", "kabin_ustu_kasnak_boslugu",
     "kabin_tavani_kasnak_boslugu", "kanat_esik_payi", "kapi_ust_payi", "esik_kalinlik",
-    "bina_duvari", "gergi_kol_ray", "makine_kasnak_boslugu", "tavan_kirisi",
+    "bina_duvari", "gergi_kol_ray", "makine_kasnak_boslugu", "tavan_kirisi", "alt_paten_payi",
     "makine_tepe_boslugu", "duvar_kirisi_tepe_boslugu", "makine_sase_duvar",
     "makine_sase_ray_payi", "agirlik_baglanti_x", "agirlik_baglanti_y", "kabin_baglanti_x",
     "md_cerceve_pay", "halat_delik_payi"))

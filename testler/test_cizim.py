@@ -145,7 +145,7 @@ class PlanGeometrisi(unittest.TestCase):
         """Kabin konsolunun kolu plakaya ve rayın arkasına;  ağırlık konsolunun
         kolu plakaya ve kabin rayının ara kirişine değmeli."""
         from cizim import sabitler as CS
-        S = CS.sabitler()
+        S = CS.sabitler(self.g.get("_cizim_sabitleri"))
         kr, kb, k = self.g["kabin_ray"], self.g["kabin"], self.g["kuyu"]
         kx = k["genislik"] / 2.0 + kb["kaciklik_y"]
         sag_ray_arkasi = round(kx + kr["arasi"] / 2.0 + kr["h"], 3)
@@ -174,7 +174,7 @@ class PlanGeometrisi(unittest.TestCase):
 
     def test_kabin_kasnaklari_girdideki_aralikta(self):
         from cizim import sabitler as CS
-        S = CS.sabitler()
+        S = CS.sabitler(self.g.get("_cizim_sabitleri"))
         kb, k, a = self.g["kabin"], self.g["kuyu"], self.g["aski"]
         kx = k["genislik"] / 2.0 + kb["kaciklik_y"]
         beklenen = {round(kx - a["kasnak_arasi"] / 2.0, 3), round(kx + a["kasnak_arasi"] / 2.0, 3)}
@@ -184,7 +184,7 @@ class PlanGeometrisi(unittest.TestCase):
 
     def test_kapi_kasasi_bosluğun_iki_yaninda(self):
         from cizim import sabitler as CS
-        S = CS.sabitler()
+        S = CS.sabitler(self.g.get("_cizim_sabitleri"))
         kp = self.g["kapi"]
         kasalar = [el for el in _dikdortgenler(self.e, "KAPI")
                    if round(el["g"]) == round(S["kasa_yan"])]
@@ -1154,7 +1154,7 @@ class MakineDairesi(unittest.TestCase):
     def test_delikler_halat_demetine_gore(self):
         g = _ornek()
         Y = CMD.yerlesim(g)
-        a, p = g["aski"], CS_.sabitler()["halat_delik_payi"]
+        a, p = g["aski"], CS_.sabitler(g.get("_cizim_sabitleri"))["halat_delik_payi"]
         demet = (a["halat_adedi"] - 1) * 1.6 * a["halat_capi"] + a["halat_capi"]
         self.assertAlmostEqual(Y["demet"], demet)
         d = dict(Y["delikler"][:4])
@@ -1180,7 +1180,7 @@ class MakineDairesi(unittest.TestCase):
         Y = CMD.yerlesim(g)
         self.assertEqual(Y["hata"], [])
         rd = [d for ad, d in Y["delikler"] if ad == "REGÜLATÖR"]
-        p = CS_.sabitler()["halat_delik_payi"]
+        p = CS_.sabitler(g.get("_cizim_sabitleri"))["halat_delik_payi"]
         e = g["kuyu_dibi"]["regulator_halat_capi"] + 2 * p
         self.assertEqual(e, 66)
         self.assertEqual({(round(d[2] - d[0], 6), round(d[3] - d[1], 6)) for d in rd}, {(e, e)})
@@ -1290,9 +1290,12 @@ class DuseyKesitler(unittest.TestCase):
                          {"siginma": "kuyu tavanı", "paten": "sase", "ray": "ray", "korkuluk": "sase"})
 
     def test_kabin_modeli_tutarli(self):
-        g, S = _ornek(), CS_.sabitler()
+        g = _ornek()
+        S = CS_.sabitler(g.get("_cizim_sabitleri"))
         k = CDU.kabin_kotlari(g["dusey"], S, 0.0)
-        self.assertEqual(k["sase_ust"] - k["sase_alt"], g["dusey"]["kabin_paten_arasi"])
+        #  Paten arası alt patenin merkezinden üst patenin merkezine
+        self.assertEqual(k["sase_ust"] - (k["sase_alt"] + S["alt_paten_payi"]), g["dusey"]["kabin_paten_arasi"])
+        self.assertEqual(k["alt_paten"] + S["paten_yukseklik"] / 2.0, k["sase_alt"] + S["alt_paten_payi"])
         self.assertEqual(k["tavan"], g["dusey"]["kabin_ic_yukseklik"] + S["kabin_tavan_kalinlik"])
         self.assertEqual(k["etek_alti"], -750)                      # m.5.4.5.1
 
@@ -2262,7 +2265,7 @@ class KapiBolgesi(unittest.TestCase):
         #  referans proje:  iç yüzden kapı hattına 150, oradan ray eksenine 1.017,
         #  ray ekseninden arka iç yüze 682 ( 150 + 1.017 + 682 = 1.849 ≈ 1.850 )
         g = _ornek()
-        KB = CG.kapi_bolgesi(g, CS_.sabitler())
+        KB = CG.kapi_bolgesi(g, CS_.sabitler(g.get("_cizim_sabitleri")))
         ry = g["kabin_ray"]["kapi_arasi"]
         self.assertEqual(KB["hat"], 150)
         self.assertEqual(ry - KB["hat"], 1017)

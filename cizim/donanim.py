@@ -48,7 +48,12 @@ def _ortusur(a, b):
 
 
 def kabin_kotlari(dy, S, z, aski=None, tavanda=False):
-    """Döşemesi z kotundaki kabinin parça kotları ( referans proje kabini ).
+    """Döşemesi z kotundaki kabinin parça kotları ( ofisin kabini — Sabitler ).
+
+    Şasenin alt kirişi ( tamponun çarptığı yer ) döşemenin sase_alt_derinlik
+    altında;  alt patenin merkezi onun alt_paten_payi üstünde, üst patenin
+    merkezi alt patenden paten arası ( hesabın h'si ) yukarıda;  şasenin üst
+    kirişi üst patenin hizasında.
 
     aski:  çizim girdisinin askı düzeni — kabin kasnaklarının kotu ona bağlı:
     kabin altında döşemenin kabin_kasnak_derinlik altında, kabin üstünde
@@ -62,7 +67,8 @@ def kabin_kotlari(dy, S, z, aski=None, tavanda=False):
     aski = aski or {}
     tavan = z + dy["kabin_ic_yukseklik"] + S["kabin_tavan_kalinlik"]
     sase_alt = z - S["sase_alt_derinlik"]
-    sase_ust = sase_alt + dy["kabin_paten_arasi"]
+    alt_paten = sase_alt + S["alt_paten_payi"]              # alt patenin merkezi
+    sase_ust = alt_paten + dy["kabin_paten_arasi"]          # üst patenin merkezi
     if aski.get("duzen") == "Kabin üstü":
         kasnak_alti = (tavan + S["kabin_tavani_kasnak_boslugu"] if tavanda
                        else sase_ust + S["kabin_ustu_kasnak_boslugu"])
@@ -72,8 +78,8 @@ def kabin_kotlari(dy, S, z, aski=None, tavanda=False):
     return {"doseme": z, "taban_alti": z - S["kabin_taban_kalinlik"],
             "etek_alti": z - ETEK_BOYU, "fren_alti": z - S["kabin_taban_kalinlik"]
             - S["fren_blogu_yukseklik"], "sase_alt": sase_alt, "sase_ust": sase_ust,
-            "alt_paten": sase_alt - S["paten_yukseklik"] / 2.0,
-            "alt_paten_ust": sase_alt + S["paten_yukseklik"] / 2.0,
+            "alt_paten": alt_paten - S["paten_yukseklik"] / 2.0,
+            "alt_paten_ust": alt_paten + S["paten_yukseklik"] / 2.0,
             "ust_paten_alt": sase_ust - S["paten_yukseklik"] / 2.0,
             "ust_paten": sase_ust + S["paten_yukseklik"] / 2.0,
             "ic_ust": z + dy["kabin_ic_yukseklik"], "tavan": tavan,

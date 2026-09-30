@@ -185,7 +185,7 @@ yapılmaz;  motorun elle doğrulanan örneği kendi değerleriyle ( 150 · 3.000
   şasenin üst kirişinin altından geçer.  Makinenin tepesi tavanın 50 altında
   ( `duvar_kirisi_tepe_boslugu`;  12495-18:  makine 3.750 – 4.150, UPN 100
   kiriş 3.650 – 3.750 );  raylara oturan makinede 250 kalır.  Son kat:
-  1.100 × 1.100 kabinde, kabin 2.200 ile 4.470, kabin 2.000 ile 4.300.  Sınırı
+  1.100 × 1.100 kabinde, ofisin kabiniyle ( 2.000 ) 4.270, kabin 2.200 ile 4.470.  Sınırı
   arkadaki 1,10 m'lik korkuluk koyar ( kabin – arka duvar 0,50 m'den fazla;
   küpeşte ile kiriş arası ≥ 0,30 m, m.5.2.5.7.2 c ).  LiftDesigner 12495-18'i
   4.200 ile çiziyor ama korkuluğu denetlemiyor:  kendi ölçüleriyle ( kabin
@@ -332,7 +332,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( girdiler oynatılarak ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/` | 332 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog ) |
+| `testler/` | 337 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog, `test_gercek_projeler.py` — ofisin altı gerçek projesi ( veri `gercek_projeler.py` ) ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 
@@ -387,13 +387,21 @@ Gergi ağırlığının merkezi kasnak merkezinden 300 mm ötededir ( referans p
 hesabı, "A = 300";  ağırlık 160 boyunda:  kasnağın 220 – 380 ötesi ).  Kesitteki
 sembolden 340 ölçülmüştü;  referans projenin 280'lik regülatör kaçıklığında ağırlık
 kuyudan taşıyor, örnek 260'a çekilmişti ( arka duvara 3 mm ).  Örnek yine
-referans projenin 280'i:  `1167 + 280 + 380 = 1827`, duvara 23 mm.  Ağırlık duvarlara
+referans projenin 280'i:  `1167 + 280 + 380 = 1827`, duvara 23 mm.  Ağırlığın
+planda duvara dik ENİ 82, kasnak düzlemine ortalı ( `gergi_agirlik_eni` ):  referans
+proje vermiyor ( yalnız 35 kg, A 300, B 150 ve yan kesit );  eskiden boyuyla aynı
+160 sayılıyordu ve rayları duvara 35 – 45 mm olan 1022'de ağırlık duvarı aşıyordu.
+Gerçek gergiler ( ASPAR / Akşöz OSG-A/B kılavuzu ) kabin rayına tırnakla, tabandan
+~450'de bağlanır ve duvara paralel ince bir dilimdedir:  25 kg ağırlık
+296 × 150 × 82 kasnak düzleminde asılı, gövde 103;  12 kg 2 × 53;  yaylı
+108 – 133.  Ağırlık duvarlara
 en az çizimin çakışma payı ( `girdi.ASGARI_ACIKLIK`, 20 ) kadar uzak durur;
 bir yönde sığmazsa kol öbür yöne döner, ikisinde de sığmazsa çizim durur.  Üst
 regülatör aynı girdiyi kullanarak gergi kasnağıyla hizalı kalır.
 
 Patenlerin MERKEZLERİ arası hesap programının paten arasıdır
-( `dusey.kabin_paten_arasi` 3.300, `dusey.agirlik_paten_arasi` 2.920 ):
+( `dusey.kabin_paten_arasi`, `dusey.agirlik_paten_arasi` — varsayılan 2.420 ve
+3.300, referans projenin örneğinde 3.300 ve 2.920 ):
 kabinde şasenin alt ve üst kirişine, karşı ağırlıkta çerçevenin alt ve üst
 ucuna ortalı — iki çerçevenin yüksekliği de hesabın paten arasıdır.  Eskiden
 paten arası şase yüksekliği gibi kullanılıp patenler onun dışına ekleniyordu
@@ -488,7 +496,11 @@ Regülatör gergi kasnağı seçilen yandaki kabin rayının hizasında, ray
 ekseninin arkasında durur ( girdi:  yan, eksene uzaklık, kasnak çapı ).
 Eksene uzaklık boşsa program, gergi kolu ve ağırlığı tampona ya da raya,
 regülatör tepede makineye ya da bağlantılara çarpmayan en yakın yeri seçer;
-girilen değer değiştirilmez ( çarpıyorsa çizim söyler ).
+ağırlık arkadayken yan "karşı ağırlığın karşısı" ise öbür kabin rayını da dener.
+Girilen değer değiştirilmez ( çarpıyorsa çizim söyler ).  Gergi kasnağı en
+alttaki ray konsolunun hizasındadır ( konsol 440 – 500, kasnak 520 ± D/2 ):
+kasnak konsola değiyorsa program onu raydan uzaklaştırır ( 1022:  280'de
+değiyor, 360 ).
 Çizilmeyenler:  kuyu dibi durdurma düğmesi ve revizyon kutusu ( yer kuralları
 m.5.2.1.5.1 — ölçüleri yok ).
 
@@ -579,10 +591,16 @@ tamponunda**, kuyu üstünde **en üst konumunda** ( karşı ağırlık tam ezil
 tamponunda + 0,035·v², m.5.2.5.6.1 Çizelge 2 ) denetlenir.  Kuyu dibi ve kuyu
 üstü ayrıca düşey detay kesitle ÇİZİLMEZ:  ofisin paftalarında ( 477-8,
 12744-3 ) ikisi de yatay kesittir ( kuyu dibi planı E-E, kuyu üstü / makine
-dairesi planı F-F ).  Kabinin düşey ölçüleri referans proje kabininden ölçüldü ( iç 2.250,
-tavan 60, taban 120, şase altı −480, üst kiriş −480 + paten arası, paten 140
-( kirişlere ortalı ),
-fren bloğu 350, kasnak merkezi −295 );  etek 750 ( m.5.4.5.1 ).
+dairesi planı F-F ).  Kabinin düşey ölçüleri **ofisin LiftDesigner kabininden**
+( kullanıcı kararı, 5. adım — altı projenin altısında aynı ):  iç 2.000 ( varsayılan ),
+tavan 60, taban 50, şase altı −320, alt paten merkezi şase altının 170 üstünde
+( `alt_paten_payi`:  −150 ), üst paten merkezi alt patenin paten arası kadar üstünde
+( varsayılan 2.420:  2.270 ), paten 140, fren bloğu 270 ( en alt parça −320 ), kabin
+altı kasnak merkezi −425, eni 75, yan pano 15, arka pano 20;  etek 750
+( m.5.4.5.1 ).  Paten arası 2.420 LiftDesigner'ın;  Has Asansör MRL şase kılavuzunda
+da aralık kabin yüksekliği + 200 – 400.  Referans projenin örneği kendi kabiniyle
+çizilir ( `sabitler.REFERANS_PROJE_KABINI`:  taban 120, şase altı −480, alt paten
+payı 0, fren bloğu 350, kasnak −295 / 92, pano 45 / 33;  iç 2.250, paten arası 3.300 ).
 
 | Açıklık | Madde | En az |
 |---|---|---|
@@ -596,6 +614,11 @@ fren bloğu 350, kasnak merkezi −295 );  etek 750 ( m.5.4.5.1 ).
 | Korkuluk – korkuluğun dışındaki tavan parçası | m.5.2.5.7.2 c 1 | 0,10 m |
 | Kabin üst pateni – rayın üst ucu ( kabin en üstte ) | m.5.2.5.6.2 | 0,10 m |
 | Karşı ağırlık üst pateni – rayın üst ucu ( ağırlık en üstte ) | m.5.2.5.6.2 | 0,10 m |
+
+Korkuluk açıklığı kenar kenar ölçülür:  her kenarın küpeştesi kendi
+yüksekliğiyle ( 0,70 / 1,10 ) kendi üstündeki en alçak parçaya ( eskiden en
+yüksek korkuluk bütün kenarlara uygulanıyordu;  yan panolar incelince gereken
+0,70'lik yan korkuluklar yanlışlıkla reddediliyordu ).
 
 **"Kuyu tavanının en alt kısmı" tavanın altındaki parçaları da kapsar**
 ( m.5.2.5.7.2 ):  makine dairesizde makine şasesi, kabin ve ağırlık halat
@@ -795,7 +818,28 @@ verilir — yoksa desen paftada 0,1 mm'ye iner, çizgi düz görünürdü.
    üstündeki yeri gelince çizilecek, bölüm 11'in satırı çizimden ölçülecek
    ( bugün kabinin bütün izdüşümüyle, Sabitler'deki 500 yükseklikle ).
    Makaralı kabin pateninin ölçüleri gelince o da çizilecek ( karar 2 ).
-3. 5. adım:  örnekliftler'deki gerçek projeler test olarak.
+3. Elle çizilmiş 800 KG ( yandan ağırlık, makine daireli ):  makine dairesinin
+   ölçüleri gelince gerçek projelere eklenecek.
+
+**Gerçek projeler ( 5. adım,** `testler/test_gercek_projeler.py` **):**
+`~/Desktop/örnekliftler`'deki altı LiftDesigner projesi formdan girilmiş gibi
+programın yolundan geçer;  ölçüler projelerin DWG'lerinden ( AutoCAD'in
+DXFOUT'u, ölçü çarpanıyla ) okundu, eşleme `gercek_projeler.py`'nin başında
+( RK = EE − 20:  LiftDesigner EE'yi kabinin DIŞ önünden ölçer ).  Kullanıcı
+kararı:  denetimler projeye uysun diye değiştirilmez — programın hükmü ve
+sebebi kilitlenir.
+
+| Proje | Düzen | Programın hükmü |
+|---|---|---|
+| 4815-6 | MRL 2:1 kabin altı, ağırlık solda | Çizilir, bölüm 11 uygun;  kabin halatı sol duvardan 415 ( projeyle aynı ) |
+| 1275 | MD 2:1 kabin üstü, ağırlık arkada | Çizilir, uygun;  tahrik kasnağının kabin inişi y 2.230 ( aynı ) |
+| 800 KG | MD 1:1, ağırlık arkada | Çizilir, uygun;  ağırlık deliği y 1.820 ( aynı ), kabininki 10 önde ( LiftDesigner'ın kapı bölgesi 10 derin ) |
+| 1022 | MD 1:1, ağırlık arkada | Çizilir, uygun ( gergi ağırlığının eni düzeltildikten sonra — yukarıda ) |
+| 12495-18 | MRL 2:1 kabin üstü, ağırlık arkada | **Ret:**  arkadaki 1,10 m korkuluk – makine kirişi 230 < 300 ( m.5.2.5.7.2 c;  LiftDesigner denetlemiyor ).  4.270'te çizilir |
+| 1250 KG | MRL 2:1 kabin altı, son kat 3.400 | **Ret:**  sığınma 915 < 1.000, üst paten 50 < 100, ağırlık şaseye çarpar …  ( LiftDesigner'ın kendi kesitinde de üst paten şaseyi 65 aşıyor ) |
+
+Hesabın öbür bölümleri karşılaştırılmaz:  halat, motor, sarılma açısı
+LiftDesigner'ın veri bloğunda yok, varsayılanla hesaplanır.
 
 ( Köprü ve hesap paftalarıyla çizimlerin aynı şeritte birleşmesi yapıldı —
 yukarıda "Hesap ile çizimin bağlantısı".  RK ile çizimin ray ekseni:  kapi_arasi

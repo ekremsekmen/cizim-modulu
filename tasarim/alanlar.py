@@ -229,7 +229,9 @@ _GRUPLAR = (
           bilgi=('Kapıya bakana göre kabin ekseninin kuyu genişliğinin ortasından uzaklığı. Karşı '
                  'ağırlık yandaysa kabin çoğunlukla öbür yana kaçar.  Kabin rayları ve kat kapısı '
                  'kabinle birlikte kayar.')),
-        A('kabin_ic_yuksekligi', 'Kabin iç yüksekliği', 'mm', 'sayi', None, 2200,
+        #  2.000:  ofisin kabini ( altı LiftDesigner projesinin hepsinde CH 2.000 —
+        #  kullanıcı kararı 30 Eyl, 5. adım;  eskiden 2.200 ).
+        A('kabin_ic_yuksekligi', 'Kabin iç yüksekliği', 'mm', 'sayi', None, 2000,
           kaynak=GIRDI, sozlesme=CIZ, gelismis=True,
           bilgi='TS EN 81-20 m.5.4.1 en az 2.000 mm.  Düşey kesitlerde kabin bu yükseklikte çizilir.'),
         A('kapi_yuksekligi', 'Kat kapısı yüksekliği', 'mm', 'sayi', None, 2000,
@@ -346,16 +348,20 @@ _GRUPLAR = (
         #  anahtarı yok sayılır, geri yükleme bozulmaz.
         #  PATEN ARASI h  —  ray kuvvetinin PAYDASIDIR ( Fx = … / ( n · h ) ) ve
         #  kuyudaki yığına da girer ( halat boyu, Ç.2 üst açıklığı ).
-        #  Kabin:  eskiden 3.400 — diskteki dört gerçek projenin hepsinden
-        #  büyüktü ( ofis Excel'i makine daireli 3.000 · MRL 3.300 · referans proje
-        #  3.300 · new block 3.200 ).
+        #  Kabin:  2.420 — ofisin kabini ( kullanıcı kararı 30 Eyl, 5. adım ):
+        #  altı LiftDesigner projesinin hepsinde 2.000'lik kabinin patenleri −150
+        #  ve 2.270'te;  Has Asansör'ün kabin şasesi kılavuzunda ( Şekil 1 ) patenler
+        #  alt kirişte ve üst kirişin altında, aralık toplam kabin yüksekliğinin
+        #  200 – 400 mm fazlası.  Ofis Excel'i makine daireli 3.000 · MRL 3.300,
+        #  referans proje 3.300, new block 3.200 kullanıyordu:  büyük h ray
+        #  kuvvetini küçültür ( emniyetsiz yön ).  Eskiden 3.400, sonra 3.300.
         #  Karşı ağırlık:  çerçeve boyu DOLGU MALZEMESİNE bağlıdır.  Gerçek
         #  projeler:  referans proje 1.300 kg → 1.500 mm ( pik döküm ile tutarlı ) ·
         #  new block 1.838 kg → 3.200 mm.  Varsayılan malzeme BARİT:  Türk
         #  piyasasındaki blok 960 × 155 × 120 mm, 50 – 70 kg;  1.200 kg için
         #  dolgu 2.160 – 2.880 mm, travers payıyla ~3.000.  Pik dökümde ~1.500
         #  elle girilir.
-        A('kabin_paten_arasi', 'Kabin paten arası', 'mm', 'sayi', None, 3300,
+        A('kabin_paten_arasi', 'Kabin paten arası', 'mm', 'sayi', None, 2420,
           kaynak=GIRDI, sozlesme=MUK, gelismis=True, pozitif=True, bolen=True,
           bilgi=('h — kabinin üst ve alt patenleri arasındaki DÜŞEY mesafe. Devirici momentin kolu '
                  'budur: büyüdükçe raya gelen yatay kuvvet küçülür.')),

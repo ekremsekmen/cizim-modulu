@@ -20,6 +20,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.uygulama import mukavemet as MK                       # noqa: E402
+from cizim import sabitler as _CS                                   # noqa: E402
 from engine.uygulama import mukavemet_tablolari as MT             # noqa: E402
 from engine.uygulama import sabitler as US                       # noqa: E402
 from testler.ortak import P_std as _P_std, Rapor                          # noqa: E402
@@ -131,7 +132,11 @@ def _yakin(a, b, tol=1e-7):
 #  Karşı ağırlık derinliği 150 ve paten arası 3.000:  örneğin kendi değerleri
 #  ( varsayılanlar karar 11'le 155 ve 3.300 — barit dolgusu sığsın diye ).
 ORNEK_GIRDI = {"tabliye_yuksekligi": 750, "yan_yatak": 120, "son_kat_yuksekligi": 3750,
-               "agirlik_derinligi": 150, "agirlik_paten_arasi": 3000}
+               "agirlik_derinligi": 150, "agirlik_paten_arasi": 3000,
+               #  5. adım:  ofisin kabini varsayılan oldu ( paten arası 2.420, kabin
+               #  2.000, şase altı 320 … );  örnek referans projenin kabiniyle
+               "kabin_paten_arasi": 3300, "kabin_ic_yuksekligi": 2200,
+               "_ofis": dict(_CS.REFERANS_PROJE_KABINI)}
 
 
 def calistir():

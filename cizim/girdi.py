@@ -14,6 +14,8 @@ EKSEN DÜZENİ  ( plan )
 
 import math
 
+from cizim import sabitler as _CS
+
 
 def _sonlu_sayi(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
@@ -122,7 +124,6 @@ def dogrula(g):
     if hata:
         return hata
     #  GEOMETRİ TUTARLILIĞI — çizim kâğıda sığsın, parçalar çakışmasın.
-    from cizim import sabitler as _CS
     S = _CS.sabitler(g.get("_cizim_sabitleri"))
     k, kb, kp = g["kuyu"], g["kabin"], g["kapi"]
     if kb["genislik"] >= k["genislik"]:
@@ -368,4 +369,6 @@ ORNEK = {
                        #  boyu, döşemeden kaidenin üstüne ) ve dikine kiriş NPU'su.
                        #  Yan yatakların mesnet aralığı çizimden ( kaide makineyi sarar ).
                        "tabliye_yuksekligi": 1200, "sase_yuksekligi": 1100, "dikine_kiris": 120},
+    #  Referans projenin kabini ( programın ofis standardı ofisin kendi kabini )
+    "_cizim_sabitleri": dict(_CS.REFERANS_PROJE_KABINI),
 }

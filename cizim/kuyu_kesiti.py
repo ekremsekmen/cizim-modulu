@@ -131,7 +131,7 @@ def kuyu_dibi_seviyesi(g, Y):
     gergi ve tamponlar planda görünsün — ikisinin ortası.  Konsol kabinin
     altına sığmıyorsa kuyu tabanıyla kabinin ortası."""
     kt = CDN.kabin_kotlari(g["dusey"], Y["S"], Y["kotlar"][0], g.get("aski"), CAA.arkada_iki_bir(g))
-    kabin_alti = min(kt["etek_alti"], kt["alt_paten"], kt["fren_alti"])
+    kabin_alti = min(kt["etek_alti"], kt["sase_alt"], kt["alt_paten"], kt["fren_alti"])
     if Y["kasnaklar"]:
         kabin_alti = min(kabin_alti, kt["kasnak_merkez"] - Y["kasnak_capi"] / 2.0)
     konsol = max((r["konsollar"][0] for r in Y["M"]["raylar"] if r["konsollar"]), default=Y["taban"])
@@ -490,5 +490,5 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     #  Kırık:  altta karşı ağırlık, üstte kabin ( etek, fren bloğu, paten ) kalmalı
     return _bitir(e, g, Y, kt, K, max(AK["ust"], AK["ust_paten"],
                                       AK["kasnak_merkez"] + (g["agirlik"].get("kasnak_capi") or 0) / 2.0),
-                  min(kt["etek_alti"], kt["alt_paten"], kt["fren_alti"]),
+                  min(kt["etek_alti"], kt["sase_alt"], kt["alt_paten"], kt["fren_alti"]),
                   kapi_h + S["kapi_ust_payi"], (-dg, G + ds), azami)

@@ -91,13 +91,17 @@ class StandartAsansorler(unittest.TestCase):
     def test_kabin_ustu_askiya_yuksek_son_kat_gerekir(self):
         #  Kabin tepede:  tavandaki kasnak, kabinin öbür halatının kuyu tavanındaki
         #  bağlantısının altına gelir ( 645 sarkar );  aralarında en az 0,50 m
-        #  ( m.5.2.5.7.2 a ) — 4.200'lük son kat yetmez, 4.600 yeter.
+        #  ( m.5.2.5.7.2 a ).  Ofisin kabiniyle ( şase 2.420, kabin 2.000 — 5. adım )
+        #  varsayılan 4.200 yeter, 4.000'de de çizilir;  3.950'de sığınma
+        #  yüksekliği ya da kasnak – tavan açıklığı kalır.  Referans projenin
+        #  kabiniyle ( şase 3.300 ) 4.600 gerekiyordu.
         for Q in (450, 1000, 2500):
-            d = _cizim(_veri(Q, aski_duzeni="Kabin üstü"))
-            self.assertTrue(any("Kabin üstü kasnağı" in h and "m.5.2.5.7.2 a" in h
-                                for h in d.get("hata") or []), (Q, d.get("hata")))
+            self.assertTrue(_cizim(_veri(Q, aski_duzeni="Kabin üstü")).get("aktif"), Q)
             self.assertTrue(_cizim(_veri(Q, aski_duzeni="Kabin üstü",
-                                         son_kat_yuksekligi=4600)).get("aktif"), Q)
+                                         son_kat_yuksekligi=4000)).get("aktif"), Q)
+            d = _cizim(_veri(Q, aski_duzeni="Kabin üstü", son_kat_yuksekligi=3950))
+            self.assertTrue(any("m.5.2.5.7.1" in h or "m.5.2.5.7.2 a" in h
+                                for h in d.get("hata") or []), (Q, d.get("hata")))
 
 
 class SiginmaAlani(unittest.TestCase):

@@ -115,11 +115,6 @@ def durak_kotlari(g, cizim_sabitleri=None):
     return kotlar, hata
 
 
-def _korkuluk_cizgileri(KU):
-    """Gerekli korkulukların plandaki çizgileri ( ince kutu )."""
-    return [k for k, _ in CKU.korkuluklar(KU)]
-
-
 kabin_kotlari = CDN.kabin_kotlari
 
 
@@ -190,7 +185,7 @@ def yerlesim(g, cizim_sabitleri=None):
                     "m.5.2.5.8.1 · Çizelge 4"),
         "en_alt": (en_alt - taban, DIP_EN_ALT, "m.5.2.5.8.2 a"),
         "etek": (dip["etek_alti"] - taban, DIP_ETEK, "m.5.2.5.8.2 a 1"),
-        "sase": (min(dip["alt_paten"], dip["fren_alti"]) - taban, DIP_RAYA_YAKIN,
+        "sase": (min(dip["sase_alt"], dip["alt_paten"], dip["fren_alti"]) - taban, DIP_RAYA_YAKIN,
                  "m.5.2.5.8.2 a 2 · Şekil 7"),
     }
 
@@ -247,16 +242,20 @@ def yerlesim(g, cizim_sabitleri=None):
         ust_aciklik["baglanti"] = (bg_engel[0] - ust["baglanti_ust"], UST_PATEN, "m.5.2.5.7.2 b")
     if korkuluk:
         #  Korkuluğun 0,40 m yakınındaki tavan parçaları:  kabin izdüşümündeyse
-        #  0,30, dışındaysa 0,10  ( m.5.2.5.7.2 c 1 )
-        k_ust = ust["tavan"] + korkuluk
-        adaylar = [(tavan_alti, "kuyu tavanı", UST_KORKULUK)]
-        for kenar in _korkuluk_cizgileri(KU):
+        #  0,30, dışındaysa 0,10  ( m.5.2.5.7.2 c 1 ).  Her kenar kendi
+        #  korkuluğunun yüksekliğiyle ( yan 0,70 · arka 1,10 olabilir — m.5.4.7.4
+        #  b );  kuyu tavanı en yüksek korkuluğa.  Eskiden hepsine en yüksek
+        #  korkuluk uygulanıyordu:  0,70'lik yan korkuluğun üstündeki halat
+        #  bağlantısı 1,10'luk korkulukla ölçülüyordu.
+        adaylar = [(tavan_alti, "kuyu tavanı", UST_KORKULUK, ust["tavan"] + korkuluk)]
+        for kenar, yuk in CKU.korkuluklar(KU):
             bolge = genislet(kenar, YATAY_UZAKLIK)
             for ad, p, z in M["parcalar"]:
                 if CDN._ortusur(p, bolge):
                     icinde = CDN._ortusur(p, kabin_izi)
-                    adaylar.append((z - H, ad, UST_KORKULUK if icinde else UST_KORKULUK_DIS))
-        z, ad, asgari = min(adaylar, key=lambda a: a[0] - k_ust - a[2])
+                    adaylar.append((z - H, ad, UST_KORKULUK if icinde else UST_KORKULUK_DIS,
+                                    ust["tavan"] + yuk))
+        z, ad, asgari, k_ust = min(adaylar, key=lambda a: a[0] - a[3] - a[2])
         ust_engel["korkuluk"] = (z, ad)
         ust_aciklik["korkuluk"] = (z - k_ust, asgari, "m.5.2.5.7.2 c")
     #  Karşı ağırlık en üst konumunda:  kabin tam ezilmiş tamponunda + 0,035·v²

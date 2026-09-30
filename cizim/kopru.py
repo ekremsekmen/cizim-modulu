@@ -327,6 +327,9 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
                 "kasnak_kaciklik": aski_y - kabin_merkez}
     aski.update(halat_adedi=halat_n, halat_capi=halat_d)
 
+    #  Ağırlık arkadayken "karşı ağırlığın karşısı" bir yan söylemez:  önce sağ,
+    #  gergi orada sığmıyorsa sol ( _regulator_yeri ).
+    reg_yan_serbest = reg_yan == "Karşı ağırlığın karşısı" and ag_yeri == "Arka"
     if reg_yan == "Karşı ağırlığın karşısı":
         reg_yan = "Sol" if ag_yeri == "Sağ" else "Sağ"
     #  Regülatör ile kabin halat bağlantısı aynı rayın başındadır:  boşsa
@@ -425,8 +428,8 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         A_ = CAA.geometri(g, S)
         if "aralik" in A_:
             g["aski"]["kasnak_arasi"] = round(A_["aralik"], 1)
-    if reg_bos:
-        _regulator_yeri(g)
+    if reg_bos or reg_yan_serbest:
+        _regulator_yeri(g, kaciklik_serbest=reg_bos, yan_serbest=reg_yan_serbest)
     return g, []
 
 
@@ -444,22 +447,25 @@ def _kasnak_arasi_sec(g, eski_kural):
         g["aski"]["kasnak_arasi"] = eski_kural
 
 
-def _regulator_yeri(g):
+def _regulator_yeri(g, kaciklik_serbest=True, yan_serbest=False):
     """Regülatör kaçıklığı boşsa:  varsayılan yer ( 280, askı halatlarının
     öbür yanında ) gergiyi bir raya ya da tampona çarptırıyorsa ( sığ kuyuda
     kol döner, ağırlık raya iner — 320 kg kabinlerde ) çarpmayan en yakın yer
-    seçilir:  öbür yan, sonra 200 · 360 · 440.  Hiçbiri çarpmaktan
-    kurtulmuyorsa varsayılan kalır ( çizim hatayı söyler )."""
+    seçilir:  öbür yan, sonra 200 · 360 · 440.  yan_serbest ( ağırlık arkada,
+    "karşı ağırlığın karşısı" ):  ilk ray çarpıyorsa öbür kabin rayı da denenir
+    ( 12495-18:  sağ ray duvara 50 mm, eski 160'lık gergi ağırlığı duvara 7,5
+    kalıyordu;  82'lik ağırlıkla sağ rayın önüne, −280'e iner ).
+    Hiçbiri çarpmaktan kurtulmuyorsa varsayılan kalır ( çizim hatayı söyler )."""
     from cizim import kuyu_dibi as CKD
     from cizim import kuyu_ustu as CKT
     from cizim import makine_dairesi as CMD
     kd = g["kuyu_dibi"]
-    ilk = kd["regulator_kaciklik"]
+    ilk, ilk_yan = kd["regulator_kaciklik"], kd["regulator_yan"]
 
-    def carpisma(c):
+    def carpisma(c, yan=ilk_yan):
         #  Gergi kuyu dibinde, regülatörün kendisi kuyu tepesinde ( ya da
         #  makine dairesinde ):  ikisi de çarpmamalı.
-        kd["regulator_kaciklik"] = c
+        kd["regulator_kaciklik"], kd["regulator_yan"] = c, yan
         try:
             h = list(CKD.yerlesim(g)["hata"])
             h += (CKT.yerlesim(g) if g["makine"]["yeri"] == "Kuyu üstü"
@@ -468,14 +474,16 @@ def _regulator_yeri(g):
             return ["?"]
         return [x for x in h if "egülatör" in x]
 
-    if not carpisma(ilk):
-        return
-    for c in (-ilk, 200.0 * (1 if ilk > 0 else -1), -200.0 * (1 if ilk > 0 else -1),
-              360.0 * (1 if ilk > 0 else -1), -360.0 * (1 if ilk > 0 else -1),
-              440.0 * (1 if ilk > 0 else -1), -440.0 * (1 if ilk > 0 else -1)):
-        if not carpisma(c):
-            return
-    kd["regulator_kaciklik"] = ilk
+    isaret = 1 if ilk > 0 else -1
+    kaciklar = [ilk] + ([-ilk, 200.0 * isaret, -200.0 * isaret, 360.0 * isaret,
+                         -360.0 * isaret, 440.0 * isaret, -440.0 * isaret]
+                        if kaciklik_serbest else [])
+    yanlar = [ilk_yan] + ([("Sol" if ilk_yan == "Sağ" else "Sağ")] if yan_serbest else [])
+    for yan in yanlar:
+        for c in kaciklar:
+            if not carpisma(c, yan):
+                return
+    kd["regulator_kaciklik"], kd["regulator_yan"] = ilk, ilk_yan
 
 
 #  HESABIN ÇİZİMDEN TÜRETİLEN GİRDİLERİ:  hesapta BOŞ bırakılırsa değeri
