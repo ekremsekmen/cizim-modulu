@@ -135,6 +135,11 @@ def api_cizimler(veri: dict = Body(...)):
 #  Oynatma adımı:  1 mm'ye denk gelen değişim;  başka birimlerde değerin binde biri.
 _ADIM = {"mm": 1.0, "m": 0.001, "cm": 0.1, "°": 0.1, "adet": 1.0}
 _ONBELLEK, _KILIT, _ONBELLEK_AZAMI = OrderedDict(), threading.Lock(), 8
+#  Süren çözümlemeler:  ekran, fare çizimin üstüne gelince çözümlemeyi önceden
+#  ister;  o bitmeden ölçüye tıklanınca aynı çözümleme ikinci kez, paralel
+#  yapılıyordu ( ikisi de yarı hızda — tıklama iki kat bekliyordu ).  Şimdi
+#  ikinci istek birincinin bitmesini bekler, sonucu önbellekten alır.
+_SURENLER = {}
 
 
 @functools.lru_cache(maxsize=1)
@@ -175,6 +180,7 @@ def _kurucu(ham, ad, proje_adi, sira):
     sonucu verilmez:  ölçüler ona bağlı değildir ( yalnız yük kutuları )."""
     from engine.uygulama import girdi as E_UGR
     taban = {}
+    secimler = {k for k, f in _sozlesme()[0].items() if f["tur"] == "secim"}
 
     def kur(degisiklik, serbest=False, denetle=False):
         h = dict(ham)
@@ -183,6 +189,8 @@ def _kurucu(ham, ad, proje_adi, sira):
             for (yer, k), v in degisiklik.items():
                 {"girdi": h, "ofis": ofis}[yer][k] = v
             h["_ofis"] = ofis
+        if "g" in taban and not any(k in secimler for (_y, k) in degisiklik or {}):
+            _regulatoru_tut(h, taban["g"], degisiklik or {})
         if serbest:
             birak = CK.CIZIMDEN if serbest is True else serbest
             for k in birak:
@@ -203,13 +211,33 @@ def _kurucu(ham, ad, proje_adi, sira):
             #  Çerçevesiz:  çerçeve yalnız sona eleman ekler, ölçülerin sırası
             #  ekrandakiyle aynıdır ( test ) — başlığı kurmak kesitin bütün
             #  denetimini yeniden yapıyordu.
-            e = CO.olculer(CZ.CIZIMLER[ad][1](g))
+            with CGE.yalniz_olculer():
+                e = CO.olculer(CZ.CIZIMLER[ad][1](g))
         except Exception:                                   # noqa: BLE001 — kurulamayan girdi
             return None
         if "g" not in taban:
             taban.update(g=g, e=e, A=A)
         return e
     return kur, taban
+
+
+def _regulatoru_tut(h, g, degisiklik):
+    """Regülatörün BOŞ bırakılmış yeri ( kaçıklık, "karşı ağırlığın karşısı" )
+    tabandaki çizimde bulunduğu yerde tutulur.  Program onu kuralla arar
+    ( kopru._regulator_yeri:  varsayılan xs'in işaretine göre ±280, gergi
+    çarpıyorsa başka yer ) — 1 mm oynatmada arama başka bir yere atlayınca
+    kuyu dibinin ölçü zinciri değişiyordu:  880'lik ölçü "askı kaçıklığına
+    bağlı, eğimi −180" görünüyor, değiştirmek xs'e 0,05 mm yazıyordu ( 1022 );
+    her oynatmada arama baştan yapıldığı için de bir çizimin çözümlemesi 6 – 8
+    saniye sürüyordu.  Seçim kutuları oynatılırken düzen yeniden kurulur,
+    tutulmaz ( ağırlığın yanı değişince regülatörün yanı da kurala göre değişir )."""
+    kd = g.get("kuyu_dibi") or {}
+    if ("girdi", "regulator_kaciklik") not in degisiklik and h.get("regulator_kaciklik") is None \
+            and CK._sayi(kd.get("regulator_kaciklik")):
+        h["regulator_kaciklik"] = kd["regulator_kaciklik"]
+    if ("girdi", "regulator_yani") not in degisiklik and \
+            h.get("regulator_yani") in (None, "Karşı ağırlığın karşısı") and kd.get("regulator_yan"):
+        h["regulator_yani"] = kd["regulator_yan"]
 
 
 def _adaylar(ham, A, g, okunan):
@@ -255,19 +283,34 @@ def _cozumleme(veri, ad):
         if anahtar in _ONBELLEK:
             _ONBELLEK.move_to_end(anahtar)
             return _ONBELLEK[anahtar]
+        suren = _SURENLER.setdefault(anahtar, threading.Lock())
+    with suren:
+        with _KILIT:
+            if anahtar in _ONBELLEK:                       # beklerken bitti
+                _ONBELLEK.move_to_end(anahtar)
+                return _ONBELLEK[anahtar]
+        try:
+            r = _cozumle(ham, i, proje, ad)
+            if r is not None:
+                with _KILIT:
+                    _ONBELLEK[anahtar] = r
+                    while len(_ONBELLEK) > _ONBELLEK_AZAMI:
+                        _ONBELLEK.popitem(last=False)
+            return r
+        finally:
+            with _KILIT:
+                _SURENLER.pop(anahtar, None)
+
+
+def _cozumle(ham, i, proje, ad):
     kur, bilgi = _kurucu(ham, ad, proje, i + 1)
     with CS.okunanlar() as okunan:
         if kur({}) is None:
             return None
     adaylar = _adaylar(ham, bilgi["A"], bilgi["g"], okunan)
     taban, kaynak = CO.cozumle(kur, adaylar)
-    r = {"ham": ham, "kur": kur, "taban": taban, "kaynak": kaynak,
-         "adaylar": {a["kimlik"]: a for a in adaylar}}
-    with _KILIT:
-        _ONBELLEK[anahtar] = r
-        while len(_ONBELLEK) > _ONBELLEK_AZAMI:
-            _ONBELLEK.popitem(last=False)
-    return r
+    return {"ham": ham, "kur": kur, "taban": taban, "kaynak": kaynak,
+            "adaylar": {a["kimlik"]: a for a in adaylar}}
 
 
 def _dogrudan(k, deger, u):
@@ -380,6 +423,8 @@ def api_olcu_degistir(veri: dict = Body(...)):
         if hedef is None:
             return JSONResponse({"aktif": False,
                                  "hata": [_belirsiz_hata() or "Yeni ölçü bir sayı olmalı."]})
+        if hedef < 0:
+            return JSONResponse({"aktif": False, "hata": ["Yeni ölçü sıfırdan küçük olamaz."]})
         if k["tur"] == "secim":
             return JSONResponse(_secimle(r, i, anahtar, hedef, bilgi))
         serbest = _en_az_serbest(r, k, aday) if k["bagli"] else False
@@ -390,7 +435,18 @@ def api_olcu_degistir(veri: dict = Body(...)):
             s = {"deger": hedef, "olcu": hedef, "dogrulandi": True}
         else:
             s = CO.coz(r["kur"], r["taban"], i, k["kimlik"], aday["deger"], k["egim"], hedef,
-                       serbest=serbest)
+                       serbest=serbest, dogrusal=k["dogrusal"])
+            if not s["dogrulandi"] and not s.get("bolundu"):
+                #  Hedef doğrulanamadı ve ölçü iki parçaya bölünmüş de değil:
+                #  bulunan değer ölçüyü hedefe getirmiyor ( çoğu zaman ölçü hiç
+                #  değişmiyordu:  bir eşikte sıçrıyor, yalnız bir yönde değişiyor
+                #  ya da sığınma alanı gibi adımla kayıyor ) — kutuya yazılmaz
+                #  ( eskiden kabin genişliği 1.360 → 1.359,9995 ya da 58.430 ).
+                return JSONResponse({"aktif": False, "hata": [
+                    f"Bu ölçü «{bilgi['etiket']}» değiştirilerek {_yuvarla(hedef)} mm "
+                    "yapılamıyor:  ölçü bu girdiyle düzgün değişmiyor ( bir eşikte "
+                    "sıçrıyor ya da bu yönde değişmiyor ).  Başka bir girdiyle deneyin "
+                    "ya da girdiyi formdan değiştirin."]})
         x = _yuvarla(s["deger"])
         degisiklik = [{"anahtar": anahtar, "etiket": bilgi["etiket"], "eski": aday["deger"],
                        "deger": x}]
@@ -399,6 +455,7 @@ def api_olcu_degistir(veri: dict = Body(...)):
         degisiklik += _tutarlilik_duzeltmeleri(r, degisiklik)
         return JSONResponse({"aktif": True, "degisiklikler": degisiklik, "hedef": hedef,
                              "olcu": s["olcu"], "dogrulandi": s["dogrulandi"],
+                             "bolundu": bool(s.get("bolundu")),
                              "uyarilar": _yeni_hatalar(r, degisiklik)})
     except Exception as e:                                    # noqa: BLE001
         return JSONResponse({"aktif": False, "hata": [f"ÖLÇÜ HATASI: {e}"]})

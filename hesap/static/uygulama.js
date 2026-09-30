@@ -1595,6 +1595,7 @@ function mOlcuYazdir(){
   }
   mOlcuKapat();
   const not = c.dogrulandi ? ''
+    : c.bolundu ? '  ( Ölçü çizimde iki parçaya bölündü;  toplamları istenen değer. )'
     : '  ( Ölçü çizimde yeniden bulunamadığı için ayrıca doğrulanamadı. )';
   mOlcuBildir(yazilan.join('  ·  ') + not);
 }

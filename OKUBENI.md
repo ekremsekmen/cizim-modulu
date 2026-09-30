@@ -243,18 +243,38 @@ kullanmaya devam eder ).  "Formda göster" alanın grubunu açıp alanı göster
   dayandığı kuralı söyler ( sığınma alanının yeri, pano önü çalışma alanı —
   `geometri._olcu(kural=…)` ).  Test:  bütün düzenlerde her ölçünün bir
   kaynağı ya da kuralı var.
+- **Kurallı konumlar çözümlemede yerinde tutulur:**  regülatörün boş
+  bırakılmış yeri program tarafından aranır ( varsayılan xs'in işaretine göre
+  ±280, gergi çarpıyorsa başka yer );  1 mm oynatmada arama başka yere
+  atlayınca ölçü zinciri değişiyor, 1022'de ray ekseninin 880'lik ölçüsü
+  "askı kaçıklığına bağlı" görünüyordu.  Çözümlemede regülatör tabandaki
+  yerinde tutulur ( seçim kutularında düzen kuralla yeniden kurulur ).
 - **Değiştirme doğrulanır:**  yeni değer eğimden bulunur, çizim adım adım
   yeniden kurularak ölçü izlenir ( zincirde uçlar yer değiştirir, konsol
   sayısı değişir ) ve hedefte olduğu görülür;  doğrusal değilse kiriş
   yöntemi.  Birden çok girdiye bağlı ölçüde hangisinin değişeceği sorulur.
+  Hedef doğrulanamazsa:  bağıntı doğrusal ve ölçü yeni çizimde iki ardışık
+  parçaya bölünmüşse ( kabin kuyu ortasının öbür yanına geçince "995"
+  "5 + 1.000" olur ) doğrusal tahmin yazılır, "iki parçaya bölündü" denir;
+  değilse ( ölçü bir eşikte sıçrıyor, bu yönde değişmiyor, sığınma alanı gibi
+  adımla kayıyor ) kutuya bir şey yazılmaz, sebebi söylenir — eskiden kiriş
+  yöntemi bölünen ölçüde başka aralığı izleyip saçma değer yazıyordu ( kabin
+  genişliği 58.430, kaçıklık −15 yerine −5 ).  Negatif ölçü reddedilir.
+  Tarama:  7 proje × bütün çizimler × her ölçünün her sayı kaynağı ±10 mm
+  ( 3.408 değişiklik ):  hata yok, saçma değer yok.
 - **Bağlı büyüklükler birlikte değişir:**  girilmiş kaide ile kuyu dibi
   ( zincir:  kuyu dibi 1.500 → 1.600, kaide 306 → 406 ), girilmiş D2 · Ds · α çizimdeki
   değere ( `kopru.tutarlilik_duzeltmeleri` — tutarlılık denetimiyle aynı yerde ).
 - **Çizimi bozacak değer önce sorulur:**  sebepleriyle ( kuyu genişleyince
   korkuluk gerekir, tavana sığmaz … ) "Yine de uygula / Vazgeç";  uygulanan
   değişiklik çizim kurulamasa da panelde yazar.
-- Çözümleme bir çizim için 0,1 – 2,5 saniye;  fare çizimin üstüne gelince
-  önceden istenir, sunucu önbelleğinde tutulur.  Uçlar
+- Çözümleme bir çizim için 0,1 – 3 saniye ( en ağırı düşey kesitler );  fare
+  çizimin üstüne gelince önceden istenir, sunucu önbelleğinde tutulur;  o
+  bitmeden tıklanırsa ikinci istek birincisini bekler ( eskiden aynı iş iki
+  kez, paralel yapılıyordu — 1022'de tıklama 12 saniye bekliyordu ).
+  Çözümlemede çizim yalnız ölçüleri için kurulur ( `geometri.yalniz_olculer`:
+  kuyu dibinin yük kutuları yerleşmez ) ve regülatör araması kuyu dibinde
+  çarpan yerde makine dairesini kurmaz.  Uçlar
   `POST /api/uygulama/olcu` ( kaynaklar ) ve `/api/uygulama/olcu_degistir`.
 
 **Paket.**  "Projeyi paketle" her asansörün çizimlerini hesap sayfalarının
@@ -332,7 +352,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( girdiler oynatılarak ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/` | 337 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog, `test_gercek_projeler.py` — ofisin altı gerçek projesi ( veri `gercek_projeler.py` ) ) |
+| `testler/` | 346 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog, `test_gercek_projeler.py` — ofisin altı gerçek projesi ( veri `gercek_projeler.py` ) ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 

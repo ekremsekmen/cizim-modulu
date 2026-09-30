@@ -14,8 +14,32 @@ eksene değil.  ( referans projenin paftasında da böyle ölçülüyor:  sağ r
 başlıyor, sol rayın yüzü 405'te bitiyor → 1550 = DBG. )  Ray, bu yüzden
 DUVARA DOĞRU kendi yüksekliği ( h ) kadar uzanır.
 """
+import contextlib
+import threading
+
 from cizim import girdi as CG
 from cizim import sabitler as CS
+
+_KIP = threading.local()
+
+
+@contextlib.contextmanager
+def yalniz_olculer():
+    """Blok içinde çizimler yalnız ÖLÇÜLERİ için kurulur:  ölçülerden sonra
+    konan, onlara bağlı olmayan pahalı yerleştirmeler ( kuyu dibindeki yük
+    kutuları ve perde yazısı ) atlanır.  Ölçü çözümlemesi bir çizimi yüzlerce
+    kez kurar ( hesap/api/cizim.py );  ekrandaki ve paftadaki çizim tamdır."""
+    eski = getattr(_KIP, "olcu", False)
+    _KIP.olcu = True
+    try:
+        yield
+    finally:
+        _KIP.olcu = eski
+
+
+def olcu_kipi():
+    return getattr(_KIP, "olcu", False)
+
 
 KATMANLAR = ("KUYU-DUVAR", "TARAMA", "BINA", "KUYU-IC", "KABIN", "KABIN-IC",
              "SASE", "KAPI", "AGIRLIK", "RAY", "KONSOL", "CIVATA", "PATEN",

@@ -176,19 +176,31 @@ def cozumle(kur, adaylar):
     return taban, kaynak
 
 
-def coz(kur, taban, i, kimlik, deger, egim, hedef, serbest=False):
+def coz(kur, taban, i, kimlik, deger, egim, hedef, serbest=False, dogrusal=False):
     """i. ölçü hedef olsun diye girdinin ( kimlik ) yeni değeri.
 
     Girdi eğimden bulunan değere ADIM ADIM götürülür ve her adımda aynı ölçü
     bulunur ( zincirde uçlar yer değiştirebilir );  sonra ölçü hedefte değilse
     ( bağıntı doğrusal değil ) kiriş yöntemiyle yaklaşılır.  Her adımda çizim
     yeniden kurulur:  sonuç çizimin kendisiyle doğrulanır.
-    Döner:  { deger , olcu ( ulaşılan ) , dogrulandi }."""
+    Ölçü hedefte doğrulanamazsa ve bağıntı DOĞRUSALSA ( çözümlemede iki yönde
+    aynı eğim ) ölçü yolda BÖLÜNMÜŞ olabilir:  zincirde bir parça sıfırdan
+    geçince uçlar yer değiştirir ( kabin kuyu ortasının öbür yanına geçince
+    "995" ölçüsü "5 + 1.000" olur ), sıradaki ölçü başka bir aralıktır — kiriş
+    yöntemi o aralığı izleyip saçma değerlere gidiyordu ( 1022:  995 → 1.005
+    için kaçıklık 5 → −15, doğrusu −5;  kabin genişliği 58.430, kasnak çapı
+    2·10⁻¹² ).  Doğrusal tahminle kurulan çizimde ölçü iki ardışık parçaya
+    bölünmüş, toplamları hedefse doğrusal tahmin döner ( bolundu ).  Değilse
+    ( sığınma alanı 25 mm'lik adımla kayar:  1 mm'de doğrusal görünen ölçü
+    20 mm'de başka yere atlar ) değer yoktur — çağıran reddeder.  Kiriş yöntemi
+    hedefi DOĞRULARSA o kullanılır ( 1275'te kabin üstündeki 670 → 680 için
+    kabin 1.440 → 1.500;  doğrusal tahmin 1.450'de ölçü 655 kalır ).
+    Döner:  { deger , olcu ( ulaşılan ) , dogrulandi , bolundu }."""
     u0 = taban[i]["uzunluk"]
     if abs(hedef - u0) <= DOGRULAMA:
-        return {"deger": deger, "olcu": u0, "dogrulandi": True}
+        return {"deger": deger, "olcu": u0, "dogrulandi": True, "bolundu": False}
     if not egim:
-        return {"deger": deger, "olcu": u0, "dogrulandi": False}
+        return {"deger": deger, "olcu": u0, "dogrulandi": False, "bolundu": False}
     x_hedef = deger + (hedef - u0) / egim
     n = max(1, min(400, math.ceil(abs(hedef - u0) / ADIM_OLCU)))
     liste, j, x = taban, i, deger
@@ -197,7 +209,7 @@ def coz(kur, taban, i, kimlik, deger, egim, hedef, serbest=False):
         e = kur({kimlik: x}, serbest=serbest)
         j = eslestir(liste, e, KAYMA, sira_yedek=True)[j] if e is not None else None
         if j is None:
-            return {"deger": x_hedef, "olcu": None, "dogrulandi": False}
+            return _bolunmus(kur, taban[i], kimlik, x_hedef, hedef, serbest, dogrusal)
         liste = e
     u, xp, up = liste[j]["uzunluk"], deger, u0
     for _ in range(12):
@@ -210,4 +222,21 @@ def coz(kur, taban, i, kimlik, deger, egim, hedef, serbest=False):
             break
         xp, up, x, liste, j = x, u, x_yeni, e, j2
         u = liste[j]["uzunluk"]
-    return {"deger": x, "olcu": u, "dogrulandi": abs(u - hedef) <= DOGRULAMA}
+    if abs(u - hedef) > DOGRULAMA and dogrusal:
+        return _bolunmus(kur, taban[i], kimlik, x_hedef, hedef, serbest, dogrusal)
+    return {"deger": x, "olcu": u, "dogrulandi": abs(u - hedef) <= DOGRULAMA, "bolundu": False}
+
+
+def _bolunmus(kur, o, kimlik, x, hedef, serbest, dogrusal):
+    """Doğrusal tahminle ( x ) kurulan çizimde ölçü ( o ) iki ardışık parçaya
+    bölünmüş mü:  aynı kotta, aynı yönde, uç uca iki ölçünün toplamı hedef."""
+    bolundu = False
+    e = kur({kimlik: x}, serbest=serbest) if dogrusal else None
+    if e is not None:
+        ek = 0 if o["yon"] == "yatay" else 1
+        zincir = sorted((q for q in e if q["yon"] == o["yon"] and abs(q["kot"] - o["kot"]) < 1.0),
+                        key=lambda q: min(q["a"][ek], q["b"][ek]))
+        bolundu = any(abs(max(p["a"][ek], p["b"][ek]) - min(q["a"][ek], q["b"][ek])) < 1e-6
+                      and abs(p["uzunluk"] + q["uzunluk"] - hedef) <= DOGRULAMA
+                      for p, q in zip(zincir, zincir[1:]))
+    return {"deger": x, "olcu": None, "dogrulandi": False, "bolundu": bolundu}

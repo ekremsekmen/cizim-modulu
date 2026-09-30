@@ -465,11 +465,15 @@ def _regulator_yeri(g, kaciklik_serbest=True, yan_serbest=False):
     def carpisma(c, yan=ilk_yan):
         #  Gergi kuyu dibinde, regülatörün kendisi kuyu tepesinde ( ya da
         #  makine dairesinde ):  ikisi de çarpmamalı.
+        #  Kuyu dibinde çarpıyorsa tepeye bakılmaz ( makine dairesinin bakım
+        #  alanını aramak pahalı — ölçü çözümlemesi her çizimi yüzlerce kez kurar ).
         kd["regulator_kaciklik"], kd["regulator_yan"] = c, yan
         try:
-            h = list(CKD.yerlesim(g)["hata"])
-            h += (CKT.yerlesim(g) if g["makine"]["yeri"] == "Kuyu üstü"
-                  else CMD.yerlesim(g)).get("hata") or []
+            h = [x for x in CKD.yerlesim(g)["hata"] if "egülatör" in x]
+            if h:
+                return h
+            h = (CKT.yerlesim(g) if g["makine"]["yeri"] == "Kuyu üstü"
+                 else CMD.yerlesim(g)).get("hata") or []
         except Exception:                                  # noqa: BLE001
             return ["?"]
         return [x for x in h if "egülatör" in x]

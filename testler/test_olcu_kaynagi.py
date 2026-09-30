@@ -8,10 +8,14 @@ import json
 import os
 import re
 import sys
+import threading
+import time
 import unittest
+from unittest import mock
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "ornekler")):
+for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "ornekler"),
+             os.path.join(KOK, "testler")):
     if _yol not in sys.path:
         sys.path.append(_yol)
 
@@ -20,12 +24,15 @@ from api import uygulama as UC_UYG                        # noqa: E402
 from cizim import cizimler as CZ                          # noqa: E402
 from cizim import geometri as CGE                         # noqa: E402
 from cizim import kopru as CK                             # noqa: E402
+from cizim import kuyu_dibi as CKD                        # noqa: E402
 from cizim import olcu_kaynagi as CO                      # noqa: E402
 from cizim import pafta as CPF                            # noqa: E402
 from cizim import sabitler as CS                          # noqa: E402
 from engine.uygulama import girdi as E_UGR                # noqa: E402
 from engine.uygulama import hesap as E_UYG                # noqa: E402
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER    # noqa: E402
+
+import gercek_projeler as GP                              # noqa: E402
 
 
 def _veri(md=False, **ek):
@@ -413,6 +420,150 @@ class Degistirme(unittest.TestCase):
         self.assertEqual(y["deger"], 2100)
         self.assertEqual(y["kaynaklar"][0]["anahtar"], "kuyu_genisligi")
         self.assertEqual(y["kaynaklar"][0]["etiket"], UC._sozlesme()[0]["kuyu_genisligi"]["etiket"])
+
+
+def _gercek(ad):
+    """Ofisin gerçek projesi formdan girilmiş gibi ( gercek_projeler.py )."""
+    a = dict(GP.PROJELER[ad])
+    pg = {k: a.pop(k) for k in list(a) if k in UC_UYG.PROJE_GENELI_ALANLAR}
+    return {"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}
+
+
+class RegulatorunYeri(unittest.TestCase):
+    """Regülatörün yeri boşsa program onu kuralla arar ( kopru._regulator_yeri:
+    varsayılan xs'in işaretine göre ±280, gergi çarpıyorsa başka yer ).  1022'de
+    280'de gergi konsola değer, 360 seçilir.  Çözümleme her girdiyi 1 mm oynatıp
+    çizimi yeniden kurar:  arama her kuruluşta baştan yapılıyor ( bir çizimin
+    çözümlemesi 6 – 8 sn, ön istekle tıklama 12 sn ) ve askı kaçıklığı 0 → 1
+    olunca regülatör rayın öbür yanına atlıyordu — kuyu dibinin ölçü zinciri
+    değişiyor, 880'lik ölçü "askı kaçıklığına bağlı, eğimi −180" görünüyor,
+    değiştirmek xs'e 0,05 mm yazıyordu.  Çözümlemede regülatör tabandaki yerinde
+    tutulur;  seçim kutularında düzen yeniden kurulur."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.v = _gercek("1022")
+        UC._ONBELLEK.clear()
+        cls.r = UC._cozumleme(cls.v, "kuyu_dibi")
+
+    def test_ray_ekseni_olcusu_ray_kapi_arasindan(self):
+        i = _olcu(self.r, "880")
+        kaynak = {k["kimlik"][1] for k in self.r["kaynak"][i]}
+        self.assertNotIn("aski_kaciklik_x", kaynak)
+        self.assertIn("ray_kapi_arasi", kaynak)
+        y = _degistir(self.v, "kuyu_dibi", i, self.r, "ray_kapi_arasi", "890")
+        self.assertEqual([(d["anahtar"], d["deger"]) for d in y["degisiklikler"]],
+                         [("ray_kapi_arasi", 740)])
+        self.assertTrue(y["dogrulandi"])
+
+    def test_sayi_oynatmada_arama_yapilmaz(self):
+        kd = _g(self.v)[0]["kuyu_dibi"]
+        self.assertEqual((kd["regulator_yan"], kd["regulator_kaciklik"]), ("Sağ", 360))
+        with mock.patch.object(CK, "_regulator_yeri") as m:
+            self.r["kur"]({("girdi", "aski_kaciklik_x"): 1.0})
+            self.r["kur"]({("girdi", "kuyu_derinligi"): 2251.0})
+        self.assertFalse(m.called)
+        #  Seçimde düzen kuralla yeniden kurulur
+        with mock.patch.object(CK, "_regulator_yeri") as m:
+            self.r["kur"]({("girdi", "agirlik_yeri"): "Sağ"}, denetle=True)
+        self.assertTrue(m.called)
+
+    def test_kabin_kuyu_ortasini_gecince(self):
+        #  Üst zincir 1.000 · 5 · 995 ( kuyu ortası, kabin ekseni ).  995 → 1.005
+        #  için kabin 5 → −5;  ölçü yolda "5 + 1.000" diye bölünür, izlenemez —
+        #  kiriş yöntemi başka aralığı izleyip −15 veriyordu.  Doğrusal tahmin
+        #  döner:  yeni çizimde iki ardışık parçanın toplamı hedeftir.
+        i = _olcu(self.r, "995")
+        y = _degistir(self.v, "kuyu_dibi", i, self.r, "kabin_yana_kaciklik", "1005")
+        self.assertEqual([(d["anahtar"], d["deger"]) for d in y["degisiklikler"]],
+                         [("kabin_yana_kaciklik", -5)])
+        self.assertFalse(y["dogrulandi"])
+        self.assertTrue(y["bolundu"])
+
+
+class Degistirilemeyen(unittest.TestCase):
+    """Hedef doğrulanamıyor ve ölçü iki parçaya da bölünmüyorsa değer kutuya
+    yazılmaz, sebebi söylenir — eskiden kabin genişliği 1.360 → 1.359,9995
+    ( ölçü bir eşikte sıçrıyor ) ya da 58.430 yazılıyordu."""
+
+    def test_sicrayan_olcu(self):
+        #  1022 kabin üstü:  kabin genişliği 1 mm değişince korkuluk düzeni
+        #  değişir, ölçü 325 sıçrar ( eğim −325, doğrusal değil )
+        v = _gercek("1022")
+        r = UC._cozumleme(v, "kabin_ustu")
+        i = _olcu(r, "125")
+        k = next(x for x in r["kaynak"][i] if x["kimlik"] == ("girdi", "kabin_genisligi"))
+        self.assertFalse(k["dogrusal"])
+        y = _degistir(v, "kabin_ustu", i, r, "kabin_genisligi", "135")
+        self.assertFalse(y["aktif"])
+        self.assertIn("düzgün değişmiyor", y["hata"][0])
+
+    def test_adimla_kayan_olcu(self):
+        #  Kuyu dibindeki sığınma alanı 25 mm'lik adımla konur:  1 mm'de
+        #  doğrusal görünen ölçü 20 mm'de başka yere atlar ( eskiden kabin
+        #  genişliği 58.430 çıkıyordu )
+        v = DUZENLER["formun varsayılanı"]()
+        r = UC._cozumleme(v, "kuyu_dibi")
+        i = _olcu(r, "860")
+        y = _degistir(v, "kuyu_dibi", i, r, "kabin_genisligi", "870")
+        self.assertFalse(y["aktif"])
+
+    def test_kiris_dogrularsa_o_kullanilir(self):
+        #  1275 kabin üstü:  sığınma alanının yeri 670 → 680 için kabin
+        #  1.440 → 1.500 doğrulanır ( doğrusal tahmin 1.450'de ölçü 655 kalır )
+        v = _gercek("1275")
+        r = UC._cozumleme(v, "kabin_ustu")
+        i = _olcu(r, "670")
+        y = _degistir(v, "kabin_ustu", i, r, "kabin_genisligi", "680")
+        self.assertEqual([(d["anahtar"], d["deger"]) for d in y["degisiklikler"]],
+                         [("kabin_genisligi", 1500)])
+        self.assertTrue(y["dogrulandi"])
+
+    def test_negatif_olcu(self):
+        v = _veri()
+        r = UC._cozumleme(v, "kuyu_plani")
+        i = _olcu(r, "KUYU GENİŞLİĞİ")
+        y = _degistir(v, "kuyu_plani", i, r, "kuyu_genisligi", "-10")
+        self.assertFalse(y["aktif"])
+        self.assertIn("sıfırdan küçük", y["hata"][0])
+
+
+class Hiz(unittest.TestCase):
+    def test_ayni_cozumleme_bir_kez_yapilir(self):
+        #  Ekran fare çizimin üstüne gelince çözümlemeyi önceden ister;  o
+        #  bitmeden tıklanınca ikinci istek bekler, yeniden hesaplamaz.
+        v = DUZENLER["örnek makine dairesiz"]()
+        UC._ONBELLEK.clear()
+        asil, sayac, sonuc = UC._cozumle, [], []
+
+        def say(*a, **k):
+            sayac.append(1)
+            time.sleep(0.2)
+            return asil(*a, **k)
+        with mock.patch.object(UC, "_cozumle", side_effect=say):
+            ipler = [threading.Thread(target=lambda: sonuc.append(UC._cozumleme(v, "kuyu_plani")))
+                     for _ in range(3)]
+            for t in ipler:
+                t.start()
+            for t in ipler:
+                t.join()
+        self.assertEqual(len(sayac), 1)
+        self.assertEqual(len(sonuc), 3)
+        self.assertTrue(all(r is sonuc[0] for r in sonuc))
+
+    def test_yalniz_olcu_kipinde_olculer_ayni(self):
+        #  Çözümlemede kuyu dibinin yük kutuları ve perde yazısı yerleşmez;
+        #  ölçüler tam çizimdekiyle aynıdır.
+        for v in (DUZENLER["örnek makine dairesiz"](), _gercek("1022")):
+            g = _g(v)[0]
+            tam_cizim = CKD.ciz(g)
+            self.assertTrue(any(e.get("ad") == "yuk_kutusu" for e in tam_cizim))
+            tam = CO.olculer(tam_cizim)
+            with CGE.yalniz_olculer():
+                kisa = CKD.ciz(g)
+            self.assertEqual(CO.olculer(kisa), tam)
+            self.assertFalse(any(e.get("ad") == "yuk_kutusu" for e in kisa))
+            self.assertFalse(CGE.olcu_kipi())
 
 
 class Parcalar(unittest.TestCase):

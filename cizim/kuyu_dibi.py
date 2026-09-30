@@ -642,6 +642,8 @@ def ciz(g, cizim_sabitleri=None):
         e += _serbest(dusey, (sg[2] + 90, sg[0] - 90), G, engel)
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     CGE._yazilari_yerlestir(e)
+    if CGE.olcu_kipi():                    # ölçü çözümlemesi:  ölçüler yukarıda bitti
+        return e
     e += _yuk_etiketleri(e, noktalar, G, D)
     e.append(_perde_yazisi(e, perde_yazisi, p))
     return e
