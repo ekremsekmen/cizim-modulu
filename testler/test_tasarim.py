@@ -35,8 +35,9 @@ FORMDA_YOK = {"saptirma_kasnak_capi", "saptirma_kasnak_min_capi", "kabin_tampon_
               "aski_halat_boyu", "reg_halat_boyu", "kasnak_tek_yon", "kasnak_ters_yon",
               "kasnak_kabin_adedi", "kasnak_agirlik_adedi", "saptirma_agirlik_capi",
               "makine_yuku_x",
-              #  4. adım:  kirişin açıklığı çizimden ( kaide halatlara ortalı, makineyi sarar )
-              "yan_yatak_boyu"}
+              #  4. adım:  kirişin açıklığı çizimden ( kaide halatlara ortalı, makineyi sarar );
+              #  karşı ağırlık dolgusuna kalan yükseklik ( karar 11 )
+              "yan_yatak_boyu", "agirlik_dolgu_yuksekligi"}
 
 
 def _form():
@@ -130,8 +131,9 @@ class Sozluk(unittest.TestCase):
                   #  3. adım:  Nps · Npr çizilen kasnaklardan
                   "kasnak_tek_yon", "kasnak_ters_yon",
                   #  4. adım:  kirişin açıklığı çizimden;  arkadaki ağırlıkla 2:1
-                  #  çiziliyor ( kabin üstünde çapraz kasnaklar — karar 4 )
-                  "yan_yatak_boyu", "agirlik_yeri"):
+                  #  çiziliyor ( kabin üstünde çapraz kasnaklar — karar 4 );
+                  #  dolgunun çerçeveye sığması denetleniyor ( karar 11 )
+                  "yan_yatak_boyu", "agirlik_yeri", "agirlik_malzemesi"):
             self.assertNotIn(k, TZ.SORUNLAR)
         #  3. adım:  hesabın geometri tahminleri çizimden geliyor;  yalnız
         #  çizimde olmayan revizyon kutusu kaldı ( karar 10 ).

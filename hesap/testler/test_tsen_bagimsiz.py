@@ -388,7 +388,8 @@ class UcDuzeltmeDenetimi(unittest.TestCase):
 
     #  ── 2)  KABİN AÇIKLIKLARI EN ÜST KONUMDA  ( Çizelge 2 ) ────────
     def _ust_acikliklar(self, **ek):
-        s = M.hesapla(dict(ek))
+        #  130 mm stroku karşılayacak gerçek bir tampon boyu kullanılır.
+        s = M.hesapla({"agirlik_tampon_boyu": 200, **ek})
         self.assertTrue(s["aktif"], s.get("hata"))
         h = s["ara"]
         return [h["siginma.ust_paten_ray"], h["siginma.kabin_ustu_tavan"], h["siginma.revizyon_tavan"], h["siginma.paten_tavan"]]
@@ -422,7 +423,8 @@ class UcDuzeltmeDenetimi(unittest.TestCase):
     def test_kuyu_dibi_acikliklari_yukselmeden_etkilenmez(self):
         """Kuyu dibi ölçüleri KABİN tampon üzerindeyken alınır — ağırlık tamponu girmez."""
         s1 = M.hesapla()
-        s2 = M.hesapla({"agirlik_carpma_arasi": 260, "agirlik_tampon_ezilme": 140})
+        s2 = M.hesapla({"agirlik_carpma_arasi": 260, "agirlik_tampon_ezilme": 140,
+                       "agirlik_tampon_boyu": 200})
         #  Regülatör gergisi satırı yalnız gergi kabinin izdüşümündeyse çıkar
         #  ( birleşik program:  açıklıklar çizimden );  varsayılanda değil.
         for hucre in ("siginma.kuyu_tabani_kabin", "siginma.etek", "siginma.ray_kabin_alt", "siginma.dip_siginma"):

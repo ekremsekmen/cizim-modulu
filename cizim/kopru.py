@@ -29,6 +29,7 @@ x kabin derinliği boyunca kapıdan arkaya, y rayları birleştiren doğrultu;
 import math
 
 from cizim import girdi as CG
+from cizim import katlar as CKA
 from cizim import sabitler as CS
 from tasarim import alanlar as _TS, gorunum as _TG
 
@@ -52,31 +53,22 @@ YALNIZ_DAIRELI = _TG.anahtarlar(_TS.CIZ, yerlesim="daireli")
 YALNIZ_MRL = _TG.anahtarlar(_TS.CIZ, yerlesim="mrl")
 
 
-#  HESABIN OFİS STANDARDINDAN ÇİZİME GEÇEN KABİN VE KUYU ÖLÇÜLERİ:  hesabın
-#  Sabitler sekmesinde değiştirilir;  çizim ve hesabın bölüm 11'i aynı sayıyı
-#  kullanır.  hesap anahtarı → çizim sabiti ( cizim/sabitler.py )
-OFIS_SABITLERI = {
-    "tavan_payi": "tavan_kirisi",
-    "sase_alt_derinlik": "sase_alt_derinlik",
-    "kabin_taban_kalinlik": "kabin_taban_kalinlik",
-    "kabin_tavan_kalinlik": "kabin_tavan_kalinlik",
-    "paten_yukseklik": "paten_yukseklik",
-    "fren_blogu_yukseklik": "fren_blogu_yukseklik",
-    "kabin_kasnak_derinlik": "kabin_kasnak_derinlik",
-}
+#  TEK KATALOG ( karar 12 ):  çizimin bütün ürün ölçüleri hesabın Sabitler
+#  sekmesinde ( ofis standardı ) değiştirilir;  çizim, yerleşimin ölçü listesi
+#  ve hesabın bölüm 11'i aynı sayıyı kullanır.  hesap anahtarı → çizim sabiti
+#  ( cizim/sabitler.py;  adı farklı olan tek:  tavan_payi → tavan_kirisi ).
+OFIS_SABITLERI = {CS.ofis_adi(c): c for c in CS.SABIT}
 
 
 def cizim_sabitleri(A):
-    """Hesabın ofis standardındaki ( A["_ofis"] ) çizim sabitleri — ezme sözlüğü.
-    A["_urun_ezme"] ( { cizim/sabitler anahtarı : değer } ) ürün ölçülerini
-    ezer:  ölçü kaynağı çözümlemesi ( olcu_kaynagi ) bir ürün ölçüsünü
-    oynatıp hangi ölçülerin ona bağlı olduğunu böyle bulur."""
+    """Hesabın ofis standardındaki ( A["_ofis"] ) çizim sabitleri — ezme
+    sözlüğü.  Aralık dışındaki değer çizime geçmez ( CS.aralik — hesap onu
+    reddeder ve durur;  sıfır yalnız boşluk ve paylarda geçerlidir ).  Ölçü
+    kaynağı çözümlemesi ( olcu_kaynagi ) bir ölçüyü oynatırken de buradan
+    geçer."""
     ofis = A.get("_ofis") if isinstance(A.get("_ofis"), dict) else {}
-    d = {c: float(ofis[o]) for o, c in OFIS_SABITLERI.items() if _sayi(ofis.get(o)) and ofis[o] > 0}
-    ez = A.get("_urun_ezme")
-    if isinstance(ez, dict):
-        d.update({k: float(v) for k, v in ez.items() if k in CS.SABIT and _sayi(v)})
-    return d
+    return {c: float(ofis[o]) for o, c in OFIS_SABITLERI.items()
+            if _sayi(ofis.get(o)) and CS.aralik(c)[0] <= ofis[o] <= CS.aralik(c)[1]}
 
 
 #  BOŞSA KURALLA DOLAN ÇİZİM ALANLARI ( varsayılanı None ):  kutu boşken
@@ -273,9 +265,23 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
                     "arasının ortasında çizer — yana kaçık askı henüz çizilemiyor.")
     if xs is None:
         hata.append("Askı noktasının x kaçıklığı ( xs ) boş — değerini girin.")
+    #  MAKARALI KABİN PATENİ ( karar 2 ):  kabin patenlerinin ölçüsü referans
+    #  projenin KAYMALI kabin patenlerinden ( paten_yukseklik );  makaralı kabin
+    #  pateninin ölçüleri elimizde yok — gelene kadar çizim durur, bölüm 11'in
+    #  paten açıklıkları da ölçülmez.  Karşı ağırlık patenleri referans projede
+    #  MAKARALIDIR ( çizimin ölçüleri o projeden — sabitler "PATEN" ):  onlar
+    #  çizilir.
+    if A.get("paten_tipi") == "Makaralı":
+        hata.append(f"Kabin paten tipi makaralı:  çizim kabinde yalnız kaymalı patenin ölçüsünü "
+                    f"bilir ( yükseklik {S['paten_yukseklik']:g} mm ) — makaralı kabin pateninin "
+                    "ölçüleri gelene kadar çizilmez;  'Kaymalı' seçin.")
     if durak < 2 or durak != int(durak):
         hata.append(f"Durak adedi en az 2 olan bir tam sayı olmalı ( {durak:g} ).")
     seyir = sayi("seyir_mesafesi", "Seyir mesafesi")
+    kat_yuksekligi = None
+    if seyir is not None and durak >= 2 and durak == int(durak):
+        kat_yuksekligi, kat_hata = CKA.araliklar(A.get("kat_yukseklikleri"), int(durak), seyir)
+        hata += kat_hata
     #  KUYU DİBİ ZİNCİRİ:  kabin en alt durakta dururken kaide + tampon +
     #  çarpma arası + kabinin şase altı kuyu dibine eşittir.  Hesap kaideyi
     #  boşsa buradan alır ( cizimden );  girilmişse zincir kapanmalı.
@@ -369,7 +375,7 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
                   "son_kat": sayi("son_kat_yuksekligi", "Son kat yüksekliği"),
                   "beyan_hizi": sayi("beyan_hizi", "Beyan hızı"),
                   "durak_adedi": int(durak),
-                  "kat_yuksekligi": seyir * 1000.0 / (durak - 1),
+                  "kat_yuksekligi": kat_yuksekligi,
                   "kabin_tampon_baba": sayi("kabin_tampon_baba", "Kabin tamponu baba yüksekliği"),
                   "kabin_tampon_boyu": sayi("kabin_tampon_boyu", "Kabin tamponu uzunluğu"),
                   "kabin_carpma_arasi": sayi("kabin_carpma_arasi", "Kabin tamponu – çarpma plakası arası"),

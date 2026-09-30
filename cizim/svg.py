@@ -38,7 +38,7 @@ DOLGU = {"KABIN-IC": "none", "AGIRLIK": "#fde9d7", "RAY": "#dff0df",
 
 def _dikdortgen(el, renk, kalinlik, k=1.0):
     dolgu = DOLGU.get(el["katman"], "none")
-    kesik = (f' stroke-dasharray="{_kesik(KESIK[el["katman"]], k)}"' if el["katman"] in KESIK else "")
+    kesik = _kesik_ozniteligi(el, k)
     return (f'<rect x="{el["x"]:.1f}" y="{el["y"]:.1f}" width="{el["g"]:.1f}" '
             f'height="{el["d"]:.1f}" fill="{dolgu}" stroke="{renk}" '
             f'stroke-width="{kalinlik}"{kesik}/>')
@@ -94,6 +94,12 @@ def _kesik(desen, k):
     return desen if k == 1 else " ".join(f"{float(v) * k:g}" for v in desen.split())
 
 
+def _kesik_ozniteligi(el, k):
+    desen = ("120 40 20 40" if el["tip"] == "eksen" or el["katman"] == "EKSEN"
+             else KESIK.get(el["katman"]))
+    return f' stroke-dasharray="{_kesik(desen, k)}"' if desen else ""
+
+
 def _olcekle(k):
     return "" if k == 1 else f" scale({k:g})"
 
@@ -129,12 +135,13 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False):
         elif el["tip"] == "dikdortgen":
             parcalar.append(_dikdortgen(el, renk, kal, k))
         elif el["tip"] in ("cizgi", "eksen"):
-            kesik = f' stroke-dasharray="{_kesik("120 40 20 40", k)}"' if el["tip"] == "eksen" else ""
+            kesik = _kesik_ozniteligi(el, k)
             parcalar.append(f'<line x1="{el["x1"]:.1f}" y1="{el["y1"]:.1f}" x2="{el["x2"]:.1f}" '
                             f'y2="{el["y2"]:.1f}" stroke="{renk}" stroke-width="{kal}"{kesik}/>')
         elif el["tip"] == "daire":
+            kesik = _kesik_ozniteligi(el, k)
             parcalar.append(f'<circle cx="{el["x"]:.1f}" cy="{el["y"]:.1f}" r="{el["r"]:.1f}" '
-                            f'fill="none" stroke="{renk}" stroke-width="{kal}"/>')
+                            f'fill="none" stroke="{renk}" stroke-width="{kal}"{kesik}/>')
         elif el["tip"] == "ok":
             #  Uç üçgeni yönü gösterir.
             dx, dy = el["x2"] - el["x1"], el["y2"] - el["y1"]

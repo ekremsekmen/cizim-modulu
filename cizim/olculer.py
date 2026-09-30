@@ -179,6 +179,17 @@ def hesap_olculeri(g):
     #  Askı halatı, kabin tarafı, kabin en alt durakta:  tahrik kasnağının
     #  merkezinden ( halat kasnağı merkez kotunda teğet bırakır ) kabine.
     aski = g.get("aski") or {}
+
+    #  Karşı ağırlık dolgusuna kalan yükseklik ( karar 11 ):  çerçeve paten
+    #  arası boyundadır ( patenler kirişlere ortalı );  dolgu alt kirişin
+    #  üstünden üst kirişin altına, 2:1'de ağırlık kasnağının altına kadardır.
+    AG = M.get("agirlik")
+    if AG and _sayi(AG.get("yukseklik")):
+        ust = AG["yukseklik"] - S["agirlik_kiris"]
+        Dc = (g.get("agirlik") or {}).get("kasnak_capi")
+        if aski.get("duzen") != "Doğrudan" and _sayi(Dc):
+            ust = min(ust, AG["yukseklik"] - AG["kasnak_ust"] - Dc / 2.0)
+        out["agirlik_dolgu_yuksekligi"] = round(ust - S["agirlik_kiris"], 1)
     zk = M["kasnak"][4]
     kab = CDN.kabin_kotlari(dy, S, 0.0, aski, CAA.arkada_iki_bir(g))
     if aski.get("duzen") == "Doğrudan":

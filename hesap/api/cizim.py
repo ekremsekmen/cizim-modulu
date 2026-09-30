@@ -13,7 +13,6 @@ adedi, kabinin ve kapının kuyudaki yeri … ) formun "Çizim" grubundadır.
 import functools
 import hashlib
 import json
-import math
 import os
 import sys
 import tempfile
@@ -116,7 +115,9 @@ def api_cizimler(veri: dict = Body(...)):
                            _proje_kimligi(veri)["proje_adi"])[i]
         if hata:
             return JSONResponse({"aktif": False, "hata": hata})
-        return JSONResponse({"aktif": True, "hesap": bool(s.get("aktif")),
+        #  Projenin aktif olması en az bir hesabın yapıldığını söyler;
+        #  bu çizimdeki kuvvetlerin durumu seçili asansöre aittir.
+        return JSONResponse({"aktif": True, "hesap": bool(s["asansorler"][i].get("aktif")),
                              "cizimler": [_svg(g, ad, onek=f"c{n}-")
                                           for n, ad in enumerate(CPF.sira(g))]})
     except Exception as e:                                    # noqa: BLE001
@@ -167,7 +168,7 @@ def _istek(veri):
 def _kurucu(ham, ad, proje_adi, sira):
     """kur( degisiklik , serbest ) → çizimin ölçüleri ( ya da None ).
 
-    degisiklik:  { ( yer , anahtar ) : değer } — yer girdi · ofis · urun.
+    degisiklik:  { ( yer , anahtar ) : değer } — yer girdi · ofis.
     serbest:  True ya da anahtar kümesi — girilmiş türetilen alanlar ( kaide,
     askı kaçıklığı … ) bırakılır, çizimden yeniden türetilir.  Çizimin girdisi
     değişmediyse tabanın listesi döner ( çözümleme o girdiyi atlar ).  Hesabın
@@ -178,10 +179,10 @@ def _kurucu(ham, ad, proje_adi, sira):
     def kur(degisiklik, serbest=False, denetle=False):
         h = dict(ham)
         if degisiklik:
-            ofis, urun = dict(h.get("_ofis") or {}), dict(h.get("_urun_ezme") or {})
+            ofis = dict(h.get("_ofis") or {})
             for (yer, k), v in degisiklik.items():
-                {"girdi": h, "ofis": ofis, "urun": urun}[yer][k] = v
-            h["_ofis"], h["_urun_ezme"] = ofis, urun
+                {"girdi": h, "ofis": ofis}[yer][k] = v
+            h["_ofis"] = ofis
         if serbest:
             birak = CK.CIZIMDEN if serbest is True else serbest
             for k in birak:
@@ -213,8 +214,8 @@ def _kurucu(ham, ad, proje_adi, sira):
 
 def _adaylar(ham, A, g, okunan):
     """Oynatılacak girdiler:  formun sayı ve seçim kutuları ( yerleşime göre
-    gizliler hariç ), ofis standardının çizim sabitleri, ürün ölçüleri —
-    ofis ve ürün ölçülerinden yalnız çizimin okudukları ( okunan )."""
+    gizliler hariç ) ve ofis standardının çizim sabitleri ( tek katalog —
+    yalnız çizimin okudukları:  okunan )."""
     alan, _pg, gizli = _sozlesme()
     sakli = set(gizli["mrl" if CK._mrl(A) else "daireli"])
     ad = []
@@ -237,16 +238,10 @@ def _adaylar(ham, A, g, okunan):
         adim = _ADIM.get(f["birim"]) or max(abs(float(v)) * 1e-3, 1e-3)
         ad.append({"kimlik": ("girdi", k), "tur": "tam" if f["birim"] == "adet" else "sayi",
                    "deger": float(v), "adim": adim})
-    ofis = ham.get("_ofis") or {}
+    S = CS.sabitler(CK.cizim_sabitleri(ham))
     for o, c in CK.OFIS_SABITLERI.items():
-        if c not in okunan:
-            continue
-        v = ofis.get(o)
-        ad.append({"kimlik": ("ofis", o), "tur": "ofis", "adim": 1.0,
-                   "deger": float(v) if CK._sayi(v) and v > 0 else float(CS.SABIT[c])})
-    for c, v in CS.SABIT.items():
-        if c in okunan and c not in CK.OFIS_SABITLERI.values():
-            ad.append({"kimlik": ("urun", c), "tur": "urun", "deger": float(v), "adim": 1.0})
+        if c in okunan:
+            ad.append({"kimlik": ("ofis", o), "tur": "ofis", "adim": 1.0, "deger": float(S[c])})
     return ad
 
 
@@ -305,14 +300,12 @@ def _kaynaklar(r, i):
                          degistirilir=sayili)
             else:
                 b["degistirilir"] = k["tur"] == "sayi"
-        elif yer == "ofis":
+        else:
             b.update(etiket=E_US.ETIKET.get(anahtar, (anahtar,))[0], birim="mm", yer="ofis",
                      degistirilir=False)
-        else:
-            b.update(etiket=CS.ETIKET[anahtar], birim="mm", yer="urun", degistirilir=False)
         b["dogrudan"] = yer == "girdi" and k["tur"] != "tam" and _dogrudan(k, aday["deger"], u)
         liste.append(b)
-    sira = {"asansor": 0, "proje": 0, "ofis": 1, "urun": 2}
+    sira = {"asansor": 0, "proje": 0, "ofis": 1}
     liste.sort(key=lambda b: (not b["dogrudan"], not b["degistirilir"], sira[b["yer"]],
                               -abs(b["egim"] or 0)))
     return liste
@@ -363,6 +356,7 @@ def api_olcu_degistir(veri: dict = Body(...)):
     """Ölçüyü hedef değere getirecek girdi değişikliği — çizim yeniden kurularak
     doğrulanır.  Formun kutularına yazılacak değerleri döndürür;  hesabı ve
     çizimi form kendi akışıyla yeniler."""
+    from api.ortak import _belirsiz_hata, _sayi_oku
     try:
         ad = veri.get("cizim")
         if ad not in CZ.CIZIMLER:
@@ -380,15 +374,14 @@ def api_olcu_degistir(veri: dict = Body(...)):
         if k is None or not bilgi or not bilgi["degistirilir"]:
             return JSONResponse({"aktif": False, "hata": ["Bu ölçü bu girdiyle değiştirilemez."]})
         aday = r["adaylar"][k["kimlik"]]
-        hedef = veri.get("hedef")
+        #  Ana formla aynı okuma ve belirsiz yazım denetimi.  Tarayıcı
+        #  metni korur: "2.200" burada sessizce 2,2 mm'ye dönüşmez.
+        hedef = _sayi_oku(veri.get("hedef"), "Yeni ölçü")
+        if hedef is None:
+            return JSONResponse({"aktif": False,
+                                 "hata": [_belirsiz_hata() or "Yeni ölçü bir sayı olmalı."]})
         if k["tur"] == "secim":
             return JSONResponse(_secimle(r, i, anahtar, hedef, bilgi))
-        try:
-            hedef = float(str(hedef).replace(",", "."))
-        except (TypeError, ValueError):
-            return JSONResponse({"aktif": False, "hata": ["Yeni ölçü bir sayı olmalı."]})
-        if not math.isfinite(hedef):
-            return JSONResponse({"aktif": False, "hata": ["Yeni ölçü bir sayı olmalı."]})
         serbest = _en_az_serbest(r, k, aday) if k["bagli"] else False
         if bilgi["dogrudan"] and not serbest:
             #  Ölçü girdinin kendisi ( değeri eşit, eğimi 1 ):  yeni değer hedeftir.

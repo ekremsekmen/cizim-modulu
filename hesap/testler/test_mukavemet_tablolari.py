@@ -55,6 +55,11 @@ GENISLETILEN = {
         "eklenen": (450,),
         "degisen": {rm: (rm / 2.25, rm / 1.8) for rm in (370, 440, 520)},
     },
+    #  BARİT:  kaynak 150 · 101;  standart blok 960 × 155 × 120 mm, 50 kg
+    #  ( Tiraslift · Egeser katalogları ) — kullanıcı kararı ( karar 11 ):
+    #  dolgunun sığma denetimi bu bloğun yoğunluğuyla, derinliğin başlangıç
+    #  değeri bloğunki.
+    "AGIRLIK_MALZEMESI": {"eklenen": (), "degisen": {"Barit": (155, 120)}},
     #  NPU:  üç değer DIN 1026-1'e göre düzeltildi ( bkz. mukavemet_tablolari ).
     #  Düzeltmeyi satırın KENDİ öteki sütunları doğrular ( aşağıda
     #  _profil_tutarliligi ):  30x15'in ix'i ancak Ix = 2,53 ile, 280 · 300'ün
@@ -306,9 +311,9 @@ BILEREK_DEGISEN_VARSAYILAN = {
     #  tabanı alınır, gerçek değer imalatçıdan girilir.
     "kabin_paten_arasi": (3300, "kabin paten arası h — gerçek projelerin üst "
                                "sınırı ( ofis MRL · referans proje ) ( kullanıcı kararı )"),
-    "agirlik_paten_arasi": (3000, "karşı ağırlık paten arası — barit dolgu "
-                                 "( new block 3.200 · referans proje pik 1.500 ) "
-                                 "( kullanıcı kararı )"),
+    "agirlik_paten_arasi": (3300, "karşı ağırlık paten arası — 800 kg'lık asansörün "
+                                 "1.200 kg'lık barit dolgusu ( 24 blok × 120 ) 2:1 "
+                                 "kasnağının altına sığar ( kullanıcı kararı 30 Eyl )"),
     #  BİRLEŞİK PROGRAM:  boşsa ÇİZİMDEN ( cizim/kopru.CIZIMDEN ) — hesap ile
     #  çizim aynı sayıyı kullanır;  kutu boş açılır.
     "saptirma_kasnak_capi": (None, "boşsa çizimden:  çizilen saptırma kasnaklarının "

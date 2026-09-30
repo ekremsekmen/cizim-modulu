@@ -127,8 +127,11 @@ def _yakin(a, b, tol=1e-7):
 #  ÖRNEK PROJENİN KENDİ İKİ DEĞERİ.  Varsayılanlar sonradan değişti:  tabliye
 #  1.200 mm ( ofisin makine daireli şablonu ) ve makine kirişi NPU 140.  Örnek
 #  projenin ara değerleri kendi girdileriyle denetlenir.
-#  Son kat 3.750:  ofisin örnek hesabı ( programın varsayılanı artık 4.200 )
-ORNEK_GIRDI = {"tabliye_yuksekligi": 750, "yan_yatak": 120, "son_kat_yuksekligi": 3750}
+#  Son kat 3.750:  ofisin örnek hesabı ( programın varsayılanı artık 4.200 ).
+#  Karşı ağırlık derinliği 150 ve paten arası 3.000:  örneğin kendi değerleri
+#  ( varsayılanlar karar 11'le 155 ve 3.300 — barit dolgusu sığsın diye ).
+ORNEK_GIRDI = {"tabliye_yuksekligi": 750, "yan_yatak": 120, "son_kat_yuksekligi": 3750,
+               "agirlik_derinligi": 150, "agirlik_paten_arasi": 3000}
 
 
 def calistir():

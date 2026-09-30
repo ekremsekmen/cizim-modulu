@@ -1181,6 +1181,7 @@ function mAsansorKaydet(){
 
 function mAsansorYukle(i){
   const d = MUK_ASANSORLER[i]; if(!d) return;
+  mCizimleriSifirla();
   mFormaYaz(d, M_ASANSOR_ALANI);
   mGelismisTazele();
 }
@@ -1314,6 +1315,23 @@ async function cizimleriGetir(){
   }
 }
 
+/*  Form başka asansöre ( ya da yüklenen projeye ) geçtiğinde eski ölçü
+    işlemi ve çizim yanıtları geçersizdir.  Yeni çizim gelene kadar eski
+    çizim de tıklanamaz; geç gelen yanıt onu yeniden gösteremez. */
+function mCizimleriSifirla(){
+  mOlcuKapat();
+  ++ISTEK.cizim;
+  M_CIZIM_DURUM = null;
+  M_OLCU_ISINAN.clear();
+  M_OLCU_SON_BILDIRIM = '';
+  const kutu = $('m_cizimler');
+  if(kutu){
+    kutu.classList.remove('yukleniyor');
+    kutu.innerHTML = '<div class="kart-ic"><span class="ipucu">Çizimler yükleniyor…</span></div>';
+  }
+  mGorunumTazele();
+}
+
 function cizCizimler(c){
   const kutu = $('m_cizimler'); if(!kutu) return;
   const ad = ((MUK_ASANSORLER[MUK_AKTIF] || {}).asansor_adi || '').trim();
@@ -1357,7 +1375,7 @@ function cizCizimler(c){
    yeniden kurarak bulur ( cizim/olcu_kaynagi.py );  yeni değer de çizim
    yeniden kurularak doğrulanır.
    ========================================================================== */
-let M_OLCU = null;                         // açık ölçü kutusu:  { g, ad, i, metin, kutu, c }
+let M_OLCU = null;                         // açık ölçü kutusu:  { g, ad, i, metin, kutu, asansor, c }
 const M_OLCU_ISINAN = new Set();           // önceden çözümlemesi istenen çizimler
 let M_OLCU_SON_BILDIRIM = '';              // çizim yenilenince de görünsün
 
@@ -1427,18 +1445,18 @@ async function mOlcuAc(g, olay){
       <button class="olcu-kapat" aria-label="Kapat" onclick="mOlcuKapat()">×</button></div>
     <div class="olcu-ic"><span class="ipucu">Ölçünün kaynağı bulunuyor…</span></div>`;
   alan.appendChild(kutu);
-  M_OLCU = {g, ad, i, metin, kutu, c: null};
+  M_OLCU = {g, ad, i, metin, kutu, asansor: MUK_AKTIF, c: null};
   const bu = M_OLCU;
   let c;
   try{ c = await mOlcuPost('/api/uygulama/olcu', {cizim: ad, olcu: i, metin}); }
   catch(e){ c = {aktif: false, hata: ['Bağlantı hatası: ' + e]}; }
-  if(M_OLCU !== bu) return;                 // bu arada kapandı ya da başka ölçü açıldı
+  if(M_OLCU !== bu || bu.asansor !== MUK_AKTIF) return;
   bu.c = c;
   mOlcuYaz(bu);
 }
 
 const M_OLCU_YER = {asansor: 'bu asansörün girdisi', proje: 'proje geneli',
-                    ofis: 'ofis standardı ( Sabitler sekmesi )', urun: 'ürün ölçüsü ( çizim kabulü )'};
+                    ofis: 'ofis standardı ( Sabitler sekmesi )'};
 
 function mOlcuBirimli(v, birim){
   const b = (birim && birim !== '—') ? ' ' + birim : '';
@@ -1518,9 +1536,10 @@ function mOlcuHata(metin){
 async function mOlcuUygula(anahtar){
   if(!M_OLCU) return;
   const giris = M_OLCU.kutu.querySelector('#m_olcu_hedef');
-  const hedef = giris ? giris.value.trim().replace(',', '.') : '';
-  if(hedef === '' || !isFinite(Number(hedef))){ mOlcuHata('Yeni ölçüyü sayı olarak yazın.'); return; }
-  await mOlcuDegistir(anahtar, Number(hedef));
+  const hedef = giris ? giris.value.trim() : '';
+  if(hedef === ''){ mOlcuHata('Yeni ölçüyü sayı olarak yazın.'); return; }
+  //  Yazımı koru; ana formun sayı doğrulamasını sunucu uygular.
+  await mOlcuDegistir(anahtar, hedef);
 }
 
 async function mOlcuSecimUygula(anahtar, dugme){
@@ -1529,14 +1548,14 @@ async function mOlcuSecimUygula(anahtar, dugme){
 }
 
 async function mOlcuDegistir(anahtar, hedef){
-  const bu = M_OLCU; if(!bu) return;
+  const bu = M_OLCU; if(!bu || bu.asansor !== MUK_AKTIF) return;
   bu.kutu.classList.add('bekliyor');
   let c;
   try{
     c = await mOlcuPost('/api/uygulama/olcu_degistir',
                         {cizim: bu.ad, olcu: bu.i, metin: bu.metin, anahtar, hedef});
   }catch(e){ c = {aktif: false, hata: ['Bağlantı hatası: ' + e]}; }
-  if(M_OLCU !== bu) return;
+  if(M_OLCU !== bu || bu.asansor !== MUK_AKTIF) return;
   bu.kutu.classList.remove('bekliyor');
   if(!c.aktif){ mOlcuHata((c.hata || []).join(' ')); return; }
   //  Yeni değerle çizim kurulamayacaksa önce sorulur:  sebep görünür,
@@ -1559,7 +1578,7 @@ async function mOlcuDegistir(anahtar, hedef){
 /*  Değerler kutulara yazılır;  form kendi akışıyla ( kayıt, hesap, çizim )
     yenilenir — elle yazılmış gibi. */
 function mOlcuYazdir(){
-  const bu = M_OLCU; if(!bu || !bu.bekleyen) return;
+  const bu = M_OLCU; if(!bu || !bu.bekleyen || bu.asansor !== MUK_AKTIF) return;
   const c = bu.bekleyen;
   const yazilan = [];
   for(const d of c.degisiklikler || []){

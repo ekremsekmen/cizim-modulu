@@ -631,14 +631,16 @@ def kablo_yukseklik(tip):
 # =====================================================================
 #  KARŞI AĞIRLIK MALZEMESİ  ( derinlik · yükseklik mm )
 # =====================================================================
-#  KARŞI AĞIRLIK MALZEMESİ  ( Barit 150 · Pik döküm 100 mm derinlik ).
+#  KARŞI AĞIRLIK MALZEMESİ  ( Barit 155 · Pik döküm 100 mm derinlik ).
 #  Derinlik GİRDİDİR ( bkz. aşağıdaki "KALDIRILDI" notu ):  ölçü
 #  malzemenin değil, imal edilen çerçevenin özelliğidir ve TS EN 81-50
 #  Ek C.2.2 onu veri olarak ister.  Sayı sütunları BAŞLANGIÇ DEĞERİ olarak
 #  kaldı — form açılırken derinliğe barit çerçevenin alışılmış ölçüsü gelir;
-#  hesap yalnız girilen değeri okur.
+#  hesap yalnız girilen değeri okur.  BARİT:  standart blok 960 × 155 × 120 mm,
+#  50 kg ( Tiraslift · Egeser katalogları;  kullanıcı kararı 30 Eyl — karar 11:
+#  dolgunun sığma denetimi bu bloğun yoğunluğuyla, derinliği bloğunki ).
 AGIRLIK_MALZEMESI = (
-    ('Barit', 150, 101),
+    ('Barit', 155, 120),
     ('Pik Döküm', 100, 100),
 )
 

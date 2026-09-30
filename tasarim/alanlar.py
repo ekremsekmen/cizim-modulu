@@ -166,19 +166,17 @@ _GRUPLAR = (
                  'Kuyu genişliği ile birlikte kuyu planını kurar.')),
         A('durak_adedi', 'Durak adedi', 'adet', 'sayi', None, 8,
           kaynak=GIRDI, sozlesme=CIZ,
-          bilgi=('Kat kapısı sayısı.  Kat yüksekliği seyir mesafesinden çıkar:  seyir / ( durak − 1 ).'
-                 '  Düşey kesitlerde duraklar bu aralıkla dizilir.')),
+          bilgi=('Kat kapısı sayısı. Kat yükseklikleri boşsa duraklar '
+                 'seyir / ( durak − 1 ) aralığıyla dizilir.')),
         A('seyir_mesafesi', 'Seyir mesafesi', 'm', 'sayi', None, 21,
           kaynak=GIRDI, sozlesme=MUK,
           bilgi=('En alt durak eşiği ile en üst durak eşiği arasındaki düşey mesafe. Kuyu boyu '
                  'değildir — dengesiz halat kütlesi bundan hesaplanır.')),
-        #  KATLAR TEK TEK SORULMAZ.  Hesap durak yüksekliklerinden yalnız
-        #  TOPLAMI ( ray boyu · regülatör halatı ) ve SON DURAĞINKİNİ ( kuyu
-        #  boyu · sığınma ) kullanıyordu;  toplam da  seyir mesafesi + son kat
-        #  yüksekliğidir.  Liste kaldırıldı:  15 katlı binaya 15 kez "3000"
-        #  yazdırıyor, sonuca hiçbir şey katmıyordu.  Farklı kat yükseklikleri
-        #  zaten seyir mesafesinin içindedir.
-        #
+        A('kat_yukseklikleri', 'Kat yükseklikleri  ( isteğe bağlı )', 'mm', 'metin', None, None,
+          kaynak=GIRDI, sozlesme=CIZ, opsiyonel=True,
+          bilgi=('En alt duraktan başlayarak ardışık durak aralıklarını noktalı virgülle ayırın '
+                 '( örnek: 3400; 3000; 3200 ). Durak adedinden bir eksik sayı girin; '
+                 'toplamı seyir mesafesine eşit olmalı. Boşsa katlar eşit dağıtılır.')),
         #  SON KAT YÜKSEKLİĞİ:  en üst durak döşemesinden kuyu tavanına.
         #  4.200 ( kullanıcı kararı, 29 Eyl 2026 ):  sığınma açıklıkları kuyunun
         #  çiziminden ölçülünce 3.750'de 3.300'lük şasenin üst pateni kuyu tavanına
@@ -450,13 +448,27 @@ _GRUPLAR = (
           kaynak=GIRDI, sozlesme=MUK, gelismis=True,
           bilgi=("Gy — karşı ağırlık çerçevesinin genişliği. Kütlenin kaçıklığı bunun %5'i kabul "
                  'edilir ( m.5.7.2.3.3 ).')),
-        A('agirlik_derinligi', 'Karşı ağırlık derinliği  ( Gx )', 'mm', 'sayi', None, 150,
+        #  155:  standart barit bloğunun derinliği ( 960 × 155 × 120 mm, 50 kg —
+        #  karar 11;  eskiden 150 ve dolgu varsayılan asansörde sığmıyordu ).
+        A('agirlik_derinligi', 'Karşı ağırlık derinliği  ( Gx )', 'mm', 'sayi', None, 155,
           kaynak=GIRDI, sozlesme=MUK, gelismis=True,
           bilgi=("Gx — karşı ağırlık çerçevesinin derinliği. Kütlenin kaçıklığı bunun %10'u kabul "
                  'edilir.')),
-        A('agirlik_paten_arasi', 'Ağırlık paten arası', 'mm', 'sayi', None, 3000,
+        #  3.300 ( kullanıcı kararı 30 Eyl — karar 11 ):  formun varsayılan
+        #  asansöründe ( 800 kg, tablodan 800 kg kabin → karşı ağırlık 1.200 kg,
+        #  2:1 ) 24 standart barit bloğu × 120 = 2.880 mm dolgu;  3.000'lik
+        #  çerçevede ağırlık kasnağının altına 2.680 kalıyordu.  Ağır asansörde
+        #  hesap gereken paten arasını söyler.
+        A('agirlik_paten_arasi', 'Ağırlık paten arası', 'mm', 'sayi', None, 3300,
           kaynak=GIRDI, sozlesme=MUK, gelismis=True, pozitif=True, bolen=True,
           bilgi='Karşı ağırlığın üst ve alt patenleri arasındaki düşey mesafe.'),
+        #  DOLGUYA KALAN YÜKSEKLİK ( karar 11 ):  karşı ağırlık çerçevesinde
+        #  alt kirişin üstünden üst kirişin — 2:1'de ağırlık kasnağının — altına.
+        #  Çizimden gelir;  hesap dolgunun sığdığını bununla denetler.
+        A('agirlik_dolgu_yuksekligi', 'Karşı ağırlık çerçevesinde dolguya kalan yükseklik', 'mm', 'sayi',
+          None, None, kaynak=CIZIM, sozlesme=MUK, formda=False, opsiyonel=True,
+          bilgi=('Çerçevenin ( paten arası ) alt kirişinden üst kirişine — 2:1\'de ağırlık kasnağının '
+                 'altına — dolgu blokları için kalan yükseklik.')),
         A('agirlik_malzemesi', 'Karşı ağırlık malzemesi', '—', 'secim', MT.AGIRLIK_MALZEMELERI, "Barit",
           kaynak=GIRDI, sozlesme=MUK, gelismis=True,
           bilgi=('Ağırlık bloklarının malzemesi. Seçim yalnız derinlik kutusunun başlangıç değerini '

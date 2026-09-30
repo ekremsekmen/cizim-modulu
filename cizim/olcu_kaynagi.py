@@ -17,8 +17,8 @@ Kaynak türleri ( aday["tur"] ):
     sayi    sayı kutusu — ölçüden değiştirilebilir
     tam     tam sayılı kutu ( durak adedi, halat adedi ) — yalnız gösterilir
     secim   seçim kutusu ( ray profili … ) — sayılı seçenekler arasından seçilir
-    ofis    Sabitler sekmesindeki ofis standardı — yalnız gösterilir
-    urun    çizimin ürün ölçüsü ( cizim/sabitler.py ) — yalnız gösterilir
+    ofis    Sabitler sekmesindeki ofis standardı ( çizimin ürün ölçüleri dahil —
+            tek katalog, karar 12 ) — yalnız gösterilir
 
 Bu modül çizimi kurmayı bilmez:  kur( degisiklik , serbest ) işlevi dışarıdan
 verilir ( hesap/api/cizim.py — formun girdisinden çizimin ölçülerine ).
@@ -94,11 +94,11 @@ def _dogrusal(egimler):
 
 
 def _sayisal(kur, taban, ad, kaynak):
-    """Sayı girdisi:  ±adım oynatılır ( ofis ve ürün ölçüsünde yalnız + — yalnız
-    gösterilirler ).  Çizim kurulamazsa girilmiş türetilen alanlar bırakılıp
+    """Sayı girdisi:  ±adım oynatılır ( ofis standardında yalnız + — yalnız
+    gösterilir ).  Çizim kurulamazsa girilmiş türetilen alanlar bırakılıp
     yeniden denenir:  kaide girilmişken kuyu dibi ( ya da kabinin şase altı )
     tek başına değişemez ( zincir ), birlikte değişirler — kaynak "bağlı" olur."""
-    yonler = (1,) if ad["tur"] in ("ofis", "urun") else (1, -1)
+    yonler = (1,) if ad["tur"] == "ofis" else (1, -1)
     #  Tam sayı ( durak, tampon adedi ) 1 mm değil, düzen değiştirir:  çizimin
     #  kendi denetiminden geçmeyen durum sayılmaz.
     denetle = ad["tur"] == "tam"

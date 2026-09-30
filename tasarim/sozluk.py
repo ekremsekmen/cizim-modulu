@@ -28,15 +28,17 @@ SORUNLAR = {
                                  "duvardan duvara kirişe oturur ( \"Bina yapısına\" );  yandaki "
                                  "ağırlıkta duvardan duvara kiriş henüz çizilmiyor — çizim durur, "
                                  "bölüm 2 HESAP EKSİK.", 3),
-    "paten_tipi": (YOK, "Çizim yalnız kaymalı patenin ölçüsünü biliyor ( 140 mm ).", 2),
-    "agirlik_paten_tipi": (YOK, "Çizim yalnız kaymalı patenin ölçüsünü biliyor.", 2),
+    "paten_tipi": (YOK, "Çizim yalnız kaymalı patenin ölçüsünü biliyor ( 140 mm ):  makaralı "
+                        "seçilince çizim durur, bölüm 11 HESAP EKSİK ( ölçüleri gelene kadar ).", 2),
+    "agirlik_paten_tipi": (INCELE, "Karşı ağırlıkta makaralı ve kaymalı patende çizim aynı izi ve "
+                                   "yüksekliği ( 140 mm ) kullanır — referans projenin ağırlık "
+                                   "patenleri makaralı.", 2),
     "paten_balata_boyu": (INCELE, "Hesaptaki balata ile çizimdeki paten boyu ( 100 mm ) aynı parça mı.",
                           None),
     "kanal_sekli": (YOK, "Çift sarımda çizim duruyor.", 6),
     "uzun_pervaz": (YOK, "Kabin girişi girintisi çizilmiyor; yalnız 100 mm'yi aşarsa kabin "
                          "alanına girer.", 8),
     "denge_zinciri": (YOK, "Hesapta var, çizimde yok.", 9),
-    "agirlik_malzemesi": (YOK, "Dolgunun çerçeveye sığdığı denetlenmiyor.", 11),
 }
 
 #  ( ad , hesaptaki yeri , grup , not , durum , karar no )

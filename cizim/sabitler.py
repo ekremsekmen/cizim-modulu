@@ -2,8 +2,10 @@
 """
 ÇİZİM SABİTLERİ  —  ofisin hep aynı kullandığı ÜRÜN ölçüleri  ( mm )
 
-Bunlar hesabın ofis sabitleri DEĞİLDİR;  yalnız çizimin ayrıntısını belirler
-ve hiçbir hesaba girmez.  Paftada kaynakları KABUL sayılır.
+TEK KATALOG ( karar 12 ):  hepsi hesabın Sabitler sekmesinden değiştirilir
+( ofis standardı;  bölümleri BOLUMLER ) ve çizim, yerleşimin ölçü listesi
+( olculer ) ile bölüm 11 aynı sayıyı kullanır.  Buradaki değerler fabrika
+ayarıdır.  Paftada kaynakları KABUL sayılır.
 
 NEREDEN GELDİLER:  Yayımlanmış bir referans projenin
 paftasındaki çizimin VEKTÖR GEOMETRİSİNDEN ölçüldüler;  ölçek 1/20 üzerinden
@@ -323,6 +325,89 @@ ETIKET = {
     "kapi_ust_payi": "Kapı boşluğunun kapıdan yüksekliği",
     "esik_kalinlik": "Eşik kalınlığı",
 }
+
+
+#  SABİTLER SEKMESİNDEKİ BÖLÜMLER:  ( başlık , açıklama , anahtarlar ).  Her
+#  sabit tam bir bölümdedir ( test ).  Makine ölçüleri TEK BİR makinenindir
+#  ( referans projenin dişlisiz makinesi ):  başka makine kullanılıyorsa o
+#  bölüm değiştirilir.
+BOLUMLER = (
+    ("RAY VE KONSOL", "kuyu planındaki konsollar, düşey kesitlerdeki ray ekleri ve uçları",
+     ("konsol_kabin_en", "konsol_kabin_boy", "konsol_agirlik_en", "konsol_agirlik_boy",
+      "konsol_civata_araligi", "konsol_civata_capi", "ara_kiris_en", "konsol_ilk",
+      "konsol_yukseklik", "ray_boyu", "ek_lama_boyu", "ray_sase_icinde", "kabin_rayi_tepe")),
+    ("PATEN", "kabinde kaymalı paten ( makaralı kabin pateninin ölçüsü yok — seçilince çizim "
+     "durur, karar 2 );  karşı ağırlıkta referans projenin makaralı pateni, aynı iz",
+     ("paten_en", "paten_boy", "paten_yukseklik")),
+    ("KABİN", "kabinin planı ve düşey ölçüleri — kabin imalatına bağlı, TS EN 81-20 sayısı değildir",
+     ("kabin_pano_yan", "kabin_pano_arka", "sase_dikme", "sase_dikme_derinlik",
+      "kabin_taban_kalinlik", "kabin_tavan_kalinlik", "sase_alt_derinlik",
+      "fren_blogu_yukseklik", "etek_tahtasi")),
+    ("KABİN KASNAKLARI ( 2:1 )", "kabin altında döşemenin altında;  kabin üstünde şasenin üst "
+     "kirişinin üstünde, arkadaki ağırlıkta kabin tavanında",
+     ("kabin_kasnak_genislik", "kabin_kasnak_derinlik", "kabin_ustu_kasnak_boslugu",
+      "kabin_tavani_kasnak_boslugu")),
+    ("KAPI VE KATLAR", "kat ve kabin kapısı, eşikler, kat döşemesi",
+     ("kasa_yan", "kasa_derinlik", "kanat_kalinlik", "kanat_araligi", "kanat_esik_payi",
+      "kabin_kapisi_kutu_en", "kabin_kapisi_kutu_boy", "esik_derinlik", "kabin_esik_derinlik",
+      "esik_kalinlik", "kapi_ust_payi", "kat_doseme_kalinlik", "bina_duvari")),
+    ("KARŞI AĞIRLIK", "çerçeve ve kasnağı",
+     ("agirlik_cerceve", "agirlik_kiris", "agirlik_kasnak_ust")),
+    ("KUYU DİBİ", "tamponlar, merdiven, regülatör gergisi",
+     ("tampon_capi", "tampon_taban", "merdiven_eni", "merdiven_derinlik", "gergi_kasnak_eni",
+      "gergi_kasnak_merkez", "gergi_kol_alt", "gergi_kol_yukseklik", "gergi_kol_ray",
+      "gergi_kol_uc", "gergi_agirlik_alt", "gergi_agirlik_yukseklik", "gergi_agirlik_yakin",
+      "gergi_agirlik_uzak")),
+    ("MAKİNE", "tek bir makinenin ölçüleri ( referans projenin dişlisiz makinesi ) — başka "
+     "makinede buradan değiştirilir",
+     ("makine_en", "makine_boy", "tahrik_kasnak_kalinlik", "makine_kasnak_boslugu",
+      "makine_kapak_yukseklik", "makine_kapak_en", "makine_kapak_boy")),
+    ("KUYU ÜSTÜ ( makine dairesiz )", "makine şasesi, halat bağlantıları, regülatör, acil "
+     "kurtarma panosu — düşey ölçüler kuyu tavanından aşağı",
+     ("tavan_kirisi", "makine_tepe_boslugu", "duvar_kirisi_tepe_boslugu", "makine_sase_duvar",
+      "makine_sase_ray_payi", "agirlik_baglanti_en", "agirlik_baglanti_boy",
+      "agirlik_baglanti_x", "agirlik_baglanti_y", "agirlik_baglanti_yukseklik",
+      "kabin_baglanti_en", "kabin_baglanti_boy", "kabin_baglanti_x", "kabin_baglanti_ust",
+      "kabin_baglanti_alt", "regulator_eni", "regulator_govde_en", "regulator_govde_boy",
+      "regulator_kasnak_merkez", "regulator_govde_ust", "regulator_govde_alt",
+      "acil_pano_en", "acil_pano_derinlik")),
+    ("MAKİNE DAİRESİ", "kaide, halat delikleri, kumanda panosu, saptırma kasnağı",
+     ("md_cerceve_pay", "md_cerceve_ayak_plakasi", "md_cerceve_ayak_plakasi_kalinlik",
+      "md_cati_kalinlik", "md_saptirma_yukseklik", "halat_delik_payi", "kumanda_pano_en",
+      "kumanda_pano_derinlik", "kumanda_pano_yukseklik")),
+)
+
+#  SIFIR OLABİLENLER:  boşluklar ve paylar.  Öbürleri parçanın kendi ölçüsüdür;
+#  sıfırı çizimi bozar ( ray boyu sıfırsa ray eklerinin kotları biter ).
+SIFIR_OLABILIR = frozenset((
+    "ray_sase_icinde", "kabin_rayi_tepe", "kabin_ustu_kasnak_boslugu",
+    "kabin_tavani_kasnak_boslugu", "kanat_esik_payi", "kapi_ust_payi", "esik_kalinlik",
+    "bina_duvari", "gergi_kol_ray", "makine_kasnak_boslugu", "tavan_kirisi",
+    "makine_tepe_boslugu", "duvar_kirisi_tepe_boslugu", "makine_sase_duvar",
+    "makine_sase_ray_payi", "agirlik_baglanti_x", "agirlik_baglanti_y", "kabin_baglanti_x",
+    "md_cerceve_pay", "halat_delik_payi"))
+
+#  GEÇERLİ ARALIK ( hesabın Sabitler sekmesi ve köprü aynısını kullanır:
+#  hesabın reddettiği değer çizime de geçmez ).  Kabinin düşey ölçülerinin
+#  sınırları hesabın eski sınırlarıdır.
+_ARALIK_OZEL = {"tavan_kirisi": (0, 5000), "sase_alt_derinlik": (1, 5000),
+                "kabin_taban_kalinlik": (1, 1000), "kabin_tavan_kalinlik": (1, 1000),
+                "paten_yukseklik": (1, 1000), "fren_blogu_yukseklik": (1, 2000),
+                "kabin_kasnak_derinlik": (1, 2000)}
+
+
+def aralik(anahtar):
+    """( en az , en çok ) — sıfır yalnız boşluk ve paylarda."""
+    return _ARALIK_OZEL.get(anahtar, (0 if anahtar in SIFIR_OLABILIR else 1, 20000))
+
+
+#  Sabitler sekmesinde adı farklı olan ( hesabın eski adı, kayıtlı projeler
+#  onu taşır ):  çizim adı → ofis adı.  Öbürlerinin adı aynıdır.
+OFIS_ADI = {"tavan_kirisi": "tavan_payi"}
+
+
+def ofis_adi(anahtar):
+    return OFIS_ADI.get(anahtar, anahtar)
 
 
 def sabitler(ozel=None):

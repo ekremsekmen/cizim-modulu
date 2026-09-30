@@ -140,7 +140,7 @@ def tamamla(g):
 YERLESIM_OLCULERI = ("kabin_merkezi_x", "esik_x", "kabin_ray_boyu", "agirlik_ray_boyu",
                      "aski_halat_boyu", "reg_halat_boyu", "kasnak_tek_yon", "kasnak_ters_yon",
                      "kasnak_kabin_adedi", "kasnak_agirlik_adedi", "saptirma_agirlik_capi",
-                     "makine_yuku_x", "yan_yatak_boyu")
+                     "makine_yuku_x", "yan_yatak_boyu", "agirlik_dolgu_yuksekligi")
 
 
 def yerlesim_olculeri(g):
@@ -307,9 +307,11 @@ def kopru(g):
 AVAN_KARSILIGI = {}
 #  Avan motoruna GEÇMEYECEKLER:  yalnız mukavemeti ilgilendirirler ve avan
 #  tarafında aynı adla başka bir anlam taşıyabilirler.
+#  Çizimin ürün ölçüleri ( tek katalog ) ve dolgu yoğunlukları da geçmez.
 AVAN_DISI = ("q_denge", "sigma_em", "k1_kaymali", "k1_makarali", "k1_ani",
              "yan_yatak_L_X", "halat_pay_m", "Gs", "verim_dislisiz",
-             "verim_disli") + MK.SIGINMA_PAYLARI
+             "verim_disli", "dolgu_yogunlugu_barit", "dolgu_yogunlugu_pik") \
+    + MK.SIGINMA_PAYLARI + US.CIZIM_ANAHTARLARI
 
 
 def _avan_sabitleri(ofis):

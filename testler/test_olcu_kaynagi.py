@@ -135,7 +135,7 @@ class Kaynak(unittest.TestCase):
 
     def test_zincir_olcusunun_bircok_kaynagi(self):
         #  Kabin şasesi – kuyu duvarı:  kuyu genişliği, kabin genişliği, kaçıklık,
-        #  ürün ölçüleri ( pano, şase dikmesi )
+        #  ürün ölçüleri ( pano, şase dikmesi — tek katalog:  ofis standardı )
         i = next(i for i, o in enumerate(self.r["taban"])
                  if o["metin"] == "430")
         k = UC._kaynaklar(self.r, i)
@@ -143,7 +143,7 @@ class Kaynak(unittest.TestCase):
         self.assertEqual(ad["kuyu_genisligi"]["egim"], 0.5)
         self.assertEqual(ad["kabin_genisligi"]["egim"], -0.5)
         self.assertEqual(abs(ad["kabin_yana_kaciklik"]["egim"]), 1.0)
-        self.assertEqual(ad["kabin_pano_yan"]["yer"], "urun")
+        self.assertEqual(ad["kabin_pano_yan"]["yer"], "ofis")
         self.assertFalse(ad["kabin_pano_yan"]["degistirilir"])
         self.assertTrue(all(not x["dogrudan"] for x in k))
 
@@ -153,9 +153,11 @@ class Kaynak(unittest.TestCase):
         self.assertFalse(k[0]["degistirilir"])            # seçenekleri sayı değil
 
     def test_urun_olcusu_adiyla(self):
+        #  Ürün ölçüleri ofis standardındadır ( Sabitler sekmesi — karar 12 )
         k = self._kaynaklar("KABİN EŞİĞİ")
-        self.assertEqual(k[0]["yer"], "urun")
-        self.assertEqual(k[0]["etiket"], CS.ETIKET["kabin_esik_derinlik"])
+        self.assertEqual(k[0]["yer"], "ofis")
+        self.assertTrue(k[0]["etiket"].startswith(CS.ETIKET["kabin_esik_derinlik"]))
+        self.assertFalse(k[0]["degistirilir"])
 
     def test_kuyu_dibi_dogrudan_kaide_zincirden(self):
         #  Kabin tamponu kaidesinin formda kutusu yok ( tasarım şeması:  kaynağı
@@ -208,6 +210,20 @@ class Kaynak(unittest.TestCase):
 
 
 class CokAsansor(unittest.TestCase):
+    def test_cizimin_hesap_durumu_secilen_asansorundur(self):
+        v = _veri()
+        saglam = dict(v["asansorler"][0])
+        hatali = dict(saglam, motor_gucu=-1)
+        for asansorler, beklenen in (([saglam, hatali], [True, False]),
+                                     ([hatali, saglam], [False, True]),
+                                     ([hatali], [False])):
+            for i, hesap_var in enumerate(beklenen):
+                with self.subTest(adet=len(asansorler), asansor=i, hesap=hesap_var):
+                    c = json.loads(UC.api_cizimler(dict(v, asansorler=asansorler, asansor=i)).body)
+                    self.assertTrue(c["aktif"], c.get("hata"))
+                    self.assertTrue(c["cizimler"])
+                    self.assertEqual(c["hesap"], hesap_var)
+
     def test_aktif_asansorun_girdisi(self):
         #  Çizimler aktif asansörün;  çözümleme de onun girdisini okur.
         v = _veri()
@@ -254,6 +270,45 @@ class Degistirme(unittest.TestCase):
         #  ama girdi değil — çizimden gelir, yalnız DBGW değişir.
         self._dene(v, "kuyu_plani", "DBGW", "agirlik_ray_arasi", 900,
                    beklenen={"agirlik_ray_arasi": 900})
+
+    def test_olcu_sayisi_ana_formla_ayni_okunur(self):
+        from api.ortak import _belirsiz_hata
+        v = _veri()
+        r = UC._cozumleme(v, "kuyu_plani")
+        i = _olcu(r, "KUYU GENİŞLİĞİ")
+        for ham, beklenen in (("2200", 2200), ("2200,5", 2200.5),
+                              ("2.200,5", 2200.5), ("2,200.5", 2200.5),
+                              ("2 200,5", 2200.5), (2200.5, 2200.5), ("0,075", 0.075)):
+            with self.subTest(ham=ham):
+                form, _ortak = UC_UYG._asansor_girdileri(dict(v, asansorler=[
+                    dict(v["asansorler"][0], kuyu_genisligi=ham)]))
+                self.assertIsNone(_belirsiz_hata())
+                self.assertEqual(form[0]["kuyu_genisligi"], beklenen)
+                y = _degistir(v, "kuyu_plani", i, r, "kuyu_genisligi", ham)
+                self.assertTrue(y["aktif"], y)
+                self.assertEqual(y["degisiklikler"][0]["deger"], beklenen)
+
+    def test_belirsiz_olcu_yazimi_reddedilir(self):
+        v = _veri()
+        r = UC._cozumleme(v, "kuyu_plani")
+        i = _olcu(r, "KUYU GENİŞLİĞİ")
+        for ham in ("2.200", "2,200", " 2.200 ", "\u00a02.200\u00a0"):
+            with self.subTest(ham=ham):
+                y = _degistir(v, "kuyu_plani", i, r, "kuyu_genisligi", ham)
+                self.assertFalse(y["aktif"], y)
+                self.assertIn("Belirsiz sayı", y["hata"][0])
+                self.assertNotIn("degisiklikler", y)
+
+    def test_gecersiz_olcu_sayisi_reddedilir(self):
+        v = _veri()
+        r = UC._cozumleme(v, "kuyu_plani")
+        i = _olcu(r, "KUYU GENİŞLİĞİ")
+        for ham in (None, "", "  ", True, "nan", "inf", "2200 mm", "0x898", "1e309", [], {}):
+            with self.subTest(ham=ham):
+                y = _degistir(v, "kuyu_plani", i, r, "kuyu_genisligi", ham)
+                self.assertFalse(y["aktif"], y)
+                self.assertTrue(y["hata"])
+                self.assertNotIn("degisiklikler", y)
 
     def test_zincir_parcasi_iki_ayri_girdiyle(self):
         v = _veri()
@@ -416,7 +471,11 @@ class Parcalar(unittest.TestCase):
 
     def test_etiketler_ve_kurallar_tam(self):
         self.assertEqual(set(CS.ETIKET), set(CS.SABIT))
-        self.assertEqual(sorted(k for k in CK.ALAN if CK.ALAN[k][5] is None), sorted(CK.KURALLI))
+        #  Sayısal kutuların etkin değerleri ölçü çözümlemesinde bulunmalı;
+        #  isteğe bağlı kat listesi metindir ve bu sayısal haritaya girmez.
+        self.assertEqual(sorted(k for k in CK.ALAN
+                                if CK.ALAN[k][3] == "sayi" and CK.ALAN[k][5] is None),
+                         sorted(CK.KURALLI))
         self.assertIn("kural", CGE._olcu("yatay", (0, 0), (1, 0), 0, kural="x"))
 
 

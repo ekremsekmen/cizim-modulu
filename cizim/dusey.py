@@ -37,6 +37,8 @@ STANDARDIN DENETLEDİĞİ AÇIKLIKLAR
   duraklar    m.5.2.3.1     ardışık iki kat kapısı eşiği arası 11 m'yi aşarsa ara
                             acil kapı gerekir — bu çizim acil kapı çizmez, durur
 """
+import math
+
 from cizim import arka_aski as CAA
 from cizim import donanim as CDN
 from cizim import geometri as CGE
@@ -66,14 +68,14 @@ DUSEY_ALANLAR = ("kabin_ic_yukseklik", "kabin_paten_arasi", "agirlik_paten_arasi
 
 
 def _sayi(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool)
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
 
 
 def _kutu(el):
     return (el["x"], el["y"], el["x"] + el["g"], el["y"] + el["d"])
 
 
-def durak_kotlari(g):
+def durak_kotlari(g, cizim_sabitleri=None):
     """Durakların döşeme kotları ( en alt durak ±0 ) ve girdi hataları.
 
     kat_yuksekligi tek sayıysa bütün katlar o yükseklikte;  liste ise alttan
@@ -92,11 +94,18 @@ def durak_kotlari(g):
                     f"sayılık bir liste olmalı ( {kh!r} )."]
     hata = []
     kapi_h = kp.get("yukseklik") or 0
+    S = CS.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
+    esik = S["esik_kalinlik"] if kp.get("montaj") == "Duvar boşluğuna" else 0.0
+    bosluk_h = kapi_h + S["kapi_ust_payi"] + esik
     for i, h in enumerate(araliklar):
         ad = f"{i + 1}. – {i + 2}. durak arası {h:g} mm"
         if h <= kapi_h:
             hata.append(f"{ad}:  kat kapısı yüksekliğinden ( {kapi_h:g} ) büyük olmalı — "
                         f"kapı üstteki durağın döşemesine giriyor.")
+        elif h <= bosluk_h:
+            hata.append(f"{ad}:  kapı yüksekliği {kapi_h:g} + üst payı {S['kapi_ust_payi']:g} "
+                        f"+ eşik alt payı {esik:g} = {bosluk_h:g} mm'den büyük olmalı — "
+                        "ardışık kapı boşlukları arasında duvar kalmıyor.")
         if h > ESIK_ARASI:
             hata.append(f"{ad} > {ESIK_ARASI:g} mm:  ara acil kapı gerekir "
                         f"( TS EN 81-20 m.5.2.3.1 );  bu çizim acil kapı çizmez.")
@@ -119,8 +128,13 @@ def yerlesim(g, cizim_sabitleri=None):
     dy = g.get("dusey") or {}
     hata = [f"dusey.{a}: sıfırdan büyük bir sayı olmalı ( {dy.get(a)!r} )."
             for a in DUSEY_ALANLAR if not (_sayi(dy.get(a)) and dy[a] > 0)]
-    kotlar, durak_hata = durak_kotlari(g)
+    kotlar, durak_hata = durak_kotlari(g, S)
     hata += durak_hata
+    for tur, ad in (("kabin", "Kabin"), ("agirlik", "Karşı ağırlık")):
+        boy, ezilme = dy.get(tur + "_tampon_boyu"), dy.get(tur + "_tampon_ezilme")
+        if _sayi(boy) and _sayi(ezilme) and ezilme > boy:
+            hata.append(f"{ad} tamponu ezilme miktarı ({ezilme:g} mm), tamponun "
+                        f"boyundan ({boy:g} mm) büyük olamaz.")
     #  Çizilemeyen askı / ağırlık birleşimi ilk söylenir ( öbür planların
     #  hataları onun sonucudur )
     from cizim import kuyu_ustu as CKT

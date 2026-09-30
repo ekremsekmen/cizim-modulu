@@ -161,25 +161,33 @@ VARSAYILAN = {
     #  paftada kaynağı OFİS STANDARDI yazar ve üst sınırı aşamaz.
     "reg_mu":           MT.REG_MU_AZAMI,
 
-    # ── ③ KABİN VE KUYU ÖLÇÜLERİ  ( sığınma açıklıkları ) ─────────────
-    #  BİRLEŞİK PROGRAM:  bölüm 11'in açıklıkları kuyunun ÇİZİMİNDEN ölçülür
-    #  ( cizim/dusey.py ).  Kabinin düşey ölçüleri kabin imalatına bağlı ofis
-    #  kabulleridir — TS EN 81-20 sayısı DEĞİLDİR;  değerleri TEK YERDEN,
-    #  çizim modülünün sabitlerinden ( referans projenin kabini ) okunur ve
-    #  buradan değiştirilince çizim de aynı sayıyı kullanır
-    #  ( cizim/kopru.OFIS_SABITLERI ).  Kabin iç yüksekliği, paten arası ve
-    #  tamponlar asansörün kendi girdisidir.  Standardın asgari açıklıkları
-    #  ( 100 · 300 · 500 mm ve sığınma yükseklikleri ) burada YOKTUR.
-    #  ( Eski paylar — kabin gövde yüksekliği 2.400, kabin üstü kotu 2.100,
-    #  paten, etek, ray altı ve regülatör payları — kaldırıldı:  üst paten bir
-    #  satırda 2.700, bir başkasında 2.900 kotta sayılıyordu. )
-    "tavan_payi":            _CS.SABIT["tavan_kirisi"],
-    "sase_alt_derinlik":     _CS.SABIT["sase_alt_derinlik"],
-    "kabin_taban_kalinlik":  _CS.SABIT["kabin_taban_kalinlik"],
-    "kabin_tavan_kalinlik":  _CS.SABIT["kabin_tavan_kalinlik"],
-    "paten_yukseklik":       _CS.SABIT["paten_yukseklik"],
-    "fren_blogu_yukseklik":  _CS.SABIT["fren_blogu_yukseklik"],
-    "kabin_kasnak_derinlik": _CS.SABIT["kabin_kasnak_derinlik"],
+    # ── ②e KARŞI AĞIRLIK DOLGUSU  ( karar 11 ) ─────────────────────────
+    #  Dolgunun çerçeveye sığması:  gereken dolgu yüksekliği = Mcwt / ( ρ ·
+    #  Gx · Gy ).  ρ blokların DIŞ ölçüsüne göre yoğunluktur ( kulaklar dahil —
+    #  kulaklar çerçeve profilinin içinde durur, Gy çerçevenin dış eni ).
+    #  BARİT:  Türk piyasasının standart bloğu 960 × 155 × 120 mm, 50 kg
+    #  ( Tiraslift ve Egeser katalogları;  özel üretim 60 – 70 kg ) →
+    #  50 / ( 0,960 · 0,155 · 0,120 ) = 2.800 kg/m³.  PİK DÖKÜM:  blok kataloğu
+    #  yok;  gri dökme demirin kendi yoğunluğu ( 7,2 – 7,5 g/cm³ ) alt ucuyla —
+    #  blok şekli bilinmediği için bu değerle denetim İYİMSERDİR, katalog
+    #  gelince buradan değiştirilir.
+    "dolgu_yogunlugu_barit": 2800,  # kg/m³
+    "dolgu_yogunlugu_pik":   7200,  # kg/m³
+
+    # ── ③ ÇİZİMİN ÜRÜN ÖLÇÜLERİ  ( tek katalog — karar 12 ) ───────────
+    #  BİRLEŞİK PROGRAM:  çizimin bütün ürün ölçüleri ( konsollar, kabin,
+    #  kapı, makine, kuyu üstü … ) burada, çizim modülünün bölümleriyle
+    #  ( cizim/sabitler.BOLUMLER ) durur;  değerleri TEK YERDEN, çizim
+    #  modülünün fabrika ayarından ( referans projenin donanımı ) okunur ve
+    #  buradan değiştirilince çizim, yerleşimin ölçü listesi ve bölüm 11 aynı
+    #  sayıyı kullanır ( cizim/kopru.OFIS_SABITLERI ).  Kabinin düşey ölçüleri
+    #  kabin imalatına bağlı ofis kabulleridir — TS EN 81-20 sayısı DEĞİLDİR.
+    #  Kabin iç yüksekliği, paten arası ve tamponlar asansörün kendi
+    #  girdisidir.  Standardın asgari açıklıkları ( 100 · 300 · 500 mm ve
+    #  sığınma yükseklikleri ) burada YOKTUR.  Adı farklı olan tek:  kuyu
+    #  tavanı payı ( tavan_payi — çizimde tavan_kirisi;  kayıtlı projeler bu
+    #  adı taşır ).
+    **{_CS.ofis_adi(c): v for c, v in _CS.SABIT.items()},
     #  Kabin üstündeki en yüksek donanım ( revizyon kutusu ) kabin tavanının
     #  bu kadar üstünde ( m.5.2.5.7.2 a );  çizim revizyon kutusunu çizmez.
     "revizyon_payi":      500,
@@ -232,10 +240,8 @@ ARALIK = {
     #  Üst sınır STANDARDIN sayısıdır ( m.5.6.2.2.1.3 b) );  alt sınır
     #  yalnız sıfıra bölünmeyi ve fiziksel olmayan değeri engeller.
     "reg_mu": (0.01, MT.REG_MU_AZAMI),
-    "tavan_payi": (0, 5000), "sase_alt_derinlik": (1, 5000),
-    "kabin_taban_kalinlik": (1, 1000), "kabin_tavan_kalinlik": (1, 1000),
-    "paten_yukseklik": (1, 1000), "fren_blogu_yukseklik": (1, 2000),
-    "kabin_kasnak_derinlik": (1, 2000), "revizyon_payi": (0, 5000),
+    "dolgu_yogunlugu_barit": (1000, 20000), "dolgu_yogunlugu_pik": (1000, 20000),
+    "revizyon_payi": (0, 5000),
     "kabin_armatur_W": (0.1, 1000), "kabin_armatur_lm": (1, 100000),
     "kabin_ustu_armatur": (0, 20), "kuyu_armatur_W": (0.1, 1000),
     "kuyu_armatur_lm": (1, 100000), "kuyu_Dmax": (0, 100), "ayd_sutun": (1, 10),
@@ -246,6 +252,21 @@ ARALIK = {
     "beta": (1, 100000), "cubuk_sayisi": (0, 100), "goz_araligi": (1, 200),
     "lc": (0.1, 50), "UL": (1, 1000), "IDn": (0.001, 10),
 }
+#  Çizimin ürün ölçülerinin aralığı çizim modülündedir ( köprü de aynısını
+#  kullanır ):  sıfır yalnız boşluk ve paylarda — ray boyu sıfır olamaz.
+CIZIM_ANAHTARLARI = tuple(_CS.ofis_adi(c) for c in _CS.SABIT)
+for _c in _CS.SABIT:
+    ARALIK[_CS.ofis_adi(_c)] = _CS.aralik(_c)
+
+#  Çizimin bölümleri ( cizim/sabitler.BOLUMLER ) Sabitler sekmesinde ③a, ③b …
+#  olur;  revizyon kutusunun yüksekliği kabinin bölümündedir.
+_HARF = "abcdefghijklmnopqrstuvwxyz"
+_CIZIM_GRUPLARI = tuple(
+    (f"③{_HARF[i]} {b}",
+     ("çizimin ürün ölçüleri — tek katalog:  çizim, yerleşimin ölçüleri ve bölüm 11 "
+      "bu sayıları kullanır;  " if i == 0 else "") + a,
+     tuple(_CS.ofis_adi(c) for c in al) + (("revizyon_payi",) if b == "KABİN" else ()))
+    for i, (b, a, al) in enumerate(_CS.BOLUMLER))
 
 #  Ekran düzeni:  [ başlık, açıklama, alanlar ].  Uygulama projesi YALNIZ
 #  bunları görür;  avanın MMO/697 kuvvet sabitleri burada YOKTUR.
@@ -274,13 +295,11 @@ GRUPLAR = (
      "TS EN 81-20 m.5.6.2.2.1.3 b) — halat emniyet katsayısı µmax = 0,2 ile "
      "hesaplanır;  daha küçük bir değer katsayıyı olduğundan iyi gösterir",
      ("reg_mu",)),
-    ("③ KABİN VE KUYU ÖLÇÜLERİ",
-     "sığınma açıklıkları kuyunun çiziminden ölçülür;  kabinin düşey ölçüleri "
-     "kabin imalatına bağlıdır ( referans projenin kabini ), TS EN 81-20 sayısı "
-     "değildir — çizim de bu sayıları kullanır",
-     ("tavan_payi", "sase_alt_derinlik", "kabin_taban_kalinlik", "kabin_tavan_kalinlik",
-      "paten_yukseklik", "fren_blogu_yukseklik", "kabin_kasnak_derinlik",
-      "revizyon_payi")),
+    ("②e KARŞI AĞIRLIK DOLGUSU",
+     "dolgunun çerçeveye sığması ( karşı ağırlık rayları bölümü ) — blokların dış "
+     "ölçüsüne göre yoğunluk",
+     ("dolgu_yogunlugu_barit", "dolgu_yogunlugu_pik")),
+    *_CIZIM_GRUPLARI,
     ("④ AYDINLATMA",
      "kabin · kuyu · makine dairesi aydınlatma hesapları",
      ("kabin_armatur_W", "kabin_armatur_lm", "kabin_ustu_armatur",
@@ -361,6 +380,12 @@ ETIKET = {
                               "kabin altı askıda döşemeden kasnak merkezine"),
     "revizyon_payi": ("Revizyon kutusu yüksekliği (mm)",
                       "kabin tavanından;  m.5.2.5.7.2 a — en yüksek donanım"),
+    "dolgu_yogunlugu_barit": ("Barit dolgu yoğunluğu ρ (kg/m³)",
+                              "standart blok 960 × 155 × 120 mm, 50 kg ( Tiraslift · Egeser "
+                              "katalogları;  özel üretim 60 – 70 kg )"),
+    "dolgu_yogunlugu_pik": ("Pik döküm dolgu yoğunluğu ρ (kg/m³)",
+                            "gri dökme demir 7,2 – 7,5 g/cm³ — blok kataloğu yok, denetim "
+                            "iyimser;  kataloğun blok kütlesi / dış hacmi girilmeli"),
     "kabin_armatur_W": ("Kabin armatürü (W)", ""),
     "kabin_armatur_lm": ("Kabin armatürü ışık akısı (lm)", ""),
     "kabin_ustu_armatur": ("Kabin üstü armatür adedi", ""),
@@ -393,6 +418,10 @@ ETIKET = {
     "UL": ("İzin verilen temas gerilimi UL (V)", "TT sistem"),
     "IDn": ("Kaçak akım rölesi anma akımı IΔn (A)", ""),
 }
+
+#  Çizimin ürün ölçülerinin adları ( sayfa ve ölçü kaynağı "Sabitler" diye anar )
+for _c in _CS.SABIT:
+    ETIKET.setdefault(_CS.ofis_adi(_c), (f"{_CS.ETIKET[_c]} (mm)", ""))
 
 
 def sabitler(ozel=None):

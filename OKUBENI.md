@@ -29,6 +29,16 @@ Kuyu ve katlar → Kabin ve kapı → Raylar ve patenler → Karşı ağırlık 
 halatlar → Makine → Makine dairesi → Tamponlar → Hız regülatörü → Elektrik ve
 topraklama.  Makine dairesizde 1:1 askı seçilemez ( çizim 2:1 çizer ).
 
+**Farklı kat yükseklikleri.** Kuyu ve katlar grubundaki isteğe bağlı
+"Kat yükseklikleri" alanına en alt duraktan başlayarak aralıklar mm cinsinden
+girilebilir: `3400; 3000; 3200`. Aralık sayısı durak adedinden bir eksik,
+toplamı seyir mesafesiyle aynı olmalıdır. Boş bırakılırsa mevcut eşit kat
+dağılımı kullanılır. Kesitlerin kapı ve döşeme kotları bu aralıklardan çıkar.
+Kapı yüksekliği, üst payı ve duvar boşluğuna montajdaki eşik alt payı
+ardışık kapı boşlukları arasına sığmıyorsa çizim reddedilir. Kabin ve karşı
+ağırlık tamponlarının ezilme miktarı kendi boylarını aşamaz. SVG önizlemesi
+gizli çizgi ve dairelerde de katmanın kesikli desenini kullanır.
+
 **Formda sorulmayanlar.**  Çizimin tek çizebildiği değerler ( iki kabin ve iki
 ağırlık rayı;  kabin iki rayın, askı kabinin ortasında — yc = ys = 0 ) ve
 çizimden gelenler ( saptırma kasnaklarının çapı D2 · Ds, kabin tamponu kaidesi )
@@ -101,12 +111,37 @@ sığınma alanının, patenlerin, korkuluğun tam üstündeki parçadır ( maki
 sayıdır.  Eskiden hesap ofis paylarıyla ayrı bir model kuruyordu ( kabin gövdesi
 2.400, üst paten bir satırda 2.700, bir başkasında 2.900;  girilen paten arası
 kullanılmıyordu ) ve hesabın varsayılan asansöründe çizim üst patenin kuyu
-tavanına 150 mm girdiğini bulurken hesap "uygun" diyordu.  Kabinin düşey
-ölçüleri ( şase altı, taban / tavan kalınlığı, paten, fren bloğu, kabin
-kasnağı, tavan payı ) hesabın **Sabitler** sekmesindedir ve çizim de onları
-kullanır ( `kopru.OFIS_SABITLERI`;  değerler `cizim/sabitler.py`'den );
-revizyon kutusunun yüksekliği de oradadır ( çizim onu çizmez ).  Çizim
-kurulamıyorsa bölüm 11 **HESAP EKSİK** der ve sebebini yazar.
+tavanına 150 mm girdiğini bulurken hesap "uygun" diyordu.  Çizim kurulamıyorsa
+bölüm 11 **HESAP EKSİK** der ve sebebini yazar.
+
+**Tek katalog** ( karar 12 ).  Çizimin bütün ürün ölçüleri — konsollar, paten,
+kabin ( düşey ölçüleri dahil ), kabin kasnakları, kapı ve katlar, karşı ağırlık,
+kuyu dibi, makine, kuyu üstü, makine dairesi — hesabın **Sabitler** sekmesindedir
+( ③a – ③j, bölümleri `cizim/sabitler.BOLUMLER` );  çizim, yerleşimin ölçü
+listesi ve bölüm 11 aynı sayıyı kullanır ( `kopru.OFIS_SABITLERI`;  fabrika
+ayarı `cizim/sabitler.py` ).  Makine bölümü tek bir makinenindir ( referans
+projenin dişlisiz makinesi ) — başka makinede oradan değiştirilir.  Aralık
+dışındaki değer hesabı durdurur ve çizime de geçmez ( `sabitler.aralik`:  sıfır
+yalnız boşluk ve paylarda — ray boyu sıfır olamaz ).  Kuyu tavanı payının adı
+Sabitler'de eskisi gibi `tavan_payi`'dır ( kayıtlı projeler onu taşır ).
+Revizyon kutusunun yüksekliği de oradadır ( çizim onu henüz çizmez — karar 10 ).
+
+**Karşı ağırlık dolgusu** ( karar 11 ).  Karşı ağırlık rayları bölümü dolgunun
+çerçeveye sığdığını denetler:  gereken yükseklik Hd = Mcwt / ( ρ × Gx × Gy ),
+çerçevede kalan Hç çizimden ( paten arası − alt ve üst kiriş;  2:1'de ağırlık
+kasnağının altına ).  Çerçevenin ve kasnağın kütlesi yok sayılır ( güvenli
+taraf ).  ρ blokların dış ölçüsüne göre, Sabitler ②e:  barit 2.800 kg/m³
+( standart blok 960 × 155 × 120 mm, 50 kg — Tiraslift · Egeser katalogları ),
+pik döküm 7.200 ( katı dökme demir;  blok kataloğu yok, denetim iyimser ).
+Varsayılan çerçeve ( kullanıcı kararları 30 Eyl ):  derinlik ( Gx ) barit
+bloğunun derinliği 155 ( eskiden 150 ), paten arası 3.300 ( eskiden 3.000 ) —
+formun varsayılan asansöründe ( 800 kg yük, tablodan 800 kg kabin → karşı
+ağırlık 1.200 kg, 2:1 ) 24 blok × 120 = 2.880 mm dolgu, kalan 2.980.  Her yüke
+uyan tek varsayılan yoktur:  çerçevenin boyu, eni, derinliği ve malzemesi
+projenin karşı ağırlığına göre seçilir.  Sığmıyorsa bölüm gereken paten
+arasını yazar ( "paten arası en az 4.500 mm olmalı" — kalan yükseklik paten
+arasıyla birebir büyür ).  Motor doğrudan çağrılınca ( çizim yok ) denetim
+yapılmaz;  motorun elle doğrulanan örneği kendi değerleriyle ( 150 · 3.000 ).
 
 **Askı düzenleri** ( hepsi hem çizilir hem bölüm 11'de ölçülür ):
 
@@ -176,7 +211,13 @@ makine kirişleri raylara oturuyorsa mesnet aralığı = ağırlık rayları ara
 ( "Karşı ağırlık yeri:  seçilmemiş" — çizim modülünün iç adı ya da "None"
 değil ).  Çizimin henüz modellemediği kaçıklıklar ( kabin merkezi yc, askı
 ys ≠ 0 ) ve çift sarımlı kanal açıkça söylenir ( çift sarımda bölüm 11 yine
-çizimden ölçülür — kuyunun geometrisi sarım sayısından bağımsızdır ).
+çizimden ölçülür — kuyunun geometrisi sarım sayısından bağımsızdır;  karar 6 ).
+Makaralı KABİN pateni ( karar 2 ) seçilince çizim durur:  kabin patenlerinin
+ölçüsü referans projenin kaymalı patenlerinden, bölüm 11'in paten açıklıkları
+ölçülemez ( HESAP EKSİK ) — makaralı kabin pateninin ölçüleri gelene kadar.
+Karşı ağırlıkta makaralı paten çizilir:  referans projenin ( çizimin bütün
+ölçülerinin kaynağı ) ağırlık patenleri makaralıdır, çizim ikisinde aynı izi
+kullanır ( kullanıcı kararı 30 Eyl ).
 
 **Ekran.**  Asansör sekmesinin sağ sütunu **Hesap | Çizimler** arasında
 geçer;  çizimler aktif asansörün, girdi değiştikçe tazelenir
@@ -194,8 +235,8 @@ kullanmaya devam eder ).  "Formda göster" alanın grubunu açıp alanı göster
   ( eğim ).  Yüz kadar ölçü ve zincirleri — sonradan eklenenler de —
   kendiliğinden kapsanır.  Kaynak türleri:  formun sayı kutusu
   ( değiştirilir ), tam sayı ve seçim kutusu ( gösterilir;  sayılı seçimde
-  seçenek seçilir ), Sabitler sekmesindeki ofis standardı ve ürün ölçüsü
-  ( `cizim/sabitler.ETIKET` — gösterilir ).  Ölçünün kendisi olan girdi
+  seçenek seçilir ), Sabitler sekmesindeki ofis standardı ( çizimin ürün
+  ölçüleri dahil — tek katalog;  gösterilir ).  Ölçünün kendisi olan girdi
   ( değeri eşit, eğimi 1 ) önce gelir:  DBGW'nin kaynağı "boşsa Gy + 60"
   kuralından önce ağırlık rayları arası kutusudur ( `kopru.KURALLI` —
   kuralla dolan alanların etkin değeri ).  Bir girdiye bağlı olmayan ölçü
@@ -275,7 +316,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/arka_aski.py` | **Arkadaki ağırlıkla 2:1**:  kabin üstünde çapraz kasnakların, tahrik ve ağırlık kasnağı inişlerinin ve bağlantıların plandaki geometrisi ( tek yerde ) |
 | `cizim/olculer.py` | **Yerleşimin ölçü listesi**:  hesabın çizimden aldığı geometri ( xc · xi · ray ve halat boyları · kasnak sayıları · makinenin kirişteki yeri ) |
 | `cizim/girdi.py` | Çizim girdisinin **sözleşmesi**, doğrulaması ve deneme ölçüleri |
-| `cizim/sabitler.py` | Ofisin ürün ölçüleri ( konsol, paten, kasa, pano … ) |
+| `cizim/sabitler.py` | Ofisin ürün ölçüleri ( konsol, paten, kasa, pano … ) — fabrika ayarı;  Sabitler sekmesindeki bölümleri ( `BOLUMLER` ), geçerli aralıkları ( `aralik` ) |
 | `cizim/geometri.py` | Girdiden **çizim elemanları** üretir ( saf veri ) — kuyu planı |
 | `cizim/kabin_ustu.py` | Kabin üstü planı:  kuyu planının elemanlarını okur, tavanı ekler |
 | `cizim/kuyu_dibi.py` | Kuyu dibi planı:  tamponlar, perde, gergi, sığınma alanı, merdiven |
@@ -291,7 +332,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( girdiler oynatılarak ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/` | 299 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1 ) |
+| `testler/` | 332 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 
@@ -750,6 +791,11 @@ verilir — yoksa desen paftada 0,1 mm'ye iner, çizgi düz görünürdü.
    yana kaçık askı ( ys ) — ikisi de çizimde söylenir;  makine dairesizde 1:1;
    yandaki ağırlıkta makine yükü "Bina yapısına" iken duvardan duvara kiriş
    ( karar 3 — arkadaki ağırlıkta çiziliyor ).
+2. Revizyon kutusu ( karar 10 ):  planda eni × boyu, yüksekliği ve kabin
+   üstündeki yeri gelince çizilecek, bölüm 11'in satırı çizimden ölçülecek
+   ( bugün kabinin bütün izdüşümüyle, Sabitler'deki 500 yükseklikle ).
+   Makaralı kabin pateninin ölçüleri gelince o da çizilecek ( karar 2 ).
+3. 5. adım:  örnekliftler'deki gerçek projeler test olarak.
 
 ( Köprü ve hesap paftalarıyla çizimlerin aynı şeritte birleşmesi yapıldı —
 yukarıda "Hesap ile çizimin bağlantısı".  RK ile çizimin ray ekseni:  kapi_arasi

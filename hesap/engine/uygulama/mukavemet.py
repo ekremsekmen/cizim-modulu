@@ -2089,21 +2089,28 @@ RAY_CARE = (
      "konsol aralığı bu kontrole GİRMEZ"),
     ("basma",    "normal işletme basma gerilmesi ( σv )",
      "ray profilini büyütün  —  konsol aralığı bu kontrole GİRMEZ"),
+    ("dolgu",    "karşı ağırlık dolgusu çerçeveye sığmıyor",
+     "paten arasını ( çerçeveyi ) uzatın, genişliği ya da derinliği büyütün veya daha "
+     "yoğun dolgu seçin"),
 )
 
 
-def _ray_metni(uygunlar, turler, ad_ray="ray"):
+def _ray_metni(uygunlar, turler, ad_ray="ray", care=None):
     """Ray bölümünün hükmü — ÇÖZÜM DÜŞEN KONTROLÜN TÜRÜNDEN YAZILIR.
+    care:  { tür : çare } — projenin sayısıyla yazılan çare ( dolgu:  gereken
+    paten arası ) RAY_CARE'dekinin yerine geçer.
 
     Aynı çözümü paylaşan kontroller TEK KEZ yazılır:  üç tür de "profili
     büyütün ya da konsol aralığını küçültün" diyorsa cümle üç kez
     tekrarlanmaz, adlar toplanır ve çözüm bir kere söylenir.
     """
     dusen = {t for t, u in zip(turler, uygunlar) if not u}
+    ozel = care or {}
     gruplar = []                       # [ ( çare , [ ad … ] ) ]  —  sıra korunur
     for anahtar, ad, care in RAY_CARE:
         if anahtar not in dusen:
             continue
+        care = ozel.get(anahtar, care)
         for g in gruplar:
             if g[0] == care:
                 g[1].append(ad)
@@ -2835,6 +2842,24 @@ def _agirlik_raylari(g, o):
     #  kontroller ile AYNI SIRADA tür listesi  —  bkz. _ray_metni / RAY_CARE
     turler = ["gerilme", "gerilme", "flans", "sehim", "sehim", "tip"]
 
+    #  KARŞI AĞIRLIK DOLGUSU ( karar 11 ):  dolgu bütün kütleyi taşır —
+    #  çerçevenin ve kasnağın kendi kütlesi yok sayılır ( güvenli taraf ).
+    #  Gereken yükseklik blokların dış ölçüsüne göre yoğunluktan ( ofis
+    #  standardı ), kalan yükseklik çizimdeki çerçeveden.  Motor doğrudan
+    #  çağrılınca ( çizim yok ) bu kontrol yapılmaz:  motor asıl programdır.
+    Hc = _cizim_olcusu(g, "agirlik_dolgu_yuksekligi")
+    dolgu = None
+    if Hc is not None:
+        pik = g["agirlik_malzemesi"] == "Pik Döküm"
+        rho = O["dolgu_yogunlugu_pik" if pik else "dolgu_yogunlugu_barit"]
+        Hd = g["karsi_agirlik"] / (rho * derinlik * genislik * 1e-9)
+        #  Sığmıyorsa gereken paten arası:  kalan yükseklik paten arasıyla
+        #  birebir büyür ( kirişler ve kasnak payı sabit );  10 mm'ye yukarı.
+        h_gerek = math.ceil((h + Hd - Hc) / 10.0) * 10.0
+        dolgu = {"rho": rho, "Hd": Hd, "Hc": Hc, "pik": pik, "h_gerek": h_gerek}
+        kontroller.append(Hd <= Hc)
+        turler.append("dolgu")
+
     #  ------------------------------------------------------------------
     #  KARŞI AĞIRLIKTA GÜVENLİK TERTİBATI      TS EN 81-50 Ek C.2.1
     #  ------------------------------------------------------------------
@@ -2890,6 +2915,21 @@ def _agirlik_raylari(g, o):
         veri("", "Karşı ağırlık malzemesi", g["agirlik_malzemesi"]),
         veri("Gx", "Karşı ağırlık derinliği", derinlik, "mm", "GİRİŞ", 0),
         veri("Gy", "Karşı ağırlık genişliği", genislik, "mm", "GİRİŞ", 0),
+        *([] if dolgu is None else [
+            veri("ρ", "Dolgu yoğunluğu  ( blokların dış ölçüsüne göre )", dolgu["rho"], "kg/m³",
+                 "OFİS STANDARDI  ·  " + ("katı dökme demir — blok kataloğu yok, denetim iyimser"
+                                          if dolgu["pik"] else "standart barit blok"), 0),
+            hesap("Hd = Mcwt / ( ρ × Gx × Gy )        ( Gx · Gy m )",
+                  f"{trn(g['karsi_agirlik'], 0)} / ( {trn(dolgu['rho'], 0)} × "
+                  f"{tr(derinlik / 1000.0)} × {tr(genislik / 1000.0)} ) × 1.000",
+                  dolgu["Hd"], "mm",
+                  "gereken dolgu yüksekliği  ·  çerçevenin ve kasnağın kütlesi yok sayılır", 0),
+            veri("Hç", "Çerçevede dolguya kalan yükseklik", dolgu["Hc"], "mm",
+                 CIZIMDEN + "  ·  alt kirişten üst kirişe — 2:1'de ağırlık kasnağına", 0),
+            kontrol(f"Hd = {trn(dolgu['Hd'], 0)}  ≤  Hç = {trn(dolgu['Hc'], 0)} mm"
+                    + ("" if dolgu["Hd"] <= dolgu["Hc"] else
+                       f"   ( paten arası en az {trn(dolgu['h_gerek'], 0)} mm )"),
+                    dolgu["Hd"] <= dolgu["Hc"])]),
         hesap("Dxa = 0,1 × ağırlık derinliği",
               f"0,1 × {trn(derinlik, 0)}", Dxa, "mm"),
         hesap("Dya = 0,05 × ağırlık genişliği",
@@ -3028,7 +3068,11 @@ def _agirlik_raylari(g, o):
                                   "rayı profilini büyütün ya da konsol aralığını "
                                   "küçültün"
                                   if (kg and kg.get("omega") is None) else
-                                  _ray_metni(kontroller, turler, "ağırlık rayı"))),
+                                  _ray_metni(kontroller, turler, "ağırlık rayı", care=(
+                                      None if dolgu is None else {"dolgu": (
+                                          f"paten arası en az {trn(dolgu['h_gerek'], 0)} mm "
+                                          "olmalı  ( ya da genişlik / derinlik büyütülür, "
+                                          "daha yoğun dolgu seçilir )")})))),
                   "uygun": bool(all(kontroller))}
     _not8 = _ray_tutarsizlik_notu(prof)
     if _not8:
@@ -3048,7 +3092,8 @@ def _agirlik_raylari(g, o):
     #  MY de kaydedilir:  makine raylara biniyorsa türetilen bir değerdir.
     _kay(o, "agirlik_ray", derinlik=derinlik, genislik=genislik, Dxa=Dxa, Dya=Dya,
          Mg=Mg, MY=MY, Fx=Fx, sx=sx, Fy=Fy, sy=sy, Fv=Fv, sv=sv, sm=sm, sc=sc, sf=sf,
-         dx=dx, dy=dy)
+         dx=dx, dy=dy, **({} if dolgu is None else {"dolgu_gereken": dolgu["Hd"],
+                                                      "dolgu_kalan": dolgu["Hc"]}))
     o.update(Mg_agirlik=Mg)
     return b
 

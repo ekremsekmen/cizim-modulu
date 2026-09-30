@@ -502,6 +502,13 @@ def dogrula(g):
                     f"kendi boyunu ({_tb} mm) aşamaz — tampon en çok kendi "
                     "boyu kadar kısalabilir.  Kuyu dibi açıklıkları ve Ç.4 "
                     "sığınma hacmi bu farktan türer.")
+    _ab = g.get("agirlik_tampon_boyu")
+    if _ab is None or (isinstance(_ab, str) and not _ab.strip()):
+        _ab = _tb
+    _ae = g.get("agirlik_tampon_ezilme")
+    if _sayi(_ab) and _sayi(_ae) and float(_ae) > float(_ab):
+        hata.append(f"{ALAN['agirlik_tampon_ezilme'][1]} ({_ae} mm), tamponun "
+                    f"kendi boyunu ({_ab} mm) aşamaz — tampon en çok kendi boyu kadar kısalabilir.")
 
     #  ADET · POZİTİFLİK · AÇI  —  fiziksel sınırlar
     for anahtar in TAM_SAYI_ALANLARI:
