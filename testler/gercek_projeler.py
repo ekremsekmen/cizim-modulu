@@ -82,14 +82,15 @@ PROJELER = {
     #  ekseni 1.005 ( +5 ), kapı ekseni 825 ( −180 ), ağırlık ekseni arka
     #  duvardan 430, kabin halatı y 890 ( ray ekseni ), ağırlığınki 1.820;
     #  regülatör halatı sol duvardan ~65 ( rayın yanı ), ray ekseninin ~280 ve
-    #  580 arkasında.
+    #  580 arkasında.  Kasnak düzenlemesi:  Ø480 tahrik, Ø400 saptırma, merkezler
+    #  arası 490 / 842, RDA / RDB 930, sarım açısı 152.
     "1022": {**_LD, "beyan_yuku": 750, "aski_orani": 1, "seyir_mesafesi": 9.0,
              "durak_adedi": 4, "son_kat_yuksekligi": 4330, "kuyu_dibi": 1700,
              "kuyu_genisligi": 2000, "kuyu_derinligi": 2250, "kabin_genisligi": 1360,
              "kabin_derinligi": 1330, "kapi_genisligi": 900, "kabin_yana_kaciklik": 5,
              "kapi_kaciklik": -180, "kabin_ray_arasi": 1790, "agirlik_ray_arasi": 1700,
              "agirlik_ray_duvar": 430, "ray_kapi_arasi": 730, "agirlik_yeri": "Arka",
-             "makine_tipi": "Dişli", "kabin_ray_profili": "70 x 65 x 9",
+             "makine_tipi": "Dişli", "tahrik_kasnak_capi": 480, "kabin_ray_profili": "70 x 65 x 9",
              "mk_yok": False, "mk_genislik": 4800, "mk_uzunluk": 4800, "md_yukseklik": 3400},
     #  1275 ( makine daireli, ağırlık arkada, 2:1 kabin üstü;  LiftDesigner
     #  kasnakları derinlik boyunca düz koyar — program çapraz, kullanıcı kararı ) —
@@ -113,13 +114,16 @@ PROJELER = {
     #  SD2000 · CW1290 · CD1350 · DW900 · BG 1500 · DBG 1200 · EE710 · OH4050 ·
     #  Kuyu dibi 1700 · MRW4950 · MRD6900 · HM3420 · RDA/RDB 970.  Kuyu planı:
     #  kabin ekseni 1.060 ( +60 ), kapı kabin ekseninde, ağırlık ekseni arka
-    #  duvardan 180;  halat inişleri y 850 ve 1.820.
+    #  duvardan 180;  halat inişleri y 850 ve 1.820.  Kasnak düzenlemesi:  Ø500
+    #  tahrik, Ø400 saptırma, merkezler arası 520 / 822, RDA / RDB 970, sarım
+    #  açısı 151.  Giriş:  kaba boşluk sol duvardan 470, 1.180 geniş, 2.240 yüksek.
     "800 KG": {**_LD, "beyan_yuku": 750, "aski_orani": 1, "seyir_mesafesi": 27.5,
                "durak_adedi": 10, "son_kat_yuksekligi": 4050, "kuyu_dibi": 1700,
                "kuyu_genisligi": 2000, "kuyu_derinligi": 2000, "kabin_genisligi": 1290,
                "kabin_derinligi": 1350, "kapi_genisligi": 900, "kabin_yana_kaciklik": 60,
                "kapi_kaciklik": 0, "kabin_ray_arasi": 1500, "agirlik_ray_arasi": 1200,
                "agirlik_ray_duvar": 180, "ray_kapi_arasi": 690, "agirlik_yeri": "Arka",
-               "makine_tipi": "Dişli", "kabin_ray_profili": "89 x 62 x 15,88",
+               "makine_tipi": "Dişli", "tahrik_kasnak_capi": 500,
+               "kabin_ray_profili": "89 x 62 x 15,88",
                "mk_yok": False, "mk_genislik": 4950, "mk_uzunluk": 6900, "md_yukseklik": 3420},
 }

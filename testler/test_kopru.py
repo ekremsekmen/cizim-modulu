@@ -402,7 +402,7 @@ class Uclar(unittest.TestCase):
             self.assertTrue(d["aktif"], d.get("hata"))
             self.assertTrue(d["hesap"])
             ad = [c["ad"] for c in d["cizimler"]]
-            self.assertEqual(ad[-1], "delik_plani" if md else "kuyu_ustu")
+            self.assertEqual(ad[-3:], ["delik_plani" if md else "kuyu_ustu", "kasnak_duzeni", "giris"])
             for c in d["cizimler"]:
                 self.assertTrue(c["svg"].startswith("<svg"), c["ad"])
 
@@ -426,7 +426,7 @@ class Uclar(unittest.TestCase):
         bloklar = {b.name for b in d.blocks if b.name.startswith("CIZIM_")}
         self.assertEqual(bloklar, {"CIZIM_" + a.upper() for a in
                                    ("kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu",
-                                    "kuyu_dibi", "kuyu_ustu")})
+                                    "kuyu_dibi", "kuyu_ustu", "kasnak_duzeni", "giris")})
 
     def test_cok_asansorlu_pakette_her_asansorun_cizimleri(self):
         v = _veri()

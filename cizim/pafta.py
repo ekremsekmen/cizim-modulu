@@ -63,10 +63,11 @@ ANTET = {
 
 #  Paftadaki çizimler, sırasıyla ( makine dairesizde kuyu üstü planı,
 #  makine dairelide makine dairesi ve delik planı )
+#  Sonda LiftDesigner'ın iki görünüşü:  kasnak düzenlemesi ve giriş.
 SIRA_MRL = ("kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu", "kuyu_dibi",
-            "kuyu_ustu")
+            "kuyu_ustu", "kasnak_duzeni", "giris")
 SIRA_MD = ("kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu", "kuyu_dibi",
-           "makine_dairesi", "delik_plani")
+           "makine_dairesi", "delik_plani", "kasnak_duzeni", "giris")
 
 
 def _nokta(e):

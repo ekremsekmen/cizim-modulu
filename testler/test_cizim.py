@@ -2099,10 +2099,10 @@ class Pafta(unittest.TestCase):
         #  dairesi YATAY kesittir ( ofisin 477-8 ve 12744-3 paftaları gibi )
         self.assertEqual([c["ad"] for c in self.bilgi["cizimler"]],
                          ["kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu",
-                          "kuyu_dibi", "kuyu_ustu"])
+                          "kuyu_dibi", "kuyu_ustu", "kasnak_duzeni", "giris"])
         self.assertEqual([c["ad"] for c in self.bilgi_md["cizimler"]],
                          ["kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu",
-                          "kuyu_dibi", "makine_dairesi", "delik_plani"])
+                          "kuyu_dibi", "makine_dairesi", "delik_plani", "kasnak_duzeni", "giris"])
         bloklar = {e.dxf.name: e for e in self.d.modelspace().query("INSERT")
                    if e.dxf.name.startswith("CIZIM_")}
         for c in self.bilgi["cizimler"]:

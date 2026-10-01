@@ -8,6 +8,8 @@ başlıklar ve ölçekler iki yerde ayrı yazılıp zamanla ayrışmasın.
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kabin_ustu as CKU
+from cizim import giris as CGI
+from cizim import kasnak_duzeni as CKS
 from cizim import kuyu_dibi as CKD
 from cizim import kuyu_kesiti as CKK
 from cizim import kuyu_ustu as CKT
@@ -28,6 +30,10 @@ CIZIMLER = {
                         "A-A KUYU DÜŞEY KESİTİ  ( yan — kabin en alt durakta )"),
     "kuyu_kesiti_on": (CKK.dogrula, CKK.on_kesit,
                        "B-B KUYU DÜŞEY KESİTİ  ( arkadan kat kapılarına — kabin en üst durakta )"),
+    #  LiftDesigner paftalarındaki iki görünüş ( kullanıcı isteği 1 Eki )
+    "kasnak_duzeni": (CKS.dogrula, CKS.ciz,
+                      "KASNAK DÜZENLEMESİ  ( tahrik kasnağının ekseninden — halatlar ve sarım açısı )"),
+    "giris": (CGI.dogrula, CGI.ciz, "GİRİŞ GÖRÜNÜŞÜ  ( en alt durağın kapısı, durak tarafından )"),
 }
 #  1/20 dışındaki çizimler
 OLCEKLER = {"kuyu_kesiti_yan": CKK.OLCEK, "kuyu_kesiti_on": CKK.OLCEK}

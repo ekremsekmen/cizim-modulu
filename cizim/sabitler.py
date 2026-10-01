@@ -231,11 +231,32 @@ SABIT = {
     "ek_lama_boyu": 305,
 
     #  ── KATLAR ───────────────────────────────────────────────────────
-    #  Kat döşemesi 150 ( LiftDesigner "Dikey 1:50" ve referans proje kesitleri );
-    #  duvardaki kapı boşluğu kapıdan 200 yüksek ( referans proje:  2.100 / 2.300 ).
+    #  Kat döşemesi 150 ( LiftDesigner "Dikey 1:50" ve referans proje kesitleri ).
+    #  KAT KAPISI ( kullanıcı kararı 1 Eki:  LiftDesigner gibi — "Giriş"
+    #  görünüşü, 800 KG · 1022 · 1275 · 4815-6 · 12495-18'de aynı ):  duvardaki
+    #  kaba boşluk kapıdan 240 yüksek ( "Kapı giriş açıklığı 2240" ), kapının
+    #  iki yanında 140 geniş ( DW 900 → 1.180, DW 1.100 → 1.380 );  kasa
+    #  dikmeleri 120 ( kasa_yan ), üstü kapının 220 üstünde ( 2.220 );  eşik
+    #  plakası 50.  Referans projenin kendi boşluğu 2.100 / 2.300 ( 200 —
+    #  REFERANS_PROJE_KABINI );  eskiden eşik 30 ( kaynaksız ).
     "kat_doseme_kalinlik": 150,
-    "kapi_ust_payi": 200,
-    "esik_kalinlik": 30,
+    "kapi_ust_payi": 240,
+    "kaba_bosluk_yan_payi": 140,
+    "kasa_ust": 220,
+    "esik_kalinlik": 50,
+    #  Kat göstergesi ( kasa başlığında, kapının ortasında ) ve kat butonu kutusu
+    #  ( kapının yanındaki duvarda ):  LiftDesigner "Giriş" — gösterge 500 × 124,
+    #  ortası kapının 100 üstünde;  buton kutusu 90 × 240, ortası döşemeden
+    #  1.200, kapının kenarından 240;  duvardaki yuvası 160 × 290 ( altı 1.055 ).
+    "gosterge_en": 500,
+    "gosterge_boy": 124,
+    "gosterge_yukseklik": 100,
+    "buton_kutu_en": 90,
+    "buton_kutu_boy": 240,
+    "buton_yukseklik": 1200,
+    "buton_kapi_payi": 240,
+    "buton_yuva_en": 160,
+    "buton_yuva_boy": 290,
 }
 
 
@@ -341,7 +362,18 @@ ETIKET = {
     "ray_boyu": "Ray boyu ( ekler arası )",
     "ek_lama_boyu": "Ray ek lamasının boyu",
     "kat_doseme_kalinlik": "Kat döşemesi kalınlığı",
-    "kapi_ust_payi": "Kapı boşluğunun kapıdan yüksekliği",
+    "kapi_ust_payi": "Kaba kapı boşluğunun kapıdan yüksekliği",
+    "kaba_bosluk_yan_payi": "Kaba kapı boşluğunun kapının iki yanında genişliği",
+    "kasa_ust": "Kat kapısı kasasının kapının üstündeki yüksekliği",
+    "gosterge_en": "Kat göstergesinin eni",
+    "gosterge_boy": "Kat göstergesinin yüksekliği",
+    "gosterge_yukseklik": "Kat göstergesinin ortası:  kapının üstünden",
+    "buton_kutu_en": "Kat butonu kutusunun eni",
+    "buton_kutu_boy": "Kat butonu kutusunun yüksekliği",
+    "buton_yukseklik": "Kat butonunun ortası:  döşemeden",
+    "buton_kapi_payi": "Kat butonunun ortası:  kapının kenarından",
+    "buton_yuva_en": "Kat butonu yuvasının eni ( duvarda )",
+    "buton_yuva_boy": "Kat butonu yuvasının yüksekliği ( duvarda )",
     "esik_kalinlik": "Eşik kalınlığı",
 }
 
@@ -355,7 +387,9 @@ ETIKET = {
 REFERANS_PROJE_KABINI = {"sase_alt_derinlik": 480, "alt_paten_payi": 0,
                          "kabin_taban_kalinlik": 120, "fren_blogu_yukseklik": 350,
                          "kabin_kasnak_derinlik": 295, "kabin_kasnak_genislik": 92,
-                         "kabin_pano_yan": 45, "kabin_pano_arka": 33}
+                         "kabin_pano_yan": 45, "kabin_pano_arka": 33,
+                         #  kapı boşluğu kapıdan 200 yüksek ( 2.100 / 2.300 )
+                         "kapi_ust_payi": 200}
 
 
 #  SABİTLER SEKMESİNDEKİ BÖLÜMLER:  ( başlık , açıklama , anahtarlar ).  Her
@@ -381,7 +415,9 @@ BOLUMLER = (
     ("KAPI VE KATLAR", "kat ve kabin kapısı, eşikler, kat döşemesi",
      ("kasa_yan", "kasa_derinlik", "kanat_kalinlik", "kanat_araligi", "kanat_esik_payi",
       "kabin_kapisi_kutu_en", "kabin_kapisi_kutu_boy", "esik_derinlik", "kabin_esik_derinlik",
-      "esik_kalinlik", "kapi_ust_payi", "kat_doseme_kalinlik", "bina_duvari")),
+      "esik_kalinlik", "kapi_ust_payi", "kaba_bosluk_yan_payi", "kasa_ust", "kat_doseme_kalinlik",
+      "bina_duvari", "gosterge_en", "gosterge_boy", "gosterge_yukseklik", "buton_kutu_en",
+      "buton_kutu_boy", "buton_yukseklik", "buton_kapi_payi", "buton_yuva_en", "buton_yuva_boy")),
     ("KARŞI AĞIRLIK", "çerçeve ve kasnağı",
      ("agirlik_cerceve", "agirlik_kiris", "agirlik_kasnak_ust")),
     ("KUYU DİBİ", "tamponlar, merdiven, regülatör gergisi",

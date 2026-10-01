@@ -11,6 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "hesap"
 from api import cizim as UC, uygulama as UA
 from cizim import dusey as DY, geometri as GE, girdi as GI, kopru as KO
 from cizim import kuyu_kesiti as KE, svg as SV, dxf as DX
+from cizim import sabitler as CS
 from engine.uygulama import girdi as UG, mukavemet_girdi as MG
 
 
@@ -30,8 +31,11 @@ class Katlar(unittest.TestCase):
         for montaj in GI.KAPI_MONTAJLARI:
             g = copy.deepcopy(GI.ORNEK)
             g["kapi"]["montaj"] = montaj
-            alt = 30 if montaj == "Duvar boşluğuna" else 0
-            sinir = g["kapi"]["yukseklik"] + 200 + alt
+            #  Katalogdan ( referans projenin örneği:  üst payı 200;  eşik 50 —
+            #  LiftDesigner )
+            S = CS.sabitler(g["_cizim_sabitleri"])
+            alt = S["esik_kalinlik"] if montaj == "Duvar boşluğuna" else 0
+            sinir = g["kapi"]["yukseklik"] + S["kapi_ust_payi"] + alt
             for aralik, gecerli in ((sinir - 1, False), (sinir, False), (sinir + 1, True)):
                 g["dusey"]["kat_yuksekligi"] = aralik
                 with self.subTest(montaj=montaj, aralik=aralik):

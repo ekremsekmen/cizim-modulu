@@ -1477,7 +1477,7 @@ function mTuvalBoyu(){
   if(!t.offsetParent) return;                       // görünmüyor ( hesap görünümü )
   t.style.height = Math.max(420, window.innerHeight - ust - 14) + 'px';
 }
-window.addEventListener('resize', () => mTuvalBoyu());
+addEventListener('resize', () => mTuvalBoyu());
 
 function mTuvalCiz(){
   const t = $('m_tuval'), v = M_TUVAL.gorunum; if(!t || !v) return;
@@ -1556,11 +1556,11 @@ function mTuvalTamEkran(){
 }
 
 function mTuvalTamKapat(){
-  if(document.fullscreenElement && document.fullscreenElement.id === 'm_tuval')
+  if(typeof document !== 'undefined' && document.fullscreenElement && document.fullscreenElement.id === 'm_tuval')
     document.exitFullscreen().catch(() => {});
   const t = $('m_tuval');
   if(t) t.classList.remove('tuval-tam');
-  document.body.classList.remove('tuval-tam-acik');
+  if(document.body) document.body.classList.remove('tuval-tam-acik');
   mTuvalTamDugme();
   mTuvalBoyu();
 }
@@ -1572,6 +1572,7 @@ function mTuvalTamDugme(){
 }
 
 function mTuvalOlaylari(t){
+  mTuvalBelgeOlaylari();
   if(t.dataset.olay) return;
   t.dataset.olay = '1';
   //  Tuval kendi içinde kaymaz ( konum JS'ten ):  odak ya da scrollIntoView
@@ -1643,19 +1644,26 @@ function mTuvalOlaylari(t){
   }
 }
 
-document.addEventListener('fullscreenchange', () => {
-  const t = $('m_tuval');
-  if(t && document.fullscreenElement === t) t.classList.remove('tuval-tam');
-  if(!document.querySelector('.tuval-tam')) document.body.classList.remove('tuval-tam-acik');
-  mTuvalTamDugme();
-});
-//  Esc:  önce açık ölçü kutusu kapanır ( mOlcuOlaylari ), kutu yoksa pencereyi
-//  kaplayan tuval.  Yakalama evresinde:  kutu kapanmadan önce bakılır.
-document.addEventListener('keydown', e => {
-  const t = $('m_tuval');
-  if(e.key === 'Escape' && t && t.classList.contains('tuval-tam') && !document.querySelector('.olcu-kutu'))
-    mTuvalTamKapat();
-}, true);
+/*  Belgenin dinleyicileri tuval ilk kurulduğunda bir kez bağlanır ( dosya
+    yüklenirken değil:  arayüz testleri dosyayı belgesiz bir ortamda çalıştırır ). */
+function mTuvalBelgeOlaylari(){
+  if(M_TUVAL.belge) return;
+  M_TUVAL.belge = true;
+  document.addEventListener('fullscreenchange', () => {
+    const t = $('m_tuval');
+    if(t && document.fullscreenElement === t) t.classList.remove('tuval-tam');
+    if(!document.querySelector('.tuval-tam') && document.body)
+      document.body.classList.remove('tuval-tam-acik');
+    mTuvalTamDugme();
+  });
+  //  Esc:  önce açık ölçü kutusu kapanır ( mOlcuOlaylari ), kutu yoksa pencereyi
+  //  kaplayan tuval.  Yakalama evresinde:  kutu kapanmadan önce bakılır.
+  document.addEventListener('keydown', e => {
+    const t = $('m_tuval');
+    if(e.key === 'Escape' && t && t.classList.contains('tuval-tam') && !document.querySelector('.olcu-kutu'))
+      mTuvalTamKapat();
+  }, true);
+}
 
 /* ==========================================================================
    ÖLÇÜYE TIKLAMA  —  ölçünün kaynağı ve ölçüden değiştirme
@@ -1724,7 +1732,7 @@ async function mOlcuAc(g, olay){
   g.classList.add('secili');
   const kutu = document.createElement('div');
   kutu.className = 'olcu-kutu';
-  kutu.dataset.formdisi = '';                  // yazılanlar formu tetiklemez ( ortak.js )
+  kutu.setAttribute('data-formdisi', '');      // yazılanlar formu tetiklemez ( ortak.js )
   kutu.setAttribute('role', 'dialog');
   kutu.setAttribute('aria-label', 'Ölçü ' + metin);
   kutu.innerHTML = `<div class="olcu-bas"><b>${kacis(metin)}</b>

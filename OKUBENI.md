@@ -366,13 +366,15 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/donanim.py` | Kuyu donanımının KOTLARI:  makine, şase, bağlantılar, regülatör, gergi, raylar, konsollar, karşı ağırlık |
 | `cizim/kesit_parcalari.py` | Düşey kesitlerde parça çizimi ( yan ve ön bakış ortak ) |
 | `cizim/kuyu_kesiti.py` | Tam boy A-A ( yan ) ve B-B ( ön ) kuyu düşey kesitleri, 1/50 ( gerekirse kırık ) |
+| `cizim/kasnak_duzeni.py` | Kasnak düzenlemesi ( LiftDesigner gibi ):  tahrik ve saptırma kasnağı, halatlar, sarım açısı, 1/20 |
+| `cizim/giris.py` | Giriş görünüşü ( LiftDesigner gibi ):  en alt durağın kat kapısı durak tarafından, 1/20 |
 | `cizim/cizimler.py` | Çizimlerin listesi:  doğrulama, çizici, başlık, ölçek ( calistir ve pafta ortak ) |
 | `cizim/pafta.py` | Çizimleri ofisin TİP PROJE FORMATINA yerleştirir, anteti doldurur |
 | `sablon/proje_formati.dxf` | Ofisin pafta şablonu ( TİP PROJE FORMATI.dwg'den;  hesap programınınkiyle aynı ) |
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( girdiler oynatılarak ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/` | 346 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog, `test_gercek_projeler.py` — ofisin altı gerçek projesi ( veri `gercek_projeler.py` ) ) |
+| `testler/` | 355 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog, `test_gercek_projeler.py` — ofisin altı gerçek projesi ( veri `gercek_projeler.py` ), `test_gorunusler.py` — kasnak düzenlemesi ve giriş görünüşü ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 
@@ -673,6 +675,40 @@ reddedilir.  **Hesap programıyla fark:**  onun sığınma satırları ofisin
 paylarıyla hesaplanır ( üst paten bir satırda 2.700, bir başkasında 2.900;
 varsayılan girdiler şase altını örtük 350 alır ) — bu kabin modeline göre
 düzeltilene kadar iki program aynı açıklığa farklı sayı verir.
+
+**Kasnak düzenlemesi ve giriş görünüşü** ( 1/20 — kullanıcı isteği 1 Eki:
+"LiftDesigner örneklerinde bunlar da var, biz de ekleyelim" ):  paftanın ve
+ekranın sonunda.
+
+- **Kasnak düzenlemesi** ( `kasnak_duzeni.py` ):  tahrik kasnağının ekseni
+  boyunca ( kasnak daire görünür ) makine ve kaidesi ( makine dairesizde
+  şasesi ), saptırma kasnağı, makine dairesinde döşeme ( üstünden 300, altı
+  kırık çizgi ), halatların inişleri ( KABİNE · AĞIRLIĞA ), tahrik kasnağında
+  halatın sardığı yay ve SARIM AÇISI ( hesabın kullandığı — `kopru.sarim_acisi` ).
+  Ölçüler:  Ø D1, Ø Ds, merkezler arası ( yatay, düşey ), HALAT ARASI ( iki
+  iniş — LiftDesigner RDA / RDB;  makine dairesinde döşeme deliklerinin arasıyla
+  aynı ), merkezlerin döşemeden ( makine dairesizde kuyu tavanına ) yüksekliği.
+  Düşey kesitlerin yerleşiminden çizilir.  LiftDesigner'la:  800 KG ( Ø500 /
+  Ø400 ) 152,1° / 151°, 1022 ( Ø480 / Ø400 ) 153,0° / 152°;  merkezler arası
+  530 / 520, halat arası 980 / 970 ( 10 mm:  kapı bölgesi farkı ).  Makine
+  dairesizde LiftDesigner "Sarım açısı 0" yazar — burada 180°.  Her projede
+  aynı 1.600'ü çizilmez ( anlamı belli değil ).
+- **Giriş görünüşü** ( `giris.py` ):  en alt durağın kapısı, ön duvara durak
+  tarafından bakılarak ( x planınki — durakta duranın sağı +x ):  kuyunun iç
+  yüzleri ( kesik ), duvardaki kaba boşluk, kasa, kanatlar ( otomatikte iki,
+  ortada birleşir;  elle açılanda tek ), eşik plakası, kat göstergesi, kat butonu
+  ve duvardaki yuvası ( kesik ), kapı ekseni, döşemenin kotu.  Ölçüler
+  LiftDesigner'ın "Giriş"inin kuralıyla ( kullanıcı kararı ):  kaba boşluk
+  kapıdan 2 × 140 geniş ( `kaba_bosluk_yan_payi` ), 240 yüksek ( `kapi_ust_payi`
+  — eskiden 200, referans proje;  referans projenin örneği kendi 200'ünü
+  korur ), kasa üstü kapının 220 üstünde ( `kasa_ust` ), eşik 50 ( eskiden 30,
+  kaynaksız ), gösterge 500 × 124 kapının 100 üstünde, buton kutusu 90 × 240
+  ortası 1.200 ve kapının kenarından 240, yuvası 160 × 290.  800 KG ve 1022'de
+  LiftDesigner'ınkiyle birebir:  470 · 1.180 · 350 ve 235 · 1.180 · 585,
+  KAPI BOŞLUĞU 2.240.  ÇİZİM KABULÜ:  kat butonu kapının açıldığı yanın
+  karşısında ( "Sağ"a açılıyorsa solda ).  Çizilmeyenler ( anlamları belli
+  değil ):  LiftDesigner'ın kapının yanındaki kesikli 100 mm'lik dikdörtgeni,
+  2.500'deki çizgisi, kasanın ve eşiğin bağlantı noktaları.
 
 **Tam boy kuyu düşey kesitleri** ( 1/50, `kuyu_kesiti.py` ):  LiftDesigner'ın
 "Dikey 1:50"si gibi gerçek ölçekte, bütün duraklarla ( referans proje ara katları
