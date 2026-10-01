@@ -2714,6 +2714,35 @@ def calistir():
         pg.keyboard.press("Escape")
         r.esit("Esc ölçü kutusunu kapatıyor",
                pg.evaluate("document.querySelectorAll('.olcu-kutu').length"), 0)
+        #  HATALI DEĞERDE ÇİZİM YERİNDE KALIR ( kullanıcı isteği 2 Eki ):  son
+        #  geçerli çizim ekranda durur, sebepler tuvalin sağ üstünde;  eski
+        #  çizimin ölçüsünden düzeltilebilir ( kaynağı o çizimin girdileriyle
+        #  bulunur ), düzelince liste kalkar.  Eskiden çizimler kapanıyordu.
+        _sekil = pg.evaluate("document.querySelectorAll('#m_cizimler figure.cizim').length")
+        pg.evaluate("mAlanGoster('kuyu_genisligi')")
+        pg.fill("#m_kuyu_genisligi", "1200")
+        pg.wait_for_function("!document.getElementById('m_tuval_hata').hidden", timeout=30000)
+        r.kontrol("hatalı değerde çizim yerinde kalıyor, sebep tuvalin sağ üstünde",
+                  pg.evaluate("document.querySelectorAll('#m_cizimler figure.cizim').length") == _sekil
+                  and pg.is_visible("#m_tuval_hata")
+                  and "kuyu genişliğinden" in pg.inner_text("#m_tuval_hata")
+                  and pg.evaluate("document.getElementById('m_tuval').classList.contains('eski')"),
+                  f"→ {pg.inner_text('#m_tuval_hata')[:160]!r}")
+        pg.evaluate(f"""() => mTuvalGoster([...document.querySelectorAll('{_kp}')].find(
+            x => /^KUYU GENİŞLİĞİ/.test(x.querySelector('text').textContent)))""")
+        pg.wait_for_timeout(300)
+        pg.locator(_kp).filter(has_text="KUYU GENİŞLİĞİ").first.locator("text").click()
+        pg.wait_for_selector(".olcu-kutu #m_olcu_hedef", timeout=20000)
+        r.kontrol("eski çizimin ölçüsü tıklanıyor, formdaki değer de söyleniyor",
+                  "formda 1200" in pg.inner_text(".olcu-kutu"), f"→ {pg.inner_text('.olcu-kutu')[:200]!r}")
+        pg.fill("#m_olcu_hedef", str(_kg - 50))
+        pg.press("#m_olcu_hedef", "Enter")
+        pg.wait_for_function("document.getElementById('m_tuval_hata').hidden", timeout=30000)
+        r.kontrol("düzeltilince hata kalkıyor, çizim güncelleniyor",
+                  pg.input_value("#m_kuyu_genisligi") == str(_kg - 50)
+                  and not pg.evaluate("document.getElementById('m_tuval').classList.contains('eski')")
+                  and "1200 →" in (pg.evaluate(
+                      "(document.getElementById('m_olcu_bildirim') || {}).textContent") or ""))
         #  "Formda göster":  alanın grubu açılır, alan odaklanır.  Sonra kuyu
         #  genişliği eski değerine ( sonraki denetimler varsayılan projeyi okur ).
         pg.evaluate("mAlanGoster('kuyu_genisligi')")

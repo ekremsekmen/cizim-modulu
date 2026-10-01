@@ -1300,11 +1300,12 @@ async function cizimleriGetir(){
   const kutu = $('m_cizimler'); if(!kutu) return;
   kutu.classList.add('yukleniyor');
   try{
+    const istek = {kapak: mukavemetKimlik(), ...mukavemetIstek(), asansor: MUK_AKTIF};
     const c = await (await fetch('/api/uygulama/cizimler', {method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({kapak: mukavemetKimlik(), ...mukavemetIstek(), asansor: MUK_AKTIF})})).json();
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify(istek)})).json();
     if(sira !== ISTEK.cizim) return;          // daha yeni istek var
     M_CIZIM_DURUM = c;
+    if(c.aktif) M_CIZIM_GECERLI = {istek, asansor: MUK_AKTIF};
     cizCizimler(c);
     mGorunumTazele();
   }catch(e){
@@ -1324,6 +1325,7 @@ function mCizimleriSifirla(){
   M_TUVAL.imza = '';                       // başka asansör:  görünüm yeniden sığar
   ++ISTEK.cizim;
   M_CIZIM_DURUM = null;
+  M_CIZIM_GECERLI = null;
   M_OLCU_ISINAN.clear();
   M_OLCU_SON_BILDIRIM = '';
   const kutu = $('m_cizimler');
@@ -1350,6 +1352,7 @@ function cizCizimler(c){
           <button type="button" class="dg kucuk" onclick="mTuvalTamEkran()" id="m_tuval_tam">Tam ekran</button>
         </div>
         <div id="m_olcu_bildirim" class="olcu-bildirim" hidden></div>
+        <div id="m_tuval_hata" class="tuval-hata" role="alert" hidden></div>
         <div class="tuval-ipucu">Tekerlek:  yakınlaştır  ·  Sürükle:  kaydır  ·  Çift tık:  çizime yaklaş,
           boş yerde hepsi  ·  Ölçüye tık:  kaynağı ve yeni değeri ( o girdi değişir, çizim ve hesap
           birlikte yenilenir )</div>
@@ -1361,15 +1364,7 @@ function cizCizimler(c){
     <div class="alt">Kuyu düşey kesitleri ve planları — hesabın girdisinden ve sonucundan.
       Paftaya "Projeyi paketle" ile hesap sayfalarının sağına girer.</div></div>`;
   let ic = '';
-  if(!c.aktif){
-    //  Ölçüden yapılan son değişiklik:  çizim kurulamadıysa da görünür ( hatayı
-    //  neyin getirdiği bilinsin ).
-    if(M_OLCU_SON_BILDIRIM)
-      ic += `<div class="olcu-bildirim">${kacis(M_OLCU_SON_BILDIRIM)}</div>`;
-    ic += `<div class="uyari kirmizi"><b>Çizimler kurulamadı.</b> Aşağıdakiler düzeltilince
-            çizilir ( girdiler solda:  hesabın grupları ve "Çizim" grubu ).
-            <ul class="cizim-liste">${(c.hata || []).map(x => `<li>${kacis(x)}</li>`).join('')}</ul></div>`;
-  }else if(!c.hesap){
+  if(c.aktif && !c.hesap){
     ic += `<div class="uyari sari">Hesap yapılamadı:  kuyu tabanına ve ray konsollarına gelen
             kuvvetler çizimlere yazılmadı.</div>`;
   }
@@ -1377,12 +1372,19 @@ function cizCizimler(c){
   //  Açık ölçü kutusu eski çizimin ölçüsüne bağlıydı
   if(M_OLCU){ M_OLCU.kutu.remove(); M_OLCU = null; }
   M_OLCU_ISINAN.clear();
-  t.querySelectorAll('figure.cizim').forEach(f => f.remove());
-  $('m_tuval_kap').hidden = !c.aktif;
+  $('m_tuval_kap').hidden = false;
+  /*  ÇİZİM KURULAMADIYSA ÇİZİM DEĞİŞMEZ ( kullanıcı isteği 2 Eki ):  ekranda son
+      geçerli çizim kalır, sebepler tuvalin sağ üstünde liste olarak durur ve
+      düzeltilince kendiliğinden kalkar.  Eskiden çizimler kapanıyor, yerine
+      kırmızı bir uyarı geliyordu;  tam ekrandan da çıkılıyordu.  Kalan çizimin
+      ölçüleri tıklanabilir:  kaynakları o çizimin girdileriyle bulunur
+      ( mOlcuIstek ), yazılan değer formun bugünkü hâline yazılır. */
+  mTuvalHata(c.aktif ? null : (c.hata || []), t.querySelector('figure.cizim') !== null);
   if(!c.aktif){
-    mTuvalTamKapat();
+    if(M_OLCU_SON_BILDIRIM) mOlcuBildir(M_OLCU_SON_BILDIRIM, true);
     return;
   }
+  t.querySelectorAll('figure.cizim').forEach(f => f.remove());
   //  SVG satır içi:  ölçüler tıklanır.  Sunucunun ürettiği metindir ( yazılar
   //  kaçışlı — cizim/svg.py ), desen kimlikleri her çizimde önekli.
   t.insertAdjacentHTML('beforeend', (c.cizimler || []).map(z =>
@@ -1392,6 +1394,32 @@ function cizCizimler(c){
   mOlcuOlaylari(kutu);
   mTuvalKur();
   if(M_OLCU_SON_BILDIRIM) mOlcuBildir(M_OLCU_SON_BILDIRIM, true);
+}
+
+/*  Tuvalin sağ üstündeki hata listesi:  çizim kurulamadığı sürece durur.
+    hata null ise kalkar.  eskiCizim:  ekranda son geçerli çizim duruyor mu.
+    YAZARKEN AÇILMAZ:  kutu silinip sayı yavaş yazılırken boş ya da yarım
+    değer ( "2", "24" ) geçersizdir;  liste her tuşta açılıp kapanıyordu.
+    Liste, çizim TUVAL_HATA_GECIKME boyunca kurulamamış kalırsa açılır
+    ( her yeni yanıt süreyi baştan başlatır );  açıksa içeriği hemen yenilenir. */
+const TUVAL_HATA_GECIKME = 1200;
+function mTuvalHata(hata, eskiCizim){
+  const k = $('m_tuval_hata'), t = $('m_tuval'); if(!k || !t) return;
+  clearTimeout(mTuvalHata.zaman);
+  if(!hata){ t.classList.remove('eski'); k.hidden = true; k.innerHTML = ''; return; }
+  const goster = () => {
+    if(!k.isConnected) return;
+    t.classList.toggle('eski', eskiCizim);
+    k.innerHTML = `<div class="tuval-hata-bas"><b>${eskiCizim ? 'Çizim güncellenmedi' : 'Çizim kurulamadı'}</b>
+        <span class="tuval-hata-sayi">${hata.length}</span></div>
+      <div class="ipucu">${eskiCizim
+        ? 'Ekranda son geçerli girdilerin çizimi duruyor.  Aşağıdakiler düzeltilince güncellenir.'
+        : 'Aşağıdakiler düzeltilince çizilir.'}</div>
+      <ul class="cizim-liste">${hata.map(x => `<li>${kacis(x)}</li>`).join('')}</ul>`;
+    k.hidden = false;
+  };
+  if(!k.hidden) goster();
+  else mTuvalHata.zaman = setTimeout(goster, TUVAL_HATA_GECIKME);
 }
 
 /* ==========================================================================
@@ -1579,6 +1607,7 @@ function mTuvalOlaylari(t){
   //  kaydırırsa geri alınır.
   t.addEventListener('scroll', () => { t.scrollTop = 0; t.scrollLeft = 0; });
   t.addEventListener('wheel', e => {
+    if(e.target.closest('.tuval-hata')) return;      // uzun hata listesi kayar
     e.preventDefault();
     const r = t.getBoundingClientRect();
     const birim = e.deltaMode === 1 ? 0.05 : e.deltaMode === 2 ? 1 : 0.0015;
@@ -1587,7 +1616,7 @@ function mTuvalOlaylari(t){
   //  Sürükleme:  sol ya da orta tuş.  Birkaç pikselden az kıpırdayan tık
   //  tıklamadır ( ölçü açılır );  sürüklemeden sonraki tık yutulur.
   t.addEventListener('pointerdown', e => {
-    if(e.button > 1 || e.target.closest('.olcu-kutu, .tuval-arac')) return;
+    if(e.button > 1 || e.target.closest('.olcu-kutu, .tuval-arac, .tuval-hata')) return;
     if(e.button === 1) e.preventDefault();
     M_TUVAL.surukle = {id: e.pointerId, x: e.clientX, y: e.clientY, v: {...M_TUVAL.gorunum}, basladi: false};
   });
@@ -1619,7 +1648,7 @@ function mTuvalOlaylari(t){
     if(M_TUVAL.surukledi){ e.stopPropagation(); e.preventDefault(); M_TUVAL.surukledi = false; }
   }, true);
   t.addEventListener('dblclick', e => {
-    if(e.target.closest('.olcu, .olcu-kutu, .tuval-arac')) return;
+    if(e.target.closest('.olcu, .olcu-kutu, .tuval-arac, .tuval-hata')) return;
     const f = e.target.closest('figure.cizim');
     const c = f && M_TUVAL.cizimler.find(x => x.f === f);
     if(c) mTuvalSigdir({x0: c.x, y0: c.y, x1: c.x + c.w, y1: c.y + c.h});
@@ -1677,9 +1706,17 @@ function mTuvalBelgeOlaylari(){
 let M_OLCU = null;                         // açık ölçü kutusu:  { g, ad, i, metin, kutu, asansor, c }
 const M_OLCU_ISINAN = new Set();           // önceden çözümlemesi istenen çizimler
 let M_OLCU_SON_BILDIRIM = '';              // çizim yenilenince de görünsün
+//  Ekrandaki çizimi kuran istek ( son geçerli ):  çizim kurulamadığında ekranda
+//  o kalır ve ölçüleri onun girdileriyle çözümlenir — formun bugünkü hâliyle
+//  çizim kurulamıyor, ölçünün kaynağı bulunamazdı.
+let M_CIZIM_GECERLI = null;
 
 function mOlcuIstek(ek){
-  return JSON.stringify({kapak: mukavemetKimlik(), ...mukavemetIstek(), asansor: MUK_AKTIF, ...ek});
+  const eski = M_CIZIM_DURUM && M_CIZIM_DURUM.aktif === false && M_CIZIM_GECERLI
+    && M_CIZIM_GECERLI.asansor === MUK_AKTIF;
+  const istek = eski ? M_CIZIM_GECERLI.istek
+                     : {kapak: mukavemetKimlik(), ...mukavemetIstek(), asansor: MUK_AKTIF};
+  return JSON.stringify({...istek, ...ek});
 }
 
 async function mOlcuPost(yol, ek){
@@ -1771,6 +1808,16 @@ function mOlcuBirimli(v, birim){
   return `${kacis(mSayi(v))}${kacis(b)}`;
 }
 
+/*  Çizim güncellenmemişken ( son geçerli çizim ekranda ) ölçünün kaynağı o
+    çizimin girdileriyle bulunur;  formdaki değer farklıysa o da söylenir. */
+function mOlcuFormda(k){
+  if(!(M_CIZIM_DURUM && M_CIZIM_DURUM.aktif === false)) return '';
+  const e = $(M_ID(k.anahtar)); if(!e) return '';
+  const v = String(e.value ?? '').trim();
+  return v !== '' && Number(v.replace(',', '.')) !== Number(k.deger)
+    ? ` ( çizimde;  formda ${kacis(v)} )` : '';
+}
+
 function mOlcuYaz(bu){
   const c = bu.c, ic = bu.kutu.querySelector('.olcu-ic');
   if(!c.aktif){
@@ -1790,7 +1837,7 @@ function mOlcuYaz(bu){
     h += `<div class="olcu-alt">${sayi.length > 1 ? 'Hangi girdi değişsin?' : 'Değişecek girdi:'}</div>`;
     sayi.forEach((k, n) => {
       h += `<div class="olcu-kaynak"><div><b>${kacis(k.etiket)}</b>
-              <span class="ipucu">şimdi ${mOlcuBirimli(k.deger, k.birim)} · ${kacis(M_OLCU_YER[k.yer])}
+              <span class="ipucu">şimdi ${mOlcuBirimli(k.deger, k.birim)}${mOlcuFormda(k)} · ${kacis(M_OLCU_YER[k.yer])}
               ${k.bagli ? ' · bağlı alanlar da güncellenir' : ''}</span></div>
             <div class="dugmeler"><button class="dg kucuk${n === 0 ? ' ana' : ''}"
                 onclick="mOlcuUygula('${kacis(k.anahtar)}')">${sayi.length > 1 ? 'Bununla uygula' : 'Uygula'}</button>
@@ -1894,6 +1941,9 @@ function mOlcuYazdir(){
   for(const d of c.degisiklikler || []){
     const e = $(M_ID(d.anahtar));
     if(!e) continue;
+    //  Eski değer formun o anki hâli:  çizim kurulamamışken ölçü son geçerli
+    //  çizimden çözümlenir, sunucunun "eski"si o çizimin değeridir.
+    const once = String(e.value ?? '').trim();
     if(e.tagName === 'SELECT'){
       const o = [...e.options].find(o => o.value === String(d.deger) || Number(o.value) === Number(d.deger));
       if(o) e.value = o.value;
@@ -1901,7 +1951,7 @@ function mOlcuYazdir(){
       e.value = mSayi(d.deger);
     }
     e.dispatchEvent(new Event(e.tagName === 'SELECT' ? 'change' : 'input', {bubbles: true}));
-    yazilan.push(`${d.etiket}:  ${mSayi(d.eski)} → ${mSayi(d.deger)}`);
+    yazilan.push(`${d.etiket}:  ${once === '' ? mSayi(d.eski) : once} → ${mSayi(d.deger)}`);
   }
   mOlcuKapat();
   const not = c.dogrulandi ? ''

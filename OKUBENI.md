@@ -253,6 +253,22 @@ yakınlıkta çizgiler ve yazılar keskindir ( kütüphane yok;  bir projenin b�
 çizimleri yenileyince görünüm ve tam ekran yerinde kalır, ölçü kutusu ölçünün
 yanında durur ( kaydırınca izler ).
 
+**Hatalı girdide çizim yerinde kalır** ( kullanıcı isteği 2 Eki ):  çizim
+kurulamayınca ekranda son geçerli girdilerin çizimi durur ( tuvalin kenarı
+kırmızımsı ), sebepler tuvalin sağ üstünde liste olarak durur ve düzeltilince
+kendiliğinden kalkar ( `mTuvalHata` );  tam ekrandan çıkılmaz.  Eskiden çizimler
+kapanıyor, yerine kırmızı bir uyarı geliyordu.  Kalan çizimin ölçüleri
+tıklanır:  kaynakları o çizimin girdileriyle bulunur ( `M_CIZIM_GECERLI` —
+formun bugünkü hâliyle çizim kurulamıyor ), kutu formdaki değeri de söyler
+( "şimdi 2400 mm ( çizimde;  formda 1200 )" ), yazılan değer formun bugünkü
+hâline yazılır — hata yanlış ölçüyü yeniden tıklayarak da düzeltilir.  Hiç
+geçerli çizim yoksa ( hatalı girdiyle açılan proje ) tuval boş, liste aynı yerde.
+Liste yazarken açılmaz:  çizim 1,2 saniye kurulamamış kalırsa açılır
+( `TUVAL_HATA_GECIKME`;  kutu silinip sayı yavaş yazılırken boş ve yarım değer
+geçersizdir, liste her tuşta açılıp kapanıyordu ), açıksa içeriği hemen yenilenir.
+Uyarıların kendisi değişmedi:  program eskiden hangi durumda "çizim kurulamadı"
+diyorsa yine yalnız onlarda söyler.
+
 **Ölçüye tıklama.**  Çizimlerdeki her ölçü tıklanır ( klavyeyle de ):  küçük
 bir kutu ölçünün **hangi girdiden geldiğini** söyler ve yeni değer yazılabilir.
 Çizim elle değişmez — yeni değer ölçünün geldiği **girdi kutusuna** yazılır,

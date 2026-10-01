@@ -656,6 +656,17 @@ body.tuval-tam-acik{overflow:hidden}
 .tuval .cizim-svg>svg{width:100%;height:100%}
 .tuval .olcu-kutu{user-select:text;-webkit-user-select:text;cursor:auto}
 .tuval-arac{position:absolute;right:10px;top:10px;z-index:20;display:flex;gap:6px}
+/*  Çizim kurulamadığında:  son geçerli çizim yerinde kalır ( kenarı kırmızımsı ),
+    sebepler sağ üstte düzeltilene kadar durur ( mTuvalHata ). */
+.tuval.eski{box-shadow:inset 0 0 0 2px #EFB4B0}
+.tuval-hata{position:absolute;right:10px;top:52px;z-index:21;width:380px;max-width:calc(100% - 20px);
+  max-height:calc(100% - 110px);overflow:auto;background:#fff;border:1px solid #EFB4B0;
+  border-left:4px solid var(--kirmizi);border-radius:8px;box-shadow:var(--golge);padding:8px 12px;
+  font-size:12.5px;cursor:auto;user-select:text;-webkit-user-select:text}
+.tuval-hata-bas{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--kirmizi)}
+.tuval-hata-sayi{background:var(--kirmizi);color:#fff;border-radius:10px;padding:0 7px;font-size:11px;font-weight:700}
+.tuval-hata .ipucu{display:block;margin:4px 0 0}
+.tuval-hata .cizim-liste{margin:6px 0 0;padding-left:18px;color:var(--kirmizi);font-weight:600}
 .tuval-arac .dg{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .tuval-ipucu{position:absolute;left:10px;bottom:8px;right:10px;z-index:19;pointer-events:none;
   font-size:11.5px;color:var(--gri);text-shadow:0 0 3px #eef1f5,0 0 3px #eef1f5}
