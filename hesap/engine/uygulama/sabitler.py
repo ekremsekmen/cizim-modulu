@@ -189,7 +189,8 @@ VARSAYILAN = {
     #  adı taşır ).
     **{_CS.ofis_adi(c): v for c, v in _CS.SABIT.items()},
     #  Kabin üstündeki en yüksek donanım ( revizyon kutusu ) kabin tavanının
-    #  bu kadar üstünde ( m.5.2.5.7.2 a );  çizim revizyon kutusunu çizmez.
+    #  bu kadar üstünde ( m.5.2.5.7.2 a );  çizim revizyon kutusunu çizmez
+    #  ( karar 10:  LiftDesigner da çizmiyor, ölçüsü yok ).
     "revizyon_payi":      500,
 
     #  ④ ⑤ ⑥ ELEKTRİK VARSAYILANLARI AVAN MOTORUNDAN OKUNUR.

@@ -44,7 +44,8 @@ SORUNLAR = {
 #  ( ad , hesaptaki yeri , grup , not , durum , karar no )
 ICSEL = (
     ("Revizyon kutusu", "ofis:  revizyon_payi = 500",
-     "Kabin ve kapı", "Bölüm 11'in bu satırını hesap kendisi hesaplıyor; kutu çizimde yok.",
+     "Kabin ve kapı", "Kutu çizilmez ( karar 10:  LiftDesigner da çizmiyor, ölçüsü yok ):  bölüm 11'in "
+                      "satırı kabinin bütün izdüşümünde, kabin tavanından 500 ( Sabitler ) kabulüyle.",
      YOK, 10),
 )
 

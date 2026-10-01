@@ -124,7 +124,9 @@ projenin dişlisiz makinesi ) — başka makinede oradan değiştirilir.  Aralı
 dışındaki değer hesabı durdurur ve çizime de geçmez ( `sabitler.aralik`:  sıfır
 yalnız boşluk ve paylarda — ray boyu sıfır olamaz ).  Kuyu tavanı payının adı
 Sabitler'de eskisi gibi `tavan_payi`'dır ( kayıtlı projeler onu taşır ).
-Revizyon kutusunun yüksekliği de oradadır ( çizim onu henüz çizmez — karar 10 ).
+Revizyon kutusunun yüksekliği de oradadır ( çizim onu çizmez — karar 10:
+LiftDesigner da çizmiyor, ölçüsü yok;  bölüm 11 bu yükseklikle kabinin bütün
+izdüşümünde denetler ).
 
 **Karşı ağırlık dolgusu** ( karar 11 ).  Karşı ağırlık rayları bölümü dolgunun
 çerçeveye sığdığını denetler:  gereken yükseklik Hd = Mcwt / ( ρ × Gx × Gy ),
@@ -890,10 +892,9 @@ verilir — yoksa desen paftada 0,1 mm'ye iner, çizgi düz görünürdü.
    yana kaçık askı ( ys ) — ikisi de çizimde söylenir;  makine dairesizde 1:1;
    yandaki ağırlıkta makine yükü "Bina yapısına" iken duvardan duvara kiriş
    ( karar 3 — arkadaki ağırlıkta çiziliyor ).
-2. Revizyon kutusu ( karar 10 ):  planda eni × boyu, yüksekliği ve kabin
-   üstündeki yeri gelince çizilecek, bölüm 11'in satırı çizimden ölçülecek
-   ( bugün kabinin bütün izdüşümüyle, Sabitler'deki 500 yükseklikle ).
-   Makaralı kabin pateninin ölçüleri gelince o da çizilecek ( karar 2 ).
+2. Makaralı kabin pateninin ölçüleri gelince o da çizilecek ( karar 2 ).
+   Revizyon kutusu çizilmez ( karar 10, 1 Eki — LiftDesigner da çizmiyor ):
+   bölüm 11'in satırı kabinin bütün izdüşümünde, Sabitler'deki 500 yükseklikle.
 3. Elle çizilmiş 800 KG ( yandan ağırlık, makine daireli ):  makine dairesinin
    ölçüleri gelince gerçek projelere eklenecek.
 

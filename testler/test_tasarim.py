@@ -136,7 +136,7 @@ class Sozluk(unittest.TestCase):
                   "yan_yatak_boyu", "agirlik_yeri", "agirlik_malzemesi"):
             self.assertNotIn(k, TZ.SORUNLAR)
         #  3. adım:  hesabın geometri tahminleri çizimden geliyor;  yalnız
-        #  çizimde olmayan revizyon kutusu kaldı ( karar 10 ).
+        #  çizimde olmayan revizyon kutusu kaldı ( karar 10:  çizilmez ).
         self.assertEqual([r[0] for r in TZ.ICSEL], ["Revizyon kutusu"])
 
 
