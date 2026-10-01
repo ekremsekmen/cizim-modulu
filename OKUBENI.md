@@ -484,6 +484,16 @@ noktaları, eksenler, 46 ölçü ve çerçeve + künye şeridi.  Kumanda panosu
 kuyuda değildir:  makine dairesizde kuyunun dışındaki acil panoda, makine
 dairelide makine dairesinde ( eskiden kuyu planında kaynağı belirsiz bir
 "PANO" vardı;  kesitlerde yoktu, makine dairelide çift oluyordu ).
+**Kabin ile karşı ağırlık arası ölçülür** ( kullanıcı isteği 1 Eki — LiftDesigner
+gibi;  eskiden hiçbir planda yoktu ):  yandaki ağırlıkta üstteki şase zinciri
+duvar → ağırlığın çerçevesi → çerçeve → kabin şasesi ( 4815-6:  100 · 150 · 195 ·
+ŞASE DIŞI );  arkadaki ağırlıkta soldaki zincir RAY EKSENİ · KABİN RAYI – AĞIRLIK
+RAYI · ağırlık ekseni – arka duvar ( 800 KG:  840 · 980 · 180 — LiftDesigner
+850 · 970 · 180, fark kapı bölgesinin 10'u ), sağdaki zincir kabin → çerçeve →
+arka duvar ( 105 · 150 · 105 ).  Hesaba girmez ( m.5.2.5.5.1 h'nin 50'si
+girdi.dogrula'da denetlenir );  ölçüye tıklanıp değiştirilebilir ( kaynakları:
+kuyu derinliği, ray – kapı arası, ağırlık ekseni – duvar … ).  Kabinle ağırlık o
+yönde ayrık değilse zincir bölünmez.
 
 **Kabin üstü planı** ( kabin tavanı hizasından yatay kesit ):  duvarlar, raylar,
 konsollar ve karşı ağırlık kuyu planından aynen alınır ( ikinci kez

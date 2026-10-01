@@ -542,10 +542,24 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
         _olcu("yatay", (sol_yuz, 0), (sag_yuz, 0), u[2], f"DBG {kr['arasi']:g}"),
         _olcu("yatay", (sag_yuz, 0), (sag_yuz + kr["h"], 0), u[2], f"RAY {kr['h']:g}"),
         _olcu("yatay", (sag_yuz + kr["h"], 0), (G, 0), u[2]),
-        _olcu("yatay", (0, 0), (ic_sol, 0), u[3]),
         _olcu("yatay", (ic_sol, 0), (ic_sag, 0), u[3], f"ŞASE DIŞI {ic_sag - ic_sol:g}"),
-        _olcu("yatay", (ic_sag, 0), (G, 0), u[3]),
     ]
+    #  KABİN İLE KARŞI AĞIRLIK ARASI ( m.5.2.5.5.1 h:  en az 50 — girdi.dogrula ):
+    #  yandaki ağırlıkta şase zinciri duvardan ağırlığın çerçevesine, çerçeveye
+    #  ve kabinin şasesine kadar ( LiftDesigner 4815-6:  100 · 150 · 225 · PLW ).
+    #  Eskiden yalnız duvar – şase ölçülüyordu;  kabin ile ağırlık arası hiçbir
+    #  planda yoktu.
+    #  Ağırlık kabinle bu yönde ayrık değilse ( ağırlık kabinin önünde ya da
+    #  arkasında kalıyor — aralarındaki açıklık derinliktedir ) bölünmez.
+    sol_uc, sag_uc = [0.0, ic_sol], [ic_sag, G]
+    if ag_yan:
+        bx0, bx1 = ex - ag["derinlik"] / 2.0, ex + ag["derinlik"] / 2.0
+        if ag_yan == "Sol" and bx1 <= ic_sol:
+            sol_uc = [0.0, bx0, bx1, ic_sol]
+        elif ag_yan == "Sağ" and bx0 >= ic_sag:
+            sag_uc = [ic_sag, bx0, bx1, G]
+    for uc in (sol_uc, sag_uc):
+        e += [_olcu("yatay", (a, 0), (b, 0), u[3]) for a, b in zip(uc, uc[1:]) if b - a > 1e-6]
     if not ag_yan:
         #  Arkadaki ağırlığın rayları kuyu genişliği boyunca ölçülür
         e += [
@@ -602,9 +616,29 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
     elif ag_yan == "Sağ":
         sag_siralar.append(_agirlik_zinciri)
     (sol_siralar if ag_yan == "Sağ" else sag_siralar).insert(0, _civata)
+    #  Arkadaki ağırlıkta derinlik zincirleri ağırlığa bölünür ( LiftDesigner
+    #  800 KG:  ray ekseni 850 · kabin rayı – ağırlık rayı 970 · 180 ve
+    #  kabin – ağırlık 100 · 150 · 105 ):  kabin rayı ile ağırlık rayı arası ve
+    #  kabin ile ağırlık arası ( m.5.2.5.5.1 h ) hiçbir planda ölçülmüyordu.
+    ray_uc, kabin_uc = [ry, D], [ic_on + dis_d, D]
+    if not ag_yan:
+        ey = D - ag["ray_duvar"]
+        if ey > ry:
+            ray_uc = [ry, ey, D]
+        if ey - ag["derinlik"] / 2.0 >= ic_on + dis_d:
+            kabin_uc = [ic_on + dis_d, ey - ag["derinlik"] / 2.0, ey + ag["derinlik"] / 2.0, D]
+
+    def _parcalar(uc, kot, ilk_metin=None):
+        #  Kısa parçalar yazısız ( yalnız sayı ):  uzun ad parçaya sığmayıp
+        #  dışarı taşıyor, duvarın ölçüsüne biniyordu.
+        out = [_olcu("dusey", (0, a), (0, b), kot) for a, b in zip(uc, uc[1:])]
+        if ilk_metin and len(uc) > 2:
+            out[0] = _olcu("dusey", (0, uc[0]), (0, uc[1]), kot, ilk_metin)
+        return out
+
     sol_siralar += [
-        lambda kot: [_olcu("dusey", (0, 0), (0, ry), kot, f"RAY EKSENİ {ry:g}"),
-                     _olcu("dusey", (0, ry), (0, D), kot)],
+        lambda kot: [_olcu("dusey", (0, 0), (0, ry), kot, f"RAY EKSENİ {ry:g}")]
+        + _parcalar(ray_uc, kot, f"KABİN RAYI – AĞIRLIK RAYI {ray_uc[1] - ry:g}"),
         lambda kot: [_olcu("dusey", (0, -don), (0, D + dar), kot,
                            f"DIŞ ÖLÇÜ {D + don + dar:g}")],
     ]
@@ -614,8 +648,7 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
                            f"KABİN {kb['derinlik']:g}")],
         lambda kot: [_olcu("dusey", (0, 0), (0, ic_on), kot, f"KAPI ARASI {ic_on:g}"),
                      _olcu("dusey", (0, ic_on), (0, ic_on + dis_d), kot,
-                           f"KABİN + ŞASE {dis_d:g}"),
-                     _olcu("dusey", (0, ic_on + dis_d), (0, D), kot)],
+                           f"KABİN + ŞASE {dis_d:g}")] + _parcalar(kabin_uc, kot),
     ]
     for i, sira in enumerate(sol_siralar):
         e += sira(-ds - 120 - i * ARA)

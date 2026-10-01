@@ -175,5 +175,23 @@ class KesitYerlesimRegresyon(unittest.TestCase):
                     self.assertAlmostEqual(min(abs(r[eks + 2] - blok[eks]), abs(r[eks] - blok[eks + 2])), 30)
 
 
+    def test_planda_kabin_ile_agirlik_arasi_olculur(self):
+        #  Kullanıcı isteği 1 Eki ( LiftDesigner gibi ):  arkadaki ağırlıkta kabin
+        #  rayı – ağırlık rayı ( 800 KG:  LiftDesigner 850 · 970 · 180;  bizim kapı
+        #  bölgemiz 10 kısa ) ve kabin – ağırlık – duvar;  yandakinde duvar –
+        #  ağırlık – kabin şasesi ( 4815-6:  LiftDesigner 100 · 150 · 225 · PLW ).
+        def olculer(g):
+            return [o.get('metin') or f"{o['uzunluk']:g}" for o in E.plan(g) if o['tip'] == 'olcu']
+        o = olculer(self.projeler['800 KG'])
+        self.assertIn('KABİN RAYI – AĞIRLIK RAYI 980', o)
+        i = o.index('RAY EKSENİ 840')
+        self.assertEqual(o[i:i + 3], ['RAY EKSENİ 840', 'KABİN RAYI – AĞIRLIK RAYI 980', '180'])
+        i = o.index('KABİN + ŞASE 1370')
+        self.assertEqual(o[i + 1:i + 4], ['105', '150', '105'])
+        o = olculer(self.projeler['4815-6'])
+        i = o.index('ŞASE DIŞI 1440')
+        self.assertEqual(o[i + 1:i + 4], ['100', '150', '195'])
+
+
 if __name__ == '__main__':
     unittest.main()
