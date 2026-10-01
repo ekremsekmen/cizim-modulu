@@ -43,16 +43,16 @@ def yerlesim(g, cizim_sabitleri=None):
     x0, DW, HH = kp["sol_pay"], kp["genislik"], kp["yukseklik"]
     x1 = x0 + DW
     xc = (x0 + x1) / 2.0
-    yan = S["kaba_bosluk_yan_payi"]
+    bx0, bx1, bh = CG.kaba_bosluk(g, S)
     tip = str(kp.get("tip") or "")
     buton_sol = tip.endswith("Sağ")
     bx = x0 - S["buton_kapi_payi"] if buton_sol else x1 + S["buton_kapi_payi"]
     bz = S["buton_yukseklik"]
     return {
         "S": S, "x0": x0, "x1": x1, "xc": xc, "HH": HH,
-        "bosluk": (x0 - yan, 0.0, x1 + yan, HH + S["kapi_ust_payi"]),
+        "bosluk": (bx0, 0.0, bx1, bh),
         "kasa": (x0 - S["kasa_yan"], 0.0, x1 + S["kasa_yan"], HH + S["kasa_ust"]),
-        "esik": (x0 - yan, -S["esik_kalinlik"], x1 + yan, 0.0),
+        "esik": (bx0, -S["esik_kalinlik"], bx1, 0.0),
         "kanatlar": ([(x0, x1)] if tip.startswith("Manuel") else [(x0, xc), (xc, x1)]),
         "gosterge": (xc - S["gosterge_en"] / 2.0, HH + S["gosterge_yukseklik"] - S["gosterge_boy"] / 2.0,
                      xc + S["gosterge_en"] / 2.0, HH + S["gosterge_yukseklik"] + S["gosterge_boy"] / 2.0),

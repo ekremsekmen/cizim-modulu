@@ -58,6 +58,9 @@ UST_DONANIM = 500.0         # m.5.2.5.7.2 a  kabin tavanına bağlı donanım ( 
 UST_KORKULUK = 300.0        # m.5.2.5.7.2 c 1)  kabin izdüşümünde
 UST_KORKULUK_DIS = 100.0    # m.5.2.5.7.2 c 1)  korkuluğun dışında
 YATAY_UZAKLIK = 400.0       # m.5.2.5.7.2 b / c 1)  "0,40 m yatay uzaklık içinde"
+#  Kesitte şasenin alt ve üst kirişinin çizilen kalınlığı ( profili yok — simge ).
+#  Üst kirişin altı kabin tavanının altına inemez ( yerlesim ).
+SASE_KIRIS_CIZGI = 10.0
 RAY_UZANTISI = 100.0        # m.5.2.5.6.2  ( en üst konum m.5.2.5.6.1:  + 0,035·v² )
 ETEK_BOYU = CDN.ETEK_BOYU   # m.5.4.5.1:  kabin eteğinin düşey kısmı en az 0,75 m
 ESIK_ARASI = 11000.0        # m.5.2.3.1:  ardışık kat kapısı eşikleri arası
@@ -145,6 +148,17 @@ def yerlesim(g, cizim_sabitleri=None):
                          "patenlerine yetmiyor."]}
     if dy["kabin_paten_arasi"] <= S["paten_yukseklik"]:
         return {"hata": ["Kabin patenleri üst üste biniyor."]}
+    #  Şasenin üst kirişi üst patenin hizasındadır ( kabin_kotlari ):  kabin
+    #  iç yüksekliği paten arasına göre büyükse kiriş kabinin içinden geçer
+    #  ( iç yükseklik 2.500, paten arası 2.420 ).  Girilen ölçü değiştirilmez,
+    #  çizim durur ve gereken paten arasını söyler.
+    kabin = kabin_kotlari(dy, S, 0.0)
+    kiris_alti = kabin["sase_ust"] - SASE_KIRIS_CIZGI
+    if kiris_alti < kabin["tavan"] - 1e-6:
+        gerekli = dy["kabin_paten_arasi"] + kabin["tavan"] - kiris_alti
+        hata.append(f"Kabin üst şase kirişi kabin tavanına giriyor:  kirişin altı "
+                    f"{kiris_alti:g} mm, tavan {kabin['tavan']:g} mm;  "
+                    f"bu ölçülerle kabin paten arası en az {gerekli:g} mm olmalı.")
     KD, KU = CKD.yerlesim(g, S), CKU.yerlesim(g, S)
     if KD["hata"] or KU["hata"]:
         return {"hata": KD["hata"] + KU["hata"]}
@@ -319,8 +333,8 @@ def _kabin(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89):
     sd = S["sase_dikme_derinlik"]
     for x in (ry - sd / 2.0, ry + sd / 2.0 - 50):
         e.append(CGE._ad(D("KABIN-IC", x, kt["sase_alt"], 50, kt["sase_ust"] - kt["sase_alt"]), "sase"))
-    for z in (kt["sase_alt"], kt["sase_ust"] - 10):
-        e.append(D("KABIN-IC", ry - sd / 2.0, z, sd, 10))
+    for z in (kt["sase_alt"], kt["sase_ust"] - SASE_KIRIS_CIZGI):
+        e.append(D("KABIN-IC", ry - sd / 2.0, z, sd, SASE_KIRIS_CIZGI))
     #  Patenler ve fren bloğu
     e.append(CGE._ad(D("PATEN", ry - 35, kt["ust_paten_alt"], 70, S["paten_yukseklik"]), "ust_paten"))
     e.append(CGE._ad(D("PATEN", ry - 35, kt["alt_paten"], 70, S["paten_yukseklik"]), "alt_paten"))

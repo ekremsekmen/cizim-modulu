@@ -140,7 +140,14 @@ bloğunun derinliği 155 ( eskiden 150 ), paten arası 3.300 ( eskiden 3.000 ) �
 formun varsayılan asansöründe ( 800 kg yük, tablodan 800 kg kabin → karşı
 ağırlık 1.200 kg, 2:1 ) 24 blok × 120 = 2.880 mm dolgu, kalan 2.980.  Her yüke
 uyan tek varsayılan yoktur:  çerçevenin boyu, eni, derinliği ve malzemesi
-projenin karşı ağırlığına göre seçilir.  Sığmıyorsa bölüm gereken paten
+projenin karşı ağırlığına göre seçilir.  **Genişlik ( Gy ) boşsa ağırlık
+rayları arasından gelir** ( DBGW − 60:  iki uçta paten payı, referans proje 790
+çerçevede 850 );  DBGW boşsa tersine Gy + 60, ikisi de boşsa Gy 960
+( `tasarim/alanlar.AGIRLIK_PATEN_PAYI`;  kullanıcı kararı 1 Eki — eskiden Gy
+hep 960'tı, ray arası 1.700 girilen 1022'de çerçeve ile ray arasında her
+yanda 370 mm kalıyordu ).  Kesitte dolgu da aynı sınırda biter
+( `donanim.agirlik_dolgu_kotlari` — eskiden kasnağın içine 300 mm giriyordu ).
+Sığmıyorsa bölüm gereken paten
 arasını yazar ( "paten arası en az 4.500 mm olmalı" — kalan yükseklik paten
 arasıyla birebir büyür ).  Motor doğrudan çağrılınca ( çizim yok ) denetim
 yapılmaz;  motorun elle doğrulanan örneği kendi değerleriyle ( 150 · 3.000 ).
@@ -376,7 +383,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( girdiler oynatılarak ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/` | 355 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog, `test_gercek_projeler.py` — ofisin altı gerçek projesi ( veri `gercek_projeler.py` ), `test_gorunusler.py` — kasnak düzenlemesi ve giriş görünüşü ) |
+| `testler/` | 366 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog, `test_gercek_projeler.py` — ofisin altı gerçek projesi ( veri `gercek_projeler.py` ), `test_gorunusler.py` — kasnak düzenlemesi ve giriş görünüşü, `test_kesit_yerlesim_regresyon.py` — şase üst kirişi, ağırlık patenleri, dolgu, ağırlık genişliği ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 
@@ -678,6 +685,16 @@ paylarıyla hesaplanır ( üst paten bir satırda 2.700, bir başkasında 2.900;
 varsayılan girdiler şase altını örtük 350 alır ) — bu kabin modeline göre
 düzeltilene kadar iki program aynı açıklığa farklı sayı verir.
 
+**Kabinin üst şase kirişi kabin tavanının üstünde kalmalı** ( 1 Eki ):  kiriş
+üst patenin hizasındadır;  kabin iç yüksekliği paten arasına göre büyükse
+( 2.500 iç yükseklik, 2.420 paten arası ) çizim durur ve gereken paten arasını
+söyler — girilen ölçü değiştirilmez.  **Karşı ağırlığın patenleri raylarını
+kavrar** ( `baglantilar.agirlik_patenleri`, kabin patenleri gibi ray yüzünde ):
+eskiden arkadaki ağırlıkta da çerçevenin önüne / arkasına konuyor, raydan
+uzakta duruyordu.  Kabin üstü kasnaklarına taşıyıcı çizilmez ( kaynağı yok —
+kullanıcı kararı 1 Eki );  kabin altı askının taşıyıcısı ölçüsüz bağlantı
+yoludur ( `baglantilar.kasnak_tasiyicilari` ).
+
 **Kasnak düzenlemesi ve giriş görünüşü** ( 1/20 — kullanıcı isteği 1 Eki:
 "LiftDesigner örneklerinde bunlar da var, biz de ekleyelim" ):  paftanın ve
 ekranın sonunda.
@@ -815,9 +832,19 @@ Açıklıklar kabin EŞİĞİNİN ön kenarından ölçülür:  eşik aralığı
 kuyunun ön İÇ yüzünden ölçülür — hesap programının RK'sı kapı hattındandır
 ( referans proje:  iç yüzden 1.167 = kapı hattından 1.017 ).
 
+**Duvardaki kaba boşluk ve kasa her görünüşte aynıdır** ( `girdi.kaba_bosluk`;
+1 Eki ):  boşluk kapıdan iki yanda 140 geniş, döşemeden 2.240 yüksek ( kapı
++ 240 ) — LiftDesigner 800 KG'nin planında ve giriş görünüşünde 470 · 1.180 ·
+350;  kasa yanda 120, kapının 220 üstüne ( 2.220 ).  Eskiden planda boşluk
+yalnız kapı genişliği kadardı ( 900 ), kasa yan kesitte kapının boyunda bitiyor
+( 2.000, üst başlığı yoktu ), arkadan kesitte 2.240'a çıkıyordu.  Duvar
+boşluğuna montajda kasa boşluğa sığmalıdır ( Sabitler'deki paylar kasadan
+küçükse çizim durur — referans projenin 200'lük üst payına 220'lik kasa
+sığmaz;  onun kapısı kuyu içindedir ).
+
 Kapının olduğu duvar boşluğun iki yanında iki parçadır, tarama boşluktan
-geçmez:  kuyu planında ( C-C, kapı hizası ) ön duvar kapı boşluğunda ( duvar
-boşluğuna montajda kasayla birlikte ), A-A'da kapı ünitesi duvardaysa boşluk
+geçmez:  kuyu planında ( C-C, kapı hizası ) ön duvar kaba boşlukta ( duvar
+boşluğuna montajda kasa da boşlukta ), A-A'da kapı ünitesi duvardaysa boşluk
 eşiğin altından başlar, makine dairesi planında oda kapısında.  Kapının üstünden
 ya da altından kesilen planlarda ( kabin üstü, kuyu dibi, kuyu üstü, delik
 planı ) ön duvar kesintisizdir ( `geometri.plan(…, kapi_duzeyi=False)` ).

@@ -367,6 +367,18 @@ def agirlik_kotlari(M, alt):
             "ust_paten": ust + A["paten"] / 2.0}
 
 
+def agirlik_dolgu_kotlari(g, S, AK):
+    """Karşı ağırlık dolgusunun alt ve üst kotu:  alt kirişin üstünden üst
+    kirişin altına;  2:1'de ağırlık kasnağının altına kadar ( karar 11 ).
+    Kesit ve hesabın dolgu yüksekliği ( olculer ) bunu kullanır — kesit
+    eskiden dolguyu kasnağın içine kadar çiziyordu ( 2:1'de 300 mm )."""
+    alt, ust = AK["alt"] + S["agirlik_kiris"], AK["ust"] - S["agirlik_kiris"]
+    cap = (g.get("agirlik") or {}).get("kasnak_capi")
+    if (g.get("aski") or {}).get("duzen") != "Doğrudan" and _sayi(cap):
+        ust = min(ust, AK["kasnak_merkez"] - cap / 2.0)
+    return alt, ust
+
+
 #  Tavanın altındaki parçaların okunur adları ( hesabın bölüm 11'i basar )
 TAVAN_PARCASI = {"sase": "makine şasesi", "kabin_baglanti": "kabin halat bağlantısı",
                  "agirlik_baglanti": "ağırlık halat bağlantısı", "regulator": "regülatör",

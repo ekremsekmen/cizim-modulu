@@ -47,6 +47,15 @@ from engine.ortak import ofis as OFIS                            # noqa: E402
 from engine.uygulama import mukavemet_tablolari as MT            # noqa: E402
 
 GIRDI, KURAL, KATALOG, CIZIM, HESAP = "GİRDİ", "KURAL", "KATALOG", "ÇİZİM", "HESAP"
+
+#  KARŞI AĞIRLIĞIN GENİŞLİĞİ ile RAYLARININ ARASI birbirinden türer:  iki uçta
+#  paten payı ( referans proje:  790 çerçevede DBGW 850 ).  Biri girilmişse
+#  öbürü ondan gelir;  ikisi de boşsa genişlik referans uygulama projesinin
+#  960'ıdır.  Eskiden genişliğin varsayılanı her zaman 960'tı:  ray arası
+#  1.700 girilen projede ( 1022 ) çerçeve ile ray arasında her yanda 370 mm
+#  kalıyordu — paten bunu köprüleyemez ( kullanıcı kararı 1 Eki ).
+AGIRLIK_PATEN_PAYI = 60.0
+AGIRLIK_GENISLIGI_YEDEK = 960.0
 KAYNAKLAR = (GIRDI, KURAL, KATALOG, CIZIM, HESAP)
 MUK, ELK, CIZ = "mukavemet", "elektrik", "cizim"
 
@@ -450,10 +459,11 @@ _GRUPLAR = (
         #  arasının ne malzemenin özelliğidir — imal edilen ÇERÇEVENİN özelliğidir.
         #  Program kabin tarafında zaten böyle yapıyor ( kabin_genisligi ·
         #  kabin_derinligi ).
-        A('agirlik_genisligi', 'Karşı ağırlık genişliği  ( Gy )', 'mm', 'sayi', None, 960,
-          kaynak=GIRDI, sozlesme=MUK, gelismis=True,
+        A('agirlik_genisligi', 'Karşı ağırlık genişliği  ( Gy — boşsa DBGW − 60 )', 'mm', 'sayi', None, None,
+          kaynak=KURAL, sozlesme=MUK, gelismis=True, opsiyonel=True,
           bilgi=("Gy — karşı ağırlık çerçevesinin genişliği. Kütlenin kaçıklığı bunun %5'i kabul "
-                 'edilir ( m.5.7.2.3.3 ).')),
+                 'edilir ( m.5.7.2.3.3 ).  Boşsa ağırlık rayları arasından 60 eksik ( iki uçta '
+                 'paten payı );  o da boşsa 960 mm.')),
         #  155:  standart barit bloğunun derinliği ( 960 × 155 × 120 mm, 50 kg —
         #  karar 11;  eskiden 150 ve dolgu varsayılan asansörde sığmıyordu ).
         A('agirlik_derinligi', 'Karşı ağırlık derinliği  ( Gx )', 'mm', 'sayi', None, 155,

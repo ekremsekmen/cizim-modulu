@@ -286,9 +286,9 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
     e = []
 
     #  ── DUVARLAR  ( tarama yalnız duvar kesitinde ) ───────────────────
-    #  Duvar boşluğuna monte kapıda kasa da boşluktadır.
-    kasa = S["kasa_yan"] if kp["montaj"] == "Duvar boşluğuna" else 0.0
-    b0, b1 = kp["sol_pay"] - kasa, kp["sol_pay"] + kp["genislik"] + kasa
+    #  Ön duvar kat kapısının kaba boşluğunun iki yanındadır ( CG.kaba_bosluk —
+    #  giriş görünüşüyle aynı;  duvar boşluğuna monte kapıda kasa da boşluktadır ).
+    b0, b1, _ = CG.kaba_bosluk(g, S)
     on = [(-ds, -don, b0 + ds, don), (b1, -don, G + dg - b1, don)] if kapi_duzeyi else \
         [(-ds, -don, G + ds + dg, don)]
     for x, y, g_, d_ in on + [(-ds, D, G + ds + dg, dar), (-ds, 0, ds, D), (G, 0, dg, D)]:
@@ -306,7 +306,7 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
     KB = CG.kapi_bolgesi(g, S)
     x0 = kp["sol_pay"]
     kg = kp["genislik"]
-    e.append(_ad(_dik("KAPI", x0, -don, kg, don), "kapi_boslugu"))
+    e.append(_ad(_dik("KAPI", b0, -don, b1 - b0, don), "kapi_boslugu"))
     for kx0 in (x0 - S["kasa_yan"], x0 + kg):                       # kasa yanları
         e.append(_ad(_dik("KAPI", kx0, KB["kasa"][0], S["kasa_yan"], S["kasa_derinlik"]),
                      "kapi_kasasi"))

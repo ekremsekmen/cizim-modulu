@@ -358,7 +358,7 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         "kabin_ray": {"arasi": sayi("kabin_ray_arasi", bos=True) or kb_g + 200.0,
                       "kapi_arasi": kapi_arasi, "b": kr[0], "h": kr[1]},
         "agirlik": {"yeri": ag_yeri, "genislik": Gy, "derinlik": Gx,
-                    "ray_arasi": sayi("agirlik_ray_arasi", bos=True) or Gy + 60.0,
+                    "ray_arasi": sayi("agirlik_ray_arasi", bos=True) or Gy + _TS.AGIRLIK_PATEN_PAYI,
                     "ray_duvar": sayi("agirlik_ray_duvar", bos=True) or Gx / 2.0 + 50.0,
                     "eksen_kaciklik": ag_kacik, "b": ar[0], "h": ar[1], "kasnak_capi": Da},
         "aski": aski,

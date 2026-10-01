@@ -82,6 +82,20 @@ def kapi_bolgesi(g, S):
             "yuzey": 0.0 if g["kapi"]["montaj"] == "Duvar boşluğuna" else esik[1]}
 
 
+def kaba_bosluk(g, S):
+    """Kat kapısının duvardaki kaba boşluğu ( x0 , x1 , yükseklik ):  kapıdan
+    iki yanda kaba_bosluk_yan_payi geniş, döşemeden kapi_ust_payi yüksek
+    ( LiftDesigner 800 KG ve 1022:  planda ve giriş görünüşünde 1.180,
+    yükseklik 2.240 ) — kuyunun iç yüzlerini aşmaz.  Kuyu planı, düşey
+    kesitler ve giriş görünüşü bunu kullanır ( eskiden planda boşluk kapı
+    genişliği kadardı, giriş görünüşünde 1.180 ).  Kasa ( yanda kasa_yan,
+    kapının kasa_ust üstüne ) bu boşluğun içindedir."""
+    kp, G = g["kapi"], g["kuyu"]["genislik"]
+    yan = S["kaba_bosluk_yan_payi"]
+    return (max(0.0, kp["sol_pay"] - yan), min(G, kp["sol_pay"] + kp["genislik"] + yan),
+            (kp.get("yukseklik") or 0) + S["kapi_ust_payi"])
+
+
 def _aski_olculeri(g):
     """Askı düzeninin çizime giren ölçüleri  ( eksikse boş döner )."""
     a = g.get("aski") or {}
@@ -253,6 +267,11 @@ def dogrula(g):
     elif esik_arasi > ESIK_ARASI_AZAMI:
         hata.append(f"Kabin eşiği ile kat kapısı eşiği arası {esik_arasi:g} mm — "
                     f"TS EN 81-20 m.5.3.4.1 en çok {ESIK_ARASI_AZAMI:g} mm verir.")
+    if kp["montaj"] == "Duvar boşluğuna" and (S["kasa_yan"] > S["kaba_bosluk_yan_payi"]
+                                             or S["kasa_ust"] > S["kapi_ust_payi"]):
+        hata.append(f"Kat kapısının kasası duvardaki kaba boşluğa sığmıyor:  kasa yanda "
+                    f"{S['kasa_yan']:g}, kapının üstünde {S['kasa_ust']:g} mm;  boşluğun payları "
+                    f"{S['kaba_bosluk_yan_payi']:g} ve {S['kapi_ust_payi']:g} mm ( Sabitler ).")
     if kabin_esigi - KB["yuzey"] > KAPI_ARASI_AZAMI:
         hata.append(f"Kuyu iç yüzü ile kabin eşiği arası {kabin_esigi - KB['yuzey']:g} mm — "
                     f"TS EN 81-20 m.5.2.5.3.1 en çok {KAPI_ARASI_AZAMI:g} mm verir.")

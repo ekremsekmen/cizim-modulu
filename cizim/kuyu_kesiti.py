@@ -30,6 +30,7 @@ from cizim import arka_aski as CAA
 from cizim import donanim as CDN
 from cizim import dusey as CDU
 from cizim import geometri as CGE
+from cizim import girdi as CG
 from cizim import kesit_parcalari as CKP
 
 OLCEK = 50
@@ -357,7 +358,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     tavan = H + dy["son_kat"]
     taban = Y["taban"]
     kapi_h = g["kapi"]["yukseklik"]
-    bosluk_h = kapi_h + S["kapi_ust_payi"]
+    bosluk_h = CG.kaba_bosluk(g, S)[2]
     oda = "MD" in M
     ust = tavan if oda else tavan + don          # makine dairesinde döşemesi odanınkidir
     e = []
@@ -384,7 +385,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
         _duvar(e, -don - L, zk - S["kat_doseme_kalinlik"], L, S["kat_doseme_kalinlik"], "kat_dosemesi")
         for kk in P["kasa"]:
             e.append(CGE._ad(CGE._dik("KAPI", kk[1], zk - S["esik_kalinlik"], kk[3] - kk[1],
-                                      kapi_h + S["esik_kalinlik"]), "kapi_kasasi"))
+                                      kapi_h + S["kasa_ust"] + S["esik_kalinlik"]), "kapi_kasasi"))
         for kk in P["esik"]:
             e.append(CGE._ad(CGE._dik("KAPI", kk[1], zk - S["esik_kalinlik"], kk[3] - kk[1],
                                       S["esik_kalinlik"]), "kat_esigi"))
@@ -453,12 +454,13 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
         _duvar(e, 0, tavan, G, don)
     e.append(CGE._ad(CGE._cizgi("GIZLI", 0, Y["tavan_alti"] + H, G, Y["tavan_alti"] + H), "tavan_kirisi"))
     #  Kat kapıları ön duvarda ( görünüş ):  kasa, boşluk, kanat ayrımı, durak numarası
-    bos = P["bosluk"][0]
+    kp = g["kapi"]
+    bos = (kp["sol_pay"], -1, kp["sol_pay"] + kp["genislik"], 0)
     kasa_x0 = min(kk[0] for kk in P["kasa"])
     kasa_x1 = max(kk[2] for kk in P["kasa"])
     ayrim = sorted(kk[2] for kk in P["kanat"])[0] if len(P["kanat"]) > 1 else None
     for i, zk in enumerate(kotlar):
-        B.kutu(e, "KAPI", (kasa_x0, -1, kasa_x1, 0), zk, zk + kapi_h + S["kapi_ust_payi"], "kapi_kasasi")
+        B.kutu(e, "KAPI", (kasa_x0, -1, kasa_x1, 0), zk, zk + kapi_h + S["kasa_ust"], "kapi_kasasi")
         B.kutu(e, "KAPI", bos, zk, zk + kapi_h, "kat_kapisi")
         if ayrim is not None:
             u = B.u(ayrim, 0)

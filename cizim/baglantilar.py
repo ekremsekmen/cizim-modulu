@@ -25,6 +25,29 @@ def kasnak_tasiyicilari(g, S, z):
     return yol
 
 
+def agirlik_patenleri(g, S, blok, raylar, z0, z1):
+    """Karşı ağırlığın patenleri:  her ağırlık rayının ağırlığa bakan yüzünü
+    kavrar ( kabin patenleri gibi — geometri.plan ).  Ağırlık yandaysa raylar
+    önünde ve arkasındadır ( y ), arkadaysa iki yanındadır ( x ).  Eskiden
+    paten her düzende çerçevenin önüne / arkasına konuyordu:  arkadaki
+    ağırlıkta raydan uzakta, çerçevenin arka yüzünde duruyordu."""
+    arka = g['agirlik']['yeri'] == 'Arka'
+    cx, cy = (blok[0] + blok[2]) / 2, (blok[1] + blok[3]) / 2
+    en, boy = S['paten_en'] / 2, S['paten_boy'] / 2
+    out = []
+    for r in raylar:
+        k = r['kutu']
+        rx, ry = (k[0] + k[2]) / 2, (k[1] + k[3]) / 2
+        if arka:
+            x = k[2] if rx < cx else k[0]
+            pk = (x - en, ry - boy, x + en, ry + boy)
+        else:
+            y = k[3] if ry < cy else k[1]
+            pk = (rx - boy, y - en, rx + boy, y + en)
+        out.append(CMK.kutu(*pk, z0, z1, 'PATEN', 'agirlik_paten'))
+    return out
+
+
 def halat_konsolu(baglanti, ray, z):
     bx, by = (baglanti[0] + baglanti[2]) / 2, (baglanti[1] + baglanti[3]) / 2
     rx, ry = (ray[0] + ray[2]) / 2, (ray[1] + ray[3]) / 2

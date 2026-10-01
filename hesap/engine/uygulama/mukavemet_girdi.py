@@ -272,6 +272,9 @@ def varsayilanlar():
     #  girdide de kalırdı ( kuyu dibi değişse de kaide 870 ).
     for _k in _TG.cizimden():
         g[_k] = None
+    #  Karşı ağırlığın genişliği de:  boşsa ray arasından türer ( tamamla );
+    #  varsayılanda dolu kalsaydı girilen ray arası onu hiç değiştirmezdi.
+    g["agirlik_genisligi"] = None
     #  Kaynak işaretleri de gider:  kalsaydı kullanıcının girdiği α raporda
     #  "ÇİZİMDEN" yazardı ( işaret varsayılandan girdiye taşınırdı ).
     g.pop("_cizimden", None)
@@ -322,6 +325,15 @@ def tamamla(g):
     _tavan, kd = alt_duraktan_tavana(g), g.get("kuyu_dibi")
     if _tavan is not None and _sayi(kd):
         g["kuyu_boyu"] = _tavan + kd
+    #  KARŞI AĞIRLIĞIN GENİŞLİĞİ ( Gy ):  boşsa ağırlık rayları arasından
+    #  ( DBGW − paten payı ), o da boşsa referans uygulama projesinin 960'ı
+    #  ( tasarim/alanlar.AGIRLIK_PATEN_PAYI ).  Çizim DBGW'yi tersinden kurar
+    #  ( boşsa Gy + pay ):  ikisi aynı çerçeveyi anlatır.
+    if not _sayi(g.get("agirlik_genisligi")):
+        dbgw = g.get("agirlik_ray_arasi")
+        g["agirlik_genisligi"] = (dbgw - _TS.AGIRLIK_PATEN_PAYI
+                                    if _sayi(dbgw) and dbgw > _TS.AGIRLIK_PATEN_PAYI
+                                    else _TS.AGIRLIK_GENISLIGI_YEDEK)
     #  2. bükülgen kablo kat kapısı tipinden türetilir
     g["kablo_tipi_2"] = MT.kapi_kablosu(g.get("kat_kapisi_tipi"))
     #  ÇİZİMDEN GELEN GİRDİLER ( cizim/kopru.CIZIMDEN ):  boş bırakılmışsa

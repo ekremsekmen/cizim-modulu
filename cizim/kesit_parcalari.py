@@ -214,8 +214,9 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     cer = S["agirlik_cerceve"]
     el = []
     B.kutu(el, "AGIRLIK", blok, AK["alt"], AK["ust"], "agirlik")
+    dolgu_alt, dolgu_ust = CDN.agirlik_dolgu_kotlari(g, S, AK)
     B.kutu(el, "AGIRLIK", (blok[0] + cer, blok[1] + cer, blok[2] - cer, blok[3] - cer),
-           AK["alt"] + S["agirlik_kiris"], AK["ust"] - S["agirlik_kiris"], "agirlik_dolgu")
+           dolgu_alt, dolgu_ust, "agirlik_dolgu")
     if P["agirlik_kasnak"]:
         kasnak(el, B, P["agirlik_kasnak"], AK["kasnak_merkez"], g["agirlik"]["kasnak_capi"],
                "x" if g["agirlik"]["yeri"] == "Arka" else "y", "agirlik_kasnagi")
@@ -224,16 +225,11 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
         el.append(CGE._ad(CGE._yazi(um, (AK["alt"] + AK["kasnak_merkez"]) / 2.0 - 200,
                                     "KARŞI AĞIRLIK", 40 * K, aci=90), "agirlik_yazi"))
     gruplar.append((blok, el))
-    for r in ag_raylari:
-        k = r["kutu"]
-        if k[3] <= blok[1]:
-            pk = (k[0], blok[1] - S["paten_en"], k[2], blok[1])
-        else:
-            pk = (k[0], blok[3], k[2], blok[3] + S["paten_en"])
-        el = []
-        B.kutu(el, "PATEN", pk, AK["ust_paten_alt"], AK["ust_paten"], "agirlik_paten")
-        B.kutu(el, "PATEN", pk, AK["alt_paten"], AK["alt_paten_ust"], "agirlik_paten")
-        gruplar.append((pk, el))
+    for z0, z1 in ((AK["ust_paten_alt"], AK["ust_paten"]),
+                   (AK["alt_paten"], AK["alt_paten_ust"])):
+        for parca in CB.agirlik_patenleri(g, S, blok, ag_raylari, z0, z1):
+            el = CMK.gorunus([parca], B, CGE._dik, CGE._daire, CGE._cizgi)
+            gruplar.append((CMK.sinirlar(parca)[:4], el))
     for _, el in sorted(gruplar, key=lambda ge: uzaklik(B, ge[0]), reverse=True):
         e += el
     kt = CDN.kabin_kotlari(dy, S, kabin_z, g.get("aski"), CAA.arkada_iki_bir(g))

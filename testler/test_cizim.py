@@ -28,6 +28,14 @@ def _ornek(**ezme):
     return g
 
 
+def _duvar_boslugu():
+    """Kapısı duvar boşluğuna monte örnek.  Referans projenin kendi kapısı kuyu
+    içindedir ve üst payı 200'dür:  220'lik kasa ( LiftDesigner ) duvardaki
+    boşluğa sığmaz ( girdi.dogrula ) — LiftDesigner'ın 240'ıyla."""
+    return _ornek(kapi={"montaj": "Duvar boşluğuna"}, kabin={"on_pay": 210},
+                  _cizim_sabitleri={"kapi_ust_payi": 240})
+
+
 def _sag_ayna(**ezme):
     """Örneğin aynası:  ağırlık sağda, kabin ve kapı simetrik yerde."""
     g = _ornek(agirlik={"yeri": "Sağ"}, kabin={"kaciklik_y": -130},
@@ -199,12 +207,23 @@ class PlanGeometrisi(unittest.TestCase):
             self.assertFalse(_cakisma(kabin, ag), f"kabin ile karşı ağırlık çakışıyor: {ag}")
 
     def test_kapi_boslugu_on_duvarda(self):
+        #  Duvardaki kaba boşluk kapıdan iki yanda 140 geniş ( LiftDesigner
+        #  800 KG planı:  900'lük kapıya 1.180 — giriş görünüşüyle aynı );  ön
+        #  duvarın iki parçası boşluğun iki yanında biter.
         k, kp = self.g["kuyu"], self.g["kapi"]
-        kapilar = _dikdortgenler(self.e, "KAPI")
-        bosluk = kapilar[0]
-        self.assertAlmostEqual(bosluk["x"], kp["sol_pay"], places=6)
-        self.assertAlmostEqual(bosluk["g"], kp["genislik"], places=6)
+        S = CS_.sabitler(self.g["_cizim_sabitleri"])
+        bosluk = next(x for x in self.e if x.get("ad") == "kapi_boslugu")
+        self.assertAlmostEqual(bosluk["x"], kp["sol_pay"] - S["kaba_bosluk_yan_payi"], places=6)
+        self.assertAlmostEqual(bosluk["g"], kp["genislik"] + 2 * S["kaba_bosluk_yan_payi"], places=6)
         self.assertAlmostEqual(bosluk["y"], -k["duvar_on"], places=6)
+        duvar = [x for x in _dikdortgenler(self.e, "KUYU-DUVAR") if x["y"] == -k["duvar_on"]]
+        self.assertEqual(sorted(round(x["x"] + x["g"]) for x in duvar)[0], round(bosluk["x"]))
+        self.assertIn(round(bosluk["x"] + bosluk["g"]), [round(x["x"]) for x in duvar])
+
+    def test_kasa_duvar_boslugunda_sigmali(self):
+        g = _ornek(kapi={"montaj": "Duvar boşluğuna"}, kabin={"on_pay": 210})
+        self.assertTrue(any("kaba boşluğa sığmıyor" in h for h in CG.dogrula(g)))
+        self.assertEqual(CG.dogrula(_duvar_boslugu()), [])
 
     def test_agirlik_yeri_cizimi_degistiriyor(self):
         sol = _dikdortgenler(CGE.plan(_ornek(agirlik={"yeri": "Sol"})), "AGIRLIK")[0]
@@ -2194,7 +2213,7 @@ class KapiBolgesi(unittest.TestCase):
         kapı boşluğundan geçiyordu ( DWG'de de ).  Kapı hizasından kesilmeyen
         planlarda ön duvar kesintisizdir."""
         from cizim import cizimler as CZ
-        projeler = [_ornek(), _ornek(kapi={"montaj": "Duvar boşluğuna"}, kabin={"on_pay": 210})] + [
+        projeler = [_ornek(), _duvar_boslugu()] + [
             _ornek(makine={"yeri": "Makine dairesi"},
                    makine_dairesi={"kapi_duvar": d, "pano_duvar": "Sol" if d == "Sağ" else "Sağ"})
             for d in ("Ön", "Arka", "Sol", "Sağ")]
@@ -2215,23 +2234,25 @@ class KapiBolgesi(unittest.TestCase):
                             self.assertFalse(t[0] < k[2] - 1e-6 and k[0] < t[2] - 1e-6
                                              and t[1] < k[3] - 1e-6 and k[1] < t[3] - 1e-6)
         self.assertGreater(sayi, 100)
-        #  Ön duvar:  kapı hizasında boşluğun ( kuyu içine montaj:  kapı eni ) iki
-        #  yanında;  kabin üstü, kuyu dibi, kuyu üstü ve delik planında kesintisiz
+        #  Ön duvar:  kapı hizasında kaba boşluğun ( kapıdan iki yanda 140 —
+        #  LiftDesigner, giriş görünüşüyle aynı ) iki yanında;  kabin üstü, kuyu
+        #  dibi, kuyu üstü ve delik planında kesintisiz
         k, kp = CG.ORNEK["kuyu"], CG.ORNEK["kapi"]
         self.assertEqual(kp["montaj"], "Kuyu içine")
+        yan = CS_.sabitler(CG.ORNEK["_cizim_sabitleri"])["kaba_bosluk_yan_payi"]
 
         def on_duvar(e):
             return sorted((x["x"], x["x"] + x["g"]) for x in e if x["tip"] == "tarama" and x["y"] == -k["duvar_on"])
         self.assertEqual(on_duvar(CGE.plan(_ornek())),
-                         [(-k["duvar_sol"], kp["sol_pay"]),
-                          (kp["sol_pay"] + kp["genislik"], k["genislik"] + k["duvar_sag"])])
+                         [(-k["duvar_sol"], kp["sol_pay"] - yan),
+                          (kp["sol_pay"] + kp["genislik"] + yan, k["genislik"] + k["duvar_sag"])])
         for cizim in ("kabin_ustu", "kuyu_dibi", "kuyu_ustu", "delik_plani"):
             with self.subTest(cizim=cizim):
                 self.assertEqual(on_duvar(CZ.CIZIMLER[cizim][1](_ornek())),
                                  [(-k["duvar_sol"], k["genislik"] + k["duvar_sag"])])
 
     def test_kanatlar_esiklerin_ustunde_kabinle_cakismaz(self):
-        for g in (_ornek(), _ornek(kapi={"montaj": "Duvar boşluğuna"}, kabin={"on_pay": 210}),
+        for g in (_ornek(), _duvar_boslugu(),
                   _ornek(kapi={"tip": "Otomatik Merkezi"}), _sag_ayna(), _arka()):
             self.assertEqual(CG.dogrula(g), [])
             e = CGE.plan(g)
