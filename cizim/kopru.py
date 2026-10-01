@@ -77,6 +77,10 @@ def cizim_sabitleri(A):
 #  "karşı ağırlık genişliğinden geliyor" görünür, ölçüyü değiştirmek Gy'yi
 #  değiştirirdi.  Yol:  çizim girdisinde ( g ) değerin durduğu yer.
 KURALLI = {
+    "kuyu_duvar_on": ("kuyu", "duvar_on"),
+    "kuyu_duvar_arka": ("kuyu", "duvar_arka"),
+    "kuyu_duvar_sol": ("kuyu", "duvar_sol"),
+    "kuyu_duvar_sag": ("kuyu", "duvar_sag"),
     "kabin_ray_arasi": ("kabin_ray", "arasi"),
     "agirlik_ray_arasi": ("agirlik", "ray_arasi"),
     "agirlik_ray_duvar": ("agirlik", "ray_duvar"),
@@ -349,8 +353,11 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         "_cizim_sabitleri": ozel,
         "proje": {"ad": proje_adi or "", "asansor": str(A.get("asansor_adi") or "").strip()
                   or f"ASANSÖR {sira}", "olcek": 20},
-        "kuyu": {"genislik": G, "derinlik": KD, "duvar_on": duvar, "duvar_arka": duvar,
-                 "duvar_sol": duvar, "duvar_sag": duvar},
+        #  Duvarlar ayrı ayrı ( boşsa ortak kalınlık );  kuyu dibinin ve tavanın
+        #  döşemesi ortak kalınlıktadır ( eskiden ön duvarınkini kullanıyordu ).
+        "kuyu": {"genislik": G, "derinlik": KD, "doseme": duvar,
+                 **{f"duvar_{y}": (sayi(f"kuyu_duvar_{y}", bos=True) or duvar) if duvar else None
+                    for y in ("on", "arka", "sol", "sag")}},
         "kabin": {"genislik": kb_g, "derinlik": kb_d, "kaciklik_y": kacik, "on_pay": on_pay},
         "kapi": {"genislik": kapi_g, "sol_pay": kx + kapi_kacik - kapi_g / 2.0,
                  "yukseklik": sayi("kapi_yuksekligi"), "tip": A.get("kat_kapisi_tipi"),

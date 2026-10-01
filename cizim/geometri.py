@@ -643,7 +643,11 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
                            f"DIŞ ÖLÇÜ {D + don + dar:g}")],
     ]
     sag_siralar += [
-        lambda kot: [_olcu("dusey", (0, 0), (0, D), kot, f"KUYU DERİNLİĞİ {D:g}")],
+        #  Ön ve arka duvar da ölçülür ( üstteki sol · sağ duvar gibi ):  ölçüye
+        #  tıklanınca yalnız o duvarın kalınlığı değişir ( 2 Eki ).
+        lambda kot: [_olcu("dusey", (0, -don), (0, 0), kot, f"DUVAR {don:g}"),
+                     _olcu("dusey", (0, 0), (0, D), kot, f"KUYU DERİNLİĞİ {D:g}"),
+                     _olcu("dusey", (0, D), (0, D + dar), kot, f"DUVAR {dar:g}")],
         lambda kot: [_olcu("dusey", (0, ic_on), (0, ic_on + kb["derinlik"]), kot,
                            f"KABİN {kb['derinlik']:g}")],
         lambda kot: [_olcu("dusey", (0, 0), (0, ic_on), kot, f"KAPI ARASI {ic_on:g}"),

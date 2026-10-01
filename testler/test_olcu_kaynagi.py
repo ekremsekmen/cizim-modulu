@@ -126,11 +126,21 @@ class Kaynak(unittest.TestCase):
 
     def test_olcunun_kendisi_olan_girdi_once(self):
         for soz, anahtar in (("KUYU GENİŞLİĞİ", "kuyu_genisligi"), ("KUYU DERİNLİĞİ", "kuyu_derinligi"),
-                             ("DUVAR", "kuyu_duvar_kalinligi"), ("KABİN İÇİ", "kabin_genisligi"),
+                             ("DUVAR", "kuyu_duvar_sol"), ("KABİN İÇİ", "kabin_genisligi"),
                              ("DBG ", "kabin_ray_arasi"), ("KAPI 900", "kapi_genisligi")):
             k = self._kaynaklar(soz)
             self.assertEqual(k[0]["anahtar"], anahtar, (soz, k[:2]))
             self.assertTrue(k[0]["dogrudan"] and k[0]["degistirilir"], soz)
+
+    def test_duvarin_kendi_kutusu_once(self):
+        #  2 Eki:  planın dört "DUVAR" ölçüsü kendi duvarının kutusundan gelir;
+        #  ortak "kuyu duvarı kalınlığı" ikinci ( değiştirseydi dört duvar birden
+        #  değişirdi ).  Ön ve arka duvar da ölçülür.
+        for n, anahtar in enumerate(("kuyu_duvar_sol", "kuyu_duvar_sag", "kuyu_duvar_on",
+                                     "kuyu_duvar_arka")):
+            k = self._kaynaklar("DUVAR", n)
+            self.assertEqual([x["anahtar"] for x in k[:2]], [anahtar, "kuyu_duvar_kalinligi"])
+            self.assertTrue(k[0]["dogrudan"] and k[0]["degistirilir"])
 
     def test_kuralla_dolan_alan_kuralin_girdisinden_once(self):
         #  DBGW boşsa Gy + 60:  ölçü "ağırlık genişliğinden geliyor" görünmemeli —

@@ -285,7 +285,8 @@ def dogrula(g):
 ORNEK = {
     "proje": {"ad": "ÖRNEK PROJE", "asansor": "ASANSÖR 1", "olcek": 20},
     "kuyu": {"genislik": 2100, "derinlik": 1850,
-             "duvar_on": 150, "duvar_arka": 150, "duvar_sol": 150, "duvar_sag": 150},
+             "duvar_on": 150, "duvar_arka": 150, "duvar_sol": 150, "duvar_sag": 150,
+             "doseme": 150},
     #  KAPI BÖLGESİ ( referans proje kuyu planı vektörleri, iç yüzden ):  kat kapısı
     #  ünitesi duvarın İÇ YÜZÜNE monte — kasa 0 – 60, eşik 60 – 150, kapı hattı
     #  150;  eşik aralığı 30;  kabin eşiği 180 – 270 → kabin ön yüzü 270.

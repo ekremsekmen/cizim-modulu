@@ -193,5 +193,22 @@ class KesitYerlesimRegresyon(unittest.TestCase):
         self.assertEqual(o[i + 1:i + 4], ['100', '150', '195'])
 
 
+    def test_duvarlar_ayri_ayri(self):
+        #  2 Eki:  dört duvar ayrı kalınlıkta ( LiftDesigner 4815-6:  arka 250,
+        #  öbürleri 200 → dış ölçü 2.500 × 2.450 );  boş bırakılan ortak
+        #  kalınlığı alır, kuyu dibinin ve tavanın döşemesi ortak kalınlıktadır.
+        o = [x.get('metin') for x in E.plan(self.projeler['4815-6']) if x['tip'] == 'olcu']
+        self.assertIn('DIŞ ÖLÇÜ 2500', o)
+        self.assertIn('DIŞ ÖLÇÜ 2450', o)
+        g = _girdi({'kuyu_duvar_kalinligi': 180, 'kuyu_duvar_sag': 250})
+        self.assertEqual({k: g['kuyu'][k] for k in ('duvar_on', 'duvar_arka', 'duvar_sol', 'duvar_sag', 'doseme')},
+                         {'duvar_on': 180, 'duvar_arka': 180, 'duvar_sol': 180, 'duvar_sag': 250, 'doseme': 180})
+        g = _girdi({'kuyu_duvar_on': 300})
+        Y = K.yerlesim(g)
+        taban = [p for p in K.yan_kesit(g) if p['tip'] == 'dikdortgen' and p['katman'] == 'KUYU-DUVAR'
+                 and p['x'] == 0 and abs(p['y'] + p['d'] - Y['taban']) < 1e-6]
+        self.assertEqual([p['d'] for p in taban], [150])
+
+
 if __name__ == '__main__':
     unittest.main()

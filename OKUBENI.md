@@ -383,7 +383,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( girdiler oynatılarak ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/` | 366 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog, `test_gercek_projeler.py` — ofisin altı gerçek projesi ( veri `gercek_projeler.py` ), `test_gorunusler.py` — kasnak düzenlemesi ve giriş görünüşü, `test_kesit_yerlesim_regresyon.py` — şase üst kirişi, ağırlık patenleri, dolgu, ağırlık genişliği ) |
+| `testler/` | 369 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog, `test_gercek_projeler.py` — ofisin altı gerçek projesi ( veri `gercek_projeler.py` ), `test_gorunusler.py` — kasnak düzenlemesi ve giriş görünüşü, `test_kesit_yerlesim_regresyon.py` — şase üst kirişi, ağırlık patenleri, dolgu, ağırlık genişliği, kabin – ağırlık ölçüleri, duvarlar ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 
@@ -494,6 +494,14 @@ arka duvar ( 105 · 150 · 105 ).  Hesaba girmez ( m.5.2.5.5.1 h'nin 50'si
 girdi.dogrula'da denetlenir );  ölçüye tıklanıp değiştirilebilir ( kaynakları:
 kuyu derinliği, ray – kapı arası, ağırlık ekseni – duvar … ).  Kabinle ağırlık o
 yönde ayrık değilse zincir bölünmez.
+**Duvarlar ayrı ayrı** ( kullanıcı isteği 2 Eki ):  formda ortak "Kuyu duvarı
+kalınlığı" ve "Gelişmiş"te ön · arka · sol · sağ duvar ( boşsa ortak kalınlık —
+LiftDesigner projelerinde farklı:  800 KG ön · arka 200, yanlar 250;  4815-6 arka
+250 ).  Planda dört duvar da ölçülür ( ön ve arka eskiden yalnız dış ölçünün
+içindeydi );  "DUVAR" ölçüsüne tıklanınca yalnız o duvarın kutusu değişir
+( ölçü kaynağı:  eşitlikte kuralla dolan alanın kendisi önce — `api/cizim._kaynaklar` ).
+Kuyu dibinin ve makine dairesizde kuyu tavanının döşemesi ortak kalınlıktadır
+( `kuyu.doseme`;  eskiden ön duvarınkiydi ).
 
 **Kabin üstü planı** ( kabin tavanı hizasından yatay kesit ):  duvarlar, raylar,
 konsollar ve karşı ağırlık kuyu planından aynen alınır ( ikinci kez

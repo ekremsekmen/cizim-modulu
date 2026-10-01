@@ -212,7 +212,24 @@ _GRUPLAR = (
                  ' farklı hacimler verir ( m.5.2.5.8 ).')),
         A('kuyu_duvar_kalinligi', 'Kuyu duvarı kalınlığı', 'mm', 'sayi', None, 150,
           kaynak=GIRDI, sozlesme=CIZ, gelismis=True,
-          bilgi='Kuyunun dört duvarı bu kalınlıkta çizilir ( referans proje:  150 ).'),
+          bilgi=('Kuyunun duvarları ( kalınlığı ayrıca girilmeyenler ), kuyu dibinin ve makine '
+                 'dairesizde kuyu tavanının döşemesi bu kalınlıkta çizilir ( referans proje:  150 ).')),
+        #  DUVARLAR AYRI AYRI ( kullanıcı isteği 2 Eki ):  LiftDesigner projelerinde
+        #  kalınlıklar farklı ( 800 KG:  ön · arka 200, yanlar 250;  4815-6:  arka
+        #  250, öbürleri 200 ).  Boş bırakılan duvar ortak kalınlığı alır;  planda
+        #  duvarın ölçüsüne tıklanınca yalnız o duvar değişir.
+        A('kuyu_duvar_on', 'Ön duvar kalınlığı  ( kapının duvarı — boşsa kuyu duvarı kalınlığı )', 'mm',
+          'sayi', None, None, kaynak=KURAL, sozlesme=CIZ, gelismis=True,
+          bilgi='Kat kapılarının olduğu duvar.  Boşsa "Kuyu duvarı kalınlığı".'),
+        A('kuyu_duvar_arka', 'Arka duvar kalınlığı  ( boşsa kuyu duvarı kalınlığı )', 'mm',
+          'sayi', None, None, kaynak=KURAL, sozlesme=CIZ, gelismis=True,
+          bilgi='Kapının karşısındaki duvar.  Boşsa "Kuyu duvarı kalınlığı".'),
+        A('kuyu_duvar_sol', 'Sol duvar kalınlığı  ( boşsa kuyu duvarı kalınlığı )', 'mm',
+          'sayi', None, None, kaynak=KURAL, sozlesme=CIZ, gelismis=True,
+          bilgi='Durakta kapıya bakarken soldaki duvar.  Boşsa "Kuyu duvarı kalınlığı".'),
+        A('kuyu_duvar_sag', 'Sağ duvar kalınlığı  ( boşsa kuyu duvarı kalınlığı )', 'mm',
+          'sayi', None, None, kaynak=KURAL, sozlesme=CIZ, gelismis=True,
+          bilgi='Durakta kapıya bakarken sağdaki duvar.  Boşsa "Kuyu duvarı kalınlığı".'),
         A('kuyu_boyu', 'Kuyu boyu', 'mm', 'hesap', None, None,
           kaynak=HESAP, sozlesme=MUK, formda=False,
           bilgi=''),

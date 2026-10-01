@@ -349,8 +349,12 @@ def _kaynaklar(r, i):
         b["dogrudan"] = yer == "girdi" and k["tur"] != "tam" and _dogrudan(k, aday["deger"], u)
         liste.append(b)
     sira = {"asansor": 0, "proje": 0, "ofis": 1}
+    #  Eşitlikte kuralla dolan alanın KENDİSİ önce:  "DUVAR 200"ün kaynağı hem
+    #  o duvarın kutusu hem ortak "kuyu duvarı kalınlığı" ( ikisi de değeri eşit,
+    #  eğimi 1 );  önce duvarın kendisi gelir — ortak kutu değişseydi dört duvar
+    #  birden değişirdi ( 2 Eki ).
     liste.sort(key=lambda b: (not b["dogrudan"], not b["degistirilir"], sira[b["yer"]],
-                              -abs(b["egim"] or 0)))
+                              -abs(b["egim"] or 0), b["anahtar"] not in CK.KURALLI))
     return liste
 
 
