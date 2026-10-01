@@ -59,7 +59,7 @@ async function mukavemetKur(){
   //  grupları dolaşıp okur ve kapalı gruptaki alan da okunur.  Görünüm
   //  değişikliği hesabın hiçbir noktasına dokunmaz.
   h += `<div class="m-ara-satir">
-          <input id="m_ara" class="m-ara" type="search" placeholder="alan ara…"
+          <input id="m_ara" class="m-ara" type="search" placeholder="alan ara…" data-formdisi
                  oninput="mAramaUygula()" autocomplete="off">
         </div>`;
   //  PROJE GENELİ ALANLAR AKORDEONDA, kendi grubunun ( Elektrik ve
@@ -1724,6 +1724,7 @@ async function mOlcuAc(g, olay){
   g.classList.add('secili');
   const kutu = document.createElement('div');
   kutu.className = 'olcu-kutu';
+  kutu.dataset.formdisi = '';                  // yazılanlar formu tetiklemez ( ortak.js )
   kutu.setAttribute('role', 'dialog');
   kutu.setAttribute('aria-label', 'Ölçü ' + metin);
   kutu.innerHTML = `<div class="olcu-bas"><b>${kacis(metin)}</b>

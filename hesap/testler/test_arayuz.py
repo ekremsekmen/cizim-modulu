@@ -2655,6 +2655,30 @@ def calistir():
         r.esit("vazgeçince kutu kapanıyor, değer aynı",
                (pg.evaluate("document.querySelectorAll('.olcu-kutu').length"),
                 pg.input_value("#m_kuyu_genisligi")), (0, str(_kg)))
+        #  İNSAN GİBİ YAZMA:  rakamlar arasında 200 ms.  Kutudaki her rakam
+        #  formun genel dinleyicisine ( ortak.js ) kaçıp 220 ms sonra hesabı ve
+        #  çizimi yeniliyordu;  yenilenen çizim kutuyu kapatıyordu ( kullanıcı:
+        #  "2 yazıyorum kapanıyor" ) — fill + Enter bunu göremiyordu.
+        pg.locator(_kp).filter(has_text="KUYU GENİŞLİĞİ").first.locator("text").click()
+        pg.wait_for_selector(".olcu-kutu #m_olcu_hedef", timeout=20000)
+        _istek = pg.evaluate("[ISTEK.mukavemet, ISTEK.cizim]")
+        pg.fill("#m_olcu_hedef", "")
+        pg.type("#m_olcu_hedef", str(_kg - 50), delay=200)
+        pg.wait_for_timeout(1200)
+        r.kontrol("ölçü kutusuna yavaş yazınca kutu açık, yazılan duruyor",
+                  pg.evaluate("document.querySelectorAll('.olcu-kutu #m_olcu_hedef').length") == 1
+                  and pg.input_value("#m_olcu_hedef") == str(_kg - 50))
+        r.esit("ölçü kutusuna yazmak hesabı ve çizimi tetiklemiyor",
+               pg.evaluate("[ISTEK.mukavemet, ISTEK.cizim]"), _istek)
+        pg.keyboard.press("Escape")
+        pg.wait_for_timeout(200)
+        #  Alan arama da formun alanı değil:  her harfte hesap yapılıyordu
+        _istek = pg.evaluate("ISTEK.mukavemet")
+        pg.type("#m_ara", "kuyu", delay=120)
+        pg.wait_for_timeout(600)
+        r.esit("alan aramaya yazmak hesabı tetiklemiyor", pg.evaluate("ISTEK.mukavemet"), _istek)
+        pg.fill("#m_ara", "")
+        pg.evaluate("mAramaUygula()")
         #  Kurulabilen değer doğrudan uygulanır
         pg.locator(_kp).filter(has_text="KUYU GENİŞLİĞİ").first.locator("text").click()
         pg.wait_for_selector(".olcu-kutu #m_olcu_hedef", timeout=20000)

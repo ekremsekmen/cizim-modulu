@@ -148,6 +148,11 @@ async function kur(){
       bir değişiklik uygulama hesabını tetiklemeli — yoksa kullanıcı armatür
       ışık akısını değiştirir, ekranda hiçbir şey olmazdı. */
   const _girdiOlayi = e => {
+    //  FORMUN ALANI OLMAYAN girdiler ( [data-formdisi]:  çizimdeki ölçü
+    //  kutusu, alan arama ) hesabı tetiklemez.  Ölçü kutusuna yazılan her
+    //  rakam 220 ms sonra hesabı ve çizimi yeniliyor, yenilenen çizim kutuyu
+    //  kapatıyordu ( "2 yazıyorum kapanıyor" );  arama her harfte hesaplıyordu.
+    if(e.target.closest('[data-formdisi]')) return;
     if(e.target.closest('#s-proje')){ yaz(); return; }
     if(MOD === 'uygulama' || e.target.closest('#s-mukavemet')){
       mukavemetPlanla(e.target); return;
