@@ -224,6 +224,26 @@ geçer;  çizimler aktif asansörün, girdi değiştikçe tazelenir
 ( `hesap/static/uygulama.js`, uç `POST /api/uygulama/cizimler` —
 `hesap/api/cizim.py` ).
 
+**Tuval** ( kullanıcı isteği:  "AutoCAD gibi yan yana, istediğimde
+yakınlaştırayım" ):  çizimler alt alta değil, tek düzlemde yan yana durur —
+LiftDesigner paftalarının model alanı gibi.  Her çizim kendi ölçeğiyle
+( kesit 1/50, plan 1/20 ) pafta milimetresine küçültülür, yazıları hepsinde
+aynı boydadır;  paftanın sırasıyla ( önce düşey kesitler, sonra planlar )
+sütun sütun dizilir, sütunun boyu tuvalin en–boy oranına göre seçilir ( 25
+aday — çizimleri ekranda en büyük gösteren ).  Açılışta hepsi sığar, tuval
+pencerenin altına kadar uzanır.  Tekerlek imlecin altındaki noktayı yerinde
+tutarak yakınlaştırır ( dokunmatik yüzeyde iki parmak sıkıştırma da ),
+sürükleme ( sol ya da orta tuş ) kaydırır — sürüklemeden sonraki tık ölçü
+açmaz;  bir çizime çift tıklamak ona yaklaşır, boş yere çift tıklamak ya da
+"Sığdır" ( klavyede 0 ) hepsini sığdırır;  + / − düğmeleri ve tuşları.
+"Tam ekran" tarayıcının tam ekranı, izin verilmezse tuval pencereyi kaplar
+( Esc çıkar ).  Yakınlaştırma CSS ölçeği değildir:  her çizimin ekrandaki eni
+ve boyu yeniden hesaplanır, tarayıcı SVG'yi o boyda yeniden çizer — her
+yakınlıkta çizgiler ve yazılar keskindir ( kütüphane yok;  bir projenin bütün
+çizimleri ~2.000 eleman, SVG'ye hafif ).  Tuval kalıcıdır:  ölçüden değişiklik
+çizimleri yenileyince görünüm ve tam ekran yerinde kalır, ölçü kutusu ölçünün
+yanında durur ( kaydırınca izler ).
+
 **Ölçüye tıklama.**  Çizimlerdeki her ölçü tıklanır ( klavyeyle de ):  küçük
 bir kutu ölçünün **hangi girdiden geldiğini** söyler ve yeni değer yazılabilir.
 Çizim elle değişmez — yeni değer ölçünün geldiği **girdi kutusuna** yazılır,
@@ -294,7 +314,7 @@ değer;  3.750'de varsayılan asansörün üst pateni kuyu tavanına giriyordu )
 ( çizim modülünün yolu ).  Testler yeni modele göre güncellendi, TEST 7 ve
 TEST 10'un dondurulmuş referansları farklar incelenerek yeniden üretildi
 ( fark:  bölüm 11, xs'in ray hesabı, D2'nin halat ve tahrik hesabı;  α'nın çizimden geldiği senaryolarda tahrik sınırları — düşey inişli 180°, makine daireli 1:1'de 134,3° — ve α uyarısının metni ).  Motor doğrudan çağrılınca da ( testler ) türetme uygulama alanlarının varsayılanlarıyla yapılır — program ile motor aynı α'yı, aynı D2'yi bulur.
-Arayüz testleri ( TEST 5 ) birleşik formun sözleşmesine göre:  tasarım sırasıyla 11 grup, hesaptan kaldırılan KD · ağırlık ray arası · ray–duvar kendi tasarım grubunda bir kez ( aynı anlam, hesaba girmez ), D2 formda yok, son kat 4.200;  çizimlerde ölçüye tıklama ( kutu, önce sorma, uygulama, Formda göster ).  Testlerin varsayılan adresi 8780.
+Arayüz testleri ( TEST 5 ) birleşik formun sözleşmesine göre:  tasarım sırasıyla 11 grup, hesaptan kaldırılan KD · ağırlık ray arası · ray–duvar kendi tasarım grubunda bir kez ( aynı anlam, hesaba girmez ), D2 formda yok, son kat 4.200;  çizimlerde tuval ( açılışta hepsi sığar, tekerlek imlecin altında yakınlaştırır, sürükleme kaydırır ve ölçü açmaz, Sığdır, değişiklikten sonra görünüm yerinde ) ve ölçüye tıklama ( kutu, önce sorma, uygulama, Formda göster ).  Testlerin varsayılan adresi 8780.
 
 ## Kurulum ve çalıştırma
 

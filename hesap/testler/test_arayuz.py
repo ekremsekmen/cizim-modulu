@@ -2589,11 +2589,52 @@ def calistir():
         r.esit("çizimlerin kimlikleri birbiriyle çakışmıyor",
                pg.evaluate("(() => { const i = [...document.querySelectorAll('#m_cizimler [id]')]"
                            ".map(e => e.id); return i.length - new Set(i).size; })()"), 0)
+        #  TUVAL:  çizimler tek düzlemde yan yana ( CAD'in model alanı gibi ),
+        #  açılışta hepsi sığar;  tekerlek imlecin altında yakınlaştırır,
+        #  sürükleme kaydırır ( ölçü açmaz ), "Sığdır" hepsini geri getirir.
+        pg.evaluate("window.scrollTo(0, 0)")
+        pg.wait_for_timeout(300)
+        _sigiyor = """() => { const t = document.getElementById('m_tuval').getBoundingClientRect();
+            return [...document.querySelectorAll('#m_tuval figure.cizim')].every(f => {
+                const b = f.getBoundingClientRect();
+                return b.left >= t.left - 1 && b.right <= t.right + 1 && b.top >= t.top - 1
+                       && b.bottom <= t.bottom + 1; }); }"""
+        r.kontrol("çizimler tuvalde yan yana, açılışta hepsi sığıyor", pg.evaluate(_sigiyor))
+        r.kontrol("tuval pencerenin altını aşmıyor",
+                  pg.evaluate("document.getElementById('m_tuval').getBoundingClientRect().bottom")
+                  <= pg.evaluate("innerHeight") + 1)
+        _kut = pg.evaluate("""() => { const b = document.querySelector(
+                '#m_tuval figure[data-cizim="kuyu_plani"]').getBoundingClientRect();
+            return [Math.round(b.left + b.width / 2), Math.round(b.top + b.height / 2)]; }""")
+        _dunya = ("(x, y) => { const t = document.getElementById('m_tuval').getBoundingClientRect(),"
+                  " v = M_TUVAL.gorunum; return [v.x + (x - t.left) / v.s, v.y + (y - t.top) / v.s]; }")
+        _once = pg.evaluate(f"({_dunya})({_kut[0]}, {_kut[1]})")
+        _s0 = pg.evaluate("M_TUVAL.gorunum.s")
+        pg.mouse.move(*_kut)
+        pg.mouse.wheel(0, -400)
+        pg.wait_for_timeout(300)
+        _sonra = pg.evaluate(f"({_dunya})({_kut[0]}, {_kut[1]})")
+        r.kontrol("tekerlek imlecin altındaki noktayı yerinde tutarak yakınlaştırıyor",
+                  pg.evaluate("M_TUVAL.gorunum.s") > _s0 * 1.5
+                  and abs(_once[0] - _sonra[0]) < 0.5 and abs(_once[1] - _sonra[1]) < 0.5,
+                  f"→ {_s0} → {pg.evaluate('M_TUVAL.gorunum.s')}, {_once} / {_sonra}")
+        _x0 = pg.evaluate("M_TUVAL.gorunum.x")
+        pg.mouse.move(*_kut)
+        pg.mouse.down()
+        pg.mouse.move(_kut[0] - 120, _kut[1] - 60, steps=6)
+        pg.mouse.up()
+        pg.wait_for_timeout(300)
+        r.kontrol("sürükleme kaydırıyor, ölçü kutusu açmıyor",
+                  abs(pg.evaluate("M_TUVAL.gorunum.x") - _x0) > 10
+                  and pg.evaluate("document.querySelectorAll('.olcu-kutu').length") == 0)
+        pg.click("#m_tuval .tuval-arac >> text=Sığdır")
+        pg.wait_for_timeout(300)
+        r.kontrol("'Sığdır' hepsini yeniden sığdırıyor", pg.evaluate(_sigiyor))
         _kp = '#m_cizimler figure[data-cizim="kuyu_plani"] .olcu'
         _kg = pg.evaluate(f"""() => {{
             const g = [...document.querySelectorAll('{_kp}')].find(
                 x => /^KUYU GENİŞLİĞİ/.test(x.querySelector('text').textContent));
-            g.scrollIntoView({{block: 'center'}});
+            mTuvalGoster(g);
             return +g.querySelector('text').textContent.replace(/\\D+/g, '');
         }}""")
         pg.wait_for_timeout(300)
@@ -2617,6 +2658,7 @@ def calistir():
         #  Kurulabilen değer doğrudan uygulanır
         pg.locator(_kp).filter(has_text="KUYU GENİŞLİĞİ").first.locator("text").click()
         pg.wait_for_selector(".olcu-kutu #m_olcu_hedef", timeout=20000)
+        _gorunum = pg.evaluate("JSON.stringify(M_TUVAL.gorunum)")
         pg.fill("#m_olcu_hedef", str(_kg - 50))
         pg.press("#m_olcu_hedef", "Enter")
         pg.wait_for_function(
@@ -2624,6 +2666,8 @@ def calistir():
             f"g.querySelector('text').textContent === 'KUYU GENİŞLİĞİ {_kg - 50}')", timeout=30000)
         r.esit("ölçüden yazılan değer girdi kutusunda", pg.input_value("#m_kuyu_genisligi"),
                str(_kg - 50))
+        r.esit("çizim yenilenince görünüm yerinde ( zıplamıyor )",
+               pg.evaluate("JSON.stringify(M_TUVAL.gorunum)"), _gorunum)
         r.kontrol("değişiklik bildiriliyor",
                   "→" in (pg.evaluate("(document.getElementById('m_olcu_bildirim') || {}).textContent")
                           or ""))
@@ -2631,7 +2675,7 @@ def calistir():
         pg.evaluate("""() => { const g = [...document.querySelectorAll(
                 '#m_cizimler figure[data-cizim="kabin_ustu"] .olcu')].find(
                 x => x.querySelector('text') && /^\\d+$/.test(x.querySelector('text').textContent));
-            g.scrollIntoView({block: 'center'}); }""")
+            mTuvalGoster(g); }""")
         _kural = pg.evaluate("""async () => {
             for (const g of document.querySelectorAll('#m_cizimler figure[data-cizim="kabin_ustu"] .olcu')) {
                 g.dispatchEvent(new MouseEvent('click', {bubbles: true}));
