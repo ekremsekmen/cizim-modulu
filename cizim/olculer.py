@@ -42,6 +42,7 @@ import math
 from cizim import arka_aski as CAA
 from cizim import donanim as CDN
 from cizim import dusey as CDY
+from cizim import girdi as CG
 from cizim import kuyu_dibi as CKD
 from cizim import makine_dairesi as CMD
 from cizim import sabitler as CS
@@ -56,7 +57,8 @@ def plan_olculeri(g, S):
     ( cizim/girdi:  kabin merkezi = ön yüz + derinlik / 2 )."""
     kb, ray_y = g["kabin"], g["kabin_ray"]["kapi_arasi"]
     return {"kabin_merkezi_x": round(kb["on_pay"] + kb["derinlik"] / 2.0 - ray_y, 3),
-            "esik_x": round(kb["on_pay"] - S["kabin_esik_derinlik"] / 2.0 - ray_y, 3)}
+            "esik_x": round(kb["on_pay"] - CG.esik_derinligi(S, g["kapi"].get("tip"), kabin=True) / 2.0
+                            - ray_y, 3)}
 
 
 def kasnak_sayilari(g, saptirma):

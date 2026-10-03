@@ -102,6 +102,8 @@ def main(argv):
             g["kabin"]["kaciklik_y"] = -g["kabin"]["kaciklik_y"]
             g["kapi"]["sol_pay"] = (g["kuyu"]["genislik"]
                                       - g["kapi"]["sol_pay"] - g["kapi"]["genislik"])
+            #  Kapı da aynadır:  sağa açılır ( kanat cebi sol duvara sığmaz )
+            g["kapi"]["tip"] = "Teleskopik Sağ"
         if a.agirlik == "Arka":
             #  Arkadaki ağırlık kabinin arkasına sığmalı ( m.5.2.5.5.1 h, 50 mm ):
             #  örnek kuyu 2.100 derinlikte, kabin ortada, kapı ona göre

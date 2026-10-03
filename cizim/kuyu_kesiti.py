@@ -460,11 +460,12 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     bos = (kp["sol_pay"], -1, kp["sol_pay"] + kp["genislik"], 0)
     kasa_x0 = min(kk[0] for kk in P["kasa"])
     kasa_x1 = max(kk[2] for kk in P["kasa"])
-    ayrim = sorted(kk[2] for kk in P["kanat"])[0] if len(P["kanat"]) > 1 else None
+    #  Kanatların ayrımları ( kapı tipinin kanat sayısında — 2 · 3 · 4 )
+    ayrimlar = sorted({round(kk[2], 6) for kk in P["kanat"]})[:-1]
     for i, zk in enumerate(kotlar):
         B.kutu(e, "KAPI", (kasa_x0, -1, kasa_x1, 0), zk, zk + kapi_h + S["kasa_ust"], "kapi_kasasi")
         B.kutu(e, "KAPI", bos, zk, zk + kapi_h, "kat_kapisi")
-        if ayrim is not None:
+        for ayrim in ayrimlar:
             u = B.u(ayrim, 0)
             e.append(CGE._cizgi("KAPI", u, zk, u, zk + kapi_h))
         e.append(CGE._ad(CGE._yazi(B.u((bos[0] + bos[2]) / 2.0, 0), zk + kapi_h * 0.6, f"{i + 1}",

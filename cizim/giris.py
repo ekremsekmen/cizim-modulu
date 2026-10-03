@@ -15,8 +15,8 @@ cizim/sabitler.py KAPI VE KATLAR ):  kaba boşluk kapıdan 2 × 140 geniş, 240
 yüksek;  kasa dikmeleri 120, üstü kapının 220 üstünde;  eşik plakası 50;
 gösterge 500 × 124, ortası kapının 100 üstünde;  buton kutusu 90 × 240, ortası
 döşemeden 1.200 ve kapının kenarından 240, duvardaki yuvası 160 × 290.
-Kanatlar otomatik kapıda iki ( ortada birleşir — LiftDesigner ), elle açılan
-kapıda tek.
+Kanatlar kapı tipinin sayısında ( 2 kanatlıda ortada birleşir — LiftDesigner;
+3 kanatlı teleskopik, 4 kanatlı merkezi );  elle açılan kapıda tek.
 
 ÇİZİM KABULÜ:  kat butonu kapının açıldığı yanın KARŞISINDADIR ( kanatlar
 "Sağ"a açılıyorsa solda, öbürlerinde sağda — LiftDesigner'ın örneklerinde
@@ -45,6 +45,7 @@ def yerlesim(g, cizim_sabitleri=None):
     xc = (x0 + x1) / 2.0
     bx0, bx1, bh = CG.kaba_bosluk(g, S)
     tip = str(kp.get("tip") or "")
+    n = CG.kapi_tipi(tip)["kanat"]
     buton_sol = tip.endswith("Sağ")
     bx = x0 - S["buton_kapi_payi"] if buton_sol else x1 + S["buton_kapi_payi"]
     bz = S["buton_yukseklik"]
@@ -53,7 +54,8 @@ def yerlesim(g, cizim_sabitleri=None):
         "bosluk": (bx0, 0.0, bx1, bh),
         "kasa": (x0 - S["kasa_yan"], 0.0, x1 + S["kasa_yan"], HH + S["kasa_ust"]),
         "esik": (bx0, -S["esik_kalinlik"], bx1, 0.0),
-        "kanatlar": ([(x0, x1)] if tip.startswith("Manuel") else [(x0, xc), (xc, x1)]),
+        #  Kanatlar kapı tipinin sayısında ( girdi.kapi_tipi:  2 · 3 · 4;  elle açılanda tek )
+        "kanatlar": [(x0 + i * DW / n, x0 + (i + 1) * DW / n) for i in range(n)],
         "gosterge": (xc - S["gosterge_en"] / 2.0, HH + S["gosterge_yukseklik"] - S["gosterge_boy"] / 2.0,
                      xc + S["gosterge_en"] / 2.0, HH + S["gosterge_yukseklik"] + S["gosterge_boy"] / 2.0),
         "buton_sol": buton_sol, "bx": bx, "bz": bz,

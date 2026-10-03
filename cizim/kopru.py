@@ -305,8 +305,10 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
     #  ── KAPI BÖLGESİ ─────────────────────────────────────────────────
     #  Kapı hattı ( kat eşiğinin kabine bakan kenarı ):  kuyu içine montajda
     #  kasa + eşik, duvar boşluğunda yalnız eşik kuyuya taşar.
-    hat = CG.kapi_bolgesi({"kapi": {"montaj": montaj}, "kabin": {"on_pay": 0}}, S)["hat"]
-    on_pay = hat + esik_arasi + S["kabin_esik_derinlik"]
+    #  Eşiklerin derinliği kapı tipinden ( 3 kanatlı teleskopikte 135 — girdi.esik_derinligi ).
+    kapi_tip = A.get("kat_kapisi_tipi")
+    hat = CG.kapi_bolgesi({"kapi": {"montaj": montaj, "tip": kapi_tip}, "kabin": {"on_pay": 0}}, S)["hat"]
+    on_pay = hat + esik_arasi + CG.esik_derinligi(S, kapi_tip, kabin=True)
     kapi_arasi = hat + RK
     kx = G / 2.0 + kacik
 
@@ -549,9 +551,11 @@ def _aski_x(A):
             return None
         RK, kb_d, esik = v
         S = CS.sabitler(cizim_sabitleri(A))
-        hat = CG.kapi_bolgesi({"kapi": {"montaj": _varsayilan(A, "kapi_montaji")},
+        tip = A.get("kat_kapisi_tipi")
+        hat = CG.kapi_bolgesi({"kapi": {"montaj": _varsayilan(A, "kapi_montaji"), "tip": tip},
                                "kabin": {"on_pay": 0}}, S)["hat"]
-        return hat + esik + S["kabin_esik_derinlik"] + (kb_d + S["kabin_pano_arka"]) / 2.0 - (hat + RK)
+        return (hat + esik + CG.esik_derinligi(S, tip, kabin=True)
+                + (kb_d + S["kabin_pano_arka"]) / 2.0 - (hat + RK))
     if (oran != 2 or A.get("agirlik_yeri") not in ("Sağ", "Sol")
             or _varsayilan(A, "kapi_montaji") not in CG.KAPI_MONTAJLARI):
         return None
@@ -562,10 +566,11 @@ def _aski_x(A):
         return None
     RK, kb_d, esik, ag_kacik = v
     S = CS.sabitler(cizim_sabitleri(A))
-    hat = CG.kapi_bolgesi({"kapi": {"montaj": _varsayilan(A, "kapi_montaji")},
+    tip = A.get("kat_kapisi_tipi")
+    hat = CG.kapi_bolgesi({"kapi": {"montaj": _varsayilan(A, "kapi_montaji"), "tip": tip},
                            "kabin": {"on_pay": 0}}, S)["hat"]
     ray_y = hat + RK
-    kabin = hat + esik + S["kabin_esik_derinlik"] + (kb_d + S["kabin_pano_arka"]) / 2.0
+    kabin = hat + esik + CG.esik_derinligi(S, tip, kabin=True) + (kb_d + S["kabin_pano_arka"]) / 2.0
     ag_y = ray_y + ag_kacik
     return min((ag_y - Da / 2.0, ag_y + Da / 2.0), key=lambda t: abs(t - kabin)) - ray_y
 

@@ -170,11 +170,14 @@ class Kaynak(unittest.TestCase):
         self.assertFalse(k[0]["degistirilir"])            # seçenekleri sayı değil
 
     def test_urun_olcusu_adiyla(self):
-        #  Ürün ölçüleri ofis standardındadır ( Sabitler sekmesi — karar 12 )
+        #  Ürün ölçüleri ofis standardındadır ( Sabitler sekmesi — karar 12 ).
+        #  Eşiğin derinliği kapı tipine de bağlı ( 3 kanatlı teleskopikte 135 —
+        #  girdi.esik_derinligi, 2 Eki ):  kapı tipi seçim olarak önce gelir.
         k = self._kaynaklar("KABİN EŞİĞİ")
-        self.assertEqual(k[0]["yer"], "ofis")
-        self.assertTrue(k[0]["etiket"].startswith(CS.ETIKET["kabin_esik_derinlik"]))
-        self.assertFalse(k[0]["degistirilir"])
+        ofis = [x for x in k if x["yer"] == "ofis"]
+        self.assertTrue(ofis[0]["etiket"].startswith(CS.ETIKET["kabin_esik_derinlik"]))
+        self.assertFalse(ofis[0]["degistirilir"])
+        self.assertEqual(k[0]["anahtar"], "kat_kapisi_tipi")
 
     def test_kuyu_dibi_dogrudan_kaide_zincirden(self):
         #  Kabin tamponu kaidesinin formda kutusu yok ( tasarım şeması:  kaynağı
@@ -497,14 +500,17 @@ class Degistirilemeyen(unittest.TestCase):
     ( ölçü bir eşikte sıçrıyor ) ya da 58.430 yazılıyordu."""
 
     def test_sicrayan_olcu(self):
-        #  1022 kabin üstü:  kabin genişliği 1 mm değişince korkuluk düzeni
-        #  değişir, ölçü 325 sıçrar ( eğim −325, doğrusal değil )
-        v = _gercek("1022")
+        #  4815-6 kabin üstü:  sığınma alanı şasenin üst kirişinin arkasındadır
+        #  ( 4 Eki ) ve 25 mm'lik adımla konur — ray – kapı arası oynayınca
+        #  kirişle birlikte kayar, arka kenara ölçü doğrusal değişmez.  ( Eskiden
+        #  1022'de kabin genişliğiyle sıçrayan "125" ölçülüyordu;  alan kirişin
+        #  arkasına geçince o ölçü kalmadı. )
+        v = _gercek("4815-6")
         r = UC._cozumleme(v, "kabin_ustu")
-        i = _olcu(r, "125")
-        k = next(x for x in r["kaynak"][i] if x["kimlik"] == ("girdi", "kabin_genisligi"))
+        i = _olcu(r, "920")
+        k = next(x for x in r["kaynak"][i] if x["kimlik"] == ("girdi", "ray_kapi_arasi"))
         self.assertFalse(k["dogrusal"])
-        y = _degistir(v, "kabin_ustu", i, r, "kabin_genisligi", "135")
+        y = _degistir(v, "kabin_ustu", i, r, "ray_kapi_arasi", "940")
         self.assertFalse(y["aktif"])
         self.assertIn("düzgün değişmiyor", y["hata"][0])
 

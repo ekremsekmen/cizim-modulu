@@ -33,6 +33,15 @@ KABIN = {320: (900, 1000, 800), 450: (1000, 1250, 800), 630: (1100, 1400, 800),
 
 def _veri(Q, mrl=True, yer="Sağ", **ek):
     kg, kd, dw = KABIN[Q]
+    #  KAPI KARŞI AĞIRLIĞIN TERSİNE AÇILIR ( 2 Eki ):  bu kuyularda yandaki
+    #  ağırlığın ön rayı ön duvara yakındır;  ağırlığa doğru açılan kapının
+    #  kabin kapısı cebi ( kabinle yürür ) rayın konsoluna ve ara kirişe çarpar
+    #  ( 26 düzenin 23'ünde ).  1.300 ve 1.400'lük kapılar 3 ya da 4 kanatlıdır:
+    #  2 kanatlının cebi ( kapının yarısı + 30 ) iki yanda da sığmaz ( Fermator
+    #  T3 · C4 );  ağırlık arkadaysa 4 kanatlı merkezi.
+    kanat = " 3 Kanat" if dw >= 1300 else ""
+    ek.setdefault("kat_kapisi_tipi", {"Sol": f"Teleskopik{kanat} Sağ", "Sağ": f"Teleskopik{kanat} Sol"}
+                  .get(yer, "Otomatik Merkezi 4 Kanat" if dw >= 1300 else "Teleskopik Sol"))
     a = dict(beyan_yuku=Q, kabin_genisligi=kg, kabin_derinligi=kd, kapi_genisligi=dw,
              kuyu_genisligi=kg + 950, kuyu_derinligi=kd + 450, agirlik_yeri=yer, **ek)
     pg = {"mk_yok": mrl}
@@ -66,6 +75,14 @@ class StandartAsansorler(unittest.TestCase):
                     if Q == 320 and ek:
                         continue        # 900 × 1.000 tavanına 1:1 bağlantıyla çömelme sığmaz
                     d = _cizim(_veri(Q, mrl, yer, **ek))
+                    if Q == 320:
+                        #  900 × 1.000 tavanını şasenin üst kirişi ( ray ekseninde
+                        #  300 — ÇİZİM KABULÜ ) ikiye böler:  kirişin önünde ve
+                        #  arkasında çömelme alanına yer kalmaz ( 4 Eki;  eskiden
+                        #  alan kirişin altına giriyordu ).
+                        self.assertFalse(d.get("aktif"), (Q, yer, ad))
+                        self.assertTrue(any("şasenin üst kirişi" in h for h in d["hata"]), d["hata"])
+                        continue
                     self.assertTrue(d.get("aktif"), (Q, yer, ad, d.get("hata")))
 
     def test_arkadaki_agirlikla_iki_bir(self):

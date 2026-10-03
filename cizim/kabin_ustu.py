@@ -6,7 +6,7 @@ Kuyu planının duvarlarını, raylarını, konsollarını ve karşı ağırlı�
 kullanır:  yerleşim ikinci kez hesaplanmaz, plan() elemanlarından okunur —
 iki çizim ayrışamaz.  Üstüne kabin tavanında olanlar gelir:
 
-  · kabin tavanı ve şase dikmeleri
+  · kabin tavanı, şase dikmeleri ve üst kirişi
   · kapı operatörü  ( tavanın kapı kenarında )
   · askı:  kabin üstü askıda kasnaklar tavanda;  kabin altı askıda halatlar
     tavanın dışından geçer;  doğrudan askıda askı noktaları tavandadır
@@ -67,16 +67,19 @@ def _ortusur(a, b):
 
 def _operator(g, tavan, S):
     """Kapı operatörünün tavandaki izi.  Kanatlar açılınca operatörün kirişi
-    boyunca kayar:  merkezi kapıda her yana yarım kapı, teleskopikte açılış
-    yanına bir kanat eni ( kapının yarısı ) kadar taşar.  Derinliği kabin
+    boyunca kayar:  açılış yanına ( merkezide iki yana ) bir kanat eni kadar
+    taşar — 2 kanatlıda yarım kapı, 3 kanatlıda üçte bir, 4 kanatlı merkezide
+    çeyrek ( girdi.kanat_cepleri ).  Derinliği kabin
     kapısı mekanizma kutusunun derinliğidir ( sabitler )."""
     kp = g["kapi"]
     x0, kg = kp["sol_pay"], kp["genislik"]
-    tip = str(kp.get("tip", ""))
-    if tip.startswith("Teleskopik"):
-        x1, x2 = (x0, x0 + 1.5 * kg) if tip.endswith("Sağ") else (x0 - 0.5 * kg, x0 + kg)
-    else:
-        x1, x2 = x0 - 0.5 * kg, x0 + 1.5 * kg
+    #  Kanatların açılınca durduğu yer ( girdi.kanat_cepleri, payı olmadan ):
+    #  2 kanatlıda yarım kapı, 3 kanatlıda üçte bir, 4 kanatlı merkezide çeyrek
+    #  Elle açılan kat kapısında kabin kapısının cebi bilinmez:  eskisi gibi iki
+    #  yana yarım kapı ( tavanın kenarında kırpılır ).
+    cep = (CG.kanat_cepleri(g, S, pay=False) if CG.kapi_tipi(kp.get("tip"))["tur"] != "manuel"
+           else [(x0 - 0.5 * kg, x0), (x0 + kg, x0 + 1.5 * kg)])
+    x1, x2 = min([x0] + [c[0] for c in cep]), max([x0 + kg] + [c[1] for c in cep])
     x1, x2 = max(x1, tavan[0]), min(x2, tavan[2])
     return (x1, tavan[1], x2, tavan[1] + S["kabin_kapisi_kutu_boy"])
 
@@ -175,6 +178,20 @@ def yerlesim(g, cizim_sabitleri=None):
                             "kesiyor — kasnak aralığını daraltın.")
                 break
 
+    #  Şasenin üst kirişi tavanın üstünden, ray ekseninde geçer ( dikmeden
+    #  dikmeye, kuyu planındaki zarfı ):  sığınma hacmi ( çömelmede 1,0 m
+    #  yüksek ) onun altına giremez — kullanıcı kararı 4 Eki;  eskiden alan
+    #  kirişin altına giriyordu ( 1022 ve 800 KG'de tamamen ).  Yalnız kabin
+    #  altı ve doğrudan askıda:  kabin üstü askıda kasnaklar askı ekseninde,
+    #  kiriş ray ekseninde iki ayrı bant olur ve tavanı dar şeritlere böler
+    #  ( gerçekte kasnaklar kirişin üstüne oturur — model ikisini ayrı tutuyor;
+    #  kasnaklar kirişe alınınca kural oraya da uygulanır ).  Korkuluk
+    #  denetimi ( yukarıda ) kirişi saymaz:  küpeşte kirişin üstünden geçer.
+    kiris = [_kutu(el) for el in taban if el.get("ad") == "sase_kiris"]
+    if kiris and duzen in ("Kabin altı", "Doğrudan"):
+        engeller.append((min(k[0] for k in kiris), min(k[1] for k in kiris),
+                         max(k[2] for k in kiris), max(k[3] for k in kiris)))
+
     #  ── SIĞINMA ALANI  ( Çizelge 3 ) ──────────────────────────────────
     #  Kapıya en yakın, sonra kabin eksenine en yakın boş yer aranır:  bakımcı
     #  tavana kapıdan çıkar.
@@ -196,8 +213,11 @@ def yerlesim(g, cizim_sabitleri=None):
         else:
             a, b = SIGINMA[tip]
             hata.append(f"Kabin tavanında {tip.lower()} tipi sığınma alanına ( {a:g} × {b:g} mm, "
-                        "TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde, kapı "
-                        "operatörü ve askı elemanları dışında kalmalı.")
+                        "TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı "
+                        "operatörü, " + (f"şasenin üst kirişi ( ray ekseninde "
+                        f"{S['sase_dikme_derinlik']:g} mm — Sabitler:  kabin şasesi dikmesinin "
+                        "kesitteki eni ) " if duzen in ("Kabin altı", "Doğrudan") else "")
+                        + "ve askı elemanları dışında kalmalı.")
     return {"taban": taban, "tavan": tavan, "kenarlar": kenarlar, "ic": ic,
             "operator": operator, "engeller": engeller, "siginma": siginma,
             "siginma_tipi": tip, "halatlar": halatlar, "hata": hata, "S": S}
@@ -251,6 +271,10 @@ def ciz(g, cizim_sabitleri=None):
     tg, td = tavan[2] - tavan[0], tavan[3] - tavan[1]
     e.append(CGE._ad(CGE._dik("KABIN", tavan[0], tavan[1], tg, td), "tavan"))
     kx, ky = (tavan[0] + tavan[2]) / 2.0, (tavan[1] + tavan[3]) / 2.0
+    #  Şasenin üst kirişi tavanın üstünde, ray ekseninde dikmeden dikmeye
+    #  ( kuyu planındaki zarfı;  kabin üstü kasnaklar onun da üstünde ).
+    #  Eskiden bu planda yalnız dikmeler vardı:  askı görünmüyordu ( 3 Eki ).
+    e += [el for el in Y["taban"] if el.get("ad") == "sase_kiris"]
 
     #  Kapı operatörü
     op = Y["operator"]
@@ -316,7 +340,13 @@ def ciz(g, cizim_sabitleri=None):
                              "y": (y1 + y2) / 2.0, "h": 40}))
     #  Sığınma alanının yeri — tavan kenarlarından
     if sg:
-        kot_y = sg[3] + 90 if sg[3] + 200 < tavan[3] else sg[1] - 90
+        #  Yatay sıra ( çizgisi ve yazısı ) şasenin üst kirişine ve kapı
+        #  operatörüne binmeyen ilk yerde:  alanın arkası, önü;  ikisi de doluysa
+        #  alanın içinde, arka kenarının hemen altında ( yazısı alanın yazısından uzak )
+        dolu = [CGE.sinir([el]) for el in e if el.get("ad") == "sase_kiris"] + [op]
+        uygun = [y for y in (sg[3] + 90, sg[1] - 90) if tavan[1] < y - 20 and y + 100 < tavan[3]
+                 and not any(k[1] < y + 80 and y - 20 < k[3] for k in dolu)]
+        kot_y = (uygun or [sg[3] - 110])[0]
         kot_x = sg[2] + 90 if sg[2] + 200 < tavan[2] else sg[0] - 90
         yer = ("Sığınma alanının yeri:  program alanı kapıya en yakın, sonra kabin "
                "eksenine en yakın boş yere koyar ( 25 mm adımla;  dar boşlukta engelin "
@@ -345,6 +375,14 @@ def ciz(g, cizim_sabitleri=None):
             dolu.append((op[1], op[3]))
         if not dikey and op[1] <= cizgi <= op[3]:
             dolu.append((op[0], op[2]))
+        #  Şasenin üst kirişi de küpeştenin üstünden geçer
+        for el in e:
+            if el.get("ad") == "sase_kiris":
+                k_ = CGE.sinir([el])
+                if dikey and k_[0] <= cizgi <= k_[2]:
+                    dolu.append((k_[1] - 40, k_[3] + 40))
+                if not dikey and k_[1] <= cizgi <= k_[3]:
+                    dolu.append((k_[0] - 40, k_[2] + 40))
         for el in e:
             if el["tip"] == "olcu" and el["yon"] == ("yatay" if dikey else "dusey"):
                 i = 0 if dikey else 1
@@ -366,5 +404,5 @@ def ciz(g, cizim_sabitleri=None):
 
     #  Sıfır boylu ölçü çizilmez  ( sığınma alanı kenara dayanmışsa )
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
-    CGE._yazilari_yerlestir(e)
+    CGE._yazilari_yerlestir(e, kaydir=True)
     return e

@@ -126,7 +126,7 @@ PARCA_KATMANLARI = ("RAY", "KONSOL", "SASE", "TAMPON", "KASNAK", "MERDIVEN", "PE
                     "MAKINE", "PANO", "PATEN")
 
 
-def _yazilari_yerlestir(elemanlar, h=OLCU_YAZI):
+def _yazilari_yerlestir(elemanlar, h=OLCU_YAZI, kaydir=False):
     """Yeri verilmemiş ölçü yazılarını yerleştirir — SVG ve DXF AYNI yeri kullanır.
 
     Yazı önce kendi parçasının ortasına, ölçü çizgisinin dışına konur.  Aynı
@@ -178,6 +178,22 @@ def _yazilari_yerlestir(elemanlar, h=OLCU_YAZI):
                     if boy[0] > boy[1]:
                         yanlar.reverse()
                     aday = [a for a in yanlar if not _biner(yon, kot, a[0], a[1], w)] + aday
+            elif kaydir and not sigmaz:
+                #  kaydir:  sığan yazı ortada bir parçanın üstüne düşüyorsa kendi
+                #  ölçüsünün içinde, ortaya en yakın boş yere kayar ( kabin üstü
+                #  planında sığınma alanının yer ölçüsü şasenin üst kirişinin
+                #  üstündeydi ).  Öbür çizimlerde yazıların yeri değişmez:  kuyu
+                #  dibinde yük kutuları onlara göre yerleşir.
+                if parcalar is None:
+                    parcalar = [sinir([x]) for x in elemanlar
+                                if x.get("katman") in PARCA_KATMANLARI and x["tip"] != "yazi"]
+                orta = (bas + son) / 2.0
+                if _biner(yon, kot, 0, orta, w):
+                    pay = (son - bas - w) / 2.0 - 10 * k
+                    adim = [orta + s * d for d in range(10, int(pay) + 1, 10) for s in (-1, 1)]
+                    bos = [x for x in adim if not _biner(yon, kot, 0, x, w)]
+                    if bos:
+                        aday = [(0, bos[0])] + aday
             aday += [(1, (bas + son) / 2.0), (2, (bas + son) / 2.0)]
             secilen = aday[-1]
             for kat, orta in aday:
@@ -271,6 +287,40 @@ def kabin_kasnak_kutulari(g, S, taban):
             for el in taban if el.get("ad") == "kabin_kasnak"]
 
 
+#  Kanat cebinin çarpabileceği parçalar ( planın adıyla ) ve iletideki adları
+_CEP_ENGELLERI = {"plaka": "ray konsoluna", "kol": "ray konsolunun koluna",
+                  "ara_kiris": "kabin rayının ara kirişine", "kabin_ray": "kabin rayına",
+                  "agirlik_ray": "karşı ağırlık rayına", "agirlik_blok": "karşı ağırlığa"}
+
+
+def kanat_cebi_carpismalari(g, cizim_sabitleri=None):
+    """Kat ve kabin kapısının kanat cebi ( açılan kanatların durduğu yer —
+    girdi.kanat_cepleri ) kuyudaki konsollara, raylara ve karşı ağırlığa
+    çarpmamalı.  Kabin kapısının cebi kabinle yürür:  bütün katlarda aynı
+    yerde bulunan bu parçaların hepsini geçmelidir.  İletiler ( liste )."""
+    e = plan(g, cizim_sabitleri)
+    cepler = [x for x in e if x.get("ad") in ("kanat_cebi", "kabin_kanat_cebi")]
+    engeller = [x for x in e if x["tip"] == "dikdortgen" and x.get("ad") in _CEP_ENGELLERI]
+    hata = []
+    for c in cepler:
+        for o in engeller:
+            if (c["x"] < o["x"] + o["g"] - 1e-6 and o["x"] < c["x"] + c["g"] - 1e-6
+                    and c["y"] < o["y"] + o["d"] - 1e-6 and o["y"] < c["y"] + c["d"] - 1e-6):
+                kim = "Kabin kapısının" if c["ad"] == "kabin_kanat_cebi" else "Kat kapısının"
+                metin = (f"{kim} kanat cebi {_CEP_ENGELLERI[o['ad']]} çarpıyor:  açılan kanatlar "
+                         "kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın "
+                         "ya da kapının yerini değiştirin.")
+                if metin not in hata:
+                    hata.append(metin)
+    return hata
+
+
+#  Kuyu planında ( C-C ) kesitin üstünde ya da kabin döşemesinin altında kalan
+#  askı parçaları ( plan(), kapi_duzeyi )
+_KESITTE_GIZLI = frozenset(("sase_kiris", "kabin_kasnak", "kabin_kasnak_capraz", "aski_nokta",
+                            "kasnak_tasiyici_sematik"))
+
+
 def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
     """Kuyu planının elemanları  ( liste ).
 
@@ -310,28 +360,54 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
     for kx0 in (x0 - S["kasa_yan"], x0 + kg):                       # kasa yanları
         e.append(_ad(_dik("KAPI", kx0, KB["kasa"][0], S["kasa_yan"], S["kasa_derinlik"]),
                      "kapi_kasasi"))
-    e.append(_ad(_dik("KAPI", x0, KB["esik"][0], kg, S["esik_derinlik"]), "kat_esigi"))
-    kanat = kg / 2.0
-    tel = str(kp.get("tip", "")).startswith("Teleskopik")
+    e.append(_ad(_dik("KAPI", x0, KB["esik"][0], kg, KB["esik"][1] - KB["esik"][0]), "kat_esigi"))
+    KT = CG.kapi_tipi(kp.get("tip"))
+    tel = KT["tur"] == "teleskopik"
+    n_kanat = KT["kanat"]
+    kanat = kg / n_kanat
 
     def kanatlar(esik0, esik1, ad):
-        #  Teleskopik:  iki düzlem, eşiğin kenarından kanat_esik_payi içeride;
-        #  merkezi:  iki kanat eşiğin ortasında aynı düzlemde.
+        #  Kapalı kanatlar, her biri kapının kanat sayısı kadarda biri.
+        #  Teleskopik:  her kanat ayrı düzlemde ( eşiğin kenarından kanat_esik_payi
+        #  içeride, kanat_araligi arayla );  cebe en yakın kanat duvara en yakın
+        #  düzlemde ( LiftDesigner 1022 ).  Merkezi:  her yanda yarısı, dıştaki
+        #  duvara yakın düzlemde;  2 kanatta tek düzlem eşiğin ortasında.  Elle
+        #  açılan kapıda tek kanat.
         orta = (esik0 + esik1) / 2.0 - S["kanat_kalinlik"] / 2.0
         yer = []
-        for i in range(2):
-            ky0 = (esik0 + S["kanat_esik_payi"] + i * S["kanat_araligi"]) if tel else orta
+        for i in range(n_kanat):
+            if tel:
+                sira = i if KT["yon"] == "Sol" else n_kanat - 1 - i
+            elif KT["duzlem"] > 1:
+                sira = i if i < n_kanat // 2 else n_kanat - 1 - i
+            else:
+                sira = None
+            ky0 = orta if sira is None else esik0 + S["kanat_esik_payi"] + sira * S["kanat_araligi"]
             e.append(_ad(_dik("KAPI", x0 + i * kanat, ky0, kanat, S["kanat_kalinlik"]), ad))
             yer.append(ky0)
         return yer
 
+    def cepler(esik0, esik1, duzlemler, ad):
+        #  KANAT CEBİ ( LiftDesigner gibi ):  açılan kanatların durduğu yer —
+        #  eşiğin bandında kapının yanında, uçta her kanat düzlemine durdurucu.
+        pay = S["kanat_cebi_payi"]
+        for c0, c1 in CG.kanat_cepleri(g, S):
+            e.append(_ad(_dik("KAPI", c0, esik0, c1 - c0, esik1 - esik0), ad))
+            uc = c0 if c1 <= x0 + 1e-6 else c1 - pay
+            for ky0 in sorted(set(duzlemler)):
+                if pay > 0:
+                    e.append(_ad(_dik("KAPI", uc, ky0, pay, S["kanat_kalinlik"]), "kanat_durdurucu"))
+
     kat_kanat = kanatlar(KB["esik"][0], KB["esik"][1], "kat_kanadi")
+    cepler(KB["esik"][0], KB["esik"][1], kat_kanat, "kanat_cebi")
     #  Açılış yönü oku:  teleskopik kapı hangi yana açılıyorsa o yöne bakar.
     ok_y = kat_kanat[0] + S["kanat_kalinlik"] / 2.0
     if tel:
-        sag = str(kp.get("tip", "")).endswith("Sağ")
+        sag = KT["yon"] == "Sağ"
         e.append(_ok("KAPI", x0 + (kg * 0.65 if sag else kg * 0.35), ok_y,
                      x0 + (kg if sag else 0), ok_y))
+    elif KT["tur"] == "manuel":
+        pass                                     # menteşeli:  ok yok
     else:
         e.append(_ok("KAPI", x0 + kg / 2.0, ok_y, x0, ok_y))
         e.append(_ok("KAPI", x0 + kg / 2.0, ok_y, x0 + kg, ok_y))
@@ -514,6 +590,29 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
                           dc, ag["derinlik"] - 2 * cer), "agirlik_kasnak"))
             e.append(_ad(_yazi(ex, ey, f"ø {dc:g}", 40), "agirlik_kasnak_yazi"))
 
+    #  ── KESİTTE GÖRÜNMEYEN ASKI  ( yalnız C-C ) ───────────────────────
+    #  Kuyu planı kabinin ortasından kesilir ( kapı yüksekliğinin yarısı ) ve
+    #  yukarıdan bakılır:  şasenin dikmeleri kesilir ( düz kalır );  üst kiriş,
+    #  kabin üstü kasnaklar ve 1:1 bağlantısı kesitin ÜSTÜNDE ( kaldırılmış ),
+    #  alt kiriş, kabin altı kasnaklar ve taşıyıcıları kabin döşemesinin ALTINDA
+    #  ( örtülü ):  kesik çizgiyle ( GIZLI ) çizilir, ölçüleri yerinde kalır.
+    #  Kabin altı kasnağın kabinin izinin dışına taşan ucu yukarıdan açıktır,
+    #  düz çizilir ( halat oradan çıkar ) — LiftDesigner 4815-6'nın kuyu planı ve
+    #  referans projenin yatay kesiti de böyle.  Eskiden hepsi düz çiziliyordu:
+    #  şase kirişleri ve kasnaklar kabinin içinden geçiyor görünüyordu ( 3 Eki ).
+    #  Öbür planlar ( kapi_duzeyi=False ) elemanları adlarıyla kendileri seçer.
+    if kapi_duzeyi:
+        k0, k1 = kx - dis_g / 2.0, kx + dis_g / 2.0
+        for el in list(e):
+            if el.get("ad") not in _KESITTE_GIZLI:
+                continue
+            if el.get("ad") == "kabin_kasnak" and duzen == "Kabin altı":
+                for a, b in ((el["x"], min(el["x"] + el["g"], k0)),
+                             (max(el["x"], k1), el["x"] + el["g"])):
+                    if b - a > 1e-6:
+                        e.append(_ad(_dik("KASNAK", a, el["y"], b - a, el["d"]), "kabin_kasnak_ucu"))
+            el["katman"] = "GIZLI"
+
     #  KUMANDA PANOSU KUYU PLANINDA YOK:  makine dairesiz tesiste en üst katta
     #  kuyunun dışındaki acil kurtarma panosundadır ( kuyu üstü planı ), makine
     #  daireli tesiste makine dairesindedir.  Eskiden kuyunun içinde, yan
@@ -689,7 +788,7 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
     esik = [(0.0, KB["hat"], hat_metni),
             (KB["hat"], KB["kabin_esik"][0], None),
             (KB["kabin_esik"][0], KB["kabin_esik"][1],
-             f"KABİN EŞİĞİ {S['kabin_esik_derinlik']:g}")]
+             f"KABİN EŞİĞİ {KB['kabin_esik'][1] - KB['kabin_esik'][0]:g}")]
     h_esik = 40.0
     sol_bos = min(ic_sol, x0)                  # kapının solundaki boş şerit
     sag_bos = G - max(ic_sag, x0 + kg)
@@ -724,9 +823,10 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
                                  "y": (aski_y + ic_on + dis_d / 2.0) / 2.0, "aci": 0}))
 
     #  ── YAZILAR ──────────────────────────────────────────────────────
-    e.append(_ad(_dik("KABIN", x0, KB["kabin_esik"][0], kg, S["kabin_esik_derinlik"]),
+    e.append(_ad(_dik("KABIN", x0, KB["kabin_esik"][0], kg, KB["kabin_esik"][1] - KB["kabin_esik"][0]),
                  "kabin_esigi"))
-    kanatlar(KB["kabin_esik"][0], KB["kabin_esik"][1], "kabin_kanadi")
+    cepler(KB["kabin_esik"][0], KB["kabin_esik"][1],
+           kanatlar(KB["kabin_esik"][0], KB["kabin_esik"][1], "kabin_kanadi"), "kabin_kanat_cebi")
     #  Askı noktaları kabin ortasına yakınsa kabin yazısı arkaya kayar.
     kabin_yazi_y = ky if abs(aski_y - ky) >= 150 else ky + 200
     e.append(_yazi(kx, kabin_yazi_y, f"KABİN  {kb['genislik']:g} x {kb['derinlik']:g}", 55))

@@ -37,9 +37,11 @@ def _duvar_boslugu():
 
 
 def _sag_ayna(**ezme):
-    """Örneğin aynası:  ağırlık sağda, kabin ve kapı simetrik yerde."""
+    """Örneğin aynası:  ağırlık sağda, kabin ve kapı simetrik yerde;  kapı da
+    aynadır — sağa açılır ( sola açılan kapının kanat cebi sol duvara 470'te
+    sığmaz:  480 gerekir — girdi.kanat_cepleri )."""
     g = _ornek(agirlik={"yeri": "Sağ"}, kabin={"kaciklik_y": -130},
-               kapi={"sol_pay": 2100 - 730 - 900})
+               kapi={"sol_pay": 2100 - 730 - 900, "tip": "Teleskopik Sağ"})
     for bolum, d in ezme.items():
         g[bolum].update(d)
     return g
@@ -186,8 +188,9 @@ class PlanGeometrisi(unittest.TestCase):
         kb, k, a = self.g["kabin"], self.g["kuyu"], self.g["aski"]
         kx = k["genislik"] / 2.0 + kb["kaciklik_y"]
         beklenen = {round(kx - a["kasnak_arasi"] / 2.0, 3), round(kx + a["kasnak_arasi"] / 2.0, 3)}
-        merkezler = {round(el["x"] + el["g"] / 2.0, 3) for el in _dikdortgenler(self.e, "KASNAK")
-                     if round(el["d"]) == round(S["kabin_kasnak_genislik"])}
+        #  Kuyu planında kabin altı kasnakları kesik çizgilidir ( GIZLI ):  adıyla
+        merkezler = {round(el["x"] + el["g"] / 2.0, 3) for el in self.e
+                     if el.get("ad") == "kabin_kasnak" and round(el["d"]) == round(S["kabin_kasnak_genislik"])}
         self.assertEqual(merkezler, beklenen)
 
     def test_kapi_kasasi_bosluğun_iki_yaninda(self):
@@ -664,6 +667,24 @@ class KabinUstuYerlesim(unittest.TestCase):
                 self.assertEqual(op[1], t[1])
                 self.assertEqual(op[3] - op[1], S["kabin_kapisi_kutu_boy"])
                 self.assertTrue(t[0] <= op[0] and op[2] <= t[2])
+
+    def test_siginma_ust_kirisin_altina_girmez(self):
+        #  Kabin altı ve doğrudan askıda şasenin üst kirişi tavandaki tek askı
+        #  parçasıdır:  sığınma alanı onun dışında ( 4 Eki ).  Kabin üstü askıda
+        #  henüz sayılmaz:  kasnaklar kirişten ayrı bir bantta.
+        for ad, g in _ustu_projeler():
+            Y = CKU.yerlesim(g)
+            kiris = [CGE.sinir([el]) for el in Y["taban"] if el.get("ad") == "sase_kiris"]
+            k = (min(x[0] for x in kiris), min(x[1] for x in kiris),
+                 max(x[2] for x in kiris), max(x[3] for x in kiris))
+            sg = Y["siginma"]
+            with self.subTest(ad):
+                if g["aski"]["duzen"] != "Kabin üstü":
+                    self.assertFalse(sg[0] < k[2] and k[0] < sg[2] and sg[1] < k[3] and k[1] < sg[3])
+                    self.assertIn(k, Y["engeller"])
+                #  Kabin üstü planında kiriş çizilir, sığınma ölçüleri ona binmez
+                e = CKU.ciz(g)
+                self.assertEqual(len([x for x in e if x.get("ad") == "sase_kiris"]), 2)
 
     def test_olcu_zincirleri_ve_yazilar(self):
         import itertools
@@ -2252,8 +2273,13 @@ class KapiBolgesi(unittest.TestCase):
                                  [(-k["duvar_sol"], k["genislik"] + k["duvar_sag"])])
 
     def test_kanatlar_esiklerin_ustunde_kabinle_cakismaz(self):
+        #  Ortadan açılan 2 kanatlı kapı referans projede sağda sığmaz ( 470 <
+        #  480 — kanat_cepleri );  4 kanatlı merkezi sığar.  3 kanatlı teleskopikte
+        #  eşikler 135:  kabin 90 geride ( kapı hattı 195 + 30 + 135 ).
         for g in (_ornek(), _duvar_boslugu(),
-                  _ornek(kapi={"tip": "Otomatik Merkezi"}), _sag_ayna(), _arka()):
+                  _ornek(kapi={"tip": "Otomatik Merkezi 4 Kanat"}),
+                  _ornek(kapi={"tip": "Teleskopik 3 Kanat Sol"}, kabin={"on_pay": 360}),
+                  _sag_ayna(), _arka()):
             self.assertEqual(CG.dogrula(g), [])
             e = CGE.plan(g)
             kabin = self._kutular(e, "kabin_dis")[0]

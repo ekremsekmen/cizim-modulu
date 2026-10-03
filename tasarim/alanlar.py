@@ -245,8 +245,10 @@ _GRUPLAR = (
           bilgi='Kabinin kapıdan arka duvara İÇ derinliği ( x ekseni ). Kaplama hariç ölçülür.'),
         A('kat_kapisi_tipi', 'Kat kapısı tipi', '—', 'secim', MT.KAPI_TIPLERI, "Teleskopik Sol",
           kaynak=GIRDI, sozlesme=MUK,
-          bilgi=('Kapının açılış düzeni. Kapı kanatlarının ağırlık merkezini ve dolayısıyla boş '
-                 'kabinin ağırlık merkezini etkiler.')),
+          bilgi=('Açılış düzeni ve kanat sayısı ( Teleskopik Sol / Sağ ve Otomatik Merkezi 2 '
+                 'kanatlı ). Kanatlar, açılan kanatların durduğu cep ( bir kanat eni + 30 ) ve '
+                 'eşik ( 3 kanatlıda 135 ) buradan çizilir;  cep sığmazsa çizim sığan tipi söyler. '
+                 'Büyük kapılar 3 ya da 4 kanatlıdır.')),
         A('kapi_genisligi', 'Kat kapısı genişliği', 'mm', 'secim', _s(700, 800, 900, 1000, 1100, 1200, 1300, 1400), 900,
           kaynak=GIRDI, sozlesme=MUK,
           bilgi='Kapının net geçiş genişliği ( kasa iç ölçüsü ).'),

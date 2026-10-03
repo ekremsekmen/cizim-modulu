@@ -54,6 +54,12 @@ SABIT = {
     "kanat_kalinlik": 40,
     "kanat_araligi": 45,          # teleskopik kanat düzlemleri arası
     "kanat_esik_payi": 5,         # ilk kanat düzlemi eşiğin kenarından içeride
+    #  KANAT CEBİ:  otomatik kapının kanatları açılınca kapı boşluğunun yanında
+    #  durur;  kat ve kabin kapısı ünitesi o yanda kapının yarısı + bu kadar
+    #  uzanır ( LiftDesigner, altı projenin hepsinde:  DW 800 → 430, 900 → 480,
+    #  1.100 → 580;  kat kapısı ünitesi kasa 120 + DW + cep, kabin kapısınınki
+    #  DW + cep ).
+    "kanat_cebi_payi": 30,
     "kabin_kapisi_kutu_en": 270,  # kabin kapısı mekanizma kutusu
     "kabin_kapisi_kutu_boy": 140,
     "esik_derinlik": 90,          # kat kapısı eşiği
@@ -282,6 +288,7 @@ ETIKET = {
     "kanat_kalinlik": "Kapı kanadı kalınlığı",
     "kanat_araligi": "Teleskopik kapı kanatları arası",
     "kanat_esik_payi": "Kapı kanadının eşik kenarından payı",
+    "kanat_cebi_payi": "Kanat cebinin kapının yarısından fazlası",
     "kabin_kapisi_kutu_en": "Kabin kapısı mekanizma kutusunun eni",
     "kabin_kapisi_kutu_boy": "Kabin kapısı mekanizma kutusunun boyu",
     "esik_derinlik": "Kat kapısı eşiği derinliği",
@@ -413,7 +420,7 @@ BOLUMLER = (
      ("kabin_kasnak_genislik", "kabin_kasnak_derinlik", "kabin_ustu_kasnak_boslugu",
       "kabin_tavani_kasnak_boslugu")),
     ("KAPI VE KATLAR", "kat ve kabin kapısı, eşikler, kat döşemesi",
-     ("kasa_yan", "kasa_derinlik", "kanat_kalinlik", "kanat_araligi", "kanat_esik_payi",
+     ("kasa_yan", "kasa_derinlik", "kanat_kalinlik", "kanat_araligi", "kanat_esik_payi", "kanat_cebi_payi",
       "kabin_kapisi_kutu_en", "kabin_kapisi_kutu_boy", "esik_derinlik", "kabin_esik_derinlik",
       "esik_kalinlik", "kapi_ust_payi", "kaba_bosluk_yan_payi", "kasa_ust", "kat_doseme_kalinlik",
       "bina_duvari", "gosterge_en", "gosterge_boy", "gosterge_yukseklik", "buton_kutu_en",
@@ -448,7 +455,7 @@ BOLUMLER = (
 #  sıfırı çizimi bozar ( ray boyu sıfırsa ray eklerinin kotları biter ).
 SIFIR_OLABILIR = frozenset((
     "ray_sase_icinde", "kabin_rayi_tepe", "kabin_ustu_kasnak_boslugu",
-    "kabin_tavani_kasnak_boslugu", "kanat_esik_payi", "kapi_ust_payi", "esik_kalinlik",
+    "kabin_tavani_kasnak_boslugu", "kanat_esik_payi", "kanat_cebi_payi", "kapi_ust_payi", "esik_kalinlik",
     "bina_duvari", "gergi_kol_ray", "makine_kasnak_boslugu", "tavan_kirisi", "alt_paten_payi",
     "makine_tepe_boslugu", "duvar_kirisi_tepe_boslugu", "makine_sase_duvar",
     "makine_sase_ray_payi", "agirlik_baglanti_x", "agirlik_baglanti_y", "kabin_baglanti_x",

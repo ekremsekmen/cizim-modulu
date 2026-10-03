@@ -34,6 +34,7 @@ _LD = {"beyan_hizi": 1.0, "kabin_ic_yuksekligi": 2000, "kapi_yuksekligi": 2000,
        "agirlik_derinligi": 150}
 
 #  Duvar kalınlıkları LiftDesigner planlarından ( ön · arka · sol · sağ;  2 Eki ).
+#  Kapıların açıldığı yan LiftDesigner planlarındaki kanat cebinden ( 2 Eki ).
 PROJELER = {
     #  12495-18 ( makine dairesiz, ağırlık arkada, 2:1 kabin üstü çapraz ) —
     #  Normal yük 800 · Hiz 1 · Seyir 3500 · Durak 2 · Surucu 2:1 · Kabin-ray
@@ -41,7 +42,7 @@ PROJELER = {
     #  EE610 · OH4200 · Kuyu dibi 1700 · RDB240.  Kuyu planı:  kabin ekseni sol
     #  duvardan 885 ( +60 ), kapı ekseni 1.035 ( +150 ), ağırlık ekseni arka
     #  duvardan 354.
-    "12495-18": {**_LD, "kuyu_duvar_on": 200, "kuyu_duvar_arka": 200, "kuyu_duvar_sol": 250, "kuyu_duvar_sag": 250,
+    "12495-18": {**_LD, "kat_kapisi_tipi": "Teleskopik Sol", "kuyu_duvar_on": 200, "kuyu_duvar_arka": 200, "kuyu_duvar_sol": 250, "kuyu_duvar_sag": 250,
                  "beyan_yuku": 800, "aski_orani": 2, "seyir_mesafesi": 3.5,
                  "durak_adedi": 2, "son_kat_yuksekligi": 4200, "kuyu_dibi": 1700,
                  "kuyu_genisligi": 1650, "kuyu_derinligi": 1950, "kabin_genisligi": 1100,
@@ -56,7 +57,7 @@ PROJELER = {
     #  CD2100 · DW1100 · BG 1450 · DBG 1200 · EE1120 · OH3400 · Kuyu dibi 1450 ·
     #  RDB320.  Kuyu planı:  kabin ekseni 875 ( −125 ), kapı ekseni 855 ( −20 ),
     #  ağırlık ekseni sağ duvardan 165.
-    "1250 KG": {**_LD, "kuyu_duvar_on": 100, "kuyu_duvar_arka": 100, "kuyu_duvar_sol": 100, "kuyu_duvar_sag": 100,
+    "1250 KG": {**_LD, "kat_kapisi_tipi": "Teleskopik Sağ", "kuyu_duvar_on": 100, "kuyu_duvar_arka": 100, "kuyu_duvar_sol": 100, "kuyu_duvar_sag": 100,
                 "beyan_yuku": 1250, "aski_orani": 2, "seyir_mesafesi": 12.0,
                 "durak_adedi": 5, "son_kat_yuksekligi": 3400, "kuyu_dibi": 1450,
                 "kuyu_genisligi": 2000, "kuyu_derinligi": 2400, "kabin_genisligi": 1240,
@@ -70,7 +71,7 @@ PROJELER = {
     #  CW1350 · CD1400 · DW900 · BG 1540 · DBG 1100 · EE910 · OH4650 · Kuyu dibi
     #  1700 · RDB240.  Kuyu planı:  kabin ekseni 1.165 ( +115 ), kapı ekseni
     #  1.315 ( +150 ), ağırlık ekseni sol duvardan 175, kabin halatı x 415.
-    "4815-6": {**_LD, "kuyu_duvar_on": 200, "kuyu_duvar_arka": 250, "kuyu_duvar_sol": 200, "kuyu_duvar_sag": 200,
+    "4815-6": {**_LD, "kat_kapisi_tipi": "Teleskopik Sol", "kuyu_duvar_on": 200, "kuyu_duvar_arka": 250, "kuyu_duvar_sol": 200, "kuyu_duvar_sag": 200,
                "beyan_yuku": 800, "aski_orani": 2, "seyir_mesafesi": 18.15,
                "durak_adedi": 7, "son_kat_yuksekligi": 4650, "kuyu_dibi": 1700,
                "kuyu_genisligi": 2100, "kuyu_derinligi": 2000, "kabin_genisligi": 1350,
@@ -88,7 +89,7 @@ PROJELER = {
     #  regülatör halatı sol duvardan ~65 ( rayın yanı ), ray ekseninin ~280 ve
     #  580 arkasında.  Kasnak düzenlemesi:  Ø480 tahrik, Ø400 saptırma, merkezler
     #  arası 490 / 842, RDA / RDB 930, sarım açısı 152.
-    "1022": {**_LD, "kuyu_duvar_on": 200, "kuyu_duvar_arka": 200, "kuyu_duvar_sol": 200, "kuyu_duvar_sag": 200,
+    "1022": {**_LD, "kat_kapisi_tipi": "Teleskopik Sağ", "kuyu_duvar_on": 200, "kuyu_duvar_arka": 200, "kuyu_duvar_sol": 200, "kuyu_duvar_sag": 200,
              "beyan_yuku": 750, "aski_orani": 1, "seyir_mesafesi": 9.0,
              "durak_adedi": 4, "son_kat_yuksekligi": 4330, "kuyu_dibi": 1700,
              "kuyu_genisligi": 2000, "kuyu_derinligi": 2250, "kabin_genisligi": 1360,
@@ -105,7 +106,7 @@ PROJELER = {
     #  HM3380 · RDB240.  Kuyu planı:  kabin ekseni 1.015 ( −35 ), kapı ekseni 895
     #  ( −120 ), ağırlık 130 derin, ekseni arka duvardan 230;  halat inişleri y
     #  2.230 ( kabin ) ve 2.470 ( ağırlık ).
-    "1275": {**_LD, "kuyu_duvar_on": 200, "kuyu_duvar_arka": 200, "kuyu_duvar_sol": 200, "kuyu_duvar_sag": 250,
+    "1275": {**_LD, "kat_kapisi_tipi": "Teleskopik Sağ", "kuyu_duvar_on": 200, "kuyu_duvar_arka": 200, "kuyu_duvar_sol": 200, "kuyu_duvar_sag": 250,
              "beyan_yuku": 1275, "aski_orani": 2, "seyir_mesafesi": 27.0,
              "durak_adedi": 10, "son_kat_yuksekligi": 4080, "kuyu_dibi": 1700,
              "kuyu_genisligi": 2100, "kuyu_derinligi": 2700, "kabin_genisligi": 1440,
@@ -123,7 +124,7 @@ PROJELER = {
     #  duvardan 180;  halat inişleri y 850 ve 1.820.  Kasnak düzenlemesi:  Ø500
     #  tahrik, Ø400 saptırma, merkezler arası 520 / 822, RDA / RDB 970, sarım
     #  açısı 151.  Giriş:  kaba boşluk sol duvardan 470, 1.180 geniş, 2.240 yüksek.
-    "800 KG": {**_LD, "kuyu_duvar_on": 200, "kuyu_duvar_arka": 200, "kuyu_duvar_sol": 250, "kuyu_duvar_sag": 250,
+    "800 KG": {**_LD, "kat_kapisi_tipi": "Teleskopik Sol", "kuyu_duvar_on": 200, "kuyu_duvar_arka": 200, "kuyu_duvar_sol": 250, "kuyu_duvar_sag": 250,
                "beyan_yuku": 750, "aski_orani": 1, "seyir_mesafesi": 27.5,
                "durak_adedi": 10, "son_kat_yuksekligi": 4050, "kuyu_dibi": 1700,
                "kuyu_genisligi": 2000, "kuyu_derinligi": 2000, "kabin_genisligi": 1290,

@@ -598,13 +598,19 @@ _KABLO_SUTUN = {"genislik": 1, "kalinlik": 2, "agirlik": 3}
 #  KAT KAPISI TİPİ  →  2. BÜKÜLGEN KABLO
 # =====================================================================
 #  2. kablo tipi GİRDİ DEĞİLDİR:  kat kapısı tipinden türetilir ( manuel
-#  kapıda daha ince kablo ).
+#  kapıda daha ince kablo ).  3 kanatlı teleskopik ve 4 kanatlı merkezi
+#  ( büyük kapılar — çizimin kanat cebi, kullanıcı kararı 2 Eki ) otomatik
+#  kapıdır:  öbür otomatik kapılar gibi 24'lü.  "Teleskopik Sol / Sağ" ve
+#  "Otomatik Merkezi" 2 kanatlıdır ( kayıtlı projeler bu adları taşır ).
 KAPI_KABLO = (
     ('Manuel Sağ', '12 x 0,75'),
     ('Manuel Sol', '12 x 0,75'),
     ('Otomatik Merkezi', '24 x 0,75'),
+    ('Otomatik Merkezi 4 Kanat', '24 x 0,75'),
     ('Teleskopik Sağ', '24 x 0,75'),
     ('Teleskopik Sol', '24 x 0,75'),
+    ('Teleskopik 3 Kanat Sağ', '24 x 0,75'),
+    ('Teleskopik 3 Kanat Sol', '24 x 0,75'),
 )
 
 KAPI_TIPLERI = tuple(r[0] for r in KAPI_KABLO)

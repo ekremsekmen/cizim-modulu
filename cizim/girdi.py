@@ -60,6 +60,41 @@ ASGARI_ACIKLIK = 20.0
 KABIN_AGIRLIK_ACIKLIGI = 50.0
 
 
+def kapi_tipi(tip):
+    """Kat kapısı tipinin çizime girenleri:  { tur , kanat , yon , duzlem }.
+
+      tur     teleskopik ( yandan açılır ) · merkezi ( ortadan ) · manuel
+              ( menteşeli, tek kanat )
+      kanat   kanat sayısı ( toplam )
+      yon     teleskopikte açıldığı yan ( Sol / Sağ ), öbürlerinde None
+      duzlem  kanatların kaydığı düzlem sayısı:  teleskopikte her kanat ayrı
+              düzlemde, merkezide her yanın kanatları ( 2 kanatta tek düzlem )
+
+    Adlar hesabın kat kapısı tipi listesidir ( mukavemet_tablolari.KAPI_KABLO );
+    "Teleskopik Sol / Sağ" ve "Otomatik Merkezi" 2 kanatlıdır ( eski projeler
+    bu adları taşır ).  3 kanatlı teleskopik ve 4 kanatlı merkezi büyük
+    kapılar içindir ( kullanıcı kararı 2 Eki — Fermator 40/10:  T2 · T3 · C2 · C4 ).
+    Tanınmayan tip eskisi gibi 2 kanatlı merkezi çizilir."""
+    t = str(tip or "")
+    yon = "Sağ" if t.endswith("Sağ") else "Sol" if t.endswith("Sol") else None
+    if t.startswith("Manuel"):
+        return {"tur": "manuel", "kanat": 1, "yon": yon, "duzlem": 1}
+    if t.startswith("Teleskopik"):
+        n = 3 if "3 Kanat" in t else 2
+        return {"tur": "teleskopik", "kanat": n, "yon": yon or "Sol", "duzlem": n}
+    n = 4 if "4 Kanat" in t else 2
+    return {"tur": "merkezi", "kanat": n, "yon": None, "duzlem": n // 2}
+
+
+def esik_derinligi(S, tip, kabin=False):
+    """Kat ( kabin ) eşiğinin derinliği:  Sabitler'in eşiği ( 90 — iki kanat
+    düzlemi sığar:  5 + 45 + 40 );  iki düzlemi aşan her kanat düzlemi eşiği
+    kanat_araligi kadar derinleştirir:  3 kanatlı teleskopikte 135 — Fermator
+    40/10'un T3 eşiği."""
+    taban = S["kabin_esik_derinlik"] if kabin else S["esik_derinlik"]
+    return taban + max(0, kapi_tipi(tip)["duzlem"] - 2) * S["kanat_araligi"]
+
+
 def kapi_bolgesi(g, S):
     """Kapı bölgesinin derinlik kotları ( y, kuyu ön iç yüzünden ):
 
@@ -74,12 +109,47 @@ def kapi_bolgesi(g, S):
                   ( referans projenin düzeni ).
     """
     bas = -S["kasa_derinlik"] if g["kapi"]["montaj"] == "Duvar boşluğuna" else 0.0
+    tip = g["kapi"].get("tip")
     kasa = (bas, bas + S["kasa_derinlik"])
-    esik = (kasa[1], kasa[1] + S["esik_derinlik"])
+    esik = (kasa[1], kasa[1] + esik_derinligi(S, tip))
     on = g["kabin"]["on_pay"]
-    kabin_esik = (on - S["kabin_esik_derinlik"], on)
+    kabin_esik = (on - esik_derinligi(S, tip, kabin=True), on)
     return {"kasa": kasa, "esik": esik, "hat": esik[1], "kabin_esik": kabin_esik,
             "yuzey": 0.0 if g["kapi"]["montaj"] == "Duvar boşluğuna" else esik[1]}
+
+
+def kanat_cepleri(g, S, pay=True):
+    """Otomatik kapının kanat cepleri ( x0 , x1 ):  kanatlar açılınca kapı
+    boşluğunun yanında üst üste durur;  kat ve kabin kapısı ünitesi o yanda
+    bir kanat eni ( kapı ÷ kanat sayısı;  merkezide her yanda ) + kanat_cebi_payi
+    uzanır.  2 kanatlı teleskopikte kapının yarısı + 30:  LiftDesigner'ın altı
+    projesinde birebir ( DW 800 → 430, 900 → 480, 1.100 → 580 );  Fermator
+    40/10 da aynı kuralı verir ( eşik T2 1,5·PL + 40 · T3 1,35·PL + 40 ·
+    C2 2·PL + 40 · C4 1,5·PL + 40 ).  Elle açılan ( menteşeli ) kapıda cep
+    yoktur.  pay=False:  yalnız kanatların eni ( kapı operatörünün izi )."""
+    kp = g["kapi"]
+    k = kapi_tipi(kp.get("tip"))
+    x0, x1 = kp["sol_pay"], kp["sol_pay"] + kp["genislik"]
+    if k["tur"] == "manuel":
+        return []
+    #  Her kanat kapının kanat sayısı kadarda biri genişliktedir;  açılınca o
+    #  yandaki kanatlar üst üste durur ( teleskopikte hepsi bir yanda,
+    #  merkezide her yanda yarısı ):  cep bir kanat eni.
+    cep = kp["genislik"] / k["kanat"] + (S["kanat_cebi_payi"] if pay else 0.0)
+    if k["tur"] == "teleskopik":
+        return [(x1, x1 + cep)] if k["yon"] == "Sağ" else [(x0 - cep, x0)]
+    return [(x0 - cep, x0), (x1, x1 + cep)]
+
+
+#  Kanat cebi sığmayınca önerilen kapı tipleri ( sırayla:  aynı kapı öbür yana,
+#  sonra daha çok kanat — büyük kapılar 3 ya da 4 kanatlı yapılır ).
+KAPI_CEP_ONERILERI = ("Teleskopik Sol", "Teleskopik Sağ", "Teleskopik 3 Kanat Sol",
+                      "Teleskopik 3 Kanat Sağ", "Otomatik Merkezi 4 Kanat")
+
+
+def _cep_sigar(g, S, tip):
+    g2 = {**g, "kapi": {**g["kapi"], "tip": tip}}
+    return all(c0 >= -1e-6 and c1 <= g["kuyu"]["genislik"] + 1e-6 for c0, c1 in kanat_cepleri(g2, S))
 
 
 def kaba_bosluk(g, S):
@@ -184,6 +254,17 @@ def dogrula(g):
                     "gözden geçirin.")
     if ag_kutu[0] < 0 or ag_kutu[2] > k["genislik"] or ag_kutu[1] < 0 or ag_kutu[3] > k["derinlik"]:
         hata.append("Karşı ağırlık kuyunun dışına taşıyor.")
+    #  KANAT CEBİ:  otomatik kapının kanatları açılınca kapının yanında, kuyunun
+    #  içinde durur ( kanat_cepleri ) — yan duvara ya da karşı ağırlığa girmemeli.
+    for c0, c1 in kanat_cepleri(g, S):
+        if c0 < -1e-6 or c1 > k["genislik"] + 1e-6:
+            yan = kp["sol_pay"] if c0 < 0 else k["genislik"] - kp["sol_pay"] - kp["genislik"]
+            n = kapi_tipi(kp.get("tip"))["kanat"]
+            oneri = [t for t in KAPI_CEP_ONERILERI if t != kp.get("tip") and _cep_sigar(g, S, t)]
+            hata.append(f"Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara {yan:g} mm, "
+                        f"açılan {n} kanat için {c1 - c0:g} mm gerekir ( bir kanat eni "
+                        f"{kp['genislik'] / n:g} + {S['kanat_cebi_payi']:g} )"
+                        + (f";  sığan kapı tipi:  {' · '.join(oneri)}." if oneri else "."))
     #  PARÇALAR KENDİ RAYLARININ ARASINA SIĞMALI.  Çerçeve / şase, iki rayın
     #  birbirine bakan yüzleri arasında kalır;  patenler bu aralıkta kayar.
     if ag["genislik"] >= ag["ray_arasi"]:
@@ -275,6 +356,12 @@ def dogrula(g):
     if kabin_esigi - KB["yuzey"] > KAPI_ARASI_AZAMI:
         hata.append(f"Kuyu iç yüzü ile kabin eşiği arası {kabin_esigi - KB['yuzey']:g} mm — "
                     f"TS EN 81-20 m.5.2.5.3.1 en çok {KAPI_ARASI_AZAMI:g} mm verir.")
+    #  Kanat cepleri kuyudaki sabit parçalara ( konsollar, raylar ) ve karşı
+    #  ağırlığa çarpmamalı:  planın kendi parçalarıyla denetlenir ( yalnız girdi
+    #  temizse — plan geçersiz girdiyle kurulmaz ).
+    if not hata:
+        from cizim import geometri as _CGE
+        hata += _CGE.kanat_cebi_carpismalari(g, S)
     return hata
 
 

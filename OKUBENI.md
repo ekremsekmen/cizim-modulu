@@ -399,7 +399,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( girdiler oynatılarak ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
-| `testler/` | 369 test ( `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog, `test_gercek_projeler.py` — ofisin altı gerçek projesi ( veri `gercek_projeler.py` ), `test_gorunusler.py` — kasnak düzenlemesi ve giriş görünüşü, `test_kesit_yerlesim_regresyon.py` — şase üst kirişi, ağırlık patenleri, dolgu, ağırlık genişliği, kabin – ağırlık ölçüleri, duvarlar ) |
+| `testler/` | 376 test ( `test_kapilar.py` — kanat sayısı ve kanat cebi, `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog, `test_gercek_projeler.py` — ofisin altı gerçek projesi ( veri `gercek_projeler.py` ), `test_gorunusler.py` — kasnak düzenlemesi ve giriş görünüşü, `test_kesit_yerlesim_regresyon.py` — şase üst kirişi, ağırlık patenleri, dolgu, ağırlık genişliği, kabin – ağırlık ölçüleri, duvarlar ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
 
@@ -522,7 +522,9 @@ Kuyu dibinin ve makine dairesizde kuyu tavanının döşemesi ortak kalınlıkta
 **Kabin üstü planı** ( kabin tavanı hizasından yatay kesit ):  duvarlar, raylar,
 konsollar ve karşı ağırlık kuyu planından aynen alınır ( ikinci kez
 hesaplanmaz );  ön duvar dolu çizilir ( kesit kapı lentosunun üstünden geçer ).
-Tavanda:  kabin tavanı ve şase dikmeleri, kapı operatörü ( kapı tipine göre
+Tavanda:  kabin tavanı, şase dikmeleri ve **şasenin üst kirişi** ( ray ekseninde
+dikmeden dikmeye;  kuyu planındaki kiriş zarfı, `sase_dikme_derinlik` 300 —
+ÇİZİM KABULÜ, tedarikçi profili yok ), kapı operatörü ( kapı tipine göre
 kanatların kaydığı boy ), askı ( kabin üstünde kasnaklar · kabin altında
 halatların tavan dışından geçtiği yer · doğrudan askıda askı noktaları ).
 Standarttan hesaplananlar:
@@ -533,15 +535,42 @@ Standarttan hesaplananlar:
 | Küpeşte kuyudaki parçalardan **≥ 0,10 m** | m.5.4.7.4 d | Gerekirse kenardan içeri alınır, ölçüsü yazılır |
 | Küpeşte kenardan **≤ 0,15 m** içeride | m.5.4.7.4 c | Aşılırsa çizim reddedilir |
 | Yükseklik:  küpeşte – duvar **≤ 0,50 m → 0,70 m**, aşarsa **1,10 m** | m.5.4.7.4 b | Küpeştenin yanına yazılır |
-| Sığınma alanı **0,40 × 0,50** ( dik duruş ) / **0,50 × 0,70** ( çömelme ) | m.5.2.5.7.1 · Çizelge 3 | Korkulukların içinde, operatör ve askı dışında, kapıya en yakın yere konur ( 25 mm adımla;  dar boşlukta engelin kenarına yaslanarak );  yer yoksa reddedilir |
+| Sığınma alanı **0,40 × 0,50** ( dik duruş ) / **0,50 × 0,70** ( çömelme ) | m.5.2.5.7.1 · Çizelge 3 | Korkulukların içinde, operatör, askı ve ( kabin altı / doğrudan askıda ) şasenin üst kirişi dışında, kapıya en yakın yere konur ( 25 mm adımla;  dar boşlukta engelin kenarına yaslanarak );  yer yoksa reddedilir |
 
 Ayrıca:  kabin altı askıda halat kuyudaki bir parçanın içinden geçemez;
 kabin üstü kasnağı korkuluğun yolunu kesemez;  yan korkuluk kapı operatörünün
 arka yüzünden başlar ( eskiden tavanın bütün derinliğince çiziliyor, ön dikmesi
 operatörün içinde duruyordu );  kabin rayı ekseni kabinin derinliği içinden
 geçmelidir.
-Çizilmeyenler:  şase üst kirişi ve revizyon kutusu ( tedarikçi ölçüsü yok ),
-etek tahtası ( planda tavan kenarıyla çakışır ).
+Çizilmeyenler:  revizyon kutusu ( tedarikçi ölçüsü yok ), etek tahtası ( planda
+tavan kenarıyla çakışır ).  ( Üst kiriş 3 Eki'ye kadar çizilmiyordu:  kullanıcı
+"kabin üstü kesitinde süspansiyon görünmeli".  Sığınma alanının yer ölçüleri
+kirişe binmeyen sıraya, korkuluk yazısı kirişin dışına konur.  **Sığınma alanı kirişin altına girmez**
+( kabin altı ve doğrudan askıda;  kullanıcı kararı 4 Eki ):  çömelme hacmi
+1,0 m yüksektir, kiriş tavandan ~0,2 m yukarıdan geçer.  Eskiden alan kirişin
+altına giriyordu ( gerçek projelerde 30 – 300 mm, 1022 ve 800 KG'de tamamen );
+şimdi kirişin önüne / arkasına kayar — dört gerçek projede de sığar,
+yükseklikler aynı kalır.  320 kg'ın ( 900 × 1.000 ) yan ağırlıklı 2:1
+düzenlerinde kiriş tavanı ikiye böler, çömelme alanına yer kalmaz:  çizim
+söyler ( kirişin eni `sase_dikme_derinlik` 300 — ÇİZİM KABULÜ;  tedarikçinin
+şasesi darsa Sabitler'den küçültülür ).  Hesabın referans taraması bu yüzden
+yeniden üretildi ( yalnız 320 kg'ın sığınma ara değerleri ).  **Kabin üstü
+askıda henüz sayılmaz:**  kasnaklar askı ekseninde, kiriş ray ekseninde iki
+ayrı bant olur, tavan dar şeritlere bölünür ( köprü testinin düzeninde 461 · 54 ·
+386 mm ) ve kabin üstü askılı düzenlerin çoğu, 12495-18 de, "yer yok" derdi.
+Gerçekte kasnaklar genelde kirişin üstüne oturur;  kasnaklar kirişe alınınca
+kural oraya da uygulanır. )
+
+**Kuyu planında ( C-C ) askı:**  plan kabinin ortasından kesilir, yukarıdan
+bakılır.  Şase dikmeleri kesilir ( düz );  üst kiriş, kabin üstü kasnaklar ve 1:1
+bağlantısı kesitin üstünde, alt kiriş ve kabin altı kasnaklar ile taşıyıcıları
+kabin döşemesinin altında kalır:  **kesik çizgiyle** ( GIZLI ) çizilir, askı
+ölçüleri yerinde kalır.  Kabin altı kasnağın kabinin dışına taşan ucu açıktadır,
+düz çizilir ( halat oradan iner ).  LiftDesigner'ın kuyu planı şase kirişlerini
+hiç çizmez, kabin altı kasnağın yalnız dışarıdaki ucunu çizer ( 4815-6 );
+referans projenin yatay kesiti kabin altındakileri kesik çizer.  Eskiden hepsi
+düz çiziliyor, şase ve kasnaklar kabinin içinden geçiyor görünüyordu ( 3 Eki,
+kullanıcı:  "kabin içinden geçen kesitte süspansiyon görünmemeli" ).
 
 **Kuyu dibi planı** ( kuyu tabanından yatay kesit ):  duvarlar, raylar ve
 konsollar kuyu planından;  kabin bu kesitte yoktur ve çizilmez, kat kapısı
@@ -882,6 +911,48 @@ boşluğuna montajda kasa da boşlukta ), A-A'da kapı ünitesi duvardaysa boşl
 eşiğin altından başlar, makine dairesi planında oda kapısında.  Kapının üstünden
 ya da altından kesilen planlarda ( kabin üstü, kuyu dibi, kuyu üstü, delik
 planı ) ön duvar kesintisizdir ( `geometri.plan(…, kapi_duzeyi=False)` ).
+
+### Kanat sayısı ve kanat cebi ( 3 Eki )
+
+Otomatik kapının kanatları açılınca kapı boşluğunun yanında üst üste durur:
+kat ve kabin kapısı ünitesi o yanda **bir kanat eni + 30** uzanır ( kanat cebi,
+`girdi.kanat_cepleri`;  `Sabitler › kanat_cebi_payi` 30 ).  Kaynaklar:
+
+* LiftDesigner'ın altı projesi ( 2 kanatlı teleskopik ):  DW 800 → 430,
+  900 → 480, 1.100 → 580 — çizimimiz dördünde birebir aynı yerde ( `testler/test_kapilar.py` ).
+* Fermator 40/10 katalogu:  kanat eni PL / n + 39, ünite eni T2 1,5·PL + 40,
+  T3 1,35·PL + 40, T4 1,25·PL + 40, C2 2·PL + 40, C4 1,5·PL + 40 — aynı kural
+  3 ve 4 kanat için de geçer.
+* Referans proje ( Door Detail 1/35 ):  2 kanatlı teleskopik, 900'lük kapıda ünite 1.390 – 1.400.
+
+Tip `kat_kapisi_tipi`'nden okunur ( `girdi.kapi_tipi` ):
+
+| Tip | Kanat | Düzlem | Cep | Eşik |
+|---|---|---|---|---|
+| Teleskopik Sol / Sağ | 2 | 2 | açıldığı yanda DW/2 + 30 | 90 |
+| Teleskopik 3 Kanat Sol / Sağ | 3 | 3 | açıldığı yanda DW/3 + 30 | 135 ( Fermator T3 ) |
+| Otomatik Merkezi | 2 | 1 | iki yanda DW/2 + 30 | 90 |
+| Otomatik Merkezi 4 Kanat | 4 | 2 | iki yanda DW/4 + 30 | 90 |
+| Manuel | 1 | 1 | yok ( ok çizilmez ) | 90 |
+
+Eşik = 90 + ( düzlem − 2 ) × 45 ( kanat aralığı );  kabin eşiği de aynı.
+Teleskopikte cebe en yakın kanat duvar tarafındaki düzlemdedir.  Planda cep
+ile her düzlemin durdurucusu çizilir;  B-B'de düzlem ayrımları, kabin üstü
+planında operatör cebin üstüne uzanır.  Yeni üç tip hesap programının kapı
+listesine de eklendi ( kapı kablosu 24 x 0,75, öteki otomatiklerle aynı ).
+
+Denetim ( `girdi.dogrula` ):  cep kuyunun içinde kalmalıdır — kalmazsa çizim
+durur ve **sığan tipleri** söyler;  sığıyorsa planda cep ( kat ve kabin kapısı )
+karşı ağırlığın ön rayına / konsoluna / bloğuna, kabin rayının plakasına,
+koluna ve ara kirişine çarpmamalıdır ( `geometri.kanat_cebi_carpismalari` ).
+Bulgular:  yan ağırlıklı 26 standart düzenin 23'ünde kapı ağırlığa doğru
+açılınca cep ağırlığın ön rayına çarpar, tersine açılınca hiçbirinde çarpmaz —
+**kapı karşı ağırlığın tersine açılır**.  2.000 / 2.500 kg ( kapı 1.300 / 1.400 )
+2 kanatla standart kuyuya sığmaz ( cep 680 – 730, yer 575 );  3 kanatlı
+teleskopik ya da 4 kanatlı merkezi gerekir.
+
+( Eskiden kanat sayısı yoktu:  planda hep 2 kanat, cep çizilmiyordu, Manuel
+kapıda da açılma oku vardı. )
 
 ( Eskiden kanatlar eşiğin arkasına, kabin eşiğinin ve kabinin içine düşüyordu;
 örnek girdi referans projenin 1017'sini iç yüzden okuyup arka duvarı 150 mm geride
