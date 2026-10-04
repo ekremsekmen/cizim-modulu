@@ -453,12 +453,15 @@ def gorunus(parcalar, B, _dik, _daire, _cizgi):
             ua, ub = B.u(a, b), B.u(d, f)
             if abs(ua - ub) + abs(c - h) > 1e-9:
                 e.append(_el(p["katman"], p["ad"], p["parca"], _cizgi(p["katman"], ua, c, ub, h)))
+                B.derin_kutu(e[-1], (x0, y0, x1, y1))
             continue
         bakis_ekseni = "x" if B.tur == "yan" else "y"
         if p["tur"] == "silindir" and p["eksen"] == bakis_ekseni:
             x, y, z = p["merkez"]
             e.append(_el(p["katman"], p["ad"], p["parca"], _daire(p["katman"], B.u(x, y), z, p["cap"] / 2.0)))
-            continue
-        u0, u1 = B.aralik((x0, y0, x1, y1))
-        e.append(_el(p["katman"], p["ad"], p["parca"], _dik(p["katman"], u0, z0, u1 - u0, z1 - z0)))
+        else:
+            u0, u1 = B.aralik((x0, y0, x1, y1))
+            e.append(_el(p["katman"], p["ad"], p["parca"], _dik(p["katman"], u0, z0, u1 - u0, z1 - z0)))
+        #  Kesitte bakış eksenindeki yeri ( kesit_parcalari.kabin_arkasi )
+        B.derin_kutu(e[-1], (x0, y0, x1, y1))
     return e

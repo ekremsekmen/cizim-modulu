@@ -619,4 +619,26 @@ def ciz(g, cizim_sabitleri=None):
         e.append(O("dusey", (0, a), (0, b), Y["ex"] + 150, f"HALAT SAPMASI {abs(dy):g}"))
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     CGE._yazilari_yerlestir(e)
+    #  Halat sapmasının yazısı ölçüsünden uzundur:  uçlarından birinin dışına ya
+    #  da ölçünün üstüne / altına — duvara, makineye, şaseye ve öbür yazılara
+    #  binmeyen ilk yere ( eskiden sol uca, duvarın ve yan ölçülerin üstüne
+    #  düşüyordu — girdi taraması, 4 Eki ).
+    tasinir = []
+    for el in e:
+        if el["tip"] == "olcu" and el["metin"].startswith("HALAT SAPMASI"):
+            y_, w = el["yazi"], CGE._yazi_eni(el["metin"]) / 2.0
+            i = 0 if el["yon"] == "yatay" else 1
+            a, b = sorted((el["a"][i], el["b"][i]))
+            ic_ = (a + b) / 2.0 < (G if i == 0 else D) / 2.0     # içerisi hangi yanda
+            uclar = [b + 30 + w, a - 30 - w] if ic_ else [a - 30 - w, b + 30 + w]
+            #  İç yanda sıranın uzantısı boyunca ( makinenin ötesine kadar )
+            uzanti = [(b + 30 + w + 50 * n) if ic_ else (a - 30 - w - 50 * n) for n in range(1, 16)]
+            k_, ad = el["kot"], []
+            for d in (50, -50, 110, -110, 170, -170):
+                ad += [(u, k_ + d) if i == 0 else (k_ + d, u) for u in uclar + [(a + b) / 2.0]]
+            for d in (50, -50):
+                ad += [(u, k_ + d) if i == 0 else (k_ + d, u) for u in uzanti]
+            tasinir.append((el, [(y_["x"], y_["y"])] + ad))
+    if tasinir:
+        CGE._yazilari_coz(e, tasinir, ek_katman=("KUYU-DUVAR", "MAKINE", "KONSOL"))
     return e

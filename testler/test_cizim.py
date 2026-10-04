@@ -1577,8 +1577,14 @@ class KuyuKesitleri(unittest.TestCase):
             for ad in yok:
                 with self.subTest(cizim=ciz.__name__, gorunmez=ad):
                     self.assertFalse(self._elemanlar(e, ad))
-            self.assertEqual(len(self._elemanlar(e, "kabin_rayi")), kabin_rayi)
-            self.assertEqual(len(self._elemanlar(e, "agirlik_rayi")), 2)
+            #  Raylar tabandan başlayan parçalarıyla sayılır:  kabinin arkasında
+            #  kalan ray kabinin altında ve üstünde iki parçadır
+            #  ( kesit_parcalari.kabin_arkasi )
+            def raylar(ad):
+                p = self._elemanlar(e, ad)
+                return sum(1 for x in p if abs(x["y"] - min(q["y"] for q in p)) < 1e-6)
+            self.assertEqual(raylar("kabin_rayi"), kabin_rayi)
+            self.assertEqual(raylar("agirlik_rayi"), 2)
         #  Karşı ağırlık sağdaysa A-A sağa bakar
         e = CKK.yan_kesit(_sag_ayna(kuyu_dibi={"regulator_yan": "Sol"}))
         self.assertTrue(self._elemanlar(e, "makine"))

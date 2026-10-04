@@ -42,6 +42,22 @@ class Bakis:
     def u(self, x, y):
         return y if self.tur == "yan" else self.G - x
 
+    def derin(self, el, lo, hi):
+        """Elemanın bakış eksenindeki ( yan:  x, ön:  y ) aralığı — kabin_arkasi
+        kabinin arkasında kalanı onunla bulur.  Kesit düzlemi yoksa ( kasnak
+        düzenlemesi ) işaret konmaz."""
+        if self.kesit and el is not None:
+            el["_derin"] = (min(lo, hi), max(lo, hi))
+        return el
+
+    def derin_kutu(self, el, k):
+        eks = 0 if self.tur == "yan" else 1
+        return self.derin(el, k[eks], k[eks + 2])
+
+    def derin_nokta(self, el, x, y):
+        v = x if self.tur == "yan" else y
+        return self.derin(el, v, v)
+
     def aralik(self, k):
         return (k[1], k[3]) if self.tur == "yan" else (self.G - k[2], self.G - k[0])
 
@@ -52,12 +68,20 @@ class Bakis:
         el = CGE._dik(katman, u0, min(z0, z1), u1 - u0, abs(z1 - z0), tip=tip)
         if ad:
             CGE._ad(el, ad)
+        self.derin_kutu(el, k)
         e.append(el)
         return el
 
     def halat(self, e, x, y, z0, z1, ad="halat"):
         u = self.u(x, y)
-        e.append(CGE._ad(CGE._cizgi("HALAT", u, z0, u, z1), ad))
+        e.append(self.derin_nokta(CGE._ad(CGE._cizgi("HALAT", u, z0, u, z1), ad), x, y))
+
+    def halat_cizgisi(self, e, p0, p1, ad):
+        """Uçları plan noktası olan halat parçası ( x, y, z ) → ( x, y, z )."""
+        (x0, y0, z0), (x1, y1, z1) = p0, p1
+        el = CGE._ad(CGE._cizgi("HALAT", self.u(x0, y0), z0, self.u(x1, y1), z1), ad)
+        v0, v1 = (x0, x1) if self.tur == "yan" else (y0, y1)
+        e.append(self.derin(el, v0, v1))
 
 
 def uzaklik(B, k):
@@ -74,7 +98,7 @@ def kasnak(e, B, kutu, z, cap, duzlem, ad):
     daire = (duzlem == "x") == (B.tur == "on")
     if daire:
         u = B.u((kutu[0] + kutu[2]) / 2.0, (kutu[1] + kutu[3]) / 2.0)
-        e.append(CGE._ad(CGE._daire("KASNAK", u, z, cap / 2.0), ad))
+        e.append(B.derin_kutu(CGE._ad(CGE._daire("KASNAK", u, z, cap / 2.0), ad), kutu))
     else:
         B.kutu(e, "KASNAK", kutu, z - cap / 2.0, z + cap / 2.0, ad)
 
@@ -89,15 +113,17 @@ def kasnak_capraz(e, B, merkez, u, R, z, ad, adim=24):
         x, y = merkez[0] + R * math.cos(t) * u[0], merkez[1] + R * math.cos(t) * u[1]
         pts.append((B.u(x, y), z + R * math.sin(t)))
     for a, b in zip(pts, pts[1:]):
-        e.append(CGE._ad(CGE._cizgi("KASNAK", a[0], a[1], b[0], b[1]), ad))
+        e.append(B.derin_nokta(CGE._ad(CGE._cizgi("KASNAK", a[0], a[1], b[0], b[1]), ad), *merkez))
 
 
 def ray(e, B, r, S, ad):
     """Ray gövdesi tabandan üst ucuna, üstünde ek lamaları."""
     B.kutu(e, "RAY", r["kutu"], r["alt"], r["ust"], ad)
     for z in r["ekler"]:
-        B.kutu(e, "RAY", r["kutu"], z - S["ek_lama_boyu"] / 2.0, z + S["ek_lama_boyu"] / 2.0,
-               "ray_eki")
+        ek = B.kutu(e, "RAY", r["kutu"], z - S["ek_lama_boyu"] / 2.0, z + S["ek_lama_boyu"] / 2.0,
+                    "ray_eki")
+        if ek is not None:
+            ek["_ray"] = ad                  # kabin_arkasi:  eki rayıyla birlikte
 
 
 def konsollar(e, B, parcalar, kotlar, S, ad):
@@ -221,6 +247,15 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
         kasnak(el, B, P["agirlik_kasnak"], AK["kasnak_merkez"], g["agirlik"]["kasnak_capi"],
                "x" if g["agirlik"]["yeri"] == "Arka" else "y", "agirlik_kasnagi")
     um = sum(B.aralik(blok)) / 2.0
+    #  Ağırlık rayı bakışta ortadan geçiyorsa ( B-B'de yandaki, A-A'da arkadaki
+    #  ağırlık ) yazı rayın yanındaki geniş boşluğa:  eskiden rayın altında
+    #  kalıyordu.
+    b0, b1 = B.aralik(blok)
+    for r in ag_raylari:
+        r0, r1 = B.aralik(r["kutu"])
+        if r0 - 1e-6 <= um <= r1 + 1e-6:
+            um = (b0 + r0) / 2.0 if r0 - b0 >= b1 - r1 else (r1 + b1) / 2.0
+            break
     if B.gorunur(blok):
         el.append(CGE._ad(CGE._yazi(um, (AK["alt"] + AK["kasnak_merkez"]) / 2.0 - 200,
                                     "KARŞI AĞIRLIK", 40 * K, aci=90), "agirlik_yazi"))
@@ -302,7 +337,7 @@ def donanim(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
             ((uzak_x, y0, zk), (uzak_x, y0, zkb))] + agirlik + [   # kabin → kabin bağlantısı
             ((tx2, ty2, za), (tx2, ty2, zab))]:                 # ağırlık kasnağı → bağlantı
         if B.gorunur((x0_, y0_, x0_, y0_)):
-            e.append(CGE._ad(CGE._cizgi("HALAT", B.u(x0_, y0_), z0, B.u(x1_, y1_), z1), "aski_halati"))
+            B.halat_cizgisi(e, (x0_, y0_, z0), (x1_, y1_, z1), "aski_halati")
     if B.tur == "on":
         #  Kabinin altında iki kasnak arası
         r = g["aski"]["kasnak_capi"] / 2.0
@@ -318,8 +353,7 @@ def _regulator_halati(e, B, M, gr, rk, rgx):
     ry_ = M["regulator_y"]
     for yy in (ry_ - R, ry_ + R):
         if B.gorunur((rgx, yy, rgx, yy)):
-            e.append(CGE._ad(CGE._cizgi("HALAT", B.u(rgx, yy), rk[4], B.u(rgx, yy), gr["merkez"]),
-                             "regulator_halati"))
+            B.halat_cizgisi(e, (rgx, yy, rk[4]), (rgx, yy, gr["merkez"]), "regulator_halati")
 
 
 def _halatlar_capraz(e, B, M, KU, kt, AK, zt):
@@ -346,7 +380,7 @@ def _halatlar_capraz(e, B, M, KU, kt, AK, zt):
                                             ((hx, hy, zk), (hx, hy, zkb))] + agirlik + [
             ((bx, by, za), (bx, by, zab)), ((ax_, ay2, zk - Rk), (ox_, oy_, zk - Rk))]:
         if gorunur(x0_, y0_) or gorunur(x1_, y1_):
-            e.append(CGE._ad(CGE._cizgi("HALAT", B.u(x0_, y0_), z0, B.u(x1_, y1_), z1), "aski_halati"))
+            B.halat_cizgisi(e, (x0_, y0_, z0), (x1_, y1_, z1), "aski_halati")
 
 
 def _halatlar_1_1(e, B, g, M, KU, kt, AK, zt):
@@ -373,7 +407,7 @@ def _halatlar_1_1(e, B, g, M, KU, kt, AK, zt):
         return B.gorunur((x - 1.0, y - 1.0, x + 1.0, y + 1.0))
     for (x0_, y0_, z0), (x1_, y1_, z1) in [((hx, hy, kt["baglanti_ust"]), (hx, hy, zt))] + agirlik:
         if gorunur(x0_, y0_) or gorunur(x1_, y1_):
-            e.append(CGE._ad(CGE._cizgi("HALAT", B.u(x0_, y0_), z0, B.u(x1_, y1_), z1), "aski_halati"))
+            B.halat_cizgisi(e, (x0_, y0_, z0), (x1_, y1_, z1), "aski_halati")
 
 
 def kabin_on(e, B, g, Y, P, kt):
@@ -413,3 +447,90 @@ def korkuluk(e, B, Y, kt):
         for a, b in (((u0, z0), (u0, z1)), ((u0, z1), (u1, z1)), ((u1, z1), (u1, z0))):
             if a != b:
                 e.append(CGE._ad(CGE._cizgi("KORKULUK", *a, *b), "korkuluk"))
+
+
+def _kutu_farki(el, S):
+    """Dikdörtgen eleman eksi S ( u0, z0, u1, z1 ):  dışarıda kalan parçalar."""
+    x0, y0, x1, y1 = el["x"], el["y"], el["x"] + el["g"], el["y"] + el["d"]
+    if not (x0 < S[2] and S[0] < x1 and y0 < S[3] and S[1] < y1):
+        return [el]
+    parcalar = [(x0, y0, x1, S[1]), (x0, S[3], x1, y1),                       # alt · üst
+                (x0, max(y0, S[1]), S[0], min(y1, S[3])), (S[2], max(y0, S[1]), x1, min(y1, S[3]))]
+    cikti = []
+    for a, b, c, d in parcalar:
+        if c - a > 1e-6 and d - b > 1e-6:
+            yeni = dict(el, x=a, y=b, g=c - a, d=d - b)
+            cikti.append(yeni)
+    return cikti
+
+
+def _cizgi_farki(el, S):
+    """Çizgi eksi S:  S'nin dışında kalan ( en çok iki ) parça ( Liang–Barsky )."""
+    x1, y1, x2, y2 = el["x1"], el["y1"], el["x2"], el["y2"]
+    dx, dy = x2 - x1, y2 - y1
+    t0, t1 = 0.0, 1.0
+    for p, q in ((-dx, x1 - S[0]), (dx, S[2] - x1), (-dy, y1 - S[1]), (dy, S[3] - y1)):
+        if abs(p) < 1e-12:
+            if q < 0:
+                return [el]
+            continue
+        t = q / p
+        if p < 0:
+            t0 = max(t0, t)
+        else:
+            t1 = min(t1, t)
+        if t0 >= t1:
+            return [el]
+    cikti = []
+    for a, b in ((0.0, t0), (t1, 1.0)):
+        if b - a > 1e-9 and (b - a) * (abs(dx) + abs(dy)) > 1e-6:
+            cikti.append(dict(el, x1=x1 + a * dx, y1=y1 + a * dy, x2=x1 + b * dx, y2=y1 + b * dy))
+    return cikti
+
+
+def kabin_arkasi(e, B, kabin, z0, z1, onde=()):
+    """Düşey kesitte kabin OPAKTIR:  bakış ekseninde kabinin uzak yüzünün
+    ötesinde kalan parçalar ( işareti _derin ) kabinin görünüşünün ( u: kabinin
+    izi, z: taban altı – tavan ) içinde çizilmez.  onde:  kabinin üstünden
+    görünen parçaların adları ( A-A'da kabin rayı — referans projenin ve
+    LiftDesigner'ın yan kesitlerinde ray ve şase kabinin üstündedir ):  kabinin
+    hizasındaki parçaları çizim sırasında kabin gövdesinin hemen arkasına
+    alınır ( tamponun, patenlerin üstüne binmesinler ).  Eskiden kabinin yalnız SVG'deki beyaz
+    dolgusu örtüyordu:  DXF'te ( DWG, pafta ) raylar, konsollar, halatlar ve
+    B-B'de en üst kat kapısı kabinin içinden geçiyordu ( 4 Eki ).  İşaret
+    elemanlardan kaldırılır."""
+    eks = 0 if B.tur == "yan" else 1
+    yon = B.kesit[2]
+    uzak = kabin[eks] if yon < 0 else kabin[eks + 2]
+    u0, u1 = B.aralik(kabin)
+    S = (u0, z0, u1, z1)
+    kalan, ustte = [], []
+    for el in e:
+        d = el.pop("_derin", None)
+        ray = el.pop("_ray", None)
+        arkada = d is not None and (d[1] <= uzak + 1e-6 if yon < 0 else d[0] >= uzak - 1e-6)
+        if not arkada:
+            kalan.append(el)
+        elif (el.get("ad") in onde or ray in onde) and el["tip"] == "dikdortgen":
+            kalan += _kutu_farki(el, S)
+            x0, y0 = max(el["x"], S[0]), max(el["y"], S[1])
+            x1, y1 = min(el["x"] + el["g"], S[2]), min(el["y"] + el["d"], S[3])
+            if x1 - x0 > 1e-6 and y1 - y0 > 1e-6:
+                ustte.append(dict(el, x=x0, y=y0, g=x1 - x0, d=y1 - y0))
+        elif el["tip"] in ("dikdortgen", "tarama"):
+            kalan += _kutu_farki(el, S)
+        elif el["tip"] in ("cizgi", "eksen"):
+            kalan += _cizgi_farki(el, S)
+        elif el["tip"] == "daire":
+            r = el["r"]
+            if not (S[0] <= el["x"] - r and el["x"] + r <= S[2] and S[1] <= el["y"] - r and el["y"] + r <= S[3]):
+                kalan.append(el)
+        elif el["tip"] == "yazi":
+            if not (S[0] < el["x"] < S[2] and S[1] < el["y"] < S[3]):
+                kalan.append(el)
+        else:
+            kalan.append(el)
+    #  Kabin gövdesinin ( ve iç yüzünün ) hemen arkası
+    i = next((n for n, el in enumerate(kalan) if el.get("ad") == "kabin"), len(kalan) - 1)
+    i += 2 if i + 1 < len(kalan) and kalan[i + 1]["katman"] == "KABIN-IC" else 1
+    e[:] = kalan[:i] + ustte + kalan[i:]

@@ -422,8 +422,9 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
    doğrudan ), karşı ağırlık yeri ( sağ · sol · arka ), kapı tipi girdidendir.
 6. **Uzatma çizgisi yoktur, yazı kendi ölçüsünün yanındadır.**  Ölçü çizgisi
    yalnız iki uçtaki kısa çizgiyle çizilir ( SVG ve DXF — `dimse1/dimse2` ).
-   Bir iç parçayı ölçen ölçü ( eşikler, askı aralığı ve kaçıklığı ) planın
-   dışında değil, parçanın yanında durur.  Yazının yeri geometride bulunur
+   Bir iç parçayı ölçen ölçü ( askı aralığı ve kaçıklığı ) planın dışında
+   değil, parçanın yanında durur;  eşik zinciri ise "KAPI ARASI"nı böldüğü için
+   onun yanında, dış sıradadır ( aşağıda:  girdi taraması ).  Yazının yeri geometride bulunur
    ( `_yazilari_yerlestir` );  sığmayan yazı sıranın ucunun dışına ya da bir
    kat dışarı alınır, başka bir sıranın üstüne itilmez.  Sığmayan bir ARA
    ölçünün yazısı ortada bir parçanın ( ray, konsol, şase, tampon … —
@@ -432,6 +433,34 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
    üstündeydi ).  Testler:  hiçbir iki ölçü yazısı üst üste binmez, hepsi
    çerçevenin içindedir, hiçbir çizimde ölçü yazısı bir parçanın ya da etiketin
    üstüne düşmez.  Çerçeve yazıların enini ve hizasını da kapsar.
+
+   **Girdi taraması** ( 4 Eki;  kullanıcı:  "girdilerin ve gerçek projelerin
+   tamamında doğru çıktı, kusursuz doğruluk" ):  378 düzen ( 9 yük × ağırlık
+   sağ / sol / arka × makine dairesiz / daireli × askı, 7 kapı tipi, sığınma
+   tipleri, kapı montajı, hız ) programın yolundan ( `api_cizimler` ) geçti;  her
+   çizilen düzende bütün çizimler kuruldu, ölçü zincirleri, yazı – yazı ve ölçü
+   yazısı – parça çakışmaları sayıldı.  Önce 100 düzenin 94'ünde çakışma vardı
+   ( testler yalnız birkaç örneğe bakıyordu ), şimdi hiçbirinde yok.  Düzeltilenler:
+   * Kuyu planında eşik zinciri ( KAT KAPISI · aradaki açıklık · KABİN EŞİĞİ )
+     **sağdaki dış sıralarda, "KAPI ARASI"nın hemen içindedir** ( LiftDesigner
+     gibi ):  kapının yanındaki şerit kanat cepleri, kasa ve ara kirişle doluyor,
+     yazılar onların üstüne düşüyordu;  "şerit varsa içeride" de olmadı — girdi
+     oynayınca yer değiştiriyor, ölçüye tıklayınca kaynağı bulunamıyordu.
+   * Karşı ağırlığın yazısı bloğun içine düşüyorsa kasnağın çap yazısıyla tek
+     yazıdır ( "KARŞI AĞIRLIK  ø 400" ).
+   * Kabinin içindeki yazılar ( kasnak çapı, askı yazısı, kabin yazısı, askı
+     kaçıklığı ) çakışırsa sıradaki boş adaya taşınır ( `_yazilari_coz` );
+     parçaya binen ölçü yazısı kendi ölçüsü boyunca ya da ucunun dışında boş
+     yere kayar ( `_yazilari_yerlestir(kaydir=True)` kuyu planı ve kabin üstünde,
+     `_parcadan_kaydir` kuyu dibinde yük kutuları konduktan sonra — önce
+     kaydırılınca bir düzende yük kutusuna yer kalmıyordu ).
+   * Kabin üstünde sığınma alanının iki ölçü sırası adayları denenerek seçilir
+     ( yazılar gerçekten yerleştirilir, çakışmalar sayılır );  korkuluk yazısı
+     çizilen küpeşteye göre konur ( ön korkuluk operatörün arkasındadır — yazısı
+     tavanın kenarına göre konup operatöre biniyordu ), sığmazsa küpeştenin
+     dışına, o da olmazsa kısa yazıyla ( "h = 700" ).
+   * Kuyu üstünde HALAT SAPMASI yazısı duvara ve makineye binmeyen yere.
+   * B-B'de "KARŞI AĞIRLIK" yazısı ağırlık rayının yanına ( rayın altında kalıyordu ).
 7. **Yazı boyu SVG'de ve DXF'te aynıdır.**  Geometri yazının boyunu em
    ( font-size ) olarak verir;  DXF'te TEXT ve ölçü yazısı yüksekliği büyük harf
    yüksekliğidir ( Arial 0,716 em ) — `dxf.BUYUK_HARF` ile çarpılır.  Eskiden DXF
@@ -800,6 +829,17 @@ kırarak 1/30 çizer ).  İki kesit, planda A-A ve B-B işaretleriyle:
 |---|---|---|---|
 | A-A yan | kuyu derinliği boyunca, kabin ekseninden karşı ağırlığa;  kat kapıları solda | en alt durakta | seyir kadar yukarıda |
 | B-B ön | kuyunun arkasından kat kapılarına ( plandaki sol sağda görünür ) | en üst durakta | tamponunun çarpma arası üstünde |
+
+**Kabin opaktır** ( `kesit_parcalari.kabin_arkasi`, 4 Eki ):  bakış yönünde kabinin
+uzak yüzünün ötesinde kalan parçalar ( A-A'da ağırlık rayları, konsollar,
+halatlar, regülatör halatı;  B-B'de en üst durağın kat kapısı, kasası ve durak
+numarası ) kabinin görünüşü içinde ( kabinin izi × taban altı – tavan )
+çizilmez — kabinin altında ve üstünde iki parça kalırlar.  A-A'da **kabin rayı ve
+şase** kabinin üstünden görünür:  referans projenin yan kesitinin düzlemi rayın
+ekseninden geçer, LiftDesigner da rayı ve şaseyi kabinin üstüne çizer;  arkada
+kalan halatı ikisi de kabinin hizasında keser.  Eskiden kabinin yalnız SVG'deki
+beyaz dolgusu örtüyordu:  ekranda gizli olan raylar, konsollar ve kat kapısı DXF'te
+( DWG, pafta ) kabinin içinden geçiyordu, ekranda ise kabin rayı da gizleniyordu.
 
 **Planların seviyeleri** ( LiftDesigner'ın X-X · Y-Y · Z-Z'si gibi ):  her iki
 kesitte kesik çizgi, uçlarında ▽ ve harf;  plan başlıkları aynı harfi taşır

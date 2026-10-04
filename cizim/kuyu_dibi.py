@@ -646,6 +646,10 @@ def ciz(g, cizim_sabitleri=None):
         return e
     e += _yuk_etiketleri(e, noktalar, G, D)
     e.append(_perde_yazisi(e, perde_yazisi, p))
+    #  Parçaya ( ara kiriş, gergi ... ) binen ölçü yazıları, yük kutuları
+    #  konduktan sonra ölçüleri boyunca boş yere kayar ( girdi taraması, 4 Eki ).
+    #  Önce kaydırılınca bir düzende yük kutusuna yer kalmıyordu.
+    CGE._parcadan_kaydir(e, ek_katman=("YUK",))
     return e
 
 
@@ -657,6 +661,8 @@ def _perde_yazisi(e, yer, p):
     oklar = [((o["x1"], o["y1"]), (o["x2"], o["y2"])) for o in e if o.get("ad") == "yuk_oku"]
     engel = [CGE.sinir([o]) for o in e if o.get("ad") in ("yuk_kutusu", "yuk") or
              (o["tip"] == "yazi" and o["katman"] == "YAZI")]
+    #  Ölçü yazıları da ( eskiden sayılmıyordu — girdi taraması, 4 Eki )
+    engel += [CGE._yazi_kutusu(o) for o in e if o["tip"] == "olcu" and o.get("yazi")]
     boy = (p[1], p[3]) if aci else (p[0], p[2])
     orta = y if aci else x
     #  Tam adı sığmıyorsa ( oklar perdeyi sık kesiyor ) kısaltılır

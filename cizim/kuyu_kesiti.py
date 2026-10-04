@@ -411,6 +411,10 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
                                   S["esik_kalinlik"]), "kabin_esigi"))
     for kk in P["kabin_kanat"]:
         e.append(CGE._ad(CGE._dik("KAPI", kk[1], kt["doseme"], kk[3] - kk[1], kapi_h), "kabin_kanadi"))
+    #  Kabin opak:  yan duvarının arkasındaki ağırlık rayları, konsollar, halatlar
+    #  kabinin içinden görünmez;  kabin rayı ( ve şase — _kabin ) kabinin üstünden
+    #  görünür ( referans projenin ve LiftDesigner'ın yan kesitleri gibi ).
+    CKP.kabin_arkasi(e, B, kb, kt["taban_alti"], kt["tavan"], onde={"kabin_rayi"})
     #  Ölçüler
     _olculer_sol(e, Y, -don - L - 700 * K, K, kotlar, tavan, g)
     #  Görünen raylar karşı ağırlık tarafındakiler:  konsol zinciri onların
@@ -467,9 +471,9 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
         B.kutu(e, "KAPI", bos, zk, zk + kapi_h, "kat_kapisi")
         for ayrim in ayrimlar:
             u = B.u(ayrim, 0)
-            e.append(CGE._cizgi("KAPI", u, zk, u, zk + kapi_h))
-        e.append(CGE._ad(CGE._yazi(B.u((bos[0] + bos[2]) / 2.0, 0), zk + kapi_h * 0.6, f"{i + 1}",
-                                   90 * K), "durak_no"))
+            e.append(B.derin(CGE._cizgi("KAPI", u, zk, u, zk + kapi_h), -1, 0))
+        e.append(B.derin(CGE._ad(CGE._yazi(B.u((bos[0] + bos[2]) / 2.0, 0), zk + kapi_h * 0.6,
+                                           f"{i + 1}", 90 * K), "durak_no"), -1, 0))
     _kat_seviyeleri(e, g, S, kotlar, -dg, K, -1.0)
     CKP.kot_isareti(e, -dg - 200 * K, taban, CDU._kot(taban), K, -1.0)
     u_oda = None
@@ -479,6 +483,8 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     AK, kt = CKP.donanim(e, B, g, Y, P, H, M["agirlik"]["tampon_ustu"] + dy["agirlik_carpma_arasi"], K)
     CKP.kabin_on(e, B, g, Y, P, kt)
     CKP.korkuluk(e, B, Y, kt)
+    #  Kabin opak:  arkasında kalan kat kapısı ( en üst durak ) kabinin içinden görünmez
+    CKP.kabin_arkasi(e, B, Y["KD"]["kabin"], kt["taban_alti"], kt["tavan"])
     #  Ölçüler
     _olculer_sol(e, Y, -dg - 700 * K, K, kotlar, tavan, g)
     uzak = max((r for r in M["raylar"] if r["tur"] == "kabin"), key=lambda r: r["ust"])
