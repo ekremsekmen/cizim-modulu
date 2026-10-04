@@ -112,9 +112,14 @@ def hesapla(veriler=None):
     #  boyları, kasnak sayıları, makine yükünün kirişteki yeri — hesap bunları
     #  kendi tahmin etmez, çizimin girdilerden kurduğu yerleşimden alır.
     g.update(UG.yerlesim_olculeri(g))
-    hata = UG.dogrula(g)
+    #  Kuyunun geometrisi kurulamıyorsa ( çizimin plan doğrulaması ) hesap durur
+    geometri = g.pop("_geometri_hatasi", [])
+    hata = UG.dogrula(g) + geometri
     if hata:
-        return {"aktif": False, "hata": hata, "girdi": g}
+        s = {"aktif": False, "hata": hata, "girdi": g}
+        if geometri:
+            s["geometri_hatasi"] = geometri          # hesapla_coklu adını ekler, kaldırır
+        return s
 
     muk = E_MUK.hesapla(g)
     if not muk.get("aktif"):                       # olmamalı — dogrula geçti
@@ -287,6 +292,12 @@ def hesapla_coklu(asansorler=None, ortak=None):
         s = hesapla({**ortak, **g, **pg})
         s["no"] = i
         s["tanim"] = str(g.get("asansor_adi") or "").strip() or f"{i} nolu asansör"
+        #  Kuyunun geometrisi asansöre özgüdür:  çok asansörlü projede hangisinin
+        #  olduğu söylenir ( ofis değerinin hatası gibi tekilleştirilmez ).
+        geometri = s.pop("geometri_hatasi", None)
+        if len(ham) > 1 and geometri:
+            s["hata"] = [h for h in s["hata"] if h not in geometri] + \
+                [f"{s['tanim']}:  {h}" for h in geometri]
         if s.get("aktif"):
             #  Asansörün kalan bölümleri boşluksuz 1..N diye yeniden
             #  numaralanır — paftada 11-12-13 diye gitsin.

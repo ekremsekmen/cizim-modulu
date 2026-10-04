@@ -417,7 +417,27 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
    Parçalar da birbirine göre denetlenir:  karşı ağırlık kendi rayları
    arasına ( genişlik < DBGW ), kabin şasesi kabin rayları arasına ( < DBG )
    sığar, kat kapısı kabinin önüne düşer, ağırlık yandaysa o taraftaki kabin
-   rayının ara kirişi ağırlıkla ray arasına sığar.
+   rayının ara kirişi ağırlıkla ray arasına sığar.  Kabinin iç yüksekliği ve kat
+   kapısının yüksekliği en az 2.000 mm ( m.5.4.1 · m.5.3.1.1 ), kapı kabinin iç
+   yüksekliğinden yüksek değil ( `girdi.dogrula`, 4 Eki — eskiden 1.500'lük kabin
+   ve kabinden yüksek kapı sessizce çiziliyordu ).
+
+   **Kuyunun geometrisi kurulamıyorsa HESAP DA DURUR** ( kullanıcı kararı 4 Eki ):
+   hesap geometriyi çizimden alırken ( `engine/uygulama/girdi.yerlesim_olculeri` )
+   çizimin plan doğrulamasını ( `girdi.dogrula` ) da koşar;  hata varsa hesap
+   kurulmaz, aynı iletiler söylenir ( çok asansörlü projede asansörün adıyla ).
+   Eskiden kabin kuyuya sığmasa da hesap kuruluyor, özet yalnız "engelleyici"
+   diyordu — imkânsız bir kuyunun raporu yazdırılabiliyordu.  Çizimin yalnız
+   ÇİZEMEDİĞİ durumlarda ( makaralı kabin pateni, 3 tampon, yana kaçık askı —
+   köprünün iletileri ) hesap sürer.  Not:  formda karşı ağırlık sola alınıp
+   kapı ( varsayılan Teleskopik Sol ) değiştirilmezse kapı ağırlığa doğru açılır,
+   kanat cebi ara kirişe çarpar — artık hesap da durur, ileti "kapıyı öbür yana
+   açın" der.
+
+   **Tampon adedi** tam sayıdır, sıfır olamaz ( hesap da durur );  çizim 1 ya da
+   2 tampon çizer, ikisinde "Kabin / Ağırlık tamponları arası" ( Gelişmiş ) girilir.
+   Eskiden 0 ve 1,5 sessizce 1 sayılıyor, 2'de istenen aralığın formda kutusu yoktu.
+   Testler:  `testler/test_mantik_denetimi.py`.
 5. **Yerleşim seçilir, koda gömülmez.**  Askı düzeni ( kabin altı · kabin üstü ·
    doğrudan ), karşı ağırlık yeri ( sağ · sol · arka ), kapı tipi girdidendir.
 6. **Uzatma çizgisi yoktur, yazı kendi ölçüsünün yanındadır.**  Ölçü çizgisi

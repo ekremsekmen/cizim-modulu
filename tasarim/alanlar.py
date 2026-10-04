@@ -947,13 +947,22 @@ _GRUPLAR = (
         #  "evenly distributed between the total number of car buffers" der:
         #  toplam 4·gn·(P+Q)'dur ama döşemenin TAŞIYACAĞI şey tampon BAŞINA
         #  düşendir.
+        #  Tam sayı ve bölen:  0 ya da 1,5 eskiden sessizce 1 sayılıyordu ( 4 Eki ).
         A('kabin_tampon_adedi', 'Kabin tamponu adedi', 'adet', 'sayi', None, 1,
-          kaynak=GIRDI, sozlesme=MUK, gelismis=True,
+          kaynak=GIRDI, sozlesme=MUK, gelismis=True, tam_sayi=True, bolen=True,
           bilgi=('Kabinin altındaki tampon sayısı. Kuyu tabanına gelen toplam kuvvet bu sayıya '
-                 'bölünerek bir tampon altına düşen yük bulunur.')),
+                 'bölünerek bir tampon altına düşen yük bulunur.  Çizim 1 ya da 2 tampon çizer.')),
+        A('kabin_tampon_arasi', 'Kabin tamponları arası  ( iki tamponda )', 'mm', 'sayi', None, None,
+          kaynak=GIRDI, sozlesme=CIZ, gelismis=True,
+          bilgi=('İki kabin tamponunun eksenleri arası.  Tamponlar kabin rayı ekseninde, kabinin '
+                 'ortasına simetrik çizilir.  Tek tamponda boş kalır.')),
         A('agirlik_tampon_adedi', 'Ağırlık tamponu adedi', 'adet', 'sayi', None, 1,
-          kaynak=GIRDI, sozlesme=MUK, gelismis=True,
-          bilgi='Karşı ağırlığın altındaki tampon sayısı.'),
+          kaynak=GIRDI, sozlesme=MUK, gelismis=True, tam_sayi=True, bolen=True,
+          bilgi='Karşı ağırlığın altındaki tampon sayısı.  Çizim 1 ya da 2 tampon çizer.'),
+        A('agirlik_tampon_arasi', 'Ağırlık tamponları arası  ( iki tamponda )', 'mm', 'sayi', None, None,
+          kaynak=GIRDI, sozlesme=CIZ, gelismis=True,
+          bilgi=('İki ağırlık tamponunun eksenleri arası.  Tamponlar ağırlığın boyunca, ortasına '
+                 'simetrik çizilir.  Tek tamponda boş kalır.')),
         A('kabin_tampon_boyu', 'Kabin tamponu uzunluğu', 'mm', 'sayi', None, 100,
           kaynak=KATALOG, sozlesme=MUK, gelismis=True,
           bilgi='Tamponun kendi boyu ( ezilmemiş hâlde ).'),

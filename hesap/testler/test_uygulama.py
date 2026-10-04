@@ -103,6 +103,12 @@ def calistir():
     for anahtar, eski, yeni, olcut, aciklama in OYNAT:
         ek = dict(TAM)
         ek[anahtar] = yeni
+        #  Kabin büyürken kuyu da büyür ( 950 geniş, 450 derin ):  kabini kuyuya
+        #  sığmayan projenin hesabı durur ( 4 Eki ).
+        if anahtar == "kabin_genisligi":
+            ek["kuyu_genisligi"] = yeni + 950
+        if anahtar == "kabin_derinligi":
+            ek["kuyu_derinligi"] = yeni + 450
         y = UY.hesapla(ek)
         if not r.kontrol(f"köprü senaryosu koşuyor: {anahtar}", y["aktif"],
                          f"→ {y.get('hata')}"):
@@ -318,14 +324,14 @@ def calistir():
               any("I2" in x for x in _b14["sonuc"]["alt"]), f"→ {_b14['sonuc']['alt']}")
     r.kontrol("② akım yetersizken proje uygun değil",
               _s2["ozet"]["tumu_uygun"] is False)
-    #  Fiziksel imkânsızlık ENGELLEYİCİ
+    #  Fiziksel imkânsızlıkta HESAP DURUR ( kullanıcı kararı 4 Eki ):  kuyunun
+    #  geometrisi kurulamıyorsa ( çizimin plan doğrulaması ) rapor üretilmez,
+    #  sebep söylenir.  Eskiden hesap kuruluyor, özet "engelleyici" diyordu.
     _kk = UH.hesapla(UG.tamamla(dict(UG.varsayilanlar(), **_temiz,
                                      kabin_genisligi=1850, kuyu_genisligi=1800)))
-    r.kontrol("② kabin kuyuya sığmıyorsa proje uygun değil",
-              _kk["ozet"]["tumu_uygun"] is False)
-    r.kontrol("② engelleyici uyarı ayrı listede",
-              len(_kk["ozet"].get("engelleyici") or []) >= 1,
-              f"→ {_kk['ozet'].get('engelleyici')}")
+    r.kontrol("② kabin kuyuya sığmıyorsa hesap durur", _kk.get("aktif") is False)
+    r.kontrol("② sebebi söylenir",
+              any("kuyu genişliğinden" in h for h in _kk.get("hata") or []), f"→ {_kk.get('hata')}")
     #  Zorunlu hesap yapılamıyorsa EKSİK
     _ek = UH.hesapla(UG.tamamla(dict(UG.varsayilanlar(), **_temiz,
                                      temel_a=10, temel_b=None)))
@@ -1275,10 +1281,10 @@ def calistir():
         """Alanı GEÇERLİ kalacak şekilde değiştir;  değiştirilemiyorsa None."""
         t = f["tur"]
         if t == "onay":
-            return not simdiki
+            return [not simdiki]
         if t == "secim":
             baska = [x for x in (f["secenekler"] or []) if str(x) != str(simdiki)]
-            return baska[0] if baska else None
+            return baska[:1] or None
         if t == "sayi":
             v = simdiki if isinstance(simdiki, (int, float)) else 0
             #  KESİT ALANLARI BASAMAK FONKSİYONUDUR.  Koruma iletkeni ve
@@ -1287,8 +1293,13 @@ def calistir():
             #  ( 6 → 7,9 ) hiçbir basamağı atlamaz ve bölüm kımıldamaz.
             #  Bağı GERÇEKTEN sınamak için bir basamak aşan bir sıçrama gerekir.
             if f["anahtar"] in ("kolon_kesit", "makine_kesit"):
-                return round(v * 8 + 1, 3)
-            return round(v * 1.15 + 1, 3)
+                return [round(v * 8 + 1, 3)]
+            #  Adetler tam sayıdır;  ölçüler önce büyür, kuyunun geometrisini
+            #  bozuyorsa ( kabin kuyuya sığmıyor — hesap durur, 4 Eki ) küçülür.
+            from engine.uygulama import mukavemet_girdi as _MGI
+            if f["anahtar"] in _MGI.TAM_SAYI_ALANLARI:
+                return [v + 1] + ([v - 1] if v > 1 else [])
+            return [round(v * 1.15 + 1, 3), round(v * 0.9, 3)]
         return None                       # metin ve liste: sonuca girmez / ayrı denenir
 
     _taban = UY.hesapla_coklu([{}], _ORTAK_T)
@@ -1300,15 +1311,26 @@ def calistir():
     for _gr in _arayuz["gruplar"]:
         for _f in _gr["alanlar"]:
             _a = _f["anahtar"]
-            _yeni = _oynat(_f, _tg.get(_a))
-            if _yeni is None:
+            _adaylar = _oynat(_f, _tg.get(_a))
+            if _adaylar is None:
                 _denenemeyen.append(_a)
                 continue
-            _s = (UY.hesapla_coklu([{}], dict(_ORTAK_T, **{_a: _yeni}))
-                  if _a in UG.PROJE_GENELI_ALANLAR
-                  else UY.hesapla_coklu([{_a: _yeni}], _ORTAK_T))
+            #  Kabin büyüyünce kuyu da aynı kadar büyür:  kabini kuyuya sığmayan
+            #  projenin hesabı durur ( 4 Eki ) — kabin yalnız küçülebilseydi
+            #  aydınlatmanın armatür sayısı ( ROUNDUP ) kımıldamazdı.
+            _kuyusu = {"kabin_genisligi": "kuyu_genisligi", "kabin_derinligi": "kuyu_derinligi"}
+            for _yeni in _adaylar:
+                _ek = {_a: _yeni}
+                if _a in _kuyusu and isinstance(_tg.get(_a), (int, float)) \
+                        and isinstance(_tg.get(_kuyusu[_a]), (int, float)):
+                    _ek[_kuyusu[_a]] = _tg[_kuyusu[_a]] + (_yeni - _tg[_a])
+                _s = (UY.hesapla_coklu([{}], dict(_ORTAK_T, **_ek))
+                      if _a in UG.PROJE_GENELI_ALANLAR
+                      else UY.hesapla_coklu([_ek], _ORTAK_T))
+                if _s.get("aktif"):
+                    break
             if not _s.get("aktif"):
-                _denenemeyen.append(_a)      # bu değerle girdi geçersiz oluyor
+                _denenemeyen.append(_a)      # bu değerlerle girdi geçersiz oluyor
                 continue
             _yeni_ic = _bolum_icerigi(_s)
             for _kim in set(_taban_ic) | set(_yeni_ic):
@@ -1546,6 +1568,12 @@ def _pafta_zinciri(r):
          "kabin_genisligi": "1100", "kabin_derinligi": "1400", "sarilma_acisi": "175",
          "aski_orani": "1", "kabin_kaciklik": "60"},
     ]
+    #  Kuyu kabinden 950 geniş, 450 derin:  geometrisi kurulamayan kuyunun
+    #  hesabı durur ( 4 Eki ) — eskiden bu asansörler varsayılan kuyuya sığmıyordu.
+    for _a in _asansorler:
+        if "kabin_genisligi" in _a:
+            _a.setdefault("kuyu_genisligi", str(int(_a["kabin_genisligi"]) + 950))
+            _a.setdefault("kuyu_derinligi", str(int(_a["kabin_derinligi"]) + 450))
     veri = {"proje_adi": "Zincir", "asansorler": _asansorler,
             "proje_geneli": {"mk_yok": False, "temel_a": "24", "temel_b": "15",
                              "serit_L": "60", "mk_uzunluk": "3800", "mk_genislik": "2600"},

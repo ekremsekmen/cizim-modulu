@@ -179,6 +179,11 @@ def _aski_olculeri(g):
     return (None, None, None, None)
 
 
+#  Kabinin iç yüksekliği ( TS EN 81-20 m.5.4.1 ) ve kapının net geçiş
+#  yüksekliği ( m.5.3.1.1 ) en az bu kadardır  ( mm )
+ASGARI_YUKSEKLIK = 2000.0
+
+
 def dogrula(g):
     """Eksik / geçersiz alanları metin listesi olarak döner ( boşsa temiz )."""
     hata = []
@@ -210,6 +215,21 @@ def dogrula(g):
     #  GEOMETRİ TUTARLILIĞI — çizim kâğıda sığsın, parçalar çakışmasın.
     S = _CS.sabitler(g.get("_cizim_sabitleri"))
     k, kb, kp = g["kuyu"], g["kabin"], g["kapi"]
+    #  YÜKSEKLİKLER ( kullanıcı kararı 4 Eki ):  kabinin iç yüksekliği ve kapının
+    #  net geçiş yüksekliği en az 2.000 mm;  kapı kabinin girişidir, kabinden
+    #  yüksek olamaz.  Eskiden 1.500'lük kabin, 1.800'lük ya da kabinden yüksek
+    #  kapı sessizce çiziliyor ve hesaplanıyordu.
+    kabin_h = (g.get("dusey") or {}).get("kabin_ic_yukseklik")
+    kapi_h = kp.get("yukseklik")
+    if _sonlu_sayi(kabin_h) and kabin_h < ASGARI_YUKSEKLIK:
+        hata.append(f"Kabin iç yüksekliği {kabin_h:g} mm:  TS EN 81-20 m.5.4.1 en az "
+                    f"{ASGARI_YUKSEKLIK:g} mm ister.")
+    if _sonlu_sayi(kapi_h) and kapi_h < ASGARI_YUKSEKLIK:
+        hata.append(f"Kat kapısı yüksekliği {kapi_h:g} mm:  TS EN 81-20 m.5.3.1.1 en az "
+                    f"{ASGARI_YUKSEKLIK:g} mm ister.")
+    if _sonlu_sayi(kabin_h) and _sonlu_sayi(kapi_h) and kapi_h > kabin_h:
+        hata.append(f"Kat kapısı yüksekliği ( {kapi_h:g} mm ) kabin iç yüksekliğinden "
+                    f"( {kabin_h:g} mm ) büyük olamaz:  kapı kabinin girişidir.")
     if kb["genislik"] >= k["genislik"]:
         hata.append(f"Kabin genişliği ({kb['genislik']}) kuyu genişliğinden ({k['genislik']}) küçük olmalı.")
     if kb["derinlik"] >= k["derinlik"]:

@@ -87,6 +87,9 @@ KURALLI = {
     "kabin_kasnak_arasi": ("aski", "kasnak_arasi"),
     "regulator_kaciklik": ("kuyu_dibi", "regulator_kaciklik"),
     "agirlik_tampon_boyu": ("dusey", "agirlik_tampon_boyu"),
+    #  Kuralı yok:  tek tamponda boştur ( etkin değeri de yok ),  ikisinde girilir
+    "kabin_tampon_arasi": ("kuyu_dibi", "kabin_tampon_arasi"),
+    "agirlik_tampon_arasi": ("kuyu_dibi", "agirlik_tampon_arasi"),
     "md_x": ("makine_dairesi", "x"),
     "md_y": ("makine_dairesi", "y"),
 }
@@ -299,6 +302,21 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
                     f"{carpma:g} + kabinin şase altı {S['sase_alt_derinlik']:g} = "
                     f"{baba + boy + carpma + S['sase_alt_derinlik']:g}, kuyu dibi {KY:g} — kabin "
                     f"tamponu kaidesine {dogru:g} girin ya da kutuyu boş bırakın ( çizimden gelir ).")
+    #  Yükseklikler ( en az 2.000, kapı kabinden yüksek değil ) girdi.dogrula'da:
+    #  hesap da o doğrulamada durur ( hesap.hesapla ).
+    kabin_h, kapi_h = sayi("kabin_ic_yuksekligi"), sayi("kapi_yuksekligi")
+    #  TAMPON ADEDİ:  çizim 1 ya da 2 tampon çizer;  ikisinde aralarındaki
+    #  uzaklık girilir.  Eskiden 0 ya da 1,5 sessizce 1 sayılıyor, 2'de istenen
+    #  "tamponlar arası"nın formda kutusu yoktu ( kullanıcı kararı 4 Eki ).
+    tampon = {}
+    for tur, et in (("kabin", "Kabin"), ("agirlik", "Ağırlık")):
+        n = sayi(f"{tur}_tampon_adedi", f"{et} tamponu adedi")
+        ara = sayi(f"{tur}_tampon_arasi", bos=True)
+        if n is not None and n not in (1, 2):
+            hata.append(f"{et} tamponu adedi {n:g}:  çizim 1 ya da 2 tampon çizer.")
+        elif n == 2 and ara is None:
+            hata.append(f"{ALAN[f'{tur}_tampon_arasi'][1]}:  iki tamponda girilmeli.")
+        tampon[tur] = (int(n) if n in (1, 2) else None, ara)
     if hata:
         return None, hata
 
@@ -362,7 +380,7 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
                     for y in ("on", "arka", "sol", "sag")}},
         "kabin": {"genislik": kb_g, "derinlik": kb_d, "kaciklik_y": kacik, "on_pay": on_pay},
         "kapi": {"genislik": kapi_g, "sol_pay": kx + kapi_kacik - kapi_g / 2.0,
-                 "yukseklik": sayi("kapi_yuksekligi"), "tip": A.get("kat_kapisi_tipi"),
+                 "yukseklik": kapi_h, "tip": A.get("kat_kapisi_tipi"),
                  "montaj": montaj},
         "kabin_ray": {"arasi": sayi("kabin_ray_arasi", bos=True) or kb_g + 200.0,
                       "kapi_arasi": kapi_arasi, "b": kr[0], "h": kr[1]},
@@ -374,14 +392,16 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         "kabin_ustu": {"siginma_tipi": sig_ust},
         "kuyu_dibi": {"derinlik": sayi("kuyu_dibi", "Kuyu dibi yüksekliği ( KY )"),
                       "siginma_tipi": sig_dip,
-                      "kabin_tampon_adedi": int(A.get("kabin_tampon_adedi") or 1),
-                      "agirlik_tampon_adedi": int(A.get("agirlik_tampon_adedi") or 1),
+                      "kabin_tampon_adedi": tampon["kabin"][0],
+                      "kabin_tampon_arasi": tampon["kabin"][1],
+                      "agirlik_tampon_adedi": tampon["agirlik"][0],
+                      "agirlik_tampon_arasi": tampon["agirlik"][1],
                       "regulator_yan": reg_yan, "regulator_kaciklik": reg_kacik,
                       "regulator_halat_capi": sayi("reg_halat_capi", "Regülatör halatı çapı"),
                       "regulator_kasnak_capi": sayi("reg_kasnak_capi", "Regülatör kasnak çapı"),
                       #  Hesap yapılamadıysa yok ( kutularda yalnız ad yazar )
                       "kuvvetler": kuvvetler(sonuc) or None},
-        "dusey": {"kabin_ic_yukseklik": sayi("kabin_ic_yuksekligi"),
+        "dusey": {"kabin_ic_yukseklik": kabin_h,
                   "kabin_paten_arasi": sayi("kabin_paten_arasi", "Kabin paten arası"),
                   "agirlik_paten_arasi": sayi("agirlik_paten_arasi", "Ağırlık paten arası"),
                   "son_kat": sayi("son_kat_yuksekligi", "Son kat yüksekliği"),

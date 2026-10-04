@@ -287,7 +287,9 @@ def _uygulama_gecerli(pg):
         "m_asansor_adi": "A2 — servis", "m_sarilma_acisi": "170",
         "m_kasnak_belgesi": "Var", "m_seyir_mesafesi": "37,5",
         "m_beyan_yuku": "1000", "m_kabin_agirligi": "990",
-        "m_agirlik_yeri": "Sol", "m_halat_adedi": "8"})
+        #  Kapı ağırlığın tersine açılır:  sola alınan ağırlığa doğru açılan kapının
+        #  kanat cebi ara kirişe çarpar, kuyunun geometrisi kurulmaz ( 4 Eki )
+        "m_agirlik_yeri": "Sol", "m_kat_kapisi_tipi": "Teleskopik Sağ", "m_halat_adedi": "8"})
     pg.evaluate("mAsansorSekmesi(0)")
     pg.wait_for_timeout(800)
     n += pg.evaluate(_DOLDUR, {

@@ -61,7 +61,9 @@ class OrnekProjeler(unittest.TestCase):
             "agirlik_carpma_arasi": 150, "agirlik_tampon_ezilme": 203,
             "kabin_konsol_arasi": 1500, "agirlik_konsol_arasi": 1500})
         g["kuyu_dibi"].update({"siginma_tipi": "Yatarak", "regulator_kasnak_capi": 240,
-                               "regulator_halat_capi": 6})
+                               "regulator_halat_capi": 6,
+                               #  tek tamponda tamponlar arası boş ( 4 Eki )
+                               "kabin_tampon_arasi": None, "agirlik_tampon_arasi": None})
         g["kabin_ustu"]["siginma_tipi"] = "Çömelme"
         if md:
             g["makine"].update(tip="Dişli", yeri="Makine dairesi", yan_yatak=140)
@@ -308,7 +310,11 @@ class Bolum11CizimdenOlculur(unittest.TestCase):
         #  ( gerçek projelerde yok;  arkadakinde kasnaklar kabin üstünde,
         #  çapraz ):  bölüm 11 HESAP EKSİK der, sebebini yazar
         for ek, metin in (({"aski_orani": 1}, "1:1 askı çizilmez"),
-                          ({"agirlik_yeri": "Arka", "aski_duzeni": "Kabin altı"},
+                          #  Kuyu ağırlığa yer açacak kadar derin ( 1.850'de kabin
+                          #  ile ağırlık arasında açıklık kalmıyor:  geometri
+                          #  kurulamaz, hesap durur — 4 Eki )
+                          ({"agirlik_yeri": "Arka", "aski_duzeni": "Kabin altı",
+                            "kuyu_derinligi": 2550},
                            "kabin üstünde çizilir")):
             ((g, hata),), s, _a = _kur(_veri(**ek))
             b = next(b for b in s["asansorler"][0]["bolumler"] if b["kimlik"] == "siginma_alanlari")
@@ -442,9 +448,25 @@ class Uclar(unittest.TestCase):
         self.assertTrue({"ASANSÖR 1", "ASANSÖR 2"} <= yazilar, yazilar)
 
     def test_cizimi_kurulamayan_paket_inmez(self):
+        #  Kuyusu kabine yetmeyen proje:  hesap da durur ( 4 Eki ), paket inmez,
+        #  sebep söylenir
         yanit = UC_UYG.indir_uygulama_dwg(_veri(kuyu_derinligi=1200))
         self.assertEqual(yanit.media_type, "application/json")
         d = json.loads(yanit.body)
+        self.assertTrue(any("kuyu derinliğinden" in h for h in d["hata"]), d["hata"])
+        #  Çok asansörlü projede hangi asansörün kuyusu olduğu yazılır:  hesabın
+        #  listesinde adıyla, paketin iletisinde sırasıyla
+        v = _veri()
+        v["asansorler"].append(dict(v["asansorler"][0], asansor_adi="Servis", kuyu_derinligi=1200))
+        asansorler, ortak = UC_UYG._asansor_girdileri(v)
+        s = E_UYG.hesapla_coklu(asansorler, ortak)
+        self.assertTrue(any(h.startswith("Servis:") and "kuyu derinliğinden" in h for h in s["hata"]),
+                        s["hata"])
+        d = json.loads(UC_UYG.indir_uygulama_dwg(v).body)
+        self.assertIn("2. asansör — Kabin derinliği", d["hata"])
+        #  Hesap kurulup çizim kurulamıyorsa ( çizimin henüz çizemediği düzen )
+        #  paket yine inmez
+        d = json.loads(UC_UYG.indir_uygulama_dwg(_veri(paten_tipi="Makaralı")).body)
         self.assertIn("ÇİZİMLER KURULAMADI", d["hata"])
         self.assertIn("1. asansör", d["hata"])
 

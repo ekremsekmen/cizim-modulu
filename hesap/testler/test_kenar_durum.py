@@ -1935,7 +1935,10 @@ def calistir():
                tahrik_kasnak_capi=400, saptirma_kasnak_capi=400, denge_zinciri="Var",
                tampon_tipi="Hidrolik  ( enerji yutmalı )", son_kat_yuksekligi=5000,
                kuyu_dibi=2500, kabin_ray_profili="125 x 82 x 16",
-               agirlik_ray_profili="89 x 62 x 15,88")
+               agirlik_ray_profili="89 x 62 x 15,88",
+               #  Kabin kuyuya sığmalı:  geometrisi kurulamayan kuyunun hesabı
+               #  durur ( 4 Eki ) — kuyu kabinden 950 geniş, 450 derin
+               kuyu_genisligi=3050, kuyu_derinligi=2050)
     _ua = _UH.hesapla_coklu([_gu], {"temel_a": 25, "temel_b": 15, "mk_yok": True})["asansorler"][0]
     _kz = _UG.kopru(_ua["girdi"])
     _kz["asansorler"][0].update(denge_zinciri="Var", zincir_birim_kutle=2 * 9 * _MT.halat_agirlik(10))
