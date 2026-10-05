@@ -884,28 +884,20 @@ def alt_duraktan_tavana(g):
     return sm * 1000.0 + sk
 
 
-def tabliye(g):
-    """Hesaba giren tabliye beton yüksekliği ( mm ).
-
-    Makine dairesiz ( MRL ) tesiste tabliye yoktur:  0.  Makine dairelide
-    girilen değer;  sayı değilse None.
-    """
-    if evet_mi(g.get("mk_yok")):
-        return 0.0
-    t = g.get("tabliye_yuksekligi")
-    return t if _sayi(t) else None
-
-
 def toplam_ray_boyu(g):
-    """Kılavuz ray toplam boyu ( m )  =  ( seyir + son kat + tabliye − 200 + kuyu dibi − 300 ) / 1000.
+    """Kılavuz ray toplam boyu ( m )  =  ( seyir + son kat − 200 + kuyu dibi − 300 ) / 1000
+    — çizim yoksa ( program raydan ölçer ).
 
-    Tabliye makine dairesiz tesiste 0'dır ( bkz. tabliye ).
+    Rayın üst ucu kuyu tavanının 200 altında:  makine daireli tesiste de ( son
+    kat kuyu tavanına ölçülür ).  5 Eki'ye kadar "+ tabliye" ekleniyordu:  tabliye
+    beton yüksekliği oda zemininden ölçülür, kuyu tavanının üstünde değildir —
+    raylar 1.000 mm uzun çıkıyordu ( tasarim/alanlar ).
     """
     tavan = alt_duraktan_tavana(g)
-    ky, kd = tabliye(g), g.get("kuyu_dibi")
-    if tavan is None or not (_sayi(ky) and _sayi(kd)):
+    kd = g.get("kuyu_dibi")
+    if tavan is None or not _sayi(kd):
         return None
-    return (tavan + (ky - 200) + (kd - 300)) / 1000.0
+    return (tavan - 200 + (kd - 300)) / 1000.0
 
 
 #  Nps  —  TEK YÖNDE BÜKÜLMELİ KASNAK SAYISI, BOŞ BIRAKILINCA  ( TS EN 81-50 Ek E )

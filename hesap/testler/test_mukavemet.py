@@ -66,23 +66,30 @@ ORNEK_PROJE = {
     "tahrik_yetenegi": (
         ("tahrik.bloke.T2", 219.19464000000002, "T2 bloke"),
     ),
+    #  RAY BOYU ( ve ona bağlı Mg, Fv, σv ):  ofisin kitabı LR'yi kat
+    #  yükseklikleri toplamı ( makine dairesi zeminine ) + ( kaide − 200 ) +
+    #  ( kuyu dibi − 300 ) diye alır ve son katı "en üst durak + kaide − 200"
+    #  girdirir;  örnek iki yere de 3.750 yazmıştı → kitapta 26.600.  Programda
+    #  son kat kuyu tavanına ölçülür, tabliye ( kitabın kaidesi ) bir kez daha
+    #  eklenmez:  21.000 + 3.750 − 200 + 1.300 = 25.850 ( 5 Eki;  LiftDesigner'ın
+    #  makine daireli üç projesi:  tabliye 1.200 oda zemininden ölçülür ).
     "kabin_raylari": (
-        ("kabin_ray.Mg", 329.30800000000005, "Mg kabin rayı kütlesi"),
+        ("kabin_ray.Mg", 320.023, "Mg kabin rayı kütlesi"),
         ("kabin_ray.xc", 155, "xc"),
-        ("kabin_ray.Fv", 3230.5114800000006, "Fv"),
+        ("kabin_ray.Fv", 3139.42563, "Fv"),
     ),
     "agirlik_raylari": (
         ("agirlik_ray.derinlik", 150, "ağırlık derinliği"),
         ("agirlik_ray.genislik", 960, "ağırlık genişliği"),
         ("agirlik_ray.Dxa", 15, "Dxa"),
         ("agirlik_ray.Dya", 48, "Dya"),
-        ("agirlik_ray.Mg", 98.42000000000002, "Mg ağırlık rayı kütlesi"),
-        ("agirlik_ray.Fv", 965.5002000000002, "Fv"),
-        #  ( Fv + k3·MY ) / A = ( 965,5 + 2 × 50 ) / 475  —  k3 = 2 ( ofis )
-        ("agirlik_ray.sv", 2.243158315789474, "σv"),
+        ("agirlik_ray.Mg", 95.64500000000001, "Mg ağırlık rayı kütlesi"),
+        ("agirlik_ray.Fv", 938.2774500000002, "Fv"),
+        #  ( Fv + k3·MY ) / A = ( 938,3 + 2 × 50 ) / 475  —  k3 = 2 ( ofis )
+        ("agirlik_ray.sv", 2.185847263157895, "σv"),
     ),
     "kuyu_tabani": (
-        ("kuyu.LR", 26600, "LR ray boyu"),
+        ("kuyu.LR", 25850, "LR ray boyu"),
     ),
     #  BİRLEŞİK PROGRAM:  açıklıklar kuyunun çiziminden ( cizim/dusey.py ) —
     #  elden, çizim sabitleriyle ( cizim/sabitler.py;  referans projenin kabini ):
@@ -112,7 +119,7 @@ ORNEK_PROJE = {
         ("siginma.dip_siginma", 1240, "kuyu dibi sığınma yüksekliği"),
     ),
 }
-ORNEK_OZET = (("S_gercek", 22.704560199764753), ("Mg_kabin", 329.30800000000005), ("Mg_agirlik", 98.42000000000002))
+ORNEK_OZET = (("S_gercek", 22.704560199764753), ("Mg_kabin", 320.023), ("Mg_agirlik", 95.64500000000001))
 
 
 def _yakin(a, b, tol=1e-7):
@@ -200,7 +207,7 @@ def calistir():
               _d["aktif"] and _d["ozet"]["tumu_uygun"],
               "→ " + ", ".join(x["baslik"] for x in (_d.get("bolumler") or [])
                                if (x.get("sonuc") or {}).get("uygun") is False))
-    r.esit("ray boyu (m)", s["ozet"]["ray_boyu"], 26.6)
+    r.esit("ray boyu (m)", s["ozet"]["ray_boyu"], 25.85)
     r.esit("kabin kişi sayısı", s["ozet"]["kabin_kisi"], 10)
 
     _kimlikler = {x["kimlik"]: x for x in b}
@@ -1742,17 +1749,20 @@ def _girdi_yollari(r):
                     "tabliye_yuksekligi": 750, "kuyu_dibi": 1600})
     r.esit("kuyu boyu = seyir · 1000 + son kat + kuyu dibi",
            s["girdi"]["kuyu_boyu"], 45000 + 4200 + 1600)
-    r.esit("ray boyu = ( seyir · 1000 + son kat + tabliye − 200 + kuyu dibi − 300 ) / 1000",
-           s["ozet"]["ray_boyu"], (45000 + 4200 + 550 + 1300) / 1000)
-    #  MRL'de tabliye yoktur:  aynı girdiyle ray boyu tabliyesiz, regülatör
-    #  halatı da tabliyesiz uzunlukla hesaplanır.
+    r.esit("ray boyu = ( seyir · 1000 + son kat − 200 + kuyu dibi − 300 ) / 1000",
+           s["ozet"]["ray_boyu"], (45000 + 4200 - 200 + 1300) / 1000)
+    #  Tabliye ray ve regülatör halatı boyuna girmez ( son kat kuyu tavanına
+    #  ölçülür;  tabliye oda zemininden — 5 Eki ):  MRL ile aynı, tabliye ne olursa olsun
     _m = MK.hesapla({"seyir_mesafesi": 45, "son_kat_yuksekligi": 4200,
                      "tabliye_yuksekligi": 750, "kuyu_dibi": 1600, "mk_yok": True})
+    _t = MK.hesapla({"seyir_mesafesi": 45, "son_kat_yuksekligi": 4200,
+                     "tabliye_yuksekligi": 1200, "kuyu_dibi": 1600})
     r.esit("MRL ray boyu = ( seyir · 1000 + son kat − 200 + kuyu dibi − 300 ) / 1000",
            _m["ozet"]["ray_boyu"], (45000 + 4200 - 200 + 1300) / 1000)
-    r.kontrol("MRL regülatör halatı tabliyesiz daha kısa",
-              _m["ara"]["regulator.gh"] < s["ara"]["regulator.gh"],
-              f"→ {_m['ara']['regulator.gh']!r} / {s['ara']['regulator.gh']!r}")
+    r.kontrol("ray boyu ve regülatör halatı tabliyeden bağımsız",
+              s["ozet"]["ray_boyu"] == _t["ozet"]["ray_boyu"]
+              and s["ara"]["regulator.gh"] == _t["ara"]["regulator.gh"] == _m["ara"]["regulator.gh"],
+              f"→ {_m['ara']['regulator.gh']!r} / {s['ara']['regulator.gh']!r} / {_t['ara']['regulator.gh']!r}")
     r.kontrol("form durak listesi göndermiyor",
               all(a[3] != "liste" and "durak" not in a[0] for a in MK.MG.ALANLAR))
 

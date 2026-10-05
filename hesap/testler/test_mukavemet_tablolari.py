@@ -366,11 +366,11 @@ def _girdi_sozlesmesi(r, kaynak):
     _gt = MG.tamamla(g)
     r.kontrol("varsayılan girdiler doğrulamadan temiz geçiyor", MG.dogrula(_gt) == [],
               f"→ {MG.dogrula(_gt)}")
-    #  Örnek projenin tabliyesi 750 mm'dir ( varsayılan artık 1.200 ).
-    r.esit("toplam ray boyu (m)  ( örnek proje, tabliye 750 )",
-           MG.toplam_ray_boyu(dict(g, tabliye_yuksekligi=750)), 26.6)
-    #  MAKİNE DAİRESİZ TESİSTE TABLİYE YOKTUR:  girilen değer ray boyuna girmez.
-    r.esit("toplam ray boyu (m)  ( MRL — tabliye yok )",
+    #  Tabliye ray boyuna girmez ( son kat kuyu tavanına ölçülür — 5 Eki;
+    #  eskiden örnek projenin tabliyesi 750 ile 26,6 )
+    r.esit("toplam ray boyu (m)  ( örnek proje )",
+           MG.toplam_ray_boyu(dict(g, tabliye_yuksekligi=750)), 26.6 - 0.75)
+    r.esit("toplam ray boyu (m)  ( MRL )",
            MG.toplam_ray_boyu(dict(g, mk_yok=True, tabliye_yuksekligi=750)), 26.6 - 0.75)
 
 

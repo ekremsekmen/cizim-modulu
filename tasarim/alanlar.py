@@ -133,9 +133,8 @@ _GRUPLAR = (
                  'hızı bandına doğrudan girer.')),
         A('mk_yok', 'Makine dairesiz  ( MRL )', '—', 'onay', None, True,
           kaynak=GIRDI, sozlesme=ELK, proje_geneli=True,
-          bilgi=('Makine dairesi var mı yok mu. Dairesiz ( MRL ) seçilirse tabliye betonu ve makine '
-                 'kaidesi kolonu yoktur: kiriş burkulma kontrolü yapılmaz, ray boyuna tabliye '
-                 'eklenmez.')),
+          bilgi=('Makine dairesi var mı yok mu. Dairesiz ( MRL ) seçilirse tabliye ve makine '
+                 'kaidesi kolonu yoktur: kiriş burkulma kontrolü yapılmaz.')),
         #  GÖSTERİM  n : 1'DİR, 1 : n DEĞİL.  Oran HALAT HIZININ KABİN HIZINA
         #  oranıdır;  paydadaki 1 kabindir, baştaki sayı halat / kasnak tarafına
         #  aittir ( 2:1'de halat iki kat hızlı gider, kuvvet yarıya iner ).
@@ -212,8 +211,9 @@ _GRUPLAR = (
                  ' farklı hacimler verir ( m.5.2.5.8 ).')),
         A('kuyu_duvar_kalinligi', 'Kuyu duvarı kalınlığı', 'mm', 'sayi', None, 150,
           kaynak=GIRDI, sozlesme=CIZ, gelismis=True,
-          bilgi=('Kuyunun duvarları ( kalınlığı ayrıca girilmeyenler ), kuyu dibinin ve makine '
-                 'dairesizde kuyu tavanının döşemesi bu kalınlıkta çizilir ( referans proje:  150 ).')),
+          bilgi=('Kuyunun duvarları ( kalınlığı ayrıca girilmeyenler ), kuyu dibinin ve kuyu '
+                 'tavanının döşemesi ( makine dairelide makinenin oturduğu tabliye ) bu kalınlıkta '
+                 'çizilir ( referans proje:  150 ).')),
         #  DUVARLAR AYRI AYRI ( kullanıcı isteği 2 Eki ):  LiftDesigner projelerinde
         #  kalınlıklar farklı ( 800 KG:  ön · arka 200, yanlar 250;  4815-6:  arka
         #  250, öbürleri 200 ).  Boş bırakılan duvar ortak kalınlığı alır;  planda
@@ -880,18 +880,23 @@ _GRUPLAR = (
         A('mk_genislik', 'Makine dairesi genişliği', 'mm', 'sayi', None, None,
           kaynak=GIRDI, sozlesme=ELK, proje_geneli=True, yerlesim="daireli",
           bilgi='Makine dairesinin plandaki genişliği.'),
-        #  TABLİYE BETON YÜKSEKLİĞİ  —  makine dairesinin beton döşemesi.
-        #  Kılavuz ray boyuna ve regülatör halatı boyuna "tabliye − 200 mm"
-        #  olarak girer ( ofis modeli ).  YALNIZ MAKİNE DAİRELİ TESİSTE SORULUR:
-        #  makine dairesiz ( MRL ) tesiste tabliye yoktur — makine kuyu
-        #  üstündeki NPU kirişlere oturur — ve hesaba 0 girer ( bkz. tabliye ).
-        #  Eskiden adı "Kaide yüksekliği"ydi ve MRL'de de 750 mm ekleniyordu:
-        #  olmayan bir tabliye ray ve regülatör halatı boyunu uzatıyordu.
-        #  Varsayılan 1.200 mm:  ofisin makine daireli şablonundaki değer.
+        #  TABLİYE BETON YÜKSEKLİĞİ  —  makine dairesinin ZEMİNİNDEN kuyunun
+        #  üstündeki betonun ( makinenin oturduğu tabliyenin ) üstüne yükseklik:
+        #  kuyu makine dairesine bu kadar taşar ( LiftDesigner'ın makine dairesi
+        #  kesiti:  1.200;  betonun kalınlığı ayrıca 120 ).  Ofisin mukavemet
+        #  Excel'inde adı "Kaide Yüksekliği" ( 750 ) ve son kat "en üst durak
+        #  yüksekliği + kaide − 200" diye girilir.  Programda son kat zaten kuyu
+        #  tavanına ölçülür:  tabliye ray ve regülatör halatı boyuna AYRICA
+        #  EKLENMEZ ( 5 Eki'ye kadar "tabliye − 200" ekleniyordu — bir kez daha
+        #  sayılıyordu;  çizim de onu kuyu tavanının üstünde 1.200 kalın beton
+        #  sanıyordu ).  Yalnız makine daireli tesiste sorulur;  odanın kesitini
+        #  ve makinenin başındaki temiz yüksekliği belirler ( çizim ).
         A('tabliye_yuksekligi', 'Tabliye beton yüksekliği', 'mm', 'sayi', None, 1200,
           kaynak=GIRDI, sozlesme=MUK, yerlesim="daireli",
-          bilgi=('Kuyu üstündeki tabliye betonunun kalınlığı. Yalnız makine daireli projede sorulur; '
-                 "MRL'de tabliye yoktur ve hesaba 0 girer.")),
+          bilgi=('Makine dairesinin zemininden kuyunun üstündeki beton tabliyenin ( makinenin '
+                 'oturduğu yerin ) üstüne yükseklik — kuyunun makine dairesine taşan kısmı. '
+                 'Betonun kalınlığı değildir. Zemin tabliyeyle aynı hizadaysa 0. Yalnız makine '
+                 'daireli projede sorulur.')),
         A('md_yukseklik', 'Makine dairesi iç yüksekliği', 'mm', 'sayi', None, 3500,
           kaynak=GIRDI, sozlesme=CIZ, gelismis=True, proje_geneli=True, yerlesim="daireli",
           bilgi=('Döşemeden tavana temiz yükseklik;  TS EN 81-20 m.5.2.6.3.2 çalışma alanlarında en az'
@@ -1063,7 +1068,7 @@ _GRUPLAR = (
         A('reg_halat_boyu', 'Regülatör halatı boyu', 'm', 'sayi', None, None,
           kaynak=CIZIM, sozlesme=MUK, formda=False, opsiyonel=True,
           bilgi=('Regülatör kasnağı ile kuyu dibindeki gergi kasnağı arası iki kez ve iki yarım '
-                 'sarım. Hesap eskiden ( alt duraktan tavana + tabliye − 200 ) × 2 alıyordu.')),
+                 'sarım. Çizim yoksa ( alt duraktan tavana − 200 ) × 2.')),
     )),
     # ═══ ELEKTRIK VE TOPRAKLAMA ════════════════════════════════════════════
     ('Elektrik ve topraklama', (

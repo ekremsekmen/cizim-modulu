@@ -9,6 +9,7 @@ döşemedeki deliklerden geçer.  İki çizim üretilir:
 
   MAKİNE DAİRESİ PLANI
     · oda duvarları ve kapısı                      m.5.2.3.2 a ( kapı ≥ 0,60 m )
+    · tabliye ( kuyunun üstündeki beton ) ve kot farkı  m.5.2.6.3.2.4
     · makine, halat bağlantıları, regülatör
     · kumanda panosu ve önündeki çalışma alanı     m.5.2.6.3.2.1 a
     · makinenin başında bakım alanı 0,50 × 0,60    m.5.2.6.3.2.1 b
@@ -16,6 +17,14 @@ döşemedeki deliklerden geçer.  İki çizim üretilir:
 
   KUYU ÜSTÜ DÖŞEME HALAT DELİK PLANI  ( MMO yönetmeliği m.6/b/3 )
     · kuyunun üstündeki döşeme, delikler ve yerlerinin ölçüleri
+
+TABLİYE ( tabliye ):  kuyunun üstünü kuyu döşemesi kalınlığında beton
+kapatır;  makine, halat bağlantıları ve regülatör onun üstündedir.  Oda zemini
+tabliyenin üstünden "tabliye beton yüksekliği" kadar aşağıdadır ( LiftDesigner'ın
+makine dairesi kesiti:  1.200 ).  Kumanda panosu ile önündeki çalışma alanı tek
+kotta kalır;  makinenin başındaki bakım alanı tabliyenin üstündedir.  Kot farkı
+0,50 m'yi aşarsa merdiven ( ya da basamak ) ve korkuluk gerekir ( m.5.2.6.3.2.4 —
+çizimde not;  merdivenin yeri projeciye kalır ).
 
 DELİKLER ( m.5.2.6.3.3:  "amacı için en küçük" ):  askı halatı demeti
 ( n halat, kanal aralığı 1,6 · dh — hesap programının kasnak genişliği
@@ -38,6 +47,10 @@ BAKIM_ALANI = (500.0, 600.0)
 CALISMA_DERINLIK = CKT.CALISMA_DERINLIK
 CALISMA_EN_ASGARI = CKT.CALISMA_EN_ASGARI
 DUVARLAR = ("Ön", "Arka", "Sol", "Sağ")
+#  m.5.2.6.3.2.4:  zemin kotları 0,50 m'den fazla farklıysa merdiven ve korkuluk.
+KOT_FARKI_MERDIVEN = 500.0
+#  m.5.2.6.3.2.5:  0,05 m'den derin, 0,05 – 0,50 m geniş girinti örtülür.
+GIRINTI = (50.0, 500.0)
 
 
 def _sayi(v):
@@ -49,6 +62,32 @@ _ortusur = CKT._ortusur
 
 def _icinde(p, oda):
     return oda[0] - 1e-9 <= p[0] and p[2] <= oda[2] + 1e-9 and oda[1] - 1e-9 <= p[1] and p[3] <= oda[3] + 1e-9
+
+
+def tabliye(g):
+    """Kuyunun üstündeki beton ( TABLİYE ):
+
+      izi        planda kuyunun dış yüzleri ( duvarlarıyla )
+      doseme     betonun kalınlığı:  kuyu döşemesi ( kuyu dibi ile aynı;  yoksa ön duvar )
+      yukseklik  oda zemininden tabliyenin üstüne ( hesap programının "Tabliye
+                 beton yüksekliği";  LiftDesigner'ın makine dairesi kesitinde 1.200 )
+    """
+    k, md = g["kuyu"], g.get("makine_dairesi") or {}
+    dos = k.get("doseme") if _sayi(k.get("doseme")) else k["duvar_on"]
+    t = md.get("tabliye_yuksekligi")
+    return {"izi": (-k["duvar_sol"], -k["duvar_on"], k["genislik"] + k["duvar_sag"],
+                    k["derinlik"] + k["duvar_arka"]),
+            "doseme": float(dos), "yukseklik": float(t) if _sayi(t) and t > 0 else 0.0}
+
+
+def tek_kotta(k, TB):
+    """Kutu tek bir zeminde mi:  tabliyenin üstünde ya da oda zemininde ( kot
+    farkı yoksa her yer )."""
+    return TB["yukseklik"] <= 1e-9 or _icinde(k, TB["izi"]) or not _ortusur(k, TB["izi"])
+
+
+def _birlesik(a, b):
+    return (min(a[0], b[0]), min(a[1], b[1]), max(a[2], b[2]), max(a[3], b[3]))
 
 
 def _duvar_seridi(oda, duvar, en, derinlik, konum):
@@ -75,7 +114,7 @@ def _onunde(kutu, yon, derinlik, en):
     return (x, cy - en / 2.0, x + derinlik, cy + en / 2.0)
 
 
-def _pano_yeri(oda, md, S, engeller, kapi):
+def _pano_yeri(oda, md, S, engeller, kapi, TB=None):
     """Kumanda panosu ve önündeki çalışma alanı ( m.5.2.6.3.2.1 a ):  seçilen
     duvar boyunca 25 mm adımla, engellere basmadan kapıya en yakın yer;  yoksa
     ( None, None ).  Her engelin kapattığı adımlar bir kez hesaplanır ( engel ×
@@ -123,6 +162,9 @@ def _pano_yeri(oda, md, S, engeller, kapi):
         calisma = _onunde(pano, pyon, CALISMA_DERINLIK, ce)
         if not (_icinde(pano, oda) and _icinde(calisma, oda)):
             continue
+        #  Pano ile önündeki çalışma alanı tabliyenin kenarından bölünmez
+        if TB and not tek_kotta(_birlesik(pano, calisma), TB):
+            continue
         pc = ((pano[0] + pano[2]) / 2.0, (pano[1] + pano[3]) / 2.0)
         aday = (abs(pc[0] - kc[0]) + abs(pc[1] - kc[1]), i * 25.0, pano, calisma)
         if en_iyi is None or aday < en_iyi:
@@ -132,10 +174,10 @@ def _pano_yeri(oda, md, S, engeller, kapi):
     return en_iyi[2], en_iyi[3]
 
 
-def _bakim_yeri(mk, engeller, oda):
+def _bakim_yeri(mk, engeller, oda, TB=None):
     """Makinenin başında 0,50 × 0,60 bakım alanı ( m.5.2.6.3.2.1 b ):  makinenin
     ( kaidenin ) dört yanından birine, engellere basmadan, makineye en yakın;
-    yoksa None."""
+    yoksa None.  Kot farkı varsa tabliyenin üstünde ( makineyle aynı kotta )."""
     adaylar = []
     mc = ((mk[0] + mk[2]) / 2.0, (mk[1] + mk[3]) / 2.0)
     #  Adaylar makinenin en çok alanın uzun kenarı kadar çevresindedir
@@ -144,6 +186,8 @@ def _bakim_yeri(mk, engeller, oda):
     engeller = [x for x in engeller if _ortusur(x, cevre)]
     for w, h in (BAKIM_ALANI, BAKIM_ALANI[::-1]):
         for kutu in _bitisik_adaylar(mk, w, h):
+            if TB and TB["yukseklik"] > 1e-9 and not _icinde(kutu, TB["izi"]):
+                continue
             if _icinde(kutu, oda) and not any(_ortusur(kutu, x) for x in engeller):
                 c = ((kutu[0] + kutu[2]) / 2.0, (kutu[1] + kutu[3]) / 2.0)
                 adaylar.append((abs(c[0] - mc[0]) + abs(c[1] - mc[1]), kutu))
@@ -191,6 +235,7 @@ def yerlesim(g, cizim_sabitleri=None):
     k = g["kuyu"]
     G, D = k["genislik"], k["derinlik"]
     oda = (md["x"], md["y"], md["x"] + md["genislik"], md["y"] + md["derinlik"])
+    TB = tabliye(g)
 
     #  ── SAPTIRMA KASNAĞI ve ŞASE ÇERÇEVESİ ───────────────────────────
     #  Karşı ağırlık halatı tahrik kasnağının öbür teğetinden daha dışarıda
@@ -310,8 +355,8 @@ def yerlesim(g, cizim_sabitleri=None):
     def _alanlar(c):
         """( pano , çalışma alanı , bakım alanı ) — biri yoksa None."""
         engel = sabit0 + [c, kapi_onu]
-        pano_, calisma_ = _pano_yeri(oda, md, S, engel, kapi)
-        bakim_ = pano_ and _bakim_yeri(c, engel + [pano_, calisma_], oda)
+        pano_, calisma_ = _pano_yeri(oda, md, S, engel, kapi, TB)
+        bakim_ = pano_ and _bakim_yeri(c, engel + [pano_, calisma_], oda, TB)
         return (pano_, calisma_, bakim_) if bakim_ else None
     kx, ky = dz.p(uk)
     rc = ((kx + agirlik_dusus[0]) / 2.0, (ky + agirlik_dusus[1]) / 2.0)
@@ -335,6 +380,10 @@ def yerlesim(g, cizim_sabitleri=None):
             ua, ub = _aralik(u0, u1, cu, pu, tu)
             ea, eb = _aralik(e0, e1, ce, pe, te)
             c = (ua, ea, ub, eb) if uzun_x else (ea, ua, eb, ub)
+            #  Kot farkı varsa kaide tabliyenin üstündedir ( halatlar oradan iner ):
+            #  taşan aday burada geçilir ( aşağıda kaydırılarak denenir )
+            if TB["yukseklik"] > 1e-9 and not _icinde(c, TB["izi"]):
+                continue
             plakalar = [(x - a / 2.0, y - a / 2.0, x + a / 2.0, y + a / 2.0)
                         for x, y in CMK.ayaklar(c, E, F, uzun_x)]
             if not _icinde(c, oda) or any(_ortusur(p, d_) for p in plakalar for _, d_ in delikler):
@@ -356,6 +405,35 @@ def yerlesim(g, cizim_sabitleri=None):
         if cerceve:
             break
     cerceve = cerceve or sigan
+    if cerceve is None and TB["yukseklik"] > 1e-9:
+        #  Hiçbir aday tabliyeye sığmadı:  taşanlar tabliyenin içine kaydırılır
+        #  ( halatlara ortalılık bozulur;  tabliyenin kenarındaki yanda pay
+        #  daralır — makine halatların yerinde, kuyunun kenarına yakın durabilir );
+        #  odanın alanlarına yer bırakan, enine halatlara ortalı ( iki yan yatağa
+        #  eşit yük ) en küçük kaide, eşitse en az kayan.  Kaydırma ilk aramada olsaydı tabliye
+        #  genişliğinde bir kaide küçük adaylardan önce seçilebiliyordu.
+        iz_, kaydirilan = TB["izi"], []
+        for te, tu in ((te, tu) for te in oranlar for tu in oranlar):
+            for pu, pe in ((pu, pe) for pu in paylar for pe in paylar):
+                ua, ub = _aralik(u0, u1, cu, pu, tu)
+                ea, eb = _aralik(e0, e1, ce, pe, te)
+                c = (ua, ea, ub, eb) if uzun_x else (ea, ua, eb, ub)
+                dx = max(0.0, iz_[0] - c[0]) - max(0.0, c[2] - iz_[2])
+                dy = max(0.0, iz_[1] - c[1]) - max(0.0, c[3] - iz_[3])
+                c = (c[0] + dx, c[1] + dy, c[2] + dx, c[3] + dy)
+                plakalar = [(x - a / 2.0, y - a / 2.0, x + a / 2.0, y + a / 2.0)
+                            for x, y in CMK.ayaklar(c, E, F, uzun_x)]
+                #  Kaide makineyi ( ve saptırma kasnağını ) yine sarar;  tabliyenin
+                #  kenarındaki yanda payı daralır
+                if (not _icinde(c, iz_) or not _icinde(c, oda) or not _icinde(iz, c)
+                        or any(_ortusur(p, d_) for p in plakalar for _, d_ in delikler)):
+                    continue
+                al_ = _alanlar(c)
+                kaydirilan.append((al_ is None, -te, (c[2] - c[0]) * (c[3] - c[1]), abs(dx) + abs(dy),
+                                   c, ub - ua, al_))
+        if kaydirilan:
+            _, _, _, _, c, boy_, alanlar = min(kaydirilan, key=lambda k_: k_[:4])
+            cerceve = (c, boy_, False)
     if cerceve:
         cerceve, boy, ortali = cerceve
         #  Yan yatakların mesnet aralığı:  dikine kirişlerin eksenleri arası
@@ -413,7 +491,7 @@ def yerlesim(g, cizim_sabitleri=None):
     sabit = sabit0 + ([cerceve] if cerceve else [])
     pano, calisma, bakim = alanlar or (None, None, None)
     if pano is None:
-        pano, calisma = _pano_yeri(oda, md, S, sabit + [kapi_onu], kapi)
+        pano, calisma = _pano_yeri(oda, md, S, sabit + [kapi_onu], kapi, TB)
     if pano is None:
         hata.append(f"Kumanda panosu önündeki {CALISMA_DERINLIK:g} mm çalışma alanıyla "
                     f"{md['pano_duvar'].lower()} duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a ).")
@@ -423,20 +501,41 @@ def yerlesim(g, cizim_sabitleri=None):
     #  ve kapının önüne basmadan;  makineye en yakın yer.
     mk = cerceve or makine_izi
     if bakim is None:
-        bakim = _bakim_yeri(mk, sabit + [kapi_onu] + ([pano, calisma] if pano else []), oda)
+        bakim = _bakim_yeri(mk, sabit + [kapi_onu] + ([pano, calisma] if pano else []), oda, TB)
     if bakim is None:
         hata.append("Makinenin başında 0,50 × 0,60 m bakım alanı kalmıyor ( TS EN 81-20 "
                     "m.5.2.6.3.2.1 b ).")
 
-    #  Odada durması gerekenler odanın içinde
+    #  Odada durması gerekenler odanın içinde;  kot farkı varsa tabliyenin üstünde
     for ad, kutu in (("Makine", mk), ("Ağırlık bağlantısı", M["agirlik_baglanti"]),
                      ("Kabin bağlantısı", M["kabin_baglanti"]), ("Regülatör", M["reg_govde"])):
         if kutu and not _icinde(kutu, oda):
             hata.append(f"{ad} makine dairesinin dışına taşıyor.")
+        elif kutu and TB["yukseklik"] > 1e-9 and not _icinde(kutu, TB["izi"]):
+            hata.append(f"{ad} tabliyenin ( kuyunun üstündeki betonun ) dışına taşıyor.")
+    #  Kapıdan girilen yer tek kotta;  oda tabliyeden büyük olmalı ki zemini olsun
+    if not tek_kotta(kapi_onu, TB):
+        hata.append("Makine dairesi kapısının önü tabliyenin kenarına denk geliyor:  kapının "
+                    "önündeki geçiş tek kotta olmalı — kapının yerini değiştirin.")
+    pano_kotu = TB["yukseklik"] if pano and _icinde(pano, TB["izi"]) else 0.0
+    #  Tabliye ile oda duvarı arasında dar şerit kalıyorsa girintidir ( zemin
+    #  tabliyenin altında ):  üstü örtülür ( m.5.2.6.3.2.5 ) — çizimde not
+    girintiler = []
+    if TB["yukseklik"] > GIRINTI[0]:
+        iz = TB["izi"]
+        for yan, a, b, serit in (
+                ("Sol", oda[0], iz[0], (oda[0], max(oda[1], iz[1]), iz[0], min(oda[3], iz[3]))),
+                ("Sağ", iz[2], oda[2], (iz[2], max(oda[1], iz[1]), oda[2], min(oda[3], iz[3]))),
+                ("Ön", oda[1], iz[1], (max(oda[0], iz[0]), oda[1], min(oda[2], iz[2]), iz[1])),
+                ("Arka", iz[3], oda[3], (max(oda[0], iz[0]), iz[3], min(oda[2], iz[2]), oda[3]))):
+            if GIRINTI[0] < b - a <= GIRINTI[1]:
+                girintiler.append((yan, b - a, serit))
 
 
     return {"M": M, "oda": oda, "delikler": delikler, "kapi": kapi, "kapi_onu": kapi_onu,
-            "pano": pano, "calisma": calisma, "bakim": bakim, "makine": mk,
+            "pano": pano, "calisma": calisma, "bakim": bakim, "makine": mk, "tabliye": TB,
+            "pano_kotu": pano_kotu, "merdiven": TB["yukseklik"] > KOT_FARKI_MERDIVEN + 1e-9,
+            "girintiler": girintiler,
             "makine_izi": makine_izi, "cerceve": cerceve, "kaide": kaide, "saptirma": saptirma,
             #  Ağırlık halatının yolu kurulamadı ( içeride inmeli ya da saptırma
             #  kasnağının çapı yok ):  saptirma None iken iniş düşey DEĞİLDİR —
@@ -530,6 +629,41 @@ def ciz(g, cizim_sabitleri=None):
     e.append(yazi)
     #  Kuyunun izi
     e.append(CGE._ad(CGE._dik("GIZLI", 0, 0, G, D), "kuyu_izi"))
+    #  Tabliye:  kot farkı varsa kenarı ( odanın içinde kalan kenarları ) görünür
+    #  çizgi, üstünde kotu;  0,50 m'yi aşıyorsa merdiven ve korkuluk notu
+    TB = Y["tabliye"]
+    if TB["yukseklik"] > 1e-9:
+        iz = (max(TB["izi"][0], oda[0]), max(TB["izi"][1], oda[1]),
+              min(TB["izi"][2], oda[2]), min(TB["izi"][3], oda[3]))
+        #  ( kenar , içeri yön , kenarla oda duvarı arası )
+        kenarlar = [((iz[0], iz[1]), (iz[0], iz[3]), (1, 0), iz[0] - oda[0]),
+                    ((iz[2], iz[1]), (iz[2], iz[3]), (-1, 0), oda[2] - iz[2]),
+                    ((iz[0], iz[1]), (iz[2], iz[1]), (0, 1), iz[1] - oda[1]),
+                    ((iz[0], iz[3]), (iz[2], iz[3]), (0, -1), oda[3] - iz[3])]
+        ic = [k_ for k_ in kenarlar if k_[3] > 1e-6]
+        for a, b, _, _ in ic:
+            e.append(CGE._ad(CGE._cizgi("KUYU-DUVAR", a[0], a[1], b[0], b[1]), "tabliye_kenari"))
+        for yan, en, sr in Y["girintiler"]:
+            dik_ = yan in ("Sol", "Sağ")
+            e.append(CGE._ad(CGE._yazi((sr[0] + sr[2]) / 2.0, (sr[1] + sr[3]) / 2.0,
+                                       f"{en:g} GİRİNTİ:  ÜSTÜ ÖRTÜLÜR ( m.5.2.6.3.2.5 )",
+                                       min(30, en * 0.6), aci=90 if dik_ else 0), "girinti_notu"))
+        if ic:
+            #  Yazılar odanın asıl zeminine ( en geniş aralığa ) bakan kenarda:
+            #  kot yazısı tabliyede, merdiven notu zeminde — aralık dar bir
+            #  girintiyse ( notu orada ) tabliyede kot yazısının altında
+            a, b, yon, bos = max(ic, key=lambda k_: k_[3])
+            cx, cy = (a[0] + b[0]) / 2.0, (a[1] + b[1]) / 2.0
+            dik = yon[0] != 0
+            e.append(CGE._ad(CGE._yazi(cx + yon[0] * 70, cy + yon[1] * 70,
+                                       f"TABLİYE  +{TB['yukseklik']:g}", 36, aci=90 if dik else 0),
+                             "tabliye_yazi"))
+            if Y["merdiven"]:
+                d = -min(bos / 2.0, 300.0) if bos > GIRINTI[1] else 150.0
+                e.append(CGE._ad(CGE._yazi(cx + yon[0] * d, cy + yon[1] * d,
+                                           f"KOT FARKI {TB['yukseklik']:g} > {KOT_FARKI_MERDIVEN:g}:  "
+                                           "MERDİVEN VE KORKULUK ( m.5.2.6.3.2.4 )", 30,
+                                           aci=90 if dik else 0), "merdiven_notu"))
     _delik_elemanlari(e, Y)
 
     def kutu(katman, p, ad):

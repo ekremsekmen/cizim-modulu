@@ -16,14 +16,17 @@ Kotlar sabitler.py'deki referans proje ölçüleridir.  Düşey eksen döşeme k
 ( 0 = en alt durak );  kuyu tavanı = en üst durak + son kat.
 
 Makine daireli projede makine, bağlantılar, regülatör ve kumanda panosu
-kuyunun üstündeki odadadır ( yerleri makine_dairesi.yerlesim ):  oda
-döşemesi kuyu tavanıdır, parçalar oda döşemesinden yükselir, halatlar
-döşeme deliklerinden kuyuya iner.  Kuyuda raylar ve karşı ağırlık kalır;
+kuyunun üstündeki odadadır ( yerleri makine_dairesi.yerlesim ):  kuyunun
+üstünü kuyu döşemesi kalınlığında bir beton kapatır ( TABLİYE );  makine,
+bağlantılar ve regülatör onun üstüne oturur, halatlar döşeme deliklerinden
+kuyuya iner.  Oda zemini tabliyenin üstünden "tabliye beton yüksekliği" kadar
+aşağıdadır ( makine_dairesi.tabliye ).  Kuyuda raylar ve karşı ağırlık kalır;
 rayların üst ucu kuyu tavanının en alt kısmının ( tavan_kirisi ) kabin_rayi_tepe
 kadar altındadır — tavana değmez ( referans proje:  tavanın 50 altı ).
 
 MAKİNE DAİRESİNİN DENETİMLERİ ( TS EN 81-20 )
-  m.5.2.6.3.2.1  çalışma alanlarında temiz yükseklik ≥ 2,10 m
+  m.5.2.6.3.2.1  çalışma alanlarında temiz yükseklik ≥ 2,10 m — odanın
+                 zemininde ve makinenin durduğu tabliyenin üstünde
   m.5.2.6.3.2.3  korumasız dönen parçaların ( tahrik kasnağı ) üstünde ≥ 0,30 m
   m.5.2.3.2 a    makine dairesi kapısı ≥ 2,0 m yüksek ( eni makine_dairesi.py'de )
 """
@@ -261,18 +264,27 @@ def _makine_parcalari(g, KU, zk, kapak):
 def _makine_dairesi(g, S, tavan, M):
     """Makine dairesindeki parçaların kotları;  hata listesi döner ( boşsa tamam ).
 
-    Oda döşemesi hesap programının TABLİYESİDİR ( tabliye beton yüksekliği:
-    kuyu tavanından oda döşemesinin üstüne ).  Bağlantılar ve regülatör kuyu
-    üstündekiyle aynı ürünlerdir ( referans proje ölçüleri ) ve döşemeye oturur.
+    TABLİYE ( makine_dairesi.tabliye ):  kuyunun üstünü kuyu döşemesi
+    kalınlığında beton kapatır;  makine, bağlantılar ve regülatör onun üstüne
+    oturur ( zd ).  Oda zemini ( zo ) tabliyenin üstünden "tabliye beton
+    yüksekliği" kadar aşağıdadır — LiftDesigner'ın makine dairesi kesiti:
+    zemin 30.670, tabliye 1.200 yüksek, döşemesi 120;  en üst durak 27.700 +
+    son kat 4.050 = kuyu tavanı 31.750 = 30.670 + 1.200 − 120.  Eskiden tabliye
+    kuyu tavanının üstünde 1.200 kalınlığında beton sanılıyor, oda zemini onun
+    üstüne konuyordu ( kullanıcı 5 Eki ).  Bağlantılar ve regülatör kuyu
+    üstündekiyle aynı ürünlerdir ( referans proje ölçüleri ).
     Makine hesap programının kaidesindedir ( bölüm 2 ):  dikine kirişler
     döşemeden şase yüksekliği kadar çıkar, yan yataklar üstleri hizasında;
     saptırma kasnağı gerekiyorsa yan yataklara asılır ( LiftDesigner ).
     """
     md = g.get("makine_dairesi") or {}
     hata = []
-    for alan in ("yukseklik", "tabliye_yuksekligi", "kapi_yukseklik"):
+    for alan in ("yukseklik", "kapi_yukseklik"):
         if not (_sayi(md.get(alan)) and md[alan] > 0):
             hata.append(f"makine_dairesi.{alan}: sıfırdan büyük bir sayı olmalı ( {md.get(alan)!r} ).")
+    if not (_sayi(md.get("tabliye_yuksekligi")) and md["tabliye_yuksekligi"] >= 0):
+        hata.append(f"makine_dairesi.tabliye_yuksekligi: sıfır ya da pozitif bir sayı olmalı "
+                    f"( {md.get('tabliye_yuksekligi')!r} ).")
     if hata:
         return hata
     MD = CMD.yerlesim(g, S)
@@ -282,8 +294,10 @@ def _makine_dairesi(g, S, tavan, M):
     hata.extend(MD["hata"])
     KU = MD["M"]
     d = MD["duzlem"]                            # halat düzlemi ( kuyu_ustu.Duzlem )
-    zd = tavan + md["tabliye_yuksekligi"]       # oda döşemesinin üstü
-    ztv = zd + md["yukseklik"]                  # oda tavanı
+    TB = CMD.tabliye(g)
+    zd = tavan + TB["doseme"]                   # tabliyenin üstü:  makine buraya oturur
+    zo = zd - TB["yukseklik"]                   # oda zemini
+    ztv = zo + md["yukseklik"]                  # oda tavanı
     gx0, gy0, gx1, gy1 = KU["govde"]
     #  Kasnağın düzlem boyundaki ortası, gövdenin düzleme dik ortası ( kanonik )
     ku0, _, ku1, _ = d.kanonik(KU["kasnak"])
@@ -322,7 +336,8 @@ def _makine_dairesi(g, S, tavan, M):
         "sase_parcalari": parcalar,
         "sarim_acisi": sarim, "agirlik_yolu": yol,
         "agirlik_dusus": MD["agirlik_dusus"] + (dusus_z,),
-        "KU": KU, "MD": MD, "oda_doseme": zd, "oda_tavan": ztv, "cati": S["md_cati_kalinlik"],
+        "KU": KU, "MD": MD, "tabliye_ustu": zd, "oda_doseme": zo, "oda_tavan": ztv,
+        "tabliye": TB, "cati": S["md_cati_kalinlik"],
         "sase": sase,
         "govde": (gx0, gy0, gx1, gy1, zs, zs + S["makine_en"]),
         "kapak": kapak,
@@ -336,13 +351,21 @@ def _makine_dairesi(g, S, tavan, M):
                                                 - S["regulator_kasnak_merkez"],),
         #  Pano odaya sığmadıysa yok ( denetim hatası;  kurma sürer — hesabın
         #  ölçüleri için çizilmesi gerekmez ).
-        "pano": MD["pano"] + (zd, zd + S["kumanda_pano_yukseklik"]) if MD["pano"] else None,
+        #  Pano bulunduğu zeminde:  tabliyenin üstünde ya da oda zemininde
+        "pano": MD["pano"] + (MD["pano_kotu"] + zo, MD["pano_kotu"] + zo + S["kumanda_pano_yukseklik"])
+        if MD["pano"] else None,
         "regulator_x": KU["rgx"], "regulator_y": KU["rgy"],
     })
     kasnak_ustu = M["kasnak"][4] + g["makine"]["tahrik_kasnak_capi"] / 2.0
     if md["yukseklik"] < ODA_YUKSEKLIK - 1e-9:
         hata.append(f"Makine dairesinin temiz yüksekliği {md['yukseklik']:g} mm < "
                     f"{ODA_YUKSEKLIK:g} mm ( TS EN 81-20 m.5.2.6.3.2.1 ).")
+    elif ztv - zd < ODA_YUKSEKLIK - 1e-9:
+        #  Makinenin başındaki çalışma alanı tabliyenin üstündedir
+        hata.append(f"Tabliyenin üstünde temiz yükseklik {ztv - zd:g} mm < {ODA_YUKSEKLIK:g} mm:  "
+                    f"makinenin başındaki çalışma alanı tabliyededir ( TS EN 81-20 m.5.2.6.3.2.1 ) — "
+                    f"makine dairesi yüksekliği en az {ODA_YUKSEKLIK + TB['yukseklik']:g} olmalı ya da "
+                    f"tabliye alçalmalı.")
     if ztv - kasnak_ustu < DONEN_PARCA_USTU - 1e-9:
         hata.append(f"Tahrik kasnağının üstünde {ztv - kasnak_ustu:g} mm boşluk < "
                     f"{DONEN_PARCA_USTU:g} mm ( TS EN 81-20 m.5.2.6.3.2.3 ).")

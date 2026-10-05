@@ -12,7 +12,7 @@ hesabın kullandığıyla aynıdır ( kopru.sarim_acisi ).
 
 Ölçüler:  tahrik ve saptırma kasnağının çapı, merkezleri arası ( yatay, düşey ),
 iki halat inişinin arası ( LiftDesigner RDA / RDB ), kasnak merkezlerinin
-oda döşemesinden ( makine dairesizde kuyu tavanından ) yüksekliği.
+tabliyenin üstünden ( makine dairesizde kuyu tavanından ) yüksekliği.
 LiftDesigner'ın her projede aynı 1.600'ü çizilmez ( anlamı belli değil —
 kullanıcı kararı 1 Eki );  LiftDesigner makine dairesizde sarım açısını "0"
 yazar — burada çizimin açısı ( düşey inişte 180° ).
@@ -64,7 +64,7 @@ def ciz(g, cizim_sabitleri=None):
     md = M.get("MD") or {}
     sp = md.get("saptirma")
     if sp:
-        zd = M["oda_doseme"]
+        zd = M["tabliye_ustu"]
         sx, sy = md["duzlem"].p(sp["u"])
         us, zs, R2 = B.u(sx, sy), zd + sp["z"], sp["D"] / 2.0
     #  Halatlar:  kabin tarafı kasnağın yanından düşey;  ağırlık tarafı
@@ -72,11 +72,11 @@ def ciz(g, cizim_sabitleri=None):
     kab, ag = _inisler(KU)
     uk = B.u(*kab)
     p0, q0, p1_, q1 = CGE.sinir(e)                   # makine ve kaide ( ya da şase )
-    #  Makine dairesinin döşemesi ( tabliye ) yalnız üstünden DOSEME_GOSTERIM
-    #  kadar, kırık çizgiyle gösterilir:  bütünü ( 1.200'e kadar ) görünüşü kaplıyordu.
-    oda = M.get("oda_doseme")
+    #  Makinenin oturduğu tabliye ( kuyunun üstündeki beton ) yalnız üstünden
+    #  DOSEME_GOSTERIM kadar, kırık çizgiyle gösterilir.
+    oda = M.get("tabliye_ustu")
     if oda is not None:
-        t_ciz = min(g["makine_dairesi"]["tabliye_yuksekligi"], DOSEME_GOSTERIM)
+        t_ciz = min(M["tabliye"]["doseme"], DOSEME_GOSTERIM)
     alt_parca = min(q0, zt - R1, oda - t_ciz if oda is not None else q0)
     z_alt = alt_parca - 650                          # alt ölçüler döşemenin altında
     halat = [(uk, zt, uk, z_alt)]
@@ -144,8 +144,8 @@ def ciz(g, cizim_sabitleri=None):
     e.append(O("yatay", (min(uk, ua), 0), (max(uk, ua), 0), k1, f"HALAT ARASI {abs(ua - uk):.0f}"))
     #  Sağ:  merkezlerin döşemeden ( makine dairesizde kuyu tavanına ) yüksekliği
     s = u1_ + 150
-    if M.get("oda_doseme") is not None:
-        zinc = [M["oda_doseme"]] + ([zs] if sp else []) + [zt]
+    if oda is not None:
+        zinc = [oda] + ([zs] if sp else []) + [zt]
         for a, b in zip(zinc, zinc[1:]):
             e.append(O("dusey", (0, a), (0, b), s, None))
     else:

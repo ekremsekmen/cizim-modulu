@@ -643,13 +643,15 @@ class PveMRLDenetimi(unittest.TestCase):
             self.assertFalse(M.hesapla({"yan_yatak_boyu": 100, "mk_yok": mrl})["aktif"],
                              msg=f"mk_yok={mrl}")
 
-    def test_tabliye_yalniz_makine_dairelide_hesaba_girer(self):
+    def test_tabliye_ray_boyuna_girmez(self):
+        #  Tabliye beton yüksekliği oda zemininden ölçülür ( LiftDesigner 1022 · 1275 ·
+        #  800 KG:  1.200 );  son kat kuyu tavanına:  ray kuyu tavanının 200 altında
+        #  biter, makine daireli de MRL de ( 5 Eki'ye kadar "+ tabliye − 200" )
         g = {"seyir_mesafesi": 20, "son_kat_yuksekligi": 4000, "kuyu_dibi": 1500}
         for t in (500, 1200):
-            d = M.hesapla(dict(g, mk_yok=False, tabliye_yuksekligi=t))
-            m = M.hesapla(dict(g, mk_yok=True, tabliye_yuksekligi=t))
-            self.assertAlmostEqual(d["ozet"]["ray_boyu"], (20000 + 4000 + t - 200 + 1200) / 1000)
-            self.assertAlmostEqual(m["ozet"]["ray_boyu"], (20000 + 4000 - 200 + 1200) / 1000)
+            for mrl in (False, True):
+                d = M.hesapla(dict(g, mk_yok=mrl, tabliye_yuksekligi=t))
+                self.assertAlmostEqual(d["ozet"]["ray_boyu"], (20000 + 4000 - 200 + 1200) / 1000)
         self.assertEqual(MG.ALAN["tabliye_yuksekligi"][5], 1200)
         self.assertNotIn("tabliye_yuksekligi", MG.GELISMIS_ALANLAR)
 

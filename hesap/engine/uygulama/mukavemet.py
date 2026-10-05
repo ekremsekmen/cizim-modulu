@@ -94,7 +94,7 @@ SABIT = {
     "tampon_katsayi":  4,         # F = 4·gn·(P+Q)
     #  ( Kuyu sürtünmesi yüzdeleri buradan OFİS SABİTLERİNE taşındı —
     #    kuyu_surtunme_kabin · kuyu_surtunme_agirlik;  bkz. _tahrik. )
-    "ray_kaide_payi":  200,       # ray boyu:  tabliye beton yüksekliği − 200 mm
+    "ray_kaide_payi":  200,       # ray boyu:  üst ucu kuyu tavanının 200 mm altında
     "ray_kuyu_payi":   300,       # ray boyu:  kuyu dibi − 300 mm
 }
 
@@ -1198,9 +1198,11 @@ def _regulator(g, o):
     alfa = S["reg_sarilma_aci"]
     #  Regülatör halatı:  program çizimden ölçer ( regülatör kasnağı ile gergi
     #  kasnağı arası iki kez + iki yarım sarım ).  Yoksa eski yaklaşık:  kuyu
-    #  boyunca iki kat ( tabliye makine dairesiz tesiste 0 — MG.tabliye ).
+    #  boyunca iki kat.  Tabliye EKLENMEZ:  son kat kuyu tavanına ölçülür ( 5
+    #  Eki'ye kadar "+ tabliye" ekleniyordu — tabliye yüksekliği oda zemininden
+    #  ölçülür, kuyu tavanının üstünde değildir;  tasarim/alanlar ).
     boy_ciz = _cizim_olcusu(g, "reg_halat_boyu")
-    boy = float(boy_ciz) if boy_ciz else ((MG.alt_duraktan_tavana(g) + MG.tabliye(g)
+    boy = float(boy_ciz) if boy_ciz else ((MG.alt_duraktan_tavana(g)
                                             - S["ray_kaide_payi"]) * 2) / 1000.0
     #  REGÜLATÖR HALATINDA DA KATALOG VERİSİ GEÇERLİDİR.  Askı halatında
     #  imalatçı alanları vardı, regülatörde yoktu ve değerler HER ZAMAN
@@ -2242,7 +2244,7 @@ def _kabin_raylari(g, o):
     W, D = g["kabin_genisligi"], g["kabin_derinligi"]
 
     #  RAY BOYU çizimden ( en uzun kabin rayı:  kuyu tabanından üst ucuna );
-    #  yoksa eski yaklaşık ( seyir + son kat + tabliye − 200 + kuyu dibi − 300 ).
+    #  yoksa eski yaklaşık ( seyir + son kat − 200 + kuyu dibi − 300 ).
     ray_ciz = _cizim_olcusu(g, "kabin_ray_boyu")
     ray_boyu = float(ray_ciz) if ray_ciz else MG.toplam_ray_boyu(g)
     Mg = ray_boyu * MT.ray(prof, "Gr")
@@ -3182,8 +3184,7 @@ def _kuyu_tabani(g, o):
            veri("Lar", "Ağırlık rayı boyu", LRa, "mm", CIZIMDEN + "  ·  en uzun ağırlık rayı", 0)]
           if _lr_ciz else
           [veri("LR", "Kılavuz ray boyu", LR, "mm",
-                "H × 1000 + son kat + tabliye − 200 + kuyu dibi − 300"
-                + ( "  ·  MRL:  tabliye yok ( 0 )" if evet_mi(g.get("mk_yok")) else ""), 0)]),
+                "H × 1000 + son kat − 200 + kuyu dibi − 300", 0)]),
         #  FKR / FAR TEK BİR RAYIN KUVVETİDİR:  ray kütlesi bir rayındır,
         #  güvenlik tertibatı tepkisi ( P + Q ) / n'dir ( bölüm 7, Fk ).
         #  Başlık eskiden "raylarına" diyordu;  inşaat mühendisi sayıyı toplam

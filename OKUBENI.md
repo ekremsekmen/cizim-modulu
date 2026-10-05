@@ -70,9 +70,9 @@ eski yaklaşığıyla sürer ve raporda KABUL yazar;  hesap motoru doğrudan
 |---|---|---|
 | Kabin merkezi – kabin ray ekseni ( xc ) | derinlik / 2 + 130 − RK ( varsayılanda 155 ) | ön yüz + derinlik / 2 − ray ekseni ( 145 ) |
 | Eşik kuvvetinin noktası ( xi ) | − RK ( kapı çizgisi, −650 ) | eşiğin ortası, m.5.7.2.3.6 ( −575 ) |
-| Kabin · ağırlık ray boyu | seyir + son kat + tabliye − 200 + kuyu dibi − 300 | en uzun çizilen ray:  kuyu tabanından tavanın 200 altına |
+| Kabin · ağırlık ray boyu | seyir + son kat − 200 + kuyu dibi − 300 ( 5 Eki'ye kadar + tabliye ) | en uzun çizilen ray:  kuyu tabanından tavanın 200 altına |
 | Askı halatı boyu ( lh ) | kuyu boyu − yığın + 5 m | halatın çizilen yolu, kabin en alt durakta ( 2:1'de kabin kasnaklarının altından tavandaki bağlantıya ) |
-| Regülatör halatı boyu | ( alt duraktan tavana + tabliye − 200 ) × 2 | regülatör – gergi kasnağı arası iki kez + iki yarım sarım |
+| Regülatör halatı boyu | ( alt duraktan tavana − 200 ) × 2 ( 5 Eki'ye kadar + tabliye ) | regülatör – gergi kasnağı arası iki kez + iki yarım sarım |
 | Nps · Npr ( Ek E ) | askı oranından | çizilen kasnaklar ( makine dairesinde saptırma kasnağı dahil );  Npr 0 |
 | Atalete giren kasnaklar | ofis:  kabin 2 · ağırlık 1;  saptırma kasnağı 0 | çizilen kasnaklar;  makine dairesindeki sabit saptırma kasnağı koşul II'ye mDP = J / R² · r² ( m.5.11.2.2 ) |
 | Makine kirişinin açıklığı ( L, yan yatak boyu ) | girdi ( varsayılan 1.400 ) | makine dairesinde kaidenin dikine kirişleri arası ( aşağıda "Makine kaidesi" );  makine dairesizde karşı ağırlık rayları arası ( DBGW ).  Formda kutusu yok;  çizimden gelmezse bölüm 2 HESAP EKSİK |
@@ -924,13 +924,26 @@ görünüyordu ).  Raylar ona değmez:  şasede bitmeyen raylar bu çizginin
 uzak kabin rayı ( makine dairelide bütün raylar ) çizgiye tam değiyordu.
 
 **Makine daireli projede** oda kuyunun üstündedir ( plan yeri
-`makine_dairesi.x · y · genislik · derinlik` ).  Odanın döşemesi hesap
-programının **tabliyesidir**:  `tabliye_yuksekligi` ( "Tabliye beton
-yüksekliği" — kuyu tavanından oda döşemesinin üstüne;  kesitte "TABLİYE" ).
+`makine_dairesi.x · y · genislik · derinlik` ).  Kuyunun üstündeki beton hesap
+programının **tabliyesidir** ( `makine_dairesi.tabliye` ):  kuyunun üstünü kuyu
+döşemesi kalınlığında beton kapatır, makine, bağlantılar ve regülatör onun
+üstündedir;  oda zemini tabliyenin üstünden `tabliye_yuksekligi` ( "Tabliye
+beton yüksekliği" ) kadar aşağıdadır — LiftDesigner'ın makine daireli üç
+projesi ( 1022 · 1275 · 800 KG ):  tabliye 1.200 zeminden, döşeme 120, en üst
+durak + son kat = kuyu tavanı = zemin + 1.200 − 120.  Kesitte "TABLİYE" ölçüsü
+zeminden tabliyenin üstüne;  oda zemini yalnız kuyunun dışında.  Kumanda
+panosu ile önündeki çalışma alanı tek kotta, makinenin başındaki bakım alanı
+ve kaide tabliyenin üstünde ( kaide sığmazsa tabliyeye kaydırılır, o yanda
+payı daralır );  kapının önü tek kotta.  Temiz yükseklik zeminde ve
+tabliyenin üstünde ≥ 2,10 m;  kot farkı 0,50 m'yi aşarsa planda merdiven ve
+korkuluk notu ( m.5.2.6.3.2.4 ), tabliye ile duvar arasında 0,05 – 0,50 m
+kalırsa "üstü örtülür" notu ( m.5.2.6.3.2.5 ).  ( 5 Eki'ye kadar tabliye kuyu
+tavanının üstünde 1.200 kalın beton sanılıyor, oda zemini onun üstüne
+konuyordu — kullanıcı "tabliye beton yüksekliği betonun kalınlığı mı?". )
 Öbür girdiler:  `yukseklik` ( temiz;  LiftDesigner "477-8" 3.500 ),
 `kapi_yukseklik` ( standardın en azı 2.000 );  çatı 150 ( LiftDesigner,
 `md_cati_kalinlik` ).  Makine kaidede ( yukarıdaki tablo;  kesitte "ŞASE" ),
-halat bağlantıları ve regülatör döşemede,
+halat bağlantıları ve regülatör tabliyede,
 kumanda panosu 2.000 yüksek ( LiftDesigner ), halatlar döşeme deliklerinden
 iner ( kesik ).  Kesilen oda duvarında kapı kesitteyse boşluk, karşı duvarda
 ise görünüş olarak çizilir.  Denetimler:
