@@ -132,6 +132,9 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
         B.kutu(e, "GIZLI", d, tv, zt, "doseme_deligi")
     u0, u1 = B.aralik(dis)
     e.append(CGE._ad(CGE._yazi((u0 + u1) / 2.0, ztv - 250 * K, "MAKİNE DAİRESİ", 45 * K), "oda_adi"))
+    #  Kot işaretleri odanın dışında:  oda kuyudan genişse duvarının ötesinde
+    #  ( eskiden kuyunun yanında, odanın duvarının üstüne düşüyordu )
+    u_kot = min(u_kot, u0 - 200 * K)
     CKP.kot_isareti(e, u_kot, zd, CDU._kot(zd), K, -1.0)
     if zt - zd >= 300.0:
         CKP.kot_isareti(e, u_kot, zt, CDU._kot(zt), K, -1.0)
