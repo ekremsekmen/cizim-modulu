@@ -502,13 +502,19 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     kasa_x1 = max(kk[2] for kk in P["kasa"])
     #  Kanatların ayrımları ( kapı tipinin kanat sayısında — 2 · 3 · 4 )
     ayrimlar = sorted({round(kk[2], 6) for kk in P["kanat"]})[:-1]
+    #  Durak numarası ortaya en yakın KANADIN ortasında:  kapının ortası iki
+    #  kanatlı kapıda kanat ayrımıdır, numara ( maskeli ) ayrım çizgisini
+    #  siliyordu ( 5 Eki ).
+    xs = [bos[0]] + [a for a in ayrimlar if bos[0] < a < bos[2]] + [bos[2]]
+    orta = (bos[0] + bos[2]) / 2.0
+    k0, k1 = min(zip(xs, xs[1:]), key=lambda p: (abs((p[0] + p[1]) / 2.0 - orta), -(p[1] - p[0])))
     for i, zk in enumerate(kotlar):
         B.kutu(e, "KAPI", (kasa_x0, -1, kasa_x1, 0), zk, zk + kapi_h + S["kasa_ust"], "kapi_kasasi")
         B.kutu(e, "KAPI", bos, zk, zk + kapi_h, "kat_kapisi")
         for ayrim in ayrimlar:
             u = B.u(ayrim, 0)
             e.append(B.derin(CGE._cizgi("KAPI", u, zk, u, zk + kapi_h), -1, 0))
-        e.append(B.derin(CGE._ad(CGE._yazi(B.u((bos[0] + bos[2]) / 2.0, 0), zk + kapi_h * 0.6,
+        e.append(B.derin(CGE._ad(CGE._yazi(B.u((k0 + k1) / 2.0, 0), zk + kapi_h * 0.6,
                                            f"{i + 1}", 90 * K), "durak_no"), -1, 0))
     _kat_seviyeleri(e, g, S, kotlar, -dg, K, -1.0)
     CKP.kot_isareti(e, -dg - 200 * K, taban, CDU._kot(taban), K, -1.0)
@@ -521,6 +527,18 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     CKP.korkuluk(e, B, Y, kt)
     #  Kabin opak:  arkasında kalan kat kapısı ( en üst durak ) kabinin içinden görünmez
     CKP.kabin_arkasi(e, B, Y["KD"]["kabin"], kt["taban_alti"], kt["tavan"])
+    #  Durak numarası halatın ( kapının önünden geçer ) ya da başka bir parçanın
+    #  çizgisine binmesin:  ortaya en yakın, çizgisiz kanat ( 2500 kg arka
+    #  ağırlıkta askı halatı kanadın ortasından geçiyordu — 5 Eki )
+    kanatlar = sorted(zip(xs, xs[1:]), key=lambda p: (abs((p[0] + p[1]) / 2.0 - orta), -(p[1] - p[0])))
+    kenarlar = CGE.parca_kenarlari([el for el in e if el.get("ad") != "durak_no"])
+    for el in e:
+        if el.get("ad") == "durak_no":
+            for a, b in kanatlar:
+                kutu = CGE.sinir([dict(el, x=B.u((a + b) / 2.0, 0))])
+                if not any(CGE.kenar_kesisir(s_, kutu, 2.0 * K) for s_ in kenarlar):
+                    el["x"] = B.u((a + b) / 2.0, 0)
+                    break
     #  Ölçüler
     _olculer_sol(e, Y, -dg - 700 * K, K, kotlar, tavan, g)
     uzak = max((r for r in M["raylar"] if r["tur"] == "kabin"), key=lambda r: r["ust"])

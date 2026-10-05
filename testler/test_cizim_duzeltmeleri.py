@@ -67,7 +67,7 @@ class Katlar(unittest.TestCase):
             self.assertFalse([p for p in e if p["tip"] in ("tarama", "dikdortgen")
                               and (p["g"] <= 0 or p["d"] <= 0)])
             metinler = {p["metin"] for p in e if p["tip"] == "yazi"}
-            self.assertTrue({"+3.40", "+6.40", "+9.60"} <= metinler)
+            self.assertTrue({"+3,40", "+6,40", "+9,60"} <= metinler)
             self.assertFalse(DX.belge(e, olcek=50).audit().errors)
 
     def test_bos_alan_eski_esit_dagilimi_korur(self):

@@ -587,6 +587,17 @@ def _kaydet(d) -> bytes:
             return f.read()
 
 
+def _copleri_sil(msp):
+    """Şablondaki görünmez çöp çizgileri siler:  boyu 0,01 mm'den kısa ya da
+    düzlemin milyonlarca mm altında ( YAZı1 katmanında iki çizgi z = −150
+    milyon mm'de ) — dosyanın sınırlarını ( EXTMIN ) bozuyorlardı.  Şablon
+    dosyasına dokunulmaz."""
+    for e in list(msp.query("LINE")):
+        a, b = e.dxf.start, e.dxf.end
+        if (a - b).magnitude < 0.01 or max(abs(a.z), abs(b.z)) > 1e6:
+            msp.delete_entity(e)
+
+
 def _formata_yerlestir(sayfalar):
     """
     Sayfaları OFİSİN TİP PROJE FORMATININ içine yerleştirir.
@@ -600,6 +611,7 @@ def _formata_yerlestir(sayfalar):
     _sablon_dogrula(d)
     _katmanlari_kur(d)
     msp = d.modelspace()
+    _copleri_sil(msp)
 
     kapak = next((s for s in sayfalar if s.get("ad") == "Kapak"), None)
     digerleri = [s for s in sayfalar if s is not kapak]

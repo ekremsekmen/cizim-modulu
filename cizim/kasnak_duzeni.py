@@ -93,8 +93,16 @@ def ciz(g, cizim_sabitleri=None):
     halat.append((ua, za_, ua, z_alt))
     for u0, z0, u1, z1 in halat:
         e.append(CGE._ad(CGE._cizgi("HALAT", u0, z0, u1, z1), "aski_halati"))
-    e.append(CGE._ad(CGE._yazi(uk, z_alt - 90, "KABİNE", 45), "halat_adi"))
-    e.append(CGE._ad(CGE._yazi(ua, z_alt - 90, "AĞIRLIĞA", 45), "halat_adi"))
+    #  Halatlar yakınsa ( yazılar ortalanınca biner ) her yazı kendi halatının
+    #  dış yanına yaslanır
+    if abs(ua - uk) >= (CGE._yazi_eni("KABİNE", CGE.yb(45)) + CGE._yazi_eni("AĞIRLIĞA", CGE.yb(45))) / 2.0 + 40:
+        e.append(CGE._ad(CGE._yazi(uk, z_alt - 90, "KABİNE", 45), "halat_adi"))
+        e.append(CGE._ad(CGE._yazi(ua, z_alt - 90, "AĞIRLIĞA", 45), "halat_adi"))
+    else:
+        for u_, metin in ((uk, "KABİNE"), (ua, "AĞIRLIĞA")):
+            sol = u_ <= (uk + ua) / 2.0
+            e.append(CGE._ad(CGE._yazi(u_ + (-20 if sol else 20), z_alt - 90, metin, 45,
+                                       hiza="sag" if sol else "sol"), "halat_adi"))
     #  Makine dairesinde döşeme ( tabliye ) — halatlar delikten geçer
     u0_, u1_ = min(p0, uk, ua) - 200, max(p1_, uk, ua) + 200
     if oda is not None:

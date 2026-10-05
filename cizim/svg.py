@@ -19,7 +19,7 @@ KALEM = {
     "PATEN": ("#7a3ea8", 5), "KASNAK": ("#0f8f4f", 5),
     "PANO": ("#2f6fb5", 5), "BINA": ("#a06a4a", 3),
     "CIVATA": ("#2f6f2f", 3), "CERCEVE": ("#1a1a1a", 8),
-    "OLCU": ("#0a6ebd", 3), "EKSEN": ("#c01c1c", 3), "YAZI": ("#1a1a1a", 0),
+    "OLCU": ("#0a6ebd", 3), "EKSEN": ("#c01c1c", 3), "YAZI": ("#1a1a1a", 3),
     "KORKULUK": ("#d11a6a", 12), "SIGINMA": ("#1d8a3a", 6),
     "TAMPON": ("#8a2be2", 6), "PERDE": ("#d11a6a", 14), "MERDIVEN": ("#6b4f2a", 6),
     "GIZLI": ("#7a7a7a", 4), "YUK": ("#c01c1c", 5),
@@ -79,15 +79,27 @@ def _olcu(el, renk, kalinlik, k=1.0, tutamak=False):
                f'<rect class="tut" x="{-w / 2 - 0.3 * h:.1f}" y="{-1.05 * h:.1f}" '
                f'width="{w + 0.6 * h:.1f}" height="{1.4 * h:.1f}" fill="transparent"/></g>')
     return (cizgi + f' stroke="{renk}" stroke-width="{kalinlik}"/>' + uc
-            + _metin(bx, by, el["metin"], yz["h"], renk, -yz["aci"]) + tut)
+            + _metin(bx, by, el["metin"], yz["h"], renk, -yz["aci"], k=k) + tut)
 
 
-def _metin(x, y, metin, yukseklik, renk, aci=0, hiza="orta"):  # noqa: D401
+#  YAZI MASKESİ ( DXF'teki MTEXT arka planı / dimtfill ile aynı iş ):  harflerin
+#  çevresinde zemin renginde bir hale — çizgi yazının üstünden geçmez, yazının
+#  olduğu yerde kesilir ( ISO 128 ).  Halenin eni yazı boyunun oranı;  ölçü
+#  yazısından büyük yazılarda ( çizimin başlığı ) ölçü yazısınınki kadar — geniş
+#  hale başlığın altındaki şerit çizgisini kesiyordu.
+HALE = 0.6
+HALE_AZAMI = 70.0 * HALE                      # 1/20'de;  başka ölçekte k ile
+
+
+def _metin(x, y, metin, yukseklik, renk, aci=0, hiza="orta", k=1.0):  # noqa: D401
     #  Çizim ters çevrildiği için yazı kendi ekseninde geri çevrilir.
+    hale = min(HALE * yukseklik, HALE_AZAMI * k)
     tutucu = {"orta": "middle", "sol": "start", "sag": "end"}.get(hiza, "middle")
     return (f'<g transform="translate({x:.1f},{y:.1f}) scale(1,-1) rotate({aci})">'
             f'<text x="0" y="0" font-family="DejaVu Sans, Arial" font-size="{yukseklik:g}" '
-            f'fill="{renk}" text-anchor="{tutucu}">{html.escape(metin)}</text></g>')
+            f'fill="{renk}" stroke="#ffffff" stroke-width="{hale:.1f}" '
+            f'stroke-linejoin="round" paint-order="stroke" '
+            f'text-anchor="{tutucu}">{html.escape(metin)}</text></g>')
 
 
 def _kesik(desen, k):
@@ -122,7 +134,10 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False):
     #  paftadaki boyları aynı kalsın diye k ile büyür.
     k = olcek / 20.0
     parcalar, n_olcu = [], 0
-    for el in elemanlar:
+    #  Önce parçalar, sonra ölçüler, en son etiketler:  yazının halesi
+    #  kendinden önce çizileni örter ( DXF ile aynı sıra ).
+    sira = {"olcu": 1, "yazi": 2}
+    for el in sorted(elemanlar, key=lambda el: sira.get(el["tip"], 0)):
         renk, kal = KALEM.get(el["katman"], ("#000", 4))
         kal = f"{kal * k:g}"
         if el["tip"] == "tarama_tugla":
@@ -165,8 +180,13 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False):
                 parcalar.append(_olcu(el, renk, kal, k))
             n_olcu += 1
         elif el["tip"] == "yazi":
-            parcalar.append(_metin(el["x"], el["y"], el["metin"], el["yukseklik"], renk,
-                                   -el.get("aci", 0), el.get("hiza", "orta")))
+            #  Geometri yazının ORTASINI verir ( DXF'te MIDDLE hizası );  SVG
+            #  taban çizgisine yazar:  ölçü yazısı gibi 0,35·h aşağı ( eskiden
+            #  etiketler ekranda DXF'tekinden 0,35·h yukarıdaydı — çizimin başlığı
+            #  şeridin çizgisine biniyordu ).
+            a, h = math.radians(el.get("aci", 0)), el["yukseklik"]
+            parcalar.append(_metin(el["x"] + 0.35 * h * math.sin(a), el["y"] - 0.35 * h * math.cos(a),
+                                   el["metin"], h, renk, -el.get("aci", 0), el.get("hiza", "orta"), k))
     bas = (_metin(x1 + g / 2.0, y1 - 180, f"{baslik}   1/{olcek:g}", 90, "#1a1a1a")
            if baslik else "")
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x1:.0f} {-y2 - 300:.0f} '

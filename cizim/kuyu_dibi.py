@@ -191,15 +191,29 @@ def _yuk_etiketleri(e, noktalar, G, D):
     ortadaki nokta sona kalır, onun yeri boldur.  Yer yoksa önce sığınma
     alanının yüzeyine ( yazısına değil ), sonra ölçü çizgisine ( yazısına
     değil ) binmesine izin verilir."""
-    for kademe in ({}, {"siginma": False}, {"siginma": False, "olcu_cizgisi": False}):
+    #  Sıra:  hiçbir şeye binmeden içeride, sonra kuyunun DIŞINDA ( duvarın
+    #  ötesinde;  ok duvarın üstünden noktayı gösterir ) · sığınma alanının
+    #  yüzeyine binerek içeride / dışarıda · ölçü çizgisine binerek içeride /
+    #  dışarıda.  Yazılar büyüyünce ( 5 Eki ) küçük kuyularda
+    #  kutular içeride yer bulamıyor, çizim duruyordu;  ölçü çizgisinin
+    #  kutunun içinden geçmesi dışarıdaki kutudan daha kötü okunur.
+    duvar = [CGE.sinir([el]) for el in e if el["katman"] == "KUYU-DUVAR" and el["tip"] != "yazi"]
+    dis = (min(d[0] for d in duvar), min(d[1] for d in duvar),
+           max(d[2] for d in duvar), max(d[3] for d in duvar)) if duvar else None
+    hata = None
+    for kademe, disari in (({}, False), ({}, True), ({"siginma": False}, False), ({"siginma": False}, True),
+                           ({"siginma": False, "olcu_cizgisi": False}, False),
+                           ({"siginma": False, "olcu_cizgisi": False}, True)):
+        if disari and dis is None:
+            continue
         try:
-            return _yuk_yerlesimi(e, noktalar, G, D, *_engeller(e, **kademe))
+            return _yuk_yerlesimi(e, noktalar, G, D, *_engeller(e, **kademe), dis=dis if disari else None)
         except ValueError as h:
             hata = h
     raise hata
 
 
-def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar):
+def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar, dis=None):
     #  24 yön:  eksenler, köşegenler ve aralarındaki ( 1 : 2 ve 1 : 3 ) doğrultular;
     #  ok boyları 75'er artar ( 16 yön ve 150'lik adımla sağ aynalı düzende
     #  ağırlık tamponunun kutusu ölçü çizgisine biniyordu )
@@ -209,10 +223,16 @@ def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar):
 
     def adaylar(p, metin):
         px, py = p
-        w, h = CGE._yazi_eni(metin, YUK_YAZI) + 2 * YUK_PAY, YUK_YAZI + 2 * YUK_PAY
+        w, h = CGE._yazi_eni(metin, CGE.yb(YUK_YAZI)) + 2 * YUK_PAY, CGE.yb(YUK_YAZI) + 2 * YUK_PAY
         ox, oy = G / 2.0 - px, D / 2.0 - py
+        #  Okun başladığı nokta bir yazının payının içindeyse ( yazı noktaya
+        #  bitişik ) o yazı paysız sayılır:  yoksa noktadan çıkan her ok onu
+        #  "kesiyor" sayılıyor, kutuya aday kalmıyordu ( yazılar büyüyünce, 5 Eki )
+        okp = [0.0 if (b[0] - 15 <= px <= b[2] + 15 and b[1] - 15 <= py <= b[3] + 15) else 15.0
+               for b in yazilar]
         sira = sorted(yonler, key=lambda u: -(u[0] * ox + u[1] * oy) / (u[0] ** 2 + u[1] ** 2) ** 0.5)
-        for L in (220, 285, 350, 425, 500, 575, 650, 725, 800, 900, 1000, 1100, 1200, 1400):
+        for L in (220, 285, 350, 425, 500, 575, 650, 725, 800, 900, 1000, 1100, 1200, 1400) + \
+                ((1600, 1800, 2000, 2300) if dis else ()):
             for ux, uy in sira:
                 n = (ux * ux + uy * uy) ** 0.5
                 q = (px + L * ux / n, py + L * uy / n)
@@ -220,9 +240,15 @@ def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar):
                 y0 = (q[1] - h / 2.0) if ux else (q[1] if uy > 0 else q[1] - h)
                 k = (x0, y0, x0 + w, y0 + h)
                 if not (20 <= k[0] and k[2] <= G - 20 and 20 <= k[1] and k[3] <= D - 20):
-                    continue
+                    #  dis:  kuyunun ( duvarlarıyla ) dışında, ona 900'den yakın
+                    if dis is None or not (
+                            (k[2] <= dis[0] - 20 or k[0] >= dis[2] + 20 or k[3] <= dis[1] - 20
+                             or k[1] >= dis[3] + 20)
+                            and dis[0] - 900 <= k[0] and k[2] <= dis[2] + 900
+                            and dis[1] - 900 <= k[1] and k[3] <= dis[3] + 900):
+                        continue
                 if any(_ortusur(k, b, 20) for b in kutular + yazilar) or \
-                        any(_kesisir(p, q, b, 15) for b in yazilar):
+                        any(_kesisir(p, q, b, pay) for b, pay in zip(yazilar, okp)):
                     continue
                 yield q, k
 
@@ -243,7 +269,7 @@ def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar):
         p = noktalar[sira[j]][0]
         for q, k in aday[sira[j]]:
             adim[0] += 1
-            if adim[0] > 20000:
+            if adim[0] > (200000 if dis else 20000):
                 return False
             if uyar(p, q, k, konan):
                 konan.append((k, p, q))
@@ -568,7 +594,7 @@ def ciz(g, cizim_sabitleri=None):
         e.append(CGE._ad(CGE._dik("MERDIVEN", m[0], m[1], m[2] - m[0], m[3] - m[1]), "merdiven"))
         #  Etiket sığıyorsa merdivenin içine:  yanına yazılınca sığınma alanının
         #  ölçüsüne biniyordu
-        ic = CGE._yazi_eni("MERDİVEN", 36) <= m[3] - m[1] - 40 and 36 <= m[2] - m[0] - 20
+        ic = CGE._yazi_eni("MERDİVEN", CGE.yb(36)) <= m[3] - m[1] - 40 and CGE.yb(36) <= m[2] - m[0] - 20
         e.append(CGE._yazi(_merkez(m)[0] + (0 if ic else 110 if m[0] < G / 2 else -110),
                            _merkez(m)[1], "MERDİVEN", 36, aci=90))
     sg = Y["siginma"]
@@ -577,7 +603,7 @@ def ciz(g, cizim_sabitleri=None):
         a, b = SIGINMA[Y["siginma_tipi"]]
         cx, cy = _merkez(sg)
         e.append(CGE._yazi(cx, cy + 35, "SIĞINMA ALANI", 38))
-        e.append(CGE._yazi(cx, cy - 35, f"{Y['siginma_tipi'].upper()}  {a:g} x {b:g}", 34))
+        e.append(CGE._yazi(cx, cy - 35, f"{CGE.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}", 34))
 
     #  ── YAZILAR ──────────────────────────────────────────────────────
     #  Kuyu tabanına yük aktaran noktalar ( kutuları en sonda, ölçülerden sonra
@@ -618,9 +644,6 @@ def ciz(g, cizim_sabitleri=None):
     ys = sorted({0.0, D, ry, _merkez(gr)[1]} | {_merkez(t)[1] for t in Y["agirlik_tamponlari"]})
     e += [O("dusey", (0, a), (0, b), s0) for a, b in zip(ys, ys[1:])]
     e.append(O("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"))
-    #  Ray konsoluna yatay yükler:  sağdaki ölçülerin dışında, kuyunun üst hizasından
-    if kv:
-        e += _kuvvet_tablosu(kv, s1 + 250, D - 20)
     #  Alt:  kat kapısı ve merdivenin kapıya uzaklığı
     xs = sorted({0.0, G, kp["sol_pay"], kp["sol_pay"] + kp["genislik"]} |
                 ({Y["merdiven"][0], Y["merdiven"][2]} if Y["merdiven"] else set()))
@@ -646,6 +669,11 @@ def ciz(g, cizim_sabitleri=None):
         return e
     e += _yuk_etiketleri(e, noktalar, G, D)
     e.append(_perde_yazisi(e, perde_yazisi, p))
+    #  Ray konsoluna yatay yükler:  sağdaki ölçülerin ( ve kuyunun dışına konmuş
+    #  yük kutularının ) dışında, kuyunun üst hizasından.  Yük kutularından
+    #  SONRA:  dışarıdaki kutu tablonun yerine taşıyordu.
+    if kv:
+        e += _kuvvet_tablosu(kv, max(s1 + 250, CGE.sinir(e)[2] + 150), D - 20)
     #  Parçaya ( ara kiriş, gergi ... ) binen ölçü yazıları, yük kutuları
     #  konduktan sonra ölçüleri boyunca boş yere kayar ( girdi taraması, 4 Eki ).
     #  Önce kaydırılınca bir düzende yük kutusuna yer kalmıyordu.
@@ -667,12 +695,13 @@ def _perde_yazisi(e, yer, p):
     orta = y if aci else x
     #  Tam adı sığmıyorsa ( oklar perdeyi sık kesiyor ) kısaltılır
     for metin in ("KARŞI AĞIRLIK PERDESİ", "AĞIRLIK PERDESİ", "PERDE"):
-        L = CGE._yazi_eni(metin, h)
+        L = CGE._yazi_eni(metin, CGE.yb(h))
         adaylar = sorted((orta + d for d in range(-2000, 2001, 20)
                           if boy[0] + L / 2.0 <= orta + d <= boy[1] - L / 2.0), key=lambda c: abs(c - orta))
         for c in adaylar:
-            k = (x - h / 2.0, c - L / 2.0, x + h / 2.0, c + L / 2.0) if aci else \
-                (c - L / 2.0, y - h / 2.0, c + L / 2.0, y + h / 2.0)
+            hh = CGE.yb(h)
+            k = (x - hh / 2.0, c - L / 2.0, x + hh / 2.0, c + L / 2.0) if aci else \
+                (c - L / 2.0, y - hh / 2.0, c + L / 2.0, y + hh / 2.0)
             if not any(_kesisir(a, b, k, 15) for a, b in oklar) and \
                     not any(_ortusur(k, b, 15) for b in engel):
                 return CGE._yazi(x, c, metin, h, aci=90) if aci else CGE._yazi(c, y, metin, h)

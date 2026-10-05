@@ -200,6 +200,17 @@ def _cerceveyi_uzat(d, sag, eski=None):
                 e.dxf.set(uc, (sag, p.y, p.z))
 
 
+def _copleri_sil(msp):
+    """Şablondaki görünmez çöp çizgileri siler ( hesap programının
+    dxf_export._copleri_sil'i gibi ):  boyu 0,01 mm'den kısa ya da düzlemin
+    milyonlarca mm altında — YAZı1 katmanında iki çizgi z = −150 milyon mm'de,
+    dosyanın sınırlarını ( EXTMIN ) bozuyordu."""
+    for e in list(msp.query("LINE")):
+        a, b = e.dxf.start, e.dxf.end
+        if (a - b).magnitude < 0.01 or max(abs(a.z), abs(b.z)) > 1e6:
+            msp.delete_entity(e)
+
+
 def _katmanlari_onar(d):
     """Şablonun kendi katmanlarından dördü ( ÇERÇ, YAZı, t-çap, YAZı1 ) dosyada
     olmayan malzeme ve çizim stili kayıtlarını gösteriyor;  AutoCAD'in AUDIT'i
@@ -243,7 +254,7 @@ def _yerlestir(d, g, x0=None, sag_eski=None):
     yerlesen = []
     for (ad, baslik, olcek, e), (bx, by), (px, py), (w, h) in zip(cizimler, kutular, yerler, boyutlar):
         blok = d.blocks.new(name=f"CIZIM_{ad.upper()}", base_point=(bx, by))
-        CDX.ciz(blok, e, olcek)
+        CDX.ciz(blok, e, olcek, blokta=True)
         msp.add_blockref(blok.name, (px, py), dxfattribs={"xscale": 1.0 / olcek, "yscale": 1.0 / olcek,
                                                            "layer": "0"})
         yerlesen.append({"ad": ad, "baslik": baslik, "olcek": olcek, "kutu": (px, py, px + w, py + h)})
@@ -259,6 +270,7 @@ def belge(g):
     d = ezdxf.readfile(SABLON)
     _sablon_dogrula(d)
     _katmanlari_onar(d)
+    _copleri_sil(d.modelspace())
     bilgi = _yerlestir(d, g)
     _antet(d, g, bilgi["olcekler"])
     return d, bilgi
@@ -299,6 +311,36 @@ def yaz(g) -> bytes:
             return f.read()
 
 
+def _maskeleri_ac(d):
+    """Yazı maskelerini ( MTEXT arka planı, ölçüde dimtfill ) ezdxf'in çizdiği
+    WIPEOUT'a çevirir:  ezdxf ( 1.4 ) MTEXT'in arka planını çizmiyor, AutoCAD
+    çiziyor ( CDX.MASKE_PAYI ).  Yalnız önizlemenin kopyasında;  her maskenin
+    WIPEOUT'u yazısıyla birlikte bloğun sonuna alınır ( örtü kendinden önce
+    çizileni örter ).  Kutu yazının kendisinden:  tek satır, ortası ( 4 · 5 · 6 )
+    ya da altı ( 7 · 8 · 9 ) hizalı;  en büyük harf boyunun 0,58 / 0,716'sı
+    ( ezdxf'in MTEXT kutusu bu yazılarda kayıktı )."""
+    import math
+    for blok in d.blocks:
+        for m in list(blok.query("MTEXT")):
+            if not m.dxf.get("bg_fill", 0):
+                continue
+            h = m.dxf.char_height
+            w = len(m.plain_text()) * h * 0.58 / CDX.BUYUK_HARF
+            ap = m.dxf.get("attachment_point", 1)
+            x0 = {0: 0.0, 1: -w / 2.0, 2: -w}[(ap - 1) % 3]
+            y0 = {0: -h, 1: -h / 2.0, 2: 0.0}[(ap - 1) // 3]
+            pay = (m.dxf.get("box_fill_scale", 1.5) - 1.0) * h / 2.0
+            a = math.radians(m.dxf.get("rotation", 0.0))
+            c, s_ = math.cos(a), math.sin(a)
+            ix, iy = m.dxf.insert.x, m.dxf.insert.y
+            koseler = [(x0 - pay, y0 - pay), (x0 + w + pay, y0 - pay),
+                       (x0 + w + pay, y0 + h + pay), (x0 - pay, y0 + h + pay)]
+            blok.add_wipeout([(ix + u * c - v * s_, iy + u * s_ + v * c) for u, v in koseler])
+            yazi = m.copy()
+            blok.delete_entity(m)
+            blok.add_entity(yazi)
+
+
 def onizleme(d) -> str:
     """Paftanın SVG önizlemesi ( ezdxf'in kendi çizicisiyle, DXF'ten ) —
     ekranda görmek için;  asıl çıktı DXF'tir.
@@ -330,6 +372,10 @@ def onizleme(d) -> str:
         for e in list(blok.query("HATCH")):
             if e.pattern and e.dxf.pattern_name in ezdxf.pattern.ISO_PATTERN:
                 blok.delete_entity(e)
+    _maskeleri_ac(k)
+    #  Beyaz zeminde camgöbeği ölçü okunmaz:  önizlemede mavi ( CDX.KATMAN )
+    if "OLCU" in k.layers:
+        k.layers.get("OLCU").dxf.color = 5
     d = k
     arka = svg.SVGBackend()
     ayar = config.Configuration(background_policy=config.BackgroundPolicy.WHITE,

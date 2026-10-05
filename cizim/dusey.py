@@ -315,8 +315,9 @@ def dogrula(g):
 
 
 def _kot(z):
+    """Kot yazısı ( m ):  Türkçe ondalık virgülle — "±0,00", "+3,40"."""
     m = z / 1000.0
-    return "±0.00" if abs(m) < 5e-4 else f"{m:+.2f}"
+    return "±0,00" if abs(m) < 5e-4 else f"{m:+.2f}".replace(".", ",")
 
 
 def _kabin(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89):

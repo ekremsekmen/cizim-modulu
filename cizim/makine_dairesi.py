@@ -602,6 +602,15 @@ def _duvarlar(e, oda, t, kapi):
     e.append(CGE._dik("KUYU-IC", x0, y0, x1 - x0, y1 - y0))
 
 
+def _alan_yazi_yeri(alan):
+    """Çalışma / bakım alanının adı:  alanın içindeki iki ölçünün ( altta yatay,
+    solda düşey — yazıları kenardan 110 içeride ) dışında kalan parçanın
+    ortası.  Eskiden alanın tam ortasındaydı:  yazılar büyüyünce düşey ölçünün
+    yazısına biniyordu ( 5 Eki )."""
+    pay = 110 + CGE.yb(34) / 2.0 + 15
+    return ((alan[0] + pay + alan[2]) / 2.0, (alan[1] + pay + alan[3]) / 2.0)
+
+
 def _delik_elemanlari(e, Y):
     for ad, d in Y["delikler"]:
         e.append(CGE._ad(CGE._dik("DELIK", d[0], d[1], d[2] - d[0], d[3] - d[1]), "delik"))
@@ -700,12 +709,10 @@ def ciz(g, cizim_sabitleri=None):
         dik = (pn[2] - pn[0]) < (pn[3] - pn[1])
         e.append(CGE._yazi((pn[0] + pn[2]) / 2.0, (pn[1] + pn[3]) / 2.0, "KUMANDA PANOSU", 32,
                            aci=90 if dik else 0))
-        e.append(CGE._yazi((ca[0] + ca[2]) / 2.0, (ca[1] + ca[3]) / 2.0, "ÇALIŞMA ALANI", 32,
-                           aci=90 if dik else 0))
+        e.append(CGE._yazi(*_alan_yazi_yeri(ca), "ÇALIŞMA ALANI", 32, aci=90 if dik else 0))
     if Y["bakim"]:
         kutu("SIGINMA", Y["bakim"], "bakim_alani")
-        b = Y["bakim"]
-        e.append(CGE._yazi((b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0, "BAKIM ALANI", 32))
+        e.append(CGE._yazi(*_alan_yazi_yeri(Y["bakim"]), "BAKIM ALANI", 32))
 
     #  ── ÖLÇÜLER:  oda ve odanın kuyuya göre yeri ──────────────────────
     O = CGE._olcu
@@ -729,10 +736,10 @@ def ciz(g, cizim_sabitleri=None):
                          "m.5.2.6.3.2.1 b ).  Yerini program makineye en yakın boş yere koyar.")):
         if alan:
             e.append(O("yatay", (alan[0], 0), (alan[2], 0), alan[1] + 60, f"{alan[2] - alan[0]:g}",
-                       kural=kural, yazi={"x": (alan[0] + alan[2]) / 2.0, "y": alan[1] + 110, "h": 34}))
+                       kural=kural, yazi={"x": (alan[0] + alan[2]) / 2.0, "y": alan[1] + 110, "h": CGE.yb(34)}))
             e.append(O("dusey", (0, alan[1]), (0, alan[3]), alan[0] + 60, f"{alan[3] - alan[1]:g}",
                        kural=kural,
-                       yazi={"x": alan[0] + 110, "y": (alan[1] + alan[3]) / 2.0, "aci": 90, "h": 34}))
+                       yazi={"x": alan[0] + 110, "y": (alan[1] + alan[3]) / 2.0, "aci": 90, "h": CGE.yb(34)}))
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     CGE._yazilari_yerlestir(e)
     return e

@@ -35,8 +35,18 @@ CIZIMLER = {
                       "KASNAK DÜZENLEMESİ  ( tahrik kasnağının ekseninden — halatlar ve sarım açısı )"),
     "giris": (CGI.dogrula, CGI.ciz, "GİRİŞ GÖRÜNÜŞÜ  ( en alt durağın kapısı, durak tarafından )"),
 }
+#  Son adım:  birbirine binen etiketler ayrılır ( geometri.etiketleri_ayir ),
+#  ondalık ayırıcı virgül olur ( geometri.ondalik_virgul )
+def _ayir(ciz, olcek=20):
+    def ayrilmis(*a, **k):
+        return CGE.ondalik_virgul(CGE.etiketleri_ayir(ciz(*a, **k), olcek))
+    ayrilmis.__name__ = ciz.__name__
+    return ayrilmis
+
+
 #  1/20 dışındaki çizimler
 OLCEKLER = {"kuyu_kesiti_yan": CKK.OLCEK, "kuyu_kesiti_on": CKK.OLCEK}
+CIZIMLER = {ad: (dog, _ayir(ciz, OLCEKLER.get(ad, 20)), baslik) for ad, (dog, ciz, baslik) in CIZIMLER.items()}
 
 
 def plan_basligi(g, cizim, baslik):

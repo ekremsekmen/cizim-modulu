@@ -14,6 +14,10 @@ import ezdxf
 from ezdxf.enums import TextEntityAlignment
 
 #  Katman → ( ACI rengi , çizgi kalınlığı 1/100 mm )
+#  Ölçü katmanı CAMGÖBEĞİ ( 4 ):  AutoCAD'in koyu zemininde mavi ( 5 ) ölçü
+#  yazıları zor okunuyordu ( kullanıcı 5 Eki );  ölçünün çizgisi ve yazısı
+#  katmanın rengini alır ( dimclrt BYBLOCK ) — katmanın rengini değiştirmek
+#  hepsini değiştirir.  Önizleme ( beyaz zemin ) ölçüleri mavi çizer.
 KATMAN = {
     "KUYU-DUVAR": (7, 50), "TARAMA": (8, 13), "BINA": (33, 13),
     "KUYU-IC": (7, 25), "KABIN": (7, 30), "KABIN-IC": (6, 20),
@@ -21,7 +25,7 @@ KATMAN = {
     "RAY": (3, 25), "KONSOL": (3, 18), "PATEN": (200, 20),
     "KASNAK": (90, 20), "PANO": (150, 20),
     "CIVATA": (3, 13), "CERCEVE": (7, 40),
-    "OLCU": (5, 13), "EKSEN": (1, 13), "YAZI": (7, 0),
+    "OLCU": (4, 13), "EKSEN": (1, 13), "YAZI": (7, 13),
     "KORKULUK": (6, 50), "SIGINMA": (3, 25),
     "TAMPON": (200, 25), "PERDE": (6, 50), "MERDIVEN": (32, 25), "GIZLI": (8, 13), "YUK": (1, 18),
     "MAKINE": (5, 30), "BAGLANTI": (8, 25), "DELIK": (5, 30),
@@ -79,17 +83,48 @@ def _olcu(msp, el, k=1.0):
                               #  ezdxf'in ölçü biçiminin fontu ( OpenSans Condensed
                               #  Light ) kalıyordu:  AutoCAD bulamayıp ince simplex.shx'e
                               #  düşürüyor, sayılar okunmuyordu ( kullanıcı 5 Eki ).
+                              #  dimtfill:  yazının arkası çizimin zemin rengiyle örtülür
+                              #  ( MASKE ).
                               override={"dimtxsty": YAZI_TIPI,
                                         "dimtxt": yz["h"] * BUYUK_HARF, "dimasz": 35 * k, "dimexe": 30 * k,
-                                        "dimexo": 25 * k, "dimgap": 15 * k, "dimclrt": 5,
-                                        "dimse1": 1, "dimse2": 1})
+                                        "dimexo": 25 * k, "dimgap": 15 * k, "dimclrt": 0,
+                                        "dimse1": 1, "dimse2": 1, "dimtfill": 1})
     olcu.render()
 
 
-#  Çizgi tipi ölçeği:  CENTER deseni 5,08, DASHED 1,524 birim;  çizim gerçek
-#  ölçüde ( mm ) olduğu için desen paftada 1/ölçek küçülür ve kesik çizgi DÜZ
-#  görünürdü.  Her varlığa ölçek × 2,5 verilir:  paftada CENTER ~12,7 mm,
-#  DASHED ~3,8 mm — tek başına açılan DXF'te de, paftadaki blokta da.
+#  YAZI MASKESİ:  çizgi yazının üstünden geçmez, yazının olduğu yerde kesilir
+#  ( ISO 128 ).  Eksen çizgileri, gizli çizgiler, tarama ve komşu ölçülerin
+#  çizgileri yazıların içinden geçiyordu ( "KABİN 1350 x 1400" kabinin iki
+#  ekseninin kesiştiği yerde, "ASKI ARASI" askı ekseninin üstünde — 5 Eki ).
+#  Etiket arka planı çizimin zemin rengiyle örtülen MTEXT'tir ( AutoCAD'de
+#  "Background Mask · Use drawing background color" ), ölçü yazısı dimtfill.
+#  Örtünün yazıdan taşma çarpanı ( AutoCAD:  Border offset factor ):
+MASKE_PAYI = 1.25
+_MTEXT_HIZA = {"sol": 4, "sag": 6}           # MIDDLE_LEFT · MIDDLE_RIGHT;  yoksa 5 ( orta )
+
+
+def _mtext_kacis(metin):
+    """MTEXT biçim kodlarını ( \\  {  } ) düz yazıya çevirir."""
+    return metin.replace("\\", "\\\\").replace("{", "\\{").replace("}", "\\}")
+
+
+def _etiket(hedef, el):
+    m = hedef.add_mtext(_mtext_kacis(el["metin"]),
+                        dxfattribs={"layer": el["katman"], "style": YAZI_TIPI,
+                                    "char_height": el["yukseklik"] * BUYUK_HARF,
+                                    "insert": (el["x"], el["y"]), "rotation": el.get("aci", 0),
+                                    "attachment_point": _MTEXT_HIZA.get(el.get("hiza"), 5)})
+    m.set_bg_color("canvas", scale=MASKE_PAYI)
+
+
+#  Çizgi tipi ölçeği:  CENTER deseni 5,08, DASHED 1,524 birim.  Paftada CENTER
+#  ~12,7 mm, DASHED ~3,8 mm olsun diye:
+#  * tek başına açılan DXF gerçek ölçüde ( mm ) çizilir — desen ölçek × 2,5;
+#  * paftada çizim 1/ölçek küçültülmüş bir BLOKTUR ve AutoCAD bloğun içindeki
+#    çizgi desenini bloğun ölçeğiyle KÜÇÜLTMEZ ( desen dünya biriminde kurulur;
+#    LiftDesigner da 0,05'lik bloklarında ltscale 1 kullanır ) — desen 2,5.
+#    Eskiden blokta da ölçek × 2,5 veriliyordu:  desen paftada 254 mm oluyor,
+#    eksen ve gizli çizgiler AutoCAD'de DÜZ çizgi görünüyordu ( 5 Eki ).
 CIZGI_TIPI_OLCEGI = 2.5
 
 
@@ -108,11 +143,17 @@ def hazirla(d):
     d.styles.get(YAZI_TIPI).set_extended_font_data("Arial", bold=False, italic=False)
 
 
-def ciz(hedef, elemanlar, olcek=20):
-    """Elemanları `hedef` yerleşimine ( model alanı ya da blok ) yazar."""
+def ciz(hedef, elemanlar, olcek=20, blokta=False):
+    """Elemanları `hedef` yerleşimine ( model alanı ya da blok ) yazar.
+
+    blokta:  hedef paftaya 1/ölçek ile eklenen bir blok ( çizgi deseni
+    küçülmez — CIZGI_TIPI_OLCEGI )."""
     k = olcek / 20.0                   # ok, tarama ve boşluklar 1/20'ye göre
-    lt = {"ltscale": CIZGI_TIPI_OLCEGI * olcek}
-    for el in elemanlar:
+    lt = {"ltscale": CIZGI_TIPI_OLCEGI * (1 if blokta else olcek)}
+    #  Önce parçalar, sonra ölçüler, en son etiketler:  maske yalnız kendinden
+    #  ÖNCE çizileni örter ( AutoCAD'in çizim sırası ).
+    sira = {"olcu": 1, "yazi": 2}
+    for el in sorted(elemanlar, key=lambda el: sira.get(el["tip"], 0)):
         tur, kat = el["tip"], el["katman"]
         if tur in ("dikdortgen", "tarama", "tarama_tugla"):
             _dikdortgen(hedef, el, lt)
@@ -143,13 +184,7 @@ def ciz(hedef, elemanlar, olcek=20):
         elif tur == "olcu":
             _olcu(hedef, el, k)
         elif tur == "yazi":
-            hedef.add_text(el["metin"], height=el["yukseklik"] * BUYUK_HARF,
-                           dxfattribs={"layer": kat, "style": YAZI_TIPI,
-                                       "rotation": el.get("aci", 0)}
-                           ).set_placement((el["x"], el["y"]), align={
-                               "sol": TextEntityAlignment.MIDDLE_LEFT,
-                               "sag": TextEntityAlignment.MIDDLE_RIGHT,
-                           }.get(el.get("hiza"), TextEntityAlignment.MIDDLE_CENTER))
+            _etiket(hedef, el)
 
 
 def belge(elemanlar, baslik="", olcek=20):

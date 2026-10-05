@@ -11,6 +11,7 @@ TEST 15 — ÇİZİM MODÜLÜ  ( hesap motorundan bağımsız )
 import os
 import sys
 import math
+import re
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -254,6 +255,24 @@ class SvgCiktisi(unittest.TestCase):
         self.assertTrue(self.s.rstrip().endswith("</svg>"))
         self.assertEqual(self.s.count("<svg"), 1)
 
+    def test_yazilar_haleli_ve_cizgilerden_sonra(self):
+        """DXF'teki maskenin ekrandaki karşılığı:  her yazının çevresinde zemin
+        renginde hale, yazılar bütün çizgilerden sonra çizilir."""
+        self.assertEqual(self.s.count("<text"), self.s.count('paint-order="stroke"'))
+        #  İlk yazıdan sonra yalnız ölçülerin kendi çizgileri ve yazılar
+        sonra = self.s[self.s.index("<text"):]
+        for parca in ("<rect", "<circle", "<polygon"):
+            self.assertNotIn(parca, sonra)
+        self.assertIsNotNone(re.search(r'<text[^>]*>KABİN  1350 x 1400</text>', sonra))
+
+    def test_etiket_ortasindan_hizali(self):
+        """Geometri etiketin ORTASINI verir ( DXF'te MIDDLE ):  SVG taban
+        çizgisini 0,35·h aşağı koyar.  Eskiden etiketler ekranda 0,35·h
+        yukarıdaydı."""
+        el = CGE._yazi(1000, 2000, "DENEME", 60)
+        s = CSV.yaz([el], (0, 0, 3000, 3000), "", 20)
+        self.assertIn(f'translate(1000.0,{2000 - 0.35 * el["yukseklik"]:.1f})', s)
+
     def test_bilinen_olculer_yaziya_giriyor(self):
         for beklenen in ("2100", "1850", "DBG 1550", "900 x 2100", "KUYU PLANI"):
             self.assertIn(beklenen, self.s, beklenen)
@@ -280,16 +299,56 @@ class DxfCiktisi(unittest.TestCase):
         denet.run()
         self.assertEqual(list(denet.errors), [])
 
+    def test_yazilar_maskeli_ve_cizgilerden_sonra(self):
+        """Çizgi yazının üstünden geçmez ( ISO 128 ):  etiketin arkası zemin
+        rengiyle örtülür ( MTEXT arka planı ), ölçü yazısınınki dimtfill.  Örtü
+        yalnız kendinden önce çizileni örter:  yazılar çizgilerden SONRA."""
+        msp = self.d.modelspace()
+        etiketler = list(msp.query("MTEXT"))
+        self.assertTrue(etiketler)
+        for m in etiketler:
+            self.assertEqual(m.dxf.bg_fill & 2, 2, m.plain_text())          # zemin rengi
+            self.assertEqual(m.dxf.box_fill_scale, self.CDX.MASKE_PAYI)
+        for dim in msp.query("DIMENSION"):
+            self.assertEqual(dim.override().get("dimtfill"), 1)
+        tur = [e.dxftype() for e in msp if e.dxftype() != "TEXT"]       # belge başlığı ayrı
+        son_cizgi = max(i for i, t in enumerate(tur) if t not in ("MTEXT", "DIMENSION"))
+        ilk_yazi = min(i for i, t in enumerate(tur) if t in ("MTEXT", "DIMENSION"))
+        self.assertLess(son_cizgi, ilk_yazi)
+        self.assertLess(max(i for i, t in enumerate(tur) if t == "DIMENSION"),
+                        min(i for i, t in enumerate(tur) if t == "MTEXT"))
+
+    def test_cizgi_deseni_paftada_kuculmez(self):
+        """AutoCAD bloğun içindeki çizgi desenini bloğun ölçeğiyle küçültmez:
+        paftadaki ( 1/ölçek ) blokta desen ölçeği 2,5, tek başına ( gerçek
+        ölçüde ) açılan DXF'te ölçek × 2,5.  Eskiden blokta da ölçek × 2,5
+        veriliyordu:  eksenler AutoCAD'de düz çizgi görünüyordu."""
+        from cizim import pafta as CPF
+        eksen = [e for e in self.d.modelspace().query("LINE") if e.dxf.linetype == "CENTER"]
+        self.assertTrue(eksen)
+        for e in eksen:
+            self.assertEqual(e.dxf.ltscale, self.CDX.CIZGI_TIPI_OLCEGI * 20)
+        d, bilgi = CPF.belge(self.g)
+        for c in bilgi["cizimler"]:
+            blok = d.blocks.get(f"CIZIM_{c['ad'].upper()}")
+            desenli = [e for e in blok if e.dxftype() in ("LINE", "LWPOLYLINE", "CIRCLE") and
+                       (e.dxf.get("linetype") == "CENTER" or e.dxf.layer in ("GIZLI", "SIGINMA", "DELIK"))]
+            self.assertTrue(desenli, c["ad"])
+            for e in desenli:
+                self.assertEqual(e.dxf.ltscale, self.CDX.CIZGI_TIPI_OLCEGI, c["ad"])
+
     def test_birim_milimetre(self):
         self.assertEqual(self.d.header["$INSUNITS"], 4)
 
     def test_yazi_boyu_svg_ile_ayni(self):
-        """DXF'te TEXT / ölçü yazısı yüksekliği BÜYÜK HARF yüksekliğidir, SVG'de
-        em:  Arial'de büyük harf 0,716 em.  Çarpılmazsa DXF yazısı 1,4 kat büyük
-        çıkıp yerleşimin ayırdığı yere sığmıyordu."""
+        """DXF'te etiket ( MTEXT ) / ölçü yazısı yüksekliği BÜYÜK HARF
+        yüksekliğidir, SVG'de em:  Arial'de büyük harf 0,716 em.  Çarpılmazsa DXF
+        yazısı 1,4 kat büyük çıkıp yerleşimin ayırdığı yere sığmıyordu."""
         self.assertEqual(self.CDX.BUYUK_HARF, 0.716)
         yazilar = sorted(x["yukseklik"] for x in self.e if x["tip"] == "yazi")
-        dxf = sorted(t.dxf.height for t in self.d.modelspace().query("TEXT"))
+        msp = self.d.modelspace()
+        dxf = sorted([t.dxf.height for t in msp.query("TEXT")] +
+                     [t.dxf.char_height for t in msp.query("MTEXT")])
         self.assertEqual(len(dxf), len(yazilar) + 1)              # + belge başlığı
         for h in yazilar:
             self.assertTrue(any(abs(v - h * 0.716) < 1e-6 for v in dxf), h)
@@ -376,12 +435,13 @@ class YerlesimRegresyonlari(unittest.TestCase):
 
     def test_dxf_yazi_hizasini_korur(self):
         from cizim import dxf
-        from ezdxf.enums import TextEntityAlignment as A
         elemanlar = [CGE._yazi(100, 200, h, hiza=h) for h in ("sol", "orta", "sag")]
         d = dxf.belge(elemanlar)
-        for text, beklenen in zip(d.modelspace().query("TEXT"),
-                                  (A.MIDDLE_LEFT, A.MIDDLE_CENTER, A.MIDDLE_RIGHT)):
-            self.assertEqual(text.get_placement()[0], beklenen)
+        yazilar = list(d.modelspace().query("MTEXT"))
+        self.assertEqual(len(yazilar), 3)
+        #  MIDDLE_LEFT · MIDDLE_CENTER · MIDDLE_RIGHT
+        self.assertEqual([m.dxf.attachment_point for m in yazilar], [4, 5, 6])
+        self.assertEqual([m.plain_text() for m in yazilar], ["sol", "orta", "sag"])
 
 
 class ParcaTutarliligi(unittest.TestCase):
@@ -866,8 +926,12 @@ class KuyuDibiYerlesim(unittest.TestCase):
                                             or abs(o["y1"] - k[1]) < 1e-6 or abs(o["y1"] - k[3]) < 1e-6
                                             for k in kutu if k[0] - 1e-6 <= o["x1"] <= k[2] + 1e-6
                                             and k[1] - 1e-6 <= o["y1"] <= k[3] + 1e-6))
+                    #  Kutu kuyunun içinde ya da ( içeride yer yoksa ) duvarların dışında
+                    k_ = g["kuyu"]
+                    dis = (-k_["duvar_sol"], -k_["duvar_on"], G + k_["duvar_sag"], D + k_["duvar_arka"])
                     for k, y_ in zip(kutu, yazi):
-                        self.assertTrue(0 < k[0] and k[2] < G and 0 < k[1] and k[3] < D)
+                        self.assertTrue((0 < k[0] and k[2] < G and 0 < k[1] and k[3] < D)
+                                        or k[2] < dis[0] or k[0] > dis[2] or k[3] < dis[1] or k[1] > dis[3], k)
                         self.assertLessEqual(CGE._yazi_eni(y_["metin"], y_["yukseklik"]), k[2] - k[0])
                     for i, k in enumerate(kutu):
                         engel = kutular + yazilar + kutu[:i] + kutu[i + 1:]
@@ -904,10 +968,14 @@ class KuyuDibiYerlesim(unittest.TestCase):
     def test_cerceve_yazilarin_enini_kapsar(self):
         """Sola hizalı tablo satırları çerçevenin içinde kalır ( taşıyordu )."""
         Y = CGE._yazi
-        self.assertEqual(CGE.sinir([Y(0, 0, "ABCDE", 40, hiza="sol")]), (0, -20, 120, 20))
-        self.assertEqual(CGE.sinir([Y(0, 0, "ABCDE", 40, hiza="sag")]), (-120, -20, 0, 20))
-        self.assertEqual(CGE.sinir([Y(0, 0, "ABCDE", 40)]), (-60, -20, 60, 20))
-        self.assertEqual(CGE.sinir([Y(0, 0, "ABCDE", 40, hiza="sol", aci=90)]), (-20, 0, 20, 120))
+        #  Etiket 40 → çizilen boy yb ( yazılar LiftDesigner boyunda, 5 Eki );  eni 5 harf × 0,6 h
+        h = CGE.yb(40)
+        for hiza, beklenen in (("sol", (0, -h / 2, 3 * h, h / 2)), ("sag", (-3 * h, -h / 2, 0, h / 2)),
+                               (None, (-1.5 * h, -h / 2, 1.5 * h, h / 2))):
+            for a, b in zip(CGE.sinir([Y(0, 0, "ABCDE", 40, **({"hiza": hiza} if hiza else {}))]), beklenen):
+                self.assertAlmostEqual(a, b)
+        for a, b in zip(CGE.sinir([Y(0, 0, "ABCDE", 40, hiza="sol", aci=90)]), (-h / 2, 0, h / 2, 3 * h)):
+            self.assertAlmostEqual(a, b)
         e = CGE.cerceveli(CKD.ciz(_ornek(kuyu_dibi={"kuvvetler": self.KV})), "KUYU DİBİ PLANI")
         c = next(x for x in e if x["katman"] == "CERCEVE" and x["tip"] == "dikdortgen")
         for x in self._tablo(e):
@@ -2168,6 +2236,56 @@ class OlcuYazisiParcayaBinmez(unittest.TestCase):
                     with self.subTest(proje=ad, cizim=cizim, olcu=o["metin"]):
                         self.assertFalse([b for b in engel if CKD._ortusur(k, b)])
         self.assertGreater(sayi, 500)
+
+
+class YaziParcaKenarinaBinmez(unittest.TestCase):
+    """Yazılar maskelidir ( DXF arka plan / dimtfill, SVG hale ):  maske altındaki
+    çizgiyi siler.  Eksen, ölçü, gizli çizgi, alan sınırı, seviye, kesit
+    işareti ve halatın yazıda kesilmesi doğrudur ( ISO 128 ) — PARÇA KENARININ
+    değil.
+    Hiçbir çizimde etiket ya da ölçü yazısı bir parçanın kenarına binmez
+    ( kuyu üstünde HALAT BAĞLANTISI makine şasesinin, B-B'de durak numarası
+    kanat ayrımının, kuyu planında "75" kabinin çizgilerinin üstündeydi )."""
+
+    def test_butun_cizimler(self):
+        projeler = [("örnek", _ornek()), ("sağ", _sag_ayna()), ("arka", _arka()),
+                    ("makine dairesi", _ornek(makine={"yeri": "Makine dairesi"})),
+                    ("yatarak", _ornek(kuyu_dibi={"siginma_tipi": "Yatarak"})),
+                    ("dik duruş", _ornek(kabin_ustu={"siginma_tipi": "Dik duruş"}))]
+        sayi = 0
+        for ad, g in projeler:
+            for cizim, (dogrula, ciz, _) in CZ_.CIZIMLER.items():
+                if dogrula(g):
+                    continue
+                k = CZ_.OLCEKLER.get(cizim, 20) / 20.0
+                e = ciz(g)
+                kenarlar = CGE.parca_kenarlari(e)
+                duvarlar = [CGE.sinir([x]) for x in e if x["tip"] in ("tarama", "tarama_tugla")]
+                for o in e:
+                    if o["tip"] == "yazi":
+                        h, aci, hiza = o["yukseklik"], o.get("aci", 0), o.get("hiza", "orta")
+                        x, y = o["x"], o["y"]
+                    elif o["tip"] == "olcu":
+                        h, aci, hiza = o["yazi"]["h"], o["yazi"]["aci"], "orta"
+                        x, y = o["yazi"]["x"], o["yazi"]["y"]
+                    else:
+                        continue
+                    #  Görünen kutu:  büyük harf 0,72 em, harf eni 0,58 em
+                    w, c = len(o["metin"]) * h * 0.58, 0.36 * h
+                    a, b = {"sol": (0.0, w), "sag": (-w, 0.0)}.get(hiza, (-w / 2.0, w / 2.0))
+                    if abs(abs(aci) - 90) < 1e-6:
+                        ys = (y + a, y + b) if aci > 0 else (y - b, y - a)
+                        kutu = (x - c, ys[0], x + c, ys[1])
+                    else:
+                        kutu = (x + a, y - c, x + b, y + c)
+                    sayi += 1
+                    with self.subTest(proje=ad, cizim=cizim, yazi=o["metin"]):
+                        self.assertFalse([s_ for s_ in kenarlar if CGE.kenar_kesisir(s_, kutu, 2.0 * k)])
+                        #  Etiket duvarın ( taramalı kesit ) içinde durmaz
+                        if o["tip"] == "yazi":
+                            self.assertFalse([d for d in duvarlar if kutu[0] < d[2] and d[0] < kutu[2]
+                                              and kutu[1] < d[3] and d[1] < kutu[3]])
+        self.assertGreater(sayi, 1000)
 
 
 class Pafta(unittest.TestCase):

@@ -443,8 +443,8 @@ class Uclar(unittest.TestCase):
         self.assertIn("CIZIM_KUYU_PLANI_1", bloklar)
         self.assertIn("CIZIM_KUYU_PLANI_2", bloklar)
         #  Şeritte asansörün adı:  hangi kuyunun çizimi olduğu okunur
-        yazilar = {t.dxf.text for b in d.blocks if b.name.startswith("CIZIM_KUYU_PLANI_")
-                   for t in b.query("TEXT MTEXT") if t.dxftype() == "TEXT"}
+        yazilar = {t.plain_text() for b in d.blocks if b.name.startswith("CIZIM_KUYU_PLANI_")
+                   for t in b.query("MTEXT")}
         self.assertTrue({"ASANSÖR 1", "ASANSÖR 2"} <= yazilar, yazilar)
 
     def test_cizimi_kurulamayan_paket_inmez(self):

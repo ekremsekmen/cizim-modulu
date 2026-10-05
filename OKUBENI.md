@@ -481,10 +481,69 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
      dışına, o da olmazsa kısa yazıyla ( "h = 700" ).
    * Kuyu üstünde HALAT SAPMASI yazısı duvara ve makineye binmeyen yere.
    * B-B'de "KARŞI AĞIRLIK" yazısı ağırlık rayının yanına ( rayın altında kalıyordu ).
-7. **Yazı boyu SVG'de ve DXF'te aynıdır.**  Geometri yazının boyunu em
-   ( font-size ) olarak verir;  DXF'te TEXT ve ölçü yazısı yüksekliği büyük harf
-   yüksekliğidir ( Arial 0,716 em ) — `dxf.BUYUK_HARF` ile çarpılır.  Eskiden DXF
-   yazıları 1,4 kat büyük çıkıyor, pafta ve DWG'de ayrılan yere sığmıyordu.
+7. **Yazı boyu ve yeri SVG'de ve DXF'te aynıdır.**  Geometri yazının boyunu em
+   ( font-size ) ve ORTASINI verir;  DXF'te etiket ( MTEXT ) ve ölçü yazısı
+   yüksekliği büyük harf yüksekliğidir ( Arial 0,716 em ) — `dxf.BUYUK_HARF` ile
+   çarpılır, hizası MIDDLE;  SVG taban çizgisine yazar, 0,35·h aşağı.  Eskiden DXF
+   yazıları 1,4 kat büyük çıkıyor, pafta ve DWG'de ayrılan yere sığmıyordu;
+   ekrandaki etiketler de DXF'tekinden 0,35·h yukarıdaydı ( çizimin başlığı
+   şeridin çizgisine biniyordu — 5 Eki ).
+8. **Yazı boyları LiftDesigner paftalarındaki gibidir.**  LiftDesigner örneklerinde
+   ( 1022 · 1250 KG · 1275 · 800 KG · 4815-6 · 12495-18;  bloklar açılıp yazı
+   yükseklikleri sayıldı ) kâğıtta büyük harf:  ölçü stili LIFT `dimtxt` **2,5 mm**,
+   yazıların çoğu **2,5 mm** ( küçükleri 1,4 – 1,75 ), çizim başlığı **5 mm**.
+   Eskiden ölçü 1,86 mm, etiketler 1,1 – 1,6 mm, başlık 3,4 mm idi;  AutoCAD'de
+   okunmuyordu.  Bütün etiketler `geometri.YAZI_CARPANI` ( 70 / 52 ) ile büyür —
+   `_yazi()` boyu `yb()` ile verir, aralarındaki sıra korunur;  ölçü yazısı
+   `OLCU_YAZI` = 70 em ( 1/20'de 2,5 mm ), başlık 140 em.  Yazının yeri hesaplanırken
+   de aynı `yb()` kullanılır ( `_yazi_eni(…, CGE.yb(40))` ).  Büyüyen yazılar için:
+   * Üst üste konan ölçü yazılarının sıra adımı `KAT_ARALIGI` ( yazı boyu + 10 );
+     yazı yalnız kendi sırasındakilere değil, başka sıraların yazılarına da
+     bakılarak yerleşir ( kuyu planının köşesinde iki "DUVAR 150" biniyordu ).
+   * Her çizimin son adımı `etiketleri_ayir`:  bir yazıya binen etiket en yakın
+     boş yere kayar ( 20 mm'lik ızgarada, ±300 mm ), daha çok parçaya binmez.
+   * Kasnak düzenlemesinde halatlar yakınsa KABİNE / AĞIRLIĞA halatların dış
+     yanlarına yazılır;  makine dairesinde alan adları alanın ölçülerinden kaçar.
+9. **Çizgi yazının üstünden geçmez ( ISO 128 ):  yazılar maskelidir.**  AutoCAD'de
+   eksen, gizli çizgi ve komşu ölçünün çizgisi yazıların içinden geçiyordu
+   ( "KABİN 1350 x 1400" kabinin iki ekseninin kesiştiği yerde, "ASKI ARASI"
+   askı ekseninin üstünde;  girdi taramasında örnek projede 110 kesişme ).
+   * DXF:  etiket arka planı zemin rengiyle örtülen MTEXT'tir ( "Background
+     Mask · Use drawing background color", `dxf.MASKE_PAYI` 1,25 ), ölçü
+     yazısında `dimtfill` 1.  Örtü yalnız kendinden önce çizileni örter:
+     parçalar önce, sonra ölçüler, en son etiketler yazılır.
+   * SVG:  harflerin çevresinde zemin renginde hale ( `svg.HALE` 0,6 em;
+     ölçü yazısından büyük yazılarda ölçü yazısınınki kadar ), aynı sıra.
+   * Önizleme ( ezdxf MTEXT arka planını çizmez ):  kopyada her maskenin
+     yerine yazısının kutusu kadar WIPEOUT ( `pafta._maskeleri_ac` ).
+   * Maske yalnız MASKELENEBİLİR çizgileri keser ( `geometri.MASKELI_KATMANLAR`:
+     eksen, ölçü, gizli, alan sınırı, seviye, kesit işareti, halat ).  Öbürleri PARÇA
+     KENARIDIR ( `parca_kenarlari` ):  yazı kenarın üstüne düşerse maske kenarı
+     siler, düşmemelidir.  Etiket `etiketleri_ayir`'da kenara da binmeyen,
+     duvarın ( taramalı kesit ) içinde durmayan, eskisinden çok parçanın içine
+     girmeyen en yakın yere kayar ( 300 mm;  ölçeğe göre — 1/50'de 750 );
+     yoksa 900 mm'ye kadar hiçbir parçanın içinde olmayan yere konur ve
+     parçasına OKLU ÇİZGİYLE bağlanır ( dar yan karşı ağırlıkta KARŞI AĞIRLIK
+     ø 400 kasnağın üstündeydi;  yeri kuyunun dışı, ok ağırlığı gösterir );  ölçü yazısı
+     `_yazilari_yerlestir`'de adaylarından kenara binmeyenini seçer ( yoksa
+     eskisi gibi ).  Düzelenler:  kuyu üstünde HALAT BAĞLANTISI / ø / REGÜLATÖR
+     makine şasesinin, kabin üstünde HALAT şase kirişinin, kesitlerde KARŞI
+     AĞIRLIK konsolların, kuyu planında kabin duvarının "75"i kabinin
+     çizgilerinin üstündeydi;  B-B'de durak numarası kanat ayrımının üstündeydi
+     — artık ortaya en yakın kanadın ortasında.
+   * Girdi taraması ( `tara.py` ) yazının parça kenarına binmesini ve etiketin
+     duvarın içinde durmasını da sayar.
+   * Kenarlar ızgarada aranır ( `KenarIzgarasi` ):  hesap kuyu planını bir
+     projede binlerce kez kurar;  her aday yer için bütün kenarları denemek
+     hesap testini 163 sn'den 5.486 sn'ye çıkarmıştı.
+10. **Ölçüler camgöbeği, ondalık ayırıcı virgül** ( kullanıcı 5 Eki ).  OLCU
+   katmanı ACI 4:  AutoCAD'in koyu zemininde mavi ( 5 ) ölçü zor okunuyordu
+   ( LiftDesigner da mavi );  çizgi ve yazı katmanın rengini alır ( `dimclrt`
+   BYBLOCK ) — katmanın rengi hepsini değiştirir.  Önizlemede ( beyaz zemin )
+   ölçüler mavi.  Yazılardaki ondalık nokta virgül olur ( `ondalik_virgul`,
+   son adım:  "AĞIRLIK RAYI 127,5";  kotlar kaynağında "+3,40" );  madde
+   numaraları ( "m.5.2.6.3.2.4" ) değişmez.  Ölçü kaynağı sayıyı ikisinde de
+   tanır.
 
 ## Plan ve kesitte ortak donanım
 
@@ -642,8 +701,10 @@ Pit" gibi, ama değeriyle ):  her rayın ve tamponun ortasına **ok**, çerçeve
 **Fkt1** / **Fat1**, kN ).  Kutu noktanın çevresinde, kuyunun içinde, hiçbir
 parçaya, yazıya, ölçüye ve başka kutuya binmeyen yere konur;  ok başka bir
 kutuyu, yazıyı ya da oku kesmez ( en sıkışık nokta önce, gerekirse geri izleme;
-yer yoksa kutu sığınma alanının yüzeyine binebilir ).  Perde etiketi okların
-arasına kayar, sığmazsa kısalır.  Değerler `kuyu_dibi.kuvvetler`'den ( N );
+yer yoksa kutu sığınma alanının yüzeyine binebilir, o da olmazsa kuyunun
+**dışına**, duvarın en az 20 mm ötesine — ok yine noktayı gösterir;  yazılar
+büyüyünce dört düzen içeride yer bulamıyordu ).  Kuvvet tablosu kutulardan sonra,
+hepsinin sağına konur.  Perde etiketi okların arasına kayar, sığmazsa kısalır.  Değerler `kuyu_dibi.kuvvetler`'den ( N );
 girilmezse kutuda yalnız ad yazar.
 
 | Değer | Kaynak ( hesap programı ) | Nerede |
@@ -1099,8 +1160,17 @@ değişirse ( çerçeve, kapak hücresi, antet hücreleri ) pafta üretilmez.
 **AutoCAD ile doğrulandı:**  AutoCAD 2027'nin AcCoreConsole'unda açılıp
 REGENALL, AUDIT ( 0 hata ) ve DWG kaydı.  Şablonun dört katmanı olmayan
 malzeme / çizim stili kayıtlarını gösteriyordu ( AUDIT 16 hata );  pafta
-bunları onarır.  Kesik ve eksen çizgilerine ölçek × 2,5 çizgi tipi ölçeği
-verilir — yoksa desen paftada 0,1 mm'ye iner, çizgi düz görünürdü.
+bunları onarır.  Şablonun görünmez çöp çizgileri ( YAZı1'de iki çizgi z = −150
+milyon mm'de, iki de sıfır boylu;  dosyanın EXTMIN'ini bozuyordu ) paftada ve
+hesap paketinde silinir — şablon dosyasına dokunulmaz.
+
+**Çizgi tipi ölçeği:**  AutoCAD bloğun içindeki çizgi desenini bloğun
+ölçeğiyle KÜÇÜLTMEZ — desen dünya biriminde kurulur ( LiftDesigner da 0,05'lik
+bloklarında ltscale 1 kullanır;  AutoCAD 2027'de ekranda görüldü ).  Paftadaki
+blokta eksen ve kesik çizgiye 2,5 ( CENTER paftada 12,7 mm ), gerçek ölçüde
+tek başına açılan DXF'te ölçek × 2,5 verilir.  Eskiden blokta da ölçek × 2,5
+veriliyordu:  desen paftada 254 mm oluyor, eksenler ve gizli çizgiler AutoCAD'de
+DÜZ çizgi görünüyordu ( 5 Eki ).
 
 ## Sırada ne var
 
