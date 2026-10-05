@@ -327,13 +327,16 @@ _KESITTE_GIZLI = frozenset(("sase_kiris", "kabin_kasnak", "kabin_kasnak_capraz",
                             "kasnak_tasiyici_sematik"))
 
 
-def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
+def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
     """Kuyu planının elemanları  ( liste ).
 
     kapi_duzeyi:  plan kat kapısı hizasından kesilir ( C-C ) — ön duvar kapı
     boşluğunun iki yanında iki parçadır, tarama boşluktan geçmez.  Kapının
-    üstünden / altından kesilen planlar ( kabin üstü, kuyu dibi, kuyu üstü,
-    delik planı ) duvarı kesintisiz alır:  False."""
+    üstünden / altından kesilen planlar ( kuyu dibi, kuyu üstü, delik planı )
+    duvarı kesintisiz alır:  False.
+    duvar_boslugu:  ön duvarın boşluklu olup olmadığı ( verilmezse
+    kapi_duzeyi ) — kabin üstü planı kesit kotu kaba boşluğun içinde kalırsa
+    boşluklu ister ( kabin_ustu.kapi_gorunusu )."""
     S = CS.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     k, kb, kp = g["kuyu"], g["kabin"], g["kapi"]
     kr, ag = g["kabin_ray"], g["agirlik"]
@@ -345,7 +348,8 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True):
     #  Ön duvar kat kapısının kaba boşluğunun iki yanındadır ( CG.kaba_bosluk —
     #  giriş görünüşüyle aynı;  duvar boşluğuna monte kapıda kasa da boşluktadır ).
     b0, b1, _ = CG.kaba_bosluk(g, S)
-    on = [(-ds, -don, b0 + ds, don), (b1, -don, G + dg - b1, don)] if kapi_duzeyi else \
+    bosluklu = kapi_duzeyi if duvar_boslugu is None else duvar_boslugu
+    on = [(-ds, -don, b0 + ds, don), (b1, -don, G + dg - b1, don)] if bosluklu else \
         [(-ds, -don, G + ds + dg, don)]
     for x, y, g_, d_ in on + [(-ds, D, G + ds + dg, dar), (-ds, 0, ds, D), (G, 0, dg, D)]:
         if g_ <= 1e-6:

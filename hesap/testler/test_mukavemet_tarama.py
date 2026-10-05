@@ -90,7 +90,9 @@ def tarama_senaryolari():
     for rm in MT.RAY_CELIKLERI:
         E(f"ray çeliği Rm {rm}", ray_celigi_rm=rm)
     E("askı 1:1", aski_orani=1)
-    E("ağırlık solda", agirlik_yeri="Sol")
+    #  Kapı ağırlığın tersine açılır:  sola açılan kabin kapısının cebi soldaki
+    #  ağırlığın ara kirişine çarpar ( çizim reddeder;  kabin üstü planı 5 Eki )
+    E("ağırlık solda", agirlik_yeri="Sol", kat_kapisi_tipi="Teleskopik Sağ")
     E("ağırlık arkada", agirlik_yeri="Arka")
     for h in (0.63, 1.6, 2.5, 4):
         E(f"hız {h} m/s", beyan_hizi=h)
@@ -146,7 +148,8 @@ PROJE_SENARYOLARI = (
     ("kabin ℓ girilmiş · ağırlıkta ℓ türetilir", dict(_B, paten_balata_boyu=140)),
     ("Fp ve bina sehimi", dict(_B, klips_itme_kuvveti=500, yapi_sehim_x=1, yapi_sehim_y=1.5)),
     ("sehim · ağırlık arkada", dict(_B, yapi_sehim_x=0.7, yapi_sehim_y=1.3, agirlik_yeri="Arka")),
-    ("sehim · ağırlık solda", dict(_B, yapi_sehim_x=0.7, yapi_sehim_y=1.3, agirlik_yeri="Sol")),
+    ("sehim · ağırlık solda", dict(_B, yapi_sehim_x=0.7, yapi_sehim_y=1.3, agirlik_yeri="Sol",
+                                   kat_kapisi_tipi="Teleskopik Sağ")),
     ("Fp tek başına", dict(_B, klips_itme_kuvveti=750)),
     ("makine daireli + eski 'raylara' seçimi",
      dict(_B, makine_raya_biniyor=MT.MAKINE_YUK_YOLU_RAY)),

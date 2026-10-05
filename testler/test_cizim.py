@@ -658,15 +658,45 @@ class KabinUstuYerlesim(unittest.TestCase):
         self.assertFalse([el for el in e if el.get("ad") == "halat"])
 
     def test_operator_tavanin_kapi_kenarinda(self):
+        #  Operatör tavanın üstünde kutu boyu kadar, önde kabin kapısının
+        #  üstünde kabin eşiğinin ön kenarına kadar;  enine kanatların yolunu
+        #  ( kapı + cep ) örter — tavandan geniş olabilir ( 5 Eki )
         from cizim import sabitler as CS
         S = CS.sabitler()
         for ad, g in _ustu_projeler():
             Y = CKU.yerlesim(g)
             op, t = Y["operator"], Y["tavan"]
+            KB = CG.kapi_bolgesi(g, S)
+            yol = [c for cep in CG.kanat_cepleri(g, S, pay=False) for c in cep]
+            x0, kg = g["kapi"]["sol_pay"], g["kapi"]["genislik"]
             with self.subTest(proje=ad):
-                self.assertEqual(op[1], t[1])
-                self.assertEqual(op[3] - op[1], S["kabin_kapisi_kutu_boy"])
-                self.assertTrue(t[0] <= op[0] and op[2] <= t[2])
+                self.assertEqual(op[1], KB["kabin_esik"][0])
+                self.assertEqual(op[3] - t[1], S["kabin_kapisi_kutu_boy"])
+                self.assertEqual((op[0], op[2]), (min([x0] + yol), max([x0 + kg] + yol)))
+
+    def test_kabin_ustunde_kapi_kesit_kotuna_gore(self):
+        #  Kesit kabin tavanından ( kabin iç + 60 ) geçer:  kaba boşluğun
+        #  ( kapı + 240 ) içindeyse ön duvar boşluklu, kasa kesilir;  üstündeyse
+        #  duvar dolu, boşluk kesikli.  Kat ve kabin kapısı görünür;  operatör
+        #  yalnız yerleşimde ( engel ), çizilmez — LiftDesigner 1022 X-X gibi
+        #  ( 5 Eki;  eskiden ön duvar hep doluydu, kapı bölgesi boş )
+        for kabin_h, acik in ((2150, True), (2300, False)):         # kapı 2.100, üst payı 200
+            g = _ornek()
+            g["dusey"]["kabin_ic_yukseklik"] = kabin_h
+            e = CKU.ciz(g)
+            with self.subTest(kabin_h=kabin_h):
+                duvar = [el for el in e if el["katman"] == "KUYU-DUVAR" and el["y"] < 0]
+                self.assertEqual(len(duvar), 2 if acik else 1)
+                bosluk = next(el for el in e if el.get("ad") == "kapi_boslugu")
+                self.assertEqual(bosluk["katman"], "KAPI" if acik else "GIZLI")
+                for ad in ("kat_kanadi", "kat_esigi", "kapi_kasasi"):
+                    self.assertTrue(all(el["katman"] == "KAPI" for el in e if el.get("ad") == ad), ad)
+                    self.assertTrue(any(el.get("ad") == ad for el in e), ad)
+                for ad in ("kabin_kanadi", "kabin_esigi"):
+                    kk = [el for el in e if el.get("ad") == ad]
+                    self.assertTrue(kk and all(el["katman"] != "GIZLI" for el in kk), ad)
+                self.assertFalse([el for el in e if el.get("ad") == "operator"
+                                  or "OPERATÖR" in str(el.get("metin", ""))])
 
     def test_siginma_ust_kirisin_altina_girmez(self):
         #  Kabin altı ve doğrudan askıda şasenin üst kirişi tavandaki tek askı

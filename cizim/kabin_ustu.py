@@ -7,14 +7,20 @@ kullanır:  yerleşim ikinci kez hesaplanmaz, plan() elemanlarından okunur —
 iki çizim ayrışamaz.  Üstüne kabin tavanında olanlar gelir:
 
   · kabin tavanı, şase dikmeleri ve üst kirişi
-  · kapı operatörü  ( tavanın kapı kenarında )
+  · kapı operatörü YALNIZ YERLEŞİMDE ( engel ), çizilmez — LiftDesigner
+    1022'nin kabin üstü kesiti ( X-X ) de çizmez ( kullanıcı kararı 5 Eki )
   · askı:  kabin üstü askıda kasnaklar tavanda;  kabin altı askıda halatlar
     tavanın dışından geçer;  doğrudan askıda askı noktaları tavandadır
   · KORKULUK            TS EN 81-20 m.5.4.7.2 b ve m.5.4.7.4
   · SIĞINMA ALANI       TS EN 81-20 m.5.2.5.7.1 · Çizelge 3
 
-Kat kapısı bu kesitte görünmez:  kesit kapı lentosunun üstünden geçer, ön
-duvar dolu çizilir.
+Kapı ( kapi_gorunusu ):  kesit kabin tavanından geçer ( kabin iç + tavan,
+2.060 ) — kaba boşluğun üstü kapı + kapi_ust_payi ( 2.240 ), kasanın üstü
+kapı + kasa_ust ( 2.220 ).  Kesit boşluğun içindeyse ön duvar boşlukludur,
+kasa kesilir;  kanatların üstü ( kapı yüksekliği ) her zaman kesitin altında
+kalır:  kat ve kabin kapısı yukarıdan görünür ( LiftDesigner 1022 X-X gibi ).
+Eskiden ön duvar hep dolu çiziliyor, kapı bölgesi boş
+kalıyordu ( kullanıcı 5 Eki:  "kapının görünmemesi saçma" ).
 """
 from cizim import geometri as CGE
 from cizim import girdi as CG
@@ -55,6 +61,9 @@ _PLANDAN_AD = ("agirlik_kasnak", "agirlik_kasnak_yazi", "agirlik_yazi", "sase_di
 _PLANDAN_DISLA = frozenset(("kabin_dis", "sase_dikme", "sase_kiris", "kabin_kasnak",
                             "kabin_kasnak_capraz", "aski_duzlemi",
                             "kabin_kasnak_yazi", "aski_yazi", "aski_nokta"))
+#  Kuyu planının kapı elemanları ( kasa ayrıca, tek parça çizilir )
+_KAPI_AD = frozenset(("kapi_boslugu", "kat_esigi", "kat_kanadi", "kanat_cebi", "kanat_durdurucu",
+                      "kabin_esigi", "kabin_kanadi", "kabin_kanat_cebi"))
 
 
 def _kutu(el):
@@ -65,12 +74,30 @@ def _ortusur(a, b):
     return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
 
 
+def kapi_gorunusu(g, S):
+    """Kabin üstü kesitinin kapıya göre yeri ( döşemeden, mm ):
+
+      kesit   kesit kotu:  kabin iç yüksekliği + tavan kalınlığı
+      acik    kesit kaba boşluğun içinde ( < kapı + kapi_ust_payi ):  ön duvar
+              boşluklu;  değilse dolu, boşluk lentonun altında ( kesikli )
+      kasa    kasa kesilir ( < kapı + kasa_ust )
+    Kanatlar kapı yüksekliğindedir;  kabin iç yüksekliği kapıdan alçak
+    olamaz ( girdi.dogrula ) — kanatlar her zaman kesitin altındadır."""
+    kesit = g["dusey"]["kabin_ic_yukseklik"] + S["kabin_tavan_kalinlik"]
+    kapi_h = g["kapi"].get("yukseklik") or 0
+    return {"kesit": kesit, "acik": kesit < CG.kaba_bosluk(g, S)[2],
+            "kasa": kesit < kapi_h + S["kasa_ust"]}
+
+
 def _operator(g, tavan, S):
     """Kapı operatörünün tavandaki izi.  Kanatlar açılınca operatörün kirişi
     boyunca kayar:  açılış yanına ( merkezide iki yana ) bir kanat eni kadar
     taşar — 2 kanatlıda yarım kapı, 3 kanatlıda üçte bir, 4 kanatlı merkezide
-    çeyrek ( girdi.kanat_cepleri ).  Derinliği kabin
-    kapısı mekanizma kutusunun derinliğidir ( sabitler )."""
+    çeyrek ( girdi.kanat_cepleri ).  Tavanın üstünde kabin kapısı mekanizma
+    kutusunun derinliği kadar yer tutar ( sabitler );  önde kabin kapısının
+    üstüne, kabin eşiğinin ön kenarına kadar uzanır — kanatlar onun ray
+    taşıyıcısına asılıdır ( eskiden tavanın ön kenarında bitiyordu:  kabin
+    kapısının üstü boş görünüyordu )."""
     kp = g["kapi"]
     x0, kg = kp["sol_pay"], kp["genislik"]
     #  Kanatların açılınca durduğu yer ( girdi.kanat_cepleri, payı olmadan ):
@@ -79,9 +106,13 @@ def _operator(g, tavan, S):
     #  yana yarım kapı ( tavanın kenarında kırpılır ).
     cep = (CG.kanat_cepleri(g, S, pay=False) if CG.kapi_tipi(kp.get("tip"))["tur"] != "manuel"
            else [(x0 - 0.5 * kg, x0), (x0 + kg, x0 + 1.5 * kg)])
+    #  Kanatların yolu tavandan geniş olabilir ( dar kabinde cep kabinin
+    #  yanına taşar — LiftDesigner 4815-6 ):  operatör onu da örter.  Eskiden
+    #  tavanın kenarında kırpılıyordu.
     x1, x2 = min([x0] + [c[0] for c in cep]), max([x0 + kg] + [c[1] for c in cep])
-    x1, x2 = max(x1, tavan[0]), min(x2, tavan[2])
-    return (x1, tavan[1], x2, tavan[1] + S["kabin_kapisi_kutu_boy"])
+    if CG.kapi_tipi(kp.get("tip"))["tur"] == "manuel":
+        x1, x2 = max(x1, tavan[0]), min(x2, tavan[2])       # cep bilinmez:  tavanda kırpılır
+    return (x1, CG.kapi_bolgesi(g, S)["kabin_esik"][0], x2, tavan[1] + S["kabin_kapisi_kutu_boy"])
 
 
 def yerlesim(g, cizim_sabitleri=None):
@@ -91,7 +122,7 @@ def yerlesim(g, cizim_sabitleri=None):
               siginma ( kutu ya da None ), hata [ … ] }
     """
     S = CS.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
-    taban = CGE.plan(g, S, kapi_duzeyi=False)
+    taban = CGE.plan(g, S, kapi_duzeyi=False, duvar_boslugu=kapi_gorunusu(g, S)["acik"])
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
     tavan = _kutu(next(el for el in taban if el.get("ad") == "kabin_dis"))
     parcalar = [_kutu(el) for el in taban
@@ -153,6 +184,13 @@ def yerlesim(g, cizim_sabitleri=None):
 
     #  ── TAVANDAKİ ENGELLER ───────────────────────────────────────────
     operator = _operator(g, tavan, S)
+    #  Operatör kabinle gider:  tavandan taşan ucu kuyudaki bir parçaya değemez
+    for p in parcalar:
+        if _ortusur(operator, p):
+            hata.append(f"Kabin kapısı operatörü ( kanatların yolu, x {operator[0]:g} – "
+                        f"{operator[2]:g} ) kuyudaki bir parçaya değiyor ( x {p[0]:g} – {p[2]:g}, "
+                        f"y {p[1]:g} – {p[3]:g} ):  kapıyı öbür yana açın ya da kabini kaydırın.")
+            break
     engeller = [operator]
     duzen = (g.get("aski") or {}).get("duzen")
     if duzen == "Kabin üstü":
@@ -265,6 +303,7 @@ def ciz(g, cizim_sabitleri=None):
     """Kabin üstü planının elemanları."""
     Y = yerlesim(g, cizim_sabitleri)
     S, tavan, ken = Y["S"], Y["tavan"], Y["kenarlar"]
+    op = Y["operator"]                     # çizilmez;  yazılar onun yerinden kaçar
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
     dg, dar = g["kuyu"]["duvar_sag"], g["kuyu"]["duvar_arka"]
     duzen = (g.get("aski") or {}).get("duzen")
@@ -288,10 +327,28 @@ def ciz(g, cizim_sabitleri=None):
     #  Eskiden bu planda yalnız dikmeler vardı:  askı görünmüyordu ( 3 Eki ).
     e += [el for el in Y["taban"] if el.get("ad") == "sase_kiris"]
 
-    #  Kapı operatörü
-    op = Y["operator"]
-    e.append(CGE._ad(CGE._dik("KAPI", op[0], op[1], op[2] - op[0], op[3] - op[1]), "operator"))
-    e.append(CGE._yazi((op[0] + op[2]) / 2.0, (op[1] + op[3]) / 2.0, "KAPI OPERATÖRÜ", 40))
+    #  ── KAPI ( kapi_gorunusu ) ───────────────────────────────────────
+    #  Kat kapısı kesitin altında, yukarıdan görünür:  eşik, kanatlar, cep.
+    #  Kasa kesilir ya da üstü görünür:  her iki halde kapının üstünü boydan
+    #  boya geçen tek parça ( dikmeler + üst kasa );  duvar boşluğuna monte
+    #  kasa dolu lentonun altında kalır ( kesikli ).  Kabin kapısı da
+    #  görünür:  operatör çizilmez ( LiftDesigner 1022 X-X ).
+    KG = kapi_gorunusu(g, S)
+    KB = CG.kapi_bolgesi(g, S)
+    kp = g["kapi"]
+    for el in Y["taban"]:
+        ad = el.get("ad")
+        if el["katman"] not in ("KAPI", "KABIN") or ad not in _KAPI_AD:
+            continue
+        el = dict(el)
+        if ad == "kapi_boslugu" and not KG["acik"]:
+            el["katman"] = "GIZLI"
+        e.append(el)
+    kasa = CGE._dik("KAPI", kp["sol_pay"] - S["kasa_yan"], KB["kasa"][0],
+                    kp["genislik"] + 2 * S["kasa_yan"], KB["kasa"][1] - KB["kasa"][0])
+    if not KG["acik"] and kp["montaj"] == "Duvar boşluğuna":
+        kasa["katman"] = "GIZLI"
+    e.append(CGE._ad(kasa, "kapi_kasasi"))
 
     #  Kabin altı askıda halatlar tavanın DIŞINDAN, kasnakların dış
     #  teğetinden yukarı çıkar ( kabin üstü askıda halat tavandaki kasnaktan

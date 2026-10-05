@@ -570,11 +570,17 @@ Kuyu dibinin ve makine dairesizde kuyu tavanının döşemesi ortak kalınlıkta
 
 **Kabin üstü planı** ( kabin tavanı hizasından yatay kesit ):  duvarlar, raylar,
 konsollar ve karşı ağırlık kuyu planından aynen alınır ( ikinci kez
-hesaplanmaz );  ön duvar dolu çizilir ( kesit kapı lentosunun üstünden geçer ).
+hesaplanmaz ).  **Kapı kesit kotuna göre** ( `kabin_ustu.kapi_gorunusu` ):  kesit
+kabin iç + tavan kalınlığından geçer ( 2.000 + 60 = 2.060 ), kaba boşluğun üstü
+kapı + 240 ( 2.240 ) — kesit boşluğun içindeyse ön duvar boşlukludur ve kasa
+kesilir, üstündeyse duvar dolu, boşluk kesikli ( duvar boşluğuna monte kasa da ).
+Kanatların üstü kesitin altındadır:  kat ve kabin kapısı ( eşik, kanatlar, cep )
+yukarıdan görünür — LiftDesigner 1022'nin kabin üstü kesiti ( X-X ) gibi.  ( 5 Eki'ye kadar ön duvar hep
+dolu çiziliyor, kapı bölgesi boş kalıyordu — kullanıcı "kapının görünmemesi
+saçma". )
 Tavanda:  kabin tavanı, şase dikmeleri ve **şasenin üst kirişi** ( ray ekseninde
 dikmeden dikmeye;  kuyu planındaki kiriş zarfı, `sase_dikme_derinlik` 300 —
-ÇİZİM KABULÜ, tedarikçi profili yok ), kapı operatörü ( kapı tipine göre
-kanatların kaydığı boy ), askı ( kabin üstünde kasnaklar · kabin altında
+ÇİZİM KABULÜ, tedarikçi profili yok ), askı ( kabin üstünde kasnaklar · kabin altında
 halatların tavan dışından geçtiği yer · doğrudan askıda askı noktaları ).
 Standarttan hesaplananlar:
 
@@ -586,6 +592,11 @@ Standarttan hesaplananlar:
 | Yükseklik:  küpeşte – duvar **≤ 0,50 m → 0,70 m**, aşarsa **1,10 m** | m.5.4.7.4 b | Küpeştenin yanına yazılır |
 | Sığınma alanı **0,40 × 0,50** ( dik duruş ) / **0,50 × 0,70** ( çömelme ) | m.5.2.5.7.1 · Çizelge 3 | Korkulukların içinde, operatör, askı ve ( kabin altı / doğrudan askıda ) şasenin üst kirişi dışında, kapıya en yakın yere konur ( 25 mm adımla;  dar boşlukta engelin kenarına yaslanarak );  yer yoksa reddedilir |
 
+Kabin kapısı operatörü **çizilmez** ( LiftDesigner 1022 X-X da çizmez;  kullanıcı
+kararı 5 Eki ), yerleşimde engeldir:  enine kanatların yolu ( kapı + cep, dar
+kabinde tavandan taşar ), derine tavanın üstünde kabin kapısı mekanizma kutusu
+boyu 140, önde kabin eşiğinin ön kenarına kadar;  korkuluk ve sığınma alanı onun
+dışında kalır, taşan ucu kuyudaki bir parçaya değerse çizim reddedilir.
 Ayrıca:  kabin altı askıda halat kuyudaki bir parçanın içinden geçemez;
 kabin üstü kasnağı korkuluğun yolunu kesemez;  yan korkuluk kapı operatörünün
 arka yüzünden başlar ( eskiden tavanın bütün derinliğince çiziliyor, ön dikmesi

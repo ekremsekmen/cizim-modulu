@@ -144,7 +144,10 @@ class KesitYerlesimRegresyon(unittest.TestCase):
         #  Kullanıcı kararı 1 Eki:  kaynağı olmayan taşıyıcı çizilmez ( kabin
         #  üstü planında korkuluk çizgilerine biniyordu ).  Kabin altı askının
         #  taşıyıcısı eskisi gibi.
-        for v in ({'aski_duzeni': 'Kabin üstü', 'agirlik_yeri': 'Sol', 'son_kat_yuksekligi': 5000},
+        #  Kapı ağırlığın tersine açılır:  sola açılan kabin kapısının cebi soldaki
+        #  ağırlığın ara kirişine çarpar ( geometri.kanat_cebi_carpismalari )
+        for v in ({'aski_duzeni': 'Kabin üstü', 'agirlik_yeri': 'Sol', 'son_kat_yuksekligi': 5000,
+                   'kat_kapisi_tipi': 'Teleskopik Sağ'},
                   GP.PROJELER['1275']):
             g = _girdi(v)
             with self.subTest(v.get('aski_duzeni')):
