@@ -55,12 +55,16 @@ def _dikdortgen(msp, el, lt=None):
 def _olcu(msp, el, k=1.0):
     """Gerçek DIMENSION varlığı — CAD'de ölçü olarak tanınır, metin değil."""
     a, b, kot = el["a"], el["b"], el["kot"]
+    #  Tanım noktaları ölçü çizgisinin üstünde:  geometri ölçülmeyen ekseni 0
+    #  verir ( uzatma çizgileri çizilmez — dimse1/2 ).  Eskiden noktalar o 0'da
+    #  kalıyordu:  kuyunun tepesindeki kasnak düzenlemesinin ölçüleri 25 m
+    #  aşağıya uzanıyor, AutoCAD açılışta paftayı 1,2 m boşlukla küçültüyordu.
     if el["yon"] == "yatay":
-        p1, p2 = (a[0], a[1]), (b[0], a[1])
+        p1, p2 = (a[0], kot), (b[0], kot)
         taban = (a[0], kot)
         aci = 0
     else:
-        p1, p2 = (a[0], a[1]), (a[0], b[1])
+        p1, p2 = (kot, a[1]), (kot, b[1])
         taban = (kot, a[1])
         aci = 90
     yz = el["yazi"]
@@ -71,7 +75,12 @@ def _olcu(msp, el, k=1.0):
                               dxfattribs={"layer": "OLCU"},
                               #  dimse1 / dimse2:  uzatma çizgileri çizilmez —
                               #  SVG ile aynı görünüm ( kullanıcı kararı ).
-                              override={"dimtxt": yz["h"] * BUYUK_HARF, "dimasz": 35 * k, "dimexe": 30 * k,
+                              #  dimtxsty:  ölçü yazısı çizimin Arial'iyle.  Verilmezse
+                              #  ezdxf'in ölçü biçiminin fontu ( OpenSans Condensed
+                              #  Light ) kalıyordu:  AutoCAD bulamayıp ince simplex.shx'e
+                              #  düşürüyor, sayılar okunmuyordu ( kullanıcı 5 Eki ).
+                              override={"dimtxsty": YAZI_TIPI,
+                                        "dimtxt": yz["h"] * BUYUK_HARF, "dimasz": 35 * k, "dimexe": 30 * k,
                                         "dimexo": 25 * k, "dimgap": 15 * k, "dimclrt": 5,
                                         "dimse1": 1, "dimse2": 1})
     olcu.render()
@@ -85,10 +94,18 @@ CIZGI_TIPI_OLCEGI = 2.5
 
 
 def hazirla(d):
-    """Belgeye çizimin katmanlarını ve yazı biçimini ekler ( şablon da olabilir )."""
+    """Belgeye çizimin katmanlarını ve yazı biçimini ekler ( şablon da olabilir ).
+
+    Yazı biçimi Arial:  dosya adının yanında AİLE ADI da yazılır — AutoCAD
+    TrueType'ı önce aileden bulur ( Mac'te dosya adları farklı ).  Çizgi
+    kalınlıkları katmanlardadır, baskıda çıkar;  ekranda GÖSTERİLMEZ
+    ( LWDISPLAY kapalı — LiftDesigner ve ofis şablonu gibi ):  model alanında
+    kalınlık piksel olarak çizildiğinden pafta bütünüyle bakarken duvarlar
+    kalın şeritlere, karşı ağırlık bloğa dönüşüyordu ( kullanıcı 5 Eki )."""
     _katmanlari_kur(d)
     if YAZI_TIPI not in d.styles:
         d.styles.add(YAZI_TIPI, font="arial.ttf")
+    d.styles.get(YAZI_TIPI).set_extended_font_data("Arial", bold=False, italic=False)
 
 
 def ciz(hedef, elemanlar, olcek=20):

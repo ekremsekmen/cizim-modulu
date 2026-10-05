@@ -326,7 +326,21 @@ def _katmanlari_kur(d):
         #  AutoCAD TTF biçimlerinde aileyi ve kalın/italik bayrağını burada
         #  arar; dosya adı yalnız yedektir.
         _b.set_extended_font_data(CAD_FONT_AILE, bold=_kalin, italic=False)
+    #  ŞABLONUN KENDİ YAZI BİÇİMLERİ ( antet, notlar ):  yalnız dosya adıyla
+    #  tanımlı ( times.ttf … ).  Mac'teki AutoCAD bu adla bulamayıp ince
+    #  simplex.shx'e düşürüyordu ( AcCoreConsole:  "Substituting [simplex.shx]
+    #  for [times.ttf]" ).  Aile adı yazılınca AutoCAD yazıyı sistemin
+    #  fontundan bulur ( Windows'ta da dosya adı yerinde kalır ).
+    for _b in d.styles:
+        _aile = _SABLON_AILELERI.get(str(_b.dxf.get("font") or "").lower())
+        if _aile and not _b.get_extended_font_data()[0]:
+            _b.set_extended_font_data(_aile, bold=False, italic=False)
     return d
+
+
+#  Şablondaki TrueType dosya adı → aile adı
+_SABLON_AILELERI = {"times.ttf": "Times New Roman", "arial.ttf": "Arial",
+                    "arialuni.ttf": "Arial Unicode MS"}
 
 
 def _sayfayi_ciz(msp, sayfa, ox, oy):
