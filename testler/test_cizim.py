@@ -1063,6 +1063,35 @@ class KuyuDibiYerlesim(unittest.TestCase):
                     self.assertLessEqual(p[0], b[0]); self.assertGreaterEqual(p[2], b[2])
                     self.assertLess(p[1], b[1])
 
+    def test_perde_ucunda_300_den_buyuk_bosluk_kalmaz(self):
+        """m.5.2.5.5.1 e:  ağırlık rayları ile duvar arası 0,30 m'yi aşıyorsa o
+        bölge de korunur — standart düzenlerin hiçbirinde perdenin ucu ile duvar
+        arasında 300'den büyük boşluk kalmaz ( eskiden 54 düzenin 50'sinde
+        340 – 365 kalıyordu );  merdiven korunan bölgede durmaz."""
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import test_yerlesim_saglamligi as YS
+        sayi = 0
+        for Q in YS.KABIN:
+            for yer in ("Sağ", "Sol", "Arka"):
+                g, hata = YS.gecerli_duzen(Q, yer)
+                if hata:                                   # 320 kg arkada:  gerçek ret
+                    continue
+                Y = CKD.yerlesim(g)
+                self.assertIn("perde", Y, (Q, yer, Y.get("hata")))
+                p, m = Y["perde"], Y.get("merdiven")
+                G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
+                uclar = (p[1], D - p[3]) if p[0] == p[2] else (p[0], G - p[2])
+                with self.subTest(Q=Q, yer=yer):
+                    sayi += 1
+                    self.assertLessEqual(max(uclar), CKD.PERDE_BOSLUGU_AZAMI)
+                    #  merdiven perde ile ağırlığın duvarı arasındaki korunan bölgede değil
+                    if m is not None:
+                        bolge = ((p[0], p[1], G, p[3]) if yer == "Sağ" else
+                                 (0.0, p[1], p[0], p[3]) if yer == "Sol" else (p[0], p[1], p[2], D))
+                        self.assertFalse(m[0] < bolge[2] - 1e-6 and bolge[0] < m[2] - 1e-6
+                                         and m[1] < bolge[3] - 1e-6 and bolge[1] < m[3] - 1e-6, m)
+        self.assertGreater(sayi, 20)
+
     def test_siginma_cizelge_4_kabinin_altinda(self):
         for ad, g in _dip_projeler():
             Y = CKD.yerlesim(g)

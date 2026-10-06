@@ -39,6 +39,9 @@ SIGINMA = {"Dik duruş": (400.0, 500.0), "Çömelme": (500.0, 700.0), "Yatarak":
 MERDIVEN_AZAMI_DERINLIK = 2500.0
 #  Ek F.5 b:  saklanan merdiven ile kat girişinin kenarı arası en çok 800 mm.
 MERDIVEN_KAPI_AZAMI = 800.0
+#  m.5.2.5.5.1 e:  ağırlık rayları ile kuyu duvarı arasındaki boşluk bundan
+#  büyükse o bölge de perdeyle korunur ( mm ).
+PERDE_BOSLUGU_AZAMI = 300.0
 GERGI_PARCA = {"kol": "kolu", "agirlik": "ağırlığı"}
 TAMPON_ADETLERI = (1, 2)
 #  Hesap programının 9. bölümündeki adlar ( ozet:  FKR · FAR · Fkt · Fat, N )
@@ -304,6 +307,36 @@ def kabin_alti_askisi(g, S, taban):
                       max(k[2] for k in kasnak), max(k[3] for k in kasnak))]
 
 
+def _perdeyi_uzat(perde, ag_yan, G, D, engeller):
+    """Perdeyi iki ucunda, boşluk PERDE_BOSLUGU_AZAMI'yı aşıyorsa duvara ya da
+    araya giren ilk engele uzatır.  →  ( perde, korunan bölgeler [ kutu ] ):
+    korunan, uzayan parça ile ağırlığın yanındaki duvar arası."""
+    x0, y0, x1, y1 = perde
+    korunan = []
+    if x0 == x1:                                   # yandaki ağırlık:  perde y boyunca
+        kes = [k for k in engeller if k[0] < x0 < k[2]]
+        on = max([k[3] for k in kes if k[3] <= y0 + 1e-6] + [0.0])
+        arka = min([k[1] for k in kes if k[1] >= y1 - 1e-6] + [D])
+        duvar = (x0, G) if ag_yan == "Sağ" else (0.0, x0)
+        if y0 - on > PERDE_BOSLUGU_AZAMI:
+            korunan.append((duvar[0], on, duvar[1], y0))
+            y0 = on
+        if arka - y1 > PERDE_BOSLUGU_AZAMI:
+            korunan.append((duvar[0], y1, duvar[1], arka))
+            y1 = arka
+    else:                                          # arkadaki ağırlık:  perde x boyunca
+        kes = [k for k in engeller if k[1] < y0 < k[3]]
+        sol = max([k[2] for k in kes if k[2] <= x0 + 1e-6] + [0.0])
+        sag = min([k[0] for k in kes if k[0] >= x1 - 1e-6] + [G])
+        if x0 - sol > PERDE_BOSLUGU_AZAMI:
+            korunan.append((sol, y0, x0, D))
+            x0 = sol
+        if sag - x1 > PERDE_BOSLUGU_AZAMI:
+            korunan.append((x1, y0, sag, D))
+            x1 = sag
+    return (x0, y0, x1, y1), korunan
+
+
 def gergi_parcalari(g, S, kasnak):
     """Gerginin ortak plan kutuları; kol rayı, kasnağı ve ağırlığı birleştirir."""
     gx, gy = _merkez(kasnak)
@@ -421,6 +454,19 @@ def yerlesim(g, cizim_sabitleri=None):
     gergi = (gx - eg, gy - dg_, gx + eg, gy + dg_)
     gergi_donanim = gergi_parcalari(g, S, gergi)
 
+    #  m.5.2.5.5.1 e:  perdenin ucu ile duvar arasında 0,30 m'den büyük boşluk
+    #  kalıyorsa o bölge de korunur — perde o yanda duvara ya da araya giren
+    #  ilk sabit parçaya ( konsol, kabin rayı, tampon, gergi, en alt durağın kapı
+    #  ünitesi ) uzar.  Perde ile duvar arasında kalan bölge ağırlığın korunan
+    #  alanıdır:  merdiven oraya saklanmaz.  ( Eskiden perde ağırlık raylarının
+    #  hizasında bitiyordu;  standart düzenlerin çoğunda ucu ile duvar arası
+    #  340 – 365 mm kalıyordu. )
+    kapi_unitesi = [_kutu(el) for el in taban
+                    if el.get("ad") in ("kapi_kasasi", "kat_esigi", "kanat_cebi") and el["tip"] == "dikdortgen"]
+    perde, korunan = _perdeyi_uzat(perde, ag_yan, G, D,
+                                   konsollar + kabin_raylari + kabin_tamponlari + kapi_unitesi
+                                   + [gergi] + list(gergi_donanim.values()))
+
     #  ── MERDİVEN  ( m.5.2.2.4 · Ek F ) ───────────────────────────────
     #  Yan duvara yaslı saklanır, kapıya yakın yan seçilir;  yan duvar kapıdan
     #  800 mm'den uzaksa ( geniş kuyu ) kapının yanında ön duvara yaslanır —
@@ -429,7 +475,7 @@ def yerlesim(g, cizim_sabitleri=None):
     kp = g["kapi"]
     x0, x1 = kp["sol_pay"], kp["sol_pay"] + kp["genislik"]
     sabit = konsollar + kabin_raylari + agirlik_raylari + [blok] + kabin_tamponlari + \
-        agirlik_tamponlari + [gergi] + list(gergi_donanim.values())
+        agirlik_tamponlari + [gergi] + list(gergi_donanim.values()) + korunan
     merdiven = None
     if kd["derinlik"] <= MERDIVEN_AZAMI_DERINLIK:
         me, md = S["merdiven_eni"], S["merdiven_derinlik"]

@@ -71,9 +71,8 @@ class KapiKesiti(unittest.TestCase):
         cls.planlar = {}
         for tip in cls.TIPLER:
             for montaj in ("Kuyu içine", "Duvar boşluğuna"):
-                v = Y._veri(1000, True, "Arka", kat_kapisi_tipi=tip)
-                v["asansorler"][0]["kapi_montaji"] = montaj
-                g, _A, hata = Y._g(v)
+                g, hata = Y.gecerli_duzen(1000, "Arka", kat_kapisi_tipi=tip, kapi_montaji=montaj)
+                assert not hata, (tip, montaj, hata)
                 cls.planlar[(tip, montaj)] = (g, CGE.plan(g))
 
     def _adli(self, e, *adlar):
@@ -178,7 +177,8 @@ class RayKonsolu(unittest.TestCase):
         import test_yerlesim_saglamligi as Y
         from cizim import geometri as CGE
         for yer in ("Sağ", "Sol", "Arka"):
-            g, _A, _h = Y._g(Y._veri(630, True, yer))
+            g, hata = Y.gecerli_duzen(630, yer)
+            self.assertFalse(hata, (yer, hata))
             e = CGE.plan(g)
             for kol in [x for x in e if x.get("ad") == "kol" and x.get("bicim")]:
                 #  kola bitişik plaka;  biçim ikisinin kapsadığı dikdörtgende
@@ -194,6 +194,59 @@ class RayKonsolu(unittest.TestCase):
                             self.assertTrue(x0 - 1e-6 <= x <= x1 + 1e-6
                                             and plaka["y"] - 1e-6 <= y <= plaka["y"] + plaka["d"] + 1e-6)
             self.assertTrue(any(x.get("ad") == "ray_tirnagi" for x in e))
+
+
+class AgirlikCercevesi(unittest.TestCase):
+    """Karşı ağırlık konsol çerçevesi ( LiftDesigner K431 · K111 · 1250 KG gibi ):
+    40 mm'lik ray profilleri rayın tabanının dış yanında;  duvar profili yalnız
+    yer varsa;  bütün raylar tırnaklı."""
+
+    @staticmethod
+    def _plan(yer, **ek):
+        sys.path.insert(0, os.path.join(KOK, "testler"))
+        import test_yerlesim_saglamligi as Y
+        from cizim import geometri as CGE
+        g, hata = Y.gecerli_duzen(630, yer, **ek)
+        assert not hata, (yer, ek, hata)
+        return g, CGE.plan(g)
+
+    def test_ray_profili_tabanin_disinda_40(self):
+        for yer in ("Sağ", "Sol", "Arka"):
+            g, e = self._plan(yer)
+            ag = g["agirlik"]
+            profiller = [q for el in e if el.get("ad") in ("plaka", "kol") and el.get("bicim")
+                         and el["katman"] == "KONSOL" for q in el["bicim"]
+                         if el.get("ad") == "plaka" or el["g"] < 200 or el["d"] < 200]
+            arkalar = [el for el in e if el.get("ad") == "agirlik_ray"]
+            with self.subTest(yer=yer):
+                self.assertTrue(arkalar)
+                ince = [q for q in profiller
+                        if abs(min(max(p[0] for p in q["noktalar"]) - min(p[0] for p in q["noktalar"]),
+                                   max(p[1] for p in q["noktalar"]) - min(p[1] for p in q["noktalar"]))
+                               - CP.CERCEVE_PROFILI) < 1e-6]
+                self.assertGreaterEqual(len(ince), 2)            # iki ağırlık rayının profili
+
+    def test_duvar_profili_yalniz_yer_varsa(self):
+        #  Standart düzende ağırlık – duvar arası 50:  40 + 20 sığmaz
+        g, e = self._plan("Sağ")
+        G = g["kuyu"]["genislik"]
+        def duvar_profili(e):
+            return [q for el in e if el.get("bicim") and el["katman"] == "KONSOL" for q in el["bicim"]
+                    if all(abs(p[0] - G) < 1e-6 or abs(p[0] - (G - CP.CERCEVE_PROFILI)) < 1e-6
+                           for p in q["noktalar"])]
+        self.assertEqual(duvar_profili(e), [])
+        #  Ağırlık duvardan 40 uzaklaşınca ( boşluk 90 ) çerçeve kapanır ( K431 )
+        g2, e2 = self._plan("Sağ", agirlik_ray_duvar=g["agirlik"]["ray_duvar"] + 40)
+        G = g2["kuyu"]["genislik"]
+        self.assertEqual(len(duvar_profili(e2)), 1)
+
+    def test_butun_raylar_tirnakli(self):
+        for yer in ("Sağ", "Sol", "Arka"):
+            _g, e = self._plan(yer)
+            with self.subTest(yer=yer):
+                #  2 kabin rayı ( biri duvar konsolunda, biri ara kirişte ya da iki
+                #  duvar konsolunda ) + 2 ağırlık rayı
+                self.assertEqual(sum(1 for el in e if el.get("ad") == "ray_tirnagi"), 4)
 
 
 class PatenKesiti(unittest.TestCase):

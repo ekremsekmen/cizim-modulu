@@ -50,6 +50,22 @@ def _veri(Q, mrl=True, yer="Sağ", **ek):
     return {"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}
 
 
+def gecerli_duzen(Q, yer="Sağ", mrl=True, **ek):
+    """Programın çizdiği bir standart düzen:  ( g, hata ).  Arkadaki ağırlıkta
+    kuyu kabinden 700 derin ve askı kabin üstü ( 450'de ağırlık kabinin
+    arkasına sığmaz — m.5.2.5.5.1 h;  bkz. test_arkadaki_agirlik… ), makine
+    dairesizde makine bina yapısında, son kat 5.000."""
+    if yer == "Arka":
+        ek = dict({"aski_duzeni": "Kabin üstü"},
+                  **({"makine_raya_biniyor": "Bina yapısına", "son_kat_yuksekligi": 5000} if mrl else {}),
+                  **ek)
+    v = _veri(Q, mrl, yer, **ek)
+    if yer == "Arka":
+        v["asansorler"][0]["kuyu_derinligi"] = KABIN[Q][1] + 700
+    g, _A, hata = _g(v)
+    return g, hata
+
+
 def _cizim(v):
     return json.loads(UC.api_cizimler(v).body)
 

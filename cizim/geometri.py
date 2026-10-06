@@ -610,6 +610,9 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
             e.append(_dik("KONSOL", kiris_x, ag_alt - S["konsol_agirlik_boy"] / 2.0,
                           S["ara_kiris_en"],
                           ag_ust - ag_alt + S["konsol_agirlik_boy"], ad="ara_kiris"))
+            #  ara kiriş = ağırlık çerçevesinin kabin tarafındaki boyuna profili
+            #  ( LiftDesigner K431 );  kabin rayı ona tırnakla bağlı
+            e += _tirnaklar(arka, ry, kr["b"], kr["h"], -yon, yatay=True)
         else:
             #  konsol:  duvara dayanan plaka  ( boşluğu doldurmaz )
             duvar_x = 0 if yon < 0 else G
@@ -712,21 +715,39 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
         #  kirişe uzanır  ( ağırlığın boyunun DIŞINDAN geçer ).
         kiris_ic = (sol_yuz - kr["h"] - S["ara_kiris_en"]) if sol else (sag_yuz + kr["h"]
                                                                         + S["ara_kiris_en"])
+        #  KONSOL ÇERÇEVESİ ( LiftDesigner gibi — parcalar.CERCEVE_PROFILI ):  her
+        #  ağırlık rayı, tabanının dış yanındaki ray profiline dayanır;  profil
+        #  duvardan ara kirişe uzanır.  Zarflar ( plaka, kol ) mantık içindir,
+        #  değişmedi;  çizilen profil ikisinin kapsadığı dikdörtgende.  Plakanın
+        #  eski cıvata daireleri kalktı:  bağlantıyı tırnaklar gösterir.
+        pr = CP.CERCEVE_PROFILI
+        duvar_x = 0 if sol else G
+        dis_uclar = []
         for yuz, y_yon in ((ag_y + ag["ray_arasi"] / 2.0, +1), (ag_y - ag["ray_arasi"] / 2.0, -1)):
             e += [_ad(r, "agirlik_ray") for r in _ray_dusey(yuz, ex, ag["b"], ag["h"], y_yon)]
-            duvar_x = 0 if sol else G
             plaka_x = duvar_x if sol else duvar_x - S["konsol_agirlik_en"]
             ray_arkasi = yuz + ag["h"] * y_yon
-            e.append(_dik("KONSOL", plaka_x, ray_arkasi - S["konsol_agirlik_boy"] / 2.0,
-                          S["konsol_agirlik_en"], S["konsol_agirlik_boy"], ad="plaka"))
-            for cx in (plaka_x + S["konsol_agirlik_en"] / 2.0 - S["konsol_civata_araligi"],
-                       plaka_x + S["konsol_agirlik_en"] / 2.0 + S["konsol_civata_araligi"]):
-                e.append(_daire("CIVATA", cx, ray_arkasi, S["konsol_civata_capi"] / 2.0))
+            plaka = _dik("KONSOL", plaka_x, ray_arkasi - S["konsol_agirlik_boy"] / 2.0,
+                         S["konsol_agirlik_en"], S["konsol_agirlik_boy"], ad="plaka")
+            e.append(plaka)
             kol_bas = plaka_x + S["konsol_agirlik_en"] if sol else kiris_ic
             kol_son = kiris_ic if sol else plaka_x
+            profil = CP.profil_bicimi(duvar_x, kiris_ic, ray_arkasi, ray_arkasi + y_yon * pr)
             if kol_son - kol_bas > 1:
-                e.append(_dik("KONSOL", kol_bas, ray_arkasi - S["konsol_agirlik_boy"] / 6.0,
-                              kol_son - kol_bas, S["konsol_agirlik_boy"] / 3.0, ad="kol"))
+                kol = _dik("KONSOL", kol_bas, ray_arkasi - S["konsol_agirlik_boy"] / 6.0,
+                           kol_son - kol_bas, S["konsol_agirlik_boy"] / 3.0, ad="kol")
+                kol["bicim"], plaka["bicim"] = profil, []
+                e.append(kol)
+            else:
+                plaka["bicim"] = profil
+            e += _tirnaklar(ray_arkasi, ex, ag["b"], ag["h"], -y_yon, yatay=False)
+            dis_uclar.append(ray_arkasi + y_yon * pr)
+        #  Duvar profili ( K431 ):  ağırlık ile duvar arasında profil ve çakışma
+        #  payı kadar yer varsa;  yoksa yalnız ray profilleri ( 4815-6 ).
+        bosluk = (ax if sol else G - (ax + ag["derinlik"]))
+        if bosluk >= pr + CG.ASGARI_ACIKLIK:
+            plaka["bicim"] = plaka["bicim"] + CP.profil_bicimi(duvar_x, duvar_x + (pr if sol else -pr),
+                                                               min(dis_uclar), max(dis_uclar))
         if ag.get("kasnak_capi"):
             dc = ag["kasnak_capi"]
             e.append(_ad(_dik("KASNAK", ex - ag["derinlik"] / 2.0 + cer, ag_y - dc / 2.0,
@@ -744,13 +765,23 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
             e += [_ad(r, "agirlik_ray") for r in _ray_yatay(yuz, ey, ag["b"], ag["h"], x_yon)]
             #  AĞIRLIK RAYI KONSOLU  ( arka duvar ):  yan yerleşimdeki konsolun
             #  aynısı, 90° dönük — rayın arkasında, duvara dayanır.
+            #  ÇİZİLEN ( LiftDesigner K111 ):  rayın tabanının dış yanında çerçevenin
+            #  ray profili — duvardan rayın tırnaklarının ötesine ( plakanın zarfı
+            #  mantık içindir, değişmedi );  eski cıvata daireleri yerine tırnaklar.
             ray_arkasi = yuz + ag["h"] * x_yon
             plaka_y = D - S["konsol_agirlik_en"]
-            e.append(_dik("KONSOL", ray_arkasi - S["konsol_agirlik_boy"] / 2.0, plaka_y,
-                          S["konsol_agirlik_boy"], S["konsol_agirlik_en"], ad="plaka"))
-            for cy in (plaka_y + S["konsol_agirlik_en"] / 2.0 - S["konsol_civata_araligi"],
-                       plaka_y + S["konsol_agirlik_en"] / 2.0 + S["konsol_civata_araligi"]):
-                e.append(_daire("CIVATA", ray_arkasi, cy, S["konsol_civata_capi"] / 2.0))
+            plaka = _dik("KONSOL", ray_arkasi - S["konsol_agirlik_boy"] / 2.0, plaka_y,
+                         S["konsol_agirlik_boy"], S["konsol_agirlik_en"], ad="plaka")
+            boy = max(S["konsol_agirlik_en"], ag["ray_duvar"] + CP.tirnak_uzanimi(ag["b"], ag["h"]) + 10)
+            plaka["bicim"] = CP.profil_bicimi(D, D - boy, ray_arkasi,
+                                              ray_arkasi + x_yon * CP.CERCEVE_PROFILI, yatay=False)
+            e.append(plaka)
+            e += _tirnaklar(ray_arkasi, ey, ag["b"], ag["h"], -x_yon, yatay=True)
+        #  Duvar profili ( K111 ):  ağırlık ile arka duvar arasında yer varsa
+        if ag["ray_duvar"] - ag["derinlik"] / 2.0 >= CP.CERCEVE_PROFILI + CG.ASGARI_ACIKLIK:
+            dis = G / 2.0 + ag["ray_arasi"] / 2.0 + ag["h"] + CP.CERCEVE_PROFILI
+            plaka["bicim"] = plaka["bicim"] + CP.profil_bicimi(
+                D, D - CP.CERCEVE_PROFILI, G - dis, dis, yatay=False)
         if ag.get("kasnak_capi"):
             dc = ag["kasnak_capi"]
             e.append(_ad(_dik("KASNAK", ex - dc / 2.0, ey - ag["derinlik"] / 2.0 + cer,

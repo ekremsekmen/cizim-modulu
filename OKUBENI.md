@@ -570,8 +570,14 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
    ( Donati GF;  cıvata başı ve somun ISO 4017 / 4032 ).  Konsolun zarfları
    ( plaka, dar kol ) mantık için eskisi gibi;  biçim ikisinin kapsadığı
    dikdörtgende çizilir.  Karşı ağırlık
-   tarafındaki ara kiriş ve ağırlık konsolları henüz şematiktir ( kaynak
-   bekleniyor ).  Kabin kapısı operatörü kesitin üstündedir:  kesik.  Testler
+   konsolu LiftDesigner'ın ağırlık çerçevesi gibidir ( K431 · K111 · 1250 KG;
+   profiller planda 40 ):  her ağırlık rayı tabanının dış yanındaki ray
+   profiline dayanır ( yandaki ağırlıkta duvardan ara kirişe — kabin
+   tarafındaki boyuna profil, kabin rayı ona bağlı;  arkadakinde duvardan
+   tırnakların ötesine );  ağırlık ile duvar arasında profil + 20 mm çakışma
+   payı varsa duvar profili de çizilir ( K431 ), yoksa çizilmez ( 4815-6 ) —
+   20 mm standardın değil programın payı ( TS EN 81-20'de ağırlık – duvar için
+   en küçük ölçü yok ).  Kabin kapısı operatörü kesitin üstündedir:  kesik.  Testler
    `testler/test_parcalar.py`.
 
 ## Plan ve kesitte ortak donanım
@@ -751,6 +757,7 @@ Tam proje örneği değerleri hesap motorundan okur.
 |---|---|---|
 | Kabin ve karşı ağırlık tamponu | m.5.8.1.1 | Kabin tamponu kabin ekseninde, ray ekseni üstünde;  ağırlık tamponu ağırlığın ortasında ( 1 ya da 2 adet ).  Ağırlığın / kabinin altına düşmezse, raya çarparsa reddedilir |
 | Karşı ağırlık perdesi, en az ağırlık genişliğinde | m.5.2.5.5.1 d | Ağırlık rayları arasının tamamı boyunca, ağırlığın kuyuya bakan yüzünde |
+| Perde ucu ile duvar arası 0,30 m'yi aşarsa o bölge de korunur | m.5.2.5.5.1 e | Perde o yanda duvara ya da araya giren ilk sabit parçaya ( konsol, kabin rayı, tampon, gergi, en alt durağın kapı ünitesi ) uzar;  perde ile duvar arasında kalan bölgede merdiven durmaz.  Eskiden perde rayların hizasında bitiyordu:  54 standart düzenin 50'sinde ucu ile duvar arası 340 – 365 mm kalıyordu |
 | Kabin ile karşı ağırlık arası **≥ 50 mm** | m.5.2.5.5.1 h | Kuyu planının doğrulamasında ( önce 20 mm'lik bir çizim kalkanıydı ) |
 | Sığınma alanı **0,40 × 0,50** / **0,50 × 0,70** / **0,70 × 1,00** | m.5.2.5.8.1 · Çizelge 4 | Önce kabinin izinin altında, tampon / gergi / merdiven ve kabin altı kasnaklarıyla aralarındaki halat dışında, kapıya en yakın yere;  sığmazsa kuyu tabanının başka yerinde ( madde yalnız "kuyu tabanında" der ), karşı ağırlığın şeridine girmeden.  25 mm'lik ızgaraya sığmayan dar boşlukta alan engelin kenarına yaslanır |
 | Kuyu dibi **≤ 2,50 m** ise merdiven, aşarsa erişim kapısı | m.5.2.2.4 | Merdiven yalnız 2,50 m'ye kadar çizilir |

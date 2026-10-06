@@ -293,6 +293,37 @@ def konsol_cifti_bicimi(duvar, arka, eksen, boy, b1, yatay=True):
     return out
 
 
+#  KARŞI AĞIRLIK KONSOL ÇERÇEVESİ ( LiftDesigner gibi ):  ağırlığın çevresinde
+#  profillerden bir çerçeve — her ağırlık rayının tabanı, tabanın dış yanındaki
+#  bir profile ( ray profili ) dayanır;  ray profilleri yandaki ağırlıkta duvardan
+#  kabin tarafındaki boyuna profile ( programın ara kirişi — kabin rayı ona
+#  bağlanır ) uzanır;  yer varsa duvarda da boyuna bir profil vardır.
+#  KAYNAK:  LiftDesigner paftaları — K431 ( yanda;  çerçeve 310 × 820 ), 1250 KG
+#  yanda makine dairesiz, K111 ( arkada ):  dört profil de planda 40 mm.
+#  4815-6 ( yanda, ağırlık duvara yakın ):  duvar profili yok, yalnız ray profilleri.
+CERCEVE_PROFILI = 40.0
+
+
+def profil_bicimi(u0, u1, v0, v1, yatay=True):
+    """Çerçeve profili:  u ( duvara dik ) u0 … u1, v ( duvar boyunca ) v0 … v1
+    — yatayda u = x, düşeyde u = y."""
+    a, b = sorted((u0, u1))
+    c, d = sorted((v0, v1))
+    nok = [(a, c), (b, c), (b, d), (a, d)] if yatay else [(c, a), (c, b), (d, b), (d, a)]
+    return [{"noktalar": nok}]
+
+
+def tirnak_uzanimi(b, h):
+    """Tırnakların ray ekseninden en uzak ucu ( taban boyunca );  tırnak yoksa
+    tabanın yarısı."""
+    k = ray_dil_kalinligi(b, h)
+    t = TIRNAK.get(round(k)) if k is not None else None
+    if t is None:
+        return b / 2.0
+    L, _en, _h2, _h1, d = t
+    return b / 2.0 + d / 2.0 + TIRNAK_PAYI + L / 2.0
+
+
 def tirnak_bicimi(arka, eksen, b1, g, k, yon, J=None, yatay=True):
     """Rayın iki tırnağı ve cıvataları ( yukarıdan ).  arka:  tabanın arka
     yüzü;  yon:  arkadan dile doğru ( +1 / −1 );  g:  tabanın uç kalınlığı;
