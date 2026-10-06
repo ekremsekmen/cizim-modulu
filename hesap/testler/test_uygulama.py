@@ -1686,18 +1686,13 @@ def _pafta_zinciri(r):
               uzatma > 0 and len(kenar) == 4
               and all(abs(max(e.dxf.start.x, e.dxf.end.x) - sag) < 0.5 for e in kenar),
               f"→ uzatma {uzatma} · {len(kenar)} çizgi")
-    a4 = []
-    for e in m.query("LWPOLYLINE"):
-        if e.dxf.layer == _DX.KATMAN_CERCEVE:
-            p = list(e.get_points("xy"))
-            a4.append((min(q[0] for q in p), min(q[1] for q in p),
-                       max(q[0] for q in p), max(q[1] for q in p)))
+    a4 = _DX.a4_cerceveleri(m)
     r.kontrol(f"[pafta zinciri] {len(a4)} A4'ün hepsi uzamış çerçevenin içinde",
               len(a4) == len(sayfalar)
               and all(_DX.SERBEST[0] - 0.5 <= b[0] and b[2] <= sag + 0.5
                       and _DX.BANT[1] - 0.5 <= b[1] and b[3] <= _DX.BANT[3] + 0.5 for b in a4))
-    r.esit("[pafta zinciri] sığan projede format hiç uzamaz  ( 26 A4 )", _DX._uzatma(26), 0.0)
-    r.esit("[pafta zinciri] 27. sayfa bir sütun ekler", _DX._uzatma(27), _DX.A4_G + _DX.SUTUN_ARA)
+    r.esit("[pafta zinciri] sığan projede format hiç uzamaz  ( 28 A4 )", _DX._uzatma(28), 0.0)
+    r.esit("[pafta zinciri] 29. sayfa bir sütun ekler", _DX._uzatma(29), _DX.A4_G + _DX.SUTUN_ARA)
 
 
 if __name__ == "__main__":

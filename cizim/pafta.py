@@ -79,6 +79,16 @@ def _nokta(e):
     return []
 
 
+def _a4_mu(e, tol=0.5):
+    """Hesap programının A4 çerçevesi mi:  kapalı, dört köşeli, 210 × 297 mm."""
+    p = _nokta(e)
+    if not (e.dxftype() == "LWPOLYLINE" and e.closed and len(p) == 4):
+        return False
+    xs, ys = [q[0] for q in p], [q[1] for q in p]
+    return (abs(max(xs) - min(xs) - 210.0) <= tol
+            and abs(max(ys) - min(ys) - 297.0) <= tol)
+
+
 def _sablon_dogrula(d):
     """Dış çerçevenin köşeleri, kapak hücresi ve antetin değer hücreleri yerinde mi."""
     msp = d.modelspace()
@@ -292,9 +302,10 @@ def birlestir(hesap_dxf, g):
     if not ust or min(ust) > BANT[0] + 0.5:
         raise ValueError("Hesap DXF'inde TİP PROJE FORMATI çerçevesi bulunamadı.")
     sag_eski = max(ust)
-    #  Hesap sayfalarının sağı:  A4 çerçevelerinin ( hesap programının
-    #  AVAN-A4 katmanı ) en sağ ucu
-    sayfalar = [q[0] for e in msp.query('LWPOLYLINE LINE[layer=="AVAN-A4"]') for q in _nokta(e)]
+    #  Hesap sayfalarının sağı:  A4 çerçevelerinin en sağ ucu.  Hesap programı
+    #  çerçeveleri 0 katmanına çizer ( orada şablonun kendi çizgileri de var ),
+    #  bu yüzden çerçeve ŞEKLİYLE tanınır:  kapalı, dört köşeli, 210 × 297.
+    sayfalar = [q[0] for e in msp.query("LWPOLYLINE") if _a4_mu(e) for q in _nokta(e)]
     x0 = max(sayfalar) if sayfalar else SERBEST[0]
     _katmanlari_onar(d)
     bilgi = _yerlestir(d, g, x0, sag_eski)

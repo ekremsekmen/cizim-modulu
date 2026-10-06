@@ -51,9 +51,11 @@ from pdfminer.layout import LTChar, LTCurve, LTLine, LTRect
 #  PDF birimi punto, CAD birimi milimetre.
 PT_MM = 25.4 / 72.0
 
-#  A4 ve sayfalar arası boşluk ( mm )
+#  A4 ve sayfalar arası boşluk ( mm ).  Sayfalar BİTİŞİK dizilir:  A4
+#  çerçeveleri arasında boşluk yoktur, komşu iki pafta ortak kenarı paylaşır
+#  ( kullanıcı 6 Eki 2026 ).
 A4_G, A4_Y = 210.0, 297.0
-ARA = 10.0
+ARA = 0.0
 
 # =====================================================================
 #  OFİSİN TİP PROJE FORMATI  —  şablon
@@ -77,9 +79,11 @@ KAPAK_HUCRESI = (-4215.8, 1159.4, -4012.5, 1448.3)
 KAPAK_IC = (-4211.9, 1163.4, -4016.5, 1444.3)
 #  hesap paftalarının dizileceği serbest alan
 SERBEST = (-4012.5, 1159.4, -973.8, 1759.4)
-#  serbest alandaki sayfa aralıkları
-SUTUN_ARA = 10.0
-SATIR_ARA = 2.0
+#  serbest alandaki sayfa aralıkları — sayfalar bitişik ( bkz. ARA )
+SUTUN_ARA = 0.0
+SATIR_ARA = 0.0
+#  ilk sütunun antet bloğundan uzaklığı ( mm ) — yalnız soldaki pay
+SOL_PAY = 10.0
 
 #  DXF SÜRÜMÜ  —  R2007 ve sonrası UTF-8'dir.
 #  R2000 kullanılamaz:  o biçim ASCII'dir ve Türkçe harfleri "\\U+0130" kaçış
@@ -113,7 +117,12 @@ CAD_OLCU_FONT = {False: "Helvetica", True: "Helvetica-Bold"}
 
 KATMAN_CIZGI = "AVAN-CIZGI"
 KATMAN_YAZI = "AVAN-YAZI"
-KATMAN_CERCEVE = "AVAN-A4"
+#  A4 ÇERÇEVELERİ 0 KATMANINDA VE BEYAZ ( ACI 7 ).  Eskiden ayrı bir katmanda
+#  gri ( 8 ) çiziliyordu ve paftada soluk görünüyordu ( kullanıcı 6 Eki 2026 ).
+#  0 katmanında şablonun kendi varlıkları da durduğu için A4 çerçevesi katman
+#  adıyla değil ŞEKLİYLE tanınır:  bkz. a4_cerceveleri.
+KATMAN_CERCEVE = "0"
+RENK_CERCEVE = 7
 YAZI_BICIMI = "AVAN"
 YAZI_BICIMI_K = "AVAN-KALIN"
 
@@ -313,7 +322,7 @@ def _genislik_carpani(m):
 
 def _katmanlari_kur(d):
     """Programın çizdiği varlıklar için katman ve yazı biçimlerini hazırlar."""
-    for ad, renk in ((KATMAN_CIZGI, 7), (KATMAN_YAZI, 7), (KATMAN_CERCEVE, 8)):
+    for ad, renk in ((KATMAN_CIZGI, 7), (KATMAN_YAZI, 7), (KATMAN_CERCEVE, RENK_CERCEVE)):
         if ad not in d.layers:
             d.layers.add(ad, color=renk)
     #  İKİ YAZI BİÇİMİ:  paftada kalın yazı ANLAM TAŞIR ( başlıklar, sonuç
@@ -373,7 +382,26 @@ def _sayfayi_ciz(msp, sayfa, ox, oy):
 def _a4_cercevesi(msp, ox, oy, g=A4_G, y=A4_Y):
     msp.add_lwpolyline(
         [(ox, oy), (ox + g, oy), (ox + g, oy + y), (ox, oy + y)],
-        close=True, dxfattribs={"layer": KATMAN_CERCEVE})
+        close=True, dxfattribs={"layer": KATMAN_CERCEVE, "color": RENK_CERCEVE})
+
+
+def a4_cerceveleri(msp, tol=0.5):
+    """Programın çizdiği A4 çerçevelerinin kutuları  [ ( x0, y0, x1, y1 ) … ].
+
+    Çerçeveler 0 katmanındadır ve şablonun kendi çizgileri de orada durur;
+    bu yüzden katman adı yetmez:  kapalı, dört köşeli ve A4 boyutunda olan
+    LWPOLYLINE'lar alınır ( şablonda A4 boyutunda kapalı çoklu çizgi yoktur ).
+    """
+    kutular = []
+    for e in msp.query('LWPOLYLINE[layer=="%s"]' % KATMAN_CERCEVE):
+        p = list(e.get_points("xy"))
+        if not (e.closed and len(p) == 4):
+            continue
+        x0, y0 = min(q[0] for q in p), min(q[1] for q in p)
+        x1, y1 = max(q[0] for q in p), max(q[1] for q in p)
+        if abs(x1 - x0 - A4_G) <= tol and abs(y1 - y0 - A4_Y) <= tol:
+            kutular.append((x0, y0, x1, y1))
+    return kutular
 
 
 def sayfalari_topla(paftalar):
@@ -463,10 +491,15 @@ def _kapak_hucresini_bosalt(d):
     return silinen
 
 
+def _sutun_sayisi(genislik):
+    """`genislik` mm'lik alana soldaki pay düşüldükten sonra kaç sütun sığar."""
+    return max(1, int((genislik - SOL_PAY + SUTUN_ARA) // (A4_G + SUTUN_ARA)))
+
+
 def _uzatma(adet):
     """Sayfalar sığsın diye formatın SAĞA uzatılacağı miktar  ( mm ).
 
-    Ofis formatının serbest alanı iki satırda 13 A4 alır ( 26 sayfa ).  Uygulama
+    Ofis formatının serbest alanı iki satırda 14 bitişik A4 alır ( 28 sayfa ).  Uygulama
     projesi asansör başına ~21 sayfadır;  iki asansörlü bir proje 45 sayfa
     eder ve sayfalar çerçevenin ALTINA taşıyordu — çizimde duruyor ama baskıya
     giden çerçevenin dışındaydı.  Artık satır sayısı sabit kalır ( formatın
@@ -474,7 +507,7 @@ def _uzatma(adet):
     projede uzatma sıfırdır, format olduğu gibi kalır.
     """
     sol, alt, sag, ust = SERBEST
-    sutun = max(1, int((sag - sol) // (A4_G + SUTUN_ARA)))
+    sutun = _sutun_sayisi(sag - sol)
     satir_azami = max(1, int((ust - alt + SATIR_ARA) // (A4_Y + SATIR_ARA)))
     if adet <= sutun * satir_azami:
         return 0.0
@@ -497,11 +530,10 @@ def _yerlesim(adet):
     sol, alt, sag, ust = SERBEST
     sag += _uzatma(adet)
     gen, yuk = sag - sol, ust - alt
-    #  Sol boşluk düşüldükten sonra kaç A4 sığıyor
-    sutun = max(1, int((gen - SUTUN_ARA + SUTUN_ARA) // (A4_G + SUTUN_ARA)))
+    sutun = _sutun_sayisi(gen)
     satir = max(1, -(-adet // sutun))
     kullanilan_y = satir * A4_Y + (satir - 1) * SATIR_ARA
-    x0 = sol + SUTUN_ARA
+    x0 = sol + SOL_PAY
     y_ust = ust - max(0.0, (yuk - kullanilan_y) / 2)
     yerler = []
     for i in range(adet):

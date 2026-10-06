@@ -579,14 +579,7 @@ def calistir():
         #  Paftalar boşluğa değil, formatın içindeki büyük alana dizilir;
         #  soldaki sabit antet bloğu ve dış çerçeve OLDUĞU GİBİ KALIR.
         # ---------------------------------------------------------------
-        _a4 = []
-        for _e in _m.query("LWPOLYLINE"):
-            if _e.dxf.layer != DXE.KATMAN_CERCEVE:
-                continue
-            _p = list(_e.get_points("xy"))
-            _a4.append((round(min(q[0] for q in _p), 3), round(min(q[1] for q in _p), 3),
-                        round(max(q[0] for q in _p), 3), round(max(q[1] for q in _p), 3)))
-        _a4.sort()
+        _a4 = sorted(tuple(round(v, 3) for v in b) for b in DXE.a4_cerceveleri(_m))
         r.esit("CAD: hesap paftası sayısı kadar A4 çerçevesi var",
                len(_a4), len(_diger))
         r.kontrol("CAD: A4 çerçeveleri gerçekten A4",
@@ -602,7 +595,30 @@ def calistir():
                            and _a4[i][1] < _a4[j][3] - 0.01 and _a4[j][1] < _a4[i][3] - 0.01)
                       for i in range(len(_a4)) for j in range(i + 1, len(_a4))))
         r.kontrol("CAD: ilk pafta antet bloğunun hemen yanında",
-                  abs(_a4[0][0] - (_s[0] + DXE.SUTUN_ARA)) < 0.01, f"→ {_a4[0][0]}")
+                  abs(_a4[0][0] - (_s[0] + DXE.SOL_PAY)) < 0.01, f"→ {_a4[0][0]}")
+        #  BİTİŞİK DİZİLİM  ( kullanıcı 6 Eki 2026 ):  aynı satırdaki komşu
+        #  iki pafta ortak kenarı paylaşır, alt satır üst satıra dayanır.
+        _satirlar = {}
+        for _b in _a4:
+            _satirlar.setdefault(_b[1], []).append(_b)
+        _yan = [(_r[i], _r[i + 1]) for _r in _satirlar.values()
+                for i in range(len(_r) - 1)]
+        r.kontrol("CAD: aynı satırdaki paftalar arasında boşluk yok",
+                  bool(_yan) and all(abs(b[0] - a[2]) < 0.01 for a, b in _yan),
+                  f"→ {[round(b[0] - a[2], 2) for a, b in _yan][:4]}")
+        _ys = sorted(_satirlar, reverse=True)
+        r.kontrol("CAD: satırlar arasında boşluk yok",
+                  all(abs(_ys[i] - (_ys[i + 1] + DXE.A4_Y)) < 0.01 for i in range(len(_ys) - 1)),
+                  f"→ {_ys}")
+        _cer = [_e for _e in _m.query("LWPOLYLINE") if _e.closed and len(_e) == 4
+                and abs(max(q[0] for q in _e.get_points("xy"))
+                        - min(q[0] for q in _e.get_points("xy")) - DXE.A4_G) < 0.5
+                and abs(max(q[1] for q in _e.get_points("xy"))
+                        - min(q[1] for q in _e.get_points("xy")) - DXE.A4_Y) < 0.5]
+        r.kontrol("CAD: A4 çerçeveleri 0 katmanında ve beyaz ( ACI 7 )",
+                  len(_cer) == len(_diger)
+                  and all(_e.dxf.layer == "0" and _e.dxf.color == 7 for _e in _cer),
+                  f"→ {[(_e.dxf.layer, _e.dxf.color) for _e in _cer][:3]}")
 
         #  ŞABLON KORUNDU MU:  dış çerçeve ve soldaki sabit blok yerinde mi
         _cizgi_tum = [( (e.dxf.start.x, e.dxf.start.y), (e.dxf.end.x, e.dxf.end.y) )
@@ -936,7 +952,7 @@ def calistir():
         def _sayim(_ms):
             return (len(_ms.query('LINE[layer=="%s"]' % DXE.KATMAN_CIZGI)),
                     len(_ms.query('TEXT[layer=="%s"]' % DXE.KATMAN_YAZI)),
-                    len(_ms.query('LWPOLYLINE[layer=="%s"]' % DXE.KATMAN_CERCEVE)))
+                    len(DXE.a4_cerceveleri(_ms)))
         r.esit("CAD: ZIP'teki çizim ile ölçülen çizim aynı",
                _sayim(_pm), _sayim(_m))
         r.kontrol("CAD: pakette ofis şablonunun kendi varlıkları duruyor",
