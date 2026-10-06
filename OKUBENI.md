@@ -544,6 +544,35 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
    son adım:  "AĞIRLIK RAYI 127,5";  kotlar kaynağında "+3,40" );  madde
    numaraları ( "m.5.2.6.3.2.4" ) değişmez.  Ölçü kaynağı sayıyı ikisinde de
    tanır.
+11. **Teknik resim üslubu ( ISO 128 ):  siyah çizgi, kalınlık anlam taşır**
+   ( kullanıcı 6 Eki:  çizimler "oyuncak gibi" duruyordu — parçalar renkli
+   dolguluydu ).  Kâğıtta 0,50 kesilen duvar / kesit / çerçeve · 0,35 ana
+   parça · 0,25 ikincil parça · 0,18 ince parça ve gizli çizgi · 0,13 ölçü,
+   eksen, tarama ( `svg.KALEM`;  1/20'de birim 10 · 7 · 5 · 3,6 · 2,6 ).
+   Renkli kalan yalnız ölçü ( koyu mavi ) ve eksen ( koyu kırmızı );  dolgu
+   yalnız örtmek için beyaz.  DXF'in katman renkleri AutoCAD'in koyu zemini
+   içindir, ayrıdır.
+12. **Parçaların gerçek biçimi:  zarf mantık içindir, biçim çizim içindir**
+   ( `cizim/parcalar.py` ).  Yerleşim, çakışma, ölçü ve testler parçayı
+   dikdörtgen zarfıyla bilir;  zarfa `bicim` yazılır ( dünya koordinatında
+   kapalı çokgen ya da açık sac profil, `dolu` kesit, `ince` ayrıntı ) ve SVG
+   ile DXF dikdörtgenin yerine onu çizer — zarf değişmediği için hiçbir
+   denetim değişmez.  Her ölçünün kaynağı yanında yazılır ( standart · üretici
+   kataloğu ), yoksa ÇİZİM KABULÜ diye işaretlenir.  **Markasız:**  hiçbir
+   parça tek bir üreticinin kopyası değildir — standardın sabitledikleri
+   birebir, projeye özgü ölçüler girdiden, üreticiye göre değişen ayrıntı
+   birkaç üreticinin ORTAK biçiminden ( kullanıcı 6 Eki ).  Bugün:  kılavuz
+   rayı ( ISO 8100-33 / 7465 kesiti — çokgen alanı ISO'nun S'si %1 ),
+   kaymalı paten ( U yuva ), kat ve kabin kapısı ( kasa, eşik + oluk, kanat —
+   aşağıda ), duvara dayanan kabin rayı konsolu:  TSE K 179 tipi çift L ( duvar
+   konsolu + ray konsolu, yatay ayaklar Savera'nın C'si kadar bindirilir, iki
+   M12 cıvata;  Savera standart konsolu — İTÜ tezi Çizelge 3.9 ) ve ray tırnakları
+   ( Donati GF;  cıvata başı ve somun ISO 4017 / 4032 ).  Konsolun zarfları
+   ( plaka, dar kol ) mantık için eskisi gibi;  biçim ikisinin kapsadığı
+   dikdörtgende çizilir.  Karşı ağırlık
+   tarafındaki ara kiriş ve ağırlık konsolları henüz şematiktir ( kaynak
+   bekleniyor ).  Kabin kapısı operatörü kesitin üstündedir:  kesik.  Testler
+   `testler/test_parcalar.py`.
 
 ## Plan ve kesitte ortak donanım
 
@@ -1056,6 +1085,27 @@ boşluğuna montajda kasa da boşlukta ), A-A'da kapı ünitesi duvardaysa boşl
 eşiğin altından başlar, makine dairesi planında oda kapısında.  Kapının üstünden
 ya da altından kesilen planlarda ( kabin üstü, kuyu dibi, kuyu üstü, delik
 planı ) ön duvar kesintisizdir ( `geometri.plan(…, kapi_duzeyi=False)` ).
+
+### Kapı parçalarının biçimi ( 6 Eki )
+
+Üç üreticinin kapı detaylarının ortak biçimi ( Wittur Hydra teknik broşürü
+s.7–8 · 17, Merih B-01 MLT kataloğu, KONE planlama kılavuzu ) — `parcalar`:
+
+* **Kasa:**  sac bükme profil;  kat tarafında yüz, açıklığın kenarı boyunca
+  derinliğe dönüş ( eşiğin önünde biter ), dış kenarda duvara kanca.  Wittur'un
+  standart kasa derinliği 60 = programınki.
+* **Eşik:**  cebin altından da süren tek parça ( Fermator 40/10:  T2 eşiği
+  1,5·PL + 40 ) — eşik ile cep arasında çizgi yoktur.  Her kanat düzleminin
+  kılavuz oluğu ince çizgiyle, kanadın ve durdurucunun örtmediği yerde
+  görünür;  menteşeli kapıda oluk yoktur.  Derinlikler üreticilerle tutar:
+  2 kanat teleskopik 90 ( Wittur 90 · Merih 95 ), 3 kanat 135 ( Wittur 136 ·
+  Merih 135 );  üreticilerin eşik aralığı Wittur 30 – 35, Merih 30
+  ( standardın sınırı 35 — yukarıda ).
+* **Kanat:**  sac tepsi;  düz yüz kat kapısında kata, kabin kapısında kabine
+  bakar, uçlar dönük, arkada dudak.
+* Kasa ve kanat dudağı 20 · 15, oluk eni 10:  üreticilerin çizimlerinde
+  ölçülü değil, oranlarından — ÇİZİM KABULÜ ( `parcalar.KASA_DUDAK`,
+  `KANAT_DUDAK`, `OLUK` ).
 
 ### Kanat sayısı ve kanat cebi ( 3 Eki )
 

@@ -56,6 +56,20 @@ def _dikdortgen(msp, el, lt=None):
                        close=True, dxfattribs={"layer": el["katman"], **(lt or {})})
 
 
+def _bicim(hedef, el, lt=None):
+    """Parçanın gerçek biçimi ( parcalar ):  LWPOLYLINE ( kapalı çokgen ya da
+    açık sac profil );  "dolu" kesit katmanının renginde SOLID taramayla
+    boyanır;  "ince" ayrıntı 0,18 mm çizgi kalınlığıyla."""
+    for p in el["bicim"]:
+        nok = [(float(x), float(y)) for x, y in p["noktalar"]]
+        ek = {"lineweight": 18} if p.get("ince") else {}
+        hedef.add_lwpolyline(nok, close=p.get("kapali", True),
+                             dxfattribs={"layer": el["katman"], **(lt or {}), **ek})
+        if p.get("dolu"):
+            dolgu = hedef.add_hatch(color=256, dxfattribs={"layer": el["katman"]})
+            dolgu.paths.add_polyline_path(nok, is_closed=True)
+
+
 def _olcu(msp, el, k=1.0):
     """Gerçek DIMENSION varlığı — CAD'de ölçü olarak tanınır, metin değil."""
     a, b, kot = el["a"], el["b"], el["kot"]
@@ -155,7 +169,9 @@ def ciz(hedef, elemanlar, olcek=20, blokta=False):
     sira = {"olcu": 1, "yazi": 2}
     for el in sorted(elemanlar, key=lambda el: sira.get(el["tip"], 0)):
         tur, kat = el["tip"], el["katman"]
-        if tur in ("dikdortgen", "tarama", "tarama_tugla"):
+        if tur == "dikdortgen" and "bicim" in el:
+            _bicim(hedef, el, lt)
+        elif tur in ("dikdortgen", "tarama", "tarama_tugla"):
             _dikdortgen(hedef, el, lt)
             if tur in ("tarama", "tarama_tugla"):
                 #  Duvar kesiti taraması:  CAD'in kendi HATCH varlığı

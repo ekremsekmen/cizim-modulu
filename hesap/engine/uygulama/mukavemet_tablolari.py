@@ -51,12 +51,30 @@ def _ara(tablo, anahtar, sutun=1):
 #      e                            h1 − Ix/Wx.  Altı satırın hepsinde
 #                                   tabloyu birebir yeniden üretir;  zaten
 #                                   hesapta HİÇ okunmuyor.
+#
+#  ISO 8100-33:2022'YE GÖRE GÜNCELLENDİ  ( 2026-10-06, kullanıcı onayıyla ):
+#      70 x 65 x 9      eski katalog değerleri ( "T70-1/A":  A 951 · Ix 41,30 ·
+#                       Iy 18,65 cm⁴ … ) yerine ISO 8100-33 Tablo 5 = ISO
+#                       7465:2007 Tablo 4, T70/A:  9,400 cm² · 7,379 kg/m ·
+#                       e 2,034 · Ix 40,95 · Wx 9,169 · ix 2,087 · Iy 18,86 ·
+#                       Wy 5,389 · iy 1,417.  Fark ~%1, iki yönde.
+#      89 x 62 x 15,88  c 9,5 → 10:  ISO'nun T89/A ( Tablo 6 ) ve T89/B ( B
+#                       grubu ölçü tablosu ) boyun kalınlığı.  Eski değer σF'yi
+#                       %11 büyük veriyordu ( emniyetli yön ).
+#      90 x 75 x 16     ISO 8100-33 Tablo 5, T90/A:  17,25 cm² · 13,54 kg/m ·
+#                       e 2,612 · Ix 102,00 · Wx 20,86 · ix 2,431 · Iy 52,48 ·
+#                       Wy 11,66 · iy 1,744.  Eski Iy / Wy ( 53,0 / 11,80 )
+#                       ~%1 büyüktü — emniyetsiz yön.
+#  İŞLENMİŞ ( /B ) RAYLARIN KESİT DEĞERLERİ ( ISO 8100-33 Tablo 7 ) ELİMİZDE
+#  DEĞİL:  bu iki satır soğuk çekilmiş ( /A ) kesitin değerleridir;  T75'te
+#  referans projenin /B paftası /A'nın değerlerini kullanır.  Bir Türk ray
+#  üreticisinin TS EN 81-20 belgesi de T70 A ve T90 A için aynı sayıları verir.
 RAY_PROFILI = (
     ('50 x 50 x 5', 3.7, 475, 112400, 52500, 3150, 2100, 15.38, 10.51, 5, 14.3),
-    ('70 x 65 x 9', 7.47, 951, 413000, 186500, 9240, 5350, 20.9, 14, 6, 20.4),
+    ('70 x 65 x 9', 7.379, 940, 409500, 188600, 9169, 5389, 20.87, 14.17, 6, 20.34),
     ('75 x 62 x 10', 8.564, 1091, 402900, 264700, 9290, 7060, 19.22, 15.58, 8, 18.63),
-    ('89 x 62 x 15,88', 12.38, 1577, 598300, 524100, 14350, 11780, 19.48, 18.23, 9.5, 20.32),
-    ('90 x 75 x 16', 13.55, 1730, 1020000, 530000, 20870, 11800, 24.3, 17.5, 10, 26.1),
+    ('89 x 62 x 15,88', 12.38, 1577, 598300, 524100, 14350, 11780, 19.48, 18.23, 10, 20.32),
+    ('90 x 75 x 16', 13.54, 1725, 1020000, 524800, 20860, 11660, 24.31, 17.44, 10, 26.12),
     ('125 x 82 x 16', 18, 2290, 1511000, 1566000, 26200, 25100, 25.7, 25.2, 10, 24.3),
     ('127 x 89 x 16', 22.48, 2863, 1984000, 2300000, 30900, 36200, 26.3, 28.3, 10, 24.7),
 )
@@ -85,8 +103,16 @@ def ray(profil, ozellik):
 #  TÜRETİLEN varsayılanına girer;  balata boyu zaten bir girdidir ve
 #  girildiğinde türetme devre dışı kalır.  Küçük b, ( h1 − b − f )'yi
 #  büyüttüğü için EMNİYETLİ yöndedir.
+#
+#  50 x 50 x 5 ( T50/A ) DÜZELTİLDİ  ( 2026-10-06, kullanıcı onayıyla ):  kaynak
+#  f = 8 yazıyordu.  T50/A PARALEL TABANLIDIR — taban her yerde aynı kalınlıkta,
+#  p = 5 mm ( ISO 7465:2007 Tablo 3 = ISO 8100-33:2022 Tablo 4 ).  Kesitin
+#  kendisi doğruluyor:  50 × 5 + 45 × 5 = 475 mm² = ISO'nun S'si ve
+#  RAY_PROFILI'nin A'sı;  f = 8 ile alan 610 mm² olurdu.  ( h1 − b − f ) ve
+#  ( h1 − f ) de buna göre:  31,5 ve 45.  Eski değer kaymalı patenin σF'sini
+#  küçük gösteriyordu ( emniyetsiz yön;  ℓ = 2b'de %4,9 ).
 RAY_GEOMETRI = (
-    ('50 x 50 x 5', 8, 13.5, 50, 28.5, 42),
+    ('50 x 50 x 5', 5, 13.5, 50, 31.5, 45),
     ('70 x 65 x 9', 8, 17, 65, 40, 57),
     ('75 x 62 x 10', 9, 15, 62, 38, 53),
     ('89 x 62 x 15,88', 11.1, 17, 62, 33.9, 50.9),
@@ -289,10 +315,10 @@ KABIN_ALANI = (
 #  ---------------------------------------------------------------------
 #  RAY TABLOSUNUN KENDİ TUTARLILIĞI
 #  ---------------------------------------------------------------------
-#  Atalet yarıçapı tanımı gereği  i = √( I / A )  olmalıdır;  ama iki satırda
-#  tablonun değerleri tutmuyor:
+#  Atalet yarıçapı tanımı gereği  i = √( I / A )  olmalıdır;  ama bir satırda
+#  tablonun değerleri tutmuyor ( 70 x 65 x 9'daki %0,3'lük fark ISO 8100-33'ün
+#  değerleriyle kalktı — 6 Eki 2026 ):
 #
-#      70 x 65 x 9      ix  20,90   √(Ix/A) = 20,84   %0,3
 #      125 x 82 x 16    iy  25,20   √(Iy/A) = 26,15   %3,6
 #
 #  125'lik satırda A, Ix ve ix birbiriyle tutarlıdır ( √(1511000/2290) =
@@ -303,7 +329,6 @@ KABIN_ALANI = (
 #  gösterir, dolayısıyla ω ve burkulma gerilmesi de büyük çıkar — yani
 #  emniyetli taraftadır.  Doğrulanmamış bir sayıyı emniyetsiz yönde
 #  değiştirmek yerine tutarsızlık burada AÇIKÇA işaretlenir.
-#  %0,5 eşiğini AŞAN satır:  70'likteki %0,3 yuvarlama payı içindedir.
 RAY_TUTARSIZ = ("125 x 82 x 16",)
 
 

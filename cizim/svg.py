@@ -9,31 +9,38 @@ aşağı baktığı için çizim bir kez ters çevrilir, metinler kendi içinde 
 import html
 import math
 
-#  Katman → ( renk, çizgi kalınlığı mm )
+#  TEKNİK RESİM ÜSLUBU ( ISO 128 ):  siyah çizgi, kalınlık sırası anlam taşır;
+#  renkli dolgu yok ( 6 Eki — kullanıcı:  çizimler "oyuncak gibi" duruyordu;
+#  parçalar açık yeşil, turuncu, pembe dolguluydu ).  Kâğıtta ( mm ):
+#      0,50  kesilen duvar, kesit işareti, çerçeve
+#      0,35  görünen ana kenar ( kabin, kapı, ray, ağırlık, şase, makine … )
+#      0,25  ikincil parça ( konsol, paten, pano, merdiven, kabin içi … )
+#      0,18  ince parça ( cıvata, delik, halat ), gizli çizgi
+#      0,13  ölçü, eksen, tarama, seviye, alan sınırı, etiket oku
+#  Kalınlıklar 1/20'ye göre birim:  1/20'de 0,50 mm = 10.  Ölçü ve eksen ekranda
+#  ayırt edilsin diye koyu mavi / koyu kırmızı;  geri kalan siyah.  DXF'teki
+#  katman renkleri AutoCAD'in koyu zemini içindir, ayrıdır ( dxf.KATMAN ).
+SIYAH = "#111111"
+_K = {0.50: 10, 0.35: 7, 0.25: 5, 0.18: 3.6, 0.13: 2.6}
 KALEM = {
-    "KUYU-DUVAR": ("#1a1a1a", 12), "TARAMA": ("#9a9a9a", 3),
-    "KUYU-IC": ("#1a1a1a", 6), "KABIN": ("#1a1a1a", 7),
-    "KABIN-IC": ("#c026a0", 5), "SASE": ("#c026a0", 7),
-    "KAPI": ("#b4531b", 7), "AGIRLIK": ("#e2680c", 7),
-    "RAY": ("#1f7a1f", 6), "KONSOL": ("#2f6f2f", 4),
-    "PATEN": ("#7a3ea8", 5), "KASNAK": ("#0f8f4f", 5),
-    "PANO": ("#2f6fb5", 5), "BINA": ("#a06a4a", 3),
-    "CIVATA": ("#2f6f2f", 3), "CERCEVE": ("#1a1a1a", 8),
-    "OLCU": ("#0a6ebd", 3), "EKSEN": ("#c01c1c", 3), "YAZI": ("#1a1a1a", 3),
-    "KORKULUK": ("#d11a6a", 12), "SIGINMA": ("#1d8a3a", 6),
-    "TAMPON": ("#8a2be2", 6), "PERDE": ("#d11a6a", 14), "MERDIVEN": ("#6b4f2a", 6),
-    "GIZLI": ("#7a7a7a", 4), "YUK": ("#c01c1c", 5),
-    "MAKINE": ("#1f4fbf", 7), "BAGLANTI": ("#444444", 5), "DELIK": ("#1f4fbf", 6),
-    "HALAT": ("#c2185b", 4), "KESIT": ("#1a1a1a", 14), "SEVIYE": ("#c79a00", 4),
+    "KUYU-DUVAR": (SIYAH, _K[0.50]), "KESIT": (SIYAH, _K[0.50]), "CERCEVE": (SIYAH, _K[0.50]),
+    "KUYU-IC": (SIYAH, _K[0.35]), "KABIN": (SIYAH, _K[0.35]), "KAPI": (SIYAH, _K[0.35]),
+    "AGIRLIK": (SIYAH, _K[0.35]), "RAY": (SIYAH, _K[0.35]), "SASE": (SIYAH, _K[0.35]),
+    "MAKINE": (SIYAH, _K[0.35]), "KASNAK": (SIYAH, _K[0.35]), "TAMPON": (SIYAH, _K[0.35]),
+    "PERDE": (SIYAH, _K[0.35]), "KORKULUK": (SIYAH, _K[0.35]),
+    "KABIN-IC": (SIYAH, _K[0.25]), "KONSOL": (SIYAH, _K[0.25]), "PATEN": (SIYAH, _K[0.25]),
+    "PANO": (SIYAH, _K[0.25]), "BAGLANTI": (SIYAH, _K[0.25]), "MERDIVEN": (SIYAH, _K[0.25]),
+    "BINA": (SIYAH, _K[0.25]), "YUK": (SIYAH, _K[0.25]),
+    "CIVATA": (SIYAH, _K[0.18]), "DELIK": (SIYAH, _K[0.18]), "HALAT": (SIYAH, _K[0.18]),
+    "GIZLI": (SIYAH, _K[0.18]),
+    "OLCU": ("#0b4a8f", _K[0.13]), "EKSEN": ("#a51d1d", _K[0.13]), "TARAMA": (SIYAH, _K[0.13]),
+    "SEVIYE": (SIYAH, _K[0.13]), "SIGINMA": (SIYAH, _K[0.13]), "YAZI": (SIYAH, _K[0.13]),
 }
 #  Kesik çizilen katmanlar  ( sığınma alanı gerçek bir parça değil, alandır )
 KESIK = {"SIGINMA": "80 40", "GIZLI": "40 30", "DELIK": "50 25"}
-DOLGU = {"KABIN-IC": "none", "AGIRLIK": "#fde9d7", "RAY": "#dff0df",
-         "KAPI": "#ffffff", "KABIN": "#ffffff", "SASE": "#fbe6f6",
-         "KONSOL": "#eef7ee", "PATEN": "#efe4f8", "KASNAK": "#d8f0e2",
-         "PANO": "#dbe8f7", "SIGINMA": "#e6f6ea", "TAMPON": "#efe4f8",
-         "MERDIVEN": "#f3ead9", "MAKINE": "#dbe4fa", "BAGLANTI": "#e6e6e6",
-         "YUK": "#ffffff"}
+#  Dolgu yalnız örtmek için ( zemin rengi ):  kesitte kabin ve kapı arkasındakini,
+#  yük kutusu oku örter.  Renkli dolgu yok.
+DOLGU = {"KAPI": "#ffffff", "KABIN": "#ffffff", "YUK": "#ffffff"}
 
 
 def _dikdortgen(el, renk, kalinlik, k=1.0):
@@ -42,6 +49,34 @@ def _dikdortgen(el, renk, kalinlik, k=1.0):
     return (f'<rect x="{el["x"]:.1f}" y="{el["y"]:.1f}" width="{el["g"]:.1f}" '
             f'height="{el["d"]:.1f}" fill="{dolgu}" stroke="{renk}" '
             f'stroke-width="{kalinlik}"{kesik}/>')
+
+
+def _bicim(el, renk, kalinlik, k=1.0):
+    """Parçanın gerçek biçimi ( parcalar ):  zarf dikdörtgeninin yerine kapalı
+    çokgenler ( "dolu" kesit koyu boyanır ) ve açık çoklu çizgiler ( sac
+    profil;  "ince" ayrıntı 0,18 kalemle )."""
+    out = []
+    #  ÖRTÜ:  dolgulu katmanın parçası ( kapı, kabin ) dikdörtgen çizilirken
+    #  zemin rengiyle dolardı ve arkasındakini örterdi ( kabin kapısının
+    #  kanatları üstteki operatör kutusunu );  açık sac profilin dolgusu yok —
+    #  zarfın içi ayrıca örtülür.  Yarım kalem içeriden:  zarfın kenarına denk
+    #  gelen komşu çizginin ( eşiğin arka kenarı ) yarısını silmesin.
+    if el["katman"] in DOLGU and el["bicim"]:
+        y = float(kalinlik) / 2.0
+        if el["g"] > 2 * y and el["d"] > 2 * y:
+            out.append(f'<rect x="{el["x"] + y:.1f}" y="{el["y"] + y:.1f}" width="{el["g"] - 2 * y:.1f}" '
+                       f'height="{el["d"] - 2 * y:.1f}" fill="{DOLGU[el["katman"]]}" stroke="none"/>')
+    for p in el["bicim"]:
+        nok = " ".join(f"{x:.1f},{y:.1f}" for x, y in p["noktalar"])
+        kal = f"{_K[0.18] * k:g}" if p.get("ince") else kalinlik
+        if not p.get("kapali", True):
+            out.append(f'<polyline points="{nok}" fill="none" stroke="{renk}" '
+                       f'stroke-width="{kal}" stroke-linejoin="miter"/>')
+            continue
+        dolgu = renk if p.get("dolu") else DOLGU.get(el["katman"], "none")
+        out.append(f'<polygon points="{nok}" fill="{dolgu}" stroke="{renk}" '
+                   f'stroke-width="{kal}" stroke-linejoin="miter"/>')
+    return "".join(out)
 
 
 def _olcu(el, renk, kalinlik, k=1.0, tutamak=False):
@@ -148,7 +183,7 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False):
             parcalar.append(f'<rect x="{el["x"]:.1f}" y="{el["y"]:.1f}" width="{el["g"]:.1f}" '
                             f'height="{el["d"]:.1f}" fill="url(#{onek}tarama)" stroke="none"/>')
         elif el["tip"] == "dikdortgen":
-            parcalar.append(_dikdortgen(el, renk, kal, k))
+            parcalar.append(_bicim(el, renk, kal, k) if "bicim" in el else _dikdortgen(el, renk, kal, k))
         elif el["tip"] in ("cizgi", "eksen"):
             kesik = _kesik_ozniteligi(el, k)
             parcalar.append(f'<line x1="{el["x1"]:.1f}" y1="{el["y1"]:.1f}" x2="{el["x2"]:.1f}" '
@@ -193,11 +228,10 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False):
             f'{g:.0f} {d + 600:.0f}" width="{g / olcek:.0f}mm" height="{(d + 600) / olcek:.0f}mm">'
             f'<defs><pattern id="{onek}tarama" width="120" height="120" patternUnits="userSpaceOnUse" '
             f'patternTransform="rotate(45){_olcekle(k)}"><line x1="0" y1="0" x2="0" y2="120" '
-            'stroke="#9a9a9a" stroke-width="6"/></pattern>'
+            f'stroke="{SIYAH}" stroke-width="{_K[0.13]:g}"/></pattern>'
             f'<pattern id="{onek}tugla" width="240" height="120" patternUnits="userSpaceOnUse"'
             f'{_desen(k)}>'
-            '<rect width="240" height="120" fill="#fdf3ee"/>'
             '<path d="M0 0 H240 M0 60 H240 M120 0 V60 M0 60 V120 M240 60 V120" '
-            'stroke="#c08a6a" stroke-width="5" fill="none"/></pattern></defs>'
+            f'stroke="{SIYAH}" stroke-width="{_K[0.13]:g}" fill="none"/></pattern></defs>'
             '<rect x="-100000" y="-100000" width="200000" height="200000" fill="#ffffff"/>'
             f'<g transform="scale(1,-1)">{"".join(parcalar)}{bas}</g></svg>')

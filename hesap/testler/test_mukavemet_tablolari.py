@@ -37,8 +37,20 @@ GENISLETILEN = {
     #  T75/B ( 75 x 62 x 10 ) kaynak listede yoktu.  Orta kapasiteli
     #  asansörlerin en yaygın rayıdır.  Kesit değerleri ISO 7465'ten;
     #  iki bağımsız kaynak doğruluyor ( bkz. mukavemet_tablolari ).
-    "RAY_PROFILI":  {"eklenen": ("75 x 62 x 10",), "degisen": {}},
-    "RAY_GEOMETRI": {"eklenen": ("75 x 62 x 10",), "degisen": {}},
+    #  ISO 8100-33:2022'ye göre ( kullanıcı onayı 6 Eki 2026 ):  70'lik ve 90'lık
+    #  Tablo 5'in T70/A · T90/A kesiti;  89'luğun boynu c = 10 ( bkz. modül ).
+    "RAY_PROFILI":  {"eklenen": ("75 x 62 x 10",),
+                     "degisen": {"70 x 65 x 9": (7.379, 940, 409500, 188600, 9169, 5389,
+                                                 20.87, 14.17, 6, 20.34),
+                                 "89 x 62 x 15,88": (12.38, 1577, 598300, 524100, 14350, 11780,
+                                                     19.48, 18.23, 10, 20.32),
+                                 "90 x 75 x 16": (13.54, 1725, 1020000, 524800, 20860, 11660,
+                                                  24.31, 17.44, 10, 26.12)}},
+    #  T50/A ( 50 x 50 x 5 ) paralel tabanlıdır:  taban kalınlığı her yerde
+    #  p = 5 ( ISO 7465 Tablo 3 = ISO 8100-33 Tablo 4 ).  Kaynak f = 8 yazıyordu;
+    #  kesitin alanı ( 475 mm² ) ancak 5 ile tutar.  Kullanıcı onayı 6 Eki 2026.
+    "RAY_GEOMETRI": {"eklenen": ("75 x 62 x 10",),
+                     "degisen": {"50 x 50 x 5": (5, 13.5, 50, 31.5, 45)}},
     #  EN 81-20 Çizelge 6'da olup kaynakta olmayan beyan yükleri.
     "KABIN_ALANI": {
         "eklenen": (100, 1050, 1250, 1350, 1425, 1500, 2500),
@@ -92,6 +104,14 @@ def _profil_tutarliligi(r):
                 r.kontrol(f"NPU {olcu}: {ad} = √( I / A )",
                           abs(i - (I / A) ** 0.5) <= 0.02 * i,
                           f"→ {ad} {i} · √( I / A ) {(I / A) ** 0.5:.3f}")
+    #  Flanş geometrisinin türetilen iki sütunu kendi satırından çıkar:
+    #  ( h1 − b − f ) ve ( h1 − f ).  Biri düzeltilip öbürü unutulursa σF
+    #  sessizce yanlış hesaplanırdı.
+    for p, f, b, h1, h1_b_f, h1_f in (x for x in MT.RAY_GEOMETRI if len(x) == 6):
+        r.kontrol(f"ray {p}: h1 − b − f", abs(h1_b_f - (h1 - b - f)) < 1e-6,
+                  f"→ {h1_b_f} · {h1} − {b} − {f} = {h1 - b - f}")
+        r.kontrol(f"ray {p}: h1 − f", abs(h1_f - (h1 - f)) < 1e-6,
+                  f"→ {h1_f} · {h1} − {f} = {h1 - f}")
     for p, Gr, A, Ix, Iy, _Wx, _Wy, ix, iy, _c, _e in (x for x in MT.RAY_PROFILI if len(x) == 11):
         r.kontrol(f"ray {p}: Gr = 0,00785 × A", abs(Gr - 0.00785 * A) <= 0.02 * Gr,
                   f"→ Gr {Gr} · 0,00785 × A {0.00785 * A:.3f}")

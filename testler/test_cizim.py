@@ -366,9 +366,13 @@ class DxfCiktisi(unittest.TestCase):
         self.assertEqual(say, sum(1 for el in self.e if el["tip"] == "olcu"))
 
     def test_duvar_taramasi_hatch_olarak(self):
-        say = sum(1 for x in self.d.modelspace() if x.dxftype() == "HATCH")
-        self.assertEqual(say, sum(1 for el in self.e
-                                  if el["tip"] in ("tarama", "tarama_tugla")))
+        #  Desenli HATCH duvar kesitidir;  SOLID HATCH parçanın dolu kesiti
+        #  ( planda ray — parcalar.ray_bicimi )
+        taramalar = [x for x in self.d.modelspace() if x.dxftype() == "HATCH"]
+        self.assertEqual(sum(1 for x in taramalar if x.dxf.solid_fill == 0),
+                         sum(1 for el in self.e if el["tip"] in ("tarama", "tarama_tugla")))
+        self.assertEqual(sum(1 for x in taramalar if x.dxf.solid_fill == 1),
+                         sum(1 for el in self.e for p in el.get("bicim", ()) if p.get("dolu")))
 
     def test_dxf_baytlari_yazilabiliyor(self):
         b = self.CDX.yaz(self.e, "KUYU PLANI", 20)
@@ -1581,9 +1585,11 @@ class TamBoyKesit(unittest.TestCase):
                     self.assertEqual(list(au.errors), [])
 
     def test_olcek_kalemleri_buyutur(self):
+        #  Kesilen duvar ISO 128'in 0,50 mm'si:  1/20'de 10 birim, 1/50'de 25
         e = [CGE._dik("KUYU-DUVAR", 0, 0, 100, 100)]
-        self.assertIn('stroke-width="12"', CSV.yaz(e, (0, 0, 100, 100), "", 20))
-        self.assertIn('stroke-width="30"', CSV.yaz(e, (0, 0, 100, 100), "", 50))
+        self.assertEqual(CSV.KALEM["KUYU-DUVAR"][1], 10)
+        self.assertIn('stroke-width="10"', CSV.yaz(e, (0, 0, 100, 100), "", 20))
+        self.assertIn('stroke-width="25"', CSV.yaz(e, (0, 0, 100, 100), "", 50))
 
 
 class KuyuKesitleri(unittest.TestCase):
