@@ -34,12 +34,18 @@ from cizim import kuyu_dibi as CKD
 from cizim import kuyu_ustu as CKT
 from cizim import makine as CMK
 from cizim import makine_dairesi as CMD
+from cizim import parcalar as CP
 
 MAKINE_YERLERI = ("Kuyu üstü", "Makine dairesi")
 ODA_YUKSEKLIK = 2100.0      # m.5.2.6.3.2.1
 DONEN_PARCA_USTU = 300.0    # m.5.2.6.3.2.3
 ODA_KAPI_YUKSEKLIK = 2000.0 # m.5.2.3.2 a
-ETEK_BOYU = 750.0           # m.5.4.5.1:  kabin eteğinin düşey kısmı en az 0,75 m
+#  Kabin önlüğü ( etek ) — m.5.4.5:  dik kısmı en az 0,75 m ( m.5.4.5.2 ), altında
+#  pah ( m.5.4.5.1;  parcalar.ONLUK_PAH × ONLUK_PAH_DUSEY ).  Önlüğün EN ALT
+#  noktası pahın ucudur:  kuyu dibi açıklığı ( m.5.2.5.8.2 a 1 ) oradan ölçülür
+#  ( 7 Eki;  eskiden pah yoktu, dik kısmın altından ölçülüyordu — 35 mm iyimser ).
+ETEK_BOYU = CP.ONLUK_DIK
+ETEK_PAH_DUSEY = CP.ONLUK_PAH_DUSEY
 
 
 def _sayi(v):
@@ -79,7 +85,8 @@ def kabin_kotlari(dy, S, z, aski=None, tavanda=False):
     else:
         kasnak_merkez = z - S["kabin_kasnak_derinlik"]
     return {"doseme": z, "taban_alti": z - S["kabin_taban_kalinlik"],
-            "etek_alti": z - ETEK_BOYU, "fren_alti": z - S["kabin_taban_kalinlik"]
+            "etek_dik_alti": z - ETEK_BOYU, "etek_alti": z - ETEK_BOYU - ETEK_PAH_DUSEY,
+            "fren_alti": z - S["kabin_taban_kalinlik"]
             - S["fren_blogu_yukseklik"], "sase_alt": sase_alt, "sase_ust": sase_ust,
             "alt_paten": alt_paten - S["paten_yukseklik"] / 2.0,
             "alt_paten_ust": alt_paten + S["paten_yukseklik"] / 2.0,

@@ -353,6 +353,73 @@ def tirnak_bicimi(arka, eksen, b1, g, k, yon, J=None, yatay=True):
     return out
 
 
+#  ── KAPI YAN KESİTİ ( düşey kesit:  u = planın y'si, z = döşemeden ) ──
+#  KAYNAK:  Wittur Hydra teknik broşürü SB.2.007539 s.17 ( kat kapısı montaj
+#  kesiti:  eşik taşıyıcısı ve L konsolu, üst kutu ve tavana bağlantısı;
+#  standart konsol 205 / 300 yüksek, 80 geniş ) · LiftDesigner K111 "Front
+#  Entrance Side View" ( üst kutu kasanın üstüne — 2.220 —, eşik altı sacı
+#  pahla duvara döner ) · TS EN 81-20:
+#      m.5.2.5.3.2  eşiğin altında eşiğe bağlı düz yüzey:  en az kilit
+#                   bölgesinin yarısı + 50 mm;  sonra yatayla en az 60°, yatay
+#                   izdüşümü en az 20 mm pah ( d 2 ) ya da alttaki kapının lentosu ( d 1 )
+#      m.5.3.8.1    kilit bölgesi en çok ±0,20 m;  kabin ve kat kapısı birlikte
+#                   mekanik açılıyorsa ( otomatik kapı ) ±0,35 m'ye kadar
+#      m.5.4.5      kabin eşiğinin önlüğü:  dik kısmı en az 0,75 m, altında
+#                   yatayla en az 60°, yatay izdüşümü en az 20 mm pah
+#  Kapının gerçek kilit bölgesi üreticisinden gelir;  bilinmediği için standardın
+#  izin verdiği en büyüğü alınır ( emniyetli yön ):  otomatikte bölgenin yarısı
+#  0,35 + 0,05 = 0,40 m;  elle açılanda 0,20 + 0,05 = 0,25 m.
+ESIK_ALTI_SACI = {"otomatik": 400.0, "manuel": 250.0}
+PAH_ACISI = 60.0
+ONLUK_DIK = 750.0
+#  Önlüğün pahı yatayda 20, düşeyde 35:  açısı atan( 35 / 20 ) = 60,3° ≥ 60°.
+#  Tam 60° düşeyde 34,64 verirdi;  pahın ucu önlüğün en alt noktasıdır ve kuyu
+#  dibi açıklığına ( m.5.2.5.8.2 a 1 — hesabın bölüm 11'i ) girer.
+ONLUK_PAH = 20.0
+ONLUK_PAH_DUSEY = 35.0
+#  Wittur standart konsolu 205 yüksek;  sac kalınlığı broşürde yok — ÇİZİM KABULÜ.
+ESIK_KONSOLU_BOY = 205.0
+KAPI_KONSOL_SACI = 5.0
+#  Üst kutunun konsolu kutunun üstünden duvara ~120 çıkar ( LiftDesigner K111'den
+#  ölçüldü, ölçülü değil ) ;  eşiğin olukları 12 derin — ÇİZİM KABULÜ.
+UST_KONSOL_UZANTI = 120.0
+OLUK_DERINLIGI = 12.0
+
+
+def esik_kesiti(u0, u1, z_ust, kalinlik, oluk_merkezleri=()):
+    """Eşik profilinin kesiti:  üstü z_ust'te, her kanat düzleminin oluğu üstte
+    çentik ( OLUK × OLUK_DERINLIGI )."""
+    a, b = sorted((u0, u1))
+    ust = [(a, z_ust)]
+    for m in sorted(oluk_merkezleri):
+        o0, o1 = m - OLUK / 2.0, m + OLUK / 2.0
+        if a < o0 and o1 < b:
+            ust += [(o0, z_ust), (o0, z_ust - OLUK_DERINLIGI), (o1, z_ust - OLUK_DERINLIGI), (o1, z_ust)]
+    ust.append((b, z_ust))
+    return [{"noktalar": ust + [(b, z_ust - kalinlik), (a, z_ust - kalinlik)]}]
+
+
+def l_konsol(duvar, uc, z_kose, dik_boy, yukari=False, t=KAPI_KONSOL_SACI):
+    """L konsol ( sac ):  yatay ayağı duvardan uc'a, dik ayağı duvar yüzünde
+    dik_boy ( yukari:  köşeden yukarı, değilse aşağı ).  Yatay ayak köşenin
+    altında ( yukarıya giden konsolda üstünde ) t kalın."""
+    s = 1.0 if uc > duvar else -1.0
+    zy = 1.0 if yukari else -1.0
+    nok = [(duvar, z_kose + zy * dik_boy), (duvar, z_kose), (uc, z_kose), (uc, z_kose + zy * t),
+           (duvar + s * t, z_kose + zy * t), (duvar + s * t, z_kose + zy * dik_boy)]
+    return [{"noktalar": nok}]
+
+
+def pahli_sac(u, z_ust, dik_boy, u_pah, aci=PAH_ACISI, dz=None):
+    """Dik sac + altında pah ( açık çizgi ):  u'da z_ust'ten dik_boy iner, sonra
+    yatayla `aci` yaparak ( ya da dz kadar inerek ) u_pah'a döner."""
+    import math
+    if dz is None:
+        dz = abs(u_pah - u) * math.tan(math.radians(aci))
+    z1 = z_ust - dik_boy
+    return [{"noktalar": [(u, z_ust), (u, z1), (u_pah, z1 - dz)], "kapali": False}]
+
+
 def alan(noktalar):
     """Kapalı çokgenin alanı ( mm² )."""
     return abs(sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1)

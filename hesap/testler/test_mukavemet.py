@@ -96,7 +96,7 @@ ORNEK_PROJE = {
     #  KUYU DİBİ  kabin tam ezilmiş tamponunda:  döşeme −( 150 + 90 ) = −240,
     #  kuyu tabanı −1.600 ( kaide çizimden 1.600 − 100 − 150 − 480 = 870 )
     #    en alt kısım  kabin kasnağı altı −240 − 295 − 240 / 2 = −655  →  945
-    #    etek          −240 − 750 = −990                                 →  610
+    #    etek          −240 − 750 − 35 = −1.025 ( önlüğün pahı — m.5.4.5 ) →  575
     #    şase / paten  şase altı −240 − 480 = −720,  paten −720 − 70     →  810
     #    sığınma       sığınma alanının üstünde taban altı −240 − 120    → 1.240
     #  KUYU ÜSTÜ  ( son kattan )  kabin en üst konumda:  150 + 90 + 35·1² = 275
@@ -114,7 +114,7 @@ ORNEK_PROJE = {
         ("siginma.ust_paten_ray", -65, "kabin üst pateni / ray ucu"),
         ("siginma.paten_tavan", -130, "üst paten / makine şasesi"),
         ("siginma.kuyu_tabani_kabin", 945, "kuyu tabanı / kabin kasnağı"),
-        ("siginma.etek", 610, "kuyu tabanı / etek"),
+        ("siginma.etek", 575, "kuyu tabanı / etek"),
         ("siginma.ray_kabin_alt", 810, "kuyu tabanı / şase, paten"),
         ("siginma.dip_siginma", 1240, "kuyu dibi sığınma yüksekliği"),
     ),

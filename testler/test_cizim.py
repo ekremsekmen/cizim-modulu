@@ -1447,9 +1447,10 @@ class DuseyKesitler(unittest.TestCase):
         #  2.920 ):  kabinde şasenin alt ve üst kirişine, ağırlıkta çerçevenin alt ve
         #  üst ucuna ortalı ( 140 / 2 = 70 taşar ).
         #  Kuyu dibi:  kabin döşemesi −( 96 + 90 ) = −186;  platform altı −306,
-        #  kasnak altı −186 − 295 − 120 = −601,  etek −936,  alt paten −186 − 480 − 70 = −736
+        #  kasnak altı −186 − 295 − 120 = −601,  etek −186 − 750 − 35 = −971 ( dik kısım
+        #  750 + pah 35 — m.5.4.5 ),  alt paten −186 − 480 − 70 = −736
         self.assertEqual({k: v[0] for k, v in Y["dip_aciklik"].items()},
-                         {"siginma": 1194, "en_alt": 899, "etek": 564, "sase": 764})
+                         {"siginma": 1194, "en_alt": 899, "etek": 529, "sase": 764})
         #  Kuyu üstü:  yükselme 150 + 90 + 35 = 275;  tavan 275 + 2.310 = 2.585,
         #  kiriş altı 5.000 − 150 = 4.850;  üst paten 275 − 480 + 3.300 + 70 = 3.165.
         #  Makine şasesinin altı 5.000 − 250 − 345 − 200 = 4.205 ( referans proje ) ve
@@ -1474,7 +1475,8 @@ class DuseyKesitler(unittest.TestCase):
         self.assertEqual(k["sase_ust"] - (k["sase_alt"] + S["alt_paten_payi"]), g["dusey"]["kabin_paten_arasi"])
         self.assertEqual(k["alt_paten"] + S["paten_yukseklik"] / 2.0, k["sase_alt"] + S["alt_paten_payi"])
         self.assertEqual(k["tavan"], g["dusey"]["kabin_ic_yukseklik"] + S["kabin_tavan_kalinlik"])
-        self.assertEqual(k["etek_alti"], -750)                      # m.5.4.5.1
+        #  m.5.4.5:  dik kısım 750, altında pah 35 ( önlüğün en alt noktası pahın ucu )
+        self.assertEqual((k["etek_dik_alti"], k["etek_alti"]), (-750, -785))
 
     def test_kuyu_dibi_zinciri_kabinle_kapanmali(self):
         h = CDU.dogrula(_ornek(kuyu_dibi={"derinlik": 1600}))
@@ -1821,13 +1823,14 @@ class PlanSeviyeleri(unittest.TestCase):
     def test_kotlar(self):
         #  C:  en alt durak + kapı / 2 = 1.050;  D:  kabinin tavanı ( A-A kabin
         #  altta 2.310, B-B üstte 21.000 + 2.310 );  E:  ilk konsolun üstü
-        #  −1.500 + 500 = −1.000 ile kabinin en alt noktası ( etek −750 ) arası
-        #  → −875;  F:  tahrik kasnağı ekseni ( kuyu tavanı 26.000 − 446 );  makine
+        #  −1.500 + 500 = −1.000 ile kabinin en alt noktası ( önlüğün pahının ucu
+        #  −750 − 35 = −785 — m.5.4.5 ) arası → −892,5;  F:  tahrik kasnağı ekseni
+        #  ( kuyu tavanı 26.000 − 446 );  makine
         #  dairesinde tabliyenin üstü ( 26.000 + döşeme 150 ) + kaide 1.100 + 149 → 27.399,
         #  G tabliyenin betonunun ortası 26.075.
         g = _ornek()
         self.assertEqual(self._seviyeler(CKK.yan_kesit(g)),
-                         {"kuyu_plani": 1050, "kabin_ustu": 2310, "kuyu_dibi": -875, "kuyu_ustu": 25554})
+                         {"kuyu_plani": 1050, "kabin_ustu": 2310, "kuyu_dibi": -892.5, "kuyu_ustu": 25554})
         self.assertEqual(self._seviyeler(CKK.on_kesit(g))["kabin_ustu"], 23310)
         md = _ornek(makine={"yeri": "Makine dairesi"})
         sev = self._seviyeler(CKK.on_kesit(md))
@@ -2358,10 +2361,11 @@ class Pafta(unittest.TestCase):
         #  dairesi YATAY kesittir ( ofisin 477-8 ve 12744-3 paftaları gibi )
         self.assertEqual([c["ad"] for c in self.bilgi["cizimler"]],
                          ["kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu",
-                          "kuyu_dibi", "kuyu_ustu", "kasnak_duzeni", "giris"])
+                          "kuyu_dibi", "kuyu_ustu", "kasnak_duzeni", "giris", "kapi_kesiti"])
         self.assertEqual([c["ad"] for c in self.bilgi_md["cizimler"]],
                          ["kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu",
-                          "kuyu_dibi", "makine_dairesi", "delik_plani", "kasnak_duzeni", "giris"])
+                          "kuyu_dibi", "makine_dairesi", "delik_plani", "kasnak_duzeni", "giris",
+                          "kapi_kesiti"])
         bloklar = {e.dxf.name: e for e in self.d.modelspace().query("INSERT")
                    if e.dxf.name.startswith("CIZIM_")}
         for c in self.bilgi["cizimler"]:

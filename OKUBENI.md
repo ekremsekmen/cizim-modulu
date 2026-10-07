@@ -385,6 +385,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/geometri.py` | Girdiden **çizim elemanları** üretir ( saf veri ) — kuyu planı |
 | `cizim/kabin_ustu.py` | Kabin üstü planı:  kuyu planının elemanlarını okur, tavanı ekler |
 | `cizim/kuyu_dibi.py` | Kuyu dibi planı:  tamponlar, perde, gergi, sığınma alanı, merdiven |
+| `cizim/kapi_kesiti.py` | Kapı yan kesiti ( 1/20 ):  kasa, üst kutu, eşik ve konsolu, eşik altı sacı, kabin eşiği, önlük |
 | `cizim/kuyu_ustu.py` | Kuyu üstü planı ( MRL ):  makine, halat bağlantıları, regülatör, acil pano |
 | `cizim/makine_dairesi.py` | Makine dairesi planı + döşeme halat delik planı |
 | `cizim/dusey.py` | Düşey kesitlerin yerleşimi ve açıklık denetimleri |
@@ -867,8 +868,10 @@ dairesi planı F-F ).  Kabinin düşey ölçüleri **ofisin LiftDesigner kabinin
 tavan 60, taban 50, şase altı −320, alt paten merkezi şase altının 170 üstünde
 ( `alt_paten_payi`:  −150 ), üst paten merkezi alt patenin paten arası kadar üstünde
 ( varsayılan 2.420:  2.270 ), paten 140, fren bloğu 270 ( en alt parça −320 ), kabin
-altı kasnak merkezi −425, eni 75, yan pano 15, arka pano 20;  etek 750
-( m.5.4.5.1 ).  Paten arası 2.420 LiftDesigner'ın;  Has Asansör MRL şase kılavuzunda
+altı kasnak merkezi −425, eni 75, yan pano 15, arka pano 20;  etek ( önlük,
+m.5.4.5 ) kabin eşiğinin kat tarafındaki kenarında, dik kısmı 750, altında 20 × 35
+pah ( 60,3° ):  en alt noktası −785 ( 7 Eki;  eskiden kabinin ön yüzündeydi, pahsız,
+−750 — kuyu dibi açıklığı 35 mm iyimser çıkıyordu ).  Paten arası 2.420 LiftDesigner'ın;  Has Asansör MRL şase kılavuzunda
 da aralık kabin yüksekliği + 200 – 400.  Referans projenin örneği kendi kabiniyle
 çizilir ( `sabitler.REFERANS_PROJE_KABINI`:  taban 120, şase altı −480, alt paten
 payı 0, fren bloğu 350, kasnak −295 / 92, pano 45 / 33;  iç 2.250, paten arası 3.300 ).
@@ -877,7 +880,7 @@ payı 0, fren bloğu 350, kasnak −295 / 92, pano 45 / 33;  iç 2.250, paten ar
 |---|---|---|
 | Kuyu dibi sığınma yüksekliği | m.5.2.5.8.1 · Çizelge 4 | 2,00 / 1,00 / 0,50 m |
 | Kuyu tabanı – kabinin en alt kısmı | m.5.2.5.8.2 a | 0,50 m |
-| Kuyu tabanı – etek | m.5.2.5.8.2 a 1 | 0,10 m |
+| Kuyu tabanı – etek ( önlüğün pahının ucu ) | m.5.2.5.8.2 a 1 | 0,10 m |
 | Kuyu tabanı – şase / paten / fren bloğu ( raya yakın ) | m.5.2.5.8.2 a 2 · Şekil 7 | 0,10 m |
 | Kabin üstü sığınma yüksekliği | m.5.2.5.7.1 · Çizelge 3 | 2,00 / 1,00 m |
 | Üst paten – 0,40 m yakınındaki tavan parçası | m.5.2.5.7.2 b | 0,10 m |
@@ -1113,6 +1116,22 @@ s.7–8 · 17, Merih B-01 MLT kataloğu, KONE planlama kılavuzu ) — `parcalar
 * Kasa ve kanat dudağı 20 · 15, oluk eni 10:  üreticilerin çizimlerinde
   ölçülü değil, oranlarından — ÇİZİM KABULÜ ( `parcalar.KASA_DUDAK`,
   `KANAT_DUDAK`, `OLUK` ).
+
+### Kapı yan kesiti ( 7 Eki )
+
+`cizim/kapi_kesiti.py` — LiftDesigner'ın "Front Entrance Side View"ü ve Wittur'un
+kat kapısı montaj kesiti ( SB.2.007539 s.17 ) gibi, en alt durağın kapısının
+ortasından düşey kesit ( 1/20, paftanın sonunda ):  kat tarafındaki duvar ve
+döşeme, kasa, üst kutu ( kasanın üstüne — 2.220;  içindeki askı mekanizması
+kesik ) ve onu duvara bağlayan L konsol, oluklu eşik ve L konsolu ( Wittur
+standart konsolu 205 ), kanatlar;  kabin durakta:  kabin eşiği, kanatlar, önlük.
+Yerler planla aynı kaynaktan ( `girdi.kapi_bolgesi`, kanat düzlemleri ) —
+kanatlar planla birebir aynı yerde ( test ).  Standardın iki parçası:
+
+| Parça | Madde | Çizilen |
+|---|---|---|
+| Eşik altı sacı | m.5.2.5.3.2 · m.5.3.8.1 | Eşiğin kuyu kenarından iner:  en az kilit bölgesinin yarısı + 50;  kilit bölgesi otomatik kapıda ±0,35'e kadar olabildiği için ( bilinmiyor — emniyetli yön ) 400, elle açılanda 250;  sonra 60° pahla duvara ( d 2 ) |
+| Kabin önlüğü | m.5.4.5 | Kabin eşiğinin kat tarafındaki kenarından, dik kısmı döşemeden 750;  altında 60°, 20 mm pah, kabine doğru |
 
 ### Kanat sayısı ve kanat cebi ( 3 Eki )
 

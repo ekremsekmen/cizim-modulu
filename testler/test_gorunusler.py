@@ -121,11 +121,98 @@ class KasnakDuzeni(unittest.TestCase):
                 self.assertEqual(sum(1 for x in e if x.get("ad") == "aski_halati") >= 2, True)
 
 
+class KapiKesiti(unittest.TestCase):
+    """Kapı yan kesiti ( LiftDesigner "Front Entrance Side View" · Wittur montaj
+    kesiti ):  standardın sayıları parçaların ÇİZİLEN biçiminden ölçülür."""
+
+    TIPLER = ("Teleskopik Sol", "Teleskopik 3 Kanat Sağ", "Otomatik Merkezi",
+              "Otomatik Merkezi 4 Kanat", "Manuel Sol")
+
+    @classmethod
+    def setUpClass(cls):
+        import math
+        sys.path.insert(0, os.path.join(KOK, "testler"))
+        import test_yerlesim_saglamligi as YS
+        from cizim import geometri as CGE
+        from cizim import kapi_kesiti as CKA
+        cls.math, cls.CKA = math, CKA
+        cls.durumlar = []
+        for tip in cls.TIPLER:
+            for montaj in ("Kuyu içine", "Duvar boşluğuna"):
+                g, hata = YS.gecerli_duzen(1000, "Sağ", kat_kapisi_tipi=tip, kapi_montaji=montaj)
+                assert not hata, (tip, montaj, hata)
+                cls.durumlar.append((tip, montaj, g, CZ.CIZIMLER["kapi_kesiti"][1](g), CGE.plan(g)))
+
+    @staticmethod
+    def _ad(e, ad):
+        return [x for x in e if x.get("ad") == ad]
+
+    def _pah(self, nok):
+        """Açık çizginin son parçası:  ( yatayla açı °, yatay izdüşüm ), dik parçanın boyu."""
+        (u0, z0), (u1, z1), (u2, z2) = nok
+        return (self.math.degrees(self.math.atan2(abs(z2 - z1), abs(u2 - u1))), abs(u2 - u1)), abs(z0 - z1)
+
+    def test_esik_alti_saci_m_5_2_5_3_2(self):
+        """Dik kısmı eşiğin altından en az kilit bölgesinin yarısı + 50 ( otomatikte
+        0,40 — kilit bölgesi ±0,35 —, elle açılanda 0,25 );  pah ≥ 60°, ≥ 20 mm."""
+        for tip, montaj, g, e, _p in self.durumlar:
+            with self.subTest(tip=tip, montaj=montaj):
+                s = self._ad(e, "esik_alti_saci")[0]["bicim"][0]["noktalar"]
+                (aci, izd), dik = self._pah(s)
+                self.assertGreaterEqual(dik, 250.0 if tip.startswith("Manuel") else 400.0)
+                self.assertGreaterEqual(round(aci, 6), 60.0)
+                self.assertGreaterEqual(izd, 20.0)
+                #  eşiğin kuyu kenarından iner ( eşiğe bağlı ), pahla duvara döner
+                KB = CG.kapi_bolgesi(g, self.CKA.CS.sabitler(None))
+                self.assertEqual(s[0][0], KB["hat"])
+                self.assertEqual(s[2][0], 0.0)
+
+    def test_onluk_m_5_4_5(self):
+        """Dik kısmı döşemeden en az 0,75 m;  pah kabine doğru ≥ 60°, ≥ 20 mm;
+        kabin eşiğinin kat tarafındaki kenarında."""
+        for tip, montaj, g, e, _p in self.durumlar:
+            with self.subTest(tip=tip, montaj=montaj):
+                o = self._ad(e, "onluk")[0]["bicim"][0]["noktalar"]
+                (aci, izd), _dik = self._pah(o)
+                self.assertLessEqual(o[1][1], -750.0 + 1e-6)
+                self.assertGreaterEqual(round(aci, 6), 60.0)
+                self.assertGreaterEqual(izd, 20.0)
+                self.assertGreater(o[2][0], o[1][0])                      # kabine doğru
+                es = self._ad(e, "kabin_esigi")[0]
+                self.assertEqual(o[0][0], es["x"])
+
+    def test_esik_arasi_ve_oluklar(self):
+        for tip, montaj, g, e, _p in self.durumlar:
+            with self.subTest(tip=tip, montaj=montaj):
+                ke, kk = self._ad(e, "kat_esigi")[0], self._ad(e, "kabin_esigi")[0]
+                arasi = kk["x"] - (ke["x"] + ke["g"])
+                self.assertTrue(0 < arasi <= CG.ESIK_ARASI_AZAMI, arasi)
+                #  her kanat düzleminin bir oluğu ( eşiğin üstünde dört noktalık çentik );  menteşelide yok
+                cent = (len(ke["bicim"][0]["noktalar"]) - 4) // 4
+                n = 0 if tip.startswith("Manuel") else CG.kapi_tipi(tip)["duzlem"]
+                self.assertEqual(cent, n)
+
+    def test_kanatlar_planla_ayni_yerde(self):
+        for tip, montaj, g, e, plan in self.durumlar:
+            for ad in ("kat_kanadi", "kabin_kanadi"):
+                with self.subTest(tip=tip, montaj=montaj, ad=ad):
+                    self.assertEqual(sorted({round(x["x"], 6) for x in self._ad(e, ad)}),
+                                     sorted({round(x["y"], 6) for x in self._ad(plan, ad)}))
+
+    def test_ust_kutu_kasanin_ustune_kadar(self):
+        S = self.CKA.CS.sabitler(None)
+        for tip, montaj, g, e, _p in self.durumlar:
+            with self.subTest(tip=tip, montaj=montaj):
+                u = self._ad(e, "kapi_ust_kutusu")[0]
+                HH = g["kapi"]["yukseklik"]
+                self.assertEqual((u["y"], u["y"] + u["d"]), (HH, HH + S["kasa_ust"]))
+
+
 class Pafta(unittest.TestCase):
     def test_iki_gorunus_paftada_ve_ekranda(self):
         for sira in (CPF.SIRA_MRL, CPF.SIRA_MD):
-            self.assertEqual(sira[-2:], ("kasnak_duzeni", "giris"))
-        for ad in ("kasnak_duzeni", "giris"):
+            self.assertEqual(sira[-3:], ("kasnak_duzeni", "giris", "kapi_kesiti"))
+        for ad in ("kasnak_duzeni", "giris", "kapi_kesiti"):
             self.assertIn(ad, CZ.CIZIMLER)
 
 

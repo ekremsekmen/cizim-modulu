@@ -42,6 +42,7 @@ import math
 from cizim import arka_aski as CAA
 from cizim import donanim as CDN
 from cizim import geometri as CGE
+from cizim import parcalar as CP
 from cizim import girdi as CG
 from cizim import kabin_ustu as CKU
 from cizim import kuyu_dibi as CKD
@@ -62,7 +63,7 @@ YATAY_UZAKLIK = 400.0       # m.5.2.5.7.2 b / c 1)  "0,40 m yatay uzaklık için
 #  Üst kirişin altı kabin tavanının altına inemez ( yerlesim ).
 SASE_KIRIS_CIZGI = 10.0
 RAY_UZANTISI = 100.0        # m.5.2.5.6.2  ( en üst konum m.5.2.5.6.1:  + 0,035·v² )
-ETEK_BOYU = CDN.ETEK_BOYU   # m.5.4.5.1:  kabin eteğinin düşey kısmı en az 0,75 m
+ETEK_BOYU = CDN.ETEK_BOYU   # m.5.4.5.2:  kabin önlüğünün dik kısmı en az 0,75 m
 ESIK_ARASI = 11000.0        # m.5.2.3.1:  ardışık kat kapısı eşikleri arası
 DUSEY_ALANLAR = ("kabin_ic_yukseklik", "kabin_paten_arasi", "agirlik_paten_arasi", "son_kat", "beyan_hizi",
                  "kabin_tampon_baba", "kabin_tampon_boyu",
@@ -320,14 +321,22 @@ def _kot(z):
     return "±0,00" if abs(m) < 5e-4 else f"{m:+.2f}".replace(".", ",")
 
 
-def _kabin(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89):
-    """Kabinin kesiti:  gövde, taban, etek, şase, patenler, fren bloğu, kasnak."""
+def _kabin(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89, esik_on=None):
+    """Kabinin kesiti:  gövde, taban, etek, şase, patenler, fren bloğu, kasnak.
+    esik_on:  kabin eşiğinin kat tarafındaki kenarı ( önlük orada asılıdır;
+    verilmezse kabinin ön yüzü )."""
     y0, y1 = kabin_y
     D = CGE._dik
     e.append(CGE._ad(D("KABIN", y0, kt["taban_alti"], y1 - y0, kt["tavan"] - kt["taban_alti"]), "kabin"))
     e.append(D("KABIN-IC", y0, kt["doseme"], y1 - y0, kt["ic_ust"] - kt["doseme"]))
-    #  Etek:  kabin eşiğinin altında, ön yüzde
-    e.append(CGE._ad(D("KABIN", y0, kt["etek_alti"], 30, kt["taban_alti"] - kt["etek_alti"]), "etek"))
+    #  Etek ( önlük, m.5.4.5 ):  kabin eşiğinin kat tarafındaki kenarından iner,
+    #  dik kısmın altında pahla kabine döner ( eskiden kabinin ön yüzündeydi,
+    #  eşiğin 90 gerisinde, pahsız )
+    u = y0 if esik_on is None else esik_on
+    ust = kt["doseme"] - S["esik_kalinlik"]
+    et = CGE._ad(D("KABIN", u, kt["etek_alti"], CP.ONLUK_PAH, ust - kt["etek_alti"]), "etek")
+    et["bicim"] = CP.pahli_sac(u, ust, ust - kt["etek_dik_alti"], u + CP.ONLUK_PAH, dz=CP.ONLUK_PAH_DUSEY)
+    e.append(et)
     #  Şase:  ray ekseninde dikme, alt ve üst kiriş
     #  Dikme iki ince profil olarak çizilir ( referans proje:  50 + 200 + 50 );
     #  dolu çizilince kabinin kesitini örtüyordu.

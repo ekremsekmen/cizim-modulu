@@ -436,7 +436,8 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     kb = KD["kabin"]
     ky = [(kz[1] + kz[3]) / 2.0 for kz in P["kabin_kasnak"]]
     CDU._kabin(e, kt, (kb[1], kb[3]), g["kabin_ray"]["kapi_arasi"], S, ky[:1],
-               g["aski"].get("kasnak_capi") or 0)
+               g["aski"].get("kasnak_capi") or 0,
+               esik_on=min((kk[1] for kk in P["kabin_esik"]), default=None))
     CKP.korkuluk(e, B, Y, kt)
     #  Kabin eşiği ve kabin kapısı kanatları ( kabinin önünde, kendi döşemesinde )
     for kk in P["kabin_esik"]:

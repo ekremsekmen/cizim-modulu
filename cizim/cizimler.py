@@ -9,6 +9,7 @@ from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kabin_ustu as CKU
 from cizim import giris as CGI
+from cizim import kapi_kesiti as CKA
 from cizim import kasnak_duzeni as CKS
 from cizim import kuyu_dibi as CKD
 from cizim import kuyu_kesiti as CKK
@@ -34,6 +35,9 @@ CIZIMLER = {
     "kasnak_duzeni": (CKS.dogrula, CKS.ciz,
                       "KASNAK DÜZENLEMESİ  ( tahrik kasnağının ekseninden — halatlar ve sarım açısı )"),
     "giris": (CGI.dogrula, CGI.ciz, "GİRİŞ GÖRÜNÜŞÜ  ( en alt durağın kapısı, durak tarafından )"),
+    #  LiftDesigner'ın "Front Entrance Side View"ü gibi ( 7 Eki )
+    "kapi_kesiti": (CKA.dogrula, CKA.ciz,
+                    "KAPI YAN KESİTİ  ( en alt durağın kapısı, ortasından — kat tarafı solda )"),
 }
 #  Son adım:  birbirine binen etiketler ayrılır ( geometri.etiketleri_ayir ),
 #  ondalık ayırıcı virgül olur ( geometri.ondalik_virgul )
