@@ -14,7 +14,7 @@ EKSEN DÜZENİ  ( plan )
 
 import math
 
-from cizim import sabitler as _CS
+from cizim import parcalar as CP, sabitler as _CS
 
 
 def _sonlu_sayi(v):
@@ -266,6 +266,16 @@ def dogrula(g):
         ey = k["derinlik"] - ag["ray_duvar"]
         ag_kutu = (k["genislik"] / 2.0 - ag["genislik"] / 2.0, ey - ag["derinlik"] / 2.0,
                    k["genislik"] / 2.0 + ag["genislik"] / 2.0, ey + ag["derinlik"] / 2.0)
+    #  Ağırlığa bağlı patenler ( m.5.2.5.5.1 h:  "ve ona bağlı parçalar" ) rayın
+    #  ucunda;  derinlik boyunca bloğun dışına taşabilir ( makaralının yan
+    #  makaraları — geometri._agirlik_pateni ).  Denetimler taşan kısmı da sayar.
+    yari = CP.agirlik_pateni_yari_eni(ag.get("paten_tipi"), CP.ray_dil_kalinligi(ag["b"], ag["h"]),
+                                      S["paten_boy"])
+    if yari > ag["derinlik"] / 2.0:
+        t = yari - ag["derinlik"] / 2.0
+        ag_kutu = ((ag_kutu[0] - t, ag_kutu[1], ag_kutu[2] + t, ag_kutu[3])
+                   if ag["yeri"] in ("Sağ", "Sol") else
+                   (ag_kutu[0], ag_kutu[1] - t, ag_kutu[2], ag_kutu[3] + t))
     A = KABIN_AGIRLIK_ACIKLIGI
     if (ag_kutu[0] < kabin_kutu[2] + A and kabin_kutu[0] < ag_kutu[2] + A
             and ag_kutu[1] < kabin_kutu[3] + A and kabin_kutu[1] < ag_kutu[3] + A):
@@ -415,7 +425,8 @@ ORNEK = {
     #  önünde ( referans proje paftasındaki "50" ölçüsü;  − = kapıya doğru ).
     "agirlik": {"yeri": "Sol", "genislik": 790, "derinlik": 160,
                 "ray_arasi": 850, "ray_duvar": 130, "eksen_kaciklik": -50, "b": 70, "h": 65,
-                "kasnak_capi": 400},
+                #  referans projenin hesabı:  "Guide Shoe Type : Roller Type"
+                "kasnak_capi": 400, "paten_tipi": "Makaralı"},
     #  2:1 askı, kasnaklar kabinin altında.  Kasnaklar arası referans proje
     #  paftasında 690 + 690 = 1.380 ( eski 1.470 yanlış okunmuştu;  halat
     #  kabin rayının ara kirişinin içinden geçiyordu ).

@@ -32,7 +32,7 @@ KALEM = {
     "PANO": (SIYAH, _K[0.25]), "BAGLANTI": (SIYAH, _K[0.25]), "MERDIVEN": (SIYAH, _K[0.25]),
     "BINA": (SIYAH, _K[0.25]), "YUK": (SIYAH, _K[0.25]),
     "CIVATA": (SIYAH, _K[0.18]), "DELIK": (SIYAH, _K[0.18]), "HALAT": (SIYAH, _K[0.18]),
-    "GIZLI": (SIYAH, _K[0.18]),
+    "GIZLI": (SIYAH, _K[0.18]), "ACILIS": (SIYAH, _K[0.18]),
     "OLCU": ("#0b4a8f", _K[0.13]), "EKSEN": ("#a51d1d", _K[0.13]), "TARAMA": (SIYAH, _K[0.13]),
     "SEVIYE": (SIYAH, _K[0.13]), "SIGINMA": (SIYAH, _K[0.13]), "YAZI": (SIYAH, _K[0.13]),
 }

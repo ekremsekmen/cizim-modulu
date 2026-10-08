@@ -38,7 +38,11 @@ SABIT = {
     #  referans projede 45 · 33 )
     "kabin_pano_yan": 15,         # kabin yan panosu kalınlığı
     "kabin_pano_arka": 20,
-    "sase_dikme": 30,             # şase dikmesinin plandaki kalınlığı
+    #  Şase dikmesi raya açılan U'dur;  sırtı patenin arkasında ( parcalar.
+    #  dikme_bicimi ).  Dil ucundan sırtın arkasına:  paten_en / 2 + sac 5
+    #  ( referans projenin yatay kesitinde levha dilin ucundan ~30 geride ).
+    #  Kabin dikmenin sırtına değmemeli:  kabin dışı + 2 × bu < DBG ( girdi ).
+    "sase_dikme": 30,
     "kabin_kasnak_genislik": 75,  # 2:1 askıda kabin kasnağının genişliği ( ofisin kabini, 1250 KG )
 
     #  ── KAPI ─────────────────────────────────────────────────────────
@@ -281,7 +285,7 @@ ETIKET = {
     "paten_boy": "Patenin ray boyunca boyu",
     "kabin_pano_yan": "Kabin yan panosu kalınlığı",
     "kabin_pano_arka": "Kabin arka panosu kalınlığı",
-    "sase_dikme": "Kabin şasesi dikmesinin plandaki kalınlığı",
+    "sase_dikme": "Kabin rayının dil ucundan şase dikmesinin sırtına",
     "kabin_kasnak_genislik": "Kabin kasnağının genişliği",
     "kasa_yan": "Kat kapısı kasasının yan genişliği",
     "kasa_derinlik": "Kat kapısı kasasının derinliği",

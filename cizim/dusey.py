@@ -225,7 +225,8 @@ def yerlesim(g, cizim_sabitleri=None):
     ray_ustu = min(r["ust"] for r in M["raylar"] if r["tur"] == "kabin") - H
     korkuluk = max((k["yukseklik"] for k in KU["kenarlar"].values() if k["gerekli"]), default=0.0)
     sg_engel = engel(KU["siginma"])
-    patenler = [_kutu(el) for el in KD["taban"] if el["katman"] == "PATEN"]
+    patenler = [_kutu(el) for el in KD["taban"] if el["katman"] == "PATEN"
+                and el.get("ad") != "agirlik_pateni"]
     pt_engel = min(engel(genislet(p, YATAY_UZAKLIK)) for p in patenler)
     ust_engel = {"siginma": sg_engel, "paten": pt_engel, "ray": (ray_ustu, "ray")}
     ust_aciklik = {

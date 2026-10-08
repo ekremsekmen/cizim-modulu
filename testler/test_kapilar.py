@@ -97,6 +97,31 @@ class Cizim(unittest.TestCase):
                                  len(cep) * duzlem if cep else 0)
                 self.assertEqual(len(CGI.yerlesim(g)["kanatlar"]), n)
 
+    def test_menteseli_kapinin_acilma_yayi(self):
+        """Menteşeli kat kapısı kata açılır:  açık konum ve çeyrek yay ( ISO 128,
+        ince );  menteşe DIN 107'ye göre ( kattan bakınca Sağ = +x ), yarıçap kapı
+        eni;  alttaki ölçü sıraları yayın altında.  Öbür tiplerde yay yok."""
+        for tip in ("Manuel Sol", "Manuel Sağ", "Teleskopik Sol"):
+            g = _kapi(tip, sol_pay=730, genislik=900)
+            e = CGE.plan(g)
+            yay = [x for x in e if x.get("ad") == "kapi_acilisi"]
+            with self.subTest(tip):
+                if not tip.startswith("Manuel"):
+                    self.assertEqual(yay, [])
+                    continue
+                self.assertEqual(len(yay), 1)
+                acik, cember = yay[0]["bicim"]
+                hx = 730 + 900 if tip.endswith("Sağ") else 730
+                kanat = next(x for x in e if x.get("ad") == "kat_kanadi")
+                self.assertEqual(acik["noktalar"][0], (hx, kanat["y"]))
+                self.assertEqual(acik["noktalar"][1], (hx, kanat["y"] - 900))
+                for x, y in cember["noktalar"]:
+                    self.assertAlmostEqual(((x - hx) ** 2 + (y - kanat["y"]) ** 2) ** 0.5, 900.0)
+                alt = min(o["kot"] for o in e if o["tip"] == "olcu" and o["yon"] == "yatay")
+                self.assertLess(alt, kanat["y"] - 900)
+                #  kuyu dibi ve kuyu üstü planlarında ( kapı düzeyinin altı / üstü ) yay yok
+                self.assertFalse([x for x in CGE.plan(g, kapi_duzeyi=False) if x.get("ad") == "kapi_acilisi"])
+
     def test_uc_kanatta_esikler_derin_kabin_geride(self):
         g = _kapi("Teleskopik 3 Kanat Sol", sol_pay=730, on_pay=360)
         KB = CG.kapi_bolgesi(g, CS.sabitler(g["_cizim_sabitleri"]))

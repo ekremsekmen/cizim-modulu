@@ -16,9 +16,12 @@ def kasnak_tasiyicilari(g, S, z):
     yon = 1 if ry >= ky else -1
     yz = ky + yon * S['kabin_kasnak_genislik'] / 2
     yol = []
+    #  Şase dikmesinin sırtının ortası ( geometri.plan:  sırt patenin arkasında,
+    #  dil ucundan paten_en / 2 … sase_dikme )
+    sirt = kr['arasi'] / 2 - (S['paten_en'] / 2 + S['sase_dikme']) / 2
     for yan in (-1, 1):
         x = kx + yan * a['kasnak_arasi'] / 2
-        sx = kx + yan * (kb['genislik'] / 2 + S['kabin_pano_yan'] + S['sase_dikme'] / 2)
+        sx = kx + yan * sirt
         noktalar = ((x, ky, z), (x, yz, z), (sx, yz, z), (sx, ry, z))
         yol += [CMK.cizgi(p0, p1, 'SASE', 'kasnak_tasiyici_sematik', 'baglanti_yolu')
                 for p0, p1 in zip(noktalar, noktalar[1:]) if p0 != p1]

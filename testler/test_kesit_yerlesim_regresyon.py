@@ -183,7 +183,7 @@ class KesitYerlesimRegresyon(unittest.TestCase):
         #  Kullanıcı isteği 1 Eki ( LiftDesigner gibi ):  arkadaki ağırlıkta kabin
         #  rayı – ağırlık rayı ( 800 KG:  LiftDesigner 850 · 970 · 180;  bizim kapı
         #  bölgemiz 10 kısa ) ve kabin – ağırlık – duvar;  yandakinde duvar –
-        #  ağırlık – kabin şasesi ( 4815-6:  LiftDesigner 100 · 150 · 225 · PLW ).
+        #  ağırlık – kabin ( 4815-6:  LiftDesigner 100 · 150 · 225 · PLW ).
         def olculer(g):
             return [o.get('metin') or f"{o['uzunluk']:g}" for o in E.plan(g) if o['tip'] == 'olcu']
         o = olculer(self.projeler['800 KG'])
@@ -192,9 +192,11 @@ class KesitYerlesimRegresyon(unittest.TestCase):
         self.assertEqual(o[i:i + 3], ['RAY EKSENİ 840', 'KABİN RAYI – AĞIRLIK RAYI 980', '180'])
         i = o.index('KABİN + ŞASE 1370')
         self.assertEqual(o[i + 1:i + 4], ['105', '150', '105'])
+        #  8 Eki:  zincir kabinin dış yüzüne ( PLW ) — şasenin dikmeleri rayın
+        #  ucunda;  LiftDesigner'la birebir ( eskiden "ŞASE DIŞI 1440" · 195 )
         o = olculer(self.projeler['4815-6'])
-        i = o.index('ŞASE DIŞI 1440')
-        self.assertEqual(o[i + 1:i + 4], ['100', '150', '195'])
+        i = o.index('KABİN DIŞI 1380')
+        self.assertEqual(o[i + 1:i + 4], ['100', '150', '225'])
 
 
     def test_duvarlar_ayri_ayri(self):

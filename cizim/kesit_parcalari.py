@@ -180,7 +180,7 @@ def plan_parcalari(KD, g):
         "kabin_kanat": ad("kabin_kanadi"),
         "konsol_agirlik": [k for k in konsol if agirlik_tarafi(k)],
         "konsol_kabin": [k for k in konsol if not agirlik_tarafi(k)],
-        "paten": [kutu_(el) for el in taban if el["katman"] == "PATEN"],
+        "paten": [kutu_(el) for el in taban if el["katman"] == "PATEN" and el.get("ad") != "agirlik_pateni"],
         "sase_dikme": [kutu_(el) for el in taban if el.get("ad") == "sase_dikme"],
         "kabin_kasnak": [kutu_(el) for el in taban if el.get("ad") == "kabin_kasnak"],
         #  1:1 askıda karşı ağırlıkta kasnak yok:  halat çerçevenin ortasına bağlanır

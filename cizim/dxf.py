@@ -30,6 +30,8 @@ KATMAN = {
     "TAMPON": (200, 25), "PERDE": (6, 50), "MERDIVEN": (32, 25), "GIZLI": (8, 13), "YUK": (1, 18),
     "MAKINE": (5, 30), "BAGLANTI": (8, 25), "DELIK": (5, 30),
     "HALAT": (6, 18), "KESIT": (7, 50), "SEVIYE": (2, 13),
+    #  menteşeli kapının açılma yayı ve açık konumu ( ISO 128:  ince sürekli çizgi )
+    "ACILIS": (30, 18),
 }
 YAZI_TIPI = "ASANSOR"
 #  Yazı yüksekliği:  geometri yazının boyunu SVG'deki gibi EM ( font-size ) olarak

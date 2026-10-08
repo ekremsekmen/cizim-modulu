@@ -89,38 +89,123 @@ def ray_bicimi(b, h, uc, eksen, yon, yatay=True):
     return [{"noktalar": nok, "dolu": True}]
 
 
-#  ── KAYMALI PATEN ────────────────────────────────────────────────────
-#  Planda kesiti:  gövde rayın dilini U biçiminde kavrar ( astarlı yuva ).
-#  Zarf ( paten_en × paten_boy ) referans projenin paftasından ( sabitler );
-#  yuvanın derinliği zarfın yarısı ( dil ucundan kabine doğru gövde, dilin
-#  üstünde yuva ), yuva eni dil kalınlığı + 2 × 2 mm astar boşluğu —
-#  ÇİZİM KABULÜ ( tedarikçi çizimi gelince buradan değişir ).
-PATEN_ASTAR = 2.0
+#  ── KAYMALI PATEN ( planda:  ray boyunca bakış ) ────────────────────
+#  MARKASIZ ORTAK BİÇİM:  sac gövde ( arka levha, dilin iki yanında çene, yan
+#  destekler ) ve rayın dilini saran plastik astar;  gövde şasenin dikmesine
+#  ( karşı ağırlıkta çerçeveye ) arka levhasından bağlıdır.  KAYNAKLAR:
+#    Metroplast kataloğu s.34, 804 "yassı sac paten" ( 5 · 9 · 16 mm dil ):
+#      ray boyunca kesiti 113 × 46;  çeneler arası yuva 30 ( her dilde aynı
+#      gövde, astar kalınlaşır ), çene sacı ~5, levha ~4,5, astarın dibi levhanın
+#      arkasından 16 ( çizimden ölçüldü ), yükseklik 139 ( programın paten
+#      yüksekliği 140 — referans proje "lp 14 cm" — ile aynı ).
+#    LiftDesigner K431 planı:  dili kavrayan U gövde.
+#    Referans projenin yatay kesiti:  50 × 100, dikmenin levhasına bağlı.
+#    Has Asansör MRL şase kılavuzu ( 1.2.1 ):  paten ile ray arası 1 mm.
+#  Zarf ( paten_en × paten_boy ) referans projeden ( sabitler );  yuva, çene ve
+#  levha Metroplast'tan;  uç dudağı ve destek eğrisi Metroplast'ın çiziminin
+#  oranlarından — ÇİZİM KABULÜ.
+PATEN_YUVA = 30.0              # çeneler arası
+PATEN_CENE = 5.0               # çene sacı
+PATEN_LEVHA = 4.0              # arka levha
+PATEN_ASTAR_DIBI = 5.0         # astarın dibi ( Metroplast:  16 − 11 )
+PATEN_BOSLUK = 1.0             # dil ucu – astar ( Has )
+PATEN_UST = 30.0               # çene + destek üst yüzü ( yuva ekseninden;  Metroplast )
+PATEN_DUDAK = 13.6 / 46.0      # uç dudağı / gövde derinliği ( Metroplast )
+
+
+def _paten_donustur(x0, y0, g, d, yon, yatay):
+    """Zarf içinde ( u:  arka levhadan dile doğru, v:  dil kalınlığı yönünde,
+    zarfın ortası 0 ) → dünya.  yon:  dilden tabana ( +1 / −1 )."""
+    if yatay:
+        arka = x0 + g if yon < 0 else x0
+        orta = y0 + d / 2.0
+        return (lambda u, v: (arka + yon * u, orta + v)), g, d, arka
+    arka = y0 + d if yon < 0 else y0
+    orta = x0 + g / 2.0
+    return (lambda u, v: (orta + v, arka + yon * u)), d, g, arka
 
 
 def paten_bicimi(x0, y0, g, d, uc, k, yon, yatay=True):
-    """Patenin U kesiti.  ( x0, y0, g, d ):  zarf;  uc:  dilin ucu;  k:  dil
-    kalınlığı;  yon:  dilden tabana doğru ( +1 / −1 ) — yuva o yana açılır;
-    yatay:  ray x yönünde ( dil x boyunca uzanır )."""
-    if yatay:
-        y_orta = y0 + d / 2.0
-        a0, a1 = y_orta - k / 2.0 - PATEN_ASTAR, y_orta + k / 2.0 + PATEN_ASTAR
-        if yon > 0:                                   # yuva sağa açılır
-            nok = [(x0, y0), (x0 + g, y0), (x0 + g, a0), (uc, a0), (uc, a1), (x0 + g, a1),
-                   (x0 + g, y0 + d), (x0, y0 + d)]
-        else:                                         # yuva sola açılır
-            nok = [(x0, y0), (x0 + g, y0), (x0 + g, y0 + d), (x0, y0 + d), (x0, a1), (uc, a1),
-                   (uc, a0), (x0, a0)]
-    else:
-        x_orta = x0 + g / 2.0
-        a0, a1 = x_orta - k / 2.0 - PATEN_ASTAR, x_orta + k / 2.0 + PATEN_ASTAR
-        if yon > 0:                                   # yuva yukarı açılır
-            nok = [(x0, y0), (x0 + g, y0), (x0 + g, y0 + d), (a1, y0 + d), (a1, uc), (a0, uc),
-                   (a0, y0 + d), (x0, y0 + d)]
-        else:                                         # yuva aşağı açılır
-            nok = [(x0, y0), (a0, y0), (a0, uc), (a1, uc), (a1, y0), (x0 + g, y0),
-                   (x0 + g, y0 + d), (x0, y0 + d)]
-    return [{"noktalar": nok, "dolu": False}]
+    """Kaymalı patenin ray boyunca görünüşü:  gövdenin dış çizgisi ve astar.
+    ( x0, y0, g, d ):  zarf;  uc:  dilin ucu;  k:  dil kalınlığı;  yon:  dilden
+    tabana doğru ( +1 / −1 ) — yuva o yana açılır;  yatay:  ray x yönünde."""
+    P, D, W, arka = _paten_donustur(x0, y0, g, d, yon, yatay)
+    u_uc = abs(uc - arka)                                  # levhanın arkasından dilin ucuna
+    a, s, c = W / 2.0, PATEN_YUVA / 2.0, min(PATEN_UST, W / 2.0)
+    #  yuvanın ( çeneler arası ) dibi;  levhanın önünde kalır
+    dip = max(u_uc - PATEN_BOSLUK - PATEN_ASTAR_DIBI, PATEN_LEVHA)
+    dudak = PATEN_DUDAK * D
+    import math
+    #  Yan destek:  dudaktan çenenin tepesine içbükey çeyrek elips
+    destek = [(D - (D - dudak) * math.cos(math.radians(t)), a - (a - c) * math.sin(math.radians(t)))
+              for t in range(0, 91, 15)]
+    sol = [(0.0, -a), (dudak, -a)] + [(u, -v) for u, v in destek[1:]] + [(D, -s), (dip, -s)]
+    sag = [(dip, s), (D, s)] + [(u, v) for u, v in reversed(destek[1:])] + [(dudak, a), (0.0, a)]
+    govde = [P(u, v) for u, v in sol + sag]
+    #  Astar:  yuvanın içinde, dili iki yandan ve uçtan saran U ( içi dile değer )
+    i = k / 2.0
+    astar = [P(D, -i), P(u_uc - PATEN_BOSLUK, -i), P(u_uc - PATEN_BOSLUK, i), P(D, i)]
+    return [{"noktalar": govde, "dolu": False},
+            {"noktalar": astar, "kapali": False, "ince": True}]
+
+
+#  ── MAKARALI PATEN ( planda;  karşı ağırlıkta ) ──────────────────────
+#  Üç makara:  biri dilin ucunda, ikisi dilin iki yanında ( yan makaralar
+#  ağırlığın derinliği boyunca uzanır ).  KAYNAK:  Metroplast kataloğu s.28,
+#  817 "ø75 makaralı ağırlık pateni" — çap 75;  makara eni katalogda yok:  25
+#  ( aynı kataloğun ø103 makarası 25 kalın, s.30 ) — ÇİZİM KABULÜ.  Yan makaralar
+#  dilin ucundan 1 mm geride başlar ( kaymalı patenin boşluğu ).
+MAKARA_CAPI = 75.0
+MAKARA_ENI = 25.0
+
+
+def agirlik_pateni_yari_eni(tip, k, paten_boy):
+    """Karşı ağırlık pateninin, ağırlığın derinliği boyunca ray ekseninden en
+    uzak ucu:  kaymalıda zarfın yarısı, makaralıda yan makaranın dış ucu."""
+    if tip == "Makaralı" and k is not None:
+        return k / 2.0 + MAKARA_CAPI
+    return paten_boy / 2.0
+
+
+def makarali_paten_bicimi(uc, eksen, k, yon, yatay=True):
+    """Makaralı patenin üç makarası ( yukarıdan ).  uc:  dilin ucu;  eksen:  ray
+    ekseni;  yon:  dilden tabana ( +1 / −1 )."""
+    def P(u, v):                                     # u:  uçtan tabana, v:  dil kalınlığı yönü
+        return (uc + yon * u, eksen + v) if yatay else (eksen + v, uc + yon * u)
+
+    def dik(u0, u1, v0, v1):
+        return {"noktalar": [P(u0, v0), P(u1, v0), P(u1, v1), P(u0, v1)]}
+    R, e = MAKARA_CAPI, MAKARA_ENI / 2.0
+    b = PATEN_BOSLUK
+    return [dik(-b - R, -b, -e, e),                              # uç makarası
+            dik(b, b + MAKARA_ENI, -k / 2.0 - R, -k / 2.0),       # yan makaralar
+            dik(b, b + MAKARA_ENI, k / 2.0, k / 2.0 + R)]
+
+
+#  ── KABİN ŞASESİNİN DİKMESİ ( planda kesit ) ─────────────────────────
+#  MARKASIZ ORTAK BİÇİM:  her kabin rayında, raya açılan U — sırtı patenin
+#  arkasında ( paten sırta bağlıdır ), kanatları patenin iki yanından dilin
+#  ucunu geçer.  KAYNAKLAR:  LiftDesigner K431 planı ( C dikme, kanatlar raya,
+#  paten içinde ) · referans projenin yatay kesiti ( patenin arkasında levha,
+#  50'lik iki C kirişin uçları patenin iki yanından dilin ucunu ~24 geçer;
+#  dış ölçü 300 = sabitlerin sase_dikme_derinlik'i ) · Has Asansör şase
+#  kılavuzu Şekil 1 ( iki kiriş, paten aralarında, rayın ucunda ).
+#  Sac kalınlığı ( sase_dikme − paten_en / 2 = 5 ) ÇİZİM KABULÜ;  kesilen ince
+#  çelik kesit dolu çizilir ( ISO 128-50 ).
+
+
+def dikme_bicimi(uc, eksen, en, yari_paten, sac, yon, yatay=True):
+    """Şase dikmesinin U kesiti.  uc:  kabin rayının dil ucu;  eksen:  ray
+    ekseni;  en:  dikmenin ray ekseni boyunca eni;  yari_paten:  patenin dil
+    ucundan arkasına ( sırt orada );  sac:  sac kalınlığı;  yon:  dilden
+    tabana doğru ( +1 / −1 )."""
+    def P(u, v):                                     # u:  dil ucundan kabine doğru
+        return (uc - yon * u, eksen + v) if yatay else (eksen + v, uc - yon * u)
+    a, s = en / 2.0, sac
+    on, sirt = -yari_paten, yari_paten               # kanat ucu · sırtın ön yüzü
+    nok = [(on, -a), (sirt + s, -a), (sirt + s, a), (on, a), (on, a - s), (sirt, a - s),
+           (sirt, -a + s), (on, -a + s)]
+    return [{"noktalar": [P(u, v) for u, v in nok], "dolu": True}]
 
 
 #  ── KAT KAPISI VE KABİN KAPISI ( planda kesit ) ──────────────────────

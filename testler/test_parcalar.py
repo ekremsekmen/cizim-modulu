@@ -250,12 +250,141 @@ class AgirlikCercevesi(unittest.TestCase):
 
 
 class PatenKesiti(unittest.TestCase):
-    def test_yuva_dile_acilir(self):
+    """Kaymalı paten ( Metroplast 804 · referans proje · LiftDesigner ):  gövde
+    dilin ucunu kavrar, astar dile değer, uçta 1 mm boşluk ( Has );  zarfın içinde."""
+
+    def test_yuva_dile_acilir_astar_dili_sarar(self):
         #  Yatay ray, dil ucu x = 0, taban +x yönünde:  yuva sağa açılır
-        p = CP.paten_bicimi(-25, -50, 50, 100, 0.0, 16, +1)[0]["noktalar"]
-        self.assertIn((0.0, -10.0), p)
-        self.assertIn((25, -10.0), p)
-        self.assertAlmostEqual(CP.alan(p), 50 * 100 - 25 * 20)
+        govde, astar = CP.paten_bicimi(-25, -50, 50, 100, 0.0, 16, +1)
+        g = govde["noktalar"]
+        self.assertIn((25.0, -15.0), g)                         # yuva 30, çene uçları
+        self.assertIn((25.0, 15.0), g)
+        dip = -CP.PATEN_BOSLUK - CP.PATEN_ASTAR_DIBI             # yuvanın dibi ( x )
+        self.assertIn((dip, -15.0), g)
+        self.assertFalse(astar.get("kapali", True))
+        a = astar["noktalar"]
+        self.assertEqual(a[0], (25.0, -8.0))                    # astarın içi dilin yüzünde
+        self.assertEqual(a[1], (-CP.PATEN_BOSLUK, -8.0))       # uçta 1 mm
+        for x, y in g + a:
+            self.assertTrue(-25 - 1e-6 <= x <= 25 + 1e-6 and -50 - 1e-6 <= y <= 50 + 1e-6)
+
+    def test_dort_yonde_ayni_govde(self):
+        alanlar = set()
+        for yatay in (True, False):
+            for yon in (-1, 1):
+                x0, y0, gg, dd = (-25, -50, 50, 100) if yatay else (-50, -25, 100, 50)
+                govde = CP.paten_bicimi(x0, y0, gg, dd, 0.0, 9, yon, yatay)[0]["noktalar"]
+                alanlar.add(round(CP.alan(govde), 6))
+                #  çene uçları dilin tabanı yönünde
+                uclar = [p[0] if yatay else p[1] for p in govde]
+                self.assertAlmostEqual(max(uclar) if yon > 0 else -min(uclar), 25.0)
+        self.assertEqual(len(alanlar), 1)
+
+
+class MakaraliPaten(unittest.TestCase):
+    def test_makaralar_dile_degmez_bosluk_bir(self):
+        uc, yan1, yan2 = CP.makarali_paten_bicimi(0.0, 0.0, 9, +1, yatay=True)
+        xs = [p[0] for p in uc["noktalar"]]
+        self.assertAlmostEqual(max(xs), -CP.PATEN_BOSLUK)         # uç makarası dilin önünde
+        self.assertAlmostEqual(max(xs) - min(xs), CP.MAKARA_CAPI)
+        for m, s in ((yan1, -1), (yan2, 1)):
+            ys = [p[1] for p in m["noktalar"]]
+            yakin = max(ys) if s < 0 else min(ys)
+            self.assertAlmostEqual(abs(yakin), 4.5)                 # dilin yüzünde
+            self.assertGreater(min(p[0] for p in m["noktalar"]), 0.0)  # dilin ucunun arkasında
+
+
+class SaseDikmesi(unittest.TestCase):
+    """Şase dikmesi raya açılan U:  sırtı patenin arkasında, kanatları dilin
+    ucunu geçer ( LiftDesigner K431 · referans proje · Has )."""
+
+    def test_u_kesit(self):
+        q = CP.dikme_bicimi(100.0, 0.0, 300, 25, 5, -1)[0]
+        self.assertTrue(q["dolu"])
+        xs = [p[0] for p in q["noktalar"]]
+        self.assertAlmostEqual(min(xs), 75.0)                     # kanat ucu dil ucunu 25 geçer
+        self.assertAlmostEqual(max(xs), 130.0)                    # sırtın arkası
+        self.assertAlmostEqual(CP.alan(q["noktalar"]), 5 * 300 + 2 * 5 * (55 - 5))
+
+    def test_planda_paten_sirta_bagli_kabin_sirta_degmez(self):
+        sys.path.insert(0, os.path.join(KOK, "testler"))
+        import test_yerlesim_saglamligi as Y
+        from cizim import geometri as CGE, sabitler as CS
+        S = CS.sabitler()
+        for yer in ("Sağ", "Sol", "Arka"):
+            g, hata = Y.gecerli_duzen(630, yer)
+            self.assertFalse(hata, (yer, hata))
+            e = CGE.plan(g)
+            kabin = next(x for x in e if x.get("ad") == "kabin_dis")
+            patenler = [x for x in e if x["katman"] == "PATEN" and x.get("ad") != "agirlik_pateni"]
+            dikmeler = [x for x in e if x.get("ad") == "sase_dikme"]
+            with self.subTest(yer=yer):
+                self.assertEqual((len(patenler), len(dikmeler)), (2, 2))
+                for p in patenler:
+                    d = next(x for x in dikmeler if x["x"] <= p["x"] + 1e-6
+                             and p["x"] + p["g"] <= x["x"] + x["g"] + 1e-6)
+                    sol = p["x"] + p["g"] / 2.0 < kabin["x"]
+                    sirt = p["x"] + p["g"] if sol else p["x"]             # patenin arkası
+                    xs = [pt[0] for pt in d["bicim"][0]["noktalar"]]
+                    #  dikmenin sırtının ön yüzü patenin arkasında
+                    self.assertIn(round(sirt, 6), {round(x, 6) for x in xs})
+                    #  kabin dikmenin sırtının arkasında
+                    if sol:
+                        self.assertLessEqual(max(xs), kabin["x"])
+                    else:
+                        self.assertGreaterEqual(min(xs), kabin["x"] + kabin["g"])
+                    self.assertEqual(d["d"], S["sase_dikme_derinlik"])
+
+
+class AgirlikPatenleri(unittest.TestCase):
+    """Karşı ağırlığın patenleri planda da çizilir:  kesitlerin kutusuyla aynı
+    zarf ( kullanıcı kararı 30 Eyl:  iki tipte aynı iz ), biçim tipine göre."""
+
+    def test_her_agirlik_rayinda_kesitteki_kutuyla_ayni(self):
+        sys.path.insert(0, os.path.join(KOK, "testler"))
+        import test_yerlesim_saglamligi as Y
+        from cizim import geometri as CGE, kuyu_kesiti as CKK, baglantilar as CB
+        for yer in ("Sağ", "Sol", "Arka"):
+            for tip in ("Kaymalı", "Makaralı"):
+                g, hata = Y.gecerli_duzen(630, yer)
+                self.assertFalse(hata)
+                g["agirlik"]["paten_tipi"] = tip
+                e = CGE.plan(g)
+                pt = [x for x in e if x.get("ad") == "agirlik_pateni"]
+                with self.subTest(yer=yer, tip=tip):
+                    self.assertEqual(len(pt), 2)
+                    self.assertEqual([len(x["bicim"]) for x in pt], [3 if tip == "Makaralı" else 2] * 2)
+                    Yk = CKK.yerlesim(g)
+                    blok = next((x["x"], x["y"], x["x"] + x["g"], x["y"] + x["d"]) for x in e
+                                if x.get("ad") == "agirlik_blok")
+                    raylar = [r for r in Yk["M"]["raylar"] if r["tur"] == "agirlik"]
+                    kesit = sorted(tuple(round(v, 6) for v in p["k"][:4])
+                                   for p in CB.agirlik_patenleri(g, Yk["S"], blok, raylar, 0, 1))
+                    plan = sorted(tuple(round(v, 6) for v in (x["x"], x["y"], x["x"] + x["g"], x["y"] + x["d"]))
+                                  for x in pt)
+                    self.assertEqual(kesit, plan)
+
+    def test_makaralinin_tasan_makaralari_kabin_acikligina_sayilir(self):
+        #  m.5.2.5.5.1 h:  ağırlığa BAĞLI parçalar da kabinden 50 uzakta.  Arkadaki
+        #  ağırlıkta blok kabinden 51 uzakken kaymalı paten ( 100 ) 120'lik bloğun
+        #  içinde kalır, makaralının yan makaraları ( 75 + dil / 2 ) bloğu aşar.
+        sys.path.insert(0, os.path.join(KOK, "testler"))
+        import test_yerlesim_saglamligi as Y
+        from cizim import girdi as CGI, sabitler as CS
+        S = CS.sabitler()
+        g, hata = Y.gecerli_duzen(630, "Arka")
+        self.assertFalse(hata)
+        ag, kb, k = g["agirlik"], g["kabin"], g["kuyu"]
+        ag["derinlik"] = 120.0                           # ince ağırlık ( pik dolgu )
+        arka = kb["on_pay"] + kb["derinlik"] + S["kabin_pano_arka"]
+        ag["ray_duvar"] = k["derinlik"] - ag["derinlik"] / 2.0 - arka - 51.0
+        uzun = CP.MAKARA_CAPI + CP.ray_dil_kalinligi(ag["b"], ag["h"]) / 2.0 - ag["derinlik"] / 2.0
+        self.assertGreater(uzun, 1.0)
+        for tip, ret in (("Kaymalı", False), ("Makaralı", True)):
+            ag["paten_tipi"] = tip
+            h = CGI.dogrula(g)
+            with self.subTest(tip=tip):
+                self.assertEqual(any("m.5.2.5.5.1 h" in x for x in h), ret, h)
 
 
 if __name__ == "__main__":

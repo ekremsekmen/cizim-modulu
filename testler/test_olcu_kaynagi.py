@@ -151,10 +151,12 @@ class Kaynak(unittest.TestCase):
         self.assertFalse(k[1]["dogrudan"])
 
     def test_zincir_olcusunun_bircok_kaynagi(self):
-        #  Kabin şasesi – kuyu duvarı:  kuyu genişliği, kabin genişliği, kaçıklık,
-        #  ürün ölçüleri ( pano, şase dikmesi — tek katalog:  ofis standardı )
+        #  Kabinin dış yüzü – sağ kuyu duvarı ( KABİN DIŞI zincirinde ):  kuyu
+        #  genişliği, kabin genişliği, kaçıklık, ürün ölçüsü ( pano — tek katalog:
+        #  ofis standardı ).  8 Eki'ye dek şase dikmesi de giriyordu ( "430" — dikme
+        #  artık rayın ucunda;  iç sıradaki duvar – kabin ölçüleri kalktı )
         i = next(i for i, o in enumerate(self.r["taban"])
-                 if o["metin"] == "430")
+                 if o["metin"] == "200")
         k = UC._kaynaklar(self.r, i)
         ad = {x["anahtar"]: x for x in k}
         self.assertEqual(ad["kuyu_genisligi"]["egim"], 0.5)

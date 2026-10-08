@@ -387,7 +387,9 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         "agirlik": {"yeri": ag_yeri, "genislik": Gy, "derinlik": Gx,
                     "ray_arasi": sayi("agirlik_ray_arasi", bos=True) or Gy + _TS.AGIRLIK_PATEN_PAYI,
                     "ray_duvar": sayi("agirlik_ray_duvar", bos=True) or Gx / 2.0 + 50.0,
-                    "eksen_kaciklik": ag_kacik, "b": ar[0], "h": ar[1], "kasnak_capi": Da},
+                    "eksen_kaciklik": ag_kacik, "b": ar[0], "h": ar[1], "kasnak_capi": Da,
+                    #  yalnız çizilen biçim için ( zarf iki tipte aynı — sabitler PATEN )
+                    "paten_tipi": A.get("agirlik_paten_tipi")},
         "aski": aski,
         "kabin_ustu": {"siginma_tipi": sig_ust},
         "kuyu_dibi": {"derinlik": sayi("kuyu_dibi", "Kuyu dibi yüksekliği ( KY )"),

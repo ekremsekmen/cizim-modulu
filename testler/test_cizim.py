@@ -179,9 +179,17 @@ class PlanGeometrisi(unittest.TestCase):
         kr, kb, k = self.g["kabin_ray"], self.g["kabin"], self.g["kuyu"]
         kx = k["genislik"] / 2.0 + kb["kaciklik_y"]
         for el in _dikdortgenler(self.e, "PATEN"):
+            if el.get("ad") == "agirlik_pateni":
+                continue
             merkez = el["x"] + el["g"] / 2.0
             self.assertIn(round(merkez, 3),
                           (round(kx - kr["arasi"] / 2.0, 3), round(kx + kr["arasi"] / 2.0, 3)))
+        #  Karşı ağırlığın patenleri ( 8 Eki'den planda ):  ağırlık raylarının dil uçlarında
+        ag = self.g["agirlik"]
+        ag_y = kr["kapi_arasi"] + ag["eksen_kaciklik"]
+        uclar = {round(ag_y - ag["ray_arasi"] / 2.0, 3), round(ag_y + ag["ray_arasi"] / 2.0, 3)}
+        pt = [el for el in _dikdortgenler(self.e, "PATEN") if el.get("ad") == "agirlik_pateni"]
+        self.assertEqual({round(el["y"] + el["d"] / 2.0, 3) for el in pt}, uclar)
 
     def test_kabin_kasnaklari_girdideki_aralikta(self):
         from cizim import sabitler as CS

@@ -564,7 +564,11 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
    birebir, projeye özgü ölçüler girdiden, üreticiye göre değişen ayrıntı
    birkaç üreticinin ORTAK biçiminden ( kullanıcı 6 Eki ).  Bugün:  kılavuz
    rayı ( ISO 8100-33 / 7465 kesiti — çokgen alanı ISO'nun S'si %1 ),
-   kaymalı paten ( U yuva ), kat ve kabin kapısı ( kasa, eşik + oluk, kanat —
+   kaymalı paten ( sac gövde + astar:  Metroplast 804'ün ray boyunca kesiti —
+   yuva 30, çene 5, levha 4, yan destekler;  referans projenin 50 × 100 zarfında;
+   dil ucunda 1 mm — Has şase kılavuzu ), makaralı paten ( karşı ağırlıkta, tip
+   "Makaralı" ise:  üç makara ø100 × 25 — Metroplast 302, çizimden ölçüldü ),
+   kabin şasesinin dikmesi ( aşağıda ), kat ve kabin kapısı ( kasa, eşik + oluk, kanat —
    aşağıda ), duvara dayanan kabin rayı konsolu:  TSE K 179 tipi çift L ( duvar
    konsolu + ray konsolu, yatay ayaklar Savera'nın C'si kadar bindirilir, iki
    M12 cıvata;  Savera standart konsolu — İTÜ tezi Çizelge 3.9 ) ve ray tırnakları
@@ -583,9 +587,25 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 
 ## Plan ve kesitte ortak donanım
 
-Şase dikmesinin plan derinliği, yan kesitte de kullanılan
-`sase_dikme_derinlik` değeridir ( örnekte 300 mm ); dikmeler ray eksenine
-ortalanır. Kabin üstü korkulukları plan, düşey kesit ve açıklık kontrolünde
+**Kabin şasesinin dikmesi** ( 8 Eki;  `parcalar.dikme_bicimi` ) her kabin
+rayında raya açılan U'dur:  sırtı patenin arkasında ( paten sırta bağlı ),
+kanatları patenin iki yanından dilin ucunu 25 geçer.  Kaynaklar:  LiftDesigner
+K431 planı ( C dikme, kanatları raya, paten içinde ), referans projenin yatay
+kesiti ( patenin arkasında levha, iki 50'lik C kirişin uçları dilin ucunu ~24
+geçer, dış ölçü 300 ), Has Asansör şase kılavuzu Şekil 1 ( iki kiriş, paten
+aralarında ).  Eskiden kabinin dış yüzüne yapışık 30'luk bir kutuydu:  patenle
+arasında 30 mm boşluk kalıyor, paten havada duruyordu.  `sase_dikme` ( 30 ) artık
+dil ucundan dikmenin sırtının arkasına:  paten_en / 2 + 5 mm sac ( ÇİZİM KABULÜ )
+— girdinin "kabin dışı + 2 × 30 < DBG" denetimi böylece "kabin dikmenin sırtına
+değmez" demektir ( referans projede sırt ile kabin arası 25, ofis kabininde 55 ).
+Şasenin kirişleri ( planda kesik ) iki dikmenin sırtını bağlar.  Plan
+derinliği yan kesitte de kullanılan `sase_dikme_derinlik` değeridir ( örnekte
+300 mm );  dikmeler ray eksenine ortalanır.  **Karşı ağırlığın patenleri**
+planda da çizilir ( eskiden yalnız kesitlerde vardı ):  kesitlerin kutusuyla aynı
+zarf ( kullanıcı kararı 30 Eyl:  iki tipte aynı iz ), biçim formdaki "Karşı
+ağırlık paten tipi"ne göre;  makaralının makaraları zarfın dışına taşar
+( ağırlığın çerçevesinin üstünde / altındadırlar ).  Kabinin üst paten açıklığı
+( m.5.2.5.7.2 b ) yalnız kabin patenlerini sayar. Kabin üstü korkulukları plan, düşey kesit ve açıklık kontrolünde
 aynı konumları kullanır; kesit kırığı korkuluğu kesmez.
 
 Regülatör gergisinin kasnağı, taşıyıcı kolu ve ağırlığı kuyu dibi planında
@@ -636,9 +656,12 @@ kabin halat bağlantısı döşemededir, yol çizilmez.
 ## Bugün ne çiziliyor
 
 **Kuyu planı** ( kabin hizasından yatay kesit ):  duvarlar ve kesit taraması,
-kapı boşluğu · kasa · eşik · kanatlar · açılış oku, kabin panosu ve şasesi
-( dikmeler + alt/üst kirişler ), kabin rayları T profiliyle, ray konsolları
-( plaka + kol + cıvata delikleri ), patenler, karşı ağırlık çerçevesi ve
+kapı boşluğu · kasa · eşik · kanatlar · açılış oku ( menteşeli kapıda açık konum
+ve çeyrek yay — ISO 128 ince çizgi, kata açılır, menteşe DIN 107'ye göre:  kattan
+bakınca "Sağ" = sağda;  alttaki ölçü sıraları yayın altına iner;  8 Eki ), kabin
+panosu ve şasesi ( dikmeler + alt/üst kirişler ), kabin rayları T profiliyle, ray
+konsolları ( plaka + kol + cıvata delikleri ), kabin ve karşı ağırlık patenleri,
+karşı ağırlık çerçevesi ve
 kasnağı, karşı ağırlık rayları ve konsolları, askı kasnakları ya da askı
 noktaları, eksenler, 46 ölçü ve çerçeve + künye şeridi.  Kumanda panosu
 kuyuda değildir:  makine dairesizde kuyunun dışındaki acil panoda, makine
@@ -646,8 +669,9 @@ dairelide makine dairesinde ( eskiden kuyu planında kaynağı belirsiz bir
 "PANO" vardı;  kesitlerde yoktu, makine dairelide çift oluyordu ).
 **Kabin ile karşı ağırlık arası ölçülür** ( kullanıcı isteği 1 Eki — LiftDesigner
 gibi;  eskiden hiçbir planda yoktu ):  yandaki ağırlıkta üstteki şase zinciri
-duvar → ağırlığın çerçevesi → çerçeve → kabin şasesi ( 4815-6:  100 · 150 · 195 ·
-ŞASE DIŞI );  arkadaki ağırlıkta soldaki zincir RAY EKSENİ · KABİN RAYI – AĞIRLIK
+duvar → ağırlığın çerçevesi → çerçeve → kabinin dış yüzü ( 4815-6:  100 · 150 · 225 ·
+KABİN DIŞI — LiftDesigner'la birebir;  8 Eki'ye dek kabin + 2 × 30'luk "ŞASE DIŞI"
+ve 195 );  arkadaki ağırlıkta soldaki zincir RAY EKSENİ · KABİN RAYI – AĞIRLIK
 RAYI · ağırlık ekseni – arka duvar ( 800 KG:  840 · 980 · 180 — LiftDesigner
 850 · 970 · 180, fark kapı bölgesinin 10'u ), sağdaki zincir kabin → çerçeve →
 arka duvar ( 105 · 150 · 105 ).  Hesaba girmez ( m.5.2.5.5.1 h'nin 50'si
