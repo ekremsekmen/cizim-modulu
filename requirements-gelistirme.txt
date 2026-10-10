@@ -1,0 +1,13 @@
+#  GELİŞTİRME ARAÇLARI — programın çalışması için GEREKMEZ;  denetim ( kontrol.py )
+#  ve CI içindir.  Sabitlenmiş sürümler ( 11 Eki 2026 ).  Kurulum:
+#      .venv/bin/python -m pip install -r requirements-gelistirme.txt
+#    ruff          lint ve biçim ( ayarlar pyproject.toml )
+#    pytest        çizim testleri ( testler/ )
+#    pytest-xdist  testleri paralel koşturur ( -n )
+
+execnet==2.1.2
+iniconfig==2.3.1
+pluggy==1.6.0
+pytest==9.1.1
+pytest-xdist==3.8.0
+ruff==0.17.0

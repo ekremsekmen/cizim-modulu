@@ -361,8 +361,10 @@ python3 -m venv .venv
 .venv/bin/python calistir.py --pafta               # bütün çizimler TİP PROJE FORMATINDA ( DXF + SVG önizleme )
 
 # DENETİM — tek komut ( kontrol.py;  adımlar sırayla koşar )
-.venv/bin/python kontrol.py           # hızlı:  hesap + çizim ( yavaş test hariç ) + node  ( ~5 dk )
+.venv/bin/python -m pip install -r requirements-gelistirme.txt   # ruff, pytest ( bir kez )
+.venv/bin/python kontrol.py           # hızlı:  lint + biçim, hesap, çizim ( yavaş test hariç ), node  ( ~3 dk )
 .venv/bin/python kontrol.py tam       # + yavaş test ( her ölçünün kaynağı, ~7 dk )
+.venv/bin/python kontrol.py bicim     # biçimi ve düzeltilebilir lint bulgularını düzeltir
 .venv/bin/python kontrol.py arayuz    # arayüz testleri:  programı 8790'da açar, kapatır ( ~20 dk )
 .venv/bin/python kontrol.py tarama    # girdi taraması:  378 düzen, hükümler kayıtla ( ~15 dk )
 
@@ -393,6 +395,14 @@ iznidir**:  yalnız kasıtlı bir değişiklikten sonra, farklar incelenince.
 
 Yavaş testler `testler/yavas.py`'deki `@yavas(...)` ile işaretlenir:
 hızlı denetimde atlanır ( çıktıda "skipped" ), tam denetimde koşar.
+
+**Kod üslubu** ( `pyproject.toml` ):  biçimi `ruff format` verir ( satır 110,
+elle hizalama yapılmaz );  `ruff check` yalnız hata yakalayan kuralları
+uygular — kullanılmayan ad, döngü değişkenini yakalayan iç fonksiyon, genel
+`except` ( her biri `# noqa: BLE001 — sebep` ile bilinçli olmalı ).  Çizim
+testleri pytest ile paralel koşar ( `KONTROL_IS`, varsayılan 4 işçi ).  Biçim
+commit'leri `.git-blame-ignore-revs`'te:  `git config blame.ignoreRevsFile
+.git-blame-ignore-revs`.
 
 ## Klasörler
 

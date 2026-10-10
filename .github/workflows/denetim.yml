@@ -20,12 +20,14 @@ jobs:
         with:
           python-version: "3.14"
           cache: pip
-          cache-dependency-path: requirements-kilit.txt
+          cache-dependency-path: requirements-*.txt
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: python -m pip install -r requirements-kilit.txt
+      - run: python -m pip install -r requirements-kilit.txt -r requirements-gelistirme.txt
       - run: python kontrol.py hizli
+        env:
+          KONTROL_IS: auto
 
   tam:
     if: github.event_name == 'workflow_dispatch'
@@ -37,10 +39,12 @@ jobs:
         with:
           python-version: "3.14"
           cache: pip
-          cache-dependency-path: requirements-kilit.txt
+          cache-dependency-path: requirements-*.txt
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: python -m pip install -r requirements-kilit.txt
+      - run: python -m pip install -r requirements-kilit.txt -r requirements-gelistirme.txt
       - run: python kontrol.py tam
+        env:
+          KONTROL_IS: auto
       - run: python kontrol.py tarama

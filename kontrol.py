@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
 """PROGRAMIN BÜTÜN DENETİMLERİ — tek komut.
 
-    .venv/bin/python kontrol.py            hızlı:  hesap ( arayüz hariç ) + çizim
-                                           ( yavaş modüller hariç ) + çizimlerin
-                                           altın çıktısı  ( ~3 dk )
-    .venv/bin/python kontrol.py tam        hızlı + yavaş çizim modülleri ( ~12 dk )
+    .venv/bin/python kontrol.py            hızlı:  lint + biçim, hesap ( arayüz
+                                           hariç ), çizim ( yavaş test hariç,
+                                           altın çıktı dahil ), node  ( ~3 dk )
+    .venv/bin/python kontrol.py tam        hızlı + yavaş test ( ~9 dk — o tek test 7 dk )
     .venv/bin/python kontrol.py arayuz     arayüz testleri:  programı 8790'da
                                            açar, testleri koşar, kapatır ( ~20 dk )
-    .venv/bin/python kontrol.py tarama     girdi taraması ( 378 düzen;  ~15 dk )
+    .venv/bin/python kontrol.py tarama     girdi taraması ( 378 düzen;  ~4 dk )
+    .venv/bin/python kontrol.py bicim      ruff format + ruff check --fix ( düzeltir )
+
+Çizim testleri pytest ile paralel koşar:  KONTROL_IS işçi ( varsayılan 4 —
+bilgisayarın hepsini doldurmasın;  CI'da "auto" ).
 
 Her değişiklikte en az hızlı denetim koşulur;  commit'ten önce tam + arayüz.
 Adımlar SIRAYLA koşar ( ağır işler aynı anda koşturulmaz ).  Çıkış kodu:  bir
@@ -32,10 +36,8 @@ ARAYUZ_TESTLERI = ["3", "5", "13", "6"]
 ARAYUZ_PORTU = 8790
 
 
-def _cizim_modulleri():
-    return sorted(
-        "testler." + os.path.basename(f)[:-3] for f in glob.glob(os.path.join(KOK, "testler", "test_*.py"))
-    )
+#  Çizim testlerinin işçi sayısı ( pytest-xdist )
+IS = os.environ.get("KONTROL_IS", "4")
 
 
 def _kos(ad, komut, cwd=KOK, ortam=None):
@@ -57,11 +59,24 @@ def hesap(numaralar, ortam=None):
     )
 
 
+def lint():
+    """ruff:  hata kuralları ( pyproject.toml ) ve biçim."""
+    return _kos("lint", [PY, "-m", "ruff", "check", "."]) and _kos(
+        "biçim", [PY, "-m", "ruff", "format", "--check", "."]
+    )
+
+
+def bicim():
+    return _kos("biçim ( düzeltir )", [PY, "-m", "ruff", "format", "."]) and _kos(
+        "lint ( düzeltir )", [PY, "-m", "ruff", "check", "--fix", "."]
+    )
+
+
 def cizim(tam):
     """Hızlıda bir dakikayı aşan testler ( testler/yavas.py ile işaretli ) atlanır."""
     return _kos(
         f"çizim testleri{'' if tam else ' ( yavaşlar hariç )'}",
-        [PY, "-m", "unittest"] + _cizim_modulleri(),
+        [PY, "-m", "pytest", "-q", "-n", IS],
         ortam={"KONTROL_HIZLI": "0" if tam else "1"},
     )
 
@@ -116,8 +131,9 @@ def tarama():
 def main(argv):
     kip = argv[0] if argv else "hizli"
     adimlar = {
-        "hizli": lambda: [hesap(HESAP_TESTLERI), cizim(False), node()],
-        "tam": lambda: [hesap(HESAP_TESTLERI), cizim(True), node()],
+        "hizli": lambda: [lint(), hesap(HESAP_TESTLERI), cizim(False), node()],
+        "tam": lambda: [lint(), hesap(HESAP_TESTLERI), cizim(True), node()],
+        "bicim": lambda: [bicim()],
         "arayuz": lambda: [arayuz()],
         "tarama": lambda: [tarama()],
     }
