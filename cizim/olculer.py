@@ -182,9 +182,10 @@ def hesap_olculeri(g):
     #  merkezinden ( halat kasnağı merkez kotunda teğet bırakır ) kabine.
     aski = g.get("aski") or {}
 
-    #  Karşı ağırlık dolgusuna kalan yükseklik ( karar 11 ):  çerçeve paten
-    #  arası boyundadır ( patenler kirişlere ortalı );  dolgu alt kirişin
-    #  üstünden üst kirişin altına, 2:1'de ağırlık kasnağının altına kadardır.
+    #  Karşı ağırlık dolgusuna kalan yükseklik ( karar 11 ):  patenler
+    #  çerçevenin dışındadır, çerçeve paten arasından bir paten boyu kısadır;
+    #  dolgu alt kirişin üstünden üst kirişin altına, 2:1'de ağırlık
+    #  kasnağının altına kadardır.
     AG = M.get("agirlik")
     if AG and _sayi(AG.get("yukseklik")):
         alt, ust = CDN.agirlik_dolgu_kotlari(g, S, CDN.agirlik_kotlari(M, 0.0))

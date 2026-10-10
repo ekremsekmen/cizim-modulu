@@ -40,10 +40,11 @@ ASANSOR = {
     "kablo_birim_kutle": 0.44,
     "kabin_ray_profili": "89 x 62 x 15,88", "agirlik_ray_profili": "70 x 65 x 9",
     "kabin_konsol_arasi": 1500, "agirlik_konsol_arasi": 1500, "ray_celigi_rm": 450,
-    #  Ağırlık paten arası:  referans proje hesabında 1.500, çiziminde patenler 2.920'lik
-    #  çerçevenin uçlarında.  Çizim çerçeveyi bu girdiden kurar ( patenler uçlarda );
-    #  hesap ile pafta aynı şeyi söylesin diye referans projenin çizimindeki 2.920.
-    "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 2920,
+    #  Ağırlık paten arası:  referans proje hesabında 1.500, çiziminde 140'lık patenler
+    #  2.920'lik çerçevenin üstünde ve altında — merkezleri arası 3.060.  Çizim
+    #  çerçeveyi bundan kurar ( paten arası − paten );  hesap ile pafta aynı şeyi
+    #  söylesin diye referans projenin çizimindeki 3.060 ( 8 Eki'ye dek 2.920 ).
+    "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 3060,
     "paten_tipi": "Kaymalı", "agirlik_paten_tipi": "Makaralı", "guvenlik_tertibati": "Kaymalı",
     "agirlik_yeri": "Sol", "agirlik_genisligi": 790, "agirlik_derinligi": 160,
     #  Regülatör:  referans proje "Speed Governor Calculation" — kasnak ø240, halat ø6,0

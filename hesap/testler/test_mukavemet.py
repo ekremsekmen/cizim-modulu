@@ -97,25 +97,29 @@ ORNEK_PROJE = {
     #  kuyu tabanı −1.600 ( kaide çizimden 1.600 − 100 − 150 − 480 = 870 )
     #    en alt kısım  kabin kasnağı altı −240 − 295 − 240 / 2 = −655  →  945
     #    etek          −240 − 750 − 35 = −1.025 ( önlüğün pahı — m.5.4.5 ) →  575
-    #    şase / paten  şase altı −240 − 480 = −720,  paten −720 − 70     →  810
+    #    şase / paten  şase altı −240 − 480 = −720;  alt patenin merkezi
+    #                  −720 − 70 = −790, altı − 140 / 2 = −860         →  740
+    #                  ( patenler kirişlerin dışında — cizim/donanim.py )
     #    sığınma       sığınma alanının üstünde taban altı −240 − 120    → 1.240
     #  KUYU ÜSTÜ  ( son kattan )  kabin en üst konumda:  150 + 90 + 35·1² = 275
     #    makine şasesi üstü 3.750 − 250 − 47 − 298 = 3.155, altı − 120 = 3.035
     #    ( yan yatak NPU 120 — ORNEK_GIRDI );
     #    yakın kabin rayı ve ağırlık rayları şasenin 55 altında:  3.100
-    #    kabin üst pateni 275 − 480 + 3.300 + 70 = 3.165
-    #        rayın ucuna 3.100 − 3.165 = −65 ;  şaseye 3.035 − 3.165 = −130
+    #    kabin üst pateni:  alt paten merkezi 275 − 480 − 70 = −275,  üst paten
+    #        merkezi −275 + 3.300 = 3.025,  üstü + 70 = 3.095
+    #        rayın ucuna 3.100 − 3.095 = 5 ;  şaseye 3.035 − 3.095 = −60
     #    ağırlık en üst konumunda:  tamponu −1.600 + 300 + 100 = −1.200 ( alttan ),
-    #        alt kirişi −1.200 + 150 + 150 + 90 + 35 = −775 ( üstten ),
-    #        üst pateni −775 + 3.000 + 70 = 2.295  →  3.100 − 2.295 = 805
+    #        alt kirişi −1.200 + 150 + 150 + 90 + 35 = −775 ( üstten );  patenler
+    #        çerçevenin dışında ( paten arası h:  merkezler ):  üst kirişin üstü
+    #        −775 + 3.000 − 140 = 2.085,  üst pateni + 140 = 2.225  →  875
     #  Regülatör gergisi kabinin izdüşümünde değil:  satır yok.
     "siginma_alanlari": (
-        ("siginma.agirlik_paten_ray", 805, "ağırlık üst pateni / ray ucu"),
-        ("siginma.ust_paten_ray", -65, "kabin üst pateni / ray ucu"),
-        ("siginma.paten_tavan", -130, "üst paten / makine şasesi"),
+        ("siginma.agirlik_paten_ray", 875, "ağırlık üst pateni / ray ucu"),
+        ("siginma.ust_paten_ray", 5, "kabin üst pateni / ray ucu"),
+        ("siginma.paten_tavan", -60, "üst paten / makine şasesi"),
         ("siginma.kuyu_tabani_kabin", 945, "kuyu tabanı / kabin kasnağı"),
         ("siginma.etek", 575, "kuyu tabanı / etek"),
-        ("siginma.ray_kabin_alt", 810, "kuyu tabanı / şase, paten"),
+        ("siginma.ray_kabin_alt", 740, "kuyu tabanı / şase, paten"),
         ("siginma.dip_siginma", 1240, "kuyu dibi sığınma yüksekliği"),
     ),
 }
@@ -137,10 +141,11 @@ def _yakin(a, b, tol=1e-7):
 #  projenin ara değerleri kendi girdileriyle denetlenir.
 #  Son kat 3.750:  ofisin örnek hesabı ( programın varsayılanı artık 4.200 ).
 #  Karşı ağırlık derinliği 150 ve paten arası 3.000:  örneğin kendi değerleri
-#  ( varsayılanlar karar 11'le 155 ve 3.300 — barit dolgusu sığsın diye ).
+#  ( varsayılanlar karar 11'le 155 ve 3.400 — barit dolgusu sığsın diye;
+#  patenler çerçevenin dışında, çerçeve 3.300 ).
 ORNEK_GIRDI = {"tabliye_yuksekligi": 750, "yan_yatak": 120, "son_kat_yuksekligi": 3750,
                "agirlik_derinligi": 150, "agirlik_paten_arasi": 3000,
-               #  5. adım:  ofisin kabini varsayılan oldu ( paten arası 2.420, kabin
+               #  5. adım:  ofisin kabini varsayılan oldu ( paten arası 2.660, kabin
                #  2.000, şase altı 320 … );  örnek referans projenin kabiniyle
                "kabin_paten_arasi": 3300, "kabin_ic_yuksekligi": 2200,
                "_ofis": dict(_CS.REFERANS_PROJE_KABINI)}

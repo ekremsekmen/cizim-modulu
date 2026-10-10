@@ -35,8 +35,10 @@ class KesitYerlesimRegresyon(unittest.TestCase):
         values = {'kabin_ic_yuksekligi': 2500, 'son_kat_yuksekligi': 5000}
         g = _girdi(values)
         Y = K.yerlesim(g)
-        self.assertEqual(g['dusey']['kabin_paten_arasi'], 2420)
-        self.assertTrue(any('üst şase kirişi' in h and '2720 mm' in h for h in Y['hata']), Y['hata'])
+        #  8 Eki:  varsayılan paten arası 2.660 ( LiftDesigner — patenler kirişlerin
+        #  dışında );  2.500'lük kabinin tavanı 2.560, kirişin altı 2.200 → 3.020
+        self.assertEqual(g['dusey']['kabin_paten_arasi'], 2660)
+        self.assertTrue(any('üst şase kirişi' in h and '3020 mm' in h for h in Y['hata']), Y['hata'])
         self.assertIn(Y['hata'][0], Y['diger'])
         api = json.loads(UC.api_cizimler(_istek(values)).body)
         self.assertFalse(api['aktif'])
@@ -48,8 +50,10 @@ class KesitYerlesimRegresyon(unittest.TestCase):
         self.assertNotIn('eksik_hesap', b11)
 
     def test_sase_tavan_siniri_ve_duzeltilmis_girdi(self):
-        for aralik, uygun in ((2219.9, False), (2220, True), (2220.1, True), (2720, True)):
-            g = _girdi({'kabin_ic_yuksekligi': 2500 if aralik == 2720 else 2000,
+        #  Kirişin altı = paten arası − 460 ( şase altı 320 − alt paten payı 50 +
+        #  yarım paten 50 + kiriş 140 );  tavan 2.060 ( 2.500'lük kabinde 2.560 )
+        for aralik, uygun in ((2519.9, False), (2520, True), (2520.1, True), (3020, True)):
+            g = _girdi({'kabin_ic_yuksekligi': 2500 if aralik == 3020 else 2000,
                         'kabin_paten_arasi': aralik, 'son_kat_yuksekligi': 5000})
             with self.subTest(paten_arasi=aralik):
                 self.assertEqual(not K.dogrula(g), uygun)

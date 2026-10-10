@@ -54,7 +54,7 @@ class OrnekProjeler(unittest.TestCase):
         g = copy.deepcopy(CG.ORNEK)
         g["proje"] = {"ad": "ÖRNEK PROJE", "asansor": "ASANSÖR 1", "olcek": 20}
         g["dusey"].update({
-            "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 2920, "beyan_hizi": 1.6,
+            "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 3060, "beyan_hizi": 1.6,
             "durak_adedi": 11, "kat_yuksekligi": 2900, "son_kat": 5000,
             "kabin_tampon_baba": 306, "kabin_tampon_boyu": 618, "kabin_carpma_arasi": 96,
             "kabin_tampon_ezilme": 203, "agirlik_tampon_baba": 300, "agirlik_tampon_boyu": 618,

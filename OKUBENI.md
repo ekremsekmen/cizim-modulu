@@ -630,17 +630,25 @@ en az çizimin çakışma payı ( `girdi.ASGARI_ACIKLIK`, 20 ) kadar uzak durur;
 bir yönde sığmazsa kol öbür yöne döner, ikisinde de sığmazsa çizim durur.  Üst
 regülatör aynı girdiyi kullanarak gergi kasnağıyla hizalı kalır.
 
-Patenlerin MERKEZLERİ arası hesap programının paten arasıdır
-( `dusey.kabin_paten_arasi`, `dusey.agirlik_paten_arasi` — varsayılan 2.420 ve
-3.300, referans projenin örneğinde 3.300 ve 2.920 ):
-kabinde şasenin alt ve üst kirişine, karşı ağırlıkta çerçevenin alt ve üst
-ucuna ortalı — iki çerçevenin yüksekliği de hesabın paten arasıdır.  Eskiden
-paten arası şase yüksekliği gibi kullanılıp patenler onun dışına ekleniyordu
-( merkezler kabinde 3.440, ağırlıkta 3.060 ), sonra ağırlıkta 1.500 aralıkla
-2.920'lik çerçevenin ortasına dizilmişti.  Referans projenin kendisi de tutarsız:
-hesabı ağırlıkta 1.500 alır, çiziminde patenler 2.920'lik çerçevenin
-uçlarındadır;  örnek hesap girdisi çizimi izler ( 2.920 ).  Kasnağına ve
-patenlerine yetmeyen çerçeve reddedilir.
+Patenlerin MERKEZLERİ arası hesap programının paten arasıdır ( TS EN 81-50'nin
+kuvvet kolu h;  `dusey.kabin_paten_arasi`, `dusey.agirlik_paten_arasi` — varsayılan
+2.660 ve 3.400, referans projenin örneğinde 3.300 ve 3.060 ).  **PATENLER
+KİRİŞLERİN VE ÇERÇEVENİN DIŞINDADIR** ( 8 Eki — LiftDesigner'ın ön kesitleri K431 ·
+4815-6 · 1022 ve referans projenin kesitleri, çizimlerin vektörlerinden ölçüldü ):
+kabinde alt paten şasenin en altında, alt kiriş onun üstünde ( 140 ), üst kiriş
+üst patenin hemen altında ( 140;  referans projede 200 — UPN 200 );  karşı ağırlıkta
+patenler çerçevenin üstünde ve altında, çerçeve paten arasından bir paten boyu
+kısa.  LiftDesigner'ın 2.000'lik kabini:  alt paten −320 / −220, alt kiriş −220 / −80,
+üst kiriş 2.200 / 2.340, üst paten 2.340 / 2.440 ( paten 100, merkezler arası 2.660 ).
+30 Eyl – 8 Eki arası kirişler paten sanılmış, patenler kirişlerin yerine konmuştu
+( varsayılan 2.420, kiriş 10 mm'lik simge ):  şasenin tepesi gerçekte 100 mm
+yukarıdadır, kuyu tepesi açıklıkları o kadar iyimser çıkıyordu.  Referans projenin
+çiziminde ağırlığın 140'lık patenleri 2.920'lik çerçevenin üstünde ve altında
+( merkezler 3.060 — örnek girdi bunu kullanır;  hesabı ağırlıkta 1.500 alır,
+kendi çizimiyle tutarsız );  kabinde hesabının h'si ( 3.300 ) kirişlerin dış
+yüzleri arasıdır, program merkezler arası sayar.  Kasnağına ve kirişlerine
+yetmeyen çerçeve, kabin tavanına giren üst kiriş ( gereken paten arası söylenir )
+ve platforma giren alt kiriş reddedilir.
 
 Kesitte raylar, konsollar, karşı ağırlık, tamponlar ve gergi bakana
 uzaklıklarına göre çizilir ( uzaktaki önce ):  A-A'da ağırlık tarafındaki kabin
@@ -657,8 +665,8 @@ kabin halat bağlantısı döşemededir, yol çizilmez.
 
 **Kuyu planı** ( kabin hizasından yatay kesit ):  duvarlar ve kesit taraması,
 kapı boşluğu · kasa · eşik · kanatlar · açılış oku ( menteşeli kapıda açık konum
-ve çeyrek yay — ISO 128 ince çizgi, kata açılır, menteşe DIN 107'ye göre:  kattan
-bakınca "Sağ" = sağda;  alttaki ölçü sıraları yayın altına iner;  8 Eki ), kabin
+ve çeyrek yay — ISO 128 ince çizgi, kata açılır, "Manuel Sağ" kattan bakınca sağa
+açılır, menteşe sağda ( kullanıcı 8 Eki;  DIN 107 ile aynı );  alttaki ölçü sıraları yayın altına iner;  8 Eki ), kabin
 panosu ve şasesi ( dikmeler + alt/üst kirişler ), kabin rayları T profiliyle, ray
 konsolları ( plaka + kol + cıvata delikleri ), kabin ve karşı ağırlık patenleri,
 karşı ağırlık çerçevesi ve
@@ -889,16 +897,19 @@ tamponunda + 0,035·v², m.5.2.5.6.1 Çizelge 2 ) denetlenir.  Kuyu dibi ve kuyu
 12744-3 ) ikisi de yatay kesittir ( kuyu dibi planı E-E, kuyu üstü / makine
 dairesi planı F-F ).  Kabinin düşey ölçüleri **ofisin LiftDesigner kabininden**
 ( kullanıcı kararı, 5. adım — altı projenin altısında aynı ):  iç 2.000 ( varsayılan ),
-tavan 60, taban 50, şase altı −320, alt paten merkezi şase altının 170 üstünde
-( `alt_paten_payi`:  −150 ), üst paten merkezi alt patenin paten arası kadar üstünde
-( varsayılan 2.420:  2.270 ), paten 140, fren bloğu 270 ( en alt parça −320 ), kabin
+tavan 60, taban 50, şase altı −320, alt paten merkezi şase altının 50 üstünde
+( `alt_paten_payi`:  −270 ), üst paten merkezi alt patenin paten arası kadar üstünde
+( varsayılan 2.660:  2.390 ), paten 100, alt ve üst kiriş 140 ( `sase_alt_kiris`,
+`sase_ust_kiris` ), fren bloğu 270 ( en alt parça −320 ), kabin
 altı kasnak merkezi −425, eni 75, yan pano 15, arka pano 20;  etek ( önlük,
 m.5.4.5 ) kabin eşiğinin kat tarafındaki kenarında, dik kısmı 750, altında 20 × 35
 pah ( 60,3° ):  en alt noktası −785 ( 7 Eki;  eskiden kabinin ön yüzündeydi, pahsız,
-−750 — kuyu dibi açıklığı 35 mm iyimser çıkıyordu ).  Paten arası 2.420 LiftDesigner'ın;  Has Asansör MRL şase kılavuzunda
-da aralık kabin yüksekliği + 200 – 400.  Referans projenin örneği kendi kabiniyle
+−750 — kuyu dibi açıklığı 35 mm iyimser çıkıyordu ).  Paten arası 2.660 LiftDesigner'ın
+( 8 Eki'ye dek 2.420 — kirişleri paten sanmıştık );  Has Asansör MRL şase kılavuzunda
+aralık kabin yüksekliği + 200 – 400.  Referans projenin örneği kendi kabiniyle
 çizilir ( `sabitler.REFERANS_PROJE_KABINI`:  taban 120, şase altı −480, alt paten
-payı 0, fren bloğu 350, kasnak −295 / 92, pano 45 / 33;  iç 2.250, paten arası 3.300 ).
+şase altının 70 altında ( −620 / −480 ), paten 140, alt kiriş 350, üst kiriş 200,
+fren bloğu 350, kasnak −295 / 92, pano 45 / 33;  iç 2.250, paten arası 3.300 ).
 
 | Açıklık | Madde | En az |
 |---|---|---|
@@ -933,9 +944,10 @@ varsayılan girdiler şase altını örtük 350 alır ) — bu kabin modeline g�
 düzeltilene kadar iki program aynı açıklığa farklı sayı verir.
 
 **Kabinin üst şase kirişi kabin tavanının üstünde kalmalı** ( 1 Eki ):  kiriş
-üst patenin hizasındadır;  kabin iç yüksekliği paten arasına göre büyükse
-( 2.500 iç yükseklik, 2.420 paten arası ) çizim durur ve gereken paten arasını
-söyler — girilen ölçü değiştirilmez.  **Karşı ağırlığın patenleri raylarını
+üst patenin hemen altındadır;  kabin iç yüksekliği paten arasına göre büyükse
+( 2.500 iç yükseklik, 2.660 paten arası:  gereken 3.020 ) çizim durur ve gereken
+paten arasını söyler — girilen ölçü değiştirilmez.  Alt kiriş de platforma
+girmemeli ( Sabitler'in şase ölçüleri çelişirse çizim durur ).  **Karşı ağırlığın patenleri raylarını
 kavrar** ( `baglantilar.agirlik_patenleri`, kabin patenleri gibi ray yüzünde ):
 eskiden arkadaki ağırlıkta da çerçevenin önüne / arkasına konuyor, raydan
 uzakta duruyordu.  Kabin üstü kasnaklarına taşıyıcı çizilmez ( kaynağı yok —

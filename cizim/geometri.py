@@ -580,10 +580,10 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
     elif KT["tur"] == "manuel" and kapi_duzeyi:
         #  MENTEŞELİ KAPI:  ok yerine açılma simgesi ( ISO 128 / yapı resmi:
         #  açık konum ve çeyrek yay, ince sürekli çizgi ).  Kat kapısı kata
-        #  açılır;  menteşe kanadın kat yüzünde, kasanın yanında.  Yan:
-        #  DIN 107 — kapının açıldığı yandan ( kattan ) bakınca menteşe sağda
-        #  ise "Sağ";  kattan bakan için sağ, planın +x'idir ( teleskopik
-        #  "Sağ" da +x'e açılır ).
+        #  açılır;  menteşe kanadın kat yüzünde, kasanın yanında.  Yan
+        #  ( kullanıcı 8 Eki:  "Manuel Sağ sağa açılıyor" ):  kattan bakınca
+        #  kanat sağa açılır, menteşe sağda ( DIN 107'nin "sağ"ı da bu );
+        #  kattan bakan için sağ, planın +x'idir ( teleskopik "Sağ" da +x'e açılır ).
         import math
         sag = KT["yon"] == "Sağ"
         hx, hy = (x0 + kg if sag else x0), kat_kanat[0]
@@ -628,10 +628,12 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
         if S["sase_dikme"] > yp:
             dikme["bicim"] = CP.dikme_bicimi(uc, kr["kapi_arasi"], sd, yp, S["sase_dikme"] - yp, yon)
         e.append(dikme)
-    #  Şase kirişlerinin plan zarfı, iki dikmenin sırtını bağlar.
+    #  Şase kirişleri:  iki C profil ( parcalar.SASE_PROFIL_ENI — referans proje
+    #  50;  8 Eki'ye dek kaynaksız 30 ), iki dikmenin sırtını bağlar.
     k0, k1 = kx - kr["arasi"] / 2.0 + S["sase_dikme"], kx + kr["arasi"] / 2.0 - S["sase_dikme"]
-    for sy in (sy0, sy0 + sd - S["sase_dikme"]):
-        e.append(_ad(_dik("SASE", k0, sy, k1 - k0, S["sase_dikme"]), "sase_kiris"))
+    pe = min(CP.SASE_PROFIL_ENI, sd / 2.0)
+    for sy in (sy0, sy0 + sd - pe):
+        e.append(_ad(_dik("SASE", k0, sy, k1 - k0, pe), "sase_kiris"))
     e.append(_cizgi("EKSEN", kx, -don - 150, kx, D + dar + 150, tip="eksen"))
     e.append(_cizgi("EKSEN", -ds - 150, ky, G + dg + 150, ky, tip="eksen"))
 

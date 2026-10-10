@@ -99,7 +99,7 @@ class Cizim(unittest.TestCase):
 
     def test_menteseli_kapinin_acilma_yayi(self):
         """Menteşeli kat kapısı kata açılır:  açık konum ve çeyrek yay ( ISO 128,
-        ince );  menteşe DIN 107'ye göre ( kattan bakınca Sağ = +x ), yarıçap kapı
+        ince );  "Manuel Sağ" sağa açılır ( kullanıcı 8 Eki — kattan bakınca menteşe sağda, +x ), yarıçap kapı
         eni;  alttaki ölçü sıraları yayın altında.  Öbür tiplerde yay yok."""
         for tip in ("Manuel Sol", "Manuel Sağ", "Teleskopik Sol"):
             g = _kapi(tip, sol_pay=730, genislik=900)

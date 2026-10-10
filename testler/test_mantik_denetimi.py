@@ -50,7 +50,10 @@ class Yukseklikler(unittest.TestCase):
         for d in (cizim, hesap):
             self.assertFalse(d.get("aktif"))
             self.assertTrue(any("kabin iç yüksekliğinden" in h for h in d["hata"]), d["hata"])
-        self.assertTrue(_calistir(kapi_yuksekligi=2000, kabin_ic_yuksekligi=2200)[0].get("aktif"))
+        #  2.200'lük kabinin üst kirişi tavanın ( 2.260 ) üstünde kalsın:  paten arası
+        #  en az 2.200 + 60 + 460 = 2.720 ( varsayılan 2.660 — 2.000'lik kabin, 8 Eki )
+        self.assertTrue(_calistir(kapi_yuksekligi=2000, kabin_ic_yuksekligi=2200,
+                                  kabin_paten_arasi=2720)[0].get("aktif"))
 
 
 class TamponAdedi(unittest.TestCase):

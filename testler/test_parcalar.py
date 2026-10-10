@@ -336,6 +336,22 @@ class SaseDikmesi(unittest.TestCase):
                     self.assertEqual(d["d"], S["sase_dikme_derinlik"])
 
 
+    def test_kiris_profili_planda_ve_yan_kesitte_50(self):
+        #  Referans proje:  iki C profil 50 + 200 + 50 ( 8 Eki'ye dek planda 30 )
+        sys.path.insert(0, os.path.join(KOK, "testler"))
+        import test_yerlesim_saglamligi as Y
+        from cizim import geometri as CGE, kuyu_kesiti as CKK, sabitler as CS
+        S = CS.sabitler()
+        g, hata = Y.gecerli_duzen(630, "Sağ")
+        self.assertFalse(hata)
+        kiris = [x for x in CGE.plan(g) if x.get("ad") == "sase_kiris"]
+        self.assertEqual([x["d"] for x in kiris], [CP.SASE_PROFIL_ENI] * 2)
+        self.assertEqual(max(x["y"] + x["d"] for x in kiris) - min(x["y"] for x in kiris),
+                         S["sase_dikme_derinlik"])
+        yan = [x for x in CKK.yan_kesit(g) if x.get("ad") == "sase"]
+        self.assertEqual([x["g"] for x in yan], [CP.SASE_PROFIL_ENI] * 2)
+
+
 class AgirlikPatenleri(unittest.TestCase):
     """Karşı ağırlığın patenleri planda da çizilir:  kesitlerin kutusuyla aynı
     zarf ( kullanıcı kararı 30 Eyl:  iki tipte aynı iz ), biçim tipine göre."""

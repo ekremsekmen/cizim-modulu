@@ -73,8 +73,9 @@ class Dolgu(unittest.TestCase):
 
     def test_kalan_yukseklik_cizimden(self):
         S = CS.SABIT
-        for ek, pay in (({}, S["agirlik_kiris"] + S["agirlik_kasnak_ust"] + 400 / 2),
-                        ({"aski_orani": 1, **MD}, 2 * S["agirlik_kiris"])):
+        #  çerçeve paten arasından bir paten boyu kısa ( patenler dışında — 8 Eki )
+        for ek, pay in (({}, S["paten_yukseklik"] + S["agirlik_kiris"] + S["agirlik_kasnak_ust"] + 400 / 2),
+                        ({"aski_orani": 1, **MD}, S["paten_yukseklik"] + 2 * S["agirlik_kiris"])):
             with self.subTest(ek=ek):
                 g, _h = CK.cizim_girdisi(_A(**ek))
                 self.assertAlmostEqual(CO.hesap_olculeri(g)["agirlik_dolgu_yuksekligi"],
@@ -91,14 +92,15 @@ class Dolgu(unittest.TestCase):
         self.assertTrue(_bolum(s, "agirlik_raylari")["sonuc"]["uygun"])
 
     def test_varsayilan_asansorde_sigar(self):
-        #  Kullanıcı kararları:  barit derinliği 155 ( standart blok ), paten arası
-        #  3.300.  Formun varsayılanında kabin ağırlığı boştur ( tablodan 800 kg:
-        #  karşı ağırlık 1.200 kg — 24 blok × 120 = 2.880 ≤ 2.980 );  motorunki 700.
+        #  Kullanıcı kararları:  barit derinliği 155 ( standart blok ), çerçeve
+        #  3.300 — patenler çerçevenin dışında olduğundan paten arası 3.400 ( 8 Eki ).
+        #  Formun varsayılanında kabin ağırlığı boştur ( tablodan 800 kg:  karşı
+        #  ağırlık 1.200 kg — 24 blok × 120 = 2.880 ≤ 2.980 );  motorunki 700.
         for ek in ({"kabin_agirligi": None}, {}):
             with self.subTest(ek=ek):
                 s = UY.hesapla(ek)
                 gi = s["girdi"]
-                self.assertEqual((gi["agirlik_derinligi"], gi["agirlik_paten_arasi"]), (155, 3300))
+                self.assertEqual((gi["agirlik_derinligi"], gi["agirlik_paten_arasi"]), (155, 3400))
                 self.assertLessEqual(s["ara"]["agirlik_ray.dolgu_gereken"],
                                      s["ara"]["agirlik_ray.dolgu_kalan"])
                 self.assertTrue(_bolum(s, "agirlik_raylari")["sonuc"]["uygun"])

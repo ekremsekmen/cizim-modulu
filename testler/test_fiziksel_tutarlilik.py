@@ -201,22 +201,26 @@ class FizikselTutarlilik(unittest.TestCase):
                     self.assertFalse([x for x in e if x['tip'] == 'tarama' and x['y'] < z + 1 and z - 1 < x['y'] + x['d']
                                       and x['y'] + x['d'] <= M['tavan'] + 1e-6 and x['y'] >= z - 1e-6])
 
-    def test_agirlik_patenleri_cercevenin_uclarinda(self):
-        """Karşı ağırlık çerçevesinin yüksekliği hesabın paten arasıdır;
-        patenler çerçevenin alt ve üst ucuna ortalıdır ( kabin şasesi gibi ).
-        Eskiden 1.500 aralıkla 2.920'lik çerçevenin ortasında duruyorlardı.
-        Kasnağına ve patenlerine yetmeyen çerçeve reddedilir."""
+    def test_agirlik_patenleri_cercevenin_disinda(self):
+        """Karşı ağırlığın patenleri çerçevenin üstünde ve altındadır
+        ( LiftDesigner 1022 — 8 Eki ):  merkezleri arası hesabın paten arası,
+        çerçeve ondan bir paten boyu kısa.  Eskiden patenler çerçevenin uçlarına
+        ortalıydı, daha önce 1.500 aralıkla çerçevenin ortasındaydılar.
+        Kasnağına ve kirişlerine yetmeyen çerçeve reddedilir."""
+        from cizim import sabitler as CS
         for x in (2920, 2000):
             g = _ornek(dusey={'agirlik_paten_arasi': x})
+            P = CS.sabitler(g.get('_cizim_sabitleri'))['paten_yukseklik']
             e = K.on_kesit(g)
             ag = next(el for el in e if el.get('ad') == 'agirlik')
             pat = [el for el in e if el.get('ad') == 'agirlik_paten']
             with self.subTest(paten_arasi=x):
-                self.assertEqual(ag['d'], x)
+                self.assertEqual(ag['d'], x - P)
                 merkezler = sorted({round(el['y'] + el['d'] / 2.0, 6) for el in pat})
-                self.assertEqual(merkezler, [round(ag['y'], 6), round(ag['y'] + x, 6)])
-        self.assertTrue(any('agirlik_paten_arasi' in h for h in K.dogrula(_ornek(dusey={'agirlik_paten_arasi': 300}))))
-        self.assertEqual(K.dogrula(_ornek(dusey={'agirlik_paten_arasi': 400})), [])
+                self.assertEqual(merkezler, [round(ag['y'] - P / 2.0, 6), round(ag['y'] + ag['d'] + P / 2.0, 6)])
+        #  örnek:  ø400 kasnak, kasnak merkezi üst kirişten 110 — çerçeve > 310, paten 140
+        self.assertTrue(any('agirlik_paten_arasi' in h for h in K.dogrula(_ornek(dusey={'agirlik_paten_arasi': 450}))))
+        self.assertEqual(K.dogrula(_ornek(dusey={'agirlik_paten_arasi': 460})), [])
 
     def test_korkuluk_kapi_operatorunden_gecmez(self):
         """Kapı operatörü tavanın önünde;  yan korkuluk onun arka yüzünden

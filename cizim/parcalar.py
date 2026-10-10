@@ -194,6 +194,13 @@ def makarali_paten_bicimi(uc, eksen, k, yon, yatay=True):
 #  çelik kesit dolu çizilir ( ISO 128-50 ).
 
 
+#  Şasenin kirişleri ( ve yan kesitte dikmenin iki profili ) ray ekseninin iki
+#  yanında iki C profil:  dışları arası sabitlerin sase_dikme_derinlik'i ( 300 ),
+#  her profil planda 50 — referans projenin yatay kesiti ve kesitleri ( 50 + 200
+#  + 50 ).  LiftDesigner ( 4815-6 kuyu tepesi kesiti, 1/20 ):  40 + 160 + 40.
+SASE_PROFIL_ENI = 50.0
+
+
 def dikme_bicimi(uc, eksen, en, yari_paten, sac, yon, yatay=True):
     """Şase dikmesinin U kesiti.  uc:  kabin rayının dil ucu;  eksen:  ray
     ekseni;  en:  dikmenin ray ekseni boyunca eni;  yari_paten:  patenin dil

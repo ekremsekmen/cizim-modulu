@@ -1451,27 +1451,28 @@ class DuseyKesitler(unittest.TestCase):
         g = _ornek()
         self.assertEqual(CDU.dogrula(g), [])
         Y = CDU.yerlesim(g)
-        #  Patenlerin MERKEZLERİ arası hesabın paten arasıdır ( kabin 3.300, ağırlık
-        #  2.920 ):  kabinde şasenin alt ve üst kirişine, ağırlıkta çerçevenin alt ve
-        #  üst ucuna ortalı ( 140 / 2 = 70 taşar ).
+        #  Patenlerin MERKEZLERİ arası hesabın paten arası ( kabin 3.300, ağırlık
+        #  3.060 );  patenler kirişlerin ve çerçevenin DIŞINDA ( 8 Eki — referans
+        #  projenin kesiti:  alt paten şase altının 70 altında ortalı, 140 boy ).
         #  Kuyu dibi:  kabin döşemesi −( 96 + 90 ) = −186;  platform altı −306,
         #  kasnak altı −186 − 295 − 120 = −601,  etek −186 − 750 − 35 = −971 ( dik kısım
-        #  750 + pah 35 — m.5.4.5 ),  alt paten −186 − 480 − 70 = −736
+        #  750 + pah 35 — m.5.4.5 ),  alt paten −186 − 480 − 70 − 70 = −806 ( 8 Eki'ye
+        #  dek −736 )
         self.assertEqual({k: v[0] for k, v in Y["dip_aciklik"].items()},
-                         {"siginma": 1194, "en_alt": 899, "etek": 529, "sase": 764})
+                         {"siginma": 1194, "en_alt": 899, "etek": 529, "sase": 694})
         #  Kuyu üstü:  yükselme 150 + 90 + 35 = 275;  tavan 275 + 2.310 = 2.585,
-        #  kiriş altı 5.000 − 150 = 4.850;  üst paten 275 − 480 + 3.300 + 70 = 3.165.
+        #  kiriş altı 5.000 − 150 = 4.850;  üst paten 275 − 480 − 70 + 3.300 + 70 = 3.095.
         #  Makine şasesinin altı 5.000 − 250 − 345 − 200 = 4.205 ( referans proje ) ve
-        #  şase soldaki patenin 0,40 m yakınında:  paten 4.205 − 3.165 = 1.040.
-        #  Yakın kabin rayı şasede biter:  5.000 − 650 = 4.350 → 1.185.
+        #  şase soldaki patenin 0,40 m yakınında:  paten 4.205 − 3.095 = 1.110.
+        #  Yakın kabin rayı şasede biter:  5.000 − 650 = 4.350 → 1.255.
         #  Korkuluk ( 3.685 ) — şase korkuluğun dışında ( 0,10 m ) → 520.
-        #  Karşı ağırlık en üstte:  −1.040 + 150 + 21.000 + 96 + 90 + 35 = 20.331,
-        #  üst paten 20.331 + 2.920 + 70 = 23.321;  ağırlık rayı 26.000 − 650 = 25.350
-        #  → 2.029.
+        #  Karşı ağırlık en üstte:  −1.040 + 150 + 21.000 + 96 + 90 + 35 = 20.331 ( çerçeve
+        #  altı ),  çerçeve 3.060 − 140 = 2.920, üst paten 20.331 + 2.920 + 140 = 23.391;
+        #  ağırlık rayı 26.000 − 650 = 25.350 → 1.959.
         self.assertEqual(Y["yukselme"], 275)
         self.assertEqual({k: v[0] for k, v in Y["ust_aciklik"].items()},
-                         {"siginma": 2265, "paten": 1040, "ray": 1185, "korkuluk": 520,
-                          "agirlik_ray": 2029})
+                         {"siginma": 2265, "paten": 1110, "ray": 1255, "korkuluk": 520,
+                          "agirlik_ray": 1959})
         self.assertEqual({k: v[1] for k, v in Y["ust_engel"].items()},
                          {"siginma": "kuyu tavanı", "paten": "sase", "ray": "ray", "korkuluk": "sase"})
 
@@ -1479,9 +1480,17 @@ class DuseyKesitler(unittest.TestCase):
         g = _ornek()
         S = CS_.sabitler(g.get("_cizim_sabitleri"))
         k = CDU.kabin_kotlari(g["dusey"], S, 0.0)
-        #  Paten arası alt patenin merkezinden üst patenin merkezine
-        self.assertEqual(k["sase_ust"] - (k["sase_alt"] + S["alt_paten_payi"]), g["dusey"]["kabin_paten_arasi"])
-        self.assertEqual(k["alt_paten"] + S["paten_yukseklik"] / 2.0, k["sase_alt"] + S["alt_paten_payi"])
+        #  Paten arası alt patenin merkezinden üst patenin merkezine;  patenler
+        #  kirişlerin dışında ( üst paten üst kirişin üstünde — 8 Eki )
+        P = S["paten_yukseklik"]
+        self.assertEqual((k["ust_paten"] - P / 2.0) - (k["alt_paten"] + P / 2.0), g["dusey"]["kabin_paten_arasi"])
+        self.assertEqual(k["alt_paten"] + P / 2.0, k["sase_alt"] + S["alt_paten_payi"])
+        self.assertEqual((k["ust_kiris_ust"], k["ust_paten_alt"]), (k["sase_ust"], k["sase_ust"]))
+        self.assertEqual(k["ust_kiris_ust"] - k["ust_kiris_alt"], S["sase_ust_kiris"])
+        self.assertEqual(k["alt_kiris_ust"] - k["alt_kiris_alt"], S["sase_alt_kiris"])
+        self.assertGreaterEqual(k["ust_kiris_alt"], k["tavan"])
+        self.assertLessEqual(k["alt_kiris_ust"], k["taban_alti"])
+        self.assertLessEqual(k["alt_kiris_alt"], k["alt_paten"] + P + 1e-9)
         self.assertEqual(k["tavan"], g["dusey"]["kabin_ic_yukseklik"] + S["kabin_tavan_kalinlik"])
         #  m.5.4.5:  dik kısım 750, altında pah 35 ( önlüğün en alt noktası pahın ucu )
         self.assertEqual((k["etek_dik_alti"], k["etek_alti"]), (-750, -785))
@@ -1514,23 +1523,23 @@ class DuseyKesitler(unittest.TestCase):
         self.assertEqual(CDU.yerlesim(_ornek(makine={"yeri": "Makine dairesi"}))["M"]["parcalar"], [])
 
     def test_karsi_agirlik_kilavuz_payi_ve_sase(self):
-        #  Ağırlık paten arası X = çerçevenin yüksekliği ( patenler uçlarına ortalı );
-        #  en üst konumda çerçevenin altı 20.331.
+        #  Ağırlık paten arası X = patenlerin merkezleri arası;  çerçeve X − 140
+        #  ( patenler çerçevenin dışında — 8 Eki );  en üst konumda çerçevenin altı 20.331.
         #  Kılavuz payı ( m.5.2.5.6.2 ):  makine dairesinde ağırlık rayı tavan kirişi
         #  payının 50 altında biter ( 26.000 − 150 − 50 = 25.800 );  üst paten
-        #  20.331 + X + 70;  25.800 − 20.331 − X − 70 ≥ 100 → X ≤ 5.299.
-        #  Kuyu üstünde en yüksek nokta ağırlık kasnağı ( çerçeve üstü − 110 + 200 = + 90 ):
-        #  20.331 + X + 90 ≤ şasenin altı 25.205 → X ≤ 4.784.
+        #  20.331 + X − 140 + 140;  25.800 − 20.331 − X ≥ 100 → X ≤ 5.369.
+        #  Kuyu üstünde en yüksek nokta üst paten ( kasnak çerçeve üstü − 110 + 200 = + 90,
+        #  patenin 50 altında ):  20.331 + X ≤ şasenin altı 25.205 → X ≤ 4.874.
         def h(x, **ezme):
             g = _ornek(**ezme)
             g["dusey"]["agirlik_paten_arasi"] = x
             return CDU.dogrula(g)
-        for x, uygun in ((5299, True), (5300, False)):
+        for x, uygun in ((5369, True), (5370, False)):
             hata = h(x, makine={"yeri": "Makine dairesi"})
             with self.subTest(cerceve=x):
                 self.assertEqual(not any("m.5.2.5.6.2" in y and "ağırlık" in y.lower() for y in hata), uygun, hata)
-        self.assertFalse(any("şasesine çarpıyor" in x for x in h(4784)))
-        self.assertTrue(any("şasesine çarpıyor" in x for x in h(4785)))
+        self.assertFalse(any("şasesine çarpıyor" in x for x in h(4874)))
+        self.assertTrue(any("şasesine çarpıyor" in x for x in h(4875)))
 
     def test_kabin_ustu_siginma_yuksekligi(self):
         #  dik duruş 2.000:  kiriş altı − 2.585 ≥ 2.000  →  son kat en az 4.735
@@ -1934,7 +1943,8 @@ class KirikKesit(unittest.TestCase):
             for ad in adlar:
                 boylar = sorted({round(x["d"]) for x in e if x.get("ad") == ad})
                 with self.subTest(cizim=ciz.__name__, ad=ad):
-                    beklenen = {"ust_paten": [140], "alt_paten": [140], "sase": [3300],
+                    #  dikme alt kirişin altından ( −480 ) üst kirişin üstüne ( 2.680 )
+                    beklenen = {"ust_paten": [140], "alt_paten": [140], "sase": [3160],
                                 "agirlik_paten": [140], "agirlik": [2920]}[ad]
                     self.assertEqual(boylar, beklenen)
 

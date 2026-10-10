@@ -91,19 +91,22 @@ class GercekProjeler(unittest.TestCase):
     def test_1250_kg_son_kat_dusuk(self):
         """1250 KG ( makine dairesiz, 2:1 kabin altı, son kat 3.400 ) — ret:  kuyu
         tepesi yetmiyor.  LiftDesigner'ın kendi kesitinde de şasenin altı 2.550'de,
-        üst paten en üst konumda ~2.615'e çıkıyor ( şaseyi 65 aşar )."""
+        üst kiriş en üst konumda ~2.615'e çıkıyor ( şaseyi 65 aşar );  üst paten
+        onun da 100 üstünde ( 8 Eki:  patenler kirişlerin dışında — üst paten
+        açıklığı 50'den −50'ye düştü, rayın ucu da yetmiyor )."""
         cizim, _g, b11 = self.S["1250 KG"]
         self.assertFalse(cizim["aktif"])
         self.assertEqual(cizim["hata"], [
-            "Karşı ağırlık en üst konumunda makine şasesine çarpıyor:  tepesi 2765 mm, "
+            "Karşı ağırlık en üst konumunda makine şasesine çarpıyor:  tepesi 2775 mm, "
             "şasenin altı 2665 mm ( son kattan ).",
             "Sığınma yüksekliği:  915 mm < 1000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 ).",
-            "Üst paten – kuyu tavanı:  50 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 b ).",
+            "Üst paten – kuyu tavanı:  -50 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 b ).",
+            "Üst paten – rayın üst ucu:  35 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 ).",
             "Korkuluk – kuyu tavanı:  -370 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 c ).",
-            "Karşı ağırlık üst pateni – rayın üst ucu:  5 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 )."])
+            "Karşı ağırlık üst pateni – rayın üst ucu:  -25 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 )."])
         self.assertTrue(b11.startswith("UYGUN DEĞİLDİR — Sığınma alanı / üstündeki en alt kısım "
                                        "( kuyu tavanı )  ( 915 < 1.000 mm )"))
-        for parca in ("( 50 < 100 mm )", "( -370 < 100 mm )", "( 5 < 100 mm )",
+        for parca in ("( -50 < 100 mm )", "( -370 < 100 mm )", "( 35 < 100 mm )", "( -25 < 100 mm )",
                       "makine şasesine çarpıyor"):
             self.assertIn(parca, b11)
 

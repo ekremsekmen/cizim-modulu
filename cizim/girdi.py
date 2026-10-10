@@ -461,10 +461,11 @@ ORNEK = {
     #  çarpma arası ).  Kuyu dibi referans projeninki:  1.500 = kaide 764 + tampon
     #  160 + çarpma arası 96 + kabinin şase altı 480.  Son kat referans proje 5.000.
     #  Duraklar:  8 × 3.000 → seyir 21 m ( hesap programının varsayılanı ).
-    #  Ağırlık paten arası = karşı ağırlık çerçevesinin yüksekliği ( patenler
-    #  uçlarında ):  referans proje çiziminde 2.920 ( hesabı 1.500 alır — kendi çizimiyle
-    #  çelişir;  örnek çizimi izler ).
-    "dusey": {"kabin_ic_yukseklik": 2250, "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 2920,
+    #  Ağırlık paten arası = patenlerin merkezleri arası:  referans proje çiziminde
+    #  3.060 — 2.920'lik çerçeve + 140'lık patenler üstünde ve altında ( hesabı 1.500
+    #  alır — kendi çizimiyle çelişir;  örnek çizimi izler ).  8 Eki'ye dek 2.920
+    #  ( patenler çerçevenin uçlarına ortalı sayılıyordu ).
+    "dusey": {"kabin_ic_yukseklik": 2250, "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 3060,
               "son_kat": 5000, "beyan_hizi": 1.0, "durak_adedi": 8, "kat_yuksekligi": 3000,
               "kabin_tampon_baba": 764, "kabin_tampon_boyu": 160, "kabin_carpma_arasi": 96,
               "kabin_tampon_ezilme": 90, "agirlik_tampon_baba": 300, "agirlik_tampon_boyu": 160,

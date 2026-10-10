@@ -59,10 +59,16 @@ def _ortusur(a, b):
 def kabin_kotlari(dy, S, z, aski=None, tavanda=False):
     """Döşemesi z kotundaki kabinin parça kotları ( ofisin kabini — Sabitler ).
 
-    Şasenin alt kirişi ( tamponun çarptığı yer ) döşemenin sase_alt_derinlik
-    altında;  alt patenin merkezi onun alt_paten_payi üstünde, üst patenin
-    merkezi alt patenden paten arası ( hesabın h'si ) yukarıda;  şasenin üst
-    kirişi üst patenin hizasında.
+    ŞASE ( LiftDesigner'ın ön kesitleri ve referans proje — 8 Eki ):  PATENLER
+    KİRİŞLERİN DIŞINDADIR.  Döşemenin sase_alt_derinlik altı şasenin altıdır
+    ( tamponun çarptığı yer );  alt patenin merkezi onun alt_paten_payi üstünde
+    ( referans projede altında );  alt kiriş alt patenin üstünden ( ya da şasenin
+    altından ) sase_alt_kiris yükselir;  üst patenin merkezi alt patenden paten
+    arası ( hesabın h'si:  patenlerin MERKEZLERİ arası — TS EN 81-50 kuvvet kolu )
+    yukarıda;  üst kiriş üst patenin hemen altında, sase_ust_kiris yüksek.
+    sase_ust:  üst kirişin üstü ( kasnaklar ve 1:1 bağlantısı oraya oturur ).
+    Eskiden ( 30 Eyl – 8 Eki ) patenler kirişlerin yerindeydi, kiriş 10 mm'lik
+    simgeydi:  LiftDesigner'ın kirişleri paten sanılmıştı.
 
     aski:  çizim girdisinin askı düzeni — kabin kasnaklarının kotu ona bağlı:
     kabin altında döşemenin kabin_kasnak_derinlik altında, kabin üstünde
@@ -74,10 +80,13 @@ def kabin_kotlari(dy, S, z, aski=None, tavanda=False):
     bağlantıya biter:  bağlantının tepesi, referans projenin kuyu tepesindeki
     kabin halat bağlantısı boyunda ( kabin_baglanti_alt − kabin_baglanti_ust )."""
     aski = aski or {}
+    P = S["paten_yukseklik"]
     tavan = z + dy["kabin_ic_yukseklik"] + S["kabin_tavan_kalinlik"]
     sase_alt = z - S["sase_alt_derinlik"]
     alt_paten = sase_alt + S["alt_paten_payi"]              # alt patenin merkezi
-    sase_ust = alt_paten + dy["kabin_paten_arasi"]          # üst patenin merkezi
+    ust_paten = alt_paten + dy["kabin_paten_arasi"]         # üst patenin merkezi
+    alt_kiris_alt = max(sase_alt, alt_paten + P / 2.0)
+    sase_ust = ust_paten - P / 2.0                          # üst kirişin üstü
     if aski.get("duzen") == "Kabin üstü":
         kasnak_alti = (tavan + S["kabin_tavani_kasnak_boslugu"] if tavanda
                        else sase_ust + S["kabin_ustu_kasnak_boslugu"])
@@ -88,10 +97,10 @@ def kabin_kotlari(dy, S, z, aski=None, tavanda=False):
             "etek_dik_alti": z - ETEK_BOYU, "etek_alti": z - ETEK_BOYU - ETEK_PAH_DUSEY,
             "fren_alti": z - S["kabin_taban_kalinlik"]
             - S["fren_blogu_yukseklik"], "sase_alt": sase_alt, "sase_ust": sase_ust,
-            "alt_paten": alt_paten - S["paten_yukseklik"] / 2.0,
-            "alt_paten_ust": alt_paten + S["paten_yukseklik"] / 2.0,
-            "ust_paten_alt": sase_ust - S["paten_yukseklik"] / 2.0,
-            "ust_paten": sase_ust + S["paten_yukseklik"] / 2.0,
+            "alt_kiris_alt": alt_kiris_alt, "alt_kiris_ust": alt_kiris_alt + S["sase_alt_kiris"],
+            "ust_kiris_alt": sase_ust - S["sase_ust_kiris"], "ust_kiris_ust": sase_ust,
+            "alt_paten": alt_paten - P / 2.0, "alt_paten_ust": alt_paten + P / 2.0,
+            "ust_paten_alt": ust_paten - P / 2.0, "ust_paten": ust_paten + P / 2.0,
             "ic_ust": z + dy["kabin_ic_yukseklik"], "tavan": tavan,
             "kasnak_merkez": kasnak_merkez,
             "baglanti_ust": sase_ust + S["kabin_baglanti_alt"] - S["kabin_baglanti_ust"]}
@@ -383,18 +392,17 @@ def _makine_dairesi(g, S, tavan, M):
 
 
 def agirlik_kotlari(M, alt):
-    """Alt kirişi `alt` kotundaki karşı ağırlığın parça kotları.  Patenler
-    çerçevenin alt ve üst ucuna ortalıdır ( kabin şasesinin kirişlerindeki
-    gibi ):  merkezleri arası çerçevenin yüksekliği = hesabın paten arası.
-    Eskiden çerçevenin ortasına göre 1.500 aralıkla dizilip 2.920'lik
-    çerçevenin ortasında duruyorlardı."""
+    """Alt kirişi `alt` kotundaki karşı ağırlığın parça kotları.  PATENLER
+    ÇERÇEVENİN DIŞINDADIR ( üstte ve altta — LiftDesigner 1022'nin kesiti:
+    2.000'lik çerçeve, 100'lük patenler;  kabin şasesindeki gibi ):  merkezleri
+    arası hesabın paten arası, çerçeve ondan bir paten boyu kısa.  8 Eki'ye dek
+    patenler çerçevenin uçlarına ortalıydı ( çerçeve = paten arası );  daha
+    önce çerçevenin ortasına göre 1.500 aralıkla diziliyorlardı."""
     A = M["agirlik"]
-    ust = alt + A["yukseklik"]
+    ust = alt + A["yukseklik"] - A["paten"]
     return {"alt": alt, "ust": ust, "kasnak_merkez": ust - A["kasnak_ust"],
-            "alt_paten": alt - A["paten"] / 2.0,
-            "alt_paten_ust": alt + A["paten"] / 2.0,
-            "ust_paten_alt": ust - A["paten"] / 2.0,
-            "ust_paten": ust + A["paten"] / 2.0}
+            "alt_paten": alt - A["paten"], "alt_paten_ust": alt,
+            "ust_paten_alt": ust, "ust_paten": ust + A["paten"]}
 
 
 def agirlik_dolgu_kotlari(g, S, AK):

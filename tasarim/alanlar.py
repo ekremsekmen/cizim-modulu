@@ -376,10 +376,12 @@ _GRUPLAR = (
         #  anahtarı yok sayılır, geri yükleme bozulmaz.
         #  PATEN ARASI h  —  ray kuvvetinin PAYDASIDIR ( Fx = … / ( n · h ) ) ve
         #  kuyudaki yığına da girer ( halat boyu, Ç.2 üst açıklığı ).
-        #  Kabin:  2.420 — ofisin kabini ( kullanıcı kararı 30 Eyl, 5. adım ):
-        #  altı LiftDesigner projesinin hepsinde 2.000'lik kabinin patenleri −150
-        #  ve 2.270'te;  Has Asansör'ün kabin şasesi kılavuzunda ( Şekil 1 ) patenler
-        #  alt kirişte ve üst kirişin altında, aralık toplam kabin yüksekliğinin
+        #  Kabin:  2.660 — ofisin kabini ( kullanıcı kararı 30 Eyl, 5. adım;
+        #  8 Eki düzeltmesi ):  LiftDesigner'ın ön kesitlerinde ( K431 · 4815-6 ·
+        #  1022 ) 2.000'lik kabinin patenleri kirişlerin DIŞINDA, merkezleri −270
+        #  ve 2.390.  30 Eyl'de kirişler paten sanılıp 2.420 ( −150 / 2.270 )
+        #  alınmıştı.  Has Asansör'ün kabin şasesi kılavuzunda ( Şekil 1 ) üst
+        #  patenler üst kirişin altında, aralık toplam kabin yüksekliğinin
         #  200 – 400 mm fazlası.  Ofis Excel'i makine daireli 3.000 · MRL 3.300,
         #  referans proje 3.300, new block 3.200 kullanıyordu:  büyük h ray
         #  kuvvetini küçültür ( emniyetsiz yön ).  Eskiden 3.400, sonra 3.300.
@@ -389,10 +391,11 @@ _GRUPLAR = (
         #  piyasasındaki blok 960 × 155 × 120 mm, 50 – 70 kg;  1.200 kg için
         #  dolgu 2.160 – 2.880 mm, travers payıyla ~3.000.  Pik dökümde ~1.500
         #  elle girilir.
-        A('kabin_paten_arasi', 'Kabin paten arası', 'mm', 'sayi', None, 2420,
+        A('kabin_paten_arasi', 'Kabin paten arası', 'mm', 'sayi', None, 2660,
           kaynak=GIRDI, sozlesme=MUK, gelismis=True, pozitif=True, bolen=True,
-          bilgi=('h — kabinin üst ve alt patenleri arasındaki DÜŞEY mesafe. Devirici momentin kolu '
-                 'budur: büyüdükçe raya gelen yatay kuvvet küçülür.')),
+          bilgi=('h — kabinin üst ve alt patenlerinin MERKEZLERİ arasındaki düşey mesafe. Devirici '
+                 'momentin kolu budur: büyüdükçe raya gelen yatay kuvvet küçülür. Patenler şasenin '
+                 'kirişlerinin dışındadır ( üst paten üst kirişin üstünde ).')),
         A('ray_celigi_rm', 'Ray çeliği Rm', 'N/mm²', 'secim', MT.RAY_CELIKLERI, 370,
           kaynak=KATALOG, sozlesme=MUK, gelismis=True,
           bilgi=('Ray çeliğinin çekme dayanımı. İzin verilen gerilme σperm = Rm / St buradan '
@@ -494,9 +497,15 @@ _GRUPLAR = (
         #  2:1 ) 24 standart barit bloğu × 120 = 2.880 mm dolgu;  3.000'lik
         #  çerçevede ağırlık kasnağının altına 2.680 kalıyordu.  Ağır asansörde
         #  hesap gereken paten arasını söyler.
-        A('agirlik_paten_arasi', 'Ağırlık paten arası', 'mm', 'sayi', None, 3300,
+        #  8 Eki:  patenler çerçevenin DIŞINDA ( LiftDesigner 1022:  2.000'lik
+        #  çerçeve, 100'lük patenler üstte ve altta ) — çerçeve paten arasından
+        #  bir paten boyu kısa.  Kullanıcının 30 Eyl'de seçtiği 3.300'lük çerçeve
+        #  ( varsayılan asansörün barit dolgusu 2.880 sığsın diye ) paten arası
+        #  3.400 demektir;  eskiden paten arası = çerçeve sayılıyordu.
+        A('agirlik_paten_arasi', 'Ağırlık paten arası', 'mm', 'sayi', None, 3400,
           kaynak=GIRDI, sozlesme=MUK, gelismis=True, pozitif=True, bolen=True,
-          bilgi='Karşı ağırlığın üst ve alt patenleri arasındaki düşey mesafe.'),
+          bilgi=('Karşı ağırlığın üst ve alt patenlerinin MERKEZLERİ arasındaki düşey mesafe. '
+                 'Patenler çerçevenin üstünde ve altındadır:  çerçeve bundan bir paten boyu kısadır.')),
         #  DOLGUYA KALAN YÜKSEKLİK ( karar 11 ):  karşı ağırlık çerçevesinde
         #  alt kirişin üstünden üst kirişin — 2:1'de ağırlık kasnağının — altına.
         #  Çizimden gelir;  hesap dolgunun sığdığını bununla denetler.

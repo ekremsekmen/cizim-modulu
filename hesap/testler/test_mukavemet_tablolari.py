@@ -329,12 +329,13 @@ BILEREK_DEGISEN_VARSAYILAN = {
     #  m.5.11.2.2.2 hesaba girecek en küçük yavaşlamayı 0,5 m/s² der;  referans
     #  program ( referans proje ) da 0,5 kullanır.  Bilinmeyen makinede standardın
     #  tabanı alınır, gerçek değer imalatçıdan girilir.
-    "kabin_paten_arasi": (2420, "kabin paten arası h — ofisin kabini ( altı "
-                               "LiftDesigner projesi;  Has Asansör şase kılavuzu ) "
-                               "( kullanıcı kararı 30 Eyl )"),
-    "agirlik_paten_arasi": (3300, "karşı ağırlık paten arası — 800 kg'lık asansörün "
+    "kabin_paten_arasi": (2660, "kabin paten arası h — patenlerin merkezleri arası;  "
+                               "patenler şase kirişlerinin dışında ( LiftDesigner ön "
+                               "kesitleri:  2.660 ) ( kullanıcı kararı 30 Eyl, 8 Eki )"),
+    "agirlik_paten_arasi": (3400, "karşı ağırlık paten arası ( merkezler ) — patenler "
+                                 "çerçevenin dışında, çerçeve 3.300:  800 kg'lık asansörün "
                                  "1.200 kg'lık barit dolgusu ( 24 blok × 120 ) 2:1 "
-                                 "kasnağının altına sığar ( kullanıcı kararı 30 Eyl )"),
+                                 "kasnağının altına sığar ( kullanıcı kararı 30 Eyl, 8 Eki )"),
     #  BİRLEŞİK PROGRAM:  boşsa ÇİZİMDEN ( cizim/kopru.CIZIMDEN ) — hesap ile
     #  çizim aynı sayıyı kullanır;  kutu boş açılır.
     "saptirma_kasnak_capi": (None, "boşsa çizimden:  çizilen saptırma kasnaklarının "

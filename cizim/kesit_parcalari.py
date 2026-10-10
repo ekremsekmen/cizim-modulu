@@ -421,14 +421,17 @@ def kabin_on(e, B, g, Y, P, kt):
     #  Kabin kapısı kabinin önündedir — arkadan bakışta görünmez ( kesik )
     B.kutu(e, "GIZLI", (kp["sol_pay"], kb[1], kp["sol_pay"] + kp["genislik"], kb[1] + 1),
            kt["doseme"], kt["doseme"] + kp["yukseklik"], "kabin_kapisi")
-    sx0 = min(k[0] for k in P["sase_dikme"])
-    sx1 = max(k[2] for k in P["sase_dikme"])
+    #  Dikmeler alt kirişin altından üst kirişin üstüne;  kirişler gerçek
+    #  yükseklikleriyle iki dikmenin sırtı arasında ( plandaki gibi ), patenler
+    #  kirişlerin dışında ( kabin_kotlari — LiftDesigner ve referans proje )
     for k in P["sase_dikme"]:
-        B.kutu(e, "SASE", k, kt["sase_alt"], kt["sase_ust"], "sase")
+        B.kutu(e, "SASE", k, kt["alt_kiris_alt"], kt["ust_kiris_ust"], "sase")
+    dikmeler = sorted(P["sase_dikme"], key=lambda k: k[0] + k[2])
+    sx0, sx1 = dikmeler[0][2], dikmeler[-1][0]   # sol dikmenin sırtı · sağınınki
     sy0 = min(k[1] for k in P["sase_dikme"])
     sy1 = max(k[3] for k in P["sase_dikme"])
-    for z in (kt["sase_alt"], kt["sase_ust"] - 10):
-        B.kutu(e, "SASE", (sx0, sy0, sx1, sy1), z, z + 10, "sase_kirisi")
+    for z0, z1 in ((kt["alt_kiris_alt"], kt["alt_kiris_ust"]), (kt["ust_kiris_alt"], kt["ust_kiris_ust"])):
+        B.kutu(e, "SASE", (sx0, sy0, sx1, sy1), z0, z1, "sase_kirisi")
     for p in P["paten"]:
         B.kutu(e, "PATEN", p, kt["ust_paten_alt"], kt["ust_paten"], "ust_paten")
         B.kutu(e, "PATEN", p, kt["alt_paten"], kt["alt_paten_ust"], "alt_paten")

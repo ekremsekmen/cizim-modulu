@@ -121,19 +121,25 @@ SABIT = {
     #  OFİSİN KABİNİ ( kullanıcı kararı 30 Eyl — 5. adım ):  ofisin altı
     #  LiftDesigner projesinin hepsinde aynı kabin ( 1022 · 12495-18 · 1250 KG ·
     #  1275 · 4815-6 · 800 KG;  kuyu dibi ve tepe kesitleri 1/20, en alt ve en
-    #  üst durakta ):  kabin 2.000 ( CH ), platformun altı −50, alt paten −220 /
-    #  −80 ( merkezi −150 ), en alt parça ( fren bloğu, tamponun çarptığı
-    #  yer ) −320, üst paten 2.200 / 2.340 ( merkezi 2.270:  paten arası
-    #  2.420 ), tampon tepesi −465 ( çarpma arası ~150 );  kabin altı kasnak
-    #  ( 1250 KG, Ø 320 ) −265 / −585, genişliği 75.  Tavan kalınlığı 60
-    #  ÇİZİM KABULÜ:  LiftDesigner kabini 2.000'de tek çizgiyle bitirir.
-    #  Referans projenin kabini ( 480 · 120 · 350 · 295, paten ortada ):
-    #  ornekler/hesap_girdi.SABITLER.
+    #  üst durakta ):  kabin 2.000 ( CH ), platformun altı −50, en alt parça
+    #  ( fren bloğu, tamponun çarptığı yer ) −320, tampon tepesi −465 ( çarpma
+    #  arası ~150 );  kabin altı kasnak ( 1250 KG, Ø 320 ) −265 / −585, genişliği
+    #  75.  ŞASE ( 8 Eki'de ön kesitlerin bloklarından yeniden ölçüldü — K431 ·
+    #  4815-6 · 1022 aynı ):  alt paten −320 / −220 ( 100 ), alt kiriş −220 /
+    #  −80 ( 140 ), üst kiriş 2.200 / 2.340 ( 140 — iki C 140 × 40 × 5 ), üst
+    #  paten 2.340 / 2.440:  PATENLER KİRİŞLERİN DIŞINDA, merkezleri arası
+    #  2.660.  30 Eyl'de kirişler paten sanılmıştı ( paten 140, merkezler −150
+    #  ve 2.270, paten arası 2.420 ) — üst paten 100 mm aşağıda kalıyordu.
+    #  Referans proje de böyle ( üst kiriş 200, patenler kirişin üstünde ).
+    #  Tavan kalınlığı 60 ÇİZİM KABULÜ:  LiftDesigner kabini 2.000'de tek
+    #  çizgiyle bitirir.  Referans projenin kabini:  REFERANS_PROJE_KABINI.
     "kabin_tavan_kalinlik": 60,
     "kabin_taban_kalinlik": 50,
     "sase_alt_derinlik": 320,       # döşemeden şasenin en alt parçasına ( tampon buraya çarpar )
-    "alt_paten_payi": 170,          # şasenin altından alt patenin merkezine
-    "paten_yukseklik": 140,
+    "alt_paten_payi": 50,           # şasenin altından alt patenin merkezine ( + yukarı )
+    "paten_yukseklik": 100,
+    "sase_ust_kiris": 140,          # üst kirişin yüksekliği ( üst paten kirişin üstünde )
+    "sase_alt_kiris": 140,          # alt kirişin yüksekliği ( alt patenin üstünde )
     "fren_blogu_yukseklik": 270,
     "kabin_kasnak_derinlik": 425,   # döşemeden kabin kasnağının merkezine
     #  KABİN ÜSTÜ ASKI ( 2:1, ağırlık yanda ):  kasnaklar şasenin üst kirişinin
@@ -226,9 +232,10 @@ SABIT = {
     #  ── KARŞI AĞIRLIK ( düşey ) ──────────────────────────────────────
     #  referans proje "Counterweight Sits on Buffer" ( 1/30 ):  çerçeve alt kirişin
     #  altından üst kirişin üstüne 2.920, patenler çerçevenin üstünde ve altında;
-    #  kasnak merkezi üst kirişin 110 altında.  Çerçevenin yüksekliği girdidir:
-    #  hesap programının AĞIRLIK PATEN ARASI ( kabin şasesindeki gibi ), patenler
-    #  çerçevenin alt ve üst ucuna ortalı ( donanim.agirlik_kotlari ).
+    #  kasnak merkezi üst kirişin 110 altında;  140'lık patenlerin merkezleri arası
+    #  3.060 ( vektörlerden, 8 Eki ).  Girdi hesap programının AĞIRLIK PATEN
+    #  ARASIDIR ( patenlerin merkezleri arası );  çerçeve ondan bir paten boyu kısa
+    #  ( donanim.agirlik_kotlari — 8 Eki'ye dek patenler çerçevenin uçlarına ortalıydı ).
     "agirlik_kasnak_ust": 110,
     "agirlik_kiris": 10,
 
@@ -327,10 +334,12 @@ ETIKET = {
     "kabin_tavan_kalinlik": "Kabin tavanı kalınlığı",
     "kabin_taban_kalinlik": "Kabin tabanı kalınlığı",
     "sase_alt_derinlik": "Kabin döşemesinden şase altına",
-    "paten_yukseklik": "Kabin pateninin yüksekliği",
+    "paten_yukseklik": "Kabin ve ağırlık pateninin yüksekliği",
+    "sase_ust_kiris": "Kabin şasesi üst kirişinin yüksekliği",
+    "sase_alt_kiris": "Kabin şasesi alt kirişinin yüksekliği",
     "fren_blogu_yukseklik": "Fren bloğunun yüksekliği",
     "kabin_kasnak_derinlik": "Kabin döşemesinden kabin kasnağı merkezine",
-    "alt_paten_payi": "Şasenin altından alt patenin merkezine",
+    "alt_paten_payi": "Şasenin altından alt patenin merkezine ( + yukarı )",
     "kabin_ustu_kasnak_boslugu": "Kabin üstü kasnağının kirişten boşluğu",
     "kabin_tavani_kasnak_boslugu": "Çapraz kabin kasnağının kabin tavanından boşluğu",
     "sase_dikme_derinlik": "Kabin şasesi dikmesinin kesitteki eni",
@@ -393,9 +402,15 @@ ETIKET = {
 #  ( yukarıda, LiftDesigner projeleri );  referans projenin örnekleri ( cizim/
 #  girdi.ORNEK, ornekler/hesap_girdi ) kendi kabinleriyle çizilir.  Onun "Cabin
 #  at Bottom / Top Floor" kesitlerinden ( 1/30 ):  şase alt kirişinin altı −480,
-#  paten onun ortasında, taban 20 + 100, fren bloğu platformun altında 350,
-#  kabin kasnağı merkezi −295 ( genişliği 92 );  planda yan pano 45, arka 33.
-REFERANS_PROJE_KABINI = {"sase_alt_derinlik": 480, "alt_paten_payi": 0,
+#  taban 20 + 100, fren bloğu platformun altında 350, kabin kasnağı merkezi −295
+#  ( genişliği 92 );  planda yan pano 45, arka 33.  ŞASE ( 8 Eki, "Cabin Sits on
+#  Buffer" görünüşünün vektörlerinden ):  alt kiriş −470 / −120 ( 350 ), altında
+#  10'luk levha ve 140'lık paten ( −620 / −480 — merkezi şase altının 70
+#  altında ), üst kiriş 2.610 / 2.810 ( 200 — hesabındaki UPN 200 ), üstünde
+#  levha ve paten.  Hesabındaki "h 330 cm" kirişlerin dış yüzleri arasıdır;
+#  program h'yi patenlerin merkezleri arası sayar ( TS EN 81-50 kuvvet kolu ).
+REFERANS_PROJE_KABINI = {"sase_alt_derinlik": 480, "alt_paten_payi": -70,
+                         "paten_yukseklik": 140, "sase_ust_kiris": 200, "sase_alt_kiris": 350,
                          "kabin_taban_kalinlik": 120, "fren_blogu_yukseklik": 350,
                          "kabin_kasnak_derinlik": 295, "kabin_kasnak_genislik": 92,
                          "kabin_pano_yan": 45, "kabin_pano_arka": 33,
@@ -417,6 +432,7 @@ BOLUMLER = (
      ("paten_en", "paten_boy", "paten_yukseklik")),
     ("KABİN", "kabinin planı ve düşey ölçüleri — kabin imalatına bağlı, TS EN 81-20 sayısı değildir",
      ("kabin_pano_yan", "kabin_pano_arka", "sase_dikme", "sase_dikme_derinlik", "alt_paten_payi",
+      "sase_ust_kiris", "sase_alt_kiris",
       "kabin_taban_kalinlik", "kabin_tavan_kalinlik", "sase_alt_derinlik",
       "fren_blogu_yukseklik", "etek_tahtasi")),
     ("KABİN KASNAKLARI ( 2:1 )", "kabin altında döşemenin altında;  kabin üstünde şasenin üst "
@@ -471,6 +487,8 @@ SIFIR_OLABILIR = frozenset((
 _ARALIK_OZEL = {"tavan_kirisi": (0, 5000), "sase_alt_derinlik": (1, 5000),
                 "kabin_taban_kalinlik": (1, 1000), "kabin_tavan_kalinlik": (1, 1000),
                 "paten_yukseklik": (1, 1000), "fren_blogu_yukseklik": (1, 2000),
+                #  alt paten şasenin altından aşağıda da olabilir ( referans proje −70 )
+                "alt_paten_payi": (-2000, 5000),
                 "kabin_kasnak_derinlik": (1, 2000)}
 
 

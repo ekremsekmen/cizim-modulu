@@ -59,9 +59,9 @@ UST_DONANIM = 500.0         # m.5.2.5.7.2 a  kabin tavanına bağlı donanım ( 
 UST_KORKULUK = 300.0        # m.5.2.5.7.2 c 1)  kabin izdüşümünde
 UST_KORKULUK_DIS = 100.0    # m.5.2.5.7.2 c 1)  korkuluğun dışında
 YATAY_UZAKLIK = 400.0       # m.5.2.5.7.2 b / c 1)  "0,40 m yatay uzaklık içinde"
-#  Kesitte şasenin alt ve üst kirişinin çizilen kalınlığı ( profili yok — simge ).
-#  Üst kirişin altı kabin tavanının altına inemez ( yerlesim ).
-SASE_KIRIS_CIZGI = 10.0
+#  Şasenin kirişleri gerçek yükseklikleriyle ( Sabitler sase_ust_kiris,
+#  sase_alt_kiris — 8 Eki'ye dek 10 mm'lik simgeydi );  üst kirişin altı kabin
+#  tavanının, alt kirişin üstü platformun dışında kalır ( yerlesim ).
 RAY_UZANTISI = 100.0        # m.5.2.5.6.2  ( en üst konum m.5.2.5.6.1:  + 0,035·v² )
 ETEK_BOYU = CDN.ETEK_BOYU   # m.5.4.5.2:  kabin önlüğünün dik kısmı en az 0,75 m
 ESIK_ARASI = 11000.0        # m.5.2.3.1:  ardışık kat kapısı eşikleri arası
@@ -140,21 +140,25 @@ def yerlesim(g, cizim_sabitleri=None):
     hata += CKT.duzen_hatalari(g)
     if hata:
         return {"hata": hata}
-    #  Karşı ağırlık çerçevesinin yüksekliği paten arasıdır:  kasnağını ( üst
-    #  kirişin agirlik_kasnak_ust altında ) ve patenlerini taşıyacak kadar olmalı
+    #  Karşı ağırlık çerçevesi patenlerin arasındadır ( çerçeve = paten arası −
+    #  bir paten boyu — donanim.agirlik_kotlari ):  kasnağını ( üst kirişin
+    #  agirlik_kasnak_ust altında ) ve iki kirişini taşıyacak kadar olmalı
     R = (g["agirlik"].get("kasnak_capi") or 0) / 2.0
-    if dy["agirlik_paten_arasi"] <= max(S["paten_yukseklik"], S["agirlik_kasnak_ust"] + R):
-        return {"hata": [f"dusey.agirlik_paten_arasi:  karşı ağırlık çerçevesinin yüksekliğidir "
-                         f"( patenler uçlarında );  {dy['agirlik_paten_arasi']:g} mm kasnağına ve "
-                         "patenlerine yetmiyor."]}
-    if dy["kabin_paten_arasi"] <= S["paten_yukseklik"]:
-        return {"hata": ["Kabin patenleri üst üste biniyor."]}
-    #  Şasenin üst kirişi üst patenin hizasındadır ( kabin_kotlari ):  kabin
-    #  iç yüksekliği paten arasına göre büyükse kiriş kabinin içinden geçer
-    #  ( iç yükseklik 2.500, paten arası 2.420 ).  Girilen ölçü değiştirilmez,
-    #  çizim durur ve gereken paten arasını söyler.
+    cerceve = dy["agirlik_paten_arasi"] - S["paten_yukseklik"]
+    if cerceve <= max(2 * S["agirlik_kiris"], S["agirlik_kasnak_ust"] + R):
+        return {"hata": [f"dusey.agirlik_paten_arasi:  patenlerin merkezleri arasıdır;  çerçeve "
+                         f"ondan bir paten boyu kısa ( {cerceve:g} mm ) — kasnağına ve "
+                         "kirişlerine yetmiyor."]}
+    #  ŞASE ( kabin_kotlari:  patenler kirişlerin dışında ):  üst kiriş kabin
+    #  tavanının, alt kiriş platformun dışında kalmalı.  Kabin iç yüksekliği
+    #  paten arasına göre büyükse üst kiriş kabinin içinden geçer;  girilen
+    #  ölçü değiştirilmez, çizim durur ve gereken paten arasını söyler.
     kabin = kabin_kotlari(dy, S, 0.0)
-    kiris_alti = kabin["sase_ust"] - SASE_KIRIS_CIZGI
+    kiris_alti = kabin["ust_kiris_alt"]
+    if kabin["alt_kiris_ust"] > kabin["taban_alti"] + 1e-6:
+        return {"hata": [f"Kabin alt şase kirişi kabin tabanına giriyor:  kirişin üstü "
+                         f"{kabin['alt_kiris_ust']:g} mm, platformun altı {kabin['taban_alti']:g} mm "
+                         "( Sabitler:  şase altı, alt paten payı, paten ve alt kiriş yüksekliği )."]}
     if kiris_alti < kabin["tavan"] - 1e-6:
         gerekli = dy["kabin_paten_arasi"] + kabin["tavan"] - kiris_alti
         hata.append(f"Kabin üst şase kirişi kabin tavanına giriyor:  kirişin altı "
@@ -338,14 +342,19 @@ def _kabin(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89, esik
     et = CGE._ad(D("KABIN", u, kt["etek_alti"], CP.ONLUK_PAH, ust - kt["etek_alti"]), "etek")
     et["bicim"] = CP.pahli_sac(u, ust, ust - kt["etek_dik_alti"], u + CP.ONLUK_PAH, dz=CP.ONLUK_PAH_DUSEY)
     e.append(et)
-    #  Şase:  ray ekseninde dikme, alt ve üst kiriş
-    #  Dikme iki ince profil olarak çizilir ( referans proje:  50 + 200 + 50 );
-    #  dolu çizilince kabinin kesitini örtüyordu.
+    #  Şase:  ray ekseninde dikme, alt ve üst kiriş ( kabin_kotlari )
+    #  Dikme iki ince profil olarak çizilir ( referans proje:  50 + 200 + 50 —
+    #  parcalar.SASE_PROFIL_ENI;  plandaki kirişlerle aynı );  dolu çizilince
+    #  kabinin kesitini örtüyordu.  Yandan bakışta kirişlerin iki C profili
+    #  dikmelerin hizasında, uçlarıyla görünür ( LiftDesigner 4815-6 kuyu tepesi:
+    #  40 + 160 + 40, 140 yüksek ).
     sd = S["sase_dikme_derinlik"]
-    for x in (ry - sd / 2.0, ry + sd / 2.0 - 50):
-        e.append(CGE._ad(D("KABIN-IC", x, kt["sase_alt"], 50, kt["sase_ust"] - kt["sase_alt"]), "sase"))
-    for z in (kt["sase_alt"], kt["sase_ust"] - SASE_KIRIS_CIZGI):
-        e.append(D("KABIN-IC", ry - sd / 2.0, z, sd, SASE_KIRIS_CIZGI))
+    pe = min(CP.SASE_PROFIL_ENI, sd / 2.0)
+    for x in (ry - sd / 2.0, ry + sd / 2.0 - pe):
+        e.append(CGE._ad(D("KABIN-IC", x, kt["alt_kiris_alt"], pe, kt["ust_kiris_ust"] - kt["alt_kiris_alt"]),
+                         "sase"))
+        for z0, z1 in ((kt["alt_kiris_alt"], kt["alt_kiris_ust"]), (kt["ust_kiris_alt"], kt["ust_kiris_ust"])):
+            e.append(CGE._ad(D("KABIN-IC", x, z0, pe, z1 - z0), "sase_kiris"))
     #  Patenler ve fren bloğu
     e.append(CGE._ad(D("PATEN", ry - 35, kt["ust_paten_alt"], 70, S["paten_yukseklik"]), "ust_paten"))
     e.append(CGE._ad(D("PATEN", ry - 35, kt["alt_paten"], 70, S["paten_yukseklik"]), "alt_paten"))
