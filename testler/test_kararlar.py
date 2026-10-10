@@ -14,11 +14,11 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from cizim import kopru as CK
 from cizim import olculer as CO
-from cizim import sabitler as CS
-from engine.uygulama import girdi as UG
-from engine.uygulama import hesap as UY
-from engine.uygulama import mukavemet as MK
-from engine.uygulama import sabitler as US
+from cizim import cizim_sabitleri as CS
+from motor.uygulama import uygulama_girdisi as UG
+from motor.uygulama import uygulama_hesabi as UY
+from motor.uygulama import mukavemet as MK
+from motor.uygulama import uygulama_sabitleri as US
 
 MD = {"mk_yok": False, "mk_uzunluk": 3000, "mk_genislik": 2500}
 

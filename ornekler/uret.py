@@ -42,9 +42,9 @@ ACC = (
 )
 
 from hesap_girdi import ASANSOR, ORTAK, ASANSOR_MD, ORTAK_MD, SABITLER
-from api import cizim as UC_CIZIM, uygulama as UC_UYG
-from engine.uygulama import hesap as E_UYG
-from exports import pdf_export as X_PDF, dxf_export as X_DXF, kapak_export as X_KAPAK
+from uclar import cizim_uclari as UC_CIZIM, uygulama_uclari as UC_UYG
+from motor.uygulama import uygulama_hesabi as E_UYG
+from ciktilar import pdf_cikti as X_PDF, dxf_cikti as X_DXF, kapak_cikti as X_KAPAK
 from cizim import pafta as CPF
 
 

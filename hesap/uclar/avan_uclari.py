@@ -14,7 +14,7 @@ from datetime import date
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
-from api.ortak import (
+from uclar.uc_ortak import (
     hata_kaydi,
     _BELIRSIZ,
     _RED,
@@ -31,15 +31,15 @@ from api.ortak import (
     _uretilemedi,
     belirsiz_sayi_mi,
 )
-from engine.avan import hesap as E_AVAN
-from engine.avan import kapak as E_KAPAK
-from engine.avan import tablolar as E_TAB
-from engine.avan import trafik as E_TRF
-from exports import kapak_export as X_KAPAK
-from exports import pdf_export as X_PDF
+from motor.avan import avan_hesabi as E_AVAN
+from motor.avan import kapak as E_KAPAK
+from motor.avan import tablolar as E_TAB
+from motor.avan import trafik as E_TRF
+from ciktilar import kapak_cikti as X_KAPAK
+from ciktilar import pdf_cikti as X_PDF
 
 try:
-    from exports import dxf_export as X_DXF
+    from ciktilar import dxf_cikti as X_DXF
 
     _DXF_HATA = None
 except Exception as _e:  # noqa: BLE001
@@ -170,7 +170,7 @@ def _trafik_girdi(veri: dict):
     Trafik girdisini tek biçime getirir:  bina alanları + `asansorler` listesi.
 
     Yöntemi ( tek / çoklu ) ARTIK KULLANICI SEÇMEZ, veri belirler — bkz.
-    engine.traffic.hesapla().  Eski `mod` alanı ve düz `P / kapi_genisligi /
+    motor.traffic.hesapla().  Eski `mod` alanı ve düz `P / kapi_genisligi /
     kapi_tipi` girdileri geriye dönük uyumluluk için hâlâ kabul edilir:
     liste boşsa düz alanlardan TEK asansörlük bir liste kurulur.
     """
@@ -259,7 +259,7 @@ def _avan_sonuc(veri):
 
     Ekran, PDF ve CAD aynı yoldan geçer:  ekran neyi reddediyorsa çıktı da
     reddeder.  İki ret kaynağı vardır — okunamayan yazım ( API ) ve
-    kullanılamayan değer ( motor, bkz. engine.avan.hesap.girdi_hatalari ).
+    kullanılamayan değer ( motor, bkz. motor.avan.avan_hesabi.girdi_hatalari ).
     """
     g = _avan_girdi(veri)
     hata = _belirsiz_hata()
@@ -277,7 +277,7 @@ def secenekler():
         "bina_tipleri": E_TAB.BINA_TIPLERI,
         #  ⑤ / ⑥ kutularının bina tipine göre etiketi —  red metni de aynı adı söyler.
         "hizli_etiketleri": {bt: E_TRF.hizli_etiketleri(bt) for bt in ("", *E_TAB.BINA_TIPLERI)},
-        #  Kapakta hesaptan dolan alanlar ( engine/avan/kapak.py ).
+        #  Kapakta hesaptan dolan alanlar ( motor/avan/kapak.py ).
         "kapak_turetilen": list(E_KAPAK.ALANLAR),
         "kapi_genislikleri": E_TAB.KAPI_GENISLIKLERI,
         "kapi_tipleri": E_TAB.KAPI_TIPLERI,
@@ -379,7 +379,7 @@ def indir_proje_dwg(veri: dict = Body(...)):
     hesapları formatın büyük çerçevesine A4 boyutunda dizilir ( şablon yoksa
     yan yana serbest bir şerit ).  Geometri programın KENDİ PDF'lerinden
     okunur, bu yüzden CAD çıktısı paftanın birebir aynısıdır
-    ( bkz. exports/dxf_export ).
+    ( bkz. ciktilar/dxf_cikti ).
     """
     if X_DXF is None:
         return JSONResponse(

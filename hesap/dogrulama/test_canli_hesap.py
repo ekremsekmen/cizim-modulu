@@ -48,8 +48,8 @@ import yollar
 
 yollar.kur()
 
-from engine.ortak import ofis as OFIS
-from dogrulama.ortak import Rapor
+from motor.ortak import ofis as OFIS
+from dogrulama.rapor import Rapor
 
 BASE = os.environ.get("AVAN_TEST_URL", "http://127.0.0.1:8780")
 TOHUM = 20260914

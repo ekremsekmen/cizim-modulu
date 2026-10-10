@@ -14,7 +14,7 @@ from temel import ortusur
 from cizim import dusey as CDU
 from cizim import hareketli as CH
 from cizim import kopru as CK
-from engine.uygulama import hesap as UY
+from motor.uygulama import uygulama_hesabi as UY
 
 #  Denetimin kuyu dibi örneği:  1.275 kg, kabin 2.000 × 1.400, ağırlık sağda
 DIP = {

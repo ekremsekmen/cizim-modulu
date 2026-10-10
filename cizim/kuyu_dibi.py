@@ -32,7 +32,7 @@ from temel import eleman_kutusu, kutu_merkezi, ortusur, sayi_mi
 from cizim import eleman as CEL
 from cizim import geometri as CGE
 from cizim import girdi as CG
-from cizim import sabitler as CS
+from cizim import cizim_sabitleri as CS
 
 #  TS EN 81-20 Çizelge 4 — kuyu dibi sığınma alanının yatay ölçüleri ( mm ).
 #  Adlar hesap programının "Kuyu dibi sığınma hacmi tipi" seçenekleriyle aynı.

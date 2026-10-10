@@ -32,7 +32,7 @@ import logging
 from temel import bos_mu, sayi_mi
 from cizim import girdi as CG
 from cizim import katlar as CKA
-from cizim import sabitler as CS
+from cizim import cizim_sabitleri as CS
 from tasarim import alanlar as _TS, gorunum as _TG
 
 log = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ YALNIZ_MRL = _TG.anahtarlar(_TS.CIZ, yerlesim="mrl")
 #  TEK KATALOG ( karar 12 ):  çizimin bütün ürün ölçüleri hesabın Sabitler
 #  sekmesinde ( ofis standardı ) değiştirilir;  çizim, yerleşimin ölçü listesi
 #  ve hesabın bölüm 11'i aynı sayıyı kullanır.  hesap anahtarı → çizim sabiti
-#  ( cizim/sabitler.py;  adı farklı olan tek:  tavan_payi → tavan_kirisi ).
+#  ( cizim/cizim_sabitleri.py;  adı farklı olan tek:  tavan_payi → tavan_kirisi ).
 OFIS_SABITLERI = {CS.ofis_adi(c): c for c in CS.SABIT}
 
 

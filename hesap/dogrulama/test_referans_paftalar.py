@@ -32,9 +32,9 @@ import yollar
 
 yollar.kur()
 
-from engine.uygulama import mukavemet as MK
-from engine.uygulama import mukavemet_tablolari as MT
-from dogrulama.ortak import Rapor
+from motor.uygulama import mukavemet as MK
+from motor.uygulama import mukavemet_tablolari as MT
+from dogrulama.rapor import Rapor
 
 
 # =====================================================================

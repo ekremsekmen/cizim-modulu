@@ -2,7 +2,7 @@
 """
 TEST 11  —  UYGULAMA PROJESİ  ( orkestratör )
 
-engine/uygulama.py mukavemet ve avan motorlarını TEK GİRDİ SETİYLE koşturur.
+motor/uygulama.py mukavemet ve avan motorlarını TEK GİRDİ SETİYLE koşturur.
 Bu testin asıl konusu ORTAK GİRDİ KÖPRÜSÜDÜR:
 
     Kullanıcı kabin genişliğini bir kez girer;  hem mukavemet hem kabin
@@ -26,13 +26,13 @@ import yollar
 
 yollar.kur()
 
-from engine.avan import hesap as AV
-from engine.avan import tablolar as AVT
-from engine.uygulama import mukavemet as MK
-from engine.uygulama import hesap as UY
-from engine.uygulama import girdi as UG
-from engine.uygulama import sabitler as US
-from dogrulama.ortak import P_std as _P_std, Rapor
+from motor.avan import avan_hesabi as AV
+from motor.avan import tablolar as AVT
+from motor.uygulama import mukavemet as MK
+from motor.uygulama import uygulama_hesabi as UY
+from motor.uygulama import uygulama_girdisi as UG
+from motor.uygulama import uygulama_sabitleri as US
+from dogrulama.rapor import P_std as _P_std, Rapor
 
 #  Topraklama olmadan elektrik bölümlerinin bir kısmı boş kalır.  L1 girdi
 #  değildir:  kuyu yüksekliği + Sabitler'deki yatay güzergâh payından kurulur.
@@ -147,7 +147,7 @@ def calistir():
     r.esit("köprü · ray metre ağırlığı ray profilinden", a["gr"], 12.38)
     #  Verim artık sabit değil, MAKİNE TİPİNDEN gelir ve TOPLAM SİSTEM
     #  VERİMİDİR ( askı kaybı içinde ) — iki taraf aynı sayıyı kullanır.
-    from engine.ortak import ofis as _OF
+    from motor.ortak import ofis as _OF
 
     r.esit("köprü · makine tipi taşınıyor", a["makine_tipi"], g["makine_tipi"])
     r.esit("köprü · η makine tipinden", a["eta"], _OF.makine_verimi(g["makine_tipi"]))
@@ -164,9 +164,9 @@ def calistir():
     # -------------------------------------------------------------
     #  UYGULAMANIN KENDİ OFİS STANDARDI  ( avandan AYRI )
     # -------------------------------------------------------------
-    from engine.uygulama import sabitler as _US
-    from engine.uygulama import tablolar_gorunum as _UTG
-    from engine.uygulama import mukavemet_tablolari as MT
+    from motor.uygulama import uygulama_sabitleri as _US
+    from motor.uygulama import tablolar_gorunum as _UTG
+    from motor.uygulama import mukavemet_tablolari as MT
 
     _S = _US.sabitler()
     r.kontrol(
@@ -305,7 +305,7 @@ def calistir():
     #  Python'un round()'u λ = 150 · Rm = 520'de ω = 5,69925'i ( ikilide
     #  5,69924999… ) 5,6992 gösteriyordu, pafta ise 5,6993 basar.  Üç Rm
     #  sütununun hepsi denetlenir.
-    from engine.ortak.steps import yuvarla as _yuv
+    from motor.ortak.adimlar import yuvarla as _yuv
 
     r.kontrol(
         "ω tablosu motorun formülüyle ve paftanın yuvarlamasıyla aynı",
@@ -320,7 +320,7 @@ def calistir():
     # ═══════════════════════════════════════════════════════════════
     #  DENETİMDE BULUNAN SEKİZ HATA  —  her biri yeniden üretilerek
     # ═══════════════════════════════════════════════════════════════
-    from engine.uygulama import hesap as UH
+    from motor.uygulama import uygulama_hesabi as UH
 
     def _yakin(a, b, tol=1e-6):
         try:
@@ -456,7 +456,7 @@ def calistir():
     )
 
     #  ④  REDDEDİLEN OFİS SABİTİ HESABA HAM GİRMİYOR
-    import engine.avan.hesap as _AV4
+    import motor.avan.avan_hesabi as _AV4
 
     _veri4 = {
         "ortak": {},
@@ -512,7 +512,7 @@ def calistir():
     r.kontrol("④ avana geçen ofis sabitlerinin aralıkları iki projede aynı", not _fark4, f"→ {_fark4}")
 
     #  ⑤  METİN OFİS ALANI SAYIYA ÇEVRİLMİYOR
-    import api.uygulama as _AU4
+    import uclar.uygulama_uclari as _AU4
 
     _AU4._BELIRSIZ.clear()
     _g5 = _AU4._mukavemet_girdi(
@@ -808,11 +808,11 @@ def calistir():
     r.esit("⑬ hüküm kalan bölümü söylüyor, eksiği değil", _o13.get("genel_sonuc"), "UYGUN DEĞİLDİR.")
     r.esit("⑬ kısa hüküm de aynı", _o13.get("genel_sonuc_kisa"), "UYGUN DEĞİL")
     #  PDF EKRANLA AYNI HÜKMÜ BASMALI
-    from exports import pdf_export as _PDF13
+    from ciktilar import pdf_cikti as _PDF13
 
     _pdf13 = _PDF13.uygulama_pdf({"asansorler": [dict(_s13, no=1, tanim="A")], "adet": 1}, {})
     r.kontrol("⑬ PDF üretiliyor", len(_pdf13) > 10000, f"→ {len(_pdf13)} bayt")
-    _kaynak13 = open(os.path.join(KOK, "exports", "pdf_export.py"), encoding="utf-8").read()
+    _kaynak13 = open(os.path.join(KOK, "ciktilar", "pdf_cikti.py"), encoding="utf-8").read()
     r.kontrol(
         "⑬ PDF hükmü kendi kurmuyor, motordan okuyor",
         _kaynak13.count('o.get("genel_sonuc")') == 2 and "HESAP EKSİK" not in _kaynak13,
@@ -1003,7 +1003,7 @@ def calistir():
 
     #  ⑳  UYGULAMA PAKETİ:  çizim + proje dosyası;  çalışma kitabı YOK
     import zipfile as _zip20
-    import api.uygulama as _API20
+    import uclar.uygulama_uclari as _API20
 
     if _API20.X_DXF is None:
         r.atla("⑳ CAD kitaplıkları kurulu değil — paket denetimi atlandı")
@@ -1152,7 +1152,7 @@ def calistir():
     #  ------------------------------------------------------------------
     #  Standartlarda böyle bir çizelge yoktur:  TS EN 81-20 / 81-50 boş kabin
     #  kütlesini ( P ) hep GİRDİ olarak tanımlar.  Tablo ofisin kendi imalatçı
-    #  deneyimidir ve İKİ PROJE DE aynı yerden okur ( engine/ortak/ofis.py ) —
+    #  deneyimidir ve İKİ PROJE DE aynı yerden okur ( motor/ortak/ofis.py ) —
     #  ayrı kopyalar tutulsaydı aynı asansör iki projede iki farklı kabin
     #  kütlesiyle hesaplanırdı.
     for _q in (450, 630, 800, 1000, 1125, 1275, 1600, 2000, 2500):
@@ -1230,8 +1230,8 @@ def calistir():
     # ==================================================================
     try:
         import ezdxf
-        from exports import dxf_export as DXE
-        from exports import pdf_export as PE
+        from ciktilar import dxf_cikti as DXE
+        from ciktilar import pdf_cikti as PE
     except Exception as _cad_hata:  # noqa: BLE001
         r.atla(f"CAD çıktısı testi atlandı — ezdxf / pdfminer.six kurulu değil ( {_cad_hata} )")
     else:
@@ -1300,7 +1300,7 @@ def calistir():
             f"→ {sonuc['ozet']['Fat']!r}",
         )
 
-    from engine.ortak import ofis as _OF
+    from motor.ortak import ofis as _OF
 
     otomatik = UY.hesapla({"kabin_agirligi": None})
     p_satiri = next(a for a in otomatik["bolumler"][0]["adimlar"] if a.get("sembol") == "P")
@@ -1427,7 +1427,7 @@ def calistir():
 
         import pypdfium2 as _pdfium
 
-        from exports import pdf_export as _PDF
+        from ciktilar import pdf_cikti as _PDF
 
         _b = _PDF.uygulama_pdf(_c, {"project_title": "Deneme"})
         _d = _pdfium.PdfDocument(_io.BytesIO(_b))
@@ -1482,11 +1482,11 @@ def calistir():
     )
     #  API artık asansör sayısına göre BAŞKA MOTOR çağırmıyor:  modülde
     #  dallanmayı kuran isimler kalmamalı.
-    _api = open(os.path.join(KOK, "api", "uygulama.py"), encoding="utf-8").read()
+    _api = open(os.path.join(KOK, "uclar", "uygulama_uclari.py"), encoding="utf-8").read()
     for _ad in ("_coklu_mu", "_uygulama_sonucu", "uygulama_coklu_pdf"):
         r.kontrol(f"API'de '{_ad}' kalmadı", _ad not in _api)
     r.esit("API tek motor girişi çağırıyor", _api.count("E_UYG.hesapla("), 0)
-    _pe = open(os.path.join(KOK, "exports", "pdf_export.py"), encoding="utf-8").read()
+    _pe = open(os.path.join(KOK, "ciktilar", "pdf_cikti.py"), encoding="utf-8").read()
     r.esit("tek uygulama paftası fonksiyonu", _pe.count("\ndef uygulama_"), 1)
 
     #  ─────────────────────────────────────────────────────────────
@@ -1623,7 +1623,7 @@ def calistir():
                 return [round(v * 8 + 1, 3)]
             #  Adetler tam sayıdır;  ölçüler önce büyür, kuyunun geometrisini
             #  bozuyorsa ( kabin kuyuya sığmıyor — hesap durur, 4 Eki ) küçülür.
-            from engine.uygulama import mukavemet_girdi as _MGI
+            from motor.uygulama import mukavemet_girdi as _MGI
 
             if f["anahtar"] in _MGI.TAM_SAYI_ALANLARI:
                 return [v + 1] + ([v - 1] if v > 1 else [])
@@ -1719,8 +1719,8 @@ def calistir():
 #  bulundu.  Hiçbiri bir sayıyı değiştirmez;  üçü de paftayı okuyanın
 #  sayıyı doğru anlamasıyla ilgilidir.
 def _muhendis_okumasi(r):
-    from engine.uygulama import hesap as UH
-    from engine.uygulama import mukavemet_girdi as MG
+    from motor.uygulama import uygulama_hesabi as UH
+    from motor.uygulama import mukavemet_girdi as MG
 
     #  ①  FKR / FAR BİR RAYIN KUVVETİDİR.  Paftada "Kabin raylarına gelen
     #  kuvvet" yazıyordu;  inşaat mühendisi sayıyı toplam sanıp raylara
@@ -1770,7 +1770,7 @@ def _muhendis_okumasi(r):
         _kt["sonuc"]["metin"].count("N / ray") == 2,
         f"→ {_kt['sonuc']['metin']}",
     )
-    _pdf = open(os.path.join(KOK, "exports", "pdf_export.py"), encoding="utf-8").read()
+    _pdf = open(os.path.join(KOK, "ciktilar", "pdf_cikti.py"), encoding="utf-8").read()
     _js = open(os.path.join(KOK, "static", "uygulama.js"), encoding="utf-8").read()
     r.kontrol(
         "① PDF özetleri ( tek ve çoklu ) 'bir rayına' yazıyor",
@@ -1924,7 +1924,7 @@ def _sira_degismezligi(r):
 #  HESAP → PDF PAFTA → DXF  —  teslim edilen dosyalar AYNI ŞEYİ söylüyor mu
 # =====================================================================
 #  DXF ayrı çizilmez;  programın kendi PDF'i okunup LINE / TEXT'e çevrilir
-#  ( exports/dxf_export ).  TEST 4 bu birebirliği avan ve trafik paftalarında
+#  ( ciktilar/dxf_cikti ).  TEST 4 bu birebirliği avan ve trafik paftalarında
 #  ölçüyordu;  uygulama paftasında yalnız birkaç simge denetleniyordu.  Burada
 #  4 asansörlü bir proje ( programın izin verdiği en büyüğü ) arayüzün indirme
 #  uçlarından alınır ve:
@@ -1943,8 +1943,8 @@ def _pafta_zinciri(r):
         import ezdxf as _ez
         from pdfminer.high_level import extract_pages as _sayfalar
         from pdfminer.layout import LTChar as _Harf
-        import api.uygulama as _AU
-        from exports import dxf_export as _DX
+        import uclar.uygulama_uclari as _AU
+        from ciktilar import dxf_cikti as _DX
     except Exception as _e:  # noqa: BLE001
         r.atla(f"pafta zinciri denetimi atlandı — CAD / PDF kitaplıkları yok ( {_e} )")
         return

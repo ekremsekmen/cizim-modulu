@@ -3,7 +3,7 @@
 UYGULAMA PROJESİ UÇLARI
 
 Mukavemet + elektrik + topraklama hesabı ve çıktıları.  Avandan bağımsızdır;
-elektrik hesapları avan MOTORUNU çağırır ( engine/uygulama/hesap.py ), ama
+elektrik hesapları avan MOTORUNU çağırır ( motor/uygulama/uygulama_hesabi.py ), ama
 uçlar ayrıdır.
 """
 
@@ -14,8 +14,8 @@ import os
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
-from api import cizim as UC_CIZIM
-from api.ortak import (
+from uclar import cizim_uclari as UC_CIZIM
+from uclar.uc_ortak import (
     hata_kaydi,
     _BELIRSIZ,
     _RED,
@@ -30,18 +30,18 @@ from api.ortak import (
     _uretilemedi,
     belirsiz_sayi_mi,
 )
-from engine.ortak.steps import evet_mi
-from engine.uygulama import girdi as E_UGR
-from engine.uygulama import sabitler as E_US
-from engine.uygulama import tablolar_gorunum as E_UTB
-from engine.uygulama import hesap as E_UYG
-from engine.uygulama import mukavemet_girdi as E_MGR
+from motor.ortak.adimlar import evet_mi
+from motor.uygulama import uygulama_girdisi as E_UGR
+from motor.uygulama import uygulama_sabitleri as E_US
+from motor.uygulama import tablolar_gorunum as E_UTB
+from motor.uygulama import uygulama_hesabi as E_UYG
+from motor.uygulama import mukavemet_girdi as E_MGR
 from tasarim import gorunum as _TG
-from exports import kapak_export as X_KAPAK
-from exports import pdf_export as X_PDF
+from ciktilar import kapak_cikti as X_KAPAK
+from ciktilar import pdf_cikti as X_PDF
 
 try:
-    from exports import dxf_export as X_DXF
+    from ciktilar import dxf_cikti as X_DXF
 
     _DXF_HATA = None
 except Exception as _e:  # noqa: BLE001

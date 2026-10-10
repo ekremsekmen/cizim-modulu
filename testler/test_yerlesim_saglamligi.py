@@ -14,12 +14,12 @@ import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from api import cizim as UC
+from uclar import cizim_uclari as UC
 from cizim import kabin_ustu as CKU
 from cizim import kopru as CK
 from cizim import kuyu_dibi as CKD
 from cizim import kuyu_ustu as CKT
-from engine.uygulama import girdi as E_UGR
+from motor.uygulama import uygulama_girdisi as E_UGR
 
 #  ISO 4190 / TS EN 81-20 Çizelge 6'ya uygun kabinler, kuyu kabinden 950 geniş,
 #  450 derin ( formun varsayılanı gibi ), kapı yüke göre.

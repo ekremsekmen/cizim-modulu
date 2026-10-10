@@ -40,7 +40,7 @@ from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kuyu_ustu as CKT
 from cizim import makine as CMK
-from cizim import sabitler as CS
+from cizim import cizim_sabitleri as CS
 
 #  TS EN 81-20 m.5.2.3.2 a:  makine dairesi kapısı en az 0,60 m genişlikte.
 KAPI_ASGARI = 600.0

@@ -20,7 +20,7 @@ hesap bir değeri, çizim başka bir değeri kullanır, pafta kendi içinde çel
     HESAP    hesabın kendi türettiği ( karşı ağırlık kütlesi, kuyu boyu … )
 
 SÖZLEŞME — alanın hangi motorun girdisi olduğu:  MUK mukavemet hesabı
-( engine/uygulama/mukavemet ), ELK elektrik hesapları ( engine/uygulama/
+( motor/uygulama/mukavemet ), ELK elektrik hesapları ( motor/uygulama/
 girdi ), CIZ çizim ( cizim/kopru ).  Motorlar kendi sözleşmelerini buradan
 okur ( tasarim.gorunum.sozlesme ):  sözleşmenin biçimi ve sırası onların
 beklediğidir, şema yalnız tanımın tek yerde durmasını sağlar.
@@ -38,8 +38,8 @@ hesaba ve çizime girer;  öbüründe ekranda gizlenir ve okunmaz.
 from dataclasses import dataclass, replace
 
 from cizim import girdi as CG
-from engine.ortak import ofis as OFIS
-from engine.uygulama import mukavemet_tablolari as MT
+from motor.ortak import ofis as OFIS
+from motor.uygulama import mukavemet_tablolari as MT
 
 GIRDI, KURAL, KATALOG, CIZIM, HESAP = "GİRDİ", "KURAL", "KATALOG", "ÇİZİM", "HESAP"
 
@@ -611,7 +611,7 @@ _GRUPLAR = (
                 gelismis=True,
                 bilgi="Kapı boşluğunun ekseni kabinin ekseninde değilse ( sola − ).",
             ),
-            #  BOŞ BIRAKILIRSA OFİS TABLOSUNDAN DOLAR  ( engine/ortak/ofis.py ).
+            #  BOŞ BIRAKILIRSA OFİS TABLOSUNDAN DOLAR  ( motor/ortak/ofis.py ).
             #  Standartlarda böyle bir çizelge yoktur — TS EN 81-20 / 81-50 kabin
             #  kütlesini ( P ) hep GİRDİ olarak tanımlar;  tablo ofisin kendi
             #  imalatçı deneyimidir ve avan tarafında da aynı yerden okunur.
@@ -694,7 +694,7 @@ _GRUPLAR = (
                 ),
             ),
             #  Kabin kapısı ağırlığı burada SORULMAZ — ofis standardıdır
-            #  ( engine/uygulama/sabitler.py · kabin_kapisi_agirligi ).
+            #  ( motor/uygulama/uygulama_sabitleri.py · kabin_kapisi_agirligi ).
             A(
                 "kapi_mekanizma_payi",
                 "Kapı mekanizma ağ. mrk. payı",
@@ -877,7 +877,7 @@ _GRUPLAR = (
             ),
             #  "Ofis verimi η toplam sistem verimidir" ANAHTARI KALDIRILDI.
             #  η artık HER ZAMAN toplam sistem verimidir ( askı kaybı içinde ) —
-            #  seçilecek bir şey kalmadı.  Bkz. engine/ortak/ofis.py, "PALANGA VERİM
+            #  seçilecek bir şey kalmadı.  Bkz. motor/ortak/ofis.py, "PALANGA VERİM
             #  DÜŞÜŞÜ KALDIRILDI".  Eski projelerin JSON'unda kalan toplam_verim
             #  anahtarı yok sayılır, geri yükleme bozulmaz.
             #  PATEN ARASI h  —  ray kuvvetinin PAYDASIDIR ( Fx = … / ( n · h ) ) ve
@@ -1830,7 +1830,7 @@ _GRUPLAR = (
         "Makine",
         (
             #  Makine tipi motor verimini belirler;  ofisin tablosu
-            #  ( engine/ortak/ofis.py ) dişlisiz makinede 0,85, dişlide 0,50 der.
+            #  ( motor/ortak/ofis.py ) dişlisiz makinede 0,85, dişlide 0,50 der.
             A(
                 "makine_tipi",
                 "Makine tipi",

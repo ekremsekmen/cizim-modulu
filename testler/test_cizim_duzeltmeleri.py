@@ -6,12 +6,12 @@ import unittest
 import xml.etree.ElementTree as ET
 
 
-from api import cizim as UC, uygulama as UA
+from uclar import cizim_uclari as UC, uygulama_uclari as UA
 from cizim import eleman as CEL
 from cizim import dusey as DY, geometri as GE, girdi as GI, kopru as KO
 from cizim import kuyu_kesiti as KE, svg as SV, dxf as DX
-from cizim import sabitler as CS
-from engine.uygulama import girdi as UG, mukavemet_girdi as MG
+from cizim import cizim_sabitleri as CS
+from motor.uygulama import uygulama_girdisi as UG, mukavemet_girdi as MG
 
 
 def _veri(**alanlar):

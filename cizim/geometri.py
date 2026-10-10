@@ -2,7 +2,7 @@
 """
 KUYU PLANI GEOMETRİSİ
 
-Girdiden ( cizim/girdi.py ) + ofis çizim sabitlerinden ( cizim/sabitler.py )
+Girdiden ( cizim/girdi.py ) + ofis çizim sabitlerinden ( cizim/cizim_sabitleri.py )
 çizim elemanları üretir.  Elemanlar saf veridir;  SVG ve DXF yazıcıları aynı
 listeyi okur — iki ayrı çizici yazılmaz.
 
@@ -23,7 +23,7 @@ import threading
 from cizim import eleman as CEL
 from cizim import girdi as CG
 from cizim import parcalar as CP
-from cizim import sabitler as CS
+from cizim import cizim_sabitleri as CS
 
 _KIP = threading.local()
 

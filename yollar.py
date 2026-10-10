@@ -7,7 +7,7 @@ DOKUNMAZ:  giriş noktaları ( hesap/main.py, calistir.py, kontrol.py'nin
 çağırdığı betikler ) kur()'u bir kez çağırır;  pytest aynı kökleri
 pyproject.toml'dan ( pythonpath ) alır.
 
-Eskiden yol ayarı kütüphane modüllerinin içine dağılmıştı ( api/cizim,
+Eskiden yol ayarı kütüphane modüllerinin içine dağılmıştı ( uclar/cizim_uclari,
 engine/uygulama, tasarim/alanlar ve her test dosyası ) ve iki ayrı "testler"
 paketi olduğu için SIRAYA bağlıydı ( "sona eklenir ki hesabınki önce
 bulunsun" );  hesabın test paketi dogrulama/ adını alınca çakışma kalktı.

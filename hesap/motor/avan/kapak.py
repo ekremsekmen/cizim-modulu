@@ -27,7 +27,7 @@ Asansörler farklıysa değerler asansör sırasıyla " / " ile yan yana yazıl�
 ( "10 / 16 kişi" );  aynıysa bir kez.
 """
 
-from engine.ortak.steps import tr
+from motor.ortak.adimlar import tr
 from temel import sayi_mi
 
 #  Program TS EN 81-20 / 50'ye göre hesap yapar ( bkz. Sabitler A ).

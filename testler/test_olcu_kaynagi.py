@@ -15,9 +15,9 @@ from unittest import mock
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from api import cizim as UC
+from uclar import cizim_uclari as UC
 from testler.yavas import yavas
-from api import uygulama as UC_UYG
+from uclar import uygulama_uclari as UC_UYG
 from cizim import eleman as CEL
 from cizim import cizimler as CZ
 from cizim import geometri as CGE
@@ -25,8 +25,8 @@ from cizim import kopru as CK
 from cizim import kuyu_dibi as CKD
 from cizim import olcu_kaynagi as CO
 from cizim import pafta as CPF
-from cizim import sabitler as CS
-from engine.uygulama import hesap as E_UYG
+from cizim import cizim_sabitleri as CS
+from motor.uygulama import uygulama_hesabi as E_UYG
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
 
 from testler import gercek_projeler as GP
@@ -328,7 +328,7 @@ class Degistirme(unittest.TestCase):
         self._dene(v, "kuyu_plani", "DBGW", "agirlik_ray_arasi", 900, beklenen={"agirlik_ray_arasi": 900})
 
     def test_olcu_sayisi_ana_formla_ayni_okunur(self):
-        from api.ortak import _belirsiz_hata
+        from uclar.uc_ortak import _belirsiz_hata
 
         v = _veri()
         r = UC._cozumleme(v, "kuyu_plani")
@@ -700,7 +700,7 @@ class Parcalar(unittest.TestCase):
         #  sabitlere CS.sabitler() ile erişilirse eksiksizdir.
         kok = os.path.join(KOK, "cizim")
         for ad in os.listdir(kok):
-            if ad.endswith(".py") and ad != "sabitler.py":
+            if ad.endswith(".py") and ad != "cizim_sabitleri.py":
                 with open(os.path.join(kok, ad), encoding="utf-8") as f:
                     metin = f.read()
                 self.assertNotRegex(metin, r"\bSABIT\s*\[|\bSABIT\.get|import SABIT", ad)

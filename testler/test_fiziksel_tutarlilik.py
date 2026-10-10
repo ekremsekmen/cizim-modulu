@@ -76,7 +76,7 @@ class FizikselTutarlilik(unittest.TestCase):
         """Gergi ağırlığı duvarlara en az çizimin çakışma payı ( 20 ) kadar uzak:
         örnekte arka duvara 3 mm kalıyordu.  Kabul edilen her düzende pay var;
         300 reddedilir ( arkada 3 mm, öbür yönde ağırlık raya biner )."""
-        from cizim import girdi as CG_, sabitler as CS_
+        from cizim import girdi as CG_, cizim_sabitleri as CS_
 
         S = CS_.sabitler()
         #  referans proje regülatör hesabı:  ağırlığın merkezi kasnak merkezinden A = 300
@@ -243,7 +243,7 @@ class FizikselTutarlilik(unittest.TestCase):
         çerçeve ondan bir paten boyu kısa.  Eskiden patenler çerçevenin uçlarına
         ortalıydı, daha önce 1.500 aralıkla çerçevenin ortasındaydılar.
         Kasnağına ve kirişlerine yetmeyen çerçeve reddedilir."""
-        from cizim import sabitler as CS
+        from cizim import cizim_sabitleri as CS
 
         for x in (2920, 2000):
             g = _ornek(dusey={"agirlik_paten_arasi": x})

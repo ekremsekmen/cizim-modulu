@@ -27,7 +27,7 @@ from temel import eleman_kutusu, ortusur
 from cizim import eleman as CEL
 from cizim import geometri as CGE
 from cizim import girdi as CG
-from cizim import sabitler as CS
+from cizim import cizim_sabitleri as CS
 
 #  TS EN 81-20 Çizelge 3 — kabin üstü sığınma alanının yatay ölçüleri ( mm ).
 #  Adlar hesap programının "Kabin üstü sığınma hacmi tipi" seçenekleriyle

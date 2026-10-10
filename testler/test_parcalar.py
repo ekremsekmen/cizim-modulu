@@ -8,7 +8,7 @@ import unittest
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from cizim import parcalar as CP
-from engine.uygulama import mukavemet_tablolari as MT
+from motor.uygulama import mukavemet_tablolari as MT
 
 
 class RayKesiti(unittest.TestCase):
@@ -361,7 +361,7 @@ class SaseDikmesi(unittest.TestCase):
 
     def test_planda_paten_sirta_bagli_kabin_sirta_degmez(self):
         from testler import test_yerlesim_saglamligi as Y
-        from cizim import geometri as CGE, sabitler as CS
+        from cizim import geometri as CGE, cizim_sabitleri as CS
 
         S = CS.sabitler()
         for yer in ("Sağ", "Sol", "Arka"):
@@ -394,7 +394,7 @@ class SaseDikmesi(unittest.TestCase):
     def test_kiris_profili_planda_ve_yan_kesitte_50(self):
         #  Referans proje:  iki C profil 50 + 200 + 50 ( 8 Eki'ye dek planda 30 )
         from testler import test_yerlesim_saglamligi as Y
-        from cizim import geometri as CGE, kuyu_kesiti as CKK, sabitler as CS
+        from cizim import geometri as CGE, kuyu_kesiti as CKK, cizim_sabitleri as CS
 
         S = CS.sabitler()
         g, hata = Y.gecerli_duzen(630, "Sağ")
@@ -450,7 +450,7 @@ class AgirlikPatenleri(unittest.TestCase):
         #  ağırlıkta blok kabinden 51 uzakken kaymalı paten ( 100 ) 120'lik bloğun
         #  içinde kalır, makaralının yan makaraları ( 75 + dil / 2 ) bloğu aşar.
         from testler import test_yerlesim_saglamligi as Y
-        from cizim import girdi as CGI, sabitler as CS
+        from cizim import girdi as CGI, cizim_sabitleri as CS
 
         S = CS.sabitler()
         g, hata = Y.gecerli_duzen(630, "Arka")

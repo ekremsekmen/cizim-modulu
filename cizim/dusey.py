@@ -48,7 +48,7 @@ from cizim import girdi as CG
 from cizim import hareketli as CH
 from cizim import kabin_ustu as CKU
 from cizim import kuyu_dibi as CKD
-from cizim import sabitler as CS
+from cizim import cizim_sabitleri as CS
 
 #  Çizelge 3 / Çizelge 4 — sığınma alanının YÜKSEKLİĞİ ( mm )
 SIGINMA_UST_YUKSEKLIK = CKU.SIGINMA_YUKSEKLIK

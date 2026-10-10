@@ -11,11 +11,11 @@ import math
 import re
 import unittest
 
-from engine.uygulama import mukavemet as M
-from engine.uygulama import mukavemet_girdi as MG
-from engine.uygulama import mukavemet_tablolari as T
-from engine.uygulama import sabitler as U
-from dogrulama.ortak import P_std
+from motor.uygulama import mukavemet as M
+from motor.uygulama import mukavemet_girdi as MG
+from motor.uygulama import mukavemet_tablolari as T
+from motor.uygulama import uygulama_sabitleri as U
+from dogrulama.rapor import P_std
 
 
 class BagimsizDenetim(unittest.TestCase):
@@ -692,7 +692,7 @@ class PveMRLDenetimi(unittest.TestCase):
         """Karar 3:  varsayılan "Kılavuz raylara" ve alan makine daireli formda
         gizli ( kullanıcı seçemez ) — eskiden basılan "seçim YOK SAYILDI"
         uyarısı her makine daireli projede anlamsız çıkardı."""
-        from engine.uygulama import mukavemet_girdi as MG
+        from motor.uygulama import mukavemet_girdi as MG
 
         u = MG.uyarilar(
             MG.tamamla(
@@ -709,7 +709,7 @@ class PveMRLDenetimi(unittest.TestCase):
     def test_bina_yapisina_giden_yuk_bildirilir(self):
         """m.5.2.1.8.1 · Ek E:  yapı makinenin yükünü taşıyacak;  hesabı
         inşaat projesindedir ama SAYIYI pafta vermelidir."""
-        from engine.uygulama import mukavemet_girdi as MG
+        from motor.uygulama import mukavemet_girdi as MG
 
         _bina = T.MAKINE_YUK_YOLU[0]
         bina = MG.uyarilar(MG.tamamla({"mk_yok": True, "makine_raya_biniyor": _bina}))
@@ -734,7 +734,7 @@ class PveMRLDenetimi(unittest.TestCase):
 
     def test_eski_onay_bicimi_okunmaya_devam_eder(self):
         """Eski .uygulama dosyaları True / 'EVET' taşır."""
-        from engine.uygulama import mukavemet_girdi as MG
+        from motor.uygulama import mukavemet_girdi as MG
 
         for eski, beklenen in ((True, True), ("EVET", True), (False, False), ("HAYIR", False)):
             g = MG.tamamla({"mk_yok": True, "makine_raya_biniyor": eski})
@@ -1372,7 +1372,7 @@ class ProjeVerimiDenetimi(unittest.TestCase):
             self.assertTrue(M.hesapla({"makine_verimi": e})["aktif"], e)
 
     def test_elektrik_koprusu_ayni_verimi_alir(self):
-        from engine.uygulama import girdi as UG
+        from motor.uygulama import uygulama_girdisi as UG
 
         g = MG.tamamla(dict(MG.varsayilanlar(), _ofis=self.OFIS, makine_verimi=0.83))
         self.assertEqual(UG.kopru(g)["asansorler"][0]["eta"], 0.83)

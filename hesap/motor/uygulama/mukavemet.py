@@ -18,18 +18,18 @@ Bölümler
   9  Kuyu tabanına gelen yükler               EN 81-20 m.5.2.1.8
  10  Sığınma alanları ve açıklıklar           EN 81-20 m.5.2.5.7 / 5.2.5.8
 
-Çıktı biçimi avan motoruyla aynıdır ( engine.steps.Bolum / veri / hesap /
+Çıktı biçimi avan motoruyla aynıdır ( motor.steps.Bolum / veri / hesap /
 kontrol ), böylece ekran, PDF ve CAD katmanları ortak kalır.
 """
 
 import math
 
 from temel import ortusur, sayi_mi
-from engine.uygulama import mukavemet_girdi as MG
-from engine.uygulama import sabitler as US
-from engine.uygulama import mukavemet_tablolari as MT
-from engine.ortak.steps import Bolum, hesap, kontrol, numarala, veri
-from engine.ortak.steps import bagla, metin, tr, trn, evet_mi
+from motor.uygulama import mukavemet_girdi as MG
+from motor.uygulama import uygulama_sabitleri as US
+from motor.uygulama import mukavemet_tablolari as MT
+from motor.ortak.adimlar import Bolum, hesap, kontrol, numarala, veri
+from motor.ortak.adimlar import bagla, metin, tr, trn, evet_mi
 
 # =====================================================================
 #  SABİTLER
@@ -144,7 +144,7 @@ def _pozitif(x):
 
 
 #  BİRLEŞİK PROGRAM:  geometri çizimden.  Program hesabı yaparken çizimin
-#  kurduğu yerleşimden ölçülen değerleri girdiye yazar ( engine/uygulama/
+#  kurduğu yerleşimden ölçülen değerleri girdiye yazar ( motor/uygulama/
 #  girdi.yerlesim_olculeri ) ve kaynağını işaretler ( g["_cizimden"] ).  Değer
 #  yoksa ( motor doğrudan çağrıldı ya da çizim kurulamadı ) hesabın eski
 #  yaklaşığı kullanılır;  rapor hangisinin kullanıldığını yazar.
@@ -4316,7 +4316,7 @@ def _siginma(g, o):
     #  ÇİZİM:  hesabın girdisinden;  kabin ölçüleri bu hesabın ofis standardından.
     #  Motor tek başına çağrıldığında uygulama projesinin alanları ( kuyu
     #  genişliği, makine yerleşimi ) girdide olmayabilir:  varsayılanlarıyla.
-    from engine.uygulama import girdi as UG
+    from motor.uygulama import uygulama_girdisi as UG
 
     G, hata = CK.cizim_girdisi({**UG.varsayilanlar(), **g, "_ofis": {k: O[k] for k in CK.OFIS_SABITLERI}})
     Y = CDU.yerlesim(G) if G is not None else {"hata": hata}
@@ -4718,7 +4718,7 @@ def genel_hukum(bolumler, tumu_uygun, eksik=()):
 def hesapla(veriler=None):
     """Mukavemet hesabının tamamı.
 
-    veriler   girdi sözlüğü ( engine.mukavemet_girdi.ALANLAR anahtarları ).
+    veriler   girdi sözlüğü ( motor.mukavemet_girdi.ALANLAR anahtarları ).
               Eksik alanlar örnek projenin varsayılanlarıyla tamamlanır.
     """
     g = MG.varsayilanlar()
@@ -4729,7 +4729,7 @@ def hesapla(veriler=None):
         return {"aktif": False, "hata": hata, "girdi": g}
 
     #  OFİS STANDARDI — uygulama projesinin KENDİ sabitleri ( avandan ayrı,
-    #  bkz. engine/uygulama/sabitler.py ).  Bölümler bunu o["ofis"]'ten okur;
+    #  bkz. motor/uygulama/uygulama_sabitleri.py ).  Bölümler bunu o["ofis"]'ten okur;
     #  ekrandaki Sabitler sekmesinde değiştirilen her değer buradan geçer.
     o = {"ofis": US.sabitler(g.get("_ofis"))}
     #  NUMARA BURADA VERİLİR, BÖLÜMÜN İÇİNDE DEĞİL.  Bölüm kendi adını ve

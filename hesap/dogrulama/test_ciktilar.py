@@ -20,16 +20,16 @@ import yollar
 
 yollar.kur()
 
-from engine.avan import hesap as AV
-from engine.avan import trafik as TR
+from motor.avan import avan_hesabi as AV
+from motor.avan import trafik as TR
 
 try:
-    from exports import dxf_export as _DXF
+    from ciktilar import dxf_cikti as _DXF
 except Exception:  # noqa: BLE001
     _DXF = None  # CAD kitaplıkları yoksa paket testi atlanır
-from exports import kapak_export as KPK
-from exports import pdf_export as PE
-from dogrulama.ortak import Rapor
+from ciktilar import kapak_cikti as KPK
+from ciktilar import pdf_cikti as PE
+from dogrulama.rapor import Rapor
 
 # Geçici dosyalar sistemin temp klasörüne yazılır — proje klasörü kirlenmez
 # ve silme izni kısıtlı makinelerde test takılmaz.
@@ -191,7 +191,7 @@ def calistir():
 
     #  PROJE ANTEDİ PAFTADA DEĞİL, KAPAKTADIR.
     #  Kapak sayfası eklendiğinde proje adı / işveren / mühendis bilgisi
-    #  pafta PDF'lerinden bilerek kaldırıldı ( bkz. exports/pdf_export.py:
+    #  pafta PDF'lerinden bilerek kaldırıldı ( bkz. ciktilar/pdf_cikti.py:
     #  "Pafta PDF'leri proje antedi taşımaz; bu bilgiler yalnız kapaktadır." ).
     #  Test bunu doğrular: bilgi paftada GÖRÜNMEMELİ.
     #
@@ -421,7 +421,7 @@ def calistir():
     #  hesabın değeri ).  Eskiden formdaki gri örnekler ( "10 kişi", "7,5 kW" )
     #  dolu görünüyor, kapak ise BOŞ basılıyordu.  Beklenen değerler girdiden
     #  bağımsız olarak yazılır:  N = 11, h = 3 m → seyir 33 m, durak N + 1 = 12.
-    from engine.avan import kapak as KAP
+    from motor.avan import kapak as KAP
 
     _kt = KAP.trafikten(TR.hesapla_tek(GT))
     r.esit("kapak · trafikten türeyenler", _kt, {"usage": "Konut", "stops": "12", "travel": "33,00 m"})
@@ -579,7 +579,7 @@ def calistir():
     )
 
     #  Hatalı hesapta PDF yine üretilir — hata paftaya basılır.
-    from api import avan as _M
+    from uclar import avan_uclari as _M
 
     _hatali = {
         "girdiler": {
@@ -670,7 +670,7 @@ def calistir():
     # ==================================================================
     try:
         import ezdxf
-        from exports import dxf_export as DXE
+        from ciktilar import dxf_cikti as DXE
     except Exception as _cad_hata:  # noqa: BLE001
         r.atla(f"CAD çıktısı testi atlandı — ezdxf / pdfminer.six kurulu değil ( {_cad_hata} )")
     else:
@@ -1286,9 +1286,9 @@ def calistir():
     # ================================================================
     #  UYGULAMA PROJESİ  —  MUKAVEMET ÇIKTILARI
     # ================================================================
-    from api import uygulama as _MM
-    from engine.uygulama import mukavemet as _MK
-    from engine.uygulama import mukavemet_girdi as _MG
+    from uclar import uygulama_uclari as _MM
+    from motor.uygulama import mukavemet as _MK
+    from motor.uygulama import mukavemet_girdi as _MG
 
     _muk = _MK.hesapla()
     _mpdf = PE.mukavemet_pdf(_muk, PROJE)
@@ -1348,7 +1348,7 @@ def calistir():
     #  ayrı yerlerde durursa arşivden dönmek imkânsızlaşır;  bu yüzden
     #  aynı ZIP'te olmaları denetlenir.
     import zipfile as _zf
-    from api.ortak import _paket_ekleri as _PE
+    from uclar.uc_ortak import _paket_ekleri as _PE
 
     _pd = {"__mod": "uygulama", "__surum": 1, "alanlar": {"m_beyan_yuku": "800", "uof_sigma_em": "150"}}
     #  Kapak alanı sunucuda "project_title" adıyla gelir.
@@ -1379,7 +1379,7 @@ def calistir():
         )
 
         #  AVAN PAKETİ:  çizim + proje dosyası;  çalışma kitabı YOK.
-        import api.avan as _AVP
+        import uclar.avan_uclari as _AVP
         import dogrulama.altin_uret as _AU
 
         _avan_g = next(iter(_AU.avan_senaryolar()))
@@ -1411,7 +1411,7 @@ def calistir():
     _mg = {a[0]: a[5] for a in _MG.ALANLAR if a[3] != "hesap"}
     _y = _MM.indir_uygulama_pdf({"girdiler": _mg, "kapak": {"proje_adi": "DENEME"}})
     r.esit("uygulama-pdf ucu dosya döndürüyor", _y.media_type, "application/pdf")
-    import api.avan as _AVU
+    import uclar.avan_uclari as _AVU
 
     r.kontrol(
         "Excel üreten uç kalmadı",
@@ -1424,7 +1424,7 @@ def calistir():
     #  sonucunu değil:  tek ve çoklu iki ayrı pafta fonksiyonu vardı ve
     #  zamanla ayrışmışlardı ( proje geneli hesaplar birinde sonda, ötekinde
     #  bölümlerin arasında ).  Tek asansörde asansör şeridi basılmaz.
-    from engine.uygulama import hesap as _UY
+    from motor.uygulama import uygulama_hesabi as _UY
 
     _uyp = _UY.hesapla_coklu([{}], {"temel_a": 26.55, "temel_b": 16.4})
     _uy = _uyp["asansorler"][0]
@@ -1446,7 +1446,7 @@ def calistir():
     r.kontrol("uygulama PDF: imza kutusu YOK", not any(x in _um for x in ("Hesabı yapan", "Kontrol eden")))
     #  Kurulu güç PAFTADAN değil, HESAPTAN okunur:  elle yazılmış bir sayı
     #  motor değiştiğinde sessizce bayatlar ( ηm düzeltmesinde öyle oldu ).
-    from engine.ortak.steps import trn as _trn
+    from motor.ortak.adimlar import trn as _trn
 
     _pk = _trn(_uy["ozet"]["P_kurulu"], 0)
     r.kontrol("uygulama PDF elektrik sayılarını taşıyor", _pk in _um, f"→ kurulu güç ({_pk} W) paftada yok")

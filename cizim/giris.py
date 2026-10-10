@@ -11,7 +11,7 @@ Eksenler:  x planınki ( kuyunun sol iç yüzünden;  durakta duran kişinin sa�
 z durak döşemesinden yukarı.
 
 Ölçüler LiftDesigner'ın "Giriş" görünüşünden ( kullanıcı kararı 1 Eki;
-cizim/sabitler.py KAPI VE KATLAR ):  kaba boşluk kapıdan 2 × 140 geniş, 240
+cizim/cizim_sabitleri.py KAPI VE KATLAR ):  kaba boşluk kapıdan 2 × 140 geniş, 240
 yüksek;  kasa dikmeleri 120, üstü kapının 220 üstünde;  eşik plakası 50;
 gösterge 500 × 124, ortası kapının 100 üstünde;  buton kutusu 90 × 240, ortası
 döşemeden 1.200 ve kapının kenarından 240, duvardaki yuvası 160 × 290.
@@ -31,7 +31,7 @@ from cizim import dusey as CDU
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kesit_parcalari as CKP
-from cizim import sabitler as CS
+from cizim import cizim_sabitleri as CS
 
 
 def dogrula(g):

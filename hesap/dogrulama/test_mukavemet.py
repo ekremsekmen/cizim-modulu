@@ -24,11 +24,11 @@ import yollar
 
 yollar.kur()
 
-from engine.uygulama import mukavemet as MK
-from cizim import sabitler as _CS
-from engine.uygulama import mukavemet_tablolari as MT
-from engine.uygulama import sabitler as US
-from dogrulama.ortak import P_std as _P_std, Rapor
+from motor.uygulama import mukavemet as MK
+from cizim import cizim_sabitleri as _CS
+from motor.uygulama import mukavemet_tablolari as MT
+from motor.uygulama import uygulama_sabitleri as US
+from dogrulama.rapor import P_std as _P_std, Rapor
 
 #  Ofisin kaynak tablolarından bir kez okunup dondurulan değerler ( ω … )
 REFERANS_TABLOLAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "referans_tablolar.json")
@@ -92,7 +92,7 @@ ORNEK_PROJE = {
     ),
     "kuyu_tabani": (("kuyu.LR", 25850, "LR ray boyu"),),
     #  BİRLEŞİK PROGRAM:  açıklıklar kuyunun çiziminden ( cizim/dusey.py ) —
-    #  elden, çizim sabitleriyle ( cizim/sabitler.py;  referans projenin kabini ):
+    #  elden, çizim sabitleriyle ( cizim/cizim_sabitleri.py;  referans projenin kabini ):
     #  KUYU DİBİ  kabin tam ezilmiş tamponunda:  döşeme −( 150 + 90 ) = −240,
     #  kuyu tabanı −1.600 ( kaide çizimden 1.600 − 100 − 150 − 480 = 870 )
     #    en alt kısım  alt şase kirişinin altı ( şasenin altı ) −240 − 480 = −720
@@ -288,7 +288,7 @@ def _sapmalar(r):
     r.esit("① Dt/dh asgari oranı", MK.SABIT["Dt_dh_asgari"], 40)
 
     #  ② karşı ağırlık rayı σ(My)  →  Wx
-    from engine.uygulama import mukavemet_tablolari as _MT
+    from motor.uygulama import mukavemet_tablolari as _MT
 
     s = MK.hesapla()
     p = _MT.ray("50 x 50 x 5", "Wx")
@@ -312,7 +312,7 @@ def _sapmalar(r):
     )
 
     #  ⑤ ω ray çeliğine bağlı  ( EN 81-50 m.5.10.3 )
-    from engine.uygulama import mukavemet_tablolari as _MTb
+    from motor.uygulama import mukavemet_tablolari as _MTb
 
     with open(REFERANS_TABLOLAR, encoding="utf-8") as _f:
         _omega_tablo = dict(json.load(_f)["omega"])
@@ -433,7 +433,7 @@ def _sapmalar(r):
     #  ═══════════════════════════════════════════════════════════════
     #  Aşağıdaki sayılar BS EN 81-20:2014 ve BS EN 81-50:2014'ün kendi
     #  metninden alınmıştır — motorun koduna bakılmadan.
-    from engine.uygulama import mukavemet_tablolari as _MTx
+    from motor.uygulama import mukavemet_tablolari as _MTx
 
     #  EN 81-20 Çizelge 14  —  darbe katsayıları
     for _tip, _bek in (("Kaymalı", 2), ("Ani Frenlemeli Makaralı", 3), ("Ani Frenlemeli", 5)):
@@ -660,7 +660,7 @@ def _sapmalar(r):
     )
 
     #  ⑪  acil frenleme yavaşlamasının ALT sınırı  ( m.5.11.2.2.2 )
-    from engine.uygulama import mukavemet_girdi as _MGa
+    from motor.uygulama import mukavemet_girdi as _MGa
 
     r.esit("EN 81-50 m.5.11.2.2.2  asgari yavaşlama 0,5 m/s²", _MGa.ACIL_FRENLEME_ASGARI, 0.5)
     for _a, _bek in ((0.05, False), (0.2, False), (0.5, True), (0.8, True), (9.81, True), (10, False)):
@@ -721,7 +721,7 @@ def _sapmalar(r):
     import math as _mf
 
     _O = MK.hesapla()["ozet"] and None
-    from engine.uygulama import sabitler as _USf
+    from motor.uygulama import uygulama_sabitleri as _USf
 
     _Sf = _USf.sabitler()
     r.esit("EN 81-50  V kanal γ ≥ 35°", _Sf["kanal_gama_v"] >= 35, True)
@@ -780,9 +780,9 @@ def _sapmalar(r):
     r.esit("ret sırasında işleme seçimi değiştirilmiyor", _v6["girdi"]["kanal_isleme"], "Sertleştirilmemiş")
 
     #  ⑨  motor verimi makine tipine bağlı  ( ofis standardı, TEK KAYNAK )
-    from engine.ortak import ofis as _OF
-    from engine.uygulama import mukavemet_girdi as _MG
-    import engine.avan.tablolar as _AT
+    from motor.ortak import ofis as _OF
+    from motor.uygulama import mukavemet_girdi as _MG
+    import motor.avan.tablolar as _AT
 
     r.kontrol(
         "⑨ verim tablosu avan ile UYGULAMA'da tek kaynak",
@@ -790,7 +790,7 @@ def _sapmalar(r):
         "→ tablo ikiye ayrılmış;  yeniden ayrışabilir",
     )
     r.esit("⑨ ofis verim tablosu", dict(_OF.MAKINE_VERIMLERI), {"Dişlisiz": 0.85, "Dişli": 0.50})
-    #  Δη = 0,10 YALNIZ AVANDA ( kitaba göre, engine/avan/tablolar ):  ortak
+    #  Δη = 0,10 YALNIZ AVANDA ( kitaba göre, motor/avan/tablolar ):  ortak
     #  tabloya taşınırsa uygulamanın toplam verimine de uygulanabilir hâle gelir.
     r.kontrol(
         "⑨ uygulamada palanga verim düşüşü Δη YOK  ( ortak tabloda değil )",
@@ -827,8 +827,8 @@ def _sapmalar(r):
             for _r2 in (1, 2)
         ),
     )
-    from engine.uygulama import girdi as _UG
-    import engine.avan.hesap as _AVh
+    from motor.uygulama import uygulama_girdisi as _UG
+    import motor.avan.avan_hesabi as _AVh
 
     for _t in ("Dişlisiz", "Dişli"):
         for _r2 in (1, 2):
@@ -924,9 +924,9 @@ def _denetim_bulgulari(r):
     hiçbirini paketin geri kalanı yakalamıyordu.  Her kontrol, hatanın ESKİ
     hâlini üreten girdiyle çalışır ve düzeltmenin yerinde durduğunu gösterir.
     """
-    from engine.uygulama import mukavemet_girdi as _MG
-    from engine.uygulama import mukavemet_tablolari as _MTd
-    from engine.uygulama import sabitler as _USd
+    from motor.uygulama import mukavemet_girdi as _MG
+    from motor.uygulama import mukavemet_tablolari as _MTd
+    from motor.uygulama import uygulama_sabitleri as _USd
 
     #  ── B1  "Sf ≥ Smin" bir geçme ölçütü değildir  ( EN 81-20 m.5.5.2.2 )
     #  Dt 400 · dh 8 · yarım daire kanal:  Sf = 7,89 ( < 12 ) ama gerçekleşen
@@ -1762,7 +1762,7 @@ def _denetim_bulgulari(r):
     #  katsayısını olduğundan iyi gösterirdi.  Üst sınır standardınkidir.
     r.kontrol("B16  μ asansör girdisi değil", "reg_surtunme" not in _MG.ALAN)
     r.esit("B16  sınır standardın verdiği değer", _MTd.REG_MU_AZAMI, 0.2)
-    from engine.uygulama import sabitler as _USm
+    from motor.uygulama import uygulama_sabitleri as _USm
 
     r.esit("B16  ofis varsayılanı µmax", _USm.VARSAYILAN["reg_mu"], 0.2)
     _o16 = _USm.sabitler({"reg_mu": 5})
@@ -1902,7 +1902,7 @@ def _denetim_bulgulari(r):
     #  denetleyen biri farkı hata sanabiliyordu:  iki satır da nasıl
     #  kurulduğunu yazmalı ve ekrandaki açıklamanın iddiası — fark yalnız
     #  gezici kablo payıdır — sayıyla tutmalı.
-    from engine.uygulama import mukavemet_tablolari as _MT3
+    from motor.uygulama import mukavemet_tablolari as _MT3
 
     for _z in ("Yok", "Var"):
         _s4 = MK.hesapla({"denge_zinciri": _z})
@@ -2117,7 +2117,7 @@ def _denetim_bulgulari(r):
 
     #  Kapının kabin merkezine göre katkısı:  mkapı·( D/2 + pay ) / P
     _gv = _MG.tamamla(_MG.varsayilanlar())
-    from engine.uygulama import sabitler as _USk
+    from motor.uygulama import uygulama_sabitleri as _USk
 
     _mkapi = _USk.sabitler(None)["kabin_kapisi_agirligi"]
     _kapi = _mkapi * (1400 / 2 + _gv["kapi_mekanizma_payi"]) / 650

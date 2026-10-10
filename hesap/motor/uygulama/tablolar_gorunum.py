@@ -15,9 +15,9 @@ eklenir.  Böylece ekrandaki tablo ile hesaba giren tablo bir daha ayrışamaz.
 
 import math
 
-from engine.ortak.steps import yuvarla
-from engine.uygulama import mukavemet_tablolari as MT
-from engine.uygulama import sabitler as US
+from motor.ortak.adimlar import yuvarla
+from motor.uygulama import mukavemet_tablolari as MT
+from motor.uygulama import uygulama_sabitleri as US
 
 
 def _satirlar(kayitlar):

@@ -15,9 +15,9 @@ import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from api import cizim as UC
-from api import uygulama as UYG
-from engine.uygulama import hesap as E_UYG
+from uclar import cizim_uclari as UC
+from uclar import uygulama_uclari as UYG
+from motor.uygulama import uygulama_hesabi as E_UYG
 
 from testler import test_yerlesim_saglamligi as Y
 
@@ -82,7 +82,7 @@ class TamponAdedi(unittest.TestCase):
             with self.subTest(ek):
                 self.assertTrue(_calistir(**ek)[0].get("aktif"))
         from cizim import kopru as CK, kuyu_dibi as CKD
-        from engine.uygulama import girdi as E_UGR
+        from motor.uygulama import uygulama_girdisi as E_UGR
 
         v = Y._veri(800, True, "Sağ", kabin_tampon_adedi=2, kabin_tampon_arasi=600)
         ham, _i, proje = UC._istek(v)

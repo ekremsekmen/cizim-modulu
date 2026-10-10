@@ -18,7 +18,7 @@ import yollar
 
 yollar.kur()
 
-from dogrulama.ortak import Rapor
+from dogrulama.rapor import Rapor
 
 BASE = os.environ.get("AVAN_TEST_URL", "http://127.0.0.1:8780")
 
@@ -112,7 +112,7 @@ def calistir():
         #  haneden gürültü atılarak ) yuvarlar.
         # ---------------------------------------------------------------
         import random as _rnd
-        from engine.ortak.steps import tr as _tr_py
+        from motor.ortak.adimlar import tr as _tr_py
 
         _rnd.seed(20260922)
         _ozel = (
@@ -230,7 +230,7 @@ def calistir():
         #  örnek projenin 700 kg'ıyla açılınca 800 kg yükte "elle girilmiş"
         #  sayılıyor ve farkına varılmadan tablo dışı bir kütleyle hesap yapılıyordu.
         pg.wait_for_function("() => SON.m && SON.m.aktif && $('m_kabin_agirligi').value !== ''", timeout=8000)
-        from engine.ortak import ofis as _OFg
+        from motor.ortak import ofis as _OFg
 
         r.esit(
             "yeni projede kabin ağırlığı ofis tablosundan",
@@ -267,8 +267,8 @@ def calistir():
         #  GRUP SAYISI SÖZLEŞMEDEN OKUNUR ( API'nin forma verdiği gruplar:
         #  motorunkiler + çizim grubu ).  Çivili sayı, forma bir grup
         #  eklendiğinde ( "Makine yerleşimi" ) sessizce eskiyordu.
-        from engine.uygulama import girdi as _UGrp
-        from api import uygulama as _UAp
+        from motor.uygulama import uygulama_girdisi as _UGrp
+        from uclar import uygulama_uclari as _UAp
         from cizim import kopru as _CKp
 
         _grup_sayisi = len(_UAp.uygulama_alanlari()["gruplar"])
@@ -389,7 +389,7 @@ def calistir():
         #  ── GELİŞMİŞ BÖLÜMLERİ  ( ofisin / ürünün hep aynı girilen değerleri )
         #  Grubun altında KAPALI durur;  alanlar okunur ve hesaba girer.
         #  Gizli değer sessiz kalmamalı:  sayaç · işaret · hatada açılma · arama.
-        from engine.uygulama import mukavemet_girdi as _MGg
+        from motor.uygulama import mukavemet_girdi as _MGg
 
         r.esit(
             "gelişmiş: her gelişmiş alan kapalı bölümde",
@@ -1191,7 +1191,7 @@ def calistir():
         #  eski kütle kutuya yazılıyordu:  sonraki istek boş alan göndermediği
         #  için 1000 kg'da kabin 950 yerine 800 kg kaldı ( bağımsız incelemede
         #  yeniden üretildi ).  Yanıt 100 ms geciktirilerek yarış kurulur.
-        from engine.ortak import ofis as _OFK
+        from motor.ortak import ofis as _OFK
 
         _bek1000 = _OFK.bos_kabin_kutlesi(1000)
         _yaris = pg.evaluate("""async () => {

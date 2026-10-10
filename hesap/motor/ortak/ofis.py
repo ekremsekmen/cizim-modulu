@@ -15,7 +15,7 @@ NİÇİN AYRI DOSYA:
     alınmasının sebebi budur:  buradan okuyan iki taraf bir daha ayrışamaz.
 """
 
-from engine.ortak.steps import yuvarla
+from motor.ortak.adimlar import yuvarla
 
 
 #  Makine tipine göre TOPLAM SİSTEM VERİMİ  ( ofis kabulü ).  Anahtarlar
@@ -33,7 +33,7 @@ MAKINE_VERIMLERI = {
 #  ( örnek §4.4:  η = 0,5 − 0,1 = 0,4 ).
 #
 #  AVAN PROJESİ kitaba göre denetlenir ve düşüşü UYGULAR:  orada buradaki
-#  sayılar kitabın η'sı, yani MAKİNE verimidir ( bkz. engine/avan/tablolar
+#  sayılar kitabın η'sı, yani MAKİNE verimidir ( bkz. motor/avan/tablolar
 #  PALANGA_VERIM_DUSUSU ).  2026-09-08'de avandan da kaldırılmış, 2026-09-25'te
 #  geri getirilmiştir:  avan motoru kitabın bulduğundan küçük seçiyordu.
 #

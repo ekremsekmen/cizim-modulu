@@ -4,8 +4,8 @@ UYGULAMA PROJESİ — GİRDİ SÖZLEŞMESİ
 
 Uygulama projesi iki hesap ailesini birlikte kullanır:
 
-    MUKAVEMET      engine/mukavemet.py        ( 10 bölüm )
-    ELEKTRİK       engine/avan.py'nin 3-6.    ( kabin ve kuyu aydınlatması,
+    MUKAVEMET      motor/mukavemet.py        ( 10 bölüm )
+    ELEKTRİK       motor/avan.py'nin 3-6.    ( kabin ve kuyu aydınlatması,
                    bölümleri + topraklama +     kurulu güç cetveli, gerilim
                    makine dairesi aydınlatması  düşümü ve kesit kontrolü )
 
@@ -17,7 +17,7 @@ içinde çelişir.
 
 Bu yüzden:
   · Ortak girdiler YALNIZ mukavemet sözleşmesinde tanımlıdır
-    ( engine/uygulama/mukavemet_girdi.ALANLAR ) — tek doğruluk kaynağı odur.
+    ( motor/uygulama/mukavemet_girdi.ALANLAR ) — tek doğruluk kaynağı odur.
   · Elektrik hesaplarının mukavemette KARŞILIĞI OLMAYAN girdileri burada,
     ayrı bir grupta tanımlanır.
   · Ortak olanlar `kopru()` ile mukavemet girdisinden TÜRETİLİR, kullanıcıya
@@ -28,12 +28,12 @@ zaten "Sabitler / Ofis Standardı" sekmesinden gelir;  o da ikinci kez
 sorulmaz.
 """
 
-from engine.avan import hesap as E_AVAN
-from engine.ortak.steps import aralik_disi, evet_mi
-from engine.uygulama import mukavemet as MK
-from engine.uygulama import sabitler as US
-from engine.uygulama import mukavemet_girdi as MG
-from engine.uygulama import mukavemet_tablolari as MT
+from motor.avan import avan_hesabi as E_AVAN
+from motor.ortak.adimlar import aralik_disi, evet_mi
+from motor.uygulama import mukavemet as MK
+from motor.uygulama import uygulama_sabitleri as US
+from motor.uygulama import mukavemet_girdi as MG
+from motor.uygulama import mukavemet_tablolari as MT
 from tasarim import alanlar as _TS, gorunum as _TG
 
 #  Tanınmayan makine tipinde geri düşülecek verim.  Gerçek verim makine
@@ -271,7 +271,7 @@ def kopru(g):
     """ORTAK GİRDİ KÖPRÜSÜ  —  mukavemet girdisi  →  avan asansör girdisi.
 
     Buradaki her satır, kullanıcıya İKİNCİ KEZ SORULMAYAN bir alandır.
-    Sağ taraf mukavemet sözleşmesinden gelir;  sol taraf engine/avan.py'nin
+    Sağ taraf mukavemet sözleşmesinden gelir;  sol taraf motor/avan.py'nin
     beklediği addır.
     """
     ray = MT.ray(g.get("kabin_ray_profili"), "Gr")
@@ -289,7 +289,7 @@ def kopru(g):
         "i_palanga": g.get("aski_orani"),
         "gr": ray,  # ray metre ağırlığı  [kg/m]
         #  Motor verimi:  MAKİNE TİPİNDEN gelir ( ofis standardı, tek kaynak
-        #  engine/ortak/ofis.py ) ve uygulamada TOPLAM SİSTEM VERİMİDİR — askı
+        #  motor/ortak/ofis.py ) ve uygulamada TOPLAM SİSTEM VERİMİDİR — askı
         #  kaybı içindedir.  Avan motoru ise kitaba göre MAKİNE verimi bekler ve
         #  palangalı sistemde 0,10 düşer ( MMO/697 §2.4 );  bayrak o düşüşü bu
         #  yolda kapatır, iki proje aynı η ile aynı elektrik hesabını yapar.

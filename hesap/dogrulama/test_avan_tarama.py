@@ -32,10 +32,10 @@ import yollar
 
 yollar.kur()
 
-from engine.avan import hesap as AV
-from engine.avan import tablolar as T
-from engine.avan import trafik as TR
-from dogrulama.ortak import Rapor
+from motor.avan import avan_hesabi as AV
+from motor.avan import tablolar as T
+from motor.avan import trafik as TR
+from dogrulama.rapor import Rapor
 
 DOSYA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "referans_avan.json.gz")
 

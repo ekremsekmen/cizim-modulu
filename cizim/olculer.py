@@ -7,7 +7,7 @@ girdilerinden yerleştirir.  Hesap aynı büyüklükleri eskiden kendi kaba
 formülleriyle TAHMİN ediyordu ( kabin merkezi için sabit bir 130 mm, halat
 boyu için "kuyu boyu − yığın + 5 m" … );  iki sayı ayrışınca pafta kendi
 içinde çelişiyordu.  Burada o büyüklükler çizimin kurduğu yerleşimden
-ölçülür ve hesaba girer ( engine/uygulama/girdi.yerlesim_olculeri ).
+ölçülür ve hesaba girer ( motor/uygulama/uygulama_girdisi.yerlesim_olculeri ).
 
     kabin_merkezi_x     kabinin iç tabanının ortası − kabin ray ekseni ( mm, arkaya + )
     esik_x              kabin eşiğinin ortası − kabin ray ekseni ( mm;  m.5.7.2.3.6
@@ -48,7 +48,7 @@ from cizim import dusey as CDY
 from cizim import girdi as CG
 from cizim import kuyu_dibi as CKD
 from cizim import makine_dairesi as CMD
-from cizim import sabitler as CS
+from cizim import cizim_sabitleri as CS
 
 log = logging.getLogger(__name__)
 

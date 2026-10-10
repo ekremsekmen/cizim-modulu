@@ -26,12 +26,12 @@ import yollar
 
 yollar.kur()
 
-from api import cizim as UC_CIZIM
-from api import uygulama as UC_UYG
+from uclar import cizim_uclari as UC_CIZIM
+from uclar import uygulama_uclari as UC_UYG
 from cizim import geometri as CGE
 from cizim import pafta as CPF
 from cizim import svg as CSV
-from engine.uygulama import hesap as E_UYG
+from motor.uygulama import uygulama_hesabi as E_UYG
 from testler import gercek_projeler as GP
 
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER

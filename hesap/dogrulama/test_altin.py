@@ -27,8 +27,8 @@ import yollar
 
 yollar.kur()
 
-from engine.avan import hesap as AV
-from engine.avan import trafik as TR
+from motor.avan import avan_hesabi as AV
+from motor.avan import trafik as TR
 from dogrulama.altin_uret import (
     DOSYA,
     DOSYA_AVAN,
@@ -38,7 +38,7 @@ from dogrulama.altin_uret import (
     uygulama_motoru,
     uygulama_senaryolar,
 )
-from dogrulama.ortak import Rapor
+from dogrulama.rapor import Rapor
 
 
 def _duz(x, on=""):

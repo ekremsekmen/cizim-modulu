@@ -10,8 +10,8 @@ ASANSÖR AVAN PROJE HESAPLARI
 """
 
 import math
-from engine.avan import tablolar as T
-from engine.ortak.steps import (
+from motor.avan import tablolar as T
+from motor.ortak.adimlar import (
     Bolum,
     veri,
     hesap,
@@ -128,7 +128,7 @@ SABIT_B_ARALIK = {
     "ayd_sutun": (1, 10),
     #  Aralığı yoktu:  ηm = 5 kabul ediliyor, motor akımı beşte birine
     #  iniyor, kablo ve sigorta küçük seçiliyordu.  Uygulamanın aynı sabitiyle
-    #  aynı aralık ( engine/uygulama/sabitler.ARALIK ).
+    #  aynı aralık ( motor/uygulama/uygulama_sabitleri.ARALIK ).
     "motor_elektrik_verimi": (0.1, 1),
 }
 

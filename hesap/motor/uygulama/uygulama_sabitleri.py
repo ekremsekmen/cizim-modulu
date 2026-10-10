@@ -12,25 +12,25 @@ KODUN İÇİNDE, kimsenin göremediği yerde duruyordu;  görülemediği için a
 ve kimse fark etmedi.  Buradakiler ekranda durur, mühendis bilerek girer ve
 pafta her değeri KAYNAĞIYLA birlikte basar.  Ayrışırlarsa bilerek ayrışırlar.
 
-FABRİKA AYARI ortaktır:  engine/ortak/ofis.py.  İki proje de oradan başlar;
+FABRİKA AYARI ortaktır:  motor/ortak/ofis.py.  İki proje de oradan başlar;
 sonrası her projenin kendi kararıdır.
 """
 
-from engine.avan import hesap as _AVAN
-from engine.ortak import ofis as OFIS
-from engine.ortak.steps import aralik_disi
-from engine.uygulama import mukavemet_tablolari as MT
+from motor.avan import avan_hesabi as _AVAN
+from motor.ortak import ofis as OFIS
+from motor.ortak.adimlar import aralik_disi
+from motor.uygulama import mukavemet_tablolari as MT
 
 #  Kabinin düşey ölçüleri çizim modülünün sabitleridir ( tek kaynak;  yol
-#  engine/uygulama/__init__.py'de kurulur ).
-from cizim import sabitler as _CS
+#  motor/uygulama/__init__.py'de kurulur ).
+from cizim import cizim_sabitleri as _CS
 
 _AVAN_VARSAYILAN = {**_AVAN.SABIT_B_VARSAYILAN, **_AVAN.OFIS_VARSAYILAN}
 
 #  Fiziksel dönüşümler ve STANDARDIN dayattığı sayılar buraya GİRMEZ:
 #  gn · 102 · 1,34 · k2 = 1,2 ( EN 81-20 Çiz.14 ) · Dt/dh ≥ 40
 #  ( EN 81-20 m.5.5.2.1 ).  Onlar ofis kabulü değildir, değiştirilemezler;
-#  yerleri engine/uygulama/mukavemet.py içindeki SABIT sözlüğüdür.
+#  yerleri motor/uygulama/mukavemet.py içindeki SABIT sözlüğüdür.
 
 VARSAYILAN = {
     # ── ① MAKİNE VE MOTOR ────────────────────────────────────────────
@@ -172,7 +172,7 @@ VARSAYILAN = {
     # ── ③ ÇİZİMİN ÜRÜN ÖLÇÜLERİ  ( tek katalog — karar 12 ) ───────────
     #  BİRLEŞİK PROGRAM:  çizimin bütün ürün ölçüleri ( konsollar, kabin,
     #  kapı, makine, kuyu üstü … ) burada, çizim modülünün bölümleriyle
-    #  ( cizim/sabitler.BOLUMLER ) durur;  değerleri TEK YERDEN, çizim
+    #  ( cizim/cizim_sabitleri.BOLUMLER ) durur;  değerleri TEK YERDEN, çizim
     #  modülünün fabrika ayarından ( referans projenin donanımı ) okunur ve
     #  buradan değiştirilince çizim, yerleşimin ölçü listesi ve bölüm 11 aynı
     #  sayıyı kullanır ( cizim/kopru.OFIS_SABITLERI ).  Kabinin düşey ölçüleri
@@ -300,7 +300,7 @@ CIZIM_ANAHTARLARI = tuple(_CS.ofis_adi(c) for c in _CS.SABIT)
 for _c in _CS.SABIT:
     ARALIK[_CS.ofis_adi(_c)] = _CS.aralik(_c)
 
-#  Çizimin bölümleri ( cizim/sabitler.BOLUMLER ) Sabitler sekmesinde ③a, ③b …
+#  Çizimin bölümleri ( cizim/cizim_sabitleri.BOLUMLER ) Sabitler sekmesinde ③a, ③b …
 #  olur;  revizyon kutusunun yüksekliği kabinin bölümündedir.
 _HARF = "abcdefghijklmnopqrstuvwxyz"
 _CIZIM_GRUPLARI = tuple(
@@ -634,7 +634,7 @@ def verim(S, makine_tipi):
     """η  —  ofis sabitlerinden okunan TOPLAM SİSTEM VERİMİ.
 
     Askı ( palanga ) kaybı bu değerin İÇİNDEDİR;  askı oranına bağlı ayrı
-    bir düzeltme YOKTUR ( bkz. engine/ortak/ofis.py — "PALANGA VERİM
+    bir düzeltme YOKTUR ( bkz. motor/ortak/ofis.py — "PALANGA VERİM
     DÜŞÜŞÜ KALDIRILDI" ).  Tanınmayan makine tipinde ortak fabrika ayarına
     dönülür.
     """

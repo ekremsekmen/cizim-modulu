@@ -4,7 +4,7 @@ MMO/697 (2. Baskı, Ocak 2020), TS EN 81-20, ISO 8100-32:2020 ve IEC 60364-5-52
 kaynaklı tablolar.
 """
 
-from engine.ortak import ofis as _OFIS
+from motor.ortak import ofis as _OFIS
 from temel import sayi_mi
 
 # ---------------------------------------------------------------- TABLO - 1
@@ -391,7 +391,7 @@ def ayd_verim(k, sutun=2):
 
 
 # --------------- ANMA YÜKÜNE GÖRE ORTALAMA BOŞ KABİN KÜTLESİ  ( ofis tablosu )
-#  TABLO ARTIK ORTAK DOSYADADIR  ( engine/ortak/ofis.py ):  uygulama projesi de
+#  TABLO ARTIK ORTAK DOSYADADIR  ( motor/ortak/ofis.py ):  uygulama projesi de
 #  boş kabin ağırlığını aynı tablodan doldurur.  İki kopya tutulsaydı biri
 #  güncellenip öteki unutulur, aynı asansör iki projede iki farklı kabin
 #  kütlesiyle hesaplanırdı.
@@ -747,8 +747,8 @@ BODRUM_NOTU = (
 #
 #  UYGULAMA PROJESİ BUNU UYGULAMAZ:  orada η TOPLAM sistem verimidir
 #  ( imalatçı kataloğunun η_ins'i, askı kaybı içinde ) — bkz.
-#  engine/ortak/ofis.py.  Uygulama elektrik hesabını avan motorunda koştuğu
-#  için köprü ( engine/uygulama/girdi.kopru ) "η toplamdır" bayrağını
+#  motor/ortak/ofis.py.  Uygulama elektrik hesabını avan motorunda koştuğu
+#  için köprü ( motor/uygulama/uygulama_girdisi.kopru ) "η toplamdır" bayrağını
 #  ( ETA_TOPLAM_ANAHTARI ) geçirir;  düşüş o yolda uygulanmaz.
 #  Tablo ORTAK ofis standardındadır:  iki taraf aynı sayıları okur.
 MAKINE_TIPLERI = _OFIS.MAKINE_VERIMLERI

@@ -117,9 +117,9 @@ bölüm 11 **HESAP EKSİK** der ve sebebini yazar.
 **Tek katalog** ( karar 12 ).  Çizimin bütün ürün ölçüleri — konsollar, paten,
 kabin ( düşey ölçüleri dahil ), kabin kasnakları, kapı ve katlar, karşı ağırlık,
 kuyu dibi, makine, kuyu üstü, makine dairesi — hesabın **Sabitler** sekmesindedir
-( ③a – ③j, bölümleri `cizim/sabitler.BOLUMLER` );  çizim, yerleşimin ölçü
+( ③a – ③j, bölümleri `cizim/cizim_sabitleri.BOLUMLER` );  çizim, yerleşimin ölçü
 listesi ve bölüm 11 aynı sayıyı kullanır ( `kopru.OFIS_SABITLERI`;  fabrika
-ayarı `cizim/sabitler.py` ).  Makine bölümü tek bir makinenindir ( referans
+ayarı `cizim/cizim_sabitleri.py` ).  Makine bölümü tek bir makinenindir ( referans
 projenin dişlisiz makinesi ) — başka makinede oradan değiştirilir.  Aralık
 dışındaki değer hesabı durdurur ve çizime de geçmez ( `sabitler.aralik`:  sıfır
 yalnız boşluk ve paylarda — ray boyu sıfır olamaz ).  Kuyu tavanı payının adı
@@ -327,10 +327,10 @@ sağına ekler ( çok asansörlüde şeritte asansörün adı ).  Bir asansörü
 kurulamıyorsa paket inmez, sebebi söylenir — eksik proje teslim edilmesin
 ( hesap PDF'i yine iner ).
 
-**Kopyanın orijinalden farkları** ( `hesap/` ):  `api/cizim.py` ( yeni ),
-`api/uygulama.py` ( çizim alanları, paket ), `main.py` ( port 8780, çizim
-uçları ), `exports/dxf_export.py` ( paketin son işlemi ), `static/` ( Hesap |
-Çizimler, ölçüye tıklama );  hesap motorunda `engine/uygulama/mukavemet.py` ( bölüm 11 çizimden ),
+**Kopyanın orijinalden farkları** ( `hesap/` ):  `uclar/cizim_uclari.py` ( yeni ),
+`uclar/uygulama_uclari.py` ( çizim alanları, paket ), `main.py` ( port 8780, çizim
+uçları ), `ciktilar/dxf_cikti.py` ( paketin son işlemi ), `static/` ( Hesap |
+Çizimler, ölçüye tıklama );  hesap motorunda `motor/uygulama/mukavemet.py` ( bölüm 11 çizimden ),
 `mukavemet_girdi.py` ( alan tanımları, gruplar, "Gelişmiş" listesi, ⓘ metinleri ve
 doğrulama listeleri artık tasarım şemasından türetilir — `tasarim/alanlar.py`;
 motorun sözleşmesinin biçimi ve içeriği aynı kaldı.  Çizimden türeyen beş girdi:
@@ -405,7 +405,7 @@ commit'leri `.git-blame-ignore-revs`'te:  `git config blame.ignoreRevsFile
 .git-blame-ignore-revs`.
 
 **Kayıt** ( `logging` ):  uçların genel `except`'i kullanıcıya iletiyi
-döndürür ve hatayı kaydeder ( `api/ortak.hata_kaydi`:  girdiden doğan ret
+döndürür ve hatayı kaydeder ( `uclar/uc_ortak.hata_kaydi`:  girdiden doğan ret
 bilgi, beklenmeyen hata izleriyle hata düzeyinde );  çizimin yedek değere
 düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNING|ERROR`
 ( varsayılan WARNING ).
@@ -423,7 +423,7 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
 | `cizim/arka_aski.py` | **Arkadaki ağırlıkla 2:1**:  kabin üstünde çapraz kasnakların, tahrik ve ağırlık kasnağı inişlerinin ve bağlantıların plandaki geometrisi ( tek yerde ) |
 | `cizim/olculer.py` | **Yerleşimin ölçü listesi**:  hesabın çizimden aldığı geometri ( xc · xi · ray ve halat boyları · kasnak sayıları · makinenin kirişteki yeri ) |
 | `cizim/girdi.py` | Çizim girdisinin **sözleşmesi**, doğrulaması ve deneme ölçüleri |
-| `cizim/sabitler.py` | Ofisin ürün ölçüleri ( konsol, paten, kasa, pano … ) — fabrika ayarı;  Sabitler sekmesindeki bölümleri ( `BOLUMLER` ), geçerli aralıkları ( `aralik` ) |
+| `cizim/cizim_sabitleri.py` | Ofisin ürün ölçüleri ( konsol, paten, kasa, pano … ) — fabrika ayarı;  Sabitler sekmesindeki bölümleri ( `BOLUMLER` ), geçerli aralıkları ( `aralik` ) |
 | `cizim/geometri.py` | Girdiden **çizim elemanları** üretir ( saf veri ) — kuyu planı |
 | `cizim/kabin_ustu.py` | Kabin üstü planı:  kuyu planının elemanlarını okur, tavanı ekler |
 | `cizim/kuyu_dibi.py` | Kuyu dibi planı:  tamponlar, perde, gergi, sığınma alanı, merdiven |
@@ -474,7 +474,7 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
    ve kabinden yüksek kapı sessizce çiziliyordu ).
 
    **Kuyunun geometrisi kurulamıyorsa HESAP DA DURUR** ( kullanıcı kararı 4 Eki ):
-   hesap geometriyi çizimden alırken ( `engine/uygulama/girdi.yerlesim_olculeri` )
+   hesap geometriyi çizimden alırken ( `motor/uygulama/uygulama_girdisi.yerlesim_olculeri` )
    çizimin plan doğrulamasını ( `girdi.dogrula` ) da koşar;  hata varsa hesap
    kurulmaz, aynı iletiler söylenir ( çok asansörlü projede asansörün adıyla ).
    Eskiden kabin kuyuya sığmasa da hesap kuruluyor, özet yalnız "engelleyici"
@@ -741,7 +741,7 @@ kalınlığı" ve "Gelişmiş"te ön · arka · sol · sağ duvar ( boşsa ortak
 LiftDesigner projelerinde farklı:  800 KG ön · arka 200, yanlar 250;  4815-6 arka
 250 ).  Planda dört duvar da ölçülür ( ön ve arka eskiden yalnız dış ölçünün
 içindeydi );  "DUVAR" ölçüsüne tıklanınca yalnız o duvarın kutusu değişir
-( ölçü kaynağı:  eşitlikte kuralla dolan alanın kendisi önce — `api/cizim._kaynaklar` ).
+( ölçü kaynağı:  eşitlikte kuralla dolan alanın kendisi önce — `uclar/cizim_uclari._kaynaklar` ).
 Kuyu dibinin ve makine dairesizde kuyu tavanının döşemesi ortak kalınlıktadır
 ( `kuyu.doseme`;  eskiden ön duvarınkiydi ).
 
@@ -1404,7 +1404,7 @@ verilir;  uzatma çizgileri kısadır, planı kesmez.
 
 ## Ölçülerin kaynağı
 
-`cizim/sabitler.py` içindeki ürün ölçüleri ve `girdi.ORNEK`, referans projenin
+`cizim/cizim_sabitleri.py` içindeki ürün ölçüleri ve `girdi.ORNEK`, referans projenin
 yayımlanmış örnek projesinin çizim geometrisinden ölçülerek alındı ( karşı
 ağırlık çerçevesi 790 × 160, kapı kasaya 610 → boşluğa 730, kasnaklar arası
 690 + 690 = 1.380, ara kiriş 50 );  ölçek 1/20 üzerinden

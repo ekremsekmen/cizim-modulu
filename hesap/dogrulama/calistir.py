@@ -19,7 +19,7 @@ import yollar
 
 yollar.kur()
 
-from dogrulama.ortak import GRI, KIRMIZI, SIFIR, YESIL
+from dogrulama.rapor import GRI, KIRMIZI, SIFIR, YESIL
 
 TESTLER = [
     ("1", "Avan referans taraması", "dogrulama.test_avan_tarama"),

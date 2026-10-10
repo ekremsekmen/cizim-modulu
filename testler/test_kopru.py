@@ -14,13 +14,13 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 import ezdxf
 
-from api import cizim as UC_CIZIM
-from api import uygulama as UC_UYG
+from uclar import cizim_uclari as UC_CIZIM
+from uclar import uygulama_uclari as UC_UYG
 from cizim import girdi as CG
 from cizim import kopru as CK
-from cizim import sabitler as CS
-from engine.uygulama import girdi as E_UGR
-from engine.uygulama import hesap as E_UYG
+from cizim import cizim_sabitleri as CS
+from motor.uygulama import uygulama_girdisi as E_UGR
+from motor.uygulama import uygulama_hesabi as E_UYG
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
 
 
@@ -337,7 +337,7 @@ class Bolum11CizimdenOlculur(unittest.TestCase):
 
     def test_turetilen_deger_girdiyi_izler(self):
         #  Varsayılanlar türetilen değeri TAŞIMAZ:  kuyu dibi değişince kaide de değişir
-        from engine.uygulama import mukavemet as MK
+        from motor.uygulama import mukavemet as MK
 
         for k in CK.CIZIMDEN:
             self.assertIsNone(E_UGR.varsayilanlar()[k], k)

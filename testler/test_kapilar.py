@@ -18,8 +18,8 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from cizim import geometri as CGE
 from cizim import giris as CGI
 from cizim import girdi as CG
-from cizim import sabitler as CS
-from engine.uygulama import mukavemet_tablolari as MT
+from cizim import cizim_sabitleri as CS
+from motor.uygulama import mukavemet_tablolari as MT
 
 from testler import test_olcu_kaynagi as T
 from testler import test_yerlesim_saglamligi as Y

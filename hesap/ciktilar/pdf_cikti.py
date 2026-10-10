@@ -30,7 +30,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from engine.ortak.steps import tr, trn
+from motor.ortak.adimlar import tr, trn
 
 FONT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "fonts")
 
@@ -1190,7 +1190,7 @@ def mukavemet_pdf(sonuc: dict, proje: dict = None) -> bytes:
     ``proje`` eski çağrılarla uyumluluk için kabul edilir, paftaya yazılmaz —
     proje antedi KAPAK sayfasındadır ( bkz. kapak_export ).
 
-    Bölümler engine/mukavemet.py'den olduğu gibi gelir;  avan paftasıyla aynı
+    Bölümler motor/mukavemet.py'den olduğu gibi gelir;  avan paftasıyla aynı
     çizim yardımcıları kullanılır, böylece iki çıktının biçimi ayrışmaz.
     """
     buf = io.BytesIO()
@@ -1295,7 +1295,7 @@ def _uygulama_govdesi(sonuc, ust_ek=""):
 def uygulama_pdf(sonuc: dict, proje: dict = None) -> bytes:
     """Uygulama projesi paftası — 1 - 4 asansör, hepsi TEK belgede.
 
-    GİRDİSİ PROJE SONUCUDUR ( engine/uygulama/hesap.hesapla_coklu ), tek bir
+    GİRDİSİ PROJE SONUCUDUR ( motor/uygulama/uygulama_hesabi.hesapla_coklu ), tek bir
     asansörün sonucu değil.  Bir süre iki ayrı fonksiyon vardı — tek asansöre
     ``uygulama_pdf``, çoğuna ``uygulama_coklu_pdf`` — ve hangisinin
     çağrılacağına API karar veriyordu.  İkisi zamanla ayrıştı:  proje geneli

@@ -10,10 +10,10 @@ import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from api import uygulama as UC_UYG
+from uclar import uygulama_uclari as UC_UYG
 from cizim import kopru as CK
-from engine.uygulama import girdi as UG
-from engine.uygulama import mukavemet_girdi as MG
+from motor.uygulama import uygulama_girdisi as UG
+from motor.uygulama import mukavemet_girdi as MG
 from tasarim import alanlar as TS
 from tasarim import gorunum as TG
 from tasarim import sozluk as TZ

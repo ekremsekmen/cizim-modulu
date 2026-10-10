@@ -46,9 +46,9 @@ import yollar
 
 yollar.kur()
 
-from engine.avan import hesap as AV
-from engine.avan import trafik as TR
-from engine.uygulama import mukavemet as MK
+from motor.avan import avan_hesabi as AV
+from motor.avan import trafik as TR
+from motor.uygulama import mukavemet as MK
 from dogrulama import test_mukavemet_tarama as T10
 from dogrulama.altin_uret import (
     avan_senaryolar,
@@ -56,7 +56,7 @@ from dogrulama.altin_uret import (
     uygulama_motoru,
     uygulama_senaryolar,
 )
-from dogrulama.ortak import Rapor
+from dogrulama.rapor import Rapor
 
 
 # =====================================================================

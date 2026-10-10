@@ -1,12 +1,12 @@
 """KAYIT ( logging ) — uçların genel except'i hatayı kullanıcıya ileti olarak
-döndürür;  sunucunun kaydında da izi kalmalı ( api/ortak.hata_kaydi )."""
+döndürür;  sunucunun kaydında da izi kalmalı ( uclar/uc_ortak.hata_kaydi )."""
 
 import logging
 import unittest
 
-from api import cizim as UC
-from api import uygulama as UC_UYG
-from api.ortak import hata_kaydi
+from uclar import cizim_uclari as UC
+from uclar import uygulama_uclari as UC_UYG
+from uclar.uc_ortak import hata_kaydi
 
 
 class HataKaydi(unittest.TestCase):

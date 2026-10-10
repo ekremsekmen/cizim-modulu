@@ -20,16 +20,16 @@ import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from api import cizim as UC
-from api import uygulama as UYG
+from uclar import cizim_uclari as UC
+from uclar import uygulama_uclari as UYG
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kopru as CK
 from cizim import kuyu_dibi as CKD
 from cizim import makine_dairesi as CMD
-from cizim import sabitler as CS
-from engine.uygulama import girdi as E_UGR
-from engine.uygulama import hesap as E_UYG
+from cizim import cizim_sabitleri as CS
+from motor.uygulama import uygulama_girdisi as E_UGR
+from motor.uygulama import uygulama_hesabi as E_UYG
 
 from testler import gercek_projeler as GP
 

@@ -70,8 +70,8 @@ def P_std(sonuc):
     Testler bu değeri bağımsız kursun diye burada durur;  motorun kendi
     ``P_std``ini okumak, hesabı kendisiyle doğrulamak olurdu.
     """
-    from engine.uygulama import mukavemet_tablolari as T
-    from engine.uygulama import sabitler as S
+    from motor.uygulama import mukavemet_tablolari as T
+    from motor.uygulama import uygulama_sabitleri as S
 
     g = sonuc["girdi"]
     r = 2 if str(g["aski_orani"]).strip() in ("2", "2:1") else 1

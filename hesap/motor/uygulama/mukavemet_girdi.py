@@ -2,22 +2,22 @@
 """
 MUKAVEMET HESABI — GİRDİ SÖZLEŞMESİ        ( uygulama projesi )
 
-Tüketen:  engine/uygulama/mukavemet.py
+Tüketen:  motor/uygulama/mukavemet.py
 
 Bu modül hesap YAPMAZ.  Yalnızca mukavemet motorunun hangi girdileri
 beklediğini, her birinin birimini, seçenek listesini ve varsayılanını
 tanımlar.  Arayüz, API ve doğrulama testleri hep buradan okur — tek
 doğruluk kaynağı.
 
-AVANDAN AYRIDIR.  Avan tarafındaki tablolar ( engine/avan/tablolar.py )
+AVANDAN AYRIDIR.  Avan tarafındaki tablolar ( motor/avan/tablolar.py )
 MMO/697 avan kitabından gelir;  uygulama projesinin tabloları bilerek ayrı
-tutulmuştur ( bkz. engine/uygulama/mukavemet_tablolari.py ).
+tutulmuştur ( bkz. motor/uygulama/mukavemet_tablolari.py ).
 """
 
 from temel import sayi_mi
-from engine.ortak import ofis as OFIS
-from engine.ortak.steps import evet_mi
-from engine.uygulama import mukavemet_tablolari as MT
+from motor.ortak import ofis as OFIS
+from motor.ortak.adimlar import evet_mi
+from motor.uygulama import mukavemet_tablolari as MT
 from tasarim import alanlar as _TS, gorunum as _TG
 
 
@@ -327,7 +327,7 @@ def tamamla(g):
     #  ile kurulur.  "Beyan yükü / 2" diye çivilenseydi q = 0,60'ta aynı
     #  projede iki farklı karşı ağırlık oluşurdu — aynı fiziksel parçanın
     #  kütlesi her hesapta aynı olmalıdır.
-    from engine.uygulama import sabitler as _US
+    from motor.uygulama import uygulama_sabitleri as _US
 
     # Motor, tahrik ve tampon aynı doğrulanmış denge oranını kullanmalı.
     # Ham sözlüğü koru: reddedilen girdiler uyarılarda gösterilmeye devam eder.
@@ -359,7 +359,7 @@ def tamamla(g):
     #  çağrıldığında girdide yoksa uygulama sözleşmesinin varsayılanları —
     #  sabit tablo;  girdi.varsayilanlar() buraya döner, döngü olurdu.
     from cizim import kopru as _CK
-    from engine.uygulama import girdi as _UG
+    from motor.uygulama import uygulama_girdisi as _UG
 
     _cd = _CK.cizimden({**{a[0]: a[5] for a in _UG.EK_ALANLAR}, **g})
     g.update(_cd)
@@ -399,7 +399,7 @@ def sistem_verimi(g):
     e = g.get("makine_verimi")
     if sayi_mi(e):
         return e, True
-    from engine.uygulama import sabitler as _US
+    from motor.uygulama import uygulama_sabitleri as _US
 
     return _US.verim(_US.sabitler(g.get("_ofis")), g.get("makine_tipi")), False
 
@@ -693,7 +693,7 @@ def dogrula(g):
     L = g.get("yan_yatak_boyu")
     pay = (g.get("_ofis") or {}).get("yan_yatak_L_X")
     if not sayi_mi(pay):
-        from engine.uygulama import sabitler as _US
+        from motor.uygulama import uygulama_sabitleri as _US
 
         pay = _US.VARSAYILAN["yan_yatak_L_X"]
     #  Yükün yeri çizimden geldiyse ( program hesabı ) mesnet payı kullanılmaz.
@@ -775,14 +775,14 @@ def dogrula(g):
 
     #  OFİS STANDARDI  ( Sabitler sekmesi ).  Aralık dışı değer varsayılanla
     #  değiştiriliyor ve bunu hiçbir yer söylemiyordu;  artık hesap durur.
-    from engine.uygulama import sabitler as _US
+    from motor.uygulama import uygulama_sabitleri as _US
 
     hata += _US.ofis_hatalari(g.get("_ofis"))
     return hata
 
 
 #  Sarılma açısı girilmediğinde paftanın başına basılan uyarı.  Sabittir,
-#  çünkü uygulama projesi ( engine/uygulama/hesap.py ) aynı eksikliği bir de
+#  çünkü uygulama projesi ( motor/uygulama/uygulama_hesabi.py ) aynı eksikliği bir de
 #  kısa "HESAP EKSİK" satırıyla yazmasın diye bu metni arar.
 ALFA_UYARI = (
     "SARILMA AÇISI α GİRİLMEDİ ve çizimden de bulunamadı: çizim açıyı "

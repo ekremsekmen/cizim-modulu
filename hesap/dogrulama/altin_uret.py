@@ -30,10 +30,10 @@ import yollar
 
 yollar.kur()
 
-from engine.avan import hesap as AV
-from engine.avan import tablolar as T
-from engine.avan import trafik as TR
-from engine.uygulama import hesap as UY
+from motor.avan import avan_hesabi as AV
+from motor.avan import tablolar as T
+from motor.avan import trafik as TR
+from motor.uygulama import uygulama_hesabi as UY
 
 _KLASOR = os.path.dirname(os.path.abspath(__file__))
 DOSYA = os.path.join(_KLASOR, "altin_trafik.json.gz")

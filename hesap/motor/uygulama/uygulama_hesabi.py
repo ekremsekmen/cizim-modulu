@@ -5,8 +5,8 @@ UYGULAMA PROJESİ HESAP MOTORU        ( orkestratör )
 Kendi başına HESAP YAPMAZ.  İki mevcut motoru tek girdi setiyle koşturur ve
 sonuçlarını tek çıktıda birleştirir:
 
-    engine/mukavemet.py     10 bölüm  —  mukavemet
-    engine/avan.py          3-6. bölümler  —  kabin ve kuyu aydınlatması,
+    motor/mukavemet.py     10 bölüm  —  mukavemet
+    motor/avan.py          3-6. bölümler  —  kabin ve kuyu aydınlatması,
                             kurulu güç cetveli, gerilim düşümü ve kesit
                             kontrolü;  ayrıca makine dairesi aydınlatması
                             ve temel topraklama
@@ -23,12 +23,12 @@ AVANIN 1. VE 2. BÖLÜMÜ ALINMAZ:
     m.5.2.1.8'e göre, ray kuvvetlerini de bölüm 7-8'de ayrıntılı verir.
 """
 
-from engine.avan import hesap as E_AVAN
-from engine.ortak.steps import numarala
-from engine.uygulama import mukavemet as E_MUK
-from engine.avan import tablolar as T
-from engine.uygulama import girdi as UG
-from engine.uygulama import mukavemet_girdi as MG
+from motor.avan import avan_hesabi as E_AVAN
+from motor.ortak.adimlar import numarala
+from motor.uygulama import mukavemet as E_MUK
+from motor.avan import tablolar as T
+from motor.uygulama import uygulama_girdisi as UG
+from motor.uygulama import mukavemet_girdi as MG
 
 #  Avanın uygulama projesine giren bölümleri  ( 0-tabanlı sıra )
 ELEKTRIK_BOLUMLERI = (2, 3, 4, 5)  # kabin ayd. · kuyu ayd. · TAS · ε
@@ -336,7 +336,7 @@ def hesapla_coklu(asansorler=None, ortak=None):
         "adet": len(sonuclar),
         #  KULLANILAN YOL SONUCUN İÇİNDE YAZAR.  Çağıran taraf "bu proje tek
         #  mi çoklu mu" diye karar VERMEZ, sonuca bakar — avan trafik motoru
-        #  da böyle yapar ( engine/avan/trafik.hesapla ).  Bir süre kararı API
+        #  da böyle yapar ( motor/avan/trafik.hesapla ).  Bir süre kararı API
         #  veriyordu ve aynı dallanma PDF · CAD · ZIP uçlarında üç kez
         #  tekrarlanıyordu;  iki yol zamanla ayrıştı.
         "yol": "tek" if len(sonuclar) == 1 else "coklu",

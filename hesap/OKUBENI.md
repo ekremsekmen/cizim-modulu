@@ -10,7 +10,7 @@ veren yerel program.  Açılışta hangi projenin hazırlanacağı seçilir:
 
 **Mukavemet tarafı avandan ayrıdır** — tabloları ve kabulleri kendi kaynağından
 gelir. Elektrik ve topraklama hesapları ise avan projesindekilerin **aynısıdır**;
-kopyalanmadı, aynı motor çağrılıyor ( `engine/avan/hesap.py` ). Sekme şeridi moda göre
+kopyalanmadı, aynı motor çağrılıyor ( `motor/avan/avan_hesabi.py` ). Sekme şeridi moda göre
 değişir, yalnız **Sabitler / Ofis Standardı** iki modda da durur — ofis standardı
 ikisinde de aynıdır.
 
@@ -59,7 +59,7 @@ programın kendisidir** — program Excel üretmez ve okumaz.
 | **Çok asansörlü projede ortak topraklama iletkenleri** | Binaya ait bölümler ilk asansörün kendi hesabından alınıyordu;  iletkenler yalnız o asansörün koruma iletkenini görüyordu.  Kolon kesiti 16 ve 95 mm² olan iki asansörde sıraya göre topraklama iletkeni 16 ya da 50, ana potansiyel dengeleme 10 ya da 25 mm² çıkıyordu | Makine dairesi aydınlatması ve temel topraklama bütün asansörler hesaplandıktan sonra, **tesisteki en büyük koruma iletkeniyle** bir kez hesaplanır ( avan projesiyle aynı kural );  asansörlerin sırası sonucu değiştirmez |
 | **Yük değiştirilip hemen kaydedilen proje** | Kabin ağırlığı kutusu tablo değeri gelene kadar eski kütleyi taşıyordu;  o arada kaydedilen dosyaya ( ve tarayıcı belleğine ) 1600 kg yükün yanına 800 kg kabin yazılıyor, açılınca hesap o değerle yapılıyordu ( kabin tamponu 116,29 yerine 94,71 kN ) | Yük değişince kutu hemen boşalır ( boş = tablodan gelecek );  boş kutuyla açılan proje tablo değerini ister |
 | **Ofis standardında belirsiz ya da okunamayan sayı ( avan )** | "1.200" ve "abc" hata vermeden varsayılana dönüyordu:  β = 1.200 yazan kullanıcının topraklama direnci 150 Ω·m ile hesaplanıyordu;  kablo tipine yazılan "NYY" NHXMH FE180 oluyordu | İki proje ofis standardını aynı kuralla okur:  belirsiz ya da okunamayan sayı hesabı durdurur ve sebebini yazar, metin alanı metin kalır |
-| **Gizli alan projeyi durduruyordu ( uygulama )** | Makine dairesizde gizli makine dairesi ölçüsü ya da kaide alanı, makine dairelide gizli "raya binen yük" içinde kalmış "4.000" · "-3" gibi bir değer bütün projeyi reddettiriyordu — kullanıcı alanı göremiyor, düzeltemiyordu | Makine yerleşimine göre hesaba girmeyen alanlar tek listede ( `engine/uygulama/girdi.uygulanmayan_alanlar` );  ekran onları gizler, API okumaz, motor doğrulamaz |
+| **Gizli alan projeyi durduruyordu ( uygulama )** | Makine dairesizde gizli makine dairesi ölçüsü ya da kaide alanı, makine dairelide gizli "raya binen yük" içinde kalmış "4.000" · "-3" gibi bir değer bütün projeyi reddettiriyordu — kullanıcı alanı göremiyor, düzeltemiyordu | Makine yerleşimine göre hesaba girmeyen alanlar tek listede ( `motor/uygulama/uygulama_girdisi.uygulanmayan_alanlar` );  ekran onları gizler, API okumaz, motor doğrulamaz |
 | **Kurulu güç şebekeden çekilen güçle yazılıyordu** | Kolon hattı akımı doğru çıksın diye cetvele motorun şebekeden çektiği güç ( Nsç / ηm ) yazılıyor, asansörün kurulu gücü de ~%18 büyük bildiriliyordu ( 11 kW motor → 12,94 kW ) | Kurulu güç tanımına döndü:  cetvelde motorun **etiket gücü** ( Elektrik İç Tesisleri Proje Hazırlama Yönetmeliği m.5-19 · TS EN 60034-1 m.5.5.3 ).  Kolon hattı akımı ve gerilim düşümü bölüm 6'daki ayrı satırla ( P1 = Pşeb + aydınlatma + priz ) hesaplanmaya devam eder — **kesit, sigorta ve gerilim düşümü değişmez** |
 | **Kabin ağırlığının kaynağı** | Tablodan gelen değer ilk hesapta ofis tablosunu, sonraki hesaplarda ve indirilen paftada "GİRİŞ" yazıyordu | Kaynak değerden okunur:  değer o beyan yükünün tablo değeriyse kaynak tablodur |
 | **Kablo akım taşıma kapasitesi ( Iz )** | Tablo IEC 60364-5-52 B.52.4 Yöntem C diyordu ama 25 mm² ve üstü o tablonun değerleri değildi ( 101 · 125 · 151 · 192 · 232 · 269 A ) — %4-5 fazla.  Örneğin 48 kW motor + 25 mm² kolon hattı ( I = 97,4 A ) "uygundur" çıkıyordu | B.52.4 Yöntem C:  **96 · 119 · 144 · 184 · 223 · 259 A**.  16 mm² ve altı zaten doğruydu |
@@ -104,7 +104,7 @@ programın kendisidir** — program Excel üretmez ve okumaz.
 | **Regülatör sürtünme faktörü µ** | Asansör bazında soruluyordu ve 0,2'nin altı kabul ediliyordu.  Oysa TS EN 81-20 m.5.6.2.2.1.3 b) halatın emniyet katsayısının **µmax = 0,2 ile** hesaplanmasını istiyor;  küçük µ katsayıyı olduğundan iyi gösteriyordu ( 0,2'de 16,77 iken 0,1'de 42,02 ) | Kutu kalktı, **ofis sabiti** oldu ( Sabitler · ②d HIZ REGÜLATÖRÜ, varsayılan 0,2, üst sınır standardın sayısı ).  Paftada kaynağı *OFİS STANDARDI · m.5.6.2.2.1.3 b) µmax* yazar.  176 senaryoda **tek bir sayı değişmedi**;  yalnız bu satırın kaynak yazısı değişti |
 | **Paftadaki kaynak sütunu** | Aynı sınıftaki değerler beş ayrı biçimde yazılıyordu:  *OFİS STANDARDI · Ofis kabulü · OFİS KABULÜ · OFİS TABLOSU · SABİTLER A / B · TABLOLAR T2 · ofis sabiti*.  Hem dağınıktı hem de paftayı okuyan için "ofis" sözü bir anlam taşımıyordu;  ayrıca katalogdan girilen değerler de "GİRİŞ — imalatçı kataloğu" gibi ayrı ayrı yazılıyordu | Kaynak sütununda **üç söz** kalır:  **GİRİŞ** ( projeyi yapanın beyanı ), **KATALOG** ( imalatçının kataloğundan / tip inceleme belgesinden girilen değer ), **KABUL** ( ofisin kabulü;  gerektiğinde gerekçesiyle — *KABUL · EN 81-20 Çiz.14 sayı vermez, imalatçı belirler* ).  Standardın kendi sayıları eskisi gibi madde numarasıyla yazılır ( *EN 81-50 m.5.11.3* ), türetilenler türetmeyi yazar.  Paftada "ofis" sözü hiç geçmez.  Avan ve uygulama paftalarının ikisinde de aynı düzen.  **Hiçbir sayı ve hiçbir hüküm değişmedi** — sayıları tutan iki referans dosyası bire bir aynı kaldı |
 | **Girilen değer kullanılamıyorsa hesap durur** | Aralık dışı bir değer ( asansör kartında S1 = 0,5 mm², Nsç = 600 kW, i = 9 · ofis sekmesinde β = 0,5 ) **varsayılanla değiştiriliyor** ve hesap sürüyordu:  pafta kullanıcının yazmadığı bir sayıyla hesaplanıp "UYGUN" diyebiliyordu.  Avan bunu bir uyarıyla söylüyordu;  ortak paneldeki β / Is ile uygulamanın bütün ofis sabitleri ise **hiçbir iz bırakmadan** varsayılana dönüyordu ( β = 0,5 yazılan projenin topraklaması 150 Ω·m ile hesaplanıyordu ).  Avanda ηm'nin hiç aralığı yoktu | Tek kural:  **yazılan sayı ya kullanılır ya da hesap durur**, boş bırakılan alan varsayılanı kullanır.  Asansör kartındaki hata o asansörü durdurur ( ötekiler hesaplanır ) ve **bütün hatalı alanlar tek seferde** adı ve aralığıyla söylenir;  ofis sekmesi ile ortak paneldeki hata projeyi durdurur.  Ekran, PDF ve paket aynı kararı verir.  ηm'ye 0,10 - 1 aralığı verildi ( uygulamadakiyle aynı ).  Uygulamada kolon ve makine besleme kesitleri avanın S1 / S2 aralığıyla girişte denetlenir |
-| **Okunamayan yazım boş sayılıyordu** | Anma yüküne `1000 kg` yazılınca değer sessizce boşa düşüyor, motor **Tablo-7'deki yükle** hesap yapıyordu;  aynısı asansör kartının, trafik formunun ve uygulama formunun bütün sayı alanlarında vardı ( ofis sekmesi bunu zaten reddediyordu ).  Kişi sayısı okunamayan asansör trafik hesabından sessizce düşüyordu | Sayı alanlarının hepsi tek kapıdan okunur ( `api/ortak._sayi_oku` ):  boş → varsayılan, belirsiz → *Belirsiz sayı*, okunamayan → *Girdi kabul edilmedi*.  Red metni alanı iç adıyla ( `Q_elle` ) değil ekrandaki adıyla söyler.  Tanımsız kolonda kalmış değer projeyi durdurmaz |
+| **Okunamayan yazım boş sayılıyordu** | Anma yüküne `1000 kg` yazılınca değer sessizce boşa düşüyor, motor **Tablo-7'deki yükle** hesap yapıyordu;  aynısı asansör kartının, trafik formunun ve uygulama formunun bütün sayı alanlarında vardı ( ofis sekmesi bunu zaten reddediyordu ).  Kişi sayısı okunamayan asansör trafik hesabından sessizce düşüyordu | Sayı alanlarının hepsi tek kapıdan okunur ( `uclar/uc_ortak._sayi_oku` ):  boş → varsayılan, belirsiz → *Belirsiz sayı*, okunamayan → *Girdi kabul edilmedi*.  Red metni alanı iç adıyla ( `Q_elle` ) değil ekrandaki adıyla söyler.  Tanımsız kolonda kalmış değer projeyi durdurmaz |
 | **Proje geneli alan asansör girdisiyle eziliyordu ( uygulama )** | Çoklu hesapta asansörün kendi değeri proje genelinin önüne geçiyordu:  eski bir `.uygulama` dosyasından asansörün içinde kalmış `temel_a = 10`, Proje sekmesinde 20 yazılıyken binanın topraklamasını 10 ile hesaplatıyordu | Temel ölçüleri ve makine dairesi alanlarında **proje geneli kazanır**;  API asansörün içindeki kopyayı hiç okumaz |
 | **Onay kutusu iki kuralla okunuyordu** | API'nin kendi kopyası `Var`ı HAYIR, motor EVET okuyordu:  ekranda gizlenen alanlar bir kurala, hesap öbürüne göre seçiliyordu | Tek okuma kuralı ( `steps.evet_mi` ) |
 | **Yuvarlama:  pafta, ekran, Tablolar sekmesi ve hesap ayrı kurallar** | Paftadaki sayı Python'un biçimlendirmesiyle, ekrandaki JavaScript'inkiyle, hesap içi yuvarlama ( `steps.yuvarla` ) elle yazılmış `floor( x + 0,5 )` ile yuvarlanıyordu.  Üçü de sayının İKİLİ değerine bakıyordu:  9,325 ikilide 9,32499… diye saklandığı için paftada **9,32**, 1,005 hesapta **1,00** oluyordu.  Pafta tam yarımda bankacı kuralı uyguluyordu ( 2,5 → **2**, 0,125 → **0,12** ), ekran uygulamıyordu:  20.125 değerlik taramada ekran ile pafta **168 değerde farklı** yazıyordu | Üçü de aynı kuralla yuvarlar:  sayı 12 anlamlı haneye indirilip gürültüden arındırılır, yarımı sıfırdan uzağa yuvarlanır ( ondalık aritmetik ).  Ekran ile pafta artık hiçbir değerde ayrışmıyor ( TEST 5 tarayıcıda 3.125 değerle denetler ).  Altın senaryolarda **55 basılı sayı** son hanesinde bir arttı ( ör. trafik 9,32 → 9,33 · uygulama Pm 347,83 → 347,84 · T2 4.978,57 → 4.978,58 );  hiçbir hüküm değişmedi.  Tablolar sekmesi de aynı kurala bağlandı ( ω tablosunda λ = 150 · Rm = 520:  5,6992 → 5,6993 ) |
@@ -179,7 +179,7 @@ kendini hesaplamaya devam ediyor. Doğrulama paketi ikisinin **hücre hücre ayn
 olduğunu denetliyor. Şablon dosyasına dokunulmuyor.
 
 **Kod avan ve uygulama diye ayrıldı** — hesap motorları ( `engine/avan` ·
-`engine/uygulama` ), HTTP uçları ( `api/avan.py` · `api/uygulama.py` ) ve arayüz
+`engine/uygulama` ), HTTP uçları ( `uclar/avan_uclari.py` · `uclar/uygulama_uclari.py` ) ve arayüz
 betikleri ( `avan.js` · `uygulama.js` ) ayrı dosyalarda. Ortak olan yalnız
 gerçekten ortak olanlar ( bkz. 9. bölüm ). Ayrıştırmadan önce ve sonra doğrulama
 paketi **aynı sayıyı** verdi — o gün 24.592 kontrol, tek bir hesap sonucu
@@ -1023,7 +1023,7 @@ Dişli makinede kitap gerekli gücün **yarısından azını** söylüyordu — 
 **UYGUN DEĞİL** diyor. Mukavemetin avandan bir tık yüksek çıkması normaldir:
 mukavemet halat ağırlığını ( Gh ) da dengesiz yüke katar, avan katmaz.
 
-Tablo artık **iki projede tek kaynaktan** okunur ( `engine/ortak/ofis.py` ) —
+Tablo artık **iki projede tek kaynaktan** okunur ( `motor/ortak/ofis.py` ) —
 ayrışmanın sebebi iki yerde iki kopya olmasıydı.
 
 ② · ④ · ⑧'de kitap **emniyetli tarafta** ama yanlış — ⑧ standarda uygun bir
@@ -1181,7 +1181,7 @@ macOS'ta programın kendi Python'unu kullanmak için `./.venv/bin/python3 dogrul
 | **5 · Arayüz** | Tarayıcıda tüm sekmeler, canlı hesap, aktarım, indirme düğmeleri, kalıcılık, dar ekran, proje dosyasından geri yükleme. |
 | **6 · Proje dosyası geri yükleme** | Formun her alanını değiştirir, projeyi kaydeder, programı sıfırlar, dosyayı yükler;  her alanın ve hesap sonucunun aynen döndüğünü doğrular. |
 | **7 · Altın çıktı** | Önceki sürümün tüm çıktısı sıkıştırılmış olarak saklanır; her koşuda satır satır karşılaştırılır. Refactor sırasında **hiçbir sayı sessizce değişemez**. |
-| **8 · Mukavemet tabloları** | `engine/uygulama/mukavemet_tablolari.py` içindeki her değeri ofisin kaynak tablolarının dondurulmuş kopyasına karşı doğrular. Tablolar makineyle aktarıldı; bir sütun kayması hiçbir hesap testinde görünmezdi — bu test **aktarmanın kendisini** denetler. |
+| **8 · Mukavemet tabloları** | `motor/uygulama/mukavemet_tablolari.py` içindeki her değeri ofisin kaynak tablolarının dondurulmuş kopyasına karşı doğrular. Tablolar makineyle aktarıldı; bir sütun kayması hiçbir hesap testinde görünmezdi — bu test **aktarmanın kendisini** denetler. |
 | **9 · Mukavemet motoru** | Örnek projenin ara değerleri, standart gereği verilen her kararın uygulandığı, standardın metnine karşı bağımsız sayılar, geçersiz girdi yolları ve profil / hız / kanal varyantları. |
 | **10 · Mukavemet referans taraması** | **Girdi uzayını** tarar:  152 senaryoda motorun 170 ara değeri ve bölüm hükümleri dondurulmuş referansla karşılaştırılır. |
 | **11 · Uygulama projesi** | **Ortak girdi köprüsünü** denetler: her ortak alan tek tek oynatılır ve elektrik sonucunun gerçekten değiştiği doğrulanır. Ayrıca mukavemet sonucunun birlikte koşarken **kirlenmediği** ve hesap → PDF → DXF zincirinin birebir olduğu kanıtlanır. |
@@ -1344,7 +1344,7 @@ Kapsam tablo sınırlarıyla aynıdır: **P = 6…34 kişi, N = 1…30 kat.**
   hep *"the mass of the empty car and components supported by the car"* diye
   **girdi** olarak tanımlar. ISO 4190-1 aynı yük serisi için kabin
   **ölçülerini** verir, kütle vermez. Program boş bırakılan alanı ofisin
-  kendi tablosundan doldurur ( `engine/ortak/ofis.py` ) ve paftaya kaynağını
+  kendi tablosundan doldurur ( `motor/ortak/ofis.py` ) ve paftaya kaynağını
   *"KABUL  ·  ortalama boş kabin kütlesi"* diye basar. **Uygulama projesinde imalatçı verisiyle
   değiştirilmelidir**:  P hatası iki yönde birden emniyetsizdir — 100 kg fark
   ray kuvvetini, kuyu tabanı yükünü ve tampon kuvvetini %5–7 **artırır**
@@ -1353,7 +1353,7 @@ Kapsam tablo sınırlarıyla aynıdır: **P = 6…34 kişi, N = 1…30 kat.**
   gücü etkilenmez:  P, Gmax = F1 + Gs − Ga bağıntısında sadeleşir.
 - Uygulama projesi **tek asansör** içindir. Grup projesinde her asansör için
   ayrı koşturulup ayrı pafta alınır.
-- **Elektrik hesapları avan motorunun aynısıdır** ( `engine/avan/hesap.py` ) — avan
+- **Elektrik hesapları avan motorunun aynısıdır** ( `motor/avan/avan_hesabi.py` ) — avan
   projesindeki bütün sınırlar burada da geçerlidir: topraklama TT sistem,
   UL = 50 V, IΔn = 300 mA kabulüyle hesaplanır ve **tesis tamamlandıktan sonra
   ölçümle doğrulanmalıdır**; L1 gerçek kablo güzergâhıdır, kuyu yüksekliğine
@@ -1418,18 +1418,18 @@ Kapsam tablo sınırlarıyla aynıdır: **P = 6…34 kişi, N = 1…30 kat.**
 > 0,85 kabulü yeterliyken uygulamada makinenin kataloğundaki değer kullanılabilir.
 > **İkisinin aynı sayıyı tutma zorunluluğu yoktur.**
 >
-> Fabrika ayarı ortaktır (`engine/ortak/ofis.py`): ikisi de oradan başlar,
+> Fabrika ayarı ortaktır (`motor/ortak/ofis.py`): ikisi de oradan başlar,
 > sonrası her projenin kendi kararıdır. Her değer paftaya **kaynağıyla**
 > basıldığı için ayrışırlarsa bilerek ayrışırlar.
 
 ### Uygulama projesinin ofis standardı
 
-**45 alan, 6 grup** — `engine/uygulama/sabitler.py`:
+**45 alan, 6 grup** — `motor/uygulama/uygulama_sabitleri.py`:
 
 | Grup | İçindekiler |
 |---|---|
 | ① Makine ve motor | dişlisiz / dişli verimi, palanga düşüşü, Gs, q, halat payı, **kanal açıları γ ve β** |
-| — | Boş kabin kütlesi tablosu **ekrandan değiştirilmez** ( `engine/ortak/ofis.py` · `GK_TABLOSU` ) — iki proje de aynı tablodan okur |
+| — | Boş kabin kütlesi tablosu **ekrandan değiştirilmez** ( `motor/ortak/ofis.py` · `GK_TABLOSU` ) — iki proje de aynı tablodan okur |
 | ② **Mukavemet kabulleri** | **σem**, **k1** (kaymalı · makaralı · ani), k3, **kabin kapısı ağırlığı** ( katalog: 62 kg ), yan yatak mesnet payı |
 | ③ Sığınma payları | kabin gövde yüksekliği, kabin üstü kotu, tavan / etek / ray altı payları |
 | ④ Aydınlatma | kabin · kuyu armatürleri, azami aralık, tablo sütunu |
@@ -1574,13 +1574,13 @@ AVAN HESAPLAMA PROGRAMI/
 
 | Paylaşılan | Niçin |
 |---|---|
-| `engine/ortak/steps.py` | Hesap adımlarının yapısı ve sayı biçimi — iki pafta da aynı dilde konuşsun |
+| `motor/ortak/adimlar.py` | Hesap adımlarının yapısı ve sayı biçimi — iki pafta da aynı dilde konuşsun |
 | `pdf_export.py` çizim yardımcıları | İki paftanın aynı programdan çıktığı belli olsun |
-| `api/ortak.py` | Sayı okuma ve belirsiz yazım denetimi tek yerde kalsın |
+| `uclar/uc_ortak.py` | Sayı okuma ve belirsiz yazım denetimi tek yerde kalsın |
 | `dxf_export.py` | CAD yerleşimi hesaptan bağımsız |
-| **Avanın elektrik motoru** | Uygulama projesindeki aydınlatma · kurulu güç · gerilim düşümü · topraklama, avanın `engine/avan/hesap.py`'sini **çağırır**. Kopyalanmaz — iki kopya zamanla ayrışır |
+| **Avanın elektrik motoru** | Uygulama projesindeki aydınlatma · kurulu güç · gerilim düşümü · topraklama, avanın `motor/avan/avan_hesabi.py`'sini **çağırır**. Kopyalanmaz — iki kopya zamanla ayrışır |
 
-| `engine/ortak/ofis.py` | **Fabrika ayarı** — iki projenin ofis standardı da buradan başlar. Ayrı ayrı değiştirilebilirler, ama sıfır noktaları ortaktır |
+| `motor/ortak/ofis.py` | **Fabrika ayarı** — iki projenin ofis standardı da buradan başlar. Ayrı ayrı değiştirilebilirler, ama sıfır noktaları ortaktır |
 | **Boş kabin kütlesi tablosu** ( `ofis.py` · `GK_TABLOSU` ) | Aynı asansör iki projede aynı kabin kütlesiyle hesaplansın. İki kopya tutulsaydı biri güncellenir, öteki unutulurdu |
 
 | Paylaşılmayan | Niçin |
@@ -1592,9 +1592,9 @@ AVAN HESAPLAMA PROGRAMI/
 | Sekme şeridi ve girdi formları | Moda göre ayrılır. Sabitler ve Tablolar sekmeleri ikisinde de vardır ama **içerikleri ayrıdır** |
 
 ### Tabloyu ya da formülü değiştirmek
-Tablo değerleri `engine/avan/tablolar.py` ve `engine/uygulama/mukavemet_tablolari.py`,
-formüller `engine/avan/trafik.py` · `engine/avan/hesap.py` ·
-`engine/uygulama/mukavemet.py` içindedir.  Ekran, PDF ve CAD aynı motordan
+Tablo değerleri `motor/avan/tablolar.py` ve `motor/uygulama/mukavemet_tablolari.py`,
+formüller `motor/avan/trafik.py` · `motor/avan/avan_hesabi.py` ·
+`motor/uygulama/mukavemet.py` içindedir.  Ekran, PDF ve CAD aynı motordan
 beslendiği için tek yerde değişiklik yeterlidir.  Değişiklikten sonra
 `python3 dogrulama/calistir.py` hangi sonucun neden değiştiğini söyler;  kasıtlı
 bir değişiklikse altın çıktı ( `dogrulama/altin_uret.py` ) ve referans taraması

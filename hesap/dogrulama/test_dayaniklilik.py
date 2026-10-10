@@ -18,17 +18,17 @@ import yollar
 
 yollar.kur()
 
-from engine.avan import hesap as AV
-from engine.avan import trafik as TR
-from dogrulama.ortak import Rapor
+from motor.avan import avan_hesabi as AV
+from motor.avan import trafik as TR
+from dogrulama.rapor import Rapor
 
 
-#  Uçlar iki pakete ayrıldı ( api/avan.py · api/uygulama.py ), ortak
-#  yardımcılar api/ortak.py'ye taşındı.  Test onları oradan alır.
-from api import avan as UC_AVAN
-from api import ortak as UC_ORTAK
-from api import uygulama as UC_UYG
-from engine.uygulama import girdi as UYG_GIRDI
+#  Uçlar iki pakete ayrıldı ( uclar/avan_uclari.py · uclar/uygulama_uclari.py ), ortak
+#  yardımcılar uclar/uc_ortak.py'ye taşındı.  Test onları oradan alır.
+from uclar import avan_uclari as UC_AVAN
+from uclar import uc_ortak as UC_ORTAK
+from uclar import uygulama_uclari as UC_UYG
+from motor.uygulama import uygulama_girdisi as UYG_GIRDI
 
 BASE = os.environ.get("AVAN_TEST_URL", "http://127.0.0.1:8780")
 
@@ -510,7 +510,7 @@ def calistir():
     #  hesabı durdurur:  denge zinciri varsayılanı 2,128 iken ÖRNEK PROJENİN
     #  avan hesabı hiç yapılamıyordu.  Varsayılanlar ve seçim listeleri bu
     #  biçime düşmemeli.
-    from engine.uygulama import sabitler as _USd, mukavemet_girdi as _MGd
+    from motor.uygulama import uygulama_sabitleri as _USd, mukavemet_girdi as _MGd
 
     def _yaz(x):
         return repr(x).replace(".", ",")
@@ -566,7 +566,7 @@ def calistir():
         "uygulama · asansörde kalmış bozuk proje geneli değer projeyi durdurmuyor",
         not UC_ORTAK._belirsiz_hata(),
     )
-    from engine.uygulama import hesap as UYG_HESAP
+    from motor.uygulama import uygulama_hesabi as UYG_HESAP
 
     _pgs = UYG_HESAP.hesapla_coklu([{"temel_a": 10, "temel_b": 15}, {}], {"temel_a": 20, "temel_b": 15})
     r.esit(

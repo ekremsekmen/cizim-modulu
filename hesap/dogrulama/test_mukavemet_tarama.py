@@ -29,10 +29,10 @@ import yollar
 
 yollar.kur()
 
-from engine.uygulama import mukavemet as MK
-from engine.uygulama import mukavemet_girdi as MG
-from engine.uygulama import mukavemet_tablolari as MT
-from dogrulama.ortak import Rapor
+from motor.uygulama import mukavemet as MK
+from motor.uygulama import mukavemet_girdi as MG
+from motor.uygulama import mukavemet_tablolari as MT
+from dogrulama.rapor import Rapor
 from dogrulama.test_avan_tarama import karsilastir
 
 DOSYA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "referans_mukavemet.json.gz")

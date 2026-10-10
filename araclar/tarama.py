@@ -151,7 +151,7 @@ def duzenler(grup):
                             v["asansorler"][0]["son_kat_yuksekligi"] = 5000
                         yield f"{Q} {yer} {'MRL' if mrl else 'MD'} {aski}", v
     elif grup == "kapi":
-        from engine.uygulama import mukavemet_tablolari as MT
+        from motor.uygulama import mukavemet_tablolari as MT
 
         for Q in (450, 800, 1000, 1600, 2500):
             for yer in ("Sağ", "Sol", "Arka"):

@@ -7,8 +7,8 @@ ASANSÖR TRAFİK HESABI  —  MMO/697, 2. Baskı, Ocak 2020, s.11-17
 """
 
 from temel import bos_mu, sayi_mi
-from engine.avan import tablolar as T
-from engine.ortak.steps import Bolum, veri, hesap, tr, trn, yukari_yuvarla, yuvarla
+from motor.avan import tablolar as T
+from motor.ortak.adimlar import Bolum, veri, hesap, tr, trn, yukari_yuvarla, yuvarla
 
 
 # =====================================================================

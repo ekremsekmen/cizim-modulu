@@ -15,11 +15,11 @@ import yollar
 
 yollar.kur()
 
-from engine.avan import hesap as AV
-from engine.avan import tablolar as T
-from engine.avan import trafik as TR
-from engine.ortak.steps import yuvarla, tavana_yuvarla, yukari_yuvarla, tr as TRS
-from dogrulama.ortak import Rapor
+from motor.avan import avan_hesabi as AV
+from motor.avan import tablolar as T
+from motor.avan import trafik as TR
+from motor.ortak.adimlar import yuvarla, tavana_yuvarla, yukari_yuvarla, tr as TRS
+from dogrulama.rapor import Rapor
 
 TEMEL = dict(
     bina_tipi="Konut",
@@ -1041,7 +1041,7 @@ def calistir():
     #  TABLO TEK KAYNAKTAN OKUNUR.  Avan ile uygulama aynı asansöre aynı
     #  kabin kütlesini vermelidir;  iki kopya tutulsaydı biri güncellenip
     #  öteki unutulurdu.
-    from engine.ortak import ofis as _OF
+    from motor.ortak import ofis as _OF
 
     r.esit(
         "Gk tablosu ortak dosyadan okunuyor",
@@ -2014,7 +2014,7 @@ def calistir():
 
     #  3) BELİRSİZ SAYI  —  "1.200" bin iki yüz mü, bir virgül iki mi?
     #     Sessizce 1,2 okunuyordu: 1.200 daireli binada asansör adedi 41 → 2.
-    from api import ortak as _M
+    from uclar import uc_ortak as _M
 
     for _ham in ("1.200", "1,200", "2.500", "12.345", "1,000", "100,000", "-1.500"):
         r.kontrol(f"belirsiz sayı reddediliyor: {_ham!r}", _M._sayi(_ham) is None)
@@ -2782,8 +2782,8 @@ def calistir():
     )
     #  OFİS KABULÜ TEK KAYNAKTAN:  zincir = halat ağırlığı ( λ = %100 ) ve
     #  ofisin varsayılan halat düzeni — uygulama projesiyle AYNI sayı.
-    from engine.uygulama import mukavemet_girdi as _MG, mukavemet_tablolari as _MT
-    from engine.uygulama import sabitler as _US
+    from motor.uygulama import mukavemet_girdi as _MG, mukavemet_tablolari as _MT
+    from motor.uygulama import uygulama_sabitleri as _US
 
     _vg = _MG.varsayilanlar()
     #  İki haneye yuvarlanır ( üç ondalık belirsiz sayı kuralına takılır ).
@@ -2806,7 +2806,7 @@ def calistir():
     #  İKİ PROJE AYNI ASANSÖR İÇİN YAKIN SONUÇ VERMELİ:  zincirli yüksek bina,
     #  aynı halatların zinciriyle.  Avan kuyu yüksekliğini ( ≥ seyir ) aldığı
     #  için biraz FAZLA bulur — emniyetli yön;  eksik bulmamalı.
-    from engine.uygulama import hesap as _UH, girdi as _UG
+    from motor.uygulama import uygulama_hesabi as _UH, uygulama_girdisi as _UG
 
     _gu = dict(
         _UG.varsayilanlar(),

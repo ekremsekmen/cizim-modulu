@@ -19,9 +19,9 @@ from cizim import kopru as CK
 from cizim import dusey as CDY
 from cizim import kuyu_ustu as CKT
 from cizim import makine_dairesi as CMD
-from cizim import sabitler as CS
-from engine.uygulama import girdi as UG
-from engine.uygulama import hesap as UY
+from cizim import cizim_sabitleri as CS
+from motor.uygulama import uygulama_girdisi as UG
+from motor.uygulama import uygulama_hesabi as UY
 
 #  12495-18'in düzeni ( çapraz kasnaklar, makine duvardan duvara ), kabin
 #  1.350 × 1.400 ( 800 kg'ın standart kabini ):  12495-18'in 1.100 × 1.100

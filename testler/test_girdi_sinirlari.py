@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 import calistir
-from cizim import girdi as CG, geometri as CGE, sabitler as CS
+from cizim import girdi as CG, geometri as CGE, cizim_sabitleri as CS
 from testler.test_cizim import _ornek, _sag_ayna, _arka
 
 

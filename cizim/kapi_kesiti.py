@@ -21,7 +21,7 @@ from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kesit_parcalari as CKP
 from cizim import parcalar as CP
-from cizim import sabitler as CS
+from cizim import cizim_sabitleri as CS
 
 #  Görünüşün kat tarafında gösterilen döşeme boyu ve duvarın üstte / altta
 #  gösterilen kısmı ( kesik kenar ) — çizimin çerçevesi, ölçü değil

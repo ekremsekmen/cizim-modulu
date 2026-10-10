@@ -29,7 +29,7 @@ import yollar
 
 yollar.kur()
 
-from dogrulama.ortak import Rapor
+from dogrulama.rapor import Rapor
 
 BASE = os.environ.get("AVAN_TEST_URL", "http://127.0.0.1:8780")
 

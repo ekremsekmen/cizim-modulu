@@ -2,7 +2,7 @@
 """
 TEST 8  —  MUKAVEMET TABLOLARI + GİRDİ SÖZLEŞMESİ  ( uygulama projesi )
 
-engine/uygulama/mukavemet_tablolari.py içindeki her tabloyu KAYNAĞINA karşı
+motor/uygulama/mukavemet_tablolari.py içindeki her tabloyu KAYNAĞINA karşı
 birebir doğrular:  dogrulama/referans_tablolar.json
 
 NİÇİN AYRI TEST:  bu tablolar ofisin mukavemet hesabından makineyle
@@ -22,9 +22,9 @@ import yollar
 
 yollar.kur()
 
-from engine.uygulama import mukavemet_girdi as MG
-from engine.uygulama import mukavemet_tablolari as MT
-from dogrulama.ortak import Rapor
+from motor.uygulama import mukavemet_girdi as MG
+from motor.uygulama import mukavemet_tablolari as MT
+from dogrulama.rapor import Rapor
 
 REFERANS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "referans_tablolar.json")
 
@@ -163,7 +163,7 @@ def _kanal_tablosu(r, kaynak):
     hesaplar;  ofisin varsayılan açılarında türetilen değer kaynakla AYNI
     olmalıdır.
     """
-    from engine.uygulama import sabitler as US
+    from motor.uygulama import uygulama_sabitleri as US
 
     O = US.sabitler(None)
     satir = {ad: tuple(v) for ad, v in kaynak.items()}
@@ -456,7 +456,7 @@ BILEREK_DEGISEN_VARSAYILAN = {
 
 
 def _girdi_sozlesmesi(r, kaynak):
-    """engine/uygulama/mukavemet_girdi.py  —  varsayılanlar ve seçenekler."""
+    """motor/uygulama/mukavemet_girdi.py  —  varsayılanlar ve seçenekler."""
     for anahtar, etiket, _b, tur, secenekler, varsayilan in MG.ALANLAR:
         if tur == "hesap":
             r.kontrol(
@@ -576,7 +576,7 @@ KALDIRILAN_ALANLAR = (
 def _gelismis_sozlesmesi(r):
     """Formun "Gelişmiş" bölümleri  ( MG.GELISMIS_ALANLAR · girdi.EK_GELISMIS ·
     çizim alanlarının gelişmiş işareti — form üçünü tasarım şemasından birlikte kurar )."""
-    from engine.uygulama import girdi as UG
+    from motor.uygulama import uygulama_girdisi as UG
     from cizim import kopru as CK
 
     _ck_gelismis = frozenset(a[0] for a in CK.ALANLAR if a[6])

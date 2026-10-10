@@ -14,7 +14,7 @@ EKSEN DÜZENİ  ( plan )
 
 import math
 
-from cizim import parcalar as CP, sabitler as _CS
+from cizim import parcalar as CP, cizim_sabitleri as _CS
 
 
 def _sonlu_sayi(v):

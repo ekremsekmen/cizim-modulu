@@ -29,7 +29,7 @@ from cizim import girdi as CG
 from cizim import kuyu_dibi as CKD
 from cizim import makine as CMK
 from cizim import baglantilar as CB
-from cizim import sabitler as CS
+from cizim import cizim_sabitleri as CS
 
 #  TS EN 81-20 m.5.2.6.6.4 → m.5.2.6.3.2.1 a:  panonun önünde en az 0,70 m
 #  derinlikte, en az 0,50 m ya da pano eni kadar genişlikte boş alan.

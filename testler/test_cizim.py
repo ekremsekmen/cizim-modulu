@@ -20,7 +20,7 @@ from cizim import eleman as CEL
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import svg as CSV
-from cizim import sabitler as CS_
+from cizim import cizim_sabitleri as CS_
 
 
 def _ornek(**ezme):
@@ -163,7 +163,7 @@ class PlanGeometrisi(unittest.TestCase):
     def test_konsol_kolu_plaka_ile_rayi_birlestiriyor(self):
         """Kabin konsolunun kolu plakaya ve rayın arkasına;  ağırlık konsolunun
         kolu plakaya ve kabin rayının ara kirişine değmeli."""
-        from cizim import sabitler as CS
+        from cizim import cizim_sabitleri as CS
 
         S = CS.sabitler(self.g.get("_cizim_sabitleri"))
         kr, kb, k = self.g["kabin_ray"], self.g["kabin"], self.g["kuyu"]
@@ -202,7 +202,7 @@ class PlanGeometrisi(unittest.TestCase):
         self.assertEqual({round(el["y"] + el["d"] / 2.0, 3) for el in pt}, uclar)
 
     def test_kabin_kasnaklari_girdideki_aralikta(self):
-        from cizim import sabitler as CS
+        from cizim import cizim_sabitleri as CS
 
         S = CS.sabitler(self.g.get("_cizim_sabitleri"))
         kb, k, a = self.g["kabin"], self.g["kuyu"], self.g["aski"]
@@ -217,7 +217,7 @@ class PlanGeometrisi(unittest.TestCase):
         self.assertEqual(merkezler, beklenen)
 
     def test_kapi_kasasi_bosluğun_iki_yaninda(self):
-        from cizim import sabitler as CS
+        from cizim import cizim_sabitleri as CS
 
         S = CS.sabitler(self.g.get("_cizim_sabitleri"))
         kp = self.g["kapi"]
@@ -818,7 +818,7 @@ class KabinUstuYerlesim(unittest.TestCase):
         #  Operatör tavanın üstünde kutu boyu kadar, önde kabin kapısının
         #  üstünde kabin eşiğinin ön kenarına kadar;  enine kanatların yolunu
         #  ( kapı + cep ) örter — tavandan geniş olabilir ( 5 Eki )
-        from cizim import sabitler as CS
+        from cizim import cizim_sabitleri as CS
 
         S = CS.sabitler()
         for ad, g in _ustu_projeler():

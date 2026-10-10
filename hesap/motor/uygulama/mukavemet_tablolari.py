@@ -7,7 +7,7 @@ yazılmadı ) ve standarda göre tamamlandı;  testler/test_mukavemet_tablolari.
 aktarılan değerleri dondurulmuş kaynağa ( testler/referans_tablolar.json )
 karşı birebir doğrular.
 
-AVAN MODÜLÜNDEN AYRIDIR.  Avan tarafı MMO/697'yi uygular ( engine/tables.py );
+AVAN MODÜLÜNDEN AYRIDIR.  Avan tarafı MMO/697'yi uygular ( motor/tables.py );
 burası uygulama projesinin kendi kaynağını uygular.  İki tarafın ortak konuları
 ( ör. kabin alanı ) BİLEREK ayrı tutulur — dayanakları farklıdır ve paftalarda
 kaynakları da ayrı yazılır.
@@ -737,7 +737,7 @@ def sigma_perm_guvenlik(rm):
 #  Sürtünme çarpanı f tabloda DEĞİLDİR:  kanal şekline ve ofis açılarına
 #  bağlıdır, motor onu her seferinde m.5.11.2.3.1'den hesaplar
 #  ( mukavemet._tahrik ).  Ekrandaki tablo da ofis sabitlerinden üretilir
-#  ( engine/uygulama/tablolar_gorunum.py ).
+#  ( motor/uygulama/tablolar_gorunum.py ).
 KANAL_ISLEME_SEKILLERI = ("Sertleştirilmemiş", "Sertleştirilmiş")
 
 
