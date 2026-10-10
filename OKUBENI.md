@@ -447,6 +447,7 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri, taramanın ayrıntılı sonuçları ( git'e girmez ) |
 | `kontrol.py` | Bütün denetimler tek komutta ( hızlı · tam · arayüz · tarama · biçim ) |
+| `temel.py` | Her katmanın küçük ortak yardımcıları:  `sayi_mi` ( bool ve NaN / sonsuz hariç ), `bos_mu`, plan kutusu ( `eleman_kutusu`, `ortusur`, `kutu_merkezi` ) — hiçbir proje modülünü import etmez |
 | `yollar.py` | Programın import kökleri ( depo kökü, `hesap/`, `ornekler/` ) — giriş noktaları bir kez kurar, kütüphane modülleri `sys.path`'e dokunmaz |
 | `hesap/dogrulama/` | Hesabın doğrulama paketi ( `calistir.py`;  eski adı `hesap/testler` — depo kökündeki `testler/` ile çakışıyordu ) |
 | `araclar/` | Girdi taraması ( `tarama.py` ) ve yazı – çizgi kesişmeleri ( `kesisme.py` ) |

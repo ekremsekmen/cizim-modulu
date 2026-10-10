@@ -31,6 +31,7 @@ MAKİNE DAİRESİNİN DENETİMLERİ ( TS EN 81-20 )
   m.5.2.3.2 a    makine dairesi kapısı ≥ 2,0 m yüksek ( eni makine_dairesi.py'de )
 """
 
+from temel import ortusur, sayi_mi
 from cizim import kuyu_dibi as CKD
 from cizim import kuyu_ustu as CKT
 from cizim import makine as CMK
@@ -47,14 +48,6 @@ ODA_KAPI_YUKSEKLIK = 2000.0  # m.5.2.3.2 a
 #  ( 7 Eki;  eskiden pah yoktu, dik kısmın altından ölçülüyordu — 35 mm iyimser ).
 ETEK_BOYU = CP.ONLUK_DIK
 ETEK_PAH_DUSEY = CP.ONLUK_PAH_DUSEY
-
-
-def _sayi(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool)
-
-
-def _ortusur(a, b):
-    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
 
 
 def kabin_kotlari(dy, S, z, aski=None, tavanda=False):
@@ -146,7 +139,7 @@ def yerlesim(g, S, H, tavan, taban):
     if yeri not in MAKINE_YERLERI:
         hata.append(f"makine.yeri: {MAKINE_YERLERI} içinden olmalı ( {yeri!r} ).")
     for alan in ("kabin_konsol_arasi", "agirlik_konsol_arasi"):
-        if not (_sayi(dy.get(alan)) and dy[alan] > 0):
+        if not (sayi_mi(dy.get(alan)) and dy[alan] > 0):
             hata.append(f"dusey.{alan}: sıfırdan büyük bir sayı olmalı ( {dy.get(alan)!r} ).")
     if hata:
         return {"hata": hata}
@@ -347,9 +340,9 @@ def _makine_dairesi(g, S, tavan, M):
     md = g.get("makine_dairesi") or {}
     hata = []
     for alan in ("yukseklik", "kapi_yukseklik"):
-        if not (_sayi(md.get(alan)) and md[alan] > 0):
+        if not (sayi_mi(md.get(alan)) and md[alan] > 0):
             hata.append(f"makine_dairesi.{alan}: sıfırdan büyük bir sayı olmalı ( {md.get(alan)!r} ).")
-    if not (_sayi(md.get("tabliye_yuksekligi")) and md["tabliye_yuksekligi"] >= 0):
+    if not (sayi_mi(md.get("tabliye_yuksekligi")) and md["tabliye_yuksekligi"] >= 0):
         hata.append(
             f"makine_dairesi.tabliye_yuksekligi: sıfır ya da pozitif bir sayı olmalı "
             f"( {md.get('tabliye_yuksekligi')!r} )."
@@ -503,7 +496,7 @@ def agirlik_dolgu_kotlari(g, S, AK):
     eskiden dolguyu kasnağın içine kadar çiziyordu ( 2:1'de 300 mm )."""
     alt, ust = AK["alt"] + S["agirlik_kiris"], AK["ust"] - S["agirlik_kiris"]
     cap = (g.get("agirlik") or {}).get("kasnak_capi")
-    if (g.get("aski") or {}).get("duzen") != "Doğrudan" and _sayi(cap):
+    if (g.get("aski") or {}).get("duzen") != "Doğrudan" and sayi_mi(cap):
         ust = min(ust, AK["kasnak_merkez"] - cap / 2.0)
     return alt, ust
 
@@ -523,6 +516,6 @@ def tavan_engeli(M, kutu):
     örtüşmüyorsa kuyu tavanının en alt kısmı ( kiriş )."""
     en = (M["tavan_alti"], "kuyu tavanı")
     for ad, p, z in M["parcalar"]:
-        if _ortusur(p, kutu) and z < en[0]:
+        if ortusur(p, kutu) and z < en[0]:
             en = (z, ad)
     return en

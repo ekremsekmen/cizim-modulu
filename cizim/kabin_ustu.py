@@ -23,6 +23,7 @@ Eskiden ön duvar hep dolu çiziliyor, kapı bölgesi boş
 kalıyordu ( kullanıcı 5 Eki:  "kapının görünmemesi saçma" ).
 """
 
+from temel import eleman_kutusu, ortusur
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import sabitler as CS
@@ -90,14 +91,6 @@ _KAPI_AD = frozenset(
 )
 
 
-def _kutu(el):
-    return (el["x"], el["y"], el["x"] + el["g"], el["y"] + el["d"])
-
-
-def _ortusur(a, b):
-    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
-
-
 def kapi_gorunusu(g, S):
     """Kabin üstü kesitinin kapıya göre yeri ( döşemeden, mm ):
 
@@ -150,8 +143,10 @@ def yerlesim(g, cizim_sabitleri=None):
     S = CS.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     taban = CGE.plan(g, S, kapi_duzeyi=False, duvar_boslugu=kapi_gorunusu(g, S)["acik"])
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
-    tavan = _kutu(next(el for el in taban if el.get("ad") == "kabin_dis"))
-    parcalar = [_kutu(el) for el in taban if el["tip"] == "dikdortgen" and el["katman"] in _KUYU_PARCALARI]
+    tavan = eleman_kutusu(next(el for el in taban if el.get("ad") == "kabin_dis"))
+    parcalar = [
+        eleman_kutusu(el) for el in taban if el["tip"] == "dikdortgen" and el["katman"] in _KUYU_PARCALARI
+    ]
     hata = []
 
     #  ── KORKULUK:  her kenar ayrı değerlendirilir ─────────────────────
@@ -216,7 +211,7 @@ def yerlesim(g, cizim_sabitleri=None):
             continue
         for el in taban:
             if el["tip"] == "dikdortgen" and el["katman"] in _KUYU_PARCALARI:
-                p = _kutu(el)
+                p = eleman_kutusu(el)
                 if p[0] - 20 < hx < p[2] + 20 and p[1] - 20 < hy < p[3] + 20:
                     hata.append(
                         f"Halat ( x = {hx:g}, y = {hy:g} ) kuyudaki bir parçanın "
@@ -236,7 +231,7 @@ def yerlesim(g, cizim_sabitleri=None):
     operator = _operator(g, tavan, S)
     #  Operatör kabinle gider:  tavandan taşan ucu kuyudaki bir parçaya değemez
     for p in parcalar:
-        if _ortusur(operator, p):
+        if ortusur(operator, p):
             hata.append(
                 f"Kabin kapısı operatörü ( kanatların yolu, x {operator[0]:g} – "
                 f"{operator[2]:g} ) kuyudaki bir parçaya değiyor ( x {p[0]:g} – {p[2]:g}, "
@@ -568,7 +563,7 @@ def ciz(g, cizim_sabitleri=None):
             n = 0
             kutular_ = [_yazi_kutusu(el) for el in yeni if el["uzunluk"] >= 1e-6]
             for i_, k_ in enumerate(kutular_):
-                n += sum(1 for b in diger + engel + kutular_[i_ + 1 :] if _ortusur(k_, b))
+                n += sum(1 for b in diger + engel + kutular_[i_ + 1 :] if ortusur(k_, b))
             return n
 
         adaylar = [
@@ -701,7 +696,7 @@ def ciz(g, cizim_sabitleri=None):
                             if dikey
                             else (u - L_ / 2.0, c_ - 20, u + L_ / 2.0, c_ + 20)
                         )
-                        n_ = sum(1 for b_ in engel_ if _ortusur(k_, b_)) + sum(
+                        n_ = sum(1 for b_ in engel_ if ortusur(k_, b_)) + sum(
                             1 for s_ in kenarlar_ if CGE.kenar_kesisir(s_, k_)
                         )
                         if en_iyi is None or n_ < en_iyi[0]:

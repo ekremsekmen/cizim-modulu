@@ -28,18 +28,14 @@ x kabin derinliği boyunca kapıdan arkaya, y rayları birleştiren doğrultu;
 """
 
 import logging
-import math
 
+from temel import bos_mu, sayi_mi
 from cizim import girdi as CG
 from cizim import katlar as CKA
 from cizim import sabitler as CS
 from tasarim import alanlar as _TS, gorunum as _TG
 
 log = logging.getLogger(__name__)
-
-
-def _sayi(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
 
 
 #  ( anahtar , etiket , birim , tür , seçenekler , varsayılan , gelişmiş , açıklama )
@@ -77,7 +73,7 @@ def cizim_sabitleri(A):
     return {
         c: float(ofis[o])
         for o, c in OFIS_SABITLERI.items()
-        if _sayi(ofis.get(o)) and CS.aralik(c)[0] <= ofis[o] <= CS.aralik(c)[1]
+        if sayi_mi(ofis.get(o)) and CS.aralik(c)[0] <= ofis[o] <= CS.aralik(c)[1]
     }
 
 
@@ -110,7 +106,7 @@ def etkin_deger(g, anahtar):
     ör. 1:1 askıda kasnak arası, makine dairesizde odanın yeri )."""
     b, a = KURALLI[anahtar]
     v = (g.get(b) or {}).get(a)
-    return float(v) if _sayi(v) else None
+    return float(v) if sayi_mi(v) else None
 
 
 def _mrl(A):
@@ -137,7 +133,7 @@ def _en_buyuk(a, kimlik, sembol):
     d = [
         abs(x["deger"])
         for x in (b or {}).get("adimlar") or []
-        if str(x.get("formul") or "").startswith(sembol + " =") and _sayi(x.get("deger"))
+        if str(x.get("formul") or "").startswith(sembol + " =") and sayi_mi(x.get("deger"))
     ]
     return max(d) if d else None
 
@@ -149,7 +145,7 @@ def kuvvetler(a):
     if not (isinstance(a, dict) and a.get("aktif")):
         return {}
     oz = a.get("ozet") or {}
-    k = {s: oz[s] for s in ("FKR", "FAR", "Fkt", "Fat") if _sayi(oz.get(s))}
+    k = {s: oz[s] for s in ("FKR", "FAR", "Fkt", "Fat") if sayi_mi(oz.get(s))}
     for ad, kimlik in (("kabin", "kabin_raylari"), ("agirlik", "agirlik_raylari")):
         for s in ("Fx", "Fy"):
             v = _en_buyuk(a, kimlik, s)
@@ -167,11 +163,6 @@ def _deger(A, anahtar):
 def _varsayilan(A, anahtar):
     v = _deger(A, anahtar)
     return ALAN[anahtar][5] if v is None else v
-
-
-def _bos(v):
-    """Kutu boş mu ( girilmemiş, None ya da boşluk )."""
-    return v is None or (isinstance(v, str) and not v.strip())
 
 
 def _dusey_kasnak_arasi(kx, kb_g, Dk, D1, G, ray_duvar, yer, S):
@@ -211,8 +202,8 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         et = etiket or (ALAN[anahtar][1] if anahtar in ALAN else anahtar)
         if v is None and bos:
             return None
-        if not _sayi(v):
-            hata.append(f"{et}:  girilmemiş." if _bos(v) else f"{et}:  sayı olmalı ( {v!r} ).")
+        if not sayi_mi(v):
+            hata.append(f"{et}:  girilmemiş." if bos_mu(v) else f"{et}:  sayı olmalı ( {v!r} ).")
             return None
         if not isaretli and (v < 0 if sifir else v <= 0):
             hata.append(
@@ -229,7 +220,9 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         if v not in sec:
             liste = " · ".join(str(x) for x in sec)
             hata.append(
-                f"{et}:  seçilmemiş ( {liste} )." if _bos(v) else f"{et}:  {liste} içinden olmalı ( {v!r} )."
+                f"{et}:  seçilmemiş ( {liste} )."
+                if bos_mu(v)
+                else f"{et}:  {liste} içinden olmalı ( {v!r} )."
             )
         return v
 
@@ -249,7 +242,7 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         (ar, "Ağırlık rayı profili", "agirlik_ray_profili"),
     ):
         if p is None:
-            hata.append(f"{et}:  seçilmemiş." if _bos(A.get(a)) else f"{et}:  okunamadı ( {A.get(a)!r} ).")
+            hata.append(f"{et}:  seçilmemiş." if bos_mu(A.get(a)) else f"{et}:  okunamadı ( {A.get(a)!r} ).")
     oran = secim("aski_orani", "Askı oranı", (1, 2))
     #  Hesabın seçimleri çizim modülünün kendi doğrulamasına boş gitmesin:
     #  ileti formdaki adla söylensin ( "agirlik.yeri" değil ).
@@ -531,7 +524,7 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         #  göre konur ( tahrik kasnağının kabin inişi kabin tavanının arka
         #  kenarında );  kabin kasnaklarının aralığı çapraz geometriden
         #  ( girilmişse uyuşmazlık denetimi karşılaştırır ).
-        if _bos(A.get("agirlik_ray_duvar")) and _sayi(D1):
+        if bos_mu(A.get("agirlik_ray_duvar")) and sayi_mi(D1):
             g["agirlik"]["ray_duvar"] = round(CAA.agirlik_ray_duvari(g, S), 1)
         A_ = CAA.geometri(g, S)
         if "aralik" in A_:
@@ -660,7 +653,7 @@ def _aski_x(A):
         return 0.0
     if oran == 2 and A.get("agirlik_yeri") == "Arka" and _varsayilan(A, "kapi_montaji") in CG.KAPI_MONTAJLARI:
         v = [A.get("ray_kapi_arasi"), A.get("kabin_derinligi"), _varsayilan(A, "esik_arasi")]
-        if not all(_sayi(x) for x in v):
+        if not all(sayi_mi(x) for x in v):
             return None
         RK, kb_d, esik = v
         S = CS.sabitler(cizim_sabitleri(A))
@@ -685,7 +678,7 @@ def _aski_x(A):
         _varsayilan(A, k) for k in ("esik_arasi", "agirlik_eksen_kaciklik")
     ]
     Da = _varsayilan(A, "agirlik_kasnak_capi")
-    if not all(_sayi(x) for x in v + [Da]):
+    if not all(sayi_mi(x) for x in v + [Da]):
         return None
     RK, kb_d, esik, ag_kacik = v
     S = CS.sabitler(cizim_sabitleri(A))
@@ -721,7 +714,7 @@ def _kasnak_caplari(A, sap):
     c = []
     if A.get("aski_orani") == 2:
         Dk, Da = _varsayilan(A, "kabin_kasnak_capi"), _varsayilan(A, "agirlik_kasnak_capi")
-        if not (_sayi(Dk) and _sayi(Da) and Dk > 0 and Da > 0):
+        if not (sayi_mi(Dk) and sayi_mi(Da) and Dk > 0 and Da > 0):
             return None
         c = [float(Dk), float(Dk), float(Da)]
     if sap:
@@ -745,7 +738,7 @@ def cizimden(A):
         return d
     if "kabin_tampon_baba" in bos:
         v = [B.get(k) for k in ("kuyu_dibi", "kabin_tampon_boyu", "kabin_carpma_arasi")]
-        if all(_sayi(x) for x in v):
+        if all(sayi_mi(x) for x in v):
             d["kabin_tampon_baba"] = v[0] - v[1] - v[2] - CS.sabitler(cizim_sabitleri(B))["sase_alt_derinlik"]
     if "aski_kaciklik_x" in bos:
         #  Çizimden bulunamıyorsa ( arkadaki karşı ağırlık ) hesabın eski
@@ -763,7 +756,7 @@ def cizimden(A):
             d["sarilma_acisi"] = alfa
     if kasnak:
         c = _kasnak_caplari(B, _saptirma(gc))
-        if c == [] and _sayi(B.get("tahrik_kasnak_capi")):
+        if c == [] and sayi_mi(B.get("tahrik_kasnak_capi")):
             #  Saptırma kasnağı yok ( 1:1, makine dairesinde saptırmasız ):  D2 ve
             #  Ds hesapta etkisizdir — tahrik kasnağının çapı verilir ( Kp = 1,
             #  D/d denetimi tahrik kasnağınınkiyle aynı ).
@@ -778,7 +771,7 @@ def cizimden(A):
             #  D2'ye düşürür ( güvenli yön ), çizim D2'nin uyuşmadığını söyler —
             #  yoksa hesap dokunulmamış Ds'yi "ters girilmiş" diye reddederdi.
             D2 = d.get("saptirma_kasnak_capi", B.get("saptirma_kasnak_capi"))
-            if "saptirma_kasnak_min_capi" in bos and not (_sayi(D2) and min(c) > D2):
+            if "saptirma_kasnak_min_capi" in bos and not (sayi_mi(D2) and min(c) > D2):
                 d["saptirma_kasnak_min_capi"] = min(c)
     return d
 
@@ -841,7 +834,7 @@ def _uyusmazliklar(g, A):
             )
         )
         sarim = None
-    if sarim is not None and _sayi(alfa) and abs(alfa - sarim) >= 0.5:
+    if sarim is not None and sayi_mi(alfa) and abs(alfa - sarim) >= 0.5:
         liste.append(
             (
                 f"Halat sarılma açısı:  çizimdeki halat geometrisi α = {sarim:.1f}° veriyor, "
@@ -855,9 +848,9 @@ def _uyusmazliklar(g, A):
     if cap:
         ort, en_kucuk = sum(cap) / len(cap), min(cap)
         D2, Ds = A.get("saptirma_kasnak_capi"), A.get("saptirma_kasnak_min_capi")
-        Ds = Ds if _sayi(Ds) else D2
+        Ds = Ds if sayi_mi(Ds) else D2
         yazi = " · ".join(f"{c:g}" for c in cap)
-        if _sayi(D2) and abs(D2 - ort) >= 1.0:
+        if sayi_mi(D2) and abs(D2 - ort) >= 1.0:
             liste.append(
                 (
                     f"Saptırma kasnakları:  çizimdeki kasnaklar ( {yazi} ) ortalaması "
@@ -866,7 +859,7 @@ def _uyusmazliklar(g, A):
                     {"saptirma_kasnak_capi": round(ort, 1)},
                 )
             )
-        if _sayi(Ds) and abs(Ds - en_kucuk) >= 0.5:
+        if sayi_mi(Ds) and abs(Ds - en_kucuk) >= 0.5:
             liste.append(
                 (
                     f"Saptırma kasnakları:  çizimdeki en küçük kasnak {en_kucuk:g} mm, hesaptaki "
@@ -905,7 +898,7 @@ def _uyusmazliklar(g, A):
 
     if (
         CAA.arkada_iki_bir(g)
-        and _sayi(A.get("kabin_kasnak_arasi"))
+        and sayi_mi(A.get("kabin_kasnak_arasi"))
         and abs(A["kabin_kasnak_arasi"] - g["aski"]["kasnak_arasi"]) >= 1.0
     ):
         liste.append(

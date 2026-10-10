@@ -6,8 +6,9 @@ ASANSÖR TRAFİK HESABI  —  MMO/697, 2. Baskı, Ocak 2020, s.11-17
   · farklı tip asansörler ->  hesapla_coklu()    ( grup formülü, s.12 )
 """
 
+from temel import bos_mu, sayi_mi
 from engine.avan import tablolar as T
-from engine.ortak.steps import Bolum, veri, hesap, tr, trn, yukari_yuvarla, yuvarla, sayi_mi
+from engine.ortak.steps import Bolum, veri, hesap, tr, trn, yukari_yuvarla, yuvarla
 
 
 # =====================================================================
@@ -1611,14 +1612,10 @@ OZDESLIK_ALANLARI = (
 )
 
 
-def _bos(x):
-    return x is None or (isinstance(x, str) and not x.strip())
-
-
 def _ayni(x, y):
-    if _bos(x) and _bos(y):
+    if bos_mu(x) and bos_mu(y):
         return True
-    if _bos(x) or _bos(y):
+    if bos_mu(x) or bos_mu(y):
         return False
     if sayi_mi(x) and sayi_mi(y):
         return abs(float(x) - float(y)) < 1e-9
@@ -1647,7 +1644,7 @@ def tekil_girdi(g: dict):
     g = g if isinstance(g, dict) else {}
     liste = [a for a in (g.get("asansorler") or []) if isinstance(a, dict)]
     #  Kapasitesi girilmemiş kolon "tanımlanmamış" sayılır.
-    liste = [a for a in liste if not _bos(a.get("P"))]
+    liste = [a for a in liste if not bos_mu(a.get("P"))]
     if not ozdes_mi(liste):
         return None
 
@@ -1664,11 +1661,11 @@ def tekil_girdi(g: dict):
         "manuel_tg",
         "manuel_tp",
     ):
-        if not _bos(bir.get(k)):
+        if not bos_mu(bir.get(k)):
             tekil[k] = bir[k]
     #  Asansör bazında verilen h / bodrum / V ortak değeri ezer.
     for kaynak, hedef in (("h", "h"), ("bodrum", "bodrum"), ("V", "manuel_V")):
-        if not _bos(bir.get(kaynak)):
+        if not bos_mu(bir.get(kaynak)):
             tekil[hedef] = bir[kaynak]
     #  TEK KOLON  =  "boyutlandır"  :  adet verilmez, program
     #     n = MAX[ taşıma ; bekleme ] ile kaç gerektiğini söyler.

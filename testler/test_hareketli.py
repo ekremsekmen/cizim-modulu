@@ -10,6 +10,7 @@ import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+from temel import ortusur
 from cizim import dusey as CDU
 from cizim import hareketli as CH
 from cizim import kopru as CK
@@ -73,7 +74,7 @@ class KuyuDibiSiginma(unittest.TestCase):
             with self.subTest(KY=KY):
                 self.assertEqual(Y["hata"], [])
                 self.assertAlmostEqual(kiris[0][2] - Y["taban"], KY - 460.0)
-                self.assertEqual(any(CH.ortusur(p[1], sg) for p in kiris), ustunde)
+                self.assertEqual(any(ortusur(p[1], sg) for p in kiris), ustunde)
                 self.assertAlmostEqual(Y["dip_aciklik"]["siginma"][0], deger)
                 self.assertEqual(Y["dip_engel"]["siginma"], engel)
 

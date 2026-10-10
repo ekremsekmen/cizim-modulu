@@ -34,6 +34,11 @@ HESAP = os.path.join(KOK, "hesap")
 HESAP_TESTLERI = ["1", "2", "3", "4", "6", "7", "8", "9", "10", "11", "12", "14"]
 ARAYUZ_TESTLERI = ["3", "5", "13", "6"]
 ARAYUZ_PORTU = 8790
+#  Hızlı / tam denetimde hesabın HTTP bölümleri ( TEST 3 · 6 ) sunucu aramaz:
+#  yoksa 8780'de o an açık olan programa ( kullanıcınınkine, belki eski koda )
+#  bağlanıyor, sonuç makinede neyin açık olduğuna göre değişiyordu.  O
+#  bölümler arayüz denetiminde kendi açtığı programa karşı koşar.
+SUNUCUSUZ = {"AVAN_TEST_URL": "http://127.0.0.1:1"}
 
 
 #  Çizim testlerinin işçi sayısı ( pytest-xdist )
@@ -131,8 +136,8 @@ def tarama():
 def main(argv):
     kip = argv[0] if argv else "hizli"
     adimlar = {
-        "hizli": lambda: [lint(), hesap(HESAP_TESTLERI), cizim(False), node()],
-        "tam": lambda: [lint(), hesap(HESAP_TESTLERI), cizim(True), node()],
+        "hizli": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), cizim(False), node()],
+        "tam": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), cizim(True), node()],
         "bicim": lambda: [bicim()],
         "arayuz": lambda: [arayuz()],
         "tarama": lambda: [tarama()],

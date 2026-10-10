@@ -38,8 +38,7 @@ STANDARDIN DENETLEDİĞİ AÇIKLIKLAR
                             acil kapı gerekir — bu çizim acil kapı çizmez, durur
 """
 
-import math
-
+from temel import eleman_kutusu, ortusur, sayi_mi
 from cizim import arka_aski as CAA
 from cizim import donanim as CDN
 from cizim import geometri as CGE
@@ -84,14 +83,6 @@ DUSEY_ALANLAR = (
 )
 
 
-def _sayi(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
-
-
-def _kutu(el):
-    return (el["x"], el["y"], el["x"] + el["g"], el["y"] + el["d"])
-
-
 def durak_kotlari(g, cizim_sabitleri=None):
     """Durakların döşeme kotları ( en alt durak ±0 ) ve girdi hataları.
 
@@ -101,14 +92,14 @@ def durak_kotlari(g, cizim_sabitleri=None):
     """
     dy, kp = g.get("dusey") or {}, g.get("kapi") or {}
     n, kh = dy.get("durak_adedi"), dy.get("kat_yuksekligi")
-    if not (_sayi(n) and n == int(n) and n >= 2):
+    if not (sayi_mi(n) and n == int(n) and n >= 2):
         return [], [f"dusey.durak_adedi:  2 ya da daha büyük bir tam sayı olmalı ( {n!r} )."]
     n = int(n)
-    araliklar = [kh] * (n - 1) if _sayi(kh) else kh
+    araliklar = [kh] * (n - 1) if sayi_mi(kh) else kh
     if not (
         isinstance(araliklar, (list, tuple))
         and len(araliklar) == n - 1
-        and all(_sayi(h) and h > 0 for h in araliklar)
+        and all(sayi_mi(h) and h > 0 for h in araliklar)
     ):
         return [], [
             f"dusey.kat_yuksekligi:  sıfırdan büyük bir sayı ya da {n - 1} "
@@ -152,13 +143,13 @@ def yerlesim(g, cizim_sabitleri=None):
     hata = [
         f"dusey.{a}: sıfırdan büyük bir sayı olmalı ( {dy.get(a)!r} )."
         for a in DUSEY_ALANLAR
-        if not (_sayi(dy.get(a)) and dy[a] > 0)
+        if not (sayi_mi(dy.get(a)) and dy[a] > 0)
     ]
     kotlar, durak_hata = durak_kotlari(g, S)
     hata += durak_hata
     for tur, ad in (("kabin", "Kabin"), ("agirlik", "Karşı ağırlık")):
         boy, ezilme = dy.get(tur + "_tampon_boyu"), dy.get(tur + "_tampon_ezilme")
-        if _sayi(boy) and _sayi(ezilme) and ezilme > boy:
+        if sayi_mi(boy) and sayi_mi(ezilme) and ezilme > boy:
             hata.append(
                 f"{ad} tamponu ezilme miktarı ({ezilme:g} mm), tamponun boyundan ({boy:g} mm) büyük olamaz."
             )
@@ -280,7 +271,9 @@ def yerlesim(g, cizim_sabitleri=None):
     korkuluk = max((k["yukseklik"] for k in KU["kenarlar"].values() if k["gerekli"]), default=0.0)
     sg_engel = engel(KU["siginma"])
     patenler = [
-        _kutu(el) for el in KD["taban"] if el["katman"] == "PATEN" and el.get("ad") != "agirlik_pateni"
+        eleman_kutusu(el)
+        for el in KD["taban"]
+        if el["katman"] == "PATEN" and el.get("ad") != "agirlik_pateni"
     ]
     pt_engel = min(engel(genislet(p, YATAY_UZAKLIK)) for p in patenler)
     ust_engel = {"siginma": sg_engel, "paten": pt_engel, "ray": (ray_ustu, "ray")}
@@ -329,8 +322,8 @@ def yerlesim(g, cizim_sabitleri=None):
         for kenar, yuk in CKU.korkuluklar(KU):
             bolge = genislet(kenar, YATAY_UZAKLIK)
             for ad, p, z in M["parcalar"]:
-                if CDN._ortusur(p, bolge):
-                    icinde = CDN._ortusur(p, kabin_izi)
+                if ortusur(p, bolge):
+                    icinde = ortusur(p, kabin_izi)
                     adaylar.append(
                         (z - H, ad, UST_KORKULUK if icinde else UST_KORKULUK_DIS, ust["tavan"] + yuk)
                     )

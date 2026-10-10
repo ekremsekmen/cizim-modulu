@@ -14,6 +14,7 @@ MMO/697 avan kitabından gelir;  uygulama projesinin tabloları bilerek ayrı
 tutulmuştur ( bkz. engine/uygulama/mukavemet_tablolari.py ).
 """
 
+from temel import sayi_mi
 from engine.ortak import ofis as OFIS
 from engine.ortak.steps import evet_mi
 from engine.uygulama import mukavemet_tablolari as MT
@@ -331,20 +332,20 @@ def tamamla(g):
     # Motor, tahrik ve tampon aynı doğrulanmış denge oranını kullanmalı.
     # Ham sözlüğü koru: reddedilen girdiler uyarılarda gösterilmeye devam eder.
     q = _US.sabitler(g.get("_ofis"))["q_denge"]
-    if _sayi(ka) and _sayi(by):
+    if sayi_mi(ka) and sayi_mi(by):
         g["karsi_agirlik"] = ka + q * by
     _tavan, kd = alt_duraktan_tavana(g), g.get("kuyu_dibi")
-    if _tavan is not None and _sayi(kd):
+    if _tavan is not None and sayi_mi(kd):
         g["kuyu_boyu"] = _tavan + kd
     #  KARŞI AĞIRLIĞIN GENİŞLİĞİ ( Gy ):  boşsa ağırlık rayları arasından
     #  ( DBGW − paten payı ), o da boşsa referans uygulama projesinin 960'ı
     #  ( tasarim/alanlar.AGIRLIK_PATEN_PAYI ).  Çizim DBGW'yi tersinden kurar
     #  ( boşsa Gy + pay ):  ikisi aynı çerçeveyi anlatır.
-    if not _sayi(g.get("agirlik_genisligi")):
+    if not sayi_mi(g.get("agirlik_genisligi")):
         dbgw = g.get("agirlik_ray_arasi")
         g["agirlik_genisligi"] = (
             dbgw - _TS.AGIRLIK_PATEN_PAYI
-            if _sayi(dbgw) and dbgw > _TS.AGIRLIK_PATEN_PAYI
+            if sayi_mi(dbgw) and dbgw > _TS.AGIRLIK_PATEN_PAYI
             else _TS.AGIRLIK_GENISLIGI_YEDEK
         )
     #  2. bükülgen kablo kat kapısı tipinden türetilir
@@ -376,10 +377,6 @@ def tamamla(g):
     return g
 
 
-def _sayi(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool)
-
-
 def kanal_acilari(g, O):
     """( γ , β , γ_girildi , β_girildi )  —  proje değeri varsa o, yoksa ofis.
 
@@ -389,7 +386,7 @@ def kanal_acilari(g, O):
     """
     sekil = g.get("kanal_sekli")
     pg, pb = g.get("kasnak_gama"), g.get("kasnak_beta")
-    g_var, b_var = _sayi(pg), _sayi(pb)
+    g_var, b_var = sayi_mi(pg), sayi_mi(pb)
     gv = float(pg) if g_var else O["kanal_gama_v"]
     gyd = float(pg) if g_var else O["kanal_gama_yd"]
     bt = float(pb) if b_var else O["kanal_beta"]
@@ -400,7 +397,7 @@ def sistem_verimi(g):
     """η ve girilip girilmediği:  projeye girilen verim, yoksa makine tipinden
     ofis değeri.  Mukavemet ve elektrik köprüsü AYNI değeri buradan okur."""
     e = g.get("makine_verimi")
-    if _sayi(e):
+    if sayi_mi(e):
         return e, True
     from engine.uygulama import sabitler as _US
 
@@ -424,7 +421,7 @@ def dogrula(g):
         if secenekler is not None and d not in secenekler:
             hata.append(f"{ad}: geçersiz seçim — {d!r}. Seçenekler: {', '.join(str(x) for x in secenekler)}.")
             continue
-        if tur == "sayi" and not _sayi(d):
+        if tur == "sayi" and not sayi_mi(d):
             hata.append(f"{ad}: sayı olmalı ( {d!r} girildi ).")
         elif tur == "sayi" and d < 0 and anahtar not in ISARETLI_ALANLAR:
             hata.append(f"{ad}: negatif olmayan bir sayı olmalı ( {d!r} girildi ).")
@@ -434,7 +431,7 @@ def dogrula(g):
     #  neyi düzelteceği söylenmeli.
     for anahtar in BOLEN_ALANLAR:
         d = g.get(anahtar)
-        if anahtar not in atla and _sayi(d) and d == 0:
+        if anahtar not in atla and sayi_mi(d) and d == 0:
             hata.append(f"{ALAN[anahtar][1]}: sıfır olamaz — bu değer hesapta bölen olarak kullanılır.")
 
     #  TABLO BÜTÜNLÜĞÜ.  Bir seçenek listede var ama tablosunda karşılığı
@@ -458,11 +455,11 @@ def dogrula(g):
     #  denetlenmiyordu;  küçük bir a atalet kuvvetini küçültür, T1/T2 oranını
     #  iyileştirir ve tahrik yeteneğini olduğundan İYİ gösterir — emniyetsiz.
     ivme = g.get("acil_frenleme_a")
-    if _sayi(ivme) and ivme > 9.81:
+    if sayi_mi(ivme) and ivme > 9.81:
         hata.append(
             f"Acil frenleme yavaşlaması ({ivme} m/s²) TS EN 81-20 gereği 1 gn = 9,81 m/s² değerini aşamaz."
         )
-    if _sayi(ivme) and ivme < ACIL_FRENLEME_ASGARI:
+    if sayi_mi(ivme) and ivme < ACIL_FRENLEME_ASGARI:
         hata.append(
             f"Acil frenleme yavaşlaması ({ivme} m/s²) TS EN 81-50 "
             f"m.5.11.2.2.2 gereği {ACIL_FRENLEME_ASGARI} m/s²'nin "
@@ -478,7 +475,7 @@ def dogrula(g):
     #  kalması gerekirken, Ds = 600 girilince satır kayboluyor ve bölüm o
     #  kontrolü geçmiş sayılıyordu — emniyetsiz yön.
     _d2, _ds = g.get("saptirma_kasnak_capi"), g.get("saptirma_kasnak_min_capi")
-    if _sayi(_d2) and _sayi(_ds) and float(_ds) > float(_d2):
+    if sayi_mi(_d2) and sayi_mi(_ds) and float(_ds) > float(_d2):
         hata.append(
             f"{ALAN['saptirma_kasnak_min_capi'][1]} ({_ds} mm), "
             f"saptırma kasnaklarının ORTALAMA çapından ({_d2} mm) "
@@ -494,7 +491,7 @@ def dogrula(g):
     #  paftaya olağan bir seçenek gibi yazılıyordu.
     for _ra in ("kabin_ray_sayisi", "agirlik_ray_sayisi"):
         _n = g.get(_ra)
-        if _sayi(_n) and 0 < float(_n) < 2:
+        if sayi_mi(_n) and 0 < float(_n) < 2:
             hata.append(
                 f"{ALAN[_ra][1]}: en az 2 olmalıdır "
                 f"( {_n} girildi ).  TS EN 81-20 m.5.7.1.1 kabin ve "
@@ -511,7 +508,7 @@ def dogrula(g):
     #  ( KY = 800 mm · baba = 1.000 mm → a_dip = 1.010 mm , hüküm UYGUN ).
     _ky, _bb = g.get("kuyu_dibi"), g.get("kabin_tampon_baba")
     _tb2, _te2 = g.get("kabin_tampon_boyu"), g.get("kabin_tampon_ezilme")
-    if all(_sayi(x) for x in (_ky, _bb, _tb2, _te2)):
+    if all(sayi_mi(x) for x in (_ky, _bb, _tb2, _te2)):
         _adip = float(_bb) + (float(_tb2) - float(_te2))
         if _adip >= float(_ky):
             hata.append(
@@ -530,7 +527,7 @@ def dogrula(g):
     #  sessizce bozulur.  Denetimde 100 mm'lik tampona 5.000 mm ezilme
     #  girilebiliyor ve a_dip = −3.900 mm çıkıyordu — hiçbir uyarı yoktu.
     _tb, _te = g.get("kabin_tampon_boyu"), g.get("kabin_tampon_ezilme")
-    if _sayi(_tb) and _sayi(_te) and float(_te) > float(_tb):
+    if sayi_mi(_tb) and sayi_mi(_te) and float(_te) > float(_tb):
         hata.append(
             f"{ALAN['kabin_tampon_ezilme'][1]} ({_te} mm), tamponun "
             f"kendi boyunu ({_tb} mm) aşamaz — tampon en çok kendi "
@@ -541,7 +538,7 @@ def dogrula(g):
     if _ab is None or (isinstance(_ab, str) and not _ab.strip()):
         _ab = _tb
     _ae = g.get("agirlik_tampon_ezilme")
-    if _sayi(_ab) and _sayi(_ae) and float(_ae) > float(_ab):
+    if sayi_mi(_ab) and sayi_mi(_ae) and float(_ae) > float(_ab):
         hata.append(
             f"{ALAN['agirlik_tampon_ezilme'][1]} ({_ae} mm), tamponun "
             f"kendi boyunu ({_ab} mm) aşamaz — tampon en çok kendi boyu kadar kısalabilir."
@@ -550,20 +547,20 @@ def dogrula(g):
     #  ADET · POZİTİFLİK · AÇI  —  fiziksel sınırlar
     for anahtar in TAM_SAYI_ALANLARI:
         d = g.get(anahtar)
-        if _sayi(d) and float(d) != int(d):
+        if sayi_mi(d) and float(d) != int(d):
             hata.append(f"{ALAN[anahtar][1]}: adet tam sayı olmalıdır ( {d} girildi ).")
     nh = g.get("halat_adedi")
-    if _sayi(nh) and nh < 2:
+    if sayi_mi(nh) and nh < 2:
         hata.append("Askı halatı adedi en az 2 olmalıdır (TS EN 81-20 m.5.5.1.3).")
     for anahtar in POZITIF_ALANLAR:
         d = g.get(anahtar)
         if anahtar in atla:
             continue
-        if anahtar in ALAN and d is not None and (not _sayi(d) or d <= 0):
+        if anahtar in ALAN and d is not None and (not sayi_mi(d) or d <= 0):
             hata.append(f"{ALAN[anahtar][1]}: sıfırdan büyük olmalıdır ( {d} girildi ).")
     for anahtar, (alt, ust) in ACI_ALANLARI.items():
         d = g.get(anahtar)
-        if d is not None and (not _sayi(d) or not (alt <= d <= ust)):
+        if d is not None and (not sayi_mi(d) or not (alt <= d <= ust)):
             hata.append(f"{ALAN[anahtar][1]}: {alt}° ile {ust}° arasında olmalıdır ( {d} girildi ).")
 
     #  ------------------------------------------------------------------
@@ -578,7 +575,7 @@ def dogrula(g):
     #  bağlı olduğundan alanın kendi aralığıyla ( 1–360° ) denetlenemez;
     #  burada, iki alan birlikte görülürken reddedilir.
     _aci, _kanal = g.get("sarilma_acisi"), g.get("kanal_sekli")
-    if _sayi(_aci) and 1 <= _aci <= 360 and MT.kanal_turu(_kanal) is not None:
+    if sayi_mi(_aci) and 1 <= _aci <= 360 and MT.kanal_turu(_kanal) is not None:
         if (MT.kanal_gecis_sayisi(_kanal) or 1) > 1:
             if _aci <= 180:
                 hata.append(
@@ -617,7 +614,7 @@ def dogrula(g):
     #  atlayamaz.  γ'nın ALT sınırı kanal türüne göre değişir ( V 35° ·
     #  yarım daire 25° ), üst sınır bir kanal açısı olarak 90°'dir.
     _pg, _pb = g.get("kasnak_gama"), g.get("kasnak_beta")
-    if _sayi(_pg):
+    if sayi_mi(_pg):
         _alt = MT.GAMA_ASGARI_U if MT.kanal_yarim_daire_mi(_kanal) else MT.GAMA_ASGARI_V
         if not (_alt <= _pg <= MT.GAMA_AZAMI):
             hata.append(
@@ -625,7 +622,7 @@ def dogrula(g):
                 f"kanalda {_alt:.0f}° ≤ γ ≤ {MT.GAMA_AZAMI:.0f}° olmalıdır "
                 "( TS EN 81-50 m.5.11.2.3.1 )."
             )
-    if _sayi(_pb):
+    if sayi_mi(_pb):
         if not (0 < _pb <= MT.BETA_AZAMI):
             hata.append(
                 f"Kanal alt kesme açısı β = {_pb}° sınırların dışında — "
@@ -648,7 +645,7 @@ def dogrula(g):
     #  değer kontrolü / sanitization ve fiziksel tutarlılık kalkanıdır. )
     pbb = g.get("paten_balata_boyu")
     if pbb is not None and pbb != "":
-        if not _sayi(pbb) or pbb <= 0:
+        if not sayi_mi(pbb) or pbb <= 0:
             hata.append(f"{ALAN['paten_balata_boyu'][1]}: sıfırdan büyük olmalıdır ( {pbb!r} girildi ).")
         elif pbb < 20:
             hata.append(
@@ -656,13 +653,13 @@ def dogrula(g):
             )
         else:
             kpa = g.get("kabin_paten_arasi")
-            if _sayi(kpa) and pbb >= kpa:
+            if sayi_mi(kpa) and pbb >= kpa:
                 hata.append(
                     f"Paten balatası uzunluğu ({pbb:g} mm) kabin patenler arası mesafeden ({kpa:g} mm) küçük olmalıdır."
                 )
     gdk = g.get("guvenlik_devreye_kuvvet")
     if gdk is not None and gdk != "":
-        if not _sayi(gdk) or gdk <= 0:
+        if not sayi_mi(gdk) or gdk <= 0:
             hata.append(
                 f"{ALAN['guvenlik_devreye_kuvvet'][1]}: sıfırdan büyük olmalıdır ( {gdk!r} girildi )."
             )
@@ -684,7 +681,7 @@ def dogrula(g):
         _v = g.get(_ad)
         if _v is None or _v == "":
             continue
-        if not _sayi(_v) or not (_alt <= _v <= _ust):
+        if not sayi_mi(_v) or not (_alt <= _v <= _ust):
             hata.append(f"{ALAN[_ad][1]}: {_alt} - {_ust} aralığında olmalıdır ( {_v!r} girildi ).")
 
     #  MAKİNE KAİDESİ GEOMETRİSİ.  Bölüm 2 basit kiriş modelidir:  açıklığı L
@@ -695,13 +692,13 @@ def dogrula(g):
     #  fiziksel değildir;  geometri baştan reddedilmelidir.
     L = g.get("yan_yatak_boyu")
     pay = (g.get("_ofis") or {}).get("yan_yatak_L_X")
-    if not _sayi(pay):
+    if not sayi_mi(pay):
         from engine.uygulama import sabitler as _US
 
         pay = _US.VARSAYILAN["yan_yatak_L_X"]
     #  Yükün yeri çizimden geldiyse ( program hesabı ) mesnet payı kullanılmaz.
-    _x_ciz = "makine_yuku_x" in (g.get("_cizimden") or {}) and _sayi(g.get("makine_yuku_x"))
-    if "yan_yatak_boyu" not in atla and not _x_ciz and _sayi(L) and _sayi(pay) and L - pay <= 0:
+    _x_ciz = "makine_yuku_x" in (g.get("_cizimden") or {}) and sayi_mi(g.get("makine_yuku_x"))
+    if "yan_yatak_boyu" not in atla and not _x_ciz and sayi_mi(L) and sayi_mi(pay) and L - pay <= 0:
         hata.append(
             f"Yan yatak boyu ({L} mm) mesnet payından ({pay} mm) büyük "
             "olmalıdır. Makine kaidesi hesabı, açıklığı L olan basit "
@@ -730,7 +727,7 @@ def dogrula(g):
     #  bekler;  ofis değeri o projede kullanılmadığı için burada aranmaz.
     _tip = g.get("makine_tipi")
     _etap, _eta_girildi = sistem_verimi(g)
-    if not _eta_girildi and not (_sayi(_etap) and 0 < _etap <= 1):
+    if not _eta_girildi and not (sayi_mi(_etap) and 0 < _etap <= 1):
         hata.append(
             f"Toplam sistem verimi η = {_etap} fiziksel değil — 0 < η ≤ 1 "
             f"olmalı ( '{_tip}' makine ). Sabitler sekmesinden düzeltin."
@@ -753,7 +750,7 @@ def dogrula(g):
     )
     _y = {a: g.get(a) for a in _yigin_ad}
     _kb = g.get("kuyu_boyu")
-    if _sayi(_kb) and all(_sayi(v) for v in _y.values()):
+    if sayi_mi(_kb) and all(sayi_mi(v) for v in _y.values()):
         _yigin = (
             _y["agirlik_tampon_baba"]
             + _y["agirlik_carpma_arasi"]
@@ -868,8 +865,8 @@ def uyarilar(g):
         #  dışına düşen geometriler ( λ > 250 ) sessizce kabul ediliyordu.
         _ix = MT.ray(prof, "ix") if prof else None
         _iy = MT.ray(prof, "iy") if prof else None
-        imin = min(_ix, _iy) if _sayi(_ix) and _sayi(_iy) else None
-        if _sayi(imin) and imin > 0 and _sayi(l) and l > 0:
+        imin = min(_ix, _iy) if sayi_mi(_ix) and sayi_mi(_iy) else None
+        if sayi_mi(imin) and imin > 0 and sayi_mi(l) and l > 0:
             lam = l / imin
             if lam > MT.OMEGA_LAMBDA_MAX:
                 azami = MT.OMEGA_LAMBDA_MAX * imin
@@ -907,7 +904,7 @@ def uyarilar(g):
     _tip = g.get("tampon_tipi")
     if _tip and MT.tampon(_tip)[2] is None:
         _boy, _ez = g.get("kabin_tampon_boyu"), g.get("kabin_tampon_ezilme")
-        if _sayi(_boy) and _sayi(_ez) and _boy > 0:
+        if sayi_mi(_boy) and sayi_mi(_ez) and _boy > 0:
             _tam = MT.TAMPON_TAM_EZILME_ORANI * _boy
             if _ez < _tam - 0.5:
                 uyari.append(
@@ -929,7 +926,7 @@ def alt_duraktan_tavana(g):
     boyu bu tek sayıdan türer.  Girdiler sayı değilse None.
     """
     sm, sk = g.get("seyir_mesafesi"), g.get("son_kat_yuksekligi")
-    if not (_sayi(sm) and _sayi(sk)):
+    if not (sayi_mi(sm) and sayi_mi(sk)):
         return None
     return sm * 1000.0 + sk
 
@@ -945,7 +942,7 @@ def toplam_ray_boyu(g):
     """
     tavan = alt_duraktan_tavana(g)
     kd = g.get("kuyu_dibi")
-    if tavan is None or not _sayi(kd):
+    if tavan is None or not sayi_mi(kd):
         return None
     return (tavan - 200 + (kd - 300)) / 1000.0
 

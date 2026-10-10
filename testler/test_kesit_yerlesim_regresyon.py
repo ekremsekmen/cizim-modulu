@@ -7,6 +7,7 @@ kararı 1 Eki ).  Kabin altı askının taşıyıcısı eskisi gibi."""
 import json
 import unittest
 
+from temel import ortusur
 from testler.test_gercek_projeler import GP, UC, UYG, E_UGR, E_UYG, CK
 from cizim import baglantilar as CB, donanim as CDN, geometri as E
 from cizim import kabin_ustu as KU, kuyu_kesiti as K
@@ -98,7 +99,7 @@ class KesitYerlesimRegresyon(unittest.TestCase):
             for pk, r in zip(patenler, raylar):
                 rk = r["kutu"]
                 with self.subTest(proje=ad, ray=rk):
-                    self.assertTrue(CDN._ortusur(pk[:4], rk))
+                    self.assertTrue(ortusur(pk[:4], rk))
                     self.assertAlmostEqual(pk[eks + 2] - pk[eks], S["paten_en"])
                     self.assertAlmostEqual(pk[3 - eks] - pk[1 - eks], S["paten_boy"])
                     yuz = (pk[eks] + pk[eks + 2]) / 2

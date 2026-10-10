@@ -25,6 +25,7 @@ verilir ( hesap/api/cizim.py — formun girdisinden çizimin ölçülerine ).
 """
 
 import math
+from temel import sayi_mi
 import re
 
 ESIK = 1e-7  # bu kadarlık değişim "değişmedi" sayılır ( kayan nokta )
@@ -140,7 +141,7 @@ def _secim(kur, taban, ad, kaynak):
     sec = list(ad["secenekler"] or [])
     k = sec.index(ad["deger"]) if ad["deger"] in sec else -1
     alternatif = [sec[j] for j in (k + 1, k - 1) if 0 <= j < len(sec)] if k >= 0 else sec[:2]
-    sayisal = _sayi_mi(ad["deger"]) and all(_sayi_mi(x) for x in sec)
+    sayisal = sayi_mi(ad["deger"]) and all(sayi_mi(x) for x in sec)
     degisen = {}
     for v in alternatif:
         e = kur({ad["kimlik"]: v}, denetle=True)
@@ -154,10 +155,6 @@ def _secim(kur, taban, ad, kaynak):
         if sayisal:
             s, dog = _dogrusal([du / (v - ad["deger"]) for v, du in lst])
         kaynak[i].append({"kimlik": ad["kimlik"], "tur": "secim", "egim": s, "dogrusal": dog, "bagli": False})
-
-
-def _sayi_mi(x):
-    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
 
 
 def cozumle(kur, adaylar):

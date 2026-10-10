@@ -5,7 +5,7 @@ kaynaklı tablolar.
 """
 
 from engine.ortak import ofis as _OFIS
-from engine.ortak.steps import sayi_mi
+from temel import sayi_mi
 
 # ---------------------------------------------------------------- TABLO - 1
 # Binada sürekli bulunan insan sayısı katsayıları (MMO/697 s.13)

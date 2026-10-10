@@ -11,6 +11,7 @@ import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+from temel import ortusur
 from cizim import arka_aski as CAA
 from cizim import geometri as CGE
 from cizim import kabin_ustu as CKUS
@@ -112,7 +113,7 @@ class Geometri(unittest.TestCase):
         halat = [p for p in CH.kabin_parcalari(g, S, Y["taban"], kt) if p[0] == CH.HALAT]
         self.assertTrue(halat)
         self.assertAlmostEqual(halat[0][2] - kt["tavan"], S["kabin_tavani_kasnak_boslugu"])
-        self.assertTrue(any(CH.ortusur(p[1], Y["tavan"]) for p in halat))
+        self.assertTrue(any(ortusur(p[1], Y["tavan"]) for p in halat))
 
 
 class Cizimler(unittest.TestCase):

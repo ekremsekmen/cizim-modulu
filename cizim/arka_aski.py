@@ -28,6 +28,7 @@ y ön duvardan arkaya ).
 """
 
 import math
+from temel import sayi_mi
 
 #  Kabin kasnaklarının birbirine en az açıklığı ( jantlar arası ):  yoksa iki
 #  kasnak üst üste biner.  Sıfır değil:  kasnak taşıyıcısının ortası.
@@ -40,10 +41,6 @@ def arkada_iki_bir(g):
         "Kabin üstü",
         "Kabin altı",
     )
-
-
-def _sayi(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
 def makine_yonu(g):
@@ -84,7 +81,7 @@ def geometri(g, S, yon=None):
         ("agirlik.kasnak_capi", ag.get("kasnak_capi")),
         ("makine.tahrik_kasnak_capi", mk.get("tahrik_kasnak_capi")),
     ):
-        if not (_sayi(v) and v > 0):
+        if not (sayi_mi(v) and v > 0):
             hata.append(f"{ad}:  arkadaki ağırlıkla 2:1 askıda gerekli ( {v!r} ).")
     if hata:
         return {"hata": hata}

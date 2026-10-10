@@ -34,6 +34,7 @@ kasnağının ekseni ( x ) boyunca dizilir.  Regülatör halatının deliği de 
 kuralla ( tek halat:  çap + 2 × pay ).
 """
 
+from temel import ortusur, sayi_mi
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kuyu_ustu as CKT
@@ -54,13 +55,6 @@ KOT_FARKI_MERDIVEN = 500.0
 GIRINTI = (50.0, 500.0)
 
 
-def _sayi(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool)
-
-
-_ortusur = CKT._ortusur
-
-
 def _icinde(p, oda):
     return oda[0] - 1e-9 <= p[0] and p[2] <= oda[2] + 1e-9 and oda[1] - 1e-9 <= p[1] and p[3] <= oda[3] + 1e-9
 
@@ -74,7 +68,7 @@ def tabliye(g):
                beton yüksekliği";  LiftDesigner'ın makine dairesi kesitinde 1.200 )
     """
     k, md = g["kuyu"], g.get("makine_dairesi") or {}
-    dos = k.get("doseme") if _sayi(k.get("doseme")) else k["duvar_on"]
+    dos = k.get("doseme") if sayi_mi(k.get("doseme")) else k["duvar_on"]
     t = md.get("tabliye_yuksekligi")
     return {
         "izi": (
@@ -84,14 +78,14 @@ def tabliye(g):
             k["derinlik"] + k["duvar_arka"],
         ),
         "doseme": float(dos),
-        "yukseklik": float(t) if _sayi(t) and t > 0 else 0.0,
+        "yukseklik": float(t) if sayi_mi(t) and t > 0 else 0.0,
     }
 
 
 def tek_kotta(k, TB):
     """Kutu tek bir zeminde mi:  tabliyenin üstünde ya da oda zemininde ( kot
     farkı yoksa her yer )."""
-    return TB["yukseklik"] <= 1e-9 or _icinde(k, TB["izi"]) or not _ortusur(k, TB["izi"])
+    return TB["yukseklik"] <= 1e-9 or _icinde(k, TB["izi"]) or not ortusur(k, TB["izi"])
 
 
 def _birlesik(a, b):
@@ -191,12 +185,12 @@ def _bakim_yeri(mk, engeller, oda, TB=None):
     #  Adaylar makinenin en çok alanın uzun kenarı kadar çevresindedir
     r = max(BAKIM_ALANI)
     cevre = (mk[0] - r, mk[1] - r, mk[2] + r, mk[3] + r)
-    engeller = [x for x in engeller if _ortusur(x, cevre)]
+    engeller = [x for x in engeller if ortusur(x, cevre)]
     for w, h in (BAKIM_ALANI, BAKIM_ALANI[::-1]):
         for kutu in _bitisik_adaylar(mk, w, h):
             if TB and TB["yukseklik"] > 1e-9 and not _icinde(kutu, TB["izi"]):
                 continue
-            if _icinde(kutu, oda) and not any(_ortusur(kutu, x) for x in engeller):
+            if _icinde(kutu, oda) and not any(ortusur(kutu, x) for x in engeller):
                 c = ((kutu[0] + kutu[2]) / 2.0, (kutu[1] + kutu[3]) / 2.0)
                 adaylar.append((abs(c[0] - mc[0]) + abs(c[1] - mc[1]), kutu))
     return min(adaylar)[1] if adaylar else None
@@ -207,25 +201,25 @@ def yerlesim(g, cizim_sabitleri=None):
     md, a = g.get("makine_dairesi") or {}, g.get("aski") or {}
     hata = []
     for alan in ("genislik", "derinlik", "duvar", "kapi_genislik"):
-        if not (_sayi(md.get(alan)) and md[alan] > 0):
+        if not (sayi_mi(md.get(alan)) and md[alan] > 0):
             hata.append(f"makine_dairesi.{alan}: sıfırdan büyük bir sayı olmalı ( {md.get(alan)!r} ).")
     for alan in ("x", "y", "kapi_konum"):
-        if not _sayi(md.get(alan)):
+        if not sayi_mi(md.get(alan)):
             hata.append(f"makine_dairesi.{alan}: sayı olmalı ( {md.get(alan)!r} ).")
     for alan in ("kapi_duvar", "pano_duvar"):
         if md.get(alan) not in DUVARLAR:
             hata.append(f"makine_dairesi.{alan}: {DUVARLAR} içinden olmalı ( {md.get(alan)!r} ).")
     for alan in ("halat_adedi", "halat_capi"):
-        if not (_sayi(a.get(alan)) and a[alan] > 0):
+        if not (sayi_mi(a.get(alan)) and a[alan] > 0):
             hata.append(f"aski.{alan}: döşeme deliği için gerekli ( {a.get(alan)!r} ).")
     rdh = (g.get("kuyu_dibi") or {}).get("regulator_halat_capi")
-    if not (_sayi(rdh) and rdh > 0):
+    if not (sayi_mi(rdh) and rdh > 0):
         hata.append(
             f"kuyu_dibi.regulator_halat_capi: regülatör halatının döşeme deliği için gerekli "
             f"( hesap programında 'Regülatör halatı çapı' ) ( {rdh!r} )."
         )
     #  Makine kaidesi:  hesap programının girdileri ( bölüm 2 )
-    if not (_sayi(md.get("sase_yuksekligi")) and md["sase_yuksekligi"] > 0):
+    if not (sayi_mi(md.get("sase_yuksekligi")) and md["sase_yuksekligi"] > 0):
         hata.append(
             f"makine_dairesi.sase_yuksekligi: sıfırdan büyük bir sayı olmalı "
             f"( {md.get('sase_yuksekligi')!r} )."
@@ -279,7 +273,7 @@ def yerlesim(g, cizim_sabitleri=None):
         )
     elif fark > 1e-6:
         D2 = mkg.get("saptirma_kasnak_capi")
-        if not (_sayi(D2) and D2 > 0):
+        if not (sayi_mi(D2) and D2 > 0):
             hata.append(
                 f"makine.saptirma_kasnak_capi:  halat aralığı tahrik kasnağından {fark:g} mm "
                 "büyük — saptırma kasnağı gerekir, çapı girilmeli ( hesap programında "
@@ -362,7 +356,7 @@ def yerlesim(g, cizim_sabitleri=None):
             hata.append(f"{ad.capitalize()} halatı deliği kuyunun dışına düşüyor.")
     for i, (a1, d1) in enumerate(delikler):
         for a2, d2 in delikler[i + 1 :]:
-            if _ortusur(d1, d2):
+            if ortusur(d1, d2):
                 hata.append(f"{a1.capitalize()} ve {a2.lower()} delikleri üst üste biniyor.")
 
     #  KAİDE ( kullanıcı kararı, 29 Eyl ):
@@ -446,7 +440,7 @@ def yerlesim(g, cizim_sabitleri=None):
             plakalar = [
                 (x - a / 2.0, y - a / 2.0, x + a / 2.0, y + a / 2.0) for x, y in CMK.ayaklar(c, E, F, uzun_x)
             ]
-            if not _icinde(c, oda) or any(_ortusur(p, d_) for p in plakalar for _, d_ in delikler):
+            if not _icinde(c, oda) or any(ortusur(p, d_) for p in plakalar for _, d_ in delikler):
                 continue
             aday = (c, ub - ua, (te, tu) == (1.0, 1.0))
             alanlar = _alanlar(c)
@@ -494,7 +488,7 @@ def yerlesim(g, cizim_sabitleri=None):
                     not _icinde(c, iz_)
                     or not _icinde(c, oda)
                     or not _icinde(iz, c)
-                    or any(_ortusur(p, d_) for p in plakalar for _, d_ in delikler)
+                    or any(ortusur(p, d_) for p in plakalar for _, d_ in delikler)
                 ):
                     continue
                 al_ = _alanlar(c)
@@ -674,7 +668,7 @@ def saptirma_kotu(M, sp, kasnak, D1, hs, hk, y_, S):
         (M["kabin_baglanti"], S["kabin_baglanti_alt"] - S["kabin_baglanti_ust"]),
         (M["reg_govde"], S["regulator_govde_alt"] - S["regulator_govde_ust"]),
     ):
-        if kutu_ and _ortusur(kutu_, sp["kutu"]):
+        if kutu_ and ortusur(kutu_, sp["kutu"]):
             z = max(z, h_ + 50.0 + R2)
     #  Halat düzleminde ( u, z ):  kasnak kanonik kutu ( u0, v0, u1, v1 )
     mx = (kasnak[0] + kasnak[2]) / 2.0
@@ -713,7 +707,7 @@ def _duvarlar(e, oda, t, kapi):
         (x1, y0, t, y1 - y0),
     ):
         parcalar = [(x, y, x + w, y + h)]
-        if _ortusur(parcalar[0], kapi):
+        if ortusur(parcalar[0], kapi):
             if w >= h:
                 parcalar = [(x, y, kapi[0], y + h), (kapi[2], y, x + w, y + h)]
             else:

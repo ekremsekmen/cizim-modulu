@@ -2,6 +2,8 @@
 
 import unittest
 
+from temel import ortusur
+
 from cizim import girdi as G, geometri as E, kuyu_dibi as D
 from cizim import kuyu_kesiti as K, kabin_ustu as U, kesit_parcalari as P
 from testler.test_cizim import _ornek, _sag_ayna
@@ -51,7 +53,7 @@ class FizikselTutarlilik(unittest.TestCase):
                 el = next(el for el in e if el.get("ad") == "gergi_" + ad)
                 self.assertEqual(P.kutu_(el), kutu)
                 self.assertEqual(Y["M"]["gergi"][ad][:2], (kutu[1], kutu[3]))
-                self.assertFalse(D._ortusur(kutu, Y["KD"]["siginma"]))
+                self.assertFalse(ortusur(kutu, Y["KD"]["siginma"]))
             for kutu in gp.values():
                 self.assertTrue(0 <= kutu[0] <= kutu[2] <= g["kuyu"]["genislik"])
                 self.assertTrue(0 <= kutu[1] <= kutu[3] <= g["kuyu"]["derinlik"])
@@ -68,7 +70,7 @@ class FizikselTutarlilik(unittest.TestCase):
                     self.assertEqual(Y["hata"], [])
                     for kutu in Y["gergi_donanim"].values():
                         for alan in (Y["merdiven"], Y["siginma"]):
-                            self.assertFalse(alan and D._ortusur(kutu, alan), (kutu, alan))
+                            self.assertFalse(alan and ortusur(kutu, alan), (kutu, alan))
 
     def test_gergi_agirligi_duvara_degmez(self):
         """Gergi ağırlığı duvarlara en az çizimin çakışma payı ( 20 ) kadar uzak:

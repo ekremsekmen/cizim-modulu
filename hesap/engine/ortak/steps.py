@@ -11,6 +11,7 @@ Paftanın "işlem satırı":
 """
 
 import math
+from temel import sayi_mi
 from decimal import ROUND_HALF_UP, Decimal
 
 
@@ -89,10 +90,6 @@ def yuvarla(x, basamak=0):
         return None
     d = Decimal(format(x, f".{_ANLAMLI_HANE}g"))
     return float(d.quantize(Decimal(1).scaleb(-basamak), rounding=ROUND_HALF_UP))
-
-
-def sayi_mi(x):
-    return isinstance(x, (int, float)) and not isinstance(x, bool)
 
 
 def bagla(metin):

@@ -13,10 +13,7 @@ burası uygulama projesinin kendi kaynağını uygular.  İki tarafın ortak kon
 kaynakları da ayrı yazılır.
 """
 
-
-def _sayi(x):
-    """Sayı mı  ( bool tuzağı dâhil )."""
-    return isinstance(x, (int, float)) and not isinstance(x, bool)
+from temel import sayi_mi
 
 
 def _ara(tablo, anahtar, sutun=1):
@@ -208,7 +205,7 @@ def _omega_egri(egri, lam):
 
 def omega_en8150(lam, rm=OMEGA_RM_ALT):
     """ω  ( TS EN 81-50 m.5.10.3 )  —  narinlik ve ray çeliğine göre."""
-    if not (_sayi(lam) and _sayi(rm)):
+    if not (sayi_mi(lam) and sayi_mi(rm)):
         return None
     if not (OMEGA_LAMBDA_MIN <= lam <= OMEGA_LAMBDA_MAX):
         return None
@@ -507,7 +504,7 @@ REG_MU_AZAMI = 0.2
 
 def _dogrusal_ara(tablo, x):
     """Çizelge 2 için doğrusal ara değer;  aralık dışında uç değere sabitler."""
-    if not _sayi(x):
+    if not sayi_mi(x):
         return None
     if x <= tablo[0][0]:
         return tablo[0][1]

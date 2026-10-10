@@ -22,6 +22,8 @@ Kabin eteği ( önlük ) burada yok:  eşiğin önündedir, kabinin izinin dış
 kendi açıklığı ( m.5.2.5.8.2 a 1 ) ayrı denetlenir.
 """
 
+from temel import eleman_kutusu, ortusur
+
 #  Kabin parçalarının adları — açıklık ve hata iletilerinde görünür
 KABIN = "kabin tabanı"
 ALT_KIRIS = "alt şase kirişi"
@@ -48,15 +50,6 @@ AG_CERCEVE = "karşı ağırlık çerçevesi"
 AG_ALT_PATEN = "karşı ağırlığın alt pateni"
 AG_UST_PATEN = "karşı ağırlığın üst pateni"
 AG_KASNAK = "karşı ağırlık kasnağı"
-
-
-def _kutu(el):
-    return (el["x"], el["y"], el["x"] + el["g"], el["y"] + el["d"])
-
-
-def ortusur(a, b):
-    """İki plan kutusu iç içe geçiyor mu ( kenarda değmek sayılmaz )."""
-    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
 
 
 def _serit(p, q, en):
@@ -88,19 +81,19 @@ def kabin_parcalari(g, S, plan, kt):
     from cizim import arka_aski as CAA
 
     out = []
-    kabin = next((_kutu(el) for el in plan if el.get("ad") == "kabin_dis"), None)
+    kabin = next((eleman_kutusu(el) for el in plan if el.get("ad") == "kabin_dis"), None)
     if kabin is not None:
         out.append((KABIN, kabin, kt["taban_alti"], kt["tavan"]))
     for el in plan:
         ad = el.get("ad")
         if ad == "sase_kiris":
-            k = _kutu(el)
+            k = eleman_kutusu(el)
             out.append((ALT_KIRIS, k, kt["alt_kiris_alt"], kt["alt_kiris_ust"]))
             out.append((UST_KIRIS, k, kt["ust_kiris_alt"], kt["ust_kiris_ust"]))
         elif ad == "sase_dikme":
-            out.append((DIKME, _kutu(el), kt["alt_kiris_alt"], kt["ust_kiris_ust"]))
+            out.append((DIKME, eleman_kutusu(el), kt["alt_kiris_alt"], kt["ust_kiris_ust"]))
         elif el["katman"] == "PATEN" and el["tip"] == "dikdortgen" and ad != "agirlik_pateni":
-            k = _kutu(el)
+            k = eleman_kutusu(el)
             out.append((ALT_PATEN, k, kt["alt_paten"], kt["alt_paten_ust"]))
             out.append((UST_PATEN, k, kt["ust_paten_alt"], kt["ust_paten"]))
             out.append((FREN, k, kt["fren_alti"], kt["taban_alti"]))
@@ -120,7 +113,7 @@ def kabin_parcalari(g, S, plan, kt):
                     out.append((HALAT, k, zc - Rk, zc - Rk + halat))
         else:
             R = (aski.get("kasnak_capi") or 0.0) / 2.0
-            kasnak = [_kutu(el) for el in plan if el.get("ad") == "kabin_kasnak"]
+            kasnak = [eleman_kutusu(el) for el in plan if el.get("ad") == "kabin_kasnak"]
             for k in kasnak:
                 out.append((KASNAK, k, zc - R, zc + R))
             if len(kasnak) >= 2:
@@ -154,14 +147,14 @@ def agirlik_parcalari(g, S, plan, AK):
     for el in plan:
         ad = el.get("ad")
         if ad == "agirlik_blok":
-            out.append((AG_CERCEVE, _kutu(el), AK["alt"], AK["ust"]))
+            out.append((AG_CERCEVE, eleman_kutusu(el), AK["alt"], AK["ust"]))
         elif ad == "agirlik_pateni":
-            k = _kutu(el)
+            k = eleman_kutusu(el)
             out.append((AG_ALT_PATEN, k, AK["alt_paten"], AK["alt_paten_ust"]))
             out.append((AG_UST_PATEN, k, AK["ust_paten_alt"], AK["ust_paten"]))
         elif ad == "agirlik_kasnak":
             R = ((g.get("agirlik") or {}).get("kasnak_capi") or 0.0) / 2.0
-            out.append((AG_KASNAK, _kutu(el), AK["kasnak_merkez"] - R, AK["kasnak_merkez"] + R))
+            out.append((AG_KASNAK, eleman_kutusu(el), AK["kasnak_merkez"] - R, AK["kasnak_merkez"] + R))
     return out
 
 

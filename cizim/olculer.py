@@ -41,6 +41,7 @@ KURMA İLE DENETİM AYRIDIR:  çizimin denetim hataları ( sığınma alanı,
 import logging
 import math
 
+from temel import sayi_mi
 from cizim import arka_aski as CAA
 from cizim import donanim as CDN
 from cizim import dusey as CDY
@@ -50,10 +51,6 @@ from cizim import makine_dairesi as CMD
 from cizim import sabitler as CS
 
 log = logging.getLogger(__name__)
-
-
-def _sayi(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
 
 
 def plan_olculeri(g, S):
@@ -187,7 +184,7 @@ def hesap_olculeri(g):
 
     #  Regülatör halatı:  iki düşey kol + kasnaklardaki iki yarım sarım
     reg, ger = M.get("regulator_kasnak"), M.get("gergi")
-    if reg and ger and _sayi(ger.get("cap")):
+    if reg and ger and sayi_mi(ger.get("cap")):
         Dr = g["kuyu_dibi"]["regulator_kasnak_capi"]
         out["reg_halat_boyu"] = round(
             (2.0 * (reg[-1] - ger["merkez"]) + math.pi * (Dr + ger["cap"]) / 2.0) / 1000.0, 4
@@ -202,7 +199,7 @@ def hesap_olculeri(g):
     #  dolgu alt kirişin üstünden üst kirişin altına, 2:1'de ağırlık
     #  kasnağının altına kadardır.
     AG = M.get("agirlik")
-    if AG and _sayi(AG.get("yukseklik")):
+    if AG and sayi_mi(AG.get("yukseklik")):
         alt, ust = CDN.agirlik_dolgu_kotlari(g, S, CDN.agirlik_kotlari(M, 0.0))
         out["agirlik_dolgu_yuksekligi"] = round(ust - alt, 1)
     zk = M["kasnak"][4]
@@ -210,7 +207,7 @@ def hesap_olculeri(g):
     if aski.get("duzen") == "Doğrudan":
         #  1:1:  halatlar kabin şasesinin üst kirişindeki bağlantıda biter
         out["aski_halat_boyu"] = round((zk - kab["baglanti_ust"]) / 1000.0, 4)
-    elif M.get("kabin_baglanti") and _sayi(aski.get("kasnak_capi")) and _sayi(aski.get("kasnak_arasi")):
+    elif M.get("kabin_baglanti") and sayi_mi(aski.get("kasnak_capi")) and sayi_mi(aski.get("kasnak_arasi")):
         #  2:1:  kasnaktan kabin kasnağına iner, iki kasnağın altından ( ya da
         #  kabin üstünde kasnakların altından ) geçer, kuyu tavanındaki
         #  bağlantıya çıkar;  her kasnakta çeyrek sarım.

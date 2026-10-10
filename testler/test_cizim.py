@@ -15,6 +15,7 @@ import re
 import unittest
 
 
+from temel import kutu_merkezi, ortusur
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import svg as CSV
@@ -776,7 +777,7 @@ class KabinUstuYerlesim(unittest.TestCase):
                 )
                 self.assertTrue(ic[0] <= s[0] and s[2] <= ic[2] and ic[1] <= s[1] and s[3] <= ic[3])
                 for p in Y["engeller"]:
-                    self.assertFalse(CKU._ortusur(s, p), p)
+                    self.assertFalse(ortusur(s, p), p)
 
     def test_kuyu_parcalari_plandan_eksiksiz_gelir(self):
         """Raylar, konsollar ve karşı ağırlık kuyu planındakinin aynısı."""
@@ -1061,7 +1062,7 @@ class KuyuDibiYerlesim(unittest.TestCase):
                 Y = CKD.yerlesim(g)
                 G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
                 noktalar = sorted(
-                    CKD._merkez(k)
+                    kutu_merkezi(k)
                     for k in Y["kabin_tamponlari"]
                     + Y["agirlik_tamponlari"]
                     + Y["kabin_raylari"]
@@ -1106,7 +1107,7 @@ class KuyuDibiYerlesim(unittest.TestCase):
                         self.assertLessEqual(CGE._yazi_eni(y_["metin"], y_["yukseklik"]), k[2] - k[0])
                     for i, k in enumerate(kutu):
                         engel = kutular + yazilar + kutu[:i] + kutu[i + 1 :]
-                        self.assertFalse([b for b in engel if CKD._ortusur(k, b)], k)
+                        self.assertFalse([b for b in engel if ortusur(k, b)], k)
                     for i, o in enumerate(oklar):
                         p, q = (o["x2"], o["y2"]), (o["x1"], o["y1"])
                         self.assertFalse([b for b in yazilar if CKD._kesisir(p, q, b)])
@@ -1189,7 +1190,7 @@ class KuyuDibiYerlesim(unittest.TestCase):
                     w, h = h, w
                 k = (y_["x"] - w, y_["y"] - h, y_["x"] + w, y_["y"] + h)
                 with self.subTest(proje=ad, olcu=o["metin"]):
-                    self.assertFalse([b for b in engel if CKD._ortusur(k, b)])
+                    self.assertFalse([b for b in engel if ortusur(k, b)])
 
     def test_kuvvet_tablosu_cizimin_disinda(self):
         """Tablo planın ve ölçülerin sağında;  satırlar üst üste binmez."""
@@ -1237,10 +1238,10 @@ class KuyuDibiYerlesim(unittest.TestCase):
         Y = CKD.yerlesim(g)
         kx = g["kuyu"]["genislik"] / 2.0 + g["kabin"]["kaciklik_y"]
         ry = g["kabin_ray"]["kapi_arasi"]
-        self.assertEqual(CKD._merkez(Y["kabin_tamponlari"][0]), (kx, ry))
-        self.assertEqual(CKD._merkez(Y["agirlik_tamponlari"][0]), CKD._merkez(Y["blok"]))
+        self.assertEqual(kutu_merkezi(Y["kabin_tamponlari"][0]), (kx, ry))
+        self.assertEqual(kutu_merkezi(Y["agirlik_tamponlari"][0]), kutu_merkezi(Y["blok"]))
         Y = CKD.yerlesim(_ornek(kuyu_dibi={"kabin_tampon_adedi": 2, "kabin_tampon_arasi": 600}))
-        self.assertEqual([CKD._merkez(t) for t in Y["kabin_tamponlari"]], [(kx - 300, ry), (kx + 300, ry)])
+        self.assertEqual([kutu_merkezi(t) for t in Y["kabin_tamponlari"]], [(kx - 300, ry), (kx + 300, ry)])
 
     def test_perde_agirligin_boyunca(self):
         """m.5.2.5.5.1 d:  perde en az ağırlığın genişliği kadar."""
@@ -1314,7 +1315,7 @@ class KuyuDibiYerlesim(unittest.TestCase):
                     + ([Y["merdiven"]] if Y["merdiven"] else [])
                 )
                 for p in engel:
-                    self.assertFalse(CKD._ortusur(s, p), p)
+                    self.assertFalse(ortusur(s, p), p)
 
     def test_merdiven_ek_f(self):
         for ad, g in _dip_projeler():
@@ -1606,7 +1607,7 @@ class MakineDairesi(unittest.TestCase):
                 for alan in (p, c, b):
                     self.assertTrue(CMD._icinde(alan, oda))
                     for q in engel:
-                        self.assertFalse(CKT._ortusur(alan, q), (alan, q))
+                        self.assertFalse(ortusur(alan, q), (alan, q))
                 #  bakım alanı makineye bitişik
                 m = Y["makine"]
                 self.assertTrue(b[0] == m[2] or b[2] == m[0] or b[1] == m[3] or b[3] == m[1])
@@ -2497,7 +2498,7 @@ class MakineVeSase(unittest.TestCase):
         self.assertTrue(oda[0] <= c[0] and oda[1] <= c[1] and c[2] <= oda[2] and c[3] <= oda[3])
         mk = Y["M"]["govde"]
         for b in (Y["M"]["agirlik_baglanti"], Y["M"]["kabin_baglanti"], Y["M"]["reg_govde"]):
-            self.assertFalse(CKD._ortusur(mk, b))
+            self.assertFalse(ortusur(mk, b))
         self.assertEqual(M["sarim_acisi"], 180.0)  # saptırmasız
 
     def test_kaide_hesabin_girdileriyle(self):
@@ -2639,7 +2640,7 @@ class MakineVeSase(unittest.TestCase):
                 self.assertAlmostEqual(us[1] - us[0], K["L"])
                 a = CMK_.ayak_plakasi(K["E"], S)
                 plakalar = [(x - a / 2.0, y - a / 2.0, x + a / 2.0, y + a / 2.0) for x, y in ayaklar]
-                self.assertFalse([d_ for p in plakalar for _, d_ in Y["delikler"] if CKD._ortusur(p, d_)])
+                self.assertFalse([d_ for p in plakalar for _, d_ in Y["delikler"] if ortusur(p, d_)])
 
     def test_saptirma_kasnagi_baglantinin_ustunde(self):
         """Saptırma kasnağı döşemenin 400 üstünde;  döşemedeki bir bağlantının
@@ -2717,7 +2718,7 @@ class OlcuYazisiParcayaBinmez(unittest.TestCase):
                     k = (y_["x"] - w, y_["y"] - h, y_["x"] + w, y_["y"] + h)
                     sayi += 1
                     with self.subTest(proje=ad, cizim=cizim, olcu=o["metin"]):
-                        self.assertFalse([b for b in engel if CKD._ortusur(k, b)])
+                        self.assertFalse([b for b in engel if ortusur(k, b)])
         self.assertGreater(sayi, 500)
 
 

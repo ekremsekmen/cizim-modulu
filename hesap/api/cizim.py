@@ -23,6 +23,7 @@ from collections import OrderedDict
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
+from temel import sayi_mi
 from api.ortak import hata_kaydi
 
 
@@ -250,7 +251,7 @@ def _regulatoru_tut(h, g, degisiklik):
     if (
         ("girdi", "regulator_kaciklik") not in degisiklik
         and h.get("regulator_kaciklik") is None
-        and CK._sayi(kd.get("regulator_kaciklik"))
+        and sayi_mi(kd.get("regulator_kaciklik"))
     ):
         h["regulator_kaciklik"] = kd["regulator_kaciklik"]
     if (
@@ -293,7 +294,7 @@ def _adaylar(ham, A, g, okunan):
                 if k in CK.ALAN
                 else A.get(k)
             )
-        if not CK._sayi(v):
+        if not sayi_mi(v):
             continue
         adim = _ADIM.get(f["birim"]) or max(abs(float(v)) * 1e-3, 1e-3)
         ad.append(
@@ -581,7 +582,7 @@ def _bagli_degerler(r, anahtar, x, serbest):
     return [
         {"anahtar": c, "etiket": alan[c]["etiket"], "eski": r["ham"][c], "deger": _yuvarla(A[c])}
         for c in birak
-        if r["ham"].get(c) is not None and CK._sayi(A.get(c)) and abs(A[c] - r["ham"][c]) > 1e-9
+        if r["ham"].get(c) is not None and sayi_mi(A.get(c)) and abs(A[c] - r["ham"][c]) > 1e-9
     ]
 
 
@@ -636,7 +637,7 @@ def _secimle(r, i, anahtar, hedef, bilgi):
             x
             for x in sec
             if str(x) == str(hedef)
-            or (CK._sayi(x) and CK._sayi(_sayiya(hedef)) and abs(x - _sayiya(hedef)) < 1e-9)
+            or (sayi_mi(x) and sayi_mi(_sayiya(hedef)) and abs(x - _sayiya(hedef)) < 1e-9)
         ),
         None,
     )

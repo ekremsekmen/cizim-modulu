@@ -24,6 +24,7 @@ kontrol ), böylece ekran, PDF ve CAD katmanları ortak kalır.
 
 import math
 
+from temel import ortusur, sayi_mi
 from engine.uygulama import mukavemet_girdi as MG
 from engine.uygulama import sabitler as US
 from engine.uygulama import mukavemet_tablolari as MT
@@ -142,11 +143,6 @@ def _pozitif(x):
     return isinstance(x, (int, float)) and not isinstance(x, bool) and x > 0
 
 
-def _sayi_mi(x):
-    """Sayı mı  ( bool tuzağı dâhil;  işaretli olabilir )."""
-    return isinstance(x, (int, float)) and not isinstance(x, bool)
-
-
 #  BİRLEŞİK PROGRAM:  geometri çizimden.  Program hesabı yaparken çizimin
 #  kurduğu yerleşimden ölçülen değerleri girdiye yazar ( engine/uygulama/
 #  girdi.yerlesim_olculeri ) ve kaynağını işaretler ( g["_cizimden"] ).  Değer
@@ -171,7 +167,7 @@ def _kaynak(g, anahtar, girildi="GİRİŞ"):
 def _cizim_olcusu(g, anahtar):
     """Çizimden ölçülmüş değer ya da None."""
     v = g.get(anahtar)
-    return v if (_sayi_mi(v) and anahtar in (g.get("_cizimden") or {})) else None
+    return v if (sayi_mi(v) and anahtar in (g.get("_cizimden") or {})) else None
 
 
 #  MAKİNE YÜKÜ DÖRT RAYA EŞİT DAĞILIR  ( MRL · "Kılavuz raylara" ).
@@ -730,7 +726,7 @@ def _makine(g, o):
         if not MT.makine_raya_mi(g.get("makine_raya_biniyor"))
         else "kirişler karşı ağırlık raylarına oturur"
     )
-    if not (_sayi_mi(L) and L > 0):
+    if not (sayi_mi(L) and L > 0):
         #  KİRİŞİN AÇIKLIĞI ÇİZİMDEN GELMEDİ ( program hesabı:  yan yatak boyu
         #  girdi değildir — girdi.yerlesim_olculeri ):  sayı uydurulmaz, bölüm
         #  EKSİKTİR ve sebebi yazılır.
@@ -2959,7 +2955,7 @@ def _kabin_raylari(g, o):
     #  Xp · Yp'yi P'nin tamamına uygular.
     xp_giris = g.get("kabin_agirlik_merkezi_x")
     yp_giris = g.get("kabin_agirlik_merkezi_y")
-    xp_verildi, yp_verildi = _sayi_mi(xp_giris), _sayi_mi(yp_giris)
+    xp_verildi, yp_verildi = sayi_mi(xp_giris), sayi_mi(yp_giris)
     xp_bos = xc - xp_kapi
     #  m.5.7.2.3.2:  "The acting point of the masses of the empty car and
     #  components supported by the car such as ram, part of travelling cable,
@@ -4493,7 +4489,7 @@ def _siginma(g, o):
     #  ( kabinin parçaları — cizim/hareketli;  eskiden platformun altı )
     gr = Y["M"]["gergi"]
     kabin_izi = Y["KU"]["tavan"]
-    if CDN._ortusur(gr["plan"], kabin_izi):
+    if ortusur(gr["plan"], kabin_izi):
         z_, ad_ = CH.ustundeki_en_alt(Y["dip_parcalar"], gr["plan"], (dip["taban_alti"], CH.KABIN))
         satir(
             f"Regülatör gergi kasnağı / kabinin en alt kısmı ( {ad_} )",
