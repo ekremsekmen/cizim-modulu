@@ -8,13 +8,14 @@ TÜM TESTLERİ ÇALIŞTIR
 Arayüz testleri ( 5 · 6 ) için program açık olmalıdır ( baslat.command ).
 Eksik olan bileşenlerin testi atlanır, diğerleri yine çalışır.
 """
+
 import os
 import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from testler.ortak import GRI, KIRMIZI, SIFIR, YESIL      # noqa: E402
+from testler.ortak import GRI, KIRMIZI, SIFIR, YESIL  # noqa: E402
 
 TESTLER = [
     ("1", "Avan referans taraması", "testler.test_avan_tarama"),
@@ -58,40 +59,44 @@ def main(argv):
         t0 = time.time()
         try:
             rapor = modul.calistir()
-        except Exception as e:                                   # noqa: BLE001
+        except Exception as e:  # noqa: BLE001
             import traceback
+
             print(f"   {KIRMIZI}✘ test çalıştırılamadı: {e}{SIFIR}")
             traceback.print_exc()
             sonuclar.append((no, ad, False, 0, 0, 0, time.time() - t0))
             continue
         tamam = rapor.yazdir()
-        sonuclar.append((no, ad, tamam, rapor.gecti, rapor.kaldi, rapor.atlandi,
-                         time.time() - t0))
+        sonuclar.append((no, ad, tamam, rapor.gecti, rapor.kaldi, rapor.atlandi, time.time() - t0))
 
     print("\n" + "═" * 68)
     print("  ÖZET")
     print("═" * 68)
     tg = tk = ta = 0
     for no, ad, tamam, gecti, kaldi, atlandi, sure in sonuclar:
-        tg += gecti; tk += kaldi; ta += atlandi
+        tg += gecti
+        tk += kaldi
+        ta += atlandi
         isaret = f"{YESIL}✔{SIFIR}" if tamam else f"{KIRMIZI}✘{SIFIR}"
         ek = f"  {GRI}({atlandi} atlandı){SIFIR}" if atlandi else ""
-        print(f"  {isaret}  TEST {no}  {ad:<26} {gecti:>5} geçti  "
-              f"{kaldi:>3} kaldı  {GRI}{sure:5.1f} sn{SIFIR}{ek}")
+        print(
+            f"  {isaret}  TEST {no}  {ad:<26} {gecti:>5} geçti  "
+            f"{kaldi:>3} kaldı  {GRI}{sure:5.1f} sn{SIFIR}{ek}"
+        )
     print("─" * 68)
     #  ÇÖKEN TEST DE BAŞARISIZLIKTIR.  Bir test modülü istisna atınca
     #  ( kaldi = 0 ) sayaç artmıyor, özet "0 başarısız" diyor ve çıkış kodu 0
     #  oluyordu:  sürekli tümleştirme YEŞİL görünürken test hiç koşmamış
     #  oluyordu.  `tamam` bayrağı yalnız ✔/✘ simgesinde kullanılıyordu.
-    coken = [no for no, _ad, tamam, _g, kaldi, _a, _s in sonuclar
-             if not tamam and kaldi == 0]
+    coken = [no for no, _ad, tamam, _g, kaldi, _a, _s in sonuclar if not tamam and kaldi == 0]
     renk = YESIL if (tk == 0 and not coken) else KIRMIZI
-    print(f"  {renk}TOPLAM : {tg} kontrol geçti, {tk} başarısız{SIFIR}"
-          f"{f'  ({ta} bölüm atlandı)' if ta else ''}"
-          f"   {GRI}· {time.time()-baslangic:.1f} sn{SIFIR}")
+    print(
+        f"  {renk}TOPLAM : {tg} kontrol geçti, {tk} başarısız{SIFIR}"
+        f"{f'  ({ta} bölüm atlandı)' if ta else ''}"
+        f"   {GRI}· {time.time() - baslangic:.1f} sn{SIFIR}"
+    )
     if coken:
-        print(f"  {KIRMIZI}✘ ÇALIŞTIRILAMAYAN TEST : {', '.join(coken)}"
-              f"   —   bu bir BAŞARISIZLIKTIR{SIFIR}")
+        print(f"  {KIRMIZI}✘ ÇALIŞTIRILAMAYAN TEST : {', '.join(coken)}   —   bu bir BAŞARISIZLIKTIR{SIFIR}")
     print("═" * 68 + "\n")
     return 0 if (tk == 0 and not coken) else 1
 

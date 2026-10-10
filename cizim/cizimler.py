@@ -5,6 +5,7 @@
 calistir.py ( tek tek çizim ) ve pafta.py ( TİP PROJE FORMATI ) buradan okur;
 başlıklar ve ölçekler iki yerde ayrı yazılıp zamanla ayrışmasın.
 """
+
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kabin_ustu as CKU
@@ -19,38 +20,48 @@ from cizim import makine_dairesi as CMD
 
 CIZIMLER = {
     "kuyu_plani": (CG.dogrula, CGE.plan, "KUYU PLANI  ( kabin hizasından yatay kesit )"),
-    "kabin_ustu": (CKU.dogrula, CKU.ciz,
-                   "KABİN ÜSTÜ PLANI  ( kabin tavanı hizasından yatay kesit )"),
-    "kuyu_dibi": (CKD.dogrula, CKD.ciz,
-                  "KUYU DİBİ PLANI  ( kuyu tabanından yatay kesit )"),
-    "kuyu_ustu": (CKT.dogrula, CKT.ciz,
-                  "KUYU ÜSTÜ PLANI  ( makine dairesiz — kuyu tepesinden yatay kesit )"),
+    "kabin_ustu": (CKU.dogrula, CKU.ciz, "KABİN ÜSTÜ PLANI  ( kabin tavanı hizasından yatay kesit )"),
+    "kuyu_dibi": (CKD.dogrula, CKD.ciz, "KUYU DİBİ PLANI  ( kuyu tabanından yatay kesit )"),
+    "kuyu_ustu": (CKT.dogrula, CKT.ciz, "KUYU ÜSTÜ PLANI  ( makine dairesiz — kuyu tepesinden yatay kesit )"),
     "makine_dairesi": (CMD.dogrula, CMD.ciz, "MAKİNE DAİRESİ PLANI"),
     "delik_plani": (CMD.dogrula, CMD.delik_plani, "KUYU ÜSTÜ DÖŞEME HALAT DELİK PLANI"),
-    "kuyu_kesiti_yan": (CKK.dogrula, CKK.yan_kesit,
-                        "A-A KUYU DÜŞEY KESİTİ  ( yan — kabin en alt durakta )"),
-    "kuyu_kesiti_on": (CKK.dogrula, CKK.on_kesit,
-                       "B-B KUYU DÜŞEY KESİTİ  ( arkadan kat kapılarına — kabin en üst durakta )"),
+    "kuyu_kesiti_yan": (CKK.dogrula, CKK.yan_kesit, "A-A KUYU DÜŞEY KESİTİ  ( yan — kabin en alt durakta )"),
+    "kuyu_kesiti_on": (
+        CKK.dogrula,
+        CKK.on_kesit,
+        "B-B KUYU DÜŞEY KESİTİ  ( arkadan kat kapılarına — kabin en üst durakta )",
+    ),
     #  LiftDesigner paftalarındaki iki görünüş ( kullanıcı isteği 1 Eki )
-    "kasnak_duzeni": (CKS.dogrula, CKS.ciz,
-                      "KASNAK DÜZENLEMESİ  ( tahrik kasnağının ekseninden — halatlar ve sarım açısı )"),
+    "kasnak_duzeni": (
+        CKS.dogrula,
+        CKS.ciz,
+        "KASNAK DÜZENLEMESİ  ( tahrik kasnağının ekseninden — halatlar ve sarım açısı )",
+    ),
     "giris": (CGI.dogrula, CGI.ciz, "GİRİŞ GÖRÜNÜŞÜ  ( en alt durağın kapısı, durak tarafından )"),
     #  LiftDesigner'ın "Front Entrance Side View"ü gibi ( 7 Eki )
-    "kapi_kesiti": (CKA.dogrula, CKA.ciz,
-                    "KAPI YAN KESİTİ  ( en alt durağın kapısı, ortasından — kat tarafı solda )"),
+    "kapi_kesiti": (
+        CKA.dogrula,
+        CKA.ciz,
+        "KAPI YAN KESİTİ  ( en alt durağın kapısı, ortasından — kat tarafı solda )",
+    ),
 }
+
+
 #  Son adım:  birbirine binen etiketler ayrılır ( geometri.etiketleri_ayir ),
 #  ondalık ayırıcı virgül olur ( geometri.ondalik_virgul )
 def _ayir(ciz, olcek=20):
     def ayrilmis(*a, **k):
         return CGE.ondalik_virgul(CGE.etiketleri_ayir(ciz(*a, **k), olcek))
+
     ayrilmis.__name__ = ciz.__name__
     return ayrilmis
 
 
 #  1/20 dışındaki çizimler
 OLCEKLER = {"kuyu_kesiti_yan": CKK.OLCEK, "kuyu_kesiti_on": CKK.OLCEK}
-CIZIMLER = {ad: (dog, _ayir(ciz, OLCEKLER.get(ad, 20)), baslik) for ad, (dog, ciz, baslik) in CIZIMLER.items()}
+CIZIMLER = {
+    ad: (dog, _ayir(ciz, OLCEKLER.get(ad, 20)), baslik) for ad, (dog, ciz, baslik) in CIZIMLER.items()
+}
 
 
 def plan_basligi(g, cizim, baslik):
@@ -60,7 +71,9 @@ def plan_basligi(g, cizim, baslik):
     #  Makine dairesiz projede makine dairesi ve delik planının, makine daireli
     #  projede kuyu üstü planının kesitlerde seviyesi yok
     oda = (g.get("makine") or {}).get("yeri") == "Makine dairesi"
-    gecerli = oda if cizim in ("makine_dairesi", "delik_plani") else (not oda if cizim == "kuyu_ustu" else True)
+    gecerli = (
+        oda if cizim in ("makine_dairesi", "delik_plani") else (not oda if cizim == "kuyu_ustu" else True)
+    )
     if not harf or not gecerli or CKK.dogrula(g):
         return baslik
     ad, _, ek = baslik.partition("  (")

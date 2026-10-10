@@ -16,6 +16,7 @@ taramayı BAŞARISIZ yapar.
 değişiklikleri tek tek incelenip onaylandıktan sonra.  Ayrıntılı sonuçlar
 cikti/tarama/<grup>.json'a yazılır ( git'e girmez ).
 """
+
 import collections
 import itertools
 import json
@@ -67,7 +68,7 @@ def denetle(g):
     """Paftanın bütün çizimlerinin sorunları:  [ ileti ]."""
     sorun = []
     md = g["makine"]["yeri"] == "Makine dairesi"
-    for c in (CPF.SIRA_MD if md else CPF.SIRA_MRL):
+    for c in CPF.SIRA_MD if md else CPF.SIRA_MRL:
         dogrula, ciz, _ = CZ.CIZIMLER[c]
         try:
             h = dogrula(g)
@@ -75,7 +76,7 @@ def denetle(g):
                 sorun.append(f"{c}: doğrulama reddediyor ama uç çizdi:  {h[0][:90]}")
                 continue
             e = ciz(g)
-        except Exception as x:                       # noqa: BLE001 — çöküş de bir bulgu
+        except Exception as x:  # noqa: BLE001 — çöküş de bir bulgu
             sorun.append(f"{c}: ÇÖKTÜ {type(x).__name__}: {x}")
             continue
         for z in CGE.zincirler(e):
@@ -86,8 +87,11 @@ def denetle(g):
         for a, b in itertools.combinations(olcu + yazi, 2):
             if _binisir(a, b):
                 sorun.append(f"{c}: yazı çakışması '{a[0]}' / '{b[0]}'")
-        parcalar = [(el.get("ad") or el["katman"], ("",) + tuple(CGE.sinir([el]))) for el in e
-                    if el["tip"] == "dikdortgen" and el["katman"] in PARCA]
+        parcalar = [
+            (el.get("ad") or el["katman"], ("",) + tuple(CGE.sinir([el])))
+            for el in e
+            if el["tip"] == "dikdortgen" and el["katman"] in PARCA
+        ]
         for a in olcu:
             ad = next((ad for ad, p in parcalar if _binisir(a, p)), None)
             if ad:
@@ -99,8 +103,10 @@ def denetle(g):
             elif kat == "TARAMA-İÇİ" and tip == "yazi":
                 sorun.append(f"{c}: etiket duvarın içinde '{metin}'")
         for el in e:
-            if any(isinstance(el.get(a), float) and el[a] != el[a]
-                   for a in ("x", "y", "g", "d", "x1", "y1", "x2", "y2", "r")):
+            if any(
+                isinstance(el.get(a), float) and el[a] != el[a]
+                for a in ("x", "y", "g", "d", "x1", "y1", "x2", "y2", "r")
+            ):
                 sorun.append(f"{c}: NaN {el.get('ad')}")
     return sorun
 
@@ -110,14 +116,14 @@ def duzen(ad, v):
     t = time.time()
     try:
         d = Y._cizim(v)
-    except Exception:                                # noqa: BLE001 — çöküş de bir bulgu
+    except Exception:  # noqa: BLE001 — çöküş de bir bulgu
         return {"ad": ad, "durum": "çöktü", "ayrinti": traceback.format_exc()[-600:]}
     if not d.get("aktif"):
         return {"ad": ad, "durum": "ret", "hata": d.get("hata")}
     try:
         g, _A, _h = Y._g(v)
         s = denetle(g)
-    except Exception:                                # noqa: BLE001
+    except Exception:  # noqa: BLE001
         s = ["DENETİM ÇÖKTÜ " + traceback.format_exc()[-400:]]
     return {"ad": ad, "durum": "çizildi", "sorun": s, "sure": round(time.time() - t, 1)}
 
@@ -128,8 +134,11 @@ def duzenler(grup):
         for Q in Y.KABIN:
             for yer in ("Sağ", "Sol", "Arka"):
                 for mrl in (True, False):
-                    for aski in ({"aski_duzeni": "Kabin altı"}, {"aski_duzeni": "Kabin üstü"},
-                                 {"aski_orani": 1}):
+                    for aski in (
+                        {"aski_duzeni": "Kabin altı"},
+                        {"aski_duzeni": "Kabin üstü"},
+                        {"aski_orani": 1},
+                    ):
                         v = Y._veri(Q, mrl, yer, **aski)
                         if yer == "Arka":
                             v["asansorler"][0]["kuyu_derinligi"] = Y.KABIN[Q][1] + 700
@@ -138,11 +147,19 @@ def duzenler(grup):
                         yield f"{Q} {yer} {'MRL' if mrl else 'MD'} {aski}", v
     elif grup == "kapi":
         from engine.uygulama import mukavemet_tablolari as MT
+
         for Q in (450, 800, 1000, 1600, 2500):
             for yer in ("Sağ", "Sol", "Arka"):
                 for tip in MT.KAPI_TIPLERI:
-                    ek = {"aski_duzeni": "Kabin üstü", "son_kat_yuksekligi": 5000,
-                          "makine_raya_biniyor": "Bina yapısına"} if yer == "Arka" else {}
+                    ek = (
+                        {
+                            "aski_duzeni": "Kabin üstü",
+                            "son_kat_yuksekligi": 5000,
+                            "makine_raya_biniyor": "Bina yapısına",
+                        }
+                        if yer == "Arka"
+                        else {}
+                    )
                     v = Y._veri(Q, True, yer, kat_kapisi_tipi=tip, **ek)
                     if yer == "Arka":
                         v["asansorler"][0]["kuyu_derinligi"] = Y.KABIN[Q][1] + 700
@@ -153,8 +170,15 @@ def duzenler(grup):
                 for sd in ("Dik duruş", "Çömelme", "Yatarak"):
                     for mont in ("Kuyu içine", "Duvar boşluğuna"):
                         for hiz in (1.0, 1.6):
-                            v = Y._veri(Q, Q % 2 == 0, "Sağ", siginma_tipi_ust=su, siginma_tipi_dip=sd,
-                                        kapi_montaji=mont, beyan_hizi=hiz)
+                            v = Y._veri(
+                                Q,
+                                Q % 2 == 0,
+                                "Sağ",
+                                siginma_tipi_ust=su,
+                                siginma_tipi_dip=sd,
+                                kapi_montaji=mont,
+                                beyan_hizi=hiz,
+                            )
                             yield f"{Q} üst={su} dip={sd} {mont} v={hiz}", v
     else:
         raise ValueError(f"bilinmeyen grup:  {grup!r} — {GRUPLAR}")
@@ -185,9 +209,15 @@ def karsilastir(grup, sonuc, kayit):
             out.append(f"yeni düzen ( kayıtta yok ):  {ad}  →  {yeni[ad]['durum']}")
         elif eski[ad] != yeni[ad]:
             e, y = eski[ad], yeni[ad]
-            out.append(f"{ad}:  {e['durum']} → {y['durum']}" + (f"  ( {y['sebep'][:120]} )" if y["sebep"] else "")
-                       + (f"  ·  önceki sebep:  {e['sebep'][:120]}" if e["sebep"] and e["sebep"] != y["sebep"]
-                          else ""))
+            out.append(
+                f"{ad}:  {e['durum']} → {y['durum']}"
+                + (f"  ( {y['sebep'][:120]} )" if y["sebep"] else "")
+                + (
+                    f"  ·  önceki sebep:  {e['sebep'][:120]}"
+                    if e["sebep"] and e["sebep"] != y["sebep"]
+                    else ""
+                )
+            )
     for r in sonuc:
         for s in r.get("sorun") or []:
             out.append(f"SORUN  {r['ad']}:  {s}")
@@ -209,8 +239,11 @@ def main(argv):
         sonuc = tara(grup)
         sayi = collections.Counter(r["durum"] for r in sonuc)
         sorunlu = sum(1 for r in sonuc if r.get("sorun"))
-        print(f"{grup}:  {len(sonuc)} düzen  ·  {dict(sayi)}  ·  sorunlu {sorunlu}  ·  "
-              f"{time.time() - t:.0f} sn", flush=True)
+        print(
+            f"{grup}:  {len(sonuc)} düzen  ·  {dict(sayi)}  ·  sorunlu {sorunlu}  ·  "
+            f"{time.time() - t:.0f} sn",
+            flush=True,
+        )
         if yenile:
             kayit[grup] = {r["ad"]: hukum(r) for r in sonuc}
             continue

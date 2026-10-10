@@ -5,6 +5,7 @@ k02  makaralı KABİN pateni seçilince çizim durur ( ölçüleri gelene kadar 
 k06  çift sarımda çizim durur ( bugünkü gibi — test_kopru de sınar )
 k11  karşı ağırlık dolgusunun çerçeveye sığması denetlenir
 k12  çizimin bütün ürün ölçüleri tek katalogda:  hesabın Sabitler sekmesi"""
+
 import os
 import sys
 import unittest
@@ -15,13 +16,13 @@ _yol = os.path.join(KOK, "hesap")
 if _yol not in sys.path:
     sys.path.append(_yol)
 
-from cizim import kopru as CK                             # noqa: E402
-from cizim import olculer as CO                           # noqa: E402
-from cizim import sabitler as CS                          # noqa: E402
-from engine.uygulama import girdi as UG                   # noqa: E402
-from engine.uygulama import hesap as UY                   # noqa: E402
-from engine.uygulama import mukavemet as MK               # noqa: E402
-from engine.uygulama import sabitler as US                # noqa: E402
+from cizim import kopru as CK  # noqa: E402
+from cizim import olculer as CO  # noqa: E402
+from cizim import sabitler as CS  # noqa: E402
+from engine.uygulama import girdi as UG  # noqa: E402
+from engine.uygulama import hesap as UY  # noqa: E402
+from engine.uygulama import mukavemet as MK  # noqa: E402
+from engine.uygulama import sabitler as US  # noqa: E402
 
 MD = {"mk_yok": False, "mk_uzunluk": 3000, "mk_genislik": 2500}
 
@@ -74,12 +75,15 @@ class Dolgu(unittest.TestCase):
     def test_kalan_yukseklik_cizimden(self):
         S = CS.SABIT
         #  çerçeve paten arasından bir paten boyu kısa ( patenler dışında — 8 Eki )
-        for ek, pay in (({}, S["paten_yukseklik"] + S["agirlik_kiris"] + S["agirlik_kasnak_ust"] + 400 / 2),
-                        ({"aski_orani": 1, **MD}, S["paten_yukseklik"] + 2 * S["agirlik_kiris"])):
+        for ek, pay in (
+            ({}, S["paten_yukseklik"] + S["agirlik_kiris"] + S["agirlik_kasnak_ust"] + 400 / 2),
+            ({"aski_orani": 1, **MD}, S["paten_yukseklik"] + 2 * S["agirlik_kiris"]),
+        ):
             with self.subTest(ek=ek):
                 g, _h = CK.cizim_girdisi(_A(**ek))
-                self.assertAlmostEqual(CO.hesap_olculeri(g)["agirlik_dolgu_yuksekligi"],
-                                       g["dusey"]["agirlik_paten_arasi"] - pay)
+                self.assertAlmostEqual(
+                    CO.hesap_olculeri(g)["agirlik_dolgu_yuksekligi"], g["dusey"]["agirlik_paten_arasi"] - pay
+                )
 
     def test_denetim(self):
         s = UY.hesapla({"beyan_yuku": 630})
@@ -101,8 +105,9 @@ class Dolgu(unittest.TestCase):
                 s = UY.hesapla(ek)
                 gi = s["girdi"]
                 self.assertEqual((gi["agirlik_derinligi"], gi["agirlik_paten_arasi"]), (155, 3400))
-                self.assertLessEqual(s["ara"]["agirlik_ray.dolgu_gereken"],
-                                     s["ara"]["agirlik_ray.dolgu_kalan"])
+                self.assertLessEqual(
+                    s["ara"]["agirlik_ray.dolgu_gereken"], s["ara"]["agirlik_ray.dolgu_kalan"]
+                )
                 self.assertTrue(_bolum(s, "agirlik_raylari")["sonuc"]["uygun"])
 
     def test_sigmayinca_uygun_degil(self):
@@ -113,7 +118,11 @@ class Dolgu(unittest.TestCase):
         #  Çare projenin sayısıyla:  gereken paten arası ( kalan yükseklik onunla
         #  birebir büyür );  o değer girilince sığar
         ara = s["ara"]
-        h = s["girdi"]["agirlik_paten_arasi"] + ara["agirlik_ray.dolgu_gereken"] - ara["agirlik_ray.dolgu_kalan"]
+        h = (
+            s["girdi"]["agirlik_paten_arasi"]
+            + ara["agirlik_ray.dolgu_gereken"]
+            - ara["agirlik_ray.dolgu_kalan"]
+        )
         h = -(-h // 10) * 10
         self.assertIn(f"paten arası en az {h:,.0f} mm".replace(",", "."), b["sonuc"]["metin"])
         s = UY.hesapla({"beyan_yuku": 1600, "agirlik_paten_arasi": h})

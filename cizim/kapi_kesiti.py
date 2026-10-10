@@ -14,6 +14,7 @@ Yerler planla aynı kaynaktan:  girdi.kapi_bolgesi ( kasa · eşik · kapı hatt
 kabin eşiği ), kanat düzlemleri sabitlerden ( kanat_esik_payi, kanat_araligi,
 kanat_kalinlik ).
 """
+
 from cizim import dusey as CDU
 from cizim import geometri as CGE
 from cizim import girdi as CG
@@ -31,12 +32,16 @@ KABIN_GOSTERIM = 500.0
 #  kuyu tarafından %25, üstten %29, alttan %22 içeride;  kapalı sac kutunun
 #  içinde kaldığı için kesik.  Ölçülü değil:  ÇİZİM KABULÜ.
 ASKI_ORANLARI = (0.25, 0.29, 0.22)
-_SAC_KURALI = ("TS EN 81-20 m.5.2.5.3.2 a:  eşiğin altında eşiğe bağlı düz yüzey, en az kilit "
-               "bölgesinin yarısı + 50 mm.  Kilit bölgesi m.5.3.8.1'e göre en çok ±0,20 m, kabin "
-               "ve kat kapısı birlikte mekanik açılıyorsa ±0,35 m;  bilinmediği için en büyüğü:  "
-               "otomatikte 0,40 m, elle açılanda 0,25 m.  Altında en az 60° ve 20 mm pah ( d 2 ).")
-_ONLUK_KURALI = ("TS EN 81-20 m.5.4.5:  kabin eşiğinin önlüğü kat girişinin eninde;  dik kısmı "
-                 "en az 0,75 m, altında yatayla en az 60°, yatay izdüşümü en az 20 mm pah.")
+_SAC_KURALI = (
+    "TS EN 81-20 m.5.2.5.3.2 a:  eşiğin altında eşiğe bağlı düz yüzey, en az kilit "
+    "bölgesinin yarısı + 50 mm.  Kilit bölgesi m.5.3.8.1'e göre en çok ±0,20 m, kabin "
+    "ve kat kapısı birlikte mekanik açılıyorsa ±0,35 m;  bilinmediği için en büyüğü:  "
+    "otomatikte 0,40 m, elle açılanda 0,25 m.  Altında en az 60° ve 20 mm pah ( d 2 )."
+)
+_ONLUK_KURALI = (
+    "TS EN 81-20 m.5.4.5:  kabin eşiğinin önlüğü kat girişinin eninde;  dik kısmı "
+    "en az 0,75 m, altında yatayla en az 60°, yatay izdüşümü en az 20 mm pah."
+)
 
 
 def dogrula(g):
@@ -66,7 +71,11 @@ def yerlesim(g, cizim_sabitleri=None):
     tur = "manuel" if KT["tur"] == "manuel" else "otomatik"
     sac_boy = CP.ESIK_ALTI_SACI[tur]
     return {
-        "S": S, "KB": KB, "HH": HH, "et": et, "tur": tur,
+        "S": S,
+        "KB": KB,
+        "HH": HH,
+        "et": et,
+        "tur": tur,
         "bosluk_h": CG.kaba_bosluk(g, S)[2],
         "alt": et if kp["montaj"] == "Duvar boşluğuna" else 0.0,
         "kasa": (KB["kasa"][0], -et, KB["kasa"][1], HH + S["kasa_ust"]),
@@ -103,6 +112,7 @@ def ciz(g, cizim_sabitleri=None):
     sac_u, sac_z, sac_boy = Y["sac"]
     on_u, on_z, on_boy = Y["onluk"]
     import math
+
     tan = math.tan(math.radians(CP.PAH_ACISI))
     z_alt = min(sac_z - sac_boy - sac_u * tan, on_z - on_boy - CP.ONLUK_PAH_DUSEY) - 150
     z_ust = bh + DUVAR_UST_GOSTERIM
@@ -117,8 +127,12 @@ def ciz(g, cizim_sabitleri=None):
     kutu("KAPI", Y["kasa"], "kapi_kasasi")
     ku = kutu("KAPI", Y["ust_kutu"], "kapi_ust_kutusu")
     a_k, a_u, a_a = ASKI_ORANLARI
-    e.append(CGE._ad(D("GIZLI", ku["x"], ku["y"] + a_a * ku["d"], ku["g"] * (1 - a_k),
-                       ku["d"] * (1 - a_u - a_a)), "aski_mekanizmasi"))
+    e.append(
+        CGE._ad(
+            D("GIZLI", ku["x"], ku["y"] + a_a * ku["d"], ku["g"] * (1 - a_k), ku["d"] * (1 - a_u - a_a)),
+            "aski_mekanizmasi",
+        )
+    )
     #  Üst kutu duvara L konsolla bağlı ( kutunun üstünden duvar yüzünde yukarı )
     k = CGE._ad(D("KONSOL", 0.0, Y["ust_kutu"][3], KB["hat"], CP.UST_KONSOL_UZANTI), "ust_konsol")
     k["bicim"] = CP.l_konsol(0.0, KB["hat"], Y["ust_kutu"][3], CP.UST_KONSOL_UZANTI, yukari=True)
@@ -143,8 +157,12 @@ def ciz(g, cizim_sabitleri=None):
     for kk in Y["kabin_kanatlari"]:
         kutu("KAPI", kk, "kabin_kanadi")
     on = KB["kabin_esik"][1]
-    e.append(CGE._ad(D("KABIN", on, -S["kabin_taban_kalinlik"], KABIN_GOSTERIM, S["kabin_taban_kalinlik"]),
-                     "kabin_tabani"))
+    e.append(
+        CGE._ad(
+            D("KABIN", on, -S["kabin_taban_kalinlik"], KABIN_GOSTERIM, S["kabin_taban_kalinlik"]),
+            "kabin_tabani",
+        )
+    )
     e.append(CGE._ad(D("KABIN", on, HH, S["kabin_pano_yan"], 300.0), "kabin_on_panosu"))
     #  Önlük ( m.5.4.5 ):  kabin eşiğinin kat tarafındaki kenarından dik, sonra pahla kabine
     pz = CP.ONLUK_PAH_DUSEY
@@ -156,16 +174,23 @@ def ciz(g, cizim_sabitleri=None):
     h = 40.0
     e.append(CGE._yazi(-don - DOSEME_GOSTERIM / 2.0, 120.0, "KAT", h))
     e.append(CGE._yazi(on + KABIN_GOSTERIM / 2.0, 120.0, "KABİN", h))
+
     #  Parça adları oklu:  ok yazının yanından parçaya ( kabinin ve kanatların
     #  üstünden geçmez — sac ve önlük döşemenin altında, üst kutu kabin panosunun üstünden )
     def adli(u, z, metin, ad, hedef):
         e.append(CGE._ad(CGE._yazi(u, z, metin, 32, hiza="sol"), ad))
         e.append(CGE._ad(CGE._ok("YAZI", u - 15.0, z, hedef[0], hedef[1]), "etiket_oku"))
+
     #  Sacın yazısı önlüğün ve pahın altında;  ok sac ile önlük arasından pahın ortasına
     pah_z = sac_z - sac_boy - sac_u * tan / 2.0
     onluk_dibi = on_z - on_boy - CP.ONLUK_PAH_DUSEY
-    adli(on_u + 40.0, min(onluk_dibi, sac_z - sac_boy - sac_u * tan) - 110.0, "EŞİK ALTI SACI",
-         "sac_yazisi", (sac_u / 2.0, pah_z))
+    adli(
+        on_u + 40.0,
+        min(onluk_dibi, sac_z - sac_boy - sac_u * tan) - 110.0,
+        "EŞİK ALTI SACI",
+        "sac_yazisi",
+        (sac_u / 2.0, pah_z),
+    )
     zo_ = on_z - on_boy * 0.6
     adli(on_u + 200.0, zo_, "ÖNLÜK", "onluk_yazisi", (on_u, zo_))
     ku = Y["ust_kutu"]
@@ -176,8 +201,9 @@ def ciz(g, cizim_sabitleri=None):
     O = CGE._olcu
     #  Altta:  duvar · kasa · eşik · eşik arası · kabin eşiği ( kuyunun ön iç yüzünden )
     zo = z_alt - 150.0
-    nok = sorted({-don, 0.0, KB["kasa"][0], KB["kasa"][1], KB["esik"][1], KB["kabin_esik"][0],
-                  KB["kabin_esik"][1]})
+    nok = sorted(
+        {-don, 0.0, KB["kasa"][0], KB["kasa"][1], KB["esik"][1], KB["kabin_esik"][0], KB["kabin_esik"][1]}
+    )
     metin = {(KB["esik"][1], KB["kabin_esik"][0]): f"EŞİK ARASI {KB['kabin_esik'][0] - KB['esik'][1]:g}"}
     for a, b in zip(nok, nok[1:]):
         if b - a > 1e-6:
@@ -191,8 +217,9 @@ def ciz(g, cizim_sabitleri=None):
     #  dik kısmı ( döşemeden — m.5.4.5.2 )
     u2 = on + KABIN_GOSTERIM + 150.0
     e.append(O("dusey", (0, sac_z - sac_boy), (0, sac_z), u2, f"SAC {sac_boy:g}", kural=_SAC_KURALI))
-    e.append(O("dusey", (0, on_z - on_boy), (0, 0.0), u2 + 230.0, f"ÖNLÜK {on_boy + et:g}",
-               kural=_ONLUK_KURALI))
+    e.append(
+        O("dusey", (0, on_z - on_boy), (0, 0.0), u2 + 230.0, f"ÖNLÜK {on_boy + et:g}", kural=_ONLUK_KURALI)
+    )
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     CGE._yazilari_yerlestir(e)
     return e

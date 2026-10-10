@@ -4,6 +4,7 @@ Kullanıcı kararı:  "çapraz, iki taraf dengeli" ( ofisin 12495-18'i );  makin
 dairesizde makine duvardan duvara iki kirişte.  Karşı ağırlık kasnağı ağırlığın
 ortasında, kabin askısı kabin merkezinde;  tahrik kasnağının iki inişi ağırlık
 kasnağının teğetinde ve D1 önünde."""
+
 import math
 import os
 import sys
@@ -14,16 +15,16 @@ _yol = os.path.join(KOK, "hesap")
 if _yol not in sys.path:
     sys.path.append(_yol)
 
-from cizim import arka_aski as CAA                        # noqa: E402
-from cizim import geometri as CGE                         # noqa: E402
-from cizim import kabin_ustu as CKUS                      # noqa: E402
-from cizim import kopru as CK                             # noqa: E402
-from cizim import dusey as CDY                            # noqa: E402
-from cizim import kuyu_ustu as CKT                        # noqa: E402
-from cizim import makine_dairesi as CMD                   # noqa: E402
-from cizim import sabitler as CS                          # noqa: E402
-from engine.uygulama import girdi as UG                   # noqa: E402
-from engine.uygulama import hesap as UY                   # noqa: E402
+from cizim import arka_aski as CAA  # noqa: E402
+from cizim import geometri as CGE  # noqa: E402
+from cizim import kabin_ustu as CKUS  # noqa: E402
+from cizim import kopru as CK  # noqa: E402
+from cizim import dusey as CDY  # noqa: E402
+from cizim import kuyu_ustu as CKT  # noqa: E402
+from cizim import makine_dairesi as CMD  # noqa: E402
+from cizim import sabitler as CS  # noqa: E402
+from engine.uygulama import girdi as UG  # noqa: E402
+from engine.uygulama import hesap as UY  # noqa: E402
 
 #  12495-18'in düzeni ( çapraz kasnaklar, makine duvardan duvara ), kabin
 #  1.350 × 1.400 ( 800 kg'ın standart kabini ):  12495-18'in 1.100 × 1.100
@@ -31,10 +32,19 @@ from engine.uygulama import hesap as UY                   # noqa: E402
 #  çömelme alanına yer kalmaz — 10 Eki'den beri halat engel
 #  ( test_kucuk_tavanda_capraz_halat_siginmayi_boler ).  Kuyu kabinden yine
 #  650 geniş, 850 derin.
-ARKA = {"agirlik_yeri": "Arka", "aski_orani": 2, "aski_duzeni": "Kabin üstü",
-        "kuyu_genisligi": 2000, "kuyu_derinligi": 2250, "kabin_genisligi": 1350,
-        "kabin_derinligi": 1400, "kapi_genisligi": 800, "beyan_yuku": 800,
-        "makine_raya_biniyor": "Bina yapısına", "son_kat_yuksekligi": 4500}
+ARKA = {
+    "agirlik_yeri": "Arka",
+    "aski_orani": 2,
+    "aski_duzeni": "Kabin üstü",
+    "kuyu_genisligi": 2000,
+    "kuyu_derinligi": 2250,
+    "kabin_genisligi": 1350,
+    "kabin_derinligi": 1400,
+    "kapi_genisligi": 800,
+    "beyan_yuku": 800,
+    "makine_raya_biniyor": "Bina yapısına",
+    "son_kat_yuksekligi": 4500,
+}
 MD = {"mk_yok": False, "mk_uzunluk": 3800, "mk_genislik": 2600}
 
 
@@ -87,21 +97,20 @@ class Geometri(unittest.TestCase):
         #  Arka kasnak korkuluğun yolunu kesmez
         self.assertEqual(CKUS.dogrula(g), [])
 
-
     def test_kucuk_tavanda_capraz_halat_siginmayi_boler(self):
         #  12495-18'in 1.100 × 1.100 kabini:  kasnaklar arasındaki çapraz halat
         #  tavanın 80 mm üstünden geçer ( hareketli.kabin_parcalari ), şasenin
         #  üst kirişi de ray ekseninde;  çömelme alanı ( 500 × 700 × 1.000 )
         #  hiçbir parçaya sığmaz.  10 Eki'ye dek halat sayılmıyor, alan halatın
         #  üstüne konuyordu ( denetim 9 Eki ).
-        A = _girdi(kuyu_genisligi=1750, kuyu_derinligi=1950, kabin_genisligi=1100,
-                   kabin_derinligi=1100)
+        A = _girdi(kuyu_genisligi=1750, kuyu_derinligi=1950, kabin_genisligi=1100, kabin_derinligi=1100)
         g, _h = CK.cizim_girdisi(A)
         Y = CKUS.yerlesim(g)
         self.assertIsNone(Y["siginma"])
         self.assertTrue(any("aralarındaki halat" in h for h in Y["hata"]), Y["hata"])
         #  Halat şeridi gerçekten tavanın üstünde ve alanın yüksekliğinde
         from cizim import donanim as CDN, hareketli as CH
+
         S = CS.sabitler(g.get("_cizim_sabitleri"))
         kt = CDN.kabin_kotlari(g["dusey"], S, 0.0, g["aski"], True)
         halat = [p for p in CH.kabin_parcalari(g, S, Y["taban"], kt) if p[0] == CH.HALAT]
@@ -115,7 +124,7 @@ class Cizimler(unittest.TestCase):
         _A, g, S = _cizim()
         e = CGE.plan(g, S)
         capraz = [x for x in e if x.get("ad") == "kabin_kasnak_capraz"]
-        self.assertEqual(len(capraz), 8)                   # iki kasnak × dört kenar
+        self.assertEqual(len(capraz), 8)  # iki kasnak × dört kenar
         self.assertFalse([x for x in e if x.get("ad") == "kabin_kasnak"])
         self.assertTrue(any("ÇAPRAZ" in x.get("metin", "") for x in e if x.get("ad") == "aski_yazi"))
         self.assertEqual(CGE.halat_konumlari(g, S), [CAA.geometri(g, S)["P"], CAA.geometri(g, S)["H"]])
@@ -142,11 +151,16 @@ class Cizimler(unittest.TestCase):
 
         def orta(k):
             return ((k[0] + k[2]) / 2.0, (k[1] + k[3]) / 2.0)
-        for ad, nokta in (("KABİN", G["P"]), ("AĞIRLIK", G["W"]),
-                          ("AĞIRLIK BAĞLANTISI", G["Hw"]), ("KABİN BAĞLANTISI", G["H"])):
+
+        for ad, nokta in (
+            ("KABİN", G["P"]),
+            ("AĞIRLIK", G["W"]),
+            ("AĞIRLIK BAĞLANTISI", G["Hw"]),
+            ("KABİN BAĞLANTISI", G["H"]),
+        ):
             self.assertAlmostEqual(orta(d[ad])[0], nokta[0], msg=ad)
             self.assertAlmostEqual(orta(d[ad])[1], nokta[1], msg=ad)
-        self.assertIsNone(Y["saptirma"])                   # iniş düşey:  saptırma yok
+        self.assertIsNone(Y["saptirma"])  # iniş düşey:  saptırma yok
         self.assertEqual(CK.sarim_acisi(g), 180.0)
 
 
@@ -199,8 +213,7 @@ class Kopru(unittest.TestCase):
 
     def test_girilen_kasnak_araligi_karsilastirilir(self):
         A, g, _S = _cizim(kabin_kasnak_arasi=1000)
-        self.assertEqual(CK.tutarlilik_duzeltmeleri(g, A),
-                         {"kabin_kasnak_arasi": g["aski"]["kasnak_arasi"]})
+        self.assertEqual(CK.tutarlilik_duzeltmeleri(g, A), {"kabin_kasnak_arasi": g["aski"]["kasnak_arasi"]})
 
 
 class Hesap(unittest.TestCase):
@@ -214,8 +227,10 @@ class Hesap(unittest.TestCase):
         G = CAA.geometri(g, S)
         kb = g["kabin"]
         #  Askı kabin merkezinde ( xs = kabin merkezi – ray ekseni ), iniş düşey
-        self.assertAlmostEqual(gi["aski_kaciklik_x"], kb["on_pay"] + (kb["derinlik"] + S["kabin_pano_arka"]) / 2.0
-                               - g["kabin_ray"]["kapi_arasi"])
+        self.assertAlmostEqual(
+            gi["aski_kaciklik_x"],
+            kb["on_pay"] + (kb["derinlik"] + S["kabin_pano_arka"]) / 2.0 - g["kabin_ray"]["kapi_arasi"],
+        )
         self.assertEqual(gi["sarilma_acisi"], 180.0)
         self.assertEqual(gi["kasnak_tek_yon"], 2)
         #  Duvardan duvara kiriş:  açıklık kuyu derinliği, yük tahrik kasnağında

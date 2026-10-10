@@ -25,6 +25,7 @@ sağda ).
 kapının yanındaki kesikli 100 mm'lik dikdörtgeni, döşemeden 2.500'deki çizgisi,
 kasanın ve eşiğin bağlantı noktaları.
 """
+
 from cizim import dusey as CDU
 from cizim import geometri as CGE
 from cizim import girdi as CG
@@ -50,19 +51,37 @@ def yerlesim(g, cizim_sabitleri=None):
     bx = x0 - S["buton_kapi_payi"] if buton_sol else x1 + S["buton_kapi_payi"]
     bz = S["buton_yukseklik"]
     return {
-        "S": S, "x0": x0, "x1": x1, "xc": xc, "HH": HH,
+        "S": S,
+        "x0": x0,
+        "x1": x1,
+        "xc": xc,
+        "HH": HH,
         "bosluk": (bx0, 0.0, bx1, bh),
         "kasa": (x0 - S["kasa_yan"], 0.0, x1 + S["kasa_yan"], HH + S["kasa_ust"]),
         "esik": (bx0, -S["esik_kalinlik"], bx1, 0.0),
         #  Kanatlar kapı tipinin sayısında ( girdi.kapi_tipi:  2 · 3 · 4;  elle açılanda tek )
         "kanatlar": [(x0 + i * DW / n, x0 + (i + 1) * DW / n) for i in range(n)],
-        "gosterge": (xc - S["gosterge_en"] / 2.0, HH + S["gosterge_yukseklik"] - S["gosterge_boy"] / 2.0,
-                     xc + S["gosterge_en"] / 2.0, HH + S["gosterge_yukseklik"] + S["gosterge_boy"] / 2.0),
-        "buton_sol": buton_sol, "bx": bx, "bz": bz,
-        "buton": (bx - S["buton_kutu_en"] / 2.0, bz - S["buton_kutu_boy"] / 2.0,
-                  bx + S["buton_kutu_en"] / 2.0, bz + S["buton_kutu_boy"] / 2.0),
-        "yuva": (bx - S["buton_yuva_en"] / 2.0, bz - S["buton_yuva_boy"] / 2.0,
-                 bx + S["buton_yuva_en"] / 2.0, bz + S["buton_yuva_boy"] / 2.0),
+        "gosterge": (
+            xc - S["gosterge_en"] / 2.0,
+            HH + S["gosterge_yukseklik"] - S["gosterge_boy"] / 2.0,
+            xc + S["gosterge_en"] / 2.0,
+            HH + S["gosterge_yukseklik"] + S["gosterge_boy"] / 2.0,
+        ),
+        "buton_sol": buton_sol,
+        "bx": bx,
+        "bz": bz,
+        "buton": (
+            bx - S["buton_kutu_en"] / 2.0,
+            bz - S["buton_kutu_boy"] / 2.0,
+            bx + S["buton_kutu_en"] / 2.0,
+            bz + S["buton_kutu_boy"] / 2.0,
+        ),
+        "yuva": (
+            bx - S["buton_yuva_en"] / 2.0,
+            bz - S["buton_yuva_boy"] / 2.0,
+            bx + S["buton_yuva_en"] / 2.0,
+            bz + S["buton_yuva_boy"] / 2.0,
+        ),
     }
 
 
@@ -97,8 +116,9 @@ def ciz(g, cizim_sabitleri=None):
     e.append(_kutu("GIZLI", yu, "buton_yuvasi"))
     e.append(_kutu("PANO", bu, "kat_butonu"))
     d = min(S["buton_kutu_en"], S["buton_kutu_boy"]) * 0.35
-    e.append(_kutu("PANO", (Y["bx"] - d / 2.0, Y["bz"] - d / 2.0, Y["bx"] + d / 2.0, Y["bz"] + d / 2.0),
-                   "buton"))
+    e.append(
+        _kutu("PANO", (Y["bx"] - d / 2.0, Y["bz"] - d / 2.0, Y["bx"] + d / 2.0, Y["bz"] + d / 2.0), "buton")
+    )
     #  Kapı ekseni ve döşemenin kotu
     e.append(CGE._ad(CGE._cizgi("EKSEN", xc, -300, xc, ust, tip="eksen"), "kapi_ekseni"))
     CKP.kot_isareti(e, xc + 150, 0.0, CDU._kot(0.0), 1.0)
@@ -108,8 +128,11 @@ def ciz(g, cizim_sabitleri=None):
     #  kapının net genişliği
     alt1, alt2 = es[1] - 250, es[1] - 470
     e.append(O("yatay", (x0, 0), (x1, 0), alt1, f"KAPI {x1 - x0:g}"))
-    e += [O("yatay", (a, 0), (b, 0), alt2, None)
-          for a, b in ((0.0, bo[0]), (bo[0], bo[2]), (bo[2], G)) if b - a > 1e-6]
+    e += [
+        O("yatay", (a, 0), (b, 0), alt2, None)
+        for a, b in ((0.0, bo[0]), (bo[0], bo[2]), (bo[2], G))
+        if b - a > 1e-6
+    ]
     #  Kat butonu ( kendi yanında, yuvaya yakın ):  yuvanın yeri ve boyu
     #  ( döşemeden ), butonun ortası;  dışında kaba boşluğun yüksekliği ( sol )
     #  ve kapı · kasa başlığı · eşik ( sağ ) — buton hangi yandaysa o yanın
@@ -117,14 +140,15 @@ def ciz(g, cizim_sabitleri=None):
     yon = -1.0 if Y["buton_sol"] else 1.0
     bk = (yu[0] if Y["buton_sol"] else yu[2]) + yon * 120
     bk2 = bk + yon * 200
-    e += [O("dusey", (0, a), (0, b), bk, m) for a, b, m in
-          ((0.0, yu[1], None), (yu[1], yu[3], None))]
+    e += [O("dusey", (0, a), (0, b), bk, m) for a, b, m in ((0.0, yu[1], None), (yu[1], yu[3], None))]
     e.append(O("dusey", (0, 0.0), (0, Y["bz"]), bk2, f"BUTON {Y['bz']:g}"))
     s_sol = min(bo[0], bk2 if Y["buton_sol"] else bo[0]) - 250
     s_sag = max(bo[2], bk2 if not Y["buton_sol"] else bo[2]) + 250
     e.append(O("dusey", (0, 0.0), (0, bo[3]), s_sol, f"KAPI BOŞLUĞU {bo[3]:g}"))
-    e += [O("dusey", (0, a), (0, b), s_sag, m) for a, b, m in
-          ((es[1], 0.0, None), (0.0, HH, f"KAPI {HH:g}"), (HH, ka[3], None))]
+    e += [
+        O("dusey", (0, a), (0, b), s_sag, m)
+        for a, b, m in ((es[1], 0.0, None), (0.0, HH, f"KAPI {HH:g}"), (HH, ka[3], None))
+    ]
     #  Gösterge:  kapının üstünden ortasına ( kasanın dışında, boşluğun yanında )
     e.append(O("dusey", (0, HH), (0, (go[1] + go[3]) / 2.0), bo[0] - 110, None))
     kapi_kenari = x0 if Y["buton_sol"] else x1

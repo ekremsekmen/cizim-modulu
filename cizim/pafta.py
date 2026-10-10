@@ -20,6 +20,7 @@ ANTET:  bilinen değerler çizim girdisinden yazılır;  çizimin bilmediği
 değerler ( taşıma kapasitesi, asansör sınıfı, motor gücü ) BOŞ bırakılır —
 şablondaki örnek değerler ( "300 KG", "2,67 KW" … ) projeyi yanlış tanıtırdı.
 """
+
 import io
 import os
 import tempfile
@@ -32,15 +33,16 @@ from cizim import dxf as CDX
 from cizim import dusey as CDU
 from cizim import geometri as CGE
 
-SABLON = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                      "sablon", "proje_formati.dxf")
+SABLON = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sablon", "proje_formati.dxf"
+)
 #  Şablonun kendi koordinatları ( pafta mm ) — hesap programının dxf_export.py
 #  sabitleriyle aynı;  şablon değişirse _sablon_dogrula yakalar.
 BANT = (-4215.8, 1159.4, -973.8, 1759.4)
 KAPAK_HUCRESI = (-4215.8, 1159.4, -4012.5, 1448.3)
 SERBEST = (-4012.5, 1159.4, -973.8, 1759.4)
-KENAR = 10.0                # serbest alanın kenarından ilk çizime
-ARA = 12.0                  # çizimler arası
+KENAR = 10.0  # serbest alanın kenarından ilk çizime
+ARA = 12.0  # çizimler arası
 
 #  Antetteki DEĞER hücreleri:  ( şablondaki örnek yazı, yeri ) — örnek yazı
 #  yerinde değilse şablon değişmiş demektir, pafta üretilmez.
@@ -64,10 +66,29 @@ ANTET = {
 #  Paftadaki çizimler, sırasıyla ( makine dairesizde kuyu üstü planı,
 #  makine dairelide makine dairesi ve delik planı )
 #  Sonda LiftDesigner'ın görünüşleri:  kasnak düzenlemesi, giriş ve kapı yan kesiti.
-SIRA_MRL = ("kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu", "kuyu_dibi",
-            "kuyu_ustu", "kasnak_duzeni", "giris", "kapi_kesiti")
-SIRA_MD = ("kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu", "kuyu_dibi",
-           "makine_dairesi", "delik_plani", "kasnak_duzeni", "giris", "kapi_kesiti")
+SIRA_MRL = (
+    "kuyu_kesiti_yan",
+    "kuyu_kesiti_on",
+    "kuyu_plani",
+    "kabin_ustu",
+    "kuyu_dibi",
+    "kuyu_ustu",
+    "kasnak_duzeni",
+    "giris",
+    "kapi_kesiti",
+)
+SIRA_MD = (
+    "kuyu_kesiti_yan",
+    "kuyu_kesiti_on",
+    "kuyu_plani",
+    "kabin_ustu",
+    "kuyu_dibi",
+    "makine_dairesi",
+    "delik_plani",
+    "kasnak_duzeni",
+    "giris",
+    "kapi_kesiti",
+)
 
 
 def _nokta(e):
@@ -85,8 +106,7 @@ def _a4_mu(e, tol=0.5):
     if not (e.dxftype() == "LWPOLYLINE" and e.closed and len(p) == 4):
         return False
     xs, ys = [q[0] for q in p], [q[1] for q in p]
-    return (abs(max(xs) - min(xs) - 210.0) <= tol
-            and abs(max(ys) - min(ys) - 297.0) <= tol)
+    return abs(max(xs) - min(xs) - 210.0) <= tol and abs(max(ys) - min(ys) - 297.0) <= tol
 
 
 def _sablon_dogrula(d):
@@ -96,8 +116,9 @@ def _sablon_dogrula(d):
     kutular = []
     for e in msp.query("LWPOLYLINE"):
         p = _nokta(e)
-        kutular.append((min(q[0] for q in p), min(q[1] for q in p),
-                        max(q[0] for q in p), max(q[1] for q in p)))
+        kutular.append(
+            (min(q[0] for q in p), min(q[1] for q in p), max(q[0] for q in p), max(q[1] for q in p))
+        )
     if not any(all(abs(a - b) <= 0.5 for a, b in zip(k, KAPAK_HUCRESI)) for k in kutular):
         hata.append(f"kapak hücresi {KAPAK_HUCRESI} yok")
     kose = {(round(p[0], 1), round(p[1], 1)) for e in msp.query("LINE") for p in _nokta(e)}
@@ -114,8 +135,7 @@ def _sablon_dogrula(d):
 def _antet_yazisi(d, yer, ornek=None):
     for e in d.modelspace().query("TEXT"):
         p = e.dxf.insert
-        if abs(p.x - yer[0]) <= 0.2 and abs(p.y - yer[1]) <= 0.2 and \
-                (ornek is None or e.dxf.text == ornek):
+        if abs(p.x - yer[0]) <= 0.2 and abs(p.y - yer[1]) <= 0.2 and (ornek is None or e.dxf.text == ornek):
             return e
     return None
 
@@ -125,14 +145,18 @@ def antet_degerleri(g, olcekler):
     dy, kb, kr = g["dusey"], g["kabin"], g["kabin_ray"]
     kotlar = CDU.durak_kotlari(g)[0]
     return {
-        "yuk": "", "sinif": "", "motor": "",
+        "yuk": "",
+        "sinif": "",
+        "motor": "",
         "hiz": f"{dy['beyan_hizi']:.2f} m/sn".replace(".", ","),
         "durak": f"{dy['durak_adedi']} DURAK",
         "seyir": f"{kotlar[-1]:g}",
-        "kabin_g": f"{kb['genislik']:g}", "kabin_d": f"{kb['derinlik']:g}",
+        "kabin_g": f"{kb['genislik']:g}",
+        "kabin_d": f"{kb['derinlik']:g}",
         "standart": "TS EN 81-20",
         "aski": "1:1" if (g.get("aski") or {}).get("duzen") == "Doğrudan" else "2:1",
-        "adet": "1", "tahrik": "Elektrikli",
+        "adet": "1",
+        "tahrik": "Elektrikli",
         "ray": f"{kr['b']:g}*{kr['h']:g}",
         "olcek": " ".join(f"1/{o:g}" for o in sorted(set(olcekler))),
     }
@@ -168,8 +192,14 @@ def cizim_listesi(g, seritler=()):
             continue
         olcek = CZ.OLCEKLER.get(ad, 20)
         e = ciz(g, azami=yukseklik * olcek) if ad in CZ.OLCEKLER else ciz(g)
-        cikti.append((ad, CZ.plan_basligi(g, ad, baslik), olcek,
-                      CGE.cerceveli(e, CZ.plan_basligi(g, ad, baslik), olcek, seritler=seritler)))
+        cikti.append(
+            (
+                ad,
+                CZ.plan_basligi(g, ad, baslik),
+                olcek,
+                CGE.cerceveli(e, CZ.plan_basligi(g, ad, baslik), olcek, seritler=seritler),
+            )
+        )
     if hata:
         raise ValueError("Pafta çizilemiyor:  " + " · ".join(hata))
     return cikti
@@ -229,6 +259,7 @@ def _katmanlari_onar(d):
     db = d.entitydb
     malzeme = d.materials.get("Global").dxf.handle
     stil = d.rootdict.get("ACAD_PLOTSTYLENAME").get("Normal").dxf.handle
+
     def tur(h):
         e = db.get(h) if h else None
         return e.dxftype() if e is not None else None
@@ -265,8 +296,9 @@ def _yerlestir(d, g, x0=None, sag_eski=None):
     for (ad, baslik, olcek, e), (bx, by), (px, py), (w, h) in zip(cizimler, kutular, yerler, boyutlar):
         blok = d.blocks.new(name=f"CIZIM_{ad.upper()}", base_point=(bx, by))
         CDX.ciz(blok, e, olcek, blokta=True)
-        msp.add_blockref(blok.name, (px, py), dxfattribs={"xscale": 1.0 / olcek, "yscale": 1.0 / olcek,
-                                                           "layer": "0"})
+        msp.add_blockref(
+            blok.name, (px, py), dxfattribs={"xscale": 1.0 / olcek, "yscale": 1.0 / olcek, "layer": "0"}
+        )
         yerlesen.append({"ad": ad, "baslik": baslik, "olcek": olcek, "kutu": (px, py, px + w, py + h)})
     x0_, y0_, x1_, y1_ = BANT[0], BANT[1], sag, BANT[3]
     msp.dxf.extmin, msp.dxf.extmax = (x0_, y0_, 0), (x1_, y1_, 0)
@@ -297,8 +329,7 @@ def birlestir(hesap_dxf, g):
     d = ezdxf.readfile(hesap_dxf)
     msp = d.modelspace()
     #  Çerçevenin şimdiki sağ kenarı:  üst kenar çizgisinin en sağ ucu
-    ust = [p.x for e in msp.query("LINE") for p in (e.dxf.start, e.dxf.end)
-           if abs(p.y - BANT[3]) <= 0.5]
+    ust = [p.x for e in msp.query("LINE") for p in (e.dxf.start, e.dxf.end) if abs(p.y - BANT[3]) <= 0.5]
     if not ust or min(ust) > BANT[0] + 0.5:
         raise ValueError("Hesap DXF'inde TİP PROJE FORMATI çerçevesi bulunamadı.")
     sag_eski = max(ust)
@@ -331,6 +362,7 @@ def _maskeleri_ac(d):
     ya da altı ( 7 · 8 · 9 ) hizalı;  en büyük harf boyunun 0,58 / 0,716'sı
     ( ezdxf'in MTEXT kutusu bu yazılarda kayıktı )."""
     import math
+
     for blok in d.blocks:
         for m in list(blok.query("MTEXT")):
             if not m.dxf.get("bg_fill", 0):
@@ -344,8 +376,12 @@ def _maskeleri_ac(d):
             a = math.radians(m.dxf.get("rotation", 0.0))
             c, s_ = math.cos(a), math.sin(a)
             ix, iy = m.dxf.insert.x, m.dxf.insert.y
-            koseler = [(x0 - pay, y0 - pay), (x0 + w + pay, y0 - pay),
-                       (x0 + w + pay, y0 + h + pay), (x0 - pay, y0 + h + pay)]
+            koseler = [
+                (x0 - pay, y0 - pay),
+                (x0 + w + pay, y0 - pay),
+                (x0 + w + pay, y0 + h + pay),
+                (x0 - pay, y0 + h + pay),
+            ]
             blok.add_wipeout([(ix + u * c - v * s_, iy + u * s_ + v * c) for u, v in koseler])
             yazi = m.copy()
             blok.delete_entity(m)
@@ -365,6 +401,7 @@ def onizleme(d) -> str:
     desen ölçeğinden yeniden kurar."""
     from ezdxf.addons.drawing import Frontend, RenderContext, config, layout, svg
     from ezdxf.entities import factory
+
     akis = io.StringIO()
     d.write(akis)
     akis.seek(0)
@@ -373,8 +410,12 @@ def onizleme(d) -> str:
     for ins in list(msp.query("INSERT")):
         for e in ins.virtual_entities():
             if e.dxftype() == "HATCH" and e.pattern and e.dxf.pattern_name in ezdxf.pattern.ISO_PATTERN:
-                e.set_pattern_fill(e.dxf.pattern_name, color=e.dxf.color, angle=e.dxf.pattern_angle,
-                                   scale=e.dxf.pattern_scale)
+                e.set_pattern_fill(
+                    e.dxf.pattern_name,
+                    color=e.dxf.color,
+                    angle=e.dxf.pattern_angle,
+                    scale=e.dxf.pattern_scale,
+                )
                 factory.bind(e, k)
                 msp.add_entity(e)
                 bloklar.add(ins.dxf.name)
@@ -389,7 +430,8 @@ def onizleme(d) -> str:
         k.layers.get("OLCU").dxf.color = 5
     d = k
     arka = svg.SVGBackend()
-    ayar = config.Configuration(background_policy=config.BackgroundPolicy.WHITE,
-                                color_policy=config.ColorPolicy.COLOR)
+    ayar = config.Configuration(
+        background_policy=config.BackgroundPolicy.WHITE, color_policy=config.ColorPolicy.COLOR
+    )
     Frontend(RenderContext(d), arka, config=ayar).draw_layout(d.modelspace())
     return arka.get_string(layout.Page(0, 0, layout.Units.mm, margins=layout.Margins.all(5)))

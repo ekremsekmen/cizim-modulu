@@ -6,26 +6,26 @@ kasnağı, saptırma kasnağı, halatlar, sarım açısı — cizim/kasnak_duzen
 2 × 140 geniş, 240 yüksek … — sabitler KAPI VE KATLAR );  ofisin gerçek
 projelerinde LiftDesigner'ın kendi paftasıyla karşılaştırılır
 ( gercek_projeler.py )."""
+
 import copy
 import os
 import sys
 import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "ornekler"),
-             os.path.join(KOK, "testler")):
+for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "ornekler"), os.path.join(KOK, "testler")):
     if _yol not in sys.path:
         sys.path.append(_yol)
 
-from cizim import cizimler as CZ                          # noqa: E402
-from cizim import giris as CGI                            # noqa: E402
-from cizim import girdi as CG                             # noqa: E402
-from cizim import kasnak_duzeni as CKS                    # noqa: E402
-from cizim import kopru as CK                             # noqa: E402
-from cizim import makine_dairesi as CMD                   # noqa: E402
-from cizim import pafta as CPF                            # noqa: E402
+from cizim import cizimler as CZ  # noqa: E402
+from cizim import giris as CGI  # noqa: E402
+from cizim import girdi as CG  # noqa: E402
+from cizim import kasnak_duzeni as CKS  # noqa: E402
+from cizim import kopru as CK  # noqa: E402
+from cizim import makine_dairesi as CMD  # noqa: E402
+from cizim import pafta as CPF  # noqa: E402
 
-import test_olcu_kaynagi as T                             # noqa: E402
+import test_olcu_kaynagi as T  # noqa: E402
 
 
 def _olculer(e):
@@ -49,9 +49,20 @@ class Giris(unittest.TestCase):
             o = _olculer(CGI.ciz(_gercek(ad)))
             with self.subTest(ad):
                 i = o.index(zincir[0])
-                self.assertEqual(o[i:i + 3], zincir)
-                for beklenen in ("KAPI 900", "KAPI 2000", "KAPI BOŞLUĞU 2240", "BUTON 1200",
-                                 "220", "1055", "290", "240", "160", "100", "50"):
+                self.assertEqual(o[i : i + 3], zincir)
+                for beklenen in (
+                    "KAPI 900",
+                    "KAPI 2000",
+                    "KAPI BOŞLUĞU 2240",
+                    "BUTON 1200",
+                    "220",
+                    "1055",
+                    "290",
+                    "240",
+                    "160",
+                    "100",
+                    "50",
+                ):
                     self.assertIn(beklenen, o)
 
     def test_kaba_bosluk_kapi_genisligiyle(self):
@@ -64,8 +75,12 @@ class Giris(unittest.TestCase):
 
     def test_buton_acilisin_karsisinda(self):
         g = copy.deepcopy(CG.ORNEK)
-        for tip, sol in (("Teleskopik Sol", False), ("Otomatik Merkezi", False),
-                         ("Teleskopik Sağ", True), ("Manuel Sağ", True)):
+        for tip, sol in (
+            ("Teleskopik Sol", False),
+            ("Otomatik Merkezi", False),
+            ("Teleskopik Sağ", True),
+            ("Manuel Sağ", True),
+        ):
             g["kapi"]["tip"] = tip
             Y = CGI.yerlesim(g)
             with self.subTest(tip):
@@ -125,16 +140,23 @@ class KapiKesiti(unittest.TestCase):
     """Kapı yan kesiti ( LiftDesigner "Front Entrance Side View" · Wittur montaj
     kesiti ):  standardın sayıları parçaların ÇİZİLEN biçiminden ölçülür."""
 
-    TIPLER = ("Teleskopik Sol", "Teleskopik 3 Kanat Sağ", "Otomatik Merkezi",
-              "Otomatik Merkezi 4 Kanat", "Manuel Sol")
+    TIPLER = (
+        "Teleskopik Sol",
+        "Teleskopik 3 Kanat Sağ",
+        "Otomatik Merkezi",
+        "Otomatik Merkezi 4 Kanat",
+        "Manuel Sol",
+    )
 
     @classmethod
     def setUpClass(cls):
         import math
+
         sys.path.insert(0, os.path.join(KOK, "testler"))
         import test_yerlesim_saglamligi as YS
         from cizim import geometri as CGE
         from cizim import kapi_kesiti as CKA
+
         cls.math, cls.CKA = math, CKA
         cls.durumlar = []
         for tip in cls.TIPLER:
@@ -177,7 +199,7 @@ class KapiKesiti(unittest.TestCase):
                 self.assertLessEqual(o[1][1], -750.0 + 1e-6)
                 self.assertGreaterEqual(round(aci, 6), 60.0)
                 self.assertGreaterEqual(izd, 20.0)
-                self.assertGreater(o[2][0], o[1][0])                      # kabine doğru
+                self.assertGreater(o[2][0], o[1][0])  # kabine doğru
                 es = self._ad(e, "kabin_esigi")[0]
                 self.assertEqual(o[0][0], es["x"])
 
@@ -196,8 +218,10 @@ class KapiKesiti(unittest.TestCase):
         for tip, montaj, g, e, plan in self.durumlar:
             for ad in ("kat_kanadi", "kabin_kanadi"):
                 with self.subTest(tip=tip, montaj=montaj, ad=ad):
-                    self.assertEqual(sorted({round(x["x"], 6) for x in self._ad(e, ad)}),
-                                     sorted({round(x["y"], 6) for x in self._ad(plan, ad)}))
+                    self.assertEqual(
+                        sorted({round(x["x"], 6) for x in self._ad(e, ad)}),
+                        sorted({round(x["y"], 6) for x in self._ad(plan, ad)}),
+                    )
 
     def test_ust_kutu_kasanin_ustune_kadar(self):
         S = self.CKA.CS.sabitler(None)

@@ -36,6 +36,7 @@ ve ekrana basılan bölüm hükümleri de aranır.
 
 Sunucu ( baslat.command ) ve Playwright gerekir;  yoksa test atlanır.
 """
+
 import json
 import os
 import random
@@ -44,8 +45,8 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.ortak import ofis as OFIS          # noqa: E402
-from testler.ortak import Rapor                # noqa: E402
+from engine.ortak import ofis as OFIS  # noqa: E402
+from testler.ortak import Rapor  # noqa: E402
 
 BASE = os.environ.get("AVAN_TEST_URL", "http://127.0.0.1:8780")
 TOHUM = 20260914
@@ -179,7 +180,7 @@ def _sunucu_var():
     try:
         urllib.request.urlopen(BASE + "/api/saglik", timeout=5).read()
         return True
-    except Exception:                                    # noqa: BLE001
+    except Exception:  # noqa: BLE001
         return False
 
 
@@ -203,10 +204,12 @@ def _kural(r, pg, mod, etiket):
         r.kontrol(f"[{mod}] {etiket} · hesap duruluyor", False, "→ 24 sn içinde durulmadı")
         return None
     d = pg.evaluate("m => __T.denetle(m)", mod)
-    r.kontrol(f"[{mod}] {etiket} · ekrandaki sonuç = formun taze hesabı",
-              not d["farklar"], "→ " + " || ".join(d["farklar"])[:600])
-    r.kontrol(f"[{mod}] {etiket} · sonuç ekrana basılmış",
-              not d["dom"], "→ " + " || ".join(d["dom"])[:300])
+    r.kontrol(
+        f"[{mod}] {etiket} · ekrandaki sonuç = formun taze hesabı",
+        not d["farklar"],
+        "→ " + " || ".join(d["farklar"])[:600],
+    )
+    r.kontrol(f"[{mod}] {etiket} · sonuç ekrana basılmış", not d["dom"], "→ " + " || ".join(d["dom"])[:300])
     return d
 
 
@@ -222,9 +225,12 @@ def _her_alan(r, pg, mod):
     kimlikler = pg.evaluate(_ALANLAR, mod)
     r.kontrol(f"[{mod}] denetlenecek alan sayısı", len(kimlikler) > 60, f"→ {len(kimlikler)}")
     for i, kimlik in enumerate(kimlikler):
-        eski = pg.evaluate("""([id, i]) => { const e = document.getElementById(id);
+        eski = pg.evaluate(
+            """([id, i]) => { const e = document.getElementById(id);
             const eski = e.type === 'checkbox' ? e.checked : e.value;
-            __T.yaz(e, __T.yeni(e, i)); return eski; }""", [kimlik, i])
+            __T.yaz(e, __T.yeni(e, i)); return eski; }""",
+            [kimlik, i],
+        )
         _kural(r, pg, mod, f"alan {kimlik}")
         #  Geri al ve BEKLEMEDEN sonraki alana geç — üst üste binen değişiklik
         pg.evaluate("([id, v]) => __T.yaz(document.getElementById(id), v)", [kimlik, eski])
@@ -243,11 +249,10 @@ def _uygulama_dizileri(r, pg, rnd):
     _hemen_kaydet(r, pg)
     pg.evaluate("__T.gecikme = () => Math.floor(Math.random() * 500)")
     for n in range(DIZI_ADEDI):
-        son_olay = {}                       # asansör sırası → ( 'beyan', yük ) | ( 'elle', değer )
-        olaylar = []                        # hata iletisi için
+        son_olay = {}  # asansör sırası → ( 'beyan', yük ) | ( 'elle', değer )
+        olaylar = []  # hata iletisi için
         for _ in range(rnd.randint(3, 8)):
-            eylem = rnd.choice(("beyan", "beyan", "elle", "alan", "alan", "adet",
-                                "sekme", "mrl"))
+            eylem = rnd.choice(("beyan", "beyan", "elle", "alan", "alan", "adet", "sekme", "mrl"))
             aktif = pg.evaluate("MUK_AKTIF")
             olaylar.append(f"{eylem}@{aktif + 1}")
             if eylem == "beyan":
@@ -256,8 +261,7 @@ def _uygulama_dizileri(r, pg, rnd):
                 son_olay[aktif] = ("beyan", q)
             elif eylem == "elle":
                 deger = rnd.choice((650, 777, 900, 1111))
-                pg.evaluate("v => __T.yaz(document.getElementById('m_kabin_agirligi'), String(v))",
-                            deger)
+                pg.evaluate("v => __T.yaz(document.getElementById('m_kabin_agirligi'), String(v))", deger)
                 son_olay[aktif] = ("elle", deger)
             elif eylem == "alan":
                 #  Bir alanı değiştirip kısa süre sonra geri al ( yanlış yazıp
@@ -266,16 +270,19 @@ def _uygulama_dizileri(r, pg, rnd):
                 kimlik = rnd.choice(alanlar)
                 if kimlik in ("m_beyan_yuku", "m_kabin_agirligi", "m_adet"):
                     continue
-                eski = pg.evaluate("([id, i]) => { const e = document.getElementById(id);"
-                                   " const eski = e.type === 'checkbox' ? e.checked : e.value;"
-                                   " __T.yaz(e, __T.yeni(e, i)); return eski; }",
-                                   [kimlik, rnd.randint(0, 9)])
+                eski = pg.evaluate(
+                    "([id, i]) => { const e = document.getElementById(id);"
+                    " const eski = e.type === 'checkbox' ? e.checked : e.value;"
+                    " __T.yaz(e, __T.yeni(e, i)); return eski; }",
+                    [kimlik, rnd.randint(0, 9)],
+                )
                 pg.wait_for_timeout(rnd.randint(0, 300))
                 pg.evaluate("([id, v]) => __T.yaz(document.getElementById(id), v)", [kimlik, eski])
             elif eylem == "adet":
                 once = pg.evaluate("MUK_ASANSORLER.length")
-                sonra = pg.evaluate("n => { mAdetDegisti(n); return MUK_ASANSORLER.length; }",
-                                    rnd.randint(1, 3))
+                sonra = pg.evaluate(
+                    "n => { mAdetDegisti(n); return MUK_ASANSORLER.length; }", rnd.randint(1, 3)
+                )
                 #  Yeni açılan asansör 1. asansörün kopyasıdır — beklentisini de alır
                 for j in range(once, sonra):
                     if 0 in son_olay:
@@ -283,9 +290,12 @@ def _uygulama_dizileri(r, pg, rnd):
             elif eylem == "sekme":
                 pg.evaluate("i => mAsansorSekmesi(Math.min(i, MUK_ADET - 1))", rnd.randint(0, 2))
             elif eylem == "mrl":
-                pg.evaluate("v => document.querySelector("
-                            "`.secim-ikili[data-icin=\"m_mk_yok\"] .secim-dg[data-deger=\"${v}\"]`)"
-                            ".click()", rnd.randint(0, 1))
+                pg.evaluate(
+                    "v => document.querySelector("
+                    '`.secim-ikili[data-icin="m_mk_yok"] .secim-dg[data-deger="${v}"]`)'
+                    ".click()",
+                    rnd.randint(0, 1),
+                )
             pg.wait_for_timeout(rnd.randint(0, 400))
         d = _kural(r, pg, "uygulama", f"dizi {n + 1}")
         if not d:
@@ -305,23 +315,32 @@ def _gecersizden_donus(r, pg):
     pg.evaluate("""() => { const e = id => document.getElementById(id);
         __T.yaz(e('m_kabin_agirligi'), '777'); }""")
     _sakin(pg)
-    pg.evaluate("""q => { const e = id => document.getElementById(id);
+    pg.evaluate(
+        """q => { const e = id => document.getElementById(id);
         __T.yaz(e('m_kabin_genisligi'), '1.350');
-        __T.yaz(e('m_beyan_yuku'), String(q)); }""", q)
+        __T.yaz(e('m_beyan_yuku'), String(q)); }""",
+        q,
+    )
     _sakin(pg)
-    ara = pg.evaluate("() => ({aktif: SON.mc.aktif, bekliyor: mGkTazelenecek(MUK_AKTIF),"
-                      " kutu: document.getElementById('m_kabin_agirligi').value})")
-    r.kontrol("[uygulama] istek reddedilirken yük değişince kabin ağırlığı yenilenmeyi bekliyor",
-              #  Kutu boştur:  eski kütle yeni yükün yanında durmaz, tablo değeri gelecek
-              ara["aktif"] is False and ara["bekliyor"] and ara["kutu"] == "", f"→ {ara}")
+    ara = pg.evaluate(
+        "() => ({aktif: SON.mc.aktif, bekliyor: mGkTazelenecek(MUK_AKTIF),"
+        " kutu: document.getElementById('m_kabin_agirligi').value})"
+    )
+    r.kontrol(
+        "[uygulama] istek reddedilirken yük değişince kabin ağırlığı yenilenmeyi bekliyor",
+        #  Kutu boştur:  eski kütle yeni yükün yanında durmaz, tablo değeri gelecek
+        ara["aktif"] is False and ara["bekliyor"] and ara["kutu"] == "",
+        f"→ {ara}",
+    )
     pg.evaluate("() => __T.yaz(document.getElementById('m_kabin_genisligi'), '1350')")
     d = _kural(r, pg, "uygulama", "geçersizden dönüş")
     if d:
         beyan, kabin, hesaplandi, bekliyor = d["kabin"][pg.evaluate("MUK_AKTIF")]
-        r.kontrol("[uygulama] girdi düzeltilince kabin ağırlığı yeni yükün tablo değeri",
-                  hesaplandi and not bekliyor
-                  and float(str(kabin).replace(',', '.')) == OFIS.bos_kabin_kutlesi(q),
-                  f"→ yük {beyan} · kabin {kabin!r} · beklenen {OFIS.bos_kabin_kutlesi(q)}")
+        r.kontrol(
+            "[uygulama] girdi düzeltilince kabin ağırlığı yeni yükün tablo değeri",
+            hesaplandi and not bekliyor and float(str(kabin).replace(",", ".")) == OFIS.bos_kabin_kutlesi(q),
+            f"→ yük {beyan} · kabin {kabin!r} · beklenen {OFIS.bos_kabin_kutlesi(q)}",
+        )
 
 
 def _ardisik_iki_asansor(r, pg):
@@ -352,13 +371,16 @@ def _ardisik_iki_asansor(r, pg):
         mukavemetIstek();
         return MUK_ASANSORLER.slice(0, 2).map(a => [a.beyan_yuku, a.kabin_agirligi]);
     }""")
-    for sira, (q, beklenen) in enumerate(((1275, OFIS.bos_kabin_kutlesi(1275)),
-                                           (1000, OFIS.bos_kabin_kutlesi(1000)))):
+    for sira, (q, beklenen) in enumerate(
+        ((1275, OFIS.bos_kabin_kutlesi(1275)), (1000, OFIS.bos_kabin_kutlesi(1000)))
+    ):
         yuk, kabin = sonuc[sira]
-        r.kontrol(f"[uygulama] iki asansörde art arda yük değişimi · asansör {sira + 1} "
-                  "kabin ağırlığı yeni yükün tablo değeri",
-                  str(yuk) == str(q) and float(str(kabin).replace(',', '.')) == beklenen,
-                  f"→ yük {yuk} · kabin {kabin!r} · beklenen {beklenen}")
+        r.kontrol(
+            f"[uygulama] iki asansörde art arda yük değişimi · asansör {sira + 1} "
+            "kabin ağırlığı yeni yükün tablo değeri",
+            str(yuk) == str(q) and float(str(kabin).replace(",", ".")) == beklenen,
+            f"→ yük {yuk} · kabin {kabin!r} · beklenen {beklenen}",
+        )
     _kural(r, pg, "uygulama", "iki asansörde art arda yük değişimi")
 
 
@@ -373,26 +395,31 @@ def _hemen_kaydet(r, pg):
     beklenen = OFIS.bos_kabin_kutlesi(q)
     pg.evaluate("""async () => { __T.yaz(document.getElementById('m_kabin_agirligi'), '777');
         await __T.sakin(); }""")
-    kayit = pg.evaluate("""q => {
+    kayit = pg.evaluate(
+        """q => {
         __T.yaz(document.getElementById('m_beyan_yuku'), String(q));
         return {dosya: JSON.stringify(projeGovdesi('uygulama')),
                 kova: localStorage.getItem(KOVA.uygulama)};   // HEMEN — yanıt beklenmez
-    }""", q)
+    }""",
+        q,
+    )
     _sakin(pg)
 
     def _denetle(etiket):
         d = pg.evaluate("""() => ({kutu: document.getElementById('m_kabin_agirligi').value,
             yuk: SON.mc.asansorler[MUK_AKTIF].girdi.beyan_yuku,
             kabin: SON.mc.asansorler[MUK_AKTIF].girdi.kabin_agirligi})""")
-        r.kontrol(f"[uygulama] {etiket} · yeni yükün kabin ağırlığıyla hesaplanıyor",
-                  d["yuk"] == q and d["kabin"] == beklenen
-                  and float(str(d["kutu"]).replace(',', '.')) == beklenen,
-                  f"→ {d} · beklenen {beklenen}")
+        r.kontrol(
+            f"[uygulama] {etiket} · yeni yükün kabin ağırlığıyla hesaplanıyor",
+            d["yuk"] == q and d["kabin"] == beklenen and float(str(d["kutu"]).replace(",", ".")) == beklenen,
+            f"→ {d} · beklenen {beklenen}",
+        )
         _kural(r, pg, "uygulama", etiket)
 
     #  1) Dosyadan
-    pg.evaluate("d => { localStorage.clear(); projeUygula(JSON.parse(d), 'hemen.uygulama'); }",
-                kayit["dosya"])
+    pg.evaluate(
+        "d => { localStorage.clear(); projeUygula(JSON.parse(d), 'hemen.uygulama'); }", kayit["dosya"]
+    )
     _sakin(pg)
     _denetle("hemen kaydedilen dosya açıldı")
     #  2) Tarayıcı belleğinden ( sayfa yenilenir )
@@ -416,15 +443,20 @@ def _kabin_beklentisi(r, d, son_olay, tablo, etiket, olaylar):
             #  Sunucu hesabı reddetti:  tablo değeri gelemez.  Yük değiştiyse
             #  yenileme işareti AÇIK kalmalı ki girdi düzelince tablo gelsin.
             if tur == "beyan":
-                r.kontrol(f"[uygulama] {etiket} · asansör {sira + 1} hesap yapılamadı, "
-                          "kabin ağırlığı yenilenmeyi bekliyor",
-                          bekliyor, f"→ olaylar {olaylar}")
+                r.kontrol(
+                    f"[uygulama] {etiket} · asansör {sira + 1} hesap yapılamadı, "
+                    "kabin ağırlığı yenilenmeyi bekliyor",
+                    bekliyor,
+                    f"→ olaylar {olaylar}",
+                )
             continue
-        beklenen = tablo[int(float(str(beyan).replace(',', '.')))] if tur == "beyan" else deger
-        bulunan = float(str(kabin).replace(',', '.')) if str(kabin).strip() else None
-        r.kontrol(f"[uygulama] {etiket} · asansör {sira + 1} kabin ağırlığı son olayı izliyor "
-                  f"( {tur} )", bulunan == beklenen,
-                  f"→ yük {beyan} · kabin {kabin!r} · beklenen {beklenen} · olaylar {olaylar}")
+        beklenen = tablo[int(float(str(beyan).replace(",", ".")))] if tur == "beyan" else deger
+        bulunan = float(str(kabin).replace(",", ".")) if str(kabin).strip() else None
+        r.kontrol(
+            f"[uygulama] {etiket} · asansör {sira + 1} kabin ağırlığı son olayı izliyor ( {tur} )",
+            bulunan == beklenen,
+            f"→ yük {beyan} · kabin {kabin!r} · beklenen {beklenen} · olaylar {olaylar}",
+        )
 
 
 def _avan_dizileri(r, pg, rnd):
@@ -434,14 +466,16 @@ def _avan_dizileri(r, pg, rnd):
         for _ in range(rnd.randint(3, 8)):
             eylem = rnd.choice(("alan", "alan", "alan", "adet", "kapasite"))
             if eylem == "alan":
-                pg.evaluate("([id, i]) => { const e = document.getElementById(id);"
-                            " __T.yaz(e, __T.yeni(e, i)); }",
-                            [rnd.choice(alanlar), rnd.randint(0, 9)])
+                pg.evaluate(
+                    "([id, i]) => { const e = document.getElementById(id); __T.yaz(e, __T.yeni(e, i)); }",
+                    [rnd.choice(alanlar), rnd.randint(0, 9)],
+                )
             elif eylem == "adet":
                 pg.evaluate("n => trafikAdedi(n)", rnd.randint(1, 3))
             elif eylem == "kapasite":
-                pg.evaluate("p => __T.yaz(document.getElementById('c_P1'), String(p))",
-                            rnd.choice((6, 8, 10, 13, 16)))
+                pg.evaluate(
+                    "p => __T.yaz(document.getElementById('c_P1'), String(p))", rnd.choice((6, 8, 10, 13, 16))
+                )
             pg.wait_for_timeout(rnd.randint(0, 400))
         _kural(r, pg, "avan", f"dizi {n + 1}")
     pg.evaluate("__T.gecikme = () => 0")
@@ -462,7 +496,7 @@ def calistir():
     with sync_playwright() as pw:
         try:
             tarayici = pw.chromium.launch()
-        except Exception as e:                           # noqa: BLE001
+        except Exception as e:  # noqa: BLE001
             r.atla(f"Chromium başlatılamadı: {e}")
             return r
         pg = tarayici.new_page(viewport={"width": 1440, "height": 1000})
@@ -473,8 +507,10 @@ def calistir():
 
         #  UYGULAMA:  iki asansörlü, açısı girilmiş proje
         _ac(pg, "uygulama")
-        pg.evaluate("() => { __T.yaz(document.getElementById('m_sarilma_acisi'), '180');"
-                    " mAdetDegisti(2); mAsansorSekmesi(0); }")
+        pg.evaluate(
+            "() => { __T.yaz(document.getElementById('m_sarilma_acisi'), '180');"
+            " mAdetDegisti(2); mAsansorSekmesi(0); }"
+        )
         _kural(r, pg, "uygulama", "başlangıç")
         _her_alan(r, pg, "uygulama")
         _uygulama_dizileri(r, pg, random.Random(TOHUM))

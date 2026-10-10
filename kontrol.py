@@ -13,6 +13,7 @@ Her değişiklikte en az hızlı denetim koşulur;  commit'ten önce tam + aray�
 Adımlar SIRAYLA koşar ( ağır işler aynı anda koşturulmaz ).  Çıkış kodu:  bir
 adım başarısızsa 1 — CI ( .github/workflows ) bunu okur.
 """
+
 import glob
 import os
 import subprocess
@@ -30,30 +31,39 @@ HESAP_TESTLERI = ["1", "2", "3", "4", "6", "7", "8", "9", "10", "11", "12", "14"
 ARAYUZ_TESTLERI = ["3", "5", "13", "6"]
 ARAYUZ_PORTU = 8790
 
+
 def _cizim_modulleri():
-    return sorted("testler." + os.path.basename(f)[:-3]
-                  for f in glob.glob(os.path.join(KOK, "testler", "test_*.py")))
+    return sorted(
+        "testler." + os.path.basename(f)[:-3] for f in glob.glob(os.path.join(KOK, "testler", "test_*.py"))
+    )
 
 
 def _kos(ad, komut, cwd=KOK, ortam=None):
     print(f"\n━━ {ad}", flush=True)
     t = time.time()
     r = subprocess.run(komut, cwd=cwd, env=dict(os.environ, **(ortam or {})))
-    print(f"━━ {ad}:  {'GEÇTİ' if r.returncode == 0 else 'BAŞARISIZ'}  ·  {time.time() - t:.0f} sn",
-          flush=True)
+    print(
+        f"━━ {ad}:  {'GEÇTİ' if r.returncode == 0 else 'BAŞARISIZ'}  ·  {time.time() - t:.0f} sn", flush=True
+    )
     return r.returncode == 0
 
 
 def hesap(numaralar, ortam=None):
-    return _kos("hesap testleri " + " ".join(numaralar),
-                [PY, os.path.join("testler", "calistir.py")] + numaralar, cwd=HESAP, ortam=ortam)
+    return _kos(
+        "hesap testleri " + " ".join(numaralar),
+        [PY, os.path.join("testler", "calistir.py")] + numaralar,
+        cwd=HESAP,
+        ortam=ortam,
+    )
 
 
 def cizim(tam):
     """Hızlıda bir dakikayı aşan testler ( testler/yavas.py ile işaretli ) atlanır."""
-    return _kos(f"çizim testleri{'' if tam else ' ( yavaşlar hariç )'}",
-                [PY, "-m", "unittest"] + _cizim_modulleri(),
-                ortam={"KONTROL_HIZLI": "0" if tam else "1"})
+    return _kos(
+        f"çizim testleri{'' if tam else ' ( yavaşlar hariç )'}",
+        [PY, "-m", "unittest"] + _cizim_modulleri(),
+        ortam={"KONTROL_HIZLI": "0" if tam else "1"},
+    )
 
 
 def node():
@@ -66,8 +76,21 @@ def node():
 def arayuz():
     """Programı test portunda açar ( kullanıcının açık programına dokunmaz ),
     arayüz testlerini koşar, programı kapatır."""
-    sunucu = subprocess.Popen([PY, "-m", "uvicorn", "main:app", "--host", "127.0.0.1",
-                               "--port", str(ARAYUZ_PORTU), "--log-level", "warning"], cwd=HESAP)
+    sunucu = subprocess.Popen(
+        [
+            PY,
+            "-m",
+            "uvicorn",
+            "main:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(ARAYUZ_PORTU),
+            "--log-level",
+            "warning",
+        ],
+        cwd=HESAP,
+    )
     try:
         url = f"http://127.0.0.1:{ARAYUZ_PORTU}/api/saglik"
         for _ in range(60):
@@ -103,8 +126,10 @@ def main(argv):
         return 2
     t = time.time()
     sonuc = adimlar[kip]()
-    print(f"\n{'HEPSİ GEÇTİ' if all(sonuc) else 'BAŞARISIZ ADIM VAR'}  ·  {kip}  ·  "
-          f"{(time.time() - t) / 60:.1f} dk")
+    print(
+        f"\n{'HEPSİ GEÇTİ' if all(sonuc) else 'BAŞARISIZ ADIM VAR'}  ·  {kip}  ·  "
+        f"{(time.time() - t) / 60:.1f} dk"
+    )
     return 0 if all(sonuc) else 1
 
 

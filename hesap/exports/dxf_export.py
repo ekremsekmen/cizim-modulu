@@ -33,6 +33,7 @@ Converter kuruluysa ( ücretsiz, opendesign.com ) program DWG'yi de üretir.
 LibreDWG'nin dxf2dwg aracı DENENDİ VE ÇIKARILDI:  ürettiği dosyayı AutoCAD
 "Drawing file is not valid" diyerek açmıyor.
 """
+
 import io
 import math
 import os
@@ -147,13 +148,13 @@ YAZI_BICIMI_K = "AVAN-KALIN"
 #  karakteri saymaz.  "**" ya da "%%94" de çökertmiyordu ama biri gösterimi
 #  bozar, öteki yalnız AutoCAD'in anladığı bir kaçıştır.
 CAD_SIMGE = {
-    "✔": "√",     # ✔ → √   onay
-    "✓": "√",     # ✓ → √
-    "✘": "×",     # ✘ → ×   olumsuz
-    "✕": "×",     # ✕ → ×
-    "⚠": "!",          # ⚠ → !   uyarı
-    "ℹ": "i",          # ℹ → i   bilgi
-    "^": "ˆ",     # ^ → ˆ   ÜS  ( denetim karakteri olarak yorumlanmasın )
+    "✔": "√",  # ✔ → √   onay
+    "✓": "√",  # ✓ → √
+    "✘": "×",  # ✘ → ×   olumsuz
+    "✕": "×",  # ✕ → ×
+    "⚠": "!",  # ⚠ → !   uyarı
+    "ℹ": "i",  # ℹ → i   bilgi
+    "^": "ˆ",  # ^ → ˆ   ÜS  ( denetim karakteri olarak yorumlanmasın )
 }
 
 #  Aynı satırda sayılan iki karakter arasındaki azami boşluk ( em oranı ).
@@ -182,7 +183,7 @@ def _cizgiler(nesne, cikti):
         if len(p) < 2:
             return
         if isinstance(nesne, LTRect) and len(p) > 2:
-            p = p + [p[0]]                      # dikdörtgeni kapat
+            p = p + [p[0]]  # dikdörtgeni kapat
         for i in range(len(p) - 1):
             cikti.append((p[i][0], p[i][1], p[i + 1][0], p[i + 1][1], nesne.linewidth))
 
@@ -215,33 +216,48 @@ def _metin_kumeleri(karakterler):
         a, b, _c, _d, e, f = k.matrix
         aci = math.degrees(math.atan2(b, a))
         cos, sin = math.cos(math.radians(aci)), math.sin(math.radians(aci))
-        boy = k.width if abs(b) > 1e-6 else k.size      # bkz. yukarıdaki incelik
-        hazir.append({
-            "metin": metin, "aci": round(aci, 2),
-            "u": e * cos + f * sin, "v": -e * sin + f * cos,
-            "x": e, "taban": f, "boy": boy,
-            "ilerleme": getattr(k, "adv", 0.0) or 0.0,
-            "font": k.fontname,
-        })
+        boy = k.width if abs(b) > 1e-6 else k.size  # bkz. yukarıdaki incelik
+        hazir.append(
+            {
+                "metin": metin,
+                "aci": round(aci, 2),
+                "u": e * cos + f * sin,
+                "v": -e * sin + f * cos,
+                "x": e,
+                "taban": f,
+                "boy": boy,
+                "ilerleme": getattr(k, "adv", 0.0) or 0.0,
+                "font": k.fontname,
+            }
+        )
     hazir.sort(key=lambda k: (k["aci"], -round(k["v"], 2), k["u"]))
 
     kumeler, aktif = [], None
     for k in hazir:
         anahtar = (k["font"], round(k["boy"], 3), k["aci"], round(k["v"], 2))
-        if (aktif is not None and aktif["anahtar"] == anahtar
-                and k["u"] - aktif["u_son"] <= BOSLUK_ORANI * k["boy"]
-                and k["u"] >= aktif["u_son"] - 0.5 * k["boy"]):
+        if (
+            aktif is not None
+            and aktif["anahtar"] == anahtar
+            and k["u"] - aktif["u_son"] <= BOSLUK_ORANI * k["boy"]
+            and k["u"] >= aktif["u_son"] - 0.5 * k["boy"]
+        ):
             bosluk = k["u"] - aktif["u_son"]
-            if (bosluk > 0.18 * k["boy"] and not aktif["metin"].endswith(" ")
-                    and k["metin"] != " "):
+            if bosluk > 0.18 * k["boy"] and not aktif["metin"].endswith(" ") and k["metin"] != " ":
                 aktif["metin"] += " "
             aktif["metin"] += k["metin"]
             aktif["u_son"] = k["u"] + k["ilerleme"]
             continue
-        aktif = {"anahtar": anahtar, "metin": k["metin"], "x": k["x"],
-                 "taban": k["taban"], "boy": k["boy"], "aci": k["aci"],
-                 "font": k["font"], "u_bas": k["u"],
-                 "u_son": k["u"] + k["ilerleme"]}
+        aktif = {
+            "anahtar": anahtar,
+            "metin": k["metin"],
+            "x": k["x"],
+            "taban": k["taban"],
+            "boy": k["boy"],
+            "aci": k["aci"],
+            "font": k["font"],
+            "u_bas": k["u"],
+            "u_son": k["u"] + k["ilerleme"],
+        }
         kumeler.append(aktif)
     return [k for k in kumeler if k["metin"].strip()]
 
@@ -262,12 +278,14 @@ def _sayfa_geometrisi(pdf_baytlari):
                     gez(e)
 
         gez(sayfa)
-        sayfalar.append({
-            "cizgiler": cizgiler,
-            "metinler": _metin_kumeleri(karakterler),
-            "genislik": sayfa.bbox[2] - sayfa.bbox[0],
-            "yukseklik": sayfa.bbox[3] - sayfa.bbox[1],
-        })
+        sayfalar.append(
+            {
+                "cizgiler": cizgiler,
+                "metinler": _metin_kumeleri(karakterler),
+                "genislik": sayfa.bbox[2] - sayfa.bbox[0],
+                "yukseklik": sayfa.bbox[3] - sayfa.bbox[1],
+            }
+        )
     return sayfalar
 
 
@@ -309,9 +327,8 @@ def _genislik_carpani(m):
     #  Aynı büyük harf yüksekliğini veren Arial punto boyu
     punto = m["boy"] * CAP_ORAN / CAD_CAP_ORAN
     try:
-        cad_genislik = pdfmetrics.stringWidth(_cad_metni(m["metin"]),
-                                              CAD_OLCU_FONT[kalin], punto)
-    except Exception:                                       # noqa: BLE001
+        cad_genislik = pdfmetrics.stringWidth(_cad_metni(m["metin"]), CAD_OLCU_FONT[kalin], punto)
+    except Exception:  # noqa: BLE001
         return 1.0
     if cad_genislik <= 0:
         return 1.0
@@ -348,8 +365,7 @@ def _katmanlari_kur(d):
 
 
 #  Şablondaki TrueType dosya adı → aile adı
-_SABLON_AILELERI = {"times.ttf": "Times New Roman", "arial.ttf": "Arial",
-                    "arialuni.ttf": "Arial Unicode MS"}
+_SABLON_AILELERI = {"times.ttf": "Times New Roman", "arial.ttf": "Arial", "arialuni.ttf": "Arial Unicode MS"}
 
 
 def _sayfayi_ciz(msp, sayfa, ox, oy):
@@ -367,9 +383,11 @@ def _sayfayi_ciz(msp, sayfa, ox, oy):
         if boy <= 0:
             continue
         kalin = _kalin_mi(m)
-        oz = {"layer": KATMAN_YAZI,
-              "style": YAZI_BICIMI_K if kalin else YAZI_BICIMI,
-              "height": _yuvarla(boy, 3)}
+        oz = {
+            "layer": KATMAN_YAZI,
+            "style": YAZI_BICIMI_K if kalin else YAZI_BICIMI,
+            "height": _yuvarla(boy, 3),
+        }
         carpan = _genislik_carpani(m)
         if abs(carpan - 1.0) > 1e-4:
             oz["width"] = _yuvarla(carpan, 4)
@@ -382,7 +400,9 @@ def _sayfayi_ciz(msp, sayfa, ox, oy):
 def _a4_cercevesi(msp, ox, oy, g=A4_G, y=A4_Y):
     msp.add_lwpolyline(
         [(ox, oy), (ox + g, oy), (ox + g, oy + y), (ox, oy + y)],
-        close=True, dxfattribs={"layer": KATMAN_CERCEVE, "color": RENK_CERCEVE})
+        close=True,
+        dxfattribs={"layer": KATMAN_CERCEVE, "color": RENK_CERCEVE},
+    )
 
 
 def a4_cerceveleri(msp, tol=0.5):
@@ -419,8 +439,8 @@ def sayfalari_topla(paftalar):
 # ------------------------------------------------------------ şablon
 def _sablon_yolu():
     return os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "templates", SABLON_DOSYA)
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "templates", SABLON_DOSYA
+    )
 
 
 def _nokta(e):
@@ -436,8 +456,8 @@ def _nokta(e):
 
 def _kutuda(noktalar, kutu, pay=0.0):
     return bool(noktalar) and all(
-        kutu[0] - pay <= x <= kutu[2] + pay and kutu[1] - pay <= y <= kutu[3] + pay
-        for x, y in noktalar)
+        kutu[0] - pay <= x <= kutu[2] + pay and kutu[1] - pay <= y <= kutu[3] + pay for x, y in noktalar
+    )
 
 
 def _sablon_dogrula(d):
@@ -463,15 +483,18 @@ def _sablon_dogrula(d):
     if not var_mi(KAPAK_HUCRESI):
         hata.append(f"kapak hücresi {KAPAK_HUCRESI} bulunamadı")
     #  Dış çerçeve LINE'lardan oluşur — köşelerini ara.
-    kose = {(round(p[0], 1), round(p[1], 1))
-            for e in msp.query("LINE") for p in _nokta(e)}
-    for x, y in ((BANT[0], BANT[1]), (BANT[2], BANT[1]),
-                 (BANT[0], BANT[3]), (BANT[2], BANT[3])):
+    kose = {(round(p[0], 1), round(p[1], 1)) for e in msp.query("LINE") for p in _nokta(e)}
+    for x, y in ((BANT[0], BANT[1]), (BANT[2], BANT[1]), (BANT[0], BANT[3]), (BANT[2], BANT[3])):
         if not any(abs(kx - x) <= 0.5 and abs(ky - y) <= 0.5 for kx, ky in kose):
             hata.append(f"dış çerçeve köşesi ({x}, {y}) bulunamadı")
     if hata:
-        raise ValueError("PROJE FORMATI ŞABLONU UYUŞMUYOR — " + " · ".join(hata)
-                         + ".  templates/" + SABLON_DOSYA + " dosyasını kontrol edin.")
+        raise ValueError(
+            "PROJE FORMATI ŞABLONU UYUŞMUYOR — "
+            + " · ".join(hata)
+            + ".  templates/"
+            + SABLON_DOSYA
+            + " dosyasını kontrol edin."
+        )
 
 
 def _kapak_hucresini_bosalt(d):
@@ -538,8 +561,7 @@ def _yerlesim(adet):
     yerler = []
     for i in range(adet):
         r, c = divmod(i, sutun)
-        yerler.append((x0 + c * (A4_G + SUTUN_ARA),
-                       y_ust - (r + 1) * A4_Y - r * SATIR_ARA))
+        yerler.append((x0 + c * (A4_G + SUTUN_ARA), y_ust - (r + 1) * A4_Y - r * SATIR_ARA))
     return yerler, (kullanilan_y > yuk + 0.5)
 
 
@@ -593,8 +615,8 @@ def _gorunumu_ayarla(d, kutu):
 def _dxf_yaz(sayfalar, surum=None) -> bytes:
     """Şablonsuz yedek yol:  sayfaları yan yana bir şerit olarak yazar."""
     d = ezdxf.new(surum or DXF_SURUMU, setup=True)
-    d.header["$INSUNITS"] = 4              # milimetre
-    d.header["$MEASUREMENT"] = 1           # metrik
+    d.header["$INSUNITS"] = 4  # milimetre
+    d.header["$MEASUREMENT"] = 1  # metrik
     _katmanlari_kur(d)
     msp = d.modelspace()
     ox = 0.0
@@ -660,13 +682,12 @@ def _formata_yerlestir(sayfalar):
     uzatma = _uzatma(len(digerleri))
     _cerceveyi_uzat(d, uzatma)
     for sayfa, (ox, oy) in zip(digerleri, yerler):
-        _a4_cercevesi(msp, ox, oy, sayfa["genislik"] * PT_MM,
-                      sayfa["yukseklik"] * PT_MM)
+        _a4_cercevesi(msp, ox, oy, sayfa["genislik"] * PT_MM, sayfa["yukseklik"] * PT_MM)
         _sayfayi_ciz(msp, sayfa, ox, oy)
 
-    _gorunumu_ayarla(d, (BANT[0] - 10,
-                         min([BANT[1]] + [y for _x, y in yerler]) - 10,
-                         BANT[2] + uzatma + 10, BANT[3] + 10))
+    _gorunumu_ayarla(
+        d, (BANT[0] - 10, min([BANT[1]] + [y for _x, y in yerler]) - 10, BANT[2] + uzatma + 10, BANT[3] + 10)
+    )
     return _kaydet(d), tasti
 
 
@@ -725,10 +746,12 @@ def dwg_uret(dxf_baytlari, surum="ACAD2018"):
     """DXF'ten DWG üretir; dönüştürücü yoksa ( None, sebep ) döner."""
     arac = donusturucu()
     if not arac:
-        return None, ("Bu bilgisayarda ODA File Converter kurulu olmadığı için "
-                      "DWG üretilmedi — çizim DXF olarak verildi.  AutoCAD DXF'i "
-                      "birebir açar;  DWG istiyorsanız dosyayı açıp "
-                      "'Farklı Kaydet → AutoCAD Çizimi (*.dwg)' demeniz yeterli.")
+        return None, (
+            "Bu bilgisayarda ODA File Converter kurulu olmadığı için "
+            "DWG üretilmedi — çizim DXF olarak verildi.  AutoCAD DXF'i "
+            "birebir açar;  DWG istiyorsanız dosyayı açıp "
+            "'Farklı Kaydet → AutoCAD Çizimi (*.dwg)' demeniz yeterli."
+        )
     with tempfile.TemporaryDirectory() as klasor:
         girdi = os.path.join(klasor, "girdi")
         cikti = os.path.join(klasor, "cikti")
@@ -737,9 +760,10 @@ def dwg_uret(dxf_baytlari, surum="ACAD2018"):
         with open(os.path.join(girdi, "proje.dxf"), "wb") as f:
             f.write(dxf_baytlari)
         try:
-            subprocess.run([arac, girdi, cikti, surum, "DWG", "0", "1"],
-                           capture_output=True, timeout=300, check=False)
-        except Exception as e:                                   # noqa: BLE001
+            subprocess.run(
+                [arac, girdi, cikti, surum, "DWG", "0", "1"], capture_output=True, timeout=300, check=False
+            )
+        except Exception as e:  # noqa: BLE001
             return None, f"DWG dönüştürücü çalıştırılamadı : {e}"
         dwg = os.path.join(cikti, "proje.dwg")
         if os.path.exists(dwg) and os.path.getsize(dwg) > 1024:
@@ -749,8 +773,7 @@ def dwg_uret(dxf_baytlari, surum="ACAD2018"):
 
 
 def _okubeni(dosya_adi, dwg_var, sebep, sablonlu=False, tasti=False, ekler=()):
-    satir = [f"{dosya_adi}   —   Asansör Proje Programı", "",
-             "PAKETİN İÇİNDEKİLER", ""]
+    satir = [f"{dosya_adi}   —   Asansör Proje Programı", "", "PAKETİN İÇİNDEKİLER", ""]
     if dwg_var:
         satir.append(f"  {dosya_adi}.dwg    AutoCAD çizimi ( doğrudan açılır )")
     satir += [
@@ -763,10 +786,12 @@ def _okubeni(dosya_adi, dwg_var, sebep, sablonlu=False, tasti=False, ekler=()):
         "ÇİZİM NASIL KURULDU",
         "  Paftaların vektör geometrisi okunup CAD varlığına çevrildi:  çizgiler",
         "  LINE, yazılar TEXT oldu.  Ayrıca PDFIMPORT çalıştırmanız gerekmez.",
-        ("  Sayfalar OFİSİN TİP PROJE FORMATININ içine A4 boyutunda dizildi:"
-         "\n  kapak sol üstteki antet hücresinde, hesaplar sağdaki büyük alanda."
-         if sablonlu else
-         "  Şablon bulunamadığı için sayfalar yan yana serbest dizildi."),
+        (
+            "  Sayfalar OFİSİN TİP PROJE FORMATININ içine A4 boyutunda dizildi:"
+            "\n  kapak sol üstteki antet hücresinde, hesaplar sağdaki büyük alanda."
+            if sablonlu
+            else "  Şablon bulunamadığı için sayfalar yan yana serbest dizildi."
+        ),
         "",
         "  Yazı tipi Arial'dir ( her makinede kurulu ).  ✔ ✘ ⚠ işaretleri hiçbir",
         "  CAD yazı tipinde bulunmadığı için çizimde √ × ! olarak yazılır;",
@@ -776,16 +801,22 @@ def _okubeni(dosya_adi, dwg_var, sebep, sablonlu=False, tasti=False, ekler=()):
         "  AutoCAD'de PDFATTACH ile ekleyip PDFIMPORT ile gömebilirsiniz.",
     ]
     if tasti:
-        satir += ["", "DİKKAT",
-                  "  Pafta sayısı formatın çerçevesine sığmadı; alta taşan",
-                  "  sayfalar var.  Çerçeveyi büyütün ya da paftaları azaltın."]
+        satir += [
+            "",
+            "DİKKAT",
+            "  Pafta sayısı formatın çerçevesine sığmadı; alta taşan",
+            "  sayfalar var.  Çerçeveyi büyütün ya da paftaları azaltın.",
+        ]
     if any(a.endswith((".avan", ".uygulama")) for a in ekler):
-        satir += ["", "PROJE DOSYASI",
-                  "  Paketteki .avan / .uygulama dosyası projenin BÜTÜN",
-                  "  girdilerini taşır.  Aylar sonra revizyon gerektiğinde onu",
-                  "  programa yükleyin:  her şey yerine oturur, değişeni",
-                  "  düzeltip çıktıları yeniden alırsınız.  Hiçbir girdiyi",
-                  "  baştan girmeniz gerekmez."]
+        satir += [
+            "",
+            "PROJE DOSYASI",
+            "  Paketteki .avan / .uygulama dosyası projenin BÜTÜN",
+            "  girdilerini taşır.  Aylar sonra revizyon gerektiğinde onu",
+            "  programa yükleyin:  her şey yerine oturur, değişeni",
+            "  düzeltip çıktıları yeniden alırsınız.  Hiçbir girdiyi",
+            "  baştan girmeniz gerekmez.",
+        ]
     if not dwg_var:
         satir += ["", "DWG İSTERSENİZ", "  " + (sebep or "")]
     return "\n".join(satir) + "\n"
@@ -829,11 +860,12 @@ def _proje_paketi(paftalar, dosya_adi="Avan Projesi", ekler=None, son_islem=None
         for _sira, (_ad, _ham) in enumerate(paftalar, 1):
             if _ham:
                 z.writestr(f"pafta pdf/{_sira} - {_ad}.pdf", _ham)
-        for _ad, _ham in (ekler or ()):
+        for _ad, _ham in ekler or ():
             if _ham:
                 z.writestr(_ad, _ham)
-        z.writestr("OKUBENI.txt",
-                   _okubeni(dosya_adi, bool(dwg), sebep, sablonlu, tasti,
-                            [a for a, h in (ekler or ()) if h]))
+        z.writestr(
+            "OKUBENI.txt",
+            _okubeni(dosya_adi, bool(dwg), sebep, sablonlu, tasti, [a for a, h in (ekler or ()) if h]),
+        )
     tampon.seek(0)
     return tampon.read(), sebep, tasti

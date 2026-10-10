@@ -4,6 +4,7 @@ Formun, hesap motorunun, elektrik hesaplarının ve çizimin alanları tek
 şemadan türetilir;  bu testler türetmenin eksiksiz ve tek yönlü olduğunu
 sınar:  bir alan iki kez tanımlanamaz, motorun listesi şemadan ayrışamaz,
 formdan kalkan alan istekte gelse de okunmaz."""
+
 import os
 import sys
 import unittest
@@ -13,31 +14,59 @@ _yol = os.path.join(KOK, "hesap")
 if _yol not in sys.path:
     sys.path.append(_yol)
 
-from api import uygulama as UC_UYG                        # noqa: E402
-from cizim import kopru as CK                             # noqa: E402
-from engine.uygulama import girdi as UG                   # noqa: E402
-from engine.uygulama import mukavemet_girdi as MG         # noqa: E402
-from tasarim import alanlar as TS                         # noqa: E402
-from tasarim import gorunum as TG                         # noqa: E402
-from tasarim import sozluk as TZ                          # noqa: E402
+from api import uygulama as UC_UYG  # noqa: E402
+from cizim import kopru as CK  # noqa: E402
+from engine.uygulama import girdi as UG  # noqa: E402
+from engine.uygulama import mukavemet_girdi as MG  # noqa: E402
+from tasarim import alanlar as TS  # noqa: E402
+from tasarim import gorunum as TG  # noqa: E402
+from tasarim import sozluk as TZ  # noqa: E402
 
 #  Tasarım sırası:  düzen → kuyu → kabin ve kapı → parçalar → elektrik
-GRUP_SIRASI = ("Asansör ve düzen", "Kuyu ve katlar", "Kabin ve kapı", "Raylar ve patenler",
-               "Karşı ağırlık", "Askı ve halatlar", "Makine", "Makine dairesi", "Tamponlar",
-               "Hız regülatörü", "Elektrik ve topraklama")
+GRUP_SIRASI = (
+    "Asansör ve düzen",
+    "Kuyu ve katlar",
+    "Kabin ve kapı",
+    "Raylar ve patenler",
+    "Karşı ağırlık",
+    "Askı ve halatlar",
+    "Makine",
+    "Makine dairesi",
+    "Tamponlar",
+    "Hız regülatörü",
+    "Elektrik ve topraklama",
+)
 #  Formda kutusu olmayanlar:  çizimden gelen ya da çizimin tek çizebildiği
 #  değerler ( kararlar 1 · 7 ) ve hesabın kendi türettikleri.
-FORMDA_YOK = {"saptirma_kasnak_capi", "saptirma_kasnak_min_capi", "kabin_tampon_baba",
-              "kabin_kaciklik", "aski_kaciklik_y", "kabin_ray_sayisi", "agirlik_ray_sayisi",
-              "karsi_agirlik", "kuyu_boyu", "kablo_tipi_2",
-              #  3. adım:  yerleşimin ölçü listesi ( cizim/olculer.py )
-              "kabin_merkezi_x", "esik_x", "kabin_ray_boyu", "agirlik_ray_boyu",
-              "aski_halat_boyu", "reg_halat_boyu", "kasnak_tek_yon", "kasnak_ters_yon",
-              "kasnak_kabin_adedi", "kasnak_agirlik_adedi", "saptirma_agirlik_capi",
-              "makine_yuku_x",
-              #  4. adım:  kirişin açıklığı çizimden ( kaide halatlara ortalı, makineyi sarar );
-              #  karşı ağırlık dolgusuna kalan yükseklik ( karar 11 )
-              "yan_yatak_boyu", "agirlik_dolgu_yuksekligi"}
+FORMDA_YOK = {
+    "saptirma_kasnak_capi",
+    "saptirma_kasnak_min_capi",
+    "kabin_tampon_baba",
+    "kabin_kaciklik",
+    "aski_kaciklik_y",
+    "kabin_ray_sayisi",
+    "agirlik_ray_sayisi",
+    "karsi_agirlik",
+    "kuyu_boyu",
+    "kablo_tipi_2",
+    #  3. adım:  yerleşimin ölçü listesi ( cizim/olculer.py )
+    "kabin_merkezi_x",
+    "esik_x",
+    "kabin_ray_boyu",
+    "agirlik_ray_boyu",
+    "aski_halat_boyu",
+    "reg_halat_boyu",
+    "kasnak_tek_yon",
+    "kasnak_ters_yon",
+    "kasnak_kabin_adedi",
+    "kasnak_agirlik_adedi",
+    "saptirma_agirlik_capi",
+    "makine_yuku_x",
+    #  4. adım:  kirişin açıklığı çizimden ( kaide halatlara ortalı, makineyi sarar );
+    #  karşı ağırlık dolgusuna kalan yükseklik ( karar 11 )
+    "yan_yatak_boyu",
+    "agirlik_dolgu_yuksekligi",
+}
 
 
 def _form():
@@ -83,8 +112,13 @@ class Form(unittest.TestCase):
 
     def test_formdan_kalkan_alan_istekte_olsa_da_okunmaz(self):
         eski = {k: 4 for k in ("kabin_ray_sayisi", "agirlik_ray_sayisi")}
-        eski.update(kabin_kaciklik=40, aski_kaciklik_y=40, saptirma_kasnak_capi=500,
-                    saptirma_kasnak_min_capi=200, kabin_tampon_baba=10)
+        eski.update(
+            kabin_kaciklik=40,
+            aski_kaciklik_y=40,
+            saptirma_kasnak_capi=500,
+            saptirma_kasnak_min_capi=200,
+            kabin_tampon_baba=10,
+        )
         a, _o = UC_UYG._asansor_girdileri({"asansorler": [eski], "proje_geneli": {}, "sabitler": {}})
         self.assertFalse(set(eski) & set(a[0]), a[0])
 
@@ -99,16 +133,18 @@ class Form(unittest.TestCase):
     def test_yerlesime_gore_gizlenenler(self):
         v, _alan = _form()
         g = v["yerlesime_gore_gizli"]
-        self.assertTrue({"mk_uzunluk", "md_duvar", "tabliye_yuksekligi",
-                         "makine_saptirma_capi"} <= set(g["mrl"]))
+        self.assertTrue(
+            {"mk_uzunluk", "md_duvar", "tabliye_yuksekligi", "makine_saptirma_capi"} <= set(g["mrl"])
+        )
         self.assertTrue({"makine_raya_biniyor", "acil_pano_yani"} <= set(g["daireli"]))
         self.assertEqual(set(g["mrl"]), UG.uygulanmayan_alanlar(True))
 
     def test_proje_geneli(self):
         v, _alan = _form()
-        self.assertEqual(set(v["proje_geneli"]),
-                         {"mk_yok", "mk_uzunluk", "mk_genislik", "temel_a", "temel_b"}
-                         | set(CK.PROJE_GENELI))
+        self.assertEqual(
+            set(v["proje_geneli"]),
+            {"mk_yok", "mk_uzunluk", "mk_genislik", "temel_a", "temel_b"} | set(CK.PROJE_GENELI),
+        )
 
     def test_hesap_bolumu_eslemesi_gercek_gruplari_gosterir(self):
         v, _alan = _form()
@@ -121,19 +157,28 @@ class Sozluk(unittest.TestCase):
     def test_her_alan_sozlukte(self):
         s = TZ.satirlar()
         self.assertTrue(set(TS.ALAN) <= {r["anahtar"] for r in s})
-        self.assertEqual([r["grup"] for r in s], sorted((r["grup"] for r in s),
-                                                         key=GRUP_SIRASI.index))
+        self.assertEqual([r["grup"] for r in s], sorted((r["grup"] for r in s), key=GRUP_SIRASI.index))
 
     def test_cozulen_sorunlar_sozlukten_silindi(self):
         #  2. adımda çözülenler:  ray sayısı, yc · ys, D2 · Ds · kaide formdan kalktı
-        for k in ("kabin_ray_sayisi", "agirlik_ray_sayisi", "kabin_kaciklik", "aski_kaciklik_y",
-                  "saptirma_kasnak_capi", "kabin_tampon_baba", "aski_orani",
-                  #  3. adım:  Nps · Npr çizilen kasnaklardan
-                  "kasnak_tek_yon", "kasnak_ters_yon",
-                  #  4. adım:  kirişin açıklığı çizimden;  arkadaki ağırlıkla 2:1
-                  #  çiziliyor ( kabin üstünde çapraz kasnaklar — karar 4 );
-                  #  dolgunun çerçeveye sığması denetleniyor ( karar 11 )
-                  "yan_yatak_boyu", "agirlik_yeri", "agirlik_malzemesi"):
+        for k in (
+            "kabin_ray_sayisi",
+            "agirlik_ray_sayisi",
+            "kabin_kaciklik",
+            "aski_kaciklik_y",
+            "saptirma_kasnak_capi",
+            "kabin_tampon_baba",
+            "aski_orani",
+            #  3. adım:  Nps · Npr çizilen kasnaklardan
+            "kasnak_tek_yon",
+            "kasnak_ters_yon",
+            #  4. adım:  kirişin açıklığı çizimden;  arkadaki ağırlıkla 2:1
+            #  çiziliyor ( kabin üstünde çapraz kasnaklar — karar 4 );
+            #  dolgunun çerçeveye sığması denetleniyor ( karar 11 )
+            "yan_yatak_boyu",
+            "agirlik_yeri",
+            "agirlik_malzemesi",
+        ):
             self.assertNotIn(k, TZ.SORUNLAR)
         #  3. adım:  hesabın geometri tahminleri çizimden geliyor;  yalnız
         #  çizimde olmayan revizyon kutusu kaldı ( karar 10:  çizilmez ).

@@ -14,6 +14,7 @@ NİÇİN AYRI DOSYA:
     olandı ( dişli makinede gerçek ihtiyacın yarısı ).  Tek kaynağa
     alınmasının sebebi budur:  buradan okuyan iki taraf bir daha ayrışamaz.
 """
+
 from engine.ortak.steps import yuvarla
 
 
@@ -22,7 +23,7 @@ from engine.ortak.steps import yuvarla
 #  durur — değiştirilirse eski projeler tabloda bulunamaz.
 MAKINE_VERIMLERI = {
     "Dişlisiz": 0.85,
-    "Dişli":    0.50,
+    "Dişli": 0.50,
 }
 
 #  ---------------------------------------------------------------------
@@ -88,8 +89,17 @@ VARSAYILAN_VERIM = 0.92
 #  uygulama projesi de boş kabin ağırlığını buradan doldurur.  İki yerde iki
 #  ayrı kopya tutulsaydı biri güncellenip öteki unutulur, aynı asansör iki
 #  projede iki farklı kabin kütlesiyle hesaplanırdı.
-GK_TABLOSU = ((450, 500), (630, 650), (800, 800), (1000, 950), (1125, 1020),
-              (1275, 1100), (1600, 1350), (2000, 1600), (2500, 1900))
+GK_TABLOSU = (
+    (450, 500),
+    (630, 650),
+    (800, 800),
+    (1000, 950),
+    (1125, 1020),
+    (1275, 1100),
+    (1600, 1350),
+    (2000, 1600),
+    (2500, 1900),
+)
 
 GK_KAYNAGI = "KABUL  ·  ortalama boş kabin kütlesi  ( standart sayısı değildir )"
 

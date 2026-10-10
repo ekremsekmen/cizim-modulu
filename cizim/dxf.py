@@ -8,6 +8,7 @@ SVG ile AYNI eleman listesini okur.  Birim milimetredir;  AutoCAD dosyayı
 KATMAN DÜZENİ:  her eleman türü kendi katmanına girer ki CAD'de katman
 katman kapatılabilsin.  Renkler ACI numarasıdır.
 """
+
 import io
 
 import ezdxf
@@ -19,17 +20,38 @@ from ezdxf.enums import TextEntityAlignment
 #  katmanın rengini alır ( dimclrt BYBLOCK ) — katmanın rengini değiştirmek
 #  hepsini değiştirir.  Önizleme ( beyaz zemin ) ölçüleri mavi çizer.
 KATMAN = {
-    "KUYU-DUVAR": (7, 50), "TARAMA": (8, 13), "BINA": (33, 13),
-    "KUYU-IC": (7, 25), "KABIN": (7, 30), "KABIN-IC": (6, 20),
-    "SASE": (6, 30), "KAPI": (30, 30), "AGIRLIK": (30, 30),
-    "RAY": (3, 25), "KONSOL": (3, 18), "PATEN": (200, 20),
-    "KASNAK": (90, 20), "PANO": (150, 20),
-    "CIVATA": (3, 13), "CERCEVE": (7, 40),
-    "OLCU": (4, 13), "EKSEN": (1, 13), "YAZI": (7, 13),
-    "KORKULUK": (6, 50), "SIGINMA": (3, 25),
-    "TAMPON": (200, 25), "PERDE": (6, 50), "MERDIVEN": (32, 25), "GIZLI": (8, 13), "YUK": (1, 18),
-    "MAKINE": (5, 30), "BAGLANTI": (8, 25), "DELIK": (5, 30),
-    "HALAT": (6, 18), "KESIT": (7, 50), "SEVIYE": (2, 13),
+    "KUYU-DUVAR": (7, 50),
+    "TARAMA": (8, 13),
+    "BINA": (33, 13),
+    "KUYU-IC": (7, 25),
+    "KABIN": (7, 30),
+    "KABIN-IC": (6, 20),
+    "SASE": (6, 30),
+    "KAPI": (30, 30),
+    "AGIRLIK": (30, 30),
+    "RAY": (3, 25),
+    "KONSOL": (3, 18),
+    "PATEN": (200, 20),
+    "KASNAK": (90, 20),
+    "PANO": (150, 20),
+    "CIVATA": (3, 13),
+    "CERCEVE": (7, 40),
+    "OLCU": (4, 13),
+    "EKSEN": (1, 13),
+    "YAZI": (7, 13),
+    "KORKULUK": (6, 50),
+    "SIGINMA": (3, 25),
+    "TAMPON": (200, 25),
+    "PERDE": (6, 50),
+    "MERDIVEN": (32, 25),
+    "GIZLI": (8, 13),
+    "YUK": (1, 18),
+    "MAKINE": (5, 30),
+    "BAGLANTI": (8, 25),
+    "DELIK": (5, 30),
+    "HALAT": (6, 18),
+    "KESIT": (7, 50),
+    "SEVIYE": (2, 13),
     #  menteşeli kapının açılma yayı ve açık konumu ( ISO 128:  ince sürekli çizgi )
     "ACILIS": (30, 18),
 }
@@ -54,8 +76,11 @@ def _katmanlari_kur(d):
 
 def _dikdortgen(msp, el, lt=None):
     x, y, g, h = el["x"], el["y"], el["g"], el["d"]
-    msp.add_lwpolyline([(x, y), (x + g, y), (x + g, y + h), (x, y + h)],
-                       close=True, dxfattribs={"layer": el["katman"], **(lt or {})})
+    msp.add_lwpolyline(
+        [(x, y), (x + g, y), (x + g, y + h), (x, y + h)],
+        close=True,
+        dxfattribs={"layer": el["katman"], **(lt or {})},
+    )
 
 
 def _bicim(hedef, el, lt=None):
@@ -65,8 +90,9 @@ def _bicim(hedef, el, lt=None):
     for p in el["bicim"]:
         nok = [(float(x), float(y)) for x, y in p["noktalar"]]
         ek = {"lineweight": 18} if p.get("ince") else {}
-        hedef.add_lwpolyline(nok, close=p.get("kapali", True),
-                             dxfattribs={"layer": el["katman"], **(lt or {}), **ek})
+        hedef.add_lwpolyline(
+            nok, close=p.get("kapali", True), dxfattribs={"layer": el["katman"], **(lt or {}), **ek}
+        )
         if p.get("dolu"):
             dolgu = hedef.add_hatch(color=256, dxfattribs={"layer": el["katman"]})
             dolgu.paths.add_polyline_path(nok, is_closed=True)
@@ -89,22 +115,36 @@ def _olcu(msp, el, k=1.0):
         aci = 90
     yz = el["yazi"]
     #  Yazı geometrinin bulduğu yerde durur  ( SVG ile aynı merkez ).
-    olcu = msp.add_linear_dim(base=taban, p1=p1, p2=p2, angle=aci,
-                              location=(yz["x"], yz["y"]), text_rotation=yz["aci"],
-                              text=el["metin"],
-                              dxfattribs={"layer": "OLCU"},
-                              #  dimse1 / dimse2:  uzatma çizgileri çizilmez —
-                              #  SVG ile aynı görünüm ( kullanıcı kararı ).
-                              #  dimtxsty:  ölçü yazısı çizimin Arial'iyle.  Verilmezse
-                              #  ezdxf'in ölçü biçiminin fontu ( OpenSans Condensed
-                              #  Light ) kalıyordu:  AutoCAD bulamayıp ince simplex.shx'e
-                              #  düşürüyor, sayılar okunmuyordu ( kullanıcı 5 Eki ).
-                              #  dimtfill:  yazının arkası çizimin zemin rengiyle örtülür
-                              #  ( MASKE ).
-                              override={"dimtxsty": YAZI_TIPI,
-                                        "dimtxt": yz["h"] * BUYUK_HARF, "dimasz": 35 * k, "dimexe": 30 * k,
-                                        "dimexo": 25 * k, "dimgap": 15 * k, "dimclrt": 0,
-                                        "dimse1": 1, "dimse2": 1, "dimtfill": 1})
+    olcu = msp.add_linear_dim(
+        base=taban,
+        p1=p1,
+        p2=p2,
+        angle=aci,
+        location=(yz["x"], yz["y"]),
+        text_rotation=yz["aci"],
+        text=el["metin"],
+        dxfattribs={"layer": "OLCU"},
+        #  dimse1 / dimse2:  uzatma çizgileri çizilmez —
+        #  SVG ile aynı görünüm ( kullanıcı kararı ).
+        #  dimtxsty:  ölçü yazısı çizimin Arial'iyle.  Verilmezse
+        #  ezdxf'in ölçü biçiminin fontu ( OpenSans Condensed
+        #  Light ) kalıyordu:  AutoCAD bulamayıp ince simplex.shx'e
+        #  düşürüyor, sayılar okunmuyordu ( kullanıcı 5 Eki ).
+        #  dimtfill:  yazının arkası çizimin zemin rengiyle örtülür
+        #  ( MASKE ).
+        override={
+            "dimtxsty": YAZI_TIPI,
+            "dimtxt": yz["h"] * BUYUK_HARF,
+            "dimasz": 35 * k,
+            "dimexe": 30 * k,
+            "dimexo": 25 * k,
+            "dimgap": 15 * k,
+            "dimclrt": 0,
+            "dimse1": 1,
+            "dimse2": 1,
+            "dimtfill": 1,
+        },
+    )
     olcu.render()
 
 
@@ -116,7 +156,7 @@ def _olcu(msp, el, k=1.0):
 #  "Background Mask · Use drawing background color" ), ölçü yazısı dimtfill.
 #  Örtünün yazıdan taşma çarpanı ( AutoCAD:  Border offset factor ):
 MASKE_PAYI = 1.25
-_MTEXT_HIZA = {"sol": 4, "sag": 6}           # MIDDLE_LEFT · MIDDLE_RIGHT;  yoksa 5 ( orta )
+_MTEXT_HIZA = {"sol": 4, "sag": 6}  # MIDDLE_LEFT · MIDDLE_RIGHT;  yoksa 5 ( orta )
 
 
 def _mtext_kacis(metin):
@@ -125,11 +165,17 @@ def _mtext_kacis(metin):
 
 
 def _etiket(hedef, el):
-    m = hedef.add_mtext(_mtext_kacis(el["metin"]),
-                        dxfattribs={"layer": el["katman"], "style": YAZI_TIPI,
-                                    "char_height": el["yukseklik"] * BUYUK_HARF,
-                                    "insert": (el["x"], el["y"]), "rotation": el.get("aci", 0),
-                                    "attachment_point": _MTEXT_HIZA.get(el.get("hiza"), 5)})
+    m = hedef.add_mtext(
+        _mtext_kacis(el["metin"]),
+        dxfattribs={
+            "layer": el["katman"],
+            "style": YAZI_TIPI,
+            "char_height": el["yukseklik"] * BUYUK_HARF,
+            "insert": (el["x"], el["y"]),
+            "rotation": el.get("aci", 0),
+            "attachment_point": _MTEXT_HIZA.get(el.get("hiza"), 5),
+        },
+    )
     m.set_bg_color("canvas", scale=MASKE_PAYI)
 
 
@@ -164,7 +210,7 @@ def ciz(hedef, elemanlar, olcek=20, blokta=False):
 
     blokta:  hedef paftaya 1/ölçek ile eklenen bir blok ( çizgi deseni
     küçülmez — CIZGI_TIPI_OLCEGI )."""
-    k = olcek / 20.0                   # ok, tarama ve boşluklar 1/20'ye göre
+    k = olcek / 20.0  # ok, tarama ve boşluklar 1/20'ye göre
     lt = {"ltscale": CIZGI_TIPI_OLCEGI * (1 if blokta else olcek)}
     #  Önce parçalar, sonra ölçüler, en son etiketler:  maske yalnız kendinden
     #  ÖNCE çizileni örter ( AutoCAD'in çizim sırası ).
@@ -180,25 +226,35 @@ def ciz(hedef, elemanlar, olcek=20, blokta=False):
                 tarama = hedef.add_hatch(color=KATMAN[kat][0], dxfattribs={"layer": kat})
                 tarama.set_pattern_fill("ANSI31" if tur == "tarama" else "ANSI32", scale=20 * k)
                 tarama.paths.add_polyline_path(
-                    [(el["x"], el["y"]), (el["x"] + el["g"], el["y"]),
-                     (el["x"] + el["g"], el["y"] + el["d"]), (el["x"], el["y"] + el["d"])],
-                    is_closed=True)
+                    [
+                        (el["x"], el["y"]),
+                        (el["x"] + el["g"], el["y"]),
+                        (el["x"] + el["g"], el["y"] + el["d"]),
+                        (el["x"], el["y"] + el["d"]),
+                    ],
+                    is_closed=True,
+                )
         elif tur in ("cizgi", "eksen"):
-            hedef.add_line((el["x1"], el["y1"]), (el["x2"], el["y2"]),
-                           dxfattribs={"layer": kat, **lt,
-                                       "linetype": "CENTER" if tur == "eksen" else "BYLAYER"})
+            hedef.add_line(
+                (el["x1"], el["y1"]),
+                (el["x2"], el["y2"]),
+                dxfattribs={"layer": kat, **lt, "linetype": "CENTER" if tur == "eksen" else "BYLAYER"},
+            )
         elif tur == "daire":
             hedef.add_circle((el["x"], el["y"]), el["r"], dxfattribs={"layer": kat, **lt})
         elif tur == "ok":
-            hedef.add_line((el["x1"], el["y1"]), (el["x2"], el["y2"]),
-                           dxfattribs={"layer": kat})
+            hedef.add_line((el["x1"], el["y1"]), (el["x2"], el["y2"]), dxfattribs={"layer": kat})
             dx, dy = el["x2"] - el["x1"], el["y2"] - el["y1"]
             boy = max((dx * dx + dy * dy) ** 0.5, 1e-6)
             ux, uy, u = dx / boy, dy / boy, 55 * k
-            hedef.add_solid([(el["x2"], el["y2"]),
-                             (el["x2"] - ux * u - uy * u * 0.4, el["y2"] - uy * u + ux * u * 0.4),
-                             (el["x2"] - ux * u + uy * u * 0.4, el["y2"] - uy * u - ux * u * 0.4)],
-                            dxfattribs={"layer": kat})
+            hedef.add_solid(
+                [
+                    (el["x2"], el["y2"]),
+                    (el["x2"] - ux * u - uy * u * 0.4, el["y2"] - uy * u + ux * u * 0.4),
+                    (el["x2"] - ux * u + uy * u * 0.4, el["y2"] - uy * u - ux * u * 0.4),
+                ],
+                dxfattribs={"layer": kat},
+            )
         elif tur == "olcu":
             _olcu(hedef, el, k)
         elif tur == "yazi":
@@ -208,16 +264,18 @@ def ciz(hedef, elemanlar, olcek=20, blokta=False):
 def belge(elemanlar, baslik="", olcek=20):
     """Eleman listesinden ezdxf belgesi kurar."""
     d = ezdxf.new("R2018", setup=True)
-    d.header["$INSUNITS"] = 4                    # milimetre
+    d.header["$INSUNITS"] = 4  # milimetre
     hazirla(d)
     msp = d.modelspace()
     ciz(msp, elemanlar, olcek)
     if baslik:
         x1 = min(el.get("x", el.get("x1", 0)) for el in elemanlar if el["tip"] != "olcu")
         y1 = min(el.get("y", el.get("y1", 0)) for el in elemanlar if el["tip"] != "olcu")
-        msp.add_text(f"{baslik}   1/{olcek:g}", height=90 * BUYUK_HARF,
-                     dxfattribs={"layer": "YAZI", "style": YAZI_TIPI}
-                     ).set_placement((x1, y1 - 400), align=TextEntityAlignment.LEFT)
+        msp.add_text(
+            f"{baslik}   1/{olcek:g}",
+            height=90 * BUYUK_HARF,
+            dxfattribs={"layer": "YAZI", "style": YAZI_TIPI},
+        ).set_placement((x1, y1 - 400), align=TextEntityAlignment.LEFT)
     return d
 
 

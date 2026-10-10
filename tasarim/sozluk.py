@@ -18,35 +18,59 @@ dosya yalnız şemanın bilmediği iki şeyi tutar:
 
 Durumlar:  "iki" iki kaynak · "yok" çizimde yok · "incele" bakılacak.
 """
+
 from tasarim.alanlar import ALANLAR, ALAN, GRUPLAR, CIZIM
 
 IKI, YOK, INCELE, TEK = "iki", "yok", "incele", "tek"
 
 #  anahtar → ( durum , not , karar no )
 SORUNLAR = {
-    "makine_raya_biniyor": (YOK, "Varsayılan \"Kılavuz raylara\".  Arkadaki ağırlıkta makine "
-                                 "duvardan duvara kirişe oturur ( \"Bina yapısına\" );  yandaki "
-                                 "ağırlıkta duvardan duvara kiriş henüz çizilmiyor — çizim durur, "
-                                 "bölüm 2 HESAP EKSİK.", 3),
-    "paten_tipi": (YOK, "Çizim yalnız kaymalı patenin ölçüsünü biliyor ( 140 mm ):  makaralı "
-                        "seçilince çizim durur, bölüm 11 HESAP EKSİK ( ölçüleri gelene kadar ).", 2),
-    "agirlik_paten_tipi": (INCELE, "Karşı ağırlıkta makaralı ve kaymalı patende çizim aynı izi ve "
-                                   "yüksekliği ( 140 mm ) kullanır — referans projenin ağırlık "
-                                   "patenleri makaralı.", 2),
-    "paten_balata_boyu": (INCELE, "Hesaptaki balata ile çizimdeki paten boyu ( 100 mm ) aynı parça mı.",
-                          None),
+    "makine_raya_biniyor": (
+        YOK,
+        'Varsayılan "Kılavuz raylara".  Arkadaki ağırlıkta makine '
+        'duvardan duvara kirişe oturur ( "Bina yapısına" );  yandaki '
+        "ağırlıkta duvardan duvara kiriş henüz çizilmiyor — çizim durur, "
+        "bölüm 2 HESAP EKSİK.",
+        3,
+    ),
+    "paten_tipi": (
+        YOK,
+        "Çizim yalnız kaymalı patenin ölçüsünü biliyor ( 140 mm ):  makaralı "
+        "seçilince çizim durur, bölüm 11 HESAP EKSİK ( ölçüleri gelene kadar ).",
+        2,
+    ),
+    "agirlik_paten_tipi": (
+        INCELE,
+        "Karşı ağırlıkta makaralı ve kaymalı patende çizim aynı izi ve "
+        "yüksekliği ( 140 mm ) kullanır — referans projenin ağırlık "
+        "patenleri makaralı.",
+        2,
+    ),
+    "paten_balata_boyu": (
+        INCELE,
+        "Hesaptaki balata ile çizimdeki paten boyu ( 100 mm ) aynı parça mı.",
+        None,
+    ),
     "kanal_sekli": (YOK, "Çift sarımda çizim duruyor.", 6),
-    "uzun_pervaz": (YOK, "Kabin girişi girintisi çizilmiyor; yalnız 100 mm'yi aşarsa kabin "
-                         "alanına girer.", 8),
+    "uzun_pervaz": (
+        YOK,
+        "Kabin girişi girintisi çizilmiyor; yalnız 100 mm'yi aşarsa kabin alanına girer.",
+        8,
+    ),
     "denge_zinciri": (YOK, "Hesapta var, çizimde yok.", 9),
 }
 
 #  ( ad , hesaptaki yeri , grup , not , durum , karar no )
 ICSEL = (
-    ("Revizyon kutusu", "ofis:  revizyon_payi = 500",
-     "Kabin ve kapı", "Kutu çizilmez ( karar 10:  LiftDesigner da çizmiyor, ölçüsü yok ):  bölüm 11'in "
-                      "satırı kabinin bütün izdüşümünde, kabin tavanından 500 ( Sabitler ) kabulüyle.",
-     YOK, 10),
+    (
+        "Revizyon kutusu",
+        "ofis:  revizyon_payi = 500",
+        "Kabin ve kapı",
+        "Kutu çizilmez ( karar 10:  LiftDesigner da çizmiyor, ölçüsü yok ):  bölüm 11'in "
+        "satırı kabinin bütün izdüşümünde, kabin tavanından 500 ( Sabitler ) kabulüyle.",
+        YOK,
+        10,
+    ),
 )
 
 
@@ -62,14 +86,38 @@ def satirlar():
             durum, notu, karar = SORUNLAR.get(a.anahtar, (TEK, "", None))
             if not a.formda and a.kaynak == CIZIM and durum == TEK:
                 notu = "Formda kutusu yok:  değer çizimden gelir."
-            out.append({"grup": g, "ad": a.etiket, "anahtar": a.anahtar, "kaynak": a.kaynak,
-                        "formda": a.formda, "gelismis": a.gelismis, "sozlesme": a.sozlesme,
-                        "yerlesim": a.yerlesim, "durum": durum, "not": notu, "karar": karar})
+            out.append(
+                {
+                    "grup": g,
+                    "ad": a.etiket,
+                    "anahtar": a.anahtar,
+                    "kaynak": a.kaynak,
+                    "formda": a.formda,
+                    "gelismis": a.gelismis,
+                    "sozlesme": a.sozlesme,
+                    "yerlesim": a.yerlesim,
+                    "durum": durum,
+                    "not": notu,
+                    "karar": karar,
+                }
+            )
         for ad, yeri, grup, notu, durum, karar in ICSEL:
             if grup == g:
-                out.append({"grup": g, "ad": ad, "anahtar": yeri, "kaynak": CIZIM, "formda": False,
-                            "gelismis": False, "sozlesme": "mukavemet", "yerlesim": None,
-                            "durum": durum, "not": notu, "karar": karar})
+                out.append(
+                    {
+                        "grup": g,
+                        "ad": ad,
+                        "anahtar": yeri,
+                        "kaynak": CIZIM,
+                        "formda": False,
+                        "gelismis": False,
+                        "sozlesme": "mukavemet",
+                        "yerlesim": None,
+                        "durum": durum,
+                        "not": notu,
+                        "karar": karar,
+                    }
+                )
     return out
 
 

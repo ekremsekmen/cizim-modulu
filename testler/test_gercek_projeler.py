@@ -13,6 +13,7 @@ program projeden farklı hükmediyorsa sebebi yazılır ):
 Hesabın öbür bölümleri karşılaştırılmaz:  halat çapı ve adedi, motor gücü,
 sarılma açısı LiftDesigner'ın veri bloğunda yok, varsayılanla hesaplanır.
 """
+
 import json
 import os
 import sys
@@ -23,18 +24,18 @@ for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "testler")):
     if _yol not in sys.path:
         sys.path.append(_yol)
 
-from api import cizim as UC                                # noqa: E402
-from api import uygulama as UYG                            # noqa: E402
-from cizim import geometri as CGE                          # noqa: E402
-from cizim import girdi as CG                              # noqa: E402
-from cizim import kopru as CK                              # noqa: E402
-from cizim import kuyu_dibi as CKD                         # noqa: E402
-from cizim import makine_dairesi as CMD                    # noqa: E402
-from cizim import sabitler as CS                           # noqa: E402
-from engine.uygulama import girdi as E_UGR                 # noqa: E402
-from engine.uygulama import hesap as E_UYG                 # noqa: E402
+from api import cizim as UC  # noqa: E402
+from api import uygulama as UYG  # noqa: E402
+from cizim import geometri as CGE  # noqa: E402
+from cizim import girdi as CG  # noqa: E402
+from cizim import kopru as CK  # noqa: E402
+from cizim import kuyu_dibi as CKD  # noqa: E402
+from cizim import makine_dairesi as CMD  # noqa: E402
+from cizim import sabitler as CS  # noqa: E402
+from engine.uygulama import girdi as E_UGR  # noqa: E402
+from engine.uygulama import hesap as E_UYG  # noqa: E402
 
-import gercek_projeler as GP                               # noqa: E402
+import gercek_projeler as GP  # noqa: E402
 
 CIZILENLER = ("4815-6", "1022", "1275", "800 KG")
 
@@ -54,7 +55,6 @@ def _calistir(ad):
 
 
 class GercekProjeler(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.S = {ad: _calistir(ad) for ad in GP.PROJELER}
@@ -87,8 +87,9 @@ class GercekProjeler(unittest.TestCase):
         for son_kat in (4260, 4270, 6000):
             a = dict(GP.PROJELER["12495-18"], son_kat_yuksekligi=son_kat)
             pg = {k: a.pop(k) for k in list(a) if k in UYG.PROJE_GENELI_ALANLAR}
-            d = json.loads(UC.api_cizimler({"asansorler": [a], "proje_geneli": pg,
-                                            "sabitler": {}, "asansor": 0}).body)
+            d = json.loads(
+                UC.api_cizimler({"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}).body
+            )
             with self.subTest(son_kat=son_kat):
                 self.assertEqual(d.get("hata"), cizim["hata"])
 
@@ -100,29 +101,45 @@ class GercekProjeler(unittest.TestCase):
         açıklığı 50'den −50'ye düştü, rayın ucu da yetmiyor )."""
         cizim, _g, b11 = self.S["1250 KG"]
         self.assertFalse(cizim["aktif"])
-        self.assertEqual(cizim["hata"], [
-            "Karşı ağırlık en üst konumunda tavana çarpıyor:  karşı ağırlığın üst pateni tepesi "
-            "2775 mm, üstündeki en alt tavan kısmı ( makine şasesi ) 2665 mm ( son kattan )  "
-            "( ayrıca karşı ağırlık çerçevesi, karşı ağırlık kasnağı ).",
-            "Sığınma yüksekliği:  915 mm < 1000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 ).",
-            "Üst paten – kuyu tavanı:  -50 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 b ).",
-            "Üst paten – rayın üst ucu:  35 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 ).",
-            "Korkuluk – kuyu tavanı:  -370 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 c ).",
-            "Karşı ağırlık üst pateni – rayın üst ucu:  -25 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 )."])
-        self.assertTrue(b11.startswith("UYGUN DEĞİLDİR — Sığınma alanı / üstündeki en alt kısım "
-                                       "( kuyu tavanı )  ( 915 < 1.000 mm )"))
-        for parca in ("( -50 < 100 mm )", "( -370 < 100 mm )", "( 35 < 100 mm )", "( -25 < 100 mm )",
-                      "tavana çarpıyor"):
+        self.assertEqual(
+            cizim["hata"],
+            [
+                "Karşı ağırlık en üst konumunda tavana çarpıyor:  karşı ağırlığın üst pateni tepesi "
+                "2775 mm, üstündeki en alt tavan kısmı ( makine şasesi ) 2665 mm ( son kattan )  "
+                "( ayrıca karşı ağırlık çerçevesi, karşı ağırlık kasnağı ).",
+                "Sığınma yüksekliği:  915 mm < 1000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 ).",
+                "Üst paten – kuyu tavanı:  -50 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 b ).",
+                "Üst paten – rayın üst ucu:  35 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 ).",
+                "Korkuluk – kuyu tavanı:  -370 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 c ).",
+                "Karşı ağırlık üst pateni – rayın üst ucu:  -25 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 ).",
+            ],
+        )
+        self.assertTrue(
+            b11.startswith(
+                "UYGUN DEĞİLDİR — Sığınma alanı / üstündeki en alt kısım ( kuyu tavanı )  ( 915 < 1.000 mm )"
+            )
+        )
+        for parca in (
+            "( -50 < 100 mm )",
+            "( -370 < 100 mm )",
+            "( 35 < 100 mm )",
+            "( -25 < 100 mm )",
+            "tavana çarpıyor",
+        ):
             self.assertIn(parca, b11)
 
     def test_halat_inisleri_projeyle(self):
         """Programın geometrisinden çıkan halat inişleri, projenin kuyu planında
         okunan ( gercek_projeler.py ) ile:  2:1'de kabin kasnağının dış teğeti ya
         da tahrik kasnağının kabin inişi;  makine daireli 1:1'de döşeme delikleri."""
+
         def inisler(ad):
             g = self.S[ad][1]
-            return [tuple(round(c) for c in p)
-                    for p in CGE.halat_konumlari(g, CS.sabitler(g.get("_cizim_sabitleri")))]
+            return [
+                tuple(round(c) for c in p)
+                for p in CGE.halat_konumlari(g, CS.sabitler(g.get("_cizim_sabitleri")))
+            ]
+
         #  4815-6:  kabin halatı sol duvardan 415
         self.assertEqual(inisler("4815-6")[0][0], 415)
         #  12495-18 ve 1275:  tahrik kasnağının kabin inişi y 1.356 · 2.230
@@ -133,8 +150,9 @@ class GercekProjeler(unittest.TestCase):
         #  kabinin iç önü onda 280, bizde 270, kabin halatı ray ekseninde
         for ad, kabin in (("1022", 880), ("800 KG", 840)):
             g = self.S[ad][1]
-            d = {t: ((k[1] + k[3]) / 2.0) for t, k in CMD.yerlesim(g)["delikler"]
-                 if t in ("KABİN", "AĞIRLIK")}
+            d = {
+                t: ((k[1] + k[3]) / 2.0) for t, k in CMD.yerlesim(g)["delikler"] if t in ("KABİN", "AĞIRLIK")
+            }
             with self.subTest(ad):
                 self.assertEqual(d["AĞIRLIK"], 1820)
                 self.assertEqual(d["KABİN"], kabin)
@@ -155,8 +173,9 @@ class GercekProjeler(unittest.TestCase):
         self.assertEqual(Y["hata"], [])
         k = Y["gergi_donanim"]["agirlik"]
         self.assertEqual(k[2] - k[0], 82)
-        self.assertGreaterEqual(min(k[0], k[1], g["kuyu"]["genislik"] - k[2],
-                                    g["kuyu"]["derinlik"] - k[3]), CG.ASGARI_ACIKLIK)
+        self.assertGreaterEqual(
+            min(k[0], k[1], g["kuyu"]["genislik"] - k[2], g["kuyu"]["derinlik"] - k[3]), CG.ASGARI_ACIKLIK
+        )
 
 
 if __name__ == "__main__":

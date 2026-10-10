@@ -5,6 +5,7 @@ Yazının görünen kutusu kabaca ölçülür ( büyük harf 0,72 em, harf baş�
 0,58 em ):  çizimin kendi yazı yerleştiricisinden ( geometri ) bağımsız bir
 ikinci göz.
 """
+
 import math
 
 from cizim import geometri as CGE
@@ -13,18 +14,21 @@ from cizim import geometri as CGE
 def yazi_kutusu(el):
     """( metin, x0, y0, x1, y1 ) — görünen kutu:  büyük harf 0,72 em, en 0,58 em/harf."""
     if el["tip"] == "yazi":
-        h = el["yukseklik"]; w = len(el["metin"]) * h * 0.58
+        h = el["yukseklik"]
+        w = len(el["metin"]) * h * 0.58
         a, b = {"sol": (0.0, w), "sag": (-w, 0.0)}.get(el.get("hiza"), (-w / 2.0, w / 2.0))
         c = 0.36 * h
         if abs(abs(el.get("aci", 0)) - 90) < 1e-6:
             ys = (el["y"] + a, el["y"] + b) if el["aci"] > 0 else (el["y"] - b, el["y"] - a)
             return (el["metin"], el["x"] - c, ys[0], el["x"] + c, ys[1])
         return (el["metin"], el["x"] + a, el["y"] - c, el["x"] + b, el["y"] + c)
-    y = el["yazi"]; h = y.get("h", CGE.OLCU_YAZI)
+    y = el["yazi"]
+    h = y.get("h", CGE.OLCU_YAZI)
     w, c = len(el["metin"]) * h * 0.58 / 2.0, 0.36 * h
     if y.get("aci"):
         w, c = c, w
     return (el["metin"], y["x"] - w, y["y"] - c, y["x"] + w, y["y"] + c)
+
 
 def parcalar(e, k=1.0):
     """( katman, ad, x1, y1, x2, y2, kaynak_id )"""
@@ -36,13 +40,32 @@ def parcalar(e, k=1.0):
             for s in ((x, y, x + g, y), (x + g, y, x + g, y + d), (x + g, y + d, x, y + d), (x, y + d, x, y)):
                 out.append((kat, el.get("ad", ""), *s, i))
         elif t in ("cizgi", "eksen", "ok"):
-            out.append((kat if t != "eksen" else "EKSEN", el.get("ad", ""), el["x1"], el["y1"], el["x2"], el["y2"], i))
+            out.append(
+                (
+                    kat if t != "eksen" else "EKSEN",
+                    el.get("ad", ""),
+                    el["x1"],
+                    el["y1"],
+                    el["x2"],
+                    el["y2"],
+                    i,
+                )
+            )
         elif t == "daire":
             n = 24
             for j in range(n):
                 a1, a2 = 2 * math.pi * j / n, 2 * math.pi * (j + 1) / n
-                out.append((kat, el.get("ad", ""), el["x"] + el["r"] * math.cos(a1), el["y"] + el["r"] * math.sin(a1),
-                            el["x"] + el["r"] * math.cos(a2), el["y"] + el["r"] * math.sin(a2), i))
+                out.append(
+                    (
+                        kat,
+                        el.get("ad", ""),
+                        el["x"] + el["r"] * math.cos(a1),
+                        el["y"] + el["r"] * math.sin(a1),
+                        el["x"] + el["r"] * math.cos(a2),
+                        el["y"] + el["r"] * math.sin(a2),
+                        i,
+                    )
+                )
         elif t == "olcu":
             a, b, kot = el["a"], el["b"], el["kot"]
             s = 17.5 * k
@@ -51,9 +74,10 @@ def parcalar(e, k=1.0):
             else:
                 p, q = (kot, a[1]), (kot, b[1])
             out.append(("OLCU", "çizgi", *p, *q, i))
-            for (x, y) in (p, q):
+            for x, y in (p, q):
                 out.append(("OLCU", "tik", x - s, y - s, x + s, y + s, i))
     return out
+
 
 def _kesisir(s, kutu, pay):
     """Doğru parçası kutunun ( pay kadar küçültülmüş ) içinden geçiyor mu ( Liang–Barsky )."""
@@ -76,6 +100,7 @@ def _kesisir(s, kutu, pay):
             if t0 > t1:
                 return False
     return True
+
 
 def kesismeler(e, k=1.0):
     seg = parcalar(e, k)

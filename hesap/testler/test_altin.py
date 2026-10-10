@@ -15,6 +15,7 @@ assert etmediği şeylerdir.  Bu test onların hepsini kilitler.
 Bunu çalıştırmadan ÖNCE bu testin gösterdiği farkı gözle onaylayın;
 yeniden üretmek "bu davranış değişikliğini kabul ediyorum" demektir.
 """
+
 import gzip
 import json
 import os
@@ -22,13 +23,18 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.avan import hesap as AV                               # noqa: E402
-from engine.avan import trafik as TR                            # noqa: E402
-from testler.altin_uret import (DOSYA, DOSYA_AVAN,          # noqa: E402
-                                DOSYA_UYGULAMA, avan_senaryolar,
-                                senaryolar, uygulama_motoru,
-                                uygulama_senaryolar)
-from testler.ortak import Rapor                             # noqa: E402
+from engine.avan import hesap as AV  # noqa: E402
+from engine.avan import trafik as TR  # noqa: E402
+from testler.altin_uret import (
+    DOSYA,
+    DOSYA_AVAN,  # noqa: E402
+    DOSYA_UYGULAMA,
+    avan_senaryolar,
+    senaryolar,
+    uygulama_motoru,
+    uygulama_senaryolar,
+)
+from testler.ortak import Rapor  # noqa: E402
 
 
 def _duz(x, on=""):
@@ -50,8 +56,7 @@ def calistir():
     #  UYGULAMA PROJESİ.  Senaryolar ÇOKLU yoldan geçer;  hesapla_coklu tek
     #  asansörde hesapla()'nın tam çıktısını taşıdığı için bu dosya hem tek
     #  hem çok asansörlü yolu birden dondurur.
-    _karsilastir(r, DOSYA_UYGULAMA, uygulama_senaryolar, uygulama_motoru,
-                 "uygulama")
+    _karsilastir(r, DOSYA_UYGULAMA, uygulama_senaryolar, uygulama_motoru, "uygulama")
     return r
 
 
@@ -70,8 +75,9 @@ def _karsilastir(r, dosya, uretici, motor, etiket):
         no = kayit["no"]
         if not r.esit(f"{etiket} {no}: girdi aynı", kayit["girdi"], g):
             continue
-        yeni = json.loads(json.dumps(motor(json.loads(json.dumps(g))),
-                                     ensure_ascii=False, sort_keys=True, default=str))
+        yeni = json.loads(
+            json.dumps(motor(json.loads(json.dumps(g))), ensure_ascii=False, sort_keys=True, default=str)
+        )
         eski = kayit["cikti"]
         if yeni == eski:
             r.gecti += 1
@@ -81,12 +87,15 @@ def _karsilastir(r, dosya, uretici, motor, etiket):
         farklar = []
         for yol in sorted(set(a) | set(b)):
             if a.get(yol, "<yok>") != b.get(yol, "<yok>"):
-                farklar.append(f"{yol}:  {a.get(yol,'<yok>')!r}  →  {b.get(yol,'<yok>')!r}")
-        r.kontrol(f"{etiket} senaryo {no} "
-                  f"({g.get('bina_tipi') or 'avan'}, "
-                  f"{len(g.get('asansorler') or [])} asansör)", False,
-                  "\n         ".join(farklar[:4])
-                  + (f"\n         … ve {len(farklar)-4} fark daha" if len(farklar) > 4 else ""))
+                farklar.append(f"{yol}:  {a.get(yol, '<yok>')!r}  →  {b.get(yol, '<yok>')!r}")
+        r.kontrol(
+            f"{etiket} senaryo {no} "
+            f"({g.get('bina_tipi') or 'avan'}, "
+            f"{len(g.get('asansorler') or [])} asansör)",
+            False,
+            "\n         ".join(farklar[:4])
+            + (f"\n         … ve {len(farklar) - 4} fark daha" if len(farklar) > 4 else ""),
+        )
 
 
 if __name__ == "__main__":

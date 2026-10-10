@@ -27,6 +27,7 @@ Not:  ofis standardı ( U · κ · εmax · armatürler · priz · cosφ · β �
 zaten "Sabitler / Ofis Standardı" sekmesinden gelir;  o da ikinci kez
 sorulmaz.
 """
+
 from engine.avan import hesap as E_AVAN
 from engine.ortak.steps import aralik_disi, evet_mi
 from engine.uygulama import mukavemet as MK
@@ -59,13 +60,11 @@ EK_ALAN = {a[0]: a for a in EK_ALANLAR}
 #  asansörü durdurur;  burada denetlenmezse kullanıcı yalnız "elektrik
 #  hesapları yapılamadı" görür, hangi alanı düzelteceğini göremezdi.
 #  Sınırlar avan motorundan OKUNUR ( tek kaynak:  ASANSOR_SINIRLARI ).
-AVAN_SINIRLI = {"kolon_kesit": "S1", "makine_kesit": "S2",
-                "motor_gucu": "Nsc", "kabin_agirligi": "Gk_elle"}
+AVAN_SINIRLI = {"kolon_kesit": "S1", "makine_kesit": "S2", "motor_gucu": "Nsc", "kabin_agirligi": "Gk_elle"}
 
 
 #  Elektrik / topraklama alanlarının ⓘ metinleri  ( bkz. MG.ACIKLAMA ).
-EK_ACIKLAMA = {a.anahtar: a.bilgi for a in _TS.ALANLAR
-               if a.sozlesme == _TS.ELK}
+EK_ACIKLAMA = {a.anahtar: a.bilgi for a in _TS.ALANLAR if a.sozlesme == _TS.ELK}
 
 #  "Gelişmiş" bölümündeki elektrik alanları  ( bkz. MG.GELISMIS_ALANLAR ).
 #  Kesitler ofisin alışılmış kesitleridir;  yetmezlerse gerilim düşümü ve
@@ -73,8 +72,7 @@ EK_ACIKLAMA = {a.anahtar: a.bilgi for a in _TS.ALANLAR
 #  bağlıdır, görünür kalır.
 EK_GELISMIS = frozenset(_TG.anahtarlar(_TS.ELK, gelismis=True, formda=True))
 
-EK_GRUP = ("Elektrik ve topraklama",
-           _TG.anahtarlar(_TS.ELK))
+EK_GRUP = ("Elektrik ve topraklama", _TG.anahtarlar(_TS.ELK))
 
 #  ELEKTRİK VE PROJE GENELİ BÖLÜMLERİN GİRDİ GRUPLARI.
 #  mukavemet_girdi.BOLUM_GRUBU'nun devamı — oradaki on bölüm mukavemetin,
@@ -89,19 +87,19 @@ EK_GRUP = ("Elektrik ve topraklama",
 YERLESIM_GRUBU_ADI = "Asansör ve düzen"
 
 EK_BOLUM_GRUBU = {
-    "kabin_aydinlatma":          ("Kabin ve kapı",),         # ← kabin ölçüleri
-    "kuyu_aydinlatma":           ("Kuyu ve katlar",),        # ← KG · kuyu boyu
+    "kabin_aydinlatma": ("Kabin ve kapı",),  # ← kabin ölçüleri
+    "kuyu_aydinlatma": ("Kuyu ve katlar",),  # ← KG · kuyu boyu
     #  Cetvelde kuyu aydınlatması var, ama armatür ADEDİ kuyu YÜKSEKLİĞİNDEN
     #  gelir;  gücü belirleyenler motor ( Nsç ) ve kabin ölçüsü.
-    "kurulu_guc":                ("Makine", "Kabin ve kapı"),
-    "gerilim_dusumu":            (EK_GRUP[0], "Makine"),     # ← S1 · L1 · S2 · L2
+    "kurulu_guc": ("Makine", "Kabin ve kapı"),
+    "gerilim_dusumu": (EK_GRUP[0], "Makine"),  # ← S1 · L1 · S2 · L2
     #  Ölçüler makine dairesi grubunda, makine yeri ( MRL ) düzen grubunda.
     "makine_dairesi_aydinlatma": ("Makine dairesi", YERLESIM_GRUBU_ADI),
-    "topraklama_yatay":          (EK_GRUP[0],),             # ← temel a · b · şerit L
-    "topraklama_dikey":          (EK_GRUP[0],),
-    "topraklama_toplam":         (EK_GRUP[0],),
+    "topraklama_yatay": (EK_GRUP[0],),  # ← temel a · b · şerit L
+    "topraklama_dikey": (EK_GRUP[0],),
+    "topraklama_toplam": (EK_GRUP[0],),
     #  KESİTLER TESİSİN EN BÜYÜK KORUMA İLETKENİNDEN TÜRER;  o da yalnız S1 · S2'den.
-    "topraklama_iletkenleri":    (EK_GRUP[0],),
+    "topraklama_iletkenleri": (EK_GRUP[0],),
 }
 
 
@@ -137,10 +135,22 @@ def tamamla(g):
 
 #  ÇİZİMDEN ÖLÇÜLEN HESAP GİRDİLERİ ( tasarım şeması:  kaynağı ÇİZİM, formda
 #  kutusu yok;  cizim/olculer.py ).
-YERLESIM_OLCULERI = ("kabin_merkezi_x", "esik_x", "kabin_ray_boyu", "agirlik_ray_boyu",
-                     "aski_halat_boyu", "reg_halat_boyu", "kasnak_tek_yon", "kasnak_ters_yon",
-                     "kasnak_kabin_adedi", "kasnak_agirlik_adedi", "saptirma_agirlik_capi",
-                     "makine_yuku_x", "yan_yatak_boyu", "agirlik_dolgu_yuksekligi")
+YERLESIM_OLCULERI = (
+    "kabin_merkezi_x",
+    "esik_x",
+    "kabin_ray_boyu",
+    "agirlik_ray_boyu",
+    "aski_halat_boyu",
+    "reg_halat_boyu",
+    "kasnak_tek_yon",
+    "kasnak_ters_yon",
+    "kasnak_kabin_adedi",
+    "kasnak_agirlik_adedi",
+    "saptirma_agirlik_capi",
+    "makine_yuku_x",
+    "yan_yatak_boyu",
+    "agirlik_dolgu_yuksekligi",
+)
 
 
 def yerlesim_olculeri(g):
@@ -158,6 +168,7 @@ def yerlesim_olculeri(g):
     from cizim import girdi as _CG
     from cizim import kopru as _CK
     from cizim import olculer as _CO
+
     geometri = []
     try:
         gc, _hata = _CK.cizim_girdisi(g)
@@ -169,7 +180,7 @@ def yerlesim_olculeri(g):
         #  pateni, 3 tampon, yana kaçık askı — köprünün iletileri ) hesap sürer.
         geometri = _CG.dogrula(gc) if gc is not None else []
         o = _CO.hesap_olculeri(gc) if gc is not None and not geometri else {}
-    except Exception:                                      # noqa: BLE001 — çizim kendi hatasını söyler
+    except Exception:  # noqa: BLE001 — çizim kendi hatasını söyler
         o = {}
     if evet_mi(g.get("mk_yok")):
         #  Makine dairesizde çizilen kiriş seçilen yük yoluna uymalı:  yandaki
@@ -215,7 +226,7 @@ def dogrula(g):
         if tur == "onay" or a in atla:
             continue
         if d is None or d == "":
-            continue                       # boş bırakılabilir — hesap uyarır
+            continue  # boş bırakılabilir — hesap uyarır
         if not isinstance(d, (int, float)) or isinstance(d, bool) or d < 0:
             hata.append(f"{ad}: negatif olmayan bir sayı olmalı ( {d!r} girildi ).")
     hata += _avan_siniri_hatalari(g, atla)
@@ -224,8 +235,10 @@ def dogrula(g):
     if not evet_mi(g.get("mk_yok")):
         for a in ("mk_uzunluk", "mk_genislik"):
             if not (isinstance(g.get(a), (int, float)) and g[a] > 0):
-                hata.append(f"{EK_ALAN[a][1]}: makine dairesi varsa ölçüsü girilmelidir "
-                            "( ya da 'Makine dairesiz ( MRL )' kutusunu işaretleyin ).")
+                hata.append(
+                    f"{EK_ALAN[a][1]}: makine dairesi varsa ölçüsü girilmelidir "
+                    "( ya da 'Makine dairesiz ( MRL )' kutusunu işaretleyin )."
+                )
     return hata
 
 
@@ -239,14 +252,18 @@ def _avan_siniri_hatalari(g, atla):
     hata = []
     for a, avan_adi in AVAN_SINIRLI.items():
         d = g.get(a)
-        if (a in atla or not isinstance(d, (int, float)) or isinstance(d, bool)
-                or d < 0 or (d == 0 and a in MG.BOLEN_ALANLAR)):
+        if (
+            a in atla
+            or not isinstance(d, (int, float))
+            or isinstance(d, bool)
+            or d < 0
+            or (d == 0 and a in MG.BOLEN_ALANLAR)
+        ):
             continue
         (alt, ust), birim = sinir[avan_adi]
         if not alt <= d <= ust:
             et = (EK_ALAN.get(a) or MG.ALAN[a])[1]
-            hata.append(aralik_disi(et, d, alt, ust, birim)
-                        + "  —  elektrik hesapları bu değerle yapılamaz.")
+            hata.append(aralik_disi(et, d, alt, ust, birim) + "  —  elektrik hesapları bu değerle yapılamaz.")
     return hata
 
 
@@ -262,15 +279,15 @@ def kopru(g):
         "aktif": True,
         "tanim": "Uygulama projesi",
         #  ── ortak ── ( mukavemetten )
-        "Q_elle": g.get("beyan_yuku"),            # beyan yükü          [kg]
-        "V": g.get("beyan_hizi"),                 # kabin hızı          [m/s]
-        "Gk_elle": g.get("kabin_agirligi"),       # boş kabin kütlesi   [kg]
-        "kabin_boyu": g.get("kabin_derinligi"),   # avanda "boy" = derinlik
+        "Q_elle": g.get("beyan_yuku"),  # beyan yükü          [kg]
+        "V": g.get("beyan_hizi"),  # kabin hızı          [m/s]
+        "Gk_elle": g.get("kabin_agirligi"),  # boş kabin kütlesi   [kg]
+        "kabin_boyu": g.get("kabin_derinligi"),  # avanda "boy" = derinlik
         "kabin_genisligi": g.get("kabin_genisligi"),
         "Hk": (g.get("kuyu_boyu") or 0) / 1000.0,  # kuyu yüksekliği    [m]
-        "Nsc": g.get("motor_gucu"),               # seçilen motor gücü  [kW]
+        "Nsc": g.get("motor_gucu"),  # seçilen motor gücü  [kW]
         "i_palanga": g.get("aski_orani"),
-        "gr": ray,                                # ray metre ağırlığı  [kg/m]
+        "gr": ray,  # ray metre ağırlığı  [kg/m]
         #  Motor verimi:  MAKİNE TİPİNDEN gelir ( ofis standardı, tek kaynak
         #  engine/ortak/ofis.py ) ve uygulamada TOPLAM SİSTEM VERİMİDİR — askı
         #  kaybı içindedir.  Avan motoru ise kitaba göre MAKİNE verimi bekler ve
@@ -295,20 +312,26 @@ def kopru(g):
         "S2": g.get("makine_kesit"),
     }
     ortak = {
-        "temel_a": g.get("temel_a"), "temel_b": g.get("temel_b"),
+        "temel_a": g.get("temel_a"),
+        "temel_b": g.get("temel_b"),
         #  ŞERİT BOYU GİRDİ DEĞİLDİR:  avan motoru temel ölçülerinden kurar
         #  ( temel çevresi + karelaj bağları, göz Sabitler'de ) ve paftaya
         #  hesabıyla basar.  Formda hep boş bırakılan bir kutuydu.
         "serit_L": None,
         "mk_yok": bool(g.get("mk_yok")),
-        "mk_uzunluk": g.get("mk_uzunluk"), "mk_genislik": g.get("mk_genislik"),
+        "mk_uzunluk": g.get("mk_uzunluk"),
+        "mk_genislik": g.get("mk_genislik"),
     }
     #  OFİS STANDARDI  ( Sabitler sekmesi ):  armatür ışık akısı, priz, cosφ,
     #  εmax, κ, U, β, çubuk sayısı …  Elektrik ve topraklama hesapları bunları
     #  kullanır;  köprüden geçmezse kullanıcının sekmedeki değişikliği hiçbir
     #  şeyi değiştirmezdi.
-    return {"ortak": ortak, "asansorler": [asansor],
-            "sabitler": _avan_sabitleri(g.get("_ofis")), "trafik": {}}
+    return {
+        "ortak": ortak,
+        "asansorler": [asansor],
+        "sabitler": _avan_sabitleri(g.get("_ofis")),
+        "trafik": {},
+    }
 
 
 #  Uygulamanın ofis sabiti  →  avan motorunun beklediği anahtar.  Elektrik ve
@@ -319,10 +342,24 @@ AVAN_KARSILIGI = {}
 #  Avan motoruna GEÇMEYECEKLER:  yalnız mukavemeti ilgilendirirler ve avan
 #  tarafında aynı adla başka bir anlam taşıyabilirler.
 #  Çizimin ürün ölçüleri ( tek katalog ) ve dolgu yoğunlukları da geçmez.
-AVAN_DISI = ("q_denge", "sigma_em", "k1_kaymali", "k1_makarali", "k1_ani",
-             "yan_yatak_L_X", "halat_pay_m", "Gs", "verim_dislisiz",
-             "verim_disli", "dolgu_yogunlugu_barit", "dolgu_yogunlugu_pik") \
-    + MK.SIGINMA_PAYLARI + US.CIZIM_ANAHTARLARI
+AVAN_DISI = (
+    (
+        "q_denge",
+        "sigma_em",
+        "k1_kaymali",
+        "k1_makarali",
+        "k1_ani",
+        "yan_yatak_L_X",
+        "halat_pay_m",
+        "Gs",
+        "verim_dislisiz",
+        "verim_disli",
+        "dolgu_yogunlugu_barit",
+        "dolgu_yogunlugu_pik",
+    )
+    + MK.SIGINMA_PAYLARI
+    + US.CIZIM_ANAHTARLARI
+)
 
 
 def _avan_sabitleri(ofis):
@@ -345,13 +382,13 @@ def _avan_sabitleri(ofis):
 #  ORTAK ALANLARIN LİSTESİ  —  arayüz bunu "bu değer mukavemetten geliyor"
 #  diye gösterir;  belgeleme ve test de buradan okur.
 ORTAK_KOPRU = (
-    ("Beyan yükü",           "beyan_yuku",        "Q"),
-    ("Beyan hızı",           "beyan_hizi",        "V"),
-    ("Boş kabin ağırlığı",   "kabin_agirligi",    "Gk"),
-    ("Kabin derinliği",      "kabin_derinligi",   "a  ( kabin boyu )"),
-    ("Kabin genişliği",      "kabin_genisligi",   "b"),
-    ("Kuyu boyu",            "kuyu_boyu",         "Hk"),
-    ("Motor gücü",           "motor_gucu",        "Nsç"),
-    ("Askı oranı",           "aski_orani",        "i"),
-    ("Kabin rayı profili",   "kabin_ray_profili", "gr  ( ray metre ağırlığı )"),
+    ("Beyan yükü", "beyan_yuku", "Q"),
+    ("Beyan hızı", "beyan_hizi", "V"),
+    ("Boş kabin ağırlığı", "kabin_agirligi", "Gk"),
+    ("Kabin derinliği", "kabin_derinligi", "a  ( kabin boyu )"),
+    ("Kabin genişliği", "kabin_genisligi", "b"),
+    ("Kuyu boyu", "kuyu_boyu", "Hk"),
+    ("Motor gücü", "motor_gucu", "Nsç"),
+    ("Askı oranı", "aski_orani", "i"),
+    ("Kabin rayı profili", "kabin_ray_profili", "gr  ( ray metre ağırlığı )"),
 )

@@ -26,6 +26,7 @@ Makinenin gövdesi tahrik kasnağından ağırlık kasnağının merkezinden uza
 ( yon yönünde ) uzanır.  Bütün noktalar planda ( mm;  x kuyu genişliği,
 y ön duvardan arkaya ).
 """
+
 import math
 
 #  Kabin kasnaklarının birbirine en az açıklığı ( jantlar arası ):  yoksa iki
@@ -35,8 +36,10 @@ KASNAK_ARALIGI_ASGARI = 0.0
 
 def arkada_iki_bir(g):
     """Arkadaki ağırlıkla 2:1 askı mı ( bu modülün düzeni )."""
-    return ((g.get("agirlik") or {}).get("yeri") == "Arka"
-            and (g.get("aski") or {}).get("duzen") in ("Kabin üstü", "Kabin altı"))
+    return (g.get("agirlik") or {}).get("yeri") == "Arka" and (g.get("aski") or {}).get("duzen") in (
+        "Kabin üstü",
+        "Kabin altı",
+    )
 
 
 def _sayi(v):
@@ -60,6 +63,7 @@ def agirlik_ray_duvari(g, S):
     Ağırlık ekseni = P + D1.  Karşı ağırlık kabine en az 50 mm ( m.5.2.5.5.1 h ),
     duvara eski kuraldan ( derinlik / 2 + 50 ) yakın olamaz."""
     from cizim import kabin_ustu as CKUS
+
     k, kb, ag, mk = g["kuyu"], g["kabin"], g["agirlik"], g["makine"]
     kabin_arka = kb["on_pay"] + kb["derinlik"] + S["kabin_pano_arka"]
     ey = kabin_arka - CKUS.KORKULUK_PARCA_ASGARI + mk["tahrik_kasnak_capi"]
@@ -75,9 +79,11 @@ def geometri(g, S, yon=None):
     k, kb, ag = g["kuyu"], g["kabin"], g["agirlik"]
     a, mk = g.get("aski") or {}, g.get("makine") or {}
     hata = []
-    for ad, v in (("aski.kasnak_capi", a.get("kasnak_capi")),
-                  ("agirlik.kasnak_capi", ag.get("kasnak_capi")),
-                  ("makine.tahrik_kasnak_capi", mk.get("tahrik_kasnak_capi"))):
+    for ad, v in (
+        ("aski.kasnak_capi", a.get("kasnak_capi")),
+        ("agirlik.kasnak_capi", ag.get("kasnak_capi")),
+        ("makine.tahrik_kasnak_capi", mk.get("tahrik_kasnak_capi")),
+    ):
         if not (_sayi(v) and v > 0):
             hata.append(f"{ad}:  arkadaki ağırlıkla 2:1 askıda gerekli ( {v!r} ).")
     if hata:
@@ -92,47 +98,78 @@ def geometri(g, S, yon=None):
     #  Karşı ağırlığın ekseni ( geometri.plan:  arkada, kuyu genişliğinin ortası )
     ex, ey = G / 2.0, D - ag["ray_duvar"]
     xk = ex + yon * Rc
-    W = (xk, ey)                                   # tahrik → ağırlık kasnağı
-    Hw = (ex - yon * Rc, ey)                       # ağırlık kasnağı → bağlantı
-    P = (xk, ey - D1)                              # tahrik → kabin kasnağı
-    H = (2.0 * cx - P[0], 2.0 * cy - P[1])         # kabin kasnağı → bağlantı
+    W = (xk, ey)  # tahrik → ağırlık kasnağı
+    Hw = (ex - yon * Rc, ey)  # ağırlık kasnağı → bağlantı
+    P = (xk, ey - D1)  # tahrik → kabin kasnağı
+    H = (2.0 * cx - P[0], 2.0 * cy - P[1])  # kabin kasnağı → bağlantı
     L = math.hypot(H[0] - P[0], H[1] - P[1])
     if L < 1e-6:
-        return {"hata": ["Arkadaki ağırlıkla 2:1:  tahrik kasnağının kabin inişi askı merkezinin "
-                         "üstünde — kabin kasnaklarına yer yok."]}
-    u = ((H[0] - P[0]) / L, (H[1] - P[1]) / L)     # P'den H'ye
-    n = (-u[1], u[0])                              # kasnak ekseni ( düzleme dik )
+        return {
+            "hata": [
+                "Arkadaki ağırlıkla 2:1:  tahrik kasnağının kabin inişi askı merkezinin "
+                "üstünde — kabin kasnaklarına yer yok."
+            ]
+        }
+    u = ((H[0] - P[0]) / L, (H[1] - P[1]) / L)  # P'den H'ye
+    n = (-u[1], u[0])  # kasnak ekseni ( düzleme dik )
     arka = (P[0] + Rk * u[0], P[1] + Rk * u[1])
     on = (H[0] - Rk * u[0], H[1] - Rk * u[1])
-    aralik = L - 2.0 * Rk                          # kasnak merkezleri arası
+    aralik = L - 2.0 * Rk  # kasnak merkezleri arası
     if aralik < 2.0 * Rk + KASNAK_ARALIGI_ASGARI:
-        hata.append(f"Arkadaki ağırlıkla 2:1:  kabin kasnakları ( ø {2 * Rk:g} ) üst üste biniyor — "
-                    f"merkezleri arası {aralik:.0f} mm, en az {2 * Rk:g};  kabin askı merkezinden "
-                    f"tahrik kasnağının inişine uzaklık {L / 2.0:.0f} mm.")
+        hata.append(
+            f"Arkadaki ağırlıkla 2:1:  kabin kasnakları ( ø {2 * Rk:g} ) üst üste biniyor — "
+            f"merkezleri arası {aralik:.0f} mm, en az {2 * Rk:g};  kabin askı merkezinden "
+            f"tahrik kasnağının inişine uzaklık {L / 2.0:.0f} mm."
+        )
     if not (0.0 < H[0] < G and 0.0 < H[1] < D):
-        hata.append(f"Arkadaki ağırlıkla 2:1:  kabin halatının bağlantısı ( x {H[0]:.0f}, y {H[1]:.0f} ) "
-                    "kuyunun dışına düşüyor.")
+        hata.append(
+            f"Arkadaki ağırlıkla 2:1:  kabin halatının bağlantısı ( x {H[0]:.0f}, y {H[1]:.0f} ) "
+            "kuyunun dışına düşüyor."
+        )
     #  Kasnaklar kabinin üstünde:  tahrik kasnağından inen halat kabinin
     #  tavanına iner ( kabin hep onun altındadır ) — kabinin yanından geçmesi
     #  gerekmez;  karşı ağırlığın içinden geçemez.
     blok_on = ey - ag["derinlik"] / 2.0
     if not P[1] < blok_on:
-        hata.append(f"Arkadaki ağırlıkla 2:1:  tahrik kasnağından kabine inen halat ( y {P[1]:.0f} ) "
-                    f"karşı ağırlığın içinden geçiyor ( ağırlığın önü {blok_on:.0f} ) — tahrik "
-                    "kasnağı çapı ağırlığın derinliğinin yarısından büyük olmalı.")
+        hata.append(
+            f"Arkadaki ağırlıkla 2:1:  tahrik kasnağından kabine inen halat ( y {P[1]:.0f} ) "
+            f"karşı ağırlığın içinden geçiyor ( ağırlığın önü {blok_on:.0f} ) — tahrik "
+            "kasnağı çapı ağırlığın derinliğinin yarısından büyük olmalı."
+        )
 
     def ayak_izi(merkez):
         """Kasnağın plandaki dört köşesi ( düzlem boyunca çap, ekseni boyunca en )."""
         w = S["kabin_kasnak_genislik"] / 2.0
-        return [(merkez[0] + su * Rk * u[0] + sn * w * n[0], merkez[1] + su * Rk * u[1] + sn * w * n[1])
-                for su, sn in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+        return [
+            (merkez[0] + su * Rk * u[0] + sn * w * n[0], merkez[1] + su * Rk * u[1] + sn * w * n[1])
+            for su, sn in ((-1, -1), (1, -1), (1, 1), (-1, 1))
+        ]
 
     kasnaklar = [arka, on]
     izler = [ayak_izi(m) for m in kasnaklar]
-    return {"cx": cx, "cy": cy, "ex": ex, "ey": ey, "xk": xk, "yon": yon,
-            "W": W, "Hw": Hw, "P": P, "H": H, "u": u, "n": n,
-            "kasnaklar": kasnaklar, "izler": izler,
-            "kutular": [(min(p[0] for p in iz), min(p[1] for p in iz),
-                         max(p[0] for p in iz), max(p[1] for p in iz)) for iz in izler],
-            "aralik": aralik, "aci": math.degrees(math.atan2(abs(u[0]), abs(u[1]))),
-            "Rk": Rk, "Rc": Rc, "D1": D1, "hata": hata}
+    return {
+        "cx": cx,
+        "cy": cy,
+        "ex": ex,
+        "ey": ey,
+        "xk": xk,
+        "yon": yon,
+        "W": W,
+        "Hw": Hw,
+        "P": P,
+        "H": H,
+        "u": u,
+        "n": n,
+        "kasnaklar": kasnaklar,
+        "izler": izler,
+        "kutular": [
+            (min(p[0] for p in iz), min(p[1] for p in iz), max(p[0] for p in iz), max(p[1] for p in iz))
+            for iz in izler
+        ],
+        "aralik": aralik,
+        "aci": math.degrees(math.atan2(abs(u[0]), abs(u[1]))),
+        "Rk": Rk,
+        "Rc": Rc,
+        "D1": D1,
+        "hata": hata,
+    }

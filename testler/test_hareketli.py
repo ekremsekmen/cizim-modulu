@@ -4,6 +4,7 @@ yanlış "uygun"ların sınır testleri:  sınırın hemen altı, tam sınır, h
 Beklenen sayılar girdilerden elle bulunur ( yorumlarda ), programın kendi
 ara değerlerinden değil.  Girdiler programın yolundan:  hesap motoru →
 köprü → düşey yerleşim."""
+
 import os
 import sys
 import unittest
@@ -13,20 +14,36 @@ for _yol in (KOK, os.path.join(KOK, "hesap")):
     if _yol not in sys.path:
         sys.path.append(_yol)
 
-from cizim import dusey as CDU                            # noqa: E402
-from cizim import hareketli as CH                         # noqa: E402
-from cizim import kopru as CK                             # noqa: E402
-from engine.uygulama import hesap as UY                   # noqa: E402
+from cizim import dusey as CDU  # noqa: E402
+from cizim import hareketli as CH  # noqa: E402
+from cizim import kopru as CK  # noqa: E402
+from engine.uygulama import hesap as UY  # noqa: E402
 
 #  Denetimin kuyu dibi örneği:  1.275 kg, kabin 2.000 × 1.400, ağırlık sağda
-DIP = {"beyan_yuku": 1275, "kabin_genisligi": 2000, "kabin_derinligi": 1400,
-       "kapi_genisligi": 1100, "kuyu_genisligi": 2950, "kuyu_derinligi": 1850,
-       "agirlik_yeri": "Sağ", "ray_kapi_arasi": 500, "kabin_tampon_adedi": 1,
-       "kat_kapisi_tipi": "Teleskopik Sol", "mk_yok": True}
+DIP = {
+    "beyan_yuku": 1275,
+    "kabin_genisligi": 2000,
+    "kabin_derinligi": 1400,
+    "kapi_genisligi": 1100,
+    "kuyu_genisligi": 2950,
+    "kuyu_derinligi": 1850,
+    "agirlik_yeri": "Sağ",
+    "ray_kapi_arasi": 500,
+    "kabin_tampon_adedi": 1,
+    "kat_kapisi_tipi": "Teleskopik Sol",
+    "mk_yok": True,
+}
 #  Denetimin karşı ağırlık örnekleri ( temel ölçüleri ortak )
 TEMEL = {"temel_a": 26.55, "temel_b": 16.4, "sarilma_acisi": 180}
-ODA = {"mk_yok": False, "mk_genislik": 2600, "mk_uzunluk": 3800, "kabin_genisligi": 1350,
-       "kabin_derinligi": 1400, "kuyu_genisligi": 2300, "kuyu_derinligi": 1850}
+ODA = {
+    "mk_yok": False,
+    "mk_genislik": 2600,
+    "mk_uzunluk": 3800,
+    "kabin_genisligi": 1350,
+    "kabin_derinligi": 1400,
+    "kuyu_genisligi": 2300,
+    "kuyu_derinligi": 1850,
+}
 
 
 def _yerlesim(girdi):
@@ -48,10 +65,12 @@ class KuyuDibiSiginma(unittest.TestCase):
         #  yakın yerde, kirişin altında, yüksekliği kirişe ölçülür.
         #  Eskiden ( denetim 9 Eki ) KY 1.400'de alan kirişin altındaydı, kiriş
         #  940'tayken sığınma 1.110 ( platformdan ) diye UYGUN çıkıyordu.
-        for KY, ustunde, deger, engel in ((1400, False, 1110.0, CH.KABIN),
-                                          (1459, False, 1169.0, CH.KABIN),
-                                          (1460, True, 1000.0, CH.ALT_KIRIS),
-                                          (1461, True, 1001.0, CH.ALT_KIRIS)):
+        for KY, ustunde, deger, engel in (
+            (1400, False, 1110.0, CH.KABIN),
+            (1459, False, 1169.0, CH.KABIN),
+            (1460, True, 1000.0, CH.ALT_KIRIS),
+            (1461, True, 1001.0, CH.ALT_KIRIS),
+        ):
             Y, _g = _yerlesim({**DIP, "kuyu_dibi": KY})
             sg = Y["KD"]["siginma"]
             kiris = [p for p in Y["dip_parcalar"] if p[0] == CH.ALT_KIRIS]
@@ -69,15 +88,21 @@ class KarsiAgirlikTabani(unittest.TestCase):
         #  100 − ezilme 90 − paten boyu 100 = kaide − 90.  Kaide 50'de 40 mm
         #  tabanın altında ( denetim 8 Eki:  çizim ve bölüm 11 UYGUN diyordu ).
         for kaide, carpar in ((50, True), (89, True), (90, False), (91, False)):
-            Y, _g = _yerlesim({**TEMEL, "agirlik_tampon_baba": kaide, "agirlik_tampon_ezilme": 90,
-                               "son_kat_yuksekligi": 5000})
+            Y, _g = _yerlesim(
+                {
+                    **TEMEL,
+                    "agirlik_tampon_baba": kaide,
+                    "agirlik_tampon_ezilme": 90,
+                    "son_kat_yuksekligi": 5000,
+                }
+            )
             hata = [h for h in Y["hata"] if "kuyu tabanına çarpıyor" in h]
             with self.subTest(kaide=kaide):
                 self.assertAlmostEqual(Y["agirlik_alt"]["alt_paten"] - Y["taban"], kaide - 90.0)
                 self.assertEqual(bool(hata), carpar, Y["hata"])
                 if carpar:
                     self.assertIn(f"tabanın {90 - kaide:g} mm altında", hata[0])
-                    self.assertIn(hata[0], Y["diger"])     # bölüm 11'e de gider
+                    self.assertIn(hata[0], Y["diger"])  # bölüm 11'e de gider
 
 
 class KarsiAgirlikTavani(unittest.TestCase):
@@ -92,9 +117,16 @@ class KarsiAgirlikTavani(unittest.TestCase):
         #  kat 3.825'te kasnağın tavana girdiğini bulmuştu;  yalnız rayın
         #  kılavuz payı ( 100 ) denetlendiği için UYGUN çıkıyordu.
         for son_kat, carpar in ((3825, True), (3984, True), (3985, False), (3986, False)):
-            Y, _g = _yerlesim({**TEMEL, **ODA, "son_kat_yuksekligi": son_kat,
-                               "agirlik_paten_arasi": 4300, "agirlik_kasnak_capi": 1040,
-                               "agirlik_genisligi": 1100})
+            Y, _g = _yerlesim(
+                {
+                    **TEMEL,
+                    **ODA,
+                    "son_kat_yuksekligi": son_kat,
+                    "agirlik_paten_arasi": 4300,
+                    "agirlik_kasnak_capi": 1040,
+                    "agirlik_genisligi": 1100,
+                }
+            )
             hata = [h for h in Y["hata"] if "tavana çarpıyor" in h]
             with self.subTest(son_kat=son_kat):
                 self.assertEqual(bool(hata), carpar, Y["hata"])
@@ -132,9 +164,11 @@ class TekTanim(unittest.TestCase):
             if el.get("ad") in ("sase_kiris", "sase_dikme"):
                 plan.setdefault(el["ad"], []).append((el["x"], el["y"], el["x"] + el["g"], el["y"] + el["d"]))
         dip = Y["dip"]
-        for ad, plan_ad, alt, ust in ((CH.ALT_KIRIS, "sase_kiris", "alt_kiris_alt", "alt_kiris_ust"),
-                                      (CH.UST_KIRIS, "sase_kiris", "ust_kiris_alt", "ust_kiris_ust"),
-                                      (CH.DIKME, "sase_dikme", "alt_kiris_alt", "ust_kiris_ust")):
+        for ad, plan_ad, alt, ust in (
+            (CH.ALT_KIRIS, "sase_kiris", "alt_kiris_alt", "alt_kiris_ust"),
+            (CH.UST_KIRIS, "sase_kiris", "ust_kiris_alt", "ust_kiris_ust"),
+            (CH.DIKME, "sase_dikme", "alt_kiris_alt", "ust_kiris_ust"),
+        ):
             p = [x for x in Y["dip_parcalar"] if x[0] == ad]
             with self.subTest(ad):
                 self.assertEqual(sorted(x[1] for x in p), sorted(plan[plan_ad]))

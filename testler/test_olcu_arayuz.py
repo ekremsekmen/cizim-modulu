@@ -1,4 +1,5 @@
 """Ölçü düzenlemenin gecikmiş yanıtları; Node varsa unittest keşfine de katılır."""
+
 from pathlib import Path
 import shutil
 import subprocess
@@ -10,6 +11,8 @@ class OlcuArayuz(unittest.TestCase):
     def test_gecikmis_yanitlar(self):
         sonuc = subprocess.run(
             [shutil.which("node"), "--test", str(Path(__file__).with_name("olcu_arayuz.test.cjs"))],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         self.assertEqual(sonuc.returncode, 0, sonuc.stdout + sonuc.stderr)

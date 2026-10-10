@@ -5,6 +5,7 @@ AVAN PROJE UÇLARI
 Trafik hesabı, avan hesapları, proje kapağı ve bunların PDF / CAD
 çıktıları.  Uygulama projesinden bağımsızdır.
 """
+
 import json
 import os
 from datetime import date
@@ -12,10 +13,22 @@ from datetime import date
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
-from api.ortak import (_BELIRSIZ, _RED, _belirsiz_hata, _bos_mu, _dosya_adi,
-                       _indir, _paket_ekleri, _proje_kimligi, _sabitler_coz,
-                       _sayi, _sozluk_listesi, _temiz, _uretilemedi,
-                       belirsiz_sayi_mi)
+from api.ortak import (
+    _BELIRSIZ,
+    _RED,
+    _belirsiz_hata,
+    _bos_mu,
+    _dosya_adi,
+    _indir,
+    _paket_ekleri,
+    _proje_kimligi,
+    _sabitler_coz,
+    _sayi,
+    _sozluk_listesi,
+    _temiz,
+    _uretilemedi,
+    belirsiz_sayi_mi,
+)
 from engine.avan import hesap as E_AVAN
 from engine.avan import kapak as E_KAPAK
 from engine.avan import tablolar as E_TAB
@@ -25,27 +38,81 @@ from exports import pdf_export as X_PDF
 
 try:
     from exports import dxf_export as X_DXF
+
     _DXF_HATA = None
-except Exception as _e:                                   # noqa: BLE001
+except Exception as _e:  # noqa: BLE001
     X_DXF, _DXF_HATA = None, _e
 _BASLATICI = "baslat.command" if os.name != "nt" else "baslat.bat"
 
 router = APIRouter()
 
-TRAFIK_SAYISAL = ("bina_yuksekligi", "yapi_yuksekligi", "N", "hizli1", "hizli2", "h", "P",
-                  "kapi_genisligi", "bodrum", "manuel_k", "manuel_V", "manuel_ta",
-                  "manuel_tk", "manuel_tg", "manuel_tp", "manuel_adet")
+TRAFIK_SAYISAL = (
+    "bina_yuksekligi",
+    "yapi_yuksekligi",
+    "N",
+    "hizli1",
+    "hizli2",
+    "h",
+    "P",
+    "kapi_genisligi",
+    "bodrum",
+    "manuel_k",
+    "manuel_V",
+    "manuel_ta",
+    "manuel_tk",
+    "manuel_tg",
+    "manuel_tp",
+    "manuel_adet",
+)
 
-ASANSOR_SAYISAL = ("P", "kapi_genisligi", "V", "durak", "h", "bodrum",
-                   "manuel_ta", "manuel_tk", "manuel_tg", "manuel_tp")
+ASANSOR_SAYISAL = (
+    "P",
+    "kapi_genisligi",
+    "V",
+    "durak",
+    "h",
+    "bodrum",
+    "manuel_ta",
+    "manuel_tk",
+    "manuel_tg",
+    "manuel_tp",
+)
 
-AVAN_ORTAK_SAYISAL = ("U", "kappa", "eps_max", "temel_a", "temel_b", "beta", "serit_L",
-                      "cubuk_sayisi", "mk_uzunluk", "mk_genislik")
+AVAN_ORTAK_SAYISAL = (
+    "U",
+    "kappa",
+    "eps_max",
+    "temel_a",
+    "temel_b",
+    "beta",
+    "serit_L",
+    "cubuk_sayisi",
+    "mk_uzunluk",
+    "mk_genislik",
+)
 
-AVAN_AS_SAYISAL = ("i_palanga", "q_denge",
-                   "kapasite", "Q_elle", "V", "eta", "Hk", "kuyu_genisligi", "kabin_boyu",
-                   "kabin_genisligi", "Gk_elle", "gr", "Fmk", "Fsh", "Nsc",
-                   "S1", "L1", "S2", "L2", "zincir_birim_kutle")
+AVAN_AS_SAYISAL = (
+    "i_palanga",
+    "q_denge",
+    "kapasite",
+    "Q_elle",
+    "V",
+    "eta",
+    "Hk",
+    "kuyu_genisligi",
+    "kabin_boyu",
+    "kabin_genisligi",
+    "Gk_elle",
+    "gr",
+    "Fmk",
+    "Fsh",
+    "Nsc",
+    "S1",
+    "L1",
+    "S2",
+    "L2",
+    "zincir_birim_kutle",
+)
 
 #  Red metninde görünen adlar:  "Q_elle" değil "Q elle — anma yükü".  Motorun
 #  kendi tablolarından okunur ( tek kaynak );  yalnız motorun denetlemediği
@@ -57,15 +124,17 @@ AVAN_AS_ETIKET = {
 }
 AVAN_ORTAK_ETIKET = {
     **{k: ad for k, (ad, _birim) in E_AVAN.OFIS_ETIKET.items()},
-    "temel_a": "Temel uzunluğu", "temel_b": "Temel genişliği",
+    "temel_a": "Temel uzunluğu",
+    "temel_b": "Temel genişliği",
     "serit_L": "L — topraklama şeridi boyu",
-    "mk_uzunluk": "Makine dairesi uzunluğu", "mk_genislik": "Makine dairesi genişliği",
+    "mk_uzunluk": "Makine dairesi uzunluğu",
+    "mk_genislik": "Makine dairesi genişliği",
 }
 
 #  Ofis standardında METİN olan sabitler ( kablo tipi … ) — sayıya çevrilmez.
 AVAN_METIN_SABITLER = tuple(
-    k for k, v in {**E_AVAN.SABIT_B_VARSAYILAN, **E_AVAN.OFIS_VARSAYILAN}.items()
-    if isinstance(v, str))
+    k for k, v in {**E_AVAN.SABIT_B_VARSAYILAN, **E_AVAN.OFIS_VARSAYILAN}.items() if isinstance(v, str)
+)
 
 
 def _ek_nufus_oku(ham):
@@ -74,7 +143,7 @@ def _ek_nufus_oku(ham):
     for i, s in enumerate(_sozluk_listesi(ham), 1):
         kalem, ham_miktar = s.get("kalem"), s.get("miktar")
         if not kalem and (ham_miktar in (None, "")):
-            continue                                  # tümüyle boş satır — yok say
+            continue  # tümüyle boş satır — yok say
         if belirsiz_sayi_mi(ham_miktar):
             _BELIRSIZ.append(f"ek nüfus {i}. satır miktarı = {str(ham_miktar).strip()}")
             continue
@@ -83,12 +152,10 @@ def _ek_nufus_oku(ham):
             _RED.append(f"ek nüfus {i}. satırında Tablo-1 kalemi seçilmemiş")
             continue
         if miktar is None:
-            _RED.append(f"ek nüfus {i}. satır miktarı sayı değil "
-                        f"( {str(ham_miktar).strip()[:20]!r} )")
+            _RED.append(f"ek nüfus {i}. satır miktarı sayı değil ( {str(ham_miktar).strip()[:20]!r} )")
             continue
         if miktar < 0:
-            _RED.append(f"ek nüfus {i}. satır miktarı negatif ( {miktar} ) — "
-                    "nüfus eksiltilemez")
+            _RED.append(f"ek nüfus {i}. satır miktarı negatif ( {miktar} ) — nüfus eksiltilemez")
             continue
         satirlar.append({"aciklama": s.get("aciklama"), "miktar": miktar, "kalem": kalem})
     return satirlar
@@ -103,7 +170,8 @@ def _trafik_girdi(veri: dict):
     kapi_tipi` girdileri geriye dönük uyumluluk için hâlâ kabul edilir:
     liste boşsa düz alanlardan TEK asansörlük bir liste kurulur.
     """
-    _BELIRSIZ.clear(); _RED.clear()
+    _BELIRSIZ.clear()
+    _RED.clear()
     veri = veri if isinstance(veri, dict) else {}
     ham = veri.get("girdiler")
     ham = ham if isinstance(ham, dict) else {}
@@ -113,12 +181,15 @@ def _trafik_girdi(veri: dict):
     #  Kişi sayısı YAZILMIŞ asansör tanımlıdır.  Okunabilir P aranıyordu:
     #  "8 kişi" yazılan asansör listeden sessizce düşüyor, trafik bir asansör
     #  eksik hesaplanıyordu.  Artık okunamayan P, sebebiyle reddedilir.
-    liste = [_temiz(a, ASANSOR_SAYISAL, f"ASANSÖR-{i}: ", etiket=E_TRF.ASANSOR_ETIKET)
-             for i, a in enumerate(_sozluk_listesi(ham.get("asansorler")), 1)
-             if not _bos_mu(a.get("P"))][:4]
+    liste = [
+        _temiz(a, ASANSOR_SAYISAL, f"ASANSÖR-{i}: ", etiket=E_TRF.ASANSOR_ETIKET)
+        for i, a in enumerate(_sozluk_listesi(ham.get("asansorler")), 1)
+        if not _bos_mu(a.get("P"))
+    ][:4]
     if not liste and g.get("P") is not None:
-        bir = {k: g.get(k) for k in ("P", "kapi_genisligi",
-                                     "manuel_ta", "manuel_tk", "manuel_tg", "manuel_tp")}
+        bir = {
+            k: g.get(k) for k in ("P", "kapi_genisligi", "manuel_ta", "manuel_tk", "manuel_tg", "manuel_tp")
+        }
         bir["kapi_tipi"] = ham.get("kapi_tipi")
         liste = [bir]
     g["asansorler"] = liste
@@ -126,28 +197,33 @@ def _trafik_girdi(veri: dict):
 
 
 def _avan_girdi(veri: dict):
-    _BELIRSIZ.clear(); _RED.clear()
+    _BELIRSIZ.clear()
+    _RED.clear()
     veri = veri if isinstance(veri, dict) else {}
     v = veri.get("girdiler")
     v = v if isinstance(v, dict) else {}
     ortak_ham = v.get("ortak")
-    ortak = _temiz(ortak_ham if isinstance(ortak_ham, dict) else {}, AVAN_ORTAK_SAYISAL,
-                   etiket=AVAN_ORTAK_ETIKET)
+    ortak = _temiz(
+        ortak_ham if isinstance(ortak_ham, dict) else {}, AVAN_ORTAK_SAYISAL, etiket=AVAN_ORTAK_ETIKET
+    )
     asansorler = []
     for sira, a in enumerate(_sozluk_listesi(v.get("asansorler"))[:4], 1):
         #  Kapasitesi ya da anma yükü YAZILMAMIŞ kolon tanımsızdır ve okunmaz:
         #  içinde kalmış bir değer projeyi durdurmamalı.  Yazılmışsa okunur —
         #  "abc" yazılmış anma yükü eskiden kolonu sessizce tanımsız yapıyordu.
-        if not a.get("aktif", True) or (_bos_mu(a.get("kapasite"))
-                                        and _bos_mu(a.get("Q_elle"))):
+        if not a.get("aktif", True) or (_bos_mu(a.get("kapasite")) and _bos_mu(a.get("Q_elle"))):
             asansorler.append(None)
             continue
-        asansorler.append(_temiz(a, AVAN_AS_SAYISAL, f"{sira} NOLU ASANSÖR: ",
-                                 AVAN_AS_ETIKET))
-    sb = _sabitler_coz(v.get("sabitler"), AVAN_METIN_SABITLER,
-                       lambda k: f"Ofis standardı · {AVAN_ORTAK_ETIKET.get(k, k)}")
-    return {"ortak": ortak, "asansorler": asansorler, "sabitler": sb,
-            "trafik": _trafik_koprusu(v.get("trafik"))}
+        asansorler.append(_temiz(a, AVAN_AS_SAYISAL, f"{sira} NOLU ASANSÖR: ", AVAN_AS_ETIKET))
+    sb = _sabitler_coz(
+        v.get("sabitler"), AVAN_METIN_SABITLER, lambda k: f"Ofis standardı · {AVAN_ORTAK_ETIKET.get(k, k)}"
+    )
+    return {
+        "ortak": ortak,
+        "asansorler": asansorler,
+        "sabitler": sb,
+        "trafik": _trafik_koprusu(v.get("trafik")),
+    }
 
 
 def _trafik_koprusu(ham):
@@ -159,14 +235,19 @@ def _trafik_koprusu(ham):
         return {}
     liste = []
     for a in _sozluk_listesi(ham.get("asansorler"))[:4]:
-        liste.append({"P": _sayi(a.get("P")), "V": _sayi(a.get("V")),
-                      "toplam_seyahat": _sayi(a.get("toplam_seyahat"))})
+        liste.append(
+            {"P": _sayi(a.get("P")), "V": _sayi(a.get("V")), "toplam_seyahat": _sayi(a.get("toplam_seyahat"))}
+        )
     if not liste:
         return {}
-    return {"tip": ham.get("tip") if ham.get("tip") in ("tek", "coklu") else None,
-            "N": _sayi(ham.get("N")), "bodrum": _sayi(ham.get("bodrum")),
-            "h": _sayi(ham.get("h")), "adet": _sayi(ham.get("adet")),
-            "asansorler": liste}
+    return {
+        "tip": ham.get("tip") if ham.get("tip") in ("tek", "coklu") else None,
+        "N": _sayi(ham.get("N")),
+        "bodrum": _sayi(ham.get("bodrum")),
+        "h": _sayi(ham.get("h")),
+        "adet": _sayi(ham.get("adet")),
+        "asansorler": liste,
+    }
 
 
 def _avan_sonuc(veri):
@@ -191,8 +272,7 @@ def secenekler():
     return {
         "bina_tipleri": E_TAB.BINA_TIPLERI,
         #  ⑤ / ⑥ kutularının bina tipine göre etiketi —  red metni de aynı adı söyler.
-        "hizli_etiketleri": {bt: E_TRF.hizli_etiketleri(bt)
-                             for bt in ("", *E_TAB.BINA_TIPLERI)},
+        "hizli_etiketleri": {bt: E_TRF.hizli_etiketleri(bt) for bt in ("", *E_TAB.BINA_TIPLERI)},
         #  Kapakta hesaptan dolan alanlar ( engine/avan/kapak.py ).
         "kapak_turetilen": list(E_KAPAK.ALANLAR),
         "kapi_genislikleri": E_TAB.KAPI_GENISLIKLERI,
@@ -239,7 +319,7 @@ def api_trafik(veri: dict = Body(...)):
         #  gri yer tutucu olarak görünür, çıktıya o basılır ).
         s["kapak_bilgileri"] = E_KAPAK.trafikten(s)
         return JSONResponse(json.loads(json.dumps(s, default=str)))
-    except Exception as e:                                    # noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         return JSONResponse({"hata": f"HESAP HATASI: {e}"}, status_code=200)
 
 
@@ -251,7 +331,7 @@ def api_avan(veri: dict = Body(...)):
             return yanit
         s["kapak_bilgileri"] = E_KAPAK.avandan(s)
         return JSONResponse(json.loads(json.dumps(s, default=str)))
-    except Exception as e:                                    # noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         return JSONResponse({"hata": f"HESAP HATASI: {e}"}, status_code=200)
 
 
@@ -265,9 +345,8 @@ def indir_trafik_pdf(veri: dict = Body(...)):
         s = E_TRF.hesapla(g)
         ek = "Trafik Hesabi" if s.get("yol") == "tek" else "Coklu Asansor Trafik"
         _p = _proje_kimligi(veri)
-        return _indir(X_PDF.trafik_pdf(s, _p),
-                      _dosya_adi(_p, ek, "pdf"), "application/pdf")
-    except Exception as e:                                    # noqa: BLE001
+        return _indir(X_PDF.trafik_pdf(s, _p), _dosya_adi(_p, ek, "pdf"), "application/pdf")
+    except Exception as e:  # noqa: BLE001
         return _uretilemedi(e)
 
 
@@ -278,9 +357,8 @@ def indir_avan_pdf(veri: dict = Body(...)):
         if yanit is not None:
             return yanit
         _p = _proje_kimligi(veri)
-        return _indir(X_PDF.avan_pdf(s, _p),
-                      _dosya_adi(_p, "Avan Hesaplari", "pdf"), "application/pdf")
-    except Exception as e:                                    # noqa: BLE001
+        return _indir(X_PDF.avan_pdf(s, _p), _dosya_adi(_p, "Avan Hesaplari", "pdf"), "application/pdf")
+    except Exception as e:  # noqa: BLE001
         return _uretilemedi(e)
 
 
@@ -297,10 +375,13 @@ def indir_proje_dwg(veri: dict = Body(...)):
     """
     if X_DXF is None:
         return JSONResponse(
-            {"hata": "HESAP HATASI: CAD çıktısı için gereken kitaplıklar kurulu değil "
-                     f"( {_DXF_HATA} ).  Programı kapatıp {_BASLATICI} dosyasını "
-                     "yeniden çalıştırın; eksik kitaplıklar kendiliğinden kurulur."},
-            status_code=200)
+            {
+                "hata": "HESAP HATASI: CAD çıktısı için gereken kitaplıklar kurulu değil "
+                f"( {_DXF_HATA} ).  Programı kapatıp {_BASLATICI} dosyasını "
+                "yeniden çalıştırın; eksik kitaplıklar kendiliğinden kurulur."
+            },
+            status_code=200,
+        )
     try:
         paftalar = []
         kapak = veri.get("kapak") if isinstance(veri.get("kapak"), dict) else None
@@ -328,8 +409,12 @@ def indir_proje_dwg(veri: dict = Body(...)):
 
         if not paftalar:
             return JSONResponse(
-                {"hata": "HESAP HATASI: Projede hiç sayfa yok — önce kapağı doldurun "
-                         "ya da trafik / avan hesabını yapın."}, status_code=200)
+                {
+                    "hata": "HESAP HATASI: Projede hiç sayfa yok — önce kapağı doldurun "
+                    "ya da trafik / avan hesabını yapın."
+                },
+                status_code=200,
+            )
 
         ad = _dosya_adi(_proje_kimligi(veri), "Avan Projesi", "zip")
         #  Pakete PROJE DOSYASI da girer:  teslim paketi ile geri dönüş
@@ -341,11 +426,11 @@ def indir_proje_dwg(veri: dict = Body(...)):
         #  Kullanıcının BİLMESİ GEREKENLER başlıkta taşınır:
         #    DXF   → DWG üretilemedi, pakette yalnız DXF var ( sebebi OKUBENI'de )
         #    TASMA → paftalar formatın çerçevesine sığmadı, taşan sayfalar var
-        notlar = ((["DXF"] if sebep else []) + (["TASMA"] if tasti else []))
+        notlar = (["DXF"] if sebep else []) + (["TASMA"] if tasti else [])
         if notlar:
             yanit.headers["X-Avan-Not"] = ",".join(notlar)
         return yanit
-    except Exception as e:                                    # noqa: BLE001
+    except Exception as e:  # noqa: BLE001
         return _uretilemedi(e)
 
 
@@ -353,10 +438,10 @@ def indir_proje_dwg(veri: dict = Body(...)):
 def indir_kapak_pdf(veri: dict = Body(...)):
     """Hesap motorundan bağımsız, tek sayfalık avan proje kapağı."""
     try:
-        return _indir(X_KAPAK.pdf_bytes(veri.get("kapak")),
-                      _dosya_adi(_proje_kimligi(veri), "Kapak", "pdf"),
-                      "application/pdf")
-    except Exception as e:                                    # noqa: BLE001
+        return _indir(
+            X_KAPAK.pdf_bytes(veri.get("kapak")),
+            _dosya_adi(_proje_kimligi(veri), "Kapak", "pdf"),
+            "application/pdf",
+        )
+    except Exception as e:  # noqa: BLE001
         return _uretilemedi(e)
-
-

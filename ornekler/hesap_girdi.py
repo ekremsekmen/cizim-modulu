@@ -11,50 +11,82 @@ hesap ile çizim aynı sayıyı kullanır, referans projenin ikisi ise çelişiy
   aski_kaciklik_x     boş   çizimden:  halatlar ağırlık kasnağının kabine yakın
                             teğetinden iner, askı ray ekseninin 250 önünde ( −250 );
                             referans hesabı 0 alır ( askı ray ekseninde )."""
-from cizim import sabitler as _CS   # noqa: E402
+
+from cizim import sabitler as _CS  # noqa: E402
 
 ASANSOR = {
     "asansor_adi": "ASANSÖR 1",
     "asansor_tipi": "İnsan asansörü",
-    "beyan_yuku": 800, "kabin_agirligi": 900, "beyan_hizi": 1.6,
-    "aski_orani": 2, "seyir_mesafesi": 29.0, "son_kat_yuksekligi": 5000, "kuyu_dibi": 1500,
-    "kabin_genisligi": 1350, "kabin_derinligi": 1400,
-    "kat_kapisi_tipi": "Teleskopik Sol", "kapi_genisligi": 900,
+    "beyan_yuku": 800,
+    "kabin_agirligi": 900,
+    "beyan_hizi": 1.6,
+    "aski_orani": 2,
+    "seyir_mesafesi": 29.0,
+    "son_kat_yuksekligi": 5000,
+    "kuyu_dibi": 1500,
+    "kabin_genisligi": 1350,
+    "kabin_derinligi": 1400,
+    "kat_kapisi_tipi": "Teleskopik Sol",
+    "kapi_genisligi": 900,
     "ray_kapi_arasi": 1017,
     "tahrik_kasnak_capi": 240,
-    "halat_capi": 6.5, "halat_adedi": 7, "halat_birim_kutle": 0.179, "halat_kopma_kN": 31.5,
-    "sarilma_acisi": 180, "kanal_sekli": "V Kanal", "kanal_isleme": "Sertleştirilmiş",
+    "halat_capi": 6.5,
+    "halat_adedi": 7,
+    "halat_birim_kutle": 0.179,
+    "halat_kopma_kN": 31.5,
+    "sarilma_acisi": 180,
+    "kanal_sekli": "V Kanal",
+    "kanal_isleme": "Sertleştirilmiş",
     #  Nps · Npr formda yok:  çizilen kasnaklardan ( 2:1 → 2 · 0, referans projeyle aynı )
     "acil_frenleme_a": 0.5,
-    "denge_zinciri": "Var", "kasnak_belgesi": "Var",
-    "motor_gucu": 11.3, "makine_tst": 3400, "makine_verimi": 0.8415, "makine_tipi": "Dişlisiz",
+    "denge_zinciri": "Var",
+    "kasnak_belgesi": "Var",
+    "motor_gucu": 11.3,
+    "makine_tst": 3400,
+    "makine_verimi": 0.8415,
+    "makine_tipi": "Dişlisiz",
     #  MRL:  makine şasesi raylara oturur ( referans proje "Motor Bedplate Calculation":
     #  şase kabin ve ağırlık raylarına dayanır;  motor 250 kg ).  Hesap programı
     #  bir raya ( Gm + Tst ) / 4 yükler ( m.5.7.2.3.7 );  referans proje kendi paftasında
     #  raya 800 kg ( ray hesabında 1.000 kg ) KABUL eder.
-    "makine_raya_biniyor": "Kılavuz raylara", "makine_agirligi": 250,
+    "makine_raya_biniyor": "Kılavuz raylara",
+    "makine_agirligi": 250,
     #  Makinenin oturduğu kirişler ( bölüm 2 ):  referans proje "Motor Bedplate
     #  Calculation" — Wa 191.000 mm³ ( UPN 200 ), L 850 ( karşı ağırlık rayları
     #  arası;  kirişler o raylara oturur ).  L girdi değildir:  çizimden ( DBGW ).
     "yan_yatak": 200,
     "kablo_birim_kutle": 0.44,
-    "kabin_ray_profili": "89 x 62 x 15,88", "agirlik_ray_profili": "70 x 65 x 9",
-    "kabin_konsol_arasi": 1500, "agirlik_konsol_arasi": 1500, "ray_celigi_rm": 450,
+    "kabin_ray_profili": "89 x 62 x 15,88",
+    "agirlik_ray_profili": "70 x 65 x 9",
+    "kabin_konsol_arasi": 1500,
+    "agirlik_konsol_arasi": 1500,
+    "ray_celigi_rm": 450,
     #  Ağırlık paten arası:  referans proje hesabında 1.500, çiziminde 140'lık patenler
     #  2.920'lik çerçevenin üstünde ve altında — merkezleri arası 3.060.  Çizim
     #  çerçeveyi bundan kurar ( paten arası − paten );  hesap ile pafta aynı şeyi
     #  söylesin diye referans projenin çizimindeki 3.060 ( 8 Eki'ye dek 2.920 ).
-    "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 3060,
-    "paten_tipi": "Kaymalı", "agirlik_paten_tipi": "Makaralı", "guvenlik_tertibati": "Kaymalı",
-    "agirlik_yeri": "Sol", "agirlik_genisligi": 790, "agirlik_derinligi": 160,
+    "kabin_paten_arasi": 3300,
+    "agirlik_paten_arasi": 3060,
+    "paten_tipi": "Kaymalı",
+    "agirlik_paten_tipi": "Makaralı",
+    "guvenlik_tertibati": "Kaymalı",
+    "agirlik_yeri": "Sol",
+    "agirlik_genisligi": 790,
+    "agirlik_derinligi": 160,
     #  Regülatör:  referans proje "Speed Governor Calculation" — kasnak ø240, halat ø6,0
-    "reg_kasnak_capi": 240, "reg_halat_capi": 6,
+    "reg_kasnak_capi": 240,
+    "reg_halat_capi": 6,
     "tampon_tipi": "Hidrolik  ( enerji yutmalı )",
-    "kabin_tampon_adedi": 1, "agirlik_tampon_adedi": 1,
-    "kabin_tampon_boyu": 618, "kabin_tampon_ezilme": 203,
+    "kabin_tampon_adedi": 1,
+    "agirlik_tampon_adedi": 1,
+    "kabin_tampon_boyu": 618,
+    "kabin_tampon_ezilme": 203,
     "kabin_carpma_arasi": 96,
-    "agirlik_tampon_baba": 300, "agirlik_tampon_ezilme": 203, "agirlik_carpma_arasi": 150,
-    "siginma_tipi_ust": "Çömelme", "siginma_tipi_dip": "Çömelme",
+    "agirlik_tampon_baba": 300,
+    "agirlik_tampon_ezilme": 203,
+    "agirlik_carpma_arasi": 150,
+    "siginma_tipi_ust": "Çömelme",
+    "siginma_tipi_dip": "Çömelme",
     "kuyu_genisligi": 2100,
     #  Boş:  çizimden ( cizim/kopru.CIZIMDEN ).  Formda sorulmayanlar ( tasarım
     #  şeması ) burada da yok:  saptırma kasnaklarının çapı çizilen kasnaklardan
@@ -70,11 +102,17 @@ ASANSOR = {
     #  ekseninin 280 arkasında.  Öbür çizim alanları formun varsayılanıyla aynı:
     #  duvar 150, kapı kuyu içine, eşik arası 30, DBG 1.350 + 200, DBGW 790 + 60,
     #  ağırlık ekseni – duvar 160 / 2 + 50.
-    "kuyu_derinligi": 1850, "durak_adedi": 11, "kabin_yana_kaciklik": 130,
-    "kapi_yuksekligi": 2100, "kabin_ic_yuksekligi": 2250,
-    "agirlik_eksen_kaciklik": -50, "agirlik_kasnak_capi": 400,
-    "kabin_kasnak_capi": 240, "kabin_kasnak_arasi": 1380,
-    "agirlik_tampon_boyu": 618, "regulator_kaciklik": 280,
+    "kuyu_derinligi": 1850,
+    "durak_adedi": 11,
+    "kabin_yana_kaciklik": 130,
+    "kapi_yuksekligi": 2100,
+    "kabin_ic_yuksekligi": 2250,
+    "agirlik_eksen_kaciklik": -50,
+    "agirlik_kasnak_capi": 400,
+    "kabin_kasnak_capi": 240,
+    "kabin_kasnak_arasi": 1380,
+    "agirlik_tampon_boyu": 618,
+    "regulator_kaciklik": 280,
 }
 #  Ofis standardı ( Sabitler sekmesi ):  referans projenin kabulleri ve KABİNİ.
 #  Programın ofis standardı ofisin kendi ( LiftDesigner ) kabinidir ( 5. adım,
@@ -102,9 +140,15 @@ ORTAK = {"mk_yok": True}
 #    makine_tst         3.400 kg — referans proje makinesinin değeri AYNEN kaldı ( A 160'ın
 #                       katalog değeri elde yok );  hesapta kasnağa gelen 1.581 kg
 ASANSOR_MD = {k: v for k, v in ASANSOR.items() if k not in ("makine_verimi", "makine_raya_biniyor")}
-ASANSOR_MD.update({
-    "makine_tipi": "Dişli", "makine_agirligi": 350, "motor_gucu": 15,
-    "tabliye_yuksekligi": 1200, "sase_yuksekligi": 1100, "dikine_kiris": 120,
-    "yan_yatak": 140,             # kaidenin açıklığı çizimden ( halatlara ortalı, makineyi sarar )
-})
+ASANSOR_MD.update(
+    {
+        "makine_tipi": "Dişli",
+        "makine_agirligi": 350,
+        "motor_gucu": 15,
+        "tabliye_yuksekligi": 1200,
+        "sase_yuksekligi": 1100,
+        "dikine_kiris": 120,
+        "yan_yatak": 140,  # kaidenin açıklığı çizimden ( halatlara ortalı, makineyi sarar )
+    }
+)
 ORTAK_MD = {"mk_yok": False, "mk_uzunluk": 3800, "mk_genislik": 2600}

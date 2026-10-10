@@ -9,6 +9,7 @@ Yeniden üretmek DAVRANIŞI DEĞİŞTİRME İZNİDİR.  Refactor sırasında ASL
 TEST 10'un gösterdiği farklar tek tek incelenip onaylandığında çalıştırılır.
 ( Altın çıktının kuralıyla aynı — bkz. altin_uret.py. )
 """
+
 import gzip
 import json
 import os
@@ -16,8 +17,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from testler import test_avan_tarama as T1                        # noqa: E402
-from testler import test_mukavemet_tarama as T10                  # noqa: E402
+from testler import test_avan_tarama as T1  # noqa: E402
+from testler import test_mukavemet_tarama as T10  # noqa: E402
 
 
 def yaz(kayit, dosya):
@@ -27,8 +28,7 @@ def yaz(kayit, dosya):
         with gzip.GzipFile(fileobj=ham_dosya, mode="wb", mtime=0) as f:
             f.write(ham.encode("utf-8"))
     adet = sum(len(v) for v in kayit.values())
-    print(f"  {os.path.basename(dosya):28} {adet:4} senaryo  ·  "
-          f"{os.path.getsize(dosya) / 1024:5.0f} KB")
+    print(f"  {os.path.basename(dosya):28} {adet:4} senaryo  ·  {os.path.getsize(dosya) / 1024:5.0f} KB")
 
 
 if __name__ == "__main__":

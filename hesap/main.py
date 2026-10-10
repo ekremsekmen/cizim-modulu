@@ -9,6 +9,7 @@ Yerel sunucu + tarayıcı arayüzü.  Çalıştırmak için:
 Tarayıcı kendiliğinden açılır (http://127.0.0.1:8780).
 Program tümüyle bilgisayarınızda çalışır, internet gerektirmez.
 """
+
 import json
 import hashlib
 import os
@@ -34,8 +35,7 @@ KOK = os.path.dirname(os.path.abspath(__file__))
 #  çizimli kopyasıdır, aynı porta düşüp ötekinin penceresine yönlenmesin.
 PORT = int(os.environ.get("AVAN_PORT", "8780"))
 
-app = FastAPI(title="Asansör Proje Programı", version=SURUM,
-              docs_url=None, redoc_url=None)
+app = FastAPI(title="Asansör Proje Programı", version=SURUM, docs_url=None, redoc_url=None)
 
 
 # ------------------------------------------------------------------ yardımcı
@@ -52,17 +52,17 @@ app = FastAPI(title="Asansör Proje Programı", version=SURUM,
 BELIRSIZ_SAYI = re.compile(r"^[+-]?[1-9]\d{0,2}[.,]\d{3}$")
 
 
-
 from api import avan as UC_AVAN
 from api import cizim as UC_CIZIM
 from api import uygulama as UC_UYGULAMA
-from api.ortak import (_BELIRSIZ, _RED, _sayi, belirsiz_sayi_mi)   # noqa: F401
+from api.ortak import _BELIRSIZ, _RED, _sayi, belirsiz_sayi_mi  # noqa: F401
 
 #  UÇLAR İKİ PAKETTE:  avan projesi ve uygulama projesi ayrı dosyalarda
 #  ( bkz. api/avan.py · api/uygulama.py ).  Ortak yardımcılar api/ortak.py.
 app.include_router(UC_AVAN.router)
 app.include_router(UC_UYGULAMA.router)
 app.include_router(UC_CIZIM.router)
+
 
 @app.get("/", response_class=HTMLResponse)
 def anasayfa():
@@ -100,6 +100,7 @@ app.mount("/static", StaticFiles(directory=os.path.join(KOK, "static")), name="s
 def _bos_port(ilk, deneme=20):
     """İlk boş portu bulur — program zaten açıksa ikinci kopya çakışmasın."""
     import socket
+
     for p in range(ilk, ilk + deneme):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -115,14 +116,16 @@ def _zaten_calisiyor(port):
     """Bu portta bizim programımız mı çalışıyor?"""
     try:
         import urllib.request
+
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/saglik", timeout=2) as c:
             return json.loads(c.read()).get("durum") == "calisiyor"
-    except Exception:                                         # noqa: BLE001
+    except Exception:  # noqa: BLE001
         return False
 
 
 def calistir():
     import uvicorn
+
     port = PORT
     if _zaten_calisiyor(port):
         url = f"http://127.0.0.1:{port}"
@@ -132,11 +135,12 @@ def calistir():
     if _bos_port(port, 1) is None:
         yeni = _bos_port(port + 1)
         if yeni is None:
-            print(f"\n  {port} ve sonraki portlar dolu. Başka bir program bu portları "
-                  "kullanıyor olabilir.\n  Bilgisayarı yeniden başlatıp tekrar deneyin.\n")
+            print(
+                f"\n  {port} ve sonraki portlar dolu. Başka bir program bu portları "
+                "kullanıyor olabilir.\n  Bilgisayarı yeniden başlatıp tekrar deneyin.\n"
+            )
             return
-        print(f"\n  {port} portu başka bir program tarafından kullanılıyor — "
-              f"{yeni} portuna geçildi.")
+        print(f"\n  {port} portu başka bir program tarafından kullanılıyor — {yeni} portuna geçildi.")
         port = yeni
 
     url = f"http://127.0.0.1:{port}"

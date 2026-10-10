@@ -5,6 +5,7 @@ Bu modül hesap motorundan ve mevcut PDF raporlarından bağımsızdır. Pafta
 çizgileri ile metinler tek adımda ReportLab tarafından çizilir; kaynak PDF,
 arka plan veya ikinci bir katman kullanılmaz.
 """
+
 from __future__ import annotations
 
 import io
@@ -75,8 +76,7 @@ def _satirlar(text, width, size, height):
     k = (len(parca) + 1) // 2
     iki = [ayrac.join(parca[:k]) + ayrac.rstrip(), ayrac.join(parca[k:])]
     #  İki satır hücre yüksekliğine sığmalı:  satır aralığı ~ 1,05 punto.
-    punto = min(min(_fit(x, width, size, IKI_SATIR_EN_KUCUK) for x in iki),
-                (height - 0.6) / 2.1)
+    punto = min(min(_fit(x, width, size, IKI_SATIR_EN_KUCUK) for x in iki), (height - 0.6) / 2.1)
     if all(pdfmetrics.stringWidth(x, F, punto) <= max(width - 2, 1) for x in iki):
         return iki, punto
     return [text], tek
@@ -99,9 +99,15 @@ def _center(c, value, x0, x1, top, bottom, size=7.0, color=BLACK, bold=False):
     satirlar, font_size = _satirlar(text, x1 - x0, size, abs(bottom - top))
     c.setFont(font, font_size)
     c.setFillColor(color)
-    _yaz(c, satirlar, font, font_size,
-         lambda t: x0 + max(1.1, ((x1 - x0) - pdfmetrics.stringWidth(t, font, font_size)) / 2),
-         top, bottom)
+    _yaz(
+        c,
+        satirlar,
+        font,
+        font_size,
+        lambda t: x0 + max(1.1, ((x1 - x0) - pdfmetrics.stringWidth(t, font, font_size)) / 2),
+        top,
+        bottom,
+    )
 
 
 def _left(c, value, x0, x1, top, bottom, size=6.4, color=BLACK, padding=2.0, bold=False):
@@ -150,7 +156,7 @@ def _wrapped(c, value, x0, x1, top, bottom, size=5.7, color=BLACK, padding=2.0):
         lines = _sar(font_size)
     if len(lines) > _azami(font_size):
         #  En küçük puntoda bile sığmıyor — kırpıldığı ÇIKTIDA görünsün.
-        lines = lines[:_azami(font_size)]
+        lines = lines[: _azami(font_size)]
         lines[-1] = lines[-1].rstrip() + " …"
     lines = lines or [text]
     line_height = font_size * 1.15
@@ -196,47 +202,68 @@ def _structure(c):
 
     # Yapı
     _box(c, 89.8, 119.6, 504.1, 137.4, 0.55)
-    for x in [149.0, 242.4]: _v(c, x, 119.6, 137.4)
+    for x in [149.0, 242.4]:
+        _v(c, x, 119.6, 137.4)
     _h(c, 149.0, 504.1, 128.5)
     _center(c, "YAPININ", 89.8, 149.0, 119.6, 137.4, 6.7)
     _center(c, "SAHİBİ", 149.0, 242.4, 119.6, 128.5, 6.7)
     _center(c, "KULLANIM AMACI", 149.0, 242.4, 128.5, 137.4, 6.4)
 
     _box(c, 89.8, 143.8, 504.1, 161.5, 0.55)
-    for x in [149.0, 242.4]: _v(c, x, 143.8, 161.5)
+    for x in [149.0, 242.4]:
+        _v(c, x, 143.8, 161.5)
     _h(c, 149.0, 504.1, 152.7)
     _center(c, "YÜKLENİCİ", 89.8, 149.0, 143.8, 161.5, 6.7)
     _center(c, "VERGİ DAİRESİ ve NUMARASI", 149.0, 242.4, 152.7, 161.5, 6.0)
 
     _box(c, 89.8, 168.0, 504.1, 185.7, 0.55)
-    for x in [149.0, 203.1, 256.4, 321.5, 369.6, 419.3, 455.4]: _v(c, x, 168.0, 185.7)
+    for x in [149.0, 203.1, 256.4, 321.5, 369.6, 419.3, 455.4]:
+        _v(c, x, 168.0, 185.7)
     _h(c, 149.0, 504.1, 176.8)
     _center(c, "ARSANIN", 89.8, 149.0, 168.0, 185.7, 6.7)
     for title, x0, x1 in [
-        ("İLİ",149.0,203.1),("İLÇESİ",203.1,256.4),("MAHALLESİ",256.4,321.5),
-        ("YÜZÖLÇÜMÜ",321.5,369.6),("PAFTA NO",369.6,419.3),("ADA NO",419.3,455.4),("PARSEL NO",455.4,504.1)]:
+        ("İLİ", 149.0, 203.1),
+        ("İLÇESİ", 203.1, 256.4),
+        ("MAHALLESİ", 256.4, 321.5),
+        ("YÜZÖLÇÜMÜ", 321.5, 369.6),
+        ("PAFTA NO", 369.6, 419.3),
+        ("ADA NO", 419.3, 455.4),
+        ("PARSEL NO", 455.4, 504.1),
+    ]:
         _center(c, title, x0, x1, 168.0, 176.8, 6.0)
 
     # Asansör teknik tablosu
     _box(c, 87.1, 189.7, 506.8, 249.9, 0.6)
     _box(c, 89.8, 192.1, 504.1, 245.5, 0.5)
     _v(c, 124.4, 192.1, 245.5)
-    for y in [202.1,211.0,220.1,229.0,236.6]: _h(c, 124.4, 504.1, y)
-    for x in [179.0,223.0,288.5,332.2,395.2]: _v(c, x, 192.1, 211.0)
+    for y in [202.1, 211.0, 220.1, 229.0, 236.6]:
+        _h(c, 124.4, 504.1, y)
+    for x in [179.0, 223.0, 288.5, 332.2, 395.2]:
+        _v(c, x, 192.1, 211.0)
     _v(c, 369.6, 202.1, 211.0)
-    for x in [178.5,222.8,288.1,331.7,394.8]: _v(c, x, 211.0, 229.0)
-    for x in [174.3,288.3,332.0,395.0]: _v(c, x, 229.0, 245.5)
+    for x in [178.5, 222.8, 288.1, 331.7, 394.8]:
+        _v(c, x, 211.0, 229.0)
+    for x in [174.3, 288.3, 332.0, 395.0]:
+        _v(c, x, 229.0, 245.5)
     _center(c, "BLOK:", 89.8, 124.4, 192.1, 211.0, 10.0)
     for title, x0, x1 in [
-        ("Taşıma Kapasitesi",124.4,179.0),("Asansör Hızı",179.0,223.0),
-        ("Durak Sayısı",223.0,288.5),("Seyir Mesafesi",288.5,332.2),
-        ("Kabin Ölçüleri",332.2,395.2),("Standart / Yönetmelik",395.2,504.1)]:
+        ("Taşıma Kapasitesi", 124.4, 179.0),
+        ("Asansör Hızı", 179.0, 223.0),
+        ("Durak Sayısı", 223.0, 288.5),
+        ("Seyir Mesafesi", 288.5, 332.2),
+        ("Kabin Ölçüleri", 332.2, 395.2),
+        ("Standart / Yönetmelik", 395.2, 504.1),
+    ]:
         _center(c, title, x0, x1, 192.1, 202.1, 5.8)
     _left(c, "G:", 332.2, 343.0, 202.1, 211.0, 6.0, padding=1.2)
     _left(c, "D:", 369.6, 378.0, 202.1, 211.0, 6.0, padding=1.0)
     for title, x0, x1 in [
-        ("Asansör Sınıfı",124.4,178.5),("Askı Tipi",178.5,222.8),
-        ("Asansör Sayısı",222.8,288.1),("Tahrik Cinsi",288.1,331.7),("Ray Ölçüsü",331.7,394.8)]:
+        ("Asansör Sınıfı", 124.4, 178.5),
+        ("Askı Tipi", 178.5, 222.8),
+        ("Asansör Sayısı", 222.8, 288.1),
+        ("Tahrik Cinsi", 288.1, 331.7),
+        ("Ray Ölçüsü", 331.7, 394.8),
+    ]:
         _center(c, title, x0, x1, 211.0, 220.1, 5.8)
     _center(c, "M. Motor Gücü", 124.4, 174.3, 229.0, 236.6, 5.8)
     _left(c, "Ölçek", 174.3, 288.3, 229.0, 236.6, 5.8, padding=2.2)
@@ -247,16 +274,22 @@ def _structure(c):
         _h(c, left, right, 266.9)
         _v(c, number_right, 266.9, 362.3)
         _v(c, label_right, 266.9, 311.3)
-        for y in [275.8,284.7,293.5,302.4,311.3]: _h(c, left, right, y)
+        for y in [275.8, 284.7, 293.5, 302.4, 311.3]:
+            _h(c, left, right, y)
         _left(c, heading, left, right, 253.6, 266.9, 5.0, padding=1.4)
         for no, label, top, bottom in [
-            (1,"VERGİ DAİRESİ",266.9,275.8),(2,"SİCİL NO",275.8,284.7),
-            (3,"SOYADI",284.7,293.5),(4,"ADI",293.5,302.4),(5,"ODA SİCİL NO",302.4,311.3)]:
+            (1, "VERGİ DAİRESİ", 266.9, 275.8),
+            (2, "SİCİL NO", 275.8, 284.7),
+            (3, "SOYADI", 284.7, 293.5),
+            (4, "ADI", 293.5, 302.4),
+            (5, "ODA SİCİL NO", 302.4, 311.3),
+        ]:
             _center(c, no, left, number_right, top, bottom, 5.5)
             _left(c, label, number_right, label_right, top, bottom, 5.7, padding=1.5)
         _vertical(c, "İMZASI", left, number_right, 311.3, 362.3)
-    engineer(89.4,297.0,107.1,182.5,"PLAN PROJE RESİM VE HESAPLARI YAPAN MAKİNA MÜHENDİSİ")
-    engineer(311.1,506.8,329.8,405.3,"PLAN PROJE RESİM VE HESAPLARI YAPAN ELEKTRİK MÜHENDİSİ")
+
+    engineer(89.4, 297.0, 107.1, 182.5, "PLAN PROJE RESİM VE HESAPLARI YAPAN MAKİNA MÜHENDİSİ")
+    engineer(311.1, 506.8, 329.8, 405.3, "PLAN PROJE RESİM VE HESAPLARI YAPAN ELEKTRİK MÜHENDİSİ")
 
     _box(c, 87.1, 362.3, 506.8, 464.2, 0.55)
 
@@ -269,10 +302,14 @@ def _structure(c):
     _h(c, 284.2, 506.8, 505.6)
     _v(c, 302.1, 505.6, 631.7)
     _v(c, 377.4, 505.6, 558.9)
-    for y in [523.4,532.2,541.1,558.9]: _h(c, 284.2, 506.8, y)
+    for y in [523.4, 532.2, 541.1, 558.9]:
+        _h(c, 284.2, 506.8, y)
     for no, label, top, bottom in [
-        (1,"ADI SOYADI / UNVANI",505.6,523.4),(2,"VERGİ NO",523.4,532.2),
-        (3,"VERGİ DAİRESİ",532.2,541.1),(4,"ADRESİ",541.1,558.9)]:
+        (1, "ADI SOYADI / UNVANI", 505.6, 523.4),
+        (2, "VERGİ NO", 523.4, 532.2),
+        (3, "VERGİ DAİRESİ", 532.2, 541.1),
+        (4, "ADRESİ", 541.1, 558.9),
+    ]:
         _center(c, no, 284.2, 302.1, top, bottom, 5.5)
         _left(c, label, 302.1, 377.4, top, bottom, 5.7, padding=1.6)
     _vertical(c, "İMZASI", 284.2, 302.1, 558.9, 631.7)
@@ -290,30 +327,44 @@ def _values(c, d: Mapping[str, object]):
     _left(c, d.get("contractor"), 242.4, 504.1, 143.8, 152.7, 5.7)
     _left(c, d.get("contractor_tax"), 242.4, 504.1, 152.7, 161.5, 5.7)
     for key, x0, x1, size in [
-        ("city",149.0,203.1,6.0),("district",203.1,256.4,6.0),("neighborhood",256.4,321.5,5.8),
-        ("area",321.5,369.6,5.7),("sheet_no",369.6,419.3,5.7),("island_no",419.3,455.4,5.7),("parcel_no",455.4,504.1,5.7)]:
+        ("city", 149.0, 203.1, 6.0),
+        ("district", 203.1, 256.4, 6.0),
+        ("neighborhood", 256.4, 321.5, 5.8),
+        ("area", 321.5, 369.6, 5.7),
+        ("sheet_no", 369.6, 419.3, 5.7),
+        ("island_no", 419.3, 455.4, 5.7),
+        ("parcel_no", 455.4, 504.1, 5.7),
+    ]:
         _center(c, d.get(key), x0, x1, 176.8, 185.7, size)
 
     # Asansör
     _center(c, d.get("block"), 89.8, 124.4, 211.0, 245.5, 12.0)
     for key, x0, x1 in [
-        ("capacity",124.4,179.0),("speed",179.0,223.0),("stops",223.0,288.5),
-        ("travel",288.5,332.2),("standard",395.2,504.1)]:
+        ("capacity", 124.4, 179.0),
+        ("speed", 179.0, 223.0),
+        ("stops", 223.0, 288.5),
+        ("travel", 288.5, 332.2),
+        ("standard", 395.2, 504.1),
+    ]:
         _center(c, d.get(key), x0, x1, 202.1, 211.0, 7.0, RED)
     _left(c, d.get("cabin_width"), 343.0, 369.6, 202.1, 211.0, 7.0, RED, 1.0)
     _left(c, d.get("cabin_depth"), 378.0, 395.2, 202.1, 211.0, 7.0, RED, 0.8)
     for key, x0, x1 in [
-        ("elevator_class",124.4,178.5),("suspension",178.5,222.8),("elevator_count",222.8,288.1),
-        ("drive_type",288.1,331.7),("rail_size",331.7,394.8)]:
+        ("elevator_class", 124.4, 178.5),
+        ("suspension", 178.5, 222.8),
+        ("elevator_count", 222.8, 288.1),
+        ("drive_type", 288.1, 331.7),
+        ("rail_size", 331.7, 394.8),
+    ]:
         _center(c, d.get(key), x0, x1, 220.1, 229.0, 7.0, RED)
     _center(c, d.get("motor_power"), 124.7, 174.3, 236.6, 245.5, 7.0, RED)
     _left(c, d.get("scale"), 174.3, 288.3, 236.6, 245.5, 7.0, RED)
 
     # Mühendisler
-    rows = [(266.9,275.8),(275.8,284.7),(284.7,293.5),(293.5,302.4),(302.4,311.3)]
-    for key, bounds in zip(["mech_tax","mech_registry","mech_surname","mech_name","mech_chamber"], rows):
+    rows = [(266.9, 275.8), (275.8, 284.7), (284.7, 293.5), (293.5, 302.4), (302.4, 311.3)]
+    for key, bounds in zip(["mech_tax", "mech_registry", "mech_surname", "mech_name", "mech_chamber"], rows):
         _left(c, d.get(key), 182.5, 297.0, *bounds, 6.0)
-    for key, bounds in zip(["elec_tax","elec_registry","elec_surname","elec_name","elec_chamber"], rows):
+    for key, bounds in zip(["elec_tax", "elec_registry", "elec_surname", "elec_name", "elec_chamber"], rows):
         _left(c, d.get(key), 405.3, 506.8, *bounds, 6.0)
 
     # Firma
@@ -327,8 +378,8 @@ def _values(c, d: Mapping[str, object]):
 
 #  Kapak çiziminin kendi kutusu ( _structure içindeki en dış çerçeve ) ve
 #  hesap paftalarının doldurduğu alan — ikisi de PDF puntosu cinsinden.
-CIZIM_KUTUSU = (70.0, 99.9, 525.0, 741.9)        # sol, alt, sağ, üst
-PAFTA_KENAR = 12.0 * 72.0 / 25.4                 # paftalarda 12 mm kenar boşluğu
+CIZIM_KUTUSU = (70.0, 99.9, 525.0, 741.9)  # sol, alt, sağ, üst
+PAFTA_KENAR = 12.0 * 72.0 / 25.4  # paftalarda 12 mm kenar boşluğu
 
 
 def _sayfaya_sigdir(c):
@@ -346,8 +397,7 @@ def _sayfaya_sigdir(c):
     hedef_yuk = PAGE_H - 2 * PAFTA_KENAR
     hedef_gen = PAGE_W - 2 * PAFTA_KENAR
     olcek = min(hedef_yuk / yuk, hedef_gen / gen)
-    c.translate((PAGE_W - gen * olcek) / 2 - sol * olcek,
-                (PAGE_H - yuk * olcek) / 2 - alt * olcek)
+    c.translate((PAGE_W - gen * olcek) / 2 - sol * olcek, (PAGE_H - yuk * olcek) / 2 - alt * olcek)
     c.scale(olcek, olcek)
 
 

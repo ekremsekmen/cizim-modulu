@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Test paketi için ortak yardımcılar."""
+
 import os
 import sys
 
@@ -42,14 +43,16 @@ class Rapor:
     def yazdir(self):
         toplam = self.gecti + self.kaldi
         if self.kaldi == 0:
-            print(f"   {YESIL}✔ {self.gecti}/{toplam} geçti{SIFIR}"
-                  + (f"  {GRI}({self.atlandi} atlandı){SIFIR}" if self.atlandi else ""))
+            print(
+                f"   {YESIL}✔ {self.gecti}/{toplam} geçti{SIFIR}"
+                + (f"  {GRI}({self.atlandi} atlandı){SIFIR}" if self.atlandi else "")
+            )
         else:
             print(f"   {KIRMIZI}✘ {self.kaldi} BAŞARISIZ{SIFIR}  ({self.gecti}/{toplam} geçti)")
             for h in self.hatalar[:25]:
                 print(f"       {KIRMIZI}·{SIFIR} {h}")
             if len(self.hatalar) > 25:
-                print(f"       {GRI}… ve {len(self.hatalar)-25} tane daha{SIFIR}")
+                print(f"       {GRI}… ve {len(self.hatalar) - 25} tane daha{SIFIR}")
         return self.kaldi == 0
 
 
@@ -66,12 +69,15 @@ def P_std(sonuc):
     """
     from engine.uygulama import mukavemet_tablolari as T
     from engine.uygulama import sabitler as S
+
     g = sonuc["girdi"]
     r = 2 if str(g["aski_orani"]).strip() in ("2", "2:1") else 1
     H = g["seyir_mesafesi"]
     MSR = r * H * T.halat_agirlik(g["halat_capi"]) * g["halat_adedi"]
-    lam = ((S.VARSAYILAN["denge_zinciri_orani"] or 0) / 100.0
-           if str(g.get("denge_zinciri") or "").strip() == "Var" else 0.0)
-    mt = sum(T.kablo_agirligi(g.get(k)) or 0.0
-             for k in ("kablo_tipi_1", "kablo_tipi_2"))
+    lam = (
+        (S.VARSAYILAN["denge_zinciri_orani"] or 0) / 100.0
+        if str(g.get("denge_zinciri") or "").strip() == "Var"
+        else 0.0
+    )
+    mt = sum(T.kablo_agirligi(g.get(k)) or 0.0 for k in ("kablo_tipi_1", "kablo_tipi_2"))
     return g["kabin_agirligi"] + lam * MSR + 0.5 * H * mt

@@ -23,13 +23,14 @@ Kaynak türleri ( aday["tur"] ):
 Bu modül çizimi kurmayı bilmez:  kur( degisiklik , serbest ) işlevi dışarıdan
 verilir ( hesap/api/cizim.py — formun girdisinden çizimin ölçülerine ).
 """
+
 import math
 import re
 
-ESIK = 1e-7          # bu kadarlık değişim "değişmedi" sayılır ( kayan nokta )
-KAYMA = 200.0        # dizi değiştiyse en yakın aynı sözlü ölçünün en çok kayması ( toplam )
-ADIM_OLCU = 15.0     # değiştirirken izleme adımı:  ölçü adım başına en çok bu kadar değişir
-DOGRULAMA = 0.05     # ölçü hedefe bu kadar yaklaşınca doğrulandı ( mm )
+ESIK = 1e-7  # bu kadarlık değişim "değişmedi" sayılır ( kayan nokta )
+KAYMA = 200.0  # dizi değiştiyse en yakın aynı sözlü ölçünün en çok kayması ( toplam )
+ADIM_OLCU = 15.0  # değiştirirken izleme adımı:  ölçü adım başına en çok bu kadar değişir
+DOGRULAMA = 0.05  # ölçü hedefe bu kadar yaklaşınca doğrulandı ( mm )
 
 _SAYI = re.compile(r"[-+]?\d[\d.,]*")
 
@@ -45,8 +46,13 @@ def _imza(o):
 
 
 def _uzaklik(p, q):
-    return (abs(p["a"][0] - q["a"][0]) + abs(p["a"][1] - q["a"][1])
-            + abs(p["b"][0] - q["b"][0]) + abs(p["b"][1] - q["b"][1]) + abs(p["kot"] - q["kot"]))
+    return (
+        abs(p["a"][0] - q["a"][0])
+        + abs(p["a"][1] - q["a"][1])
+        + abs(p["b"][0] - q["b"][0])
+        + abs(p["b"][1] - q["b"][1])
+        + abs(p["kot"] - q["kot"])
+    )
 
 
 def _en_yakin(o, liste, tolerans):
@@ -111,7 +117,7 @@ def _sayisal(kur, taban, ad, kaynak):
             e = kur(degisiklik, serbest=True, denetle=denetle)
             serbest = e is not None
         if e is taban:
-            return                      # çizimin girdisini hiç değiştirmiyor ( hesabın girdisi )
+            return  # çizimin girdisini hiç değiştirmiyor ( hesabın girdisi )
         if e is None:
             continue
         bagli = bagli or serbest
@@ -122,8 +128,9 @@ def _sayisal(kur, taban, ad, kaynak):
         if all(abs(d * ad["adim"]) <= ESIK for d in ds):
             continue
         s, dog = _dogrusal(ds)
-        kaynak[i].append({"kimlik": ad["kimlik"], "tur": ad["tur"], "egim": s,
-                          "dogrusal": dog, "bagli": bagli})
+        kaynak[i].append(
+            {"kimlik": ad["kimlik"], "tur": ad["tur"], "egim": s, "dogrusal": dog, "bagli": bagli}
+        )
 
 
 def _secim(kur, taban, ad, kaynak):
@@ -132,7 +139,7 @@ def _secim(kur, taban, ad, kaynak):
     Seçenekler sayıysa ( kapı genişliği ) eğim de bulunur."""
     sec = list(ad["secenekler"] or [])
     k = sec.index(ad["deger"]) if ad["deger"] in sec else -1
-    alternatif = ([sec[j] for j in (k + 1, k - 1) if 0 <= j < len(sec)] if k >= 0 else sec[:2])
+    alternatif = [sec[j] for j in (k + 1, k - 1) if 0 <= j < len(sec)] if k >= 0 else sec[:2]
     sayisal = _sayi_mi(ad["deger"]) and all(_sayi_mi(x) for x in sec)
     degisen = {}
     for v in alternatif:
@@ -146,8 +153,7 @@ def _secim(kur, taban, ad, kaynak):
         s, dog = None, False
         if sayisal:
             s, dog = _dogrusal([du / (v - ad["deger"]) for v, du in lst])
-        kaynak[i].append({"kimlik": ad["kimlik"], "tur": "secim", "egim": s,
-                          "dogrusal": dog, "bagli": False})
+        kaynak[i].append({"kimlik": ad["kimlik"], "tur": "secim", "egim": s, "dogrusal": dog, "bagli": False})
 
 
 def _sayi_mi(x):
@@ -234,9 +240,13 @@ def _bolunmus(kur, o, kimlik, x, hedef, serbest, dogrusal):
     e = kur({kimlik: x}, serbest=serbest) if dogrusal else None
     if e is not None:
         ek = 0 if o["yon"] == "yatay" else 1
-        zincir = sorted((q for q in e if q["yon"] == o["yon"] and abs(q["kot"] - o["kot"]) < 1.0),
-                        key=lambda q: min(q["a"][ek], q["b"][ek]))
-        bolundu = any(abs(max(p["a"][ek], p["b"][ek]) - min(q["a"][ek], q["b"][ek])) < 1e-6
-                      and abs(p["uzunluk"] + q["uzunluk"] - hedef) <= DOGRULAMA
-                      for p, q in zip(zincir, zincir[1:]))
+        zincir = sorted(
+            (q for q in e if q["yon"] == o["yon"] and abs(q["kot"] - o["kot"]) < 1.0),
+            key=lambda q: min(q["a"][ek], q["b"][ek]),
+        )
+        bolundu = any(
+            abs(max(p["a"][ek], p["b"][ek]) - min(q["a"][ek], q["b"][ek])) < 1e-6
+            and abs(p["uzunluk"] + q["uzunluk"] - hedef) <= DOGRULAMA
+            for p, q in zip(zincir, zincir[1:])
+        )
     return {"deger": x, "olcu": None, "dogrulandi": False, "bolundu": bolundu}

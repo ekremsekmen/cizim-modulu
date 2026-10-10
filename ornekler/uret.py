@@ -21,12 +21,18 @@ Her proje için bu klasöre ( git'e girmez ):  .dwg ( AutoCAD'in AUDIT'inden
 geçirilip kaydedilir;  AutoCAD yoksa .dxf kalır ) ve .pdf ( paftanın görüntüsü;
 rsvg-convert yoksa .svg kalır ).
 """
+
 import os, re, shutil, subprocess, sys, tempfile
+
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CIKTI = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(KOK, "hesap")); sys.path.append(KOK); sys.path.insert(0, CIKTI)
-ACC = ("/Applications/Autodesk/AutoCAD 2027/AutoCAD 2027.app/Contents/Helpers/"
-       "AcCoreConsole.app/Contents/MacOS/AcCoreConsole")
+sys.path.insert(0, os.path.join(KOK, "hesap"))
+sys.path.append(KOK)
+sys.path.insert(0, CIKTI)
+ACC = (
+    "/Applications/Autodesk/AutoCAD 2027/AutoCAD 2027.app/Contents/Helpers/"
+    "AcCoreConsole.app/Contents/MacOS/AcCoreConsole"
+)
 
 from hesap_girdi import ASANSOR, ORTAK, ASANSOR_MD, ORTAK_MD, SABITLER
 from api import cizim as UC_CIZIM, uygulama as UC_UYG
@@ -42,11 +48,17 @@ def _dwg(dxf, dwg):
         shutil.copy(dxf, src)
         open(scr, "w").write(f"REGENALL\nZOOM\nE\nAUDIT\nN\nSAVEAS\n2018\n{hedef}\nQUIT\nY\n")
         try:
-            cikti = subprocess.run([ACC, "-i", src, "-s", scr, "-l", "en-US"], stdout=subprocess.PIPE,
-                                   stderr=subprocess.STDOUT, timeout=240).stdout
-        except subprocess.TimeoutExpired as z:          # QUIT'te kalırsa:  DWG çoktan yazıldı
+            cikti = subprocess.run(
+                [ACC, "-i", src, "-s", scr, "-l", "en-US"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                timeout=240,
+            ).stdout
+        except subprocess.TimeoutExpired as z:  # QUIT'te kalırsa:  DWG çoktan yazıldı
             cikti = z.output or b""
-        denetim = re.findall(r"Total errors found \d+ fixed \d+", cikti.replace(b"\x00", b"").decode("utf-8", "ignore"))
+        denetim = re.findall(
+            r"Total errors found \d+ fixed \d+", cikti.replace(b"\x00", b"").decode("utf-8", "ignore")
+        )
         if not os.path.exists(hedef):
             return None
         shutil.move(hedef, dwg)
@@ -56,8 +68,11 @@ def _dwg(dxf, dwg):
 def uret(md):
     ad = "ÖRNEK PROJE - Makine Daireli Dişli" if md else "ÖRNEK PROJE - Makine Dairesiz"
     #  ── HESAP:  formun isteğiyle ( proje geneli ayrı, ofis standardı ayrı ) ──
-    veri = {"asansorler": [dict(ASANSOR_MD if md else ASANSOR, siginma_tipi_dip="Yatarak")],
-            "proje_geneli": dict(ORTAK_MD if md else ORTAK), "sabitler": dict(SABITLER)}
+    veri = {
+        "asansorler": [dict(ASANSOR_MD if md else ASANSOR, siginma_tipi_dip="Yatarak")],
+        "proje_geneli": dict(ORTAK_MD if md else ORTAK),
+        "sabitler": dict(SABITLER),
+    }
     asansorler, ortak = UC_UYG._asansor_girdileri(veri)
     s = E_UYG.hesapla_coklu(asansorler, ortak)
     assert s.get("aktif"), s.get("hata")
@@ -65,11 +80,20 @@ def uret(md):
     kapak = {
         "project_title": "ASANSÖR UYGULAMA PROJESİ",
         #  BLOK:  bina bloğu — referans proje projesinde yok, boş
-        "capacity": "800 KG ( 10 KİŞİ )", "speed": "1,60 m/sn", "stops": "11 DURAK",
-        "travel": "29000", "cabin_width": "1350", "cabin_depth": "1400",
-        "standard": "TS EN 81-20", "elevator_class": "Sınıf I", "suspension": "2:1",
-        "elevator_count": "1", "drive_type": "Elektrikli", "rail_size": "89*62 / 70*65",
-        "motor_power": f"{A['motor_gucu']:g} KW".replace(".", ","), "scale": "1/20 1/50",
+        "capacity": "800 KG ( 10 KİŞİ )",
+        "speed": "1,60 m/sn",
+        "stops": "11 DURAK",
+        "travel": "29000",
+        "cabin_width": "1350",
+        "cabin_depth": "1400",
+        "standard": "TS EN 81-20",
+        "elevator_class": "Sınıf I",
+        "suspension": "2:1",
+        "elevator_count": "1",
+        "drive_type": "Elektrikli",
+        "rail_size": "89*62 / 70*65",
+        "motor_power": f"{A['motor_gucu']:g} KW".replace(".", ","),
+        "scale": "1/20 1/50",
     }
     kapak_pdf = X_KAPAK.pdf_bytes(kapak)
     hesap_pdf = X_PDF.uygulama_pdf(s)
@@ -79,16 +103,23 @@ def uret(md):
     #  Hesabın girdisi + çizim alanları;  binaya gelen yükler hesabın
     #  sonucundan;  hesapla çizimin tutarlılığı ( sarılma açısı, kasnaklar,
     #  kiriş aralığı, kuyu dibi zinciri ) orada denetlenir.
-    (g, hata), = UC_CIZIM.girdiler(veri, asansorler, ortak, s, "ÖRNEK PROJE")
+    ((g, hata),) = UC_CIZIM.girdiler(veri, asansorler, ortak, s, "ÖRNEK PROJE")
     assert not hata, hata
     a = s["asansorler"][0]
     print(f"── {ad}")
-    print("   çizimden gelen hesap girdileri:",
-          {k: a["girdi"][k] for k in UC_CIZIM.CK.CIZIMDEN if veri["asansorler"][0].get(k) is None})
+    print(
+        "   çizimden gelen hesap girdileri:",
+        {k: a["girdi"][k] for k in UC_CIZIM.CK.CIZIMDEN if veri["asansorler"][0].get(k) is None},
+    )
     #  Yerleşimin ölçüleri ( cizim/olculer ):  hesabın eskiden tahmin ettiği geometri
-    print("   yerleşimden ölçülenler:",
-          {k: a["girdi"][k] for k in (a["girdi"].get("_cizimden") or {})
-           if a["girdi"]["_cizimden"][k] == "yerleşim"})
+    print(
+        "   yerleşimden ölçülenler:",
+        {
+            k: a["girdi"][k]
+            for k in (a["girdi"].get("_cizimden") or {})
+            if a["girdi"]["_cizimden"][k] == "yerleşim"
+        },
+    )
 
     #  ── PAFTA ─────────────────────────────────────────────────────────
     with tempfile.TemporaryDirectory() as t:
@@ -111,7 +142,7 @@ def uret(md):
     print("   AutoCAD:", denetim or "yok — .dxf bırakıldı")
     for c in bilgi["cizimler"]:
         x0, y0, x1, y1 = c["kutu"]
-        print(f"   1/{c['olcek']:<3g} {x1-x0:6.1f} × {y1-y0:5.1f}  {c['baslik']}")
+        print(f"   1/{c['olcek']:<3g} {x1 - x0:6.1f} × {y1 - y0:5.1f}  {c['baslik']}")
     for b in a["bolumler"]:
         print("     ", b["baslik"][:58], (b.get("sonuc") or {}).get("uygun"))
 

@@ -8,6 +8,7 @@ Girilen değer ya kullanılır ya hesap durur:
   4. iki tamponda "tamponlar arası" girilir — eskiden istenip formda kutusu yoktu
   5. kuyunun geometrisi kurulamıyorsa ( kabin kuyuya sığmıyor … ) hesap da durur —
      eskiden çizim reddederken hesap kuruluyordu ( özette "engelleyici" )."""
+
 import json
 import os
 import sys
@@ -18,11 +19,11 @@ for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "testler")):
     if _yol not in sys.path:
         sys.path.append(_yol)
 
-from api import cizim as UC                                # noqa: E402
-from api import uygulama as UYG                            # noqa: E402
-from engine.uygulama import hesap as E_UYG                 # noqa: E402
+from api import cizim as UC  # noqa: E402
+from api import uygulama as UYG  # noqa: E402
+from engine.uygulama import hesap as E_UYG  # noqa: E402
 
-import test_yerlesim_saglamligi as Y                       # noqa: E402
+import test_yerlesim_saglamligi as Y  # noqa: E402
 
 
 def _calistir(**ek):
@@ -36,8 +37,10 @@ def _calistir(**ek):
 
 class Yukseklikler(unittest.TestCase):
     def test_iki_metreden_alcak_kabin_ve_kapi(self):
-        for ek, metin in (({"kabin_ic_yuksekligi": 1500}, "Kabin iç yüksekliği 1500 mm"),
-                          ({"kapi_yuksekligi": 1800}, "Kat kapısı yüksekliği 1800 mm")):
+        for ek, metin in (
+            ({"kabin_ic_yuksekligi": 1500}, "Kabin iç yüksekliği 1500 mm"),
+            ({"kapi_yuksekligi": 1800}, "Kat kapısı yüksekliği 1800 mm"),
+        ):
             with self.subTest(ek):
                 cizim, hesap = _calistir(**ek)
                 self.assertFalse(cizim.get("aktif"))
@@ -52,8 +55,9 @@ class Yukseklikler(unittest.TestCase):
             self.assertTrue(any("kabin iç yüksekliğinden" in h for h in d["hata"]), d["hata"])
         #  2.200'lük kabinin üst kirişi tavanın ( 2.260 ) üstünde kalsın:  paten arası
         #  en az 2.200 + 60 + 460 = 2.720 ( varsayılan 2.660 — 2.000'lik kabin, 8 Eki )
-        self.assertTrue(_calistir(kapi_yuksekligi=2000, kabin_ic_yuksekligi=2200,
-                                  kabin_paten_arasi=2720)[0].get("aktif"))
+        self.assertTrue(
+            _calistir(kapi_yuksekligi=2000, kabin_ic_yuksekligi=2200, kabin_paten_arasi=2720)[0].get("aktif")
+        )
 
 
 class TamponAdedi(unittest.TestCase):
@@ -75,12 +79,15 @@ class TamponAdedi(unittest.TestCase):
         cizim, _h = _calistir(kabin_tampon_adedi=2)
         self.assertFalse(cizim.get("aktif"))
         self.assertIn("Kabin tamponları arası", cizim["hata"][0])
-        for ek in ({"kabin_tampon_adedi": 2, "kabin_tampon_arasi": 600},
-                   {"agirlik_tampon_adedi": 2, "agirlik_tampon_arasi": 400}):
+        for ek in (
+            {"kabin_tampon_adedi": 2, "kabin_tampon_arasi": 600},
+            {"agirlik_tampon_adedi": 2, "agirlik_tampon_arasi": 400},
+        ):
             with self.subTest(ek):
                 self.assertTrue(_calistir(**ek)[0].get("aktif"))
         from cizim import kopru as CK, kuyu_dibi as CKD
         from engine.uygulama import girdi as E_UGR
+
         v = Y._veri(800, True, "Sağ", kabin_tampon_adedi=2, kabin_tampon_arasi=600)
         ham, _i, proje = UC._istek(v)
         g, hata = CK.cizim_girdisi(E_UGR.tamamla(ham), None, proje, 1)

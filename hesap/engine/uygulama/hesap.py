@@ -22,6 +22,7 @@ AVANIN 1. VE 2. BÖLÜMÜ ALINMAZ:
   · Kuvvet hesapları — mukavemet bölüm 9 kuyu tabanı yüklerini TS EN 81-20
     m.5.2.1.8'e göre, ray kuvvetlerini de bölüm 7-8'de ayrıntılı verir.
 """
+
 from engine.avan import hesap as E_AVAN
 from engine.ortak.steps import numarala
 from engine.uygulama import mukavemet as E_MUK
@@ -30,7 +31,7 @@ from engine.uygulama import girdi as UG
 from engine.uygulama import mukavemet_girdi as MG
 
 #  Avanın uygulama projesine giren bölümleri  ( 0-tabanlı sıra )
-ELEKTRIK_BOLUMLERI = (2, 3, 4, 5)          # kabin ayd. · kuyu ayd. · TAS · ε
+ELEKTRIK_BOLUMLERI = (2, 3, 4, 5)  # kabin ayd. · kuyu ayd. · TAS · ε
 
 #  AVAN METNİNİN UYGULAMA KARŞILIĞI.  Bu iki not avan paftasında doğrudur —
 #  "kesin seçim uygulama projesinde yapılır" der.  Uygulama paftasında ise
@@ -38,9 +39,11 @@ ELEKTRIK_BOLUMLERI = (2, 3, 4, 5)          # kabin ayd. · kuyu ayd. · TAS · �
 #  projesidir.  Bölüm alınırken metin değiştirilir, hesap aynen kalır.
 NOT_KARSILIGI = {
     T.SIGORTA_NOTU: T.SIGORTA_NOTU_UYGULAMA,
-    ("Aydınlatma ve priz devrelerinde izin verilen gerilim düşümü %1,5'tir; "
-     "bu devrelerin uç noktalara kadar düşümü uygulama projesinde kontrol "
-     "edilecektir."): T.GERILIM_UC_NOKTA_NOTU_UYGULAMA,
+    (
+        "Aydınlatma ve priz devrelerinde izin verilen gerilim düşümü %1,5'tir; "
+        "bu devrelerin uç noktalara kadar düşümü uygulama projesinde kontrol "
+        "edilecektir."
+    ): T.GERILIM_UC_NOKTA_NOTU_UYGULAMA,
 }
 
 
@@ -59,9 +62,9 @@ def _notlari_uyarla(b):
         if b.get(alan):
             b[alan] = [NOT_KARSILIGI.get(x, x) for x in b[alan]]
     if b.get("cetvel"):
-        b["cetvel"] = [dict(c, sigorta=CETVEL_KARSILIGI.get(c.get("sigorta"),
-                                                            c.get("sigorta")))
-                       for c in b["cetvel"]]
+        b["cetvel"] = [
+            dict(c, sigorta=CETVEL_KARSILIGI.get(c.get("sigorta"), c.get("sigorta"))) for c in b["cetvel"]
+        ]
     return b
 
 
@@ -81,17 +84,14 @@ def _proje_geneli_bolumleri(av, g):
     elif mk.get("mk_yok") is False:
         #  Makine dairesi VAR denmiş ama aydınlatması hesaplanamamış:  zorunlu
         #  bir hesap eksiktir, proje "uygun" sayılamaz.
-        eksik.append("MAKİNE DAİRESİ AYDINLATMA HESABI YAPILAMADI: "
-                     + str(mk.get("uyari") or ""))
+        eksik.append("MAKİNE DAİRESİ AYDINLATMA HESABI YAPILAMADI: " + str(mk.get("uyari") or ""))
 
     tp = av.get("topraklama") or {}
     if tp.get("aktif"):
-        bolumler += [dict(_notlari_uyarla(b), proje_geneli=True)
-                     for b in (tp.get("bolumler") or [])]
+        bolumler += [dict(_notlari_uyarla(b), proje_geneli=True) for b in (tp.get("bolumler") or [])]
     elif g.get("temel_a") or g.get("temel_b"):
         #  Temel ölçüsü girilmiş ama topraklama hesaplanamamış — eksik hesap.
-        eksik.append("TOPRAKLAMA HESABI YAPILAMADI: "
-                     + str(tp.get("uyari") or av.get("hata") or ""))
+        eksik.append("TOPRAKLAMA HESABI YAPILAMADI: " + str(tp.get("uyari") or av.get("hata") or ""))
     return bolumler, eksik
 
 
@@ -104,7 +104,7 @@ def hesapla(veriler=None):
     makine dairesi ) burada asansörün bölüm listesinin İÇİNDE kalır, oysa
     projede ayrılıp en sona alınırlar.
     """
-    eksik = []          # yapılamayan ZORUNLU hesaplar
+    eksik = []  # yapılamayan ZORUNLU hesaplar
     g = UG.varsayilanlar()
     g.update(veriler or {})
     g = UG.tamamla(g)
@@ -118,11 +118,11 @@ def hesapla(veriler=None):
     if hata:
         s = {"aktif": False, "hata": hata, "girdi": g}
         if geometri:
-            s["geometri_hatasi"] = geometri          # hesapla_coklu adını ekler, kaldırır
+            s["geometri_hatasi"] = geometri  # hesapla_coklu adını ekler, kaldırır
         return s
 
     muk = E_MUK.hesapla(g)
-    if not muk.get("aktif"):                       # olmamalı — dogrula geçti
+    if not muk.get("aktif"):  # olmamalı — dogrula geçti
         return {"aktif": False, "hata": muk.get("hata") or [], "girdi": g}
 
     eksik.extend(muk.get("ozet", {}).get("eksik_hesap", []))
@@ -134,17 +134,22 @@ def hesapla(veriler=None):
     if asansor.get("aktif"):
         tum = asansor.get("bolumler") or []
         elektrik = [tum[i] for i in ELEKTRIK_BOLUMLERI if i < len(tum)]
-        uyarilar += [u for u in (asansor.get("uyarilar") or [])
-                     #  Avanın trafik karşılaştırması uygulama projesinde
-                     #  anlamsızdır — burada trafik hesabı yoktur.
-                     if "TRAFİK" not in u.upper()]
+        uyarilar += [
+            u
+            for u in (asansor.get("uyarilar") or [])
+            #  Avanın trafik karşılaştırması uygulama projesinde
+            #  anlamsızdır — burada trafik hesabı yoktur.
+            if "TRAFİK" not in u.upper()
+        ]
     else:
         # Zorunlu hesap eksikliği genel uygunluğu da engeller.
         # Uyarı aşağıda eksik listesinden tek kez üretilir.
         #  Sebep asansörün kendi uyarısıdır;  proje geneli bir girdi
         #  reddedildiyse avan motoru hiç hesaplamaz ve sebebi "hata"dadır.
-        eksik.append("ELEKTRİK HESAPLARI YAPILAMADI: "
-                     + str(asansor.get("uyari") or av.get("hata") or "girdiler eksik"))
+        eksik.append(
+            "ELEKTRİK HESAPLARI YAPILAMADI: "
+            + str(asansor.get("uyari") or av.get("hata") or "girdiler eksik")
+        )
 
     #  Bölüm numaraları uygulama projesinin kendi sırasına göre yeniden
     #  yazılır;  avandan gelen "3 - ..." başlığı burada 11. sıradadır.
@@ -181,26 +186,35 @@ def hesapla(veriler=None):
     #  kutusundaki tekrar düşer.
     _anlatilan = {E_MUK.ALFA_YOK} if MG.ALFA_UYARI in uyarilar else set()
     uyarilar += [f"⚠ {x}" for x in eksik if x not in _anlatilan]
-    uygunlar = [b["sonuc"]["uygun"] for b in bolumler
-                if b.get("sonuc") and b["sonuc"].get("uygun") is not None]
+    uygunlar = [
+        b["sonuc"]["uygun"] for b in bolumler if b.get("sonuc") and b["sonuc"].get("uygun") is not None
+    ]
     uygunlar += [False] * (len(engelleyici) + len(eksik))
     ozet = dict(muk.get("ozet") or {})
     ao = asansor.get("ozet") or {}
-    ozet.update({
-        "P_kurulu": ao.get("P_kurulu"), "eps": ao.get("eps"),
-        "eps_uygun": ao.get("eps_uygun"), "I": ao.get("I"), "Iz": ao.get("Iz"),
-        "akim_uygun": ao.get("akim_uygun"),
-        "n_kabin": ao.get("n_kabin"), "n_kuyu": ao.get("n_kuyu"),
-        #  Yuvarlanmamış armatür sayıları:  ekranda gösterilmez ama ortak
-        #  girdi köprüsünün kopmadığını YUVARLAMA GİZLEMESİN diye özete girer
-        #  ( bkz. testler/test_uygulama.py ).
-        "Z_kabin": ao.get("Z_kabin"), "Z_kuyu": ao.get("Z_kuyu"),
-        "Re": (av.get("ozet") or {}).get("Re"),
-        "topraklama_uygun": (av.get("ozet") or {}).get("topraklama_uygun"),
-        "elektrik_var": bool(elektrik),
-        "tumu_uygun": all(uygunlar),
-        "engelleyici": engelleyici, "eksik_hesap": eksik,
-    })
+    ozet.update(
+        {
+            "P_kurulu": ao.get("P_kurulu"),
+            "eps": ao.get("eps"),
+            "eps_uygun": ao.get("eps_uygun"),
+            "I": ao.get("I"),
+            "Iz": ao.get("Iz"),
+            "akim_uygun": ao.get("akim_uygun"),
+            "n_kabin": ao.get("n_kabin"),
+            "n_kuyu": ao.get("n_kuyu"),
+            #  Yuvarlanmamış armatür sayıları:  ekranda gösterilmez ama ortak
+            #  girdi köprüsünün kopmadığını YUVARLAMA GİZLEMESİN diye özete girer
+            #  ( bkz. testler/test_uygulama.py ).
+            "Z_kabin": ao.get("Z_kabin"),
+            "Z_kuyu": ao.get("Z_kuyu"),
+            "Re": (av.get("ozet") or {}).get("Re"),
+            "topraklama_uygun": (av.get("ozet") or {}).get("topraklama_uygun"),
+            "elektrik_var": bool(elektrik),
+            "tumu_uygun": all(uygunlar),
+            "engelleyici": engelleyici,
+            "eksik_hesap": eksik,
+        }
+    )
     #  HÜKÜM MOTORDAN ÇIKAR ( bkz. E_MUK.genel_hukum ):  "uygun değil" >
     #  "hesap eksik" > "uygundur".  Ekran ve PDF bunu yalnız basar.
     _hukum = E_MUK.genel_hukum(bolumler, all(uygunlar), eksik)
@@ -248,7 +262,7 @@ def _tesis_bolumleri(aktifler):
     if not aktifler:
         return []
     ilk = aktifler[0]["girdi"]
-    tesis = UG.kopru(ilk)                       # ortak · ofis sabitleri binanındır
+    tesis = UG.kopru(ilk)  # ortak · ofis sabitleri binanındır
     tesis["asansorler"] = [UG.kopru(s["girdi"])["asansorler"][0] for s in aktifler]
     bolumler, _eksik = _proje_geneli_bolumleri(E_AVAN.hesapla(tesis), ilk)
     #  KENDİ NUMARALARINI ALIRLAR:  bir asansörün bölümleri değil, ayrı bir
@@ -296,15 +310,16 @@ def hesapla_coklu(asansorler=None, ortak=None):
         #  olduğu söylenir ( ofis değerinin hatası gibi tekilleştirilmez ).
         geometri = s.pop("geometri_hatasi", None)
         if len(ham) > 1 and geometri:
-            s["hata"] = [h for h in s["hata"] if h not in geometri] + \
-                [f"{s['tanim']}:  {h}" for h in geometri]
+            s["hata"] = [h for h in s["hata"] if h not in geometri] + [
+                f"{s['tanim']}:  {h}" for h in geometri
+            ]
         if s.get("aktif"):
             #  Asansörün kalan bölümleri boşluksuz 1..N diye yeniden
             #  numaralanır — paftada 11-12-13 diye gitsin.
             s["bolumler"] = [
-                numarala(b, n) for n, b in
-                enumerate([x for x in s["bolumler"]
-                           if not x.get("proje_geneli")], 1)]
+                numarala(b, n)
+                for n, b in enumerate([x for x in s["bolumler"] if not x.get("proje_geneli")], 1)
+            ]
         sonuclar.append(s)
 
     aktifler = [s for s in sonuclar if s.get("aktif")]
@@ -312,8 +327,7 @@ def hesapla_coklu(asansorler=None, ortak=None):
     #  PROJE GENELİ HESAP DA "HEPSİ UYGUN"A GİRER.  Bölümler asansörlerden
     #  çıkınca onların ozet.tumu_uygun bayrağı bunları artık saymaz;  ayrıca
     #  katılmasaydı topraklaması yetersiz bir proje "UYGUNDUR" görünürdü.
-    pg_uygun = all((b.get("sonuc") or {}).get("uygun") is not False
-                   for b in proje_geneli)
+    pg_uygun = all((b.get("sonuc") or {}).get("uygun") is not False for b in proje_geneli)
     return {
         "aktif": bool(aktifler),
         "baslik": "ASANSÖR UYGULAMA PROJESİ HESAPLARI",
@@ -328,21 +342,26 @@ def hesapla_coklu(asansorler=None, ortak=None):
         "yol": "tek" if len(sonuclar) == 1 else "coklu",
         #  Aynı metin bir kez:  reddedilen bir ofis değeri bütün asansörleri
         #  aynı cümleyle durdurur, dört kez basılması okumayı zorlaştırır.
-        "hata": list(dict.fromkeys(h for s in sonuclar if not s.get("aktif")
-                                   for h in (s.get("hata") or []))),
+        "hata": list(dict.fromkeys(h for s in sonuclar if not s.get("aktif") for h in (s.get("hata") or []))),
         "ozet": {
             "adet": len(sonuclar),
-            "tumu_uygun": bool(aktifler) and pg_uygun and all(
-                (s.get("ozet") or {}).get("tumu_uygun") for s in aktifler)
+            "tumu_uygun": bool(aktifler)
+            and pg_uygun
+            and all((s.get("ozet") or {}).get("tumu_uygun") for s in aktifler)
             and len(aktifler) == len(sonuclar),
             "proje_geneli_uygun": pg_uygun,
             "proje_geneli_adet": len(proje_geneli),
-            "asansorler": [{"no": s["no"], "tanim": s["tanim"],
-                            "aktif": bool(s.get("aktif")),
-                            "tumu_uygun": (s.get("ozet") or {}).get("tumu_uygun"),
-                            "eksik_hesap": (s.get("ozet") or {}).get("eksik_hesap", []),
-                            "genel_sonuc": (s.get("ozet") or {}).get("genel_sonuc"),
-                            "N_hesap": (s.get("ozet") or {}).get("N_hesap")}
-                           for s in sonuclar],
+            "asansorler": [
+                {
+                    "no": s["no"],
+                    "tanim": s["tanim"],
+                    "aktif": bool(s.get("aktif")),
+                    "tumu_uygun": (s.get("ozet") or {}).get("tumu_uygun"),
+                    "eksik_hesap": (s.get("ozet") or {}).get("eksik_hesap", []),
+                    "genel_sonuc": (s.get("ozet") or {}).get("genel_sonuc"),
+                    "N_hesap": (s.get("ozet") or {}).get("N_hesap"),
+                }
+                for s in sonuclar
+            ],
         },
     }

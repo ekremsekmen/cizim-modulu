@@ -26,6 +26,7 @@ hesabın değeri kapağa "doğru" gibi basılmamalıdır.
 Asansörler farklıysa değerler asansör sırasıyla " / " ile yan yana yazılır
 ( "10 / 16 kişi" );  aynıysa bir kez.
 """
+
 from engine.ortak.steps import sayi_mi, tr
 
 #  Program TS EN 81-20 / 50'ye göre hesap yapar ( bkz. Sabitler A ).
@@ -33,9 +34,20 @@ STANDART = "TS EN 81-20"
 
 #  Hesaptan türeyen kapak alanları ( anahtarlar kapak formunun / kapak
 #  PDF'inin adlarıdır ).  Arayüz bu listeyi /api/secenekler'den okur.
-ALANLAR = ("usage", "stops", "travel",                      # trafikten
-           "capacity", "speed", "cabin_width", "cabin_depth", "suspension",
-           "elevator_count", "drive_type", "motor_power", "standard")   # avandan
+ALANLAR = (
+    "usage",
+    "stops",
+    "travel",  # trafikten
+    "capacity",
+    "speed",
+    "cabin_width",
+    "cabin_depth",
+    "suspension",
+    "elevator_count",
+    "drive_type",
+    "motor_power",
+    "standard",
+)  # avandan
 
 #  Projeden türetilemeyen kapak alanları — yer tutucuları boş kalır.
 TURETILMEYEN = ("block", "elevator_class", "rail_size", "scale")
@@ -76,12 +88,17 @@ def trafikten(sonuc) -> dict:
         liste = [a for a in (sonuc.get("asansorler") or []) if isinstance(a, dict)]
     else:
         liste = [o]
-    return {k: v for k, v in {
-        "usage": o.get("bina_tipi") or "",
-        "stops": _birlestir(_tam(a.get("durak")) for a in liste if sayi_mi(a.get("durak"))),
-        "travel": _birlestir((tr(a.get("toplam_seyahat")) for a in liste
-                              if sayi_mi(a.get("toplam_seyahat"))), "m"),
-    }.items() if v}
+    return {
+        k: v
+        for k, v in {
+            "usage": o.get("bina_tipi") or "",
+            "stops": _birlestir(_tam(a.get("durak")) for a in liste if sayi_mi(a.get("durak"))),
+            "travel": _birlestir(
+                (tr(a.get("toplam_seyahat")) for a in liste if sayi_mi(a.get("toplam_seyahat"))), "m"
+            ),
+        }.items()
+        if v
+    }
 
 
 def avandan(sonuc) -> dict:
@@ -99,12 +116,17 @@ def avandan(sonuc) -> dict:
 
     #  Kapasite kişi ile tanımlanır;  yalnız anma yükü girilmişse kg.
     #  Birim hepsinde aynıysa sona bir kez, değilse her değerin yanına yazılır.
-    kap = [(_tam(a["kapasite"]), "kişi") if sayi_mi(a.get("kapasite"))
-           else (_tam(a["Q"]), "kg") for a in liste
-           if sayi_mi(a.get("kapasite")) or sayi_mi(a.get("Q"))]
+    kap = [
+        (_tam(a["kapasite"]), "kişi") if sayi_mi(a.get("kapasite")) else (_tam(a["Q"]), "kg")
+        for a in liste
+        if sayi_mi(a.get("kapasite")) or sayi_mi(a.get("Q"))
+    ]
     birimler = {b for _s, b in kap}
-    kapasite = (_birlestir((s for s, _b in kap), birimler.pop()) if len(birimler) == 1
-                else _birlestir(f"{s} {b}" for s, b in kap))
+    kapasite = (
+        _birlestir((s for s, _b in kap), birimler.pop())
+        if len(birimler) == 1
+        else _birlestir(f"{s} {b}" for s, b in kap)
+    )
 
     #  Makine dairesi yok ( MRL ) işareti bütün proje içindir.
     mrl = bool((sonuc.get("makine_dairesi") or {}).get("mk_yok"))
@@ -117,15 +139,18 @@ def avandan(sonuc) -> dict:
     der = _birlestir((_mm(a.get("kabin_a")) for a in liste), ayrac="/")
     if max(gen.count("/"), der.count("/")) > 1:
         gen = der = ""
-    return {k: v for k, v in {
-        "capacity": kapasite,
-        "speed": _birlestir((tr(a.get("V")) for a in liste if sayi_mi(a.get("V"))), "m/s"),
-        "cabin_width": gen,
-        "cabin_depth": der,
-        "suspension": _birlestir(a.get("aski") or "" for a in liste),
-        "elevator_count": str(len(liste)),
-        "drive_type": (f"{tahrik} (MRL)" if tahrik else "MRL") if mrl else tahrik,
-        "motor_power": _birlestir((_sade(a.get("Nsc")) for a in liste
-                                   if sayi_mi(a.get("Nsc"))), "kW"),
-        "standard": STANDART,
-    }.items() if v}
+    return {
+        k: v
+        for k, v in {
+            "capacity": kapasite,
+            "speed": _birlestir((tr(a.get("V")) for a in liste if sayi_mi(a.get("V"))), "m/s"),
+            "cabin_width": gen,
+            "cabin_depth": der,
+            "suspension": _birlestir(a.get("aski") or "" for a in liste),
+            "elevator_count": str(len(liste)),
+            "drive_type": (f"{tahrik} (MRL)" if tahrik else "MRL") if mrl else tahrik,
+            "motor_power": _birlestir((_sade(a.get("Nsc")) for a in liste if sayi_mi(a.get("Nsc"))), "kW"),
+            "standard": STANDART,
+        }.items()
+        if v
+    }

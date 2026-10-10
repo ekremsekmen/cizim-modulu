@@ -86,6 +86,7 @@ def kabin_parcalari(g, S, plan, kt):
     ve aralarındaki çapraz halat şeridi, doğrudan ( 1:1 ) askıda üst kirişin
     üstündeki halat bağlantısı."""
     from cizim import arka_aski as CAA
+
     out = []
     kabin = next((_kutu(el) for el in plan if el.get("ad") == "kabin_dis"), None)
     if kabin is not None:
@@ -123,14 +124,24 @@ def kabin_parcalari(g, S, plan, kt):
             for k in kasnak:
                 out.append((KASNAK, k, zc - R, zc + R))
             if len(kasnak) >= 2:
-                k = (min(k[0] for k in kasnak), min(k[1] for k in kasnak),
-                     max(k[2] for k in kasnak), max(k[3] for k in kasnak))
+                k = (
+                    min(k[0] for k in kasnak),
+                    min(k[1] for k in kasnak),
+                    max(k[2] for k in kasnak),
+                    max(k[3] for k in kasnak),
+                )
                 out.append((HALAT, k, zc - R, zc - R + halat))
     elif duzen == "Doğrudan":
         for el in plan:
             if el.get("ad") == "aski_nokta" and el["tip"] == "daire":
-                out.append((BAGLANTI, (el["x"] - 70, el["y"] - 70, el["x"] + 70, el["y"] + 70),
-                            kt["sase_ust"], kt["baglanti_ust"]))
+                out.append(
+                    (
+                        BAGLANTI,
+                        (el["x"] - 70, el["y"] - 70, el["x"] + 70, el["y"] + 70),
+                        kt["sase_ust"],
+                        kt["baglanti_ust"],
+                    )
+                )
     return out
 
 

@@ -7,6 +7,7 @@ yazım denetimi, proje kimliği, dosya adı ve indirme yanıtı.
 
 Buradaki hiçbir şey hesap YAPMAZ;  hesap motorları engine/ altındadır.
 """
+
 import json
 import math
 import os
@@ -18,6 +19,7 @@ from fastapi.responses import JSONResponse, Response
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 BELIRSIZ_SAYI = re.compile(r"^[+-]?[1-9]\d{0,2}[.,]\d{3}$")
+
 
 def belirsiz_sayi_mi(x) -> bool:
     if not isinstance(x, str):
@@ -41,24 +43,24 @@ def _sayi(x):
     s = x.strip().replace(" ", "").replace("\u00a0", "")
     if s == "":
         return None
-    if BELIRSIZ_SAYI.match(s):        # "1.200" / "1,200" → hangisi belli değil
+    if BELIRSIZ_SAYI.match(s):  # "1.200" / "1,200" → hangisi belli değil
         return None
     # Hangi ayraç SONDA ise ondalık ayracıdır; diğeri binlik ayracıdır.
     son_virgul, son_nokta = s.rfind(","), s.rfind(".")
     if son_virgul >= 0 and son_nokta >= 0:
-        if son_virgul > son_nokta:                    # 1.234,56  → TR biçimi
+        if son_virgul > son_nokta:  # 1.234,56  → TR biçimi
             s = s.replace(".", "").replace(",", ".")
-        else:                                         # 1,234.56  → EN biçimi
+        else:  # 1,234.56  → EN biçimi
             s = s.replace(",", "")
     elif son_virgul >= 0:
-        s = s.replace(",", ".")                       # 1,60
+        s = s.replace(",", ".")  # 1,60
     try:
         f = float(s)
     except ValueError:
         return None
-    if not math.isfinite(f):                          # inf / -inf / nan
+    if not math.isfinite(f):  # inf / -inf / nan
         return None
-    if abs(f) > 1e12:                                 # anlamsız büyüklükler
+    if abs(f) > 1e12:  # anlamsız büyüklükler
         return None
     return int(f) if f.is_integer() else f
 
@@ -165,15 +167,20 @@ def _belirsiz_hata():
     """Reddedilen girdi varsa açık hata metni, yoksa None."""
     if _BELIRSIZ:
         liste = "  ·  ".join(sorted(set(_BELIRSIZ.kalemler))[:6])
-        return ("HESAP HATASI: Belirsiz sayı yazımı  —  " + liste +
-                "   ·   Bu yazımda binlik ayracı mı ondalık ayracı mı olduğu "
-                "anlaşılmıyor ( Türkçede 1.200 = bin iki yüz, 1,200 = bir virgül iki; "
-                "program ikisini de ondalık kabul ediyor ). Binlik ayracı KULLANMAYIN: "
-                "bin iki yüz için 1200, bir virgül iki için 1,2 yazın.")
+        return (
+            "HESAP HATASI: Belirsiz sayı yazımı  —  "
+            + liste
+            + "   ·   Bu yazımda binlik ayracı mı ondalık ayracı mı olduğu "
+            "anlaşılmıyor ( Türkçede 1.200 = bin iki yüz, 1,200 = bir virgül iki; "
+            "program ikisini de ondalık kabul ediyor ). Binlik ayracı KULLANMAYIN: "
+            "bin iki yüz için 1200, bir virgül iki için 1,2 yazın."
+        )
     if _RED:
-        return ("HESAP HATASI: Girdi kabul edilmedi  —  "
-                + "  ·  ".join(sorted(set(_RED.kalemler))[:6])
-                + "   ·   Satırı düzeltin ya da kaldırın; sessizce yok sayılmaz.")
+        return (
+            "HESAP HATASI: Girdi kabul edilmedi  —  "
+            + "  ·  ".join(sorted(set(_RED.kalemler))[:6])
+            + "   ·   Satırı düzeltin ya da kaldırın; sessizce yok sayılmaz."
+        )
     return None
 
 
@@ -205,8 +212,10 @@ def _dosya_adi(proje, ek, uzanti):
 
 def _indir(icerik: bytes, ad: str, tur: str):
     from urllib.parse import quote
-    return Response(icerik, media_type=tur, headers={
-        "Content-Disposition": f"attachment; filename*=UTF-8''{quote(ad)}"})
+
+    return Response(
+        icerik, media_type=tur, headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(ad)}"}
+    )
 
 
 #  "Projeyi paketle":  teslim paketi ile GERİ DÖNÜŞ NOKTASI aynı arşivde.
@@ -226,8 +235,12 @@ def _paket_ekleri(veri, mod):
     govde = (veri or {}).get("proje_dosyasi")
     if isinstance(govde, dict) and govde:
         ad = _dosya_adi(_proje_kimligi(veri), "", "").rstrip(" -.") or "Asansor"
-        ekler.append((ad + PROJE_UZANTI.get(mod, ".avan"),
-                      json.dumps(govde, ensure_ascii=False, indent=1).encode("utf-8")))
+        ekler.append(
+            (
+                ad + PROJE_UZANTI.get(mod, ".avan"),
+                json.dumps(govde, ensure_ascii=False, indent=1).encode("utf-8"),
+            )
+        )
     return ekler
 
 
@@ -237,5 +250,3 @@ def _uretilemedi(e: Exception):
     bunu bozuk bir dosya olarak indirmek yerine ekranda mesaj olarak gösterir.
     """
     return JSONResponse({"hata": f"DOSYA ÜRETİLEMEDİ — {e}"}, status_code=422)
-
-

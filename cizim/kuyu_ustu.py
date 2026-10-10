@@ -21,6 +21,7 @@ gösterilir — bu referans projenin paftasında birebir tutar ( 370 − 240 = 1
 Bugün çizilen düzen:  karşı ağırlık yanda, kabin altı 2:1 askı ( ofisin ve
 referans projenin düzeni ).  Öteki düzenler için doğrulama açıkça reddeder.
 """
+
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kuyu_dibi as CKD
@@ -60,7 +61,7 @@ class Duzlem:
         self.yon, self.v0 = yon, float(v0)
 
     @property
-    def eksen(self):                        # kasnak ekseni ( düzleme dik )
+    def eksen(self):  # kasnak ekseni ( düzleme dik )
         return "y" if self.yon == "x" else "x"
 
     def p(self, u, v=None):
@@ -91,11 +92,9 @@ def _regulator(g, S, taban, kabin, G):
     yandaki kabin rayının hizasında, ray ekseninden regülatör kaçıklığı kadar."""
     kd = g["kuyu_dibi"]
     ry = g["kabin_ray"]["kapi_arasi"]
-    raylar = sorted((_kutu(el) for el in taban if el.get("ad") == "kabin_ray"),
-                    key=lambda r: r[0])
+    raylar = sorted((_kutu(el) for el in taban if el.get("ad") == "kabin_ray"), key=lambda r: r[0])
     sag_reg = kd["regulator_yan"] == "Sağ"
-    rx = ((raylar[-1][0] + raylar[-1][2]) / 2.0 if sag_reg
-          else (raylar[0][0] + raylar[0][2]) / 2.0)
+    rx = (raylar[-1][0] + raylar[-1][2]) / 2.0 if sag_reg else (raylar[0][0] + raylar[0][2]) / 2.0
     #  Rayın iki parçası ( flanş + gövde ) aynı hizada;  birleşik orta
     ray_parca = [r for r in raylar if (r[0] > kabin[2] - 1 if sag_reg else r[2] < kabin[0] + 1)]
     if ray_parca:
@@ -105,8 +104,7 @@ def _regulator(g, S, taban, kabin, G):
     reg_kasnak = (rx - re_, rgy - rd, rx + re_, rgy + rd)
     ge, gb = S["regulator_govde_en"] / 2.0, S["regulator_govde_boy"] / 2.0
     reg_govde = (rx - ge, rgy - gb, rx + ge, rgy + gb)
-    reg_ayak = ((reg_govde[2], rgy - gb, G, rgy + gb) if sag_reg
-                else (0.0, rgy - gb, reg_govde[0], rgy + gb))
+    reg_ayak = (reg_govde[2], rgy - gb, G, rgy + gb) if sag_reg else (0.0, rgy - gb, reg_govde[0], rgy + gb)
     return rx, rgy, reg_kasnak, reg_govde, reg_ayak
 
 
@@ -121,16 +119,20 @@ def duzen_hatalari(g):
     yer = (g.get("agirlik") or {}).get("yeri")
     oda_ici = (g.get("makine") or {}).get("yeri") == "Makine dairesi"
     if duzen == "Doğrudan" and not oda_ici:
-        hata.append("Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı "
-                    "kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz "
-                    "asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı "
-                    "oranını 2 seçin ya da makine dairesi olsun.")
+        hata.append(
+            "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı "
+            "kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz "
+            "asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı "
+            "oranını 2 seçin ya da makine dairesi olsun."
+        )
     elif duzen not in ("Kabin altı", "Kabin üstü", "Doğrudan"):
         hata.append(f"aski.duzen:  ( 'Kabin altı', 'Kabin üstü', 'Doğrudan' ) içinden olmalı ( {duzen!r} ).")
     if yer == "Arka" and duzen == "Kabin altı":
-        hata.append("Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — "
-                    "ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri "
-                    "için 'Kabin üstü' seçin ya da ağırlığı yana alın.")
+        hata.append(
+            "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — "
+            "ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri "
+            "için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+        )
     elif yer not in YANLAR + ("Arka",):
         hata.append(f"agirlik.yeri:  ( 'Sol', 'Sağ', 'Arka' ) içinden olmalı ( {yer!r} ).")
     return hata
@@ -160,15 +162,19 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
         #  LiftDesigner'ın dişli makinesi 1.316 × 590:  kuyu tepesindeki,
         #  karşı ağırlık rayları arasındaki şaseye sığmaz;  makine dairesiz
         #  asansörler dişlisizdir ( ofisin 4815-6'sı ve referans proje de öyle ).
-        hata.append("Makine dairesiz ( kuyu üstü ) tesiste dişli makine çizilmez — "
-                    "makine.tip Dişlisiz olmalı ya da makine.yeri Makine dairesi.")
+        hata.append(
+            "Makine dairesiz ( kuyu üstü ) tesiste dişli makine çizilmez — "
+            "makine.tip Dişlisiz olmalı ya da makine.yeri Makine dairesi."
+        )
     aski = g.get("aski") or {}
     for alan in ("halat_adedi", "halat_capi"):
         if not (_sayi(aski.get(alan)) and aski[alan] > 0):
             hata.append(f"aski.{alan}: şase plakasındaki halat deliği için gerekli ( {aski.get(alan)!r} ).")
     if CMK.npu(mk.get("yan_yatak")) is None:
-        hata.append(f"makine.yan_yatak: makinenin oturduğu kirişin NPU ölçüsü ( hesap programında "
-                    f"'F ( yan yatak )' ) — {tuple(CMK.NPU)} içinden olmalı ( {mk.get('yan_yatak')!r} ).")
+        hata.append(
+            f"makine.yan_yatak: makinenin oturduğu kirişin NPU ölçüsü ( hesap programında "
+            f"'F ( yan yatak )' ) — {tuple(CMK.NPU)} içinden olmalı ( {mk.get('yan_yatak')!r} )."
+        )
     if acil_pano and ku.get("acil_pano_yan") not in YANLAR:
         hata.append(f"kuyu_ustu.acil_pano_yan: {YANLAR} içinden olmalı ( {ku.get('acil_pano_yan')!r} ).")
     for alan in ("regulator_kaciklik", "regulator_kasnak_capi"):
@@ -197,8 +203,8 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
     (xl, y0), (xr, _) = CGE.halat_konumlari(g, S)
     yakin, uzak = (xl, xr) if sol else (xr, xl)
     D1 = mk["tahrik_kasnak_capi"]
-    y_ = -1.0 if sol else 1.0                       # kabinden ağırlığa doğru
-    ag_dusus_x = yakin + y_ * D1                    # tahrik kasnağının öbür teğeti
+    y_ = -1.0 if sol else 1.0  # kabinden ağırlığa doğru
+    ag_dusus_x = yakin + y_ * D1  # tahrik kasnağının öbür teğeti
     R = ag["kasnak_capi"] / 2.0
     teget1, teget2 = sorted((ag_y - R, ag_y + R), key=lambda t: abs(t - y0))
     sapma = (ag_dusus_x - ex, y0 - teget1)
@@ -221,10 +227,21 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
     kab_r = sorted(CKD._raylar(taban, "kabin_ray"), key=lambda r: r[0])
     ag_r = CKD._raylar(taban, "agirlik_ray")
     yakin_ray = kab_r[0] if sol else kab_r[-1]
-    sase = ((S["makine_sase_duvar"], min(r[1] for r in ag_r) - S["makine_sase_ray_payi"],
-             yakin_ray[0], max(r[3] for r in ag_r) + S["makine_sase_ray_payi"]) if sol else
-            (yakin_ray[2], min(r[1] for r in ag_r) - S["makine_sase_ray_payi"],
-             G - S["makine_sase_duvar"], max(r[3] for r in ag_r) + S["makine_sase_ray_payi"]))
+    sase = (
+        (
+            S["makine_sase_duvar"],
+            min(r[1] for r in ag_r) - S["makine_sase_ray_payi"],
+            yakin_ray[0],
+            max(r[3] for r in ag_r) + S["makine_sase_ray_payi"],
+        )
+        if sol
+        else (
+            yakin_ray[2],
+            min(r[1] for r in ag_r) - S["makine_sase_ray_payi"],
+            G - S["makine_sase_duvar"],
+            max(r[3] for r in ag_r) + S["makine_sase_ray_payi"],
+        )
+    )
 
     #  ── HALAT BAĞLANTILARI ───────────────────────────────────────────
     #  Ağırlık tarafı:  ağırlık kasnağının öbür teğetinin üstünde;  plaka
@@ -237,8 +254,12 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
     agirlik_baglanti = (min(ab_x0, ab_x1), min(ab_y0, ab_y1), max(ab_x0, ab_x1), max(ab_y0, ab_y1))
     kb_x0 = uzak + y_ * S["kabin_baglanti_x"]
     kb_x1 = kb_x0 - y_ * S["kabin_baglanti_en"]
-    kabin_baglanti = (min(kb_x0, kb_x1), y0 - S["kabin_baglanti_boy"] / 2.0,
-                      max(kb_x0, kb_x1), y0 + S["kabin_baglanti_boy"] / 2.0)
+    kabin_baglanti = (
+        min(kb_x0, kb_x1),
+        y0 - S["kabin_baglanti_boy"] / 2.0,
+        max(kb_x0, kb_x1),
+        y0 + S["kabin_baglanti_boy"] / 2.0,
+    )
 
     #  ── REGÜLATÖR:  gergi kasnağının tam üstü ─────────────────────────
     rx, rgy, reg_kasnak, reg_govde, reg_ayak = _regulator(g, S, taban, kabin, G)
@@ -266,7 +287,8 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
     m_yon = 1.0 if kmx < G / 2.0 else -1.0
     oda_ = None
     if mk.get("yeri") == "Makine dairesi" and all(
-            _sayi((g.get("makine_dairesi") or {}).get(a)) for a in ("x", "y", "genislik", "derinlik")):
+        _sayi((g.get("makine_dairesi") or {}).get(a)) for a in ("x", "y", "genislik", "derinlik")
+    ):
         md = g["makine_dairesi"]
         oda_ = (md["x"], md["y"], md["x"] + md["genislik"], md["y"] + md["derinlik"])
     if mk["tip"] == "Dişli":
@@ -274,18 +296,25 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
         for s_, m_ in ((s, m_yon), (-s, m_yon), (s, -m_yon), (-s, -m_yon)):
             z = CMK.disli_zarfi((kmx, y0, 0.0), s_, m_)
             if not any(_ortusur(z, p) for p in engel) and (
-                    oda_ is None or (oda_[0] <= z[0] and oda_[1] <= z[1] and z[2] <= oda_[2] and z[3] <= oda_[3])):
+                oda_ is None or (oda_[0] <= z[0] and oda_[1] <= z[1] and z[2] <= oda_[2] and z[3] <= oda_[3])
+            ):
                 s, m_yon = s_, m_
                 break
         makine = CMK.disli((kmx, y0, 0.0), D1, 2 * kt, s, m_yon)
         govde = CMK.disli_zarfi((kmx, y0, 0.0), s, m_yon)
     else:
-        makine = CMK.dislisiz((kmx, y0, 0.0), D1, 2 * kt, s, S["makine_en"],
-                              S["makine_kasnak_boslugu"] + S["makine_boy"])
+        makine = CMK.dislisiz(
+            (kmx, y0, 0.0), D1, 2 * kt, s, S["makine_en"], S["makine_kasnak_boslugu"] + S["makine_boy"]
+        )
 
     #  ── ÇAKIŞMALAR ───────────────────────────────────────────────────
-    parcalar = {"makine": govde, "tahrik kasnağı": kasnak, "ağırlık halat bağlantısı": agirlik_baglanti,
-                "kabin halat bağlantısı": kabin_baglanti, "regülatör": reg_govde}
+    parcalar = {
+        "makine": govde,
+        "tahrik kasnağı": kasnak,
+        "ağırlık halat bağlantısı": agirlik_baglanti,
+        "kabin halat bağlantısı": kabin_baglanti,
+        "regülatör": reg_govde,
+    }
     for ad, p in parcalar.items():
         #  Makine dairesinde makine odanın içindedir ( makine_dairesi denetler )
         if oda_ is not None and ad in ("makine", "tahrik kasnağı"):
@@ -294,29 +323,55 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
             hata.append(f"{ad.capitalize()} kuyunun dışına taşıyor.")
     adlar = list(parcalar)
     for i, a in enumerate(adlar):
-        for b in adlar[i + 1:]:
+        for b in adlar[i + 1 :]:
             if {a, b} == {"makine", "tahrik kasnağı"}:
                 continue
             if _ortusur(parcalar[a], parcalar[b]):
                 hata.append(f"Kuyu üstünde {a} ile {b} üst üste biniyor.")
 
-    return {"taban": taban, "kabin": kabin, "blok": blok, "halatlar": [(xl, y0), (xr, y0)],
-            "ag_dusus": (ag_dusus_x, y0), "ag_teget": (ex, teget1), "ag_teget2": (ex, teget2),
-            "sapma": sapma, "kasnak": kasnak, "govde": govde, "agirlik_baglanti": agirlik_baglanti,
-            "makine": makine, "m_yon": m_yon, "s": s, "sase": sase, "tip": mk["tip"],
-            "yan_yatak": CMK.npu(mk["yan_yatak"]),
-            #  Şaseden aşağı inen halatların delikleri ( plakaya düşenler açılır ):
-            #  tahrik kasnağının iki yanı ve karşı ağırlık bağlantısı
-            "sase_delikleri": [CMK.halat_deligi(x_, y0, aski["halat_adedi"], aski["halat_capi"],
-                                                S["halat_delik_payi"]) for x_ in (yakin, ag_dusus_x)] +
-                              [CMK.halat_deligi(ex, teget2, aski["halat_adedi"], aski["halat_capi"],
-                                                S["halat_delik_payi"], "x")],
-            "kabin_baglanti": kabin_baglanti,
-            "halat_konsolu": CB.halat_konsolu(kabin_baglanti, kab_r[-1] if sol else kab_r[0], 0),
-            "reg_kasnak": reg_kasnak, "reg_govde": reg_govde,
-            "reg_ayak": reg_ayak, "pano": pano, "calisma": calisma, "D1": D1,
-            "rgx": rx, "rgy": rgy, "yakin": yakin, "uzak": uzak,
-            "ag_y": ag_y, "ry": ry, "ex": ex, "hata": hata, "S": S}
+    return {
+        "taban": taban,
+        "kabin": kabin,
+        "blok": blok,
+        "halatlar": [(xl, y0), (xr, y0)],
+        "ag_dusus": (ag_dusus_x, y0),
+        "ag_teget": (ex, teget1),
+        "ag_teget2": (ex, teget2),
+        "sapma": sapma,
+        "kasnak": kasnak,
+        "govde": govde,
+        "agirlik_baglanti": agirlik_baglanti,
+        "makine": makine,
+        "m_yon": m_yon,
+        "s": s,
+        "sase": sase,
+        "tip": mk["tip"],
+        "yan_yatak": CMK.npu(mk["yan_yatak"]),
+        #  Şaseden aşağı inen halatların delikleri ( plakaya düşenler açılır ):
+        #  tahrik kasnağının iki yanı ve karşı ağırlık bağlantısı
+        "sase_delikleri": [
+            CMK.halat_deligi(x_, y0, aski["halat_adedi"], aski["halat_capi"], S["halat_delik_payi"])
+            for x_ in (yakin, ag_dusus_x)
+        ]
+        + [CMK.halat_deligi(ex, teget2, aski["halat_adedi"], aski["halat_capi"], S["halat_delik_payi"], "x")],
+        "kabin_baglanti": kabin_baglanti,
+        "halat_konsolu": CB.halat_konsolu(kabin_baglanti, kab_r[-1] if sol else kab_r[0], 0),
+        "reg_kasnak": reg_kasnak,
+        "reg_govde": reg_govde,
+        "reg_ayak": reg_ayak,
+        "pano": pano,
+        "calisma": calisma,
+        "D1": D1,
+        "rgx": rx,
+        "rgy": rgy,
+        "yakin": yakin,
+        "uzak": uzak,
+        "ag_y": ag_y,
+        "ry": ry,
+        "ex": ex,
+        "hata": hata,
+        "S": S,
+    }
 
 
 def _dogrudan(g, S, mk, ag):
@@ -349,16 +404,16 @@ def _dogrudan(g, S, mk, ag):
     else:
         d = Duzlem("y", hx)
     uk, ua = d.u((hx, hy)), d.u((ax, ay))
-    y_ = 1.0 if ua >= uk else -1.0                  # kabinden ağırlığa doğru
+    y_ = 1.0 if ua >= uk else -1.0  # kabinden ağırlığa doğru
     D1 = mk["tahrik_kasnak_capi"]
-    ud = uk + y_ * D1                               # tahrik kasnağının öbür teğeti
+    ud = uk + y_ * D1  # tahrik kasnağının öbür teğeti
     sapma = (ud - ua, d.v0 - d.v((ax, ay)))
 
     #  ── MAKİNE:  tahrik kasnağı + gövde ( 2:1'deki kural, düzlemin içinde ) ──
     kt = S["tahrik_kasnak_kalinlik"] / 2.0
     kasnak = d.kutu(uk, ud, d.v0 - kt, d.v0 + kt)
     va = d.v((ax, ay))
-    s = 1.0 if va >= d.v0 else -1.0                 # gövde ağırlığın yanına
+    s = 1.0 if va >= d.v0 else -1.0  # gövde ağırlığın yanına
     kmu = (uk + ud) / 2.0
     g0 = d.v0 + s * (kt + S["makine_kasnak_boslugu"])
     govde = d.kutu(kmu - S["makine_en"] / 2.0, kmu + S["makine_en"] / 2.0, g0, g0 + s * S["makine_boy"])
@@ -373,29 +428,59 @@ def _dogrudan(g, S, mk, ag):
             zk = CMK.disli_zarfi((kmu, d.v0, 0.0), s_, m_)
             z = d.kutu(zk[0], zk[2], zk[1], zk[3])
             if not _ortusur(z, reg_govde) and (
-                    oda_ is None or (oda_[0] <= z[0] and oda_[1] <= z[1] and z[2] <= oda_[2] and z[3] <= oda_[3])):
+                oda_ is None or (oda_[0] <= z[0] and oda_[1] <= z[1] and z[2] <= oda_[2] and z[3] <= oda_[3])
+            ):
                 s, m_yon = s_, m_
                 break
         makine = d.parcalar(CMK.disli((kmu, d.v0, 0.0), D1, 2 * kt, s, m_yon))
         zk = CMK.disli_zarfi((kmu, d.v0, 0.0), s, m_yon)
         govde = d.kutu(zk[0], zk[2], zk[1], zk[3])
     else:
-        makine = d.parcalar(CMK.dislisiz((kmu, d.v0, 0.0), D1, 2 * kt, s, S["makine_en"],
-                                         S["makine_kasnak_boslugu"] + S["makine_boy"]))
+        makine = d.parcalar(
+            CMK.dislisiz(
+                (kmu, d.v0, 0.0), D1, 2 * kt, s, S["makine_en"], S["makine_kasnak_boslugu"] + S["makine_boy"]
+            )
+        )
     if _ortusur(kasnak, reg_govde) or _ortusur(govde, reg_govde):
         hata.append("Makine dairesinde makine ile regülatör üst üste biniyor.")
     for ad_, p_ in (("regülatör", reg_govde),):
         if p_[0] < 0 or p_[1] < 0 or p_[2] > G or p_[3] > D:
             hata.append(f"{ad_.capitalize()} kuyunun dışına taşıyor.")
-    return {"dogrudan": True, "duzlem": d, "y_": y_, "taban": taban, "kabin": kabin, "blok": blok,
-            "halatlar": [(hx, hy)], "kabin_nokta": (hx, hy), "ag_nokta": (ax, ay),
-            "ag_dusus": d.p(ud), "sapma": sapma, "kasnak": kasnak, "govde": govde,
-            "agirlik_baglanti": None, "kabin_baglanti": None,
-            "makine": makine, "m_yon": m_yon, "s": s, "sase": None, "tip": mk["tip"],
-            "yan_yatak": CMK.npu(mk["yan_yatak"]), "sase_delikleri": [],
-            "reg_kasnak": reg_kasnak, "reg_govde": reg_govde, "reg_ayak": reg_ayak,
-            "pano": None, "calisma": None, "D1": D1, "rgx": rx, "rgy": rgy,
-            "ry": ry, "hata": hata, "S": S}
+    return {
+        "dogrudan": True,
+        "duzlem": d,
+        "y_": y_,
+        "taban": taban,
+        "kabin": kabin,
+        "blok": blok,
+        "halatlar": [(hx, hy)],
+        "kabin_nokta": (hx, hy),
+        "ag_nokta": (ax, ay),
+        "ag_dusus": d.p(ud),
+        "sapma": sapma,
+        "kasnak": kasnak,
+        "govde": govde,
+        "agirlik_baglanti": None,
+        "kabin_baglanti": None,
+        "makine": makine,
+        "m_yon": m_yon,
+        "s": s,
+        "sase": None,
+        "tip": mk["tip"],
+        "yan_yatak": CMK.npu(mk["yan_yatak"]),
+        "sase_delikleri": [],
+        "reg_kasnak": reg_kasnak,
+        "reg_govde": reg_govde,
+        "reg_ayak": reg_ayak,
+        "pano": None,
+        "calisma": None,
+        "D1": D1,
+        "rgx": rx,
+        "rgy": rgy,
+        "ry": ry,
+        "hata": hata,
+        "S": S,
+    }
 
 
 def _arka(g, S, mk, ag, acil_pano):
@@ -413,6 +498,7 @@ def _arka(g, S, mk, ag, acil_pano):
     biner ( hesabın F / 2'si ).  Referans projede kasnak kirişlerin dışında,
     150 mm taşkındı:  yakın kiriş yükün 1,6 katını taşır, uzak kiriş kalkardı."""
     from cizim import arka_aski as CAA
+
     hata = []
     A = CAA.geometri(g, S)
     if "P" not in A:
@@ -433,13 +519,15 @@ def _arka(g, S, mk, ag, acil_pano):
     kt = S["tahrik_kasnak_kalinlik"] / 2.0
     kasnak = d.kutu(py, wy, xk - kt, xk + kt)
     kmu = (py + wy) / 2.0
-    s = yon                                          # gövde ağırlık kasnağından uzağa
+    s = yon  # gövde ağırlık kasnağından uzağa
     g0 = xk + s * (kt + S["makine_kasnak_boslugu"])
     govde = d.kutu(kmu - S["makine_en"] / 2.0, kmu + S["makine_en"] / 2.0, g0, g0 + s * S["makine_boy"])
     rx, rgy, reg_kasnak, reg_govde, reg_ayak = _regulator(g, S, taban, kabin, G)
     oda_ = None
     md = g.get("makine_dairesi") or {}
-    if mk.get("yeri") == "Makine dairesi" and all(_sayi(md.get(k_)) for k_ in ("x", "y", "genislik", "derinlik")):
+    if mk.get("yeri") == "Makine dairesi" and all(
+        _sayi(md.get(k_)) for k_ in ("x", "y", "genislik", "derinlik")
+    ):
         oda_ = (md["x"], md["y"], md["x"] + md["genislik"], md["y"] + md["derinlik"])
     m_yon = 1.0 if kmu < D / 2.0 else -1.0
     if mk["tip"] == "Dişli":
@@ -447,15 +535,19 @@ def _arka(g, S, mk, ag, acil_pano):
             zk = CMK.disli_zarfi((kmu, xk, 0.0), s_, m_)
             z = d.kutu(zk[0], zk[2], zk[1], zk[3])
             if not _ortusur(z, reg_govde) and (
-                    oda_ is None or (oda_[0] <= z[0] and oda_[1] <= z[1] and z[2] <= oda_[2] and z[3] <= oda_[3])):
+                oda_ is None or (oda_[0] <= z[0] and oda_[1] <= z[1] and z[2] <= oda_[2] and z[3] <= oda_[3])
+            ):
                 s, m_yon = s_, m_
                 break
         makine = d.parcalar(CMK.disli((kmu, xk, 0.0), D1, 2 * kt, s, m_yon))
         zk = CMK.disli_zarfi((kmu, xk, 0.0), s, m_yon)
         govde = d.kutu(zk[0], zk[2], zk[1], zk[3])
     else:
-        makine = d.parcalar(CMK.dislisiz((kmu, xk, 0.0), D1, 2 * kt, s, S["makine_en"],
-                                         S["makine_kasnak_boslugu"] + S["makine_boy"]))
+        makine = d.parcalar(
+            CMK.dislisiz(
+                (kmu, xk, 0.0), D1, 2 * kt, s, S["makine_en"], S["makine_kasnak_boslugu"] + S["makine_boy"]
+            )
+        )
 
     #  ── HALAT BAĞLANTILARI ───────────────────────────────────────────
     #  Ağırlığınki ağırlık kasnağının öbür teğetinin üstünde ( halat demeti
@@ -477,12 +569,14 @@ def _arka(g, S, mk, ag, acil_pano):
 
     #  ── MAKİNE ŞASESİ ( makine dairesizde ):  duvardan duvara iki kiriş ──
     yy = CMK.npu(mk["yan_yatak"])
-    ic = kt + S["makine_kasnak_boslugu"] + S["makine_boy"]           # kirişlerin iç yüzü
+    ic = kt + S["makine_kasnak_boslugu"] + S["makine_boy"]  # kirişlerin iç yüzü
     sase = (xk - ic - yy["b"], 0.0, xk + ic + yy["b"], D)
     n_, dh_, pay_ = a["halat_adedi"], a["halat_capi"], S["halat_delik_payi"]
-    sase_delikleri = [CMK.halat_deligi(px, py, n_, dh_, pay_, "x"),
-                      CMK.halat_deligi(xk, wy, n_, dh_, pay_, "x"),
-                      CMK.halat_deligi(wx, wy, n_, dh_, pay_, "y")]
+    sase_delikleri = [
+        CMK.halat_deligi(px, py, n_, dh_, pay_, "x"),
+        CMK.halat_deligi(xk, wy, n_, dh_, pay_, "x"),
+        CMK.halat_deligi(wx, wy, n_, dh_, pay_, "y"),
+    ]
 
     #  ── ACİL KURTARMA VE TEST PANOSU ( yandaki ağırlıktaki gibi ) ─────
     pano = calisma = None
@@ -499,8 +593,13 @@ def _arka(g, S, mk, ag, acil_pano):
         calisma = (pm - ce / 2.0, pano[1] - CALISMA_DERINLIK, pm + ce / 2.0, pano[1])
 
     #  ── ÇAKIŞMALAR ───────────────────────────────────────────────────
-    parcalar = {"makine": govde, "tahrik kasnağı": kasnak, "ağırlık halat bağlantısı": agirlik_baglanti,
-                "kabin halat bağlantısı": kabin_baglanti, "regülatör": reg_govde}
+    parcalar = {
+        "makine": govde,
+        "tahrik kasnağı": kasnak,
+        "ağırlık halat bağlantısı": agirlik_baglanti,
+        "kabin halat bağlantısı": kabin_baglanti,
+        "regülatör": reg_govde,
+    }
     for ad, p in parcalar.items():
         if oda_ is not None and ad in ("makine", "tahrik kasnağı"):
             continue
@@ -508,7 +607,7 @@ def _arka(g, S, mk, ag, acil_pano):
             hata.append(f"{ad.capitalize()} kuyunun dışına taşıyor.")
     adlar = list(parcalar)
     for i, a_ in enumerate(adlar):
-        for b_ in adlar[i + 1:]:
+        for b_ in adlar[i + 1 :]:
             if {a_, b_} == {"makine", "tahrik kasnağı"}:
                 continue
             if _ortusur(parcalar[a_], parcalar[b_]):
@@ -516,19 +615,52 @@ def _arka(g, S, mk, ag, acil_pano):
     if oda_ is None and not (0.0 <= sase[0] and sase[2] <= G):
         hata.append("Makinenin duvardan duvara kirişleri kuyunun genişliğine sığmıyor.")
 
-    return {"taban": taban, "kabin": kabin, "blok": blok, "capraz": A, "duzlem": d, "y_": 1.0,
-            "halatlar": [A["P"], A["H"]], "kabin_inis": A["P"], "kabin_baglanti_nokta": A["H"],
-            "ag_dusus": A["W"], "ag_teget": A["W"], "ag_teget2": A["Hw"],
-            "ag_baglanti_eksen": "y", "kabin_baglanti_eksen": "x",
-            "sapma": (0.0, 0.0), "kasnak": kasnak, "govde": govde, "agirlik_baglanti": agirlik_baglanti,
-            "makine": makine, "m_yon": m_yon, "s": s, "sase": sase, "duvardan_duvara": True,
-            "tip": mk["tip"], "yan_yatak": yy, "sase_delikleri": sase_delikleri,
-            "kabin_baglanti": kabin_baglanti,
-            "halat_konsolu": CB.halat_konsolu(kabin_baglanti, yakin_ray, 0),
-            "reg_kasnak": reg_kasnak, "reg_govde": reg_govde, "reg_ayak": reg_ayak,
-            "pano": pano, "calisma": calisma, "D1": D1, "rgx": rx, "rgy": rgy,
-            #  Halat düzlemi boyunca ( u = y ) koordinatlar:  kabin inişi, ağırlık inişi
-            "yakin": py, "uzak": hy, "ag_y": wy, "ry": ry, "ex": wy, "hata": hata, "S": S}
+    return {
+        "taban": taban,
+        "kabin": kabin,
+        "blok": blok,
+        "capraz": A,
+        "duzlem": d,
+        "y_": 1.0,
+        "halatlar": [A["P"], A["H"]],
+        "kabin_inis": A["P"],
+        "kabin_baglanti_nokta": A["H"],
+        "ag_dusus": A["W"],
+        "ag_teget": A["W"],
+        "ag_teget2": A["Hw"],
+        "ag_baglanti_eksen": "y",
+        "kabin_baglanti_eksen": "x",
+        "sapma": (0.0, 0.0),
+        "kasnak": kasnak,
+        "govde": govde,
+        "agirlik_baglanti": agirlik_baglanti,
+        "makine": makine,
+        "m_yon": m_yon,
+        "s": s,
+        "sase": sase,
+        "duvardan_duvara": True,
+        "tip": mk["tip"],
+        "yan_yatak": yy,
+        "sase_delikleri": sase_delikleri,
+        "kabin_baglanti": kabin_baglanti,
+        "halat_konsolu": CB.halat_konsolu(kabin_baglanti, yakin_ray, 0),
+        "reg_kasnak": reg_kasnak,
+        "reg_govde": reg_govde,
+        "reg_ayak": reg_ayak,
+        "pano": pano,
+        "calisma": calisma,
+        "D1": D1,
+        "rgx": rx,
+        "rgy": rgy,
+        #  Halat düzlemi boyunca ( u = y ) koordinatlar:  kabin inişi, ağırlık inişi
+        "yakin": py,
+        "uzak": hy,
+        "ag_y": wy,
+        "ry": ry,
+        "ex": wy,
+        "hata": hata,
+        "S": S,
+    }
 
 
 def dogrula(g):
@@ -541,8 +673,14 @@ def dogrula(g):
 def ciz(g, cizim_sabitleri=None):
     Y = yerlesim(g, cizim_sabitleri)
     k = g["kuyu"]
-    G, D, don, dg, dar, ds = (k["genislik"], k["derinlik"], k["duvar_on"], k["duvar_sag"],
-                              k["duvar_arka"], k["duvar_sol"])
+    G, D, don, dg, dar, ds = (
+        k["genislik"],
+        k["derinlik"],
+        k["duvar_on"],
+        k["duvar_sag"],
+        k["duvar_arka"],
+        k["duvar_sol"],
+    )
     e = [el for el in Y["taban"] if el["katman"] in _PLANDAN_KATMAN and el["tip"] != "yazi"]
 
     def kutu(katman, p, ad):
@@ -574,8 +712,9 @@ def ciz(g, cizim_sabitleri=None):
     kutu("MAKINE", Y["reg_govde"], "regulator")
     kutu("KASNAK", Y["reg_kasnak"], "regulator_kasnak")
     rg = Y["reg_govde"]
-    e.append(CGE._yazi(rg[0] - 60 if rg[0] > G / 2 else rg[2] + 60, (rg[1] + rg[3]) / 2.0,
-                       "REGÜLATÖR", 34, aci=90))
+    e.append(
+        CGE._yazi(rg[0] - 60 if rg[0] > G / 2 else rg[2] + 60, (rg[1] + rg[3]) / 2.0, "REGÜLATÖR", 34, aci=90)
+    )
 
     #  Acil kurtarma ve test panosu + çalışma alanı
     kutu("PANO", Y["pano"], "acil_pano")
@@ -590,9 +729,16 @@ def ciz(g, cizim_sabitleri=None):
     kx = (Y["kabin"][0] + Y["kabin"][2]) / 2.0
     u0, u1 = D + dar + 120, D + dar + 320
     xs = sorted({0.0, G, Y["ex"], Y["ag_dusus"][0], xl, xr, kx})
-    e += [O("yatay", (a, 0), (b, 0), u0,
-            f"ø {Y['D1']:g}" if (a, b) == (Y["kasnak"][0], Y["kasnak"][2]) else None)
-          for a, b in zip(xs, xs[1:])]
+    e += [
+        O(
+            "yatay",
+            (a, 0),
+            (b, 0),
+            u0,
+            f"ø {Y['D1']:g}" if (a, b) == (Y["kasnak"][0], Y["kasnak"][2]) else None,
+        )
+        for a, b in zip(xs, xs[1:])
+    ]
     e.append(O("yatay", (0, 0), (G, 0), u1, f"KUYU GENİŞLİĞİ {G:g}"))
     #  Sağ:  halat çizgisi, kabin ray ekseni, regülatör
     s0, s1 = G + dg + 120, G + dg + 320
@@ -604,11 +750,21 @@ def ciz(g, cizim_sabitleri=None):
     ys = sorted({0.0, D, t1, t2, Y["ag_y"], Y["ry"]})
     e += [O("dusey", (0, a), (0, b), -ds - 120) for a, b in zip(ys, ys[1:])]
     #  Acil pano çalışma alanı  ( m.5.2.6.3.2.1 a )
-    kural = ("Acil pano önündeki çalışma alanı:  derinliği 0,70 m, eni panonun eni ya "
-             "da en az 0,50 m ( TS EN 81-20 m.5.2.6.3.2.1 a ).")
+    kural = (
+        "Acil pano önündeki çalışma alanı:  derinliği 0,70 m, eni panonun eni ya "
+        "da en az 0,50 m ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+    )
     e.append(O("yatay", (ca[0], 0), (ca[2], 0), ca[1] - 90, f"{ca[2] - ca[0]:g}", kural=kural))
-    e.append(O("dusey", (0, ca[1]), (0, ca[3]), ca[0] - 90 if ca[0] > G / 2 else ca[2] + 90,
-               f"{ca[3] - ca[1]:g}", kural=kural))
+    e.append(
+        O(
+            "dusey",
+            (0, ca[1]),
+            (0, ca[3]),
+            ca[0] - 90 if ca[0] > G / 2 else ca[2] + 90,
+            f"{ca[3] - ca[1]:g}",
+            kural=kural,
+        )
+    )
     #  Halat sapması — varsa
     dx, dy = Y["sapma"]
     if abs(dx) > 0.5:
@@ -629,7 +785,7 @@ def ciz(g, cizim_sabitleri=None):
             y_, w = el["yazi"], CGE._yazi_eni(el["metin"]) / 2.0
             i = 0 if el["yon"] == "yatay" else 1
             a, b = sorted((el["a"][i], el["b"][i]))
-            ic_ = (a + b) / 2.0 < (G if i == 0 else D) / 2.0     # içerisi hangi yanda
+            ic_ = (a + b) / 2.0 < (G if i == 0 else D) / 2.0  # içerisi hangi yanda
             uclar = [b + 30 + w, a - 30 - w] if ic_ else [a - 30 - w, b + 30 + w]
             #  İç yanda sıranın uzantısı boyunca ( makinenin ötesine kadar )
             uzanti = [(b + 30 + w + 50 * n) if ic_ else (a - 30 - w - 50 * n) for n in range(1, 16)]

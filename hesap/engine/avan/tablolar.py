@@ -3,22 +3,24 @@
 MMO/697 (2. Baskı, Ocak 2020), TS EN 81-20, ISO 8100-32:2020 ve IEC 60364-5-52
 kaynaklı tablolar.
 """
+
 from engine.ortak import ofis as _OFIS
 from engine.ortak.steps import sayi_mi
 
 # ---------------------------------------------------------------- TABLO - 1
 # Binada sürekli bulunan insan sayısı katsayıları (MMO/697 s.13)
 TABLO_1 = {
-    "KONUT — İlk yatak odası":      {"birim": "oda",   "katsayi": 2},
-    "KONUT — Diğer oda":            {"birim": "oda",   "katsayi": 1},
-    "OTEL — Yatak":                 {"birim": "yatak", "katsayi": 1},
-    "İŞ MERKEZİ — Çalışma alanı":   {"birim": "m²",    "katsayi": 1 / 12},
-    "HASTANE — Yatak":              {"birim": "yatak", "katsayi": 3},
-    "RESMİ BİNA — Çalışma alanı":   {"birim": "m²",    "katsayi": 1 / 12},
-    "OTOPARK — Ticari araç":        {"birim": "araç",  "katsayi": 1.5},
-    "OTOPARK — Özel araç":          {"birim": "araç",  "katsayi": 1},
-    "DOĞRUDAN KİŞİ — Tablo-1 dışı": {"birim": "kişi",  "katsayi": 1},
+    "KONUT — İlk yatak odası": {"birim": "oda", "katsayi": 2},
+    "KONUT — Diğer oda": {"birim": "oda", "katsayi": 1},
+    "OTEL — Yatak": {"birim": "yatak", "katsayi": 1},
+    "İŞ MERKEZİ — Çalışma alanı": {"birim": "m²", "katsayi": 1 / 12},
+    "HASTANE — Yatak": {"birim": "yatak", "katsayi": 3},
+    "RESMİ BİNA — Çalışma alanı": {"birim": "m²", "katsayi": 1 / 12},
+    "OTOPARK — Ticari araç": {"birim": "araç", "katsayi": 1.5},
+    "OTOPARK — Özel araç": {"birim": "araç", "katsayi": 1},
+    "DOĞRUDAN KİŞİ — Tablo-1 dışı": {"birim": "kişi", "katsayi": 1},
 }
+
 
 # ---------------------------------------------------------------- TABLO - 2
 # Kabin hızları — durak adedine göre asgari hız (MMO/697 s.13)
@@ -59,7 +61,8 @@ T3_T5_N_MIN, T3_T5_N_MAX = 1, 30
 
 def kapsam_disi(N, P):
     return not (
-        isinstance(N, int) and isinstance(P, int)
+        isinstance(N, int)
+        and isinstance(P, int)
         and T3_T5_N_MIN <= N <= T3_T5_N_MAX
         and T3_T5_P_MIN <= P <= T3_T5_P_MAX
     )
@@ -99,13 +102,41 @@ KAPI_TIPLERI = [
 #  ve program imalatçı değerinin elle girilmesini ister.
 TABLO_4 = {
     #  genişlik : { kapı tipi : (ta, tk) }
-    700:  {"Teleskopik Otomatik": (2.5, 3.0),  "Merkezden Açılan Oto.": (2.0, 2.5), "Kabin İçi Oto. Kat K.Ç.": (5.0, 5.0)},
-    800:  {"Teleskopik Otomatik": (2.5, 3.0),  "Merkezden Açılan Oto.": (2.0, 2.5), "Kabin İçi Oto. Kat K.Ç.": (5.0, 5.0)},
-    900:  {"Teleskopik Otomatik": (2.5, 3.8),  "Merkezden Açılan Oto.": (2.3, 2.9), "Kabin İçi Oto. Kat K.Ç.": (5.0, 5.0)},
-    1000: {"Teleskopik Otomatik": (2.75, 3.9), "Merkezden Açılan Oto.": (2.4, 3.2), "Kabin İçi Oto. Kat K.Ç.": (5.5, 5.5)},
-    1100: {"Teleskopik Otomatik": (3.0, 4.0),  "Merkezden Açılan Oto.": (2.5, 3.5), "Kabin İçi Oto. Kat K.Ç.": (6.0, 6.0)},
-    1200: {"Teleskopik Otomatik": (3.35, 4.5), "Merkezden Açılan Oto.": (2.6, 3.6), "Kabin İçi Oto. Kat K.Ç.": (None, None)},
-    1300: {"Teleskopik Otomatik": (3.7, 5.0),  "Merkezden Açılan Oto.": (2.7, 3.7), "Kabin İçi Oto. Kat K.Ç.": (None, None)},
+    700: {
+        "Teleskopik Otomatik": (2.5, 3.0),
+        "Merkezden Açılan Oto.": (2.0, 2.5),
+        "Kabin İçi Oto. Kat K.Ç.": (5.0, 5.0),
+    },
+    800: {
+        "Teleskopik Otomatik": (2.5, 3.0),
+        "Merkezden Açılan Oto.": (2.0, 2.5),
+        "Kabin İçi Oto. Kat K.Ç.": (5.0, 5.0),
+    },
+    900: {
+        "Teleskopik Otomatik": (2.5, 3.8),
+        "Merkezden Açılan Oto.": (2.3, 2.9),
+        "Kabin İçi Oto. Kat K.Ç.": (5.0, 5.0),
+    },
+    1000: {
+        "Teleskopik Otomatik": (2.75, 3.9),
+        "Merkezden Açılan Oto.": (2.4, 3.2),
+        "Kabin İçi Oto. Kat K.Ç.": (5.5, 5.5),
+    },
+    1100: {
+        "Teleskopik Otomatik": (3.0, 4.0),
+        "Merkezden Açılan Oto.": (2.5, 3.5),
+        "Kabin İçi Oto. Kat K.Ç.": (6.0, 6.0),
+    },
+    1200: {
+        "Teleskopik Otomatik": (3.35, 4.5),
+        "Merkezden Açılan Oto.": (2.6, 3.6),
+        "Kabin İçi Oto. Kat K.Ç.": (None, None),
+    },
+    1300: {
+        "Teleskopik Otomatik": (3.7, 5.0),
+        "Merkezden Açılan Oto.": (2.7, 3.7),
+        "Kabin İçi Oto. Kat K.Ç.": (None, None),
+    },
 }
 #  MMO/697 Tablo-4'te basılı olan satırlar (ara değer üretilmemiş olanlar)
 TABLO_4_BASILI = (700, 800, 900, 1100, 1300)
@@ -130,8 +161,7 @@ def tablo4_kaynagi(genislik):
     #  KAYNAK TAM ADIYLA YAZILIR:  paftada ISO 8100-32:2020'nin "Tablo 6"sı ile
     #  MMO/697'nin "Tablo-6"sı yan yana basılıyor;  çıplak "Tablo-6" hangisi
     #  olduğunu söylemez.  Bu yüzden MMO tabloları her yerde "MMO/697 Tablo-N".
-    return ("MMO/697 Tablo-4 (ara değer — enterpolasyon)" if genislik in TABLO_4_ARA
-            else "MMO/697 Tablo-4")
+    return "MMO/697 Tablo-4 (ara değer — enterpolasyon)" if genislik in TABLO_4_ARA else "MMO/697 Tablo-4"
 
 
 # ---------------------------------------------------------------- TABLO - 6
@@ -141,30 +171,38 @@ def tablo4_kaynagi(genislik):
 def tablo6_tg(V):
     if V is None or not isinstance(V, (int, float)):
         return None
-    if V < 1:      return 10
-    if V == 1:     return 7
-    if V == 1.6:   return 6
-    if V == 1.75:  return 5.8875     # ara değer — enterpolasyon
-    if V == 2:     return 5.7
-    if V == 2.5:   return 5.5
-    if V == 3:     return 5.25       # ara değer — enterpolasyon
-    if V == 3.5:   return 5
-    if V == 5:     return 4.5
-    if V > 5:      return 4.3
+    if V < 1:
+        return 10
+    if V == 1:
+        return 7
+    if V == 1.6:
+        return 6
+    if V == 1.75:
+        return 5.8875  # ara değer — enterpolasyon
+    if V == 2:
+        return 5.7
+    if V == 2.5:
+        return 5.5
+    if V == 3:
+        return 5.25  # ara değer — enterpolasyon
+    if V == 3.5:
+        return 5
+    if V == 5:
+        return 4.5
+    if V > 5:
+        return 4.3
     return None
 
 
 def tg_kaynagi(V):
-    return ("MMO/697 Tablo-6 (ara değer — enterpolasyon)" if V in (1.75, 3)
-            else "MMO/697 Tablo-6")
+    return "MMO/697 Tablo-6 (ara değer — enterpolasyon)" if V in (1.75, 3) else "MMO/697 Tablo-6"
 
 
 # ---------------------------------------------------------------- TABLO - 7
 # Kabin kapasitesi → beyan (anma) yükü, kg (MMO/697 s.17)
 # 15 kişi / 1125 kg tabloda yoktur; kitabın s.53-54 örneğinde geçtiği için
 # "örnek istisnası" olarak desteklenir.
-TABLO_7 = {6: 450, 8: 630, 10: 800, 13: 1000, 15: 1125, 16: 1275,
-           20: 1600, 25: 2000, 30: 2500}
+TABLO_7 = {6: 450, 8: 630, 10: 800, 13: 1000, 15: 1125, 16: 1275, 20: 1600, 25: 2000, 30: 2500}
 #  15 kişi / 1125 kg MMO/697 Tablo-7'de (s.17) BASILI DEĞİLDİR; kitabın s.53-54
 #  örnek hesabında kullanıldığı için "örnek istisnası" olarak tabloya açıkça
 #  yazılmıştır (1125 = 15 × 75 kg).  Paftada kaynağı ayrı gösterilir.
@@ -190,7 +228,7 @@ def tablo7_kaynagi(P):
     if P in TABLO_7:
         return "MMO/697 Tablo-7"
     if P is None:
-        return "—"                   # kapasite girilmemiş; pafta zaten hata basar
+        return "—"  # kapasite girilmemiş; pafta zaten hata basar
     return "MMO/697 Tablo-7 DIŞI — Q = P × 75 kg kabulü"
 
 
@@ -213,50 +251,91 @@ def tablo8_tp(genislik):
 
 
 def tablo8_kaynagi(genislik):
-    return ("ISO 8100-32:2020 Tablo 6 (kapsam dışı — dış değerleme)"
-            if genislik in TABLO_8_ARA else "ISO 8100-32:2020, Tablo 6")
+    return (
+        "ISO 8100-32:2020 Tablo 6 (kapsam dışı — dış değerleme)"
+        if genislik in TABLO_8_ARA
+        else "ISO 8100-32:2020, Tablo 6"
+    )
 
 
 # ---------------------------------------------------------------- TABLO - 9
 # Taşınacak insan yüzdesi %k (MMO/697 s.17)
 TABLO_9 = {
-    "Konut":       {"Standart": 0.075, "Yükseltilmiş": 0.10},
-    "Otel":        {"Standart": 0.12,  "Yükseltilmiş": 0.15},
-    "İş Merkezi":  {"Standart": 0.15,  "Yükseltilmiş": 0.17},
-    "Hastane":     {"Standart": 0.10,  "Yükseltilmiş": 0.20},
-    "Otopark":     {"Standart": 0.10,  "Yükseltilmiş": 0.20},
+    "Konut": {"Standart": 0.075, "Yükseltilmiş": 0.10},
+    "Otel": {"Standart": 0.12, "Yükseltilmiş": 0.15},
+    "İş Merkezi": {"Standart": 0.15, "Yükseltilmiş": 0.17},
+    "Hastane": {"Standart": 0.10, "Yükseltilmiş": 0.20},
+    "Otopark": {"Standart": 0.10, "Yükseltilmiş": 0.20},
 }
 
 # --------------------------------------------------------------- TABLO - 10
 # İzin verilen en fazla bekleme zamanı Izul, saniye (MMO/697 s.17)
 # + bina tipi eşleme tablosu (Tablo-2 hız grubu / Tablo-9 %k tipi)
 TABLO_10 = {
-    "Konut":                                 {"sartli": 120, "standart": 100, "yukseltilmis": 80,
-                                              "hiz_grubu": "Konut", "k_tipi": "Konut"},
-    "Karma Binalar (İşyeri ve Konut)":       {"sartli": 60,  "standart": 50,  "yukseltilmis": 30,
-                                              "hiz_grubu": None, "k_tipi": None},
-    "İş Merkezi (Tek Firmalı)":              {"sartli": 60,  "standart": 50,  "yukseltilmis": 40,
-                                              "hiz_grubu": "Büro ve İş Merkezi", "k_tipi": "İş Merkezi"},
-    "İş Merkezi (Çok Firmalı)":              {"sartli": 50,  "standart": 40,  "yukseltilmis": 30,
-                                              "hiz_grubu": "Büro ve İş Merkezi", "k_tipi": "İş Merkezi"},
-    "Otel (3* ve altı)":                     {"sartli": 60,  "standart": 50,  "yukseltilmis": 40,
-                                              "hiz_grubu": "Otel", "k_tipi": "Otel"},
-    "Otel (4* ve üzeri)":                    {"sartli": 50,  "standart": 40,  "yukseltilmis": 30,
-                                              "hiz_grubu": "Otel", "k_tipi": "Otel"},
-    "Kamu Binaları":                         {"sartli": None, "standart": 40, "yukseltilmis": 30,
-                                              "hiz_grubu": "Büro ve İş Merkezi", "k_tipi": "İş Merkezi"},
-    "Hastane":                               {"sartli": None, "standart": 40, "yukseltilmis": 30,
-                                              "hiz_grubu": None, "k_tipi": "Hastane"},
-    "Poliklinik Binaları ve Yaşlı Bakım Ev.": {"sartli": 60, "standart": 50,  "yukseltilmis": 40,
-                                              "hiz_grubu": None, "k_tipi": None},
-    "Katlı Otopark":                         {"sartli": 60,  "standart": 50,  "yukseltilmis": 40,
-                                              "hiz_grubu": None, "k_tipi": "Otopark"},
+    "Konut": {"sartli": 120, "standart": 100, "yukseltilmis": 80, "hiz_grubu": "Konut", "k_tipi": "Konut"},
+    "Karma Binalar (İşyeri ve Konut)": {
+        "sartli": 60,
+        "standart": 50,
+        "yukseltilmis": 30,
+        "hiz_grubu": None,
+        "k_tipi": None,
+    },
+    "İş Merkezi (Tek Firmalı)": {
+        "sartli": 60,
+        "standart": 50,
+        "yukseltilmis": 40,
+        "hiz_grubu": "Büro ve İş Merkezi",
+        "k_tipi": "İş Merkezi",
+    },
+    "İş Merkezi (Çok Firmalı)": {
+        "sartli": 50,
+        "standart": 40,
+        "yukseltilmis": 30,
+        "hiz_grubu": "Büro ve İş Merkezi",
+        "k_tipi": "İş Merkezi",
+    },
+    "Otel (3* ve altı)": {
+        "sartli": 60,
+        "standart": 50,
+        "yukseltilmis": 40,
+        "hiz_grubu": "Otel",
+        "k_tipi": "Otel",
+    },
+    "Otel (4* ve üzeri)": {
+        "sartli": 50,
+        "standart": 40,
+        "yukseltilmis": 30,
+        "hiz_grubu": "Otel",
+        "k_tipi": "Otel",
+    },
+    "Kamu Binaları": {
+        "sartli": None,
+        "standart": 40,
+        "yukseltilmis": 30,
+        "hiz_grubu": "Büro ve İş Merkezi",
+        "k_tipi": "İş Merkezi",
+    },
+    "Hastane": {"sartli": None, "standart": 40, "yukseltilmis": 30, "hiz_grubu": None, "k_tipi": "Hastane"},
+    "Poliklinik Binaları ve Yaşlı Bakım Ev.": {
+        "sartli": 60,
+        "standart": 50,
+        "yukseltilmis": 40,
+        "hiz_grubu": None,
+        "k_tipi": None,
+    },
+    "Katlı Otopark": {
+        "sartli": 60,
+        "standart": 50,
+        "yukseltilmis": 40,
+        "hiz_grubu": None,
+        "k_tipi": "Otopark",
+    },
 }
 BINA_TIPLERI = list(TABLO_10.keys())
 
 # Yüksek yapı ölçütü — BYKHY md.4
-YUKSEK_BINA_YUKSEKLIK = 21.50   # m, kot noktasından saçak seviyesine
-YUKSEK_YAPI_YUKSEKLIK = 30.50   # m, bodrum ve çatı arası dâhil
+YUKSEK_BINA_YUKSEKLIK = 21.50  # m, kot noktasından saçak seviyesine
+YUKSEK_YAPI_YUKSEKLIK = 30.50  # m, bodrum ve çatı arası dâhil
 
 
 # ================================================================
@@ -350,11 +429,34 @@ def tablo11_Gk(Q):
 #      3) 2500 kg üzerinde her 100 kg ilave yük başına 0,16 m² eklenir
 #      ara yük değerleri için alan lineer enterpolasyonla bulunur
 KABIN_AZAMI_ALAN = [
-    (100, 0.37), (180, 0.58), (225, 0.70), (300, 0.90), (375, 1.10), (400, 1.17),
-    (450, 1.30), (525, 1.45), (600, 1.60), (630, 1.66), (675, 1.75), (750, 1.90),
-    (800, 2.00), (825, 2.05), (900, 2.20), (975, 2.35), (1000, 2.40), (1050, 2.50),
-    (1125, 2.65), (1200, 2.80), (1250, 2.90), (1275, 2.95), (1350, 3.10),
-    (1425, 3.25), (1500, 3.40), (1600, 3.56), (2000, 4.20), (2500, 5.00),
+    (100, 0.37),
+    (180, 0.58),
+    (225, 0.70),
+    (300, 0.90),
+    (375, 1.10),
+    (400, 1.17),
+    (450, 1.30),
+    (525, 1.45),
+    (600, 1.60),
+    (630, 1.66),
+    (675, 1.75),
+    (750, 1.90),
+    (800, 2.00),
+    (825, 2.05),
+    (900, 2.20),
+    (975, 2.35),
+    (1000, 2.40),
+    (1050, 2.50),
+    (1125, 2.65),
+    (1200, 2.80),
+    (1250, 2.90),
+    (1275, 2.95),
+    (1350, 3.10),
+    (1425, 3.25),
+    (1500, 3.40),
+    (1600, 3.56),
+    (2000, 4.20),
+    (2500, 5.00),
 ]
 
 
@@ -366,7 +468,7 @@ def kabin_azami_alan(Q):
     ys = [b for _, b in KABIN_AZAMI_ALAN]
     if Q <= xs[0]:
         return ys[0]
-    if Q >= xs[-1]:                       # 2500 kg üstü: her 100 kg'a +0,16 m²
+    if Q >= xs[-1]:  # 2500 kg üstü: her 100 kg'a +0,16 m²
         return ys[-1] + 0.16 * (Q - xs[-1]) / 100.0
     for i in range(len(xs) - 1):
         if xs[i] <= Q <= xs[i + 1]:
@@ -379,8 +481,20 @@ def kabin_azami_alan(Q):
 #  25 mm² ve üstü eskiden 101 · 125 · 151 · 192 · 232 · 269 A yazıyordu:
 #  başlıktaki tablonun değerleri değildi ve kablonun taşıyabileceğinden
 #  %4-5 FAZLAYDI — kesit kontrolünde emniyetsiz taraf.
-KABLO_IZ = {1.5: 17.5, 2.5: 24, 4: 32, 6: 41, 10: 57, 16: 76, 25: 96,
-            35: 119, 50: 144, 70: 184, 95: 223, 120: 259}
+KABLO_IZ = {
+    1.5: 17.5,
+    2.5: 24,
+    4: 32,
+    6: 41,
+    10: 57,
+    16: 76,
+    25: 96,
+    35: 119,
+    50: 144,
+    70: 184,
+    95: 223,
+    120: 259,
+}
 
 
 def kablo_iz(kesit):
@@ -405,8 +519,7 @@ def kablo_iz(kesit):
 #
 #  Çizelge-8 yalnız PE ile ana iletken AYNI MALZEMEDENSE geçerlidir;
 #  asansör kolon hattında ikisi de bakırdır.
-STANDART_KESITLER = (1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120,
-                     150, 185, 240, 300, 400)
+STANDART_KESITLER = (1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300, 400)
 
 
 #  Ana potansiyel dengeleme iletkeni        m.9-j/1/i  ·  Çizelge-4b
@@ -531,12 +644,18 @@ def kablo_iz_sinir(kesit):
 #  Aydınlatma hesabının dayanağı TS EN 81-20 asgari aydınlatma şiddetleri +
 #  lümen yöntemi + imalatçı katalog değerleridir.
 ARMATUR_ISIK_AKISI = [
-    ("Akkor telli", "15 W", "120 – 135"), ("Akkor telli", "25 W", "215 – 240"),
-    ("Akkor telli", "40 W", "340 – 480"), ("Akkor telli", "60 W", "620 – 805"),
-    ("Akkor telli", "75 W", "855 – 960"), ("Akkor telli", "100 W", "1250 – 1380"),
-    ("Akkor telli", "150 W", "2100 – 2280"), ("Flüoresan", "20 W", "820"),
-    ("Flüoresan", "32 W", "1400"), ("Flüoresan", "40 W", "2100"),
-    ("Flüoresan", "200 W", "2950 – 3220"), ("LED spot", "5 W", "300"),
+    ("Akkor telli", "15 W", "120 – 135"),
+    ("Akkor telli", "25 W", "215 – 240"),
+    ("Akkor telli", "40 W", "340 – 480"),
+    ("Akkor telli", "60 W", "620 – 805"),
+    ("Akkor telli", "75 W", "855 – 960"),
+    ("Akkor telli", "100 W", "1250 – 1380"),
+    ("Akkor telli", "150 W", "2100 – 2280"),
+    ("Flüoresan", "20 W", "820"),
+    ("Flüoresan", "32 W", "1400"),
+    ("Flüoresan", "40 W", "2100"),
+    ("Flüoresan", "200 W", "2950 – 3220"),
+    ("LED spot", "5 W", "300"),
 ]
 
 # ================================================================
@@ -551,8 +670,8 @@ ARMATUR_ISIK_AKISI = [
 #             (tekerlekli sandalye + sedye)
 #  TS 9111 ve Erişilebilirlik Yönetmeliği, erişilebilir olması gereken
 #  binalarda pratikte 1100 × 1400 mm (Tip 2 / 630 kg) kabini arar.
-ERISILEBILIR_ASGARI_KAPASITE = 8       # kişi  (630 kg — TS EN 81-70 Tip 2)
-ERISILEBILIR_ASGARI_KAPI = 800         # mm    (net kapı genişliği)
+ERISILEBILIR_ASGARI_KAPASITE = 8  # kişi  (630 kg — TS EN 81-70 Tip 2)
+ERISILEBILIR_ASGARI_KAPI = 800  # mm    (net kapı genişliği)
 
 
 def erisilebilirlik_uyarilari(P, kapi_genisligi, on_ek=""):
@@ -562,13 +681,17 @@ def erisilebilirlik_uyarilari(P, kapi_genisligi, on_ek=""):
     """
     u = []
     if sayi_mi(P) and P < ERISILEBILIR_ASGARI_KAPASITE:
-        u.append(f"{on_ek}⚠ {int(P)} kişi ({tablo7_yuk(P)} kg) — TS EN 81-70 Tip 1 kabini "
-                 "yalnız tek tekerlekli sandalye kullanıcısına yeter, refakatçi sığmaz. "
-                 "TS 9111 / Erişilebilirlik Yönetmeliği'nin aradığı 1100 × 1400 mm kabin "
-                 "için asgari 8 kişi (630 kg) seçilmelidir.")
+        u.append(
+            f"{on_ek}⚠ {int(P)} kişi ({tablo7_yuk(P)} kg) — TS EN 81-70 Tip 1 kabini "
+            "yalnız tek tekerlekli sandalye kullanıcısına yeter, refakatçi sığmaz. "
+            "TS 9111 / Erişilebilirlik Yönetmeliği'nin aradığı 1100 × 1400 mm kabin "
+            "için asgari 8 kişi (630 kg) seçilmelidir."
+        )
     if sayi_mi(kapi_genisligi) and kapi_genisligi < ERISILEBILIR_ASGARI_KAPI:
-        u.append(f"{on_ek}⚠ Net kapı genişliği {int(kapi_genisligi)} mm — TS EN 81-70 "
-                 "erişilebilir asansörde asgari 800 mm ister.")
+        u.append(
+            f"{on_ek}⚠ Net kapı genişliği {int(kapi_genisligi)} mm — TS EN 81-70 "
+            "erişilebilir asansörde asgari 800 mm ister."
+        )
     return u
 
 
@@ -590,7 +713,7 @@ def erisilebilir_mi(P, kapi_genisligi=None):
 #     ·  H, S ve TR'yi DEĞİŞTİRMEZ            (MMO/697 tanımı gereği)
 #     ·  Tablo-2 asgari hızını DEĞİŞTİRİR     (durak adedi = N + 1 + Nb)
 #     ·  Toplam seyahat mesafesini DEĞİŞTİRİR ((N + Nb) · h → avan Hk)
-BODRUM_AZAMI = 10        # makul üst sınır — daha fazlası girdi hatasıdır
+BODRUM_AZAMI = 10  # makul üst sınır — daha fazlası girdi hatasıdır
 
 BODRUM_NOTU = (
     "Bodrum durağı MMO/697 tanımı gereği H (Tablo-3) ve S (Tablo-5) "
@@ -630,8 +753,8 @@ BODRUM_NOTU = (
 #  Tablo ORTAK ofis standardındadır:  iki taraf aynı sayıları okur.
 MAKINE_TIPLERI = _OFIS.MAKINE_VERIMLERI
 ASKI_ORANLARI = {"1:1": 1, "2:1": 2}
-PALANGA_VERIM_DUSUSU = 0.10          # MMO/697 §2.4 s.21 · örnek §4.4 s.56
-ETA_TOPLAM_ANAHTARI = "eta_toplam"   # köprünün bayrağı — avan formunda yoktur
+PALANGA_VERIM_DUSUSU = 0.10  # MMO/697 §2.4 s.21 · örnek §4.4 s.56
+ETA_TOPLAM_ANAHTARI = "eta_toplam"  # köprünün bayrağı — avan formunda yoktur
 
 
 def makine_verimi(makine_tipi):
@@ -667,8 +790,26 @@ MAKINE_VERIM_NOTU = (
 #  bunun ÜSTÜNDEKİ ilk standart kademe seçilir.  Elle seçim yapıldığında
 #  program "Nsç ≥ N" kontrolünü yine yapar.
 # =====================================================================
-MOTOR_KADEMELERI = (2.2, 3.0, 4.0, 5.5, 7.5, 11.0, 15.0, 18.5, 22.0,
-                    30.0, 37.0, 45.0, 55.0, 75.0, 90.0, 110.0, 132.0, 160.0)
+MOTOR_KADEMELERI = (
+    2.2,
+    3.0,
+    4.0,
+    5.5,
+    7.5,
+    11.0,
+    15.0,
+    18.5,
+    22.0,
+    30.0,
+    37.0,
+    45.0,
+    55.0,
+    75.0,
+    90.0,
+    110.0,
+    132.0,
+    160.0,
+)
 
 #  KADEME SEÇİMİ ile "Nsç ≥ N" KONTROLÜ AYNI TOLERANSI KULLANMALIDIR.
 #  N = ( 1 − q )·Q·V / ( 102 · η ) kayan noktada tam kademenin bir kıl payı
@@ -689,27 +830,29 @@ def motor_sec(N_hes):
     for kademe in MOTOR_KADEMELERI:
         if kademe >= N_hes - MOTOR_TOLERANS:
             return kademe
-    return None                      # listenin üstünde — özel imalat
+    return None  # listenin üstünde — özel imalat
 
 
-MOTOR_NOTU = ("Seçilen motor gücü, hesaplanan güçten büyük ilk STANDART anma "
-              "gücüdür ( IEC 60072 / TS EN 60034 kademeleri ). İmalatçının "
-              "kademesi farklıysa alan elle doldurulur; program yine "
-              "Nsç ≥ N kontrolünü yapar.")
+MOTOR_NOTU = (
+    "Seçilen motor gücü, hesaplanan güçten büyük ilk STANDART anma "
+    "gücüdür ( IEC 60072 / TS EN 60034 kademeleri ). İmalatçının "
+    "kademesi farklıysa alan elle doldurulur; program yine "
+    "Nsç ≥ N kontrolünü yapar."
+)
 
 
 # =====================================================================
 #  MOTOR KORUMA CİHAZI ( SİGORTA / ŞALTER ) ANMA AKIMI KADEMELERİ
 #  IEC 60269 / TS EN 60269 gG serisi.  Motor akımından seçilmesi için.
 # =====================================================================
-SIGORTA_KADEMELERI = (6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125,
-                      160, 200, 250, 315, 400, 500, 630)
+SIGORTA_KADEMELERI = (6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630)
 
 SIGORTA_NOTU = (
     "Motor koruma cihazı anma akımı, motor anma akımının kalkış katsayısı "
     "( ofis standardı, varsayılan 1,25 ) katından büyük ilk standart kademedir "
     "( IEC 60269 gG ). AVAN değeridir: kesin seçim kalkış yöntemine, sürücü "
-    "tipine ve kablo koordinasyonuna göre uygulama projesinde yapılır.")
+    "tipine ve kablo koordinasyonuna göre uygulama projesinde yapılır."
+)
 
 #  AYNI NOTUN UYGULAMA PROJESİ KARŞILIĞI.  Avan metni "kesin seçim uygulama
 #  projesinde yapılır" der;  uygulama paftasında bu cümle kendi kendisiyle

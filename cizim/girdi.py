@@ -32,8 +32,7 @@ ZORUNLU = {
     "kabin": ("genislik", "derinlik", "kaciklik_y", "on_pay"),
     "kapi": ("genislik", "sol_pay", "montaj"),
     "kabin_ray": ("arasi", "kapi_arasi", "b", "h"),
-    "agirlik": ("yeri", "genislik", "derinlik", "ray_arasi", "ray_duvar", "eksen_kaciklik",
-                "b", "h"),
+    "agirlik": ("yeri", "genislik", "derinlik", "ray_arasi", "ray_duvar", "eksen_kaciklik", "b", "h"),
     #  2:1 askıda kasnak ölçüleri, 1:1'de askı noktası aralığı kullanılır.
     "aski": ("duzen",),
 }
@@ -98,15 +97,15 @@ def esik_derinligi(S, tip, kabin=False):
 def kapi_bolgesi(g, S):
     """Kapı bölgesinin derinlik kotları ( y, kuyu ön iç yüzünden ):
 
-      kasa        kat kapısı kasası
-      esik        kat kapısı eşiği ( kanatlar üstünde )
-      hat         kapı hattı:  kat eşiğinin kabine bakan kenarı
-      kabin_esik  kabin eşiği ( kabin kapısı kanatları üstünde ) — ön ucu
-                  kabin ön yüzünden kabin_esik_derinlik kadar önde
-      yuzey       m.5.2.5.3.1'in "kuyunun iç yüzü":  duvar boşluğuna montajda
-                  duvarın kendisi;  kuyu içine montajda kapı hattı — kapıların
-                  altında ve üstünde yüzey hat boyunca sac kaplamayla sürer
-                  ( referans projenin düzeni ).
+    kasa        kat kapısı kasası
+    esik        kat kapısı eşiği ( kanatlar üstünde )
+    hat         kapı hattı:  kat eşiğinin kabine bakan kenarı
+    kabin_esik  kabin eşiği ( kabin kapısı kanatları üstünde ) — ön ucu
+                kabin ön yüzünden kabin_esik_derinlik kadar önde
+    yuzey       m.5.2.5.3.1'in "kuyunun iç yüzü":  duvar boşluğuna montajda
+                duvarın kendisi;  kuyu içine montajda kapı hattı — kapıların
+                altında ve üstünde yüzey hat boyunca sac kaplamayla sürer
+                ( referans projenin düzeni ).
     """
     bas = -S["kasa_derinlik"] if g["kapi"]["montaj"] == "Duvar boşluğuna" else 0.0
     tip = g["kapi"].get("tip")
@@ -114,8 +113,13 @@ def kapi_bolgesi(g, S):
     esik = (kasa[1], kasa[1] + esik_derinligi(S, tip))
     on = g["kabin"]["on_pay"]
     kabin_esik = (on - esik_derinligi(S, tip, kabin=True), on)
-    return {"kasa": kasa, "esik": esik, "hat": esik[1], "kabin_esik": kabin_esik,
-            "yuzey": 0.0 if g["kapi"]["montaj"] == "Duvar boşluğuna" else esik[1]}
+    return {
+        "kasa": kasa,
+        "esik": esik,
+        "hat": esik[1],
+        "kabin_esik": kabin_esik,
+        "yuzey": 0.0 if g["kapi"]["montaj"] == "Duvar boşluğuna" else esik[1],
+    }
 
 
 def kanat_cepleri(g, S, pay=True):
@@ -143,8 +147,13 @@ def kanat_cepleri(g, S, pay=True):
 
 #  Kanat cebi sığmayınca önerilen kapı tipleri ( sırayla:  aynı kapı öbür yana,
 #  sonra daha çok kanat — büyük kapılar 3 ya da 4 kanatlı yapılır ).
-KAPI_CEP_ONERILERI = ("Teleskopik Sol", "Teleskopik Sağ", "Teleskopik 3 Kanat Sol",
-                      "Teleskopik 3 Kanat Sağ", "Otomatik Merkezi 4 Kanat")
+KAPI_CEP_ONERILERI = (
+    "Teleskopik Sol",
+    "Teleskopik Sağ",
+    "Teleskopik 3 Kanat Sol",
+    "Teleskopik 3 Kanat Sağ",
+    "Otomatik Merkezi 4 Kanat",
+)
 
 
 def _cep_sigar(g, S, tip):
@@ -162,8 +171,11 @@ def kaba_bosluk(g, S):
     kapının kasa_ust üstüne ) bu boşluğun içindedir."""
     kp, G = g["kapi"], g["kuyu"]["genislik"]
     yan = S["kaba_bosluk_yan_payi"]
-    return (max(0.0, kp["sol_pay"] - yan), min(G, kp["sol_pay"] + kp["genislik"] + yan),
-            (kp.get("yukseklik") or 0) + S["kapi_ust_payi"])
+    return (
+        max(0.0, kp["sol_pay"] - yan),
+        min(G, kp["sol_pay"] + kp["genislik"] + yan),
+        (kp.get("yukseklik") or 0) + S["kapi_ust_payi"],
+    )
 
 
 def _aski_olculeri(g):
@@ -171,8 +183,7 @@ def _aski_olculeri(g):
     a = g.get("aski") or {}
     duzen = a.get("duzen")
     if duzen in ("Kabin altı", "Kabin üstü"):
-        return ("kasnak", a.get("kasnak_capi"), a.get("kasnak_arasi"),
-                a.get("kasnak_kaciklik", 0))
+        return ("kasnak", a.get("kasnak_capi"), a.get("kasnak_arasi"), a.get("kasnak_kaciklik", 0))
     if duzen == "Doğrudan":
         #  1:1:  tek bağlantı ( şasenin üst kirişinin ortası ) — aralığı yok
         return ("nokta", None, 0.0, a.get("nokta_kaciklik", 0))
@@ -199,7 +210,7 @@ def dogrula(g):
                     hata.append(f"agirlik.yeri: {AGIRLIK_YERLERI} içinden olmalı ( {v!r} ).")
                 continue
             if a == "duzen":
-                continue                       # aşağıda ayrıca denetlenir
+                continue  # aşağıda ayrıca denetlenir
             if a == "montaj":
                 if v not in KAPI_MONTAJLARI:
                     hata.append(f"kapi.montaj: {KAPI_MONTAJLARI} içinden olmalı ( {v!r} ).")
@@ -207,7 +218,7 @@ def dogrula(g):
             if not _sonlu_sayi(v):
                 hata.append(f"{bolum}.{a}: sayı olmalı ( {v!r} ).")
             elif a in ("kaciklik_y", "eksen_kaciklik"):
-                continue                      # işaretli olabilir
+                continue  # işaretli olabilir
             elif v <= 0:
                 hata.append(f"{bolum}.{a}: sıfırdan büyük olmalı ( {v!r} ).")
     if hata:
@@ -222,14 +233,19 @@ def dogrula(g):
     kabin_h = (g.get("dusey") or {}).get("kabin_ic_yukseklik")
     kapi_h = kp.get("yukseklik")
     if _sonlu_sayi(kabin_h) and kabin_h < ASGARI_YUKSEKLIK:
-        hata.append(f"Kabin iç yüksekliği {kabin_h:g} mm:  TS EN 81-20 m.5.4.1 en az "
-                    f"{ASGARI_YUKSEKLIK:g} mm ister.")
+        hata.append(
+            f"Kabin iç yüksekliği {kabin_h:g} mm:  TS EN 81-20 m.5.4.1 en az {ASGARI_YUKSEKLIK:g} mm ister."
+        )
     if _sonlu_sayi(kapi_h) and kapi_h < ASGARI_YUKSEKLIK:
-        hata.append(f"Kat kapısı yüksekliği {kapi_h:g} mm:  TS EN 81-20 m.5.3.1.1 en az "
-                    f"{ASGARI_YUKSEKLIK:g} mm ister.")
+        hata.append(
+            f"Kat kapısı yüksekliği {kapi_h:g} mm:  TS EN 81-20 m.5.3.1.1 en az "
+            f"{ASGARI_YUKSEKLIK:g} mm ister."
+        )
     if _sonlu_sayi(kabin_h) and _sonlu_sayi(kapi_h) and kapi_h > kabin_h:
-        hata.append(f"Kat kapısı yüksekliği ( {kapi_h:g} mm ) kabin iç yüksekliğinden "
-                    f"( {kabin_h:g} mm ) büyük olamaz:  kapı kabinin girişidir.")
+        hata.append(
+            f"Kat kapısı yüksekliği ( {kapi_h:g} mm ) kabin iç yüksekliğinden "
+            f"( {kabin_h:g} mm ) büyük olamaz:  kapı kabinin girişidir."
+        )
     if kb["genislik"] >= k["genislik"]:
         hata.append(f"Kabin genişliği ({kb['genislik']}) kuyu genişliğinden ({k['genislik']}) küçük olmalı.")
     if kb["derinlik"] >= k["derinlik"]:
@@ -243,45 +259,72 @@ def dogrula(g):
     #  KABİN RAYLARININ ARASINDA GİDER:  ray ekseni kabinin derinliği içinden
     #  geçmeli;  geçmezse patenler kabine değil boşluğa bağlanır.
     if not (kb["on_pay"] <= g["kabin_ray"]["kapi_arasi"] <= kb["on_pay"] + kb["derinlik"]):
-        hata.append(f"Kabin rayı ekseni ( kapıdan {g['kabin_ray']['kapi_arasi']:g} ) kabinin "
-                    f"derinliği içinden geçmiyor ( kabin {kb['on_pay']:g} – "
-                    f"{kb['on_pay'] + kb['derinlik']:g} ).")
+        hata.append(
+            f"Kabin rayı ekseni ( kapıdan {g['kabin_ray']['kapi_arasi']:g} ) kabinin "
+            f"derinliği içinden geçmiyor ( kabin {kb['on_pay']:g} – "
+            f"{kb['on_pay'] + kb['derinlik']:g} )."
+        )
     #  KABİN İLE KARŞI AĞIRLIK ÇAKIŞAMAZ.  Blok, ağırlık rayı eksenine
     #  ortalanır;  kabinin yanından en az ASGARI_ACIKLIK kadar uzak durmalı.
     ag = g["agirlik"]
     kx, ky = k["genislik"] / 2.0 + kb["kaciklik_y"], kb["on_pay"] + kb["derinlik"] / 2.0
     # İç ölçü yerine çizilen pano ve şasenin dış zarfını denetle.
     yari_en = kb["genislik"] / 2.0 + S["kabin_pano_yan"] + S["sase_dikme"]
-    kabin_kutu = (kx - yari_en, kb["on_pay"], kx + yari_en,
-                  kb["on_pay"] + kb["derinlik"] + S["kabin_pano_arka"])
-    if (kabin_kutu[0] < 0 or kabin_kutu[2] > k["genislik"]
-            or kabin_kutu[1] < 0 or kabin_kutu[3] > k["derinlik"]):
+    kabin_kutu = (
+        kx - yari_en,
+        kb["on_pay"],
+        kx + yari_en,
+        kb["on_pay"] + kb["derinlik"] + S["kabin_pano_arka"],
+    )
+    if (
+        kabin_kutu[0] < 0
+        or kabin_kutu[2] > k["genislik"]
+        or kabin_kutu[1] < 0
+        or kabin_kutu[3] > k["derinlik"]
+    ):
         hata.append("Kabin veya şasesi kuyunun dışına taşıyor.")
     if ag["yeri"] in ("Sağ", "Sol"):
         ex = ag["ray_duvar"] if ag["yeri"] == "Sol" else k["genislik"] - ag["ray_duvar"]
         ag_y = g["kabin_ray"]["kapi_arasi"] + ag["eksen_kaciklik"]
-        ag_kutu = (ex - ag["derinlik"] / 2.0, ag_y - ag["genislik"] / 2.0,
-                   ex + ag["derinlik"] / 2.0, ag_y + ag["genislik"] / 2.0)
+        ag_kutu = (
+            ex - ag["derinlik"] / 2.0,
+            ag_y - ag["genislik"] / 2.0,
+            ex + ag["derinlik"] / 2.0,
+            ag_y + ag["genislik"] / 2.0,
+        )
     else:
         ey = k["derinlik"] - ag["ray_duvar"]
-        ag_kutu = (k["genislik"] / 2.0 - ag["genislik"] / 2.0, ey - ag["derinlik"] / 2.0,
-                   k["genislik"] / 2.0 + ag["genislik"] / 2.0, ey + ag["derinlik"] / 2.0)
+        ag_kutu = (
+            k["genislik"] / 2.0 - ag["genislik"] / 2.0,
+            ey - ag["derinlik"] / 2.0,
+            k["genislik"] / 2.0 + ag["genislik"] / 2.0,
+            ey + ag["derinlik"] / 2.0,
+        )
     #  Ağırlığa bağlı patenler ( m.5.2.5.5.1 h:  "ve ona bağlı parçalar" ) rayın
     #  ucunda;  derinlik boyunca bloğun dışına taşabilir ( makaralının yan
     #  makaraları — geometri._agirlik_pateni ).  Denetimler taşan kısmı da sayar.
-    yari = CP.agirlik_pateni_yari_eni(ag.get("paten_tipi"), CP.ray_dil_kalinligi(ag["b"], ag["h"]),
-                                      S["paten_boy"])
+    yari = CP.agirlik_pateni_yari_eni(
+        ag.get("paten_tipi"), CP.ray_dil_kalinligi(ag["b"], ag["h"]), S["paten_boy"]
+    )
     if yari > ag["derinlik"] / 2.0:
         t = yari - ag["derinlik"] / 2.0
-        ag_kutu = ((ag_kutu[0] - t, ag_kutu[1], ag_kutu[2] + t, ag_kutu[3])
-                   if ag["yeri"] in ("Sağ", "Sol") else
-                   (ag_kutu[0], ag_kutu[1] - t, ag_kutu[2], ag_kutu[3] + t))
+        ag_kutu = (
+            (ag_kutu[0] - t, ag_kutu[1], ag_kutu[2] + t, ag_kutu[3])
+            if ag["yeri"] in ("Sağ", "Sol")
+            else (ag_kutu[0], ag_kutu[1] - t, ag_kutu[2], ag_kutu[3] + t)
+        )
     A = KABIN_AGIRLIK_ACIKLIGI
-    if (ag_kutu[0] < kabin_kutu[2] + A and kabin_kutu[0] < ag_kutu[2] + A
-            and ag_kutu[1] < kabin_kutu[3] + A and kabin_kutu[1] < ag_kutu[3] + A):
-        hata.append(f"Karşı ağırlık ile kabin arasında {A:g} mm açıklık yok ( TS EN 81-20 "
-                    "m.5.2.5.5.1 h ) — ağırlık rayı – duvar ölçüsünü ya da kabin ölçülerini "
-                    "gözden geçirin.")
+    if (
+        ag_kutu[0] < kabin_kutu[2] + A
+        and kabin_kutu[0] < ag_kutu[2] + A
+        and ag_kutu[1] < kabin_kutu[3] + A
+        and kabin_kutu[1] < ag_kutu[3] + A
+    ):
+        hata.append(
+            f"Karşı ağırlık ile kabin arasında {A:g} mm açıklık yok ( TS EN 81-20 "
+            "m.5.2.5.5.1 h ) — ağırlık rayı – duvar ölçüsünü ya da kabin ölçülerini "
+            "gözden geçirin."
+        )
     if ag_kutu[0] < 0 or ag_kutu[2] > k["genislik"] or ag_kutu[1] < 0 or ag_kutu[3] > k["derinlik"]:
         hata.append("Karşı ağırlık kuyunun dışına taşıyor.")
     #  KANAT CEBİ:  otomatik kapının kanatları açılınca kapının yanında, kuyunun
@@ -291,39 +334,56 @@ def dogrula(g):
             yan = kp["sol_pay"] if c0 < 0 else k["genislik"] - kp["sol_pay"] - kp["genislik"]
             n = kapi_tipi(kp.get("tip"))["kanat"]
             oneri = [t for t in KAPI_CEP_ONERILERI if t != kp.get("tip") and _cep_sigar(g, S, t)]
-            hata.append(f"Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara {yan:g} mm, "
-                        f"açılan {n} kanat için {c1 - c0:g} mm gerekir ( bir kanat eni "
-                        f"{kp['genislik'] / n:g} + {S['kanat_cebi_payi']:g} )"
-                        + (f";  sığan kapı tipi:  {' · '.join(oneri)}." if oneri else "."))
+            hata.append(
+                f"Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara {yan:g} mm, "
+                f"açılan {n} kanat için {c1 - c0:g} mm gerekir ( bir kanat eni "
+                f"{kp['genislik'] / n:g} + {S['kanat_cebi_payi']:g} )"
+                + (f";  sığan kapı tipi:  {' · '.join(oneri)}." if oneri else ".")
+            )
     #  PARÇALAR KENDİ RAYLARININ ARASINA SIĞMALI.  Çerçeve / şase, iki rayın
     #  birbirine bakan yüzleri arasında kalır;  patenler bu aralıkta kayar.
     if ag["genislik"] >= ag["ray_arasi"]:
-        hata.append(f"Karşı ağırlık genişliği ({ag['genislik']:g}) ağırlık rayları arasından "
-                    f"( DBGW {ag['ray_arasi']:g} ) küçük olmalı — çerçeve iki rayın arasında durur.")
+        hata.append(
+            f"Karşı ağırlık genişliği ({ag['genislik']:g}) ağırlık rayları arasından "
+            f"( DBGW {ag['ray_arasi']:g} ) küçük olmalı — çerçeve iki rayın arasında durur."
+        )
     # Rayların arkasındaki konsol plakaları da kuyu içinde kalmalı.
     # Yan yerleşimde bu zarf derinlikte, arka yerleşimde genişliktedir.
     ray_yari = ag["ray_arasi"] / 2.0 + ag["h"] + S["konsol_agirlik_boy"] / 2.0
     if ag["yeri"] in ("Sağ", "Sol"):
-        tasiyor = (ag_y - ray_yari < 0 or ag_y + ray_yari > k["derinlik"]
-                   or ex - ag["b"] / 2.0 < 0 or ex + ag["b"] / 2.0 > k["genislik"]
-                   or S["konsol_agirlik_en"] > k["genislik"])
+        tasiyor = (
+            ag_y - ray_yari < 0
+            or ag_y + ray_yari > k["derinlik"]
+            or ex - ag["b"] / 2.0 < 0
+            or ex + ag["b"] / 2.0 > k["genislik"]
+            or S["konsol_agirlik_en"] > k["genislik"]
+        )
     else:
-        tasiyor = (k["genislik"] / 2.0 - ray_yari < 0
-                   or k["genislik"] / 2.0 + ray_yari > k["genislik"]
-                   or ey - ag["b"] / 2.0 < 0 or ey + ag["b"] / 2.0 > k["derinlik"]
-                   or S["konsol_agirlik_en"] > k["derinlik"])
+        tasiyor = (
+            k["genislik"] / 2.0 - ray_yari < 0
+            or k["genislik"] / 2.0 + ray_yari > k["genislik"]
+            or ey - ag["b"] / 2.0 < 0
+            or ey + ag["b"] / 2.0 > k["derinlik"]
+            or S["konsol_agirlik_en"] > k["derinlik"]
+        )
     if tasiyor:
         hata.append("Karşı ağırlık rayları veya konsolları kuyunun dışına taşıyor.")
     sase_dis = kabin_kutu[2] - kabin_kutu[0]
     if sase_dis >= g["kabin_ray"]["arasi"]:
-        hata.append(f"Kabin şasesinin dış genişliği ({sase_dis:g}) kabin rayları arasından "
-                    f"( DBG {g['kabin_ray']['arasi']:g} ) küçük olmalı.")
+        hata.append(
+            f"Kabin şasesinin dış genişliği ({sase_dis:g}) kabin rayları arasından "
+            f"( DBG {g['kabin_ray']['arasi']:g} ) küçük olmalı."
+        )
     #  KAPI KABİNİN ÖNÜNE DÜŞMELİ:  kat kapısının net boşluğu kabin iç
     #  genişliğinin dışına taşarsa kabin kapısıyla karşılaşmaz.
-    if kp["sol_pay"] < kx - kb["genislik"] / 2.0 or \
-            kp["sol_pay"] + kp["genislik"] > kx + kb["genislik"] / 2.0:
-        hata.append("Kat kapısı boşluğu kabinin önüne düşmüyor — kapının soldan uzaklığını "
-                    "ya da kabinin yana kaçıklığını gözden geçirin.")
+    if (
+        kp["sol_pay"] < kx - kb["genislik"] / 2.0
+        or kp["sol_pay"] + kp["genislik"] > kx + kb["genislik"] / 2.0
+    ):
+        hata.append(
+            "Kat kapısı boşluğu kabinin önüne düşmüyor — kapının soldan uzaklığını "
+            "ya da kabinin yana kaçıklığını gözden geçirin."
+        )
     #  AĞIRLIK YANDAYSA o taraftaki kabin rayı ağırlık konsollarına bağlı
     #  bir ara kirişte durur;  kiriş ağırlıkla kabin rayı arasına sığmalı.
     if ag["yeri"] in ("Sağ", "Sol"):
@@ -335,35 +395,41 @@ def dogrula(g):
             ray_arkasi = kx + kr_["arasi"] / 2.0 + kr_["h"]
             bosluk = ag_kutu[0] - (ray_arkasi + S["ara_kiris_en"])
         if bosluk < ASGARI_ACIKLIK:
-            hata.append(f"Karşı ağırlık ile kabin rayının ara kirişi arasında {bosluk:g} mm kalıyor "
-                        f"( en az {ASGARI_ACIKLIK:g} ) — ağırlık rayı – duvar ölçüsünü ya da "
-                        "kabinin yana kaçıklığını gözden geçirin.")
+            hata.append(
+                f"Karşı ağırlık ile kabin rayının ara kirişi arasında {bosluk:g} mm kalıyor "
+                f"( en az {ASGARI_ACIKLIK:g} ) — ağırlık rayı – duvar ölçüsünü ya da "
+                "kabinin yana kaçıklığını gözden geçirin."
+            )
     #  ASKI DÜZENİ
     a = g.get("aski") or {}
     if a.get("duzen") not in ASKI_DUZENLERI:
         hata.append(f"aski.duzen: {ASKI_DUZENLERI} içinden olmalı ( {a.get('duzen')!r} ).")
     else:
         tur, cap, aralik, kaciklik = _aski_olculeri(g)
-        gerekli = ([("aralık", aralik), ("kasnak çapı", cap)] if tur == "kasnak" else [])
+        gerekli = [("aralık", aralik), ("kasnak çapı", cap)] if tur == "kasnak" else []
         for ad, v in gerekli:
             if not _sonlu_sayi(v) or v <= 0:
                 hata.append(f"aski: {ad} sıfırdan büyük bir sayı olmalı ( {v!r} ).")
         if not _sonlu_sayi(kaciklik):
             hata.append(f"aski: kaçıklık sonlu bir sayı olmalı ( {kaciklik!r} ).")
         from cizim import arka_aski as CAA
+
         if CAA.arkada_iki_bir(g) and _sonlu_sayi(kaciklik):
             #  Arkadaki ağırlıkla 2:1:  kasnaklar çapraz düzlemde, aralığı
             #  geometriden ( arka_aski ) — sınırlarını o denetler.
             A = CAA.geometri(g, S)
             hata += [h for h in A["hata"] if "kuyunun dışına" in h]
-        elif (all(_sonlu_sayi(v) and v > 0 for _, v in gerekli)
-                and _sonlu_sayi(kaciklik)):
+        elif all(_sonlu_sayi(v) and v > 0 for _, v in gerekli) and _sonlu_sayi(kaciklik):
             yari = aralik / 2.0 + (cap / 2.0 if tur == "kasnak" else 45.0)
             kx = k["genislik"] / 2.0 + kb["kaciklik_y"]
             aski_y = kb["on_pay"] + (kb["derinlik"] + S["kabin_pano_arka"]) / 2.0 + kaciklik
             yari_y = S["kabin_kasnak_genislik"] / 2.0 if tur == "kasnak" else 45.0
-            if (kx - yari < 0 or kx + yari > k["genislik"]
-                    or aski_y - yari_y < 0 or aski_y + yari_y > k["derinlik"]):
+            if (
+                kx - yari < 0
+                or kx + yari > k["genislik"]
+                or aski_y - yari_y < 0
+                or aski_y + yari_y > k["derinlik"]
+            ):
                 hata.append("Askı kasnakları / noktaları kuyunun dışına taşıyor.")
 
     #  KAPI AÇIKLIKLARI — standardın kendi sınırları, kabin EŞİĞİNİN ön
@@ -372,25 +438,35 @@ def dogrula(g):
     kabin_esigi = KB["kabin_esik"][0]
     esik_arasi = kabin_esigi - KB["hat"]
     if esik_arasi <= 0:
-        hata.append(f"Kabin eşiği kat kapısı eşiğine biniyor ( {esik_arasi:g} mm ):  kabin "
-                    f"ön yüzü ( on_pay {kb['on_pay']:g} ) en az "
-                    f"{KB['hat'] + S['kabin_esik_derinlik']:g} olmalı.")
+        hata.append(
+            f"Kabin eşiği kat kapısı eşiğine biniyor ( {esik_arasi:g} mm ):  kabin "
+            f"ön yüzü ( on_pay {kb['on_pay']:g} ) en az "
+            f"{KB['hat'] + S['kabin_esik_derinlik']:g} olmalı."
+        )
     elif esik_arasi > ESIK_ARASI_AZAMI:
-        hata.append(f"Kabin eşiği ile kat kapısı eşiği arası {esik_arasi:g} mm — "
-                    f"TS EN 81-20 m.5.3.4.1 en çok {ESIK_ARASI_AZAMI:g} mm verir.")
-    if kp["montaj"] == "Duvar boşluğuna" and (S["kasa_yan"] > S["kaba_bosluk_yan_payi"]
-                                             or S["kasa_ust"] > S["kapi_ust_payi"]):
-        hata.append(f"Kat kapısının kasası duvardaki kaba boşluğa sığmıyor:  kasa yanda "
-                    f"{S['kasa_yan']:g}, kapının üstünde {S['kasa_ust']:g} mm;  boşluğun payları "
-                    f"{S['kaba_bosluk_yan_payi']:g} ve {S['kapi_ust_payi']:g} mm ( Sabitler ).")
+        hata.append(
+            f"Kabin eşiği ile kat kapısı eşiği arası {esik_arasi:g} mm — "
+            f"TS EN 81-20 m.5.3.4.1 en çok {ESIK_ARASI_AZAMI:g} mm verir."
+        )
+    if kp["montaj"] == "Duvar boşluğuna" and (
+        S["kasa_yan"] > S["kaba_bosluk_yan_payi"] or S["kasa_ust"] > S["kapi_ust_payi"]
+    ):
+        hata.append(
+            f"Kat kapısının kasası duvardaki kaba boşluğa sığmıyor:  kasa yanda "
+            f"{S['kasa_yan']:g}, kapının üstünde {S['kasa_ust']:g} mm;  boşluğun payları "
+            f"{S['kaba_bosluk_yan_payi']:g} ve {S['kapi_ust_payi']:g} mm ( Sabitler )."
+        )
     if kabin_esigi - KB["yuzey"] > KAPI_ARASI_AZAMI:
-        hata.append(f"Kuyu iç yüzü ile kabin eşiği arası {kabin_esigi - KB['yuzey']:g} mm — "
-                    f"TS EN 81-20 m.5.2.5.3.1 en çok {KAPI_ARASI_AZAMI:g} mm verir.")
+        hata.append(
+            f"Kuyu iç yüzü ile kabin eşiği arası {kabin_esigi - KB['yuzey']:g} mm — "
+            f"TS EN 81-20 m.5.2.5.3.1 en çok {KAPI_ARASI_AZAMI:g} mm verir."
+        )
     #  Kanat cepleri kuyudaki sabit parçalara ( konsollar, raylar ) ve karşı
     #  ağırlığa çarpmamalı:  planın kendi parçalarıyla denetlenir ( yalnız girdi
     #  temizse — plan geçersiz girdiyle kurulmaz ).
     if not hata:
         from cizim import geometri as _CGE
+
         hata += _CGE.kanat_cebi_carpismalari(g, S)
     return hata
 
@@ -401,9 +477,15 @@ def dogrula(g):
 #  çizim mantığı ORADAN KOPYALANMAZ, yalnız sayılar denemede kullanılır.
 ORNEK = {
     "proje": {"ad": "ÖRNEK PROJE", "asansor": "ASANSÖR 1", "olcek": 20},
-    "kuyu": {"genislik": 2100, "derinlik": 1850,
-             "duvar_on": 150, "duvar_arka": 150, "duvar_sol": 150, "duvar_sag": 150,
-             "doseme": 150},
+    "kuyu": {
+        "genislik": 2100,
+        "derinlik": 1850,
+        "duvar_on": 150,
+        "duvar_arka": 150,
+        "duvar_sol": 150,
+        "duvar_sag": 150,
+        "doseme": 150,
+    },
     #  KAPI BÖLGESİ ( referans proje kuyu planı vektörleri, iç yüzden ):  kat kapısı
     #  ünitesi duvarın İÇ YÜZÜNE monte — kasa 0 – 60, eşik 60 – 150, kapı hattı
     #  150;  eşik aralığı 30;  kabin eşiği 180 – 270 → kabin ön yüzü 270.
@@ -411,8 +493,13 @@ ORNEK = {
     #  sol_pay:  kuyunun sol iç yüzünden kapının NET BOŞLUĞUNA ( kasa içi ).
     #  Referans projenin yazdığı 610, kasaya kadardır:  610 + kasa 120 = 730;  kapı
     #  ekseni böylece kabin ekseniyle aynı ( 1.180 ) olur.
-    "kapi": {"genislik": 900, "sol_pay": 730, "yukseklik": 2100, "tip": "Teleskopik Sol",
-             "montaj": "Kuyu içine"},
+    "kapi": {
+        "genislik": 900,
+        "sol_pay": 730,
+        "yukseklik": 2100,
+        "tip": "Teleskopik Sol",
+        "montaj": "Kuyu içine",
+    },
     #  kapi_arasi:  ray ekseni kuyunun ön İÇ YÜZÜNDEN.  Referans projenin "1017"si
     #  KAPI HATTINDAN ölçülür ( zincir 150 + 1017 + 682 = 1850 ):  iç yüzden
     #  1.167.  ( Eskiden 1.017 iç yüzden alınmıştı — arka duvar 150 geride kalıyordu. )
@@ -423,10 +510,19 @@ ORNEK = {
     #  çiziminden yanlış okunmuştu;  blok kendi raylarının dışına taşıyordu. )
     #  eksen_kaciklik:  yandaki ağırlığın ekseni kabin ray ekseninin 50 mm
     #  önünde ( referans proje paftasındaki "50" ölçüsü;  − = kapıya doğru ).
-    "agirlik": {"yeri": "Sol", "genislik": 790, "derinlik": 160,
-                "ray_arasi": 850, "ray_duvar": 130, "eksen_kaciklik": -50, "b": 70, "h": 65,
-                #  referans projenin hesabı:  "Guide Shoe Type : Roller Type"
-                "kasnak_capi": 400, "paten_tipi": "Makaralı"},
+    "agirlik": {
+        "yeri": "Sol",
+        "genislik": 790,
+        "derinlik": 160,
+        "ray_arasi": 850,
+        "ray_duvar": 130,
+        "eksen_kaciklik": -50,
+        "b": 70,
+        "h": 65,
+        #  referans projenin hesabı:  "Guide Shoe Type : Roller Type"
+        "kasnak_capi": 400,
+        "paten_tipi": "Makaralı",
+    },
     #  2:1 askı, kasnaklar kabinin altında.  Kasnaklar arası referans proje
     #  paftasında 690 + 690 = 1.380 ( eski 1.470 yanlış okunmuştu;  halat
     #  kabin rayının ara kirişinin içinden geçiyordu ).
@@ -434,8 +530,14 @@ ORNEK = {
     #  çizgisi = tahrik kasnağının çizgisi = ağırlık kasnağının ön teğeti
     #  ( ağırlık ekseni − 200 ).  Bu örnekte ağırlık ekseni 1.167 − 50 = 1.117,
     #  teğet 917;  kabin merkezi 270 + 1.433 / 2 = 986,5 → kaçıklık −69,5.
-    "aski": {"duzen": "Kabin altı", "kasnak_capi": 240, "kasnak_arasi": 1380,
-             "kasnak_kaciklik": -69.5, "halat_adedi": 7, "halat_capi": 6.5},
+    "aski": {
+        "duzen": "Kabin altı",
+        "kasnak_capi": 240,
+        "kasnak_arasi": 1380,
+        "kasnak_kaciklik": -69.5,
+        "halat_adedi": 7,
+        "halat_capi": 6.5,
+    },
     #  Kabin üstü planı:  sığınma alanı tipi  ( TS EN 81-20 Çizelge 3 ).
     #  Hesap programındaki "Kabin üstü sığınma hacmi tipi" ile aynı seçim.
     "kabin_ustu": {"siginma_tipi": "Çömelme"},
@@ -447,14 +549,19 @@ ORNEK = {
     #  gergi ağırlığı kasnağın 380 ötesine uzanır ( referans proje hesabı A = 300 ):
     #  1167 + 280 + 380 = 1827, arka duvara 23.  Üst regülatör de aynı ekseni
     #  kullanır.
-    "kuyu_dibi": {"derinlik": 1500, "siginma_tipi": "Çömelme",
-                  "kabin_tampon_adedi": 1, "agirlik_tampon_adedi": 1,
-                  "regulator_yan": "Sağ", "regulator_kaciklik": 280,
-                  #  Regülatör halatının çapı ( hesap programında "Regülatör
-                  #  halatı çapı";  referans proje regülatör hesabı 6,0 ):  makine
-                  #  dairesinde döşeme deliği bundan çıkar.
-                  "regulator_halat_capi": 6,
-                  "regulator_kasnak_capi": 300},
+    "kuyu_dibi": {
+        "derinlik": 1500,
+        "siginma_tipi": "Çömelme",
+        "kabin_tampon_adedi": 1,
+        "agirlik_tampon_adedi": 1,
+        "regulator_yan": "Sağ",
+        "regulator_kaciklik": 280,
+        #  Regülatör halatının çapı ( hesap programında "Regülatör
+        #  halatı çapı";  referans proje regülatör hesabı 6,0 ):  makine
+        #  dairesinde döşeme deliği bundan çıkar.
+        "regulator_halat_capi": 6,
+        "regulator_kasnak_capi": 300,
+    },
     #  DÜŞEY:  kabinin iç yüksekliği ve paten arası, son kat yüksekliği,
     #  beyan hızı, duraklar ve tamponlar — hepsi hesap programında var
     #  ( paten arası 3.300, beyan hızı, tampon kaideleri / boyları / ezilme /
@@ -465,14 +572,27 @@ ORNEK = {
     #  3.060 — 2.920'lik çerçeve + 140'lık patenler üstünde ve altında ( hesabı 1.500
     #  alır — kendi çizimiyle çelişir;  örnek çizimi izler ).  8 Eki'ye dek 2.920
     #  ( patenler çerçevenin uçlarına ortalı sayılıyordu ).
-    "dusey": {"kabin_ic_yukseklik": 2250, "kabin_paten_arasi": 3300, "agirlik_paten_arasi": 3060,
-              "son_kat": 5000, "beyan_hizi": 1.0, "durak_adedi": 8, "kat_yuksekligi": 3000,
-              "kabin_tampon_baba": 764, "kabin_tampon_boyu": 160, "kabin_carpma_arasi": 96,
-              "kabin_tampon_ezilme": 90, "agirlik_tampon_baba": 300, "agirlik_tampon_boyu": 160,
-              "agirlik_carpma_arasi": 150, "agirlik_tampon_ezilme": 90,
-              #  Konsollar arası ( hesap programının "kabin / ağırlık rayı
-              #  konsollar arası en uzun mesafe" girdileri ) — referans proje 1.500.
-              "kabin_konsol_arasi": 1500, "agirlik_konsol_arasi": 1500},
+    "dusey": {
+        "kabin_ic_yukseklik": 2250,
+        "kabin_paten_arasi": 3300,
+        "agirlik_paten_arasi": 3060,
+        "son_kat": 5000,
+        "beyan_hizi": 1.0,
+        "durak_adedi": 8,
+        "kat_yuksekligi": 3000,
+        "kabin_tampon_baba": 764,
+        "kabin_tampon_boyu": 160,
+        "kabin_carpma_arasi": 96,
+        "kabin_tampon_ezilme": 90,
+        "agirlik_tampon_baba": 300,
+        "agirlik_tampon_boyu": 160,
+        "agirlik_carpma_arasi": 150,
+        "agirlik_tampon_ezilme": 90,
+        #  Konsollar arası ( hesap programının "kabin / ağırlık rayı
+        #  konsollar arası en uzun mesafe" girdileri ) — referans proje 1.500.
+        "kabin_konsol_arasi": 1500,
+        "agirlik_konsol_arasi": 1500,
+    },
     #  Makine:  tahrik kasnağı çapı hesap programında var ( D1 ).  Kuyu üstü
     #  ( MRL ) ve makine dairesi planları ortak okur.
     #  Makinenin yeri:  "Kuyu üstü" ( makine dairesiz — referans proje ) ya da
@@ -494,20 +614,31 @@ ORNEK = {
     #  iki yana 100 mm taşar, önü kuyunun ön duvarıyla aynı hizada.
     #  Kapı ve pano duvarı:  "Ön" · "Arka" · "Sol" · "Sağ";  kapı konumu
     #  duvarın sol ( ön ) iç köşesinden kapı boşluğuna.
-    "makine_dairesi": {"genislik": 2600, "derinlik": 3800, "duvar": 200, "x": -250, "y": -150,
-                       "kapi_duvar": "Arka", "kapi_konum": 300, "kapi_genislik": 800,
-                       "pano_duvar": "Sağ",
-                       #  Düşey kesit için:  iç ( temiz ) yükseklik ( LiftDesigner
-                       #  "477-8":  3.500 ).  Kapı yüksekliği:  TS EN 81-20 m.5.2.3.2 a'nın
-                       #  en azı 2.000.
-                       "yukseklik": 3500, "kapi_yukseklik": 2000,
-                       #  Hesap programının makine dairesi girdileri ( adları aynı;
-                       #  değerler o programın varsayılanları ):  tabliye beton
-                       #  yüksekliği = oda döşemesinin ( kuyunun üstündeki betonun )
-                       #  kalınlığı;  makine kaidesi:  şase yüksekliği ( dikine kirişin
-                       #  boyu, döşemeden kaidenin üstüne ) ve dikine kiriş NPU'su.
-                       #  Yan yatakların mesnet aralığı çizimden ( kaide makineyi sarar ).
-                       "tabliye_yuksekligi": 1200, "sase_yuksekligi": 1100, "dikine_kiris": 120},
+    "makine_dairesi": {
+        "genislik": 2600,
+        "derinlik": 3800,
+        "duvar": 200,
+        "x": -250,
+        "y": -150,
+        "kapi_duvar": "Arka",
+        "kapi_konum": 300,
+        "kapi_genislik": 800,
+        "pano_duvar": "Sağ",
+        #  Düşey kesit için:  iç ( temiz ) yükseklik ( LiftDesigner
+        #  "477-8":  3.500 ).  Kapı yüksekliği:  TS EN 81-20 m.5.2.3.2 a'nın
+        #  en azı 2.000.
+        "yukseklik": 3500,
+        "kapi_yukseklik": 2000,
+        #  Hesap programının makine dairesi girdileri ( adları aynı;
+        #  değerler o programın varsayılanları ):  tabliye beton
+        #  yüksekliği = oda döşemesinin ( kuyunun üstündeki betonun )
+        #  kalınlığı;  makine kaidesi:  şase yüksekliği ( dikine kirişin
+        #  boyu, döşemeden kaidenin üstüne ) ve dikine kiriş NPU'su.
+        #  Yan yatakların mesnet aralığı çizimden ( kaide makineyi sarar ).
+        "tabliye_yuksekligi": 1200,
+        "sase_yuksekligi": 1100,
+        "dikine_kiris": 120,
+    },
     #  Referans projenin kabini ( programın ofis standardı ofisin kendi kabini )
     "_cizim_sabitleri": dict(_CS.REFERANS_PROJE_KABINI),
 }

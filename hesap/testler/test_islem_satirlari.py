@@ -31,6 +31,7 @@ ya da sonuç sayı değilse denetlenmez;  bu satırların sayısı raporda yazı
 bilinen bağıntıların gerçekten denetlendiği ayrıca doğrulanır ( ayrıştırıcı
 sessizce gevşeyip her şeyi "denetlenemedi"ye atamasın diye ).
 """
+
 import ast
 import json
 import math
@@ -41,13 +42,17 @@ from collections import Counter, defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.avan import hesap as AV                               # noqa: E402
-from engine.avan import trafik as TR                              # noqa: E402
-from engine.uygulama import mukavemet as MK                       # noqa: E402
-from testler import test_mukavemet_tarama as T10                  # noqa: E402
-from testler.altin_uret import (avan_senaryolar, senaryolar,      # noqa: E402
-                                uygulama_motoru, uygulama_senaryolar)
-from testler.ortak import Rapor                                   # noqa: E402
+from engine.avan import hesap as AV  # noqa: E402
+from engine.avan import trafik as TR  # noqa: E402
+from engine.uygulama import mukavemet as MK  # noqa: E402
+from testler import test_mukavemet_tarama as T10  # noqa: E402
+from testler.altin_uret import (
+    avan_senaryolar,
+    senaryolar,  # noqa: E402
+    uygulama_motoru,
+    uygulama_senaryolar,
+)
+from testler.ortak import Rapor  # noqa: E402
 
 
 # =====================================================================
@@ -80,7 +85,7 @@ class Aralik:
         e = o.alt
         if self.alt < 0 and e != int(e):
             raise ValueError("negatif tabanın kesirli üssü")
-        u = [self.alt ** e, self.ust ** e]
+        u = [self.alt**e, self.ust**e]
         if self.alt < 0 < self.ust and e % 2 == 0:
             u.append(0.0)
         return Aralik(min(u), max(u))
@@ -91,9 +96,11 @@ class Aralik:
 
 def _tekduze(f):
     """Aralıkta tekdüze fonksiyon — uçlarda hesaplanır."""
+
     def g(a):
         u = (f(a.alt), f(a.ust))
         return Aralik(min(u), max(u))
+
     return g
 
 
@@ -105,21 +112,31 @@ def _mutlak(a):
 
 
 def _roundup(a, n=Aralik(0)):
-    k = 10 ** n.alt
+    k = 10**n.alt
     return Aralik(math.ceil(a.alt * k - 1e-9) / k, math.ceil(a.ust * k - 1e-9) / k)
 
 
 FONKSIYON = {
-    "sqrt": _tekduze(math.sqrt), "exp": _tekduze(math.exp), "ln": _tekduze(math.log),
-    "log": _tekduze(math.log10), "atan": _tekduze(math.atan), "abs": _mutlak,
+    "sqrt": _tekduze(math.sqrt),
+    "exp": _tekduze(math.exp),
+    "ln": _tekduze(math.log),
+    "log": _tekduze(math.log10),
+    "atan": _tekduze(math.atan),
+    "abs": _mutlak,
     #  Paftadaki açılar 0-90° arasındadır;  orada sin ve tan tekdüzedir.
-    "sin": _tekduze(math.sin), "tan": _tekduze(math.tan),
+    "sin": _tekduze(math.sin),
+    "tan": _tekduze(math.tan),
     "max": lambda *a: Aralik(max(x.alt for x in a), max(x.ust for x in a)),
     "min": lambda *a: Aralik(min(x.alt for x in a), min(x.ust for x in a)),
     "roundup": _roundup,
 }
-ISLEC = {ast.Add: "__add__", ast.Sub: "__sub__", ast.Mult: "__mul__",
-         ast.Div: "__truediv__", ast.Pow: "__pow__"}
+ISLEC = {
+    ast.Add: "__add__",
+    ast.Sub: "__sub__",
+    ast.Mult: "__mul__",
+    ast.Div: "__truediv__",
+    ast.Pow: "__pow__",
+}
 
 
 def _degerlendir(dugum, sayilar):
@@ -135,8 +152,7 @@ def _degerlendir(dugum, sayilar):
     if isinstance(dugum, ast.UnaryOp) and isinstance(dugum.op, (ast.USub, ast.UAdd)):
         v = _degerlendir(dugum.operand, sayilar)
         return -v if isinstance(dugum.op, ast.USub) else v
-    if (isinstance(dugum, ast.Call) and isinstance(dugum.func, ast.Name)
-            and dugum.func.id in FONKSIYON):
+    if isinstance(dugum, ast.Call) and isinstance(dugum.func, ast.Name) and dugum.func.id in FONKSIYON:
         return FONKSIYON[dugum.func.id](*[_degerlendir(a, sayilar) for a in dugum.args])
     raise ValueError("desteklenmeyen ifade")
 
@@ -159,7 +175,7 @@ def _sayi_araligi(metin):
     hane = len(duz.split(",")[1]) if "," in duz else 0
     v = float(duz.replace(",", "."))
     if hane:
-        yarim = 0.5 * 10 ** -hane
+        yarim = 0.5 * 10**-hane
     elif binlik or len(duz) >= 3:
         yarim = 0.5
     else:
@@ -176,10 +192,23 @@ def aralik_hesapla(ifade):
     s = s.replace("10⁶", "(10**6)").replace("10³", "(10**3)")
     s = re.sub(r"(\d)\s*%", r"\1/100", s)
     s = _BIRIM.sub(r"\1", s)
-    for eski, yeni in (("−", "-"), ("–", "-"), ("×", "*"), ("·", "*"), ("÷", "/"),
-                       ("²", "**2"), ("³", "**3"), ("⁴", "**4"), ("√", "sqrt"),
-                       ("[", "("), ("]", ")"), ("ROUNDUP", "roundup"),
-                       ("MAX", "max"), ("MIN", "min"), (";", ",")):
+    for eski, yeni in (
+        ("−", "-"),
+        ("–", "-"),
+        ("×", "*"),
+        ("·", "*"),
+        ("÷", "/"),
+        ("²", "**2"),
+        ("³", "**3"),
+        ("⁴", "**4"),
+        ("√", "sqrt"),
+        ("[", "("),
+        ("]", ")"),
+        ("ROUNDUP", "roundup"),
+        ("MAX", "max"),
+        ("MIN", "min"),
+        (";", ","),
+    ):
         s = s.replace(eski, yeni)
     s = re.sub(r"(\d)\s*°", r"\1*DERECE", s)
     sayilar = {"DERECE": Aralik(math.pi / 180)}
@@ -188,6 +217,7 @@ def aralik_hesapla(ifade):
         ad = f"S{len(sayilar)}"
         sayilar[ad] = _sayi_araligi(m.group(0))
         return ad
+
     s = _SAYI.sub(yer, s)
     if re.search(r"[A-Za-zÇĞİÖŞÜçğıöşü_]", _KALAN.sub("", s)):
         return None
@@ -220,9 +250,10 @@ def denetle(adim):
         v = aralik_hesapla(parcalar[0])
         if hedef is None or v is None:
             return None
-        return (v.ust >= hedef.alt - 1e-9 and v.alt <= hedef.ust + 1e-9,
-                f"işlem {v.alt:.6g}…{v.ust:.6g}  ≠  yazılan ara değer "
-                f"{hedef.alt:.6g}…{hedef.ust:.6g}")
+        return (
+            v.ust >= hedef.alt - 1e-9 and v.alt <= hedef.ust + 1e-9,
+            f"işlem {v.alt:.6g}…{v.ust:.6g}  ≠  yazılan ara değer {hedef.alt:.6g}…{hedef.ust:.6g}",
+        )
     v = aralik_hesapla(parcalar[0])
     if v is None:
         return None
@@ -272,9 +303,22 @@ def satirlar():
 #  Bu bağıntılar en az bir senaryoda GERÇEKTEN yeniden hesaplanmış olmalı.
 #  Ayrıştırıcı bozulup onları "denetlenemedi"ye atarsa test yeşil kalırdı.
 DENETLENMESI_ZORUNLU = (
-    "lh = ", "σF = | Fx |", "σF = 1,85 × | Fx |", "B  =  ROUNDUP", "Sapd", "ε1", "ε2",
-    "P1  =", "PK  =", "Fs  =", "k   =   a · b", "Ry  =", "f = μ / sin", "λ = l / imin",
-    "Kabin alanı = ", "a)  Q / 75",
+    "lh = ",
+    "σF = | Fx |",
+    "σF = 1,85 × | Fx |",
+    "B  =  ROUNDUP",
+    "Sapd",
+    "ε1",
+    "ε2",
+    "P1  =",
+    "PK  =",
+    "Fs  =",
+    "k   =   a · b",
+    "Ry  =",
+    "f = μ / sin",
+    "λ = l / imin",
+    "Kabin alanı = ",
+    "a)  Q / 75",
 )
 
 
@@ -297,19 +341,26 @@ def calistir():
             hatali[(ad, formul)].append((etiket, adim.get("islem"), s[1]))
 
     r.kontrol(f"hesap satırı taranan: {len(tum)}", len(tum) > 30000, f"→ {len(tum)}")
-    r.kontrol(f"yeniden hesaplanan satır: {sayac['denetlendi']}  "
-              f"( denetlenemeyen {sayac['denetlenemedi']} — parametre listesi / metin )",
-              sayac["denetlendi"] > 0.75 * len(tum), f"→ {dict(sayac)}")
+    r.kontrol(
+        f"yeniden hesaplanan satır: {sayac['denetlendi']}  "
+        f"( denetlenemeyen {sayac['denetlenemedi']} — parametre listesi / metin )",
+        sayac["denetlendi"] > 0.75 * len(tum),
+        f"→ {dict(sayac)}",
+    )
     for bas in DENETLENMESI_ZORUNLU:
-        r.kontrol(f"bağıntı gerçekten denetlendi: {bas}",
-                  any(f.startswith(bas) for f in denetlenen_bagintilar))
+        r.kontrol(
+            f"bağıntı gerçekten denetlendi: {bas}", any(f.startswith(bas) for f in denetlenen_bagintilar)
+        )
     if not hatali:
         r.gecti += 1
         return r
     for (ad, formul), liste in sorted(hatali.items(), key=lambda x: -len(x[1])):
         etiket, islem, ayrinti = liste[0]
-        r.kontrol(f"{ad} · {formul}  —  {len(liste)} satırda işlem sonucu vermiyor",
-                  False, f"→ örn {etiket}:  {str(islem)[:120]!r}  ·  {ayrinti}")
+        r.kontrol(
+            f"{ad} · {formul}  —  {len(liste)} satırda işlem sonucu vermiyor",
+            False,
+            f"→ örn {etiket}:  {str(islem)[:120]!r}  ·  {ayrinti}",
+        )
     return r
 
 

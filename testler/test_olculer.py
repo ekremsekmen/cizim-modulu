@@ -5,6 +5,7 @@ sayılarını ve makinenin kirişteki yerini artık kendi tahmin etmez:  çizimi
 girdilerden kurduğu yerleşimden okur.  Bu testler ölçülerin tanımlarını,
 hesaba girdiklerini ( raporda ÇİZİMDEN ) ve çizim kurulamayınca hesabın
 kendi yaklaşığına döndüğünü sınar."""
+
 import math
 import os
 import sys
@@ -15,13 +16,13 @@ _yol = os.path.join(KOK, "hesap")
 if _yol not in sys.path:
     sys.path.append(_yol)
 
-from cizim import kopru as CK                             # noqa: E402
-from cizim import makine_dairesi as CMD                   # noqa: E402
-from cizim import olculer as CO                           # noqa: E402
-from cizim import sabitler as CS                          # noqa: E402
-from engine.uygulama import girdi as UG                   # noqa: E402
-from engine.uygulama import hesap as UY                   # noqa: E402
-from engine.uygulama import mukavemet as MK               # noqa: E402
+from cizim import kopru as CK  # noqa: E402
+from cizim import makine_dairesi as CMD  # noqa: E402
+from cizim import olculer as CO  # noqa: E402
+from cizim import sabitler as CS  # noqa: E402
+from engine.uygulama import girdi as UG  # noqa: E402
+from engine.uygulama import hesap as UY  # noqa: E402
+from engine.uygulama import mukavemet as MK  # noqa: E402
 
 MD = {"mk_yok": False, "mk_uzunluk": 4000, "mk_genislik": 3000}
 
@@ -48,8 +49,9 @@ class Plan(unittest.TestCase):
         o = CO.plan_olculeri(gc, S)
         kb, ray_y = gc["kabin"], gc["kabin_ray"]["kapi_arasi"]
         self.assertAlmostEqual(o["kabin_merkezi_x"], kb["on_pay"] + kb["derinlik"] / 2 - ray_y)
-        self.assertAlmostEqual(o["kabin_merkezi_x"] - o["esik_x"],
-                               (kb["derinlik"] + S["kabin_esik_derinlik"]) / 2)
+        self.assertAlmostEqual(
+            o["kabin_merkezi_x"] - o["esik_x"], (kb["derinlik"] + S["kabin_esik_derinlik"]) / 2
+        )
         #  Eşik kabin ray ekseninin önünde
         self.assertLess(o["esik_x"], 0)
 
@@ -62,8 +64,16 @@ class Kasnaklar(unittest.TestCase):
         self.assertEqual(CO.kasnak_sayilari(bir, {"D": 400})["kasnak_tek_yon"], 1)
         self.assertEqual(CO.kasnak_sayilari(bir, {"D": 400})["saptirma_agirlik_capi"], 400.0)
         k = CO.kasnak_sayilari(iki, None)
-        self.assertEqual((k["kasnak_tek_yon"], k["kasnak_kabin_adedi"], k["kasnak_agirlik_adedi"],
-                          k["kasnak_ters_yon"], k["saptirma_agirlik_capi"]), (2, 2, 1, 0, 0.0))
+        self.assertEqual(
+            (
+                k["kasnak_tek_yon"],
+                k["kasnak_kabin_adedi"],
+                k["kasnak_agirlik_adedi"],
+                k["kasnak_ters_yon"],
+                k["saptirma_agirlik_capi"],
+            ),
+            (2, 2, 1, 0, 0.0),
+        )
         #  2:1 + saptırma:  ağırlık tarafında iki kasnak — en olumsuz kesit yine 2
         self.assertEqual(CO.kasnak_sayilari(iki, {"D": 400})["kasnak_tek_yon"], 2)
 

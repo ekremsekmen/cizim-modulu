@@ -37,6 +37,7 @@ KURMA İLE DENETİM AYRIDIR:  çizimin denetim hataları ( sığınma alanı,
 çakışma … ) bu ölçüleri durdurmaz;  yalnız geometri hiç kurulamazsa ilgili
 ölçü listede yer almaz ve hesap kendi yaklaşığını kullanır ( raporda yazar ).
 """
+
 import math
 
 from cizim import arka_aski as CAA
@@ -56,9 +57,12 @@ def plan_olculeri(g, S):
     """Kabinin ve eşiğinin ray eksenine uzaklığı — planın kendi tanımıyla
     ( cizim/girdi:  kabin merkezi = ön yüz + derinlik / 2 )."""
     kb, ray_y = g["kabin"], g["kabin_ray"]["kapi_arasi"]
-    return {"kabin_merkezi_x": round(kb["on_pay"] + kb["derinlik"] / 2.0 - ray_y, 3),
-            "esik_x": round(kb["on_pay"] - CG.esik_derinligi(S, g["kapi"].get("tip"), kabin=True) / 2.0
-                            - ray_y, 3)}
+    return {
+        "kabin_merkezi_x": round(kb["on_pay"] + kb["derinlik"] / 2.0 - ray_y, 3),
+        "esik_x": round(
+            kb["on_pay"] - CG.esik_derinligi(S, g["kapi"].get("tip"), kabin=True) / 2.0 - ray_y, 3
+        ),
+    }
 
 
 def kasnak_sayilari(g, saptirma):
@@ -71,9 +75,13 @@ def kasnak_sayilari(g, saptirma):
     kabin = 2 if iki_bir else 0
     agirlik = 1 if iki_bir else 0
     sap = 1 if saptirma else 0
-    return {"kasnak_tek_yon": max(kabin, agirlik + sap), "kasnak_ters_yon": 0,
-            "kasnak_kabin_adedi": kabin, "kasnak_agirlik_adedi": agirlik,
-            "saptirma_agirlik_capi": float(saptirma["D"]) if saptirma else 0.0}
+    return {
+        "kasnak_tek_yon": max(kabin, agirlik + sap),
+        "kasnak_ters_yon": 0,
+        "kasnak_kabin_adedi": kabin,
+        "kasnak_agirlik_adedi": agirlik,
+        "saptirma_agirlik_capi": float(saptirma["D"]) if saptirma else 0.0,
+    }
 
 
 def _mrl_kiris_yuku(g, S, KU):
@@ -84,7 +92,7 @@ def _mrl_kiris_yuku(g, S, KU):
     raylar = sorted(CKD._raylar(taban, "agirlik_ray"), key=lambda r: r[1])
     if len(raylar) < 2:
         return None, None
-    a, b = raylar[0][3], raylar[-1][1]                   # ön rayın arka, arka rayın ön yüzü
+    a, b = raylar[0][3], raylar[-1][1]  # ön rayın arka, arka rayın ön yüzü
     y0 = (KU["kasnak"][1] + KU["kasnak"][3]) / 2.0
     X = y0 - a
     return (round(X, 3) if 0.0 < X < b - a else None), round(b - a, 3)
@@ -139,7 +147,7 @@ def hesap_olculeri(g):
     if not mrl:
         try:
             MD = CMD.yerlesim(g, S)
-        except Exception:                                  # noqa: BLE001 — çizim kendi hatasını söyler
+        except Exception:  # noqa: BLE001 — çizim kendi hatasını söyler
             MD = {}
         #  Ağırlık halatının yolu kurulamadıysa saptırma kasnağı var mı yok mu
         #  bilinmez:  kasnak sayıları çizimden verilmez.
@@ -157,14 +165,15 @@ def hesap_olculeri(g):
         H = kotlar[-1]
         KY = g["kuyu_dibi"]["derinlik"]
         M = CDN.yerlesim(g, S, H, H + dy["son_kat"], -KY)
-    except Exception:                                      # noqa: BLE001
+    except Exception:  # noqa: BLE001
         return out
     if "raylar" not in M or "kasnak" not in M:
         return out
     if mrl and "KU" in M:
         KU = M["KU"]
-        out.update(_kiris(*(_duvar_kiris_yuku(KU) if KU.get("duvardan_duvara")
-                            else _mrl_kiris_yuku(g, S, KU))))
+        out.update(
+            _kiris(*(_duvar_kiris_yuku(KU) if KU.get("duvardan_duvara") else _mrl_kiris_yuku(g, S, KU)))
+        )
 
     for tur, anahtar in (("kabin", "kabin_ray_boyu"), ("agirlik", "agirlik_ray_boyu")):
         boy = [r["ust"] - r["alt"] for r in M["raylar"] if r["tur"] == tur]
@@ -175,8 +184,9 @@ def hesap_olculeri(g):
     reg, ger = M.get("regulator_kasnak"), M.get("gergi")
     if reg and ger and _sayi(ger.get("cap")):
         Dr = g["kuyu_dibi"]["regulator_kasnak_capi"]
-        out["reg_halat_boyu"] = round((2.0 * (reg[-1] - ger["merkez"])
-                                       + math.pi * (Dr + ger["cap"]) / 2.0) / 1000.0, 4)
+        out["reg_halat_boyu"] = round(
+            (2.0 * (reg[-1] - ger["merkez"]) + math.pi * (Dr + ger["cap"]) / 2.0) / 1000.0, 4
+        )
 
     #  Askı halatı, kabin tarafı, kabin en alt durakta:  tahrik kasnağının
     #  merkezinden ( halat kasnağı merkez kotunda teğet bırakır ) kabine.
@@ -202,6 +212,5 @@ def hesap_olculeri(g):
         zc = kab["kasnak_merkez"]
         z_bag = M["kabin_baglanti"][4]
         Dk, ara = aski["kasnak_capi"], aski["kasnak_arasi"]
-        out["aski_halat_boyu"] = round(((zk - zc) + (z_bag - zc) + ara
-                                        + math.pi * Dk / 2.0) / 1000.0, 4)
+        out["aski_halat_boyu"] = round(((zk - zc) + (z_bag - zc) + ara + math.pi * Dk / 2.0) / 1000.0, 4)
     return out

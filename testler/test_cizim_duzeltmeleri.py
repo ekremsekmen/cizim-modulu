@@ -1,4 +1,5 @@
 """Gerçek form girdileriyle katlar, tampon stroku ve SVG çizgi türleri."""
+
 import copy
 import json
 import os
@@ -54,8 +55,7 @@ class Katlar(unittest.TestCase):
         self.assertTrue(any("üst payı" in h for h in r["hata"]), r)
 
     def test_farkli_katlar_formdan_kesitlere_gecer(self):
-        v = _veri(durak_adedi=4, seyir_mesafesi=9.6,
-                  kat_yukseklikleri="3400; 3000; 3200")
+        v = _veri(durak_adedi=4, seyir_mesafesi=9.6, kat_yukseklikleri="3400; 3000; 3200")
         g, hata, a = _g(v)
         self.assertEqual(hata, [])
         self.assertEqual(DY.durak_kotlari(g), ([0, 3400, 6400, 9600], []))
@@ -64,8 +64,9 @@ class Katlar(unittest.TestCase):
         self.assertTrue(r["aktif"], r.get("hata"))
         for ciz in (KE.yan_kesit, KE.on_kesit):
             e = ciz(g)
-            self.assertFalse([p for p in e if p["tip"] in ("tarama", "dikdortgen")
-                              and (p["g"] <= 0 or p["d"] <= 0)])
+            self.assertFalse(
+                [p for p in e if p["tip"] in ("tarama", "dikdortgen") and (p["g"] <= 0 or p["d"] <= 0)]
+            )
             metinler = {p["metin"] for p in e if p["tip"] == "yazi"}
             self.assertTrue({"+3,40", "+6,40", "+9,60"} <= metinler)
             self.assertFalse(DX.belge(e, olcek=50).audit().errors)
@@ -77,28 +78,42 @@ class Katlar(unittest.TestCase):
             self.assertEqual(g["dusey"]["kat_yuksekligi"], 3000)
 
     def test_eksik_bozuk_ve_seyirle_celisen_listeler_reddedilir(self):
-        for ham in ("3400; 3000", "3400; 3000; 3100", "abc; 3000; 3200",
-                    "3.400; 3000; 3200", "nan; 3000; 3200", "-1; 3000; 3200",
-                    "3400;;3200", [True, 3000, 3200], {"kat": 3400}):
+        for ham in (
+            "3400; 3000",
+            "3400; 3000; 3100",
+            "abc; 3000; 3200",
+            "3.400; 3000; 3200",
+            "nan; 3000; 3200",
+            "-1; 3000; 3200",
+            "3400;;3200",
+            [True, 3000, 3200],
+            {"kat": 3400},
+        ):
             with self.subTest(ham=ham):
-                g, hata, _ = _g(_veri(durak_adedi=4, seyir_mesafesi=9.6,
-                                     kat_yukseklikleri=ham))
+                g, hata, _ = _g(_veri(durak_adedi=4, seyir_mesafesi=9.6, kat_yukseklikleri=ham))
                 self.assertIsNone(g)
                 self.assertTrue(any("kat yüksekli" in h.lower() for h in hata), hata)
 
     def test_ondalik_virgul_desteklenir(self):
-        g, hata, _ = _g(_veri(durak_adedi=3, seyir_mesafesi=6.4005,
-                              kat_yukseklikleri="3400,5; 3000"))
+        g, hata, _ = _g(_veri(durak_adedi=3, seyir_mesafesi=6.4005, kat_yukseklikleri="3400,5; 3000"))
         self.assertEqual(hata, [])
         self.assertEqual(DY.durak_kotlari(g)[0], [0, 3400.5, 6400.5])
 
     def test_alan_form_sozlesmesinde_ve_her_asansorde_ayridir(self):
-        f = next(f for gr in UA.uygulama_alanlari()["gruplar"]
-                 for f in gr["alanlar"] if f["anahtar"] == "kat_yukseklikleri")
+        f = next(
+            f
+            for gr in UA.uygulama_alanlari()["gruplar"]
+            for f in gr["alanlar"]
+            if f["anahtar"] == "kat_yukseklikleri"
+        )
         self.assertEqual((f["tur"], f["varsayilan"]), ("metin", None))
-        a, _ = UA._asansor_girdileri({"asansorler": [
-            {"kat_yukseklikleri": "3400; 3000"}, {"kat_yukseklikleri": "3000; 3400"}],
-            "proje_geneli": {}, "sabitler": {}})
+        a, _ = UA._asansor_girdileri(
+            {
+                "asansorler": [{"kat_yukseklikleri": "3400; 3000"}, {"kat_yukseklikleri": "3000; 3400"}],
+                "proje_geneli": {},
+                "sabitler": {},
+            }
+        )
         self.assertEqual([v["kat_yukseklikleri"] for v in a], ["3400; 3000", "3000; 3400"])
 
 
@@ -118,10 +133,8 @@ class Tamponlar(unittest.TestCase):
 
     def test_agirlik_tamponu_hesap_motorunda_da_denetlenir(self):
         for boy in (None, 100, 80):
-            g = MG.tamamla({**MG.varsayilanlar(), "agirlik_tampon_boyu": boy,
-                            "agirlik_tampon_ezilme": 110})
-            self.assertTrue(any("Ağırlık tamponu ezilme" in h and "aşamaz" in h
-                                for h in MG.dogrula(g)))
+            g = MG.tamamla({**MG.varsayilanlar(), "agirlik_tampon_boyu": boy, "agirlik_tampon_ezilme": 110})
+            self.assertTrue(any("Ağırlık tamponu ezilme" in h and "aşamaz" in h for h in MG.dogrula(g)))
         g["agirlik_tampon_boyu"] = 120
         self.assertFalse(any("Ağırlık tamponu ezilme" in h for h in MG.dogrula(g)))
 
@@ -131,12 +144,10 @@ class KesikCizgiler(unittest.TestCase):
         ns = "{http://www.w3.org/2000/svg}"
         for kat, desen in SV.KESIK.items():
             for olcek in (20, 50):
-                e = [GE._cizgi(kat, 0, 0, 100, 0), GE._daire(kat, 0, 0, 50),
-                     GE._dik(kat, 0, 0, 100, 100)]
+                e = [GE._cizgi(kat, 0, 0, 100, 0), GE._daire(kat, 0, 0, 50), GE._dik(kat, 0, 0, 100, 100)]
                 r = ET.fromstring(SV.yaz(e, GE.sinir(e), olcek=olcek))
                 for p in list(r.find(ns + "g")):
-                    self.assertEqual(p.attrib["stroke-dasharray"],
-                                     SV._kesik(desen, olcek / 20))
+                    self.assertEqual(p.attrib["stroke-dasharray"], SV._kesik(desen, olcek / 20))
 
     def test_gercek_kesit_tavan_payi_svg_ve_dxfte_kesiklidir(self):
         g = copy.deepcopy(GI.ORNEK)

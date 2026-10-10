@@ -40,19 +40,19 @@ diye işaretlenir.
 #  SINAMA:  her profilin çokgen alanı hesabın kesit alanıyla ( mukavemet_tablolari
 #  RAY_PROFILI · ISO'nun S'si ) %1 içinde — testler/test_parcalar.py.
 RAY_EGIK = {
-    (70, 65): (70, 65, 9, 34, 6, 8, 6),             # T70/A
-    (75, 62): (75, 62, 10, 30, 8, 9, 7),            # T75/A · T75/B
-    (82, 68): (82, 68, 9, 34, 7.5, 8.25, 6),        # T82/A
-    (89, 62): (89, 62, 16, 34, 10, 11.1, 7.9),      # T89/A · T89/B
-    (90, 75): (90, 75, 16, 42, 10, 10, 8),          # T90/A · T90/B
-    (125, 82): (125, 82, 16, 42, 10, 12, 9),        # T125/B
-    (127, 89): (127, 89, 16, 51, 10, 15.9, 12.7),   # T127-2/B
+    (70, 65): (70, 65, 9, 34, 6, 8, 6),  # T70/A
+    (75, 62): (75, 62, 10, 30, 8, 9, 7),  # T75/A · T75/B
+    (82, 68): (82, 68, 9, 34, 7.5, 8.25, 6),  # T82/A
+    (89, 62): (89, 62, 16, 34, 10, 11.1, 7.9),  # T89/A · T89/B
+    (90, 75): (90, 75, 16, 42, 10, 10, 8),  # T90/A · T90/B
+    (125, 82): (125, 82, 16, 42, 10, 12, 9),  # T125/B
+    (127, 89): (127, 89, 16, 51, 10, 15.9, 12.7),  # T127-2/B
 }
 #  Paralel tabanlı T profili:  ( b1, h1, k, p )  —  p taban kalınlığı
 #  KAYNAK:  ISO 7465:2007 Tablo 3 = ISO 8100-33:2022 Tablo 4 ( T45/A, T50/A ).
 RAY_PARALEL = {
-    (45, 45): (45, 45, 5, 5),                       # T45/A
-    (50, 50): (50, 50, 5, 5),                       # T50/A
+    (45, 45): (45, 45, 5, 5),  # T45/A
+    (50, 50): (50, 50, 5, 5),  # T50/A
 }
 
 
@@ -63,7 +63,7 @@ def ray_kesiti(b, h):
     a = (round(b), round(h))
     if a in RAY_EGIK:
         b1, h1, k, n, c, f, g = RAY_EGIK[a]
-        dil = h1 - n                                 # dilin başladığı yer
+        dil = h1 - n  # dilin başladığı yer
         yari = [(g, b1 / 2.0), (f, c / 2.0), (dil, c / 2.0), (dil, k / 2.0), (h1, k / 2.0)]
     elif a in RAY_PARALEL:
         b1, h1, k, p = RAY_PARALEL[a]
@@ -81,7 +81,7 @@ def ray_bicimi(b, h, uc, eksen, yon, yatay=True):
     kesit = ray_kesiti(b, h)
     if kesit is None:
         return None
-    arka = uc + h * yon                              # tabanın arka yüzü ( duvar tarafı )
+    arka = uc + h * yon  # tabanın arka yüzü ( duvar tarafı )
     if yatay:
         nok = [(arka - yon * u, eksen + v) for u, v in kesit]
     else:
@@ -104,13 +104,13 @@ def ray_bicimi(b, h, uc, eksen, yon, yatay=True):
 #  Zarf ( paten_en × paten_boy ) referans projeden ( sabitler );  yuva, çene ve
 #  levha Metroplast'tan;  uç dudağı ve destek eğrisi Metroplast'ın çiziminin
 #  oranlarından — ÇİZİM KABULÜ.
-PATEN_YUVA = 30.0              # çeneler arası
-PATEN_CENE = 5.0               # çene sacı
-PATEN_LEVHA = 4.0              # arka levha
-PATEN_ASTAR_DIBI = 5.0         # astarın dibi ( Metroplast:  16 − 11 )
-PATEN_BOSLUK = 1.0             # dil ucu – astar ( Has )
-PATEN_UST = 30.0               # çene + destek üst yüzü ( yuva ekseninden;  Metroplast )
-PATEN_DUDAK = 13.6 / 46.0      # uç dudağı / gövde derinliği ( Metroplast )
+PATEN_YUVA = 30.0  # çeneler arası
+PATEN_CENE = 5.0  # çene sacı
+PATEN_LEVHA = 4.0  # arka levha
+PATEN_ASTAR_DIBI = 5.0  # astarın dibi ( Metroplast:  16 − 11 )
+PATEN_BOSLUK = 1.0  # dil ucu – astar ( Has )
+PATEN_UST = 30.0  # çene + destek üst yüzü ( yuva ekseninden;  Metroplast )
+PATEN_DUDAK = 13.6 / 46.0  # uç dudağı / gövde derinliği ( Metroplast )
 
 
 def _paten_donustur(x0, y0, g, d, yon, yatay):
@@ -130,23 +130,25 @@ def paten_bicimi(x0, y0, g, d, uc, k, yon, yatay=True):
     ( x0, y0, g, d ):  zarf;  uc:  dilin ucu;  k:  dil kalınlığı;  yon:  dilden
     tabana doğru ( +1 / −1 ) — yuva o yana açılır;  yatay:  ray x yönünde."""
     P, D, W, arka = _paten_donustur(x0, y0, g, d, yon, yatay)
-    u_uc = abs(uc - arka)                                  # levhanın arkasından dilin ucuna
+    u_uc = abs(uc - arka)  # levhanın arkasından dilin ucuna
     a, s, c = W / 2.0, PATEN_YUVA / 2.0, min(PATEN_UST, W / 2.0)
     #  yuvanın ( çeneler arası ) dibi;  levhanın önünde kalır
     dip = max(u_uc - PATEN_BOSLUK - PATEN_ASTAR_DIBI, PATEN_LEVHA)
     dudak = PATEN_DUDAK * D
     import math
+
     #  Yan destek:  dudaktan çenenin tepesine içbükey çeyrek elips
-    destek = [(D - (D - dudak) * math.cos(math.radians(t)), a - (a - c) * math.sin(math.radians(t)))
-              for t in range(0, 91, 15)]
+    destek = [
+        (D - (D - dudak) * math.cos(math.radians(t)), a - (a - c) * math.sin(math.radians(t)))
+        for t in range(0, 91, 15)
+    ]
     sol = [(0.0, -a), (dudak, -a)] + [(u, -v) for u, v in destek[1:]] + [(D, -s), (dip, -s)]
     sag = [(dip, s), (D, s)] + [(u, v) for u, v in reversed(destek[1:])] + [(dudak, a), (0.0, a)]
     govde = [P(u, v) for u, v in sol + sag]
     #  Astar:  yuvanın içinde, dili iki yandan ve uçtan saran U ( içi dile değer )
     i = k / 2.0
     astar = [P(D, -i), P(u_uc - PATEN_BOSLUK, -i), P(u_uc - PATEN_BOSLUK, i), P(D, i)]
-    return [{"noktalar": govde, "dolu": False},
-            {"noktalar": astar, "kapali": False, "ince": True}]
+    return [{"noktalar": govde, "dolu": False}, {"noktalar": astar, "kapali": False, "ince": True}]
 
 
 #  ── MAKARALI PATEN ( planda;  karşı ağırlıkta ) ──────────────────────
@@ -170,16 +172,20 @@ def agirlik_pateni_yari_eni(tip, k, paten_boy):
 def makarali_paten_bicimi(uc, eksen, k, yon, yatay=True):
     """Makaralı patenin üç makarası ( yukarıdan ).  uc:  dilin ucu;  eksen:  ray
     ekseni;  yon:  dilden tabana ( +1 / −1 )."""
-    def P(u, v):                                     # u:  uçtan tabana, v:  dil kalınlığı yönü
+
+    def P(u, v):  # u:  uçtan tabana, v:  dil kalınlığı yönü
         return (uc + yon * u, eksen + v) if yatay else (eksen + v, uc + yon * u)
 
     def dik(u0, u1, v0, v1):
         return {"noktalar": [P(u0, v0), P(u1, v0), P(u1, v1), P(u0, v1)]}
+
     R, e = MAKARA_CAPI, MAKARA_ENI / 2.0
     b = PATEN_BOSLUK
-    return [dik(-b - R, -b, -e, e),                              # uç makarası
-            dik(b, b + MAKARA_ENI, -k / 2.0 - R, -k / 2.0),       # yan makaralar
-            dik(b, b + MAKARA_ENI, k / 2.0, k / 2.0 + R)]
+    return [
+        dik(-b - R, -b, -e, e),  # uç makarası
+        dik(b, b + MAKARA_ENI, -k / 2.0 - R, -k / 2.0),  # yan makaralar
+        dik(b, b + MAKARA_ENI, k / 2.0, k / 2.0 + R),
+    ]
 
 
 #  ── KABİN ŞASESİNİN DİKMESİ ( planda kesit ) ─────────────────────────
@@ -206,12 +212,22 @@ def dikme_bicimi(uc, eksen, en, yari_paten, sac, yon, yatay=True):
     ekseni;  en:  dikmenin ray ekseni boyunca eni;  yari_paten:  patenin dil
     ucundan arkasına ( sırt orada );  sac:  sac kalınlığı;  yon:  dilden
     tabana doğru ( +1 / −1 )."""
-    def P(u, v):                                     # u:  dil ucundan kabine doğru
+
+    def P(u, v):  # u:  dil ucundan kabine doğru
         return (uc - yon * u, eksen + v) if yatay else (eksen + v, uc - yon * u)
+
     a, s = en / 2.0, sac
-    on, sirt = -yari_paten, yari_paten               # kanat ucu · sırtın ön yüzü
-    nok = [(on, -a), (sirt + s, -a), (sirt + s, a), (on, a), (on, a - s), (sirt, a - s),
-           (sirt, -a + s), (on, -a + s)]
+    on, sirt = -yari_paten, yari_paten  # kanat ucu · sırtın ön yüzü
+    nok = [
+        (on, -a),
+        (sirt + s, -a),
+        (sirt + s, a),
+        (on, a),
+        (on, a - s),
+        (sirt, a - s),
+        (sirt, -a + s),
+        (on, -a + s),
+    ]
     return [{"noktalar": [P(u, v) for u, v in nok], "dolu": True}]
 
 
@@ -251,8 +267,7 @@ def kanat_bicimi(x0, y0, g, d, yuz_altta):
     tarafı );  değilse y0 + d'de ( kabin kapısı — kabin tarafı )."""
     yuz, arka = (y0, y0 + d) if yuz_altta else (y0 + d, y0)
     dudak = min(KANAT_DUDAK, g / 3.0)
-    nok = [(x0 + dudak, arka), (x0, arka), (x0, yuz), (x0 + g, yuz), (x0 + g, arka),
-           (x0 + g - dudak, arka)]
+    nok = [(x0 + dudak, arka), (x0, arka), (x0, yuz), (x0 + g, yuz), (x0 + g, arka), (x0 + g - dudak, arka)]
     return [{"noktalar": nok, "kapali": False}]
 
 
@@ -260,8 +275,10 @@ def esik_cizgileri(x0, y0, g, d, sol_acik, sag_acik):
     """Eşiğin ( ya da cebin altındaki uzantısının ) dış çizgisi.  sol_acik /
     sag_acik:  o yanda eşik sürer ( cep ya da eşiğin kendisi ) — kenar çizilmez."""
     x1, y1 = x0 + g, y0 + d
-    out = [{"noktalar": [(x0, y0), (x1, y0)], "kapali": False},
-           {"noktalar": [(x0, y1), (x1, y1)], "kapali": False}]
+    out = [
+        {"noktalar": [(x0, y0), (x1, y0)], "kapali": False},
+        {"noktalar": [(x0, y1), (x1, y1)], "kapali": False},
+    ]
     for x, acik in ((x0, sol_acik), (x1, sag_acik)):
         if not acik:
             out.append({"noktalar": [(x, y0), (x, y1)], "kapali": False})
@@ -289,8 +306,11 @@ def oluk_cizgileri(x0, x1, merkezler, ortuler):
                     if a1 < q:
                         yeni.append((a1, q))
                 araliklar = yeni
-            out += [{"noktalar": [(p, y), (q, y)], "kapali": False, "ince": True}
-                    for p, q in araliklar if q - p > 1.0]
+            out += [
+                {"noktalar": [(p, y), (q, y)], "kapali": False, "ince": True}
+                for p, q in araliklar
+                if q - p > 1.0
+            ]
     return out
 
 
@@ -306,9 +326,9 @@ def oluk_cizgileri(x0, x1, merkezler, ortuler):
 #  plaka çizer.
 #      ray tabanı ≤ b1   A  dik ayak  B  yatay ayak  C  sac J  kanallar arası H  kanal eni E
 KONSOL_TIPLERI = (
-    (65, (130, 50, 75, 4, 85, 12.0)),        # T45/A · T50/A · T65/A
-    (90, (200, 62, 95, 5, 155, 13.5)),       # T70 · T75 · T78/B · T80 · T82 · T89 · T90
-    (1e9, (270, 65, 100, 6, 220, 13.5)),     # T114/B · T125/B · T127 · T140
+    (65, (130, 50, 75, 4, 85, 12.0)),  # T45/A · T50/A · T65/A
+    (90, (200, 62, 95, 5, 155, 13.5)),  # T70 · T75 · T78/B · T80 · T82 · T89 · T90
+    (1e9, (270, 65, 100, 6, 220, 13.5)),  # T114/B · T125/B · T127 · T140
 )
 #  Konsolun duvar boyunca eni programın sabitidir ( konsol_kabin_boy — ofis
 #  standardı;  Savera'nın A'sı T89'da 200 ).  Duvar ile ray arası iki standart
@@ -319,8 +339,13 @@ KONSOL_TIPLERI = (
 KANAL_CIVATASI = {12.0: 10, 13.5: 12}
 #  Altıgen başlı cıvata ve somun ( ISO 4017 · ISO 4032 ):  çap → ( anahtar
 #  ağzı s, baş yüksekliği k, somun yüksekliği m )
-ISO_CIVATA = {8: (13, 5.3, 6.8), 10: (16, 6.4, 8.4), 12: (18, 7.5, 10.8),
-              14: (21, 8.8, 12.8), 16: (24, 10.0, 14.8)}
+ISO_CIVATA = {
+    8: (13, 5.3, 6.8),
+    10: (16, 6.4, 8.4),
+    12: (18, 7.5, 10.8),
+    14: (21, 8.8, 12.8),
+    16: (24, 10.0, 14.8),
+}
 #  RAY TIRNAĞI ( rayın tabanını konsola bastırır;  her yanda bir tane ):
 #  KAYNAK Donati GF serisi ( ürün sayfaları ):  ray dili k → ( boy L, en,
 #  topuk yüksekliği h2, dil yüksekliği h1, cıvata )
@@ -328,8 +353,7 @@ ISO_CIVATA = {8: (13, 5.3, 6.8), 10: (16, 6.4, 8.4), 12: (18, 7.5, 10.8),
 #      k  9:  GF16648  70 × 45  h 4 / 7    M12  ( T70-1 · T82;  cıvata GF01036'nın ø13 deliğinden )
 #      k 10:  GF16649  60 × 53  h 4 / 11   M12  ( T75-3 · T89-1 )
 #      k 16:  GF16650  65 × 52  h 7 / 13   M14  ( T89 · T127-1;  T90 · T125 aynı 16 mm sınıfı )
-TIRNAK = {5: (40, 34, 7, 2, 8), 9: (70, 45, 7, 4, 12), 10: (60, 53, 11, 4, 12),
-          16: (65, 52, 13, 7, 14)}
+TIRNAK = {5: (40, 34, 7, 2, 8), 9: (70, 45, 7, 4, 12), 10: (60, 53, 11, 4, 12), 16: (65, 52, 13, 7, 14)}
 #  Tırnağın cıvatası ray tabanının kenarından TIRNAK_PAYI dışarıda ( deliğin
 #  kenarı tabana değmez ) — ÇİZİM KABULÜ.
 TIRNAK_PAYI = 2.0
@@ -350,9 +374,12 @@ def _donustur(duvar, eksen, s, yatay):
 def _altigen(p, s):
     """Yukarıdan görülen altıgen cıvata başı / somun:  merkez p, anahtar ağzı s."""
     import math
+
     r = s / math.sqrt(3.0)
-    return [(p[0] + r * math.cos(math.radians(30 + 60 * i)), p[1] + r * math.sin(math.radians(30 + 60 * i)))
-            for i in range(6)]
+    return [
+        (p[0] + r * math.cos(math.radians(30 + 60 * i)), p[1] + r * math.sin(math.radians(30 + 60 * i)))
+        for i in range(6)
+    ]
 
 
 def konsol_cifti_bicimi(duvar, arka, eksen, boy, b1, yatay=True):
@@ -364,10 +391,10 @@ def konsol_cifti_bicimi(duvar, arka, eksen, boy, b1, yatay=True):
     d = abs(arka - duvar)
     P = _donustur(duvar, eksen, s, yatay)
     a = boy / 2.0
-    if d < 3 * J:                                     # ray duvara dayalı:  tek sac
+    if d < 3 * J:  # ray duvara dayalı:  tek sac
         return [{"noktalar": [P(0, -a), P(d, -a), P(d, a), P(0, a)]}]
-    ayak = min(max(C, (d + C) / 2.0), d - J)          # her iki yatay ayak
-    ust = d - ayak                                    # ray konsolunun ayağının ucu
+    ayak = min(max(C, (d + C) / 2.0), d - J)  # her iki yatay ayak
+    ust = d - ayak  # ray konsolunun ayağının ucu
     out = [
         #  ray konsolu ( üstte ):  yatay ayağı + dik ayağının üst yüzü
         {"noktalar": [P(ust, -a), P(d, -a), P(d, a), P(ust, a)]},
@@ -429,12 +456,15 @@ def tirnak_bicimi(arka, eksen, b1, g, k, yon, J=None, yatay=True):
     P = _donustur(arka, eksen, yon, yatay)
     out = []
     for z in (-1.0, 1.0):
-        vb = b1 / 2.0 + d / 2.0 + TIRNAK_PAYI          # cıvatanın ekseni
-        v0, v1 = vb - L / 2.0, vb + L / 2.0            # tırnak ( içte dil, dışta topuk )
+        vb = b1 / 2.0 + d / 2.0 + TIRNAK_PAYI  # cıvatanın ekseni
+        v0, v1 = vb - L / 2.0, vb + L / 2.0  # tırnak ( içte dil, dışta topuk )
         kenar = b1 / 2.0
-        alt = max(g, h2 - h1)                          # dilin altı ( tabanın üstünde )
-        nok = [(v0, alt), (v0, h2), (v1, h2), (v1, 0.0), (kenar, 0.0), (kenar, alt)] \
-            if v0 < kenar else [(v0, 0.0), (v0, h2), (v1, h2), (v1, 0.0)]
+        alt = max(g, h2 - h1)  # dilin altı ( tabanın üstünde )
+        nok = (
+            [(v0, alt), (v0, h2), (v1, h2), (v1, 0.0), (kenar, 0.0), (kenar, alt)]
+            if v0 < kenar
+            else [(v0, 0.0), (v0, h2), (v1, h2), (v1, 0.0)]
+        )
         out.append({"noktalar": [P(u, z * v) for v, u in nok]})
         #  cıvata başı tırnağın üstünde, somun konsol sacının arkasında ( yandan )
         bas = [(vb - sc / 2.0, h2), (vb + sc / 2.0, h2), (vb + sc / 2.0, h2 + kb), (vb - sc / 2.0, h2 + kb)]
@@ -497,8 +527,14 @@ def l_konsol(duvar, uc, z_kose, dik_boy, yukari=False, t=KAPI_KONSOL_SACI):
     altında ( yukarıya giden konsolda üstünde ) t kalın."""
     s = 1.0 if uc > duvar else -1.0
     zy = 1.0 if yukari else -1.0
-    nok = [(duvar, z_kose + zy * dik_boy), (duvar, z_kose), (uc, z_kose), (uc, z_kose + zy * t),
-           (duvar + s * t, z_kose + zy * t), (duvar + s * t, z_kose + zy * dik_boy)]
+    nok = [
+        (duvar, z_kose + zy * dik_boy),
+        (duvar, z_kose),
+        (uc, z_kose),
+        (uc, z_kose + zy * t),
+        (duvar + s * t, z_kose + zy * t),
+        (duvar + s * t, z_kose + zy * dik_boy),
+    ]
     return [{"noktalar": nok}]
 
 
@@ -506,6 +542,7 @@ def pahli_sac(u, z_ust, dik_boy, u_pah, aci=PAH_ACISI, dz=None):
     """Dik sac + altında pah ( açık çizgi ):  u'da z_ust'ten dik_boy iner, sonra
     yatayla `aci` yaparak ( ya da dz kadar inerek ) u_pah'a döner."""
     import math
+
     if dz is None:
         dz = abs(u_pah - u) * math.tan(math.radians(aci))
     z1 = z_ust - dik_boy
@@ -514,8 +551,9 @@ def pahli_sac(u, z_ust, dik_boy, u_pah, aci=PAH_ACISI, dz=None):
 
 def alan(noktalar):
     """Kapalı çokgenin alanı ( mm² )."""
-    return abs(sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1)
-                   in zip(noktalar, noktalar[1:] + noktalar[:1]))) / 2.0
+    return (
+        abs(sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1) in zip(noktalar, noktalar[1:] + noktalar[:1]))) / 2.0
+    )
 
 
 def ray_taban_ucu(b, h):

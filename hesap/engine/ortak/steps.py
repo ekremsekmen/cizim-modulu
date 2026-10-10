@@ -9,6 +9,7 @@ Paftanın "işlem satırı":
     birim    ->  birim
     kaynak   ->  standart maddesi / verinin kaynağı
 """
+
 import math
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -58,7 +59,7 @@ def yukari_yuvarla(x, basamak=0):
     """Sıfırdan uzağa değil, YUKARI yuvarlar ( `basamak` ondalığa )."""
     if x is None:
         return None
-    k = 10 ** basamak
+    k = 10**basamak
     return math.ceil(x * k - 1e-9) / k
 
 
@@ -122,11 +123,28 @@ def aralik_disi(ad, deger, alt, ust, birim=""):
 class Step(dict):
     """Tek bir hesap satırı / veri satırı."""
 
-    def __init__(self, sembol="", aciklama="", deger=None, birim="", kaynak="",
-                 formul="", islem="", tip="deger", ondalik=2, vurgu=False):
+    def __init__(
+        self,
+        sembol="",
+        aciklama="",
+        deger=None,
+        birim="",
+        kaynak="",
+        formul="",
+        islem="",
+        tip="deger",
+        ondalik=2,
+        vurgu=False,
+    ):
         super().__init__(
-            sembol=sembol, aciklama=aciklama, deger=deger, birim=birim,
-            kaynak=kaynak, formul=formul, islem=islem, tip=tip,
+            sembol=sembol,
+            aciklama=aciklama,
+            deger=deger,
+            birim=birim,
+            kaynak=kaynak,
+            formul=formul,
+            islem=islem,
+            tip=tip,
             metin=trn(deger, ondalik) if tip != "metin" else (deger if deger is not None else "—"),
             vurgu=vurgu,
         )
@@ -134,19 +152,29 @@ class Step(dict):
 
 def veri(sembol, aciklama, deger, birim="", kaynak="", ondalik=2):
     """Veri satırı:  sembol · açıklama = değer birim · kaynak."""
-    return Step(sembol=sembol, aciklama=aciklama, deger=deger, birim=birim,
-                kaynak=kaynak, tip="veri", ondalik=ondalik)
+    return Step(
+        sembol=sembol, aciklama=aciklama, deger=deger, birim=birim, kaynak=kaynak, tip="veri", ondalik=ondalik
+    )
 
 
 def hesap(formul, islem, deger, birim="", kaynak="", ondalik=2, sembol=""):
     """İki satırlık işlem bloğu ( denklem + sayıların yerine konmuş hâli )."""
-    return Step(sembol=sembol, formul=formul, islem=islem, deger=deger,
-                birim=birim, kaynak=kaynak, tip="hesap", ondalik=ondalik)
+    return Step(
+        sembol=sembol,
+        formul=formul,
+        islem=islem,
+        deger=deger,
+        birim=birim,
+        kaynak=kaynak,
+        tip="hesap",
+        ondalik=ondalik,
+    )
 
 
 def kontrol(aciklama, uygun, mesaj=""):
-    return Step(aciklama=aciklama, deger=mesaj or ("UYGUN" if uygun else "UYGUN DEĞİL"),
-                tip="metin", vurgu=True)
+    return Step(
+        aciklama=aciklama, deger=mesaj or ("UYGUN" if uygun else "UYGUN DEĞİL"), tip="metin", vurgu=True
+    )
 
 
 def metin(icerik, vurgu=False):
@@ -209,11 +237,17 @@ class Bolum(dict):
                    paftada ise aynen basılır — çıktı hiçbir şey kaybetmez.
     """
 
-    def __init__(self, baslik, kaynak="", adimlar=None, sonuc=None, notlar=None,
-                 aciklamalar=None, kimlik=None):
-        super().__init__(baslik=baslik, kaynak=kaynak,
-                         adimlar=adimlar or [], sonuc=sonuc, notlar=notlar or [],
-                         aciklamalar=aciklamalar or [])
+    def __init__(
+        self, baslik, kaynak="", adimlar=None, sonuc=None, notlar=None, aciklamalar=None, kimlik=None
+    ):
+        super().__init__(
+            baslik=baslik,
+            kaynak=kaynak,
+            adimlar=adimlar or [],
+            sonuc=sonuc,
+            notlar=notlar or [],
+            aciklamalar=aciklamalar or [],
+        )
         if kimlik:
             self["kimlik"] = kimlik
             self["ad"] = basliktan_ad(baslik)
@@ -233,5 +267,4 @@ def evet_mi(x):
         return x
     if x is None:
         return False
-    return str(x).strip().lower() in ("evet", "e", "var", "true", "1", "yes",
-                                      "on", "x", "✓")
+    return str(x).strip().lower() in ("evet", "e", "var", "true", "1", "yes", "on", "x", "✓")

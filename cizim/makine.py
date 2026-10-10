@@ -43,42 +43,70 @@ TIPLER = ("Dişlisiz", "Dişli")
 
 #  Dişlisiz — kasnağın arka yüzünden eksen boyunca ( ad, boy, çap ):
 #  LiftDesigner 4815-6 yan görünüşünden ölçüldü ( kasnak ø240 × 92 ).
-DISLISIZ = (("gobek", 15, 100), ("flans", 28, 220), ("yatak", 50, 320), ("govde", 206, 400),
-            ("fren", 70, 320), ("fren_diski", 18, 240), ("enkoder", 102, 270))
+DISLISIZ = (
+    ("gobek", 15, 100),
+    ("flans", 28, 220),
+    ("yatak", 50, 320),
+    ("govde", 206, 400),
+    ("fren", 70, 320),
+    ("fren_diski", 18, 240),
+    ("enkoder", 102, 270),
+)
 DISLISIZ_CAP = 400.0
-DISLISIZ_BOY = float(sum(b for _, b, _ in DISLISIZ))          # 489
+DISLISIZ_BOY = float(sum(b for _, b, _ in DISLISIZ))  # 489
 
 #  Dişli ( LiftDesigner A 160, 12744-3 ) — kasnak merkezine göre:  m motor ekseni
 #  boyunca ( motora doğru eksi ), a kasnak ekseni boyunca ( dişli kutusuna doğru
 #  artı ), z yukarı.  Silindirler m ekseninde:  ( ad, m0, m1, çap, a, z ).
-DISLI_SILINDIR = (("el_carki", -1000, -930, 280, 230, 160), ("mil", -930, -880, 115, 230, 158),
-                  ("kaplin", -880, -855, 145, 230, 142), ("motor_kapagi", -855, -750, 310, 230, 160),
-                  ("motor", -750, -515, 300, 230, 158), ("fren_gobegi", -410, -320, 140, 230, 160),
-                  ("fren_kasnagi", -320, -300, 260, 230, 160))
+DISLI_SILINDIR = (
+    ("el_carki", -1000, -930, 280, 230, 160),
+    ("mil", -930, -880, 115, 230, 158),
+    ("kaplin", -880, -855, 145, 230, 142),
+    ("motor_kapagi", -855, -750, 310, 230, 160),
+    ("motor", -750, -515, 300, 230, 158),
+    ("fren_gobegi", -410, -320, 140, 230, 160),
+    ("fren_kasnagi", -320, -300, 260, 230, 160),
+)
 #  Kutular:  ( ad, m0, m1, a0, a1, z0, z1 )
-DISLI_KUTU = (("klemens_kutusu", -715, -575, 158, 302, 305, 380),
-              ("motor_flansi", -515, -410, 75, 385, 5, 405),
-              ("fren", -285, -220, 45, 415, 15, 385),
-              ("disli_kutusu", -160, 160, 100, 360, -160, 262),
-              ("vida_yuvasi", -170, 0, 160, 300, 262, 410),
-              ("arka_yatak", 160, 290, 160, 310, 85, 235),
-              ("taban", -700, 180, 60, 400, -195, -160),
-              ("dis_yatak_ayagi", -100, 100, -160, -75, -195, -150))
+DISLI_KUTU = (
+    ("klemens_kutusu", -715, -575, 158, 302, 305, 380),
+    ("motor_flansi", -515, -410, 75, 385, 5, 405),
+    ("fren", -285, -220, 45, 415, 15, 385),
+    ("disli_kutusu", -160, 160, 100, 360, -160, 262),
+    ("vida_yuvasi", -170, 0, 160, 300, 262, 410),
+    ("arka_yatak", 160, 290, 160, 310, 85, 235),
+    ("taban", -700, 180, 60, 400, -195, -160),
+    ("dis_yatak_ayagi", -100, 100, -160, -75, -195, -150),
+)
 #  Kasnak ekseninde:  dış yatak ve kasnak mili  ( ad, a0, a1, çap )
 DISLI_EKSEN = (("dis_yatak", -160, -75, 300), ("kasnak_mili", -175, 100, 55))
 DISLI_ZARF = {"m": (-1000.0, 320.0), "a": (-175.0, 415.0), "z": (-195.0, 410.0)}
 
 #  NPU ( UPN ) profilleri, DIN 1026-1:  ( h, b, gövde s, flanş t ) mm.  Anahtarlar
 #  hesap programının NPU listesiyle aynı ( mukavemet_tablolari.NPU_OLCULERI ).
-NPU = {"30x15": (30, 15, 4, 4.5), 30: (30, 33, 5, 7), "40x20": (40, 20, 5, 5.5),
-       40: (40, 35, 5, 7), "50x25": (50, 25, 5, 6), 50: (50, 38, 5, 7), 60: (60, 30, 6, 6),
-       65: (65, 42, 5.5, 7.5), 80: (80, 45, 6, 8), 100: (100, 50, 6, 8.5), 120: (120, 55, 7, 9),
-       140: (140, 60, 7, 10), 160: (160, 65, 7.5, 10.5), 180: (180, 70, 8, 11),
-       200: (200, 75, 8.5, 11.5), 240: (240, 85, 9.5, 13), 280: (280, 95, 10, 15),
-       300: (300, 100, 10, 16)}
+NPU = {
+    "30x15": (30, 15, 4, 4.5),
+    30: (30, 33, 5, 7),
+    "40x20": (40, 20, 5, 5.5),
+    40: (40, 35, 5, 7),
+    "50x25": (50, 25, 5, 6),
+    50: (50, 38, 5, 7),
+    60: (60, 30, 6, 6),
+    65: (65, 42, 5.5, 7.5),
+    80: (80, 45, 6, 8),
+    100: (100, 50, 6, 8.5),
+    120: (120, 55, 7, 9),
+    140: (140, 60, 7, 10),
+    160: (160, 65, 7.5, 10.5),
+    180: (180, 70, 8, 11),
+    200: (200, 75, 8.5, 11.5),
+    240: (240, 85, 9.5, 13),
+    280: (280, 95, 10, 15),
+    300: (300, 100, 10, 16),
+}
 #  Kaidenin uçlarındaki kısa kirişler ( hesaba girmez ):  LiftDesigner 12744-3'te UPN 100.
 KAIDE_KISA = 100
-MOTOR_PLAKASI_BOY = 700.0          # referans proje şase hesabı:  "motor bedplate length m"
+MOTOR_PLAKASI_BOY = 700.0  # referans proje şase hesabı:  "motor bedplate length m"
 MOTOR_PLAKASI_KALINLIK = 15.0
 UC_LEVHASI = 10.0
 
@@ -115,8 +143,10 @@ def plaka_delikleri(plaka, delikler):
 
 
 def _delikler(plaka, delikler, zt, katman_ad="makine_sasesi"):
-    return [kutu(*d, zt - MOTOR_PLAKASI_KALINLIK, zt, "DELIK", katman_ad, "halat_deligi")
-            for d in plaka_delikleri(plaka, delikler)]
+    return [
+        kutu(*d, zt - MOTOR_PLAKASI_KALINLIK, zt, "DELIK", katman_ad, "halat_deligi")
+        for d in plaka_delikleri(plaka, delikler)
+    ]
 
 
 def _parca(tur, katman, ad, parca, **v):
@@ -124,13 +154,26 @@ def _parca(tur, katman, ad, parca, **v):
 
 
 def silindir(eksen, merkez, cap, t0, t1, katman="MAKINE", ad="makine", parca=""):
-    return _parca("silindir", katman, ad, parca, eksen=eksen, merkez=tuple(merkez), cap=float(cap),
-                  t=(min(t0, t1), max(t0, t1)))
+    return _parca(
+        "silindir",
+        katman,
+        ad,
+        parca,
+        eksen=eksen,
+        merkez=tuple(merkez),
+        cap=float(cap),
+        t=(min(t0, t1), max(t0, t1)),
+    )
 
 
 def kutu(x0, y0, x1, y1, z0, z1, katman="MAKINE", ad="makine", parca=""):
-    return _parca("kutu", katman, ad, parca,
-                  k=(min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1), min(z0, z1), max(z0, z1)))
+    return _parca(
+        "kutu",
+        katman,
+        ad,
+        parca,
+        k=(min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1), min(z0, z1), max(z0, z1)),
+    )
 
 
 def cizgi(p0, p1, katman="KONSOL", ad="makine_sasesi", parca=""):
@@ -147,9 +190,11 @@ def sinirlar(p):
     x, y, z = p["merkez"]
     r = p["cap"] / 2.0
     t0, t1 = p["t"]
-    return {"x": (t0, y - r, t1, y + r, z - r, z + r),
-            "y": (x - r, t0, x + r, t1, z - r, z + r),
-            "z": (x - r, y - r, x + r, y + r, t0, t1)}[p["eksen"]]
+    return {
+        "x": (t0, y - r, t1, y + r, z - r, z + r),
+        "y": (x - r, t0, x + r, t1, z - r, z + r),
+        "z": (x - r, y - r, x + r, y + r, t0, t1),
+    }[p["eksen"]]
 
 
 # ── MAKİNE ───────────────────────────────────────────────────────────────
@@ -174,7 +219,7 @@ def disli(kasnak, D1, bk, s, m_yon):
     x, y, z = kasnak
 
     def X(m):
-        return x - m_yon * m            # m eksi → motor m_yon yönünde
+        return x - m_yon * m  # m eksi → motor m_yon yönünde
 
     def Y(a):
         return y + s * a
@@ -211,10 +256,14 @@ def u_kirisi(k, P, uzun_x, sirt, parca, ad="makine_sasesi"):
     g_ = sirt + yon * s_
     uclar = (x0, x1) if uzun_x else (y0, y1)
 
-    def nokta(u, e, z):                     # u:  uzun eksen, e:  enine eksen
+    def nokta(u, e, z):  # u:  uzun eksen, e:  enine eksen
         return (u, e, z) if uzun_x else (e, u, z)
-    for (ea, za), (eb, zb_) in (((ag, zt - t), (g_, zt - t)), ((g_, zt - t), (g_, zb + t)),
-                                ((g_, zb + t), (ag, zb + t))):
+
+    for (ea, za), (eb, zb_) in (
+        ((ag, zt - t), (g_, zt - t)),
+        ((g_, zt - t), (g_, zb + t)),
+        ((g_, zb + t), (ag, zb + t)),
+    ):
         for u in uclar:
             p.append(cizgi(nokta(u, ea, za), nokta(u, eb, zb_), ad=ad, parca=parca + "_ici"))
     for zz in (zt - t, zb + t):
@@ -240,12 +289,24 @@ def upn_sase(sase, motor_y, P, delikler=()):
     if ic1 > ic0:
         my0 = max(y0, motor_y - MOTOR_PLAKASI_BOY / 2.0)
         my1 = min(y1, motor_y + MOTOR_PLAKASI_BOY / 2.0)
-        p.append(kutu(ic0, my0, ic1, my1, zt - MOTOR_PLAKASI_KALINLIK, zt, "KONSOL", "makine_sasesi",
-                      "motor_plakasi"))
+        p.append(
+            kutu(
+                ic0,
+                my0,
+                ic1,
+                my1,
+                zt - MOTOR_PLAKASI_KALINLIK,
+                zt,
+                "KONSOL",
+                "makine_sasesi",
+                "motor_plakasi",
+            )
+        )
         p += _delikler((ic0, my0, ic1, my1), delikler, zt)
         for yy in (y0, y1 - UC_LEVHASI):
-            p.append(kutu(ic0, yy, ic1, yy + UC_LEVHASI, zb + t, zt - t, "KONSOL", "makine_sasesi",
-                          "uc_levhasi"))
+            p.append(
+                kutu(ic0, yy, ic1, yy + UC_LEVHASI, zb + t, zt - t, "KONSOL", "makine_sasesi", "uc_levhasi")
+            )
     return p
 
 
@@ -257,8 +318,9 @@ def plan_parcalari(Y, S, sase=True):
     my = (gv[1] + gv[3]) / 2.0
     p = []
     if sase:
-        p += upn_sase(Y["sase"] + (-1000.0 - Y["yan_yatak"]["h"], -1000.0), my, Y["yan_yatak"],
-                      Y["sase_delikleri"])
+        p += upn_sase(
+            Y["sase"] + (-1000.0 - Y["yan_yatak"]["h"], -1000.0), my, Y["yan_yatak"], Y["sase_delikleri"]
+        )
     p += Y["makine"]
     if Y["tip"] == "Dişlisiz":
         #  Kapak kasnağın düzlem boyundaki ortasında, gövdenin ortasında — 1:1
@@ -267,12 +329,22 @@ def plan_parcalari(Y, S, sase=True):
         ks = d.kanonik(Y["kasnak"]) if d else Y["kasnak"]
         gv_ = d.kanonik(gv) if d else gv
         mx, mv = (ks[0] + ks[2]) / 2.0, (gv_[1] + gv_[3]) / 2.0
-        k_ = (mx - S["makine_kapak_en"] / 2.0, mv - S["makine_kapak_boy"] / 2.0,
-              mx + S["makine_kapak_en"] / 2.0, mv + S["makine_kapak_boy"] / 2.0)
+        k_ = (
+            mx - S["makine_kapak_en"] / 2.0,
+            mv - S["makine_kapak_boy"] / 2.0,
+            mx + S["makine_kapak_en"] / 2.0,
+            mv + S["makine_kapak_boy"] / 2.0,
+        )
         if d:
             k_ = d.kutu(k_[0], k_[2], k_[1], k_[3])
-        p.append(kutu(*k_, S["makine_en"] / 2.0, S["makine_en"] / 2.0 + S["makine_kapak_yukseklik"],
-                      parca="klemens_kutusu"))
+        p.append(
+            kutu(
+                *k_,
+                S["makine_en"] / 2.0,
+                S["makine_en"] / 2.0 + S["makine_kapak_yukseklik"],
+                parca="klemens_kutusu",
+            )
+        )
     return p
 
 
@@ -351,10 +423,32 @@ def kaide(c, zd, H, E, F, uzun_x, S, plaka=None, delikler=()):
     p = []
     for cx, cy in ayaklar(c, E, F, uzun_x):
         wx, wy = (E["h"], E["b"]) if uzun_x else (E["b"], E["h"])
-        p.append(kutu(cx - wx / 2.0, cy - wy / 2.0, cx + wx / 2.0, cy + wy / 2.0, zd + at, zt - F["h"],
-                      "KONSOL", "makine_sasesi", "dikine_kiris"))
-        p.append(kutu(cx - ap / 2.0, cy - ap / 2.0, cx + ap / 2.0, cy + ap / 2.0, zd, zd + at,
-                      "KONSOL", "makine_sasesi", "ayak_plakasi"))
+        p.append(
+            kutu(
+                cx - wx / 2.0,
+                cy - wy / 2.0,
+                cx + wx / 2.0,
+                cy + wy / 2.0,
+                zd + at,
+                zt - F["h"],
+                "KONSOL",
+                "makine_sasesi",
+                "dikine_kiris",
+            )
+        )
+        p.append(
+            kutu(
+                cx - ap / 2.0,
+                cy - ap / 2.0,
+                cx + ap / 2.0,
+                cy + ap / 2.0,
+                zd,
+                zd + at,
+                "KONSOL",
+                "makine_sasesi",
+                "ayak_plakasi",
+            )
+        )
     b, K = F["b"], npu(KAIDE_KISA)
     if uzun_x:
         yanlar = [((x0, y0, x1, y0 + b), y0), ((x0, y1 - b, x1, y1), y1)]
@@ -376,11 +470,25 @@ def saptirma(merkez, D, bk, zt, kiris_h):
     """Saptırma kasnağı ( ekseni y ) ve üstündeki taşıyıcıya ( üstü zt,
     kalınlığı kiriş_h — makine plakası ) asılı iki levha."""
     x, y, z = merkez
-    p = [silindir("y", (x, 0, z), D, y - bk / 2.0, y + bk / 2.0, "KASNAK", "saptirma_kasnagi",
-                  "saptirma_kasnagi")]
+    p = [
+        silindir(
+            "y", (x, 0, z), D, y - bk / 2.0, y + bk / 2.0, "KASNAK", "saptirma_kasnagi", "saptirma_kasnagi"
+        )
+    ]
     for yy in (y - bk / 2.0 - 25, y + bk / 2.0 + 5):
-        p.append(kutu(x - 50, yy, x + 50, yy + 20, z - 60, zt - kiris_h, "KONSOL", "makine_sasesi",
-                      "saptirma_levhasi"))
+        p.append(
+            kutu(
+                x - 50,
+                yy,
+                x + 50,
+                yy + 20,
+                z - 60,
+                zt - kiris_h,
+                "KONSOL",
+                "makine_sasesi",
+                "saptirma_levhasi",
+            )
+        )
     return p
 
 
@@ -390,6 +498,7 @@ def teget(c1, r1, c2, r2, yon):
     yon:  halatın tahrik kasnağını terk ettiği yan ( ağırlık tarafı, x
     boyunca ±1 ):  iki dış teğetten normali o yana bakanı."""
     import math
+
     vx, vz = c2[0] - c1[0], c2[1] - c1[1]
     L = math.hypot(vx, vz)
     phi = math.atan2(vz, vx)
@@ -403,7 +512,8 @@ def sarim_acisi(y_, n):
     """Tahrik kasnağında halatın sarıldığı açı ( derece ):  kabin tarafındaki
     yatay uçtan ( −y_ ) kasnağın üstünden n'ye."""
     import math
-    a = math.degrees(math.atan2(n[1], -y_ * n[0]))      # kabin yönünden, üstten
+
+    a = math.degrees(math.atan2(n[1], -y_ * n[0]))  # kabin yönünden, üstten
     return a if a >= 0 else a + 360.0
 
 

@@ -1,0 +1,59 @@
+#  ASANSÖR PROJE PROGRAMI ( HESAP + ÇİZİM ) — proje ve araç ayarları.
+#  Bağımlılıkların alt sınırları requirements.txt'de, sabitlenmiş sürümleri
+#  requirements-kilit.txt ( program ) ve requirements-gelistirme.txt ( araçlar ).
+
+[project]
+name = "asansor-proje-programi"
+version = "3.0"
+description = "Asansör avan ve uygulama projesi:  TS EN 81-20 / 81-50 hesabı ve çizimleri"
+requires-python = ">=3.12"
+
+#  ─────────────────────────────────────────────────────────────────────────
+#  RUFF — lint ve biçim.  Komutlar:  ruff check .  ·  ruff format .
+#  ( kontrol.py hızlı denetimde ikisini de denetler )
+#  ─────────────────────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+extend-exclude = ["cikti", "ornekler/*.py.bak"]
+
+[tool.ruff.lint]
+#  Seçilen kurallar HATA yakalar;  yalnız zevk olan biçim kuralları
+#  ( dict() yerine {}, import sırası … ) seçilmez — biçimi ruff format verir.
+#    F     pyflakes:  tanımsız ad, kullanılmayan import / değişken
+#    E4 E7 E9 W6   import yeri, karşılaştırma, sözdizimi, kaçış dizisi
+#    B     bugbear:  döngü değişkenini yakalayan fonksiyon, değiştirilebilir varsayılan …
+#    BLE   genel except ( her biri bilinçli olmalı:  noqa ile sebebi yazılır )
+#    UP    eski Python yazımları
+#    SIM115  dosyayı with'siz açmak
+#    PLW1510 subprocess.run'ın check'i
+#    RUF100  gereksiz noqa
+select = ["F", "E4", "E7", "E9", "W6", "B", "BLE", "UP", "SIM115", "PLW1510", "RUF100"]
+ignore = [
+    "B008",    # FastAPI'nin Body(...) kalıbı varsayılan argümanda çağrı ister
+    "B905",    # zip(strict=) — uzunlukları zaten eşit dizilerde gürültü
+    "UP009",   # "# -*- coding: utf-8 -*-" satırları zararsız;  dokunulmaz
+]
+
+[tool.ruff.lint.per-file-ignores]
+#  Testler ve betikler yol ayarından sonra import eder
+"testler/*" = ["E402"]
+"hesap/testler/*" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+#  ─────────────────────────────────────────────────────────────────────────
+#  PYTEST — çizim testleri ( testler/ ).  Hesabın kendi doğrulama paketi
+#  hesap/testler/calistir.py ile koşar ( kontrol.py ikisini de çağırır ).
+#  ─────────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["testler"]
+#  İki kök:  depo ( cizim, tasarim, araclar, testler ) ve hesap ( api, engine,
+#  exports ) — kütüphane modülleri sys.path'e dokunmaz.
+pythonpath = [".", "hesap", "ornekler"]
+addopts = "-p no:cacheprovider"
+filterwarnings = [
+    #  ezdxf'in NumPy 2.5 uyarısı ( bizim kodumuz değil )
+    "ignore::DeprecationWarning:ezdxf.*",
+]

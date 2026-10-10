@@ -70,18 +70,17 @@ def _ara(tablo, anahtar, sutun=1):
 #  referans projenin /B paftası /A'nın değerlerini kullanır.  Bir Türk ray
 #  üreticisinin TS EN 81-20 belgesi de T70 A ve T90 A için aynı sayıları verir.
 RAY_PROFILI = (
-    ('50 x 50 x 5', 3.7, 475, 112400, 52500, 3150, 2100, 15.38, 10.51, 5, 14.3),
-    ('70 x 65 x 9', 7.379, 940, 409500, 188600, 9169, 5389, 20.87, 14.17, 6, 20.34),
-    ('75 x 62 x 10', 8.564, 1091, 402900, 264700, 9290, 7060, 19.22, 15.58, 8, 18.63),
-    ('89 x 62 x 15,88', 12.38, 1577, 598300, 524100, 14350, 11780, 19.48, 18.23, 10, 20.32),
-    ('90 x 75 x 16', 13.54, 1725, 1020000, 524800, 20860, 11660, 24.31, 17.44, 10, 26.12),
-    ('125 x 82 x 16', 18, 2290, 1511000, 1566000, 26200, 25100, 25.7, 25.2, 10, 24.3),
-    ('127 x 89 x 16', 22.48, 2863, 1984000, 2300000, 30900, 36200, 26.3, 28.3, 10, 24.7),
+    ("50 x 50 x 5", 3.7, 475, 112400, 52500, 3150, 2100, 15.38, 10.51, 5, 14.3),
+    ("70 x 65 x 9", 7.379, 940, 409500, 188600, 9169, 5389, 20.87, 14.17, 6, 20.34),
+    ("75 x 62 x 10", 8.564, 1091, 402900, 264700, 9290, 7060, 19.22, 15.58, 8, 18.63),
+    ("89 x 62 x 15,88", 12.38, 1577, 598300, 524100, 14350, 11780, 19.48, 18.23, 10, 20.32),
+    ("90 x 75 x 16", 13.54, 1725, 1020000, 524800, 20860, 11660, 24.31, 17.44, 10, 26.12),
+    ("125 x 82 x 16", 18, 2290, 1511000, 1566000, 26200, 25100, 25.7, 25.2, 10, 24.3),
+    ("127 x 89 x 16", 22.48, 2863, 1984000, 2300000, 30900, 36200, 26.3, 28.3, 10, 24.7),
 )
 
 RAY_PROFILLERI = tuple(s[0] for s in RAY_PROFILI)
-_RAY_SUTUN = {"Gr": 1, "A": 2, "Ix": 3, "Iy": 4, "Wx": 5, "Wy": 6,
-              "ix": 7, "iy": 8, "c": 9, "e": 10}
+_RAY_SUTUN = {"Gr": 1, "A": 2, "Ix": 3, "Iy": 4, "Wx": 5, "Wy": 6, "ix": 7, "iy": 8, "c": 9, "e": 10}
 
 
 def ray(profil, ozellik):
@@ -112,13 +111,13 @@ def ray(profil, ozellik):
 #  ( h1 − f ) de buna göre:  31,5 ve 45.  Eski değer kaymalı patenin σF'sini
 #  küçük gösteriyordu ( emniyetsiz yön;  ℓ = 2b'de %4,9 ).
 RAY_GEOMETRI = (
-    ('50 x 50 x 5', 5, 13.5, 50, 31.5, 45),
-    ('70 x 65 x 9', 8, 17, 65, 40, 57),
-    ('75 x 62 x 10', 9, 15, 62, 38, 53),
-    ('89 x 62 x 15,88', 11.1, 17, 62, 33.9, 50.9),
-    ('90 x 75 x 16', 10, 21, 75, 44, 65),
-    ('125 x 82 x 16', 12, 21, 82, 49, 70),
-    ('127 x 89 x 16', 15.9, 25.5, 89, 47.6, 73.1),
+    ("50 x 50 x 5", 5, 13.5, 50, 31.5, 45),
+    ("70 x 65 x 9", 8, 17, 65, 40, 57),
+    ("75 x 62 x 10", 9, 15, 62, 38, 53),
+    ("89 x 62 x 15,88", 11.1, 17, 62, 33.9, 50.9),
+    ("90 x 75 x 16", 10, 21, 75, 44, 65),
+    ("125 x 82 x 16", 12, 21, 82, 49, 70),
+    ("127 x 89 x 16", 15.9, 25.5, 89, 47.6, 73.1),
 )
 
 _RAY_GEO_SUTUN = {"f": 1, "b": 2, "h1": 3, "h1_b_f": 4, "h1_f": 5}
@@ -133,18 +132,18 @@ def ray_geo(profil, ozellik):
 #      çap mm · 1 m ağırlık kg · en küçük kopma yükü N · tip · sınıf
 # =====================================================================
 HALAT = (
-    (6, 0.129, 23100, '6x19 Lif Özlü', 1770),
-    (6.5, 0.152, 24700, '6x19 Lif Özlü', 1770),
-    (7, 0.1795, 27400, '6x19 Lif Özlü', 1770),
-    (8, 0.23, 31700, '6x19 Lif Özlü', '1370/1770'),
-    (9, 0.291, 40100, '6x19 Lif Özlü', '1370/1770'),
-    (10, 0.34, 49500, '6x19 Lif Özlü', '1370/1770'),
-    (11, 0.411, 53200, '8x19 Lif Özlü', '1370/1770'),
-    (12, 0.49, 63300, '8x19 Lif Özlü', '1370/1770'),
-    (13, 0.575, 74300, '8x19 Lif Özlü', '1370/1770'),
-    (14, 0.666, 86100, '8x19 Lif Özlü', '1370/1770'),
-    (15, 0.765, 98900, '8x19 Lif Özlü', '1370/1770'),
-    (16, 0.87, 113000, '8x19 Lif Özlü', '1370/1770'),
+    (6, 0.129, 23100, "6x19 Lif Özlü", 1770),
+    (6.5, 0.152, 24700, "6x19 Lif Özlü", 1770),
+    (7, 0.1795, 27400, "6x19 Lif Özlü", 1770),
+    (8, 0.23, 31700, "6x19 Lif Özlü", "1370/1770"),
+    (9, 0.291, 40100, "6x19 Lif Özlü", "1370/1770"),
+    (10, 0.34, 49500, "6x19 Lif Özlü", "1370/1770"),
+    (11, 0.411, 53200, "8x19 Lif Özlü", "1370/1770"),
+    (12, 0.49, 63300, "8x19 Lif Özlü", "1370/1770"),
+    (13, 0.575, 74300, "8x19 Lif Özlü", "1370/1770"),
+    (14, 0.666, 86100, "8x19 Lif Özlü", "1370/1770"),
+    (15, 0.765, 98900, "8x19 Lif Özlü", "1370/1770"),
+    (16, 0.87, 113000, "8x19 Lif Özlü", "1370/1770"),
 )
 
 HALAT_CAPLARI = tuple(s[0] for s in HALAT)
@@ -185,21 +184,25 @@ OMEGA_LAMBDA_MIN, OMEGA_LAMBDA_MAX = 20, 250
 #  Tek bir Rm = 370 tablosunu ray çeliğinden bağımsız kullanmak 440 ve 520
 #  için ω'yı %23 ve %50 DÜŞÜK verir, yani burkulma gerilmesini olduğundan
 #  küçük gösterir.
-OMEGA_370 = ((60, 0.00012920, 1.89, 1.0),
-             (85, 0.00004627, 2.14, 1.0),
-             (115, 0.00001711, 2.35, 1.04),
-             (250, 0.00016887, 2.00, 0.0))
-OMEGA_520 = ((50, 0.00008240, 2.06, 1.021),
-             (70, 0.00001895, 2.41, 1.05),
-             (89, 0.00002447, 2.36, 1.03),
-             (250, 0.00025330, 2.00, 0.0))
+OMEGA_370 = (
+    (60, 0.00012920, 1.89, 1.0),
+    (85, 0.00004627, 2.14, 1.0),
+    (115, 0.00001711, 2.35, 1.04),
+    (250, 0.00016887, 2.00, 0.0),
+)
+OMEGA_520 = (
+    (50, 0.00008240, 2.06, 1.021),
+    (70, 0.00001895, 2.41, 1.05),
+    (89, 0.00002447, 2.36, 1.03),
+    (250, 0.00025330, 2.00, 0.0),
+)
 OMEGA_RM_ALT, OMEGA_RM_UST = 370, 520
 
 
 def _omega_egri(egri, lam):
     for ust, kat, us, ek in egri:
         if lam <= ust:
-            return kat * lam ** us + ek
+            return kat * lam**us + ek
     return None
 
 
@@ -234,11 +237,11 @@ def omega_en8150(lam, rm=OMEGA_RM_ALT):
 #  görünürler ve yanlış görünmemelidirler.
 # =====================================================================
 NPU_PROFIL = (
-    ('30x15', 2.21, 1.74, 2.53, 1.69, 1.07, 0.38, 0.39, 0.42),
+    ("30x15", 2.21, 1.74, 2.53, 1.69, 1.07, 0.38, 0.39, 0.42),
     (30, 5.44, 4.27, 6.39, 4.26, 1.08, 5.33, 2.68, 0.99),
-    ('40x20', 3.66, 2.87, 7.58, 3.79, 1.44, 1.14, 0.86, 0.56),
+    ("40x20", 3.66, 2.87, 7.58, 3.79, 1.44, 1.14, 0.86, 0.56),
     (40, 6.21, 4.87, 14.1, 7.05, 1.5, 6.68, 3.08, 1.04),
-    ('50x25', 4.92, 3.86, 16.8, 6.73, 1.85, 2.49, 1.48, 0.71),
+    ("50x25", 4.92, 3.86, 16.8, 6.73, 1.85, 2.49, 1.48, 0.71),
     (50, 7.12, 5.59, 26.4, 10.6, 1.92, 9.12, 3.75, 1.13),
     (60, 6.46, 5.07, 31.6, 10.5, 2.21, 4.51, 2.16, 0.84),
     (65, 9.03, 7.09, 57.5, 17.7, 2.52, 14.1, 5.07, 1.25),
@@ -256,8 +259,7 @@ NPU_PROFIL = (
 
 NPU_OLCULERI = tuple(r[0] for r in NPU_PROFIL)
 
-_NPU_SUTUN = {"A": 1, "G": 2, "Ix": 3, "Wx": 4, "ix": 5,
-              "Iy": 6, "Wy": 7, "iy": 8}
+_NPU_SUTUN = {"A": 1, "G": 2, "Ix": 3, "Wx": 4, "ix": 5, "Iy": 6, "Wy": 7, "iy": 8}
 
 
 def npu(olcu, ozellik):
@@ -279,11 +281,11 @@ def npu(olcu, ozellik):
 #  Kişi sayısı m.5.4.2.3.1 a):  Q/75, aşağı yuvarlanır.
 #  Çizelge 8'de 20 kişiden sonrası:  3,13 + 0,115 × ( kişi − 20 ).
 KABIN_ALANI = (
-    (100, 1, 0.37, 0.28),          # ★ Çiz.6 — tek kişilik asansör asgarisi
+    (100, 1, 0.37, 0.28),  # ★ Çiz.6 — tek kişilik asansör asgarisi
     (180, 2, 0.58, 0.49),
     (225, 3, 0.7, 0.6),
     (300, 4, 0.9, 0.79),
-    (320, 4, 0.953, 0.79),   # Çiz.6'da YOK — 300/375 arası doğrusal ara değer
+    (320, 4, 0.953, 0.79),  # Çiz.6'da YOK — 300/375 arası doğrusal ara değer
     (375, 5, 1.1, 0.98),
     (400, 5, 1.17, 0.98),
     (450, 6, 1.3, 1.17),
@@ -297,19 +299,18 @@ KABIN_ALANI = (
     (900, 12, 2.2, 2.01),
     (975, 13, 2.35, 2.15),
     (1000, 13, 2.4, 2.15),
-    (1050, 14, 2.5, 2.29),      # ★
+    (1050, 14, 2.5, 2.29),  # ★
     (1125, 15, 2.65, 2.43),
     (1200, 16, 2.8, 2.57),
-    (1250, 16, 2.9, 2.57),      # ★
+    (1250, 16, 2.9, 2.57),  # ★
     (1275, 17, 2.95, 2.71),
-    (1350, 18, 3.1, 2.85),      # ★
-    (1425, 19, 3.25, 2.99),     # ★
-    (1500, 20, 3.4, 3.13),      # ★
+    (1350, 18, 3.1, 2.85),  # ★
+    (1425, 19, 3.25, 2.99),  # ★
+    (1500, 20, 3.4, 3.13),  # ★
     (1600, 21, 3.56, 3.245),
     (2000, 26, 4.2, 3.82),
-    (2500, 33, 5.0, 4.625),     # ★  Çiz.6'nın son satırı
+    (2500, 33, 5.0, 4.625),  # ★  Çiz.6'nın son satırı
 )
-
 
 
 #  ---------------------------------------------------------------------
@@ -335,6 +336,7 @@ RAY_TUTARSIZ = ("125 x 82 x 16",)
 def ray_tutarsizliklari(tolerans=0.005):
     """i ≠ √(I/A) olan satırlar  →  [ ( profil, eksen, tablo, hesap ) ]."""
     import math as _m
+
     bulunan = []
     for satir in RAY_PROFILI:
         ad = satir[0]
@@ -371,8 +373,28 @@ def esik_katsayisi(tip):
 #  KÜÇÜĞÜDÜR".  Çizelge 8 bir ret ölçütü değildir:  alanı küçük bir kabin
 #  uygunsuz olmaz, üzerine daha az kişi yazılır.
 #  ---------------------------------------------------------------------
-CIZELGE_8 = (0.28, 0.49, 0.60, 0.79, 0.98, 1.17, 1.31, 1.45, 1.59, 1.73,
-             1.87, 2.01, 2.15, 2.29, 2.43, 2.57, 2.71, 2.85, 2.99, 3.13)
+CIZELGE_8 = (
+    0.28,
+    0.49,
+    0.60,
+    0.79,
+    0.98,
+    1.17,
+    1.31,
+    1.45,
+    1.59,
+    1.73,
+    1.87,
+    2.01,
+    2.15,
+    2.29,
+    2.43,
+    2.57,
+    2.71,
+    2.85,
+    2.99,
+    3.13,
+)
 CIZELGE_8_KISI_BASI = 0.115
 
 
@@ -389,11 +411,11 @@ def cizelge8_alan(kisi):
 def cizelge8_kisi(alan):
     """Çizelge 8'in tersi:  bu alanın taşıyabileceği EN ÇOK yolcu  ( 0 olabilir )."""
     import math as _m
+
     if alan is None:
         return None
     if alan + 1e-9 >= CIZELGE_8[-1]:
-        return len(CIZELGE_8) + int(_m.floor((alan - CIZELGE_8[-1]) / CIZELGE_8_KISI_BASI
-                                              + 1e-9))
+        return len(CIZELGE_8) + int(_m.floor((alan - CIZELGE_8[-1]) / CIZELGE_8_KISI_BASI + 1e-9))
     return sum(1 for a in CIZELGE_8 if a <= alan + 1e-9)
 
 
@@ -435,13 +457,13 @@ def kabin_asgari_alan(beyan_yuku):
 #
 #  ( ad , tür , tahrik kasnağı üzerinden geçiş sayısı )
 KANAL_SEKLI = (
-    ('V Kanal',                       'V',  1),
-    ('Altı Kesik V Kanal',            'VK', 1),
-    ('Yarım Daire Kanal',             'U',  1),
-    ('Altı Kesik Yarım Daire Kanal',  'UK', 1),
+    ("V Kanal", "V", 1),
+    ("Altı Kesik V Kanal", "VK", 1),
+    ("Yarım Daire Kanal", "U", 1),
+    ("Altı Kesik Yarım Daire Kanal", "UK", 1),
     #  Çift sarımda halat tahrik kasnağının üzerinden İKİ kez geçer;  her
     #  geçiş bir basit eğilmedir, bu yüzden Nequiv(t) iki katıdır.
-    ('Yarım Daire Kanal (Çift Sarım)', 'U', 2),
+    ("Yarım Daire Kanal (Çift Sarım)", "U", 2),
 )
 
 KANAL_SEKILLERI = tuple(s[0] for s in KANAL_SEKLI)
@@ -467,16 +489,14 @@ def kanal_gecis_sayisi(sekil):
 #      Alt kesilmesiz U         Nequiv(t) = 1
 #  "Values for angles not in the table may be determined by linear
 #   interpolation."  —  çizelgenin kendi notu.
-NEQUIV_V = ((35, 18.5), (36, 16.0), (38, 12.0), (40, 10.0),
-            (42, 8.0), (45, 6.5), (50, 5.0))
-NEQUIV_U_ALTI_KESIK = ((75, 2.5), (80, 3.0), (85, 3.8), (90, 5.0),
-                       (95, 6.7), (100, 10.0), (105, 15.2))
+NEQUIV_V = ((35, 18.5), (36, 16.0), (38, 12.0), (40, 10.0), (42, 8.0), (45, 6.5), (50, 5.0))
+NEQUIV_U_ALTI_KESIK = ((75, 2.5), (80, 3.0), (85, 3.8), (90, 5.0), (95, 6.7), (100, 10.0), (105, 15.2))
 
 #  m.5.11.2.3.1.1 / m.5.11.2.3.1.2'nin kendi sınırları
-BETA_AZAMI = 105.0        # "shall not exceed 105° (1,83 rad)"
-GAMA_ASGARI_U = 25.0      # yarım daire:  "in no case … less than 25°"
-GAMA_ASGARI_V = 35.0      # V kanal:  "in no case, angle γ shall be less than 35°"
-GAMA_AZAMI = 90.0         # γ bir kanal açısıdır;  90°'yi aşamaz
+BETA_AZAMI = 105.0  # "shall not exceed 105° (1,83 rad)"
+GAMA_ASGARI_U = 25.0  # yarım daire:  "in no case … less than 25°"
+GAMA_ASGARI_V = 35.0  # V kanal:  "in no case, angle γ shall be less than 35°"
+GAMA_AZAMI = 90.0  # γ bir kanal açısıdır;  90°'yi aşamaz
 
 #  m.5.6.2.2.1.3 b):  regülatör halatının emniyet katsayısı hesaplanırken
 #  "taking into account a friction factor µmax equal to 0,2".  Sayıyı
@@ -570,7 +590,7 @@ def kanal_nequiv_t(sekil, gama_v=None, beta=None):
         taban = _dogrusal_ara(NEQUIV_V, gama_v)
     elif tur == "UK":
         taban = _dogrusal_ara(NEQUIV_U_ALTI_KESIK, beta)
-    else:                                   # 'U' — alt kesilmesiz yarım daire
+    else:  # 'U' — alt kesilmesiz yarım daire
         taban = 1.0
     return None if taban is None else taban * gecis
 
@@ -583,11 +603,10 @@ def kanal_nequiv_t(sekil, gama_v=None, beta=None):
 #  tertibat konursa ayrışırlar — o durumda tertibat tipi daha doğrudur.
 # =====================================================================
 DARBE_TIPLERI = (
-    ('Kaymalı', 2),
-    ('Ani Frenlemeli Makaralı', 3),
-    ('Ani Frenlemeli', 5),
+    ("Kaymalı", 2),
+    ("Ani Frenlemeli Makaralı", 3),
+    ("Ani Frenlemeli", 5),
 )
-
 
 
 DARBE_TIPLERI_ADLARI = tuple(r[0] for r in DARBE_TIPLERI)
@@ -609,10 +628,10 @@ K2_NORMAL_KULLANMA = 1.2
 #      tip · genişlik mm · kalınlık mm · ağırlık kg/m   ( yassı kablo )
 #  Hesaba yalnız ağırlık girer.
 BUKULGEN_KABLO = (
-    ('12 x 0,75', 33.8, 4.2, 0.284),
-    ('24 x 0,75', 70.4, 4.2, 0.642),
-    ('12 x 1,00', 36.2, 4.2, 0.33),
-    ('24 x 1,00', 70.4, 4.2, 0.62),
+    ("12 x 0,75", 33.8, 4.2, 0.284),
+    ("24 x 0,75", 70.4, 4.2, 0.642),
+    ("12 x 1,00", 36.2, 4.2, 0.33),
+    ("24 x 1,00", 70.4, 4.2, 0.62),
 )
 
 KABLO_TIPLERI = tuple(r[0] for r in BUKULGEN_KABLO)
@@ -628,14 +647,14 @@ _KABLO_SUTUN = {"genislik": 1, "kalinlik": 2, "agirlik": 3}
 #  kapıdır:  öbür otomatik kapılar gibi 24'lü.  "Teleskopik Sol / Sağ" ve
 #  "Otomatik Merkezi" 2 kanatlıdır ( kayıtlı projeler bu adları taşır ).
 KAPI_KABLO = (
-    ('Manuel Sağ', '12 x 0,75'),
-    ('Manuel Sol', '12 x 0,75'),
-    ('Otomatik Merkezi', '24 x 0,75'),
-    ('Otomatik Merkezi 4 Kanat', '24 x 0,75'),
-    ('Teleskopik Sağ', '24 x 0,75'),
-    ('Teleskopik Sol', '24 x 0,75'),
-    ('Teleskopik 3 Kanat Sağ', '24 x 0,75'),
-    ('Teleskopik 3 Kanat Sol', '24 x 0,75'),
+    ("Manuel Sağ", "12 x 0,75"),
+    ("Manuel Sol", "12 x 0,75"),
+    ("Otomatik Merkezi", "24 x 0,75"),
+    ("Otomatik Merkezi 4 Kanat", "24 x 0,75"),
+    ("Teleskopik Sağ", "24 x 0,75"),
+    ("Teleskopik Sol", "24 x 0,75"),
+    ("Teleskopik 3 Kanat Sağ", "24 x 0,75"),
+    ("Teleskopik 3 Kanat Sol", "24 x 0,75"),
 )
 
 KAPI_TIPLERI = tuple(r[0] for r in KAPI_KABLO)
@@ -671,8 +690,8 @@ def kablo_yukseklik(tip):
 #  50 kg ( Tiraslift · Egeser katalogları;  kullanıcı kararı 30 Eyl — karar 11:
 #  dolgunun sığma denetimi bu bloğun yoğunluğuyla, derinliği bloğunki ).
 AGIRLIK_MALZEMESI = (
-    ('Barit', 155, 120),
-    ('Pik Döküm', 100, 100),
+    ("Barit", 155, 120),
+    ("Pik Döküm", 100, 100),
 )
 
 AGIRLIK_MALZEMELERI = tuple(r[0] for r in AGIRLIK_MALZEMESI)
@@ -702,8 +721,7 @@ RAY_EMNIYET_GUVENLIK = 1.8
 #  değeriyle bulunur ( omega_en8150 ), σperm de bu bağıntıdan — yeni bir
 #  seçenek için ayrı tablo gerekmez.  450:  referans projenin örnek projesindeki
 #  işlenmiş ray değeri.
-RAY_CELIGI = tuple((rm, rm / RAY_EMNIYET_NORMAL, rm / RAY_EMNIYET_GUVENLIK)
-                   for rm in (370, 440, 450, 520))
+RAY_CELIGI = tuple((rm, rm / RAY_EMNIYET_NORMAL, rm / RAY_EMNIYET_GUVENLIK) for rm in (370, 440, 450, 520))
 
 RAY_CELIKLERI = tuple(s[0] for s in RAY_CELIGI)
 
@@ -765,7 +783,7 @@ def tampon(ad):
     for t in TAMPON_TIPLERI:
         if t[0] == ad:
             return t
-    return TAMPON_TIPLERI[1]        # tanınmayan ad: poliüretan sayılır
+    return TAMPON_TIPLERI[1]  # tanınmayan ad: poliüretan sayılır
 
 
 # =====================================================================
@@ -792,9 +810,9 @@ def tampon(ad):
 #  standardın istediği biçimde kuyu dibinde işaretlenmelidir.
 SIGINMA_HACMI = (
     #  ad,         a (m),  b (m),  c (m) — yükseklik
-    ("Dik duruş",   0.40,   0.50,   2.00),
-    ("Çömelme",     0.50,   0.70,   1.00),
-    ("Yatarak",     0.70,   1.00,   0.50),
+    ("Dik duruş", 0.40, 0.50, 2.00),
+    ("Çömelme", 0.50, 0.70, 1.00),
+    ("Yatarak", 0.70, 1.00, 0.50),
 )
 
 #  Kabin üstünde YATARAK duruş yoktur  ( m.5.2.5.7.1 ).
@@ -841,5 +859,4 @@ def makine_raya_mi(deger):
     if isinstance(deger, bool):
         return deger
     m = str(deger or "").strip().lower()
-    return m in ("evet", "e", "var", "true", "1", "yes",
-                 MAKINE_YUK_YOLU_RAY.lower())
+    return m in ("evet", "e", "var", "true", "1", "yes", MAKINE_YUK_YOLU_RAY.lower())

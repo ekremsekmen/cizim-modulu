@@ -5,9 +5,9 @@ ASANSÖR TRAFİK HESABI  —  MMO/697, 2. Baskı, Ocak 2020, s.11-17
   · aynı tip asansörler   ->  hesapla_tek()      ( MMO/697 s.11-12 )
   · farklı tip asansörler ->  hesapla_coklu()    ( grup formülü, s.12 )
 """
+
 from engine.avan import tablolar as T
-from engine.ortak.steps import (Bolum, veri, hesap, tr, trn, yukari_yuvarla,
-                    yuvarla, sayi_mi)
+from engine.ortak.steps import Bolum, veri, hesap, tr, trn, yukari_yuvarla, yuvarla, sayi_mi
 
 
 # =====================================================================
@@ -21,11 +21,15 @@ def _bodrum_oku(deger):
     if deger is None or deger == "":
         return 0, None
     if not sayi_mi(deger):
-        return 0, ("HESAP HATASI: ⑪ bodrum durak adedi sayı olmalıdır "
-                   f"(0 – {T.BODRUM_AZAMI} arası tam sayı ya da boş).")
+        return 0, (
+            "HESAP HATASI: ⑪ bodrum durak adedi sayı olmalıdır "
+            f"(0 – {T.BODRUM_AZAMI} arası tam sayı ya da boş)."
+        )
     if float(deger) != int(deger) or deger < 0 or deger > T.BODRUM_AZAMI:
-        return 0, (f"HESAP HATASI: ⑪ bodrum durak adedi 0 ile {T.BODRUM_AZAMI} arasında "
-                   "tam sayı olmalıdır (ana giriş altında hizmet verilen durak adedi).")
+        return 0, (
+            f"HESAP HATASI: ⑪ bodrum durak adedi 0 ile {T.BODRUM_AZAMI} arasında "
+            "tam sayı olmalıdır (ana giriş altında hizmet verilen durak adedi)."
+        )
     return int(deger), None
 
 
@@ -42,8 +46,10 @@ def _taahhut_oku(deger):
         return False, None
     if m == "var":
         return True, None
-    return False, (f"HESAP HATASI: taahhütname seçimi okunamadı ( {str(deger).strip()[:20]!r} ) "
-                   "— 'Yok' ya da 'Var' seçilmelidir.")
+    return False, (
+        f"HESAP HATASI: taahhütname seçimi okunamadı ( {str(deger).strip()[:20]!r} ) "
+        "— 'Yok' ya da 'Var' seçilmelidir."
+    )
 
 
 #  DURAK ADEDİ  ( ana giriş dâhil )  —  tek ve çoklu hesapta AYNI kural.
@@ -58,10 +64,11 @@ def _durak_oku(deger, N, on_ek=""):
     """
     if deger is None or deger == "":
         return N, None
-    if not (sayi_mi(deger) and float(deger).is_integer()
-            and 2 <= deger <= (N or 0) + 1):
-        return None, (f"HESAP HATASI: {on_ek}durak sayısı geçersiz — 2 ile ortak durak sayısı "
-                      "(N+1) arasında tam sayı girin veya boş bırakın")
+    if not (sayi_mi(deger) and float(deger).is_integer() and 2 <= deger <= (N or 0) + 1):
+        return None, (
+            f"HESAP HATASI: {on_ek}durak sayısı geçersiz — 2 ile ortak durak sayısı "
+            "(N+1) arasında tam sayı girin veya boş bırakın"
+        )
     return int(deger) - 1, None
 
 
@@ -85,26 +92,35 @@ def _sure_cozumle(kaynak, kg_, kt, V, P, on_ek=""):
     tablo = {"ta": t4_ta, "tk": t4_tk, "tg": T.tablo6_tg(V), "tp": T.tablo8_tp(kg_)}
     deger = {ad: (m[ad] if sayi_mi(m[ad]) else tablo[ad]) for ad in tablo}
 
-    tablo_kaynagi = {"ta": T.tablo4_kaynagi(kg_), "tk": T.tablo4_kaynagi(kg_),
-                     "tg": T.tg_kaynagi(V), "tp": T.tablo8_kaynagi(kg_)}
-    kaynaklar = {ad: ("İmalatçı verisi" if sayi_mi(m[ad]) else tablo_kaynagi[ad])
-                 for ad in tablo}
+    tablo_kaynagi = {
+        "ta": T.tablo4_kaynagi(kg_),
+        "tk": T.tablo4_kaynagi(kg_),
+        "tg": T.tg_kaynagi(V),
+        "tp": T.tablo8_kaynagi(kg_),
+    }
+    kaynaklar = {ad: ("İmalatçı verisi" if sayi_mi(m[ad]) else tablo_kaynagi[ad]) for ad in tablo}
 
     U = []
     elle = sum(1 for x in m.values() if sayi_mi(x))
     if elle:
-        U.append(f"⚠ {on_ek}{elle} adet süre imalatçı verisiyle değiştirildi "
-                 "(MMO Tablo-4/6/8 yerine). Paftada marka-model ve teknik föy "
-                 "referansı belirtilmelidir.")
+        U.append(
+            f"⚠ {on_ek}{elle} adet süre imalatçı verisiyle değiştirildi "
+            "(MMO Tablo-4/6/8 yerine). Paftada marka-model ve teknik föy "
+            "referansı belirtilmelidir."
+        )
     if kg_ in T.TABLO_4_ARA and not (sayi_mi(m["ta"]) and sayi_mi(m["tk"])):
-        U.append(f"⚠ {on_ek}{kg_} mm MMO/697 Tablo-4'te basılı değildir; ta/tk komşu "
-                 "satırlar arasında doğrusal enterpolasyonla bulunmuştur. İmalatçı "
-                 "katalog değeri varsa manuel ta/tk girilmesi tercih edilir.")
+        U.append(
+            f"⚠ {on_ek}{kg_} mm MMO/697 Tablo-4'te basılı değildir; ta/tk komşu "
+            "satırlar arasında doğrusal enterpolasyonla bulunmuştur. İmalatçı "
+            "katalog değeri varsa manuel ta/tk girilmesi tercih edilir."
+        )
     if kg_ in T.TABLO_8_ARA and not sayi_mi(m["tp"]):
-        U.append(f"⚠ {on_ek}{kg_} mm ISO 8100-32:2020 Tablo 6 kapsamı dışındadır "
-                 "(tablo 800 mm'de başlar); tp = 1,3 s, 800→900 mm eğiminden dış "
-                 "değerlemeyle alınmıştır (emniyetli taraf). İmalatçı verisi varsa "
-                 "manuel tp girin.")
+        U.append(
+            f"⚠ {on_ek}{kg_} mm ISO 8100-32:2020 Tablo 6 kapsamı dışındadır "
+            "(tablo 800 mm'de başlar); tp = 1,3 s, 800→900 mm eğiminden dış "
+            "değerlemeyle alınmıştır (emniyetli taraf). İmalatçı verisi varsa "
+            "manuel tp girin."
+        )
     U += T.erisilebilirlik_uyarilari(P, kg_, on_ek=on_ek)
     return {**deger, "kaynak": kaynaklar, "uyarilar": U, "elle": elle}
 
@@ -117,11 +133,13 @@ def _sure_cozumle(kaynak, kg_, kt, V, P, on_ek=""):
 def _ts_hatasi(ts, ta, tk, tg, tv, on_ek=""):
     if not sayi_mi(ts) or ts > 0:
         return None
-    return (f"HESAP HATASI: {on_ek}kapı bekleme süresi ts = {tr(ts)} s çıkıyor "
-            f"( ts = ta + tk + tg − tv = {tr(ta)} + {tr(tk)} + {tr(tg)} − {tr(tv)} ). "
-            "Bir süre sıfır ya da negatif olamaz: girilen ta/tk/tg değerleri kabinin "
-            "bir katı geçme süresinden ( tv ) küçük kalıyor. İmalatçı değerlerini "
-            "kontrol edin ya da alanları boşaltıp tablo değerlerini kullanın.")
+    return (
+        f"HESAP HATASI: {on_ek}kapı bekleme süresi ts = {tr(ts)} s çıkıyor "
+        f"( ts = ta + tk + tg − tv = {tr(ta)} + {tr(tk)} + {tr(tg)} − {tr(tv)} ). "
+        "Bir süre sıfır ya da negatif olamaz: girilen ta/tk/tg değerleri kabinin "
+        "bir katı geçme süresinden ( tv ) küçük kalıyor. İmalatçı değerlerini "
+        "kontrol edin ya da alanları boşaltıp tablo değerlerini kullanın."
+    )
 
 
 #  GİRDİ KUTULARININ ADLARI  —  arayüz etiketi ile red metni AYNI kaynaktan.
@@ -142,18 +160,20 @@ def hizli_etiketleri(bina_tipi):
     if not bt:
         return {"hizli1": ("⑤", "—"), "hizli2": _HIZLI_YOK}
     if bt == "Konut":
-        return {"hizli1": ("⑤ Daire sayısı", "(bağımsız bölüm adedi)"),
-                "hizli2": ("⑥ Daire başına DİĞER oda sayısı", "(ilk yatak odası hariç)")}
+        return {
+            "hizli1": ("⑤ Daire sayısı", "(bağımsız bölüm adedi)"),
+            "hizli2": ("⑥ Daire başına DİĞER oda sayısı", "(ilk yatak odası hariç)"),
+        }
     if bt.startswith("İş Merkezi") or bt.startswith("Kamu"):
-        return {"hizli1": ("⑤ Toplam çalışma alanı", "(m²)  →  12 m² = 1 kişi"),
-                "hizli2": _HIZLI_YOK}
+        return {"hizli1": ("⑤ Toplam çalışma alanı", "(m²)  →  12 m² = 1 kişi"), "hizli2": _HIZLI_YOK}
     if bt.startswith("Otel") or bt == "Hastane":
         return {"hizli1": ("⑤ Toplam yatak sayısı", ""), "hizli2": _HIZLI_YOK}
     if bt == "Katlı Otopark":
-        return {"hizli1": ("⑤ Özel amaçlı araç adedi", ""),
-                "hizli2": ("⑥ Ticari amaçlı araç adedi", "")}
-    return {"hizli1": ("⑤", "Bu bina tipinde hızlı giriş yok — ek nüfus kalemlerini kullanın"),
-            "hizli2": _HIZLI_YOK}
+        return {"hizli1": ("⑤ Özel amaçlı araç adedi", ""), "hizli2": ("⑥ Ticari amaçlı araç adedi", "")}
+    return {
+        "hizli1": ("⑤", "Bu bina tipinde hızlı giriş yok — ek nüfus kalemlerini kullanın"),
+        "hizli2": _HIZLI_YOK,
+    }
 
 
 #  Bina ( ortak ) kutuları — arayüzdeki etiketlerin aynısı.  ⑤ / ⑥ yukarıda.
@@ -168,8 +188,10 @@ GIRDI_ETIKET = {
     "manuel_V": "Manuel ortak V",
     "manuel_k": "Manuel k",
     "manuel_adet": "Asansör adedi",
-    "manuel_ta": "ta ( imalatçı )", "manuel_tk": "tk ( imalatçı )",
-    "manuel_tg": "tg ( imalatçı )", "manuel_tp": "tp ( imalatçı )",
+    "manuel_ta": "ta ( imalatçı )",
+    "manuel_tk": "tk ( imalatçı )",
+    "manuel_tg": "tg ( imalatçı )",
+    "manuel_tp": "tp ( imalatçı )",
 }
 
 #  Asansör kartı kutuları ( ASANSÖR-i ) — kartta "boş = ortak" olanlar
@@ -181,15 +203,16 @@ ASANSOR_ETIKET = {
     "durak": "Durak",
     "h": "h — kat yüksekliği",
     "bodrum": "Bodrum durağı",
-    "manuel_ta": "ta ( imalatçı )", "manuel_tk": "tk ( imalatçı )",
-    "manuel_tg": "tg ( imalatçı )", "manuel_tp": "tp ( imalatçı )",
+    "manuel_ta": "ta ( imalatçı )",
+    "manuel_tk": "tk ( imalatçı )",
+    "manuel_tg": "tg ( imalatçı )",
+    "manuel_tp": "tp ( imalatçı )",
 }
 
 
 def girdi_etiketleri(bina_tipi):
     """Bina kutularının red metnindeki adları — ⑤ / ⑥ bina tipine göre."""
-    return {**GIRDI_ETIKET,
-            **{k: ad for k, (ad, _ipucu) in hizli_etiketleri(bina_tipi).items()}}
+    return {**GIRDI_ETIKET, **{k: ad for k, (ad, _ipucu) in hizli_etiketleri(bina_tipi).items()}}
 
 
 #  ⑤ / ⑥ NÜFUS GİRDİLERİ  —  tek ve çoklu hesapta AYNI denetim.
@@ -201,14 +224,19 @@ def _nufus_girdi_hatasi(bt, h1, h2, on_ek=""):
     bt = bt or ""
     for deger, ad in ((h1, "⑤"), (h2, "⑥")):
         if sayi_mi(deger) and deger < 0:
-            return (f"HESAP HATASI: {on_ek}{ad} girdisi negatif ( {tr(deger)} ) — "
-                    "oda / yatak / araç adedi ya da çalışma alanı negatif olamaz.")
-    if ((bt == "Konut" and ((sayi_mi(h1) and h1 > 2000) or (sayi_mi(h2) and h2 > 20)))
-            or ((bt.startswith("Otel") or bt == "Hastane") and sayi_mi(h1) and h1 > 20000)
-            or (bt == "Katlı Otopark" and ((sayi_mi(h1) and h1 > 20000)
-                                           or (sayi_mi(h2) and h2 > 20000)))):
-        return (f"HESAP HATASI: {on_ek}⑤/⑥ değeri olağandışı — girdiyi kontrol edin "
-                "(ondalık ayracı olarak virgül kullanın).")
+            return (
+                f"HESAP HATASI: {on_ek}{ad} girdisi negatif ( {tr(deger)} ) — "
+                "oda / yatak / araç adedi ya da çalışma alanı negatif olamaz."
+            )
+    if (
+        (bt == "Konut" and ((sayi_mi(h1) and h1 > 2000) or (sayi_mi(h2) and h2 > 20)))
+        or ((bt.startswith("Otel") or bt == "Hastane") and sayi_mi(h1) and h1 > 20000)
+        or (bt == "Katlı Otopark" and ((sayi_mi(h1) and h1 > 20000) or (sayi_mi(h2) and h2 > 20000)))
+    ):
+        return (
+            f"HESAP HATASI: {on_ek}⑤/⑥ değeri olağandışı — girdiyi kontrol edin "
+            "(ondalık ayracı olarak virgül kullanın)."
+        )
     return None
 
 
@@ -229,11 +257,16 @@ def _nufus_satirlari(bina_tipi, hizli1, hizli2, ek_satirlar=None):
     def kalem_ekle(aciklama, miktar, kalem):
         if kalem and sayi_mi(miktar):
             t = T.TABLO_1[kalem]
-            satirlar.append({
-                "aciklama": aciklama, "miktar": miktar, "kalem": kalem,
-                "birim": t["birim"], "katsayi": t["katsayi"],
-                "c": miktar * t["katsayi"],
-            })
+            satirlar.append(
+                {
+                    "aciklama": aciklama,
+                    "miktar": miktar,
+                    "kalem": kalem,
+                    "birim": t["birim"],
+                    "katsayi": t["katsayi"],
+                    "c": miktar * t["katsayi"],
+                }
+            )
 
     bt = bina_tipi or ""
     if bt == "Konut":
@@ -252,20 +285,25 @@ def _nufus_satirlari(bina_tipi, hizli1, hizli2, ek_satirlar=None):
         kalem_ekle("↑ ⑤ özel amaçlı araç adedi", hizli1, "OTOPARK — Özel araç")
         kalem_ekle("↑ ⑥ ticari amaçlı araç adedi", hizli2, "OTOPARK — Ticari araç")
 
-    for s in (ek_satirlar or []):
+    for s in ek_satirlar or []:
         kalem = s.get("kalem")
         miktar = s.get("miktar")
         if kalem in T.TABLO_1 and sayi_mi(miktar):
             t = T.TABLO_1[kalem]
-            satirlar.append({
-                "aciklama": s.get("aciklama") or "Ek nüfus kalemi", "miktar": miktar,
-                "kalem": kalem, "birim": t["birim"], "katsayi": t["katsayi"],
-                "c": miktar * t["katsayi"],
-                #  Bu satır ⑤/⑥ girdilerinden DEĞİL, "ek nüfus" listesinden
-                #  gelir.  Pafta notunun doğru yazılabilmesi için ayırt edilir
-                #  ( bkz. _nufus_bolunmus ).
-                "ek": True,
-            })
+            satirlar.append(
+                {
+                    "aciklama": s.get("aciklama") or "Ek nüfus kalemi",
+                    "miktar": miktar,
+                    "kalem": kalem,
+                    "birim": t["birim"],
+                    "katsayi": t["katsayi"],
+                    "c": miktar * t["katsayi"],
+                    #  Bu satır ⑤/⑥ girdilerinden DEĞİL, "ek nüfus" listesinden
+                    #  gelir.  Pafta notunun doğru yazılabilmesi için ayırt edilir
+                    #  ( bkz. _nufus_bolunmus ).
+                    "ek": True,
+                }
+            )
 
     b = yuvarla(sum(s["c"] for s in satirlar), 6)
     return satirlar, b
@@ -283,18 +321,17 @@ def _nufus_bolunmus(bina_tipi, hizli1, hizli2, b, nufus_satirlari=None):
     denetimde bu hesap hatası olarak okunur.
     """
     ek = [x for x in (nufus_satirlari or []) if x.get("ek")]
-    b_ana = (yuvarla(sum(x["c"] for x in nufus_satirlari if not x.get("ek")), 6)
-             if nufus_satirlari else b)
+    b_ana = yuvarla(sum(x["c"] for x in nufus_satirlari if not x.get("ek")), 6) if nufus_satirlari else b
     satirlar = [x for x in _nufus_aciklamasi(bina_tipi, hizli1, hizli2, b_ana) if x]
     if not satirlar:
         return [], []
     for x in ek:
         satirlar.append(
             f"Ek nüfus — {x['aciklama']}: {trn(x['miktar'], 2)} {x['birim']} × "
-            f"{trn(x['katsayi'], 4)} = {trn(x['c'], 2)} kişi  ({x['kalem']})")
+            f"{trn(x['katsayi'], 4)} = {trn(x['c'], 2)} kişi  ({x['kalem']})"
+        )
     if ek:
-        satirlar.append(
-            f"Toplam  b = Σc = {trn(b_ana, 2)} + {trn(b - b_ana, 2)} = {trn(b, 2)} kişi")
+        satirlar.append(f"Toplam  b = Σc = {trn(b_ana, 2)} + {trn(b - b_ana, 2)} = {trn(b, 2)} kişi")
     return satirlar[:1], satirlar[1:]
 
 
@@ -302,39 +339,55 @@ def _nufus_aciklamasi(bina_tipi, hizli1, hizli2, b):
     """PAFTA sayfasındaki nüfus cümlesi."""
     bt = bina_tipi or ""
     if bt == "Konut":
-        t1 = ("Tablo-1: Her dairenin ilk yatak odası için 2 kişi, diğer odaların her biri için "
-              "1 kişi alınır; mutfak ve ıslak hacimler hesaba katılmaz.")
+        t1 = (
+            "Tablo-1: Her dairenin ilk yatak odası için 2 kişi, diğer odaların her biri için "
+            "1 kişi alınır; mutfak ve ıslak hacimler hesaba katılmaz."
+        )
         if sayi_mi(hizli2):
             if float(hizli2).is_integer():
-                t2 = (f"Daireler {trn(hizli2,0)}+1 olup bir dairede sayılan oda adedi "
-                      f"{trn(hizli2+1,0)} olarak alınmıştır (1 ilk yatak odası + {trn(hizli2,0)} diğer oda). "
-                      f"Bir dairedeki kişi sayısı = 2 + ({trn(hizli2,0)} × 1) = {trn(2+hizli2,0)} kişi.")
+                t2 = (
+                    f"Daireler {trn(hizli2, 0)}+1 olup bir dairede sayılan oda adedi "
+                    f"{trn(hizli2 + 1, 0)} olarak alınmıştır (1 ilk yatak odası + {trn(hizli2, 0)} diğer oda). "
+                    f"Bir dairedeki kişi sayısı = 2 + ({trn(hizli2, 0)} × 1) = {trn(2 + hizli2, 0)} kişi."
+                )
             else:
-                t2 = (f"Daire başına ortalama diğer oda adedi {tr(hizli2)} alınmıştır. "
-                      f"Bir dairedeki ortalama kişi sayısı = 2 + {tr(hizli2)} = {tr(2+hizli2)} kişi.")
-            t3 = f"Daire adedi {trn(hizli1,0)}  →  b = {trn(hizli1,0)} × {trn(2+hizli2,2)} = {trn(b,2)} kişi"
+                t2 = (
+                    f"Daire başına ortalama diğer oda adedi {tr(hizli2)} alınmıştır. "
+                    f"Bir dairedeki ortalama kişi sayısı = 2 + {tr(hizli2)} = {tr(2 + hizli2)} kişi."
+                )
+            t3 = f"Daire adedi {trn(hizli1, 0)}  →  b = {trn(hizli1, 0)} × {trn(2 + hizli2, 2)} = {trn(b, 2)} kişi"
         else:
-            t2, t3 = "", f"b = Σc = {trn(b,2)} kişi"
+            t2, t3 = "", f"b = Σc = {trn(b, 2)} kişi"
         return [t1, t2, t3]
     if bt.startswith("İş Merkezi") or bt.startswith("Kamu"):
-        return ["Tablo-1: Çalışma alanının her 12 m²si için 1 kişi alınır.",
-                f"Binadaki toplam çalışma alanı {trn(hizli1,2)} m² olarak alınmıştır.",
-                f"b = {trn(hizli1,2)} ÷ 12 = {trn(b,2)} kişi"]
+        return [
+            "Tablo-1: Çalışma alanının her 12 m²si için 1 kişi alınır.",
+            f"Binadaki toplam çalışma alanı {trn(hizli1, 2)} m² olarak alınmıştır.",
+            f"b = {trn(hizli1, 2)} ÷ 12 = {trn(b, 2)} kişi",
+        ]
     if bt.startswith("Otel"):
-        return ["Tablo-1: Her yatak için 1 kişi alınır.",
-                f"Binadaki toplam yatak sayısı {trn(hizli1,0)} olarak alınmıştır.",
-                f"b = {trn(hizli1,0)} × 1 = {trn(b,2)} kişi"]
+        return [
+            "Tablo-1: Her yatak için 1 kişi alınır.",
+            f"Binadaki toplam yatak sayısı {trn(hizli1, 0)} olarak alınmıştır.",
+            f"b = {trn(hizli1, 0)} × 1 = {trn(b, 2)} kişi",
+        ]
     if bt == "Hastane":
-        return ["Tablo-1: Her yatak için 3 kişi alınır.",
-                f"Binadaki toplam yatak sayısı {trn(hizli1,0)} olarak alınmıştır.",
-                f"b = {trn(hizli1,0)} × 3 = {trn(b,2)} kişi"]
+        return [
+            "Tablo-1: Her yatak için 3 kişi alınır.",
+            f"Binadaki toplam yatak sayısı {trn(hizli1, 0)} olarak alınmıştır.",
+            f"b = {trn(hizli1, 0)} × 3 = {trn(b, 2)} kişi",
+        ]
     if bt == "Katlı Otopark":
-        return ["Tablo-1: Özel amaçlı araç başına 1 kişi, ticari amaçlı araç başına 1,5 kişi alınır.",
-                f"Özel amaçlı araç adedi {trn(hizli1,0)}, ticari amaçlı araç adedi {trn(hizli2 or 0,0)} olarak alınmıştır.",
-                f"b = ({trn(hizli1,0)} × 1) + ({trn(hizli2 or 0,0)} × 1,5) = {trn(b,2)} kişi"]
-    return ["Nüfus MMO/697 Tablo-1'e göre hesaplanmıştır.",
-            "Nüfus, ayrıntılı nüfus tablosundan alınmıştır.",
-            f"b = Σc = {trn(b,2)} kişi  (ayrıntılı nüfus tablosundan)"]
+        return [
+            "Tablo-1: Özel amaçlı araç başına 1 kişi, ticari amaçlı araç başına 1,5 kişi alınır.",
+            f"Özel amaçlı araç adedi {trn(hizli1, 0)}, ticari amaçlı araç adedi {trn(hizli2 or 0, 0)} olarak alınmıştır.",
+            f"b = ({trn(hizli1, 0)} × 1) + ({trn(hizli2 or 0, 0)} × 1,5) = {trn(b, 2)} kişi",
+        ]
+    return [
+        "Nüfus MMO/697 Tablo-1'e göre hesaplanmıştır.",
+        "Nüfus, ayrıntılı nüfus tablosundan alınmıştır.",
+        f"b = Σc = {trn(b, 2)} kişi  (ayrıntılı nüfus tablosundan)",
+    ]
 
 
 # =====================================================================
@@ -349,7 +402,7 @@ def hesapla_tek(g: dict) -> dict:
                  manuel_tp, manuel_adet, taahhutname ( Yok / Var ), ek_nufus[],
                  proje_adi, isveren, pafta_no, tarih
     """
-    U = []                       # uyarılar
+    U = []  # uyarılar
     hata = None
 
     bina_tipi = g.get("bina_tipi")
@@ -359,30 +412,29 @@ def hesapla_tek(g: dict) -> dict:
     if t10 is None:
         return {"hata": "HESAP HATASI: Bina tipi listeden seçilmelidir."}
 
-    N   = g.get("N")
-    P   = g.get("P")
-    h   = g.get("h")
+    N = g.get("N")
+    P = g.get("P")
+    h = g.get("h")
     kg_ = g.get("kapi_genisligi")
-    kt  = g.get("kapi_tipi")
-    by  = g.get("bina_yuksekligi")
-    yy  = g.get("yapi_yuksekligi")
+    kt = g.get("kapi_tipi")
+    by = g.get("bina_yuksekligi")
+    yy = g.get("yapi_yuksekligi")
 
     # ---- Nb : ana giriş ALTINDA hizmet verilen durak adedi (bodrum)
     Nb, Nb_hata = _bodrum_oku(g.get("bodrum"))
     if Nb_hata:
         hata = Nb_hata
 
-    standart = _hesap_standardi(by, yy)                       # C8
-    hiz_grubu = t10["hiz_grubu"]                              # C17
-    k_tipi    = t10["k_tipi"]                                 # C6
-    yuk_kg    = T.tablo7_yuk(P)                               # E13
-    p         = 0.8 * P if sayi_mi(P) else None               # C15
+    standart = _hesap_standardi(by, yy)  # C8
+    hiz_grubu = t10["hiz_grubu"]  # C17
+    k_tipi = t10["k_tipi"]  # C6
+    yuk_kg = T.tablo7_yuk(P)  # E13
+    p = 0.8 * P if sayi_mi(P) else None  # C15
 
     # ---- nüfus
-    nufus_satirlari, b = _nufus_satirlari(bina_tipi, g.get("hizli1"), g.get("hizli2"),
-                                          g.get("ek_nufus"))
-    n_artis = 0.3 if (b or 0) < 200 else 0.25                 # C21
-    B = yukari_yuvarla(b * (1 + n_artis), 0) if sayi_mi(b) else None   # C22
+    nufus_satirlari, b = _nufus_satirlari(bina_tipi, g.get("hizli1"), g.get("hizli2"), g.get("ek_nufus"))
+    n_artis = 0.3 if (b or 0) < 200 else 0.25  # C21
+    B = yukari_yuvarla(b * (1 + n_artis), 0) if sayi_mi(b) else None  # C22
 
     # ---- k (taşınacak insan yüzdesi)
     manuel_k = g.get("manuel_k")
@@ -400,22 +452,28 @@ def hesapla_tek(g: dict) -> dict:
         k_notu = "MMO/697 Tablo-9"
         if bina_tipi.startswith("Kamu"):
             k_notu = "Tablo-9'da kamu yok → İş Merkezi %k varsayıldı"
-            U.append("Kamu binaları MMO/697 Tablo-9'da yoktur; %k için İŞ MERKEZİ "
-                     "satırı varsayılmıştır. Farklı bir oran gerekiyorsa manuel k girin.")
+            U.append(
+                "Kamu binaları MMO/697 Tablo-9'da yoktur; %k için İŞ MERKEZİ "
+                "satırı varsayılmıştır. Farklı bir oran gerekiyorsa manuel k girin."
+            )
     if bina_tipi.startswith("Kamu"):
-        U.append("Kamu binaları MMO/697 Tablo-2'de de yoktur; asgari hız için "
-                 "BÜRO VE İŞ MERKEZİ grubu varsayılmıştır. Bu iki varsayım paftaya "
-                 "yazılmıştır.")
+        U.append(
+            "Kamu binaları MMO/697 Tablo-2'de de yoktur; asgari hız için "
+            "BÜRO VE İŞ MERKEZİ grubu varsayılmıştır. Bu iki varsayım paftaya "
+            "yazılmıştır."
+        )
 
     # ---- V (kabin hızı)
     #  Tablo-2 asgari hızı, asansörün DURDUĞU toplam kat adedine göre seçilir:
     #  ana giriş üstü N kat + ana giriş + bodrumdaki Nb durak.
     durak = (N + 1 + Nb) if sayi_mi(N) else None
-    V_min = T.tablo2_min_hiz(hiz_grubu, durak) if (hiz_grubu and durak) else None   # I68
+    V_min = T.tablo2_min_hiz(hiz_grubu, durak) if (hiz_grubu and durak) else None  # I68
     manuel_V = g.get("manuel_V")
     if sayi_mi(manuel_V) and manuel_V not in T.GECERLI_HIZLAR:
-        hata = ("HESAP HATASI: Manuel hız geçersiz — listeden seçin "
-                "(0,63 / 1 / 1,6 / 1,75 / 2 / 2,5 / 3 / 3,5 / 5 / 6 m/s)")
+        hata = (
+            "HESAP HATASI: Manuel hız geçersiz — listeden seçin "
+            "(0,63 / 1 / 1,6 / 1,75 / 2 / 2,5 / 3 / 3,5 / 5 / 6 m/s)"
+        )
         V = None
     elif sayi_mi(manuel_V):
         V = manuel_V
@@ -428,8 +486,10 @@ def hesapla_tek(g: dict) -> dict:
     elif V_min is None:
         V_notu = "Tablo-2'de bu bina tipi yok — hız tümüyle proje kararıdır; gerekçesini paftaya yazın."
     elif V < V_min:
-        V_notu = (f"⚠ Tablo-2 minimumu {tr(V_min)} m/s — seçilen {tr(V)} m/s bunun ALTINDA. "
-                  f"Bekleme süresi sağlandığı için hesap geçerlidir; gerekçeyi paftaya yazın.")
+        V_notu = (
+            f"⚠ Tablo-2 minimumu {tr(V_min)} m/s — seçilen {tr(V)} m/s bunun ALTINDA. "
+            f"Bekleme süresi sağlandığı için hesap geçerlidir; gerekçeyi paftaya yazın."
+        )
         U.append(V_notu)
     elif V > V_min:
         V_notu = f"Tablo-2 minimumu {tr(V_min)} m/s — seçilen {tr(V)} m/s (üstü)."
@@ -454,7 +514,7 @@ def hesapla_tek(g: dict) -> dict:
 
     _s = _sure_cozumle(g, kg_, kt, V, P)
     ta, tk, tg, tp = _s["ta"], _s["tk"], _s["tg"], _s["tp"]
-    mtg = g.get("manuel_tg")            # yalnız öneri tablosuna geçer
+    mtg = g.get("manuel_tg")  # yalnız öneri tablosuna geçer
     U += _s["uyarilar"]
 
     # ---- doğrulama (E45 / H45 karşılığı)
@@ -465,11 +525,12 @@ def hesapla_tek(g: dict) -> dict:
     toplam_seyahat = ((N + Nb) * h) if (sayi_mi(N) and sayi_mi(h)) else None
 
     # ---- tur süresi
-    tv = h / V if (sayi_mi(h) and sayi_mi(V) and V) else None                 # C33
+    tv = h / V if (sayi_mi(h) and sayi_mi(V) and V) else None  # C33
     ts = (ta + tk + tg - tv) if all(sayi_mi(x) for x in (ta, tk, tg, tv)) else None  # C34
-    TR = (2 * H * tv + (S + 1) * ts + 2 * p * tp) \
-        if all(sayi_mi(x) for x in (H, tv, S, ts, p, tp)) else None           # C35
-    R = (300 * p / TR) if (sayi_mi(TR) and TR and sayi_mi(p)) else None       # C36
+    TR = (
+        (2 * H * tv + (S + 1) * ts + 2 * p * tp) if all(sayi_mi(x) for x in (H, tv, S, ts, p, tp)) else None
+    )  # C35
+    R = (300 * p / TR) if (sayi_mi(TR) and TR and sayi_mi(p)) else None  # C36
     hata = hata or _ts_hatasi(ts, ta, tk, tg, tv)
 
     Izul = t10["yukseltilmis"] if standart == "Yükseltilmiş" else t10["standart"]  # K68
@@ -508,19 +569,22 @@ def hesapla_tek(g: dict) -> dict:
         hata = hata or t_hata
     elif taahhut:
         if not (sayi_mi(sartli) and sartli):
-            hata = hata or (f"HESAP HATASI: {bina_tipi} için MMO/697 Tablo-10'da şartlı kabul "
-                            "sınırı yoktur — taahhütname 'Yok' seçilmelidir.")
+            hata = hata or (
+                f"HESAP HATASI: {bina_tipi} için MMO/697 Tablo-10'da şartlı kabul "
+                "sınırı yoktur — taahhütname 'Yok' seçilmelidir."
+            )
         else:
             taahhut_adet = _gerekli_adet(sartli)
-    adet = (int(manuel_adet) if elle_adet
-            else taahhut_adet if taahhut_adet is not None else adet_hesap)
-    Ieer = (TR / adet) if (sayi_mi(TR) and adet) else None                    # C38
+    adet = int(manuel_adet) if elle_adet else taahhut_adet if taahhut_adet is not None else adet_hesap
+    Ieer = (TR / adet) if (sayi_mi(TR) and adet) else None  # C38
     #  Taahhütname seçili ama uygulanan sınır aynı adetle zaten sağlanıyorsa
     #  taahhütnameye gerek yoktur — sessiz kalmasın.
-    taahhut_gereksiz = (taahhut_adet is not None and taahhut_adet == adet_hesap)
+    taahhut_gereksiz = taahhut_adet is not None and taahhut_adet == adet_hesap
     if taahhut_gereksiz:
-        U.append(f"ℹ Taahhütname seçildi ama gerekmiyor: {standart} sınırı "
-                 f"( {trn(Izul,0)} sn ) {adet_hesap} adetle zaten sağlanıyor.")
+        U.append(
+            f"ℹ Taahhütname seçildi ama gerekmiyor: {standart} sınırı "
+            f"( {trn(Izul, 0)} sn ) {adet_hesap} adetle zaten sağlanıyor."
+        )
 
     # ---- SONUÇ (C44)
     #  İKİ ÖLÇÜT AYRI AYRI TUTULUR:  hangisinin sağlanmadığı sonuç cümlesinde
@@ -528,10 +592,9 @@ def hesapla_tek(g: dict) -> dict:
     #  sağlanmıyor" yazıyordu; oysa elle seçilen adette çoğu zaman sağlanmayan
     #  TAŞIMA kapasitesidir ( bekleme sağlanıyor olabilir ) — paftanın en
     #  görünür cümlesi yanlış gerekçe söylüyordu.
-    tasima_ok = (all(sayi_mi(x) for x in (adet, R, B, k)) and adet * R >= B * k)
-    bekleme_ok = (sayi_mi(Ieer) and sayi_mi(Izul) and Ieer <= Izul)
-    bekleme_sartli_ok = (sayi_mi(Ieer) and sayi_mi(sartli) and bool(sartli)
-                         and Ieer <= sartli)
+    tasima_ok = all(sayi_mi(x) for x in (adet, R, B, k)) and adet * R >= B * k
+    bekleme_ok = sayi_mi(Ieer) and sayi_mi(Izul) and Ieer <= Izul
+    bekleme_sartli_ok = sayi_mi(Ieer) and sayi_mi(sartli) and bool(sartli) and Ieer <= sartli
     if hata:
         sonuc = hata
     elif tasima_ok and bekleme_ok:
@@ -540,34 +603,43 @@ def hesapla_tek(g: dict) -> dict:
         #  UYGULANAN sınır esas alınır.  Bina yüksek yapıysa geçerli sınır
         #  "Yükseltilmiş"tir; "Standart" sütunu o bina için ölçüt değildir —
         #  oradan adet vermek gereken asansör sayısını OLDUĞUNDAN AZ gösterir.
-        sonuc = (f"Şartlı Kabul (taahhütname ile) — {standart} sınırı "
-                 f"( {trn(Izul,0)} sn ) için {adet_hesap} adet gerekir")
+        sonuc = (
+            f"Şartlı Kabul (taahhütname ile) — {standart} sınırı "
+            f"( {trn(Izul, 0)} sn ) için {adet_hesap} adet gerekir"
+        )
     elif sayi_mi(manuel_adet):
-        sonuc = (f"Kabul Edilmez — seçilen {int(manuel_adet)} adet asansör bu bina için "
-                 f"UYGUN DEĞİLDİR; en az {adet_hesap} adet gerekir")
+        sonuc = (
+            f"Kabul Edilmez — seçilen {int(manuel_adet)} adet asansör bu bina için "
+            f"UYGUN DEĞİLDİR; en az {adet_hesap} adet gerekir"
+        )
     else:
         sonuc = "Kabul Edilmez — girdileri/kriteri kontrol edin"
 
     if hata:
         sonuc_cumlesi = hata
     elif sonuc.startswith("Kabul"):
-        _eksik = ([] if tasima_ok else ["taşıma kapasitesi"]) + \
-                 ([] if bekleme_ok else ["bekleme süresi"])
+        _eksik = ([] if tasima_ok else ["taşıma kapasitesi"]) + ([] if bekleme_ok else ["bekleme süresi"])
         _ad = " ve ".join(_eksik) if _eksik else "uygunluk"
-        sonuc_cumlesi = (_ad[0].upper() + _ad[1:] +
-                         (" kriterleri" if len(_eksik) > 1 else " kriteri") +
-                         " sağlanmıyor; kabin kapasitesi, hız veya asansör adedi "
-                         "gözden geçirilmelidir" +
-                         (f". En az {adet_hesap} adet gerekir." if sayi_mi(adet_hesap) else "."))
+        sonuc_cumlesi = (
+            _ad[0].upper()
+            + _ad[1:]
+            + (" kriterleri" if len(_eksik) > 1 else " kriteri")
+            + " sağlanmıyor; kabin kapasitesi, hız veya asansör adedi "
+            "gözden geçirilmelidir" + (f". En az {adet_hesap} adet gerekir." if sayi_mi(adet_hesap) else ".")
+        )
     elif sonuc.startswith("Şartlı"):
-        sonuc_cumlesi = (f"Toplamda {adet} adet {trn(P,0)} kişilik ({trn(yuk_kg,0)} kg), {tr(V)} m/s "
-                         f"hızında asansör önerilmektedir. Bekleme süresi {tr(Ieer,1)} sn olup "
-                         f"MMO/697 Tablo-10 şartlı kabul sınırı {trn(sartli,0)} sn içindedir; taahhütname ile "
-                         f"uygundur. Bu bina için uygulanan {standart} sınırı "
-                         f"( {trn(Izul,0)} sn ) sağlanacaksa {adet_hesap} adet gerekir.")
+        sonuc_cumlesi = (
+            f"Toplamda {adet} adet {trn(P, 0)} kişilik ({trn(yuk_kg, 0)} kg), {tr(V)} m/s "
+            f"hızında asansör önerilmektedir. Bekleme süresi {tr(Ieer, 1)} sn olup "
+            f"MMO/697 Tablo-10 şartlı kabul sınırı {trn(sartli, 0)} sn içindedir; taahhütname ile "
+            f"uygundur. Bu bina için uygulanan {standart} sınırı "
+            f"( {trn(Izul, 0)} sn ) sağlanacaksa {adet_hesap} adet gerekir."
+        )
     else:
-        sonuc_cumlesi = (f"Toplamda {adet} adet {trn(P,0)} kişilik ({trn(yuk_kg,0)} kg), {tr(V)} m/s "
-                         f"hızında asansör yapılması uygundur.")
+        sonuc_cumlesi = (
+            f"Toplamda {adet} adet {trn(P, 0)} kişilik ({trn(yuk_kg, 0)} kg), {tr(V)} m/s "
+            f"hızında asansör yapılması uygundur."
+        )
 
     # ================================================================
     #  PAFTA BÖLÜMLERİ
@@ -582,28 +654,39 @@ def hesapla_tek(g: dict) -> dict:
     ]
     if Nb:
         b1["aciklamalar"].append(T.BODRUM_NOTU)
-    _ac, _no = _nufus_bolunmus(bina_tipi, g.get("hizli1"), g.get("hizli2"), b,
-                              nufus_satirlari)
+    _ac, _no = _nufus_bolunmus(bina_tipi, g.get("hizli1"), g.get("hizli2"), b, nufus_satirlari)
     b1["aciklamalar"] += _ac
     b1["notlar"] += _no
     b1["adimlar"] += [
         veri("b", "Binada sürekli bulunan kişi (Σc)", b, "kişi", "MMO/697 Tablo-1"),
         veri("n", "Nüfus artış oranı (b<200 → 0,30 / b≥200 → 0,25)", n_artis, "—", "MMO/697"),
-        hesap("B  =  ROUNDUP( b + ( n · b ) )",
-              f"=  ROUNDUP( {trn(b,1)} + ( {tr(n_artis)} · {trn(b,1)} ) )", B, "kişi", "MMO/697", 0),
+        hesap(
+            "B  =  ROUNDUP( b + ( n · b ) )",
+            f"=  ROUNDUP( {trn(b, 1)} + ( {tr(n_artis)} · {trn(b, 1)} ) )",
+            B,
+            "kişi",
+            "MMO/697",
+            0,
+        ),
     ]
 
     b2 = Bolum("HESAP DEĞERLERİ", "MMO/697 Tablo-2 … Tablo-8")
     b2["adimlar"] = [
         veri("h", "Katlar arası mesafe", h, "m", "Projeden"),
-        veri("", "Toplam seyahat mesafesi  =  ( N + Nb ) · h", toplam_seyahat, "m",
-             "Projeden — avan kuyu yüksekliği bu değerden türer"),
+        veri(
+            "",
+            "Toplam seyahat mesafesi  =  ( N + Nb ) · h",
+            toplam_seyahat,
+            "m",
+            "Projeden — avan kuyu yüksekliği bu değerden türer",
+        ),
         veri("V", "Kabin hızı", V, "m/s", V_kaynak),
         veri("H", "Ortalama en yüksek dönüş katı", H, "—", "MMO/697 Tablo-3", 4),
         hesap("tv  =  h / V", f"=  {tr(h)} / {tr(V)}", tv, "s", "h/V"),
         veri("S", "Ortalama durak adedi", S, "—", "MMO/697 Tablo-5", 4),
-        hesap("ts  =  ta + tk + tg − tv",
-              f"=  {tr(ta)} + {tr(tk)} + {tr(tg)} − {tr(tv)}", ts, "s", "MMO/697"),
+        hesap(
+            "ts  =  ta + tk + tg − tv", f"=  {tr(ta)} + {tr(tk)} + {tr(tg)} − {tr(tv)}", ts, "s", "MMO/697"
+        ),
         veri("P", "Kabin kişi adedi", P, "kişi", T.tablo7_kaynagi(P), 0),
         veri("p", "İndirgenmiş kişi sayısı  p = 0,8·P", p, "kişi", "MMO/697", 1),
         veri("tp", "Kişi transfer zamanı", tp, "s", _s["kaynak"]["tp"]),
@@ -615,48 +698,91 @@ def hesapla_tek(g: dict) -> dict:
 
     b3 = Bolum("ASANSÖRÜN BİR SEFERİ İÇİN GEREKLİ SEYİR ZAMANI (TR)", "MMO/697 s.11-12")
     b3["adimlar"] = [
-        hesap("TR  =  2·H·tv  +  ( S + 1 )·ts  +  2·p·tp",
-              (f"=  2·{tr(H)}·{tr(tv)} + ( {tr(S)}+1 )·{tr(ts)} + 2·{tr(p,1)}·{tr(tp,1)}"
-               if all(sayi_mi(x) for x in (H, tv, S, ts, p, tp)) else "—"),
-              TR, "s", "MMO/697 s.11"),
+        hesap(
+            "TR  =  2·H·tv  +  ( S + 1 )·ts  +  2·p·tp",
+            (
+                f"=  2·{tr(H)}·{tr(tv)} + ( {tr(S)}+1 )·{tr(ts)} + 2·{tr(p, 1)}·{tr(tp, 1)}"
+                if all(sayi_mi(x) for x in (H, tv, S, ts, p, tp))
+                else "—"
+            ),
+            TR,
+            "s",
+            "MMO/697 s.11",
+        ),
     ]
 
     b4 = Bolum("GEREKLİ ASANSÖR SAYISININ HESABI", "MMO/697 s.12")
     b4["adimlar"] = [
-        hesap("R  =  5 · 60 · p  /  TR",
-              f"=  5·60·{tr(p,1)} / {tr(TR)}" if all(sayi_mi(x) for x in (p, TR)) else "—",
-              R, "kişi / 5 dk", "MMO/697", 1),
+        hesap(
+            "R  =  5 · 60 · p  /  TR",
+            f"=  5·60·{tr(p, 1)} / {tr(TR)}" if all(sayi_mi(x) for x in (p, TR)) else "—",
+            R,
+            "kişi / 5 dk",
+            "MMO/697",
+            1,
+        ),
         veri("k", "Taşınacak insan yüzdesi", k, "—", k_notu, 4),
     ]
     if all(sayi_mi(x) for x in (tasima_adedi, bekleme_adedi)):
-        satir = (f"Taşıma adedi = {int(tasima_adedi)};  Bekleme adedi = {int(bekleme_adedi)}  "
-                 f"(uygulanan sınır Izul = {trn(Izul,0)} sn — Tablo-10 {standart})"
-                 f"  →  Nihai gerekli sayı = {adet_hesap} adet")
+        satir = (
+            f"Taşıma adedi = {int(tasima_adedi)};  Bekleme adedi = {int(bekleme_adedi)}  "
+            f"(uygulanan sınır Izul = {trn(Izul, 0)} sn — Tablo-10 {standart})"
+            f"  →  Nihai gerekli sayı = {adet_hesap} adet"
+        )
         if taahhut_adet is not None and not taahhut_gereksiz:
-            satir += (f"   |   Taahhütname ile Şartlı Kabul sınırı ({trn(sartli,0)} sn) "
-                      f"uygulandı  →  {taahhut_adet} adet")
+            satir += (
+                f"   |   Taahhütname ile Şartlı Kabul sınırı ({trn(sartli, 0)} sn) "
+                f"uygulandı  →  {taahhut_adet} adet"
+            )
         elif sayi_mi(sartli) and sartli:
             #  Bu sayı da İKİ ölçütü birden sağlamalıdır: taşıma kapasitesi
             #  daha çoğunu gerektiriyorsa taahhütname o eksiği kapatmaz.
-            satir += (f"   |   Şartlı Kabul sınırı ({trn(sartli,0)} sn) için "
-                      f"{_gerekli_adet(sartli)} adet yeterli olurdu (taahhütname gerekir)")
+            satir += (
+                f"   |   Şartlı Kabul sınırı ({trn(sartli, 0)} sn) için "
+                f"{_gerekli_adet(sartli)} adet yeterli olurdu (taahhütname gerekir)"
+            )
         b4["notlar"].append(satir)
-    b4["adimlar"].append(veri("n", "Uygulanan asansör adedi", adet, "adet",
-                              "Elle seçildi" if elle_adet
-                              else ("Taahhütname — Tablo-10 şartlı kabul"
-                                    if (taahhut_adet is not None and not taahhut_gereksiz)
-                                    else "MAX[taşıma; bekleme]"), 0))
+    b4["adimlar"].append(
+        veri(
+            "n",
+            "Uygulanan asansör adedi",
+            adet,
+            "adet",
+            "Elle seçildi"
+            if elle_adet
+            else (
+                "Taahhütname — Tablo-10 şartlı kabul"
+                if (taahhut_adet is not None and not taahhut_gereksiz)
+                else "MAX[taşıma; bekleme]"
+            ),
+            0,
+        )
+    )
 
     b5 = Bolum("BEKLEME ZAMANI (Izul) KONTROLÜ", "MMO/697 Tablo-10")
     b5["adimlar"] = [
-        hesap("Ieer  =  TR / n", f"=  {tr(TR)} / {adet}" if (sayi_mi(TR) and adet) else "—",
-              Ieer, "s", "MMO/697", 1),
+        hesap(
+            "Ieer  =  TR / n",
+            f"=  {tr(TR)} / {adet}" if (sayi_mi(TR) and adet) else "—",
+            Ieer,
+            "s",
+            "MMO/697",
+            1,
+        ),
         veri("Izul", f"İzin verilen bekleme süresi ({standart})", Izul, "s", "MMO/697 Tablo-10", 0),
     ]
     sartli_uygulandi = taahhut_adet is not None and not taahhut_gereksiz
     if sartli_uygulandi:
-        b5["adimlar"].append(veri("", "İzin verilen bekleme süresi (Şartlı Kabul — taahhütname ile)",
-                                  sartli, "s", "MMO/697 Tablo-10", 0))
+        b5["adimlar"].append(
+            veri(
+                "",
+                "İzin verilen bekleme süresi (Şartlı Kabul — taahhütname ile)",
+                sartli,
+                "s",
+                "MMO/697 Tablo-10",
+                0,
+            )
+        )
     #  BELİRLEYİCİ ÖLÇÜTLER  —  paftanın SONUÇ kutusunda gösterilir.
     #  Eskiden bu satır "Bekleme Zamanı" bölümünün dip notuydu; oysa nihai
     #  kararın DAYANAĞI odur: hangi sınır, hangi sayıyla sağlandı.  Sonuçla
@@ -665,31 +791,43 @@ def hesapla_tek(g: dict) -> dict:
     _gerekli_tasima = (B * k) if all(sayi_mi(x) for x in (B, k)) else None
     if all(sayi_mi(x) for x in (R, _gerekli_tasima)) and sayi_mi(adet):
         _toplam_R = R * adet
-        karar_olcutleri.append({
-            "ad": "Taşıma",
-            "metin": (f"{int(adet)} × R = {tr(_toplam_R,1)}" if adet > 1 else f"R = {tr(R,1)}")
-                     + ("  ≥  " if _toplam_R >= _gerekli_tasima else "  <  ")
-                     + f"B·k = {tr(_gerekli_tasima,1)} kişi/5dk",
-            "uygun": bool(_toplam_R >= _gerekli_tasima)})
+        karar_olcutleri.append(
+            {
+                "ad": "Taşıma",
+                "metin": (f"{int(adet)} × R = {tr(_toplam_R, 1)}" if adet > 1 else f"R = {tr(R, 1)}")
+                + ("  ≥  " if _toplam_R >= _gerekli_tasima else "  <  ")
+                + f"B·k = {tr(_gerekli_tasima, 1)} kişi/5dk",
+                "uygun": bool(_toplam_R >= _gerekli_tasima),
+            }
+        )
     if sayi_mi(Ieer) and sayi_mi(Izul) and sartli_uygulandi and Ieer > Izul:
         #  Taahhütname verildi:  ölçüt şartlı kabul sınırıdır.  Aşılan
         #  Standart / Yükseltilmiş sınırı da aynı satırda açıkça yazılır.
-        karar_olcutleri.append({
-            "ad": "Bekleme",
-            "metin": f"Ieer = {tr(Ieer,1)} s" + ("  ≤  " if Ieer <= sartli else "  >  ")
-                     + f"Şartlı Kabul = {trn(sartli,0)} s ( taahhütname ile )   ·   "
-                     f"{standart} {trn(Izul,0)} s aşılıyor",
-            "uygun": bool(Ieer <= sartli)})
+        karar_olcutleri.append(
+            {
+                "ad": "Bekleme",
+                "metin": f"Ieer = {tr(Ieer, 1)} s"
+                + ("  ≤  " if Ieer <= sartli else "  >  ")
+                + f"Şartlı Kabul = {trn(sartli, 0)} s ( taahhütname ile )   ·   "
+                f"{standart} {trn(Izul, 0)} s aşılıyor",
+                "uygun": bool(Ieer <= sartli),
+            }
+        )
     elif sayi_mi(Ieer) and sayi_mi(Izul):
         ek = ""
         if sayi_mi(sartli) and sartli:
-            ek = (f"   ·   Şartlı Kabul {trn(sartli,0)} sn: "
-                  + ("sağlanıyor" if Ieer <= sartli else "aşılıyor"))
-        karar_olcutleri.append({
-            "ad": "Bekleme",
-            "metin": f"Ieer = {tr(Ieer,1)} s" + ("  ≤  " if Ieer <= Izul else "  >  ")
-                     + f"Izul = {trn(Izul,0)} s ( {standart} ){ek}",
-            "uygun": bool(Ieer <= Izul)})
+            ek = f"   ·   Şartlı Kabul {trn(sartli, 0)} sn: " + (
+                "sağlanıyor" if Ieer <= sartli else "aşılıyor"
+            )
+        karar_olcutleri.append(
+            {
+                "ad": "Bekleme",
+                "metin": f"Ieer = {tr(Ieer, 1)} s"
+                + ("  ≤  " if Ieer <= Izul else "  >  ")
+                + f"Izul = {trn(Izul, 0)} s ( {standart} ){ek}",
+                "uygun": bool(Ieer <= Izul),
+            }
+        )
 
     return {
         "tip": "tek",
@@ -697,22 +835,52 @@ def hesapla_tek(g: dict) -> dict:
         "uyarilar": U,
         "girdiler": g,
         "ozet": {
-            "bina_tipi": bina_tipi, "standart": standart, "N": N, "P": P, "yuk_kg": yuk_kg,
-            "bodrum": Nb, "durak": durak, "toplam_seyahat": toplam_seyahat,
-            "p": p, "V": V, "V_min": V_min, "h": h, "b": b, "n_artis": n_artis, "B": B, "k": k,
-            "H": H, "S": S, "ta": ta, "tk": tk, "tg": tg, "tp": tp, "tv": tv, "ts": ts,
-            "TR": TR, "R": R, "Izul": Izul, "adet": adet, "adet_hesap": adet_hesap,
+            "bina_tipi": bina_tipi,
+            "standart": standart,
+            "N": N,
+            "P": P,
+            "yuk_kg": yuk_kg,
+            "bodrum": Nb,
+            "durak": durak,
+            "toplam_seyahat": toplam_seyahat,
+            "p": p,
+            "V": V,
+            "V_min": V_min,
+            "h": h,
+            "b": b,
+            "n_artis": n_artis,
+            "B": B,
+            "k": k,
+            "H": H,
+            "S": S,
+            "ta": ta,
+            "tk": tk,
+            "tg": tg,
+            "tp": tp,
+            "tv": tv,
+            "ts": ts,
+            "TR": TR,
+            "R": R,
+            "Izul": Izul,
+            "adet": adet,
+            "adet_hesap": adet_hesap,
             #  Yalnız taahhütname adedi belirlediğinde yazılır:  seçilmeyen
             #  projelerin çıktısı ( ve altın kopyası ) bit bit aynı kalır.
             **({"taahhutname": True} if sartli_uygulandi else {}),
-            "Ieer": Ieer, "sonuc": sonuc, "sonuc_cumlesi": sonuc_cumlesi,
-            "esik_sartli": sartli, "esik_standart": esik_standart,
+            "Ieer": Ieer,
+            "sonuc": sonuc,
+            "sonuc_cumlesi": sonuc_cumlesi,
+            "esik_sartli": sartli,
+            "esik_standart": esik_standart,
             "esik_yukseltilmis": esik_yukseltilmis,
-            "kapi_genisligi": kg_, "kapi_tipi": kt,
-            "tasima_adedi": tasima_adedi, "bekleme_adedi": bekleme_adedi,
+            "kapi_genisligi": kg_,
+            "kapi_tipi": kt,
+            "tasima_adedi": tasima_adedi,
+            "bekleme_adedi": bekleme_adedi,
             "karar_olcutleri": karar_olcutleri,
-            "pafta_satiri": (hata if hata else
-                             f"  {trn(P,0)} kişilik, {tr(V)} m/s hızında, {adet} adet asansör → {sonuc}"),
+            "pafta_satiri": (
+                hata if hata else f"  {trn(P, 0)} kişilik, {tr(V)} m/s hızında, {adet} adet asansör → {sonuc}"
+            ),
         },
         "nufus": nufus_satirlari,
         "bolumler": [b1, b2, b3, b4, b5],
@@ -721,9 +889,11 @@ def hesapla_tek(g: dict) -> dict:
         #  değerler reddedilmişse ( ör. ts < 0 ) tablonun tamamı o geçersiz
         #  tabana dayanır.  Eskiden ana hesap dururken tablo "uygun / önerilen"
         #  satırlar basmaya devam ediyordu.
-        "oneriler": ([] if hata else
-                     _oneri_tablosu(N, B, k, Izul, standart, sartli,
-                                    V_min, h, kg_, kt, P, ta, tk, tp, mtg, V)),
+        "oneriler": (
+            []
+            if hata
+            else _oneri_tablosu(N, B, k, Izul, standart, sartli, V_min, h, kg_, kt, P, ta, tk, tp, mtg, V)
+        ),
     }
 
 
@@ -748,10 +918,12 @@ def _manuel_sure_hatasi(g, on_ek=""):
         if deger in (None, ""):
             continue
         if not sayi_mi(deger) or not (alt <= deger <= ust):
-            return (f"HESAP HATASI: {on_ek}{ad} elle {tr(deger)} s girilmiş — "
-                    f"süre {tr(alt)} - {tr(ust)} s aralığında olmalıdır. "
-                    "Sıfır ya da negatif bir süre fiziksel olarak imkânsızdır; "
-                    "boş bırakırsanız tablo değeri kullanılır.")
+            return (
+                f"HESAP HATASI: {on_ek}{ad} elle {tr(deger)} s girilmiş — "
+                f"süre {tr(alt)} - {tr(ust)} s aralığında olmalıdır. "
+                "Sıfır ya da negatif bir süre fiziksel olarak imkânsızdır; "
+                "boş bırakırsanız tablo değeri kullanılır."
+            )
     return None
 
 
@@ -760,17 +932,19 @@ def _manuel_sure_hatasi(g, on_ek=""):
 #  karşılanıyor" sonucu üretiyordu. )
 def _bina_hatasi(N, h, by, yy):
     if not (sayi_mi(N) and 1 <= N <= 30):
-        return ("HESAP HATASI: ③ kat sayısı N girilmedi ya da geçersiz — "
-                "1 ile 30 arasında olmalıdır.")
+        return "HESAP HATASI: ③ kat sayısı N girilmedi ya da geçersiz — 1 ile 30 arasında olmalıdır."
     if not sayi_mi(h) or not (0 < h <= 10):
-        return (f"HESAP HATASI: ⑦ kat yüksekliği h = {tr(h)} m — "
-                "0 ile 10 m arasında olmalıdır.")
+        return f"HESAP HATASI: ⑦ kat yüksekliği h = {tr(h)} m — 0 ile 10 m arasında olmalıdır."
     if not (sayi_mi(by) and by >= 0):
-        return ("HESAP HATASI: ② bina yüksekliği girilmedi ya da geçersiz — "
-                "hesap standardı ( Standart / Yükseltilmiş ) buna göre seçilir.")
+        return (
+            "HESAP HATASI: ② bina yüksekliği girilmedi ya da geçersiz — "
+            "hesap standardı ( Standart / Yükseltilmiş ) buna göre seçilir."
+        )
     if not (sayi_mi(yy) and yy >= 0):
-        return ("HESAP HATASI: ④ yapı yüksekliği girilmedi ya da geçersiz — "
-                "hesap standardı ( Standart / Yükseltilmiş ) buna göre seçilir.")
+        return (
+            "HESAP HATASI: ④ yapı yüksekliği girilmedi ya da geçersiz — "
+            "hesap standardı ( Standart / Yükseltilmiş ) buna göre seçilir."
+        )
     return None
 
 
@@ -781,36 +955,40 @@ def _bina_hatasi(N, h, by, yy):
 #  Tablo-2 yalnız Konut · Büro ve İş Merkezi · Otel gruplarını kapsar;
 #  öteki bina tiplerinde asgari hız proje kararıdır.
 def _hiz_yok_hatasi(bina_tipi, on_ek=""):
-    return (f"HESAP HATASI: {on_ek}kabin hızı belirlenemedi — {bina_tipi} MMO/697 "
-            "Tablo-2'de yoktur, asgari hız tablodan okunamaz. Kabin hızını ( V ) "
-            "asansörün kendi V kutusundan ya da 'Manuel değerler' bölümündeki ortak "
-            "hızdan seçin;  seçilen hız paftaya proje kararı olarak yazılır.")
+    return (
+        f"HESAP HATASI: {on_ek}kabin hızı belirlenemedi — {bina_tipi} MMO/697 "
+        "Tablo-2'de yoktur, asgari hız tablodan okunamaz. Kabin hızını ( V ) "
+        "asansörün kendi V kutusundan ya da 'Manuel değerler' bölümündeki ortak "
+        "hızdan seçin;  seçilen hız paftaya proje kararı olarak yazılır."
+    )
 
 
 def _dogrula_tek(g, b, N, P, kg_, kt, ta, tk, tg, tp, k, V, h, by, yy, k_tipi):
     """HESAPLAMA!E45 + H45 doğrulama zinciri."""
     if kg_ not in T.KAPI_GENISLIKLERI:
-        return ("HESAP HATASI: ⑨ kapı genişliği listeden seçilmelidir "
-                "(700/800/900/1000/1100/1200/1300 mm).")
+        return "HESAP HATASI: ⑨ kapı genişliği listeden seçilmelidir (700/800/900/1000/1100/1200/1300 mm)."
     if sayi_mi(N) and N > 30:
-        return (f"HESAP HATASI: N = {int(N)} > 30. MMO/697 Tablo-3 ve Tablo-5 en fazla 30 katı "
-                "kapsar; bu yükseklikte tek bölgeli hesap geçerli değildir, bölgeli (zoned) "
-                "trafik hesabı yapılmalıdır.")
+        return (
+            f"HESAP HATASI: N = {int(N)} > 30. MMO/697 Tablo-3 ve Tablo-5 en fazla 30 katı "
+            "kapsar; bu yükseklikte tek bölgeli hesap geçerli değildir, bölgeli (zoned) "
+            "trafik hesabı yapılmalıdır."
+        )
     if not sayi_mi(ta) or not sayi_mi(tk):
-        return (f"HESAP HATASI: {kg_} mm / {kt} için Tablo-4'te ta-tk karşılığı yok — "
-                "'Kabin İçi Oto. Kat K.Ç.' sütunu 1200 ve 1300 mm'de tabloda bulunmaz. "
-                "İmalatçı katalog değerini manuel ta/tk alanlarına girin ya da kapı tipini "
-                "'Teleskopik Otomatik' / 'Merkezden Açılan Oto.' olarak seçin.")
+        return (
+            f"HESAP HATASI: {kg_} mm / {kt} için Tablo-4'te ta-tk karşılığı yok — "
+            "'Kabin İçi Oto. Kat K.Ç.' sütunu 1200 ve 1300 mm'de tabloda bulunmaz. "
+            "İmalatçı katalog değerini manuel ta/tk alanlarına girin ya da kapı tipini "
+            "'Teleskopik Otomatik' / 'Merkezden Açılan Oto.' olarak seçin."
+        )
     if not sayi_mi(tp):
-        return (f"HESAP HATASI: {kg_} mm için tp değeri bulunamadı. "
-                "İmalatçı değerini manuel tp alanına girin.")
+        return f"HESAP HATASI: {kg_} mm için tp değeri bulunamadı. İmalatçı değerini manuel tp alanına girin."
     bt = g.get("bina_tipi") or ""
     #  HIZ YOKSA SEBEBİ SÖYLENİR  —  tg denetiminden ÖNCE.  Tablo-2 hızı
     #  durak adedinden okur:  kat sayısı eksikse sebep odur;  değilse bina
     #  tipi Tablo-2'de yoktur ( bkz. _hiz_yok_hatasi ).
     if not sayi_mi(V):
         if not (sayi_mi(N) and 1 <= N <= 30):
-            return _bina_hatasi(N, h, by, yy)                    # ③ kat sayısı
+            return _bina_hatasi(N, h, by, yy)  # ③ kat sayısı
         return _hiz_yok_hatasi(bt)
     if not sayi_mi(tg):
         return f"HESAP HATASI: V = {tr(V)} m/s için Tablo-6'da tg değeri yok. tg'yi elle girin."
@@ -838,16 +1016,19 @@ def _dogrula_tek(g, b, N, P, kg_, kt, ta, tk, tg, tp, k, V, h, by, yy, k_tipi):
     if d_hata:
         return d_hata
     if sayi_mi(Ni) and sayi_mi(N) and Ni != N:
-        return (f"HESAP HATASI: durak adedi {int(Ni) + 1} girilmiş; asansör ana giriş "
-                f"üstündeki {int(N)} katın tümüne hizmet ettiğinden durak adedi "
-                f"N + 1 = {int(N) + 1} olmalıdır. Asansör daha az durakta duruyorsa "
-                "③ kat sayısı N'yi o asansöre göre girin ya da durak alanını boşaltın.")
+        return (
+            f"HESAP HATASI: durak adedi {int(Ni) + 1} girilmiş; asansör ana giriş "
+            f"üstündeki {int(N)} katın tümüne hizmet ettiğinden durak adedi "
+            f"N + 1 = {int(N) + 1} olmalıdır. Asansör daha az durakta duruyorsa "
+            "③ kat sayısı N'yi o asansöre göre girin ya da durak alanını boşaltın."
+        )
     sure = _manuel_sure_hatasi(g)
     if sure:
         return sure
     kontroller = [
         (P in T.GECERLI_KAPASITELER),
-        (sayi_mi(k) and 0 < k <= 1), (sayi_mi(V) and V > 0),
+        (sayi_mi(k) and 0 < k <= 1),
+        (sayi_mi(V) and V > 0),
     ]
     if not all(kontroller):
         return "HESAP HATASI: girdileri ve tablo eşleşmelerini kontrol edin"
@@ -856,9 +1037,24 @@ def _dogrula_tek(g, b, N, P, kg_, kt, ta, tk, tg, tp, k, V, h, by, yy, k_tipi):
     return None
 
 
-def _oneri_tablosu(N, B, k, Izul, standart, esik_sartli,
-                   V_min, h, kg_, kt, P_secili, ta_secili, tk_secili, tp_secili,
-                   manuel_tg, V_secili):
+def _oneri_tablosu(
+    N,
+    B,
+    k,
+    Izul,
+    standart,
+    esik_sartli,
+    V_min,
+    h,
+    kg_,
+    kt,
+    P_secili,
+    ta_secili,
+    tk_secili,
+    tp_secili,
+    manuel_tg,
+    V_secili,
+):
     """
     HESAPLAMA 6) OTOMATİK ÖNERİ bloğu (satır 70-83).
     7 kapasite × 2 hız (Tablo-2 minimumu + bir üst hız).
@@ -870,8 +1066,11 @@ def _oneri_tablosu(N, B, k, Izul, standart, esik_sartli,
     for kap in (6, 8, 10, 13, 16, 20, 25):
         for V, etiket in ((V_min, "Tablo-2 min"), (V_ust, "bir üst hız")):
             # kapasiteye uygun kapı genişliği — ISO 8100-32:2020 Ek C, Tablo 8
-            W = kg_ if kap == P_secili else (800 if kap <= 8 else 900 if kap <= 10
-                                             else 1100 if kap <= 20 else 1300)
+            W = (
+                kg_
+                if kap == P_secili
+                else (800 if kap <= 8 else 900 if kap <= 10 else 1100 if kap <= 20 else 1300)
+            )
             if W == kg_:
                 ta, tk, tp = ta_secili, tk_secili, tp_secili
             else:
@@ -894,7 +1093,7 @@ def _oneri_tablosu(N, B, k, Izul, standart, esik_sartli,
             if TR <= 0:
                 continue
             R = 300 * 0.8 * kap / TR
-            tas = yukari_yuvarla(B * k / R, 0)        # taşıma kapasitesinin istediği adet
+            tas = yukari_yuvarla(B * k / R, 0)  # taşıma kapasitesinin istediği adet
             adet = int(max(1, tas, yukari_yuvarla(TR / Izul, 0)))
             Ieer = TR / adet
             #  ADET ZATEN HER İKİ ÖLÇÜTÜ SAĞLAYACAK ŞEKİLDE SEÇİLİYOR, bu yüzden
@@ -921,15 +1120,26 @@ def _oneri_tablosu(N, B, k, Izul, standart, esik_sartli,
             # (630 kg altı kabin veya 800 mm altı kapı) sıralamaya alınmaz.
             erisim = T.erisilebilir_mi(kap, W)
             siralama = 999_999_999 if not erisim else adet * 10_000 + kap * 10
-            satirlar.append({
-                "secenek": (f"{kap} kişilik ({trn(T.tablo7_yuk(kap),0)} kg) — {tr(V)} m/s"
-                            f"  ·  {W} mm kapı ({etiket})"
-                            + ("" if erisim else "  ⚠ TS EN 81-70 erişilebilirlik ölçütü dışı")),
-                "kapasite": kap, "V": V, "kapi": W, "adet": adet, "Ieer": Ieer,
-                "adet_sartli": adet_sartli,
-                "sinif": sinif, "TR": TR, "R": R, "_siralama": siralama,
-                "erisilebilir": erisim,
-            })
+            satirlar.append(
+                {
+                    "secenek": (
+                        f"{kap} kişilik ({trn(T.tablo7_yuk(kap), 0)} kg) — {tr(V)} m/s"
+                        f"  ·  {W} mm kapı ({etiket})"
+                        + ("" if erisim else "  ⚠ TS EN 81-70 erişilebilirlik ölçütü dışı")
+                    ),
+                    "kapasite": kap,
+                    "V": V,
+                    "kapi": W,
+                    "adet": adet,
+                    "Ieer": Ieer,
+                    "adet_sartli": adet_sartli,
+                    "sinif": sinif,
+                    "TR": TR,
+                    "R": R,
+                    "_siralama": siralama,
+                    "erisilebilir": erisim,
+                }
+            )
     if satirlar:
         en_iyi = min(satirlar, key=lambda s: s["_siralama"])
         if en_iyi["_siralama"] < 999_999_999:
@@ -955,8 +1165,8 @@ def hesapla_coklu(g: dict) -> dict:
     if t10 is None:
         return {"hata": "HESAP HATASI: Bina tipi listeden seçilmelidir."}
 
-    N  = g.get("N")
-    h  = g.get("h")
+    N = g.get("N")
+    h = g.get("h")
     by = g.get("bina_yuksekligi")
     yy = g.get("yapi_yuksekligi")
     Nb_ortak, Nb_hata = _bodrum_oku(g.get("bodrum"))
@@ -983,8 +1193,7 @@ def hesapla_coklu(g: dict) -> dict:
     hiz_grubu = t10["hiz_grubu"]
     k_tipi = t10["k_tipi"]
 
-    nufus_satirlari, b = _nufus_satirlari(bina_tipi, g.get("hizli1"), g.get("hizli2"),
-                                          g.get("ek_nufus"))
+    nufus_satirlari, b = _nufus_satirlari(bina_tipi, g.get("hizli1"), g.get("hizli2"), g.get("ek_nufus"))
     n_artis = 0.3 if (b or 0) < 200 else 0.25
     B = yukari_yuvarla(b * (1 + n_artis), 0) if sayi_mi(b) else None
 
@@ -1006,20 +1215,26 @@ def hesapla_coklu(g: dict) -> dict:
         k, k_notu = T.TABLO_9[k_tipi][standart], "MMO/697 Tablo-9"
         if bina_tipi.startswith("Kamu"):
             k_notu = "Tablo-9'da kamu yok → İş Merkezi %k varsayıldı"
-            U.append("Kamu binaları MMO/697 Tablo-9'da yoktur; %k için İŞ MERKEZİ "
-                     "satırı varsayılmıştır. Farklı bir oran gerekiyorsa manuel k girin.")
+            U.append(
+                "Kamu binaları MMO/697 Tablo-9'da yoktur; %k için İŞ MERKEZİ "
+                "satırı varsayılmıştır. Farklı bir oran gerekiyorsa manuel k girin."
+            )
     if bina_tipi.startswith("Kamu"):
-        U.append("Kamu binaları MMO/697 Tablo-2'de de yoktur; asgari hız için "
-                 "BÜRO VE İŞ MERKEZİ grubu varsayılmıştır. Bu iki varsayım paftaya "
-                 "yazılmıştır.")
+        U.append(
+            "Kamu binaları MMO/697 Tablo-2'de de yoktur; asgari hız için "
+            "BÜRO VE İŞ MERKEZİ grubu varsayılmıştır. Bu iki varsayım paftaya "
+            "yazılmıştır."
+        )
 
     durak_ortak = (N + 1 + Nb_ortak) if sayi_mi(N) else None
     V_grup_min = T.tablo2_min_hiz(hiz_grubu, durak_ortak) if (hiz_grubu and durak_ortak) else None
     manuel_V = g.get("manuel_V")
     #  Ortak manuel hız da tek hesaptaki gibi GEÇERLİ LİSTEDEN olmalıdır.
     if sayi_mi(manuel_V) and manuel_V not in T.GECERLI_HIZLAR:
-        return {"hata": "HESAP HATASI: Manuel hız geçersiz — listeden seçin "
-                        "(0,63 / 1 / 1,6 / 1,75 / 2 / 2,5 / 3 / 3,5 / 5 / 6 m/s)"}
+        return {
+            "hata": "HESAP HATASI: Manuel hız geçersiz — listeden seçin "
+            "(0,63 / 1 / 1,6 / 1,75 / 2 / 2,5 / 3 / 3,5 / 5 / 6 m/s)"
+        }
     V_ortak = manuel_V if sayi_mi(manuel_V) else V_grup_min
 
     girisler = [a for a in (g.get("asansorler") or []) if sayi_mi(a.get("P"))]
@@ -1040,8 +1255,10 @@ def hesapla_coklu(g: dict) -> dict:
         #  ( Denetimsizken h = −3 m kabul ediliyor, seyahat mesafesi −33 m
         #    çıkıyor ve grup "Yükseltilmiş kriteri karşılanıyor" diyordu. )
         if a.get("h") not in (None, "") and not (sayi_mi(hi) and 0 < hi <= 10):
-            hata = hata or (f"HESAP HATASI: ASANSÖR-{i} — kat yüksekliği h = {tr(a.get('h'))} m; "
-                            "0 ile 10 m arasında olmalıdır.")
+            hata = hata or (
+                f"HESAP HATASI: ASANSÖR-{i} — kat yüksekliği h = {tr(a.get('h'))} m; "
+                "0 ile 10 m arasında olmalıdır."
+            )
         # bodrum: asansör bazında; boş bırakılırsa ortak değer kullanılır
         if a.get("bodrum") in (None, ""):
             Nbi = Nb_ortak
@@ -1049,8 +1266,7 @@ def hesapla_coklu(g: dict) -> dict:
             Nbi, nb_h = _bodrum_oku(a.get("bodrum"))
             if nb_h:
                 hata = hata or f"HESAP HATASI: ASANSÖR-{i} — " + nb_h.split(": ", 1)[-1]
-        Vmin_i = (T.tablo2_min_hiz(hiz_grubu, (Ni + 1 + Nbi))
-                  if (hiz_grubu and sayi_mi(Ni)) else None)
+        Vmin_i = T.tablo2_min_hiz(hiz_grubu, (Ni + 1 + Nbi)) if (hiz_grubu and sayi_mi(Ni)) else None
         Vi_in = a.get("V")
         if sayi_mi(Vi_in) and Vi_in not in T.GECERLI_HIZLAR:
             hata = hata or "HESAP HATASI: Manuel V geçersiz — geçerli hız listesinden seçin"
@@ -1061,12 +1277,20 @@ def hesapla_coklu(g: dict) -> dict:
             #     3) o asansörün Tablo-2 minimumu   4) grup Tablo-2 minimumu
             #  Ortak manuel hız eskiden yalnız 3 ve 4 yoksa devreye giriyordu:
             #  arayüzde 2,50 m/s seçiliyken iki asansör de 1,60 m/s hesaplanıyordu.
-            Vi = (Vi_in if sayi_mi(Vi_in)
-                  else manuel_V if sayi_mi(manuel_V)
-                  else Vmin_i if sayi_mi(Vmin_i) else V_ortak)
+            Vi = (
+                Vi_in
+                if sayi_mi(Vi_in)
+                else manuel_V
+                if sayi_mi(manuel_V)
+                else Vmin_i
+                if sayi_mi(Vmin_i)
+                else V_ortak
+            )
         if sayi_mi(Vi) and sayi_mi(Vmin_i) and Vi < Vmin_i:
-            U.append(f"⚠ ASANSÖR-{i}: seçilen {tr(Vi)} m/s, Tablo-2 minimumu {tr(Vmin_i)} m/s "
-                     "altındadır — bekleme kriteri esas alındı, gerekçeyi paftaya yazın.")
+            U.append(
+                f"⚠ ASANSÖR-{i}: seçilen {tr(Vi)} m/s, Tablo-2 minimumu {tr(Vmin_i)} m/s "
+                "altındadır — bekleme kriteri esas alındı, gerekçeyi paftaya yazın."
+            )
 
         # ---- süreler: tablo değeri, imalatçı verisi varsa onunla ezilir
         _s = _sure_cozumle(a, kg_, kt, Vi, P, on_ek=f"ASANSÖR-{i}: ")
@@ -1078,26 +1302,34 @@ def hesapla_coklu(g: dict) -> dict:
         p = 0.8 * P if sayi_mi(P) else None
         tv = hi / Vi if (sayi_mi(hi) and sayi_mi(Vi) and Vi) else None
         ts = (ta + tk + tg - tv) if all(sayi_mi(x) for x in (ta, tk, tg, tv)) else None
-        TR = (2 * H * tv + (S + 1) * ts + 2 * p * tp) \
-            if all(sayi_mi(x) for x in (H, tv, S, ts, p, tp)) else None
+        TR = (
+            (2 * H * tv + (S + 1) * ts + 2 * p * tp)
+            if all(sayi_mi(x) for x in (H, tv, S, ts, p, tp))
+            else None
+        )
         R = (300 * p / TR) if (sayi_mi(TR) and TR) else None
         hata = hata or _ts_hatasi(ts, ta, tk, tg, tv, on_ek=f"ASANSÖR-{i} — ")
 
         if not sayi_mi(ta) or not sayi_mi(tk):
-            hata = hata or (f"HESAP HATASI: ASANSÖR-{i} — {kg_} mm / {kt} için Tablo-4'te ta-tk "
-                            "karşılığı yok ('Kabin İçi Oto. Kat K.Ç.' sütunu 1200 ve 1300 mm'de "
-                            "tabloda bulunmaz). İmalatçı değerini manuel ta/tk alanlarına girin.")
+            hata = hata or (
+                f"HESAP HATASI: ASANSÖR-{i} — {kg_} mm / {kt} için Tablo-4'te ta-tk "
+                "karşılığı yok ('Kabin İçi Oto. Kat K.Ç.' sütunu 1200 ve 1300 mm'de "
+                "tabloda bulunmaz). İmalatçı değerini manuel ta/tk alanlarına girin."
+            )
         if not sayi_mi(tp):
-            hata = hata or (f"HESAP HATASI: ASANSÖR-{i} — {kg_} mm için tp değeri bulunamadı; "
-                            "imalatçı değerini manuel tp alanına girin.")
+            hata = hata or (
+                f"HESAP HATASI: ASANSÖR-{i} — {kg_} mm için tp değeri bulunamadı; "
+                "imalatçı değerini manuel tp alanına girin."
+            )
         #  Hız yoksa tg de yoktur — eksik olan HIZDIR ( bkz. _hiz_yok_hatasi ).
         #  Kat sayısı bu yolda en başta denetlenir;  buraya gelindiyse sebep
         #  bina tipinin Tablo-2'de olmamasıdır.
         if not sayi_mi(Vi):
             hata = hata or _hiz_yok_hatasi(bina_tipi, on_ek=f"ASANSÖR-{i} — ")
         elif not sayi_mi(tg):
-            hata = hata or (f"HESAP HATASI: ASANSÖR-{i} — hızı için Tablo-6'da tg değeri yok; "
-                            "manuel tg girin.")
+            hata = hata or (
+                f"HESAP HATASI: ASANSÖR-{i} — hızı için Tablo-6'da tg değeri yok; manuel tg girin."
+            )
         if T.kapsam_disi(Ni, P):
             hata = hata or f"HESAP HATASI: ASANSÖR-{i} — P/N aralık dışı (P: 6-34, N: 1-30)"
         #  KAPASİTE TABLO-7'DE OLMALIDIR  —  tek hesap yolunda ( _dogrula_tek )
@@ -1108,28 +1340,51 @@ def hesapla_coklu(g: dict) -> dict:
             hata = hata or (
                 f"HESAP HATASI: ASANSÖR-{i} — kabin kapasitesi P = {trn(P, 0)} kişi "
                 "MMO/697 Tablo-7'de yoktur; listedeki kapasitelerden birini seçin ( "
-                + " / ".join(str(x) for x in T.GECERLI_KAPASITELER) + " kişi ).")
+                + " / ".join(str(x) for x in T.GECERLI_KAPASITELER)
+                + " kişi )."
+            )
 
-        asansorler.append({
-            "no": i, "ad": f"ASANSÖR-{i}", "P": P, "yuk_kg": T.tablo7_yuk(P),
-            "kapi_genisligi": kg_, "kapi_tipi": kt, "N": Ni,
-            "durak": (Ni + 1) if sayi_mi(Ni) else None,
-            "bodrum": Nbi,
-            "durak_toplam": (Ni + 1 + Nbi) if sayi_mi(Ni) else None,
-            "toplam_seyahat": ((Ni + Nbi) * hi) if (sayi_mi(Ni) and sayi_mi(hi)) else None,
-            "h": hi, "V": Vi, "V_min": Vmin_i, "p": p, "H": H, "S": S,
-            "ta": ta, "tk": tk, "tg": tg, "tp": tp, "tv": tv, "ts": ts, "TR": TR, "R": R,
-            "elle_sure": elle_i,
-            "kaynak_ta": _s["kaynak"]["ta"],
-            "kaynak_tk": _s["kaynak"]["tk"],
-            "kaynak_tg": _s["kaynak"]["tg"],
-            "kaynak_tp": _s["kaynak"]["tp"],
-            "kaynak_P": T.tablo7_kaynagi(P),
-        })
+        asansorler.append(
+            {
+                "no": i,
+                "ad": f"ASANSÖR-{i}",
+                "P": P,
+                "yuk_kg": T.tablo7_yuk(P),
+                "kapi_genisligi": kg_,
+                "kapi_tipi": kt,
+                "N": Ni,
+                "durak": (Ni + 1) if sayi_mi(Ni) else None,
+                "bodrum": Nbi,
+                "durak_toplam": (Ni + 1 + Nbi) if sayi_mi(Ni) else None,
+                "toplam_seyahat": ((Ni + Nbi) * hi) if (sayi_mi(Ni) and sayi_mi(hi)) else None,
+                "h": hi,
+                "V": Vi,
+                "V_min": Vmin_i,
+                "p": p,
+                "H": H,
+                "S": S,
+                "ta": ta,
+                "tk": tk,
+                "tg": tg,
+                "tp": tp,
+                "tv": tv,
+                "ts": ts,
+                "TR": TR,
+                "R": R,
+                "elle_sure": elle_i,
+                "kaynak_ta": _s["kaynak"]["ta"],
+                "kaynak_tk": _s["kaynak"]["tk"],
+                "kaynak_tg": _s["kaynak"]["tg"],
+                "kaynak_tp": _s["kaynak"]["tp"],
+                "kaynak_P": T.tablo7_kaynagi(P),
+            }
+        )
 
     if sayi_mi(N) and N > 30:
-        hata = (f"HESAP HATASI: N = {int(N)} > 30. MMO/697 Tablo-3 ve Tablo-5 en fazla 30 katı "
-                "kapsar; bu yükseklikte bölgeli (zoned) trafik hesabı gerekir.")
+        hata = (
+            f"HESAP HATASI: N = {int(N)} > 30. MMO/697 Tablo-3 ve Tablo-5 en fazla 30 katı "
+            "kapsar; bu yükseklikte bölgeli (zoned) trafik hesabı gerekir."
+        )
     hata = hata or _nufus_girdi_hatasi(bina_tipi, g.get("hizli1"), g.get("hizli2"))
     if not sayi_mi(b) or b <= 0:
         hata = hata or "HESAP HATASI: Nüfus girilmedi — ⑤/⑥ kutularını doldurun"
@@ -1149,16 +1404,18 @@ def hesapla_coklu(g: dict) -> dict:
             "⚠ Asansörler FARKLI KATLARA hizmet ediyor ( ana giriş üstü kat adedi: "
             + " / ".join(str(int(x)) for x in _bolgeler)
             + " ). Grup kontrolü ( Reş = ΣRi ≥ B·k ) bütün asansörlerin AYNI talebe "
-              "hizmet ettiğini varsayar; MMO/697'de bölgeli ( zoned ) trafik yöntemi "
-              "yoktur. Üst bölgeye çıkmayan asansörün kapasitesi o bölgenin talebini "
-              "karşılamaz — nüfusu ve talebi bölgelere elle ayırıp her bölgeyi ayrı "
-              "hesaplayın, gerekçesini paftaya yazın.")
+            "hizmet ettiğini varsayar; MMO/697'de bölgeli ( zoned ) trafik yöntemi "
+            "yoktur. Üst bölgeye çıkmayan asansörün kapasitesi o bölgenin talebini "
+            "karşılamaz — nüfusu ve talebi bölgelere elle ayırıp her bölgeyi ayrı "
+            "hesaplayın, gerekçesini paftaya yazın."
+        )
 
     if asansorler and sayi_mi(N):
         en_yuksek = max((a["N"] for a in asansorler if sayi_mi(a["N"])), default=None)
         if en_yuksek is not None and en_yuksek != N:
-            hata = hata or ("HESAP HATASI: kat sayısı N, aktif asansörlerin en yüksek durak "
-                            "sayısına göre girilmelidir")
+            hata = hata or (
+                "HESAP HATASI: kat sayısı N, aktif asansörlerin en yüksek durak sayısına göre girilmelidir"
+            )
 
     # ---- grup kontrolü (MMO/697 s.12)
     Res = sum(a["R"] for a in asansorler if sayi_mi(a["R"])) if not hata else None
@@ -1181,9 +1438,11 @@ def hesapla_coklu(g: dict) -> dict:
     else:
         sonuc = "Kabul Edilmez — bekleme süresi şartlı sınırı aşıyor"
 
-    pafta_satiri = hata or ("  " + "  +  ".join(
-        f"1 adet {trn(a['P'],0)} kişilik {tr(a['V'])} m/s" for a in asansorler)
-        + f"  →  {len(asansorler)} adet asansör  →  {sonuc}")
+    pafta_satiri = hata or (
+        "  "
+        + "  +  ".join(f"1 adet {trn(a['P'], 0)} kişilik {tr(a['V'])} m/s" for a in asansorler)
+        + f"  →  {len(asansorler)} adet asansör  →  {sonuc}"
+    )
 
     # ---- bölümler
     b1 = Bolum("ORTAK BİNA BİLGİLERİ", "MMO/697 Tablo-1")
@@ -1194,13 +1453,17 @@ def hesapla_coklu(g: dict) -> dict:
         veri("", "Bina / yapı yüksekliği", f"{tr(by)} / {tr(yy)}", "m", "BYKHY md.4"),
         veri("b", "Binada sürekli bulunan kişi (Σc)", b, "kişi", "MMO/697 Tablo-1"),
         veri("n", "Nüfus artış oranı", n_artis, "—", "MMO/697"),
-        hesap("B  =  ROUNDUP( b + ( n · b ) )",
-              f"=  ROUNDUP( {trn(b,1)} + ( {tr(n_artis)} · {trn(b,1)} ) )",
-              B, "kişi", "MMO/697", 0),
+        hesap(
+            "B  =  ROUNDUP( b + ( n · b ) )",
+            f"=  ROUNDUP( {trn(b, 1)} + ( {tr(n_artis)} · {trn(b, 1)} ) )",
+            B,
+            "kişi",
+            "MMO/697",
+            0,
+        ),
         veri("k", "Taşınacak insan yüzdesi", k, "—", k_notu, 4),
     ]
-    _ac, _no = _nufus_bolunmus(bina_tipi, g.get("hizli1"), g.get("hizli2"), b,
-                              nufus_satirlari)
+    _ac, _no = _nufus_bolunmus(bina_tipi, g.get("hizli1"), g.get("hizli2"), b, nufus_satirlari)
     b1["aciklamalar"] = _ac
     b1["notlar"] = _no
     if Nb_ortak or any(a.get("bodrum") for a in asansorler):
@@ -1212,16 +1475,24 @@ def hesapla_coklu(g: dict) -> dict:
     karar_olcutleri = []
     if not hata and all(sayi_mi(x) for x in (Res, gereken, TRes)):
         karar_olcutleri = [
-            {"ad": "Taşıma",
-             "metin": "Reş = " + " + ".join(f"R{a['no']}={tr(a['R'],1)}" for a in asansorler)
-                      + f" = {tr(Res,1)}" + ("  ≥  " if Res >= gereken else "  <  ")
-                      + f"B·k = {tr(gereken,1)} kişi/5dk",
-             "uygun": bool(Res >= gereken)},
-            {"ad": "Bekleme",
-             "metin": "1/TReş = " + " + ".join(f"1/{tr(a['TR'],1)}" for a in asansorler)
-                      + f"  →  TReş = {tr(TRes,1)} s" + ("  ≤  " if TRes <= Izul else "  >  ")
-                      + f"Izul = {trn(Izul,0)} s ( {standart} )",
-             "uygun": bool(TRes <= Izul)},
+            {
+                "ad": "Taşıma",
+                "metin": "Reş = "
+                + " + ".join(f"R{a['no']}={tr(a['R'], 1)}" for a in asansorler)
+                + f" = {tr(Res, 1)}"
+                + ("  ≥  " if Res >= gereken else "  <  ")
+                + f"B·k = {tr(gereken, 1)} kişi/5dk",
+                "uygun": bool(Res >= gereken),
+            },
+            {
+                "ad": "Bekleme",
+                "metin": "1/TReş = "
+                + " + ".join(f"1/{tr(a['TR'], 1)}" for a in asansorler)
+                + f"  →  TReş = {tr(TRes, 1)} s"
+                + ("  ≤  " if TRes <= Izul else "  >  ")
+                + f"Izul = {trn(Izul, 0)} s ( {standart} )",
+                "uygun": bool(TRes <= Izul),
+            },
         ]
     b3["adimlar"] = [
         veri("Reş", "Grubun 5 dk taşıma kapasitesi = ΣR", Res, "kişi/5dk", "MMO/697 s.12", 1),
@@ -1238,14 +1509,27 @@ def hesapla_coklu(g: dict) -> dict:
         "uyarilar": U,
         "girdiler": g,
         "ozet": {
-            "bina_tipi": bina_tipi, "standart": standart, "N": N, "h": h,
-            "bodrum": Nb_ortak, "durak": durak_ortak,
-            "b": b, "n_artis": n_artis, "B": B, "k": k,
-            "Res": Res, "gereken": gereken, "TRes": TRes, "Izul": Izul,
+            "bina_tipi": bina_tipi,
+            "standart": standart,
+            "N": N,
+            "h": h,
+            "bodrum": Nb_ortak,
+            "durak": durak_ortak,
+            "b": b,
+            "n_artis": n_artis,
+            "B": B,
+            "k": k,
+            "Res": Res,
+            "gereken": gereken,
+            "TRes": TRes,
+            "Izul": Izul,
             "karar_olcutleri": karar_olcutleri,
-            "esik_sartli": sartli, "esik_standart": t10["standart"],
+            "esik_sartli": sartli,
+            "esik_standart": t10["standart"],
             "esik_yukseltilmis": t10["yukseltilmis"],
-            "adet": len(asansorler), "sonuc": sonuc, "pafta_satiri": pafta_satiri,
+            "adet": len(asansorler),
+            "sonuc": sonuc,
+            "pafta_satiri": pafta_satiri,
             "V_grup_min": V_grup_min,
         },
         "asansorler": asansorler,
@@ -1270,14 +1554,26 @@ def trafik_ozeti(sonuc: dict) -> dict:
     if sonuc.get("tip") == "tek":
         n = o.get("adet") or 1
         bir = {"P": o.get("P"), "V": o.get("V"), "toplam_seyahat": o.get("toplam_seyahat")}
-        return {"tip": "tek", "N": o.get("N"), "bodrum": o.get("bodrum"), "h": o.get("h"),
-                "adet": n, "asansorler": [dict(bir) for _ in range(int(n) if sayi_mi(n) else 1)]}
+        return {
+            "tip": "tek",
+            "N": o.get("N"),
+            "bodrum": o.get("bodrum"),
+            "h": o.get("h"),
+            "adet": n,
+            "asansorler": [dict(bir) for _ in range(int(n) if sayi_mi(n) else 1)],
+        }
     if sonuc.get("tip") == "coklu":
-        return {"tip": "coklu", "N": o.get("N"), "bodrum": o.get("bodrum"), "h": o.get("h"),
-                "adet": o.get("adet"),
-                "asansorler": [{"P": a.get("P"), "V": a.get("V"),
-                                "toplam_seyahat": a.get("toplam_seyahat")}
-                               for a in (sonuc.get("asansorler") or [])]}
+        return {
+            "tip": "coklu",
+            "N": o.get("N"),
+            "bodrum": o.get("bodrum"),
+            "h": o.get("h"),
+            "adet": o.get("adet"),
+            "asansorler": [
+                {"P": a.get("P"), "V": a.get("V"), "toplam_seyahat": a.get("toplam_seyahat")}
+                for a in (sonuc.get("asansorler") or [])
+            ],
+        }
     return {}
 
 
@@ -1300,8 +1596,19 @@ def trafik_ozeti(sonuc: dict) -> dict:
 
 #  Asansörleri "aynı tip" yapan alanlar.  Biri bile farklıysa her asansörün
 #  kendi H, S, ts, TR'si olur ve grup ( çoklu ) yolu gerekir.
-OZDESLIK_ALANLARI = ("P", "kapi_genisligi", "kapi_tipi", "V", "durak", "h",
-                     "bodrum", "manuel_ta", "manuel_tk", "manuel_tg", "manuel_tp")
+OZDESLIK_ALANLARI = (
+    "P",
+    "kapi_genisligi",
+    "kapi_tipi",
+    "V",
+    "durak",
+    "h",
+    "bodrum",
+    "manuel_ta",
+    "manuel_tk",
+    "manuel_tg",
+    "manuel_tp",
+)
 
 
 def _bos(x):
@@ -1347,8 +1654,16 @@ def tekil_girdi(g: dict):
     bir = dict(liste[0]) if liste else {}
     tekil = dict(g)
     tekil.pop("asansorler", None)
-    for k in ("P", "kapi_genisligi", "kapi_tipi", "durak",
-              "manuel_ta", "manuel_tk", "manuel_tg", "manuel_tp"):
+    for k in (
+        "P",
+        "kapi_genisligi",
+        "kapi_tipi",
+        "durak",
+        "manuel_ta",
+        "manuel_tk",
+        "manuel_tg",
+        "manuel_tp",
+    ):
         if not _bos(bir.get(k)):
             tekil[k] = bir[k]
     #  Asansör bazında verilen h / bodrum / V ortak değeri ezer.
