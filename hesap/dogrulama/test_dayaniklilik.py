@@ -12,11 +12,15 @@ import sys
 import urllib.error
 import urllib.request
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import yollar
+
+yollar.kur()
 
 from engine.avan import hesap as AV
 from engine.avan import trafik as TR
-from testler.ortak import Rapor
+from dogrulama.ortak import Rapor
 
 
 #  Uçlar iki pakete ayrıldı ( api/avan.py · api/uygulama.py ), ortak

@@ -3,11 +3,9 @@
 tutarlıdır."""
 
 import os
-import sys
 import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path[:0] = [KOK, os.path.join(KOK, "hesap")]
 
 from cizim import parcalar as CP
 from engine.uygulama import mukavemet_tablolari as MT
@@ -80,8 +78,7 @@ class KapiKesiti(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        sys.path.insert(0, os.path.join(KOK, "testler"))
-        import test_yerlesim_saglamligi as Y
+        from testler import test_yerlesim_saglamligi as Y
         from cizim import geometri as CGE
 
         cls.planlar = {}
@@ -204,8 +201,7 @@ class RayKonsolu(unittest.TestCase):
                 self.assertGreaterEqual(vb - d / 2.0, b1 / 2.0)
 
     def test_planda_konsol_plaka_ve_kolun_icinde(self):
-        sys.path.insert(0, os.path.join(KOK, "testler"))
-        import test_yerlesim_saglamligi as Y
+        from testler import test_yerlesim_saglamligi as Y
         from cizim import geometri as CGE
 
         for yer in ("Sağ", "Sol", "Arka"):
@@ -241,8 +237,7 @@ class AgirlikCercevesi(unittest.TestCase):
 
     @staticmethod
     def _plan(yer, **ek):
-        sys.path.insert(0, os.path.join(KOK, "testler"))
-        import test_yerlesim_saglamligi as Y
+        from testler import test_yerlesim_saglamligi as Y
         from cizim import geometri as CGE
 
         g, hata = Y.gecerli_duzen(630, yer, **ek)
@@ -365,8 +360,7 @@ class SaseDikmesi(unittest.TestCase):
         self.assertAlmostEqual(CP.alan(q["noktalar"]), 5 * 300 + 2 * 5 * (55 - 5))
 
     def test_planda_paten_sirta_bagli_kabin_sirta_degmez(self):
-        sys.path.insert(0, os.path.join(KOK, "testler"))
-        import test_yerlesim_saglamligi as Y
+        from testler import test_yerlesim_saglamligi as Y
         from cizim import geometri as CGE, sabitler as CS
 
         S = CS.sabitler()
@@ -399,8 +393,7 @@ class SaseDikmesi(unittest.TestCase):
 
     def test_kiris_profili_planda_ve_yan_kesitte_50(self):
         #  Referans proje:  iki C profil 50 + 200 + 50 ( 8 Eki'ye dek planda 30 )
-        sys.path.insert(0, os.path.join(KOK, "testler"))
-        import test_yerlesim_saglamligi as Y
+        from testler import test_yerlesim_saglamligi as Y
         from cizim import geometri as CGE, kuyu_kesiti as CKK, sabitler as CS
 
         S = CS.sabitler()
@@ -420,8 +413,7 @@ class AgirlikPatenleri(unittest.TestCase):
     zarf ( kullanıcı kararı 30 Eyl:  iki tipte aynı iz ), biçim tipine göre."""
 
     def test_her_agirlik_rayinda_kesitteki_kutuyla_ayni(self):
-        sys.path.insert(0, os.path.join(KOK, "testler"))
-        import test_yerlesim_saglamligi as Y
+        from testler import test_yerlesim_saglamligi as Y
         from cizim import geometri as CGE, kuyu_kesiti as CKK, baglantilar as CB
 
         for yer in ("Sağ", "Sol", "Arka"):
@@ -457,8 +449,7 @@ class AgirlikPatenleri(unittest.TestCase):
         #  m.5.2.5.5.1 h:  ağırlığa BAĞLI parçalar da kabinden 50 uzakta.  Arkadaki
         #  ağırlıkta blok kabinden 51 uzakken kaymalı paten ( 100 ) 120'lik bloğun
         #  içinde kalır, makaralının yan makaraları ( 75 + dil / 2 ) bloğu aşar.
-        sys.path.insert(0, os.path.join(KOK, "testler"))
-        import test_yerlesim_saglamligi as Y
+        from testler import test_yerlesim_saglamligi as Y
         from cizim import girdi as CGI, sabitler as CS
 
         S = CS.sabitler()

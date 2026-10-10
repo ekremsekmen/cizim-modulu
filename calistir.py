@@ -24,6 +24,10 @@ import os
 import sys
 from pathlib import Path
 
+import yollar
+
+yollar.kur()
+
 from cizim import cizimler as CZ
 from cizim import dxf as CDX
 from cizim import geometri as CGE

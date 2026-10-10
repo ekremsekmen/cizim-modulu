@@ -18,13 +18,17 @@ import math
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import yollar
+
+yollar.kur()
 
 from engine.uygulama import mukavemet as MK
 from cizim import sabitler as _CS
 from engine.uygulama import mukavemet_tablolari as MT
 from engine.uygulama import sabitler as US
-from testler.ortak import P_std as _P_std, Rapor
+from dogrulama.ortak import P_std as _P_std, Rapor
 
 #  Ofisin kaynak tablolarından bir kez okunup dondurulan değerler ( ω … )
 REFERANS_TABLOLAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "referans_tablolar.json")

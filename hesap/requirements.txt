@@ -12,7 +12,7 @@ pdfminer.six>=20221105
 
 #  ── DOĞRULAMA PAKETİ İÇİN ( isteğe bağlı ) ───────────────────────────────
 #  Aşağıdakiler programın çalışması için GEREKMEZ; yalnız
-#  "python3 testler/calistir.py" ile testleri koşturmak içindir.
+#  "python3 dogrulama/calistir.py" ile testleri koşturmak içindir.
 #  Eksik olan test ATLANIR, hata vermez:
 #
 #    Test 4 · Çıktı bütünlüğü→ pypdf  +  pypdfium2   ( PDF üstverisi ve metni )

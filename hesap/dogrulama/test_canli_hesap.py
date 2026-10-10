@@ -42,10 +42,14 @@ import random
 import sys
 import urllib.request
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import yollar
+
+yollar.kur()
 
 from engine.ortak import ofis as OFIS
-from testler.ortak import Rapor
+from dogrulama.ortak import Rapor
 
 BASE = os.environ.get("AVAN_TEST_URL", "http://127.0.0.1:8780")
 TOHUM = 20260914

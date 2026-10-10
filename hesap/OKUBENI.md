@@ -140,7 +140,7 @@ kendi yuvarlama payı içinde kalır, yalnız aştığı senaryoda görünür.
 | **Revizyon** | Proje dosyası ya da programın ürettiği Excel'den geri yükleme | Yalnız **proje dosyası** ( `.avan` · `.uygulama` ) — girdileri taşır, hesap bilgisi taşımaz |
 | **Şablonlar** | `templates/` altında üç Excel şablonu, şablon denetimi, `araclar/` altında şablon betikleri | Kaldırıldı;  `templates/` yalnız CAD proje formatını ( `proje_formati.dxf` ) tutar |
 | **Kitaplık** | `openpyxl` | Gerekmiyor |
-| **Doğrulama** | TEST 1 ve 10 girdileri Excel'e yazıp LibreOffice ile hesaplatıyordu | Aynı senaryoların Excel ile doğrulanmış sonuçları **donduruldu** ( `testler/referans_*.json.gz` );  TEST 1 ve 10 motoru bu referansa karşı denetler, LibreOffice gerekmez |
+| **Doğrulama** | TEST 1 ve 10 girdileri Excel'e yazıp LibreOffice ile hesaplatıyordu | Aynı senaryoların Excel ile doğrulanmış sonuçları **donduruldu** ( `dogrulama/referans_*.json.gz` );  TEST 1 ve 10 motoru bu referansa karşı denetler, LibreOffice gerekmez |
 
 Neden:  aynı hesabı iki kez ( motorda ve Excel formüllerinde ) tutmak iki belgenin
 ayrışmasına yol açıyordu;  canlı formüllü bir çalışma kitabı teslim etmek de
@@ -566,7 +566,7 @@ asansörlü gruplar;  mukavemette bütün ray profilleri, halat çapları, kanal
 ağırlık yeri, durak sayıları, kaçıklıklar, ofis sabitleri ve referans proje.
 
 Kasıtlı bir hesap değişikliği referansı bozar;  farklar tek tek incelenip
-onaylandıktan sonra `python3 testler/tarama_uret.py` ile yeniden üretilir.
+onaylandıktan sonra `python3 dogrulama/tarama_uret.py` ile yeniden üretilir.
 
 ### Bağımsız denetimde bulunan ve düzeltilen hatalar
 
@@ -599,7 +599,7 @@ Birincisi programın **davranışını** ( girdi–çıktı, dosya akışı, uya
 denetlemişti. İkincisi doğrudan **hesap motorlarını** TS EN 81-20 / 81-50'nin
 metnine karşı okudu ve on bulgu çıkardı. Hepsi yeniden üretildi; her biri
 artık kendi regresyon kontrolüyle korunuyor
-( `testler/test_mukavemet.py` · `_denetim_bulgulari` ).
+( `dogrulama/test_mukavemet.py` · `_denetim_bulgulari` ).
 
 | Bulgu | Yön | Etkisi ve düzeltme |
 |---|---|---|
@@ -1166,11 +1166,11 @@ Program bir **test paketiyle** birlikte gelir. Programa dokunulduğunda hesabın
 değişmediğini ( ya da yalnız bilerek değiştiğini ) doğrulamak için:
 
 ```bash
-python3 testler/calistir.py          # tümü
-python3 testler/calistir.py 1 10     # yalnız seçilen testler
+python3 dogrulama/calistir.py          # tümü
+python3 dogrulama/calistir.py 1 10     # yalnız seçilen testler
 ```
 
-macOS'ta programın kendi Python'unu kullanmak için `./.venv/bin/python3 testler/calistir.py`.
+macOS'ta programın kendi Python'unu kullanmak için `./.venv/bin/python3 dogrulama/calistir.py`.
 
 | Test | Ne yapar |
 |---|---|
@@ -1554,7 +1554,7 @@ AVAN HESAPLAMA PROGRAMI/
 │   ├── avan.js             ← trafik · avan · ofis standardı · tablolar
 │   └── uygulama.js         ← mukavemet + elektrik  ·  en sonda kur() çağrısı
 │
-├── testler/                ← doğrulama paketi
+├── dogrulama/                ← doğrulama paketi
 │   ├── calistir.py         ← hepsini çalıştırır
 │   ├── test_avan_tarama.py · test_kenar_durum.py · test_dayaniklilik.py
 │   ├── test_ciktilar.py · test_arayuz.py · test_geri_yukleme.py
@@ -1596,9 +1596,9 @@ Tablo değerleri `engine/avan/tablolar.py` ve `engine/uygulama/mukavemet_tablola
 formüller `engine/avan/trafik.py` · `engine/avan/hesap.py` ·
 `engine/uygulama/mukavemet.py` içindedir.  Ekran, PDF ve CAD aynı motordan
 beslendiği için tek yerde değişiklik yeterlidir.  Değişiklikten sonra
-`python3 testler/calistir.py` hangi sonucun neden değiştiğini söyler;  kasıtlı
-bir değişiklikse altın çıktı ( `testler/altin_uret.py` ) ve referans taraması
-( `testler/tarama_uret.py` ) farklar gözle incelendikten sonra yeniden üretilir.
+`python3 dogrulama/calistir.py` hangi sonucun neden değiştiğini söyler;  kasıtlı
+bir değişiklikse altın çıktı ( `dogrulama/altin_uret.py` ) ve referans taraması
+( `dogrulama/tarama_uret.py` ) farklar gözle incelendikten sonra yeniden üretilir.
 
 ---
 
@@ -1627,7 +1627,7 @@ Tek dosyalık `.app` / `.exe` isterseniz PyInstaller ile paketlenebilir:
 | Program iki kez açıldı | İkinci kopya yeni pencere açmaz, var olan sekmeyi öne getirir |
 | PDF'de Türkçe karakter bozuk | `fonts/` klasöründeki iki `.ttf` dosyasının yerinde olduğundan emin olun |
 | Sonuç "HESAP HATASI" diyor | Kırmızı kutudaki mesaj hangi girdinin eksik/kapsam dışı olduğunu söyler |
-| Hesabın doğruluğundan kuşkulandınız | `python3 testler/calistir.py` — doğrulama paketi koşar ( bkz. 6. bölüm ) |
+| Hesabın doğruluğundan kuşkulandınız | `python3 dogrulama/calistir.py` — doğrulama paketi koşar ( bkz. 6. bölüm ) |
 
 ---
 

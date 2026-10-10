@@ -41,20 +41,22 @@ ignore = [
 #  ciz() içindeki küpeşte yazısı yardımcıları döngünün aynı adımında
 #  çağrılır ( hata değil );  fonksiyon 3. adımda bölününce kalkacak.
 "cizim/kabin_ustu.py" = ["B023"]
-#  Giriş noktaları yol ayarından sonra import eder
+#  Giriş noktaları ve betikler kökleri kurduktan sonra import eder ( yollar.py )
 "hesap/main.py" = ["E402"]
 "ornekler/uret.py" = ["E402"]
+"calistir.py" = ["E402"]
+"araclar/tarama.py" = ["E402"]
 #  Testler:  yol ayarından sonra import, dosyayı tek satırda okumak ve
 #  lambda yardımcılar kabul
 "testler/*" = ["E402", "SIM115", "E731"]
-"hesap/testler/*" = ["E402", "SIM115", "E731"]
+"hesap/dogrulama/*" = ["E402", "SIM115", "E731"]
 
 [tool.ruff.format]
 quote-style = "double"
 
 #  ─────────────────────────────────────────────────────────────────────────
 #  PYTEST — çizim testleri ( testler/ ).  Hesabın kendi doğrulama paketi
-#  hesap/testler/calistir.py ile koşar ( kontrol.py ikisini de çağırır ).
+#  hesap/dogrulama/calistir.py ile koşar ( kontrol.py ikisini de çağırır ).
 #  ─────────────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
 testpaths = ["testler"]

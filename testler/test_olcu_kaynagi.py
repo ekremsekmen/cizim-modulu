@@ -8,16 +8,12 @@ girdi 1 mm oynatılır ), elle etiketlenmez — testler de ölçerek denetler.""
 import json
 import os
 import re
-import sys
 import threading
 import time
 import unittest
 from unittest import mock
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "ornekler"), os.path.join(KOK, "testler")):
-    if _yol not in sys.path:
-        sys.path.append(_yol)
 
 from api import cizim as UC
 from testler.yavas import yavas
@@ -32,7 +28,7 @@ from cizim import sabitler as CS
 from engine.uygulama import hesap as E_UYG
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
 
-import gercek_projeler as GP
+from testler import gercek_projeler as GP
 
 
 def _veri(md=False, **ek):

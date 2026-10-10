@@ -11,7 +11,7 @@ bir notun sessizce düşmesi, bir adım satırının kaybolması gibi kimsenin
 assert etmediği şeylerdir.  Bu test onların hepsini kilitler.
 
 ÇIKTI KASITLI DEĞİŞTİYSE:
-    python3 testler/altin_uret.py     → altın dosyayı yeniden üretir
+    python3 dogrulama/altin_uret.py     → altın dosyayı yeniden üretir
 Bunu çalıştırmadan ÖNCE bu testin gösterdiği farkı gözle onaylayın;
 yeniden üretmek "bu davranış değişikliğini kabul ediyorum" demektir.
 """
@@ -21,11 +21,15 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import yollar
+
+yollar.kur()
 
 from engine.avan import hesap as AV
 from engine.avan import trafik as TR
-from testler.altin_uret import (
+from dogrulama.altin_uret import (
     DOSYA,
     DOSYA_AVAN,
     DOSYA_UYGULAMA,
@@ -34,7 +38,7 @@ from testler.altin_uret import (
     uygulama_motoru,
     uygulama_senaryolar,
 )
-from testler.ortak import Rapor
+from dogrulama.ortak import Rapor
 
 
 def _duz(x, on=""):
@@ -62,7 +66,7 @@ def calistir():
 
 def _karsilastir(r, dosya, uretici, motor, etiket):
     if not os.path.isfile(dosya):
-        r.atla(f"{etiket}: altın dosya yok — 'python3 testler/altin_uret.py' ile üretin")
+        r.atla(f"{etiket}: altın dosya yok — 'python3 dogrulama/altin_uret.py' ile üretin")
         return
     with gzip.open(dosya, "rt", encoding="utf-8") as f:
         altin = json.load(f)

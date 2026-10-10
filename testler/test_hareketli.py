@@ -6,13 +6,9 @@ ara değerlerinden değil.  Girdiler programın yolundan:  hesap motoru →
 köprü → düşey yerleşim."""
 
 import os
-import sys
 import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-for _yol in (KOK, os.path.join(KOK, "hesap")):
-    if _yol not in sys.path:
-        sys.path.append(_yol)
 
 from cizim import dusey as CDU
 from cizim import hareketli as CH

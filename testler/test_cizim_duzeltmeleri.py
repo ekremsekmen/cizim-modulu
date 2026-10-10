@@ -2,12 +2,9 @@
 
 import copy
 import json
-import os
-import sys
 import unittest
 import xml.etree.ElementTree as ET
 
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "hesap"))
 
 from api import cizim as UC, uygulama as UA
 from cizim import dusey as DY, geometri as GE, girdi as GI, kopru as KO

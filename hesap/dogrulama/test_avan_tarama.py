@@ -8,7 +8,7 @@ uzayını sistemli tarayan senaryolarda DONDURULMUŞ referansa karşı denetler.
 Referansın dayanağı:  bu senaryoların her biri ofisin eski Excel çalışma
 kitaplarında LibreOffice ile yeniden hesaplanmış ve karşılaştırılan her
 değer motorla aynı çıkmıştı.  Sonuçlar o doğrulanmış hâlden donduruldu
-( testler/referans_avan.json.gz ).  Program artık Excel kullanmaz;  tek
+( dogrulama/referans_avan.json.gz ).  Program artık Excel kullanmaz;  tek
 hesap kaynağı motordur.
 
 Altın çıktıdan ( TEST 7 ) farkı:  altın çıktı her metni kilitler, bu test
@@ -16,7 +16,7 @@ yalnız SONUÇ DEĞERLERİNİ ve çok daha geniş bir senaryo yelpazesinde:
 bütün bina tipleri, kapasiteler, kat sınırları, hızlar, bodrum eşikleri,
 ara değerli kapılar, avan kesit / verim / topraklama çeşitleri.
 
-    python3 testler/tarama_uret.py        →  referansı YENİDEN ÜRETİR
+    python3 dogrulama/tarama_uret.py        →  referansı YENİDEN ÜRETİR
 
 Yeniden üretmek DAVRANIŞI DEĞİŞTİRME İZNİDİR ( bkz. altin_uret ).
 """
@@ -26,12 +26,16 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import yollar
+
+yollar.kur()
 
 from engine.avan import hesap as AV
 from engine.avan import tablolar as T
 from engine.avan import trafik as TR
-from testler.ortak import Rapor
+from dogrulama.ortak import Rapor
 
 DOSYA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "referans_avan.json.gz")
 
@@ -1056,7 +1060,9 @@ def calistir():
     r = Rapor("Avan referans taraması")
     if not os.path.isfile(DOSYA):
         r.kontrol(
-            "referans dosyası var", False, f"→ {os.path.basename(DOSYA)} yok — python3 testler/tarama_uret.py"
+            "referans dosyası var",
+            False,
+            f"→ {os.path.basename(DOSYA)} yok — python3 dogrulama/tarama_uret.py",
         )
         return r
     karsilastir(r, DOSYA, uret(), "avan")

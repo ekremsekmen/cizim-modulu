@@ -22,7 +22,11 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import yollar
+
+yollar.kur()
 
 #  CAD çıktısı ezdxf + pdfminer.six ister.  Bunlar kurulu değilse PROGRAM
 #  YİNE AÇILIR — yalnız CAD düğmeleri anlaşılır bir hata verir.

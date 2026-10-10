@@ -25,6 +25,10 @@ import sys
 import time
 import traceback
 
+import yollar
+
+yollar.kur()
+
 from araclar import kesisme as K
 from cizim import cizimler as CZ
 from cizim import geometri as CGE

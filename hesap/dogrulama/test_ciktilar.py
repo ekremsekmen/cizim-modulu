@@ -14,7 +14,11 @@ import shutil
 import sys
 import tempfile
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import yollar
+
+yollar.kur()
 
 from engine.avan import hesap as AV
 from engine.avan import trafik as TR
@@ -25,7 +29,7 @@ except Exception:  # noqa: BLE001
     _DXF = None  # CAD kitaplıkları yoksa paket testi atlanır
 from exports import kapak_export as KPK
 from exports import pdf_export as PE
-from testler.ortak import Rapor
+from dogrulama.ortak import Rapor
 
 # Geçici dosyalar sistemin temp klasörüne yazılır — proje klasörü kirlenmez
 # ve silme izni kısıtlı makinelerde test takılmaz.
@@ -558,7 +562,7 @@ def calistir():
         import sys, os
         sys.path.insert(0, {_kok!r})
         sys.path.insert(0, {_gecici!r})
-        from testler import calistir as K
+        from dogrulama import calistir as K
         K.TESTLER = [("9", "Çöken", "coken")]
         sys.exit(K.main(["9"]))
     """)
@@ -1376,7 +1380,7 @@ def calistir():
 
         #  AVAN PAKETİ:  çizim + proje dosyası;  çalışma kitabı YOK.
         import api.avan as _AVP
-        import testler.altin_uret as _AU
+        import dogrulama.altin_uret as _AU
 
         _avan_g = next(iter(_AU.avan_senaryolar()))
         _trf_g = next(

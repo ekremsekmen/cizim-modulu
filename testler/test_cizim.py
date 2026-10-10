@@ -10,12 +10,10 @@ TEST 15 — ÇİZİM MODÜLÜ  ( hesap motorundan bağımsız )
 """
 
 import os
-import sys
 import math
 import re
 import unittest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from cizim import geometri as CGE
 from cizim import girdi as CG
@@ -1264,8 +1262,7 @@ class KuyuDibiYerlesim(unittest.TestCase):
         bölge de korunur — standart düzenlerin hiçbirinde perdenin ucu ile duvar
         arasında 300'den büyük boşluk kalmaz ( eskiden 54 düzenin 50'sinde
         340 – 365 kalıyordu );  merdiven korunan bölgede durmaz."""
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        import test_yerlesim_saglamligi as YS
+        from testler import test_yerlesim_saglamligi as YS
 
         sayi = 0
         for Q in YS.KABIN:

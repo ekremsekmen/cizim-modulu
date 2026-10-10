@@ -3,7 +3,7 @@
 
 Seçilmiş düzenlerin TAM paftası ( her çizimin bütün elemanları ve SVG'si )
 dondurulur;  test_altin_cizim.py her koşuda yeniden üretip karşılaştırır.
-Hesabın altın çıktısı ( hesap/testler/altin_uret.py ) gibi:  belirli
+Hesabın altın çıktısı ( hesap/dogrulama/altin_uret.py ) gibi:  belirli
 değerleri değil, kimsenin denetlemediği her şeyi ( bir çizginin kayması, bir
 yazının yer değiştirmesi, bir elemanın düşmesi ) kilitler.
 
@@ -21,12 +21,10 @@ import gzip
 import hashlib
 import json
 import os
-import sys
 
-KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-for _yol in (KOK, os.path.join(KOK, "hesap"), os.path.join(KOK, "ornekler"), os.path.join(KOK, "testler")):
-    if _yol not in sys.path:
-        sys.path.append(_yol)
+import yollar
+
+yollar.kur()
 
 from api import cizim as UC_CIZIM
 from api import uygulama as UC_UYG
@@ -34,8 +32,8 @@ from cizim import geometri as CGE
 from cizim import pafta as CPF
 from cizim import svg as CSV
 from engine.uygulama import hesap as E_UYG
+from testler import gercek_projeler as GP
 
-import gercek_projeler as GP
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
 
 DOSYA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "altin_cizim.json.gz")

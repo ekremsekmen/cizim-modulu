@@ -390,8 +390,8 @@ iznidir**:  yalnız kasıtlı bir değişiklikten sonra, farklar incelenince.
 |---|---|---|
 | `testler/altin_cizim.json.gz` | 35 düzenin tam paftası ( her çizimin elemanları + SVG ) | `.venv/bin/python -m testler.altin_cizim` |
 | `testler/tarama_hukumleri.json` | 378 düzenin hükmü ( çizildi / ret ve sebebi ) | `.venv/bin/python -m araclar.tarama --yenile` |
-| `hesap/testler/altin_*.json.gz` | hesabın tam çıktısı ( trafik, avan, uygulama ) | `cd hesap && ../.venv/bin/python testler/altin_uret.py` |
-| `hesap/testler/referans_*.json.gz` | hesabın ara değerleri ve hükümleri | `cd hesap && ../.venv/bin/python testler/tarama_uret.py` |
+| `hesap/dogrulama/altin_*.json.gz` | hesabın tam çıktısı ( trafik, avan, uygulama ) | `cd hesap && ../.venv/bin/python dogrulama/altin_uret.py` |
+| `hesap/dogrulama/referans_*.json.gz` | hesabın ara değerleri ve hükümleri | `cd hesap && ../.venv/bin/python dogrulama/tarama_uret.py` |
 
 Yavaş testler `testler/yavas.py`'deki `@yavas(...)` ile işaretlenir:
 hızlı denetimde atlanır ( çıktıda "skipped" ), tam denetimde koşar.
@@ -440,7 +440,9 @@ commit'leri `.git-blame-ignore-revs`'te:  `git config blame.ignoreRevsFile
 | `testler/` | 376 test ( `test_kapilar.py` — kanat sayısı ve kanat cebi, `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog, `test_gercek_projeler.py` — ofisin altı gerçek projesi ( veri `gercek_projeler.py` ), `test_gorunusler.py` — kasnak düzenlemesi ve giriş görünüşü, `test_kesit_yerlesim_regresyon.py` — şase üst kirişi, ağırlık patenleri, dolgu, ağırlık genişliği, kabin – ağırlık ölçüleri, duvarlar ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
 | `cikti/` | `calistir.py`'nin tek tek çizimleri, taramanın ayrıntılı sonuçları ( git'e girmez ) |
-| `kontrol.py` | Bütün denetimler tek komutta ( hızlı · tam · arayüz · tarama ) |
+| `kontrol.py` | Bütün denetimler tek komutta ( hızlı · tam · arayüz · tarama · biçim ) |
+| `yollar.py` | Programın import kökleri ( depo kökü, `hesap/`, `ornekler/` ) — giriş noktaları bir kez kurar, kütüphane modülleri `sys.path`'e dokunmaz |
+| `hesap/dogrulama/` | Hesabın doğrulama paketi ( `calistir.py`;  eski adı `hesap/testler` — depo kökündeki `testler/` ile çakışıyordu ) |
 | `araclar/` | Girdi taraması ( `tarama.py` ) ve yazı – çizgi kesişmeleri ( `kesisme.py` ) |
 | `requirements-kilit.txt` | Sabitlenmiş bağımlılıklar ( CI ve sunucu bunu kurar ) |
 

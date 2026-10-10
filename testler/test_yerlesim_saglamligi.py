@@ -10,13 +10,9 @@ Kalan retler gerçektir:  kabin üstü askı daha yüksek son kat ister, 900 ×
 
 import json
 import os
-import sys
 import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_yol = os.path.join(KOK, "hesap")
-if _yol not in sys.path:
-    sys.path.append(_yol)
 
 from api import cizim as UC
 from cizim import kabin_ustu as CKU

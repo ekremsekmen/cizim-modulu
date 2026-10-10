@@ -9,13 +9,17 @@ tablo sınırları, yuvarlama kuralları, kapsam dışı girdiler, hata mesajlar
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import yollar
+
+yollar.kur()
 
 from engine.avan import hesap as AV
 from engine.avan import tablolar as T
 from engine.avan import trafik as TR
 from engine.ortak.steps import yuvarla, tavana_yuvarla, yukari_yuvarla, tr as TRS
-from testler.ortak import Rapor
+from dogrulama.ortak import Rapor
 
 TEMEL = dict(
     bina_tipi="Konut",

@@ -32,9 +32,10 @@ from pathlib import Path
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CIKTI = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(KOK, "hesap"))
-sys.path.append(KOK)
-sys.path.insert(0, CIKTI)
+sys.path.insert(0, KOK)
+import yollar
+
+yollar.kur()
 ACC = (
     "/Applications/Autodesk/AutoCAD 2027/AutoCAD 2027.app/Contents/Helpers/"
     "AcCoreConsole.app/Contents/MacOS/AcCoreConsole"

@@ -3,7 +3,7 @@
 TEST 8  —  MUKAVEMET TABLOLARI + GİRDİ SÖZLEŞMESİ  ( uygulama projesi )
 
 engine/uygulama/mukavemet_tablolari.py içindeki her tabloyu KAYNAĞINA karşı
-birebir doğrular:  testler/referans_tablolar.json
+birebir doğrular:  dogrulama/referans_tablolar.json
 
 NİÇİN AYRI TEST:  bu tablolar ofisin mukavemet hesabından makineyle
 aktarıldı.  Aktarma sırasında bir sütun kayması ya da satır atlaması olsa
@@ -16,11 +16,15 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import yollar
+
+yollar.kur()
 
 from engine.uygulama import mukavemet_girdi as MG
 from engine.uygulama import mukavemet_tablolari as MT
-from testler.ortak import Rapor
+from dogrulama.ortak import Rapor
 
 REFERANS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "referans_tablolar.json")
 

@@ -8,13 +8,9 @@ kendi yaklaşığına döndüğünü sınar."""
 
 import math
 import os
-import sys
 import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_yol = os.path.join(KOK, "hesap")
-if _yol not in sys.path:
-    sys.path.append(_yol)
 
 from cizim import kopru as CK
 from cizim import makine_dairesi as CMD

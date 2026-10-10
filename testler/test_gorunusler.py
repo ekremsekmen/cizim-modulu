@@ -9,13 +9,9 @@ projelerinde LiftDesigner'ın kendi paftasıyla karşılaştırılır
 
 import copy
 import os
-import sys
 import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "ornekler"), os.path.join(KOK, "testler")):
-    if _yol not in sys.path:
-        sys.path.append(_yol)
 
 from cizim import cizimler as CZ
 from cizim import giris as CGI
@@ -25,7 +21,7 @@ from cizim import kopru as CK
 from cizim import makine_dairesi as CMD
 from cizim import pafta as CPF
 
-import test_olcu_kaynagi as T
+from testler import test_olcu_kaynagi as T
 
 
 def _olculer(e):
@@ -152,8 +148,7 @@ class KapiKesiti(unittest.TestCase):
     def setUpClass(cls):
         import math
 
-        sys.path.insert(0, os.path.join(KOK, "testler"))
-        import test_yerlesim_saglamligi as YS
+        from testler import test_yerlesim_saglamligi as YS
         from cizim import geometri as CGE
         from cizim import kapi_kesiti as CKA
 

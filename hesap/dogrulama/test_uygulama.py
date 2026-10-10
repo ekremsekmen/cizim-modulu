@@ -20,7 +20,11 @@ import os
 import sys
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, KOK)
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(KOK))
+import yollar
+
+yollar.kur()
 
 from engine.avan import hesap as AV
 from engine.avan import tablolar as AVT
@@ -28,7 +32,7 @@ from engine.uygulama import mukavemet as MK
 from engine.uygulama import hesap as UY
 from engine.uygulama import girdi as UG
 from engine.uygulama import sabitler as US
-from testler.ortak import P_std as _P_std, Rapor
+from dogrulama.ortak import P_std as _P_std, Rapor
 
 #  Topraklama olmadan elektrik bölümlerinin bir kısmı boş kalır.  L1 girdi
 #  değildir:  kuyu yüksekliği + Sabitler'deki yatay güzergâh payından kurulur.
@@ -1010,9 +1014,6 @@ def calistir():
         #  olan asansör çizilemez ( kuyu üstü yetmiyor:  üst paten kuyu tavanına
         #  giriyor — ofisin kabiniyle 3.750'de yalnız korkuluk kalıyor ):  paket
         #  inmez, sebebi söylenir.
-        _orn = os.path.join(os.path.dirname(KOK), "ornekler")
-        if _orn not in sys.path:
-            sys.path.append(_orn)
         from hesap_girdi import ASANSOR as _A20, ORTAK as _O20, SABITLER as _S20
 
         _y20 = _API20.indir_uygulama_dwg(

@@ -11,19 +11,15 @@ Girilen değer ya kullanılır ya hesap durur:
 
 import json
 import os
-import sys
 import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "testler")):
-    if _yol not in sys.path:
-        sys.path.append(_yol)
 
 from api import cizim as UC
 from api import uygulama as UYG
 from engine.uygulama import hesap as E_UYG
 
-import test_yerlesim_saglamligi as Y
+from testler import test_yerlesim_saglamligi as Y
 
 
 def _calistir(**ek):

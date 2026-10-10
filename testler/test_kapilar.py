@@ -11,13 +11,9 @@ kanatlıda kanatlar üç düzlemde kayar, eşik 135 ( Fermator T3 )."""
 
 import copy
 import os
-import sys
 import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "testler")):
-    if _yol not in sys.path:
-        sys.path.append(_yol)
 
 from cizim import geometri as CGE
 from cizim import giris as CGI
@@ -25,8 +21,8 @@ from cizim import girdi as CG
 from cizim import sabitler as CS
 from engine.uygulama import mukavemet_tablolari as MT
 
-import test_olcu_kaynagi as T
-import test_yerlesim_saglamligi as Y
+from testler import test_olcu_kaynagi as T
+from testler import test_yerlesim_saglamligi as Y
 
 
 def _kapi(tip, sol_pay=500, genislik=900, on_pay=None):

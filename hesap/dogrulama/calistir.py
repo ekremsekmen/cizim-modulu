@@ -2,8 +2,8 @@
 """
 TÜM TESTLERİ ÇALIŞTIR
 
-    python3 testler/calistir.py            → hepsi
-    python3 testler/calistir.py 2 3        → yalnız 2. ve 3. testler
+    python3 dogrulama/calistir.py            → hepsi
+    python3 dogrulama/calistir.py 2 3        → yalnız 2. ve 3. testler
 
 Arayüz testleri ( 5 · 6 ) için program açık olmalıdır ( baslat.command ).
 Eksik olan bileşenlerin testi atlanır, diğerleri yine çalışır.
@@ -13,34 +13,38 @@ import os
 import sys
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import yollar
 
-from testler.ortak import GRI, KIRMIZI, SIFIR, YESIL
+yollar.kur()
+
+from dogrulama.ortak import GRI, KIRMIZI, SIFIR, YESIL
 
 TESTLER = [
-    ("1", "Avan referans taraması", "testler.test_avan_tarama"),
-    ("2", "Kenar durumlar", "testler.test_kenar_durum"),
-    ("3", "Girdi dayanıklılığı", "testler.test_dayaniklilik"),
-    ("4", "Çıktı bütünlüğü", "testler.test_ciktilar"),
-    ("5", "Arayüz", "testler.test_arayuz"),
-    ("6", "Proje dosyası geri yükleme", "testler.test_geri_yukleme"),
-    ("7", "Altın çıktı", "testler.test_altin"),
-    ("8", "Mukavemet tabloları", "testler.test_mukavemet_tablolari"),
-    ("9", "Mukavemet motoru", "testler.test_mukavemet"),
-    ("10", "Mukavemet referans taraması", "testler.test_mukavemet_tarama"),
-    ("11", "Uygulama projesi", "testler.test_uygulama"),
+    ("1", "Avan referans taraması", "dogrulama.test_avan_tarama"),
+    ("2", "Kenar durumlar", "dogrulama.test_kenar_durum"),
+    ("3", "Girdi dayanıklılığı", "dogrulama.test_dayaniklilik"),
+    ("4", "Çıktı bütünlüğü", "dogrulama.test_ciktilar"),
+    ("5", "Arayüz", "dogrulama.test_arayuz"),
+    ("6", "Proje dosyası geri yükleme", "dogrulama.test_geri_yukleme"),
+    ("7", "Altın çıktı", "dogrulama.test_altin"),
+    ("8", "Mukavemet tabloları", "dogrulama.test_mukavemet_tablolari"),
+    ("9", "Mukavemet motoru", "dogrulama.test_mukavemet"),
+    ("10", "Mukavemet referans taraması", "dogrulama.test_mukavemet_tarama"),
+    ("11", "Uygulama projesi", "dogrulama.test_uygulama"),
     #  Dış referanslar:  öteki testlerin hepsi motoru KENDİ kaynağımıza
     #  ( dondurulmuş referans · altın çıktı ) karşı denetler;  bu, bizden
     #  bağımsız iki programın yayımlanmış paftalarına karşı denetler.
-    ("12", "Dış referans paftaları", "testler.test_referans_paftalar"),
+    ("12", "Dış referans paftaları", "dogrulama.test_referans_paftalar"),
     #  Canlı hesap:  motor doğru hesaplasa bile ekran eski bir girdinin
     #  sonucunu gösterebilir ya da eski bir değeri sonraki hesaba taşıyabilir.
     #  Her girdi değişikliğinden sonra ekran = formun taze hesabı = çıktı.
-    ("13", "Canlı hesap tutarlılığı", "testler.test_canli_hesap"),
+    ("13", "Canlı hesap tutarlılığı", "dogrulama.test_canli_hesap"),
     #  İşlem satırları:  sonuç doğru olsa bile paftadaki işlem satırı o sonucu
     #  vermeyebilir ( eksik parantez, yazılmamış yuvarlama, eksik hane ).  Her
     #  satır, basıldığı hanelerle yeniden hesaplanır.
-    ("14", "Pafta işlem satırları", "testler.test_islem_satirlari"),
+    ("14", "Pafta işlem satırları", "dogrulama.test_islem_satirlari"),
 ]
 
 

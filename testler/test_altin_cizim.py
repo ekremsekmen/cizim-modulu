@@ -10,12 +10,9 @@ değiştiyse ) farklar incelenip dosya yeniden üretilir:
 
 import json
 import os
-import sys
 import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if KOK not in sys.path:
-    sys.path.insert(0, KOK)
 
 from testler import altin_cizim as A
 

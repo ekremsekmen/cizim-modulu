@@ -35,17 +35,11 @@ YERLEŞİM:  "mrl" ya da "daireli" yazan alan yalnız o makine yerleşiminde
 hesaba ve çizime girer;  öbüründe ekranda gizlenir ve okunmaz.
 """
 
-import os
-import sys
 from dataclasses import dataclass, replace
 
-_HESAP = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hesap")
-if _HESAP not in sys.path:
-    sys.path.append(_HESAP)
-
-from cizim import girdi as CG  # noqa: E402
-from engine.ortak import ofis as OFIS  # noqa: E402
-from engine.uygulama import mukavemet_tablolari as MT  # noqa: E402
+from cizim import girdi as CG
+from engine.ortak import ofis as OFIS
+from engine.uygulama import mukavemet_tablolari as MT
 
 GIRDI, KURAL, KATALOG, CIZIM, HESAP = "GİRDİ", "KURAL", "KATALOG", "ÇİZİM", "HESAP"
 

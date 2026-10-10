@@ -1,21 +1,16 @@
 """HESAP → ÇİZİM KÖPRÜSÜ ( cizim/kopru.py ) ve birleşik programın çizim uçları.
 
 Hesap programının kopyası hesap/ klasöründedir;  motoru ve uçları buradan
-çağrılır ( sys.path'in SONUNA eklenir:  iki programın da testler/ klasörü var,
-çizim modülününki önce bulunmalı )."""
+çağrılır ( kökler:  pyproject.toml — pytest )."""
 
 import copy
 import io
 import json
 import os
-import sys
 import unittest
 import zipfile
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "ornekler")):
-    if _yol not in sys.path:
-        sys.path.append(_yol)
 
 import ezdxf
 

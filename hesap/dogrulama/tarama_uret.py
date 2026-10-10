@@ -2,7 +2,7 @@
 """
 REFERANS TARAMASI ÜRETİCİ  —  TEST 1 ve TEST 10'un dondurulmuş sonuçları
 
-    python3 testler/tarama_uret.py        → iki dosyayı YENİDEN ÜRETİR
+    python3 dogrulama/tarama_uret.py        → iki dosyayı YENİDEN ÜRETİR
 
 Yeniden üretmek DAVRANIŞI DEĞİŞTİRME İZNİDİR.  Refactor sırasında ASLA
 çalıştırılmaz;  yalnız kasıtlı bir hesap değişikliğinden sonra, TEST 1 /
@@ -15,10 +15,14 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import yollar
 
-from testler import test_avan_tarama as T1
-from testler import test_mukavemet_tarama as T10
+yollar.kur()
+
+from dogrulama import test_avan_tarama as T1
+from dogrulama import test_mukavemet_tarama as T10
 
 
 def yaz(kayit, dosya):

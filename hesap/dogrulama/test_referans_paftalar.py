@@ -26,11 +26,15 @@ AYRIŞMADIĞIMIZI görmektir.  Sapma büyürse buradan görünür.
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import yollar
+
+yollar.kur()
 
 from engine.uygulama import mukavemet as MK
 from engine.uygulama import mukavemet_tablolari as MT
-from testler.ortak import Rapor
+from dogrulama.ortak import Rapor
 
 
 # =====================================================================

@@ -7,13 +7,9 @@ kasnağının teğetinde ve D1 önünde."""
 
 import math
 import os
-import sys
 import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_yol = os.path.join(KOK, "hesap")
-if _yol not in sys.path:
-    sys.path.append(_yol)
 
 from cizim import arka_aski as CAA
 from cizim import geometri as CGE

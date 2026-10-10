@@ -7,14 +7,10 @@ k11  karşı ağırlık dolgusunun çerçeveye sığması denetlenir
 k12  çizimin bütün ürün ölçüleri tek katalogda:  hesabın Sabitler sekmesi"""
 
 import os
-import sys
 import unittest
 from collections import Counter
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_yol = os.path.join(KOK, "hesap")
-if _yol not in sys.path:
-    sys.path.append(_yol)
 
 from cizim import kopru as CK
 from cizim import olculer as CO

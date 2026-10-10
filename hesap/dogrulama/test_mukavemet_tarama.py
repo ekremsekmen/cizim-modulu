@@ -12,9 +12,9 @@ Referansın dayanağı:  bu senaryolar mukavemet çalışma kitabında LibreOffi
 ile yeniden hesaplanmış ve her değer motorla aynı çıkmıştı ( standardın
 gerektirdiği bilinçli sapmalar hariç;  onlar da teslim edilen düzeltilmiş
 kitapla hücre hücre aynıydı ).  Program artık Excel kullanmaz;  o doğrulanmış
-sonuçlar testler/referans_mukavemet.json.gz'dedir.
+sonuçlar dogrulama/referans_mukavemet.json.gz'dedir.
 
-    python3 testler/tarama_uret.py        →  referansı YENİDEN ÜRETİR
+    python3 dogrulama/tarama_uret.py        →  referansı YENİDEN ÜRETİR
 
 Yeniden üretmek DAVRANIŞI DEĞİŞTİRME İZNİDİR ( bkz. altin_uret ).
 """
@@ -23,13 +23,17 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import yollar
+
+yollar.kur()
 
 from engine.uygulama import mukavemet as MK
 from engine.uygulama import mukavemet_girdi as MG
 from engine.uygulama import mukavemet_tablolari as MT
-from testler.ortak import Rapor
-from testler.test_avan_tarama import karsilastir
+from dogrulama.ortak import Rapor
+from dogrulama.test_avan_tarama import karsilastir
 
 DOSYA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "referans_mukavemet.json.gz")
 
@@ -436,7 +440,9 @@ def calistir():
     r = Rapor("Mukavemet referans taraması")
     if not os.path.isfile(DOSYA):
         r.kontrol(
-            "referans dosyası var", False, f"→ {os.path.basename(DOSYA)} yok — python3 testler/tarama_uret.py"
+            "referans dosyası var",
+            False,
+            f"→ {os.path.basename(DOSYA)} yok — python3 dogrulama/tarama_uret.py",
         )
         return r
     simdi = uret()

@@ -5,8 +5,11 @@ import os
 import sys
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if KOK not in sys.path:
-    sys.path.insert(0, KOK)
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(KOK))
+import yollar
+
+yollar.kur()
 
 YESIL, KIRMIZI, SARI, GRI, SIFIR = "\033[32m", "\033[31m", "\033[33m", "\033[90m", "\033[0m"
 if os.environ.get("NO_COLOR") or not sys.stdout.isatty():

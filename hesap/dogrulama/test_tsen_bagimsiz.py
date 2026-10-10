@@ -1,6 +1,6 @@
 """Bağımsız EN 81-50 sayısal denetimi, 2026-09-09.
 
-Çalıştırma: .venv/bin/python -m unittest testler.test_tsen_bagimsiz -v
+Çalıştırma: .venv/bin/python -m unittest dogrulama.test_tsen_bagimsiz -v
 Kaynak: https://liftescalatorlibrary.org/paper_indexing/papers/00000063.pdf
 Bu yayın standardın kendisi değildir; 2014 baskısını açıklayan örneklerdir.
 Tam TS baskısı doğrulaması yerine geçmez. Üretim kodunu değiştirmez.
@@ -15,7 +15,7 @@ from engine.uygulama import mukavemet as M
 from engine.uygulama import mukavemet_girdi as MG
 from engine.uygulama import mukavemet_tablolari as T
 from engine.uygulama import sabitler as U
-from testler.ortak import P_std
+from dogrulama.ortak import P_std
 
 
 class BagimsizDenetim(unittest.TestCase):

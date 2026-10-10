@@ -16,13 +16,9 @@ sarılma açısı LiftDesigner'ın veri bloğunda yok, varsayılanla hesaplanır
 
 import json
 import os
-import sys
 import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "testler")):
-    if _yol not in sys.path:
-        sys.path.append(_yol)
 
 from api import cizim as UC
 from api import uygulama as UYG
@@ -35,7 +31,7 @@ from cizim import sabitler as CS
 from engine.uygulama import girdi as E_UGR
 from engine.uygulama import hesap as E_UYG
 
-import gercek_projeler as GP
+from testler import gercek_projeler as GP
 
 CIZILENLER = ("4815-6", "1022", "1275", "800 KG")
 

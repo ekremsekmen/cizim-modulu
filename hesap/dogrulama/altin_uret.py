@@ -11,7 +11,7 @@ Refactor'da asıl risk onlar değil — uyarıların SIRASI, bir notun düşmesi
 bir adım satırının kaybolması gibi kimsenin assert etmediği şeylerdir.
 Altın çıktı bunların hepsini kilitler:  bir karakter değişirse test söyler.
 
-    python3 testler/altin_uret.py        → dosyayı YENİDEN ÜRETİR
+    python3 dogrulama/altin_uret.py        → dosyayı YENİDEN ÜRETİR
 
 Yeniden üretmek DAVRANIŞI DEĞİŞTİRME İZNİDİR.  Refactor sırasında ASLA
 çalıştırılmaz;  yalnız kasıtlı bir davranış değişikliğinden sonra, diff
@@ -24,7 +24,11 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import yollar
+
+yollar.kur()
 
 from engine.avan import hesap as AV
 from engine.avan import tablolar as T

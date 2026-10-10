@@ -40,19 +40,23 @@ import re
 import sys
 from collections import Counter, defaultdict
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+#  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import yollar
+
+yollar.kur()
 
 from engine.avan import hesap as AV
 from engine.avan import trafik as TR
 from engine.uygulama import mukavemet as MK
-from testler import test_mukavemet_tarama as T10
-from testler.altin_uret import (
+from dogrulama import test_mukavemet_tarama as T10
+from dogrulama.altin_uret import (
     avan_senaryolar,
     senaryolar,
     uygulama_motoru,
     uygulama_senaryolar,
 )
-from testler.ortak import Rapor
+from dogrulama.ortak import Rapor
 
 
 # =====================================================================

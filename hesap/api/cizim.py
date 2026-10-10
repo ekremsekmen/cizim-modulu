@@ -15,7 +15,6 @@ import functools
 import hashlib
 import json
 import os
-import sys
 import tempfile
 import threading
 from collections import OrderedDict
@@ -23,19 +22,14 @@ from collections import OrderedDict
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
-_KOK = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if _KOK not in sys.path:
-    #  SONA eklenir:  hesap programının kendi paketleri ( engine · api ·
-    #  testler ) önce bulunmalı — çizim modülünün de testler/ klasörü var.
-    sys.path.append(_KOK)
 
-from cizim import cizimler as CZ  # noqa: E402
-from cizim import geometri as CGE  # noqa: E402
-from cizim import kopru as CK  # noqa: E402
-from cizim import olcu_kaynagi as CO  # noqa: E402
-from cizim import pafta as CPF  # noqa: E402
-from cizim import sabitler as CS  # noqa: E402
-from cizim import svg as CSV  # noqa: E402
+from cizim import cizimler as CZ
+from cizim import geometri as CGE
+from cizim import kopru as CK
+from cizim import olcu_kaynagi as CO
+from cizim import pafta as CPF
+from cizim import sabitler as CS
+from cizim import svg as CSV
 
 router = APIRouter()
 

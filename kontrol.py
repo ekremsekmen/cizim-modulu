@@ -29,7 +29,7 @@ KOK = os.path.dirname(os.path.abspath(__file__))
 PY = sys.executable
 HESAP = os.path.join(KOK, "hesap")
 
-#  Hesap programının arayüz istemeyen testleri ( hesap/testler/calistir.py
+#  Hesap programının arayüz istemeyen testleri ( hesap/dogrulama/calistir.py
 #  numaraları ) ve arayüz testleri ( 8790'da açık program ister )
 HESAP_TESTLERI = ["1", "2", "3", "4", "6", "7", "8", "9", "10", "11", "12", "14"]
 ARAYUZ_TESTLERI = ["3", "5", "13", "6"]
@@ -53,7 +53,7 @@ def _kos(ad, komut, cwd=KOK, ortam=None):
 def hesap(numaralar, ortam=None):
     return _kos(
         "hesap testleri " + " ".join(numaralar),
-        [PY, os.path.join("testler", "calistir.py")] + numaralar,
+        [PY, os.path.join("dogrulama", "calistir.py")] + numaralar,
         cwd=HESAP,
         ortam=ortam,
     )
