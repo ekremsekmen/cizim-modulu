@@ -54,19 +54,26 @@ def _yeni_duzen(md, **ek):
 DUZENLER = {
     "örnek makine dairesiz": lambda: _veri(),
     "örnek makine daireli": lambda: _veri(True),
-    "kabin üstü 2:1": lambda: _yeni_duzen(False, aski_duzeni="Kabin üstü"),
+    #  xs −200:  çizimden gelen −250'de kasnaklar ve aralarındaki halat şasenin
+    #  üst kirişinin önünden ayrı bant olarak geçer, tavanda çömelme alanına yer
+    #  kalmaz ( test_kopru.test_kabin_ustu_kasnaklari_kirisin_onunde )
+    "kabin üstü 2:1": lambda: _yeni_duzen(False, aski_duzeni="Kabin üstü", aski_kaciklik_x=-200),
     "makine dairesinde 1:1": lambda: _yeni_duzen(True, aski_orani=1),
     "makine dairesinde 1:1, ağırlık arkada": lambda: _yeni_duzen(
         True, aski_orani=1, agirlik_yeri="Arka", kuyu_derinligi=2250, kabin_yana_kaciklik=0),
     #  Arkadaki ağırlıkla 2:1 ( kabin üstü, çapraz — arka_aski ):  örnek kuyu
     #  arkadaki ağırlığa göre derin;  makine dairesizde makine duvardan duvara
     #  kirişte ( bina yapısına ), kabin üstündeki makineye göre son kat yüksek.
+    #  Kabin 1.800 derin:  örneğin 1.400'lük kabininin tavanını şasenin üst
+    #  kirişi ( ray ekseninde ) ve çapraz halat dört parçaya böler, en büyüğü
+    #  604 × 607 — çömelme alanı ( 500 × 700 ) sığmaz ( 10 Eki'den beri ikisi
+    #  de engel );  1.800'de kirişin arkasında 746 kalır.
     "arkada 2:1 makine dairesiz": lambda: _yeni_duzen(
         False, agirlik_yeri="Arka", aski_duzeni="Kabin üstü", makine_raya_biniyor="Bina yapısına",
-        agirlik_ray_duvar=None, kuyu_derinligi=2100, son_kat_yuksekligi=5500),
+        agirlik_ray_duvar=None, kabin_derinligi=1800, kuyu_derinligi=2500, son_kat_yuksekligi=5500),
     "arkada 2:1 makine daireli": lambda: _yeni_duzen(
         True, agirlik_yeri="Arka", aski_duzeni="Kabin üstü", agirlik_ray_duvar=None,
-        kuyu_derinligi=2100),
+        kabin_derinligi=1800, kuyu_derinligi=2500),
     "formun varsayılanı": lambda: {"asansorler": [{}], "proje_geneli": {}, "sabitler": {},
                                    "asansor": 0},
 }
@@ -527,14 +534,16 @@ class Degistirilemeyen(unittest.TestCase):
         self.assertFalse(y["aktif"])
 
     def test_kiris_dogrularsa_o_kullanilir(self):
-        #  1275 kabin üstü:  sığınma alanının yeri 670 → 680 için kabin
-        #  1.440 → 1.500 doğrulanır ( doğrusal tahmin 1.450'de ölçü 655 kalır )
-        v = _gercek("1275")
+        #  1250 KG kabin üstü:  sığınma alanının yeri 295 → 305 için kabin
+        #  1.240 → 1.300 doğrulanır ( doğrusal tahmin 1.250'de alan 25 mm'lik
+        #  adımla kayar, ölçü 280 olur ).  10 Eki'ye dek örnek 1275'in 670'iydi:
+        #  çapraz halat engel olunca alan başka yere taşındı.
+        v = _gercek("1250 KG")
         r = UC._cozumleme(v, "kabin_ustu")
-        i = _olcu(r, "670")
-        y = _degistir(v, "kabin_ustu", i, r, "kabin_genisligi", "680")
+        i = _olcu(r, "295")
+        y = _degistir(v, "kabin_ustu", i, r, "kabin_genisligi", "305")
         self.assertEqual([(d["anahtar"], d["deger"]) for d in y["degisiklikler"]],
-                         [("kabin_genisligi", 1500)])
+                         [("kabin_genisligi", 1300)])
         self.assertTrue(y["dogrulandi"])
 
     def test_negatif_olcu(self):

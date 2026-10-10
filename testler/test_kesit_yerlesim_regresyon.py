@@ -26,10 +26,22 @@ def _girdi(values):
     return g
 
 
+#  Kesiti kurulmayan gerçek proje:  12495-18'in tavanında çömelme alanına yer
+#  yok ( çapraz halat — test_gercek_projeler.test_12495_18_kabin_ustu_siginma )
+KESITSIZ = {"12495-18"}
+
+
 class KesitYerlesimRegresyon(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.projeler = {ad: _girdi(v) for ad, v in GP.PROJELER.items()}
+
+    def _kesitli(self):
+        for ad, g in self.projeler.items():
+            Y = K.yerlesim(g)
+            self.assertEqual("M" not in Y, ad in KESITSIZ, (ad, Y.get("hata")))
+            if ad not in KESITSIZ:
+                yield ad, g, Y
 
     def test_yuksek_kabin_sase_cakismasi_api_ve_hesapta_reddedilir(self):
         values = {'kabin_ic_yuksekligi': 2500, 'son_kat_yuksekligi': 5000}
@@ -69,8 +81,7 @@ class KesitYerlesimRegresyon(unittest.TestCase):
                             self.assertGreaterEqual(beam['y'], roof - 1e-6)
 
     def test_agirlik_pateni_her_yonde_ray_yuzunu_kavrar(self):
-        for ad, g in self.projeler.items():
-            Y = K.yerlesim(g)
+        for ad, g, Y in self._kesitli():
             M, S = Y['M'], Y['S']
             raylar = [r for r in M['raylar'] if r['tur'] == 'agirlik']
             parcalar = CB.agirlik_patenleri(g, S, M['agirlik']['kutu'], raylar, -70, 70)
@@ -174,8 +185,8 @@ class KesitYerlesimRegresyon(unittest.TestCase):
             with self.subTest(v):
                 self.assertEqual((g['agirlik']['genislik'], g['agirlik']['ray_arasi']), (gy, dbgw))
                 self.assertEqual(E_UYG.hesapla(v)['girdi']['agirlik_genisligi'], gy)
-        for ad, g in self.projeler.items():
-            M = K.yerlesim(g)['M']
+        for ad, g, Y in self._kesitli():
+            M = Y['M']
             blok = M['agirlik']['kutu']
             eks = 0 if g['agirlik']['yeri'] == 'Arka' else 1
             for r in (r['kutu'] for r in M['raylar'] if r['tur'] == 'agirlik'):

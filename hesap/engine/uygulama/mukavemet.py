@@ -3279,6 +3279,7 @@ def _kuyu_tabani(g, o):
 def _siginma(g, o):
     from cizim import donanim as CDN
     from cizim import dusey as CDU
+    from cizim import hareketli as CH
     from cizim import kopru as CK
     O, v = o["ofis"], o["v"]
     tip_ust = g.get("siginma_tipi_ust") or "Çömelme"
@@ -3401,20 +3402,23 @@ def _siginma(g, o):
     ad.append(veri("", f"Kuyu dibinde sığınma alanı — beyan edilen duruş :  {tip_dip}",
                    alan(Y["KD"]["siginma"]), "",
                    "ÇİZİM  ·  kabinin izinin altında, tampon / gergi / merdiven dışında"))
-    for ad_ara, et in (("siginma", "Kuyu tabanı / sığınma alanının üstündeki kabin"),
-                       ("en_alt", "Kuyu tabanı / kabinin en alt kısmı"),
+    de = Y["dip_engel"]                       # ölçünün alındığı kabin parçası
+    for ad_ara, et in (("siginma", f"Kuyu tabanı / sığınma alanının üstündeki kabin ( {de['siginma']} )"),
+                       ("en_alt", f"Kuyu tabanı / kabinin en alt kısmı ( {de['en_alt']} )"),
                        ("etek", "Kuyu tabanı / kabin eteği"),
                        ("sase", "Kuyu tabanı / şase, paten, fren bloğu ( raya yakın )")):
         deger, asgari, madde = da[ad_ara]
         satir(et, deger, asgari, madde, {"siginma": "dip_siginma", "en_alt": "kuyu_tabani_kabin",
                                          "etek": "etek", "sase": "ray_kabin_alt"}[ad_ara])
     #  m.5.2.5.8.2 b:  kuyuya sabit parça ( regülatör gergisi ) kabinin
-    #  izdüşümündeyse kabinin en alt kısmıyla arası en az 0,30 m
+    #  izdüşümündeyse kabinin üstündeki en alt kısmıyla arası en az 0,30 m
+    #  ( kabinin parçaları — cizim/hareketli;  eskiden platformun altı )
     gr = Y["M"]["gergi"]
     kabin_izi = Y["KU"]["tavan"]
     if CDN._ortusur(gr["plan"], kabin_izi):
-        satir("Regülatör gergi kasnağı / kabinin en alt kısmı",
-              dip["taban_alti"] - (gr["merkez"] + gr["cap"] / 2.0), SIGINMA["min_regulator"],
+        z_, ad_ = CH.ustundeki_en_alt(Y["dip_parcalar"], gr["plan"], (dip["taban_alti"], CH.KABIN))
+        satir(f"Regülatör gergi kasnağı / kabinin en alt kısmı ( {ad_} )",
+              z_ - (gr["merkez"] + gr["cap"] / 2.0), SIGINMA["min_regulator"],
               "m.5.2.5.8.2 b", "regulator_kabin")
     else:
         ad.append(metin("Regülatör gergi kasnağı kabinin izdüşümünde değil — m.5.2.5.8.2 b'nin "

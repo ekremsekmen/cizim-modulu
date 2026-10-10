@@ -193,8 +193,8 @@ def coz(kur, taban, i, kimlik, deger, egim, hedef, serbest=False, dogrusal=False
     bölünmüş, toplamları hedefse doğrusal tahmin döner ( bolundu ).  Değilse
     ( sığınma alanı 25 mm'lik adımla kayar:  1 mm'de doğrusal görünen ölçü
     20 mm'de başka yere atlar ) değer yoktur — çağıran reddeder.  Kiriş yöntemi
-    hedefi DOĞRULARSA o kullanılır ( 1275'te kabin üstündeki 670 → 680 için
-    kabin 1.440 → 1.500;  doğrusal tahmin 1.450'de ölçü 655 kalır ).
+    hedefi DOĞRULARSA o kullanılır ( 1250 KG'de kabin üstündeki 295 → 305 için
+    kabin 1.240 → 1.300;  doğrusal tahmin 1.250'de ölçü 280 olur ).
     Döner:  { deger , olcu ( ulaşılan ) , dogrulandi , bolundu }."""
     u0 = taban[i]["uzunluk"]
     if abs(hedef - u0) <= DOGRULAMA:

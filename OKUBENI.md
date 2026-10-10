@@ -385,6 +385,7 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/geometri.py` | Girdiden **çizim elemanları** üretir ( saf veri ) — kuyu planı |
 | `cizim/kabin_ustu.py` | Kabin üstü planı:  kuyu planının elemanlarını okur, tavanı ekler |
 | `cizim/kuyu_dibi.py` | Kuyu dibi planı:  tamponlar, perde, gergi, sığınma alanı, merdiven |
+| `cizim/hareketli.py` | Kabinin ve karşı ağırlığın parçaları ( plandaki iz + alt / üst kot ) — sığınma, açıklık ve çarpışma denetimleri buradan okur |
 | `cizim/kapi_kesiti.py` | Kapı yan kesiti ( 1/20 ):  kasa, üst kutu, eşik ve konsolu, eşik altı sacı, kabin eşiği, önlük |
 | `cizim/kuyu_ustu.py` | Kuyu üstü planı ( MRL ):  makine, halat bağlantıları, regülatör, acil pano |
 | `cizim/makine_dairesi.py` | Makine dairesi planı + döşeme halat delik planı |
@@ -717,7 +718,7 @@ Standarttan hesaplananlar:
 | Küpeşte kuyudaki parçalardan **≥ 0,10 m** | m.5.4.7.4 d | Gerekirse kenardan içeri alınır, ölçüsü yazılır |
 | Küpeşte kenardan **≤ 0,15 m** içeride | m.5.4.7.4 c | Aşılırsa çizim reddedilir |
 | Yükseklik:  küpeşte – duvar **≤ 0,50 m → 0,70 m**, aşarsa **1,10 m** | m.5.4.7.4 b | Küpeştenin yanına yazılır |
-| Sığınma alanı **0,40 × 0,50** ( dik duruş ) / **0,50 × 0,70** ( çömelme ) | m.5.2.5.7.1 · Çizelge 3 | Korkulukların içinde, operatör, askı ve ( kabin altı / doğrudan askıda ) şasenin üst kirişi dışında, kapıya en yakın yere konur ( 25 mm adımla;  dar boşlukta engelin kenarına yaslanarak );  yer yoksa reddedilir |
+| Sığınma alanı **0,40 × 0,50** ( dik duruş ) / **0,50 × 0,70** ( çömelme ) | m.5.2.5.7.1 · Çizelge 3 | Korkulukların içinde, operatör, şasenin üst kirişi, kasnaklar ve aralarındaki halat ( `hareketli.kabin_parcalari` ) dışında, kapıya en yakın yere konur ( 25 mm adımla;  dar boşlukta engelin kenarına yaslanarak );  yer yoksa reddedilir |
 
 Kabin kapısı operatörü **çizilmez** ( LiftDesigner 1022 X-X da çizmez;  kullanıcı
 kararı 5 Eki ), yerleşimde engeldir:  enine kanatların yolu ( kapı + cep, dar
@@ -792,7 +793,7 @@ Tam proje örneği değerleri hesap motorundan okur.
 | Karşı ağırlık perdesi, en az ağırlık genişliğinde | m.5.2.5.5.1 d | Ağırlık rayları arasının tamamı boyunca, ağırlığın kuyuya bakan yüzünde |
 | Perde ucu ile duvar arası 0,30 m'yi aşarsa o bölge de korunur | m.5.2.5.5.1 e | Perde o yanda duvara ya da araya giren ilk sabit parçaya ( konsol, kabin rayı, tampon, gergi, en alt durağın kapı ünitesi ) uzar;  perde ile duvar arasında kalan bölgede merdiven durmaz.  Eskiden perde rayların hizasında bitiyordu:  54 standart düzenin 50'sinde ucu ile duvar arası 340 – 365 mm kalıyordu |
 | Kabin ile karşı ağırlık arası **≥ 50 mm** | m.5.2.5.5.1 h | Kuyu planının doğrulamasında ( önce 20 mm'lik bir çizim kalkanıydı ) |
-| Sığınma alanı **0,40 × 0,50** / **0,50 × 0,70** / **0,70 × 1,00** | m.5.2.5.8.1 · Çizelge 4 | Önce kabinin izinin altında, tampon / gergi / merdiven ve kabin altı kasnaklarıyla aralarındaki halat dışında, kapıya en yakın yere;  sığmazsa kuyu tabanının başka yerinde ( madde yalnız "kuyu tabanında" der ), karşı ağırlığın şeridine girmeden.  25 mm'lik ızgaraya sığmayan dar boşlukta alan engelin kenarına yaslanır |
+| Sığınma alanı **0,40 × 0,50** / **0,50 × 0,70** / **0,70 × 1,00** | m.5.2.5.8.1 · Çizelge 4 | Önce kabinin izinin altında, tampon / gergi / merdiven, kabin altı kasnaklarıyla aralarındaki halat ve sığınma yüksekliğine inen kabin parçaları ( alt şase kirişi … ) dışında, kapıya en yakın yere;  sığmazsa kuyu tabanının başka yerinde ( madde yalnız "kuyu tabanında" der ), karşı ağırlığın şeridine girmeden.  25 mm'lik ızgaraya sığmayan dar boşlukta alan engelin kenarına yaslanır |
 | Kuyu dibi **≤ 2,50 m** ise merdiven, aşarsa erişim kapısı | m.5.2.2.4 | Merdiven yalnız 2,50 m'ye kadar çizilir |
 | Merdiven kat girişinin kenarına **≤ 800 mm** | Ek F.5 b | Kapıya yakın yan duvara yaslanır;  yan duvar uzaksa ön duvara, kapının yanına ( kapıdan 25 mm adımla en çok 800 );  ikisi de olmazsa reddedilir.  Ölçüsü 350 × 100 ( Ek F.3 ) |
 
@@ -933,8 +934,32 @@ yüksek korkuluk bütün kenarlara uygulanıyordu;  yan panolar incelince gereke
 ( m.5.2.5.7.2 ):  makine dairesizde makine şasesi, kabin ve ağırlık halat
 bağlantıları, regülatör.  Her açıklık kendi üstündeki en alçak parçaya
 ölçülür ( `donanim.tavan_engeli` );  örnekte paten ve korkuluk şaseye,
-sığınma kuyu tavanına gider.  Karşı ağırlık en üst konumunda ( kabin tam
-ezilmiş tamponunda + 0,035·v² ) makine şasesine çarpıyorsa çizim durur.
+sığınma kuyu tavanına gider.
+
+**Hareketli parçalar tek tanımdan** ( `cizim/hareketli.py`, 10 Eki ):  kabinin
+ve karşı ağırlığın her parçası ( kabin tabanı, şasenin alt / üst kirişi,
+dikmeler, patenler, fren bloğu, kasnaklar ve aralarındaki halat — çapraz
+düzende çapraz şerit —, 1:1 halat bağlantısı;  ağırlığın çerçevesi, patenleri,
+kasnağı ) plandaki izi ve alt / üst kotuyla.  Sığınma alanları, açıklıklar ve
+çarpışmalar bu listeden okunur:  kuyu dibinde alan, sığınma yüksekliğine inen
+parçaların ( alt şase kirişi … ) dışında aranır, yüksekliği üstündeki en alçak
+parçaya ölçülür ( hesapta parçanın adı yazılır );  "kabinin en alt kısmı"
+şasenin alt kirişini de sayar ( raya yakın patenler ve fren bloğu ayrı —
+m.5.2.5.8.2 a 2 );  kabin üstünde şasenin üst kirişi, kasnaklar ve aralarındaki
+halat her askıda engeldir.  Karşı ağırlık en üst konumunda ( kabin tam
+ezilmiş tamponunda + 0,035·v² ) her parçası izinin üstündeki en alçak tavan
+parçasının ( makine şasesi, bağlantılar, tavan kirişi payı ) altında, tamponu
+tam ezilmişken kuyu tabanının üstünde kalmalı;  kalmazsa çizim durur, bölüm 11
+UYGUN DEĞİL der.  Eskiden kuyu dibinde yalnız kabin altı kasnakları, kabin
+üstünde yalnız kasnak kutuları sayılıyor, karşı ağırlığın yalnız makine
+dairesizde makine şasesine çarpması denetleniyordu ( denetim 8–10 Eki:  alt
+kiriş sığınma alanının üstünde, çapraz halat kabin üstündeki alanın içinde,
+ağırlığın kasnağı tavanda, alt pateni tabanın altında — hepsi UYGUN çıkıyordu ).
+Sonuç:  arkadaki ağırlıkla 2:1'de ( çapraz kasnaklar ) standart kabinlerden
+320, 450 ve 630 kg'ınkilerin ( 1.100 × 1.400'e kadar ) tavanında çömelme
+alanına yer kalmaz;  kabin üstü askıda kasnaklar kirişten
+ayrı bir bantta kalırsa ( askı noktası ray ekseninden uzak ) tavan dar
+şeritlere bölünebilir.
 
 **Kuyu dibi zinciri kabinle kapanmalı:**  kaide + tampon + çarpma arası +
 şase altı = kuyu dibi ( referans proje:  764 + 160 + 96 + 480 = 1.500 );  tutmazsa
@@ -1064,7 +1089,8 @@ uzak kabin rayı ( makine dairelide bütün raylar ) çizgiye tam değiyordu.
 programının **tabliyesidir** ( `makine_dairesi.tabliye` ):  kuyunun üstünü kuyu
 döşemesi kalınlığında beton kapatır, makine, bağlantılar ve regülatör onun
 üstündedir;  oda zemini tabliyenin üstünden `tabliye_yuksekligi` ( "Tabliye
-beton yüksekliği" ) kadar aşağıdadır — LiftDesigner'ın makine daireli üç
+beton yüksekliği";  zemin tabliyeyle aynı hizadaysa 0 — köprü 10 Eki'ye dek
+reddediyordu ) kadar aşağıdadır — LiftDesigner'ın makine daireli üç
 projesi ( 1022 · 1275 · 800 KG ):  tabliye 1.200 zeminden, döşeme 120, en üst
 durak + son kat = kuyu tavanı = zemin + 1.200 − 120.  Kesitte "TABLİYE" ölçüsü
 zeminden tabliyenin üstüne;  oda zemini yalnız kuyunun dışında.  Kumanda

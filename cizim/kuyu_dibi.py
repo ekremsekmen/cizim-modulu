@@ -34,6 +34,8 @@ from cizim import sabitler as CS
 #  TS EN 81-20 Çizelge 4 — kuyu dibi sığınma alanının yatay ölçüleri ( mm ).
 #  Adlar hesap programının "Kuyu dibi sığınma hacmi tipi" seçenekleriyle aynı.
 SIGINMA = {"Dik duruş": (400.0, 500.0), "Çömelme": (500.0, 700.0), "Yatarak": (700.0, 1000.0)}
+#  ve yüksekliği ( mm ) — dusey açıklığı bununla ölçer
+SIGINMA_YUKSEKLIK = {"Dik duruş": 2000.0, "Çömelme": 1000.0, "Yatarak": 500.0}
 #  m.5.2.2.4:  kuyu dibi 2,50 m'yi aşarsa erişim kapısı gerekir;  aşmıyorsa
 #  kuyu içinde merdiven yeterlidir.
 MERDIVEN_AZAMI_DERINLIK = 2500.0
@@ -53,6 +55,10 @@ _PLANDAN_KATMAN = ("TARAMA", "KUYU-DUVAR", "KUYU-IC", "RAY", "KONSOL", "CIVATA",
 
 def _kutu(el):
     return (el["x"], el["y"], el["x"] + el["g"], el["y"] + el["d"])
+
+
+def _sayi(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
 def _ortusur(a, b, pay=0.0):
@@ -307,6 +313,29 @@ def kabin_alti_askisi(g, S, taban):
                       max(k[2] for k in kasnak), max(k[3] for k in kasnak))]
 
 
+def sarkan_parcalar(g, S, taban, yukseklik):
+    """Kabin tam ezilmiş tamponundayken kuyu tabanının `yukseklik` üstüne
+    inen kabin parçalarının plan kutuları ( kabinin gövdesi hariç:  alan onun
+    altında aranır, yüksekliğini dusey ölçer ).  Alt şase kirişi, patenler,
+    fren bloğu … — hareketli.kabin_parcalari.  Eskiden yalnız kabin altı
+    kasnakları sayılıyordu:  1275 kg'lık 2000 × 1400 kabinde, kuyu dibi 1400,
+    alan alt kirişin altına düşüyor, kirişin altı tabandan 940 iken sığınma
+    1.110 ( platformun altı ) ölçülüyordu.  Düşey girdi eksikse boş liste."""
+    from cizim import arka_aski as CAA
+    from cizim import donanim as CDN
+    from cizim import hareketli as CH
+    dy = g.get("dusey") or {}
+    gerekli = ("kabin_carpma_arasi", "kabin_tampon_ezilme", "kabin_ic_yukseklik", "kabin_paten_arasi")
+    kd = g.get("kuyu_dibi") or {}
+    if not (all(_sayi(dy.get(k)) for k in gerekli) and _sayi(kd.get("derinlik"))):
+        return []
+    kt = CDN.kabin_kotlari(dy, S, -(dy["kabin_carpma_arasi"] + dy["kabin_tampon_ezilme"]),
+                           g.get("aski"), CAA.arkada_iki_bir(g))
+    sinir = -kd["derinlik"] + yukseklik
+    return [k for ad, k, alt, _ in CH.kabin_parcalari(g, S, taban, kt)
+            if ad != CH.KABIN and alt < sinir - 1e-9]
+
+
 def _perdeyi_uzat(perde, ag_yan, G, D, engeller):
     """Perdeyi iki ucunda, boşluk PERDE_BOSLUGU_AZAMI'yı aşıyorsa duvara ya da
     araya giren ilk engele uzatır.  →  ( perde, korunan bölgeler [ kutu ] ):
@@ -550,14 +579,15 @@ def yerlesim(g, cizim_sabitleri=None):
     #  Kabinin izinin altında ( yüksekliği kabinin altına göre hesaplanır ),
     #  sabit donanıma basmadan, kapıya ve kabin eksenine en yakın yere.
     #  Kabin altı askıda kasnaklar ve aralarındaki halat kabinin tabanından
-    #  aşağıdadır:  alan önce onların altına düşmeyen yerde aranır ( yoksa
-    #  onların altında — yüksekliği düşey kesit denetler ).  Eskiden kasnak
+    #  aşağıdadır;  alt şase kirişi, patenler, fren bloğu da alanın yüksekliğine
+    #  inebilir ( sarkan_parcalar ):  alan önce onların altına düşmeyen yerde
+    #  aranır ( yoksa onların altında — yüksekliği düşey kesit denetler ).  Eskiden kasnak
     #  planda hiç engel sayılmıyordu:  alan kapıya yakın diye kasnağın köşesine
     #  giriyor, kasnaktan birkaç santim ötede tam yükseklik varken proje
     #  "sığınma yüksekliği 945 < 1000" diye reddediliyordu.
     tip = kd["siginma_tipi"]
     engel = sabit + ([merdiven] if merdiven else [])
-    alcak = kabin_alti_askisi(g, S, taban)
+    alcak = kabin_alti_askisi(g, S, taban) + sarkan_parcalar(g, S, taban, SIGINMA_YUKSEKLIK[tip])
     siginma = None
     #  Kabinin altında yer yoksa kuyu tabanının başka bir yeri:  m.5.2.5.8.1
     #  yalnız "kuyu tabanında engelsiz bir alan" ister ( kabinin izinin dışında

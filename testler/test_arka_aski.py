@@ -25,10 +25,15 @@ from cizim import sabitler as CS                          # noqa: E402
 from engine.uygulama import girdi as UG                   # noqa: E402
 from engine.uygulama import hesap as UY                   # noqa: E402
 
-#  12495-18'e yakın bir asansör ( kuyu 1.750 × 1.950, kabin 1.100 × 1.100 )
+#  12495-18'in düzeni ( çapraz kasnaklar, makine duvardan duvara ), kabin
+#  1.350 × 1.400 ( 800 kg'ın standart kabini ):  12495-18'in 1.100 × 1.100
+#  tavanını çapraz halat ( tavanın 80 üstünde ) ikiye böler, iki yarıda da
+#  çömelme alanına yer kalmaz — 10 Eki'den beri halat engel
+#  ( test_kucuk_tavanda_capraz_halat_siginmayi_boler ).  Kuyu kabinden yine
+#  650 geniş, 850 derin.
 ARKA = {"agirlik_yeri": "Arka", "aski_orani": 2, "aski_duzeni": "Kabin üstü",
-        "kuyu_genisligi": 1750, "kuyu_derinligi": 1950, "kabin_genisligi": 1100,
-        "kabin_derinligi": 1100, "kapi_genisligi": 800, "beyan_yuku": 800,
+        "kuyu_genisligi": 2000, "kuyu_derinligi": 2250, "kabin_genisligi": 1350,
+        "kabin_derinligi": 1400, "kapi_genisligi": 800, "beyan_yuku": 800,
         "makine_raya_biniyor": "Bina yapısına", "son_kat_yuksekligi": 4500}
 MD = {"mk_yok": False, "mk_uzunluk": 3800, "mk_genislik": 2600}
 
@@ -81,6 +86,28 @@ class Geometri(unittest.TestCase):
         self.assertGreaterEqual(G["ey"] - ag["derinlik"] / 2.0 - kabin_arka, 50.0)
         #  Arka kasnak korkuluğun yolunu kesmez
         self.assertEqual(CKUS.dogrula(g), [])
+
+
+    def test_kucuk_tavanda_capraz_halat_siginmayi_boler(self):
+        #  12495-18'in 1.100 × 1.100 kabini:  kasnaklar arasındaki çapraz halat
+        #  tavanın 80 mm üstünden geçer ( hareketli.kabin_parcalari ), şasenin
+        #  üst kirişi de ray ekseninde;  çömelme alanı ( 500 × 700 × 1.000 )
+        #  hiçbir parçaya sığmaz.  10 Eki'ye dek halat sayılmıyor, alan halatın
+        #  üstüne konuyordu ( denetim 9 Eki ).
+        A = _girdi(kuyu_genisligi=1750, kuyu_derinligi=1950, kabin_genisligi=1100,
+                   kabin_derinligi=1100)
+        g, _h = CK.cizim_girdisi(A)
+        Y = CKUS.yerlesim(g)
+        self.assertIsNone(Y["siginma"])
+        self.assertTrue(any("aralarındaki halat" in h for h in Y["hata"]), Y["hata"])
+        #  Halat şeridi gerçekten tavanın üstünde ve alanın yüksekliğinde
+        from cizim import donanim as CDN, hareketli as CH
+        S = CS.sabitler(g.get("_cizim_sabitleri"))
+        kt = CDN.kabin_kotlari(g["dusey"], S, 0.0, g["aski"], True)
+        halat = [p for p in CH.kabin_parcalari(g, S, Y["taban"], kt) if p[0] == CH.HALAT]
+        self.assertTrue(halat)
+        self.assertAlmostEqual(halat[0][2] - kt["tavan"], S["kabin_tavani_kasnak_boslugu"])
+        self.assertTrue(any(CH.ortusur(p[1], Y["tavan"]) for p in halat))
 
 
 class Cizimler(unittest.TestCase):
@@ -149,7 +176,7 @@ class Dusey(unittest.TestCase):
         self.assertAlmostEqual(M["kapak"][5], M["tavan"] - S["makine_tepe_boslugu"])
 
     def test_son_kat(self):
-        #  1.100 × 1.100, ofisin kabini ( 2.000 ):  4.260'ta yalnız arkadaki 1,10
+        #  1.350 × 1.400, ofisin kabini ( 2.000 ):  4.260'ta yalnız arkadaki 1,10
         #  m'lik korkuluk kirişe yakın ( m.5.2.5.7.2 c ), 4.270'te hepsi uygun.
         for son_kat, kalan in ((4260, ["korkuluk"]), (4270, [])):
             _A, g, _S = _cizim(son_kat_yuksekligi=son_kat)

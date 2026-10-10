@@ -193,7 +193,9 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
     S = CS.sabitler(ozel)
     hata = []
 
-    def sayi(anahtar, etiket=None, bos=False, isaretli=False):
+    def sayi(anahtar, etiket=None, bos=False, isaretli=False, sifir=False):
+        """sifir:  0 geçerli ( ör. tabliye yüksekliği — zemin tabliyeyle aynı
+        hizada ),  negatif değil."""
         v = A.get(anahtar) if anahtar not in ALAN else _varsayilan(A, anahtar)
         et = etiket or (ALAN[anahtar][1] if anahtar in ALAN else anahtar)
         if v is None and bos:
@@ -201,8 +203,9 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         if not _sayi(v):
             hata.append(f"{et}:  girilmemiş." if _bos(v) else f"{et}:  sayı olmalı ( {v!r} ).")
             return None
-        if not isaretli and v <= 0:
-            hata.append(f"{et}:  sıfırdan büyük olmalı ( {v:g} ).")
+        if not isaretli and (v < 0 if sifir else v <= 0):
+            hata.append(f"{et}:  " + ("negatif olamaz" if sifir else "sıfırdan büyük olmalı")
+                        + f" ( {v:g} ).")
             return None
         return float(v)
 
@@ -441,7 +444,8 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
                 "kapi_duvar": secim("md_kapi_duvar"), "kapi_konum": sayi("md_kapi_konum"),
                 "kapi_genislik": sayi("md_kapi_genislik"), "pano_duvar": secim("md_pano_duvar"),
                 "yukseklik": sayi("md_yukseklik"), "kapi_yukseklik": sayi("md_kapi_yukseklik"),
-                "tabliye_yuksekligi": sayi("tabliye_yuksekligi", "Tabliye beton yüksekliği"),
+                "tabliye_yuksekligi": sayi("tabliye_yuksekligi", "Tabliye beton yüksekliği",
+                                           sifir=True),
                 "sase_yuksekligi": sayi("sase_yuksekligi", "Şase yüksekliği"),
                 "dikine_kiris": secim("dikine_kiris", "E  ( dikine kiriş ölçüsü )", CMK.NPU)}
     if hata:

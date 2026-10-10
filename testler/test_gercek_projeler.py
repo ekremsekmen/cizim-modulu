@@ -67,26 +67,30 @@ class GercekProjeler(unittest.TestCase):
                 self.assertTrue(cizim["aktif"], cizim.get("hata"))
                 self.assertEqual(b11, "UYGUNDUR.")
 
-    def test_12495_18_korkuluk(self):
-        """12495-18 ( makine dairesiz, ağırlık arkada, 2:1 kabin üstü ) — ret:
-        arkadaki 1,10 m korkuluğun küpeştesi makine kirişine 230 ( en az 300,
-        m.5.2.5.7.2 c ).  LiftDesigner korkuluğu denetlemiyor;  kendi kesitinde
-        kiriş 3.650'de, kabin tepesi 2.000 — onun ölçüleriyle de küpeşte kirişe
-        275 kalır.  Son kat 4.270 olunca çizilir."""
+    def test_12495_18_kabin_ustu_siginma(self):
+        """12495-18 ( makine dairesiz, ağırlık arkada, 2:1 kabin üstü çapraz ) — ret:
+        1.100 × 1.100'lük tavanı kasnaklar arasındaki çapraz halat ( tavanın 80
+        üstünde;  LiftDesigner'ın kesitinde de kasnaklar 2.080 – 2.320, tavan 2.000 )
+        köşegen boyunca ikiye böler:  kenarları ~1.100 olan dik üçgene sığan en
+        büyük dikdörtgen ~550 × 550, çömelme alanı 500 × 700 sığmaz ( ray
+        ekseninden geçen şasenin üst kirişi de ayrıca böler ).  LiftDesigner
+        kabin üstü planını çizmiyor.  10 Eki'ye dek halat engel sayılmıyordu,
+        tek ret arkadaki 1,10 m korkuluğun makine kirişine 230 ( en az 300,
+        m.5.2.5.7.2 c ) olmasıydı;  son kat 4.270 olunca çiziliyordu — artık son
+        kat yetse de çizilmez."""
         cizim, _g, b11 = self.S["12495-18"]
         self.assertFalse(cizim["aktif"])
-        self.assertEqual(cizim["hata"],
-                         ["Korkuluk – kuyu tavanı:  230 mm < 300 mm  ( TS EN 81-20 m.5.2.5.7.2 c )."])
-        self.assertEqual(b11, "UYGUN DEĞİLDİR — Korkuluk / kuyu tavanının en alt kısmı "
-                              "( makine şasesi )  ( 230 < 300 mm )")
-        for son_kat, hata in ((4260, ["Korkuluk – kuyu tavanı:  290 mm < 300 mm  "
-                                      "( TS EN 81-20 m.5.2.5.7.2 c )."]), (4270, None)):
+        self.assertEqual(len(cizim["hata"]), 1)
+        self.assertIn("Kabin tavanında çömelme tipi sığınma alanına", cizim["hata"][0])
+        self.assertIn("kasnaklar ve aralarındaki halat", cizim["hata"][0])
+        self.assertTrue(b11.startswith("HESAP EKSİK — kuyunun çizimi kurulamadı:  Kabin tavanında"))
+        for son_kat in (4260, 4270, 6000):
             a = dict(GP.PROJELER["12495-18"], son_kat_yuksekligi=son_kat)
             pg = {k: a.pop(k) for k in list(a) if k in UYG.PROJE_GENELI_ALANLAR}
             d = json.loads(UC.api_cizimler({"asansorler": [a], "proje_geneli": pg,
                                             "sabitler": {}, "asansor": 0}).body)
             with self.subTest(son_kat=son_kat):
-                self.assertEqual(d.get("hata"), hata)
+                self.assertEqual(d.get("hata"), cizim["hata"])
 
     def test_1250_kg_son_kat_dusuk(self):
         """1250 KG ( makine dairesiz, 2:1 kabin altı, son kat 3.400 ) — ret:  kuyu
@@ -97,8 +101,9 @@ class GercekProjeler(unittest.TestCase):
         cizim, _g, b11 = self.S["1250 KG"]
         self.assertFalse(cizim["aktif"])
         self.assertEqual(cizim["hata"], [
-            "Karşı ağırlık en üst konumunda makine şasesine çarpıyor:  tepesi 2775 mm, "
-            "şasenin altı 2665 mm ( son kattan ).",
+            "Karşı ağırlık en üst konumunda tavana çarpıyor:  karşı ağırlığın üst pateni tepesi "
+            "2775 mm, üstündeki en alt tavan kısmı ( makine şasesi ) 2665 mm ( son kattan )  "
+            "( ayrıca karşı ağırlık çerçevesi, karşı ağırlık kasnağı ).",
             "Sığınma yüksekliği:  915 mm < 1000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 ).",
             "Üst paten – kuyu tavanı:  -50 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 b ).",
             "Üst paten – rayın üst ucu:  35 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 ).",
@@ -107,7 +112,7 @@ class GercekProjeler(unittest.TestCase):
         self.assertTrue(b11.startswith("UYGUN DEĞİLDİR — Sığınma alanı / üstündeki en alt kısım "
                                        "( kuyu tavanı )  ( 915 < 1.000 mm )"))
         for parca in ("( -50 < 100 mm )", "( -370 < 100 mm )", "( 35 < 100 mm )", "( -25 < 100 mm )",
-                      "makine şasesine çarpıyor"):
+                      "tavana çarpıyor"):
             self.assertIn(parca, b11)
 
     def test_halat_inisleri_projeyle(self):

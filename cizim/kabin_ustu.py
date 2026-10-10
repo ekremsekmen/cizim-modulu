@@ -30,6 +30,8 @@ from cizim import sabitler as CS
 #  Adlar hesap programının "Kabin üstü sığınma hacmi tipi" seçenekleriyle
 #  aynıdır;  köprü değeri olduğu gibi taşır.
 SIGINMA = {"Dik duruş": (400.0, 500.0), "Çömelme": (500.0, 700.0)}
+#  ve yüksekliği ( mm ) — dusey açıklığı bununla ölçer
+SIGINMA_YUKSEKLIK = {"Dik duruş": 2000.0, "Çömelme": 1000.0}
 
 #  TS EN 81-20 m.5.4.7.2 b:  tavan kenarından kuyu duvarına yatay boşluk
 #  0,30 m'yi AŞARSA korkuluk gerekir.
@@ -216,24 +218,27 @@ def yerlesim(g, cizim_sabitleri=None):
                             "kesiyor — kasnak aralığını daraltın.")
                 break
 
-    #  Şasenin üst kirişi tavanın üstünden, ray ekseninde geçer ( dikmeden
-    #  dikmeye, kuyu planındaki zarfı ):  sığınma hacmi ( çömelmede 1,0 m
-    #  yüksek ) onun altına giremez — kullanıcı kararı 4 Eki;  eskiden alan
-    #  kirişin altına giriyordu ( 1022 ve 800 KG'de tamamen ).  Yalnız kabin
-    #  altı ve doğrudan askıda:  kabin üstü askıda kasnaklar askı ekseninde,
-    #  kiriş ray ekseninde iki ayrı bant olur ve tavanı dar şeritlere böler
-    #  ( gerçekte kasnaklar kirişin üstüne oturur — model ikisini ayrı tutuyor;
-    #  kasnaklar kirişe alınınca kural oraya da uygulanır ).  Korkuluk
-    #  denetimi ( yukarıda ) kirişi saymaz:  küpeşte kirişin üstünden geçer.
-    kiris = [_kutu(el) for el in taban if el.get("ad") == "sase_kiris"]
-    if kiris and duzen in ("Kabin altı", "Doğrudan"):
-        engeller.append((min(k[0] for k in kiris), min(k[1] for k in kiris),
-                         max(k[2] for k in kiris), max(k[3] for k in kiris)))
+    #  KABİNİN TAVANIN ÜSTÜNDEKİ PARÇALARI ( hareketli.kabin_parcalari ):
+    #  sığınma hacmi ( çömelmede 1,0 m yüksek ) onların altına giremez —
+    #  şasenin üst kirişi ( ray ekseninde, dikmeden dikmeye;  kullanıcı kararı
+    #  4 Eki ), kasnaklar ve aralarındaki halat ( çapraz düzende çapraz şerit ),
+    #  1:1 halat bağlantısı.  Eskiden kiriş yalnız kabin altı ve doğrudan
+    #  askıda sayılıyor, kasnaklar arasındaki halat hiç sayılmıyordu:  arkadaki
+    #  ağırlıkla 2:1'de halat tavanın 80 mm üstünden alanın içinden geçiyordu
+    #  ( denetim 9 Eki ).  Korkuluk denetimi ( yukarıda ) bunları saymaz:
+    #  küpeşte kirişin ve halatın üstünden geçer.
+    from cizim import arka_aski as CAA
+    from cizim import donanim as CDN
+    from cizim import hareketli as CH
+    tip = (g.get("kabin_ustu") or {}).get("siginma_tipi")
+    kt = CDN.kabin_kotlari(g["dusey"], S, 0.0, g.get("aski"), CAA.arkada_iki_bir(g))
+    sinir = kt["tavan"] + SIGINMA_YUKSEKLIK.get(tip, max(SIGINMA_YUKSEKLIK.values()))
+    engeller += [k for ad, k, alt, ust in CH.kabin_parcalari(g, S, taban, kt)
+                 if ad != CH.KABIN and ust > kt["tavan"] + 1e-9 and alt < sinir - 1e-9]
 
     #  ── SIĞINMA ALANI  ( Çizelge 3 ) ──────────────────────────────────
     #  Kapıya en yakın, sonra kabin eksenine en yakın boş yer aranır:  bakımcı
     #  tavana kapıdan çıkar.
-    tip = (g.get("kabin_ustu") or {}).get("siginma_tipi")
     siginma = None
     if tip not in SIGINMA:
         hata.append(f"kabin_ustu.siginma_tipi: {tuple(SIGINMA)} içinden olmalı ( {tip!r} ).")
@@ -252,11 +257,9 @@ def yerlesim(g, cizim_sabitleri=None):
             a, b = SIGINMA[tip]
             hata.append(f"Kabin tavanında {tip.lower()} tipi sığınma alanına ( {a:g} × {b:g} mm, "
                         "TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı "
-                        + ("operatörü, şasenin üst kirişi ( ray ekseninde "
-                           f"{S['sase_dikme_derinlik']:g} mm — Sabitler:  kabin şasesi dikmesinin "
-                           "kesitteki eni ) ve askı elemanları"
-                           if duzen in ("Kabin altı", "Doğrudan") else "operatörü ve askı elemanları")
-                        + " dışında kalmalı.")
+                        "operatörü, şasenin üst kirişi ( ray ekseninde "
+                        f"{S['sase_dikme_derinlik']:g} mm — Sabitler:  kabin şasesi dikmesinin "
+                        "kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı.")
     return {"taban": taban, "tavan": tavan, "kenarlar": kenarlar, "ic": ic,
             "operator": operator, "engeller": engeller, "siginma": siginma,
             "siginma_tipi": tip, "halatlar": halatlar, "hata": hata, "S": S}

@@ -601,12 +601,24 @@ def _arka(kaciklik=0.0):
                   kapi={"sol_pay": 600}, kuyu={"derinlik": 2100})
 
 
+def _kabin_ustu_askili():
+    """Kabin üstü askı:  kasnaklar şasenin üst kirişinin üstünde, RAY
+    EKSENİNDE ( askı ekseni ray ekseninde ).  Askı ekseni kabinin ortasında
+    kalsaydı kasnaklar ve aralarındaki halat kirişin önünden ayrı bir bant
+    olarak geçer, 1.440 × 1.433'lük tavanda çömelme alanına yer kalmazdı
+    ( 10 Eki'den beri ikisi de engel — hareketli.kabin_parcalari )."""
+    g = _ornek(aski={"duzen": "Kabin üstü", "kasnak_arasi": 1000})
+    S, kb = CS_.sabitler(g.get("_cizim_sabitleri")), g["kabin"]
+    g["aski"]["kasnak_kaciklik"] = (g["kabin_ray"]["kapi_arasi"] - kb["on_pay"]
+                                    - (kb["derinlik"] + S["kabin_pano_arka"]) / 2.0)
+    return g
+
+
 def _ustu_projeler():
     yield "Sol", _ornek()
     yield "Sağ", _sag_ayna()
     yield "Arka", _arka()
-    g = _ornek(aski={"duzen": "Kabin üstü", "kasnak_arasi": 1000})
-    yield "Kabin üstü askı", g
+    yield "Kabin üstü askı", _kabin_ustu_askili()
     g = _ornek(kabin_ustu={"siginma_tipi": "Dik duruş"})
     g["aski"] = {"duzen": "Doğrudan", "nokta_arasi": 450}
     yield "Doğrudan · dik duruş", g
@@ -771,19 +783,24 @@ class KabinUstuYerlesim(unittest.TestCase):
                                   or "OPERATÖR" in str(el.get("metin", ""))])
 
     def test_siginma_ust_kirisin_altina_girmez(self):
-        #  Kabin altı ve doğrudan askıda şasenin üst kirişi tavandaki tek askı
-        #  parçasıdır:  sığınma alanı onun dışında ( 4 Eki ).  Kabin üstü askıda
-        #  henüz sayılmaz:  kasnaklar kirişten ayrı bir bantta.
+        #  Şasenin üst kirişi ( iki C profil ) tavanın üstündedir:  sığınma alanı
+        #  onun dışında ( 4 Eki );  10 Eki'den beri kabin üstü askıda da
+        #  ( hareketli.kabin_parcalari ) — kasnaklar ve aralarındaki halat da engel.
         for ad, g in _ustu_projeler():
             Y = CKU.yerlesim(g)
             kiris = [CGE.sinir([el]) for el in Y["taban"] if el.get("ad") == "sase_kiris"]
-            k = (min(x[0] for x in kiris), min(x[1] for x in kiris),
-                 max(x[2] for x in kiris), max(x[3] for x in kiris))
+            kasnak = [CGE.sinir([el]) for el in Y["taban"] if el.get("ad") == "kabin_kasnak"]
             sg = Y["siginma"]
             with self.subTest(ad):
-                if g["aski"]["duzen"] != "Kabin üstü":
+                for k in kiris + (kasnak if g["aski"]["duzen"] == "Kabin üstü" else []):
                     self.assertFalse(sg[0] < k[2] and k[0] < sg[2] and sg[1] < k[3] and k[1] < sg[3])
                     self.assertIn(k, Y["engeller"])
+                if g["aski"]["duzen"] != "Kabin üstü":
+                    continue
+                if len(kasnak) == 2:            # kasnaklar arasındaki halat
+                    bant = (min(k[0] for k in kasnak), min(k[1] for k in kasnak),
+                            max(k[2] for k in kasnak), max(k[3] for k in kasnak))
+                    self.assertIn(bant, Y["engeller"])
                 #  Kabin üstü planında kiriş çizilir, sığınma ölçüleri ona binmez
                 e = CKU.ciz(g)
                 self.assertEqual(len([x for x in e if x.get("ad") == "sase_kiris"]), 2)
@@ -1457,9 +1474,13 @@ class DuseyKesitler(unittest.TestCase):
         #  Kuyu dibi:  kabin döşemesi −( 96 + 90 ) = −186;  platform altı −306,
         #  kasnak altı −186 − 295 − 120 = −601,  etek −186 − 750 − 35 = −971 ( dik kısım
         #  750 + pah 35 — m.5.4.5 ),  alt paten −186 − 480 − 70 − 70 = −806 ( 8 Eki'ye
-        #  dek −736 )
+        #  dek −736 ),  alt şase kirişinin altı ( şasenin altı ) −186 − 480 = −666:
+        #  kabinin en alt kısmı odur ( kasnaktan alçak;  10 Eki'ye dek kiriş
+        #  sayılmıyordu, en alt kısım kasnak −601 → 899 ),  sığınma alanının
+        #  üstünde kabin tabanı ( alan kirişin ve kasnakların dışında )
         self.assertEqual({k: v[0] for k, v in Y["dip_aciklik"].items()},
-                         {"siginma": 1194, "en_alt": 899, "etek": 529, "sase": 694})
+                         {"siginma": 1194, "en_alt": 834, "etek": 529, "sase": 694})
+        self.assertEqual(Y["dip_engel"], {"siginma": "kabin tabanı", "en_alt": "alt şase kirişi"})
         #  Kuyu üstü:  yükselme 150 + 90 + 35 = 275;  tavan 275 + 2.310 = 2.585,
         #  kiriş altı 5.000 − 150 = 4.850;  üst paten 275 − 480 − 70 + 3.300 + 70 = 3.095.
         #  Makine şasesinin altı 5.000 − 250 − 345 − 200 = 4.205 ( referans proje ) ve
@@ -1538,8 +1559,10 @@ class DuseyKesitler(unittest.TestCase):
             hata = h(x, makine={"yeri": "Makine dairesi"})
             with self.subTest(cerceve=x):
                 self.assertEqual(not any("m.5.2.5.6.2" in y and "ağırlık" in y.lower() for y in hata), uygun, hata)
-        self.assertFalse(any("şasesine çarpıyor" in x for x in h(4874)))
-        self.assertTrue(any("şasesine çarpıyor" in x for x in h(4875)))
+        #  ( hareketli.agirlik_parcalari:  üst patenin izinin üstünde makine şasesi )
+        self.assertFalse(any("tavana çarpıyor" in x for x in h(4874)))
+        self.assertTrue(any("tavana çarpıyor" in x and "üst pateni" in x and "makine şasesi" in x
+                            for x in h(4875)))
 
     def test_kabin_ustu_siginma_yuksekligi(self):
         #  dik duruş 2.000:  kiriş altı − 2.585 ≥ 2.000  →  son kat en az 4.735

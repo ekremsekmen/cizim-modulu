@@ -95,7 +95,9 @@ ORNEK_PROJE = {
     #  elden, çizim sabitleriyle ( cizim/sabitler.py;  referans projenin kabini ):
     #  KUYU DİBİ  kabin tam ezilmiş tamponunda:  döşeme −( 150 + 90 ) = −240,
     #  kuyu tabanı −1.600 ( kaide çizimden 1.600 − 100 − 150 − 480 = 870 )
-    #    en alt kısım  kabin kasnağı altı −240 − 295 − 240 / 2 = −655  →  945
+    #    en alt kısım  alt şase kirişinin altı ( şasenin altı ) −240 − 480 = −720
+    #                  ( kabin kasnağı altı −240 − 295 − 240 / 2 = −655'ten
+    #                  alçak;  10 Eki'ye dek kiriş sayılmıyordu:  945 )    →  880
     #    etek          −240 − 750 − 35 = −1.025 ( önlüğün pahı — m.5.4.5 ) →  575
     #    şase / paten  şase altı −240 − 480 = −720;  alt patenin merkezi
     #                  −720 − 70 = −790, altı − 140 / 2 = −860         →  740
@@ -117,7 +119,7 @@ ORNEK_PROJE = {
         ("siginma.agirlik_paten_ray", 875, "ağırlık üst pateni / ray ucu"),
         ("siginma.ust_paten_ray", 5, "kabin üst pateni / ray ucu"),
         ("siginma.paten_tavan", -60, "üst paten / makine şasesi"),
-        ("siginma.kuyu_tabani_kabin", 945, "kuyu tabanı / kabin kasnağı"),
+        ("siginma.kuyu_tabani_kabin", 880, "kuyu tabanı / alt şase kirişi"),
         ("siginma.etek", 575, "kuyu tabanı / etek"),
         ("siginma.ray_kabin_alt", 740, "kuyu tabanı / şase, paten"),
         ("siginma.dip_siginma", 1240, "kuyu dibi sığınma yüksekliği"),

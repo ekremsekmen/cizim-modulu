@@ -362,7 +362,9 @@ class AgirlikPatenleri(unittest.TestCase):
         from cizim import geometri as CGE, kuyu_kesiti as CKK, baglantilar as CB
         for yer in ("Sağ", "Sol", "Arka"):
             for tip in ("Kaymalı", "Makaralı"):
-                g, hata = Y.gecerli_duzen(630, yer)
+                #  Arkadaki ağırlıkla 2:1'de 630 kg'ın tavanına çömelme alanı
+                #  sığmaz ( çapraz halat — test_yerlesim_saglamligi ):  kesit yok
+                g, hata = Y.gecerli_duzen(800 if yer == "Arka" else 630, yer)
                 self.assertFalse(hata)
                 g["agirlik"]["paten_tipi"] = tip
                 e = CGE.plan(g)

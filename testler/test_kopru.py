@@ -203,7 +203,10 @@ class Tutarlilik(unittest.TestCase):
         #  ( HALAT SAPMASI ) açı ağırlığın konumuyla değişir:  çizim tek bir sayı
         #  söylemez ( eskiden "180° girin" diyordu ), girilen açıya itiraz etmez.
         from cizim import kuyu_ustu as CKU
-        ek = dict(aski_duzeni="Kabin üstü", kabin_kasnak_arasi=None)
+        #  xs −200:  çizimden gelen −250'de kasnaklar ve aralarındaki halat
+        #  şasenin üst kirişinin 250 önünden geçer, tavanda çömelme alanına
+        #  yer kalmaz ( test_kabin_ustu_kasnaklari_kirisin_onunde )
+        ek = dict(aski_duzeni="Kabin üstü", kabin_kasnak_arasi=None, aski_kaciklik_x=-200)
         (g, hata), = _kur(_veri(**ek))[0]
         self.assertGreater(abs(CKU.yerlesim(g)["sapma"][0]), 0.5)
         self.assertIsNone(CK.sarim_acisi(g))
@@ -341,8 +344,18 @@ class YeniDuzenler(unittest.TestCase):
     def _bolum11(self, s):
         return next(b for b in s["asansorler"][0]["bolumler"] if b["kimlik"] == "siginma_alanlari")
 
-    def test_kabin_ustu_2_1(self):
+    def test_kabin_ustu_kasnaklari_kirisin_onunde(self):
+        #  Örnek projede askı noktası çizimden ray ekseninin 250 önünde ( xs ):
+        #  kabin üstü askıda kasnaklar ve aralarındaki halat ( tavanın ~400
+        #  üstünde ) şasenin üst kirişinin önünden ayrı bir bant olarak geçer;
+        #  operatörle bant arası 461 < 500:  çömelme alanına yer yok ( 10 Eki'ye
+        #  dek halat ve kabin üstü askıda kiriş engel sayılmıyordu ).
         g, hata, s = self._kur(False, aski_duzeni="Kabin üstü")
+        self.assertIsNone(g)
+        self.assertTrue(any("sığınma alanına" in h and "aralarındaki halat" in h for h in hata), hata)
+
+    def test_kabin_ustu_2_1(self):
+        g, hata, s = self._kur(False, aski_duzeni="Kabin üstü", aski_kaciklik_x=-200)
         self.assertEqual(hata, [])
         from cizim import dusey as CDU, donanim as CDN
         Y = CDU.yerlesim(g)
