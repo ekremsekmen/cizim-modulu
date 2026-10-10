@@ -26,6 +26,7 @@ kapının yanındaki kesikli 100 mm'lik dikdörtgeni, döşemeden 2.500'deki çi
 kasanın ve eşiğin bağlantı noktaları.
 """
 
+from cizim import eleman as CEL
 from cizim import dusey as CDU
 from cizim import geometri as CGE
 from cizim import girdi as CG
@@ -86,7 +87,7 @@ def yerlesim(g, cizim_sabitleri=None):
 
 
 def _kutu(katman, k, ad, tip="dikdortgen"):
-    return CGE._ad(CGE._dik(katman, k[0], k[1], k[2] - k[0], k[3] - k[1], tip=tip), ad)
+    return CEL.ad(CEL.dikdortgen(katman, k[0], k[1], k[2] - k[0], k[3] - k[1], tip=tip), ad)
 
 
 def ciz(g, cizim_sabitleri=None):
@@ -99,10 +100,10 @@ def ciz(g, cizim_sabitleri=None):
     #  Kuyunun iç yüzleri ( duvarın gerisinde — kesik ) ve durak döşemesi
     ust = bo[3] + 600
     for x in (0.0, G):
-        e.append(CGE._ad(CGE._cizgi("GIZLI", x, -300, x, ust), "kuyu_ic_yuzu"))
+        e.append(CEL.ad(CEL.cizgi("GIZLI", x, -300, x, ust), "kuyu_ic_yuzu"))
     sol, sag = min(0.0, bo[0], yu[0]) - 300, max(G, bo[2], yu[2]) + 300
-    e.append(CGE._ad(CGE._cizgi("KUYU-DUVAR", sol, 0.0, bo[0], 0.0), "durak_dosemesi"))
-    e.append(CGE._ad(CGE._cizgi("KUYU-DUVAR", bo[2], 0.0, sag, 0.0), "durak_dosemesi"))
+    e.append(CEL.ad(CEL.cizgi("KUYU-DUVAR", sol, 0.0, bo[0], 0.0), "durak_dosemesi"))
+    e.append(CEL.ad(CEL.cizgi("KUYU-DUVAR", bo[2], 0.0, sag, 0.0), "durak_dosemesi"))
     #  Duvardaki kaba boşluk, kasa ( iki dikme ve başlık ), eşik plakası
     e.append(_kutu("BINA", bo, "kaba_bosluk"))
     for k in ((ka[0], 0.0, x0, ka[3]), (x1, 0.0, ka[2], ka[3]), (x0, HH, x1, ka[3])):
@@ -120,10 +121,10 @@ def ciz(g, cizim_sabitleri=None):
         _kutu("PANO", (Y["bx"] - d / 2.0, Y["bz"] - d / 2.0, Y["bx"] + d / 2.0, Y["bz"] + d / 2.0), "buton")
     )
     #  Kapı ekseni ve döşemenin kotu
-    e.append(CGE._ad(CGE._cizgi("EKSEN", xc, -300, xc, ust, tip="eksen"), "kapi_ekseni"))
+    e.append(CEL.ad(CEL.cizgi("EKSEN", xc, -300, xc, ust, tip="eksen"), "kapi_ekseni"))
     CKP.kot_isareti(e, xc + 150, 0.0, CDU._kot(0.0), 1.0)
 
-    O = CGE._olcu
+    O = CEL.olcu
     #  Alt:  kuyunun iç yüzlerinden kaba boşluğa ( LiftDesigner 470 · 1.180 · 350 ),
     #  kapının net genişliği
     alt1, alt2 = es[1] - 250, es[1] - 470

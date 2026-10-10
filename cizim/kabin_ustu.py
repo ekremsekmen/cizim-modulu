@@ -24,6 +24,7 @@ kalıyordu ( kullanıcı 5 Eki:  "kapının görünmemesi saçma" ).
 """
 
 from temel import eleman_kutusu, ortusur
+from cizim import eleman as CEL
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import sabitler as CS
@@ -335,7 +336,7 @@ def _yazi_kutusu(el):
     y = el.get("yazi")
     if not y:
         return (0.0, 0.0, 0.0, 0.0)
-    w, h = CGE._yazi_eni(el["metin"], y["h"]) / 2.0, y["h"] / 2.0
+    w, h = CEL.yazi_eni(el["metin"], y["h"]) / 2.0, y["h"] / 2.0
     if y["aci"]:
         w, h = h, w
     return (y["x"] - w, y["y"] - h, y["x"] + w, y["y"] + h)
@@ -399,7 +400,7 @@ def ciz(g, cizim_sabitleri=None):
 
     #  ── KABİN TAVANI ─────────────────────────────────────────────────
     tg, td = tavan[2] - tavan[0], tavan[3] - tavan[1]
-    e.append(CGE._ad(CGE._dik("KABIN", tavan[0], tavan[1], tg, td), "tavan"))
+    e.append(CEL.ad(CEL.dikdortgen("KABIN", tavan[0], tavan[1], tg, td), "tavan"))
     #  Şasenin üst kirişi tavanın üstünde, ray ekseninde dikmeden dikmeye
     #  ( kuyu planındaki zarfı;  kabin üstü kasnaklar onun da üstünde ).
     #  Eskiden bu planda yalnız dikmeler vardı:  askı görünmüyordu ( 3 Eki ).
@@ -422,7 +423,7 @@ def ciz(g, cizim_sabitleri=None):
         if ad == "kapi_boslugu" and not KG["acik"]:
             el["katman"] = "GIZLI"
         e.append(el)
-    kasa = CGE._dik(
+    kasa = CEL.dikdortgen(
         "KAPI",
         kp["sol_pay"] - S["kasa_yan"],
         KB["kasa"][0],
@@ -431,33 +432,33 @@ def ciz(g, cizim_sabitleri=None):
     )
     if not KG["acik"] and kp["montaj"] == "Duvar boşluğuna":
         kasa["katman"] = "GIZLI"
-    e.append(CGE._ad(kasa, "kapi_kasasi"))
+    e.append(CEL.ad(kasa, "kapi_kasasi"))
 
     #  Kabin altı askıda halatlar tavanın DIŞINDAN, kasnakların dış
     #  teğetinden yukarı çıkar ( kabin üstü askıda halat tavandaki kasnaktan
     #  çıkar — kasnak zaten çizili )
     for hx, hy in Y["halatlar"] if (g.get("aski") or {}).get("duzen") == "Kabin altı" else ():
-        e.append(CGE._ad(CGE._daire("KASNAK", hx, hy, 20), "halat"))
-        e.append(CGE._yazi(hx, hy - 70, "HALAT", 36))
+        e.append(CEL.ad(CEL.daire("KASNAK", hx, hy, 20), "halat"))
+        e.append(CEL.yazi(hx, hy - 70, "HALAT", 36))
 
     #  ── KORKULUK ─────────────────────────────────────────────────────
     #  Küpeşte çizgisi, gerekli olan her kenarda iceri kadar içeride durur.
     ic = Y["ic"]
     for kutu, _ in korkuluklar(Y):
-        e.append(CGE._ad(CGE._cizgi("KORKULUK", *kutu), "korkuluk"))
+        e.append(CEL.ad(CEL.cizgi("KORKULUK", *kutu), "korkuluk"))
 
     #  ── SIĞINMA ALANI ────────────────────────────────────────────────
     sg = Y["siginma"]
     if sg:
-        e.append(CGE._ad(CGE._dik("SIGINMA", sg[0], sg[1], sg[2] - sg[0], sg[3] - sg[1]), "siginma"))
+        e.append(CEL.ad(CEL.dikdortgen("SIGINMA", sg[0], sg[1], sg[2] - sg[0], sg[3] - sg[1]), "siginma"))
         a, b = SIGINMA[Y["siginma_tipi"]]
         cx, cy = (sg[0] + sg[2]) / 2.0, (sg[1] + sg[3]) / 2.0
-        e.append(CGE._yazi(cx, cy + 35, "SIĞINMA ALANI", 38))
-        e.append(CGE._yazi(cx, cy - 35, f"{CGE.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}", 34))
+        e.append(CEL.yazi(cx, cy + 35, "SIĞINMA ALANI", 38))
+        e.append(CEL.yazi(cx, cy - 35, f"{CEL.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}", 34))
     e += aski_el
 
     #  ── ÖLÇÜLER ──────────────────────────────────────────────────────
-    O = CGE._olcu
+    O = CEL.olcu
     u0, u1 = D + dar + 120, D + dar + 320
     s0, s1 = G + dg + 120, G + dg + 320
     e += [
@@ -488,11 +489,11 @@ def ciz(g, cizim_sabitleri=None):
                     f"{k['iceri']:g}",
                     kural=_ICERI,
                     yazi={
-                        "x": (x2 + 30 + CGE._yazi_eni(f"{k['iceri']:g}", CGE.yb(40)) / 2.0)
+                        "x": (x2 + 30 + CEL.yazi_eni(f"{k['iceri']:g}", CEL.yb(40)) / 2.0)
                         if yan == "Sol"
-                        else (x1 - 30 - CGE._yazi_eni(f"{k['iceri']:g}", CGE.yb(40)) / 2.0),
+                        else (x1 - 30 - CEL.yazi_eni(f"{k['iceri']:g}", CEL.yb(40)) / 2.0),
                         "y": kot,
-                        "h": CGE.yb(40),
+                        "h": CEL.yb(40),
                     },
                 )
             )
@@ -508,9 +509,9 @@ def ciz(g, cizim_sabitleri=None):
                     f"{k['iceri']:g}",
                     kural=_ICERI,
                     yazi={
-                        "x": kot + 30 + CGE._yazi_eni(f"{k['iceri']:g}", CGE.yb(40)) / 2.0,
+                        "x": kot + 30 + CEL.yazi_eni(f"{k['iceri']:g}", CEL.yb(40)) / 2.0,
                         "y": (y1 + y2) / 2.0,
-                        "h": CGE.yb(40),
+                        "h": CEL.yb(40),
                     },
                 )
             )
@@ -616,7 +617,7 @@ def ciz(g, cizim_sabitleri=None):
         #  boyunca boş parça yoksa küpeştenin DIŞINDA ( kabin ile duvar arası ),
         #  orada parçalardan da kaçarak.  Eskiden en uzun boş parçaya sığmasa da
         #  konuyordu:  sığınma ölçülerinin yazılarına biniyordu ( girdi taraması ).
-        L = CGE._yazi_eni(metin, CGE.yb(40)) + 20.0
+        L = CEL.yazi_eni(metin, CEL.yb(40)) + 20.0
         ic_yon = 1.0 if yan in ("Sol", "Ön") else -1.0
         parcalar_ = [
             CGE.sinir([el])
@@ -669,7 +670,7 @@ def ciz(g, cizim_sabitleri=None):
         #  ( "h = 700" — çizgi korkuluk katmanında ) içeride, dışarıda.
         kisa = f"h = {k['yukseklik']:g}"
         secim = None
-        for m_, L_ in ((metin, L), (kisa, CGE._yazi_eni(kisa, CGE.yb(40)) + 20.0)):
+        for m_, L_ in ((metin, L), (kisa, CEL.yazi_eni(kisa, CEL.yb(40)) + 20.0)):
             for yon_, liste in ((ic_yon, ic_parca), (-ic_yon, dis_parca)):
                 sigan = [p_ for p_ in liste if p_[1] - p_[0] >= L_]
                 if sigan:
@@ -686,7 +687,7 @@ def ciz(g, cizim_sabitleri=None):
             engel_ = olcu_yazilari + [op] + [p_ for p_ in parcalar_]
             en_iyi = None
             for m_ in (kisa, metin):
-                L_ = CGE._yazi_eni(m_, CGE.yb(40))
+                L_ = CEL.yazi_eni(m_, CEL.yb(40))
                 for yon_ in (ic_yon, -ic_yon):
                     u = bas + L_ / 2.0
                     while u <= son - L_ / 2.0 + 1e-6:
@@ -706,9 +707,9 @@ def ciz(g, cizim_sabitleri=None):
                 en_iyi = (0, kisa, ic_yon, (bas + son) / 2.0)
             _n, metin, yon_, orta = en_iyi
         if dikey:
-            e.append(CGE._yazi(cizgi + yon_ * 60, orta, metin, 40, aci=90))
+            e.append(CEL.yazi(cizgi + yon_ * 60, orta, metin, 40, aci=90))
         else:
-            e.append(CGE._yazi(orta, cizgi + yon_ * 60, metin, 40))
+            e.append(CEL.yazi(orta, cizgi + yon_ * 60, metin, 40))
         olcu_yazilari.append(CGE.sinir([e[-1]]))  # sonraki korkuluğun yazısı kaçsın
 
     #  Sıfır boylu ölçü çizilmez  ( sığınma alanı kenara dayanmışsa )

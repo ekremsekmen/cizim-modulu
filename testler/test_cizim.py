@@ -16,6 +16,7 @@ import unittest
 
 
 from temel import kutu_merkezi, ortusur
+from cizim import eleman as CEL
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import svg as CSV
@@ -291,7 +292,7 @@ class SvgCiktisi(unittest.TestCase):
         """Geometri etiketin ORTASINI verir ( DXF'te MIDDLE ):  SVG taban
         çizgisini 0,35·h aşağı koyar.  Eskiden etiketler ekranda 0,35·h
         yukarıdaydı."""
-        el = CGE._yazi(1000, 2000, "DENEME", 60)
+        el = CEL.yazi(1000, 2000, "DENEME", 60)
         s = CSV.yaz([el], (0, 0, 3000, 3000), "", 20)
         self.assertIn(f"translate(1000.0,{2000 - 0.35 * el['yukseklik']:.1f})", s)
 
@@ -481,7 +482,7 @@ class YerlesimRegresyonlari(unittest.TestCase):
     def test_dxf_yazi_hizasini_korur(self):
         from cizim import dxf
 
-        elemanlar = [CGE._yazi(100, 200, h, hiza=h) for h in ("sol", "orta", "sag")]
+        elemanlar = [CEL.yazi(100, 200, h, hiza=h) for h in ("sol", "orta", "sag")]
         d = dxf.belge(elemanlar)
         yazilar = list(d.modelspace().query("MTEXT"))
         self.assertEqual(len(yazilar), 3)
@@ -561,7 +562,7 @@ class OlcuYazilari(unittest.TestCase):
         for el in e:
             if el["tip"] == "olcu":
                 y = el["yazi"]
-                w, h = CGE._yazi_eni(el["metin"], y["h"]) / 2.0, y["h"] / 2.0
+                w, h = CEL.yazi_eni(el["metin"], y["h"]) / 2.0, y["h"] / 2.0
                 if y["aci"]:
                     w, h = h, w
                 out.append((el, y["x"] - w, y["y"] - h, y["x"] + w, y["y"] + h))
@@ -1104,7 +1105,7 @@ class KuyuDibiYerlesim(unittest.TestCase):
                             or k[1] > dis[3],
                             k,
                         )
-                        self.assertLessEqual(CGE._yazi_eni(y_["metin"], y_["yukseklik"]), k[2] - k[0])
+                        self.assertLessEqual(CEL.yazi_eni(y_["metin"], y_["yukseklik"]), k[2] - k[0])
                     for i, k in enumerate(kutu):
                         engel = kutular + yazilar + kutu[:i] + kutu[i + 1 :]
                         self.assertFalse([b for b in engel if ortusur(k, b)], k)
@@ -1143,9 +1144,9 @@ class KuyuDibiYerlesim(unittest.TestCase):
 
     def test_cerceve_yazilarin_enini_kapsar(self):
         """Sola hizalı tablo satırları çerçevenin içinde kalır ( taşıyordu )."""
-        Y = CGE._yazi
+        Y = CEL.yazi
         #  Etiket 40 → çizilen boy yb ( yazılar LiftDesigner boyunda, 5 Eki );  eni 5 harf × 0,6 h
-        h = CGE.yb(40)
+        h = CEL.yb(40)
         for hiza, beklenen in (
             ("sol", (0, -h / 2, 3 * h, h / 2)),
             ("sag", (-3 * h, -h / 2, 0, h / 2)),
@@ -1158,7 +1159,7 @@ class KuyuDibiYerlesim(unittest.TestCase):
         e = CGE.cerceveli(CKD.ciz(_ornek(kuyu_dibi={"kuvvetler": self.KV})), "KUYU DİBİ PLANI")
         c = next(x for x in e if x["katman"] == "CERCEVE" and x["tip"] == "dikdortgen")
         for x in self._tablo(e):
-            self.assertLessEqual(x["x"] + CGE._yazi_eni(x["metin"], x["yukseklik"]), c["x"] + c["g"])
+            self.assertLessEqual(x["x"] + CEL.yazi_eni(x["metin"], x["yukseklik"]), c["x"] + c["g"])
 
     def test_olcu_yazisi_parcaya_binmez(self):
         """Kuyunun içindeki ölçü yazıları tampon, gergi, merdiven, ray, konsol,
@@ -1185,7 +1186,7 @@ class KuyuDibiYerlesim(unittest.TestCase):
                 y_ = o["yazi"]
                 if not (0 < y_["x"] < G and 0 < y_["y"] < D):
                     continue
-                w, h = CGE._yazi_eni(o["metin"], y_["h"]) / 2.0, y_["h"] / 2.0
+                w, h = CEL.yazi_eni(o["metin"], y_["h"]) / 2.0, y_["h"] / 2.0
                 if y_["aci"]:
                     w, h = h, w
                 k = (y_["x"] - w, y_["y"] - h, y_["x"] + w, y_["y"] + h)
@@ -1918,7 +1919,7 @@ class TamBoyKesit(unittest.TestCase):
                         )
                     #  1/50:  ölçü yazısı paftada 1/20'dekiyle aynı boyda
                     self.assertTrue(
-                        all(x["yazi"]["h"] == CGE.OLCU_YAZI * 2.5 for x in e if x["tip"] == "olcu")
+                        all(x["yazi"]["h"] == CEL.OLCU_YAZI * 2.5 for x in e if x["tip"] == "olcu")
                     )
                     au = Auditor(CDX.belge(e, "DÜŞEY", 50))
                     au.run()
@@ -1926,7 +1927,7 @@ class TamBoyKesit(unittest.TestCase):
 
     def test_olcek_kalemleri_buyutur(self):
         #  Kesilen duvar ISO 128'in 0,50 mm'si:  1/20'de 10 birim, 1/50'de 25
-        e = [CGE._dik("KUYU-DUVAR", 0, 0, 100, 100)]
+        e = [CEL.dikdortgen("KUYU-DUVAR", 0, 0, 100, 100)]
         self.assertEqual(CSV.KALEM["KUYU-DUVAR"][1], 10)
         self.assertIn('stroke-width="10"', CSV.yaz(e, (0, 0, 100, 100), "", 20))
         self.assertIn('stroke-width="25"', CSV.yaz(e, (0, 0, 100, 100), "", 50))
@@ -2712,7 +2713,7 @@ class OlcuYazisiParcayaBinmez(unittest.TestCase):
                     if o["tip"] != "olcu":
                         continue
                     y_ = o["yazi"]
-                    w, h = CGE._yazi_eni(o["metin"], y_["h"]) / 2.0, y_["h"] / 2.0
+                    w, h = CEL.yazi_eni(o["metin"], y_["h"]) / 2.0, y_["h"] / 2.0
                     if y_["aci"]:
                         w, h = h, w
                     k = (y_["x"] - w, y_["y"] - h, y_["x"] + w, y_["y"] + h)

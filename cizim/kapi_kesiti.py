@@ -15,6 +15,7 @@ kabin eşiği ), kanat düzlemleri sabitlerden ( kanat_esik_payi, kanat_araligi,
 kanat_kalinlik ).
 """
 
+from cizim import eleman as CEL
 from cizim import dusey as CDU
 from cizim import geometri as CGE
 from cizim import girdi as CG
@@ -100,10 +101,10 @@ def ciz(g, cizim_sabitleri=None):
     don = g["kuyu"]["duvar_on"]
     bh, alt = Y["bosluk_h"], Y["alt"]
     e = []
-    D = CGE._dik
+    D = CEL.dikdortgen
 
     def kutu(katman, k, ad):
-        e.append(CGE._ad(D(katman, k[0], k[1], k[2] - k[0], k[3] - k[1]), ad))
+        e.append(CEL.ad(D(katman, k[0], k[1], k[2] - k[0], k[3] - k[1]), ad))
         return e[-1]
 
     #  ── DUVAR VE DÖŞEME ──────────────────────────────────────────────
@@ -121,33 +122,33 @@ def ciz(g, cizim_sabitleri=None):
         e.append(D("KUYU-DUVAR", -don, z0, don, z1 - z0))
     dos = S["kat_doseme_kalinlik"]
     e.append(D("TARAMA", -don - DOSEME_GOSTERIM, -dos, DOSEME_GOSTERIM, dos, tip="tarama"))
-    e.append(CGE._ad(D("KUYU-DUVAR", -don - DOSEME_GOSTERIM, -dos, DOSEME_GOSTERIM, dos), "kat_dosemesi"))
+    e.append(CEL.ad(D("KUYU-DUVAR", -don - DOSEME_GOSTERIM, -dos, DOSEME_GOSTERIM, dos), "kat_dosemesi"))
 
     #  ── KAT KAPISI ───────────────────────────────────────────────────
     kutu("KAPI", Y["kasa"], "kapi_kasasi")
     ku = kutu("KAPI", Y["ust_kutu"], "kapi_ust_kutusu")
     a_k, a_u, a_a = ASKI_ORANLARI
     e.append(
-        CGE._ad(
+        CEL.ad(
             D("GIZLI", ku["x"], ku["y"] + a_a * ku["d"], ku["g"] * (1 - a_k), ku["d"] * (1 - a_u - a_a)),
             "aski_mekanizmasi",
         )
     )
     #  Üst kutu duvara L konsolla bağlı ( kutunun üstünden duvar yüzünde yukarı )
-    k = CGE._ad(D("KONSOL", 0.0, Y["ust_kutu"][3], KB["hat"], CP.UST_KONSOL_UZANTI), "ust_konsol")
+    k = CEL.ad(D("KONSOL", 0.0, Y["ust_kutu"][3], KB["hat"], CP.UST_KONSOL_UZANTI), "ust_konsol")
     k["bicim"] = CP.l_konsol(0.0, KB["hat"], Y["ust_kutu"][3], CP.UST_KONSOL_UZANTI, yukari=True)
     e.append(k)
     es = kutu("KAPI", Y["kat_esigi"], "kat_esigi")
     es["bicim"] = CP.esik_kesiti(es["x"], es["x"] + es["g"], 0.0, et, Y["kat_oluklari"])
     #  Eşik L konsolun yatay ayağında;  dik ayağı duvarın kuyu yüzünde aşağı
-    k = CGE._ad(D("KONSOL", 0.0, -et - CP.ESIK_KONSOLU_BOY, KB["hat"], CP.ESIK_KONSOLU_BOY), "esik_konsolu")
+    k = CEL.ad(D("KONSOL", 0.0, -et - CP.ESIK_KONSOLU_BOY, KB["hat"], CP.ESIK_KONSOLU_BOY), "esik_konsolu")
     k["bicim"] = CP.l_konsol(0.0, KB["hat"], -et, CP.ESIK_KONSOLU_BOY)
     e.append(k)
     for kk in Y["kat_kanatlari"]:
         kutu("KAPI", kk, "kat_kanadi")
     #  Eşik altı sacı ( m.5.2.5.3.2 ):  dik, sonra pahla duvara
     dz = sac_u * tan
-    s = CGE._ad(D("KAPI", 0.0, sac_z - sac_boy - dz, sac_u, sac_boy + dz), "esik_alti_saci")
+    s = CEL.ad(D("KAPI", 0.0, sac_z - sac_boy - dz, sac_u, sac_boy + dz), "esik_alti_saci")
     s["bicim"] = CP.pahli_sac(sac_u, sac_z, sac_boy, 0.0)
     e.append(s)
 
@@ -158,28 +159,28 @@ def ciz(g, cizim_sabitleri=None):
         kutu("KAPI", kk, "kabin_kanadi")
     on = KB["kabin_esik"][1]
     e.append(
-        CGE._ad(
+        CEL.ad(
             D("KABIN", on, -S["kabin_taban_kalinlik"], KABIN_GOSTERIM, S["kabin_taban_kalinlik"]),
             "kabin_tabani",
         )
     )
-    e.append(CGE._ad(D("KABIN", on, HH, S["kabin_pano_yan"], 300.0), "kabin_on_panosu"))
+    e.append(CEL.ad(D("KABIN", on, HH, S["kabin_pano_yan"], 300.0), "kabin_on_panosu"))
     #  Önlük ( m.5.4.5 ):  kabin eşiğinin kat tarafındaki kenarından dik, sonra pahla kabine
     pz = CP.ONLUK_PAH_DUSEY
-    o = CGE._ad(D("KABIN", on_u, on_z - on_boy - pz, CP.ONLUK_PAH, on_boy + pz), "onluk")
+    o = CEL.ad(D("KABIN", on_u, on_z - on_boy - pz, CP.ONLUK_PAH, on_boy + pz), "onluk")
     o["bicim"] = CP.pahli_sac(on_u, on_z, on_boy, on_u + CP.ONLUK_PAH, dz=CP.ONLUK_PAH_DUSEY)
     e.append(o)
 
     #  ── YAZILAR ──────────────────────────────────────────────────────
     h = 40.0
-    e.append(CGE._yazi(-don - DOSEME_GOSTERIM / 2.0, 120.0, "KAT", h))
-    e.append(CGE._yazi(on + KABIN_GOSTERIM / 2.0, 120.0, "KABİN", h))
+    e.append(CEL.yazi(-don - DOSEME_GOSTERIM / 2.0, 120.0, "KAT", h))
+    e.append(CEL.yazi(on + KABIN_GOSTERIM / 2.0, 120.0, "KABİN", h))
 
     #  Parça adları oklu:  ok yazının yanından parçaya ( kabinin ve kanatların
     #  üstünden geçmez — sac ve önlük döşemenin altında, üst kutu kabin panosunun üstünden )
     def adli(u, z, metin, ad, hedef):
-        e.append(CGE._ad(CGE._yazi(u, z, metin, 32, hiza="sol"), ad))
-        e.append(CGE._ad(CGE._ok("YAZI", u - 15.0, z, hedef[0], hedef[1]), "etiket_oku"))
+        e.append(CEL.ad(CEL.yazi(u, z, metin, 32, hiza="sol"), ad))
+        e.append(CEL.ad(CEL.ok("YAZI", u - 15.0, z, hedef[0], hedef[1]), "etiket_oku"))
 
     #  Sacın yazısı önlüğün ve pahın altında;  ok sac ile önlük arasından pahın ortasına
     pah_z = sac_z - sac_boy - sac_u * tan / 2.0
@@ -198,7 +199,7 @@ def ciz(g, cizim_sabitleri=None):
     CKP.kot_isareti(e, -don - DOSEME_GOSTERIM + 150.0, 0.0, CDU._kot(0.0), 1.0)
 
     #  ── ÖLÇÜLER ──────────────────────────────────────────────────────
-    O = CGE._olcu
+    O = CEL.olcu
     #  Altta:  duvar · kasa · eşik · eşik arası · kabin eşiği ( kuyunun ön iç yüzünden )
     zo = z_alt - 150.0
     nok = sorted(

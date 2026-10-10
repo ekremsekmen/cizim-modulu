@@ -23,6 +23,7 @@ referans projenin düzeni ).  Öteki düzenler için doğrulama açıkça redded
 """
 
 from temel import eleman_kutusu, ortusur, sayi_mi
+from cizim import eleman as CEL
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import kuyu_dibi as CKD
@@ -673,7 +674,7 @@ def ciz(g, cizim_sabitleri=None):
     e = [el for el in Y["taban"] if el["katman"] in _PLANDAN_KATMAN and el["tip"] != "yazi"]
 
     def kutu(katman, p, ad):
-        e.append(CGE._ad(CGE._dik(katman, p[0], p[1], p[2] - p[0], p[3] - p[1]), ad))
+        e.append(CEL.ad(CEL.dikdortgen(katman, p[0], p[1], p[2] - p[0], p[3] - p[1]), ad))
 
     #  İzler:  kabin, karşı ağırlık, kat kapısı ( kesik )
     kutu("GIZLI", Y["kabin"], "kabin_izi")
@@ -682,19 +683,19 @@ def ciz(g, cizim_sabitleri=None):
     kutu("GIZLI", (kp["sol_pay"], -don, kp["sol_pay"] + kp["genislik"], 0), "kapi_izi")
 
     #  Makine şasesi ( 2 yan yatak ) ve makine — parça parça ( makine.py )
-    e += CMK.plan(CMK.plan_parcalari(Y, Y["S"]), CGE._dik, CGE._daire, CGE._cizgi)
+    e += CMK.plan(CMK.plan_parcalari(Y, Y["S"]), CEL.dikdortgen, CEL.daire, CEL.cizgi)
     ks = Y["kasnak"]
-    e.append(CGE._yazi((ks[0] + ks[2]) / 2.0, (ks[1] + ks[3]) / 2.0, f"ø {Y['D1']:g}", 38))
+    e.append(CEL.yazi((ks[0] + ks[2]) / 2.0, (ks[1] + ks[3]) / 2.0, f"ø {Y['D1']:g}", 38))
 
     #  Halat bağlantıları, sonra halatlar ( işaret plakanın üstünde görünsün )
     kutu("BAGLANTI", Y["agirlik_baglanti"], "agirlik_baglanti")
     kutu("BAGLANTI", Y["kabin_baglanti"], "kabin_baglanti")
     if g["makine"]["yeri"] == "Kuyu üstü":
-        e += CMK.plan(Y["halat_konsolu"], CGE._dik, CGE._daire, CGE._cizgi)
+        e += CMK.plan(Y["halat_konsolu"], CEL.dikdortgen, CEL.daire, CEL.cizgi)
     for p in (Y["agirlik_baglanti"], Y["kabin_baglanti"]):
-        e.append(CGE._yazi((p[0] + p[2]) / 2.0, p[3] + 40, "HALAT BAĞLANTISI", 30))
+        e.append(CEL.yazi((p[0] + p[2]) / 2.0, p[3] + 40, "HALAT BAĞLANTISI", 30))
     for hx, hy in Y["halatlar"] + [Y["ag_dusus"], Y["ag_teget2"]]:
-        e.append(CGE._ad(CGE._daire("KASNAK", hx, hy, 20), "halat"))
+        e.append(CEL.ad(CEL.daire("KASNAK", hx, hy, 20), "halat"))
 
     #  Regülatör
     kutu("KONSOL", Y["reg_ayak"], "regulator_ayak")
@@ -702,18 +703,18 @@ def ciz(g, cizim_sabitleri=None):
     kutu("KASNAK", Y["reg_kasnak"], "regulator_kasnak")
     rg = Y["reg_govde"]
     e.append(
-        CGE._yazi(rg[0] - 60 if rg[0] > G / 2 else rg[2] + 60, (rg[1] + rg[3]) / 2.0, "REGÜLATÖR", 34, aci=90)
+        CEL.yazi(rg[0] - 60 if rg[0] > G / 2 else rg[2] + 60, (rg[1] + rg[3]) / 2.0, "REGÜLATÖR", 34, aci=90)
     )
 
     #  Acil kurtarma ve test panosu + çalışma alanı
     kutu("PANO", Y["pano"], "acil_pano")
     kutu("SIGINMA", Y["calisma"], "calisma_alani")
     pn, ca = Y["pano"], Y["calisma"]
-    e.append(CGE._yazi((pn[0] + pn[2]) / 2.0, (pn[1] + pn[3]) / 2.0, "ACİL PANO", 34))
-    e.append(CGE._yazi((ca[0] + ca[2]) / 2.0, (ca[1] + ca[3]) / 2.0, "ÇALIŞMA ALANI", 34))
+    e.append(CEL.yazi((pn[0] + pn[2]) / 2.0, (pn[1] + pn[3]) / 2.0, "ACİL PANO", 34))
+    e.append(CEL.yazi((ca[0] + ca[2]) / 2.0, (ca[1] + ca[3]) / 2.0, "ÇALIŞMA ALANI", 34))
 
     #  ── ÖLÇÜLER ──────────────────────────────────────────────────────
-    O = CGE._olcu
+    O = CEL.olcu
     xl, xr = Y["halatlar"][0][0], Y["halatlar"][1][0]
     kx = (Y["kabin"][0] + Y["kabin"][2]) / 2.0
     u0, u1 = D + dar + 120, D + dar + 320
@@ -771,7 +772,7 @@ def ciz(g, cizim_sabitleri=None):
     tasinir = []
     for el in e:
         if el["tip"] == "olcu" and el["metin"].startswith("HALAT SAPMASI"):
-            y_, w = el["yazi"], CGE._yazi_eni(el["metin"]) / 2.0
+            y_, w = el["yazi"], CEL.yazi_eni(el["metin"]) / 2.0
             i = 0 if el["yon"] == "yatay" else 1
             a, b = sorted((el["a"][i], el["b"][i]))
             ic_ = (a + b) / 2.0 < (G if i == 0 else D) / 2.0  # içerisi hangi yanda

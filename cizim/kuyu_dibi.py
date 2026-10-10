@@ -29,6 +29,7 @@ olanlar gelir:
 """
 
 from temel import eleman_kutusu, kutu_merkezi, ortusur, sayi_mi
+from cizim import eleman as CEL
 from cizim import geometri as CGE
 from cizim import girdi as CG
 from cizim import sabitler as CS
@@ -88,7 +89,7 @@ def _serbest(sira, adaylar, sinir_, engeller):
         kutular = []
         for o in olculer:
             y_ = o["yazi"]
-            w, h = CGE._yazi_eni(o["metin"], y_["h"]) / 2.0, y_["h"] / 2.0
+            w, h = CEL.yazi_eni(o["metin"], y_["h"]) / 2.0, y_["h"] / 2.0
             if y_["aci"]:
                 w, h = h, w
             kutular.append((y_["x"] - w, y_["y"] - h, y_["x"] + w, y_["y"] + h))
@@ -109,17 +110,17 @@ def _kuvvet_tablosu(kv, x, y):
     for i, (metin, h) in enumerate(satirlar):
         #  Başlıktan sonra yarım satır boşluk
         yy = y - 90 * i - (55 if i >= 2 else 0)
-        e.append(CGE._ad(CGE._yazi(x, yy, metin, h, hiza="sol"), "kuvvet_tablosu"))
+        e.append(CEL.ad(CEL.yazi(x, yy, metin, h, hiza="sol"), "kuvvet_tablosu"))
     #  Ray şeması ( planda, ölçeksiz ):  taban, ağız;  Fy ağzın doğrultusunda,
     #  Fx ağza yandan ( EN 81-50 m.5.10.5:  "Fx … by a guide shoe to the flange" )
     cx, cy = x + 330, yy - 560
     for kutu in ((cx - 150, cy, 300, 30), (cx - 20, cy + 30, 40, 220)):
-        e.append(CGE._ad(CGE._dik("RAY", *kutu), "kuvvet_semasi"))
+        e.append(CEL.ad(CEL.dikdortgen("RAY", *kutu), "kuvvet_semasi"))
     uc = cy + 250
-    e.append(CGE._ad(CGE._ok("YUK", cx, uc + 230, cx, uc + 15), "kuvvet_semasi"))
-    e.append(CGE._ad(CGE._ok("YUK", cx - 280, cy + 160, cx - 25, cy + 160), "kuvvet_semasi"))
-    e.append(CGE._ad(CGE._yazi(cx + 50, uc + 150, "Fy", 40, hiza="sol"), "kuvvet_semasi"))
-    e.append(CGE._ad(CGE._yazi(cx - 160, cy + 215, "Fx", 40), "kuvvet_semasi"))
+    e.append(CEL.ad(CEL.ok("YUK", cx, uc + 230, cx, uc + 15), "kuvvet_semasi"))
+    e.append(CEL.ad(CEL.ok("YUK", cx - 280, cy + 160, cx - 25, cy + 160), "kuvvet_semasi"))
+    e.append(CEL.ad(CEL.yazi(cx + 50, uc + 150, "Fy", 40, hiza="sol"), "kuvvet_semasi"))
+    e.append(CEL.ad(CEL.yazi(cx - 160, cy + 215, "Fx", 40), "kuvvet_semasi"))
     return e
 
 
@@ -156,7 +157,7 @@ def _engeller(e, siginma=True, olcu_cizgisi=True):
                     else (k - 15, min(a[1], b[1]), k + 15, max(a[1], b[1]))
                 )
             y_ = el["yazi"]
-            w, h = CGE._yazi_eni(el["metin"], y_["h"]) / 2.0, y_["h"] / 2.0
+            w, h = CEL.yazi_eni(el["metin"], y_["h"]) / 2.0, y_["h"] / 2.0
             if y_["aci"]:
                 w, h = h, w
             yazilar.append((y_["x"] - w, y_["y"] - h, y_["x"] + w, y_["y"] + h))
@@ -268,7 +269,7 @@ def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar, dis=None):
 
     def adaylar(p, metin):
         px, py = p
-        w, h = CGE._yazi_eni(metin, CGE.yb(YUK_YAZI)) + 2 * YUK_PAY, CGE.yb(YUK_YAZI) + 2 * YUK_PAY
+        w, h = CEL.yazi_eni(metin, CEL.yb(YUK_YAZI)) + 2 * YUK_PAY, CEL.yb(YUK_YAZI) + 2 * YUK_PAY
         ox, oy = G / 2.0 - px, D / 2.0 - py
         #  Okun başladığı nokta bir yazının payının içindeyse ( yazı noktaya
         #  bitişik ) o yazı paysız sayılır:  yoksa noktadan çıkan her ok onu
@@ -339,11 +340,11 @@ def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar, dis=None):
     yeni = []
     for i, (k, p, q) in zip(sira, konan):
         metin = noktalar[i][1]
-        yeni.append(CGE._ad(CGE._dik("YUK", k[0], k[1], k[2] - k[0], k[3] - k[1]), "yuk_kutusu"))
+        yeni.append(CEL.ad(CEL.dikdortgen("YUK", k[0], k[1], k[2] - k[0], k[3] - k[1]), "yuk_kutusu"))
         yeni.append(
-            CGE._ad(CGE._yazi((k[0] + k[2]) / 2.0, (k[1] + k[3]) / 2.0, metin, YUK_YAZI, katman="YUK"), "yuk")
+            CEL.ad(CEL.yazi((k[0] + k[2]) / 2.0, (k[1] + k[3]) / 2.0, metin, YUK_YAZI, katman="YUK"), "yuk")
         )
-        yeni.append(CGE._ad(CGE._ok("YUK", q[0], q[1], p[0], p[1]), "yuk_oku"))
+        yeni.append(CEL.ad(CEL.ok("YUK", q[0], q[1], p[0], p[1]), "yuk_oku"))
     return yeni
 
 
@@ -758,17 +759,17 @@ def ciz(g, cizim_sabitleri=None):
     k = g["kuyu"]
     G, D, don, dg, dar = k["genislik"], k["derinlik"], k["duvar_on"], k["duvar_sag"], k["duvar_arka"]
     e = [el for el in Y["taban"] if el["katman"] in _PLANDAN_KATMAN and el["tip"] != "yazi"]
-    O = CGE._olcu
+    O = CEL.olcu
 
     #  Kat kapısı:  yalnız yer göstermek için, kesik ( kabin bu kesitte yok )
     kp = g["kapi"]
-    e.append(CGE._ad(CGE._dik("GIZLI", kp["sol_pay"], -don, kp["genislik"], don), "kapi_izi"))
+    e.append(CEL.ad(CEL.dikdortgen("GIZLI", kp["sol_pay"], -don, kp["genislik"], don), "kapi_izi"))
 
     #  Tamponlar:  taban plakası + gövde
     def _tampon(kutu, ad):
         cx, cy = kutu_merkezi(kutu)
-        e.append(CGE._ad(CGE._dik("TAMPON", kutu[0], kutu[1], kutu[2] - kutu[0], kutu[3] - kutu[1]), ad))
-        e.append(CGE._ad(CGE._daire("TAMPON", cx, cy, S["tampon_capi"] / 2.0), ad))
+        e.append(CEL.ad(CEL.dikdortgen("TAMPON", kutu[0], kutu[1], kutu[2] - kutu[0], kutu[3] - kutu[1]), ad))
+        e.append(CEL.ad(CEL.daire("TAMPON", cx, cy, S["tampon_capi"] / 2.0), ad))
 
     for t in Y["kabin_tamponlari"]:
         _tampon(t, "kabin_tamponu")
@@ -776,13 +777,13 @@ def ciz(g, cizim_sabitleri=None):
         _tampon(t, "agirlik_tamponu")
 
     p = Y["perde"]
-    e.append(CGE._ad(CGE._cizgi("PERDE", *p), "perde"))
+    e.append(CEL.ad(CEL.cizgi("PERDE", *p), "perde"))
     gr = Y["gergi"]
-    e.append(CGE._ad(CGE._dik("KASNAK", gr[0], gr[1], gr[2] - gr[0], gr[3] - gr[1]), "gergi"))
+    e.append(CEL.ad(CEL.dikdortgen("KASNAK", gr[0], gr[1], gr[2] - gr[0], gr[3] - gr[1]), "gergi"))
     for ad, kutu in Y["gergi_donanim"].items():
         e.append(
-            CGE._ad(
-                CGE._dik(
+            CEL.ad(
+                CEL.dikdortgen(
                     "KONSOL" if ad == "kol" else "MAKINE",
                     kutu[0],
                     kutu[1],
@@ -794,12 +795,12 @@ def ciz(g, cizim_sabitleri=None):
         )
     if Y["merdiven"]:
         m = Y["merdiven"]
-        e.append(CGE._ad(CGE._dik("MERDIVEN", m[0], m[1], m[2] - m[0], m[3] - m[1]), "merdiven"))
+        e.append(CEL.ad(CEL.dikdortgen("MERDIVEN", m[0], m[1], m[2] - m[0], m[3] - m[1]), "merdiven"))
         #  Etiket sığıyorsa merdivenin içine:  yanına yazılınca sığınma alanının
         #  ölçüsüne biniyordu
-        ic = CGE._yazi_eni("MERDİVEN", CGE.yb(36)) <= m[3] - m[1] - 40 and CGE.yb(36) <= m[2] - m[0] - 20
+        ic = CEL.yazi_eni("MERDİVEN", CEL.yb(36)) <= m[3] - m[1] - 40 and CEL.yb(36) <= m[2] - m[0] - 20
         e.append(
-            CGE._yazi(
+            CEL.yazi(
                 kutu_merkezi(m)[0] + (0 if ic else 110 if m[0] < G / 2 else -110),
                 kutu_merkezi(m)[1],
                 "MERDİVEN",
@@ -809,11 +810,11 @@ def ciz(g, cizim_sabitleri=None):
         )
     sg = Y["siginma"]
     if sg:
-        e.append(CGE._ad(CGE._dik("SIGINMA", sg[0], sg[1], sg[2] - sg[0], sg[3] - sg[1]), "siginma"))
+        e.append(CEL.ad(CEL.dikdortgen("SIGINMA", sg[0], sg[1], sg[2] - sg[0], sg[3] - sg[1]), "siginma"))
         a, b = SIGINMA[Y["siginma_tipi"]]
         cx, cy = kutu_merkezi(sg)
-        e.append(CGE._yazi(cx, cy + 35, "SIĞINMA ALANI", 38))
-        e.append(CGE._yazi(cx, cy - 35, f"{CGE.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}", 34))
+        e.append(CEL.yazi(cx, cy + 35, "SIĞINMA ALANI", 38))
+        e.append(CEL.yazi(cx, cy - 35, f"{CEL.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}", 34))
 
     #  ── YAZILAR ──────────────────────────────────────────────────────
     #  Kuyu tabanına yük aktaran noktalar ( kutuları en sonda, ölçülerden sonra
@@ -832,7 +833,7 @@ def ciz(g, cizim_sabitleri=None):
         metin = f"{ad_} = {_kn(kv[ad] / adet)} kN" if kv else ad_
         noktalar += [(kutu_merkezi(k), metin) for k in liste]
     e.append(
-        CGE._yazi(
+        CEL.yazi(
             kutu_merkezi(gr)[0] - (80 if gr[0] > G / 2 else -80),
             kutu_merkezi(gr)[1],
             "REGÜLATÖR GERGİSİ",
@@ -940,19 +941,19 @@ def _perde_yazisi(e, yer, p):
     orta = y if aci else x
     #  Tam adı sığmıyorsa ( oklar perdeyi sık kesiyor ) kısaltılır
     for metin in ("KARŞI AĞIRLIK PERDESİ", "AĞIRLIK PERDESİ", "PERDE"):
-        L = CGE._yazi_eni(metin, CGE.yb(h))
+        L = CEL.yazi_eni(metin, CEL.yb(h))
         adaylar = sorted(
             (orta + d for d in range(-2000, 2001, 20) if boy[0] + L / 2.0 <= orta + d <= boy[1] - L / 2.0),
             key=lambda c: abs(c - orta),
         )
         for c in adaylar:
-            hh = CGE.yb(h)
+            hh = CEL.yb(h)
             k = (
                 (x - hh / 2.0, c - L / 2.0, x + hh / 2.0, c + L / 2.0)
                 if aci
                 else (c - L / 2.0, y - hh / 2.0, c + L / 2.0, y + hh / 2.0)
             )
             if not any(_kesisir(a, b, k, 15) for a, b in oklar) and not any(ortusur(k, b, 15) for b in engel):
-                return CGE._yazi(x, c, metin, h, aci=90) if aci else CGE._yazi(c, y, metin, h)
+                return CEL.yazi(x, c, metin, h, aci=90) if aci else CEL.yazi(c, y, metin, h)
     metin = "KARŞI AĞIRLIK PERDESİ"
-    return CGE._yazi(x, orta, metin, h, aci=90) if aci else CGE._yazi(orta, y, metin, h)
+    return CEL.yazi(x, orta, metin, h, aci=90) if aci else CEL.yazi(orta, y, metin, h)

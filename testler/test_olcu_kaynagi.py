@@ -18,6 +18,7 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from api import cizim as UC
 from testler.yavas import yavas
 from api import uygulama as UC_UYG
+from cizim import eleman as CEL
 from cizim import cizimler as CZ
 from cizim import geometri as CGE
 from cizim import kopru as CK
@@ -716,7 +717,7 @@ class Parcalar(unittest.TestCase):
             sorted(k for k in CK.ALAN if CK.ALAN[k][3] == "sayi" and CK.ALAN[k][5] is None),
             sorted(CK.KURALLI),
         )
-        self.assertIn("kural", CGE._olcu("yatay", (0, 0), (1, 0), 0, kural="x"))
+        self.assertIn("kural", CEL.olcu("yatay", (0, 0), (1, 0), 0, kural="x"))
 
 
 if __name__ == "__main__":

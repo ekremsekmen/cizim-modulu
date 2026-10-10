@@ -9,6 +9,7 @@ import unittest
 
 from temel import ortusur
 from testler.test_gercek_projeler import GP, UC, UYG, E_UGR, E_UYG, CK
+from cizim import eleman as CEL
 from cizim import baglantilar as CB, donanim as CDN, geometri as E
 from cizim import kabin_ustu as KU, kuyu_kesiti as K
 from cizim import makine as CMK, olculer as O
@@ -129,7 +130,7 @@ class KesitYerlesimRegresyon(unittest.TestCase):
                 parcalar = CB.agirlik_patenleri(
                     g, S, M["agirlik"]["kutu"], [r for r in M["raylar"] if r["tur"] == "agirlik"], z0, z1
                 )
-                for el in CMK.gorunus(parcalar, B, E._dik, E._daire, E._cizgi):
+                for el in CMK.gorunus(parcalar, B, CEL.dikdortgen, CEL.daire, CEL.cizgi):
                     el.pop("_derin", None)  # kesitin iç işareti ( kabin_arkasi kaldırır )
                     with self.subTest(proje=ad, parca=el["ad"]):
                         self.assertIn(el, e)

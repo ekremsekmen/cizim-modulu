@@ -8,7 +8,7 @@ ikinci göz.
 
 import math
 
-from cizim import geometri as CGE
+from cizim import eleman as CEL
 
 
 def yazi_kutusu(el):
@@ -23,7 +23,7 @@ def yazi_kutusu(el):
             return (el["metin"], el["x"] - c, ys[0], el["x"] + c, ys[1])
         return (el["metin"], el["x"] + a, el["y"] - c, el["x"] + b, el["y"] + c)
     y = el["yazi"]
-    h = y.get("h", CGE.OLCU_YAZI)
+    h = y.get("h", CEL.OLCU_YAZI)
     w, c = len(el["metin"]) * h * 0.58 / 2.0, 0.36 * h
     if y.get("aci"):
         w, c = c, w

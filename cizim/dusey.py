@@ -39,6 +39,7 @@ STANDARDIN DENETLEDİĞİ AÇIKLIKLAR
 """
 
 from temel import eleman_kutusu, ortusur, sayi_mi
+from cizim import eleman as CEL
 from cizim import arka_aski as CAA
 from cizim import donanim as CDN
 from cizim import geometri as CGE
@@ -447,15 +448,15 @@ def _kabin(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89, esik
     esik_on:  kabin eşiğinin kat tarafındaki kenarı ( önlük orada asılıdır;
     verilmezse kabinin ön yüzü )."""
     y0, y1 = kabin_y
-    D = CGE._dik
-    e.append(CGE._ad(D("KABIN", y0, kt["taban_alti"], y1 - y0, kt["tavan"] - kt["taban_alti"]), "kabin"))
+    D = CEL.dikdortgen
+    e.append(CEL.ad(D("KABIN", y0, kt["taban_alti"], y1 - y0, kt["tavan"] - kt["taban_alti"]), "kabin"))
     e.append(D("KABIN-IC", y0, kt["doseme"], y1 - y0, kt["ic_ust"] - kt["doseme"]))
     #  Etek ( önlük, m.5.4.5 ):  kabin eşiğinin kat tarafındaki kenarından iner,
     #  dik kısmın altında pahla kabine döner ( eskiden kabinin ön yüzündeydi,
     #  eşiğin 90 gerisinde, pahsız )
     u = y0 if esik_on is None else esik_on
     ust = kt["doseme"] - S["esik_kalinlik"]
-    et = CGE._ad(D("KABIN", u, kt["etek_alti"], CP.ONLUK_PAH, ust - kt["etek_alti"]), "etek")
+    et = CEL.ad(D("KABIN", u, kt["etek_alti"], CP.ONLUK_PAH, ust - kt["etek_alti"]), "etek")
     et["bicim"] = CP.pahli_sac(u, ust, ust - kt["etek_dik_alti"], u + CP.ONLUK_PAH, dz=CP.ONLUK_PAH_DUSEY)
     e.append(et)
     #  Şase:  ray ekseninde dikme, alt ve üst kiriş ( kabin_kotlari )
@@ -468,7 +469,7 @@ def _kabin(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89, esik
     pe = min(CP.SASE_PROFIL_ENI, sd / 2.0)
     for x in (ry - sd / 2.0, ry + sd / 2.0 - pe):
         e.append(
-            CGE._ad(
+            CEL.ad(
                 D("KABIN-IC", x, kt["alt_kiris_alt"], pe, kt["ust_kiris_ust"] - kt["alt_kiris_alt"]), "sase"
             )
         )
@@ -476,16 +477,16 @@ def _kabin(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89, esik
             (kt["alt_kiris_alt"], kt["alt_kiris_ust"]),
             (kt["ust_kiris_alt"], kt["ust_kiris_ust"]),
         ):
-            e.append(CGE._ad(D("KABIN-IC", x, z0, pe, z1 - z0), "sase_kiris"))
+            e.append(CEL.ad(D("KABIN-IC", x, z0, pe, z1 - z0), "sase_kiris"))
     #  Patenler ve fren bloğu
-    e.append(CGE._ad(D("PATEN", ry - 35, kt["ust_paten_alt"], 70, S["paten_yukseklik"]), "ust_paten"))
-    e.append(CGE._ad(D("PATEN", ry - 35, kt["alt_paten"], 70, S["paten_yukseklik"]), "alt_paten"))
+    e.append(CEL.ad(D("PATEN", ry - 35, kt["ust_paten_alt"], 70, S["paten_yukseklik"]), "ust_paten"))
+    e.append(CEL.ad(D("PATEN", ry - 35, kt["alt_paten"], 70, S["paten_yukseklik"]), "alt_paten"))
     for x in (ry - sd / 2.0, ry + sd / 2.0 - 50):
-        e.append(CGE._ad(D("SASE", x, kt["fren_alti"], 50, S["fren_blogu_yukseklik"]), "fren"))
+        e.append(CEL.ad(D("SASE", x, kt["fren_alti"], 50, S["fren_blogu_yukseklik"]), "fren"))
     #  Kabin kasnağı ( 2:1 kabin altı ):  kesitte yandan, çapı düşey
     for ky in kasnaklar_y or ():
         e.append(
-            CGE._ad(
+            CEL.ad(
                 D(
                     "KASNAK",
                     ky - S["kabin_kasnak_genislik"] / 2.0,

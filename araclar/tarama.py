@@ -30,6 +30,7 @@ import yollar
 yollar.kur()
 
 from araclar import kesisme as K
+from cizim import eleman as CEL
 from cizim import cizimler as CZ
 from cizim import geometri as CGE
 from cizim import pafta as CPF
@@ -56,7 +57,7 @@ def _olcu_yazilari(e):
     for el in e:
         if el["tip"] == "olcu" and el.get("yazi"):
             y = el["yazi"]
-            w, h = CGE._yazi_eni(el["metin"], y["h"]) / 2.0, y["h"] / 2.0
+            w, h = CEL.yazi_eni(el["metin"], y["h"]) / 2.0, y["h"] / 2.0
             if y["aci"]:
                 w, h = h, w
             out.append((el["metin"], y["x"] - w, y["y"] - h, y["x"] + w, y["y"] + h))

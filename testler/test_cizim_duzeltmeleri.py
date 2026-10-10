@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 
 
 from api import cizim as UC, uygulama as UA
+from cizim import eleman as CEL
 from cizim import dusey as DY, geometri as GE, girdi as GI, kopru as KO
 from cizim import kuyu_kesiti as KE, svg as SV, dxf as DX
 from cizim import sabitler as CS
@@ -141,7 +142,11 @@ class KesikCizgiler(unittest.TestCase):
         ns = "{http://www.w3.org/2000/svg}"
         for kat, desen in SV.KESIK.items():
             for olcek in (20, 50):
-                e = [GE._cizgi(kat, 0, 0, 100, 0), GE._daire(kat, 0, 0, 50), GE._dik(kat, 0, 0, 100, 100)]
+                e = [
+                    CEL.cizgi(kat, 0, 0, 100, 0),
+                    CEL.daire(kat, 0, 0, 50),
+                    CEL.dikdortgen(kat, 0, 0, 100, 100),
+                ]
                 r = ET.fromstring(SV.yaz(e, GE.sinir(e), olcek=olcek))
                 for p in list(r.find(ns + "g")):
                     self.assertEqual(p.attrib["stroke-dasharray"], SV._kesik(desen, olcek / 20))

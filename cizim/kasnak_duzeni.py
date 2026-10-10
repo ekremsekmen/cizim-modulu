@@ -20,6 +20,7 @@ yazar — burada çizimin açısı ( düşey inişte 180° ).
 
 import math
 
+from cizim import eleman as CEL
 from cizim import geometri as CGE
 from cizim import kesit_parcalari as CKP
 from cizim import kuyu_kesiti as CKK
@@ -57,7 +58,7 @@ def ciz(g, cizim_sabitleri=None):
     duz = KU.get("duzlem")
     #  Kasnağın daire göründüğü bakış ( kesit_parcalari.donanim ile aynı kural )
     B = CKP.Bakis("yan" if duz is not None and duz.yon == "y" else "on", G)
-    e = CMK.gorunus(M["sase_parcalari"] + M["makine"], B, CGE._dik, CGE._daire, CGE._cizgi)
+    e = CMK.gorunus(M["sase_parcalari"] + M["makine"], B, CEL.dikdortgen, CEL.daire, CEL.cizgi)
     ks = M["kasnak"]
     D1 = g["makine"]["tahrik_kasnak_capi"]
     R1 = D1 / 2.0
@@ -94,21 +95,18 @@ def ciz(g, cizim_sabitleri=None):
         teget = (ua, zt)
     halat.append((ua, za_, ua, z_alt))
     for u0, z0, u1, z1 in halat:
-        e.append(CGE._ad(CGE._cizgi("HALAT", u0, z0, u1, z1), "aski_halati"))
+        e.append(CEL.ad(CEL.cizgi("HALAT", u0, z0, u1, z1), "aski_halati"))
     #  Halatlar yakınsa ( yazılar ortalanınca biner ) her yazı kendi halatının
     #  dış yanına yaslanır
-    if (
-        abs(ua - uk)
-        >= (CGE._yazi_eni("KABİNE", CGE.yb(45)) + CGE._yazi_eni("AĞIRLIĞA", CGE.yb(45))) / 2.0 + 40
-    ):
-        e.append(CGE._ad(CGE._yazi(uk, z_alt - 90, "KABİNE", 45), "halat_adi"))
-        e.append(CGE._ad(CGE._yazi(ua, z_alt - 90, "AĞIRLIĞA", 45), "halat_adi"))
+    if abs(ua - uk) >= (CEL.yazi_eni("KABİNE", CEL.yb(45)) + CEL.yazi_eni("AĞIRLIĞA", CEL.yb(45))) / 2.0 + 40:
+        e.append(CEL.ad(CEL.yazi(uk, z_alt - 90, "KABİNE", 45), "halat_adi"))
+        e.append(CEL.ad(CEL.yazi(ua, z_alt - 90, "AĞIRLIĞA", 45), "halat_adi"))
     else:
         for u_, metin in ((uk, "KABİNE"), (ua, "AĞIRLIĞA")):
             sol = u_ <= (uk + ua) / 2.0
             e.append(
-                CGE._ad(
-                    CGE._yazi(u_ + (-20 if sol else 20), z_alt - 90, metin, 45, hiza="sag" if sol else "sol"),
+                CEL.ad(
+                    CEL.yazi(u_ + (-20 if sol else 20), z_alt - 90, metin, 45, hiza="sag" if sol else "sol"),
                     "halat_adi",
                 )
             )
@@ -116,18 +114,18 @@ def ciz(g, cizim_sabitleri=None):
     u0_, u1_ = min(p0, uk, ua) - 200, max(p1_, uk, ua) + 200
     if oda is not None:
         za = oda - t_ciz
-        e.append(CGE._ad(CGE._dik("TARAMA", u0_, za, u1_ - u0_, t_ciz, tip="tarama"), "tabliye"))
+        e.append(CEL.ad(CEL.dikdortgen("TARAMA", u0_, za, u1_ - u0_, t_ciz, tip="tarama"), "tabliye"))
         for a, b in (((u0_, za), (u0_, oda)), ((u0_, oda), (u1_, oda)), ((u1_, oda), (u1_, za))):
-            e.append(CGE._ad(CGE._cizgi("KUYU-DUVAR", a[0], a[1], b[0], b[1]), "tabliye"))
+            e.append(CEL.ad(CEL.cizgi("KUYU-DUVAR", a[0], a[1], b[0], b[1]), "tabliye"))
         #  Kırık çizgi ( döşeme aşağı devam eder )
         n = max(2, int((u1_ - u0_) / 150))
         kir = [(u0_ + (u1_ - u0_) * i / n, za + (35 if i % 2 else -35) * (0 < i < n)) for i in range(n + 1)]
         for a, b in zip(kir, kir[1:]):
-            e.append(CGE._cizgi("KUYU-IC", a[0], a[1], b[0], b[1]))
+            e.append(CEL.cizgi("KUYU-IC", a[0], a[1], b[0], b[1]))
     else:
         #  Makine dairesiz:  kuyu tavanı ( şasenin üstünde )
         tavan = Y["kotlar"][-1] + g["dusey"]["son_kat"]
-        e.append(CGE._ad(CGE._cizgi("KUYU-DUVAR", u0_, tavan, u1_, tavan), "kuyu_tavani"))
+        e.append(CEL.ad(CEL.cizgi("KUYU-DUVAR", u0_, tavan, u1_, tavan), "kuyu_tavani"))
     #  Sarım:  halatın tahrik kasnağında sardığı yay ( kabin tarafının yatay
     #  ucundan kasnağın üstünden ağırlık tarafının teğetine ) ve açısı
     alfa = M.get("sarim_acisi")
@@ -143,18 +141,18 @@ def ciz(g, cizim_sabitleri=None):
         for i in range(n + 1)
     ]
     for p, q in zip(nokta, nokta[1:]):
-        e.append(CGE._ad(CGE._cizgi("HALAT", p[0], p[1], q[0], q[1]), "sarim_yayi"))
+        e.append(CEL.ad(CEL.cizgi("HALAT", p[0], p[1], q[0], q[1]), "sarim_yayi"))
     #  Tahrik kasnağı en üstte:  dişli makinede dişli kutusu önüne düşüyordu —
     #  görünüşün konusu kasnaklar ve halat
-    e.append(CGE._ad(CGE._daire("KASNAK", uc, zt, R1), "tahrik_kasnagi"))
+    e.append(CEL.ad(CEL.daire("KASNAK", uc, zt, R1), "tahrik_kasnagi"))
     metin = (
         f"SARIM AÇISI {alfa:.0f}°"
         if alfa is not None
         else "SARIM AÇISI ağırlığın konumuyla değişir ( halat sapması — hesapta girdi )"
     )
-    e.append(CGE._ad(CGE._yazi(uc, max(q1, zt + R1) + 420, metin, 60), "sarim_acisi"))
+    e.append(CEL.ad(CEL.yazi(uc, max(q1, zt + R1) + 420, metin, 60), "sarim_acisi"))
 
-    O = CGE._olcu
+    O = CEL.olcu
     #  Çaplar ( LiftDesigner:  kasnağın üstünde )
     e.append(O("yatay", (uc - R1, 0), (uc + R1, 0), zt + R1 + 150, f"Ø {D1:g}"))
     if sp:
