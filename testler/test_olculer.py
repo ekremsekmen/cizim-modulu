@@ -16,13 +16,13 @@ _yol = os.path.join(KOK, "hesap")
 if _yol not in sys.path:
     sys.path.append(_yol)
 
-from cizim import kopru as CK  # noqa: E402
-from cizim import makine_dairesi as CMD  # noqa: E402
-from cizim import olculer as CO  # noqa: E402
-from cizim import sabitler as CS  # noqa: E402
-from engine.uygulama import girdi as UG  # noqa: E402
-from engine.uygulama import hesap as UY  # noqa: E402
-from engine.uygulama import mukavemet as MK  # noqa: E402
+from cizim import kopru as CK
+from cizim import makine_dairesi as CMD
+from cizim import olculer as CO
+from cizim import sabitler as CS
+from engine.uygulama import girdi as UG
+from engine.uygulama import hesap as UY
+from engine.uygulama import mukavemet as MK
 
 MD = {"mk_yok": False, "mk_uzunluk": 4000, "mk_genislik": 3000}
 

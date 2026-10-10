@@ -26,10 +26,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.avan import hesap as AV  # noqa: E402
-from engine.avan import tablolar as T  # noqa: E402
-from engine.avan import trafik as TR  # noqa: E402
-from engine.uygulama import hesap as UY  # noqa: E402
+from engine.avan import hesap as AV
+from engine.avan import tablolar as T
+from engine.avan import trafik as TR
+from engine.uygulama import hesap as UY
 
 _KLASOR = os.path.dirname(os.path.abspath(__file__))
 DOSYA = os.path.join(_KLASOR, "altin_trafik.json.gz")

@@ -41,7 +41,7 @@ def _cizim_modulleri():
 def _kos(ad, komut, cwd=KOK, ortam=None):
     print(f"\n━━ {ad}", flush=True)
     t = time.time()
-    r = subprocess.run(komut, cwd=cwd, env=dict(os.environ, **(ortam or {})))
+    r = subprocess.run(komut, cwd=cwd, env=dict(os.environ, **(ortam or {})), check=False)
     print(
         f"━━ {ad}:  {'GEÇTİ' if r.returncode == 0 else 'BAŞARISIZ'}  ·  {time.time() - t:.0f} sn", flush=True
     )

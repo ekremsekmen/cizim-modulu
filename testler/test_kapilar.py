@@ -19,14 +19,14 @@ for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "testler")):
     if _yol not in sys.path:
         sys.path.append(_yol)
 
-from cizim import geometri as CGE  # noqa: E402
-from cizim import giris as CGI  # noqa: E402
-from cizim import girdi as CG  # noqa: E402
-from cizim import sabitler as CS  # noqa: E402
-from engine.uygulama import mukavemet_tablolari as MT  # noqa: E402
+from cizim import geometri as CGE
+from cizim import giris as CGI
+from cizim import girdi as CG
+from cizim import sabitler as CS
+from engine.uygulama import mukavemet_tablolari as MT
 
-import test_olcu_kaynagi as T  # noqa: E402
-import test_yerlesim_saglamligi as Y  # noqa: E402
+import test_olcu_kaynagi as T
+import test_yerlesim_saglamligi as Y
 
 
 def _kapi(tip, sol_pay=500, genislik=900, on_pay=None):

@@ -9,8 +9,8 @@ import unittest
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [KOK, os.path.join(KOK, "hesap")]
 
-from cizim import parcalar as CP  # noqa: E402
-from engine.uygulama import mukavemet_tablolari as MT  # noqa: E402
+from cizim import parcalar as CP
+from engine.uygulama import mukavemet_tablolari as MT
 
 
 class RayKesiti(unittest.TestCase):
@@ -138,7 +138,7 @@ class KapiKesiti(unittest.TestCase):
                             )
 
     def test_esikle_cep_arasinda_cizgi_yok(self):
-        for (tip, montaj), (g, e) in self.planlar.items():
+        for (tip, montaj), (_g, e) in self.planlar.items():
             if tip.startswith("Manuel"):
                 continue
             esik = self._adli(e, "kat_esigi")[0]
@@ -148,7 +148,7 @@ class KapiKesiti(unittest.TestCase):
             }
             for el in self._adli(e, "kat_esigi", "kanat_cebi"):
                 for p in el["bicim"]:
-                    (a, ya), (b, yb) = p["noktalar"][0], p["noktalar"][-1]
+                    (a, _ya), (b, _yb) = p["noktalar"][0], p["noktalar"][-1]
                     if abs(a - b) < 1e-6 and round(a) in ceple and round(a) in (round(x0), round(x1)):
                         self.fail(f"{tip} {montaj}:  eşik ile cep arasında düşey çizgi ( x = {a} )")
 
@@ -252,7 +252,6 @@ class AgirlikCercevesi(unittest.TestCase):
     def test_ray_profili_tabanin_disinda_40(self):
         for yer in ("Sağ", "Sol", "Arka"):
             g, e = self._plan(yer)
-            ag = g["agirlik"]
             profiller = [
                 q
                 for el in e

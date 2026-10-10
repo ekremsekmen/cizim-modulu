@@ -678,7 +678,7 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
             if x.get("ad") in ("kat_kanadi", "kabin_kanadi", "kanat_durdurucu")
         ]
         merkez = [] if KT["tur"] == "manuel" else [x["y"] + x["d"] / 2.0 for x in kanat_el]
-        ex0, ex1 = esik_el["x"], esik_el["x"] + esik_el["g"]
+        ex0 = esik_el["x"]
         solda = [c for c in cep_el if abs(c["x"] + c["g"] - ex0) < 1e-6]
         for el, sol_acik, sag_acik in [(esik_el, bool(solda), len(cep_el) > len(solda))] + [
             (c, c not in solda, c in solda) for c in cep_el
@@ -1611,7 +1611,7 @@ def etiketleri_ayir(e, olcek=20):
         kb = kutular[id(el)]
         obur = [kutular[id(x)] for x in yazilar if x is not el and kutular[id(x)]]
 
-        def sorunlu(kt):
+        def sorunlu(kt, obur=obur):
             return (
                 any(ust(kt, b) for b in obur)
                 or any(ust(kt, d, -2.0 * k) for d in duvarlar)

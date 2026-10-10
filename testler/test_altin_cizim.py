@@ -17,7 +17,7 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if KOK not in sys.path:
     sys.path.insert(0, KOK)
 
-from testler import altin_cizim as A  # noqa: E402
+from testler import altin_cizim as A
 
 #  İletide gösterilen en çok fark ( düzen başına )
 AZAMI_FARK = 5

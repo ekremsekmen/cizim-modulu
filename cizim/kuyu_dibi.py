@@ -899,16 +899,21 @@ def ciz(g, cizim_sabitleri=None):
             for el in e
             if el["katman"] in CGE.PARCA_KATMANLARI or (el["tip"] == "yazi" and el.get("katman") == "YAZI")
         ]
-        yatay = lambda k: [
-            O("yatay", (0, 0), (sg[0], 0), k),
-            O("yatay", (sg[0], 0), (sg[2], 0), k),
-            O("yatay", (sg[2], 0), (G, 0), k),
-        ]
-        dusey = lambda k: [
-            O("dusey", (0, 0), (0, sg[1]), k),
-            O("dusey", (0, sg[1]), (0, sg[3]), k),
-            O("dusey", (0, sg[3]), (0, D), k),
-        ]
+
+        def yatay(k):
+            return [
+                O("yatay", (0, 0), (sg[0], 0), k),
+                O("yatay", (sg[0], 0), (sg[2], 0), k),
+                O("yatay", (sg[2], 0), (G, 0), k),
+            ]
+
+        def dusey(k):
+            return [
+                O("dusey", (0, 0), (0, sg[1]), k),
+                O("dusey", (0, sg[1]), (0, sg[3]), k),
+                O("dusey", (0, sg[3]), (0, D), k),
+            ]
+
         e += _serbest(yatay, (sg[3] + 90, sg[1] - 90), D, engel)
         e += _serbest(dusey, (sg[2] + 90, sg[0] - 90), G, engel)
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]

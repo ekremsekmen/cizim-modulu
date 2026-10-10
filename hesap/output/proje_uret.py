@@ -1,5 +1,4 @@
 from pathlib import Path
-import math, json
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont

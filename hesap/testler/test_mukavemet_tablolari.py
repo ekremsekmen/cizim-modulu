@@ -18,9 +18,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.uygulama import mukavemet_girdi as MG  # noqa: E402
-from engine.uygulama import mukavemet_tablolari as MT  # noqa: E402
-from testler.ortak import Rapor  # noqa: E402
+from engine.uygulama import mukavemet_girdi as MG
+from engine.uygulama import mukavemet_tablolari as MT
+from testler.ortak import Rapor
 
 REFERANS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "referans_tablolar.json")
 
@@ -169,7 +169,6 @@ def _kanal_tablosu(r, kaynak):
         #  Kaynağın "açı" sütunu iki büyüklüğü karıştırır:  V kanalda γ,
         #  altı kesik kanalda β.  Karşılaştırma buna göre yapılır.
         _tur = MT.kanal_turu(ad)
-        bizim_aci = O["kanal_beta"] if _tur == "UK" else (None if _tur == "U" else O["kanal_gama_v"])
         bizim = MT.kanal_nequiv_t(ad, O["kanal_gama_v"], O["kanal_beta"])
         if _tur == "VK":
             #  ALTI KESİK V'DE BİLEREK AYRILIYORUZ:  kaynak onu Çizelge 2'nin
@@ -593,7 +592,7 @@ def _gelismis_sozlesmesi(r):
         r.kontrol(f"görünür kalır: {a}", a in MG.ALAN and a not in MG.GELISMIS_ALANLAR)
     for a in KALDIRILAN_ALANLAR:
         r.kontrol(f"kaldırıldı: {a}", a not in MG.ALAN)
-    for anahtar, _e, _b, tur, secenekler, _v in MG.ALANLAR:
+    for anahtar, _e, _b, _tur, secenekler, _v in MG.ALANLAR:
         if secenekler is not None:
             r.kontrol(
                 f"girdi {anahtar}: tek seçenekli kutu sorulmuyor", len(secenekler) > 1, f"→ {secenekler!r}"

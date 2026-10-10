@@ -18,12 +18,12 @@ _yol = os.path.join(KOK, "hesap")
 if _yol not in sys.path:
     sys.path.append(_yol)
 
-from api import cizim as UC  # noqa: E402
-from cizim import kabin_ustu as CKU  # noqa: E402
-from cizim import kopru as CK  # noqa: E402
-from cizim import kuyu_dibi as CKD  # noqa: E402
-from cizim import kuyu_ustu as CKT  # noqa: E402
-from engine.uygulama import girdi as E_UGR  # noqa: E402
+from api import cizim as UC
+from cizim import kabin_ustu as CKU
+from cizim import kopru as CK
+from cizim import kuyu_dibi as CKD
+from cizim import kuyu_ustu as CKT
+from engine.uygulama import girdi as E_UGR
 
 #  ISO 4190 / TS EN 81-20 Çizelge 6'ya uygun kabinler, kuyu kabinden 950 geniş,
 #  450 derin ( formun varsayılanı gibi ), kapı yüke göre.

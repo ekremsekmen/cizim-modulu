@@ -12,6 +12,7 @@ class OlcuArayuz(unittest.TestCase):
         sonuc = subprocess.run(
             [shutil.which("node"), "--test", str(Path(__file__).with_name("olcu_arayuz.test.cjs"))],
             capture_output=True,
+            check=False,
             text=True,
             timeout=30,
         )

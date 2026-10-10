@@ -14,13 +14,13 @@ _yol = os.path.join(KOK, "hesap")
 if _yol not in sys.path:
     sys.path.append(_yol)
 
-from api import uygulama as UC_UYG  # noqa: E402
-from cizim import kopru as CK  # noqa: E402
-from engine.uygulama import girdi as UG  # noqa: E402
-from engine.uygulama import mukavemet_girdi as MG  # noqa: E402
-from tasarim import alanlar as TS  # noqa: E402
-from tasarim import gorunum as TG  # noqa: E402
-from tasarim import sozluk as TZ  # noqa: E402
+from api import uygulama as UC_UYG
+from cizim import kopru as CK
+from engine.uygulama import girdi as UG
+from engine.uygulama import mukavemet_girdi as MG
+from tasarim import alanlar as TS
+from tasarim import gorunum as TG
+from tasarim import sozluk as TZ
 
 #  Tasarım sırası:  düzen → kuyu → kabin ve kapı → parçalar → elektrik
 GRUP_SIRASI = (

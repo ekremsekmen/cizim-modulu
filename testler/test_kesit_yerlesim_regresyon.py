@@ -9,7 +9,7 @@ import unittest
 
 from testler.test_gercek_projeler import GP, UC, UYG, E_UGR, E_UYG, CK
 from cizim import baglantilar as CB, donanim as CDN, geometri as E
-from cizim import kabin_ustu as KU, kesit_parcalari as P, kuyu_kesiti as K
+from cizim import kabin_ustu as KU, kuyu_kesiti as K
 from cizim import makine as CMK, olculer as O
 
 

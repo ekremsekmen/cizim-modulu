@@ -23,18 +23,18 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.avan import hesap as AV  # noqa: E402
-from engine.avan import trafik as TR  # noqa: E402
+from engine.avan import hesap as AV
+from engine.avan import trafik as TR
 from testler.altin_uret import (
     DOSYA,
-    DOSYA_AVAN,  # noqa: E402
+    DOSYA_AVAN,
     DOSYA_UYGULAMA,
     avan_senaryolar,
     senaryolar,
     uygulama_motoru,
     uygulama_senaryolar,
 )
-from testler.ortak import Rapor  # noqa: E402
+from testler.ortak import Rapor
 
 
 def _duz(x, on=""):

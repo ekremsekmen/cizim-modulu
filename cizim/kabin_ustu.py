@@ -405,7 +405,6 @@ def ciz(g, cizim_sabitleri=None):
     #  ── KABİN TAVANI ─────────────────────────────────────────────────
     tg, td = tavan[2] - tavan[0], tavan[3] - tavan[1]
     e.append(CGE._ad(CGE._dik("KABIN", tavan[0], tavan[1], tg, td), "tavan"))
-    kx, ky = (tavan[0] + tavan[2]) / 2.0, (tavan[1] + tavan[3]) / 2.0
     #  Şasenin üst kirişi tavanın üstünde, ray ekseninde dikmeden dikmeye
     #  ( kuyu planındaki zarfı;  kabin üstü kasnaklar onun da üstünde ).
     #  Eskiden bu planda yalnız dikmeler vardı:  askı görünmüyordu ( 3 Eki ).
@@ -637,7 +636,7 @@ def ciz(g, cizim_sabitleri=None):
             for k_ in olcu_yazilari:
                 u0, u1 = (k_[0], k_[2]) if dikey else (k_[1], k_[3])
                 if u0 < serit[1] and serit[0] < u1:
-                    d_.append(((k_[1], k_[3]) if dikey else (k_[0], k_[2])))
+                    d_.append((k_[1], k_[3]) if dikey else (k_[0], k_[2]))
             out, a = [], bas
             for d1, d2 in sorted(d_):
                 if d1 > a:
@@ -669,7 +668,7 @@ def ciz(g, cizim_sabitleri=None):
         for k_ in parcalar_:
             u0, u1 = (k_[0], k_[2]) if dikey else (k_[1], k_[3])
             if u0 < serit_dis[1] and serit_dis[0] < u1:
-                dis_engel.append(((k_[1], k_[3]) if dikey else (k_[0], k_[2])))
+                dis_engel.append((k_[1], k_[3]) if dikey else (k_[0], k_[2]))
         dis_parca = bos_parcalar(-ic_yon, dis_engel)
         #  Sıra:  uzun yazı içeride, dışarıda;  ikisine de sığmıyorsa kısa yazı
         #  ( "h = 700" — çizgi korkuluk katmanında ) içeride, dışarıda.

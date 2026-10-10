@@ -1,0 +1,4 @@
+#  git blame bu commit'leri atlar ( yalnız biçim değişikliği ):
+#    git config blame.ignoreRevsFile .git-blame-ignore-revs
+#  ruff format ( kod kalitesi 1. adım )
+1c9a11ff21eb001aafc9ef391628b0fcf7fd69d0

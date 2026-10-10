@@ -268,7 +268,7 @@ def _sayfa_geometrisi(pdf_baytlari):
     for sayfa in extract_pages(io.BytesIO(pdf_baytlari), laparams=None):
         cizgiler, karakterler = [], []
 
-        def gez(nesne):
+        def gez(nesne, karakterler=karakterler, cizgiler=cizgiler):
             for e in nesne:
                 if isinstance(e, LTChar):
                     karakterler.append(e)
@@ -413,7 +413,7 @@ def a4_cerceveleri(msp, tol=0.5):
     LWPOLYLINE'lar alınır ( şablonda A4 boyutunda kapalı çoklu çizgi yoktur ).
     """
     kutular = []
-    for e in msp.query('LWPOLYLINE[layer=="%s"]' % KATMAN_CERCEVE):
+    for e in msp.query(f'LWPOLYLINE[layer=="{KATMAN_CERCEVE}"]'):
         p = list(e.get_points("xy"))
         if not (e.closed and len(p) == 4):
             continue

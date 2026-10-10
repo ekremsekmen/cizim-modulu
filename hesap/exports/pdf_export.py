@@ -40,7 +40,7 @@ def _fontlari_yukle():
     try:
         pdfmetrics.getFont("Gov")
         return "Gov", "Gov-Bold"
-    except Exception:
+    except KeyError:  # henüz kayıtlı değil
         pass
     adaylar = [
         (os.path.join(FONT_DIR, "DejaVuSans.ttf"), os.path.join(FONT_DIR, "DejaVuSans-Bold.ttf")),
@@ -211,7 +211,7 @@ class _BolumIsareti(Flowable):
         super().__init__()
         self.ad = str(ad or "")
 
-    def wrap(self, *_a):  # noqa: ANN002
+    def wrap(self, *_a):
         return (0, 0)
 
     def draw(self):
@@ -282,7 +282,7 @@ class _Belge(BaseDocTemplate):
             [PageTemplate(id="std", frames=cerceve, onPage=self._sayfa, onPageEnd=self._sayfa_sonu)]
         )
 
-    def _sayfa_sonu(self, cnv, doc):  # noqa: ARG002
+    def _sayfa_sonu(self, cnv, doc):
         """Sayfanın bölümünü alt şeride yazar  ( içerik çizildikten sonra )."""
         ad = self.sayfa_bolumu
         if not ad:
@@ -300,7 +300,7 @@ class _Belge(BaseDocTemplate):
 
     #  reportlab'in onPage geri çağrısı ( canvas, doc ) imzasıyla çağrılır;
     #  `doc` bu paftada kullanılmaz ama imzadan çıkarılamaz.
-    def _sayfa(self, cnv, doc):  # noqa: ARG002
+    def _sayfa(self, cnv, doc):
         """
         PAFTA ÇERÇEVESİ  —  ofisin kendi paftasındaki düzen:
         tüm hesap kalın bir çerçeve içinde, üstte tek başlık şeridi,
@@ -539,7 +539,7 @@ def _sonuc_kutusu(sonuc):
     return ogeler
 
 
-def _karar_kutusu(metin, olcutler=None, verdikt=None, uygun=True):  # noqa: ARG001
+def _karar_kutusu(metin, olcutler=None, verdikt=None, uygun=True):
     """
     Paftanın NİHAİ CEVABI  —  "Toplamda 1 adet 8 kişilik (630 kg), 1,00 m/s
     hızında asansör yapılması uygundur."
@@ -863,7 +863,7 @@ def _kv_tablo(satirlar, genislikler=(70 * mm, 110 * mm), vurgu_son=False):
 TRAFIK_OLCEKLERI = tuple(round(1.0 - 0.02 * i, 2) for i in range(31))
 
 
-def trafik_pdf(sonuc: dict, proje: dict = None) -> bytes:  # noqa: ARG001
+def trafik_pdf(sonuc: dict, proje: dict = None) -> bytes:
     """
     ASANSÖR TRAFİK HESABI paftası  —  her zaman TEK SAYFA.
 
@@ -1034,7 +1034,7 @@ def _nufus_tablo(nufus, b):
 # =====================================================================
 #  AVAN HESAPLARI PDF
 # =====================================================================
-def avan_pdf(sonuc: dict, proje: dict = None) -> bytes:  # noqa: ARG001
+def avan_pdf(sonuc: dict, proje: dict = None) -> bytes:
     #  ``proje`` eski çağrılarla uyumluluk için kabul edilir, paftaya yazılmaz —
     #  proje antedi KAPAK sayfasındadır ( bkz. kapak_export ).
     buf = io.BytesIO()
@@ -1184,7 +1184,7 @@ def _avan_ozet_tablo(sonuc):
 # =====================================================================
 #  MUKAVEMET HESAPLARI PDF          ( UYGULAMA PROJESİ — avandan ayrı )
 # =====================================================================
-def mukavemet_pdf(sonuc: dict, proje: dict = None) -> bytes:  # noqa: ARG001
+def mukavemet_pdf(sonuc: dict, proje: dict = None) -> bytes:
     """Mukavemet paftası.
 
     ``proje`` eski çağrılarla uyumluluk için kabul edilir, paftaya yazılmaz —
@@ -1292,7 +1292,7 @@ def _uygulama_govdesi(sonuc, ust_ek=""):
     return ic
 
 
-def uygulama_pdf(sonuc: dict, proje: dict = None) -> bytes:  # noqa: ARG001
+def uygulama_pdf(sonuc: dict, proje: dict = None) -> bytes:
     """Uygulama projesi paftası — 1 - 4 asansör, hepsi TEK belgede.
 
     GİRDİSİ PROJE SONUCUDUR ( engine/uygulama/hesap.hesapla_coklu ), tek bir

@@ -1140,7 +1140,7 @@ def hesapla_asansor(a: dict, ortak: dict, S: dict, no: int = 1) -> dict:
     sigorta_A = T.sigorta_sec(I_motor, S["sigorta_katsayisi"])
     motor_sigorta = f"4 x {trn(sigorta_A, 0)}" if sigorta_A else "uygulama projesinde"
 
-    b5 = Bolum(f"5 -  KURULU GÜÇ CETVELİ", f"tablo adı :  TAS{no}", kimlik="kurulu_guc")
+    b5 = Bolum("5 -  KURULU GÜÇ CETVELİ", f"tablo adı :  TAS{no}", kimlik="kurulu_guc")
     b5["aciklamalar"] = [
         "Kurulu güç, tüketicilerin anma ( etiket ) güçlerinin toplamıdır "
         "( Elektrik İç Tesisleri Proje Hazırlama Yönetmeliği m.5-19 ).  Motorun "
@@ -1396,8 +1396,8 @@ def hesapla_asansor(a: dict, ortak: dict, S: dict, no: int = 1) -> dict:
         ),
         "uygun": bool(tumu),
         "alt": [
-            f"ε  ≤  εmax  :  " + ("UYGUN" if eps_uygun else "UYGUN DEĞİL — kesiti büyütün"),
-            f"I  ≤  Iz    :  "
+            "ε  ≤  εmax  :  " + ("UYGUN" if eps_uygun else "UYGUN DEĞİL — kesiti büyütün"),
+            "I  ≤  Iz    :  "
             + (
                 "UYGUN"
                 if akim_uygun
@@ -1407,7 +1407,7 @@ def hesapla_asansor(a: dict, ortak: dict, S: dict, no: int = 1) -> dict:
                     else "KONTROL EDİLEMEDİ — kesit akım tablosunun dışında"
                 )
             ),
-            f"I2 ≤  Iz2   :  "
+            "I2 ≤  Iz2   :  "
             + (
                 "UYGUN"
                 if akim2_uygun

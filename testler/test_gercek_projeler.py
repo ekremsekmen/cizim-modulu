@@ -24,18 +24,18 @@ for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "testler")):
     if _yol not in sys.path:
         sys.path.append(_yol)
 
-from api import cizim as UC  # noqa: E402
-from api import uygulama as UYG  # noqa: E402
-from cizim import geometri as CGE  # noqa: E402
-from cizim import girdi as CG  # noqa: E402
-from cizim import kopru as CK  # noqa: E402
-from cizim import kuyu_dibi as CKD  # noqa: E402
-from cizim import makine_dairesi as CMD  # noqa: E402
-from cizim import sabitler as CS  # noqa: E402
-from engine.uygulama import girdi as E_UGR  # noqa: E402
-from engine.uygulama import hesap as E_UYG  # noqa: E402
+from api import cizim as UC
+from api import uygulama as UYG
+from cizim import geometri as CGE
+from cizim import girdi as CG
+from cizim import kopru as CK
+from cizim import kuyu_dibi as CKD
+from cizim import makine_dairesi as CMD
+from cizim import sabitler as CS
+from engine.uygulama import girdi as E_UGR
+from engine.uygulama import hesap as E_UYG
 
-import gercek_projeler as GP  # noqa: E402
+import gercek_projeler as GP
 
 CIZILENLER = ("4815-6", "1022", "1275", "800 KG")
 

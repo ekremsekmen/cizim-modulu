@@ -9,7 +9,7 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if KOK not in sys.path:
     sys.path.insert(0, KOK)
 
-from araclar import tarama as T  # noqa: E402
+from araclar import tarama as T
 
 KAYIT = {"ana": {"A": {"durum": "çizildi", "sebep": ""}, "B": {"durum": "ret", "sebep": "X sığmıyor"}}}
 

@@ -17,16 +17,16 @@ for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "ornekler")):
     if _yol not in sys.path:
         sys.path.append(_yol)
 
-import ezdxf  # noqa: E402
+import ezdxf
 
-from api import cizim as UC_CIZIM  # noqa: E402
-from api import uygulama as UC_UYG  # noqa: E402
-from cizim import girdi as CG  # noqa: E402
-from cizim import kopru as CK  # noqa: E402
-from cizim import sabitler as CS  # noqa: E402
-from engine.uygulama import girdi as E_UGR  # noqa: E402
-from engine.uygulama import hesap as E_UYG  # noqa: E402
-from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER  # noqa: E402
+from api import cizim as UC_CIZIM
+from api import uygulama as UC_UYG
+from cizim import girdi as CG
+from cizim import kopru as CK
+from cizim import sabitler as CS
+from engine.uygulama import girdi as E_UGR
+from engine.uygulama import hesap as E_UYG
+from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
 
 
 def _veri(md=False, **ek):

@@ -15,16 +15,16 @@ _yol = os.path.join(KOK, "hesap")
 if _yol not in sys.path:
     sys.path.append(_yol)
 
-from cizim import arka_aski as CAA  # noqa: E402
-from cizim import geometri as CGE  # noqa: E402
-from cizim import kabin_ustu as CKUS  # noqa: E402
-from cizim import kopru as CK  # noqa: E402
-from cizim import dusey as CDY  # noqa: E402
-from cizim import kuyu_ustu as CKT  # noqa: E402
-from cizim import makine_dairesi as CMD  # noqa: E402
-from cizim import sabitler as CS  # noqa: E402
-from engine.uygulama import girdi as UG  # noqa: E402
-from engine.uygulama import hesap as UY  # noqa: E402
+from cizim import arka_aski as CAA
+from cizim import geometri as CGE
+from cizim import kabin_ustu as CKUS
+from cizim import kopru as CK
+from cizim import dusey as CDY
+from cizim import kuyu_ustu as CKT
+from cizim import makine_dairesi as CMD
+from cizim import sabitler as CS
+from engine.uygulama import girdi as UG
+from engine.uygulama import hesap as UY
 
 #  12495-18'in düzeni ( çapraz kasnaklar, makine duvardan duvara ), kabin
 #  1.350 × 1.400 ( 800 kg'ın standart kabini ):  12495-18'in 1.100 × 1.100

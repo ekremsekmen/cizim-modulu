@@ -19,11 +19,11 @@ for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "testler")):
     if _yol not in sys.path:
         sys.path.append(_yol)
 
-from api import cizim as UC  # noqa: E402
-from api import uygulama as UYG  # noqa: E402
-from engine.uygulama import hesap as E_UYG  # noqa: E402
+from api import cizim as UC
+from api import uygulama as UYG
+from engine.uygulama import hesap as E_UYG
 
-import test_yerlesim_saglamligi as Y  # noqa: E402
+import test_yerlesim_saglamligi as Y
 
 
 def _calistir(**ek):

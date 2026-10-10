@@ -443,7 +443,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     Y = yerlesim(g, cizim_sabitleri)
     S, M, KD, dy = Y["S"], Y["M"], Y["KD"], g["dusey"]
     k = g["kuyu"]
-    G, D, don, dar = k["genislik"], k["derinlik"], k["duvar_on"], k["duvar_arka"]
+    D, don, dar = k["derinlik"], k["duvar_on"], k["duvar_arka"]
     dos = k.get("doseme", don)  # kuyu dibi ve tavan döşemesi
     K = OLCEK / 20.0
     B = yan_bakis(g)
@@ -579,7 +579,7 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     Y = yerlesim(g, cizim_sabitleri)
     S, M, dy = Y["S"], Y["M"], g["dusey"]
     k = g["kuyu"]
-    G, D, ds, dg, don = k["genislik"], k["derinlik"], k["duvar_sol"], k["duvar_sag"], k["duvar_on"]
+    G, ds, dg, don = k["genislik"], k["duvar_sol"], k["duvar_sag"], k["duvar_on"]
     dos = k.get("doseme", don)  # kuyu dibi ve tavan döşemesi
     K = OLCEK / 20.0
     B = CKP.Bakis("on", G, ("y", CGE.kesit_duzlemleri(g)[1], -1.0))

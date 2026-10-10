@@ -28,10 +28,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.avan import hesap as AV  # noqa: E402
-from engine.avan import tablolar as T  # noqa: E402
-from engine.avan import trafik as TR  # noqa: E402
-from testler.ortak import Rapor  # noqa: E402
+from engine.avan import hesap as AV
+from engine.avan import tablolar as T
+from engine.avan import trafik as TR
+from testler.ortak import Rapor
 
 DOSYA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "referans_avan.json.gz")
 

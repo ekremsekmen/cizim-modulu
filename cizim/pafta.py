@@ -285,7 +285,7 @@ def _yerlestir(d, g, x0=None, sag_eski=None):
             cizimler.append((f"{ad}_{i + 1}" if coklu else ad, baslik, olcek, e))
     CDX.hazirla(d)
     boyutlar, kutular = [], []
-    for ad, baslik, olcek, e in cizimler:
+    for _ad, _baslik, olcek, e in cizimler:
         bx0, by0, bx1, by1 = CGE.sinir(e)
         kutular.append((bx0, by0))
         boyutlar.append(((bx1 - bx0) / olcek, (by1 - by0) / olcek))

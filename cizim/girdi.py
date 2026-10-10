@@ -267,7 +267,7 @@ def dogrula(g):
     #  KABİN İLE KARŞI AĞIRLIK ÇAKIŞAMAZ.  Blok, ağırlık rayı eksenine
     #  ortalanır;  kabinin yanından en az ASGARI_ACIKLIK kadar uzak durmalı.
     ag = g["agirlik"]
-    kx, ky = k["genislik"] / 2.0 + kb["kaciklik_y"], kb["on_pay"] + kb["derinlik"] / 2.0
+    kx = k["genislik"] / 2.0 + kb["kaciklik_y"]
     # İç ölçü yerine çizilen pano ve şasenin dış zarfını denetle.
     yari_en = kb["genislik"] / 2.0 + S["kabin_pano_yan"] + S["sase_dikme"]
     kabin_kutu = (

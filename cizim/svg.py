@@ -169,7 +169,7 @@ HALE = 0.6
 HALE_AZAMI = 70.0 * HALE  # 1/20'de;  başka ölçekte k ile
 
 
-def _metin(x, y, metin, yukseklik, renk, aci=0, hiza="orta", k=1.0):  # noqa: D401
+def _metin(x, y, metin, yukseklik, renk, aci=0, hiza="orta", k=1.0):
     #  Çizim ters çevrildiği için yazı kendi ekseninde geri çevrilir.
     hale = min(HALE * yukseklik, HALE_AZAMI * k)
     tutucu = {"orta": "middle", "sol": "start", "sag": "end"}.get(hiza, "middle")

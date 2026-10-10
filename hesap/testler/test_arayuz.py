@@ -14,7 +14,7 @@ import urllib.request
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, KOK)
 
-from testler.ortak import Rapor  # noqa: E402
+from testler.ortak import Rapor
 
 BASE = os.environ.get("AVAN_TEST_URL", "http://127.0.0.1:8780")
 
@@ -1295,7 +1295,7 @@ def calistir():
         pg.fill("#mk_proje_adi", "Güneş Apartmanı")
         pg.evaluate("mAsansorSekmesi(0)")
         pg.wait_for_timeout(900)
-        _ad = pg.evaluate("""async () => {
+        _ad = pg.evaluate(r"""async () => {
             const r = await fetch('/api/indir/uygulama-pdf', {method:'POST',
               headers:{'Content-Type':'application/json'},
               body: JSON.stringify({kapak: mukavemetKimlik(),

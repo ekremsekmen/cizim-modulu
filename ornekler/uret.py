@@ -22,7 +22,13 @@ geçirilip kaydedilir;  AutoCAD yoksa .dxf kalır ) ve .pdf ( paftanın görünt
 rsvg-convert yoksa .svg kalır ).
 """
 
-import os, re, shutil, subprocess, sys, tempfile
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CIKTI = os.path.dirname(os.path.abspath(__file__))
@@ -46,12 +52,15 @@ def _dwg(dxf, dwg):
     with tempfile.TemporaryDirectory() as t:
         src, hedef, scr = (os.path.join(t, a) for a in ("p.dxf", "p.dwg", "k.scr"))
         shutil.copy(dxf, src)
-        open(scr, "w").write(f"REGENALL\nZOOM\nE\nAUDIT\nN\nSAVEAS\n2018\n{hedef}\nQUIT\nY\n")
+        Path(scr).write_text(
+            f"REGENALL\nZOOM\nE\nAUDIT\nN\nSAVEAS\n2018\n{hedef}\nQUIT\nY\n", encoding="utf-8"
+        )
         try:
             cikti = subprocess.run(
                 [ACC, "-i", src, "-s", scr, "-l", "en-US"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                check=False,
                 timeout=240,
             ).stdout
         except subprocess.TimeoutExpired as z:  # QUIT'te kalırsa:  DWG çoktan yazıldı
@@ -124,11 +133,11 @@ def uret(md):
     #  ── PAFTA ─────────────────────────────────────────────────────────
     with tempfile.TemporaryDirectory() as t:
         yol_hesap = os.path.join(t, "hesap.dxf")
-        open(yol_hesap, "wb").write(hesap_dxf)
+        Path(yol_hesap).write_bytes(hesap_dxf)
         d, bilgi = CPF.birlestir(yol_hesap, g)
         dxf, svg = os.path.join(t, "pafta.dxf"), os.path.join(t, "pafta.svg")
         d.saveas(dxf)
-        open(svg, "w", encoding="utf-8").write(CPF.onizleme(d))
+        Path(svg).write_text(CPF.onizleme(d), encoding="utf-8")
         yol = os.path.join(CIKTI, ad)
         denetim = _dwg(dxf, yol + ".dwg") if os.path.exists(ACC) else None
         if denetim is None:

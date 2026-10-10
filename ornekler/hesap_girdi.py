@@ -12,7 +12,7 @@ hesap ile çizim aynı sayıyı kullanır, referans projenin ikisi ise çelişiy
                             teğetinden iner, askı ray ekseninin 250 önünde ( −250 );
                             referans hesabı 0 alır ( askı ray ekseninde )."""
 
-from cizim import sabitler as _CS  # noqa: E402
+from cizim import sabitler as _CS
 
 ASANSOR = {
     "asansor_adi": "ASANSÖR 1",

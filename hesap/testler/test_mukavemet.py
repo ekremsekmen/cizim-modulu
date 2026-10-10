@@ -20,11 +20,11 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.uygulama import mukavemet as MK  # noqa: E402
-from cizim import sabitler as _CS  # noqa: E402
-from engine.uygulama import mukavemet_tablolari as MT  # noqa: E402
-from engine.uygulama import sabitler as US  # noqa: E402
-from testler.ortak import P_std as _P_std, Rapor  # noqa: E402
+from engine.uygulama import mukavemet as MK
+from cizim import sabitler as _CS
+from engine.uygulama import mukavemet_tablolari as MT
+from engine.uygulama import sabitler as US
+from testler.ortak import P_std as _P_std, Rapor
 
 #  Ofisin kaynak tablolarından bir kez okunup dondurulan değerler ( ω … )
 REFERANS_TABLOLAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "referans_tablolar.json")
@@ -429,7 +429,6 @@ def _sapmalar(r):
     #  ═══════════════════════════════════════════════════════════════
     #  Aşağıdaki sayılar BS EN 81-20:2014 ve BS EN 81-50:2014'ün kendi
     #  metninden alınmıştır — motorun koduna bakılmadan.
-    import math as _mt
     from engine.uygulama import mukavemet_tablolari as _MTx
 
     #  EN 81-20 Çizelge 14  —  darbe katsayıları
@@ -2430,6 +2429,9 @@ def _girdi_yollari(r):
     r.kontrol(
         "yan ağırlıkta bina sehimi eksen dönüşümü çalışıyor", abs((dx_arka - dx_sag) - (3.0 - 1.0)) < 1e-6
     )
+    #  ve y'de tersi:  arkada ray y'si bina y'sini ( 1,0 ), yanda bina x'ini
+    #  ( 3,0 ) alır.  11 Eki'ye dek δy hesaplanıyor ama denetlenmiyordu.
+    r.kontrol("yan ağırlıkta bina sehimi eksen dönüşümü ( y )", abs((dy_arka - dy_sag) - (1.0 - 3.0)) < 1e-6)
 
     #  5. Makaralı patende balata adımı ve Bölüm 8 formül adı
     s_mak = MK.hesapla({"agirlik_paten_tipi": "Makaralı", "agirlik_guvenlik_tertibati": "Kaymalı"})

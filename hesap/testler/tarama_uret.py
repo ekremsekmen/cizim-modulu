@@ -17,8 +17,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from testler import test_avan_tarama as T1  # noqa: E402
-from testler import test_mukavemet_tarama as T10  # noqa: E402
+from testler import test_avan_tarama as T1
+from testler import test_mukavemet_tarama as T10
 
 
 def yaz(kayit, dosya):

@@ -815,7 +815,7 @@ class KuyuTabaniK3Denetimi(unittest.TestCase):
         s = M.hesapla({"mk_yok": True, "makine_raya_biniyor": T.MAKINE_YUK_YOLU_RAY})
         a = self._bilesenler(s, "kuyu_tabani")["FKR = gn × Gr × LR / 1000 + k3 × MY + Fgt"]
         sayi = a["islem"].replace(".", "").replace(",", ".").replace("×", "*")
-        self.assertAlmostEqual(eval(sayi), a["deger"], delta=1.0)  # noqa: S307
+        self.assertAlmostEqual(eval(sayi), a["deger"], delta=1.0)
 
 
 class PaftaIslemDenetimi(unittest.TestCase):
@@ -842,8 +842,8 @@ class PaftaIslemDenetimi(unittest.TestCase):
             return None
         t = t.replace(".", "").replace(",", ".").replace("×", "*").replace("x", "*")
         try:
-            return eval(t, {"__builtins__": {}}, {})  # noqa: S307
-        except Exception:
+            return eval(t, {"__builtins__": {}}, {})
+        except Exception:  # noqa: BLE001 — sayı olmayan işlem satırı:  karşılaştırılmaz
             return None
 
     def _satirlar(self, s):

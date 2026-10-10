@@ -705,7 +705,7 @@ def _motor(g, o):
 #  2 -  MAKİNE KONSTRÜKSİYONU                   ( MMO 208/4 - m.3.4.6 )
 # =====================================================================
 def _makine(g, o):
-    S, gn, O = SABIT, SABIT["gn"], o["ofis"]
+    gn, O = SABIT["gn"], o["ofis"]
     k1 = US.darbe_k1(O, g["guvenlik_tertibati"])
     #  Kabin rayları ( bölüm 7 ) aynı k1'i okur — makine dairesi olsun olmasın.
     o.update(k1=k1)
@@ -2595,12 +2595,12 @@ def _ray_tutarsizlik_notu(profil):
     """
     if profil not in MT.RAY_TUTARSIZ:
         return None
-    for ad, eksen, tablo, hesap in MT.ray_tutarsizliklari():
+    for ad, eksen, tablo, hesaplanan in MT.ray_tutarsizliklari():
         if ad == profil:
             return (
                 f"RAY TABLOSU TUTARSIZ:  {profil} profilinde {eksen} = "
                 f"{tr(tablo)} yazılı, ama aynı satırdaki I ve A "
-                f"{eksen} = {tr(hesap)} veriyor ( √(I/A) ).  Tablodaki "
+                f"{eksen} = {tr(hesaplanan)} veriyor ( √(I/A) ).  Tablodaki "
                 "küçük değer narinliği büyük gösterir, yani burkulma "
                 "EMNİYETLİ tarafta hesaplanır;  yine de doğrusu ISO 7465 "
                 "ya da ray imalatçısının veri sayfasından teyit "
@@ -3021,7 +3021,7 @@ def _kabin_raylari(g, o):
     yQ2_n = _yuk_merkezi(yc, W / S["Dy_bolen"], Q, P, yp, ys)
     #  Paftada gösterilen "Durum 1 / Durum 2" satırları güvenlik tertibatı
     #  durumunundur — bölümün hükmünü genelde o verir.
-    xQ1, yQ1, xQ2, yQ2 = xQ1_g, yc, xc, yQ2_g
+    xQ1, yQ2 = xQ1_g, yQ2_g
 
     b = Bolum(
         "KABİN KILAVUZ RAYLARININ HESAPLANMASI",
@@ -4339,7 +4339,6 @@ def _siginma(g, o):
         return b
 
     dy, H = G["dusey"], Y["kotlar"][-1]
-    b35 = 35.0 * v * v
     ad = [
         veri("", "En üst durak ( son kat ) yüksekliği", dy["son_kat"], "mm", "GİRİŞ", 0),
         hesap(

@@ -22,13 +22,13 @@ import sys
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, KOK)
 
-from engine.avan import hesap as AV  # noqa: E402
-from engine.avan import tablolar as AVT  # noqa: E402
-from engine.uygulama import mukavemet as MK  # noqa: E402
-from engine.uygulama import hesap as UY  # noqa: E402
-from engine.uygulama import girdi as UG  # noqa: E402
-from engine.uygulama import sabitler as US  # noqa: E402
-from testler.ortak import P_std as _P_std, Rapor  # noqa: E402
+from engine.avan import hesap as AV
+from engine.avan import tablolar as AVT
+from engine.uygulama import mukavemet as MK
+from engine.uygulama import hesap as UY
+from engine.uygulama import girdi as UG
+from engine.uygulama import sabitler as US
+from testler.ortak import P_std as _P_std, Rapor
 
 #  Topraklama olmadan elektrik bölümlerinin bir kısmı boş kalır.  L1 girdi
 #  değildir:  kuyu yüksekliği + Sabitler'deki yatay güzergâh payından kurulur.
@@ -201,7 +201,6 @@ def calistir():
         r.kontrol(f"ofis sabiti ekrana çıkıyor: {_k}", _k in _US.VARSAYILAN)
 
     #  AVANIN kuvvet sabitleri uygulamada YOK — ayrı projeler
-    import engine.avan.hesap as _AVh
 
     _avan_ozel = ("gf", "Fmt", "n_ray", "gr", "Fmk", "Fsh", "i_palanga")
     r.esit(
@@ -338,7 +337,6 @@ def calistir():
     r.kontrol("① sınırda ( X = 0 ) da reddediliyor", not MK.hesapla({"yan_yatak_boyu": 335})["aktif"])
     r.kontrol("① X = 1 mm kabul ediliyor", MK.hesapla({"yan_yatak_boyu": 336})["aktif"])
     #  İkinci kalkan:  negatif gerilme hiçbir koşulda uygun sayılmamalı
-    import engine.uygulama.mukavemet as _MKm
 
     r.kontrol(
         "① negatif gerilme uygun sayılmıyor  ( ikinci kalkan )",
@@ -529,7 +527,7 @@ def calistir():
         ("regülatör açısı 0", {"reg_kanal_acisi": 0}),
     ):
         _x6 = MK.hesapla(_ek6)
-        r.kontrol(f"⑥ {_ad6} reddediliyor", not _x6["aktif"], f"→ hesap yapıldı")
+        r.kontrol(f"⑥ {_ad6} reddediliyor", not _x6["aktif"], "→ hesap yapıldı")
         r.kontrol(
             f"⑥ {_ad6} hatası ALAN ADINI söylüyor",
             bool(_x6.get("hata")) and not any("Traceback" in x for x in _x6["hata"]),
@@ -777,8 +775,8 @@ def calistir():
     #  "HESAP EKSİK" der ve okuyan tasarımın tutmadığını göremez.  Hüküm
     #  MOTORDA üretilir;  PDF ve ekran onu yalnız basar ( iki kopya hâlinde
     #  tutulduğunda zaten bir kez ayrışmıştı ).
-    _S = lambda u: {"sonuc": {"uygun": u}}  # noqa: E731
-    _E = lambda u: {"sonuc": {"uygun": u}, "eksik_hesap": "x"}  # noqa: E731
+    _S = lambda u: {"sonuc": {"uygun": u}}
+    _E = lambda u: {"sonuc": {"uygun": u}, "eksik_hesap": "x"}
     for _ad, _bol, _tu, _eks, _bek in (
         ("kalan varken eksik onu örtmez", [_S(True), _S(False)], False, ["e"], "UYGUN DEĞİLDİR."),
         ("yalnız eksik varsa HESAP EKSİK", [_S(True), _E(False)], False, ["e"], "HESAP EKSİK"),
@@ -810,13 +808,13 @@ def calistir():
 
     _pdf13 = _PDF13.uygulama_pdf({"asansorler": [dict(_s13, no=1, tanim="A")], "adet": 1}, {})
     r.kontrol("⑬ PDF üretiliyor", len(_pdf13) > 10000, f"→ {len(_pdf13)} bayt")
-    _kaynak13 = io.open(os.path.join(KOK, "exports", "pdf_export.py"), encoding="utf-8").read()
+    _kaynak13 = open(os.path.join(KOK, "exports", "pdf_export.py"), encoding="utf-8").read()
     r.kontrol(
         "⑬ PDF hükmü kendi kurmuyor, motordan okuyor",
         _kaynak13.count('o.get("genel_sonuc")') == 2 and "HESAP EKSİK" not in _kaynak13,
         "→ pdf_export hâlâ kendi hükmünü kuruyor",
     )
-    _js13 = io.open(os.path.join(KOK, "static", "uygulama.js"), encoding="utf-8").read()
+    _js13 = open(os.path.join(KOK, "static", "uygulama.js"), encoding="utf-8").read()
     r.kontrol(
         "⑬ ekran hükmü kendi kurmuyor, motordan okuyor",
         "genel_sonuc_kisa" in _js13 and "'HESAP EKSİK'" not in _js13,
@@ -1050,9 +1048,9 @@ def calistir():
             f"→ {_n20}",
         )
     _js20 = (
-        io.open(os.path.join(KOK, "static", "ortak.js"), encoding="utf-8").read()
-        + io.open(os.path.join(KOK, "static", "avan.js"), encoding="utf-8").read()
-        + io.open(os.path.join(KOK, "static", "uygulama.js"), encoding="utf-8").read()
+        open(os.path.join(KOK, "static", "ortak.js"), encoding="utf-8").read()
+        + open(os.path.join(KOK, "static", "avan.js"), encoding="utf-8").read()
+        + open(os.path.join(KOK, "static", "uygulama.js"), encoding="utf-8").read()
     )
     r.kontrol(
         "⑳ arayüzde Excel yükleme / kitap notu kalmadı", "KITAP" not in _js20 and "xlsx" not in _js20.lower()
@@ -1230,9 +1228,9 @@ def calistir():
     #  paftasının CAD çıktısı o günden beri BURADA ölçülüyor.
     # ==================================================================
     try:
-        import ezdxf  # noqa: F401
-        from exports import dxf_export as DXE  # noqa: E402
-        from exports import pdf_export as PE  # noqa: E402
+        import ezdxf
+        from exports import dxf_export as DXE
+        from exports import pdf_export as PE
     except Exception as _cad_hata:  # noqa: BLE001
         r.atla(f"CAD çıktısı testi atlandı — ezdxf / pdfminer.six kurulu değil ( {_cad_hata} )")
     else:
@@ -1483,11 +1481,11 @@ def calistir():
     )
     #  API artık asansör sayısına göre BAŞKA MOTOR çağırmıyor:  modülde
     #  dallanmayı kuran isimler kalmamalı.
-    _api = io.open(os.path.join(KOK, "api", "uygulama.py"), encoding="utf-8").read()
+    _api = open(os.path.join(KOK, "api", "uygulama.py"), encoding="utf-8").read()
     for _ad in ("_coklu_mu", "_uygulama_sonucu", "uygulama_coklu_pdf"):
         r.kontrol(f"API'de '{_ad}' kalmadı", _ad not in _api)
     r.esit("API tek motor girişi çağırıyor", _api.count("E_UYG.hesapla("), 0)
-    _pe = io.open(os.path.join(KOK, "exports", "pdf_export.py"), encoding="utf-8").read()
+    _pe = open(os.path.join(KOK, "exports", "pdf_export.py"), encoding="utf-8").read()
     r.esit("tek uygulama paftası fonksiyonu", _pe.count("\ndef uygulama_"), 1)
 
     #  ─────────────────────────────────────────────────────────────
@@ -1771,8 +1769,8 @@ def _muhendis_okumasi(r):
         _kt["sonuc"]["metin"].count("N / ray") == 2,
         f"→ {_kt['sonuc']['metin']}",
     )
-    _pdf = io.open(os.path.join(KOK, "exports", "pdf_export.py"), encoding="utf-8").read()
-    _js = io.open(os.path.join(KOK, "static", "uygulama.js"), encoding="utf-8").read()
+    _pdf = open(os.path.join(KOK, "exports", "pdf_export.py"), encoding="utf-8").read()
+    _js = open(os.path.join(KOK, "static", "uygulama.js"), encoding="utf-8").read()
     r.kontrol(
         "① PDF özetleri ( tek ve çoklu ) 'bir rayına' yazıyor",
         _pdf.count("FKR — Bir kabin rayına gelen kuvvet") == 2

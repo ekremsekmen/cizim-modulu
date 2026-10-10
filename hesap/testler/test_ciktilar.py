@@ -17,15 +17,15 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.avan import hesap as AV
-from engine.avan import trafik as TR  # noqa: E402
+from engine.avan import trafik as TR
 
 try:
-    from exports import dxf_export as _DXF  # noqa: E402
+    from exports import dxf_export as _DXF
 except Exception:  # noqa: BLE001
     _DXF = None  # CAD kitaplıkları yoksa paket testi atlanır
 from exports import kapak_export as KPK
-from exports import pdf_export as PE  # noqa: E402
-from testler.ortak import Rapor  # noqa: E402
+from exports import pdf_export as PE
+from testler.ortak import Rapor
 
 # Geçici dosyalar sistemin temp klasörüne yazılır — proje klasörü kirlenmez
 # ve silme izni kısıtlı makinelerde test takılmaz.
@@ -240,7 +240,6 @@ def calistir():
     if pdfium:
 
         def _metin(icerik):
-            import tempfile as _t
 
             y = os.path.join(GECICI, "_gecici_icerik.pdf")
             open(y, "wb").write(icerik)
@@ -547,7 +546,9 @@ def calistir():
     #  atınca ( kaldi = 0 ) sayaç artmıyor, özet "0 başarısız" diyor ve çıkış
     #  kodu 0 oluyordu:  sürekli tümleştirme yeşil görünürken test hiç
     #  koşmamış oluyordu.
-    import subprocess as _sp, tempfile as _tf, textwrap as _tw
+    import subprocess as _sp
+    import tempfile as _tf
+    import textwrap as _tw
 
     _gecici = _tf.mkdtemp(prefix="avan_kosucu_")
     with open(os.path.join(_gecici, "coken.py"), "w", encoding="utf-8") as _f:
@@ -562,7 +563,11 @@ def calistir():
         sys.exit(K.main(["9"]))
     """)
     _p = _sp.run(
-        [sys.executable, "-c", _kod], capture_output=True, text=True, env={**os.environ, "NO_COLOR": "1"}
+        [sys.executable, "-c", _kod],
+        capture_output=True,
+        text=True,
+        env={**os.environ, "NO_COLOR": "1"},
+        check=False,
     )
     r.esit("çöken test çıkış kodunu 1 yapıyor", _p.returncode, 1)
     r.kontrol(
@@ -660,7 +665,7 @@ def calistir():
     #  eksik olur — testin bakacağı şey budur.
     # ==================================================================
     try:
-        import ezdxf  # noqa: F401
+        import ezdxf
         from exports import dxf_export as DXE
     except Exception as _cad_hata:  # noqa: BLE001
         r.atla(f"CAD çıktısı testi atlandı — ezdxf / pdfminer.six kurulu değil ( {_cad_hata} )")
@@ -1138,7 +1143,7 @@ def calistir():
             for _s7 in _ep(io.BytesIO(_ham)):
                 _k7 = []
 
-                def _gez7(_n7):
+                def _gez7(_n7, _k7=_k7):
                     for _e7 in _n7:
                         if isinstance(_e7, _LTC):
                             _k7.append(_e7.get_text())
@@ -1159,7 +1164,7 @@ def calistir():
         _gozler = [_kapak_goz] + list(DXE._yerlesim(len(_bek7) - 1)[0])
         _kova7 = [[] for _ in _gozler]
         _disarda7 = 0
-        for _t7 in _m.query('TEXT[layer=="%s"]' % DXE.KATMAN_YAZI):
+        for _t7 in _m.query(f'TEXT[layer=="{DXE.KATMAN_YAZI}"]'):
             _x7, _y7 = _t7.dxf.insert.x, _t7.dxf.insert.y
             for _i7, (_ox7, _oy7) in enumerate(_gozler):
                 if _ox7 - 1 <= _x7 <= _ox7 + DXE.A4_G + 1 and _oy7 - 1 <= _y7 <= _oy7 + DXE.A4_Y + 1:
@@ -1222,8 +1227,8 @@ def calistir():
 
         def _sayim(_ms):
             return (
-                len(_ms.query('LINE[layer=="%s"]' % DXE.KATMAN_CIZGI)),
-                len(_ms.query('TEXT[layer=="%s"]' % DXE.KATMAN_YAZI)),
+                len(_ms.query(f'LINE[layer=="{DXE.KATMAN_CIZGI}"]')),
+                len(_ms.query(f'TEXT[layer=="{DXE.KATMAN_YAZI}"]')),
                 len(DXE.a4_cerceveleri(_ms)),
             )
 
@@ -1311,7 +1316,7 @@ def calistir():
     #  denge zinciri girince 58.860 → 59.389 oldu.
     _fkt = f"{_msn['ozet']['Fkt']:,.0f}".replace(",", ".")
     for _ara in (_ngucu, _sf, _fkr, _fkt):
-        r.kontrol(f"mukavemet PDF sayısı {_ara}", _ara in _mm, f"→ paftada yok")
+        r.kontrol(f"mukavemet PDF sayısı {_ara}", _ara in _mm, "→ paftada yok")
     r.kontrol(
         "mukavemet PDF'inde makine tipi ve η görünüyor",
         "Makine tipi" in _mm and "Toplam sistem verimi" in _mm,

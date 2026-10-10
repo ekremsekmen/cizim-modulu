@@ -17,10 +17,10 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from cizim import geometri as CGE  # noqa: E402
-from cizim import girdi as CG  # noqa: E402
-from cizim import svg as CSV  # noqa: E402
-from cizim import sabitler as CS_  # noqa: E402
+from cizim import geometri as CGE
+from cizim import girdi as CG
+from cizim import svg as CSV
+from cizim import sabitler as CS_
 
 
 def _ornek(**ezme):
@@ -90,7 +90,7 @@ class SozlesmeDenetimi(unittest.TestCase):
     def test_agirlik_yeri_secenekleri(self):
         self.assertTrue(CG.dogrula(_ornek(agirlik={"yeri": "Ortada"})))
         for yer in CG.AGIRLIK_YERLERI:
-            g = {"Sağ": _sag_ayna, "Arka": _arka}.get(yer, lambda: _ornek(agirlik={"yeri": yer}))()
+            g = {"Sağ": _sag_ayna, "Arka": _arka}.get(yer, lambda yer=yer: _ornek(agirlik={"yeri": yer}))()
             self.assertEqual(CG.dogrula(g), [])
 
 
@@ -649,7 +649,7 @@ class OlcuYazilari(unittest.TestCase):
 #  ─────────────────────────────────────────────────────────────────────
 #  KABİN ÜSTÜ PLANI
 #  ─────────────────────────────────────────────────────────────────────
-from cizim import kabin_ustu as CKU  # noqa: E402
+from cizim import kabin_ustu as CKU
 
 
 def _arka(kaciklik=0.0):
@@ -912,7 +912,7 @@ class KabinUstuYerlesim(unittest.TestCase):
 #  ─────────────────────────────────────────────────────────────────────
 #  KUYU DİBİ PLANI
 #  ─────────────────────────────────────────────────────────────────────
-from cizim import kuyu_dibi as CKD  # noqa: E402
+from cizim import kuyu_dibi as CKD
 
 
 def _dip_projeler():
@@ -1417,7 +1417,7 @@ class KuyuDibiYerlesim(unittest.TestCase):
 #  ─────────────────────────────────────────────────────────────────────
 #  KUYU ÜSTÜ PLANI  ( makine dairesiz )
 #  ─────────────────────────────────────────────────────────────────────
-from cizim import kuyu_ustu as CKT  # noqa: E402
+from cizim import kuyu_ustu as CKT
 
 
 def _ust_projeler():
@@ -1522,7 +1522,7 @@ class KuyuUstu(unittest.TestCase):
 #  ─────────────────────────────────────────────────────────────────────
 #  MAKİNE DAİRESİ PLANI  ve  DÖŞEME HALAT DELİK PLANI
 #  ─────────────────────────────────────────────────────────────────────
-from cizim import makine_dairesi as CMD  # noqa: E402
+from cizim import makine_dairesi as CMD
 
 
 def _md_projeler():
@@ -1674,9 +1674,9 @@ class MakineDairesi(unittest.TestCase):
 #  ─────────────────────────────────────────────────────────────────────
 #  DÜŞEY KESİTLER
 #  ─────────────────────────────────────────────────────────────────────
-from cizim import donanim as CDN  # noqa: E402
-from cizim import dusey as CDU  # noqa: E402
-from cizim import kuyu_kesiti as CKK  # noqa: E402
+from cizim import donanim as CDN
+from cizim import dusey as CDU
+from cizim import kuyu_kesiti as CKK
 
 
 class DuseyKesitler(unittest.TestCase):
@@ -2061,7 +2061,7 @@ class KuyuKesitleri(unittest.TestCase):
             #  Raylar tabandan başlayan parçalarıyla sayılır:  kabinin arkasında
             #  kalan ray kabinin altında ve üstünde iki parçadır
             #  ( kesit_parcalari.kabin_arkasi )
-            def raylar(ad):
+            def raylar(ad, e=e):
                 p = self._elemanlar(e, ad)
                 return sum(1 for x in p if abs(x["y"] - min(q["y"] for q in p)) < 1e-6)
 
@@ -2347,8 +2347,8 @@ class KirikKesit(unittest.TestCase):
                     )
 
 
-from cizim import pafta as CPF  # noqa: E402
-from cizim import makine as CMK_  # noqa: E402
+from cizim import pafta as CPF
+from cizim import makine as CMK_
 
 
 def _md(**makine):
@@ -2679,7 +2679,7 @@ class MakineVeSase(unittest.TestCase):
                     self.assertEqual(list(au.errors), [])
 
 
-from cizim import cizimler as CZ_  # noqa: E402
+from cizim import cizimler as CZ_
 
 
 class OlcuYazisiParcayaBinmez(unittest.TestCase):

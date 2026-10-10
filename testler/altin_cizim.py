@@ -28,15 +28,15 @@ for _yol in (KOK, os.path.join(KOK, "hesap"), os.path.join(KOK, "ornekler"), os.
     if _yol not in sys.path:
         sys.path.append(_yol)
 
-from api import cizim as UC_CIZIM  # noqa: E402
-from api import uygulama as UC_UYG  # noqa: E402
-from cizim import geometri as CGE  # noqa: E402
-from cizim import pafta as CPF  # noqa: E402
-from cizim import svg as CSV  # noqa: E402
-from engine.uygulama import hesap as E_UYG  # noqa: E402
+from api import cizim as UC_CIZIM
+from api import uygulama as UC_UYG
+from cizim import geometri as CGE
+from cizim import pafta as CPF
+from cizim import svg as CSV
+from engine.uygulama import hesap as E_UYG
 
-import gercek_projeler as GP  # noqa: E402
-from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER  # noqa: E402
+import gercek_projeler as GP
+from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
 
 DOSYA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "altin_cizim.json.gz")
 #  Kayan noktada işlem sırası değişince ( düzenlemede olağan ) son basamaklar

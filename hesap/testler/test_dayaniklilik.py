@@ -15,17 +15,16 @@ import urllib.request
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.avan import hesap as AV
-from engine.avan import trafik as TR  # noqa: E402
-from testler.ortak import Rapor  # noqa: E402
+from engine.avan import trafik as TR
+from testler.ortak import Rapor
 
-import main as UYGULAMA  # noqa: E402
 
 #  Uçlar iki pakete ayrıldı ( api/avan.py · api/uygulama.py ), ortak
 #  yardımcılar api/ortak.py'ye taşındı.  Test onları oradan alır.
-from api import avan as UC_AVAN  # noqa: E402
-from api import ortak as UC_ORTAK  # noqa: E402
-from api import uygulama as UC_UYG  # noqa: E402
-from engine.uygulama import girdi as UYG_GIRDI  # noqa: E402
+from api import avan as UC_AVAN
+from api import ortak as UC_ORTAK
+from api import uygulama as UC_UYG
+from engine.uygulama import girdi as UYG_GIRDI
 
 BASE = os.environ.get("AVAN_TEST_URL", "http://127.0.0.1:8780")
 

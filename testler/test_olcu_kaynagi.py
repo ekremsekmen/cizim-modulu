@@ -19,21 +19,20 @@ for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "ornekler"), os.path.
     if _yol not in sys.path:
         sys.path.append(_yol)
 
-from api import cizim as UC  # noqa: E402
-from testler.yavas import yavas  # noqa: E402
-from api import uygulama as UC_UYG  # noqa: E402
-from cizim import cizimler as CZ  # noqa: E402
-from cizim import geometri as CGE  # noqa: E402
-from cizim import kopru as CK  # noqa: E402
-from cizim import kuyu_dibi as CKD  # noqa: E402
-from cizim import olcu_kaynagi as CO  # noqa: E402
-from cizim import pafta as CPF  # noqa: E402
-from cizim import sabitler as CS  # noqa: E402
-from engine.uygulama import girdi as E_UGR  # noqa: E402
-from engine.uygulama import hesap as E_UYG  # noqa: E402
-from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER  # noqa: E402
+from api import cizim as UC
+from testler.yavas import yavas
+from api import uygulama as UC_UYG
+from cizim import cizimler as CZ
+from cizim import geometri as CGE
+from cizim import kopru as CK
+from cizim import kuyu_dibi as CKD
+from cizim import olcu_kaynagi as CO
+from cizim import pafta as CPF
+from cizim import sabitler as CS
+from engine.uygulama import hesap as E_UYG
+from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
 
-import gercek_projeler as GP  # noqa: E402
+import gercek_projeler as GP
 
 
 def _veri(md=False, **ek):
@@ -661,7 +660,7 @@ class Parcalar(unittest.TestCase):
             "a": (a, 0),
             "b": (b, 0),
             "kot": 0,
-            "metin": m,  # noqa: E731
+            "metin": m,
             "uzunluk": b - a,
         }
         t = [o(0, 100, "1"), o(100, 300, "2"), o(300, 400, "3")]

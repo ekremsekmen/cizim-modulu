@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import io
 import os
-from typing import Mapping
+from collections.abc import Mapping
 
 from reportlab.lib.colors import HexColor
 from reportlab.lib.pagesizes import A4

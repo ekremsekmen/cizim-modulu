@@ -37,7 +37,6 @@ ve ekrana basılan bölüm hükümleri de aranır.
 Sunucu ( baslat.command ) ve Playwright gerekir;  yoksa test atlanır.
 """
 
-import json
 import os
 import random
 import sys
@@ -45,8 +44,8 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.ortak import ofis as OFIS  # noqa: E402
-from testler.ortak import Rapor  # noqa: E402
+from engine.ortak import ofis as OFIS
+from testler.ortak import Rapor
 
 BASE = os.environ.get("AVAN_TEST_URL", "http://127.0.0.1:8780")
 TOHUM = 20260914

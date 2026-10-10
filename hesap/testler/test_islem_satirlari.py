@@ -42,17 +42,17 @@ from collections import Counter, defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.avan import hesap as AV  # noqa: E402
-from engine.avan import trafik as TR  # noqa: E402
-from engine.uygulama import mukavemet as MK  # noqa: E402
-from testler import test_mukavemet_tarama as T10  # noqa: E402
+from engine.avan import hesap as AV
+from engine.avan import trafik as TR
+from engine.uygulama import mukavemet as MK
+from testler import test_mukavemet_tarama as T10
 from testler.altin_uret import (
     avan_senaryolar,
-    senaryolar,  # noqa: E402
+    senaryolar,
     uygulama_motoru,
     uygulama_senaryolar,
 )
-from testler.ortak import Rapor  # noqa: E402
+from testler.ortak import Rapor
 
 
 # =====================================================================

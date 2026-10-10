@@ -13,9 +13,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.avan import hesap as AV
 from engine.avan import tablolar as T
-from engine.avan import trafik as TR  # noqa: E402
-from engine.ortak.steps import yuvarla, tavana_yuvarla, yukari_yuvarla, tr as TRS  # noqa: E402
-from testler.ortak import Rapor  # noqa: E402
+from engine.avan import trafik as TR
+from engine.ortak.steps import yuvarla, tavana_yuvarla, yukari_yuvarla, tr as TRS
+from testler.ortak import Rapor
 
 TEMEL = dict(
     bina_tipi="Konut",

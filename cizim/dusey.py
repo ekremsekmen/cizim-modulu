@@ -365,7 +365,7 @@ def yerlesim(g, cizim_sabitleri=None):
         z, engel_ad = CDN.tavan_engeli(M, k)
         if tepe > z + 1e-9 and tepe - z > ust_carpan.get(ad_, (0.0,))[0]:
             ust_carpan[ad_] = (tepe - z, tepe, z, engel_ad)
-    for ad_, k, dip_, _ in CH.agirlik_parcalari(g, S, KD["taban"], AKd):
+    for ad_, _k, dip_, _ in CH.agirlik_parcalari(g, S, KD["taban"], AKd):
         if dip_ < taban - 1e-9 and taban - dip_ > alt_carpan.get(ad_, 0.0):
             alt_carpan[ad_] = taban - dip_
 

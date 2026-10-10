@@ -33,12 +33,21 @@ ignore = [
     "B008",    # FastAPI'nin Body(...) kalıbı varsayılan argümanda çağrı ister
     "B905",    # zip(strict=) — uzunlukları zaten eşit dizilerde gürültü
     "UP009",   # "# -*- coding: utf-8 -*-" satırları zararsız;  dokunulmaz
+    "E741",    # l ve I standardın formül simgeleri ( TS EN 81-50:  boy ℓ, atalet I ) —
+               # formül standartla birebir okunsun;  O takma adı 2. adımda adlandırılacak
 ]
 
 [tool.ruff.lint.per-file-ignores]
-#  Testler ve betikler yol ayarından sonra import eder
-"testler/*" = ["E402"]
-"hesap/testler/*" = ["E402"]
+#  ciz() içindeki küpeşte yazısı yardımcıları döngünün aynı adımında
+#  çağrılır ( hata değil );  fonksiyon 3. adımda bölününce kalkacak.
+"cizim/kabin_ustu.py" = ["B023"]
+#  Giriş noktaları yol ayarından sonra import eder
+"hesap/main.py" = ["E402"]
+"ornekler/uret.py" = ["E402"]
+#  Testler:  yol ayarından sonra import, dosyayı tek satırda okumak ve
+#  lambda yardımcılar kabul
+"testler/*" = ["E402", "SIM115", "E731"]
+"hesap/testler/*" = ["E402", "SIM115", "E731"]
 
 [tool.ruff.format]
 quote-style = "double"

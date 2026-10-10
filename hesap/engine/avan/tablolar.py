@@ -386,7 +386,7 @@ def ayd_verim(k, sutun=2):
             break
     try:
         return AYD_VERIM[idx][int(sutun) - 1]
-    except Exception:
+    except (IndexError, TypeError, ValueError):  # sütun tabloda yok ya da sayı değil
         return None
 
 

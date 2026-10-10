@@ -17,15 +17,15 @@ for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "ornekler"), os.path.
     if _yol not in sys.path:
         sys.path.append(_yol)
 
-from cizim import cizimler as CZ  # noqa: E402
-from cizim import giris as CGI  # noqa: E402
-from cizim import girdi as CG  # noqa: E402
-from cizim import kasnak_duzeni as CKS  # noqa: E402
-from cizim import kopru as CK  # noqa: E402
-from cizim import makine_dairesi as CMD  # noqa: E402
-from cizim import pafta as CPF  # noqa: E402
+from cizim import cizimler as CZ
+from cizim import giris as CGI
+from cizim import girdi as CG
+from cizim import kasnak_duzeni as CKS
+from cizim import kopru as CK
+from cizim import makine_dairesi as CMD
+from cizim import pafta as CPF
 
-import test_olcu_kaynagi as T  # noqa: E402
+import test_olcu_kaynagi as T
 
 
 def _olculer(e):
@@ -192,7 +192,7 @@ class KapiKesiti(unittest.TestCase):
     def test_onluk_m_5_4_5(self):
         """Dik kısmı döşemeden en az 0,75 m;  pah kabine doğru ≥ 60°, ≥ 20 mm;
         kabin eşiğinin kat tarafındaki kenarında."""
-        for tip, montaj, g, e, _p in self.durumlar:
+        for tip, montaj, _g, e, _p in self.durumlar:
             with self.subTest(tip=tip, montaj=montaj):
                 o = self._ad(e, "onluk")[0]["bicim"][0]["noktalar"]
                 (aci, izd), _dik = self._pah(o)
@@ -204,7 +204,7 @@ class KapiKesiti(unittest.TestCase):
                 self.assertEqual(o[0][0], es["x"])
 
     def test_esik_arasi_ve_oluklar(self):
-        for tip, montaj, g, e, _p in self.durumlar:
+        for tip, montaj, _g, e, _p in self.durumlar:
             with self.subTest(tip=tip, montaj=montaj):
                 ke, kk = self._ad(e, "kat_esigi")[0], self._ad(e, "kabin_esigi")[0]
                 arasi = kk["x"] - (ke["x"] + ke["g"])
@@ -215,7 +215,7 @@ class KapiKesiti(unittest.TestCase):
                 self.assertEqual(cent, n)
 
     def test_kanatlar_planla_ayni_yerde(self):
-        for tip, montaj, g, e, plan in self.durumlar:
+        for tip, montaj, _g, e, plan in self.durumlar:
             for ad in ("kat_kanadi", "kabin_kanadi"):
                 with self.subTest(tip=tip, montaj=montaj, ad=ad):
                     self.assertEqual(

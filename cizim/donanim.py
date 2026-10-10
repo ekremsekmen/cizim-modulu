@@ -174,7 +174,6 @@ def yerlesim(g, S, H, tavan, taban):
             return {"hata": hata + KU["hata"]}
         hata.extend(KU["hata"])
         M["KU"] = KU
-        G = g["kuyu"]["genislik"]
         #  ── MAKİNE ŞASESİ ve MAKİNE ────────────────────────────────────
         yakin_ray = kabin_raylari[0] if sol else kabin_raylari[-1]
         uzak_ray = kabin_raylari[-1] if sol else kabin_raylari[0]

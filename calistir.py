@@ -22,6 +22,7 @@ import argparse
 import copy
 import os
 import sys
+from pathlib import Path
 
 from cizim import cizimler as CZ
 from cizim import dxf as CDX
@@ -54,8 +55,8 @@ def uret(g, ad, baslik, olcek=20, cizim="kuyu_plani"):
     klasor = os.path.join(KOK, "cikti")
     os.makedirs(klasor, exist_ok=True)
     svg = CSV.yaz(elemanlar, CGE.sinir(elemanlar, 120 * olcek / 20.0), "", olcek)
-    open(os.path.join(klasor, ad + ".svg"), "w", encoding="utf-8").write(svg)
-    open(os.path.join(klasor, ad + ".dxf"), "wb").write(CDX.yaz(elemanlar, "", olcek))
+    Path(klasor, ad + ".svg").write_text(svg, encoding="utf-8")
+    Path(klasor, ad + ".dxf").write_bytes(CDX.yaz(elemanlar, "", olcek))
     olcu = sum(1 for x in elemanlar if x["tip"] == "olcu")
     print(f"{ad}:  {len(elemanlar)} eleman · {olcu} ölçü  →  cikti/{ad}.svg + .dxf")
     return 0
@@ -70,7 +71,7 @@ def pafta_uret(g, ad):
     klasor = os.path.join(KOK, "cikti")
     os.makedirs(klasor, exist_ok=True)
     d.saveas(os.path.join(klasor, ad + ".dxf"))
-    open(os.path.join(klasor, ad + ".svg"), "w", encoding="utf-8").write(CPF.onizleme(d))
+    Path(klasor, ad + ".svg").write_text(CPF.onizleme(d), encoding="utf-8")
     print(f"{ad}:  {len(bilgi['cizimler'])} çizim → cikti/{ad}.dxf + .svg ( önizleme )")
     for c in bilgi["cizimler"]:
         x0, y0, x1, y1 = c["kutu"]

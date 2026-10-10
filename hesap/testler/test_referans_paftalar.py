@@ -28,9 +28,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from engine.uygulama import mukavemet as MK  # noqa: E402
-from engine.uygulama import mukavemet_tablolari as MT  # noqa: E402
-from testler.ortak import Rapor  # noqa: E402
+from engine.uygulama import mukavemet as MK
+from engine.uygulama import mukavemet_tablolari as MT
+from testler.ortak import Rapor
 
 
 # =====================================================================

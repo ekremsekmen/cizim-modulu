@@ -735,7 +735,7 @@ def _alan_yazi_yeri(alan):
 
 
 def _delik_elemanlari(e, Y):
-    for ad, d in Y["delikler"]:
+    for _ad, d in Y["delikler"]:
         e.append(CGE._ad(CGE._dik("DELIK", d[0], d[1], d[2] - d[0], d[3] - d[1]), "delik"))
 
 
@@ -948,14 +948,14 @@ def delik_plani(g, cizim_sabitleri=None):
     """Kuyu üstü döşeme halat delik planı:  döşeme, delikler ve yerleri."""
     Y = yerlesim(g, cizim_sabitleri)
     k = g["kuyu"]
-    G, D, dg, dar, ds = k["genislik"], k["derinlik"], k["duvar_sag"], k["duvar_arka"], k["duvar_sol"]
+    G, D, dg, dar = k["genislik"], k["derinlik"], k["duvar_sag"], k["duvar_arka"]
     e = [
         el
         for el in CGE.plan(g, Y["S"], kapi_duzeyi=False)
         if el["katman"] in ("TARAMA", "KUYU-DUVAR", "KUYU-IC", "EKSEN") and el["tip"] != "yazi"
     ]
     _delik_elemanlari(e, Y)
-    for ad, d in Y["delikler"]:
+    for _ad, d in Y["delikler"]:
         w, h = d[2] - d[0], d[3] - d[1]
         dik = h > w
         e.append(

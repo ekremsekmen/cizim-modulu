@@ -14,10 +14,10 @@ for _yol in (KOK, os.path.join(KOK, "hesap")):
     if _yol not in sys.path:
         sys.path.append(_yol)
 
-from cizim import dusey as CDU  # noqa: E402
-from cizim import hareketli as CH  # noqa: E402
-from cizim import kopru as CK  # noqa: E402
-from engine.uygulama import hesap as UY  # noqa: E402
+from cizim import dusey as CDU
+from cizim import hareketli as CH
+from cizim import kopru as CK
+from engine.uygulama import hesap as UY
 
 #  Denetimin kuyu dibi örneği:  1.275 kg, kabin 2.000 × 1.400, ağırlık sağda
 DIP = {
