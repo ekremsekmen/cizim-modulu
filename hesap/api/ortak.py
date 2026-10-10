@@ -9,6 +9,7 @@ Buradaki hiçbir şey hesap YAPMAZ;  hesap motorları engine/ altındadır.
 """
 
 import json
+import logging
 import math
 import os
 import re
@@ -242,6 +243,17 @@ def _paket_ekleri(veri, mod):
             )
         )
     return ekler
+
+
+def hata_kaydi(log: logging.Logger, e: Exception):
+    """Uçların genel except'inde kayıt:  girdiden doğan ret ( ValueError — ör.
+    "pafta çizilemiyor" ) bilgi düzeyinde, öbürü ( programlama hatası ) izle
+    birlikte hata düzeyinde.  Kullanıcı yine iletiyi görür;  kayıt sunucuda
+    sorunun nerede çıktığını söyler ( eskiden hiçbir yere yazılmıyordu )."""
+    if isinstance(e, ValueError):
+        log.info("uç girdiyi reddetti:  %s", e)
+    else:
+        log.error("uçta beklenmeyen hata — kullanıcıya ileti döndü", exc_info=e)
 
 
 def _uretilemedi(e: Exception):

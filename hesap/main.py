@@ -12,6 +12,7 @@ Program tümüyle bilgisayarınızda çalışır, internet gerektirmez.
 
 import json
 import hashlib
+import logging
 import os
 import re
 import sys
@@ -38,6 +39,14 @@ KOK = os.path.dirname(os.path.abspath(__file__))
 #  8780:  hesap programının kendisi 8760'ta açık olabilir;  bu program onun
 #  çizimli kopyasıdır, aynı porta düşüp ötekinin penceresine yönlenmesin.
 PORT = int(os.environ.get("AVAN_PORT", "8780"))
+
+#  KAYIT:  uçların beklenmeyen hataları izleriyle ( api/ortak.hata_kaydi ),
+#  çizimin yedek değere düştüğü yerler ayrıntı düzeyinde.  Düzey ortamdan:
+#  AVAN_KAYIT=DEBUG | INFO | WARNING ( varsayılan ) | ERROR.
+logging.basicConfig(
+    level=os.environ.get("AVAN_KAYIT", "WARNING").upper(),
+    format="%(asctime)s  %(levelname)-7s  %(name)s:  %(message)s",
+)
 
 app = FastAPI(title="Asansör Proje Programı", version=SURUM, docs_url=None, redoc_url=None)
 

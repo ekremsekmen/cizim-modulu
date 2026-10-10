@@ -14,6 +14,7 @@ adedi, kabinin ve kapının kuyudaki yeri … ) formun "Çizim" grubundadır.
 import functools
 import hashlib
 import json
+import logging
 import os
 import tempfile
 import threading
@@ -21,6 +22,8 @@ from collections import OrderedDict
 
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
+
+from api.ortak import hata_kaydi
 
 
 from cizim import cizimler as CZ
@@ -31,6 +34,7 @@ from cizim import pafta as CPF
 from cizim import sabitler as CS
 from cizim import svg as CSV
 
+log = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -127,6 +131,7 @@ def api_cizimler(veri: dict = Body(...)):
             }
         )
     except Exception as e:  # noqa: BLE001
+        hata_kaydi(log, e)
         return JSONResponse({"aktif": False, "hata": [f"ÇİZİM HATASI: {e}"]})
 
 
@@ -221,7 +226,8 @@ def _kurucu(ham, ad, proje_adi, sira):
             #  denetimini yeniden yapıyordu.
             with CGE.yalniz_olculer():
                 e = CO.olculer(CZ.CIZIMLER[ad][1](g))
-        except Exception:  # noqa: BLE001 — kurulamayan girdi
+        except Exception:
+            log.debug("yedek değer kullanılıyor ( kurulamayan girdi )", exc_info=True)
             return None
         if "g" not in taban:
             taban.update(g=g, e=e, A=A)
@@ -447,6 +453,7 @@ def api_olcu(veri: dict = Body(...)):
             }
         )
     except Exception as e:  # noqa: BLE001
+        hata_kaydi(log, e)
         return JSONResponse({"aktif": False, "hata": [f"ÖLÇÜ HATASI: {e}"]})
 
 
@@ -543,6 +550,7 @@ def api_olcu_degistir(veri: dict = Body(...)):
             }
         )
     except Exception as e:  # noqa: BLE001
+        hata_kaydi(log, e)
         return JSONResponse({"aktif": False, "hata": [f"ÖLÇÜ HATASI: {e}"]})
 
 
@@ -590,6 +598,7 @@ def _yeni_hatalar(r, degisiklik):
         g, hata = CK.cizim_girdisi(A)
         return hata if g is None else _cizim_hatalari(g, A)
     except Exception as e:  # noqa: BLE001
+        hata_kaydi(log, e)
         return [f"ÇİZİM HATASI: {e}"]
 
 
@@ -607,7 +616,8 @@ def _tutarlilik_duzeltmeleri(r, degisiklik):
         A = E_UGR.tamamla(h)
         g, _hata = CK.cizim_girdisi(A)
         duz = CK.tutarlilik_duzeltmeleri(g, A) if g is not None else {}
-    except Exception:  # noqa: BLE001 — çizim kendi hatasını söyler
+    except Exception:
+        log.debug("yedek değer kullanılıyor ( çizim kendi hatasını söyler )", exc_info=True)
         return []
     zaten = {d["anahtar"] for d in degisiklik}
     return [

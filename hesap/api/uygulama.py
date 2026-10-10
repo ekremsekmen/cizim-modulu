@@ -8,6 +8,7 @@ uçlar ayrıdır.
 """
 
 import json
+import logging
 import os
 
 from fastapi import APIRouter, Body
@@ -15,6 +16,7 @@ from fastapi.responses import JSONResponse
 
 from api import cizim as UC_CIZIM
 from api.ortak import (
+    hata_kaydi,
     _BELIRSIZ,
     _RED,
     _belirsiz_hata,
@@ -43,9 +45,11 @@ try:
 
     _DXF_HATA = None
 except Exception as _e:  # noqa: BLE001
+    logging.getLogger(__name__).warning("CAD çıktısı kapalı:  %s", _e)
     X_DXF, _DXF_HATA = None, _e
 _BASLATICI = "baslat.command" if os.name != "nt" else "baslat.bat"
 
+log = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -240,6 +244,7 @@ def api_uygulama_coklu(veri: dict = Body(...)):
             a.pop("ara", None)  # ara değerler testler içindir, arayüze gerekmez
         return JSONResponse(json.loads(json.dumps(s, default=str)))
     except Exception as e:  # noqa: BLE001
+        hata_kaydi(log, e)
         return JSONResponse({"aktif": False, "hata": [f"HESAP HATASI: {e}"]}, status_code=200)
 
 
@@ -254,6 +259,7 @@ def indir_uygulama_pdf(veri: dict = Body(...)):
             X_PDF.uygulama_pdf(s, _p), _dosya_adi(_p, "Uygulama Projesi Hesaplari", "pdf"), "application/pdf"
         )
     except Exception as e:  # noqa: BLE001
+        hata_kaydi(log, e)
         return _uretilemedi(e)
 
 
@@ -308,4 +314,5 @@ def indir_uygulama_dwg(veri: dict = Body(...)):
             yanit.headers["X-Avan-Not"] = ",".join(notlar)
         return yanit
     except Exception as e:  # noqa: BLE001
+        hata_kaydi(log, e)
         return _uretilemedi(e)

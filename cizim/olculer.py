@@ -38,6 +38,7 @@ KURMA İLE DENETİM AYRIDIR:  çizimin denetim hataları ( sığınma alanı,
 ölçü listede yer almaz ve hesap kendi yaklaşığını kullanır ( raporda yazar ).
 """
 
+import logging
 import math
 
 from cizim import arka_aski as CAA
@@ -47,6 +48,8 @@ from cizim import girdi as CG
 from cizim import kuyu_dibi as CKD
 from cizim import makine_dairesi as CMD
 from cizim import sabitler as CS
+
+log = logging.getLogger(__name__)
 
 
 def _sayi(v):
@@ -147,7 +150,8 @@ def hesap_olculeri(g):
     if not mrl:
         try:
             MD = CMD.yerlesim(g, S)
-        except Exception:  # noqa: BLE001 — çizim kendi hatasını söyler
+        except Exception:
+            log.debug("yedek değer kullanılıyor ( çizim kendi hatasını söyler )", exc_info=True)
             MD = {}
         #  Ağırlık halatının yolu kurulamadıysa saptırma kasnağı var mı yok mu
         #  bilinmez:  kasnak sayıları çizimden verilmez.
@@ -165,7 +169,8 @@ def hesap_olculeri(g):
         H = kotlar[-1]
         KY = g["kuyu_dibi"]["derinlik"]
         M = CDN.yerlesim(g, S, H, H + dy["son_kat"], -KY)
-    except Exception:  # noqa: BLE001
+    except Exception:
+        log.debug("yedek değer kullanılıyor ( çizim kurulamadı )", exc_info=True)
         return out
     if "raylar" not in M or "kasnak" not in M:
         return out

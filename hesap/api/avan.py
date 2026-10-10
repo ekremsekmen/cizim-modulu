@@ -7,6 +7,7 @@ Trafik hesabı, avan hesapları, proje kapağı ve bunların PDF / CAD
 """
 
 import json
+import logging
 import os
 from datetime import date
 
@@ -14,6 +15,7 @@ from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
 from api.ortak import (
+    hata_kaydi,
     _BELIRSIZ,
     _RED,
     _belirsiz_hata,
@@ -41,9 +43,11 @@ try:
 
     _DXF_HATA = None
 except Exception as _e:  # noqa: BLE001
+    logging.getLogger(__name__).warning("CAD çıktısı kapalı:  %s", _e)
     X_DXF, _DXF_HATA = None, _e
 _BASLATICI = "baslat.command" if os.name != "nt" else "baslat.bat"
 
+log = logging.getLogger(__name__)
 router = APIRouter()
 
 TRAFIK_SAYISAL = (
@@ -320,6 +324,7 @@ def api_trafik(veri: dict = Body(...)):
         s["kapak_bilgileri"] = E_KAPAK.trafikten(s)
         return JSONResponse(json.loads(json.dumps(s, default=str)))
     except Exception as e:  # noqa: BLE001
+        hata_kaydi(log, e)
         return JSONResponse({"hata": f"HESAP HATASI: {e}"}, status_code=200)
 
 
@@ -332,6 +337,7 @@ def api_avan(veri: dict = Body(...)):
         s["kapak_bilgileri"] = E_KAPAK.avandan(s)
         return JSONResponse(json.loads(json.dumps(s, default=str)))
     except Exception as e:  # noqa: BLE001
+        hata_kaydi(log, e)
         return JSONResponse({"hata": f"HESAP HATASI: {e}"}, status_code=200)
 
 
@@ -347,6 +353,7 @@ def indir_trafik_pdf(veri: dict = Body(...)):
         _p = _proje_kimligi(veri)
         return _indir(X_PDF.trafik_pdf(s, _p), _dosya_adi(_p, ek, "pdf"), "application/pdf")
     except Exception as e:  # noqa: BLE001
+        hata_kaydi(log, e)
         return _uretilemedi(e)
 
 
@@ -359,6 +366,7 @@ def indir_avan_pdf(veri: dict = Body(...)):
         _p = _proje_kimligi(veri)
         return _indir(X_PDF.avan_pdf(s, _p), _dosya_adi(_p, "Avan Hesaplari", "pdf"), "application/pdf")
     except Exception as e:  # noqa: BLE001
+        hata_kaydi(log, e)
         return _uretilemedi(e)
 
 
@@ -431,6 +439,7 @@ def indir_proje_dwg(veri: dict = Body(...)):
             yanit.headers["X-Avan-Not"] = ",".join(notlar)
         return yanit
     except Exception as e:  # noqa: BLE001
+        hata_kaydi(log, e)
         return _uretilemedi(e)
 
 
@@ -444,4 +453,5 @@ def indir_kapak_pdf(veri: dict = Body(...)):
             "application/pdf",
         )
     except Exception as e:  # noqa: BLE001
+        hata_kaydi(log, e)
         return _uretilemedi(e)

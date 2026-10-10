@@ -27,12 +27,15 @@ x kabin derinliği boyunca kapıdan arkaya, y rayları birleştiren doğrultu;
     askı noktası                                     y = hat + RK + xs
 """
 
+import logging
 import math
 
 from cizim import girdi as CG
 from cizim import katlar as CKA
 from cizim import sabitler as CS
 from tasarim import alanlar as _TS, gorunum as _TG
+
+log = logging.getLogger(__name__)
 
 
 def _sayi(v):
@@ -547,7 +550,8 @@ def _kasnak_arasi_sec(g, eski_kural):
 
     try:
         carpar = any(h.startswith("Halat (") for h in CKUS.yerlesim(g)["hata"])
-    except Exception:  # noqa: BLE001
+    except Exception:
+        log.debug("yedek değer kullanılıyor ( çizim kurulamadı )", exc_info=True)
         carpar = True
     if carpar:
         g["aski"]["kasnak_arasi"] = eski_kural
@@ -580,7 +584,8 @@ def _regulator_yeri(g, kaciklik_serbest=True, yan_serbest=False):
             if h:
                 return h
             h = (CKT.yerlesim(g) if g["makine"]["yeri"] == "Kuyu üstü" else CMD.yerlesim(g)).get("hata") or []
-        except Exception:  # noqa: BLE001
+        except Exception:
+            log.debug("yedek değer kullanılıyor ( çizim kurulamadı )", exc_info=True)
             return ["?"]
         return [x for x in h if "egülatör" in x]
 
@@ -626,7 +631,8 @@ def kasnaklar(g):
 
         try:
             sap = CMD.yerlesim(g).get("saptirma")
-        except Exception:  # noqa: BLE001 — çizim zaten reddeder
+        except Exception:
+            log.debug("yedek değer kullanılıyor ( çizim zaten reddeder )", exc_info=True)
             sap = None
         if sap:
             c.append(sap["D"])
@@ -703,7 +709,8 @@ def _saptirma(g):
 
     try:
         return CMD.yerlesim(g).get("saptirma")
-    except Exception:  # noqa: BLE001 — çizim kendi hatasını söyler
+    except Exception:
+        log.debug("yedek değer kullanılıyor ( çizim kendi hatasını söyler )", exc_info=True)
         return None
 
 
@@ -806,7 +813,8 @@ def sarim_acisi(g):
         if not sp:
             return 180.0
         return round(sp["sarim"], 1) if "sarim" in sp else None
-    except Exception:  # noqa: BLE001 — çizim zaten reddetti
+    except Exception:
+        log.debug("yedek değer kullanılıyor ( çizim zaten reddetti )", exc_info=True)
         return None
 
 

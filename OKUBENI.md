@@ -404,6 +404,12 @@ testleri pytest ile paralel koşar ( `KONTROL_IS`, varsayılan 4 işçi ).  Biç
 commit'leri `.git-blame-ignore-revs`'te:  `git config blame.ignoreRevsFile
 .git-blame-ignore-revs`.
 
+**Kayıt** ( `logging` ):  uçların genel `except`'i kullanıcıya iletiyi
+döndürür ve hatayı kaydeder ( `api/ortak.hata_kaydi`:  girdiden doğan ret
+bilgi, beklenmeyen hata izleriyle hata düzeyinde );  çizimin yedek değere
+düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNING|ERROR`
+( varsayılan WARNING ).
+
 ## Klasörler
 
 | Yol | Ne var |
