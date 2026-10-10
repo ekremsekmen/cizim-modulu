@@ -1,0 +1,1520 @@
+{
+ "ana": {
+  "1000 Arka MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "1000 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Arka MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Arka MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "1000 Arka MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Karşı ağırlık arkadayken makine dairesizde makine duvardan duvara iki kirişe oturur ( kuyu derinliğince ) — yük bina yapısına gider:  'Makine yükünün yolu' için 'Bina yapısına' seçin."
+  },
+  "1000 Arka MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "1000 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sağ MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sağ MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "1000 Sol MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "1275 Arka MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "1275 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Arka MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Arka MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "1275 Arka MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Karşı ağırlık arkadayken makine dairesizde makine duvardan duvara iki kirişe oturur ( kuyu derinliğince ) — yük bina yapısına gider:  'Makine yükünün yolu' için 'Bina yapısına' seçin."
+  },
+  "1275 Arka MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "1275 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "1275 Sol MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "1600 Arka MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "1600 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Arka MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Arka MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "1600 Arka MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Karşı ağırlık arkadayken makine dairesizde makine duvardan duvara iki kirişe oturur ( kuyu derinliğince ) — yük bina yapısına gider:  'Makine yükünün yolu' için 'Bina yapısına' seçin."
+  },
+  "1600 Arka MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "1600 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sağ MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sağ MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "1600 Sol MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sol MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "2000 Arka MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "2000 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Arka MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Arka MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "2000 Arka MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Karşı ağırlık arkadayken makine dairesizde makine duvardan duvara iki kirişe oturur ( kuyu derinliğince ) — yük bina yapısına gider:  'Makine yükünün yolu' için 'Bina yapısına' seçin."
+  },
+  "2000 Arka MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "2000 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Sağ MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Sağ MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "2000 Sol MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Sol MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "2500 Arka MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "2500 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Arka MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Arka MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "2500 Arka MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Karşı ağırlık arkadayken makine dairesizde makine duvardan duvara iki kirişe oturur ( kuyu derinliğince ) — yük bina yapısına gider:  'Makine yükünün yolu' için 'Bina yapısına' seçin."
+  },
+  "2500 Arka MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "2500 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sağ MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sağ MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "2500 Sol MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sol MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "320 Arka MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "320 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Arka MD {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Arka MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "320 Arka MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Arka MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "320 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Sağ MD {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Sağ MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "320 Sol MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Sol MD {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Sol MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "450 Arka MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "450 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "450 Arka MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Arka MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "450 Arka MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "450 Arka MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "450 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sağ MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sağ MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "450 Sol MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sol MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "630 Arka MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "630 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "630 Arka MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Arka MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "630 Arka MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "630 Arka MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "630 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "630 Sol MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "800 Arka MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "800 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Arka MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Arka MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "ret",
+   "sebep": "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+  },
+  "800 Arka MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "ret",
+   "sebep": "Karşı ağırlık arkadayken makine dairesizde makine duvardan duvara iki kirişe oturur ( kuyu derinliğince ) — yük bina yapısına gider:  'Makine yükünün yolu' için 'Bina yapısına' seçin."
+  },
+  "800 Arka MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "800 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sağ MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sağ MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  },
+  "800 Sol MD {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sol MRL {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Makine dairesiz ( kuyu üstü ) tesiste 1:1 askı çizilmez:  tahrik kasnağı kabinin tam üstünde olur, kabin kuyu tepesine çıkamaz — makine dairesiz asansörler 2:1 askılıdır ( ofisin ve referans projenin MRL'leri ).  Askı oranını 2 seçin ya da makine dairesi olsun."
+  }
+ },
+ "diger": {
+  "1275 üst=Dik duruş dip=Dik duruş Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "1275 üst=Dik duruş dip=Dik duruş Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "1275 üst=Dik duruş dip=Dik duruş Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "1275 üst=Dik duruş dip=Dik duruş Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "1275 üst=Dik duruş dip=Yatarak Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1715 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "1275 üst=Dik duruş dip=Yatarak Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1660.4 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "1275 üst=Dik duruş dip=Yatarak Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1715 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "1275 üst=Dik duruş dip=Yatarak Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1660.4 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "1275 üst=Dik duruş dip=Çömelme Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1715 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "1275 üst=Dik duruş dip=Çömelme Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1660.4 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "1275 üst=Dik duruş dip=Çömelme Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1715 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "1275 üst=Dik duruş dip=Çömelme Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1660.4 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "1275 üst=Çömelme dip=Dik duruş Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "1275 üst=Çömelme dip=Dik duruş Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "1275 üst=Çömelme dip=Dik duruş Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "1275 üst=Çömelme dip=Dik duruş Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "1275 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.0": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.6": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 üst=Çömelme dip=Yatarak Kuyu içine v=1.0": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 üst=Çömelme dip=Yatarak Kuyu içine v=1.6": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.0": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.6": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 üst=Çömelme dip=Çömelme Kuyu içine v=1.0": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 üst=Çömelme dip=Çömelme Kuyu içine v=1.6": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 üst=Dik duruş dip=Dik duruş Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+  },
+  "2000 üst=Dik duruş dip=Dik duruş Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+  },
+  "2000 üst=Dik duruş dip=Dik duruş Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "2000 üst=Dik duruş dip=Dik duruş Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "2000 üst=Dik duruş dip=Yatarak Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+  },
+  "2000 üst=Dik duruş dip=Yatarak Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+  },
+  "2000 üst=Dik duruş dip=Yatarak Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1715 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "2000 üst=Dik duruş dip=Yatarak Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1660.4 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "2000 üst=Dik duruş dip=Çömelme Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+  },
+  "2000 üst=Dik duruş dip=Çömelme Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+  },
+  "2000 üst=Dik duruş dip=Çömelme Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1715 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "2000 üst=Dik duruş dip=Çömelme Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1660.4 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "2000 üst=Çömelme dip=Dik duruş Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+  },
+  "2000 üst=Çömelme dip=Dik duruş Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+  },
+  "2000 üst=Çömelme dip=Dik duruş Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "2000 üst=Çömelme dip=Dik duruş Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "2000 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+  },
+  "2000 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+  },
+  "2000 üst=Çömelme dip=Yatarak Kuyu içine v=1.0": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 üst=Çömelme dip=Yatarak Kuyu içine v=1.6": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+  },
+  "2000 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+  },
+  "2000 üst=Çömelme dip=Çömelme Kuyu içine v=1.0": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 üst=Çömelme dip=Çömelme Kuyu içine v=1.6": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "320 üst=Dik duruş dip=Dik duruş Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında dik duruş tipi sığınma alanına ( 400 × 500 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Dik duruş dip=Dik duruş Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında dik duruş tipi sığınma alanına ( 400 × 500 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Dik duruş dip=Dik duruş Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında dik duruş tipi sığınma alanına ( 400 × 500 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Dik duruş dip=Dik duruş Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında dik duruş tipi sığınma alanına ( 400 × 500 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Dik duruş dip=Yatarak Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Kuyu dibinde yatarak tipi sığınma alanına ( 700 × 1000 mm, TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı ağırlığın şeridi dışında kalmalı."
+  },
+  "320 üst=Dik duruş dip=Yatarak Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Kuyu dibinde yatarak tipi sığınma alanına ( 700 × 1000 mm, TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı ağırlığın şeridi dışında kalmalı."
+  },
+  "320 üst=Dik duruş dip=Yatarak Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Kuyu dibinde yatarak tipi sığınma alanına ( 700 × 1000 mm, TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı ağırlığın şeridi dışında kalmalı."
+  },
+  "320 üst=Dik duruş dip=Yatarak Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Kuyu dibinde yatarak tipi sığınma alanına ( 700 × 1000 mm, TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı ağırlığın şeridi dışında kalmalı."
+  },
+  "320 üst=Dik duruş dip=Çömelme Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında dik duruş tipi sığınma alanına ( 400 × 500 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Dik duruş dip=Çömelme Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında dik duruş tipi sığınma alanına ( 400 × 500 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Dik duruş dip=Çömelme Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında dik duruş tipi sığınma alanına ( 400 × 500 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Dik duruş dip=Çömelme Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında dik duruş tipi sığınma alanına ( 400 × 500 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Çömelme dip=Dik duruş Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Çömelme dip=Dik duruş Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Çömelme dip=Dik duruş Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Çömelme dip=Dik duruş Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Kuyu dibinde yatarak tipi sığınma alanına ( 700 × 1000 mm, TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı ağırlığın şeridi dışında kalmalı."
+  },
+  "320 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Kuyu dibinde yatarak tipi sığınma alanına ( 700 × 1000 mm, TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı ağırlığın şeridi dışında kalmalı."
+  },
+  "320 üst=Çömelme dip=Yatarak Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Kuyu dibinde yatarak tipi sığınma alanına ( 700 × 1000 mm, TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı ağırlığın şeridi dışında kalmalı."
+  },
+  "320 üst=Çömelme dip=Yatarak Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Kuyu dibinde yatarak tipi sığınma alanına ( 700 × 1000 mm, TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı ağırlığın şeridi dışında kalmalı."
+  },
+  "320 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Çömelme dip=Çömelme Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 üst=Çömelme dip=Çömelme Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "630 üst=Dik duruş dip=Dik duruş Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "630 üst=Dik duruş dip=Dik duruş Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "630 üst=Dik duruş dip=Dik duruş Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "630 üst=Dik duruş dip=Dik duruş Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "630 üst=Dik duruş dip=Yatarak Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1715 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "630 üst=Dik duruş dip=Yatarak Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1660.4 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "630 üst=Dik duruş dip=Yatarak Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1715 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "630 üst=Dik duruş dip=Yatarak Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1660.4 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "630 üst=Dik duruş dip=Çömelme Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1715 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "630 üst=Dik duruş dip=Çömelme Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1660.4 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "630 üst=Dik duruş dip=Çömelme Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1715 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "630 üst=Dik duruş dip=Çömelme Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1660.4 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 )."
+  },
+  "630 üst=Çömelme dip=Dik duruş Duvar boşluğuna v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "630 üst=Çömelme dip=Dik duruş Duvar boşluğuna v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "630 üst=Çömelme dip=Dik duruş Kuyu içine v=1.0": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "630 üst=Çömelme dip=Dik duruş Kuyu içine v=1.6": {
+   "durum": "ret",
+   "sebep": "Sığınma yüksekliği:  1310 mm < 2000 mm  ( TS EN 81-20 m.5.2.5.8.1 · Çizelge 4 )."
+  },
+  "630 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.0": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.6": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 üst=Çömelme dip=Yatarak Kuyu içine v=1.0": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 üst=Çömelme dip=Yatarak Kuyu içine v=1.6": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.0": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.6": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 üst=Çömelme dip=Çömelme Kuyu içine v=1.0": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 üst=Çömelme dip=Çömelme Kuyu içine v=1.6": {
+   "durum": "çizildi",
+   "sebep": ""
+  }
+ },
+ "kapi": {
+  "1000 Arka Manuel Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Arka Manuel Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Arka Otomatik Merkezi": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Arka Otomatik Merkezi 4 Kanat": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Arka Teleskopik 3 Kanat Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Arka Teleskopik 3 Kanat Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Arka Teleskopik Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Arka Teleskopik Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sağ Manuel Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sağ Manuel Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sağ Otomatik Merkezi": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "1000 Sağ Otomatik Merkezi 4 Kanat": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sağ Teleskopik 3 Kanat Sağ": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "1000 Sağ Teleskopik 3 Kanat Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sağ Teleskopik Sağ": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "1000 Sağ Teleskopik Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol Manuel Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol Manuel Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol Otomatik Merkezi": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "1000 Sol Otomatik Merkezi 4 Kanat": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol Teleskopik 3 Kanat Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol Teleskopik 3 Kanat Sol": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "1000 Sol Teleskopik Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol Teleskopik Sol": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "1600 Arka Manuel Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Arka Manuel Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Arka Otomatik Merkezi": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Arka Otomatik Merkezi 4 Kanat": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Arka Teleskopik 3 Kanat Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Arka Teleskopik 3 Kanat Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Arka Teleskopik Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Arka Teleskopik Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sağ Manuel Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sağ Manuel Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sağ Otomatik Merkezi": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "1600 Sağ Otomatik Merkezi 4 Kanat": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sağ Teleskopik 3 Kanat Sağ": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "1600 Sağ Teleskopik 3 Kanat Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sağ Teleskopik Sağ": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "1600 Sağ Teleskopik Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sol Manuel Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sol Manuel Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sol Otomatik Merkezi": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "1600 Sol Otomatik Merkezi 4 Kanat": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sol Teleskopik 3 Kanat Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sol Teleskopik 3 Kanat Sol": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "1600 Sol Teleskopik Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sol Teleskopik Sol": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "2500 Arka Manuel Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Arka Manuel Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Arka Otomatik Merkezi": {
+   "durum": "ret",
+   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 2 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
+  },
+  "2500 Arka Otomatik Merkezi 4 Kanat": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Arka Teleskopik 3 Kanat Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Arka Teleskopik 3 Kanat Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Arka Teleskopik Sağ": {
+   "durum": "ret",
+   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 2 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
+  },
+  "2500 Arka Teleskopik Sol": {
+   "durum": "ret",
+   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 2 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
+  },
+  "2500 Sağ Manuel Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sağ Manuel Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sağ Otomatik Merkezi": {
+   "durum": "ret",
+   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 2 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
+  },
+  "2500 Sağ Otomatik Merkezi 4 Kanat": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "2500 Sağ Teleskopik 3 Kanat Sağ": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "2500 Sağ Teleskopik 3 Kanat Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sağ Teleskopik Sağ": {
+   "durum": "ret",
+   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 2 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
+  },
+  "2500 Sağ Teleskopik Sol": {
+   "durum": "ret",
+   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 2 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
+  },
+  "2500 Sol Manuel Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sol Manuel Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sol Otomatik Merkezi": {
+   "durum": "ret",
+   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 2 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
+  },
+  "2500 Sol Otomatik Merkezi 4 Kanat": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "2500 Sol Teleskopik 3 Kanat Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sol Teleskopik 3 Kanat Sol": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "2500 Sol Teleskopik Sağ": {
+   "durum": "ret",
+   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 2 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
+  },
+  "2500 Sol Teleskopik Sol": {
+   "durum": "ret",
+   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 2 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
+  },
+  "450 Arka Manuel Sağ": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "450 Arka Manuel Sol": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "450 Arka Otomatik Merkezi": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "450 Arka Otomatik Merkezi 4 Kanat": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "450 Arka Teleskopik 3 Kanat Sağ": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "450 Arka Teleskopik 3 Kanat Sol": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "450 Arka Teleskopik Sağ": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "450 Arka Teleskopik Sol": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "450 Sağ Manuel Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sağ Manuel Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sağ Otomatik Merkezi": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "450 Sağ Otomatik Merkezi 4 Kanat": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sağ Teleskopik 3 Kanat Sağ": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "450 Sağ Teleskopik 3 Kanat Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sağ Teleskopik Sağ": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "450 Sağ Teleskopik Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sol Manuel Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sol Manuel Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sol Otomatik Merkezi": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "450 Sol Otomatik Merkezi 4 Kanat": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sol Teleskopik 3 Kanat Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sol Teleskopik 3 Kanat Sol": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "450 Sol Teleskopik Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sol Teleskopik Sol": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "800 Arka Manuel Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Arka Manuel Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Arka Otomatik Merkezi": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Arka Otomatik Merkezi 4 Kanat": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Arka Teleskopik 3 Kanat Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Arka Teleskopik 3 Kanat Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Arka Teleskopik Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Arka Teleskopik Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sağ Manuel Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sağ Manuel Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sağ Otomatik Merkezi": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "800 Sağ Otomatik Merkezi 4 Kanat": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sağ Teleskopik 3 Kanat Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sağ Teleskopik 3 Kanat Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sağ Teleskopik Sağ": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "800 Sağ Teleskopik Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sol Manuel Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sol Manuel Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sol Otomatik Merkezi": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  },
+  "800 Sol Otomatik Merkezi 4 Kanat": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sol Teleskopik 3 Kanat Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sol Teleskopik 3 Kanat Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sol Teleskopik Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sol Teleskopik Sol": {
+   "durum": "ret",
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+  }
+ }
+}

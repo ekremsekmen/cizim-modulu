@@ -359,14 +359,40 @@ python3 -m venv .venv
 .venv/bin/python calistir.py --cizim kuyu_kesiti_on   # B-B tam boy düşey kesit ( 1/50 )
 .venv/bin/python calistir.py --cizim kuyu_kesiti_on --makine "Makine dairesi"   # makine daireli
 .venv/bin/python calistir.py --pafta               # bütün çizimler TİP PROJE FORMATINDA ( DXF + SVG önizleme )
-.venv/bin/python -m unittest discover -s testler     # çizim ve köprü testleri
-cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paketi
-# ( arayüz testleri 3 · 5 · 6 · 13 açık bir programa karşı:  AVAN_TEST_URL=http://127.0.0.1:8790 )
+
+# DENETİM — tek komut ( kontrol.py;  adımlar sırayla koşar )
+.venv/bin/python kontrol.py           # hızlı:  hesap + çizim ( yavaş test hariç ) + node  ( ~5 dk )
+.venv/bin/python kontrol.py tam       # + yavaş test ( her ölçünün kaynağı, ~7 dk )
+.venv/bin/python kontrol.py arayuz    # arayüz testleri:  programı 8790'da açar, kapatır ( ~20 dk )
+.venv/bin/python kontrol.py tarama    # girdi taraması:  378 düzen, hükümler kayıtla ( ~15 dk )
 
 # Örnek tam projeler ( hesap + çizim, tek pafta ) → ornekler/ — programın
 # "Projeyi paketle" yolundan:
 .venv/bin/python ornekler/uret.py
 ```
+
+## Denetim
+
+Her değişiklikte en az `kontrol.py` ( hızlı ), commit'ten önce `tam`,
+`arayuz` ve çizimi etkileyen değişiklikte `tarama`.  GitHub'da her push'ta
+hızlı denetim kendiliğinden koşar ( `.github/workflows/denetim.yml`;  tam
+denetim Actions sekmesinden elle başlatılır ).  Ortam `requirements-kilit.txt`
+ile birebir kurulur ( sabitlenmiş sürümler ).
+
+**Dondurulmuş çıktılar** — kodu düzenlerken ( refactor ) davranışın
+değişmediğini kanıtlar;  biri değişirse test hangi düzende, hangi çizimde,
+hangi elemanda olduğunu söyler.  Yeniden üretmek **davranışı değiştirme
+iznidir**:  yalnız kasıtlı bir değişiklikten sonra, farklar incelenince.
+
+| Dosya | Ne dondurulur | Yeniden üretme |
+|---|---|---|
+| `testler/altin_cizim.json.gz` | 35 düzenin tam paftası ( her çizimin elemanları + SVG ) | `.venv/bin/python -m testler.altin_cizim` |
+| `testler/tarama_hukumleri.json` | 378 düzenin hükmü ( çizildi / ret ve sebebi ) | `.venv/bin/python -m araclar.tarama --yenile` |
+| `hesap/testler/altin_*.json.gz` | hesabın tam çıktısı ( trafik, avan, uygulama ) | `cd hesap && ../.venv/bin/python testler/altin_uret.py` |
+| `hesap/testler/referans_*.json.gz` | hesabın ara değerleri ve hükümleri | `cd hesap && ../.venv/bin/python testler/tarama_uret.py` |
+
+Yavaş testler `testler/yavas.py`'deki `@yavas(...)` ile işaretlenir:
+hızlı denetimde atlanır ( çıktıda "skipped" ), tam denetimde koşar.
 
 ## Klasörler
 
@@ -403,7 +429,10 @@ cd hesap && ../.venv/bin/python testler/calistir.py  # hesabın doğrulama paket
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
 | `testler/` | 376 test ( `test_kapilar.py` — kanat sayısı ve kanat cebi, `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog, `test_gercek_projeler.py` — ofisin altı gerçek projesi ( veri `gercek_projeler.py` ), `test_gorunusler.py` — kasnak düzenlemesi ve giriş görünüşü, `test_kesit_yerlesim_regresyon.py` — şase üst kirişi, ağırlık patenleri, dolgu, ağırlık genişliği, kabin – ağırlık ölçüleri, duvarlar ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
-| `cikti/` | `calistir.py`'nin tek tek çizimleri ( git'e girmez ) |
+| `cikti/` | `calistir.py`'nin tek tek çizimleri, taramanın ayrıntılı sonuçları ( git'e girmez ) |
+| `kontrol.py` | Bütün denetimler tek komutta ( hızlı · tam · arayüz · tarama ) |
+| `araclar/` | Girdi taraması ( `tarama.py` ) ve yazı – çizgi kesişmeleri ( `kesisme.py` ) |
+| `requirements-kilit.txt` | Sabitlenmiş bağımlılıklar ( CI ve sunucu bunu kurar ) |
 
 ## Kurallar
 

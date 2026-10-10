@@ -20,6 +20,7 @@ for _yol in (os.path.join(KOK, "hesap"), os.path.join(KOK, "ornekler"),
         sys.path.append(_yol)
 
 from api import cizim as UC                               # noqa: E402
+from testler.yavas import yavas                           # noqa: E402
 from api import uygulama as UC_UYG                        # noqa: E402
 from cizim import cizimler as CZ                          # noqa: E402
 from cizim import geometri as CGE                         # noqa: E402
@@ -109,6 +110,7 @@ class Eksiksiz(unittest.TestCase):
     standardı, ürün ölçüsü ) bağlıdır ya da dayandığı kuralı söyler — tıklanan
     hiçbir ölçü "bilinmiyor" demez."""
 
+    @yavas("7 dk")
     def test_her_olcunun_kaynagi_ya_da_kurali_var(self):
         for ad_d, v in DUZENLER.items():
             v = v()
