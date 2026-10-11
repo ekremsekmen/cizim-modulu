@@ -108,7 +108,7 @@ def yazilari_yerlestir(elemanlar, h=eleman.OLCU_YAZI, kaydir=False):
     komşu tarafa yazılır ( AutoCAD'in sığmayan yazısı gibi ):  kuyu planında
     kabin duvarının "75"i şase dikmesinin üstündeydi.
     """
-    Y = _YaziYerleri(elemanlar, h)
+    Y = _YaziYerleri(elemanlar, h, kaydir)
     siralar = {}
     for el in elemanlar:
         if el["tip"] == "olcu" and "yazi" not in el:
@@ -126,7 +126,7 @@ def yazilari_yerlestir(elemanlar, h=eleman.OLCU_YAZI, kaydir=False):
         for n, q in enumerate(liste):
             bas, son = sorted((q["a"][i], q["b"][i]))
             w = eleman.yazi_eni(q["metin"], h)
-            aday = Y.adaylar(yon, kot, liste, n, i, bas, son, w, kaydir)
+            aday = Y.adaylar(yon, kot, liste, n, i, bas, son, w)
             kat, orta = Y.sec(yon, kot, aday, yerlesen, bas, son, w)
             yerlesen.append((kat, orta - w / 2.0, orta + w / 2.0))
             Y.dolu.append(Y.kutu(yon, kot, kat, orta, w))
@@ -147,12 +147,13 @@ def _sirada_biner(yerlesen, kat, orta, w, k):
 
 class _YaziYerleri:
     """yazilari_yerlestir'in ortak durumu:  yazı boyu ( h ) ve ölçeği ( k —
-    1/50'de yazı ve aralıklar büyür ), parça kutuları ve kenarları, dolu yazı
-    kutuları."""
+    1/50'de yazı ve aralıklar büyür ), kaydir, parça kutuları ve kenarları,
+    yazının kaçtığı engeller, dolu yazı kutuları."""
 
-    def __init__(self, elemanlar, h):
+    def __init__(self, elemanlar, h, kaydir):
         self.h = h
         self.k = h / eleman.OLCU_YAZI
+        self.kaydir = kaydir
         #  Parça kenarları ( parca_kenarlari ):  yazı maskelidir, bir kenarın
         #  üstüne düşerse kenarı siler — kuyu planında kabin duvarının "75"i
         #  kabinin iki çizgisinin üstündeydi ( 5 Eki ).
@@ -161,6 +162,14 @@ class _YaziYerleri:
         self.parca_kutulari = [
             sinir([x]) for x in elemanlar if x.get("katman") in PARCA_KATMANLARI and x["tip"] != "yazi"
         ]
+        #  Yazının yer ararken kaçtığı engeller ( biner ):  parçalar, kaydir'da
+        #  kapı da ( kanatlar, kasa, cepler — kabin üstünde ve kuyu planında
+        #  yazı kapının içine düşmesin;  kenar denetimi yalnız kenarını görür ).
+        self.engeller = self.parca_kutulari + (
+            [sinir([x]) for x in elemanlar if x.get("katman") == "KAPI" and x["tip"] != "yazi"]
+            if kaydir
+            else []
+        )
         self.dolu = []
 
     def kutu(self, yon, kot, kat, orta, w):
@@ -173,11 +182,10 @@ class _YaziYerleri:
         )
 
     def biner(self, yon, kot, kat, orta, w):
-        """Yazı bir parçaya ya da parça kenarına biner mi."""
+        """Yazı bir engele ya da parça kenarına biner mi."""
         kutu = self.kutu(yon, kot, kat, orta, w)
         return any(
-            kutu[0] < p[2] and p[0] < kutu[2] and kutu[1] < p[3] and p[1] < kutu[3]
-            for p in self.parca_kutulari
+            kutu[0] < p[2] and p[0] < kutu[2] and kutu[1] < p[3] and p[1] < kutu[3] for p in self.engeller
         ) or self.kenarlar.kesisir(kutu, 2.0 * self.k)
 
     def kenara_biner(self, kutu):
@@ -189,7 +197,7 @@ class _YaziYerleri:
     def yaziya_biner(self, kutu):
         return any(kutu[0] < d[2] and d[0] < kutu[2] and kutu[1] < d[3] and d[1] < kutu[3] for d in self.dolu)
 
-    def adaylar(self, yon, kot, liste, n, i, bas, son, w, kaydir):
+    def adaylar(self, yon, kot, liste, n, i, bas, son, w):
         """Sıranın n. yazısının adayları ( kat, orta ), sırayla."""
         k = self.k
         aday = [(0, (bas + son) / 2.0)]
@@ -207,7 +215,7 @@ class _YaziYerleri:
                 if boy[0] > boy[1]:
                     yanlar.reverse()
                 aday = [a for a in yanlar if not self.biner(yon, kot, a[0], a[1], w)] + aday
-        elif kaydir and not sigmaz:
+        elif self.kaydir and not sigmaz:
             #  kaydir:  sığan yazı ortada bir parçanın üstüne düşüyorsa kendi
             #  ölçüsünün içinde, ortaya en yakın boş yere kayar ( kabin üstü
             #  planında sığınma alanının yer ölçüsü şasenin üst kirişinin

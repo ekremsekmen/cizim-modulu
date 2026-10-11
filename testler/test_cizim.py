@@ -2822,6 +2822,27 @@ class YaziParcaKenarinaBinmez(unittest.TestCase):
         self.assertGreater(sayi, 1000)
 
 
+class KaydirdaYaziKapidanKacar(unittest.TestCase):
+    """kaydir'da ( kuyu planı, kabin üstü ) ölçü yazısı kapının kenarına değil
+    İÇİNE düşüyorsa da kaçar:  kenar denetimi yalnız kenarı görür.  Kural bir
+    ad değişikliğinde sessizce ölmüştü;  gerçek çizimlerde kapı parçaları ince
+    olduğu için tetiklenmez, burada yapay bir kutuyla sınanır."""
+
+    def _yazi(self, kaydir):
+        kapi = eleman.dikdortgen("KAPI", 1300, 1480, 400, 160)
+        o = eleman.olcu("yatay", (1000, 1500), (2000, 1500), 1500)
+        geometri.yazilari_yerlestir([kapi, o], kaydir=kaydir)
+        return geometri.yazi_kutusu(o), geometri.sinir([kapi])
+
+    def test_kaydirsiz_ortada_kalir(self):
+        yazi, kapi = self._yazi(False)
+        self.assertTrue(ortusur(yazi, kapi))  # yapay durum gerçekten içeride
+
+    def test_kaydirda_kapinin_disina_kayar(self):
+        yazi, kapi = self._yazi(True)
+        self.assertFalse(ortusur(yazi, kapi))
+
+
 class Pafta(unittest.TestCase):
     """Çizimlerin ofisin TİP PROJE FORMATINA yerleştirilmesi."""
 
