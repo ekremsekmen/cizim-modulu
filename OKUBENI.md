@@ -415,6 +415,22 @@ modül başka bir modülün import ettiği modüle onun içinden uzanmaz
 `hesap/motor` ( hesap motoru ), `hesap/uclar` ( web uçları ),
 `hesap/ciktilar` ( PDF · DXF ), `hesap/dogrulama` ( doğrulama paketi ).
 
+**Katmanlar** ( `araclar/mimari.py`, `testler/test_mimari.py` denetler ):
+
+    temel → tasarim ( şema ) → cizim → motor ( hesap ) → ciktilar → uclar
+
+Bir katman yalnız altındakileri import eder;  modüller arasında döngü yoktur
+( fonksiyon içi importlar dahil — eskiden döngüler fonksiyon içine saklanmış
+importlarla gizleniyordu:  çizimde 9, hesapta 3, uçlarda 2 modül birbirine
+dolanmıştı );  import fonksiyon içine konmaz ( tek istisna:  ezdxf'in ağır
+çizim eklentisi, yalnız önizlemede — `pafta.onizleme` ).  Şema seçenek
+listelerini üç veri modülünden okur ( `motor.uygulama.mukavemet_tablolari`,
+`motor.ortak.ofis`, `cizim.girdi` );  onlar dolaylı yoldan bile şemaya
+bağlanmaz.  Ortak parçalar alt katmandadır:  kot hesapları
+`cizim/parca_kotlari.py`, TS EN 81-20 sayıları `cizim/standart.py`, tam plan
+denetimi `geometri.dogrula` ( girdi + kanat cepleri ), uygulama formunun
+isteği `uclar/uygulama_istegi.py`.
+
 **Kayıt** ( `logging` ):  uçların genel `except`'i kullanıcıya iletiyi
 döndürür ve hatayı kaydeder ( `uclar/uc_ortak.hata_kaydi`:  girdiden doğan ret
 bilgi, beklenmeyen hata izleriyle hata düzeyinde );  çizimin yedek değere
@@ -460,6 +476,9 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
 | `cikti/` | `calistir.py`'nin tek tek çizimleri, taramanın ayrıntılı sonuçları ( git'e girmez ) |
 | `kontrol.py` | Bütün denetimler tek komutta ( hızlı · tam · arayüz · tarama · biçim ) |
 | `temel.py` | Her katmanın küçük ortak yardımcıları:  `sayi_mi` ( bool ve NaN / sonsuz hariç ), `bos_mu`, plan kutusu ( `eleman_kutusu`, `ortusur`, `kutu_merkezi` ) — hiçbir proje modülünü import etmez |
+| `cizim/parca_kotlari.py` | Kabinin ve karşı ağırlığın parça kotları ( kabin_kotlari, agirlik_kotlari, dolgu ) |
+| `cizim/standart.py` | TS EN 81-20'nin birden çok çizimin kullandığı sayıları ( korkuluk ) |
+| `araclar/mimari.py` | Mimari denetimi:  katmanlar, döngüler, modül adları, içinden uzanma, gölgeleme |
 | `yollar.py` | Programın import kökleri ( depo kökü, `hesap/`, `ornekler/` ) — giriş noktaları bir kez kurar, kütüphane modülleri `sys.path`'e dokunmaz |
 | `hesap/dogrulama/` | Hesabın doğrulama paketi ( `calistir.py`;  eski adı `hesap/testler` — depo kökündeki `testler/` ile çakışıyordu ) |
 | `araclar/` | Girdi taraması ( `tarama.py` ) ve yazı – çizgi kesişmeleri ( `kesisme.py` ) |

@@ -56,6 +56,47 @@ class Mimari(unittest.TestCase):
     def test_baska_modulun_icinden_uzanilmaz(self):
         self.assertEqual(mimari.ihlaller(), [])
 
+    def test_modul_adi_golgelenmez(self):
+        self.assertEqual(mimari.golgeler(), [])
+
+
+class Katmanlar(unittest.TestCase):
+    """temel → tasarim ( şema ) → cizim → motor ( hesap ) → ciktilar → uclar:
+    bir katman yalnız altındakileri import eder;  modüller arasında döngü
+    yok;  import fonksiyon içine saklanmaz ( döngüyü gizlemenin yolu oydu )."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.graf, cls.fonksiyon_ici = mimari.bagimliliklar()
+
+    def test_dongu_yok(self):
+        self.assertEqual(mimari.donguler(self.graf), [])
+
+    def test_katman_kurali(self):
+        self.assertEqual(mimari.katman_ihlalleri(self.graf), [])
+
+    def test_fonksiyon_ici_import_yok(self):
+        #  Tek istisna:  ezdxf'in çizim eklentisi yalnız önizlemede gerekir ve
+        #  ağırdır ( pafta.onizleme ) — program açılırken yüklenmez.
+        self.assertEqual(
+            sorted({(f, i.split(" import ")[0]) for f, _s, i in self.fonksiyon_ici}),
+            [("cizim/pafta.py", "from ezdxf.addons.drawing"), ("cizim/pafta.py", "from ezdxf.entities")],
+        )
+
+    def test_kurallarin_kendisi(self):
+        #  Kural yanlış bir şeyi geçirmesin:  üst katmana bağlanan, döngü kuran
+        #  örnek graflar yakalanır.
+        self.assertEqual(
+            mimari.katman_ihlalleri({"cizim.a": {"motor.b"}, "motor.b": set()}), [("cizim.a", "motor.b")]
+        )
+        self.assertEqual(
+            mimari.donguler({"cizim.a": {"cizim.b"}, "cizim.b": {"cizim.a"}}), [["cizim.a", "cizim.b"]]
+        )
+        self.assertEqual(
+            mimari.katman_ihlalleri({"motor.ortak.ofis": {"motor.x"}, "motor.x": {"tasarim.alanlar"}}),
+            [("motor.ortak.ofis", "tasarim.alanlar")],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

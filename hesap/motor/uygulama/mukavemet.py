@@ -30,6 +30,10 @@ from motor.uygulama import uygulama_sabitleri
 from motor.uygulama import mukavemet_tablolari
 from motor.ortak.adimlar import Bolum, hesap, kontrol, numarala, veri
 from motor.ortak.adimlar import bagla, metin, tr, trn, evet_mi
+from cizim import donanim
+from cizim import dusey
+from cizim import hareketli
+from cizim import kopru
 
 # =====================================================================
 #  SABİTLER
@@ -4286,10 +4290,6 @@ def _kuyu_tabani(g, o):
 #  girilen paten arası hiç kullanılmıyordu.  Varsayılan asansörde çizim üst
 #  patenin kuyu tavanına 150 mm girdiğini bulurken hesap "UYGUNDUR" diyordu.
 def _siginma(g, o):
-    from cizim import donanim
-    from cizim import dusey
-    from cizim import hareketli
-    from cizim import kopru
 
     O, v = o["ofis"], o["v"]
     tip_ust = g.get("siginma_tipi_ust") or "Çömelme"

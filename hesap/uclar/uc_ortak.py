@@ -16,6 +16,7 @@ import re
 import threading
 
 from fastapi.responses import JSONResponse, Response
+from urllib.parse import quote
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -212,7 +213,6 @@ def _dosya_adi(proje, ek, uzanti):
 
 
 def _indir(icerik: bytes, ad: str, tur: str):
-    from urllib.parse import quote
 
     return Response(
         icerik, media_type=tur, headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(ad)}"}

@@ -24,6 +24,8 @@ from cizim import eleman
 from cizim import girdi
 from cizim import parcalar
 from cizim import sabitler
+from cizim import arka_aski
+from cizim import baglantilar, makine
 
 _KIP = threading.local()
 
@@ -366,7 +368,6 @@ def halat_konumlari(g, S=None):
     a = g.get("aski") or {}
     if a.get("duzen") not in ("Kabin altı", "Kabin üstü"):
         return []
-    from cizim import arka_aski
 
     if arka_aski.arkada_iki_bir(g):
         #  Arkadaki ağırlıkla 2:1:  tahrik kasnağının kabin inişi ve kabin
@@ -385,7 +386,6 @@ def kabin_kasnak_kutulari(g, S, taban):
     ağırlıkla 2:1 — arka_aski ) döndürülmüş kasnakların çevreleyen kutusu
     ( açıklık ve engel denetimleri için emniyetli taraf ), öbür düzenlerde
     plandaki dikdörtgen."""
-    from cizim import arka_aski
 
     if arka_aski.arkada_iki_bir(g):
         A = arka_aski.geometri(g, S)
@@ -757,7 +757,6 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
         + aski.get("kasnak_kaciklik" if duzen in ("Kabin altı", "Kabin üstü") else "nokta_kaciklik", 0)
     )
     aski_yari = 0.0  # askı elemanının derinlikteki yarı boyu
-    from cizim import arka_aski
 
     capraz = arka_aski.geometri(g, S) if arka_aski.arkada_iki_bir(g) else None
     if capraz is not None and "P" in capraz:
@@ -824,8 +823,6 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
         e.append(
             eleman.ad(eleman.yazi(kx, aski_y - aski_yari - 230, "ASKI:  DOĞRUDAN  ·  1:1", 44), "aski_yazi")
         )
-
-    from cizim import baglantilar, makine
 
     e += makine.plan(
         baglantilar.kasnak_tasiyicilari(g, S, -S["kabin_kasnak_derinlik"]),

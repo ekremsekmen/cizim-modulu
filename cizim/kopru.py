@@ -34,6 +34,11 @@ from cizim import girdi
 from cizim import katlar
 from cizim import sabitler
 from tasarim import alanlar, gorunum
+from cizim import arka_aski
+from cizim import kabin_ustu
+from cizim import kuyu_dibi, makine
+from cizim import kuyu_ustu
+from cizim import makine_dairesi
 
 log = logging.getLogger(__name__)
 
@@ -246,7 +251,6 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
     oran = secim("aski_orani", "Askı oranı", (1, 2))
     #  Hesabın seçimleri çizim modülünün kendi doğrulamasına boş gitmesin:
     #  ileti formdaki adla söylensin ( "agirlik.yeri" değil ).
-    from cizim import kabin_ustu, kuyu_dibi, makine
 
     ag_yeri = secim("agirlik_yeri", "Karşı ağırlık yeri", girdi.AGIRLIK_YERLERI)
     sig_ust = secim("siginma_tipi_ust", "Kabin üstü sığınma hacmi tipi", kabin_ustu.SIGINMA)
@@ -517,7 +521,6 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         return None, hata
     if dusey_ara:
         _kasnak_arasi_sec(g, eski_kural)
-    from cizim import arka_aski
 
     if arka_aski.arkada_iki_bir(g):
         #  Arkadaki ağırlıkla 2:1:  ağırlık – duvar ölçüsü boşsa ağırlık kabine
@@ -539,7 +542,6 @@ def _kasnak_arasi_sec(g, eski_kural):
     ( kabin rayının ara kirişi, konsol ) çarptırıyorsa eski kural:  kuyu
     kabinden geniş, ağırlık duvarla birlikte uzaklaşmışsa halat kabine yakın
     kalır, ağırlığa eğik iner ( sapma ölçüsü;  sarım açısı girilmeli )."""
-    from cizim import kabin_ustu
 
     try:
         carpar = any(h.startswith("Halat (") for h in kabin_ustu.yerlesim(g)["hata"])
@@ -559,9 +561,6 @@ def _regulator_yeri(g, kaciklik_serbest=True, yan_serbest=False):
     ( 12495-18:  sağ ray duvara 50 mm, eski 160'lık gergi ağırlığı duvara 7,5
     kalıyordu;  82'lik ağırlıkla sağ rayın önüne, −280'e iner ).
     Hiçbiri çarpmaktan kurtulmuyorsa varsayılan kalır ( çizim hatayı söyler )."""
-    from cizim import kuyu_dibi
-    from cizim import kuyu_ustu
-    from cizim import makine_dairesi
 
     kd = g["kuyu_dibi"]
     ilk, ilk_yan = kd["regulator_kaciklik"], kd["regulator_yan"]
@@ -622,8 +621,6 @@ def kasnaklar(g):
     if a["duzen"] != "Doğrudan":
         c += [a["kasnak_capi"], a["kasnak_capi"], g["agirlik"]["kasnak_capi"]]
     if g["makine"]["yeri"] == "Makine dairesi":
-        from cizim import makine_dairesi
-
         try:
             sap = makine_dairesi.yerlesim(g).get("saptirma")
         except Exception:
@@ -704,7 +701,6 @@ def _saptirma(g):
     tahrik kasnağından çıkar — odanın öbür hatalarından bağımsız."""
     if g is None or g["makine"]["yeri"] != "Makine dairesi":
         return None
-    from cizim import makine_dairesi
 
     try:
         return makine_dairesi.yerlesim(g).get("saptirma")
@@ -797,15 +793,12 @@ def sarim_acisi(g):
     Çizim kurulamıyorsa da None."""
     try:
         if g["makine"]["yeri"] == "Kuyu üstü":
-            from cizim import kuyu_ustu
-
             Y = kuyu_ustu.yerlesim(g)
             #  Kurma ile denetim ayrı:  kuyu üstündeki bir çakışma açıyı
             #  değiştirmez;  yalnız geometri kurulamadıysa açı yok.
             if "sapma" not in Y:
                 return None
             return 180.0 if abs(Y["sapma"][0]) <= 0.5 else None
-        from cizim import makine_dairesi
 
         Y = makine_dairesi.yerlesim(g)
         if "saptirma" not in Y or Y.get("halat_kurulamadi"):
@@ -902,7 +895,6 @@ def _uyusmazliklar(g, A):
             )
         )
     #  Arkadaki ağırlıkla 2:1:  kabin kasnaklarının aralığı çapraz geometriden
-    from cizim import arka_aski
 
     if (
         arka_aski.arkada_iki_bir(g)

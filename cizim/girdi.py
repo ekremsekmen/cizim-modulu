@@ -15,6 +15,7 @@ EKSEN DÜZENİ  ( plan )
 import math
 
 from cizim import parcalar, sabitler
+from cizim import arka_aski
 
 
 def _sonlu_sayi(v):
@@ -414,7 +415,6 @@ def dogrula(g):
                 hata.append(f"aski: {ad} sıfırdan büyük bir sayı olmalı ( {v!r} ).")
         if not _sonlu_sayi(kaciklik):
             hata.append(f"aski: kaçıklık sonlu bir sayı olmalı ( {kaciklik!r} ).")
-        from cizim import arka_aski
 
         if arka_aski.arkada_iki_bir(g) and _sonlu_sayi(kaciklik):
             #  Arkadaki ağırlıkla 2:1:  kasnaklar çapraz düzlemde, aralığı

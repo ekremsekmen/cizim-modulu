@@ -96,6 +96,112 @@ def ihlaller():
     return out
 
 
+def modul_adi(dosya):
+    """hesap/motor/uygulama/mukavemet.py → motor.uygulama.mukavemet"""
+    d = dosya[len("hesap/") :] if dosya.startswith("hesap/") else dosya
+    return d[:-3].replace("/", ".").replace(".__init__", "")
+
+
+#  Programın katmanları ( alttan üste );  bir katman yalnız altındakileri
+#  import eder.  Paket adı → katman.
+KATMANLAR = ("temel", "tasarim", "cizim", "motor", "ciktilar", "uclar")
+#  Şema seçenek listelerini bu VERİ modüllerinden okur ( tablolar fiziksel
+#  olarak üst katmanın paketinde durur;  kendileri şemayı ve üst katmanları
+#  import etmez — test_mimari denetler ).
+SEMANIN_VERILERI = frozenset(("motor.uygulama.mukavemet_tablolari", "motor.ortak.ofis", "cizim.girdi"))
+
+
+def program_dosyalari():
+    return [f for f in dosyalar() if modul_adi(f).split(".")[0] in KATMANLAR]
+
+
+def bagimliliklar():
+    """{ modül : { import ettiği program modülleri } } ve fonksiyon içi
+    importlar [ ( dosya, satır, import ) ] — program katmanları için."""
+    tum = {modul_adi(f) for f in program_dosyalari()}
+    graf, fonksiyon_ici = {}, []
+    for f in program_dosyalari():
+        with open(os.path.join(KOK, f), encoding="utf-8") as d:
+            t = ast.parse(d.read())
+        hedefler = set()
+        for n in ast.walk(t):
+            if isinstance(n, ast.ImportFrom) and n.module and not n.level:
+                bulunan = {
+                    f"{n.module}.{a.name}" if f"{n.module}.{a.name}" in tum else n.module for a in n.names
+                }
+            elif isinstance(n, ast.Import):
+                bulunan = {a.name for a in n.names}
+            else:
+                continue
+            bulunan &= tum
+            hedefler |= bulunan
+        for fn in ast.walk(t):
+            if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                for n in ast.walk(fn):
+                    if isinstance(n, (ast.Import, ast.ImportFrom)):
+                        fonksiyon_ici.append((f, n.lineno, ast.unparse(n)))
+        graf[modul_adi(f)] = hedefler - {modul_adi(f)}
+    return graf, fonksiyon_ici
+
+
+def donguler(graf):
+    """Birbirine dolanmış modül grupları ( Tarjan ) — boş olmalı."""
+    sira, alt, yigin, yiginda, gruplar, sayac = {}, {}, [], set(), [], [0]
+
+    def gez(v):
+        sira[v] = alt[v] = sayac[0]
+        sayac[0] += 1
+        yigin.append(v)
+        yiginda.add(v)
+        for w in graf.get(v, ()):
+            if w not in sira:
+                gez(w)
+                alt[v] = min(alt[v], alt[w])
+            elif w in yiginda:
+                alt[v] = min(alt[v], sira[w])
+        if alt[v] == sira[v]:
+            grup = []
+            while True:
+                w = yigin.pop()
+                yiginda.discard(w)
+                grup.append(w)
+                if w == v:
+                    break
+            if len(grup) > 1:
+                gruplar.append(sorted(grup))
+
+    for v in sorted(graf):
+        if v not in sira:
+            gez(v)
+    return gruplar
+
+
+def katman_ihlalleri(graf):
+    """[ ( modül, import ettiği ) ] — üst katmana ya da kuralsız yana bağımlılık."""
+    out = []
+    for m, hedefler in graf.items():
+        km = KATMANLAR.index(m.split(".")[0])
+        for h in hedefler:
+            kh = KATMANLAR.index(h.split(".")[0])
+            if kh <= km:
+                continue
+            if m.startswith("tasarim.") and h in SEMANIN_VERILERI:
+                continue
+            out.append((m, h))
+    #  Şemanın okuduğu veri modülleri, dolaylı yoldan bile şemaya bağlanmaz
+    for v in SEMANIN_VERILERI:
+        gorulen, yigin = set(), [v]
+        while yigin:
+            x = yigin.pop()
+            for h in graf.get(x, ()):
+                if h.startswith("tasarim."):
+                    out.append((v, h))
+                elif h not in gorulen:
+                    gorulen.add(h)
+                    yigin.append(h)
+    return sorted(set(out))
+
+
 def golgeler():
     """[ ( dosya, satır, ileti ) ] — modül adını gölgeleyen yerel ad:  dosyada
     import edilmiş bir modülün adı bir fonksiyonda değişken / parametre olunca

@@ -22,6 +22,7 @@ from cizim import girdi
 from cizim import kesit_parcalari
 from cizim import parcalar
 from cizim import sabitler
+import math
 
 #  Görünüşün kat tarafında gösterilen döşeme boyu ve duvarın üstte / altta
 #  gösterilen kısmı ( kesik kenar ) — çizimin çerçevesi, ölçü değil
@@ -111,7 +112,6 @@ def ciz(g, cizim_sabitleri=None):
     #  duvar boşluğuna montajda boşluk eşiğin altından başlar ( A-A gibi ).
     sac_u, sac_z, sac_boy = Y["sac"]
     on_u, on_z, on_boy = Y["onluk"]
-    import math
 
     tan = math.tan(math.radians(parcalar.PAH_ACISI))
     z_alt = min(sac_z - sac_boy - sac_u * tan, on_z - on_boy - parcalar.ONLUK_PAH_DUSEY) - 150

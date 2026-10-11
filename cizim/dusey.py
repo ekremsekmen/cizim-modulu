@@ -49,6 +49,8 @@ from cizim import kabin_ustu
 from cizim import kuyu_dibi
 from cizim import sabitler
 from cizim import parca_kotlari
+from cizim import kuyu_ustu
+from cizim import makine
 
 #  Çizelge 3 / Çizelge 4 — sığınma alanının YÜKSEKLİĞİ ( mm )
 SIGINMA_UST_YUKSEKLIK = kabin_ustu.SIGINMA_YUKSEKLIK
@@ -156,7 +158,6 @@ def yerlesim(g, cizim_sabitleri=None):
             )
     #  Çizilemeyen askı / ağırlık birleşimi ilk söylenir ( öbür planların
     #  hataları onun sonucudur )
-    from cizim import kuyu_ustu
 
     hata += kuyu_ustu.duzen_hatalari(g)
     if hata:
@@ -303,8 +304,6 @@ def yerlesim(g, cizim_sabitleri=None):
     #  soketlerin tepesi ile 0,40 m yatay uzaklık içindeki tavan parçaları arası
     #  en az 0,10 m ( m.5.2.5.7.2 b:  "the rope terminations" ).
     if aski.get("duzen") == "Doğrudan":
-        from cizim import makine
-
         hx = g["kuyu"]["genislik"] / 2.0 + g["kabin"]["kaciklik_y"]
         hy = (
             g["kabin"]["on_pay"]

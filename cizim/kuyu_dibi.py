@@ -34,6 +34,8 @@ from cizim import geometri
 from cizim import girdi
 from cizim import sabitler
 from cizim import parca_kotlari
+from cizim import arka_aski
+from cizim import hareketli
 
 #  TS EN 81-20 Çizelge 4 — kuyu dibi sığınma alanının yatay ölçüleri ( mm ).
 #  Adlar hesap programının "Kuyu dibi sığınma hacmi tipi" seçenekleriyle aynı.
@@ -378,8 +380,6 @@ def sarkan_parcalar(g, S, taban, yukseklik):
     kasnakları sayılıyordu:  1275 kg'lık 2000 × 1400 kabinde, kuyu dibi 1400,
     alan alt kirişin altına düşüyor, kirişin altı tabandan 940 iken sığınma
     1.110 ( platformun altı ) ölçülüyordu.  Düşey girdi eksikse boş liste."""
-    from cizim import arka_aski
-    from cizim import hareketli
 
     dy = g.get("dusey") or {}
     gerekli = ("kabin_carpma_arasi", "kabin_tampon_ezilme", "kabin_ic_yukseklik", "kabin_paten_arasi")

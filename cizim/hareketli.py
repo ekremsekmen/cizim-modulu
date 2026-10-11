@@ -23,6 +23,7 @@ kendi açıklığı ( m.5.2.5.8.2 a 1 ) ayrı denetlenir.
 """
 
 from temel import eleman_kutusu, ortusur
+from cizim import arka_aski
 
 #  Kabin parçalarının adları — açıklık ve hata iletilerinde görünür
 KABIN = "kabin tabanı"
@@ -78,7 +79,6 @@ def kabin_parcalari(g, S, plan, kt):
     çapraz düzende ( arkadaki ağırlıkla 2:1 ) döndürülmüş kasnakların kutuları
     ve aralarındaki çapraz halat şeridi, doğrudan ( 1:1 ) askıda üst kirişin
     üstündeki halat bağlantısı."""
-    from cizim import arka_aski
 
     out = []
     kabin = next((eleman_kutusu(el) for el in plan if el.get("ad") == "kabin_dis"), None)

@@ -35,6 +35,11 @@ from cizim import pafta
 from cizim import sabitler
 from cizim import svg
 from uclar import uygulama_istegi
+from motor.uygulama import uygulama_girdisi
+from motor.uygulama import uygulama_hesabi
+from motor.uygulama import uygulama_sabitleri
+from uclar.uc_ortak import _belirsiz_hata, _proje_kimligi
+from uclar.uc_ortak import _sayi_oku
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -46,7 +51,6 @@ def girdiler(veri, asansorler, ortak, sonuc, proje_adi):
     Girdi hesap motorunun kurduğu gibi kurulur ( motor/uygulama/uygulama_hesabi.hesapla:
     varsayılanlar + girilenler, sonra tamamlama ):  çizim hesabın kullandığı
     sayıyı görür."""
-    from motor.uygulama import uygulama_girdisi
 
     pg = {k: ortak[k] for k in ortak if k != "_ofis"}
     liste = []
@@ -105,8 +109,6 @@ def api_cizimler(veri: dict = Body(...)):
 
     Asıl çıktı "Projeyi paketle" ile inen paftadır ( DXF / DWG );  SVG aynı
     eleman listesinden çıkar ( cizim/svg.py · cizim/dxf.py )."""
-    from uclar.uc_ortak import _belirsiz_hata, _proje_kimligi
-    from motor.uygulama import uygulama_hesabi
 
     try:
         asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
@@ -167,8 +169,6 @@ def _sozlesme():
 
 def _istek(veri):
     """Aktif asansörün tamamlanmamış girdisi — girdiler()'in kurduğunun aynısı."""
-    from uclar.uc_ortak import _belirsiz_hata, _proje_kimligi
-    from motor.uygulama import uygulama_girdisi
 
     asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
     belirsiz = _belirsiz_hata()
@@ -195,7 +195,6 @@ def _kurucu(ham, ad, proje_adi, sira):
     askı kaçıklığı … ) bırakılır, çizimden yeniden türetilir.  Çizimin girdisi
     değişmediyse tabanın listesi döner ( çözümleme o girdiyi atlar ).  Hesabın
     sonucu verilmez:  ölçüler ona bağlı değildir ( yalnız yük kutuları )."""
-    from motor.uygulama import uygulama_girdisi
 
     taban = {}
     secimler = {k for k, f in _sozlesme()[0].items() if f["tur"] == "secim"}
@@ -371,7 +370,6 @@ def _kaynaklar(r, i):
     değiştirilip değiştirilemeyeceğiyle.  Sıra:  ölçünün kendisi olan girdi
     ( değeri ölçüye eşit, eğimi 1 ) önce, sonra değiştirilebilenler, sonra
     yalnız gösterilenler."""
-    from motor.uygulama import uygulama_sabitleri
 
     alan, pg, _gizli = _sozlesme()
     u = r["taban"][i]["uzunluk"]
@@ -476,7 +474,6 @@ def api_olcu_degistir(veri: dict = Body(...)):
     """Ölçüyü hedef değere getirecek girdi değişikliği — çizim yeniden kurularak
     doğrulanır.  Formun kutularına yazılacak değerleri döndürür;  hesabı ve
     çizimi form kendi akışıyla yeniler."""
-    from uclar.uc_ortak import _belirsiz_hata, _sayi_oku
 
     try:
         ad = veri.get("cizim")
@@ -577,7 +574,6 @@ def _en_az_serbest(r, k, aday):
 def _bagli_degerler(r, anahtar, x, serbest):
     """Bırakılan türetilen alanların yeni değerleri — kutuya yazılır ( girilmiş
     kalırlar ):  kuyu dibi 1.500 → 1.600 olunca kaide 306 → 406."""
-    from motor.uygulama import uygulama_girdisi
 
     alan = _sozlesme()[0]
     h = dict(r["ham"])
@@ -597,7 +593,6 @@ def _yeni_hatalar(r, degisiklik):
     """Yeni değerlerle çizim kurulamayacaksa sebepleri — ekran uygulamadan
     önce sorar ( "Yine de uygula" ):  kuyu genişleyince korkuluk gerekir,
     korkuluk tavana sığmaz …"""
-    from motor.uygulama import uygulama_girdisi
 
     h = dict(r["ham"])
     h.update({d["anahtar"]: d["deger"] for d in degisiklik})
@@ -615,7 +610,6 @@ def _tutarlilik_duzeltmeleri(r, degisiklik):
     girilmiş D2 · Ds · α ) o girdiler de çizimdeki değere getirilir:  DBGW
     değişince yan yatak boyu da değişir — kullanıcı ikinci bir uyarıyla
     karşılaşmasın."""
-    from motor.uygulama import uygulama_girdisi
 
     alan = _sozlesme()[0]
     h = dict(r["ham"])

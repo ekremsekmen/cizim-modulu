@@ -29,6 +29,7 @@ from cizim import kuyu_dibi
 from cizim import makine
 from cizim import baglantilar
 from cizim import sabitler
+from cizim import arka_aski
 
 #  TS EN 81-20 m.5.2.6.6.4 → m.5.2.6.3.2.1 a:  panonun önünde en az 0,70 m
 #  derinlikte, en az 0,50 m ya da pano eni kadar genişlikte boş alan.
@@ -490,7 +491,6 @@ def _arka(g, S, mk, ag, acil_pano):
     SİMETRİK — makinenin yükü ( kasnaktaki halat kuvvetleri ) iki kirişe eşit
     biner ( hesabın F / 2'si ).  Referans projede kasnak kirişlerin dışında,
     150 mm taşkındı:  yakın kiriş yükün 1,6 katını taşır, uzak kiriş kalkardı."""
-    from cizim import arka_aski
 
     hata = []
     A = arka_aski.geometri(g, S)

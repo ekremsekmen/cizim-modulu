@@ -37,6 +37,9 @@ from motor.uygulama import mukavemet_tablolari
 from tasarim import alanlar, gorunum
 from motor.avan import tablolar
 from motor.ortak import ofis
+from cizim import geometri
+from cizim import kopru
+from cizim import olculer
 
 #  Tanınmayan makine tipinde geri düşülecek verim.  Gerçek verim makine
 #  tipinden ve projenin kendi ofis sabitlerinden gelir ( US.verim ).
@@ -164,9 +167,6 @@ def yerlesim_olculeri(g):
 
     Motor doğrudan çağrılınca ( hesap programının kendi referans testleri )
     bu adım yoktur:  motorun davranışı asıl programınkiyle aynı kalır."""
-    from cizim import geometri
-    from cizim import kopru
-    from cizim import olculer
 
     plan_hatalari = []
     try:

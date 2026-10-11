@@ -14,6 +14,7 @@ kaynakları da ayrı yazılır.
 """
 
 from temel import sayi_mi
+import math
 
 
 def _ara(tablo, anahtar, sutun=1):
@@ -332,7 +333,6 @@ RAY_TUTARSIZ = ("125 x 82 x 16",)
 
 def ray_tutarsizliklari(tolerans=0.005):
     """i ≠ √(I/A) olan satırlar  →  [ ( profil, eksen, tablo, hesap ) ]."""
-    import math as _m
 
     bulunan = []
     for satir in RAY_PROFILI:
@@ -340,7 +340,7 @@ def ray_tutarsizliklari(tolerans=0.005):
         A = ray(ad, "A")
         for eksen, atalet in (("ix", "Ix"), ("iy", "Iy")):
             tablo = ray(ad, eksen)
-            hesap = _m.sqrt(ray(ad, atalet) / A)
+            hesap = math.sqrt(ray(ad, atalet) / A)
             if abs(tablo - hesap) > tolerans * hesap:
                 bulunan.append((ad, eksen, tablo, round(hesap, 3)))
     return bulunan
@@ -407,12 +407,11 @@ def cizelge8_alan(kisi):
 
 def cizelge8_kisi(alan):
     """Çizelge 8'in tersi:  bu alanın taşıyabileceği EN ÇOK yolcu  ( 0 olabilir )."""
-    import math as _m
 
     if alan is None:
         return None
     if alan + 1e-9 >= CIZELGE_8[-1]:
-        return len(CIZELGE_8) + int(_m.floor((alan - CIZELGE_8[-1]) / CIZELGE_8_KISI_BASI + 1e-9))
+        return len(CIZELGE_8) + int(math.floor((alan - CIZELGE_8[-1]) / CIZELGE_8_KISI_BASI + 1e-9))
     return sum(1 for a in CIZELGE_8 if a <= alan + 1e-9)
 
 

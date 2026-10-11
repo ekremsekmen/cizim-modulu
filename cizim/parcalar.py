@@ -20,6 +20,8 @@ diye işaretlenir.
             ince:  ikincil ayrıntı ( eşik oluğu ) 0,18 kalemle.
 """
 
+import math
+
 #  ── KILAVUZ RAYLARI ( ISO 7465 ) ─────────────────────────────────────
 #  Eğik tabanlı T profili:  ( b1, h1, k, n, c, f, g )  mm
 #      b1 taban eni · h1 yükseklik · k dil kalınlığı · n dil boyu ( kılavuz
@@ -135,7 +137,6 @@ def paten_bicimi(x0, y0, g, d, uc, k, yon, yatay=True):
     #  yuvanın ( çeneler arası ) dibi;  levhanın önünde kalır
     dip = max(u_uc - PATEN_BOSLUK - PATEN_ASTAR_DIBI, PATEN_LEVHA)
     dudak = PATEN_DUDAK * D
-    import math
 
     #  Yan destek:  dudaktan çenenin tepesine içbükey çeyrek elips
     destek = [
@@ -373,7 +374,6 @@ def _donustur(duvar, eksen, s, yatay):
 
 def _altigen(p, s):
     """Yukarıdan görülen altıgen cıvata başı / somun:  merkez p, anahtar ağzı s."""
-    import math
 
     r = s / math.sqrt(3.0)
     return [
@@ -541,7 +541,6 @@ def l_konsol(duvar, uc, z_kose, dik_boy, yukari=False, t=KAPI_KONSOL_SACI):
 def pahli_sac(u, z_ust, dik_boy, u_pah, aci=PAH_ACISI, dz=None):
     """Dik sac + altında pah ( açık çizgi ):  u'da z_ust'ten dik_boy iner, sonra
     yatayla `aci` yaparak ( ya da dz kadar inerek ) u_pah'a döner."""
-    import math
 
     if dz is None:
         dz = abs(u_pah - u) * math.tan(math.radians(aci))

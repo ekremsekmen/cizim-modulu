@@ -21,6 +21,7 @@ from cizim import makine
 from cizim import kabin_ustu
 from cizim import baglantilar
 from cizim import parca_kotlari
+import math
 
 
 class Bakis:
@@ -107,7 +108,6 @@ def kasnak(e, B, kutu, z, cap, duzlem, ad):
 def kasnak_capraz(e, B, merkez, u, R, z, ad, adim=24):
     """Düşey düzlemi planda u doğrultusunda olan kasnak ( çapraz — arka_aski ):
     bakışa göre elips ( jant çemberinin izdüşümü, çizgi parçalarıyla )."""
-    import math
 
     pts = []
     for i in range(adim + 1):

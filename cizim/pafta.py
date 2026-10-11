@@ -32,6 +32,7 @@ from cizim import cizimler
 from cizim import dxf
 from cizim import dusey
 from cizim import geometri
+import math
 
 SABLON = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sablon", "proje_formati.dxf"
@@ -361,7 +362,6 @@ def _maskeleri_ac(d):
     çizileni örter ).  Kutu yazının kendisinden:  tek satır, ortası ( 4 · 5 · 6 )
     ya da altı ( 7 · 8 · 9 ) hizalı;  en büyük harf boyunun 0,58 / 0,716'sı
     ( ezdxf'in MTEXT kutusu bu yazılarda kayıktı )."""
-    import math
 
     for blok in d.blocks:
         for m in list(blok.query("MTEXT")):
@@ -399,6 +399,8 @@ def onizleme(d) -> str:
     ( öbür parçalar blokta kalır:  bütün blok açılınca ölçü yazıları da
     yanlış ölçekleniyordu ), desenlerini adından ve ( doğru ölçeklenmiş )
     desen ölçeğinden yeniden kurar."""
+    #  Çizim eklentisi ( matplotlib'siz SVG ) yalnız önizlemede gerekir ve
+    #  ağırdır:  program açılırken yüklenmesin diye burada import edilir.
     from ezdxf.addons.drawing import Frontend, RenderContext, config, layout, svg
     from ezdxf.entities import factory
 

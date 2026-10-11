@@ -30,6 +30,8 @@ from cizim import girdi
 from cizim import sabitler
 from cizim import standart
 from cizim import parca_kotlari
+from cizim import arka_aski
+from cizim import hareketli
 
 #  TS EN 81-20 Çizelge 3 — kabin üstü sığınma alanının yatay ölçüleri ( mm ).
 #  Adlar hesap programının "Kabin üstü sığınma hacmi tipi" seçenekleriyle
@@ -270,8 +272,6 @@ def yerlesim(g, cizim_sabitleri=None):
     #  ağırlıkla 2:1'de halat tavanın 80 mm üstünden alanın içinden geçiyordu
     #  ( denetim 9 Eki ).  Korkuluk denetimi ( yukarıda ) bunları saymaz:
     #  küpeşte kirişin ve halatın üstünden geçer.
-    from cizim import arka_aski
-    from cizim import hareketli
 
     tip = (g.get("kabin_ustu") or {}).get("siginma_tipi")
     kt = parca_kotlari.kabin_kotlari(g["dusey"], S, 0.0, g.get("aski"), arka_aski.arkada_iki_bir(g))

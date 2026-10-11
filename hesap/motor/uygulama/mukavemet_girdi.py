@@ -19,6 +19,8 @@ from motor.ortak import ofis
 from motor.ortak.adimlar import evet_mi
 from motor.uygulama import mukavemet_tablolari
 from tasarim import alanlar, gorunum
+from cizim import kopru
+from motor.uygulama import uygulama_sabitleri
 
 
 def _s(*d):
@@ -375,7 +377,6 @@ def tamamla(g):
     #  ile kurulur.  "Beyan yükü / 2" diye çivilenseydi q = 0,60'ta aynı
     #  projede iki farklı karşı ağırlık oluşurdu — aynı fiziksel parçanın
     #  kütlesi her hesapta aynı olmalıdır.
-    from motor.uygulama import uygulama_sabitleri
 
     # Motor, tahrik ve tampon aynı doğrulanmış denge oranını kullanmalı.
     # Ham sözlüğü koru: reddedilen girdiler uyarılarda gösterilmeye devam eder.
@@ -406,7 +407,6 @@ def tamamla(g):
     #  da ister ( kuyu genişliği, makine dairesi … ):  motor doğrudan
     #  çağrıldığında girdide yoksa uygulama sözleşmesinin varsayılanları —
     #  sabit tablo;  girdi.varsayilanlar() buraya döner, döngü olurdu.
-    from cizim import kopru
 
     _cd = kopru.cizimden({**{a[0]: a[5] for a in EK_ALANLAR}, **g})
     g.update(_cd)
@@ -455,7 +455,6 @@ def sistem_verimi(g):
     e = g.get("makine_verimi")
     if sayi_mi(e):
         return e, True
-    from motor.uygulama import uygulama_sabitleri
 
     return uygulama_sabitleri.verim(uygulama_sabitleri.sabitler(g.get("_ofis")), g.get("makine_tipi")), False
 
@@ -753,8 +752,6 @@ def dogrula(g):
     L = g.get("yan_yatak_boyu")
     pay = (g.get("_ofis") or {}).get("yan_yatak_L_X")
     if not sayi_mi(pay):
-        from motor.uygulama import uygulama_sabitleri
-
         pay = uygulama_sabitleri.VARSAYILAN["yan_yatak_L_X"]
     #  Yükün yeri çizimden geldiyse ( program hesabı ) mesnet payı kullanılmaz.
     _x_ciz = "makine_yuku_x" in (g.get("_cizimden") or {}) and sayi_mi(g.get("makine_yuku_x"))
@@ -835,7 +832,6 @@ def dogrula(g):
 
     #  OFİS STANDARDI  ( Sabitler sekmesi ).  Aralık dışı değer varsayılanla
     #  değiştiriliyor ve bunu hiçbir yer söylemiyordu;  artık hesap durur.
-    from motor.uygulama import uygulama_sabitleri
 
     hata += uygulama_sabitleri.ofis_hatalari(g.get("_ofis"))
     return hata

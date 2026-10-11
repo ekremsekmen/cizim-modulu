@@ -25,6 +25,7 @@ from cizim import geometri
 from cizim import kesit_parcalari
 from cizim import kuyu_kesiti
 from cizim import makine
+from cizim import kopru
 
 #  Makine dairesinin döşemesinden gösterilen kalınlık ( altı kırık çizgi ) —
 #  çizimin görünüşü ( ölçü değildir )
@@ -49,7 +50,6 @@ def _inisler(KU):
 
 def ciz(g, cizim_sabitleri=None):
     """Kasnak düzenlemesinin elemanları."""
-    from cizim import kopru
 
     Y = kuyu_kesiti.yerlesim(g, cizim_sabitleri)
     M = Y["M"]

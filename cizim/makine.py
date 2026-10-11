@@ -39,6 +39,8 @@ MAKİNE TİPLERİ  ( kullanıcı kararı:  ölçüler LiftDesigner makinelerinde
              kirişler ve ayak plakaları LiftDesigner 12744-3'ünki gibi.
 """
 
+import math
+
 TIPLER = ("Dişlisiz", "Dişli")
 
 #  Dişlisiz — kasnağın arka yüzünden eksen boyunca ( ad, boy, çap ):
@@ -497,7 +499,6 @@ def teget(c1, r1, c2, r2, yon):
     ( P1, P2, n ) — n kasnak merkezlerinden teğet noktalarına birim vektör.
     yon:  halatın tahrik kasnağını terk ettiği yan ( ağırlık tarafı, x
     boyunca ±1 ):  iki dış teğetten normali o yana bakanı."""
-    import math
 
     vx, vz = c2[0] - c1[0], c2[1] - c1[1]
     L = math.hypot(vx, vz)
@@ -511,7 +512,6 @@ def teget(c1, r1, c2, r2, yon):
 def sarim_acisi(y_, n):
     """Tahrik kasnağında halatın sarıldığı açı ( derece ):  kabin tarafındaki
     yatay uçtan ( −y_ ) kasnağın üstünden n'ye."""
-    import math
 
     a = math.degrees(math.atan2(n[1], -y_ * n[0]))  # kabin yönünden, üstten
     return a if a >= 0 else a + 360.0
