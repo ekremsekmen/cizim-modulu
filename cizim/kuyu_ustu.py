@@ -24,6 +24,7 @@ referans projenin düzeni ).  Öteki düzenler için doğrulama açıkça redded
 
 from temel import eleman_kutusu, ortusur, sayi_mi
 from cizim import eleman
+from cizim import izli
 from cizim import geometri
 from cizim import kuyu_dibi
 from cizim import makine
@@ -48,7 +49,7 @@ class Duzlem:
     x ↔ y takas edilir ( makine.takas ):  kasnak ekseni hep düzleme diktir."""
 
     def __init__(self, yon, v0):
-        self.yon, self.v0 = yon, float(v0)
+        self.yon, self.v0 = yon, izli.sayi(v0)
 
     @property
     def eksen(self):  # kasnak ekseni ( düzleme dik )
@@ -760,8 +761,14 @@ def _olculer(g, Y):
     xl, xr = Y["halatlar"][0][0], Y["halatlar"][1][0]
     kx = (Y["kabin"][0] + Y["kabin"][2]) / 2.0
     u0, u1 = D + dar + 120, D + dar + 320
-    xs = sorted({0.0, G, Y["ex"], Y["ag_dusus"][0], xl, xr, kx})
     kasnak = (Y["kasnak"][0], Y["kasnak"][2])
+    #  Kasnağın ucuyla çakışan nokta kasnağın ucu sayılır:  "ø" ölçüsü kasnağın
+    #  kendisinden ölçülür ( halat ağırlığa düşey inince ucu ağırlığın ekseniyle
+    #  çakışır;  kümede ilk yazılan kaldığı için ölçünün kaynağı eksenin
+    #  kaynakları görünüyordu — izli.py )
+    xs = sorted(
+        {next((u for u in kasnak if u == x), x) for x in (0.0, G, Y["ex"], Y["ag_dusus"][0], xl, xr, kx)}
+    )
     e = [
         eleman.olcu("yatay", (a, 0), (b, 0), u0, f"ø {Y['D1']:g}" if (a, b) == kasnak else None)
         for a, b in zip(xs, xs[1:])

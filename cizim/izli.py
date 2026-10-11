@@ -13,14 +13,17 @@ kaynaklarını bilir ( ileri yönlü otomatik türev ).  Önceki yöntem her gir
 İzli sayı bir float'tır:  karşılaştırma, biçimleme, sözlük anahtarı aynı
 çalışır;  değer düz float işlemiyle aynı sırada hesaplanır — çizim birebir
 aynı kalır.  Türev yalnız float döndüren işlemlerden geçer:  int döndürenler
-( round( x ), math.floor, // ) ve math fonksiyonları ( sqrt, atan2 … ) izi
-düşürür;  oradan geçen bağlılık görünmez.
+( round( x ), math.floor, // ) izi düşürür.  math'in fonksiyonları da düşürür:
+geometride bu modülün karşılıkları kullanılır ( atan2, hypot, sin … — izleme
+kapalıyken math'in kendisi ).  İzi düşen yoldan gelen bağlılık görünmez;  bir
+ölçünün bir ucu izli, öbürü değilse eğim YANLIŞ olur — denetçi test bunu yakalar.
 
 İzleme yalnız çözümleme sırasında açıktır ( izleme() ).  Kapalıyken izli sayı
 hiç oluşmaz:  sayi() float() ile, oz() değerin kendisiyle aynıdır.
 """
 
 import contextlib
+import math
 import threading
 
 _float = float
@@ -172,5 +175,83 @@ def oz(v, kimlik):
     if not izlemede() or isinstance(v, bool) or not isinstance(v, (int, _float)):
         return v
     t = turev(v)
-    t[kimlik] = t.get(kimlik, 0.0) + 1.0
-    return Izli(_float(v), {k: e for k, e in t.items() if e != 0.0})
+    if kimlik in t:
+        #  Zaten kendi kutusundan geliyor ( sabitler, bir çizimin tam S'sini
+        #  yeniden sabitler()'den geçirince ):  ikinci kez eklenmez
+        return v
+    t[kimlik] = 1.0
+    return Izli(_float(v), t)
+
+
+#  ── math'in türev taşıyan karşılıkları ──────────────────────────────
+
+
+def _tek(f, df, x):
+    v = f(x)
+    return _sonuc(v, _birlesim(x.t, df(_float(x)), None, 0.0)) if isinstance(x, Izli) else v
+
+
+def sqrt(x):
+    return _tek(math.sqrt, lambda a: 0.5 / math.sqrt(a), x)
+
+
+def sin(x):
+    return _tek(math.sin, math.cos, x)
+
+
+def cos(x):
+    return _tek(math.cos, lambda a: -math.sin(a), x)
+
+
+def tan(x):
+    return _tek(math.tan, lambda a: 1.0 / math.cos(a) ** 2, x)
+
+
+def asin(x):
+    return _tek(math.asin, lambda a: 1.0 / math.sqrt(1.0 - a * a), x)
+
+
+def acos(x):
+    return _tek(math.acos, lambda a: -1.0 / math.sqrt(1.0 - a * a), x)
+
+
+def atan(x):
+    return _tek(math.atan, lambda a: 1.0 / (1.0 + a * a), x)
+
+
+def degrees(x):
+    return _tek(math.degrees, lambda _a: 180.0 / math.pi, x)
+
+
+def radians(x):
+    return _tek(math.radians, lambda _a: math.pi / 180.0, x)
+
+
+def atan2(y, x):
+    v = math.atan2(y, x)
+    if not (isinstance(x, Izli) or isinstance(y, Izli)):
+        return v
+    a, b = _float(y), _float(x)
+    r2 = a * a + b * b
+    return _sonuc(v, _birlesim(_t(y), b / r2, _t(x), -a / r2))
+
+
+def hypot(*xs):
+    v = math.hypot(*xs)
+    if not any(isinstance(x, Izli) for x in xs):
+        return v
+    t = None
+    for x in xs:
+        if isinstance(x, Izli) and v:
+            t = _birlesim(t, 1.0, x.t, _float(x) / v)
+    return _sonuc(v, t)
+
+
+def fsum(xs):
+    xs = list(xs)
+    v = math.fsum(xs)
+    t = None
+    for x in xs:
+        if isinstance(x, Izli):
+            t = _birlesim(t, 1.0, x.t, 1.0)
+    return _sonuc(v, t)

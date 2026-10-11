@@ -20,6 +20,7 @@ yazar — burada çizimin açısı ( düşey inişte 180° ).
 
 import math
 
+from cizim import izli
 from cizim import eleman
 from cizim import geometri
 from cizim import kesit_parcalari
@@ -72,12 +73,12 @@ def _sarim_yayi(e, uc, zt, R1, uk, teget):
     """Halatın tahrik kasnağında sardığı yay:  kabin tarafının yatay ucundan
     kasnağın üstünden ağırlık tarafının teğetine."""
     a0 = 0.0 if uk > uc else math.pi
-    a1 = math.atan2(teget[1] - zt, teget[0] - uc)
+    a1 = izli.atan2(teget[1] - zt, teget[0] - uc)
     yon = 1.0 if a0 == 0.0 else -1.0  # kasnağın üstünden
     fark = (yon * (a1 - a0)) % (2 * math.pi)
     rr, n = R1 + 25, 24
     nokta = [
-        (uc + rr * math.cos(a0 + yon * fark * i / n), zt + rr * math.sin(a0 + yon * fark * i / n))
+        (uc + rr * izli.cos(a0 + yon * fark * i / n), zt + rr * izli.sin(a0 + yon * fark * i / n))
         for i in range(n + 1)
     ]
     for p, q in zip(nokta, nokta[1:]):

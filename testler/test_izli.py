@@ -75,6 +75,27 @@ class Turev(unittest.TestCase):
     def test_math_izi_dusurur(self):
         self.assertNotIsInstance(math.sqrt(_x(4.0)), Izli)
 
+    def test_matematik_karsiliklari(self):
+        x, y = _x(0.3), _y(0.4)
+        self.assertTurev(izli.sqrt(_x(4.0)), {A: 0.25})
+        self.assertTurev(izli.sin(x), {A: math.cos(0.3)})
+        self.assertTurev(izli.cos(x), {A: -math.sin(0.3)})
+        self.assertTurev(izli.tan(x), {A: 1 / math.cos(0.3) ** 2})
+        self.assertTurev(izli.asin(x), {A: 1 / math.sqrt(1 - 0.09)})
+        self.assertTurev(izli.acos(x), {A: -1 / math.sqrt(1 - 0.09)})
+        self.assertTurev(izli.atan(x), {A: 1 / 1.09})
+        self.assertTurev(izli.degrees(x), {A: 180 / math.pi})
+        self.assertTurev(izli.radians(x), {A: math.pi / 180})
+        self.assertTurev(izli.atan2(y, x), {B: 0.3 / 0.25, A: -0.4 / 0.25})
+        self.assertTurev(izli.hypot(_x(3.0), _y(4.0)), {A: 0.6, B: 0.8})
+        self.assertTurev(izli.fsum([x, y, 1.0]), {A: 1, B: 1})
+        #  Değer math'inkiyle aynı;  izli değilse math'in kendisi döner
+        for f, g in ((izli.sqrt, math.sqrt), (izli.sin, math.sin), (izli.acos, math.acos)):
+            self.assertEqual(float(f(x)), g(0.3))
+            self.assertIs(type(f(0.3)), float)
+        self.assertEqual(float(izli.atan2(y, x)), math.atan2(0.4, 0.3))
+        self.assertIs(type(izli.hypot(3.0, 4.0)), float)
+
 
 class Deger(unittest.TestCase):
     """Değer düz float işlemiyle BİREBİR aynı ( işlem sırası dahil )."""
@@ -132,6 +153,8 @@ class Izleme(unittest.TestCase):
             #  Kuralla dolan alan:  kuralın girdisine eğimi korunur, kendisine 1 eklenir
             dbgw = izli.oz(x + 60, B)
             self.assertEqual(izli.turev(dbgw), {A: 1.0, B: 1.0})
+            #  Zaten kendi kutusundan gelen değer ikinci kez sarılmaz ( sabitler )
+            self.assertEqual(izli.turev(izli.oz(izli.oz(7.0, A), A)), {A: 1.0})
             self.assertIs(izli.girdi(True, A), True)
             self.assertIsNone(izli.oz(None, A))
             self.assertEqual(izli.oz("Sağ", A), "Sağ")

@@ -15,6 +15,7 @@ kabin eşiği ), kanat düzlemleri sabitlerden ( kanat_esik_payi, kanat_araligi,
 kanat_kalinlik ).
 """
 
+from cizim import izli
 from cizim import eleman
 from cizim import dusey
 from cizim import geometri
@@ -22,7 +23,6 @@ from cizim import girdi
 from cizim import kesit_parcalari
 from cizim import parcalar
 from cizim import sabitler
-import math
 
 #  Görünüşün kat tarafında gösterilen döşeme boyu ve duvarın üstte / altta
 #  gösterilen kısmı ( kesik kenar ) — çizimin çerçevesi, ölçü değil
@@ -103,7 +103,7 @@ def ciz(g, cizim_sabitleri=None):
     #  Görünüşün altı:  eşik altı sacının ve önlüğün pahlarının 150 altı
     sac_u, sac_z, sac_boy = Y["sac"]
     on_u, on_z, on_boy = Y["onluk"]
-    tan = math.tan(math.radians(parcalar.PAH_ACISI))
+    tan = izli.tan(izli.radians(parcalar.PAH_ACISI))
     z_alt = min(sac_z - sac_boy - sac_u * tan, on_z - on_boy - parcalar.ONLUK_PAH_DUSEY) - 150
     _duvar_ve_doseme(e, Y, don, z_alt)
     _kat_kapisi(e, Y, tan)

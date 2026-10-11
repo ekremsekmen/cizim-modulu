@@ -1,6 +1,8 @@
 """Formdaki isteğe bağlı kat aralıkları (mm); toplamı seyirle aynı olmalı."""
 
 import math
+
+from cizim import izli
 import re
 
 
@@ -44,7 +46,7 @@ def araliklar(ham, durak, seyir):
             sonuc.append(float(p))
     if hata:
         return None, hata
-    toplam = math.fsum(sonuc)
+    toplam = izli.fsum(sonuc)
     if abs(toplam - seyir * 1000.0) > 0.5:
         return None, [
             f"Kat yükseklikleri toplamı {toplam:g} mm, seyir mesafesi "

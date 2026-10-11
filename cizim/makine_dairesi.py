@@ -36,6 +36,7 @@ kuralla ( tek halat:  çap + 2 × pay ).
 
 from temel import ortusur, sayi_mi
 from cizim import eleman
+from cizim import izli
 from cizim import geometri
 from cizim import kuyu_ustu
 from cizim import makine
@@ -77,8 +78,8 @@ def tabliye(g):
             k["genislik"] + k["duvar_sag"],
             k["derinlik"] + k["duvar_arka"],
         ),
-        "doseme": float(dos),
-        "yukseklik": float(t) if sayi_mi(t) and t > 0 else 0.0,
+        "doseme": izli.sayi(dos),
+        "yukseklik": izli.sayi(t) if sayi_mi(t) and t > 0 else 0.0,
     }
 
 
@@ -410,7 +411,7 @@ def _saptirma(g, M, dz, y_, ex, fark, hata):
         "u": xd,
         "x": x_,
         "y": yy_,
-        "D": float(D2),
+        "D": izli.sayi(D2),
         "bk": bk,
         "kutu": dz.kutu(xd - D2 / 2.0, xd + D2 / 2.0, y0 - bk / 2.0, y0 + bk / 2.0),
     }

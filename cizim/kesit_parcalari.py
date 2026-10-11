@@ -15,6 +15,7 @@ karşı ağırlık kasnağı, regülatör ve gergi kasnağı y–z düzleminde (
 kesitte daire ).
 """
 
+from cizim import izli
 from cizim import eleman
 from cizim import arka_aski
 from cizim import makine
@@ -112,8 +113,8 @@ def kasnak_capraz(e, B, merkez, u, R, z, ad, adim=24):
     pts = []
     for i in range(adim + 1):
         t = 2.0 * math.pi * i / adim
-        x, y = merkez[0] + R * math.cos(t) * u[0], merkez[1] + R * math.cos(t) * u[1]
-        pts.append((B.u(x, y), z + R * math.sin(t)))
+        x, y = merkez[0] + R * izli.cos(t) * u[0], merkez[1] + R * izli.cos(t) * u[1]
+        pts.append((B.u(x, y), z + R * izli.sin(t)))
     for a, b in zip(pts, pts[1:]):
         e.append(B.derin_nokta(eleman.ad(eleman.cizgi("KASNAK", a[0], a[1], b[0], b[1]), ad), *merkez))
 

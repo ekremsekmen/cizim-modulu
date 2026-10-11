@@ -31,6 +31,7 @@ import logging
 
 from temel import bos_mu, sayi_mi
 from cizim import girdi
+from cizim import izli
 from cizim import katlar
 from cizim import sabitler
 from tasarim import alanlar, gorunum
@@ -167,7 +168,15 @@ def _deger(A, anahtar):
 
 def varsayilan_deger(A, anahtar):
     v = _deger(A, anahtar)
-    return ALAN[anahtar][5] if v is None else v
+    return _kural(ALAN[anahtar][5], anahtar) if v is None else v
+
+
+def _kural(v, anahtar):
+    """Boş kutunun kuralla ya da varsayılanla dolan değeri.  Ölçü kaynağı
+    çözümlenirken ( izli.izleme ) kutunun kendisine eğimi 1 eklenir:  kutuya
+    değer yazılsa ölçü onunla değişir;  kuralın girdilerine eğimi korunur
+    ( DBGW boşsa Gy + 60 → hem DBGW'ye hem Gy'ye bağlı ).  Kapalıyken v."""
+    return izli.oz(v, ("girdi", anahtar))
 
 
 def _dusey_kasnak_arasi(kx, kb_g, Dk, D1, G, ray_duvar, yer, S):
@@ -212,7 +221,7 @@ class _Okuyucu:
                 f"{et}:  " + ("negatif olamaz" if sifir else "sıfırdan büyük olmalı") + f" ( {v:g} )."
             )
             return None
-        return float(v)
+        return izli.sayi(v)
 
     def secim(self, anahtar, etiket=None, secenekler=None):
         """Çizim alanı ya da ( etiket ve seçeneklerle ) hesabın bir seçim alanı."""
@@ -265,7 +274,9 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         #  kenarında );  kabin kasnaklarının aralığı çapraz geometriden
         #  ( girilmişse uyuşmazlık denetimi karşılaştırır ).
         if bos_mu(A.get("agirlik_ray_duvar")) and sayi_mi(h["D1"]):
-            g["agirlik"]["ray_duvar"] = round(arka_aski.agirlik_ray_duvari(g, S), 1)
+            g["agirlik"]["ray_duvar"] = _kural(
+                round(arka_aski.agirlik_ray_duvari(g, S), 1), "agirlik_ray_duvar"
+            )
         A_ = arka_aski.geometri(g, S)
         if "aralik" in A_:
             g["aski"]["kasnak_arasi"] = round(A_["aralik"], 1)
@@ -436,12 +447,14 @@ def _kapi_ve_aski(o, S, h):
         duzen, Dk = secim("aski_duzeni"), sayi("kabin_kasnak_capi")
         eski_kural = kb_g + 30.0 if duzen == "Kabin altı" else kb_g - 2 * 200.0 - (Dk or 0)
         if not aralik and duzen == "Kabin altı" and ag_yeri in ("Sağ", "Sol") and Dk:
-            ray_duvar = sayi("agirlik_ray_duvar", bos=True) or h["Gx"] / 2.0 + 50.0
+            ray_duvar = sayi("agirlik_ray_duvar", bos=True) or _kural(
+                h["Gx"] / 2.0 + 50.0, "agirlik_ray_duvar"
+            )
             dusey_ara = _dusey_kasnak_arasi(kx, kb_g, Dk, D1_, h["G"], ray_duvar, ag_yeri, S)
         aski = {
             "duzen": duzen,
             "kasnak_capi": Dk,
-            "kasnak_arasi": aralik or dusey_ara or eski_kural,
+            "kasnak_arasi": aralik or _kural(dusey_ara or eski_kural, "kabin_kasnak_arasi"),
             "kasnak_kaciklik": aski_y - kabin_merkez,
         }
     aski.update(halat_adedi=h["halat_n"], halat_capi=h["halat_d"])
@@ -458,7 +471,7 @@ def _kapi_ve_aski(o, S, h):
     reg_kacik = h["reg_kacik"]
     reg_bos = reg_kacik is None
     if reg_bos:
-        reg_kacik = -280.0 if xs > 0 else 280.0
+        reg_kacik = _kural(-280.0 if xs > 0 else 280.0, "regulator_kaciklik")
     return {
         "on_pay": on_pay,
         "kapi_arasi": kapi_arasi,
@@ -471,7 +484,7 @@ def _kapi_ve_aski(o, S, h):
         "reg_kacik": reg_kacik,
         "reg_bos": reg_bos,
         "agirlik_tampon_boyu": sayi("agirlik_tampon_boyu", bos=True)
-        or sayi("kabin_tampon_boyu", "Kabin tamponu uzunluğu"),
+        or _kural(sayi("kabin_tampon_boyu", "Kabin tamponu uzunluğu"), "agirlik_tampon_boyu"),
         "Da": sayi("agirlik_kasnak_capi") if h["oran"] == 2 else None,
     }
 
@@ -497,7 +510,9 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
             "derinlik": h["KD"],
             "doseme": duvar,
             **{
-                f"duvar_{y}": (sayi(f"kuyu_duvar_{y}", bos=True) or duvar) if duvar else None
+                f"duvar_{y}": (sayi(f"kuyu_duvar_{y}", bos=True) or _kural(duvar, f"kuyu_duvar_{y}"))
+                if duvar
+                else None
                 for y in ("on", "arka", "sol", "sag")
             },
         },
@@ -510,7 +525,7 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
             "montaj": h["montaj"],
         },
         "kabin_ray": {
-            "arasi": sayi("kabin_ray_arasi", bos=True) or kb_g + 200.0,
+            "arasi": sayi("kabin_ray_arasi", bos=True) or _kural(kb_g + 200.0, "kabin_ray_arasi"),
             "kapi_arasi": k["kapi_arasi"],
             "b": kr[0],
             "h": kr[1],
@@ -519,8 +534,9 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
             "yeri": h["ag_yeri"],
             "genislik": Gy,
             "derinlik": Gx,
-            "ray_arasi": sayi("agirlik_ray_arasi", bos=True) or Gy + alanlar.AGIRLIK_PATEN_PAYI,
-            "ray_duvar": sayi("agirlik_ray_duvar", bos=True) or Gx / 2.0 + 50.0,
+            "ray_arasi": sayi("agirlik_ray_arasi", bos=True)
+            or _kural(Gy + alanlar.AGIRLIK_PATEN_PAYI, "agirlik_ray_arasi"),
+            "ray_duvar": sayi("agirlik_ray_duvar", bos=True) or _kural(Gx / 2.0 + 50.0, "agirlik_ray_duvar"),
             "eksen_kaciklik": h["ag_kacik"],
             "b": ar[0],
             "h": ar[1],
@@ -592,8 +608,8 @@ def _makine_dairesi_girdisi(o, g, h):
         "duvar": md_duvar,
         #  Boşsa oda kuyunun dış genişliğine ortalı, önü kuyunun ön
         #  duvarının dış yüzüyle hizalı ( çizim örneğinin düzeni ).
-        "x": mx if mx is not None else -duvar - (genislik - (G + 2 * duvar)) / 2.0,
-        "y": my if my is not None else -duvar,
+        "x": mx if mx is not None else _kural(-duvar - (genislik - (G + 2 * duvar)) / 2.0, "md_x"),
+        "y": my if my is not None else _kural(-duvar, "md_y"),
         "kapi_duvar": secim("md_kapi_duvar"),
         "kapi_konum": sayi("md_kapi_konum"),
         "kapi_genislik": sayi("md_kapi_genislik"),
@@ -618,7 +634,7 @@ def _kasnak_arasi_sec(g, eski_kural):
         log.debug("yedek değer kullanılıyor ( çizim kurulamadı )", exc_info=True)
         carpar = True
     if carpar:
-        g["aski"]["kasnak_arasi"] = eski_kural
+        g["aski"]["kasnak_arasi"] = _kural(eski_kural, "kabin_kasnak_arasi")
 
 
 def _regulator_yeri(g, kaciklik_serbest=True, yan_serbest=False):
@@ -787,7 +803,7 @@ def _kasnak_caplari(A, sap):
         Dk, Da = varsayilan_deger(A, "kabin_kasnak_capi"), varsayilan_deger(A, "agirlik_kasnak_capi")
         if not (sayi_mi(Dk) and sayi_mi(Da) and Dk > 0 and Da > 0):
             return None
-        c = [float(Dk), float(Dk), float(Da)]
+        c = [izli.sayi(Dk), izli.sayi(Dk), izli.sayi(Da)]
     if sap:
         c.append(sap["D"])
     return c
@@ -833,7 +849,7 @@ def cizimden(A):
             #  Saptırma kasnağı yok ( 1:1, makine dairesinde saptırmasız ):  D2 ve
             #  Ds hesapta etkisizdir — tahrik kasnağının çapı verilir ( Kp = 1,
             #  D/d denetimi tahrik kasnağınınkiyle aynı ).
-            c = [float(B["tahrik_kasnak_capi"])]
+            c = [izli.sayi(B["tahrik_kasnak_capi"])]
         if c:
             if "saptirma_kasnak_capi" in bos:
                 d["saptirma_kasnak_capi"] = round(sum(c) / len(c), 1)

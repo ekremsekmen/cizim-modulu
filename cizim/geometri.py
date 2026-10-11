@@ -21,6 +21,7 @@ import re
 import threading
 from dataclasses import dataclass
 
+from cizim import izli
 from cizim import eleman
 from cizim import girdi
 from cizim import parcalar
@@ -785,7 +786,7 @@ def _acilis_isareti(P, kanat_y, kapi_duzeyi):
         hx, hy = (x0 + kg if sag else x0), kanat_y
         s = -1.0 if sag else 1.0  # menteşeden kanadın serbest ucuna
         yay = [
-            (hx + s * kg * math.cos(math.radians(a)), hy - kg * math.sin(math.radians(a)))
+            (hx + s * kg * izli.cos(izli.radians(a)), hy - kg * izli.sin(izli.radians(a)))
             for a in range(0, 91, 5)
         ]
         acilis = eleman.ad(eleman.dikdortgen("ACILIS", min(hx, hx + s * kg), hy - kg, kg, kg), "kapi_acilisi")
@@ -1629,10 +1630,10 @@ def parca_kenarlari(e):
             n, r = 16, el["r"]
             out += [
                 (
-                    el["x"] + r * math.cos(2 * math.pi * i / n),
-                    el["y"] + r * math.sin(2 * math.pi * i / n),
-                    el["x"] + r * math.cos(2 * math.pi * (i + 1) / n),
-                    el["y"] + r * math.sin(2 * math.pi * (i + 1) / n),
+                    el["x"] + r * izli.cos(2 * math.pi * i / n),
+                    el["y"] + r * izli.sin(2 * math.pi * i / n),
+                    el["x"] + r * izli.cos(2 * math.pi * (i + 1) / n),
+                    el["y"] + r * izli.sin(2 * math.pi * (i + 1) / n),
                 )
                 for i in range(n)
             ]

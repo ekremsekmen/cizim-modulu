@@ -27,8 +27,8 @@ Makinenin gövdesi tahrik kasnağından ağırlık kasnağının merkezinden uza
 y ön duvardan arkaya ).
 """
 
-import math
 from temel import sayi_mi
+from cizim import izli
 from cizim import standart
 
 #  Kabin kasnaklarının birbirine en az açıklığı ( jantlar arası ):  yoksa iki
@@ -99,7 +99,7 @@ def geometri(g, S, yon=None):
     Hw = (ex - yon * Rc, ey)  # ağırlık kasnağı → bağlantı
     P = (xk, ey - D1)  # tahrik → kabin kasnağı
     H = (2.0 * cx - P[0], 2.0 * cy - P[1])  # kabin kasnağı → bağlantı
-    L = math.hypot(H[0] - P[0], H[1] - P[1])
+    L = izli.hypot(H[0] - P[0], H[1] - P[1])
     if L < 1e-6:
         return {
             "hata": [
@@ -164,7 +164,7 @@ def geometri(g, S, yon=None):
             for iz in izler
         ],
         "aralik": aralik,
-        "aci": math.degrees(math.atan2(abs(u[0]), abs(u[1]))),
+        "aci": izli.degrees(izli.atan2(abs(u[0]), abs(u[1]))),
         "Rk": Rk,
         "Rc": Rc,
         "D1": D1,

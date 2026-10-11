@@ -17,6 +17,8 @@ kendi ölçüleri gelince buradan değiştirilir.
 import contextlib
 import threading
 
+from cizim import izli
+
 SABIT = {
     #  ── RAY KONSOLU ──────────────────────────────────────────────────
     "konsol_kabin_en": 55,  # duvara dik  ( ray arkasından duvara )
@@ -668,6 +670,9 @@ def sabitler(ozel=None):
     for k, v in (ozel or {}).items():
         if k in SABIT and v is not None:
             s[k] = v
+    if izli.izlemede():
+        #  Ölçü kaynağı çözümlenirken her sabit ofis standardındaki adıyla izlenir
+        s = {k: izli.oz(v, ("ofis", ofis_adi(k))) for k, v in s.items()}
     kume = getattr(_KAYIT, "kume", None)
     return _Okunan(s, kume) if kume is not None else s
 

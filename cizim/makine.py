@@ -39,7 +39,7 @@ MAKİNE TİPLERİ  ( kullanıcı kararı:  ölçüler LiftDesigner makinelerinde
              kirişler ve ayak plakaları LiftDesigner 12744-3'ünki gibi.
 """
 
-import math
+from cizim import izli
 
 TIPLER = ("Dişlisiz", "Dişli")
 
@@ -163,7 +163,7 @@ def silindir(eksen, merkez, cap, t0, t1, katman="MAKINE", ad="makine", parca="")
         parca,
         eksen=eksen,
         merkez=tuple(merkez),
-        cap=float(cap),
+        cap=izli.sayi(cap),
         t=(min(t0, t1), max(t0, t1)),
     )
 
@@ -501,10 +501,10 @@ def teget(c1, r1, c2, r2, yon):
     boyunca ±1 ):  iki dış teğetten normali o yana bakanı."""
 
     vx, vz = c2[0] - c1[0], c2[1] - c1[1]
-    L = math.hypot(vx, vz)
-    phi = math.atan2(vz, vx)
-    d = math.acos(max(-1.0, min(1.0, (r1 - r2) / L)))
-    adaylar = [(math.cos(phi + s * d), math.sin(phi + s * d)) for s in (1, -1)]
+    L = izli.hypot(vx, vz)
+    phi = izli.atan2(vz, vx)
+    d = izli.acos(max(-1.0, min(1.0, (r1 - r2) / L)))
+    adaylar = [(izli.cos(phi + s * d), izli.sin(phi + s * d)) for s in (1, -1)]
     n = max(adaylar, key=lambda q: yon * q[0])
     return ((c1[0] + r1 * n[0], c1[1] + r1 * n[1]), (c2[0] + r2 * n[0], c2[1] + r2 * n[1]), n)
 
@@ -513,7 +513,7 @@ def sarim_acisi(y_, n):
     """Tahrik kasnağında halatın sarıldığı açı ( derece ):  kabin tarafındaki
     yatay uçtan ( −y_ ) kasnağın üstünden n'ye."""
 
-    a = math.degrees(math.atan2(n[1], -y_ * n[0]))  # kabin yönünden, üstten
+    a = izli.degrees(izli.atan2(n[1], -y_ * n[0]))  # kabin yönünden, üstten
     return a if a >= 0 else a + 360.0
 
 

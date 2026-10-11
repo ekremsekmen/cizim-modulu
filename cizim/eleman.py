@@ -9,6 +9,8 @@ buradan alır.  Eskiden bunlar geometri.py'nin "özel" ( _dik, _yazi … )
 fonksiyonlarıydı ve 300'e yakın yerden dışarıdan çağrılıyordu.
 """
 
+from cizim import izli
+
 KATMANLAR = (
     "KUYU-DUVAR",
     "TARAMA",
@@ -85,23 +87,44 @@ def ad(el, ad):
 
 
 def dikdortgen(katman, x, y, g, d, tip="dikdortgen", ad=""):
-    el = {"tip": tip, "katman": katman, "x": float(x), "y": float(y), "g": float(g), "d": float(d)}
+    el = {
+        "tip": tip,
+        "katman": katman,
+        "x": izli.sayi(x),
+        "y": izli.sayi(y),
+        "g": izli.sayi(g),
+        "d": izli.sayi(d),
+    }
     if ad:
         el["ad"] = ad
     return el
 
 
 def cizgi(katman, x1, y1, x2, y2, tip="cizgi"):
-    return {"tip": tip, "katman": katman, "x1": float(x1), "y1": float(y1), "x2": float(x2), "y2": float(y2)}
+    return {
+        "tip": tip,
+        "katman": katman,
+        "x1": izli.sayi(x1),
+        "y1": izli.sayi(y1),
+        "x2": izli.sayi(x2),
+        "y2": izli.sayi(y2),
+    }
 
 
 def daire(katman, x, y, r):
-    return {"tip": "daire", "katman": katman, "x": float(x), "y": float(y), "r": float(r)}
+    return {"tip": "daire", "katman": katman, "x": izli.sayi(x), "y": izli.sayi(y), "r": izli.sayi(r)}
 
 
 def ok(katman, x1, y1, x2, y2):
     """Yön oku  ( kapı açılış yönü gibi )."""
-    return {"tip": "ok", "katman": katman, "x1": float(x1), "y1": float(y1), "x2": float(x2), "y2": float(y2)}
+    return {
+        "tip": "ok",
+        "katman": katman,
+        "x1": izli.sayi(x1),
+        "y1": izli.sayi(y1),
+        "x2": izli.sayi(x2),
+        "y2": izli.sayi(y2),
+    }
 
 
 def yazi(x, y, metin, yukseklik=55, hiza="orta", katman="YAZI", aci=0):
@@ -110,12 +133,12 @@ def yazi(x, y, metin, yukseklik=55, hiza="orta", katman="YAZI", aci=0):
     return {
         "tip": "yazi",
         "katman": katman,
-        "x": float(x),
-        "y": float(y),
+        "x": izli.sayi(x),
+        "y": izli.sayi(y),
         "metin": metin,
         "yukseklik": yb(yukseklik),
         "hiza": hiza,
-        "aci": float(aci),
+        "aci": izli.sayi(aci),
     }
 
 
@@ -130,18 +153,18 @@ def olcu(yon, a, b, kot, metin=None, yazi=None, kural=None):
         "tip": "olcu",
         "katman": "OLCU",
         "yon": yon,
-        "a": tuple(map(float, a)),
-        "b": tuple(map(float, b)),
-        "kot": float(kot),
+        "a": tuple(map(izli.sayi, a)),
+        "b": tuple(map(izli.sayi, b)),
+        "kot": izli.sayi(kot),
         "metin": metin if metin is not None else f"{uzunluk:g}",
         "uzunluk": uzunluk,
     }
     if yazi:
         el["yazi"] = {
-            "x": float(yazi["x"]),
-            "y": float(yazi["y"]),
-            "aci": float(yazi.get("aci", 0)),
-            "h": float(yazi.get("h", OLCU_YAZI)),
+            "x": izli.sayi(yazi["x"]),
+            "y": izli.sayi(yazi["y"]),
+            "aci": izli.sayi(yazi.get("aci", 0)),
+            "h": izli.sayi(yazi.get("h", OLCU_YAZI)),
         }
     if kural:
         el["kural"] = kural
