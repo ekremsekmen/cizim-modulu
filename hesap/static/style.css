@@ -689,6 +689,8 @@ body.tuval-tam-acik{overflow:hidden}
   border-radius:7px}
 .olcu-kaynak .ipucu{display:block}
 .olcu-secim{width:auto}
+.olcu-baska > summary{cursor:pointer;color:var(--mavi);font-weight:600;padding:2px 0}
+.olcu-baska > *:not(summary){margin-top:8px}
 .alan-vurgu{animation:m-vurgu 2.2s ease-out}
 .cizim-liste{margin:6px 0 0 18px;padding:0}
 .cizim-liste li{margin:3px 0}

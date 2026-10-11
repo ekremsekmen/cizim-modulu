@@ -275,13 +275,21 @@ bir kutu ölçünün **hangi girdiden geldiğini** söyler ve yeni değer yazıl
 form kendi akışıyla hesabı ve çizimi yeniler ( hesap ile çizim aynı sayıyı
 kullanmaya devam eder ).  "Formda göster" alanın grubunu açıp alanı gösterir.
 
-- **Kaynak ölçülür, elle etiketlenmez** ( `cizim/olcu_kaynagi.py` ):  her
-  girdi 1 mm oynatılıp çizim yeniden kurulur, ölçünün değişimine bakılır
-  ( eğim ).  Yüz kadar ölçü ve zincirleri — sonradan eklenenler de —
-  kendiliğinden kapsanır.  Kaynak türleri:  formun sayı kutusu
-  ( değiştirilir ), tam sayı ve seçim kutusu ( gösterilir;  sayılı seçimde
-  seçenek seçilir ), Sabitler sekmesindeki ofis standardı ( çizimin ürün
-  ölçüleri dahil — tek katalog;  gösterilir ).  Ölçünün kendisi olan girdi
+- **Kaynak türevle bulunur, elle etiketlenmez** ( `cizim/izli.py`,
+  `cizim/olcu_kaynagi.py` ):  çizim BİR KEZ kurulur, girdiler "izli sayı"ya
+  sarılır ( değer + hangi girdiye hangi eğimle bağlı — otomatik türev );
+  her ölçünün uzunluğu kaynaklarını taşır.  Tıklama anında yanıtlanır
+  ( eskiden her girdi 1 mm oynatılıp çizim 200 – 280 kez yeniden kuruluyordu,
+  3 – 9 sn ).  İzleme kapalıyken çizim ve hesap birebir aynıdır.  Eski yol
+  testte denetçidir ( `testler/test_olcu_turevi.py`:  oynatmanın doğrusal
+  bulduğu her kaynak türevde aynı eğimle var, türev fazlasını söylemez ).
+  Yüz kadar ölçü ve zincirleri — sonradan eklenenler de — kendiliğinden
+  kapsanır.  Kaynak türleri:  formun sayı kutusu ( değiştirilir ), uzunluk
+  seçimi ( kapı genişliği — seçenek seçilir ), Sabitler sekmesindeki ofis
+  standardı ( çizimin ürün ölçüleri dahil — tek katalog;  gösterilir ).
+  Kategori seçimleri ( ray profili, askı düzeni ) türevle bulunmaz.
+  Kutuda tek hedef görünür ( ölçünün kendisi olan girdi );  öteki girdiler
+  "Başka girdiyle değiştir"in altındadır.  Ölçünün kendisi olan girdi
   ( değeri eşit, eğimi 1 ) önce gelir:  DBGW'nin kaynağı "boşsa Gy + 60"
   kuralından önce ağırlık rayları arası kutusudur ( `kopru.KURALLI` —
   kuralla dolan alanların etkin değeri ).  Bir girdiye bağlı olmayan ölçü
@@ -297,7 +305,9 @@ kullanmaya devam eder ).  "Formda göster" alanın grubunu açıp alanı göster
 - **Değiştirme doğrulanır:**  yeni değer eğimden bulunur, çizim adım adım
   yeniden kurularak ölçü izlenir ( zincirde uçlar yer değiştirir, konsol
   sayısı değişir ) ve hedefte olduğu görülür;  doğrusal değilse kiriş
-  yöntemi.  Birden çok girdiye bağlı ölçüde hangisinin değişeceği sorulur.
+  yöntemi.  Birden çok girdiye bağlı ölçüde öncelikli girdi değişir;  başkası
+  "Başka girdiyle değiştir"den seçilir.  Girdi tek başına değişemiyorsa
+  ( kaide girilmişken kuyu dibi ) bağlı türetilen alan da güncellenir.
   Hedef doğrulanamazsa:  bağıntı doğrusal ve ölçü yeni çizimde iki ardışık
   parçaya bölünmüşse ( kabin kuyu ortasının öbür yanına geçince "995"
   "5 + 1.000" olur ) doğrusal tahmin yazılır, "iki parçaya bölündü" denir;
@@ -472,7 +482,8 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
 | `sablon/proje_formati.dxf` | Ofisin pafta şablonu ( TİP PROJE FORMATI.dwg'den;  hesap programınınkiyle aynı ) |
 | `cizim/eleman.py` | Çizim elemanlarının kurucuları ( `dikdortgen`, `cizgi`, `daire`, `ok`, `yazi`, `olcu`, `ad` ), yazı boyları ve katmanların tek listesi ( `KATMANLAR` — SVG ve DXF her birini tanır ) |
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
-| `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( girdiler oynatılarak ) ve ölçüden değiştirme ( doğrulamalı ) |
+| `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( türevle;  oynatma denetçi ) ve ölçüden değiştirme ( doğrulamalı ) |
+| `cizim/izli.py` | İzli sayı:  ölçü kaynağı için otomatik türev |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
 | `testler/` | 376 test ( `test_kapilar.py` — kanat sayısı ve kanat cebi, `test_cizim.py`, `test_fiziksel_tutarlilik.py`, `test_girdi_sinirlari.py`, `test_kopru.py`, `test_olcu_kaynagi.py`, `test_yerlesim_saglamligi.py` — standart asansörler varsayılan çizim ayarlarıyla çizilir, `test_tasarim.py` — tasarım şeması, `test_olculer.py` — yerleşimin ölçü listesi, `test_arka_aski.py` — arkadaki ağırlıkla 2:1, `test_kararlar.py` — makaralı kabin pateni, çift sarım, dolgu, tek katalog, `test_gercek_projeler.py` — ofisin altı gerçek projesi ( veri `gercek_projeler.py` ), `test_gorunusler.py` — kasnak düzenlemesi ve giriş görünüşü, `test_kesit_yerlesim_regresyon.py` — şase üst kirişi, ağırlık patenleri, dolgu, ağırlık genişliği, kabin – ağırlık ölçüleri, duvarlar ) |
 | `ornekler/` | Yalnız iki örnek tam proje ( `.dwg` + `.pdf` ):  **makine dairesiz** ( referans proje ) ve **makine daireli dişli** ( aynı asansör );  onları üreten `uret.py` ve formun girdisi `hesap_girdi.py` |
