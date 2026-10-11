@@ -9,7 +9,7 @@ import unittest
 
 from temel import ortusur
 from testler import gercek_projeler
-from uclar import cizim_uclari, uygulama_uclari
+from uclar import cizim_uclari
 from motor.uygulama import uygulama_girdisi, uygulama_hesabi
 from cizim import kopru
 from cizim import eleman
@@ -17,11 +17,12 @@ from cizim import baglantilar, geometri
 from cizim import kabin_ustu, kuyu_kesiti
 from cizim import makine, olculer
 from cizim import parca_kotlari
+from uclar import uygulama_istegi
 
 
 def _istek(values):
     a = dict(values)
-    common = {k: a.pop(k) for k in list(a) if k in uygulama_uclari.PROJE_GENELI_ALANLAR}
+    common = {k: a.pop(k) for k in list(a) if k in uygulama_istegi.PROJE_GENELI_ALANLAR}
     return {"asansorler": [a], "proje_geneli": common, "sabitler": {}, "asansor": 0}
 
 

@@ -5,7 +5,7 @@ import logging
 import unittest
 
 from uclar import cizim_uclari
-from uclar import uygulama_uclari
+from uclar import uygulama_istegi
 from uclar.uc_ortak import hata_kaydi
 
 
@@ -41,7 +41,7 @@ class UcunKaydi(unittest.TestCase):
         from unittest import mock
 
         with (
-            mock.patch.object(uygulama_uclari, "_asansor_girdileri", side_effect=KeyError("bozuk")),
+            mock.patch.object(uygulama_istegi, "asansor_girdileri", side_effect=KeyError("bozuk")),
             self.assertLogs(cizim_uclari.log, level="ERROR") as k,
         ):
             yanit = cizim_uclari.api_cizimler({"asansorler": [{}]})

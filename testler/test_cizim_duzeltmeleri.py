@@ -12,6 +12,7 @@ from cizim import dusey, geometri, girdi, kopru
 from cizim import kuyu_kesiti, svg, dxf
 from cizim import sabitler
 from motor.uygulama import uygulama_girdisi, mukavemet_girdi
+from uclar import uygulama_istegi
 
 
 def _veri(**alanlar):
@@ -105,7 +106,7 @@ class Katlar(unittest.TestCase):
             if f["anahtar"] == "kat_yukseklikleri"
         )
         self.assertEqual((f["tur"], f["varsayilan"]), ("metin", None))
-        a, _ = uygulama_uclari._asansor_girdileri(
+        a, _ = uygulama_istegi.asansor_girdileri(
             {
                 "asansorler": [{"kat_yukseklikleri": "3400; 3000"}, {"kat_yukseklikleri": "3000; 3400"}],
                 "proje_geneli": {},

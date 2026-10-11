@@ -34,6 +34,7 @@ from cizim import olcu_kaynagi
 from cizim import pafta
 from cizim import sabitler
 from cizim import svg
+from uclar import uygulama_istegi
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -104,12 +105,11 @@ def api_cizimler(veri: dict = Body(...)):
 
     Asıl çıktı "Projeyi paketle" ile inen paftadır ( DXF / DWG );  SVG aynı
     eleman listesinden çıkar ( cizim/svg.py · cizim/dxf.py )."""
-    from uclar import uygulama_uclari
     from uclar.uc_ortak import _belirsiz_hata, _proje_kimligi
     from motor.uygulama import uygulama_hesabi
 
     try:
-        asansorler, ortak = uygulama_uclari._asansor_girdileri(veri)
+        asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
         belirsiz = _belirsiz_hata()
         if belirsiz:
             return JSONResponse({"aktif": False, "hata": [belirsiz]})
@@ -159,20 +159,18 @@ _SURENLER = {}
 @functools.lru_cache(maxsize=1)
 def _sozlesme():
     """Formun alanları ( anahtar → alan ), proje geneli olanlar, yerleşime göre gizliler."""
-    from uclar import uygulama_uclari
 
-    v = uygulama_uclari.uygulama_alanlari()
+    v = uygulama_istegi.alanlar()
     alan = {f["anahtar"]: f for gr in v["gruplar"] for f in gr["alanlar"]}
     return alan, frozenset(v["proje_geneli"]), v["yerlesime_gore_gizli"]
 
 
 def _istek(veri):
     """Aktif asansörün tamamlanmamış girdisi — girdiler()'in kurduğunun aynısı."""
-    from uclar import uygulama_uclari
     from uclar.uc_ortak import _belirsiz_hata, _proje_kimligi
     from motor.uygulama import uygulama_girdisi
 
-    asansorler, ortak = uygulama_uclari._asansor_girdileri(veri)
+    asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
     belirsiz = _belirsiz_hata()
     if belirsiz:
         raise ValueError(belirsiz)

@@ -17,6 +17,7 @@ from motor.uygulama import mukavemet_girdi
 from tasarim import alanlar
 from tasarim import gorunum
 from tasarim import sozluk
+from uclar import uygulama_istegi
 
 #  Tasarım sırası:  düzen → kuyu → kabin ve kapı → parçalar → elektrik
 GRUP_SIRASI = (
@@ -119,7 +120,7 @@ class Form(unittest.TestCase):
             saptirma_kasnak_min_capi=200,
             kabin_tampon_baba=10,
         )
-        a, _o = uygulama_uclari._asansor_girdileri({"asansorler": [eski], "proje_geneli": {}, "sabitler": {}})
+        a, _o = uygulama_istegi.asansor_girdileri({"asansorler": [eski], "proje_geneli": {}, "sabitler": {}})
         self.assertFalse(set(eski) & set(a[0]), a[0])
 
     def test_makine_dairesizde_bir_bir_secilmez(self):

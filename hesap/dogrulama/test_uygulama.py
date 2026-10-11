@@ -38,6 +38,7 @@ from ciktilar import pdf_cikti
 from motor.uygulama import mukavemet_girdi
 from uclar import uc_ortak, uygulama_uclari
 from motor.ortak import adimlar
+from uclar import uygulama_istegi
 
 #  Topraklama olmadan elektrik bölümlerinin bir kısmı boş kalır.  L1 girdi
 #  değildir:  kuyu yüksekliği + Sabitler'deki yatay güzergâh payından kurulur.
@@ -554,7 +555,7 @@ def calistir():
     #  ⑤  METİN OFİS ALANI SAYIYA ÇEVRİLMİYOR
 
     uc_ortak._BELIRSIZ.clear()
-    _g5 = uygulama_uclari._mukavemet_girdi(
+    _g5 = uygulama_istegi.mukavemet_girdisi(
         {"girdiler": {}, "sabitler": {"kablo_tipi": "NYY", "cosfi": "0,85", "priz_gucu": "1.200"}}
     )
     r.esit("⑤ metin ofis alanı korunuyor", _g5["_ofis"].get("kablo_tipi"), "NYY")

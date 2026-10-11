@@ -42,11 +42,12 @@ ACC = (
 )
 
 from hesap_girdi import ASANSOR, ORTAK, ASANSOR_MD, ORTAK_MD, SABITLER
-from uclar import cizim_uclari, uygulama_uclari
+from uclar import cizim_uclari
 from motor.uygulama import uygulama_hesabi
 from ciktilar import pdf_cikti, dxf_cikti, kapak_cikti
 from cizim import pafta
 from cizim import kopru
+from uclar import uygulama_istegi
 
 
 def _dwg(dxf, dwg):
@@ -84,7 +85,7 @@ def uret(md):
         "proje_geneli": dict(ORTAK_MD if md else ORTAK),
         "sabitler": dict(SABITLER),
     }
-    asansorler, ortak = uygulama_uclari._asansor_girdileri(veri)
+    asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
     s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
     assert s.get("aktif"), s.get("hata")
     A = asansorler[0]

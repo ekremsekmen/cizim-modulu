@@ -21,7 +21,6 @@ import unittest
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from uclar import cizim_uclari
-from uclar import uygulama_uclari
 from cizim import geometri
 from cizim import girdi
 from cizim import kopru
@@ -32,6 +31,7 @@ from motor.uygulama import uygulama_girdisi
 from motor.uygulama import uygulama_hesabi
 
 from testler import gercek_projeler
+from uclar import uygulama_istegi
 
 CIZILENLER = ("4815-6", "1022", "1275", "800 KG")
 
@@ -40,7 +40,7 @@ def _calistir(ad):
     """Projeyi formdan girilmiş gibi çalıştırır:  ( çizim ucu , çizim girdisi ,
     bölüm 11'in metni )."""
     a = dict(gercek_projeler.PROJELER[ad])
-    pg = {k: a.pop(k) for k in list(a) if k in uygulama_uclari.PROJE_GENELI_ALANLAR}
+    pg = {k: a.pop(k) for k in list(a) if k in uygulama_istegi.PROJE_GENELI_ALANLAR}
     veri = {"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}
     cizim = json.loads(cizim_uclari.api_cizimler(veri).body)
     ham, _i, proje = cizim_uclari._istek(veri)
@@ -82,7 +82,7 @@ class GercekProjeler(unittest.TestCase):
         self.assertTrue(b11.startswith("HESAP EKSİK — kuyunun çizimi kurulamadı:  Kabin tavanında"))
         for son_kat in (4260, 4270, 6000):
             a = dict(gercek_projeler.PROJELER["12495-18"], son_kat_yuksekligi=son_kat)
-            pg = {k: a.pop(k) for k in list(a) if k in uygulama_uclari.PROJE_GENELI_ALANLAR}
+            pg = {k: a.pop(k) for k in list(a) if k in uygulama_istegi.PROJE_GENELI_ALANLAR}
             d = json.loads(
                 cizim_uclari.api_cizimler(
                     {"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}

@@ -23,6 +23,7 @@ from motor.uygulama import uygulama_girdisi
 from motor.uygulama import uygulama_hesabi
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
 from cizim import parca_kotlari
+from uclar import uygulama_istegi
 
 
 def _veri(md=False, **ek):
@@ -35,14 +36,14 @@ def _veri(md=False, **ek):
 
 def _kur(veri, proje="ÖRNEK PROJE"):
     """Programın yolu:  formun isteği → hesap → köprü.  ( [ ( g, hata ) ], sonuç, girdiler )"""
-    asansorler, ortak = uygulama_uclari._asansor_girdileri(veri)
+    asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
     s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
     return cizim_uclari.girdiler(veri, asansorler, ortak, s if s.get("aktif") else None, proje), s, asansorler
 
 
 def _tam(veri):
     """Köprünün gördüğü tamamlanmış girdi ( tek asansör )."""
-    asansorler, ortak = uygulama_uclari._asansor_girdileri(veri)
+    asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
     return uygulama_girdisi.tamamla({**uygulama_girdisi.varsayilanlar(), **ortak, **asansorler[0]})
 
 
@@ -543,7 +544,7 @@ class Uclar(unittest.TestCase):
         #  listesinde adıyla, paketin iletisinde sırasıyla
         v = _veri()
         v["asansorler"].append(dict(v["asansorler"][0], asansor_adi="Servis", kuyu_derinligi=1200))
-        asansorler, ortak = uygulama_uclari._asansor_girdileri(v)
+        asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
         s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
         self.assertTrue(
             any(h.startswith("Servis:") and "kuyu derinliğinden" in h for h in s["hata"]), s["hata"]

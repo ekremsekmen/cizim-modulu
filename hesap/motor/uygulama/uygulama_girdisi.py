@@ -52,10 +52,10 @@ MK_VERIM = ofis.VARSAYILAN_VERIM
 #  okusun;  iki yerde tutulsaydı ayrışırlardı.
 PROJE_GENELI_ALANLAR = gorunum.anahtarlar(alanlar.ELK, proje_geneli=True)
 
-#  Tanımlar tasarım şemasında ( tasarim/alanlar.py, sözleşmesi ELK ).
-EK_ALANLAR = gorunum.sozlesme(alanlar.ELK)
-
-EK_ALAN = {a[0]: a for a in EK_ALANLAR}
+#  Tanımlar tasarım şemasında ( tasarim/alanlar.py, sözleşmesi ELK ) —
+#  mukavemet_girdi'de durur ( mukavemet onları da kullanır ).
+EK_ALANLAR = mukavemet_girdi.EK_ALANLAR
+EK_ALAN = mukavemet_girdi.EK_ALAN
 
 #  KÖPRÜDEN AVAN MOTORUNA GEÇEN ve orada SINIRLANAN alanlar  →  avandaki adı.
 #  Avan motoru bunları kendi sınırlarıyla denetler ve sınır dışındaysa
@@ -122,10 +122,7 @@ def arayuz_alanlari():
 
 
 def varsayilanlar():
-    g = mukavemet_girdi.varsayilanlar()
-    for a, _et, _b, _t, _s, v in EK_ALANLAR:
-        g[a] = v
-    return g
+    return mukavemet_girdi.uygulama_varsayilanlari()
 
 
 def tamamla(g):

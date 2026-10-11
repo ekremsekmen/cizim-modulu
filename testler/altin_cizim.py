@@ -27,7 +27,6 @@ import yollar
 yollar.kur()
 
 from uclar import cizim_uclari
-from uclar import uygulama_uclari
 from cizim import geometri
 from cizim import pafta
 from cizim import svg
@@ -35,6 +34,7 @@ from motor.uygulama import uygulama_hesabi
 from testler import gercek_projeler
 
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
+from uclar import uygulama_istegi
 
 DOSYA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "altin_cizim.json.gz")
 #  Kayan noktada işlem sırası değişince ( düzenlemede olağan ) son basamaklar
@@ -100,7 +100,7 @@ def _ornek(md):
 
 def _gercek(ad):
     a = dict(gercek_projeler.PROJELER[ad])
-    pg = {k: a.pop(k) for k in list(a) if k in uygulama_uclari.PROJE_GENELI_ALANLAR}
+    pg = {k: a.pop(k) for k in list(a) if k in uygulama_istegi.PROJE_GENELI_ALANLAR}
     return {"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}
 
 
@@ -157,7 +157,7 @@ def pafta_kaydi(veri):
     """Formun isteğinden paftanın çizimleri:  { "hata": [ … ] } ya da
     { "sira": [ ad ] ( paftadaki sıra ), "cizimler": { ad: { baslik, olcek,
     elemanlar, svg ( sha256 ) } } }."""
-    asansorler, ortak = uygulama_uclari._asansor_girdileri(veri)
+    asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
     s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
     ((g, hata),) = cizim_uclari.girdiler(veri, asansorler, ortak, s if s.get("aktif") else None, "ALTIN")
     if g is None:

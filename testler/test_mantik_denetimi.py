@@ -16,10 +16,10 @@ import unittest
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from uclar import cizim_uclari
-from uclar import uygulama_uclari
 from motor.uygulama import uygulama_hesabi
 
 from testler import test_yerlesim_saglamligi
+from uclar import uygulama_istegi
 
 
 def _calistir(**ek):
@@ -27,7 +27,7 @@ def _calistir(**ek):
     v = test_yerlesim_saglamligi._veri(800, True, "Sağ")
     v["asansorler"][0].update(ek)
     cizim = json.loads(cizim_uclari.api_cizimler(v).body)
-    asansorler, ortak = uygulama_uclari._asansor_girdileri(v)
+    asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
     return cizim, uygulama_hesabi.hesapla_coklu(asansorler, ortak)
 
 

@@ -30,6 +30,7 @@ from uclar import uc_ortak
 from uclar import uygulama_uclari
 from motor.uygulama import uygulama_girdisi
 from motor.avan import tablolar
+from uclar import uygulama_istegi
 
 BASE = os.environ.get("AVAN_TEST_URL", "http://127.0.0.1:8780")
 
@@ -320,7 +321,7 @@ def calistir():
     )
     r.esit(
         "uygulama · metin sabiti ( kablo tipi ) metin kalıyor",
-        uygulama_uclari._asansor_girdileri(
+        uygulama_istegi.asansor_girdileri(
             {"asansorler": [{}], "proje_geneli": {}, "sabitler": {"kablo_tipi": "NYY"}}
         )[0][0]["_ofis"].get("kablo_tipi"),
         "NYY",
@@ -550,7 +551,7 @@ def calistir():
     for x in (True, False, None, "", "Var", "Yok", "EVET", "hayır", "on", "1", "0"):
         r.esit(
             f"uygulama · mk_yok = {x!r} API'de ve motorda aynı okunuyor",
-            uygulama_uclari._uygulanmayan({"mk_yok": x}),
+            uygulama_istegi.uygulanmayan({"mk_yok": x}),
             uygulama_girdisi.uygulanmayan_alanlar(x),
         )
 
@@ -558,7 +559,7 @@ def calistir():
     #  Asansörün içinde kalmış eski bir temel ölçüsü binanın topraklamasını
     #  ezmemeli;  API onu okumamalı ( gizli, düzeltilemez ), motor da ortakta
     #  yazan değeri kullanmalı.
-    _asl, _ort = uygulama_uclari._asansor_girdileri(
+    _asl, _ort = uygulama_istegi.asansor_girdileri(
         {
             "asansorler": [{"temel_a": "10"}, {"temel_a": "abc"}],
             "proje_geneli": {"temel_a": "20", "temel_b": "15"},

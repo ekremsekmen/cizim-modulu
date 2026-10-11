@@ -17,7 +17,6 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from uclar import cizim_uclari
 from testler.yavas import yavas
-from uclar import uygulama_uclari
 from cizim import eleman
 from cizim import cizimler
 from cizim import geometri
@@ -30,6 +29,7 @@ from motor.uygulama import uygulama_hesabi
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
 
 from testler import gercek_projeler
+from uclar import uygulama_istegi
 
 
 def _veri(md=False, **ek):
@@ -97,7 +97,7 @@ DUZENLER = {
 
 
 def _g(v):
-    asansorler, ortak = uygulama_uclari._asansor_girdileri(v)
+    asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
     s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
     ((g, hata),) = cizim_uclari.girdiler(v, asansorler, ortak, s if s.get("aktif") else None, "P")
     return g, hata
@@ -260,7 +260,7 @@ class Kaynak(unittest.TestCase):
     def test_hesabin_sonucu_olculeri_degistirmez(self):
         #  Ekran çizimleri hesabın sonucuyla ( yük kutuları ), çözümleme onsuz kurar.
         v = _veri()
-        asansorler, ortak = uygulama_uclari._asansor_girdileri(v)
+        asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
         s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
         ((g1, _h),) = cizim_uclari.girdiler(v, asansorler, ortak, s, "P")
         ((g0, _h),) = cizim_uclari.girdiler(v, asansorler, ortak, None, "P")
@@ -357,7 +357,7 @@ class Degistirme(unittest.TestCase):
             ("0,075", 0.075),
         ):
             with self.subTest(ham=ham):
-                form, _ortak = uygulama_uclari._asansor_girdileri(
+                form, _ortak = uygulama_istegi.asansor_girdileri(
                     dict(v, asansorler=[dict(v["asansorler"][0], kuyu_genisligi=ham)])
                 )
                 self.assertIsNone(_belirsiz_hata())
@@ -516,7 +516,7 @@ class Degistirme(unittest.TestCase):
 def _gercek(ad):
     """Ofisin gerçek projesi formdan girilmiş gibi ( gercek_projeler.py )."""
     a = dict(gercek_projeler.PROJELER[ad])
-    pg = {k: a.pop(k) for k in list(a) if k in uygulama_uclari.PROJE_GENELI_ALANLAR}
+    pg = {k: a.pop(k) for k in list(a) if k in uygulama_istegi.PROJE_GENELI_ALANLAR}
     return {"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}
 
 

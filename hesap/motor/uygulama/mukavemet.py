@@ -4329,10 +4329,8 @@ def _siginma(g, o):
     #  ÇİZİM:  hesabın girdisinden;  kabin ölçüleri bu hesabın ofis standardından.
     #  Motor tek başına çağrıldığında uygulama projesinin alanları ( kuyu
     #  genişliği, makine yerleşimi ) girdide olmayabilir:  varsayılanlarıyla.
-    from motor.uygulama import uygulama_girdisi
-
     G, hata = kopru.cizim_girdisi(
-        {**uygulama_girdisi.varsayilanlar(), **g, "_ofis": {k: O[k] for k in kopru.OFIS_SABITLERI}}
+        {**mukavemet_girdi.uygulama_varsayilanlari(), **g, "_ofis": {k: O[k] for k in kopru.OFIS_SABITLERI}}
     )
     Y = dusey.yerlesim(G) if G is not None else {"hata": hata}
     if "dip_aciklik" not in Y:

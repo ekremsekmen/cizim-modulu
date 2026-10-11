@@ -54,6 +54,13 @@ ISARETLI_ALANLAR = gorunum.anahtarlar(alanlar.MUK, isaretli=True)
 
 #  Hızlı erişim
 ALAN = {a[0]: a for a in ALANLAR}
+
+#  UYGULAMA FORMUNUN mukavemet dışı ( elektrik … ) alanları — tanımları
+#  tasarım şemasında ( tasarim/alanlar.py, sözleşmesi ELK ).  Uygulama
+#  girdisi ( uygulama_girdisi ) ikisini birleştirir;  burada durur ki
+#  mukavemet ve bu modül uygulama_girdisi'ni geri çağırmasın ( döngü ).
+EK_ALANLAR = gorunum.sozlesme(alanlar.ELK)
+EK_ALAN = {a[0]: a for a in EK_ALANLAR}
 HESAPLANAN = tuple(a[0] for a in ALANLAR if a[3] == "hesap")
 
 
@@ -324,6 +331,15 @@ def varsayilanlar():
     return g
 
 
+def uygulama_varsayilanlari():
+    """Uygulama formunun bütün varsayılanları:  mukavemet alanları ve ek
+    ( elektrik … ) alanlar — uygulama_girdisi.varsayilanlar() bunu döner."""
+    g = varsayilanlar()
+    for a, _et, _b, _t, _s, v in EK_ALANLAR:
+        g[a] = v
+    return g
+
+
 def tamamla(g):
     """Girdilerden türetilen alanları doldurur.
 
@@ -391,9 +407,8 @@ def tamamla(g):
     #  çağrıldığında girdide yoksa uygulama sözleşmesinin varsayılanları —
     #  sabit tablo;  girdi.varsayilanlar() buraya döner, döngü olurdu.
     from cizim import kopru
-    from motor.uygulama import uygulama_girdisi
 
-    _cd = kopru.cizimden({**{a[0]: a[5] for a in uygulama_girdisi.EK_ALANLAR}, **g})
+    _cd = kopru.cizimden({**{a[0]: a[5] for a in EK_ALANLAR}, **g})
     g.update(_cd)
     #  KAYNAK İŞARETİ:  çizimden gelen değer raporda "ÇİZİMDEN" yazar ( girilmiş
     #  sanılmasın ).  Anahtar → kuralı.
