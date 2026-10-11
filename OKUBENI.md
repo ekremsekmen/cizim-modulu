@@ -375,10 +375,13 @@ python3 -m venv .venv
 
 ## Denetim
 
-Her değişiklikte en az `kontrol.py` ( hızlı ), commit'ten önce `tam`,
-`arayuz` ve çizimi etkileyen değişiklikte `tarama`.  GitHub'da her push'ta
-hızlı denetim kendiliğinden koşar ( `.github/workflows/denetim.yml`;  tam
-denetim Actions sekmesinden elle başlatılır ).  Ortam `requirements-kilit.txt`
+Çalışma akışı:  değişiklik bir dala push'lanır ve PR açılır;  GitHub ağır
+testleri ( tam denetim, girdi taraması, gerçek tarayıcıyla arayüz testleri )
+orada kendiliğinden koşar ve main'e ancak hepsi yeşilken bağlanır
+( `.github/workflows/denetim.yml`;  main'e her push'ta hızlı denetim ).
+Yerelde her değişiklikte yalnız `kontrol.py` ( hızlı, ~3 dk ) — ağır testleri
+bilgisayarda koşturmak gerekmez ( istenirse `tam`, `arayuz`, `tarama` yine
+çalışır ).  Program değişince iş akışı değişmez:  testleri `kontrol.py` bulur.  Ortam `requirements-kilit.txt`
 ile birebir kurulur ( sabitlenmiş sürümler ).
 
 **Dondurulmuş çıktılar** — kodu düzenlerken ( refactor ) davranışın

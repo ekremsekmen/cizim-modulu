@@ -1,7 +1,18 @@
-#  DENETİM — her push'ta ve pull request'te hızlı denetim ( kontrol.py ).
-#  Tam denetim ( yavaş çizim testleri + girdi taraması ) elle başlatılır:
-#  GitHub → Actions → Denetim → Run workflow.  Arayüz testleri ( tarayıcı
-#  ister ) şimdilik yalnız yerelde:  kontrol.py arayuz.
+#  DENETİM — programın bütün testleri ( kontrol.py ).
+#
+#  Çalışma akışı:  değişiklik bir dala push'lanır ve PR açılır;  ağır testler
+#  ( tam denetim, girdi taraması, arayüz ) burada koşar — main'e ancak hepsi
+#  yeşilken bağlanır.  Yerelde yalnız hızlı denetim koşar ( kontrol.py, ~3 dk ).
+#
+#    PR ve elle başlatma ( Actions → Denetim → Run workflow ):
+#      tam      lint + biçim, hesap, bütün çizim testleri ( yavaş dahil ), node
+#      tarama   378 düzenin hükmü kayıtla ( testler/tarama_hukumleri.json )
+#      arayuz   gerçek tarayıcıyla formu doldurup çıktıları denetler ( ~30 dk )
+#    main'e push:  yalnız hızlı denetim ( PR'da hepsi zaten koştu )
+#
+#  Dakika tasarrufu ( özel depoda Actions dakikası sınırlı ):  aynı PR'a yeni
+#  push gelince eski koşu iptal edilir.  Program değişince bu dosya değişmez:
+#  testleri kontrol.py bulur.
 name: Denetim
 
 on:
@@ -10,8 +21,13 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: denetim-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   hizli:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -30,9 +46,9 @@ jobs:
           KONTROL_IS: auto
 
   tam:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -47,4 +63,32 @@ jobs:
       - run: python kontrol.py tam
         env:
           KONTROL_IS: auto
+
+  tarama:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-*.txt
+      - run: python -m pip install -r requirements-kilit.txt -r requirements-gelistirme.txt
       - run: python kontrol.py tarama
+
+  arayuz:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-*.txt
+      - run: python -m pip install -r requirements-kilit.txt -r requirements-gelistirme.txt
+      - run: python -m playwright install --with-deps chromium
+      - run: python kontrol.py arayuz
