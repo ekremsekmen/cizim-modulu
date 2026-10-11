@@ -101,10 +101,9 @@ def ciz(g, cizim_sabitleri=None):
     don = g["kuyu"]["duvar_on"]
     bh, alt = Y["bosluk_h"], Y["alt"]
     e = []
-    D = eleman.dikdortgen
 
     def kutu(katman, k, ad):
-        e.append(eleman.ad(D(katman, k[0], k[1], k[2] - k[0], k[3] - k[1]), ad))
+        e.append(eleman.ad(eleman.dikdortgen(katman, k[0], k[1], k[2] - k[0], k[3] - k[1]), ad))
         return e[-1]
 
     #  ── DUVAR VE DÖŞEME ──────────────────────────────────────────────
@@ -118,11 +117,16 @@ def ciz(g, cizim_sabitleri=None):
     z_alt = min(sac_z - sac_boy - sac_u * tan, on_z - on_boy - parcalar.ONLUK_PAH_DUSEY) - 150
     z_ust = bh + DUVAR_UST_GOSTERIM
     for z0, z1 in ((z_alt, -alt), (bh, z_ust)):
-        e.append(D("TARAMA", -don, z0, don, z1 - z0, tip="tarama"))
-        e.append(D("KUYU-DUVAR", -don, z0, don, z1 - z0))
+        e.append(eleman.dikdortgen("TARAMA", -don, z0, don, z1 - z0, tip="tarama"))
+        e.append(eleman.dikdortgen("KUYU-DUVAR", -don, z0, don, z1 - z0))
     dos = S["kat_doseme_kalinlik"]
-    e.append(D("TARAMA", -don - DOSEME_GOSTERIM, -dos, DOSEME_GOSTERIM, dos, tip="tarama"))
-    e.append(eleman.ad(D("KUYU-DUVAR", -don - DOSEME_GOSTERIM, -dos, DOSEME_GOSTERIM, dos), "kat_dosemesi"))
+    e.append(eleman.dikdortgen("TARAMA", -don - DOSEME_GOSTERIM, -dos, DOSEME_GOSTERIM, dos, tip="tarama"))
+    e.append(
+        eleman.ad(
+            eleman.dikdortgen("KUYU-DUVAR", -don - DOSEME_GOSTERIM, -dos, DOSEME_GOSTERIM, dos),
+            "kat_dosemesi",
+        )
+    )
 
     #  ── KAT KAPISI ───────────────────────────────────────────────────
     kutu("KAPI", Y["kasa"], "kapi_kasasi")
@@ -130,19 +134,26 @@ def ciz(g, cizim_sabitleri=None):
     a_k, a_u, a_a = ASKI_ORANLARI
     e.append(
         eleman.ad(
-            D("GIZLI", ku["x"], ku["y"] + a_a * ku["d"], ku["g"] * (1 - a_k), ku["d"] * (1 - a_u - a_a)),
+            eleman.dikdortgen(
+                "GIZLI", ku["x"], ku["y"] + a_a * ku["d"], ku["g"] * (1 - a_k), ku["d"] * (1 - a_u - a_a)
+            ),
             "aski_mekanizmasi",
         )
     )
     #  Üst kutu duvara L konsolla bağlı ( kutunun üstünden duvar yüzünde yukarı )
-    k = eleman.ad(D("KONSOL", 0.0, Y["ust_kutu"][3], KB["hat"], parcalar.UST_KONSOL_UZANTI), "ust_konsol")
+    k = eleman.ad(
+        eleman.dikdortgen("KONSOL", 0.0, Y["ust_kutu"][3], KB["hat"], parcalar.UST_KONSOL_UZANTI),
+        "ust_konsol",
+    )
     k["bicim"] = parcalar.l_konsol(0.0, KB["hat"], Y["ust_kutu"][3], parcalar.UST_KONSOL_UZANTI, yukari=True)
     e.append(k)
     es = kutu("KAPI", Y["kat_esigi"], "kat_esigi")
     es["bicim"] = parcalar.esik_kesiti(es["x"], es["x"] + es["g"], 0.0, et, Y["kat_oluklari"])
     #  Eşik L konsolun yatay ayağında;  dik ayağı duvarın kuyu yüzünde aşağı
     k = eleman.ad(
-        D("KONSOL", 0.0, -et - parcalar.ESIK_KONSOLU_BOY, KB["hat"], parcalar.ESIK_KONSOLU_BOY),
+        eleman.dikdortgen(
+            "KONSOL", 0.0, -et - parcalar.ESIK_KONSOLU_BOY, KB["hat"], parcalar.ESIK_KONSOLU_BOY
+        ),
         "esik_konsolu",
     )
     k["bicim"] = parcalar.l_konsol(0.0, KB["hat"], -et, parcalar.ESIK_KONSOLU_BOY)
@@ -151,7 +162,7 @@ def ciz(g, cizim_sabitleri=None):
         kutu("KAPI", kk, "kat_kanadi")
     #  Eşik altı sacı ( m.5.2.5.3.2 ):  dik, sonra pahla duvara
     dz = sac_u * tan
-    s = eleman.ad(D("KAPI", 0.0, sac_z - sac_boy - dz, sac_u, sac_boy + dz), "esik_alti_saci")
+    s = eleman.ad(eleman.dikdortgen("KAPI", 0.0, sac_z - sac_boy - dz, sac_u, sac_boy + dz), "esik_alti_saci")
     s["bicim"] = parcalar.pahli_sac(sac_u, sac_z, sac_boy, 0.0)
     e.append(s)
 
@@ -163,14 +174,18 @@ def ciz(g, cizim_sabitleri=None):
     on = KB["kabin_esik"][1]
     e.append(
         eleman.ad(
-            D("KABIN", on, -S["kabin_taban_kalinlik"], KABIN_GOSTERIM, S["kabin_taban_kalinlik"]),
+            eleman.dikdortgen(
+                "KABIN", on, -S["kabin_taban_kalinlik"], KABIN_GOSTERIM, S["kabin_taban_kalinlik"]
+            ),
             "kabin_tabani",
         )
     )
-    e.append(eleman.ad(D("KABIN", on, HH, S["kabin_pano_yan"], 300.0), "kabin_on_panosu"))
+    e.append(eleman.ad(eleman.dikdortgen("KABIN", on, HH, S["kabin_pano_yan"], 300.0), "kabin_on_panosu"))
     #  Önlük ( m.5.4.5 ):  kabin eşiğinin kat tarafındaki kenarından dik, sonra pahla kabine
     pz = parcalar.ONLUK_PAH_DUSEY
-    o = eleman.ad(D("KABIN", on_u, on_z - on_boy - pz, parcalar.ONLUK_PAH, on_boy + pz), "onluk")
+    o = eleman.ad(
+        eleman.dikdortgen("KABIN", on_u, on_z - on_boy - pz, parcalar.ONLUK_PAH, on_boy + pz), "onluk"
+    )
     o["bicim"] = parcalar.pahli_sac(
         on_u, on_z, on_boy, on_u + parcalar.ONLUK_PAH, dz=parcalar.ONLUK_PAH_DUSEY
     )
@@ -204,7 +219,6 @@ def ciz(g, cizim_sabitleri=None):
     kesit_parcalari.kot_isareti(e, -don - DOSEME_GOSTERIM + 150.0, 0.0, dusey._kot(0.0), 1.0)
 
     #  ── ÖLÇÜLER ──────────────────────────────────────────────────────
-    O = eleman.olcu
     #  Altta:  duvar · kasa · eşik · eşik arası · kabin eşiği ( kuyunun ön iç yüzünden )
     zo = z_alt - 150.0
     nok = sorted(
@@ -213,18 +227,22 @@ def ciz(g, cizim_sabitleri=None):
     metin = {(KB["esik"][1], KB["kabin_esik"][0]): f"EŞİK ARASI {KB['kabin_esik'][0] - KB['esik'][1]:g}"}
     for a, b in zip(nok, nok[1:]):
         if b - a > 1e-6:
-            e.append(O("yatay", (a, 0), (b, 0), zo, metin.get((a, b))))
+            e.append(eleman.olcu("yatay", (a, 0), (b, 0), zo, metin.get((a, b))))
     #  Kat tarafı:  kapı, üst kutu ( kasanın üstü ), kaba boşluk
     u1 = -don - DOSEME_GOSTERIM - 150.0
-    e.append(O("dusey", (0, 0.0), (0, HH), u1, f"KAPI {HH:g}"))
-    e.append(O("dusey", (0, HH), (0, HH + S["kasa_ust"]), u1, None))
-    e.append(O("dusey", (0, 0.0), (0, bh), u1 - 230.0, f"KAPI BOŞLUĞU {bh:g}"))
+    e.append(eleman.olcu("dusey", (0, 0.0), (0, HH), u1, f"KAPI {HH:g}"))
+    e.append(eleman.olcu("dusey", (0, HH), (0, HH + S["kasa_ust"]), u1, None))
+    e.append(eleman.olcu("dusey", (0, 0.0), (0, bh), u1 - 230.0, f"KAPI BOŞLUĞU {bh:g}"))
     #  Kuyu tarafı:  eşik altı sacının dik kısmı ( eşiğin altından ) ve önlüğün
     #  dik kısmı ( döşemeden — m.5.4.5.2 )
     u2 = on + KABIN_GOSTERIM + 150.0
-    e.append(O("dusey", (0, sac_z - sac_boy), (0, sac_z), u2, f"SAC {sac_boy:g}", kural=_SAC_KURALI))
     e.append(
-        O("dusey", (0, on_z - on_boy), (0, 0.0), u2 + 230.0, f"ÖNLÜK {on_boy + et:g}", kural=_ONLUK_KURALI)
+        eleman.olcu("dusey", (0, sac_z - sac_boy), (0, sac_z), u2, f"SAC {sac_boy:g}", kural=_SAC_KURALI)
+    )
+    e.append(
+        eleman.olcu(
+            "dusey", (0, on_z - on_boy), (0, 0.0), u2 + 230.0, f"ÖNLÜK {on_boy + et:g}", kural=_ONLUK_KURALI
+        )
     )
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     geometri._yazilari_yerlestir(e)

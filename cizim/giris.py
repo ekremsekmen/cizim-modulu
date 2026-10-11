@@ -124,13 +124,12 @@ def ciz(g, cizim_sabitleri=None):
     e.append(eleman.ad(eleman.cizgi("EKSEN", xc, -300, xc, ust, tip="eksen"), "kapi_ekseni"))
     kesit_parcalari.kot_isareti(e, xc + 150, 0.0, dusey._kot(0.0), 1.0)
 
-    O = eleman.olcu
     #  Alt:  kuyunun iç yüzlerinden kaba boşluğa ( LiftDesigner 470 · 1.180 · 350 ),
     #  kapının net genişliği
     alt1, alt2 = es[1] - 250, es[1] - 470
-    e.append(O("yatay", (x0, 0), (x1, 0), alt1, f"KAPI {x1 - x0:g}"))
+    e.append(eleman.olcu("yatay", (x0, 0), (x1, 0), alt1, f"KAPI {x1 - x0:g}"))
     e += [
-        O("yatay", (a, 0), (b, 0), alt2, None)
+        eleman.olcu("yatay", (a, 0), (b, 0), alt2, None)
         for a, b in ((0.0, bo[0]), (bo[0], bo[2]), (bo[2], G))
         if b - a > 1e-6
     ]
@@ -141,21 +140,23 @@ def ciz(g, cizim_sabitleri=None):
     yon = -1.0 if Y["buton_sol"] else 1.0
     bk = (yu[0] if Y["buton_sol"] else yu[2]) + yon * 120
     bk2 = bk + yon * 200
-    e += [O("dusey", (0, a), (0, b), bk, m) for a, b, m in ((0.0, yu[1], None), (yu[1], yu[3], None))]
-    e.append(O("dusey", (0, 0.0), (0, Y["bz"]), bk2, f"BUTON {Y['bz']:g}"))
+    e += [
+        eleman.olcu("dusey", (0, a), (0, b), bk, m) for a, b, m in ((0.0, yu[1], None), (yu[1], yu[3], None))
+    ]
+    e.append(eleman.olcu("dusey", (0, 0.0), (0, Y["bz"]), bk2, f"BUTON {Y['bz']:g}"))
     s_sol = min(bo[0], bk2 if Y["buton_sol"] else bo[0]) - 250
     s_sag = max(bo[2], bk2 if not Y["buton_sol"] else bo[2]) + 250
-    e.append(O("dusey", (0, 0.0), (0, bo[3]), s_sol, f"KAPI BOŞLUĞU {bo[3]:g}"))
+    e.append(eleman.olcu("dusey", (0, 0.0), (0, bo[3]), s_sol, f"KAPI BOŞLUĞU {bo[3]:g}"))
     e += [
-        O("dusey", (0, a), (0, b), s_sag, m)
+        eleman.olcu("dusey", (0, a), (0, b), s_sag, m)
         for a, b, m in ((es[1], 0.0, None), (0.0, HH, f"KAPI {HH:g}"), (HH, ka[3], None))
     ]
     #  Gösterge:  kapının üstünden ortasına ( kasanın dışında, boşluğun yanında )
-    e.append(O("dusey", (0, HH), (0, (go[1] + go[3]) / 2.0), bo[0] - 110, None))
+    e.append(eleman.olcu("dusey", (0, HH), (0, (go[1] + go[3]) / 2.0), bo[0] - 110, None))
     kapi_kenari = x0 if Y["buton_sol"] else x1
     ust1 = bo[3] + 250
-    e.append(O("yatay", (min(kapi_kenari, Y["bx"]), 0), (max(kapi_kenari, Y["bx"]), 0), ust1, None))
-    e.append(O("yatay", (yu[0], 0), (yu[2], 0), ust1 + 220, None))
+    e.append(eleman.olcu("yatay", (min(kapi_kenari, Y["bx"]), 0), (max(kapi_kenari, Y["bx"]), 0), ust1, None))
+    e.append(eleman.olcu("yatay", (yu[0], 0), (yu[2], 0), ust1 + 220, None))
     #  Ölçü yazıları ( SVG ve DXF aynı yeri kullanır )
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     geometri._yazilari_yerlestir(e)

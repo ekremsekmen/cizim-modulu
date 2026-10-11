@@ -890,22 +890,21 @@ def ciz(g, cizim_sabitleri=None):
         e.append(eleman.yazi(*_alan_yazi_yeri(Y["bakim"]), "BAKIM ALANI", 32))
 
     #  ── ÖLÇÜLER:  oda ve odanın kuyuya göre yeri ──────────────────────
-    O = eleman.olcu
     t = md["duvar"]
     u0, u1 = oda[3] + t + 120, oda[3] + t + 320
     xs = sorted({oda[0], oda[2], 0.0, G})
     e += [
-        O("yatay", (a_, 0), (b_, 0), u0, "KUYU " + f"{G:g}" if (a_, b_) == (0.0, G) else None)
+        eleman.olcu("yatay", (a_, 0), (b_, 0), u0, "KUYU " + f"{G:g}" if (a_, b_) == (0.0, G) else None)
         for a_, b_ in zip(xs, xs[1:])
     ]
-    e.append(O("yatay", (oda[0], 0), (oda[2], 0), u1, f"MAKİNE DAİRESİ {oda[2] - oda[0]:g}"))
+    e.append(eleman.olcu("yatay", (oda[0], 0), (oda[2], 0), u1, f"MAKİNE DAİRESİ {oda[2] - oda[0]:g}"))
     s0, s1 = oda[2] + t + 120, oda[2] + t + 320
     ys = sorted({oda[1], oda[3], 0.0, D})
     e += [
-        O("dusey", (0, a_), (0, b_), s0, "KUYU " + f"{D:g}" if (a_, b_) == (0.0, D) else None)
+        eleman.olcu("dusey", (0, a_), (0, b_), s0, "KUYU " + f"{D:g}" if (a_, b_) == (0.0, D) else None)
         for a_, b_ in zip(ys, ys[1:])
     ]
-    e.append(O("dusey", (0, oda[1]), (0, oda[3]), s1, f"MAKİNE DAİRESİ {oda[3] - oda[1]:g}"))
+    e.append(eleman.olcu("dusey", (0, oda[1]), (0, oda[3]), s1, f"MAKİNE DAİRESİ {oda[3] - oda[1]:g}"))
     #  Çalışma ve bakım alanlarının ölçüleri  ( standardın sayıları )
     for alan, kural in (
         (
@@ -922,7 +921,7 @@ def ciz(g, cizim_sabitleri=None):
     ):
         if alan:
             e.append(
-                O(
+                eleman.olcu(
                     "yatay",
                     (alan[0], 0),
                     (alan[2], 0),
@@ -933,7 +932,7 @@ def ciz(g, cizim_sabitleri=None):
                 )
             )
             e.append(
-                O(
+                eleman.olcu(
                     "dusey",
                     (0, alan[1]),
                     (0, alan[3]),
@@ -974,7 +973,6 @@ def delik_plani(g, cizim_sabitleri=None):
     #  Deliklerin yeri EKSENLERİNDEN ölçülür ( inşaat çiziminde delik böyle
     #  verilir );  kenardan ölçülünce 31 – 66 mm'lik parçalarla dolan bir
     #  zincir çıkıyordu.  Her deliğin ekseni kısa çizgiyle işaretlenir.
-    O = eleman.olcu
     for _, d in Y["delikler"]:
         cx, cy = (d[0] + d[2]) / 2.0, (d[1] + d[3]) / 2.0
         e.append(eleman.cizgi("EKSEN", d[0] - 40, cy, d[2] + 40, cy, tip="eksen"))
@@ -983,10 +981,10 @@ def delik_plani(g, cizim_sabitleri=None):
     ys = sorted({0.0, D} | {round((d[1] + d[3]) / 2.0, 3) for _, d in Y["delikler"]})
     u0, u1 = D + dar + 120, D + dar + 320
     s0, s1 = G + dg + 120, G + dg + 320
-    e += [O("yatay", (a_, 0), (b_, 0), u0) for a_, b_ in zip(xs, xs[1:])]
-    e.append(O("yatay", (0, 0), (G, 0), u1, f"KUYU GENİŞLİĞİ {G:g}"))
-    e += [O("dusey", (0, a_), (0, b_), s0) for a_, b_ in zip(ys, ys[1:])]
-    e.append(O("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"))
+    e += [eleman.olcu("yatay", (a_, 0), (b_, 0), u0) for a_, b_ in zip(xs, xs[1:])]
+    e.append(eleman.olcu("yatay", (0, 0), (G, 0), u1, f"KUYU GENİŞLİĞİ {G:g}"))
+    e += [eleman.olcu("dusey", (0, a_), (0, b_), s0) for a_, b_ in zip(ys, ys[1:])]
+    e.append(eleman.olcu("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"))
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     geometri._yazilari_yerlestir(e)
     return e

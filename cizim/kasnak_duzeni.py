@@ -157,24 +157,23 @@ def ciz(g, cizim_sabitleri=None):
     )
     e.append(eleman.ad(eleman.yazi(uc, max(q1, zt + R1) + 420, metin, 60), "sarim_acisi"))
 
-    O = eleman.olcu
     #  Çaplar ( LiftDesigner:  kasnağın üstünde )
-    e.append(O("yatay", (uc - R1, 0), (uc + R1, 0), zt + R1 + 150, f"Ø {D1:g}"))
+    e.append(eleman.olcu("yatay", (uc - R1, 0), (uc + R1, 0), zt + R1 + 150, f"Ø {D1:g}"))
     if sp:
-        e.append(O("yatay", (us - R2, 0), (us + R2, 0), zs - R2 - 150, f"Ø {2 * R2:g}"))
+        e.append(eleman.olcu("yatay", (us - R2, 0), (us + R2, 0), zs - R2 - 150, f"Ø {2 * R2:g}"))
     #  Alt:  merkezler arası ( yatay ) ve iki halat inişinin arası
     k1 = z_alt + 150
     if sp and abs(us - uc) > 1e-6:
-        e.append(O("yatay", (min(us, uc), 0), (max(us, uc), 0), k1 + 230, None))
-    e.append(O("yatay", (min(uk, ua), 0), (max(uk, ua), 0), k1, f"HALAT ARASI {abs(ua - uk):.0f}"))
+        e.append(eleman.olcu("yatay", (min(us, uc), 0), (max(us, uc), 0), k1 + 230, None))
+    e.append(eleman.olcu("yatay", (min(uk, ua), 0), (max(uk, ua), 0), k1, f"HALAT ARASI {abs(ua - uk):.0f}"))
     #  Sağ:  merkezlerin döşemeden ( makine dairesizde kuyu tavanına ) yüksekliği
     s = u1_ + 150
     if oda is not None:
         zinc = [oda] + ([zs] if sp else []) + [zt]
         for a, b in zip(zinc, zinc[1:]):
-            e.append(O("dusey", (0, a), (0, b), s, None))
+            e.append(eleman.olcu("dusey", (0, a), (0, b), s, None))
     else:
-        e.append(O("dusey", (0, zt), (0, tavan), s, None))
+        e.append(eleman.olcu("dusey", (0, zt), (0, tavan), s, None))
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     geometri._yazilari_yerlestir(e)
     return e

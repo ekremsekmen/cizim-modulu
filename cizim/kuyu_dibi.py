@@ -767,7 +767,6 @@ def ciz(g, cizim_sabitleri=None):
     k = g["kuyu"]
     G, D, don, dg, dar = k["genislik"], k["derinlik"], k["duvar_on"], k["duvar_sag"], k["duvar_arka"]
     e = [el for el in Y["taban"] if el["katman"] in _PLANDAN_KATMAN and el["tip"] != "yazi"]
-    O = eleman.olcu
 
     #  Kat kapısı:  yalnız yer göstermek için, kesik ( kabin bu kesitte yok )
     kp = g["kapi"]
@@ -873,19 +872,19 @@ def ciz(g, cizim_sabitleri=None):
     a0 = -don - 120
     #  Üst:  tampon eksenleri ( ağırlık ekseni · kabin ekseni )
     xs = sorted({0.0, G} | {kutu_merkezi(t)[0] for t in Y["kabin_tamponlari"] + Y["agirlik_tamponlari"]})
-    e += [O("yatay", (a, 0), (b, 0), u0) for a, b in zip(xs, xs[1:])]
-    e.append(O("yatay", (0, 0), (G, 0), u1, f"KUYU GENİŞLİĞİ {G:g}"))
+    e += [eleman.olcu("yatay", (a, 0), (b, 0), u0) for a, b in zip(xs, xs[1:])]
+    e.append(eleman.olcu("yatay", (0, 0), (G, 0), u1, f"KUYU GENİŞLİĞİ {G:g}"))
     #  Sağ:  ray ekseni ve regülatör gergisi
     ys = sorted({0.0, D, ry, kutu_merkezi(gr)[1]} | {kutu_merkezi(t)[1] for t in Y["agirlik_tamponlari"]})
-    e += [O("dusey", (0, a), (0, b), s0) for a, b in zip(ys, ys[1:])]
-    e.append(O("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"))
+    e += [eleman.olcu("dusey", (0, a), (0, b), s0) for a, b in zip(ys, ys[1:])]
+    e.append(eleman.olcu("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"))
     #  Alt:  kat kapısı ve merdivenin kapıya uzaklığı
     xs = sorted(
         {0.0, G, kp["sol_pay"], kp["sol_pay"] + kp["genislik"]}
         | ({Y["merdiven"][0], Y["merdiven"][2]} if Y["merdiven"] else set())
     )
     e += [
-        O(
+        eleman.olcu(
             "yatay",
             (a, 0),
             (b, 0),
@@ -908,16 +907,16 @@ def ciz(g, cizim_sabitleri=None):
 
         def yatay(k):
             return [
-                O("yatay", (0, 0), (sg[0], 0), k),
-                O("yatay", (sg[0], 0), (sg[2], 0), k),
-                O("yatay", (sg[2], 0), (G, 0), k),
+                eleman.olcu("yatay", (0, 0), (sg[0], 0), k),
+                eleman.olcu("yatay", (sg[0], 0), (sg[2], 0), k),
+                eleman.olcu("yatay", (sg[2], 0), (G, 0), k),
             ]
 
         def dusey(k):
             return [
-                O("dusey", (0, 0), (0, sg[1]), k),
-                O("dusey", (0, sg[1]), (0, sg[3]), k),
-                O("dusey", (0, sg[3]), (0, D), k),
+                eleman.olcu("dusey", (0, 0), (0, sg[1]), k),
+                eleman.olcu("dusey", (0, sg[1]), (0, sg[3]), k),
+                eleman.olcu("dusey", (0, sg[3]), (0, D), k),
             ]
 
         e += _serbest(yatay, (sg[3] + 90, sg[1] - 90), D, engel)

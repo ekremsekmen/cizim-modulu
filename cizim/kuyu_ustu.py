@@ -720,13 +720,12 @@ def ciz(g, cizim_sabitleri=None):
     e.append(eleman.yazi((ca[0] + ca[2]) / 2.0, (ca[1] + ca[3]) / 2.0, "ÇALIŞMA ALANI", 34))
 
     #  ── ÖLÇÜLER ──────────────────────────────────────────────────────
-    O = eleman.olcu
     xl, xr = Y["halatlar"][0][0], Y["halatlar"][1][0]
     kx = (Y["kabin"][0] + Y["kabin"][2]) / 2.0
     u0, u1 = D + dar + 120, D + dar + 320
     xs = sorted({0.0, G, Y["ex"], Y["ag_dusus"][0], xl, xr, kx})
     e += [
-        O(
+        eleman.olcu(
             "yatay",
             (a, 0),
             (b, 0),
@@ -735,24 +734,24 @@ def ciz(g, cizim_sabitleri=None):
         )
         for a, b in zip(xs, xs[1:])
     ]
-    e.append(O("yatay", (0, 0), (G, 0), u1, f"KUYU GENİŞLİĞİ {G:g}"))
+    e.append(eleman.olcu("yatay", (0, 0), (G, 0), u1, f"KUYU GENİŞLİĞİ {G:g}"))
     #  Sağ:  halat çizgisi, kabin ray ekseni, regülatör
     s0, s1 = G + dg + 120, G + dg + 320
     ys = sorted({0.0, D, Y["halatlar"][0][1], Y["ry"], (Y["reg_kasnak"][1] + Y["reg_kasnak"][3]) / 2.0})
-    e += [O("dusey", (0, a), (0, b), s0) for a, b in zip(ys, ys[1:])]
-    e.append(O("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"))
+    e += [eleman.olcu("dusey", (0, a), (0, b), s0) for a, b in zip(ys, ys[1:])]
+    e.append(eleman.olcu("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"))
     #  Sol:  ağırlık kasnağının teğetleri ve ekseni ( halat düşüşü )
     t1, t2 = Y["ag_teget"][1], Y["ag_teget2"][1]
     ys = sorted({0.0, D, t1, t2, Y["ag_y"], Y["ry"]})
-    e += [O("dusey", (0, a), (0, b), -ds - 120) for a, b in zip(ys, ys[1:])]
+    e += [eleman.olcu("dusey", (0, a), (0, b), -ds - 120) for a, b in zip(ys, ys[1:])]
     #  Acil pano çalışma alanı  ( m.5.2.6.3.2.1 a )
     kural = (
         "Acil pano önündeki çalışma alanı:  derinliği 0,70 m, eni panonun eni ya "
         "da en az 0,50 m ( TS EN 81-20 m.5.2.6.3.2.1 a )."
     )
-    e.append(O("yatay", (ca[0], 0), (ca[2], 0), ca[1] - 90, f"{ca[2] - ca[0]:g}", kural=kural))
+    e.append(eleman.olcu("yatay", (ca[0], 0), (ca[2], 0), ca[1] - 90, f"{ca[2] - ca[0]:g}", kural=kural))
     e.append(
-        O(
+        eleman.olcu(
             "dusey",
             (0, ca[1]),
             (0, ca[3]),
@@ -765,10 +764,10 @@ def ciz(g, cizim_sabitleri=None):
     dx, dy = Y["sapma"]
     if abs(dx) > 0.5:
         a, b = sorted((Y["ag_dusus"][0], Y["ex"]))
-        e.append(O("yatay", (a, 0), (b, 0), Y["ag_dusus"][1] - 150, f"HALAT SAPMASI {abs(dx):g}"))
+        e.append(eleman.olcu("yatay", (a, 0), (b, 0), Y["ag_dusus"][1] - 150, f"HALAT SAPMASI {abs(dx):g}"))
     if abs(dy) > 0.5:
         a, b = sorted((Y["ag_dusus"][1], t1))
-        e.append(O("dusey", (0, a), (0, b), Y["ex"] + 150, f"HALAT SAPMASI {abs(dy):g}"))
+        e.append(eleman.olcu("dusey", (0, a), (0, b), Y["ex"] + 150, f"HALAT SAPMASI {abs(dy):g}"))
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     geometri._yazilari_yerlestir(e)
     #  Halat sapmasının yazısı ölçüsünden uzundur:  uçlarından birinin dışına ya

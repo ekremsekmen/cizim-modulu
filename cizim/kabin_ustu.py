@@ -464,18 +464,17 @@ def ciz(g, cizim_sabitleri=None):
     e += aski_el
 
     #  ── ÖLÇÜLER ──────────────────────────────────────────────────────
-    O = eleman.olcu
     u0, u1 = D + dar + 120, D + dar + 320
     s0, s1 = G + dg + 120, G + dg + 320
     e += [
-        O("yatay", (0, 0), (tavan[0], 0), u0),
-        O("yatay", (tavan[0], 0), (tavan[2], 0), u0, f"KABİN TAVANI {tg:g}"),
-        O("yatay", (tavan[2], 0), (G, 0), u0),
-        O("yatay", (0, 0), (G, 0), u1, f"KUYU GENİŞLİĞİ {G:g}"),
-        O("dusey", (0, 0), (0, tavan[1]), s0),
-        O("dusey", (0, tavan[1]), (0, tavan[3]), s0, f"KABİN TAVANI {td:g}"),
-        O("dusey", (0, tavan[3]), (0, D), s0),
-        O("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"),
+        eleman.olcu("yatay", (0, 0), (tavan[0], 0), u0),
+        eleman.olcu("yatay", (tavan[0], 0), (tavan[2], 0), u0, f"KABİN TAVANI {tg:g}"),
+        eleman.olcu("yatay", (tavan[2], 0), (G, 0), u0),
+        eleman.olcu("yatay", (0, 0), (G, 0), u1, f"KUYU GENİŞLİĞİ {G:g}"),
+        eleman.olcu("dusey", (0, 0), (0, tavan[1]), s0),
+        eleman.olcu("dusey", (0, tavan[1]), (0, tavan[3]), s0, f"KABİN TAVANI {td:g}"),
+        eleman.olcu("dusey", (0, tavan[3]), (0, D), s0),
+        eleman.olcu("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"),
     ]
     #  Korkuluğun kenardan içeri alınması  ( 0'dan büyükse )
     for yan, k in ken.items():
@@ -487,7 +486,7 @@ def ciz(g, cizim_sabitleri=None):
             #  kopuk bir zincir oluştururdu )
             kot = tavan[3] - (120 if yan == "Sol" else 200)
             e.append(
-                O(
+                eleman.olcu(
                     "yatay",
                     (x1, 0),
                     (x2, 0),
@@ -507,7 +506,7 @@ def ciz(g, cizim_sabitleri=None):
             y1, y2 = (ic[3], tavan[3]) if yan == "Arka" else (tavan[1], ic[1])
             kot = tavan[0] + (120 if yan == "Arka" else 200)
             e.append(
-                O(
+                eleman.olcu(
                     "dusey",
                     (0, y1),
                     (0, y2),
@@ -535,12 +534,12 @@ def ciz(g, cizim_sabitleri=None):
 
         def olculer(kot_y, kot_x):
             return [
-                O("yatay", (tavan[0], 0), (sg[0], 0), kot_y, kural=yer),
-                O("yatay", (sg[0], 0), (sg[2], 0), kot_y, kural=buyukluk),
-                O("yatay", (sg[2], 0), (tavan[2], 0), kot_y, kural=yer),
-                O("dusey", (0, tavan[1]), (0, sg[1]), kot_x, kural=yer),
-                O("dusey", (0, sg[1]), (0, sg[3]), kot_x, kural=buyukluk),
-                O("dusey", (0, sg[3]), (0, tavan[3]), kot_x, kural=yer),
+                eleman.olcu("yatay", (tavan[0], 0), (sg[0], 0), kot_y, kural=yer),
+                eleman.olcu("yatay", (sg[0], 0), (sg[2], 0), kot_y, kural=buyukluk),
+                eleman.olcu("yatay", (sg[2], 0), (tavan[2], 0), kot_y, kural=yer),
+                eleman.olcu("dusey", (0, tavan[1]), (0, sg[1]), kot_x, kural=yer),
+                eleman.olcu("dusey", (0, sg[1]), (0, sg[3]), kot_x, kural=buyukluk),
+                eleman.olcu("dusey", (0, sg[3]), (0, tavan[3]), kot_x, kural=yer),
             ]
 
         #  İki sıranın yeri DENENEREK seçilir:  her aday için yazılar gerçekten

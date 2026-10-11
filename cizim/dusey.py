@@ -451,15 +451,20 @@ def _kabin(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89, esik
     esik_on:  kabin eşiğinin kat tarafındaki kenarı ( önlük orada asılıdır;
     verilmezse kabinin ön yüzü )."""
     y0, y1 = kabin_y
-    D = eleman.dikdortgen
-    e.append(eleman.ad(D("KABIN", y0, kt["taban_alti"], y1 - y0, kt["tavan"] - kt["taban_alti"]), "kabin"))
-    e.append(D("KABIN-IC", y0, kt["doseme"], y1 - y0, kt["ic_ust"] - kt["doseme"]))
+    e.append(
+        eleman.ad(
+            eleman.dikdortgen("KABIN", y0, kt["taban_alti"], y1 - y0, kt["tavan"] - kt["taban_alti"]), "kabin"
+        )
+    )
+    e.append(eleman.dikdortgen("KABIN-IC", y0, kt["doseme"], y1 - y0, kt["ic_ust"] - kt["doseme"]))
     #  Etek ( önlük, m.5.4.5 ):  kabin eşiğinin kat tarafındaki kenarından iner,
     #  dik kısmın altında pahla kabine döner ( eskiden kabinin ön yüzündeydi,
     #  eşiğin 90 gerisinde, pahsız )
     u = y0 if esik_on is None else esik_on
     ust = kt["doseme"] - S["esik_kalinlik"]
-    et = eleman.ad(D("KABIN", u, kt["etek_alti"], parcalar.ONLUK_PAH, ust - kt["etek_alti"]), "etek")
+    et = eleman.ad(
+        eleman.dikdortgen("KABIN", u, kt["etek_alti"], parcalar.ONLUK_PAH, ust - kt["etek_alti"]), "etek"
+    )
     et["bicim"] = parcalar.pahli_sac(
         u, ust, ust - kt["etek_dik_alti"], u + parcalar.ONLUK_PAH, dz=parcalar.ONLUK_PAH_DUSEY
     )
@@ -475,24 +480,35 @@ def _kabin(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89, esik
     for x in (ry - sd / 2.0, ry + sd / 2.0 - pe):
         e.append(
             eleman.ad(
-                D("KABIN-IC", x, kt["alt_kiris_alt"], pe, kt["ust_kiris_ust"] - kt["alt_kiris_alt"]), "sase"
+                eleman.dikdortgen(
+                    "KABIN-IC", x, kt["alt_kiris_alt"], pe, kt["ust_kiris_ust"] - kt["alt_kiris_alt"]
+                ),
+                "sase",
             )
         )
         for z0, z1 in (
             (kt["alt_kiris_alt"], kt["alt_kiris_ust"]),
             (kt["ust_kiris_alt"], kt["ust_kiris_ust"]),
         ):
-            e.append(eleman.ad(D("KABIN-IC", x, z0, pe, z1 - z0), "sase_kiris"))
+            e.append(eleman.ad(eleman.dikdortgen("KABIN-IC", x, z0, pe, z1 - z0), "sase_kiris"))
     #  Patenler ve fren bloğu
-    e.append(eleman.ad(D("PATEN", ry - 35, kt["ust_paten_alt"], 70, S["paten_yukseklik"]), "ust_paten"))
-    e.append(eleman.ad(D("PATEN", ry - 35, kt["alt_paten"], 70, S["paten_yukseklik"]), "alt_paten"))
+    e.append(
+        eleman.ad(
+            eleman.dikdortgen("PATEN", ry - 35, kt["ust_paten_alt"], 70, S["paten_yukseklik"]), "ust_paten"
+        )
+    )
+    e.append(
+        eleman.ad(eleman.dikdortgen("PATEN", ry - 35, kt["alt_paten"], 70, S["paten_yukseklik"]), "alt_paten")
+    )
     for x in (ry - sd / 2.0, ry + sd / 2.0 - 50):
-        e.append(eleman.ad(D("SASE", x, kt["fren_alti"], 50, S["fren_blogu_yukseklik"]), "fren"))
+        e.append(
+            eleman.ad(eleman.dikdortgen("SASE", x, kt["fren_alti"], 50, S["fren_blogu_yukseklik"]), "fren")
+        )
     #  Kabin kasnağı ( 2:1 kabin altı ):  kesitte yandan, çapı düşey
     for ky in kasnaklar_y or ():
         e.append(
             eleman.ad(
-                D(
+                eleman.dikdortgen(
                     "KASNAK",
                     ky - S["kabin_kasnak_genislik"] / 2.0,
                     kt["kasnak_merkez"] - kasnak_capi / 2.0,
