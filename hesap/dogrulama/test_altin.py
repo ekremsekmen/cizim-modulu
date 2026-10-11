@@ -27,8 +27,8 @@ import yollar
 
 yollar.kur()
 
-from motor.avan import avan_hesabi as AV
-from motor.avan import trafik as TR
+from motor.avan import avan_hesabi
+from motor.avan import trafik
 from dogrulama.altin_uret import (
     DOSYA,
     DOSYA_AVAN,
@@ -55,8 +55,8 @@ def _duz(x, on=""):
 
 def calistir():
     r = Rapor("TEST 7 — ALTIN ÇIKTI (refactor kalkanı)")
-    _karsilastir(r, DOSYA, senaryolar, TR.hesapla, "trafik")
-    _karsilastir(r, DOSYA_AVAN, avan_senaryolar, AV.hesapla, "avan")
+    _karsilastir(r, DOSYA, senaryolar, trafik.hesapla, "trafik")
+    _karsilastir(r, DOSYA_AVAN, avan_senaryolar, avan_hesabi.hesapla, "avan")
     #  UYGULAMA PROJESİ.  Senaryolar ÇOKLU yoldan geçer;  hesapla_coklu tek
     #  asansörde hesapla()'nın tam çıktısını taşıdığı için bu dosya hem tek
     #  hem çok asansörlü yolu birden dondurur.

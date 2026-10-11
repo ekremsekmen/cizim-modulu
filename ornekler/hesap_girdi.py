@@ -12,7 +12,7 @@ hesap ile çizim aynı sayıyı kullanır, referans projenin ikisi ise çelişiy
                             teğetinden iner, askı ray ekseninin 250 önünde ( −250 );
                             referans hesabı 0 alır ( askı ray ekseninde )."""
 
-from cizim import cizim_sabitleri as _CS
+from cizim import sabitler
 
 ASANSOR = {
     "asansor_adi": "ASANSÖR 1",
@@ -116,11 +116,11 @@ ASANSOR = {
 }
 #  Ofis standardı ( Sabitler sekmesi ):  referans projenin kabulleri ve KABİNİ.
 #  Programın ofis standardı ofisin kendi ( LiftDesigner ) kabinidir ( 5. adım,
-#  cizim/cizim_sabitleri.py );  referans projenin kabini onun "Cabin at Bottom / Top
+#  cizim/sabitler.py );  referans projenin kabini onun "Cabin at Bottom / Top
 #  Floor" kesitlerinden ölçülmüştü ( 1/30 ):  şase alt kirişinin altı −480,
 #  paten onun ortasında, taban 120, fren bloğu platformun altında 350, kabin
 #  kasnağı merkezi −295 ( genişliği 92 ), yan pano 45, arka 33.
-SABITLER = {"q_denge": 0.50, "kanal_gama_v": 38, **_CS.REFERANS_PROJE_KABINI}
+SABITLER = {"q_denge": 0.50, "kanal_gama_v": 38, **sabitler.REFERANS_PROJE_KABINI}
 ORTAK = {"mk_yok": True}
 
 #  ── MAKİNE DAİRELİ, DİŞLİ MAKİNELİ ÇEŞİT ─────────────────────────────────

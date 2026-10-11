@@ -32,9 +32,9 @@ import yollar
 
 yollar.kur()
 
-from motor.avan import avan_hesabi as AV
-from motor.avan import tablolar as T
-from motor.avan import trafik as TR
+from motor.avan import avan_hesabi
+from motor.avan import tablolar
+from motor.avan import trafik
 from dogrulama.rapor import Rapor
 
 DOSYA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "referans_avan.json.gz")
@@ -74,7 +74,7 @@ TAM_KAPI = [
 def tek_senaryolar():
     s = []
     # a) her bina tipi — küçük ve büyük nüfus (n katsayısının iki kolu)
-    for bt, veri in T.TABLO_10.items():
+    for bt, veri in tablolar.TABLO_10.items():
         for kucuk in (True, False):
             h1, h2 = _nufus(bt, kucuk)
             if h1 is None:
@@ -97,7 +97,7 @@ def tek_senaryolar():
                 g["manuel_V"] = 1.6
             s.append((f"bina={bt[:22]} b{'<' if kucuk else '≥'}200", g))
     # b) tüm kapasiteler  (15 kişi = MMO örnek istisnası dâhil)
-    for P in T.GECERLI_KAPASITELER:
+    for P in tablolar.GECERLI_KAPASITELER:
         s.append(
             (
                 f"P={P} kişi",
@@ -135,7 +135,7 @@ def tek_senaryolar():
             )
         )
     # d) tüm geçerli hızlar  (Tablo-6 tg kademeleri + iki ara değer)
-    for V in T.GECERLI_HIZLAR:
+    for V in tablolar.GECERLI_HIZLAR:
         s.append(
             (
                 f"V={V} m/s",
@@ -214,7 +214,7 @@ def tek_senaryolar():
             )
         )
     # e-1) ARA DEĞERLİ kapı genişlikleri — Tablo-4 (1000/1200) ve Tablo-8 (700)
-    for kg in T.KAPI_GENISLIKLERI:
+    for kg in tablolar.KAPI_GENISLIKLERI:
         for kt in ("Teleskopik Otomatik", "Merkezden Açılan Oto."):
             s.append(
                 (
@@ -597,7 +597,7 @@ def avan_senaryolar():
 
     s = []
     # a) tüm kapasiteler (4'erli gruplar)
-    kaps = T.GECERLI_KAPASITELER
+    kaps = tablolar.GECERLI_KAPASITELER
     for i in range(0, len(kaps), 4):
         grup = kaps[i : i + 4]
         s.append(
@@ -955,14 +955,14 @@ def _kopya(g):
 
 
 def tek_sonucu(g):
-    s = TR.hesapla_tek(_kopya(g))
+    s = trafik.hesapla_tek(_kopya(g))
     if s.get("hata"):
         return {"hata": s["hata"]}
     return {k: s["ozet"][k] for k in TEK_ANAHTARLAR}
 
 
 def coklu_sonucu(g):
-    s = TR.hesapla_coklu(_kopya(g))
+    s = trafik.hesapla_coklu(_kopya(g))
     if s.get("hata"):
         return {"hata": s["hata"]}
     return {
@@ -972,7 +972,7 @@ def coklu_sonucu(g):
 
 
 def avan_sonucu(v):
-    s = AV.hesapla(_kopya(v))
+    s = avan_hesabi.hesapla(_kopya(v))
     tp, mk = s["topraklama"], s["makine_dairesi"]
     return {
         "asansorler": [

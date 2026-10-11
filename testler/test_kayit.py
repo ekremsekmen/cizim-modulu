@@ -4,8 +4,8 @@ döndürür;  sunucunun kaydında da izi kalmalı ( uclar/uc_ortak.hata_kaydi ).
 import logging
 import unittest
 
-from uclar import cizim_uclari as UC
-from uclar import uygulama_uclari as UC_UYG
+from uclar import cizim_uclari
+from uclar import uygulama_uclari
 from uclar.uc_ortak import hata_kaydi
 
 
@@ -41,10 +41,10 @@ class UcunKaydi(unittest.TestCase):
         from unittest import mock
 
         with (
-            mock.patch.object(UC_UYG, "_asansor_girdileri", side_effect=KeyError("bozuk")),
-            self.assertLogs(UC.log, level="ERROR") as k,
+            mock.patch.object(uygulama_uclari, "_asansor_girdileri", side_effect=KeyError("bozuk")),
+            self.assertLogs(cizim_uclari.log, level="ERROR") as k,
         ):
-            yanit = UC.api_cizimler({"asansorler": [{}]})
+            yanit = cizim_uclari.api_cizimler({"asansorler": [{}]})
         self.assertEqual(json.loads(yanit.body), {"aktif": False, "hata": ["ÇİZİM HATASI: 'bozuk'"]})
         self.assertIsNotNone(k.records[0].exc_info)
 

@@ -78,7 +78,7 @@ def kabin_parcalari(g, S, plan, kt):
     çapraz düzende ( arkadaki ağırlıkla 2:1 ) döndürülmüş kasnakların kutuları
     ve aralarındaki çapraz halat şeridi, doğrudan ( 1:1 ) askıda üst kirişin
     üstündeki halat bağlantısı."""
-    from cizim import arka_aski as CAA
+    from cizim import arka_aski
 
     out = []
     kabin = next((eleman_kutusu(el) for el in plan if el.get("ad") == "kabin_dis"), None)
@@ -102,8 +102,8 @@ def kabin_parcalari(g, S, plan, kt):
     halat = aski.get("halat_capi") or 0.0
     if duzen in ("Kabin altı", "Kabin üstü"):
         zc = kt["kasnak_merkez"]
-        if CAA.arkada_iki_bir(g):
-            A = CAA.geometri(g, S)
+        if arka_aski.arkada_iki_bir(g):
+            A = arka_aski.geometri(g, S)
             if "kutular" in A:
                 Rk = A["Rk"]
                 for k in A["kutular"]:

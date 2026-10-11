@@ -11,7 +11,7 @@ Eksenler:  x planınki ( kuyunun sol iç yüzünden;  durakta duran kişinin sa�
 z durak döşemesinden yukarı.
 
 Ölçüler LiftDesigner'ın "Giriş" görünüşünden ( kullanıcı kararı 1 Eki;
-cizim/cizim_sabitleri.py KAPI VE KATLAR ):  kaba boşluk kapıdan 2 × 140 geniş, 240
+cizim/sabitler.py KAPI VE KATLAR ):  kaba boşluk kapıdan 2 × 140 geniş, 240
 yüksek;  kasa dikmeleri 120, üstü kapının 220 üstünde;  eşik plakası 50;
 gösterge 500 × 124, ortası kapının 100 üstünde;  buton kutusu 90 × 240, ortası
 döşemeden 1.200 ve kapının kenarından 240, duvardaki yuvası 160 × 290.
@@ -26,28 +26,28 @@ kapının yanındaki kesikli 100 mm'lik dikdörtgeni, döşemeden 2.500'deki çi
 kasanın ve eşiğin bağlantı noktaları.
 """
 
-from cizim import eleman as CEL
-from cizim import dusey as CDU
-from cizim import geometri as CGE
-from cizim import girdi as CG
-from cizim import kesit_parcalari as CKP
-from cizim import cizim_sabitleri as CS
+from cizim import eleman
+from cizim import dusey
+from cizim import geometri
+from cizim import girdi
+from cizim import kesit_parcalari
+from cizim import sabitler
 
 
 def dogrula(g):
-    return CG.dogrula(g)
+    return girdi.dogrula(g)
 
 
 def yerlesim(g, cizim_sabitleri=None):
     """Görünüşün parçaları ( x, z kutuları ) — çizim ve ölçüler bunu okur."""
-    S = CS.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
+    S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     kp = g["kapi"]
     x0, DW, HH = kp["sol_pay"], kp["genislik"], kp["yukseklik"]
     x1 = x0 + DW
     xc = (x0 + x1) / 2.0
-    bx0, bx1, bh = CG.kaba_bosluk(g, S)
+    bx0, bx1, bh = girdi.kaba_bosluk(g, S)
     tip = str(kp.get("tip") or "")
-    n = CG.kapi_tipi(tip)["kanat"]
+    n = girdi.kapi_tipi(tip)["kanat"]
     buton_sol = tip.endswith("Sağ")
     bx = x0 - S["buton_kapi_payi"] if buton_sol else x1 + S["buton_kapi_payi"]
     bz = S["buton_yukseklik"]
@@ -87,7 +87,7 @@ def yerlesim(g, cizim_sabitleri=None):
 
 
 def _kutu(katman, k, ad, tip="dikdortgen"):
-    return CEL.ad(CEL.dikdortgen(katman, k[0], k[1], k[2] - k[0], k[3] - k[1], tip=tip), ad)
+    return eleman.ad(eleman.dikdortgen(katman, k[0], k[1], k[2] - k[0], k[3] - k[1], tip=tip), ad)
 
 
 def ciz(g, cizim_sabitleri=None):
@@ -100,10 +100,10 @@ def ciz(g, cizim_sabitleri=None):
     #  Kuyunun iç yüzleri ( duvarın gerisinde — kesik ) ve durak döşemesi
     ust = bo[3] + 600
     for x in (0.0, G):
-        e.append(CEL.ad(CEL.cizgi("GIZLI", x, -300, x, ust), "kuyu_ic_yuzu"))
+        e.append(eleman.ad(eleman.cizgi("GIZLI", x, -300, x, ust), "kuyu_ic_yuzu"))
     sol, sag = min(0.0, bo[0], yu[0]) - 300, max(G, bo[2], yu[2]) + 300
-    e.append(CEL.ad(CEL.cizgi("KUYU-DUVAR", sol, 0.0, bo[0], 0.0), "durak_dosemesi"))
-    e.append(CEL.ad(CEL.cizgi("KUYU-DUVAR", bo[2], 0.0, sag, 0.0), "durak_dosemesi"))
+    e.append(eleman.ad(eleman.cizgi("KUYU-DUVAR", sol, 0.0, bo[0], 0.0), "durak_dosemesi"))
+    e.append(eleman.ad(eleman.cizgi("KUYU-DUVAR", bo[2], 0.0, sag, 0.0), "durak_dosemesi"))
     #  Duvardaki kaba boşluk, kasa ( iki dikme ve başlık ), eşik plakası
     e.append(_kutu("BINA", bo, "kaba_bosluk"))
     for k in ((ka[0], 0.0, x0, ka[3]), (x1, 0.0, ka[2], ka[3]), (x0, HH, x1, ka[3])):
@@ -121,10 +121,10 @@ def ciz(g, cizim_sabitleri=None):
         _kutu("PANO", (Y["bx"] - d / 2.0, Y["bz"] - d / 2.0, Y["bx"] + d / 2.0, Y["bz"] + d / 2.0), "buton")
     )
     #  Kapı ekseni ve döşemenin kotu
-    e.append(CEL.ad(CEL.cizgi("EKSEN", xc, -300, xc, ust, tip="eksen"), "kapi_ekseni"))
-    CKP.kot_isareti(e, xc + 150, 0.0, CDU._kot(0.0), 1.0)
+    e.append(eleman.ad(eleman.cizgi("EKSEN", xc, -300, xc, ust, tip="eksen"), "kapi_ekseni"))
+    kesit_parcalari.kot_isareti(e, xc + 150, 0.0, dusey._kot(0.0), 1.0)
 
-    O = CEL.olcu
+    O = eleman.olcu
     #  Alt:  kuyunun iç yüzlerinden kaba boşluğa ( LiftDesigner 470 · 1.180 · 350 ),
     #  kapının net genişliği
     alt1, alt2 = es[1] - 250, es[1] - 470
@@ -158,5 +158,5 @@ def ciz(g, cizim_sabitleri=None):
     e.append(O("yatay", (yu[0], 0), (yu[2], 0), ust1 + 220, None))
     #  Ölçü yazıları ( SVG ve DXF aynı yeri kullanır )
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
-    CGE._yazilari_yerlestir(e)
+    geometri._yazilari_yerlestir(e)
     return e

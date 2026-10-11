@@ -14,7 +14,7 @@ import os
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
-from uclar import cizim_uclari as UC_CIZIM
+from uclar import cizim_uclari
 from uclar.uc_ortak import (
     hata_kaydi,
     _BELIRSIZ,
@@ -31,22 +31,23 @@ from uclar.uc_ortak import (
     belirsiz_sayi_mi,
 )
 from motor.ortak.adimlar import evet_mi
-from motor.uygulama import uygulama_girdisi as E_UGR
-from motor.uygulama import uygulama_sabitleri as E_US
-from motor.uygulama import tablolar_gorunum as E_UTB
-from motor.uygulama import uygulama_hesabi as E_UYG
-from motor.uygulama import mukavemet_girdi as E_MGR
-from tasarim import gorunum as _TG
-from ciktilar import kapak_cikti as X_KAPAK
-from ciktilar import pdf_cikti as X_PDF
+from motor.uygulama import uygulama_girdisi
+from motor.uygulama import uygulama_sabitleri
+from motor.uygulama import tablolar_gorunum
+from motor.uygulama import uygulama_hesabi
+from motor.uygulama import mukavemet_girdi
+from tasarim import gorunum
+from ciktilar import kapak_cikti
+from ciktilar import pdf_cikti
+from cizim import kopru
 
 try:
-    from ciktilar import dxf_cikti as X_DXF
+    from ciktilar import dxf_cikti
 
     _DXF_HATA = None
 except Exception as _e:  # noqa: BLE001
     logging.getLogger(__name__).warning("CAD çıktısı kapalı:  %s", _e)
-    X_DXF, _DXF_HATA = None, _e
+    dxf_cikti, _DXF_HATA = None, _e
 _BASLATICI = "baslat.command" if os.name != "nt" else "baslat.bat"
 
 log = logging.getLogger(__name__)
@@ -60,24 +61,28 @@ def uygulama_alanlari():
     Mukavemet alanları + elektrik hesaplarının mukavemette KARŞILIĞI OLMAYAN
     alanları.  Ortak girdiler burada BİR KEZ geçer ( bkz. uygulama_girdi ).
     """
-    veri = E_UGR.arayuz_alanlari()
-    veri["ortak_kopru"] = [{"mukavemet": ad, "anahtar": a, "avan": av} for ad, a, av in E_UGR.ORTAK_KOPRU]
+    veri = uygulama_girdisi.arayuz_alanlari()
+    veri["ortak_kopru"] = [
+        {"mukavemet": ad, "anahtar": a, "avan": av} for ad, a, av in uygulama_girdisi.ORTAK_KOPRU
+    ]
     #  UYGULAMANIN KENDİ OFİS STANDARDI  —  avanınkinden ayrıdır.
     #  Ekran bu listeden kurulur;  avanın MMO/697 kuvvet sabitleri burada
     #  YOKTUR, uygulamanın mukavemet kabulleri ( σem · k1 · paylar ) ise
     #  yalnız burada vardır.
     veri["sabitler"] = {
-        "varsayilan": E_US.VARSAYILAN,
-        "metin": list(E_US.METIN),
-        "gruplar": [{"baslik": b, "aciklama": a, "alanlar": list(al)} for b, a, al in E_US.GRUPLAR],
-        "etiket": {k: list(v) for k, v in E_US.ETIKET.items()},
+        "varsayilan": uygulama_sabitleri.VARSAYILAN,
+        "metin": list(uygulama_sabitleri.METIN),
+        "gruplar": [
+            {"baslik": b, "aciklama": a, "alanlar": list(al)} for b, a, al in uygulama_sabitleri.GRUPLAR
+        ],
+        "etiket": {k: list(v) for k, v in uygulama_sabitleri.ETIKET.items()},
     }
     #  Tablolar sekmesi:  uygulamanın kendi tabloları  ( ray · NPU · halat ·
     #  ω · kabin alanı … ).  Bunlar bugüne kadar yalnız motorun içindeydi,
     #  ekranda görünmüyordu — uygulama yapan mühendis kullandığı ray
     #  tablosuna bakamıyordu.
-    veri["tablolar"] = E_UTB.arayuz_tablolari()
-    veri["asansor_azami"] = E_UYG.ASANSOR_AZAMI
+    veri["tablolar"] = tablolar_gorunum.arayuz_tablolari()
+    veri["asansor_azami"] = uygulama_hesabi.ASANSOR_AZAMI
     return veri
 
 
@@ -99,8 +104,8 @@ def _uygulanmayan(ham):
 
     Kutu gönderilmemişse sözleşmenin varsayılanı ( makine dairesiz ) geçerlidir.
     """
-    mk_yok = evet_mi(ham["mk_yok"]) if "mk_yok" in ham else E_UGR.EK_ALAN["mk_yok"][5]
-    return E_UGR.uygulanmayan_alanlar(mk_yok)
+    mk_yok = evet_mi(ham["mk_yok"]) if "mk_yok" in ham else uygulama_girdisi.EK_ALAN["mk_yok"][5]
+    return uygulama_girdisi.uygulanmayan_alanlar(mk_yok)
 
 
 def _girdi_coz(v, veri, atla=frozenset()):
@@ -119,7 +124,7 @@ def _girdi_coz(v, veri, atla=frozenset()):
     #  Elektrik hesaplarının ek alanları  ( kuyu genişliği · kesitler ·
     #  temel ölçüleri · makine dairesi ).  Onay kutusu mantıksal, geri kalanı
     #  serbest sayıdır;  boş bırakılabilir — hesap eksikliği kendisi bildirir.
-    for anahtar, _et, _b2, tur2, _s2, _v2 in E_UGR.EK_ALANLAR:
+    for anahtar, _et, _b2, tur2, _s2, _v2 in uygulama_girdisi.EK_ALANLAR:
         if anahtar not in v or anahtar not in _FORMDA:
             continue
         if anahtar in atla:
@@ -129,7 +134,7 @@ def _girdi_coz(v, veri, atla=frozenset()):
         g[anahtar] = evet_mi(ham) if tur2 == "onay" else _sayi_oku(ham, _et)
     #  Çizim alanları:  sayılar okunur ( okunamayan yazım reddedilir ),
     #  seçimler olduğu gibi;  boş alan None — köprü kuralını uygular.
-    for anahtar, _et, _b3, tur3, _s3, _v3, _gel, _bil in UC_CIZIM.CK.ALANLAR:
+    for anahtar, _et, _b3, tur3, _s3, _v3, _gel, _bil in kopru.ALANLAR:
         if anahtar not in v or anahtar not in _FORMDA:
             continue
         if anahtar in atla:
@@ -137,7 +142,7 @@ def _girdi_coz(v, veri, atla=frozenset()):
             continue
         ham = v[anahtar]
         g[anahtar] = _sayi_oku(ham, _et) if tur3 == "sayi" else (ham if str(ham).strip() != "" else None)
-    for anahtar, etiket, _b, tur, secenekler, _var in E_MGR.ALANLAR:
+    for anahtar, etiket, _b, tur, secenekler, _var in mukavemet_girdi.ALANLAR:
         if tur == "hesap" or anahtar not in v or anahtar not in _FORMDA:
             continue
         if anahtar in atla:
@@ -172,17 +177,19 @@ def _girdi_coz(v, veri, atla=frozenset()):
     #  Ofis standardı ( Sabitler sekmesi ) — elektrik ve topraklama hesapları
     #  buradan besleniyor;  avan tarafındaki ile aynı biçimde alınır.
     g["_ofis"] = _sabitler_coz(
-        (veri or {}).get("sabitler"), E_US.METIN, lambda k: E_US.ETIKET.get(k, (k,))[0]
+        (veri or {}).get("sabitler"),
+        uygulama_sabitleri.METIN,
+        lambda k: uygulama_sabitleri.ETIKET.get(k, (k,))[0],
     )
     return g
 
 
 #  Makine dairesinin çizim ölçüleri de binaya aittir.
-PROJE_GENELI_ALANLAR = E_UGR.PROJE_GENELI_ALANLAR + UC_CIZIM.CK.PROJE_GENELI
+PROJE_GENELI_ALANLAR = uygulama_girdisi.PROJE_GENELI_ALANLAR + kopru.PROJE_GENELI
 #  FORMDA KUTUSU OLAN alanlar okunur ( tasarım şeması ).  Çizimden ya da
 #  hesaptan gelen alan istekte olsa da okunmaz — eski proje dosyalarında
 #  saptırma kasnağı çapı, kaide, ray sayısı yazılı olabilir.
-_FORMDA = frozenset(_TG.anahtarlar(formda=True))
+_FORMDA = frozenset(gorunum.anahtarlar(formda=True))
 
 
 def _asansor_girdileri(veri):
@@ -199,7 +206,7 @@ def _asansor_girdileri(veri):
     ham = veri.get("asansorler")
     if not isinstance(ham, list) or not ham:
         ham = [veri.get("girdiler")]
-    ham = [x for x in ham if isinstance(x, dict)][: E_UYG.ASANSOR_AZAMI] or [{}]
+    ham = [x for x in ham if isinstance(x, dict)][: uygulama_hesabi.ASANSOR_AZAMI] or [{}]
 
     #  Proje geneli alanlar:  ayrı gönderilmişse oradan, yoksa İLK asansörün
     #  girdisinden ( eski tek asansörlük istekler bunları orada taşıyor ).
@@ -225,7 +232,7 @@ def _coklu_sonuc(veri):
     belirsiz = _belirsiz_hata()
     if belirsiz:
         return None, JSONResponse({"aktif": False, "hata": [belirsiz]}, status_code=200)
-    s = E_UYG.hesapla_coklu(asansorler, ortak)
+    s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
     if not s.get("aktif"):
         return None, JSONResponse(
             {"aktif": False, "hata": s.get("hata") or ["HESAP HATASI"]}, status_code=200
@@ -256,7 +263,9 @@ def indir_uygulama_pdf(veri: dict = Body(...)):
         if yanit is not None:
             return yanit
         return _indir(
-            X_PDF.uygulama_pdf(s, _p), _dosya_adi(_p, "Uygulama Projesi Hesaplari", "pdf"), "application/pdf"
+            pdf_cikti.uygulama_pdf(s, _p),
+            _dosya_adi(_p, "Uygulama Projesi Hesaplari", "pdf"),
+            "application/pdf",
         )
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
@@ -266,7 +275,7 @@ def indir_uygulama_pdf(veri: dict = Body(...)):
 @router.post("/api/indir/uygulama-dwg")
 def indir_uygulama_dwg(veri: dict = Body(...)):
     """Uygulama projesi paftası — ofis tip proje formatına yerleştirilmiş CAD."""
-    if X_DXF is None:
+    if dxf_cikti is None:
         return JSONResponse(
             {
                 "hata": "HESAP HATASI: CAD çıktısı için gereken kitaplıklar kurulu değil "
@@ -286,14 +295,14 @@ def indir_uygulama_dwg(veri: dict = Body(...)):
         #  kapak alanları doldurulmuşsa pakete de girer.
         kapak = veri.get("kapak_sayfasi")
         if isinstance(kapak, dict) and any(str(x).strip() for x in kapak.values()):
-            paftalar.append(("Kapak", X_KAPAK.pdf_bytes(kapak)))
-        paftalar.append(("Uygulama Projesi", X_PDF.uygulama_pdf(s)))
+            paftalar.append(("Kapak", kapak_cikti.pdf_bytes(kapak)))
+        paftalar.append(("Uygulama Projesi", pdf_cikti.uygulama_pdf(s)))
         #  ÇİZİMLER:  her asansörün kuyu kesitleri ve planları hesap
         #  sayfalarının sağına dizilir.  Bir asansörün çizimi kurulamıyorsa
         #  paket ÇİZİMSİZ inmez — eksik bir proje teslim edilmesin, sebep
         #  söylenir ( girdi formun "Çizim" grubunda ya da hesapta düzeltilir ).
         asansorler, ortak = _asansor_girdileri(veri)
-        cizim = UC_CIZIM.girdiler(veri, asansorler, ortak, s, _p["proje_adi"])
+        cizim = cizim_uclari.girdiler(veri, asansorler, ortak, s, _p["proje_adi"])
         eksik = [f"{i}. asansör — {h}" for i, (_g, hata) in enumerate(cizim, 1) for h in hata]
         if eksik:
             return JSONResponse(
@@ -302,11 +311,11 @@ def indir_uygulama_dwg(veri: dict = Body(...)):
         ad = _dosya_adi(_p, "Uygulama Projesi", "zip")
         #  Pakete PROJE DOSYASI da girer:  teslim paketi ile geri dönüş
         #  noktası aynı arşivde dursun.
-        paket, sebep, tasti = X_DXF.proje_paketi(
+        paket, sebep, tasti = dxf_cikti.proje_paketi(
             paftalar,
             os.path.splitext(ad)[0],
             list(_paket_ekleri(veri, "uygulama")),
-            son_islem=UC_CIZIM.paftaya_ekle([g for g, _h in cizim]),
+            son_islem=cizim_uclari.paftaya_ekle([g for g, _h in cizim]),
         )
         yanit = _indir(paket, ad, "application/zip")
         notlar = (["DXF"] if sebep else []) + (["TASMA"] if tasti else [])

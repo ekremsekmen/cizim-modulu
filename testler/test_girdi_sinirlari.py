@@ -5,26 +5,26 @@ import unittest
 from unittest.mock import patch
 
 import calistir
-from cizim import girdi as CG, geometri as CGE, cizim_sabitleri as CS
+from cizim import girdi, geometri, sabitler
 from testler.test_cizim import _ornek, _sag_ayna, _arka
 
 
 class GirdiSinirlari(unittest.TestCase):
     def test_aski_kacikligi_gecersizse_reddedilir(self):
-        for duzen in CG.ASKI_DUZENLERI:
+        for duzen in girdi.ASKI_DUZENLERI:
             alan = "nokta_kaciklik" if duzen == "Doğrudan" else "kasnak_kaciklik"
             for deger in ("abc", None, True, float("nan"), float("inf"), -float("inf"), -2000, 2000):
-                g = copy.deepcopy(CG.ORNEK)
+                g = copy.deepcopy(girdi.ORNEK)
                 g["aski"].update(duzen=duzen, nokta_arasi=450)
                 g["aski"][alan] = deger
                 with self.subTest(duzen=duzen, deger=deger):
-                    self.assertTrue(any("aski" in h or "Askı" in h for h in CG.dogrula(g)))
+                    self.assertTrue(any("aski" in h or "Askı" in h for h in girdi.dogrula(g)))
 
     def test_aski_derinlik_siniri(self):
-        for duzen in CG.ASKI_DUZENLERI:
-            g = copy.deepcopy(CG.ORNEK)
+        for duzen in girdi.ASKI_DUZENLERI:
+            g = copy.deepcopy(girdi.ORNEK)
             g["aski"].update(duzen=duzen, nokta_arasi=450)
-            S = CS.sabitler(g.get("_cizim_sabitleri"))
+            S = sabitler.sabitler(g.get("_cizim_sabitleri"))
             alan = "nokta_kaciklik" if duzen == "Doğrudan" else "kasnak_kaciklik"
             yari = 45 if duzen == "Doğrudan" else S["kabin_kasnak_genislik"] / 2
             merkez = g["kabin"]["on_pay"] + (g["kabin"]["derinlik"] + S["kabin_pano_arka"]) / 2
@@ -36,10 +36,10 @@ class GirdiSinirlari(unittest.TestCase):
             ):
                 g["aski"][alan] = y - merkez
                 with self.subTest(duzen=duzen, y=y):
-                    self.assertEqual(CG.dogrula(g) == [], uygun)
+                    self.assertEqual(girdi.dogrula(g) == [], uygun)
 
     def test_agirlik_ray_ve_konsol_siniri(self):
-        S = CS.sabitler()
+        S = sabitler.sabitler()
         for factory in (_ornek, _sag_ayna, _arka):
             g = factory()
             ag = g["agirlik"]
@@ -52,9 +52,9 @@ class GirdiSinirlari(unittest.TestCase):
             for aralik, uygun in ((sinir, True), (sinir + 2, False), (2200, False)):
                 ag["ray_arasi"] = aralik
                 with self.subTest(yer=ag["yeri"], aralik=aralik):
-                    self.assertEqual(CG.dogrula(g) == [], uygun)
+                    self.assertEqual(girdi.dogrula(g) == [], uygun)
                     if uygun:
-                        for e in CGE.plan(g):
+                        for e in geometri.plan(g):
                             if e["tip"] == "dikdortgen" and e["katman"] in ("RAY", "KONSOL"):
                                 self.assertGreaterEqual(e["x"], 0)
                                 self.assertGreaterEqual(e["y"], 0)
@@ -65,12 +65,12 @@ class GirdiSinirlari(unittest.TestCase):
         with patch.object(calistir, "uret", return_value=0) as uret:
             self.assertEqual(calistir.main(["--agirlik", "Sağ"]), 0)
         g = uret.call_args.args[0]
-        self.assertEqual(CG.dogrula(g), [])
-        self.assertEqual(CGE.plan(g), CGE.plan(_sag_ayna()))
+        self.assertEqual(girdi.dogrula(g), [])
+        self.assertEqual(geometri.plan(g), geometri.plan(_sag_ayna()))
 
     def test_sonlu_olmayan_olculer_reddedilir(self):
         for deger in (float("nan"), float("inf"), -float("inf")):
-            self.assertTrue(CG.dogrula(_ornek(kuyu={"genislik": deger})))
+            self.assertTrue(girdi.dogrula(_ornek(kuyu={"genislik": deger})))
 
 
 if __name__ == "__main__":

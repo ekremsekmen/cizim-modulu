@@ -32,11 +32,11 @@ MAKİNE DAİRESİNİN DENETİMLERİ ( TS EN 81-20 )
 """
 
 from temel import ortusur, sayi_mi
-from cizim import kuyu_dibi as CKD
-from cizim import kuyu_ustu as CKT
-from cizim import makine as CMK
-from cizim import makine_dairesi as CMD
-from cizim import parcalar as CP
+from cizim import kuyu_dibi
+from cizim import kuyu_ustu
+from cizim import makine
+from cizim import makine_dairesi
+from cizim import parcalar
 
 MAKINE_YERLERI = ("Kuyu üstü", "Makine dairesi")
 ODA_YUKSEKLIK = 2100.0  # m.5.2.6.3.2.1
@@ -46,8 +46,8 @@ ODA_KAPI_YUKSEKLIK = 2000.0  # m.5.2.3.2 a
 #  pah ( m.5.4.5.1;  parcalar.ONLUK_PAH × ONLUK_PAH_DUSEY ).  Önlüğün EN ALT
 #  noktası pahın ucudur:  kuyu dibi açıklığı ( m.5.2.5.8.2 a 1 ) oradan ölçülür
 #  ( 7 Eki;  eskiden pah yoktu, dik kısmın altından ölçülüyordu — 35 mm iyimser ).
-ETEK_BOYU = CP.ONLUK_DIK
-ETEK_PAH_DUSEY = CP.ONLUK_PAH_DUSEY
+ETEK_BOYU = parcalar.ONLUK_DIK
+ETEK_PAH_DUSEY = parcalar.ONLUK_PAH_DUSEY
 
 
 def kabin_kotlari(dy, S, z, aski=None, tavanda=False):
@@ -143,7 +143,7 @@ def yerlesim(g, S, H, tavan, taban):
             hata.append(f"dusey.{alan}: sıfırdan büyük bir sayı olmalı ( {dy.get(alan)!r} ).")
     if hata:
         return {"hata": hata}
-    KD = CKD.yerlesim(g, S)
+    KD = kuyu_dibi.yerlesim(g, S)
     #  KURMA İLE DENETİM AYRI.  Kuyu dibinin, kuyu üstünün, makine dairesinin
     #  DENETİM hatası ( sığınma alanı sığmıyor, gergi çarpıyor, parçalar üst
     #  üste biniyor … ) kotları durdurmaz:  hesabın çizimden aldığı ölçüler
@@ -162,7 +162,7 @@ def yerlesim(g, S, H, tavan, taban):
     M = {"mrl": mrl, "KD": KD, "hata": hata, "tavan": tavan, "tavan_alti": tavan_alti, "parcalar": []}
 
     if mrl:
-        KU = CKT.yerlesim(g, S, acil_pano=False)
+        KU = kuyu_ustu.yerlesim(g, S, acil_pano=False)
         if "kasnak" not in KU:
             return {"hata": hata + KU["hata"]}
         hata.extend(KU["hata"])
@@ -192,7 +192,7 @@ def yerlesim(g, S, H, tavan, taban):
         M.update(
             {
                 "makine": _makine_parcalari(g, KU, zk, kapak),
-                "sase_parcalari": CMK.upn_sase(sase, my, KU["yan_yatak"], KU["sase_delikleri"]),
+                "sase_parcalari": makine.upn_sase(sase, my, KU["yan_yatak"], KU["sase_delikleri"]),
                 "sase": sase,
                 "govde": (gx0, gy0, gx1, gy1, zs, zs + S["makine_en"]),
                 "kapak": kapak,
@@ -205,7 +205,7 @@ def yerlesim(g, S, H, tavan, taban):
                 "regulator_kasnak": KU["reg_kasnak"] + (tavan - S["regulator_kasnak_merkez"],),
             }
         )
-        M["halat_konsolu"] = CMK.kaydir(
+        M["halat_konsolu"] = makine.kaydir(
             KU["halat_konsolu"], (M["kabin_baglanti"][4] + M["kabin_baglanti"][5]) / 2
         )
         #  Tavanın altındaki parçalar:  sığınma ve açıklıklar bunlara da ölçülür
@@ -223,9 +223,9 @@ def yerlesim(g, S, H, tavan, taban):
                     (p[2] - b_, p[1], p[2], p[3]),
                     (
                         p[0] + b_,
-                        my - CMK.MOTOR_PLAKASI_BOY / 2.0,
+                        my - makine.MOTOR_PLAKASI_BOY / 2.0,
                         p[2] - b_,
-                        my + CMK.MOTOR_PLAKASI_BOY / 2.0,
+                        my + makine.MOTOR_PLAKASI_BOY / 2.0,
                     ),
                 ):
                     M["parcalar"].append((ad, kutu, p[4]))
@@ -315,9 +315,9 @@ def yerlesim(g, S, H, tavan, taban):
 def _makine_parcalari(g, KU, zk, kapak):
     """Makinenin cisimleri ( makine.py ) kasnak merkezi zk kotunda;  dişlisizde
     üstteki kapak ( referans projenin makinesinde 47 mm ) klemens kutusu olarak."""
-    p = CMK.kaydir(KU["makine"], zk)
+    p = makine.kaydir(KU["makine"], zk)
     if g["makine"]["tip"] == "Dişlisiz":
-        p.append(CMK.kutu(*kapak[:4], kapak[4], kapak[5], parca="klemens_kutusu"))
+        p.append(makine.kutu(*kapak[:4], kapak[4], kapak[5], parca="klemens_kutusu"))
     return p
 
 
@@ -349,14 +349,14 @@ def _makine_dairesi(g, S, tavan, M):
         )
     if hata:
         return hata
-    MD = CMD.yerlesim(g, S)
+    MD = makine_dairesi.yerlesim(g, S)
     #  Kaide makineye sığmıyorsa çerçeve hiç kurulmaz:  kurma hatası, dur.
     if "M" not in MD or MD.get("cerceve") is None:
         return hata + MD["hata"]
     hata.extend(MD["hata"])
     KU = MD["M"]
     d = MD["duzlem"]  # halat düzlemi ( kuyu_ustu.Duzlem )
-    TB = CMD.tabliye(g)
+    TB = makine_dairesi.tabliye(g)
     zd = tavan + TB["doseme"]  # tabliyenin üstü:  makine buraya oturur
     zo = zd - TB["yukseklik"]  # oda zemini
     ztv = zo + md["yukseklik"]  # oda tavanı
@@ -371,7 +371,7 @@ def _makine_dairesi(g, S, tavan, M):
     K = MD["kaide"]
     zs = zd + md["sase_yuksekligi"]
     sase = MD["cerceve"] + (zd, zs)
-    parcalar = CMK.kaide(
+    kaide_parcalari = makine.kaide(
         MD["cerceve"],
         zd,
         md["sase_yuksekligi"],
@@ -383,7 +383,7 @@ def _makine_dairesi(g, S, tavan, M):
         MD["kaide_delikleri"],
     )
     dis = g["makine"]["tip"] == "Dişli"
-    zk = zs - CMK.DISLI_ZARF["z"][0] if dis else zs + S["makine_en"] / 2.0  # kasnak merkezi
+    zk = zs - makine.DISLI_ZARF["z"][0] if dis else zs + S["makine_en"] / 2.0  # kasnak merkezi
     kapak = d.kutu(
         mx - S["makine_kapak_en"] / 2.0,
         mx + S["makine_kapak_en"] / 2.0,
@@ -397,8 +397,8 @@ def _makine_dairesi(g, S, tavan, M):
     sp = MD["saptirma"]
     if sp:
         zd_ = zd + sp["z"]
-        parcalar += d.parcalar(
-            CMK.saptirma((sp["u"], d.v0, zd_), sp["D"], sp["bk"], zs, CMK.MOTOR_PLAKASI_KALINLIK)
+        kaide_parcalari += d.parcalar(
+            makine.saptirma((sp["u"], d.v0, zd_), sp["D"], sp["bk"], zs, makine.MOTOR_PLAKASI_KALINLIK)
         )
         P1, P2 = (sp["P1"][0], sp["P1"][1] + zd), (sp["P2"][0], sp["P2"][1] + zd)
         sarim = sp["sarim"]
@@ -409,7 +409,7 @@ def _makine_dairesi(g, S, tavan, M):
     M.update(
         {
             "makine": _makine_parcalari(g, KU, zk, kapak),
-            "sase_parcalari": parcalar,
+            "sase_parcalari": kaide_parcalari,
             "sarim_acisi": sarim,
             "agirlik_yolu": yol,
             "agirlik_dusus": MD["agirlik_dusus"] + (dusus_z,),

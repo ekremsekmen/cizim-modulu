@@ -28,21 +28,21 @@ import yollar
 
 yollar.kur()
 
-from cizim import cizimler as CZ
-from cizim import dxf as CDX
-from cizim import geometri as CGE
-from cizim import girdi as CG
-from cizim import kabin_ustu as CKU
-from cizim import donanim as CDN
-from cizim import makine as CMK
-from cizim import pafta as CPF
-from cizim import svg as CSV
+from cizim import cizimler
+from cizim import dxf
+from cizim import geometri
+from cizim import girdi
+from cizim import kabin_ustu
+from cizim import donanim
+from cizim import makine
+from cizim import pafta
+from cizim import svg
 
 KOK = os.path.dirname(os.path.abspath(__file__))
 
 
 #  Çizimlerin listesi, başlıkları ve ölçekleri tek yerde ( pafta da okur )
-CIZIMLER, OLCEKLER, plan_basligi = CZ.CIZIMLER, CZ.OLCEKLER, CZ.plan_basligi
+CIZIMLER, OLCEKLER, plan_basligi = cizimler.CIZIMLER, cizimler.OLCEKLER, cizimler.plan_basligi
 
 
 def uret(g, ad, baslik, olcek=20, cizim="kuyu_plani"):
@@ -53,14 +53,14 @@ def uret(g, ad, baslik, olcek=20, cizim="kuyu_plani"):
         for h in hata:
             print("   ·", h)
         return 1
-    elemanlar = CGE.cerceveli(
+    elemanlar = geometri.cerceveli(
         ciz(g), baslik, olcek, seritler=(f"{g['proje']['ad']}  ·  {g['proje']['asansor']}",)
     )
     klasor = os.path.join(KOK, "cikti")
     os.makedirs(klasor, exist_ok=True)
-    svg = CSV.yaz(elemanlar, CGE.sinir(elemanlar, 120 * olcek / 20.0), "", olcek)
-    Path(klasor, ad + ".svg").write_text(svg, encoding="utf-8")
-    Path(klasor, ad + ".dxf").write_bytes(CDX.yaz(elemanlar, "", olcek))
+    svg_metni = svg.yaz(elemanlar, geometri.sinir(elemanlar, 120 * olcek / 20.0), "", olcek)
+    Path(klasor, ad + ".svg").write_text(svg_metni, encoding="utf-8")
+    Path(klasor, ad + ".dxf").write_bytes(dxf.yaz(elemanlar, "", olcek))
     olcu = sum(1 for x in elemanlar if x["tip"] == "olcu")
     print(f"{ad}:  {len(elemanlar)} eleman · {olcu} ölçü  →  cikti/{ad}.svg + .dxf")
     return 0
@@ -68,14 +68,14 @@ def uret(g, ad, baslik, olcek=20, cizim="kuyu_plani"):
 
 def pafta_uret(g, ad):
     try:
-        d, bilgi = CPF.belge(g)
+        d, bilgi = pafta.belge(g)
     except ValueError as h:
         print(h)
         return 1
     klasor = os.path.join(KOK, "cikti")
     os.makedirs(klasor, exist_ok=True)
     d.saveas(os.path.join(klasor, ad + ".dxf"))
-    Path(klasor, ad + ".svg").write_text(CPF.onizleme(d), encoding="utf-8")
+    Path(klasor, ad + ".svg").write_text(pafta.onizleme(d), encoding="utf-8")
     print(f"{ad}:  {len(bilgi['cizimler'])} çizim → cikti/{ad}.dxf + .svg ( önizleme )")
     for c in bilgi["cizimler"]:
         x0, y0, x1, y1 = c["kutu"]
@@ -85,19 +85,19 @@ def pafta_uret(g, ad):
 
 def main(argv):
     ayrıştırıcı = argparse.ArgumentParser(description="Kuyu planı çizer")
-    ayrıştırıcı.add_argument("--aski", choices=CG.ASKI_DUZENLERI, default="Kabin altı")
-    ayrıştırıcı.add_argument("--agirlik", choices=CG.AGIRLIK_YERLERI, default=None)
+    ayrıştırıcı.add_argument("--aski", choices=girdi.ASKI_DUZENLERI, default="Kabin altı")
+    ayrıştırıcı.add_argument("--agirlik", choices=girdi.AGIRLIK_YERLERI, default=None)
     ayrıştırıcı.add_argument("--cizim", choices=tuple(CIZIMLER), default="kuyu_plani")
-    ayrıştırıcı.add_argument("--siginma", choices=tuple(CKU.SIGINMA), default=None)
-    ayrıştırıcı.add_argument("--makine", choices=CDN.MAKINE_YERLERI, default=None)
-    ayrıştırıcı.add_argument("--makine_tipi", choices=CMK.TIPLER, default=None)
+    ayrıştırıcı.add_argument("--siginma", choices=tuple(kabin_ustu.SIGINMA), default=None)
+    ayrıştırıcı.add_argument("--makine", choices=donanim.MAKINE_YERLERI, default=None)
+    ayrıştırıcı.add_argument("--makine_tipi", choices=makine.TIPLER, default=None)
     ayrıştırıcı.add_argument(
         "--pafta", action="store_true", help="bütün çizimleri TİP PROJE FORMATINA yerleştir"
     )
     ayrıştırıcı.add_argument("--ad", default=None)
     a = ayrıştırıcı.parse_args(argv)
 
-    g = copy.deepcopy(CG.ORNEK)
+    g = copy.deepcopy(girdi.ORNEK)
     if a.aski == "Doğrudan":
         #  1:1:  kasnak yok, halatlar ( adet · çap ) aynı
         g["aski"] = {

@@ -11,10 +11,10 @@ import unittest
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from temel import ortusur
-from cizim import dusey as CDU
-from cizim import hareketli as CH
-from cizim import kopru as CK
-from motor.uygulama import uygulama_hesabi as UY
+from cizim import dusey
+from cizim import hareketli
+from cizim import kopru
+from motor.uygulama import uygulama_hesabi
 
 #  Denetimin kuyu dibi örneği:  1.275 kg, kabin 2.000 × 1.400, ağırlık sağda
 DIP = {
@@ -44,10 +44,10 @@ ODA = {
 
 
 def _yerlesim(girdi):
-    s = UY.hesapla(girdi)
-    g, hata = CK.cizim_girdisi(s["girdi"])
+    s = uygulama_hesabi.hesapla(girdi)
+    g, hata = kopru.cizim_girdisi(s["girdi"])
     assert g is not None, hata
-    return CDU.yerlesim(g), g
+    return dusey.yerlesim(g), g
 
 
 class KuyuDibiSiginma(unittest.TestCase):
@@ -63,14 +63,14 @@ class KuyuDibiSiginma(unittest.TestCase):
         #  Eskiden ( denetim 9 Eki ) KY 1.400'de alan kirişin altındaydı, kiriş
         #  940'tayken sığınma 1.110 ( platformdan ) diye UYGUN çıkıyordu.
         for KY, ustunde, deger, engel in (
-            (1400, False, 1110.0, CH.KABIN),
-            (1459, False, 1169.0, CH.KABIN),
-            (1460, True, 1000.0, CH.ALT_KIRIS),
-            (1461, True, 1001.0, CH.ALT_KIRIS),
+            (1400, False, 1110.0, hareketli.KABIN),
+            (1459, False, 1169.0, hareketli.KABIN),
+            (1460, True, 1000.0, hareketli.ALT_KIRIS),
+            (1461, True, 1001.0, hareketli.ALT_KIRIS),
         ):
             Y, _g = _yerlesim({**DIP, "kuyu_dibi": KY})
             sg = Y["KD"]["siginma"]
-            kiris = [p for p in Y["dip_parcalar"] if p[0] == CH.ALT_KIRIS]
+            kiris = [p for p in Y["dip_parcalar"] if p[0] == hareketli.ALT_KIRIS]
             with self.subTest(KY=KY):
                 self.assertEqual(Y["hata"], [])
                 self.assertAlmostEqual(kiris[0][2] - Y["taban"], KY - 460.0)
@@ -139,14 +139,14 @@ class Tabliye(unittest.TestCase):
         #  ediyordu;  köprü "sıfırdan büyük olmalı" diye reddediyor, hesap
         #  "HESAP EKSİK" diyordu — denetim 8 Eki ).
         g0 = {**TEMEL, **ODA}
-        s = UY.hesapla({**g0, "tabliye_yuksekligi": 0})
-        g, hata = CK.cizim_girdisi(s["girdi"])
+        s = uygulama_hesabi.hesapla({**g0, "tabliye_yuksekligi": 0})
+        g, hata = kopru.cizim_girdisi(s["girdi"])
         self.assertEqual(hata, [])
         self.assertEqual(g["makine_dairesi"]["tabliye_yuksekligi"], 0.0)
-        self.assertEqual(CDU.yerlesim(g)["hata"], [])
+        self.assertEqual(dusey.yerlesim(g)["hata"], [])
         self.assertFalse(s["ozet"].get("eksik_hesap"))
-        s = UY.hesapla({**g0, "tabliye_yuksekligi": -10})
-        g, hata = CK.cizim_girdisi(s["girdi"])
+        s = uygulama_hesabi.hesapla({**g0, "tabliye_yuksekligi": -10})
+        g, hata = kopru.cizim_girdisi(s["girdi"])
         self.assertIsNone(g)
         self.assertTrue(any("negatif olamaz" in h for h in hata), hata)
 
@@ -162,9 +162,9 @@ class TekTanim(unittest.TestCase):
                 plan.setdefault(el["ad"], []).append((el["x"], el["y"], el["x"] + el["g"], el["y"] + el["d"]))
         dip = Y["dip"]
         for ad, plan_ad, alt, ust in (
-            (CH.ALT_KIRIS, "sase_kiris", "alt_kiris_alt", "alt_kiris_ust"),
-            (CH.UST_KIRIS, "sase_kiris", "ust_kiris_alt", "ust_kiris_ust"),
-            (CH.DIKME, "sase_dikme", "alt_kiris_alt", "ust_kiris_ust"),
+            (hareketli.ALT_KIRIS, "sase_kiris", "alt_kiris_alt", "alt_kiris_ust"),
+            (hareketli.UST_KIRIS, "sase_kiris", "ust_kiris_alt", "ust_kiris_ust"),
+            (hareketli.DIKME, "sase_dikme", "alt_kiris_alt", "ust_kiris_ust"),
         ):
             p = [x for x in Y["dip_parcalar"] if x[0] == ad]
             with self.subTest(ad):

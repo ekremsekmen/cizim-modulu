@@ -14,7 +14,7 @@ EKSEN DÜZENİ  ( plan )
 
 import math
 
-from cizim import parcalar as CP, cizim_sabitleri as _CS
+from cizim import parcalar, sabitler
 
 
 def _sonlu_sayi(v):
@@ -224,7 +224,7 @@ def dogrula(g):
     if hata:
         return hata
     #  GEOMETRİ TUTARLILIĞI — çizim kâğıda sığsın, parçalar çakışmasın.
-    S = _CS.sabitler(g.get("_cizim_sabitleri"))
+    S = sabitler.sabitler(g.get("_cizim_sabitleri"))
     k, kb, kp = g["kuyu"], g["kabin"], g["kapi"]
     #  YÜKSEKLİKLER ( kullanıcı kararı 4 Eki ):  kabinin iç yüksekliği ve kapının
     #  net geçiş yüksekliği en az 2.000 mm;  kapı kabinin girişidir, kabinden
@@ -303,8 +303,8 @@ def dogrula(g):
     #  Ağırlığa bağlı patenler ( m.5.2.5.5.1 h:  "ve ona bağlı parçalar" ) rayın
     #  ucunda;  derinlik boyunca bloğun dışına taşabilir ( makaralının yan
     #  makaraları — geometri._agirlik_pateni ).  Denetimler taşan kısmı da sayar.
-    yari = CP.agirlik_pateni_yari_eni(
-        ag.get("paten_tipi"), CP.ray_dil_kalinligi(ag["b"], ag["h"]), S["paten_boy"]
+    yari = parcalar.agirlik_pateni_yari_eni(
+        ag.get("paten_tipi"), parcalar.ray_dil_kalinligi(ag["b"], ag["h"]), S["paten_boy"]
     )
     if yari > ag["derinlik"] / 2.0:
         t = yari - ag["derinlik"] / 2.0
@@ -412,12 +412,12 @@ def dogrula(g):
                 hata.append(f"aski: {ad} sıfırdan büyük bir sayı olmalı ( {v!r} ).")
         if not _sonlu_sayi(kaciklik):
             hata.append(f"aski: kaçıklık sonlu bir sayı olmalı ( {kaciklik!r} ).")
-        from cizim import arka_aski as CAA
+        from cizim import arka_aski
 
-        if CAA.arkada_iki_bir(g) and _sonlu_sayi(kaciklik):
+        if arka_aski.arkada_iki_bir(g) and _sonlu_sayi(kaciklik):
             #  Arkadaki ağırlıkla 2:1:  kasnaklar çapraz düzlemde, aralığı
             #  geometriden ( arka_aski ) — sınırlarını o denetler.
-            A = CAA.geometri(g, S)
+            A = arka_aski.geometri(g, S)
             hata += [h for h in A["hata"] if "kuyunun dışına" in h]
         elif all(_sonlu_sayi(v) and v > 0 for _, v in gerekli) and _sonlu_sayi(kaciklik):
             yari = aralik / 2.0 + (cap / 2.0 if tur == "kasnak" else 45.0)
@@ -465,9 +465,9 @@ def dogrula(g):
     #  ağırlığa çarpmamalı:  planın kendi parçalarıyla denetlenir ( yalnız girdi
     #  temizse — plan geçersiz girdiyle kurulmaz ).
     if not hata:
-        from cizim import geometri as _CGE
+        from cizim import geometri
 
-        hata += _CGE.kanat_cebi_carpismalari(g, S)
+        hata += geometri.kanat_cebi_carpismalari(g, S)
     return hata
 
 
@@ -640,5 +640,5 @@ ORNEK = {
         "dikine_kiris": 120,
     },
     #  Referans projenin kabini ( programın ofis standardı ofisin kendi kabini )
-    "_cizim_sabitleri": dict(_CS.REFERANS_PROJE_KABINI),
+    "_cizim_sabitleri": dict(sabitler.REFERANS_PROJE_KABINI),
 }

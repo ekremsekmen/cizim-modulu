@@ -65,16 +65,16 @@ app = FastAPI(title="Asansör Proje Programı", version=SURUM, docs_url=None, re
 BELIRSIZ_SAYI = re.compile(r"^[+-]?[1-9]\d{0,2}[.,]\d{3}$")
 
 
-from uclar import avan_uclari as UC_AVAN
-from uclar import cizim_uclari as UC_CIZIM
-from uclar import uygulama_uclari as UC_UYGULAMA
+from uclar import avan_uclari
+from uclar import cizim_uclari
+from uclar import uygulama_uclari
 from uclar.uc_ortak import _BELIRSIZ, _RED, _sayi, belirsiz_sayi_mi  # noqa: F401
 
 #  UÇLAR İKİ PAKETTE:  avan projesi ve uygulama projesi ayrı dosyalarda
 #  ( bkz. uclar/avan_uclari.py · uclar/uygulama_uclari.py ).  Ortak yardımcılar uclar/uc_ortak.py.
-app.include_router(UC_AVAN.router)
-app.include_router(UC_UYGULAMA.router)
-app.include_router(UC_CIZIM.router)
+app.include_router(avan_uclari.router)
+app.include_router(uygulama_uclari.router)
+app.include_router(cizim_uclari.router)
 
 
 @app.get("/", response_class=HTMLResponse)

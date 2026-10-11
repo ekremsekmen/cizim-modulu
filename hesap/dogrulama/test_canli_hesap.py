@@ -48,7 +48,7 @@ import yollar
 
 yollar.kur()
 
-from motor.ortak import ofis as OFIS
+from motor.ortak import ofis
 from dogrulama.rapor import Rapor
 
 BASE = os.environ.get("AVAN_TEST_URL", "http://127.0.0.1:8780")
@@ -242,7 +242,7 @@ def _her_alan(r, pg, mod):
 
 # ---------------------------------------------------------------- 2-3. diziler
 def _uygulama_dizileri(r, pg, rnd):
-    tablo = {q: OFIS.bos_kabin_kutlesi(q) for q in (450, 630, 800, 1000, 1275, 1600)}
+    tablo = {q: ofis.bos_kabin_kutlesi(q) for q in (450, 630, 800, 1000, 1275, 1600)}
     alanlar = pg.evaluate(_ALANLAR, "uygulama")
     #  Makine dairesi seçimi iki yönde de geçerli kalsın
     pg.evaluate("""() => { const e = id => document.getElementById(id);
@@ -341,8 +341,8 @@ def _gecersizden_donus(r, pg):
         beyan, kabin, hesaplandi, bekliyor = d["kabin"][pg.evaluate("MUK_AKTIF")]
         r.kontrol(
             "[uygulama] girdi düzeltilince kabin ağırlığı yeni yükün tablo değeri",
-            hesaplandi and not bekliyor and float(str(kabin).replace(",", ".")) == OFIS.bos_kabin_kutlesi(q),
-            f"→ yük {beyan} · kabin {kabin!r} · beklenen {OFIS.bos_kabin_kutlesi(q)}",
+            hesaplandi and not bekliyor and float(str(kabin).replace(",", ".")) == ofis.bos_kabin_kutlesi(q),
+            f"→ yük {beyan} · kabin {kabin!r} · beklenen {ofis.bos_kabin_kutlesi(q)}",
         )
 
 
@@ -375,7 +375,7 @@ def _ardisik_iki_asansor(r, pg):
         return MUK_ASANSORLER.slice(0, 2).map(a => [a.beyan_yuku, a.kabin_agirligi]);
     }""")
     for sira, (q, beklenen) in enumerate(
-        ((1275, OFIS.bos_kabin_kutlesi(1275)), (1000, OFIS.bos_kabin_kutlesi(1000)))
+        ((1275, ofis.bos_kabin_kutlesi(1275)), (1000, ofis.bos_kabin_kutlesi(1000)))
     ):
         yuk, kabin = sonuc[sira]
         r.kontrol(
@@ -395,7 +395,7 @@ def _hemen_kaydet(r, pg):
     yazılıyor, açılınca hesap o değerle yapılıyordu ( kabin tamponu
     116,29 kN yerine 94,71 kN — bağımsız incelemede bulundu )."""
     q = 1600
-    beklenen = OFIS.bos_kabin_kutlesi(q)
+    beklenen = ofis.bos_kabin_kutlesi(q)
     pg.evaluate("""async () => { __T.yaz(document.getElementById('m_kabin_agirligi'), '777');
         await __T.sakin(); }""")
     kayit = pg.evaluate(

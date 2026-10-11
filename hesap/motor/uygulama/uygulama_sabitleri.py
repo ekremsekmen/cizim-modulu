@@ -16,16 +16,16 @@ FABRİKA AYARI ortaktır:  motor/ortak/ofis.py.  İki proje de oradan başlar;
 sonrası her projenin kendi kararıdır.
 """
 
-from motor.avan import avan_hesabi as _AVAN
-from motor.ortak import ofis as OFIS
+from motor.avan import avan_hesabi
+from motor.ortak import ofis
 from motor.ortak.adimlar import aralik_disi
-from motor.uygulama import mukavemet_tablolari as MT
+from motor.uygulama import mukavemet_tablolari
 
 #  Kabinin düşey ölçüleri çizim modülünün sabitleridir ( tek kaynak;  yol
 #  motor/uygulama/__init__.py'de kurulur ).
-from cizim import cizim_sabitleri as _CS
+from cizim import sabitler as cizim_sabitleri
 
-_AVAN_VARSAYILAN = {**_AVAN.SABIT_B_VARSAYILAN, **_AVAN.OFIS_VARSAYILAN}
+_AVAN_VARSAYILAN = {**avan_hesabi.SABIT_B_VARSAYILAN, **avan_hesabi.OFIS_VARSAYILAN}
 
 #  Fiziksel dönüşümler ve STANDARDIN dayattığı sayılar buraya GİRMEZ:
 #  gn · 102 · 1,34 · k2 = 1,2 ( EN 81-20 Çiz.14 ) · Dt/dh ≥ 40
@@ -34,8 +34,8 @@ _AVAN_VARSAYILAN = {**_AVAN.SABIT_B_VARSAYILAN, **_AVAN.OFIS_VARSAYILAN}
 
 VARSAYILAN = {
     # ── ① MAKİNE VE MOTOR ────────────────────────────────────────────
-    "verim_dislisiz": OFIS.MAKINE_VERIMLERI["Dişlisiz"],
-    "verim_disli": OFIS.MAKINE_VERIMLERI["Dişli"],
+    "verim_dislisiz": ofis.MAKINE_VERIMLERI["Dişlisiz"],
+    "verim_disli": ofis.MAKINE_VERIMLERI["Dişli"],
     #  Denge ( kompanzasyon ) zinciri TAKILDIĞINDA halat dengesizliğinin
     #  yüzde kaçını karşıladığı.  Zincir halatı dengelemek için takılır ve
     #  halat ağırlığına göre seçilir — bu yüzden varsayılan TAM DENGELEMEDİR.
@@ -156,7 +156,7 @@ VARSAYILAN = {
     #  emniyet katsayısını olduğundan iyi gösteriyordu ( 0,2'de 16,77 iken
     #  0,1'de 42,02 ).  Ofis sabiti olarak durur:  tek yerde görünür,
     #  paftada kaynağı OFİS STANDARDI yazar ve üst sınırı aşamaz.
-    "reg_mu": MT.REG_MU_AZAMI,
+    "reg_mu": mukavemet_tablolari.REG_MU_AZAMI,
     # ── ②e KARŞI AĞIRLIK DOLGUSU  ( karar 11 ) ─────────────────────────
     #  Dolgunun çerçeveye sığması:  gereken dolgu yüksekliği = Mcwt / ( ρ ·
     #  Gx · Gy ).  ρ blokların DIŞ ölçüsüne göre yoğunluktur ( kulaklar dahil —
@@ -172,7 +172,7 @@ VARSAYILAN = {
     # ── ③ ÇİZİMİN ÜRÜN ÖLÇÜLERİ  ( tek katalog — karar 12 ) ───────────
     #  BİRLEŞİK PROGRAM:  çizimin bütün ürün ölçüleri ( konsollar, kabin,
     #  kapı, makine, kuyu üstü … ) burada, çizim modülünün bölümleriyle
-    #  ( cizim/cizim_sabitleri.BOLUMLER ) durur;  değerleri TEK YERDEN, çizim
+    #  ( cizim/sabitler.BOLUMLER ) durur;  değerleri TEK YERDEN, çizim
     #  modülünün fabrika ayarından ( referans projenin donanımı ) okunur ve
     #  buradan değiştirilince çizim, yerleşimin ölçü listesi ve bölüm 11 aynı
     #  sayıyı kullanır ( cizim/kopru.OFIS_SABITLERI ).  Kabinin düşey ölçüleri
@@ -182,7 +182,7 @@ VARSAYILAN = {
     #  sığınma yükseklikleri ) burada YOKTUR.  Adı farklı olan tek:  kuyu
     #  tavanı payı ( tavan_payi — çizimde tavan_kirisi;  kayıtlı projeler bu
     #  adı taşır ).
-    **{_CS.ofis_adi(c): v for c, v in _CS.SABIT.items()},
+    **{cizim_sabitleri.ofis_adi(c): v for c, v in cizim_sabitleri.SABIT.items()},
     #  Kabin üstündeki en yüksek donanım ( revizyon kutusu ) kabin tavanının
     #  bu kadar üstünde ( m.5.2.5.7.2 a );  çizim revizyon kutusunu çizmez
     #  ( karar 10:  LiftDesigner da çizmiyor, ölçüsü yok ).
@@ -245,9 +245,9 @@ ARALIK = {
     "halat_pay_m": (0, 100),
     #  Sınırlar tek yerde durur ( mukavemet_tablolari ):  standardın kendi
     #  m.5.11.2.3.1 sınırlarıdır ve iki dosyada ayrı ayrı yazılırsa ayrışır.
-    "kanal_gama_v": (MT.GAMA_ASGARI_V, MT.GAMA_AZAMI),
-    "kanal_gama_yd": (MT.GAMA_ASGARI_U, MT.GAMA_AZAMI),
-    "kanal_beta": (0, MT.BETA_AZAMI),
+    "kanal_gama_v": (mukavemet_tablolari.GAMA_ASGARI_V, mukavemet_tablolari.GAMA_AZAMI),
+    "kanal_gama_yd": (mukavemet_tablolari.GAMA_ASGARI_U, mukavemet_tablolari.GAMA_AZAMI),
+    "kanal_beta": (0, mukavemet_tablolari.BETA_AZAMI),
     "sigma_em": (10, 400),
     "k1_kaymali": (1, 10),
     "k1_makarali": (1, 10),
@@ -266,7 +266,7 @@ ARALIK = {
     "kuyu_surtunme_agirlik": (0, 10),
     #  Üst sınır STANDARDIN sayısıdır ( m.5.6.2.2.1.3 b) );  alt sınır
     #  yalnız sıfıra bölünmeyi ve fiziksel olmayan değeri engeller.
-    "reg_mu": (0.01, MT.REG_MU_AZAMI),
+    "reg_mu": (0.01, mukavemet_tablolari.REG_MU_AZAMI),
     "dolgu_yogunlugu_barit": (1000, 20000),
     "dolgu_yogunlugu_pik": (1000, 20000),
     "revizyon_payi": (0, 5000),
@@ -296,11 +296,11 @@ ARALIK = {
 }
 #  Çizimin ürün ölçülerinin aralığı çizim modülündedir ( köprü de aynısını
 #  kullanır ):  sıfır yalnız boşluk ve paylarda — ray boyu sıfır olamaz.
-CIZIM_ANAHTARLARI = tuple(_CS.ofis_adi(c) for c in _CS.SABIT)
-for _c in _CS.SABIT:
-    ARALIK[_CS.ofis_adi(_c)] = _CS.aralik(_c)
+CIZIM_ANAHTARLARI = tuple(cizim_sabitleri.ofis_adi(c) for c in cizim_sabitleri.SABIT)
+for _c in cizim_sabitleri.SABIT:
+    ARALIK[cizim_sabitleri.ofis_adi(_c)] = cizim_sabitleri.aralik(_c)
 
-#  Çizimin bölümleri ( cizim/cizim_sabitleri.BOLUMLER ) Sabitler sekmesinde ③a, ③b …
+#  Çizimin bölümleri ( cizim/sabitler.BOLUMLER ) Sabitler sekmesinde ③a, ③b …
 #  olur;  revizyon kutusunun yüksekliği kabinin bölümündedir.
 _HARF = "abcdefghijklmnopqrstuvwxyz"
 _CIZIM_GRUPLARI = tuple(
@@ -313,9 +313,9 @@ _CIZIM_GRUPLARI = tuple(
             else ""
         )
         + a,
-        tuple(_CS.ofis_adi(c) for c in al) + (("revizyon_payi",) if b == "KABİN" else ()),
+        tuple(cizim_sabitleri.ofis_adi(c) for c in al) + (("revizyon_payi",) if b == "KABİN" else ()),
     )
-    for i, (b, a, al) in enumerate(_CS.BOLUMLER)
+    for i, (b, a, al) in enumerate(cizim_sabitleri.BOLUMLER)
 )
 
 #  Ekran düzeni:  [ başlık, açıklama, alanlar ].  Uygulama projesi YALNIZ
@@ -580,8 +580,8 @@ ETIKET = {
 }
 
 #  Çizimin ürün ölçülerinin adları ( sayfa ve ölçü kaynağı "Sabitler" diye anar )
-for _c in _CS.SABIT:
-    ETIKET.setdefault(_CS.ofis_adi(_c), (f"{_CS.ETIKET[_c]} (mm)", ""))
+for _c in cizim_sabitleri.SABIT:
+    ETIKET.setdefault(cizim_sabitleri.ofis_adi(_c), (f"{cizim_sabitleri.ETIKET[_c]} (mm)", ""))
 
 
 def sabitler(ozel=None):
@@ -639,7 +639,7 @@ def verim(S, makine_tipi):
     dönülür.
     """
     eta = {"Dişlisiz": S.get("verim_dislisiz"), "Dişli": S.get("verim_disli")}.get(makine_tipi)
-    return OFIS.VARSAYILAN_VERIM if eta is None else eta
+    return ofis.VARSAYILAN_VERIM if eta is None else eta
 
 
 def darbe_k1(S, tertibat):
@@ -648,4 +648,4 @@ def darbe_k1(S, tertibat):
         "Kaymalı": S.get("k1_kaymali"),
         "Ani Frenlemeli Makaralı": S.get("k1_makarali"),
         "Ani Frenlemeli": S.get("k1_ani"),
-    }.get(tertibat, MT.darbe_k1(tertibat))
+    }.get(tertibat, mukavemet_tablolari.darbe_k1(tertibat))

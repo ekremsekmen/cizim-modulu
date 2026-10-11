@@ -20,7 +20,7 @@ Bu yüzden:
     ( motor/uygulama/mukavemet_girdi.ALANLAR ) — tek doğruluk kaynağı odur.
   · Elektrik hesaplarının mukavemette KARŞILIĞI OLMAYAN girdileri burada,
     ayrı bir grupta tanımlanır.
-  · Ortak olanlar `kopru()` ile mukavemet girdisinden TÜRETİLİR, kullanıcıya
+  · Ortak olanlar `avan_girdisi()` ile mukavemet girdisinden TÜRETİLİR, kullanıcıya
     ikinci kez sorulmaz.
 
 Not:  ofis standardı ( U · κ · εmax · armatürler · priz · cosφ · β · çubuk )
@@ -28,17 +28,19 @@ zaten "Sabitler / Ofis Standardı" sekmesinden gelir;  o da ikinci kez
 sorulmaz.
 """
 
-from motor.avan import avan_hesabi as E_AVAN
+from motor.avan import avan_hesabi
 from motor.ortak.adimlar import aralik_disi, evet_mi
-from motor.uygulama import mukavemet as MK
-from motor.uygulama import uygulama_sabitleri as US
-from motor.uygulama import mukavemet_girdi as MG
-from motor.uygulama import mukavemet_tablolari as MT
-from tasarim import alanlar as _TS, gorunum as _TG
+from motor.uygulama import mukavemet
+from motor.uygulama import uygulama_sabitleri
+from motor.uygulama import mukavemet_girdi
+from motor.uygulama import mukavemet_tablolari
+from tasarim import alanlar, gorunum
+from motor.avan import tablolar
+from motor.ortak import ofis
 
 #  Tanınmayan makine tipinde geri düşülecek verim.  Gerçek verim makine
 #  tipinden ve projenin kendi ofis sabitlerinden gelir ( US.verim ).
-MK_VERIM = US.OFIS.VARSAYILAN_VERIM
+MK_VERIM = ofis.VARSAYILAN_VERIM
 
 #  ( anahtar , etiket , birim , tür , seçenekler , varsayılan )
 #  Mukavemette KARŞILIĞI OLMAYAN girdiler.  Hepsi elektrik hesaplarına girer.
@@ -48,10 +50,10 @@ MK_VERIM = US.OFIS.VARSAYILAN_VERIM
 #  girilir ve her asansörün girdi setine karıştırılır — elektrik köprüsü
 #  onları orada bekler.  Liste burada durur ki API ve arayüz aynı yerden
 #  okusun;  iki yerde tutulsaydı ayrışırlardı.
-PROJE_GENELI_ALANLAR = _TG.anahtarlar(_TS.ELK, proje_geneli=True)
+PROJE_GENELI_ALANLAR = gorunum.anahtarlar(alanlar.ELK, proje_geneli=True)
 
 #  Tanımlar tasarım şemasında ( tasarim/alanlar.py, sözleşmesi ELK ).
-EK_ALANLAR = _TG.sozlesme(_TS.ELK)
+EK_ALANLAR = gorunum.sozlesme(alanlar.ELK)
 
 EK_ALAN = {a[0]: a for a in EK_ALANLAR}
 
@@ -64,15 +66,15 @@ AVAN_SINIRLI = {"kolon_kesit": "S1", "makine_kesit": "S2", "motor_gucu": "Nsc", 
 
 
 #  Elektrik / topraklama alanlarının ⓘ metinleri  ( bkz. MG.ACIKLAMA ).
-EK_ACIKLAMA = {a.anahtar: a.bilgi for a in _TS.ALANLAR if a.sozlesme == _TS.ELK}
+EK_ACIKLAMA = {a.anahtar: a.bilgi for a in alanlar.ALANLAR if a.sozlesme == alanlar.ELK}
 
 #  "Gelişmiş" bölümündeki elektrik alanları  ( bkz. MG.GELISMIS_ALANLAR ).
 #  Kesitler ofisin alışılmış kesitleridir;  yetmezlerse gerilim düşümü ve
 #  koruma iletkeni bölümleri bunu hüküm olarak söyler.  Uzunluklar binaya
 #  bağlıdır, görünür kalır.
-EK_GELISMIS = frozenset(_TG.anahtarlar(_TS.ELK, gelismis=True, formda=True))
+EK_GELISMIS = frozenset(gorunum.anahtarlar(alanlar.ELK, gelismis=True, formda=True))
 
-EK_GRUP = ("Elektrik ve topraklama", _TG.anahtarlar(_TS.ELK))
+EK_GRUP = ("Elektrik ve topraklama", gorunum.anahtarlar(alanlar.ELK))
 
 #  ELEKTRİK VE PROJE GENELİ BÖLÜMLERİN GİRDİ GRUPLARI.
 #  mukavemet_girdi.BOLUM_GRUBU'nun devamı — oradaki on bölüm mukavemetin,
@@ -113,21 +115,21 @@ def arayuz_alanlari():
     """Formun kendini kurduğu sözleşme:  bütün gruplar ( mukavemet · çizim ·
     elektrik ) tasarım şemasından, tasarım sırasıyla;  hesap bölümü → girdi
     grubu eşlemesi motorlardan."""
-    veri = MG.arayuz_alanlari()
-    veri.update(_TG.form())
+    veri = mukavemet_girdi.arayuz_alanlari()
+    veri.update(gorunum.form())
     veri["bolum_grubu"].update({no: list(gr) for no, gr in EK_BOLUM_GRUBU.items()})
     return veri
 
 
 def varsayilanlar():
-    g = MG.varsayilanlar()
+    g = mukavemet_girdi.varsayilanlar()
     for a, _et, _b, _t, _s, v in EK_ALANLAR:
         g[a] = v
     return g
 
 
 def tamamla(g):
-    g = MG.tamamla(g)
+    g = mukavemet_girdi.tamamla(g)
     for a, _et, _b, _t, _s, v in EK_ALANLAR:
         g.setdefault(a, v)
     return g
@@ -165,21 +167,21 @@ def yerlesim_olculeri(g):
 
     Motor doğrudan çağrılınca ( hesap programının kendi referans testleri )
     bu adım yoktur:  motorun davranışı asıl programınkiyle aynı kalır."""
-    from cizim import girdi as _CG
-    from cizim import kopru as _CK
-    from cizim import olculer as _CO
+    from cizim import girdi
+    from cizim import kopru
+    from cizim import olculer
 
     geometri = []
     try:
-        gc, _hata = _CK.cizim_girdisi(g)
+        gc, _hata = kopru.cizim_girdisi(g)
         #  KUYU GEOMETRİSİ KURULAMIYORSA HESAP DURUR ( kullanıcı kararı 4 Eki ):
         #  kabin kuyuya sığmıyor, raylar / ağırlık / kapı dışarı taşıyor, kabin ya
         #  da kapı 2 m'den alçak … ( çizimin plan doğrulaması ).  Eskiden çizim
         #  reddederken hesap "hesaplandı" diyordu:  imkânsız bir kuyunun raporu
         #  çıkabiliyordu.  Çizimin yalnız çizemediği durumlarda ( makaralı kabin
         #  pateni, 3 tampon, yana kaçık askı — köprünün iletileri ) hesap sürer.
-        geometri = _CG.dogrula(gc) if gc is not None else []
-        o = _CO.hesap_olculeri(gc) if gc is not None and not geometri else {}
+        geometri = girdi.dogrula(gc) if gc is not None else []
+        o = olculer.hesap_olculeri(gc) if gc is not None and not geometri else {}
     except Exception:  # noqa: BLE001 — çizim kendi hatasını söyler
         o = {}
     if evet_mi(g.get("mk_yok")):
@@ -188,7 +190,7 @@ def yerlesim_olculeri(g):
         #  duvardan duvara ( bina yapısına ).  Uymuyorsa çizim durur ( köprü
         #  uyuşmazlığı ) ve kirişin ölçüsü hesaba girmez.
         duvar = g.get("agirlik_yeri") == "Arka"
-        if MT.makine_raya_mi(g.get("makine_raya_biniyor")) == duvar:
+        if mukavemet_tablolari.makine_raya_mi(g.get("makine_raya_biniyor")) == duvar:
             o.pop("makine_yuku_x", None)
             o.pop("yan_yatak_boyu", None)
     d = {k: o[k] for k in YERLESIM_OLCULERI if k in o}
@@ -213,12 +215,12 @@ def uygulanmayan_alanlar(mk_yok):
     alanları okumaz, motor da doğrulamaz.  Liste tasarım şemasından
     ( alanın yerleşimi ) — mukavemet, çizim ve elektrik alanları birlikte.
     """
-    return _TG.uygulanmayan(evet_mi(mk_yok))
+    return gorunum.uygulanmayan(evet_mi(mk_yok))
 
 
 def dogrula(g):
     """Mukavemet doğrulaması + elektrik girdilerinin denetimi."""
-    hata = list(MG.dogrula(g))
+    hata = list(mukavemet_girdi.dogrula(g))
     atla = uygulanmayan_alanlar(g.get("mk_yok"))
     for a, et, birim, tur, _s, _v in EK_ALANLAR:
         d = g.get(a)
@@ -248,7 +250,7 @@ def _avan_siniri_hatalari(g, atla):
     Negatif değer ve bölen alandaki sıfır zaten kendi denetiminde söylenir;
     burada ikinci kez yazılmaz.
     """
-    sinir = {k: (aralik, birim) for k, _ad, aralik, birim in E_AVAN.ASANSOR_SINIRLARI}
+    sinir = {k: (aralik, birim) for k, _ad, aralik, birim in avan_hesabi.ASANSOR_SINIRLARI}
     hata = []
     for a, avan_adi in AVAN_SINIRLI.items():
         d = g.get(a)
@@ -257,24 +259,24 @@ def _avan_siniri_hatalari(g, atla):
             or not isinstance(d, (int, float))
             or isinstance(d, bool)
             or d < 0
-            or (d == 0 and a in MG.BOLEN_ALANLAR)
+            or (d == 0 and a in mukavemet_girdi.BOLEN_ALANLAR)
         ):
             continue
         (alt, ust), birim = sinir[avan_adi]
         if not alt <= d <= ust:
-            et = (EK_ALAN.get(a) or MG.ALAN[a])[1]
+            et = (EK_ALAN.get(a) or mukavemet_girdi.ALAN[a])[1]
             hata.append(aralik_disi(et, d, alt, ust, birim) + "  —  elektrik hesapları bu değerle yapılamaz.")
     return hata
 
 
-def kopru(g):
+def avan_girdisi(g):
     """ORTAK GİRDİ KÖPRÜSÜ  —  mukavemet girdisi  →  avan asansör girdisi.
 
     Buradaki her satır, kullanıcıya İKİNCİ KEZ SORULMAYAN bir alandır.
     Sağ taraf mukavemet sözleşmesinden gelir;  sol taraf motor/avan.py'nin
     beklediği addır.
     """
-    ray = MT.ray(g.get("kabin_ray_profili"), "Gr")
+    ray = mukavemet_tablolari.ray(g.get("kabin_ray_profili"), "Gr")
     asansor = {
         "aktif": True,
         "tanim": "Uygulama projesi",
@@ -297,8 +299,8 @@ def kopru(g):
         #  uygulama paftaları farklı motor gücü veriyordu. )
         "makine_tipi": g.get("makine_tipi"),
         #  Projeye imalatçının verimi girilmişse mukavemetle aynı değer geçer.
-        "eta": MG.sistem_verimi(g)[0],
-        E_AVAN.T.ETA_TOPLAM_ANAHTARI: True,
+        "eta": mukavemet_girdi.sistem_verimi(g)[0],
+        tablolar.ETA_TOPLAM_ANAHTARI: True,
         #  ── uygulama projesine özgü ──
         "kuyu_genisligi": g.get("kuyu_genisligi"),
         #  L1 GÖNDERİLMEZ:  avan motoru kuyu yüksekliği + yatay güzergâh payıyla
@@ -357,23 +359,23 @@ AVAN_DISI = (
         "dolgu_yogunlugu_barit",
         "dolgu_yogunlugu_pik",
     )
-    + MK.SIGINMA_PAYLARI
-    + US.CIZIM_ANAHTARLARI
+    + mukavemet.SIGINMA_PAYLARI
+    + uygulama_sabitleri.CIZIM_ANAHTARLARI
 )
 
 
-def _avan_sabitleri(ofis):
+def _avan_sabitleri(ofis_degerleri):
     """Uygulamanın ofis setinden, avan motorunun kullanabileceği alt küme."""
-    if not isinstance(ofis, dict):
-        ofis = {}
+    if not isinstance(ofis_degerleri, dict):
+        ofis_degerleri = {}
     d = {}
-    for k, v in ofis.items():
+    for k, v in ofis_degerleri.items():
         if k in AVAN_DISI:
             continue
         d[AVAN_KARSILIGI.get(k, k)] = v
     #  L2 uygulamanın KENDİ sabitidir:  boş bırakılsa da avan motorunun
     #  varsayılanına düşmesin diye her zaman açıkça geçirilir.
-    _us = US.sabitler(ofis)
+    _us = uygulama_sabitleri.sabitler(ofis_degerleri)
     d["L2"] = _us["L2"]
     d["L1_pay"] = _us["L1_pay"]
     return d

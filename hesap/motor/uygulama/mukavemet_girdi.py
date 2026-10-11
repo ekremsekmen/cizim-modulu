@@ -15,10 +15,10 @@ tutulmuştur ( bkz. motor/uygulama/mukavemet_tablolari.py ).
 """
 
 from temel import sayi_mi
-from motor.ortak import ofis as OFIS
+from motor.ortak import ofis
 from motor.ortak.adimlar import evet_mi
-from motor.uygulama import mukavemet_tablolari as MT
-from tasarim import alanlar as _TS, gorunum as _TG
+from motor.uygulama import mukavemet_tablolari
+from tasarim import alanlar, gorunum
 
 
 def _s(*d):
@@ -29,7 +29,7 @@ def _s(*d):
 #    tür:  "sayi" · "secim" · "hesap"
 #    "hesap" alanları kullanıcıdan alınmaz — tamamla() üretir.
 #  TS EN 81-50 m.5.11.2.2.2 — hesaba girecek en küçük yavaşlama.
-ACIL_FRENLEME_ASGARI = _TS.ACIL_FRENLEME_ASGARI
+ACIL_FRENLEME_ASGARI = alanlar.ACIL_FRENLEME_ASGARI
 
 #  ALAN SÖZLEŞMESİ:  ( anahtar, etiket, birim, tür, seçenekler, varsayılan )
 #    tür:  "sayi" · "secim" · "hesap" — "hesap" alanlarını kullanıcı girmez,
@@ -37,7 +37,7 @@ ACIL_FRENLEME_ASGARI = _TS.ACIL_FRENLEME_ASGARI
 #  TANIMLAR VE GEREKÇELERİ TASARIM ŞEMASINDA DURUR ( tasarim/alanlar.py ):
 #  formun, çizimin ve elektrik hesaplarının alanlarıyla birlikte, tasarım
 #  sırasıyla, bir kez.  Burası mukavemet motorunun payını oradan okur.
-ALANLAR = _TG.sozlesme(_TS.MUK)
+ALANLAR = gorunum.sozlesme(alanlar.MUK)
 
 #  İŞARETLİ ( NEGATİF OLABİLEN ) ALANLAR
 #  TS EN 81-50 Ek C.1.2 ray eksenini ORİJİN alan bir Kartezyen sistem kurar:
@@ -50,7 +50,7 @@ ALANLAR = _TG.sozlesme(_TS.MUK)
 #
 #  ÖTEKİ ALANLAR NEGATİF OLAMAZ:  uzunluk, kütle, çap, sehim ve adet
 #  büyüklüktür, işareti yoktur.
-ISARETLI_ALANLAR = _TG.anahtarlar(_TS.MUK, isaretli=True)
+ISARETLI_ALANLAR = gorunum.anahtarlar(alanlar.MUK, isaretli=True)
 
 #  Hızlı erişim
 ALAN = {a[0]: a for a in ALANLAR}
@@ -65,11 +65,11 @@ HESAPLANAN = tuple(a[0] for a in ALANLAR if a[3] == "hesap")
 #  ---------------------------------------------------------------------
 #  ADET alanları TAM SAYI olmalıdır:  6,5 halat ya da 2,5 ray diye bir şey
 #  yoktur, ama hesap böyle bir girdiyle sorunsuz koşup "UYGUN" veriyordu.
-TAM_SAYI_ALANLARI = _TG.anahtarlar(_TS.MUK, tam_sayi=True)
+TAM_SAYI_ALANLARI = gorunum.anahtarlar(alanlar.MUK, tam_sayi=True)
 #  SIFIR OLAMAYAN alanlar:  bölen ya da uzunluk oldukları için 0 girildiğinde
 #  hesap teknik bir hatayla ( TypeError · ZeroDivisionError ) çöküyordu;
 #  kullanıcı hangi alanın sorunlu olduğunu göremiyordu.
-POZITIF_ALANLAR = _TG.anahtarlar(_TS.MUK, pozitif=True)
+POZITIF_ALANLAR = gorunum.anahtarlar(alanlar.MUK, pozitif=True)
 #  MAKİNE YERLEŞİMİNE GÖRE HESABA GİRMEYEN ALANLAR.  Ekranda gizlenirler;
 #  gizli bir alandaki değer projeyi DURDURMAMALI ( bkz. uygulanmayan ).
 #    · Makine dairesi olmadan var olmayanlar:  tabliye ve kaidenin kolonları
@@ -77,8 +77,8 @@ POZITIF_ALANLAR = _TG.anahtarlar(_TS.MUK, pozitif=True)
 #      ( yan yatak ) MRL'de de vardır ve sorulur.
 #    · Makine yükünün yolu yalnız MRL'de sorulur — makine daireli tesiste
 #      makine kendi kaidesindedir, yükü raya binmez.
-MAKINE_DAIRESI_ALANLARI = _TG.anahtarlar(_TS.MUK, yerlesim="daireli")
-RAYA_BINEN_ALANLARI = _TG.anahtarlar(_TS.MUK, yerlesim="mrl")
+MAKINE_DAIRESI_ALANLARI = gorunum.anahtarlar(alanlar.MUK, yerlesim="daireli")
+RAYA_BINEN_ALANLARI = gorunum.anahtarlar(alanlar.MUK, yerlesim="mrl")
 
 
 def uygulanmayan(g):
@@ -92,31 +92,37 @@ def uygulanmayan(g):
 #  tur.  Üst sınır 360'tır;  seçilen kanal şekline göre DARALTMAYI motor
 #  yapar ( bkz. mukavemet._tahrik · alfa_ust ), çünkü burada kanal şekli
 #  ile açı alanı birbirini görmez.
-ACI_ALANLARI = {a.anahtar: a.aci for a in _TS.ALANLAR if a.sozlesme == _TS.MUK and a.aci}
+ACI_ALANLARI = {a.anahtar: a.aci for a in alanlar.ALANLAR if a.sozlesme == alanlar.MUK and a.aci}
 
 #  kabin_agirligi BURADA DEĞİLDİR:  tamamla() onu ofis tablosundan doldurur
 #  ve doldurma bir tek beyan yükü geçersizken başarısız olur — o durumda
 #  "boş bırakılamaz" hatası çıkmalı, hesap None ile devam etmemelidir.
-OPSIYONEL_ALANLAR = _TG.anahtarlar(_TS.MUK, opsiyonel=True)
+OPSIYONEL_ALANLAR = gorunum.anahtarlar(alanlar.MUK, opsiyonel=True)
 
 #  µ artık OFİS SABİTİDİR ( sabitler.reg_mu );  üst sınırı standartla
 #  birlikte MT.REG_MU_AZAMI'da durur.
 
 #  Hesapta BÖLEN olarak geçen alanlar — sıfır kabul edilmez.
-BOLEN_ALANLAR = _TG.anahtarlar(_TS.MUK, bolen=True)
+BOLEN_ALANLAR = gorunum.anahtarlar(alanlar.MUK, bolen=True)
 
 #  ( girdi anahtarı , [ ( tablo sütunu , okuyucu ) … ] , ne olduğu )
 TABLO_GEREKLI = (
     (
         "kabin_ray_profili",
-        [(k, (lambda p, k=k: MT.ray(p, k))) for k in ("A", "Ix", "Iy", "Wx", "Wy", "ix", "c")]
-        + [(k, (lambda p, k=k: MT.ray_geo(p, k))) for k in ("h1_b_f", "h1_f")],
+        [
+            (k, (lambda p, k=k: mukavemet_tablolari.ray(p, k)))
+            for k in ("A", "Ix", "Iy", "Wx", "Wy", "ix", "c")
+        ]
+        + [(k, (lambda p, k=k: mukavemet_tablolari.ray_geo(p, k))) for k in ("h1_b_f", "h1_f")],
         "kesit değerleri",
     ),
     (
         "agirlik_ray_profili",
-        [(k, (lambda p, k=k: MT.ray(p, k))) for k in ("A", "Gr", "Ix", "Iy", "Wx", "Wy", "c")]
-        + [(k, (lambda p, k=k: MT.ray_geo(p, k))) for k in ("h1_b_f", "h1_f")],
+        [
+            (k, (lambda p, k=k: mukavemet_tablolari.ray(p, k)))
+            for k in ("A", "Gr", "Ix", "Iy", "Wx", "Wy", "c")
+        ]
+        + [(k, (lambda p, k=k: mukavemet_tablolari.ray_geo(p, k))) for k in ("h1_b_f", "h1_f")],
         "kesit değerleri",
     ),
     #  iy DE ARANIR:  burkulma en küçük atalet yarıçapından hesaplanır
@@ -124,32 +130,49 @@ TABLO_GEREKLI = (
     (
         "dikine_kiris",
         [
-            ("A", lambda x: MT.npu(x, "A")),
-            ("ix", lambda x: MT.npu(x, "ix")),
-            ("iy", lambda x: MT.npu(x, "iy")),
+            ("A", lambda x: mukavemet_tablolari.npu(x, "A")),
+            ("ix", lambda x: mukavemet_tablolari.npu(x, "ix")),
+            ("iy", lambda x: mukavemet_tablolari.npu(x, "iy")),
         ],
         "kesit değerleri",
     ),
-    ("yan_yatak", [("Wx", lambda x: MT.npu(x, "Wx"))], "kesit değerleri"),
-    ("halat_capi", [("1 m ağırlığı", MT.halat_agirlik), ("kopma yükü", MT.halat_kopma)], "halat verisi"),
-    ("reg_halat_capi", [("1 m ağırlığı", MT.halat_agirlik), ("kopma yükü", MT.halat_kopma)], "halat verisi"),
+    ("yan_yatak", [("Wx", lambda x: mukavemet_tablolari.npu(x, "Wx"))], "kesit değerleri"),
+    (
+        "halat_capi",
+        [
+            ("1 m ağırlığı", mukavemet_tablolari.halat_agirlik),
+            ("kopma yükü", mukavemet_tablolari.halat_kopma),
+        ],
+        "halat verisi",
+    ),
+    (
+        "reg_halat_capi",
+        [
+            ("1 m ağırlığı", mukavemet_tablolari.halat_agirlik),
+            ("kopma yükü", mukavemet_tablolari.halat_kopma),
+        ],
+        "halat verisi",
+    ),
     #  Nequiv(t) artık şeklin adından değil, ofis açılarından hesaplanır
     #  ( EN 81-50 Çizelge 2 );  burada yalnız şeklin TANINDIĞI denetlenir.
-    ("kanal_sekli", [("kanal türü", MT.kanal_turu)], "kasnak verisi"),
-    ("guvenlik_tertibati", [("k1", MT.darbe_k1)], "darbe katsayısı"),
+    ("kanal_sekli", [("kanal türü", mukavemet_tablolari.kanal_turu)], "kasnak verisi"),
+    ("guvenlik_tertibati", [("k1", mukavemet_tablolari.darbe_k1)], "darbe katsayısı"),
     (
         "ray_celigi_rm",
-        [("σperm normal", MT.sigma_perm_normal), ("σperm güv.tert.", MT.sigma_perm_guvenlik)],
+        [
+            ("σperm normal", mukavemet_tablolari.sigma_perm_normal),
+            ("σperm güv.tert.", mukavemet_tablolari.sigma_perm_guvenlik),
+        ],
         "izin verilen gerilmeler",
     ),
-    ("kablo_tipi_1", [("ağırlık", MT.kablo_agirligi)], "kablo verisi"),
-    ("kablo_tipi_2", [("ağırlık", MT.kablo_agirligi)], "kablo verisi"),
+    ("kablo_tipi_1", [("ağırlık", mukavemet_tablolari.kablo_agirligi)], "kablo verisi"),
+    ("kablo_tipi_2", [("ağırlık", mukavemet_tablolari.kablo_agirligi)], "kablo verisi"),
     (
         "beyan_yuku",
         [
-            ("kişi sayısı", MT.kabin_kisi),
-            ("en büyük alan", MT.kabin_azami_alan),
-            ("en küçük alan", MT.kabin_asgari_alan),
+            ("kişi sayısı", mukavemet_tablolari.kabin_kisi),
+            ("en büyük alan", mukavemet_tablolari.kabin_azami_alan),
+            ("en küçük alan", mukavemet_tablolari.kabin_asgari_alan),
         ],
         "kabin alanı verisi",
     ),
@@ -158,7 +181,9 @@ TABLO_GEREKLI = (
 
 #  ARAYÜZ GRUPLARI.  Form kendini bu listeden üretir;  sıralama ve başlıklar
 #  hesabın akışını izler.
-GRUPLAR = tuple((g["ad"], tuple(f["anahtar"] for f in g["alanlar"])) for g in _TG.form_gruplari(_TS.MUK))
+GRUPLAR = tuple(
+    (g["ad"], tuple(f["anahtar"] for f in g["alanlar"])) for g in gorunum.form_gruplari(alanlar.MUK)
+)
 
 
 #  GELİŞMİŞ ALANLAR.  Her grubun altında kapalı duran "Gelişmiş" bölümünde
@@ -187,7 +212,7 @@ GRUPLAR = tuple((g["ad"], tuple(f["anahtar"] for f in g["alanlar"])) for g in _T
 #  ama yanıltıcıydı:  etkisi yalnız δstr girilmiş projelerde görünür ve
 #  tarama projelerinde δstr boştu.  Yerleşim kararı olduğu için artık
 #  Gelişmiş'te değil, "Karşı ağırlık" grubunda normal alandır.
-GELISMIS_ALANLAR = frozenset(_TG.anahtarlar(_TS.MUK, gelismis=True, formda=True))
+GELISMIS_ALANLAR = frozenset(gorunum.anahtarlar(alanlar.MUK, gelismis=True, formda=True))
 
 
 #  ---------------------------------------------------------------------
@@ -208,11 +233,15 @@ GELISMIS_ALANLAR = frozenset(_TG.anahtarlar(_TS.MUK, gelismis=True, formda=True)
 #  kalır ( hesap, kayıt ve geri yükleme ona bakar );  yalnız GÖRÜNEN yazı
 #  değişir.  Askı oranında çıplak "2" okuyan, 2:1 mi 1:2 mi olduğunu
 #  ayırt edemiyordu — avan formu zaten "1:1 / 2:1" gösteriyor.
-SECENEK_METNI = {a.anahtar: a.secenek_metni for a in _TS.ALANLAR if a.sozlesme == _TS.MUK and a.secenek_metni}
+SECENEK_METNI = {
+    a.anahtar: a.secenek_metni for a in alanlar.ALANLAR if a.sozlesme == alanlar.MUK and a.secenek_metni
+}
 
 
 #  Metinler şemadadır;  boşsa çizimden gelen alanın kuralı sona eklenir.
-ACIKLAMA = {a.anahtar: _TG.bilgi(a) for a in _TS.ALANLAR if a.sozlesme == _TS.MUK and _TG.bilgi(a)}
+ACIKLAMA = {
+    a.anahtar: gorunum.bilgi(a) for a in alanlar.ALANLAR if a.sozlesme == alanlar.MUK and gorunum.bilgi(a)
+}
 #  ÇİZİMDEN GELEN ALANLAR ( cizim/kopru.CIZIMDEN ):  boşsa değerin nereden
 #  geldiği açıklamanın sonunda yazar — metin köprünün yanında tek yerde durur.
 
@@ -259,12 +288,15 @@ BOLUM_GRUBU = {
 def arayuz_alanlari():
     """Formun mukavemet payı ( JSON'a hazır ) — gruplar tasarım şemasından."""
     return {
-        "gruplar": _TG.form_gruplari(_TS.MUK),
+        "gruplar": gorunum.form_gruplari(alanlar.MUK),
         "bolum_grubu": {no: list(gr) for no, gr in BOLUM_GRUBU.items()},
         #  MALZEME → ALIŞILMIŞ DERİNLİK.  Bir HESAP tablosu DEĞİL, formun
         #  başlangıç değeridir:  malzeme seçilince derinlik kutusu bu sayıyla
         #  dolar, mühendis üzerine yazabilir, hesap KUTUDAKİ sayıyı okur.
-        "malzeme_derinligi": {r[0]: r[MT._MALZEME_SUTUN["derinlik"]] for r in MT.AGIRLIK_MALZEMESI},
+        "malzeme_derinligi": {
+            r[0]: r[mukavemet_tablolari._MALZEME_SUTUN["derinlik"]]
+            for r in mukavemet_tablolari.AGIRLIK_MALZEMESI
+        },
         "hesaplanan": list(HESAPLANAN),
     }
 
@@ -281,7 +313,7 @@ def varsayilanlar():
     #  üstüne girdiyi yazıp yeniden tamamlar;  burada doldurulsalardı
     #  varsayılan projenin kuyu dibinden, kasnaklarından türeyen sayı asıl
     #  girdide de kalırdı ( kuyu dibi değişse de kaide 870 ).
-    for _k in _TG.cizimden():
+    for _k in gorunum.cizimden():
         g[_k] = None
     #  Karşı ağırlığın genişliği de:  boşsa ray arasından türer ( tamamla );
     #  varsayılanda dolu kalsaydı girilen ray arası onu hiç değiştirmezdi.
@@ -310,8 +342,8 @@ def tamamla(g):
     if g.get("kabin_agirligi") is None or (
         isinstance(g.get("kabin_agirligi"), str) and not g["kabin_agirligi"].strip()
     ):
-        g["kabin_agirligi"] = OFIS.bos_kabin_kutlesi(by)
-        g["kabin_agirligi_kaynak"] = OFIS.GK_KAYNAGI
+        g["kabin_agirligi"] = ofis.bos_kabin_kutlesi(by)
+        g["kabin_agirligi_kaynak"] = ofis.GK_KAYNAGI
     else:
         #  KAYNAK DEĞERDEN OKUNUR, GEÇMİŞTEN DEĞİL.  Ekran tablo değerini
         #  kutuya yazar;  sonraki her istek o sayıyı taşır.  Kaynak "boş mu
@@ -319,7 +351,7 @@ def tamamla(g):
         #  sonrakilerde ( ve indirilen paftada ) "GİRİŞ" yazıyordu.  Değer bu
         #  beyan yükünün tablo değeriyse kaynak tablodur;  değilse girilmiştir.
         g["kabin_agirligi_kaynak"] = (
-            OFIS.GK_KAYNAGI if g.get("kabin_agirligi") == OFIS.bos_kabin_kutlesi(by) else "GİRİŞ"
+            ofis.GK_KAYNAGI if g.get("kabin_agirligi") == ofis.bos_kabin_kutlesi(by) else "GİRİŞ"
         )
     ka = g.get("kabin_agirligi")
     #  KARŞI AĞIRLIK DENGE ORANI OFİS SABİTİDİR.
@@ -327,11 +359,11 @@ def tamamla(g):
     #  ile kurulur.  "Beyan yükü / 2" diye çivilenseydi q = 0,60'ta aynı
     #  projede iki farklı karşı ağırlık oluşurdu — aynı fiziksel parçanın
     #  kütlesi her hesapta aynı olmalıdır.
-    from motor.uygulama import uygulama_sabitleri as _US
+    from motor.uygulama import uygulama_sabitleri
 
     # Motor, tahrik ve tampon aynı doğrulanmış denge oranını kullanmalı.
     # Ham sözlüğü koru: reddedilen girdiler uyarılarda gösterilmeye devam eder.
-    q = _US.sabitler(g.get("_ofis"))["q_denge"]
+    q = uygulama_sabitleri.sabitler(g.get("_ofis"))["q_denge"]
     if sayi_mi(ka) and sayi_mi(by):
         g["karsi_agirlik"] = ka + q * by
     _tavan, kd = alt_duraktan_tavana(g), g.get("kuyu_dibi")
@@ -344,12 +376,12 @@ def tamamla(g):
     if not sayi_mi(g.get("agirlik_genisligi")):
         dbgw = g.get("agirlik_ray_arasi")
         g["agirlik_genisligi"] = (
-            dbgw - _TS.AGIRLIK_PATEN_PAYI
-            if sayi_mi(dbgw) and dbgw > _TS.AGIRLIK_PATEN_PAYI
-            else _TS.AGIRLIK_GENISLIGI_YEDEK
+            dbgw - alanlar.AGIRLIK_PATEN_PAYI
+            if sayi_mi(dbgw) and dbgw > alanlar.AGIRLIK_PATEN_PAYI
+            else alanlar.AGIRLIK_GENISLIGI_YEDEK
         )
     #  2. bükülgen kablo kat kapısı tipinden türetilir
-    g["kablo_tipi_2"] = MT.kapi_kablosu(g.get("kat_kapisi_tipi"))
+    g["kablo_tipi_2"] = mukavemet_tablolari.kapi_kablosu(g.get("kat_kapisi_tipi"))
     #  ÇİZİMDEN GELEN GİRDİLER ( cizim/kopru.CIZIMDEN ):  boş bırakılmışsa
     #  ( None ) değer çizimin geometrisinden türetilir — askı kaçıklığı xs,
     #  D2 · Ds, kabin tamponu kaidesi, sarılma açısı α.  Hesap ile çizim aynı
@@ -358,22 +390,26 @@ def tamamla(g):
     #  da ister ( kuyu genişliği, makine dairesi … ):  motor doğrudan
     #  çağrıldığında girdide yoksa uygulama sözleşmesinin varsayılanları —
     #  sabit tablo;  girdi.varsayilanlar() buraya döner, döngü olurdu.
-    from cizim import kopru as _CK
-    from motor.uygulama import uygulama_girdisi as _UG
+    from cizim import kopru
+    from motor.uygulama import uygulama_girdisi
 
-    _cd = _CK.cizimden({**{a[0]: a[5] for a in _UG.EK_ALANLAR}, **g})
+    _cd = kopru.cizimden({**{a[0]: a[5] for a in uygulama_girdisi.EK_ALANLAR}, **g})
     g.update(_cd)
     #  KAYNAK İŞARETİ:  çizimden gelen değer raporda "ÇİZİMDEN" yazar ( girilmiş
     #  sanılmasın ).  Anahtar → kuralı.
     if _cd:
-        g["_cizimden"] = {**(g.get("_cizimden") or {}), **{k: _CK.CIZIMDEN[k] for k in _cd}}
+        g["_cizimden"] = {**(g.get("_cizimden") or {}), **{k: kopru.CIZIMDEN[k] for k in _cd}}
     #  ESKİ BİÇİM:  makine yükünün yolu bir zamanlar ONAY KUTUSUYDU ve
     #  True / "EVET" olarak kaydediliyordu.  Eski .uygulama dosyaları bu
     #  değeri taşır;  seçime çevrilmezse
     #  doğrulama "geçersiz seçim — True" deyip projeyi hiç açmaz.
     _yy = g.get("makine_raya_biniyor")
-    if _yy is not None and _yy not in MT.MAKINE_YUK_YOLU:
-        g["makine_raya_biniyor"] = MT.MAKINE_YUK_YOLU[1] if MT.makine_raya_mi(_yy) else MT.MAKINE_YUK_YOLU[0]
+    if _yy is not None and _yy not in mukavemet_tablolari.MAKINE_YUK_YOLU:
+        g["makine_raya_biniyor"] = (
+            mukavemet_tablolari.MAKINE_YUK_YOLU[1]
+            if mukavemet_tablolari.makine_raya_mi(_yy)
+            else mukavemet_tablolari.MAKINE_YUK_YOLU[0]
+        )
     return g
 
 
@@ -390,7 +426,12 @@ def kanal_acilari(g, O):
     gv = float(pg) if g_var else O["kanal_gama_v"]
     gyd = float(pg) if g_var else O["kanal_gama_yd"]
     bt = float(pb) if b_var else O["kanal_beta"]
-    return (MT.kanal_acisi(sekil, gv, gyd), MT.kanal_beta(sekil, bt), g_var, b_var)
+    return (
+        mukavemet_tablolari.kanal_acisi(sekil, gv, gyd),
+        mukavemet_tablolari.kanal_beta(sekil, bt),
+        g_var,
+        b_var,
+    )
 
 
 def sistem_verimi(g):
@@ -399,9 +440,9 @@ def sistem_verimi(g):
     e = g.get("makine_verimi")
     if sayi_mi(e):
         return e, True
-    from motor.uygulama import uygulama_sabitleri as _US
+    from motor.uygulama import uygulama_sabitleri
 
-    return _US.verim(_US.sabitler(g.get("_ofis")), g.get("makine_tipi")), False
+    return uygulama_sabitleri.verim(uygulama_sabitleri.sabitler(g.get("_ofis")), g.get("makine_tipi")), False
 
 
 def dogrula(g):
@@ -575,8 +616,8 @@ def dogrula(g):
     #  bağlı olduğundan alanın kendi aralığıyla ( 1–360° ) denetlenemez;
     #  burada, iki alan birlikte görülürken reddedilir.
     _aci, _kanal = g.get("sarilma_acisi"), g.get("kanal_sekli")
-    if sayi_mi(_aci) and 1 <= _aci <= 360 and MT.kanal_turu(_kanal) is not None:
-        if (MT.kanal_gecis_sayisi(_kanal) or 1) > 1:
+    if sayi_mi(_aci) and 1 <= _aci <= 360 and mukavemet_tablolari.kanal_turu(_kanal) is not None:
+        if (mukavemet_tablolari.kanal_gecis_sayisi(_kanal) or 1) > 1:
             if _aci <= 180:
                 hata.append(
                     f"Sarılma açısı α ({_aci:g}°) çift sarımlı kanalda 180°'yi "
@@ -601,7 +642,7 @@ def dogrula(g):
     #  alıyor ve sayısal kontroller geçerse tahrik bölümü "UYGUNDUR" diyordu
     #  ( 576 senaryonun 142'sinde ).  Seçim SESSİZCE "sertleştirilmiş"e
     #  çevrilmez — o, gerçek kasnağın özelliğini değiştirmek olurdu.
-    if MT.kanal_turu(_kanal) == "V" and g.get("kanal_isleme") == "Sertleştirilmemiş":
+    if mukavemet_tablolari.kanal_turu(_kanal) == "V" and g.get("kanal_isleme") == "Sertleştirilmemiş":
         hata.append(
             "Alt kesilmesiz V kanal sertleştirilmemiş olamaz — TS EN 81-50 "
             "m.5.11.2.3.1.2 sertleştirilmemiş V kanalda aşınmadan doğan tahrik "
@@ -615,21 +656,25 @@ def dogrula(g):
     #  yarım daire 25° ), üst sınır bir kanal açısı olarak 90°'dir.
     _pg, _pb = g.get("kasnak_gama"), g.get("kasnak_beta")
     if sayi_mi(_pg):
-        _alt = MT.GAMA_ASGARI_U if MT.kanal_yarim_daire_mi(_kanal) else MT.GAMA_ASGARI_V
-        if not (_alt <= _pg <= MT.GAMA_AZAMI):
+        _alt = (
+            mukavemet_tablolari.GAMA_ASGARI_U
+            if mukavemet_tablolari.kanal_yarim_daire_mi(_kanal)
+            else mukavemet_tablolari.GAMA_ASGARI_V
+        )
+        if not (_alt <= _pg <= mukavemet_tablolari.GAMA_AZAMI):
             hata.append(
                 f"Kasnak kanal açısı γ = {_pg}° sınırların dışında — seçilen "
-                f"kanalda {_alt:.0f}° ≤ γ ≤ {MT.GAMA_AZAMI:.0f}° olmalıdır "
+                f"kanalda {_alt:.0f}° ≤ γ ≤ {mukavemet_tablolari.GAMA_AZAMI:.0f}° olmalıdır "
                 "( TS EN 81-50 m.5.11.2.3.1 )."
             )
     if sayi_mi(_pb):
-        if not (0 < _pb <= MT.BETA_AZAMI):
+        if not (0 < _pb <= mukavemet_tablolari.BETA_AZAMI):
             hata.append(
                 f"Kanal alt kesme açısı β = {_pb}° sınırların dışında — "
-                f"0° < β ≤ {MT.BETA_AZAMI:.0f}° olmalıdır "
+                f"0° < β ≤ {mukavemet_tablolari.BETA_AZAMI:.0f}° olmalıdır "
                 "( TS EN 81-50 m.5.11.2.3.1 )."
             )
-        elif not MT.kanal_alti_kesik_mi(_kanal):
+        elif not mukavemet_tablolari.kanal_alti_kesik_mi(_kanal):
             hata.append(
                 f"Alt kesme açısı β girildi ama seçilen kanalın ( {_kanal} ) "
                 "alt kesilmesi yoktur — ya kutuyu boş bırakın ya da altı "
@@ -693,9 +738,9 @@ def dogrula(g):
     L = g.get("yan_yatak_boyu")
     pay = (g.get("_ofis") or {}).get("yan_yatak_L_X")
     if not sayi_mi(pay):
-        from motor.uygulama import uygulama_sabitleri as _US
+        from motor.uygulama import uygulama_sabitleri
 
-        pay = _US.VARSAYILAN["yan_yatak_L_X"]
+        pay = uygulama_sabitleri.VARSAYILAN["yan_yatak_L_X"]
     #  Yükün yeri çizimden geldiyse ( program hesabı ) mesnet payı kullanılmaz.
     _x_ciz = "makine_yuku_x" in (g.get("_cizimden") or {}) and sayi_mi(g.get("makine_yuku_x"))
     if "yan_yatak_boyu" not in atla and not _x_ciz and sayi_mi(L) and sayi_mi(pay) and L - pay <= 0:
@@ -775,9 +820,9 @@ def dogrula(g):
 
     #  OFİS STANDARDI  ( Sabitler sekmesi ).  Aralık dışı değer varsayılanla
     #  değiştiriliyor ve bunu hiçbir yer söylemiyordu;  artık hesap durur.
-    from motor.uygulama import uygulama_sabitleri as _US
+    from motor.uygulama import uygulama_sabitleri
 
-    hata += _US.ofis_hatalari(g.get("_ofis"))
+    hata += uygulama_sabitleri.ofis_hatalari(g.get("_ofis"))
     return hata
 
 
@@ -825,7 +870,7 @@ def uyarilar(g):
     #  beri varsayılan "Kılavuz raylara" ve alan makine daireli formda
     #  gizlidir ( kullanıcı seçemez ):  uyarı her makine daireli projede
     #  anlamsız çıkardı.
-    if evet_mi(g.get("mk_yok")) and not MT.makine_raya_mi(g.get("makine_raya_biniyor")):
+    if evet_mi(g.get("mk_yok")) and not mukavemet_tablolari.makine_raya_mi(g.get("makine_raya_biniyor")):
         uyari.append(
             "MAKİNE YÜKÜ BİNA YAPISINA AKTARILIYOR — makine dairesiz ( MRL ) "
             "sistemde makinenin yükü kuyu üstü kirişe, duvara ya da konsola "
@@ -863,13 +908,13 @@ def uyarilar(g):
         #  "i is the MINIMUM radius of gyration" ).  Burada ix okunuyordu;
         #  kataloğun altı profilinden beşinde iy < ix olduğu için tablo
         #  dışına düşen geometriler ( λ > 250 ) sessizce kabul ediliyordu.
-        _ix = MT.ray(prof, "ix") if prof else None
-        _iy = MT.ray(prof, "iy") if prof else None
+        _ix = mukavemet_tablolari.ray(prof, "ix") if prof else None
+        _iy = mukavemet_tablolari.ray(prof, "iy") if prof else None
         imin = min(_ix, _iy) if sayi_mi(_ix) and sayi_mi(_iy) else None
         if sayi_mi(imin) and imin > 0 and sayi_mi(l) and l > 0:
             lam = l / imin
-            if lam > MT.OMEGA_LAMBDA_MAX:
-                azami = MT.OMEGA_LAMBDA_MAX * imin
+            if lam > mukavemet_tablolari.OMEGA_LAMBDA_MAX:
+                azami = mukavemet_tablolari.OMEGA_LAMBDA_MAX * imin
                 #  GİRDİ REDDEDİLMEZ, UYARILIR.  Eskiden burası hata veriyor ve
                 #  bütün proje hesaplanamıyordu.  Oysa λ > 250 yalnız ω'yı
                 #  tanımsız bırakır:  eğilme, birleşik gerilme, flanş ve sehim
@@ -881,7 +926,7 @@ def uyarilar(g):
                 #  bölümlerin sonucunu da göstermiyordu.
                 uyari.append(
                     f"{ne} rayı fazla narin:  λ = konsol arası / imin = "
-                    f"{l:g} / {imin:g} = {lam:.1f}  >  {MT.OMEGA_LAMBDA_MAX}. "
+                    f"{l:g} / {imin:g} = {lam:.1f}  >  {mukavemet_tablolari.OMEGA_LAMBDA_MAX}. "
                     "TS EN 81-50 m.5.10.3'ün ω tablosu bu narinliğin ötesinde "
                     "tanımlı değildir;  BURKULMA HESABI YAPILAMAZ ve bölüm "
                     f"uygun çıkmaz. '{ALAN[konsol_alan][1]}' en çok "
@@ -902,14 +947,14 @@ def uyarilar(g):
     #  Lineer olmayan tamponda uyarılır;  lineer ve hidrolikte strok zaten
     #  bağıntıyla denetlendiği için burada tekrarlanmaz.
     _tip = g.get("tampon_tipi")
-    if _tip and MT.tampon(_tip)[2] is None:
+    if _tip and mukavemet_tablolari.tampon(_tip)[2] is None:
         _boy, _ez = g.get("kabin_tampon_boyu"), g.get("kabin_tampon_ezilme")
         if sayi_mi(_boy) and sayi_mi(_ez) and _boy > 0:
-            _tam = MT.TAMPON_TAM_EZILME_ORANI * _boy
+            _tam = mukavemet_tablolari.TAMPON_TAM_EZILME_ORANI * _boy
             if _ez < _tam - 0.5:
                 uyari.append(
                     f"Kabin tamponu ezilmesi ({_ez:g} mm), kurulu yüksekliğin "
-                    f"%{MT.TAMPON_TAM_EZILME_ORANI * 100:.0f}'ından "
+                    f"%{mukavemet_tablolari.TAMPON_TAM_EZILME_ORANI * 100:.0f}'ından "
                     f"({_tam:.0f} mm) küçük.  TS EN 81-20 m.5.8.2.1.2.2 "
                     '"tam ezilmiş" durumu bu oranla tanımlar;  daha küçük bir '
                     "değer kuyu dibi açıklığını olduğundan BÜYÜK gösterir. "

@@ -8,22 +8,25 @@ import json
 import unittest
 
 from temel import ortusur
-from testler.test_gercek_projeler import GP, UC, UYG, E_UGR, E_UYG, CK
-from cizim import eleman as CEL
-from cizim import baglantilar as CB, donanim as CDN, geometri as E
-from cizim import kabin_ustu as KU, kuyu_kesiti as K
-from cizim import makine as CMK, olculer as O
+from testler import gercek_projeler
+from uclar import cizim_uclari, uygulama_uclari
+from motor.uygulama import uygulama_girdisi, uygulama_hesabi
+from cizim import kopru
+from cizim import eleman
+from cizim import baglantilar, donanim, geometri
+from cizim import kabin_ustu, kuyu_kesiti
+from cizim import makine, olculer
 
 
 def _istek(values):
     a = dict(values)
-    common = {k: a.pop(k) for k in list(a) if k in UYG.PROJE_GENELI_ALANLAR}
+    common = {k: a.pop(k) for k in list(a) if k in uygulama_uclari.PROJE_GENELI_ALANLAR}
     return {"asansorler": [a], "proje_geneli": common, "sabitler": {}, "asansor": 0}
 
 
 def _girdi(values):
-    ham, _, _ = UC._istek(_istek(values))
-    g, hata = CK.cizim_girdisi(E_UGR.tamamla(ham))
+    ham, _, _ = cizim_uclari._istek(_istek(values))
+    g, hata = kopru.cizim_girdisi(uygulama_girdisi.tamamla(ham))
     if hata:
         raise AssertionError(hata)
     return g
@@ -37,11 +40,11 @@ KESITSIZ = {"12495-18"}
 class KesitYerlesimRegresyon(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.projeler = {ad: _girdi(v) for ad, v in GP.PROJELER.items()}
+        cls.projeler = {ad: _girdi(v) for ad, v in gercek_projeler.PROJELER.items()}
 
     def _kesitli(self):
         for ad, g in self.projeler.items():
-            Y = K.yerlesim(g)
+            Y = kuyu_kesiti.yerlesim(g)
             self.assertEqual("M" not in Y, ad in KESITSIZ, (ad, Y.get("hata")))
             if ad not in KESITSIZ:
                 yield ad, g, Y
@@ -49,16 +52,16 @@ class KesitYerlesimRegresyon(unittest.TestCase):
     def test_yuksek_kabin_sase_cakismasi_api_ve_hesapta_reddedilir(self):
         values = {"kabin_ic_yuksekligi": 2500, "son_kat_yuksekligi": 5000}
         g = _girdi(values)
-        Y = K.yerlesim(g)
+        Y = kuyu_kesiti.yerlesim(g)
         #  8 Eki:  varsayılan paten arası 2.660 ( LiftDesigner — patenler kirişlerin
         #  dışında );  2.500'lük kabinin tavanı 2.560, kirişin altı 2.200 → 3.020
         self.assertEqual(g["dusey"]["kabin_paten_arasi"], 2660)
         self.assertTrue(any("üst şase kirişi" in h and "3020 mm" in h for h in Y["hata"]), Y["hata"])
         self.assertIn(Y["hata"][0], Y["diger"])
-        api = json.loads(UC.api_cizimler(_istek(values)).body)
+        api = json.loads(cizim_uclari.api_cizimler(_istek(values)).body)
         self.assertFalse(api["aktif"])
         self.assertTrue(any("üst şase kirişi" in h for h in api["hata"]), api)
-        sonuc = E_UYG.hesapla(values)
+        sonuc = uygulama_hesabi.hesapla(values)
         b11 = next(b for b in sonuc["bolumler"] if b["kimlik"] == "siginma_alanlari")
         self.assertFalse(b11["sonuc"]["uygun"])
         self.assertIn("üst şase kirişi", b11["sonuc"]["metin"])
@@ -76,15 +79,17 @@ class KesitYerlesimRegresyon(unittest.TestCase):
                 }
             )
             with self.subTest(paten_arasi=aralik):
-                self.assertEqual(not K.dogrula(g), uygun)
+                self.assertEqual(not kuyu_kesiti.dogrula(g), uygun)
                 self.assertEqual(g["dusey"]["kabin_paten_arasi"], aralik)
                 if uygun:
-                    for ciz in (K.yan_kesit, K.on_kesit):
+                    for ciz in (kuyu_kesiti.yan_kesit, kuyu_kesiti.on_kesit):
                         e = ciz(g)
                         self.assertTrue(e)
-                        if ciz == K.on_kesit:
-                            Y = K.yerlesim(g)
-                            roof = CDN.kabin_kotlari(g["dusey"], Y["S"], Y["kotlar"][-1], g["aski"])["tavan"]
+                        if ciz == kuyu_kesiti.on_kesit:
+                            Y = kuyu_kesiti.yerlesim(g)
+                            roof = donanim.kabin_kotlari(g["dusey"], Y["S"], Y["kotlar"][-1], g["aski"])[
+                                "tavan"
+                            ]
                             beam = max((p for p in e if p.get("ad") == "sase_kirisi"), key=lambda p: p["y"])
                             self.assertGreaterEqual(beam["y"], roof - 1e-6)
 
@@ -92,7 +97,7 @@ class KesitYerlesimRegresyon(unittest.TestCase):
         for ad, g, Y in self._kesitli():
             M, S = Y["M"], Y["S"]
             raylar = [r for r in M["raylar"] if r["tur"] == "agirlik"]
-            parcalar = CB.agirlik_patenleri(g, S, M["agirlik"]["kutu"], raylar, -70, 70)
+            parcalar = baglantilar.agirlik_patenleri(g, S, M["agirlik"]["kutu"], raylar, -70, 70)
             patenler = [p["k"] for p in parcalar if p["tur"] == "kutu"]
             self.assertEqual(len(patenler), 2)
             arka = g["agirlik"]["yeri"] == "Arka"
@@ -110,7 +115,7 @@ class KesitYerlesimRegresyon(unittest.TestCase):
 
     def test_1022_pateni_derinlikte_rayla_hizali(self):
         g = self.projeler["1022"]
-        e = K.yan_kesit(g)
+        e = kuyu_kesiti.yan_kesit(g)
         patenler = [p for p in e if p.get("ad") == "agirlik_paten"]
         self.assertTrue(patenler)
         self.assertEqual({(p["x"], p["g"]) for p in patenler}, {(1770, 100)})
@@ -119,18 +124,18 @@ class KesitYerlesimRegresyon(unittest.TestCase):
     def test_paten_kesiti_ortak_cisimlerin_izdusumu(self):
         for ad in ("1022", "1275", "4815-6"):
             g = self.projeler[ad]
-            Y = K.yerlesim(g)
+            Y = kuyu_kesiti.yerlesim(g)
             M, S = Y["M"], Y["S"]
-            B = K.yan_bakis(g)
-            AK = CDN.agirlik_kotlari(
+            B = kuyu_kesiti.yan_bakis(g)
+            AK = donanim.agirlik_kotlari(
                 M, M["agirlik"]["tampon_ustu"] + g["dusey"]["agirlik_carpma_arasi"] + Y["kotlar"][-1]
             )
-            e = K.yan_kesit(g)
+            e = kuyu_kesiti.yan_kesit(g)
             for z0, z1 in ((AK["alt_paten"], AK["alt_paten_ust"]), (AK["ust_paten_alt"], AK["ust_paten"])):
-                parcalar = CB.agirlik_patenleri(
+                parcalar = baglantilar.agirlik_patenleri(
                     g, S, M["agirlik"]["kutu"], [r for r in M["raylar"] if r["tur"] == "agirlik"], z0, z1
                 )
-                for el in CMK.gorunus(parcalar, B, CEL.dikdortgen, CEL.daire, CEL.cizgi):
+                for el in makine.gorunus(parcalar, B, eleman.dikdortgen, eleman.daire, eleman.cizgi):
                     el.pop("_derin", None)  # kesitin iç işareti ( kabin_arkasi kaldırır )
                     with self.subTest(proje=ad, parca=el["ad"]):
                         self.assertIn(el, e)
@@ -139,8 +144,8 @@ class KesitYerlesimRegresyon(unittest.TestCase):
         for ad in ("4815-6", "1275", "1022", "800 KG"):
             g = self.projeler[ad]
             beklenen = 3280 if g["aski"]["duzen"] == "Doğrudan" else 2980
-            self.assertEqual(O.hesap_olculeri(g)["agirlik_dolgu_yuksekligi"], beklenen)
-            for ciz in (K.yan_kesit, K.on_kesit):
+            self.assertEqual(olculer.hesap_olculeri(g)["agirlik_dolgu_yuksekligi"], beklenen)
+            for ciz in (kuyu_kesiti.yan_kesit, kuyu_kesiti.on_kesit):
                 e = ciz(g)
                 dolgular = [p for p in e if p.get("ad") == "agirlik_dolgu"]
                 for dolgu in dolgular:
@@ -153,15 +158,15 @@ class KesitYerlesimRegresyon(unittest.TestCase):
     def test_dolgu_katalog_degisiminde_de_ortak(self):
         g = _girdi({"agirlik_kasnak_capi": 500})
         g["_cizim_sabitleri"] = {"agirlik_kasnak_ust": 150, "agirlik_kiris": 20}
-        e = K.yan_kesit(g)
+        e = kuyu_kesiti.yan_kesit(g)
         dolgu = next(p for p in e if p.get("ad") == "agirlik_dolgu")
-        self.assertEqual(dolgu["d"], O.hesap_olculeri(g)["agirlik_dolgu_yuksekligi"])
+        self.assertEqual(dolgu["d"], olculer.hesap_olculeri(g)["agirlik_dolgu_yuksekligi"])
         self.assertEqual(dolgu["d"], 2880)
 
     def test_dogrudan_askida_kasnak_tasiyicisi_yok(self):
         g = self.projeler["1022"]
-        self.assertEqual(CB.kasnak_tasiyicilari(g, K.yerlesim(g)["S"], 0), [])
-        self.assertFalse([p for p in K.yan_kesit(g) if p.get("ad") == "kasnak_tasiyici_sematik"])
+        self.assertEqual(baglantilar.kasnak_tasiyicilari(g, kuyu_kesiti.yerlesim(g)["S"], 0), [])
+        self.assertFalse([p for p in kuyu_kesiti.yan_kesit(g) if p.get("ad") == "kasnak_tasiyici_sematik"])
 
     def test_kabin_ustu_kasnaklarina_tasiyici_cizilmez(self):
         #  Kullanıcı kararı 1 Eki:  kaynağı olmayan taşıyıcı çizilmez ( kabin
@@ -176,16 +181,21 @@ class KesitYerlesimRegresyon(unittest.TestCase):
                 "son_kat_yuksekligi": 5000,
                 "kat_kapisi_tipi": "Teleskopik Sağ",
             },
-            GP.PROJELER["1275"],
+            gercek_projeler.PROJELER["1275"],
         ):
             g = _girdi(v)
             with self.subTest(v.get("aski_duzeni")):
-                self.assertEqual(CB.kasnak_tasiyicilari(g, K.yerlesim(g)["S"], 0), [])
-                for e in (K.yan_kesit(g), K.on_kesit(g), E.plan(g), KU.ciz(g)):
+                self.assertEqual(baglantilar.kasnak_tasiyicilari(g, kuyu_kesiti.yerlesim(g)["S"], 0), [])
+                for e in (
+                    kuyu_kesiti.yan_kesit(g),
+                    kuyu_kesiti.on_kesit(g),
+                    geometri.plan(g),
+                    kabin_ustu.ciz(g),
+                ):
                     self.assertFalse([p for p in e if p.get("ad") == "kasnak_tasiyici_sematik"])
         g = self.projeler["4815-6"]
         self.assertEqual(g["aski"]["duzen"], "Kabin altı")
-        self.assertTrue(CB.kasnak_tasiyicilari(g, K.yerlesim(g)["S"], 0))
+        self.assertTrue(baglantilar.kasnak_tasiyicilari(g, kuyu_kesiti.yerlesim(g)["S"], 0))
 
     def test_agirlik_genisligi_bossa_ray_arasindan(self):
         #  Kullanıcı kararı 1 Eki:  Gy boşsa DBGW − 60 ( iki uçta paten payı —
@@ -201,7 +211,7 @@ class KesitYerlesimRegresyon(unittest.TestCase):
             g = _girdi(v)
             with self.subTest(v):
                 self.assertEqual((g["agirlik"]["genislik"], g["agirlik"]["ray_arasi"]), (gy, dbgw))
-                self.assertEqual(E_UYG.hesapla(v)["girdi"]["agirlik_genisligi"], gy)
+                self.assertEqual(uygulama_hesabi.hesapla(v)["girdi"]["agirlik_genisligi"], gy)
         for ad, g, Y in self._kesitli():
             M = Y["M"]
             blok = M["agirlik"]["kutu"]
@@ -215,10 +225,10 @@ class KesitYerlesimRegresyon(unittest.TestCase):
         #  rayı – ağırlık rayı ( 800 KG:  LiftDesigner 850 · 970 · 180;  bizim kapı
         #  bölgemiz 10 kısa ) ve kabin – ağırlık – duvar;  yandakinde duvar –
         #  ağırlık – kabin ( 4815-6:  LiftDesigner 100 · 150 · 225 · PLW ).
-        def olculer(g):
-            return [o.get("metin") or f"{o['uzunluk']:g}" for o in E.plan(g) if o["tip"] == "olcu"]
+        def _olculer(g):
+            return [o.get("metin") or f"{o['uzunluk']:g}" for o in geometri.plan(g) if o["tip"] == "olcu"]
 
-        o = olculer(self.projeler["800 KG"])
+        o = _olculer(self.projeler["800 KG"])
         self.assertIn("KABİN RAYI – AĞIRLIK RAYI 980", o)
         i = o.index("RAY EKSENİ 840")
         self.assertEqual(o[i : i + 3], ["RAY EKSENİ 840", "KABİN RAYI – AĞIRLIK RAYI 980", "180"])
@@ -226,7 +236,7 @@ class KesitYerlesimRegresyon(unittest.TestCase):
         self.assertEqual(o[i + 1 : i + 4], ["105", "150", "105"])
         #  8 Eki:  zincir kabinin dış yüzüne ( PLW ) — şasenin dikmeleri rayın
         #  ucunda;  LiftDesigner'la birebir ( eskiden "ŞASE DIŞI 1440" · 195 )
-        o = olculer(self.projeler["4815-6"])
+        o = _olculer(self.projeler["4815-6"])
         i = o.index("KABİN DIŞI 1380")
         self.assertEqual(o[i + 1 : i + 4], ["100", "150", "225"])
 
@@ -234,7 +244,7 @@ class KesitYerlesimRegresyon(unittest.TestCase):
         #  2 Eki:  dört duvar ayrı kalınlıkta ( LiftDesigner 4815-6:  arka 250,
         #  öbürleri 200 → dış ölçü 2.500 × 2.450 );  boş bırakılan ortak
         #  kalınlığı alır, kuyu dibinin ve tavanın döşemesi ortak kalınlıktadır.
-        o = [x.get("metin") for x in E.plan(self.projeler["4815-6"]) if x["tip"] == "olcu"]
+        o = [x.get("metin") for x in geometri.plan(self.projeler["4815-6"]) if x["tip"] == "olcu"]
         self.assertIn("DIŞ ÖLÇÜ 2500", o)
         self.assertIn("DIŞ ÖLÇÜ 2450", o)
         g = _girdi({"kuyu_duvar_kalinligi": 180, "kuyu_duvar_sag": 250})
@@ -243,10 +253,10 @@ class KesitYerlesimRegresyon(unittest.TestCase):
             {"duvar_on": 180, "duvar_arka": 180, "duvar_sol": 180, "duvar_sag": 250, "doseme": 180},
         )
         g = _girdi({"kuyu_duvar_on": 300})
-        Y = K.yerlesim(g)
+        Y = kuyu_kesiti.yerlesim(g)
         taban = [
             p
-            for p in K.yan_kesit(g)
+            for p in kuyu_kesiti.yan_kesit(g)
             if p["tip"] == "dikdortgen"
             and p["katman"] == "KUYU-DUVAR"
             and p["x"] == 0

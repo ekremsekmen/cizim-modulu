@@ -15,18 +15,18 @@ import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from cizim import geometri as CGE
-from cizim import giris as CGI
-from cizim import girdi as CG
-from cizim import cizim_sabitleri as CS
-from motor.uygulama import mukavemet_tablolari as MT
+from cizim import geometri
+from cizim import giris
+from cizim import girdi
+from cizim import sabitler
+from motor.uygulama import mukavemet_tablolari
 
-from testler import test_olcu_kaynagi as T
-from testler import test_yerlesim_saglamligi as Y
+from testler import test_olcu_kaynagi
+from testler import test_yerlesim_saglamligi
 
 
 def _kapi(tip, sol_pay=500, genislik=900, on_pay=None):
-    g = copy.deepcopy(CG.ORNEK)
+    g = copy.deepcopy(girdi.ORNEK)
     g["kapi"].update({"tip": tip, "sol_pay": sol_pay, "genislik": genislik})
     if on_pay is not None:
         g["kabin"]["on_pay"] = on_pay
@@ -35,7 +35,7 @@ def _kapi(tip, sol_pay=500, genislik=900, on_pay=None):
 
 class KapiTipi(unittest.TestCase):
     def test_kanat_sayisi_esik_ve_cep(self):
-        S = CS.sabitler()
+        S = sabitler.sabitler()
         #  ( tip , kanat , eşik , cepler — kapı 500 – 1.700, DW 1.200 )
         for tip, n, esik, cep in (
             ("Teleskopik Sol", 2, 90, [(-130, 500)]),
@@ -48,15 +48,15 @@ class KapiTipi(unittest.TestCase):
         ):
             g = _kapi(tip, genislik=1200)
             with self.subTest(tip):
-                self.assertEqual(CG.kapi_tipi(tip)["kanat"], n)
-                self.assertEqual(CG.esik_derinligi(S, tip), esik)
-                self.assertEqual(CG.esik_derinligi(S, tip, kabin=True), esik)
-                self.assertEqual([tuple(round(v) for v in c) for c in CG.kanat_cepleri(g, S)], cep)
+                self.assertEqual(girdi.kapi_tipi(tip)["kanat"], n)
+                self.assertEqual(girdi.esik_derinligi(S, tip), esik)
+                self.assertEqual(girdi.esik_derinligi(S, tip, kabin=True), esik)
+                self.assertEqual([tuple(round(v) for v in c) for c in girdi.kanat_cepleri(g, S)], cep)
 
     def test_yeni_tipler_hesabin_listesinde(self):
         for tip in ("Teleskopik 3 Kanat Sol", "Teleskopik 3 Kanat Sağ", "Otomatik Merkezi 4 Kanat"):
-            self.assertIn(tip, MT.KAPI_TIPLERI)
-            self.assertEqual(MT.kapi_kablosu(tip), "24 x 0,75")
+            self.assertIn(tip, mukavemet_tablolari.KAPI_TIPLERI)
+            self.assertEqual(mukavemet_tablolari.kapi_kablosu(tip), "24 x 0,75")
 
 
 class LiftDesigner(unittest.TestCase):
@@ -69,12 +69,12 @@ class LiftDesigner(unittest.TestCase):
             ("4815-6", (865, 1765), (385, 865)),
             ("1275", (345, 1445), (1445, 2025)),
         ):
-            g, hata = T._g(T._gercek(ad))
+            g, hata = test_olcu_kaynagi._g(test_olcu_kaynagi._gercek(ad))
             self.assertIsNotNone(g, hata)
-            S = CS.sabitler(g.get("_cizim_sabitleri"))
+            S = sabitler.sabitler(g.get("_cizim_sabitleri"))
             with self.subTest(ad):
                 self.assertEqual((g["kapi"]["sol_pay"], g["kapi"]["sol_pay"] + g["kapi"]["genislik"]), kapi)
-                self.assertEqual(CG.kanat_cepleri(g, S), [cep])
+                self.assertEqual(girdi.kanat_cepleri(g, S), [cep])
 
 
 class Cizim(unittest.TestCase):
@@ -86,8 +86,8 @@ class Cizim(unittest.TestCase):
             ("Manuel Sol", 1, 1, None),
         ):
             g = _kapi(tip, sol_pay=730, genislik=900, on_pay=on_pay)
-            self.assertEqual(CG.dogrula(g), [], tip)
-            e = CGE.plan(g)
+            self.assertEqual(girdi.dogrula(g), [], tip)
+            e = geometri.plan(g)
             with self.subTest(tip):
                 for ad in ("kat_kanadi", "kabin_kanadi"):
                     kanat = [x for x in e if x.get("ad") == ad]
@@ -98,7 +98,7 @@ class Cizim(unittest.TestCase):
                 self.assertEqual(
                     len([x for x in e if x.get("ad") == "kanat_durdurucu"]), len(cep) * duzlem if cep else 0
                 )
-                self.assertEqual(len(CGI.yerlesim(g)["kanatlar"]), n)
+                self.assertEqual(len(giris.yerlesim(g)["kanatlar"]), n)
 
     def test_menteseli_kapinin_acilma_yayi(self):
         """Menteşeli kat kapısı kata açılır:  açık konum ve çeyrek yay ( ISO 128,
@@ -106,7 +106,7 @@ class Cizim(unittest.TestCase):
         eni;  alttaki ölçü sıraları yayın altında.  Öbür tiplerde yay yok."""
         for tip in ("Manuel Sol", "Manuel Sağ", "Teleskopik Sol"):
             g = _kapi(tip, sol_pay=730, genislik=900)
-            e = CGE.plan(g)
+            e = geometri.plan(g)
             yay = [x for x in e if x.get("ad") == "kapi_acilisi"]
             with self.subTest(tip):
                 if not tip.startswith("Manuel"):
@@ -123,15 +123,19 @@ class Cizim(unittest.TestCase):
                 alt = min(o["kot"] for o in e if o["tip"] == "olcu" and o["yon"] == "yatay")
                 self.assertLess(alt, kanat["y"] - 900)
                 #  kuyu dibi ve kuyu üstü planlarında ( kapı düzeyinin altı / üstü ) yay yok
-                self.assertFalse([x for x in CGE.plan(g, kapi_duzeyi=False) if x.get("ad") == "kapi_acilisi"])
+                self.assertFalse(
+                    [x for x in geometri.plan(g, kapi_duzeyi=False) if x.get("ad") == "kapi_acilisi"]
+                )
 
     def test_uc_kanatta_esikler_derin_kabin_geride(self):
         g = _kapi("Teleskopik 3 Kanat Sol", sol_pay=730, on_pay=360)
-        KB = CG.kapi_bolgesi(g, CS.sabitler(g["_cizim_sabitleri"]))
+        KB = girdi.kapi_bolgesi(g, sabitler.sabitler(g["_cizim_sabitleri"]))
         self.assertEqual(KB["esik"][1] - KB["esik"][0], 135)
         self.assertEqual(KB["kabin_esik"][1] - KB["kabin_esik"][0], 135)
         #  Eşikler sığmazsa kabin önde kalır:  eşik aralığı denetimi söyler
-        self.assertTrue(any("eşiğine biniyor" in h for h in CG.dogrula(_kapi("Teleskopik 3 Kanat Sol", 730))))
+        self.assertTrue(
+            any("eşiğine biniyor" in h for h in girdi.dogrula(_kapi("Teleskopik 3 Kanat Sol", 730)))
+        )
 
 
 class Denetim(unittest.TestCase):
@@ -140,32 +144,38 @@ class Denetim(unittest.TestCase):
         #  kanatlının cebi ( 680 ) iki yanda da sığmaz ( 575 ) — sığan tipler
         #  söylenir.  4 kanatlı merkezinin sol cebi ağırlığın ön konsoluna ve ara
         #  kirişe çarpar ( kabinle yürür );  sağa açılan 3 kanatlı çizilir.
-        d = Y._cizim(Y._veri(2000, True, "Sol", kat_kapisi_tipi="Teleskopik Sol"))
+        d = test_yerlesim_saglamligi._cizim(
+            test_yerlesim_saglamligi._veri(2000, True, "Sol", kat_kapisi_tipi="Teleskopik Sol")
+        )
         self.assertFalse(d.get("aktif"))
         h = next(x for x in d["hata"] if "kanat cebi" in x)
         self.assertIn("680 mm gerekir", h)
         self.assertIn("Teleskopik 3 Kanat Sağ", h)
         self.assertNotIn("Teleskopik Sağ ·", h)
-        d = Y._cizim(Y._veri(2000, True, "Sol", kat_kapisi_tipi="Otomatik Merkezi 4 Kanat"))
+        d = test_yerlesim_saglamligi._cizim(
+            test_yerlesim_saglamligi._veri(2000, True, "Sol", kat_kapisi_tipi="Otomatik Merkezi 4 Kanat")
+        )
         self.assertTrue(any("ara kirişine çarpıyor" in x for x in d["hata"]), d["hata"])
         self.assertTrue(
-            Y._cizim(Y._veri(2000, True, "Sol", kat_kapisi_tipi="Teleskopik 3 Kanat Sağ")).get("aktif")
+            test_yerlesim_saglamligi._cizim(
+                test_yerlesim_saglamligi._veri(2000, True, "Sol", kat_kapisi_tipi="Teleskopik 3 Kanat Sağ")
+            ).get("aktif")
         )
 
     def test_cep_konsola_ve_ara_kirise_carpmaz(self):
         #  Karşı ağırlık 450 öne alınınca ( referans projenin kapısı sola açılır )
         #  kabin kapısının cebi kabin rayının ara kirişine çarpar.
-        g = copy.deepcopy(CG.ORNEK)
-        self.assertEqual(CG.dogrula(g), [])
+        g = copy.deepcopy(girdi.ORNEK)
+        self.assertEqual(girdi.dogrula(g), [])
         g["agirlik"]["eksen_kaciklik"] = -450
-        h = CG.dogrula(g)
+        h = girdi.dogrula(g)
         self.assertTrue(
             any(x.startswith("Kabin kapısının kanat cebi kabin rayının ara kirişine") for x in h), h
         )
         #  Sağa açılan kapının cebi ara kirişe çarpmaz ( sağda yalnız 470 kalır:
         #  sığmadığı söylenir — çarpışma değil )
         g["kapi"]["tip"] = "Teleskopik Sağ"
-        self.assertFalse([x for x in CG.dogrula(g) if "çarpıyor" in x])
+        self.assertFalse([x for x in girdi.dogrula(g) if "çarpıyor" in x])
 
 
 if __name__ == "__main__":

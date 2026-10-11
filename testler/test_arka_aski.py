@@ -12,16 +12,16 @@ import unittest
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from temel import ortusur
-from cizim import arka_aski as CAA
-from cizim import geometri as CGE
-from cizim import kabin_ustu as CKUS
-from cizim import kopru as CK
-from cizim import dusey as CDY
-from cizim import kuyu_ustu as CKT
-from cizim import makine_dairesi as CMD
-from cizim import cizim_sabitleri as CS
-from motor.uygulama import uygulama_girdisi as UG
-from motor.uygulama import uygulama_hesabi as UY
+from cizim import arka_aski
+from cizim import geometri
+from cizim import kabin_ustu
+from cizim import kopru
+from cizim import dusey
+from cizim import kuyu_ustu
+from cizim import makine_dairesi
+from cizim import sabitler
+from motor.uygulama import uygulama_girdisi
+from motor.uygulama import uygulama_hesabi
 
 #  12495-18'in düzeni ( çapraz kasnaklar, makine duvardan duvara ), kabin
 #  1.350 × 1.400 ( 800 kg'ın standart kabini ):  12495-18'in 1.100 × 1.100
@@ -46,20 +46,20 @@ MD = {"mk_yok": False, "mk_uzunluk": 3800, "mk_genislik": 2600}
 
 
 def _girdi(**ek):
-    return UG.tamamla({**UG.varsayilanlar(), **ARKA, **ek})
+    return uygulama_girdisi.tamamla({**uygulama_girdisi.varsayilanlar(), **ARKA, **ek})
 
 
 def _cizim(**ek):
     A = _girdi(**ek)
-    g, h = CK.cizim_girdisi(A)
+    g, h = kopru.cizim_girdisi(A)
     assert g is not None, h
-    return A, g, CS.sabitler(g.get("_cizim_sabitleri"))
+    return A, g, sabitler.sabitler(g.get("_cizim_sabitleri"))
 
 
 class Geometri(unittest.TestCase):
     def test_teget_ayna_denge(self):
         _A, g, S = _cizim()
-        G = CAA.geometri(g, S)
+        G = arka_aski.geometri(g, S)
         self.assertEqual(G["hata"], [])
         ag, mk, a = g["agirlik"], g["makine"], g["aski"]
         Rc, Rk, D1 = ag["kasnak_capi"] / 2.0, a["kasnak_capi"] / 2.0, mk["tahrik_kasnak_capi"]
@@ -86,13 +86,13 @@ class Geometri(unittest.TestCase):
         #  Ağırlık – duvar boşsa:  tahrik inişi kabin tavanının arka kenarından
         #  korkuluk payı kadar içeride, ağırlık kabine en az 50 mm
         _A, g, S = _cizim()
-        G = CAA.geometri(g, S)
+        G = arka_aski.geometri(g, S)
         kb, ag = g["kabin"], g["agirlik"]
         kabin_arka = kb["on_pay"] + kb["derinlik"] + S["kabin_pano_arka"]
-        self.assertAlmostEqual(kabin_arka - G["P"][1], CKUS.KORKULUK_PARCA_ASGARI)
+        self.assertAlmostEqual(kabin_arka - G["P"][1], kabin_ustu.KORKULUK_PARCA_ASGARI)
         self.assertGreaterEqual(G["ey"] - ag["derinlik"] / 2.0 - kabin_arka, 50.0)
         #  Arka kasnak korkuluğun yolunu kesmez
-        self.assertEqual(CKUS.dogrula(g), [])
+        self.assertEqual(kabin_ustu.dogrula(g), [])
 
     def test_kucuk_tavanda_capraz_halat_siginmayi_boler(self):
         #  12495-18'in 1.100 × 1.100 kabini:  kasnaklar arasındaki çapraz halat
@@ -101,16 +101,16 @@ class Geometri(unittest.TestCase):
         #  hiçbir parçaya sığmaz.  10 Eki'ye dek halat sayılmıyor, alan halatın
         #  üstüne konuyordu ( denetim 9 Eki ).
         A = _girdi(kuyu_genisligi=1750, kuyu_derinligi=1950, kabin_genisligi=1100, kabin_derinligi=1100)
-        g, _h = CK.cizim_girdisi(A)
-        Y = CKUS.yerlesim(g)
+        g, _h = kopru.cizim_girdisi(A)
+        Y = kabin_ustu.yerlesim(g)
         self.assertIsNone(Y["siginma"])
         self.assertTrue(any("aralarındaki halat" in h for h in Y["hata"]), Y["hata"])
         #  Halat şeridi gerçekten tavanın üstünde ve alanın yüksekliğinde
-        from cizim import donanim as CDN, hareketli as CH
+        from cizim import donanim, hareketli
 
-        S = CS.sabitler(g.get("_cizim_sabitleri"))
-        kt = CDN.kabin_kotlari(g["dusey"], S, 0.0, g["aski"], True)
-        halat = [p for p in CH.kabin_parcalari(g, S, Y["taban"], kt) if p[0] == CH.HALAT]
+        S = sabitler.sabitler(g.get("_cizim_sabitleri"))
+        kt = donanim.kabin_kotlari(g["dusey"], S, 0.0, g["aski"], True)
+        halat = [p for p in hareketli.kabin_parcalari(g, S, Y["taban"], kt) if p[0] == hareketli.HALAT]
         self.assertTrue(halat)
         self.assertAlmostEqual(halat[0][2] - kt["tavan"], S["kabin_tavani_kasnak_boslugu"])
         self.assertTrue(any(ortusur(p[1], Y["tavan"]) for p in halat))
@@ -119,16 +119,18 @@ class Geometri(unittest.TestCase):
 class Cizimler(unittest.TestCase):
     def test_plan(self):
         _A, g, S = _cizim()
-        e = CGE.plan(g, S)
+        e = geometri.plan(g, S)
         capraz = [x for x in e if x.get("ad") == "kabin_kasnak_capraz"]
         self.assertEqual(len(capraz), 8)  # iki kasnak × dört kenar
         self.assertFalse([x for x in e if x.get("ad") == "kabin_kasnak"])
         self.assertTrue(any("ÇAPRAZ" in x.get("metin", "") for x in e if x.get("ad") == "aski_yazi"))
-        self.assertEqual(CGE.halat_konumlari(g, S), [CAA.geometri(g, S)["P"], CAA.geometri(g, S)["H"]])
+        self.assertEqual(
+            geometri.halat_konumlari(g, S), [arka_aski.geometri(g, S)["P"], arka_aski.geometri(g, S)["H"]]
+        )
 
     def test_makine_dairesizde_duvardan_duvara_simetrik_kiris(self):
         _A, g, S = _cizim()
-        KU = CKT.yerlesim(g, S, acil_pano=False)
+        KU = kuyu_ustu.yerlesim(g, S, acil_pano=False)
         self.assertEqual(KU["hata"], [])
         self.assertTrue(KU["duvardan_duvara"])
         sase = KU["sase"]
@@ -141,9 +143,9 @@ class Cizimler(unittest.TestCase):
 
     def test_makine_dairesinde_delikler(self):
         _A, g, S = _cizim(**MD)
-        Y = CMD.yerlesim(g, S)
+        Y = makine_dairesi.yerlesim(g, S)
         self.assertEqual(Y["hata"], [])
-        G = CAA.geometri(g, S)
+        G = arka_aski.geometri(g, S)
         d = dict(Y["delikler"])
 
         def orta(k):
@@ -158,7 +160,7 @@ class Cizimler(unittest.TestCase):
             self.assertAlmostEqual(orta(d[ad])[0], nokta[0], msg=ad)
             self.assertAlmostEqual(orta(d[ad])[1], nokta[1], msg=ad)
         self.assertIsNone(Y["saptirma"])  # iniş düşey:  saptırma yok
-        self.assertEqual(CK.sarim_acisi(g), 180.0)
+        self.assertEqual(kopru.sarim_acisi(g), 180.0)
 
 
 class Dusey(unittest.TestCase):
@@ -168,7 +170,7 @@ class Dusey(unittest.TestCase):
 
     def test_kasnaklar_tavanda(self):
         _A, g, S = _cizim()
-        Y = CDY.yerlesim(g)
+        Y = dusey.yerlesim(g)
         ust, Rk = Y["ust"], g["aski"]["kasnak_capi"] / 2.0
         self.assertAlmostEqual(ust["kasnak_merkez"] - Rk, ust["tavan"] + S["kabin_tavani_kasnak_boslugu"])
         #  Kasnaklar arasındaki halat ( kasnakların altı ) üst patenin altından
@@ -177,12 +179,12 @@ class Dusey(unittest.TestCase):
 
     def test_makine_tavana_yakin(self):
         _A, g, S = _cizim()
-        M = CDY.yerlesim(g)["M"]
+        M = dusey.yerlesim(g)["M"]
         self.assertAlmostEqual(M["kapak"][5], M["tavan"] - S["duvar_kirisi_tepe_boslugu"])
         #  Yandaki ağırlıkta makine raylara oturur:  tavandan eski pay
-        g = CK.cizim_girdisi(UG.tamamla(UG.varsayilanlar()))[0]
+        g = kopru.cizim_girdisi(uygulama_girdisi.tamamla(uygulama_girdisi.varsayilanlar()))[0]
         self.assertIn(g["agirlik"]["yeri"], ("Sol", "Sağ"))
-        M = CDY.yerlesim(g)["M"]
+        M = dusey.yerlesim(g)["M"]
         self.assertFalse(M["KU"].get("duvardan_duvara"))
         self.assertAlmostEqual(M["kapak"][5], M["tavan"] - S["makine_tepe_boslugu"])
 
@@ -191,7 +193,7 @@ class Dusey(unittest.TestCase):
         #  m'lik korkuluk kirişe yakın ( m.5.2.5.7.2 c ), 4.270'te hepsi uygun.
         for son_kat, kalan in ((4260, ["korkuluk"]), (4270, [])):
             _A, g, _S = _cizim(son_kat_yuksekligi=son_kat)
-            Y = CDY.yerlesim(g)
+            Y = dusey.yerlesim(g)
             self.assertEqual([k for k, v in Y["ust_aciklik"].items() if v[0] < v[1] - 1e-9], kalan, son_kat)
             self.assertEqual(Y["korkuluk"], 1100.0)
 
@@ -199,29 +201,31 @@ class Dusey(unittest.TestCase):
 class Kopru(unittest.TestCase):
     def test_kabin_alti_cizilmez(self):
         _A, g, _S = _cizim(aski_duzeni="Kabin altı")
-        self.assertTrue(any("kabin üstünde çizilir" in h for h in CKT.duzen_hatalari(g)))
+        self.assertTrue(any("kabin üstünde çizilir" in h for h in kuyu_ustu.duzen_hatalari(g)))
 
     def test_makine_dairesizde_yuk_yolu_bina(self):
         A, g, _S = _cizim(makine_raya_biniyor="Kılavuz raylara")
-        d = CK.tutarlilik_duzeltmeleri(g, A)
+        d = kopru.tutarlilik_duzeltmeleri(g, A)
         self.assertEqual(d.get("makine_raya_biniyor"), "Bina yapısına")
         A, g, _S = _cizim()
-        self.assertEqual(CK.tutarlilik(g, A), [])
+        self.assertEqual(kopru.tutarlilik(g, A), [])
 
     def test_girilen_kasnak_araligi_karsilastirilir(self):
         A, g, _S = _cizim(kabin_kasnak_arasi=1000)
-        self.assertEqual(CK.tutarlilik_duzeltmeleri(g, A), {"kabin_kasnak_arasi": g["aski"]["kasnak_arasi"]})
+        self.assertEqual(
+            kopru.tutarlilik_duzeltmeleri(g, A), {"kabin_kasnak_arasi": g["aski"]["kasnak_arasi"]}
+        )
 
 
 class Hesap(unittest.TestCase):
     """Program hesabı arkadaki 2:1'in geometrisini çizimden alır."""
 
     def test_makine_dairesiz(self):
-        s = UY.hesapla(ARKA)
+        s = uygulama_hesabi.hesapla(ARKA)
         self.assertTrue(s["aktif"], s.get("hata"))
         gi = s["girdi"]
         A, g, S = _cizim()
-        G = CAA.geometri(g, S)
+        G = arka_aski.geometri(g, S)
         kb = g["kabin"]
         #  Askı kabin merkezinde ( xs = kabin merkezi – ray ekseni ), iniş düşey
         self.assertAlmostEqual(
@@ -241,7 +245,7 @@ class Hesap(unittest.TestCase):
         self.assertTrue(b11["sonuc"]["uygun"], b11["sonuc"]["metin"])
 
     def test_makine_daireli(self):
-        s = UY.hesapla({**ARKA, **MD})
+        s = uygulama_hesabi.hesapla({**ARKA, **MD})
         self.assertTrue(s["aktif"], s.get("hata"))
         self.assertEqual(s["girdi"]["sarilma_acisi"], 180.0)
         self.assertFalse(s["ozet"].get("eksik_hesap"))

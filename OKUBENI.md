@@ -117,9 +117,9 @@ bölüm 11 **HESAP EKSİK** der ve sebebini yazar.
 **Tek katalog** ( karar 12 ).  Çizimin bütün ürün ölçüleri — konsollar, paten,
 kabin ( düşey ölçüleri dahil ), kabin kasnakları, kapı ve katlar, karşı ağırlık,
 kuyu dibi, makine, kuyu üstü, makine dairesi — hesabın **Sabitler** sekmesindedir
-( ③a – ③j, bölümleri `cizim/cizim_sabitleri.BOLUMLER` );  çizim, yerleşimin ölçü
+( ③a – ③j, bölümleri `cizim/sabitler.BOLUMLER` );  çizim, yerleşimin ölçü
 listesi ve bölüm 11 aynı sayıyı kullanır ( `kopru.OFIS_SABITLERI`;  fabrika
-ayarı `cizim/cizim_sabitleri.py` ).  Makine bölümü tek bir makinenindir ( referans
+ayarı `cizim/sabitler.py` ).  Makine bölümü tek bir makinenindir ( referans
 projenin dişlisiz makinesi ) — başka makinede oradan değiştirilir.  Aralık
 dışındaki değer hesabı durdurur ve çizime de geçmez ( `sabitler.aralik`:  sıfır
 yalnız boşluk ve paylarda — ray boyu sıfır olamaz ).  Kuyu tavanı payının adı
@@ -404,6 +404,17 @@ testleri pytest ile paralel koşar ( `KONTROL_IS`, varsayılan 4 işçi ).  Biç
 commit'leri `.git-blame-ignore-revs`'te:  `git config blame.ignoreRevsFile
 .git-blame-ignore-revs`.
 
+**Adlar ve modüller** ( `testler/test_mimari.py` denetler ):  programın
+modülleri kendi adıyla import edilir — `from cizim import kuyu_dibi`, sonra
+`kuyu_dibi.yerlesim(g)`;  kısaltma takma ad ( `CKD`, `CGE` … ) yok.  Takma ad
+yalnız gerçek bir ad çakışmasında ve açıklayıcı tam adla ( tek istisna:
+`uygulama_sabitleri`'nde `cizim.sabitler as cizim_sabitleri`, çünkü o modülün
+kendi `sabitler()` fonksiyonu var ).  Her modülün adı programda tektir;  bir
+modül başka bir modülün import ettiği modüle onun içinden uzanmaz
+( `araclar/mimari.py` ).  Adlar Türkçedir:  hesap tarafının paketleri
+`hesap/motor` ( hesap motoru ), `hesap/uclar` ( web uçları ),
+`hesap/ciktilar` ( PDF · DXF ), `hesap/dogrulama` ( doğrulama paketi ).
+
 **Kayıt** ( `logging` ):  uçların genel `except`'i kullanıcıya iletiyi
 döndürür ve hatayı kaydeder ( `uclar/uc_ortak.hata_kaydi`:  girdiden doğan ret
 bilgi, beklenmeyen hata izleriyle hata düzeyinde );  çizimin yedek değere
@@ -423,7 +434,7 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
 | `cizim/arka_aski.py` | **Arkadaki ağırlıkla 2:1**:  kabin üstünde çapraz kasnakların, tahrik ve ağırlık kasnağı inişlerinin ve bağlantıların plandaki geometrisi ( tek yerde ) |
 | `cizim/olculer.py` | **Yerleşimin ölçü listesi**:  hesabın çizimden aldığı geometri ( xc · xi · ray ve halat boyları · kasnak sayıları · makinenin kirişteki yeri ) |
 | `cizim/girdi.py` | Çizim girdisinin **sözleşmesi**, doğrulaması ve deneme ölçüleri |
-| `cizim/cizim_sabitleri.py` | Ofisin ürün ölçüleri ( konsol, paten, kasa, pano … ) — fabrika ayarı;  Sabitler sekmesindeki bölümleri ( `BOLUMLER` ), geçerli aralıkları ( `aralik` ) |
+| `cizim/sabitler.py` | Ofisin ürün ölçüleri ( konsol, paten, kasa, pano … ) — fabrika ayarı;  Sabitler sekmesindeki bölümleri ( `BOLUMLER` ), geçerli aralıkları ( `aralik` ) |
 | `cizim/geometri.py` | Girdiden **çizim elemanları** üretir ( saf veri ) — kuyu planı |
 | `cizim/kabin_ustu.py` | Kabin üstü planı:  kuyu planının elemanlarını okur, tavanı ekler |
 | `cizim/kuyu_dibi.py` | Kuyu dibi planı:  tamponlar, perde, gergi, sığınma alanı, merdiven |
@@ -1404,7 +1415,7 @@ verilir;  uzatma çizgileri kısadır, planı kesmez.
 
 ## Ölçülerin kaynağı
 
-`cizim/cizim_sabitleri.py` içindeki ürün ölçüleri ve `girdi.ORNEK`, referans projenin
+`cizim/sabitler.py` içindeki ürün ölçüleri ve `girdi.ORNEK`, referans projenin
 yayımlanmış örnek projesinin çizim geometrisinden ölçülerek alındı ( karşı
 ağırlık çerçevesi 790 × 160, kapı kasaya 610 → boşluğa 730, kasnaklar arası
 690 + 690 = 1.380, ara kiriş 50 );  ölçek 1/20 üzerinden

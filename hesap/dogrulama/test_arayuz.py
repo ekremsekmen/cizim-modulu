@@ -230,12 +230,12 @@ def calistir():
         #  örnek projenin 700 kg'ıyla açılınca 800 kg yükte "elle girilmiş"
         #  sayılıyor ve farkına varılmadan tablo dışı bir kütleyle hesap yapılıyordu.
         pg.wait_for_function("() => SON.m && SON.m.aktif && $('m_kabin_agirligi').value !== ''", timeout=8000)
-        from motor.ortak import ofis as _OFg
+        from motor.ortak import ofis
 
         r.esit(
             "yeni projede kabin ağırlığı ofis tablosundan",
             pg.input_value("#m_kabin_agirligi"),
-            str(int(_OFg.bos_kabin_kutlesi(int(pg.input_value("#m_beyan_yuku"))))),
+            str(int(ofis.bos_kabin_kutlesi(int(pg.input_value("#m_beyan_yuku"))))),
         )
         r.kontrol(
             "yeni projede kabin ağırlığının kaynağı tablo",
@@ -267,11 +267,11 @@ def calistir():
         #  GRUP SAYISI SÖZLEŞMEDEN OKUNUR ( API'nin forma verdiği gruplar:
         #  motorunkiler + çizim grubu ).  Çivili sayı, forma bir grup
         #  eklendiğinde ( "Makine yerleşimi" ) sessizce eskiyordu.
-        from motor.uygulama import uygulama_girdisi as _UGrp
-        from uclar import uygulama_uclari as _UAp
-        from cizim import kopru as _CKp
+        from motor.uygulama import uygulama_girdisi
+        from uclar import uygulama_uclari
+        from cizim import kopru
 
-        _grup_sayisi = len(_UAp.uygulama_alanlari()["gruplar"])
+        _grup_sayisi = len(uygulama_uclari.uygulama_alanlari()["gruplar"])
         r.esit(
             f"uygulama formu {_grup_sayisi} grup üretti",
             pg.eval_on_selector_all("#m_form .m-grup", "e=>e.length"),
@@ -389,7 +389,7 @@ def calistir():
         #  ── GELİŞMİŞ BÖLÜMLERİ  ( ofisin / ürünün hep aynı girilen değerleri )
         #  Grubun altında KAPALI durur;  alanlar okunur ve hesaba girer.
         #  Gizli değer sessiz kalmamalı:  sayaç · işaret · hatada açılma · arama.
-        from motor.uygulama import mukavemet_girdi as _MGg
+        from motor.uygulama import mukavemet_girdi
 
         r.esit(
             "gelişmiş: her gelişmiş alan kapalı bölümde",
@@ -544,7 +544,9 @@ def calistir():
         r.esit(
             "gelişmiş: sözleşmedeki gelişmiş alan sayısı formda",
             pg.evaluate("mAlanlar(f=>f.gelismis).length"),
-            len(_MGg.GELISMIS_ALANLAR) + len(_UGrp.EK_GELISMIS) + sum(1 for _a in _CKp.ALANLAR if _a[6]),
+            len(mukavemet_girdi.GELISMIS_ALANLAR)
+            + len(uygulama_girdisi.EK_GELISMIS)
+            + sum(1 for _a in kopru.ALANLAR if _a[6]),
         )
         #  BÖLÜMLERİN HEPSİ TIKLANABİLİR.  Elektrik bölümleri bir süre
         #  eşlemede yoktu:  mukavemet satırları girdisine götürüyor,
@@ -1191,9 +1193,9 @@ def calistir():
         #  eski kütle kutuya yazılıyordu:  sonraki istek boş alan göndermediği
         #  için 1000 kg'da kabin 950 yerine 800 kg kaldı ( bağımsız incelemede
         #  yeniden üretildi ).  Yanıt 100 ms geciktirilerek yarış kurulur.
-        from motor.ortak import ofis as _OFK
+        from motor.ortak import ofis
 
-        _bek1000 = _OFK.bos_kabin_kutlesi(1000)
+        _bek1000 = ofis.bos_kabin_kutlesi(1000)
         _yaris = pg.evaluate("""async () => {
             const bek = ms => new Promise(r => setTimeout(r, ms));
             const f0 = window.fetch;
@@ -1223,7 +1225,7 @@ def calistir():
         #  950 ile gidiyordu ( bağımsız incelemede yeniden üretildi ).  İlk
         #  yanıt elle bekletilir ve ikinci değişiklikten HEMEN sonra bırakılır —
         #  zamanlamaya bağlı değildir.
-        _bek1600 = _OFK.bos_kabin_kutlesi(1600)
+        _bek1600 = ofis.bos_kabin_kutlesi(1600)
         _yaris2 = pg.evaluate("""async () => {
             const bek = ms => new Promise(r => setTimeout(r, ms));
             const by = document.getElementById('m_beyan_yuku');

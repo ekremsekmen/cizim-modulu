@@ -14,7 +14,7 @@ import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from testler import altin_cizim as A
+from testler import altin_cizim
 
 #  İletide gösterilen en çok fark ( düzen başına )
 AZAMI_FARK = 5
@@ -66,8 +66,8 @@ def farklar(eski, yeni):
 class AltinCizim(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.eski = A.oku()
-        cls.yeni = A.uret()
+        cls.eski = altin_cizim.oku()
+        cls.yeni = altin_cizim.uret()
 
     def test_duzenler_ayni(self):
         self.assertEqual(

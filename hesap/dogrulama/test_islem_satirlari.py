@@ -46,10 +46,10 @@ import yollar
 
 yollar.kur()
 
-from motor.avan import avan_hesabi as AV
-from motor.avan import trafik as TR
-from motor.uygulama import mukavemet as MK
-from dogrulama import test_mukavemet_tarama as T10
+from motor.avan import avan_hesabi
+from motor.avan import trafik
+from motor.uygulama import mukavemet
+from dogrulama import test_mukavemet_tarama
 from dogrulama.altin_uret import (
     avan_senaryolar,
     senaryolar,
@@ -293,14 +293,14 @@ def _kopya(g):
 def satirlar():
     out = []
     for i, g in enumerate(senaryolar()):
-        _hesap_satirlari(TR.hesapla(_kopya(g)), f"trafik #{i}", out)
+        _hesap_satirlari(trafik.hesapla(_kopya(g)), f"trafik #{i}", out)
     for i, g in enumerate(avan_senaryolar()):
-        _hesap_satirlari(AV.hesapla(_kopya(g)), f"avan #{i}", out)
+        _hesap_satirlari(avan_hesabi.hesapla(_kopya(g)), f"avan #{i}", out)
     for i, g in enumerate(uygulama_senaryolar()):
         _hesap_satirlari(uygulama_motoru(_kopya(g)), f"uygulama #{i}", out)
-    for aile, uretici in T10.AILELER:
+    for aile, uretici in test_mukavemet_tarama.AILELER:
         for ad, g in uretici():
-            _hesap_satirlari(MK.hesapla(_kopya(g)), f"mukavemet {aile} · {ad}", out)
+            _hesap_satirlari(mukavemet.hesapla(_kopya(g)), f"mukavemet {aile} · {ad}", out)
     return out
 
 

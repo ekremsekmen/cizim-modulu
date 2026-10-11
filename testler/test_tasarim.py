@@ -10,13 +10,13 @@ import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from uclar import uygulama_uclari as UC_UYG
-from cizim import kopru as CK
-from motor.uygulama import uygulama_girdisi as UG
-from motor.uygulama import mukavemet_girdi as MG
-from tasarim import alanlar as TS
-from tasarim import gorunum as TG
-from tasarim import sozluk as TZ
+from uclar import uygulama_uclari
+from cizim import kopru
+from motor.uygulama import uygulama_girdisi
+from motor.uygulama import mukavemet_girdi
+from tasarim import alanlar
+from tasarim import gorunum
+from tasarim import sozluk
 
 #  Tasarım sırası:  düzen → kuyu → kabin ve kapı → parçalar → elektrik
 GRUP_SIRASI = (
@@ -66,34 +66,38 @@ FORMDA_YOK = {
 
 
 def _form():
-    v = UC_UYG.uygulama_alanlari()
+    v = uygulama_uclari.uygulama_alanlari()
     return v, {f["anahtar"]: f for gr in v["gruplar"] for f in gr["alanlar"]}
 
 
 class TekTanim(unittest.TestCase):
     def test_her_alan_bir_kez(self):
-        k = [a.anahtar for a in TS.ALANLAR]
+        k = [a.anahtar for a in alanlar.ALANLAR]
         self.assertEqual(len(k), len(set(k)))
 
     def test_motorlarin_listeleri_semadan(self):
         #  Üç sözleşme birlikte şemanın tamamıdır;  birbirleriyle kesişmez.
-        muk, elk = {a[0] for a in MG.ALANLAR}, {a[0] for a in UG.EK_ALANLAR}
-        ciz = {a[0] for a in CK.ALANLAR}
-        self.assertEqual(muk | elk | ciz, set(TS.ALAN))
+        muk, elk = {a[0] for a in mukavemet_girdi.ALANLAR}, {a[0] for a in uygulama_girdisi.EK_ALANLAR}
+        ciz = {a[0] for a in kopru.ALANLAR}
+        self.assertEqual(muk | elk | ciz, set(alanlar.ALAN))
         self.assertFalse(muk & elk or muk & ciz or elk & ciz)
-        for a in MG.ALANLAR:
-            s = TS.ALAN[a[0]]
+        for a in mukavemet_girdi.ALANLAR:
+            s = alanlar.ALAN[a[0]]
             self.assertEqual(a, (s.anahtar, s.etiket, s.birim, s.tur, s.secenekler, s.varsayilan))
-        self.assertEqual(set(MG.POZITIF_ALANLAR), set(TG.anahtarlar(TS.MUK, pozitif=True)))
-        self.assertEqual(MG.ACIKLAMA["sarilma_acisi"], TG.bilgi(TS.ALAN["sarilma_acisi"]))
-        self.assertEqual(CK.CIZIMDEN, TG.cizimden())
+        self.assertEqual(
+            set(mukavemet_girdi.POZITIF_ALANLAR), set(gorunum.anahtarlar(alanlar.MUK, pozitif=True))
+        )
+        self.assertEqual(
+            mukavemet_girdi.ACIKLAMA["sarilma_acisi"], gorunum.bilgi(alanlar.ALAN["sarilma_acisi"])
+        )
+        self.assertEqual(kopru.CIZIMDEN, gorunum.cizimden())
 
     def test_kaynaklar(self):
-        for a in TS.ALANLAR:
-            self.assertIn(a.kaynak, TS.KAYNAKLAR, a.anahtar)
+        for a in alanlar.ALANLAR:
+            self.assertIn(a.kaynak, alanlar.KAYNAKLAR, a.anahtar)
             #  Formda kutusu olmayan bir alan kullanıcının girdisi olamaz
             if not a.formda:
-                self.assertIn(a.kaynak, (TS.CIZIM, TS.HESAP), a.anahtar)
+                self.assertIn(a.kaynak, (alanlar.CIZIM, alanlar.HESAP), a.anahtar)
 
 
 class Form(unittest.TestCase):
@@ -103,8 +107,8 @@ class Form(unittest.TestCase):
 
     def test_cizimden_ve_hesaptan_gelenler_formda_yok(self):
         _v, alan = _form()
-        self.assertEqual(set(TS.ALAN) - set(alan), FORMDA_YOK)
-        self.assertEqual(set(TG.formda_olmayan()), FORMDA_YOK)
+        self.assertEqual(set(alanlar.ALAN) - set(alan), FORMDA_YOK)
+        self.assertEqual(set(gorunum.formda_olmayan()), FORMDA_YOK)
 
     def test_formdan_kalkan_alan_istekte_olsa_da_okunmaz(self):
         eski = {k: 4 for k in ("kabin_ray_sayisi", "agirlik_ray_sayisi")}
@@ -115,7 +119,7 @@ class Form(unittest.TestCase):
             saptirma_kasnak_min_capi=200,
             kabin_tampon_baba=10,
         )
-        a, _o = UC_UYG._asansor_girdileri({"asansorler": [eski], "proje_geneli": {}, "sabitler": {}})
+        a, _o = uygulama_uclari._asansor_girdileri({"asansorler": [eski], "proje_geneli": {}, "sabitler": {}})
         self.assertFalse(set(eski) & set(a[0]), a[0])
 
     def test_makine_dairesizde_bir_bir_secilmez(self):
@@ -133,13 +137,13 @@ class Form(unittest.TestCase):
             {"mk_uzunluk", "md_duvar", "tabliye_yuksekligi", "makine_saptirma_capi"} <= set(g["mrl"])
         )
         self.assertTrue({"makine_raya_biniyor", "acil_pano_yani"} <= set(g["daireli"]))
-        self.assertEqual(set(g["mrl"]), UG.uygulanmayan_alanlar(True))
+        self.assertEqual(set(g["mrl"]), uygulama_girdisi.uygulanmayan_alanlar(True))
 
     def test_proje_geneli(self):
         v, _alan = _form()
         self.assertEqual(
             set(v["proje_geneli"]),
-            {"mk_yok", "mk_uzunluk", "mk_genislik", "temel_a", "temel_b"} | set(CK.PROJE_GENELI),
+            {"mk_yok", "mk_uzunluk", "mk_genislik", "temel_a", "temel_b"} | set(kopru.PROJE_GENELI),
         )
 
     def test_hesap_bolumu_eslemesi_gercek_gruplari_gosterir(self):
@@ -151,8 +155,8 @@ class Form(unittest.TestCase):
 
 class Sozluk(unittest.TestCase):
     def test_her_alan_sozlukte(self):
-        s = TZ.satirlar()
-        self.assertTrue(set(TS.ALAN) <= {r["anahtar"] for r in s})
+        s = sozluk.satirlar()
+        self.assertTrue(set(alanlar.ALAN) <= {r["anahtar"] for r in s})
         self.assertEqual([r["grup"] for r in s], sorted((r["grup"] for r in s), key=GRUP_SIRASI.index))
 
     def test_cozulen_sorunlar_sozlukten_silindi(self):
@@ -175,10 +179,10 @@ class Sozluk(unittest.TestCase):
             "agirlik_yeri",
             "agirlik_malzemesi",
         ):
-            self.assertNotIn(k, TZ.SORUNLAR)
+            self.assertNotIn(k, sozluk.SORUNLAR)
         #  3. adım:  hesabın geometri tahminleri çizimden geliyor;  yalnız
         #  çizimde olmayan revizyon kutusu kaldı ( karar 10:  çizilmez ).
-        self.assertEqual([r[0] for r in TZ.ICSEL], ["Revizyon kutusu"])
+        self.assertEqual([r[0] for r in sozluk.ICSEL], ["Revizyon kutusu"])
 
 
 if __name__ == "__main__":

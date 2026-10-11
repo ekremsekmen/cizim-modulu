@@ -20,16 +20,18 @@ import yollar
 
 yollar.kur()
 
-from motor.avan import avan_hesabi as AV
-from motor.avan import trafik as TR
+from motor.avan import avan_hesabi
+from motor.avan import trafik
 
 try:
-    from ciktilar import dxf_cikti as _DXF
+    from ciktilar import dxf_cikti
 except Exception:  # noqa: BLE001
-    _DXF = None  # CAD kitaplıkları yoksa paket testi atlanır
-from ciktilar import kapak_cikti as KPK
-from ciktilar import pdf_cikti as PE
+    dxf_cikti = None  # CAD kitaplıkları yoksa paket testi atlanır
+from ciktilar import kapak_cikti
+from ciktilar import pdf_cikti
 from dogrulama.rapor import Rapor
+from dogrulama import altin_uret
+from uclar import avan_uclari
 
 # Geçici dosyalar sistemin temp klasörüne yazılır — proje klasörü kirlenmez
 # ve silme izni kısıtlı makinelerde test takılmaz.
@@ -115,13 +117,13 @@ def calistir():
 
     # ---------------------------------------------------------- PDF
     pdfler = {
-        "tek": PE.trafik_pdf(TR.hesapla_tek(GT), PROJE),
-        "coklu": PE.trafik_pdf(TR.hesapla_coklu(GC), PROJE),
-        "avan": PE.avan_pdf(AV.hesapla(AV_VERI), PROJE),
+        "tek": pdf_cikti.trafik_pdf(trafik.hesapla_tek(GT), PROJE),
+        "coklu": pdf_cikti.trafik_pdf(trafik.hesapla_coklu(GC), PROJE),
+        "avan": pdf_cikti.avan_pdf(avan_hesabi.hesapla(AV_VERI), PROJE),
         # hesap hatalı girdide de geçerli belge üretilmeli
-        "hatali": PE.trafik_pdf(TR.hesapla_tek({"bina_tipi": "Konut"}), PROJE),
-        "bos_avan": PE.avan_pdf(AV.hesapla({"ortak": {}, "asansorler": []}), PROJE),
-        "projesiz": PE.trafik_pdf(TR.hesapla_tek(GT), None),
+        "hatali": pdf_cikti.trafik_pdf(trafik.hesapla_tek({"bina_tipi": "Konut"}), PROJE),
+        "bos_avan": pdf_cikti.avan_pdf(avan_hesabi.hesapla({"ortak": {}, "asansorler": []}), PROJE),
+        "projesiz": pdf_cikti.trafik_pdf(trafik.hesapla_tek(GT), None),
     }
     BEKLENEN_BASLIK = {
         "tek": "ASANSÖR TRAFİK HESABI",
@@ -250,10 +252,10 @@ def calistir():
             d = pdfium.PdfDocument(y)
             return "\n".join(d[i].get_textpage().get_text_range() for i in range(len(d)))
 
-        m = _metin(PE.trafik_pdf(TR.hesapla_tek(dict(GT, bodrum=2)), PROJE))
+        m = _metin(pdf_cikti.trafik_pdf(trafik.hesapla_tek(dict(GT, bodrum=2)), PROJE))
         for beklenen in ("Bodrum durak adedi", "Toplam durak adedi", "Toplam seyahat mesafesi"):
             r.kontrol(f"tek pafta: '{beklenen}' basıldı", beklenen in m)
-        m0 = _metin(PE.trafik_pdf(TR.hesapla_tek(GT), PROJE))
+        m0 = _metin(pdf_cikti.trafik_pdf(trafik.hesapla_tek(GT), PROJE))
         #  PAFTAYA NOT BASILMIYOR ( bkz. pdf_export._bolum ):  bodrumun H ve
         #  S'yi değiştirmediğini anlatan açıklama cümlesi artık yalnız
         #  EKRANDA ⓘ altında.  Paftada bodrumun görünürlüğü SAYIYLA denetlenir
@@ -266,7 +268,7 @@ def calistir():
             f"→ {_bd(m)[:44]!r} · {_bd(m0)[:44]!r}",
         )
         #  Açıklama motorun çıktısında DURMAYA devam eder — ekran onu okur.
-        _bs = TR.hesapla_tek(dict(GT, bodrum=2))
+        _bs = trafik.hesapla_tek(dict(GT, bodrum=2))
         r.kontrol(
             "bodrum açıklaması motorda duruyor",
             any(
@@ -276,18 +278,18 @@ def calistir():
             ),
         )
         #  ara değerli kapı ve erişilebilirlik uyarıları
-        m = _metin(PE.trafik_pdf(TR.hesapla_tek(dict(GT, kapi_genisligi=1000)), PROJE))
+        m = _metin(pdf_cikti.trafik_pdf(trafik.hesapla_tek(dict(GT, kapi_genisligi=1000)), PROJE))
         r.kontrol("1000 mm ara değer uyarısı paftada", "enterpolasyon" in m)
-        m = _metin(PE.trafik_pdf(TR.hesapla_tek(dict(GT, P=6, kapi_genisligi=700)), PROJE))
+        m = _metin(pdf_cikti.trafik_pdf(trafik.hesapla_tek(dict(GT, P=6, kapi_genisligi=700)), PROJE))
         r.kontrol("erişilebilirlik uyarısı paftada", "81-70" in m)
         r.kontrol("dış değerleme uyarısı paftada", "değerleme" in m)
         #  kamu binası varsayımları
-        m = _metin(PE.trafik_pdf(TR.hesapla_tek(dict(GT, bina_tipi="Kamu Binaları")), PROJE))
+        m = _metin(pdf_cikti.trafik_pdf(trafik.hesapla_tek(dict(GT, bina_tipi="Kamu Binaları")), PROJE))
         r.kontrol("kamu %k varsayımı paftada", "Tablo-9" in m and "MERKEZ" in m.upper())
         #  çoklu: asansör bazında bodrum ve imalatçı süresi
         m = _metin(
-            PE.trafik_pdf(
-                TR.hesapla_coklu(
+            pdf_cikti.trafik_pdf(
+                trafik.hesapla_coklu(
                     dict(
                         GC,
                         bodrum=2,
@@ -302,11 +304,15 @@ def calistir():
         r.kontrol("çoklu paftada bodrum satırı", "Bodrum durak adedi" in m)
         r.kontrol("çoklu paftada imalatçı süresi uyarısı", "imalatçı verisiyle" in m)
         #  avan: asansör bazında askı/denge ve tutarlılık uyarısı
-        _t = TR.hesapla_tek(dict(GT, bodrum=1))
-        _av = AV.hesapla(
-            {"ortak": ORT, "asansorler": [dict(A1, i_palanga=1, q_denge=0.4)], "trafik": TR.trafik_ozeti(_t)}
+        _t = trafik.hesapla_tek(dict(GT, bodrum=1))
+        _av = avan_hesabi.hesapla(
+            {
+                "ortak": ORT,
+                "asansorler": [dict(A1, i_palanga=1, q_denge=0.4)],
+                "trafik": trafik.trafik_ozeti(_t),
+            }
         )
-        m = _metin(PE.avan_pdf(_av, PROJE))
+        m = _metin(pdf_cikti.avan_pdf(_av, PROJE))
         r.kontrol("avan paftasında asansör bazı kaynağı", "bazında" in m)
         r.kontrol("avan paftasında tutarlılık uyarısı", "NOLU ASANSÖR:" in m)
 
@@ -315,14 +321,14 @@ def calistir():
         #  satırlarında yazılı ( UL, IΔn, β ) ve dört satırlık blok yer
         #  kaplıyordu.  Bilgi kaybolmuyor:  motor bunları "ekran_notlari"
         #  olarak veriyor, arayüz ⓘ altında gösteriyor.
-        _tp = AV.hesapla({"ortak": ORT, "asansorler": [dict(A1)]}).get("topraklama") or {}
+        _tp = avan_hesabi.hesapla({"ortak": ORT, "asansorler": [dict(A1)]}).get("topraklama") or {}
         _b3 = (_tp.get("bolumler") or [{}])[-1]
         r.kontrol("topraklama notları ekran_notlari'na taşındı", len(_b3.get("ekran_notlari") or []) == 3)
         r.kontrol(
             "topraklama bölümünde paftaya basılacak not kalmadı",
             not (_b3.get("notlar") or []) and not (_b3.get("aciklamalar") or []),
         )
-        _mp = _metin(PE.avan_pdf(AV.hesapla({"ortak": ORT, "asansorler": [dict(A1)]}), PROJE))
+        _mp = _metin(pdf_cikti.avan_pdf(avan_hesabi.hesapla({"ortak": ORT, "asansorler": [dict(A1)]}), PROJE))
         for _yasak in ("HESAPLANAN TAHMİNİ DEĞERDİR", "KABULLER: TT şebeke", "zemin etüdünden alınmalıdır"):
             r.kontrol(f"paftada yok: {_yasak[:28]}…", _yasak not in _mp)
         #  ama hesabın kendisi ve hükmü yerinde
@@ -338,7 +344,9 @@ def calistir():
         #  o zaman uyarı basılmalı, yoksa eksik hesap sessizce gizlenirdi.
         def _mkm(**ortak_ek):
             return _metin(
-                PE.avan_pdf(AV.hesapla({"ortak": dict(ORT, **ortak_ek), "asansorler": [dict(A1)]}), PROJE)
+                pdf_cikti.avan_pdf(
+                    avan_hesabi.hesapla({"ortak": dict(ORT, **ortak_ek), "asansorler": [dict(A1)]}), PROJE
+                )
             )
 
         _mk_yok = {"mk_uzunluk": None, "mk_genislik": None}
@@ -364,13 +372,13 @@ def calistir():
     buyuk = dict(
         GC, asansorler=[dict(P=25, kapi_genisligi=1300, kapi_tipi="Merkezden Açılan Oto.") for _ in range(4)]
     )
-    b = PE.trafik_pdf(TR.hesapla_coklu(buyuk), PROJE)
+    b = pdf_cikti.trafik_pdf(trafik.hesapla_coklu(buyuk), PROJE)
     r.kontrol("4 asansörlü çoklu PDF üretildi", b[:4] == b"%PDF" and len(b) > 10_000)
     uzun = dict(PROJE, proje_adi="A" * 300, isveren="B" * 300)
-    b = PE.trafik_pdf(TR.hesapla_tek(GT), uzun)
+    b = pdf_cikti.trafik_pdf(trafik.hesapla_tek(GT), uzun)
     r.kontrol("çok uzun proje adı PDF'i bozmadı", b[:4] == b"%PDF")
-    x = PE.trafik_pdf(
-        TR.hesapla_tek(
+    x = pdf_cikti.trafik_pdf(
+        trafik.hesapla_tek(
             dict(
                 GT,
                 ek_nufus=[
@@ -389,7 +397,7 @@ def calistir():
     #  kutunun gerçek yüksekliğinden türetiliyor;  yine sığmazsa kırpma
     #  ÇIKTIDA görünür ( … ).
     def _kapak_metni(_adres):
-        _b = KPK.pdf_bytes(
+        _b = kapak_cikti.pdf_bytes(
             {"project_title": "D", "owner": "X", "company_name": "ABC", "company_address": _adres}
         )
         return _metin(_b) if pdfium else ""
@@ -421,27 +429,27 @@ def calistir():
     #  hesabın değeri ).  Eskiden formdaki gri örnekler ( "10 kişi", "7,5 kW" )
     #  dolu görünüyor, kapak ise BOŞ basılıyordu.  Beklenen değerler girdiden
     #  bağımsız olarak yazılır:  N = 11, h = 3 m → seyir 33 m, durak N + 1 = 12.
-    from motor.avan import kapak as KAP
+    from motor.avan import kapak
 
-    _kt = KAP.trafikten(TR.hesapla_tek(GT))
+    _kt = kapak.trafikten(trafik.hesapla_tek(GT))
     r.esit("kapak · trafikten türeyenler", _kt, {"usage": "Konut", "stops": "12", "travel": "33,00 m"})
     r.esit(
         "kapak · bodrum durağı durak ve seyre giriyor  ( 11 + 1 + 2 · ( 11 + 2 ) · 3 )",
-        KAP.trafikten(TR.hesapla_tek(dict(GT, bodrum=2))),
+        kapak.trafikten(trafik.hesapla_tek(dict(GT, bodrum=2))),
         {"usage": "Konut", "stops": "14", "travel": "39,00 m"},
     )
     r.esit(
         "kapak · çoklu trafikte ( 10 + 16 kişi ) aynı değerler bir kez",
-        KAP.trafikten(TR.hesapla_coklu(GC)),
+        kapak.trafikten(trafik.hesapla_coklu(GC)),
         {"usage": "Konut", "stops": "12", "travel": "33,00 m"},
     )
     r.esit(
         "kapak · hatalı trafik hesabından değer türetilmez",
-        KAP.trafikten(TR.hesapla_tek({"bina_tipi": "Konut"})),
+        kapak.trafikten(trafik.hesapla_tek({"bina_tipi": "Konut"})),
         {},
     )
 
-    _ka = KAP.avandan(AV.hesapla({"ortak": ORT, "asansorler": [A1, A2]}))
+    _ka = kapak.avandan(avan_hesabi.hesapla({"ortak": ORT, "asansorler": [A1, A2]}))
     r.esit(
         "kapak · iki farklı asansör — değerler sırayla, aynısı bir kez",
         _ka,
@@ -450,7 +458,9 @@ def calistir():
             "speed": "1,60 / 1,00 m/s",
             "cabin_width": "1300/2100",
             "cabin_depth": "1450/1350",
-            "suspension": AV.hesapla({"ortak": ORT, "asansorler": [A1]})["ozet"]["asansorler"][0]["aski"],
+            "suspension": avan_hesabi.hesapla({"ortak": ORT, "asansorler": [A1]})["ozet"]["asansorler"][0][
+                "aski"
+            ],
             "elevator_count": "2",
             "motor_power": "11 kW",
             "standard": "TS EN 81-20",
@@ -460,13 +470,13 @@ def calistir():
         "kapak · özdeş iki asansör — tek değer ( kabin mm, birimsiz )",
         {
             k: v
-            for k, v in KAP.avandan(AV.hesapla({"ortak": ORT, "asansorler": [A1, A1]})).items()
+            for k, v in kapak.avandan(avan_hesabi.hesapla({"ortak": ORT, "asansorler": [A1, A1]})).items()
             if k in ("capacity", "cabin_width", "cabin_depth", "elevator_count")
         },
         {"capacity": "10 kişi", "cabin_width": "1300", "cabin_depth": "1450", "elevator_count": "2"},
     )
     _a3 = dict(A1, kabin_boyu=1400, kabin_genisligi=1100)
-    _k3 = KAP.avandan(AV.hesapla({"ortak": ORT, "asansorler": [A1, A2, _a3]}))
+    _k3 = kapak.avandan(avan_hesabi.hesapla({"ortak": ORT, "asansorler": [A1, A2, _a3]}))
     r.kontrol(
         "kapak · üç farklı kabin dar hücrede okunmaz — kabin türetilmez, öteki alanlar gelir",
         "cabin_width" not in _k3 and "cabin_depth" not in _k3 and _k3.get("elevator_count") == "3",
@@ -474,7 +484,7 @@ def calistir():
     )
     _mrl = dict(ORT, mk_yok=True)
     _a1d = dict(A1, makine_tipi="Dişlisiz", i_palanga=2, Nsc=5.5)
-    _k1 = KAP.avandan(AV.hesapla({"ortak": _mrl, "asansorler": [_a1d]}))
+    _k1 = kapak.avandan(avan_hesabi.hesapla({"ortak": _mrl, "asansorler": [_a1d]}))
     r.esit(
         "kapak · MRL işaretliyse tahrik cinsine yazılır",
         (_k1.get("drive_type"), _k1.get("suspension"), _k1.get("motor_power")),
@@ -482,36 +492,36 @@ def calistir():
     )
     r.esit(
         "kapak · makine daireli projede MRL yazılmaz",
-        KAP.avandan(AV.hesapla({"ortak": ORT, "asansorler": [_a1d]})).get("drive_type"),
+        kapak.avandan(avan_hesabi.hesapla({"ortak": ORT, "asansorler": [_a1d]})).get("drive_type"),
         "Dişlisiz",
     )
     r.esit(
         "kapak · yalnız anma yükü girilmiş asansör kg ile, birimler karışıksa her değerde",
-        KAP.avandan(AV.hesapla({"ortak": ORT, "asansorler": [A1, dict(A1, kapasite=None, Q_elle=1000)]})).get(
-            "capacity"
-        ),
+        kapak.avandan(
+            avan_hesabi.hesapla({"ortak": ORT, "asansorler": [A1, dict(A1, kapasite=None, Q_elle=1000)]})
+        ).get("capacity"),
         "10 kişi / 1000 kg",
     )
     r.esit(
         "kapak · bir asansörü eksik projeden değer türetilmez ( adet yanlış yazılmasın )",
-        KAP.avandan(AV.hesapla({"ortak": ORT, "asansorler": [A1, dict(A2, Hk=None)]})),
+        kapak.avandan(avan_hesabi.hesapla({"ortak": ORT, "asansorler": [A1, dict(A2, Hk=None)]})),
         {},
     )
-    r.esit("kapak · hatalı avan hesabından değer türetilmez", KAP.avandan({"hata": "HESAP HATASI: x"}), {})
+    r.esit("kapak · hatalı avan hesabından değer türetilmez", kapak.avandan({"hata": "HESAP HATASI: x"}), {})
     #  Türeyen her alan kapak PDF'inin bastığı bir alandır;  türeyen ile
     #  türemeyen ayrıktır ve asansör bilgilerinin hepsini kapsar.
     import inspect as _insp
 
-    _basilan = set(re.findall(r'"([a-z_]+)"', _insp.getsource(KPK._values)))
+    _basilan = set(re.findall(r'"([a-z_]+)"', _insp.getsource(kapak_cikti._values)))
     r.kontrol(
         "kapak · türeyen / türemeyen her alanı kapak PDF'i basıyor",
-        set(KAP.ALANLAR) | set(KAP.TURETILMEYEN) <= _basilan,
-        f"→ basılmayan: {(set(KAP.ALANLAR) | set(KAP.TURETILMEYEN)) - _basilan}",
+        set(kapak.ALANLAR) | set(kapak.TURETILMEYEN) <= _basilan,
+        f"→ basılmayan: {(set(kapak.ALANLAR) | set(kapak.TURETILMEYEN)) - _basilan}",
     )
-    r.kontrol("kapak · türeyen ile türemeyen ayrık", not set(KAP.ALANLAR) & set(KAP.TURETILMEYEN))
+    r.kontrol("kapak · türeyen ile türemeyen ayrık", not set(kapak.ALANLAR) & set(kapak.TURETILMEYEN))
     r.kontrol(
         "kapak · iki kaynak yalnız ALANLAR'daki adları üretiyor",
-        set(_kt) | set(_ka) | set(_k1) <= set(KAP.ALANLAR),
+        set(_kt) | set(_ka) | set(_k1) <= set(kapak.ALANLAR),
     )
     #  Birden çok asansörün değeri en küçük puntoda sığmıyorsa YANDAKİ
     #  HÜCREYE TAŞMAZ, ayraçtan iki satıra bölünür.  "D:" kabin derinliği
@@ -522,23 +532,23 @@ def calistir():
         ("kabin derinliği · 2 kabin", "1450/1350", 395.2 - 378.0 - 1.6, 8.9),
         ("hız · 4 asansör", "0,63 / 1,00 / 1,60 / 2,50 m/s", 223.0 - 179.0, 8.9),
     ):
-        _sat, _pt = KPK._satirlar(_metin_, _gen, 7.0, _hucre_y)
+        _sat, _pt = kapak_cikti._satirlar(_metin_, _gen, 7.0, _hucre_y)
         r.kontrol(
             f"kapak · {_ad} hücreye sığıyor ( {len(_sat)} satır, {_pt:.1f} pt )",
             len(_sat) == 2
             and 2 * _pt * 1.05 <= _hucre_y
-            and all(_pm.stringWidth(x, KPK.F, _pt) <= _gen for x in _sat)
+            and all(_pm.stringWidth(x, kapak_cikti.F, _pt) <= _gen for x in _sat)
             and "".join(_sat).replace(" ", "") == _metin_.replace(" ", ""),
             f"→ {_sat} · {_pt:.2f} pt",
         )
-    _sat, _pt = KPK._satirlar("TS EN 81-20", 504.1 - 395.2, 7.0, 8.9)
+    _sat, _pt = kapak_cikti._satirlar("TS EN 81-20", 504.1 - 395.2, 7.0, 8.9)
     r.kontrol(
         "kapak · sığan metin eskisi gibi tek satır, puntosu küçülmeden",
         _sat == ["TS EN 81-20"] and _pt == 7.0,
         f"→ {_sat} · {_pt}",
     )
     if pdfium:
-        _km = _metin(KPK.pdf_bytes({**_kt, **_ka}))
+        _km = _metin(kapak_cikti.pdf_bytes({**_kt, **_ka}))
         #  İki satıra bölünen değer PDF metninde satır sonuyla gelir.
         _km = re.sub(r"\s+", "", _km)
         _eksik = [v for v in {**_kt, **_ka}.values() if re.sub(r"\s+", "", v) not in _km]
@@ -579,7 +589,6 @@ def calistir():
     )
 
     #  Hatalı hesapta PDF yine üretilir — hata paftaya basılır.
-    from uclar import avan_uclari as _M
 
     _hatali = {
         "girdiler": {
@@ -597,7 +606,7 @@ def calistir():
     }
     r.kontrol(
         "hatalı hesapta trafik PDF yine üretiliyor ( hata paftaya basılır )",
-        _M.indir_trafik_pdf(_hatali).media_type == "application/pdf",
+        avan_uclari.indir_trafik_pdf(_hatali).media_type == "application/pdf",
     )
 
     #  v2.8 — PDF GENİŞLİK ÇARPANI İSTEK BAŞINA AYRI OLMALIDIR.
@@ -613,11 +622,11 @@ def calistir():
     def _izle():
         for _ in range(60):
             with _kilit:
-                _gorulen.add(PE._OLCEK.gen)
+                _gorulen.add(pdf_cikti._OLCEK.gen)
 
     def _olcekle():
         for _ in range(60):
-            PE._OLCEK.gen = 1.25  # başka iş parçacığı bunu görmemeli
+            pdf_cikti._OLCEK.gen = 1.25  # başka iş parçacığı bunu görmemeli
 
     _i1, _i2 = _th.Thread(target=_izle), _th.Thread(target=_olcekle)
     _i1.start()
@@ -625,7 +634,7 @@ def calistir():
     _i1.join()
     _i2.join()
     r.esit("PDF genişlik çarpanı iş parçacığına özel", _gorulen, {1.0})
-    r.esit("çarpan varsayılanı 1.0", PE._OLCEK.gen, 1.0)
+    r.esit("çarpan varsayılanı 1.0", pdf_cikti._OLCEK.gen, 1.0)
 
     #  v2.8 — ARAYÜZÜN GÖNDERDİĞİ BİÇİM.  Arayüz girdileri `asansorler`
     #  listesinde yollar;  özdeş asansörler tek yola düşmeli ve düz alanlar
@@ -645,10 +654,10 @@ def calistir():
                 * _adet,
             }
         }
-        _g = _M._trafik_girdi(_ui)
-        _s = TR.hesapla(_g)
+        _g = avan_uclari._trafik_girdi(_ui)
+        _s = trafik.hesapla(_g)
         r.esit(f"arayüz biçimi {_adet} asansör → tek yol", _s.get("yol"), "tek")
-        _tek = TR.tekil_girdi(_g)
+        _tek = trafik.tekil_girdi(_g)
         for _k, _bek in (
             ("P", 10),
             ("kapi_genisligi", 900),
@@ -670,7 +679,7 @@ def calistir():
     # ==================================================================
     try:
         import ezdxf
-        from ciktilar import dxf_cikti as DXE
+        from ciktilar import dxf_cikti
     except Exception as _cad_hata:  # noqa: BLE001
         r.atla(f"CAD çıktısı testi atlandı — ezdxf / pdfminer.six kurulu değil ( {_cad_hata} )")
     else:
@@ -681,13 +690,13 @@ def calistir():
             #  AutoCAD bunu İ olarak gösterir.
             return _re.sub(r"\\U\+([0-9A-Fa-f]{4})", lambda m: chr(int(m.group(1), 16)), t)
 
-        _kapak = KPK.pdf_bytes({"project_title": "ÇAĞDAŞ ŞİRKETİ Öİ", "owner": "Türkçe Ğüzel A.Ş."})
+        _kapak = kapak_cikti.pdf_bytes({"project_title": "ÇAĞDAŞ ŞİRKETİ Öİ", "owner": "Türkçe Ğüzel A.Ş."})
         _paftalar = [
             ("Kapak", _kapak),
-            ("Trafik", PE.trafik_pdf(TR.hesapla(GC), PROJE)),
-            ("Avan", PE.avan_pdf(AV.hesapla(AV_VERI), PROJE)),
+            ("Trafik", pdf_cikti.trafik_pdf(trafik.hesapla(GC), PROJE)),
+            ("Avan", pdf_cikti.avan_pdf(avan_hesabi.hesapla(AV_VERI), PROJE)),
         ]
-        _dxf = DXE.proje_dxf(_paftalar)
+        _dxf = dxf_cikti.proje_dxf(_paftalar)
         r.kontrol("CAD: DXF üretildi", _dxf[:1] == b"0" or b"SECTION" in _dxf[:400])
 
         _yol = os.path.join(GECICI, "proje.dxf")
@@ -700,14 +709,20 @@ def calistir():
         #  BEKLENEN GEOMETRİ  —  sayfalar ofisin TİP PROJE FORMATININ içine
         #  konur:  kapak soldaki A4 hücresine, hesap paftaları sağdaki büyük
         #  alana.  Beklenen konumlar da bu yerleşime göre kurulur.
-        _sayfalar = DXE.sayfalari_topla(_paftalar)
+        _sayfalar = dxf_cikti.sayfalari_topla(_paftalar)
         _kap = next((x for x in _sayfalar if x.get("ad") == "Kapak"), None)
         _diger = [x for x in _sayfalar if x is not _kap]
-        _yerler, _tasti = DXE._yerlesim(len(_diger))
+        _yerler, _tasti = dxf_cikti._yerlesim(len(_diger))
         _konum = list(zip(_diger, _yerler))
         if _kap is not None:
-            _kx = DXE.KAPAK_HUCRESI[0] - (DXE.A4_G - (DXE.KAPAK_HUCRESI[2] - DXE.KAPAK_HUCRESI[0])) / 2
-            _ky = DXE.KAPAK_HUCRESI[1] - (DXE.A4_Y - (DXE.KAPAK_HUCRESI[3] - DXE.KAPAK_HUCRESI[1])) / 2
+            _kx = (
+                dxf_cikti.KAPAK_HUCRESI[0]
+                - (dxf_cikti.A4_G - (dxf_cikti.KAPAK_HUCRESI[2] - dxf_cikti.KAPAK_HUCRESI[0])) / 2
+            )
+            _ky = (
+                dxf_cikti.KAPAK_HUCRESI[1]
+                - (dxf_cikti.A4_Y - (dxf_cikti.KAPAK_HUCRESI[3] - dxf_cikti.KAPAK_HUCRESI[1])) / 2
+            )
             _konum.append((_kap, (_kx, _ky)))
 
         _bek_c, _bek_y = set(), []
@@ -715,8 +730,8 @@ def calistir():
             for _x0, _y0, _x1, _y1, _w in _sf["cizgiler"]:
                 if abs(_x1 - _x0) < 1e-9 and abs(_y1 - _y0) < 1e-9:
                     continue
-                _a = (round(_ox + _x0 * DXE.PT_MM, 4), round(_oy + _y0 * DXE.PT_MM, 4))
-                _b = (round(_ox + _x1 * DXE.PT_MM, 4), round(_oy + _y1 * DXE.PT_MM, 4))
+                _a = (round(_ox + _x0 * dxf_cikti.PT_MM, 4), round(_oy + _y0 * dxf_cikti.PT_MM, 4))
+                _b = (round(_ox + _x1 * dxf_cikti.PT_MM, 4), round(_oy + _y1 * dxf_cikti.PT_MM, 4))
                 _bek_c.add(tuple(sorted([_a, _b])))
             for _t in _sf["metinler"]:
                 #  Beklenen metin, CAD'de görüntülenemeyen simgeleri
@@ -724,10 +739,10 @@ def calistir():
                 #  olması gerekiyorsa o.
                 _bek_y.append(
                     (
-                        round(_ox + _t["x"] * DXE.PT_MM, 4),
-                        round(_oy + _t["taban"] * DXE.PT_MM, 4),
-                        round(_t["boy"] * DXE.CAP_ORAN * DXE.PT_MM, 3),
-                        DXE._cad_metni(_t["metin"]),
+                        round(_ox + _t["x"] * dxf_cikti.PT_MM, 4),
+                        round(_oy + _t["taban"] * dxf_cikti.PT_MM, 4),
+                        round(_t["boy"] * dxf_cikti.CAP_ORAN * dxf_cikti.PT_MM, 3),
+                        dxf_cikti._cad_metni(_t["metin"]),
                     )
                 )
         r.kontrol("CAD: sayfalar formata sığdı ( taşma yok )", not _tasti)
@@ -737,7 +752,7 @@ def calistir():
         #  girmez ( onlar zaten ofisin çizimi ).
         _var_c = set()
         for _e in _m.query("LINE"):
-            if _e.dxf.layer != DXE.KATMAN_CIZGI:
+            if _e.dxf.layer != dxf_cikti.KATMAN_CIZGI:
                 continue
             _a = (round(_e.dxf.start.x, 4), round(_e.dxf.start.y, 4))
             _b = (round(_e.dxf.end.x, 4), round(_e.dxf.end.y, 4))
@@ -745,7 +760,7 @@ def calistir():
         _var_y = [
             (round(_e.dxf.insert.x, 4), round(_e.dxf.insert.y, 4), round(_e.dxf.height, 3), _coz(_e.dxf.text))
             for _e in _m.query("TEXT")
-            if _e.dxf.layer == DXE.KATMAN_YAZI
+            if _e.dxf.layer == dxf_cikti.KATMAN_YAZI
         ]
 
         r.esit("CAD: çizgi sayısı PDF ile aynı", len(_var_c), len(_bek_c))
@@ -770,13 +785,16 @@ def calistir():
         #  Paftalar boşluğa değil, formatın içindeki büyük alana dizilir;
         #  soldaki sabit antet bloğu ve dış çerçeve OLDUĞU GİBİ KALIR.
         # ---------------------------------------------------------------
-        _a4 = sorted(tuple(round(v, 3) for v in b) for b in DXE.a4_cerceveleri(_m))
+        _a4 = sorted(tuple(round(v, 3) for v in b) for b in dxf_cikti.a4_cerceveleri(_m))
         r.esit("CAD: hesap paftası sayısı kadar A4 çerçevesi var", len(_a4), len(_diger))
         r.kontrol(
             "CAD: A4 çerçeveleri gerçekten A4",
-            all(abs(b[2] - b[0] - DXE.A4_G) < 0.5 and abs(b[3] - b[1] - DXE.A4_Y) < 0.5 for b in _a4),
+            all(
+                abs(b[2] - b[0] - dxf_cikti.A4_G) < 0.5 and abs(b[3] - b[1] - dxf_cikti.A4_Y) < 0.5
+                for b in _a4
+            ),
         )
-        _s = DXE.SERBEST
+        _s = dxf_cikti.SERBEST
         r.kontrol(
             "CAD: bütün paftalar formatın serbest alanında",
             all(
@@ -800,7 +818,7 @@ def calistir():
         )
         r.kontrol(
             "CAD: ilk pafta antet bloğunun hemen yanında",
-            abs(_a4[0][0] - (_s[0] + DXE.SOL_PAY)) < 0.01,
+            abs(_a4[0][0] - (_s[0] + dxf_cikti.SOL_PAY)) < 0.01,
             f"→ {_a4[0][0]}",
         )
         #  BİTİŞİK DİZİLİM  ( kullanıcı 6 Eki 2026 ):  aynı satırdaki komşu
@@ -817,7 +835,7 @@ def calistir():
         _ys = sorted(_satirlar, reverse=True)
         r.kontrol(
             "CAD: satırlar arasında boşluk yok",
-            all(abs(_ys[i] - (_ys[i + 1] + DXE.A4_Y)) < 0.01 for i in range(len(_ys) - 1)),
+            all(abs(_ys[i] - (_ys[i + 1] + dxf_cikti.A4_Y)) < 0.01 for i in range(len(_ys) - 1)),
             f"→ {_ys}",
         )
         _cer = [
@@ -826,11 +844,15 @@ def calistir():
             if _e.closed
             and len(_e) == 4
             and abs(
-                max(q[0] for q in _e.get_points("xy")) - min(q[0] for q in _e.get_points("xy")) - DXE.A4_G
+                max(q[0] for q in _e.get_points("xy"))
+                - min(q[0] for q in _e.get_points("xy"))
+                - dxf_cikti.A4_G
             )
             < 0.5
             and abs(
-                max(q[1] for q in _e.get_points("xy")) - min(q[1] for q in _e.get_points("xy")) - DXE.A4_Y
+                max(q[1] for q in _e.get_points("xy"))
+                - min(q[1] for q in _e.get_points("xy"))
+                - dxf_cikti.A4_Y
             )
             < 0.5
         ]
@@ -855,7 +877,7 @@ def calistir():
                         return True
             return False
 
-        _b4 = DXE.BANT
+        _b4 = dxf_cikti.BANT
         r.kontrol(
             "CAD: formatın dış çerçevesi korundu",
             _cizgi_var(_b4[0], _b4[1], _b4[2], _b4[1]) and _cizgi_var(_b4[0], _b4[3], _b4[2], _b4[3]),
@@ -863,8 +885,8 @@ def calistir():
         r.kontrol(
             "CAD: kapak hücresinin çerçevesi korundu",
             any(
-                abs(min(q[0] for q in list(e.get_points("xy"))) - DXE.KAPAK_HUCRESI[0]) < 0.5
-                and abs(max(q[0] for q in list(e.get_points("xy"))) - DXE.KAPAK_HUCRESI[2]) < 0.5
+                abs(min(q[0] for q in list(e.get_points("xy"))) - dxf_cikti.KAPAK_HUCRESI[0]) < 0.5
+                and abs(max(q[0] for q in list(e.get_points("xy"))) - dxf_cikti.KAPAK_HUCRESI[2]) < 0.5
                 for e in _m.query("LWPOLYLINE")
             ),
         )
@@ -873,8 +895,8 @@ def calistir():
         _kapak_metni = [
             _coz(e.dxf.text)
             for e in _m.query("TEXT")
-            if DXE.KAPAK_HUCRESI[0] - 4 <= e.dxf.insert.x <= DXE.KAPAK_HUCRESI[2] + 4
-            and DXE.KAPAK_HUCRESI[1] - 5 <= e.dxf.insert.y <= DXE.KAPAK_HUCRESI[3] + 5
+            if dxf_cikti.KAPAK_HUCRESI[0] - 4 <= e.dxf.insert.x <= dxf_cikti.KAPAK_HUCRESI[2] + 4
+            and dxf_cikti.KAPAK_HUCRESI[1] - 5 <= e.dxf.insert.y <= dxf_cikti.KAPAK_HUCRESI[3] + 5
         ]
         r.kontrol(
             "CAD: kapak hücresinde projenin adı yazılı",
@@ -889,8 +911,8 @@ def calistir():
 
         def _icinde(x, y):
             return any(b[0] - 0.6 <= x <= b[2] + 0.6 and b[1] - 0.6 <= y <= b[3] + 0.6 for b in _a4) or (
-                DXE.KAPAK_HUCRESI[0] - 4 <= x <= DXE.KAPAK_HUCRESI[2] + 4
-                and DXE.KAPAK_HUCRESI[1] - 5 <= y <= DXE.KAPAK_HUCRESI[3] + 5
+                dxf_cikti.KAPAK_HUCRESI[0] - 4 <= x <= dxf_cikti.KAPAK_HUCRESI[2] + 4
+                and dxf_cikti.KAPAK_HUCRESI[1] - 5 <= y <= dxf_cikti.KAPAK_HUCRESI[3] + 5
             )
 
         r.esit(
@@ -906,7 +928,7 @@ def calistir():
 
         #  --- birim ve katmanlar
         r.esit("CAD: birim milimetre ( INSUNITS = 4 )", _d.header.get("$INSUNITS"), 4)
-        for _k in (DXE.KATMAN_CIZGI, DXE.KATMAN_YAZI, DXE.KATMAN_CERCEVE):
+        for _k in (dxf_cikti.KATMAN_CIZGI, dxf_cikti.KATMAN_YAZI, dxf_cikti.KATMAN_CERCEVE):
             r.kontrol(f"CAD: {_k} katmanı var", _k in _d.layers)
         r.kontrol("CAD: yazılar tek tek harf değil, bütün metin", any(len(x[3]) > 8 for x in _var_y))
 
@@ -956,15 +978,17 @@ def calistir():
             _h = _e.dxf.height
             _w = getattr(_e.dxf, "width", 1.0) or 1.0
             _f = "Helvetica-Bold" if str(_e.dxf.style).endswith("KALIN") else "Helvetica"
-            _punto = _h / DXE.PT_MM / DXE.CAD_CAP_ORAN
-            return _pm.stringWidth(_e.dxf.text, _f, _punto) * _w * DXE.PT_MM
+            _punto = _h / dxf_cikti.PT_MM / dxf_cikti.CAD_CAP_ORAN
+            return _pm.stringWidth(_e.dxf.text, _f, _punto) * _w * dxf_cikti.PT_MM
 
         #  Sayfaların sağ kenarları:  hesap paftalarında A4 çerçevesi,
         #  kapakta ise şablondaki hücrenin kendisi sınırdır.
-        _sinir = [(b[0], b[2]) for b in _a4] + [(DXE.KAPAK_HUCRESI[0] - 4, DXE.KAPAK_HUCRESI[2] + 4)]
+        _sinir = [(b[0], b[2]) for b in _a4] + [
+            (dxf_cikti.KAPAK_HUCRESI[0] - 4, dxf_cikti.KAPAK_HUCRESI[2] + 4)
+        ]
         _tasan = 0
         for _e in _m.query("TEXT"):
-            if _e.dxf.layer != DXE.KATMAN_YAZI or abs(_e.dxf.rotation or 0) > 0.01:
+            if _e.dxf.layer != dxf_cikti.KATMAN_YAZI or abs(_e.dxf.rotation or 0) > 0.01:
                 continue
             _x0 = _e.dxf.insert.x
             _k = next(((a, b) for a, b in _sinir if a - 0.6 <= _x0 <= b + 0.6), None)
@@ -976,18 +1000,20 @@ def calistir():
         _sapma = 0.0
         _ox2 = 0.0
         for _ad3, _ham3 in _paftalar:
-            for _sf3 in DXE._sayfa_geometrisi(_ham3):
+            for _sf3 in dxf_cikti._sayfa_geometrisi(_ham3):
                 for _t3 in _sf3["metinler"]:
-                    _pdf_g = (_t3["u_son"] - _t3["u_bas"]) * DXE.PT_MM
-                    _kal = DXE._kalin_mi(_t3)
-                    _punto3 = _t3["boy"] * DXE.CAP_ORAN / DXE.CAD_CAP_ORAN
+                    _pdf_g = (_t3["u_son"] - _t3["u_bas"]) * dxf_cikti.PT_MM
+                    _kal = dxf_cikti._kalin_mi(_t3)
+                    _punto3 = _t3["boy"] * dxf_cikti.CAP_ORAN / dxf_cikti.CAD_CAP_ORAN
                     _cad_g = (
-                        _pm.stringWidth(DXE._cad_metni(_t3["metin"]), DXE.CAD_OLCU_FONT[_kal], _punto3)
-                        * DXE._genislik_carpani(_t3)
-                        * DXE.PT_MM
+                        _pm.stringWidth(
+                            dxf_cikti._cad_metni(_t3["metin"]), dxf_cikti.CAD_OLCU_FONT[_kal], _punto3
+                        )
+                        * dxf_cikti._genislik_carpani(_t3)
+                        * dxf_cikti.PT_MM
                     )
                     _sapma = max(_sapma, abs(_cad_g - _pdf_g))
-                _ox2 += _sf3["genislik"] * DXE.PT_MM + DXE.ARA
+                _ox2 += _sf3["genislik"] * dxf_cikti.PT_MM + dxf_cikti.ARA
         r.kontrol(
             "CAD: yazı genişlikleri PDF ile aynı ( < 0,01 mm )",
             _sapma < 0.01,
@@ -999,14 +1025,15 @@ def calistir():
         _bek_kalin = sum(
             1
             for _a4, _h4 in _paftalar
-            for _s4 in DXE._sayfa_geometrisi(_h4)
+            for _s4 in dxf_cikti._sayfa_geometrisi(_h4)
             for _t4 in _s4["metinler"]
-            if DXE._kalin_mi(_t4)
+            if dxf_cikti._kalin_mi(_t4)
         )
         r.esit("CAD: kalın yazı sayısı PDF ile aynı", len(_kalinlar), _bek_kalin)
         r.kontrol("CAD: kalın yazı gerçekten var", len(_kalinlar) > 0)
         r.kontrol(
-            "CAD: iki yazı biçimi de tanımlı", DXE.YAZI_BICIMI in _d.styles and DXE.YAZI_BICIMI_K in _d.styles
+            "CAD: iki yazı biçimi de tanımlı",
+            dxf_cikti.YAZI_BICIMI in _d.styles and dxf_cikti.YAZI_BICIMI_K in _d.styles,
         )
 
         # ---------------------------------------------------------------
@@ -1018,7 +1045,7 @@ def calistir():
         #  verisindeki bayrakla verilmeli:  font bulunamasa bile yazı OKUNUR
         #  kalır, yalnız kalınlığını yitirir.
         # ---------------------------------------------------------------
-        _bicimler = [_d.styles.get(DXE.YAZI_BICIMI), _d.styles.get(DXE.YAZI_BICIMI_K)]
+        _bicimler = [_d.styles.get(dxf_cikti.YAZI_BICIMI), _d.styles.get(dxf_cikti.YAZI_BICIMI_K)]
         for _b5 in _bicimler:
             r.kontrol(
                 f"CAD: {_b5.dxf.name} her makinede bulunan bir fontu gösteriyor",
@@ -1049,15 +1076,15 @@ def calistir():
         #  Çizimde güvenli karşılıklarıyla ( √ × ! i ) yazılmalıdır.
         # ---------------------------------------------------------------
         _cad_yazi = " ".join(_e.dxf.text for _e in _m.query("TEXT"))
-        for _sim in DXE.CAD_SIMGE:
+        for _sim in dxf_cikti.CAD_SIMGE:
             r.kontrol(f"CAD: {_sim!r} çizimde kalmadı", _sim not in _cad_yazi)
         _pdf_yazi = " ".join(
             _t6["metin"]
             for _a6, _h6 in _paftalar
-            for _s6 in DXE._sayfa_geometrisi(_h6)
+            for _s6 in dxf_cikti._sayfa_geometrisi(_h6)
             for _t6 in _s6["metinler"]
         )
-        for _sim, _yerine in DXE.CAD_SIMGE.items():
+        for _sim, _yerine in dxf_cikti.CAD_SIMGE.items():
             if _sim in _pdf_yazi:
                 r.kontrol(f"CAD: {_sim!r} yerine {_yerine!r} yazıldı", _yerine in _cad_yazi)
         r.kontrol(
@@ -1084,7 +1111,7 @@ def calistir():
         )
         _yuzdeli = [_e.dxf.text for _e in _m.query("TEXT") if "%%" in _e.dxf.text]
         r.kontrol("CAD: hiçbir yazıda AutoCAD kaçış dizisi ( %% ) yok", not _yuzdeli, f"→ {_yuzdeli[:3]}")
-        r.esit("CAD: şapkanın karşılığı U+02C6", DXE.CAD_SIMGE["^"], "\u02c6")
+        r.esit("CAD: şapkanın karşılığı U+02C6", dxf_cikti.CAD_SIMGE["^"], "\u02c6")
         if "^" in _pdf_yazi:
             r.kontrol("CAD: paftadaki üs işaretleri çizimde de duruyor", "\u02c6" in _cad_yazi)
 
@@ -1162,16 +1189,21 @@ def calistir():
         for _ad7, _ham7 in _paftalar:
             _bek7 += _pdf_harfleri(_ham7)
         _kapak_goz = (
-            DXE.KAPAK_HUCRESI[0] - (DXE.A4_G - (DXE.KAPAK_HUCRESI[2] - DXE.KAPAK_HUCRESI[0])) / 2,
-            DXE.KAPAK_HUCRESI[1] - (DXE.A4_Y - (DXE.KAPAK_HUCRESI[3] - DXE.KAPAK_HUCRESI[1])) / 2,
+            dxf_cikti.KAPAK_HUCRESI[0]
+            - (dxf_cikti.A4_G - (dxf_cikti.KAPAK_HUCRESI[2] - dxf_cikti.KAPAK_HUCRESI[0])) / 2,
+            dxf_cikti.KAPAK_HUCRESI[1]
+            - (dxf_cikti.A4_Y - (dxf_cikti.KAPAK_HUCRESI[3] - dxf_cikti.KAPAK_HUCRESI[1])) / 2,
         )
-        _gozler = [_kapak_goz] + list(DXE._yerlesim(len(_bek7) - 1)[0])
+        _gozler = [_kapak_goz] + list(dxf_cikti._yerlesim(len(_bek7) - 1)[0])
         _kova7 = [[] for _ in _gozler]
         _disarda7 = 0
-        for _t7 in _m.query(f'TEXT[layer=="{DXE.KATMAN_YAZI}"]'):
+        for _t7 in _m.query(f'TEXT[layer=="{dxf_cikti.KATMAN_YAZI}"]'):
             _x7, _y7 = _t7.dxf.insert.x, _t7.dxf.insert.y
             for _i7, (_ox7, _oy7) in enumerate(_gozler):
-                if _ox7 - 1 <= _x7 <= _ox7 + DXE.A4_G + 1 and _oy7 - 1 <= _y7 <= _oy7 + DXE.A4_Y + 1:
+                if (
+                    _ox7 - 1 <= _x7 <= _ox7 + dxf_cikti.A4_G + 1
+                    and _oy7 - 1 <= _y7 <= _oy7 + dxf_cikti.A4_Y + 1
+                ):
                     _kova7[_i7].append(_t7.dxf.text)
                     break
             else:
@@ -1182,7 +1214,7 @@ def calistir():
         def _harfler(_metin, _pdf=False):
             _metin = "".join(_metin.split())
             if _pdf:  # PDF'teki ✔ CAD'de √ olarak yazılır
-                _metin = "".join(DXE.CAD_SIMGE.get(_c, _c) for _c in _metin)
+                _metin = "".join(dxf_cikti.CAD_SIMGE.get(_c, _c) for _c in _metin)
             return _cl.Counter(_metin)
 
         _ayrik7 = []
@@ -1202,7 +1234,7 @@ def calistir():
         #  --- ZIP paketi:  DXF her zaman içinde olmalı
         import zipfile as _zf
 
-        _paket, _sebep, _tasti = DXE.proje_paketi(_paftalar, "Deneme Projesi")
+        _paket, _sebep, _tasti = dxf_cikti.proje_paketi(_paftalar, "Deneme Projesi")
         r.kontrol("CAD: paftalar formatın çerçevesine sığdı", _tasti is False)
         _z = _zf.ZipFile(io.BytesIO(_paket))
         _adlar = _z.namelist()
@@ -1223,7 +1255,7 @@ def calistir():
         _pd = ezdxf.readfile(_pyol)
         _pm = _pd.modelspace()
         try:
-            DXE._sablon_dogrula(_pd)
+            dxf_cikti._sablon_dogrula(_pd)
             _fmt = True
         except Exception:  # noqa: BLE001
             _fmt = False
@@ -1231,15 +1263,18 @@ def calistir():
 
         def _sayim(_ms):
             return (
-                len(_ms.query(f'LINE[layer=="{DXE.KATMAN_CIZGI}"]')),
-                len(_ms.query(f'TEXT[layer=="{DXE.KATMAN_YAZI}"]')),
-                len(DXE.a4_cerceveleri(_ms)),
+                len(_ms.query(f'LINE[layer=="{dxf_cikti.KATMAN_CIZGI}"]')),
+                len(_ms.query(f'TEXT[layer=="{dxf_cikti.KATMAN_YAZI}"]')),
+                len(dxf_cikti.a4_cerceveleri(_ms)),
             )
 
         r.esit("CAD: ZIP'teki çizim ile ölçülen çizim aynı", _sayim(_pm), _sayim(_m))
         r.kontrol(
             "CAD: pakette ofis şablonunun kendi varlıkları duruyor",
-            any(_e.dxf.layer not in (DXE.KATMAN_CIZGI, DXE.KATMAN_YAZI, DXE.KATMAN_CERCEVE) for _e in _pm),
+            any(
+                _e.dxf.layer not in (dxf_cikti.KATMAN_CIZGI, dxf_cikti.KATMAN_YAZI, dxf_cikti.KATMAN_CERCEVE)
+                for _e in _pm
+            ),
         )
         r.kontrol(
             "CAD: OKUBENI yerleşimi doğru anlatıyor",
@@ -1255,9 +1290,11 @@ def calistir():
         #  yalnız ODA File Converter kabul edilir.
         # ---------------------------------------------------------------
         r.esit(
-            "CAD: yalnız ODA File Converter kabul ediliyor", tuple(DXE.DONUSTURUCULER), ("ODAFileConverter",)
+            "CAD: yalnız ODA File Converter kabul ediliyor",
+            tuple(dxf_cikti.DONUSTURUCULER),
+            ("ODAFileConverter",),
         )
-        r.kontrol("CAD: LibreDWG ( dxf2dwg ) kullanılmıyor", "dxf2dwg" not in DXE.DONUSTURUCULER)
+        r.kontrol("CAD: LibreDWG ( dxf2dwg ) kullanılmıyor", "dxf2dwg" not in dxf_cikti.DONUSTURUCULER)
         _dwg_adi = next((a for a in _adlar if a.endswith(".dwg")), None)
         if not _dwg_adi:
             r.kontrol(
@@ -1286,12 +1323,12 @@ def calistir():
     # ================================================================
     #  UYGULAMA PROJESİ  —  MUKAVEMET ÇIKTILARI
     # ================================================================
-    from uclar import uygulama_uclari as _MM
-    from motor.uygulama import mukavemet as _MK
-    from motor.uygulama import mukavemet_girdi as _MG
+    from uclar import uygulama_uclari
+    from motor.uygulama import mukavemet
+    from motor.uygulama import mukavemet_girdi
 
-    _muk = _MK.hesapla()
-    _mpdf = PE.mukavemet_pdf(_muk, PROJE)
+    _muk = mukavemet.hesapla()
+    _mpdf = pdf_cikti.mukavemet_pdf(_muk, PROJE)
     r.kontrol("mukavemet PDF üretildi", len(_mpdf) > 20_000, f"→ {len(_mpdf)} bayt")
     _mm = _metin(_mpdf)
     for _ara in (
@@ -1308,7 +1345,7 @@ def calistir():
     #  Sayılar paftaya GERÇEKTEN basılıyor mu — boş şablon "geçti" sayılmasın.
     #  Motor gücü elle YAZILMAZ:  motordan okunur, yoksa hesap değiştiğinde
     #  test sessizce eskir  ( verim makine tipine bağlanınca 4,81 → 5,90 oldu ).
-    _msn = _MK.hesapla()
+    _msn = mukavemet.hesapla()
     _ngucu = f"{_msn['ozet']['N_hesap']:.2f}".replace(".", ",")
     #  FKR de motordan okunur:  ray ağırlığı iki kez sayılmayı bırakınca
     #  21.326 → 18.096 oldu.
@@ -1335,7 +1372,7 @@ def calistir():
     #  Hesap durduran girdide de GEÇERLİ belge çıkmalı, sebebi yazmalı
     #  ( kabin ağırlığı ARTIK boş bırakılabilir — ofis tablosundan dolar;
     #    burada gerçekten zorunlu bir alan boş bırakılıyor )
-    _mbos = PE.mukavemet_pdf(_MK.hesapla({"makine_agirligi": None}), PROJE)
+    _mbos = pdf_cikti.mukavemet_pdf(mukavemet.hesapla({"makine_agirligi": None}), PROJE)
     r.kontrol("hatalı girdide de PDF üretiliyor", len(_mbos) > 1000)
     r.kontrol(
         "hatalı girdide PDF sebebi yazıyor", "boş bırakılamaz" in _metin(_mbos), f"→ {_metin(_mbos)[:120]!r}"
@@ -1362,9 +1399,9 @@ def calistir():
     r.esit("proje dosyası yoksa ek de yok", _PE({}, "avan"), [])
 
     #  ZIP gerçekten hepsini taşıyor mu
-    if _DXF is not None:
-        _zip, _sebep, _tasti = _DXF.proje_paketi(
-            [("Kapak", None), ("Hesap", PE.mukavemet_pdf(_MK.hesapla(), PROJE))],
+    if dxf_cikti is not None:
+        _zip, _sebep, _tasti = dxf_cikti.proje_paketi(
+            [("Kapak", None), ("Hesap", pdf_cikti.mukavemet_pdf(mukavemet.hesapla(), PROJE))],
             "Jan Mühendislik - Uygulama Projesi",
             _ek,
         )
@@ -1379,16 +1416,14 @@ def calistir():
         )
 
         #  AVAN PAKETİ:  çizim + proje dosyası;  çalışma kitabı YOK.
-        import uclar.avan_uclari as _AVP
-        import dogrulama.altin_uret as _AU
 
-        _avan_g = next(iter(_AU.avan_senaryolar()))
+        _avan_g = next(iter(altin_uret.avan_senaryolar()))
         _trf_g = next(
             _t
-            for _t in _AU.senaryolar()
-            if not _AVP.E_TRF.hesapla(_AVP._trafik_girdi({"girdiler": _t})).get("hata")
+            for _t in altin_uret.senaryolar()
+            if not trafik.hesapla(avan_uclari._trafik_girdi({"girdiler": _t})).get("hata")
         )
-        _ya = _AVP.indir_proje_dwg(
+        _ya = avan_uclari.indir_proje_dwg(
             {
                 "kapak": {"project_title": "Deneme"},
                 "girdiler": {"avan": _avan_g, "trafik": _trf_g},
@@ -1408,15 +1443,14 @@ def calistir():
         )
 
     #  İndirme uçları
-    _mg = {a[0]: a[5] for a in _MG.ALANLAR if a[3] != "hesap"}
-    _y = _MM.indir_uygulama_pdf({"girdiler": _mg, "kapak": {"proje_adi": "DENEME"}})
+    _mg = {a[0]: a[5] for a in mukavemet_girdi.ALANLAR if a[3] != "hesap"}
+    _y = uygulama_uclari.indir_uygulama_pdf({"girdiler": _mg, "kapak": {"proje_adi": "DENEME"}})
     r.esit("uygulama-pdf ucu dosya döndürüyor", _y.media_type, "application/pdf")
-    import uclar.avan_uclari as _AVU
 
     r.kontrol(
         "Excel üreten uç kalmadı",
-        not any("xlsx" in ad for ad in dir(_MM) + dir(_AVU)),
-        f"→ {[ad for ad in dir(_MM) + dir(_AVU) if 'xlsx' in ad]}",
+        not any("xlsx" in ad for ad in dir(uygulama_uclari) + dir(avan_uclari)),
+        f"→ {[ad for ad in dir(uygulama_uclari) + dir(avan_uclari) if 'xlsx' in ad]}",
     )
 
     #  UYGULAMA PROJESİ PAFTASI  —  mukavemet + elektrik + topraklama
@@ -1424,11 +1458,11 @@ def calistir():
     #  sonucunu değil:  tek ve çoklu iki ayrı pafta fonksiyonu vardı ve
     #  zamanla ayrışmışlardı ( proje geneli hesaplar birinde sonda, ötekinde
     #  bölümlerin arasında ).  Tek asansörde asansör şeridi basılmaz.
-    from motor.uygulama import uygulama_hesabi as _UY
+    from motor.uygulama import uygulama_hesabi
 
-    _uyp = _UY.hesapla_coklu([{}], {"temel_a": 26.55, "temel_b": 16.4})
+    _uyp = uygulama_hesabi.hesapla_coklu([{}], {"temel_a": 26.55, "temel_b": 16.4})
     _uy = _uyp["asansorler"][0]
-    _upd = PE.uygulama_pdf(_uyp, PROJE)
+    _upd = pdf_cikti.uygulama_pdf(_uyp, PROJE)
     r.esit("tek asansörlü proje 'tek' yolundan geçiyor", _uyp["yol"], "tek")
     r.kontrol("uygulama PDF üretildi", len(_upd) > 30_000, f"→ {len(_upd)} bayt")
     _um = _metin(_upd)
@@ -1450,11 +1484,11 @@ def calistir():
 
     _pk = _trn(_uy["ozet"]["P_kurulu"], 0)
     r.kontrol("uygulama PDF elektrik sayılarını taşıyor", _pk in _um, f"→ kurulu güç ({_pk} W) paftada yok")
-    _ubos = PE.uygulama_pdf(_UY.hesapla_coklu([{"makine_agirligi": None}]), PROJE)
+    _ubos = pdf_cikti.uygulama_pdf(uygulama_hesabi.hesapla_coklu([{"makine_agirligi": None}]), PROJE)
     r.kontrol("hatalı girdide uygulama PDF'i sebebini yazıyor", "boş bırakılamaz" in _metin(_ubos))
 
     #  Hesap durduran girdide DOSYA DEĞİL, açık hata dönmeli
-    _yh = _MM.indir_uygulama_pdf({"girdiler": dict(_mg, makine_agirligi=None)})
+    _yh = uygulama_uclari.indir_uygulama_pdf({"girdiler": dict(_mg, makine_agirligi=None)})
     r.kontrol(
         "hatalı girdide PDF yerine hata dönüyor",
         _yh.media_type != "application/pdf" and "boş bırakılamaz" in _yh.body.decode("utf-8"),

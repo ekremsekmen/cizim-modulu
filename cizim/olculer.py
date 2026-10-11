@@ -42,13 +42,13 @@ import logging
 import math
 
 from temel import sayi_mi
-from cizim import arka_aski as CAA
-from cizim import donanim as CDN
-from cizim import dusey as CDY
-from cizim import girdi as CG
-from cizim import kuyu_dibi as CKD
-from cizim import makine_dairesi as CMD
-from cizim import cizim_sabitleri as CS
+from cizim import arka_aski
+from cizim import donanim
+from cizim import dusey
+from cizim import girdi
+from cizim import kuyu_dibi
+from cizim import makine_dairesi
+from cizim import sabitler
 
 log = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ def plan_olculeri(g, S):
     return {
         "kabin_merkezi_x": round(kb["on_pay"] + kb["derinlik"] / 2.0 - ray_y, 3),
         "esik_x": round(
-            kb["on_pay"] - CG.esik_derinligi(S, g["kapi"].get("tip"), kabin=True) / 2.0 - ray_y, 3
+            kb["on_pay"] - girdi.esik_derinligi(S, g["kapi"].get("tip"), kabin=True) / 2.0 - ray_y, 3
         ),
     }
 
@@ -89,7 +89,7 @@ def _mrl_kiris_yuku(g, S, KU):
     mesnetler rayların birbirine bakan yüzleri ( aralık DBGW ), yük tahrik
     kasnağının düzleminde ( iki halat inişi de oradadır ).  X mesnetten yüke."""
     taban = KU["taban"]
-    raylar = sorted(CKD._raylar(taban, "agirlik_ray"), key=lambda r: r[1])
+    raylar = sorted(kuyu_dibi._raylar(taban, "agirlik_ray"), key=lambda r: r[1])
     if len(raylar) < 2:
         return None, None
     a, b = raylar[0][3], raylar[-1][1]  # ön rayın arka, arka rayın ön yüzü
@@ -138,7 +138,7 @@ def _kiris(X, L):
 def hesap_olculeri(g):
     """Hesabın çizimden aldığı ölçüler ( sözlük ).  g:  kurulmuş çizim girdisi
     ( cizim/kopru.cizim_girdisi ).  Kurulamayan ölçü sözlükte yer almaz."""
-    S = CS.sabitler(g.get("_cizim_sabitleri"))
+    S = sabitler.sabitler(g.get("_cizim_sabitleri"))
     out = plan_olculeri(g, S)
     mk = g.get("makine") or {}
     mrl = mk.get("yeri") == "Kuyu üstü"
@@ -146,7 +146,7 @@ def hesap_olculeri(g):
     saptirma, halat = None, True
     if not mrl:
         try:
-            MD = CMD.yerlesim(g, S)
+            MD = makine_dairesi.yerlesim(g, S)
         except Exception:
             log.debug("yedek değer kullanılıyor ( çizim kendi hatasını söyler )", exc_info=True)
             MD = {}
@@ -162,10 +162,10 @@ def hesap_olculeri(g):
     #  ── DÜŞEY:  kabin en alt durakta ( kot 0 ) ──────────────────────────
     dy = g.get("dusey") or {}
     try:
-        kotlar, _h = CDY.durak_kotlari(g)
+        kotlar, _h = dusey.durak_kotlari(g)
         H = kotlar[-1]
         KY = g["kuyu_dibi"]["derinlik"]
-        M = CDN.yerlesim(g, S, H, H + dy["son_kat"], -KY)
+        M = donanim.yerlesim(g, S, H, H + dy["son_kat"], -KY)
     except Exception:
         log.debug("yedek değer kullanılıyor ( çizim kurulamadı )", exc_info=True)
         return out
@@ -200,10 +200,10 @@ def hesap_olculeri(g):
     #  kasnağının altına kadardır.
     AG = M.get("agirlik")
     if AG and sayi_mi(AG.get("yukseklik")):
-        alt, ust = CDN.agirlik_dolgu_kotlari(g, S, CDN.agirlik_kotlari(M, 0.0))
+        alt, ust = donanim.agirlik_dolgu_kotlari(g, S, donanim.agirlik_kotlari(M, 0.0))
         out["agirlik_dolgu_yuksekligi"] = round(ust - alt, 1)
     zk = M["kasnak"][4]
-    kab = CDN.kabin_kotlari(dy, S, 0.0, aski, CAA.arkada_iki_bir(g))
+    kab = donanim.kabin_kotlari(dy, S, 0.0, aski, arka_aski.arkada_iki_bir(g))
     if aski.get("duzen") == "Doğrudan":
         #  1:1:  halatlar kabin şasesinin üst kirişindeki bağlantıda biter
         out["aski_halat_boyu"] = round((zk - kab["baglanti_ust"]) / 1000.0, 4)

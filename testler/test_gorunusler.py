@@ -8,20 +8,22 @@ projelerinde LiftDesigner'ın kendi paftasıyla karşılaştırılır
 ( gercek_projeler.py )."""
 
 import copy
+import math
 import os
 import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from cizim import cizimler as CZ
-from cizim import giris as CGI
-from cizim import girdi as CG
-from cizim import kasnak_duzeni as CKS
-from cizim import kopru as CK
-from cizim import makine_dairesi as CMD
-from cizim import pafta as CPF
+from cizim import cizimler
+from cizim import giris
+from cizim import girdi
+from cizim import kasnak_duzeni
+from cizim import kopru
+from cizim import makine_dairesi
+from cizim import pafta
+from cizim import sabitler
 
-from testler import test_olcu_kaynagi as T
+from testler import test_olcu_kaynagi
 
 
 def _olculer(e):
@@ -30,7 +32,7 @@ def _olculer(e):
 
 
 def _gercek(ad):
-    g, hata = T._g(T._gercek(ad))
+    g, hata = test_olcu_kaynagi._g(test_olcu_kaynagi._gercek(ad))
     assert g is not None, hata
     return g
 
@@ -42,7 +44,7 @@ class Giris(unittest.TestCase):
         #  2240";  kasa 2.220 ( kapının 220 üstü );  buton yuvası 160 × 290, altı
         #  1.055, butonun ortası 1.200 ve kapının kenarından 240;  gösterge 100.
         for ad, zincir in (("800 KG", ["470", "1180", "350"]), ("1022", ["235", "1180", "585"])):
-            o = _olculer(CGI.ciz(_gercek(ad)))
+            o = _olculer(giris.ciz(_gercek(ad)))
             with self.subTest(ad):
                 i = o.index(zincir[0])
                 self.assertEqual(o[i : i + 3], zincir)
@@ -63,14 +65,14 @@ class Giris(unittest.TestCase):
 
     def test_kaba_bosluk_kapi_genisligiyle(self):
         #  1275:  kapı 1.100 → boşluk 1.380 ( LiftDesigner )
-        self.assertIn("1380", _olculer(CGI.ciz(_gercek("1275"))))
+        self.assertIn("1380", _olculer(giris.ciz(_gercek("1275"))))
 
     def test_referans_projenin_kendi_boslugu(self):
         #  Referans proje:  2.100'lük kapıda boşluk 2.300 ( kendi 200'ü )
-        self.assertIn("KAPI BOŞLUĞU 2300", _olculer(CGI.ciz(CG.ORNEK)))
+        self.assertIn("KAPI BOŞLUĞU 2300", _olculer(giris.ciz(girdi.ORNEK)))
 
     def test_buton_acilisin_karsisinda(self):
-        g = copy.deepcopy(CG.ORNEK)
+        g = copy.deepcopy(girdi.ORNEK)
         for tip, sol in (
             ("Teleskopik Sol", False),
             ("Otomatik Merkezi", False),
@@ -78,7 +80,7 @@ class Giris(unittest.TestCase):
             ("Manuel Sağ", True),
         ):
             g["kapi"]["tip"] = tip
-            Y = CGI.yerlesim(g)
+            Y = giris.yerlesim(g)
             with self.subTest(tip):
                 self.assertEqual(Y["buton_sol"], sol)
                 self.assertEqual(Y["bx"] < Y["x0"], sol)
@@ -87,11 +89,11 @@ class Giris(unittest.TestCase):
                 self.assertTrue(Y["yuva"][2] <= Y["bosluk"][0] or Y["yuva"][0] >= Y["bosluk"][2])
 
     def test_kanat_sayisi(self):
-        g = copy.deepcopy(CG.ORNEK)
+        g = copy.deepcopy(girdi.ORNEK)
         for tip, n in (("Teleskopik Sol", 2), ("Otomatik Merkezi", 2), ("Manuel Sol", 1)):
             g["kapi"]["tip"] = tip
             with self.subTest(tip):
-                self.assertEqual(len(CGI.yerlesim(g)["kanatlar"]), n)
+                self.assertEqual(len(giris.yerlesim(g)["kanatlar"]), n)
 
 
 class KasnakDuzeni(unittest.TestCase):
@@ -99,14 +101,18 @@ class KasnakDuzeni(unittest.TestCase):
         #  800 KG ( Ø500 tahrik, Ø400 saptırma ):  açı hesabınkiyle aynı ve
         #  LiftDesigner'a yakın ( 151° );  halat arası döşemedeki deliklerin arası
         g = _gercek("800 KG")
-        e = CKS.ciz(g)
+        e = kasnak_duzeni.ciz(g)
         o = _olculer(e)
-        alfa = CK.sarim_acisi(g)
+        alfa = kopru.sarim_acisi(g)
         self.assertAlmostEqual(alfa, 151, delta=1.5)
         self.assertIn(f"SARIM AÇISI {alfa:.0f}°", [x["metin"] for x in e if x["tip"] == "yazi"])
         self.assertIn("Ø 500", o)
         self.assertIn("Ø 400", o)
-        d = {t: (k[1] + k[3]) / 2.0 for t, k in CMD.yerlesim(g)["delikler"] if t in ("KABİN", "AĞIRLIK")}
+        d = {
+            t: (k[1] + k[3]) / 2.0
+            for t, k in makine_dairesi.yerlesim(g)["delikler"]
+            if t in ("KABİN", "AĞIRLIK")
+        }
         self.assertIn(f"HALAT ARASI {abs(d['AĞIRLIK'] - d['KABİN']):.0f}", o)
         #  Yay kasnağın üstünden, açı kadar ( 24 parça )
         self.assertEqual(sum(1 for x in e if x.get("ad") == "sarim_yayi"), 24)
@@ -116,18 +122,18 @@ class KasnakDuzeni(unittest.TestCase):
         #  halat arası kasnağın çapı ( LiftDesigner "Sarım açısı 0" yazıyordu )
         for ad in ("4815-6", "1275"):
             g = _gercek(ad)
-            e = CKS.ciz(g)
+            e = kasnak_duzeni.ciz(g)
             with self.subTest(ad):
                 self.assertIn("SARIM AÇISI 180°", [x["metin"] for x in e if x["tip"] == "yazi"])
                 self.assertIn(f"HALAT ARASI {g['makine']['tahrik_kasnak_capi']:g}", _olculer(e))
 
     def test_her_duzende_cizilir(self):
-        for ad, v in T.DUZENLER.items():
-            g, hata = T._g(v())
+        for ad, v in test_olcu_kaynagi.DUZENLER.items():
+            g, hata = test_olcu_kaynagi._g(v())
             if g is None:
                 continue
             with self.subTest(ad):
-                e = CKS.ciz(g)
+                e = kasnak_duzeni.ciz(g)
                 self.assertTrue(any(x.get("ad") == "tahrik_kasnagi" for x in e))
                 self.assertEqual(sum(1 for x in e if x.get("ad") == "aski_halati") >= 2, True)
 
@@ -146,19 +152,19 @@ class KapiKesiti(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        import math
+        from testler import test_yerlesim_saglamligi
+        from cizim import geometri
 
-        from testler import test_yerlesim_saglamligi as YS
-        from cizim import geometri as CGE
-        from cizim import kapi_kesiti as CKA
-
-        cls.math, cls.CKA = math, CKA
         cls.durumlar = []
         for tip in cls.TIPLER:
             for montaj in ("Kuyu içine", "Duvar boşluğuna"):
-                g, hata = YS.gecerli_duzen(1000, "Sağ", kat_kapisi_tipi=tip, kapi_montaji=montaj)
+                g, hata = test_yerlesim_saglamligi.gecerli_duzen(
+                    1000, "Sağ", kat_kapisi_tipi=tip, kapi_montaji=montaj
+                )
                 assert not hata, (tip, montaj, hata)
-                cls.durumlar.append((tip, montaj, g, CZ.CIZIMLER["kapi_kesiti"][1](g), CGE.plan(g)))
+                cls.durumlar.append(
+                    (tip, montaj, g, cizimler.CIZIMLER["kapi_kesiti"][1](g), geometri.plan(g))
+                )
 
     @staticmethod
     def _ad(e, ad):
@@ -167,7 +173,7 @@ class KapiKesiti(unittest.TestCase):
     def _pah(self, nok):
         """Açık çizginin son parçası:  ( yatayla açı °, yatay izdüşüm ), dik parçanın boyu."""
         (u0, z0), (u1, z1), (u2, z2) = nok
-        return (self.math.degrees(self.math.atan2(abs(z2 - z1), abs(u2 - u1))), abs(u2 - u1)), abs(z0 - z1)
+        return (math.degrees(math.atan2(abs(z2 - z1), abs(u2 - u1))), abs(u2 - u1)), abs(z0 - z1)
 
     def test_esik_alti_saci_m_5_2_5_3_2(self):
         """Dik kısmı eşiğin altından en az kilit bölgesinin yarısı + 50 ( otomatikte
@@ -180,7 +186,7 @@ class KapiKesiti(unittest.TestCase):
                 self.assertGreaterEqual(round(aci, 6), 60.0)
                 self.assertGreaterEqual(izd, 20.0)
                 #  eşiğin kuyu kenarından iner ( eşiğe bağlı ), pahla duvara döner
-                KB = CG.kapi_bolgesi(g, self.CKA.CS.sabitler(None))
+                KB = girdi.kapi_bolgesi(g, sabitler.sabitler(None))
                 self.assertEqual(s[0][0], KB["hat"])
                 self.assertEqual(s[2][0], 0.0)
 
@@ -203,10 +209,10 @@ class KapiKesiti(unittest.TestCase):
             with self.subTest(tip=tip, montaj=montaj):
                 ke, kk = self._ad(e, "kat_esigi")[0], self._ad(e, "kabin_esigi")[0]
                 arasi = kk["x"] - (ke["x"] + ke["g"])
-                self.assertTrue(0 < arasi <= CG.ESIK_ARASI_AZAMI, arasi)
+                self.assertTrue(0 < arasi <= girdi.ESIK_ARASI_AZAMI, arasi)
                 #  her kanat düzleminin bir oluğu ( eşiğin üstünde dört noktalık çentik );  menteşelide yok
                 cent = (len(ke["bicim"][0]["noktalar"]) - 4) // 4
-                n = 0 if tip.startswith("Manuel") else CG.kapi_tipi(tip)["duzlem"]
+                n = 0 if tip.startswith("Manuel") else girdi.kapi_tipi(tip)["duzlem"]
                 self.assertEqual(cent, n)
 
     def test_kanatlar_planla_ayni_yerde(self):
@@ -219,7 +225,7 @@ class KapiKesiti(unittest.TestCase):
                     )
 
     def test_ust_kutu_kasanin_ustune_kadar(self):
-        S = self.CKA.CS.sabitler(None)
+        S = sabitler.sabitler(None)
         for tip, montaj, g, e, _p in self.durumlar:
             with self.subTest(tip=tip, montaj=montaj):
                 u = self._ad(e, "kapi_ust_kutusu")[0]
@@ -229,10 +235,10 @@ class KapiKesiti(unittest.TestCase):
 
 class Pafta(unittest.TestCase):
     def test_iki_gorunus_paftada_ve_ekranda(self):
-        for sira in (CPF.SIRA_MRL, CPF.SIRA_MD):
+        for sira in (pafta.SIRA_MRL, pafta.SIRA_MD):
             self.assertEqual(sira[-3:], ("kasnak_duzeni", "giris", "kapi_kesiti"))
         for ad in ("kasnak_duzeni", "giris", "kapi_kesiti"):
-            self.assertIn(ad, CZ.CIZIMLER)
+            self.assertIn(ad, cizimler.CIZIMLER)
 
 
 if __name__ == "__main__":

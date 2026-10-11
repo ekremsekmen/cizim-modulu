@@ -16,8 +16,8 @@ eklenir.  Böylece ekrandaki tablo ile hesaba giren tablo bir daha ayrışamaz.
 import math
 
 from motor.ortak.adimlar import yuvarla
-from motor.uygulama import mukavemet_tablolari as MT
-from motor.uygulama import uygulama_sabitleri as US
+from motor.uygulama import mukavemet_tablolari
+from motor.uygulama import uygulama_sabitleri
 
 
 def _satirlar(kayitlar):
@@ -73,7 +73,7 @@ def _f_yukleme(sekil, mu, gama_d, beta_d, sert):
     """TS EN 81-50 m.5.11.2.3.1'in sürtünme çarpanı  —  motorla AYNI bağıntı."""
     beta = math.radians(beta_d)
     gama = math.radians(gama_d)
-    if MT.kanal_yarim_daire_mi(sekil):
+    if mukavemet_tablolari.kanal_yarim_daire_mi(sekil):
         pay = 4 * (math.cos(gama / 2.0) - math.sin(beta / 2.0))
         payda = math.pi - beta - gama - math.sin(beta) + math.sin(gama)
         return mu * pay / payda
@@ -90,7 +90,7 @@ def arayuz_tablolari(ofis=None):
     donmuş bir tablo görünüp hesabın başka bir sayı kullanması, denetimde
     bulunan hatalardan biriydi.
     """
-    O = US.sabitler(ofis)
+    O = uygulama_sabitleri.sabitler(ofis)
     t = []
 
     t.append(
@@ -98,8 +98,8 @@ def arayuz_tablolari(ofis=None):
             "ad": "Kılavuz ray profilleri",
             "kaynak": "ISO 7465",
             "aciklama": "Ray hesabının bütün kesit değerleri buradan okunur.",
-            "basliklar": _basliklar("Profil", MT._RAY_SUTUN, _RAY_AD),
-            "satirlar": _satirlar(MT.RAY_PROFILI),
+            "basliklar": _basliklar("Profil", mukavemet_tablolari._RAY_SUTUN, _RAY_AD),
+            "satirlar": _satirlar(mukavemet_tablolari.RAY_PROFILI),
         }
     )
     t.append(
@@ -110,8 +110,8 @@ def arayuz_tablolari(ofis=None):
                 "σF = | Fx | · ( h1 − b − f ) · 6  /  ( c² · ( ℓ + 2 · ( h1 − f ) ) ) "
                 "bağıntısının ölçüleri;  c ray profilleri tablosundadır."
             ),
-            "basliklar": _basliklar("Profil", MT._RAY_GEO_SUTUN, _RAY_GEO_AD),
-            "satirlar": _satirlar(MT.RAY_GEOMETRI),
+            "basliklar": _basliklar("Profil", mukavemet_tablolari._RAY_GEO_SUTUN, _RAY_GEO_AD),
+            "satirlar": _satirlar(mukavemet_tablolari.RAY_GEOMETRI),
         }
     )
     t.append(
@@ -120,7 +120,7 @@ def arayuz_tablolari(ofis=None):
             "kaynak": "TS EN 81-20 Çizelge 15  ( A5 > %12 )",
             "aciklama": "σperm = Rm / St;  St = 2,25 normal · 1,8 güvenlik tertibatı.",
             "basliklar": ["Rm  ( N/mm² )", "σperm normal", "σperm güv. tertibatı"],
-            "satirlar": [[rm, yuvarla(n, 2), yuvarla(gv, 2)] for rm, n, gv in MT.RAY_CELIGI],
+            "satirlar": [[rm, yuvarla(n, 2), yuvarla(gv, 2)] for rm, n, gv in mukavemet_tablolari.RAY_CELIGI],
         }
     )
     t.append(
@@ -134,11 +134,13 @@ def arayuz_tablolari(ofis=None):
             "satirlar": [
                 [
                     lam,
-                    yuvarla(MT.omega_en8150(lam, 370), 4),
-                    yuvarla(MT.omega_en8150(lam, 440), 4),
-                    yuvarla(MT.omega_en8150(lam, 520), 4),
+                    yuvarla(mukavemet_tablolari.omega_en8150(lam, 370), 4),
+                    yuvarla(mukavemet_tablolari.omega_en8150(lam, 440), 4),
+                    yuvarla(mukavemet_tablolari.omega_en8150(lam, 520), 4),
                 ]
-                for lam in range(MT.OMEGA_LAMBDA_MIN, MT.OMEGA_LAMBDA_MAX + 1, 5)
+                for lam in range(
+                    mukavemet_tablolari.OMEGA_LAMBDA_MIN, mukavemet_tablolari.OMEGA_LAMBDA_MAX + 1, 5
+                )
             ],
         }
     )
@@ -150,8 +152,8 @@ def arayuz_tablolari(ofis=None):
                 "240 · 280 · 300 satırlarında atalet yarıçapı ix BOŞTUR; "
                 "program bu seçimi açık mesajla reddeder."
             ),
-            "basliklar": _basliklar("Ölçü", MT._NPU_SUTUN, _NPU_AD),
-            "satirlar": _satirlar(MT.NPU_PROFIL),
+            "basliklar": _basliklar("Ölçü", mukavemet_tablolari._NPU_SUTUN, _NPU_AD),
+            "satirlar": _satirlar(mukavemet_tablolari.NPU_PROFIL),
         }
     )
     t.append(
@@ -160,7 +162,7 @@ def arayuz_tablolari(ofis=None):
             "kaynak": "TS 12385-5",
             "aciklama": "Halat çapı → metre ağırlığı · kopma kuvveti · yapı · Rm.",
             "basliklar": ["d  ( mm )", "Ağırlık  ( kg/m )", "Kopma  ( N )", "Yapı", "Rm  ( N/mm² )"],
-            "satirlar": _satirlar(MT.HALAT),
+            "satirlar": _satirlar(mukavemet_tablolari.HALAT),
         }
     )
     t.append(
@@ -169,7 +171,7 @@ def arayuz_tablolari(ofis=None):
             "kaynak": "TS EN 81-20 m.5.4.2  ( Çizelge 6 · 7 )",
             "aciklama": ("Beyan yüküne göre kişi sayısı ve kullanılabilir en büyük / en küçük kabin alanı."),
             "basliklar": ["Q  ( kg )", "Kişi", "Azami alan  ( m² )", "Asgari alan  ( m² )"],
-            "satirlar": _satirlar(MT.KABIN_ALANI),
+            "satirlar": _satirlar(mukavemet_tablolari.KABIN_ALANI),
         }
     )
     t.append(
@@ -191,11 +193,11 @@ def arayuz_tablolari(ofis=None):
                         "U": "yarım daire",
                         "UK": "yarım daire, altı kesik",
                     }[tur],
-                    MT.kanal_acisi(ad, O["kanal_gama_v"], O["kanal_gama_yd"]),
-                    MT.kanal_beta(ad, O["kanal_beta"]),
-                    yuvarla(MT.kanal_nequiv_t(ad, O["kanal_gama_v"], O["kanal_beta"]), 2),
+                    mukavemet_tablolari.kanal_acisi(ad, O["kanal_gama_v"], O["kanal_gama_yd"]),
+                    mukavemet_tablolari.kanal_beta(ad, O["kanal_beta"]),
+                    yuvarla(mukavemet_tablolari.kanal_nequiv_t(ad, O["kanal_gama_v"], O["kanal_beta"]), 2),
                 ]
-                for ad, tur, _gecis in MT.KANAL_SEKLI
+                for ad, tur, _gecis in mukavemet_tablolari.KANAL_SEKLI
             ],
         }
     )
@@ -210,8 +212,8 @@ def arayuz_tablolari(ofis=None):
             ),
             "basliklar": ["Kanal", "Açı  ( ° )", "Nequiv(t)"],
             "satirlar": (
-                [["V kanal  ( γ )", a, n] for a, n in MT.NEQUIV_V]
-                + [["Altı kesik  ( β )", a, n] for a, n in MT.NEQUIV_U_ALTI_KESIK]
+                [["V kanal  ( γ )", a, n] for a, n in mukavemet_tablolari.NEQUIV_V]
+                + [["Altı kesik  ( β )", a, n] for a, n in mukavemet_tablolari.NEQUIV_U_ALTI_KESIK]
             ),
         }
     )
@@ -225,7 +227,7 @@ def arayuz_tablolari(ofis=None):
                 "kanalın kendi maddesinde ( m.5.11.2.3.1.1 ) sertleştirme "
                 "geçmez."
             ),
-            "basliklar": ["Kanal şekli"] + list(MT.KANAL_ISLEME_SEKILLERI),
+            "basliklar": ["Kanal şekli"] + list(mukavemet_tablolari.KANAL_ISLEME_SEKILLERI),
             "satirlar": [
                 [ad]
                 + [
@@ -233,15 +235,15 @@ def arayuz_tablolari(ofis=None):
                         _f_yukleme(
                             ad,
                             0.1,
-                            MT.kanal_acisi(ad, O["kanal_gama_v"], O["kanal_gama_yd"]),
-                            MT.kanal_beta(ad, O["kanal_beta"]),
+                            mukavemet_tablolari.kanal_acisi(ad, O["kanal_gama_v"], O["kanal_gama_yd"]),
+                            mukavemet_tablolari.kanal_beta(ad, O["kanal_beta"]),
                             isleme == "Sertleştirilmiş",
                         ),
                         5,
                     )
-                    for isleme in MT.KANAL_ISLEME_SEKILLERI
+                    for isleme in mukavemet_tablolari.KANAL_ISLEME_SEKILLERI
                 ]
-                for ad, _t, _g in MT.KANAL_SEKLI
+                for ad, _t, _g in mukavemet_tablolari.KANAL_SEKLI
             ],
         }
     )
@@ -255,7 +257,7 @@ def arayuz_tablolari(ofis=None):
             ),
             "aciklama": "",
             "basliklar": ["Tertibat tipi", "k1"],
-            "satirlar": _satirlar(MT.DARBE_TIPLERI),
+            "satirlar": _satirlar(mukavemet_tablolari.DARBE_TIPLERI),
         }
     )
     t.append(
@@ -266,8 +268,8 @@ def arayuz_tablolari(ofis=None):
                 "Derinlik, 'Karşı ağırlık derinliği' kutusunun başlangıç "
                 "değeridir;  hesap kutuya girilen değeri okur."
             ),
-            "basliklar": _basliklar("Malzeme", MT._MALZEME_SUTUN, _MALZEME_AD),
-            "satirlar": _satirlar(MT.AGIRLIK_MALZEMESI),
+            "basliklar": _basliklar("Malzeme", mukavemet_tablolari._MALZEME_SUTUN, _MALZEME_AD),
+            "satirlar": _satirlar(mukavemet_tablolari.AGIRLIK_MALZEMESI),
         }
     )
     t.append(
@@ -277,8 +279,8 @@ def arayuz_tablolari(ofis=None):
             "aciklama": (
                 "Yassı bükülgen kablo;  hesaba yalnız metre ağırlığı girer ( gezici kablo kütlesi MTrav )."
             ),
-            "basliklar": _basliklar("Tip", MT._KABLO_SUTUN, _KABLO_AD),
-            "satirlar": _satirlar(MT.BUKULGEN_KABLO),
+            "basliklar": _basliklar("Tip", mukavemet_tablolari._KABLO_SUTUN, _KABLO_AD),
+            "satirlar": _satirlar(mukavemet_tablolari.BUKULGEN_KABLO),
         }
     )
     t.append(
@@ -287,7 +289,7 @@ def arayuz_tablolari(ofis=None):
             "kaynak": "ofis kabulü",
             "aciklama": "İkinci gezici kablo, kat kapısı tipinden belirlenir.",
             "basliklar": ["Kapı tipi", "Kablo"],
-            "satirlar": _satirlar(MT.KAPI_KABLO),
+            "satirlar": _satirlar(mukavemet_tablolari.KAPI_KABLO),
         }
     )
     return t

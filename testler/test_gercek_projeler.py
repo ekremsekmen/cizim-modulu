@@ -20,18 +20,18 @@ import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from uclar import cizim_uclari as UC
-from uclar import uygulama_uclari as UYG
-from cizim import geometri as CGE
-from cizim import girdi as CG
-from cizim import kopru as CK
-from cizim import kuyu_dibi as CKD
-from cizim import makine_dairesi as CMD
-from cizim import cizim_sabitleri as CS
-from motor.uygulama import uygulama_girdisi as E_UGR
-from motor.uygulama import uygulama_hesabi as E_UYG
+from uclar import cizim_uclari
+from uclar import uygulama_uclari
+from cizim import geometri
+from cizim import girdi
+from cizim import kopru
+from cizim import kuyu_dibi
+from cizim import makine_dairesi
+from cizim import sabitler
+from motor.uygulama import uygulama_girdisi
+from motor.uygulama import uygulama_hesabi
 
-from testler import gercek_projeler as GP
+from testler import gercek_projeler
 
 CIZILENLER = ("4815-6", "1022", "1275", "800 KG")
 
@@ -39,13 +39,13 @@ CIZILENLER = ("4815-6", "1022", "1275", "800 KG")
 def _calistir(ad):
     """Projeyi formdan girilmiş gibi çalıştırır:  ( çizim ucu , çizim girdisi ,
     bölüm 11'in metni )."""
-    a = dict(GP.PROJELER[ad])
-    pg = {k: a.pop(k) for k in list(a) if k in UYG.PROJE_GENELI_ALANLAR}
+    a = dict(gercek_projeler.PROJELER[ad])
+    pg = {k: a.pop(k) for k in list(a) if k in uygulama_uclari.PROJE_GENELI_ALANLAR}
     veri = {"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}
-    cizim = json.loads(UC.api_cizimler(veri).body)
-    ham, _i, proje = UC._istek(veri)
-    g, _hata = CK.cizim_girdisi(E_UGR.tamamla(ham), None, proje, 1)
-    s = E_UYG.hesapla(dict(ham))
+    cizim = json.loads(cizim_uclari.api_cizimler(veri).body)
+    ham, _i, proje = cizim_uclari._istek(veri)
+    g, _hata = kopru.cizim_girdisi(uygulama_girdisi.tamamla(ham), None, proje, 1)
+    s = uygulama_hesabi.hesapla(dict(ham))
     b11 = next(b for b in s["bolumler"] if b["kimlik"] == "siginma_alanlari")
     return cizim, g, b11["sonuc"]["metin"]
 
@@ -53,7 +53,7 @@ def _calistir(ad):
 class GercekProjeler(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.S = {ad: _calistir(ad) for ad in GP.PROJELER}
+        cls.S = {ad: _calistir(ad) for ad in gercek_projeler.PROJELER}
 
     def test_cizilenler_uygun(self):
         """4815-6, 1022, 1275, 800 KG:  çizilir, bölüm 11 uygun."""
@@ -81,10 +81,12 @@ class GercekProjeler(unittest.TestCase):
         self.assertIn("kasnaklar ve aralarındaki halat", cizim["hata"][0])
         self.assertTrue(b11.startswith("HESAP EKSİK — kuyunun çizimi kurulamadı:  Kabin tavanında"))
         for son_kat in (4260, 4270, 6000):
-            a = dict(GP.PROJELER["12495-18"], son_kat_yuksekligi=son_kat)
-            pg = {k: a.pop(k) for k in list(a) if k in UYG.PROJE_GENELI_ALANLAR}
+            a = dict(gercek_projeler.PROJELER["12495-18"], son_kat_yuksekligi=son_kat)
+            pg = {k: a.pop(k) for k in list(a) if k in uygulama_uclari.PROJE_GENELI_ALANLAR}
             d = json.loads(
-                UC.api_cizimler({"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}).body
+                cizim_uclari.api_cizimler(
+                    {"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}
+                ).body
             )
             with self.subTest(son_kat=son_kat):
                 self.assertEqual(d.get("hata"), cizim["hata"])
@@ -133,7 +135,7 @@ class GercekProjeler(unittest.TestCase):
             g = self.S[ad][1]
             return [
                 tuple(round(c) for c in p)
-                for p in CGE.halat_konumlari(g, CS.sabitler(g.get("_cizim_sabitleri")))
+                for p in geometri.halat_konumlari(g, sabitler.sabitler(g.get("_cizim_sabitleri")))
             ]
 
         #  4815-6:  kabin halatı sol duvardan 415
@@ -147,7 +149,9 @@ class GercekProjeler(unittest.TestCase):
         for ad, kabin in (("1022", 880), ("800 KG", 840)):
             g = self.S[ad][1]
             d = {
-                t: ((k[1] + k[3]) / 2.0) for t, k in CMD.yerlesim(g)["delikler"] if t in ("KABİN", "AĞIRLIK")
+                t: ((k[1] + k[3]) / 2.0)
+                for t, k in makine_dairesi.yerlesim(g)["delikler"]
+                if t in ("KABİN", "AĞIRLIK")
             }
             with self.subTest(ad):
                 self.assertEqual(d["AĞIRLIK"], 1820)
@@ -165,12 +169,12 @@ class GercekProjeler(unittest.TestCase):
         _c, g, _b = self.S["1022"]
         kd = g["kuyu_dibi"]
         self.assertEqual((kd["regulator_yan"], kd["regulator_kaciklik"]), ("Sağ", 360))
-        Y = CKD.yerlesim(g)
+        Y = kuyu_dibi.yerlesim(g)
         self.assertEqual(Y["hata"], [])
         k = Y["gergi_donanim"]["agirlik"]
         self.assertEqual(k[2] - k[0], 82)
         self.assertGreaterEqual(
-            min(k[0], k[1], g["kuyu"]["genislik"] - k[2], g["kuyu"]["derinlik"] - k[3]), CG.ASGARI_ACIKLIK
+            min(k[0], k[1], g["kuyu"]["genislik"] - k[2], g["kuyu"]["derinlik"] - k[3]), girdi.ASGARI_ACIKLIK
         )
 
 

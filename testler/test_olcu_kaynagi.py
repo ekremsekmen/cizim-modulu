@@ -15,21 +15,21 @@ from unittest import mock
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from uclar import cizim_uclari as UC
+from uclar import cizim_uclari
 from testler.yavas import yavas
-from uclar import uygulama_uclari as UC_UYG
-from cizim import eleman as CEL
-from cizim import cizimler as CZ
-from cizim import geometri as CGE
-from cizim import kopru as CK
-from cizim import kuyu_dibi as CKD
-from cizim import olcu_kaynagi as CO
-from cizim import pafta as CPF
-from cizim import cizim_sabitleri as CS
-from motor.uygulama import uygulama_hesabi as E_UYG
+from uclar import uygulama_uclari
+from cizim import eleman
+from cizim import cizimler
+from cizim import geometri
+from cizim import kopru
+from cizim import kuyu_dibi
+from cizim import olcu_kaynagi
+from cizim import pafta
+from cizim import sabitler
+from motor.uygulama import uygulama_hesabi
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
 
-from testler import gercek_projeler as GP
+from testler import gercek_projeler
 
 
 def _veri(md=False, **ek):
@@ -97,9 +97,9 @@ DUZENLER = {
 
 
 def _g(v):
-    asansorler, ortak = UC_UYG._asansor_girdileri(v)
-    s = E_UYG.hesapla_coklu(asansorler, ortak)
-    ((g, hata),) = UC.girdiler(v, asansorler, ortak, s if s.get("aktif") else None, "P")
+    asansorler, ortak = uygulama_uclari._asansor_girdileri(v)
+    s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
+    ((g, hata),) = cizim_uclari.girdiler(v, asansorler, ortak, s if s.get("aktif") else None, "P")
     return g, hata
 
 
@@ -109,7 +109,7 @@ def _olcu(r, soz, n=0):
 
 def _degistir(v, ad, i, r, anahtar, hedef):
     return json.loads(
-        UC.api_olcu_degistir(
+        cizim_uclari.api_olcu_degistir(
             dict(v, cizim=ad, olcu=i, metin=r["taban"][i]["metin"], anahtar=anahtar, hedef=hedef)
         ).body
     )
@@ -118,7 +118,7 @@ def _degistir(v, ad, i, r, anahtar, hedef):
 def _uygula(v, y):
     """Dönen değişiklikleri isteğe yazar ( formun kutularına yazılmış gibi )."""
     v = json.loads(json.dumps(v))
-    pg = UC._sozlesme()[1]
+    pg = cizim_uclari._sozlesme()[1]
     for d in y["degisiklikler"]:
         (v["proje_geneli"] if d["anahtar"] in pg else v["asansorler"][0])[d["anahtar"]] = d["deger"]
     return v
@@ -135,8 +135,8 @@ class Eksiksiz(unittest.TestCase):
             v = v()
             g, hata = _g(v)
             self.assertIsNotNone(g, (ad_d, hata))
-            for ad in CPF.sira(g):
-                r = UC._cozumleme(v, ad)
+            for ad in pafta.sira(g):
+                r = cizim_uclari._cozumleme(v, ad)
                 self.assertIsNotNone(r, (ad_d, ad))
                 eksik = [
                     o["metin"] for i, o in enumerate(r["taban"]) if not r["kaynak"][i] and not o.get("kural")
@@ -147,11 +147,11 @@ class Eksiksiz(unittest.TestCase):
 class Kaynak(unittest.TestCase):
     def setUp(self):
         self.v = _veri()
-        self.r = UC._cozumleme(self.v, "kuyu_plani")
+        self.r = cizim_uclari._cozumleme(self.v, "kuyu_plani")
 
     def _kaynaklar(self, soz, n=0, r=None):
         r = r or self.r
-        return UC._kaynaklar(r, _olcu(r, soz, n))
+        return cizim_uclari._kaynaklar(r, _olcu(r, soz, n))
 
     def test_olcunun_kendisi_olan_girdi_once(self):
         for soz, anahtar in (
@@ -189,7 +189,7 @@ class Kaynak(unittest.TestCase):
         #  ofis standardı ).  8 Eki'ye dek şase dikmesi de giriyordu ( "430" — dikme
         #  artık rayın ucunda;  iç sıradaki duvar – kabin ölçüleri kalktı )
         i = next(i for i, o in enumerate(self.r["taban"]) if o["metin"] == "200")
-        k = UC._kaynaklar(self.r, i)
+        k = cizim_uclari._kaynaklar(self.r, i)
         ad = {x["anahtar"]: x for x in k}
         self.assertEqual(ad["kuyu_genisligi"]["egim"], 0.5)
         self.assertEqual(ad["kabin_genisligi"]["egim"], -0.5)
@@ -209,7 +209,7 @@ class Kaynak(unittest.TestCase):
         #  girdi.esik_derinligi, 2 Eki ):  kapı tipi seçim olarak önce gelir.
         k = self._kaynaklar("KABİN EŞİĞİ")
         ofis = [x for x in k if x["yer"] == "ofis"]
-        self.assertTrue(ofis[0]["etiket"].startswith(CS.ETIKET["kabin_esik_derinlik"]))
+        self.assertTrue(ofis[0]["etiket"].startswith(sabitler.ETIKET["kabin_esik_derinlik"]))
         self.assertFalse(ofis[0]["degistirilir"])
         self.assertEqual(k[0]["anahtar"], "kat_kapisi_tipi")
 
@@ -217,8 +217,8 @@ class Kaynak(unittest.TestCase):
         #  Kabin tamponu kaidesinin formda kutusu yok ( tasarım şeması:  kaynağı
         #  çizim ):  kuyu dibi zincirinden gelir.  Kuyu dibi tek başına değişir,
         #  kaide onu izler — eskiden girilmiş kaide yüzünden ikisi bağlıydı.
-        r = UC._cozumleme(self.v, "kuyu_kesiti_yan")
-        k = UC._kaynaklar(r, _olcu(r, "KUYU DİBİ"))
+        r = cizim_uclari._cozumleme(self.v, "kuyu_kesiti_yan")
+        k = cizim_uclari._kaynaklar(r, _olcu(r, "KUYU DİBİ"))
         self.assertEqual(k[0]["anahtar"], "kuyu_dibi")
         self.assertFalse(k[0]["bagli"])
         self.assertTrue(k[0]["dogrudan"])
@@ -226,17 +226,19 @@ class Kaynak(unittest.TestCase):
     def test_ofis_standardi(self):
         #  Kuyu tavanı payı ( Sabitler sekmesi ) ön kesitte raylarla kabin rayının
         #  tavana kalan ölçülerini belirler;  ofis standardı değiştirilmez, gösterilir.
-        r = UC._cozumleme(self.v, "kuyu_kesiti_on")
-        ofis = [x for i in range(len(r["taban"])) for x in UC._kaynaklar(r, i) if x["yer"] == "ofis"]
+        r = cizim_uclari._cozumleme(self.v, "kuyu_kesiti_on")
+        ofis = [
+            x for i in range(len(r["taban"])) for x in cizim_uclari._kaynaklar(r, i) if x["yer"] == "ofis"
+        ]
         self.assertIn("tavan_payi", {x["anahtar"] for x in ofis})
         self.assertTrue(all(not x["degistirilir"] for x in ofis))
 
     def test_standardin_ve_yerlesimin_kurali(self):
-        r = UC._cozumleme(self.v, "kabin_ustu")
+        r = cizim_uclari._cozumleme(self.v, "kabin_ustu")
         kural = [o["kural"] for o in r["taban"] if o.get("kural")]
         self.assertTrue(any("Çizelge 3" in k for k in kural), kural)
         self.assertTrue(any("kapıya en yakın" in k for k in kural), kural)
-        r = UC._cozumleme(self.v, "kuyu_ustu")
+        r = cizim_uclari._cozumleme(self.v, "kuyu_ustu")
         self.assertTrue(any("m.5.2.6.3.2.1 a" in (o.get("kural") or "") for o in r["taban"]))
 
     def test_uc_ve_ekran_ayni_olcuyu_gorur(self):
@@ -244,22 +246,34 @@ class Kaynak(unittest.TestCase):
         #  Ölçüler ve sıraları birebir aynı olmalı ( tıklanan sıra = çözülen ).
         for md in (False, True):
             g, _h = _g(_veri(md))
-            for ad in CPF.sira(g):
-                a = [(o["a"], o["b"], o["kot"], o["metin"]) for o in CO.olculer(CZ.CIZIMLER[ad][1](g))]
-                b = [(o["a"], o["b"], o["kot"], o["metin"]) for o in CO.olculer(UC._elemanlar(g, ad)[0])]
+            for ad in pafta.sira(g):
+                a = [
+                    (o["a"], o["b"], o["kot"], o["metin"])
+                    for o in olcu_kaynagi.olculer(cizimler.CIZIMLER[ad][1](g))
+                ]
+                b = [
+                    (o["a"], o["b"], o["kot"], o["metin"])
+                    for o in olcu_kaynagi.olculer(cizim_uclari._elemanlar(g, ad)[0])
+                ]
                 self.assertEqual(a, b, ad)
 
     def test_hesabin_sonucu_olculeri_degistirmez(self):
         #  Ekran çizimleri hesabın sonucuyla ( yük kutuları ), çözümleme onsuz kurar.
         v = _veri()
-        asansorler, ortak = UC_UYG._asansor_girdileri(v)
-        s = E_UYG.hesapla_coklu(asansorler, ortak)
-        ((g1, _h),) = UC.girdiler(v, asansorler, ortak, s, "P")
-        ((g0, _h),) = UC.girdiler(v, asansorler, ortak, None, "P")
-        for ad in CPF.sira(g1):
+        asansorler, ortak = uygulama_uclari._asansor_girdileri(v)
+        s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
+        ((g1, _h),) = cizim_uclari.girdiler(v, asansorler, ortak, s, "P")
+        ((g0, _h),) = cizim_uclari.girdiler(v, asansorler, ortak, None, "P")
+        for ad in pafta.sira(g1):
             self.assertEqual(
-                [(o["a"], o["b"], o["metin"]) for o in CO.olculer(UC._elemanlar(g1, ad)[0])],
-                [(o["a"], o["b"], o["metin"]) for o in CO.olculer(UC._elemanlar(g0, ad)[0])],
+                [
+                    (o["a"], o["b"], o["metin"])
+                    for o in olcu_kaynagi.olculer(cizim_uclari._elemanlar(g1, ad)[0])
+                ],
+                [
+                    (o["a"], o["b"], o["metin"])
+                    for o in olcu_kaynagi.olculer(cizim_uclari._elemanlar(g0, ad)[0])
+                ],
                 ad,
             )
 
@@ -276,7 +290,7 @@ class CokAsansor(unittest.TestCase):
         ):
             for i, hesap_var in enumerate(beklenen):
                 with self.subTest(adet=len(asansorler), asansor=i, hesap=hesap_var):
-                    c = json.loads(UC.api_cizimler(dict(v, asansorler=asansorler, asansor=i)).body)
+                    c = json.loads(cizim_uclari.api_cizimler(dict(v, asansorler=asansorler, asansor=i)).body)
                     self.assertTrue(c["aktif"], c.get("hata"))
                     self.assertTrue(c["cizimler"])
                     self.assertEqual(c["hesap"], hesap_var)
@@ -286,14 +300,14 @@ class CokAsansor(unittest.TestCase):
         v = _veri()
         v["asansorler"].append(dict(v["asansorler"][0], kuyu_genisligi=2300, kabin_yana_kaciklik=230))
         for i, kg in ((0, 2100), (1, 2300)):
-            r = UC._cozumleme(dict(v, asansor=i), "kuyu_plani")
+            r = cizim_uclari._cozumleme(dict(v, asansor=i), "kuyu_plani")
             self.assertEqual(r["taban"][_olcu(r, "KUYU GENİŞLİĞİ")]["uzunluk"], kg)
 
     def test_proje_geneli_alan(self):
         #  Makine dairesinin ölçüleri binanındır:  kaynak "proje" diye söylenir.
         v = _veri(True)
-        r = UC._cozumleme(v, "makine_dairesi")
-        k = UC._kaynaklar(r, _olcu(r, "MAKİNE DAİRESİ"))
+        r = cizim_uclari._cozumleme(v, "makine_dairesi")
+        k = cizim_uclari._kaynaklar(r, _olcu(r, "MAKİNE DAİRESİ"))
         self.assertEqual((k[0]["anahtar"], k[0]["yer"]), ("mk_genislik", "proje"))
 
 
@@ -301,7 +315,7 @@ class Degistirme(unittest.TestCase):
     """Yeni değer girdiye yazılır ve çizim yeniden kurulduğunda ölçü hedeftedir."""
 
     def _dene(self, v, ad, soz, anahtar, hedef, n=0, beklenen=None):
-        r = UC._cozumleme(v, ad)
+        r = cizim_uclari._cozumleme(v, ad)
         i = _olcu(r, soz, n)
         y = _degistir(v, ad, i, r, anahtar, hedef)
         self.assertTrue(y["aktif"], y)
@@ -312,7 +326,7 @@ class Degistirme(unittest.TestCase):
         #  yolundan ( girdiler ) yeniden kurulur, aynı sıradaki ölçü okunur.
         g, hata = _g(_uygula(v, y))
         self.assertIsNotNone(g, hata)
-        o = CO.olculer(UC._elemanlar(g, ad)[0])
+        o = olcu_kaynagi.olculer(cizim_uclari._elemanlar(g, ad)[0])
         if not beklenen or anahtar not in ("tahrik_kasnak_capi",):
             yakin = [x["uzunluk"] for x in o if abs(x["uzunluk"] - hedef) < 0.05]
             self.assertTrue(yakin, (soz, hedef))
@@ -331,7 +345,7 @@ class Degistirme(unittest.TestCase):
         from uclar.uc_ortak import _belirsiz_hata
 
         v = _veri()
-        r = UC._cozumleme(v, "kuyu_plani")
+        r = cizim_uclari._cozumleme(v, "kuyu_plani")
         i = _olcu(r, "KUYU GENİŞLİĞİ")
         for ham, beklenen in (
             ("2200", 2200),
@@ -343,7 +357,7 @@ class Degistirme(unittest.TestCase):
             ("0,075", 0.075),
         ):
             with self.subTest(ham=ham):
-                form, _ortak = UC_UYG._asansor_girdileri(
+                form, _ortak = uygulama_uclari._asansor_girdileri(
                     dict(v, asansorler=[dict(v["asansorler"][0], kuyu_genisligi=ham)])
                 )
                 self.assertIsNone(_belirsiz_hata())
@@ -354,7 +368,7 @@ class Degistirme(unittest.TestCase):
 
     def test_belirsiz_olcu_yazimi_reddedilir(self):
         v = _veri()
-        r = UC._cozumleme(v, "kuyu_plani")
+        r = cizim_uclari._cozumleme(v, "kuyu_plani")
         i = _olcu(r, "KUYU GENİŞLİĞİ")
         for ham in ("2.200", "2,200", " 2.200 ", "\u00a02.200\u00a0"):
             with self.subTest(ham=ham):
@@ -365,7 +379,7 @@ class Degistirme(unittest.TestCase):
 
     def test_gecersiz_olcu_sayisi_reddedilir(self):
         v = _veri()
-        r = UC._cozumleme(v, "kuyu_plani")
+        r = cizim_uclari._cozumleme(v, "kuyu_plani")
         i = _olcu(r, "KUYU GENİŞLİĞİ")
         for ham in (None, "", "  ", True, "nan", "inf", "2200 mm", "0x898", "1e309", [], {}):
             with self.subTest(ham=ham):
@@ -376,7 +390,7 @@ class Degistirme(unittest.TestCase):
 
     def test_zincir_parcasi_iki_ayri_girdiyle(self):
         v = _veri()
-        r = UC._cozumleme(v, "kuyu_plani")
+        r = cizim_uclari._cozumleme(v, "kuyu_plani")
         i = next(i for i, o in enumerate(r["taban"]) if o["metin"] == "343")
         y = _degistir(v, "kuyu_plani", i, r, "kabin_yana_kaciklik", 300)
         self.assertTrue(y["dogrulandi"])
@@ -425,7 +439,7 @@ class Degistirme(unittest.TestCase):
 
     def test_dogrusal_olmayan_ve_kaynak_disi_istekler(self):
         v = _veri()
-        r = UC._cozumleme(v, "kuyu_plani")
+        r = cizim_uclari._cozumleme(v, "kuyu_plani")
         i = _olcu(r, "KABİN EŞİĞİ")
         y = _degistir(v, "kuyu_plani", i, r, "kabin_esik_derinlik", 100)
         self.assertFalse(y["aktif"])  # ürün ölçüsü değiştirilmez
@@ -438,7 +452,7 @@ class Degistirme(unittest.TestCase):
         #  aşar, korkuluk gerekir, korkuluk tavana sığmaz.  Uç değişikliği
         #  verir ama sebebini de ( ekran uygulamadan önce sorar ).
         v = DUZENLER["formun varsayılanı"]()
-        r = UC._cozumleme(v, "kuyu_plani")
+        r = cizim_uclari._cozumleme(v, "kuyu_plani")
         i = _olcu(r, "KUYU GENİŞLİĞİ")
         y = _degistir(v, "kuyu_plani", i, r, "kuyu_genisligi", r["taban"][i]["uzunluk"] + 100)
         self.assertTrue(y["aktif"])
@@ -450,9 +464,9 @@ class Degistirme(unittest.TestCase):
         #  KAPI 900:  kapı genişliği bir seçim kutusu ( 700 · 800 · 900 … );
         #  ölçüden seçenek seçilir.  Askı oranı gibi kategoriler seçilmez.
         v = DUZENLER["formun varsayılanı"]()
-        r = UC._cozumleme(v, "kuyu_plani")
+        r = cizim_uclari._cozumleme(v, "kuyu_plani")
         i = _olcu(r, "KAPI")
-        k = UC._kaynaklar(r, i)[0]
+        k = cizim_uclari._kaynaklar(r, i)[0]
         self.assertEqual(
             (k["anahtar"], k["tur"], k["degistirilir"], k["dogrudan"]),
             ("kapi_genisligi", "secim", True, True),
@@ -461,46 +475,48 @@ class Degistirme(unittest.TestCase):
         self.assertTrue(y["dogrulandi"], y)
         self.assertEqual((y["degisiklikler"][0]["deger"], y["olcu"]), (1000, 1000))
         for ad in ("kabin_ustu", "kuyu_dibi"):
-            r = UC._cozumleme(v, ad)
+            r = cizim_uclari._cozumleme(v, ad)
             self.assertFalse(
                 any(
                     x["anahtar"] == "aski_orani" and x["degistirilir"]
                     for i in range(len(r["taban"]))
-                    for x in UC._kaynaklar(r, i)
+                    for x in cizim_uclari._kaynaklar(r, i)
                 )
             )
 
     def test_cizim_degistiyse_yanlis_olcu_degismez(self):
         v = _veri()
-        r = UC._cozumleme(v, "kuyu_plani")
+        r = cizim_uclari._cozumleme(v, "kuyu_plani")
         i = _olcu(r, "KUYU GENİŞLİĞİ")
         y = json.loads(
-            UC.api_olcu_degistir(
+            cizim_uclari.api_olcu_degistir(
                 dict(v, cizim="kuyu_plani", olcu=i, metin="BAŞKA 1", anahtar="kuyu_genisligi", hedef=2200)
             ).body
         )
         self.assertFalse(y["aktif"])
         self.assertIn("değişmiş", y["hata"][0])
-        y = json.loads(UC.api_olcu(dict(v, cizim="kuyu_plani", olcu=9999)).body)
+        y = json.loads(cizim_uclari.api_olcu(dict(v, cizim="kuyu_plani", olcu=9999)).body)
         self.assertFalse(y["aktif"])
-        y = json.loads(UC.api_olcu(dict(v, cizim="yok", olcu=0)).body)
+        y = json.loads(cizim_uclari.api_olcu(dict(v, cizim="yok", olcu=0)).body)
         self.assertFalse(y["aktif"])
 
     def test_uc_kaynaklari_verir(self):
         v = _veri()
-        r = UC._cozumleme(v, "kuyu_plani")
+        r = cizim_uclari._cozumleme(v, "kuyu_plani")
         i = _olcu(r, "KUYU GENİŞLİĞİ")
-        y = json.loads(UC.api_olcu(dict(v, cizim="kuyu_plani", olcu=i, metin=r["taban"][i]["metin"])).body)
+        y = json.loads(
+            cizim_uclari.api_olcu(dict(v, cizim="kuyu_plani", olcu=i, metin=r["taban"][i]["metin"])).body
+        )
         self.assertTrue(y["aktif"])
         self.assertEqual(y["deger"], 2100)
         self.assertEqual(y["kaynaklar"][0]["anahtar"], "kuyu_genisligi")
-        self.assertEqual(y["kaynaklar"][0]["etiket"], UC._sozlesme()[0]["kuyu_genisligi"]["etiket"])
+        self.assertEqual(y["kaynaklar"][0]["etiket"], cizim_uclari._sozlesme()[0]["kuyu_genisligi"]["etiket"])
 
 
 def _gercek(ad):
     """Ofisin gerçek projesi formdan girilmiş gibi ( gercek_projeler.py )."""
-    a = dict(GP.PROJELER[ad])
-    pg = {k: a.pop(k) for k in list(a) if k in UC_UYG.PROJE_GENELI_ALANLAR}
+    a = dict(gercek_projeler.PROJELER[ad])
+    pg = {k: a.pop(k) for k in list(a) if k in uygulama_uclari.PROJE_GENELI_ALANLAR}
     return {"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}
 
 
@@ -518,8 +534,8 @@ class RegulatorunYeri(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.v = _gercek("1022")
-        UC._ONBELLEK.clear()
-        cls.r = UC._cozumleme(cls.v, "kuyu_dibi")
+        cizim_uclari._ONBELLEK.clear()
+        cls.r = cizim_uclari._cozumleme(cls.v, "kuyu_dibi")
 
     def test_ray_ekseni_olcusu_ray_kapi_arasindan(self):
         i = _olcu(self.r, "880")
@@ -533,12 +549,12 @@ class RegulatorunYeri(unittest.TestCase):
     def test_sayi_oynatmada_arama_yapilmaz(self):
         kd = _g(self.v)[0]["kuyu_dibi"]
         self.assertEqual((kd["regulator_yan"], kd["regulator_kaciklik"]), ("Sağ", 360))
-        with mock.patch.object(CK, "_regulator_yeri") as m:
+        with mock.patch.object(kopru, "_regulator_yeri") as m:
             self.r["kur"]({("girdi", "aski_kaciklik_x"): 1.0})
             self.r["kur"]({("girdi", "kuyu_derinligi"): 2251.0})
         self.assertFalse(m.called)
         #  Seçimde düzen kuralla yeniden kurulur
-        with mock.patch.object(CK, "_regulator_yeri") as m:
+        with mock.patch.object(kopru, "_regulator_yeri") as m:
             self.r["kur"]({("girdi", "agirlik_yeri"): "Sağ"}, denetle=True)
         self.assertTrue(m.called)
 
@@ -568,7 +584,7 @@ class Degistirilemeyen(unittest.TestCase):
         #  1022'de kabin genişliğiyle sıçrayan "125" ölçülüyordu;  alan kirişin
         #  arkasına geçince o ölçü kalmadı. )
         v = _gercek("4815-6")
-        r = UC._cozumleme(v, "kabin_ustu")
+        r = cizim_uclari._cozumleme(v, "kabin_ustu")
         i = _olcu(r, "920")
         k = next(x for x in r["kaynak"][i] if x["kimlik"] == ("girdi", "ray_kapi_arasi"))
         self.assertFalse(k["dogrusal"])
@@ -581,7 +597,7 @@ class Degistirilemeyen(unittest.TestCase):
         #  doğrusal görünen ölçü 20 mm'de başka yere atlar ( eskiden kabin
         #  genişliği 58.430 çıkıyordu )
         v = DUZENLER["formun varsayılanı"]()
-        r = UC._cozumleme(v, "kuyu_dibi")
+        r = cizim_uclari._cozumleme(v, "kuyu_dibi")
         i = _olcu(r, "860")
         y = _degistir(v, "kuyu_dibi", i, r, "kabin_genisligi", "870")
         self.assertFalse(y["aktif"])
@@ -592,7 +608,7 @@ class Degistirilemeyen(unittest.TestCase):
         #  adımla kayar, ölçü 280 olur ).  10 Eki'ye dek örnek 1275'in 670'iydi:
         #  çapraz halat engel olunca alan başka yere taşındı.
         v = _gercek("1250 KG")
-        r = UC._cozumleme(v, "kabin_ustu")
+        r = cizim_uclari._cozumleme(v, "kabin_ustu")
         i = _olcu(r, "295")
         y = _degistir(v, "kabin_ustu", i, r, "kabin_genisligi", "305")
         self.assertEqual(
@@ -602,7 +618,7 @@ class Degistirilemeyen(unittest.TestCase):
 
     def test_negatif_olcu(self):
         v = _veri()
-        r = UC._cozumleme(v, "kuyu_plani")
+        r = cizim_uclari._cozumleme(v, "kuyu_plani")
         i = _olcu(r, "KUYU GENİŞLİĞİ")
         y = _degistir(v, "kuyu_plani", i, r, "kuyu_genisligi", "-10")
         self.assertFalse(y["aktif"])
@@ -614,17 +630,17 @@ class Hiz(unittest.TestCase):
         #  Ekran fare çizimin üstüne gelince çözümlemeyi önceden ister;  o
         #  bitmeden tıklanınca ikinci istek bekler, yeniden hesaplamaz.
         v = DUZENLER["örnek makine dairesiz"]()
-        UC._ONBELLEK.clear()
-        asil, sayac, sonuc = UC._cozumle, [], []
+        cizim_uclari._ONBELLEK.clear()
+        asil, sayac, sonuc = cizim_uclari._cozumle, [], []
 
         def say(*a, **k):
             sayac.append(1)
             time.sleep(0.2)
             return asil(*a, **k)
 
-        with mock.patch.object(UC, "_cozumle", side_effect=say):
+        with mock.patch.object(cizim_uclari, "_cozumle", side_effect=say):
             ipler = [
-                threading.Thread(target=lambda: sonuc.append(UC._cozumleme(v, "kuyu_plani")))
+                threading.Thread(target=lambda: sonuc.append(cizim_uclari._cozumleme(v, "kuyu_plani")))
                 for _ in range(3)
             ]
             for t in ipler:
@@ -640,14 +656,14 @@ class Hiz(unittest.TestCase):
         #  ölçüler tam çizimdekiyle aynıdır.
         for v in (DUZENLER["örnek makine dairesiz"](), _gercek("1022")):
             g = _g(v)[0]
-            tam_cizim = CKD.ciz(g)
+            tam_cizim = kuyu_dibi.ciz(g)
             self.assertTrue(any(e.get("ad") == "yuk_kutusu" for e in tam_cizim))
-            tam = CO.olculer(tam_cizim)
-            with CGE.yalniz_olculer():
-                kisa = CKD.ciz(g)
-            self.assertEqual(CO.olculer(kisa), tam)
+            tam = olcu_kaynagi.olculer(tam_cizim)
+            with geometri.yalniz_olculer():
+                kisa = kuyu_dibi.ciz(g)
+            self.assertEqual(olcu_kaynagi.olculer(kisa), tam)
             self.assertFalse(any(e.get("ad") == "yuk_kutusu" for e in kisa))
-            self.assertFalse(CGE.olcu_kipi())
+            self.assertFalse(geometri.olcu_kipi())
 
 
 class Parcalar(unittest.TestCase):
@@ -662,14 +678,16 @@ class Parcalar(unittest.TestCase):
         }
         t = [o(0, 100, "1"), o(100, 300, "2"), o(300, 400, "3")]
         #  Dizi aynı:  sırayla ( uzak kayma da olsa )
-        self.assertEqual(CO.eslestir(t, [o(0, 101), o(101, 330), o(330, 450)], 25), [0, 1, 2])
+        self.assertEqual(olcu_kaynagi.eslestir(t, [o(0, 101), o(101, 330), o(330, 450)], 25), [0, 1, 2])
         #  Dizi değişti:  en yakın aynı sözlü
-        self.assertEqual(CO.eslestir(t, [o(0, 101), o(101, 101), o(101, 301), o(301, 401)], 25), [0, 2, 3])
+        self.assertEqual(
+            olcu_kaynagi.eslestir(t, [o(0, 101), o(101, 101), o(101, 301), o(301, 401)], 25), [0, 2, 3]
+        )
         #  Kesikli değişimde dizi değiştiyse eşleşme yok
-        self.assertEqual(CO.eslestir(t, [o(0, 1)]), [None, None, None])
+        self.assertEqual(olcu_kaynagi.eslestir(t, [o(0, 1)]), [None, None, None])
         #  Sonuna ölçü eklenince sırasıyla ( izleme )
         uzak = [o(0, 100), o(100, 900), o(900, 2000), o(2000, 2500)]
-        self.assertEqual(CO.eslestir(t, uzak, 25, sira_yedek=True)[2], 2)
+        self.assertEqual(olcu_kaynagi.eslestir(t, uzak, 25, sira_yedek=True)[2], 2)
 
     def test_coz_dogrusal_olmayanda_kiris(self):
         #  Ölçü = girdi²:  eğim 2 ( x = 1'de ), hedef 9 → girdi 3
@@ -678,46 +696,46 @@ class Parcalar(unittest.TestCase):
             return [{"yon": "yatay", "a": (0, 0), "b": (x * x, 0), "kot": 0, "metin": "#", "uzunluk": x * x}]
 
         taban = kur({})
-        s = CO.coz(kur, taban, 0, "x", 1.0, 2.0, 9.0)
+        s = olcu_kaynagi.coz(kur, taban, 0, "x", 1.0, 2.0, 9.0)
         self.assertTrue(s["dogrulandi"])
         self.assertAlmostEqual(s["deger"], 3.0, places=3)
 
     def test_svg_tiklanir(self):
         g, _h = _g(_veri())
-        for ad in CPF.sira(g):
-            e = UC._elemanlar(g, ad)[0]
-            n = len(CO.olculer(e))
-            svg = UC._svg(g, ad, onek="c1-")["svg"]
+        for ad in pafta.sira(g):
+            e = cizim_uclari._elemanlar(g, ad)[0]
+            n = len(olcu_kaynagi.olculer(e))
+            svg = cizim_uclari._svg(g, ad, onek="c1-")["svg"]
             sira = [int(x) for x in re.findall(r'data-olcu="(\d+)"', svg)]
             self.assertEqual(sira, list(range(n)), ad)
             self.assertNotIn('id="tarama"', svg)
             self.assertIn('id="c1-tarama"', svg)
             #  Paftanın ve önizlemenin SVG'si eskisi gibi ( tıklanmaz )
-            self.assertNotIn('class="olcu"', UC._svg(g, ad)["svg"])
+            self.assertNotIn('class="olcu"', cizim_uclari._svg(g, ad)["svg"])
 
     def test_sabitlere_yalniz_sabitler_ile_erisilir(self):
         #  Okunan ürün ölçüleri kaydı ( çözümleme yalnız onları oynatır ) ancak
         #  sabitlere CS.sabitler() ile erişilirse eksiksizdir.
         kok = os.path.join(KOK, "cizim")
         for ad in os.listdir(kok):
-            if ad.endswith(".py") and ad != "cizim_sabitleri.py":
+            if ad.endswith(".py") and ad != "sabitler.py":
                 with open(os.path.join(kok, ad), encoding="utf-8") as f:
                     metin = f.read()
                 self.assertNotRegex(metin, r"\bSABIT\s*\[|\bSABIT\.get|import SABIT", ad)
-        with CS.okunanlar() as okunan:
-            CS.sabitler()["esik_derinlik"]
+        with sabitler.okunanlar() as okunan:
+            sabitler.sabitler()["esik_derinlik"]
         self.assertEqual(okunan, {"esik_derinlik"})
-        self.assertIs(type(CS.sabitler()), dict)  # kayıt dışında sade sözlük
+        self.assertIs(type(sabitler.sabitler()), dict)  # kayıt dışında sade sözlük
 
     def test_etiketler_ve_kurallar_tam(self):
-        self.assertEqual(set(CS.ETIKET), set(CS.SABIT))
+        self.assertEqual(set(sabitler.ETIKET), set(sabitler.SABIT))
         #  Sayısal kutuların etkin değerleri ölçü çözümlemesinde bulunmalı;
         #  isteğe bağlı kat listesi metindir ve bu sayısal haritaya girmez.
         self.assertEqual(
-            sorted(k for k in CK.ALAN if CK.ALAN[k][3] == "sayi" and CK.ALAN[k][5] is None),
-            sorted(CK.KURALLI),
+            sorted(k for k in kopru.ALAN if kopru.ALAN[k][3] == "sayi" and kopru.ALAN[k][5] is None),
+            sorted(kopru.KURALLI),
         )
-        self.assertIn("kural", CEL.olcu("yatay", (0, 0), (1, 0), 0, kural="x"))
+        self.assertIn("kural", eleman.olcu("yatay", (0, 0), (1, 0), 0, kural="x"))
 
 
 if __name__ == "__main__":

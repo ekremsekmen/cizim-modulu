@@ -14,12 +14,12 @@ import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from uclar import cizim_uclari as UC
-from cizim import kabin_ustu as CKU
-from cizim import kopru as CK
-from cizim import kuyu_dibi as CKD
-from cizim import kuyu_ustu as CKT
-from motor.uygulama import uygulama_girdisi as E_UGR
+from uclar import cizim_uclari
+from cizim import kabin_ustu
+from cizim import kopru
+from cizim import kuyu_dibi
+from cizim import kuyu_ustu
+from motor.uygulama import uygulama_girdisi
 
 #  ISO 4190 / TS EN 81-20 Çizelge 6'ya uygun kabinler, kuyu kabinden 950 geniş,
 #  450 derin ( formun varsayılanı gibi ), kapı yüke göre.
@@ -86,13 +86,13 @@ def gecerli_duzen(Q, yer="Sağ", mrl=True, **ek):
 
 
 def _cizim(v):
-    return json.loads(UC.api_cizimler(v).body)
+    return json.loads(cizim_uclari.api_cizimler(v).body)
 
 
 def _g(v):
-    ham, _i, proje = UC._istek(v)
-    A = E_UGR.tamamla(ham)
-    g, hata = CK.cizim_girdisi(A, None, proje, 1)
+    ham, _i, proje = cizim_uclari._istek(v)
+    A = uygulama_girdisi.tamamla(ham)
+    g, hata = kopru.cizim_girdisi(A, None, proje, 1)
     return g, A, hata
 
 
@@ -172,8 +172,8 @@ class SiginmaAlani(unittest.TestCase):
         #  1.350 × 1.400 kabin:  alan kapıya en yakın yerde sağ kasnağın köşesine
         #  giriyor, yükseklik 945 kalıyordu ( 1.000 gerekir ).
         g, _A, _h = _g(_veri(800))
-        KD = CKD.yerlesim(g)
-        alcak = CKD.kabin_alti_askisi(g, KD["S"], KD["taban"])
+        KD = kuyu_dibi.yerlesim(g)
+        alcak = kuyu_dibi.kabin_alti_askisi(g, KD["S"], KD["taban"])
         self.assertEqual(len(alcak), 3)  # iki kasnak + aradaki halat
         self.assertFalse(any(_ortusur(KD["siginma"], k) for k in alcak), KD["siginma"])
         self.assertTrue(_cizim(_veri(800)).get("aktif"))
@@ -182,8 +182,8 @@ class SiginmaAlani(unittest.TestCase):
         #  1.000 × 1.250 kabin:  halat şeridinin arkasında 507 mm'lik bant;  25 mm
         #  ızgara ya şeride 1 mm değiyor ya kabinden taşıyordu.
         g, _A, _h = _g(_veri(450))
-        KD = CKD.yerlesim(g)
-        alcak = CKD.kabin_alti_askisi(g, KD["S"], KD["taban"])
+        KD = kuyu_dibi.yerlesim(g)
+        alcak = kuyu_dibi.kabin_alti_askisi(g, KD["S"], KD["taban"])
         self.assertFalse(any(_ortusur(KD["siginma"], k) for k in alcak), KD["siginma"])
 
     def test_kucuk_kabinde_kuyu_tabaninin_baska_yerinde(self):
@@ -191,7 +191,7 @@ class SiginmaAlani(unittest.TestCase):
         #  yalnız kuyu tabanında engelsiz bir alan ister — alan kabinin izinin
         #  dışına taşar, karşı ağırlığın şeridine girmez.
         g, _A, _h = _g(_veri(320))
-        KD = CKD.yerlesim(g)
+        KD = kuyu_dibi.yerlesim(g)
         self.assertEqual([h for h in KD["hata"] if "sığınma" in h], [])
         sg = KD["siginma"]
         self.assertTrue(
@@ -208,7 +208,7 @@ class Merdiven(unittest.TestCase):
     def test_genis_kuyuda_kapinin_yaninda(self):
         #  2.000 genişlikte kabin, kuyu 2.950:  yan duvarlar kapıdan 800'den uzak
         g, _A, _h = _g(_veri(1275))
-        KD = CKD.yerlesim(g)
+        KD = kuyu_dibi.yerlesim(g)
         self.assertEqual(KD["merdiven"][1], 0.0)
         self.assertTrue(_cizim(_veri(1275)).get("aktif"))
 
@@ -219,7 +219,7 @@ class KasnaklarArasi(unittest.TestCase):
         #  indiriyordu — sarım açısı çizimden bulunamıyordu.
         v = {"asansorler": [{}], "proje_geneli": {}, "sabitler": {}, "asansor": 0}
         g, A, _h = _g(v)
-        self.assertEqual(CKT.yerlesim(g)["sapma"][0], 0.0)
+        self.assertEqual(kuyu_ustu.yerlesim(g)["sapma"][0], 0.0)
         self.assertEqual(A["sarilma_acisi"], 180.0)
         self.assertNotEqual(g["aski"]["kasnak_arasi"], 1450 + 30)
 
@@ -235,7 +235,7 @@ class KasnaklarArasi(unittest.TestCase):
         v = {"asansorler": [{"kuyu_genisligi": 2500}], "proje_geneli": {}, "sabitler": {}, "asansor": 0}
         g, A, _h = _g(v)
         self.assertEqual(g["aski"]["kasnak_arasi"], 1450 + 30)
-        self.assertFalse(any(h.startswith("Halat (") for h in CKU.yerlesim(g)["hata"]))
+        self.assertFalse(any(h.startswith("Halat (") for h in kabin_ustu.yerlesim(g)["hata"]))
 
     def test_girilen_kasnak_arasi_degismez(self):
         v = {"asansorler": [{"kabin_kasnak_arasi": 1400}], "proje_geneli": {}, "sabitler": {}, "asansor": 0}
@@ -248,13 +248,13 @@ class Regulator(unittest.TestCase):
         #  ağırlık kabin rayına iner — program çarpmayan en yakın yeri seçer.
         g, _A, _h = _g(_veri(320))
         self.assertNotEqual(abs(g["kuyu_dibi"]["regulator_kaciklik"]), 0)
-        self.assertEqual([h for h in CKD.yerlesim(g)["hata"] if "egülatör" in h], [])
-        self.assertEqual([h for h in CKT.yerlesim(g)["hata"] if "egülatör" in h], [])
+        self.assertEqual([h for h in kuyu_dibi.yerlesim(g)["hata"] if "egülatör" in h], [])
+        self.assertEqual([h for h in kuyu_ustu.yerlesim(g)["hata"] if "egülatör" in h], [])
 
     def test_girilen_yer_degismez(self):
         g, _A, _h = _g(_veri(320, regulator_kaciklik=280))
         self.assertEqual(g["kuyu_dibi"]["regulator_kaciklik"], 280)
-        self.assertTrue(any("gergisinin ağırlığı" in h for h in CKD.yerlesim(g)["hata"]))
+        self.assertTrue(any("gergisinin ağırlığı" in h for h in kuyu_dibi.yerlesim(g)["hata"]))
 
 
 if __name__ == "__main__":

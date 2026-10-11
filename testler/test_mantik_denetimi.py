@@ -15,20 +15,20 @@ import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from uclar import cizim_uclari as UC
-from uclar import uygulama_uclari as UYG
-from motor.uygulama import uygulama_hesabi as E_UYG
+from uclar import cizim_uclari
+from uclar import uygulama_uclari
+from motor.uygulama import uygulama_hesabi
 
-from testler import test_yerlesim_saglamligi as Y
+from testler import test_yerlesim_saglamligi
 
 
 def _calistir(**ek):
     """( çizim ucu , hesap ) — standart 800 kg, makine dairesiz."""
-    v = Y._veri(800, True, "Sağ")
+    v = test_yerlesim_saglamligi._veri(800, True, "Sağ")
     v["asansorler"][0].update(ek)
-    cizim = json.loads(UC.api_cizimler(v).body)
-    asansorler, ortak = UYG._asansor_girdileri(v)
-    return cizim, E_UYG.hesapla_coklu(asansorler, ortak)
+    cizim = json.loads(cizim_uclari.api_cizimler(v).body)
+    asansorler, ortak = uygulama_uclari._asansor_girdileri(v)
+    return cizim, uygulama_hesabi.hesapla_coklu(asansorler, ortak)
 
 
 class Yukseklikler(unittest.TestCase):
@@ -81,13 +81,13 @@ class TamponAdedi(unittest.TestCase):
         ):
             with self.subTest(ek):
                 self.assertTrue(_calistir(**ek)[0].get("aktif"))
-        from cizim import kopru as CK, kuyu_dibi as CKD
-        from motor.uygulama import uygulama_girdisi as E_UGR
+        from cizim import kopru, kuyu_dibi
+        from motor.uygulama import uygulama_girdisi
 
-        v = Y._veri(800, True, "Sağ", kabin_tampon_adedi=2, kabin_tampon_arasi=600)
-        ham, _i, proje = UC._istek(v)
-        g, hata = CK.cizim_girdisi(E_UGR.tamamla(ham), None, proje, 1)
-        t = CKD.yerlesim(g)["kabin_tamponlari"]
+        v = test_yerlesim_saglamligi._veri(800, True, "Sağ", kabin_tampon_adedi=2, kabin_tampon_arasi=600)
+        ham, _i, proje = cizim_uclari._istek(v)
+        g, hata = kopru.cizim_girdisi(uygulama_girdisi.tamamla(ham), None, proje, 1)
+        t = kuyu_dibi.yerlesim(g)["kabin_tamponlari"]
         self.assertEqual(len(t), 2)
         self.assertAlmostEqual((t[1][0] + t[1][2]) / 2.0 - (t[0][0] + t[0][2]) / 2.0, 600)
 

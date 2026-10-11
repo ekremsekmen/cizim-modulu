@@ -4,7 +4,7 @@ Taşıyıcı ürünün kesiti/yatağı/cıvatası verilmediğinde yalnız bağla
 noktalar gösterilir. Plan ve kesit aynı üç boyutlu çizgilerden üretilir.
 """
 
-from cizim import makine as CMK
+from cizim import makine
 
 
 def kasnak_tasiyicilari(g, S, z):
@@ -25,7 +25,7 @@ def kasnak_tasiyicilari(g, S, z):
         sx = kx + yan * sirt
         noktalar = ((x, ky, z), (x, yz, z), (sx, yz, z), (sx, ry, z))
         yol += [
-            CMK.cizgi(p0, p1, "SASE", "kasnak_tasiyici_sematik", "baglanti_yolu")
+            makine.cizgi(p0, p1, "SASE", "kasnak_tasiyici_sematik", "baglanti_yolu")
             for p0, p1 in zip(noktalar, noktalar[1:])
             if p0 != p1
         ]
@@ -51,7 +51,7 @@ def agirlik_patenleri(g, S, blok, raylar, z0, z1):
         else:
             y = k[3] if ry < cy else k[1]
             pk = (rx - boy, y - en, rx + boy, y + en)
-        out.append(CMK.kutu(*pk, z0, z1, "PATEN", "agirlik_paten"))
+        out.append(makine.kutu(*pk, z0, z1, "PATEN", "agirlik_paten"))
     return out
 
 
@@ -60,7 +60,7 @@ def halat_konsolu(baglanti, ray, z):
     rx, ry = (ray[0] + ray[2]) / 2, (ray[1] + ray[3]) / 2
     noktalar = ((bx, by, z), (rx, by, z), (rx, ry, z))
     return [
-        CMK.cizgi(p0, p1, "BAGLANTI", "halat_konsolu_sematik", "baglanti_yolu")
+        makine.cizgi(p0, p1, "BAGLANTI", "halat_konsolu_sematik", "baglanti_yolu")
         for p0, p1 in zip(noktalar, noktalar[1:])
         if p0 != p1
     ]

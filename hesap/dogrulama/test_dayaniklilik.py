@@ -18,17 +18,18 @@ import yollar
 
 yollar.kur()
 
-from motor.avan import avan_hesabi as AV
-from motor.avan import trafik as TR
+from motor.avan import avan_hesabi
+from motor.avan import trafik
 from dogrulama.rapor import Rapor
 
 
 #  Uçlar iki pakete ayrıldı ( uclar/avan_uclari.py · uclar/uygulama_uclari.py ), ortak
 #  yardımcılar uclar/uc_ortak.py'ye taşındı.  Test onları oradan alır.
-from uclar import avan_uclari as UC_AVAN
-from uclar import uc_ortak as UC_ORTAK
-from uclar import uygulama_uclari as UC_UYG
-from motor.uygulama import uygulama_girdisi as UYG_GIRDI
+from uclar import avan_uclari
+from uclar import uc_ortak
+from uclar import uygulama_uclari
+from motor.uygulama import uygulama_girdisi
+from motor.avan import tablolar
 
 BASE = os.environ.get("AVAN_TEST_URL", "http://127.0.0.1:8780")
 
@@ -91,8 +92,8 @@ def calistir():
         (12, 12),
         (3.0, 3),
     ):
-        r.esit(f"_sayi({metin!r})", UC_ORTAK._sayi(metin), bek)
-    r.kontrol("_sayi(True) sayı sayılmaz", UC_ORTAK._sayi(True) in (None, 1))
+        r.esit(f"_sayi({metin!r})", uc_ortak._sayi(metin), bek)
+    r.kontrol("_sayi(True) sayı sayılmaz", uc_ortak._sayi(True) in (None, 1))
 
     # ------------------------------------------------ motor: her kötü değer her alanda
     ALANLAR = (
@@ -126,8 +127,8 @@ def calistir():
             veri = dict(TEMEL)
             veri[alan] = kotu
             try:
-                g = UC_AVAN._trafik_girdi({"girdiler": veri})
-                s = TR.hesapla_tek(g)
+                g = avan_uclari._trafik_girdi({"girdiler": veri})
+                s = trafik.hesapla_tek(g)
                 if not isinstance(s, dict):
                     cokme += 1
             except Exception as e:  # noqa: BLE001
@@ -140,15 +141,15 @@ def calistir():
     # bina tipi ve kapı tipi metin alanları
     for kotu in ("", None, "Konut ", "konut", "<b>x</b>", "Yok", 5, ["Konut"]):
         try:
-            g = UC_AVAN._trafik_girdi({"girdiler": dict(TEMEL, bina_tipi=kotu)})
-            s = TR.hesapla_tek(g)
+            g = avan_uclari._trafik_girdi({"girdiler": dict(TEMEL, bina_tipi=kotu)})
+            s = trafik.hesapla_tek(g)
             r.kontrol(f"bina_tipi={kotu!r} anlamlı hata", isinstance(s, dict))
         except Exception as e:  # noqa: BLE001
             r.kontrol(f"bina_tipi={kotu!r} çökme", False, f"→ {e}")
     for kotu in ("", None, "Teleskopik", "yok", 7):
         try:
-            g = UC_AVAN._trafik_girdi({"girdiler": dict(TEMEL, kapi_tipi=kotu)})
-            r.kontrol(f"kapi_tipi={kotu!r} çökmedi", isinstance(TR.hesapla_tek(g), dict))
+            g = avan_uclari._trafik_girdi({"girdiler": dict(TEMEL, kapi_tipi=kotu)})
+            r.kontrol(f"kapi_tipi={kotu!r} çökmedi", isinstance(trafik.hesapla_tek(g), dict))
         except Exception as e:  # noqa: BLE001
             r.kontrol(f"kapi_tipi={kotu!r} çökme", False, f"→ {e}")
 
@@ -175,8 +176,8 @@ def calistir():
         [{"P": "99"}],
     ):
         try:
-            g = UC_AVAN._trafik_girdi({"girdiler": dict(C, asansorler=asl)})
-            r.kontrol(f"çoklu asansorler={str(asl)[:38]} çökmedi", isinstance(TR.hesapla_coklu(g), dict))
+            g = avan_uclari._trafik_girdi({"girdiler": dict(C, asansorler=asl)})
+            r.kontrol(f"çoklu asansorler={str(asl)[:38]} çökmedi", isinstance(trafik.hesapla_coklu(g), dict))
         except Exception as e:  # noqa: BLE001
             r.kontrol(f"çoklu asansorler={str(asl)[:38]} çökme", False, f"→ {e}")
 
@@ -236,10 +237,10 @@ def calistir():
     for alan in AVAN_ALAN:
         for kotu in KOTU_DEGERLER:
             try:
-                v = UC_AVAN._avan_girdi(
+                v = avan_uclari._avan_girdi(
                     {"girdiler": {"ortak": O, "asansorler": [dict(A, **{alan: kotu})], "sabitler": {}}}
                 )
-                s = AV.hesapla(v)
+                s = avan_hesabi.hesapla(v)
                 if not isinstance(s, dict):
                     cokme += 1
             except Exception as e:  # noqa: BLE001
@@ -252,10 +253,10 @@ def calistir():
     for alan in O:
         for kotu in KOTU_DEGERLER:
             try:
-                v = UC_AVAN._avan_girdi(
+                v = avan_uclari._avan_girdi(
                     {"girdiler": {"ortak": dict(O, **{alan: kotu}), "asansorler": [A], "sabitler": {}}}
                 )
-                AV.hesapla(v)
+                avan_hesabi.hesapla(v)
             except Exception as e:  # noqa: BLE001
                 cokme += 1
                 r.kontrol(f"avan/ortak.{alan}={kotu!r} çökme", False, f"→ {e}")
@@ -263,13 +264,13 @@ def calistir():
 
     # sabitler (ofis standardı) bozulursa
     cokme = 0
-    for alan in AV.SABIT_B_VARSAYILAN:
+    for alan in avan_hesabi.SABIT_B_VARSAYILAN:
         for kotu in ("", "abc", "0", "-1", "999999"):
             try:
-                v = UC_AVAN._avan_girdi(
+                v = avan_uclari._avan_girdi(
                     {"girdiler": {"ortak": O, "asansorler": [A], "sabitler": {alan: kotu}}}
                 )
-                AV.hesapla(v)
+                avan_hesabi.hesapla(v)
             except Exception as e:  # noqa: BLE001
                 cokme += 1
                 r.kontrol(f"sabit {alan}={kotu!r} çökme", False, f"→ {e}")
@@ -283,14 +284,14 @@ def calistir():
     def _avan(sb):
         #  β ortak alanda boş:  ofis standardındaki değer kullanılsın
         return json.loads(
-            UC_AVAN.api_avan(
+            avan_uclari.api_avan(
                 {"girdiler": {"ortak": dict(O, beta=""), "asansorler": [A], "sabitler": sb}}
             ).body
         )
 
     def _uyg(sb=None, asansor=None, pg=None):
         return json.loads(
-            UC_UYG.api_uygulama_coklu(
+            uygulama_uclari.api_uygulama_coklu(
                 {
                     "asansorler": [dict({"sarilma_acisi": "180"}, **(asansor or {}))],
                     "proje_geneli": pg if pg is not None else {"mk_yok": True},
@@ -312,14 +313,14 @@ def calistir():
             )
     r.esit(
         "avan · metin sabiti ( kablo tipi ) metin kalıyor",
-        UC_AVAN._avan_girdi({"girdiler": {"ortak": O, "asansorler": [A], "sabitler": {"kablo_tipi": "NYY"}}})[
-            "sabitler"
-        ].get("kablo_tipi"),
+        avan_uclari._avan_girdi(
+            {"girdiler": {"ortak": O, "asansorler": [A], "sabitler": {"kablo_tipi": "NYY"}}}
+        )["sabitler"].get("kablo_tipi"),
         "NYY",
     )
     r.esit(
         "uygulama · metin sabiti ( kablo tipi ) metin kalıyor",
-        UC_UYG._asansor_girdileri(
+        uygulama_uclari._asansor_girdileri(
             {"asansorler": [{}], "proje_geneli": {}, "sabitler": {"kablo_tipi": "NYY"}}
         )[0][0]["_ofis"].get("kablo_tipi"),
         "NYY",
@@ -342,29 +343,29 @@ def calistir():
         ("Nsc", "11kW"),
     ):
         h = _hata(
-            UC_AVAN.api_avan(
+            avan_uclari.api_avan(
                 {"girdiler": {"ortak": O, "asansorler": [dict(A, **{alan: ham})], "sabitler": {}}}
             )
         )
         r.kontrol(
             f"avan · {alan} = {ham!r} sessizce boş sayılmıyor",
-            "kabul edilmedi" in h and UC_AVAN.AVAN_AS_ETIKET[alan] in h,
+            "kabul edilmedi" in h and avan_uclari.AVAN_AS_ETIKET[alan] in h,
             f"→ {h[:120]!r}",
         )
     #  Red metni alanı İÇ ADIYLA ( "Q_elle" ) değil kullanıcının gördüğü adla söyler
     r.kontrol(
         "avan · her asansör alanının red metninde görünen bir adı var",
-        set(UC_AVAN.AVAN_AS_SAYISAL) <= set(UC_AVAN.AVAN_AS_ETIKET),
-        f"→ adsız: {set(UC_AVAN.AVAN_AS_SAYISAL) - set(UC_AVAN.AVAN_AS_ETIKET)}",
+        set(avan_uclari.AVAN_AS_SAYISAL) <= set(avan_uclari.AVAN_AS_ETIKET),
+        f"→ adsız: {set(avan_uclari.AVAN_AS_SAYISAL) - set(avan_uclari.AVAN_AS_ETIKET)}",
     )
     r.kontrol(
         "avan · her ortak alanın red metninde görünen bir adı var",
-        set(UC_AVAN.AVAN_ORTAK_SAYISAL) <= set(UC_AVAN.AVAN_ORTAK_ETIKET),
-        f"→ adsız: {set(UC_AVAN.AVAN_ORTAK_SAYISAL) - set(UC_AVAN.AVAN_ORTAK_ETIKET)}",
+        set(avan_uclari.AVAN_ORTAK_SAYISAL) <= set(avan_uclari.AVAN_ORTAK_ETIKET),
+        f"→ adsız: {set(avan_uclari.AVAN_ORTAK_SAYISAL) - set(avan_uclari.AVAN_ORTAK_ETIKET)}",
     )
     #  Anma yükü yazılmış ama okunamıyorsa kolon TANIMSIZ sayılmaz
     h = _hata(
-        UC_AVAN.api_avan(
+        avan_uclari.api_avan(
             {"girdiler": {"ortak": O, "asansorler": [dict(A, kapasite="", Q_elle="bin kg")], "sabitler": {}}}
         )
     )
@@ -378,14 +379,16 @@ def calistir():
     r.kontrol(
         "avan · tanımsız kolondaki artık değer projeyi durdurmuyor",
         not json.loads(
-            UC_AVAN.api_avan({"girdiler": {"ortak": O, "asansorler": [A, _bos_kolon], "sabitler": {}}}).body
+            avan_uclari.api_avan(
+                {"girdiler": {"ortak": O, "asansorler": [A, _bos_kolon], "sabitler": {}}}
+            ).body
         ).get("hata"),
     )
     for alan, ham in (("manuel_V", "hızlı"), ("N", "on bir")):
-        h = _hata(UC_AVAN.api_trafik({"girdiler": dict(TEMEL, **{alan: ham})}))
+        h = _hata(avan_uclari.api_trafik({"girdiler": dict(TEMEL, **{alan: ham})}))
         r.kontrol(
             f"trafik · {alan} = {ham!r} sessizce boş sayılmıyor",
-            "kabul edilmedi" in h and f"{TR.GIRDI_ETIKET[alan]} = {ham}" in h,
+            "kabul edilmedi" in h and f"{trafik.GIRDI_ETIKET[alan]} = {ham}" in h,
             f"→ {h[:120]!r}",
         )
     #  Trafik red metni de kutuyu EKRANDAKİ adıyla söyler:  "hizli1 = 1.200"
@@ -395,20 +398,20 @@ def calistir():
         ("Katlı Otopark", "⑤ Özel amaçlı araç adedi", "⑥ Ticari amaçlı araç adedi"),
         ("Otel (3* ve altı)", "⑤ Toplam yatak sayısı", "⑥"),
     ):
-        h = _hata(UC_AVAN.api_trafik({"girdiler": dict(TEMEL, bina_tipi=_bt, hizli1="1.200")}))
+        h = _hata(avan_uclari.api_trafik({"girdiler": dict(TEMEL, bina_tipi=_bt, hizli1="1.200")}))
         r.kontrol(
             f"trafik · {_bt[:14]} · belirsiz ⑤ ekrandaki adıyla",
             f"{_h1} = 1.200" in h and "hizli1" not in h,
             f"→ {h[:120]!r}",
         )
-        h = _hata(UC_AVAN.api_trafik({"girdiler": dict(TEMEL, bina_tipi=_bt, hizli2="abc")}))
+        h = _hata(avan_uclari.api_trafik({"girdiler": dict(TEMEL, bina_tipi=_bt, hizli2="abc")}))
         r.kontrol(
             f"trafik · {_bt[:14]} · okunamayan ⑥ ekrandaki adıyla",
             f"{_h2} = abc" in h and "hizli2" not in h,
             f"→ {h[:120]!r}",
         )
     h = _hata(
-        UC_AVAN.api_trafik(
+        avan_uclari.api_trafik(
             {
                 "girdiler": dict(
                     TEMEL,
@@ -432,7 +435,7 @@ def calistir():
         f"→ {h[:140]!r}",
     )
     h = _hata(
-        UC_AVAN.api_trafik(
+        avan_uclari.api_trafik(
             {
                 "girdiler": dict(
                     TEMEL,
@@ -455,33 +458,36 @@ def calistir():
         f"→ {h[:160]!r}",
     )
     #  Hiçbir sayısal trafik alanı iç adıyla kalmaz — her bina tipinde
-    for _bt in ("", *TR.T.BINA_TIPLERI):
-        _ad = TR.girdi_etiketleri(_bt)
+    for _bt in ("", *tablolar.BINA_TIPLERI):
+        _ad = trafik.girdi_etiketleri(_bt)
         r.kontrol(
             f"trafik · {_bt[:18] or 'bina tipi boş'} · her bina alanının görünen adı var",
-            set(UC_AVAN.TRAFIK_SAYISAL) <= set(_ad),
-            f"→ adsız: {set(UC_AVAN.TRAFIK_SAYISAL) - set(_ad)}",
+            set(avan_uclari.TRAFIK_SAYISAL) <= set(_ad),
+            f"→ adsız: {set(avan_uclari.TRAFIK_SAYISAL) - set(_ad)}",
         )
     r.kontrol(
         "trafik · her asansör kartı alanının görünen adı var",
-        set(UC_AVAN.ASANSOR_SAYISAL) <= set(TR.ASANSOR_ETIKET),
-        f"→ adsız: {set(UC_AVAN.ASANSOR_SAYISAL) - set(TR.ASANSOR_ETIKET)}",
+        set(avan_uclari.ASANSOR_SAYISAL) <= set(trafik.ASANSOR_ETIKET),
+        f"→ adsız: {set(avan_uclari.ASANSOR_SAYISAL) - set(trafik.ASANSOR_ETIKET)}",
     )
     #  Arayüz ⑤ / ⑥ etiketini AYNI kaynaktan okur ( /api/secenekler )
-    _he = UC_AVAN.secenekler()["hizli_etiketleri"]
+    _he = avan_uclari.secenekler()["hizli_etiketleri"]
     r.kontrol(
         "secenekler · ⑤/⑥ etiketi her bina tipi ve boş seçim için var",
-        set(_he) == {"", *TR.T.BINA_TIPLERI} and all(set(v) == {"hizli1", "hizli2"} for v in _he.values()),
+        set(_he) == {"", *tablolar.BINA_TIPLERI}
+        and all(set(v) == {"hizli1", "hizli2"} for v in _he.values()),
     )
     r.esit(
         "secenekler · Konut ⑤ etiketi motorla aynı",
         tuple(_he["Konut"]["hizli1"]),
         ("⑤ Daire sayısı", "(bağımsız bölüm adedi)"),
     )
-    r.kontrol("bozuk bina tipi ( sayı ) etiket kurarken çökmüyor", TR.hizli_etiketleri(5)["hizli1"][0] == "⑤")
+    r.kontrol(
+        "bozuk bina tipi ( sayı ) etiket kurarken çökmüyor", trafik.hizli_etiketleri(5)["hizli1"][0] == "⑤"
+    )
     #  Kişi sayısı okunamayan asansör listeden sessizce düşmüyor
     h = _hata(
-        UC_AVAN.api_trafik(
+        avan_uclari.api_trafik(
             {
                 "girdiler": dict(
                     TEMEL,
@@ -510,30 +516,30 @@ def calistir():
     #  hesabı durdurur:  denge zinciri varsayılanı 2,128 iken ÖRNEK PROJENİN
     #  avan hesabı hiç yapılamıyordu.  Varsayılanlar ve seçim listeleri bu
     #  biçime düşmemeli.
-    from motor.uygulama import uygulama_sabitleri as _USd, mukavemet_girdi as _MGd
+    from motor.uygulama import uygulama_sabitleri, mukavemet_girdi
 
     def _yaz(x):
         return repr(x).replace(".", ",")
 
     _vars = {
-        "avan SABIT_B": AV.SABIT_B_VARSAYILAN,
-        "avan OFIS": AV.OFIS_VARSAYILAN,
-        "uygulama Sabitler": _USd.VARSAYILAN,
-        "uygulama form": {a[0]: a[5] for a in _MGd.ALANLAR},
-        "uygulama ek": {a[0]: a[5] for a in UYG_GIRDI.EK_ALANLAR},
+        "avan SABIT_B": avan_hesabi.SABIT_B_VARSAYILAN,
+        "avan OFIS": avan_hesabi.OFIS_VARSAYILAN,
+        "uygulama Sabitler": uygulama_sabitleri.VARSAYILAN,
+        "uygulama form": {a[0]: a[5] for a in mukavemet_girdi.ALANLAR},
+        "uygulama ek": {a[0]: a[5] for a in uygulama_girdisi.EK_ALANLAR},
     }
     _kotu = [
         (ad, k, v)
         for ad, d in _vars.items()
         for k, v in d.items()
-        if isinstance(v, (int, float)) and not isinstance(v, bool) and UC_ORTAK.belirsiz_sayi_mi(_yaz(v))
+        if isinstance(v, (int, float)) and not isinstance(v, bool) and uc_ortak.belirsiz_sayi_mi(_yaz(v))
     ]
     _kotu += [
         ("seçim", a[0], o)
-        for a in _MGd.ALANLAR
+        for a in mukavemet_girdi.ALANLAR
         if a[4]
         for o in a[4]
-        if isinstance(o, (int, float)) and not isinstance(o, bool) and UC_ORTAK.belirsiz_sayi_mi(_yaz(o))
+        if isinstance(o, (int, float)) and not isinstance(o, bool) and uc_ortak.belirsiz_sayi_mi(_yaz(o))
     ]
     r.kontrol("hiçbir varsayılan ya da seçenek belirsiz sayı biçiminde değil", not _kotu, f"→ {_kotu}")
 
@@ -544,15 +550,15 @@ def calistir():
     for x in (True, False, None, "", "Var", "Yok", "EVET", "hayır", "on", "1", "0"):
         r.esit(
             f"uygulama · mk_yok = {x!r} API'de ve motorda aynı okunuyor",
-            UC_UYG._uygulanmayan({"mk_yok": x}),
-            UYG_GIRDI.uygulanmayan_alanlar(x),
+            uygulama_uclari._uygulanmayan({"mk_yok": x}),
+            uygulama_girdisi.uygulanmayan_alanlar(x),
         )
 
     # ------------------------------------------------ PROJE GENELİ ALANDA ortak kazanır
     #  Asansörün içinde kalmış eski bir temel ölçüsü binanın topraklamasını
     #  ezmemeli;  API onu okumamalı ( gizli, düzeltilemez ), motor da ortakta
     #  yazan değeri kullanmalı.
-    _asl, _ort = UC_UYG._asansor_girdileri(
+    _asl, _ort = uygulama_uclari._asansor_girdileri(
         {
             "asansorler": [{"temel_a": "10"}, {"temel_a": "abc"}],
             "proje_geneli": {"temel_a": "20", "temel_b": "15"},
@@ -564,11 +570,11 @@ def calistir():
     )
     r.kontrol(
         "uygulama · asansörde kalmış bozuk proje geneli değer projeyi durdurmuyor",
-        not UC_ORTAK._belirsiz_hata(),
+        not uc_ortak._belirsiz_hata(),
     )
-    from motor.uygulama import uygulama_hesabi as UYG_HESAP
+    from motor.uygulama import uygulama_hesabi
 
-    _pgs = UYG_HESAP.hesapla_coklu([{"temel_a": 10, "temel_b": 15}, {}], {"temel_a": 20, "temel_b": 15})
+    _pgs = uygulama_hesabi.hesapla_coklu([{"temel_a": 10, "temel_b": 15}, {}], {"temel_a": 20, "temel_b": 15})
     r.esit(
         "uygulama · motorda da proje geneli alanda ortak kazanıyor",
         [a["girdi"]["temel_a"] for a in _pgs["asansorler"]],
@@ -576,7 +582,9 @@ def calistir():
     )
     r.esit(
         "uygulama · ortakta olmayan proje geneli alan asansörden alınıyor",
-        UYG_HESAP.hesapla_coklu([{"temel_a": 12, "temel_b": 9}], {})["asansorler"][0]["girdi"]["temel_a"],
+        uygulama_hesabi.hesapla_coklu([{"temel_a": 12, "temel_b": 9}], {})["asansorler"][0]["girdi"][
+            "temel_a"
+        ],
         12,
     )
 
@@ -625,16 +633,16 @@ def calistir():
             bool(s.get("aktif")) is gecerli,
             f"→ {s.get('hata')}",
         )
-    _gizli = UYG_GIRDI.arayuz_alanlari()["yerlesime_gore_gizli"]
+    _gizli = uygulama_girdisi.arayuz_alanlari()["yerlesime_gore_gizli"]
     r.esit(
         "ekranın gizlediği alanlar = motorun hesaba almadığı alanlar ( MRL )",
         set(_gizli["mrl"]),
-        UYG_GIRDI.uygulanmayan_alanlar(True),
+        uygulama_girdisi.uygulanmayan_alanlar(True),
     )
     r.esit(
         "ekranın gizlediği alanlar = motorun hesaba almadığı alanlar ( daireli )",
         set(_gizli["daireli"]),
-        UYG_GIRDI.uygulanmayan_alanlar(False),
+        uygulama_girdisi.uygulanmayan_alanlar(False),
     )
 
     # ek nüfus satırları
@@ -648,8 +656,8 @@ def calistir():
         [{"kalem": "KONUT — Diğer oda", "miktar": "1"}] * 30,
     ):
         try:
-            g = UC_AVAN._trafik_girdi({"girdiler": dict(TEMEL, ek_nufus=ek)})
-            r.kontrol(f"ek_nufus={str(ek)[:34]} çökmedi", isinstance(TR.hesapla_tek(g), dict))
+            g = avan_uclari._trafik_girdi({"girdiler": dict(TEMEL, ek_nufus=ek)})
+            r.kontrol(f"ek_nufus={str(ek)[:34]} çökmedi", isinstance(trafik.hesapla_tek(g), dict))
         except Exception as e:  # noqa: BLE001
             r.kontrol(f"ek_nufus={str(ek)[:34]} çökme", False, f"→ {e}")
 
@@ -853,21 +861,21 @@ def calistir():
         "elec_name": "Ekrem",
         "elec_surname": "Sekmen",
     }
-    _pk = UC_ORTAK._proje_kimligi({"kapak": _KP})
+    _pk = uc_ortak._proje_kimligi({"kapak": _KP})
     r.esit("kapak → proje adı", _pk["proje_adi"], "ÇAĞDAŞ KONUTLARI B BLOK")
     r.kontrol(
         "dosya adı proje adıyla başlıyor",
-        UC_ORTAK._dosya_adi(_pk, "Avan Hesaplari", "pdf").startswith("ÇAĞDAŞ KONUTLARI B BLOK"),
+        uc_ortak._dosya_adi(_pk, "Avan Hesaplari", "pdf").startswith("ÇAĞDAŞ KONUTLARI B BLOK"),
     )
     #  kapak gönderilmezse ( eski istemci / boş kapak ) eski davranış sürer
     r.esit(
         "kapaksız istek eski adı verir",
-        UC_ORTAK._dosya_adi(UC_ORTAK._proje_kimligi({}), "Avan Hesaplari", "pdf"),
+        uc_ortak._dosya_adi(uc_ortak._proje_kimligi({}), "Avan Hesaplari", "pdf"),
         "Asansor - Avan Hesaplari.pdf",
     )
     #  dosya adına yol ayracı / üst dizin sızmamalı
-    _kotu = UC_ORTAK._dosya_adi(
-        UC_ORTAK._proje_kimligi({"kapak": {"project_title": "../../etc/passwd"}}), "Avan Hesaplari", "pdf"
+    _kotu = uc_ortak._dosya_adi(
+        uc_ortak._proje_kimligi({"kapak": {"project_title": "../../etc/passwd"}}), "Avan Hesaplari", "pdf"
     )
     r.kontrol("dosya adında yol ayracı yok", "/" not in _kotu and ".." not in _kotu, f"→ {_kotu}")
     return r

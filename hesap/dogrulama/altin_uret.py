@@ -30,10 +30,10 @@ import yollar
 
 yollar.kur()
 
-from motor.avan import avan_hesabi as AV
-from motor.avan import tablolar as T
-from motor.avan import trafik as TR
-from motor.uygulama import uygulama_hesabi as UY
+from motor.avan import avan_hesabi
+from motor.avan import tablolar
+from motor.avan import trafik
+from motor.uygulama import uygulama_hesabi
 
 _KLASOR = os.path.dirname(os.path.abspath(__file__))
 DOSYA = os.path.join(_KLASOR, "altin_trafik.json.gz")
@@ -51,7 +51,7 @@ def senaryolar():
         (1300, "Kabin İçi Oto. Kat K.Ç."),
     ]
     # 1) bina tipi × kat × kapasite  ( tek asansör )
-    for bt in T.BINA_TIPLERI:
+    for bt in tablolar.BINA_TIPLERI:
         for N in (1, 5, 11, 20, 30):
             for P in (6, 10, 16, 30):
                 kg, kt = kapilar[(N + P) % len(kapilar)]
@@ -504,20 +504,20 @@ def uygulama_senaryolar():
 
 def uygulama_motoru(g):
     """Altın karşılaştırmasının çağırdığı sarmalayıcı."""
-    return UY.hesapla_coklu(g.get("asansorler"), g.get("ortak"))
+    return uygulama_hesabi.hesapla_coklu(g.get("asansorler"), g.get("ortak"))
 
 
 def uret():
     kayit = []
     for i, g in enumerate(senaryolar()):
-        kayit.append({"no": i, "girdi": g, "cikti": TR.hesapla(json.loads(json.dumps(g)))})
+        kayit.append({"no": i, "girdi": g, "cikti": trafik.hesapla(json.loads(json.dumps(g)))})
     return kayit
 
 
 def uret_avan():
     kayit = []
     for i, g in enumerate(avan_senaryolar()):
-        kayit.append({"no": i, "girdi": g, "cikti": AV.hesapla(json.loads(json.dumps(g)))})
+        kayit.append({"no": i, "girdi": g, "cikti": avan_hesabi.hesapla(json.loads(json.dumps(g)))})
     return kayit
 
 

@@ -28,10 +28,10 @@ import tempfile
 import ezdxf
 from ezdxf import zoom
 
-from cizim import cizimler as CZ
-from cizim import dxf as CDX
-from cizim import dusey as CDU
-from cizim import geometri as CGE
+from cizim import cizimler
+from cizim import dxf
+from cizim import dusey
+from cizim import geometri
 
 SABLON = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sablon", "proje_formati.dxf"
@@ -143,7 +143,7 @@ def _antet_yazisi(d, yer, ornek=None):
 def antet_degerleri(g, olcekler):
     """Antete yazılacaklar;  boş dize = çizimin bilmediği değer ( boş kalır )."""
     dy, kb, kr = g["dusey"], g["kabin"], g["kabin_ray"]
-    kotlar = CDU.durak_kotlari(g)[0]
+    kotlar = dusey.durak_kotlari(g)[0]
     return {
         "yuk": "",
         "sinif": "",
@@ -185,19 +185,19 @@ def cizim_listesi(g, seritler=()):
     #  Serbest alanın yüksekliği ( kenarlar düşülünce ), çizim biriminde
     yukseklik = SERBEST[3] - SERBEST[1] - 2 * KENAR
     for ad in sira(g):
-        dogrula, ciz, baslik = CZ.CIZIMLER[ad]
+        dogrula, ciz, baslik = cizimler.CIZIMLER[ad]
         h = dogrula(g)
         if h:
             hata += [f"{ad}: {x}" for x in h]
             continue
-        olcek = CZ.OLCEKLER.get(ad, 20)
-        e = ciz(g, azami=yukseklik * olcek) if ad in CZ.OLCEKLER else ciz(g)
+        olcek = cizimler.OLCEKLER.get(ad, 20)
+        e = ciz(g, azami=yukseklik * olcek) if ad in cizimler.OLCEKLER else ciz(g)
         cikti.append(
             (
                 ad,
-                CZ.plan_basligi(g, ad, baslik),
+                cizimler.plan_basligi(g, ad, baslik),
                 olcek,
-                CGE.cerceveli(e, CZ.plan_basligi(g, ad, baslik), olcek, seritler=seritler),
+                geometri.cerceveli(e, cizimler.plan_basligi(g, ad, baslik), olcek, seritler=seritler),
             )
         )
     if hata:
@@ -277,25 +277,25 @@ def _yerlestir(d, g, x0=None, sag_eski=None):
     g:  tek asansörün girdisi ya da çok asansörlü projede girdilerin listesi —
     asansörler sırayla dizilir, her çizimin şeridinde asansörün adı yazar."""
     gler = g if isinstance(g, (list, tuple)) else [g]
-    cizimler = []
+    liste = []
     for i, g_ in enumerate(gler):
         coklu = len(gler) > 1
         for ad, baslik, olcek, e in cizim_listesi(g_, (g_["proje"]["asansor"],) if coklu else ()):
             #  Blok adı asansörle birlikte:  iki kuyunun kesiti aynı bloğu ezmesin
-            cizimler.append((f"{ad}_{i + 1}" if coklu else ad, baslik, olcek, e))
-    CDX.hazirla(d)
+            liste.append((f"{ad}_{i + 1}" if coklu else ad, baslik, olcek, e))
+    dxf.hazirla(d)
     boyutlar, kutular = [], []
-    for _ad, _baslik, olcek, e in cizimler:
-        bx0, by0, bx1, by1 = CGE.sinir(e)
+    for _ad, _baslik, olcek, e in liste:
+        bx0, by0, bx1, by1 = geometri.sinir(e)
         kutular.append((bx0, by0))
         boyutlar.append(((bx1 - bx0) / olcek, (by1 - by0) / olcek))
     yerler, sag = yerlesim(boyutlar, x0, sag_eski)
     _cerceveyi_uzat(d, sag, sag_eski)
     msp = d.modelspace()
     yerlesen = []
-    for (ad, baslik, olcek, e), (bx, by), (px, py), (w, h) in zip(cizimler, kutular, yerler, boyutlar):
+    for (ad, baslik, olcek, e), (bx, by), (px, py), (w, h) in zip(liste, kutular, yerler, boyutlar):
         blok = d.blocks.new(name=f"CIZIM_{ad.upper()}", base_point=(bx, by))
-        CDX.ciz(blok, e, olcek, blokta=True)
+        dxf.ciz(blok, e, olcek, blokta=True)
         msp.add_blockref(
             blok.name, (px, py), dxfattribs={"xscale": 1.0 / olcek, "yscale": 1.0 / olcek, "layer": "0"}
         )
@@ -304,7 +304,7 @@ def _yerlestir(d, g, x0=None, sag_eski=None):
     msp.dxf.extmin, msp.dxf.extmax = (x0_, y0_, 0), (x1_, y1_, 0)
     msp.dxf.limmin, msp.dxf.limmax = (x0_, y0_), (x1_, y1_)
     zoom.window(msp, (x0_ - 10, y0_ - 10), (x1_ + 10, y1_ + 10))
-    return {"cizimler": yerlesen, "sag": sag, "olcekler": [c[2] for c in cizimler]}
+    return {"cizimler": yerlesen, "sag": sag, "olcekler": [c[2] for c in liste]}
 
 
 def belge(g):
@@ -368,7 +368,7 @@ def _maskeleri_ac(d):
             if not m.dxf.get("bg_fill", 0):
                 continue
             h = m.dxf.char_height
-            w = len(m.plain_text()) * h * 0.58 / CDX.BUYUK_HARF
+            w = len(m.plain_text()) * h * 0.58 / dxf.BUYUK_HARF
             ap = m.dxf.get("attachment_point", 1)
             x0 = {0: 0.0, 1: -w / 2.0, 2: -w}[(ap - 1) % 3]
             y0 = {0: -h, 1: -h / 2.0, 2: 0.0}[(ap - 1) // 3]

@@ -29,9 +29,9 @@ import yollar
 
 yollar.kur()
 
-from motor.uygulama import mukavemet as MK
-from motor.uygulama import mukavemet_girdi as MG
-from motor.uygulama import mukavemet_tablolari as MT
+from motor.uygulama import mukavemet
+from motor.uygulama import mukavemet_girdi
+from motor.uygulama import mukavemet_tablolari
 from dogrulama.rapor import Rapor
 from dogrulama.test_avan_tarama import karsilastir
 
@@ -43,7 +43,7 @@ DOSYA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "referans_mukav
 # =====================================================================
 def tarama_senaryolari():
     """Varsayılan projeden TEK girdiyi değiştiren senaryolar  ( ad , girdi )."""
-    v = MG.varsayilanlar()
+    v = mukavemet_girdi.varsayilanlar()
     s = []
 
     def E(ad, **kw):
@@ -64,35 +64,35 @@ def tarama_senaryolari():
     #  Denge zinciri P'ye giren MCR yolunu açar  ( m.5.2.1.8.5 · m.5.7.2.3.2 ).
     E("denge zinciri var", denge_zinciri="Var")
     #  Makine raylara biniyor  ( MRL — m.5.7.2.3.7 ).
-    E("makine raylara biniyor", mk_yok=True, makine_raya_biniyor=MT.MAKINE_YUK_YOLU_RAY)
+    E("makine raylara biniyor", mk_yok=True, makine_raya_biniyor=mukavemet_tablolari.MAKINE_YUK_YOLU_RAY)
     E(
         "zincir + ağırlık güvenlik tertibatı",
         denge_zinciri="Var",
-        agirlik_guvenlik_tertibati=MT.DARBE_TIPLERI_ADLARI[0],
+        agirlik_guvenlik_tertibati=mukavemet_tablolari.DARBE_TIPLERI_ADLARI[0],
     )
     E("regülatör katalog halatı", reg_halat_kopma_kN=28, reg_halat_birim_kutle=0.30)
 
-    for p in MT.RAY_PROFILLERI:
+    for p in mukavemet_tablolari.RAY_PROFILLERI:
         E(f"kabin rayı {p}", kabin_ray_profili=p)
         E(f"ağırlık rayı {p}", agirlik_ray_profili=p)
-    for c in MT.HALAT_CAPLARI:
+    for c in mukavemet_tablolari.HALAT_CAPLARI:
         E(f"halat Ø{c}", halat_capi=c)
     for c in (6, 6.5, 8):
         E(f"regülatör halatı Ø{c}", reg_halat_capi=c)
-    for k in MT.KANAL_SEKILLERI:
+    for k in mukavemet_tablolari.KANAL_SEKILLERI:
         #  Düz V kanal sertleştirilmemiş olamaz ( m.5.11.2.3.1.2 ).
-        if MT.kanal_turu(k) == "V":
+        if mukavemet_tablolari.kanal_turu(k) == "V":
             E(f"kanal {k}", kanal_sekli=k, kanal_isleme="Sertleştirilmiş")
         else:
             E(f"kanal {k}", kanal_sekli=k)
-    for k in MT.KANAL_ISLEME_SEKILLERI:
+    for k in mukavemet_tablolari.KANAL_ISLEME_SEKILLERI:
         E(f"kanal işleme {k}", kanal_isleme=k)
-    for t in MT.DARBE_TIPLERI_ADLARI:
+    for t in mukavemet_tablolari.DARBE_TIPLERI_ADLARI:
         E(f"güv. tertibatı {t}", guvenlik_tertibati=t)
-    _derinlik = {r[0]: r[1] for r in MT.AGIRLIK_MALZEMESI}
-    for m in MT.AGIRLIK_MALZEMELERI:
+    _derinlik = {r[0]: r[1] for r in mukavemet_tablolari.AGIRLIK_MALZEMESI}
+    for m in mukavemet_tablolari.AGIRLIK_MALZEMELERI:
         E(f"ağırlık malzemesi {m}", agirlik_malzemesi=m, agirlik_derinligi=_derinlik[m])
-    for rm in MT.RAY_CELIKLERI:
+    for rm in mukavemet_tablolari.RAY_CELIKLERI:
         E(f"ray çeliği Rm {rm}", ray_celigi_rm=rm)
     E("askı 1:1", aski_orani=1)
     #  Kapı ağırlığın tersine açılır:  sola açılan kabin kapısının cebi soldaki
@@ -127,7 +127,7 @@ def tarama_senaryolari():
     #  0,5 m/s² m.5.11.2.2.2'nin alt sınırıdır;  altı reddedilir.
     for a in (0.5, 1.5, 5.0):
         E(f"a = {a} m/s²", acil_frenleme_a=a)
-    for k in MT.KABLO_TIPLERI:
+    for k in mukavemet_tablolari.KABLO_TIPLERI:
         E(f"kablo {k}", kablo_tipi_2=k)
     E("uzun pervaz 150", uzun_pervaz=150)
     E("ray-kapı arası 500", ray_kapi_arasi=500)
@@ -174,8 +174,14 @@ PROJE_SENARYOLARI = (
         dict(_B, yapi_sehim_x=0.7, yapi_sehim_y=1.3, agirlik_yeri="Sol", kat_kapisi_tipi="Teleskopik Sağ"),
     ),
     ("Fp tek başına", dict(_B, klips_itme_kuvveti=750)),
-    ("makine daireli + eski 'raylara' seçimi", dict(_B, makine_raya_biniyor=MT.MAKINE_YUK_YOLU_RAY)),
-    ("MRL makine raylarda", dict(_B, mk_yok=True, makine_raya_biniyor=MT.MAKINE_YUK_YOLU_RAY)),
+    (
+        "makine daireli + eski 'raylara' seçimi",
+        dict(_B, makine_raya_biniyor=mukavemet_tablolari.MAKINE_YUK_YOLU_RAY),
+    ),
+    (
+        "MRL makine raylarda",
+        dict(_B, mk_yok=True, makine_raya_biniyor=mukavemet_tablolari.MAKINE_YUK_YOLU_RAY),
+    ),
     ("zincir + ağırlıkta tertibat", dict(_B, denge_zinciri="Var", agirlik_guvenlik_tertibati="Kaymalı")),
     (
         "zincir + ağırlıkta ani tertibat + Fp",
@@ -253,7 +259,7 @@ PROJE_SENARYOLARI = (
             denge_zinciri="Var",
             kablo_birim_kutle=0.6,
             mk_yok=True,
-            makine_raya_biniyor=MT.MAKINE_YUK_YOLU_RAY,
+            makine_raya_biniyor=mukavemet_tablolari.MAKINE_YUK_YOLU_RAY,
             _ofis={
                 "k3_yardimci": 1.6,
                 "k1_kaymali": 2.5,
@@ -302,7 +308,7 @@ PROJE_SENARYOLARI = (
             denge_zinciri="Var",
             kablo_birim_kutle=0.44,
             mk_yok=True,
-            makine_raya_biniyor=MT.MAKINE_YUK_YOLU_RAY,
+            makine_raya_biniyor=mukavemet_tablolari.MAKINE_YUK_YOLU_RAY,
             kabin_ray_profili="75 x 62 x 10",
             agirlik_ray_profili="70 x 65 x 9",
             kabin_konsol_arasi=2000,
@@ -325,12 +331,12 @@ def tahrik_senaryolari():
     """Kanal şekli × işleme × ofis açıları, D/d belgesi ve tahrik yük yolları."""
     s = []
     for ofis in (None, {"kanal_gama_v": 45, "kanal_gama_yd": 30, "kanal_beta": 100}):
-        for k in MT.KANAL_SEKILLERI:
-            for i in MT.KANAL_ISLEME_SEKILLERI:
-                if MT.kanal_turu(k) == "V" and i == "Sertleştirilmemiş":
+        for k in mukavemet_tablolari.KANAL_SEKILLERI:
+            for i in mukavemet_tablolari.KANAL_ISLEME_SEKILLERI:
+                if mukavemet_tablolari.kanal_turu(k) == "V" and i == "Sertleştirilmemiş":
                     continue  # standart dışı — reddedilir
                 #  Açı kanalın sarım sayısına uymalı ( tek ≤ 180°, çift > 180° ).
-                aci = 330 if (MT.kanal_gecis_sayisi(k) or 1) > 1 else 180
+                aci = 330 if (mukavemet_tablolari.kanal_gecis_sayisi(k) or 1) > 1 else 180
                 g = {"kanal_sekli": k, "kanal_isleme": i, "sarilma_acisi": aci}
                 if ofis:
                     g["_ofis"] = dict(ofis)
@@ -406,7 +412,7 @@ def _kopya(g):
 
 
 def mukavemet_sonucu(g):
-    s = MK.hesapla(_kopya(g))
+    s = mukavemet.hesapla(_kopya(g))
     if not s.get("aktif"):
         return {"aktif": False, "hata": s.get("hata")}
     return {

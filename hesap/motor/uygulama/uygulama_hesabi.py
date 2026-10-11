@@ -23,12 +23,12 @@ AVANIN 1. VE 2. BÖLÜMÜ ALINMAZ:
     m.5.2.1.8'e göre, ray kuvvetlerini de bölüm 7-8'de ayrıntılı verir.
 """
 
-from motor.avan import avan_hesabi as E_AVAN
+from motor.avan import avan_hesabi
 from motor.ortak.adimlar import numarala
-from motor.uygulama import mukavemet as E_MUK
-from motor.avan import tablolar as T
-from motor.uygulama import uygulama_girdisi as UG
-from motor.uygulama import mukavemet_girdi as MG
+from motor.uygulama import mukavemet
+from motor.avan import tablolar
+from motor.uygulama import uygulama_girdisi
+from motor.uygulama import mukavemet_girdi
 
 #  Avanın uygulama projesine giren bölümleri  ( 0-tabanlı sıra )
 ELEKTRIK_BOLUMLERI = (2, 3, 4, 5)  # kabin ayd. · kuyu ayd. · TAS · ε
@@ -38,12 +38,12 @@ ELEKTRIK_BOLUMLERI = (2, 3, 4, 5)  # kabin ayd. · kuyu ayd. · TAS · ε
 #  kendi kendisiyle çelişir:  okuyucunun elindeki belge ZATEN uygulama
 #  projesidir.  Bölüm alınırken metin değiştirilir, hesap aynen kalır.
 NOT_KARSILIGI = {
-    T.SIGORTA_NOTU: T.SIGORTA_NOTU_UYGULAMA,
+    tablolar.SIGORTA_NOTU: tablolar.SIGORTA_NOTU_UYGULAMA,
     (
         "Aydınlatma ve priz devrelerinde izin verilen gerilim düşümü %1,5'tir; "
         "bu devrelerin uç noktalara kadar düşümü uygulama projesinde kontrol "
         "edilecektir."
-    ): T.GERILIM_UC_NOKTA_NOTU_UYGULAMA,
+    ): tablolar.GERILIM_UC_NOKTA_NOTU_UYGULAMA,
 }
 
 
@@ -105,28 +105,28 @@ def hesapla(veriler=None):
     projede ayrılıp en sona alınırlar.
     """
     eksik = []  # yapılamayan ZORUNLU hesaplar
-    g = UG.varsayilanlar()
+    g = uygulama_girdisi.varsayilanlar()
     g.update(veriler or {})
-    g = UG.tamamla(g)
+    g = uygulama_girdisi.tamamla(g)
     #  GEOMETRİ ÇİZİMDEN:  kabinin ve eşiğin ray eksenine uzaklığı, ray ve halat
     #  boyları, kasnak sayıları, makine yükünün kirişteki yeri — hesap bunları
     #  kendi tahmin etmez, çizimin girdilerden kurduğu yerleşimden alır.
-    g.update(UG.yerlesim_olculeri(g))
+    g.update(uygulama_girdisi.yerlesim_olculeri(g))
     #  Kuyunun geometrisi kurulamıyorsa ( çizimin plan doğrulaması ) hesap durur
     geometri = g.pop("_geometri_hatasi", [])
-    hata = UG.dogrula(g) + geometri
+    hata = uygulama_girdisi.dogrula(g) + geometri
     if hata:
         s = {"aktif": False, "hata": hata, "girdi": g}
         if geometri:
             s["geometri_hatasi"] = geometri  # hesapla_coklu adını ekler, kaldırır
         return s
 
-    muk = E_MUK.hesapla(g)
+    muk = mukavemet.hesapla(g)
     if not muk.get("aktif"):  # olmamalı — dogrula geçti
         return {"aktif": False, "hata": muk.get("hata") or [], "girdi": g}
 
     eksik.extend(muk.get("ozet", {}).get("eksik_hesap", []))
-    av = E_AVAN.hesapla(UG.kopru(g))
+    av = avan_hesabi.hesapla(uygulama_girdisi.avan_girdisi(g))
     asansor = (av.get("asansorler") or [{}])[0]
     uyarilar = list(muk.get("uyarilar") or [])
 
@@ -184,7 +184,7 @@ def hesapla(veriler=None):
     #  basılınca paftanın ilk satırları aynı şeyi iki kez söylüyordu.
     #  Eksik LİSTESİ ( özet · genel hüküm ) aynen kalır;  yalnız uyarı
     #  kutusundaki tekrar düşer.
-    _anlatilan = {E_MUK.ALFA_YOK} if MG.ALFA_UYARI in uyarilar else set()
+    _anlatilan = {mukavemet.ALFA_YOK} if mukavemet_girdi.ALFA_UYARI in uyarilar else set()
     uyarilar += [f"⚠ {x}" for x in eksik if x not in _anlatilan]
     uygunlar = [
         b["sonuc"]["uygun"] for b in bolumler if b.get("sonuc") and b["sonuc"].get("uygun") is not None
@@ -217,7 +217,7 @@ def hesapla(veriler=None):
     )
     #  HÜKÜM MOTORDAN ÇIKAR ( bkz. E_MUK.genel_hukum ):  "uygun değil" >
     #  "hesap eksik" > "uygundur".  Ekran ve PDF bunu yalnız basar.
-    _hukum = E_MUK.genel_hukum(bolumler, all(uygunlar), eksik)
+    _hukum = mukavemet.genel_hukum(bolumler, all(uygunlar), eksik)
     ozet["genel_sonuc"], ozet["genel_sonuc_kisa"] = _hukum
     return {
         "aktif": True,
@@ -262,9 +262,9 @@ def _tesis_bolumleri(aktifler):
     if not aktifler:
         return []
     ilk = aktifler[0]["girdi"]
-    tesis = UG.kopru(ilk)  # ortak · ofis sabitleri binanındır
-    tesis["asansorler"] = [UG.kopru(s["girdi"])["asansorler"][0] for s in aktifler]
-    bolumler, _eksik = _proje_geneli_bolumleri(E_AVAN.hesapla(tesis), ilk)
+    tesis = uygulama_girdisi.avan_girdisi(ilk)  # ortak · ofis sabitleri binanındır
+    tesis["asansorler"] = [uygulama_girdisi.avan_girdisi(s["girdi"])["asansorler"][0] for s in aktifler]
+    bolumler, _eksik = _proje_geneli_bolumleri(avan_hesabi.hesapla(tesis), ilk)
     #  KENDİ NUMARALARINI ALIRLAR:  bir asansörün bölümleri değil, ayrı bir
     #  başlığın altındadırlar.
     return [numarala(b, n) for n, b in enumerate(bolumler, 1)]
@@ -300,7 +300,7 @@ def hesapla_coklu(asansorler=None, ortak=None):
     #  hesaplatıyordu ( tesis bölümleri 1 nolu asansörün girdisinden kurulur ).
     #  Ortakta OLMAYAN alan asansörden alınır — eski tek asansörlük çağrılar
     #  bunları asansörün içinde taşır.
-    pg = {k: ortak[k] for k in UG.PROJE_GENELI_ALANLAR if k in ortak}
+    pg = {k: ortak[k] for k in uygulama_girdisi.PROJE_GENELI_ALANLAR if k in ortak}
     sonuclar = []
     for i, g in enumerate(ham, 1):
         s = hesapla({**ortak, **g, **pg})

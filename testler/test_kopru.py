@@ -14,13 +14,13 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 import ezdxf
 
-from uclar import cizim_uclari as UC_CIZIM
-from uclar import uygulama_uclari as UC_UYG
-from cizim import girdi as CG
-from cizim import kopru as CK
-from cizim import cizim_sabitleri as CS
-from motor.uygulama import uygulama_girdisi as E_UGR
-from motor.uygulama import uygulama_hesabi as E_UYG
+from uclar import cizim_uclari
+from uclar import uygulama_uclari
+from cizim import girdi
+from cizim import kopru
+from cizim import sabitler
+from motor.uygulama import uygulama_girdisi
+from motor.uygulama import uygulama_hesabi
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
 
 
@@ -34,15 +34,15 @@ def _veri(md=False, **ek):
 
 def _kur(veri, proje="ÖRNEK PROJE"):
     """Programın yolu:  formun isteği → hesap → köprü.  ( [ ( g, hata ) ], sonuç, girdiler )"""
-    asansorler, ortak = UC_UYG._asansor_girdileri(veri)
-    s = E_UYG.hesapla_coklu(asansorler, ortak)
-    return UC_CIZIM.girdiler(veri, asansorler, ortak, s if s.get("aktif") else None, proje), s, asansorler
+    asansorler, ortak = uygulama_uclari._asansor_girdileri(veri)
+    s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
+    return cizim_uclari.girdiler(veri, asansorler, ortak, s if s.get("aktif") else None, proje), s, asansorler
 
 
 def _tam(veri):
     """Köprünün gördüğü tamamlanmış girdi ( tek asansör )."""
-    asansorler, ortak = UC_UYG._asansor_girdileri(veri)
-    return E_UGR.tamamla({**E_UGR.varsayilanlar(), **ortak, **asansorler[0]})
+    asansorler, ortak = uygulama_uclari._asansor_girdileri(veri)
+    return uygulama_girdisi.tamamla({**uygulama_girdisi.varsayilanlar(), **ortak, **asansorler[0]})
 
 
 class OrnekProjeler(unittest.TestCase):
@@ -50,7 +50,7 @@ class OrnekProjeler(unittest.TestCase):
     ( ornekler/uret.py );  köprü aynı girdiyi vermeli — çizimler değişmesin."""
 
     def _elle(self, md):
-        g = copy.deepcopy(CG.ORNEK)
+        g = copy.deepcopy(girdi.ORNEK)
         g["proje"] = {"ad": "ÖRNEK PROJE", "asansor": "ASANSÖR 1", "olcek": 20}
         g["dusey"].update(
             {
@@ -131,8 +131,8 @@ class OrnekProjeler(unittest.TestCase):
         #  ray ekseni arası.
         self.assertEqual(_tam(_veri(aski_orani=1))["aski_kaciklik_x"], 0.0)
         a = _tam(_veri(agirlik_yeri="Arka", aski_duzeni="Kabin üstü"))
-        g, _h = CK.cizim_girdisi(a)
-        S = CS.sabitler(g.get("_cizim_sabitleri"))
+        g, _h = kopru.cizim_girdisi(a)
+        S = sabitler.sabitler(g.get("_cizim_sabitleri"))
         kb = g["kabin"]
         self.assertAlmostEqual(
             a["aski_kaciklik_x"],
@@ -165,7 +165,7 @@ class CizimdenTuretilen(unittest.TestCase):
         #  da küçükse Ds türetilmez:  hesap Ds'yi "D2'den büyük" diye reddetmesin.
         A = _tam(_veri())
         A.update(saptirma_kasnak_capi=200, saptirma_kasnak_min_capi=None)
-        self.assertNotIn("saptirma_kasnak_min_capi", CK.cizimden(A))
+        self.assertNotIn("saptirma_kasnak_min_capi", kopru.cizimden(A))
 
     def test_bos_alan_iletisi_formun_adiyla(self):
         #  Boş bırakılan alan "( None )" ya da çizim modülünün iç adıyla
@@ -181,26 +181,26 @@ class CizimdenTuretilen(unittest.TestCase):
             self.assertFalse(any("None" in h for h in hata), (k, hata))
 
     def test_varsayilan_formda_turetilenler_bos_acilir(self):
-        v = UC_UYG.uygulama_alanlari()
+        v = uygulama_uclari.uygulama_alanlari()
         alan = {f["anahtar"]: f for gr in v["gruplar"] for f in gr["alanlar"]}
-        self.assertEqual(sorted(v["cizimden"]), sorted(CK.CIZIMDEN))
+        self.assertEqual(sorted(v["cizimden"]), sorted(kopru.CIZIMDEN))
         #  Kasnak çapları ve kaide formda sorulmaz;  askı kaçıklığı ve sarılma
         #  açısı sorulur ( boşsa çizimden )
         self.assertEqual(
-            sorted(set(CK.CIZIMDEN) - set(alan)),
+            sorted(set(kopru.CIZIMDEN) - set(alan)),
             ["kabin_tampon_baba", "saptirma_kasnak_capi", "saptirma_kasnak_min_capi"],
         )
-        for a in set(CK.CIZIMDEN) & set(alan):
+        for a in set(kopru.CIZIMDEN) & set(alan):
             self.assertIsNone(alan[a]["varsayilan"], a)
             self.assertIn("boşsa çizimden", alan[a]["etiket"])
             self.assertEqual(alan[a]["etiket"].count("boşsa"), 1, alan[a]["etiket"])
         #  Çizim alanlarının hepsi formda, makine dairesininkiler proje geneli
-        for a in CK.ALAN:
+        for a in kopru.ALAN:
             self.assertIn(a, alan)
-        for a in CK.PROJE_GENELI:
+        for a in kopru.PROJE_GENELI:
             self.assertIn(a, v["proje_geneli"])
-        self.assertTrue(set(CK.YALNIZ_DAIRELI) <= set(v["yerlesime_gore_gizli"]["mrl"]))
-        self.assertTrue(set(CK.YALNIZ_MRL) <= set(v["yerlesime_gore_gizli"]["daireli"]))
+        self.assertTrue(set(kopru.YALNIZ_DAIRELI) <= set(v["yerlesime_gore_gizli"]["mrl"]))
+        self.assertTrue(set(kopru.YALNIZ_MRL) <= set(v["yerlesime_gore_gizli"]["daireli"]))
 
 
 class Tutarlilik(unittest.TestCase):
@@ -226,15 +226,15 @@ class Tutarlilik(unittest.TestCase):
         #  Makine dairesizde ağırlık tarafındaki iniş kasnağın düzleminde eğikse
         #  ( HALAT SAPMASI ) açı ağırlığın konumuyla değişir:  çizim tek bir sayı
         #  söylemez ( eskiden "180° girin" diyordu ), girilen açıya itiraz etmez.
-        from cizim import kuyu_ustu as CKU
+        from cizim import kuyu_ustu
 
         #  xs −200:  çizimden gelen −250'de kasnaklar ve aralarındaki halat
         #  şasenin üst kirişinin 250 önünden geçer, tavanda çömelme alanına
         #  yer kalmaz ( test_kabin_ustu_kasnaklari_kirisin_onunde )
         ek = dict(aski_duzeni="Kabin üstü", kabin_kasnak_arasi=None, aski_kaciklik_x=-200)
         ((g, hata),) = _kur(_veri(**ek))[0]
-        self.assertGreater(abs(CKU.yerlesim(g)["sapma"][0]), 0.5)
-        self.assertIsNone(CK.sarim_acisi(g))
+        self.assertGreater(abs(kuyu_ustu.yerlesim(g)["sapma"][0]), 0.5)
+        self.assertIsNone(kopru.sarim_acisi(g))
         self.assertIsNone(_tam(_veri(sarilma_acisi=None, **ek))["sarilma_acisi"])
         self.assertFalse(any("α =" in h for h in self._hata(sarilma_acisi=176, **ek)))
 
@@ -256,10 +256,12 @@ class Tutarlilik(unittest.TestCase):
         ((g, _h),) = _kur(_veri())[0]
         A = _tam(_veri())
         self.assertTrue(
-            any("ortalaması 293.3" in h for h in CK.tutarlilik(g, dict(A, saptirma_kasnak_capi=240)))
+            any("ortalaması 293.3" in h for h in kopru.tutarlilik(g, dict(A, saptirma_kasnak_capi=240)))
         )
         self.assertTrue(
-            any("en küçük kasnak 240" in h for h in CK.tutarlilik(g, dict(A, saptirma_kasnak_min_capi=200)))
+            any(
+                "en küçük kasnak 240" in h for h in kopru.tutarlilik(g, dict(A, saptirma_kasnak_min_capi=200))
+            )
         )
 
     def test_makine_kirisi(self):
@@ -273,7 +275,7 @@ class Tutarlilik(unittest.TestCase):
     def test_kuyu_dibi_zinciri(self):
         #  Kaide formdan gelmez ( zincirden );  motora doğrudan verilmişse zincir denetlenir.
         self.assertEqual(self._hata(kabin_tampon_baba=400), [])
-        _g, hata = CK.cizim_girdisi(dict(_tam(_veri()), kabin_tampon_baba=400))
+        _g, hata = kopru.cizim_girdisi(dict(_tam(_veri()), kabin_tampon_baba=400))
         self.assertTrue(any("zinciri kapanmıyor" in h and "306" in h for h in hata), hata)
 
     def test_cizilemeyen_kaciklik_soylenir(self):
@@ -282,17 +284,17 @@ class Tutarlilik(unittest.TestCase):
         #  doğrudan verilmişse çizim söyler.
         self.assertEqual(self._hata(kabin_kaciklik=40, aski_kaciklik_y=40), [])
         A = _tam(_veri())
-        self.assertTrue(any("( yc )" in h for h in CK.cizim_girdisi(dict(A, kabin_kaciklik=40))[1]))
-        self.assertTrue(any("( ys )" in h for h in CK.cizim_girdisi(dict(A, aski_kaciklik_y=40))[1]))
+        self.assertTrue(any("( yc )" in h for h in kopru.cizim_girdisi(dict(A, kabin_kaciklik=40))[1]))
+        self.assertTrue(any("( ys )" in h for h in kopru.cizim_girdisi(dict(A, aski_kaciklik_y=40))[1]))
 
     def test_regulator_halat_cizgisinin_obur_yaninda(self):
         #  Halat çizgisi ray ekseninin arkasındaysa regülatör öne geçer
         A = _tam(_veri(aski_kaciklik_x=120, regulator_kaciklik=None))
-        g, hata = CK.cizim_girdisi(A)
+        g, hata = kopru.cizim_girdisi(A)
         self.assertEqual(hata, [])
         self.assertEqual(g["kuyu_dibi"]["regulator_kaciklik"], -280.0)
         A = _tam(_veri(regulator_kaciklik=None))
-        self.assertEqual(CK.cizim_girdisi(A)[0]["kuyu_dibi"]["regulator_kaciklik"], 280.0)
+        self.assertEqual(kopru.cizim_girdisi(A)[0]["kuyu_dibi"]["regulator_kaciklik"], 280.0)
 
 
 class Bolum11CizimdenOlculur(unittest.TestCase):
@@ -300,13 +302,13 @@ class Bolum11CizimdenOlculur(unittest.TestCase):
     çiziminden okur:  paftadaki tablo ile kesitteki ölçü aynı sayıdır."""
 
     def test_hesabin_acikliklari_cizimin_olculeri(self):
-        from cizim import dusey as CDU
+        from cizim import dusey
 
         for md in (False, True):
             ((g, hata),), s, _a = _kur(_veri(md))
             self.assertEqual(hata, [])
             ara = s["asansorler"][0]["ara"]
-            Y = CDU.yerlesim(g)
+            Y = dusey.yerlesim(g)
             for ad, anahtar in (
                 ("siginma", "kabin_ustu_tavan"),
                 ("paten", "paten_tavan"),
@@ -337,12 +339,12 @@ class Bolum11CizimdenOlculur(unittest.TestCase):
 
     def test_turetilen_deger_girdiyi_izler(self):
         #  Varsayılanlar türetilen değeri TAŞIMAZ:  kuyu dibi değişince kaide de değişir
-        from motor.uygulama import mukavemet as MK
+        from motor.uygulama import mukavemet
 
-        for k in CK.CIZIMDEN:
-            self.assertIsNone(E_UGR.varsayilanlar()[k], k)
-        a = MK.hesapla({"kuyu_dibi": 1700})["girdi"]["kabin_tampon_baba"]
-        b = MK.hesapla({"kuyu_dibi": 1800})["girdi"]["kabin_tampon_baba"]
+        for k in kopru.CIZIMDEN:
+            self.assertIsNone(uygulama_girdisi.varsayilanlar()[k], k)
+        a = mukavemet.hesapla({"kuyu_dibi": 1700})["girdi"]["kabin_tampon_baba"]
+        b = mukavemet.hesapla({"kuyu_dibi": 1800})["girdi"]["kabin_tampon_baba"]
         self.assertEqual(b - a, 100)
 
     def test_cizilemeyen_duzende_hesap_eksik_der(self):
@@ -383,7 +385,7 @@ class YeniDuzenler(unittest.TestCase):
         ((g, hata),), s, _a = _kur(v)
         if g is not None:
             #  hesabın α'sı çizimdeki sarım açısıdır
-            self.assertAlmostEqual(_tam(v)["sarilma_acisi"], CK.sarim_acisi(g), delta=0.05)
+            self.assertAlmostEqual(_tam(v)["sarilma_acisi"], kopru.sarim_acisi(g), delta=0.05)
         return g, hata, s
 
     def _bolum11(self, s):
@@ -402,11 +404,11 @@ class YeniDuzenler(unittest.TestCase):
     def test_kabin_ustu_2_1(self):
         g, hata, s = self._kur(False, aski_duzeni="Kabin üstü", aski_kaciklik_x=-200)
         self.assertEqual(hata, [])
-        from cizim import dusey as CDU, donanim as CDN
+        from cizim import dusey, donanim
 
-        Y = CDU.yerlesim(g)
+        Y = dusey.yerlesim(g)
         #  Kasnaklar şasenin üst kirişinin üstünde:  alt uçları 30 mm yukarıda
-        kt = CDN.kabin_kotlari(g["dusey"], Y["S"], 0.0, g["aski"])
+        kt = donanim.kabin_kotlari(g["dusey"], Y["S"], 0.0, g["aski"])
         self.assertAlmostEqual(kt["kasnak_merkez"] - g["aski"]["kasnak_capi"] / 2.0, kt["sase_ust"] + 30.0)
         self.assertIn("kasnak", Y["ust_aciklik"])
         self.assertEqual(Y["kasnaklar"], [])  # kuyu dibinde kabin kasnağı yok
@@ -417,9 +419,9 @@ class YeniDuzenler(unittest.TestCase):
     def test_makine_dairesinde_1_1_agirlik_yanda(self):
         g, hata, s = self._kur(True, aski_orani=1)
         self.assertEqual(hata, [])
-        from cizim import makine_dairesi as CMD
+        from cizim import makine_dairesi
 
-        Y = CMD.yerlesim(g)
+        Y = makine_dairesi.yerlesim(g)
         #  Kabin halatı kabin ekseninde, ağırlık halatı ağırlık ekseninde;  aralık
         #  tahrik kasnağından büyük:  saptırma kasnağı çizilir, D2 · Ds ondan gelir
         ((hx, hy),) = Y["M"]["halatlar"]
@@ -440,9 +442,9 @@ class YeniDuzenler(unittest.TestCase):
             True, aski_orani=1, agirlik_yeri="Arka", kuyu_derinligi=2250, kabin_yana_kaciklik=0
         )
         self.assertEqual(hata, [])
-        from cizim import makine_dairesi as CMD, kuyu_kesiti as CKK
+        from cizim import makine_dairesi, kuyu_kesiti
 
-        Y = CMD.yerlesim(g)
+        Y = makine_dairesi.yerlesim(g)
         d = Y["duzlem"]
         self.assertEqual((d.yon, d.eksen), ("y", "x"))  # halat düzlemi derinlik boyunca
         kasnak = next(p for p in Y["M"]["makine"] if p["parca"] == "kasnak")
@@ -450,7 +452,7 @@ class YeniDuzenler(unittest.TestCase):
         ks = Y["M"]["kasnak"]
         self.assertAlmostEqual(ks[3] - ks[1], g["makine"]["tahrik_kasnak_capi"])
         #  A-A kesiti halat düzleminin içinden geçer:  halatlar orada çizilir
-        e = CKK.yan_kesit(g)
+        e = kuyu_kesiti.yan_kesit(g)
         self.assertTrue([el for el in e if el.get("ad") == "aski_halati"])
         self.assertTrue([el for el in e if el.get("ad") == "sarim_acisi"])
         self.assertIsNone(self._bolum11(s).get("eksik_hesap"))
@@ -466,7 +468,7 @@ class Uclar(unittest.TestCase):
         for md in (False, True):
             v = _veri(md)
             v["asansor"] = 0
-            d = json.loads(UC_CIZIM.api_cizimler(v).body)
+            d = json.loads(cizim_uclari.api_cizimler(v).body)
             self.assertTrue(d["aktif"], d.get("hata"))
             self.assertTrue(d["hesap"])
             ad = [c["ad"] for c in d["cizimler"]]
@@ -478,14 +480,14 @@ class Uclar(unittest.TestCase):
 
     def test_onizleme_hata_listesi(self):
         v = _veri(kuyu_derinligi=1200)
-        d = json.loads(UC_CIZIM.api_cizimler(v).body)
+        d = json.loads(cizim_uclari.api_cizimler(v).body)
         self.assertFalse(d["aktif"])
         self.assertTrue(d["hata"])
         #  Aynı hata birçok çizimde tekrarlanır;  bir kez söylenir
         self.assertEqual(len(d["hata"]), len(set(d["hata"])))
 
     def _paket(self, veri):
-        yanit = UC_UYG.indir_uygulama_dwg(veri)
+        yanit = uygulama_uclari.indir_uygulama_dwg(veri)
         self.assertEqual(yanit.media_type, "application/zip", getattr(yanit, "body", b"")[:300])
         z = zipfile.ZipFile(io.BytesIO(yanit.body))
         ad = next(n for n in z.namelist() if n.endswith(".dxf"))
@@ -532,7 +534,7 @@ class Uclar(unittest.TestCase):
     def test_cizimi_kurulamayan_paket_inmez(self):
         #  Kuyusu kabine yetmeyen proje:  hesap da durur ( 4 Eki ), paket inmez,
         #  sebep söylenir
-        yanit = UC_UYG.indir_uygulama_dwg(_veri(kuyu_derinligi=1200))
+        yanit = uygulama_uclari.indir_uygulama_dwg(_veri(kuyu_derinligi=1200))
         self.assertEqual(yanit.media_type, "application/json")
         d = json.loads(yanit.body)
         self.assertTrue(any("kuyu derinliğinden" in h for h in d["hata"]), d["hata"])
@@ -540,16 +542,16 @@ class Uclar(unittest.TestCase):
         #  listesinde adıyla, paketin iletisinde sırasıyla
         v = _veri()
         v["asansorler"].append(dict(v["asansorler"][0], asansor_adi="Servis", kuyu_derinligi=1200))
-        asansorler, ortak = UC_UYG._asansor_girdileri(v)
-        s = E_UYG.hesapla_coklu(asansorler, ortak)
+        asansorler, ortak = uygulama_uclari._asansor_girdileri(v)
+        s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
         self.assertTrue(
             any(h.startswith("Servis:") and "kuyu derinliğinden" in h for h in s["hata"]), s["hata"]
         )
-        d = json.loads(UC_UYG.indir_uygulama_dwg(v).body)
+        d = json.loads(uygulama_uclari.indir_uygulama_dwg(v).body)
         self.assertIn("2. asansör — Kabin derinliği", d["hata"])
         #  Hesap kurulup çizim kurulamıyorsa ( çizimin henüz çizemediği düzen )
         #  paket yine inmez
-        d = json.loads(UC_UYG.indir_uygulama_dwg(_veri(paten_tipi="Makaralı")).body)
+        d = json.loads(uygulama_uclari.indir_uygulama_dwg(_veri(paten_tipi="Makaralı")).body)
         self.assertIn("ÇİZİMLER KURULAMADI", d["hata"])
         self.assertIn("1. asansör", d["hata"])
 

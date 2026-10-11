@@ -27,14 +27,14 @@ Kotlar donanim.py'de, planla aynı yerlerden;  açıklık denetimleri dusey.py'd
 ( bu kesitler de aynı yerleşimle durur ).
 """
 
-from cizim import eleman as CEL
-from cizim import arka_aski as CAA
-from cizim import donanim as CDN
-from cizim import dusey as CDU
-from cizim import geometri as CGE
-from cizim import girdi as CG
-from cizim import kesit_parcalari as CKP
-from cizim import makine_dairesi as CMD_
+from cizim import eleman
+from cizim import arka_aski
+from cizim import donanim
+from cizim import dusey
+from cizim import geometri
+from cizim import girdi
+from cizim import kesit_parcalari
+from cizim import makine_dairesi
 
 OLCEK = 50
 
@@ -58,21 +58,21 @@ PLAN_HARFLERI = {
 
 
 def yerlesim(g, cizim_sabitleri=None):
-    return CDU.yerlesim(g, cizim_sabitleri)
+    return dusey.yerlesim(g, cizim_sabitleri)
 
 
 def dogrula(g):
-    hata = CDU.dogrula(g)
+    hata = dusey.dogrula(g)
     if hata:
         return hata
     return yerlesim(g)["hata"]
 
 
 def _duvar(e, u, z, w, h, ad=None):
-    e.append(CEL.dikdortgen("TARAMA", u, z, w, h, tip="tarama"))
-    el = CEL.dikdortgen("KUYU-DUVAR", u, z, w, h)
+    e.append(eleman.dikdortgen("TARAMA", u, z, w, h, tip="tarama"))
+    el = eleman.dikdortgen("KUYU-DUVAR", u, z, w, h)
     if ad:
-        CEL.ad(el, ad)
+        eleman.ad(el, ad)
     e.append(el)
 
 
@@ -80,7 +80,7 @@ def _zincir(e, kot, noktalar, metinler=None):
     metinler = metinler or {}
     for i, (a, b) in enumerate(zip(noktalar, noktalar[1:])):
         if b - a > 1e-6:
-            e.append(CEL.olcu("dusey", (0, a), (0, b), kot, metinler.get(i)))
+            e.append(eleman.olcu("dusey", (0, a), (0, b), kot, metinler.get(i)))
 
 
 def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
@@ -105,10 +105,10 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
     tu0, tu1 = B.aralik(TB["izi"])
     for a, b in ((du0, tu0), (tu1, du1)):
         if b - a > 1e-6:
-            e.append(CEL.dikdortgen("TARAMA", a, zd - TB["doseme"], b - a, TB["doseme"], tip="tarama"))
+            e.append(eleman.dikdortgen("TARAMA", a, zd - TB["doseme"], b - a, TB["doseme"], tip="tarama"))
             e.append(
-                CEL.ad(
-                    CEL.dikdortgen("KUYU-DUVAR", a, zd - TB["doseme"], b - a, TB["doseme"]), "oda_dosemesi"
+                eleman.ad(
+                    eleman.dikdortgen("KUYU-DUVAR", a, zd - TB["doseme"], b - a, TB["doseme"]), "oda_dosemesi"
                 )
             )
     B.kutu(e, "TARAMA", dis, ztv, ztv + M["cati"], tip="tarama")
@@ -116,7 +116,7 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
 
     def zemin(k):
         """Kutunun durduğu zeminin kotu:  tabliyenin üstü ya da oda zemini."""
-        return zt if CMD_._icinde(k, TB["izi"]) else zd
+        return zt if makine_dairesi._icinde(k, TB["izi"]) else zd
 
     duvarlar = {
         "Ön": (x0 - w, y0 - w, x1 + w, y0),
@@ -125,7 +125,7 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
         "Sağ": (x1, y0 - w, x1 + w, y1 + w),
     }
     kp, kh = MD["kapi"], md["kapi_yukseklik"]
-    kx, yb = CGE.kesit_duzlemleri(g)
+    kx, yb = geometri.kesit_duzlemleri(g)
     for ad in kesilen:
         kutu = duvarlar[ad]
         kapidan = md["kapi_duvar"] == ad and (
@@ -148,13 +148,13 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
     for _, d in MD["delikler"]:
         B.kutu(e, "GIZLI", d, tv, zt, "doseme_deligi")
     u0, u1 = B.aralik(dis)
-    e.append(CEL.ad(CEL.yazi((u0 + u1) / 2.0, ztv - 250 * K, "MAKİNE DAİRESİ", 45 * K), "oda_adi"))
+    e.append(eleman.ad(eleman.yazi((u0 + u1) / 2.0, ztv - 250 * K, "MAKİNE DAİRESİ", 45 * K), "oda_adi"))
     #  Kot işaretleri odanın dışında:  oda kuyudan genişse duvarının ötesinde
     #  ( eskiden kuyunun yanında, odanın duvarının üstüne düşüyordu )
     u_kot = min(u_kot, u0 - 200 * K)
-    CKP.kot_isareti(e, u_kot, zd, CDU._kot(zd), K, -1.0)
+    kesit_parcalari.kot_isareti(e, u_kot, zd, dusey._kot(zd), K, -1.0)
     if zt - zd >= 300.0:
-        CKP.kot_isareti(e, u_kot, zt, CDU._kot(zt), K, -1.0)
+        kesit_parcalari.kot_isareti(e, u_kot, zt, dusey._kot(zt), K, -1.0)
     return u1
 
 
@@ -169,22 +169,22 @@ def _oda_olculeri(e, M, md, D1, kot_makine, kot_oda):
         e,
         kot_makine,
         [zt, sa[5], ku, ztv],
-        {0: f"ŞASE {sa[5] - zt:g}", 2: f"KASNAK ÜSTÜ {ztv - ku:g} ≥ {CDN.DONEN_PARCA_USTU:g}"},
+        {0: f"ŞASE {sa[5] - zt:g}", 2: f"KASNAK ÜSTÜ {ztv - ku:g} ≥ {donanim.DONEN_PARCA_USTU:g}"},
     )
     _zincir(
         e,
         kot_oda,
         [zd, zt, ztv, ztv + c],
-        {0: f"TABLİYE {zt - zd:g}", 1: f"{ztv - zt:g} ≥ {CDN.ODA_YUKSEKLIK:g}", 2: f"{c:g}"},
+        {0: f"TABLİYE {zt - zd:g}", 1: f"{ztv - zt:g} ≥ {donanim.ODA_YUKSEKLIK:g}", 2: f"{c:g}"},
     )
     if zt - zd > 1e-6:
         e.append(
-            CEL.olcu(
+            eleman.olcu(
                 "dusey",
                 (0, zd),
                 (0, ztv),
                 kot_oda + (kot_oda - kot_makine),
-                f"MAKİNE DAİRESİ {md['yukseklik']:g} ≥ {CDN.ODA_YUKSEKLIK:g}",
+                f"MAKİNE DAİRESİ {md['yukseklik']:g} ≥ {donanim.ODA_YUKSEKLIK:g}",
             )
         )
 
@@ -195,7 +195,7 @@ def kuyu_dibi_seviyesi(g, Y):
     kabin kasnağı ) altından geçer;  ilk konsolların üstünde kalır ki konsollar,
     gergi ve tamponlar planda görünsün — ikisinin ortası.  Konsol kabinin
     altına sığmıyorsa kuyu tabanıyla kabinin ortası."""
-    kt = CDN.kabin_kotlari(g["dusey"], Y["S"], Y["kotlar"][0], g.get("aski"), CAA.arkada_iki_bir(g))
+    kt = donanim.kabin_kotlari(g["dusey"], Y["S"], Y["kotlar"][0], g.get("aski"), arka_aski.arkada_iki_bir(g))
     kabin_alti = min(kt["etek_alti"], kt["sase_alt"], kt["alt_paten"], kt["fren_alti"])
     if Y["kasnaklar"]:
         kabin_alti = min(kabin_alti, kt["kasnak_merkez"] - Y["kasnak_capi"] / 2.0)
@@ -220,7 +220,7 @@ def plan_seviyeleri(g, Y, kt):
 
 def _seviye_isaretleri(e, sev, K):
     """Çizimin iki yanına uzanan kesik çizgi, uçlarında ▽ ve harf ( bakış aşağı )."""
-    u0, _, u1, _ = CGE.sinir(e)
+    u0, _, u1, _ = geometri.sinir(e)
     u0, u1 = u0 - 150 * K, u1 + 150 * K
     w, h = 45 * K, 60 * K
     #  İşaretin boyu ( ▽ + harf ):  daha yakın iki seviyeden ALTTAKİNİN işareti
@@ -231,24 +231,24 @@ def _seviye_isaretleri(e, sev, K):
         sira = sira + 1 if onceki is not None and onceki - z < boy else 0
         onceki = z
         a0, a1 = u0 - sira * kay, u1 + sira * kay
-        e.append(CEL.ad(CEL.cizgi("SEVIYE", a0, z, a1, z, tip="eksen"), "plan_seviyesi_" + ad))
+        e.append(eleman.ad(eleman.cizgi("SEVIYE", a0, z, a1, z, tip="eksen"), "plan_seviyesi_" + ad))
         for u in (a0 + w, a1 - w):
             for a, b in (
                 ((u - w, z + h), (u + w, z + h)),
                 ((u - w, z + h), (u, z)),
                 ((u, z), (u + w, z + h)),
             ):
-                e.append(CEL.cizgi("SEVIYE", a[0], a[1], b[0], b[1]))
-            e.append(CEL.ad(CEL.yazi(u, z + h + 70 * K, harf, 80 * K), "plan_harfi"))
+                e.append(eleman.cizgi("SEVIYE", a[0], a[1], b[0], b[1]))
+            e.append(eleman.ad(eleman.yazi(u, z + h + 70 * K, harf, 80 * K), "plan_harfi"))
 
 
 def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon):
     """Kot işaretleri ve durak adları ( duvarın dışında )."""
     for i, z in enumerate(kotlar):
-        CKP.kot_isareti(e, u_duvar + yon * 200 * K, z, CDU._kot(z), K, yon)
+        kesit_parcalari.kot_isareti(e, u_duvar + yon * 200 * K, z, dusey._kot(z), K, yon)
         e.append(
-            CEL.ad(
-                CEL.yazi(
+            eleman.ad(
+                eleman.yazi(
                     u_duvar + yon * 120 * K,
                     z + 1100,
                     f"{i + 1}. DURAK",
@@ -266,8 +266,8 @@ def _olculer_sol(e, Y, u0, K, kotlar, tavan, g):
     s0, s1, s2 = (u0 - (250 * i) * K for i in range(3))
     zincir = [Y["taban"]] + kotlar + [tavan]
     _zincir(e, s0, zincir, {0: f"KUYU DİBİ {-Y['taban']:g}", len(zincir) - 2: f"SON KAT {tavan - H:g}"})
-    e.append(CEL.olcu("dusey", (0, 0.0), (0, H), s1, f"SEYİR {H:g}"))
-    e.append(CEL.olcu("dusey", (0, Y["taban"]), (0, tavan), s2, f"KUYU YÜKSEKLİĞİ {tavan - Y['taban']:g}"))
+    e.append(eleman.olcu("dusey", (0, 0.0), (0, H), s1, f"SEYİR {H:g}"))
+    e.append(eleman.olcu("dusey", (0, Y["taban"]), (0, tavan), s2, f"KUYU YÜKSEKLİĞİ {tavan - Y['taban']:g}"))
 
 
 def _konsol_zinciri(e, kot, r, tavan, ad, aralik):
@@ -372,7 +372,7 @@ def _kir(e, za, zu, bosluk):
             tek = len(icinde) == 1 and abs(icinde[0][0] - p) < 1e-9 and abs(icinde[0][1] - q) < 1e-9
             metin = icinde[0][2]["metin"] if tek else _birlesik_metin(icinde, q - p)
             x = icinde[0][2]["a"][0]
-            out.append(CEL.olcu("dusey", (x, m(p)), (x, m(q)), kot, metin))
+            out.append(eleman.olcu("dusey", (x, m(p)), (x, m(q)), kot, metin))
     return out, m, ic
 
 
@@ -390,12 +390,12 @@ def _kirik_cizgileri(e, za, bosluk, u0, u1, K):
             (u1 + 150 * K, z),
         ]
         for a, b in zip(nok, nok[1:]):
-            e.append(CEL.ad(CEL.cizgi("KUYU-IC", a[0], a[1], b[0], b[1]), "kirik_cizgisi"))
+            e.append(eleman.ad(eleman.cizgi("KUYU-IC", a[0], a[1], b[0], b[1]), "kirik_cizgisi"))
 
 
 def _yukseklik(e, K):
     """Çerçeveli çizimin yüksekliği ( cerceveli:  2 · pay + künye şeridi )."""
-    _, y0, _, y1 = CGE.sinir(e)
+    _, y0, _, y1 = geometri.sinir(e)
     return (y1 - y0) + 2 * 300 * K + 220 * K
 
 
@@ -408,7 +408,7 @@ def _bitir(e, g, Y, kt, K, alt_ust, ust_alt, bosluk_h, duvarlar, azami):
 
     def son(e_, m=None, ic=None):
         e_ = [dict(x) for x in e_]
-        CGE._yazilari_yerlestir(e_, CEL.OLCU_YAZI * K)
+        geometri._yazilari_yerlestir(e_, eleman.OLCU_YAZI * K)
         s_ = [(h, m(z) if m else z, ad) for h, z, ad in sev if not (ic and ic(z))]
         _seviye_isaretleri(e_, s_, K)
         return e_
@@ -433,10 +433,10 @@ def _bitir(e, g, Y, kt, K, alt_ust, ust_alt, bosluk_h, duvarlar, azami):
 
 def yan_bakis(g):
     """A-A:  kabin ekseninden karşı ağırlık tarafına bakış."""
-    return CKP.Bakis(
+    return kesit_parcalari.Bakis(
         "yan",
         g["kuyu"]["genislik"],
-        ("x", CGE.kesit_duzlemleri(g)[0], -1.0 if g["agirlik"]["yeri"] == "Sol" else 1.0),
+        ("x", geometri.kesit_duzlemleri(g)[0], -1.0 if g["agirlik"]["yeri"] == "Sol" else 1.0),
     )
 
 
@@ -450,13 +450,13 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     dos = k.get("doseme", don)  # kuyu dibi ve tavan döşemesi
     K = OLCEK / 20.0
     B = yan_bakis(g)
-    P = CKP.plan_parcalari(Y["KD"], g)
+    P = kesit_parcalari.plan_parcalari(Y["KD"], g)
     kotlar = Y["kotlar"]
     H = kotlar[-1]
     tavan = H + dy["son_kat"]
     taban = Y["taban"]
     kapi_h = g["kapi"]["yukseklik"]
-    bosluk_h = CG.kaba_bosluk(g, S)[2]
+    bosluk_h = girdi.kaba_bosluk(g, S)[2]
     oda = "MD" in M
     ust = tavan + dos  # makine dairesinde tabliye ( aynı kalınlık )
     e = []
@@ -475,15 +475,15 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     #  Kuyu tavanının en alt kısmı ( kiriş payı — hesap programının "kuyu tavanı
     #  payı" ):  bir KABULDÜR, beton değil;  kesik sınır çizgisi ( eskiden taralı
     #  150 mm bir katman gibi çiziliyor, tavan iki kat kalın görünüyordu ).
-    e.append(CEL.ad(CEL.cizgi("GIZLI", 0, Y["tavan_alti"] + H, D, Y["tavan_alti"] + H), "tavan_kirisi"))
+    e.append(eleman.ad(eleman.cizgi("GIZLI", 0, Y["tavan_alti"] + H, D, Y["tavan_alti"] + H), "tavan_kirisi"))
     #  Katlar:  döşeme, kat kapısı ( kasa, eşik, kanatlar )
     L = 240 * K
     for zk in kotlar:
         _duvar(e, -don - L, zk - S["kat_doseme_kalinlik"], L, S["kat_doseme_kalinlik"], "kat_dosemesi")
         for kk in P["kasa"]:
             e.append(
-                CEL.ad(
-                    CEL.dikdortgen(
+                eleman.ad(
+                    eleman.dikdortgen(
                         "KAPI",
                         kk[1],
                         zk - S["esik_kalinlik"],
@@ -495,24 +495,28 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
             )
         for kk in P["esik"]:
             e.append(
-                CEL.ad(
-                    CEL.dikdortgen("KAPI", kk[1], zk - S["esik_kalinlik"], kk[3] - kk[1], S["esik_kalinlik"]),
+                eleman.ad(
+                    eleman.dikdortgen(
+                        "KAPI", kk[1], zk - S["esik_kalinlik"], kk[3] - kk[1], S["esik_kalinlik"]
+                    ),
                     "kat_esigi",
                 )
             )
         for kk in P["kanat"]:
-            e.append(CEL.ad(CEL.dikdortgen("KAPI", kk[1], zk, kk[3] - kk[1], kapi_h), "kat_kapisi"))
+            e.append(eleman.ad(eleman.dikdortgen("KAPI", kk[1], zk, kk[3] - kk[1], kapi_h), "kat_kapisi"))
     _kat_seviyeleri(e, g, S, kotlar, -don - L, K, -1.0)
-    CKP.kot_isareti(e, -don - L + 200 * K * -1.0, taban, CDU._kot(taban), K, -1.0)
+    kesit_parcalari.kot_isareti(e, -don - L + 200 * K * -1.0, taban, dusey._kot(taban), K, -1.0)
     u_oda = None
     if oda:
         #  A-A kabin ekseninden karşı ağırlığa bakar:  ön ve arka duvar kesilir,
         #  karşı ağırlık tarafındaki duvar görünür
         u_oda = _oda(e, B, g, Y, K, g["agirlik"]["yeri"], ("Ön", "Arka"), -don - L - 200 * K)
-    AK, kt = CKP.donanim(e, B, g, Y, P, 0.0, M["agirlik"]["tampon_ustu"] + dy["agirlik_carpma_arasi"] + H, K)
+    AK, kt = kesit_parcalari.donanimi_ciz(
+        e, B, g, Y, P, 0.0, M["agirlik"]["tampon_ustu"] + dy["agirlik_carpma_arasi"] + H, K
+    )
     kb = KD["kabin"]
     ky = [(kz[1] + kz[3]) / 2.0 for kz in P["kabin_kasnak"]]
-    CDU._kabin(
+    dusey._kabin(
         e,
         kt,
         (kb[1], kb[3]),
@@ -522,23 +526,25 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
         g["aski"].get("kasnak_capi") or 0,
         esik_on=min((kk[1] for kk in P["kabin_esik"]), default=None),
     )
-    CKP.korkuluk(e, B, Y, kt)
+    kesit_parcalari.korkuluk(e, B, Y, kt)
     #  Kabin eşiği ve kabin kapısı kanatları ( kabinin önünde, kendi döşemesinde )
     for kk in P["kabin_esik"]:
         e.append(
-            CEL.ad(
-                CEL.dikdortgen(
+            eleman.ad(
+                eleman.dikdortgen(
                     "KABIN", kk[1], kt["doseme"] - S["esik_kalinlik"], kk[3] - kk[1], S["esik_kalinlik"]
                 ),
                 "kabin_esigi",
             )
         )
     for kk in P["kabin_kanat"]:
-        e.append(CEL.ad(CEL.dikdortgen("KAPI", kk[1], kt["doseme"], kk[3] - kk[1], kapi_h), "kabin_kanadi"))
+        e.append(
+            eleman.ad(eleman.dikdortgen("KAPI", kk[1], kt["doseme"], kk[3] - kk[1], kapi_h), "kabin_kanadi")
+        )
     #  Kabin opak:  yan duvarının arkasındaki ağırlık rayları, konsollar, halatlar
     #  kabinin içinden görünmez;  kabin rayı ( ve şase — _kabin ) kabinin üstünden
     #  görünür ( referans projenin ve LiftDesigner'ın yan kesitleri gibi ).
-    CKP.kabin_arkasi(e, B, kb, kt["taban_alti"], kt["tavan"], onde={"kabin_rayi"})
+    kesit_parcalari.kabin_arkasi(e, B, kb, kt["taban_alti"], kt["tavan"], onde={"kabin_rayi"})
     #  Ölçüler
     _olculer_sol(e, Y, -don - L - 700 * K, K, kotlar, tavan, g)
     #  Görünen raylar karşı ağırlık tarafındakiler:  konsol zinciri onların
@@ -560,8 +566,8 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
             [sa[4], sa[5], M["kapak"][5], tavan],
             {0: f"ŞASE {sa[5] - sa[4]:g}", 1: f"MAKİNE {M['kapak'][5] - sa[5]:g}"},
         )
-    e.append(CEL.olcu("dusey", (0, 0.0), (0, kapi_h), -don - 120 * K, f"KAPI {kapi_h:g}"))
-    e.append(CEL.olcu("yatay", (0, taban), (D, taban), taban - dos - 250 * K, f"KUYU DERİNLİĞİ {D:g}"))
+    e.append(eleman.olcu("dusey", (0, 0.0), (0, kapi_h), -don - 120 * K, f"KAPI {kapi_h:g}"))
+    e.append(eleman.olcu("yatay", (0, taban), (D, taban), taban - dos - 250 * K, f"KUYU DERİNLİĞİ {D:g}"))
     #  Kırık:  altta kabin ( ve paten ), üstte karşı ağırlık kalmalı
     return _bitir(
         e,
@@ -585,8 +591,8 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     G, ds, dg, don = k["genislik"], k["duvar_sol"], k["duvar_sag"], k["duvar_on"]
     dos = k.get("doseme", don)  # kuyu dibi ve tavan döşemesi
     K = OLCEK / 20.0
-    B = CKP.Bakis("on", G, ("y", CGE.kesit_duzlemleri(g)[1], -1.0))
-    P = CKP.plan_parcalari(Y["KD"], g)
+    B = kesit_parcalari.Bakis("on", G, ("y", geometri.kesit_duzlemleri(g)[1], -1.0))
+    P = kesit_parcalari.plan_parcalari(Y["KD"], g)
     kotlar = Y["kotlar"]
     H = kotlar[-1]
     tavan = H + dy["son_kat"]
@@ -600,7 +606,7 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     _duvar(e, G, taban - dos, ds, ust - (taban - dos))
     _duvar(e, 0, taban - dos, G, dos)
     _duvar(e, 0, tavan, G, dos, "tabliye" if oda else None)
-    e.append(CEL.ad(CEL.cizgi("GIZLI", 0, Y["tavan_alti"] + H, G, Y["tavan_alti"] + H), "tavan_kirisi"))
+    e.append(eleman.ad(eleman.cizgi("GIZLI", 0, Y["tavan_alti"] + H, G, Y["tavan_alti"] + H), "tavan_kirisi"))
     #  Kat kapıları ön duvarda ( görünüş ):  kasa, boşluk, kanat ayrımı, durak numarası
     kp = g["kapi"]
     bos = (kp["sol_pay"], -1, kp["sol_pay"] + kp["genislik"], 0)
@@ -619,35 +625,39 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
         B.kutu(e, "KAPI", bos, zk, zk + kapi_h, "kat_kapisi")
         for ayrim in ayrimlar:
             u = B.u(ayrim, 0)
-            e.append(B.derin(CEL.cizgi("KAPI", u, zk, u, zk + kapi_h), -1, 0))
+            e.append(B.derin(eleman.cizgi("KAPI", u, zk, u, zk + kapi_h), -1, 0))
         e.append(
             B.derin(
-                CEL.ad(CEL.yazi(B.u((k0 + k1) / 2.0, 0), zk + kapi_h * 0.6, f"{i + 1}", 90 * K), "durak_no"),
+                eleman.ad(
+                    eleman.yazi(B.u((k0 + k1) / 2.0, 0), zk + kapi_h * 0.6, f"{i + 1}", 90 * K), "durak_no"
+                ),
                 -1,
                 0,
             )
         )
     _kat_seviyeleri(e, g, S, kotlar, -dg, K, -1.0)
-    CKP.kot_isareti(e, -dg - 200 * K, taban, CDU._kot(taban), K, -1.0)
+    kesit_parcalari.kot_isareti(e, -dg - 200 * K, taban, dusey._kot(taban), K, -1.0)
     u_oda = None
     if oda:
         #  B-B arkadan kat kapılarına bakar:  yan duvarlar kesilir, ön duvar görünür
         u_oda = _oda(e, B, g, Y, K, "Ön", ("Sol", "Sağ"), -dg - 200 * K)
-    AK, kt = CKP.donanim(e, B, g, Y, P, H, M["agirlik"]["tampon_ustu"] + dy["agirlik_carpma_arasi"], K)
-    CKP.kabin_on(e, B, g, Y, P, kt)
-    CKP.korkuluk(e, B, Y, kt)
+    AK, kt = kesit_parcalari.donanimi_ciz(
+        e, B, g, Y, P, H, M["agirlik"]["tampon_ustu"] + dy["agirlik_carpma_arasi"], K
+    )
+    kesit_parcalari.kabin_on(e, B, g, Y, P, kt)
+    kesit_parcalari.korkuluk(e, B, Y, kt)
     #  Kabin opak:  arkasında kalan kat kapısı ( en üst durak ) kabinin içinden görünmez
-    CKP.kabin_arkasi(e, B, Y["KD"]["kabin"], kt["taban_alti"], kt["tavan"])
+    kesit_parcalari.kabin_arkasi(e, B, Y["KD"]["kabin"], kt["taban_alti"], kt["tavan"])
     #  Durak numarası halatın ( kapının önünden geçer ) ya da başka bir parçanın
     #  çizgisine binmesin:  ortaya en yakın, çizgisiz kanat ( 2500 kg arka
     #  ağırlıkta askı halatı kanadın ortasından geçiyordu — 5 Eki )
     kanatlar = sorted(zip(xs, xs[1:]), key=lambda p: (abs((p[0] + p[1]) / 2.0 - orta), -(p[1] - p[0])))
-    kenarlar = CGE.parca_kenarlari([el for el in e if el.get("ad") != "durak_no"])
+    kenarlar = geometri.parca_kenarlari([el for el in e if el.get("ad") != "durak_no"])
     for el in e:
         if el.get("ad") == "durak_no":
             for a, b in kanatlar:
-                kutu = CGE.sinir([dict(el, x=B.u((a + b) / 2.0, 0))])
-                if not any(CGE.kenar_kesisir(s_, kutu, 2.0 * K) for s_ in kenarlar):
+                kutu = geometri.sinir([dict(el, x=B.u((a + b) / 2.0, 0))])
+                if not any(geometri.kenar_kesisir(s_, kutu, 2.0 * K) for s_ in kenarlar):
                     el["x"] = B.u((a + b) / 2.0, 0)
                     break
     #  Ölçüler
@@ -666,7 +676,7 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     if oda:
         r1 = r0 + 500 * K
         _oda_olculeri(e, M, g["makine_dairesi"], g["makine"]["tahrik_kasnak_capi"], r1, r1 + 250 * K)
-    e.append(CEL.olcu("yatay", (0, taban), (G, taban), taban - dos - 250 * K, f"KUYU GENİŞLİĞİ {G:g}"))
+    e.append(eleman.olcu("yatay", (0, taban), (G, taban), taban - dos - 250 * K, f"KUYU GENİŞLİĞİ {G:g}"))
     #  Kırık:  altta karşı ağırlık, üstte kabin ( etek, fren bloğu, paten ) kalmalı
     return _bitir(
         e,

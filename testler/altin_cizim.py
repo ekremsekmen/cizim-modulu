@@ -26,13 +26,13 @@ import yollar
 
 yollar.kur()
 
-from uclar import cizim_uclari as UC_CIZIM
-from uclar import uygulama_uclari as UC_UYG
-from cizim import geometri as CGE
-from cizim import pafta as CPF
-from cizim import svg as CSV
-from motor.uygulama import uygulama_hesabi as E_UYG
-from testler import gercek_projeler as GP
+from uclar import cizim_uclari
+from uclar import uygulama_uclari
+from cizim import geometri
+from cizim import pafta
+from cizim import svg
+from motor.uygulama import uygulama_hesabi
+from testler import gercek_projeler
 
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
 
@@ -99,8 +99,8 @@ def _ornek(md):
 
 
 def _gercek(ad):
-    a = dict(GP.PROJELER[ad])
-    pg = {k: a.pop(k) for k in list(a) if k in UC_UYG.PROJE_GENELI_ALANLAR}
+    a = dict(gercek_projeler.PROJELER[ad])
+    pg = {k: a.pop(k) for k in list(a) if k in uygulama_uclari.PROJE_GENELI_ALANLAR}
     return {"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}
 
 
@@ -109,7 +109,7 @@ def duzenler():
     arka, askı 2:1 kabin altı / kabin üstü / 1:1, kapı tipleri, gerçek projeler
     ve reddedilen düzenler."""
     d = {"örnek makine dairesiz": _ornek(False), "örnek makine daireli": _ornek(True)}
-    for ad in GP.PROJELER:
+    for ad in gercek_projeler.PROJELER:
         d[f"gerçek {ad}"] = _gercek(ad)
     for Q in (450, 1000, 1600):
         for yer in ("Sağ", "Sol"):
@@ -153,29 +153,29 @@ def _yuvarla(x):
     return x
 
 
-def pafta(veri):
+def pafta_kaydi(veri):
     """Formun isteğinden paftanın çizimleri:  { "hata": [ … ] } ya da
     { "sira": [ ad ] ( paftadaki sıra ), "cizimler": { ad: { baslik, olcek,
     elemanlar, svg ( sha256 ) } } }."""
-    asansorler, ortak = UC_UYG._asansor_girdileri(veri)
-    s = E_UYG.hesapla_coklu(asansorler, ortak)
-    ((g, hata),) = UC_CIZIM.girdiler(veri, asansorler, ortak, s if s.get("aktif") else None, "ALTIN")
+    asansorler, ortak = uygulama_uclari._asansor_girdileri(veri)
+    s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
+    ((g, hata),) = cizim_uclari.girdiler(veri, asansorler, ortak, s if s.get("aktif") else None, "ALTIN")
     if g is None:
         return {"hata": list(hata)}
     cizimler = {}
-    for ad, baslik, olcek, e in CPF.cizim_listesi(g):
-        svg = CSV.yaz(e, CGE.sinir(e), baslik, olcek)
+    for ad, baslik, olcek, e in pafta.cizim_listesi(g):
+        svg_metni = svg.yaz(e, geometri.sinir(e), baslik, olcek)
         cizimler[ad] = {
             "baslik": baslik,
             "olcek": olcek,
             "elemanlar": _yuvarla(json.loads(json.dumps(e, default=str))),
-            "svg": hashlib.sha256(svg.encode("utf-8")).hexdigest(),
+            "svg": hashlib.sha256(svg_metni.encode("utf-8")).hexdigest(),
         }
     return {"sira": list(cizimler), "cizimler": cizimler}
 
 
 def uret():
-    return {ad: pafta(v) for ad, v in duzenler().items()}
+    return {ad: pafta_kaydi(v) for ad, v in duzenler().items()}
 
 
 def yaz(kayit, dosya=DOSYA):

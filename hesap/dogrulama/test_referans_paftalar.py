@@ -32,8 +32,8 @@ import yollar
 
 yollar.kur()
 
-from motor.uygulama import mukavemet as MK
-from motor.uygulama import mukavemet_tablolari as MT
+from motor.uygulama import mukavemet
+from motor.uygulama import mukavemet_tablolari
 from dogrulama.rapor import Rapor
 
 
@@ -95,7 +95,7 @@ REFERANS_BEKLENEN = (
 
 
 def _referans_proje(r):
-    s = MK.hesapla(dict(REFERANS_PROJE))
+    s = mukavemet.hesapla(dict(REFERANS_PROJE))
     r.kontrol("referans proje girdileri motorda geçerli", s.get("aktif"), f"→ {s.get('hata')}")
     if not s.get("aktif"):
         return
@@ -137,7 +137,7 @@ def _referans_proje(r):
         _hb(s)["sonuc"]["uygun"] is False,
         f"→ {_hb(s)['sonuc']['metin']}",
     )
-    s_b = MK.hesapla(dict(REFERANS_PROJE, kasnak_belgesi="Var"))
+    s_b = mukavemet.hesapla(dict(REFERANS_PROJE, kasnak_belgesi="Var"))
     r.kontrol(
         "referans proje · belgeyle halat bölümü UYGUN, Sf yine 23,54",
         _hb(s_b)["sonuc"]["uygun"] is True and abs(s_b["ozet"]["Sf"] - 23.54) / 23.54 * 100 <= 0.5,
@@ -149,7 +149,7 @@ def _referans_proje(r):
     #  ( 0,44 kg/m ) ve ağırlık tarafında %2 sürtünme kullanır.  İkisi
     #  verilince frenleme ve bloke kuvvetlerinin altısı da yuvarlama içinde
     #  tutmalı — kasnak ataleti, halat dağılımı, zincir ve sürtünme dâhil.
-    s_e = MK.hesapla(
+    s_e = mukavemet.hesapla(
         dict(
             REFERANS_PROJE,
             kablo_birim_kutle=0.44,
@@ -176,7 +176,7 @@ def _referans_proje(r):
     #  ( "Guide Shoe Type : Roller Type" ) ve flanş gerilmesini 1,85·Fx/c²
     #  ile hesaplar.  Karşı ağırlık rayında zinciri saymadığı için ( Mcwt =
     #  1.300 kg ) karşılaştırma zincirsiz yapılır.  Birim:  N/cm² → N/mm².
-    s_a = MK.hesapla(
+    s_a = mukavemet.hesapla(
         dict(
             REFERANS_PROJE,
             denge_zinciri="Yok",
@@ -207,7 +207,7 @@ def _referans_proje(r):
     #  "Boş kabinin ağırlık merkezi" girdileri ( Gelişmiş ) ile aynı proje
     #  girilebilir.  Ray T75/B, l = 200 cm, h = 330 cm, Rm = 450, kaymalı paten
     #  lp = 14 cm, tek gezici kablo 0,44 kg/m.  Birim:  N/cm² → N/mm², cm → mm.
-    s_k = MK.hesapla(
+    s_k = mukavemet.hesapla(
         dict(
             REFERANS_PROJE,
             kabin_derinligi=1400,
@@ -260,8 +260,8 @@ def _referans_proje(r):
         #  λ'yı yukarı tam sayıya ( 129 ) yuvarladığı için biraz büyük alır.
         r.kontrol(
             "referans proje · ω ( Rm 450 ara değeri, λ = 128,45 ) = 3,53",
-            abs(MT.omega_en8150(128.45, 450) - 3.53) <= 0.005,
-            f"→ {MT.omega_en8150(128.45, 450):.4f}",
+            abs(mukavemet_tablolari.omega_en8150(128.45, 450) - 3.53) <= 0.005,
+            f"→ {mukavemet_tablolari.omega_en8150(128.45, 450):.4f}",
         )
         #  BİLİNEN FARK 1 — YÜKÜN YÖNÜ.  m.5.7.2.3.4 yükü "en olumsuz" konuma
         #  koyar;  program ±Dy/8'i dener, referans proje yalnız +Dy/8'i alır.  İki
@@ -399,7 +399,7 @@ def _block(r):
     #  ── PAFTANIN KENDİ KUSURLARI  ( bizde OLMAMALI ) ──────────────────
     #  Bu pafta bizim değil;  ondan KOPYALAMAMAMIZ gereken şeyler de var.
     #  Aşağısı, aynı hatayı yapmadığımızı sabitler.
-    s = MK.hesapla({})
+    s = mukavemet.hesapla({})
     kb = next(x for x in s["bolumler"] if x["kimlik"] == "kabin_raylari")
     #  Bölünmez boşluk ( U+00A0 ) okuyan için boşluktur.
     metinler = " | ".join(str(a.get("formul") or "") for a in kb["adimlar"] if isinstance(a, dict)).replace(

@@ -4,7 +4,7 @@ MMO/697 (2. Baskı, Ocak 2020), TS EN 81-20, ISO 8100-32:2020 ve IEC 60364-5-52
 kaynaklı tablolar.
 """
 
-from motor.ortak import ofis as _OFIS
+from motor.ortak import ofis
 from temel import sayi_mi
 
 # ---------------------------------------------------------------- TABLO - 1
@@ -401,17 +401,17 @@ def ayd_verim(k, sutun=2):
 #  ve boş kabin kütlesi vermez.  Gk değerleri ofisin imalatçı deneyiminden
 #  gelir;  paftada kaynağı da öyle yazılır.  ( Eskiden "Tablo-11" diye
 #  gösteriliyordu — yanlış atıf. )
-GK_TABLOSU = [tuple(satir) for satir in _OFIS.GK_TABLOSU]
+GK_TABLOSU = [tuple(satir) for satir in ofis.GK_TABLOSU]
 
 #  Geriye dönük ad ( arayüz ve testler bu adı kullanır )
 TABLO_11 = GK_TABLOSU
 
-GK_KAYNAGI = _OFIS.GK_KAYNAGI
+GK_KAYNAGI = ofis.GK_KAYNAGI
 
 
 def tablo11_Gk(Q):
     """Ara yükler doğrusal enterpolasyonla; sonuç 10 kg'a, yarımı yukarı yuvarlanır."""
-    return _OFIS.bos_kabin_kutlesi(Q) if sayi_mi(Q) else None
+    return ofis.bos_kabin_kutlesi(Q) if sayi_mi(Q) else None
 
 
 # --------------- MMO/697 Tablo-11  ( = TS EN 81-20 )
@@ -748,10 +748,10 @@ BODRUM_NOTU = (
 #  UYGULAMA PROJESİ BUNU UYGULAMAZ:  orada η TOPLAM sistem verimidir
 #  ( imalatçı kataloğunun η_ins'i, askı kaybı içinde ) — bkz.
 #  motor/ortak/ofis.py.  Uygulama elektrik hesabını avan motorunda koştuğu
-#  için köprü ( motor/uygulama/uygulama_girdisi.kopru ) "η toplamdır" bayrağını
+#  için köprü ( motor/uygulama/uygulama_girdisi.avan_girdisi ) "η toplamdır" bayrağını
 #  ( ETA_TOPLAM_ANAHTARI ) geçirir;  düşüş o yolda uygulanmaz.
 #  Tablo ORTAK ofis standardındadır:  iki taraf aynı sayıları okur.
-MAKINE_TIPLERI = _OFIS.MAKINE_VERIMLERI
+MAKINE_TIPLERI = ofis.MAKINE_VERIMLERI
 ASKI_ORANLARI = {"1:1": 1, "2:1": 2}
 PALANGA_VERIM_DUSUSU = 0.10  # MMO/697 §2.4 s.21 · örnek §4.4 s.56
 ETA_TOPLAM_ANAHTARI = "eta_toplam"  # köprünün bayrağı — avan formunda yoktur
@@ -759,7 +759,7 @@ ETA_TOPLAM_ANAHTARI = "eta_toplam"  # köprünün bayrağı — avan formunda yo
 
 def makine_verimi(makine_tipi):
     """Makine tipine göre η ( ofis kabulü ).  Tanınmayan tip için None."""
-    return _OFIS.makine_verimi(makine_tipi)
+    return ofis.makine_verimi(makine_tipi)
 
 
 def aski_orani_metni(i):

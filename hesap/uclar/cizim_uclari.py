@@ -27,13 +27,13 @@ from temel import sayi_mi
 from uclar.uc_ortak import hata_kaydi
 
 
-from cizim import cizimler as CZ
-from cizim import geometri as CGE
-from cizim import kopru as CK
-from cizim import olcu_kaynagi as CO
-from cizim import pafta as CPF
-from cizim import cizim_sabitleri as CS
-from cizim import svg as CSV
+from cizim import cizimler
+from cizim import geometri
+from cizim import kopru
+from cizim import olcu_kaynagi
+from cizim import pafta
+from cizim import sabitler
+from cizim import svg
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -45,14 +45,14 @@ def girdiler(veri, asansorler, ortak, sonuc, proje_adi):
     Girdi hesap motorunun kurduğu gibi kurulur ( motor/uygulama/uygulama_hesabi.hesapla:
     varsayılanlar + girilenler, sonra tamamlama ):  çizim hesabın kullandığı
     sayıyı görür."""
-    from motor.uygulama import uygulama_girdisi as E_UGR
+    from motor.uygulama import uygulama_girdisi
 
     pg = {k: ortak[k] for k in ortak if k != "_ofis"}
     liste = []
     for i, a in enumerate(asansorler):
-        A = E_UGR.tamamla({**E_UGR.varsayilanlar(), **ortak, **a, **pg})
+        A = uygulama_girdisi.tamamla({**uygulama_girdisi.varsayilanlar(), **ortak, **a, **pg})
         s = sonuc["asansorler"][i] if sonuc and i < len(sonuc.get("asansorler") or []) else None
-        g, hata = CK.cizim_girdisi(A, s, proje_adi, i + 1)
+        g, hata = kopru.cizim_girdisi(A, s, proje_adi, i + 1)
         if g is not None:
             hata = _cizim_hatalari(g, A)
         liste.append((g if not hata else None, hata))
@@ -64,24 +64,24 @@ def _cizim_hatalari(g, A):
     "Çizimler kurulamadı" listesi.  Aynı hata birçok çizimde tekrarlanır
     ( hepsi kuyu planının doğrulamasından geçer );  bir kez söylenir."""
     gorulen, tek = set(), []
-    for ad in CPF.sira(g):
-        for h in CZ.CIZIMLER[ad][0](g):
+    for ad in pafta.sira(g):
+        for h in cizimler.CIZIMLER[ad][0](g):
             if h not in gorulen:
                 gorulen.add(h)
                 tek.append(h)
-    return tek or CK.tutarlilik(g, A)
+    return tek or kopru.tutarlilik(g, A)
 
 
 def _elemanlar(g, ad):
     """Ekrandaki çizimin eleman listesi ( çerçevesiyle ) — SVG'si ve ölçü
     kaynağı çözümlemesi AYNI listeyi okur:  ölçülerin sırası birebir tutar."""
-    _dogrula, ciz, baslik = CZ.CIZIMLER[ad]
-    olcek = CZ.OLCEKLER.get(ad, 20)
-    baslik = CZ.plan_basligi(g, ad, baslik)
+    _dogrula, ciz, baslik = cizimler.CIZIMLER[ad]
+    olcek = cizimler.OLCEKLER.get(ad, 20)
+    baslik = cizimler.plan_basligi(g, ad, baslik)
     seritler = (
         f"{g['proje']['ad']}  ·  {g['proje']['asansor']}" if g["proje"]["ad"] else g["proje"]["asansor"],
     )
-    return CGE.cerceveli(ciz(g), baslik, olcek, seritler=seritler), baslik, olcek
+    return geometri.cerceveli(ciz(g), baslik, olcek, seritler=seritler), baslik, olcek
 
 
 def _svg(g, ad, onek=""):
@@ -92,7 +92,9 @@ def _svg(g, ad, onek=""):
         "ad": ad,
         "baslik": baslik,
         "olcek": olcek,
-        "svg": CSV.yaz(e, CGE.sinir(e, 120 * olcek / 20.0), "", olcek, onek=onek, etkilesimli=bool(onek)),
+        "svg": svg.yaz(
+            e, geometri.sinir(e, 120 * olcek / 20.0), "", olcek, onek=onek, etkilesimli=bool(onek)
+        ),
     }
 
 
@@ -102,12 +104,12 @@ def api_cizimler(veri: dict = Body(...)):
 
     Asıl çıktı "Projeyi paketle" ile inen paftadır ( DXF / DWG );  SVG aynı
     eleman listesinden çıkar ( cizim/svg.py · cizim/dxf.py )."""
-    from uclar import uygulama_uclari as UYG
+    from uclar import uygulama_uclari
     from uclar.uc_ortak import _belirsiz_hata, _proje_kimligi
-    from motor.uygulama import uygulama_hesabi as E_UYG
+    from motor.uygulama import uygulama_hesabi
 
     try:
-        asansorler, ortak = UYG._asansor_girdileri(veri)
+        asansorler, ortak = uygulama_uclari._asansor_girdileri(veri)
         belirsiz = _belirsiz_hata()
         if belirsiz:
             return JSONResponse({"aktif": False, "hata": [belirsiz]})
@@ -116,7 +118,7 @@ def api_cizimler(veri: dict = Body(...)):
         except (TypeError, ValueError):
             i = 0
         i = min(max(i, 0), len(asansorler) - 1)
-        s = E_UYG.hesapla_coklu(asansorler, ortak)
+        s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
         g, hata = girdiler(
             veri, asansorler, ortak, s if s.get("aktif") else None, _proje_kimligi(veri)["proje_adi"]
         )[i]
@@ -128,7 +130,7 @@ def api_cizimler(veri: dict = Body(...)):
             {
                 "aktif": True,
                 "hesap": bool(s["asansorler"][i].get("aktif")),
-                "cizimler": [_svg(g, ad, onek=f"c{n}-") for n, ad in enumerate(CPF.sira(g))],
+                "cizimler": [_svg(g, ad, onek=f"c{n}-") for n, ad in enumerate(pafta.sira(g))],
             }
         )
     except Exception as e:  # noqa: BLE001
@@ -157,20 +159,20 @@ _SURENLER = {}
 @functools.lru_cache(maxsize=1)
 def _sozlesme():
     """Formun alanları ( anahtar → alan ), proje geneli olanlar, yerleşime göre gizliler."""
-    from uclar import uygulama_uclari as UYG
+    from uclar import uygulama_uclari
 
-    v = UYG.uygulama_alanlari()
+    v = uygulama_uclari.uygulama_alanlari()
     alan = {f["anahtar"]: f for gr in v["gruplar"] for f in gr["alanlar"]}
     return alan, frozenset(v["proje_geneli"]), v["yerlesime_gore_gizli"]
 
 
 def _istek(veri):
     """Aktif asansörün tamamlanmamış girdisi — girdiler()'in kurduğunun aynısı."""
-    from uclar import uygulama_uclari as UYG
+    from uclar import uygulama_uclari
     from uclar.uc_ortak import _belirsiz_hata, _proje_kimligi
-    from motor.uygulama import uygulama_girdisi as E_UGR
+    from motor.uygulama import uygulama_girdisi
 
-    asansorler, ortak = UYG._asansor_girdileri(veri)
+    asansorler, ortak = uygulama_uclari._asansor_girdileri(veri)
     belirsiz = _belirsiz_hata()
     if belirsiz:
         raise ValueError(belirsiz)
@@ -180,7 +182,11 @@ def _istek(veri):
         i = 0
     i = min(max(i, 0), len(asansorler) - 1)
     pg = {k: ortak[k] for k in ortak if k != "_ofis"}
-    return ({**E_UGR.varsayilanlar(), **ortak, **asansorler[i], **pg}, i, _proje_kimligi(veri)["proje_adi"])
+    return (
+        {**uygulama_girdisi.varsayilanlar(), **ortak, **asansorler[i], **pg},
+        i,
+        _proje_kimligi(veri)["proje_adi"],
+    )
 
 
 def _kurucu(ham, ad, proje_adi, sira):
@@ -191,7 +197,7 @@ def _kurucu(ham, ad, proje_adi, sira):
     askı kaçıklığı … ) bırakılır, çizimden yeniden türetilir.  Çizimin girdisi
     değişmediyse tabanın listesi döner ( çözümleme o girdiyi atlar ).  Hesabın
     sonucu verilmez:  ölçüler ona bağlı değildir ( yalnız yük kutuları )."""
-    from motor.uygulama import uygulama_girdisi as E_UGR
+    from motor.uygulama import uygulama_girdisi
 
     taban = {}
     secimler = {k for k, f in _sozlesme()[0].items() if f["tur"] == "secim"}
@@ -206,27 +212,27 @@ def _kurucu(ham, ad, proje_adi, sira):
         if "g" in taban and not any(k in secimler for (_y, k) in degisiklik or {}):
             _regulatoru_tut(h, taban["g"], degisiklik or {})
         if serbest:
-            birak = CK.CIZIMDEN if serbest is True else serbest
+            birak = kopru.CIZIMDEN if serbest is True else serbest
             for k in birak:
                 if ("girdi", k) not in (degisiklik or {}) and h.get(k) is not None:
                     h[k] = None
         try:
-            A = E_UGR.tamamla(h)
-            g, _hata = CK.cizim_girdisi(A, None, proje_adi, sira)
+            A = uygulama_girdisi.tamamla(h)
+            g, _hata = kopru.cizim_girdisi(A, None, proje_adi, sira)
             #  Çizimin kendi denetimi ( CZ.CIZIMLER[ad][0] ) tabanda ve kesikli
             #  değişimlerde ( seçim, tam sayı — düzen değişebilir ):  1 mm
             #  oynatmada ölçünün değişimi denetimden bağımsızdır ( kurulamayan
             #  girdi zaten hata verir ).  Değiştirilen değer uygulanmadan önce
             #  bütün çizimlerin denetiminden geçer ( _yeni_hatalar ).
-            if g is None or (("g" not in taban or denetle) and CZ.CIZIMLER[ad][0](g)):
+            if g is None or (("g" not in taban or denetle) and cizimler.CIZIMLER[ad][0](g)):
                 return None
             if "g" in taban and g == taban["g"]:
                 return taban["e"]
             #  Çerçevesiz:  çerçeve yalnız sona eleman ekler, ölçülerin sırası
             #  ekrandakiyle aynıdır ( test ) — başlığı kurmak kesitin bütün
             #  denetimini yeniden yapıyordu.
-            with CGE.yalniz_olculer():
-                e = CO.olculer(CZ.CIZIMLER[ad][1](g))
+            with geometri.yalniz_olculer():
+                e = olcu_kaynagi.olculer(cizimler.CIZIMLER[ad][1](g))
         except Exception:
             log.debug("yedek değer kullanılıyor ( kurulamayan girdi )", exc_info=True)
             return None
@@ -267,7 +273,7 @@ def _adaylar(ham, A, g, okunan):
     gizliler hariç ) ve ofis standardının çizim sabitleri ( tek katalog —
     yalnız çizimin okudukları:  okunan )."""
     alan, _pg, gizli = _sozlesme()
-    sakli = set(gizli["mrl" if CK._mrl(A) else "daireli"])
+    sakli = set(gizli["mrl" if kopru._mrl(A) else "daireli"])
     ad = []
     for k, f in alan.items():
         if k in sakli or f["tur"] not in ("sayi", "secim"):
@@ -288,10 +294,10 @@ def _adaylar(ham, A, g, okunan):
             #  varsayılanlı çizim alanı ( duvar 150 … ) ya da hesabın doldurduğu /
             #  çizimden türettiği değer.
             v = (
-                CK.etkin_deger(g, k)
-                if k in CK.KURALLI
-                else CK._varsayilan(A, k)
-                if k in CK.ALAN
+                kopru.etkin_deger(g, k)
+                if k in kopru.KURALLI
+                else kopru._varsayilan(A, k)
+                if k in kopru.ALAN
                 else A.get(k)
             )
         if not sayi_mi(v):
@@ -305,8 +311,8 @@ def _adaylar(ham, A, g, okunan):
                 "adim": adim,
             }
         )
-    S = CS.sabitler(CK.cizim_sabitleri(ham))
-    for o, c in CK.OFIS_SABITLERI.items():
+    S = sabitler.sabitler(kopru.cizim_sabitleri(ham))
+    for o, c in kopru.OFIS_SABITLERI.items():
         if c in okunan:
             ad.append({"kimlik": ("ofis", o), "tur": "ofis", "adim": 1.0, "deger": float(S[c])})
     return ad
@@ -344,11 +350,11 @@ def _cozumleme(veri, ad):
 
 def _cozumle(ham, i, proje, ad):
     kur, bilgi = _kurucu(ham, ad, proje, i + 1)
-    with CS.okunanlar() as okunan:
+    with sabitler.okunanlar() as okunan:
         if kur({}) is None:
             return None
     adaylar = _adaylar(ham, bilgi["A"], bilgi["g"], okunan)
-    taban, kaynak = CO.cozumle(kur, adaylar)
+    taban, kaynak = olcu_kaynagi.cozumle(kur, adaylar)
     return {
         "ham": ham,
         "kur": kur,
@@ -367,7 +373,7 @@ def _kaynaklar(r, i):
     değiştirilip değiştirilemeyeceğiyle.  Sıra:  ölçünün kendisi olan girdi
     ( değeri ölçüye eşit, eğimi 1 ) önce, sonra değiştirilebilenler, sonra
     yalnız gösterilenler."""
-    from motor.uygulama import uygulama_sabitleri as E_US
+    from motor.uygulama import uygulama_sabitleri
 
     alan, pg, _gizli = _sozlesme()
     u = r["taban"][i]["uzunluk"]
@@ -395,7 +401,10 @@ def _kaynaklar(r, i):
                 b["degistirilir"] = k["tur"] == "sayi"
         else:
             b.update(
-                etiket=E_US.ETIKET.get(anahtar, (anahtar,))[0], birim="mm", yer="ofis", degistirilir=False
+                etiket=uygulama_sabitleri.ETIKET.get(anahtar, (anahtar,))[0],
+                birim="mm",
+                yer="ofis",
+                degistirilir=False,
             )
         b["dogrudan"] = yer == "girdi" and k["tur"] != "tam" and _dogrudan(k, aday["deger"], u)
         liste.append(b)
@@ -410,7 +419,7 @@ def _kaynaklar(r, i):
             not b["degistirilir"],
             sira[b["yer"]],
             -abs(b["egim"] or 0),
-            b["anahtar"] not in CK.KURALLI,
+            b["anahtar"] not in kopru.KURALLI,
         )
     )
     return liste
@@ -435,7 +444,7 @@ def api_olcu(veri: dict = Body(...)):
     """Tıklanan ölçünün kaynakları."""
     try:
         ad = veri.get("cizim")
-        if ad not in CZ.CIZIMLER:
+        if ad not in cizimler.CIZIMLER:
             return JSONResponse({"aktif": False, "hata": ["Bilinmeyen çizim."]})
         r = _cozumleme(veri, ad)
         if r is None:
@@ -473,7 +482,7 @@ def api_olcu_degistir(veri: dict = Body(...)):
 
     try:
         ad = veri.get("cizim")
-        if ad not in CZ.CIZIMLER:
+        if ad not in cizimler.CIZIMLER:
             return JSONResponse({"aktif": False, "hata": ["Bilinmeyen çizim."]})
         r = _cozumleme(veri, ad)
         if r is None:
@@ -506,7 +515,7 @@ def api_olcu_degistir(veri: dict = Body(...)):
             #  değişince başka parçalara bölünür, ölçü artık ayrı görünmez.
             s = {"deger": hedef, "olcu": hedef, "dogrulandi": True}
         else:
-            s = CO.coz(
+            s = olcu_kaynagi.coz(
                 r["kur"],
                 r["taban"],
                 i,
@@ -559,7 +568,7 @@ def _en_az_serbest(r, k, aday):
     """Girdiyle birlikte bırakılması gereken EN AZ türetilen alan:  kaide
     girilmişken kuyu dibi değişirse yalnız kaide ( zincir ) — D2, Ds, α gibi
     geometriyle ilgisi olmayanlar girildiği gibi kalır."""
-    girilmis = [c for c in CK.CIZIMDEN if r["ham"].get(c) is not None and c != k["kimlik"][1]]
+    girilmis = [c for c in kopru.CIZIMDEN if r["ham"].get(c) is not None and c != k["kimlik"][1]]
     x = aday["deger"] + aday["adim"]
     for c in girilmis:
         if r["kur"]({k["kimlik"]: x}, serbest={c}) is not None:
@@ -570,15 +579,15 @@ def _en_az_serbest(r, k, aday):
 def _bagli_degerler(r, anahtar, x, serbest):
     """Bırakılan türetilen alanların yeni değerleri — kutuya yazılır ( girilmiş
     kalırlar ):  kuyu dibi 1.500 → 1.600 olunca kaide 306 → 406."""
-    from motor.uygulama import uygulama_girdisi as E_UGR
+    from motor.uygulama import uygulama_girdisi
 
     alan = _sozlesme()[0]
     h = dict(r["ham"])
     h[anahtar] = x
-    birak = CK.CIZIMDEN if serbest is True else serbest
+    birak = kopru.CIZIMDEN if serbest is True else serbest
     for c in birak:
         h[c] = None
-    A = E_UGR.tamamla(h)
+    A = uygulama_girdisi.tamamla(h)
     return [
         {"anahtar": c, "etiket": alan[c]["etiket"], "eski": r["ham"][c], "deger": _yuvarla(A[c])}
         for c in birak
@@ -590,13 +599,13 @@ def _yeni_hatalar(r, degisiklik):
     """Yeni değerlerle çizim kurulamayacaksa sebepleri — ekran uygulamadan
     önce sorar ( "Yine de uygula" ):  kuyu genişleyince korkuluk gerekir,
     korkuluk tavana sığmaz …"""
-    from motor.uygulama import uygulama_girdisi as E_UGR
+    from motor.uygulama import uygulama_girdisi
 
     h = dict(r["ham"])
     h.update({d["anahtar"]: d["deger"] for d in degisiklik})
     try:
-        A = E_UGR.tamamla(h)
-        g, hata = CK.cizim_girdisi(A)
+        A = uygulama_girdisi.tamamla(h)
+        g, hata = kopru.cizim_girdisi(A)
         return hata if g is None else _cizim_hatalari(g, A)
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
@@ -608,15 +617,15 @@ def _tutarlilik_duzeltmeleri(r, degisiklik):
     girilmiş D2 · Ds · α ) o girdiler de çizimdeki değere getirilir:  DBGW
     değişince yan yatak boyu da değişir — kullanıcı ikinci bir uyarıyla
     karşılaşmasın."""
-    from motor.uygulama import uygulama_girdisi as E_UGR
+    from motor.uygulama import uygulama_girdisi
 
     alan = _sozlesme()[0]
     h = dict(r["ham"])
     h.update({d["anahtar"]: d["deger"] for d in degisiklik})
     try:
-        A = E_UGR.tamamla(h)
-        g, _hata = CK.cizim_girdisi(A)
-        duz = CK.tutarlilik_duzeltmeleri(g, A) if g is not None else {}
+        A = uygulama_girdisi.tamamla(h)
+        g, _hata = kopru.cizim_girdisi(A)
+        duz = kopru.tutarlilik_duzeltmeleri(g, A) if g is not None else {}
     except Exception:
         log.debug("yedek değer kullanılıyor ( çizim kendi hatasını söyler )", exc_info=True)
         return []
@@ -644,7 +653,7 @@ def _secimle(r, i, anahtar, hedef, bilgi):
     if v is None:
         return {"aktif": False, "hata": ["Seçeneklerden biri seçilmeli."]}
     e = r["kur"]({("girdi", anahtar): v}, denetle=True)
-    j = CO.eslestir(r["taban"], e)[i] if e is not None else None
+    j = olcu_kaynagi.eslestir(r["taban"], e)[i] if e is not None else None
     degisiklik = [
         {
             "anahtar": anahtar,
@@ -680,7 +689,7 @@ def paftaya_ekle(gler):
             yol = os.path.join(t, "hesap.dxf")
             with open(yol, "wb") as f:
                 f.write(dxf)
-            d, _bilgi = CPF.birlestir(yol, gler)
+            d, _bilgi = pafta.birlestir(yol, gler)
             cikti = os.path.join(t, "pafta.dxf")
             d.saveas(cikti)
             with open(cikti, "rb") as f:

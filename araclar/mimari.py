@@ -1,0 +1,101 @@
+"""MİMARİ DENETİMİ — programın modülleri arasındaki erişimlerin doğruluğu.
+
+Bir modül başka bir modülden yalnız orada TANIMLI olanı alır ( fonksiyon,
+sınıf, değişken );  o modülün kendi import ettiği bir modüle onun içinden
+uzanmaz ( uygulama_hesabi.mukavemet_girdi yerine mukavemet_girdi import
+edilir ).  Takma adlar kalkınca bu uzanmalar sessizce kırılırdı;  bu denetim
+sözdizimi ağacından bulur ( testler/test_mimari.py ).
+"""
+
+import ast
+import glob
+import os
+
+KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+KOKLER = (KOK, os.path.join(KOK, "hesap"), os.path.join(KOK, "ornekler"))
+
+
+def modul_dosyasi(noktali):
+    yol = noktali.replace(".", os.sep)
+    for k in KOKLER:
+        for aday in (os.path.join(k, yol + ".py"), os.path.join(k, yol, "__init__.py")):
+            if os.path.isfile(aday):
+                return aday
+    return None
+
+
+def dosyalar():
+    out = []
+    for f in glob.glob(os.path.join(KOK, "**", "*.py"), recursive=True):
+        g = os.path.relpath(f, KOK)
+        if not g.startswith((".venv", "cikti")):
+            out.append(g)
+    return sorted(out)
+
+
+_TANIM = {}
+
+
+def tanimlar(dosya):
+    """Modülün üst düzeyde TANIMLADIĞI adlar ( import ettikleri hariç ) ve
+    import ettikleri ( ayrı ):  ( tanımlı, import edilen )."""
+    if dosya not in _TANIM:
+        with open(dosya, encoding="utf-8") as d:
+            t = ast.parse(d.read())
+        tanimli, importlu = set(), set()
+
+        def gez(govde):
+            for n in govde:
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    tanimli.add(n.name)
+                elif isinstance(n, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+                    hedefler = n.targets if isinstance(n, ast.Assign) else [n.target]
+                    for h in hedefler:
+                        for a in ast.walk(h):
+                            if isinstance(a, ast.Name):
+                                tanimli.add(a.id)
+                elif isinstance(n, (ast.Import, ast.ImportFrom)):
+                    for a in n.names:
+                        importlu.add(a.asname or a.name.split(".")[0])
+                elif isinstance(n, (ast.If, ast.Try, ast.With, ast.For)):
+                    for alt in ("body", "orelse", "finalbody"):
+                        gez(getattr(n, alt, []) or [])
+                    for h in getattr(n, "handlers", []) or []:
+                        gez(h.body)
+
+        gez(t.body)
+        _TANIM[dosya] = (tanimli, importlu)
+    return _TANIM[dosya]
+
+
+def ihlaller():
+    """[ ( dosya, satır, ileti ) ] — olmayan ada ya da başka modülün importuna erişim."""
+    out = []
+    for f in dosyalar():
+        with open(os.path.join(KOK, f), encoding="utf-8") as d:
+            t = ast.parse(d.read())
+        moduller = {}  # ad → modül dosyası ( bu dosyada modül bağlayan adlar )
+        for n in ast.walk(t):
+            if isinstance(n, ast.ImportFrom) and n.module and not n.level:
+                kaynak = modul_dosyasi(n.module)
+                for a in n.names:
+                    alt = modul_dosyasi(f"{n.module}.{a.name}")
+                    if alt:
+                        moduller[a.asname or a.name] = alt
+                    elif kaynak and not kaynak.endswith("__init__.py"):
+                        tanimli, importlu = tanimlar(kaynak)
+                        if a.name not in tanimli:
+                            neden = "o modülün importu" if a.name in importlu else "tanımlı değil"
+                            out.append((f, n.lineno, f"from {n.module} import {a.name}:  {neden}"))
+        for n in ast.walk(t):
+            if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name) and n.value.id in moduller:
+                tanimli, importlu = tanimlar(moduller[n.value.id])
+                if n.attr not in tanimli and not n.attr.startswith("__"):
+                    neden = "o modülün importu" if n.attr in importlu else "tanımlı değil"
+                    out.append((f, n.lineno, f"{n.value.id}.{n.attr}:  {neden}"))
+    return out
+
+
+if __name__ == "__main__":
+    for f, s, i in ihlaller():
+        print(f"{f}:{s}:  {i}")

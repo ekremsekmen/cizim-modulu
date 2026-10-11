@@ -29,23 +29,23 @@ import yollar
 
 yollar.kur()
 
-from araclar import kesisme as K
-from cizim import eleman as CEL
-from cizim import cizimler as CZ
-from cizim import geometri as CGE
-from cizim import pafta as CPF
-from testler import test_yerlesim_saglamligi as Y
+from araclar import kesisme
+from cizim import eleman
+from cizim import cizimler
+from cizim import geometri
+from cizim import pafta
+from testler import test_yerlesim_saglamligi
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CIKTI = os.path.join(KOK, "cikti", "tarama")
 HUKUMLER = os.path.join(KOK, "testler", "tarama_hukumleri.json")
 GRUPLAR = ("ana", "kapi", "diger")
 
-PARCA = set(CGE.PARCA_KATMANLARI) | {"KAPI", "AGIRLIK", "KASNAK"}
+PARCA = set(geometri.PARCA_KATMANLARI) | {"KAPI", "AGIRLIK", "KASNAK"}
 #  Yazının üstünden geçebilecek ( maskeyle kesilecek ) çizgiler:  eksen, ölçü
 #  çizgisi, gizli / alan çizgisi, seviye, kesit işareti, duvar taramasının içi —
 #  programın kendi kuralı:  geometri.MASKELI_KATMANLAR + duvar taraması
-SERBEST = set(CGE.MASKELI_KATMANLAR) | {"TARAMA-İÇİ", "TARAMA"}
+SERBEST = set(geometri.MASKELI_KATMANLAR) | {"TARAMA-İÇİ", "TARAMA"}
 #  Kutuların birbirine bu kadar girmesi çakışma sayılmaz ( çizim birimi )
 PAY = 2
 
@@ -57,7 +57,7 @@ def _olcu_yazilari(e):
     for el in e:
         if el["tip"] == "olcu" and el.get("yazi"):
             y = el["yazi"]
-            w, h = CEL.yazi_eni(el["metin"], y["h"]) / 2.0, y["h"] / 2.0
+            w, h = eleman.yazi_eni(el["metin"], y["h"]) / 2.0, y["h"] / 2.0
             if y["aci"]:
                 w, h = h, w
             out.append((el["metin"], y["x"] - w, y["y"] - h, y["x"] + w, y["y"] + h))
@@ -73,8 +73,8 @@ def denetle(g):
     """Paftanın bütün çizimlerinin sorunları:  [ ileti ]."""
     sorun = []
     md = g["makine"]["yeri"] == "Makine dairesi"
-    for c in CPF.SIRA_MD if md else CPF.SIRA_MRL:
-        dogrula, ciz, _ = CZ.CIZIMLER[c]
+    for c in pafta.SIRA_MD if md else pafta.SIRA_MRL:
+        dogrula, ciz, _ = cizimler.CIZIMLER[c]
         try:
             h = dogrula(g)
             if h:
@@ -84,16 +84,16 @@ def denetle(g):
         except Exception as x:  # noqa: BLE001 — çöküş de bir bulgu
             sorun.append(f"{c}: ÇÖKTÜ {type(x).__name__}: {x}")
             continue
-        for z in CGE.zincirler(e):
+        for z in geometri.zincirler(e):
             if abs(z["toplam"] - (z["son"] - z["bas"])) > 0.5:
                 sorun.append(f"{c}: zincir kapanmıyor {z['toplam']} vs {z['son'] - z['bas']}")
         olcu = _olcu_yazilari(e)
-        yazi = [(el["metin"],) + tuple(CGE.sinir([el])) for el in e if el["tip"] == "yazi"]
+        yazi = [(el["metin"],) + tuple(geometri.sinir([el])) for el in e if el["tip"] == "yazi"]
         for a, b in itertools.combinations(olcu + yazi, 2):
             if _binisir(a, b):
                 sorun.append(f"{c}: yazı çakışması '{a[0]}' / '{b[0]}'")
         parcalar = [
-            (el.get("ad") or el["katman"], ("",) + tuple(CGE.sinir([el])))
+            (el.get("ad") or el["katman"], ("",) + tuple(geometri.sinir([el])))
             for el in e
             if el["tip"] == "dikdortgen" and el["katman"] in PARCA
         ]
@@ -101,8 +101,8 @@ def denetle(g):
             ad = next((ad for ad, p in parcalar if _binisir(a, p)), None)
             if ad:
                 sorun.append(f"{c}: ölçü yazısı parçada '{a[0]}' / {ad}")
-        k = CZ.OLCEKLER.get(c, 20) / 20.0
-        for metin, tip, kat, ad in K.kesismeler(e, k):
+        k = cizimler.OLCEKLER.get(c, 20) / 20.0
+        for metin, tip, kat, ad in kesisme.kesismeler(e, k):
             if kat not in SERBEST:
                 sorun.append(f"{c}: yazı parça kenarında '{metin}' / {kat} {ad}")
             elif kat == "TARAMA-İÇİ" and tip == "yazi":
@@ -120,13 +120,13 @@ def duzen(ad, v):
     """Bir düzenin sonucu:  { ad, durum ( çizildi · ret · çöktü ), hata | sorun }."""
     t = time.time()
     try:
-        d = Y._cizim(v)
+        d = test_yerlesim_saglamligi._cizim(v)
     except Exception:  # noqa: BLE001 — çöküş de bir bulgu
         return {"ad": ad, "durum": "çöktü", "ayrinti": traceback.format_exc()[-600:]}
     if not d.get("aktif"):
         return {"ad": ad, "durum": "ret", "hata": d.get("hata")}
     try:
-        g, _A, _h = Y._g(v)
+        g, _A, _h = test_yerlesim_saglamligi._g(v)
         s = denetle(g)
     except Exception:  # noqa: BLE001
         s = ["DENETİM ÇÖKTÜ " + traceback.format_exc()[-400:]]
@@ -136,7 +136,7 @@ def duzen(ad, v):
 def duzenler(grup):
     """( ad , formun isteği ) — grubun düzenleri."""
     if grup == "ana":
-        for Q in Y.KABIN:
+        for Q in test_yerlesim_saglamligi.KABIN:
             for yer in ("Sağ", "Sol", "Arka"):
                 for mrl in (True, False):
                     for aski in (
@@ -144,18 +144,18 @@ def duzenler(grup):
                         {"aski_duzeni": "Kabin üstü"},
                         {"aski_orani": 1},
                     ):
-                        v = Y._veri(Q, mrl, yer, **aski)
+                        v = test_yerlesim_saglamligi._veri(Q, mrl, yer, **aski)
                         if yer == "Arka":
-                            v["asansorler"][0]["kuyu_derinligi"] = Y.KABIN[Q][1] + 700
+                            v["asansorler"][0]["kuyu_derinligi"] = test_yerlesim_saglamligi.KABIN[Q][1] + 700
                         if aski.get("aski_duzeni") == "Kabin üstü":
                             v["asansorler"][0]["son_kat_yuksekligi"] = 5000
                         yield f"{Q} {yer} {'MRL' if mrl else 'MD'} {aski}", v
     elif grup == "kapi":
-        from motor.uygulama import mukavemet_tablolari as MT
+        from motor.uygulama import mukavemet_tablolari
 
         for Q in (450, 800, 1000, 1600, 2500):
             for yer in ("Sağ", "Sol", "Arka"):
-                for tip in MT.KAPI_TIPLERI:
+                for tip in mukavemet_tablolari.KAPI_TIPLERI:
                     ek = (
                         {
                             "aski_duzeni": "Kabin üstü",
@@ -165,9 +165,9 @@ def duzenler(grup):
                         if yer == "Arka"
                         else {}
                     )
-                    v = Y._veri(Q, True, yer, kat_kapisi_tipi=tip, **ek)
+                    v = test_yerlesim_saglamligi._veri(Q, True, yer, kat_kapisi_tipi=tip, **ek)
                     if yer == "Arka":
-                        v["asansorler"][0]["kuyu_derinligi"] = Y.KABIN[Q][1] + 700
+                        v["asansorler"][0]["kuyu_derinligi"] = test_yerlesim_saglamligi.KABIN[Q][1] + 700
                     yield f"{Q} {yer} {tip}", v
     elif grup == "diger":
         for Q in (320, 630, 1275, 2000):
@@ -175,7 +175,7 @@ def duzenler(grup):
                 for sd in ("Dik duruş", "Çömelme", "Yatarak"):
                     for mont in ("Kuyu içine", "Duvar boşluğuna"):
                         for hiz in (1.0, 1.6):
-                            v = Y._veri(
+                            v = test_yerlesim_saglamligi._veri(
                                 Q,
                                 Q % 2 == 0,
                                 "Sağ",

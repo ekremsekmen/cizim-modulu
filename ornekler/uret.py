@@ -42,10 +42,11 @@ ACC = (
 )
 
 from hesap_girdi import ASANSOR, ORTAK, ASANSOR_MD, ORTAK_MD, SABITLER
-from uclar import cizim_uclari as UC_CIZIM, uygulama_uclari as UC_UYG
-from motor.uygulama import uygulama_hesabi as E_UYG
-from ciktilar import pdf_cikti as X_PDF, dxf_cikti as X_DXF, kapak_cikti as X_KAPAK
-from cizim import pafta as CPF
+from uclar import cizim_uclari, uygulama_uclari
+from motor.uygulama import uygulama_hesabi
+from ciktilar import pdf_cikti, dxf_cikti, kapak_cikti
+from cizim import pafta
+from cizim import kopru
 
 
 def _dwg(dxf, dwg):
@@ -83,8 +84,8 @@ def uret(md):
         "proje_geneli": dict(ORTAK_MD if md else ORTAK),
         "sabitler": dict(SABITLER),
     }
-    asansorler, ortak = UC_UYG._asansor_girdileri(veri)
-    s = E_UYG.hesapla_coklu(asansorler, ortak)
+    asansorler, ortak = uygulama_uclari._asansor_girdileri(veri)
+    s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
     assert s.get("aktif"), s.get("hata")
     A = asansorler[0]
     kapak = {
@@ -105,21 +106,21 @@ def uret(md):
         "motor_power": f"{A['motor_gucu']:g} KW".replace(".", ","),
         "scale": "1/20 1/50",
     }
-    kapak_pdf = X_KAPAK.pdf_bytes(kapak)
-    hesap_pdf = X_PDF.uygulama_pdf(s)
-    hesap_dxf = X_DXF.proje_dxf([("Kapak", kapak_pdf), ("Uygulama Projesi", hesap_pdf)])
+    kapak_pdf = kapak_cikti.pdf_bytes(kapak)
+    hesap_pdf = pdf_cikti.uygulama_pdf(s)
+    hesap_dxf = dxf_cikti.proje_dxf([("Kapak", kapak_pdf), ("Uygulama Projesi", hesap_pdf)])
 
     #  ── ÇİZİM GİRDİSİ:  köprüden ( "Projeyi paketle" ile aynı ) ─────────
     #  Hesabın girdisi + çizim alanları;  binaya gelen yükler hesabın
     #  sonucundan;  hesapla çizimin tutarlılığı ( sarılma açısı, kasnaklar,
     #  kiriş aralığı, kuyu dibi zinciri ) orada denetlenir.
-    ((g, hata),) = UC_CIZIM.girdiler(veri, asansorler, ortak, s, "ÖRNEK PROJE")
+    ((g, hata),) = cizim_uclari.girdiler(veri, asansorler, ortak, s, "ÖRNEK PROJE")
     assert not hata, hata
     a = s["asansorler"][0]
     print(f"── {ad}")
     print(
         "   çizimden gelen hesap girdileri:",
-        {k: a["girdi"][k] for k in UC_CIZIM.CK.CIZIMDEN if veri["asansorler"][0].get(k) is None},
+        {k: a["girdi"][k] for k in kopru.CIZIMDEN if veri["asansorler"][0].get(k) is None},
     )
     #  Yerleşimin ölçüleri ( cizim/olculer ):  hesabın eskiden tahmin ettiği geometri
     print(
@@ -135,10 +136,10 @@ def uret(md):
     with tempfile.TemporaryDirectory() as t:
         yol_hesap = os.path.join(t, "hesap.dxf")
         Path(yol_hesap).write_bytes(hesap_dxf)
-        d, bilgi = CPF.birlestir(yol_hesap, g)
+        d, bilgi = pafta.birlestir(yol_hesap, g)
         dxf, svg = os.path.join(t, "pafta.dxf"), os.path.join(t, "pafta.svg")
         d.saveas(dxf)
-        Path(svg).write_text(CPF.onizleme(d), encoding="utf-8")
+        Path(svg).write_text(pafta.onizleme(d), encoding="utf-8")
         yol = os.path.join(CIKTI, ad)
         denetim = _dwg(dxf, yol + ".dwg") if os.path.exists(ACC) else None
         if denetim is None:

@@ -70,17 +70,17 @@ def P_std(sonuc):
     Testler bu değeri bağımsız kursun diye burada durur;  motorun kendi
     ``P_std``ini okumak, hesabı kendisiyle doğrulamak olurdu.
     """
-    from motor.uygulama import mukavemet_tablolari as T
-    from motor.uygulama import uygulama_sabitleri as S
+    from motor.uygulama import mukavemet_tablolari
+    from motor.uygulama import uygulama_sabitleri
 
     g = sonuc["girdi"]
     r = 2 if str(g["aski_orani"]).strip() in ("2", "2:1") else 1
     H = g["seyir_mesafesi"]
-    MSR = r * H * T.halat_agirlik(g["halat_capi"]) * g["halat_adedi"]
+    MSR = r * H * mukavemet_tablolari.halat_agirlik(g["halat_capi"]) * g["halat_adedi"]
     lam = (
-        (S.VARSAYILAN["denge_zinciri_orani"] or 0) / 100.0
+        (uygulama_sabitleri.VARSAYILAN["denge_zinciri_orani"] or 0) / 100.0
         if str(g.get("denge_zinciri") or "").strip() == "Var"
         else 0.0
     )
-    mt = sum(T.kablo_agirligi(g.get(k)) or 0.0 for k in ("kablo_tipi_1", "kablo_tipi_2"))
+    mt = sum(mukavemet_tablolari.kablo_agirligi(g.get(k)) or 0.0 for k in ("kablo_tipi_1", "kablo_tipi_2"))
     return g["kabin_agirligi"] + lam * MSR + 0.5 * H * mt

@@ -21,8 +21,8 @@ import yollar
 
 yollar.kur()
 
-from dogrulama import test_avan_tarama as T1
-from dogrulama import test_mukavemet_tarama as T10
+from dogrulama import test_avan_tarama
+from dogrulama import test_mukavemet_tarama
 
 
 def yaz(kayit, dosya):
@@ -36,5 +36,5 @@ def yaz(kayit, dosya):
 
 
 if __name__ == "__main__":
-    yaz(T1.uret(), T1.DOSYA)
-    yaz(T10.uret(), T10.DOSYA)
+    yaz(test_avan_tarama.uret(), test_avan_tarama.DOSYA)
+    yaz(test_mukavemet_tarama.uret(), test_mukavemet_tarama.DOSYA)
