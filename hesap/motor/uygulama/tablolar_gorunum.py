@@ -13,8 +13,6 @@ sözlüklerden okunur, yalnız sunum bilgisi ( başlık · sütun adları · kay
 eklenir.  Böylece ekrandaki tablo ile hesaba giren tablo bir daha ayrışamaz.
 """
 
-import math
-
 from motor.ortak.adimlar import yuvarla
 from motor.uygulama import mukavemet_tablolari
 from motor.uygulama import uygulama_sabitleri
@@ -69,19 +67,6 @@ _KABLO_AD = {"genislik": "Genişlik  ( mm )", "kalinlik": "Kalınlık  ( mm )", 
 _MALZEME_AD = {"derinlik": "Derinlik  ( mm )", "yukseklik": "Yükseklik  ( mm )"}
 
 
-def _f_yukleme(sekil, mu, gama_d, beta_d, sert):
-    """TS EN 81-50 m.5.11.2.3.1'in sürtünme çarpanı  —  motorla AYNI bağıntı."""
-    beta = math.radians(beta_d)
-    gama = math.radians(gama_d)
-    if mukavemet_tablolari.kanal_yarim_daire_mi(sekil):
-        pay = 4 * (math.cos(gama / 2.0) - math.sin(beta / 2.0))
-        payda = math.pi - beta - gama - math.sin(beta) + math.sin(gama)
-        return mu * pay / payda
-    if sert:
-        return mu / math.sin(gama / 2.0)
-    return mu * 4 * (1 - math.sin(beta / 2.0)) / (math.pi - beta - math.sin(beta))
-
-
 def arayuz_tablolari(ofis=None):
     """Ekranın çizeceği tabloların tamamı.
 
@@ -91,18 +76,19 @@ def arayuz_tablolari(ofis=None):
     bulunan hatalardan biriydi.
     """
     O = uygulama_sabitleri.sabitler(ofis)
-    t = []
+    return _ray_tablolari() + _kaide_halat_kabin_tablolari() + _kanal_tablolari(O) + _ofis_tablolari()
 
-    t.append(
+
+def _ray_tablolari():
+    """Kılavuz raylar:  profil, geometri, çelik, ω."""
+    return [
         {
             "ad": "Kılavuz ray profilleri",
             "kaynak": "ISO 7465",
             "aciklama": "Ray hesabının bütün kesit değerleri buradan okunur.",
-            "basliklar": _basliklar("Profil", mukavemet_tablolari._RAY_SUTUN, _RAY_AD),
+            "basliklar": _basliklar("Profil", mukavemet_tablolari.RAY_SUTUN, _RAY_AD),
             "satirlar": _satirlar(mukavemet_tablolari.RAY_PROFILI),
-        }
-    )
-    t.append(
+        },
         {
             "ad": "Ray geometrisi  ( flanş eğilmesi )",
             "kaynak": "TS EN 81-50 m.5.10.5",
@@ -110,20 +96,16 @@ def arayuz_tablolari(ofis=None):
                 "σF = | Fx | · ( h1 − b − f ) · 6  /  ( c² · ( ℓ + 2 · ( h1 − f ) ) ) "
                 "bağıntısının ölçüleri;  c ray profilleri tablosundadır."
             ),
-            "basliklar": _basliklar("Profil", mukavemet_tablolari._RAY_GEO_SUTUN, _RAY_GEO_AD),
+            "basliklar": _basliklar("Profil", mukavemet_tablolari.RAY_GEO_SUTUN, _RAY_GEO_AD),
             "satirlar": _satirlar(mukavemet_tablolari.RAY_GEOMETRI),
-        }
-    )
-    t.append(
+        },
         {
             "ad": "Ray çeliği  —  emniyet gerilmeleri",
             "kaynak": "TS EN 81-20 Çizelge 15  ( A5 > %12 )",
             "aciklama": "σperm = Rm / St;  St = 2,25 normal · 1,8 güvenlik tertibatı.",
             "basliklar": ["Rm  ( N/mm² )", "σperm normal", "σperm güv. tertibatı"],
             "satirlar": [[rm, yuvarla(n, 2), yuvarla(gv, 2)] for rm, n, gv in mukavemet_tablolari.RAY_CELIGI],
-        }
-    )
-    t.append(
+        },
         {
             "ad": "ω  —  burkulma katsayısı",
             "kaynak": "TS EN 81-50 m.5.10.3",
@@ -142,9 +124,13 @@ def arayuz_tablolari(ofis=None):
                     mukavemet_tablolari.OMEGA_LAMBDA_MIN, mukavemet_tablolari.OMEGA_LAMBDA_MAX + 1, 5
                 )
             ],
-        }
-    )
-    t.append(
+        },
+    ]
+
+
+def _kaide_halat_kabin_tablolari():
+    """Makine kaidesi, askı halatı, kabin alanı."""
+    return [
         {
             "ad": "NPU profilleri  ( makine kaidesi )",
             "kaynak": "NPU profil tablosu  ( ofis )",
@@ -152,29 +138,29 @@ def arayuz_tablolari(ofis=None):
                 "240 · 280 · 300 satırlarında atalet yarıçapı ix BOŞTUR; "
                 "program bu seçimi açık mesajla reddeder."
             ),
-            "basliklar": _basliklar("Ölçü", mukavemet_tablolari._NPU_SUTUN, _NPU_AD),
+            "basliklar": _basliklar("Ölçü", mukavemet_tablolari.NPU_SUTUN, _NPU_AD),
             "satirlar": _satirlar(mukavemet_tablolari.NPU_PROFIL),
-        }
-    )
-    t.append(
+        },
         {
             "ad": "Askı halatları",
             "kaynak": "TS 12385-5",
             "aciklama": "Halat çapı → metre ağırlığı · kopma kuvveti · yapı · Rm.",
             "basliklar": ["d  ( mm )", "Ağırlık  ( kg/m )", "Kopma  ( N )", "Yapı", "Rm  ( N/mm² )"],
             "satirlar": _satirlar(mukavemet_tablolari.HALAT),
-        }
-    )
-    t.append(
+        },
         {
             "ad": "Kabin alanı",
             "kaynak": "TS EN 81-20 m.5.4.2  ( Çizelge 6 · 7 )",
             "aciklama": ("Beyan yüküne göre kişi sayısı ve kullanılabilir en büyük / en küçük kabin alanı."),
             "basliklar": ["Q  ( kg )", "Kişi", "Azami alan  ( m² )", "Asgari alan  ( m² )"],
             "satirlar": _satirlar(mukavemet_tablolari.KABIN_ALANI),
-        }
-    )
-    t.append(
+        },
+    ]
+
+
+def _kanal_tablolari(O):
+    """Tahrik kanalı:  açılar, Nequiv(t) ve f PROJENİN ofis sabitlerinden ( O )."""
+    return [
         {
             "ad": "Tahrik kanalı",
             "kaynak": "TS EN 81-50 m.5.11.2.3.1  ·  m.5.12.2.2 Çizelge 2",
@@ -199,9 +185,7 @@ def arayuz_tablolari(ofis=None):
                 ]
                 for ad, tur, _gecis in mukavemet_tablolari.KANAL_SEKLI
             ],
-        }
-    )
-    t.append(
+        },
         {
             "ad": "Nequiv(t)  —  eşdeğer kasnak sayısı",
             "kaynak": "TS EN 81-50 m.5.12.2.2 Çizelge 2",
@@ -215,9 +199,7 @@ def arayuz_tablolari(ofis=None):
                 [["V kanal  ( γ )", a, n] for a, n in mukavemet_tablolari.NEQUIV_V]
                 + [["Altı kesik  ( β )", a, n] for a, n in mukavemet_tablolari.NEQUIV_U_ALTI_KESIK]
             ),
-        }
-    )
-    t.append(
+        },
         {
             "ad": "Kanal işleme  →  sürtünme çarpanı f  ( kabinin yüklenmesi )",
             "kaynak": "TS EN 81-50 m.5.11.2.3.1  ·  μ = 0,1  ( m.5.11.2.3.2 )",
@@ -232,12 +214,12 @@ def arayuz_tablolari(ofis=None):
                 [ad]
                 + [
                     yuvarla(
-                        _f_yukleme(
-                            ad,
+                        mukavemet_tablolari.surtunme_carpani(
+                            mukavemet_tablolari.kanal_yarim_daire_mi(ad),
+                            isleme == "Sertleştirilmiş",
                             0.1,
                             mukavemet_tablolari.kanal_acisi(ad, O["kanal_gama_v"], O["kanal_gama_yd"]),
                             mukavemet_tablolari.kanal_beta(ad, O["kanal_beta"]),
-                            isleme == "Sertleştirilmiş",
                         ),
                         5,
                     )
@@ -245,9 +227,13 @@ def arayuz_tablolari(ofis=None):
                 ]
                 for ad, _t, _g in mukavemet_tablolari.KANAL_SEKLI
             ],
-        }
-    )
-    t.append(
+        },
+    ]
+
+
+def _ofis_tablolari():
+    """Ofis kabulleri:  darbe katsayısı, ağırlık malzemesi, gezici kablo, kapı kablosu."""
+    return [
         {
             "ad": "Güvenlik tertibatı  —  darbe katsayısı k1",
             "kaynak": (
@@ -258,9 +244,7 @@ def arayuz_tablolari(ofis=None):
             "aciklama": "",
             "basliklar": ["Tertibat tipi", "k1"],
             "satirlar": _satirlar(mukavemet_tablolari.DARBE_TIPLERI),
-        }
-    )
-    t.append(
+        },
         {
             "ad": "Karşı ağırlık malzemesi",
             "kaynak": "ofis tablosu",
@@ -268,28 +252,23 @@ def arayuz_tablolari(ofis=None):
                 "Derinlik, 'Karşı ağırlık derinliği' kutusunun başlangıç "
                 "değeridir;  hesap kutuya girilen değeri okur."
             ),
-            "basliklar": _basliklar("Malzeme", mukavemet_tablolari._MALZEME_SUTUN, _MALZEME_AD),
+            "basliklar": _basliklar("Malzeme", mukavemet_tablolari.MALZEME_SUTUN, _MALZEME_AD),
             "satirlar": _satirlar(mukavemet_tablolari.AGIRLIK_MALZEMESI),
-        }
-    )
-    t.append(
+        },
         {
             "ad": "Gezici kablo  ( bükülgen )",
             "kaynak": "ofis tablosu",
             "aciklama": (
                 "Yassı bükülgen kablo;  hesaba yalnız metre ağırlığı girer ( gezici kablo kütlesi MTrav )."
             ),
-            "basliklar": _basliklar("Tip", mukavemet_tablolari._KABLO_SUTUN, _KABLO_AD),
+            "basliklar": _basliklar("Tip", mukavemet_tablolari.KABLO_SUTUN, _KABLO_AD),
             "satirlar": _satirlar(mukavemet_tablolari.BUKULGEN_KABLO),
-        }
-    )
-    t.append(
+        },
         {
             "ad": "Kat kapısı  →  kablo tipi",
             "kaynak": "ofis kabulü",
             "aciklama": "İkinci gezici kablo, kat kapısı tipinden belirlenir.",
             "basliklar": ["Kapı tipi", "Kablo"],
             "satirlar": _satirlar(mukavemet_tablolari.KAPI_KABLO),
-        }
-    )
-    return t
+        },
+    ]

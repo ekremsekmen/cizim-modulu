@@ -234,6 +234,80 @@ def golgeler():
     return sorted(set(out))
 
 
+def _agac(dosya, _onbellek={}):  # noqa: B006 — bilerek paylaşılan önbellek
+    if dosya not in _onbellek:
+        with open(os.path.join(KOK, dosya), encoding="utf-8") as d:
+            _onbellek[dosya] = ast.parse(d.read())
+    return _onbellek[dosya]
+
+
+def ascii_disi_adlar():
+    """[ ( dosya, satır, ad ) ] — Türkçe harfli ad.  Adlar Türkçedir ama
+    Türkçe harfsiz yazılır ( aski, boslugun ):  arama ve araçlar tek
+    biçimi bulsun, "askı" ile "aski" iki ayrı ad olmasın."""
+    out = []
+    for f in dosyalar():
+        for n in ast.walk(_agac(f)):
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                adlar = [n.name]
+            elif isinstance(n, ast.Name):
+                adlar = [n.id]
+            elif isinstance(n, ast.arg):
+                adlar = [n.arg]
+            elif isinstance(n, ast.Attribute):
+                adlar = [n.attr]
+            elif isinstance(n, ast.keyword) and n.arg:
+                adlar = [n.arg]
+            else:
+                continue
+            out += [(f, n.lineno, a) for a in adlar if not a.isascii()]
+    return sorted(set(out))
+
+
+def uzun_fonksiyonlar(sinir):
+    """[ ( dosya, satır, ad, uzunluk ) ] — programın ( katmanlar ve araçlar )
+    sinir satırdan uzun fonksiyonları;  yorumlar ve belge metni dahil."""
+    out = []
+    for f in dosyalar():
+        if not (f in program_dosyalari() or f.startswith("araclar")):
+            continue
+        for n in ast.walk(_agac(f)):
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                uzunluk = n.end_lineno - n.lineno + 1
+                if uzunluk > sinir:
+                    out.append((f, n.lineno, n.name, uzunluk))
+    return sorted(out)
+
+
+def ozel_erisimler():
+    """[ ( dosya, satır, ileti ) ] — başka bir modülün özel ( alt çizgili ) adına
+    erişim:  geometri.yazilari_yerlestir( … ).  Başka modülün kullandığı ad
+    o modülün arayüzüdür, özel değildir;  alt çizgi "dışarıdan çağrılmaz"
+    der ve değiştiren kişi çağıranları aramaz.  Testler hariç ( iç işleyişi
+    sınayabilirler )."""
+    out = []
+    for f in dosyalar():
+        if f.startswith("testler") or "/dogrulama/" in f:
+            continue
+        t = _agac(f)
+        moduller = set()
+        for n in t.body:
+            if isinstance(n, ast.ImportFrom) and n.module and not n.level:
+                for a in n.names:
+                    if modul_dosyasi(f"{n.module}.{a.name}"):
+                        moduller.add(a.asname or a.name)
+        for n in ast.walk(t):
+            if (
+                isinstance(n, ast.Attribute)
+                and isinstance(n.value, ast.Name)
+                and n.value.id in moduller
+                and n.attr.startswith("_")
+                and not n.attr.startswith("__")
+            ):
+                out.append((f, n.lineno, f"{n.value.id}.{n.attr}"))
+    return sorted(set(out))
+
+
 if __name__ == "__main__":
-    for f, s, i in ihlaller() + golgeler():
+    for f, s, i in ihlaller() + golgeler() + ozel_erisimler():
         print(f"{f}:{s}:  {i}")

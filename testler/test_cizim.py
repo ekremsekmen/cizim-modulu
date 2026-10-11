@@ -216,7 +216,7 @@ class PlanGeometrisi(unittest.TestCase):
         }
         self.assertEqual(merkezler, beklenen)
 
-    def test_kapi_kasasi_bosluğun_iki_yaninda(self):
+    def test_kapi_kasasi_boslugun_iki_yaninda(self):
 
         S = sabitler.sabitler(self.g.get("_cizim_sabitleri"))
         kp = self.g["kapi"]
@@ -1626,7 +1626,7 @@ class MakineDairesi(unittest.TestCase):
                 self.assertEqual(sorted((b[2] - b[0], b[3] - b[1])), [500.0, 600.0])
                 engel = [q for _, q in Y["delikler"]] + [Y["makine"], Y["kapi_onu"]]
                 for alan in (p, c, b):
-                    self.assertTrue(makine_dairesi._icinde(alan, oda))
+                    self.assertTrue(makine_dairesi.icinde(alan, oda))
                     for q in engel:
                         self.assertFalse(ortusur(alan, q), (alan, q))
                 #  bakım alanı makineye bitişik
@@ -1910,7 +1910,7 @@ class TamBoyKesit(unittest.TestCase):
                     )
                     self.assertEqual(
                         {x["metin"] for x in e if x.get("ad") == "kot"},
-                        {dusey._kot(z) for z in kotlar + [-g["kuyu_dibi"]["derinlik"]] + oda},
+                        {dusey.kot_yazisi(z) for z in kotlar + [-g["kuyu_dibi"]["derinlik"]] + oda},
                     )
                     #  Sol zincir:  kuyu dibi + kat yükseklikleri + son kat = kuyu yüksekliği
                     #  ( referans proje:  1.500 + 29.000 + 5.000 = 35.500 )
@@ -2135,7 +2135,7 @@ class KuyuKesitleri(unittest.TestCase):
                 #  Kumanda panosu odanın arka yarısında:  iki kesitte de bakanın gerisinde
                 self.assertFalse(self._elemanlar(e, "kumanda_panosu"))
                 kotlar = {x["metin"] for x in e if x.get("ad") == "kot"}
-                self.assertTrue({dusey._kot(24950), dusey._kot(26150)} <= kotlar, kotlar)
+                self.assertTrue({dusey.kot_yazisi(24950), dusey.kot_yazisi(26150)} <= kotlar, kotlar)
 
     def test_makine_dairesi_sinirlari(self):
         def h(**md):

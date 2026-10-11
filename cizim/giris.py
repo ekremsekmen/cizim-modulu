@@ -122,7 +122,7 @@ def ciz(g, cizim_sabitleri=None):
     )
     #  Kapı ekseni ve döşemenin kotu
     e.append(eleman.ad(eleman.cizgi("EKSEN", xc, -300, xc, ust, tip="eksen"), "kapi_ekseni"))
-    kesit_parcalari.kot_isareti(e, xc + 150, 0.0, dusey._kot(0.0), 1.0)
+    kesit_parcalari.kot_isareti(e, xc + 150, 0.0, dusey.kot_yazisi(0.0), 1.0)
 
     #  Alt:  kuyunun iç yüzlerinden kaba boşluğa ( LiftDesigner 470 · 1.180 · 350 ),
     #  kapının net genişliği
@@ -159,5 +159,5 @@ def ciz(g, cizim_sabitleri=None):
     e.append(eleman.olcu("yatay", (yu[0], 0), (yu[2], 0), ust1 + 220, None))
     #  Ölçü yazıları ( SVG ve DXF aynı yeri kullanır )
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
-    geometri._yazilari_yerlestir(e)
+    geometri.yazilari_yerlestir(e)
     return e

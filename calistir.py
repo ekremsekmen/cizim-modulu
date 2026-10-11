@@ -84,18 +84,18 @@ def pafta_uret(g, ad):
 
 
 def main(argv):
-    ayrıştırıcı = argparse.ArgumentParser(description="Kuyu planı çizer")
-    ayrıştırıcı.add_argument("--aski", choices=girdi.ASKI_DUZENLERI, default="Kabin altı")
-    ayrıştırıcı.add_argument("--agirlik", choices=girdi.AGIRLIK_YERLERI, default=None)
-    ayrıştırıcı.add_argument("--cizim", choices=tuple(CIZIMLER), default="kuyu_plani")
-    ayrıştırıcı.add_argument("--siginma", choices=tuple(kabin_ustu.SIGINMA), default=None)
-    ayrıştırıcı.add_argument("--makine", choices=donanim.MAKINE_YERLERI, default=None)
-    ayrıştırıcı.add_argument("--makine_tipi", choices=makine.TIPLER, default=None)
-    ayrıştırıcı.add_argument(
+    ayristirici = argparse.ArgumentParser(description="Kuyu planı çizer")
+    ayristirici.add_argument("--aski", choices=girdi.ASKI_DUZENLERI, default="Kabin altı")
+    ayristirici.add_argument("--agirlik", choices=girdi.AGIRLIK_YERLERI, default=None)
+    ayristirici.add_argument("--cizim", choices=tuple(CIZIMLER), default="kuyu_plani")
+    ayristirici.add_argument("--siginma", choices=tuple(kabin_ustu.SIGINMA), default=None)
+    ayristirici.add_argument("--makine", choices=donanim.MAKINE_YERLERI, default=None)
+    ayristirici.add_argument("--makine_tipi", choices=makine.TIPLER, default=None)
+    ayristirici.add_argument(
         "--pafta", action="store_true", help="bütün çizimleri TİP PROJE FORMATINA yerleştir"
     )
-    ayrıştırıcı.add_argument("--ad", default=None)
-    a = ayrıştırıcı.parse_args(argv)
+    ayristirici.add_argument("--ad", default=None)
+    a = ayristirici.parse_args(argv)
 
     g = copy.deepcopy(girdi.ORNEK)
     if a.aski == "Doğrudan":

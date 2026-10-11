@@ -397,7 +397,7 @@ def calistir():
     #  kutunun gerçek yüksekliğinden türetiliyor;  yine sığmazsa kırpma
     #  ÇIKTIDA görünür ( … ).
     def _kapak_metni(_adres):
-        _b = kapak_cikti.pdf_bytes(
+        _b = kapak_cikti.pdf_baytlari(
             {"project_title": "D", "owner": "X", "company_name": "ABC", "company_address": _adres}
         )
         return _metin(_b) if pdfium else ""
@@ -512,7 +512,7 @@ def calistir():
     #  türemeyen ayrıktır ve asansör bilgilerinin hepsini kapsar.
     import inspect as _insp
 
-    _basilan = set(re.findall(r'"([a-z_]+)"', _insp.getsource(kapak_cikti._values)))
+    _basilan = set(re.findall(r'"([a-z_]+)"', _insp.getsource(kapak_cikti._degerler)))
     r.kontrol(
         "kapak · türeyen / türemeyen her alanı kapak PDF'i basıyor",
         set(kapak.ALANLAR) | set(kapak.TURETILMEYEN) <= _basilan,
@@ -537,7 +537,7 @@ def calistir():
             f"kapak · {_ad} hücreye sığıyor ( {len(_sat)} satır, {_pt:.1f} pt )",
             len(_sat) == 2
             and 2 * _pt * 1.05 <= _hucre_y
-            and all(_pm.stringWidth(x, kapak_cikti.F, _pt) <= _gen for x in _sat)
+            and all(_pm.stringWidth(x, kapak_cikti.YAZI, _pt) <= _gen for x in _sat)
             and "".join(_sat).replace(" ", "") == _metin_.replace(" ", ""),
             f"→ {_sat} · {_pt:.2f} pt",
         )
@@ -548,7 +548,7 @@ def calistir():
         f"→ {_sat} · {_pt}",
     )
     if pdfium:
-        _km = _metin(kapak_cikti.pdf_bytes({**_kt, **_ka}))
+        _km = _metin(kapak_cikti.pdf_baytlari({**_kt, **_ka}))
         #  İki satıra bölünen değer PDF metninde satır sonuyla gelir.
         _km = re.sub(r"\s+", "", _km)
         _eksik = [v for v in {**_kt, **_ka}.values() if re.sub(r"\s+", "", v) not in _km]
@@ -690,7 +690,9 @@ def calistir():
             #  AutoCAD bunu İ olarak gösterir.
             return _re.sub(r"\\U\+([0-9A-Fa-f]{4})", lambda m: chr(int(m.group(1), 16)), t)
 
-        _kapak = kapak_cikti.pdf_bytes({"project_title": "ÇAĞDAŞ ŞİRKETİ Öİ", "owner": "Türkçe Ğüzel A.Ş."})
+        _kapak = kapak_cikti.pdf_baytlari(
+            {"project_title": "ÇAĞDAŞ ŞİRKETİ Öİ", "owner": "Türkçe Ğüzel A.Ş."}
+        )
         _paftalar = [
             ("Kapak", _kapak),
             ("Trafik", pdf_cikti.trafik_pdf(trafik.hesapla(GC), PROJE)),

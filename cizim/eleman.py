@@ -120,7 +120,7 @@ def yazi(x, y, metin, yukseklik=55, hiza="orta", katman="YAZI", aci=0):
 
 
 def olcu(yon, a, b, kot, metin=None, yazi=None, kural=None):
-    """Ölçü.  `yazi` verilmezse yazının yeri geometri._yazilari_yerlestir'de bulunur;
+    """Ölçü.  `yazi` verilmezse yazının yeri geometri.yazilari_yerlestir'de bulunur;
     verilirse { x, y ( yazının MERKEZİ ), aci, h } olduğu gibi kullanılır.
     `kural`:  ölçü bir girdiden değil standarttan ya da programın yerleşiminden
     geliyorsa onu söyleyen metin — ekranda ölçüye tıklanınca gösterilir

@@ -396,7 +396,7 @@ def indir_proje_dwg(veri: dict = Body(...)):
         paftalar = []
         kapak_verisi = veri.get("kapak") if isinstance(veri.get("kapak"), dict) else None
         if kapak_verisi:
-            paftalar.append(("Kapak", kapak_cikti.pdf_bytes(kapak_verisi)))
+            paftalar.append(("Kapak", kapak_cikti.pdf_baytlari(kapak_verisi)))
 
         #  Trafik ve avan girdileri ayrı ayrı temizlenir; ikisi de belirsiz
         #  sayı denetiminden geçer — ekran neyi reddediyorsa CAD çıktısı da
@@ -450,7 +450,7 @@ def indir_kapak_pdf(veri: dict = Body(...)):
     """Hesap motorundan bağımsız, tek sayfalık avan proje kapağı."""
     try:
         return _indir(
-            kapak_cikti.pdf_bytes(veri.get("kapak")),
+            kapak_cikti.pdf_baytlari(veri.get("kapak")),
             _dosya_adi(_proje_kimligi(veri), "Kapak", "pdf"),
             "application/pdf",
         )

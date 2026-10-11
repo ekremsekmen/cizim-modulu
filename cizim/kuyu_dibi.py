@@ -68,7 +68,7 @@ def _birlesim(kutular):
     )
 
 
-def _raylar(taban, ad):
+def raylari_topla(taban, ad):
     """Aynı adlı ray parçalarını ( flanş + gövde ) raylara toplar."""
     parcalar = [eleman_kutusu(el) for el in taban if el.get("ad") == ad and el["tip"] == "dikdortgen"]
     raylar = []
@@ -88,7 +88,7 @@ def _serbest(sira, adaylar, sinir_, engeller):
     uygun = [k for k in adaylar if 0 < k < sinir_] or list(adaylar[:1])
     for k in uygun:
         olculer = [dict(o) for o in sira(k) if o["uzunluk"] > 1e-6]
-        geometri._yazilari_yerlestir(olculer)
+        geometri.yazilari_yerlestir(olculer)
         kutular = []
         for o in olculer:
             y_ = o["yazi"]
@@ -159,11 +159,7 @@ def _engeller(e, siginma=True, olcu_cizgisi=True):
                     if el["yon"] == "yatay"
                     else (k - 15, min(a[1], b[1]), k + 15, max(a[1], b[1]))
                 )
-            y_ = el["yazi"]
-            w, h = eleman.yazi_eni(el["metin"], y_["h"]) / 2.0, y_["h"] / 2.0
-            if y_["aci"]:
-                w, h = h, w
-            yazilar.append((y_["x"] - w, y_["y"] - h, y_["x"] + w, y_["y"] + h))
+            yazilar.append(geometri.yazi_kutusu(el))
         elif el["tip"] == "yazi":
             yazilar.append(geometri.sinir([el]))
         else:
@@ -455,10 +451,8 @@ def gergi_parcalari(g, S, kasnak):
     }
 
 
-def yerlesim(g, cizim_sabitleri=None):
-    """Kuyu dibinin yerleşimi — çizim de doğrulama da bunu kullanır."""
-    S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
-    kd = g.get("kuyu_dibi") or {}
+def _girdi_hatalari(kd):
+    """Kuyu dibi girdisinin eksikleri:  [ ileti ]."""
     hata = []
     for alan, secenek in (("siginma_tipi", tuple(SIGINMA)), ("regulator_yan", YANLAR)):
         if kd.get(alan) not in secenek:
@@ -498,6 +492,14 @@ def yerlesim(g, cizim_sabitleri=None):
             v = kd.get(ara)
             if not isinstance(v, (int, float)) or isinstance(v, bool) or v <= 0:
                 hata.append(f"kuyu_dibi.{ara}: iki tamponda tamponlar arası girilmeli ( {v!r} ).")
+    return hata
+
+
+def yerlesim(g, cizim_sabitleri=None):
+    """Kuyu dibinin yerleşimi — çizim de doğrulama da bunu kullanır."""
+    S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
+    kd = g.get("kuyu_dibi") or {}
+    hata = _girdi_hatalari(kd)
     if hata:
         return {"hata": hata}
 
@@ -505,55 +507,13 @@ def yerlesim(g, cizim_sabitleri=None):
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
     kabin = eleman_kutusu(next(el for el in taban if el.get("ad") == "kabin_dis"))
     blok = eleman_kutusu(next(el for el in taban if el.get("ad") == "agirlik_blok"))
-    kabin_raylari = _raylar(taban, "kabin_ray")
-    agirlik_raylari = _raylar(taban, "agirlik_ray")
+    kabin_raylari = raylari_topla(taban, "kabin_ray")
+    agirlik_raylari = raylari_topla(taban, "agirlik_ray")
     konsollar = [eleman_kutusu(el) for el in taban if el["katman"] == "KONSOL" and el["tip"] == "dikdortgen"]
     ag_yan = g["agirlik"]["yeri"] if g["agirlik"]["yeri"] in ("Sağ", "Sol") else None
     ry = g["kabin_ray"]["kapi_arasi"]
-    kx = (kabin[0] + kabin[2]) / 2.0
-
-    #  ── TAMPONLAR ────────────────────────────────────────────────────
-    #  Kabin tamponu kabin ekseninde, ray ekseni üstünde durur ( referans proje ve
-    #  LiftDesigner paftaları ).  İki tamponda ray ekseni boyunca simetrik.
-    #  Ağırlık tamponu ağırlığın ortasında;  iki tamponda ağırlığın boyu
-    #  doğrultusunda simetrik.
-    t = S["tampon_taban"] / 2.0
-
-    def _tampon(cx, cy):
-        return (cx - t, cy - t, cx + t, cy + t)
-
-    if kd["kabin_tampon_adedi"] == 1:
-        kabin_tamponlari = [_tampon(kx, ry)]
-    else:
-        a = kd["kabin_tampon_arasi"] / 2.0
-        kabin_tamponlari = [_tampon(kx - a, ry), _tampon(kx + a, ry)]
-    bx, by = kutu_merkezi(blok)
-    if kd["agirlik_tampon_adedi"] == 1:
-        agirlik_tamponlari = [_tampon(bx, by)]
-    else:
-        a = kd["agirlik_tampon_arasi"] / 2.0
-        agirlik_tamponlari = (
-            [_tampon(bx, by - a), _tampon(bx, by + a)]
-            if ag_yan
-            else [_tampon(bx - a, by), _tampon(bx + a, by)]
-        )
-
-    #  ── KARŞI AĞIRLIK PERDESİ  ( m.5.2.5.5.1 ) ───────────────────────
-    #  Ağırlığın kuyuya bakan yüzünde, ağırlık rayları arasının tamamı
-    #  boyunca ( d:  en az ağırlığın genişliği kadar ).  Ağırlık ile ona en
-    #  yakın parça arasındaki boşluğun ortasından geçer.
-    ar = _birlesim(agirlik_raylari)
-    if ag_yan == "Sol":
-        komsu = min([k[0] for k in konsollar + kabin_raylari if k[0] > blok[2]] + [kabin[0]])
-        px = (blok[2] + komsu) / 2.0
-        perde = (px, ar[1], px, ar[3])
-    elif ag_yan == "Sağ":
-        komsu = max([k[2] for k in konsollar + kabin_raylari if k[2] < blok[0]] + [kabin[2]])
-        px = (blok[0] + komsu) / 2.0
-        perde = (px, ar[1], px, ar[3])
-    else:
-        py = (blok[1] + kabin[3]) / 2.0
-        perde = (ar[0], py, ar[2], py)
+    kabin_tamponlari, agirlik_tamponlari = _tamponlar(kd, S, (kabin[0] + kabin[2]) / 2.0, ry, blok, ag_yan)
+    perde = _perde(ag_yan, blok, kabin, konsollar, kabin_raylari, agirlik_raylari)
 
     #  ── REGÜLATÖR GERGİ KASNAĞI ──────────────────────────────────────
     #  Seçilen yandaki kabin rayının hizasında, ray ekseninin kaciklik kadar
@@ -583,14 +543,6 @@ def yerlesim(g, cizim_sabitleri=None):
         D,
         konsollar + kabin_raylari + kabin_tamponlari + kapi_unitesi + [gergi] + list(gergi_donanim.values()),
     )
-
-    #  ── MERDİVEN  ( m.5.2.2.4 · Ek F ) ───────────────────────────────
-    #  Yan duvara yaslı saklanır, kapıya yakın yan seçilir;  yan duvar kapıdan
-    #  800 mm'den uzaksa ( geniş kuyu ) kapının yanında ön duvara yaslanır —
-    #  Ek F.5 b yalnız kapı kenarına uzaklığı sınırlar.  Kuyu dibi 2,5 m'yi
-    #  aşıyorsa merdiven değil erişim kapısı gerekir — çizilmez.
-    kp = g["kapi"]
-    x0, x1 = kp["sol_pay"], kp["sol_pay"] + kp["genislik"]
     sabit = (
         konsollar
         + kabin_raylari
@@ -602,45 +554,154 @@ def yerlesim(g, cizim_sabitleri=None):
         + list(gergi_donanim.values())
         + korunan
     )
-    merdiven = None
-    if kd["derinlik"] <= MERDIVEN_AZAMI_DERINLIK:
-        me, md = S["merdiven_eni"], S["merdiven_derinlik"]
-        adaylar = []
-        for yan, mx0, kenar in (("Sol", 0.0, x0), ("Sağ", G - md, x1)):
-            y = 0.0
-            while y + me <= D:
-                k = (mx0, y, mx0 + md, y + me)
-                if not any(ortusur(k, p) for p in sabit):
-                    #  Ek F.5 b:  kat girişinin kenarından merdivene
-                    dx = max(0.0, k[0] - kenar, kenar - k[2])
-                    uzak = (dx**2 + k[1] ** 2) ** 0.5
-                    if uzak <= MERDIVEN_KAPI_AZAMI:
-                        adaylar.append((uzak, y, yan, k))
-                    break
-                y += 25.0
-        if not adaylar:
-            #  Ön duvarda, kapı boşluğunun iki yanında ( eni ön duvar boyunca )
-            for yon, kenar in ((-1.0, x0), (1.0, x1)):
-                x = kenar if yon > 0 else kenar - me
-                while 0.0 <= x and x + me <= G:
-                    k = (x, 0.0, x + me, md)
-                    uzak = max(0.0, k[0] - kenar, kenar - k[2])
-                    if uzak > MERDIVEN_KAPI_AZAMI:
-                        break
-                    if not any(ortusur(k, p) for p in sabit):
-                        adaylar.append((uzak, 0.0, "Ön", k))
-                        break
-                    x += 25.0 * yon
-        if adaylar:
-            merdiven = min(adaylar)[3]
-        else:
-            hata.append(
-                "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 "
-                "Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, "
-                "ray ya da konsol var."
-            )
+    merdiven = _merdiven(g, kd, S, sabit, hata)
+    hata += _cakismalar(
+        G,
+        D,
+        kabin,
+        blok,
+        konsollar,
+        kabin_raylari,
+        agirlik_raylari,
+        kabin_tamponlari,
+        agirlik_tamponlari,
+        gergi,
+        gergi_donanim,
+    )
+    tip = kd["siginma_tipi"]
+    siginma = _siginma_yeri(
+        g, S, taban, tip, kabin, perde, ag_yan, sabit + ([merdiven] if merdiven else []), hata
+    )
+    return {
+        "taban": taban,
+        "kabin": kabin,
+        "blok": blok,
+        "kabin_raylari": kabin_raylari,
+        "agirlik_raylari": agirlik_raylari,
+        "kabin_tamponlari": kabin_tamponlari,
+        "agirlik_tamponlari": agirlik_tamponlari,
+        "perde": perde,
+        "gergi": gergi,
+        "gergi_donanim": gergi_donanim,
+        "merdiven": merdiven,
+        "siginma": siginma,
+        "siginma_tipi": tip,
+        "hata": hata,
+        "S": S,
+        "ag_yan": ag_yan,
+    }
 
-    #  ── ÇAKIŞMALAR ───────────────────────────────────────────────────
+
+def _tamponlar(kd, S, kx, ry, blok, ag_yan):
+    """TAMPONLAR:  kabin tamponu kabin ekseninde, ray ekseni üstünde durur
+    ( referans proje ve LiftDesigner paftaları ).  İki tamponda ray ekseni
+    boyunca simetrik.  Ağırlık tamponu ağırlığın ortasında;  iki tamponda
+    ağırlığın boyu doğrultusunda simetrik.  ( kabin tamponları, ağırlık tamponları )"""
+    t = S["tampon_taban"] / 2.0
+
+    def _tampon(cx, cy):
+        return (cx - t, cy - t, cx + t, cy + t)
+
+    if kd["kabin_tampon_adedi"] == 1:
+        kabin_tamponlari = [_tampon(kx, ry)]
+    else:
+        a = kd["kabin_tampon_arasi"] / 2.0
+        kabin_tamponlari = [_tampon(kx - a, ry), _tampon(kx + a, ry)]
+    bx, by = kutu_merkezi(blok)
+    if kd["agirlik_tampon_adedi"] == 1:
+        agirlik_tamponlari = [_tampon(bx, by)]
+    else:
+        a = kd["agirlik_tampon_arasi"] / 2.0
+        agirlik_tamponlari = (
+            [_tampon(bx, by - a), _tampon(bx, by + a)]
+            if ag_yan
+            else [_tampon(bx - a, by), _tampon(bx + a, by)]
+        )
+    return kabin_tamponlari, agirlik_tamponlari
+
+
+def _perde(ag_yan, blok, kabin, konsollar, kabin_raylari, agirlik_raylari):
+    """KARŞI AĞIRLIK PERDESİ  ( m.5.2.5.5.1 ):  ağırlığın kuyuya bakan yüzünde,
+    ağırlık rayları arasının tamamı boyunca ( d:  en az ağırlığın genişliği
+    kadar ).  Ağırlık ile ona en yakın parça arasındaki boşluğun ortasından
+    geçer.  ( x0, y0, x1, y1 ) çizgisi."""
+    ar = _birlesim(agirlik_raylari)
+    if ag_yan == "Sol":
+        komsu = min([k[0] for k in konsollar + kabin_raylari if k[0] > blok[2]] + [kabin[0]])
+        px = (blok[2] + komsu) / 2.0
+        return (px, ar[1], px, ar[3])
+    if ag_yan == "Sağ":
+        komsu = max([k[2] for k in konsollar + kabin_raylari if k[2] < blok[0]] + [kabin[2]])
+        px = (blok[0] + komsu) / 2.0
+        return (px, ar[1], px, ar[3])
+    py = (blok[1] + kabin[3]) / 2.0
+    return (ar[0], py, ar[2], py)
+
+
+def _merdiven(g, kd, S, sabit, hata):
+    """MERDİVEN  ( m.5.2.2.4 · Ek F ):  yan duvara yaslı saklanır, kapıya yakın
+    yan seçilir;  yan duvar kapıdan 800 mm'den uzaksa ( geniş kuyu ) kapının
+    yanında ön duvara yaslanır — Ek F.5 b yalnız kapı kenarına uzaklığı
+    sınırlar.  Kuyu dibi 2,5 m'yi aşıyorsa merdiven değil erişim kapısı
+    gerekir — çizilmez.  Kutu ya da None."""
+    if kd["derinlik"] > MERDIVEN_AZAMI_DERINLIK:
+        return None
+    G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
+    kp = g["kapi"]
+    x0, x1 = kp["sol_pay"], kp["sol_pay"] + kp["genislik"]
+    me, md = S["merdiven_eni"], S["merdiven_derinlik"]
+    adaylar = []
+    for yan, mx0, kenar in (("Sol", 0.0, x0), ("Sağ", G - md, x1)):
+        y = 0.0
+        while y + me <= D:
+            k = (mx0, y, mx0 + md, y + me)
+            if not any(ortusur(k, p) for p in sabit):
+                #  Ek F.5 b:  kat girişinin kenarından merdivene
+                dx = max(0.0, k[0] - kenar, kenar - k[2])
+                uzak = (dx**2 + k[1] ** 2) ** 0.5
+                if uzak <= MERDIVEN_KAPI_AZAMI:
+                    adaylar.append((uzak, y, yan, k))
+                break
+            y += 25.0
+    if not adaylar:
+        #  Ön duvarda, kapı boşluğunun iki yanında ( eni ön duvar boyunca )
+        for yon, kenar in ((-1.0, x0), (1.0, x1)):
+            x = kenar if yon > 0 else kenar - me
+            while 0.0 <= x and x + me <= G:
+                k = (x, 0.0, x + me, md)
+                uzak = max(0.0, k[0] - kenar, kenar - k[2])
+                if uzak > MERDIVEN_KAPI_AZAMI:
+                    break
+                if not any(ortusur(k, p) for p in sabit):
+                    adaylar.append((uzak, 0.0, "Ön", k))
+                    break
+                x += 25.0 * yon
+    if adaylar:
+        return min(adaylar)[3]
+    hata.append(
+        "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 "
+        "Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, "
+        "ray ya da konsol var."
+    )
+    return None
+
+
+def _cakismalar(
+    G,
+    D,
+    kabin,
+    blok,
+    konsollar,
+    kabin_raylari,
+    agirlik_raylari,
+    kabin_tamponlari,
+    agirlik_tamponlari,
+    gergi,
+    gergi_donanim,
+):
+    """ÇAKIŞMALAR:  tamponlar, gergi ve donanımı kuyunun içinde, raylara ve
+    konsollara değmeden;  tamponlar kabinin / ağırlığın altında."""
+    hata = []
     for ad, liste in (
         ("kabin tamponu", kabin_tamponlari),
         ("ağırlık tamponu", agirlik_tamponlari),
@@ -680,26 +741,30 @@ def yerlesim(g, cizim_sabitleri=None):
         hata.append("İki kabin tamponu üst üste biniyor — tamponlar arasını açın.")
     if len(agirlik_tamponlari) == 2 and ortusur(*agirlik_tamponlari):
         hata.append("İki ağırlık tamponu üst üste biniyor — tamponlar arasını açın.")
+    return hata
 
-    #  ── SIĞINMA ALANI  ( Çizelge 4 ) ──────────────────────────────────
-    #  Kabinin izinin altında ( yüksekliği kabinin altına göre hesaplanır ),
-    #  sabit donanıma basmadan, kapıya ve kabin eksenine en yakın yere.
-    #  Kabin altı askıda kasnaklar ve aralarındaki halat kabinin tabanından
-    #  aşağıdadır;  alt şase kirişi, patenler, fren bloğu da alanın yüksekliğine
-    #  inebilir ( sarkan_parcalar ):  alan önce onların altına düşmeyen yerde
-    #  aranır ( yoksa onların altında — yüksekliği düşey kesit denetler ).  Eskiden kasnak
-    #  planda hiç engel sayılmıyordu:  alan kapıya yakın diye kasnağın köşesine
-    #  giriyor, kasnaktan birkaç santim ötede tam yükseklik varken proje
-    #  "sığınma yüksekliği 945 < 1000" diye reddediliyordu.
-    tip = kd["siginma_tipi"]
-    engel = sabit + ([merdiven] if merdiven else [])
+
+def _siginma_yeri(g, S, taban, tip, kabin, perde, ag_yan, engel, hata):
+    """SIĞINMA ALANI  ( Çizelge 4 ):  kabinin izinin altında ( yüksekliği
+    kabinin altına göre hesaplanır ), sabit donanıma basmadan, kapıya ve kabin
+    eksenine en yakın yere.  Kutu ya da None.
+
+    Kabin altı askıda kasnaklar ve aralarındaki halat kabinin tabanından
+    aşağıdadır;  alt şase kirişi, patenler, fren bloğu da alanın yüksekliğine
+    inebilir ( sarkan_parcalar ):  alan önce onların altına düşmeyen yerde
+    aranır ( yoksa onların altında — yüksekliği düşey kesit denetler ).  Eskiden kasnak
+    planda hiç engel sayılmıyordu:  alan kapıya yakın diye kasnağın köşesine
+    giriyor, kasnaktan birkaç santim ötede tam yükseklik varken proje
+    "sığınma yüksekliği 945 < 1000" diye reddediliyordu.
+
+    Kabinin altında yer yoksa kuyu tabanının başka bir yeri:  m.5.2.5.8.1
+    yalnız "kuyu tabanında engelsiz bir alan" ister ( kabinin izinin dışında
+    üstünde kabin yoktur ).  Karşı ağırlığın indiği şerit ( perdenin ötesi )
+    sayılmaz.  Küçük kabinde ( 900 × 1.000 ) ortadaki tamponun iki yanı
+    500'e yetmiyor, proje reddediliyordu."""
+    G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
+    kx = (kabin[0] + kabin[2]) / 2.0
     alcak = kabin_alti_askisi(g, S, taban) + sarkan_parcalar(g, S, taban, SIGINMA_YUKSEKLIK[tip])
-    siginma = None
-    #  Kabinin altında yer yoksa kuyu tabanının başka bir yeri:  m.5.2.5.8.1
-    #  yalnız "kuyu tabanında engelsiz bir alan" ister ( kabinin izinin dışında
-    #  üstünde kabin yoktur ).  Karşı ağırlığın indiği şerit ( perdenin ötesi )
-    #  sayılmaz.  Küçük kabinde ( 900 × 1.000 ) ortadaki tamponun iki yanı
-    #  500'e yetmiyor, proje reddediliyordu.
     bolge = (max(0.0, kabin[0]), max(0.0, kabin[1]), min(G, kabin[2]), min(D, kabin[3]))
     if ag_yan == "Sağ":
         agirlik_seridi = (perde[0], 0.0, G, D)
@@ -724,33 +789,14 @@ def yerlesim(g, cizim_sabitleri=None):
         if adaylar:
             break
     if adaylar:
-        siginma = min(adaylar)[2]
-    else:
-        a, b = SIGINMA[tip]
-        hata.append(
-            f"Kuyu dibinde {tip.lower()} tipi sığınma alanına ( {a:g} × {b:g} mm, "
-            "TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı "
-            "ağırlığın şeridi dışında kalmalı."
-        )
-
-    return {
-        "taban": taban,
-        "kabin": kabin,
-        "blok": blok,
-        "kabin_raylari": kabin_raylari,
-        "agirlik_raylari": agirlik_raylari,
-        "kabin_tamponlari": kabin_tamponlari,
-        "agirlik_tamponlari": agirlik_tamponlari,
-        "perde": perde,
-        "gergi": gergi,
-        "gergi_donanim": gergi_donanim,
-        "merdiven": merdiven,
-        "siginma": siginma,
-        "siginma_tipi": tip,
-        "hata": hata,
-        "S": S,
-        "ag_yan": ag_yan,
-    }
+        return min(adaylar)[2]
+    a, b = SIGINMA[tip]
+    hata.append(
+        f"Kuyu dibinde {tip.lower()} tipi sığınma alanına ( {a:g} × {b:g} mm, "
+        "TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı "
+        "ağırlığın şeridi dışında kalmalı."
+    )
+    return None
 
 
 def dogrula(g):
@@ -763,30 +809,77 @@ def dogrula(g):
 def ciz(g, cizim_sabitleri=None):
     """Kuyu dibi planının elemanları."""
     Y = yerlesim(g, cizim_sabitleri)
-    S = Y["S"]
     k = g["kuyu"]
-    G, D, don, dg, dar = k["genislik"], k["derinlik"], k["duvar_on"], k["duvar_sag"], k["duvar_arka"]
+    G, D, don = k["genislik"], k["derinlik"], k["duvar_on"]
     e = [el for el in Y["taban"] if el["katman"] in _PLANDAN_KATMAN and el["tip"] != "yazi"]
 
     #  Kat kapısı:  yalnız yer göstermek için, kesik ( kabin bu kesitte yok )
     kp = g["kapi"]
     e.append(eleman.ad(eleman.dikdortgen("GIZLI", kp["sol_pay"], -don, kp["genislik"], don), "kapi_izi"))
+    e += _donanim(Y, G)
 
-    #  Tamponlar:  taban plakası + gövde
-    def _tampon(kutu, ad):
-        cx, cy = kutu_merkezi(kutu)
-        e.append(
-            eleman.ad(eleman.dikdortgen("TAMPON", kutu[0], kutu[1], kutu[2] - kutu[0], kutu[3] - kutu[1]), ad)
+    #  ── YAZILAR ──────────────────────────────────────────────────────
+    #  Kuyu tabanına yük aktaran noktalar ( kutuları en sonda, ölçülerden sonra
+    #  yerleşir ki onlara da binmesin )
+    kv = g["kuyu_dibi"].get("kuvvetler")
+    noktalar = _yuk_noktalari(g, Y, kv)
+    gr, p = Y["gergi"], Y["perde"]
+    e.append(
+        eleman.yazi(
+            kutu_merkezi(gr)[0] - (80 if gr[0] > G / 2 else -80),
+            kutu_merkezi(gr)[1],
+            "REGÜLATÖR GERGİSİ",
+            34,
+            aci=90,
         )
-        e.append(eleman.ad(eleman.daire("TAMPON", cx, cy, S["tampon_capi"] / 2.0), ad))
+    )
+    #  Perde yazısı ağırlıkla perde arasındaki boşluğa, tamponun yanına
+    #  denk gelmeyen yarıya yazılır — yük okları yerleştikten sonra ( en sonda ),
+    #  okların geçtiği yerden kaydırılarak.
+    bl = Y["blok"]
+    tamp = _birlesim(Y["agirlik_tamponlari"])
+    if p[0] == p[2]:
+        perde_yazisi = ((p[0] + (bl[2] if Y["ag_yan"] == "Sol" else bl[0])) / 2.0, (tamp[3] + p[3]) / 2.0, 90)
+    else:
+        perde_yazisi = ((tamp[2] + p[2]) / 2.0, (p[1] + bl[1]) / 2.0, 0)
 
-    for t in Y["kabin_tamponlari"]:
-        _tampon(t, "kabin_tamponu")
-    for t in Y["agirlik_tamponlari"]:
-        _tampon(t, "agirlik_tamponu")
+    e += _olculer(g, Y)
+    if Y["siginma"]:
+        e += _siginma_olculeri(Y["siginma"], G, D, e)
+    e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
+    geometri.yazilari_yerlestir(e)
+    if geometri.olcu_kipi():  # ölçü çözümlemesi:  ölçüler yukarıda bitti
+        return e
+    e += _yuk_etiketleri(e, noktalar, G, D)
+    e.append(_perde_yazisi(e, perde_yazisi, p))
+    #  Ray konsoluna yatay yükler:  sağdaki ölçülerin ( ve kuyunun dışına konmuş
+    #  yük kutularının ) dışında, kuyunun üst hizasından.  Yük kutularından
+    #  SONRA:  dışarıdaki kutu tablonun yerine taşıyordu.
+    if kv:
+        s1 = G + k["duvar_sag"] + 320
+        e += _kuvvet_tablosu(kv, max(s1 + 250, geometri.sinir(e)[2] + 150), D - 20)
+    #  Parçaya ( ara kiriş, gergi ... ) binen ölçü yazıları, yük kutuları
+    #  konduktan sonra ölçüleri boyunca boş yere kayar ( girdi taraması, 4 Eki ).
+    #  Önce kaydırılınca bir düzende yük kutusuna yer kalmıyordu.
+    geometri.parcadan_kaydir(e, ek_katman=("YUK",))
+    return e
 
-    p = Y["perde"]
-    e.append(eleman.ad(eleman.cizgi("PERDE", *p), "perde"))
+
+def _donanim(Y, G):
+    """Tamponlar ( taban plakası + gövde ), perde, regülatör gergisi ve
+    donanımı, merdiven, sığınma alanı."""
+    S = Y["S"]
+    e = []
+    for liste, ad in ((Y["kabin_tamponlari"], "kabin_tamponu"), (Y["agirlik_tamponlari"], "agirlik_tamponu")):
+        for kutu in liste:
+            cx, cy = kutu_merkezi(kutu)
+            e.append(
+                eleman.ad(
+                    eleman.dikdortgen("TAMPON", kutu[0], kutu[1], kutu[2] - kutu[0], kutu[3] - kutu[1]), ad
+                )
+            )
+            e.append(eleman.ad(eleman.daire("TAMPON", cx, cy, S["tampon_capi"] / 2.0), ad))
+    e.append(eleman.ad(eleman.cizgi("PERDE", *Y["perde"]), "perde"))
     gr = Y["gergi"]
     e.append(eleman.ad(eleman.dikdortgen("KASNAK", gr[0], gr[1], gr[2] - gr[0], gr[3] - gr[1]), "gergi"))
     for ad, kutu in Y["gergi_donanim"].items():
@@ -802,8 +895,8 @@ def ciz(g, cizim_sabitleri=None):
                 "gergi_" + ad,
             )
         )
-    if Y["merdiven"]:
-        m = Y["merdiven"]
+    m = Y["merdiven"]
+    if m:
         e.append(eleman.ad(eleman.dikdortgen("MERDIVEN", m[0], m[1], m[2] - m[0], m[3] - m[1]), "merdiven"))
         #  Etiket sığıyorsa merdivenin içine:  yanına yazılınca sığınma alanının
         #  ölçüsüne biniyordu
@@ -829,12 +922,12 @@ def ciz(g, cizim_sabitleri=None):
         cx, cy = kutu_merkezi(sg)
         e.append(eleman.yazi(cx, cy + 35, "SIĞINMA ALANI", 38))
         e.append(eleman.yazi(cx, cy - 35, f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}", 34))
+    return e
 
-    #  ── YAZILAR ──────────────────────────────────────────────────────
-    #  Kuyu tabanına yük aktaran noktalar ( kutuları en sonda, ölçülerden sonra
-    #  yerleşir ki onlara da binmesin )
+
+def _yuk_noktalari(g, Y, kv):
+    """Kuyu tabanına yük aktaran noktalar:  [ ( merkez, yazı ) ]."""
     kd = g["kuyu_dibi"]
-    kv = kd.get("kuvvetler")
     noktalar = []
     for liste, ad, adet in (
         (Y["kabin_tamponlari"], "Fkt", kd["kabin_tampon_adedi"]),
@@ -846,97 +939,64 @@ def ciz(g, cizim_sabitleri=None):
         ad_ = ad + ("1" if adet > 1 else "")
         metin = f"{ad_} = {_kn(kv[ad] / adet)} kN" if kv else ad_
         noktalar += [(kutu_merkezi(k), metin) for k in liste]
-    e.append(
-        eleman.yazi(
-            kutu_merkezi(gr)[0] - (80 if gr[0] > G / 2 else -80),
-            kutu_merkezi(gr)[1],
-            "REGÜLATÖR GERGİSİ",
-            34,
-            aci=90,
-        )
-    )
-    #  Perde yazısı ağırlıkla perde arasındaki boşluğa, tamponun yanına
-    #  denk gelmeyen yarıya yazılır — yük okları yerleştikten sonra ( en sonda ),
-    #  okların geçtiği yerden kaydırılarak.
-    bl = Y["blok"]
-    tamp = _birlesim(Y["agirlik_tamponlari"])
-    if p[0] == p[2]:
-        perde_yazisi = ((p[0] + (bl[2] if Y["ag_yan"] == "Sol" else bl[0])) / 2.0, (tamp[3] + p[3]) / 2.0, 90)
-    else:
-        perde_yazisi = ((tamp[2] + p[2]) / 2.0, (p[1] + bl[1]) / 2.0, 0)
+    return noktalar
 
-    #  ── ÖLÇÜLER ──────────────────────────────────────────────────────
+
+def _olculer(g, Y):
+    """Üst:  tampon eksenleri ( ağırlık ekseni · kabin ekseni );  sağ:  ray
+    ekseni ve regülatör gergisi;  alt:  kat kapısı ve merdivenin kapıya
+    uzaklığı."""
+    k, kp = g["kuyu"], g["kapi"]
+    G, D, don, dg, dar = k["genislik"], k["derinlik"], k["duvar_on"], k["duvar_sag"], k["duvar_arka"]
     ry = g["kabin_ray"]["kapi_arasi"]
     u0, u1 = D + dar + 120, D + dar + 320
     s0, s1 = G + dg + 120, G + dg + 320
     a0 = -don - 120
-    #  Üst:  tampon eksenleri ( ağırlık ekseni · kabin ekseni )
     xs = sorted({0.0, G} | {kutu_merkezi(t)[0] for t in Y["kabin_tamponlari"] + Y["agirlik_tamponlari"]})
-    e += [eleman.olcu("yatay", (a, 0), (b, 0), u0) for a, b in zip(xs, xs[1:])]
+    e = [eleman.olcu("yatay", (a, 0), (b, 0), u0) for a, b in zip(xs, xs[1:])]
     e.append(eleman.olcu("yatay", (0, 0), (G, 0), u1, f"KUYU GENİŞLİĞİ {G:g}"))
-    #  Sağ:  ray ekseni ve regülatör gergisi
-    ys = sorted({0.0, D, ry, kutu_merkezi(gr)[1]} | {kutu_merkezi(t)[1] for t in Y["agirlik_tamponlari"]})
+    ys = sorted(
+        {0.0, D, ry, kutu_merkezi(Y["gergi"])[1]} | {kutu_merkezi(t)[1] for t in Y["agirlik_tamponlari"]}
+    )
     e += [eleman.olcu("dusey", (0, a), (0, b), s0) for a, b in zip(ys, ys[1:])]
     e.append(eleman.olcu("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"))
-    #  Alt:  kat kapısı ve merdivenin kapıya uzaklığı
-    xs = sorted(
-        {0.0, G, kp["sol_pay"], kp["sol_pay"] + kp["genislik"]}
-        | ({Y["merdiven"][0], Y["merdiven"][2]} if Y["merdiven"] else set())
-    )
+    kapi = (kp["sol_pay"], kp["sol_pay"] + kp["genislik"])
+    xs = sorted({0.0, G, *kapi} | ({Y["merdiven"][0], Y["merdiven"][2]} if Y["merdiven"] else set()))
     e += [
-        eleman.olcu(
-            "yatay",
-            (a, 0),
-            (b, 0),
-            a0,
-            f"KAPI {kp['genislik']:g}" if (a, b) == (kp["sol_pay"], kp["sol_pay"] + kp["genislik"]) else None,
-        )
+        eleman.olcu("yatay", (a, 0), (b, 0), a0, f"KAPI {kp['genislik']:g}" if (a, b) == kapi else None)
         for a, b in zip(xs, xs[1:])
     ]
-    #  Sığınma alanının yeri — kuyu duvarlarından.  Ölçü sırası sığınmanın
-    #  üstünde / sağında;  yazısı bir parçaya ( tampon, gergi, merdiven, ray,
-    #  nokta adı ) biniyorsa öbür yanına geçer ( Yatarak sığınmada "1000"
-    #  kabin tamponunun üstüne düşüyordu ).
-    if sg:
-        engel = [
-            geometri.sinir([el])
-            for el in e
-            if el["katman"] in geometri.PARCA_KATMANLARI
-            or (el["tip"] == "yazi" and el.get("katman") == "YAZI")
+    return e
+
+
+def _siginma_olculeri(sg, G, D, e):
+    """Sığınma alanının yeri — kuyu duvarlarından.  Ölçü sırası sığınmanın
+    üstünde / sağında;  yazısı bir parçaya ( tampon, gergi, merdiven, ray,
+    nokta adı ) biniyorsa öbür yanına geçer ( Yatarak sığınmada "1000"
+    kabin tamponunun üstüne düşüyordu )."""
+    engel = [
+        geometri.sinir([el])
+        for el in e
+        if el["katman"] in geometri.PARCA_KATMANLARI or (el["tip"] == "yazi" and el.get("katman") == "YAZI")
+    ]
+
+    def yatay(k):
+        return [
+            eleman.olcu("yatay", (0, 0), (sg[0], 0), k),
+            eleman.olcu("yatay", (sg[0], 0), (sg[2], 0), k),
+            eleman.olcu("yatay", (sg[2], 0), (G, 0), k),
         ]
 
-        def yatay(k):
-            return [
-                eleman.olcu("yatay", (0, 0), (sg[0], 0), k),
-                eleman.olcu("yatay", (sg[0], 0), (sg[2], 0), k),
-                eleman.olcu("yatay", (sg[2], 0), (G, 0), k),
-            ]
+    def dusey(k):
+        return [
+            eleman.olcu("dusey", (0, 0), (0, sg[1]), k),
+            eleman.olcu("dusey", (0, sg[1]), (0, sg[3]), k),
+            eleman.olcu("dusey", (0, sg[3]), (0, D), k),
+        ]
 
-        def dusey(k):
-            return [
-                eleman.olcu("dusey", (0, 0), (0, sg[1]), k),
-                eleman.olcu("dusey", (0, sg[1]), (0, sg[3]), k),
-                eleman.olcu("dusey", (0, sg[3]), (0, D), k),
-            ]
-
-        e += _serbest(yatay, (sg[3] + 90, sg[1] - 90), D, engel)
-        e += _serbest(dusey, (sg[2] + 90, sg[0] - 90), G, engel)
-    e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
-    geometri._yazilari_yerlestir(e)
-    if geometri.olcu_kipi():  # ölçü çözümlemesi:  ölçüler yukarıda bitti
-        return e
-    e += _yuk_etiketleri(e, noktalar, G, D)
-    e.append(_perde_yazisi(e, perde_yazisi, p))
-    #  Ray konsoluna yatay yükler:  sağdaki ölçülerin ( ve kuyunun dışına konmuş
-    #  yük kutularının ) dışında, kuyunun üst hizasından.  Yük kutularından
-    #  SONRA:  dışarıdaki kutu tablonun yerine taşıyordu.
-    if kv:
-        e += _kuvvet_tablosu(kv, max(s1 + 250, geometri.sinir(e)[2] + 150), D - 20)
-    #  Parçaya ( ara kiriş, gergi ... ) binen ölçü yazıları, yük kutuları
-    #  konduktan sonra ölçüleri boyunca boş yere kayar ( girdi taraması, 4 Eki ).
-    #  Önce kaydırılınca bir düzende yük kutusuna yer kalmıyordu.
-    geometri._parcadan_kaydir(e, ek_katman=("YUK",))
-    return e
+    return _serbest(yatay, (sg[3] + 90, sg[1] - 90), D, engel) + _serbest(
+        dusey, (sg[2] + 90, sg[0] - 90), G, engel
+    )
 
 
 def _perde_yazisi(e, yer, p):
@@ -951,7 +1011,7 @@ def _perde_yazisi(e, yer, p):
         if o.get("ad") in ("yuk_kutusu", "yuk") or (o["tip"] == "yazi" and o["katman"] == "YAZI")
     ]
     #  Ölçü yazıları da ( eskiden sayılmıyordu — girdi taraması, 4 Eki )
-    engel += [geometri._yazi_kutusu(o) for o in e if o["tip"] == "olcu" and o.get("yazi")]
+    engel += [geometri.yazi_kutusu(o) for o in e if o["tip"] == "olcu" and o.get("yazi")]
     boy = (p[1], p[3]) if aci else (p[0], p[2])
     orta = y if aci else x
     #  Tam adı sığmıyorsa ( oklar perdeyi sık kesiyor ) kısaltılır

@@ -90,7 +90,7 @@ def _mrl_kiris_yuku(g, S, KU):
     mesnetler rayların birbirine bakan yüzleri ( aralık DBGW ), yük tahrik
     kasnağının düzleminde ( iki halat inişi de oradadır ).  X mesnetten yüke."""
     taban = KU["taban"]
-    raylar = sorted(kuyu_dibi._raylar(taban, "agirlik_ray"), key=lambda r: r[1])
+    raylar = sorted(kuyu_dibi.raylari_topla(taban, "agirlik_ray"), key=lambda r: r[1])
     if len(raylar) < 2:
         return None, None
     a, b = raylar[0][3], raylar[-1][1]  # ön rayın arka, arka rayın ön yüzü

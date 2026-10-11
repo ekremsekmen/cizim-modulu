@@ -214,11 +214,50 @@ def plan_parcalari(KD, g):
 def donanimi_ciz(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     """Raylar, karşı ağırlık, kuyu tepesi, kuyu dibi, halatlar ( iki bakışta ortak )."""
     S, M, dy = Y["S"], Y["M"], g["dusey"]
-    taban = Y["taban"]
     #  Raylar, konsollar ve karşı ağırlık BAKANA UZAKLIKLARINA GÖRE çizilir
     #  ( uzaktaki önce ):  A-A'da ağırlık tarafındaki kabin rayı ve ara kiriş
     #  karşı ağırlığın önündedir;  önce hepsi, sonra ağırlık çizildiğinde ray
     #  ağırlık boyunca kayboluyordu.  gruplar:  ( plandaki kutu, elemanlar )
+    AK = parca_kotlari.agirlik_kotlari(M, ag_alt)
+    gruplar = _ray_ve_dip_gruplari(B, g, Y, P, kabin_ezilme) + _agirlik_gruplari(B, g, S, M, P, AK, K)
+    for _, el in sorted(gruplar, key=lambda ge: uzaklik(B, ge[0]), reverse=True):
+        e += el
+    kt = parca_kotlari.kabin_kotlari(dy, S, kabin_z, g.get("aski"), arka_aski.arkada_iki_bir(g))
+    e += makine.gorunus(
+        baglantilar.kasnak_tasiyicilari(g, S, kt["kasnak_merkez"]),
+        B,
+        eleman.dikdortgen,
+        eleman.daire,
+        eleman.cizgi,
+    )
+    capraz = (M.get("KU") or {}).get("capraz")
+    if capraz:
+        #  Arkadaki ağırlıkla 2:1:  kabin üstündeki çapraz kasnaklar ( elips )
+        for m, kutu in zip(capraz["kasnaklar"], capraz["kutular"]):
+            if B.gorunur(kutu):
+                kasnak_capraz(e, B, m, capraz["u"], capraz["Rk"], kt["kasnak_merkez"], "kabin_kasnagi")
+    if "sase" not in M:
+        return AK, kt
+    _kuyu_tepesi(e, B, g, M, K)
+    #  Halatlar
+    gr, rk = M["gergi"], M["regulator_kasnak"]
+    rgx = (gr["plan"][0] + gr["plan"][2]) / 2.0
+    KU = M["KU"]
+    zt = M["kasnak"][4]
+    if KU.get("dogrudan"):
+        _halatlar_1_1(e, B, g, M, KU, kt, AK, zt)
+    elif KU.get("capraz"):
+        _halatlar_capraz(e, B, M, KU, kt, AK, zt)
+    else:
+        _halatlar_yan(e, B, g, M, P, KU, kt, AK, zt)
+    _regulator_halati(e, B, M, gr, rk, rgx)
+    return AK, kt
+
+
+def _ray_ve_dip_gruplari(B, g, Y, P, kabin_ezilme):
+    """Raylar, konsollar, tamponlar ( ikisi de serbest ) ve gergi düzeni:
+    [ ( plandaki kutu, elemanlar ) ]."""
+    S, M, dy, taban = Y["S"], Y["M"], g["dusey"], Y["taban"]
     gruplar = []
     for r in M["raylar"]:
         el = []
@@ -235,7 +274,6 @@ def donanimi_ciz(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
             el = []
             konsollar(el, B, [p], kotlar, S, ad)
             gruplar.append((p, el))
-    #  Kuyu dibi:  tamponlar ( ikisi de serbest ) ve gergi düzeni
     KD = Y["KD"]
     for kutular, baba, boy, ezilme, ad in (
         (KD["kabin_tamponlari"], dy["kabin_tampon_baba"], dy["kabin_tampon_boyu"], kabin_ezilme, "kabin"),
@@ -260,8 +298,12 @@ def donanimi_ciz(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     el = []
     kasnak(el, B, gp, gr["merkez"], gr["cap"], "y", "gergi_kasnagi")
     gruplar.append((gp, el))
-    #  Karşı ağırlık:  çerçeve, dolgu, kasnak ve yazı bir grup;  patenler ayrı
-    AK = parca_kotlari.agirlik_kotlari(M, ag_alt)
+    return gruplar
+
+
+def _agirlik_gruplari(B, g, S, M, P, AK, K):
+    """Karşı ağırlık:  çerçeve, dolgu, kasnak ve yazı bir grup;  patenler ayrı."""
+    ag_raylari = [r for r in M["raylar"] if r["tur"] == "agirlik"]
     blok = M["agirlik"]["kutu"]
     cer = S["agirlik_cerceve"]
     el = []
@@ -304,32 +346,18 @@ def donanimi_ciz(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
                 "agirlik_yazi",
             )
         )
-    gruplar.append((blok, el))
+    gruplar = [(blok, el)]
     for z0, z1 in ((AK["ust_paten_alt"], AK["ust_paten"]), (AK["alt_paten"], AK["alt_paten_ust"])):
         for parca in baglantilar.agirlik_patenleri(g, S, blok, ag_raylari, z0, z1):
             el = makine.gorunus([parca], B, eleman.dikdortgen, eleman.daire, eleman.cizgi)
             gruplar.append((makine.sinirlar(parca)[:4], el))
-    for _, el in sorted(gruplar, key=lambda ge: uzaklik(B, ge[0]), reverse=True):
-        e += el
-    kt = parca_kotlari.kabin_kotlari(dy, S, kabin_z, g.get("aski"), arka_aski.arkada_iki_bir(g))
-    e += makine.gorunus(
-        baglantilar.kasnak_tasiyicilari(g, S, kt["kasnak_merkez"]),
-        B,
-        eleman.dikdortgen,
-        eleman.daire,
-        eleman.cizgi,
-    )
-    capraz = (M.get("KU") or {}).get("capraz")
-    if capraz:
-        #  Arkadaki ağırlıkla 2:1:  kabin üstündeki çapraz kasnaklar ( elips )
-        for m, kutu in zip(capraz["kasnaklar"], capraz["kutular"]):
-            if B.gorunur(kutu):
-                kasnak_capraz(e, B, m, capraz["u"], capraz["Rk"], kt["kasnak_merkez"], "kabin_kasnagi")
-    if "sase" not in M:
-        return AK, kt
-    #  Kuyu tepesinde ya da makine dairesinde:  makine şasesi, bağlantılar,
-    #  makine ( makine.py:  parça parça, izdüşümüyle ), regülatör, ( odada )
-    #  kumanda panosu
+    return gruplar
+
+
+def _kuyu_tepesi(e, B, g, M, K):
+    """Kuyu tepesinde ya da makine dairesinde:  makine şasesi, bağlantılar,
+    makine ( makine.py:  parça parça, izdüşümüyle ), regülatör, ( odada )
+    kumanda panosu."""
     for ad in ("agirlik_baglanti", "kabin_baglanti"):  # 1:1 askıda yok
         p = M[ad]
         if p:
@@ -362,19 +390,12 @@ def donanimi_ciz(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
         p = M["pano"]
         B.kutu(e, "PANO", p[:4], p[4], p[5], "kumanda_panosu")
     rk = M["regulator_kasnak"]
-    kasnak(e, B, rk[:4], rk[4], gr["cap"], "y", "regulator_kasnagi")
-    #  Halatlar
-    KU = M["KU"]
+    kasnak(e, B, rk[:4], rk[4], M["gergi"]["cap"], "y", "regulator_kasnagi")
+
+
+def _halatlar_yan(e, B, g, M, P, KU, kt, AK, zt):
+    """Yandaki ağırlıkla 2:1:  askı halatları."""
     zk = kt["kasnak_merkez"]
-    zt = M["kasnak"][4]
-    if KU.get("dogrudan"):
-        _halatlar_1_1(e, B, g, M, KU, kt, AK, zt)
-        _regulator_halati(e, B, M, gr, rk, rgx)
-        return AK, kt
-    if KU.get("capraz"):
-        _halatlar_capraz(e, B, M, KU, kt, AK, zt)
-        _regulator_halati(e, B, M, gr, rk, rgx)
-        return AK, kt
     (xl, y0), (xr, _) = KU["halatlar"]
     yakin, uzak_x = KU["yakin"], KU["uzak"]
     zkb = M["kabin_baglanti"][4]
@@ -393,13 +414,11 @@ def donanimi_ciz(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     for (x0_, y0_, z0), (x1_, y1_, z1) in (
         [
             ((yakin, y0, zk), (yakin, y0, zt)),  # kabin → tahrik kasnağı
-            ((uzak_x, y0, zk), (uzak_x, y0, zkb)),
+            ((uzak_x, y0, zk), (uzak_x, y0, zkb)),  # kabin → kabin bağlantısı
         ]
         + agirlik
-        + [  # kabin → kabin bağlantısı
-            ((tx2, ty2, za), (tx2, ty2, zab))
-        ]
-    ):  # ağırlık kasnağı → bağlantı
+        + [((tx2, ty2, za), (tx2, ty2, zab))]  # ağırlık kasnağı → bağlantı
+    ):
         if B.gorunur((x0_, y0_, x0_, y0_)):
             B.halat_cizgisi(e, (x0_, y0_, z0), (x1_, y1_, z1), "aski_halati")
     if B.tur == "on":
@@ -407,8 +426,6 @@ def donanimi_ciz(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
         r = g["aski"]["kasnak_capi"] / 2.0
         us = sorted(B.u((k[0] + k[2]) / 2.0, 0) for k in P["kabin_kasnak"])
         e.append(eleman.ad(eleman.cizgi("HALAT", us[0], zk - r, us[-1], zk - r), "aski_halati"))
-    _regulator_halati(e, B, M, gr, rk, rgx)
-    return AK, kt
 
 
 def _regulator_halati(e, B, M, gr, rk, rgx):

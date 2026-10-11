@@ -24,7 +24,7 @@ from uclar import uygulama_istegi
 
 def _calistir(**ek):
     """( çizim ucu , hesap ) — standart 800 kg, makine dairesiz."""
-    v = test_yerlesim_saglamligi._veri(800, True, "Sağ")
+    v = test_yerlesim_saglamligi.standart_istek(800, True, "Sağ")
     v["asansorler"][0].update(ek)
     cizim = json.loads(cizim_uclari.api_cizimler(v).body)
     asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
@@ -84,7 +84,9 @@ class TamponAdedi(unittest.TestCase):
         from cizim import kopru, kuyu_dibi
         from motor.uygulama import uygulama_girdisi
 
-        v = test_yerlesim_saglamligi._veri(800, True, "Sağ", kabin_tampon_adedi=2, kabin_tampon_arasi=600)
+        v = test_yerlesim_saglamligi.standart_istek(
+            800, True, "Sağ", kabin_tampon_adedi=2, kabin_tampon_arasi=600
+        )
         ham, _i, proje = cizim_uclari._istek(v)
         g, hata = kopru.cizim_girdisi(uygulama_girdisi.tamamla(ham), None, proje, 1)
         t = kuyu_dibi.yerlesim(g)["kabin_tamponlari"]

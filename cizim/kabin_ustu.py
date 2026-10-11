@@ -23,6 +23,8 @@ Eskiden ön duvar hep dolu çiziliyor, kapı bölgesi boş
 kalıyordu ( kullanıcı 5 Eki:  "kapının görünmemesi saçma" ).
 """
 
+from dataclasses import dataclass
+
 from temel import eleman_kutusu, ortusur
 from cizim import eleman
 from cizim import geometri
@@ -138,16 +140,43 @@ def yerlesim(g, cizim_sabitleri=None):
     """
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     taban = geometri.plan(g, S, kapi_duzeyi=False, duvar_boslugu=kapi_gorunusu(g, S)["acik"])
-    G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
     tavan = eleman_kutusu(next(el for el in taban if el.get("ad") == "kabin_dis"))
     parcalar = [
         eleman_kutusu(el) for el in taban if el["tip"] == "dikdortgen" and el["katman"] in _KUYU_PARCALARI
     ]
     hata = []
+    kenarlar = _korkuluk_kenarlari(g, tavan, parcalar, hata)
+    halatlar = _halatlar(g, S, taban, hata)
+    #  Sığınma alanı korkulukların içinde kalır
+    ic = (
+        tavan[0] + kenarlar["Sol"]["iceri"],
+        tavan[1] + kenarlar["Ön"]["iceri"],
+        tavan[2] - kenarlar["Sağ"]["iceri"],
+        tavan[3] - kenarlar["Arka"]["iceri"],
+    )
+    operator, engeller = _tavan_engelleri(g, S, taban, tavan, parcalar, kenarlar, ic, hata)
+    tip = (g.get("kabin_ustu") or {}).get("siginma_tipi")
+    siginma = _siginma_yeri(S, tip, tavan, ic, engeller, hata)
+    return {
+        "taban": taban,
+        "tavan": tavan,
+        "kenarlar": kenarlar,
+        "ic": ic,
+        "operator": operator,
+        "engeller": engeller,
+        "siginma": siginma,
+        "siginma_tipi": tip,
+        "halatlar": halatlar,
+        "hata": hata,
+        "S": S,
+    }
 
-    #  ── KORKULUK:  her kenar ayrı değerlendirilir ─────────────────────
-    #  bos:     tavan kenarından duvara  ( m.5.4.7.2 b )
-    #  parca:   tavan kenarından o yandaki en yakın kuyu parçasına
+
+def _korkuluk_kenarlari(g, tavan, parcalar, hata):
+    """KORKULUK:  her kenar ayrı değerlendirilir.
+    bos:     tavan kenarından duvara  ( m.5.4.7.2 b )
+    parca:   tavan kenarından o yandaki en yakın kuyu parçasına"""
+    G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
     kenarlar = {}
     for yan in ("Sol", "Sağ", "Arka", "Ön"):
         if yan == "Sol":
@@ -200,8 +229,13 @@ def yerlesim(g, cizim_sabitleri=None):
                 else standart.KORKULUK_YUKSEK
             )
         kenarlar[yan] = k
+    return kenarlar
 
-    #  HALAT KUYUDAKİ BİR PARÇANIN İÇİNDEN GEÇEMEZ  ( kabin altı askı )
+
+def _halatlar(g, S, taban, hata):
+    """Halatların planda yeri.  HALAT KUYUDAKİ BİR PARÇANIN İÇİNDEN GEÇEMEZ
+    ( kabin altı askı )."""
+    G = g["kuyu"]["genislik"]
     halatlar = geometri.halat_konumlari(g, S)
     for hx, hy in halatlar:
         if not (0 < hx < G):
@@ -216,16 +250,12 @@ def yerlesim(g, cizim_sabitleri=None):
                         f"( {el['katman'].lower()} ) içinden geçiyor."
                     )
                     break
+    return halatlar
 
-    #  Sığınma alanı korkulukların içinde kalır
-    ic = (
-        tavan[0] + kenarlar["Sol"]["iceri"],
-        tavan[1] + kenarlar["Ön"]["iceri"],
-        tavan[2] - kenarlar["Sağ"]["iceri"],
-        tavan[3] - kenarlar["Arka"]["iceri"],
-    )
 
-    #  ── TAVANDAKİ ENGELLER ───────────────────────────────────────────
+def _tavan_engelleri(g, S, taban, tavan, parcalar, kenarlar, ic, hata):
+    """TAVANDAKİ ENGELLER:  kapı operatörü, askı elemanları ve kabinin tavanın
+    üstündeki parçaları.  ( operatör, [ engel ] — ilki operatör )"""
     operator = _operator(g, tavan, S)
     #  Operatör kabinle gider:  tavandan taşan ucu kuyudaki bir parçaya değemez
     for p in parcalar:
@@ -258,8 +288,7 @@ def yerlesim(g, cizim_sabitleri=None):
                 kesiyor = p[1] < y < p[3] and p[0] < ic[2] and ic[0] < p[2]
             if kesiyor:
                 hata.append(
-                    f"Kabin üstü kasnağı {yan.lower()} kenardaki korkuluğun yolunu "
-                    "kesiyor — kasnak aralığını daraltın."
+                    f"Kabin üstü kasnağı {yan.lower()} kenardaki korkuluğun yolunu kesiyor — kasnak aralığını daraltın."
                 )
                 break
 
@@ -272,7 +301,6 @@ def yerlesim(g, cizim_sabitleri=None):
     #  ağırlıkla 2:1'de halat tavanın 80 mm üstünden alanın içinden geçiyordu
     #  ( denetim 9 Eki ).  Korkuluk denetimi ( yukarıda ) bunları saymaz:
     #  küpeşte kirişin ve halatın üstünden geçer.
-
     tip = (g.get("kabin_ustu") or {}).get("siginma_tipi")
     kt = parca_kotlari.kabin_kotlari(g["dusey"], S, 0.0, g.get("aski"), arka_aski.arkada_iki_bir(g))
     sinir = kt["tavan"] + SIGINMA_YUKSEKLIK.get(tip, max(SIGINMA_YUKSEKLIK.values()))
@@ -281,59 +309,41 @@ def yerlesim(g, cizim_sabitleri=None):
         for ad, k, alt, ust in hareketli.kabin_parcalari(g, S, taban, kt)
         if ad != hareketli.KABIN and ust > kt["tavan"] + 1e-9 and alt < sinir - 1e-9
     ]
+    return operator, engeller
 
-    #  ── SIĞINMA ALANI  ( Çizelge 3 ) ──────────────────────────────────
-    #  Kapıya en yakın, sonra kabin eksenine en yakın boş yer aranır:  bakımcı
-    #  tavana kapıdan çıkar.
-    siginma = None
+
+def _siginma_yeri(S, tip, tavan, ic, engeller, hata):
+    """SIĞINMA ALANI  ( Çizelge 3 ):  kapıya en yakın, sonra kabin eksenine en
+    yakın boş yer aranır — bakımcı tavana kapıdan çıkar.  Kutu ya da None."""
     if tip not in SIGINMA:
         hata.append(f"kabin_ustu.siginma_tipi: {tuple(SIGINMA)} içinden olmalı ( {tip!r} ).")
-    else:
-        kx = (tavan[0] + tavan[2]) / 2.0
-        adaylar = []
-        for kenar in (False, True):
-            adaylar = [
-                (round(k[1], 3), abs((k[0] + k[2]) / 2.0 - kx), k)
-                for w, h in {SIGINMA[tip], SIGINMA[tip][::-1]}
-                for k in geometri.yer_adaylari(ic, w, h, engeller, kenar)
-            ]
-            if adaylar:
-                break
+        return None
+    kx = (tavan[0] + tavan[2]) / 2.0
+    adaylar = []
+    for kenar in (False, True):
+        adaylar = [
+            (round(k[1], 3), abs((k[0] + k[2]) / 2.0 - kx), k)
+            for w, h in {SIGINMA[tip], SIGINMA[tip][::-1]}
+            for k in geometri.yer_adaylari(ic, w, h, engeller, kenar)
+        ]
         if adaylar:
-            siginma = min(adaylar)[2]
-        else:
-            a, b = SIGINMA[tip]
-            hata.append(
-                f"Kabin tavanında {tip.lower()} tipi sığınma alanına ( {a:g} × {b:g} mm, "
-                "TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı "
-                "operatörü, şasenin üst kirişi ( ray ekseninde "
-                f"{S['sase_dikme_derinlik']:g} mm — Sabitler:  kabin şasesi dikmesinin "
-                "kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
-            )
-    return {
-        "taban": taban,
-        "tavan": tavan,
-        "kenarlar": kenarlar,
-        "ic": ic,
-        "operator": operator,
-        "engeller": engeller,
-        "siginma": siginma,
-        "siginma_tipi": tip,
-        "halatlar": halatlar,
-        "hata": hata,
-        "S": S,
-    }
+            break
+    if adaylar:
+        return min(adaylar)[2]
+    a, b = SIGINMA[tip]
+    hata.append(
+        f"Kabin tavanında {tip.lower()} tipi sığınma alanına ( {a:g} × {b:g} mm, "
+        "TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı "
+        "operatörü, şasenin üst kirişi ( ray ekseninde "
+        f"{S['sase_dikme_derinlik']:g} mm — Sabitler:  kabin şasesi dikmesinin "
+        "kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+    )
+    return None
 
 
 def _yazi_kutusu(el):
-    """Ölçü yazısının kutusu ( yeri _yazilari_yerlestir'den ) — yazı yoksa boş."""
-    y = el.get("yazi")
-    if not y:
-        return (0.0, 0.0, 0.0, 0.0)
-    w, h = eleman.yazi_eni(el["metin"], y["h"]) / 2.0, y["h"] / 2.0
-    if y["aci"]:
-        w, h = h, w
-    return (y["x"] - w, y["y"] - h, y["x"] + w, y["y"] + h)
+    """Ölçü yazısının kutusu ( geometri.yazi_kutusu ) — yazı yoksa boş."""
+    return geometri.yazi_kutusu(el) or (0.0, 0.0, 0.0, 0.0)
 
 
 def dogrula(g):
@@ -370,10 +380,7 @@ def korkuluklar(Y):
 def ciz(g, cizim_sabitleri=None):
     """Kabin üstü planının elemanları."""
     Y = yerlesim(g, cizim_sabitleri)
-    S, tavan, ken = Y["S"], Y["tavan"], Y["kenarlar"]
-    op = Y["operator"]  # çizilmez;  yazılar onun yerinden kaçar
-    G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
-    dg, dar = g["kuyu"]["duvar_sag"], g["kuyu"]["duvar_arka"]
+    S, tavan = Y["S"], Y["tavan"]
     duzen = (g.get("aski") or {}).get("duzen")
     #  Tavandaki askı elemanları ( kabin üstü kasnakları, 1:1 bağlantısı )
     #  TAVANDAN SONRA çizilir:  tavanın dolgusu onları örtüyordu.
@@ -393,22 +400,69 @@ def ciz(g, cizim_sabitleri=None):
     aski_el = [el for el in Y["taban"] if el.get("ad") in aski_ad]
 
     #  ── KABİN TAVANI ─────────────────────────────────────────────────
-    tg, td = tavan[2] - tavan[0], tavan[3] - tavan[1]
-    e.append(eleman.ad(eleman.dikdortgen("KABIN", tavan[0], tavan[1], tg, td), "tavan"))
+    e.append(
+        eleman.ad(
+            eleman.dikdortgen("KABIN", tavan[0], tavan[1], tavan[2] - tavan[0], tavan[3] - tavan[1]), "tavan"
+        )
+    )
     #  Şasenin üst kirişi tavanın üstünde, ray ekseninde dikmeden dikmeye
     #  ( kuyu planındaki zarfı;  kabin üstü kasnaklar onun da üstünde ).
     #  Eskiden bu planda yalnız dikmeler vardı:  askı görünmüyordu ( 3 Eki ).
     e += [el for el in Y["taban"] if el.get("ad") == "sase_kiris"]
+    e += _kapi_elemanlari(g, S, Y)
 
-    #  ── KAPI ( kapi_gorunusu ) ───────────────────────────────────────
-    #  Kat kapısı kesitin altında, yukarıdan görünür:  eşik, kanatlar, cep.
-    #  Kasa kesilir ya da üstü görünür:  her iki halde kapının üstünü boydan
-    #  boya geçen tek parça ( dikmeler + üst kasa );  duvar boşluğuna monte
-    #  kasa dolu lentonun altında kalır ( kesikli ).  Kabin kapısı da
-    #  görünür:  operatör çizilmez ( LiftDesigner 1022 X-X ).
+    #  Kabin altı askıda halatlar tavanın DIŞINDAN, kasnakların dış
+    #  teğetinden yukarı çıkar ( kabin üstü askıda halat tavandaki kasnaktan
+    #  çıkar — kasnak zaten çizili )
+    for hx, hy in Y["halatlar"] if duzen == "Kabin altı" else ():
+        e.append(eleman.ad(eleman.daire("KASNAK", hx, hy, 20), "halat"))
+        e.append(eleman.yazi(hx, hy - 70, "HALAT", 36))
+
+    #  ── KORKULUK ─────────────────────────────────────────────────────
+    #  Küpeşte çizgisi, gerekli olan her kenarda iceri kadar içeride durur.
+    for kutu, _ in korkuluklar(Y):
+        e.append(eleman.ad(eleman.cizgi("KORKULUK", *kutu), "korkuluk"))
+
+    #  ── SIĞINMA ALANI ────────────────────────────────────────────────
+    sg = Y["siginma"]
+    if sg:
+        e.append(
+            eleman.ad(eleman.dikdortgen("SIGINMA", sg[0], sg[1], sg[2] - sg[0], sg[3] - sg[1]), "siginma")
+        )
+        a, b = SIGINMA[Y["siginma_tipi"]]
+        cx, cy = (sg[0] + sg[2]) / 2.0, (sg[1] + sg[3]) / 2.0
+        e.append(eleman.yazi(cx, cy + 35, "SIĞINMA ALANI", 38))
+        e.append(eleman.yazi(cx, cy - 35, f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}", 34))
+    e += aski_el
+
+    e += _ana_olculer(g, tavan)
+    e += _iceri_olculeri(Y)
+    if sg:
+        e += _siginma_olculeri(g, Y, e)
+    #  KORKULUK YAZISI:  küpeşte boyunca, operatöre ve sığınma ölçüsüne
+    #  denk gelmeyen en uzun boş parçanın ortasına.  Ölçü yazıları önce
+    #  yerleşir:  yazının şeridine düşen ölçü yazısı da o parçayı doldurur.
+    e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
+    geometri.yazilari_yerlestir(e, kaydir=True)
+    _korkuluk_yazilari(Y, e)
+
+    #  Sıfır boylu ölçü çizilmez  ( sığınma alanı kenara dayanmışsa )
+    e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
+    geometri.yazilari_yerlestir(e, kaydir=True)
+    geometri.parcadan_kaydir(e, ek_katman=("KAPI",))
+    return e
+
+
+def _kapi_elemanlari(g, S, Y):
+    """KAPI ( kapi_gorunusu ):  kat kapısı kesitin altında, yukarıdan görünür:
+    eşik, kanatlar, cep.  Kasa kesilir ya da üstü görünür:  her iki halde
+    kapının üstünü boydan boya geçen tek parça ( dikmeler + üst kasa );  duvar
+    boşluğuna monte kasa dolu lentonun altında kalır ( kesikli ).  Kabin kapısı
+    da görünür:  operatör çizilmez ( LiftDesigner 1022 X-X )."""
     KG = kapi_gorunusu(g, S)
     KB = girdi.kapi_bolgesi(g, S)
     kp = g["kapi"]
+    e = []
     for el in Y["taban"]:
         ad = el.get("ad")
         if el["katman"] not in ("KAPI", "KABIN") or ad not in _KAPI_AD:
@@ -427,36 +481,17 @@ def ciz(g, cizim_sabitleri=None):
     if not KG["acik"] and kp["montaj"] == "Duvar boşluğuna":
         kasa["katman"] = "GIZLI"
     e.append(eleman.ad(kasa, "kapi_kasasi"))
+    return e
 
-    #  Kabin altı askıda halatlar tavanın DIŞINDAN, kasnakların dış
-    #  teğetinden yukarı çıkar ( kabin üstü askıda halat tavandaki kasnaktan
-    #  çıkar — kasnak zaten çizili )
-    for hx, hy in Y["halatlar"] if (g.get("aski") or {}).get("duzen") == "Kabin altı" else ():
-        e.append(eleman.ad(eleman.daire("KASNAK", hx, hy, 20), "halat"))
-        e.append(eleman.yazi(hx, hy - 70, "HALAT", 36))
 
-    #  ── KORKULUK ─────────────────────────────────────────────────────
-    #  Küpeşte çizgisi, gerekli olan her kenarda iceri kadar içeride durur.
-    ic = Y["ic"]
-    for kutu, _ in korkuluklar(Y):
-        e.append(eleman.ad(eleman.cizgi("KORKULUK", *kutu), "korkuluk"))
-
-    #  ── SIĞINMA ALANI ────────────────────────────────────────────────
-    sg = Y["siginma"]
-    if sg:
-        e.append(
-            eleman.ad(eleman.dikdortgen("SIGINMA", sg[0], sg[1], sg[2] - sg[0], sg[3] - sg[1]), "siginma")
-        )
-        a, b = SIGINMA[Y["siginma_tipi"]]
-        cx, cy = (sg[0] + sg[2]) / 2.0, (sg[1] + sg[3]) / 2.0
-        e.append(eleman.yazi(cx, cy + 35, "SIĞINMA ALANI", 38))
-        e.append(eleman.yazi(cx, cy - 35, f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}", 34))
-    e += aski_el
-
-    #  ── ÖLÇÜLER ──────────────────────────────────────────────────────
+def _ana_olculer(g, tavan):
+    """Kabin tavanı ve kuyu ölçüleri ( üstte ve sağda )."""
+    G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
+    dg, dar = g["kuyu"]["duvar_sag"], g["kuyu"]["duvar_arka"]
+    tg, td = tavan[2] - tavan[0], tavan[3] - tavan[1]
     u0, u1 = D + dar + 120, D + dar + 320
     s0, s1 = G + dg + 120, G + dg + 320
-    e += [
+    return [
         eleman.olcu("yatay", (0, 0), (tavan[0], 0), u0),
         eleman.olcu("yatay", (tavan[0], 0), (tavan[2], 0), u0, f"KABİN TAVANI {tg:g}"),
         eleman.olcu("yatay", (tavan[2], 0), (G, 0), u0),
@@ -466,249 +501,267 @@ def ciz(g, cizim_sabitleri=None):
         eleman.olcu("dusey", (0, tavan[3]), (0, D), s0),
         eleman.olcu("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"),
     ]
-    #  Korkuluğun kenardan içeri alınması  ( 0'dan büyükse )
-    for yan, k in ken.items():
+
+
+def _iceri_olculeri(Y):
+    """Korkuluğun kenardan içeri alınması  ( 0'dan büyükse )."""
+    tavan, ic = Y["tavan"], Y["ic"]
+    e = []
+    for yan, k in Y["kenarlar"].items():
         if not (k["gerekli"] and k["iceri"] > 1e-9):
             continue
+        metin = f"{k['iceri']:g}"
+        yari = eleman.yazi_eni(metin, eleman.yb(40)) / 2.0
         if yan in ("Sol", "Sağ"):
             x1, x2 = (tavan[0], ic[0]) if yan == "Sol" else (ic[2], tavan[2])
             #  Her kenarın ölçüsü kendi sırasında  ( iki kenar aynı sırada
             #  kopuk bir zincir oluştururdu )
             kot = tavan[3] - (120 if yan == "Sol" else 200)
-            e.append(
-                eleman.olcu(
-                    "yatay",
-                    (x1, 0),
-                    (x2, 0),
-                    kot,
-                    f"{k['iceri']:g}",
-                    kural=_ICERI,
-                    yazi={
-                        "x": (x2 + 30 + eleman.yazi_eni(f"{k['iceri']:g}", eleman.yb(40)) / 2.0)
-                        if yan == "Sol"
-                        else (x1 - 30 - eleman.yazi_eni(f"{k['iceri']:g}", eleman.yb(40)) / 2.0),
-                        "y": kot,
-                        "h": eleman.yb(40),
-                    },
-                )
-            )
+            yazi = {"x": (x2 + 30 + yari) if yan == "Sol" else (x1 - 30 - yari), "y": kot, "h": eleman.yb(40)}
+            e.append(eleman.olcu("yatay", (x1, 0), (x2, 0), kot, metin, kural=_ICERI, yazi=yazi))
         else:
             y1, y2 = (ic[3], tavan[3]) if yan == "Arka" else (tavan[1], ic[1])
             kot = tavan[0] + (120 if yan == "Arka" else 200)
-            e.append(
-                eleman.olcu(
-                    "dusey",
-                    (0, y1),
-                    (0, y2),
-                    kot,
-                    f"{k['iceri']:g}",
-                    kural=_ICERI,
-                    yazi={
-                        "x": kot + 30 + eleman.yazi_eni(f"{k['iceri']:g}", eleman.yb(40)) / 2.0,
-                        "y": (y1 + y2) / 2.0,
-                        "h": eleman.yb(40),
-                    },
-                )
-            )
-    #  Sığınma alanının yeri — tavan kenarlarından
-    if sg:
-        yer = (
-            "Sığınma alanının yeri:  program alanı kapıya en yakın, sonra kabin "
-            "eksenine en yakın boş yere koyar ( 25 mm adımla;  dar boşlukta engelin "
-            "kenarına yaslanarak )."
-        )
-        buyukluk = (
-            f"Sığınma alanının ölçüsü:  TS EN 81-20 Çizelge 3 "
-            f"( {str(g['kabin_ustu']['siginma_tipi']).lower()} )."
-        )
+            yazi = {"x": kot + 30 + yari, "y": (y1 + y2) / 2.0, "h": eleman.yb(40)}
+            e.append(eleman.olcu("dusey", (0, y1), (0, y2), kot, metin, kural=_ICERI, yazi=yazi))
+    return e
 
-        def olculer(kot_y, kot_x):
-            return [
-                eleman.olcu("yatay", (tavan[0], 0), (sg[0], 0), kot_y, kural=yer),
-                eleman.olcu("yatay", (sg[0], 0), (sg[2], 0), kot_y, kural=buyukluk),
-                eleman.olcu("yatay", (sg[2], 0), (tavan[2], 0), kot_y, kural=yer),
-                eleman.olcu("dusey", (0, tavan[1]), (0, sg[1]), kot_x, kural=yer),
-                eleman.olcu("dusey", (0, sg[1]), (0, sg[3]), kot_x, kural=buyukluk),
-                eleman.olcu("dusey", (0, sg[3]), (0, tavan[3]), kot_x, kural=yer),
-            ]
 
-        #  İki sıranın yeri DENENEREK seçilir:  her aday için yazılar gerçekten
-        #  yerleştirilir ( _yazilari_yerlestir ), yazıların öbür yazılara, kapı
-        #  operatörüne, şasenin üst kirişine ve askı elemanlarına binmesi
-        #  sayılır;  en az binen aday ( eşitse sıradaki ).  Korkuluk yazısı sonra
-        #  konur ve bu yazılardan kendisi kaçar.
-        #  Adaylar:  alanın arkası / önü ( sağı / solu ), içeride ön ( sol ) ve
-        #  arka ( sağ ) kenarına yakın.  Eskiden tek kurallı seçim yazıları
-        #  operatöre, korkuluk yazısına ve korkuluğun içeri alınma ölçüsüne
-        #  bindiriyordu ( girdi taraması, 4 Eki ).
-        engel = [geometri.sinir([el]) for el in e if el.get("ad") == "sase_kiris"] + list(Y["engeller"])
-        yazilar = [geometri.sinir([el]) for el in e if el["tip"] == "yazi"]
+def _siginma_olculeri(g, Y, e):
+    """Sığınma alanının yeri — tavan kenarlarından.
 
-        def puan(kot_y, kot_x):
-            if not (
-                tavan[1] < kot_y - 20
-                and kot_y + 100 < tavan[3]
-                and tavan[0] < kot_x - 20
-                and kot_x + 100 < tavan[2]
-            ):
-                return 1e9
-            yeni = olculer(kot_y, kot_x)
-            dene = [dict(el) for el in e if el["tip"] == "olcu"] + yeni
-            geometri._yazilari_yerlestir([el for el in e if el["tip"] != "olcu"] + dene, kaydir=True)
-            diger = [_yazi_kutusu(el) for el in dene[: -len(yeni)]] + yazilar
-            n = 0
-            kutular_ = [_yazi_kutusu(el) for el in yeni if el["uzunluk"] >= 1e-6]
-            for i_, k_ in enumerate(kutular_):
-                n += sum(1 for b in diger + engel + kutular_[i_ + 1 :] if ortusur(k_, b))
-            return n
+    İki sıranın yeri DENENEREK seçilir:  her aday için yazılar gerçekten
+    yerleştirilir ( yazilari_yerlestir ), yazıların öbür yazılara, kapı
+    operatörüne, şasenin üst kirişine ve askı elemanlarına binmesi
+    sayılır;  en az binen aday ( eşitse sıradaki ).  Korkuluk yazısı sonra
+    konur ve bu yazılardan kendisi kaçar.
+    Adaylar:  alanın arkası / önü ( sağı / solu ), içeride ön ( sol ) ve
+    arka ( sağ ) kenarına yakın.  Eskiden tek kurallı seçim yazıları
+    operatöre, korkuluk yazısına ve korkuluğun içeri alınma ölçüsüne
+    bindiriyordu ( girdi taraması, 4 Eki )."""
+    tavan, sg = Y["tavan"], Y["siginma"]
+    yer = (
+        "Sığınma alanının yeri:  program alanı kapıya en yakın, sonra kabin "
+        "eksenine en yakın boş yere koyar ( 25 mm adımla;  dar boşlukta engelin "
+        "kenarına yaslanarak )."
+    )
+    buyukluk = (
+        f"Sığınma alanının ölçüsü:  TS EN 81-20 Çizelge 3 ( {str(g['kabin_ustu']['siginma_tipi']).lower()} )."
+    )
 
-        adaylar = [
-            (ky, kx)
-            for ky in (sg[3] + 90, sg[1] - 90, sg[1] + 60, sg[3] - 110)
-            for kx in (sg[2] + 90, sg[0] - 90, sg[2] - 110, sg[0] + 60)
+    def olculer(kot_y, kot_x):
+        return [
+            eleman.olcu("yatay", (tavan[0], 0), (sg[0], 0), kot_y, kural=yer),
+            eleman.olcu("yatay", (sg[0], 0), (sg[2], 0), kot_y, kural=buyukluk),
+            eleman.olcu("yatay", (sg[2], 0), (tavan[2], 0), kot_y, kural=yer),
+            eleman.olcu("dusey", (0, tavan[1]), (0, sg[1]), kot_x, kural=yer),
+            eleman.olcu("dusey", (0, sg[1]), (0, sg[3]), kot_x, kural=buyukluk),
+            eleman.olcu("dusey", (0, sg[3]), (0, tavan[3]), kot_x, kural=yer),
         ]
-        kot_y, kot_x = min(adaylar, key=lambda a: (puan(*a), adaylar.index(a)))
-        e += olculer(kot_y, kot_x)
-    #  KORKULUK YAZISI:  küpeşte boyunca, operatöre ve sığınma ölçüsüne
-    #  denk gelmeyen en uzun boş parçanın ortasına.  Ölçü yazıları önce
-    #  yerleşir:  yazının şeridine düşen ölçü yazısı da o parçayı doldurur.
-    e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
-    geometri._yazilari_yerlestir(e, kaydir=True)
+
+    engel = [geometri.sinir([el]) for el in e if el.get("ad") == "sase_kiris"] + list(Y["engeller"])
+    yazilar = [geometri.sinir([el]) for el in e if el["tip"] == "yazi"]
+
+    def puan(kot_y, kot_x):
+        if not (
+            tavan[1] < kot_y - 20
+            and kot_y + 100 < tavan[3]
+            and tavan[0] < kot_x - 20
+            and kot_x + 100 < tavan[2]
+        ):
+            return 1e9
+        yeni = olculer(kot_y, kot_x)
+        dene = [dict(el) for el in e if el["tip"] == "olcu"] + yeni
+        geometri.yazilari_yerlestir([el for el in e if el["tip"] != "olcu"] + dene, kaydir=True)
+        diger = [_yazi_kutusu(el) for el in dene[: -len(yeni)]] + yazilar
+        n = 0
+        kutular_ = [_yazi_kutusu(el) for el in yeni if el["uzunluk"] >= 1e-6]
+        for i_, k_ in enumerate(kutular_):
+            n += sum(1 for b in diger + engel + kutular_[i_ + 1 :] if ortusur(k_, b))
+        return n
+
+    adaylar = [
+        (ky, kx)
+        for ky in (sg[3] + 90, sg[1] - 90, sg[1] + 60, sg[3] - 110)
+        for kx in (sg[2] + 90, sg[0] - 90, sg[2] - 110, sg[0] + 60)
+    ]
+    kot_y, kot_x = min(adaylar, key=lambda a: (puan(*a), adaylar.index(a)))
+    return olculer(kot_y, kot_x)
+
+
+def _korkuluk_yazilari(Y, e):
+    """Her gerekli kenarın korkuluk yazısı ( e'ye eklenir ).  Yazı çizilen
+    küpeştenin çizgisine göre konur ( korkuluklar — ön kenarda operatörün
+    arkasındadır, yanlarda operatörün arka yüzünden başlar ):  eskiden tavanın
+    kenarına göre konuyor, ön korkuluğun yazısı operatöre ve yan korkuluğun
+    yazısına biniyordu."""
+    ken, op = Y["kenarlar"], Y["operator"]
     olcu_yazilari = [_yazi_kutusu(el) for el in e if el["tip"] == "olcu"] + [
         geometri.sinir([el]) for el in e if el["tip"] == "yazi"
     ]
-    #  Yazı çizilen küpeştenin çizgisine göre konur ( korkuluklar — ön kenarda
-    #  operatörün arkasındadır, yanlarda operatörün arka yüzünden başlar ):
-    #  eskiden tavanın kenarına göre konuyor, ön korkuluğun yazısı operatöre ve
-    #  yan korkuluğun yazısına biniyordu.
     cizgiler = dict(zip([yan for yan, k in ken.items() if k["gerekli"]], korkuluklar(Y)))
     for yan, k in ken.items():
         if not k["gerekli"]:
             continue
-        metin = f"KORKULUK  h = {k['yukseklik']:g}"
         dikey = yan in ("Sol", "Sağ")
         (cx0, cy0, cx1, cy1), _h = cizgiler[yan]
-        bas, son = (min(cy0, cy1), max(cy0, cy1)) if dikey else (min(cx0, cx1), max(cx0, cx1))
-        cizgi = cx0 if dikey else cy0
-        dolu = []
-        if dikey and op[0] <= cizgi <= op[2]:
-            dolu.append((op[1], op[3]))
-        if not dikey and op[1] <= cizgi <= op[3]:
-            dolu.append((op[0], op[2]))
-        #  Şasenin üst kirişi de küpeştenin üstünden geçer
-        for el in e:
-            if el.get("ad") == "sase_kiris":
-                k_ = geometri.sinir([el])
-                if dikey and k_[0] <= cizgi <= k_[2]:
-                    dolu.append((k_[1] - 40, k_[3] + 40))
-                if not dikey and k_[1] <= cizgi <= k_[3]:
-                    dolu.append((k_[0] - 40, k_[2] + 40))
-        for el in e:
-            if el["tip"] == "olcu" and el["yon"] == ("yatay" if dikey else "dusey"):
-                i = 0 if dikey else 1
-                if min(el["a"][i], el["b"][i]) <= cizgi + 60 and cizgi - 60 <= max(el["a"][i], el["b"][i]):
-                    dolu.append((el["kot"] - 70, el["kot"] + 110))
-        #  Yazının şeridi küpeştenin içinde ( 40 – 80 mm );  içeride yazının
-        #  boyunca boş parça yoksa küpeştenin DIŞINDA ( kabin ile duvar arası ),
-        #  orada parçalardan da kaçarak.  Eskiden en uzun boş parçaya sığmasa da
-        #  konuyordu:  sığınma ölçülerinin yazılarına biniyordu ( girdi taraması ).
-        L = eleman.yazi_eni(metin, eleman.yb(40)) + 20.0
-        ic_yon = 1.0 if yan in ("Sol", "Ön") else -1.0
-        parcalar_ = [
-            geometri.sinir([el])
-            for el in e
-            if (el["tip"] == "dikdortgen" and el["katman"] in _KUYU_PARCALARI + ("PATEN", "SASE"))
-            or (el["tip"] == "daire" and el["katman"] == "KASNAK")
-        ]  # halatlar
-
-        def bos_parcalar(yon_, ek):
-            serit = sorted((cizgi + yon_ * 40, cizgi + yon_ * 80))
-            d_ = list(dolu) + list(ek)
-            for k_ in olcu_yazilari:
-                u0, u1 = (k_[0], k_[2]) if dikey else (k_[1], k_[3])
-                if u0 < serit[1] and serit[0] < u1:
-                    d_.append((k_[1], k_[3]) if dikey else (k_[0], k_[2]))
-            out, a = [], bas
-            for d1, d2 in sorted(d_):
-                if d1 > a:
-                    out.append((a, min(d1, son)))
-                a = max(a, d2)
-            if a < son:
-                out.append((a, son))
-            return out
-
-        #  Şeridi kesen parça kenarları da şeridi doldurur ( yazı maskelidir —
-        #  çapraz askının kasnağı çizgilerle çizilir, dikdörtgen sayılmıyordu;
-        #  yazı kasnağın üstüne düşüyordu, 5 Eki )
-        kenarlar_ = geometri.parca_kenarlari([el for el in e if el.get("ad") != "korkuluk"])
-
-        def kenar_dolu(yon_):
-            serit = sorted((cizgi + yon_ * 40, cizgi + yon_ * 80))
-            bant = (serit[0], bas, serit[1], son) if dikey else (bas, serit[0], son, serit[1])
-            return [
-                (min(s_[1], s_[3]) - 10, max(s_[1], s_[3]) + 10)
-                if dikey
-                else (min(s_[0], s_[2]) - 10, max(s_[0], s_[2]) + 10)
-                for s_ in kenarlar_
-                if geometri.kenar_kesisir(s_, bant)
-            ]
-
-        ic_parca = bos_parcalar(ic_yon, kenar_dolu(ic_yon))
-        dis_engel = kenar_dolu(-ic_yon)
-        serit_dis = sorted((cizgi - ic_yon * 40, cizgi - ic_yon * 80))
-        for k_ in parcalar_:
-            u0, u1 = (k_[0], k_[2]) if dikey else (k_[1], k_[3])
-            if u0 < serit_dis[1] and serit_dis[0] < u1:
-                dis_engel.append((k_[1], k_[3]) if dikey else (k_[0], k_[2]))
-        dis_parca = bos_parcalar(-ic_yon, dis_engel)
-        #  Sıra:  uzun yazı içeride, dışarıda;  ikisine de sığmıyorsa kısa yazı
-        #  ( "h = 700" — çizgi korkuluk katmanında ) içeride, dışarıda.
-        kisa = f"h = {k['yukseklik']:g}"
-        secim = None
-        for m_, L_ in ((metin, L), (kisa, eleman.yazi_eni(kisa, eleman.yb(40)) + 20.0)):
-            for yon_, liste in ((ic_yon, ic_parca), (-ic_yon, dis_parca)):
-                sigan = [p_ for p_ in liste if p_[1] - p_[0] >= L_]
-                if sigan:
-                    secim = (m_, yon_, max(sigan, key=lambda t: t[1] - t[0]))
-                    break
-            if secim:
-                break
-        if secim:
-            metin, yon_, (p1, p2) = secim
-            orta = (p1 + p2) / 2.0
-        else:
-            #  Hiçbir boş parçaya sığmıyor:  çizgi boyunca her konumda çakışan
-            #  yazı ve parça sayılır, en azı ( eşitse kısa yazı, içeride )
-            engel_ = olcu_yazilari + [op] + [p_ for p_ in parcalar_]
-            en_iyi = None
-            for m_ in (kisa, metin):
-                L_ = eleman.yazi_eni(m_, eleman.yb(40))
-                for yon_ in (ic_yon, -ic_yon):
-                    u = bas + L_ / 2.0
-                    while u <= son - L_ / 2.0 + 1e-6:
-                        c_ = cizgi + yon_ * 60
-                        k_ = (
-                            (c_ - 20, u - L_ / 2.0, c_ + 20, u + L_ / 2.0)
-                            if dikey
-                            else (u - L_ / 2.0, c_ - 20, u + L_ / 2.0, c_ + 20)
-                        )
-                        n_ = sum(1 for b_ in engel_ if ortusur(k_, b_)) + sum(
-                            1 for s_ in kenarlar_ if geometri.kenar_kesisir(s_, k_)
-                        )
-                        if en_iyi is None or n_ < en_iyi[0]:
-                            en_iyi = (n_, m_, yon_, u)
-                        u += 20.0
-            if en_iyi is None:  # çizgi kısa yazıdan da kısa
-                en_iyi = (0, kisa, ic_yon, (bas + son) / 2.0)
-            _n, metin, yon_, orta = en_iyi
+        serit = _Serit(
+            dikey=dikey,
+            cizgi=cx0 if dikey else cy0,
+            bas=min(cy0, cy1) if dikey else min(cx0, cx1),
+            son=max(cy0, cy1) if dikey else max(cx0, cx1),
+            ic_yon=1.0 if yan in ("Sol", "Ön") else -1.0,
+        )
+        metin, yon_, orta = _korkuluk_yazisi_yeri(serit, e, op, olcu_yazilari, k["yukseklik"])
         if dikey:
-            e.append(eleman.yazi(cizgi + yon_ * 60, orta, metin, 40, aci=90))
+            e.append(eleman.yazi(serit.cizgi + yon_ * 60, orta, metin, 40, aci=90))
         else:
-            e.append(eleman.yazi(orta, cizgi + yon_ * 60, metin, 40))
+            e.append(eleman.yazi(orta, serit.cizgi + yon_ * 60, metin, 40))
         olcu_yazilari.append(geometri.sinir([e[-1]]))  # sonraki korkuluğun yazısı kaçsın
 
-    #  Sıfır boylu ölçü çizilmez  ( sığınma alanı kenara dayanmışsa )
-    e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
-    geometri._yazilari_yerlestir(e, kaydir=True)
-    geometri._parcadan_kaydir(e, ek_katman=("KAPI",))
-    return e
+
+@dataclass(frozen=True)
+class _Serit:
+    """Bir küpeşte çizgisi ve boyunca yazı şeridi:  dikey ( yan kenar ) ise
+    çizgi x'tedir ve şerit y boyuncadır ( bas … son );  ic_yon kabinin içine."""
+
+    dikey: bool
+    cizgi: float
+    bas: float
+    son: float
+    ic_yon: float
+
+    def kutu(self, yon_, a, b):
+        """Çizginin yon_ tarafında 40 – 80 mm'lik bant ( boyunca a … b )."""
+        s = sorted((self.cizgi + yon_ * 40, self.cizgi + yon_ * 80))
+        return (s[0], a, s[1], b) if self.dikey else (a, s[0], b, s[1])
+
+    def boyunca(self, k):
+        """Kutunun şerit boyunca aralığı."""
+        return (k[1], k[3]) if self.dikey else (k[0], k[2])
+
+    def enine(self, k):
+        """Kutunun şeride dik aralığı."""
+        return (k[0], k[2]) if self.dikey else (k[1], k[3])
+
+
+def _dolu_araliklar(serit, e, op):
+    """Küpeşte boyunca yazının giremeyeceği aralıklar:  operatör, şasenin üst
+    kirişi ve küpeşteyi kesen ölçüler."""
+    cizgi, dikey = serit.cizgi, serit.dikey
+    dolu = []
+    if dikey and op[0] <= cizgi <= op[2]:
+        dolu.append((op[1], op[3]))
+    if not dikey and op[1] <= cizgi <= op[3]:
+        dolu.append((op[0], op[2]))
+    #  Şasenin üst kirişi de küpeştenin üstünden geçer
+    for el in e:
+        if el.get("ad") == "sase_kiris":
+            k_ = geometri.sinir([el])
+            if dikey and k_[0] <= cizgi <= k_[2]:
+                dolu.append((k_[1] - 40, k_[3] + 40))
+            if not dikey and k_[1] <= cizgi <= k_[3]:
+                dolu.append((k_[0] - 40, k_[2] + 40))
+    for el in e:
+        if el["tip"] == "olcu" and el["yon"] == ("yatay" if dikey else "dusey"):
+            i = 0 if dikey else 1
+            if min(el["a"][i], el["b"][i]) <= cizgi + 60 and cizgi - 60 <= max(el["a"][i], el["b"][i]):
+                dolu.append((el["kot"] - 70, el["kot"] + 110))
+    return dolu
+
+
+def _bos_parcalar(serit, yon_, dolu, olcu_yazilari):
+    """Şeridin yon_ tarafında yazıya boş kalan parçalar ( bas … son içinde )."""
+    bant = serit.kutu(yon_, serit.bas, serit.son)
+    s0, s1 = serit.enine(bant)
+    d_ = list(dolu)
+    for k_ in olcu_yazilari:
+        u0, u1 = serit.enine(k_)
+        if u0 < s1 and s0 < u1:
+            d_.append(serit.boyunca(k_))
+    out, a = [], serit.bas
+    for d1, d2 in sorted(d_):
+        if d1 > a:
+            out.append((a, min(d1, serit.son)))
+        a = max(a, d2)
+    if a < serit.son:
+        out.append((a, serit.son))
+    return out
+
+
+def _kenar_dolu(serit, yon_, kenarlar_):
+    """Şeridi kesen parça kenarları da şeridi doldurur ( yazı maskelidir —
+    çapraz askının kasnağı çizgilerle çizilir, dikdörtgen sayılmıyordu;
+    yazı kasnağın üstüne düşüyordu, 5 Eki )."""
+    bant = serit.kutu(yon_, serit.bas, serit.son)
+    return [
+        (min(s_[1], s_[3]) - 10, max(s_[1], s_[3]) + 10)
+        if serit.dikey
+        else (min(s_[0], s_[2]) - 10, max(s_[0], s_[2]) + 10)
+        for s_ in kenarlar_
+        if geometri.kenar_kesisir(s_, bant)
+    ]
+
+
+def _korkuluk_yazisi_yeri(serit, e, op, olcu_yazilari, yukseklik):
+    """( metin, yön, şerit boyunca orta ).
+
+    Yazının şeridi küpeştenin içinde ( 40 – 80 mm );  içeride yazının
+    boyunca boş parça yoksa küpeştenin DIŞINDA ( kabin ile duvar arası ),
+    orada parçalardan da kaçarak.  Eskiden en uzun boş parçaya sığmasa da
+    konuyordu:  sığınma ölçülerinin yazılarına biniyordu ( girdi taraması )."""
+    metin = f"KORKULUK  h = {yukseklik:g}"
+    kisa = f"h = {yukseklik:g}"
+    ic_yon = serit.ic_yon
+    dolu = _dolu_araliklar(serit, e, op)
+    parcalar_ = [
+        geometri.sinir([el])
+        for el in e
+        if (el["tip"] == "dikdortgen" and el["katman"] in _KUYU_PARCALARI + ("PATEN", "SASE"))
+        or (el["tip"] == "daire" and el["katman"] == "KASNAK")
+    ]  # halatlar
+    kenarlar_ = geometri.parca_kenarlari([el for el in e if el.get("ad") != "korkuluk"])
+    ic_parca = _bos_parcalar(serit, ic_yon, dolu + _kenar_dolu(serit, ic_yon, kenarlar_), olcu_yazilari)
+    dis_engel = _kenar_dolu(serit, -ic_yon, kenarlar_)
+    serit_dis = sorted((serit.cizgi - ic_yon * 40, serit.cizgi - ic_yon * 80))
+    for k_ in parcalar_:
+        u0, u1 = serit.enine(k_)
+        if u0 < serit_dis[1] and serit_dis[0] < u1:
+            dis_engel.append(serit.boyunca(k_))
+    dis_parca = _bos_parcalar(serit, -ic_yon, dolu + dis_engel, olcu_yazilari)
+    #  Sıra:  uzun yazı içeride, dışarıda;  ikisine de sığmıyorsa kısa yazı
+    #  ( "h = 700" — çizgi korkuluk katmanında ) içeride, dışarıda.
+    for m_, L_ in (
+        (metin, eleman.yazi_eni(metin, eleman.yb(40)) + 20.0),
+        (kisa, eleman.yazi_eni(kisa, eleman.yb(40)) + 20.0),
+    ):
+        for yon_, liste in ((ic_yon, ic_parca), (-ic_yon, dis_parca)):
+            sigan = [p_ for p_ in liste if p_[1] - p_[0] >= L_]
+            if sigan:
+                p1, p2 = max(sigan, key=lambda t: t[1] - t[0])
+                return m_, yon_, (p1 + p2) / 2.0
+    #  Hiçbir boş parçaya sığmıyor:  çizgi boyunca her konumda çakışan
+    #  yazı ve parça sayılır, en azı ( eşitse kısa yazı, içeride )
+    engel_ = olcu_yazilari + [op] + list(parcalar_)
+    en_iyi = None
+    for m_ in (kisa, metin):
+        L_ = eleman.yazi_eni(m_, eleman.yb(40))
+        for yon_ in (ic_yon, -ic_yon):
+            u = serit.bas + L_ / 2.0
+            while u <= serit.son - L_ / 2.0 + 1e-6:
+                c_ = serit.cizgi + yon_ * 60
+                k_ = (
+                    (c_ - 20, u - L_ / 2.0, c_ + 20, u + L_ / 2.0)
+                    if serit.dikey
+                    else (u - L_ / 2.0, c_ - 20, u + L_ / 2.0, c_ + 20)
+                )
+                n_ = sum(1 for b_ in engel_ if ortusur(k_, b_)) + sum(
+                    1 for s_ in kenarlar_ if geometri.kenar_kesisir(s_, k_)
+                )
+                if en_iyi is None or n_ < en_iyi[0]:
+                    en_iyi = (n_, m_, yon_, u)
+                u += 20.0
+    if en_iyi is None:  # çizgi kısa yazıdan da kısa
+        en_iyi = (0, kisa, ic_yon, (serit.bas + serit.son) / 2.0)
+    _n, metin, yon_, orta = en_iyi
+    return metin, yon_, orta

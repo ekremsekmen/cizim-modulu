@@ -78,12 +78,12 @@ RAY_PROFILI = (
 )
 
 RAY_PROFILLERI = tuple(s[0] for s in RAY_PROFILI)
-_RAY_SUTUN = {"Gr": 1, "A": 2, "Ix": 3, "Iy": 4, "Wx": 5, "Wy": 6, "ix": 7, "iy": 8, "c": 9, "e": 10}
+RAY_SUTUN = {"Gr": 1, "A": 2, "Ix": 3, "Iy": 4, "Wx": 5, "Wy": 6, "ix": 7, "iy": 8, "c": 9, "e": 10}
 
 
 def ray(profil, ozellik):
     """Ray profilinin bir özelliği.  ozellik: Gr/A/Ix/Iy/Wx/Wy/ix/iy/c/e"""
-    return _ara(RAY_PROFILI, profil, _RAY_SUTUN[ozellik])
+    return _ara(RAY_PROFILI, profil, RAY_SUTUN[ozellik])
 
 
 # =====================================================================
@@ -118,11 +118,11 @@ RAY_GEOMETRI = (
     ("127 x 89 x 16", 15.9, 25.5, 89, 47.6, 73.1),
 )
 
-_RAY_GEO_SUTUN = {"f": 1, "b": 2, "h1": 3, "h1_b_f": 4, "h1_f": 5}
+RAY_GEO_SUTUN = {"f": 1, "b": 2, "h1": 3, "h1_b_f": 4, "h1_f": 5}
 
 
 def ray_geo(profil, ozellik):
-    return _ara(RAY_GEOMETRI, profil, _RAY_GEO_SUTUN[ozellik])
+    return _ara(RAY_GEOMETRI, profil, RAY_GEO_SUTUN[ozellik])
 
 
 # =====================================================================
@@ -257,12 +257,12 @@ NPU_PROFIL = (
 
 NPU_OLCULERI = tuple(r[0] for r in NPU_PROFIL)
 
-_NPU_SUTUN = {"A": 1, "G": 2, "Ix": 3, "Wx": 4, "ix": 5, "Iy": 6, "Wy": 7, "iy": 8}
+NPU_SUTUN = {"A": 1, "G": 2, "Ix": 3, "Wx": 4, "ix": 5, "Iy": 6, "Wy": 7, "iy": 8}
 
 
 def npu(olcu, ozellik):
     """NPU/NPI profil özelliği.  olcu sayı ( 120 ) ya da metin ( '30x15' )."""
-    return _ara(NPU_PROFIL, olcu, _NPU_SUTUN[ozellik])
+    return _ara(NPU_PROFIL, olcu, NPU_SUTUN[ozellik])
 
 
 # =====================================================================
@@ -591,6 +591,21 @@ def kanal_nequiv_t(sekil, gama_v=None, beta=None):
     return None if taban is None else taban * gecis
 
 
+def surtunme_carpani(yarim_daire, sert, mu, gama_derece, beta_derece):
+    """Kanalın sürtünme çarpanı f  —  TS EN 81-50 m.5.11.2.3.1.1 ( yarım daire )
+    / m.5.11.2.3.1.2 ( V ).  Tahrik hesabı ve ekrandaki kanal tablosu bu tek
+    bağıntıyı kullanır ( ekranınki eskiden elle tutulan bir kopyaydı )."""
+    beta = math.radians(beta_derece)
+    gama = math.radians(gama_derece)
+    if yarim_daire:
+        pay = 4 * (math.cos(gama / 2.0) - math.sin(beta / 2.0))
+        payda = math.pi - beta - gama - math.sin(beta) + math.sin(gama)
+        return mu * pay / payda
+    if sert:
+        return mu / math.sin(gama / 2.0)
+    return mu * 4 * (1 - math.sin(beta / 2.0)) / (math.pi - beta - math.sin(beta))
+
+
 # =====================================================================
 #  DARBE KATSAYISI  k1   ( TS EN 81-20 Çizelge 14 )
 #  Bu tablo GÜVENLİK TERTİBATI TİPİNE bakar.  Avan modülü aynı çizelgeyi
@@ -631,7 +646,7 @@ BUKULGEN_KABLO = (
 )
 
 KABLO_TIPLERI = tuple(r[0] for r in BUKULGEN_KABLO)
-_KABLO_SUTUN = {"genislik": 1, "kalinlik": 2, "agirlik": 3}
+KABLO_SUTUN = {"genislik": 1, "kalinlik": 2, "agirlik": 3}
 
 
 # =====================================================================
@@ -663,7 +678,7 @@ def kapi_kablosu(kapi_tipi):
 
 def kablo_agirligi(tip):
     """Bükülgen kablonun metre ağırlığı ( kg/m )."""
-    return _ara(BUKULGEN_KABLO, tip, _KABLO_SUTUN["agirlik"])
+    return _ara(BUKULGEN_KABLO, tip, KABLO_SUTUN["agirlik"])
 
 
 def kablo_en(tip):
@@ -691,7 +706,7 @@ AGIRLIK_MALZEMESI = (
 )
 
 AGIRLIK_MALZEMELERI = tuple(r[0] for r in AGIRLIK_MALZEMESI)
-_MALZEME_SUTUN = {"derinlik": 1, "yukseklik": 2}
+MALZEME_SUTUN = {"derinlik": 1, "yukseklik": 2}
 
 
 #  KARŞI AĞIRLIĞIN GENİŞLİĞİ DE GİRDİDİR.  Ray arasından türetilemez:  TS EN

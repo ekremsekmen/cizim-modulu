@@ -270,7 +270,7 @@ def _adaylar(ham, A, g, okunan):
     gizliler hariç ) ve ofis standardının çizim sabitleri ( tek katalog —
     yalnız çizimin okudukları:  okunan )."""
     alan, _pg, gizli = _sozlesme()
-    sakli = set(gizli["mrl" if kopru._mrl(A) else "daireli"])
+    sakli = set(gizli["mrl" if kopru.mrl_mi(A) else "daireli"])
     ad = []
     for k, f in alan.items():
         if k in sakli or f["tur"] not in ("sayi", "secim"):
@@ -293,7 +293,7 @@ def _adaylar(ham, A, g, okunan):
             v = (
                 kopru.etkin_deger(g, k)
                 if k in kopru.KURALLI
-                else kopru._varsayilan(A, k)
+                else kopru.varsayilan_deger(A, k)
                 if k in kopru.ALAN
                 else A.get(k)
             )

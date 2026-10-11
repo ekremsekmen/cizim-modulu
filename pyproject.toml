@@ -38,14 +38,12 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-#  ciz() içindeki küpeşte yazısı yardımcıları döngünün aynı adımında
-#  çağrılır ( hata değil );  fonksiyon 3. adımda bölününce kalkacak.
-"cizim/kabin_ustu.py" = ["B023"]
 #  Giriş noktaları ve betikler kökleri kurduktan sonra import eder ( yollar.py )
 "hesap/main.py" = ["E402"]
 "ornekler/uret.py" = ["E402"]
 "calistir.py" = ["E402"]
 "araclar/tarama.py" = ["E402"]
+"araclar/esdegerlik.py" = ["E402"]
 #  Testler:  yol ayarından sonra import, dosyayı tek satırda okumak ve
 #  lambda yardımcılar kabul
 "testler/*" = ["E402", "SIM115", "E731"]

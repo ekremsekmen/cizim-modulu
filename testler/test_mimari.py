@@ -6,6 +6,11 @@ Kurallar ( kod kalitesi 2. adım ):
     çakışmasında ve açıklayıcı tam adla ( İSTİSNALAR ).
   · Her modülün adı programda tektir ( iki "girdi", iki "sabitler" … yok ).
   · Bir modül başka bir modülün import ettiği modüle onun içinden uzanmaz.
+  · Bir modül başka bir modülün özel ( alt çizgili ) adını kullanmaz:
+    kullanılan ad arayüzdür ( kod kalitesi 3. adım ).
+  · Adlar Türkçedir, Türkçe harfsiz yazılır ( aski, boslugun ).
+  · Hiçbir fonksiyon 120 satırı ( UZUN_FONKSIYON ) aşmaz ( kod kalitesi 3. adım ):
+    uzun iş yardımcılara ya da yöntem nesnesine bölünür.
 """
 
 import ast
@@ -21,6 +26,8 @@ ISTISNALAR = {
 }
 #  Programın paketleri ( testler ve doğrulama paketi hariç )
 PAKETLER = ("cizim", "tasarim", "araclar", "hesap/motor", "hesap/uclar", "hesap/ciktilar")
+#  Bir fonksiyonun en çok satırı ( yorumlar ve belge metni dahil )
+UZUN_FONKSIYON = 120
 
 
 class Mimari(unittest.TestCase):
@@ -58,6 +65,15 @@ class Mimari(unittest.TestCase):
 
     def test_modul_adi_golgelenmez(self):
         self.assertEqual(mimari.golgeler(), [])
+
+    def test_baska_modulun_ozeli_kullanilmaz(self):
+        self.assertEqual(mimari.ozel_erisimler(), [])
+
+    def test_adlarda_turkce_harf_yok(self):
+        self.assertEqual(mimari.ascii_disi_adlar(), [])
+
+    def test_uzun_fonksiyon_yok(self):
+        self.assertEqual(mimari.uzun_fonksiyonlar(UZUN_FONKSIYON), [])
 
 
 class Katmanlar(unittest.TestCase):

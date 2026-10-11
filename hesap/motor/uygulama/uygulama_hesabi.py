@@ -104,52 +104,18 @@ def hesapla(veriler=None):
     makine dairesi ) burada asansörün bölüm listesinin İÇİNDE kalır, oysa
     projede ayrılıp en sona alınırlar.
     """
-    eksik = []  # yapılamayan ZORUNLU hesaplar
-    g = uygulama_girdisi.varsayilanlar()
-    g.update(veriler or {})
-    g = uygulama_girdisi.tamamla(g)
-    #  GEOMETRİ ÇİZİMDEN:  kabinin ve eşiğin ray eksenine uzaklığı, ray ve halat
-    #  boyları, kasnak sayıları, makine yükünün kirişteki yeri — hesap bunları
-    #  kendi tahmin etmez, çizimin girdilerden kurduğu yerleşimden alır.
-    g.update(uygulama_girdisi.yerlesim_olculeri(g))
-    #  Kuyunun geometrisi kurulamıyorsa ( çizimin plan doğrulaması ) hesap durur
-    plan_hatalari = g.pop("_geometri_hatasi", [])
-    hata = uygulama_girdisi.dogrula(g) + plan_hatalari
-    if hata:
-        s = {"aktif": False, "hata": hata, "girdi": g}
-        if plan_hatalari:
-            s["geometri_hatasi"] = plan_hatalari  # hesapla_coklu adını ekler, kaldırır
-        return s
-
+    g, durdu = _girdi(veriler)
+    if durdu:
+        return durdu
     muk = mukavemet.hesapla(g)
     if not muk.get("aktif"):  # olmamalı — dogrula geçti
         return {"aktif": False, "hata": muk.get("hata") or [], "girdi": g}
 
-    eksik.extend(muk.get("ozet", {}).get("eksik_hesap", []))
+    eksik = list(muk.get("ozet", {}).get("eksik_hesap", []))  # yapılamayan ZORUNLU hesaplar
     av = avan_hesabi.hesapla(uygulama_girdisi.avan_girdisi(g))
     asansor = (av.get("asansorler") or [{}])[0]
     uyarilar = list(muk.get("uyarilar") or [])
-
-    elektrik = []
-    if asansor.get("aktif"):
-        tum = asansor.get("bolumler") or []
-        elektrik = [tum[i] for i in ELEKTRIK_BOLUMLERI if i < len(tum)]
-        uyarilar += [
-            u
-            for u in (asansor.get("uyarilar") or [])
-            #  Avanın trafik karşılaştırması uygulama projesinde
-            #  anlamsızdır — burada trafik hesabı yoktur.
-            if "TRAFİK" not in u.upper()
-        ]
-    else:
-        # Zorunlu hesap eksikliği genel uygunluğu da engeller.
-        # Uyarı aşağıda eksik listesinden tek kez üretilir.
-        #  Sebep asansörün kendi uyarısıdır;  proje geneli bir girdi
-        #  reddedildiyse avan motoru hiç hesaplamaz ve sebebi "hata"dadır.
-        eksik.append(
-            "ELEKTRİK HESAPLARI YAPILAMADI: "
-            + str(asansor.get("uyari") or av.get("hata") or "girdiler eksik")
-        )
+    elektrik = _elektrik_bolumleri(av, asansor, eksik, uyarilar)
 
     #  Bölüm numaraları uygulama projesinin kendi sırasına göre yeniden
     #  yazılır;  avandan gelen "3 - ..." başlığı burada 11. sıradadır.
@@ -190,6 +156,70 @@ def hesapla(veriler=None):
         b["sonuc"]["uygun"] for b in bolumler if b.get("sonuc") and b["sonuc"].get("uygun") is not None
     ]
     uygunlar += [False] * (len(engelleyici) + len(eksik))
+    ozet = _ozet(muk, av, asansor, elektrik, all(uygunlar), engelleyici, eksik)
+    #  HÜKÜM MOTORDAN ÇIKAR ( bkz. E_MUK.genel_hukum ):  "uygun değil" >
+    #  "hesap eksik" > "uygundur".  Ekran ve PDF bunu yalnız basar.
+    _hukum = mukavemet.genel_hukum(bolumler, all(uygunlar), eksik)
+    ozet["genel_sonuc"], ozet["genel_sonuc_kisa"] = _hukum
+    return {
+        "aktif": True,
+        "baslik": "ASANSÖR UYGULAMA PROJESİ HESAPLARI",
+        "girdi": g,
+        "bolumler": bolumler,
+        "mukavemet_bolum_sayisi": len(muk.get("bolumler") or []),
+        "sabitler": muk.get("sabitler"),
+        "ozet": ozet,
+        "uyarilar": uyarilar,
+        "ara": muk.get("ara", {}),
+    }
+
+
+def _girdi(veriler):
+    """Girdi:  varsayılanlar + veriler, tamamlanmış ve çizimin ölçüleriyle.
+    ( g, None ) ya da girdi geçersizse ( g, hesabı durduran sonuç )."""
+    g = uygulama_girdisi.varsayilanlar()
+    g.update(veriler or {})
+    g = uygulama_girdisi.tamamla(g)
+    #  GEOMETRİ ÇİZİMDEN:  kabinin ve eşiğin ray eksenine uzaklığı, ray ve halat
+    #  boyları, kasnak sayıları, makine yükünün kirişteki yeri — hesap bunları
+    #  kendi tahmin etmez, çizimin girdilerden kurduğu yerleşimden alır.
+    g.update(uygulama_girdisi.yerlesim_olculeri(g))
+    #  Kuyunun geometrisi kurulamıyorsa ( çizimin plan doğrulaması ) hesap durur
+    plan_hatalari = g.pop("_geometri_hatasi", [])
+    hata = uygulama_girdisi.dogrula(g) + plan_hatalari
+    if not hata:
+        return g, None
+    s = {"aktif": False, "hata": hata, "girdi": g}
+    if plan_hatalari:
+        s["geometri_hatasi"] = plan_hatalari  # hesapla_coklu adını ekler, kaldırır
+    return g, s
+
+
+def _elektrik_bolumleri(av, asansor, eksik, uyarilar):
+    """Avan motorunun elektrik bölümleri ( ELEKTRIK_BOLUMLERI );  uyarıları
+    uyarilar'a, yapılamadıysa sebebi eksik'e eklenir."""
+    if not asansor.get("aktif"):
+        # Zorunlu hesap eksikliği genel uygunluğu da engeller.
+        # Uyarı aşağıda eksik listesinden tek kez üretilir.
+        #  Sebep asansörün kendi uyarısıdır;  proje geneli bir girdi
+        #  reddedildiyse avan motoru hiç hesaplamaz ve sebebi "hata"dadır.
+        eksik.append(
+            "ELEKTRİK HESAPLARI YAPILAMADI: "
+            + str(asansor.get("uyari") or av.get("hata") or "girdiler eksik")
+        )
+        return []
+    tum = asansor.get("bolumler") or []
+    uyarilar += [
+        u
+        for u in (asansor.get("uyarilar") or [])
+        #  Avanın trafik karşılaştırması uygulama projesinde
+        #  anlamsızdır — burada trafik hesabı yoktur.
+        if "TRAFİK" not in u.upper()
+    ]
+    return [tum[i] for i in ELEKTRIK_BOLUMLERI if i < len(tum)]
+
+
+def _ozet(muk, av, asansor, elektrik, tumu_uygun, engelleyici, eksik):
     ozet = dict(muk.get("ozet") or {})
     ao = asansor.get("ozet") or {}
     ozet.update(
@@ -210,26 +240,12 @@ def hesapla(veriler=None):
             "Re": (av.get("ozet") or {}).get("Re"),
             "topraklama_uygun": (av.get("ozet") or {}).get("topraklama_uygun"),
             "elektrik_var": bool(elektrik),
-            "tumu_uygun": all(uygunlar),
+            "tumu_uygun": tumu_uygun,
             "engelleyici": engelleyici,
             "eksik_hesap": eksik,
         }
     )
-    #  HÜKÜM MOTORDAN ÇIKAR ( bkz. E_MUK.genel_hukum ):  "uygun değil" >
-    #  "hesap eksik" > "uygundur".  Ekran ve PDF bunu yalnız basar.
-    _hukum = mukavemet.genel_hukum(bolumler, all(uygunlar), eksik)
-    ozet["genel_sonuc"], ozet["genel_sonuc_kisa"] = _hukum
-    return {
-        "aktif": True,
-        "baslik": "ASANSÖR UYGULAMA PROJESİ HESAPLARI",
-        "girdi": g,
-        "bolumler": bolumler,
-        "mukavemet_bolum_sayisi": len(muk.get("bolumler") or []),
-        "sabitler": muk.get("sabitler"),
-        "ozet": ozet,
-        "uyarilar": uyarilar,
-        "ara": muk.get("ara", {}),
-    }
+    return ozet
 
 
 # =====================================================================

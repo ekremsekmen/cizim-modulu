@@ -30,7 +30,6 @@ import yollar
 yollar.kur()
 
 from araclar import kesisme
-from cizim import eleman
 from cizim import cizimler
 from cizim import geometri
 from cizim import pafta
@@ -51,16 +50,12 @@ PAY = 2
 
 
 def _olcu_yazilari(e):
-    """Ölçü yazılarının kutuları ( yeri geometri._yazilari_yerlestir'den ):
+    """Ölçü yazılarının kutuları ( yeri geometri.yazilari_yerlestir'den ):
     ( metin, x0, y0, x1, y1 )."""
     out = []
     for el in e:
         if el["tip"] == "olcu" and el.get("yazi"):
-            y = el["yazi"]
-            w, h = eleman.yazi_eni(el["metin"], y["h"]) / 2.0, y["h"] / 2.0
-            if y["aci"]:
-                w, h = h, w
-            out.append((el["metin"], y["x"] - w, y["y"] - h, y["x"] + w, y["y"] + h))
+            out.append((el["metin"],) + geometri.yazi_kutusu(el))
     return out
 
 
@@ -120,13 +115,13 @@ def duzen(ad, v):
     """Bir düzenin sonucu:  { ad, durum ( çizildi · ret · çöktü ), hata | sorun }."""
     t = time.time()
     try:
-        d = test_yerlesim_saglamligi._cizim(v)
+        d = test_yerlesim_saglamligi.cizim_yaniti(v)
     except Exception:  # noqa: BLE001 — çöküş de bir bulgu
         return {"ad": ad, "durum": "çöktü", "ayrinti": traceback.format_exc()[-600:]}
     if not d.get("aktif"):
         return {"ad": ad, "durum": "ret", "hata": d.get("hata")}
     try:
-        g, _A, _h = test_yerlesim_saglamligi._g(v)
+        g, _A, _h = test_yerlesim_saglamligi.duzen_girdisi(v)
         s = denetle(g)
     except Exception:  # noqa: BLE001
         s = ["DENETİM ÇÖKTÜ " + traceback.format_exc()[-400:]]
@@ -144,7 +139,7 @@ def duzenler(grup):
                         {"aski_duzeni": "Kabin üstü"},
                         {"aski_orani": 1},
                     ):
-                        v = test_yerlesim_saglamligi._veri(Q, mrl, yer, **aski)
+                        v = test_yerlesim_saglamligi.standart_istek(Q, mrl, yer, **aski)
                         if yer == "Arka":
                             v["asansorler"][0]["kuyu_derinligi"] = test_yerlesim_saglamligi.KABIN[Q][1] + 700
                         if aski.get("aski_duzeni") == "Kabin üstü":
@@ -165,7 +160,7 @@ def duzenler(grup):
                         if yer == "Arka"
                         else {}
                     )
-                    v = test_yerlesim_saglamligi._veri(Q, True, yer, kat_kapisi_tipi=tip, **ek)
+                    v = test_yerlesim_saglamligi.standart_istek(Q, True, yer, kat_kapisi_tipi=tip, **ek)
                     if yer == "Arka":
                         v["asansorler"][0]["kuyu_derinligi"] = test_yerlesim_saglamligi.KABIN[Q][1] + 700
                     yield f"{Q} {yer} {tip}", v
@@ -175,7 +170,7 @@ def duzenler(grup):
                 for sd in ("Dik duruş", "Çömelme", "Yatarak"):
                     for mont in ("Kuyu içine", "Duvar boşluğuna"):
                         for hiz in (1.0, 1.6):
-                            v = test_yerlesim_saglamligi._veri(
+                            v = test_yerlesim_saglamligi.standart_istek(
                                 Q,
                                 Q % 2 == 0,
                                 "Sağ",

@@ -303,7 +303,7 @@ def arayuz_alanlari():
         #  başlangıç değeridir:  malzeme seçilince derinlik kutusu bu sayıyla
         #  dolar, mühendis üzerine yazabilir, hesap KUTUDAKİ sayıyı okur.
         "malzeme_derinligi": {
-            r[0]: r[mukavemet_tablolari._MALZEME_SUTUN["derinlik"]]
+            r[0]: r[mukavemet_tablolari.MALZEME_SUTUN["derinlik"]]
             for r in mukavemet_tablolari.AGIRLIK_MALZEMESI
         },
         "hesaplanan": list(HESAPLANAN),
@@ -460,10 +460,22 @@ def sistem_verimi(g):
 
 
 def dogrula(g):
-    """Girdi sözlüğünü denetler; hata metinleri listesi döner ( boşsa temiz )."""
-    hata = []
+    """Girdi sözlüğünü denetler; hata metinleri listesi döner ( boşsa temiz ).
+    Denetimler sırayla çalışır ( _DENETIMLER );  her biri ( g, atla ) alır —
+    atla:  bu projede uygulanmayan alanlar."""
     #  Hesaba girmeyen, ekranda da görünmeyen bir alan projeyi durdurmamalı.
     atla = uygulanmayan(g)
+    hata = []
+    for denetim in _DENETIMLER:
+        hata += denetim(g, atla)
+    #  OFİS STANDARDI  ( Sabitler sekmesi ).  Aralık dışı değer varsayılanla
+    #  değiştiriliyor ve bunu hiçbir yer söylemiyordu;  artık hesap durur.
+    return hata + uygulama_sabitleri.ofis_hatalari(g.get("_ofis"))
+
+
+def _alan_turleri(g, atla):
+    """Boş, geçersiz seçim, sayı değil, negatif."""
+    hata = []
     for anahtar, etiket, birim, tur, secenekler, _v in ALANLAR:
         if tur == "hesap" or anahtar in atla:
             continue
@@ -480,18 +492,25 @@ def dogrula(g):
             hata.append(f"{ad}: sayı olmalı ( {d!r} girildi ).")
         elif tur == "sayi" and d < 0 and anahtar not in ISARETLI_ALANLAR:
             hata.append(f"{ad}: negatif olmayan bir sayı olmalı ( {d!r} girildi ).")
+    return hata
 
-    #  SIFIR OLAMAYACAK ALANLAR.  Bunlar hesapta BÖLEN olarak geçer;  sıfır
-    #  girilirse motor ZeroDivisionError ile çöker.  Kullanıcıya çökme değil
-    #  neyi düzelteceği söylenmeli.
-    for anahtar in BOLEN_ALANLAR:
-        d = g.get(anahtar)
-        if anahtar not in atla and sayi_mi(d) and d == 0:
-            hata.append(f"{ALAN[anahtar][1]}: sıfır olamaz — bu değer hesapta bölen olarak kullanılır.")
 
-    #  TABLO BÜTÜNLÜĞÜ.  Bir seçenek listede var ama tablosunda karşılığı
-    #  eksikse hesap sessizce yanlış sonuç vermemeli  ( ör. NPU tablosunda
-    #  240 · 280 · 300 için atalet yarıçapı yoktur ).
+def _bolenler(g, atla):
+    """SIFIR OLAMAYACAK ALANLAR.  Bunlar hesapta BÖLEN olarak geçer;  sıfır
+    girilirse motor ZeroDivisionError ile çöker.  Kullanıcıya çökme değil
+    neyi düzelteceği söylenmeli."""
+    return [
+        f"{ALAN[anahtar][1]}: sıfır olamaz — bu değer hesapta bölen olarak kullanılır."
+        for anahtar in BOLEN_ALANLAR
+        if anahtar not in atla and sayi_mi(g.get(anahtar)) and g.get(anahtar) == 0
+    ]
+
+
+def _tablo_butunlugu(g, atla):
+    """TABLO BÜTÜNLÜĞÜ.  Bir seçenek listede var ama tablosunda karşılığı
+    eksikse hesap sessizce yanlış sonuç vermemeli  ( ör. NPU tablosunda
+    240 · 280 · 300 için atalet yarıçapı yoktur )."""
+    hata = []
     for anahtar, oku, ne in TABLO_GEREKLI:
         d = g.get(anahtar)
         if anahtar in atla or d is None or d == "":
@@ -502,13 +521,17 @@ def dogrula(g):
                 f"{ALAN[anahtar][1]}: seçilen '{d}' için tabloda "
                 f"{ne} eksik ( {', '.join(eksik)} ). Başka bir değer seçin."
             )
+    return hata
 
-    #  ACİL FRENLEME YAVAŞLAMASININ İKİ SINIRI DA VARDIR.
-    #  Üst sınır TS EN 81-20'den:  en çok 1 gn.
-    #  ALT sınır TS EN 81-50 m.5.11.2.2.2'den:  "In no case shall the rate of
-    #  retardation to consider be less than … 0,5 m/s²".  Bu sınır önce
-    #  denetlenmiyordu;  küçük bir a atalet kuvvetini küçültür, T1/T2 oranını
-    #  iyileştirir ve tahrik yeteneğini olduğundan İYİ gösterir — emniyetsiz.
+
+def _acil_frenleme(g, atla):
+    """ACİL FRENLEME YAVAŞLAMASININ İKİ SINIRI DA VARDIR.
+    Üst sınır TS EN 81-20'den:  en çok 1 gn.
+    ALT sınır TS EN 81-50 m.5.11.2.2.2'den:  "In no case shall the rate of
+    retardation to consider be less than … 0,5 m/s²".  Bu sınır önce
+    denetlenmiyordu;  küçük bir a atalet kuvvetini küçültür, T1/T2 oranını
+    iyileştirir ve tahrik yeteneğini olduğundan İYİ gösterir — emniyetsiz."""
+    hata = []
     ivme = g.get("acil_frenleme_a")
     if sayi_mi(ivme) and ivme > 9.81:
         hata.append(
@@ -522,28 +545,36 @@ def dogrula(g):
             "değer ancak tamponun tasarım yavaşlamasıyla birlikte "
             "gerekçelendirilebilir. )"
         )
-    #  EN KÜÇÜK ÇAP, ORTALAMADAN BÜYÜK OLAMAZ.
-    #  Ds "saptırma kasnaklarının EN KÜÇÜK çapı", D2 ise ORTALAMASIDIR;
-    #  tanım gereği Ds ≤ D2.  İki kutu karıştırılınca ( ya da "en küçük"
-    #  "en büyük" diye okununca ) m.5.5.2.1'in Ds/dh ≥ 40 kontrolü
-    #  HÜKÜMDEN SESSİZCE DÜŞÜYORDU:  D2 = 240 · dh = 8 ile Ds/dh = 30
-    #  kalması gerekirken, Ds = 600 girilince satır kayboluyor ve bölüm o
-    #  kontrolü geçmiş sayılıyordu — emniyetsiz yön.
+    return hata
+
+
+def _kasnak_caplari(g, atla):
+    """EN KÜÇÜK ÇAP, ORTALAMADAN BÜYÜK OLAMAZ.
+    Ds "saptırma kasnaklarının EN KÜÇÜK çapı", D2 ise ORTALAMASIDIR;
+    tanım gereği Ds ≤ D2.  İki kutu karıştırılınca ( ya da "en küçük"
+    "en büyük" diye okununca ) m.5.5.2.1'in Ds/dh ≥ 40 kontrolü
+    HÜKÜMDEN SESSİZCE DÜŞÜYORDU:  D2 = 240 · dh = 8 ile Ds/dh = 30
+    kalması gerekirken, Ds = 600 girilince satır kayboluyor ve bölüm o
+    kontrolü geçmiş sayılıyordu — emniyetsiz yön."""
     _d2, _ds = g.get("saptirma_kasnak_capi"), g.get("saptirma_kasnak_min_capi")
     if sayi_mi(_d2) and sayi_mi(_ds) and float(_ds) > float(_d2):
-        hata.append(
+        return [
             f"{ALAN['saptirma_kasnak_min_capi'][1]} ({_ds} mm), "
             f"saptırma kasnaklarının ORTALAMA çapından ({_d2} mm) "
             "büyük olamaz — Ds en küçük çaptır.  İki değer ters "
             "girilmiş olabilir."
-        )
+        ]
+    return []
 
-    #  KABİN VE KARŞI AĞIRLIK EN AZ İKİ RAYLA KILAVUZLANIR.
-    #  TS EN 81-20 m.5.7.1.1:  "The car, counterweight or balancing weight
-    #  shall each be guided by AT LEAST TWO rigid steel guide rails."
-    #  Tek ray kabul ediliyordu;  hesap çalışıyor ( n bölen olarak geçer ve
-    #  ray kuvvetleri iki katına çıkar ) ama standarda aykırı bir düzen
-    #  paftaya olağan bir seçenek gibi yazılıyordu.
+
+def _ray_sayilari(g, atla):
+    """KABİN VE KARŞI AĞIRLIK EN AZ İKİ RAYLA KILAVUZLANIR.
+    TS EN 81-20 m.5.7.1.1:  "The car, counterweight or balancing weight
+    shall each be guided by AT LEAST TWO rigid steel guide rails."
+    Tek ray kabul ediliyordu;  hesap çalışıyor ( n bölen olarak geçer ve
+    ray kuvvetleri iki katına çıkar ) ama standarda aykırı bir düzen
+    paftaya olağan bir seçenek gibi yazılıyordu."""
+    hata = []
     for _ra in ("kabin_ray_sayisi", "agirlik_ray_sayisi"):
         _n = g.get(_ra)
         if sayi_mi(_n) and 0 < float(_n) < 2:
@@ -553,34 +584,41 @@ def dogrula(g):
                 "karşı ağırlığın en az iki rijit çelik kılavuz rayla "
                 "kılavuzlanmasını ister."
             )
+    return hata
 
-    #  KABİNİN EN ALT KONUMU KUYU DİBİNİN İÇİNDE KALMALIDIR.
-    #  a_dip = baba + ( tampon boyu − ezilme ) , kabinin TAM EZİLMİŞ tamponun
-    #  üstünde durduğu kot.  Bu kot kuyu dibi derinliğini aşarsa kabinin en
-    #  alt noktası ALT DURAK DÖŞEMESİNİN ÜSTÜNDE kalır — geometrik olarak
-    #  olanaksızdır.  Dip açıklıklarının hepsi "büyükse iyidir" diye
-    #  bakıldığı için böyle bir düzen sığınma bölümünü GEÇİYORDU
-    #  ( KY = 800 mm · baba = 1.000 mm → a_dip = 1.010 mm , hüküm UYGUN ).
+
+def _kabin_alt_konumu(g, atla):
+    """KABİNİN EN ALT KONUMU KUYU DİBİNİN İÇİNDE KALMALIDIR.
+    a_dip = baba + ( tampon boyu − ezilme ) , kabinin TAM EZİLMİŞ tamponun
+    üstünde durduğu kot.  Bu kot kuyu dibi derinliğini aşarsa kabinin en
+    alt noktası ALT DURAK DÖŞEMESİNİN ÜSTÜNDE kalır — geometrik olarak
+    olanaksızdır.  Dip açıklıklarının hepsi "büyükse iyidir" diye
+    bakıldığı için böyle bir düzen sığınma bölümünü GEÇİYORDU
+    ( KY = 800 mm · baba = 1.000 mm → a_dip = 1.010 mm , hüküm UYGUN )."""
     _ky, _bb = g.get("kuyu_dibi"), g.get("kabin_tampon_baba")
     _tb2, _te2 = g.get("kabin_tampon_boyu"), g.get("kabin_tampon_ezilme")
     if all(sayi_mi(x) for x in (_ky, _bb, _tb2, _te2)):
         _adip = float(_bb) + (float(_tb2) - float(_te2))
         if _adip >= float(_ky):
-            hata.append(
+            return [
                 f"Kabinin tampona oturduğu kot ({_adip:.0f} mm = baba "
                 f"{_bb} + tampon boyu {_tb2} − ezilme {_te2}), kuyu dibi "
                 f"yüksekliğinden ({_ky} mm) küçük olmalıdır — aksi hâlde "
                 "kabinin en alt noktası alt durak döşemesinin üstünde kalır."
-            )
+            ]
+    return []
 
-    #  TAMPON KENDİ BOYUNDAN FAZLA EZİLEMEZ.
-    #  Kuyu dibindeki bütün açıklıklar tek bir sayıdan türer:
-    #      a_dip = baba + ( tampon boyu − ezilme )
-    #  yani kabinin, TAM EZİLMİŞ tamponun üstünde durduğu kot.  Ezilme boyu
-    #  aşarsa parantez negatife döner ve a_dip fiziksel anlamını yitirir;
-    #  ondan türeyen a · a.1 · a.2 · b açıklıkları ile Ç.4 sığınma hacmi de
-    #  sessizce bozulur.  Denetimde 100 mm'lik tampona 5.000 mm ezilme
-    #  girilebiliyor ve a_dip = −3.900 mm çıkıyordu — hiçbir uyarı yoktu.
+
+def _tampon_ezilmesi(g, atla):
+    """TAMPON KENDİ BOYUNDAN FAZLA EZİLEMEZ.
+    Kuyu dibindeki bütün açıklıklar tek bir sayıdan türer:
+        a_dip = baba + ( tampon boyu − ezilme )
+    yani kabinin, TAM EZİLMİŞ tamponun üstünde durduğu kot.  Ezilme boyu
+    aşarsa parantez negatife döner ve a_dip fiziksel anlamını yitirir;
+    ondan türeyen a · a.1 · a.2 · b açıklıkları ile Ç.4 sığınma hacmi de
+    sessizce bozulur.  Denetimde 100 mm'lik tampona 5.000 mm ezilme
+    girilebiliyor ve a_dip = −3.900 mm çıkıyordu — hiçbir uyarı yoktu."""
+    hata = []
     _tb, _te = g.get("kabin_tampon_boyu"), g.get("kabin_tampon_ezilme")
     if sayi_mi(_tb) and sayi_mi(_te) and float(_te) > float(_tb):
         hata.append(
@@ -598,8 +636,12 @@ def dogrula(g):
             f"{ALAN['agirlik_tampon_ezilme'][1]} ({_ae} mm), tamponun "
             f"kendi boyunu ({_ab} mm) aşamaz — tampon en çok kendi boyu kadar kısalabilir."
         )
+    return hata
 
-    #  ADET · POZİTİFLİK · AÇI  —  fiziksel sınırlar
+
+def _fiziksel_sinirlar(g, atla):
+    """ADET · POZİTİFLİK · AÇI  —  fiziksel sınırlar."""
+    hata = []
     for anahtar in TAM_SAYI_ALANLARI:
         d = g.get(anahtar)
         if sayi_mi(d) and float(d) != int(d):
@@ -617,45 +659,57 @@ def dogrula(g):
         d = g.get(anahtar)
         if d is not None and (not sayi_mi(d) or not (alt <= d <= ust)):
             hata.append(f"{ALAN[anahtar][1]}: {alt}° ile {ust}° arasında olmalıdır ( {d} girildi ).")
+    return hata
 
-    #  ------------------------------------------------------------------
-    #  SARILMA AÇISI KANALIN SARIM SAYISINA GÖRE FİZİKSEL OLMALI
-    #  ------------------------------------------------------------------
-    #  Tek sarımda halat tahrik kasnağını en çok yarım tur sarar ( ≤ 180° ).
-    #  Çift sarımda iki kez geçer ve toplam açı yarım turu AŞAR ( > 180° );
-    #  180° ve altı bir değer tek sarıma aittir — büyük ihtimalle tek geçişin
-    #  açısı girilmiştir.  Bu kontrol eskiden yalnız motorun içindeydi:  motor
-    #  bölümü "uygun değil" sayıyor ama altındaki üç yük durumuna imkânsız
-    #  açıyla "UYGUN" basıyordu ( tek sarım · 300° ).  Açı kanal şekline
-    #  bağlı olduğundan alanın kendi aralığıyla ( 1–360° ) denetlenemez;
-    #  burada, iki alan birlikte görülürken reddedilir.
+
+def _sarilma_acisi(g, atla):
+    """SARILMA AÇISI KANALIN SARIM SAYISINA GÖRE FİZİKSEL OLMALI.
+
+    Tek sarımda halat tahrik kasnağını en çok yarım tur sarar ( ≤ 180° ).
+    Çift sarımda iki kez geçer ve toplam açı yarım turu AŞAR ( > 180° );
+    180° ve altı bir değer tek sarıma aittir — büyük ihtimalle tek geçişin
+    açısı girilmiştir.  Bu kontrol eskiden yalnız motorun içindeydi:  motor
+    bölümü "uygun değil" sayıyor ama altındaki üç yük durumuna imkânsız
+    açıyla "UYGUN" basıyordu ( tek sarım · 300° ).  Açı kanal şekline
+    bağlı olduğundan alanın kendi aralığıyla ( 1–360° ) denetlenemez;
+    burada, iki alan birlikte görülürken reddedilir."""
     _aci, _kanal = g.get("sarilma_acisi"), g.get("kanal_sekli")
-    if sayi_mi(_aci) and 1 <= _aci <= 360 and mukavemet_tablolari.kanal_turu(_kanal) is not None:
-        if (mukavemet_tablolari.kanal_gecis_sayisi(_kanal) or 1) > 1:
-            if _aci <= 180:
-                hata.append(
-                    f"Sarılma açısı α ({_aci:g}°) çift sarımlı kanalda 180°'yi "
-                    "aşmalıdır. Çift sarımda halat tahrik kasnağının üzerinden "
-                    "iki kez geçer; 180° ve altı bir açı tek sarıma aittir. "
-                    "İki geçişin TOPLAM sarılma açısını girin."
-                )
-        elif _aci > 180:
-            hata.append(
-                f"Sarılma açısı α ({_aci:g}°) tek sarımlı kanalda 180°'yi "
-                "aşamaz — halat tahrik kasnağını en çok yarım tur sarar. "
-                "Çift sarım kullanılıyorsa kanal şeklini ona göre seçin."
-            )
+    if not (sayi_mi(_aci) and 1 <= _aci <= 360 and mukavemet_tablolari.kanal_turu(_kanal) is not None):
+        return []
+    if (mukavemet_tablolari.kanal_gecis_sayisi(_kanal) or 1) > 1:
+        if _aci <= 180:
+            return [
+                f"Sarılma açısı α ({_aci:g}°) çift sarımlı kanalda 180°'yi "
+                "aşmalıdır. Çift sarımda halat tahrik kasnağının üzerinden "
+                "iki kez geçer; 180° ve altı bir açı tek sarıma aittir. "
+                "İki geçişin TOPLAM sarılma açısını girin."
+            ]
+    elif _aci > 180:
+        return [
+            f"Sarılma açısı α ({_aci:g}°) tek sarımlı kanalda 180°'yi "
+            "aşamaz — halat tahrik kasnağını en çok yarım tur sarar. "
+            "Çift sarım kullanılıyorsa kanal şeklini ona göre seçin."
+        ]
+    return []
 
-    #  ------------------------------------------------------------------
-    #  SERTLEŞTİRİLMEMİŞ V KANALIN ALT KESİLMESİ OLMALIDIR
-    #  ------------------------------------------------------------------
-    #  TS EN 81-50 m.5.11.2.3.1.2:  "Where the groove has not been submitted
-    #  to an additional hardening process, in order to limit the
-    #  deterioration of traction due to wear, an undercut is necessary."
-    #  Normatif gövdededir, not değildir.  Bu birleşim eskiden yalnız bir not
-    #  alıyor ve sayısal kontroller geçerse tahrik bölümü "UYGUNDUR" diyordu
-    #  ( 576 senaryonun 142'sinde ).  Seçim SESSİZCE "sertleştirilmiş"e
-    #  çevrilmez — o, gerçek kasnağın özelliğini değiştirmek olurdu.
+
+def _kanal_bicimi(g, atla):
+    """SERTLEŞTİRİLMEMİŞ V KANALIN ALT KESİLMESİ OLMALIDIR.
+
+    TS EN 81-50 m.5.11.2.3.1.2:  "Where the groove has not been submitted
+    to an additional hardening process, in order to limit the
+    deterioration of traction due to wear, an undercut is necessary."
+    Normatif gövdededir, not değildir.  Bu birleşim eskiden yalnız bir not
+    alıyor ve sayısal kontroller geçerse tahrik bölümü "UYGUNDUR" diyordu
+    ( 576 senaryonun 142'sinde ).  Seçim SESSİZCE "sertleştirilmiş"e
+    çevrilmez — o, gerçek kasnağın özelliğini değiştirmek olurdu.
+
+    γ ve β STANDARDIN SINIRLARI İÇİNDE OLMALIDIR.  Aynı sınırlar ofis
+    sabitleri için sabitler.ARALIK'ta duruyor;  proje girdisi onları
+    atlayamaz.  γ'nın ALT sınırı kanal türüne göre değişir ( V 35° ·
+    yarım daire 25° ), üst sınır bir kanal açısı olarak 90°'dir."""
+    hata = []
+    _kanal = g.get("kanal_sekli")
     if mukavemet_tablolari.kanal_turu(_kanal) == "V" and g.get("kanal_isleme") == "Sertleştirilmemiş":
         hata.append(
             "Alt kesilmesiz V kanal sertleştirilmemiş olamaz — TS EN 81-50 "
@@ -663,11 +717,6 @@ def dogrula(g):
             "kaybını sınırlamak için ALT KESİLME ister. Kanal ya "
             "sertleştirilmiş olmalı ya da 'Altı Kesik V Kanal' seçilmelidir."
         )
-
-    #  γ ve β STANDARDIN SINIRLARI İÇİNDE OLMALIDIR.  Aynı sınırlar ofis
-    #  sabitleri için sabitler.ARALIK'ta duruyor;  proje girdisi onları
-    #  atlayamaz.  γ'nın ALT sınırı kanal türüne göre değişir ( V 35° ·
-    #  yarım daire 25° ), üst sınır bir kanal açısı olarak 90°'dir.
     _pg, _pb = g.get("kasnak_gama"), g.get("kasnak_beta")
     if sayi_mi(_pg):
         _alt = (
@@ -694,14 +743,18 @@ def dogrula(g):
                 "alt kesilmesi yoktur — ya kutuyu boş bırakın ya da altı "
                 "kesik bir kanal seçin."
             )
+    return hata
 
-    #  OPSİYONEL ALANLARIN POZİTİFLİK VE FİZİKSEL SINIRLARI
-    #  Boş bırakılabilirler;  ama girilmişse pozitif ve fiziksel olmalıdır.
-    #  paten_balata_boyu = 0 girildiğinde motor bunu sessizce türetilene
-    #  çeviriyor, 0,001 mm girildiğinde ise formül paydası pozitif kaldığı
-    #  için mikroskobik balatayla "UYGUN" çıkıyordu.
-    #  ( 20 mm alt sınırı standart maddesi değil;  yazılımsal koruma, sınır
-    #  değer kontrolü / sanitization ve fiziksel tutarlılık kalkanıdır. )
+
+def _opsiyonel_alanlar(g, atla):
+    """OPSİYONEL ALANLARIN POZİTİFLİK VE FİZİKSEL SINIRLARI
+    Boş bırakılabilirler;  ama girilmişse pozitif ve fiziksel olmalıdır.
+    paten_balata_boyu = 0 girildiğinde motor bunu sessizce türetilene
+    çeviriyor, 0,001 mm girildiğinde ise formül paydası pozitif kaldığı
+    için mikroskobik balatayla "UYGUN" çıkıyordu.
+    ( 20 mm alt sınırı standart maddesi değil;  yazılımsal koruma, sınır
+    değer kontrolü / sanitization ve fiziksel tutarlılık kalkanıdır. )"""
+    hata = []
     pbb = g.get("paten_balata_boyu")
     if pbb is not None and pbb != "":
         if not sayi_mi(pbb) or pbb <= 0:
@@ -717,16 +770,17 @@ def dogrula(g):
                     f"Paten balatası uzunluğu ({pbb:g} mm) kabin patenler arası mesafeden ({kpa:g} mm) küçük olmalıdır."
                 )
     gdk = g.get("guvenlik_devreye_kuvvet")
-    if gdk is not None and gdk != "":
-        if not sayi_mi(gdk) or gdk <= 0:
-            hata.append(
-                f"{ALAN['guvenlik_devreye_kuvvet'][1]}: sıfırdan büyük olmalıdır ( {gdk!r} girildi )."
-            )
+    if gdk is not None and gdk != "" and (not sayi_mi(gdk) or gdk <= 0):
+        hata.append(f"{ALAN['guvenlik_devreye_kuvvet'][1]}: sıfırdan büyük olmalıdır ( {gdk!r} girildi ).")
+    return hata
 
-    #  KATALOG HALAT VERİSİ ve Tst — hepsi opsiyoneldir, girilirse MAKUL olmalı.
-    #  Kopma yükü alanı kN'dir:  katalog "31,5 kN" der, projeci 31500 yazarsa
-    #  güvenlik katsayısı 1000 kat büyür ve HER tasarım "UYGUN" görünürdü.
-    #  Üst sınır o hatayı yakalar.
+
+def _katalog_verileri(g, atla):
+    """KATALOG HALAT VERİSİ ve Tst — hepsi opsiyoneldir, girilirse MAKUL olmalı.
+    Kopma yükü alanı kN'dir:  katalog "31,5 kN" der, projeci 31500 yazarsa
+    güvenlik katsayısı 1000 kat büyür ve HER tasarım "UYGUN" görünürdü.
+    Üst sınır o hatayı yakalar."""
+    hata = []
     for _ad, _alt, _ust in (
         ("halat_birim_kutle", 0.02, 5.0),
         ("kablo_birim_kutle", 0.05, 20.0),
@@ -742,13 +796,16 @@ def dogrula(g):
             continue
         if not sayi_mi(_v) or not (_alt <= _v <= _ust):
             hata.append(f"{ALAN[_ad][1]}: {_alt} - {_ust} aralığında olmalıdır ( {_v!r} girildi ).")
+    return hata
 
-    #  MAKİNE KAİDESİ GEOMETRİSİ.  Bölüm 2 basit kiriş modelidir:  açıklığı L
-    #  olan kirişte tekil yük, A mesnedinden X = L − mesnet payı uzaklıktadır.
-    #  Model 0 < X < L gerektirir.  L mesnet payından küçükse X NEGATİF çıkar;
-    #  o zaman moment ve gerilme de negatif olur ve "σe ≤ σem" karşılaştırması
-    #  bunu SESSİZCE "uygun" sayar ( −5.350 N/mm² ≤ 130 doğrudur ).  Sayı
-    #  fiziksel değildir;  geometri baştan reddedilmelidir.
+
+def _kaide_geometrisi(g, atla):
+    """MAKİNE KAİDESİ GEOMETRİSİ.  Bölüm 2 basit kiriş modelidir:  açıklığı L
+    olan kirişte tekil yük, A mesnedinden X = L − mesnet payı uzaklıktadır.
+    Model 0 < X < L gerektirir.  L mesnet payından küçükse X NEGATİF çıkar;
+    o zaman moment ve gerilme de negatif olur ve "σe ≤ σem" karşılaştırması
+    bunu SESSİZCE "uygun" sayar ( −5.350 N/mm² ≤ 130 doğrudur ).  Sayı
+    fiziksel değildir;  geometri baştan reddedilmelidir."""
     L = g.get("yan_yatak_boyu")
     pay = (g.get("_ofis") or {}).get("yan_yatak_L_X")
     if not sayi_mi(pay):
@@ -756,85 +813,102 @@ def dogrula(g):
     #  Yükün yeri çizimden geldiyse ( program hesabı ) mesnet payı kullanılmaz.
     _x_ciz = "makine_yuku_x" in (g.get("_cizimden") or {}) and sayi_mi(g.get("makine_yuku_x"))
     if "yan_yatak_boyu" not in atla and not _x_ciz and sayi_mi(L) and sayi_mi(pay) and L - pay <= 0:
-        hata.append(
+        return [
             f"Yan yatak boyu ({L} mm) mesnet payından ({pay} mm) büyük "
             "olmalıdır. Makine kaidesi hesabı, açıklığı L olan basit "
             f"kirişte yükün mesnetten X = L − {pay} uzaklıkta olduğunu "
             "kabul eder; X ≤ 0 fiziksel değildir."
-        )
+        ]
+    #  ( RAY NARİNLİĞİ hata değil uyarıdır — bkz. uyarilar.  "Halat arası
+    #    tahrik kasnağı çapından küçük olamaz" doğrulaması KALDIRILDI.  O
+    #    kural, α'yı Ra'dan türeten geometrik modelin kendisini korumak
+    #    içindi:  Ra < 2·R1'de pay negatife düşüyor ve α 180°'yi aşıyordu.
+    #    α artık doğrudan beyan ediliyor ve kendi aralığında ( 1° – 360° )
+    #    denetleniyor;  Ra diye bir girdi kalmadı. )
+    return []
 
-    #  ------------------------------------------------------------------
-    #  RAY NARİNLİĞİ  λ = konsol arası / ix        TS EN 81-50 m.5.10.3
-    #  ------------------------------------------------------------------
-    #  TAHRİK KASNAĞI GEOMETRİSİ            TS EN 81-50 m.5.11.2 / m.5.11.3
-    #  ------------------------------------------------------------------
-    #  ( "Halat arası tahrik kasnağı çapından küçük olamaz" doğrulaması
-    #    KALDIRILDI.  O kural, α'yı Ra'dan türeten geometrik modelin
-    #    kendisini korumak içindi:  Ra < 2·R1'de pay negatife düşüyor ve α
-    #    180°'yi aşıyordu.  α artık doğrudan beyan ediliyor ve kendi
-    #    aralığında ( 1° – 360° ) denetleniyor;  Ra diye bir girdi kalmadı. )
 
-    #  ------------------------------------------------------------------
-    #  SİSTEM VERİMİ  η  FİZİKSEL OLMALI             0 < η ≤ 1
-    #  ------------------------------------------------------------------
-    #  Δη kalktığı için η artık kendi başına negatife düşemez;  bu kalkan
-    #  yine de durur, çünkü ofis sabiti ekrandan elle girilir ve ARALIK
-    #  ( 0,1 - 1 ) atlanırsa N = Gmax·v/(η·102) sıfıra bölünür.
-    #  Projeye verim girilmişse aralığını yukarıdaki katalog denetimi
-    #  bekler;  ofis değeri o projede kullanılmadığı için burada aranmaz.
-    _tip = g.get("makine_tipi")
+def _verim_siniri(g, atla):
+    """SİSTEM VERİMİ  η  FİZİKSEL OLMALI             0 < η ≤ 1
+
+    Δη kalktığı için η artık kendi başına negatife düşemez;  bu kalkan
+    yine de durur, çünkü ofis sabiti ekrandan elle girilir ve ARALIK
+    ( 0,1 - 1 ) atlanırsa N = Gmax·v/(η·102) sıfıra bölünür.
+    Projeye verim girilmişse aralığını katalog denetimi bekler;  ofis
+    değeri o projede kullanılmadığı için burada aranmaz."""
     _etap, _eta_girildi = sistem_verimi(g)
     if not _eta_girildi and not (sayi_mi(_etap) and 0 < _etap <= 1):
-        hata.append(
+        return [
             f"Toplam sistem verimi η = {_etap} fiziksel değil — 0 < η ≤ 1 "
-            f"olmalı ( '{_tip}' makine ). Sabitler sekmesinden düzeltin."
-        )
+            f"olmalı ( '{g.get('makine_tipi')}' makine ). Sabitler sekmesinden düzeltin."
+        ]
+    return []
 
-    #  ------------------------------------------------------------------
-    #  HALAT BOYU POZİTİF OLMALI  —  tampon / paten yığını kuyuya sığmalı
-    #  ------------------------------------------------------------------
-    #  lh = ( kuyu boyu − yığın ) / 1000 + pay.  Yığın kuyu boyunu aşarsa
-    #  halat boyu NEGATİF çıkıyor ( 30 m paten arasında −4,82 m ) ve halat
-    #  ağırlığı Gh = −5,13 kg oluyor.  Negatif ağırlık yükten DÜŞÜLÜYOR:
-    #  motor gücünü azaltıyor, halat güvenlik katsayısını yükseltiyor —
-    #  yani imkânsız bir geometri hesabı İYİLEŞTİRİYORDU.
-    _yigin_ad = (
-        "agirlik_tampon_baba",
-        "agirlik_carpma_arasi",
-        "agirlik_tampon_ezilme",
-        "agirlik_paten_arasi",
-        "kabin_paten_arasi",
-    )
-    _y = {a: g.get(a) for a in _yigin_ad}
+
+def _halat_boyu(g, atla):
+    """HALAT BOYU POZİTİF OLMALI  —  tampon / paten yığını kuyuya sığmalı.
+
+    lh = ( kuyu boyu − yığın ) / 1000 + pay.  Yığın kuyu boyunu aşarsa
+    halat boyu NEGATİF çıkıyor ( 30 m paten arasında −4,82 m ) ve halat
+    ağırlığı Gh = −5,13 kg oluyor.  Negatif ağırlık yükten DÜŞÜLÜYOR:
+    motor gücünü azaltıyor, halat güvenlik katsayısını yükseltiyor —
+    yani imkânsız bir geometri hesabı İYİLEŞTİRİYORDU.
+
+    ( REGÜLATÖR SÜRTÜNME KATSAYISI artık asansör bazında sorulmaz:  ofis
+    sabitidir ( sabitler.reg_mu ) ve üst sınırını ARALIK denetler. )"""
+    _y = {
+        a: g.get(a)
+        for a in (
+            "agirlik_tampon_baba",
+            "agirlik_carpma_arasi",
+            "agirlik_tampon_ezilme",
+            "agirlik_paten_arasi",
+            "kabin_paten_arasi",
+        )
+    }
     _kb = g.get("kuyu_boyu")
-    if sayi_mi(_kb) and all(sayi_mi(v) for v in _y.values()):
-        _yigin = (
-            _y["agirlik_tampon_baba"]
-            + _y["agirlik_carpma_arasi"]
-            - _y["agirlik_tampon_ezilme"]
-            + _y["agirlik_paten_arasi"]
-            + _y["kabin_paten_arasi"]
-        )
-        if _kb - _yigin <= 0:
-            hata.append(
-                f"Tampon / paten yığını ({_yigin:g} mm) kuyu boyundan "
-                f"({_kb:g} mm) büyük — halat boyu negatif çıkar. "
-                "Toplama giren ölçüler:  ağırlık tampon babası "
-                f"{_y['agirlik_tampon_baba']:g} + ağırlık çarpma arası "
-                f"{_y['agirlik_carpma_arasi']:g} − ağırlık tampon ezilmesi "
-                f"{_y['agirlik_tampon_ezilme']:g} + ağırlık paten arası "
-                f"{_y['agirlik_paten_arasi']:g} + kabin paten arası "
-                f"{_y['kabin_paten_arasi']:g}."
-            )
+    if not (sayi_mi(_kb) and all(sayi_mi(v) for v in _y.values())):
+        return []
+    _yigin = (
+        _y["agirlik_tampon_baba"]
+        + _y["agirlik_carpma_arasi"]
+        - _y["agirlik_tampon_ezilme"]
+        + _y["agirlik_paten_arasi"]
+        + _y["kabin_paten_arasi"]
+    )
+    if _kb - _yigin > 0:
+        return []
+    return [
+        f"Tampon / paten yığını ({_yigin:g} mm) kuyu boyundan "
+        f"({_kb:g} mm) büyük — halat boyu negatif çıkar. "
+        "Toplama giren ölçüler:  ağırlık tampon babası "
+        f"{_y['agirlik_tampon_baba']:g} + ağırlık çarpma arası "
+        f"{_y['agirlik_carpma_arasi']:g} − ağırlık tampon ezilmesi "
+        f"{_y['agirlik_tampon_ezilme']:g} + ağırlık paten arası "
+        f"{_y['agirlik_paten_arasi']:g} + kabin paten arası "
+        f"{_y['kabin_paten_arasi']:g}."
+    ]
 
-    #  REGÜLATÖR SÜRTÜNME KATSAYISI artık asansör bazında sorulmaz:  ofis
-    #  sabitidir ( sabitler.reg_mu ) ve üst sınırını ARALIK denetler.
 
-    #  OFİS STANDARDI  ( Sabitler sekmesi ).  Aralık dışı değer varsayılanla
-    #  değiştiriliyor ve bunu hiçbir yer söylemiyordu;  artık hesap durur.
-
-    hata += uygulama_sabitleri.ofis_hatalari(g.get("_ofis"))
-    return hata
+#  dogrula'nın denetimleri — iletiler bu sırayla çıkar
+_DENETIMLER = (
+    _alan_turleri,
+    _bolenler,
+    _tablo_butunlugu,
+    _acil_frenleme,
+    _kasnak_caplari,
+    _ray_sayilari,
+    _kabin_alt_konumu,
+    _tampon_ezilmesi,
+    _fiziksel_sinirlar,
+    _sarilma_acisi,
+    _kanal_bicimi,
+    _opsiyonel_alanlar,
+    _katalog_verileri,
+    _kaide_geometrisi,
+    _verim_siniri,
+    _halat_boyu,
+)
 
 
 #  Sarılma açısı girilmediğinde paftanın başına basılan uyarı.  Sabittir,
@@ -891,22 +965,26 @@ def uyarilar(g):
             "bağlıysa 'Makine yükünün yolu' alanından 'Kılavuz raylara' "
             "seçilmelidir — m.5.7.2.3.7 o durumda ek yük durumları ister."
         )
-    #  ------------------------------------------------------------------
-    #  ω tablosu YALNIZ 20 ≤ λ ≤ 250 arasında tanımlıdır.  Üst sınırın
-    #  dışında ω yoktur;  motor bunu ham bir Python hatasıyla ( None ile
-    #  çarpım ) bildiriyordu ve kullanıcı hangi alanın sorunlu olduğunu
-    #  göremiyordu.  50 x 50 x 5 rayda sınır 3.845 mm'dir — varsayılan
-    #  3.000 mm konsol aralığına yakın, yani gerçekçi bir girdiyle
-    #  karşılaşılıyordu.
-    #
-    #  ALT SINIRDA HATA YOKTUR:  λ < 20 burkulmanın belirleyici olmadığı
-    #  bölgedir, motor λ'yı 20'ye yuvarlar ( makine kaidesinde de öyle ).
-    #  BURKULMA YALNIZ GÜVENLİK TERTİBATI ÇALIŞTIĞINDA VARDIR.
-    #  ω, Ek C.2.1.2'de ( güvenlik tertibatının çalışması ) geçer;  C.2.2 ve
-    #  C.2.3 normal çalışma hâlleridir ve orada Fv = Mg·gn + Fp'dir, ω yoktur.
-    #  Kabinde tertibat her zaman vardır;  karşı ağırlıkta ise SEÇİME bağlıdır.
-    #  Tertibat yoksa rayı sıkıştıran Fk de yoktur, λ > 250 bir şeyi
-    #  düşürmez — orada uyarmak yanlış alarm olurdu.
+    return uyari + _narinlik_uyarilari(g) + _tampon_ezilmesi_uyarisi(g)
+
+
+def _narinlik_uyarilari(g):
+    """ω tablosu YALNIZ 20 ≤ λ ≤ 250 arasında tanımlıdır.  Üst sınırın
+    dışında ω yoktur;  motor bunu ham bir Python hatasıyla ( None ile
+    çarpım ) bildiriyordu ve kullanıcı hangi alanın sorunlu olduğunu
+    göremiyordu.  50 x 50 x 5 rayda sınır 3.845 mm'dir — varsayılan
+    3.000 mm konsol aralığına yakın, yani gerçekçi bir girdiyle
+    karşılaşılıyordu.
+
+    ALT SINIRDA HATA YOKTUR:  λ < 20 burkulmanın belirleyici olmadığı
+    bölgedir, motor λ'yı 20'ye yuvarlar ( makine kaidesinde de öyle ).
+    BURKULMA YALNIZ GÜVENLİK TERTİBATI ÇALIŞTIĞINDA VARDIR.
+    ω, Ek C.2.1.2'de ( güvenlik tertibatının çalışması ) geçer;  C.2.2 ve
+    C.2.3 normal çalışma hâlleridir ve orada Fv = Mg·gn + Fp'dir, ω yoktur.
+    Kabinde tertibat her zaman vardır;  karşı ağırlıkta ise SEÇİME bağlıdır.
+    Tertibat yoksa rayı sıkıştıran Fk de yoktur, λ > 250 bir şeyi
+    düşürmez — orada uyarmak yanlış alarm olurdu."""
+    uyari = []
     _agirlik_gt = str(g.get("agirlik_guvenlik_tertibati") or "Yok") != "Yok"
     for ray_alan, konsol_alan, ne, _gerekli in (
         ("kabin_ray_profili", "kabin_konsol_arasi", "Kabin", True),
@@ -922,57 +1000,62 @@ def uyarilar(g):
         _ix = mukavemet_tablolari.ray(prof, "ix") if prof else None
         _iy = mukavemet_tablolari.ray(prof, "iy") if prof else None
         imin = min(_ix, _iy) if sayi_mi(_ix) and sayi_mi(_iy) else None
-        if sayi_mi(imin) and imin > 0 and sayi_mi(l) and l > 0:
-            lam = l / imin
-            if lam > mukavemet_tablolari.OMEGA_LAMBDA_MAX:
-                azami = mukavemet_tablolari.OMEGA_LAMBDA_MAX * imin
-                #  GİRDİ REDDEDİLMEZ, UYARILIR.  Eskiden burası hata veriyor ve
-                #  bütün proje hesaplanamıyordu.  Oysa λ > 250 yalnız ω'yı
-                #  tanımsız bırakır:  eğilme, birleşik gerilme, flanş ve sehim
-                #  hesapları geçerliliğini korur.  Motor ω = None'ı zaten
-                #  karşılıyor — bölüm "TABLO DIŞI" der ve burkulma kontrolü
-                #  DÜŞER, yani sonuç UYGUN DEĞİL çıkar.  Referans projenin paftası da
-                #  aynı şeyi yapar:  "when λ > 250 … σk also cannot be
-                #  calculated".  Hesabı büsbütün durdurmak, kullanıcıya öteki
-                #  bölümlerin sonucunu da göstermiyordu.
-                uyari.append(
-                    f"{ne} rayı fazla narin:  λ = konsol arası / imin = "
-                    f"{l:g} / {imin:g} = {lam:.1f}  >  {mukavemet_tablolari.OMEGA_LAMBDA_MAX}. "
-                    "TS EN 81-50 m.5.10.3'ün ω tablosu bu narinliğin ötesinde "
-                    "tanımlı değildir;  BURKULMA HESABI YAPILAMAZ ve bölüm "
-                    f"uygun çıkmaz. '{ALAN[konsol_alan][1]}' en çok "
-                    f"{azami:.0f} mm olabilir ( '{prof}' rayı için ), ya da daha "
-                    "büyük kesitli bir ray profili seçilmelidir."
-                )
-
-    #  ------------------------------------------------------------------
-    #  TAM EZİLME = KURULU YÜKSEKLİĞİN %90'I   TS EN 81-20 m.5.8.2.1.2.2
-    #  ------------------------------------------------------------------
-    #  Madde "fully compressed" terimini TANIMLAR:  Çizelge 2'nin uç
-    #  konumlarında tampon, kurulu yüksekliğinin %90'ı kadar ezilmiş sayılır
-    #  ( bağlantı elemanları daha azıyla sınırlıyorsa o kadar ).  Program bu
-    #  sayıyı sığınma açıklıklarında kullanır:
-    #      kuyu dibi açıklığı = baba + ( tampon boyu − ezilme )
-    #  Girilen ezilme gerçeğinden KÜÇÜKSE açıklık OLDUĞUNDAN BÜYÜK çıkar ve
-    #  m.5.2.5.8'in 500 mm'si yanlışlıkla sağlanmış görünür — emniyetsiz yön.
-    #  Lineer olmayan tamponda uyarılır;  lineer ve hidrolikte strok zaten
-    #  bağıntıyla denetlendiği için burada tekrarlanmaz.
-    _tip = g.get("tampon_tipi")
-    if _tip and mukavemet_tablolari.tampon(_tip)[2] is None:
-        _boy, _ez = g.get("kabin_tampon_boyu"), g.get("kabin_tampon_ezilme")
-        if sayi_mi(_boy) and sayi_mi(_ez) and _boy > 0:
-            _tam = mukavemet_tablolari.TAMPON_TAM_EZILME_ORANI * _boy
-            if _ez < _tam - 0.5:
-                uyari.append(
-                    f"Kabin tamponu ezilmesi ({_ez:g} mm), kurulu yüksekliğin "
-                    f"%{mukavemet_tablolari.TAMPON_TAM_EZILME_ORANI * 100:.0f}'ından "
-                    f"({_tam:.0f} mm) küçük.  TS EN 81-20 m.5.8.2.1.2.2 "
-                    '"tam ezilmiş" durumu bu oranla tanımlar;  daha küçük bir '
-                    "değer kuyu dibi açıklığını olduğundan BÜYÜK gösterir. "
-                    "Bağlantı elemanları ezilmeyi gerçekten sınırlıyorsa değer "
-                    "doğrudur, yoksa tampon boyuyla uyumlu hâle getirilmelidir."
-                )
+        if not (sayi_mi(imin) and imin > 0 and sayi_mi(l) and l > 0):
+            continue
+        lam = l / imin
+        if lam > mukavemet_tablolari.OMEGA_LAMBDA_MAX:
+            azami = mukavemet_tablolari.OMEGA_LAMBDA_MAX * imin
+            #  GİRDİ REDDEDİLMEZ, UYARILIR.  Eskiden burası hata veriyor ve
+            #  bütün proje hesaplanamıyordu.  Oysa λ > 250 yalnız ω'yı
+            #  tanımsız bırakır:  eğilme, birleşik gerilme, flanş ve sehim
+            #  hesapları geçerliliğini korur.  Motor ω = None'ı zaten
+            #  karşılıyor — bölüm "TABLO DIŞI" der ve burkulma kontrolü
+            #  DÜŞER, yani sonuç UYGUN DEĞİL çıkar.  Referans projenin paftası da
+            #  aynı şeyi yapar:  "when λ > 250 … σk also cannot be
+            #  calculated".  Hesabı büsbütün durdurmak, kullanıcıya öteki
+            #  bölümlerin sonucunu da göstermiyordu.
+            uyari.append(
+                f"{ne} rayı fazla narin:  λ = konsol arası / imin = "
+                f"{l:g} / {imin:g} = {lam:.1f}  >  {mukavemet_tablolari.OMEGA_LAMBDA_MAX}. "
+                "TS EN 81-50 m.5.10.3'ün ω tablosu bu narinliğin ötesinde "
+                "tanımlı değildir;  BURKULMA HESABI YAPILAMAZ ve bölüm "
+                f"uygun çıkmaz. '{ALAN[konsol_alan][1]}' en çok "
+                f"{azami:.0f} mm olabilir ( '{prof}' rayı için ), ya da daha "
+                "büyük kesitli bir ray profili seçilmelidir."
+            )
     return uyari
+
+
+def _tampon_ezilmesi_uyarisi(g):
+    """TAM EZİLME = KURULU YÜKSEKLİĞİN %90'I   TS EN 81-20 m.5.8.2.1.2.2
+
+    Madde "fully compressed" terimini TANIMLAR:  Çizelge 2'nin uç
+    konumlarında tampon, kurulu yüksekliğinin %90'ı kadar ezilmiş sayılır
+    ( bağlantı elemanları daha azıyla sınırlıyorsa o kadar ).  Program bu
+    sayıyı sığınma açıklıklarında kullanır:
+        kuyu dibi açıklığı = baba + ( tampon boyu − ezilme )
+    Girilen ezilme gerçeğinden KÜÇÜKSE açıklık OLDUĞUNDAN BÜYÜK çıkar ve
+    m.5.2.5.8'in 500 mm'si yanlışlıkla sağlanmış görünür — emniyetsiz yön.
+    Lineer olmayan tamponda uyarılır;  lineer ve hidrolikte strok zaten
+    bağıntıyla denetlendiği için burada tekrarlanmaz."""
+    _tip = g.get("tampon_tipi")
+    if not (_tip and mukavemet_tablolari.tampon(_tip)[2] is None):
+        return []
+    _boy, _ez = g.get("kabin_tampon_boyu"), g.get("kabin_tampon_ezilme")
+    if not (sayi_mi(_boy) and sayi_mi(_ez) and _boy > 0):
+        return []
+    _tam = mukavemet_tablolari.TAMPON_TAM_EZILME_ORANI * _boy
+    if _ez >= _tam - 0.5:
+        return []
+    return [
+        f"Kabin tamponu ezilmesi ({_ez:g} mm), kurulu yüksekliğin "
+        f"%{mukavemet_tablolari.TAMPON_TAM_EZILME_ORANI * 100:.0f}'ından "
+        f"({_tam:.0f} mm) küçük.  TS EN 81-20 m.5.8.2.1.2.2 "
+        '"tam ezilmiş" durumu bu oranla tanımlar;  daha küçük bir '
+        "değer kuyu dibi açıklığını olduğundan BÜYÜK gösterir. "
+        "Bağlantı elemanları ezilmeyi gerçekten sınırlıyorsa değer "
+        "doğrudur, yoksa tampon boyuyla uyumlu hâle getirilmelidir."
+    ]
 
 
 def alt_duraktan_tavana(g):

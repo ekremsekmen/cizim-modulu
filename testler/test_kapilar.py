@@ -144,21 +144,25 @@ class Denetim(unittest.TestCase):
         #  kanatlının cebi ( 680 ) iki yanda da sığmaz ( 575 ) — sığan tipler
         #  söylenir.  4 kanatlı merkezinin sol cebi ağırlığın ön konsoluna ve ara
         #  kirişe çarpar ( kabinle yürür );  sağa açılan 3 kanatlı çizilir.
-        d = test_yerlesim_saglamligi._cizim(
-            test_yerlesim_saglamligi._veri(2000, True, "Sol", kat_kapisi_tipi="Teleskopik Sol")
+        d = test_yerlesim_saglamligi.cizim_yaniti(
+            test_yerlesim_saglamligi.standart_istek(2000, True, "Sol", kat_kapisi_tipi="Teleskopik Sol")
         )
         self.assertFalse(d.get("aktif"))
         h = next(x for x in d["hata"] if "kanat cebi" in x)
         self.assertIn("680 mm gerekir", h)
         self.assertIn("Teleskopik 3 Kanat Sağ", h)
         self.assertNotIn("Teleskopik Sağ ·", h)
-        d = test_yerlesim_saglamligi._cizim(
-            test_yerlesim_saglamligi._veri(2000, True, "Sol", kat_kapisi_tipi="Otomatik Merkezi 4 Kanat")
+        d = test_yerlesim_saglamligi.cizim_yaniti(
+            test_yerlesim_saglamligi.standart_istek(
+                2000, True, "Sol", kat_kapisi_tipi="Otomatik Merkezi 4 Kanat"
+            )
         )
         self.assertTrue(any("ara kirişine çarpıyor" in x for x in d["hata"]), d["hata"])
         self.assertTrue(
-            test_yerlesim_saglamligi._cizim(
-                test_yerlesim_saglamligi._veri(2000, True, "Sol", kat_kapisi_tipi="Teleskopik 3 Kanat Sağ")
+            test_yerlesim_saglamligi.cizim_yaniti(
+                test_yerlesim_saglamligi.standart_istek(
+                    2000, True, "Sol", kat_kapisi_tipi="Teleskopik 3 Kanat Sağ"
+                )
             ).get("aktif")
         )
 

@@ -48,6 +48,42 @@ def _inisler(KU):
     return kab, KU["ag_dusus"]
 
 
+def _halat_adlari(e, uk, ua, z_alt):
+    """Halatların altında KABİNE / AĞIRLIĞA;  halatlar yakınsa ( yazılar
+    ortalanınca biner ) her yazı kendi halatının dış yanına yaslanır."""
+    if (
+        abs(ua - uk)
+        >= (eleman.yazi_eni("KABİNE", eleman.yb(45)) + eleman.yazi_eni("AĞIRLIĞA", eleman.yb(45))) / 2.0 + 40
+    ):
+        e.append(eleman.ad(eleman.yazi(uk, z_alt - 90, "KABİNE", 45), "halat_adi"))
+        e.append(eleman.ad(eleman.yazi(ua, z_alt - 90, "AĞIRLIĞA", 45), "halat_adi"))
+        return
+    for u_, metin in ((uk, "KABİNE"), (ua, "AĞIRLIĞA")):
+        sol = u_ <= (uk + ua) / 2.0
+        e.append(
+            eleman.ad(
+                eleman.yazi(u_ + (-20 if sol else 20), z_alt - 90, metin, 45, hiza="sag" if sol else "sol"),
+                "halat_adi",
+            )
+        )
+
+
+def _sarim_yayi(e, uc, zt, R1, uk, teget):
+    """Halatın tahrik kasnağında sardığı yay:  kabin tarafının yatay ucundan
+    kasnağın üstünden ağırlık tarafının teğetine."""
+    a0 = 0.0 if uk > uc else math.pi
+    a1 = math.atan2(teget[1] - zt, teget[0] - uc)
+    yon = 1.0 if a0 == 0.0 else -1.0  # kasnağın üstünden
+    fark = (yon * (a1 - a0)) % (2 * math.pi)
+    rr, n = R1 + 25, 24
+    nokta = [
+        (uc + rr * math.cos(a0 + yon * fark * i / n), zt + rr * math.sin(a0 + yon * fark * i / n))
+        for i in range(n + 1)
+    ]
+    for p, q in zip(nokta, nokta[1:]):
+        e.append(eleman.ad(eleman.cizgi("HALAT", p[0], p[1], q[0], q[1]), "sarim_yayi"))
+
+
 def ciz(g, cizim_sabitleri=None):
     """Kasnak düzenlemesinin elemanları."""
 
@@ -96,25 +132,7 @@ def ciz(g, cizim_sabitleri=None):
     halat.append((ua, za_, ua, z_alt))
     for u0, z0, u1, z1 in halat:
         e.append(eleman.ad(eleman.cizgi("HALAT", u0, z0, u1, z1), "aski_halati"))
-    #  Halatlar yakınsa ( yazılar ortalanınca biner ) her yazı kendi halatının
-    #  dış yanına yaslanır
-    if (
-        abs(ua - uk)
-        >= (eleman.yazi_eni("KABİNE", eleman.yb(45)) + eleman.yazi_eni("AĞIRLIĞA", eleman.yb(45))) / 2.0 + 40
-    ):
-        e.append(eleman.ad(eleman.yazi(uk, z_alt - 90, "KABİNE", 45), "halat_adi"))
-        e.append(eleman.ad(eleman.yazi(ua, z_alt - 90, "AĞIRLIĞA", 45), "halat_adi"))
-    else:
-        for u_, metin in ((uk, "KABİNE"), (ua, "AĞIRLIĞA")):
-            sol = u_ <= (uk + ua) / 2.0
-            e.append(
-                eleman.ad(
-                    eleman.yazi(
-                        u_ + (-20 if sol else 20), z_alt - 90, metin, 45, hiza="sag" if sol else "sol"
-                    ),
-                    "halat_adi",
-                )
-            )
+    _halat_adlari(e, uk, ua, z_alt)
     #  Makine dairesinde döşeme ( tabliye ) — halatlar delikten geçer
     u0_, u1_ = min(p0, uk, ua) - 200, max(p1_, uk, ua) + 200
     if oda is not None:
@@ -131,22 +149,11 @@ def ciz(g, cizim_sabitleri=None):
         #  Makine dairesiz:  kuyu tavanı ( şasenin üstünde )
         tavan = Y["kotlar"][-1] + g["dusey"]["son_kat"]
         e.append(eleman.ad(eleman.cizgi("KUYU-DUVAR", u0_, tavan, u1_, tavan), "kuyu_tavani"))
-    #  Sarım:  halatın tahrik kasnağında sardığı yay ( kabin tarafının yatay
-    #  ucundan kasnağın üstünden ağırlık tarafının teğetine ) ve açısı
+    #  Sarım:  halatın tahrik kasnağında sardığı yay ve açısı
     alfa = M.get("sarim_acisi")
     if alfa is None:
         alfa = kopru.sarim_acisi(g)
-    a0 = 0.0 if uk > uc else math.pi
-    a1 = math.atan2(teget[1] - zt, teget[0] - uc)
-    yon = 1.0 if a0 == 0.0 else -1.0  # kasnağın üstünden
-    fark = (yon * (a1 - a0)) % (2 * math.pi)
-    rr, n = R1 + 25, 24
-    nokta = [
-        (uc + rr * math.cos(a0 + yon * fark * i / n), zt + rr * math.sin(a0 + yon * fark * i / n))
-        for i in range(n + 1)
-    ]
-    for p, q in zip(nokta, nokta[1:]):
-        e.append(eleman.ad(eleman.cizgi("HALAT", p[0], p[1], q[0], q[1]), "sarim_yayi"))
+    _sarim_yayi(e, uc, zt, R1, uk, teget)
     #  Tahrik kasnağı en üstte:  dişli makinede dişli kutusu önüne düşüyordu —
     #  görünüşün konusu kasnaklar ve halat
     e.append(eleman.ad(eleman.daire("KASNAK", uc, zt, R1), "tahrik_kasnagi"))
@@ -175,5 +182,5 @@ def ciz(g, cizim_sabitleri=None):
     else:
         e.append(eleman.olcu("dusey", (0, zt), (0, tavan), s, None))
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
-    geometri._yazilari_yerlestir(e)
+    geometri.yazilari_yerlestir(e)
     return e

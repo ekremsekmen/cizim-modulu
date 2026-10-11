@@ -19,6 +19,7 @@ import contextlib
 import math
 import re
 import threading
+from dataclasses import dataclass
 
 from cizim import eleman
 from cizim import girdi
@@ -94,7 +95,7 @@ PARCA_KATMANLARI = (
 )
 
 
-def _yazilari_yerlestir(elemanlar, h=eleman.OLCU_YAZI, kaydir=False):
+def yazilari_yerlestir(elemanlar, h=eleman.OLCU_YAZI, kaydir=False):
     """Yeri verilmemiş ölçü yazılarını yerleştirir — SVG ve DXF AYNI yeri kullanır.
 
     Yazı önce kendi parçasının ortasına, ölçü çizgisinin dışına konur.  Aynı
@@ -107,35 +108,7 @@ def _yazilari_yerlestir(elemanlar, h=eleman.OLCU_YAZI, kaydir=False):
     komşu tarafa yazılır ( AutoCAD'in sığmayan yazısı gibi ):  kuyu planında
     kabin duvarının "75"i şase dikmesinin üstündeydi.
     """
-    k = h / eleman.OLCU_YAZI  # 1/50'de yazı ve aralıklar büyür
-    parca_kutulari = None
-    #  Parça kenarları ( parca_kenarlari ):  yazı maskelidir, bir kenarın üstüne
-    #  düşerse kenarı siler — kuyu planında kabin duvarının "75"i kabinin iki
-    #  çizgisinin üstündeydi ( 5 Eki ).
-    kenarlar = KenarIzgarasi(parca_kenarlari(elemanlar))
-
-    def _biner(yon, kot, kat, orta, w):
-        c = kot + (-1.0 if kot < 0 else 1.0) * (50.0 + eleman.KAT_ARALIGI * kat) * k
-        kutu = (
-            (orta - w / 2.0, c - h / 2.0, orta + w / 2.0, c + h / 2.0)
-            if yon == "yatay"
-            else (c - h / 2.0, orta - w / 2.0, c + h / 2.0, orta + w / 2.0)
-        )
-        return any(
-            kutu[0] < p[2] and p[0] < kutu[2] and kutu[1] < p[3] and p[1] < kutu[3] for p in parca_kutulari
-        ) or kenarlar.kesisir(kutu, 2.0 * k)
-
-    #  Ölçü yazısının üstüne düşmemesi gereken parçaların kutuları
-    parca_kutulari = [
-        sinir([x]) for x in elemanlar if x.get("katman") in PARCA_KATMANLARI and x["tip"] != "yazi"
-    ]
-
-    def _kenara_biner(kutu):
-        return kenarlar.kesisir(kutu, 2.0 * k) or any(
-            kutu[0] < p[2] - 2 and p[0] < kutu[2] - 2 and kutu[1] < p[3] - 2 and p[1] < kutu[3] - 2
-            for p in parca_kutulari
-        )
-
+    Y = _YaziYerleri(elemanlar, h)
     siralar = {}
     for el in elemanlar:
         if el["tip"] == "olcu" and "yazi" not in el:
@@ -144,16 +117,7 @@ def _yazilari_yerlestir(elemanlar, h=eleman.OLCU_YAZI, kaydir=False):
     #  çağrıda yerleşenler ):  sığmayan yazı ucun dışına çıkınca köşede öbür
     #  yöndeki sıranın yazısına biniyordu ( kuyu planının sağ üst köşesinde iki
     #  "DUVAR 150" — yazılar büyüyünce, 5 Eki ).
-    dolu = [_yazi_kutusu_(el) for el in elemanlar if el["tip"] == "olcu" and "yazi" in el]
-
-    def _kutu(yon, kot, kat, orta, w):
-        c = kot + (-1.0 if kot < 0 else 1.0) * (50.0 + eleman.KAT_ARALIGI * kat) * k
-        return (
-            (orta - w / 2.0, c - h / 2.0, orta + w / 2.0, c + h / 2.0)
-            if yon == "yatay"
-            else (c - h / 2.0, orta - w / 2.0, c + h / 2.0, orta + w / 2.0)
-        )
-
+    Y.dolu = [yazi_kutusu(el) for el in elemanlar if el["tip"] == "olcu" and "yazi" in el]
     for (yon, kot), liste in siralar.items():
         i = 0 if yon == "yatay" else 1
         liste.sort(key=lambda q: min(q["a"][i], q["b"][i]))
@@ -162,102 +126,11 @@ def _yazilari_yerlestir(elemanlar, h=eleman.OLCU_YAZI, kaydir=False):
         for n, q in enumerate(liste):
             bas, son = sorted((q["a"][i], q["b"][i]))
             w = eleman.yazi_eni(q["metin"], h)
-            aday = [(0, (bas + son) / 2.0)]
-            uclar = ([(0, bas - w / 2.0 - 30 * k)] if n == 0 else []) + (
-                [(0, son + w / 2.0 + 30 * k)] if n == len(liste) - 1 else []
-            )
-            #  Yazı parçasına sığmıyorsa ve sıranın ucundaysa ucun dışına yazılır
-            #  ( referans projenin "62 83"ü gibi );  sığıyorsa parçanın ortasında durur.
-            sigmaz = w > son - bas - 20 * k
-            aday = uclar + aday if sigmaz else aday + uclar
-            if sigmaz and not uclar:
-                if parca_kutulari is None:
-                    parca_kutulari = [
-                        sinir([x])
-                        for x in elemanlar
-                        if x.get("katman") in PARCA_KATMANLARI + (("KAPI",) if kaydir else ())
-                        and x["tip"] != "yazi"
-                    ]
-                if _biner(yon, kot, 0, (bas + son) / 2.0, w):
-                    boy = [abs(liste[m]["b"][i] - liste[m]["a"][i]) for m in (n - 1, n + 1)]
-                    yanlar = [(0, son + w / 2.0 + 30 * k), (0, bas - w / 2.0 - 30 * k)]
-                    if boy[0] > boy[1]:
-                        yanlar.reverse()
-                    aday = [a for a in yanlar if not _biner(yon, kot, a[0], a[1], w)] + aday
-            elif kaydir and not sigmaz:
-                #  kaydir:  sığan yazı ortada bir parçanın üstüne düşüyorsa kendi
-                #  ölçüsünün içinde, ortaya en yakın boş yere kayar ( kabin üstü
-                #  planında sığınma alanının yer ölçüsü şasenin üst kirişinin
-                #  üstündeydi ).  Öbür çizimlerde yazıların yeri değişmez:  kuyu
-                #  dibinde yük kutuları onlara göre yerleşir.
-                if parca_kutulari is None:
-                    parca_kutulari = [
-                        sinir([x])
-                        for x in elemanlar
-                        if x.get("katman") in PARCA_KATMANLARI + ("KAPI",) and x["tip"] != "yazi"
-                    ]
-                orta = (bas + son) / 2.0
-                if _biner(yon, kot, 0, orta, w):
-                    pay = (son - bas - w) / 2.0 - 10 * k
-                    adim = [orta + s * d for d in range(10, int(pay) + 1, 10) for s in (-1, 1)]
-                    bos = [x for x in adim if not _biner(yon, kot, 0, x, w)]
-                    #  Ölçünün içinde boş yer yoksa ve sıranın ucundaysa ucun dışı
-                    #  ( operatörün derinliğindeki parça:  operatör tavanın
-                    #  genişliğince uzanır )
-                    bos += [a[1] for a in uclar if not _biner(yon, kot, 0, a[1], w)]
-                    if bos:
-                        aday = [(0, bos[0])] + aday
-            aday += [(1, (bas + son) / 2.0), (2, (bas + son) / 2.0)]
-            #  Seçim:  sırasındaki yazılara binmeyen ( şart ), öbür yazılara
-            #  binmeyen, parça kenarına binmeyen ilk aday;  hepsini sağlayan
-            #  yoksa ilk ikisini, o da yoksa yalnız ilkini sağlayan.
-            ilk = yazisiz = temiz = None
-            for kat, orta in aday:
-                if any(
-                    kt == kat and orta - w / 2.0 < s + 25 * k and b < orta + w / 2.0 + 25 * k
-                    for kt, b, s in yerlesen
-                ):
-                    continue
-                ilk = ilk or (kat, orta)
-                kb_ = _kutu(yon, kot, kat, orta, w)
-                if any(kb_[0] < d[2] and d[0] < kb_[2] and kb_[1] < d[3] and d[1] < kb_[3] for d in dolu):
-                    continue
-                yazisiz = yazisiz or (kat, orta)
-                if not _kenara_biner(kb_):
-                    temiz = (kat, orta)
-                    break
-            if temiz is None:
-                #  Adayların hepsi bir parçaya biniyor ( kuyunun içinden geçen
-                #  sıralar ):  yazı kendi ölçüsü boyunca kayar — uçların hemen
-                #  dışına kadar, önce az kayan, sonra dış katlar.
-                orta0 = (bas + son) / 2.0
-                yari = (son - bas + w) / 2.0 + 30 * k
-                kaymalar = sorted(
-                    {
-                        (kat_, d * 20 * k * sgn)
-                        for kat_ in (0, 1, 2)
-                        for d in range(1, int(yari / (20 * k)) + 1)
-                        for sgn in (-1, 1)
-                    },
-                    key=lambda a: (abs(a[1]), a[0]),
-                )
-                for kat_, kay in kaymalar:
-                    orta = orta0 + kay
-                    if any(
-                        kt == kat_ and orta - w / 2.0 < s + 25 * k and b < orta + w / 2.0 + 25 * k
-                        for kt, b, s in yerlesen
-                    ):
-                        continue
-                    kb_ = _kutu(yon, kot, kat_, orta, w)
-                    if any(kb_[0] < d[2] and d[0] < kb_[2] and kb_[1] < d[3] and d[1] < kb_[3] for d in dolu):
-                        continue
-                    if not _kenara_biner(kb_):
-                        temiz = (kat_, orta)
-                        break
-            kat, orta = temiz or yazisiz or ilk or aday[-1]
+            aday = Y.adaylar(yon, kot, liste, n, i, bas, son, w, kaydir)
+            kat, orta = Y.sec(yon, kot, aday, yerlesen, bas, son, w)
             yerlesen.append((kat, orta - w / 2.0, orta + w / 2.0))
-            dolu.append(_kutu(yon, kot, kat, orta, w))
-            capraz = kot + dis * (50.0 + eleman.KAT_ARALIGI * kat) * k
+            Y.dolu.append(Y.kutu(yon, kot, kat, orta, w))
+            capraz = kot + dis * (50.0 + eleman.KAT_ARALIGI * kat) * Y.k
             q["yazi"] = (
                 {"x": orta, "y": capraz, "aci": 0.0, "h": h}
                 if yon == "yatay"
@@ -265,16 +138,141 @@ def _yazilari_yerlestir(elemanlar, h=eleman.OLCU_YAZI, kaydir=False):
             )
 
 
-def _yazi_kutusu_(el):
-    """Yeri verilmiş ölçü yazısının kutusu."""
-    y = el["yazi"]
-    w, h = (
-        eleman.yazi_eni(el["metin"], y.get("h", eleman.OLCU_YAZI)) / 2.0,
-        y.get("h", eleman.OLCU_YAZI) / 2.0,
+def _sirada_biner(yerlesen, kat, orta, w, k):
+    """Yazı sırasında aynı kattaki bir yazıya biner mi ( 25 mm payla )."""
+    return any(
+        kt == kat and orta - w / 2.0 < s + 25 * k and b < orta + w / 2.0 + 25 * k for kt, b, s in yerlesen
     )
-    if y.get("aci"):
-        w, h = h, w
-    return (y["x"] - w, y["y"] - h, y["x"] + w, y["y"] + h)
+
+
+class _YaziYerleri:
+    """yazilari_yerlestir'in ortak durumu:  yazı boyu ( h ) ve ölçeği ( k —
+    1/50'de yazı ve aralıklar büyür ), parça kutuları ve kenarları, dolu yazı
+    kutuları."""
+
+    def __init__(self, elemanlar, h):
+        self.h = h
+        self.k = h / eleman.OLCU_YAZI
+        #  Parça kenarları ( parca_kenarlari ):  yazı maskelidir, bir kenarın
+        #  üstüne düşerse kenarı siler — kuyu planında kabin duvarının "75"i
+        #  kabinin iki çizgisinin üstündeydi ( 5 Eki ).
+        self.kenarlar = KenarIzgarasi(parca_kenarlari(elemanlar))
+        #  Ölçü yazısının üstüne düşmemesi gereken parçaların kutuları
+        self.parca_kutulari = [
+            sinir([x]) for x in elemanlar if x.get("katman") in PARCA_KATMANLARI and x["tip"] != "yazi"
+        ]
+        self.dolu = []
+
+    def kutu(self, yon, kot, kat, orta, w):
+        h = self.h
+        c = kot + (-1.0 if kot < 0 else 1.0) * (50.0 + eleman.KAT_ARALIGI * kat) * self.k
+        return (
+            (orta - w / 2.0, c - h / 2.0, orta + w / 2.0, c + h / 2.0)
+            if yon == "yatay"
+            else (c - h / 2.0, orta - w / 2.0, c + h / 2.0, orta + w / 2.0)
+        )
+
+    def biner(self, yon, kot, kat, orta, w):
+        """Yazı bir parçaya ya da parça kenarına biner mi."""
+        kutu = self.kutu(yon, kot, kat, orta, w)
+        return any(
+            kutu[0] < p[2] and p[0] < kutu[2] and kutu[1] < p[3] and p[1] < kutu[3]
+            for p in self.parca_kutulari
+        ) or self.kenarlar.kesisir(kutu, 2.0 * self.k)
+
+    def kenara_biner(self, kutu):
+        return self.kenarlar.kesisir(kutu, 2.0 * self.k) or any(
+            kutu[0] < p[2] - 2 and p[0] < kutu[2] - 2 and kutu[1] < p[3] - 2 and p[1] < kutu[3] - 2
+            for p in self.parca_kutulari
+        )
+
+    def yaziya_biner(self, kutu):
+        return any(kutu[0] < d[2] and d[0] < kutu[2] and kutu[1] < d[3] and d[1] < kutu[3] for d in self.dolu)
+
+    def adaylar(self, yon, kot, liste, n, i, bas, son, w, kaydir):
+        """Sıranın n. yazısının adayları ( kat, orta ), sırayla."""
+        k = self.k
+        aday = [(0, (bas + son) / 2.0)]
+        uclar = ([(0, bas - w / 2.0 - 30 * k)] if n == 0 else []) + (
+            [(0, son + w / 2.0 + 30 * k)] if n == len(liste) - 1 else []
+        )
+        #  Yazı parçasına sığmıyorsa ve sıranın ucundaysa ucun dışına yazılır
+        #  ( referans projenin "62 83"ü gibi );  sığıyorsa parçanın ortasında durur.
+        sigmaz = w > son - bas - 20 * k
+        aday = uclar + aday if sigmaz else aday + uclar
+        if sigmaz and not uclar:
+            if self.biner(yon, kot, 0, (bas + son) / 2.0, w):
+                boy = [abs(liste[m]["b"][i] - liste[m]["a"][i]) for m in (n - 1, n + 1)]
+                yanlar = [(0, son + w / 2.0 + 30 * k), (0, bas - w / 2.0 - 30 * k)]
+                if boy[0] > boy[1]:
+                    yanlar.reverse()
+                aday = [a for a in yanlar if not self.biner(yon, kot, a[0], a[1], w)] + aday
+        elif kaydir and not sigmaz:
+            #  kaydir:  sığan yazı ortada bir parçanın üstüne düşüyorsa kendi
+            #  ölçüsünün içinde, ortaya en yakın boş yere kayar ( kabin üstü
+            #  planında sığınma alanının yer ölçüsü şasenin üst kirişinin
+            #  üstündeydi ).  Öbür çizimlerde yazıların yeri değişmez:  kuyu
+            #  dibinde yük kutuları onlara göre yerleşir.
+            orta = (bas + son) / 2.0
+            if self.biner(yon, kot, 0, orta, w):
+                pay = (son - bas - w) / 2.0 - 10 * k
+                adim = [orta + s * d for d in range(10, int(pay) + 1, 10) for s in (-1, 1)]
+                bos = [x for x in adim if not self.biner(yon, kot, 0, x, w)]
+                #  Ölçünün içinde boş yer yoksa ve sıranın ucundaysa ucun dışı
+                #  ( operatörün derinliğindeki parça:  operatör tavanın
+                #  genişliğince uzanır )
+                bos += [a[1] for a in uclar if not self.biner(yon, kot, 0, a[1], w)]
+                if bos:
+                    aday = [(0, bos[0])] + aday
+        return aday + [(1, (bas + son) / 2.0), (2, (bas + son) / 2.0)]
+
+    def sec(self, yon, kot, aday, yerlesen, bas, son, w):
+        """Seçim:  sırasındaki yazılara binmeyen ( şart ), öbür yazılara
+        binmeyen, parça kenarına binmeyen ilk aday;  hepsini sağlayan yoksa
+        yazı kendi ölçüsü boyunca kayar ( _kaydir );  o da olmazsa ilk ikisini,
+        o da yoksa yalnız ilkini sağlayan.  ( kat, orta )"""
+        ilk = yazisiz = temiz = None
+        for kat, orta in aday:
+            if _sirada_biner(yerlesen, kat, orta, w, self.k):
+                continue
+            ilk = ilk or (kat, orta)
+            kb_ = self.kutu(yon, kot, kat, orta, w)
+            if self.yaziya_biner(kb_):
+                continue
+            yazisiz = yazisiz or (kat, orta)
+            if not self.kenara_biner(kb_):
+                temiz = (kat, orta)
+                break
+        if temiz is None:
+            temiz = self._kaydir(yon, kot, yerlesen, bas, son, w)
+        return temiz or yazisiz or ilk or aday[-1]
+
+    def _kaydir(self, yon, kot, yerlesen, bas, son, w):
+        """Adayların hepsi bir parçaya biniyor ( kuyunun içinden geçen sıralar ):
+        yazı kendi ölçüsü boyunca kayar — uçların hemen dışına kadar, önce az
+        kayan, sonra dış katlar.  ( kat, orta ) ya da None"""
+        k = self.k
+        orta0 = (bas + son) / 2.0
+        yari = (son - bas + w) / 2.0 + 30 * k
+        kaymalar = sorted(
+            {
+                (kat_, d * 20 * k * sgn)
+                for kat_ in (0, 1, 2)
+                for d in range(1, int(yari / (20 * k)) + 1)
+                for sgn in (-1, 1)
+            },
+            key=lambda a: (abs(a[1]), a[0]),
+        )
+        for kat_, kay in kaymalar:
+            orta = orta0 + kay
+            if _sirada_biner(yerlesen, kat_, orta, w, k):
+                continue
+            kb_ = self.kutu(yon, kot, kat_, orta, w)
+            if self.yaziya_biner(kb_):
+                continue
+            if not self.kenara_biner(kb_):
+                return (kat_, orta)
+        return None
 
 
 def _ray_bicimli(zarf, bicim):
@@ -456,6 +454,132 @@ _KESITTE_GIZLI = frozenset(
 )
 
 
+@dataclass(frozen=True)
+class _Plan:
+    """Kuyu planının bölümlerinin ( duvar, kapı, kabin, ray, askı, ağırlık,
+    ölçü, yazı ) ortak ölçüleri — plan() bir kez hesaplar, bölümler okur."""
+
+    g: dict
+    S: dict
+    G: float  # kuyu genişliği
+    D: float  # kuyu derinliği
+    ds: float  # duvarlar:  sol · sağ · ön · arka
+    dg: float
+    don: float
+    dar: float
+    b0: float  # ön duvardaki kaba boşluğun iki yanı ( girdi.kaba_bosluk )
+    b1: float
+    KB: dict  # kapı bölgesi ( girdi.kapi_bolgesi )
+    KT: dict  # kapı tipi ( girdi.kapi_tipi )
+    x0: float  # kapının sol yanı
+    kg: float  # kapı genişliği
+    kx: float  # kabin merkezi
+    ky: float
+    ic_on: float  # kabin iç ön yüzü
+    dis_g: float  # kabin dışı ( panolarla )
+    dis_d: float
+    ry: float  # kabin raylarının ekseni ( derinlikte )
+    sol_yuz: float  # kabin raylarının dil yüzleri ( DBG bunların arası )
+    sag_yuz: float
+    ag_yan: str | None  # karşı ağırlık "Sol" · "Sağ" yanda;  None:  arkada
+    ag_y: float  # yandaki ağırlığın ekseni ( derinlikte )
+    ag_alt: float  # yandaki ağırlığın ray arkaları
+    ag_ust: float
+    ex: float  # ağırlık ekseni ( genişlikte )
+    ey: float  # arkadaki ağırlığın ekseni ( derinlikte )
+    kiris_ic: float  # yandaki ağırlıkta ara kirişin kabin tarafındaki yüzü
+    aski: dict
+    duzen: str | None  # askı düzeni:  "Kabin altı" · "Kabin üstü" · "Doğrudan"
+    aski_y: float  # askı ekseni ( derinlikte )
+    aski_yari: float  # askı elemanının derinlikteki yarı boyu
+    capraz: dict | None  # arkadaki ağırlıkla 2:1 çapraz askı ( arka_aski )
+
+
+def _plan_olculeri(g, S):
+    k, kb, kp = g["kuyu"], g["kabin"], g["kapi"]
+    kr, ag = g["kabin_ray"], g["agirlik"]
+    G = k["genislik"]
+    b0, b1, _ = girdi.kaba_bosluk(g, S)
+    kx = G / 2.0 + kb["kaciklik_y"]
+    ic_on = kb["on_pay"]
+    dis_d = kb["derinlik"] + S["kabin_pano_arka"]
+    ry = kr["kapi_arasi"]
+    sol_yuz, sag_yuz = kx - kr["arasi"] / 2.0, kx + kr["arasi"] / 2.0
+    #  KARŞI AĞIRLIK YANDAYSA o taraftaki kabin rayının duvara giden konsolu
+    #  ağırlığın İÇİNDEN geçerdi:  ray ekseni ağırlığın boyu içinde kalır.
+    #  O ray, iki ağırlık rayı konsolunun taşıdığı dikine bir ARA KİRİŞE
+    #  bağlanır  ( referans projenin paftasındaki çözüm ).
+    ag_yan = ag["yeri"] if ag["yeri"] in ("Sağ", "Sol") else None
+    #  KARŞI AĞIRLIĞIN EKSENİ ( yandaki ağırlıkta ):  kabin ray ekseninden
+    #  eksen_kaciklik kadar kayık — referans projede 50 mm önde.  Ağırlığın halatı
+    #  tahrik kasnağının altına düşsün diye kabinin ray ekseninden ayrı durur.
+    ag_y = ry + ag["eksen_kaciklik"]
+    if ag_yan is None:
+        ex = G / 2.0
+    else:
+        ex = ag["ray_duvar"] if ag_yan == "Sol" else G - ag["ray_duvar"]
+    #  Kabin rayının ara kirişi ağırlık rayı konsollarına bağlanır:  kol plakadan
+    #  kirişe uzanır  ( ağırlığın boyunun DIŞINDAN geçer ).
+    if ag_yan == "Sol":
+        kiris_ic = sol_yuz - kr["h"] - S["ara_kiris_en"]
+    else:
+        kiris_ic = sag_yuz + kr["h"] + S["ara_kiris_en"]
+    #  ASKI DÜZENİ  ( kullanıcı seçer:  kabin altı · kabin üstü · doğrudan ):
+    #  kasnakların ve askı noktalarının yeri GİRDİDEN gelir;  koda gömülmez.
+    aski = g.get("aski") or {}
+    duzen = aski.get("duzen")
+    aski_y = (
+        ic_on
+        + dis_d / 2.0
+        + aski.get("kasnak_kaciklik" if duzen in ("Kabin altı", "Kabin üstü") else "nokta_kaciklik", 0)
+    )
+    capraz = arka_aski.geometri(g, S) if arka_aski.arkada_iki_bir(g) else None
+    if capraz is not None and "P" in capraz:
+        aski_yari = 0.0
+    elif duzen in ("Kabin altı", "Kabin üstü"):
+        aski_yari = S["kabin_kasnak_genislik"] / 2.0
+    elif duzen == "Doğrudan":
+        aski_yari = 45.0
+    else:
+        aski_yari = 0.0
+    return _Plan(
+        g=g,
+        S=S,
+        G=G,
+        D=k["derinlik"],
+        ds=k["duvar_sol"],
+        dg=k["duvar_sag"],
+        don=k["duvar_on"],
+        dar=k["duvar_arka"],
+        b0=b0,
+        b1=b1,
+        KB=girdi.kapi_bolgesi(g, S),
+        KT=girdi.kapi_tipi(kp.get("tip")),
+        x0=kp["sol_pay"],
+        kg=kp["genislik"],
+        kx=kx,
+        ky=ic_on + kb["derinlik"] / 2.0,
+        ic_on=ic_on,
+        dis_g=kb["genislik"] + 2 * S["kabin_pano_yan"],
+        dis_d=dis_d,
+        ry=ry,
+        sol_yuz=sol_yuz,
+        sag_yuz=sag_yuz,
+        ag_yan=ag_yan,
+        ag_y=ag_y,
+        ag_alt=ag_y - ag["ray_arasi"] / 2.0 - ag["h"],
+        ag_ust=ag_y + ag["ray_arasi"] / 2.0 + ag["h"],
+        ex=ex,
+        ey=k["derinlik"] - ag["ray_duvar"],
+        kiris_ic=kiris_ic,
+        aski=aski,
+        duzen=duzen,
+        aski_y=aski_y,
+        aski_yari=aski_yari,
+        capraz=capraz,
+    )
+
+
 def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
     """Kuyu planının elemanları  ( liste ).
 
@@ -465,40 +589,72 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
     duvarı kesintisiz alır:  False.
     duvar_boslugu:  ön duvarın boşluklu olup olmadığı ( verilmezse
     kapi_duzeyi ) — kabin üstü planı kesit kotu kaba boşluğun içinde kalırsa
-    boşluklu ister ( kabin_ustu.kapi_gorunusu )."""
-    S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
-    k, kb, kp = g["kuyu"], g["kabin"], g["kapi"]
-    kr, ag = g["kabin_ray"], g["agirlik"]
-    G, D = k["genislik"], k["derinlik"]
-    ds, dg, don, dar = k["duvar_sol"], k["duvar_sag"], k["duvar_on"], k["duvar_arka"]
-    e = []
+    boşluklu ister ( kabin_ustu.kapi_gorunusu ).
 
-    #  ── DUVARLAR  ( tarama yalnız duvar kesitinde ) ───────────────────
-    #  Ön duvar kat kapısının kaba boşluğunun iki yanındadır ( CG.kaba_bosluk —
-    #  giriş görünüşüyle aynı;  duvar boşluğuna monte kapıda kasa da boşluktadır ).
-    b0, b1, _ = girdi.kaba_bosluk(g, S)
-    bosluklu = kapi_duzeyi if duvar_boslugu is None else duvar_boslugu
-    on = (
-        [(-ds, -don, b0 + ds, don), (b1, -don, G + dg - b1, don)]
-        if bosluklu
-        else [(-ds, -don, G + ds + dg, don)]
-    )
+    Eleman SIRASI çizimin parçasıdır ( sonraki öncekinin üstüne çizilir;
+    altın kayıtlar sırayı da tutar ):  bölümler aşağıdaki sırayla eklenir."""
+    S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
+    P = _plan_olculeri(g, S)
+    e = _duvarlar(P, kapi_duzeyi if duvar_boslugu is None else duvar_boslugu)
+    e += _kat_kapisi(P, kapi_duzeyi)
+    e += _kabin(P)
+    e += _kabin_raylari(P)
+    e += _aski(P)
+    e += _agirlik_yanda(P) if P.ag_yan else _agirlik_arkada(P)
+    if kapi_duzeyi:
+        _kesitte_gizle(P, e)
+    #  KUMANDA PANOSU KUYU PLANINDA YOK:  makine dairesiz tesiste en üst katta
+    #  kuyunun dışındaki acil kurtarma panosundadır ( kuyu üstü planı ), makine
+    #  daireli tesiste makine dairesindedir.  Eskiden kuyunun içinde, yan
+    #  duvarda kaynağı belirsiz 400 × 90'lık bir "PANO" çiziliyordu:  kesitlerde
+    #  karşılığı yoktu, makine dairelide makine dairesindekiyle çift oluyordu.
+
+    #  Alttaki ölçü sıraları menteşeli kapının açılma yayının da altında
+    alt = min([-P.don - S["bina_duvari"]] + [el["y"] for el in e if el.get("ad") == "kapi_acilisi"])
+    e += _ust_olculer(P)
+    e += _alt_olculer(P, alt)
+    e += _yan_olculer(P)
+    e += _kabin_ici_olculeri(P)
+    e += _aski_olculeri(P)
+    e += _kabin_kapisi(P)
+    _yazilar(P, e, alt)
+    yazilari_yerlestir(e, kaydir=True)
+    adaylar = _kabin_ici_yazi_adaylari(P, e)
+    if adaylar:
+        yazilari_coz(e, adaylar)
+    parcadan_kaydir(e, ek_katman=("AGIRLIK",))
+    e += kesit_isaretleri(g, e)
+    return e
+
+
+def _duvarlar(P, bosluklu):
+    """Duvarlar ( tarama yalnız duvar kesitinde ).  Boşluklu ön duvar kat
+    kapısının kaba boşluğunun iki yanındadır ( girdi.kaba_bosluk — giriş
+    görünüşüyle aynı;  duvar boşluğuna monte kapıda kasa da boşluktadır )."""
+    G, D, ds, dg, don, dar = P.G, P.D, P.ds, P.dg, P.don, P.dar
+    if bosluklu:
+        on = [(-ds, -don, P.b0 + ds, don), (P.b1, -don, G + dg - P.b1, don)]
+    else:
+        on = [(-ds, -don, G + ds + dg, don)]
+    e = []
     for x, y, g_, d_ in on + [(-ds, D, G + ds + dg, dar), (-ds, 0, ds, D), (G, 0, dg, D)]:
         if g_ <= 1e-6:
             continue
         e.append(eleman.dikdortgen("TARAMA", x, y, g_, d_, tip="tarama"))
         e.append(eleman.dikdortgen("KUYU-DUVAR", x, y, g_, d_))
     e.append(eleman.dikdortgen("KUYU-IC", 0, 0, G, D))
+    return e
 
-    #  ── KAPI:  boşluk · kasa · eşik · kanatlar ───────────────────────
-    #  Kat kapısı ünitesi ( kasa + eşik ) montaja göre ya duvar boşluğunda
-    #  ( kasa duvarda, eşik kuyuya taşar ) ya da duvarın iç yüzünde durur
-    #  ( ünitenin tamamı kuyunun içinde ).  KANATLAR EŞİĞİN ÜSTÜNDEDİR:
-    #  kapalı konumda, teleskopikte iki düzlemde ( referans proje kapı detayı ).
-    KB = girdi.kapi_bolgesi(g, S)
-    x0 = kp["sol_pay"]
-    kg = kp["genislik"]
-    e.append(eleman.ad(eleman.dikdortgen("KAPI", b0, -don, b1 - b0, don), "kapi_boslugu"))
+
+def _kat_kapisi(P, kapi_duzeyi):
+    """Kat kapısı:  boşluk · kasa · eşik · kanatlar · açılış işareti.
+
+    Kat kapısı ünitesi ( kasa + eşik ) montaja göre ya duvar boşluğunda
+    ( kasa duvarda, eşik kuyuya taşar ) ya da duvarın iç yüzünde durur
+    ( ünitenin tamamı kuyunun içinde ).  KANATLAR EŞİĞİN ÜSTÜNDEDİR:
+    kapalı konumda, teleskopikte iki düzlemde ( referans proje kapı detayı )."""
+    S, KB, x0, kg = P.S, P.KB, P.x0, P.kg
+    e = [eleman.ad(eleman.dikdortgen("KAPI", P.b0, -P.don, P.b1 - P.b0, P.don), "kapi_boslugu")]
     for kx0 in (x0 - S["kasa_yan"], x0 + kg):  # kasa yanları
         kasa = eleman.ad(
             eleman.dikdortgen("KAPI", kx0, KB["kasa"][0], S["kasa_yan"], S["kasa_derinlik"]), "kapi_kasasi"
@@ -509,92 +665,116 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
         eleman.dikdortgen("KAPI", x0, KB["esik"][0], kg, KB["esik"][1] - KB["esik"][0]), "kat_esigi"
     )
     e.append(kat_esigi)
-    KT = girdi.kapi_tipi(kp.get("tip"))
-    tel = KT["tur"] == "teleskopik"
-    n_kanat = KT["kanat"]
-    kanat = kg / n_kanat
-
-    def kanatlar(esik0, esik1, ad):
-        #  Kapalı kanatlar, her biri kapının kanat sayısı kadarda biri.
-        #  Teleskopik:  her kanat ayrı düzlemde ( eşiğin kenarından kanat_esik_payi
-        #  içeride, kanat_araligi arayla );  cebe en yakın kanat duvara en yakın
-        #  düzlemde ( LiftDesigner 1022 ).  Merkezi:  her yanda yarısı, dıştaki
-        #  duvara yakın düzlemde;  2 kanatta tek düzlem eşiğin ortasında.  Elle
-        #  açılan kapıda tek kanat.
-        orta = (esik0 + esik1) / 2.0 - S["kanat_kalinlik"] / 2.0
-        yer = []
-        for i in range(n_kanat):
-            if tel:
-                sira = i if KT["yon"] == "Sol" else n_kanat - 1 - i
-            elif KT["duzlem"] > 1:
-                sira = i if i < n_kanat // 2 else n_kanat - 1 - i
-            else:
-                sira = None
-            ky0 = orta if sira is None else esik0 + S["kanat_esik_payi"] + sira * S["kanat_araligi"]
-            el = eleman.ad(eleman.dikdortgen("KAPI", x0 + i * kanat, ky0, kanat, S["kanat_kalinlik"]), ad)
-            #  sac tepsi:  kat kapısının yüzü kata, kabin kapısınınki kabine bakar
-            el["bicim"] = parcalar.kanat_bicimi(el["x"], el["y"], el["g"], el["d"], ad == "kat_kanadi")
-            e.append(el)
-            yer.append(ky0)
-        return yer
-
-    def cepler(esik0, esik1, duzlemler, ad):
-        #  KANAT CEBİ ( LiftDesigner gibi ):  açılan kanatların durduğu yer —
-        #  eşiğin bandında kapının yanında, uçta her kanat düzlemine durdurucu.
-        pay = S["kanat_cebi_payi"]
-        for c0, c1 in girdi.kanat_cepleri(g, S):
-            e.append(eleman.ad(eleman.dikdortgen("KAPI", c0, esik0, c1 - c0, esik1 - esik0), ad))
-            uc = c0 if c1 <= x0 + 1e-6 else c1 - pay
-            for ky0 in sorted(set(duzlemler)):
-                if pay > 0:
-                    e.append(
-                        eleman.ad(
-                            eleman.dikdortgen("KAPI", uc, ky0, pay, S["kanat_kalinlik"]), "kanat_durdurucu"
-                        )
+    kanatlar, kat_kanat = _kanatlar_ve_cepler(P, kat_esigi, *KB["esik"], "kat_kanadi", "kanat_cebi")
+    e += kanatlar
+    e += _acilis_isareti(P, kat_kanat[0], kapi_duzeyi)
+    #  Kapının iki yanındaki bina duvarı yalnız istenirse çizilir.
+    if S["bina_duvari"] > 0:
+        for bx0, bg in ((-P.ds, x0 + P.ds), (x0 + kg, P.G - (x0 + kg) + P.dg)):
+            if bg > 0:
+                e.append(
+                    eleman.dikdortgen(
+                        "BINA", bx0, -P.don - S["bina_duvari"], bg, S["bina_duvari"], tip="tarama_tugla"
                     )
+                )
+    return e
 
-    def esik_bicimi(esik_el, yeni):
-        #  EŞİK ( parcalar ):  cebin altından da süren tek parça — eşikle cep
-        #  arasında çizgi yok;  her kanat düzleminin kılavuz oluğu, üstündeki
-        #  kanadın ve durdurucunun örtmediği yerde görünür.
-        kanat_el = [x for x in yeni if x.get("ad") in ("kat_kanadi", "kabin_kanadi")]
-        cep_el = [x for x in yeni if x.get("ad") in ("kanat_cebi", "kabin_kanat_cebi")]
-        ortu = [
-            (x["x"], x["y"], x["x"] + x["g"], x["y"] + x["d"])
-            for x in yeni
-            if x.get("ad") in ("kat_kanadi", "kabin_kanadi", "kanat_durdurucu")
-        ]
-        merkez = [] if KT["tur"] == "manuel" else [x["y"] + x["d"] / 2.0 for x in kanat_el]
-        ex0 = esik_el["x"]
-        solda = [c for c in cep_el if abs(c["x"] + c["g"] - ex0) < 1e-6]
-        for el, sol_acik, sag_acik in [(esik_el, bool(solda), len(cep_el) > len(solda))] + [
-            (c, c not in solda, c in solda) for c in cep_el
-        ]:
-            el["bicim"] = parcalar.esik_cizgileri(
-                el["x"], el["y"], el["g"], el["d"], sol_acik, sag_acik
-            ) + parcalar.oluk_cizgileri(el["x"], el["x"] + el["g"], merkez, ortu)
 
-    n0 = len(e)
-    kat_kanat = kanatlar(KB["esik"][0], KB["esik"][1], "kat_kanadi")
-    cepler(KB["esik"][0], KB["esik"][1], kat_kanat, "kanat_cebi")
-    esik_bicimi(kat_esigi, e[n0:])
-    #  Açılış yönü oku:  teleskopik kapı hangi yana açılıyorsa o yöne bakar.
-    ok_y = kat_kanat[0] + S["kanat_kalinlik"] / 2.0
-    if tel:
+def _kanatlar_ve_cepler(P, esik_el, esik0, esik1, kanat_adi, cep_adi):
+    """Bir eşiğin ( kat ya da kabin ) kanatları ve kanat cepleri;  eşiğin
+    biçimi de bunlara göre kurulur.  ( elemanlar, kanat düzlemlerinin y'leri )"""
+    kanatlar, duzlemler = _kanatlar(P, esik0, esik1, kanat_adi)
+    yeni = kanatlar + _cepler(P, esik0, esik1, duzlemler, cep_adi)
+    _esik_bicimi(P, esik_el, yeni)
+    return yeni, duzlemler
+
+
+def _kanatlar(P, esik0, esik1, ad):
+    """Kapalı kanatlar, her biri kapının kanat sayısı kadarda biri.
+    Teleskopik:  her kanat ayrı düzlemde ( eşiğin kenarından kanat_esik_payi
+    içeride, kanat_araligi arayla );  cebe en yakın kanat duvara en yakın
+    düzlemde ( LiftDesigner 1022 ).  Merkezi:  her yanda yarısı, dıştaki
+    duvara yakın düzlemde;  2 kanatta tek düzlem eşiğin ortasında.  Elle
+    açılan kapıda tek kanat.  ( elemanlar, her kanadın düzleminin y'si )"""
+    S, KT = P.S, P.KT
+    n_kanat = KT["kanat"]
+    kanat = P.kg / n_kanat
+    orta = (esik0 + esik1) / 2.0 - S["kanat_kalinlik"] / 2.0
+    e, yer = [], []
+    for i in range(n_kanat):
+        if KT["tur"] == "teleskopik":
+            sira = i if KT["yon"] == "Sol" else n_kanat - 1 - i
+        elif KT["duzlem"] > 1:
+            sira = i if i < n_kanat // 2 else n_kanat - 1 - i
+        else:
+            sira = None
+        ky0 = orta if sira is None else esik0 + S["kanat_esik_payi"] + sira * S["kanat_araligi"]
+        el = eleman.ad(eleman.dikdortgen("KAPI", P.x0 + i * kanat, ky0, kanat, S["kanat_kalinlik"]), ad)
+        #  sac tepsi:  kat kapısının yüzü kata, kabin kapısınınki kabine bakar
+        el["bicim"] = parcalar.kanat_bicimi(el["x"], el["y"], el["g"], el["d"], ad == "kat_kanadi")
+        e.append(el)
+        yer.append(ky0)
+    return e, yer
+
+
+def _cepler(P, esik0, esik1, duzlemler, ad):
+    """KANAT CEBİ ( LiftDesigner gibi ):  açılan kanatların durduğu yer —
+    eşiğin bandında kapının yanında, uçta her kanat düzlemine durdurucu."""
+    S = P.S
+    pay = S["kanat_cebi_payi"]
+    e = []
+    for c0, c1 in girdi.kanat_cepleri(P.g, S):
+        e.append(eleman.ad(eleman.dikdortgen("KAPI", c0, esik0, c1 - c0, esik1 - esik0), ad))
+        uc = c0 if c1 <= P.x0 + 1e-6 else c1 - pay
+        for ky0 in sorted(set(duzlemler)):
+            if pay > 0:
+                e.append(
+                    eleman.ad(eleman.dikdortgen("KAPI", uc, ky0, pay, S["kanat_kalinlik"]), "kanat_durdurucu")
+                )
+    return e
+
+
+def _esik_bicimi(P, esik_el, yeni):
+    """EŞİK ( parcalar ):  cebin altından da süren tek parça — eşikle cep
+    arasında çizgi yok;  her kanat düzleminin kılavuz oluğu, üstündeki
+    kanadın ve durdurucunun örtmediği yerde görünür."""
+    kanat_el = [x for x in yeni if x.get("ad") in ("kat_kanadi", "kabin_kanadi")]
+    cep_el = [x for x in yeni if x.get("ad") in ("kanat_cebi", "kabin_kanat_cebi")]
+    ortu = [
+        (x["x"], x["y"], x["x"] + x["g"], x["y"] + x["d"])
+        for x in yeni
+        if x.get("ad") in ("kat_kanadi", "kabin_kanadi", "kanat_durdurucu")
+    ]
+    merkez = [] if P.KT["tur"] == "manuel" else [x["y"] + x["d"] / 2.0 for x in kanat_el]
+    ex0 = esik_el["x"]
+    solda = [c for c in cep_el if abs(c["x"] + c["g"] - ex0) < 1e-6]
+    for el, sol_acik, sag_acik in [(esik_el, bool(solda), len(cep_el) > len(solda))] + [
+        (c, c not in solda, c in solda) for c in cep_el
+    ]:
+        el["bicim"] = parcalar.esik_cizgileri(
+            el["x"], el["y"], el["g"], el["d"], sol_acik, sag_acik
+        ) + parcalar.oluk_cizgileri(el["x"], el["x"] + el["g"], merkez, ortu)
+
+
+def _acilis_isareti(P, kanat_y, kapi_duzeyi):
+    """Açılış yönü oku:  teleskopik kapı hangi yana açılıyorsa o yöne bakar;
+    merkezi kapıda iki yana.  Menteşeli kapıda açılma simgesi."""
+    KT, x0, kg = P.KT, P.x0, P.kg
+    ok_y = kanat_y + P.S["kanat_kalinlik"] / 2.0
+    if KT["tur"] == "teleskopik":
         sag = KT["yon"] == "Sağ"
-        e.append(
+        return [
             eleman.ok("KAPI", x0 + (kg * 0.65 if sag else kg * 0.35), ok_y, x0 + (kg if sag else 0), ok_y)
-        )
-    elif KT["tur"] == "manuel" and kapi_duzeyi:
+        ]
+    if KT["tur"] == "manuel" and kapi_duzeyi:
         #  MENTEŞELİ KAPI:  ok yerine açılma simgesi ( ISO 128 / yapı resmi:
         #  açık konum ve çeyrek yay, ince sürekli çizgi ).  Kat kapısı kata
         #  açılır;  menteşe kanadın kat yüzünde, kasanın yanında.  Yan
         #  ( kullanıcı 8 Eki:  "Manuel Sağ sağa açılıyor" ):  kattan bakınca
         #  kanat sağa açılır, menteşe sağda ( DIN 107'nin "sağ"ı da bu );
         #  kattan bakan için sağ, planın +x'idir ( teleskopik "Sağ" da +x'e açılır ).
-
         sag = KT["yon"] == "Sağ"
-        hx, hy = (x0 + kg if sag else x0), kat_kanat[0]
+        hx, hy = (x0 + kg if sag else x0), kanat_y
         s = -1.0 if sag else 1.0  # menteşeden kanadın serbest ucuna
         yay = [
             (hx + s * kg * math.cos(math.radians(a)), hy - kg * math.sin(math.radians(a)))
@@ -605,32 +785,21 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
             {"noktalar": [(hx, hy), (hx, hy - kg)], "kapali": False},
             {"noktalar": yay, "kapali": False},
         ]
-        e.append(acilis)
-    else:
-        e.append(eleman.ok("KAPI", x0 + kg / 2.0, ok_y, x0, ok_y))
-        e.append(eleman.ok("KAPI", x0 + kg / 2.0, ok_y, x0 + kg, ok_y))
-    #  Kapının iki yanındaki bina duvarı yalnız istenirse çizilir.
-    if S["bina_duvari"] > 0:
-        for bx0, bg in ((-ds, x0 + ds), (x0 + kg, G - (x0 + kg) + dg)):
-            if bg > 0:
-                e.append(
-                    eleman.dikdortgen(
-                        "BINA", bx0, -don - S["bina_duvari"], bg, S["bina_duvari"], tip="tarama_tugla"
-                    )
-                )
+        return [acilis]
+    return [
+        eleman.ok("KAPI", x0 + kg / 2.0, ok_y, x0, ok_y),
+        eleman.ok("KAPI", x0 + kg / 2.0, ok_y, x0 + kg, ok_y),
+    ]
 
-    #  ── KABİN:  pano · şase · kapı mekanizması ───────────────────────
-    kx = G / 2.0 + kb["kaciklik_y"]
-    ic_on = kb["on_pay"]  # kabin iç ön yüzü
-    ky = ic_on + kb["derinlik"] / 2.0
-    dis_g = kb["genislik"] + 2 * S["kabin_pano_yan"]
-    dis_d = kb["derinlik"] + S["kabin_pano_arka"]
-    e.append(
-        eleman.ad(eleman.dikdortgen("KABIN", kx - dis_g / 2.0, ic_on, dis_g, dis_d), "kabin_dis")
-    )  # kabin dışı
-    e.append(
-        eleman.dikdortgen("KABIN-IC", kx - kb["genislik"] / 2.0, ic_on, kb["genislik"], kb["derinlik"])
-    )  # kabin içi
+
+def _kabin(P):
+    """Kabin:  pano · şase · eksenler."""
+    S, kb, kr = P.S, P.g["kabin"], P.g["kabin_ray"]
+    kx = P.kx
+    e = [
+        eleman.ad(eleman.dikdortgen("KABIN", kx - P.dis_g / 2.0, P.ic_on, P.dis_g, P.dis_d), "kabin_dis"),
+        eleman.dikdortgen("KABIN-IC", kx - kb["genislik"] / 2.0, P.ic_on, kb["genislik"], kb["derinlik"]),
+    ]
     #  ŞASE DİKMELERİ her kabin rayında raya açılan U ( parcalar.dikme_bicimi ):
     #  kanatları patenin iki yanından dilin ucunu geçer, sırtı patenin arkasında
     #  ( paten sırta bağlı ).  Zarf kanat ucundan sırtın arkasına;  kabin sırta
@@ -656,85 +825,22 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
     pe = min(parcalar.SASE_PROFIL_ENI, sd / 2.0)
     for sy in (sy0, sy0 + sd - pe):
         e.append(eleman.ad(eleman.dikdortgen("SASE", k0, sy, k1 - k0, pe), "sase_kiris"))
-    e.append(eleman.cizgi("EKSEN", kx, -don - 150, kx, D + dar + 150, tip="eksen"))
-    e.append(eleman.cizgi("EKSEN", -ds - 150, ky, G + dg + 150, ky, tip="eksen"))
+    e.append(eleman.cizgi("EKSEN", kx, -P.don - 150, kx, P.D + P.dar + 150, tip="eksen"))
+    e.append(eleman.cizgi("EKSEN", -P.ds - 150, P.ky, P.G + P.dg + 150, P.ky, tip="eksen"))
+    return e
 
-    #  ── KABİN RAYLARI · KONSOL · PATEN ───────────────────────────────
-    ry = kr["kapi_arasi"]
-    sol_yuz, sag_yuz = kx - kr["arasi"] / 2.0, kx + kr["arasi"] / 2.0
-    #  KARŞI AĞIRLIK YANDAYSA o taraftaki kabin rayının duvara giden konsolu
-    #  ağırlığın İÇİNDEN geçerdi:  ray ekseni ağırlığın boyu içinde kalır.
-    #  O ray, iki ağırlık rayı konsolunun taşıdığı dikine bir ARA KİRİŞE
-    #  bağlanır  ( referans projenin paftasındaki çözüm ).
-    ag_yan = ag["yeri"] if ag["yeri"] in ("Sağ", "Sol") else None
-    #  KARŞI AĞIRLIĞIN EKSENİ ( yandaki ağırlıkta ):  kabin ray ekseninden
-    #  eksen_kaciklik kadar kayık — referans projede 50 mm önde.  Ağırlığın halatı
-    #  tahrik kasnağının altına düşsün diye kabinin ray ekseninden ayrı durur.
-    ag_y = ry + ag["eksen_kaciklik"]
-    ag_alt = ag_y - ag["ray_arasi"] / 2.0 - ag["h"]  # ağırlık rayı arkaları
-    ag_ust = ag_y + ag["ray_arasi"] / 2.0 + ag["h"]
-    for yon, yuz in ((-1, sol_yuz), (+1, sag_yuz)):
+
+def _kabin_raylari(P):
+    """Kabin rayları · bağlantıları ( konsol ya da ara kiriş ) · patenler."""
+    S, kr, ry = P.S, P.g["kabin_ray"], P.ry
+    e = []
+    for yon, yuz in ((-1, P.sol_yuz), (+1, P.sag_yuz)):
         e += [eleman.ad(r, "kabin_ray") for r in _ray_yatay(yuz, ry, kr["b"], kr["h"], yon)]
         arka = yuz + kr["h"] * yon  # rayın duvara bakan yüzü
-        if ag_yan == ("Sol" if yon < 0 else "Sağ"):
-            kiris_x = arka - S["ara_kiris_en"] if yon < 0 else arka
-            e.append(
-                eleman.dikdortgen(
-                    "KONSOL",
-                    kiris_x,
-                    ag_alt - S["konsol_agirlik_boy"] / 2.0,
-                    S["ara_kiris_en"],
-                    ag_ust - ag_alt + S["konsol_agirlik_boy"],
-                    ad="ara_kiris",
-                )
-            )
-            #  ara kiriş = ağırlık çerçevesinin kabin tarafındaki boyuna profili
-            #  ( LiftDesigner K431 );  kabin rayı ona tırnakla bağlı
-            e += _tirnaklar(arka, ry, kr["b"], kr["h"], -yon, yatay=True)
+        if P.ag_yan == ("Sol" if yon < 0 else "Sağ"):
+            e += _ara_kiris(P, yon, arka)
         else:
-            #  konsol:  duvara dayanan plaka  ( boşluğu doldurmaz )
-            duvar_x = 0 if yon < 0 else G
-            kx0 = duvar_x - S["konsol_kabin_en"] if yon > 0 else duvar_x
-            plaka = eleman.dikdortgen(
-                "KONSOL",
-                kx0,
-                ry - S["konsol_kabin_boy"] / 2.0,
-                S["konsol_kabin_en"],
-                S["konsol_kabin_boy"],
-                ad="plaka",
-            )
-            e.append(plaka)
-            for cy in (ry - S["konsol_civata_araligi"], ry + S["konsol_civata_araligi"]):
-                e.append(
-                    eleman.daire(
-                        "CIVATA", kx0 + S["konsol_kabin_en"] / 2.0, cy, S["konsol_civata_capi"] / 2.0
-                    )
-                )
-            #  KONSOL KOLU:  plakayı rayın arkasına bağlar ( zarf — mantık ).
-            #  ÇİZİLEN:  duvar konsolu + ray konsolu ( parcalar.konsol_cifti_bicimi ),
-            #  plakanın ve kolun kapsadığı dikdörtgende ( duvardan ray arkasına,
-            #  plakanın boyunca ).  Kolun zarfı dar kalır:  geniş zarfta kuyu dibi
-            #  gergi kasnağı ( ray ortasına hizalı, ray arkasından 1,5 mm taşar )
-            #  konsolla "çakışıyor" sayılıyordu — gergi raya bağlıdır, arkasına geçmez.
-            kol_bas = min(arka, kx0 + S["konsol_kabin_en"]) if yon < 0 else min(arka, kx0)
-            kol_son = max(arka, kx0 + S["konsol_kabin_en"]) if yon < 0 else max(arka, kx0)
-            cift = parcalar.konsol_cifti_bicimi(duvar_x, arka, ry, S["konsol_kabin_boy"], kr["b"])
-            if kol_son - kol_bas > 1:
-                kol = eleman.dikdortgen(
-                    "KONSOL",
-                    kol_bas,
-                    ry - S["konsol_kabin_boy"] / 6.0,
-                    kol_son - kol_bas,
-                    S["konsol_kabin_boy"] / 3.0,
-                    ad="kol",
-                )
-                #  biçim kolda, plaka çizilmez
-                kol["bicim"], plaka["bicim"] = cift, []
-                e.append(kol)
-            else:
-                plaka["bicim"] = cift
-            #  TIRNAKLAR:  rayın tabanını ray konsolunun dik ayağına bastırır
-            e += _tirnaklar(arka, ry, kr["b"], kr["h"], -yon, parcalar.konsol_tipi(kr["b"])[3], yatay=True)
+            e += _kabin_rayi_konsolu(P, yon, arka)
         #  paten:  ray yüzünü kavrar ( U kesiti dilin üstünde — parcalar.paten_bicimi )
         paten = eleman.dikdortgen(
             "PATEN", yuz - S["paten_en"] / 2.0, ry - S["paten_boy"] / 2.0, S["paten_en"], S["paten_boy"]
@@ -745,70 +851,93 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
                 paten["x"], paten["y"], paten["g"], paten["d"], yuz, k_dil, yon, yatay=True
             )
         e.append(paten)
-    e.append(eleman.cizgi("EKSEN", -ds - 150, ry, G + dg + 150, ry, tip="eksen"))
+    e.append(eleman.cizgi("EKSEN", -P.ds - 150, ry, P.G + P.dg + 150, ry, tip="eksen"))
+    return e
 
-    #  ── ASKI DÜZENİ  ( kullanıcı seçer:  kabin altı · kabin üstü · doğrudan )
-    #  Kasnakların ve askı noktalarının yeri GİRDİDEN gelir;  koda gömülmez.
-    aski = g.get("aski") or {}
-    duzen = aski.get("duzen")
-    aski_y = (
-        ic_on
-        + dis_d / 2.0
-        + aski.get("kasnak_kaciklik" if duzen in ("Kabin altı", "Kabin üstü") else "nokta_kaciklik", 0)
+
+def _ara_kiris(P, yon, arka):
+    """Yandaki ağırlığın tarafındaki kabin rayı:  ara kiriş = ağırlık
+    çerçevesinin kabin tarafındaki boyuna profili ( LiftDesigner K431 );
+    kabin rayı ona tırnakla bağlı."""
+    S, kr = P.S, P.g["kabin_ray"]
+    kiris = eleman.dikdortgen(
+        "KONSOL",
+        arka - S["ara_kiris_en"] if yon < 0 else arka,
+        P.ag_alt - S["konsol_agirlik_boy"] / 2.0,
+        S["ara_kiris_en"],
+        P.ag_ust - P.ag_alt + S["konsol_agirlik_boy"],
+        ad="ara_kiris",
     )
-    aski_yari = 0.0  # askı elemanının derinlikteki yarı boyu
+    return [kiris] + _tirnaklar(arka, P.ry, kr["b"], kr["h"], -yon, yatay=True)
 
-    capraz = arka_aski.geometri(g, S) if arka_aski.arkada_iki_bir(g) else None
-    if capraz is not None and "P" in capraz:
-        #  ARKADAKİ AĞIRLIKLA 2:1 ( kabin üstü, çapraz — arka_aski ):  kasnaklar
-        #  P–H düzleminde;  planda döndürülmüş dikdörtgen ( kenarları çizgi ),
-        #  düzlem kesik eksen, iki düşey halat noktası.
-        dc = aski["kasnak_capi"]
-        for merkez, iz in zip(capraz["kasnaklar"], capraz["izler"]):
-            for p0, p1 in zip(iz, iz[1:] + iz[:1]):
-                e.append(eleman.ad(eleman.cizgi("KASNAK", p0[0], p0[1], p1[0], p1[1]), "kabin_kasnak_capraz"))
-            e.append(
-                eleman.ad(
-                    eleman.yazi(
-                        merkez[0] + capraz["n"][0] * 110, merkez[1] + capraz["n"][1] * 110, f"ø {dc:g}", 45
-                    ),
-                    "kabin_kasnak_yazi",
-                )
-            )
-        (px, py), (hx, hy) = capraz["P"], capraz["H"]
-        e.append(eleman.ad(eleman.cizgi("EKSEN", px, py, hx, hy, tip="eksen"), "aski_duzlemi"))
-        #  İki satır:  tek satırda kabinden genişti, iki ucu kabin duvarlarının
-        #  üstüne düşüyordu ( 450 kg arka ağırlık — 5 Eki )
-        e.append(
-            eleman.ad(
-                eleman.yazi(capraz["cx"], capraz["cy"] - 230, f"ASKI:  {eleman.buyuk(duzen)}  ·  2:1", 44),
-                "aski_yazi",
-            )
+
+def _kabin_rayi_konsolu(P, yon, arka):
+    """Kabin rayının duvar konsolu:  duvara dayanan plaka ( boşluğu doldurmaz ),
+    cıvatalar, kol ve tırnaklar."""
+    S, kr, ry = P.S, P.g["kabin_ray"], P.ry
+    duvar_x = 0 if yon < 0 else P.G
+    kx0 = duvar_x - S["konsol_kabin_en"] if yon > 0 else duvar_x
+    plaka = eleman.dikdortgen(
+        "KONSOL",
+        kx0,
+        ry - S["konsol_kabin_boy"] / 2.0,
+        S["konsol_kabin_en"],
+        S["konsol_kabin_boy"],
+        ad="plaka",
+    )
+    e = [plaka]
+    for cy in (ry - S["konsol_civata_araligi"], ry + S["konsol_civata_araligi"]):
+        e.append(eleman.daire("CIVATA", kx0 + S["konsol_kabin_en"] / 2.0, cy, S["konsol_civata_capi"] / 2.0))
+    #  KONSOL KOLU:  plakayı rayın arkasına bağlar ( zarf — mantık ).
+    #  ÇİZİLEN:  duvar konsolu + ray konsolu ( parcalar.konsol_cifti_bicimi ),
+    #  plakanın ve kolun kapsadığı dikdörtgende ( duvardan ray arkasına,
+    #  plakanın boyunca ).  Kolun zarfı dar kalır:  geniş zarfta kuyu dibi
+    #  gergi kasnağı ( ray ortasına hizalı, ray arkasından 1,5 mm taşar )
+    #  konsolla "çakışıyor" sayılıyordu — gergi raya bağlıdır, arkasına geçmez.
+    kol_bas = min(arka, kx0 + S["konsol_kabin_en"]) if yon < 0 else min(arka, kx0)
+    kol_son = max(arka, kx0 + S["konsol_kabin_en"]) if yon < 0 else max(arka, kx0)
+    cift = parcalar.konsol_cifti_bicimi(duvar_x, arka, ry, S["konsol_kabin_boy"], kr["b"])
+    if kol_son - kol_bas > 1:
+        kol = eleman.dikdortgen(
+            "KONSOL",
+            kol_bas,
+            ry - S["konsol_kabin_boy"] / 6.0,
+            kol_son - kol_bas,
+            S["konsol_kabin_boy"] / 3.0,
+            ad="kol",
         )
-        e.append(
-            eleman.ad(
-                eleman.yazi(
-                    capraz["cx"], capraz["cy"] - 230 - 1.4 * eleman.yb(44), f"ÇAPRAZ {capraz['aci']:.0f}°", 44
-                ),
-                "aski_yazi",
-            )
-        )
+        #  biçim kolda, plaka çizilmez
+        kol["bicim"], plaka["bicim"] = cift, []
+        e.append(kol)
+    else:
+        plaka["bicim"] = cift
+    #  TIRNAKLAR:  rayın tabanını ray konsolunun dik ayağına bastırır
+    return e + _tirnaklar(arka, ry, kr["b"], kr["h"], -yon, parcalar.konsol_tipi(kr["b"])[3], yatay=True)
+
+
+def _aski(P):
+    """Askı:  kabin kasnakları ya da askı noktası, makine taşıyıcıları."""
+    S, aski, duzen, kx, aski_y = P.S, P.aski, P.duzen, P.kx, P.aski_y
+    if P.capraz is not None and "P" in P.capraz:
+        e = _capraz_aski(P)
     elif duzen in ("Kabin altı", "Kabin üstü"):
         dc, aralik = aski["kasnak_capi"], aski["kasnak_arasi"]
-        aski_yari = S["kabin_kasnak_genislik"] / 2.0
+        e = []
         for merkez in (kx - aralik / 2.0, kx + aralik / 2.0):
             e.append(
                 eleman.ad(
-                    eleman.dikdortgen("KASNAK", merkez - dc / 2.0, aski_y - aski_yari, dc, 2 * aski_yari),
+                    eleman.dikdortgen("KASNAK", merkez - dc / 2.0, aski_y - P.aski_yari, dc, 2 * P.aski_yari),
                     "kabin_kasnak",
                 )
             )
             e.append(
-                eleman.ad(eleman.yazi(merkez, aski_y + aski_yari + 45, f"ø {dc:g}", 45), "kabin_kasnak_yazi")
+                eleman.ad(
+                    eleman.yazi(merkez, aski_y + P.aski_yari + 45, f"ø {dc:g}", 45), "kabin_kasnak_yazi"
+                )
             )
         e.append(
             eleman.ad(
-                eleman.yazi(kx, aski_y - aski_yari - 230, f"ASKI:  {eleman.buyuk(duzen)}  ·  2:1", 44),
+                eleman.yazi(kx, aski_y - P.aski_yari - 230, f"ASKI:  {eleman.buyuk(duzen)}  ·  2:1", 44),
                 "aski_yazi",
             )
         )
@@ -816,204 +945,235 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
         #  1:1:  halatlar kabin şasesinin üst kirişinin ortasındaki TEK
         #  bağlantıda biter ( tek tahrik kasnağı — LiftDesigner 12744-3 );  kiriş
         #  ray ekseni üstündedir, kaçıklık hesabın xs'idir.
-        aski_yari = 45.0
-        e.append(eleman.ad(eleman.daire("KASNAK", kx, aski_y, 45), "aski_nokta"))
-        e.append(eleman.ad(eleman.cizgi("KASNAK", kx - 70, aski_y, kx + 70, aski_y), "aski_nokta"))
-        e.append(eleman.ad(eleman.cizgi("KASNAK", kx, aski_y - 70, kx, aski_y + 70), "aski_nokta"))
-        e.append(
-            eleman.ad(eleman.yazi(kx, aski_y - aski_yari - 230, "ASKI:  DOĞRUDAN  ·  1:1", 44), "aski_yazi")
-        )
-
-    e += makine.plan(
-        baglantilar.kasnak_tasiyicilari(g, S, -S["kabin_kasnak_derinlik"]),
+        e = [
+            eleman.ad(eleman.daire("KASNAK", kx, aski_y, 45), "aski_nokta"),
+            eleman.ad(eleman.cizgi("KASNAK", kx - 70, aski_y, kx + 70, aski_y), "aski_nokta"),
+            eleman.ad(eleman.cizgi("KASNAK", kx, aski_y - 70, kx, aski_y + 70), "aski_nokta"),
+            eleman.ad(
+                eleman.yazi(kx, aski_y - P.aski_yari - 230, "ASKI:  DOĞRUDAN  ·  1:1", 44), "aski_yazi"
+            ),
+        ]
+    else:
+        e = []
+    return e + makine.plan(
+        baglantilar.kasnak_tasiyicilari(P.g, S, -S["kabin_kasnak_derinlik"]),
         eleman.dikdortgen,
         eleman.daire,
         eleman.cizgi,
     )
 
-    #  ── KARŞI AĞIRLIK:  çerçeve · dolgu · kasnak · raylar ────────────
-    cer = S["agirlik_cerceve"]
-    if ag_yan:
-        sol = ag_yan == "Sol"
-        ex = ag["ray_duvar"] if sol else G - ag["ray_duvar"]  # ağırlık ekseni
-        ax, ay = ex - ag["derinlik"] / 2.0, ag_y - ag["genislik"] / 2.0
+
+def _capraz_aski(P):
+    """ARKADAKİ AĞIRLIKLA 2:1 ( kabin üstü, çapraz — arka_aski ):  kasnaklar
+    P–H düzleminde;  planda döndürülmüş dikdörtgen ( kenarları çizgi ),
+    düzlem kesik eksen, iki düşey halat noktası."""
+    capraz = P.capraz
+    dc = P.aski["kasnak_capi"]
+    e = []
+    for merkez, iz in zip(capraz["kasnaklar"], capraz["izler"]):
+        for p0, p1 in zip(iz, iz[1:] + iz[:1]):
+            e.append(eleman.ad(eleman.cizgi("KASNAK", p0[0], p0[1], p1[0], p1[1]), "kabin_kasnak_capraz"))
         e.append(
-            eleman.ad(eleman.dikdortgen("AGIRLIK", ax, ay, ag["derinlik"], ag["genislik"]), "agirlik_blok")
-        )
-        e.append(
-            eleman.dikdortgen(
-                "AGIRLIK", ax + cer, ay + cer, ag["derinlik"] - 2 * cer, ag["genislik"] - 2 * cer
+            eleman.ad(
+                eleman.yazi(
+                    merkez[0] + capraz["n"][0] * 110, merkez[1] + capraz["n"][1] * 110, f"ø {dc:g}", 45
+                ),
+                "kabin_kasnak_yazi",
             )
         )
-        #  Kabin rayının ara kirişi bu konsollara bağlanır:  kol plakadan
-        #  kirişe uzanır  ( ağırlığın boyunun DIŞINDAN geçer ).
-        kiris_ic = (sol_yuz - kr["h"] - S["ara_kiris_en"]) if sol else (sag_yuz + kr["h"] + S["ara_kiris_en"])
-        #  KONSOL ÇERÇEVESİ ( LiftDesigner gibi — parcalar.CERCEVE_PROFILI ):  her
-        #  ağırlık rayı, tabanının dış yanındaki ray profiline dayanır;  profil
-        #  duvardan ara kirişe uzanır.  Zarflar ( plaka, kol ) mantık içindir,
-        #  değişmedi;  çizilen profil ikisinin kapsadığı dikdörtgende.  Plakanın
-        #  eski cıvata daireleri kalktı:  bağlantıyı tırnaklar gösterir.
-        pr = parcalar.CERCEVE_PROFILI
-        duvar_x = 0 if sol else G
-        dis_uclar = []
-        for yuz, y_yon in ((ag_y + ag["ray_arasi"] / 2.0, +1), (ag_y - ag["ray_arasi"] / 2.0, -1)):
-            e += [eleman.ad(r, "agirlik_ray") for r in _ray_dusey(yuz, ex, ag["b"], ag["h"], y_yon)]
-            e.append(_agirlik_pateni(S, ag, yuz, ex, y_yon, yatay=False))
-            plaka_x = duvar_x if sol else duvar_x - S["konsol_agirlik_en"]
-            ray_arkasi = yuz + ag["h"] * y_yon
-            plaka = eleman.dikdortgen(
+    (px, py), (hx, hy) = capraz["P"], capraz["H"]
+    e.append(eleman.ad(eleman.cizgi("EKSEN", px, py, hx, hy, tip="eksen"), "aski_duzlemi"))
+    #  İki satır:  tek satırda kabinden genişti, iki ucu kabin duvarlarının
+    #  üstüne düşüyordu ( 450 kg arka ağırlık — 5 Eki )
+    e.append(
+        eleman.ad(
+            eleman.yazi(capraz["cx"], capraz["cy"] - 230, f"ASKI:  {eleman.buyuk(P.duzen)}  ·  2:1", 44),
+            "aski_yazi",
+        )
+    )
+    e.append(
+        eleman.ad(
+            eleman.yazi(
+                capraz["cx"], capraz["cy"] - 230 - 1.4 * eleman.yb(44), f"ÇAPRAZ {capraz['aci']:.0f}°", 44
+            ),
+            "aski_yazi",
+        )
+    )
+    return e
+
+
+def _agirlik_blogu(P, ax, ay, en, boy):
+    """Karşı ağırlığın çerçevesi ve dolgusu."""
+    cer = P.S["agirlik_cerceve"]
+    return [
+        eleman.ad(eleman.dikdortgen("AGIRLIK", ax, ay, en, boy), "agirlik_blok"),
+        eleman.dikdortgen("AGIRLIK", ax + cer, ay + cer, en - 2 * cer, boy - 2 * cer),
+    ]
+
+
+def _agirlik_yanda(P):
+    """Yandaki karşı ağırlık:  çerçeve · dolgu · raylar · konsol çerçevesi · kasnak."""
+    S, ag, G = P.S, P.g["agirlik"], P.G
+    sol = P.ag_yan == "Sol"
+    ex, ag_y, kiris_ic = P.ex, P.ag_y, P.kiris_ic
+    ax = ex - ag["derinlik"] / 2.0
+    e = _agirlik_blogu(P, ax, ag_y - ag["genislik"] / 2.0, ag["derinlik"], ag["genislik"])
+    #  KONSOL ÇERÇEVESİ ( LiftDesigner gibi — parcalar.CERCEVE_PROFILI ):  her
+    #  ağırlık rayı, tabanının dış yanındaki ray profiline dayanır;  profil
+    #  duvardan ara kirişe uzanır.  Zarflar ( plaka, kol ) mantık içindir,
+    #  değişmedi;  çizilen profil ikisinin kapsadığı dikdörtgende.  Plakanın
+    #  eski cıvata daireleri kalktı:  bağlantıyı tırnaklar gösterir.
+    pr = parcalar.CERCEVE_PROFILI
+    duvar_x = 0 if sol else G
+    dis_uclar = []
+    for yuz, y_yon in ((ag_y + ag["ray_arasi"] / 2.0, +1), (ag_y - ag["ray_arasi"] / 2.0, -1)):
+        e += [eleman.ad(r, "agirlik_ray") for r in _ray_dusey(yuz, ex, ag["b"], ag["h"], y_yon)]
+        e.append(_agirlik_pateni(S, ag, yuz, ex, y_yon, yatay=False))
+        plaka_x = duvar_x if sol else duvar_x - S["konsol_agirlik_en"]
+        ray_arkasi = yuz + ag["h"] * y_yon
+        plaka = eleman.dikdortgen(
+            "KONSOL",
+            plaka_x,
+            ray_arkasi - S["konsol_agirlik_boy"] / 2.0,
+            S["konsol_agirlik_en"],
+            S["konsol_agirlik_boy"],
+            ad="plaka",
+        )
+        e.append(plaka)
+        kol_bas = plaka_x + S["konsol_agirlik_en"] if sol else kiris_ic
+        kol_son = kiris_ic if sol else plaka_x
+        profil = parcalar.profil_bicimi(duvar_x, kiris_ic, ray_arkasi, ray_arkasi + y_yon * pr)
+        if kol_son - kol_bas > 1:
+            kol = eleman.dikdortgen(
                 "KONSOL",
-                plaka_x,
-                ray_arkasi - S["konsol_agirlik_boy"] / 2.0,
-                S["konsol_agirlik_en"],
-                S["konsol_agirlik_boy"],
-                ad="plaka",
+                kol_bas,
+                ray_arkasi - S["konsol_agirlik_boy"] / 6.0,
+                kol_son - kol_bas,
+                S["konsol_agirlik_boy"] / 3.0,
+                ad="kol",
             )
-            e.append(plaka)
-            kol_bas = plaka_x + S["konsol_agirlik_en"] if sol else kiris_ic
-            kol_son = kiris_ic if sol else plaka_x
-            profil = parcalar.profil_bicimi(duvar_x, kiris_ic, ray_arkasi, ray_arkasi + y_yon * pr)
-            if kol_son - kol_bas > 1:
-                kol = eleman.dikdortgen(
-                    "KONSOL",
-                    kol_bas,
-                    ray_arkasi - S["konsol_agirlik_boy"] / 6.0,
-                    kol_son - kol_bas,
-                    S["konsol_agirlik_boy"] / 3.0,
-                    ad="kol",
-                )
-                kol["bicim"], plaka["bicim"] = profil, []
-                e.append(kol)
-            else:
-                plaka["bicim"] = profil
-            e += _tirnaklar(ray_arkasi, ex, ag["b"], ag["h"], -y_yon, yatay=False)
-            dis_uclar.append(ray_arkasi + y_yon * pr)
-        #  Duvar profili ( K431 ):  ağırlık ile duvar arasında profil ve çakışma
-        #  payı kadar yer varsa;  yoksa yalnız ray profilleri ( 4815-6 ).
-        bosluk = ax if sol else G - (ax + ag["derinlik"])
-        if bosluk >= pr + girdi.ASGARI_ACIKLIK:
-            plaka["bicim"] = plaka["bicim"] + parcalar.profil_bicimi(
-                duvar_x, duvar_x + (pr if sol else -pr), min(dis_uclar), max(dis_uclar)
-            )
-        if ag.get("kasnak_capi"):
-            dc = ag["kasnak_capi"]
-            e.append(
-                eleman.ad(
-                    eleman.dikdortgen(
-                        "KASNAK",
-                        ex - ag["derinlik"] / 2.0 + cer,
-                        ag_y - dc / 2.0,
-                        ag["derinlik"] - 2 * cer,
-                        dc,
-                    ),
-                    "agirlik_kasnak",
-                )
-            )
-            e.append(eleman.ad(eleman.yazi(ex, ag_y, f"ø {dc:g}", 40, aci=90), "agirlik_kasnak_yazi"))
-    else:
-        ey = D - ag["ray_duvar"]
-        ex = G / 2.0
-        ax, ay = G / 2.0 - ag["genislik"] / 2.0, ey - ag["derinlik"] / 2.0
-        e.append(
-            eleman.ad(eleman.dikdortgen("AGIRLIK", ax, ay, ag["genislik"], ag["derinlik"]), "agirlik_blok")
+            kol["bicim"], plaka["bicim"] = profil, []
+            e.append(kol)
+        else:
+            plaka["bicim"] = profil
+        e += _tirnaklar(ray_arkasi, ex, ag["b"], ag["h"], -y_yon, yatay=False)
+        dis_uclar.append(ray_arkasi + y_yon * pr)
+    #  Duvar profili ( K431 ):  ağırlık ile duvar arasında profil ve çakışma
+    #  payı kadar yer varsa;  yoksa yalnız ray profilleri ( 4815-6 ).
+    bosluk = ax if sol else G - (ax + ag["derinlik"])
+    if bosluk >= pr + girdi.ASGARI_ACIKLIK:
+        plaka["bicim"] = plaka["bicim"] + parcalar.profil_bicimi(
+            duvar_x, duvar_x + (pr if sol else -pr), min(dis_uclar), max(dis_uclar)
         )
+    if ag.get("kasnak_capi"):
+        dc = ag["kasnak_capi"]
+        cer = S["agirlik_cerceve"]
         e.append(
-            eleman.dikdortgen(
-                "AGIRLIK", ax + cer, ay + cer, ag["genislik"] - 2 * cer, ag["derinlik"] - 2 * cer
+            eleman.ad(
+                eleman.dikdortgen("KASNAK", ax + cer, ag_y - dc / 2.0, ag["derinlik"] - 2 * cer, dc),
+                "agirlik_kasnak",
             )
         )
-        for yuz, x_yon in ((G / 2.0 + ag["ray_arasi"] / 2.0, +1), (G / 2.0 - ag["ray_arasi"] / 2.0, -1)):
-            e += [eleman.ad(r, "agirlik_ray") for r in _ray_yatay(yuz, ey, ag["b"], ag["h"], x_yon)]
-            e.append(_agirlik_pateni(S, ag, yuz, ey, x_yon, yatay=True))
-            #  AĞIRLIK RAYI KONSOLU  ( arka duvar ):  yan yerleşimdeki konsolun
-            #  aynısı, 90° dönük — rayın arkasında, duvara dayanır.
-            #  ÇİZİLEN ( LiftDesigner K111 ):  rayın tabanının dış yanında çerçevenin
-            #  ray profili — duvardan rayın tırnaklarının ötesine ( plakanın zarfı
-            #  mantık içindir, değişmedi );  eski cıvata daireleri yerine tırnaklar.
-            ray_arkasi = yuz + ag["h"] * x_yon
-            plaka_y = D - S["konsol_agirlik_en"]
-            plaka = eleman.dikdortgen(
-                "KONSOL",
-                ray_arkasi - S["konsol_agirlik_boy"] / 2.0,
-                plaka_y,
-                S["konsol_agirlik_boy"],
-                S["konsol_agirlik_en"],
-                ad="plaka",
-            )
-            boy = max(
-                S["konsol_agirlik_en"], ag["ray_duvar"] + parcalar.tirnak_uzanimi(ag["b"], ag["h"]) + 10
-            )
-            plaka["bicim"] = parcalar.profil_bicimi(
-                D, D - boy, ray_arkasi, ray_arkasi + x_yon * parcalar.CERCEVE_PROFILI, yatay=False
-            )
-            e.append(plaka)
-            e += _tirnaklar(ray_arkasi, ey, ag["b"], ag["h"], -x_yon, yatay=True)
-        #  Duvar profili ( K111 ):  ağırlık ile arka duvar arasında yer varsa
-        if ag["ray_duvar"] - ag["derinlik"] / 2.0 >= parcalar.CERCEVE_PROFILI + girdi.ASGARI_ACIKLIK:
-            dis = G / 2.0 + ag["ray_arasi"] / 2.0 + ag["h"] + parcalar.CERCEVE_PROFILI
-            plaka["bicim"] = plaka["bicim"] + parcalar.profil_bicimi(
-                D, D - parcalar.CERCEVE_PROFILI, G - dis, dis, yatay=False
-            )
-        if ag.get("kasnak_capi"):
-            dc = ag["kasnak_capi"]
-            e.append(
-                eleman.ad(
-                    eleman.dikdortgen(
-                        "KASNAK", ex - dc / 2.0, ey - ag["derinlik"] / 2.0 + cer, dc, ag["derinlik"] - 2 * cer
-                    ),
-                    "agirlik_kasnak",
-                )
-            )
-            e.append(eleman.ad(eleman.yazi(ex, ey, f"ø {dc:g}", 40), "agirlik_kasnak_yazi"))
+        e.append(eleman.ad(eleman.yazi(ex, ag_y, f"ø {dc:g}", 40, aci=90), "agirlik_kasnak_yazi"))
+    return e
 
-    #  ── KESİTTE GÖRÜNMEYEN ASKI  ( yalnız C-C ) ───────────────────────
-    #  Kuyu planı kabinin ortasından kesilir ( kapı yüksekliğinin yarısı ) ve
-    #  yukarıdan bakılır:  şasenin dikmeleri kesilir ( düz kalır );  üst kiriş,
-    #  kabin üstü kasnaklar ve 1:1 bağlantısı kesitin ÜSTÜNDE ( kaldırılmış ),
-    #  alt kiriş, kabin altı kasnaklar ve taşıyıcıları kabin döşemesinin ALTINDA
-    #  ( örtülü ):  kesik çizgiyle ( GIZLI ) çizilir, ölçüleri yerinde kalır.
-    #  Kabin altı kasnağın kabinin izinin dışına taşan ucu yukarıdan açıktır,
-    #  düz çizilir ( halat oradan çıkar ) — LiftDesigner 4815-6'nın kuyu planı ve
-    #  referans projenin yatay kesiti de böyle.  Eskiden hepsi düz çiziliyordu:
-    #  şase kirişleri ve kasnaklar kabinin içinden geçiyor görünüyordu ( 3 Eki ).
-    #  Öbür planlar ( kapi_duzeyi=False ) elemanları adlarıyla kendileri seçer.
-    if kapi_duzeyi:
-        k0, k1 = kx - dis_g / 2.0, kx + dis_g / 2.0
-        for el in list(e):
-            if el.get("ad") not in _KESITTE_GIZLI:
-                continue
-            if el.get("ad") == "kabin_kasnak" and duzen == "Kabin altı":
-                for a, b in ((el["x"], min(el["x"] + el["g"], k0)), (max(el["x"], k1), el["x"] + el["g"])):
-                    if b - a > 1e-6:
-                        e.append(
-                            eleman.ad(
-                                eleman.dikdortgen("KASNAK", a, el["y"], b - a, el["d"]), "kabin_kasnak_ucu"
-                            )
-                        )
-            el["katman"] = "GIZLI"
 
-    #  KUMANDA PANOSU KUYU PLANINDA YOK:  makine dairesiz tesiste en üst katta
-    #  kuyunun dışındaki acil kurtarma panosundadır ( kuyu üstü planı ), makine
-    #  daireli tesiste makine dairesindedir.  Eskiden kuyunun içinde, yan
-    #  duvarda kaynağı belirsiz 400 × 90'lık bir "PANO" çiziliyordu:  kesitlerde
-    #  karşılığı yoktu, makine dairelide makine dairesindekiyle çift oluyordu.
+def _agirlik_arkada(P):
+    """Arkadaki karşı ağırlık:  çerçeve · dolgu · raylar · konsol profilleri · kasnak."""
+    S, ag, G, D = P.S, P.g["agirlik"], P.G, P.D
+    ex, ey = P.ex, P.ey
+    e = _agirlik_blogu(
+        P, G / 2.0 - ag["genislik"] / 2.0, ey - ag["derinlik"] / 2.0, ag["genislik"], ag["derinlik"]
+    )
+    for yuz, x_yon in ((G / 2.0 + ag["ray_arasi"] / 2.0, +1), (G / 2.0 - ag["ray_arasi"] / 2.0, -1)):
+        e += [eleman.ad(r, "agirlik_ray") for r in _ray_yatay(yuz, ey, ag["b"], ag["h"], x_yon)]
+        e.append(_agirlik_pateni(S, ag, yuz, ey, x_yon, yatay=True))
+        #  AĞIRLIK RAYI KONSOLU  ( arka duvar ):  yan yerleşimdeki konsolun
+        #  aynısı, 90° dönük — rayın arkasında, duvara dayanır.
+        #  ÇİZİLEN ( LiftDesigner K111 ):  rayın tabanının dış yanında çerçevenin
+        #  ray profili — duvardan rayın tırnaklarının ötesine ( plakanın zarfı
+        #  mantık içindir, değişmedi );  eski cıvata daireleri yerine tırnaklar.
+        ray_arkasi = yuz + ag["h"] * x_yon
+        plaka = eleman.dikdortgen(
+            "KONSOL",
+            ray_arkasi - S["konsol_agirlik_boy"] / 2.0,
+            D - S["konsol_agirlik_en"],
+            S["konsol_agirlik_boy"],
+            S["konsol_agirlik_en"],
+            ad="plaka",
+        )
+        boy = max(S["konsol_agirlik_en"], ag["ray_duvar"] + parcalar.tirnak_uzanimi(ag["b"], ag["h"]) + 10)
+        plaka["bicim"] = parcalar.profil_bicimi(
+            D, D - boy, ray_arkasi, ray_arkasi + x_yon * parcalar.CERCEVE_PROFILI, yatay=False
+        )
+        e.append(plaka)
+        e += _tirnaklar(ray_arkasi, ey, ag["b"], ag["h"], -x_yon, yatay=True)
+    #  Duvar profili ( K111 ):  ağırlık ile arka duvar arasında yer varsa
+    if ag["ray_duvar"] - ag["derinlik"] / 2.0 >= parcalar.CERCEVE_PROFILI + girdi.ASGARI_ACIKLIK:
+        dis = G / 2.0 + ag["ray_arasi"] / 2.0 + ag["h"] + parcalar.CERCEVE_PROFILI
+        plaka["bicim"] = plaka["bicim"] + parcalar.profil_bicimi(
+            D, D - parcalar.CERCEVE_PROFILI, G - dis, dis, yatay=False
+        )
+    if ag.get("kasnak_capi"):
+        dc = ag["kasnak_capi"]
+        cer = S["agirlik_cerceve"]
+        e.append(
+            eleman.ad(
+                eleman.dikdortgen(
+                    "KASNAK", ex - dc / 2.0, ey - ag["derinlik"] / 2.0 + cer, dc, ag["derinlik"] - 2 * cer
+                ),
+                "agirlik_kasnak",
+            )
+        )
+        e.append(eleman.ad(eleman.yazi(ex, ey, f"ø {dc:g}", 40), "agirlik_kasnak_yazi"))
+    return e
 
-    #  ── ÖLÇÜLER ──────────────────────────────────────────────────────
-    #  Uzatma çizgisi yoktur:  ölçü, ölçtüğü noktaların hizasında durur.
-    #  PLANIN DIŞINDAKİ SIRALAR yalnız kuyu sınırı boyunca okunabilen
-    #  ölçüleri taşır;  bir iç parçayı ( askı, eşik ) ölçen ölçü parçanın
-    #  yanına, planın İÇİNE konur — dışarıda neyi ölçtüğü görünmüyordu.
-    #  Her sıra ( aynı kot ) bir zincirdir ve toplama kapanır.
-    #  Kabinin dış yüzleri ( LiftDesigner'ın PLW'si ):  şasenin dikmeleri rayın
-    #  ucunda, kabinle ray arasındadır — eskiden "ŞASE DIŞI" kabin + 2 × 30'du,
-    #  çizimde karşılığı yoktu.
-    ic_sol = kx - dis_g / 2.0
-    ic_sag = kx + dis_g / 2.0
-    ARA = 200.0  # sıralar arası
 
-    #  ÜST — kuyu genişliği boyunca
-    u = [D + dar + 120 + i * ARA for i in range(5)]
-    e += [
+def _kesitte_gizle(P, e):
+    """KESİTTE GÖRÜNMEYEN ASKI  ( yalnız C-C ).
+
+    Kuyu planı kabinin ortasından kesilir ( kapı yüksekliğinin yarısı ) ve
+    yukarıdan bakılır:  şasenin dikmeleri kesilir ( düz kalır );  üst kiriş,
+    kabin üstü kasnaklar ve 1:1 bağlantısı kesitin ÜSTÜNDE ( kaldırılmış ),
+    alt kiriş, kabin altı kasnaklar ve taşıyıcıları kabin döşemesinin ALTINDA
+    ( örtülü ):  kesik çizgiyle ( GIZLI ) çizilir, ölçüleri yerinde kalır.
+    Kabin altı kasnağın kabinin izinin dışına taşan ucu yukarıdan açıktır,
+    düz çizilir ( halat oradan çıkar ) — LiftDesigner 4815-6'nın kuyu planı ve
+    referans projenin yatay kesiti de böyle.  Eskiden hepsi düz çiziliyordu:
+    şase kirişleri ve kasnaklar kabinin içinden geçiyor görünüyordu ( 3 Eki ).
+    Öbür planlar ( kapi_duzeyi=False ) elemanları adlarıyla kendileri seçer."""
+    k0, k1 = P.kx - P.dis_g / 2.0, P.kx + P.dis_g / 2.0
+    for el in list(e):
+        if el.get("ad") not in _KESITTE_GIZLI:
+            continue
+        if el.get("ad") == "kabin_kasnak" and P.duzen == "Kabin altı":
+            for a, b in ((el["x"], min(el["x"] + el["g"], k0)), (max(el["x"], k1), el["x"] + el["g"])):
+                if b - a > 1e-6:
+                    e.append(
+                        eleman.ad(eleman.dikdortgen("KASNAK", a, el["y"], b - a, el["d"]), "kabin_kasnak_ucu")
+                    )
+        el["katman"] = "GIZLI"
+
+
+#  ── ÖLÇÜLER ──────────────────────────────────────────────────────────
+#  Uzatma çizgisi yoktur:  ölçü, ölçtüğü noktaların hizasında durur.
+#  PLANIN DIŞINDAKİ SIRALAR yalnız kuyu sınırı boyunca okunabilen
+#  ölçüleri taşır;  bir iç parçayı ( askı, eşik ) ölçen ölçü parçanın
+#  yanına, planın İÇİNE konur — dışarıda neyi ölçtüğü görünmüyordu.
+#  Her sıra ( aynı kot ) bir zincirdir ve toplama kapanır.
+#  Kabinin dış yüzleri ( LiftDesigner'ın PLW'si ):  şasenin dikmeleri rayın
+#  ucunda, kabinle ray arasındadır — eskiden "ŞASE DIŞI" kabin + 2 × 30'du,
+#  çizimde karşılığı yoktu.
+_SIRA_ARASI = 200.0  # dış ölçü sıraları arası
+
+
+def _ust_olculer(P):
+    """ÜST — kuyu genişliği boyunca."""
+    G, ds, dg, kr = P.G, P.ds, P.dg, P.g["kabin_ray"]
+    sol_yuz, sag_yuz = P.sol_yuz, P.sag_yuz
+    ic_sol, ic_sag = P.kx - P.dis_g / 2.0, P.kx + P.dis_g / 2.0
+    u = [P.D + P.dar + 120 + i * _SIRA_ARASI for i in range(5)]
+    e = [
         eleman.olcu("yatay", (-ds, 0), (0, 0), u[0], f"DUVAR {ds:g}"),
         eleman.olcu("yatay", (0, 0), (G, 0), u[0], f"KUYU GENİŞLİĞİ {G:g}"),
         eleman.olcu("yatay", (G, 0), (G + dg, 0), u[0], f"DUVAR {dg:g}"),
@@ -1032,138 +1192,154 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
     #  planda yoktu.
     #  Ağırlık kabinle bu yönde ayrık değilse ( ağırlık kabinin önünde ya da
     #  arkasında kalıyor — aralarındaki açıklık derinliktedir ) bölünmez.
+    ag, ex = P.g["agirlik"], P.ex
     sol_uc, sag_uc = [0.0, ic_sol], [ic_sag, G]
-    if ag_yan:
+    if P.ag_yan:
         bx0, bx1 = ex - ag["derinlik"] / 2.0, ex + ag["derinlik"] / 2.0
-        if ag_yan == "Sol" and bx1 <= ic_sol:
+        if P.ag_yan == "Sol" and bx1 <= ic_sol:
             sol_uc = [0.0, bx0, bx1, ic_sol]
-        elif ag_yan == "Sağ" and bx0 >= ic_sag:
+        elif P.ag_yan == "Sağ" and bx0 >= ic_sag:
             sag_uc = [ic_sag, bx0, bx1, G]
     for uc in (sol_uc, sag_uc):
         e += [eleman.olcu("yatay", (a, 0), (b, 0), u[3]) for a, b in zip(uc, uc[1:]) if b - a > 1e-6]
-    if not ag_yan:
+    if not P.ag_yan:
         #  Arkadaki ağırlığın rayları kuyu genişliği boyunca ölçülür
+        r0, r1 = ex - ag["ray_arasi"] / 2.0, ex + ag["ray_arasi"] / 2.0
         e += [
-            eleman.olcu("yatay", (0, 0), (ex - ag["ray_arasi"] / 2.0, 0), u[4]),
-            eleman.olcu(
-                "yatay",
-                (ex - ag["ray_arasi"] / 2.0, 0),
-                (ex + ag["ray_arasi"] / 2.0, 0),
-                u[4],
-                f"DBGW {ag['ray_arasi']:g}",
-            ),
-            eleman.olcu("yatay", (ex + ag["ray_arasi"] / 2.0, 0), (G, 0), u[4]),
+            eleman.olcu("yatay", (0, 0), (r0, 0), u[4]),
+            eleman.olcu("yatay", (r0, 0), (r1, 0), u[4], f"DBGW {ag['ray_arasi']:g}"),
+            eleman.olcu("yatay", (r1, 0), (G, 0), u[4]),
         ]
+    return e
 
-    #  ALT — kapı zinciri, kuyu genişliği, kabin ve ağırlık eksenleri
-    #  ( menteşeli kapının açılma yayının da altında )
-    alt = min([-don - S["bina_duvari"]] + [el["y"] for el in e if el.get("ad") == "kapi_acilisi"])
+
+def _alt_olculer(P, alt):
+    """ALT — kapı zinciri, kuyu genişliği, kabin ve ağırlık eksenleri
+    ( alt:  kapının ve açılma yayının altı )."""
+    G, x0, kg, kasa = P.G, P.x0, P.kg, P.S["kasa_yan"]
     a1, a2, a3 = alt - 120, alt - 320, alt - 520
-    kasa = S["kasa_yan"]
-    e += [
+    e = [
         eleman.olcu("yatay", (0, 0), (x0 - kasa, 0), a1),
         eleman.olcu("yatay", (x0 - kasa, 0), (x0, 0), a1, f"KASA {kasa:g}"),
-        eleman.olcu("yatay", (x0, 0), (x0 + kg, 0), a1, f"KAPI {kg:g} x {kp.get('yukseklik', 2100):g}"),
+        eleman.olcu(
+            "yatay", (x0, 0), (x0 + kg, 0), a1, f"KAPI {kg:g} x {P.g['kapi'].get('yukseklik', 2100):g}"
+        ),
         eleman.olcu("yatay", (x0 + kg, 0), (x0 + kg + kasa, 0), a1, f"KASA {kasa:g}"),
         eleman.olcu("yatay", (x0 + kg + kasa, 0), (G, 0), a1),
         eleman.olcu("yatay", (0, 0), (G, 0), a2, f"KUYU GENİŞLİĞİ {G:g}"),
     ]
-    noktalar = sorted(set([0.0, kx, G] + ([ex] if ag_yan else [])))
+    ex = P.ex
+    noktalar = sorted(set([0.0, P.kx, G] + ([ex] if P.ag_yan else [])))
     for sol_n, sag_n in zip(noktalar, noktalar[1:]):
         metin = None
-        if (ag_yan == "Sol" and sol_n == 0 and sag_n == ex) or (
-            ag_yan == "Sağ" and sol_n == ex and sag_n == G
+        if (P.ag_yan == "Sol" and sol_n == 0 and sag_n == ex) or (
+            P.ag_yan == "Sağ" and sol_n == ex and sag_n == G
         ):
             metin = f"AĞIRLIK RAYI {sag_n - sol_n:g}"
         e.append(eleman.olcu("yatay", (sol_n, 0), (sag_n, 0), a3, metin))
+    return e
 
-    #  YANLAR — kuyu derinliği boyunca.  Sıra listesi duvardan dışarı
-    #  doğrudur;  ağırlık yandaysa kendi zinciri O YANDA, duvara en yakın
-    #  sırada durur  ( konsol kotları ağırlığın yanında okunur ).
-    def _agirlik_zinciri(kot):
-        return [
-            eleman.olcu("dusey", (0, 0), (0, ag_alt), kot),
-            eleman.olcu("dusey", (0, ag_alt), (0, ag_alt + ag["h"]), kot, f"{ag['h']:g}"),
-            eleman.olcu(
-                "dusey", (0, ag_alt + ag["h"]), (0, ag_ust - ag["h"]), kot, f"DBGW {ag['ray_arasi']:g}"
-            ),
-            eleman.olcu("dusey", (0, ag_ust - ag["h"]), (0, ag_ust), kot, f"{ag['h']:g}"),
-            eleman.olcu("dusey", (0, ag_ust), (0, D), kot),
-        ]
 
-    def _civata(kot):
-        #  Kabin rayı konsolunun cıvata aralığı — duvara dayanan konsolda
-        c = S["konsol_civata_araligi"]
-        return [
-            eleman.olcu("dusey", (0, ry - c), (0, ry), kot, f"CIVATA {c:g}"),
-            eleman.olcu("dusey", (0, ry), (0, ry + c), kot, f"{c:g}"),
-        ]
+def _yan_olculer(P):
+    """YANLAR — kuyu derinliği boyunca.  Sıra listesi duvardan dışarı
+    doğrudur;  ağırlık yandaysa kendi zinciri O YANDA, duvara en yakın
+    sırada durur  ( konsol kotları ağırlığın yanında okunur );  kabin rayı
+    konsolunun cıvata aralığı duvara dayanan konsolun yanında."""
+    if P.ag_yan == "Sol":
+        sol, sag = [_agirlik_rayi_sirasi], [_civata_sirasi]
+    elif P.ag_yan == "Sağ":
+        sol, sag = [_civata_sirasi], [_agirlik_rayi_sirasi]
+    else:
+        sol, sag = [], [_civata_sirasi]
+    sol += [_ray_ekseni_sirasi, _derinlik_dis_olcusu]
+    sag += [_on_arka_duvar_sirasi, _kabin_derinligi_sirasi, _esik_sirasi, _kapi_arasi_sirasi]
+    e = []
+    for i, sira in enumerate(sol):
+        e += sira(P, -P.ds - 120 - i * _SIRA_ARASI)
+    for i, sira in enumerate(sag):
+        e += sira(P, P.G + P.dg + 120 + i * _SIRA_ARASI)
+    return e
 
-    sol_siralar = []
-    sag_siralar = []
-    if ag_yan == "Sol":
-        sol_siralar.append(_agirlik_zinciri)
-    elif ag_yan == "Sağ":
-        sag_siralar.append(_agirlik_zinciri)
-    (sol_siralar if ag_yan == "Sağ" else sag_siralar).insert(0, _civata)
-    #  Arkadaki ağırlıkta derinlik zincirleri ağırlığa bölünür ( LiftDesigner
-    #  800 KG:  ray ekseni 850 · kabin rayı – ağırlık rayı 970 · 180 ve
-    #  kabin – ağırlık 100 · 150 · 105 ):  kabin rayı ile ağırlık rayı arası ve
-    #  kabin ile ağırlık arası ( m.5.2.5.5.1 h ) hiçbir planda ölçülmüyordu.
-    ray_uc, kabin_uc = [ry, D], [ic_on + dis_d, D]
-    if not ag_yan:
-        ey = D - ag["ray_duvar"]
-        if ey > ry:
-            ray_uc = [ry, ey, D]
-        if ey - ag["derinlik"] / 2.0 >= ic_on + dis_d:
-            kabin_uc = [ic_on + dis_d, ey - ag["derinlik"] / 2.0, ey + ag["derinlik"] / 2.0, D]
 
-    def _parcalar(uc, kot, ilk_metin=None):
-        #  Kısa parçalar yazısız ( yalnız sayı ):  uzun ad parçaya sığmayıp
-        #  dışarı taşıyor, duvarın ölçüsüne biniyordu.
-        out = [eleman.olcu("dusey", (0, a), (0, b), kot) for a, b in zip(uc, uc[1:])]
-        if ilk_metin and len(uc) > 2:
-            out[0] = eleman.olcu("dusey", (0, uc[0]), (0, uc[1]), kot, ilk_metin)
-        return out
+def _zincir(uc, kot, ilk_metin=None):
+    """Düşey ölçü zinciri ( uc:  sıralı noktalar ).  Kısa parçalar yazısız
+    ( yalnız sayı ):  uzun ad parçaya sığmayıp dışarı taşıyor, duvarın
+    ölçüsüne biniyordu."""
+    out = [eleman.olcu("dusey", (0, a), (0, b), kot) for a, b in zip(uc, uc[1:])]
+    if ilk_metin and len(uc) > 2:
+        out[0] = eleman.olcu("dusey", (0, uc[0]), (0, uc[1]), kot, ilk_metin)
+    return out
 
-    sol_siralar += [
-        lambda kot: (
-            [eleman.olcu("dusey", (0, 0), (0, ry), kot, f"RAY EKSENİ {ry:g}")]
-            + _parcalar(ray_uc, kot, f"KABİN RAYI – AĞIRLIK RAYI {ray_uc[1] - ry:g}")
-        ),
-        lambda kot: [eleman.olcu("dusey", (0, -don), (0, D + dar), kot, f"DIŞ ÖLÇÜ {D + don + dar:g}")],
+
+def _agirlik_rayi_sirasi(P, kot):
+    ag, ag_alt, ag_ust = P.g["agirlik"], P.ag_alt, P.ag_ust
+    return [
+        eleman.olcu("dusey", (0, 0), (0, ag_alt), kot),
+        eleman.olcu("dusey", (0, ag_alt), (0, ag_alt + ag["h"]), kot, f"{ag['h']:g}"),
+        eleman.olcu("dusey", (0, ag_alt + ag["h"]), (0, ag_ust - ag["h"]), kot, f"DBGW {ag['ray_arasi']:g}"),
+        eleman.olcu("dusey", (0, ag_ust - ag["h"]), (0, ag_ust), kot, f"{ag['h']:g}"),
+        eleman.olcu("dusey", (0, ag_ust), (0, P.D), kot),
     ]
-    sag_siralar += [
-        #  Ön ve arka duvar da ölçülür ( üstteki sol · sağ duvar gibi ):  ölçüye
-        #  tıklanınca yalnız o duvarın kalınlığı değişir ( 2 Eki ).
-        lambda kot: [
-            eleman.olcu("dusey", (0, -don), (0, 0), kot, f"DUVAR {don:g}"),
-            eleman.olcu("dusey", (0, 0), (0, D), kot, f"KUYU DERİNLİĞİ {D:g}"),
-            eleman.olcu("dusey", (0, D), (0, D + dar), kot, f"DUVAR {dar:g}"),
-        ],
-        lambda kot: [
-            eleman.olcu("dusey", (0, ic_on), (0, ic_on + kb["derinlik"]), kot, f"KABİN {kb['derinlik']:g}")
-        ],
-        lambda kot: (
-            [
-                eleman.olcu("dusey", (0, 0), (0, ic_on), kot, f"KAPI ARASI {ic_on:g}"),
-                eleman.olcu("dusey", (0, ic_on), (0, ic_on + dis_d), kot, f"KABİN + ŞASE {dis_d:g}"),
-            ]
-            + _parcalar(kabin_uc, kot)
-        ),
+
+
+def _civata_sirasi(P, kot):
+    """Kabin rayı konsolunun cıvata aralığı — duvara dayanan konsolda."""
+    c, ry = P.S["konsol_civata_araligi"], P.ry
+    return [
+        eleman.olcu("dusey", (0, ry - c), (0, ry), kot, f"CIVATA {c:g}"),
+        eleman.olcu("dusey", (0, ry), (0, ry + c), kot, f"{c:g}"),
     ]
-    #  EŞİKLER  ( kat eşiği · aradaki açıklık · kabin eşiği ):  sağdaki dış
-    #  sıralarda, "KAPI ARASI"nın hemen içinde ( o aralığı böler — LiftDesigner'ın
-    #  kuyu planı da eşikleri "190 · 10 · 90 · 30" diye dışarıda ölçer ).
-    #  Eskiden kapının yanındaki şeritteydi:  kanat cepleri, kasa ve ara kiriş o
-    #  şeridi doldurunca yazılar onların üstüne düşüyordu ( girdi taraması, 4 Eki );
-    #  şerit varsa içeride, yoksa dışarıda koymak da olmadı — girdi oynayınca yer
-    #  değiştiriyor, ölçüye tıklayınca kaynağı bulunamıyordu.
-    #  İç yüzden kapı hattına:  duvar boşluğuna montajda kat eşiğinin taşan
-    #  kısmı, kuyu içine montajda kat kapısı ünitesinin tamamı.
-    hat_metni = (
-        f"KAT EŞİĞİ {KB['hat']:g}" if kp["montaj"] == "Duvar boşluğuna" else f"KAT KAPISI {KB['hat']:g}"
+
+
+def _ray_ekseni_sirasi(P, kot):
+    """Kabin ray ekseni ve ardından arka duvara.  Arkadaki ağırlıkta zincir
+    ağırlığın rayına bölünür ( LiftDesigner 800 KG:  ray ekseni 850 · kabin
+    rayı – ağırlık rayı 970 · 180 ):  kabin rayı ile ağırlık rayı arası
+    hiçbir planda ölçülmüyordu."""
+    ry = P.ry
+    ray_uc = [ry, P.D]
+    if not P.ag_yan and P.ey > ry:
+        ray_uc = [ry, P.ey, P.D]
+    return [eleman.olcu("dusey", (0, 0), (0, ry), kot, f"RAY EKSENİ {ry:g}")] + _zincir(
+        ray_uc, kot, f"KABİN RAYI – AĞIRLIK RAYI {ray_uc[1] - ry:g}"
     )
+
+
+def _derinlik_dis_olcusu(P, kot):
+    return [eleman.olcu("dusey", (0, -P.don), (0, P.D + P.dar), kot, f"DIŞ ÖLÇÜ {P.D + P.don + P.dar:g}")]
+
+
+def _on_arka_duvar_sirasi(P, kot):
+    """Ön ve arka duvar da ölçülür ( üstteki sol · sağ duvar gibi ):  ölçüye
+    tıklanınca yalnız o duvarın kalınlığı değişir ( 2 Eki )."""
+    D, don, dar = P.D, P.don, P.dar
+    return [
+        eleman.olcu("dusey", (0, -don), (0, 0), kot, f"DUVAR {don:g}"),
+        eleman.olcu("dusey", (0, 0), (0, D), kot, f"KUYU DERİNLİĞİ {D:g}"),
+        eleman.olcu("dusey", (0, D), (0, D + dar), kot, f"DUVAR {dar:g}"),
+    ]
+
+
+def _kabin_derinligi_sirasi(P, kot):
+    kd = P.g["kabin"]["derinlik"]
+    return [eleman.olcu("dusey", (0, P.ic_on), (0, P.ic_on + kd), kot, f"KABİN {kd:g}")]
+
+
+def _esik_sirasi(P, kot):
+    """EŞİKLER  ( kat eşiği · aradaki açıklık · kabin eşiği ):  sağdaki dış
+    sıralarda, "KAPI ARASI"nın hemen içinde ( o aralığı böler — LiftDesigner'ın
+    kuyu planı da eşikleri "190 · 10 · 90 · 30" diye dışarıda ölçer ).
+    Eskiden kapının yanındaki şeritteydi:  kanat cepleri, kasa ve ara kiriş o
+    şeridi doldurunca yazılar onların üstüne düşüyordu ( girdi taraması, 4 Eki );
+    şerit varsa içeride, yoksa dışarıda koymak da olmadı — girdi oynayınca yer
+    değiştiriyor, ölçüye tıklayınca kaynağı bulunamıyordu.
+    İç yüzden kapı hattına:  duvar boşluğuna montajda kat eşiğinin taşan
+    kısmı, kuyu içine montajda kat kapısı ünitesinin tamamı."""
+    KB = P.KB
+    if P.g["kapi"]["montaj"] == "Duvar boşluğuna":
+        hat_metni = f"KAT EŞİĞİ {KB['hat']:g}"
+    else:
+        hat_metni = f"KAT KAPISI {KB['hat']:g}"
     esik = [
         (0.0, KB["hat"], hat_metni),
         (KB["hat"], KB["kabin_esik"][0], None),
@@ -1173,212 +1349,232 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
             f"KABİN EŞİĞİ {KB['kabin_esik'][1] - KB['kabin_esik'][0]:g}",
         ),
     ]
-    sag_siralar.insert(
-        len(sag_siralar) - 1,
-        lambda kot: [
-            eleman.olcu("dusey", (0, bas), (0, son), kot, metin or f"{son - bas:g}")
-            for bas, son, metin in esik
-        ],
-    )
+    return [
+        eleman.olcu("dusey", (0, bas), (0, son), kot, metin or f"{son - bas:g}") for bas, son, metin in esik
+    ]
 
-    for i, sira in enumerate(sol_siralar):
-        e += sira(-ds - 120 - i * ARA)
-    for i, sira in enumerate(sag_siralar):
-        e += sira(G + dg + 120 + i * ARA)
 
-    #  İÇ — kabin iç genişliği ve panoları  ( kabinin arkasında;  ağırlık
-    #  arkadaysa o şerit dolu olduğu için kabinin içinde, önde ).  Duvar – kabin
-    #  dışı parçaları yok:  üstteki sırada ( KABİN DIŞI zinciri ) zaten ölçülü —
-    #  ISO 129-1, her ölçü bir kez.  8 Eki'ye dek buradaydılar;  ağırlık patenleri
-    #  planda çizilince duvar – kabin yazısı yandaki ağırlıkta sığacak yer
-    #  bulamıyor, iki kat dışarı itiliyordu.
-    #  Arkadaki şerit yazıya yetmiyorsa ( referans proje:  147 mm ) kabinin içinde,
-    #  arka panelin önünde durur — yazı arka duvara taşıyordu.
-    arka_serit = D - (ic_on + dis_d)
-    if not ag_yan:
+def _kapi_arasi_sirasi(P, kot):
+    """Kapı arası, kabin ve şase, ardından arka duvara.  Arkadaki ağırlıkta
+    zincir ağırlığa bölünür ( LiftDesigner 800 KG:  kabin – ağırlık
+    100 · 150 · 105 ):  kabin ile ağırlık arası ( m.5.2.5.5.1 h ) hiçbir
+    planda ölçülmüyordu."""
+    ic_on, dis_d, D = P.ic_on, P.dis_d, P.D
+    kabin_uc = [ic_on + dis_d, D]
+    ag_d = P.g["agirlik"]["derinlik"]
+    if not P.ag_yan and P.ey - ag_d / 2.0 >= ic_on + dis_d:
+        kabin_uc = [ic_on + dis_d, P.ey - ag_d / 2.0, P.ey + ag_d / 2.0, D]
+    return [
+        eleman.olcu("dusey", (0, 0), (0, ic_on), kot, f"KAPI ARASI {ic_on:g}"),
+        eleman.olcu("dusey", (0, ic_on), (0, ic_on + dis_d), kot, f"KABİN + ŞASE {dis_d:g}"),
+    ] + _zincir(kabin_uc, kot)
+
+
+def _kabin_ici_olculeri(P):
+    """İÇ — kabin iç genişliği ve panoları  ( kabinin arkasında;  ağırlık
+    arkadaysa o şerit dolu olduğu için kabinin içinde, önde ).  Duvar – kabin
+    dışı parçaları yok:  üstteki sırada ( KABİN DIŞI zinciri ) zaten ölçülü —
+    ISO 129-1, her ölçü bir kez.  8 Eki'ye dek buradaydılar;  ağırlık patenleri
+    planda çizilince duvar – kabin yazısı yandaki ağırlıkta sığacak yer
+    bulamıyor, iki kat dışarı itiliyordu.
+    Arkadaki şerit yazıya yetmiyorsa ( referans proje:  147 mm ) kabinin içinde,
+    arka panelin önünde durur — yazı arka duvara taşıyordu."""
+    ic_on, dis_d, kx = P.ic_on, P.dis_d, P.kx
+    kg = P.g["kabin"]["genislik"]
+    arka_serit = P.D - (ic_on + dis_d)
+    if not P.ag_yan:
         kab_kot = ic_on + 150
     elif arka_serit >= 90 + 50 + eleman.OLCU_YAZI / 2.0 + 40:
         kab_kot = ic_on + dis_d + 90
     else:
         kab_kot = ic_on + dis_d - 200
-    e += [
-        eleman.olcu("yatay", (ic_sol, 0), (kx - kb["genislik"] / 2.0, 0), kab_kot),
-        eleman.olcu(
-            "yatay",
-            (kx - kb["genislik"] / 2.0, 0),
-            (kx + kb["genislik"] / 2.0, 0),
-            kab_kot,
-            f"KABİN İÇİ {kb['genislik']:g}",
-        ),
-        eleman.olcu("yatay", (kx + kb["genislik"] / 2.0, 0), (ic_sag, 0), kab_kot),
+    ic_sol, ic_sag = kx - P.dis_g / 2.0, kx + P.dis_g / 2.0
+    return [
+        eleman.olcu("yatay", (ic_sol, 0), (kx - kg / 2.0, 0), kab_kot),
+        eleman.olcu("yatay", (kx - kg / 2.0, 0), (kx + kg / 2.0, 0), kab_kot, f"KABİN İÇİ {kg:g}"),
+        eleman.olcu("yatay", (kx + kg / 2.0, 0), (ic_sag, 0), kab_kot),
     ]
 
-    #  İÇ — ASKI:  kasnak / nokta aralığı askı elemanlarının hemen yanında,
-    #  kaçıklık ise kabin merkezi ile askı ekseni arasında
-    if duzen in ("Kabin altı", "Kabin üstü", "Doğrudan") and capraz is None:
-        arasi = None
-        if duzen != "Doğrudan":  # 1:1'de tek bağlantı:  aralık yok
-            aralik = aski.get("kasnak_arasi")
-            arasi = eleman.olcu(
-                "yatay",
-                (kx - aralik / 2.0, 0),
-                (kx + aralik / 2.0, 0),
-                aski_y - aski_yari - 70,
-                f"ASKI ARASI {aralik:g}",
-                yazi={"x": kx, "y": aski_y - aski_yari - 70 + 50, "aci": 0},
-            )
-            e.append(arasi)
-        kac = aski_y - (ic_on + dis_d / 2.0)
-        if abs(kac) > 1e-9:
-            kac_x = kx - kb["genislik"] / 2.0 + 150
-            metin = f"ASKI KAÇIKLIĞI {abs(kac):g}"
-            w_kac, h_ = eleman.yazi_eni(metin), eleman.OLCU_YAZI
-            yazi = {"x": kac_x + 30 + w_kac / 2.0, "y": (aski_y + ic_on + dis_d / 2.0) / 2.0, "aci": 0}
-            #  Kaçıklık küçükken iki yazı aynı yüksekliğe düşüyordu ( girdi
-            #  taraması, 4 Eki ):  önce ASKI ARASI kendi ölçüsünün içinde sağa
-            #  kayar, sığmazsa kaçıklığın yazısı ölçünün üst ucunun üstüne çıkar.
-            if arasi is not None:
-                ay = arasi["yazi"]
-                w_ar = eleman.yazi_eni(arasi["metin"])
-                ust_uste = abs(ay["y"] - yazi["y"]) < h_ and abs(ay["x"] - yazi["x"]) < (w_ar + w_kac) / 2.0
-                if ust_uste:
-                    c = yazi["x"] + w_kac / 2.0 + 20 + w_ar / 2.0
-                    if c + w_ar / 2.0 <= kx + aralik / 2.0:
-                        ay["x"] = c
-                    else:
-                        yazi["y"] = max(aski_y, ic_on + dis_d / 2.0) + 25 + h_ / 2.0
-            e.append(eleman.olcu("dusey", (0, aski_y), (0, ic_on + dis_d / 2.0), kac_x, metin, yazi=yazi))
 
-    #  ── YAZILAR ──────────────────────────────────────────────────────
+def _aski_olculeri(P):
+    """İÇ — ASKI:  kasnak / nokta aralığı askı elemanlarının hemen yanında,
+    kaçıklık ise kabin merkezi ile askı ekseni arasında."""
+    if P.duzen not in ("Kabin altı", "Kabin üstü", "Doğrudan") or P.capraz is not None:
+        return []
+    kx, aski_y, aski_yari = P.kx, P.aski_y, P.aski_yari
+    merkez_y = P.ic_on + P.dis_d / 2.0
+    e = []
+    arasi = None
+    if P.duzen != "Doğrudan":  # 1:1'de tek bağlantı:  aralık yok
+        aralik = P.aski.get("kasnak_arasi")
+        arasi = eleman.olcu(
+            "yatay",
+            (kx - aralik / 2.0, 0),
+            (kx + aralik / 2.0, 0),
+            aski_y - aski_yari - 70,
+            f"ASKI ARASI {aralik:g}",
+            yazi={"x": kx, "y": aski_y - aski_yari - 70 + 50, "aci": 0},
+        )
+        e.append(arasi)
+    kac = aski_y - merkez_y
+    if abs(kac) <= 1e-9:
+        return e
+    kac_x = kx - P.g["kabin"]["genislik"] / 2.0 + 150
+    metin = f"ASKI KAÇIKLIĞI {abs(kac):g}"
+    w_kac, h_ = eleman.yazi_eni(metin), eleman.OLCU_YAZI
+    yazi = {"x": kac_x + 30 + w_kac / 2.0, "y": (aski_y + merkez_y) / 2.0, "aci": 0}
+    #  Kaçıklık küçükken iki yazı aynı yüksekliğe düşüyordu ( girdi
+    #  taraması, 4 Eki ):  önce ASKI ARASI kendi ölçüsünün içinde sağa
+    #  kayar, sığmazsa kaçıklığın yazısı ölçünün üst ucunun üstüne çıkar.
+    if arasi is not None:
+        ay = arasi["yazi"]
+        w_ar = eleman.yazi_eni(arasi["metin"])
+        ust_uste = abs(ay["y"] - yazi["y"]) < h_ and abs(ay["x"] - yazi["x"]) < (w_ar + w_kac) / 2.0
+        if ust_uste:
+            c = yazi["x"] + w_kac / 2.0 + 20 + w_ar / 2.0
+            if c + w_ar / 2.0 <= kx + aralik / 2.0:
+                ay["x"] = c
+            else:
+                yazi["y"] = max(aski_y, merkez_y) + 25 + h_ / 2.0
+    e.append(eleman.olcu("dusey", (0, aski_y), (0, merkez_y), kac_x, metin, yazi=yazi))
+    return e
+
+
+def _kabin_kapisi(P):
+    """Kabin eşiği, kanatları, cepleri ve kapı mekanizması.
+
+    Kabin kapısı mekanizma kutusu KABİN ÖN YÜZÜNDE durur  ( kapı ile kabin
+    arasında;  kullanıcı kararı — referans projenin paftasındaki yerleşimin aynısı ).
+    Kapı elemanlarından SONRA:  kanatların örtüsü onu silmesin.
+    KESİK:  kutu kabin kapısının üstündedir, planın kesit düzleminin ( kapı
+    hizası ) üstünde kalır — kesitin üstündeki parça kesik çizilir ( ISO 128;
+    kullanıcı onayı 6 Eki ).  Eskiden düz çiziliyordu, eşiklerin ve kanatların
+    üstünden geçen bir kutu gibi duruyordu."""
+    S, KB, x0, kg = P.S, P.KB, P.x0, P.kg
     kabin_esigi = eleman.ad(
         eleman.dikdortgen("KABIN", x0, KB["kabin_esik"][0], kg, KB["kabin_esik"][1] - KB["kabin_esik"][0]),
         "kabin_esigi",
     )
-    e.append(kabin_esigi)
-    n0 = len(e)
-    cepler(
-        KB["kabin_esik"][0],
-        KB["kabin_esik"][1],
-        kanatlar(KB["kabin_esik"][0], KB["kabin_esik"][1], "kabin_kanadi"),
-        "kabin_kanat_cebi",
+    kanatlar, _ = _kanatlar_ve_cepler(P, kabin_esigi, *KB["kabin_esik"], "kabin_kanadi", "kabin_kanat_cebi")
+    operator = eleman.ad(
+        eleman.dikdortgen(
+            "GIZLI",
+            x0 + kg / 2.0 - S["kabin_kapisi_kutu_en"] / 2.0,
+            P.ic_on - S["kabin_kapisi_kutu_boy"] + 20,
+            S["kabin_kapisi_kutu_en"],
+            S["kabin_kapisi_kutu_boy"],
+        ),
+        "kabin_kapisi_operatoru",
     )
-    esik_bicimi(kabin_esigi, e[n0:])
-    #  Kabin kapısı mekanizma kutusu KABİN ÖN YÜZÜNDE durur  ( kapı ile kabin
-    #  arasında;  kullanıcı kararı — referans projenin paftasındaki yerleşimin aynısı ).
-    #  Kapı elemanlarından SONRA:  kanatların örtüsü onu silmesin.
-    #  KESİK:  kutu kabin kapısının üstündedir, planın kesit düzleminin ( kapı
-    #  hizası ) üstünde kalır — kesitin üstündeki parça kesik çizilir ( ISO 128;
-    #  kullanıcı onayı 6 Eki ).  Eskiden düz çiziliyordu, eşiklerin ve kanatların
-    #  üstünden geçen bir kutu gibi duruyordu.
-    e.append(
-        eleman.ad(
-            eleman.dikdortgen(
-                "GIZLI",
-                x0 + kg / 2.0 - S["kabin_kapisi_kutu_en"] / 2.0,
-                ic_on - S["kabin_kapisi_kutu_boy"] + 20,
-                S["kabin_kapisi_kutu_en"],
-                S["kabin_kapisi_kutu_boy"],
-            ),
-            "kabin_kapisi_operatoru",
-        )
-    )
+    return [kabin_esigi] + kanatlar + [operator]
+
+
+def _yazilar(P, e, alt):
+    """Kabin ve karşı ağırlık yazıları, ölçü zincirlerinin sıfır noktaları."""
+    ag, ex, ag_y = P.g["agirlik"], P.ex, P.ag_y
+    kb = P.g["kabin"]
     #  Askı noktaları kabin ortasına yakınsa kabin yazısı arkaya kayar.
-    kabin_yazi_y = ky if abs(aski_y - ky) >= 150 else ky + 200
+    kabin_yazi_y = P.ky if abs(P.aski_y - P.ky) >= 150 else P.ky + 200
     e.append(
         eleman.ad(
-            eleman.yazi(kx, kabin_yazi_y, f"KABİN  {kb['genislik']:g} x {kb['derinlik']:g}", 55), "kabin_yazi"
+            eleman.yazi(P.kx, kabin_yazi_y, f"KABİN  {kb['genislik']:g} x {kb['derinlik']:g}", 55),
+            "kabin_yazi",
         )
     )
     #  Ölçü zincirlerinin sıfır noktaları  ( referans projede de "0" yazar )
-    for zx in (0, G):
+    for zx in (0, P.G):
         e.append(eleman.yazi(zx, alt - 420, "0", 45))
-    if ag_yan:
-        #  Blok dar ve uzun:  yazı DİK yazılır.  Kasnak bloğun ortasında
-        #  durduğu için yazı blok ile kabin rayı arasındaki boşluğa konur;
-        #  boşluk dar ise bloğun içine.
-        blok_ic = ex + ag["derinlik"] / 2.0 if ag_yan == "Sol" else ex - ag["derinlik"] / 2.0
-        bos = abs(kiris_ic - blok_ic)
-        yx = (blok_ic + kiris_ic) / 2.0 if bos >= 60 else ex
-        metin = "KARŞI AĞIRLIK"
-        if bos < 60:
-            #  Yazı bloğun içinde, kasnağın çap yazısıyla aynı yerde:  ikisi tek
-            #  yazı olur ( eskiden üst üste biniyordu )
-            cap = [x for x in e if x.get("ad") == "agirlik_kasnak_yazi"]
-            if cap:
-                metin += "  " + cap[0]["metin"]
-                e.remove(cap[0])
-        e.append(eleman.ad(eleman.yazi(yx, ag_y, metin, 40, aci=90), "agirlik_yazi"))
-    else:
+    if not P.ag_yan:
         e.append(
-            eleman.ad(eleman.yazi(ex, ey - ag["derinlik"] / 2.0 - 45, "KARŞI AĞIRLIK", 40), "agirlik_yazi")
+            eleman.ad(eleman.yazi(ex, P.ey - ag["derinlik"] / 2.0 - 45, "KARŞI AĞIRLIK", 40), "agirlik_yazi")
         )
-    _yazilari_yerlestir(e, kaydir=True)
-    #  Kabinin içindeki yazılar dar yerde yarışır ( kasnak çapı, askı yazısı,
-    #  kabin yazısı, askı kaçıklığı ):  çakışan, sıradaki boş adaya taşınır
-    #  ( girdi taraması, 4 Eki — kaçıklık küçükken ve kabin darken üst üste
-    #  biniyorlardı ).
-    adaylar = {}
+        return
+    #  Blok dar ve uzun:  yazı DİK yazılır.  Kasnak bloğun ortasında
+    #  durduğu için yazı blok ile kabin rayı arasındaki boşluğa konur;
+    #  boşluk dar ise bloğun içine.
+    blok_ic = ex + ag["derinlik"] / 2.0 if P.ag_yan == "Sol" else ex - ag["derinlik"] / 2.0
+    bos = abs(P.kiris_ic - blok_ic)
+    yx = (blok_ic + P.kiris_ic) / 2.0 if bos >= 60 else ex
+    metin = "KARŞI AĞIRLIK"
+    if bos < 60:
+        #  Yazı bloğun içinde, kasnağın çap yazısıyla aynı yerde:  ikisi tek
+        #  yazı olur ( eskiden üst üste biniyordu )
+        cap = [x for x in e if x.get("ad") == "agirlik_kasnak_yazi"]
+        if cap:
+            metin += "  " + cap[0]["metin"]
+            e.remove(cap[0])
+    e.append(eleman.ad(eleman.yazi(yx, ag_y, metin, 40, aci=90), "agirlik_yazi"))
+
+
+def _kabin_ici_yazi_adaylari(P, e):
+    """Kabinin içindeki yazılar dar yerde yarışır ( kasnak çapı, askı yazısı,
+    kabin yazısı, askı kaçıklığı ):  çakışan, sıradaki boş adaya taşınır
+    ( girdi taraması, 4 Eki — kaçıklık küçükken ve kabin darken üst üste
+    biniyorlardı ).  [ ( yazı, adaylar ) ]"""
+    aski_y, aski_yari, kx, ky = P.aski_y, P.aski_yari, P.kx, P.ky
+    adaylar = []
     for el in e:
         ad = el.get("ad")
         if ad == "kabin_kasnak_yazi":
             m = el["x"]
             w = eleman.yazi_eni(el["metin"], el["yukseklik"]) / 2.0
-            dc_ = (aski.get("kasnak_capi") or 0) / 2.0
-            adaylar[id(el)] = (
-                el,
-                [
-                    (m, el["y"]),
-                    (m, aski_y - aski_yari - 45),
-                    (m - dc_ - w - 20, aski_y),
-                    (m + dc_ + w + 20, aski_y),
-                ],
+            dc_ = (P.aski.get("kasnak_capi") or 0) / 2.0
+            adaylar.append(
+                (
+                    el,
+                    [
+                        (m, el["y"]),
+                        (m, aski_y - aski_yari - 45),
+                        (m - dc_ - w - 20, aski_y),
+                        (m + dc_ + w + 20, aski_y),
+                    ],
+                )
             )
         elif ad == "aski_yazi":
-            adaylar[id(el)] = (
-                el,
-                [
-                    (el["x"], el["y"]),
-                    (el["x"], aski_y + aski_yari + 230),
-                    (el["x"], aski_y - aski_yari - 330),
-                ],
+            adaylar.append(
+                (
+                    el,
+                    [
+                        (el["x"], el["y"]),
+                        (el["x"], aski_y + aski_yari + 230),
+                        (el["x"], aski_y - aski_yari - 330),
+                    ],
+                )
             )
         elif ad == "kabin_yazi":
-            adaylar[id(el)] = (el, [(kx, el["y"])] + [(kx, ky + d) for d in (200, -200, 350, -350, 500)])
+            adaylar.append((el, [(kx, el["y"])] + [(kx, ky + d) for d in (200, -200, 350, -350, 500)]))
         elif el["tip"] == "olcu" and el["metin"].startswith("ASKI KAÇIKLIĞI"):
-            y_ = el["yazi"]
-            w = eleman.yazi_eni(el["metin"]) / 2.0
-            z0, z1 = sorted((el["a"][1], el["b"][1]))
-            k_ = el["kot"]
-            #  Bunlar da doluysa çevresinde adım adım ( en yakın önce ):  küçük
-            #  kabinde dört yer de şase dikmesine ya da kasnak yazısına düşüyordu
-            #  ( yazılar büyüyünce, 5 Eki )
-            ek = sorted(
-                (
-                    (y_["x"] + dx, y_["y"] + dy)
-                    for dx in (0, -1, 1, -2, 2, -3, 3)
-                    for dy in range(-600, 601, 50)
-                    for dx in [dx * (eleman.OLCU_YAZI / 2.0 + 40)]
-                ),
-                key=lambda a: (a[0] - y_["x"]) ** 2 + (a[1] - y_["y"]) ** 2,
-            )
-            adaylar[id(el)] = (
-                el,
-                [
-                    (y_["x"], y_["y"]),
-                    (k_ - 30 - w, (z0 + z1) / 2.0),
-                    (k_ + 30 + w, z1 + 25 + eleman.OLCU_YAZI / 2.0),
-                    (k_ + 30 + w, z0 - 25 - eleman.OLCU_YAZI / 2.0),
-                ]
-                + ek,
-            )
-    if adaylar:
-        _yazilari_coz(e, list(adaylar.values()))
-    _parcadan_kaydir(e, ek_katman=("AGIRLIK",))
-    e += kesit_isaretleri(g, e)
-    return e
+            adaylar.append((el, _kaciklik_adaylari(el)))
+    return adaylar
 
 
-def _yazi_kutusu(el):
+def _kaciklik_adaylari(el):
+    """Askı kaçıklığı ölçüsünün yazısının yerleri:  yerinde, ölçünün iki
+    yanında;  bunlar da doluysa çevresinde adım adım ( en yakın önce ):  küçük
+    kabinde dört yer de şase dikmesine ya da kasnak yazısına düşüyordu
+    ( yazılar büyüyünce, 5 Eki )."""
+    y_ = el["yazi"]
+    w = eleman.yazi_eni(el["metin"]) / 2.0
+    z0, z1 = sorted((el["a"][1], el["b"][1]))
+    k_ = el["kot"]
+    adim = eleman.OLCU_YAZI / 2.0 + 40
+    ek = sorted(
+        (
+            (y_["x"] + dx * adim, y_["y"] + dy)
+            for dx in (0, -1, 1, -2, 2, -3, 3)
+            for dy in range(-600, 601, 50)
+        ),
+        key=lambda a: (a[0] - y_["x"]) ** 2 + (a[1] - y_["y"]) ** 2,
+    )
+    return [
+        (y_["x"], y_["y"]),
+        (k_ - 30 - w, (z0 + z1) / 2.0),
+        (k_ + 30 + w, z1 + 25 + eleman.OLCU_YAZI / 2.0),
+        (k_ + 30 + w, z0 - 25 - eleman.OLCU_YAZI / 2.0),
+    ] + ek
+
+
+def yazi_kutusu(el):
     """Yazının ( ya da ölçü yazısının ) kutusu."""
     if el["tip"] == "olcu":
         y = el.get("yazi")
@@ -1536,7 +1732,7 @@ def etiketleri_ayir(e, olcek=20):
         if (x["tip"] == "yazi" and x.get("katman") not in ("CERCEVE",))
         or (x["tip"] == "olcu" and x.get("yazi"))
     ]
-    kutular = {id(x): _yazi_kutusu(x) for x in yazilar}
+    kutular = {id(x): yazi_kutusu(x) for x in yazilar}
 
     def adimlar_(menzil, adim, ic=0):
         return sorted(
@@ -1610,7 +1806,7 @@ def etiketleri_ayir(e, olcek=20):
     return e + oklar
 
 
-def _yazilari_coz(e, tasinir, ek_katman=()):
+def yazilari_coz(e, tasinir, ek_katman=()):
     """tasinir:  [ ( eleman , [ ( x , y ) adayları — ilki şimdiki yer ] ) ].
     Her yazı öbür bütün yazılara ( ölçü yazıları dahil ) binmeyen ilk adaya
     taşınır;  hiçbiri boş değilse yerinde kalır."""
@@ -1619,7 +1815,7 @@ def _yazilari_coz(e, tasinir, ek_katman=()):
         if el["tip"] == "olcu":
             eski = dict(el["yazi"])
             el["yazi"].update(x=x, y=y)
-            k = _yazi_kutusu(el)
+            k = yazi_kutusu(el)
             el["yazi"].clear()
             el["yazi"].update(eski)
             return k
@@ -1641,7 +1837,7 @@ def _yazilari_coz(e, tasinir, ek_katman=()):
     #  yalnız yazılara ve parçalara binmeyen ilk aday ( yazılar maskeli, 5 Eki )
     kenarlar = KenarIzgarasi(parca_kenarlari(e))
     for el, adaylar in tasinir:
-        digerleri = [_yazi_kutusu(x) for x in e if x is not el and x["tip"] in ("yazi", "olcu")]
+        digerleri = [yazi_kutusu(x) for x in e if x is not el and x["tip"] in ("yazi", "olcu")]
         digerleri = [k for k in digerleri if k] + parca_kutulari
         secilen = None
         for x, y in adaylar:
@@ -1725,15 +1921,12 @@ def sinir(elemanlar, pay=0.0):
             else:
                 ys += [el["a"][1], el["b"][1]]
                 xs += [el["kot"]]
-            y_ = el.get("yazi")
-            if y_:
+            k = yazi_kutusu(el)
+            if k:
                 #  Yazı da çerçevenin içinde kalmalı  ( "ASKI KAÇIKLIĞI"
                 #  çerçeveye taşıp kesiliyordu ).
-                w, h = eleman.yazi_eni(el["metin"], y_["h"]) / 2.0, y_["h"] / 2.0
-                if y_["aci"]:
-                    w, h = h, w
-                xs += [y_["x"] - w, y_["x"] + w]
-                ys += [y_["y"] - h, y_["y"] + h]
+                xs += [k[0], k[2]]
+                ys += [k[1], k[3]]
         elif el["tip"] == "yazi":
             #  Yazının eni de:  sola hizalı bir tablo satırı çerçeveden taşıyordu
             w, h = eleman.yazi_eni(el["metin"], el["yukseklik"]), el["yukseklik"] / 2.0
@@ -1806,10 +1999,10 @@ def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=()):
     return e
 
 
-def _parcadan_kaydir(e, ek_katman=()):
+def parcadan_kaydir(e, ek_katman=()):
     """Yazısı bir parçanın üstüne düşen ölçünün yazısı, kendi ölçüsü boyunca
     ( ya da ucunun dışına ) parçaya ve öbür yazılara binmeyen en yakın yere
-    taşınır — _yazilari_yerlestir'in kaydir'ı gibi, ama yerleşimi bitmiş bir
+    taşınır — yazilari_yerlestir'in kaydir'ı gibi, ama yerleşimi bitmiş bir
     çizimde ( kuyu dibinde yük kutuları ölçü yazılarına göre konduktan sonra:
     kutuları da engel sayar ).  ek_katman:  engel sayılan öbür katmanlar."""
     katman = PARCA_KATMANLARI + tuple(ek_katman)
@@ -1822,7 +2015,7 @@ def _parcadan_kaydir(e, ek_katman=()):
     for el in e:
         if el["tip"] != "olcu" or not el.get("yazi"):
             continue
-        k = _yazi_kutusu(el)
+        k = yazi_kutusu(el)
         if not any(ortusur(k, p) for p in parca_kutulari):
             continue
         y_ = el["yazi"]
@@ -1834,4 +2027,4 @@ def _parcadan_kaydir(e, ek_katman=()):
         yerler = sorted(yerler, key=lambda u: abs(u - simdi)) + [a - 30 - w, b + 30 + w]
         tasinir.append((el, [(u, y_["y"]) if i == 0 else (y_["x"], u) for u in yerler]))
     if tasinir:
-        _yazilari_coz(e, tasinir, ek_katman=ek_katman)
+        yazilari_coz(e, tasinir, ek_katman=ek_katman)

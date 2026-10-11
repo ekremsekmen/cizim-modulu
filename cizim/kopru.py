@@ -45,7 +45,7 @@ log = logging.getLogger(__name__)
 
 #  ( anahtar , etiket , birim , tür , seçenekler , varsayılan , gelişmiş , açıklama )
 #  Varsayılanı None olan alan boş bırakılabilir:  değeri açıklamada yazan
-#  kuraldan gelir ( _varsayilan ).  Tanımlar tasarım şemasında
+#  kuraldan gelir ( varsayilan_deger ).  Tanımlar tasarım şemasında
 #  ( tasarim/alanlar.py, sözleşmesi CIZ );  formda kendi tasarım grubunda durur.
 ALANLAR = tuple(
     (a.anahtar, a.etiket, a.birim, a.tur, a.secenekler, a.varsayilan, a.gelismis, a.bilgi)
@@ -114,7 +114,7 @@ def etkin_deger(g, anahtar):
     return float(v) if sayi_mi(v) else None
 
 
-def _mrl(A):
+def mrl_mi(A):
     """Makine dairesiz mi?  Girdide yoksa hesap programının varsayılanı ( MRL )."""
     return bool(A.get("mk_yok", True))
 
@@ -165,7 +165,7 @@ def _deger(A, anahtar):
     return None if v is None or (isinstance(v, str) and not v.strip()) else v
 
 
-def _varsayilan(A, anahtar):
+def varsayilan_deger(A, anahtar):
     v = _deger(A, anahtar)
     return ALAN[anahtar][5] if v is None else v
 
@@ -189,129 +189,186 @@ def _dusey_kasnak_arasi(kx, kb_g, Dk, D1, G, ray_duvar, yer, S):
     return round(2.0 * yari - Dk, 3)
 
 
-def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
-    """Tek asansörün çizim girdisi.
+class _Okuyucu:
+    """Hesap girdisini ( A ) alan alan okur;  hataları formdaki adla biriktirir.
+    İletiler okuma sırasıyla çıkar."""
 
-    A:      hesap girdisi ( tamamlanmış — boş alanlar hesabın varsayılanıyla
-            dolu ) + çizim alanları ( ALANLAR ) + proje geneli alanlar.
-    sonuc:  hesabın o asansör için sonucu ( kuvvetler buradan );  None olabilir.
-    Döner:  ( g , hatalar ) — hata varsa g None."""
-    ozel = cizim_sabitleri(A)
-    S = sabitler.sabitler(ozel)
-    hata = []
+    def __init__(self, A):
+        self.A, self.hata = A, []
 
-    def sayi(anahtar, etiket=None, bos=False, isaretli=False, sifir=False):
+    def sayi(self, anahtar, etiket=None, bos=False, isaretli=False, sifir=False):
         """sifir:  0 geçerli ( ör. tabliye yüksekliği — zemin tabliyeyle aynı
         hizada ),  negatif değil."""
-        v = A.get(anahtar) if anahtar not in ALAN else _varsayilan(A, anahtar)
+        A = self.A
+        v = A.get(anahtar) if anahtar not in ALAN else varsayilan_deger(A, anahtar)
         et = etiket or (ALAN[anahtar][1] if anahtar in ALAN else anahtar)
         if v is None and bos:
             return None
         if not sayi_mi(v):
-            hata.append(f"{et}:  girilmemiş." if bos_mu(v) else f"{et}:  sayı olmalı ( {v!r} ).")
+            self.hata.append(f"{et}:  girilmemiş." if bos_mu(v) else f"{et}:  sayı olmalı ( {v!r} ).")
             return None
         if not isaretli and (v < 0 if sifir else v <= 0):
-            hata.append(
+            self.hata.append(
                 f"{et}:  " + ("negatif olamaz" if sifir else "sıfırdan büyük olmalı") + f" ( {v:g} )."
             )
             return None
         return float(v)
 
-    def secim(anahtar, etiket=None, secenekler=None):
+    def secim(self, anahtar, etiket=None, secenekler=None):
         """Çizim alanı ya da ( etiket ve seçeneklerle ) hesabın bir seçim alanı."""
-        v = _varsayilan(A, anahtar) if anahtar in ALAN else A.get(anahtar)
+        A = self.A
+        v = varsayilan_deger(A, anahtar) if anahtar in ALAN else A.get(anahtar)
         et = etiket or ALAN[anahtar][1]
         sec = tuple(secenekler if secenekler is not None else ALAN[anahtar][4])
         if v not in sec:
             liste = " · ".join(str(x) for x in sec)
-            hata.append(
+            self.hata.append(
                 f"{et}:  seçilmemiş ( {liste} )."
                 if bos_mu(v)
                 else f"{et}:  {liste} içinden olmalı ( {v!r} )."
             )
         return v
 
-    mk_yok = _mrl(A)
+
+def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
+    """Tek asansörün çizim girdisi.
+
+    A:      hesap girdisi ( tamamlanmış — boş alanlar hesabın varsayılanıyla
+            dolu ) + çizim alanları ( ALANLAR ) + proje geneli alanlar.
+    sonuc:  hesabın o asansör için sonucu ( kuvvetler buradan );  None olabilir.
+    Döner:  ( g , hatalar ) — hata varsa g None.  Alanlar bölüm bölüm okunur;
+    bir bölümde hata varsa sonrakine geçilmez ( iletiler okuma sırasıyla )."""
+    ozel = cizim_sabitleri(A)
+    S = sabitler.sabitler(ozel)
+    o = _Okuyucu(A)
+    h = _ana_alanlar(o)
+    if o.hata:
+        return None, o.hata
+    _cizilemeyen_kacikliklar(o, h, S)
+    d = _dusey_alanlar(o, S, h["durak"])
+    if o.hata:
+        return None, o.hata
+    k = _kapi_ve_aski(o, S, h)
+    if o.hata:
+        return None, o.hata
+    g = _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k)
+    if not h["mk_yok"]:
+        _makine_dairesi_girdisi(o, g, h)
+    if o.hata:
+        return None, o.hata
+    if k["dusey_ara"]:
+        _kasnak_arasi_sec(g, k["eski_kural"])
+
+    if arka_aski.arkada_iki_bir(g):
+        #  Arkadaki ağırlıkla 2:1:  ağırlık – duvar ölçüsü boşsa ağırlık kabine
+        #  göre konur ( tahrik kasnağının kabin inişi kabin tavanının arka
+        #  kenarında );  kabin kasnaklarının aralığı çapraz geometriden
+        #  ( girilmişse uyuşmazlık denetimi karşılaştırır ).
+        if bos_mu(A.get("agirlik_ray_duvar")) and sayi_mi(h["D1"]):
+            g["agirlik"]["ray_duvar"] = round(arka_aski.agirlik_ray_duvari(g, S), 1)
+        A_ = arka_aski.geometri(g, S)
+        if "aralik" in A_:
+            g["aski"]["kasnak_arasi"] = round(A_["aralik"], 1)
+    if k["reg_bos"] or k["reg_yan_serbest"]:
+        _regulator_yeri(g, kaciklik_serbest=k["reg_bos"], yan_serbest=k["reg_yan_serbest"])
+    return g, []
+
+
+def _ana_alanlar(o):
+    """Hesabın ve çizimin ana alanları ( okuma sırası iletilerin sırasıdır )."""
+    A, sayi, secim = o.A, o.sayi, o.secim
+    h = {"mk_yok": mrl_mi(A)}
     #  ── HESAPTAN ──────────────────────────────────────────────────────
-    G = sayi("kuyu_genisligi", "Kuyu genişliği")
-    kb_g, kb_d = sayi("kabin_genisligi", "Kabin genişliği"), sayi("kabin_derinligi", "Kabin derinliği")
-    RK = sayi("ray_kapi_arasi", "Ray – kapı arası ( RK )")
-    kapi_g = sayi("kapi_genisligi", "Kat kapısı genişliği")
-    Gy, Gx = (
+    h["G"] = sayi("kuyu_genisligi", "Kuyu genişliği")
+    h["kb_g"], h["kb_d"] = (
+        sayi("kabin_genisligi", "Kabin genişliği"),
+        sayi("kabin_derinligi", "Kabin derinliği"),
+    )
+    h["RK"] = sayi("ray_kapi_arasi", "Ray – kapı arası ( RK )")
+    h["kapi_g"] = sayi("kapi_genisligi", "Kat kapısı genişliği")
+    h["Gy"], h["Gx"] = (
         sayi("agirlik_genisligi", "Karşı ağırlık genişliği ( Gy )"),
         sayi("agirlik_derinligi", "Karşı ağırlık derinliği ( Gx )"),
     )
-    kr, ar = _profil(A.get("kabin_ray_profili")), _profil(A.get("agirlik_ray_profili"))
+    h["kr"], h["ar"] = _profil(A.get("kabin_ray_profili")), _profil(A.get("agirlik_ray_profili"))
     for p, et, a in (
-        (kr, "Kabin rayı profili", "kabin_ray_profili"),
-        (ar, "Ağırlık rayı profili", "agirlik_ray_profili"),
+        (h["kr"], "Kabin rayı profili", "kabin_ray_profili"),
+        (h["ar"], "Ağırlık rayı profili", "agirlik_ray_profili"),
     ):
         if p is None:
-            hata.append(f"{et}:  seçilmemiş." if bos_mu(A.get(a)) else f"{et}:  okunamadı ( {A.get(a)!r} ).")
-    oran = secim("aski_orani", "Askı oranı", (1, 2))
+            o.hata.append(
+                f"{et}:  seçilmemiş." if bos_mu(A.get(a)) else f"{et}:  okunamadı ( {A.get(a)!r} )."
+            )
+    h["oran"] = secim("aski_orani", "Askı oranı", (1, 2))
     #  Hesabın seçimleri çizim modülünün kendi doğrulamasına boş gitmesin:
     #  ileti formdaki adla söylensin ( "agirlik.yeri" değil ).
-
-    ag_yeri = secim("agirlik_yeri", "Karşı ağırlık yeri", girdi.AGIRLIK_YERLERI)
-    sig_ust = secim("siginma_tipi_ust", "Kabin üstü sığınma hacmi tipi", kabin_ustu.SIGINMA)
-    sig_dip = secim("siginma_tipi_dip", "Kuyu dibi sığınma hacmi tipi", kuyu_dibi.SIGINMA)
-    mk_tip = secim("makine_tipi", "Makine tipi", makine.TIPLER)
-    yan_yatak = secim("yan_yatak", "F  ( yan yatak — makine kirişi ölçüsü )", makine.NPU)
-    halat_n = sayi("halat_adedi", "Askı halatı adedi")
-    halat_d = sayi("halat_capi", "Askı halatı çapı")
-    D1 = sayi("tahrik_kasnak_capi", "D1 ( tahrik kasnağı çapı )")
+    h["ag_yeri"] = secim("agirlik_yeri", "Karşı ağırlık yeri", girdi.AGIRLIK_YERLERI)
+    h["sig_ust"] = secim("siginma_tipi_ust", "Kabin üstü sığınma hacmi tipi", kabin_ustu.SIGINMA)
+    h["sig_dip"] = secim("siginma_tipi_dip", "Kuyu dibi sığınma hacmi tipi", kuyu_dibi.SIGINMA)
+    h["mk_tip"] = secim("makine_tipi", "Makine tipi", makine.TIPLER)
+    h["yan_yatak"] = secim("yan_yatak", "F  ( yan yatak — makine kirişi ölçüsü )", makine.NPU)
+    h["halat_n"] = sayi("halat_adedi", "Askı halatı adedi")
+    h["halat_d"] = sayi("halat_capi", "Askı halatı çapı")
+    h["D1"] = sayi("tahrik_kasnak_capi", "D1 ( tahrik kasnağı çapı )")
     #  Hesabın kaçıklıkları ( ray ekseninden ):  kabin merkezi yc, askı xs · ys
-    yc = sayi("kabin_kaciklik", "Kabin merkezinin y kaçıklığı ( yc )", isaretli=True)
-    xs = sayi("aski_kaciklik_x", "Askı noktasının x kaçıklığı ( xs )", bos=True, isaretli=True)
-    ys = sayi("aski_kaciklik_y", "Askı noktasının y kaçıklığı ( ys )", isaretli=True)
+    h["yc"] = sayi("kabin_kaciklik", "Kabin merkezinin y kaçıklığı ( yc )", isaretli=True)
+    h["xs"] = sayi("aski_kaciklik_x", "Askı noktasının x kaçıklığı ( xs )", bos=True, isaretli=True)
+    h["ys"] = sayi("aski_kaciklik_y", "Askı noktasının y kaçıklığı ( ys )", isaretli=True)
     #  ── ÇİZİMİN KENDİ ALANLARI ───────────────────────────────────────
-    KD = sayi("kuyu_derinligi")
-    durak = sayi("durak_adedi")
-    kacik = sayi("kabin_yana_kaciklik", isaretli=True)
-    duvar = sayi("kuyu_duvar_kalinligi")
-    montaj = secim("kapi_montaji")
-    esik_arasi = sayi("esik_arasi")
-    kapi_kacik = sayi("kapi_kaciklik", isaretli=True)
-    ag_kacik = sayi("agirlik_eksen_kaciklik", isaretli=True)
-    reg_kacik = sayi("regulator_kaciklik", bos=True, isaretli=True)
-    reg_yan = secim("regulator_yani")
-    if hata:
-        return None, hata
+    h["KD"] = sayi("kuyu_derinligi")
+    h["durak"] = sayi("durak_adedi")
+    h["kacik"] = sayi("kabin_yana_kaciklik", isaretli=True)
+    h["duvar"] = sayi("kuyu_duvar_kalinligi")
+    h["montaj"] = secim("kapi_montaji")
+    h["esik_arasi"] = sayi("esik_arasi")
+    h["kapi_kacik"] = sayi("kapi_kaciklik", isaretli=True)
+    h["ag_kacik"] = sayi("agirlik_eksen_kaciklik", isaretli=True)
+    h["reg_kacik"] = sayi("regulator_kaciklik", bos=True, isaretli=True)
+    h["reg_yan"] = secim("regulator_yani")
+    return h
 
-    #  ÇİZİMİN MODELLEYEMEDİĞİ KAÇIKLIKLAR.  Çizim kabini raylarının ortasına,
-    #  askıyı kabin ekseninin üstüne koyar;  hesap başka bir yer söylüyorsa
-    #  pafta hesapla çelişir.
+
+def _cizilemeyen_kacikliklar(o, h, S):
+    """ÇİZİMİN MODELLEYEMEDİĞİ KAÇIKLIKLAR.  Çizim kabini raylarının ortasına,
+    askıyı kabin ekseninin üstüne koyar;  hesap başka bir yer söylüyorsa
+    pafta hesapla çelişir."""
+    yc, ys = h["yc"], h["ys"]
     if abs(yc) > 1e-9:
-        hata.append(
+        o.hata.append(
             f"Kabin merkezinin y kaçıklığı ( yc ) {yc:g} mm:  çizim kabini iki rayın "
             "tam ortasında çizer — kabin raylara göre kaçıksa bu henüz çizilemiyor."
         )
     if abs(ys) > 1e-9:
-        hata.append(
+        o.hata.append(
             f"Askı noktasının y kaçıklığı ( ys ) {ys:g} mm:  çizim askıyı raylar "
             "arasının ortasında çizer — yana kaçık askı henüz çizilemiyor."
         )
-    if xs is None:
-        hata.append("Askı noktasının x kaçıklığı ( xs ) boş — değerini girin.")
+    if h["xs"] is None:
+        o.hata.append("Askı noktasının x kaçıklığı ( xs ) boş — değerini girin.")
     #  MAKARALI KABİN PATENİ ( karar 2 ):  kabin patenlerinin ölçüsü referans
     #  projenin KAYMALI kabin patenlerinden ( paten_yukseklik );  makaralı kabin
     #  pateninin ölçüleri elimizde yok — gelene kadar çizim durur, bölüm 11'in
     #  paten açıklıkları da ölçülmez.  Karşı ağırlık patenleri referans projede
     #  MAKARALIDIR ( çizimin ölçüleri o projeden — sabitler "PATEN" ):  onlar
     #  çizilir.
-    if A.get("paten_tipi") == "Makaralı":
-        hata.append(
+    if o.A.get("paten_tipi") == "Makaralı":
+        o.hata.append(
             f"Kabin paten tipi makaralı:  çizim kabinde yalnız kaymalı patenin ölçüsünü "
             f"bilir ( yükseklik {S['paten_yukseklik']:g} mm ) — makaralı kabin pateninin "
             "ölçüleri gelene kadar çizilmez;  'Kaymalı' seçin."
         )
+
+
+def _dusey_alanlar(o, S, durak):
+    """Duraklar, kat yükseklikleri, kuyu dibi zinciri, yükseklikler, tamponlar."""
+    sayi = o.sayi
     if durak < 2 or durak != int(durak):
-        hata.append(f"Durak adedi en az 2 olan bir tam sayı olmalı ( {durak:g} ).")
+        o.hata.append(f"Durak adedi en az 2 olan bir tam sayı olmalı ( {durak:g} ).")
     seyir = sayi("seyir_mesafesi", "Seyir mesafesi")
     kat_yuksekligi = None
     if seyir is not None and durak >= 2 and durak == int(durak):
-        kat_yuksekligi, kat_hata = katlar.araliklar(A.get("kat_yukseklikleri"), int(durak), seyir)
-        hata += kat_hata
+        kat_yuksekligi, kat_hata = katlar.araliklar(o.A.get("kat_yukseklikleri"), int(durak), seyir)
+        o.hata += kat_hata
     #  KUYU DİBİ ZİNCİRİ:  kabin en alt durakta dururken kaide + tampon +
     #  çarpma arası + kabinin şase altı kuyu dibine eşittir.  Hesap kaideyi
     #  boşsa buradan alır ( cizimden );  girilmişse zincir kapanmalı.
@@ -323,9 +380,9 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         sayi("kabin_tampon_boyu", "Kabin tamponu uzunluğu"),
         sayi("kabin_carpma_arasi", "Kabin tamponu – çarpma plakası arası"),
     )
-    if not hata and abs(baba + boy + carpma + S["sase_alt_derinlik"] - KY) > 0.5:
+    if not o.hata and abs(baba + boy + carpma + S["sase_alt_derinlik"] - KY) > 0.5:
         dogru = KY - boy - carpma - S["sase_alt_derinlik"]
-        hata.append(
+        o.hata.append(
             f"Kuyu dibi zinciri kapanmıyor:  kaide {baba:g} + tampon {boy:g} + çarpma arası "
             f"{carpma:g} + kabinin şase altı {S['sase_alt_derinlik']:g} = "
             f"{baba + boy + carpma + S['sase_alt_derinlik']:g}, kuyu dibi {KY:g} — kabin "
@@ -342,66 +399,90 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         n = sayi(f"{tur}_tampon_adedi", f"{et} tamponu adedi")
         ara = sayi(f"{tur}_tampon_arasi", bos=True)
         if n is not None and n not in (1, 2):
-            hata.append(f"{et} tamponu adedi {n:g}:  çizim 1 ya da 2 tampon çizer.")
+            o.hata.append(f"{et} tamponu adedi {n:g}:  çizim 1 ya da 2 tampon çizer.")
         elif n == 2 and ara is None:
-            hata.append(f"{ALAN[f'{tur}_tampon_arasi'][1]}:  iki tamponda girilmeli.")
+            o.hata.append(f"{ALAN[f'{tur}_tampon_arasi'][1]}:  iki tamponda girilmeli.")
         tampon[tur] = (int(n) if n in (1, 2) else None, ara)
-    if hata:
-        return None, hata
+    return {"kat_yuksekligi": kat_yuksekligi, "kabin_h": kabin_h, "kapi_h": kapi_h, "tampon": tampon}
 
+
+def _kapi_ve_aski(o, S, h):
+    """Kapı bölgesi ( kapı hattı, kabinin ön payı ), askı düzeni, regülatörün yeri."""
+    A, sayi, secim = o.A, o.sayi, o.secim
     #  ── KAPI BÖLGESİ ─────────────────────────────────────────────────
     #  Kapı hattı ( kat eşiğinin kabine bakan kenarı ):  kuyu içine montajda
     #  kasa + eşik, duvar boşluğunda yalnız eşik kuyuya taşar.
     #  Eşiklerin derinliği kapı tipinden ( 3 kanatlı teleskopikte 135 — girdi.esik_derinligi ).
     kapi_tip = A.get("kat_kapisi_tipi")
-    hat = girdi.kapi_bolgesi({"kapi": {"montaj": montaj, "tip": kapi_tip}, "kabin": {"on_pay": 0}}, S)["hat"]
-    on_pay = hat + esik_arasi + girdi.esik_derinligi(S, kapi_tip, kabin=True)
-    kapi_arasi = hat + RK
-    kx = G / 2.0 + kacik
+    hat = girdi.kapi_bolgesi({"kapi": {"montaj": h["montaj"], "tip": kapi_tip}, "kabin": {"on_pay": 0}}, S)[
+        "hat"
+    ]
+    on_pay = hat + h["esik_arasi"] + girdi.esik_derinligi(S, kapi_tip, kabin=True)
+    kapi_arasi = hat + h["RK"]
+    kx = h["G"] / 2.0 + h["kacik"]
 
     #  ── ASKI ─────────────────────────────────────────────────────────
     #  Askı noktasının derinlikteki yeri hesabın xs'inden:  çizimde askı
     #  merkezi kabin ( pano dahil ) merkezine göre kaydırılarak verilir.
+    xs, kb_g, ag_yeri = h["xs"], h["kb_g"], h["ag_yeri"]
     aski_y = kapi_arasi + xs
-    kabin_merkez = on_pay + (kb_d + S["kabin_pano_arka"]) / 2.0
+    kabin_merkez = on_pay + (h["kb_d"] + S["kabin_pano_arka"]) / 2.0
     aralik = sayi("kabin_kasnak_arasi", bos=True)
-    D1_, dusey_ara, eski_kural = D1 or 0.0, None, None
-    if oran == 1:
+    D1_, dusey_ara, eski_kural = h["D1"] or 0.0, None, None
+    if h["oran"] == 1:
         #  1:1:  tek bağlantı, kabin şasesinin üst kirişinin ortasında
         aski = {"duzen": "Doğrudan", "nokta_kaciklik": aski_y - kabin_merkez}
     else:
         duzen, Dk = secim("aski_duzeni"), sayi("kabin_kasnak_capi")
         eski_kural = kb_g + 30.0 if duzen == "Kabin altı" else kb_g - 2 * 200.0 - (Dk or 0)
         if not aralik and duzen == "Kabin altı" and ag_yeri in ("Sağ", "Sol") and Dk:
-            ray_duvar = sayi("agirlik_ray_duvar", bos=True) or Gx / 2.0 + 50.0
-            dusey_ara = _dusey_kasnak_arasi(kx, kb_g, Dk, D1_, G, ray_duvar, ag_yeri, S)
+            ray_duvar = sayi("agirlik_ray_duvar", bos=True) or h["Gx"] / 2.0 + 50.0
+            dusey_ara = _dusey_kasnak_arasi(kx, kb_g, Dk, D1_, h["G"], ray_duvar, ag_yeri, S)
         aski = {
             "duzen": duzen,
             "kasnak_capi": Dk,
             "kasnak_arasi": aralik or dusey_ara or eski_kural,
             "kasnak_kaciklik": aski_y - kabin_merkez,
         }
-    aski.update(halat_adedi=halat_n, halat_capi=halat_d)
+    aski.update(halat_adedi=h["halat_n"], halat_capi=h["halat_d"])
 
     #  Ağırlık arkadayken "karşı ağırlığın karşısı" bir yan söylemez:  önce sağ,
     #  gergi orada sığmıyorsa sol ( _regulator_yeri ).
+    reg_yan = h["reg_yan"]
     reg_yan_serbest = reg_yan == "Karşı ağırlığın karşısı" and ag_yeri == "Arka"
     if reg_yan == "Karşı ağırlığın karşısı":
         reg_yan = "Sol" if ag_yeri == "Sağ" else "Sağ"
     #  Regülatör ile kabin halat bağlantısı aynı rayın başındadır:  boşsa
     #  regülatör askı halatlarının çizgisinin öbür yanına ( referans proje:  halatlar
     #  ray ekseninin 250 önünde, regülatör 280 arkasında ).
+    reg_kacik = h["reg_kacik"]
     reg_bos = reg_kacik is None
     if reg_bos:
         reg_kacik = -280.0 if xs > 0 else 280.0
-    agirlik_tampon_boyu = sayi("agirlik_tampon_boyu", bos=True) or sayi(
-        "kabin_tampon_boyu", "Kabin tamponu uzunluğu"
-    )
-    Da = sayi("agirlik_kasnak_capi") if oran == 2 else None
-    if hata:
-        return None, hata
+    return {
+        "on_pay": on_pay,
+        "kapi_arasi": kapi_arasi,
+        "kx": kx,
+        "aski": aski,
+        "dusey_ara": dusey_ara,
+        "eski_kural": eski_kural,
+        "reg_yan": reg_yan,
+        "reg_yan_serbest": reg_yan_serbest,
+        "reg_kacik": reg_kacik,
+        "reg_bos": reg_bos,
+        "agirlik_tampon_boyu": sayi("agirlik_tampon_boyu", bos=True)
+        or sayi("kabin_tampon_boyu", "Kabin tamponu uzunluğu"),
+        "Da": sayi("agirlik_kasnak_capi") if h["oran"] == 2 else None,
+    }
 
-    g = {
+
+def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
+    """Çizim girdisi ( g ) — makine dairesi hariç.  Değerler sözlüğün yazılış
+    sırasıyla okunur ( hata iletilerinin sırası )."""
+    A, sayi, secim = o.A, o.sayi, o.secim
+    G, duvar, kb_g, kx, kapi_g = h["G"], h["duvar"], h["kb_g"], k["kx"], h["kapi_g"]
+    Gy, Gx, kr, ar, tampon = h["Gy"], h["Gx"], h["kr"], h["ar"], d["tampon"]
+    return {
         #  Hesabın Sabitler sekmesindeki kabin ölçüleri:  bütün çizimler okur
         "_cizim_sabitleri": ozel,
         "proje": {
@@ -413,128 +494,116 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         #  döşemesi ortak kalınlıktadır ( eskiden ön duvarınkini kullanıyordu ).
         "kuyu": {
             "genislik": G,
-            "derinlik": KD,
+            "derinlik": h["KD"],
             "doseme": duvar,
             **{
                 f"duvar_{y}": (sayi(f"kuyu_duvar_{y}", bos=True) or duvar) if duvar else None
                 for y in ("on", "arka", "sol", "sag")
             },
         },
-        "kabin": {"genislik": kb_g, "derinlik": kb_d, "kaciklik_y": kacik, "on_pay": on_pay},
+        "kabin": {"genislik": kb_g, "derinlik": h["kb_d"], "kaciklik_y": h["kacik"], "on_pay": k["on_pay"]},
         "kapi": {
             "genislik": kapi_g,
-            "sol_pay": kx + kapi_kacik - kapi_g / 2.0,
-            "yukseklik": kapi_h,
+            "sol_pay": kx + h["kapi_kacik"] - kapi_g / 2.0,
+            "yukseklik": d["kapi_h"],
             "tip": A.get("kat_kapisi_tipi"),
-            "montaj": montaj,
+            "montaj": h["montaj"],
         },
         "kabin_ray": {
             "arasi": sayi("kabin_ray_arasi", bos=True) or kb_g + 200.0,
-            "kapi_arasi": kapi_arasi,
+            "kapi_arasi": k["kapi_arasi"],
             "b": kr[0],
             "h": kr[1],
         },
         "agirlik": {
-            "yeri": ag_yeri,
+            "yeri": h["ag_yeri"],
             "genislik": Gy,
             "derinlik": Gx,
             "ray_arasi": sayi("agirlik_ray_arasi", bos=True) or Gy + alanlar.AGIRLIK_PATEN_PAYI,
             "ray_duvar": sayi("agirlik_ray_duvar", bos=True) or Gx / 2.0 + 50.0,
-            "eksen_kaciklik": ag_kacik,
+            "eksen_kaciklik": h["ag_kacik"],
             "b": ar[0],
             "h": ar[1],
-            "kasnak_capi": Da,
+            "kasnak_capi": k["Da"],
             #  yalnız çizilen biçim için ( zarf iki tipte aynı — sabitler PATEN )
             "paten_tipi": A.get("agirlik_paten_tipi"),
         },
-        "aski": aski,
-        "kabin_ustu": {"siginma_tipi": sig_ust},
+        "aski": k["aski"],
+        "kabin_ustu": {"siginma_tipi": h["sig_ust"]},
         "kuyu_dibi": {
             "derinlik": sayi("kuyu_dibi", "Kuyu dibi yüksekliği ( KY )"),
-            "siginma_tipi": sig_dip,
+            "siginma_tipi": h["sig_dip"],
             "kabin_tampon_adedi": tampon["kabin"][0],
             "kabin_tampon_arasi": tampon["kabin"][1],
             "agirlik_tampon_adedi": tampon["agirlik"][0],
             "agirlik_tampon_arasi": tampon["agirlik"][1],
-            "regulator_yan": reg_yan,
-            "regulator_kaciklik": reg_kacik,
+            "regulator_yan": k["reg_yan"],
+            "regulator_kaciklik": k["reg_kacik"],
             "regulator_halat_capi": sayi("reg_halat_capi", "Regülatör halatı çapı"),
             "regulator_kasnak_capi": sayi("reg_kasnak_capi", "Regülatör kasnak çapı"),
             #  Hesap yapılamadıysa yok ( kutularda yalnız ad yazar )
             "kuvvetler": kuvvetler(sonuc) or None,
         },
         "dusey": {
-            "kabin_ic_yukseklik": kabin_h,
+            "kabin_ic_yukseklik": d["kabin_h"],
             "kabin_paten_arasi": sayi("kabin_paten_arasi", "Kabin paten arası"),
             "agirlik_paten_arasi": sayi("agirlik_paten_arasi", "Ağırlık paten arası"),
             "son_kat": sayi("son_kat_yuksekligi", "Son kat yüksekliği"),
             "beyan_hizi": sayi("beyan_hizi", "Beyan hızı"),
-            "durak_adedi": int(durak),
-            "kat_yuksekligi": kat_yuksekligi,
+            "durak_adedi": int(h["durak"]),
+            "kat_yuksekligi": d["kat_yuksekligi"],
             "kabin_tampon_baba": sayi("kabin_tampon_baba", "Kabin tamponu baba yüksekliği"),
             "kabin_tampon_boyu": sayi("kabin_tampon_boyu", "Kabin tamponu uzunluğu"),
             "kabin_carpma_arasi": sayi("kabin_carpma_arasi", "Kabin tamponu – çarpma plakası arası"),
             "kabin_tampon_ezilme": sayi("kabin_tampon_ezilme", "Kabin tamponu ezilme miktarı"),
             "agirlik_tampon_baba": sayi("agirlik_tampon_baba", "Ağırlık tamponu baba yüksekliği"),
-            "agirlik_tampon_boyu": agirlik_tampon_boyu,
+            "agirlik_tampon_boyu": k["agirlik_tampon_boyu"],
             "agirlik_carpma_arasi": sayi("agirlik_carpma_arasi", "Ağırlık tamponu – çarpma plakası arası"),
             "agirlik_tampon_ezilme": sayi("agirlik_tampon_ezilme", "Ağırlık tamponu ezilme miktarı"),
             "kabin_konsol_arasi": sayi("kabin_konsol_arasi", "Kabin rayı konsollar arası"),
             "agirlik_konsol_arasi": sayi("agirlik_konsol_arasi", "Ağırlık rayı konsollar arası"),
         },
         "makine": {
-            "tahrik_kasnak_capi": D1,
-            "yeri": "Kuyu üstü" if mk_yok else "Makine dairesi",
-            "tip": mk_tip,
-            "yan_yatak": yan_yatak,
+            "tahrik_kasnak_capi": h["D1"],
+            "yeri": "Kuyu üstü" if h["mk_yok"] else "Makine dairesi",
+            "tip": h["mk_tip"],
+            "yan_yatak": h["yan_yatak"],
             "saptirma_kasnak_capi": sayi("makine_saptirma_capi"),
         },
         "kuyu_ustu": {"acil_pano_yan": secim("acil_pano_yani")},
     }
-    if not mk_yok:
-        genislik, derinlik = (
-            sayi("mk_genislik", "Makine dairesi genişliği"),
-            sayi("mk_uzunluk", "Makine dairesi uzunluğu"),
-        )
-        md_duvar = sayi("md_duvar")
-        mx, my = sayi("md_x", bos=True, isaretli=True), sayi("md_y", bos=True, isaretli=True)
-        if genislik is not None:
-            g["makine_dairesi"] = {
-                "genislik": genislik,
-                "derinlik": derinlik,
-                "duvar": md_duvar,
-                #  Boşsa oda kuyunun dış genişliğine ortalı, önü kuyunun ön
-                #  duvarının dış yüzüyle hizalı ( çizim örneğinin düzeni ).
-                "x": mx if mx is not None else -duvar - (genislik - (G + 2 * duvar)) / 2.0,
-                "y": my if my is not None else -duvar,
-                "kapi_duvar": secim("md_kapi_duvar"),
-                "kapi_konum": sayi("md_kapi_konum"),
-                "kapi_genislik": sayi("md_kapi_genislik"),
-                "pano_duvar": secim("md_pano_duvar"),
-                "yukseklik": sayi("md_yukseklik"),
-                "kapi_yukseklik": sayi("md_kapi_yukseklik"),
-                "tabliye_yuksekligi": sayi("tabliye_yuksekligi", "Tabliye beton yüksekliği", sifir=True),
-                "sase_yuksekligi": sayi("sase_yuksekligi", "Şase yüksekliği"),
-                "dikine_kiris": secim("dikine_kiris", "E  ( dikine kiriş ölçüsü )", makine.NPU),
-            }
-    if hata:
-        return None, hata
-    if dusey_ara:
-        _kasnak_arasi_sec(g, eski_kural)
 
-    if arka_aski.arkada_iki_bir(g):
-        #  Arkadaki ağırlıkla 2:1:  ağırlık – duvar ölçüsü boşsa ağırlık kabine
-        #  göre konur ( tahrik kasnağının kabin inişi kabin tavanının arka
-        #  kenarında );  kabin kasnaklarının aralığı çapraz geometriden
-        #  ( girilmişse uyuşmazlık denetimi karşılaştırır ).
-        if bos_mu(A.get("agirlik_ray_duvar")) and sayi_mi(D1):
-            g["agirlik"]["ray_duvar"] = round(arka_aski.agirlik_ray_duvari(g, S), 1)
-        A_ = arka_aski.geometri(g, S)
-        if "aralik" in A_:
-            g["aski"]["kasnak_arasi"] = round(A_["aralik"], 1)
-    if reg_bos or reg_yan_serbest:
-        _regulator_yeri(g, kaciklik_serbest=reg_bos, yan_serbest=reg_yan_serbest)
-    return g, []
+
+def _makine_dairesi_girdisi(o, g, h):
+    """Makine dairesinin girdisi ( g["makine_dairesi"] )."""
+    sayi, secim = o.sayi, o.secim
+    G, duvar = h["G"], h["duvar"]
+    genislik, derinlik = (
+        sayi("mk_genislik", "Makine dairesi genişliği"),
+        sayi("mk_uzunluk", "Makine dairesi uzunluğu"),
+    )
+    md_duvar = sayi("md_duvar")
+    mx, my = sayi("md_x", bos=True, isaretli=True), sayi("md_y", bos=True, isaretli=True)
+    if genislik is None:
+        return
+    g["makine_dairesi"] = {
+        "genislik": genislik,
+        "derinlik": derinlik,
+        "duvar": md_duvar,
+        #  Boşsa oda kuyunun dış genişliğine ortalı, önü kuyunun ön
+        #  duvarının dış yüzüyle hizalı ( çizim örneğinin düzeni ).
+        "x": mx if mx is not None else -duvar - (genislik - (G + 2 * duvar)) / 2.0,
+        "y": my if my is not None else -duvar,
+        "kapi_duvar": secim("md_kapi_duvar"),
+        "kapi_konum": sayi("md_kapi_konum"),
+        "kapi_genislik": sayi("md_kapi_genislik"),
+        "pano_duvar": secim("md_pano_duvar"),
+        "yukseklik": sayi("md_yukseklik"),
+        "kapi_yukseklik": sayi("md_kapi_yukseklik"),
+        "tabliye_yuksekligi": sayi("tabliye_yuksekligi", "Tabliye beton yüksekliği", sifir=True),
+        "sase_yuksekligi": sayi("sase_yuksekligi", "Şase yüksekliği"),
+        "dikine_kiris": secim("dikine_kiris", "E  ( dikine kiriş ölçüsü )", makine.NPU),
+    }
 
 
 def _kasnak_arasi_sec(g, eski_kural):
@@ -653,16 +722,16 @@ def _aski_x(A):
     if (
         oran == 2
         and A.get("agirlik_yeri") == "Arka"
-        and _varsayilan(A, "kapi_montaji") in girdi.KAPI_MONTAJLARI
+        and varsayilan_deger(A, "kapi_montaji") in girdi.KAPI_MONTAJLARI
     ):
-        v = [A.get("ray_kapi_arasi"), A.get("kabin_derinligi"), _varsayilan(A, "esik_arasi")]
+        v = [A.get("ray_kapi_arasi"), A.get("kabin_derinligi"), varsayilan_deger(A, "esik_arasi")]
         if not all(sayi_mi(x) for x in v):
             return None
         RK, kb_d, esik = v
         S = sabitler.sabitler(cizim_sabitleri(A))
         tip = A.get("kat_kapisi_tipi")
         hat = girdi.kapi_bolgesi(
-            {"kapi": {"montaj": _varsayilan(A, "kapi_montaji"), "tip": tip}, "kabin": {"on_pay": 0}}, S
+            {"kapi": {"montaj": varsayilan_deger(A, "kapi_montaji"), "tip": tip}, "kabin": {"on_pay": 0}}, S
         )["hat"]
         return (
             hat
@@ -674,20 +743,20 @@ def _aski_x(A):
     if (
         oran != 2
         or A.get("agirlik_yeri") not in ("Sağ", "Sol")
-        or _varsayilan(A, "kapi_montaji") not in girdi.KAPI_MONTAJLARI
+        or varsayilan_deger(A, "kapi_montaji") not in girdi.KAPI_MONTAJLARI
     ):
         return None
     v = [A.get("ray_kapi_arasi"), A.get("kabin_derinligi")] + [
-        _varsayilan(A, k) for k in ("esik_arasi", "agirlik_eksen_kaciklik")
+        varsayilan_deger(A, k) for k in ("esik_arasi", "agirlik_eksen_kaciklik")
     ]
-    Da = _varsayilan(A, "agirlik_kasnak_capi")
+    Da = varsayilan_deger(A, "agirlik_kasnak_capi")
     if not all(sayi_mi(x) for x in v + [Da]):
         return None
     RK, kb_d, esik, ag_kacik = v
     S = sabitler.sabitler(cizim_sabitleri(A))
     tip = A.get("kat_kapisi_tipi")
     hat = girdi.kapi_bolgesi(
-        {"kapi": {"montaj": _varsayilan(A, "kapi_montaji"), "tip": tip}, "kabin": {"on_pay": 0}}, S
+        {"kapi": {"montaj": varsayilan_deger(A, "kapi_montaji"), "tip": tip}, "kabin": {"on_pay": 0}}, S
     )["hat"]
     ray_y = hat + RK
     kabin = hat + esik + girdi.esik_derinligi(S, tip, kabin=True) + (kb_d + S["kabin_pano_arka"]) / 2.0
@@ -715,7 +784,7 @@ def _kasnak_caplari(A, sap):
     dairesinde çiziliyorsa saptırma kasnağı ( sap )."""
     c = []
     if A.get("aski_orani") == 2:
-        Dk, Da = _varsayilan(A, "kabin_kasnak_capi"), _varsayilan(A, "agirlik_kasnak_capi")
+        Dk, Da = varsayilan_deger(A, "kabin_kasnak_capi"), varsayilan_deger(A, "agirlik_kasnak_capi")
         if not (sayi_mi(Dk) and sayi_mi(Da) and Dk > 0 and Da > 0):
             return None
         c = [float(Dk), float(Dk), float(Da)]

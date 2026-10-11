@@ -117,7 +117,7 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
 
     def zemin(k):
         """Kutunun durduğu zeminin kotu:  tabliyenin üstü ya da oda zemini."""
-        return zt if makine_dairesi._icinde(k, TB["izi"]) else zd
+        return zt if makine_dairesi.icinde(k, TB["izi"]) else zd
 
     duvarlar = {
         "Ön": (x0 - w, y0 - w, x1 + w, y0),
@@ -153,9 +153,9 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
     #  Kot işaretleri odanın dışında:  oda kuyudan genişse duvarının ötesinde
     #  ( eskiden kuyunun yanında, odanın duvarının üstüne düşüyordu )
     u_kot = min(u_kot, u0 - 200 * K)
-    kesit_parcalari.kot_isareti(e, u_kot, zd, dusey._kot(zd), K, -1.0)
+    kesit_parcalari.kot_isareti(e, u_kot, zd, dusey.kot_yazisi(zd), K, -1.0)
     if zt - zd >= 300.0:
-        kesit_parcalari.kot_isareti(e, u_kot, zt, dusey._kot(zt), K, -1.0)
+        kesit_parcalari.kot_isareti(e, u_kot, zt, dusey.kot_yazisi(zt), K, -1.0)
     return u1
 
 
@@ -248,7 +248,7 @@ def _seviye_isaretleri(e, sev, K):
 def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon):
     """Kot işaretleri ve durak adları ( duvarın dışında )."""
     for i, z in enumerate(kotlar):
-        kesit_parcalari.kot_isareti(e, u_duvar + yon * 200 * K, z, dusey._kot(z), K, yon)
+        kesit_parcalari.kot_isareti(e, u_duvar + yon * 200 * K, z, dusey.kot_yazisi(z), K, yon)
         e.append(
             eleman.ad(
                 eleman.yazi(
@@ -411,7 +411,7 @@ def _bitir(e, g, Y, kt, K, alt_ust, ust_alt, bosluk_h, duvarlar, azami):
 
     def son(e_, m=None, ic=None):
         e_ = [dict(x) for x in e_]
-        geometri._yazilari_yerlestir(e_, eleman.OLCU_YAZI * K)
+        geometri.yazilari_yerlestir(e_, eleman.OLCU_YAZI * K)
         s_ = [(h, m(z) if m else z, ad) for h, z, ad in sev if not (ic and ic(z))]
         _seviye_isaretleri(e_, s_, K)
         return e_
@@ -441,6 +441,51 @@ def yan_bakis(g):
         g["kuyu"]["genislik"],
         ("x", geometri.kesit_duzlemleri(g)[0], -1.0 if g["agirlik"]["yeri"] == "Sol" else 1.0),
     )
+
+
+def _yan_katlar(e, S, P, kotlar, u0, L, kapi_h):
+    """A-A'da katlar:  döşeme ( u0'dan L boyunca ), kat kapısı ( kasa, eşik, kanatlar )."""
+    for zk in kotlar:
+        _duvar(e, u0, zk - S["kat_doseme_kalinlik"], L, S["kat_doseme_kalinlik"], "kat_dosemesi")
+        for kk in P["kasa"]:
+            e.append(
+                eleman.ad(
+                    eleman.dikdortgen(
+                        "KAPI",
+                        kk[1],
+                        zk - S["esik_kalinlik"],
+                        kk[3] - kk[1],
+                        kapi_h + S["kasa_ust"] + S["esik_kalinlik"],
+                    ),
+                    "kapi_kasasi",
+                )
+            )
+        for kk in P["esik"]:
+            e.append(
+                eleman.ad(
+                    eleman.dikdortgen(
+                        "KAPI", kk[1], zk - S["esik_kalinlik"], kk[3] - kk[1], S["esik_kalinlik"]
+                    ),
+                    "kat_esigi",
+                )
+            )
+        for kk in P["kanat"]:
+            e.append(eleman.ad(eleman.dikdortgen("KAPI", kk[1], zk, kk[3] - kk[1], kapi_h), "kat_kapisi"))
+
+
+def _yan_kabin_kapisi(e, S, P, doseme, kapi_h):
+    """Kabin eşiği ve kabin kapısı kanatları ( kabinin önünde, kendi döşemesinde )."""
+    for kk in P["kabin_esik"]:
+        e.append(
+            eleman.ad(
+                eleman.dikdortgen(
+                    "KABIN", kk[1], doseme - S["esik_kalinlik"], kk[3] - kk[1], S["esik_kalinlik"]
+                ),
+                "kabin_esigi",
+            )
+        )
+    for kk in P["kabin_kanat"]:
+        e.append(eleman.ad(eleman.dikdortgen("KAPI", kk[1], doseme, kk[3] - kk[1], kapi_h), "kabin_kanadi"))
 
 
 def yan_kesit(g, cizim_sabitleri=None, azami=None):
@@ -479,36 +524,10 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     #  payı" ):  bir KABULDÜR, beton değil;  kesik sınır çizgisi ( eskiden taralı
     #  150 mm bir katman gibi çiziliyor, tavan iki kat kalın görünüyordu ).
     e.append(eleman.ad(eleman.cizgi("GIZLI", 0, Y["tavan_alti"] + H, D, Y["tavan_alti"] + H), "tavan_kirisi"))
-    #  Katlar:  döşeme, kat kapısı ( kasa, eşik, kanatlar )
     L = 240 * K
-    for zk in kotlar:
-        _duvar(e, -don - L, zk - S["kat_doseme_kalinlik"], L, S["kat_doseme_kalinlik"], "kat_dosemesi")
-        for kk in P["kasa"]:
-            e.append(
-                eleman.ad(
-                    eleman.dikdortgen(
-                        "KAPI",
-                        kk[1],
-                        zk - S["esik_kalinlik"],
-                        kk[3] - kk[1],
-                        kapi_h + S["kasa_ust"] + S["esik_kalinlik"],
-                    ),
-                    "kapi_kasasi",
-                )
-            )
-        for kk in P["esik"]:
-            e.append(
-                eleman.ad(
-                    eleman.dikdortgen(
-                        "KAPI", kk[1], zk - S["esik_kalinlik"], kk[3] - kk[1], S["esik_kalinlik"]
-                    ),
-                    "kat_esigi",
-                )
-            )
-        for kk in P["kanat"]:
-            e.append(eleman.ad(eleman.dikdortgen("KAPI", kk[1], zk, kk[3] - kk[1], kapi_h), "kat_kapisi"))
+    _yan_katlar(e, S, P, kotlar, -don - L, L, kapi_h)
     _kat_seviyeleri(e, g, S, kotlar, -don - L, K, -1.0)
-    kesit_parcalari.kot_isareti(e, -don - L + 200 * K * -1.0, taban, dusey._kot(taban), K, -1.0)
+    kesit_parcalari.kot_isareti(e, -don - L + 200 * K * -1.0, taban, dusey.kot_yazisi(taban), K, -1.0)
     u_oda = None
     if oda:
         #  A-A kabin ekseninden karşı ağırlığa bakar:  ön ve arka duvar kesilir,
@@ -519,7 +538,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     )
     kb = KD["kabin"]
     ky = [(kz[1] + kz[3]) / 2.0 for kz in P["kabin_kasnak"]]
-    dusey._kabin(
+    dusey.kabin_kesiti(
         e,
         kt,
         (kb[1], kb[3]),
@@ -530,20 +549,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
         esik_on=min((kk[1] for kk in P["kabin_esik"]), default=None),
     )
     kesit_parcalari.korkuluk(e, B, Y, kt)
-    #  Kabin eşiği ve kabin kapısı kanatları ( kabinin önünde, kendi döşemesinde )
-    for kk in P["kabin_esik"]:
-        e.append(
-            eleman.ad(
-                eleman.dikdortgen(
-                    "KABIN", kk[1], kt["doseme"] - S["esik_kalinlik"], kk[3] - kk[1], S["esik_kalinlik"]
-                ),
-                "kabin_esigi",
-            )
-        )
-    for kk in P["kabin_kanat"]:
-        e.append(
-            eleman.ad(eleman.dikdortgen("KAPI", kk[1], kt["doseme"], kk[3] - kk[1], kapi_h), "kabin_kanadi")
-        )
+    _yan_kabin_kapisi(e, S, P, kt["doseme"], kapi_h)
     #  Kabin opak:  yan duvarının arkasındaki ağırlık rayları, konsollar, halatlar
     #  kabinin içinden görünmez;  kabin rayı ( ve şase — _kabin ) kabinin üstünden
     #  görünür ( referans projenin ve LiftDesigner'ın yan kesitleri gibi ).
@@ -639,7 +645,7 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
             )
         )
     _kat_seviyeleri(e, g, S, kotlar, -dg, K, -1.0)
-    kesit_parcalari.kot_isareti(e, -dg - 200 * K, taban, dusey._kot(taban), K, -1.0)
+    kesit_parcalari.kot_isareti(e, -dg - 200 * K, taban, dusey.kot_yazisi(taban), K, -1.0)
     u_oda = None
     if oda:
         #  B-B arkadan kat kapılarına bakar:  yan duvarlar kesilir, ön duvar görünür

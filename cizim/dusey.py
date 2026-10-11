@@ -143,6 +143,60 @@ kabin_kotlari = parca_kotlari.kabin_kotlari
 def yerlesim(g, cizim_sabitleri=None):
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     dy = g.get("dusey") or {}
+    kotlar, hata = _girdi_hatalari(g, S, dy)
+    if hata:
+        return {"hata": hata}
+    durdu = _cerceve_ve_sase(g, S, dy, hata)
+    if durdu:
+        return durdu
+    KD, KU = kuyu_dibi.yerlesim(g, S), kabin_ustu.yerlesim(g, S)
+    if KD["hata"] or KU["hata"]:
+        return {"hata": KD["hata"] + KU["hata"]}
+    dip = _kuyu_dibi_acikliklari(g, S, dy, KD, hata)
+    #  ── KUYU ÜSTÜ:  kabin en üst konumunda ────────────────────────────
+    #  Karşı ağırlık tam ezilmiş tamponunda + 0,035·v²  ( m.5.2.5.6.1 )
+    H = kotlar[-1]
+    M = donanim.yerlesim(g, S, H, H + dy["son_kat"], dip["taban"])
+    if M["hata"]:
+        return {"hata": hata + M["hata"]}
+    ust = _kuyu_ustu_acikliklari(g, S, dy, KD, KU, M, H)
+    AK, AKd = _agirlik_uc_konumlari(g, S, dy, KD, M, H, dip["taban"], ust["ust_aciklik"], hata)
+    #  Açıklık dışındaki fiziksel hatalar ( kuyu dibi zinciri, ağırlığın
+    #  şaseye çarpması ):  hesabın bölüm 11'i açıklıkları sözlüklerden okur,
+    #  bunları ayrıca basar.
+    diger = list(hata)
+    for ad, (deger, asgari, madde) in list(dip["dip_aciklik"].items()) + list(ust["ust_aciklik"].items()):
+        if deger < asgari - 1e-9:
+            hata.append(f"{AD[ad]}:  {deger:g} mm < {asgari:g} mm  ( TS EN 81-20 {madde} ).")
+    return {
+        "hata": hata,
+        "diger": diger,
+        "S": S,
+        "KD": KD,
+        "KU": KU,
+        "M": M,
+        "dip": dip["dip"],
+        "ust": ust["ust"],
+        "taban": dip["taban"],
+        "tavan_alti": ust["tavan_alti"],
+        "ray_ustu": ust["ray_ustu"],
+        "yukselme": ust["yukselme"],
+        "ust_engel": ust["ust_engel"],
+        "agirlik_ust": AK,
+        "korkuluk": ust["korkuluk"],
+        "dip_aciklik": dip["dip_aciklik"],
+        "ust_aciklik": ust["ust_aciklik"],
+        "dip_parcalar": dip["dip_parcalar"],
+        "dip_engel": dip["dip_engel"],
+        "agirlik_alt": AKd,
+        "kasnaklar": dip["kasnaklar"],
+        "kasnak_capi": dip["kasnak_capi"],
+        "kotlar": kotlar,
+    }
+
+
+def _girdi_hatalari(g, S, dy):
+    """( durak kotları, girdi hataları )."""
     hata = [
         f"dusey.{a}: sıfırdan büyük bir sayı olmalı ( {dy.get(a)!r} )."
         for a in DUSEY_ALANLAR
@@ -158,10 +212,14 @@ def yerlesim(g, cizim_sabitleri=None):
             )
     #  Çizilemeyen askı / ağırlık birleşimi ilk söylenir ( öbür planların
     #  hataları onun sonucudur )
-
     hata += kuyu_ustu.duzen_hatalari(g)
-    if hata:
-        return {"hata": hata}
+    return kotlar, hata
+
+
+def _cerceve_ve_sase(g, S, dy, hata):
+    """Karşı ağırlık çerçevesi ve kabin şasesi paten aralarına sığıyor mu.
+    Çizim duruyorsa sonuç ( { hata } ), yoksa None ( üst kirişin tavana
+    girmesi hataya eklenir, çizim sürer )."""
     #  Karşı ağırlık çerçevesi patenlerin arasındadır ( çerçeve = paten arası −
     #  bir paten boyu — parca_kotlari.agirlik_kotlari ):  kasnağını ( üst kirişin
     #  agirlik_kasnak_ust altında ) ve iki kirişini taşıyacak kadar olmalı
@@ -196,14 +254,12 @@ def yerlesim(g, cizim_sabitleri=None):
             f"{kiris_alti:g} mm, tavan {kabin['tavan']:g} mm;  "
             f"bu ölçülerle kabin paten arası en az {gerekli:g} mm olmalı."
         )
-    KD, KU = kuyu_dibi.yerlesim(g, S), kabin_ustu.yerlesim(g, S)
-    if KD["hata"] or KU["hata"]:
-        return {"hata": KD["hata"] + KU["hata"]}
-    kd, ku = g["kuyu_dibi"], g["kabin_ustu"]
-    v = dy["beyan_hizi"]
-    b35 = 35.0 * v * v  # 0,035 · v² · 1000
+    return None
 
-    #  ── KUYU DİBİ:  kabin tam ezilmiş tamponunda ──────────────────────
+
+def _kuyu_dibi_acikliklari(g, S, dy, KD, hata):
+    """KUYU DİBİ:  kabin tam ezilmiş tamponunda."""
+    kd = g["kuyu_dibi"]
     KY = kd["derinlik"]
     #  Kuyu dibi zinciri kabinin şase altıyla kapanmalı:  kaide + tampon +
     #  çarpma arası + şase altı = kuyu dibi ( referans proje:  764 + 160 + 96 + 480 )
@@ -228,50 +284,54 @@ def yerlesim(g, cizim_sabitleri=None):
     #  yalnız platformun altı ve kabin altı kasnakları sayılıyordu:  alt şase
     #  kirişi sığınma alanının üstündeyken de yükseklik platformdan ölçülüyordu.
     kasnaklar = kuyu_dibi.kabin_alti_askisi(g, S, KD["taban"])
-    kasnak_capi = (g.get("aski") or {}).get("kasnak_capi") or 0
-    sg = KD["siginma"]
     dip_parcalar = hareketli.kabin_parcalari(g, S, KD["taban"], dip)
     siginma_ustu, siginma_ad = hareketli.ustundeki_en_alt(
-        dip_parcalar, sg, (dip["taban_alti"], hareketli.KABIN)
+        dip_parcalar, KD["siginma"], (dip["taban_alti"], hareketli.KABIN)
     )
     en_alt, en_alt_ad = min(
         [(dip["taban_alti"], hareketli.KABIN)]
         + [(p[2], p[0]) for p in dip_parcalar if p[0] not in hareketli.RAYA_YAKIN]
     )
-    dip_engel = {"siginma": siginma_ad, "en_alt": en_alt_ad}
-    dip_aciklik = {
-        "siginma": (
-            siginma_ustu - taban,
-            SIGINMA_DIP_YUKSEKLIK[kd["siginma_tipi"]],
-            "m.5.2.5.8.1 · Çizelge 4",
-        ),
-        "en_alt": (en_alt - taban, DIP_EN_ALT, "m.5.2.5.8.2 a"),
-        "etek": (dip["etek_alti"] - taban, DIP_ETEK, "m.5.2.5.8.2 a 1"),
-        "sase": (
-            min(dip["sase_alt"], dip["alt_paten"], dip["fren_alti"]) - taban,
-            DIP_RAYA_YAKIN,
-            "m.5.2.5.8.2 a 2 · Şekil 7",
-        ),
+    return {
+        "dip": dip,
+        "taban": taban,
+        "kasnaklar": kasnaklar,
+        "kasnak_capi": aski.get("kasnak_capi") or 0,
+        "dip_parcalar": dip_parcalar,
+        "dip_engel": {"siginma": siginma_ad, "en_alt": en_alt_ad},
+        "dip_aciklik": {
+            "siginma": (
+                siginma_ustu - taban,
+                SIGINMA_DIP_YUKSEKLIK[kd["siginma_tipi"]],
+                "m.5.2.5.8.1 · Çizelge 4",
+            ),
+            "en_alt": (en_alt - taban, DIP_EN_ALT, "m.5.2.5.8.2 a"),
+            "etek": (dip["etek_alti"] - taban, DIP_ETEK, "m.5.2.5.8.2 a 1"),
+            "sase": (
+                min(dip["sase_alt"], dip["alt_paten"], dip["fren_alti"]) - taban,
+                DIP_RAYA_YAKIN,
+                "m.5.2.5.8.2 a 2 · Şekil 7",
+            ),
+        },
     }
 
-    #  ── KUYU ÜSTÜ:  kabin en üst konumunda ────────────────────────────
-    #  Karşı ağırlık tam ezilmiş tamponunda + 0,035·v²  ( m.5.2.5.6.1 )
-    H = kotlar[-1]
-    M = donanim.yerlesim(g, S, H, H + dy["son_kat"], -KY)
-    if M["hata"]:
-        return {"hata": hata + M["hata"]}
+
+def _genislet(k, d):
+    return (k[0] - d, k[1] - d, k[2] + d, k[3] + d)
+
+
+def _kuyu_ustu_acikliklari(g, S, dy, KD, KU, M, H):
+    """KUYU ÜSTÜ:  kabin en üst konumunda ( karşı ağırlık tam ezilmiş
+    tamponunda + 0,035·v² — m.5.2.5.6.1 ).  Engeller son kattan ölçülür."""
+    aski = g.get("aski") or {}
+    b35 = 35.0 * dy["beyan_hizi"] * dy["beyan_hizi"]  # 0,035 · v² · 1000
     yukselme = dy["agirlik_carpma_arasi"] + dy["agirlik_tampon_ezilme"] + b35
-    ust = kabin_kotlari(dy, S, yukselme, aski, tavanda)
-    tavan_alti = dy["son_kat"] - S["tavan_kirisi"]
+    ust = kabin_kotlari(dy, S, yukselme, aski, arka_aski.arkada_iki_bir(g))
 
     def engel(kutu):
         z, ad = donanim.tavan_engeli(M, kutu)
         return z - H, ad
 
-    def genislet(k, d):
-        return (k[0] - d, k[1] - d, k[2] + d, k[3] + d)
-
-    kabin_izi = KU["tavan"]
     ray_ustu = min(r["ust"] for r in M["raylar"] if r["tur"] == "kabin") - H
     korkuluk = max((k["yukseklik"] for k in KU["kenarlar"].values() if k["gerekli"]), default=0.0)
     sg_engel = engel(KU["siginma"])
@@ -280,12 +340,12 @@ def yerlesim(g, cizim_sabitleri=None):
         for el in KD["taban"]
         if el["katman"] == "PATEN" and el.get("ad") != "agirlik_pateni"
     ]
-    pt_engel = min(engel(genislet(p, YATAY_UZAKLIK)) for p in patenler)
+    pt_engel = min(engel(_genislet(p, YATAY_UZAKLIK)) for p in patenler)
     ust_engel = {"siginma": sg_engel, "paten": pt_engel, "ray": (ray_ustu, "ray")}
     ust_aciklik = {
         "siginma": (
             sg_engel[0] - ust["tavan"],
-            SIGINMA_UST_YUKSEKLIK[ku["siginma_tipi"]],
+            SIGINMA_UST_YUKSEKLIK[g["kabin_ustu"]["siginma_tipi"]],
             "m.5.2.5.7.1 · Çizelge 3",
         ),
         "paten": (pt_engel[0] - ust["ust_paten"], UST_PATEN, "m.5.2.5.7.2 b"),
@@ -311,29 +371,56 @@ def yerlesim(g, cizim_sabitleri=None):
             + aski.get("nokta_kaciklik", 0)
         )
         dk = makine.halat_deligi(hx, hy, aski.get("halat_adedi") or 1, aski.get("halat_capi") or 0, 0.0)
-        bg_engel = engel(genislet(dk, YATAY_UZAKLIK))
+        bg_engel = engel(_genislet(dk, YATAY_UZAKLIK))
         ust_engel["baglanti"] = bg_engel
         ust_aciklik["baglanti"] = (bg_engel[0] - ust["baglanti_ust"], UST_PATEN, "m.5.2.5.7.2 b")
+    tavan_alti = dy["son_kat"] - S["tavan_kirisi"]
     if korkuluk:
-        #  Korkuluğun 0,40 m yakınındaki tavan parçaları:  kabin izdüşümündeyse
-        #  0,30, dışındaysa 0,10  ( m.5.2.5.7.2 c 1 ).  Her kenar kendi
-        #  korkuluğunun yüksekliğiyle ( yan 0,70 · arka 1,10 olabilir — m.5.4.7.4
-        #  b );  kuyu tavanı en yüksek korkuluğa.  Eskiden hepsine en yüksek
-        #  korkuluk uygulanıyordu:  0,70'lik yan korkuluğun üstündeki halat
-        #  bağlantısı 1,10'luk korkulukla ölçülüyordu.
-        adaylar = [(tavan_alti, "kuyu tavanı", UST_KORKULUK, ust["tavan"] + korkuluk)]
-        for kenar, yuk in kabin_ustu.korkuluklar(KU):
-            bolge = genislet(kenar, YATAY_UZAKLIK)
-            for ad, p, z in M["parcalar"]:
-                if ortusur(p, bolge):
-                    icinde = ortusur(p, kabin_izi)
-                    adaylar.append(
-                        (z - H, ad, UST_KORKULUK if icinde else UST_KORKULUK_DIS, ust["tavan"] + yuk)
-                    )
-        z, ad, asgari, k_ust = min(adaylar, key=lambda a: a[0] - a[3] - a[2])
+        z, ad, asgari, k_ust = _korkuluk_engeli(KU, M, H, ust, korkuluk, tavan_alti)
         ust_engel["korkuluk"] = (z, ad)
         ust_aciklik["korkuluk"] = (z - k_ust, asgari, "m.5.2.5.7.2 c")
+    return {
+        "ust": ust,
+        "tavan_alti": tavan_alti,
+        "ray_ustu": ray_ustu,
+        "yukselme": yukselme,
+        "ust_engel": ust_engel,
+        "korkuluk": korkuluk,
+        "ust_aciklik": ust_aciklik,
+    }
+
+
+def _korkuluk_engeli(KU, M, H, ust, korkuluk, tavan_alti):
+    """Korkuluğun 0,40 m yakınındaki tavan parçaları:  kabin izdüşümündeyse
+    0,30, dışındaysa 0,10  ( m.5.2.5.7.2 c 1 ).  Her kenar kendi
+    korkuluğunun yüksekliğiyle ( yan 0,70 · arka 1,10 olabilir — m.5.4.7.4
+    b );  kuyu tavanı en yüksek korkuluğa.  Eskiden hepsine en yüksek
+    korkuluk uygulanıyordu:  0,70'lik yan korkuluğun üstündeki halat
+    bağlantısı 1,10'luk korkulukla ölçülüyordu.
+    ( parçanın kotu, adı, asgari açıklık, korkuluğun üstü ) — en dar olanı."""
+    adaylar = [(tavan_alti, "kuyu tavanı", UST_KORKULUK, ust["tavan"] + korkuluk)]
+    for kenar, yuk in kabin_ustu.korkuluklar(KU):
+        bolge = _genislet(kenar, YATAY_UZAKLIK)
+        for ad, p, z in M["parcalar"]:
+            if ortusur(p, bolge):
+                icinde = ortusur(p, KU["tavan"])
+                adaylar.append((z - H, ad, UST_KORKULUK if icinde else UST_KORKULUK_DIS, ust["tavan"] + yuk))
+    return min(adaylar, key=lambda a: a[0] - a[3] - a[2])
+
+
+def _agirlik_uc_konumlari(g, S, dy, KD, M, H, taban, ust_aciklik, hata):
+    """KARŞI AĞIRLIĞIN UÇ KONUMLARI — parçaları ( çerçeve, patenler, 2:1'de
+    kasnak:  hareketli.agirlik_parcalari ) kuyunun tavanına ve tabanına
+    değmemeli.  Standardın sayısı yok ( m.5.2.5.6.2 yalnız rayın kılavuzluğunu
+    ister ):  değmemesi aranır.  En üstte her parçanın izinin üstündeki en
+    alçak tavan parçası ( makine şasesi, bağlantılar, tavan kirişi payı —
+    makine daireli ve dairesizde );  en altta tamponu tam ezilmişken.
+    Eskiden yalnız makine dairesizde çerçevenin makine şasesine çarpması
+    denetleniyordu:  makine dairelide kasnak tavana girebiliyor, alt paten
+    kuyu tabanının altına inebiliyordu ( denetim 8 Eki ).
+    Ağırlık rayının kılavuzluğu ust_aciklik'e girer.  ( en üst, en alt kotlar )"""
     #  Karşı ağırlık en üst konumunda:  kabin tam ezilmiş tamponunda + 0,035·v²
+    b35 = 35.0 * dy["beyan_hizi"] * dy["beyan_hizi"]
     ag_alt = (
         M["agirlik"]["tampon_ustu"]
         + dy["agirlik_carpma_arasi"]
@@ -345,15 +432,6 @@ def yerlesim(g, cizim_sabitleri=None):
     AK = parca_kotlari.agirlik_kotlari(M, ag_alt)
     ag_ray = min(r["ust"] for r in M["raylar"] if r["tur"] == "agirlik")
     ust_aciklik["agirlik_ray"] = (ag_ray - AK["ust_paten"], RAY_UZANTISI, "m.5.2.5.6.2")
-    #  KARŞI AĞIRLIĞIN UÇ KONUMLARI — parçaları ( çerçeve, patenler, 2:1'de
-    #  kasnak:  hareketli.agirlik_parcalari ) kuyunun tavanına ve tabanına
-    #  değmemeli.  Standardın sayısı yok ( m.5.2.5.6.2 yalnız rayın kılavuzluğunu
-    #  ister ):  değmemesi aranır.  En üstte her parçanın izinin üstündeki en
-    #  alçak tavan parçası ( makine şasesi, bağlantılar, tavan kirişi payı —
-    #  makine daireli ve dairesizde );  en altta tamponu tam ezilmişken.
-    #  Eskiden yalnız makine dairesizde çerçevenin makine şasesine çarpması
-    #  denetleniyordu:  makine dairelide kasnak tavana girebiliyor, alt paten
-    #  kuyu tabanının altına inebiliyordu ( denetim 8 Eki ).
     AKd = parca_kotlari.agirlik_kotlari(M, M["agirlik"]["tampon_ustu"] - dy["agirlik_tampon_ezilme"])
     #  Her uç konum için tek ileti:  en çok taşan parça, öbürleri adıyla.
     ust_carpan, alt_carpan = {}, {}
@@ -384,38 +462,7 @@ def yerlesim(g, cizim_sabitleri=None):
             f"tabanın {alt_carpan[en]:g} mm altında{ayrica(alt_carpan, en)} ( ağırlık "
             "tampon kaidesi ya da tampon boyu büyütülmeli )."
         )
-    #  Açıklık dışındaki fiziksel hatalar ( kuyu dibi zinciri, ağırlığın
-    #  şaseye çarpması ):  hesabın bölüm 11'i açıklıkları sözlüklerden okur,
-    #  bunları ayrıca basar.
-    diger = list(hata)
-    for ad, (deger, asgari, madde) in list(dip_aciklik.items()) + list(ust_aciklik.items()):
-        if deger < asgari - 1e-9:
-            hata.append(f"{AD[ad]}:  {deger:g} mm < {asgari:g} mm  ( TS EN 81-20 {madde} ).")
-    return {
-        "hata": hata,
-        "diger": diger,
-        "S": S,
-        "KD": KD,
-        "KU": KU,
-        "M": M,
-        "dip": dip,
-        "ust": ust,
-        "taban": taban,
-        "tavan_alti": tavan_alti,
-        "ray_ustu": ray_ustu,
-        "yukselme": yukselme,
-        "ust_engel": ust_engel,
-        "agirlik_ust": AK,
-        "korkuluk": korkuluk,
-        "dip_aciklik": dip_aciklik,
-        "ust_aciklik": ust_aciklik,
-        "dip_parcalar": dip_parcalar,
-        "dip_engel": dip_engel,
-        "agirlik_alt": AKd,
-        "kasnaklar": kasnaklar,
-        "kasnak_capi": kasnak_capi,
-        "kotlar": kotlar,
-    }
+    return AK, AKd
 
 
 AD = {
@@ -439,13 +486,13 @@ def dogrula(g):
     return yerlesim(g)["hata"]
 
 
-def _kot(z):
+def kot_yazisi(z):
     """Kot yazısı ( m ):  Türkçe ondalık virgülle — "±0,00", "+3,40"."""
     m = z / 1000.0
     return "±0,00" if abs(m) < 5e-4 else f"{m:+.2f}".replace(".", ",")
 
 
-def _kabin(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89, esik_on=None):
+def kabin_kesiti(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89, esik_on=None):
     """Kabinin kesiti:  gövde, taban, etek, şase, patenler, fren bloğu, kasnak.
     esik_on:  kabin eşiğinin kat tarafındaki kenarı ( önlük orada asılıdır;
     verilmezse kabinin ön yüzü )."""

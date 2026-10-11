@@ -107,7 +107,7 @@ def uret(md):
         "motor_power": f"{A['motor_gucu']:g} KW".replace(".", ","),
         "scale": "1/20 1/50",
     }
-    kapak_pdf = kapak_cikti.pdf_bytes(kapak)
+    kapak_pdf = kapak_cikti.pdf_baytlari(kapak)
     hesap_pdf = pdf_cikti.uygulama_pdf(s)
     hesap_dxf = dxf_cikti.proje_dxf([("Kapak", kapak_pdf), ("Uygulama Projesi", hesap_pdf)])
 

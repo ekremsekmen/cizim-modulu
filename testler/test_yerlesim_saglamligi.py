@@ -36,7 +36,7 @@ KABIN = {
 }
 
 
-def _veri(Q, mrl=True, yer="Sağ", **ek):
+def standart_istek(Q, mrl=True, yer="Sağ", **ek):
     kg, kd, dw = KABIN[Q]
     #  KAPI KARŞI AĞIRLIĞIN TERSİNE AÇILIR ( 2 Eki ):  bu kuyularda yandaki
     #  ağırlığın ön rayı ön duvara yakındır;  ağırlığa doğru açılan kapının
@@ -78,18 +78,18 @@ def gecerli_duzen(Q, yer="Sağ", mrl=True, **ek):
             **({"makine_raya_biniyor": "Bina yapısına", "son_kat_yuksekligi": 5000} if mrl else {}),
             **ek,
         )
-    v = _veri(Q, mrl, yer, **ek)
+    v = standart_istek(Q, mrl, yer, **ek)
     if yer == "Arka":
         v["asansorler"][0]["kuyu_derinligi"] = KABIN[Q][1] + 700
-    g, _A, hata = _g(v)
+    g, _A, hata = duzen_girdisi(v)
     return g, hata
 
 
-def _cizim(v):
+def cizim_yaniti(v):
     return json.loads(cizim_uclari.api_cizimler(v).body)
 
 
-def _g(v):
+def duzen_girdisi(v):
     ham, _i, proje = cizim_uclari._istek(v)
     A = uygulama_girdisi.tamamla(ham)
     g, hata = kopru.cizim_girdisi(A, None, proje, 1)
@@ -111,7 +111,7 @@ class StandartAsansorler(unittest.TestCase):
                 ):
                     if Q == 320 and ek:
                         continue  # 900 × 1.000 tavanına 1:1 bağlantıyla çömelme sığmaz
-                    d = _cizim(_veri(Q, mrl, yer, **ek))
+                    d = cizim_yaniti(standart_istek(Q, mrl, yer, **ek))
                     if Q == 320:
                         #  900 × 1.000 tavanını şasenin üst kirişi ( ray ekseninde
                         #  300 — ÇİZİM KABULÜ ) ikiye böler:  kirişin önünde ve
@@ -139,9 +139,9 @@ class StandartAsansorler(unittest.TestCase):
                 (False, {}),
             ):
                 for derin, cizilir in ((450, False), (700, Q not in (320, 450, 630))):
-                    v = _veri(Q, mrl, "Arka", aski_duzeni="Kabin üstü", **ek)
+                    v = standart_istek(Q, mrl, "Arka", aski_duzeni="Kabin üstü", **ek)
                     v["asansorler"][0]["kuyu_derinligi"] = kd + derin
-                    d = _cizim(v)
+                    d = cizim_yaniti(v)
                     self.assertEqual(bool(d.get("aktif")), cizilir, (Q, mrl, derin, d.get("hata")))
                     if derin == 450:
                         self.assertTrue(any("m.5.2.5.5.1 h" in h for h in d["hata"]), d["hata"])
@@ -156,11 +156,14 @@ class StandartAsansorler(unittest.TestCase):
         #  4.030'da çizilir, 4.029'da kasnak – tavan 499 < 500 kalır ( eskiden 4.000
         #  yetiyordu ).  Referans projenin kabiniyle ( şase 3.300 ) 4.600 gerekiyordu.
         for Q in (450, 1000, 2500):
-            self.assertTrue(_cizim(_veri(Q, aski_duzeni="Kabin üstü")).get("aktif"), Q)
+            self.assertTrue(cizim_yaniti(standart_istek(Q, aski_duzeni="Kabin üstü")).get("aktif"), Q)
             self.assertTrue(
-                _cizim(_veri(Q, aski_duzeni="Kabin üstü", son_kat_yuksekligi=4030)).get("aktif"), Q
+                cizim_yaniti(standart_istek(Q, aski_duzeni="Kabin üstü", son_kat_yuksekligi=4030)).get(
+                    "aktif"
+                ),
+                Q,
             )
-            d = _cizim(_veri(Q, aski_duzeni="Kabin üstü", son_kat_yuksekligi=4029))
+            d = cizim_yaniti(standart_istek(Q, aski_duzeni="Kabin üstü", son_kat_yuksekligi=4029))
             self.assertTrue(
                 any("m.5.2.5.7.1" in h or "m.5.2.5.7.2 a" in h for h in d.get("hata") or []),
                 (Q, d.get("hata")),
@@ -171,17 +174,17 @@ class SiginmaAlani(unittest.TestCase):
     def test_kabin_kasnaklarinin_ve_halatin_altina_dusmez(self):
         #  1.350 × 1.400 kabin:  alan kapıya en yakın yerde sağ kasnağın köşesine
         #  giriyor, yükseklik 945 kalıyordu ( 1.000 gerekir ).
-        g, _A, _h = _g(_veri(800))
+        g, _A, _h = duzen_girdisi(standart_istek(800))
         KD = kuyu_dibi.yerlesim(g)
         alcak = kuyu_dibi.kabin_alti_askisi(g, KD["S"], KD["taban"])
         self.assertEqual(len(alcak), 3)  # iki kasnak + aradaki halat
         self.assertFalse(any(_ortusur(KD["siginma"], k) for k in alcak), KD["siginma"])
-        self.assertTrue(_cizim(_veri(800)).get("aktif"))
+        self.assertTrue(cizim_yaniti(standart_istek(800)).get("aktif"))
 
     def test_dar_bosluk_izgarada_kacmaz(self):
         #  1.000 × 1.250 kabin:  halat şeridinin arkasında 507 mm'lik bant;  25 mm
         #  ızgara ya şeride 1 mm değiyor ya kabinden taşıyordu.
-        g, _A, _h = _g(_veri(450))
+        g, _A, _h = duzen_girdisi(standart_istek(450))
         KD = kuyu_dibi.yerlesim(g)
         alcak = kuyu_dibi.kabin_alti_askisi(g, KD["S"], KD["taban"])
         self.assertFalse(any(_ortusur(KD["siginma"], k) for k in alcak), KD["siginma"])
@@ -190,7 +193,7 @@ class SiginmaAlani(unittest.TestCase):
         #  900 × 1.000:  ortadaki tamponun iki yanı 500'e yetmez;  m.5.2.5.8.1
         #  yalnız kuyu tabanında engelsiz bir alan ister — alan kabinin izinin
         #  dışına taşar, karşı ağırlığın şeridine girmez.
-        g, _A, _h = _g(_veri(320))
+        g, _A, _h = duzen_girdisi(standart_istek(320))
         KD = kuyu_dibi.yerlesim(g)
         self.assertEqual([h for h in KD["hata"] if "sığınma" in h], [])
         sg = KD["siginma"]
@@ -207,10 +210,10 @@ class SiginmaAlani(unittest.TestCase):
 class Merdiven(unittest.TestCase):
     def test_genis_kuyuda_kapinin_yaninda(self):
         #  2.000 genişlikte kabin, kuyu 2.950:  yan duvarlar kapıdan 800'den uzak
-        g, _A, _h = _g(_veri(1275))
+        g, _A, _h = duzen_girdisi(standart_istek(1275))
         KD = kuyu_dibi.yerlesim(g)
         self.assertEqual(KD["merdiven"][1], 0.0)
-        self.assertTrue(_cizim(_veri(1275)).get("aktif"))
+        self.assertTrue(cizim_yaniti(standart_istek(1275)).get("aktif"))
 
 
 class KasnaklarArasi(unittest.TestCase):
@@ -218,7 +221,7 @@ class KasnaklarArasi(unittest.TestCase):
         #  Varsayılan asansör:  eski kural ( kabin + 30 ) halatı ağırlığa 25 mm eğik
         #  indiriyordu — sarım açısı çizimden bulunamıyordu.
         v = {"asansorler": [{}], "proje_geneli": {}, "sabitler": {}, "asansor": 0}
-        g, A, _h = _g(v)
+        g, A, _h = duzen_girdisi(v)
         self.assertEqual(kuyu_ustu.yerlesim(g)["sapma"][0], 0.0)
         self.assertEqual(A["sarilma_acisi"], 180.0)
         self.assertNotEqual(g["aski"]["kasnak_arasi"], 1450 + 30)
@@ -227,32 +230,32 @@ class KasnaklarArasi(unittest.TestCase):
         #  Kabin kasnağı 240 → 260:  eski kuralda halat ara kirişin 20 mm payına
         #  giriyordu ( çizim reddediliyordu ).
         v = {"asansorler": [{"kabin_kasnak_capi": 260}], "proje_geneli": {}, "sabitler": {}, "asansor": 0}
-        self.assertTrue(_cizim(v).get("aktif"), _cizim(v).get("hata"))
+        self.assertTrue(cizim_yaniti(v).get("aktif"), cizim_yaniti(v).get("hata"))
 
     def test_carpiyorsa_eski_kural(self):
         #  Kuyu 100 geniş:  ağırlık duvarla birlikte uzaklaşır, düşey inen halat ara
         #  kirişe girerdi — halat kabine yakın kalır ( eğik iner, α girilir ).
         v = {"asansorler": [{"kuyu_genisligi": 2500}], "proje_geneli": {}, "sabitler": {}, "asansor": 0}
-        g, A, _h = _g(v)
+        g, A, _h = duzen_girdisi(v)
         self.assertEqual(g["aski"]["kasnak_arasi"], 1450 + 30)
         self.assertFalse(any(h.startswith("Halat (") for h in kabin_ustu.yerlesim(g)["hata"]))
 
     def test_girilen_kasnak_arasi_degismez(self):
         v = {"asansorler": [{"kabin_kasnak_arasi": 1400}], "proje_geneli": {}, "sabitler": {}, "asansor": 0}
-        self.assertEqual(_g(v)[0]["aski"]["kasnak_arasi"], 1400)
+        self.assertEqual(duzen_girdisi(v)[0]["aski"]["kasnak_arasi"], 1400)
 
 
 class Regulator(unittest.TestCase):
     def test_bossa_carpmayan_yer(self):
         #  900 × 1.000 kabin, 1.450 derin kuyu:  varsayılan yerde gergi kolu döner,
         #  ağırlık kabin rayına iner — program çarpmayan en yakın yeri seçer.
-        g, _A, _h = _g(_veri(320))
+        g, _A, _h = duzen_girdisi(standart_istek(320))
         self.assertNotEqual(abs(g["kuyu_dibi"]["regulator_kaciklik"]), 0)
         self.assertEqual([h for h in kuyu_dibi.yerlesim(g)["hata"] if "egülatör" in h], [])
         self.assertEqual([h for h in kuyu_ustu.yerlesim(g)["hata"] if "egülatör" in h], [])
 
     def test_girilen_yer_degismez(self):
-        g, _A, _h = _g(_veri(320, regulator_kaciklik=280))
+        g, _A, _h = duzen_girdisi(standart_istek(320, regulator_kaciklik=280))
         self.assertEqual(g["kuyu_dibi"]["regulator_kaciklik"], 280)
         self.assertTrue(any("gergisinin ağırlığı" in h for h in kuyu_dibi.yerlesim(g)["hata"]))
 

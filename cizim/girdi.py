@@ -199,7 +199,27 @@ ASGARI_YUKSEKLIK = 2000.0
 def dogrula(g):
     """Girdinin kendisinin denetimi:  eksik / geçersiz alanlar ( metin listesi;
     boşsa temiz ).  Planın parçalarıyla yapılan denetim ( kanat cepleri )
-    geometri.dogrula'dadır — çizimler ve hesap onu çağırır."""
+    geometri.dogrula'dadır — çizimler ve hesap onu çağırır.  Denetimler
+    sırayla çalışır ( iletiler bu sırayla çıkar )."""
+    hata = _zorunlu_alanlar(g)
+    if hata:
+        return hata
+    #  GEOMETRİ TUTARLILIĞI — çizim kâğıda sığsın, parçalar çakışmasın.
+    S = sabitler.sabitler(g.get("_cizim_sabitleri"))
+    hata += _yukseklikler(g)
+    hata += _ana_olculer(g)
+    K = _kabin_ve_agirlik_kutulari(g, S)
+    hata += _kabin_ve_agirlik(g, K)
+    hata += _kanat_cebi_hatalari(g, S)
+    hata += _agirlik_raylari(g, S, K)
+    hata += _sase_ve_kapi(g, K)
+    hata += _ara_kiris(g, S, K)
+    hata += _aski_hatalari(g, S)
+    hata += _kapi_acikliklari(g, S)
+    return hata
+
+
+def _zorunlu_alanlar(g):
     hata = []
     for bolum, alanlar in ZORUNLU.items():
         d = g.get(bolum)
@@ -224,71 +244,81 @@ def dogrula(g):
                 continue  # işaretli olabilir
             elif v <= 0:
                 hata.append(f"{bolum}.{a}: sıfırdan büyük olmalı ( {v!r} ).")
-    if hata:
-        return hata
-    #  GEOMETRİ TUTARLILIĞI — çizim kâğıda sığsın, parçalar çakışmasın.
-    S = sabitler.sabitler(g.get("_cizim_sabitleri"))
-    k, kb, kp = g["kuyu"], g["kabin"], g["kapi"]
-    #  YÜKSEKLİKLER ( kullanıcı kararı 4 Eki ):  kabinin iç yüksekliği ve kapının
-    #  net geçiş yüksekliği en az 2.000 mm;  kapı kabinin girişidir, kabinden
-    #  yüksek olamaz.  Eskiden 1.500'lük kabin, 1.800'lük ya da kabinden yüksek
-    #  kapı sessizce çiziliyor ve hesaplanıyordu.
+    return hata
+
+
+def _yukseklikler(g):
+    """YÜKSEKLİKLER ( kullanıcı kararı 4 Eki ):  kabinin iç yüksekliği ve kapının
+    net geçiş yüksekliği en az 2.000 mm;  kapı kabinin girişidir, kabinden
+    yüksek olamaz.  Eskiden 1.500'lük kabin, 1.800'lük ya da kabinden yüksek
+    kapı sessizce çiziliyor ve hesaplanıyordu."""
+    hata = []
     kabin_h = (g.get("dusey") or {}).get("kabin_ic_yukseklik")
-    kapi_h = kp.get("yukseklik")
+    kapi_h = g["kapi"].get("yukseklik")
     if _sonlu_sayi(kabin_h) and kabin_h < ASGARI_YUKSEKLIK:
         hata.append(
             f"Kabin iç yüksekliği {kabin_h:g} mm:  TS EN 81-20 m.5.4.1 en az {ASGARI_YUKSEKLIK:g} mm ister."
         )
     if _sonlu_sayi(kapi_h) and kapi_h < ASGARI_YUKSEKLIK:
         hata.append(
-            f"Kat kapısı yüksekliği {kapi_h:g} mm:  TS EN 81-20 m.5.3.1.1 en az "
-            f"{ASGARI_YUKSEKLIK:g} mm ister."
+            f"Kat kapısı yüksekliği {kapi_h:g} mm:  TS EN 81-20 m.5.3.1.1 en az {ASGARI_YUKSEKLIK:g} mm ister."
         )
     if _sonlu_sayi(kabin_h) and _sonlu_sayi(kapi_h) and kapi_h > kabin_h:
         hata.append(
             f"Kat kapısı yüksekliği ( {kapi_h:g} mm ) kabin iç yüksekliğinden "
             f"( {kabin_h:g} mm ) büyük olamaz:  kapı kabinin girişidir."
         )
+    return hata
+
+
+def _ana_olculer(g):
+    """Kabin, kapı ve raylar kuyuya sığar;  kabin rayları kabinin derinliği
+    içinden geçer."""
+    hata = []
+    k, kb, kp, kr = g["kuyu"], g["kabin"], g["kapi"], g["kabin_ray"]
     if kb["genislik"] >= k["genislik"]:
         hata.append(f"Kabin genişliği ({kb['genislik']}) kuyu genişliğinden ({k['genislik']}) küçük olmalı.")
     if kb["derinlik"] >= k["derinlik"]:
         hata.append(f"Kabin derinliği ({kb['derinlik']}) kuyu derinliğinden ({k['derinlik']}) küçük olmalı.")
     if kp["sol_pay"] + kp["genislik"] > k["genislik"]:
         hata.append("Kapı boşluğu kuyu genişliğine sığmıyor.")
-    if g["kabin_ray"]["kapi_arasi"] >= k["derinlik"]:
+    if kr["kapi_arasi"] >= k["derinlik"]:
         hata.append("Ray – kapı arası kuyu derinliğinden büyük olamaz.")
-    if g["kabin_ray"]["arasi"] > k["genislik"]:
+    if kr["arasi"] > k["genislik"]:
         hata.append("Kabin rayları arası kuyu genişliğine sığmıyor.")
     #  KABİN RAYLARININ ARASINDA GİDER:  ray ekseni kabinin derinliği içinden
     #  geçmeli;  geçmezse patenler kabine değil boşluğa bağlanır.
-    if not (kb["on_pay"] <= g["kabin_ray"]["kapi_arasi"] <= kb["on_pay"] + kb["derinlik"]):
+    if not (kb["on_pay"] <= kr["kapi_arasi"] <= kb["on_pay"] + kb["derinlik"]):
         hata.append(
-            f"Kabin rayı ekseni ( kapıdan {g['kabin_ray']['kapi_arasi']:g} ) kabinin "
+            f"Kabin rayı ekseni ( kapıdan {kr['kapi_arasi']:g} ) kabinin "
             f"derinliği içinden geçmiyor ( kabin {kb['on_pay']:g} – "
             f"{kb['on_pay'] + kb['derinlik']:g} )."
         )
-    #  KABİN İLE KARŞI AĞIRLIK ÇAKIŞAMAZ.  Blok, ağırlık rayı eksenine
-    #  ortalanır;  kabinin yanından en az ASGARI_ACIKLIK kadar uzak durmalı.
-    ag = g["agirlik"]
+    return hata
+
+
+def _kabin_ve_agirlik_kutulari(g, S):
+    """Kabinin ( pano ve şasenin dış zarfı ) ve karşı ağırlığın ( patenleriyle )
+    plan kutuları ve eksenleri:  { kx, kabin, agirlik, ex | ey, ag_y }."""
+    k, kb, ag = g["kuyu"], g["kabin"], g["agirlik"]
     kx = k["genislik"] / 2.0 + kb["kaciklik_y"]
     # İç ölçü yerine çizilen pano ve şasenin dış zarfını denetle.
     yari_en = kb["genislik"] / 2.0 + S["kabin_pano_yan"] + S["sase_dikme"]
-    kabin_kutu = (
-        kx - yari_en,
-        kb["on_pay"],
-        kx + yari_en,
-        kb["on_pay"] + kb["derinlik"] + S["kabin_pano_arka"],
-    )
-    if (
-        kabin_kutu[0] < 0
-        or kabin_kutu[2] > k["genislik"]
-        or kabin_kutu[1] < 0
-        or kabin_kutu[3] > k["derinlik"]
-    ):
-        hata.append("Kabin veya şasesi kuyunun dışına taşıyor.")
+    K = {
+        "kx": kx,
+        "kabin": (
+            kx - yari_en,
+            kb["on_pay"],
+            kx + yari_en,
+            kb["on_pay"] + kb["derinlik"] + S["kabin_pano_arka"],
+        ),
+    }
+    #  KABİN İLE KARŞI AĞIRLIK ÇAKIŞAMAZ.  Blok, ağırlık rayı eksenine
+    #  ortalanır;  kabinin yanından en az ASGARI_ACIKLIK kadar uzak durmalı.
     if ag["yeri"] in ("Sağ", "Sol"):
         ex = ag["ray_duvar"] if ag["yeri"] == "Sol" else k["genislik"] - ag["ray_duvar"]
         ag_y = g["kabin_ray"]["kapi_arasi"] + ag["eksen_kaciklik"]
+        K.update(ex=ex, ag_y=ag_y)
         ag_kutu = (
             ex - ag["derinlik"] / 2.0,
             ag_y - ag["genislik"] / 2.0,
@@ -297,6 +327,7 @@ def dogrula(g):
         )
     else:
         ey = k["derinlik"] - ag["ray_duvar"]
+        K["ey"] = ey
         ag_kutu = (
             k["genislik"] / 2.0 - ag["genislik"] / 2.0,
             ey - ag["derinlik"] / 2.0,
@@ -316,6 +347,22 @@ def dogrula(g):
             if ag["yeri"] in ("Sağ", "Sol")
             else (ag_kutu[0], ag_kutu[1] - t, ag_kutu[2], ag_kutu[3] + t)
         )
+    K["agirlik"] = ag_kutu
+    return K
+
+
+def _kabin_ve_agirlik(g, K):
+    """Kabin ve ağırlık kuyunun içinde, aralarında m.5.2.5.5.1 h açıklığı."""
+    hata = []
+    k = g["kuyu"]
+    kabin_kutu, ag_kutu = K["kabin"], K["agirlik"]
+    if (
+        kabin_kutu[0] < 0
+        or kabin_kutu[2] > k["genislik"]
+        or kabin_kutu[1] < 0
+        or kabin_kutu[3] > k["derinlik"]
+    ):
+        hata.append("Kabin veya şasesi kuyunun dışına taşıyor.")
     A = KABIN_AGIRLIK_ACIKLIGI
     if (
         ag_kutu[0] < kabin_kutu[2] + A
@@ -330,8 +377,14 @@ def dogrula(g):
         )
     if ag_kutu[0] < 0 or ag_kutu[2] > k["genislik"] or ag_kutu[1] < 0 or ag_kutu[3] > k["derinlik"]:
         hata.append("Karşı ağırlık kuyunun dışına taşıyor.")
-    #  KANAT CEBİ:  otomatik kapının kanatları açılınca kapının yanında, kuyunun
-    #  içinde durur ( kanat_cepleri ) — yan duvara ya da karşı ağırlığa girmemeli.
+    return hata
+
+
+def _kanat_cebi_hatalari(g, S):
+    """KANAT CEBİ:  otomatik kapının kanatları açılınca kapının yanında, kuyunun
+    içinde durur ( kanat_cepleri ) — yan duvara ya da karşı ağırlığa girmemeli."""
+    hata = []
+    k, kp = g["kuyu"], g["kapi"]
     for c0, c1 in kanat_cepleri(g, S):
         if c0 < -1e-6 or c1 > k["genislik"] + 1e-6:
             yan = kp["sol_pay"] if c0 < 0 else k["genislik"] - kp["sol_pay"] - kp["genislik"]
@@ -343,17 +396,24 @@ def dogrula(g):
                 f"{kp['genislik'] / n:g} + {S['kanat_cebi_payi']:g} )"
                 + (f";  sığan kapı tipi:  {' · '.join(oneri)}." if oneri else ".")
             )
-    #  PARÇALAR KENDİ RAYLARININ ARASINA SIĞMALI.  Çerçeve / şase, iki rayın
-    #  birbirine bakan yüzleri arasında kalır;  patenler bu aralıkta kayar.
+    return hata
+
+
+def _agirlik_raylari(g, S, K):
+    """PARÇALAR KENDİ RAYLARININ ARASINA SIĞMALI.  Çerçeve / şase, iki rayın
+    birbirine bakan yüzleri arasında kalır;  patenler bu aralıkta kayar.
+    Rayların arkasındaki konsol plakaları da kuyu içinde kalmalı:  yan
+    yerleşimde bu zarf derinlikte, arka yerleşimde genişliktedir."""
+    hata = []
+    k, ag = g["kuyu"], g["agirlik"]
     if ag["genislik"] >= ag["ray_arasi"]:
         hata.append(
             f"Karşı ağırlık genişliği ({ag['genislik']:g}) ağırlık rayları arasından "
             f"( DBGW {ag['ray_arasi']:g} ) küçük olmalı — çerçeve iki rayın arasında durur."
         )
-    # Rayların arkasındaki konsol plakaları da kuyu içinde kalmalı.
-    # Yan yerleşimde bu zarf derinlikte, arka yerleşimde genişliktedir.
     ray_yari = ag["ray_arasi"] / 2.0 + ag["h"] + S["konsol_agirlik_boy"] / 2.0
     if ag["yeri"] in ("Sağ", "Sol"):
+        ex, ag_y = K["ex"], K["ag_y"]
         tasiyor = (
             ag_y - ray_yari < 0
             or ag_y + ray_yari > k["derinlik"]
@@ -362,6 +422,7 @@ def dogrula(g):
             or S["konsol_agirlik_en"] > k["genislik"]
         )
     else:
+        ey = K["ey"]
         tasiyor = (
             k["genislik"] / 2.0 - ray_yari < 0
             or k["genislik"] / 2.0 + ray_yari > k["genislik"]
@@ -371,7 +432,14 @@ def dogrula(g):
         )
     if tasiyor:
         hata.append("Karşı ağırlık rayları veya konsolları kuyunun dışına taşıyor.")
-    sase_dis = kabin_kutu[2] - kabin_kutu[0]
+    return hata
+
+
+def _sase_ve_kapi(g, K):
+    """Şase kabin rayları arasına sığar;  kat kapısı kabinin önüne düşer."""
+    hata = []
+    kb, kp = g["kabin"], g["kapi"]
+    sase_dis = K["kabin"][2] - K["kabin"][0]
     if sase_dis >= g["kabin_ray"]["arasi"]:
         hata.append(
             f"Kabin şasesinin dış genişliği ({sase_dis:g}) kabin rayları arasından "
@@ -379,6 +447,7 @@ def dogrula(g):
         )
     #  KAPI KABİNİN ÖNÜNE DÜŞMELİ:  kat kapısının net boşluğu kabin iç
     #  genişliğinin dışına taşarsa kabin kapısıyla karşılaşmaz.
+    kx = K["kx"]
     if (
         kp["sol_pay"] < kx - kb["genislik"] / 2.0
         or kp["sol_pay"] + kp["genislik"] > kx + kb["genislik"] / 2.0
@@ -387,55 +456,70 @@ def dogrula(g):
             "Kat kapısı boşluğu kabinin önüne düşmüyor — kapının soldan uzaklığını "
             "ya da kabinin yana kaçıklığını gözden geçirin."
         )
-    #  AĞIRLIK YANDAYSA o taraftaki kabin rayı ağırlık konsollarına bağlı
-    #  bir ara kirişte durur;  kiriş ağırlıkla kabin rayı arasına sığmalı.
-    if ag["yeri"] in ("Sağ", "Sol"):
-        kr_ = g["kabin_ray"]
-        if ag["yeri"] == "Sol":
-            ray_arkasi = kx - kr_["arasi"] / 2.0 - kr_["h"]
-            bosluk = ray_arkasi - S["ara_kiris_en"] - ag_kutu[2]
-        else:
-            ray_arkasi = kx + kr_["arasi"] / 2.0 + kr_["h"]
-            bosluk = ag_kutu[0] - (ray_arkasi + S["ara_kiris_en"])
-        if bosluk < ASGARI_ACIKLIK:
-            hata.append(
-                f"Karşı ağırlık ile kabin rayının ara kirişi arasında {bosluk:g} mm kalıyor "
-                f"( en az {ASGARI_ACIKLIK:g} ) — ağırlık rayı – duvar ölçüsünü ya da "
-                "kabinin yana kaçıklığını gözden geçirin."
-            )
-    #  ASKI DÜZENİ
+    return hata
+
+
+def _ara_kiris(g, S, K):
+    """AĞIRLIK YANDAYSA o taraftaki kabin rayı ağırlık konsollarına bağlı
+    bir ara kirişte durur;  kiriş ağırlıkla kabin rayı arasına sığmalı."""
+    ag = g["agirlik"]
+    if ag["yeri"] not in ("Sağ", "Sol"):
+        return []
+    kr_, kx, ag_kutu = g["kabin_ray"], K["kx"], K["agirlik"]
+    if ag["yeri"] == "Sol":
+        ray_arkasi = kx - kr_["arasi"] / 2.0 - kr_["h"]
+        bosluk = ray_arkasi - S["ara_kiris_en"] - ag_kutu[2]
+    else:
+        ray_arkasi = kx + kr_["arasi"] / 2.0 + kr_["h"]
+        bosluk = ag_kutu[0] - (ray_arkasi + S["ara_kiris_en"])
+    if bosluk < ASGARI_ACIKLIK:
+        return [
+            f"Karşı ağırlık ile kabin rayının ara kirişi arasında {bosluk:g} mm kalıyor "
+            f"( en az {ASGARI_ACIKLIK:g} ) — ağırlık rayı – duvar ölçüsünü ya da "
+            "kabinin yana kaçıklığını gözden geçirin."
+        ]
+    return []
+
+
+def _aski_hatalari(g, S):
+    """ASKI DÜZENİ:  ölçüleri ve kuyuya sığması."""
     a = g.get("aski") or {}
     if a.get("duzen") not in ASKI_DUZENLERI:
-        hata.append(f"aski.duzen: {ASKI_DUZENLERI} içinden olmalı ( {a.get('duzen')!r} ).")
-    else:
-        tur, cap, aralik, kaciklik = _aski_olculeri(g)
-        gerekli = [("aralık", aralik), ("kasnak çapı", cap)] if tur == "kasnak" else []
-        for ad, v in gerekli:
-            if not _sonlu_sayi(v) or v <= 0:
-                hata.append(f"aski: {ad} sıfırdan büyük bir sayı olmalı ( {v!r} ).")
-        if not _sonlu_sayi(kaciklik):
-            hata.append(f"aski: kaçıklık sonlu bir sayı olmalı ( {kaciklik!r} ).")
+        return [f"aski.duzen: {ASKI_DUZENLERI} içinden olmalı ( {a.get('duzen')!r} )."]
+    hata = []
+    k, kb = g["kuyu"], g["kabin"]
+    tur, cap, aralik, kaciklik = _aski_olculeri(g)
+    gerekli = [("aralık", aralik), ("kasnak çapı", cap)] if tur == "kasnak" else []
+    for ad, v in gerekli:
+        if not _sonlu_sayi(v) or v <= 0:
+            hata.append(f"aski: {ad} sıfırdan büyük bir sayı olmalı ( {v!r} ).")
+    if not _sonlu_sayi(kaciklik):
+        hata.append(f"aski: kaçıklık sonlu bir sayı olmalı ( {kaciklik!r} ).")
 
-        if arka_aski.arkada_iki_bir(g) and _sonlu_sayi(kaciklik):
-            #  Arkadaki ağırlıkla 2:1:  kasnaklar çapraz düzlemde, aralığı
-            #  geometriden ( arka_aski ) — sınırlarını o denetler.
-            A = arka_aski.geometri(g, S)
-            hata += [h for h in A["hata"] if "kuyunun dışına" in h]
-        elif all(_sonlu_sayi(v) and v > 0 for _, v in gerekli) and _sonlu_sayi(kaciklik):
-            yari = aralik / 2.0 + (cap / 2.0 if tur == "kasnak" else 45.0)
-            kx = k["genislik"] / 2.0 + kb["kaciklik_y"]
-            aski_y = kb["on_pay"] + (kb["derinlik"] + S["kabin_pano_arka"]) / 2.0 + kaciklik
-            yari_y = S["kabin_kasnak_genislik"] / 2.0 if tur == "kasnak" else 45.0
-            if (
-                kx - yari < 0
-                or kx + yari > k["genislik"]
-                or aski_y - yari_y < 0
-                or aski_y + yari_y > k["derinlik"]
-            ):
-                hata.append("Askı kasnakları / noktaları kuyunun dışına taşıyor.")
+    if arka_aski.arkada_iki_bir(g) and _sonlu_sayi(kaciklik):
+        #  Arkadaki ağırlıkla 2:1:  kasnaklar çapraz düzlemde, aralığı
+        #  geometriden ( arka_aski ) — sınırlarını o denetler.
+        hata += [h for h in arka_aski.geometri(g, S)["hata"] if "kuyunun dışına" in h]
+    elif all(_sonlu_sayi(v) and v > 0 for _, v in gerekli) and _sonlu_sayi(kaciklik):
+        yari = aralik / 2.0 + (cap / 2.0 if tur == "kasnak" else 45.0)
+        kx = k["genislik"] / 2.0 + kb["kaciklik_y"]
+        aski_y = kb["on_pay"] + (kb["derinlik"] + S["kabin_pano_arka"]) / 2.0 + kaciklik
+        yari_y = S["kabin_kasnak_genislik"] / 2.0 if tur == "kasnak" else 45.0
+        if (
+            kx - yari < 0
+            or kx + yari > k["genislik"]
+            or aski_y - yari_y < 0
+            or aski_y + yari_y > k["derinlik"]
+        ):
+            hata.append("Askı kasnakları / noktaları kuyunun dışına taşıyor.")
+    return hata
 
-    #  KAPI AÇIKLIKLARI — standardın kendi sınırları, kabin EŞİĞİNİN ön
-    #  kenarından ölçülür ( kabin gövdesinden değil )
+
+def _kapi_acikliklari(g, S):
+    """KAPI AÇIKLIKLARI — standardın kendi sınırları, kabin EŞİĞİNİN ön
+    kenarından ölçülür ( kabin gövdesinden değil )."""
+    hata = []
+    kb, kp = g["kabin"], g["kapi"]
     KB = kapi_bolgesi(g, S)
     kabin_esigi = KB["kabin_esik"][0]
     esik_arasi = kabin_esigi - KB["hat"]

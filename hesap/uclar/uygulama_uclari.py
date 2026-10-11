@@ -117,7 +117,7 @@ def indir_uygulama_dwg(veri: dict = Body(...)):
         #  kapak alanları doldurulmuşsa pakete de girer.
         kapak = veri.get("kapak_sayfasi")
         if isinstance(kapak, dict) and any(str(x).strip() for x in kapak.values()):
-            paftalar.append(("Kapak", kapak_cikti.pdf_bytes(kapak)))
+            paftalar.append(("Kapak", kapak_cikti.pdf_baytlari(kapak)))
         paftalar.append(("Uygulama Projesi", pdf_cikti.uygulama_pdf(s)))
         #  ÇİZİMLER:  her asansörün kuyu kesitleri ve planları hesap
         #  sayfalarının sağına dizilir.  Bir asansörün çizimi kurulamıyorsa

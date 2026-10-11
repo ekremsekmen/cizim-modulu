@@ -466,7 +466,7 @@ class YeniDuzenler(unittest.TestCase):
 
 
 class Uclar(unittest.TestCase):
-    def test_onizleme_bütün_cizimleri_verir(self):
+    def test_onizleme_butun_cizimleri_verir(self):
         for md in (False, True):
             v = _veri(md)
             v["asansor"] = 0
