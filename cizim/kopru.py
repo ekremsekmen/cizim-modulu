@@ -327,7 +327,7 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
             f"{baba + boy + carpma + S['sase_alt_derinlik']:g}, kuyu dibi {KY:g} — kabin "
             f"tamponu kaidesine {dogru:g} girin ya da kutuyu boş bırakın ( çizimden gelir )."
         )
-    #  Yükseklikler ( en az 2.000, kapı kabinden yüksek değil ) girdi.dogrula'da:
+    #  Yükseklikler ( en az 2.000, kapı kabinden yüksek değil ) geometri.dogrula'da:
     #  hesap da o doğrulamada durur ( hesap.hesapla ).
     kabin_h, kapi_h = sayi("kabin_ic_yuksekligi"), sayi("kapi_yuksekligi")
     #  TAMPON ADEDİ:  çizim 1 ya da 2 tampon çizer;  ikisinde aralarındaki

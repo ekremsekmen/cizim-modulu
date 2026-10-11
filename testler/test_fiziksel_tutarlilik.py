@@ -7,6 +7,7 @@ from temel import ortusur
 from cizim import girdi, geometri, kuyu_dibi
 from cizim import kuyu_kesiti, kabin_ustu, kesit_parcalari
 from testler.test_cizim import _ornek, _sag_ayna
+from cizim import parca_kotlari
 
 
 class FizikselTutarlilik(unittest.TestCase):
@@ -135,13 +136,12 @@ class FizikselTutarlilik(unittest.TestCase):
             self.assertIn((k["x"] + k["g"] / 2.0, k["y"] + k["d"] / 2.0), uclar)
         for d in dikmeler:
             self.assertTrue(any(icinde(p, d) for p in uclar), d)
-        from cizim import donanim
 
         Y = kuyu_kesiti.yerlesim(g)
         #  A-A'da kabin en alt, B-B'de en üst durakta
         for ciz, z in ((kuyu_kesiti.yan_kesit, Y["kotlar"][0]), (kuyu_kesiti.on_kesit, Y["kotlar"][-1])):
             yol = [x for x in ciz(g) if x.get("ad") == "kasnak_tasiyici_sematik"]
-            zk = donanim.kabin_kotlari(g["dusey"], Y["S"], z)["kasnak_merkez"]
+            zk = parca_kotlari.kabin_kotlari(g["dusey"], Y["S"], z)["kasnak_merkez"]
             with self.subTest(kesit=ciz.__name__):
                 self.assertTrue(yol)
                 self.assertEqual({x[k] for x in yol for k in ("y1", "y2")}, {zk})
@@ -255,18 +255,18 @@ class FizikselTutarlilik(unittest.TestCase):
 
         for x in (2920, 2000):
             g = _ornek(dusey={"agirlik_paten_arasi": x})
-            kesit_parcalari = sabitler.sabitler(g.get("_cizim_sabitleri"))["paten_yukseklik"]
+            paten_boyu = sabitler.sabitler(g.get("_cizim_sabitleri"))["paten_yukseklik"]
             e = kuyu_kesiti.on_kesit(g)
             ag = next(el for el in e if el.get("ad") == "agirlik")
             pat = [el for el in e if el.get("ad") == "agirlik_paten"]
             with self.subTest(paten_arasi=x):
-                self.assertEqual(ag["d"], x - kesit_parcalari)
+                self.assertEqual(ag["d"], x - paten_boyu)
                 merkezler = sorted({round(el["y"] + el["d"] / 2.0, 6) for el in pat})
                 self.assertEqual(
                     merkezler,
                     [
-                        round(ag["y"] - kesit_parcalari / 2.0, 6),
-                        round(ag["y"] + ag["d"] + kesit_parcalari / 2.0, 6),
+                        round(ag["y"] - paten_boyu / 2.0, 6),
+                        round(ag["y"] + ag["d"] + paten_boyu / 2.0, 6),
                     ],
                 )
         #  örnek:  ø400 kasnak, kasnak merkezi üst kirişten 110 — çerçeve > 310, paten 140

@@ -25,7 +25,6 @@ referans projenin düzeni ).  Öteki düzenler için doğrulama açıkça redded
 from temel import eleman_kutusu, ortusur, sayi_mi
 from cizim import eleman
 from cizim import geometri
-from cizim import girdi
 from cizim import kuyu_dibi
 from cizim import makine
 from cizim import baglantilar
@@ -658,7 +657,7 @@ def _arka(g, S, mk, ag, acil_pano):
 
 
 def dogrula(g):
-    hata = girdi.dogrula(g)
+    hata = geometri.dogrula(g)
     if hata:
         return hata
     return yerlesim(g)["hata"]

@@ -46,7 +46,7 @@ _ONLUK_KURALI = (
 
 
 def dogrula(g):
-    return girdi.dogrula(g)
+    return geometri.dogrula(g)
 
 
 def _duzlemler(S, tip, esik0, esik1):

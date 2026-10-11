@@ -436,6 +436,19 @@ def kanat_cebi_carpismalari(g, cizim_sabitleri=None):
     return hata
 
 
+def dogrula(g):
+    """Kuyu planının tam denetimi:  girdinin kendisi ( girdi.dogrula ) ve
+    planın parçalarıyla — kanat cepleri kuyudaki sabit parçalara ( konsollar,
+    raylar ) ve karşı ağırlığa çarpmamalı ( yalnız girdi temizse:  plan geçersiz
+    girdiyle kurulmaz ).  Eskiden ikincisi girdi.dogrula'nın içindeydi ve
+    girdi geometriyi fonksiyon içinden import ediyordu ( iki modül birbirine
+    dolanmıştı )."""
+    hata = girdi.dogrula(g)
+    if not hata:
+        hata += kanat_cebi_carpismalari(g, sabitler.sabitler(g.get("_cizim_sabitleri")))
+    return hata
+
+
 #  Kuyu planında ( C-C ) kesitin üstünde ya da kabin döşemesinin altında kalan
 #  askı parçaları ( plan(), kapi_duzeyi )
 _KESITTE_GIZLI = frozenset(

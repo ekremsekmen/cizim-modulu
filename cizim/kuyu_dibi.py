@@ -33,6 +33,7 @@ from cizim import eleman
 from cizim import geometri
 from cizim import girdi
 from cizim import sabitler
+from cizim import parca_kotlari
 
 #  TS EN 81-20 Çizelge 4 — kuyu dibi sığınma alanının yatay ölçüleri ( mm ).
 #  Adlar hesap programının "Kuyu dibi sığınma hacmi tipi" seçenekleriyle aynı.
@@ -378,7 +379,6 @@ def sarkan_parcalar(g, S, taban, yukseklik):
     alan alt kirişin altına düşüyor, kirişin altı tabandan 940 iken sığınma
     1.110 ( platformun altı ) ölçülüyordu.  Düşey girdi eksikse boş liste."""
     from cizim import arka_aski
-    from cizim import donanim
     from cizim import hareketli
 
     dy = g.get("dusey") or {}
@@ -386,7 +386,7 @@ def sarkan_parcalar(g, S, taban, yukseklik):
     kd = g.get("kuyu_dibi") or {}
     if not (all(sayi_mi(dy.get(k)) for k in gerekli) and sayi_mi(kd.get("derinlik"))):
         return []
-    kt = donanim.kabin_kotlari(
+    kt = parca_kotlari.kabin_kotlari(
         dy,
         S,
         -(dy["kabin_carpma_arasi"] + dy["kabin_tampon_ezilme"]),
@@ -754,7 +754,7 @@ def yerlesim(g, cizim_sabitleri=None):
 
 
 def dogrula(g):
-    hata = girdi.dogrula(g)
+    hata = geometri.dogrula(g)
     if hata:
         return hata
     return yerlesim(g)["hata"]

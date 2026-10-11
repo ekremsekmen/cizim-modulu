@@ -18,7 +18,7 @@ class GirdiSinirlari(unittest.TestCase):
                 g["aski"].update(duzen=duzen, nokta_arasi=450)
                 g["aski"][alan] = deger
                 with self.subTest(duzen=duzen, deger=deger):
-                    self.assertTrue(any("aski" in h or "Askı" in h for h in girdi.dogrula(g)))
+                    self.assertTrue(any("aski" in h or "Askı" in h for h in geometri.dogrula(g)))
 
     def test_aski_derinlik_siniri(self):
         for duzen in girdi.ASKI_DUZENLERI:
@@ -36,7 +36,7 @@ class GirdiSinirlari(unittest.TestCase):
             ):
                 g["aski"][alan] = y - merkez
                 with self.subTest(duzen=duzen, y=y):
-                    self.assertEqual(girdi.dogrula(g) == [], uygun)
+                    self.assertEqual(geometri.dogrula(g) == [], uygun)
 
     def test_agirlik_ray_ve_konsol_siniri(self):
         S = sabitler.sabitler()
@@ -52,7 +52,7 @@ class GirdiSinirlari(unittest.TestCase):
             for aralik, uygun in ((sinir, True), (sinir + 2, False), (2200, False)):
                 ag["ray_arasi"] = aralik
                 with self.subTest(yer=ag["yeri"], aralik=aralik):
-                    self.assertEqual(girdi.dogrula(g) == [], uygun)
+                    self.assertEqual(geometri.dogrula(g) == [], uygun)
                     if uygun:
                         for e in geometri.plan(g):
                             if e["tip"] == "dikdortgen" and e["katman"] in ("RAY", "KONSOL"):
@@ -65,12 +65,12 @@ class GirdiSinirlari(unittest.TestCase):
         with patch.object(calistir, "uret", return_value=0) as uret:
             self.assertEqual(calistir.main(["--agirlik", "Sağ"]), 0)
         g = uret.call_args.args[0]
-        self.assertEqual(girdi.dogrula(g), [])
+        self.assertEqual(geometri.dogrula(g), [])
         self.assertEqual(geometri.plan(g), geometri.plan(_sag_ayna()))
 
     def test_sonlu_olmayan_olculer_reddedilir(self):
         for deger in (float("nan"), float("inf"), -float("inf")):
-            self.assertTrue(girdi.dogrula(_ornek(kuyu={"genislik": deger})))
+            self.assertTrue(geometri.dogrula(_ornek(kuyu={"genislik": deger})))
 
 
 if __name__ == "__main__":

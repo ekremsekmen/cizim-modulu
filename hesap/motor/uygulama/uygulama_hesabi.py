@@ -113,12 +113,12 @@ def hesapla(veriler=None):
     #  kendi tahmin etmez, çizimin girdilerden kurduğu yerleşimden alır.
     g.update(uygulama_girdisi.yerlesim_olculeri(g))
     #  Kuyunun geometrisi kurulamıyorsa ( çizimin plan doğrulaması ) hesap durur
-    geometri = g.pop("_geometri_hatasi", [])
-    hata = uygulama_girdisi.dogrula(g) + geometri
+    plan_hatalari = g.pop("_geometri_hatasi", [])
+    hata = uygulama_girdisi.dogrula(g) + plan_hatalari
     if hata:
         s = {"aktif": False, "hata": hata, "girdi": g}
-        if geometri:
-            s["geometri_hatasi"] = geometri  # hesapla_coklu adını ekler, kaldırır
+        if plan_hatalari:
+            s["geometri_hatasi"] = plan_hatalari  # hesapla_coklu adını ekler, kaldırır
         return s
 
     muk = mukavemet.hesapla(g)
@@ -308,10 +308,10 @@ def hesapla_coklu(asansorler=None, ortak=None):
         s["tanim"] = str(g.get("asansor_adi") or "").strip() or f"{i} nolu asansör"
         #  Kuyunun geometrisi asansöre özgüdür:  çok asansörlü projede hangisinin
         #  olduğu söylenir ( ofis değerinin hatası gibi tekilleştirilmez ).
-        geometri = s.pop("geometri_hatasi", None)
-        if len(ham) > 1 and geometri:
-            s["hata"] = [h for h in s["hata"] if h not in geometri] + [
-                f"{s['tanim']}:  {h}" for h in geometri
+        plan_hatalari = s.pop("geometri_hatasi", None)
+        if len(ham) > 1 and plan_hatalari:
+            s["hata"] = [h for h in s["hata"] if h not in plan_hatalari] + [
+                f"{s['tanim']}:  {h}" for h in plan_hatalari
             ]
         if s.get("aktif"):
             #  Asansörün kalan bölümleri boşluksuz 1..N diye yeniden

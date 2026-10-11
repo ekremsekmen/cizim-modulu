@@ -7,7 +7,6 @@ başlıklar ve ölçekler iki yerde ayrı yazılıp zamanla ayrışmasın.
 """
 
 from cizim import geometri
-from cizim import girdi
 from cizim import kabin_ustu
 from cizim import giris
 from cizim import kapi_kesiti
@@ -19,7 +18,7 @@ from cizim import makine_dairesi
 
 
 CIZIMLER = {
-    "kuyu_plani": (girdi.dogrula, geometri.plan, "KUYU PLANI  ( kabin hizasından yatay kesit )"),
+    "kuyu_plani": (geometri.dogrula, geometri.plan, "KUYU PLANI  ( kabin hizasından yatay kesit )"),
     "kabin_ustu": (
         kabin_ustu.dogrula,
         kabin_ustu.ciz,

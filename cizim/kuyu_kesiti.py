@@ -35,6 +35,7 @@ from cizim import geometri
 from cizim import girdi
 from cizim import kesit_parcalari
 from cizim import makine_dairesi
+from cizim import parca_kotlari
 
 OLCEK = 50
 
@@ -195,7 +196,9 @@ def kuyu_dibi_seviyesi(g, Y):
     kabin kasnağı ) altından geçer;  ilk konsolların üstünde kalır ki konsollar,
     gergi ve tamponlar planda görünsün — ikisinin ortası.  Konsol kabinin
     altına sığmıyorsa kuyu tabanıyla kabinin ortası."""
-    kt = donanim.kabin_kotlari(g["dusey"], Y["S"], Y["kotlar"][0], g.get("aski"), arka_aski.arkada_iki_bir(g))
+    kt = parca_kotlari.kabin_kotlari(
+        g["dusey"], Y["S"], Y["kotlar"][0], g.get("aski"), arka_aski.arkada_iki_bir(g)
+    )
     kabin_alti = min(kt["etek_alti"], kt["sase_alt"], kt["alt_paten"], kt["fren_alti"])
     if Y["kasnaklar"]:
         kabin_alti = min(kabin_alti, kt["kasnak_merkez"] - Y["kasnak_capi"] / 2.0)

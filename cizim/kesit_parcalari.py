@@ -17,10 +17,10 @@ kesitte daire ).
 
 from cizim import eleman
 from cizim import arka_aski
-from cizim import donanim
 from cizim import makine
 from cizim import kabin_ustu
 from cizim import baglantilar
+from cizim import parca_kotlari
 
 
 class Bakis:
@@ -261,12 +261,12 @@ def donanimi_ciz(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
     kasnak(el, B, gp, gr["merkez"], gr["cap"], "y", "gergi_kasnagi")
     gruplar.append((gp, el))
     #  Karşı ağırlık:  çerçeve, dolgu, kasnak ve yazı bir grup;  patenler ayrı
-    AK = donanim.agirlik_kotlari(M, ag_alt)
+    AK = parca_kotlari.agirlik_kotlari(M, ag_alt)
     blok = M["agirlik"]["kutu"]
     cer = S["agirlik_cerceve"]
     el = []
     B.kutu(el, "AGIRLIK", blok, AK["alt"], AK["ust"], "agirlik")
-    dolgu_alt, dolgu_ust = donanim.agirlik_dolgu_kotlari(g, S, AK)
+    dolgu_alt, dolgu_ust = parca_kotlari.agirlik_dolgu_kotlari(g, S, AK)
     B.kutu(
         el,
         "AGIRLIK",
@@ -311,7 +311,7 @@ def donanimi_ciz(e, B, g, Y, P, kabin_z, ag_alt, K=1.0, kabin_ezilme=0.0):
             gruplar.append((makine.sinirlar(parca)[:4], el))
     for _, el in sorted(gruplar, key=lambda ge: uzaklik(B, ge[0]), reverse=True):
         e += el
-    kt = donanim.kabin_kotlari(dy, S, kabin_z, g.get("aski"), arka_aski.arkada_iki_bir(g))
+    kt = parca_kotlari.kabin_kotlari(dy, S, kabin_z, g.get("aski"), arka_aski.arkada_iki_bir(g))
     e += makine.gorunus(
         baglantilar.kasnak_tasiyicilari(g, S, kt["kasnak_merkez"]),
         B,
@@ -454,7 +454,7 @@ def _halatlar_1_1(e, B, g, M, KU, kt, AK, zt):
     """1:1 askıda halatlar:  kabin şasesinin üst kirişinin ortasındaki
     bağlantıdan tahrik kasnağına;  kasnağın öbür teğetinden ( saptırma varsa
     ondan ) karşı ağırlığın ortasındaki bağlantıya.  Kabin bağlantısı üst
-    kirişin üstünde, halat soketlerinin boyunda ( donanim.kabin_kotlari )."""
+    kirişin üstünde, halat soketlerinin boyunda ( parca_kotlari.kabin_kotlari )."""
     hx, hy = KU["kabin_nokta"]
     ax, ay = KU["ag_nokta"]
     a = g["aski"]

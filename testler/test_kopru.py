@@ -22,6 +22,7 @@ from cizim import sabitler
 from motor.uygulama import uygulama_girdisi
 from motor.uygulama import uygulama_hesabi
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
+from cizim import parca_kotlari
 
 
 def _veri(md=False, **ek):
@@ -404,11 +405,11 @@ class YeniDuzenler(unittest.TestCase):
     def test_kabin_ustu_2_1(self):
         g, hata, s = self._kur(False, aski_duzeni="Kabin üstü", aski_kaciklik_x=-200)
         self.assertEqual(hata, [])
-        from cizim import dusey, donanim
+        from cizim import dusey
 
         Y = dusey.yerlesim(g)
         #  Kasnaklar şasenin üst kirişinin üstünde:  alt uçları 30 mm yukarıda
-        kt = donanim.kabin_kotlari(g["dusey"], Y["S"], 0.0, g["aski"])
+        kt = parca_kotlari.kabin_kotlari(g["dusey"], Y["S"], 0.0, g["aski"])
         self.assertAlmostEqual(kt["kasnak_merkez"] - g["aski"]["kasnak_capi"] / 2.0, kt["sase_ust"] + 30.0)
         self.assertIn("kasnak", Y["ust_aciklik"])
         self.assertEqual(Y["kasnaklar"], [])  # kuyu dibinde kabin kasnağı yok

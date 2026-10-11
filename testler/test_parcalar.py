@@ -9,6 +9,7 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from cizim import parcalar
 from motor.uygulama import mukavemet_tablolari
+from cizim import geometri
 
 
 class RayKesiti(unittest.TestCase):
@@ -79,7 +80,6 @@ class KapiKesiti(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         from testler import test_yerlesim_saglamligi
-        from cizim import geometri
 
         cls.planlar = {}
         for tip in cls.TIPLER:
@@ -204,7 +204,6 @@ class RayKonsolu(unittest.TestCase):
 
     def test_planda_konsol_plaka_ve_kolun_icinde(self):
         from testler import test_yerlesim_saglamligi
-        from cizim import geometri
 
         for yer in ("Sağ", "Sol", "Arka"):
             g, hata = test_yerlesim_saglamligi.gecerli_duzen(630, yer)
@@ -240,7 +239,6 @@ class AgirlikCercevesi(unittest.TestCase):
     @staticmethod
     def _plan(yer, **ek):
         from testler import test_yerlesim_saglamligi
-        from cizim import geometri
 
         g, hata = test_yerlesim_saglamligi.gecerli_duzen(630, yer, **ek)
         assert not hata, (yer, ek, hata)
@@ -453,7 +451,7 @@ class AgirlikPatenleri(unittest.TestCase):
         #  ağırlıkta blok kabinden 51 uzakken kaymalı paten ( 100 ) 120'lik bloğun
         #  içinde kalır, makaralının yan makaraları ( 75 + dil / 2 ) bloğu aşar.
         from testler import test_yerlesim_saglamligi
-        from cizim import girdi, sabitler
+        from cizim import sabitler
 
         S = sabitler.sabitler()
         g, hata = test_yerlesim_saglamligi.gecerli_duzen(630, "Arka")
@@ -468,7 +466,7 @@ class AgirlikPatenleri(unittest.TestCase):
         self.assertGreater(uzun, 1.0)
         for tip, ret in (("Kaymalı", False), ("Makaralı", True)):
             ag["paten_tipi"] = tip
-            h = girdi.dogrula(g)
+            h = geometri.dogrula(g)
             with self.subTest(tip=tip):
                 self.assertEqual(any("m.5.2.5.5.1 h" in x for x in h), ret, h)
 

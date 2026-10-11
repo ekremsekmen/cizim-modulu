@@ -167,11 +167,11 @@ def yerlesim_olculeri(g):
 
     Motor doğrudan çağrılınca ( hesap programının kendi referans testleri )
     bu adım yoktur:  motorun davranışı asıl programınkiyle aynı kalır."""
-    from cizim import girdi
+    from cizim import geometri
     from cizim import kopru
     from cizim import olculer
 
-    geometri = []
+    plan_hatalari = []
     try:
         gc, _hata = kopru.cizim_girdisi(g)
         #  KUYU GEOMETRİSİ KURULAMIYORSA HESAP DURUR ( kullanıcı kararı 4 Eki ):
@@ -180,8 +180,8 @@ def yerlesim_olculeri(g):
         #  reddederken hesap "hesaplandı" diyordu:  imkânsız bir kuyunun raporu
         #  çıkabiliyordu.  Çizimin yalnız çizemediği durumlarda ( makaralı kabin
         #  pateni, 3 tampon, yana kaçık askı — köprünün iletileri ) hesap sürer.
-        geometri = girdi.dogrula(gc) if gc is not None else []
-        o = olculer.hesap_olculeri(gc) if gc is not None and not geometri else {}
+        plan_hatalari = geometri.dogrula(gc) if gc is not None else []
+        o = olculer.hesap_olculeri(gc) if gc is not None and not plan_hatalari else {}
     except Exception:  # noqa: BLE001 — çizim kendi hatasını söyler
         o = {}
     if evet_mi(g.get("mk_yok")):
@@ -201,8 +201,8 @@ def yerlesim_olculeri(g):
     d.setdefault("yan_yatak_boyu", None)
     if isaret:
         d["_cizimden"] = {**(g.get("_cizimden") or {}), **isaret}
-    if geometri:
-        d["_geometri_hatasi"] = geometri
+    if plan_hatalari:
+        d["_geometri_hatasi"] = plan_hatalari
     return d
 
 

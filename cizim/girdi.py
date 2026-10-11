@@ -196,7 +196,9 @@ ASGARI_YUKSEKLIK = 2000.0
 
 
 def dogrula(g):
-    """Eksik / geçersiz alanları metin listesi olarak döner ( boşsa temiz )."""
+    """Girdinin kendisinin denetimi:  eksik / geçersiz alanlar ( metin listesi;
+    boşsa temiz ).  Planın parçalarıyla yapılan denetim ( kanat cepleri )
+    geometri.dogrula'dadır — çizimler ve hesap onu çağırır."""
     hata = []
     for bolum, alanlar in ZORUNLU.items():
         d = g.get(bolum)
@@ -461,13 +463,6 @@ def dogrula(g):
             f"Kuyu iç yüzü ile kabin eşiği arası {kabin_esigi - KB['yuzey']:g} mm — "
             f"TS EN 81-20 m.5.2.5.3.1 en çok {KAPI_ARASI_AZAMI:g} mm verir."
         )
-    #  Kanat cepleri kuyudaki sabit parçalara ( konsollar, raylar ) ve karşı
-    #  ağırlığa çarpmamalı:  planın kendi parçalarıyla denetlenir ( yalnız girdi
-    #  temizse — plan geçersiz girdiyle kurulmaz ).
-    if not hata:
-        from cizim import geometri
-
-        hata += geometri.kanat_cebi_carpismalari(g, S)
     return hata
 
 

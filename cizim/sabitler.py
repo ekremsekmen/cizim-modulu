@@ -241,7 +241,7 @@ SABIT = {
     #  kasnak merkezi üst kirişin 110 altında;  140'lık patenlerin merkezleri arası
     #  3.060 ( vektörlerden, 8 Eki ).  Girdi hesap programının AĞIRLIK PATEN
     #  ARASIDIR ( patenlerin merkezleri arası );  çerçeve ondan bir paten boyu kısa
-    #  ( donanim.agirlik_kotlari — 8 Eki'ye dek patenler çerçevenin uçlarına ortalıydı ).
+    #  ( parca_kotlari.agirlik_kotlari — 8 Eki'ye dek patenler çerçevenin uçlarına ortalıydı ).
     "agirlik_kasnak_ust": 110,
     "agirlik_kiris": 10,
     #  ── RAY KONSOLU VE EK ( düşey ) ───────────────────────────────────

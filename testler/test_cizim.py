@@ -21,6 +21,8 @@ from cizim import geometri
 from cizim import girdi
 from cizim import svg
 from cizim import sabitler
+from cizim import parca_kotlari
+from cizim import standart
 
 
 def _ornek(**ezme):
@@ -33,7 +35,7 @@ def _ornek(**ezme):
 def _duvar_boslugu():
     """Kapısı duvar boşluğuna monte örnek.  Referans projenin kendi kapısı kuyu
     içindedir ve üst payı 200'dür:  220'lik kasa ( LiftDesigner ) duvardaki
-    boşluğa sığmaz ( girdi.dogrula ) — LiftDesigner'ın 240'ıyla."""
+    boşluğa sığmaz ( geometri.dogrula ) — LiftDesigner'ın 240'ıyla."""
     return _ornek(
         kapi={"montaj": "Duvar boşluğuna"}, kabin={"on_pay": 210}, _cizim_sabitleri={"kapi_ust_payi": 240}
     )
@@ -68,30 +70,30 @@ def _cakisma(a, b, pay=0.0):
 
 class SozlesmeDenetimi(unittest.TestCase):
     def test_ornek_gecerli(self):
-        self.assertEqual(girdi.dogrula(_ornek()), [])
+        self.assertEqual(geometri.dogrula(_ornek()), [])
 
     def test_eksik_bolum_reddedilir(self):
         g = _ornek()
         g.pop("kapi")
-        self.assertTrue(any("kapi" in h for h in girdi.dogrula(g)))
+        self.assertTrue(any("kapi" in h for h in geometri.dogrula(g)))
 
     def test_sifir_ve_negatif_olcu_reddedilir(self):
         for bolum, alan in (("kuyu", "genislik"), ("kabin", "derinlik"), ("kapi", "genislik")):
-            self.assertTrue(girdi.dogrula(_ornek(**{bolum: {alan: 0}})), (bolum, alan))
-            self.assertTrue(girdi.dogrula(_ornek(**{bolum: {alan: -100}})), (bolum, alan))
+            self.assertTrue(geometri.dogrula(_ornek(**{bolum: {alan: 0}})), (bolum, alan))
+            self.assertTrue(geometri.dogrula(_ornek(**{bolum: {alan: -100}})), (bolum, alan))
 
     def test_kabin_kuyuya_sigmazsa_reddedilir(self):
-        self.assertTrue(girdi.dogrula(_ornek(kabin={"genislik": 2500})))
-        self.assertTrue(girdi.dogrula(_ornek(kabin={"derinlik": 2500})))
+        self.assertTrue(geometri.dogrula(_ornek(kabin={"genislik": 2500})))
+        self.assertTrue(geometri.dogrula(_ornek(kabin={"derinlik": 2500})))
 
     def test_kapi_kuyuya_sigmazsa_reddedilir(self):
-        self.assertTrue(girdi.dogrula(_ornek(kapi={"sol_pay": 1500})))
+        self.assertTrue(geometri.dogrula(_ornek(kapi={"sol_pay": 1500})))
 
     def test_agirlik_yeri_secenekleri(self):
-        self.assertTrue(girdi.dogrula(_ornek(agirlik={"yeri": "Ortada"})))
+        self.assertTrue(geometri.dogrula(_ornek(agirlik={"yeri": "Ortada"})))
         for yer in girdi.AGIRLIK_YERLERI:
             g = {"Sağ": _sag_ayna, "Arka": _arka}.get(yer, lambda yer=yer: _ornek(agirlik={"yeri": yer}))()
-            self.assertEqual(girdi.dogrula(g), [])
+            self.assertEqual(geometri.dogrula(g), [])
 
 
 class PlanGeometrisi(unittest.TestCase):
@@ -246,8 +248,8 @@ class PlanGeometrisi(unittest.TestCase):
 
     def test_kasa_duvar_boslugunda_sigmali(self):
         g = _ornek(kapi={"montaj": "Duvar boşluğuna"}, kabin={"on_pay": 210})
-        self.assertTrue(any("kaba boşluğa sığmıyor" in h for h in girdi.dogrula(g)))
-        self.assertEqual(girdi.dogrula(_duvar_boslugu()), [])
+        self.assertTrue(any("kaba boşluğa sığmıyor" in h for h in geometri.dogrula(g)))
+        self.assertEqual(geometri.dogrula(_duvar_boslugu()), [])
 
     def test_agirlik_yeri_cizimi_degistiriyor(self):
         sol = _dikdortgenler(geometri.plan(_ornek(agirlik={"yeri": "Sol"})), "AGIRLIK")[0]
@@ -424,7 +426,7 @@ class YerlesimRegresyonlari(unittest.TestCase):
         for degisim in ({"kaciklik_y": 600}, {"kaciklik_y": -600}, {"kaciklik_y": 320}, {"derinlik": 1700}):
             with self.subTest(degisim=degisim):
                 self.assertTrue(
-                    any("şasesi kuyunun dışına" in h for h in girdi.dogrula(_ornek(kabin=degisim)))
+                    any("şasesi kuyunun dışına" in h for h in geometri.dogrula(_ornek(kabin=degisim)))
                 )
 
     def test_aciklik_siniri_ve_cakisma(self):
@@ -445,12 +447,12 @@ class YerlesimRegresyonlari(unittest.TestCase):
                     else _ornek(agirlik={"yeri": yer, "ray_duvar": duvar})
                 )
                 with self.subTest(yer=yer, duvar=duvar):
-                    self.assertEqual(not girdi.dogrula(g), uygun)
+                    self.assertEqual(not geometri.dogrula(g), uygun)
 
     def test_ozel_pano_olcusu_denetim_ve_cizimde_ayni(self):
         g = _ornek(kabin={"kaciklik_y": 290})
         g["_cizim_sabitleri"] = {"kabin_pano_yan": 100}
-        self.assertTrue(any("şasesi kuyunun dışına" in h for h in girdi.dogrula(g)))
+        self.assertTrue(any("şasesi kuyunun dışına" in h for h in geometri.dogrula(g)))
         kabin = _dikdortgenler(geometri.plan(g), "KABIN")[0]
         self.assertEqual(kabin["g"], 1550)
 
@@ -517,12 +519,12 @@ class ParcaTutarliligi(unittest.TestCase):
 
     def test_agirlik_raylardan_uzunsa_reddedilir(self):
         self.assertTrue(
-            any("ağırlık rayları arasından" in h for h in girdi.dogrula(_ornek(agirlik={"genislik": 850})))
+            any("ağırlık rayları arasından" in h for h in geometri.dogrula(_ornek(agirlik={"genislik": 850})))
         )
 
     def test_sase_raylardan_genisse_reddedilir(self):
         self.assertTrue(
-            any("kabin rayları arasından" in h for h in girdi.dogrula(_ornek(kabin_ray={"arasi": 1500})))
+            any("kabin rayları arasından" in h for h in geometri.dogrula(_ornek(kabin_ray={"arasi": 1500})))
         )
 
     def test_kapi_kabinin_onune_duser(self):
@@ -531,7 +533,7 @@ class ParcaTutarliligi(unittest.TestCase):
         #  Örnekte kapı ekseni kabin ekseniyle aynı  ( referans proje:  1.180 )
         self.assertEqual(g["kapi"]["sol_pay"] + g["kapi"]["genislik"] / 2.0, kx)
         self.assertTrue(
-            any("kabinin önüne düşmüyor" in h for h in girdi.dogrula(_ornek(kapi={"sol_pay": 300})))
+            any("kabinin önüne düşmüyor" in h for h in geometri.dogrula(_ornek(kapi={"sol_pay": 300})))
         )
 
     def test_kabin_konsolu_agirligin_icinden_gecmez(self):
@@ -701,7 +703,7 @@ class KabinUstuSozlesme(unittest.TestCase):
 
     def test_ray_ekseni_kabinin_icinden_gecmeli(self):
         self.assertTrue(
-            any("kabinin derinliği içinden" in h for h in girdi.dogrula(_ornek(kabin={"derinlik": 800})))
+            any("kabinin derinliği içinden" in h for h in geometri.dogrula(_ornek(kabin={"derinlik": 800})))
         )
 
     def test_halat_parcanin_icinden_gecemez(self):
@@ -721,7 +723,7 @@ class KabinUstuSozlesme(unittest.TestCase):
         g["kabin_ray"].update({"arasi": 650, "kapi_arasi": 500})
         g["kapi"].update({"genislik": 400, "sol_pay": 850})
         g["aski"] = {"duzen": "Doğrudan", "nokta_arasi": 200}
-        self.assertEqual(girdi.dogrula(g), [])
+        self.assertEqual(geometri.dogrula(g), [])
         self.assertTrue(any("sığınma alanına" in h for h in kabin_ustu.dogrula(g)), kabin_ustu.dogrula(g))
 
 
@@ -751,19 +753,19 @@ class KabinUstuKorkuluk(unittest.TestCase):
                 if not k["gerekli"]:
                     continue
                 with self.subTest(proje=ad, yan=yan):
-                    self.assertLessEqual(k["iceri"], kabin_ustu.KORKULUK_KENAR_AZAMI)
+                    self.assertLessEqual(k["iceri"], standart.KORKULUK_KENAR_AZAMI)
                     if k["parca"] is not None:
                         self.assertGreaterEqual(
-                            k["parca"] + k["iceri"], kabin_ustu.KORKULUK_PARCA_ASGARI - 1e-9
+                            k["parca"] + k["iceri"], standart.KORKULUK_PARCA_ASGARI - 1e-9
                         )
 
     def test_150_mm_yetmezse_reddedilir(self):
-        eski = kabin_ustu.KORKULUK_PARCA_ASGARI
+        eski = standart.KORKULUK_PARCA_ASGARI
         try:
-            kabin_ustu.KORKULUK_PARCA_ASGARI = 300.0
+            standart.KORKULUK_PARCA_ASGARI = 300.0
             self.assertTrue(any("m.5.4.7.4 c" in h for h in kabin_ustu.dogrula(_ornek())))
         finally:
-            kabin_ustu.KORKULUK_PARCA_ASGARI = eski
+            standart.KORKULUK_PARCA_ASGARI = eski
 
     def test_korkuluk_cizgisi_yalniz_gerekli_kenarda(self):
         for ad, g in _ustu_projeler():
@@ -955,7 +957,7 @@ class KuyuDibiSozlesme(unittest.TestCase):
         for duvar, uygun in ((167, True), (170, False)):
             g = _ornek(agirlik={"yeri": "Arka", "ray_duvar": duvar}, kuyu={"derinlik": 2000})
             with self.subTest(ray_duvar=duvar):
-                self.assertEqual(not any("m.5.2.5.5.1 h" in h for h in girdi.dogrula(g)), uygun)
+                self.assertEqual(not any("m.5.2.5.5.1 h" in h for h in geometri.dogrula(g)), uygun)
 
     def test_hatali_girdiler(self):
         for ezme, parca in (
@@ -1350,7 +1352,7 @@ class KuyuDibiYerlesim(unittest.TestCase):
         #  kapı kenarına uzaklığı sınırlar:  merdiven kapının yanında ön duvara
         #  yaslanır ( eskiden proje reddediliyordu ).
         g = _ornek(kuyu={"genislik": 3000}, kapi={"sol_pay": 1180})
-        self.assertEqual(girdi.dogrula(g), [])
+        self.assertEqual(geometri.dogrula(g), [])
         self.assertFalse(any("Ek F.5 b" in h for h in kuyu_dibi.dogrula(g)), kuyu_dibi.dogrula(g))
         m, kp = kuyu_dibi.yerlesim(g)["merdiven"], g["kapi"]
         x0, x1 = kp["sol_pay"], kp["sol_pay"] + kp["genislik"]
@@ -1371,12 +1373,12 @@ class KuyuDibiYerlesim(unittest.TestCase):
         self.assertEqual((kuyu_dibi.MERDIVEN_AZAMI_DERINLIK, kuyu_dibi.MERDIVEN_KAPI_AZAMI), (2500.0, 800.0))
         self.assertEqual(
             (
-                kabin_ustu.KORKULUK_BOSLUK,
-                kabin_ustu.KORKULUK_KENAR_AZAMI,
-                kabin_ustu.KORKULUK_PARCA_ASGARI,
-                kabin_ustu.KORKULUK_YUKSEKLIK_SINIRI,
-                kabin_ustu.KORKULUK_ALCAK,
-                kabin_ustu.KORKULUK_YUKSEK,
+                standart.KORKULUK_BOSLUK,
+                standart.KORKULUK_KENAR_AZAMI,
+                standart.KORKULUK_PARCA_ASGARI,
+                standart.KORKULUK_YUKSEKLIK_SINIRI,
+                standart.KORKULUK_ALCAK,
+                standart.KORKULUK_YUKSEK,
             ),
             (300.0, 150.0, 100.0, 500.0, 700.0, 1100.0),
         )
@@ -1985,7 +1987,7 @@ class KuyuKesitleri(unittest.TestCase):
         self.assertEqual(ustler, [200, 650, 650, 650])
         self.assertEqual(T - M["regulator_kasnak"][4], 462)
         self.assertEqual(M["gergi"]["merkez"] - Y["taban"], 520)
-        self.assertEqual(donanim.agirlik_kotlari(M, 0)["ust"], 2920)
+        self.assertEqual(parca_kotlari.agirlik_kotlari(M, 0)["ust"], 2920)
 
     def test_konsollar_ve_ekler(self):
         #  İlk konsol tabandan 500, sonra "konsollar arası";  ray ucunu geçmez.
@@ -3069,7 +3071,7 @@ class KapiBolgesi(unittest.TestCase):
             _sag_ayna(),
             _arka(),
         ):
-            self.assertEqual(girdi.dogrula(g), [])
+            self.assertEqual(geometri.dogrula(g), [])
             e = geometri.plan(g)
             kabin = self._kutular(e, "kabin_dis")[0]
             for kanat, esik in (("kat_kanadi", "kat_esigi"), ("kabin_kanadi", "kabin_esigi")):
@@ -3088,14 +3090,14 @@ class KapiBolgesi(unittest.TestCase):
         ):
             KB = girdi.kapi_bolgesi(_ornek(kapi={"montaj": montaj}), S)
             self.assertEqual((KB["kasa"], KB["esik"], KB["hat"]), (kasa, esik, hat))
-        self.assertTrue(any("kapi.montaj" in h for h in girdi.dogrula(_ornek(kapi={"montaj": "Havada"}))))
+        self.assertTrue(any("kapi.montaj" in h for h in geometri.dogrula(_ornek(kapi={"montaj": "Havada"}))))
 
     def test_esik_araligi_ve_kuyu_yuzu_sinirlari(self):
         #  Kabin eşiği 90;  duvar boşluğunda kapı hattı 90 → aralık on_pay − 180
         #  ( 0 < … ≤ 35:  181 – 215 );  kuyu içinde hat 150 → on_pay − 240 ( 241 – 275 ).
         for montaj, alt, ust in (("Duvar boşluğuna", 180, 215), ("Kuyu içine", 240, 275)):
             for on, uygun in ((alt, False), (alt + 1, True), (ust, True), (ust + 1, False)):
-                h = girdi.dogrula(_ornek(kapi={"montaj": montaj}, kabin={"on_pay": on}))
+                h = geometri.dogrula(_ornek(kapi={"montaj": montaj}, kabin={"on_pay": on}))
                 with self.subTest(montaj=montaj, on_pay=on):
                     self.assertEqual(not any("eşiğ" in x for x in h), uygun, h)
 

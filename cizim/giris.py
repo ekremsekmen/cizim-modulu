@@ -35,7 +35,7 @@ from cizim import sabitler
 
 
 def dogrula(g):
-    return girdi.dogrula(g)
+    return geometri.dogrula(g)
 
 
 def yerlesim(g, cizim_sabitleri=None):

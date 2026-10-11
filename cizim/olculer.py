@@ -49,6 +49,7 @@ from cizim import girdi
 from cizim import kuyu_dibi
 from cizim import makine_dairesi
 from cizim import sabitler
+from cizim import parca_kotlari
 
 log = logging.getLogger(__name__)
 
@@ -200,10 +201,10 @@ def hesap_olculeri(g):
     #  kasnağının altına kadardır.
     AG = M.get("agirlik")
     if AG and sayi_mi(AG.get("yukseklik")):
-        alt, ust = donanim.agirlik_dolgu_kotlari(g, S, donanim.agirlik_kotlari(M, 0.0))
+        alt, ust = parca_kotlari.agirlik_dolgu_kotlari(g, S, parca_kotlari.agirlik_kotlari(M, 0.0))
         out["agirlik_dolgu_yuksekligi"] = round(ust - alt, 1)
     zk = M["kasnak"][4]
-    kab = donanim.kabin_kotlari(dy, S, 0.0, aski, arka_aski.arkada_iki_bir(g))
+    kab = parca_kotlari.kabin_kotlari(dy, S, 0.0, aski, arka_aski.arkada_iki_bir(g))
     if aski.get("duzen") == "Doğrudan":
         #  1:1:  halatlar kabin şasesinin üst kirişindeki bağlantıda biter
         out["aski_halat_boyu"] = round((zk - kab["baglanti_ust"]) / 1000.0, 4)

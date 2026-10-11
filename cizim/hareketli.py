@@ -4,7 +4,7 @@ HAREKETLİ PARÇALAR — kabin ve karşı ağırlığın parçaları TEK TANIMDA
 
 Her parça:  ( ad, plandaki kutu ( x0, y0, x1, y1 ), alt kot, üst kot ).
 Plandaki yer kuyu planının elemanlarından ( geometri.plan ), kotlar parçanın
-o konumdaki kot sözlüğünden ( donanim.kabin_kotlari / agirlik_kotlari ) gelir:
+o konumdaki kot sözlüğünden ( parca_kotlari.kabin_kotlari / agirlik_kotlari ) gelir:
 aynı fonksiyon kabinin her konumu için çağrılır.
 
 Sığınma alanlarının yeri ( kuyu_dibi, kabin_ustu ), açıklıklar ve çarpışma
@@ -73,7 +73,7 @@ def _serit(p, q, en):
 
 def kabin_parcalari(g, S, plan, kt):
     """Kabinin parçaları — `plan`:  kuyu planının elemanları, `kt`:  kabinin o
-    konumdaki kotları ( donanim.kabin_kotlari ).  Kabin altı ve kabin üstü
+    konumdaki kotları ( parca_kotlari.kabin_kotlari ).  Kabin altı ve kabin üstü
     askıda kasnaklar ve aralarındaki halat ( kasnakların alt teğetinde ),
     çapraz düzende ( arkadaki ağırlıkla 2:1 ) döndürülmüş kasnakların kutuları
     ve aralarındaki çapraz halat şeridi, doğrudan ( 1:1 ) askıda üst kirişin
@@ -140,7 +140,7 @@ def kabin_parcalari(g, S, plan, kt):
 
 def agirlik_parcalari(g, S, plan, AK):
     """Karşı ağırlığın parçaları — `AK`:  ağırlığın o konumdaki kotları
-    ( donanim.agirlik_kotlari ).  Patenler çerçevenin altında ve üstünde,
+    ( parca_kotlari.agirlik_kotlari ).  Patenler çerçevenin altında ve üstünde,
     2:1'de kasnak çerçevenin içinde ( merkezi üst kirişin kasnak_ust altında )
     — tepesi üst patenin de üstüne çıkabilir."""
     out = []

@@ -29,6 +29,7 @@ y ön duvardan arkaya ).
 
 import math
 from temel import sayi_mi
+from cizim import standart
 
 #  Kabin kasnaklarının birbirine en az açıklığı ( jantlar arası ):  yoksa iki
 #  kasnak üst üste biner.  Sıfır değil:  kasnak taşıyıcısının ortası.
@@ -59,11 +60,10 @@ def agirlik_ray_duvari(g, S):
     ~50 içeride, 12495-18:  56 dışarıda — orada kasnak kenardan taşar ).
     Ağırlık ekseni = P + D1.  Karşı ağırlık kabine en az 50 mm ( m.5.2.5.5.1 h ),
     duvara eski kuraldan ( derinlik / 2 + 50 ) yakın olamaz."""
-    from cizim import kabin_ustu
 
     k, kb, ag, mk = g["kuyu"], g["kabin"], g["agirlik"], g["makine"]
     kabin_arka = kb["on_pay"] + kb["derinlik"] + S["kabin_pano_arka"]
-    ey = kabin_arka - kabin_ustu.KORKULUK_PARCA_ASGARI + mk["tahrik_kasnak_capi"]
+    ey = kabin_arka - standart.KORKULUK_PARCA_ASGARI + mk["tahrik_kasnak_capi"]
     ey = max(ey, kabin_arka + 50.0 + ag["derinlik"] / 2.0)
     return max(ag["derinlik"] / 2.0 + 50.0, k["derinlik"] - ey)
 

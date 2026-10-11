@@ -44,11 +44,11 @@ from cizim import arka_aski
 from cizim import donanim
 from cizim import geometri
 from cizim import parcalar
-from cizim import girdi
 from cizim import hareketli
 from cizim import kabin_ustu
 from cizim import kuyu_dibi
 from cizim import sabitler
+from cizim import parca_kotlari
 
 #  Çizelge 3 / Çizelge 4 — sığınma alanının YÜKSEKLİĞİ ( mm )
 SIGINMA_UST_YUKSEKLIK = kabin_ustu.SIGINMA_YUKSEKLIK
@@ -65,7 +65,7 @@ YATAY_UZAKLIK = 400.0  # m.5.2.5.7.2 b / c 1)  "0,40 m yatay uzaklık içinde"
 #  sase_alt_kiris — 8 Eki'ye dek 10 mm'lik simgeydi );  üst kirişin altı kabin
 #  tavanının, alt kirişin üstü platformun dışında kalır ( yerlesim ).
 RAY_UZANTISI = 100.0  # m.5.2.5.6.2  ( en üst konum m.5.2.5.6.1:  + 0,035·v² )
-ETEK_BOYU = donanim.ETEK_BOYU  # m.5.4.5.2:  kabin önlüğünün dik kısmı en az 0,75 m
+ETEK_BOYU = parca_kotlari.ETEK_BOYU  # m.5.4.5.2:  kabin önlüğünün dik kısmı en az 0,75 m
 ESIK_ARASI = 11000.0  # m.5.2.3.1:  ardışık kat kapısı eşikleri arası
 DUSEY_ALANLAR = (
     "kabin_ic_yukseklik",
@@ -135,7 +135,7 @@ def durak_kotlari(g, cizim_sabitleri=None):
     return kotlar, hata
 
 
-kabin_kotlari = donanim.kabin_kotlari
+kabin_kotlari = parca_kotlari.kabin_kotlari
 
 
 def yerlesim(g, cizim_sabitleri=None):
@@ -162,7 +162,7 @@ def yerlesim(g, cizim_sabitleri=None):
     if hata:
         return {"hata": hata}
     #  Karşı ağırlık çerçevesi patenlerin arasındadır ( çerçeve = paten arası −
-    #  bir paten boyu — donanim.agirlik_kotlari ):  kasnağını ( üst kirişin
+    #  bir paten boyu — parca_kotlari.agirlik_kotlari ):  kasnağını ( üst kirişin
     #  agirlik_kasnak_ust altında ) ve iki kirişini taşıyacak kadar olmalı
     R = (g["agirlik"].get("kasnak_capi") or 0) / 2.0
     cerceve = dy["agirlik_paten_arasi"] - S["paten_yukseklik"]
@@ -343,7 +343,7 @@ def yerlesim(g, cizim_sabitleri=None):
         + dy["kabin_tampon_ezilme"]
         + b35
     )
-    AK = donanim.agirlik_kotlari(M, ag_alt)
+    AK = parca_kotlari.agirlik_kotlari(M, ag_alt)
     ag_ray = min(r["ust"] for r in M["raylar"] if r["tur"] == "agirlik")
     ust_aciklik["agirlik_ray"] = (ag_ray - AK["ust_paten"], RAY_UZANTISI, "m.5.2.5.6.2")
     #  KARŞI AĞIRLIĞIN UÇ KONUMLARI — parçaları ( çerçeve, patenler, 2:1'de
@@ -355,7 +355,7 @@ def yerlesim(g, cizim_sabitleri=None):
     #  Eskiden yalnız makine dairesizde çerçevenin makine şasesine çarpması
     #  denetleniyordu:  makine dairelide kasnak tavana girebiliyor, alt paten
     #  kuyu tabanının altına inebiliyordu ( denetim 8 Eki ).
-    AKd = donanim.agirlik_kotlari(M, M["agirlik"]["tampon_ustu"] - dy["agirlik_tampon_ezilme"])
+    AKd = parca_kotlari.agirlik_kotlari(M, M["agirlik"]["tampon_ustu"] - dy["agirlik_tampon_ezilme"])
     #  Her uç konum için tek ileti:  en çok taşan parça, öbürleri adıyla.
     ust_carpan, alt_carpan = {}, {}
     for ad_, k, _, tepe in hareketli.agirlik_parcalari(g, S, KD["taban"], AK):
@@ -434,7 +434,7 @@ AD = {
 
 
 def dogrula(g):
-    hata = girdi.dogrula(g)
+    hata = geometri.dogrula(g)
     if hata:
         return hata
     return yerlesim(g)["hata"]

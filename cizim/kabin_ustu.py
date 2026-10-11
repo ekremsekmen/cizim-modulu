@@ -28,6 +28,8 @@ from cizim import eleman
 from cizim import geometri
 from cizim import girdi
 from cizim import sabitler
+from cizim import standart
+from cizim import parca_kotlari
 
 #  TS EN 81-20 Çizelge 3 — kabin üstü sığınma alanının yatay ölçüleri ( mm ).
 #  Adlar hesap programının "Kabin üstü sığınma hacmi tipi" seçenekleriyle
@@ -36,24 +38,11 @@ SIGINMA = {"Dik duruş": (400.0, 500.0), "Çömelme": (500.0, 700.0)}
 #  ve yüksekliği ( mm ) — dusey açıklığı bununla ölçer
 SIGINMA_YUKSEKLIK = {"Dik duruş": 2000.0, "Çömelme": 1000.0}
 
-#  TS EN 81-20 m.5.4.7.2 b:  tavan kenarından kuyu duvarına yatay boşluk
-#  0,30 m'yi AŞARSA korkuluk gerekir.
-KORKULUK_BOSLUK = 300.0
-#  m.5.4.7.4 c:  korkuluk tavan kenarından en çok 0,15 m içeride durur.
-KORKULUK_KENAR_AZAMI = 150.0
 _ICERI = (
     "Korkuluğun kenardan içeri alınması:  küpeşte kuyudaki parçalardan en az "
     "0,10 m uzak durur ( TS EN 81-20 m.5.4.7.4 d ), kenardan en çok 0,15 m "
     "içeride ( m.5.4.7.4 c )."
 )
-#  m.5.4.7.4 d:  küpeştenin dış kenarı kuyudaki parçalardan ( karşı ağırlık,
-#  raylar, konsollar … ) en az 0,10 m uzakta olmalıdır.
-KORKULUK_PARCA_ASGARI = 100.0
-#  m.5.4.7.4 b:  küpeştenin iç kenarından duvara boşluk 0,50 m'ye kadar ise
-#  yükseklik en az 0,70 m, aşarsa en az 1,10 m.
-KORKULUK_YUKSEKLIK_SINIRI = 500.0
-KORKULUK_ALCAK, KORKULUK_YUKSEK = 700.0, 1100.0
-
 #  Kuyuda duran ( kabinle birlikte gitmeyen ) parçaların katmanları
 _KUYU_PARCALARI = ("RAY", "KONSOL", "AGIRLIK")
 #  Kuyu planından alınan katmanlar ve adlar
@@ -100,7 +89,7 @@ def kapi_gorunusu(g, S):
               boşluklu;  değilse dolu, boşluk lentonun altında ( kesikli )
       kasa    kasa kesilir ( < kapı + kasa_ust )
     Kanatlar kapı yüksekliğindedir;  kabin iç yüksekliği kapıdan alçak
-    olamaz ( girdi.dogrula ) — kanatlar her zaman kesitin altındadır."""
+    olamaz ( geometri.dogrula ) — kanatlar her zaman kesitin altındadır."""
     kesit = g["dusey"]["kabin_ic_yukseklik"] + S["kabin_tavan_kalinlik"]
     kapi_h = g["kapi"].get("yukseklik") or 0
     return {
@@ -189,22 +178,24 @@ def yerlesim(g, cizim_sabitleri=None):
             ]
         k = {
             "bos": bos,
-            "gerekli": bos > KORKULUK_BOSLUK,
+            "gerekli": bos > standart.KORKULUK_BOSLUK,
             "iceri": 0.0,
             "parca": min(yakin) if yakin else None,
             "yukseklik": None,
         }
         if k["gerekli"]:
             #  Küpeşte parçalardan 0,10 m uzak durmalı:  gerekirse içeri alınır
-            k["iceri"] = max(0.0, KORKULUK_PARCA_ASGARI - (k["parca"] if yakin else 1e9))
-            if k["iceri"] > KORKULUK_KENAR_AZAMI:
+            k["iceri"] = max(0.0, standart.KORKULUK_PARCA_ASGARI - (k["parca"] if yakin else 1e9))
+            if k["iceri"] > standart.KORKULUK_KENAR_AZAMI:
                 hata.append(
-                    f"{yan} kenarda korkuluk kuyudaki parçalara {KORKULUK_PARCA_ASGARI:g} mm "
+                    f"{yan} kenarda korkuluk kuyudaki parçalara {standart.KORKULUK_PARCA_ASGARI:g} mm "
                     f"uzak durmak için {k['iceri']:g} mm içeri alınmalı;  TS EN 81-20 "
-                    f"m.5.4.7.4 c en çok {KORKULUK_KENAR_AZAMI:g} mm verir."
+                    f"m.5.4.7.4 c en çok {standart.KORKULUK_KENAR_AZAMI:g} mm verir."
                 )
             k["yukseklik"] = (
-                KORKULUK_ALCAK if bos + k["iceri"] <= KORKULUK_YUKSEKLIK_SINIRI else KORKULUK_YUKSEK
+                standart.KORKULUK_ALCAK
+                if bos + k["iceri"] <= standart.KORKULUK_YUKSEKLIK_SINIRI
+                else standart.KORKULUK_YUKSEK
             )
         kenarlar[yan] = k
 
@@ -280,11 +271,10 @@ def yerlesim(g, cizim_sabitleri=None):
     #  ( denetim 9 Eki ).  Korkuluk denetimi ( yukarıda ) bunları saymaz:
     #  küpeşte kirişin ve halatın üstünden geçer.
     from cizim import arka_aski
-    from cizim import donanim
     from cizim import hareketli
 
     tip = (g.get("kabin_ustu") or {}).get("siginma_tipi")
-    kt = donanim.kabin_kotlari(g["dusey"], S, 0.0, g.get("aski"), arka_aski.arkada_iki_bir(g))
+    kt = parca_kotlari.kabin_kotlari(g["dusey"], S, 0.0, g.get("aski"), arka_aski.arkada_iki_bir(g))
     sinir = kt["tavan"] + SIGINMA_YUKSEKLIK.get(tip, max(SIGINMA_YUKSEKLIK.values()))
     engeller += [
         k
@@ -348,7 +338,7 @@ def _yazi_kutusu(el):
 
 def dogrula(g):
     """Kuyu planının doğrulaması + kabin üstünün kendi kuralları."""
-    hata = girdi.dogrula(g)
+    hata = geometri.dogrula(g)
     if hata:
         return hata
     return yerlesim(g)["hata"]

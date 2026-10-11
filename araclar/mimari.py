@@ -96,6 +96,38 @@ def ihlaller():
     return out
 
 
+def golgeler():
+    """[ ( dosya, satır, ileti ) ] — modül adını gölgeleyen yerel ad:  dosyada
+    import edilmiş bir modülün adı bir fonksiyonda değişken / parametre olunca
+    o fonksiyonda modül görünmez olur;  `geometri = []` sonra
+    `geometri.dogrula( … )` listeyi çağırır ve hata çoğu kez bir except'te
+    sessizce yutulur ( 11 Eki:  hesap çizimden ölçü almadan sürdü — altın
+    çıktı yakaladı )."""
+    out = []
+    for f in dosyalar():
+        with open(os.path.join(KOK, f), encoding="utf-8") as d:
+            t = ast.parse(d.read())
+        moduller = set()
+        for n in t.body:
+            if isinstance(n, ast.ImportFrom) and n.module and not n.level:
+                for a in n.names:
+                    if modul_dosyasi(f"{n.module}.{a.name}"):
+                        moduller.add(a.asname or a.name)
+        if not moduller:
+            continue
+        for fn in ast.walk(t):
+            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                continue
+            argumanlar = fn.args.args + fn.args.kwonlyargs + fn.args.posonlyargs
+            for a in argumanlar + [x for x in (fn.args.vararg, fn.args.kwarg) if x]:
+                if a.arg in moduller:
+                    out.append((f, fn.lineno, f"parametre {a.arg} modülü gölgeliyor"))
+            for n in ast.walk(fn):
+                if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store) and n.id in moduller:
+                    out.append((f, n.lineno, f"yerel ad {n.id} modülü gölgeliyor"))
+    return sorted(set(out))
+
+
 if __name__ == "__main__":
-    for f, s, i in ihlaller():
+    for f, s, i in ihlaller() + golgeler():
         print(f"{f}:{s}:  {i}")

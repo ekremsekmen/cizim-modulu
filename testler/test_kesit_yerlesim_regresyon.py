@@ -13,9 +13,10 @@ from uclar import cizim_uclari, uygulama_uclari
 from motor.uygulama import uygulama_girdisi, uygulama_hesabi
 from cizim import kopru
 from cizim import eleman
-from cizim import baglantilar, donanim, geometri
+from cizim import baglantilar, geometri
 from cizim import kabin_ustu, kuyu_kesiti
 from cizim import makine, olculer
+from cizim import parca_kotlari
 
 
 def _istek(values):
@@ -87,9 +88,9 @@ class KesitYerlesimRegresyon(unittest.TestCase):
                         self.assertTrue(e)
                         if ciz == kuyu_kesiti.on_kesit:
                             Y = kuyu_kesiti.yerlesim(g)
-                            roof = donanim.kabin_kotlari(g["dusey"], Y["S"], Y["kotlar"][-1], g["aski"])[
-                                "tavan"
-                            ]
+                            roof = parca_kotlari.kabin_kotlari(
+                                g["dusey"], Y["S"], Y["kotlar"][-1], g["aski"]
+                            )["tavan"]
                             beam = max((p for p in e if p.get("ad") == "sase_kirisi"), key=lambda p: p["y"])
                             self.assertGreaterEqual(beam["y"], roof - 1e-6)
 
@@ -127,7 +128,7 @@ class KesitYerlesimRegresyon(unittest.TestCase):
             Y = kuyu_kesiti.yerlesim(g)
             M, S = Y["M"], Y["S"]
             B = kuyu_kesiti.yan_bakis(g)
-            AK = donanim.agirlik_kotlari(
+            AK = parca_kotlari.agirlik_kotlari(
                 M, M["agirlik"]["tampon_ustu"] + g["dusey"]["agirlik_carpma_arasi"] + Y["kotlar"][-1]
             )
             e = kuyu_kesiti.yan_kesit(g)

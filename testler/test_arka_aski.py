@@ -22,6 +22,8 @@ from cizim import makine_dairesi
 from cizim import sabitler
 from motor.uygulama import uygulama_girdisi
 from motor.uygulama import uygulama_hesabi
+from cizim import parca_kotlari
+from cizim import standart
 
 #  12495-18'in düzeni ( çapraz kasnaklar, makine duvardan duvara ), kabin
 #  1.350 × 1.400 ( 800 kg'ın standart kabini ):  12495-18'in 1.100 × 1.100
@@ -89,7 +91,7 @@ class Geometri(unittest.TestCase):
         G = arka_aski.geometri(g, S)
         kb, ag = g["kabin"], g["agirlik"]
         kabin_arka = kb["on_pay"] + kb["derinlik"] + S["kabin_pano_arka"]
-        self.assertAlmostEqual(kabin_arka - G["P"][1], kabin_ustu.KORKULUK_PARCA_ASGARI)
+        self.assertAlmostEqual(kabin_arka - G["P"][1], standart.KORKULUK_PARCA_ASGARI)
         self.assertGreaterEqual(G["ey"] - ag["derinlik"] / 2.0 - kabin_arka, 50.0)
         #  Arka kasnak korkuluğun yolunu kesmez
         self.assertEqual(kabin_ustu.dogrula(g), [])
@@ -106,10 +108,10 @@ class Geometri(unittest.TestCase):
         self.assertIsNone(Y["siginma"])
         self.assertTrue(any("aralarındaki halat" in h for h in Y["hata"]), Y["hata"])
         #  Halat şeridi gerçekten tavanın üstünde ve alanın yüksekliğinde
-        from cizim import donanim, hareketli
+        from cizim import hareketli
 
         S = sabitler.sabitler(g.get("_cizim_sabitleri"))
-        kt = donanim.kabin_kotlari(g["dusey"], S, 0.0, g["aski"], True)
+        kt = parca_kotlari.kabin_kotlari(g["dusey"], S, 0.0, g["aski"], True)
         halat = [p for p in hareketli.kabin_parcalari(g, S, Y["taban"], kt) if p[0] == hareketli.HALAT]
         self.assertTrue(halat)
         self.assertAlmostEqual(halat[0][2] - kt["tavan"], S["kabin_tavani_kasnak_boslugu"])

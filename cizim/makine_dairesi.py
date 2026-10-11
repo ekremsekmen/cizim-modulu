@@ -37,7 +37,6 @@ kuralla ( tek halat:  çap + 2 × pay ).
 from temel import ortusur, sayi_mi
 from cizim import eleman
 from cizim import geometri
-from cizim import girdi
 from cizim import kuyu_ustu
 from cizim import makine
 from cizim import sabitler
@@ -695,7 +694,7 @@ def _bitisik_adaylar(mk, w, h, adim=25.0):
 
 
 def dogrula(g):
-    hata = girdi.dogrula(g)
+    hata = geometri.dogrula(g)
     if hata:
         return hata
     return yerlesim(g)["hata"]
