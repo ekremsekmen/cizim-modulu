@@ -7,10 +7,14 @@ girdiden geldiğini söyler ve değiştirmeyi O GİRDİYE yazar.  Çizim elle
 değişmez:  hesap ile çizim aynı sayıyı kullanmaya devam eder.
 
 Kaynak elle etiketlenmez — yüz kadar ölçü var, zincir ölçülerin uçları başka
-başka parçalardır, sonradan eklenen bir ölçü etiketsiz kalırdı.  ÖLÇÜLÜR:  her
-girdi çok az oynatılıp ( 1 mm ) çizim yeniden kurulur ve ölçünün değişimine
-bakılır ( eğim:  girdi 1 artınca ölçü kaç artar ).  Değiştirmede girdinin yeni
-değeri eğimden bulunur ve çizim yeniden kurularak DOĞRULANIR;  bağıntı doğrusal
+başka parçalardır, sonradan eklenen bir ölçü etiketsiz kalırdı.  TÜREVLE
+bulunur ( turevden ):  çizim bir kez, girdileri izli sayıya sarılarak kurulur
+( cizim/izli.py ) ve her ölçünün uzunluğu hangi girdiye hangi eğimle ( girdi
+1 artınca ölçü kaç artar ) bağlı olduğunu taşır — tıklama anında yanıtlanır.
+Eski yol ( cozumle:  her girdi 1 mm oynatılıp çizim 200 – 280 kez yeniden
+kurulur, 3 – 9 sn ) türevin testteki denetçisi ve yedeğidir
+( testler/test_olcu_turevi.py ).  Değiştirmede girdinin yeni değeri eğimden
+bulunur ve çizim yeniden kurularak DOĞRULANIR ( coz );  bağıntı doğrusal
 değilse kiriş yöntemiyle hedefe yaklaşılır.
 
 Kaynak türleri ( aday["tur"] ):
@@ -26,6 +30,7 @@ verilir ( hesap/api/cizim.py — formun girdisinden çizimin ölçülerine ).
 
 import math
 from temel import sayi_mi
+from cizim import izli
 import re
 
 ESIK = 1e-7  # bu kadarlık değişim "değişmedi" sayılır ( kayan nokta )
@@ -155,6 +160,35 @@ def _secim(kur, taban, ad, kaynak):
         if sayisal:
             s, dog = _dogrusal([du / (v - ad["deger"]) for v, du in lst])
         kaynak[i].append({"kimlik": ad["kimlik"], "tur": "secim", "egim": s, "dogrusal": dog, "bagli": False})
+
+
+def turevden(olculer_, adaylar):
+    """Her ölçünün kaynakları İZLİ kurulumdan ( cizim/izli.py ):  çizim bir kez,
+    girdileri izli sayıya sarılarak kurulur;  ölçünün uzunluğu hangi girdiye
+    hangi eğimle bağlı olduğunu taşır.  cozumle() ile aynı biçim ( adayların
+    sırasıyla );  yalnız adaylar arasındaki girdiler sayılır.
+
+    Türev yereldir:  ölçünün bir eşikte sıçradığını ( dogrusal ) ve girdinin
+    tek başına değişemediğini ( bagli ) söylemez — değiştirirken çizim yeniden
+    kurularak doğrulanır ( coz ).  Kategori seçimleri ( ray profili … ) türevle
+    bulunmaz:  ölçünün tek kaynağıysa ölçü kendisi söyler ( o["secim"] )."""
+    aday = {a["kimlik"]: a for a in adaylar}
+    sira = {a["kimlik"]: n for n, a in enumerate(adaylar)}
+    kaynak = []
+    for o in olculer_:
+        ks = [
+            {"kimlik": k, "tur": aday[k]["tur"], "egim": e, "dogrusal": True, "bagli": False}
+            for k, e in izli.turev(o["uzunluk"]).items()
+            if k in aday and abs(e * aday[k].get("adim", 1.0)) > ESIK
+        ]
+        ks += [
+            {"kimlik": ("girdi", a), "tur": "secim", "egim": None, "dogrusal": False, "bagli": False}
+            for a in o.get("secim") or ()
+            if ("girdi", a) in aday and all(x["kimlik"] != ("girdi", a) for x in ks)
+        ]
+        ks.sort(key=lambda x: sira[x["kimlik"]])
+        kaynak.append(ks)
+    return kaynak
 
 
 def cozumle(kur, adaylar):

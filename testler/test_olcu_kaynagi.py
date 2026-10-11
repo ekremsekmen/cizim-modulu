@@ -2,8 +2,10 @@
 hesap/api/cizim.py ).
 
 Ekranda bir ölçüye tıklanınca hangi girdiden geldiği söylenir;  yeni değer o
-girdiye yazılır ve çizim yeniden kurularak doğrulanır.  Kaynak ölçülür ( her
-girdi 1 mm oynatılır ), elle etiketlenmez — testler de ölçerek denetler."""
+girdiye yazılır ve çizim yeniden kurularak doğrulanır.  Kaynak türevle bulunur
+( çizim bir kez, girdileri izli sayıya sarılarak kurulur — cizim/izli.py ),
+elle etiketlenmez;  türevin eski yolla ( her girdi 1 mm oynatılır )
+karşılaştırılması testler/test_olcu_turevi.py'de."""
 
 import json
 import os
@@ -129,8 +131,10 @@ class Eksiksiz(unittest.TestCase):
     standardı, ürün ölçüsü ) bağlıdır ya da dayandığı kuralı söyler — tıklanan
     hiçbir ölçü "bilinmiyor" demez."""
 
-    @yavas("7 dk")
+    @yavas("1 dk")
     def test_her_olcunun_kaynagi_ya_da_kurali_var(self):
+        #  Kaynağı yalnız kategori seçimi olanlar ( ray profili, sığınma tipi )
+        #  ekrana verilirken bulunur ( _kategori_kaynaklari ):  ekranın listesi
         for ad_d, v in DUZENLER.items():
             v = v()
             g, hata = _g(v)
@@ -139,7 +143,9 @@ class Eksiksiz(unittest.TestCase):
                 r = cizim_uclari._cozumleme(v, ad)
                 self.assertIsNotNone(r, (ad_d, ad))
                 eksik = [
-                    o["metin"] for i, o in enumerate(r["taban"]) if not r["kaynak"][i] and not o.get("kural")
+                    o["metin"]
+                    for i, o in enumerate(r["taban"])
+                    if not cizim_uclari._kaynaklar(r, i) and not o.get("kural")
                 ]
                 self.assertEqual(eksik, [], (ad_d, ad))
 
@@ -206,12 +212,13 @@ class Kaynak(unittest.TestCase):
     def test_urun_olcusu_adiyla(self):
         #  Ürün ölçüleri ofis standardındadır ( Sabitler sekmesi — karar 12 ).
         #  Eşiğin derinliği kapı tipine de bağlı ( 3 kanatlı teleskopikte 135 —
-        #  girdi.esik_derinligi, 2 Eki ):  kapı tipi seçim olarak önce gelir.
+        #  girdi.esik_derinligi ):  kategori seçimi türevle bulunmaz, ölçünün
+        #  başka kaynağı varken söylenmez ( _kategori_kaynaklari ).
         k = self._kaynaklar("KABİN EŞİĞİ")
         ofis = [x for x in k if x["yer"] == "ofis"]
         self.assertTrue(ofis[0]["etiket"].startswith(sabitler.ETIKET["kabin_esik_derinlik"]))
         self.assertFalse(ofis[0]["degistirilir"])
-        self.assertEqual(k[0]["anahtar"], "kat_kapisi_tipi")
+        self.assertNotIn("kat_kapisi_tipi", [x["anahtar"] for x in k])
 
     def test_kuyu_dibi_dogrudan_kaide_zincirden(self):
         #  Kabin tamponu kaidesinin formda kutusu yok ( tasarım şeması:  kaynağı
@@ -583,14 +590,16 @@ class Degistirilemeyen(unittest.TestCase):
         #  kirişle birlikte kayar, arka kenara ölçü doğrusal değişmez.  ( Eskiden
         #  1022'de kabin genişliğiyle sıçrayan "125" ölçülüyordu;  alan kirişin
         #  arkasına geçince o ölçü kalmadı. )
+        #  Türev adımla kaymada 0'dır:  ray – kapı arası bu ölçünün kaynağı olarak
+        #  önerilmez ( eskiden oynatma "doğrusal değil" diye listeliyordu ),
+        #  istense de kutuya değer yazılmaz.
         v = _gercek("4815-6")
         r = cizim_uclari._cozumleme(v, "kabin_ustu")
         i = _olcu(r, "920")
-        k = next(x for x in r["kaynak"][i] if x["kimlik"] == ("girdi", "ray_kapi_arasi"))
-        self.assertFalse(k["dogrusal"])
+        self.assertNotIn(("girdi", "ray_kapi_arasi"), [x["kimlik"] for x in r["kaynak"][i]])
         y = _degistir(v, "kabin_ustu", i, r, "ray_kapi_arasi", "940")
         self.assertFalse(y["aktif"])
-        self.assertIn("düzgün değişmiyor", y["hata"][0])
+        self.assertIn("değiştirilemez", y["hata"][0])
 
     def test_adimla_kayan_olcu(self):
         #  Kuyu dibindeki sığınma alanı 25 mm'lik adımla konur:  1 mm'de

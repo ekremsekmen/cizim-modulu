@@ -29,6 +29,7 @@ from uclar.uc_ortak import hata_kaydi
 
 from cizim import cizimler
 from cizim import geometri
+from cizim import izli
 from cizim import kopru
 from cizim import olcu_kaynagi
 from cizim import pafta
@@ -145,15 +146,16 @@ def api_cizimler(veri: dict = Body(...)):
 # ══════════════════════════════════════════════════════════════════════
 #  Ekranda bir ölçüye tıklanınca hangi girdiden geldiği söylenir;  yeni değer
 #  yazılırsa O GİRDİ değiştirilir ( çizim elle değişmez — hesap ile çizim aynı
-#  sayıyı kullanmaya devam eder ).  Kaynak her girdi çok az oynatılıp çizim
-#  yeniden kurularak bulunur ( cizim/olcu_kaynagi.py ).
+#  sayıyı kullanmaya devam eder ).  Kaynak çizim bir kez, girdileri izli
+#  sayıya sarılarak kurulup türevden bulunur ( cizim/izli.py,
+#  olcu_kaynagi.turevden );  değiştirme çizim yeniden kurularak doğrulanır.
 
-#  Oynatma adımı:  1 mm'ye denk gelen değişim;  başka birimlerde değerin binde biri.
+#  Oynatma adımı:  1 mm'ye denk gelen değişim;  başka birimlerde değerin binde
+#  biri ( eski yolda kaynak bulmak, değiştirirken girdinin bağlılığını denemek ).
 _ADIM = {"mm": 1.0, "m": 0.001, "cm": 0.1, "°": 0.1, "adet": 1.0}
 _ONBELLEK, _KILIT, _ONBELLEK_AZAMI = OrderedDict(), threading.Lock(), 8
-#  Süren çözümlemeler:  ekran, fare çizimin üstüne gelince çözümlemeyi önceden
-#  ister;  o bitmeden ölçüye tıklanınca aynı çözümleme ikinci kez, paralel
-#  yapılıyordu ( ikisi de yarı hızda — tıklama iki kat bekliyordu ).  Şimdi
+#  Süren çözümlemeler:  aynı çizimin çözümlemesi bitmeden ikinci istek gelirse
+#  ( tıklama ve hemen ardından değiştirme ) ikinci kez, paralel yapılmaz —
 #  ikinci istek birincinin bitmesini bekler, sonucu önbellekten alır.
 _SURENLER = {}
 
@@ -316,8 +318,8 @@ def _adaylar(ham, A, g, okunan):
 
 
 def _cozumleme(veri, ad):
-    """Çizimin bütün ölçülerinin kaynakları — aynı girdiyle ikinci tıklama
-    önbellekten ( bir çizimin çözümlemesi bir saniye kadar sürer )."""
+    """Çizimin bütün ölçülerinin kaynakları — aynı girdiyle ikinci tıklama ve
+    değiştirme önbellekten."""
     ham, i, proje = _istek(veri)
     anahtar = hashlib.sha1(
         json.dumps([ham, i, ad, proje], sort_keys=True, default=str).encode("utf-8")
@@ -345,20 +347,98 @@ def _cozumleme(veri, ad):
                 _SURENLER.pop(anahtar, None)
 
 
+def izli_cizim_girdisi(ham, proje, sira, g_taban, adaylar):
+    """Çizimin girdisi ( g ), sayıları kaynaklarını taşıyarak ( cizim/izli.py ) —
+    izli.izleme() içinde çağrılır;  çizim de o blokta kurulmalı ( sabitler
+    izlenir ).  Sayı kutuları ve uzunluk seçimleri ( kapı genişliği ) sarılır;
+    boş kalıp hesabın doldurduğu alanlara kendi kutusuna eğim eklenir
+    ( izli.oz — çizim alanlarınınki köprüde ).  Regülatör tabandaki yerinde
+    tutulur ( _regulatoru_tut — sayı oynatmada olduğu gibi ).  Kategori
+    seçimleri ( askı oranı 2 → "2.0:1" yazardı ) sarılmaz.  Kurulamazsa None."""
+    alan = _sozlesme()[0]
+    sar = [
+        a["kimlik"][1]
+        for a in adaylar
+        if a["kimlik"][0] == "girdi"
+        and (
+            a["tur"] == "sayi" or (a["tur"] == "secim" and alan[a["kimlik"][1]]["birim"] in ("mm", "m", "cm"))
+        )
+    ]
+    h = dict(ham)
+    _regulatoru_tut(h, g_taban, {})
+    for k in sar:
+        h[k] = izli.girdi(h.get(k), ("girdi", k))
+    A = uygulama_girdisi.tamamla(h)
+    for k in sar:
+        if h.get(k) is None:
+            A[k] = izli.oz(A.get(k), ("girdi", k))
+    g, _hata = kopru.cizim_girdisi(A, None, proje, sira)
+    return g
+
+
+def _izli_olculer(ham, ad, proje, sira, g_taban, adaylar):
+    """Çizimin ölçüleri, uzunlukları kaynaklarını taşıyarak — çizim BİR KEZ
+    kurulur ( izli_cizim_girdisi ).  Kurulamazsa None."""
+    try:
+        with izli.izleme():
+            g = izli_cizim_girdisi(ham, proje, sira, g_taban, adaylar)
+            if g is None:
+                return None
+            with geometri.yalniz_olculer():
+                return olcu_kaynagi.olculer(cizimler.CIZIMLER[ad][1](g))
+    except Exception:
+        log.warning("izli kurulum yapılamadı ( %s )", ad, exc_info=True)
+        return None
+
+
 def _cozumle(ham, i, proje, ad):
+    """Çizimin ölçüleri ve her birinin kaynakları:  taban düz kurulur ( ekranla
+    aynı ölçüler ), kaynaklar izli kurulumun türevinden ( olcu_kaynagi.turevden ).
+    İzli kurulum tutmazsa ( olmamalı — testte denetlenir ) eski yol:  her
+    girdi oynatılıp çizim yeniden kurulur ( olcu_kaynagi.cozumle )."""
     kur, bilgi = _kurucu(ham, ad, proje, i + 1)
     with sabitler.okunanlar() as okunan:
-        if kur({}) is None:
-            return None
+        taban = kur({})
+    if taban is None:
+        return None
     adaylar = _adaylar(ham, bilgi["A"], bilgi["g"], okunan)
-    taban, kaynak = olcu_kaynagi.cozumle(kur, adaylar)
+    e = _izli_olculer(ham, ad, proje, i + 1, bilgi["g"], adaylar)
+    kategori = False  # kategori seçimleri oynatıldı mı ( _kategori_kaynaklari )
+    if e is not None and [o["metin"] for o in e] == [o["metin"] for o in taban]:
+        kaynak = olcu_kaynagi.turevden(e, adaylar)
+    else:
+        log.warning("ölçü kaynağı izli kurulumla bulunamadı ( %s ):  oynatarak", ad)
+        taban, kaynak = olcu_kaynagi.cozumle(kur, adaylar)
+        kategori = True
     return {
         "ham": ham,
         "kur": kur,
         "taban": taban,
         "kaynak": kaynak,
         "adaylar": {a["kimlik"]: a for a in adaylar},
+        "kategori": kategori,
+        "kilit": threading.Lock(),
     }
+
+
+def _kategori_kaynaklari(r, i):
+    """Ölçünün türevle kaynağı da kuralı da yoksa kaynağı bir KATEGORİ
+    seçimidir ( ray profili → "RAY 62", yan yatak NPU'su → makine şasesi,
+    sığınma tipi → kuyu dibindeki alanın ölçüleri ):  türev onu bulamaz.  O
+    zaman — bir kez, çizimin bütün kaynaksız ölçüleri için — yalnız seçim ve
+    tam sayı kutuları oynatılır ( olcu_kaynagi.cozumle;  ~1 – 3 sn ).  Başka
+    kaynağı olan ölçüde kategori seçimi söylenmez."""
+    if r["kaynak"][i] or r["taban"][i].get("kural") or r["kategori"]:
+        return
+    with r["kilit"]:
+        if r["kategori"]:
+            return
+        secimler = [a for a in r["adaylar"].values() if a["tur"] in ("secim", "tam")]
+        _t, fd = olcu_kaynagi.cozumle(r["kur"], secimler)
+        for j, ks in enumerate(fd or []):
+            if not r["kaynak"][j] and not r["taban"][j].get("kural"):
+                r["kaynak"][j] = ks
+        r["kategori"] = True
 
 
 def _dogrudan(k, deger, u):
@@ -371,6 +451,7 @@ def _kaynaklar(r, i):
     ( değeri ölçüye eşit, eğimi 1 ) önce, sonra değiştirilebilenler, sonra
     yalnız gösterilenler."""
 
+    _kategori_kaynaklari(r, i)
     alan, pg, _gizli = _sozlesme()
     u = r["taban"][i]["uzunluk"]
     liste = []
@@ -486,6 +567,7 @@ def api_olcu_degistir(veri: dict = Body(...)):
         if hata:
             return JSONResponse({"aktif": False, "hata": [hata]})
         anahtar = veri.get("anahtar")
+        _kategori_kaynaklari(r, i)
         k = next((x for x in r["kaynak"][i] if x["kimlik"] == ("girdi", anahtar)), None)
         bilgi = next(
             (b for b in _kaynaklar(r, i) if b["anahtar"] == anahtar and b["yer"] in ("asansor", "proje")),
@@ -503,7 +585,11 @@ def api_olcu_degistir(veri: dict = Body(...)):
             return JSONResponse({"aktif": False, "hata": ["Yeni ölçü sıfırdan küçük olamaz."]})
         if k["tur"] == "secim":
             return JSONResponse(_secimle(r, i, anahtar, hedef, bilgi))
-        serbest = _en_az_serbest(r, k, aday) if k["bagli"] else False
+        #  Türev girdinin tek başına değişip değişemeyeceğini söylemez:  çizim
+        #  kurulamıyorsa ( kaide girilmişken kuyu dibi — zincir ) bırakılması
+        #  gereken türetilen alan aranır
+        bagli = k["bagli"] or r["kur"]({k["kimlik"]: aday["deger"] + aday["adim"]}) is None
+        serbest = _en_az_serbest(r, k, aday) if bagli else False
         if bilgi["dogrudan"] and not serbest:
             #  Ölçü girdinin kendisi ( değeri eşit, eğimi 1 ):  yeni değer hedeftir.
             #  Çizimde yeniden aranmaz — "ø 240" gibi bazı ölçüler geometri
