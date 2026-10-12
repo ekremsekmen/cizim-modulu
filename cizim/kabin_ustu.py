@@ -27,6 +27,7 @@ from dataclasses import dataclass
 
 from temel import eleman_kutusu, ortusur
 from cizim import eleman
+from cizim import uslup
 from cizim import geometri
 from cizim import girdi
 from cizim import sabitler
@@ -416,7 +417,7 @@ def ciz(g, cizim_sabitleri=None):
     #  çıkar — kasnak zaten çizili )
     for hx, hy in Y["halatlar"] if duzen == "Kabin altı" else ():
         e.append(eleman.ad(eleman.daire("KASNAK", hx, hy, 20), "halat"))
-        e.append(eleman.yazi(hx, hy - 70, "HALAT", 36))
+        e.append(eleman.yazi(hx, hy - 70, "HALAT", uslup.NORMAL))
 
     #  ── KORKULUK ─────────────────────────────────────────────────────
     #  Küpeşte çizgisi, gerekli olan her kenarda iceri kadar içeride durur.
@@ -431,8 +432,8 @@ def ciz(g, cizim_sabitleri=None):
         )
         a, b = SIGINMA[Y["siginma_tipi"]]
         cx, cy = (sg[0] + sg[2]) / 2.0, (sg[1] + sg[3]) / 2.0
-        e.append(eleman.yazi(cx, cy + 35, "SIĞINMA ALANI", 38))
-        e.append(eleman.yazi(cx, cy - 35, f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}", 34))
+        e.append(eleman.yazi(cx, cy + 35, "SIĞINMA ALANI", uslup.NORMAL))
+        e.append(eleman.yazi(cx, cy - 35, f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}", uslup.NORMAL))
     e += aski_el
 
     e += _ana_olculer(g, tavan)
@@ -511,18 +512,18 @@ def _iceri_olculeri(Y):
         if not (k["gerekli"] and k["iceri"] > 1e-9):
             continue
         metin = f"{k['iceri']:g}"
-        yari = eleman.yazi_eni(metin, eleman.yb(40)) / 2.0
+        yari = eleman.yazi_eni(metin, uslup.NORMAL) / 2.0
         if yan in ("Sol", "Sağ"):
             x1, x2 = (tavan[0], ic[0]) if yan == "Sol" else (ic[2], tavan[2])
             #  Her kenarın ölçüsü kendi sırasında  ( iki kenar aynı sırada
             #  kopuk bir zincir oluştururdu )
             kot = tavan[3] - (120 if yan == "Sol" else 200)
-            yazi = {"x": (x2 + 30 + yari) if yan == "Sol" else (x1 - 30 - yari), "y": kot, "h": eleman.yb(40)}
+            yazi = {"x": (x2 + 30 + yari) if yan == "Sol" else (x1 - 30 - yari), "y": kot, "h": uslup.NORMAL}
             e.append(eleman.olcu("yatay", (x1, 0), (x2, 0), kot, metin, kural=_ICERI, yazi=yazi))
         else:
             y1, y2 = (ic[3], tavan[3]) if yan == "Arka" else (tavan[1], ic[1])
             kot = tavan[0] + (120 if yan == "Arka" else 200)
-            yazi = {"x": kot + 30 + yari, "y": (y1 + y2) / 2.0, "h": eleman.yb(40)}
+            yazi = {"x": kot + 30 + yari, "y": (y1 + y2) / 2.0, "h": uslup.NORMAL}
             e.append(eleman.olcu("dusey", (0, y1), (0, y2), kot, metin, kural=_ICERI, yazi=yazi))
     return e
 
@@ -614,9 +615,9 @@ def _korkuluk_yazilari(Y, e):
         )
         metin, yon_, orta = _korkuluk_yazisi_yeri(serit, e, op, olcu_yazilari, k["yukseklik"])
         if dikey:
-            e.append(eleman.yazi(serit.cizgi + yon_ * 60, orta, metin, 40, aci=90))
+            e.append(eleman.yazi(serit.cizgi + yon_ * 60, orta, metin, uslup.NORMAL, aci=90))
         else:
-            e.append(eleman.yazi(orta, serit.cizgi + yon_ * 60, metin, 40))
+            e.append(eleman.yazi(orta, serit.cizgi + yon_ * 60, metin, uslup.NORMAL))
         olcu_yazilari.append(geometri.sinir([e[-1]]))  # sonraki korkuluğun yazısı kaçsın
 
 
@@ -732,8 +733,8 @@ def _korkuluk_yazisi_yeri(serit, e, op, olcu_yazilari, yukseklik):
     #  Sıra:  uzun yazı içeride, dışarıda;  ikisine de sığmıyorsa kısa yazı
     #  ( "h = 700" — çizgi korkuluk katmanında ) içeride, dışarıda.
     for m_, L_ in (
-        (metin, eleman.yazi_eni(metin, eleman.yb(40)) + 20.0),
-        (kisa, eleman.yazi_eni(kisa, eleman.yb(40)) + 20.0),
+        (metin, eleman.yazi_eni(metin, uslup.NORMAL) + 20.0),
+        (kisa, eleman.yazi_eni(kisa, uslup.NORMAL) + 20.0),
     ):
         for yon_, liste in ((ic_yon, ic_parca), (-ic_yon, dis_parca)):
             sigan = [p_ for p_ in liste if p_[1] - p_[0] >= L_]
@@ -745,7 +746,7 @@ def _korkuluk_yazisi_yeri(serit, e, op, olcu_yazilari, yukseklik):
     engel_ = olcu_yazilari + [op] + list(parcalar_)
     en_iyi = None
     for m_ in (kisa, metin):
-        L_ = eleman.yazi_eni(m_, eleman.yb(40))
+        L_ = eleman.yazi_eni(m_, uslup.NORMAL)
         for yon_ in (ic_yon, -ic_yon):
             u = serit.bas + L_ / 2.0
             while u <= serit.son - L_ / 2.0 + 1e-6:

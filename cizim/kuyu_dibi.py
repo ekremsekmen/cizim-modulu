@@ -30,6 +30,7 @@ olanlar gelir:
 
 from temel import eleman_kutusu, kutu_merkezi, ortusur, sayi_mi
 from cizim import eleman
+from cizim import uslup
 from cizim import geometri
 from cizim import girdi
 from cizim import sabitler
@@ -104,10 +105,10 @@ def _serbest(sira, adaylar, sinir_, engeller):
 def _kuvvet_tablosu(kv, x, y):
     """RAY KONSOLUNA YATAY YÜKLER ve altında Fx / Fy yönlerini gösteren ray şeması."""
     satirlar = [
-        ("RAY KONSOLUNA YATAY YÜKLER", 45),
-        ("( yük durumlarının en büyüğü )", 36),
-        (f"Kabin rayı:  Fx = {_kn(kv['Fx_kabin'])} kN  ·  Fy = {_kn(kv['Fy_kabin'])} kN", 40),
-        (f"Ağırlık rayı:  Fx = {_kn(kv['Fx_agirlik'])} kN  ·  Fy = {_kn(kv['Fy_agirlik'])} kN", 40),
+        ("RAY KONSOLUNA YATAY YÜKLER", uslup.NORMAL),
+        ("( yük durumlarının en büyüğü )", uslup.NORMAL),
+        (f"Kabin rayı:  Fx = {_kn(kv['Fx_kabin'])} kN  ·  Fy = {_kn(kv['Fy_kabin'])} kN", uslup.NORMAL),
+        (f"Ağırlık rayı:  Fx = {_kn(kv['Fx_agirlik'])} kN  ·  Fy = {_kn(kv['Fy_agirlik'])} kN", uslup.NORMAL),
     ]
     e = []
     for i, (metin, h) in enumerate(satirlar):
@@ -122,8 +123,8 @@ def _kuvvet_tablosu(kv, x, y):
     uc = cy + 250
     e.append(eleman.ad(eleman.ok("YUK", cx, uc + 230, cx, uc + 15), "kuvvet_semasi"))
     e.append(eleman.ad(eleman.ok("YUK", cx - 280, cy + 160, cx - 25, cy + 160), "kuvvet_semasi"))
-    e.append(eleman.ad(eleman.yazi(cx + 50, uc + 150, "Fy", 40, hiza="sol"), "kuvvet_semasi"))
-    e.append(eleman.ad(eleman.yazi(cx - 160, cy + 215, "Fx", 40), "kuvvet_semasi"))
+    e.append(eleman.ad(eleman.yazi(cx + 50, uc + 150, "Fy", uslup.NORMAL, hiza="sol"), "kuvvet_semasi"))
+    e.append(eleman.ad(eleman.yazi(cx - 160, cy + 215, "Fx", uslup.NORMAL), "kuvvet_semasi"))
     return e
 
 
@@ -133,7 +134,7 @@ def _kn(v):
 
 
 #  Yük kutusunun yazısı ve kutunun yazı çevresindeki payı ( mm, 1/20'de )
-YUK_YAZI = 40.0
+YUK_YAZI = uslup.NORMAL
 YUK_PAY = 30.0
 _YUK_DISI = ("EKSEN", "CERCEVE", "TARAMA", "KUYU-DUVAR", "KUYU-IC", "GIZLI")
 
@@ -268,7 +269,7 @@ def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar, dis=None):
 
     def adaylar(p, metin):
         px, py = p
-        w, h = eleman.yazi_eni(metin, eleman.yb(YUK_YAZI)) + 2 * YUK_PAY, eleman.yb(YUK_YAZI) + 2 * YUK_PAY
+        w, h = eleman.yazi_eni(metin, YUK_YAZI) + 2 * YUK_PAY, YUK_YAZI + 2 * YUK_PAY
         ox, oy = G / 2.0 - px, D / 2.0 - py
         #  Okun başladığı nokta bir yazının payının içindeyse ( yazı noktaya
         #  bitişik ) o yazı paysız sayılır:  yoksa noktadan çıkan her ok onu
@@ -829,7 +830,7 @@ def ciz(g, cizim_sabitleri=None):
             kutu_merkezi(gr)[0] - (80 if gr[0] > G / 2 else -80),
             kutu_merkezi(gr)[1],
             "REGÜLATÖR GERGİSİ",
-            34,
+            uslup.NORMAL,
             aci=90,
         )
     )
@@ -901,15 +902,14 @@ def _donanim(Y, G):
         #  Etiket sığıyorsa merdivenin içine:  yanına yazılınca sığınma alanının
         #  ölçüsüne biniyordu
         ic = (
-            eleman.yazi_eni("MERDİVEN", eleman.yb(36)) <= m[3] - m[1] - 40
-            and eleman.yb(36) <= m[2] - m[0] - 20
+            eleman.yazi_eni("MERDİVEN", uslup.NORMAL) <= m[3] - m[1] - 40 and uslup.NORMAL <= m[2] - m[0] - 20
         )
         e.append(
             eleman.yazi(
                 kutu_merkezi(m)[0] + (0 if ic else 110 if m[0] < G / 2 else -110),
                 kutu_merkezi(m)[1],
                 "MERDİVEN",
-                36,
+                uslup.NORMAL,
                 aci=90,
             )
         )
@@ -920,8 +920,8 @@ def _donanim(Y, G):
         )
         a, b = SIGINMA[Y["siginma_tipi"]]
         cx, cy = kutu_merkezi(sg)
-        e.append(eleman.yazi(cx, cy + 35, "SIĞINMA ALANI", 38))
-        e.append(eleman.yazi(cx, cy - 35, f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}", 34))
+        e.append(eleman.yazi(cx, cy + 35, "SIĞINMA ALANI", uslup.NORMAL))
+        e.append(eleman.yazi(cx, cy - 35, f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}", uslup.NORMAL))
     return e
 
 
@@ -1003,7 +1003,7 @@ def _perde_yazisi(e, yer, p):
     """KARŞI AĞIRLIK PERDESİ:  tercih edilen yerde;  bir yük okuna ya da kutusuna,
     bir yazıya değiyorsa perde boyunca en yakın boş yere kayar."""
     x, y, aci = yer
-    h = 30
+    h = uslup.NORMAL
     oklar = [((o["x1"], o["y1"]), (o["x2"], o["y2"])) for o in e if o.get("ad") == "yuk_oku"]
     engel = [
         geometri.sinir([o])
@@ -1016,13 +1016,13 @@ def _perde_yazisi(e, yer, p):
     orta = y if aci else x
     #  Tam adı sığmıyorsa ( oklar perdeyi sık kesiyor ) kısaltılır
     for metin in ("KARŞI AĞIRLIK PERDESİ", "AĞIRLIK PERDESİ", "PERDE"):
-        L = eleman.yazi_eni(metin, eleman.yb(h))
+        L = eleman.yazi_eni(metin, h)
         adaylar = sorted(
             (orta + d for d in range(-2000, 2001, 20) if boy[0] + L / 2.0 <= orta + d <= boy[1] - L / 2.0),
             key=lambda c: abs(c - orta),
         )
         for c in adaylar:
-            hh = eleman.yb(h)
+            hh = h
             k = (
                 (x - hh / 2.0, c - L / 2.0, x + hh / 2.0, c + L / 2.0)
                 if aci

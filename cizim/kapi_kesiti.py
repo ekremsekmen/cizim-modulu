@@ -17,6 +17,7 @@ kanat_kalinlik ).
 
 from cizim import izli
 from cizim import eleman
+from cizim import uslup
 from cizim import dusey
 from cizim import geometri
 from cizim import girdi
@@ -212,7 +213,7 @@ def _kabin(e, Y):
 
 def _adli(e, u, z, metin, ad, hedef):
     """Parçanın adı oklu:  ok yazının yanından parçaya."""
-    e.append(eleman.ad(eleman.yazi(u, z, metin, 32, hiza="sol"), ad))
+    e.append(eleman.ad(eleman.yazi(u, z, metin, uslup.NORMAL, hiza="sol"), ad))
     e.append(eleman.ad(eleman.ok("YAZI", u - 15.0, z, hedef[0], hedef[1]), "etiket_oku"))
 
 
@@ -224,7 +225,7 @@ def _yazilar(e, Y, don, tan):
     sac_u, sac_z, sac_boy = Y["sac"]
     on_u, on_z, on_boy = Y["onluk"]
     on = KB["kabin_esik"][1]
-    h = 40.0
+    h = uslup.NORMAL
     e.append(eleman.yazi(-don - DOSEME_GOSTERIM / 2.0, 120.0, "KAT", h))
     e.append(eleman.yazi(on + KABIN_GOSTERIM / 2.0, 120.0, "KABİN", h))
     #  Sacın yazısı önlüğün ve pahın altında;  ok sac ile önlük arasından pahın ortasına

@@ -22,6 +22,7 @@ import math
 
 from cizim import izli
 from cizim import eleman
+from cizim import uslup
 from cizim import geometri
 from cizim import kesit_parcalari
 from cizim import kuyu_kesiti
@@ -54,16 +55,18 @@ def _halat_adlari(e, uk, ua, z_alt):
     ortalanınca biner ) her yazı kendi halatının dış yanına yaslanır."""
     if (
         abs(ua - uk)
-        >= (eleman.yazi_eni("KABİNE", eleman.yb(45)) + eleman.yazi_eni("AĞIRLIĞA", eleman.yb(45))) / 2.0 + 40
+        >= (eleman.yazi_eni("KABİNE", uslup.NORMAL) + eleman.yazi_eni("AĞIRLIĞA", uslup.NORMAL)) / 2.0 + 40
     ):
-        e.append(eleman.ad(eleman.yazi(uk, z_alt - 90, "KABİNE", 45), "halat_adi"))
-        e.append(eleman.ad(eleman.yazi(ua, z_alt - 90, "AĞIRLIĞA", 45), "halat_adi"))
+        e.append(eleman.ad(eleman.yazi(uk, z_alt - 90, "KABİNE", uslup.NORMAL), "halat_adi"))
+        e.append(eleman.ad(eleman.yazi(ua, z_alt - 90, "AĞIRLIĞA", uslup.NORMAL), "halat_adi"))
         return
     for u_, metin in ((uk, "KABİNE"), (ua, "AĞIRLIĞA")):
         sol = u_ <= (uk + ua) / 2.0
         e.append(
             eleman.ad(
-                eleman.yazi(u_ + (-20 if sol else 20), z_alt - 90, metin, 45, hiza="sag" if sol else "sol"),
+                eleman.yazi(
+                    u_ + (-20 if sol else 20), z_alt - 90, metin, uslup.NORMAL, hiza="sag" if sol else "sol"
+                ),
                 "halat_adi",
             )
         )
@@ -163,7 +166,7 @@ def ciz(g, cizim_sabitleri=None):
         if alfa is not None
         else "SARIM AÇISI ağırlığın konumuyla değişir ( halat sapması — hesapta girdi )"
     )
-    e.append(eleman.ad(eleman.yazi(uc, max(q1, zt + R1) + 420, metin, 60), "sarim_acisi"))
+    e.append(eleman.ad(eleman.yazi(uc, max(q1, zt + R1) + 420, metin, uslup.NORMAL), "sarim_acisi"))
 
     #  Çaplar ( LiftDesigner:  kasnağın üstünde )
     e.append(eleman.olcu("yatay", (uc - R1, 0), (uc + R1, 0), zt + R1 + 150, f"Ø {D1:g}"))

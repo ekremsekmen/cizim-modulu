@@ -23,6 +23,7 @@ from dataclasses import dataclass
 
 from cizim import izli
 from cizim import eleman
+from cizim import uslup
 from cizim import girdi
 from cizim import parcalar
 from cizim import sabitler
@@ -941,12 +942,15 @@ def _aski(P):
             )
             e.append(
                 eleman.ad(
-                    eleman.yazi(merkez, aski_y + P.aski_yari + 45, f"ø {dc:g}", 45), "kabin_kasnak_yazi"
+                    eleman.yazi(merkez, aski_y + P.aski_yari + 45, f"ø {dc:g}", uslup.NORMAL),
+                    "kabin_kasnak_yazi",
                 )
             )
         e.append(
             eleman.ad(
-                eleman.yazi(kx, aski_y - P.aski_yari - 230, f"ASKI:  {eleman.buyuk(duzen)}  ·  2:1", 44),
+                eleman.yazi(
+                    kx, aski_y - P.aski_yari - 230, f"ASKI:  {eleman.buyuk(duzen)}  ·  2:1", uslup.NORMAL
+                ),
                 "aski_yazi",
             )
         )
@@ -959,7 +963,8 @@ def _aski(P):
             eleman.ad(eleman.cizgi("KASNAK", kx - 70, aski_y, kx + 70, aski_y), "aski_nokta"),
             eleman.ad(eleman.cizgi("KASNAK", kx, aski_y - 70, kx, aski_y + 70), "aski_nokta"),
             eleman.ad(
-                eleman.yazi(kx, aski_y - P.aski_yari - 230, "ASKI:  DOĞRUDAN  ·  1:1", 44), "aski_yazi"
+                eleman.yazi(kx, aski_y - P.aski_yari - 230, "ASKI:  DOĞRUDAN  ·  1:1", uslup.NORMAL),
+                "aski_yazi",
             ),
         ]
     else:
@@ -985,7 +990,10 @@ def _capraz_aski(P):
         e.append(
             eleman.ad(
                 eleman.yazi(
-                    merkez[0] + capraz["n"][0] * 110, merkez[1] + capraz["n"][1] * 110, f"ø {dc:g}", 45
+                    merkez[0] + capraz["n"][0] * 110,
+                    merkez[1] + capraz["n"][1] * 110,
+                    f"ø {dc:g}",
+                    uslup.NORMAL,
                 ),
                 "kabin_kasnak_yazi",
             )
@@ -996,14 +1004,19 @@ def _capraz_aski(P):
     #  üstüne düşüyordu ( 450 kg arka ağırlık — 5 Eki )
     e.append(
         eleman.ad(
-            eleman.yazi(capraz["cx"], capraz["cy"] - 230, f"ASKI:  {eleman.buyuk(P.duzen)}  ·  2:1", 44),
+            eleman.yazi(
+                capraz["cx"], capraz["cy"] - 230, f"ASKI:  {eleman.buyuk(P.duzen)}  ·  2:1", uslup.NORMAL
+            ),
             "aski_yazi",
         )
     )
     e.append(
         eleman.ad(
             eleman.yazi(
-                capraz["cx"], capraz["cy"] - 230 - 1.4 * eleman.yb(44), f"ÇAPRAZ {capraz['aci']:.0f}°", 44
+                capraz["cx"],
+                capraz["cy"] - 230 - 1.4 * uslup.NORMAL,
+                f"ÇAPRAZ {capraz['aci']:.0f}°",
+                uslup.NORMAL,
             ),
             "aski_yazi",
         )
@@ -1083,7 +1096,7 @@ def _agirlik_yanda(P):
                 "agirlik_kasnak",
             )
         )
-        e.append(eleman.ad(eleman.yazi(ex, ag_y, f"ø {dc:g}", 40, aci=90), "agirlik_kasnak_yazi"))
+        e.append(eleman.ad(eleman.yazi(ex, ag_y, f"ø {dc:g}", uslup.NORMAL, aci=90), "agirlik_kasnak_yazi"))
     return e
 
 
@@ -1134,7 +1147,7 @@ def _agirlik_arkada(P):
                 "agirlik_kasnak",
             )
         )
-        e.append(eleman.ad(eleman.yazi(ex, ey, f"ø {dc:g}", 40), "agirlik_kasnak_yazi"))
+        e.append(eleman.ad(eleman.yazi(ex, ey, f"ø {dc:g}", uslup.NORMAL), "agirlik_kasnak_yazi"))
     return e
 
 
@@ -1486,16 +1499,19 @@ def _yazilar(P, e, alt):
     kabin_yazi_y = P.ky if abs(P.aski_y - P.ky) >= 150 else P.ky + 200
     e.append(
         eleman.ad(
-            eleman.yazi(P.kx, kabin_yazi_y, f"KABİN  {kb['genislik']:g} x {kb['derinlik']:g}", 55),
+            eleman.yazi(P.kx, kabin_yazi_y, f"KABİN  {kb['genislik']:g} x {kb['derinlik']:g}", uslup.NORMAL),
             "kabin_yazi",
         )
     )
     #  Ölçü zincirlerinin sıfır noktaları  ( referans projede de "0" yazar )
     for zx in (0, P.G):
-        e.append(eleman.yazi(zx, alt - 420, "0", 45))
+        e.append(eleman.yazi(zx, alt - 420, "0", uslup.NORMAL))
     if not P.ag_yan:
         e.append(
-            eleman.ad(eleman.yazi(ex, P.ey - ag["derinlik"] / 2.0 - 45, "KARŞI AĞIRLIK", 40), "agirlik_yazi")
+            eleman.ad(
+                eleman.yazi(ex, P.ey - ag["derinlik"] / 2.0 - 45, "KARŞI AĞIRLIK", uslup.NORMAL),
+                "agirlik_yazi",
+            )
         )
         return
     #  Blok dar ve uzun:  yazı DİK yazılır.  Kasnak bloğun ortasında
@@ -1512,7 +1528,7 @@ def _yazilar(P, e, alt):
         if cap:
             metin += "  " + cap[0]["metin"]
             e.remove(cap[0])
-    e.append(eleman.ad(eleman.yazi(yx, ag_y, metin, 40, aci=90), "agirlik_yazi"))
+    e.append(eleman.ad(eleman.yazi(yx, ag_y, metin, uslup.NORMAL, aci=90), "agirlik_yazi"))
 
 
 def _kabin_ici_yazi_adaylari(P, e):
@@ -1906,7 +1922,9 @@ def kesit_isaretleri(g, e):
         cikti.append(eleman.ad(eleman.cizgi("KESIT", px, py, px + dx * L, py + dy * L), "kesit_isareti"))
         tx, ty = px + dx * L / 2.0, py + dy * L / 2.0
         cikti.append(eleman.ok("KESIT", tx, ty, tx + ox * O, ty + oy * O))
-        cikti.append(eleman.ad(eleman.yazi(tx + ox * (O + 90), ty + oy * (O + 90), harf, 90), "kesit_harfi"))
+        cikti.append(
+            eleman.ad(eleman.yazi(tx + ox * (O + 90), ty + oy * (O + 90), harf, uslup.HARF), "kesit_harfi")
+        )
     return cikti
 
 
@@ -1985,8 +2003,8 @@ def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=()):
     #  Başlık kâğıtta 5 mm ( LiftDesigner ):  104 → 140 em · 0,716 / 20
     gerek = (
         (120 + 200 + 120) * k
-        + eleman.yazi_eni(f"{baslik}   1/{olcek:g}", eleman.yb(104 * k))
-        + max([eleman.yazi_eni(m, eleman.yb(70 * k)) for m in seritler] or [0])
+        + eleman.yazi_eni(f"{baslik}   1/{olcek:g}", uslup.BASLIK * k)
+        + max([eleman.yazi_eni(m, uslup.HARF * k) for m in seritler] or [0])
     )
     if x2 - x1 < gerek:
         fark = (gerek - (x2 - x1)) / 2.0
@@ -1996,13 +2014,23 @@ def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=()):
     e.append(eleman.cizgi("CERCEVE", x1, y1, x2, y1))
     e.append(
         eleman.yazi(
-            x1 + 120 * k, y1 - serit / 2.0, f"{baslik}   1/{olcek:g}", 104 * k, hiza="sol", katman="CERCEVE"
+            x1 + 120 * k,
+            y1 - serit / 2.0,
+            f"{baslik}   1/{olcek:g}",
+            uslup.BASLIK * k,
+            hiza="sol",
+            katman="CERCEVE",
         )
     )
     for i, metin in enumerate(seritler):
         e.append(
             eleman.yazi(
-                x2 - 120 * k, y1 - serit / 2.0 - i * 120 * k, metin, 70 * k, hiza="sag", katman="CERCEVE"
+                x2 - 120 * k,
+                y1 - serit / 2.0 - i * 120 * k,
+                metin,
+                uslup.HARF * k,
+                hiza="sag",
+                katman="CERCEVE",
             )
         )
     return e

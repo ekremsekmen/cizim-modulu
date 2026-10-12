@@ -17,6 +17,7 @@ kesitte daire ).
 
 from cizim import izli
 from cizim import eleman
+from cizim import uslup
 from cizim import arka_aski
 from cizim import makine
 from cizim import kabin_ustu
@@ -165,7 +166,11 @@ def kot_isareti(e, u, z, metin, K, yon=1.0):
     e.append(
         eleman.ad(
             eleman.yazi(
-                u + yon * (w + 20 * K), z + h + 25 * K, metin, 40 * K, hiza="sol" if yon > 0 else "sag"
+                u + yon * (w + 20 * K),
+                z + h + 25 * K,
+                metin,
+                uslup.NORMAL * K,
+                hiza="sol" if yon > 0 else "sag",
             ),
             "kot",
         )
@@ -342,7 +347,11 @@ def _agirlik_gruplari(B, g, S, M, P, AK, K):
         el.append(
             eleman.ad(
                 eleman.yazi(
-                    um, (AK["alt"] + AK["kasnak_merkez"]) / 2.0 - 200, "KARŞI AĞIRLIK", 40 * K, aci=90
+                    um,
+                    (AK["alt"] + AK["kasnak_merkez"]) / 2.0 - 200,
+                    "KARŞI AĞIRLIK",
+                    uslup.NORMAL * K,
+                    aci=90,
                 ),
                 "agirlik_yazi",
             )
@@ -378,7 +387,7 @@ def _kuyu_tepesi(e, B, g, M, K):
                     B.u((ks[0] + ks[2]) / 2.0, 0),
                     ks[4] + g["makine"]["tahrik_kasnak_capi"] / 2.0 + 180 * K,
                     f"SARIM AÇISI {M['sarim_acisi']:.0f}°",
-                    40 * K,
+                    uslup.NORMAL * K,
                 ),
                 "sarim_acisi",
             )

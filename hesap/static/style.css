@@ -630,6 +630,11 @@ tr.m-gidilir.etkin td{background:#EEF4FB;font-weight:600}
 .cizim figcaption{font-weight:600;font-size:12.5px;margin:0 0 6px}
 .cizim img{display:block;width:100%;height:auto;border:1px solid var(--cizgi);
   border-radius:6px;background:#fff}
+/*  Çizimlerin yazı tipi:  Arial'le harf enleri birebir aynı Liberation Sans
+    ( OFL — static/yazi/OFL.txt ).  Çizim yazının enini bu enlerle hesaplar
+    ( cizim/harf_eni.py );  her bilgisayarda aynı yazı tipi, aynı en. */
+@font-face{font-family:"CizimYazi";src:url("/static/yazi/LiberationSans-Regular.ttf") format("truetype");
+  font-display:swap}
 /*  Satır içi SVG:  ölçüler tıklanır ( üstüne gelince turuncu ).  Görünmez
     tutamaklar ( .tut ) renk almaz. */
 .cizim-svg{position:relative;border:1px solid var(--cizgi);border-radius:6px;background:#fff}

@@ -1,9 +1,9 @@
 """Yazı – çizgi kesişmeleri:  bir yazının ( etiket ya da ölçü yazısı ) görünen
 kutusundan geçen çizgileri bulur ( girdi taraması — araclar/tarama.py ).
 
-Yazının görünen kutusu kabaca ölçülür ( büyük harf 0,72 em, harf başına
-0,58 em ):  çizimin kendi yazı yerleştiricisinden ( geometri ) bağımsız bir
-ikinci göz.
+Yazının görünen kutusu:  büyük harf 0,72 em, en harflerin gerçek eninden
+( eleman.yazi_eni );  yeri çizimin kendi yazı yerleştiricisinden
+( geometri ) bağımsız bulunur — ikinci göz.
 """
 
 import math
@@ -12,10 +12,10 @@ from cizim import eleman
 
 
 def yazi_kutusu(el):
-    """( metin, x0, y0, x1, y1 ) — görünen kutu:  büyük harf 0,72 em, en 0,58 em/harf."""
+    """( metin, x0, y0, x1, y1 ) — görünen kutu:  büyük harf 0,72 em, en gerçek."""
     if el["tip"] == "yazi":
         h = el["yukseklik"]
-        w = len(el["metin"]) * h * 0.58
+        w = eleman.yazi_eni(el["metin"], h)
         a, b = {"sol": (0.0, w), "sag": (-w, 0.0)}.get(el.get("hiza"), (-w / 2.0, w / 2.0))
         c = 0.36 * h
         if abs(abs(el.get("aci", 0)) - 90) < 1e-6:
@@ -24,7 +24,7 @@ def yazi_kutusu(el):
         return (el["metin"], el["x"] + a, el["y"] - c, el["x"] + b, el["y"] + c)
     y = el["yazi"]
     h = y.get("h", eleman.OLCU_YAZI)
-    w, c = len(el["metin"]) * h * 0.58 / 2.0, 0.36 * h
+    w, c = eleman.yazi_eni(el["metin"], h) / 2.0, 0.36 * h
     if y.get("aci"):
         w, c = c, w
     return (el["metin"], y["x"] - w, y["y"] - c, y["x"] + w, y["y"] + c)

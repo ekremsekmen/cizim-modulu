@@ -6,13 +6,16 @@ import unittest
 from cizim import dxf
 from cizim import eleman
 from cizim import svg
+from cizim import uslup
 from testler import altin_cizim
 
 
 class Katmanlar(unittest.TestCase):
     def test_svg_ve_dxf_her_katmani_tanir(self):
-        self.assertEqual(set(svg.KALEM), set(eleman.KATMANLAR))
-        self.assertEqual(set(dxf.KATMAN), set(eleman.KATMANLAR))
+        self.assertEqual(set(uslup.KATMAN), set(eleman.KATMANLAR))
+        d = dxf.belge([])
+        self.assertTrue(all(k in d.layers for k in eleman.KATMANLAR))
+        self.assertTrue(all(svg.kalem(k) for k in eleman.KATMANLAR))
         self.assertEqual(len(eleman.KATMANLAR), len(set(eleman.KATMANLAR)))
 
     def test_cizimler_yalniz_bilinen_katmanlara_cizer(self):
@@ -32,7 +35,7 @@ class Kurucular(unittest.TestCase):
         )
         o = eleman.olcu("yatay", (0, 0), (1500, 0), 300)
         self.assertEqual((o["metin"], o["uzunluk"], o["kot"]), ("1500", 1500, 300.0))
-        self.assertAlmostEqual(eleman.yazi(0, 0, "A", 52)["yukseklik"], eleman.OLCU_YAZI)
+        self.assertEqual(eleman.yazi(0, 0, "A")["yukseklik"], uslup.NORMAL)
 
     def test_turkce_buyuk_harf(self):
         self.assertEqual(eleman.buyuk("Kabin altı · Dik duruş"), "KABİN ALTI · DİK DURUŞ")

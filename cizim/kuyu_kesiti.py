@@ -28,6 +28,7 @@ Kotlar donanim.py'de, planla aynı yerlerden;  açıklık denetimleri dusey.py'd
 """
 
 from cizim import eleman
+from cizim import uslup
 from cizim import arka_aski
 from cizim import donanim
 from cizim import dusey
@@ -149,7 +150,9 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
     for _, d in MD["delikler"]:
         B.kutu(e, "GIZLI", d, tv, zt, "doseme_deligi")
     u0, u1 = B.aralik(dis)
-    e.append(eleman.ad(eleman.yazi((u0 + u1) / 2.0, ztv - 250 * K, "MAKİNE DAİRESİ", 45 * K), "oda_adi"))
+    e.append(
+        eleman.ad(eleman.yazi((u0 + u1) / 2.0, ztv - 250 * K, "MAKİNE DAİRESİ", uslup.NORMAL * K), "oda_adi")
+    )
     #  Kot işaretleri odanın dışında:  oda kuyudan genişse duvarının ötesinde
     #  ( eskiden kuyunun yanında, odanın duvarının üstüne düşüyordu )
     u_kot = min(u_kot, u0 - 200 * K)
@@ -242,7 +245,7 @@ def _seviye_isaretleri(e, sev, K):
                 ((u, z), (u + w, z + h)),
             ):
                 e.append(eleman.cizgi("SEVIYE", a[0], a[1], b[0], b[1]))
-            e.append(eleman.ad(eleman.yazi(u, z + h + 70 * K, harf, 80 * K), "plan_harfi"))
+            e.append(eleman.ad(eleman.yazi(u, z + h + 70 * K, harf, uslup.HARF * K), "plan_harfi"))
 
 
 def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon):
@@ -255,7 +258,7 @@ def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon):
                     u_duvar + yon * 120 * K,
                     z + 1100,
                     f"{i + 1}. DURAK",
-                    45 * K,
+                    uslup.NORMAL * K,
                     hiza="sol" if yon > 0 else "sag",
                 ),
                 "durak_adi",
@@ -638,7 +641,8 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
         e.append(
             B.derin(
                 eleman.ad(
-                    eleman.yazi(B.u((k0 + k1) / 2.0, 0), zk + kapi_h * 0.6, f"{i + 1}", 90 * K), "durak_no"
+                    eleman.yazi(B.u((k0 + k1) / 2.0, 0), zk + kapi_h * 0.6, f"{i + 1}", uslup.HARF * K),
+                    "durak_no",
                 ),
                 -1,
                 0,

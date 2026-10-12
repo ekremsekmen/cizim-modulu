@@ -31,6 +31,7 @@ from ezdxf import zoom
 from cizim import cizimler
 from cizim import dxf
 from cizim import dusey
+from cizim import eleman
 from cizim import geometri
 import math
 
@@ -316,6 +317,7 @@ def belge(g):
     _copleri_sil(d.modelspace())
     bilgi = _yerlestir(d, g)
     _antet(d, g, bilgi["olcekler"])
+    _kullanilmayanlari_sil(d)
     return d, bilgi
 
 
@@ -342,7 +344,52 @@ def birlestir(hesap_dxf, g):
     _katmanlari_onar(d)
     bilgi = _yerlestir(d, g, x0, sag_eski)
     bilgi["hesap_sagi"] = x0
+    _kullanilmayanlari_sil(d)
     return d, bilgi
+
+
+AILELER = {"times.ttf": "Times New Roman", "arialuni.ttf": "Arial Unicode MS", "arial.ttf": "Arial"}
+
+
+def _kullanilmayanlari_sil(d):
+    """Hiçbir yazının ve ölçü stilinin kullanmadığı yazı stillerini, hiçbir
+    ölçünün kullanmadığı ölçü stillerini siler ( AutoCAD'in PURGE'ü gibi ).
+    Şablon ve hesap programının DXF'i 30'a yakın stil taşıyordu ( "dddddddddd",
+    "STYLE1", "ODA" … — 12 Eki );  AutoCAD açılışta bulamadığı yazı tiplerini
+    simplex.shx'e düşürüp tek tek bildiriyordu.  Kalanlar şablonun kendi antet
+    yazılarınındır.  Dosyanın varsayılan stilleri ( AutoCAD'de yeni yazı ve
+    ölçü bunlarla çizilir ) çizimin stilleri olur — şablonunki ezdxf'in
+    "EZDXF" ölçü stiliydi ( OpenSans yazı tipi, DIMLFAC 100 )."""
+    if dxf.YAZI_TIPI in d.styles:
+        d.header["$TEXTSTYLE"] = dxf.YAZI_TIPI
+    #  Şablonun stillerine yazı tipinin AİLE adı da:  AutoCAD TrueType'ı önce
+    #  aileden bulur — Mac'te dosya adları farklı ( times.ttf, ARIALUNI.TTF
+    #  bulunamayıp simplex.shx'e düşüyordu;  dxf.hazirla'daki Arial gibi )
+    for st in d.styles:
+        aile = AILELER.get(st.dxf.get("font", "").lower())
+        if aile and not st.has_extended_font_data:
+            st.set_extended_font_data(aile, bold=False, italic=False)
+    varsayilan = dxf.olcu_stili(d, 20)
+    d.header["$DIMSTYLE"] = varsayilan
+    yazilar, olculer = set(), set()
+    for yer in [d.modelspace(), *d.blocks]:
+        for e in yer:
+            if e.dxftype() in ("TEXT", "MTEXT", "ATTRIB", "ATTDEF"):
+                yazilar.add(e.dxf.get("style", "Standard").upper())
+            elif e.dxftype() == "INSERT":
+                yazilar.update(a.dxf.get("style", "Standard").upper() for a in e.attribs)
+            elif e.dxftype() == "DIMENSION":
+                olculer.add(e.dxf.get("dimstyle", "Standard").upper())
+    olculer.add(str(d.header.get("$DIMSTYLE", "Standard")).upper())
+    for s in list(d.dimstyles):
+        if s.dxf.name.upper() not in olculer | {"STANDARD"}:
+            d.dimstyles.remove(s.dxf.name)
+    yazilar.update(s.dxf.get("dimtxsty", "Standard").upper() for s in d.dimstyles)
+    yazilar.add(str(d.header.get("$TEXTSTYLE", "Standard")).upper())
+    for s in list(d.styles):
+        #  Biçim ( shape ) dosyaları adsızdır ve çizgi tiplerinden kullanılır
+        if s.dxf.name and not s.dxf.flags & 1 and s.dxf.name.upper() not in yazilar | {"STANDARD"}:
+            d.styles.remove(s.dxf.name)
 
 
 def yaz(g) -> bytes:
@@ -360,15 +407,15 @@ def _maskeleri_ac(d):
     çiziyor ( CDX.MASKE_PAYI ).  Yalnız önizlemenin kopyasında;  her maskenin
     WIPEOUT'u yazısıyla birlikte bloğun sonuna alınır ( örtü kendinden önce
     çizileni örter ).  Kutu yazının kendisinden:  tek satır, ortası ( 4 · 5 · 6 )
-    ya da altı ( 7 · 8 · 9 ) hizalı;  en büyük harf boyunun 0,58 / 0,716'sı
-    ( ezdxf'in MTEXT kutusu bu yazılarda kayıktı )."""
+    ya da altı ( 7 · 8 · 9 ) hizalı;  en harflerin gerçek eninden
+    ( eleman.yazi_eni — ezdxf'in MTEXT kutusu bu yazılarda kayıktı )."""
 
     for blok in d.blocks:
         for m in list(blok.query("MTEXT")):
             if not m.dxf.get("bg_fill", 0):
                 continue
             h = m.dxf.char_height
-            w = len(m.plain_text()) * h * 0.58 / dxf.BUYUK_HARF
+            w = eleman.yazi_eni(m.plain_text(), h / dxf.BUYUK_HARF)
             ap = m.dxf.get("attachment_point", 1)
             x0 = {0: 0.0, 1: -w / 2.0, 2: -w}[(ap - 1) % 3]
             y0 = {0: -h, 1: -h / 2.0, 2: 0.0}[(ap - 1) // 3]

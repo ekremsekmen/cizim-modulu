@@ -24,6 +24,7 @@ referans projenin düzeni ).  Öteki düzenler için doğrulama açıkça redded
 
 from temel import eleman_kutusu, ortusur, sayi_mi
 from cizim import eleman
+from cizim import uslup
 from cizim import izli
 from cizim import geometri
 from cizim import kuyu_dibi
@@ -720,7 +721,7 @@ def _parcalar(g, Y):
     #  Makine şasesi ( 2 yan yatak ) ve makine — parça parça ( makine.py )
     e += makine.plan(makine.plan_parcalari(Y, Y["S"]), eleman.dikdortgen, eleman.daire, eleman.cizgi)
     ks = Y["kasnak"]
-    e.append(eleman.yazi((ks[0] + ks[2]) / 2.0, (ks[1] + ks[3]) / 2.0, f"ø {Y['D1']:g}", 38))
+    e.append(eleman.yazi((ks[0] + ks[2]) / 2.0, (ks[1] + ks[3]) / 2.0, f"ø {Y['D1']:g}", uslup.NORMAL))
 
     #  Halat bağlantıları, sonra halatlar ( işaret plakanın üstünde görünsün )
     e.append(_kutu("BAGLANTI", Y["agirlik_baglanti"], "agirlik_baglanti"))
@@ -728,7 +729,7 @@ def _parcalar(g, Y):
     if g["makine"]["yeri"] == "Kuyu üstü":
         e += makine.plan(Y["halat_konsolu"], eleman.dikdortgen, eleman.daire, eleman.cizgi)
     for p in (Y["agirlik_baglanti"], Y["kabin_baglanti"]):
-        e.append(eleman.yazi((p[0] + p[2]) / 2.0, p[3] + 40, "HALAT BAĞLANTISI", 30))
+        e.append(eleman.yazi((p[0] + p[2]) / 2.0, p[3] + 40, "HALAT BAĞLANTISI", uslup.NORMAL))
     for hx, hy in Y["halatlar"] + [Y["ag_dusus"], Y["ag_teget2"]]:
         e.append(eleman.ad(eleman.daire("KASNAK", hx, hy, 20), "halat"))
 
@@ -739,7 +740,11 @@ def _parcalar(g, Y):
     rg = Y["reg_govde"]
     e.append(
         eleman.yazi(
-            rg[0] - 60 if rg[0] > G / 2 else rg[2] + 60, (rg[1] + rg[3]) / 2.0, "REGÜLATÖR", 34, aci=90
+            rg[0] - 60 if rg[0] > G / 2 else rg[2] + 60,
+            (rg[1] + rg[3]) / 2.0,
+            "REGÜLATÖR",
+            uslup.NORMAL,
+            aci=90,
         )
     )
 
@@ -747,8 +752,8 @@ def _parcalar(g, Y):
     pn, ca = Y["pano"], Y["calisma"]
     e.append(_kutu("PANO", pn, "acil_pano"))
     e.append(_kutu("SIGINMA", ca, "calisma_alani"))
-    e.append(eleman.yazi((pn[0] + pn[2]) / 2.0, (pn[1] + pn[3]) / 2.0, "ACİL PANO", 34))
-    e.append(eleman.yazi((ca[0] + ca[2]) / 2.0, (ca[1] + ca[3]) / 2.0, "ÇALIŞMA ALANI", 34))
+    e.append(eleman.yazi((pn[0] + pn[2]) / 2.0, (pn[1] + pn[3]) / 2.0, "ACİL PANO", uslup.NORMAL))
+    e.append(eleman.yazi((ca[0] + ca[2]) / 2.0, (ca[1] + ca[3]) / 2.0, "ÇALIŞMA ALANI", uslup.NORMAL))
     return e
 
 

@@ -11,6 +11,7 @@ from cizim import eleman
 from cizim import dusey, geometri, girdi, kopru
 from cizim import kuyu_kesiti, svg, dxf
 from cizim import sabitler
+from cizim import uslup
 from motor.uygulama import uygulama_girdisi, mukavemet_girdi
 from uclar import uygulama_istegi
 
@@ -145,7 +146,7 @@ class Tamponlar(unittest.TestCase):
 class KesikCizgiler(unittest.TestCase):
     def test_cizgi_daire_ve_dikdortgen_katman_desenini_kullanir(self):
         ns = "{http://www.w3.org/2000/svg}"
-        for kat, desen in svg.KESIK.items():
+        for kat, desen in ((k, v.desen) for k, v in uslup.KATMAN.items() if v.desen):
             for olcek in (20, 50):
                 e = [
                     eleman.cizgi(kat, 0, 0, 100, 0),
@@ -154,16 +155,16 @@ class KesikCizgiler(unittest.TestCase):
                 ]
                 r = ET.fromstring(svg.yaz(e, geometri.sinir(e), olcek=olcek))
                 for p in list(r.find(ns + "g")):
-                    self.assertEqual(p.attrib["stroke-dasharray"], svg._kesik(desen, olcek / 20))
+                    self.assertEqual(p.attrib["stroke-dasharray"], svg.kesik(desen, olcek / 20))
 
     def test_gercek_kesit_tavan_payi_svg_ve_dxfte_kesiklidir(self):
         g = copy.deepcopy(girdi.ORNEK)
         for ciz in (kuyu_kesiti.yan_kesit, kuyu_kesiti.on_kesit):
             e = [q for q in ciz(g) if q.get("ad") == "tavan_kirisi"]
             svg_metni = svg.yaz(e, geometri.sinir(e), olcek=50)
-            self.assertIn('stroke-dasharray="100 75"', svg_metni)
+            self.assertIn(f'stroke-dasharray="{svg.kesik("GIZLI", 2.5)}"', svg_metni)
             d = dxf.belge(e, olcek=50)
-            self.assertEqual(d.layers.get("GIZLI").dxf.linetype, "DASHED")
+            self.assertEqual(d.layers.get("GIZLI").dxf.linetype, uslup.DESENLER["GIZLI"].dxf)
 
 
 if __name__ == "__main__":

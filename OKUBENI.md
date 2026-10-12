@@ -480,7 +480,9 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
 | `cizim/cizimler.py` | Çizimlerin listesi:  doğrulama, çizici, başlık, ölçek ( calistir ve pafta ortak ) |
 | `cizim/pafta.py` | Çizimleri ofisin TİP PROJE FORMATINA yerleştirir, anteti doldurur |
 | `sablon/proje_formati.dxf` | Ofisin pafta şablonu ( TİP PROJE FORMATI.dwg'den;  hesap programınınkiyle aynı ) |
-| `cizim/eleman.py` | Çizim elemanlarının kurucuları ( `dikdortgen`, `cizgi`, `daire`, `ok`, `yazi`, `olcu`, `ad` ), yazı boyları ve katmanların tek listesi ( `KATMANLAR` — SVG ve DXF her birini tanır ) |
+| `cizim/eleman.py` | Çizim elemanlarının kurucuları ( `dikdortgen`, `cizgi`, `daire`, `ok`, `yazi`, `olcu`, `ad` ), yazının gerçek eni ( `yazi_eni` ) ve katmanların tek listesi ( `KATMANLAR` ) |
+| `cizim/uslup.py` | Görünüşün tek tablosu:  katmanın kalınlığı, çizgi tipi, ekran ve AutoCAD rengi;  tarama;  yazı boyları ( ISO 3098 );  ölçü ucu — SVG ve DXF buradan okur |
+| `cizim/harf_eni.py` | Harflerin enleri ( Arial ile aynı;  `araclar/harf_tablosu.py` yazı tipinden üretir ) |
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( türevle;  oynatma denetçi ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/izli.py` | İzli sayı:  ölçü kaynağı için otomatik türev |
@@ -583,15 +585,17 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
    yazıları 1,4 kat büyük çıkıyor, pafta ve DWG'de ayrılan yere sığmıyordu;
    ekrandaki etiketler de DXF'tekinden 0,35·h yukarıdaydı ( çizimin başlığı
    şeridin çizgisine biniyordu — 5 Eki ).
-8. **Yazı boyları LiftDesigner paftalarındaki gibidir.**  LiftDesigner örneklerinde
-   ( 1022 · 1250 KG · 1275 · 800 KG · 4815-6 · 12495-18;  bloklar açılıp yazı
-   yükseklikleri sayıldı ) kâğıtta büyük harf:  ölçü stili LIFT `dimtxt` **2,5 mm**,
-   yazıların çoğu **2,5 mm** ( küçükleri 1,4 – 1,75 ), çizim başlığı **5 mm**.
-   Eskiden ölçü 1,86 mm, etiketler 1,1 – 1,6 mm, başlık 3,4 mm idi;  AutoCAD'de
-   okunmuyordu.  Bütün etiketler `geometri.YAZI_CARPANI` ( 70 / 52 ) ile büyür —
-   `_yazi()` boyu `yb()` ile verir, aralarındaki sıra korunur;  ölçü yazısı
-   `OLCU_YAZI` = 70 em ( 1/20'de 2,5 mm ), başlık 140 em.  Yazının yeri hesaplanırken
-   de aynı `yb()` kullanılır ( `_yazi_eni(…, CGE.yb(40))` ).  Büyüyen yazılar için:
+8. **Yazı boyları ISO 3098 dizisindedir:  2,5 · 3,5 · 5 mm** ( kâğıtta büyük
+   harf;  `uslup.NORMAL` · `HARF` · `BASLIK` = 1/20'de 70 · 98 · 140 em, başka
+   ölçekte k ile ).  Ölçü yazısı, etiket ve not 2,5;  kesit / görünüş harfi,
+   durak numarası, çerçevenin asansör adı 3,5;  çizimin başlığı 5 mm.
+   LiftDesigner örneklerinde de ölçü stili LIFT `dimtxt` **2,5 mm**, başlık
+   **5 mm**.  12 Eki'ye kadar 13 ayrı boy vardı ( 1,45 … 4,34 mm — üçü ISO'nun en
+   küçüğü 1,8'in altında );  her çağrı yeri elle bir boy veriyordu.  Yazının ENİ
+   harflerin gerçek eninden ( `eleman.yazi_eni` — `cizim/harf_eni.py`, Arial'le
+   aynı enler;  eskiden harf × 0,6 em:  gerçeğinden −%6 … +%20, "W" 0,94 em ).
+   Ekran yazı tipini gömer ( Liberation Sans — `hesap/static/yazi`, OFL ),
+   kerning kapalı:  her bilgisayarda aynı en.  Büyüyen yazılar için:
    * Üst üste konan ölçü yazılarının sıra adımı `KAT_ARALIGI` ( yazı boyu + 10 );
      yazı yalnız kendi sırasındakilere değil, başka sıraların yazılarına da
      bakılarak yerleşir ( kuyu planının köşesinde iki "DUVAR 150" biniyordu ).
@@ -635,18 +639,36 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
    katmanı ACI 4:  AutoCAD'in koyu zemininde mavi ( 5 ) ölçü zor okunuyordu
    ( LiftDesigner da mavi );  çizgi ve yazı katmanın rengini alır ( `dimclrt`
    BYBLOCK ) — katmanın rengi hepsini değiştirir.  Önizlemede ( beyaz zemin )
-   ölçüler mavi.  Yazılardaki ondalık nokta virgül olur ( `ondalik_virgul`,
+   ölçüler mavi.  **DXF'te ölçü stili ölçeğe göre adlıdır** ( `ASANSOR-20`,
+   `ASANSOR-50`:  boylar kâğıtta mm, DIMSCALE ölçek, Arial, virgül, DIMLFAC 1 —
+   `dxf.olcu_stili` );  **sayı AutoCAD'in ölçtüğüdür** ( yazıdaki sayı ölçülen
+   değerse yerine `<>` — "KUYU GENİŞLİĞİ <>";  çizim uzatılınca sayı değişir,
+   LiftDesigner gibi;  kırık kesitin "3 × 3000"ü olduğu gibi kalır ).  Ölçü
+   ucu:  45° eğik çizgi + dik KISA uzatma çizgisi ( `uslup.TIK` · `SAPLAMA`;
+   DXF'te `dxf.UC_BLOGU` bloğu — ekranda aynı çizgiler ).  12 Eki'ye kadar
+   ölçüler ezdxf'in "EZDXF" stilinde ve elle yazılmış metindi ( DIMLFAC 100:
+   metni sıfırlayan 2100 yerine 210000 görürdü ), uç ekranda dik çizgi,
+   AutoCAD'de kalın eğik tikti.  Yazılardaki ondalık nokta virgül olur ( `ondalik_virgul`,
    son adım:  "AĞIRLIK RAYI 127,5";  kotlar kaynağında "+3,40" );  madde
    numaraları ( "m.5.2.6.3.2.4" ) değişmez.  Ölçü kaynağı sayıyı ikisinde de
    tanır.
-11. **Teknik resim üslubu ( ISO 128 ):  siyah çizgi, kalınlık anlam taşır**
-   ( kullanıcı 6 Eki:  çizimler "oyuncak gibi" duruyordu — parçalar renkli
-   dolguluydu ).  Kâğıtta 0,50 kesilen duvar / kesit / çerçeve · 0,35 ana
-   parça · 0,25 ikincil parça · 0,18 ince parça ve gizli çizgi · 0,13 ölçü,
-   eksen, tarama ( `svg.KALEM`;  1/20'de birim 10 · 7 · 5 · 3,6 · 2,6 ).
-   Renkli kalan yalnız ölçü ( koyu mavi ) ve eksen ( koyu kırmızı );  dolgu
-   yalnız örtmek için beyaz.  DXF'in katman renkleri AutoCAD'in koyu zemini
-   içindir, ayrıdır.
+11. **Teknik resim üslubu ( ISO 128 ):  kalınlık anlam taşır — TEK TABLO**
+   ( `cizim/uslup.py`;  kullanıcı 6 Eki:  çizimler "oyuncak gibi" duruyordu —
+   parçalar renkli dolguluydu ).  Kâğıtta 0,50 kesilen duvar / kesit / çerçeve ·
+   0,35 ana parça · 0,25 ikincil parça · 0,18 ince parça ve gizli çizgi · 0,13
+   ölçü, eksen, tarama.  Renkli kalan yalnız ölçü ( koyu mavi ) ve eksen ( koyu
+   kırmızı );  dolgu yalnız örtmek için beyaz.  DXF'in katman renkleri
+   AutoCAD'in koyu zemini içindir.  Ekran ( `svg.kalem`, `svg.kesik` ) ve DXF
+   aynı tablodan okur:  kalınlık, çizgi tipi ( AutoCAD'in ISO tipleri —
+   `ACAD_ISO10W100` eksen, `ACAD_ISO02W100` gizli, `ACAD_ISO03W100` alan
+   sınırı;  ekran aynı deseni çizer ), tarama aralığı ( 3 mm;  ANSI31 ve BRICK ).
+   12 Eki'ye kadar ikisi ayrı tutuluyordu:  33 katmanın 22'sinde kalınlık
+   farklıydı, tarama ekranda 6, AutoCAD'de 3,2 mm aralıklıydı, tuğla AutoCAD'de
+   çelik desenindeydi ( ANSI32 ).  DXF temizdir:  ezdxf'in hazır kurulumu
+   kullanılmaz ( 25 yazı stili getiriyordu — AutoCAD 20'sini simplex.shx'e
+   düşürüyordu );  paftada kullanılmayan stiller silinir, şablonun stillerine
+   yazı tipinin aile adı yazılır ( Mac'te times.ttf bulunamıyordu ) —
+   AutoCAD açarken hiçbir yazı tipini değiştirmez, AUDIT 0 ( AcCoreConsole ).
 12. **Parçaların gerçek biçimi:  zarf mantık içindir, biçim çizim içindir**
    ( `cizim/parcalar.py` ).  Yerleşim, çakışma, ölçü ve testler parçayı
    dikdörtgen zarfıyla bilir;  zarfa `bicim` yazılır ( dünya koordinatında

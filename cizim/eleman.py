@@ -9,7 +9,9 @@ buradan alır.  Eskiden bunlar geometri.py'nin "özel" ( _dik, _yazi … )
 fonksiyonlarıydı ve 300'e yakın yerden dışarıdan çağrılıyordu.
 """
 
+from cizim import harf_eni
 from cizim import izli
+from cizim import uslup
 
 KATMANLAR = (
     "KUYU-DUVAR",
@@ -48,20 +50,14 @@ KATMANLAR = (
 )
 
 
-#  Ölçü yazısının yüksekliği ( mm, 1/20'de 2,6 mm ) ve yazı eni tahmini:
-#  harf başına yüksekliğin 0,6'sı  ( Arial / DejaVu ortalaması ).
-#  YAZI BOYLARI ( kullanıcı 5 Eki:  "AutoCAD'de yazılar belli olmuyor" ):
-#  LiftDesigner'ın paftalarında ölçü yazısı ve genel yazılar kâğıtta 2,5 mm
-#  ( büyük harf ), başlıklar 5 mm.  Bizim ölçü yazımız 1,86 mm'ydi ( 52 em ·
-#  0,716 / 20 ), etiketler 1,1 – 1,6 mm.  Bütün yazılar aynı oranda büyür:
-#  ölçü yazısı 70 em → 70 · 0,716 / 20 = 2,5 mm;  etiketlerin elle verilen
-#  boyları ( yazi ) bu çarpanla çarpılır — boylar arasındaki sıra korunur.
-#  Genişlik hesaplayan yerler GERÇEK boyu kullanır ( yb ).
-YAZI_CARPANI = 70.0 / 52.0
-OLCU_YAZI = 70.0
+#  Ölçü yazısının yüksekliği ( em, 1/20'de — kâğıtta 2,5 mm büyük harf;
+#  uslup.NORMAL ).  Yazı boyları ISO 3098 dizisinde ( uslup:  2,5 · 3,5 · 5 mm ).
+OLCU_YAZI = uslup.NORMAL
 #  Çakışan ölçü yazısının bir kat dışarısı:  yazı boyu + 10 ( eskiden 60 —
 #  52'lik yazıya göreydi;  70'lik yazı alttakine biniyordu )
 KAT_ARALIGI = OLCU_YAZI + 10.0
+#  Tabloda olmayan harfin eni ( em ) — eski tahmin
+_BILINMEYEN_HARF = 0.6
 
 
 def buyuk(metin):
@@ -70,13 +66,10 @@ def buyuk(metin):
     return metin.replace("i", "İ").replace("ı", "I").upper()
 
 
-def yb(h):
-    """Etiketin elle verilen ( eski ) boyundan çizilen boyu."""
-    return h * YAZI_CARPANI
-
-
 def yazi_eni(metin, h=OLCU_YAZI):
-    return len(metin) * h * 0.6
+    """Yazının eni:  harflerin GERÇEK enleri ( Arial — harf_eni.EN ) × h.
+    Eskiden harf × 0,6 h sayılıyordu:  gerçeğinden −%6 … +%20 ( 12 Eki )."""
+    return h * sum(harf_eni.EN.get(c, _BILINMEYEN_HARF) for c in metin)
 
 
 def ad(el, ad):
@@ -127,16 +120,16 @@ def ok(katman, x1, y1, x2, y2):
     }
 
 
-def yazi(x, y, metin, yukseklik=55, hiza="orta", katman="YAZI", aci=0):
-    """Etiket.  yukseklik:  eski ( 1,86 mm'lik ölçü yazısına göre ) boy —
-    çizilen boy yb ile büyür."""
+def yazi(x, y, metin, yukseklik=uslup.NORMAL, hiza="orta", katman="YAZI", aci=0):
+    """Etiket.  yukseklik:  em ( 1/20'de;  uslup.NORMAL · HARF · BASLIK — başka
+    ölçekte çizim k ile çarpar )."""
     return {
         "tip": "yazi",
         "katman": katman,
         "x": izli.sayi(x),
         "y": izli.sayi(y),
         "metin": metin,
-        "yukseklik": yb(yukseklik),
+        "yukseklik": yukseklik,
         "hiza": hiza,
         "aci": izli.sayi(aci),
     }

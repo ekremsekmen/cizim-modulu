@@ -10,51 +10,20 @@ katman kapatılabilsin.  Renkler ACI numarasıdır.
 """
 
 import io
+import re
+from decimal import ROUND_HALF_UP, Decimal
 
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
 
-#  Katman → ( ACI rengi , çizgi kalınlığı 1/100 mm )
-#  Ölçü katmanı CAMGÖBEĞİ ( 4 ):  AutoCAD'in koyu zemininde mavi ( 5 ) ölçü
-#  yazıları zor okunuyordu ( kullanıcı 5 Eki );  ölçünün çizgisi ve yazısı
-#  katmanın rengini alır ( dimclrt BYBLOCK ) — katmanın rengini değiştirmek
-#  hepsini değiştirir.  Önizleme ( beyaz zemin ) ölçüleri mavi çizer.
-KATMAN = {
-    "KUYU-DUVAR": (7, 50),
-    "TARAMA": (8, 13),
-    "BINA": (33, 13),
-    "KUYU-IC": (7, 25),
-    "KABIN": (7, 30),
-    "KABIN-IC": (6, 20),
-    "SASE": (6, 30),
-    "KAPI": (30, 30),
-    "AGIRLIK": (30, 30),
-    "RAY": (3, 25),
-    "KONSOL": (3, 18),
-    "PATEN": (200, 20),
-    "KASNAK": (90, 20),
-    "PANO": (150, 20),
-    "CIVATA": (3, 13),
-    "CERCEVE": (7, 40),
-    "OLCU": (4, 13),
-    "EKSEN": (1, 13),
-    "YAZI": (7, 13),
-    "KORKULUK": (6, 50),
-    "SIGINMA": (3, 25),
-    "TAMPON": (200, 25),
-    "PERDE": (6, 50),
-    "MERDIVEN": (32, 25),
-    "GIZLI": (8, 13),
-    "YUK": (1, 18),
-    "MAKINE": (5, 30),
-    "BAGLANTI": (8, 25),
-    "DELIK": (5, 30),
-    "HALAT": (6, 18),
-    "KESIT": (7, 50),
-    "SEVIYE": (2, 13),
-    #  menteşeli kapının açılma yayı ve açık konumu ( ISO 128:  ince sürekli çizgi )
-    "ACILIS": (30, 18),
-}
+from cizim import uslup
+
+#  Katmanların rengi ( ACI ), kalınlığı ( 1/100 mm ) ve çizgi tipi
+#  cizim/uslup.py'de — ekranla aynı tablo.  Ölçü katmanı CAMGÖBEĞİ ( 4 ):
+#  AutoCAD'in koyu zemininde mavi ( 5 ) ölçü yazıları zor okunuyordu
+#  ( kullanıcı 5 Eki );  ölçünün çizgisi ve yazısı katmanın rengini alır
+#  ( dimclr* BYLAYER ) — katmanın rengini değiştirmek hepsini değiştirir.
+#  Önizleme ( beyaz zemin ) ölçüleri mavi çizer.
 YAZI_TIPI = "ASANSOR"
 #  Yazı yüksekliği:  geometri yazının boyunu SVG'deki gibi EM ( font-size ) olarak
 #  verir;  DXF'te TEXT ve ölçü yazısı yüksekliği BÜYÜK HARF yüksekliğidir.  Arial'de
@@ -65,13 +34,24 @@ BUYUK_HARF = 0.716
 
 
 def _katmanlari_kur(d):
-    for ad, (renk, kalinlik) in KATMAN.items():
+    for ad, k in uslup.KATMAN.items():
         if ad not in d.layers:
-            d.layers.add(ad, color=renk, lineweight=kalinlik)
-    d.layers.get("EKSEN").dxf.linetype = "CENTER"
-    d.layers.get("SIGINMA").dxf.linetype = "DASHED"
-    d.layers.get("GIZLI").dxf.linetype = "DASHED"
-    d.layers.get("DELIK").dxf.linetype = "DASHED"
+            d.layers.add(ad)
+        katman = d.layers.get(ad)
+        katman.dxf.color = k.aci
+        katman.dxf.lineweight = round(k.kalinlik * 100)
+        katman.dxf.linetype = uslup.DESENLER[k.desen].dxf if k.desen else "Continuous"
+
+
+def _cizgi_tiplerini_kur(d):
+    """AutoCAD'in ISO çizgi tipleri ( acadiso.lin'deki tanımlarıyla )."""
+    for ad, des in uslup.DESENLER.items():
+        if des.dxf not in d.linetypes:
+            d.linetypes.add(
+                des.dxf,
+                pattern=[sum(abs(v) for v in des.tanim), *des.tanim],
+                description=f"ISO ( {ad.lower()} )",
+            )
 
 
 def _dikdortgen(msp, el, lt=None):
@@ -89,7 +69,7 @@ def _bicim(hedef, el, lt=None):
     boyanır;  "ince" ayrıntı 0,18 mm çizgi kalınlığıyla."""
     for p in el["bicim"]:
         nok = [(float(x), float(y)) for x, y in p["noktalar"]]
-        ek = {"lineweight": 18} if p.get("ince") else {}
+        ek = {"lineweight": round(uslup.INCE * 100)} if p.get("ince") else {}
         hedef.add_lwpolyline(
             nok, close=p.get("kapali", True), dxfattribs={"layer": el["katman"], **(lt or {}), **ek}
         )
@@ -98,7 +78,97 @@ def _bicim(hedef, el, lt=None):
             dolgu.paths.add_polyline_path(nok, is_closed=True)
 
 
-def _olcu(msp, el, k=1.0):
+#  ÖLÇÜ STİLİ — ölçeğe göre adlı ( "ASANSOR-20", "ASANSOR-50" ):  boylar
+#  kâğıtta mm, DIMSCALE ölçek ( AutoCAD'in alışılmış kurulumu;  LiftDesigner'ın
+#  "LIFT" stili gibi ).  Eskiden her ölçü ezdxf'in "EZDXF" stilinde ve 11 alanlık
+#  override taşıyordu;  o stilin DIMLFAC'ı 100'dü — AutoCAD'de metni sıfırlayan
+#  2100 yerine 210000 görürdü ( 12 Eki ).
+#    dimse1 / dimse2:  uzatma çizgisi yok — kısa uzatma çizgisi ucun bloğunda
+#    ( UC_BLOGU;  uzun uzatma çizgileri planı kesiyordu — kullanıcı kararı ).
+#    dimtxsty:  çizimin Arial'i ( ezdxf'in OpenSans'ını AutoCAD bulamayıp
+#    simplex.shx'e düşürüyordu — 5 Eki ).  dimtfill:  yazının arkası zemin
+#    rengiyle örtülür ( MASKE ).  dimclr* 256 ( BYLAYER ):  çizgi, uç ve yazı
+#    OLCU katmanının rengini alır — katmanın rengi hepsini değiştirir.  BYBLOCK
+#    ( 0 ) AutoCAD'de de aynı sonucu verir ama ezdxf'in önizlemesi ( ve başka
+#    görüntüleyiciler ) onu beyaz çiziyordu.
+#    dimdsep "," · dimzin 8:  "1022,5", "2100" ( sondaki sıfırlar yazılmaz ).
+UC_BLOGU = "ASANSOR_UC"
+OLCU_ONDALIK = 1
+
+
+def _uc_blogu(d):
+    """Ölçü ucu:  45° eğik çizgi + dik kısa uzatma çizgisi.  Birim boyda
+    ( DIMASZ = 2 · TIK ile büyür ), AutoCAD ucu ölçü çizgisi yönünde döndürür."""
+    if UC_BLOGU in d.blocks:
+        return
+    b = d.blocks.new(UC_BLOGU)
+    s = uslup.SAPLAMA / (2 * uslup.TIK)
+    #  0 katmanında, ByLayer:  ucun INSERT'inin katmanını ( OLCU ) alır
+    b.add_line((-0.5, -0.5), (0.5, 0.5), dxfattribs={"lineweight": round(uslup.TIK_KALEM * 100)})
+    b.add_line((0, -s), (0, s), dxfattribs={"lineweight": round(uslup.KATMAN["OLCU"].kalinlik * 100)})
+
+
+def olcu_stili(d, olcek):
+    """Ölçeğin ölçü stilinin adı ( yoksa kurar )."""
+    ad = f"ASANSOR-{olcek:g}"
+    if ad in d.dimstyles:
+        return ad
+    _uc_blogu(d)
+    stil = d.dimstyles.new(
+        ad,
+        dxfattribs={
+            "dimscale": olcek,
+            "dimtxt": uslup.kagitta(uslup.NORMAL, 20),
+            "dimtxsty": YAZI_TIPI,
+            "dimasz": 2 * uslup.TIK,
+            "dimgap": uslup.OLCU_BOSLUGU,
+            "dimexe": 0.0,
+            "dimexo": 0.0,
+            "dimse1": 1,
+            "dimse2": 1,
+            "dimtad": 0,
+            "dimtih": 0,
+            "dimtoh": 0,
+            "dimtmove": 2,
+            "dimtfill": 1,
+            "dimclrd": 256,
+            "dimclre": 256,
+            "dimclrt": 256,
+            "dimlunit": 2,
+            "dimdec": OLCU_ONDALIK,
+            "dimzin": 8,
+            "dimdsep": ord(","),
+            "dimlfac": 1.0,
+            #  dimrnd yazılmaz:  AutoCAD'de 0 "yuvarlama yok", ezdxf'in çizicisi
+            #  0'ı tam sayıya yuvarlıyordu ( önizlemede 1022,5 → 1022 )
+        },
+    )
+    stil.set_arrows(blk=UC_BLOGU)
+    return ad
+
+
+_SAYI = re.compile(r"\d+(?:,\d+)?")
+
+
+def _olculen(uzunluk):
+    """AutoCAD'in yazacağı değer ( OLCU_ONDALIK basamak, sondaki sıfırsız, virgül )."""
+    v = Decimal(repr(float(uzunluk))).quantize(Decimal(1).scaleb(-OLCU_ONDALIK), rounding=ROUND_HALF_UP)
+    m = format(v, "f").rstrip("0").rstrip(".")
+    return m.replace(".", ",")
+
+
+def olcu_metni(el):
+    """Ölçünün DXF metni:  yazıdaki sayı ölçülen değerse onun yerine "<>" —
+    AutoCAD kendisi ölçer, çizim uzatılınca sayı da değişir ( LiftDesigner
+    "SW<>" ).  Değilse ( kırık kesitte "3 × 3000" ) yazı olduğu gibi."""
+    deger = _olculen(el["uzunluk"])
+    for m in _SAYI.finditer(el["metin"]):
+        if m.group() == deger:
+            return el["metin"][: m.start()] + "<>" + el["metin"][m.end() :]
+    return el["metin"]
+
+
+def _olcu(hedef, el, olcek):
     """Gerçek DIMENSION varlığı — CAD'de ölçü olarak tanınır, metin değil."""
     a, b, kot = el["a"], el["b"], el["kot"]
     #  Tanım noktaları ölçü çizgisinin üstünde:  geometri ölçülmeyen ekseni 0
@@ -107,43 +177,27 @@ def _olcu(msp, el, k=1.0):
     #  aşağıya uzanıyor, AutoCAD açılışta paftayı 1,2 m boşlukla küçültüyordu.
     if el["yon"] == "yatay":
         p1, p2 = (a[0], kot), (b[0], kot)
-        taban = (a[0], kot)
         aci = 0
     else:
         p1, p2 = (kot, a[1]), (kot, b[1])
-        taban = (kot, a[1])
         aci = 90
     yz = el["yazi"]
+    #  Yazı boyu stilin boyu değilse ( ölçeğin 2,5 mm'si ) yalnız o ölçüde
+    ozel = {}
+    if abs(yz["h"] - uslup.NORMAL * olcek / 20.0) > 1e-6:
+        ozel["dimtxt"] = uslup.kagitta(yz["h"], olcek)
     #  Yazı geometrinin bulduğu yerde durur  ( SVG ile aynı merkez ).
-    olcu = msp.add_linear_dim(
-        base=taban,
+    olcu = hedef.add_linear_dim(
+        base=p1,
         p1=p1,
         p2=p2,
         angle=aci,
         location=(yz["x"], yz["y"]),
         text_rotation=yz["aci"],
-        text=el["metin"],
+        text=olcu_metni(el),
+        dimstyle=olcu_stili(hedef.doc, olcek),
         dxfattribs={"layer": "OLCU"},
-        #  dimse1 / dimse2:  uzatma çizgileri çizilmez —
-        #  SVG ile aynı görünüm ( kullanıcı kararı ).
-        #  dimtxsty:  ölçü yazısı çizimin Arial'iyle.  Verilmezse
-        #  ezdxf'in ölçü biçiminin fontu ( OpenSans Condensed
-        #  Light ) kalıyordu:  AutoCAD bulamayıp ince simplex.shx'e
-        #  düşürüyor, sayılar okunmuyordu ( kullanıcı 5 Eki ).
-        #  dimtfill:  yazının arkası çizimin zemin rengiyle örtülür
-        #  ( MASKE ).
-        override={
-            "dimtxsty": YAZI_TIPI,
-            "dimtxt": yz["h"] * BUYUK_HARF,
-            "dimasz": 35 * k,
-            "dimexe": 30 * k,
-            "dimexo": 25 * k,
-            "dimgap": 15 * k,
-            "dimclrt": 0,
-            "dimse1": 1,
-            "dimse2": 1,
-            "dimtfill": 1,
-        },
+        override=ozel or None,
     )
     olcu.render()
 
@@ -179,15 +233,22 @@ def _etiket(hedef, el):
     m.set_bg_color("canvas", scale=MASKE_PAYI)
 
 
-#  Çizgi tipi ölçeği:  CENTER deseni 5,08, DASHED 1,524 birim.  Paftada CENTER
-#  ~12,7 mm, DASHED ~3,8 mm olsun diye:
-#  * tek başına açılan DXF gerçek ölçüde ( mm ) çizilir — desen ölçek × 2,5;
+#  Çizgi tipi ölçeği ( varlığın ltscale'i ):  desen kâğıtta uslup.DESENLER'deki
+#  boyda olsun diye
+#  * tek başına açılan DXF gerçek ölçüde ( mm ) çizilir — desen çarpanı × ölçek;
 #  * paftada çizim 1/ölçek küçültülmüş bir BLOKTUR ve AutoCAD bloğun içindeki
 #    çizgi desenini bloğun ölçeğiyle KÜÇÜLTMEZ ( desen dünya biriminde kurulur;
-#    LiftDesigner da 0,05'lik bloklarında ltscale 1 kullanır ) — desen 2,5.
-#    Eskiden blokta da ölçek × 2,5 veriliyordu:  desen paftada 254 mm oluyor,
-#    eksen ve gizli çizgiler AutoCAD'de DÜZ çizgi görünüyordu ( 5 Eki ).
-CIZGI_TIPI_OLCEGI = 2.5
+#    LiftDesigner da 0,05'lik bloklarında ltscale 1 kullanır ) — desen çarpanı.
+#    Eskiden blokta da ölçek çarpılıyordu:  desen paftada 254 mm oluyor, eksen
+#    ve gizli çizgiler AutoCAD'de DÜZ çizgi görünüyordu ( 5 Eki ).
+def _cizgi_tipi(el, olcek, blokta):
+    """Elemanın çizgi tipi ölçeği ( ve eksen elemanında tipi ) — sürekli çizgide boş."""
+    ad = "EKSEN" if el["tip"] == "eksen" else uslup.KATMAN[el["katman"]].desen
+    if not ad:
+        return {}
+    des = uslup.DESENLER[ad]
+    ek = {"linetype": des.dxf} if el["tip"] == "eksen" else {}
+    return {"ltscale": des.olcek * (1 if blokta else olcek), **ek}
 
 
 def hazirla(d):
@@ -199,6 +260,7 @@ def hazirla(d):
     ( LWDISPLAY kapalı — LiftDesigner ve ofis şablonu gibi ):  model alanında
     kalınlık piksel olarak çizildiğinden pafta bütünüyle bakarken duvarlar
     kalın şeritlere, karşı ağırlık bloğa dönüşüyordu ( kullanıcı 5 Eki )."""
+    _cizgi_tiplerini_kur(d)
     _katmanlari_kur(d)
     if YAZI_TIPI not in d.styles:
         d.styles.add(YAZI_TIPI, font="arial.ttf")
@@ -209,22 +271,22 @@ def ciz(hedef, elemanlar, olcek=20, blokta=False):
     """Elemanları `hedef` yerleşimine ( model alanı ya da blok ) yazar.
 
     blokta:  hedef paftaya 1/ölçek ile eklenen bir blok ( çizgi deseni
-    küçülmez — CIZGI_TIPI_OLCEGI )."""
-    k = olcek / 20.0  # ok, tarama ve boşluklar 1/20'ye göre
-    lt = {"ltscale": CIZGI_TIPI_OLCEGI * (1 if blokta else olcek)}
+    küçülmez — _cizgi_tipi )."""
+    k = olcek / 20.0  # ok ve boşluklar 1/20'ye göre
     #  Önce parçalar, sonra ölçüler, en son etiketler:  maske yalnız kendinden
     #  ÖNCE çizileni örter ( AutoCAD'in çizim sırası ).
     sira = {"olcu": 1, "yazi": 2}
     for el in sorted(elemanlar, key=lambda el: sira.get(el["tip"], 0)):
         tur, kat = el["tip"], el["katman"]
+        lt = _cizgi_tipi(el, olcek, blokta)
         if tur == "dikdortgen" and "bicim" in el:
             _bicim(hedef, el, lt)
         elif tur in ("dikdortgen", "tarama", "tarama_tugla"):
             _dikdortgen(hedef, el, lt)
             if tur in ("tarama", "tarama_tugla"):
                 #  Duvar kesiti taraması:  CAD'in kendi HATCH varlığı
-                tarama = hedef.add_hatch(color=KATMAN[kat][0], dxfattribs={"layer": kat})
-                tarama.set_pattern_fill("ANSI31" if tur == "tarama" else "ANSI32", scale=20 * k)
+                tarama = hedef.add_hatch(color=uslup.KATMAN[kat].aci, dxfattribs={"layer": kat})
+                tarama.set_pattern_fill(uslup.TARAMALAR[tur].dxf, scale=uslup.tarama_olcegi(tur, olcek))
                 tarama.paths.add_polyline_path(
                     [
                         (el["x"], el["y"]),
@@ -238,7 +300,7 @@ def ciz(hedef, elemanlar, olcek=20, blokta=False):
             hedef.add_line(
                 (el["x1"], el["y1"]),
                 (el["x2"], el["y2"]),
-                dxfattribs={"layer": kat, **lt, "linetype": "CENTER" if tur == "eksen" else "BYLAYER"},
+                dxfattribs={"layer": kat, **lt},
             )
         elif tur == "daire":
             hedef.add_circle((el["x"], el["y"]), el["r"], dxfattribs={"layer": kat, **lt})
@@ -256,14 +318,17 @@ def ciz(hedef, elemanlar, olcek=20, blokta=False):
                 dxfattribs={"layer": kat},
             )
         elif tur == "olcu":
-            _olcu(hedef, el, k)
+            _olcu(hedef, el, olcek)
         elif tur == "yazi":
             _etiket(hedef, el)
 
 
 def belge(elemanlar, baslik="", olcek=20):
     """Eleman listesinden ezdxf belgesi kurar."""
-    d = ezdxf.new("R2018", setup=True)
+    #  setup YOK:  ezdxf'in hazır kurulumu 25 yazı stili ( OpenSans, Liberation …
+    #  — AutoCAD açılışta 20'sini bulamayıp simplex.shx'e düşürüyordu ), 12 ölçü
+    #  stili getiriyordu.  Gerekenleri hazirla kurar ( 12 Eki ).
+    d = ezdxf.new("R2018")
     d.header["$INSUNITS"] = 4  # milimetre
     hazirla(d)
     msp = d.modelspace()

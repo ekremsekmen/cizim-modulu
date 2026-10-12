@@ -36,6 +36,7 @@ kuralla ( tek halat:  çap + 2 × pay ).
 
 from temel import ortusur, sayi_mi
 from cizim import eleman
+from cizim import uslup
 from cizim import izli
 from cizim import geometri
 from cizim import kuyu_ustu
@@ -774,7 +775,7 @@ def _alan_yazi_yeri(alan):
     solda düşey — yazıları kenardan 110 içeride ) dışında kalan parçanın
     ortası.  Eskiden alanın tam ortasındaydı:  yazılar büyüyünce düşey ölçünün
     yazısına biniyordu ( 5 Eki )."""
-    pay = 110 + eleman.yb(34) / 2.0 + 15
+    pay = 110 + uslup.NORMAL / 2.0 + 15
     return ((alan[0] + pay + alan[2]) / 2.0, (alan[1] + pay + alan[3]) / 2.0)
 
 
@@ -812,11 +813,13 @@ def _oda_ve_kapi(e, Y, md):
     if kp[1] == kp[3]:  # ön / arka duvar
         y = kp[1] if kp[1] > oda[1] else kp[1] - t
         bosluk = (kp[0], y, kp[2], y + t)
-        yazi = eleman.yazi((kp[0] + kp[2]) / 2.0, y + t / 2.0, f"KAPI {md['kapi_genislik']:g}", 34)
+        yazi = eleman.yazi((kp[0] + kp[2]) / 2.0, y + t / 2.0, f"KAPI {md['kapi_genislik']:g}", uslup.NORMAL)
     else:
         x = kp[0] if kp[0] > oda[0] else kp[0] - t
         bosluk = (x, kp[1], x + t, kp[3])
-        yazi = eleman.yazi(x + t / 2.0, (kp[1] + kp[3]) / 2.0, f"KAPI {md['kapi_genislik']:g}", 34, aci=90)
+        yazi = eleman.yazi(
+            x + t / 2.0, (kp[1] + kp[3]) / 2.0, f"KAPI {md['kapi_genislik']:g}", uslup.NORMAL, aci=90
+        )
     _duvarlar(e, oda, t, bosluk)
     e.append(_kutu("KAPI", bosluk, "oda_kapisi"))
     e.append(yazi)
@@ -849,7 +852,7 @@ def _tabliye_kenari(Y):
                     (sr[0] + sr[2]) / 2.0,
                     (sr[1] + sr[3]) / 2.0,
                     f"{en:g} GİRİNTİ:  ÜSTÜ ÖRTÜLÜR ( m.5.2.6.3.2.5 )",
-                    min(30, en * 0.6),
+                    uslup.NORMAL,
                     aci=90 if yan in ("Sol", "Sağ") else 0,
                 ),
                 "girinti_notu",
@@ -865,7 +868,9 @@ def _tabliye_kenari(Y):
     aci = 90 if yon[0] != 0 else 0
     e.append(
         eleman.ad(
-            eleman.yazi(cx + yon[0] * 70, cy + yon[1] * 70, f"TABLİYE  +{TB['yukseklik']:g}", 36, aci=aci),
+            eleman.yazi(
+                cx + yon[0] * 70, cy + yon[1] * 70, f"TABLİYE  +{TB['yukseklik']:g}", uslup.NORMAL, aci=aci
+            ),
             "tabliye_yazi",
         )
     )
@@ -877,7 +882,7 @@ def _tabliye_kenari(Y):
                     cx + yon[0] * d,
                     cy + yon[1] * d,
                     f"KOT FARKI {TB['yukseklik']:g} > {KOT_FARKI_MERDIVEN:g}:  MERDİVEN VE KORKULUK ( m.5.2.6.3.2.4 )",
-                    30,
+                    uslup.NORMAL,
                     aci=aci,
                 ),
                 "merdiven_notu",
@@ -912,7 +917,7 @@ def _makine_ve_donanim(Y, md, G):
         alt + makine.plan_parcalari(M, S_, sase=False), eleman.dikdortgen, eleman.daire, eleman.cizgi
     )
     ks = M["kasnak"]
-    e.append(eleman.yazi((ks[0] + ks[2]) / 2.0, (ks[1] + ks[3]) / 2.0, f"ø {M['D1']:g}", 38))
+    e.append(eleman.yazi((ks[0] + ks[2]) / 2.0, (ks[1] + ks[3]) / 2.0, f"ø {M['D1']:g}", uslup.NORMAL))
     for ad_ in ("agirlik_baglanti", "kabin_baglanti"):  # 1:1 askıda yok
         if M[ad_]:
             e.append(_kutu("BAGLANTI", M[ad_], ad_))
@@ -921,7 +926,11 @@ def _makine_ve_donanim(Y, md, G):
     rg = M["reg_govde"]
     e.append(
         eleman.yazi(
-            rg[0] - 60 if rg[0] > G / 2 else rg[2] + 60, (rg[1] + rg[3]) / 2.0, "REGÜLATÖR", 34, aci=90
+            rg[0] - 60 if rg[0] > G / 2 else rg[2] + 60,
+            (rg[1] + rg[3]) / 2.0,
+            "REGÜLATÖR",
+            uslup.NORMAL,
+            aci=90,
         )
     )
     for hx, hy in M["halatlar"] + [Y["agirlik_dusus"]] + ([M["ag_teget2"]] if M.get("ag_teget2") else []):
@@ -933,13 +942,17 @@ def _makine_ve_donanim(Y, md, G):
         dik = (pn[2] - pn[0]) < (pn[3] - pn[1])
         e.append(
             eleman.yazi(
-                (pn[0] + pn[2]) / 2.0, (pn[1] + pn[3]) / 2.0, "KUMANDA PANOSU", 32, aci=90 if dik else 0
+                (pn[0] + pn[2]) / 2.0,
+                (pn[1] + pn[3]) / 2.0,
+                "KUMANDA PANOSU",
+                uslup.NORMAL,
+                aci=90 if dik else 0,
             )
         )
-        e.append(eleman.yazi(*_alan_yazi_yeri(ca), "ÇALIŞMA ALANI", 32, aci=90 if dik else 0))
+        e.append(eleman.yazi(*_alan_yazi_yeri(ca), "ÇALIŞMA ALANI", uslup.NORMAL, aci=90 if dik else 0))
     if Y["bakim"]:
         e.append(_kutu("SIGINMA", Y["bakim"], "bakim_alani"))
-        e.append(eleman.yazi(*_alan_yazi_yeri(Y["bakim"]), "BAKIM ALANI", 32))
+        e.append(eleman.yazi(*_alan_yazi_yeri(Y["bakim"]), "BAKIM ALANI", uslup.NORMAL))
     return e
 
 
@@ -984,7 +997,7 @@ def _olculer(Y, md, G, D):
                 alan[1] + 60,
                 f"{alan[2] - alan[0]:g}",
                 kural=kural,
-                yazi={"x": (alan[0] + alan[2]) / 2.0, "y": alan[1] + 110, "h": eleman.yb(34)},
+                yazi={"x": (alan[0] + alan[2]) / 2.0, "y": alan[1] + 110, "h": uslup.NORMAL},
             )
         )
         e.append(
@@ -995,7 +1008,7 @@ def _olculer(Y, md, G, D):
                 alan[0] + 60,
                 f"{alan[3] - alan[1]:g}",
                 kural=kural,
-                yazi={"x": alan[0] + 110, "y": (alan[1] + alan[3]) / 2.0, "aci": 90, "h": eleman.yb(34)},
+                yazi={"x": alan[0] + 110, "y": (alan[1] + alan[3]) / 2.0, "aci": 90, "h": uslup.NORMAL},
             )
         )
     return e
@@ -1020,7 +1033,7 @@ def delik_plani(g, cizim_sabitleri=None):
                 (d[0] + d[2]) / 2.0 + (0 if dik else 0),
                 (d[1] + d[3]) / 2.0,
                 f"{round(w):g} x {round(h):g}",
-                30,
+                uslup.NORMAL,
                 aci=90 if dik else 0,
             )
         )

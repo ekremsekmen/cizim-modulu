@@ -10,59 +10,23 @@ aşağı baktığı için çizim bir kez ters çevrilir, metinler kendi içinde 
 import html
 import math
 
-#  TEKNİK RESİM ÜSLUBU ( ISO 128 ):  siyah çizgi, kalınlık sırası anlam taşır;
-#  renkli dolgu yok ( 6 Eki — kullanıcı:  çizimler "oyuncak gibi" duruyordu;
-#  parçalar açık yeşil, turuncu, pembe dolguluydu ).  Kâğıtta ( mm ):
-#      0,50  kesilen duvar, kesit işareti, çerçeve
-#      0,35  görünen ana kenar ( kabin, kapı, ray, ağırlık, şase, makine … )
-#      0,25  ikincil parça ( konsol, paten, pano, merdiven, kabin içi … )
-#      0,18  ince parça ( cıvata, delik, halat ), gizli çizgi
-#      0,13  ölçü, eksen, tarama, seviye, alan sınırı, etiket oku
-#  Kalınlıklar 1/20'ye göre birim:  1/20'de 0,50 mm = 10.  Ölçü ve eksen ekranda
-#  ayırt edilsin diye koyu mavi / koyu kırmızı;  geri kalan siyah.  DXF'teki
-#  katman renkleri AutoCAD'in koyu zemini içindir, ayrıdır ( dxf.KATMAN ).
-SIYAH = "#111111"
-_K = {0.50: 10, 0.35: 7, 0.25: 5, 0.18: 3.6, 0.13: 2.6}
-KALEM = {
-    "KUYU-DUVAR": (SIYAH, _K[0.50]),
-    "KESIT": (SIYAH, _K[0.50]),
-    "CERCEVE": (SIYAH, _K[0.50]),
-    "KUYU-IC": (SIYAH, _K[0.35]),
-    "KABIN": (SIYAH, _K[0.35]),
-    "KAPI": (SIYAH, _K[0.35]),
-    "AGIRLIK": (SIYAH, _K[0.35]),
-    "RAY": (SIYAH, _K[0.35]),
-    "SASE": (SIYAH, _K[0.35]),
-    "MAKINE": (SIYAH, _K[0.35]),
-    "KASNAK": (SIYAH, _K[0.35]),
-    "TAMPON": (SIYAH, _K[0.35]),
-    "PERDE": (SIYAH, _K[0.35]),
-    "KORKULUK": (SIYAH, _K[0.35]),
-    "KABIN-IC": (SIYAH, _K[0.25]),
-    "KONSOL": (SIYAH, _K[0.25]),
-    "PATEN": (SIYAH, _K[0.25]),
-    "PANO": (SIYAH, _K[0.25]),
-    "BAGLANTI": (SIYAH, _K[0.25]),
-    "MERDIVEN": (SIYAH, _K[0.25]),
-    "BINA": (SIYAH, _K[0.25]),
-    "YUK": (SIYAH, _K[0.25]),
-    "CIVATA": (SIYAH, _K[0.18]),
-    "DELIK": (SIYAH, _K[0.18]),
-    "HALAT": (SIYAH, _K[0.18]),
-    "GIZLI": (SIYAH, _K[0.18]),
-    "ACILIS": (SIYAH, _K[0.18]),
-    "OLCU": ("#0b4a8f", _K[0.13]),
-    "EKSEN": ("#a51d1d", _K[0.13]),
-    "TARAMA": (SIYAH, _K[0.13]),
-    "SEVIYE": (SIYAH, _K[0.13]),
-    "SIGINMA": (SIYAH, _K[0.13]),
-    "YAZI": (SIYAH, _K[0.13]),
-}
-#  Kesik çizilen katmanlar  ( sığınma alanı gerçek bir parça değil, alandır )
-KESIK = {"SIGINMA": "80 40", "GIZLI": "40 30", "DELIK": "50 25"}
-#  Dolgu yalnız örtmek için ( zemin rengi ):  kesitte kabin ve kapı arkasındakini,
-#  yük kutusu oku örter.  Renkli dolgu yok.
+from cizim import eleman
+from cizim import uslup
+
+#  TEKNİK RESİM ÜSLUBU ( ISO 128 ):  kalem kalınlığı, çizgi tipi ve renk
+#  cizim/uslup.py'de — DXF ile aynı tablo ( 12 Eki:  ikisi ayrı tutulurken 33
+#  katmanın 22'sinde kalınlık farklıydı ).  Kalınlıklar 1/20'ye göre birim:
+#  1/20'de 0,50 mm = 10;  başka ölçekte k ile büyür.
+SIYAH = uslup.SIYAH
+#  Dolgu yalnız örtmek için ( zemin rengiyle ):  kesitte kabin ve kapı
+#  arkasındakini, yük kutusu oku örter.  Renkli dolgu yok.
 DOLGU = {"KAPI": "#ffffff", "KABIN": "#ffffff", "YUK": "#ffffff"}
+
+
+def kalem(katman):
+    """( renk , 1/20'de kalınlık birimi )"""
+    k = uslup.KATMAN[katman]
+    return k.ekran, round(k.kalinlik * 20, 3)
 
 
 def _dikdortgen(el, renk, kalinlik, k=1.0):
@@ -94,7 +58,7 @@ def _bicim(el, renk, kalinlik, k=1.0):
             )
     for p in el["bicim"]:
         nok = " ".join(f"{x:.1f},{y:.1f}" for x, y in p["noktalar"])
-        kal = f"{_K[0.18] * k:g}" if p.get("ince") else kalinlik
+        kal = f"{uslup.INCE * 20 * k:g}" if p.get("ince") else kalinlik
         if not p.get("kapali", True):
             out.append(
                 f'<polyline points="{nok}" fill="none" stroke="{renk}" '
@@ -110,33 +74,35 @@ def _bicim(el, renk, kalinlik, k=1.0):
 
 
 def _olcu(el, renk, kalinlik, k=1.0, tutamak=False):
-    """Ölçü çizgisi + iki uçtaki kısa çizgi + yazı.
+    """Ölçü çizgisi + iki uçta ölçü ucu + yazı.
 
     tutamak:  ekranda tıklanacak ölçü için çizginin ve yazının üstüne
     görünmez, geniş bir tutma yüzeyi ( ince çizgiye ve harflere tam
     denk getirmek gerekmesin ).
 
     Yazının yeri geometride bulunur ( el["yazi"] = yazının MERKEZİ );  DXF de
-    aynı yeri kullanır.  UZATMA ÇİZGİSİ YOK:  ölçülen noktadan ölçü çizgisine
-    uzanan kesik çizgiler bütün planı boydan boya kesiyor, çizimi okunmaz
-    yapıyordu ( kullanıcı kararı ).
+    aynı yeri kullanır.  UÇ ( uslup.TIK · SAPLAMA ):  45° eğik çizgi ve dik
+    KISA uzatma çizgisi — DXF'teki ucun bloğuyla aynı ( dxf.UC_BLOGU ).  Uzun
+    uzatma çizgileri bütün planı boydan boya kesiyordu ( kullanıcı kararı ).
     """
+    t, sp = uslup.TIK * 20 * k, uslup.SAPLAMA * 20 * k
+    tik = f"{uslup.TIK_KALEM * 20 * k:g}"
     if el["yon"] == "yatay":
         x1, x2, y = el["a"][0], el["b"][0], el["kot"]
         cizgi = f'<line x1="{x1:.1f}" y1="{y:.1f}" x2="{x2:.1f}" y2="{y:.1f}"'
-        uc = "".join(
-            f'<line x1="{x:.1f}" y1="{y - 45 * k:.1f}" x2="{x:.1f}" y2="{y + 45 * k:.1f}" '
-            f'stroke="{renk}" stroke-width="{kalinlik}"/>'
-            for x in (x1, x2)
-        )
+        uclar = [((x, y - sp), (x, y + sp), (x - t, y - t), (x + t, y + t)) for x in (x1, x2)]
     else:
         y1, y2, x = el["a"][1], el["b"][1], el["kot"]
         cizgi = f'<line x1="{x:.1f}" y1="{y1:.1f}" x2="{x:.1f}" y2="{y2:.1f}"'
-        uc = "".join(
-            f'<line x1="{x - 45 * k:.1f}" y1="{y:.1f}" x2="{x + 45 * k:.1f}" y2="{y:.1f}" '
-            f'stroke="{renk}" stroke-width="{kalinlik}"/>'
-            for y in (y1, y2)
-        )
+        #  Uç ölçü çizgisiyle döner ( 90° ):  eğik çizgi öbür yöne yatar
+        uclar = [((x - sp, y), (x + sp, y), (x + t, y - t), (x - t, y + t)) for y in (y1, y2)]
+    uc = "".join(
+        f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" '
+        f'stroke="{renk}" stroke-width="{kalinlik}"/>'
+        f'<line x1="{c[0]:.1f}" y1="{c[1]:.1f}" x2="{d[0]:.1f}" y2="{d[1]:.1f}" '
+        f'stroke="{renk}" stroke-width="{tik}"/>'
+        for a, b, c, d in uclar
+    )
     yz = el["yazi"]
     #  Merkezden taban çizgisine:  yazının "yukarı" yönünün tersine 0,35·h
     a = math.radians(yz["aci"])
@@ -144,7 +110,7 @@ def _olcu(el, renk, kalinlik, k=1.0, tutamak=False):
     by = yz["y"] - 0.35 * yz["h"] * math.cos(a)
     tut = ""
     if tutamak:
-        h, w = yz["h"], len(el["metin"]) * yz["h"] * 0.6
+        h, w = yz["h"], eleman.yazi_eni(el["metin"], yz["h"])
         tut = (
             cizgi + f' class="tut" stroke="transparent" stroke-width="{60 * k:g}"/>'
             f'<g transform="translate({bx:.1f},{by:.1f}) scale(1,-1) rotate({-yz["aci"]})">'
@@ -166,7 +132,11 @@ def _olcu(el, renk, kalinlik, k=1.0, tutamak=False):
 #  yazısından büyük yazılarda ( çizimin başlığı ) ölçü yazısınınki kadar — geniş
 #  hale başlığın altındaki şerit çizgisini kesiyordu.
 HALE = 0.6
-HALE_AZAMI = 70.0 * HALE  # 1/20'de;  başka ölçekte k ile
+HALE_AZAMI = uslup.NORMAL * HALE  # 1/20'de;  başka ölçekte k ile
+#  Yazı tipi:  ekranda gömülü Liberation Sans ( style.css · CizimYazi ), yoksa
+#  Arial — ikisinin harf enleri aynı ( harf_eni ).  Kerning kapalı:  yazının
+#  eni harflerin toplamı olsun ( AutoCAD de kerning yapmaz ).
+YAZI_TIPI = "CizimYazi, Arial, 'Liberation Sans', sans-serif"
 
 
 def _metin(x, y, metin, yukseklik, renk, aci=0, hiza="orta", k=1.0):
@@ -175,20 +145,39 @@ def _metin(x, y, metin, yukseklik, renk, aci=0, hiza="orta", k=1.0):
     tutucu = {"orta": "middle", "sol": "start", "sag": "end"}.get(hiza, "middle")
     return (
         f'<g transform="translate({x:.1f},{y:.1f}) scale(1,-1) rotate({aci})">'
-        f'<text x="0" y="0" font-family="DejaVu Sans, Arial" font-size="{yukseklik:g}" '
+        f'<text x="0" y="0" font-family="{YAZI_TIPI}" font-size="{yukseklik:g}" style="font-kerning:none" '
         f'fill="{renk}" stroke="#ffffff" stroke-width="{hale:.1f}" '
         f'stroke-linejoin="round" paint-order="stroke" '
         f'text-anchor="{tutucu}">{html.escape(metin)}</text></g>'
     )
 
 
-def _kesik(desen, k):
-    return desen if k == 1 else " ".join(f"{float(v) * k:g}" for v in desen.split())
+def kesik(desen, k=1.0):
+    """Çizgi tipinin SVG deseni ( 1/20 birimi, k ile ölçekli ) — DXF'teki ISO
+    tipiyle aynı ( uslup.DESENLER );  nokta ekranda uslup.NOKTA boyunda çizgi."""
+    d = uslup.DESENLER[desen]
+    return " ".join(f"{(abs(v) * d.olcek or uslup.NOKTA) * 20 * k:g}" for v in d.tanim)
 
 
 def _kesik_ozniteligi(el, k):
-    desen = "120 40 20 40" if el["tip"] == "eksen" or el["katman"] == "EKSEN" else KESIK.get(el["katman"])
-    return f' stroke-dasharray="{_kesik(desen, k)}"' if desen else ""
+    desen = "EKSEN" if el["tip"] == "eksen" else uslup.KATMAN[el["katman"]].desen
+    return f' stroke-dasharray="{kesik(desen, k)}"' if desen else ""
+
+
+def _taramalar(onek, k):
+    """Duvar kesiti ( 45° ) ve tuğla taramasının desenleri — DXF'teki ANSI31 ve
+    BRICK ile aynı aralıkta ( uslup.TARAMALAR )."""
+    ince = f'stroke="{SIYAH}" stroke-width="{uslup.KATMAN["TARAMA"].kalinlik * 20:g}"'
+    a = uslup.TARAMALAR["tarama"].aralik * 20
+    t = uslup.TARAMALAR["tarama_tugla"].aralik * 20
+    return (
+        f'<pattern id="{onek}tarama" width="{a:g}" height="{a:g}" patternUnits="userSpaceOnUse" '
+        f'patternTransform="rotate(45){_olcekle(k)}"><line x1="0" y1="0" x2="0" y2="{a:g}" {ince}/></pattern>'
+        f'<pattern id="{onek}tugla" width="{2 * t:g}" height="{2 * t:g}" patternUnits="userSpaceOnUse"'
+        f"{_desen(k)}>"
+        f'<path d="M0 0 H{2 * t:g} M0 {t:g} H{2 * t:g} M{t:g} 0 V{t:g} M0 {t:g} V{2 * t:g} M{2 * t:g} {t:g} V{2 * t:g}" '
+        f'{ince} fill="none"/></pattern>'
+    )
 
 
 def _olcekle(k):
@@ -217,7 +206,7 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False):
     #  kendinden önce çizileni örter ( DXF ile aynı sıra ).
     sira = {"olcu": 1, "yazi": 2}
     for el in sorted(elemanlar, key=lambda el: sira.get(el["tip"], 0)):
-        renk, kal = KALEM.get(el["katman"], ("#000", 4))
+        renk, kal = kalem(el["katman"])
         kal = f"{kal * k:g}"
         if el["tip"] == "tarama_tugla":
             parcalar.append(
@@ -292,13 +281,7 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False):
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x1:.0f} {-y2 - 300:.0f} '
         f'{g:.0f} {d + 600:.0f}" width="{g / olcek:.0f}mm" height="{(d + 600) / olcek:.0f}mm">'
-        f'<defs><pattern id="{onek}tarama" width="120" height="120" patternUnits="userSpaceOnUse" '
-        f'patternTransform="rotate(45){_olcekle(k)}"><line x1="0" y1="0" x2="0" y2="120" '
-        f'stroke="{SIYAH}" stroke-width="{_K[0.13]:g}"/></pattern>'
-        f'<pattern id="{onek}tugla" width="240" height="120" patternUnits="userSpaceOnUse"'
-        f"{_desen(k)}>"
-        '<path d="M0 0 H240 M0 60 H240 M120 0 V60 M0 60 V120 M240 60 V120" '
-        f'stroke="{SIYAH}" stroke-width="{_K[0.13]:g}" fill="none"/></pattern></defs>'
+        f"<defs>{_taramalar(onek, k)}</defs>"
         '<rect x="-100000" y="-100000" width="200000" height="200000" fill="#ffffff"/>'
         f'<g transform="scale(1,-1)">{"".join(parcalar)}{bas}</g></svg>'
     )

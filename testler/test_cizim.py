@@ -21,6 +21,7 @@ from cizim import geometri
 from cizim import girdi
 from cizim import svg
 from cizim import sabitler
+from cizim import uslup
 from cizim import parca_kotlari
 from cizim import standart
 
@@ -302,7 +303,7 @@ class SvgCiktisi(unittest.TestCase):
     def test_her_katman_bir_kalem_tanimli(self):
         katmanlar = {el["katman"] for el in self.e}
         for kat in katmanlar:
-            self.assertIn(kat, svg.KALEM, kat)
+            self.assertIn(kat, uslup.KATMAN, kat)
 
 
 class DxfCiktisi(unittest.TestCase):
@@ -346,14 +347,15 @@ class DxfCiktisi(unittest.TestCase):
 
     def test_cizgi_deseni_paftada_kuculmez(self):
         """AutoCAD bloğun içindeki çizgi desenini bloğun ölçeğiyle küçültmez:
-        paftadaki ( 1/ölçek ) blokta desen ölçeği 2,5, tek başına ( gerçek
-        ölçüde ) açılan DXF'te ölçek × 2,5.  Eskiden blokta da ölçek × 2,5
-        veriliyordu:  eksenler AutoCAD'de düz çizgi görünüyordu."""
-
-        eksen = [e for e in self.d.modelspace().query("LINE") if e.dxf.linetype == "CENTER"]
+        paftadaki ( 1/ölçek ) blokta desen ölçeği desenin kâğıt çarpanı
+        ( uslup.DESENLER ), tek başına ( gerçek ölçüde ) açılan DXF'te × ölçek.
+        Eskiden blokta da ölçek çarpılıyordu:  eksenler AutoCAD'de düz çizgi
+        görünüyordu."""
+        des = uslup.DESENLER["EKSEN"]
+        eksen = [e for e in self.d.modelspace().query("LINE") if e.dxf.get("linetype") == des.dxf]
         self.assertTrue(eksen)
         for e in eksen:
-            self.assertEqual(e.dxf.ltscale, self.CDX.CIZGI_TIPI_OLCEGI * 20)
+            self.assertEqual(e.dxf.ltscale, des.olcek * 20)
         d, bilgi = pafta.belge(self.g)
         for c in bilgi["cizimler"]:
             blok = d.blocks.get(f"CIZIM_{c['ad'].upper()}")
@@ -361,11 +363,12 @@ class DxfCiktisi(unittest.TestCase):
                 e
                 for e in blok
                 if e.dxftype() in ("LINE", "LWPOLYLINE", "CIRCLE")
-                and (e.dxf.get("linetype") == "CENTER" or e.dxf.layer in ("GIZLI", "SIGINMA", "DELIK"))
+                and (e.dxf.get("linetype") == des.dxf or uslup.KATMAN[e.dxf.layer].desen)
             ]
             self.assertTrue(desenli, c["ad"])
             for e in desenli:
-                self.assertEqual(e.dxf.ltscale, self.CDX.CIZGI_TIPI_OLCEGI, c["ad"])
+                ad = "EKSEN" if e.dxf.get("linetype") == des.dxf else uslup.KATMAN[e.dxf.layer].desen
+                self.assertEqual(e.dxf.ltscale, uslup.DESENLER[ad].olcek, c["ad"])
 
     def test_birim_milimetre(self):
         self.assertEqual(self.d.header["$INSUNITS"], 4)
@@ -383,9 +386,13 @@ class DxfCiktisi(unittest.TestCase):
         self.assertEqual(len(dxf_metni), len(yazilar) + 1)  # + belge başlığı
         for h in yazilar:
             self.assertTrue(any(abs(v - h * 0.716) < 1e-6 for v in dxf_metni), h)
-        olcu = sorted(round(x["yazi"]["h"] * 0.716, 6) for x in self.e if x["tip"] == "olcu")
-        boy = sorted(round(dim.override().get("dimtxt"), 6) for dim in self.d.modelspace().query("DIMENSION"))
-        self.assertEqual(boy, olcu)
+        #  Ölçü yazısı:  stilin boyu ( kâğıtta mm ) × DIMSCALE ( 12 Eki'den adlı stil )
+        olcu = sorted(round(x["yazi"]["h"] * 0.716, 3) for x in self.e if x["tip"] == "olcu")
+        boy = []
+        for dim in self.d.modelspace().query("DIMENSION"):
+            stil = self.d.dimstyles.get(dim.dxf.dimstyle)
+            boy.append(round(dim.override().get("dimtxt", stil.dxf.dimtxt) * stil.dxf.dimscale, 3))
+        self.assertEqual(sorted(boy), olcu)
 
     def test_kullanilan_katmanlar_tanimli(self):
         for el in self.e:
@@ -1154,20 +1161,19 @@ class KuyuDibiYerlesim(unittest.TestCase):
     def test_cerceve_yazilarin_enini_kapsar(self):
         """Sola hizalı tablo satırları çerçevenin içinde kalır ( taşıyordu )."""
         Y = eleman.yazi
-        #  Etiket 40 → çizilen boy yb ( yazılar LiftDesigner boyunda, 5 Eki );  eni 5 harf × 0,6 h
-        h = eleman.yb(40)
+        #  Etiket 2,5 mm ( uslup.NORMAL );  eni harflerin gerçek eni ( 12 Eki )
+        h = uslup.NORMAL
+        w = eleman.yazi_eni("ABCDE", h)
         for hiza, beklenen in (
-            ("sol", (0, -h / 2, 3 * h, h / 2)),
-            ("sag", (-3 * h, -h / 2, 0, h / 2)),
-            (None, (-1.5 * h, -h / 2, 1.5 * h, h / 2)),
+            ("sol", (0, -h / 2, w, h / 2)),
+            ("sag", (-w, -h / 2, 0, h / 2)),
+            (None, (-w / 2, -h / 2, w / 2, h / 2)),
         ):
             for a, b in zip(
-                geometri.sinir([Y(0, 0, "ABCDE", 40, **({"hiza": hiza} if hiza else {}))]), beklenen
+                geometri.sinir([Y(0, 0, "ABCDE", h, **({"hiza": hiza} if hiza else {}))]), beklenen
             ):
                 self.assertAlmostEqual(a, b)
-        for a, b in zip(
-            geometri.sinir([Y(0, 0, "ABCDE", 40, hiza="sol", aci=90)]), (-h / 2, 0, h / 2, 3 * h)
-        ):
+        for a, b in zip(geometri.sinir([Y(0, 0, "ABCDE", h, hiza="sol", aci=90)]), (-h / 2, 0, h / 2, w)):
             self.assertAlmostEqual(a, b)
         e = geometri.cerceveli(kuyu_dibi.ciz(_ornek(kuyu_dibi={"kuvvetler": self.KV})), "KUYU DİBİ PLANI")
         c = next(x for x in e if x["katman"] == "CERCEVE" and x["tip"] == "dikdortgen")
@@ -1177,7 +1183,10 @@ class KuyuDibiYerlesim(unittest.TestCase):
     def test_olcu_yazisi_parcaya_binmez(self):
         """Kuyunun içindeki ölçü yazıları tampon, gergi, merdiven, ray, konsol,
         perde ve nokta adlarının üstüne düşmez ( Yatarak sığınmada "1000"
-        kabin tamponunun üstündeydi )."""
+        kabin tamponunun üstündeydi ).  Çizimin SON hâli ( etiketleri_ayir'dan
+        sonra — ekrandaki, paftadaki ):  yazılar 2,5 mm'ye büyüyünce ( 12 Eki )
+        REGÜLATÖR GERGİSİ ve DİK DURUŞ etiketleri ham çizimde ölçü yazısına
+        uzanıyor, ayırıcı onları kaydırıyor."""
         projeler = list(_dip_projeler()) + [
             ("Yatarak", _ornek(kuyu_dibi={"siginma_tipi": "Yatarak"})),
             (
@@ -1186,7 +1195,7 @@ class KuyuDibiYerlesim(unittest.TestCase):
             ),
         ]
         for ad, g in projeler:
-            e = kuyu_dibi.ciz(g)
+            e = cizimler.CIZIMLER["kuyu_dibi"][1](g)
             G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
             engel = [
                 geometri.sinir([x])
@@ -1953,7 +1962,7 @@ class TamBoyKesit(unittest.TestCase):
     def test_olcek_kalemleri_buyutur(self):
         #  Kesilen duvar ISO 128'in 0,50 mm'si:  1/20'de 10 birim, 1/50'de 25
         e = [eleman.dikdortgen("KUYU-DUVAR", 0, 0, 100, 100)]
-        self.assertEqual(svg.KALEM["KUYU-DUVAR"][1], 10)
+        self.assertEqual(svg.kalem("KUYU-DUVAR")[1], 10)
         self.assertIn('stroke-width="10"', svg.yaz(e, (0, 0, 100, 100), "", 20))
         self.assertIn('stroke-width="25"', svg.yaz(e, (0, 0, 100, 100), "", 50))
 
@@ -2799,8 +2808,9 @@ class YaziParcaKenarinaBinmez(unittest.TestCase):
                         x, y = o["yazi"]["x"], o["yazi"]["y"]
                     else:
                         continue
-                    #  Görünen kutu:  büyük harf 0,72 em, harf eni 0,58 em
-                    w, c = len(o["metin"]) * h * 0.58, 0.36 * h
+                    #  Görünen kutu:  büyük harf 0,72 em, en harflerin gerçek eni
+                    #  ( Arial — eskiden harf × 0,58 em sayılıyordu, 12 Eki )
+                    w, c = eleman.yazi_eni(o["metin"], h), 0.36 * h
                     a, b = {"sol": (0.0, w), "sag": (-w, 0.0)}.get(hiza, (-w / 2.0, w / 2.0))
                     if abs(abs(aci) - 90) < 1e-6:
                         ys = (y + a, y + b) if aci > 0 else (y - b, y - a)
@@ -2810,13 +2820,19 @@ class YaziParcaKenarinaBinmez(unittest.TestCase):
                     sayi += 1
                     with self.subTest(proje=ad, cizim=cizim, yazi=o["metin"]):
                         self.assertFalse([s_ for s_ in kenarlar if geometri.kenar_kesisir(s_, kutu, 2.0 * k)])
-                        #  Etiket duvarın ( taramalı kesit ) içinde durmaz
+                        #  Etiket duvarın ( taramalı kesit ) içinde durmaz — etiketleri_ayir'in
+                        #  payıyla ( 2 mm;  1/20'de kâğıtta 0,1 mm ):  test yazıyı harf × 0,58
+                        #  em sayarken ayırıcıdan dar ölçüyordu, pay görünmüyordu ( 12 Eki )
                         if o["tip"] == "yazi":
+                            p_ = 2.0 * k
                             self.assertFalse(
                                 [
                                     d
                                     for d in duvarlar
-                                    if kutu[0] < d[2] and d[0] < kutu[2] and kutu[1] < d[3] and d[1] < kutu[3]
+                                    if kutu[0] < d[2] - p_
+                                    and d[0] < kutu[2] - p_
+                                    and kutu[1] < d[3] - p_
+                                    and d[1] < kutu[3] - p_
                                 ]
                             )
         self.assertGreater(sayi, 1000)
