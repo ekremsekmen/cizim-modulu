@@ -1368,8 +1368,6 @@ function cizCizimler(c){
             kuvvetler çizimlere yazılmadı.</div>`;
   }
   ust.innerHTML = h + (ic ? `<div class="kart-ic">${ic}</div>` : '');
-  //  Açık ölçü kutusu eski çizimin ölçüsüne bağlıydı
-  if(M_OLCU){ M_OLCU.kutu.remove(); M_OLCU = null; }
   $('m_tuval_kap').hidden = false;
   /*  ÇİZİM KURULAMADIYSA ÇİZİM DEĞİŞMEZ ( kullanıcı isteği 2 Eki ):  ekranda son
       geçerli çizim kalır, sebepler tuvalin sağ üstünde liste olarak durur ve
@@ -1379,9 +1377,15 @@ function cizCizimler(c){
       ( mOlcuIstek ), yazılan değer formun bugünkü hâline yazılır. */
   mTuvalHata(c.aktif ? null : (c.hata || []), t.querySelector('figure.cizim') !== null);
   if(!c.aktif){
+    //  Çizim değişmedi:  açık ölçü kutusu ekrandaki çizimin ölçüsüdür, kalır.
+    //  Eskiden her yanıtta kapanıyordu — forma hatalı değer yazılınca gelen
+    //  ikinci "kurulamadı" yanıtı, eski çizimin ölçüsünden düzeltme sürerken
+    //  kutuyu kapatıyor, değer uygulanmıyordu ( tıklama hızlanınca görüldü ).
     if(M_OLCU_SON_BILDIRIM) mOlcuBildir(M_OLCU_SON_BILDIRIM, true);
     return;
   }
+  //  Yeni çizim:  açık ölçü kutusu eski çizimin ölçüsüne bağlıydı
+  if(M_OLCU){ M_OLCU.kutu.remove(); M_OLCU = null; }
   t.querySelectorAll('figure.cizim').forEach(f => f.remove());
   //  SVG satır içi:  ölçüler tıklanır.  Sunucunun ürettiği metindir ( yazılar
   //  kaçışlı — cizim/svg.py ), desen kimlikleri her çizimde önekli.
