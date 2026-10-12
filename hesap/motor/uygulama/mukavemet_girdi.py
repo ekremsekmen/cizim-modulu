@@ -14,7 +14,7 @@ MMO/697 avan kitabından gelir;  uygulama projesinin tabloları bilerek ayrı
 tutulmuştur ( bkz. motor/uygulama/mukavemet_tablolari.py ).
 """
 
-from temel import sayi_mi
+from temel import bos_mu, sayi_mi
 from motor.ortak import ofis
 from motor.ortak.adimlar import evet_mi
 from motor.uygulama import mukavemet_tablolari
@@ -389,8 +389,10 @@ def tamamla(g):
     #  KARŞI AĞIRLIĞIN GENİŞLİĞİ ( Gy ):  boşsa ağırlık rayları arasından
     #  ( DBGW − paten payı ), o da boşsa referans uygulama projesinin 960'ı
     #  ( tasarim/alanlar.AGIRLIK_PATEN_PAYI ).  Çizim DBGW'yi tersinden kurar
-    #  ( boşsa Gy + pay ):  ikisi aynı çerçeveyi anlatır.
-    if not sayi_mi(g.get("agirlik_genisligi")):
+    #  ( boşsa Gy + pay ):  ikisi aynı çerçeveyi anlatır.  Yalnız BOŞ alan
+    #  türer:  bozuk girdi ( "x" ) doğrulamaya kalır — eskiden sessizce
+    #  kurala çevriliyor, hesap kuruluyordu ( 12 Eki ).
+    if bos_mu(g.get("agirlik_genisligi")):
         dbgw = g.get("agirlik_ray_arasi")
         g["agirlik_genisligi"] = (
             dbgw - alanlar.AGIRLIK_PATEN_PAYI
@@ -408,6 +410,15 @@ def tamamla(g):
     #  çağrıldığında girdide yoksa uygulama sözleşmesinin varsayılanları —
     #  sabit tablo;  girdi.varsayilanlar() buraya döner, döngü olurdu.
 
+    #  KABİN PATEN ARASI ( h ):  boşsa kabin iç yüksekliğinden — şase kabini
+    #  sarar ( tasarim/alanlar.KABIN_PATEN_PAYI ).  Çizimden türetilenlerden
+    #  önce:  kabinin düşey kotları ona dayanır.  Girilen değer olduğu gibi
+    #  kalır ( kiriş tavana giriyorsa çizim gereken paten arasını söyler ),
+    #  bozuk girdi doğrulamaya kalır.
+    if bos_mu(g.get("kabin_paten_arasi")):
+        kh = kopru.varsayilan_deger(g, "kabin_ic_yuksekligi")
+        if sayi_mi(kh):
+            g["kabin_paten_arasi"] = kh + alanlar.KABIN_PATEN_PAYI
     _cd = kopru.cizimden({**{a[0]: a[5] for a in EK_ALANLAR}, **g})
     g.update(_cd)
     #  KAYNAK İŞARETİ:  çizimden gelen değer raporda "ÇİZİMDEN" yazar ( girilmiş

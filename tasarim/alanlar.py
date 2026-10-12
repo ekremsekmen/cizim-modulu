@@ -51,6 +51,15 @@ GIRDI, KURAL, KATALOG, CIZIM, HESAP = "GİRDİ", "KURAL", "KATALOG", "ÇİZİM",
 #  kalıyordu — paten bunu köprüleyemez ( kullanıcı kararı 1 Eki ).
 AGIRLIK_PATEN_PAYI = 60.0
 AGIRLIK_GENISLIGI_YEDEK = 960.0
+#  KABİN PATEN ARASI kabin iç yüksekliğinden türer:  şase kabini sarar,
+#  yüksekliği kabinle birlikte değişir ( Wittur WCF06:  "yükseklik serbestçe
+#  seçilir";  Has Asansör kılavuzu:  toplam kabin yüksekliği + 200 – 400, o
+#  şasede patenler kirişin altında ).  Ofisin şasesi LiftDesigner'ınki — 11
+#  projenin hepsinde 2.000'lik kabinde alt paten merkezi döşemenin 270 altında,
+#  üst paten merkezi iç yüksekliğin 390 üstünde ( tavan 60 + kiriş boşluğu 140 +
+#  kiriş 140 + paten yarısı 50 ):  h = iç yükseklik + 660.  Değişken kabin
+#  yüksekliğiyle LD örneği yok ( hepsi 2.000 );  araştırma 12 Eki.
+KABIN_PATEN_PAYI = 660  # tam sayı:  2.000 + 660 = 2.660 ( eski varsayılanla aynı tip )
 KAYNAKLAR = (GIRDI, KURAL, KATALOG, CIZIM, HESAP)
 MUK, ELK, CIZ = "mukavemet", "elektrik", "cizim"
 
@@ -882,7 +891,9 @@ _GRUPLAR = (
             #  anahtarı yok sayılır, geri yükleme bozulmaz.
             #  PATEN ARASI h  —  ray kuvvetinin PAYDASIDIR ( Fx = … / ( n · h ) ) ve
             #  kuyudaki yığına da girer ( halat boyu, Ç.2 üst açıklığı ).
-            #  Kabin:  2.660 — ofisin kabini ( kullanıcı kararı 30 Eyl, 5. adım;
+            #  Kabin:  boşsa kabin iç yüksekliği + 660 ( KABIN_PATEN_PAYI — kullanıcı
+            #  kararı 12 Eki;  2.000'lik kabinde 2.660 ).  2.660 — ofisin kabini
+            #  ( kullanıcı kararı 30 Eyl, 5. adım;
             #  8 Eki düzeltmesi ):  LiftDesigner'ın ön kesitlerinde ( K431 · 4815-6 ·
             #  1022 ) 2.000'lik kabinin patenleri kirişlerin DIŞINDA, merkezleri −270
             #  ve 2.390.  30 Eyl'de kirişler paten sanılıp 2.420 ( −150 / 2.270 )
@@ -899,20 +910,22 @@ _GRUPLAR = (
             #  elle girilir.
             A(
                 "kabin_paten_arasi",
-                "Kabin paten arası",
+                "Kabin paten arası  ( h — boşsa kabin iç yüksekliği + 660 )",
                 "mm",
                 "sayi",
                 None,
-                2660,
-                kaynak=GIRDI,
+                None,
+                kaynak=KURAL,
                 sozlesme=MUK,
                 gelismis=True,
+                opsiyonel=True,
                 pozitif=True,
                 bolen=True,
                 bilgi=(
                     "h — kabinin üst ve alt patenlerinin MERKEZLERİ arasındaki düşey mesafe. Devirici "
-                    "momentin kolu budur: büyüdükçe raya gelen yatay kuvvet küçülür. Patenler şasenin "
-                    "kirişlerinin dışındadır ( üst paten üst kirişin üstünde )."
+                    "momentin kolu budur: büyüdükçe raya gelen yatay kuvvet küçülür. Patenler şase "
+                    "kirişlerinin dışındadır.  Boşsa şase kabini sarar:  kabin iç yüksekliği + 660 "
+                    "( 2.000'lik kabinde 2.660 )."
                 ),
             ),
             A(

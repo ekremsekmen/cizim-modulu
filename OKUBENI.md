@@ -725,8 +725,9 @@ bir yönde sığmazsa kol öbür yöne döner, ikisinde de sığmazsa çizim dur
 regülatör aynı girdiyi kullanarak gergi kasnağıyla hizalı kalır.
 
 Patenlerin MERKEZLERİ arası hesap programının paten arasıdır ( TS EN 81-50'nin
-kuvvet kolu h;  `dusey.kabin_paten_arasi`, `dusey.agirlik_paten_arasi` — varsayılan
-2.660 ve 3.400, referans projenin örneğinde 3.300 ve 3.060 ).  **PATENLER
+kuvvet kolu h;  `dusey.kabin_paten_arasi`, `dusey.agirlik_paten_arasi` — kabinde
+boşsa kabin iç yüksekliği + 660 ( 2.000'lik kabinde 2.660 ), ağırlıkta varsayılan
+3.400;  referans projenin örneğinde 3.300 ve 3.060 ).  **PATENLER
 KİRİŞLERİN VE ÇERÇEVENİN DIŞINDADIR** ( 8 Eki — LiftDesigner'ın ön kesitleri K431 ·
 4815-6 · 1022 ve referans projenin kesitleri, çizimlerin vektörlerinden ölçüldü ):
 kabinde alt paten şasenin en altında, alt kiriş onun üstünde ( 140 ), üst kiriş
@@ -993,14 +994,18 @@ dairesi planı F-F ).  Kabinin düşey ölçüleri **ofisin LiftDesigner kabinin
 ( kullanıcı kararı, 5. adım — altı projenin altısında aynı ):  iç 2.000 ( varsayılan ),
 tavan 60, taban 50, şase altı −320, alt paten merkezi şase altının 50 üstünde
 ( `alt_paten_payi`:  −270 ), üst paten merkezi alt patenin paten arası kadar üstünde
-( varsayılan 2.660:  2.390 ), paten 100, alt ve üst kiriş 140 ( `sase_alt_kiris`,
+( boşsa iç yükseklik + 660 — 2.000'lik kabinde 2.390 ), paten 100, alt ve üst kiriş 140 ( `sase_alt_kiris`,
 `sase_ust_kiris` ), fren bloğu 270 ( en alt parça −320 ), kabin
 altı kasnak merkezi −425, eni 75, yan pano 15, arka pano 20;  etek ( önlük,
 m.5.4.5 ) kabin eşiğinin kat tarafındaki kenarında, dik kısmı 750, altında 20 × 35
 pah ( 60,3° ):  en alt noktası −785 ( 7 Eki;  eskiden kabinin ön yüzündeydi, pahsız,
-−750 — kuyu dibi açıklığı 35 mm iyimser çıkıyordu ).  Paten arası 2.660 LiftDesigner'ın
-( 8 Eki'ye dek 2.420 — kirişleri paten sanmıştık );  Has Asansör MRL şase kılavuzunda
-aralık kabin yüksekliği + 200 – 400.  Referans projenin örneği kendi kabiniyle
+−750 — kuyu dibi açıklığı 35 mm iyimser çıkıyordu ).  Paten arası boşsa kabin iç
+yüksekliği + 660 ( `tasarim/alanlar.KABIN_PATEN_PAYI`, 12 Eki ):  şase kabini sarar,
+yüksekliği kabinle birlikte değişir — LiftDesigner'ın 2.000'lik kabininde 2.660 ( 11
+projenin hepsinde kabin 2.000;  8 Eki'ye dek 2.420 — kirişleri paten sanmıştık ),
+Wittur WCF06'da şase yüksekliği serbest seçilir, Has Asansör MRL şase kılavuzunda
+aralık toplam kabin yüksekliği + 200 – 400 ( o şasede patenler kirişin altında ).
+Girilen paten arası değiştirilmez.  Referans projenin örneği kendi kabiniyle
 çizilir ( `sabitler.REFERANS_PROJE_KABINI`:  taban 120, şase altı −480, alt paten
 şase altının 70 altında ( −620 / −480 ), paten 140, alt kiriş 350, üst kiriş 200,
 fren bloğu 350, kasnak −295 / 92, pano 45 / 33;  iç 2.250, paten arası 3.300 ).

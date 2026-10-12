@@ -16,6 +16,7 @@ import unittest
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from uclar import cizim_uclari
+from motor.uygulama import mukavemet_girdi
 from motor.uygulama import uygulama_hesabi
 
 from testler import test_yerlesim_saglamligi
@@ -54,6 +55,52 @@ class Yukseklikler(unittest.TestCase):
         self.assertTrue(
             _calistir(kapi_yuksekligi=2000, kabin_ic_yuksekligi=2200, kabin_paten_arasi=2720)[0].get("aktif")
         )
+
+
+class PatenArasi(unittest.TestCase):
+    """Kabin paten arası boşsa kabin iç yüksekliği + 660:  şase kabini sarar
+    ( tasarim/alanlar.KABIN_PATEN_PAYI — LiftDesigner'ın 2.000'lik kabininde
+    2.660;  12 Eki ).  Eskiden sabit 2.660'tı:  2.200'lük kabinde üst kiriş
+    tavana giriyor, çizim duruyordu.  Hesap ile çizim aynı h'yi kullanır;
+    girilen değer değiştirilmez."""
+
+    def _h(self, **ek):
+        v = test_yerlesim_saglamligi.standart_istek(800, True, "Sağ")
+        v["asansorler"][0].update(kapi_yuksekligi=2000, **ek)
+        asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
+        s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
+        ((g, hata),) = cizim_uclari.girdiler(v, asansorler, ortak, s if s.get("aktif") else None, "P")
+        self.assertIsNotNone(g, hata)
+        self.assertTrue(s.get("aktif"), s.get("hata"))
+        A = mukavemet_girdi.tamamla(asansorler[0] | ortak)
+        self.assertEqual(A["kabin_paten_arasi"], g["dusey"]["kabin_paten_arasi"])
+        return g["dusey"]["kabin_paten_arasi"]
+
+    def test_bossa_kabin_yuksekliginden(self):
+        self.assertEqual(self._h(kabin_ic_yuksekligi=2000, kabin_paten_arasi=None), 2660)
+        self.assertEqual(self._h(kabin_ic_yuksekligi=2200, kabin_paten_arasi=None), 2860)
+        cizim, _hesap = _calistir(kapi_yuksekligi=2000, kabin_ic_yuksekligi=2200, kabin_paten_arasi=None)
+        self.assertTrue(cizim.get("aktif"), cizim.get("hata"))
+
+    def test_bozuk_deger_kurala_cevrilmez(self):
+        #  Kural yalnız BOŞ alanda:  motora "x" gelirse doğrulama durdurur ( Gy'de
+        #  1 Eki'den beri sessizce DBGW − 60'a çevriliyor, hesap kuruluyordu — 12
+        #  Eki ).  Ekranda form okunamayan yazımı zaten reddeder ( uc_ortak._RED,
+        #  uç hesap yapmaz );  açık motora formdan geçmeden gelen girdideydi.
+        for alan in ("kabin_paten_arasi", "agirlik_genisligi"):
+            with self.subTest(alan):
+                v = test_yerlesim_saglamligi.standart_istek(800, True, "Sağ")
+                asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
+                asansorler[0][alan] = "x"
+                hesap = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
+                self.assertFalse(hesap.get("aktif"))
+                self.assertTrue(any("sayı olmalı" in h for h in hesap["hata"]), hesap["hata"])
+
+    def test_girilen_degismez(self):
+        self.assertEqual(self._h(kabin_ic_yuksekligi=2200, kabin_paten_arasi=3000), 3000)
+        cizim, _hesap = _calistir(kapi_yuksekligi=2000, kabin_ic_yuksekligi=2400, kabin_paten_arasi=2660)
+        self.assertFalse(cizim.get("aktif"))
+        self.assertTrue(any("kabin tavanına giriyor" in h for h in cizim["hata"]), cizim["hata"])
 
 
 class TamponAdedi(unittest.TestCase):

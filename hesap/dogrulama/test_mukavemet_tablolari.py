@@ -451,10 +451,10 @@ BILEREK_DEGISEN_VARSAYILAN = {
     #  program ( referans proje ) da 0,5 kullanır.  Bilinmeyen makinede standardın
     #  tabanı alınır, gerçek değer imalatçıdan girilir.
     "kabin_paten_arasi": (
-        2660,
-        "kabin paten arası h — patenlerin merkezleri arası;  "
-        "patenler şase kirişlerinin dışında ( LiftDesigner ön "
-        "kesitleri:  2.660 ) ( kullanıcı kararı 30 Eyl, 8 Eki )",
+        None,
+        "kabin paten arası h — boşsa kabin iç yüksekliği + 660 ( şase kabini "
+        "sarar;  LiftDesigner ön kesitleri:  2.000'lik kabinde 2.660 ) "
+        "( kullanıcı kararı 30 Eyl, 8 Eki, 12 Eki )",
     ),
     "agirlik_paten_arasi": (
         3400,
