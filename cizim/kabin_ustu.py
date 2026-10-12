@@ -504,6 +504,11 @@ def _ana_olculer(g, tavan):
     ]
 
 
+#  Ölçü yazısının parça kenarına uzaklığı ( yazının halesi — svg.HALE — kenarı
+#  silmesin:  0,6 em'in yarısı 21 mm )
+KENAR_PAYI = 25.0
+
+
 def _iceri_olculeri(Y):
     """Korkuluğun kenardan içeri alınması  ( 0'dan büyükse )."""
     tavan, ic = Y["tavan"], Y["ic"]
@@ -523,7 +528,15 @@ def _iceri_olculeri(Y):
         else:
             y1, y2 = (ic[3], tavan[3]) if yan == "Arka" else (tavan[1], ic[1])
             kot = tavan[0] + (120 if yan == "Arka" else 200)
-            yazi = {"x": kot + 30 + yari, "y": (y1 + y2) / 2.0, "h": uslup.NORMAL}
+            #  Yazı aralığa sığıyorsa ortasına;  sığmıyorsa ucun yanına, tavanın
+            #  içine ( korkuluğun içi — korkuluk yazısı sonra konur, ölçü
+            #  yazılarından kaçar ).  12 Eki:  yazı 2,5 mm'ye büyüyünce 37,5'lik
+            #  aralıkta tavanın ve korkuluğun kenarına biniyordu ( 35 düzen ).
+            yy = (y1 + y2) / 2.0
+            yari_h = uslup.BUYUK_HARF * uslup.NORMAL / 2.0
+            if y2 - y1 < 2 * (yari_h + KENAR_PAYI):
+                yy = y1 - yari_h - KENAR_PAYI if yan == "Arka" else y2 + yari_h + KENAR_PAYI
+            yazi = {"x": kot + 30 + yari, "y": yy, "h": uslup.NORMAL}
             e.append(eleman.olcu("dusey", (0, y1), (0, y2), kot, metin, kural=_ICERI, yazi=yazi))
     return e
 
