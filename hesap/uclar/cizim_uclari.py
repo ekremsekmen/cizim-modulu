@@ -758,6 +758,11 @@ def _sayiya(x):
         return None
 
 
+def pafta_cizimleri(gler):
+    """Paftaya eklenen çizimler ( paftanın PDF'i onları modelden çizer )."""
+    return pafta.bloklar(gler)
+
+
 def paftaya_ekle(gler):
     """Pakete girecek DXF'e çizimleri ekleyen son işlem ( dxf_export ).
     Hesap sayfalarının sağından başlayarak asansörler sırayla dizilir."""

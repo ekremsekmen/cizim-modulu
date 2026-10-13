@@ -173,7 +173,7 @@ def _taramalar(onek, k):
     t = uslup.TARAMALAR["tarama_tugla"].aralik * 20
     return (
         f'<pattern id="{onek}tarama" width="{a:g}" height="{a:g}" patternUnits="userSpaceOnUse" '
-        f'patternTransform="rotate(45){_olcekle(k)}"><line x1="0" y1="0" x2="0" y2="{a:g}" {ince}/></pattern>'
+        f'patternTransform="rotate(-45){_olcekle(k)}"><line x1="0" y1="0" x2="0" y2="{a:g}" {ince}/></pattern>'
         f'<pattern id="{onek}tugla" width="{2 * t:g}" height="{2 * t:g}" patternUnits="userSpaceOnUse"'
         f"{_desen(k)}>"
         f'<path d="M0 0 H{2 * t:g} M0 {t:g} H{2 * t:g} M{t:g} 0 V{t:g} M0 {t:g} V{2 * t:g} M{2 * t:g} {t:g} V{2 * t:g}" '

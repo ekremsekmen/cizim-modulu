@@ -9,22 +9,24 @@ reportlab>=4.0
 #  Bunlar kurulu değilse yalnız o düğme çalışmaz, program açılır.
 ezdxf>=1.1
 pdfminer.six>=20221105
+#  Paftanın PDF'i ( hesap sayfaları vektörel gömülür — ciktilar/pafta_pdf );
+#  kurulu değilse paket PDF'siz iner.
+pypdf>=4.0
 
 #  ── DOĞRULAMA PAKETİ İÇİN ( isteğe bağlı ) ───────────────────────────────
 #  Aşağıdakiler programın çalışması için GEREKMEZ; yalnız
 #  "python3 dogrulama/calistir.py" ile testleri koşturmak içindir.
 #  Eksik olan test ATLANIR, hata vermez:
 #
-#    Test 4 · Çıktı bütünlüğü→ pypdf  +  pypdfium2   ( PDF üstverisi ve metni )
+#    Test 4 · Çıktı bütünlüğü→ pypdfium2 ( pypdf yukarıda — PDF üstverisi ve metni )
 #    Test 5 · Arayüz         → playwright  +  "playwright install chromium"
 #
 #  Kurmak için ( bu satırlar YORUMDA olduğu için -r ile kurulmazlar ):
 #
-#      python3 -m pip install pypdf pypdfium2 playwright
+#      python3 -m pip install pypdfium2 playwright
 #      python3 -m playwright install chromium
 #
 #  Eksik olan bileşenin testi ATLANIR ve bunu SÖYLER — sessizce geçmez.
 #
 # playwright>=1.40
-# pypdf>=4.0
 # pypdfium2>=4.0

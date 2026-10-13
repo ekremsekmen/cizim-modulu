@@ -45,6 +45,13 @@ try:
 except Exception as _e:  # noqa: BLE001
     logging.getLogger(__name__).warning("CAD çıktısı kapalı:  %s", _e)
     dxf_cikti, _DXF_HATA = None, _e
+
+#  Paftanın PDF'i ( pypdf ister ):  yoksa paket PDF'siz iner, DXF etkilenmez
+try:
+    from ciktilar import pafta_pdf
+except Exception as _e:  # noqa: BLE001
+    logging.getLogger(__name__).warning("Paftanın PDF'i kapalı:  %s", _e)
+    pafta_pdf = None
 _BASLATICI = "baslat.command" if os.name != "nt" else "baslat.bat"
 
 log = logging.getLogger(__name__)
@@ -431,7 +438,9 @@ def indir_proje_dwg(veri: dict = Body(...)):
         #  noktası aynı arşivde dursun.
         kok = os.path.splitext(ad)[0]
         ekler = list(_paket_ekleri(veri, "avan"))
-        paket, sebep, tasti = dxf_cikti.proje_paketi(paftalar, kok, ekler)
+        paket, sebep, tasti = dxf_cikti.proje_paketi(
+            paftalar, kok, ekler, pdf_islem=pafta_pdf.paket_pdfleri(paftalar) if pafta_pdf else None
+        )
         yanit = _indir(paket, ad, "application/zip")
         #  Kullanıcının BİLMESİ GEREKENLER başlıkta taşınır:
         #    DXF   → DWG üretilemedi, pakette yalnız DXF var ( sebebi OKUBENI'de )

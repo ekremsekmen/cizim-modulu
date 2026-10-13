@@ -14,7 +14,7 @@ import subprocess
 import sys
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-YAZI_TIPI = os.path.join(KOK, "hesap", "static", "yazi", "LiberationSans-Regular.ttf")
+YAZI_TIPI = os.path.join(KOK, "hesap", "static", "yazi", "LiberationSans-Regular.ttf")  # uslup.YAZI_DOSYASI
 HEDEF = os.path.join(KOK, "cizim", "harf_eni.py")
 #  Tabloya girenler:  ASCII, Latin-1, Türkçe harfler ve çizimlerin işaretleri
 KUME = (

@@ -483,6 +483,7 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
 | `cizim/eleman.py` | Çizim elemanlarının kurucuları ( `dikdortgen`, `cizgi`, `daire`, `ok`, `yazi`, `olcu`, `ad` ), yazının gerçek eni ( `yazi_eni` ) ve katmanların tek listesi ( `KATMANLAR` ) |
 | `cizim/uslup.py` | Görünüşün tek tablosu:  katmanın kalınlığı, çizgi tipi, ekran ve AutoCAD rengi;  tarama;  yazı boyları ( ISO 3098 );  ölçü ucu — SVG ve DXF buradan okur |
 | `cizim/harf_eni.py` | Harflerin enleri ( Arial ile aynı;  `araclar/harf_tablosu.py` yazı tipinden üretir ) |
+| `cizim/pdf.py` | **Aynı** elemanları PDF'e yazar ( reportlab — basılı pafta;  her çizim kendi A sayfasında ) |
 | `cizim/kisaltmalar.py` | Ölçü kodları ( SW, SD, CW, CD, PLW, DW, DBG, DBGW ) ve Türkçeleri;  VERİLER / KISALTMALAR tabloları |
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( türevle;  oynatma denetçi ) ve ölçüden değiştirme ( doğrulamalı ) |
@@ -1424,7 +1425,24 @@ Sıra ofisin 477-8 projesindeki gibi:  düşey kesitler ( 1/50 ), sonra planlar
 ( 1/20 ), konu sırasıyla sütun sütun;  alan yetmezse
 çerçeve SAĞA uzar ( hesap programı gibi ).
 
-Önizleme ( pafta PDF'i ) ezdxf'in çizicisiyle DXF'ten çizilir.  ezdxf 1.4
+**Paftanın PDF'i** ( 13 Eki — `ciktilar/pafta_pdf.py`, çizimler `cizim/pdf.py` ):
+"Projeyi paketle" ZIP'ine paftanın PDF'i girer — DXF'le AYNI şerit, tek sayfa,
+1:1 ( basıma hazır ) — ve uygulama projesinde ayrıca "… - çizimler.pdf" ( her
+çizim kendi A sayfasında, A4 – A1 ).  Yerleşimin tek kaynağı DXF paftasıdır
+( `dxf_cikti.sayfa_yerleri`, `pafta.bloklar` );  PDF onu aynen çizer, iki yerde
+daha iyisini koyar:  hesap sayfaları ( kapak dahil ) programın KENDİ
+PDF'lerinden vektörel gömülür ( pypdf ), çizimler modelden çizilir — ekranla
+aynı üslup ( uslup ), yazılar gerçek ve bir kez ( maske yazının arkasında
+dikdörtgen — AutoCAD'deki gibi ), gömülü Liberation Sans ( Arial'le aynı
+enler ).  Şablonun çerçevesi, anteti ve notları DXF'ten ( Times'ın yerine
+Liberation Serif;  notlar MTEXT genişliğinde kaydırılır ).  Eskiden PDF ezdxf'in
+önizleme SVG'sinden rsvg ile üretiliyordu:  yalnız çizimler, yazılar eğri,
+7,8 MB;  şimdi bütün proje ~650 KB, yazılar aranır.  PDF kurulamazsa paket
+yine iner ( sebebi OKUBENI.txt'de ).  Bulunan:  şablonun antetinden kalan iki
+çizgi kapağın "ADI" satırının üstünden geçiyordu ( DXF'te de ) — kapak
+hücresi boşaltılırken artık silinir.
+
+Önizleme ( ekrandaki pafta görüntüsü ) ezdxf'in çizicisiyle DXF'ten çizilir.  ezdxf 1.4
 ölçekli bloğun içindeki taramanın desenini ölçeklemiyordu ( 1/50 kesitte
 duvarda tek çizgi );  önizleme bir kopyada taramaları bloklardan çıkarıp
 desenlerini yeniden kurar — DXF'e dokunulmaz, AutoCAD deseni zaten doğru

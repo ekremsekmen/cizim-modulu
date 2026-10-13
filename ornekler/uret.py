@@ -18,8 +18,9 @@ hesap sayfasının sağına eklenir ( pafta.birlestir ).
     .venv/bin/python ornekler/uret.py
 
 Her proje için bu klasöre ( git'e girmez ):  .dwg ( AutoCAD'in AUDIT'inden
-geçirilip kaydedilir;  AutoCAD yoksa .dxf kalır ) ve .pdf ( paftanın görüntüsü;
-rsvg-convert yoksa .svg kalır ).
+geçirilip kaydedilir;  AutoCAD yoksa .dxf kalır ) ve .pdf ( paftanın PDF'i —
+ciktilar/pafta_pdf:  "Projeyi paketle"nin verdiğinin aynısı;  hesap sayfaları
+ve çizimler vektörel, yazılar aranır ).
 """
 
 import os
@@ -44,7 +45,7 @@ ACC = (
 from hesap_girdi import ASANSOR, ORTAK, ASANSOR_MD, ORTAK_MD, SABITLER
 from uclar import cizim_uclari
 from motor.uygulama import uygulama_hesabi
-from ciktilar import pdf_cikti, dxf_cikti, kapak_cikti
+from ciktilar import pdf_cikti, dxf_cikti, kapak_cikti, pafta_pdf
 from cizim import pafta
 from cizim import kopru
 from uclar import uygulama_istegi
@@ -138,17 +139,14 @@ def uret(md):
         yol_hesap = os.path.join(t, "hesap.dxf")
         Path(yol_hesap).write_bytes(hesap_dxf)
         d, bilgi = pafta.birlestir(yol_hesap, g)
-        dxf, svg = os.path.join(t, "pafta.dxf"), os.path.join(t, "pafta.svg")
+        dxf = os.path.join(t, "pafta.dxf")
         d.saveas(dxf)
-        Path(svg).write_text(pafta.onizleme(d), encoding="utf-8")
         yol = os.path.join(CIKTI, ad)
         denetim = _dwg(dxf, yol + ".dwg") if os.path.exists(ACC) else None
         if denetim is None:
             shutil.copy(dxf, yol + ".dxf")
-        if shutil.which("rsvg-convert"):
-            subprocess.run(["rsvg-convert", "-f", "pdf", "-o", yol + ".pdf", svg], check=True)
-        else:
-            shutil.copy(svg, yol + ".svg")
+        paftalar = [("Kapak", kapak_pdf), ("Uygulama Projesi", hesap_pdf)]
+        Path(yol + ".pdf").write_bytes(pafta_pdf.serit(Path(dxf).read_bytes(), paftalar, pafta.bloklar(g)))
 
     print("   binaya gelen yükler ( N ):", {k: round(v) for k, v in g["kuyu_dibi"]["kuvvetler"].items()})
     print("   AutoCAD:", denetim or "yok — .dxf bırakıldı")

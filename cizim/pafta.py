@@ -274,10 +274,12 @@ def _katmanlari_onar(d):
             k.dxf.plotstyle_handle = stil
 
 
-def _yerlestir(d, g, x0=None, sag_eski=None):
-    """Çizimleri belgeye blok olarak yerleştirir;  gerekirse çerçeveyi uzatır.
-    g:  tek asansörün girdisi ya da çok asansörlü projede girdilerin listesi —
-    asansörler sırayla dizilir, her çizimin şeridinde asansörün adı yazar."""
+def bloklar(g):
+    """Paftanın çizimleri, sırasıyla:  [ ( ad, başlık, ölçek, elemanlar ) ] —
+    blok adı "CIZIM_" + ad.upper().  g:  tek asansörün girdisi ya da çok
+    asansörlü projede girdilerin listesi ( asansörler sırayla, her çizimin
+    şeridinde asansörün adı ).  DXF ( _yerlestir ) ve PDF ( ciktilar/pafta_pdf )
+    aynı listeyi kullanır."""
     gler = g if isinstance(g, (list, tuple)) else [g]
     liste = []
     for i, g_ in enumerate(gler):
@@ -285,6 +287,16 @@ def _yerlestir(d, g, x0=None, sag_eski=None):
         for ad, baslik, olcek, e in cizim_listesi(g_, (g_["proje"]["asansor"],) if coklu else ()):
             #  Blok adı asansörle birlikte:  iki kuyunun kesiti aynı bloğu ezmesin
             liste.append((f"{ad}_{i + 1}" if coklu else ad, baslik, olcek, e))
+    return liste
+
+
+def blok_adi(ad):
+    return f"CIZIM_{ad.upper()}"
+
+
+def _yerlestir(d, g, x0=None, sag_eski=None):
+    """Çizimleri belgeye blok olarak yerleştirir;  gerekirse çerçeveyi uzatır."""
+    liste = bloklar(g)
     dxf.hazirla(d)
     boyutlar, kutular = [], []
     for _ad, _baslik, olcek, e in liste:
@@ -296,7 +308,7 @@ def _yerlestir(d, g, x0=None, sag_eski=None):
     msp = d.modelspace()
     yerlesen = []
     for (ad, baslik, olcek, e), (bx, by), (px, py), (w, h) in zip(liste, kutular, yerler, boyutlar):
-        blok = d.blocks.new(name=f"CIZIM_{ad.upper()}", base_point=(bx, by))
+        blok = d.blocks.new(name=blok_adi(ad), base_point=(bx, by))
         dxf.ciz(blok, e, olcek, blokta=True)
         msp.add_blockref(
             blok.name, (px, py), dxfattribs={"xscale": 1.0 / olcek, "yscale": 1.0 / olcek, "layer": "0"}

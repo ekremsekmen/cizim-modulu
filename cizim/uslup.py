@@ -13,7 +13,16 @@ Bütün boylar KÂĞITTA milimetredir;  çizim gerçek ölçüde ( mm ) kuruldu�
 için çizici ölçekle çarpar ( 1/20'de 1 mm kâğıt = 20 mm çizim ).
 """
 
+import os
 from typing import NamedTuple
+
+#  YAZI TİPİ DOSYALARI ( OFL — hesap/static/yazi/OFL.txt;  değiştirilmeden ):
+#  ekran ve PDF gömer, DXF aynı enlerdeki Arial / Times'ı adıyla ister.
+YAZI_KLASORU = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hesap", "static", "yazi"
+)
+YAZI_DOSYASI = os.path.join(YAZI_KLASORU, "LiberationSans-Regular.ttf")  # Arial'in enleri
+SERIF_DOSYASI = os.path.join(YAZI_KLASORU, "LiberationSerif-Regular.ttf")  # Times'ın enleri
 
 #  ── KALEM ( ISO 128-2:  0,13 · 0,18 · 0,25 · 0,35 · 0,5 · 0,7 — her adım √2 ) ──
 #      0,50  kesilen duvar, kesit işareti, çerçeve

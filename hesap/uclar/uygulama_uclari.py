@@ -36,6 +36,13 @@ try:
 except Exception as _e:  # noqa: BLE001
     logging.getLogger(__name__).warning("CAD çıktısı kapalı:  %s", _e)
     dxf_cikti, _DXF_HATA = None, _e
+
+#  Paftanın PDF'i ( pypdf ister ):  yoksa paket PDF'siz iner, DXF etkilenmez
+try:
+    from ciktilar import pafta_pdf
+except Exception as _e:  # noqa: BLE001
+    logging.getLogger(__name__).warning("Paftanın PDF'i kapalı:  %s", _e)
+    pafta_pdf = None
 _BASLATICI = "baslat.command" if os.name != "nt" else "baslat.bat"
 
 log = logging.getLogger(__name__)
@@ -138,6 +145,9 @@ def indir_uygulama_dwg(veri: dict = Body(...)):
             os.path.splitext(ad)[0],
             list(_paket_ekleri(veri, "uygulama")),
             son_islem=cizim_uclari.paftaya_ekle([g for g, _h in cizim]),
+            pdf_islem=pafta_pdf.paket_pdfleri(paftalar, cizim_uclari.pafta_cizimleri([g for g, _h in cizim]))
+            if pafta_pdf
+            else None,
         )
         yanit = _indir(paket, ad, "application/zip")
         notlar = (["DXF"] if sebep else []) + (["TASMA"] if tasti else [])

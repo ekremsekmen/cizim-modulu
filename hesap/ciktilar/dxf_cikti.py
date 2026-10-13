@@ -502,13 +502,23 @@ def _kapak_hucresini_bosalt(d):
     Şablondaki BOŞ anteti siler; yerine programın DOLU kapağı konacaktır.
 
     Yalnız iç çerçevenin İÇİNDE kalan varlıklar silinir — çerçevelerin
-    kendisi ( ofisin pafta kenarı ) yerinde kalır.
+    kendisi ( ofisin pafta kenarı ) yerinde kalır.  İçeriden başlayıp iki
+    çerçevenin arasında biten varlık da silinir:  şablonun antetinde böyle iki
+    çizgi var ( YAZı1, y = 1.355 — ucu iç çerçevenin 1,5 mm dışında ), kapağın
+    "ADI" satırının üstünden geçiyordu ( 13 Eki — paftanın PDF'inde görüldü ).
     """
     msp = d.modelspace()
     ic = (KAPAK_IC[0] + 0.5, KAPAK_IC[1] + 0.5, KAPAK_IC[2] - 0.5, KAPAK_IC[3] - 0.5)
+    hucre = (
+        KAPAK_HUCRESI[0] + 0.5,
+        KAPAK_HUCRESI[1] + 0.5,
+        KAPAK_HUCRESI[2] - 0.5,
+        KAPAK_HUCRESI[3] - 0.5,
+    )
     silinen = 0
     for e in list(msp):
-        if _kutuda(_nokta(e), ic):
+        nok = _nokta(e)
+        if _kutuda(nok, ic) or (_kutuda(nok, hucre) and any(_kutuda([q], ic) for q in nok)):
             msp.delete_entity(e)
             silinen += 1
     return silinen
@@ -652,6 +662,24 @@ def _copleri_sil(msp):
             msp.delete_entity(e)
 
 
+def sayfa_yerleri(sayfalar):
+    """Sayfaların ( sırayla ) sol-alt köşeleri — pafta mm'si:  [ ( x, y, kapak_mı ) ].
+    DXF ( _formata_yerlestir ) ve PDF ( ciktilar/pafta_pdf ) aynı yerleşimi
+    buradan alır.  İlk "Kapak" sayfası şablonun A4 hücresinin ortasına, öbürleri
+    serbest alana ( _yerlesim ).  Dönen:  ( yerler, uzatma, tasti )."""
+    kapak = next((i for i, s in enumerate(sayfalar) if s.get("ad") == "Kapak"), None)
+    digerleri = [i for i in range(len(sayfalar)) if i != kapak]
+    yerler = [None] * len(sayfalar)
+    if kapak is not None:
+        ox = KAPAK_HUCRESI[0] - (A4_G - (KAPAK_HUCRESI[2] - KAPAK_HUCRESI[0])) / 2
+        oy = KAPAK_HUCRESI[1] - (A4_Y - (KAPAK_HUCRESI[3] - KAPAK_HUCRESI[1])) / 2
+        yerler[kapak] = (ox, oy, True)
+    serbest, tasti = _yerlesim(len(digerleri))
+    for i, (ox, oy) in zip(digerleri, serbest):
+        yerler[i] = (ox, oy, False)
+    return yerler, _uzatma(len(digerleri)), tasti
+
+
 def _formata_yerlestir(sayfalar):
     """
     Sayfaları OFİSİN TİP PROJE FORMATININ içine yerleştirir.
@@ -667,23 +695,17 @@ def _formata_yerlestir(sayfalar):
     msp = d.modelspace()
     _copleri_sil(msp)
 
-    kapak = next((s for s in sayfalar if s.get("ad") == "Kapak"), None)
-    digerleri = [s for s in sayfalar if s is not kapak]
-
-    if kapak is not None:
+    yerler, uzatma, tasti = sayfa_yerleri(sayfalar)
+    if any(s.get("ad") == "Kapak" for s in sayfalar):
         _kapak_hucresini_bosalt(d)
-        #  A4 sayfa, hücrenin ortasına 1:1 oturur;  ofisin çerçeveleri yerinde
-        #  kaldığı için kapağa ayrıca çerçeve çizilmez.
-        ox = KAPAK_HUCRESI[0] - (A4_G - (KAPAK_HUCRESI[2] - KAPAK_HUCRESI[0])) / 2
-        oy = KAPAK_HUCRESI[1] - (A4_Y - (KAPAK_HUCRESI[3] - KAPAK_HUCRESI[1])) / 2
-        _sayfayi_ciz(msp, kapak, ox, oy)
-
-    yerler, tasti = _yerlesim(len(digerleri))
-    uzatma = _uzatma(len(digerleri))
     _cerceveyi_uzat(d, uzatma)
-    for sayfa, (ox, oy) in zip(digerleri, yerler):
-        _a4_cercevesi(msp, ox, oy, sayfa["genislik"] * PT_MM, sayfa["yukseklik"] * PT_MM)
+    for sayfa, (ox, oy, kapak) in zip(sayfalar, yerler):
+        #  Kapak şablonun A4 hücresine 1:1 oturur;  ofisin çerçeveleri yerinde
+        #  kaldığı için kapağa ayrıca çerçeve çizilmez.
+        if not kapak:
+            _a4_cercevesi(msp, ox, oy, sayfa["genislik"] * PT_MM, sayfa["yukseklik"] * PT_MM)
         _sayfayi_ciz(msp, sayfa, ox, oy)
+    yerler = [(ox, oy) for ox, oy, kapak in yerler if not kapak]
 
     _gorunumu_ayarla(
         d, (BANT[0] - 10, min([BANT[1]] + [y for _x, y in yerler]) - 10, BANT[2] + uzatma + 10, BANT[3] + 10)
@@ -772,12 +794,31 @@ def dwg_uret(dxf_baytlari, surum="ACAD2018"):
     return None, "DWG dönüştürücü dosya üretemedi — DXF verildi."
 
 
-def _okubeni(dosya_adi, dwg_var, sebep, sablonlu=False, tasti=False, ekler=()):
+def _okubeni(
+    dosya_adi,
+    dwg_var,
+    sebep,
+    sablonlu=False,
+    tasti=False,
+    ekler=(),
+    pdf=False,
+    cizim_sayfalari=False,
+    pdf_sebebi=None,
+):
     satir = [f"{dosya_adi}   —   Asansör Proje Programı", "", "PAKETİN İÇİNDEKİLER", ""]
     if dwg_var:
         satir.append(f"  {dosya_adi}.dwg    AutoCAD çizimi ( doğrudan açılır )")
     satir += [
         f"  {dosya_adi}.dxf    Aynı çizimin DXF'i — AutoCAD birebir açar",
+    ]
+    if pdf:
+        satir += [
+            f"  {dosya_adi}.pdf    Paftanın PDF'i — DXF'le aynı şerit, 1:1 ( basıma hazır );",
+            "                      hesap sayfaları ve çizimler vektörel, yazılar aranır",
+        ]
+    if cizim_sayfalari:
+        satir.append(f"  {dosya_adi} - çizimler.pdf    Her çizim kendi sayfasında ( A4 – A1 )")
+    satir += [
         "  pafta pdf/         Çizime dönüştürülen kaynak paftalar",
     ]
     satir += [f"  {a}" for a in ekler]
@@ -800,6 +841,8 @@ def _okubeni(dosya_adi, dwg_var, sebep, sablonlu=False, tasti=False, ekler=()):
         "  Çizimde bir tuhaflık görürseniz 'pafta pdf' klasöründeki dosyaları",
         "  AutoCAD'de PDFATTACH ile ekleyip PDFIMPORT ile gömebilirsiniz.",
     ]
+    if pdf_sebebi:
+        satir += ["", "PDF", f"  {pdf_sebebi}  ( DXF / DWG etkilenmez )"]
     if tasti:
         satir += [
             "",
@@ -822,8 +865,10 @@ def _okubeni(dosya_adi, dwg_var, sebep, sablonlu=False, tasti=False, ekler=()):
     return "\n".join(satir) + "\n"
 
 
-def proje_paketi(paftalar, dosya_adi="Avan Projesi", ekler=None, son_islem=None):
+def proje_paketi(paftalar, dosya_adi="Avan Projesi", ekler=None, son_islem=None, pdf_islem=None):
     """`ekler`:  pakete konacak ek dosyalar  —  [ ( ad, bayt ) ].
+    `pdf_islem`:  son DXF'ten ( paftanın PDF'i , çizimlerin sayfaları ) —
+    ciktilar/pafta_pdf.paket_pdfleri;  çağıran ( uç ) verir.
 
     "Projeyi paketle" düğmesi buradan geçer:  paftaların yanına PROJE
     DOSYASI da girer, böylece teslim paketi ile geri dönüş noktası aynı
@@ -833,10 +878,22 @@ def proje_paketi(paftalar, dosya_adi="Avan Projesi", ekler=None, son_islem=None)
     çizim modülü çizimleri son hesap sayfasının sağına ekler.  DWG de ondan
     sonra üretilir, iki dosya aynı paftayı taşır.
     """
-    return _proje_paketi(paftalar, dosya_adi, ekler, son_islem)
+    return _proje_paketi(paftalar, dosya_adi, ekler, son_islem, pdf_islem)
 
 
-def _proje_paketi(paftalar, dosya_adi="Avan Projesi", ekler=None, son_islem=None):
+def _pdfler(dxf, pdf_islem):
+    """( paftanın PDF'i , çizimlerin sayfaları , sebep ) — PDF kurulamazsa paket
+    yine iner ( DXF / DWG ), sebebi OKUBENI'ye yazılır."""
+    if pdf_islem is None:
+        return None, None, None
+    try:
+        serit, sayfalar = pdf_islem(dxf)
+        return serit, sayfalar, None
+    except Exception as e:  # noqa: BLE001 — PDF olmadan da paket teslim edilir
+        return None, None, f"Paftanın PDF'i üretilemedi:  {e}"
+
+
+def _proje_paketi(paftalar, dosya_adi="Avan Projesi", ekler=None, son_islem=None, pdf_islem=None):
     """
     Butonun indirdiği ZIP:  içinde DXF ( her zaman ) ve DWG ( üretilebildiyse ).
     Dönen: ( zip_baytlari, dwg_yoksa_sebebi, paftalar_tasti_mi )
@@ -849,11 +906,16 @@ def _proje_paketi(paftalar, dosya_adi="Avan Projesi", ekler=None, son_islem=None
     if son_islem is not None:
         dxf = son_islem(dxf)
     dwg, sebep = dwg_uret(dxf)
+    pdf, cizim_sayfalari, pdf_sebebi = _pdfler(dxf, pdf_islem)
     tampon = io.BytesIO()
     with zipfile.ZipFile(tampon, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr(f"{dosya_adi}.dxf", dxf)
         if dwg:
             z.writestr(f"{dosya_adi}.dwg", dwg)
+        if pdf:
+            z.writestr(f"{dosya_adi}.pdf", pdf)
+        if cizim_sayfalari:
+            z.writestr(f"{dosya_adi} - çizimler.pdf", cizim_sayfalari)
         #  KAYNAK PAFTALAR da pakete konur.  Çizimde bir tuhaflık görülürse
         #  bu PDF'ler AutoCAD'de PDFATTACH ile eklenip PDFIMPORT ile
         #  gömülebilir — elle yapılan yol her zaman açık kalır.
@@ -865,7 +927,17 @@ def _proje_paketi(paftalar, dosya_adi="Avan Projesi", ekler=None, son_islem=None
                 z.writestr(_ad, _ham)
         z.writestr(
             "OKUBENI.txt",
-            _okubeni(dosya_adi, bool(dwg), sebep, sablonlu, tasti, [a for a, h in (ekler or ()) if h]),
+            _okubeni(
+                dosya_adi,
+                bool(dwg),
+                sebep,
+                sablonlu,
+                tasti,
+                [a for a, h in (ekler or ()) if h],
+                pdf=bool(pdf),
+                cizim_sayfalari=bool(cizim_sayfalari),
+                pdf_sebebi=pdf_sebebi,
+            ),
         )
     tampon.seek(0)
     return tampon.read(), sebep, tasti
