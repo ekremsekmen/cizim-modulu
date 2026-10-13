@@ -25,7 +25,7 @@ async function dene(senaryo) {
     const svg = {getBoundingClientRect: () => ({left: 0, top: 0, width: 800}), appendChild() {}};
     const fig = {dataset: {cizim: 'kuyu_plani'}, querySelector: () => svg};
     const olcu = {dataset: {olcu: '0'}, classList: sinif, closest: () => fig,
-      querySelector: () => ({textContent: 'KUYU GENİŞLİĞİ 2100'}),
+      querySelector: () => ({textContent: 'SW2100'}),
       getBoundingClientRect: () => ({left: 0, bottom: 0})};
     mFormOku = () => ({kuyu_genisligi: alan.value});
     mFormaYaz = g => { alan.value = String(g.kuyu_genisligi); };

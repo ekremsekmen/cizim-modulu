@@ -8,6 +8,7 @@ Kurmak için:  pip install playwright  &&  python3 -m playwright install chromiu
 
 import json
 import os
+import re
 import sys
 import urllib.request
 
@@ -3176,14 +3177,17 @@ def calistir():
         pg.wait_for_timeout(300)
         r.kontrol("'Sığdır' hepsini yeniden sığdırıyor", pg.evaluate(_sigiyor))
         _kp = '#m_cizimler figure[data-cizim="kuyu_plani"] .olcu'
+        #  Kuyu genişliği ölçüsü:  13 Eki'den LiftDesigner kodu "SW2100" ( eskiden
+        #  "KUYU GENİŞLİĞİ 2100" — cizim/kisaltmalar.py )
+        _SW = re.compile(r"SW\d")  # grubun metni <title> ile başlar ( kodun Türkçesi )
         _kg = pg.evaluate(f"""() => {{
             const g = [...document.querySelectorAll('{_kp}')].find(
-                x => /^KUYU GENİŞLİĞİ/.test(x.querySelector('text').textContent));
+                x => /^SW\\d/.test(x.querySelector('text').textContent));
             mTuvalGoster(g);
             return +g.querySelector('text').textContent.replace(/\\D+/g, '');
         }}""")
         pg.wait_for_timeout(300)
-        pg.locator(_kp).filter(has_text="KUYU GENİŞLİĞİ").first.locator("text").click()
+        pg.locator(_kp).filter(has_text=_SW).first.locator("text").click()
         pg.wait_for_selector(".olcu-kutu #m_olcu_hedef", timeout=20000)
         r.kontrol(
             "ölçü kutusu kaynağı söylüyor",
@@ -3215,7 +3219,7 @@ def calistir():
         #  formun genel dinleyicisine ( ortak.js ) kaçıp 220 ms sonra hesabı ve
         #  çizimi yeniliyordu;  yenilenen çizim kutuyu kapatıyordu ( kullanıcı:
         #  "2 yazıyorum kapanıyor" ) — fill + Enter bunu göremiyordu.
-        pg.locator(_kp).filter(has_text="KUYU GENİŞLİĞİ").first.locator("text").click()
+        pg.locator(_kp).filter(has_text=_SW).first.locator("text").click()
         pg.wait_for_selector(".olcu-kutu #m_olcu_hedef", timeout=20000)
         _istek = pg.evaluate("[ISTEK.mukavemet, ISTEK.cizim]")
         pg.fill("#m_olcu_hedef", "")
@@ -3241,14 +3245,14 @@ def calistir():
         pg.fill("#m_ara", "")
         pg.evaluate("mAramaUygula()")
         #  Kurulabilen değer doğrudan uygulanır
-        pg.locator(_kp).filter(has_text="KUYU GENİŞLİĞİ").first.locator("text").click()
+        pg.locator(_kp).filter(has_text=_SW).first.locator("text").click()
         pg.wait_for_selector(".olcu-kutu #m_olcu_hedef", timeout=20000)
         _gorunum = pg.evaluate("JSON.stringify(M_TUVAL.gorunum)")
         pg.fill("#m_olcu_hedef", str(_kg - 50))
         pg.press("#m_olcu_hedef", "Enter")
         pg.wait_for_function(
             f"[...document.querySelectorAll('{_kp}')].some(g => "
-            f"g.querySelector('text').textContent === 'KUYU GENİŞLİĞİ {_kg - 50}')",
+            f"g.querySelector('text').textContent === 'SW{_kg - 50}')",
             timeout=30000,
         )
         r.esit("ölçüden yazılan değer girdi kutusunda", pg.input_value("#m_kuyu_genisligi"), str(_kg - 50))
@@ -3298,9 +3302,9 @@ def calistir():
             f"→ {pg.inner_text('#m_tuval_hata')[:160]!r}",
         )
         pg.evaluate(f"""() => mTuvalGoster([...document.querySelectorAll('{_kp}')].find(
-            x => /^KUYU GENİŞLİĞİ/.test(x.querySelector('text').textContent)))""")
+            x => /^SW\\d/.test(x.querySelector('text').textContent)))""")
         pg.wait_for_timeout(300)
-        pg.locator(_kp).filter(has_text="KUYU GENİŞLİĞİ").first.locator("text").click()
+        pg.locator(_kp).filter(has_text=_SW).first.locator("text").click()
         pg.wait_for_selector(".olcu-kutu #m_olcu_hedef", timeout=20000)
         r.kontrol(
             "eski çizimin ölçüsü tıklanıyor, formdaki değer de söyleniyor",
