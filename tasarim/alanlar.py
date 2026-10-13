@@ -1090,6 +1090,7 @@ _GRUPLAR = (
                 None,
                 kaynak=CIZIM,
                 sozlesme=MUK,
+                pozitif=True,  # 0 anlamsız ( 13 Eki )
                 formda=False,
                 opsiyonel=True,
                 bilgi=(
@@ -1106,6 +1107,7 @@ _GRUPLAR = (
                 None,
                 kaynak=CIZIM,
                 sozlesme=MUK,
+                pozitif=True,  # 0 anlamsız ( 13 Eki )
                 formda=False,
                 opsiyonel=True,
                 bilgi="En uzun karşı ağırlık rayı:  kuyu tabanından üst ucuna.",
@@ -1161,6 +1163,8 @@ _GRUPLAR = (
                 sozlesme=MUK,
                 gelismis=True,
                 opsiyonel=True,
+                #  Çerçevenin ölçüsü:  0 anlamsız ( 13 Eki — eskiden kabul ediliyordu )
+                pozitif=True,
                 bilgi=(
                     "Gy — karşı ağırlık çerçevesinin genişliği. Kütlenin kaçıklığı bunun %5'i kabul "
                     "edilir ( m.5.7.2.3.3 ).  Boşsa ağırlık rayları arasından 60 eksik ( iki uçta "
@@ -1179,6 +1183,7 @@ _GRUPLAR = (
                 kaynak=GIRDI,
                 sozlesme=MUK,
                 gelismis=True,
+                pozitif=True,
                 bilgi=(
                     "Gx — karşı ağırlık çerçevesinin derinliği. Kütlenin kaçıklığı bunun %10'u kabul edilir."
                 ),
@@ -1222,6 +1227,7 @@ _GRUPLAR = (
                 None,
                 kaynak=CIZIM,
                 sozlesme=MUK,
+                pozitif=True,  # 0 anlamsız ( 13 Eki )
                 formda=False,
                 opsiyonel=True,
                 bilgi=(
@@ -1782,6 +1788,7 @@ _GRUPLAR = (
                 None,
                 kaynak=CIZIM,
                 sozlesme=MUK,
+                pozitif=True,  # 0 anlamsız ( 13 Eki )
                 formda=False,
                 opsiyonel=True,
                 bilgi=(
@@ -1881,6 +1888,7 @@ _GRUPLAR = (
                 300,
                 kaynak=KATALOG,
                 sozlesme=MUK,
+                pozitif=True,  # 0 anlamsız ( 13 Eki )
                 bilgi=(
                     "Gm — makine ve motorun katalogdaki ağırlığı. Makine kaidesine ve kuyu üstüne gelen "
                     "yüke girer."
@@ -2428,6 +2436,7 @@ _GRUPLAR = (
                 90,
                 kaynak=KATALOG,
                 sozlesme=MUK,
+                pozitif=True,  # 0 anlamsız ( 13 Eki )
                 gelismis=True,
                 bilgi=(
                     "Tamponun tam ezildiğinde kısalacağı miktar ( stroku ). Kabinin tampona oturduğu en "
@@ -2484,6 +2493,7 @@ _GRUPLAR = (
                 90,
                 kaynak=KATALOG,
                 sozlesme=MUK,
+                pozitif=True,  # 0 anlamsız ( 13 Eki )
                 gelismis=True,
                 bilgi="Karşı ağırlık tamponunun ezilme miktarı.",
             ),
@@ -2621,6 +2631,7 @@ _GRUPLAR = (
                 70,
                 kaynak=KATALOG,
                 sozlesme=MUK,
+                pozitif=True,  # 0 anlamsız ( 13 Eki )
                 gelismis=True,
                 bilgi=(
                     "Gra — gergi kasnağının merkezinde oluşan kuvvet / 9,81. Kollu ya da yaylı gergide "
@@ -2695,6 +2706,7 @@ _GRUPLAR = (
                 None,
                 kaynak=KATALOG,
                 sozlesme=MUK,
+                pozitif=True,  # 0 anlamsız ( 13 Eki )
                 gelismis=True,
                 opsiyonel=True,
                 bilgi=(
@@ -2711,6 +2723,7 @@ _GRUPLAR = (
                 None,
                 kaynak=CIZIM,
                 sozlesme=MUK,
+                pozitif=True,  # 0 anlamsız ( 13 Eki )
                 formda=False,
                 opsiyonel=True,
                 bilgi=(

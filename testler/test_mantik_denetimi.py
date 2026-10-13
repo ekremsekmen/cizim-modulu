@@ -7,7 +7,9 @@ Girilen değer ya kullanılır ya hesap durur:
   3. tampon adedi tam sayı ve sıfır değil — eskiden 0 ve 1,5 sessizce 1
   4. iki tamponda "tamponlar arası" girilir — eskiden istenip formda kutusu yoktu
   5. kuyunun geometrisi kurulamıyorsa ( kabin kuyuya sığmıyor … ) hesap da durur —
-     eskiden çizim reddederken hesap kuruluyordu ( özette "engelleyici" )."""
+     eskiden çizim reddederken hesap kuruluyordu ( özette "engelleyici" ).
+  6. 0 anlamsız olan ölçüler ( karşı ağırlık, makine ağırlığı, tampon ezilmesi,
+     regülatör … ) sıfırdan büyük ( 13 Eki )."""
 
 import json
 import os
@@ -101,6 +103,73 @@ class PatenArasi(unittest.TestCase):
         cizim, _hesap = _calistir(kapi_yuksekligi=2000, kabin_ic_yuksekligi=2400, kabin_paten_arasi=2660)
         self.assertFalse(cizim.get("aktif"))
         self.assertTrue(any("kabin tavanına giriyor" in h for h in cizim["hata"]), cizim["hata"])
+
+
+class KuralKaynagi(unittest.TestCase):
+    """Boş alan kuralla dolduysa rapor kaynağını "KURAL · …" yazar ( 13 Eki —
+    eskiden Gy ve h boşken "GİRİŞ" yazıyordu:  girilmiş sanılıyordu );  girilen
+    değer "GİRİŞ"."""
+
+    def _kaynaklar(self, **ek):
+        v = test_yerlesim_saglamligi.standart_istek(800, True, "Sağ")
+        v["asansorler"][0].update(ek)
+        asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
+        s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
+        self.assertTrue(s.get("aktif"), s.get("hata"))
+        adimlar = [a for b in s["asansorler"][0]["bolumler"] for a in b.get("adimlar", [])]
+        return {
+            a["sembol"]: a["kaynak"]
+            for a in adimlar
+            if a.get("aciklama") in ("Patenler arası düşey mesafe", "Karşı ağırlık genişliği")
+        }
+
+    def test_bos_alan_kural_yazar(self):
+        k = self._kaynaklar(kabin_paten_arasi=None, agirlik_genisligi=None, kabin_ic_yuksekligi=2200)
+        self.assertEqual(k["h"], "KURAL  ·  kabin iç yüksekliği + 660")
+        self.assertTrue(k["Gy"].startswith("KURAL  ·  "), k)
+
+    def test_girilen_giris_yazar(self):
+        k = self._kaynaklar(kabin_paten_arasi=2900, agirlik_genisligi=800)
+        self.assertEqual(k, {"h": "GİRİŞ", "Gy": "GİRİŞ"})
+
+
+class SifirOlamaz(unittest.TestCase):
+    """0 anlamsız olan ölçüler hesabı durdurur ( tasarim/alanlar:  pozitif — 13 Eki:
+    karşı ağırlığın genişliği ve derinliği, makine ağırlığı, tamponların ezilmesi,
+    regülatörün gergi ağırlığı ve devreye girme hızı 0 girilince hesap
+    kuruluyordu ).  Formda olmayan, çizimden ölçülenler ( ray ve halat boyları,
+    dolgu yüksekliği ) motoru doğrudan çağırana karşı korunur."""
+
+    def test_formdaki_sifir_durur(self):
+        for alan in (
+            "agirlik_genisligi",
+            "agirlik_derinligi",
+            "makine_agirligi",
+            "kabin_tampon_ezilme",
+            "agirlik_tampon_ezilme",
+            "reg_gergi_agirligi",
+            "reg_devreye_hizi",
+        ):
+            with self.subTest(alan):
+                v = test_yerlesim_saglamligi.standart_istek(800, True, "Sağ")
+                v["asansorler"][0][alan] = 0
+                asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
+                hesap = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
+                self.assertFalse(hesap["asansorler"][0].get("aktif"))
+                self.assertTrue(
+                    any("sıfırdan büyük" in h for h in hesap["asansorler"][0]["hata"]),
+                    hesap["asansorler"][0]["hata"],
+                )
+
+    def test_cizimden_olculenler_motorda_durur(self):
+        for alan in ("kabin_ray_boyu", "agirlik_ray_boyu", "reg_halat_boyu", "aski_halat_boyu"):
+            with self.subTest(alan):
+                v = test_yerlesim_saglamligi.standart_istek(800, True, "Sağ")
+                asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
+                g = mukavemet_girdi.tamamla(
+                    {**mukavemet_girdi.varsayilanlar(), **ortak, **asansorler[0], alan: 0}
+                )
+                self.assertTrue(any("sıfırdan büyük" in h for h in mukavemet_girdi.dogrula(g)))
 
 
 class TamponAdedi(unittest.TestCase):

@@ -153,10 +153,15 @@ def _pozitif(x):
 #  yoksa ( motor doğrudan çağrıldı ya da çizim kurulamadı ) hesabın eski
 #  yaklaşığı kullanılır;  rapor hangisinin kullanıldığını yazar.
 CIZIMDEN = "ÇİZİMDEN"
+KURAL = "KURAL"
 
 
 def _kaynak(g, anahtar, girildi="GİRİŞ"):
-    """Rapordaki kaynak yazısı:  çizimden geldiyse ÇİZİMDEN ve kuralı."""
+    """Rapordaki kaynak yazısı:  çizimden geldiyse ÇİZİMDEN ve kuralı, boş alan
+    kuralla dolduysa KURAL ve kuralı ( mukavemet_girdi._kural_isareti )."""
+    kural_ = (g.get("_kural") or {}).get(anahtar)
+    if kural_:
+        return f"{KURAL}  ·  {kural_}"
     kural = (g.get("_cizimden") or {}).get(anahtar)
     if kural is None:
         return girildi
@@ -3390,7 +3395,7 @@ class _KabinRaylari:
                 "kg",
                 "TS EN 81-20 m.5.7.2.3.2  ·  P'nin standarttaki tanımı",
             ),
-            veri("h", "Patenler arası düşey mesafe", self.h, "mm", "GİRİŞ"),
+            veri("h", "Patenler arası düşey mesafe", self.h, "mm", _kaynak(g, "kabin_paten_arasi")),
             veri("l", "Ray konsolları arasındaki en uzun mesafe", self.l, "mm", "GİRİŞ"),
             veri("n", "Ray sayısı", self.n, "adet", "GİRİŞ", 0),
             veri("", "Ray profili", self.prof, "", "ISO 7465"),
@@ -4176,7 +4181,7 @@ class _AgirlikRaylari:
             ),
             veri("", "Karşı ağırlık malzemesi", g["agirlik_malzemesi"]),
             veri("Gx", "Karşı ağırlık derinliği", self.derinlik, "mm", "GİRİŞ", 0),
-            veri("Gy", "Karşı ağırlık genişliği", self.genislik, "mm", "GİRİŞ", 0),
+            veri("Gy", "Karşı ağırlık genişliği", self.genislik, "mm", _kaynak(g, "agirlik_genisligi"), 0),
             *self._dolgu_satirlari(),
             hesap("Dxa = 0,1 × ağırlık derinliği", f"0,1 × {trn(self.derinlik, 0)}", self.Dxa, "mm"),
             hesap("Dya = 0,05 × ağırlık genişliği", f"0,05 × {trn(self.genislik, 0)}", self.Dya, "mm"),

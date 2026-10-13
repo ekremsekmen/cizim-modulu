@@ -330,6 +330,7 @@ def varsayilanlar():
     #  Kaynak işaretleri de gider:  kalsaydı kullanıcının girdiği α raporda
     #  "ÇİZİMDEN" yazardı ( işaret varsayılandan girdiye taşınırdı ).
     g.pop("_cizimden", None)
+    g.pop("_kural", None)
     return g
 
 
@@ -340,6 +341,13 @@ def uygulama_varsayilanlari():
     for a, _et, _b, _t, _s, v in EK_ALANLAR:
         g[a] = v
     return g
+
+
+def _kural_isareti(g, anahtar, kural):
+    """Boş alan kuralla dolduruldu:  rapor kaynağını "KURAL · …" yazar ( girilmiş
+    sanılmasın — 13 Eki:  Gy ve h boşken raporda "GİRİŞ" yazıyordu ).  Çizimden
+    gelenlerin işareti _cizimden gibi."""
+    g["_kural"] = {**(g.get("_kural") or {}), anahtar: kural}
 
 
 def tamamla(g):
@@ -394,10 +402,14 @@ def tamamla(g):
     #  kurala çevriliyor, hesap kuruluyordu ( 12 Eki ).
     if bos_mu(g.get("agirlik_genisligi")):
         dbgw = g.get("agirlik_ray_arasi")
+        rayli = sayi_mi(dbgw) and dbgw > alanlar.AGIRLIK_PATEN_PAYI
         g["agirlik_genisligi"] = (
-            dbgw - alanlar.AGIRLIK_PATEN_PAYI
-            if sayi_mi(dbgw) and dbgw > alanlar.AGIRLIK_PATEN_PAYI
-            else alanlar.AGIRLIK_GENISLIGI_YEDEK
+            dbgw - alanlar.AGIRLIK_PATEN_PAYI if rayli else alanlar.AGIRLIK_GENISLIGI_YEDEK
+        )
+        _kural_isareti(
+            g,
+            "agirlik_genisligi",
+            f"DBGW − {alanlar.AGIRLIK_PATEN_PAYI:g}" if rayli else "DBGW boş — referans projenin ölçüsü",
         )
     #  2. bükülgen kablo kat kapısı tipinden türetilir
     g["kablo_tipi_2"] = mukavemet_tablolari.kapi_kablosu(g.get("kat_kapisi_tipi"))
@@ -419,6 +431,7 @@ def tamamla(g):
         kh = kopru.varsayilan_deger(g, "kabin_ic_yuksekligi")
         if sayi_mi(kh):
             g["kabin_paten_arasi"] = kh + alanlar.KABIN_PATEN_PAYI
+            _kural_isareti(g, "kabin_paten_arasi", f"kabin iç yüksekliği + {alanlar.KABIN_PATEN_PAYI:g}")
     _cd = kopru.cizimden({**{a[0]: a[5] for a in EK_ALANLAR}, **g})
     g.update(_cd)
     #  KAYNAK İŞARETİ:  çizimden gelen değer raporda "ÇİZİMDEN" yazar ( girilmiş
