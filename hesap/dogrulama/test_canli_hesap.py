@@ -462,6 +462,15 @@ def _kabin_beklentisi(r, d, son_olay, tablo, etiket, olaylar):
         )
 
 
+#  Adedi düğmesiz değiştirmek bir DOM olayı değildir:  avan hesabı 220 ms sonra
+#  gider ( ortak.js planla ).  Olay işaretlenmezse __T.sakin hesap daha
+#  gönderilmeden "duruldu" sanabilir, ekrandaki eski sonuç taze hesapla
+#  kıyaslanırdı ( 13 Eki CI:  dizi 14 "… → trafikAdedi(3) → 113 ms" — önceki
+#  hesabın gecikmesi kısa düşünce ).  Uygulamanın adet / sekme çağrıları hesabı
+#  beklemeden gönderir, onlarda bu boşluk yok.
+_ADET_OLAYLI = "n => { trafikAdedi(n); __T.olay = performance.now(); }"
+
+
 def _avan_dizileri(r, pg, rnd):
     alanlar = pg.evaluate(_ALANLAR, "avan")
     pg.evaluate("__T.gecikme = () => Math.floor(Math.random() * 500)")
@@ -474,7 +483,7 @@ def _avan_dizileri(r, pg, rnd):
                     [rnd.choice(alanlar), rnd.randint(0, 9)],
                 )
             elif eylem == "adet":
-                pg.evaluate("n => trafikAdedi(n)", rnd.randint(1, 3))
+                pg.evaluate(_ADET_OLAYLI, rnd.randint(1, 3))
             elif eylem == "kapasite":
                 pg.evaluate(
                     "p => __T.yaz(document.getElementById('c_P1'), String(p))", rnd.choice((6, 8, 10, 13, 16))
@@ -522,7 +531,7 @@ def calistir():
         _ac(pg, "avan")
         pg.evaluate("() => { ornekYukle(); }")
         pg.wait_for_timeout(1500)
-        pg.evaluate("() => trafikAdedi(2)")
+        pg.evaluate(_ADET_OLAYLI, 2)
         _kural(r, pg, "avan", "başlangıç")
         _her_alan(r, pg, "avan")
         _avan_dizileri(r, pg, random.Random(TOHUM + 1))
