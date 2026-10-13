@@ -12,7 +12,9 @@ import math
 from typing import NamedTuple
 
 from cizim import eleman
+from cizim import geometri
 from cizim import kisaltmalar
+from cizim import parca_adlari
 from cizim import uslup
 
 #  TEKNİK RESİM ÜSLUBU ( ISO 128 ):  kalem kalınlığı, çizgi tipi ve renk
@@ -208,6 +210,18 @@ def _desen(k):
     return "" if k == 1 else f' patternTransform="scale({k:g})"'
 
 
+def _parca_isaretleri(elemanlar):
+    """Ekranda her eleman katmanıyla ( katmanlar aç / kapa ) ve parça örneğiyle
+    ( fareyle üstüne gelince adı, örneği vurgulanır — geometri.parca_ornekleri,
+    DXF'in parça bloklarıyla aynı örnekler ) işaretlenir:  13 Eki.
+    id(eleman) → <g> öznitelikleri."""
+    ornek = {}
+    for n, (ad, liste) in enumerate(geometri.parca_ornekleri(elemanlar)):
+        for p in liste:
+            ornek[id(p)] = f' data-parca="{ad}-{n}" data-ad="{html.escape(parca_adlari.ad(ad))}"'
+    return ornek
+
+
 def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False, r=KAGIT):
     """Eleman listesini SVG metnine çevirir.  r:  renk takımı ( KAGIT · CAD ).
 
@@ -222,10 +236,12 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False, r=KAG
     #  paftadaki boyları aynı kalsın diye k ile büyür.
     k = olcek / 20.0
     parcalar, n_olcu = [], 0
+    ornek = _parca_isaretleri(elemanlar) if etkilesimli else {}
     #  Önce parçalar, sonra ölçüler, en son etiketler:  yazının halesi
     #  kendinden önce çizileni örter ( DXF ile aynı sıra ).
     sira = {"olcu": 1, "yazi": 2}
     for el in sorted(elemanlar, key=lambda el: sira.get(el["tip"], 0)):
+        once = len(parcalar)
         renk, kal = kalem(el["katman"], r)
         kal = f"{kal * k:g}"
         if el["tip"] == "tarama_tugla":
@@ -307,6 +323,10 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False, r=KAG
                     r.zemin,
                 )
             )
+        if etkilesimli and el["tip"] != "olcu" and len(parcalar) > once:
+            parcalar[once:] = [
+                f'<g data-katman="{el["katman"]}"{ornek.get(id(el), "")}>{"".join(parcalar[once:])}</g>'
+            ]
     bas = (
         _metin(x1 + g / 2.0, y1 - 180, f"{baslik}   1/{olcek:g}", 90, r.baslik, zemin=r.zemin)
         if baslik

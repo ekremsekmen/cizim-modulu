@@ -1,0 +1,107 @@
+# -*- coding: utf-8 -*-
+"""
+PARÇALARIN ADLARI — elemanın `ad`ı ( Türkçe ASCII:  "kabin_rayi" ) ekranda okunacak
+Türkçesiyle ( "Kabin rayı" ):  fareyle parçanın üstüne gelince yazar ( ekranın
+parça vurgusu — svg.yaz, uygulama.js mTuvalParcaOlaylari;  13 Eki, kullanıcı:  "oradan
+müdahale ediyorum" ).  Aynı parçanın kodda iki yazımı varsa ( "kabin_ray" ·
+"kabin_rayi" ) ikisi de aynı adı alır.  Tabloda olmayan ad alt çizgileri
+boşluk olarak, ilk harfi büyük yazılır.
+"""
+
+ADLAR = {
+    "acil_pano": "Acil kurtarma panosu",
+    "agirlik": "Karşı ağırlık",
+    "agirlik_baglanti": "Ağırlık halat bağlantısı",
+    "agirlik_blok": "Karşı ağırlık bloğu",
+    "agirlik_dolgu": "Karşı ağırlık dolgusu",
+    "agirlik_kaidesi": "Ağırlık tamponu kaidesi",
+    "agirlik_kasnagi": "Karşı ağırlık kasnağı",
+    "agirlik_kasnak": "Karşı ağırlık kasnağı",
+    "agirlik_konsolu": "Ağırlık rayı konsolu",
+    "agirlik_paten": "Karşı ağırlık pateni",
+    "agirlik_pateni": "Karşı ağırlık pateni",
+    "agirlik_ray": "Karşı ağırlık rayı",
+    "agirlik_rayi": "Karşı ağırlık rayı",
+    "agirlik_tamponu": "Karşı ağırlık tamponu",
+    "alt_paten": "Alt paten",
+    "ara_kiris": "Ara kiriş",
+    "aski_nokta": "Askı noktası",
+    "buton": "Buton",
+    "delik": "Döşeme deliği",
+    "esik_alti_saci": "Eşik altı sacı",
+    "esik_konsolu": "Eşik konsolu",
+    "etek": "Etek",
+    "fren": "Fren",
+    "gergi": "Regülatör gergisi",
+    "gergi_agirligi": "Gergi ağırlığı",
+    "gergi_agirlik": "Gergi ağırlığı",
+    "gergi_kasnagi": "Gergi kasnağı",
+    "gergi_kol": "Gergi kolu",
+    "gergi_kolu": "Gergi kolu",
+    "halat": "Halat",
+    "halat_konsolu_sematik": "Halat konsolu ( şematik )",
+    "kabin": "Kabin",
+    "kabin_baglanti": "Kabin halat bağlantısı",
+    "kabin_dis": "Kabin ( dış )",
+    "kabin_esigi": "Kabin eşiği",
+    "kabin_halat_baglantisi": "Kabin halat bağlantısı",
+    "kabin_kaidesi": "Kabin tamponu kaidesi",
+    "kabin_kanadi": "Kabin kapısı kanadı",
+    "kabin_kanat_cebi": "Kanat cebi",
+    "kabin_kasnagi": "Kabin kasnağı",
+    "kabin_kasnak": "Kabin kasnağı",
+    "kabin_kasnak_capraz": "Kabin kasnağı ( çapraz )",
+    "kabin_kasnak_ucu": "Kabin kasnağı",
+    "kabin_konsolu": "Kabin rayı konsolu",
+    "kabin_on_panosu": "Kabin ön panosu",
+    "kabin_ray": "Kabin rayı",
+    "kabin_rayi": "Kabin rayı",
+    "kabin_tabani": "Kabin tabanı",
+    "kabin_tamponu": "Kabin tamponu",
+    "kanat_cebi": "Kanat cebi",
+    "kanat_durdurucu": "Kanat durdurucu",
+    "kapi_acilisi": "Kapının açılışı",
+    "kapi_boslugu": "Kapı boşluğu",
+    "kapi_kasasi": "Kapı kasası",
+    "kapi_ust_kutusu": "Kapı üst kutusu",
+    "kasnak_tasiyici_sematik": "Kasnak taşıyıcı ( şematik )",
+    "kat_butonu": "Kat butonu",
+    "kat_esigi": "Kat eşiği",
+    "kat_gostergesi": "Kat göstergesi",
+    "kat_kanadi": "Kat kapısı kanadı",
+    "kat_kapisi": "Kat kapısı",
+    "kol": "Kol",
+    "korkuluk": "Korkuluk",
+    "kumanda_panosu": "Kumanda panosu",
+    "kuvvet_semasi": "Kuvvet şeması",
+    "makine": "Makine",
+    "makine_sasesi": "Makine şasesi",
+    "merdiven": "Merdiven",
+    "oda_kapisi": "Makine dairesi kapısı",
+    "onluk": "Önlük",
+    "perde": "Karşı ağırlık perdesi",
+    "plaka": "Plaka",
+    "ray_eki": "Ray eki",
+    "ray_tirnagi": "Ray tırnağı",
+    "regulator": "Regülatör",
+    "regulator_ayak": "Regülatör ayağı",
+    "regulator_kasnagi": "Regülatör kasnağı",
+    "regulator_kasnak": "Regülatör kasnağı",
+    "saptirma_kasnagi": "Saptırma kasnağı",
+    "sase": "Kabin şasesi",
+    "sase_dikme": "Şase dikmesi",
+    "sase_kiris": "Şase kirişi",
+    "sase_kirisi": "Şase kirişi",
+    "tahrik_kasnagi": "Tahrik kasnağı",
+    "tavan": "Kabin tavanı",
+    "ust_konsol": "Üst konsol",
+    "ust_paten": "Üst paten",
+}
+
+
+def ad(anahtar):
+    """Parçanın ekranda okunan adı."""
+    if anahtar in ADLAR:
+        return ADLAR[anahtar]
+    yazi = anahtar.replace("_", " ").strip()
+    return yazi[:1].upper() + yazi[1:]

@@ -108,6 +108,29 @@ a{color:var(--mavi2)}
 }
 @media(max-width:1100px){.sol{position:static;max-height:none;overflow:visible}}
 
+/*  ÇİZİM ÇALIŞMA ALANI ( 13 Eki, kullanıcı:  "oradan müdahale ediyorum" ):  Çizimler
+    görünümünde sayfa pencereyi kaplar ( hesap görünümü okunaklılık için 1440'ta ),
+    form ile tuvalin arası sürüklenir, form gizlenebilir ( mAyiriciKur ).  Gizli
+    formun sütunu sıfır enle yerinde kalır:  display:none ızgarayı kaydırırdı. */
+.ayirici{display:none}
+@media(min-width:1101px){
+  .kabuk:has(#s-mukavemet:not([hidden]) #m_sag[data-gorunum="cizim"]){max-width:none}
+  #s-mukavemet:has(#m_sag[data-gorunum="cizim"]) .ikili{
+    grid-template-columns:var(--sol-en,420px) 18px minmax(0,1fr);gap:0}
+  #s-mukavemet.form-gizli:has(#m_sag[data-gorunum="cizim"]) .ikili{grid-template-columns:0 18px minmax(0,1fr)}
+  #s-mukavemet.form-gizli:has(#m_sag[data-gorunum="cizim"]) .sol{visibility:hidden;overflow:hidden;min-width:0}
+  #s-mukavemet:has(#m_sag[data-gorunum="cizim"]) .ayirici{display:block}
+}
+.ayirici{position:sticky;top:110px;height:calc(100vh - 170px);cursor:col-resize;touch-action:none;outline:none}
+.ayirici::before{content:"";position:absolute;left:8px;top:0;bottom:0;width:2px;border-radius:1px;
+  background:var(--cizgi);transition:background .15s}
+.ayirici:hover::before,.ayirici.suruklen::before,.ayirici:focus-visible::before{background:var(--mavi2)}
+.ayirici-dg{position:absolute;left:-2px;top:6px;width:22px;height:22px;padding:0;border-radius:50%;
+  border:1px solid var(--cizgi);background:#fff;color:var(--mavi);font:700 13px/1 inherit;cursor:pointer;
+  box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.ayirici-dg:hover{background:var(--mavi2);border-color:var(--mavi2);color:#fff}
+body.ayirici-surukleniyor{cursor:col-resize;user-select:none;-webkit-user-select:none}
+
 /* ---------------------------------------------------------- form */
 .alan{margin-bottom:11px}
 /*  KURAL GEREĞİ GİZLENEN ALAN.  Arama süzgeci [hidden] kullanır;  kural
@@ -699,8 +722,55 @@ body.tuval-tam-acik{overflow:hidden}
 .tuval-hata .cizim-liste{margin:6px 0 0;padding-left:18px;color:var(--kirmizi);font-weight:600}
 .tuval-arac .dg{background:#2C3540;color:#E3E9EF;border-color:#3B4654;box-shadow:0 1px 3px rgba(0,0,0,.35)}
 .tuval-arac .dg:hover{background:#36404C}
-.tuval-ipucu{position:absolute;left:10px;bottom:8px;right:10px;z-index:19;pointer-events:none;
-  font-size:11.5px;color:#8D99A6;text-shadow:0 0 3px #212830,0 0 3px #212830}
+/*  Yakınlık:  kâğıttaki boyuna göre ( %100 = çizim kâğıttaki boyunda ) — tıklayınca %100 */
+.tuval-arac .tuval-yakinlik{min-width:56px;font-variant-numeric:tabular-nums}
+/*  Yardım ( "?" ):  eskiden altta sürekli duran ipucu satırı çizimlerin üstüne biniyordu */
+.tuval-yardim{position:absolute;right:10px;top:52px;z-index:22;width:300px;max-width:calc(100% - 20px);
+  background:#2C3540;color:#E3E9EF;border:1px solid #3B4654;border-radius:8px;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);padding:10px 12px;font-size:12.5px;cursor:auto;
+  user-select:text;-webkit-user-select:text}
+.tuval-yardim dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 12px}
+.tuval-yardim dt{font-weight:700;color:#FFD24D;white-space:nowrap}
+.tuval-yardim dd{margin:0;color:#C9D3DD}
+/*  GEZİNTİ:  çizim listesi ( ☰ ) ve küçük harita ( sağ alt ) */
+.tuval-liste{position:absolute;right:10px;top:52px;z-index:22;width:300px;max-width:calc(100% - 20px);
+  max-height:calc(100% - 70px);overflow:auto;background:#2C3540;border:1px solid #3B4654;border-radius:8px;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);padding:5px;cursor:auto}
+.tuval-liste-dg{display:flex;justify-content:flex-start;align-items:baseline;gap:8px;width:100%;
+  padding:7px 10px;border:0;border-radius:6px;background:none;color:#C9D3DD;font:600 12.5px/1.3 inherit;
+  text-align:left;cursor:pointer}
+.tuval-liste-dg:hover,.tuval-liste-dg:focus-visible{background:#36404C;color:#fff;outline:none}
+.tuval-liste-dg.gorunur{color:#FFD24D}
+.tuval-liste-dg::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;align-self:center}
+.tuval-liste-dg.gorunur::before{background:#FFD24D}
+.tuval-liste-olcek{margin-left:auto;font-weight:400;color:#8D99A6;font-size:11.5px;white-space:nowrap}
+.tuval-harita{position:absolute;right:10px;bottom:10px;z-index:21;padding:6px;background:rgba(28,34,41,.92);
+  border:1px solid #3B4654;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.35);cursor:pointer;
+  touch-action:none}
+.tuval-harita svg{display:block}
+.tuval-harita .harita-cizim{fill:#2F3946;stroke:#6B7887;stroke-width:1;vector-effect:non-scaling-stroke}
+.tuval-harita .harita-gorunum{fill:rgba(255,210,77,.12);stroke:#FFD24D;stroke-width:1.5;vector-effect:non-scaling-stroke}
+/*  MÜDAHALE:  parçanın adı ( fareyle üstünde ) ve vurgusu;  katmanlar aç / kapa */
+.parca-ipucu{position:absolute;z-index:23;pointer-events:none;white-space:nowrap;background:#2C3540;
+  color:#fff;border:1px solid #3B4654;border-radius:5px;padding:3px 8px;font:600 12px/1.3 inherit;
+  box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.tuval [data-parca] :is(path,rect,polygon,circle,ellipse){pointer-events:all}
+.tuval .parca-vurgu :is(path,line,rect,polyline,polygon,circle,ellipse){stroke:#ffd24d !important}
+.tuval .parca-vurgu{filter:drop-shadow(0 0 calc(3px / var(--mu)) #ffd24d)}   /* sarı parçada da seçilsin */
+.tuval-katman{width:260px;padding:8px 10px}
+#m_tuval_katman_dg[data-gizli]::after{content:attr(data-gizli) " gizli";margin-left:6px;padding:0 5px;
+  border-radius:8px;background:#FFD24D;color:#212830;font-size:10.5px;font-weight:700}
+.tuval-katman-satir{display:flex;align-items:center;gap:8px;padding:5px 2px;color:#C9D3DD;
+  font-size:12.5px;cursor:pointer}
+.tuval-katman-satir input{width:auto;margin:0;accent-color:#FFD24D;cursor:pointer}
+.tuval.gizle-olcu .olcu,.tuval.gizle-eksen [data-katman="EKSEN"],.tuval.gizle-gizli [data-katman="GIZLI"],
+.tuval.gizle-seviye [data-katman="SEVIYE"],.tuval.gizle-halat [data-katman="HALAT"],
+.tuval.gizle-tarama [data-katman="TARAMA"],.tuval.gizle-alan [data-katman="SIGINMA"],
+.tuval.gizle-yazi [data-katman="YAZI"]{display:none}
+/*  Çizimlerin başlığı tek satır:  tuvale yer kalsın */
+.tuval-bas{display:flex;align-items:baseline;gap:14px;text-align:left;padding:9px 14px}
+.tuval-bas h2{font-size:14px;white-space:nowrap}
+.tuval-bas .alt{margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .olcu-bildirim{margin:0 0 10px;padding:8px 12px;border-radius:7px;background:var(--mavi-cok-ac);
   border:1px solid var(--mavi-ac);color:var(--mavi);font-size:12.5px}
 .olcu-kutu{position:absolute;z-index:30;width:340px;max-width:calc(100% - 16px);background:#fff;

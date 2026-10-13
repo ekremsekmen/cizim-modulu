@@ -21,6 +21,7 @@ from temel import kutu_merkezi, ortusur
 from cizim import eleman
 from cizim import geometri
 from cizim import girdi
+from cizim import parca_adlari
 from cizim import svg
 from cizim import sabitler
 from cizim import uslup
@@ -296,6 +297,23 @@ class SvgCiktisi(unittest.TestCase):
         self.assertIn("<title>Kuyu iç genişliği</title>", s)
         self.assertNotIn("&lt;title&gt;", s)
 
+    def test_ekrandaki_parcalar_adli(self):
+        #  Müdahale ( 13 Eki ):  ekranda parçanın üstüne gelince adı yazar, aynı parça
+        #  örneğinin bütün çizgileri vurgulanır — elemanlar katmanı ve örneğiyle
+        #  ( geometri.parca_ornekleri, DXF bloğuyla aynı ) işaretli;  kâğıt değişmez
+        s = svg.yaz(self.e, geometri.sinir(self.e, 250), "", 20, onek="c0-", etkilesimli=True, r=svg.CAD)
+        self.assertIn('data-ad="Kabin rayı"', s)
+        self.assertIn('data-katman="KUYU-DUVAR"', s)
+        self.assertEqual(
+            len(set(re.findall(r'data-parca="([^"]+)"', s))), len(geometri.parca_ornekleri(self.e))
+        )
+        self.assertNotIn("data-parca", self.s)
+        self.assertNotIn("data-katman", self.s)
+
+    def test_parca_adi_tabloda_yoksa_okunur(self):
+        self.assertEqual(parca_adlari.ad("kabin_rayi"), "Kabin rayı")
+        self.assertEqual(parca_adlari.ad("yeni_parca"), "Yeni parca")
+
     def test_svg_gecerli_bicimde(self):
         self.assertTrue(self.s.startswith("<svg"))
         self.assertTrue(self.s.rstrip().endswith("</svg>"))
@@ -330,7 +348,7 @@ class SvgCiktisi(unittest.TestCase):
 
 
 def _dxf_varliklari(d, yer):
-    """Yerleşimin varlıkları, parça blokları ( dxf.parca_ornekleri ) açılarak:
+    """Yerleşimin varlıkları, parça blokları ( geometri.parca_ornekleri ) açılarak:
     adı olan parçanın her örneği kendi bloğundadır ( 13 Eki )."""
     for e in yer:
         if e.dxftype() == "INSERT":
@@ -375,11 +393,11 @@ class ParcaBloklari(unittest.TestCase):
         for ad in bloklar:
             for e in self.d.blocks.get(ad):
                 with self.subTest(blok=ad):
-                    self.assertNotIn(e.dxf.layer, self.CDX.BLOKSUZ_KATMANLAR)
+                    self.assertNotIn(e.dxf.layer, geometri.BLOKSUZ_KATMANLAR)
 
     def test_bloklar_acilinca_cizim_ayni(self):
         bloklu = self._duz(self.d)
-        with mock.patch.object(self.CDX, "parca_ornekleri", lambda e: []):
+        with mock.patch.object(geometri, "parca_ornekleri", lambda e: []):
             bloksuz = self._duz(self.CDX.belge(self.e, "KUYU PLANI", 20))
         self.assertEqual(bloklu, bloksuz)
         self.assertGreater(sum(bloklu.values()), 100)

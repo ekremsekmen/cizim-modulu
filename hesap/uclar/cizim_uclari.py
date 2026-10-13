@@ -100,6 +100,8 @@ def _svg(g, ad, onek=""):
         "ad": ad,
         "baslik": baslik,
         "olcek": olcek,
+        #  Tablo ( veri tablosu ):  başlığında ve ekranın listesinde ölçek yazmaz
+        "olceksiz": ad in cizimler.OLCEKSIZ,
         "svg": svg.yaz(
             e,
             geometri.sinir(e, 120 * olcek / 20.0),

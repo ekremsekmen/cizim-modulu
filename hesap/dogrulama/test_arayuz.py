@@ -3176,6 +3176,91 @@ def calistir():
         pg.click("#m_tuval .tuval-arac >> text=Sığdır")
         pg.wait_for_timeout(300)
         r.kontrol("'Sığdır' hepsini yeniden sığdırıyor", pg.evaluate(_sigiyor))
+        #  GEZİNTİ ( 13 Eki ):  çizim listesi, Page Down, küçük harita
+        r.kontrol(
+            "hepsi sığınca küçük harita gizli",
+            pg.evaluate("document.getElementById('m_tuval_harita').hidden"),
+        )
+        pg.click("#m_tuval_liste_dg")
+        pg.wait_for_timeout(200)
+        r.kontrol(
+            "çizim listesi bütün çizimleri sayıyor",
+            pg.evaluate("document.querySelectorAll('#m_tuval_liste .tuval-liste-dg').length")
+            == pg.evaluate("M_TUVAL.cizimler.length")
+            > 5,
+        )
+        pg.click("#m_tuval_liste .tuval-liste-dg >> text=KUYU PLANI")
+        pg.wait_for_timeout(600)
+        r.kontrol(
+            "listeden seçilen çizim ekranın ortasında, liste kapandı, harita göründü",
+            pg.evaluate("M_TUVAL.cizimler[mTuvalOrtadaki()].ad") == "kuyu_plani"
+            and pg.evaluate("document.getElementById('m_tuval_liste').hidden")
+            and not pg.evaluate("document.getElementById('m_tuval_harita').hidden"),
+            f"→ {pg.evaluate('M_TUVAL.cizimler[mTuvalOrtadaki()].ad')}",
+        )
+        pg.focus("#m_tuval")
+        pg.keyboard.press("PageDown")
+        pg.wait_for_timeout(600)
+        r.kontrol(
+            "Page Down sıradaki çizime geçiyor",
+            pg.evaluate("mTuvalOrtadaki()")
+            == pg.evaluate("M_TUVAL.cizimler.findIndex(c => c.ad === 'kuyu_plani')") + 1,
+        )
+        #  MÜDAHALE ( 13 Eki ):  parçanın üstünde adı yazar, o parçanın bütün çizgileri
+        #  vurgulanır;  katmanlar ( ölçü, eksen, … ) gösterilir / gizlenir, tercih kalır
+        _yer = pg.evaluate("""() => {
+            const g = document.querySelector('#m_cizimler figure[data-cizim="kuyu_plani"] [data-ad="Kabin rayı"]');
+            mTuvalGoster(g, 4);
+            const k = g.getBoundingClientRect();
+            return [k.x + k.width / 2, k.y + k.height / 2];
+        }""")
+        pg.wait_for_timeout(300)
+        pg.mouse.move(*_yer)
+        pg.wait_for_timeout(200)
+        _ipucu = pg.evaluate("""() => {
+            const i = document.getElementById('m_parca_ipucu'), v = [...document.querySelectorAll('.parca-vurgu')];
+            return [i.hidden, i.textContent, v.length, new Set(v.map(x => x.dataset.parca)).size,
+                    v.every(x => x.dataset.ad === i.textContent)];
+        }""")
+        r.kontrol(
+            "parçanın üstünde adı yazıyor, o parça vurgulu",
+            not _ipucu[0] and _ipucu[1] != "" and _ipucu[2] > 0 and _ipucu[3] == 1 and _ipucu[4],
+            f"→ {_ipucu}",
+        )
+        _t = pg.locator("#m_tuval").bounding_box()
+        pg.mouse.move(_t["x"] + 3, _t["y"] + _t["height"] - 3)
+        pg.wait_for_timeout(200)
+        r.kontrol(
+            "parçadan çıkınca ad ve vurgu kalkıyor",
+            pg.evaluate("document.getElementById('m_parca_ipucu').hidden")
+            and pg.evaluate("document.querySelectorAll('.parca-vurgu').length") == 0,
+        )
+        #  Katman kutusu formun alanı değildir ( [data-formdisi] ):  eskiden her
+        #  işaret hesabı ve çizimleri baştan yeniliyor, arada ölçü tıklanmıyordu
+        _hesap0 = pg.evaluate("[ISTEK.mukavemet, ISTEK.cizim]")
+        pg.click("#m_tuval_katman_dg")
+        pg.wait_for_timeout(200)
+        pg.locator("#m_tuval_katman input[onchange*=\"'olcu'\"]").uncheck()
+        _kp_olcu = "document.querySelector('#m_cizimler figure[data-cizim=\"kuyu_plani\"] .olcu')"
+        r.kontrol(
+            "ölçüler katmanı kapanınca ölçüler gizli, düğme sayıyor, tercih hatırlanıyor",
+            pg.evaluate(f"getComputedStyle({_kp_olcu}).display") == "none"
+            and pg.evaluate("document.getElementById('m_tuval_katman_dg').dataset.gizli") == "1"
+            and pg.evaluate("localStorage.getItem('m_katman_gizli')") == '["olcu"]',
+        )
+        pg.locator("#m_tuval_katman input[onchange*=\"'olcu'\"]").check()
+        pg.keyboard.press("Escape")
+        r.kontrol(
+            "ölçüler yeniden açılıyor, Esc katman kutusunu kapatıyor",
+            pg.evaluate(f"getComputedStyle({_kp_olcu}).display") != "none"
+            and pg.evaluate("document.getElementById('m_tuval_katman').hidden"),
+        )
+        pg.wait_for_timeout(500)
+        r.esit(
+            "katman açıp kapamak hesabı yenilemiyor", pg.evaluate("[ISTEK.mukavemet, ISTEK.cizim]"), _hesap0
+        )
+        pg.click("#m_tuval .tuval-arac >> text=Sığdır")
+        pg.wait_for_timeout(300)
         _kp = '#m_cizimler figure[data-cizim="kuyu_plani"] .olcu'
         #  Kuyu genişliği ölçüsü:  13 Eki'den LiftDesigner kodu "SW2100" ( eskiden
         #  "KUYU GENİŞLİĞİ 2100" — cizim/kisaltmalar.py )

@@ -268,52 +268,9 @@ def hazirla(d):
     d.styles.get(YAZI_TIPI).set_extended_font_data("Arial", bold=False, italic=False)
 
 
-#  PARÇA BLOKLARI ( 13 Eki — çizim kalitesi 6. adımı ):  adı olan parçanın
-#  ( elemanın `ad`ı:  kabin_ray, makine_sasesi, kat_kapisi … ) her örneği kendi
-#  adlı bloğundadır — AutoCAD'de tıklanınca bütün parça seçilir, adı
-#  özelliklerde görünür ( LiftDesigner'ın paftalarında her parça bloktur ).
-#  Aynı adlı elemanlar birbirine değiyorsa bir örnektir ( rayın flanşı ve
-#  gövdesi );  değmiyorsa ayrı örnek ( iki kabin rayı ).  Blok olmaz:  duvar,
-#  tarama, ölçü, yazı, maskelenen çizgiler ( eksen, gizli, halat, alan sınırı … )
-#  ve işaretler ( yük kutusu, etiket oku ).  Çizgiler yerinde kalır:  bloğun
-#  taban noktası örneğin köşesi, eklendiği yer de orası.
-BLOKSUZ_KATMANLAR = set(geometri.MASKELI_KATMANLAR) | {"KUYU-DUVAR", "KUYU-IC", "TARAMA", "YUK", "BINA"}
-_BLOK_TIPLERI = ("dikdortgen", "cizgi", "daire")
-_ORNEK_PAYI = 1.0  # mm:  aynı adlı iki eleman bundan yakınsa aynı örnek
-
-
-def parca_ornekleri(elemanlar):
-    """Blok olacak parça örnekleri:  [ ( ad , [ eleman ] ) ], çizim sırasıyla."""
-    gruplar = {}
-    for el in elemanlar:
-        if el.get("ad") and el["tip"] in _BLOK_TIPLERI and el["katman"] not in BLOKSUZ_KATMANLAR:
-            gruplar.setdefault(el["ad"], []).append(el)
-    ornekler = []
-    for ad, liste in gruplar.items():
-        kutular = [geometri.sinir([el], _ORNEK_PAYI) for el in liste]
-        ornekler += [(ad, [liste[i] for i in kume]) for kume in _degenler(kutular)]
-    return ornekler
-
-
-def _degenler(kutular):
-    """Birbirine ( zincirleme ) değen kutuların kümeleri:  [ [ sıra no ] ]."""
-    kok = list(range(len(kutular)))
-
-    def bul(i):
-        while kok[i] != i:
-            kok[i] = kok[kok[i]]
-            i = kok[i]
-        return i
-
-    for i, a in enumerate(kutular):
-        for j in range(i + 1, len(kutular)):
-            b = kutular[j]
-            if a[0] <= b[2] and b[0] <= a[2] and a[1] <= b[3] and b[1] <= a[3]:
-                kok[bul(i)] = bul(j)
-    kume = {}
-    for i in range(len(kutular)):
-        kume.setdefault(bul(i), []).append(i)
-    return list(kume.values())
+#  PARÇA BLOKLARI ( 13 Eki — çizim kalitesi 6. adımı ):  adı olan parçanın her
+#  örneği kendi adlı bloğunda ( geometri.parca_ornekleri — ekran da aynı örnekleri
+#  vurgular ) — AutoCAD'de tıklanınca bütün parça seçilir, adı özelliklerde görünür.
 
 
 def _blok_adi(d, onek, ad, n):
@@ -325,7 +282,7 @@ def _blok_adi(d, onek, ad, n):
 
 def ciz(hedef, elemanlar, olcek=20, blokta=False):
     """Elemanları `hedef` yerleşimine ( model alanı ya da blok ) yazar;  adı olan
-    parçalar kendi bloklarında ( parca_ornekleri ).
+    parçalar kendi bloklarında ( geometri.parca_ornekleri ).
 
     blokta:  hedef paftaya 1/ölçek ile eklenen bir blok ( çizgi deseni
     küçülmez — _cizgi_tipi )."""
@@ -333,7 +290,7 @@ def ciz(hedef, elemanlar, olcek=20, blokta=False):
     #  Blok adının öneki çizimin adı ( paftada "CIZIM_KUYU_PLANI" → "KUYU_PLANI" )
     onek = "PARCA" if getattr(hedef, "is_modelspace", False) else re.sub(r"^CIZIM_", "", hedef.name)
     ornek = {}
-    for ad, liste in parca_ornekleri(elemanlar):
+    for ad, liste in geometri.parca_ornekleri(elemanlar):
         for el in liste:
             ornek[id(el)] = (ad, liste)
     yazilan = set()

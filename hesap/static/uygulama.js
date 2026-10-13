@@ -1345,23 +1345,52 @@ function cizCizimler(c){
     kutu.innerHTML = `<div id="m_cizim_ust"></div><div class="kart-ic tuval-kap" id="m_tuval_kap">
       <div class="tuval" id="m_tuval" tabindex="0" aria-label="Çizimler — yakınlaştırılır, kaydırılır">
         <div class="tuval-arac">
+          <button type="button" class="dg kucuk" onclick="mTuvalListe()" id="m_tuval_liste_dg"
+                  title="Çizimler ( Page Up / Page Down:  önceki / sonraki )" aria-label="Çizim listesi"
+                  aria-expanded="false" aria-controls="m_tuval_liste">☰</button>
           <button type="button" class="dg kucuk" onclick="mTuvalYakin(1 / 1.25)" title="Uzaklaştır ( − )" aria-label="Uzaklaştır">−</button>
           <button type="button" class="dg kucuk" onclick="mTuvalYakin(1.25)" title="Yakınlaştır ( + )" aria-label="Yakınlaştır">+</button>
           <button type="button" class="dg kucuk" onclick="mTuvalHepsi()" title="Hepsini sığdır ( 0 )">Sığdır</button>
+          <button type="button" class="dg kucuk tuval-yakinlik" id="m_tuval_yakinlik" onclick="mTuvalKagit()"
+                  title="Kâğıttaki boyuna göre yakınlık — tıklayınca %100 ( çizim kâğıttaki boyunda )">%100</button>
+          <button type="button" class="dg kucuk" onclick="mTuvalKatmanlar()" id="m_tuval_katman_dg"
+                  title="Katmanları göster / gizle" aria-label="Katmanlar" aria-expanded="false"
+                  aria-controls="m_tuval_katman">Katmanlar</button>
           <button type="button" class="dg kucuk" onclick="mTuvalTamEkran()" id="m_tuval_tam">Tam ekran</button>
+          <button type="button" class="dg kucuk" onclick="mTuvalYardim()" id="m_tuval_yardim_dg"
+                  title="Kullanım" aria-label="Kullanım" aria-expanded="false" aria-controls="m_tuval_yardim">?</button>
         </div>
+        <div id="m_tuval_liste" class="tuval-liste" hidden></div>
+        <div id="m_tuval_katman" class="tuval-liste tuval-katman" data-formdisi hidden></div>
+        <div id="m_parca_ipucu" class="parca-ipucu" hidden></div>
+        <div id="m_tuval_harita" class="tuval-harita" hidden title="Tıklayın ya da sürükleyin:  o bölgeye gider">
+          <svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg></div>
+        <div id="m_tuval_yardim" class="tuval-yardim" hidden><dl>
+          <dt>Tekerlek</dt><dd>yakınlaştır ( imlecin altındaki nokta yerinde kalır )</dd>
+          <dt>Sürükle</dt><dd>kaydır</dd>
+          <dt>Çift tık</dt><dd>çizime yaklaş  ·  boş yerde hepsini sığdır</dd>
+          <dt>Ölçüye tık</dt><dd>kaynağı ve yeni değeri — o girdi değişir, çizim ve hesap birlikte yenilenir</dd>
+          <dt>+  −  0</dt><dd>yakınlaştır  ·  uzaklaştır  ·  hepsini sığdır</dd>
+          <dt>☰  Page Up / Down</dt><dd>çizim listesi  ·  önceki / sonraki çizim</dd>
+          <dt>Oklar</dt><dd>kaydır  ·  sağ alttaki harita:  tıkla, oraya git</dd>
+          <dt>Parçanın üstü</dt><dd>adı yazar, o parça vurgulanır</dd>
+          <dt>Katmanlar</dt><dd>ölçüleri, eksenleri, gizli çizgileri … göster / gizle</dd>
+          <dt>%</dt><dd>çizimi kâğıttaki boyunda göster</dd>
+        </dl></div>
         <div id="m_olcu_bildirim" class="olcu-bildirim" hidden></div>
         <div id="m_tuval_hata" class="tuval-hata" role="alert" hidden></div>
-        <div class="tuval-ipucu">Tekerlek:  yakınlaştır  ·  Sürükle:  kaydır  ·  Çift tık:  çizime yaklaş,
-          boş yerde hepsi  ·  Ölçüye tık:  kaynağı ve yeni değeri ( o girdi değişir, çizim ve hesap
-          birlikte yenilenir )</div>
       </div></div>`;
+    mAyiriciKur();
+    mTuvalHaritaOlaylari();
+    mTuvalParcaOlaylari();
+    mTuvalKatmanlariUygula();
     ust = $('m_cizim_ust'); t = $('m_tuval');
   }
   const ad = ((MUK_ASANSORLER[MUK_AKTIF] || {}).asansor_adi || '').trim();
-  let h = `<div class="pafta-bas"><h2>ÇİZİMLER  ·  ASANSÖR ${MUK_AKTIF + 1}${ad ? ' · ' + kacis(ad) : ''}</h2>
-    <div class="alt">Kuyu düşey kesitleri ve planları — hesabın girdisinden ve sonucundan.
-      Paftaya "Projeyi paketle" ile hesap sayfalarının sağına girer.</div></div>`;
+  //  Tek satır:  tuvale yer kalsın ( eskiden iki satır, ortalı )
+  let h = `<div class="pafta-bas tuval-bas"><h2>ÇİZİMLER  ·  ASANSÖR ${MUK_AKTIF + 1}${ad ? ' · ' + kacis(ad) : ''}</h2>
+    <div class="alt">Kesitler ve planlar — hesabın girdisinden ve sonucundan.  Paftaya "Projeyi paketle"
+      ile hesap sayfalarının sağına girer.</div></div>`;
   let ic = '';
   if(c.aktif && !c.hesap){
     ic += `<div class="uyari sari">Hesap yapılamadı:  kuyu tabanına ve ray konsollarına gelen
@@ -1392,7 +1421,7 @@ function cizCizimler(c){
   //  figcaption:  çizimin adı ( açıklamasız ) — uzaktan çizimin içindeki başlık
   //  okunmazken tuvalde okunur kalır ( ayrıntı kademesi )
   t.insertAdjacentHTML('beforeend', (c.cizimler || []).map(z =>
-    `<figure class="cizim" data-cizim="${kacis(z.ad)}" data-olcek="${kacis(z.olcek)}"
+    `<figure class="cizim" data-cizim="${kacis(z.ad)}" data-olcek="${kacis(z.olcek)}"${z.olceksiz ? ' data-olceksiz="1"' : ''}
        aria-label="${kacis(z.baslik)} 1/${kacis(z.olcek)}">
        <div class="cizim-svg">${z.svg}</div>
        <figcaption class="cizim-ad" aria-hidden="true">${kacis(String(z.baslik || '').split('  (')[0])}</figcaption></figure>`).join(''));
@@ -1443,6 +1472,11 @@ function mTuvalHata(hata, eskiCizim){
 const M_TUVAL = {gorunum: null, imza: '', cizimler: [], dunya: null, elle: false, surukle: null,
                  surukledi: false, gozlem: null, sinir: null};
 const TUVAL_ARA = 25, TUVAL_KENAR = 20, TUVAL_S_EN_AZ = 0.02, TUVAL_S_EN_COK = 60;
+//  Kâğıttaki boy:  CSS'in milimetresi ( 96 px / inç ) — yakınlık %100
+const TUVAL_KAGIT = 96 / 25.4;
+//  Sağ üstteki araç çubuğunun yeri ( px ):  sığdırınca çizimler onun altından
+//  başlar — üst sıradaki çizimin başlığı çubuğun altında kalıyordu
+const TUVAL_UST = 50;
 
 /*  EKRAN KALEMİ ( 13 Eki — kullanıcı:  "çizimleri gördüğüm düzlem kalitesiz" ):
     SVG'de çizgiler kâğıttaki kalınlığındadır ( ISO 128 kalemleri, ölçekle ).
@@ -1517,7 +1551,7 @@ function mTuvalKur(){
 function mTuvalDiz(sinir){
   const cizimler = M_TUVAL.cizimler; if(!cizimler.length) return;
   const t = $('m_tuval');
-  const W = (t && t.clientWidth) || 1000, H = (t && t.clientHeight) || 620;
+  const W = (t && t.clientWidth) || 1000, H = ((t && t.clientHeight) || 620) - TUVAL_UST;
   const diz = sn => {
     let x = 0, y = 0, sutun = 0;
     const yer = cizimler.map(c => {
@@ -1562,6 +1596,8 @@ function mTuvalCiz(){
   const t = $('m_tuval'), v = M_TUVAL.gorunum; if(!t || !v) return;
   t.scrollTop = t.scrollLeft = 0;          // odak ya da scrollIntoView kaydırmış olmasın
   mTuvalKalemleriAyarla(t, v.s);
+  const yk = $('m_tuval_yakinlik');
+  if(yk) yk.textContent = '%' + Math.round(v.s / TUVAL_KAGIT * 100);
   for(const c of M_TUVAL.cizimler){
     const st = c.f.style;
     st.left = ((c.x - v.x) * v.s) + 'px';
@@ -1571,6 +1607,8 @@ function mTuvalCiz(){
     st.setProperty('--mu', (v.s / c.olcek).toPrecision(6));   // piksel / çizim birimi
   }
   if(M_OLCU) mOlcuKonumla(M_OLCU);
+  mTuvalHarita();
+  mTuvalGorunurler();
 }
 
 /*  Hepsini ( ya da bir kutuyu — çift tıklanan çizim ) ekrana sığdırır.
@@ -1579,13 +1617,341 @@ function mTuvalCiz(){
     kaydırma, yakınlaştırma, bir çizime yaklaşma kipten çıkarır.
     cizme:  çağıran zaten çizecek. */
 function mTuvalSigdir(kutu, cizme){
-  const t = $('m_tuval'), d = kutu || M_TUVAL.dunya; if(!t || !d) return;
-  const W = t.clientWidth || 800, H = t.clientHeight || 600;
-  const w = Math.max(d.x1 - d.x0, 1) + 2 * TUVAL_KENAR, h = Math.max(d.y1 - d.y0, 1) + 2 * TUVAL_KENAR;
-  const s = Math.min(Math.max(Math.min(W / w, H / h), TUVAL_S_EN_AZ), TUVAL_S_EN_COK);
-  M_TUVAL.gorunum = {s, x: (d.x0 + d.x1) / 2 - W / s / 2, y: (d.y0 + d.y1) / 2 - H / s / 2};
+  const v = mTuvalKutuGorunumu(kutu || M_TUVAL.dunya); if(!v) return;
+  M_TUVAL.gorunum = v;
   M_TUVAL.elle = !!kutu;
   if(!cizme) mTuvalCiz();
+}
+
+/*  Bir kutuyu ( dünya mm ) tuvale sığdıran görünüm:  ortası araç çubuğunun
+    altındaki alanın ortasına. */
+function mTuvalKutuGorunumu(d){
+  const t = $('m_tuval'); if(!t || !d) return null;
+  const W = t.clientWidth || 800, H = (t.clientHeight || 600) - TUVAL_UST;
+  const w = Math.max(d.x1 - d.x0, 1) + 2 * TUVAL_KENAR, h = Math.max(d.y1 - d.y0, 1) + 2 * TUVAL_KENAR;
+  const s = Math.min(Math.max(Math.min(W / w, H / h), TUVAL_S_EN_AZ), TUVAL_S_EN_COK);
+  return {s, x: (d.x0 + d.x1) / 2 - W / s / 2, y: (d.y0 + d.y1) / 2 - (TUVAL_UST + H / 2) / s};
+}
+
+/*  GEZİNTİ ( 13 Eki, kullanıcı:  "gezintiye geç" ):  çizim listesi ( ☰ ),
+    küçük harita, Page Up / Page Down çizimden çizime, oklar kaydırır;  hedefe
+    yumuşak geçişle gidilir ( ölçek logaritmik, ~0,25 sn;  "hareketi azalt"
+    ayarında anında ). */
+const TUVAL_GECIS_MS = 260;
+
+function mTuvalUc(hedef){
+  const t = $('m_tuval'), v0 = M_TUVAL.gorunum; if(!t || !v0 || !hedef) return;
+  cancelAnimationFrame(M_TUVAL.ucus || 0);
+  M_TUVAL.elle = true;
+  let azal = false;
+  try{ azal = matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+  if(azal){ M_TUVAL.gorunum = hedef; mTuvalCiz(); return; }
+  const W = t.clientWidth, H = t.clientHeight, t0 = performance.now();
+  const orta = v => ({x: v.x + W / 2 / v.s, y: v.y + H / 2 / v.s});
+  const c0 = orta(v0), c1 = orta(hedef), l0 = Math.log(v0.s), l1 = Math.log(hedef.s);
+  const adim = simdi => {
+    const u = Math.min((simdi - t0) / TUVAL_GECIS_MS, 1);
+    const e = u < 0.5 ? 2 * u * u : 1 - (2 - 2 * u) ** 2 / 2;
+    const s = Math.exp(l0 + (l1 - l0) * e);
+    const cx = c0.x + (c1.x - c0.x) * e, cy = c0.y + (c1.y - c0.y) * e;
+    M_TUVAL.gorunum = {s, x: cx - W / 2 / s, y: cy - H / 2 / s};
+    mTuvalCiz();
+    if(u < 1) M_TUVAL.ucus = requestAnimationFrame(adim);
+  };
+  M_TUVAL.ucus = requestAnimationFrame(adim);
+}
+
+/*  i. çizime uçar ( listeden, Page Up / Down ). */
+function mTuvalCizimeGit(i){
+  const c = M_TUVAL.cizimler[i]; if(!c) return;
+  mTuvalUc(mTuvalKutuGorunumu({x0: c.x, y0: c.y, x1: c.x + c.w, y1: c.y + c.h}));
+  mTuvalListe(false);
+}
+
+/*  Ekranın ortasındaki ( ya da ona en yakın ) çizim:  Page Up / Down buradan sayar. */
+function mTuvalOrtadaki(){
+  const t = $('m_tuval'), v = M_TUVAL.gorunum; if(!t || !v) return -1;
+  const cx = v.x + t.clientWidth / 2 / v.s, cy = v.y + (TUVAL_UST + (t.clientHeight - TUVAL_UST) / 2) / v.s;
+  let en = -1, enk = Infinity;
+  M_TUVAL.cizimler.forEach((c, i) => {
+    const dx = Math.max(c.x - cx, 0, cx - c.x - c.w), dy = Math.max(c.y - cy, 0, cy - c.y - c.h);
+    const d = Math.hypot(dx, dy);
+    if(d < enk){ enk = d; en = i; }
+  });
+  return en;
+}
+
+/*  Çizim listesi ( ☰ ):  açılır / kapanır;  ekranda görünen çizimler işaretli. */
+function mTuvalListe(ac){
+  const k = $('m_tuval_liste'), dg = $('m_tuval_liste_dg'); if(!k) return;
+  if(ac === undefined) ac = k.hidden;
+  if(ac){
+    mTuvalYardim(false);
+    mTuvalKatmanlar(false);
+    k.innerHTML = M_TUVAL.cizimler.map((c, i) => {
+      const ad = (c.f.querySelector('.cizim-ad') || {}).textContent || c.ad;
+      const olcek = c.f.dataset.olceksiz ? '' : '1/' + c.olcek;      // tablonun ölçeği yok
+      return `<button type="button" class="tuval-liste-dg" data-i="${i}" onclick="mTuvalCizimeGit(${i})">
+        <span>${kacis(ad)}</span><span class="tuval-liste-olcek">${olcek}</span></button>`;
+    }).join('');
+  }
+  k.hidden = !ac;
+  if(ac) mTuvalGorunurler();
+  if(dg) dg.setAttribute('aria-expanded', String(ac));
+}
+
+/*  Ekranda ( bir kısmı ) görünen çizimler:  listede işaretli. */
+function mTuvalGorunurler(){
+  const k = $('m_tuval_liste'), t = $('m_tuval'), v = M_TUVAL.gorunum;
+  if(!k || k.hidden || !t || !v) return;
+  const x1 = v.x + t.clientWidth / v.s, y1 = v.y + t.clientHeight / v.s;
+  k.querySelectorAll('.tuval-liste-dg').forEach(b => {
+    const c = M_TUVAL.cizimler[Number(b.dataset.i)];
+    b.classList.toggle('gorunur', !!c && c.x < x1 && c.x + c.w > v.x && c.y < y1 && c.y + c.h > v.y);
+  });
+}
+
+/*  KÜÇÜK HARİTA ( sağ altta ):  bütün çizimler ve ekranın gördüğü bölge;  hepsi
+    ekrana sığıyorsa gizli.  Tıklayınca / sürükleyince o nokta ekranın ortasına. */
+function mTuvalHarita(){
+  const k = $('m_tuval_harita'), t = $('m_tuval'), v = M_TUVAL.gorunum, d = M_TUVAL.dunya;
+  if(!k || !t || !v || !d) return;
+  const W = t.clientWidth, H = t.clientHeight;
+  const gx0 = v.x, gy0 = v.y + TUVAL_UST / v.s, gx1 = v.x + W / v.s, gy1 = v.y + H / v.s;
+  const sigiyor = gx0 <= d.x0 + 1e-6 && gy0 <= d.y0 + 1e-6 && gx1 >= d.x1 - 1e-6 && gy1 >= d.y1 - 1e-6;
+  k.hidden = sigiyor;
+  if(sigiyor) return;
+  const svg = k.querySelector('svg');
+  if(M_TUVAL.haritaDunya !== d){
+    M_TUVAL.haritaDunya = d;
+    const p = 20;   // kenar ( dünya mm )
+    svg.setAttribute('viewBox', `${d.x0 - p} ${d.y0 - p} ${d.x1 - d.x0 + 2 * p} ${d.y1 - d.y0 + 2 * p}`);
+    const en = 190, boy = Math.min(140, en * (d.y1 - d.y0 + 2 * p) / (d.x1 - d.x0 + 2 * p));
+    svg.style.width = en + 'px';
+    svg.style.height = boy + 'px';
+    svg.innerHTML = M_TUVAL.cizimler.map(c =>
+      `<rect class="harita-cizim" x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}"/>`).join('')
+      + '<rect class="harita-gorunum" id="m_harita_gorunum"/>';
+  }
+  const g = svg.querySelector('#m_harita_gorunum');
+  g.setAttribute('x', gx0); g.setAttribute('y', gy0);
+  g.setAttribute('width', Math.max(gx1 - gx0, 1)); g.setAttribute('height', Math.max(gy1 - gy0, 1));
+}
+
+/*  MÜDAHALE ( 13 Eki ):  fareyle bir parçanın üstüne gelince adı yazar ve o
+    parçanın ( örneğin — geometri.parca_ornekleri, DXF'in bloğuyla aynı ) bütün
+    çizgileri vurgulanır;  katmanlar ( ölçü, eksen, gizli, … ) gösterilir / gizlenir. */
+function mTuvalParcaOlaylari(){
+  const t = $('m_tuval'); if(!t || t.dataset.parcaOlay) return;
+  t.dataset.parcaOlay = '1';
+  const ipucu = $('m_parca_ipucu');
+  let son = null;
+  const birak = () => {
+    if(son) son.svg.querySelectorAll('.parca-vurgu').forEach(x => x.classList.remove('parca-vurgu'));
+    son = null;
+    if(ipucu) ipucu.hidden = true;
+  };
+  t.addEventListener('pointermove', e => {
+    if(M_TUVAL.surukle && M_TUVAL.surukle.basladi){ birak(); return; }
+    if(!e.target.closest || e.target.closest('.olcu, .olcu-kutu, .tuval-arac, .tuval-liste, .tuval-yardim, .tuval-harita')){ birak(); return; }
+    const g = mTuvalParcaBul(e.clientX, e.clientY);
+    if(!g){ birak(); return; }
+    const svg = g.ownerSVGElement || g.closest('svg'), anahtar = g.dataset.parca;
+    if(!son || son.anahtar !== anahtar || son.svg !== svg){
+      birak();
+      son = {anahtar, svg};
+      svg.querySelectorAll(`[data-parca="${CSS.escape(anahtar)}"]`).forEach(x => x.classList.add('parca-vurgu'));
+      if(ipucu) ipucu.textContent = g.dataset.ad || '';
+    }
+    if(ipucu){
+      const r = t.getBoundingClientRect();
+      ipucu.hidden = false;
+      ipucu.style.left = Math.min(e.clientX - r.left + 14, r.width - ipucu.offsetWidth - 6) + 'px';
+      ipucu.style.top = Math.max(e.clientY - r.top - 30, 6) + 'px';
+    }
+  });
+  t.addEventListener('pointerleave', birak);
+}
+
+/*  Farenin altındaki parça:  parçaların içi de yakalanır ( style.css ), üst üste
+    gelenlerden en küçüğü seçilir — kabinin içindeki tampon kabin değil tampon,
+    ince çizginin üstü o çizgi. */
+function mTuvalParcaBul(x, y){
+  let en = null, alan = Infinity;
+  for(const s of document.elementsFromPoint(x, y)){
+    if(s.id === 'm_tuval') break;
+    const g = s.closest && s.closest('[data-parca]');
+    if(!g || !s.getBBox) continue;
+    const k = s.getBBox(), a = Math.max(k.width, 1) * Math.max(k.height, 1);
+    if(a < alan){ en = g; alan = a; }
+  }
+  return en;
+}
+
+/*  Katmanlar:  [ sınıf , ad , seçici ] — gizlenen katmanın sınıfı tuvalde
+    ( gizle-… ), tercih tarayıcıda hatırlanır. */
+const TUVAL_KATMANLAR = [
+  ['olcu', 'Ölçüler'],
+  ['eksen', 'Eksenler'],
+  ['gizli', 'Gizli çizgiler'],
+  ['seviye', 'Seviye çizgileri'],
+  ['halat', 'Halatlar'],
+  ['tarama', 'Taramalar'],
+  ['alan', 'Alan sınırları ( sığınma, çalışma )'],
+  ['yazi', 'Etiketler'],
+];
+
+function mTuvalKatmanGizli(){
+  try{ return JSON.parse(localStorage.getItem('m_katman_gizli') || '[]'); }catch(e){ return []; }
+}
+
+function mTuvalKatmanlariUygula(){
+  const t = $('m_tuval'); if(!t) return;
+  const gizli = mTuvalKatmanGizli();
+  for(const [ad] of TUVAL_KATMANLAR) t.classList.toggle('gizle-' + ad, gizli.includes(ad));
+  const n = TUVAL_KATMANLAR.filter(([ad]) => gizli.includes(ad)).length, dg = $('m_tuval_katman_dg');
+  if(dg){                                    // gizli katman unutulmasın:  düğmede sayısı
+    if(n) dg.dataset.gizli = n; else delete dg.dataset.gizli;
+    dg.title = n ? `Katmanlar — ${n} katman gizli` : 'Katmanları göster / gizle';
+  }
+}
+
+function mTuvalKatman(ad, gorunur){
+  const gizli = mTuvalKatmanGizli().filter(x => x !== ad);
+  if(!gorunur) gizli.push(ad);
+  try{ localStorage.setItem('m_katman_gizli', JSON.stringify(gizli)); }catch(e){}
+  mTuvalKatmanlariUygula();
+}
+
+function mTuvalKatmanlar(ac){
+  const k = $('m_tuval_katman'), dg = $('m_tuval_katman_dg'); if(!k) return;
+  if(ac === undefined) ac = k.hidden;
+  if(ac){
+    mTuvalYardim(false);
+    mTuvalListe(false);
+    const gizli = mTuvalKatmanGizli();
+    k.innerHTML = TUVAL_KATMANLAR.map(([ad, yazi]) =>
+      `<label class="tuval-katman-satir"><input type="checkbox" ${gizli.includes(ad) ? '' : 'checked'}
+         onchange="mTuvalKatman('${ad}', this.checked)"> ${kacis(yazi)}</label>`).join('');
+  }
+  k.hidden = !ac;
+  if(dg) dg.setAttribute('aria-expanded', String(ac));
+}
+
+function mTuvalHaritaOlaylari(){
+  const k = $('m_tuval_harita'); if(!k || k.dataset.olay) return;
+  k.dataset.olay = '1';
+  const git = e => {
+    const svg = k.querySelector('svg'), t = $('m_tuval'), v = M_TUVAL.gorunum; if(!svg || !t || !v) return;
+    const m = svg.getScreenCTM(); if(!m) return;
+    const nok = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+    cancelAnimationFrame(M_TUVAL.ucus || 0);
+    M_TUVAL.gorunum = {s: v.s, x: nok.x - t.clientWidth / 2 / v.s,
+                       y: nok.y - (TUVAL_UST + (t.clientHeight - TUVAL_UST) / 2) / v.s};
+    M_TUVAL.elle = true;
+    mTuvalCiz();
+  };
+  k.addEventListener('pointerdown', e => {
+    e.stopPropagation(); e.preventDefault();
+    k.setPointerCapture(e.pointerId);
+    git(e);
+    const it = ev => git(ev);
+    const bit = () => { k.removeEventListener('pointermove', it); k.removeEventListener('pointerup', bit); };
+    k.addEventListener('pointermove', it);
+    k.addEventListener('pointerup', bit);
+  });
+}
+
+/*  Yakınlık %100:  çizim kâğıttaki boyunda ( ekranın ortasındaki nokta yerinde ). */
+function mTuvalKagit(){
+  const t = $('m_tuval'), v = M_TUVAL.gorunum; if(!t || !v) return;
+  mTuvalYakin(TUVAL_KAGIT / v.s, t.clientWidth / 2, t.clientHeight / 2);
+}
+
+/*  Kullanım kutusu ( "?" ):  açılır / kapanır;  Esc ya da dışarıya tık kapatır. */
+function mTuvalYardim(ac){
+  const k = $('m_tuval_yardim'), dg = $('m_tuval_yardim_dg'); if(!k) return;
+  if(ac === undefined) ac = k.hidden;
+  if(ac){ mTuvalListe(false); mTuvalKatmanlar(false); }
+  k.hidden = !ac;
+  if(dg) dg.setAttribute('aria-expanded', String(ac));
+}
+
+/*  FORM – TUVAL AYIRICISI ( Çizimler görünümü ):  sürükleyince formun eni
+    ( M_SOL.enaz – encok ), çift tık eski genişlik, ← → 20 px;  düğme formu
+    gizler / açar.  Tercih tarayıcıda hatırlanır ( kişisel kolaylık ).  Tuval
+    eni değişince kendisi yeniden sığar ( mTuvalOlaylari:  ResizeObserver ). */
+const M_SOL = {varsayilan: 420, enaz: 300, encok: 760, kuruldu: false};
+
+function mSolEn(en, kaydet = true){
+  const s = $('s-mukavemet'); if(!s) return;
+  en = Math.round(Math.min(Math.max(en, M_SOL.enaz), M_SOL.encok));
+  s.style.setProperty('--sol-en', en + 'px');
+  if(kaydet) try{ localStorage.setItem('m_sol_en', String(en)); }catch(e){}
+}
+
+function mFormGizle(gizle){
+  const s = $('s-mukavemet'); if(!s) return;
+  if(gizle === undefined) gizle = !s.classList.contains('form-gizli');
+  s.classList.toggle('form-gizli', gizle);
+  const dg = $('m_form_gizle');
+  if(dg){
+    dg.textContent = gizle ? '›' : '‹';
+    dg.title = gizle ? 'Formu göster' : 'Formu gizle';
+    dg.setAttribute('aria-label', dg.title);
+    dg.setAttribute('aria-expanded', String(!gizle));
+  }
+  try{ localStorage.setItem('m_form_gizli', gizle ? '1' : '0'); }catch(e){}
+}
+
+function mAyiriciKur(){
+  const a = $('m_ayirici'); if(M_SOL.kuruldu || !a) return;
+  M_SOL.kuruldu = true;
+  let en = M_SOL.varsayilan, gizli = false;
+  try{ en = Number(localStorage.getItem('m_sol_en')) || en; gizli = localStorage.getItem('m_form_gizli') === '1'; }catch(e){}
+  mSolEn(en, false);
+  mFormGizle(gizli);
+  a.addEventListener('pointerdown', e => {
+    const s = $('s-mukavemet');
+    if(e.button !== 0 || e.target.closest('.ayirici-dg') || s.classList.contains('form-gizli')) return;
+    const sol = s.querySelector('.ikili').getBoundingClientRect().left;
+    const en_ = ev => ev.clientX - sol - 9;
+    a.setPointerCapture(e.pointerId);
+    a.classList.add('suruklen');
+    document.body.classList.add('ayirici-surukleniyor');
+    const it = ev => mSolEn(en_(ev), false);
+    const bit = ev => {
+      a.removeEventListener('pointermove', it);
+      a.removeEventListener('pointerup', bit);
+      a.removeEventListener('pointercancel', bit);
+      a.classList.remove('suruklen');
+      document.body.classList.remove('ayirici-surukleniyor');
+      mSolEn(en_(ev));
+    };
+    a.addEventListener('pointermove', it);
+    a.addEventListener('pointerup', bit);
+    a.addEventListener('pointercancel', bit);
+    e.preventDefault();
+  });
+  a.addEventListener('dblclick', e => { if(!e.target.closest('.ayirici-dg')) mSolEn(M_SOL.varsayilan); });
+  a.addEventListener('keydown', e => {
+    if(e.target !== a || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+    e.preventDefault();
+    const simdi = parseFloat(getComputedStyle($('s-mukavemet')).getPropertyValue('--sol-en')) || M_SOL.varsayilan;
+    mSolEn(simdi + (e.key === 'ArrowLeft' ? -20 : 20));
+  });
+  //  Yardım kutusu:  dışarıya tık ya da Esc kapatır
+  document.addEventListener('pointerdown', e => {
+    const k = $('m_tuval_yardim');
+    if(k && !k.hidden && !e.target.closest('#m_tuval_yardim, #m_tuval_yardim_dg')) mTuvalYardim(false);
+    const l = $('m_tuval_liste');
+    if(l && !l.hidden && !e.target.closest('#m_tuval_liste, #m_tuval_liste_dg')) mTuvalListe(false);
+    const kt = $('m_tuval_katman');
+    if(kt && !kt.hidden && !e.target.closest('#m_tuval_katman, #m_tuval_katman_dg')) mTuvalKatmanlar(false);
+  });
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape'){ mTuvalYardim(false); mTuvalListe(false); mTuvalKatmanlar(false); }
+  });
 }
 
 /*  Hepsi:  tuvalin şimdiki oranına göre yeniden dizilir ve sığar. */
@@ -1660,7 +2026,7 @@ function mTuvalOlaylari(t){
   //  kaydırırsa geri alınır.
   t.addEventListener('scroll', () => { t.scrollTop = 0; t.scrollLeft = 0; });
   t.addEventListener('wheel', e => {
-    if(e.target.closest('.tuval-hata')) return;      // uzun hata listesi kayar
+    if(e.target.closest('.tuval-hata, .tuval-liste, .tuval-yardim')) return;      // uzun listeler kayar
     e.preventDefault();
     const r = t.getBoundingClientRect();
     const birim = e.deltaMode === 1 ? 0.05 : e.deltaMode === 2 ? 1 : 0.0015;
@@ -1669,7 +2035,8 @@ function mTuvalOlaylari(t){
   //  Sürükleme:  sol ya da orta tuş.  Birkaç pikselden az kıpırdayan tık
   //  tıklamadır ( ölçü açılır );  sürüklemeden sonraki tık yutulur.
   t.addEventListener('pointerdown', e => {
-    if(e.button > 1 || e.target.closest('.olcu-kutu, .tuval-arac, .tuval-hata')) return;
+    if(e.button > 1 || e.target.closest('.olcu-kutu, .tuval-arac, .tuval-hata, .tuval-liste, .tuval-yardim, .tuval-harita')) return;
+    cancelAnimationFrame(M_TUVAL.ucus || 0);
     if(e.button === 1) e.preventDefault();
     M_TUVAL.surukle = {id: e.pointerId, x: e.clientX, y: e.clientY, v: {...M_TUVAL.gorunum}, basladi: false};
   });
@@ -1701,7 +2068,7 @@ function mTuvalOlaylari(t){
     if(M_TUVAL.surukledi){ e.stopPropagation(); e.preventDefault(); M_TUVAL.surukledi = false; }
   }, true);
   t.addEventListener('dblclick', e => {
-    if(e.target.closest('.olcu, .olcu-kutu, .tuval-arac, .tuval-hata')) return;
+    if(e.target.closest('.olcu, .olcu-kutu, .tuval-arac, .tuval-hata, .tuval-liste, .tuval-yardim, .tuval-harita')) return;
     const f = e.target.closest('figure.cizim');
     const c = f && M_TUVAL.cizimler.find(x => x.f === f);
     if(c) mTuvalSigdir({x0: c.x, y0: c.y, x1: c.x + c.w, y1: c.y + c.h});
@@ -1712,6 +2079,20 @@ function mTuvalOlaylari(t){
     if(e.key === '+' || e.key === '='){ e.preventDefault(); mTuvalYakin(1.25); }
     else if(e.key === '-' || e.key === '_'){ e.preventDefault(); mTuvalYakin(1 / 1.25); }
     else if(e.key === '0' || e.key === 'Home'){ e.preventDefault(); mTuvalHepsi(); }
+    else if(e.key === 'PageDown' || e.key === 'PageUp'){
+      e.preventDefault();
+      const n = M_TUVAL.cizimler.length, i = mTuvalOrtadaki();
+      if(n) mTuvalCizimeGit(((i < 0 ? 0 : i) + (e.key === 'PageDown' ? 1 : n - 1)) % n);
+    }else if(e.key.startsWith('Arrow')){
+      //  Görünümün beşte biri kadar kaydırır
+      e.preventDefault();
+      const v = M_TUVAL.gorunum; if(!v) return;
+      const dx = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0;
+      const dy = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+      M_TUVAL.gorunum = {s: v.s, x: v.x + dx * t.clientWidth * 0.2 / v.s, y: v.y + dy * t.clientHeight * 0.2 / v.s};
+      M_TUVAL.elle = true;
+      mTuvalCiz();
+    }
   });
   //  Tuvalin boyu değişince ( tam ekran, pencere ):  kendiliğinden sığmış
   //  görünüm yeniden sığar, kullanıcınınki yerinde kalır.

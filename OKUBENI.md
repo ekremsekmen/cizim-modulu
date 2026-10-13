@@ -268,6 +268,29 @@ düzlem kalitesiz;  DXF'e bastığımızın birebir aynısını görelim" ):
 * **Ayrıntı kademesi** ( `mTuvalKalemleriAyarla` ):  ölçü yazısının büyük harfi
   5 fiziksel pikselden küçük kalırsa yazılar gizlenir, çizimin adı tuvalde sabit
   boyda yazar ( `figcaption.cizim-ad` );  yaklaşınca yazılar gelir.
+* **Çalışma alanı:**  Çizimler görünümünde sayfa pencereyi kaplar ( hesap görünümü
+  okunaklılık için 1440 px'te );  form ile tuvalin arası sürüklenir ( `mAyiriciKur` —
+  300 – 760 px, çift tık eski genişlik, ← → ), formu gizleyen düğme;  tercih
+  tarayıcıda hatırlanır.  Başlık tek satır.  Araç çubuğunda yakınlık yüzdesi
+  ( kâğıttaki boyuna göre;  tıklayınca %100 — `mTuvalKagit` ) ve "?" kullanım
+  kutusu ( eskiden altta sürekli duran ipucu satırı çizimlerin üstüne biniyordu );
+  sığdırınca çizimler araç çubuğunun altından başlar ( `TUVAL_UST` ).
+* **Gezinti:**  çizim listesi ( ☰ — adına tıklayınca o çizime gidilir, ekranda
+  görünenler işaretli ), sağ altta küçük harita ( bütün paftalar ve ekranın
+  gördüğü bölge;  tıkla / sürükle, oraya git — hepsi sığınca gizli ), Page Up /
+  Page Down önceki / sonraki çizim, oklar kaydırır.  Hedefe yumuşak geçişle
+  gidilir ( `mTuvalUc`, ~0,25 sn, ölçek logaritmik;  "hareketi azalt" ayarında
+  anında ).
+* **Müdahale:**  fare bir parçanın üstüne gelince adı yazar ( "Kabin rayı" —
+  `cizim/parca_adlari.py` ) ve o parçanın bütün çizgileri parlayarak vurgulanır;
+  parça DXF'in bloğuyla aynı örnektir ( `geometri.parca_ornekleri` ).  Parçanın
+  içi de yakalanır, üst üste gelenlerden en küçüğü seçilir ( `mTuvalParcaBul` —
+  ağırlığın içindeki kasnak kasnaktır ).  "Katmanlar" kutusu ölçüleri, eksenleri,
+  gizli çizgileri, seviyeleri, halatları, taramaları, alan sınırlarını, etiketleri
+  gösterir / gizler ( `TUVAL_KATMANLAR` );  tercih tarayıcıda hatırlanır, gizli
+  katman sayısı düğmede yazar.  Kutu formun alanı değildir ( `data-formdisi` —
+  işaretlemek hesabı yenilemez ).  Ekranın SVG'sinde her eleman
+  `<g data-katman data-parca data-ad>` içindedir;  kâğıdın SVG'si değişmez.
 
 **Hatalı girdide çizim yerinde kalır** ( kullanıcı isteği 2 Eki ):  çizim
 kurulamayınca ekranda son geçerli girdilerin çizimi durur ( tuvalin kenarı
@@ -503,6 +526,7 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
 | `cizim/kisaltmalar.py` | Ölçü kodları ( SW, SD, CW, CD, PLW, DW, DBG, DBGW ) ve Türkçeleri;  tablo çizicisi |
 | `cizim/veri_tablosu.py` | VERİLER VE KISALTMALAR:  asansörün veri tablosu, kısaltmalar, notlar ( paftada çizimlerin sonunda, kendi çerçevesinde ) |
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
+| `cizim/parca_adlari.py` | Parçaların ekranda okunan Türkçe adları |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( türevle;  oynatma denetçi ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/izli.py` | İzli sayı:  ölçü kaynağı için otomatik türev |
 | `cizim/dxf.py` | **Aynı** elemanları DXF'e yazar ( ezdxf ) |
@@ -738,14 +762,14 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
    düşürüyordu );  paftada kullanılmayan stiller silinir, şablonun stillerine
    yazı tipinin aile adı yazılır ( Mac'te times.ttf bulunamıyordu ) —
    AutoCAD açarken hiçbir yazı tipini değiştirmez, AUDIT 0 ( AcCoreConsole ).
-   **Parça blokları** ( 13 Eki — `dxf.parca_ornekleri` ):  adı olan parçanın
+   **Parça blokları** ( 13 Eki — `geometri.parca_ornekleri` ):  adı olan parçanın
    ( elemanın `ad`ı ) her örneği DXF'te kendi adlı bloğundadır —
    `KUYU_PLANI_KABIN_RAY_1`, `KUYU_KESITI_YAN_KAT_KAPISI_3` …;  AutoCAD'de
    tıklanınca bütün parça seçilir, adı özelliklerde görünür ( LiftDesigner'ın
    paftalarında da her parça bloktur ).  Aynı adlı elemanlar birbirine
    değiyorsa bir örnektir ( rayın flanşı ve gövdesi ), değmiyorsa ayrı ( iki
    kabin rayı ).  Duvar, tarama, ölçü, yazı ve maskelenen çizgiler blok olmaz
-   ( `dxf.BLOKSUZ_KATMANLAR` ).  Çizgiler yerinde kalır:  bloklar açılınca
+   ( `geometri.BLOKSUZ_KATMANLAR` ).  Çizgiler yerinde kalır:  bloklar açılınca
    çizim bloksuzunun aynısıdır ( test_cizim.ParcaBloklari );  gerçek 1022
    paftasında 262 parça bloğu, AcCoreConsole AUDIT 0, AutoCAD'den geri
    yazılınca bloklar eksiksiz.  Ekran ve PDF değişmez.
