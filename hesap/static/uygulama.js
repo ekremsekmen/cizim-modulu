@@ -1389,10 +1389,13 @@ function cizCizimler(c){
   t.querySelectorAll('figure.cizim').forEach(f => f.remove());
   //  SVG satır içi:  ölçüler tıklanır.  Sunucunun ürettiği metindir ( yazılar
   //  kaçışlı — cizim/svg.py ), desen kimlikleri her çizimde önekli.
+  //  figcaption:  çizimin adı ( açıklamasız ) — uzaktan çizimin içindeki başlık
+  //  okunmazken tuvalde okunur kalır ( ayrıntı kademesi )
   t.insertAdjacentHTML('beforeend', (c.cizimler || []).map(z =>
     `<figure class="cizim" data-cizim="${kacis(z.ad)}" data-olcek="${kacis(z.olcek)}"
        aria-label="${kacis(z.baslik)} 1/${kacis(z.olcek)}">
-       <div class="cizim-svg">${z.svg}</div></figure>`).join(''));
+       <div class="cizim-svg">${z.svg}</div>
+       <figcaption class="cizim-ad" aria-hidden="true">${kacis(String(z.baslik || '').split('  (')[0])}</figcaption></figure>`).join(''));
   mOlcuOlaylari(kutu);
   mTuvalKur();
   if(M_OLCU_SON_BILDIRIM) mOlcuBildir(M_OLCU_SON_BILDIRIM, true);
@@ -1441,12 +1444,58 @@ const M_TUVAL = {gorunum: null, imza: '', cizimler: [], dunya: null, elle: false
                  surukledi: false, gozlem: null, sinir: null};
 const TUVAL_ARA = 25, TUVAL_KENAR = 20, TUVAL_S_EN_AZ = 0.02, TUVAL_S_EN_COK = 60;
 
+/*  EKRAN KALEMİ ( 13 Eki — kullanıcı:  "çizimleri gördüğüm düzlem kalitesiz" ):
+    SVG'de çizgiler kâğıttaki kalınlığındadır ( ISO 128 kalemleri, ölçekle ).
+    Ekranda bu kalınlık yakınlıkla küçülür:  hepsi sığınca ( ~0,7 px / mm )
+    kalın çizgi 0,34, ince 0,09 piksel kalıyor, çizim gri bir sise dönüyordu.
+    CAD gibi:  her kalem ekranda en az kendi en az kalınlığında ( kademeler
+    korunur ), yaklaşınca kâğıttaki kalınlığına geçer —  max( en az , kalem ×
+    px / mm ).  Kesik çizginin deseni çizimle ölçeklenir ( yalnız kalınlık ).
+    En az kalınlık EKRANIN GERÇEK PİKSELİNDE ( devicePixelRatio ):  retinada
+    ince çizgi tek fiziksel piksel, sıradan ekranda bir piksel.
+    [ kâğıtta mm , ekranda en az fiziksel piksel ] */
+const TUVAL_KALEMLER = [[0.70, 2.5], [0.50, 2.0], [0.35, 1.6], [0.25, 1.3], [0.18, 1.1], [0.13, 1.0]];
+/*  AYRINTI KADEMESİ:  ölçü yazısının büyük harfi bu kadar fiziksel pikselden
+    küçük kalırsa yazılar gizlenir ( okunmuyor, gri leke ) — uzaktan çizimin
+    kendisi ve adı ( figcaption ) görünür, yaklaştıkça ölçüler belirir. */
+const TUVAL_YAZI_EN_AZ = 5;
+
+/*  Çizimin şekillerini kâğıttaki kalemine göre işaretler ( data-k="050" ) — bir
+    kez, çizim gelince.
+    Kalınlık 1/20'de kalem × 20, başka ölçekte × ölçek / 20:  kâğıtta mm =
+    stroke-width / ölçek ( cizim/svg.kalem ).  Tutma yüzeyleri ( .tut ) ve
+    görünmez çizgiler olduğu gibi kalır. */
+function mTuvalKalemleri(f, olcek){
+  if(f.dataset.kalem) return;
+  f.dataset.kalem = '1';
+  const svg = f.querySelector('svg'); if(!svg) return;
+  for(const el of svg.querySelectorAll('line, rect, polyline, polygon, circle, path, ellipse')){
+    const sw = parseFloat(el.getAttribute('stroke-width'));
+    const renk = el.getAttribute('stroke');
+    if(!(sw > 0) || !renk || renk === 'none' || renk === 'transparent' || el.classList.contains('tut')) continue;
+    const mm = sw / olcek;
+    const k = TUVAL_KALEMLER.reduce((a, b) => Math.abs(b[0] - mm) < Math.abs(a[0] - mm) ? b : a);
+    if(Math.abs(k[0] - mm) <= 0.3 * k[0]) el.setAttribute('data-k', String(Math.round(k[0] * 100)).padStart(3, '0'));
+  }
+}
+
+/*  Görünüme göre kalemlerin ekran kalınlığı ( tuvalde --k050 … px ) ve
+    ayrıntı kademesi ( tuvalde tuval-uzak ). */
+function mTuvalKalemleriAyarla(t, s){
+  const dpr = window.devicePixelRatio || 1;
+  for(const [mm, enaz] of TUVAL_KALEMLER)
+    t.style.setProperty('--k' + String(Math.round(mm * 100)).padStart(3, '0'), Math.max(enaz / dpr, mm * s).toFixed(3));
+  //  Ölçü yazısı ( 2,5 mm ) okunmuyorsa:  çizimlerin yazıları gizli, adları tuvalde
+  t.classList.toggle('tuval-uzak', 2.5 * s * dpr < TUVAL_YAZI_EN_AZ);
+}
+
 function mTuvalKur(){
   const t = $('m_tuval'); if(!t) return;
   M_TUVAL.cizimler = [...t.querySelectorAll('figure.cizim')].map(f => {
     const svg = f.querySelector('svg'), vb = svg && svg.viewBox && svg.viewBox.baseVal;
     const olcek = Number(f.dataset.olcek) || 20;
-    return {f, ad: f.dataset.cizim, w: vb ? vb.width / olcek : 200, h: vb ? vb.height / olcek : 200};
+    mTuvalKalemleri(f, olcek);
+    return {f, ad: f.dataset.cizim, olcek, w: vb ? vb.width / olcek : 200, h: vb ? vb.height / olcek : 200};
   });
   //  Aynı çizimler ( ölçüden değişiklik, form yenilemesi ) ve kullanıcı
   //  görünümü değiştirmişse:  aynı sütun sınırıyla dizilir, görünüm yerinde
@@ -1512,12 +1561,14 @@ addEventListener('resize', () => mTuvalBoyu());
 function mTuvalCiz(){
   const t = $('m_tuval'), v = M_TUVAL.gorunum; if(!t || !v) return;
   t.scrollTop = t.scrollLeft = 0;          // odak ya da scrollIntoView kaydırmış olmasın
+  mTuvalKalemleriAyarla(t, v.s);
   for(const c of M_TUVAL.cizimler){
     const st = c.f.style;
     st.left = ((c.x - v.x) * v.s) + 'px';
     st.top = ((c.y - v.y) * v.s) + 'px';
     st.width = (c.w * v.s) + 'px';
     st.height = (c.h * v.s) + 'px';
+    st.setProperty('--mu', (v.s / c.olcek).toPrecision(6));   // piksel / çizim birimi
   }
   if(M_OLCU) mOlcuKonumla(M_OLCU);
 }

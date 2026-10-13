@@ -9,6 +9,7 @@ aşağı baktığı için çizim bir kez ters çevrilir, metinler kendi içinde 
 
 import html
 import math
+from typing import NamedTuple
 
 from cizim import eleman
 from cizim import kisaltmalar
@@ -19,19 +20,37 @@ from cizim import uslup
 #  katmanın 22'sinde kalınlık farklıydı ).  Kalınlıklar 1/20'ye göre birim:
 #  1/20'de 0,50 mm = 10;  başka ölçekte k ile büyür.
 SIYAH = uslup.SIYAH
-#  Dolgu yalnız örtmek için ( zemin rengiyle ):  kesitte kabin ve kapı
-#  arkasındakini, yük kutusu oku örter.  Renkli dolgu yok.
-DOLGU = {"KAPI": "#ffffff", "KABIN": "#ffffff", "YUK": "#ffffff"}
+#  Dolgu yalnız örtmek için ( zemin rengiyle — Renkler.zemin ):  kesitte kabin ve
+#  kapı arkasındakini, yük kutusu oku örter.  Renkli dolgu yok.
+DOLGU = ("KAPI", "KABIN", "YUK")
 
 
-def kalem(katman):
+class Renkler(NamedTuple):
+    """Renk takımı:  KAGIT ( beyaz zemin, ekran rengi — PDF ile aynı ) ya da CAD
+    ( AutoCAD'in koyu model alanı, DXF'in katman renkleri — ekranın tuvali )."""
+
+    zemin: str  # arka plan;  örtü ( DOLGU ) ve yazı halesi de bu renkte
+    cad: bool  # katman rengi DXF'inki ( uslup.cad_rengi ) mi
+    baslik: str  # çizimin başlığının rengi
+
+
+KAGIT = Renkler("#ffffff", False, "#1a1a1a")
+CAD = Renkler(uslup.CAD_ZEMIN, True, uslup.ACI_RGB[7])
+
+
+def kalem(katman, r=KAGIT):
     """( renk , 1/20'de kalınlık birimi )"""
     k = uslup.KATMAN[katman]
-    return k.ekran, round(k.kalinlik * 20, 3)
+    return (uslup.cad_rengi(katman) if r.cad else k.ekran), round(k.kalinlik * 20, 3)
 
 
-def _dikdortgen(el, renk, kalinlik, k=1.0):
-    dolgu = DOLGU.get(el["katman"], "none")
+def _dolgu(katman, r):
+    """Örtü:  dolgulu katmanın ( DOLGU ) parçası zemin renginde dolar."""
+    return r.zemin if katman in DOLGU else "none"
+
+
+def _dikdortgen(el, renk, kalinlik, k=1.0, r=KAGIT):
+    dolgu = _dolgu(el["katman"], r)
     kesik = _kesik_ozniteligi(el, k)
     return (
         f'<rect x="{el["x"]:.1f}" y="{el["y"]:.1f}" width="{el["g"]:.1f}" '
@@ -40,7 +59,7 @@ def _dikdortgen(el, renk, kalinlik, k=1.0):
     )
 
 
-def _bicim(el, renk, kalinlik, k=1.0):
+def _bicim(el, renk, kalinlik, k=1.0, r=KAGIT):
     """Parçanın gerçek biçimi ( parcalar ):  zarf dikdörtgeninin yerine kapalı
     çokgenler ( "dolu" kesit koyu boyanır ) ve açık çoklu çizgiler ( sac
     profil;  "ince" ayrıntı 0,18 kalemle )."""
@@ -55,7 +74,7 @@ def _bicim(el, renk, kalinlik, k=1.0):
         if el["g"] > 2 * y and el["d"] > 2 * y:
             out.append(
                 f'<rect x="{el["x"] + y:.1f}" y="{el["y"] + y:.1f}" width="{el["g"] - 2 * y:.1f}" '
-                f'height="{el["d"] - 2 * y:.1f}" fill="{DOLGU[el["katman"]]}" stroke="none"/>'
+                f'height="{el["d"] - 2 * y:.1f}" fill="{r.zemin}" stroke="none"/>'
             )
     for p in el["bicim"]:
         nok = " ".join(f"{x:.1f},{y:.1f}" for x, y in p["noktalar"])
@@ -66,7 +85,7 @@ def _bicim(el, renk, kalinlik, k=1.0):
                 f'stroke-width="{kal}" stroke-linejoin="miter"/>'
             )
             continue
-        dolgu = renk if p.get("dolu") else DOLGU.get(el["katman"], "none")
+        dolgu = renk if p.get("dolu") else _dolgu(el["katman"], r)
         out.append(
             f'<polygon points="{nok}" fill="{dolgu}" stroke="{renk}" '
             f'stroke-width="{kal}" stroke-linejoin="miter"/>'
@@ -74,7 +93,7 @@ def _bicim(el, renk, kalinlik, k=1.0):
     return "".join(out)
 
 
-def _olcu(el, renk, kalinlik, k=1.0, tutamak=False):
+def _olcu(el, renk, kalinlik, k=1.0, tutamak=False, r=KAGIT):
     """Ölçü çizgisi + iki uçta ölçü ucu + yazı.
 
     tutamak:  ekranda tıklanacak ölçü için çizginin ve yazının üstüne
@@ -122,7 +141,7 @@ def _olcu(el, renk, kalinlik, k=1.0, tutamak=False):
         cizgi
         + f' stroke="{renk}" stroke-width="{kalinlik}"/>'
         + uc
-        + _metin(bx, by, el["metin"], yz["h"], renk, -yz["aci"], k=k)
+        + _metin(bx, by, el["metin"], yz["h"], renk, -yz["aci"], k=k, zemin=r.zemin)
         + tut
     )
 
@@ -140,14 +159,14 @@ HALE_AZAMI = uslup.NORMAL * HALE  # 1/20'de;  başka ölçekte k ile
 YAZI_TIPI = "CizimYazi, Arial, 'Liberation Sans', sans-serif"
 
 
-def _metin(x, y, metin, yukseklik, renk, aci=0, hiza="orta", k=1.0):
+def _metin(x, y, metin, yukseklik, renk, aci=0, hiza="orta", k=1.0, zemin="#ffffff"):
     #  Çizim ters çevrildiği için yazı kendi ekseninde geri çevrilir.
     hale = min(HALE * yukseklik, HALE_AZAMI * k)
     tutucu = {"orta": "middle", "sol": "start", "sag": "end"}.get(hiza, "middle")
     return (
         f'<g transform="translate({x:.1f},{y:.1f}) scale(1,-1) rotate({aci})">'
         f'<text x="0" y="0" font-family="{YAZI_TIPI}" font-size="{yukseklik:g}" style="font-kerning:none" '
-        f'fill="{renk}" stroke="#ffffff" stroke-width="{hale:.1f}" '
+        f'fill="{renk}" stroke="{zemin}" stroke-width="{hale:.1f}" '
         f'stroke-linejoin="round" paint-order="stroke" '
         f'text-anchor="{tutucu}">{html.escape(metin)}</text></g>'
     )
@@ -165,10 +184,10 @@ def _kesik_ozniteligi(el, k):
     return f' stroke-dasharray="{kesik(desen, k)}"' if desen else ""
 
 
-def _taramalar(onek, k):
+def _taramalar(onek, k, r=KAGIT):
     """Duvar kesiti ( 45° ) ve tuğla taramasının desenleri — DXF'teki ANSI31 ve
-    BRICK ile aynı aralıkta ( uslup.TARAMALAR )."""
-    ince = f'stroke="{SIYAH}" stroke-width="{uslup.KATMAN["TARAMA"].kalinlik * 20:g}"'
+    BRICK ile aynı aralıkta ( uslup.TARAMALAR );  renk TARAMA katmanınki."""
+    ince = f'stroke="{kalem("TARAMA", r)[0]}" stroke-width="{uslup.KATMAN["TARAMA"].kalinlik * 20:g}"'
     a = uslup.TARAMALAR["tarama"].aralik * 20
     t = uslup.TARAMALAR["tarama_tugla"].aralik * 20
     return (
@@ -189,8 +208,8 @@ def _desen(k):
     return "" if k == 1 else f' patternTransform="scale({k:g})"'
 
 
-def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False):
-    """Eleman listesini SVG metnine çevirir.
+def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False, r=KAGIT):
+    """Eleman listesini SVG metnine çevirir.  r:  renk takımı ( KAGIT · CAD ).
 
     onek:  desen kimliklerinin öneki — aynı sayfada birden çok SVG satır içi
     durunca kimlikler çakışmasın ( ölçekleri farklı, desenleri de farklı ).
@@ -207,7 +226,7 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False):
     #  kendinden önce çizileni örter ( DXF ile aynı sıra ).
     sira = {"olcu": 1, "yazi": 2}
     for el in sorted(elemanlar, key=lambda el: sira.get(el["tip"], 0)):
-        renk, kal = kalem(el["katman"])
+        renk, kal = kalem(el["katman"], r)
         kal = f"{kal * k:g}"
         if el["tip"] == "tarama_tugla":
             parcalar.append(
@@ -221,7 +240,9 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False):
                 f'height="{el["d"]:.1f}" fill="url(#{onek}tarama)" stroke="none"/>'
             )
         elif el["tip"] == "dikdortgen":
-            parcalar.append(_bicim(el, renk, kal, k) if "bicim" in el else _dikdortgen(el, renk, kal, k))
+            parcalar.append(
+                _bicim(el, renk, kal, k, r) if "bicim" in el else _dikdortgen(el, renk, kal, k, r)
+            )
         elif el["tip"] in ("cizgi", "eksen"):
             kesik = _kesik_ozniteligi(el, k)
             parcalar.append(
@@ -254,16 +275,18 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False):
                 #  Kodlu ölçünün Türkçesi ( kisaltmalar ):  üstüne gelince ve ölçü kutusunda
                 ack = kisaltmalar.KODLAR.get(kisaltmalar.kodu(el["metin"]) or "", "")
                 ek = f' data-aciklama="{html.escape(ack)}"' if ack else ""
-                baslik = f"<title>{html.escape(ack)}</title>" if ack else ""
+                #  ( adı "baslik" değil:  fonksiyonun başlık parametresini eziyordu, ekranda
+                #  çizimin altına son ölçünün açıklaması "başlık" diye basılıyordu — 13 Eki )
+                ipucu = f"<title>{html.escape(ack)}</title>" if ack else ""
                 parcalar.append(
                     f'<g class="olcu" data-olcu="{n_olcu}" tabindex="0" role="button"{ek} '
                     f'aria-label="Ölçü {html.escape(el["metin"])}{" — " + html.escape(ack) if ack else ""}">'
-                    + baslik
-                    + _olcu(el, renk, kal, k, tutamak=True)
+                    + ipucu
+                    + _olcu(el, renk, kal, k, tutamak=True, r=r)
                     + "</g>"
                 )
             else:
-                parcalar.append(_olcu(el, renk, kal, k))
+                parcalar.append(_olcu(el, renk, kal, k, r=r))
             n_olcu += 1
         elif el["tip"] == "yazi":
             #  Geometri yazının ORTASINI verir ( DXF'te MIDDLE hizası );  SVG
@@ -281,13 +304,18 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False):
                     -el.get("aci", 0),
                     el.get("hiza", "orta"),
                     k,
+                    r.zemin,
                 )
             )
-    bas = _metin(x1 + g / 2.0, y1 - 180, f"{baslik}   1/{olcek:g}", 90, "#1a1a1a") if baslik else ""
+    bas = (
+        _metin(x1 + g / 2.0, y1 - 180, f"{baslik}   1/{olcek:g}", 90, r.baslik, zemin=r.zemin)
+        if baslik
+        else ""
+    )
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x1:.0f} {-y2 - 300:.0f} '
         f'{g:.0f} {d + 600:.0f}" width="{g / olcek:.0f}mm" height="{(d + 600) / olcek:.0f}mm">'
-        f"<defs>{_taramalar(onek, k)}</defs>"
-        '<rect x="-100000" y="-100000" width="200000" height="200000" fill="#ffffff"/>'
+        f"<defs>{_taramalar(onek, k, r)}</defs>"
+        f'<rect x="-100000" y="-100000" width="200000" height="200000" fill="{r.zemin}"/>'
         f'<g transform="scale(1,-1)">{"".join(parcalar)}{bas}</g></svg>'
     )

@@ -93,14 +93,21 @@ def _elemanlar(g, ad):
 
 def _svg(g, ad, onek=""):
     """onek verilirse SVG ekran içindir:  ölçüler tıklanır, desen kimlikleri
-    önekli ( sayfadaki öteki çizimlerle çakışmasın )."""
+    önekli ( sayfadaki öteki çizimlerle çakışmasın ), renkler DXF'inki —
+    AutoCAD'in koyu model alanı gibi ( svg.CAD;  kullanıcı kararı 13 Eki )."""
     e, baslik, olcek = _elemanlar(g, ad)
     return {
         "ad": ad,
         "baslik": baslik,
         "olcek": olcek,
         "svg": svg.yaz(
-            e, geometri.sinir(e, 120 * olcek / 20.0), "", olcek, onek=onek, etkilesimli=bool(onek)
+            e,
+            geometri.sinir(e, 120 * olcek / 20.0),
+            "",
+            olcek,
+            onek=onek,
+            etkilesimli=bool(onek),
+            r=svg.CAD if onek else svg.KAGIT,
         ),
     }
 

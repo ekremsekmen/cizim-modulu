@@ -275,6 +275,27 @@ class SvgCiktisi(unittest.TestCase):
         self.e = geometri.plan(_ornek())
         self.s = svg.yaz(self.e, geometri.sinir(self.e, 250), "KUYU PLANI", 20)
 
+    def test_ekranin_svgsi_dxf_renkleriyle(self):
+        #  Ekranın tuvali AutoCAD'in koyu model alanı gibi ( kullanıcı kararı 13 Eki ):
+        #  katman renkleri DXF'inki, zemin / örtü / hale AutoCAD zemini;  kâğıt siyahı yok
+        s = svg.yaz(self.e, geometri.sinir(self.e, 250), "", 20, onek="c0-", etkilesimli=True, r=svg.CAD)
+        self.assertIn(f'fill="{uslup.CAD_ZEMIN}"', s)
+        for katman in ("KAPI", "RAY", "OLCU", "EKSEN", "KUYU-DUVAR"):
+            self.assertIn(f'stroke="{uslup.cad_rengi(katman)}"', s, katman)
+        self.assertNotIn(uslup.SIYAH, s)
+        #  Yazının halesi zemin renginde ( kâğıtta beyaz )
+        self.assertIn(f'stroke="{uslup.CAD_ZEMIN}" stroke-width', s)
+
+    def test_ekrandaki_svgde_olcu_aciklamasi_baslik_olmaz(self):
+        #  Ekranın SVG'si başlıksızdır;  ölçünün açıklaması ( <title> ) başlığın
+        #  yerine çizimin altına yazılıyordu — değişken adı parametreyi eziyordu ( 13 Eki )
+        #  ( son ölçü kodlu olunca:  kesitlerde SD / SW )
+        e = [eleman.olcu("yatay", (0, 0), (2100, 0), 500, "SW2100")]
+        geometri.yazilari_yerlestir(e)
+        s = svg.yaz(e, geometri.sinir(e, 250), "", 20, onek="c0-", etkilesimli=True)
+        self.assertIn("<title>Kuyu iç genişliği</title>", s)
+        self.assertNotIn("&lt;title&gt;", s)
+
     def test_svg_gecerli_bicimde(self):
         self.assertTrue(self.s.startswith("<svg"))
         self.assertTrue(self.s.rstrip().endswith("</svg>"))

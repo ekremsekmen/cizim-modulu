@@ -253,6 +253,22 @@ yakınlıkta çizgiler ve yazılar keskindir ( kütüphane yok;  bir projenin b�
 çizimleri yenileyince görünüm ve tam ekran yerinde kalır, ölçü kutusu ölçünün
 yanında durur ( kaydırınca izler ).
 
+**Tuval AutoCAD'in model alanı gibidir** ( 13 Eki, kullanıcı:  "çizimleri gördüğüm
+düzlem kalitesiz;  DXF'e bastığımızın birebir aynısını görelim" ):
+* **Renkler DXF'inki, tek tema koyu:**  ekranın SVG'si `svg.CAD` renk takımıyla —
+  katman rengi AutoCAD'deki ( `uslup.cad_rengi`:  KATMAN …aci → AutoCAD paleti ),
+  zemin AutoCAD'in varsayılanı ( `uslup.CAD_ZEMIN` #212830 ), örtü ve yazı halesi
+  zemin renginde.  Kâğıt ( PDF ) ekran rengiyle kalır ( `svg.KAGIT` — siyah çizgi,
+  mavi ölçü, kırmızı eksen;  AutoCAD'den tek renk basmak gibi ).
+* **Ekran kalemi** ( `mTuvalKalemleri` ):  SVG'de çizgiler kâğıttaki kalınlığındaydı,
+  hepsi sığınca ( ~0,7 px / mm ) kalın çizgi 0,34, ince 0,09 piksel kalıyor, çizim
+  gri bir sise dönüyordu.  Her kalem ekranda en az kendi en az kalınlığında
+  ( fiziksel pikselde:  0,50 kalem 2, 0,13 kalem 1 — `TUVAL_KALEMLER` ), yaklaşınca
+  kâğıttaki kalınlığına geçer;  kesik çizgi deseni çizimle ölçeklenir.
+* **Ayrıntı kademesi** ( `mTuvalKalemleriAyarla` ):  ölçü yazısının büyük harfi
+  5 fiziksel pikselden küçük kalırsa yazılar gizlenir, çizimin adı tuvalde sabit
+  boyda yazar ( `figcaption.cizim-ad` );  yaklaşınca yazılar gelir.
+
 **Hatalı girdide çizim yerinde kalır** ( kullanıcı isteği 2 Eki ):  çizim
 kurulamayınca ekranda son geçerli girdilerin çizimi durur ( tuvalin kenarı
 kırmızımsı ), sebepler tuvalin sağ üstünde liste olarak durur ve düzeltilince

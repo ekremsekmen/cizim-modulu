@@ -648,9 +648,12 @@ tr.m-gidilir.etkin td{background:#EEF4FB;font-weight:600}
 /*  TUVAL:  çizimler tek düzlemde yan yana ( mTuval… — uygulama.js ).  Çizimin
     yeri ve boyu JS'ten;  yakınlaştırma CSS ölçeği değil, SVG her boyda
     yeniden çizilir ( keskin kalır ). */
-.tuval{position:relative;overflow:hidden;height:max(460px,calc(100vh - 250px));background:#eef1f5;
-  border:1px solid var(--cizgi);border-radius:8px;cursor:grab;touch-action:none;user-select:none;
-  -webkit-user-select:none;outline:none}
+/*  AutoCAD'in koyu model alanı ( kullanıcı kararı 13 Eki:  ekran DXF'in renkleriyle,
+    tek tema koyu ):  zemin uslup.CAD_ZEMIN — çizimlerin SVG'si de bu zeminde
+    ( svg.CAD );  paftalar ayrı kâğıt değil, çerçeveleriyle model alanında. */
+.tuval{position:relative;overflow:hidden;height:max(460px,calc(100vh - 250px));background:#212830;
+  border:1px solid #161b21;border-radius:8px;cursor:grab;touch-action:none;user-select:none;
+  -webkit-user-select:none;outline:none;color-scheme:dark}
 .tuval.suruklen{cursor:grabbing}
 .tuval:focus-visible{box-shadow:0 0 0 2px var(--mavi-ac)}
 .tuval:fullscreen{height:100vh !important;border:none;border-radius:0}
@@ -658,8 +661,29 @@ tr.m-gidilir.etkin td{background:#EEF4FB;font-weight:600}
 body.tuval-tam-acik{overflow:hidden}
 .tuval .olcu-bildirim{position:absolute;left:10px;top:10px;z-index:20;max-width:calc(100% - 330px);margin:0}
 .tuval .cizim{position:absolute;margin:0}
-.tuval .cizim-svg{width:100%;height:100%;border-radius:2px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.tuval .cizim-svg{width:100%;height:100%;border:none;border-radius:0;background:none;box-shadow:none}
+/*  Ölçünün vurgusu:  koyu zeminde, camgöbeği ölçülerden ve turuncu kapıdan ayrı — altın sarısı */
+.tuval .cizim-svg .olcu:hover line:not(.tut),.tuval .cizim-svg .olcu.secili line:not(.tut),
+.tuval .cizim-svg .olcu:focus-visible line:not(.tut){stroke:#ffd24d}
+.tuval .cizim-svg .olcu:hover text,.tuval .cizim-svg .olcu.secili text,
+.tuval .cizim-svg .olcu:focus-visible text{fill:#ffd24d}
 .tuval .cizim-svg>svg{width:100%;height:100%}
+/*  EKRAN KALEMİ ( mTuvalKalemleri ):  kalınlık piksel ( --k… tuvalde ) / piksel
+    başına çizim birimi ( --mu çizimde ) — SVG'nin kendi biriminde, desen çizimle
+    ölçeklenir.  Ölçünün vurgusu ( renk ) aynen kalır. */
+.tuval [data-k="070"]{stroke-width:calc(var(--k070) / var(--mu))}
+.tuval [data-k="050"]{stroke-width:calc(var(--k050) / var(--mu))}
+.tuval [data-k="035"]{stroke-width:calc(var(--k035) / var(--mu))}
+.tuval [data-k="025"]{stroke-width:calc(var(--k025) / var(--mu))}
+.tuval [data-k="018"]{stroke-width:calc(var(--k018) / var(--mu))}
+.tuval [data-k="013"]{stroke-width:calc(var(--k013) / var(--mu))}
+/*  AYRINTI KADEMESİ ( uzak ):  okunmayacak kadar küçük yazılar gizli, çizimin adı tuvalde */
+.tuval.tuval-uzak .cizim-svg text{display:none}
+.tuval .cizim-ad{position:absolute;left:6px;top:6px;max-width:calc(100% - 12px);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;pointer-events:none;font:600 11.5px/1.25 inherit;
+  color:#E3E9EF;background:rgba(33,40,48,.88);border:1px solid #3B4654;border-radius:5px;
+  padding:2px 7px;display:none}
+.tuval.tuval-uzak .cizim-ad{display:block}
 .tuval .olcu-kutu{user-select:text;-webkit-user-select:text;cursor:auto}
 .tuval-arac{position:absolute;right:10px;top:10px;z-index:20;display:flex;gap:6px}
 /*  Çizim kurulamadığında:  son geçerli çizim yerinde kalır ( kenarı kırmızımsı ),
@@ -673,9 +697,10 @@ body.tuval-tam-acik{overflow:hidden}
 .tuval-hata-sayi{background:var(--kirmizi);color:#fff;border-radius:10px;padding:0 7px;font-size:11px;font-weight:700}
 .tuval-hata .ipucu{display:block;margin:4px 0 0}
 .tuval-hata .cizim-liste{margin:6px 0 0;padding-left:18px;color:var(--kirmizi);font-weight:600}
-.tuval-arac .dg{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tuval-arac .dg{background:#2C3540;color:#E3E9EF;border-color:#3B4654;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.tuval-arac .dg:hover{background:#36404C}
 .tuval-ipucu{position:absolute;left:10px;bottom:8px;right:10px;z-index:19;pointer-events:none;
-  font-size:11.5px;color:var(--gri);text-shadow:0 0 3px #eef1f5,0 0 3px #eef1f5}
+  font-size:11.5px;color:#8D99A6;text-shadow:0 0 3px #212830,0 0 3px #212830}
 .olcu-bildirim{margin:0 0 10px;padding:8px 12px;border-radius:7px;background:var(--mavi-cok-ac);
   border:1px solid var(--mavi-ac);color:var(--mavi);font-size:12.5px}
 .olcu-kutu{position:absolute;z-index:30;width:340px;max-width:calc(100% - 16px);background:#fff;

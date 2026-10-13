@@ -107,6 +107,35 @@ KATMAN = {
 #  Parçanın "ince" ayrıntısı ( sac profil kıvrımı, oluk ) katmanından bağımsız
 INCE = 0.18
 
+#  AUTOCAD'İN RENKLERİ:  ekrandaki tuval DXF'in renkleriyle, AutoCAD'in koyu
+#  model alanı gibi gösterilir ( kullanıcı kararı 13 Eki:  "ekranda DXF'e
+#  bastığımızla birebir aynısını görelim";  tek tema, koyu ).  Katman rengi
+#  ( KATMAN …aci ) → RGB:  AutoCAD'in kendi paleti ( ezdxf.colors.aci2rgb ile
+#  alındı;  yalnız kullanılan sıralar ).  Kâğıt ( PDF ) ekran rengiyle kalır.
+ACI_RGB = {
+    1: "#ff0000",
+    2: "#ffff00",
+    3: "#00ff00",
+    4: "#00ffff",
+    5: "#0000ff",
+    6: "#ff00ff",
+    7: "#ffffff",
+    8: "#808080",
+    30: "#ff7f00",
+    32: "#a55200",
+    33: "#a57c52",
+    90: "#00ff00",
+    150: "#007fff",
+    200: "#bf00ff",
+}
+#  Model alanının zemini:  AutoCAD'in 2015'ten beri varsayılanı ( 33, 40, 48 )
+CAD_ZEMIN = "#212830"
+
+
+def cad_rengi(katman):
+    """Katmanın AutoCAD'de ( koyu zeminde ) görünen rengi."""
+    return ACI_RGB[KATMAN[katman].aci]
+
 
 #  ── TARAMA ( kesilen duvar ) ──  aralık kâğıtta mm.  AutoCAD desenleri:
 #  ANSI31 45° tek çizgi ( temel aralığı 3,175 ), BRICK tuğla ( sıra 6,35 ·
