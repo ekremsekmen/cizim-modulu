@@ -142,6 +142,20 @@ BASLIK = 140.0  # çizimin başlığı — 5 mm
 YAZI_SINIFLARI = (NORMAL, HARF, BASLIK)
 
 
+#  YAZI MASKESİ:  etiketin arkasındaki örtü yazının kutusundan her yanda
+#  ( MASKE_PAYI − 1 ) / 2 · yazı boyu taşar ( DXF:  MTEXT arka planı — AutoCAD
+#  "Border offset factor";  PDF:  dikdörtgen ).  Ölçü yazısınınki OLCU_BOSLUGU
+#  ( DXF dimgap ).  Yerleşim yazıyı maskesiyle denetler ( geometri ):  maske
+#  bir parçanın kenarına değerse kâğıtta kenar kopuk çıkar ( 13 Eki:  delik
+#  planında "66 x 66" duvar çizgisini kesiyordu — kutusu duvara değmiyordu ).
+MASKE_PAYI = 1.25
+
+
+def maske_payi(h):
+    """Etiket maskesinin yazının kutusundan taşması ( h:  yazı boyu, em )."""
+    return (MASKE_PAYI - 1.0) / 2.0 * h
+
+
 def kagitta(em, olcek):
     """em yüksekliğinin kâğıttaki büyük harf boyu ( mm )."""
     return em * BUYUK_HARF / olcek

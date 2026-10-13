@@ -754,7 +754,7 @@ def _parcalar(g, Y):
     e.append(_kutu("PANO", pn, "acil_pano"))
     e.append(_kutu("SIGINMA", ca, "calisma_alani"))
     e.append(eleman.yazi((pn[0] + pn[2]) / 2.0, (pn[1] + pn[3]) / 2.0, "ACİL PANO", uslup.NORMAL))
-    e.append(eleman.yazi((ca[0] + ca[2]) / 2.0, (ca[1] + ca[3]) / 2.0, "ÇALIŞMA ALANI", uslup.NORMAL))
+    e += geometri.alan_yazisi(ca, ["ÇALIŞMA ALANI"])
     return e
 
 
@@ -782,11 +782,17 @@ def _olculer(g, Y):
     e.append(eleman.olcu("yatay", (0, 0), (G, 0), u1, kisaltmalar.kodlu("SW", G), ad="kuyu_genisligi"))
     s0, s1 = G + dg + 120, G + dg + 120 + geometri.SIRA_ARASI
     ys = sorted({0.0, D, Y["halatlar"][0][1], Y["ry"], (Y["reg_kasnak"][1] + Y["reg_kasnak"][3]) / 2.0})
-    e += [eleman.olcu("dusey", (0, a), (0, b), s0) for a, b in zip(ys, ys[1:])]
+    sag = list(zip(ys, ys[1:]))
+    e += [eleman.olcu("dusey", (0, a), (0, b), s0) for a, b in sag]
     e.append(eleman.olcu("dusey", (0, 0), (0, D), s1, kisaltmalar.kodlu("SD", D), ad="kuyu_derinligi"))
     t1, t2 = Y["ag_teget"][1], Y["ag_teget2"][1]
     ys = sorted({0.0, D, t1, t2, Y["ag_y"], Y["ry"]})
-    e += [eleman.olcu("dusey", (0, a), (0, b), -ds - 120) for a, b in zip(ys, ys[1:])]
+    #  Sağdaki zincirin ölçtüğü aralık solda yazılmaz ( ISO 129-1:  her ölçü bir
+    #  kez — 13 Eki;  iki yanda da ray ekseniyle duvar arası vardı )
+    sol = [
+        (a, b) for a, b in zip(ys, ys[1:]) if not any(abs(a - p) < 0.5 and abs(b - q) < 0.5 for p, q in sag)
+    ]
+    e += [eleman.olcu("dusey", (0, a), (0, b), -ds - 120) for a, b in sol]
     #  Acil pano çalışma alanı  ( m.5.2.6.3.2.1 a )
     ca = Y["calisma"]
     kural = (
@@ -804,13 +810,20 @@ def _olculer(g, Y):
             kural=kural,
         )
     )
+    #  Halat sapması:  aynı aralığı bir zincir ölçüyorsa yazılmaz ( zincirin
+    #  sürekliliği kalır — 13 Eki;  üst zincirin "335"i ile "HALAT SAPMASI 335" )
+    olculen = {geometri.olcu_araligi(el) for el in e}
     dx, dy = Y["sapma"]
     if abs(dx) > 0.5:
         a, b = sorted((Y["ag_dusus"][0], Y["ex"]))
-        e.append(eleman.olcu("yatay", (a, 0), (b, 0), Y["ag_dusus"][1] - 150, f"HALAT SAPMASI {abs(dx):g}"))
+        if ("yatay", round(a, 1), round(b, 1)) not in olculen:
+            e.append(
+                eleman.olcu("yatay", (a, 0), (b, 0), Y["ag_dusus"][1] - 150, f"HALAT SAPMASI {abs(dx):g}")
+            )
     if abs(dy) > 0.5:
         a, b = sorted((Y["ag_dusus"][1], t1))
-        e.append(eleman.olcu("dusey", (0, a), (0, b), Y["ex"] + 150, f"HALAT SAPMASI {abs(dy):g}"))
+        if ("dusey", round(a, 1), round(b, 1)) not in olculen:
+            e.append(eleman.olcu("dusey", (0, a), (0, b), Y["ex"] + 150, f"HALAT SAPMASI {abs(dy):g}"))
     return e
 
 

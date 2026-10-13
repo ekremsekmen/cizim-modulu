@@ -119,13 +119,16 @@ class KasnakDuzeni(unittest.TestCase):
 
     def test_duzey_inis_180(self):
         #  Makine dairesizde ve saptırmasız 2:1'de iki iniş düşey:  180°,
-        #  halat arası kasnağın çapı ( LiftDesigner "Sarım açısı 0" yazıyordu )
+        #  halat arası kasnağın çapı ( LiftDesigner "Sarım açısı 0" yazıyordu ) —
+        #  aynı aralık Ø ile ölçülmüş, HALAT ARASI yazılmaz ( 13 Eki:  her ölçü bir kez )
         for ad in ("4815-6", "1275"):
             g = _gercek(ad)
             e = kasnak_duzeni.ciz(g)
             with self.subTest(ad):
                 self.assertIn("SARIM AÇISI 180°", [x["metin"] for x in e if x["tip"] == "yazi"])
-                self.assertIn(f"HALAT ARASI {g['makine']['tahrik_kasnak_capi']:g}", _olculer(e))
+                olculer = _olculer(e)
+                self.assertIn(f"Ø {g['makine']['tahrik_kasnak_capi']:g}", olculer)
+                self.assertFalse([m for m in olculer if m.startswith("HALAT ARASI")], olculer)
 
     def test_her_duzende_cizilir(self):
         for ad, v in test_olcu_kaynagi.DUZENLER.items():

@@ -176,7 +176,13 @@ def ciz(g, cizim_sabitleri=None):
     k1 = z_alt + 150
     if sp and abs(us - uc) > 1e-6:
         e.append(eleman.olcu("yatay", (min(us, uc), 0), (max(us, uc), 0), k1 + 230, None))
-    e.append(eleman.olcu("yatay", (min(uk, ua), 0), (max(uk, ua), 0), k1, f"HALAT ARASI {abs(ua - uk):.0f}"))
+    #  İki halat inişinin arası kasnağın çapına eşitse ( 180° sarım ) yazılmaz:
+    #  aynı aralık Ø ile ölçülmüş ( ISO 129-1:  her ölçü bir kez — 13 Eki )
+    capli = [(uc - R1, uc + R1)] + ([(us - R2, us + R2)] if sp else [])
+    if not any(abs(min(uk, ua) - a) < 0.5 and abs(max(uk, ua) - b) < 0.5 for a, b in capli):
+        e.append(
+            eleman.olcu("yatay", (min(uk, ua), 0), (max(uk, ua), 0), k1, f"HALAT ARASI {abs(ua - uk):.0f}")
+        )
     #  Sağ:  merkezlerin döşemeden ( makine dairesizde kuyu tavanına ) yüksekliği
     s = u1_ + 150
     if oda is not None:

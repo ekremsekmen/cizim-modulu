@@ -1706,6 +1706,31 @@ class KenarIzgarasi:
 _ONDALIK = re.compile(r"(?<![\d.,])(\d+)\.(\d+)(?![\d.])")
 
 
+def olcu_araligi(o):
+    """Ölçünün ölçtüğü aralık:  ( yön , baş , son ) — 0,1 mm'ye yuvarlı."""
+    j = 0 if o["yon"] == "yatay" else 1
+    return (o["yon"], round(min(o["a"][j], o["b"][j]), 1), round(max(o["a"][j], o["b"][j]), 1))
+
+
+def tekrarlari_at(e):
+    """SON ADIM ( cizimler.CIZIMLER ):  kimliksiz ( `ad`sız ) bir ölçü, aynı
+    aralığı ölçen başka bir ölçü varsa yazılmaz — ISO 129-1:  her ölçü bir kez
+    ( 13 Eki:  gerçek 800 KG kuyu planında üst iki sırada iki "400" ).  Kimlikli
+    ölçü kalır:  ölçüye tıklama onu tanır;  iki ayrı parçanın ölçüsü rastlantıyla
+    çakışabilir ( ray civatası ile askı kaçıklığı ).  Aynı aralıkta yalnız
+    kimliksizler varsa ilki kalır."""
+    gruplar = {}
+    for el in e:
+        if el["tip"] == "olcu":
+            gruplar.setdefault(olcu_araligi(el), []).append(el)
+    at = set()
+    for liste in gruplar.values():
+        kimlikli = [o for o in liste if o.get("ad")]
+        kalan = kimlikli or liste[:1]
+        at |= {id(o) for o in liste if not o.get("ad") and all(o is not k for k in kalan)}
+    return [el for el in e if id(el) not in at]
+
+
 def ondalik_virgul(e):
     """SON ADIM ( cizimler.CIZIMLER ):  yazılardaki ve ölçülerdeki ondalık nokta
     virgül olur ( "AĞIRLIK RAYI 127,5", "+21,00" — kullanıcı 5 Eki ).  Ölçü
@@ -1714,6 +1739,109 @@ def ondalik_virgul(e):
         if el.get("metin"):
             el["metin"] = _ONDALIK.sub(r"\1,\2", el["metin"])
     return e
+
+
+def alan_yazisi(kutu, satirlar, h=uslup.NORMAL):
+    """Bir alanın ( sığınma, çalışma alanı ) adı, alanın İÇİNDE ve ortasında:
+    yazı ( maskesiyle — uslup.maske_payi ) kutuya sığmıyorsa satırları bölünür
+    ( önce iki boşluktan:  "ÇÖMELME  500 x 700" → "ÇÖMELME", "500 x 700";  sonra
+    yalnız harflerden oluşan satır sözcüklerine:  "SIĞINMA ALANI" → "SIĞINMA",
+    "ALANI" ), o da sığmazsa kutu uzunsa dikine yazılır;  hiçbiri sığmıyorsa
+    ilk biçim kalır.  Satır adımı yazı boyu ve iki maske payı:  satırların
+    maskeleri birbirine değmez ( adım h iken etiket ayırıcı alt alta satırları
+    birbirine binmiş sayıp dağıtıyordu ).  13 Eki:
+    yazı kendi alanının kesikli sınırının üstüne taşıyordu ( kabin üstünde
+    "ÇÖMELME  500 x 700" 700'lük kutuda, kuyu üstünde "ÇALIŞMA ALANI" 500'lük
+    kutuda ).  [ yazı elemanı ]"""
+    pay = uslup.maske_payi(h)
+    adim = h + 2 * pay
+    bolunmus = [p for s in satirlar for p in s.split("  ")]
+    sozcuk = [w for s in bolunmus for w in (s.split(" ") if not re.search(r"\d", s) else [s])]
+    eni, boyu = kutu[2] - kutu[0], kutu[3] - kutu[1]
+    adaylar = [(s, 0) for s in (list(satirlar), bolunmus, sozcuk)]
+    if boyu > eni:
+        adaylar += [(s, 90) for s in (list(satirlar), bolunmus, sozcuk)]
+
+    def sigar(sat, aci):
+        en, yuk = (eni, boyu) if aci == 0 else (boyu, eni)
+        return max(eleman.yazi_eni(s, h) for s in sat) + 2 * pay <= en and len(sat) * adim <= yuk
+
+    sat, aci = next((a for a in adaylar if sigar(*a)), adaylar[0])
+    cx, cy = (kutu[0] + kutu[2]) / 2.0, (kutu[1] + kutu[3]) / 2.0
+    n = len(sat)
+    return [
+        eleman.ad(
+            eleman.yazi(cx, cy + ((n - 1) / 2.0 - j) * adim, s, h)
+            if aci == 0
+            else eleman.yazi(cx - ((n - 1) / 2.0 - j) * adim, cy, s, h, aci=90),
+            "alan_adi",
+        )
+        for j, s in enumerate(sat)
+    ]
+
+
+def _ust(a, b, pay=4.0):
+    """İki kutu ( pay kadar büyütülmüş ) üst üste mi."""
+    return a[0] < b[2] + pay and b[0] < a[2] + pay and a[1] < b[3] + pay and b[1] < a[3] + pay
+
+
+def _kayma_adimlari(menzil, adim, ic=0):
+    """Etiketin denenecek kaymaları:  kareli, yakından uzağa ( önce yatay )."""
+    return sorted(
+        {
+            (dx, dy)
+            for dx in range(-menzil, menzil + 1, adim)
+            for dy in range(-menzil, menzil + 1, adim)
+            if max(abs(dx), abs(dy)) > ic
+        },
+        key=lambda d: (d[0] ** 2 + d[1] ** 2, abs(d[1])),
+    )
+
+
+def _etiket_yeri(kb, maske, k, sorunlu, parca_kutulari, adimlar):
+    """Sorunlu etiketin kayması:  ( dx, dy, oklu mu ) ya da None ( yerinde kalır ).
+
+    Maskesi ( uslup.maske_payi ) ya da kutusu kıl payı ( 2 mm'den az ) bir
+    kenara değen etiket kâğıtta o kenarı koparır ( 13 Eki ):  az kaydırılır
+    ( 100 mm — kâğıtta 5 mm ) — önce maskesi, yoksa kutusu temiz yere;
+    bulunamazsa yerinde kalır, uzağa oklu sıçramaz ( kuyu dibinin perde
+    yazısı kuyunun dışına itiliyordu ).  Gerçekten binen etiket önce de az
+    kaydırılır, olmazsa eskisi gibi en yakın yere ( 300 mm ), o da yoksa oklu
+    uzak yere.  Daha uzaktaki temiz yer seçilmez:  etiket adlandırdığı
+    parçadan kopuyordu ( kabin üstünde KARŞI AĞIRLIK kabinin içine, ön kesitte
+    kuyu duvarının dışına geçiyordu )."""
+    itme, yakin, uzak = adimlar
+    eski_parca = sum(1 for q in parca_kutulari if _ust(kb, q, 0.0))
+
+    def kayik(dx, dy):
+        return (kb[0] + dx, kb[1] + dy, kb[2] + dx, kb[3] + dy)
+
+    def yakinda(pay, liste):
+        return next(
+            (
+                (dx, dy)
+                for dx, dy in liste[1:]
+                if not sorunlu(kayik(dx, dy), pay=pay)
+                and sum(1 for q in parca_kutulari if _ust(kayik(dx, dy), q, 0.0)) <= eski_parca
+            ),
+            None,
+        )
+
+    yer = yakinda(maske, itme) or yakinda(0.0, itme)
+    if yer is None and not sorunlu(kb, pay=2.0 * k):
+        return None
+    yer = yer or yakinda(2.0 * k, yakin)
+    if yer is not None:
+        return yer + (False,)
+    yer = next(
+        (
+            (dx, dy)
+            for dx, dy in uzak
+            if not sorunlu(kayik(dx, dy)) and not any(_ust(kayik(dx, dy), q, 0.0) for q in parca_kutulari)
+        ),
+        None,
+    )
+    return None if yer is None else yer + (True,)
 
 
 def etiketleri_ayir(e, olcek=20):
@@ -1732,10 +1860,6 @@ def etiketleri_ayir(e, olcek=20):
     şasesinin, kabin üstünde HALAT şase kirişinin, dar karşı ağırlığın içinde
     KARŞI AĞIRLIK  ø 400 kasnağın üstünde )."""
     k = olcek / 20.0
-
-    def ust(a, b, pay=4.0):
-        return a[0] < b[2] + pay and b[0] < a[2] + pay and a[1] < b[3] + pay and b[1] < a[3] + pay
-
     #  Parçalar ( etiket içlerine yeniden girmez ) ve duvarlar ( içinde durmaz )
     parca_kutulari = [
         sinir([x])
@@ -1757,21 +1881,11 @@ def etiketleri_ayir(e, olcek=20):
         or (x["tip"] == "olcu" and x.get("yazi"))
     ]
     kutular = {id(x): yazi_kutusu(x) for x in yazilar}
-
-    def adimlar_(menzil, adim, ic=0):
-        return sorted(
-            {
-                (dx, dy)
-                for dx in range(-menzil, menzil + 1, adim)
-                for dy in range(-menzil, menzil + 1, adim)
-                if max(abs(dx), abs(dy)) > ic
-            },
-            key=lambda d: (d[0] ** 2 + d[1] ** 2, abs(d[1])),
-        )
-
-    yakin_m, uzak_m = int(300 * k), int(900 * k)
-    yakin_adim = adimlar_(yakin_m, max(int(20 * k), 1))
-    uzak_adim = adimlar_(uzak_m, max(int(40 * k), 1), yakin_m)
+    adimlar = (
+        _kayma_adimlari(int(100 * k), max(int(10 * k), 1)),
+        _kayma_adimlari(int(300 * k), max(int(20 * k), 1)),
+        _kayma_adimlari(int(900 * k), max(int(40 * k), 1), int(300 * k)),
+    )
     oklar = []
     for el in yazilar:
         if el["tip"] != "yazi":
@@ -1779,45 +1893,21 @@ def etiketleri_ayir(e, olcek=20):
         kb = kutular[id(el)]
         obur = [kutular[id(x)] for x in yazilar if x is not el and kutular[id(x)]]
 
-        def sorunlu(kt, obur=obur):
+        def sorunlu(kt, obur=obur, pay=2.0 * k):
+            #  pay:  kenar denetiminde kutunun küçültülmesi ( eksi:  büyütülmesi )
             return (
-                any(ust(kt, b) for b in obur)
-                or any(ust(kt, d, -2.0 * k) for d in duvarlar)
-                or kenarlar.kesisir(kt, 2.0 * k)
+                any(_ust(kt, b) for b in obur)
+                or any(_ust(kt, d, -2.0 * k) for d in duvarlar)
+                or kenarlar.kesisir(kt, pay)
             )
 
-        if not sorunlu(kb):
+        maske = -uslup.maske_payi(el["yukseklik"])
+        if not sorunlu(kb, pay=maske):
             continue
-        eski_parca = sum(1 for q in parca_kutulari if ust(kb, q, 0.0))
-        yer = next(
-            (
-                (dx, dy)
-                for dx, dy in yakin_adim[1:]
-                if not sorunlu((kb[0] + dx, kb[1] + dy, kb[2] + dx, kb[3] + dy))
-                and sum(
-                    1 for q in parca_kutulari if ust((kb[0] + dx, kb[1] + dy, kb[2] + dx, kb[3] + dy), q, 0.0)
-                )
-                <= eski_parca
-            ),
-            None,
-        )
-        ok = False
-        if yer is None:
-            yer = next(
-                (
-                    (dx, dy)
-                    for dx, dy in uzak_adim
-                    if not sorunlu((kb[0] + dx, kb[1] + dy, kb[2] + dx, kb[3] + dy))
-                    and not any(
-                        ust((kb[0] + dx, kb[1] + dy, kb[2] + dx, kb[3] + dy), q, 0.0) for q in parca_kutulari
-                    )
-                ),
-                None,
-            )
-            ok = yer is not None
+        yer = _etiket_yeri(kb, maske, k, sorunlu, parca_kutulari, adimlar)
         if yer is None:
             continue
-        dx, dy = yer
+        dx, dy, ok = yer
         k2 = (kb[0] + dx, kb[1] + dy, kb[2] + dx, kb[3] + dy)
         if ok:
             #  Ok:  etiketin parçaya en yakın noktasından eski yerinin ortasına

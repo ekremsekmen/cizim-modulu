@@ -31,8 +31,6 @@ from cizim import geometri
 from cizim import uslup
 
 YAZI_TIPI = "CizimYazi"
-#  Yazının maskesi:  kutunun yazıdan taşması ( dxf.MASKE_PAYI ile aynı oran )
-MASKE_PAYI = 1.25
 
 
 def yazi_tipini_kaydet():
@@ -173,14 +171,14 @@ def _ok(c, el, k):
 def _metin(c, x, y, metin, h, renk, aci=0.0, hiza="orta", k=1.0):
     """Yazı:  ( x, y ) yazının ORTASI ( geometri );  taban çizgisi 0,35·h aşağıda
     ( svg ile aynı ).  Önce zemin renginde MASKE — AutoCAD'deki gibi yazının
-    kutusu, payı DXF'teki maskeninki ( dxf.MASKE_PAYI:  1,25 → yazı boyunun
+    kutusu, payı DXF'teki maskeninki ( uslup.MASKE_PAYI:  1,25 → yazı boyunun
     0,125'i ) —, sonra yazı BİR KEZ:  hale yazıyı ikinci kez basınca PDF'ten
     kopyalanan metin çift çıkıyordu ( "SD1850SD1850" )."""
     a = math.radians(aci)
     bx, by = x + 0.35 * h * math.sin(a), y - 0.35 * h * math.cos(a)
     w = pdfmetrics.stringWidth(metin, YAZI_TIPI, h)
     dx = {"orta": -w / 2.0, "sol": 0.0, "sag": -w}.get(hiza, -w / 2.0)
-    pay = (MASKE_PAYI - 1.0) / 2.0 * h
+    pay = uslup.maske_payi(h)
     c.saveState()
     c.translate(bx, by)
     c.rotate(aci)

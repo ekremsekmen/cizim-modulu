@@ -61,11 +61,13 @@ CIZIMLER = {
 }
 
 
-#  Son adım:  birbirine binen etiketler ayrılır ( geometri.etiketleri_ayir ),
-#  ondalık ayırıcı virgül olur ( geometri.ondalik_virgul )
+#  Son adım:  aynı aralığın ikinci kimliksiz ölçüsü atılır ( geometri.tekrarlari_at ),
+#  birbirine binen etiketler ayrılır ( geometri.etiketleri_ayir ), ondalık ayırıcı
+#  virgül olur ( geometri.ondalik_virgul )
 def _ayir(ciz, olcek=20):
     def ayrilmis(*a, **k):
-        return geometri.ondalik_virgul(geometri.etiketleri_ayir(ciz(*a, **k), olcek))
+        e = geometri.tekrarlari_at(ciz(*a, **k))
+        return geometri.ondalik_virgul(geometri.etiketleri_ayir(e, olcek))
 
     ayrilmis.__name__ = ciz.__name__
     return ayrilmis

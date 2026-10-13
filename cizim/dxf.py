@@ -208,8 +208,8 @@ def _olcu(hedef, el, olcek):
 #  ekseninin kesiştiği yerde, "ASKI ARASI" askı ekseninin üstünde — 5 Eki ).
 #  Etiket arka planı çizimin zemin rengiyle örtülen MTEXT'tir ( AutoCAD'de
 #  "Background Mask · Use drawing background color" ), ölçü yazısı dimtfill.
-#  Örtünün yazıdan taşma çarpanı ( AutoCAD:  Border offset factor ):
-MASKE_PAYI = 1.25
+#  Örtünün yazıdan taşma çarpanı ( AutoCAD:  Border offset factor — uslup ):
+MASKE_PAYI = uslup.MASKE_PAYI
 _MTEXT_HIZA = {"sol": 4, "sag": 6}  # MIDDLE_LEFT · MIDDLE_RIGHT;  yoksa 5 ( orta )
 
 

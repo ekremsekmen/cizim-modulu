@@ -84,11 +84,16 @@ def raylari_topla(taban, ad):
     return sorted((_birlesim(r) for r in raylar), key=lambda k: (k[0], k[1]))
 
 
-def _serbest(sira, adaylar, sinir_, engeller):
+def _serbest(sira, adaylar, sinir_, engeller, eksenler=()):
     """Adaylardan yazıları hiçbir engele binmeyen ilk ölçü sırası ( kuyunun
-    içinde kalanlardan );  hepsi biniyorsa ilki."""
+    içinde kalanlardan );  hepsi biniyorsa ilki.  Ölçü çizgisi bir eksen
+    çizgisiyle çakışan ( 40 mm'den yakın ) aday seçilmez:  ISO 129-1 — eksen
+    ölçü çizgisi olmaz ( 13 Eki:  sığınma yazısı daralınca düşey sıra kabin
+    ekseninin üstüne geçiyordu )."""
     uygun = [k for k in adaylar if 0 < k < sinir_] or list(adaylar[:1])
     for k in uygun:
+        if any(abs(k - x) < 40 for x in eksenler):
+            continue
         olculer = [dict(o) for o in sira(k) if o["uzunluk"] > 1e-6]
         geometri.yazilari_yerlestir(olculer)
         kutular = []
@@ -920,9 +925,7 @@ def _donanim(Y, G):
             eleman.ad(eleman.dikdortgen("SIGINMA", sg[0], sg[1], sg[2] - sg[0], sg[3] - sg[1]), "siginma")
         )
         a, b = SIGINMA[Y["siginma_tipi"]]
-        cx, cy = kutu_merkezi(sg)
-        e.append(eleman.yazi(cx, cy + 35, "SIĞINMA ALANI", uslup.NORMAL))
-        e.append(eleman.yazi(cx, cy - 35, f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}", uslup.NORMAL))
+        e += geometri.alan_yazisi(sg, ["SIĞINMA ALANI", f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}"])
     return e
 
 
@@ -997,8 +1000,12 @@ def _siginma_olculeri(sg, G, D, e):
             eleman.olcu("dusey", (0, sg[3]), (0, D), k),
         ]
 
-    return _serbest(yatay, (sg[3] + 90, sg[1] - 90), D, engel) + _serbest(
-        dusey, (sg[2] + 90, sg[0] - 90), G, engel
+    #  Eksenler:  yatay sıra yatay eksene, düşey sıra düşey eksene çakışmasın
+    eksen = [el for el in e if el["tip"] == "eksen" or el.get("katman") == "EKSEN"]
+    yatay_eksen = [el["y1"] for el in eksen if "y1" in el and abs(el["y1"] - el["y2"]) < 1e-6]
+    dusey_eksen = [el["x1"] for el in eksen if "x1" in el and abs(el["x1"] - el["x2"]) < 1e-6]
+    return _serbest(yatay, (sg[3] + 90, sg[1] - 90), D, engel, yatay_eksen) + _serbest(
+        dusey, (sg[2] + 90, sg[0] - 90), G, engel, dusey_eksen
     )
 
 

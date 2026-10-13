@@ -565,7 +565,12 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
    dışta;  her ölçü bir kez — kuyunun dış ölçüsü ( duvar + SW + duvar ) ve
    alttaki ikinci kuyu genişliği yazılmaz, zincirlerin "0" sıfır noktaları
    kalktı;  sıralar arası 5 mm ( LD;  `geometri.SIRA_ARASI` — bütün planlar ve
-   kesitler ).  Her ölçünün yazıdan bağımsız **kimliği**
+   kesitler ).  Aynı aralığı ölçen ikinci ölçü yazılmaz ( 13 Eki ):  kuyu
+   üstünde sağdaki zincirin aralıkları solda, zincirin ölçtüğü HALAT SAPMASI,
+   kasnak düzenlemesinde Ø'ye eşit HALAT ARASI;  son adım `geometri.tekrarlari_at`
+   kimliksiz tekrarı atar ( kimlikli iki ölçü — ayrı parçalar — rastlantıyla
+   çakışabilir ).  Ölçü sırası eksen çizgisinin üstüne konmaz ( kuyu dibinde
+   sığınma ölçüleri — `kuyu_dibi._serbest` ).  Her ölçünün yazıdan bağımsız **kimliği**
    vardır ( `ad`, "olcu_kuyu_genisligi" … ):  yazı sayıya inince ölçüye
    tıklama ölçüyü onunla tanır ( `olcu_kaynagi._imza` ), testler onunla arar.
    **Uzatma çizgisi kısa ve sabit boyludur, yazı kendi ölçüsünün yanındadır.**
@@ -640,7 +645,7 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
    ( "KABİN 1350 x 1400" kabinin iki ekseninin kesiştiği yerde, "ASKI ARASI"
    askı ekseninin üstünde;  girdi taramasında örnek projede 110 kesişme ).
    * DXF:  etiket arka planı zemin rengiyle örtülen MTEXT'tir ( "Background
-     Mask · Use drawing background color", `dxf.MASKE_PAYI` 1,25 ), ölçü
+     Mask · Use drawing background color", `uslup.MASKE_PAYI` 1,25 ), ölçü
      yazısında `dimtfill` 1.  Örtü yalnız kendinden önce çizileni örter:
      parçalar önce, sonra ölçüler, en son etiketler yazılır.
    * SVG:  harflerin çevresinde zemin renginde hale ( `svg.HALE` 0,6 em;
@@ -662,6 +667,22 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
      AĞIRLIK konsolların, kuyu planında kabin duvarının "75"i kabinin
      çizgilerinin üstündeydi;  B-B'de durak numarası kanat ayrımının üstündeydi
      — artık ortaya en yakın kanadın ortasında.
+   * Kenar yazının MASKESİYLE denetlenir ( 13 Eki — `uslup.maske_payi`, DXF ve
+     PDF aynı:  kutudan her yanda 0,125 · yazı boyu ):  kutusu kenara değmeyen
+     etiketin maskesi kenarı koparıyordu ( delik planında "66 x 66" duvar
+     çizgisini ).  Maskesi ya da kutusu kıl payı ( 0,1 mm ) değen etiket en
+     çok 100 mm kaydırılır, yer yoksa yerinde kalır;  hiçbir etiket eski
+     kuralın götürdüğünden uzağa gitmez ( `geometri._etiket_yeri` — temiz ama
+     uzak yer etiketi parçasından koparıyordu ).  Ölçü yazıları eskisi gibi:
+     onları kenardan uzaklaştırmak kuyu dibinin yük kutularını kuyudan atıyordu.
+   * Alanın adı ( sığınma, çalışma alanı ) kendi kesikli kutusunun içindedir
+     ( `geometri.alan_yazisi` ):  sığmazsa satırlara bölünür — SIĞINMA ALANI /
+     ÇÖMELME / 500 x 700 —, gerekirse dikine;  satırların maskeleri birbirine
+     değmez.
+   * KALİTE KAPISI ( `testler/test_kalite.py` ):  altının 30 düzeninin bütün
+     çizimlerinde yazı yazıya binmez, aynı aralık iki kez ölçülmez, yazı parça
+     kenarına binmez, alanın adı kutusundadır.  Ayrıntılı döküm git dışı
+     `cikti/araclar/kalite_karnesi.py`.
    * Girdi taraması ( `tara.py` ) yazının parça kenarına binmesini ve etiketin
      duvarın içinde durmasını da sayar.
    * Kenarlar ızgarada aranır ( `KenarIzgarasi` ):  hesap kuyu planını bir

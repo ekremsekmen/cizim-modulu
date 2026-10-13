@@ -431,9 +431,7 @@ def ciz(g, cizim_sabitleri=None):
             eleman.ad(eleman.dikdortgen("SIGINMA", sg[0], sg[1], sg[2] - sg[0], sg[3] - sg[1]), "siginma")
         )
         a, b = SIGINMA[Y["siginma_tipi"]]
-        cx, cy = (sg[0] + sg[2]) / 2.0, (sg[1] + sg[3]) / 2.0
-        e.append(eleman.yazi(cx, cy + 35, "SIĞINMA ALANI", uslup.NORMAL))
-        e.append(eleman.yazi(cx, cy - 35, f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}", uslup.NORMAL))
+        e += geometri.alan_yazisi(sg, ["SIĞINMA ALANI", f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}"])
     e += aski_el
 
     e += _ana_olculer(g, tavan)

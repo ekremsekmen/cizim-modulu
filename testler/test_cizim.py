@@ -1479,12 +1479,17 @@ class KuyuUstu(unittest.TestCase):
                 #  tahrik kasnağının bir teğeti kabinin yakın halatında
                 self.assertTrue(abs(ks[2] - xl) < 1e-9 or abs(ks[0] - xr) < 1e-9)
                 self.assertAlmostEqual(ks[2] - ks[0], g["makine"]["tahrik_kasnak_capi"])
-                sapma = [
-                    el
-                    for el in kuyu_ustu.ciz(g)
-                    if el["tip"] == "olcu" and el["metin"].startswith("HALAT SAPMASI")
-                ]
-                self.assertEqual(bool(sapma), any(abs(v) > 0.5 for v in Y["sapma"]))
+                olculer = [el for el in kuyu_ustu.ciz(g) if el["tip"] == "olcu"]
+                #  Sapma varsa ölçülür:  kendi ölçüsüyle ya da aynı aralığı ölçen
+                #  zincirle ( 13 Eki — her ölçü bir kez );  yoksa HALAT SAPMASI yok
+                for v, yon in zip(Y["sapma"], ("yatay", "dusey")):
+                    if abs(v) > 0.5:
+                        self.assertTrue(
+                            any(o["yon"] == yon and abs(o["uzunluk"] - abs(v)) < 0.5 for o in olculer),
+                            (yon, v),
+                        )
+                if not any(abs(v) > 0.5 for v in Y["sapma"]):
+                    self.assertFalse([o for o in olculer if o["metin"].startswith("HALAT SAPMASI")])
         self.assertEqual(kuyu_ustu.yerlesim(_ornek(makine={"tahrik_kasnak_capi": 200}))["sapma"], (40, 0))
 
     def test_regulator_gergi_kasnaginin_ustunde(self):
