@@ -17,6 +17,7 @@ kanat_kalinlik ).
 
 from cizim import izli
 from cizim import eleman
+from cizim import kisaltmalar
 from cizim import uslup
 from cizim import dusey
 from cizim import geometri
@@ -263,7 +264,7 @@ def _olculer(e, Y, don, z_alt):
         if b - a > 1e-6:
             e.append(eleman.olcu("yatay", (a, 0), (b, 0), zo, metin.get((a, b))))
     u1 = -don - DOSEME_GOSTERIM - 150.0
-    e.append(eleman.olcu("dusey", (0, 0.0), (0, HH), u1, f"KAPI {HH:g}"))
+    e.append(eleman.olcu("dusey", (0, 0.0), (0, HH), u1, kisaltmalar.kodlu("DH", HH), ad="kapi_yuksekligi"))
     e.append(eleman.olcu("dusey", (0, HH), (0, HH + S["kasa_ust"]), u1, None))
     e.append(eleman.olcu("dusey", (0, 0.0), (0, bh), u1 - 230.0, f"KAPI BOŞLUĞU {bh:g}"))
     #  Eşik altı sacı eşiğin altından, önlük döşemeden ( m.5.4.5.2 )

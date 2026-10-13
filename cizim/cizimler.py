@@ -18,7 +18,7 @@ from cizim import makine_dairesi
 
 
 CIZIMLER = {
-    "kuyu_plani": (geometri.dogrula, geometri.plan, "KUYU PLANI  ( kabin hizasından yatay kesit )"),
+    "kuyu_plani": (geometri.dogrula, geometri.kuyu_plani, "KUYU PLANI  ( kabin hizasından yatay kesit )"),
     "kabin_ustu": (
         kabin_ustu.dogrula,
         kabin_ustu.ciz,

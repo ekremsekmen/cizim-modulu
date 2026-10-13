@@ -36,6 +36,7 @@ kuralla ( tek halat:  çap + 2 × pay ).
 
 from temel import ortusur, sayi_mi
 from cizim import eleman
+from cizim import kisaltmalar
 from cizim import uslup
 from cizim import izli
 from cizim import geometri
@@ -960,20 +961,42 @@ def _olculer(Y, md, G, D):
     """Oda ve odanın kuyuya göre yeri;  çalışma ve bakım alanlarının ölçüleri
     ( standardın sayıları )."""
     oda, t = Y["oda"], md["duvar"]
-    u0, u1 = oda[3] + t + 120, oda[3] + t + 320
+    u0, u1 = oda[3] + t + 120, oda[3] + t + 120 + geometri.SIRA_ARASI
     xs = sorted({oda[0], oda[2], 0.0, G})
     e = [
-        eleman.olcu("yatay", (a_, 0), (b_, 0), u0, "KUYU " + f"{G:g}" if (a_, b_) == (0.0, G) else None)
+        eleman.olcu("yatay", (a_, 0), (b_, 0), u0, kisaltmalar.kodlu("SW", G), ad="kuyu_genisligi")
+        if (a_, b_) == (0.0, G)
+        else eleman.olcu("yatay", (a_, 0), (b_, 0), u0)
         for a_, b_ in zip(xs, xs[1:])
     ]
-    e.append(eleman.olcu("yatay", (oda[0], 0), (oda[2], 0), u1, f"MAKİNE DAİRESİ {oda[2] - oda[0]:g}"))
-    s0, s1 = oda[2] + t + 120, oda[2] + t + 320
+    e.append(
+        eleman.olcu(
+            "yatay",
+            (oda[0], 0),
+            (oda[2], 0),
+            u1,
+            kisaltmalar.kodlu("MRW", oda[2] - oda[0]),
+            ad="oda_genisligi",
+        )
+    )
+    s0, s1 = oda[2] + t + 120, oda[2] + t + 120 + geometri.SIRA_ARASI
     ys = sorted({oda[1], oda[3], 0.0, D})
     e += [
-        eleman.olcu("dusey", (0, a_), (0, b_), s0, "KUYU " + f"{D:g}" if (a_, b_) == (0.0, D) else None)
+        eleman.olcu("dusey", (0, a_), (0, b_), s0, kisaltmalar.kodlu("SD", D), ad="kuyu_derinligi")
+        if (a_, b_) == (0.0, D)
+        else eleman.olcu("dusey", (0, a_), (0, b_), s0)
         for a_, b_ in zip(ys, ys[1:])
     ]
-    e.append(eleman.olcu("dusey", (0, oda[1]), (0, oda[3]), s1, f"MAKİNE DAİRESİ {oda[3] - oda[1]:g}"))
+    e.append(
+        eleman.olcu(
+            "dusey",
+            (0, oda[1]),
+            (0, oda[3]),
+            s1,
+            kisaltmalar.kodlu("MRD", oda[3] - oda[1]),
+            ad="oda_derinligi",
+        )
+    )
     for alan, kural in (
         (
             Y["calisma"],
@@ -1046,12 +1069,12 @@ def delik_plani(g, cizim_sabitleri=None):
         e.append(eleman.cizgi("EKSEN", cx, d[1] - 40, cx, d[3] + 40, tip="eksen"))
     xs = sorted({0.0, G} | {round((d[0] + d[2]) / 2.0, 3) for _, d in Y["delikler"]})
     ys = sorted({0.0, D} | {round((d[1] + d[3]) / 2.0, 3) for _, d in Y["delikler"]})
-    u0, u1 = D + dar + 120, D + dar + 320
-    s0, s1 = G + dg + 120, G + dg + 320
+    u0, u1 = D + dar + 120, D + dar + 120 + geometri.SIRA_ARASI
+    s0, s1 = G + dg + 120, G + dg + 120 + geometri.SIRA_ARASI
     e += [eleman.olcu("yatay", (a_, 0), (b_, 0), u0) for a_, b_ in zip(xs, xs[1:])]
-    e.append(eleman.olcu("yatay", (0, 0), (G, 0), u1, f"KUYU GENİŞLİĞİ {G:g}"))
+    e.append(eleman.olcu("yatay", (0, 0), (G, 0), u1, kisaltmalar.kodlu("SW", G), ad="kuyu_genisligi"))
     e += [eleman.olcu("dusey", (0, a_), (0, b_), s0) for a_, b_ in zip(ys, ys[1:])]
-    e.append(eleman.olcu("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"))
+    e.append(eleman.olcu("dusey", (0, 0), (0, D), s1, kisaltmalar.kodlu("SD", D), ad="kuyu_derinligi"))
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     geometri.yazilari_yerlestir(e)
     return e

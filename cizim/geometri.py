@@ -22,6 +22,7 @@ import threading
 from dataclasses import dataclass
 
 from cizim import izli
+from cizim import kisaltmalar
 from cizim import eleman
 from cizim import uslup
 from cizim import girdi
@@ -627,7 +628,7 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
     e += _kabin_ici_olculeri(P)
     e += _aski_olculeri(P)
     e += _kabin_kapisi(P)
-    _yazilar(P, e, alt)
+    _yazilar(P, e)
     yazilari_yerlestir(e, kaydir=True)
     adaylar = _kabin_ici_yazi_adaylari(P, e)
     if adaylar:
@@ -635,6 +636,35 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
     parcadan_kaydir(e, ek_katman=("AGIRLIK",))
     e += kesit_isaretleri(g, e)
     return e
+
+
+def kuyu_plani(g, cizim_sabitleri=None):
+    """KUYU PLANI ( C-C ):  plan ve sağında VERİLER ile KISALTMALAR tabloları
+    ( kisaltmalar — ölçü kodlarının Türkçesi;  LiftDesigner'ın veri bloğu
+    gibi ).  Tablolar kesit işaretlerinin de sağında, planın dış arka
+    yüzünün hizasından başlar."""
+    S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
+    e = plan(g, cizim_sabitleri)
+    P = _plan_olculeri(g, S)
+    x = sinir(e)[2] + 150.0
+    t1, alt = kisaltmalar.tablo(x, P.D + P.dar, "VERİLER", _veriler(P), "veriler")
+    kodlar = [(k, kisaltmalar.KODLAR[k]) for k in kisaltmalar.projede(g, kisaltmalar.kullanilanlar(e))]
+    t2, _ = kisaltmalar.tablo(x, alt - 2 * kisaltmalar.SATIR, "KISALTMALAR", kodlar, "kisaltmalar")
+    return e + t1 + t2
+
+
+def _veriler(P):
+    """VERİLER tablosunun satırları:  kabin, kapı, askı."""
+    kb, kp = P.g["kabin"], P.g["kapi"]
+    oran = "1:1" if P.duzen == "Doğrudan" else "2:1"
+    aski = P.duzen or "—"
+    if P.capraz is not None:
+        aski += f"  ·  çapraz {P.capraz['aci']:.0f}°"
+    return [
+        ("Kabin", f"CW × CD  {kb['genislik']:g} × {kb['derinlik']:g}"),
+        ("Kapı", f"DW × DH  {kp['genislik']:g} × {kp.get('yukseklik', 2100):g}  ·  {kp['tip']}"),
+        ("Askı", f"{aski}  ·  {oran}"),
+    ]
 
 
 def _duvarlar(P, bosluklu):
@@ -946,14 +976,6 @@ def _aski(P):
                     "kabin_kasnak_yazi",
                 )
             )
-        e.append(
-            eleman.ad(
-                eleman.yazi(
-                    kx, aski_y - P.aski_yari - 230, f"ASKI:  {eleman.buyuk(duzen)}  ·  2:1", uslup.NORMAL
-                ),
-                "aski_yazi",
-            )
-        )
     elif duzen == "Doğrudan":
         #  1:1:  halatlar kabin şasesinin üst kirişinin ortasındaki TEK
         #  bağlantıda biter ( tek tahrik kasnağı — LiftDesigner 12744-3 );  kiriş
@@ -962,10 +984,6 @@ def _aski(P):
             eleman.ad(eleman.daire("KASNAK", kx, aski_y, 45), "aski_nokta"),
             eleman.ad(eleman.cizgi("KASNAK", kx - 70, aski_y, kx + 70, aski_y), "aski_nokta"),
             eleman.ad(eleman.cizgi("KASNAK", kx, aski_y - 70, kx, aski_y + 70), "aski_nokta"),
-            eleman.ad(
-                eleman.yazi(kx, aski_y - P.aski_yari - 230, "ASKI:  DOĞRUDAN  ·  1:1", uslup.NORMAL),
-                "aski_yazi",
-            ),
         ]
     else:
         e = []
@@ -1000,27 +1018,6 @@ def _capraz_aski(P):
         )
     (px, py), (hx, hy) = capraz["P"], capraz["H"]
     e.append(eleman.ad(eleman.cizgi("EKSEN", px, py, hx, hy, tip="eksen"), "aski_duzlemi"))
-    #  İki satır:  tek satırda kabinden genişti, iki ucu kabin duvarlarının
-    #  üstüne düşüyordu ( 450 kg arka ağırlık — 5 Eki )
-    e.append(
-        eleman.ad(
-            eleman.yazi(
-                capraz["cx"], capraz["cy"] - 230, f"ASKI:  {eleman.buyuk(P.duzen)}  ·  2:1", uslup.NORMAL
-            ),
-            "aski_yazi",
-        )
-    )
-    e.append(
-        eleman.ad(
-            eleman.yazi(
-                capraz["cx"],
-                capraz["cy"] - 230 - 1.4 * uslup.NORMAL,
-                f"ÇAPRAZ {capraz['aci']:.0f}°",
-                uslup.NORMAL,
-            ),
-            "aski_yazi",
-        )
-    )
     return e
 
 
@@ -1178,6 +1175,15 @@ def _kesitte_gizle(P, e):
 
 
 #  ── ÖLÇÜLER ──────────────────────────────────────────────────────────
+#  ÖLÇÜ DİLİ ( kisaltmalar — 13 Eki, kullanıcı "LD gibi kısa kod + tablo" ):
+#  asıl ölçüler kodla ( SW · SD · CW · CD · PLW · DW · DBG · DBGW ), neyi
+#  ölçtüğü çizimden belli olanlar ( duvar, kasa, ray yüksekliği, eşikler,
+#  eksenlerin yeri, askı ) yalnız sayıyla.  Her ölçünün yazıdan bağımsız
+#  KİMLİĞİ ( ad, "olcu_…" ):  yazı sayıya inince ölçüye tıklama ölçüyü onunla
+#  tanır ( olcu_kaynagi._imza ).
+#  SIRALAR ( ISO 129-1 ):  ara zincirler içte, duvarlarla kuyu genişliği /
+#  derinliği en dışta;  her ölçü bir kez — kuyunun dış ölçüsü ( duvar + SW +
+#  duvar ) yazılmaz ( kullanıcı kararı 13 Eki ), SW altta tekrarlanmaz.
 #  Uzatma çizgisi yoktur:  ölçü, ölçtüğü noktaların hizasında durur.
 #  PLANIN DIŞINDAKİ SIRALAR yalnız kuyu sınırı boyunca okunabilen
 #  ölçüleri taşır;  bir iç parçayı ( askı, eşik ) ölçen ölçü parçanın
@@ -1186,26 +1192,33 @@ def _kesitte_gizle(P, e):
 #  Kabinin dış yüzleri ( LiftDesigner'ın PLW'si ):  şasenin dikmeleri rayın
 #  ucunda, kabinle ray arasındadır — eskiden "ŞASE DIŞI" kabin + 2 × 30'du,
 #  çizimde karşılığı yoktu.
-_SIRA_ARASI = 200.0  # dış ölçü sıraları arası
+#  Dış ölçü sıraları arası:  1/20'de 100 ( kâğıtta 5 mm — LiftDesigner );
+#  bütün planlar bunu kullanır ( eskiden 200 — 10 mm )
+SIRA_ARASI = 100.0
+
+
+def _o(yon, a, b, kot, ad=None, metin=None, **ek):
+    """Planın ölçüsü ( kimliği önce — okunsun diye )."""
+    return eleman.olcu(yon, a, b, kot, metin, ad=ad, **ek)
 
 
 def _ust_olculer(P):
-    """ÜST — kuyu genişliği boyunca."""
+    """ÜST — kuyu genişliği boyunca.  Sıralar duvardan dışarı:  kabinin dış
+    yüzleri ( PLW ), kabin rayları ( DBG ), arkadaki ağırlığın rayları
+    ( DBGW ), en dışta duvarlar ve kuyu genişliği ( SW )."""
     G, ds, dg, kr = P.G, P.ds, P.dg, P.g["kabin_ray"]
     sol_yuz, sag_yuz = P.sol_yuz, P.sag_yuz
     ic_sol, ic_sag = P.kx - P.dis_g / 2.0, P.kx + P.dis_g / 2.0
-    u = [P.D + P.dar + 120 + i * _SIRA_ARASI for i in range(5)]
+    u = [P.D + P.dar + 120 + i * SIRA_ARASI for i in range(4)]
     e = [
-        eleman.olcu("yatay", (-ds, 0), (0, 0), u[0], f"DUVAR {ds:g}"),
-        eleman.olcu("yatay", (0, 0), (G, 0), u[0], f"KUYU GENİŞLİĞİ {G:g}"),
-        eleman.olcu("yatay", (G, 0), (G + dg, 0), u[0], f"DUVAR {dg:g}"),
-        eleman.olcu("yatay", (-ds, 0), (G + dg, 0), u[1], f"DIŞ ÖLÇÜ {G + ds + dg:g}"),
-        eleman.olcu("yatay", (0, 0), (sol_yuz - kr["h"], 0), u[2]),
-        eleman.olcu("yatay", (sol_yuz - kr["h"], 0), (sol_yuz, 0), u[2], f"RAY {kr['h']:g}"),
-        eleman.olcu("yatay", (sol_yuz, 0), (sag_yuz, 0), u[2], f"DBG {kr['arasi']:g}"),
-        eleman.olcu("yatay", (sag_yuz, 0), (sag_yuz + kr["h"], 0), u[2], f"RAY {kr['h']:g}"),
-        eleman.olcu("yatay", (sag_yuz + kr["h"], 0), (G, 0), u[2]),
-        eleman.olcu("yatay", (ic_sol, 0), (ic_sag, 0), u[3], f"KABİN DIŞI {ic_sag - ic_sol:g}"),
+        _o(
+            "yatay",
+            (ic_sol, 0),
+            (ic_sag, 0),
+            u[0],
+            "kabin_dis_genisligi",
+            kisaltmalar.kodlu("PLW", ic_sag - ic_sol),
+        ),
     ]
     #  KABİN İLE KARŞI AĞIRLIK ARASI ( m.5.2.5.5.1 h:  en az 50 — girdi.dogrula ):
     #  yandaki ağırlıkta zincir duvardan ağırlığın çerçevesine, çerçeveye ve
@@ -1223,15 +1236,43 @@ def _ust_olculer(P):
         elif P.ag_yan == "Sağ" and bx0 >= ic_sag:
             sag_uc = [ic_sag, bx0, bx1, G]
     for uc in (sol_uc, sag_uc):
-        e += [eleman.olcu("yatay", (a, 0), (b, 0), u[3]) for a, b in zip(uc, uc[1:]) if b - a > 1e-6]
+        e += [_o("yatay", (a, 0), (b, 0), u[0]) for a, b in zip(uc, uc[1:]) if b - a > 1e-6]
+    e += [
+        _o("yatay", (0, 0), (sol_yuz - kr["h"], 0), u[1]),
+        _o("yatay", (sol_yuz - kr["h"], 0), (sol_yuz, 0), u[1], "kabin_rayi_sol"),
+        _o(
+            "yatay",
+            (sol_yuz, 0),
+            (sag_yuz, 0),
+            u[1],
+            "kabin_ray_arasi",
+            kisaltmalar.kodlu("DBG", kr["arasi"]),
+        ),
+        _o("yatay", (sag_yuz, 0), (sag_yuz + kr["h"], 0), u[1], "kabin_rayi_sag"),
+        _o("yatay", (sag_yuz + kr["h"], 0), (G, 0), u[1]),
+    ]
+    dis = 2
     if not P.ag_yan:
         #  Arkadaki ağırlığın rayları kuyu genişliği boyunca ölçülür
         r0, r1 = ex - ag["ray_arasi"] / 2.0, ex + ag["ray_arasi"] / 2.0
         e += [
-            eleman.olcu("yatay", (0, 0), (r0, 0), u[4]),
-            eleman.olcu("yatay", (r0, 0), (r1, 0), u[4], f"DBGW {ag['ray_arasi']:g}"),
-            eleman.olcu("yatay", (r1, 0), (G, 0), u[4]),
+            _o("yatay", (0, 0), (r0, 0), u[2]),
+            _o(
+                "yatay",
+                (r0, 0),
+                (r1, 0),
+                u[2],
+                "agirlik_ray_arasi",
+                kisaltmalar.kodlu("DBGW", ag["ray_arasi"]),
+            ),
+            _o("yatay", (r1, 0), (G, 0), u[2]),
         ]
+        dis = 3
+    e += [
+        _o("yatay", (-ds, 0), (0, 0), u[dis], "duvar_sol"),
+        _o("yatay", (0, 0), (G, 0), u[dis], "kuyu_genisligi", kisaltmalar.kodlu("SW", G)),
+        _o("yatay", (G, 0), (G + dg, 0), u[dis], "duvar_sag"),
+    ]
     return e
 
 
@@ -1239,26 +1280,23 @@ def _alt_olculer(P, alt):
     """ALT — kapı zinciri, kuyu genişliği, kabin ve ağırlık eksenleri
     ( alt:  kapının ve açılma yayının altı )."""
     G, x0, kg, kasa = P.G, P.x0, P.kg, P.S["kasa_yan"]
-    a1, a2, a3 = alt - 120, alt - 320, alt - 520
+    a1, a3 = alt - 120, alt - 120 - SIRA_ARASI
     e = [
-        eleman.olcu("yatay", (0, 0), (x0 - kasa, 0), a1),
-        eleman.olcu("yatay", (x0 - kasa, 0), (x0, 0), a1, f"KASA {kasa:g}"),
-        eleman.olcu(
-            "yatay", (x0, 0), (x0 + kg, 0), a1, f"KAPI {kg:g} x {P.g['kapi'].get('yukseklik', 2100):g}"
-        ),
-        eleman.olcu("yatay", (x0 + kg, 0), (x0 + kg + kasa, 0), a1, f"KASA {kasa:g}"),
-        eleman.olcu("yatay", (x0 + kg + kasa, 0), (G, 0), a1),
-        eleman.olcu("yatay", (0, 0), (G, 0), a2, f"KUYU GENİŞLİĞİ {G:g}"),
+        _o("yatay", (0, 0), (x0 - kasa, 0), a1),
+        _o("yatay", (x0 - kasa, 0), (x0, 0), a1, "kasa_sol"),
+        _o("yatay", (x0, 0), (x0 + kg, 0), a1, "kapi_genisligi", kisaltmalar.kodlu("DW", kg)),
+        _o("yatay", (x0 + kg, 0), (x0 + kg + kasa, 0), a1, "kasa_sag"),
+        _o("yatay", (x0 + kg + kasa, 0), (G, 0), a1),
     ]
     ex = P.ex
     noktalar = sorted(set([0.0, P.kx, G] + ([ex] if P.ag_yan else [])))
     for sol_n, sag_n in zip(noktalar, noktalar[1:]):
-        metin = None
+        ad = None
         if (P.ag_yan == "Sol" and sol_n == 0 and sag_n == ex) or (
             P.ag_yan == "Sağ" and sol_n == ex and sag_n == G
         ):
-            metin = f"AĞIRLIK RAYI {sag_n - sol_n:g}"
-        e.append(eleman.olcu("yatay", (sol_n, 0), (sag_n, 0), a3, metin))
+            ad = "agirlik_ekseni"
+        e.append(_o("yatay", (sol_n, 0), (sag_n, 0), a3, ad))
     return e
 
 
@@ -1273,34 +1311,41 @@ def _yan_olculer(P):
         sol, sag = [_civata_sirasi], [_agirlik_rayi_sirasi]
     else:
         sol, sag = [], [_civata_sirasi]
-    sol += [_ray_ekseni_sirasi, _derinlik_dis_olcusu]
-    sag += [_on_arka_duvar_sirasi, _kabin_derinligi_sirasi, _esik_sirasi, _kapi_arasi_sirasi]
+    sol += [_ray_ekseni_sirasi]
+    sag += [_kabin_derinligi_sirasi, _esik_sirasi, _kapi_arasi_sirasi, _on_arka_duvar_sirasi]
     e = []
     for i, sira in enumerate(sol):
-        e += sira(P, -P.ds - 120 - i * _SIRA_ARASI)
+        e += sira(P, -P.ds - 120 - i * SIRA_ARASI)
     for i, sira in enumerate(sag):
-        e += sira(P, P.G + P.dg + 120 + i * _SIRA_ARASI)
+        e += sira(P, P.G + P.dg + 120 + i * SIRA_ARASI)
     return e
 
 
-def _zincir(uc, kot, ilk_metin=None):
+def _zincir(uc, kot, ilk_ad=None):
     """Düşey ölçü zinciri ( uc:  sıralı noktalar ).  Kısa parçalar yazısız
     ( yalnız sayı ):  uzun ad parçaya sığmayıp dışarı taşıyor, duvarın
     ölçüsüne biniyordu."""
-    out = [eleman.olcu("dusey", (0, a), (0, b), kot) for a, b in zip(uc, uc[1:])]
-    if ilk_metin and len(uc) > 2:
-        out[0] = eleman.olcu("dusey", (0, uc[0]), (0, uc[1]), kot, ilk_metin)
+    out = [_o("dusey", (0, a), (0, b), kot) for a, b in zip(uc, uc[1:])]
+    if ilk_ad and len(uc) > 2:
+        out[0] = _o("dusey", (0, uc[0]), (0, uc[1]), kot, ilk_ad)
     return out
 
 
 def _agirlik_rayi_sirasi(P, kot):
     ag, ag_alt, ag_ust = P.g["agirlik"], P.ag_alt, P.ag_ust
     return [
-        eleman.olcu("dusey", (0, 0), (0, ag_alt), kot),
-        eleman.olcu("dusey", (0, ag_alt), (0, ag_alt + ag["h"]), kot, f"{ag['h']:g}"),
-        eleman.olcu("dusey", (0, ag_alt + ag["h"]), (0, ag_ust - ag["h"]), kot, f"DBGW {ag['ray_arasi']:g}"),
-        eleman.olcu("dusey", (0, ag_ust - ag["h"]), (0, ag_ust), kot, f"{ag['h']:g}"),
-        eleman.olcu("dusey", (0, ag_ust), (0, P.D), kot),
+        _o("dusey", (0, 0), (0, ag_alt), kot),
+        _o("dusey", (0, ag_alt), (0, ag_alt + ag["h"]), kot, "agirlik_rayi_on"),
+        _o(
+            "dusey",
+            (0, ag_alt + ag["h"]),
+            (0, ag_ust - ag["h"]),
+            kot,
+            "agirlik_ray_arasi",
+            kisaltmalar.kodlu("DBGW", ag["ray_arasi"]),
+        ),
+        _o("dusey", (0, ag_ust - ag["h"]), (0, ag_ust), kot, "agirlik_rayi_arka"),
+        _o("dusey", (0, ag_ust), (0, P.D), kot),
     ]
 
 
@@ -1308,8 +1353,8 @@ def _civata_sirasi(P, kot):
     """Kabin rayı konsolunun cıvata aralığı — duvara dayanan konsolda."""
     c, ry = P.S["konsol_civata_araligi"], P.ry
     return [
-        eleman.olcu("dusey", (0, ry - c), (0, ry), kot, f"CIVATA {c:g}"),
-        eleman.olcu("dusey", (0, ry), (0, ry + c), kot, f"{c:g}"),
+        _o("dusey", (0, ry - c), (0, ry), kot, "civata_on"),
+        _o("dusey", (0, ry), (0, ry + c), kot, "civata_arka"),
     ]
 
 
@@ -1322,13 +1367,7 @@ def _ray_ekseni_sirasi(P, kot):
     ray_uc = [ry, P.D]
     if not P.ag_yan and P.ey > ry:
         ray_uc = [ry, P.ey, P.D]
-    return [eleman.olcu("dusey", (0, 0), (0, ry), kot, f"RAY EKSENİ {ry:g}")] + _zincir(
-        ray_uc, kot, f"KABİN RAYI – AĞIRLIK RAYI {ray_uc[1] - ry:g}"
-    )
-
-
-def _derinlik_dis_olcusu(P, kot):
-    return [eleman.olcu("dusey", (0, -P.don), (0, P.D + P.dar), kot, f"DIŞ ÖLÇÜ {P.D + P.don + P.dar:g}")]
+    return [_o("dusey", (0, 0), (0, ry), kot, "ray_ekseni")] + _zincir(ray_uc, kot, "kabin_rayi_agirlik_rayi")
 
 
 def _on_arka_duvar_sirasi(P, kot):
@@ -1336,15 +1375,15 @@ def _on_arka_duvar_sirasi(P, kot):
     tıklanınca yalnız o duvarın kalınlığı değişir ( 2 Eki )."""
     D, don, dar = P.D, P.don, P.dar
     return [
-        eleman.olcu("dusey", (0, -don), (0, 0), kot, f"DUVAR {don:g}"),
-        eleman.olcu("dusey", (0, 0), (0, D), kot, f"KUYU DERİNLİĞİ {D:g}"),
-        eleman.olcu("dusey", (0, D), (0, D + dar), kot, f"DUVAR {dar:g}"),
+        _o("dusey", (0, -don), (0, 0), kot, "duvar_on"),
+        _o("dusey", (0, 0), (0, D), kot, "kuyu_derinligi", kisaltmalar.kodlu("SD", D)),
+        _o("dusey", (0, D), (0, D + dar), kot, "duvar_arka"),
     ]
 
 
 def _kabin_derinligi_sirasi(P, kot):
     kd = P.g["kabin"]["derinlik"]
-    return [eleman.olcu("dusey", (0, P.ic_on), (0, P.ic_on + kd), kot, f"KABİN {kd:g}")]
+    return [_o("dusey", (0, P.ic_on), (0, P.ic_on + kd), kot, "kabin_derinligi", kisaltmalar.kodlu("CD", kd))]
 
 
 def _esik_sirasi(P, kot):
@@ -1358,22 +1397,13 @@ def _esik_sirasi(P, kot):
     İç yüzden kapı hattına:  duvar boşluğuna montajda kat eşiğinin taşan
     kısmı, kuyu içine montajda kat kapısı ünitesinin tamamı."""
     KB = P.KB
-    if P.g["kapi"]["montaj"] == "Duvar boşluğuna":
-        hat_metni = f"KAT EŞİĞİ {KB['hat']:g}"
-    else:
-        hat_metni = f"KAT KAPISI {KB['hat']:g}"
+    hat = "kat_esigi" if P.g["kapi"]["montaj"] == "Duvar boşluğuna" else "kat_kapisi"
     esik = [
-        (0.0, KB["hat"], hat_metni),
-        (KB["hat"], KB["kabin_esik"][0], None),
-        (
-            KB["kabin_esik"][0],
-            KB["kabin_esik"][1],
-            f"KABİN EŞİĞİ {KB['kabin_esik'][1] - KB['kabin_esik'][0]:g}",
-        ),
+        (0.0, KB["hat"], hat),
+        (KB["hat"], KB["kabin_esik"][0], "esik_arasi"),
+        (KB["kabin_esik"][0], KB["kabin_esik"][1], "kabin_esigi"),
     ]
-    return [
-        eleman.olcu("dusey", (0, bas), (0, son), kot, metin or f"{son - bas:g}") for bas, son, metin in esik
-    ]
+    return [_o("dusey", (0, bas), (0, son), kot, ad) for bas, son, ad in esik]
 
 
 def _kapi_arasi_sirasi(P, kot):
@@ -1387,8 +1417,8 @@ def _kapi_arasi_sirasi(P, kot):
     if not P.ag_yan and P.ey - ag_d / 2.0 >= ic_on + dis_d:
         kabin_uc = [ic_on + dis_d, P.ey - ag_d / 2.0, P.ey + ag_d / 2.0, D]
     return [
-        eleman.olcu("dusey", (0, 0), (0, ic_on), kot, f"KAPI ARASI {ic_on:g}"),
-        eleman.olcu("dusey", (0, ic_on), (0, ic_on + dis_d), kot, f"KABİN + ŞASE {dis_d:g}"),
+        _o("dusey", (0, 0), (0, ic_on), kot, "kapi_arasi"),
+        _o("dusey", (0, ic_on), (0, ic_on + dis_d), kot, "kabin_ve_sase"),
     ] + _zincir(kabin_uc, kot)
 
 
@@ -1412,9 +1442,16 @@ def _kabin_ici_olculeri(P):
         kab_kot = ic_on + dis_d - 200
     ic_sol, ic_sag = kx - P.dis_g / 2.0, kx + P.dis_g / 2.0
     return [
-        eleman.olcu("yatay", (ic_sol, 0), (kx - kg / 2.0, 0), kab_kot),
-        eleman.olcu("yatay", (kx - kg / 2.0, 0), (kx + kg / 2.0, 0), kab_kot, f"KABİN İÇİ {kg:g}"),
-        eleman.olcu("yatay", (kx + kg / 2.0, 0), (ic_sag, 0), kab_kot),
+        _o("yatay", (ic_sol, 0), (kx - kg / 2.0, 0), kab_kot, "kabin_duvari_sol"),
+        _o(
+            "yatay",
+            (kx - kg / 2.0, 0),
+            (kx + kg / 2.0, 0),
+            kab_kot,
+            "kabin_genisligi",
+            kisaltmalar.kodlu("CW", kg),
+        ),
+        _o("yatay", (kx + kg / 2.0, 0), (ic_sag, 0), kab_kot, "kabin_duvari_sag"),
     ]
 
 
@@ -1429,12 +1466,12 @@ def _aski_olculeri(P):
     arasi = None
     if P.duzen != "Doğrudan":  # 1:1'de tek bağlantı:  aralık yok
         aralik = P.aski.get("kasnak_arasi")
-        arasi = eleman.olcu(
+        arasi = _o(
             "yatay",
             (kx - aralik / 2.0, 0),
             (kx + aralik / 2.0, 0),
             aski_y - aski_yari - 70,
-            f"ASKI ARASI {aralik:g}",
+            "aski_arasi",
             yazi={"x": kx, "y": aski_y - aski_yari - 70 + 50, "aci": 0},
         )
         e.append(arasi)
@@ -1442,7 +1479,7 @@ def _aski_olculeri(P):
     if abs(kac) <= 1e-9:
         return e
     kac_x = kx - P.g["kabin"]["genislik"] / 2.0 + 150
-    metin = f"ASKI KAÇIKLIĞI {abs(kac):g}"
+    metin = f"{abs(kac):g}"
     w_kac, h_ = eleman.yazi_eni(metin), eleman.OLCU_YAZI
     yazi = {"x": kac_x + 30 + w_kac / 2.0, "y": (aski_y + merkez_y) / 2.0, "aci": 0}
     #  Kaçıklık küçükken iki yazı aynı yüksekliğe düşüyordu ( girdi
@@ -1458,7 +1495,7 @@ def _aski_olculeri(P):
                 ay["x"] = c
             else:
                 yazi["y"] = max(aski_y, merkez_y) + 25 + h_ / 2.0
-    e.append(eleman.olcu("dusey", (0, aski_y), (0, merkez_y), kac_x, metin, yazi=yazi))
+    e.append(_o("dusey", (0, aski_y), (0, merkez_y), kac_x, "aski_kacikligi", metin, yazi=yazi))
     return e
 
 
@@ -1491,21 +1528,12 @@ def _kabin_kapisi(P):
     return [kabin_esigi] + kanatlar + [operator]
 
 
-def _yazilar(P, e, alt):
-    """Kabin ve karşı ağırlık yazıları, ölçü zincirlerinin sıfır noktaları."""
+def _yazilar(P, e):
+    """Karşı ağırlığın yazısı.  KABİN ölçüleri ve askı düzeni VERİLER
+    tablosunda ( kuyu_plani;  13 Eki — eskiden kabinin içinde "KABİN 1350 x
+    1400", "ASKI:  KABİN ALTI · 2:1" yazıyordu );  ölçü zincirlerinin "0"
+    sıfır noktaları kalktı ( zincirler duvardan başlar, sıfır okunuyordu )."""
     ag, ex, ag_y = P.g["agirlik"], P.ex, P.ag_y
-    kb = P.g["kabin"]
-    #  Askı noktaları kabin ortasına yakınsa kabin yazısı arkaya kayar.
-    kabin_yazi_y = P.ky if abs(P.aski_y - P.ky) >= 150 else P.ky + 200
-    e.append(
-        eleman.ad(
-            eleman.yazi(P.kx, kabin_yazi_y, f"KABİN  {kb['genislik']:g} x {kb['derinlik']:g}", uslup.NORMAL),
-            "kabin_yazi",
-        )
-    )
-    #  Ölçü zincirlerinin sıfır noktaları  ( referans projede de "0" yazar )
-    for zx in (0, P.G):
-        e.append(eleman.yazi(zx, alt - 420, "0", uslup.NORMAL))
     if not P.ag_yan:
         e.append(
             eleman.ad(

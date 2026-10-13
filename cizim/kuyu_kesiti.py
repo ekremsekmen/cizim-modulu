@@ -28,6 +28,7 @@ Kotlar donanim.py'de, planla aynı yerlerden;  açıklık denetimleri dusey.py'd
 """
 
 from cizim import eleman
+from cizim import kisaltmalar
 from cizim import uslup
 from cizim import arka_aski
 from cizim import donanim
@@ -79,10 +80,13 @@ def _duvar(e, u, z, w, h, ad=None):
 
 
 def _zincir(e, kot, noktalar, metinler=None):
+    """Düşey zincir.  metinler:  { sıra:  yazı ya da ( yazı , kimlik ) }."""
     metinler = metinler or {}
     for i, (a, b) in enumerate(zip(noktalar, noktalar[1:])):
         if b - a > 1e-6:
-            e.append(eleman.olcu("dusey", (0, a), (0, b), kot, metinler.get(i)))
+            m = metinler.get(i)
+            metin, ad = m if isinstance(m, tuple) else (m, None)
+            e.append(eleman.olcu("dusey", (0, a), (0, b), kot, metin, ad=ad))
 
 
 def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
@@ -269,9 +273,19 @@ def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon):
 def _olculer_sol(e, Y, u0, K, kotlar, tavan, g):
     """Kuyu dibi + kat yükseklikleri + son kat · seyir · kuyu yüksekliği."""
     H = kotlar[-1]
-    s0, s1, s2 = (u0 - (250 * i) * K for i in range(3))
+    s0, s1, s2 = (u0 - (geometri.SIRA_ARASI * i) * K for i in range(3))
     zincir = [Y["taban"]] + kotlar + [tavan]
-    _zincir(e, s0, zincir, {0: f"KUYU DİBİ {-Y['taban']:g}", len(zincir) - 2: f"SON KAT {tavan - H:g}"})
+    #  Son kat ( kuyu üst boşluğu ) LiftDesigner'ın OH'si;  kuyu dibi, seyir ve
+    #  kuyu yüksekliği LD'de de Türkçe yazılır ( "Kuyu dibi1700", "Seyir15000" )
+    _zincir(
+        e,
+        s0,
+        zincir,
+        {
+            0: f"KUYU DİBİ {-Y['taban']:g}",
+            len(zincir) - 2: (kisaltmalar.kodlu("OH", tavan - H), "kuyu_ust_boslugu"),
+        },
+    )
     e.append(eleman.olcu("dusey", (0, 0.0), (0, H), s1, f"SEYİR {H:g}"))
     e.append(eleman.olcu("dusey", (0, Y["taban"]), (0, tavan), s2, f"KUYU YÜKSEKLİĞİ {tavan - Y['taban']:g}"))
 
@@ -378,7 +392,11 @@ def _kir(e, za, zu, bosluk):
             tek = len(icinde) == 1 and abs(icinde[0][0] - p) < 1e-9 and abs(icinde[0][1] - q) < 1e-9
             metin = icinde[0][2]["metin"] if tek else _birlesik_metin(icinde, q - p)
             x = icinde[0][2]["a"][0]
-            out.append(eleman.olcu("dusey", (x, m(p)), (x, m(q)), kot, metin))
+            yeni = eleman.olcu("dusey", (x, m(p)), (x, m(q)), kot, metin)
+            #  Kırıktan geçmeyen tek ölçü kimliğini korur ( OH — ölçüye tıklama )
+            if tek and "ad" in icinde[0][2]:
+                yeni["ad"] = icinde[0][2]["ad"]
+            out.append(yeni)
     return out, m, ic
 
 
@@ -569,17 +587,20 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     _konsol_zinciri(e, r0, ag, tavan, "AĞIRLIK RAYI", dy["agirlik_konsol_arasi"])
     sa = M["sase"]
     if oda:
-        r1 = r0 + 250 * K
-        _oda_olculeri(e, M, g["makine_dairesi"], g["makine"]["tahrik_kasnak_capi"], r1, r1 + 250 * K)
+        r1 = r0 + geometri.SIRA_ARASI * K
+        _oda_olculeri(
+            e, M, g["makine_dairesi"], g["makine"]["tahrik_kasnak_capi"], r1, r1 + geometri.SIRA_ARASI * K
+        )
     else:
         _zincir(
             e,
-            r0 + 250 * K,
+            r0 + geometri.SIRA_ARASI * K,
             [sa[4], sa[5], M["kapak"][5], tavan],
             {0: f"ŞASE {sa[5] - sa[4]:g}", 1: f"MAKİNE {M['kapak'][5] - sa[5]:g}"},
         )
-    e.append(eleman.olcu("dusey", (0, 0.0), (0, kapi_h), -don - 120 * K, f"KAPI {kapi_h:g}"))
-    e.append(eleman.olcu("yatay", (0, taban), (D, taban), taban - dos - 250 * K, f"KUYU DERİNLİĞİ {D:g}"))
+    dh, sd = kisaltmalar.kodlu("DH", kapi_h), kisaltmalar.kodlu("SD", D)
+    e.append(eleman.olcu("dusey", (0, 0.0), (0, kapi_h), -don - 120 * K, dh, ad="kapi_yuksekligi"))
+    e.append(eleman.olcu("yatay", (0, taban), (D, taban), taban - dos - 250 * K, sd, ad="kuyu_derinligi"))
     #  Kırık:  altta kabin ( ve paten ), üstte karşı ağırlık kalmalı
     return _bitir(
         e,
@@ -687,9 +708,20 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
         {0: f"ÇARPMA ARASI {dy['agirlik_carpma_arasi']:g}", 1: f"KARŞI AĞIRLIK {AK['ust'] - AK['alt']:g}"},
     )
     if oda:
-        r1 = r0 + 500 * K
-        _oda_olculeri(e, M, g["makine_dairesi"], g["makine"]["tahrik_kasnak_capi"], r1, r1 + 250 * K)
-    e.append(eleman.olcu("yatay", (0, taban), (G, taban), taban - dos - 250 * K, f"KUYU GENİŞLİĞİ {G:g}"))
+        r1 = r0 + 2 * geometri.SIRA_ARASI * K
+        _oda_olculeri(
+            e, M, g["makine_dairesi"], g["makine"]["tahrik_kasnak_capi"], r1, r1 + geometri.SIRA_ARASI * K
+        )
+    e.append(
+        eleman.olcu(
+            "yatay",
+            (0, taban),
+            (G, taban),
+            taban - dos - 250 * K,
+            kisaltmalar.kodlu("SW", G),
+            ad="kuyu_genisligi",
+        )
+    )
     #  Kırık:  altta karşı ağırlık, üstte kabin ( etek, fren bloğu, paten ) kalmalı
     return _bitir(
         e,

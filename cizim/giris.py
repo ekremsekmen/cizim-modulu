@@ -27,6 +27,7 @@ kasanın ve eşiğin bağlantı noktaları.
 """
 
 from cizim import eleman
+from cizim import kisaltmalar
 from cizim import dusey
 from cizim import geometri
 from cizim import girdi
@@ -127,7 +128,9 @@ def ciz(g, cizim_sabitleri=None):
     #  Alt:  kuyunun iç yüzlerinden kaba boşluğa ( LiftDesigner 470 · 1.180 · 350 ),
     #  kapının net genişliği
     alt1, alt2 = es[1] - 250, es[1] - 470
-    e.append(eleman.olcu("yatay", (x0, 0), (x1, 0), alt1, f"KAPI {x1 - x0:g}"))
+    e.append(
+        eleman.olcu("yatay", (x0, 0), (x1, 0), alt1, kisaltmalar.kodlu("DW", x1 - x0), ad="kapi_genisligi")
+    )
     e += [
         eleman.olcu("yatay", (a, 0), (b, 0), alt2, None)
         for a, b in ((0.0, bo[0]), (bo[0], bo[2]), (bo[2], G))
@@ -148,8 +151,12 @@ def ciz(g, cizim_sabitleri=None):
     s_sag = max(bo[2], bk2 if not Y["buton_sol"] else bo[2]) + 250
     e.append(eleman.olcu("dusey", (0, 0.0), (0, bo[3]), s_sol, f"KAPI BOŞLUĞU {bo[3]:g}"))
     e += [
-        eleman.olcu("dusey", (0, a), (0, b), s_sag, m)
-        for a, b, m in ((es[1], 0.0, None), (0.0, HH, f"KAPI {HH:g}"), (HH, ka[3], None))
+        eleman.olcu("dusey", (0, a), (0, b), s_sag, m, ad=ad)
+        for a, b, m, ad in (
+            (es[1], 0.0, None, None),
+            (0.0, HH, kisaltmalar.kodlu("DH", HH), "kapi_yuksekligi"),
+            (HH, ka[3], None, None),
+        )
     ]
     #  Gösterge:  kapının üstünden ortasına ( kasanın dışında, boşluğun yanında )
     e.append(eleman.olcu("dusey", (0, HH), (0, (go[1] + go[3]) / 2.0), bo[0] - 110, None))

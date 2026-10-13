@@ -24,6 +24,7 @@ referans projenin düzeni ).  Öteki düzenler için doğrulama açıkça redded
 
 from temel import eleman_kutusu, ortusur, sayi_mi
 from cizim import eleman
+from cizim import kisaltmalar
 from cizim import uslup
 from cizim import izli
 from cizim import geometri
@@ -765,7 +766,7 @@ def _olculer(g, Y):
     G, D, dg, dar, ds = k["genislik"], k["derinlik"], k["duvar_sag"], k["duvar_arka"], k["duvar_sol"]
     xl, xr = Y["halatlar"][0][0], Y["halatlar"][1][0]
     kx = (Y["kabin"][0] + Y["kabin"][2]) / 2.0
-    u0, u1 = D + dar + 120, D + dar + 320
+    u0, u1 = D + dar + 120, D + dar + 120 + geometri.SIRA_ARASI
     kasnak = (Y["kasnak"][0], Y["kasnak"][2])
     #  Kasnağın ucuyla çakışan nokta kasnağın ucu sayılır:  "ø" ölçüsü kasnağın
     #  kendisinden ölçülür ( halat ağırlığa düşey inince ucu ağırlığın ekseniyle
@@ -778,11 +779,11 @@ def _olculer(g, Y):
         eleman.olcu("yatay", (a, 0), (b, 0), u0, f"ø {Y['D1']:g}" if (a, b) == kasnak else None)
         for a, b in zip(xs, xs[1:])
     ]
-    e.append(eleman.olcu("yatay", (0, 0), (G, 0), u1, f"KUYU GENİŞLİĞİ {G:g}"))
-    s0, s1 = G + dg + 120, G + dg + 320
+    e.append(eleman.olcu("yatay", (0, 0), (G, 0), u1, kisaltmalar.kodlu("SW", G), ad="kuyu_genisligi"))
+    s0, s1 = G + dg + 120, G + dg + 120 + geometri.SIRA_ARASI
     ys = sorted({0.0, D, Y["halatlar"][0][1], Y["ry"], (Y["reg_kasnak"][1] + Y["reg_kasnak"][3]) / 2.0})
     e += [eleman.olcu("dusey", (0, a), (0, b), s0) for a, b in zip(ys, ys[1:])]
-    e.append(eleman.olcu("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"))
+    e.append(eleman.olcu("dusey", (0, 0), (0, D), s1, kisaltmalar.kodlu("SD", D), ad="kuyu_derinligi"))
     t1, t2 = Y["ag_teget"][1], Y["ag_teget2"][1]
     ys = sorted({0.0, D, t1, t2, Y["ag_y"], Y["ry"]})
     e += [eleman.olcu("dusey", (0, a), (0, b), -ds - 120) for a, b in zip(ys, ys[1:])]

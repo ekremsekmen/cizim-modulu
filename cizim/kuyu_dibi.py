@@ -30,6 +30,7 @@ olanlar gelir:
 
 from temel import eleman_kutusu, kutu_merkezi, ortusur, sayi_mi
 from cizim import eleman
+from cizim import kisaltmalar
 from cizim import uslup
 from cizim import geometri
 from cizim import girdi
@@ -857,7 +858,7 @@ def ciz(g, cizim_sabitleri=None):
     #  yük kutularının ) dışında, kuyunun üst hizasından.  Yük kutularından
     #  SONRA:  dışarıdaki kutu tablonun yerine taşıyordu.
     if kv:
-        s1 = G + k["duvar_sag"] + 320
+        s1 = G + k["duvar_sag"] + 120 + geometri.SIRA_ARASI
         e += _kuvvet_tablosu(kv, max(s1 + 250, geometri.sinir(e)[2] + 150), D - 20)
     #  Parçaya ( ara kiriş, gergi ... ) binen ölçü yazıları, yük kutuları
     #  konduktan sonra ölçüleri boyunca boş yere kayar ( girdi taraması, 4 Eki ).
@@ -949,21 +950,23 @@ def _olculer(g, Y):
     k, kp = g["kuyu"], g["kapi"]
     G, D, don, dg, dar = k["genislik"], k["derinlik"], k["duvar_on"], k["duvar_sag"], k["duvar_arka"]
     ry = g["kabin_ray"]["kapi_arasi"]
-    u0, u1 = D + dar + 120, D + dar + 320
-    s0, s1 = G + dg + 120, G + dg + 320
+    u0, u1 = D + dar + 120, D + dar + 120 + geometri.SIRA_ARASI
+    s0, s1 = G + dg + 120, G + dg + 120 + geometri.SIRA_ARASI
     a0 = -don - 120
     xs = sorted({0.0, G} | {kutu_merkezi(t)[0] for t in Y["kabin_tamponlari"] + Y["agirlik_tamponlari"]})
     e = [eleman.olcu("yatay", (a, 0), (b, 0), u0) for a, b in zip(xs, xs[1:])]
-    e.append(eleman.olcu("yatay", (0, 0), (G, 0), u1, f"KUYU GENİŞLİĞİ {G:g}"))
+    e.append(eleman.olcu("yatay", (0, 0), (G, 0), u1, kisaltmalar.kodlu("SW", G), ad="kuyu_genisligi"))
     ys = sorted(
         {0.0, D, ry, kutu_merkezi(Y["gergi"])[1]} | {kutu_merkezi(t)[1] for t in Y["agirlik_tamponlari"]}
     )
     e += [eleman.olcu("dusey", (0, a), (0, b), s0) for a, b in zip(ys, ys[1:])]
-    e.append(eleman.olcu("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"))
+    e.append(eleman.olcu("dusey", (0, 0), (0, D), s1, kisaltmalar.kodlu("SD", D), ad="kuyu_derinligi"))
     kapi = (kp["sol_pay"], kp["sol_pay"] + kp["genislik"])
     xs = sorted({0.0, G, *kapi} | ({Y["merdiven"][0], Y["merdiven"][2]} if Y["merdiven"] else set()))
     e += [
-        eleman.olcu("yatay", (a, 0), (b, 0), a0, f"KAPI {kp['genislik']:g}" if (a, b) == kapi else None)
+        eleman.olcu("yatay", (a, 0), (b, 0), a0, kisaltmalar.kodlu("DW", kp["genislik"]), ad="kapi_genisligi")
+        if (a, b) == kapi
+        else eleman.olcu("yatay", (a, 0), (b, 0), a0)
         for a, b in zip(xs, xs[1:])
     ]
     return e

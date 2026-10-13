@@ -11,6 +11,7 @@ import html
 import math
 
 from cizim import eleman
+from cizim import kisaltmalar
 from cizim import uslup
 
 #  TEKNİK RESİM ÜSLUBU ( ISO 128 ):  kalem kalınlığı, çizgi tipi ve renk
@@ -250,9 +251,14 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False):
             )
         elif el["tip"] == "olcu":
             if etkilesimli:
+                #  Kodlu ölçünün Türkçesi ( kisaltmalar ):  üstüne gelince ve ölçü kutusunda
+                ack = kisaltmalar.KODLAR.get(kisaltmalar.kodu(el["metin"]) or "", "")
+                ek = f' data-aciklama="{html.escape(ack)}"' if ack else ""
+                baslik = f"<title>{html.escape(ack)}</title>" if ack else ""
                 parcalar.append(
-                    f'<g class="olcu" data-olcu="{n_olcu}" tabindex="0" role="button" '
-                    f'aria-label="Ölçü {html.escape(el["metin"])}">'
+                    f'<g class="olcu" data-olcu="{n_olcu}" tabindex="0" role="button"{ek} '
+                    f'aria-label="Ölçü {html.escape(el["metin"])}{" — " + html.escape(ack) if ack else ""}">'
+                    + baslik
                     + _olcu(el, renk, kal, k, tutamak=True)
                     + "</g>"
                 )

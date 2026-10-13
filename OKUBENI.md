@@ -483,6 +483,7 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
 | `cizim/eleman.py` | Çizim elemanlarının kurucuları ( `dikdortgen`, `cizgi`, `daire`, `ok`, `yazi`, `olcu`, `ad` ), yazının gerçek eni ( `yazi_eni` ) ve katmanların tek listesi ( `KATMANLAR` ) |
 | `cizim/uslup.py` | Görünüşün tek tablosu:  katmanın kalınlığı, çizgi tipi, ekran ve AutoCAD rengi;  tarama;  yazı boyları ( ISO 3098 );  ölçü ucu — SVG ve DXF buradan okur |
 | `cizim/harf_eni.py` | Harflerin enleri ( Arial ile aynı;  `araclar/harf_tablosu.py` yazı tipinden üretir ) |
+| `cizim/kisaltmalar.py` | Ölçü kodları ( SW, SD, CW, CD, PLW, DW, DBG, DBGW ) ve Türkçeleri;  VERİLER / KISALTMALAR tabloları |
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( türevle;  oynatma denetçi ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/izli.py` | İzli sayı:  ölçü kaynağı için otomatik türev |
@@ -537,8 +538,32 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
    Testler:  `testler/test_mantik_denetimi.py`.
 5. **Yerleşim seçilir, koda gömülmez.**  Askı düzeni ( kabin altı · kabin üstü ·
    doğrudan ), karşı ağırlık yeri ( sağ · sol · arka ), kapı tipi girdidendir.
-6. **Uzatma çizgisi yoktur, yazı kendi ölçüsünün yanındadır.**  Ölçü çizgisi
-   yalnız iki uçtaki kısa çizgiyle çizilir ( SVG ve DXF — `dimse1/dimse2` ).
+6. **Ölçü dili LiftDesigner gibi:  kısa kod + tablo** ( bütün çizimler — 13
+   Eki, kullanıcı "LD gibi kısa kod + tablo";  `cizim/kisaltmalar.py` ).  Asıl
+   ölçüler kodla:  SW · SD ( kuyu iç genişliği / derinliği ), CW · CD ( kabin
+   iç ), PLW ( kabin dış genişliği ), DW · DH ( kapı açıklığı ), DBG · DBGW
+   ( kabin / karşı ağırlık rayları arası — LD bunlara BG / DBG der, programın
+   ve formun adları kaldı:  kullanıcı kararı ), OH ( kuyu üst boşluğu — son
+   kat ), MRW · MRD ( makine dairesi ).  Kesitlerde kuyu dibi, seyir ve kuyu
+   yüksekliği LD'de de Türkçe yazılır ( "Kuyu dibi1700" ).  Neyi ölçtüğü
+   çizimden belli olanlar ( duvar, kasa, ray yüksekliği, eşikler, eksenlerin
+   yeri, askı ) yalnız sayıyla.  Kodların Türkçesi kuyu planının sağındaki
+   KISALTMALAR tablosunda — paftanın tek tablosu:  paftadaki BÜTÜN çizimlerin
+   kodlarını taşır ( `kisaltmalar.projede`;  test_kisaltmalar sayarak
+   denetler );  kabin, kapı ( DH, tip ) ve askı düzeni VERİLER tablosunda
+   ( eskiden kabinin içinde "KABİN 1350 x 1400", "ASKI:  KABİN ALTI · 2:1"
+   yazıyordu ).  Ekranda kodlu
+   ölçünün üstüne gelince Türkçesi görünür, ölçü kutusunun başlığında da yazar.
+   **Sıralar ISO 129-1'e göre:**  ara zincirler içte, duvarlarla SW / SD en
+   dışta;  her ölçü bir kez — kuyunun dış ölçüsü ( duvar + SW + duvar ) ve
+   alttaki ikinci kuyu genişliği yazılmaz, zincirlerin "0" sıfır noktaları
+   kalktı;  sıralar arası 5 mm ( LD;  `geometri.SIRA_ARASI` — bütün planlar ve
+   kesitler ).  Her ölçünün yazıdan bağımsız **kimliği**
+   vardır ( `ad`, "olcu_kuyu_genisligi" … ):  yazı sayıya inince ölçüye
+   tıklama ölçüyü onunla tanır ( `olcu_kaynagi._imza` ), testler onunla arar.
+   **Uzatma çizgisi kısa ve sabit boyludur, yazı kendi ölçüsünün yanındadır.**
+   Ölçü çizgisinin iki ucunda 45° eğik çizgi ve dik kısa uzatma çizgisi
+   ( uslup;  SVG ve DXF — `dimse1/dimse2`, uç bloğu ).
    Bir iç parçayı ölçen ölçü ( askı aralığı ve kaçıklığı ) planın dışında
    değil, parçanın yanında durur;  eşik zinciri ise "KAPI ARASI"nı böldüğü için
    onun yanında, dış sıradadır ( aşağıda:  girdi taraması ).  Yazının yeri geometride bulunur
@@ -795,9 +820,9 @@ dairelide makine dairesinde ( eskiden kuyu planında kaynağı belirsiz bir
 **Kabin ile karşı ağırlık arası ölçülür** ( kullanıcı isteği 1 Eki — LiftDesigner
 gibi;  eskiden hiçbir planda yoktu ):  yandaki ağırlıkta üstteki şase zinciri
 duvar → ağırlığın çerçevesi → çerçeve → kabinin dış yüzü ( 4815-6:  100 · 150 · 225 ·
-KABİN DIŞI — LiftDesigner'la birebir;  8 Eki'ye dek kabin + 2 × 30'luk "ŞASE DIŞI"
-ve 195 );  arkadaki ağırlıkta soldaki zincir RAY EKSENİ · KABİN RAYI – AĞIRLIK
-RAYI · ağırlık ekseni – arka duvar ( 800 KG:  840 · 980 · 180 — LiftDesigner
+PLW — LiftDesigner'la birebir;  8 Eki'ye dek kabin + 2 × 30'luk "ŞASE DIŞI"
+ve 195 );  arkadaki ağırlıkta soldaki zincir ray ekseni · kabin rayı – ağırlık
+rayı · ağırlık ekseni – arka duvar ( 800 KG:  840 · 980 · 180 — LiftDesigner
 850 · 970 · 180, fark kapı bölgesinin 10'u ), sağdaki zincir kabin → çerçeve →
 arka duvar ( 105 · 150 · 105 ).  Hesaba girmez ( m.5.2.5.5.1 h'nin 50'si
 girdi.dogrula'da denetlenir );  ölçüye tıklanıp değiştirilebilir ( kaynakları:

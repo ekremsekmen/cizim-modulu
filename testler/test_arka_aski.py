@@ -125,7 +125,9 @@ class Cizimler(unittest.TestCase):
         capraz = [x for x in e if x.get("ad") == "kabin_kasnak_capraz"]
         self.assertEqual(len(capraz), 8)  # iki kasnak × dört kenar
         self.assertFalse([x for x in e if x.get("ad") == "kabin_kasnak"])
-        self.assertTrue(any("ÇAPRAZ" in x.get("metin", "") for x in e if x.get("ad") == "aski_yazi"))
+        #  Askı düzeni VERİLER tablosunda ( 13 Eki — eskiden planda "ÇAPRAZ 5°" yazısı )
+        veriler = [x.get("metin", "") for x in geometri.kuyu_plani(g, S) if x.get("ad") == "veriler"]
+        self.assertTrue(any("çapraz" in m for m in veriler), veriler)
         self.assertEqual(
             geometri.halat_konumlari(g, S), [arka_aski.geometri(g, S)["P"], arka_aski.geometri(g, S)["H"]]
         )

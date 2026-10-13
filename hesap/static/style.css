@@ -644,6 +644,7 @@ tr.m-gidilir.etkin td{background:#EEF4FB;font-weight:600}
 .cizim-svg .olcu:focus-visible line:not(.tut){stroke:#e2680c}
 .cizim-svg .olcu:hover text,.cizim-svg .olcu.secili text,.cizim-svg .olcu:focus-visible text{fill:#e2680c}
 .olcu-ipucu{margin:0 0 10px}
+.olcu-bas .olcu-ack{color:var(--gri);font-weight:400;margin-left:6px;flex:1}
 /*  TUVAL:  çizimler tek düzlemde yan yana ( mTuval… — uygulama.js ).  Çizimin
     yeri ve boyu JS'ten;  yakınlaştırma CSS ölçeği değil, SVG her boyda
     yeniden çizilir ( keskin kalır ). */

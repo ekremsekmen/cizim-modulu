@@ -49,8 +49,8 @@ class Giris(unittest.TestCase):
                 i = o.index(zincir[0])
                 self.assertEqual(o[i : i + 3], zincir)
                 for beklenen in (
-                    "KAPI 900",
-                    "KAPI 2000",
+                    "DW900",
+                    "DH2000",
                     "KAPI BOŞLUĞU 2240",
                     "BUTON 1200",
                     "220",

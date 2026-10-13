@@ -27,6 +27,7 @@ from dataclasses import dataclass
 
 from temel import eleman_kutusu, ortusur
 from cizim import eleman
+from cizim import kisaltmalar
 from cizim import uslup
 from cizim import geometri
 from cizim import girdi
@@ -67,7 +68,6 @@ _PLANDAN_DISLA = frozenset(
         "kabin_kasnak_capraz",
         "aski_duzlemi",
         "kabin_kasnak_yazi",
-        "aski_yazi",
         "aski_nokta",
     )
 )
@@ -489,18 +489,20 @@ def _ana_olculer(g, tavan):
     """Kabin tavanı ve kuyu ölçüleri ( üstte ve sağda )."""
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
     dg, dar = g["kuyu"]["duvar_sag"], g["kuyu"]["duvar_arka"]
-    tg, td = tavan[2] - tavan[0], tavan[3] - tavan[1]
-    u0, u1 = D + dar + 120, D + dar + 320
-    s0, s1 = G + dg + 120, G + dg + 320
+    tg = tavan[2] - tavan[0]
+    u0, u1 = D + dar + 120, D + dar + 120 + geometri.SIRA_ARASI
+    s0, s1 = G + dg + 120, G + dg + 120 + geometri.SIRA_ARASI
     return [
         eleman.olcu("yatay", (0, 0), (tavan[0], 0), u0),
-        eleman.olcu("yatay", (tavan[0], 0), (tavan[2], 0), u0, f"KABİN TAVANI {tg:g}"),
+        eleman.olcu(
+            "yatay", (tavan[0], 0), (tavan[2], 0), u0, kisaltmalar.kodlu("PLW", tg), ad="kabin_dis_genisligi"
+        ),
         eleman.olcu("yatay", (tavan[2], 0), (G, 0), u0),
-        eleman.olcu("yatay", (0, 0), (G, 0), u1, f"KUYU GENİŞLİĞİ {G:g}"),
+        eleman.olcu("yatay", (0, 0), (G, 0), u1, kisaltmalar.kodlu("SW", G), ad="kuyu_genisligi"),
         eleman.olcu("dusey", (0, 0), (0, tavan[1]), s0),
-        eleman.olcu("dusey", (0, tavan[1]), (0, tavan[3]), s0, f"KABİN TAVANI {td:g}"),
+        eleman.olcu("dusey", (0, tavan[1]), (0, tavan[3]), s0, ad="kabin_tavani_derinligi"),
         eleman.olcu("dusey", (0, tavan[3]), (0, D), s0),
-        eleman.olcu("dusey", (0, 0), (0, D), s1, f"KUYU DERİNLİĞİ {D:g}"),
+        eleman.olcu("dusey", (0, 0), (0, D), s1, kisaltmalar.kodlu("SD", D), ad="kuyu_derinligi"),
     ]
 
 
@@ -538,6 +540,14 @@ def _iceri_olculeri(Y):
                 yy = y1 - yari_h - KENAR_PAYI if yan == "Arka" else y2 + yari_h + KENAR_PAYI
             yazi = {"x": kot + 30 + yari, "y": yy, "h": uslup.NORMAL}
             e.append(eleman.olcu("dusey", (0, y1), (0, y2), kot, metin, kural=_ICERI, yazi=yazi))
+    #  İçerideki yazı köşede yan kenarın yazısına değiyorsa sağa kayar ( 13
+    #  Eki:  arkadaki ağırlıkta "40" soldaki "45"in ucuna biniyordu )
+    yanlar = [geometri.yazi_kutusu(o) for o in e if o["yon"] == "yatay"]
+    for o in e:
+        if o["yon"] != "dusey":
+            continue
+        while any(ortusur(geometri.yazi_kutusu(o), b, 10.0) for b in yanlar):
+            o["yazi"]["x"] += 20.0
     return e
 
 

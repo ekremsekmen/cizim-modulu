@@ -46,9 +46,11 @@ def olculer(elemanlar):
 
 
 def _imza(o):
-    """Ölçünün kimliğinin sayıdan bağımsız kısmı:  yönü ve yazısının sözü
-    ( "KUYU GENİŞLİĞİ 2100" → "KUYU GENİŞLİĞİ #" )."""
-    return o["yon"], _SAYI.sub("#", o.get("metin") or "")
+    """Ölçünün kimliğinin sayıdan bağımsız kısmı:  yönü ve KİMLİĞİ ( ad —
+    kuyu planının ölçüleri, 13 Eki:  yazıları koda ya da yalnız sayıya indi,
+    "#"ler birbirinden ayrılmıyordu ) ya da yazısının sözü ( "KUYU GENİŞLİĞİ
+    2100" → "KUYU GENİŞLİĞİ #" )."""
+    return o["yon"], o.get("ad") or _SAYI.sub("#", o.get("metin") or "")
 
 
 def _uzaklik(p, q):

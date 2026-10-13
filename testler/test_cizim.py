@@ -270,7 +270,7 @@ class PlanGeometrisi(unittest.TestCase):
 
 class SvgCiktisi(unittest.TestCase):
     def setUp(self):
-        self.e = geometri.plan(_ornek())
+        self.e = geometri.kuyu_plani(_ornek())
         self.s = svg.yaz(self.e, geometri.sinir(self.e, 250), "KUYU PLANI", 20)
 
     def test_svg_gecerli_bicimde(self):
@@ -286,7 +286,7 @@ class SvgCiktisi(unittest.TestCase):
         sonra = self.s[self.s.index("<text") :]
         for parca in ("<rect", "<circle", "<polygon"):
             self.assertNotIn(parca, sonra)
-        self.assertIsNotNone(re.search(r"<text[^>]*>KABİN  1350 x 1400</text>", sonra))
+        self.assertIsNotNone(re.search(r"<text[^>]*>CW × CD  1350 × 1400</text>", sonra))
 
     def test_etiket_ortasindan_hizali(self):
         """Geometri etiketin ORTASINI verir ( DXF'te MIDDLE ):  SVG taban
@@ -297,7 +297,7 @@ class SvgCiktisi(unittest.TestCase):
         self.assertIn(f"translate(1000.0,{2000 - 0.35 * el['yukseklik']:.1f})", s)
 
     def test_bilinen_olculer_yaziya_giriyor(self):
-        for beklenen in ("2100", "1850", "DBG 1550", "900 x 2100", "KUYU PLANI"):
+        for beklenen in ("SW2100", "SD1850", "DBG1550", "DW900", "KUYU PLANI", "KISALTMALAR"):
             self.assertIn(beklenen, self.s, beklenen)
 
     def test_her_katman_bir_kalem_tanimli(self):
@@ -470,9 +470,9 @@ class YerlesimRegresyonlari(unittest.TestCase):
                 with self.subTest(yer=yer, zincir=z):
                     self.assertAlmostEqual(z["toplam"], z["son"] - z["bas"])
             if yer != "Arka":
-                olcu = next(q for q in e if q["tip"] == "olcu" and q["metin"].startswith("AĞIRLIK RAYI"))
+                olcu = next(q for q in e if q["tip"] == "olcu" and q.get("ad") == "olcu_agirlik_ekseni")
                 self.assertEqual(olcu["uzunluk"], 130)
-                self.assertEqual(olcu["metin"], "AĞIRLIK RAYI 130")
+                self.assertEqual(olcu["metin"], "130")
 
     def test_dbgw_gercek_ray_yuzlerine_baglanir(self):
         for yer in girdi.AGIRLIK_YERLERI:
@@ -625,9 +625,7 @@ class OlcuYazilari(unittest.TestCase):
 
     def test_aski_arasi_tek_olcu(self):
         q = [
-            el
-            for el in geometri.plan(_ornek())
-            if el["tip"] == "olcu" and el["metin"].startswith("ASKI ARASI")
+            el for el in geometri.plan(_ornek()) if el["tip"] == "olcu" and el.get("ad") == "olcu_aski_arasi"
         ]
         self.assertEqual(len(q), 1)
         self.assertEqual(q[0]["uzunluk"], _ornek()["aski"]["kasnak_arasi"])
@@ -3147,9 +3145,9 @@ class KapiBolgesi(unittest.TestCase):
         self.assertEqual(KB["hat"], 150)
         self.assertEqual(ry - KB["hat"], 1017)
         self.assertAlmostEqual(g["kuyu"]["derinlik"] - ry, 682, delta=1)
-        metinler = {x["metin"] for x in geometri.plan(g) if x["tip"] == "olcu"}
-        self.assertIn("KAT KAPISI 150", metinler)
-        self.assertIn("KABİN EŞİĞİ 90", metinler)
+        metin = {x.get("ad"): x["metin"] for x in geometri.plan(g) if x["tip"] == "olcu"}
+        self.assertEqual(metin["olcu_kat_kapisi"], "150")
+        self.assertEqual(metin["olcu_kabin_esigi"], "90")
 
 
 if __name__ == "__main__":

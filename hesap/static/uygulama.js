@@ -1761,7 +1761,8 @@ async function mOlcuAc(g, olay){
   kutu.setAttribute('data-formdisi', '');      // yazılanlar formu tetiklemez ( ortak.js )
   kutu.setAttribute('role', 'dialog');
   kutu.setAttribute('aria-label', 'Ölçü ' + metin);
-  kutu.innerHTML = `<div class="olcu-bas"><b>${kacis(metin)}</b>
+  const aciklama = g.dataset.aciklama || '';     // kodlu ölçünün Türkçesi ( SW → Kuyu iç genişliği )
+  kutu.innerHTML = `<div class="olcu-bas"><b>${kacis(metin)}</b>${aciklama ? ` <span class="olcu-ack">${kacis(aciklama)}</span>` : ''}
       <button class="olcu-kapat" aria-label="Kapat" onclick="mOlcuKapat()">×</button></div>
     <div class="olcu-ic"><span class="ipucu">Ölçünün kaynağı bulunuyor…</span></div>`;
   alan.appendChild(kutu);

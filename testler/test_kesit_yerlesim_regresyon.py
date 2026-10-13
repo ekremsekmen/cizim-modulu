@@ -228,27 +228,30 @@ class KesitYerlesimRegresyon(unittest.TestCase):
         #  bölgemiz 10 kısa ) ve kabin – ağırlık – duvar;  yandakinde duvar –
         #  ağırlık – kabin ( 4815-6:  LiftDesigner 100 · 150 · 225 · PLW ).
         def _olculer(g):
-            return [o.get("metin") or f"{o['uzunluk']:g}" for o in geometri.plan(g) if o["tip"] == "olcu"]
+            o = [x for x in geometri.plan(g) if x["tip"] == "olcu"]
+            return [x["metin"] for x in o], [x.get("ad") for x in o]
 
-        o = _olculer(self.projeler["800 KG"])
-        self.assertIn("KABİN RAYI – AĞIRLIK RAYI 980", o)
-        i = o.index("RAY EKSENİ 840")
-        self.assertEqual(o[i : i + 3], ["RAY EKSENİ 840", "KABİN RAYI – AĞIRLIK RAYI 980", "180"])
-        i = o.index("KABİN + ŞASE 1370")
-        self.assertEqual(o[i + 1 : i + 4], ["105", "150", "105"])
+        o, ad = _olculer(self.projeler["800 KG"])
+        i = ad.index("olcu_ray_ekseni")
+        self.assertEqual(ad[i + 1], "olcu_kabin_rayi_agirlik_rayi")
+        self.assertEqual(o[i : i + 3], ["840", "980", "180"])
+        i = ad.index("olcu_kabin_ve_sase")
+        self.assertEqual(o[i : i + 4], ["1370", "105", "150", "105"])
         #  8 Eki:  zincir kabinin dış yüzüne ( PLW ) — şasenin dikmeleri rayın
         #  ucunda;  LiftDesigner'la birebir ( eskiden "ŞASE DIŞI 1440" · 195 )
-        o = _olculer(self.projeler["4815-6"])
-        i = o.index("KABİN DIŞI 1380")
-        self.assertEqual(o[i + 1 : i + 4], ["100", "150", "225"])
+        o, ad = _olculer(self.projeler["4815-6"])
+        i = ad.index("olcu_kabin_dis_genisligi")
+        self.assertEqual(o[i : i + 4], ["PLW1380", "100", "150", "225"])
 
     def test_duvarlar_ayri_ayri(self):
         #  2 Eki:  dört duvar ayrı kalınlıkta ( LiftDesigner 4815-6:  arka 250,
         #  öbürleri 200 → dış ölçü 2.500 × 2.450 );  boş bırakılan ortak
         #  kalınlığı alır, kuyu dibinin ve tavanın döşemesi ortak kalınlıktadır.
-        o = [x.get("metin") for x in geometri.plan(self.projeler["4815-6"]) if x["tip"] == "olcu"]
-        self.assertIn("DIŞ ÖLÇÜ 2500", o)
-        self.assertIn("DIŞ ÖLÇÜ 2450", o)
+        #  Dış ölçü ( 2.500 × 2.450 ) yazılmaz — duvarlar ve SW / SD ( 13 Eki )
+        o = {x.get("ad"): x["uzunluk"] for x in geometri.plan(self.projeler["4815-6"]) if x["tip"] == "olcu"}
+        self.assertEqual(o["olcu_duvar_sol"] + o["olcu_kuyu_genisligi"] + o["olcu_duvar_sag"], 2500)
+        self.assertEqual(o["olcu_duvar_on"] + o["olcu_kuyu_derinligi"] + o["olcu_duvar_arka"], 2450)
+        self.assertEqual(o["olcu_duvar_arka"], 250)
         g = _girdi({"kuyu_duvar_kalinligi": 180, "kuyu_duvar_sag": 250})
         self.assertEqual(
             {k: g["kuyu"][k] for k in ("duvar_on", "duvar_arka", "duvar_sol", "duvar_sag", "doseme")},
