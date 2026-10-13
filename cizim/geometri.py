@@ -638,35 +638,6 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
     return e
 
 
-def kuyu_plani(g, cizim_sabitleri=None):
-    """KUYU PLANI ( C-C ):  plan ve sağında VERİLER ile KISALTMALAR tabloları
-    ( kisaltmalar — ölçü kodlarının Türkçesi;  LiftDesigner'ın veri bloğu
-    gibi ).  Tablolar kesit işaretlerinin de sağında, planın dış arka
-    yüzünün hizasından başlar."""
-    S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
-    e = plan(g, cizim_sabitleri)
-    P = _plan_olculeri(g, S)
-    x = sinir(e)[2] + 150.0
-    t1, alt = kisaltmalar.tablo(x, P.D + P.dar, "VERİLER", _veriler(P), "veriler")
-    kodlar = [(k, kisaltmalar.KODLAR[k]) for k in kisaltmalar.projede(g, kisaltmalar.kullanilanlar(e))]
-    t2, _ = kisaltmalar.tablo(x, alt - 2 * kisaltmalar.SATIR, "KISALTMALAR", kodlar, "kisaltmalar")
-    return e + t1 + t2
-
-
-def _veriler(P):
-    """VERİLER tablosunun satırları:  kabin, kapı, askı."""
-    kb, kp = P.g["kabin"], P.g["kapi"]
-    oran = "1:1" if P.duzen == "Doğrudan" else "2:1"
-    aski = P.duzen or "—"
-    if P.capraz is not None:
-        aski += f"  ·  çapraz {P.capraz['aci']:.0f}°"
-    return [
-        ("Kabin", f"CW × CD  {kb['genislik']:g} × {kb['derinlik']:g}"),
-        ("Kapı", f"DW × DH  {kp['genislik']:g} × {kp.get('yukseklik', 2100):g}  ·  {kp['tip']}"),
-        ("Askı", f"{aski}  ·  {oran}"),
-    ]
-
-
 def _duvarlar(P, bosluklu):
     """Duvarlar ( tarama yalnız duvar kesitinde ).  Boşluklu ön duvar kat
     kapısının kaba boşluğunun iki yanındadır ( girdi.kaba_bosluk — giriş
@@ -2017,13 +1988,15 @@ def zincirler(elemanlar):
     return cikti
 
 
-def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=()):
+def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=(), olcekli=True):
     """Çizimi kendi çerçevesine alır ve altına başlık şeridi ekler.
 
     Referans projede de her çizim ayrı bir çerçevededir ve altında adı ile ölçeği
-    yazar.  Çerçeve ölçüleri de kapsar;  yazılar dışarıda kalmaz.
+    yazar.  Çerçeve ölçüleri de kapsar;  yazılar dışarıda kalmaz.  olcekli:
+    başlıkta ölçek yazar mı ( tabloda yazmaz — cizimler.OLCEKSIZ ).
     """
     k = olcek / 20.0  # yazılar paftada 1/20'deki boyda kalır
+    etiket = f"{baslik}   1/{olcek:g}" if olcekli else baslik
     x1, y1, x2, y2 = sinir(elemanlar, pay * k)
     serit = 220.0 * k
     #  Künye şeridi başlığı ve sağdaki yazıları taşımalı:  sığmıyorsa
@@ -2031,7 +2004,7 @@ def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=()):
     #  Başlık kâğıtta 5 mm ( LiftDesigner ):  104 → 140 em · 0,716 / 20
     gerek = (
         (120 + 200 + 120) * k
-        + eleman.yazi_eni(f"{baslik}   1/{olcek:g}", uslup.BASLIK * k)
+        + eleman.yazi_eni(etiket, uslup.BASLIK * k)
         + max([eleman.yazi_eni(m, uslup.HARF * k) for m in seritler] or [0])
     )
     if x2 - x1 < gerek:
@@ -2044,7 +2017,7 @@ def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=()):
         eleman.yazi(
             x1 + 120 * k,
             y1 - serit / 2.0,
-            f"{baslik}   1/{olcek:g}",
+            etiket,
             uslup.BASLIK * k,
             hiza="sol",
             katman="CERCEVE",

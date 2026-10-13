@@ -279,11 +279,14 @@ def serit(dxf_baytlari, paftalar, cizimler=(), baslik="Asansör projesi") -> byt
     return cikti.getvalue()
 
 
-def paket_pdfleri(paftalar, cizimler=()):
+def paket_pdfleri(paftalar, gler=()):
     """ "Projeyi paketle"nin PDF işlemi ( dxf_cikti.proje_paketi ):  son DXF'ten
-    ( paftanın şeridi , çizimlerin sayfaları — çizim yoksa None )."""
+    ( paftanın şeridi , çizimlerin sayfaları — çizim yoksa None ).  gler:
+    asansörlerin çizim girdileri ( DXF'e eklenenlerle aynı — pafta.bloklar )."""
 
     def islem(dxf_baytlari):
-        return serit(dxf_baytlari, paftalar, cizimler), (pdf.sayfalar(cizimler) if cizimler else None)
+        cizimler = pafta.bloklar(list(gler)) if gler else []
+        sayfalar = pdf.sayfalar(cizimler, kunyeler=pafta.kunyeler(list(gler))) if cizimler else None
+        return serit(dxf_baytlari, paftalar, cizimler), sayfalar
 
     return islem

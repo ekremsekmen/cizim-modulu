@@ -15,10 +15,11 @@ from cizim import kuyu_dibi
 from cizim import kuyu_kesiti
 from cizim import kuyu_ustu
 from cizim import makine_dairesi
+from cizim import veri_tablosu
 
 
 CIZIMLER = {
-    "kuyu_plani": (geometri.dogrula, geometri.kuyu_plani, "KUYU PLANI  ( kabin hizasından yatay kesit )"),
+    "kuyu_plani": (geometri.dogrula, geometri.plan, "KUYU PLANI  ( kabin hizasından yatay kesit )"),
     "kabin_ustu": (
         kabin_ustu.dogrula,
         kabin_ustu.ciz,
@@ -55,6 +56,8 @@ CIZIMLER = {
         kapi_kesiti.ciz,
         "KAPI YAN KESİTİ  ( en alt durağın kapısı, ortasından — kat tarafı solda )",
     ),
+    #  Asansörün veri tablosu, kısaltmalar ve notlar ( 13 Eki — eskiden kuyu planında )
+    "veriler": (veri_tablosu.dogrula, veri_tablosu.ciz, veri_tablosu.BASLIK),
 }
 
 
@@ -70,6 +73,8 @@ def _ayir(ciz, olcek=20):
 
 #  1/20 dışındaki çizimler
 OLCEKLER = {"kuyu_kesiti_yan": kuyu_kesiti.OLCEK, "kuyu_kesiti_on": kuyu_kesiti.OLCEK}
+#  Başlığında ölçek yazmayanlar ( tablo — yazıları 1/20'deki boyda )
+OLCEKSIZ = {"veriler"}
 CIZIMLER = {
     ad: (dog, _ayir(ciz, OLCEKLER.get(ad, 20)), baslik) for ad, (dog, ciz, baslik) in CIZIMLER.items()
 }

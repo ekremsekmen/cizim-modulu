@@ -587,6 +587,34 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
             "saptirma_kasnak_capi": sayi("makine_saptirma_capi"),
         },
         "kuyu_ustu": {"acil_pano_yan": secim("acil_pano_yani")},
+        "veri": _veri(A, sonuc),
+    }
+
+
+def _veri(A, sonuc):
+    """Yalnız veri tablosunda yazılanlar ( veri_tablosu ) — çizimin geometrisine
+    girmez, boşsa satırı yazılmaz ( hata değil ).  Kişi sayısı hesabın
+    özetinden ( TS EN 81-20 m.5.4.2.3:  yükten ve kabin alanından
+    bulunan iki sayının küçüğü )."""
+
+    def sayi(k):
+        v = A.get(k)
+        return float(v) if sayi_mi(v) and v > 0 else None
+
+    def yazi(k):
+        v = A.get(k)
+        return None if bos_mu(v) else " ".join(str(v).split())
+
+    oz = (sonuc.get("ozet") or {}) if isinstance(sonuc, dict) and sonuc.get("aktif") else {}
+    return {
+        "tip": yazi("asansor_tipi"),
+        "yuk": sayi("beyan_yuku"),
+        "kisi": oz["kabin_kisi"] if sayi_mi(oz.get("kabin_kisi")) else None,
+        "motor_gucu": sayi("motor_gucu"),
+        "kabin_rayi": yazi("kabin_ray_profili"),
+        "agirlik_rayi": yazi("agirlik_ray_profili"),
+        "tampon": yazi("tampon_tipi"),
+        "guvenlik": yazi("guvenlik_tertibati"),
     }
 
 

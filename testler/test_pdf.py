@@ -55,10 +55,11 @@ class Cizimler(unittest.TestCase):
     def test_pafta_cizimleri_kendi_sayfalarinda(self):
         g, hata = test_yerlesim_saglamligi.gecerli_duzen(800, "Sağ", True)
         self.assertIsNotNone(g, hata)
-        liste = pafta.cizim_listesi(g)
-        b = pdf.sayfalar(liste)
+        liste = pafta.bloklar(g)
+        b = pdf.sayfalar(liste, kunyeler=pafta.kunyeler(g))
         r = PdfReader(io.BytesIO(b))
         self.assertEqual(len(r.pages), len(liste))
+        self.assertEqual(len(pafta.kunyeler(g)), len(liste))
         boylar = {
             (round(float(p.mediabox.width) / MM), round(float(p.mediabox.height) / MM)) for p in r.pages
         }
@@ -73,6 +74,29 @@ class Cizimler(unittest.TestCase):
             self.assertIn(kod, m)
         #  Küçük:  eskisi tek sayfada 7,8 MB'tı
         self.assertLess(len(b), 400 * 1024)
+        #  Her sayfada antet ( 13 Eki ):  proje, asansör, çizim, ölçek, sayfa no
+        n = len(liste)
+        for i, s in enumerate(r.pages):
+            m_ = s.extract_text()
+            self.assertIn(f"SAYFA  {i + 1} / {n}", m_)
+            self.assertIn(g["proje"]["asansor"], m_)
+            #  Çizen / onaylayan alanı yok ( kullanıcı 13 Eki )
+            self.assertNotIn("ÇİZEN", m_)
+            self.assertNotIn("ONAYLAYAN", m_)
+        self.assertIn("ÖLÇEK  1/50", r.pages[0].extract_text())
+        self.assertIn("ÖLÇEK  —", r.pages[-1].extract_text())  # veri tablosu
+
+    def test_antet_basligi_sigmazsa_aciklamasi_duser(self):
+        uzun = (
+            "KUYU ÜSTÜ PLANI  F-F  ( makine dairesiz — kuyu tepesinden yatay kesit, " + "çok uzun " * 8 + ")"
+        )
+        metin = [x["metin"] for x in pdf.antet("P", "A1", uzun, "1/20", "SAYFA  1 / 1") if x["tip"] == "yazi"]
+        self.assertIn("KUYU ÜSTÜ PLANI  F-F", metin)
+        #  Proje adı boşsa hücre boş kalır ( yazı yok )
+        metin = [
+            x["metin"] for x in pdf.antet("", "A1", "PLAN", "1/20", "SAYFA  1 / 1") if x["tip"] == "yazi"
+        ]
+        self.assertNotIn("", metin)
 
     def test_ekranla_ayni_uslup(self):
         #  Tarama aralığı ve kalınlık uslup'tan:  tek kaynak ( svg ve dxf de )

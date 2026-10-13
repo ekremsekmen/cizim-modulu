@@ -484,7 +484,8 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
 | `cizim/uslup.py` | Görünüşün tek tablosu:  katmanın kalınlığı, çizgi tipi, ekran ve AutoCAD rengi;  tarama;  yazı boyları ( ISO 3098 );  ölçü ucu — SVG ve DXF buradan okur |
 | `cizim/harf_eni.py` | Harflerin enleri ( Arial ile aynı;  `araclar/harf_tablosu.py` yazı tipinden üretir ) |
 | `cizim/pdf.py` | **Aynı** elemanları PDF'e yazar ( reportlab — basılı pafta;  her çizim kendi A sayfasında ) |
-| `cizim/kisaltmalar.py` | Ölçü kodları ( SW, SD, CW, CD, PLW, DW, DBG, DBGW ) ve Türkçeleri;  VERİLER / KISALTMALAR tabloları |
+| `cizim/kisaltmalar.py` | Ölçü kodları ( SW, SD, CW, CD, PLW, DW, DBG, DBGW ) ve Türkçeleri;  tablo çizicisi |
+| `cizim/veri_tablosu.py` | VERİLER VE KISALTMALAR:  asansörün veri tablosu, kısaltmalar, notlar ( paftada çizimlerin sonunda, kendi çerçevesinde ) |
 | `cizim/svg.py` | Elemanları SVG'ye yazar ( ekranda ölçüler tıklanır ) |
 | `cizim/olcu_kaynagi.py` | Ölçünün kaynağı ( türevle;  oynatma denetçi ) ve ölçüden değiştirme ( doğrulamalı ) |
 | `cizim/izli.py` | İzli sayı:  ölçü kaynağı için otomatik türev |
@@ -548,12 +549,17 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
    kat ), MRW · MRD ( makine dairesi ).  Kesitlerde kuyu dibi, seyir ve kuyu
    yüksekliği LD'de de Türkçe yazılır ( "Kuyu dibi1700" ).  Neyi ölçtüğü
    çizimden belli olanlar ( duvar, kasa, ray yüksekliği, eşikler, eksenlerin
-   yeri, askı ) yalnız sayıyla.  Kodların Türkçesi kuyu planının sağındaki
-   KISALTMALAR tablosunda — paftanın tek tablosu:  paftadaki BÜTÜN çizimlerin
-   kodlarını taşır ( `kisaltmalar.projede`;  test_kisaltmalar sayarak
-   denetler );  kabin, kapı ( DH, tip ) ve askı düzeni VERİLER tablosunda
-   ( eskiden kabinin içinde "KABİN 1350 x 1400", "ASKI:  KABİN ALTI · 2:1"
-   yazıyordu ).  Ekranda kodlu
+   yeri, askı ) yalnız sayıyla.  Kodların Türkçesi KISALTMALAR tablosunda —
+   asansörün tek tablosu:  paftadaki BÜTÜN çizimlerin kodlarını taşır
+   ( `kisaltmalar.projede`;  test_kisaltmalar sayarak denetler ).  **VERİLER VE
+   KISALTMALAR** ( 13 Eki, `cizim/veri_tablosu.py` ) her asansörün çizimlerinin
+   sonunda kendi çerçevesindedir ( LD'nin veri bloğu gibi;  eskiden kuyu
+   planının sağında üç satır ):  ASANSÖR VERİLERİ ( tip, yük ve kişi, hız, durak
+   ve seyir, askı, tahrik, kasnak, halat, kabin, kapı, kuyu, kuyu dibi ve OH,
+   raylar, karşı ağırlık, tamponlar, güvenlik tertibatı, regülatör — girdiden
+   ve hesabın özetinden, `kopru._veri`;  boş olan satır yazılmaz ),
+   KISALTMALAR ve NOTLAR ( "Ölçüler mm, kotlar m." ).  Başlığında ölçek
+   yazmaz ( `cizimler.OLCEKSIZ` ).  Ekranda kodlu
    ölçünün üstüne gelince Türkçesi görünür, ölçü kutusunun başlığında da yazar.
    **Sıralar ISO 129-1'e göre:**  ara zincirler içte, duvarlarla SW / SD en
    dışta;  her ölçü bir kez — kuyunun dış ölçüsü ( duvar + SW + duvar ) ve
@@ -1428,7 +1434,8 @@ Sıra ofisin 477-8 projesindeki gibi:  düşey kesitler ( 1/50 ), sonra planlar
 **Paftanın PDF'i** ( 13 Eki — `ciktilar/pafta_pdf.py`, çizimler `cizim/pdf.py` ):
 "Projeyi paketle" ZIP'ine paftanın PDF'i girer — DXF'le AYNI şerit, tek sayfa,
 1:1 ( basıma hazır ) — ve uygulama projesinde ayrıca "… - çizimler.pdf" ( her
-çizim kendi A sayfasında, A4 – A1 ).  Yerleşimin tek kaynağı DXF paftasıdır
+çizim kendi A sayfasında, A4 – A1;  sağ altta iki satırlık antet:  proje,
+asansör, sayfa, çizimin adı, ölçek — `pdf.antet`, `pafta.kunyeler` ).  Yerleşimin tek kaynağı DXF paftasıdır
 ( `dxf_cikti.sayfa_yerleri`, `pafta.bloklar` );  PDF onu aynen çizer, iki yerde
 daha iyisini koyar:  hesap sayfaları ( kapak dahil ) programın KENDİ
 PDF'lerinden vektörel gömülür ( pypdf ), çizimler modelden çizilir — ekranla

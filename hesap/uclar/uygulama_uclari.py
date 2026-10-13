@@ -145,9 +145,7 @@ def indir_uygulama_dwg(veri: dict = Body(...)):
             os.path.splitext(ad)[0],
             list(_paket_ekleri(veri, "uygulama")),
             son_islem=cizim_uclari.paftaya_ekle([g for g, _h in cizim]),
-            pdf_islem=pafta_pdf.paket_pdfleri(paftalar, cizim_uclari.pafta_cizimleri([g for g, _h in cizim]))
-            if pafta_pdf
-            else None,
+            pdf_islem=pafta_pdf.paket_pdfleri(paftalar, [g for g, _h in cizim]) if pafta_pdf else None,
         )
         yanit = _indir(paket, ad, "application/zip")
         notlar = (["DXF"] if sebep else []) + (["TASMA"] if tasti else [])

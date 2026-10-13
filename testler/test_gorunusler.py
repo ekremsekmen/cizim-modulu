@@ -236,7 +236,7 @@ class KapiKesiti(unittest.TestCase):
 class Pafta(unittest.TestCase):
     def test_iki_gorunus_paftada_ve_ekranda(self):
         for sira in (pafta.SIRA_MRL, pafta.SIRA_MD):
-            self.assertEqual(sira[-3:], ("kasnak_duzeni", "giris", "kapi_kesiti"))
+            self.assertEqual(sira[-4:], ("kasnak_duzeni", "giris", "kapi_kesiti", "veriler"))
         for ad in ("kasnak_duzeni", "giris", "kapi_kesiti"):
             self.assertIn(ad, cizimler.CIZIMLER)
 

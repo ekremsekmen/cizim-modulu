@@ -1,14 +1,15 @@
 """ÖLÇÜ DİLİ — LiftDesigner gibi kısa kod + tablo ( cizim/kisaltmalar.py — 13 Eki ).
 
-Kuyu planının KISALTMALAR tablosu paftanın tek tablosudur:  paftadaki bütün
+Veri tablosunun ( veri_tablosu ) KISALTMALAR'ı asansörün tek tablosudur:  paftadaki bütün
 çizimlerde geçen her kod tabloda, tablodaki her kod bir çizimde.  Kodlu ölçü
 kimliğini taşır ( ölçüye tıklama onunla tanır ), kod tanımsızsa yazılmaz."""
 
 import unittest
 
-from cizim import geometri
+from cizim import cizimler
 from cizim import kisaltmalar
 from cizim import pafta
+from cizim import veri_tablosu
 from testler import test_yerlesim_saglamligi
 
 
@@ -48,14 +49,36 @@ class Kodlar(unittest.TestCase):
                     self.assertEqual(tablo, [k for k in kisaltmalar.KODLAR if k in kullanilan])
 
     def test_veriler_tablosu(self):
+        #  13 Eki ( 4. adım ):  kuyu planından çizimlerin yanındaki kendi çerçevesine
         g, hata = test_yerlesim_saglamligi.gecerli_duzen(800, "Sağ", True)
-        metin = [
-            x["metin"] for x in geometri.kuyu_plani(g) if x.get("ad") == "veriler" and x["tip"] == "yazi"
-        ]
-        self.assertEqual(metin[0], "VERİLER")
-        self.assertIn("Kabin", metin)
-        self.assertTrue(any(m.startswith("CW × CD") for m in metin), metin)
-        self.assertTrue(any(m.startswith("DW × DH") for m in metin), metin)
+        self.assertIsNotNone(g, hata)
+        self.assertNotIn("veriler", {x.get("ad") for x in cizimler.CIZIMLER["kuyu_plani"][1](g)})
+        e = cizimler.CIZIMLER["veriler"][1](g)
+        metin = [x["metin"] for x in e if x.get("ad") == "veriler" and x["tip"] == "yazi"]
+        self.assertEqual(metin[0], "ASANSÖR VERİLERİ")
+        satir = dict(veri_tablosu.satirlar(g))
+        self.assertTrue(satir["Kabin"].startswith("CW × CD"), satir)
+        self.assertTrue(satir["Kapı"].startswith("DW × DH"), satir)
+        self.assertIn("2:1", satir["Askı"])
+        self.assertIn("kotlar m", " ".join(x.get("metin", "") for x in e if x.get("ad") == "notlar"))
+        #  Paftanın sonunda, başlığında ölçek yok
+        self.assertEqual(pafta.sira(g)[-1], "veriler")
+        ad, baslik, _o, c = pafta.cizim_listesi(g)[-1]
+        self.assertEqual(ad, "veriler")
+        self.assertIn(baslik, [x.get("metin") for x in c])
+
+    def test_veri_satirlari_girdiden(self):
+        #  Değerler girdiden ve hesabın özetinden ( kopru:  g["veri"] );  boş olan
+        #  satır yazılmaz — sayı uydurulmaz
+        g, hata = test_yerlesim_saglamligi.gecerli_duzen(800, "Sağ", True)
+        g = dict(g, veri={"yuk": 800.0, "kisi": 10, "kabin_rayi": "89 x 62 x 15,88", "tampon": None})
+        satir = dict(veri_tablosu.satirlar(g))
+        self.assertEqual(satir["Beyan yükü"], "800 kg  ·  10 kişi")
+        self.assertTrue(satir["Kabin rayı"].startswith("89 × 62 × 15,88"), satir)
+        self.assertNotIn("Asansör", satir)
+        self.assertNotIn("Güvenlik tertibatı", satir)
+        g = dict(g, veri={})
+        self.assertNotIn("Beyan yükü", dict(veri_tablosu.satirlar(g)))
 
 
 if __name__ == "__main__":

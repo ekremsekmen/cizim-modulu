@@ -17,6 +17,7 @@ yazı boyları 1/20'deki gibi tanımlıdır, ölçekle büyür ( svg ile aynı: 
 
 import io
 import math
+import re
 
 from reportlab.lib.colors import HexColor, white
 from reportlab.lib.units import mm
@@ -24,6 +25,8 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
+from cizim import cizimler
+from cizim import eleman
 from cizim import geometri
 from cizim import uslup
 
@@ -291,19 +294,77 @@ def sayfa_boyu(g, y):
     return "özel", g2, y2
 
 
-def sayfalar(cizimler, baslik="Asansör çizimleri") -> bytes:
-    """Her çizim kendi A sayfasında, ortada ( cizimler:  [ ( ad, başlık, ölçek,
-    elemanlar ) ] — pafta.cizim_listesi gibi çerçeveli ).  Dönen:  PDF baytları."""
+#  Ayrı sayfalı PDF'in anteti ( kâğıtta mm ):  sağ altta, iki satır — kullanıcı
+#  kararı 13 Eki ( proje, asansör, çizim, ölçek, sayfa;  çizen / onaylayan yok )
+ANTET_ENI = 180.0
+ANTET_SATIRI = 8.0
+ANTET_SATIR_ADEDI = 2
+ANTET_SAG = 40.0  # sağ sütun:  sayfa, ölçek
+ANTET_ARASI = 5.0  # çizimle antet arası
+
+
+def antet(proje, asansor, cizim, olcek_yazisi, sayfa):
+    """Antetin elemanları:  1/20 çizim biriminde ( kâğıt mm × 20 ), sol alt
+    köşe ( 0, 0 ).  Üstte proje ( solda ) ve asansör ( sağa yaslı ) | sayfa;
+    altta çizimin başlığı | ölçek.  Başlık hücreye sığmazsa açıklaması
+    ( "  ( … )" ) düşer."""
+    W, H, S = ANTET_ENI * 20, ANTET_SATIRI * 20, ANTET_SAG * 20
+    x_sag, pay = W - S, 2.0 * 20
+    e = [
+        eleman.dikdortgen("CERCEVE", 0, 0, W, 2 * H),
+        eleman.cizgi("YAZI", 0, H, W, H),
+        eleman.cizgi("YAZI", x_sag, 0, x_sag, 2 * H),
+    ]
+    if eleman.yazi_eni(cizim, uslup.NORMAL) > x_sag - 2 * pay:
+        cizim = cizim.split("  (")[0]
+
+    def hucre(x, satir, metin, h=uslup.NORMAL, hiza="sol"):
+        e.append(eleman.yazi(x, H * (satir + 0.5), metin, h, hiza=hiza, katman="CERCEVE"))
+
+    hucre(pay, 1, proje, uslup.HARF)
+    hucre(x_sag - pay, 1, asansor, hiza="sag")
+    hucre(x_sag + pay, 1, sayfa)
+    hucre(pay, 0, cizim)
+    hucre(x_sag + pay, 0, f"ÖLÇEK  {olcek_yazisi}")
+    return [x for x in e if x.get("metin", True)]
+
+
+def _olcek_yazisi(ad, olcek):
+    """Tablonun ( cizimler.OLCEKSIZ ) ölçeği yok;  çok asansörlüde ad "_2" ile biter."""
+    return "—" if re.sub(r"_\d+$", "", ad) in cizimler.OLCEKSIZ else f"1/{olcek:g}"
+
+
+def sayfalar(cizimler_, baslik="Asansör çizimleri", kunyeler=()) -> bytes:
+    """Her çizim kendi A sayfasında, sağ altta anteti ( cizimler_:  [ ( ad,
+    başlık, ölçek, elemanlar ) ] — pafta.bloklar gibi çerçeveli;  kunyeler:
+    aynı sırada { proje, asansor } — pafta.kunyeler ).  Dönen:  PDF baytları."""
     akis = io.BytesIO()
     c = canvas.Canvas(akis, pageCompression=1)
     c.setTitle(baslik)
     c.setCreator("Asansör çizim modülü")
-    for _ad, _baslik, olcek, e in cizimler:
+    n = len(cizimler_)
+    for i, (ad, baslik_, olcek, e) in enumerate(cizimler_):
         x0, y0, x1, y1 = geometri.sinir(e)
         g, y = (x1 - x0) / olcek, (y1 - y0) / olcek
-        _a, en, boy = sayfa_boyu(g, y)
+        alt = ANTET_SATIRI * ANTET_SATIR_ADEDI + ANTET_ARASI
+        _a, en, boy = sayfa_boyu(max(g, ANTET_ENI), y + alt)
         c.setPageSize((en * mm, boy * mm))
-        yerlestir(c, e, olcek, (x0, y0), ((en - g) / 2.0, (boy - y) / 2.0))
+        yerlestir(
+            c,
+            e,
+            olcek,
+            (x0, y0),
+            ((en - g) / 2.0, SAYFA_KENARI + alt + (boy - 2 * SAYFA_KENARI - alt - y) / 2.0),
+        )
+        k = kunyeler[i] if i < len(kunyeler) else {}
+        a = antet(
+            k.get("proje", ""),
+            k.get("asansor", ""),
+            baslik_,
+            _olcek_yazisi(ad, olcek),
+            f"SAYFA  {i + 1} / {n}",
+        )
+        yerlestir(c, a, 20, (0, 0), (en - SAYFA_KENARI - ANTET_ENI, SAYFA_KENARI))
         c.showPage()
     c.save()
     return akis.getvalue()

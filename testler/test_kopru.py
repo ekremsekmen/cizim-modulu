@@ -102,6 +102,9 @@ class OrnekProjeler(unittest.TestCase):
             #  Hesabın Sabitler sekmesindeki kabin ölçüleri:  örnek referans
             #  projenin kabiniyle ( elle kurulan girdi de onu taşır )
             self.assertEqual(g.pop("_cizim_sabitleri"), beklenen.pop("_cizim_sabitleri"))
+            #  Yalnız veri tablosunun yazdıkları ( kopru._veri — 13 Eki ):  girdiden
+            veri = g.pop("veri")
+            self.assertEqual(veri["yuk"], float(_veri(md)["asansorler"][0]["beyan_yuku"]))
             self.assertEqual(json.loads(json.dumps(g)), json.loads(json.dumps(beklenen)))
 
     def test_kuvvetler_hesabin_sonucundan(self):
@@ -475,7 +478,8 @@ class Uclar(unittest.TestCase):
             self.assertTrue(d["hesap"])
             ad = [c["ad"] for c in d["cizimler"]]
             self.assertEqual(
-                ad[-4:], ["delik_plani" if md else "kuyu_ustu", "kasnak_duzeni", "giris", "kapi_kesiti"]
+                ad[-5:],
+                ["delik_plani" if md else "kuyu_ustu", "kasnak_duzeni", "giris", "kapi_kesiti", "veriler"],
             )
             for c in d["cizimler"]:
                 self.assertTrue(c["svg"].startswith("<svg"), c["ad"])
@@ -512,6 +516,7 @@ class Uclar(unittest.TestCase):
                     "kasnak_duzeni",
                     "giris",
                     "kapi_kesiti",
+                    "veriler",
                 )
             },
         )

@@ -67,7 +67,8 @@ ANTET = {
 
 #  Paftadaki çizimler, sırasıyla ( makine dairesizde kuyu üstü planı,
 #  makine dairelide makine dairesi ve delik planı )
-#  Sonda LiftDesigner'ın görünüşleri:  kasnak düzenlemesi, giriş ve kapı yan kesiti.
+#  Sonda LiftDesigner'ın görünüşleri:  kasnak düzenlemesi, giriş ve kapı yan kesiti;
+#  en sonda asansörün veri tablosu ( veri_tablosu ).
 SIRA_MRL = (
     "kuyu_kesiti_yan",
     "kuyu_kesiti_on",
@@ -78,6 +79,7 @@ SIRA_MRL = (
     "kasnak_duzeni",
     "giris",
     "kapi_kesiti",
+    "veriler",
 )
 SIRA_MD = (
     "kuyu_kesiti_yan",
@@ -90,6 +92,7 @@ SIRA_MD = (
     "kasnak_duzeni",
     "giris",
     "kapi_kesiti",
+    "veriler",
 )
 
 
@@ -199,7 +202,13 @@ def cizim_listesi(g, seritler=()):
                 ad,
                 cizimler.plan_basligi(g, ad, baslik),
                 olcek,
-                geometri.cerceveli(e, cizimler.plan_basligi(g, ad, baslik), olcek, seritler=seritler),
+                geometri.cerceveli(
+                    e,
+                    cizimler.plan_basligi(g, ad, baslik),
+                    olcek,
+                    seritler=seritler,
+                    olcekli=ad not in cizimler.OLCEKSIZ,
+                ),
             )
         )
     if hata:
@@ -288,6 +297,15 @@ def bloklar(g):
             #  Blok adı asansörle birlikte:  iki kuyunun kesiti aynı bloğu ezmesin
             liste.append((f"{ad}_{i + 1}" if coklu else ad, baslik, olcek, e))
     return liste
+
+
+def kunyeler(g):
+    """bloklar( g ) ile aynı sırada her çizimin projesi ve asansörü:
+    [ { proje, asansor } ] — ayrı sayfalı PDF'in anteti ( pdf.sayfalar )."""
+    gler = g if isinstance(g, (list, tuple)) else [g]
+    return [
+        {"proje": g_["proje"]["ad"], "asansor": g_["proje"]["asansor"]} for g_ in gler for _ad in sira(g_)
+    ]
 
 
 def blok_adi(ad):

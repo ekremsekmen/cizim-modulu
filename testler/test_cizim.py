@@ -270,7 +270,7 @@ class PlanGeometrisi(unittest.TestCase):
 
 class SvgCiktisi(unittest.TestCase):
     def setUp(self):
-        self.e = geometri.kuyu_plani(_ornek())
+        self.e = geometri.plan(_ornek())
         self.s = svg.yaz(self.e, geometri.sinir(self.e, 250), "KUYU PLANI", 20)
 
     def test_svg_gecerli_bicimde(self):
@@ -286,7 +286,7 @@ class SvgCiktisi(unittest.TestCase):
         sonra = self.s[self.s.index("<text") :]
         for parca in ("<rect", "<circle", "<polygon"):
             self.assertNotIn(parca, sonra)
-        self.assertIsNotNone(re.search(r"<text[^>]*>CW × CD  1350 × 1400</text>", sonra))
+        self.assertIsNotNone(re.search(r"<text[^>]*>CW1350</text>", sonra))
 
     def test_etiket_ortasindan_hizali(self):
         """Geometri etiketin ORTASINI verir ( DXF'te MIDDLE ):  SVG taban
@@ -297,7 +297,7 @@ class SvgCiktisi(unittest.TestCase):
         self.assertIn(f"translate(1000.0,{2000 - 0.35 * el['yukseklik']:.1f})", s)
 
     def test_bilinen_olculer_yaziya_giriyor(self):
-        for beklenen in ("SW2100", "SD1850", "DBG1550", "DW900", "KUYU PLANI", "KISALTMALAR"):
+        for beklenen in ("SW2100", "SD1850", "DBG1550", "DW900", "KUYU PLANI"):
             self.assertIn(beklenen, self.s, beklenen)
 
     def test_her_katman_bir_kalem_tanimli(self):
@@ -358,6 +358,8 @@ class DxfCiktisi(unittest.TestCase):
             self.assertEqual(e.dxf.ltscale, des.olcek * 20)
         d, bilgi = pafta.belge(self.g)
         for c in bilgi["cizimler"]:
+            if c["ad"] in cizimler.OLCEKSIZ:
+                continue  # tablo:  çizgisi yok
             blok = d.blocks.get(f"CIZIM_{c['ad'].upper()}")
             desenli = [
                 e
@@ -2906,6 +2908,7 @@ class Pafta(unittest.TestCase):
                 "kasnak_duzeni",
                 "giris",
                 "kapi_kesiti",
+                "veriler",
             ],
         )
         self.assertEqual(
@@ -2921,6 +2924,7 @@ class Pafta(unittest.TestCase):
                 "kasnak_duzeni",
                 "giris",
                 "kapi_kesiti",
+                "veriler",
             ],
         )
         bloklar = {

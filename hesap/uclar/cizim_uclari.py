@@ -87,7 +87,8 @@ def _elemanlar(g, ad):
     seritler = (
         f"{g['proje']['ad']}  ·  {g['proje']['asansor']}" if g["proje"]["ad"] else g["proje"]["asansor"],
     )
-    return geometri.cerceveli(ciz(g), baslik, olcek, seritler=seritler), baslik, olcek
+    e = geometri.cerceveli(ciz(g), baslik, olcek, seritler=seritler, olcekli=ad not in cizimler.OLCEKSIZ)
+    return e, baslik, olcek
 
 
 def _svg(g, ad, onek=""):
@@ -756,11 +757,6 @@ def _sayiya(x):
         return float(str(x).replace(",", "."))
     except (TypeError, ValueError):
         return None
-
-
-def pafta_cizimleri(gler):
-    """Paftaya eklenen çizimler ( paftanın PDF'i onları modelden çizer )."""
-    return pafta.bloklar(gler)
 
 
 def paftaya_ekle(gler):

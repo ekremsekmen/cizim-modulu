@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-KISALTMALAR — ölçülerin kısa kodları ve çizimin VERİLER / KISALTMALAR tabloları.
+KISALTMALAR — ölçülerin kısa kodları ve tablolar ( veri_tablosu çizer ).
 
 Ölçü dili LiftDesigner gibidir ( kullanıcı 12 Eki:  "LD gibi kısa kod +
 tablo" ):  asıl ölçüler kodla ( "SW2100" ), neyi ölçtüğü çizimden belli
@@ -58,7 +58,7 @@ def kullanilanlar(elemanlar):
 
 def projede(g, plandaki):
     """Paftanın BÜTÜN çizimlerinde geçen kodlar:  KISALTMALAR tablosu yalnız
-    kuyu planındadır, paftanın tek tablosu odur.  Pafta ancak bütün çizimleri
+    veri tablosundadır ( veri_tablosu ), asansörün tek tablosu odur.  Pafta ancak bütün çizimleri
     çizilebiliyorsa çıkar ( pafta.cizim_listesi ):  planın kodları, kesitlerin
     OH'si, giriş görünüşünün ve kapı kesitlerinin DH'si, makine daireli
     projede odanın MRW / MRD'si ( test_kisaltmalar bunu bütün çizimlerden
@@ -76,22 +76,21 @@ KOD_SUTUNU = 300.0
 KENAR = 60.0
 
 
-def tablo(x, y, baslik, satirlar, ad, k=1.0):
+def tablo(x, y, baslik, satirlar, ad, k=1.0, sutun=KOD_SUTUNU):
     """Sola hizalı iki sütunlu tablo:  sol üst köşe ( x , y ).  satirlar:
-    [ ( sol , sağ ) ].  Dönen:  ( elemanlar , alt kenarın y'si )."""
+    [ ( sol , sağ ) ];  sutun:  sağ sütunun sola uzaklığı ( 1/20'de ).
+    Dönen:  ( elemanlar , alt kenarın y'si )."""
     h, adim = uslup.NORMAL * k, SATIR * k
     e = [eleman.ad(eleman.yazi(x, y - adim / 2.0, baslik, h, hiza="sol"), ad)]
     yy = y - adim
-    e.append(eleman.ad(eleman.cizgi("YAZI", x, yy, x + _tablo_eni(baslik, satirlar, k), yy), ad))
+    e.append(eleman.ad(eleman.cizgi("YAZI", x, yy, x + _tablo_eni(baslik, satirlar, k, sutun), yy), ad))
     for sol, sag in satirlar:
         yy -= adim
         e.append(eleman.ad(eleman.yazi(x, yy + adim / 2.0, sol, h, hiza="sol"), ad))
-        e.append(eleman.ad(eleman.yazi(x + KOD_SUTUNU * k, yy + adim / 2.0, sag, h, hiza="sol"), ad))
+        e.append(eleman.ad(eleman.yazi(x + sutun * k, yy + adim / 2.0, sag, h, hiza="sol"), ad))
     return e, yy
 
 
-def _tablo_eni(baslik, satirlar, k):
+def _tablo_eni(baslik, satirlar, k, sutun):
     h = uslup.NORMAL * k
-    return max(
-        [eleman.yazi_eni(baslik, h)] + [KOD_SUTUNU * k + eleman.yazi_eni(sag, h) for _sol, sag in satirlar]
-    )
+    return max([eleman.yazi_eni(baslik, h)] + [sutun * k + eleman.yazi_eni(sag, h) for _sol, sag in satirlar])
