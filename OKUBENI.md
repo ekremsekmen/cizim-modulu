@@ -722,6 +722,17 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
    düşürüyordu );  paftada kullanılmayan stiller silinir, şablonun stillerine
    yazı tipinin aile adı yazılır ( Mac'te times.ttf bulunamıyordu ) —
    AutoCAD açarken hiçbir yazı tipini değiştirmez, AUDIT 0 ( AcCoreConsole ).
+   **Parça blokları** ( 13 Eki — `dxf.parca_ornekleri` ):  adı olan parçanın
+   ( elemanın `ad`ı ) her örneği DXF'te kendi adlı bloğundadır —
+   `KUYU_PLANI_KABIN_RAY_1`, `KUYU_KESITI_YAN_KAT_KAPISI_3` …;  AutoCAD'de
+   tıklanınca bütün parça seçilir, adı özelliklerde görünür ( LiftDesigner'ın
+   paftalarında da her parça bloktur ).  Aynı adlı elemanlar birbirine
+   değiyorsa bir örnektir ( rayın flanşı ve gövdesi ), değmiyorsa ayrı ( iki
+   kabin rayı ).  Duvar, tarama, ölçü, yazı ve maskelenen çizgiler blok olmaz
+   ( `dxf.BLOKSUZ_KATMANLAR` ).  Çizgiler yerinde kalır:  bloklar açılınca
+   çizim bloksuzunun aynısıdır ( test_cizim.ParcaBloklari );  gerçek 1022
+   paftasında 262 parça bloğu, AcCoreConsole AUDIT 0, AutoCAD'den geri
+   yazılınca bloklar eksiksiz.  Ekran ve PDF değişmez.
 12. **Parçaların gerçek biçimi:  zarf mantık içindir, biçim çizim içindir**
    ( `cizim/parcalar.py` ).  Yerleşim, çakışma, ölçü ve testler parçayı
    dikdörtgen zarfıyla bilir;  zarfa `bicim` yazılır ( dünya koordinatında

@@ -9,10 +9,12 @@ TEST 15 — ÇİZİM MODÜLÜ  ( hesap motorundan bağımsız )
   · girdi sözleşmesi eksik ya da tutarsız girdiyi reddediyor mu
 """
 
+import collections
 import os
 import math
 import re
 import unittest
+from unittest import mock
 
 
 from temel import kutu_merkezi, ortusur
@@ -306,6 +308,62 @@ class SvgCiktisi(unittest.TestCase):
             self.assertIn(kat, uslup.KATMAN, kat)
 
 
+def _dxf_varliklari(d, yer):
+    """Yerleşimin varlıkları, parça blokları ( dxf.parca_ornekleri ) açılarak:
+    adı olan parçanın her örneği kendi bloğundadır ( 13 Eki )."""
+    for e in yer:
+        if e.dxftype() == "INSERT":
+            yield from _dxf_varliklari(d, d.blocks.get(e.dxf.name))
+        else:
+            yield e
+
+
+class ParcaBloklari(unittest.TestCase):
+    """Adı olan parçanın her örneği DXF'te kendi adlı bloğunda ( 13 Eki — çizim
+    kalitesi 6. adımı;  LiftDesigner'ın paftalarında her parça bloktur ):
+    AutoCAD'de tıklanınca bütün parça seçilir.  Çizgiler yerinde kalır."""
+
+    def setUp(self):
+        from cizim import dxf
+
+        self.CDX = dxf
+        self.e = geometri.plan(_ornek())
+        self.d = dxf.belge(self.e, "KUYU PLANI", 20)
+
+    def _duz(self, d):
+        out = collections.Counter()
+        for e in _dxf_varliklari(d, d.modelspace()):
+            n = e.dxf
+            yer = (
+                (round(n.start.x, 2), round(n.start.y, 2), round(n.end.x, 2), round(n.end.y, 2))
+                if e.dxftype() == "LINE"
+                else tuple(round(v, 2) for q in e.get_points("xy") for v in q)
+                if e.dxftype() == "LWPOLYLINE"
+                else ()
+            )
+            out[(e.dxftype(), n.layer, n.get("linetype", ""), round(n.get("ltscale", 1.0), 3), yer)] += 1
+        return out
+
+    def test_her_ornek_kendi_blogunda(self):
+        bloklar = {i.dxf.name for i in self.d.modelspace().query("INSERT")}
+        #  İki kabin rayı iki ayrı örnek ( flanş ve gövde aynı bloğun içinde )
+        self.assertEqual(
+            sorted(b for b in bloklar if b.startswith("PARCA_KABIN_RAY_")),
+            ["PARCA_KABIN_RAY_1", "PARCA_KABIN_RAY_2"],
+        )
+        for ad in bloklar:
+            for e in self.d.blocks.get(ad):
+                with self.subTest(blok=ad):
+                    self.assertNotIn(e.dxf.layer, self.CDX.BLOKSUZ_KATMANLAR)
+
+    def test_bloklar_acilinca_cizim_ayni(self):
+        bloklu = self._duz(self.d)
+        with mock.patch.object(self.CDX, "parca_ornekleri", lambda e: []):
+            bloksuz = self._duz(self.CDX.belge(self.e, "KUYU PLANI", 20))
+        self.assertEqual(bloklu, bloksuz)
+        self.assertGreater(sum(bloklu.values()), 100)
+
+
 class DxfCiktisi(unittest.TestCase):
     """CAD çıktısı:  AutoCAD'in açabildiği, katmanlı ve GERÇEK ölçü varlıklı."""
 
@@ -352,7 +410,11 @@ class DxfCiktisi(unittest.TestCase):
         Eskiden blokta da ölçek çarpılıyordu:  eksenler AutoCAD'de düz çizgi
         görünüyordu."""
         des = uslup.DESENLER["EKSEN"]
-        eksen = [e for e in self.d.modelspace().query("LINE") if e.dxf.get("linetype") == des.dxf]
+        eksen = [
+            e
+            for e in _dxf_varliklari(self.d, self.d.modelspace())
+            if e.dxftype() == "LINE" and e.dxf.get("linetype") == des.dxf
+        ]
         self.assertTrue(eksen)
         for e in eksen:
             self.assertEqual(e.dxf.ltscale, des.olcek * 20)
@@ -363,7 +425,7 @@ class DxfCiktisi(unittest.TestCase):
             blok = d.blocks.get(f"CIZIM_{c['ad'].upper()}")
             desenli = [
                 e
-                for e in blok
+                for e in _dxf_varliklari(d, blok)
                 if e.dxftype() in ("LINE", "LWPOLYLINE", "CIRCLE")
                 and (e.dxf.get("linetype") == des.dxf or uslup.KATMAN[e.dxf.layer].desen)
             ]
@@ -407,7 +469,7 @@ class DxfCiktisi(unittest.TestCase):
     def test_duvar_taramasi_hatch_olarak(self):
         #  Desenli HATCH duvar kesitidir;  SOLID HATCH parçanın dolu kesiti
         #  ( planda ray — parcalar.ray_bicimi )
-        taramalar = [x for x in self.d.modelspace() if x.dxftype() == "HATCH"]
+        taramalar = [x for x in _dxf_varliklari(self.d, self.d.modelspace()) if x.dxftype() == "HATCH"]
         self.assertEqual(
             sum(1 for x in taramalar if x.dxf.solid_fill == 0),
             sum(1 for el in self.e if el["tip"] in ("tarama", "tarama_tugla")),

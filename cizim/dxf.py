@@ -16,6 +16,7 @@ from decimal import ROUND_HALF_UP, Decimal
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
 
+from cizim import geometri
 from cizim import uslup
 
 #  Katmanların rengi ( ACI ), kalınlığı ( 1/100 mm ) ve çizgi tipi
@@ -267,60 +268,142 @@ def hazirla(d):
     d.styles.get(YAZI_TIPI).set_extended_font_data("Arial", bold=False, italic=False)
 
 
+#  PARÇA BLOKLARI ( 13 Eki — çizim kalitesi 6. adımı ):  adı olan parçanın
+#  ( elemanın `ad`ı:  kabin_ray, makine_sasesi, kat_kapisi … ) her örneği kendi
+#  adlı bloğundadır — AutoCAD'de tıklanınca bütün parça seçilir, adı
+#  özelliklerde görünür ( LiftDesigner'ın paftalarında her parça bloktur ).
+#  Aynı adlı elemanlar birbirine değiyorsa bir örnektir ( rayın flanşı ve
+#  gövdesi );  değmiyorsa ayrı örnek ( iki kabin rayı ).  Blok olmaz:  duvar,
+#  tarama, ölçü, yazı, maskelenen çizgiler ( eksen, gizli, halat, alan sınırı … )
+#  ve işaretler ( yük kutusu, etiket oku ).  Çizgiler yerinde kalır:  bloğun
+#  taban noktası örneğin köşesi, eklendiği yer de orası.
+BLOKSUZ_KATMANLAR = set(geometri.MASKELI_KATMANLAR) | {"KUYU-DUVAR", "KUYU-IC", "TARAMA", "YUK", "BINA"}
+_BLOK_TIPLERI = ("dikdortgen", "cizgi", "daire")
+_ORNEK_PAYI = 1.0  # mm:  aynı adlı iki eleman bundan yakınsa aynı örnek
+
+
+def parca_ornekleri(elemanlar):
+    """Blok olacak parça örnekleri:  [ ( ad , [ eleman ] ) ], çizim sırasıyla."""
+    gruplar = {}
+    for el in elemanlar:
+        if el.get("ad") and el["tip"] in _BLOK_TIPLERI and el["katman"] not in BLOKSUZ_KATMANLAR:
+            gruplar.setdefault(el["ad"], []).append(el)
+    ornekler = []
+    for ad, liste in gruplar.items():
+        kutular = [geometri.sinir([el], _ORNEK_PAYI) for el in liste]
+        ornekler += [(ad, [liste[i] for i in kume]) for kume in _degenler(kutular)]
+    return ornekler
+
+
+def _degenler(kutular):
+    """Birbirine ( zincirleme ) değen kutuların kümeleri:  [ [ sıra no ] ]."""
+    kok = list(range(len(kutular)))
+
+    def bul(i):
+        while kok[i] != i:
+            kok[i] = kok[kok[i]]
+            i = kok[i]
+        return i
+
+    for i, a in enumerate(kutular):
+        for j in range(i + 1, len(kutular)):
+            b = kutular[j]
+            if a[0] <= b[2] and b[0] <= a[2] and a[1] <= b[3] and b[1] <= a[3]:
+                kok[bul(i)] = bul(j)
+    kume = {}
+    for i in range(len(kutular)):
+        kume.setdefault(bul(i), []).append(i)
+    return list(kume.values())
+
+
+def _blok_adi(d, onek, ad, n):
+    ad_ = re.sub(r"[^A-Z0-9_]", "_", f"{onek}_{ad}".upper())
+    while f"{ad_}_{n}" in d.blocks:
+        n += 1
+    return f"{ad_}_{n}"
+
+
 def ciz(hedef, elemanlar, olcek=20, blokta=False):
-    """Elemanları `hedef` yerleşimine ( model alanı ya da blok ) yazar.
+    """Elemanları `hedef` yerleşimine ( model alanı ya da blok ) yazar;  adı olan
+    parçalar kendi bloklarında ( parca_ornekleri ).
 
     blokta:  hedef paftaya 1/ölçek ile eklenen bir blok ( çizgi deseni
     küçülmez — _cizgi_tipi )."""
-    k = olcek / 20.0  # ok ve boşluklar 1/20'ye göre
+    d = hedef.doc
+    #  Blok adının öneki çizimin adı ( paftada "CIZIM_KUYU_PLANI" → "KUYU_PLANI" )
+    onek = "PARCA" if getattr(hedef, "is_modelspace", False) else re.sub(r"^CIZIM_", "", hedef.name)
+    ornek = {}
+    for ad, liste in parca_ornekleri(elemanlar):
+        for el in liste:
+            ornek[id(el)] = (ad, liste)
+    yazilan = set()
+    sayac = {}
     #  Önce parçalar, sonra ölçüler, en son etiketler:  maske yalnız kendinden
     #  ÖNCE çizileni örter ( AutoCAD'in çizim sırası ).
     sira = {"olcu": 1, "yazi": 2}
     for el in sorted(elemanlar, key=lambda el: sira.get(el["tip"], 0)):
-        tur, kat = el["tip"], el["katman"]
-        lt = _cizgi_tipi(el, olcek, blokta)
-        if tur == "dikdortgen" and "bicim" in el:
-            _bicim(hedef, el, lt)
-        elif tur in ("dikdortgen", "tarama", "tarama_tugla"):
-            _dikdortgen(hedef, el, lt)
-            if tur in ("tarama", "tarama_tugla"):
-                #  Duvar kesiti taraması:  CAD'in kendi HATCH varlığı
-                tarama = hedef.add_hatch(color=uslup.KATMAN[kat].aci, dxfattribs={"layer": kat})
-                tarama.set_pattern_fill(uslup.TARAMALAR[tur].dxf, scale=uslup.tarama_olcegi(tur, olcek))
-                tarama.paths.add_polyline_path(
-                    [
-                        (el["x"], el["y"]),
-                        (el["x"] + el["g"], el["y"]),
-                        (el["x"] + el["g"], el["y"] + el["d"]),
-                        (el["x"], el["y"] + el["d"]),
-                    ],
-                    is_closed=True,
-                )
-        elif tur in ("cizgi", "eksen"):
-            hedef.add_line(
-                (el["x1"], el["y1"]),
-                (el["x2"], el["y2"]),
-                dxfattribs={"layer": kat, **lt},
-            )
-        elif tur == "daire":
-            hedef.add_circle((el["x"], el["y"]), el["r"], dxfattribs={"layer": kat, **lt})
-        elif tur == "ok":
-            hedef.add_line((el["x1"], el["y1"]), (el["x2"], el["y2"]), dxfattribs={"layer": kat})
-            dx, dy = el["x2"] - el["x1"], el["y2"] - el["y1"]
-            boy = max((dx * dx + dy * dy) ** 0.5, 1e-6)
-            ux, uy, u = dx / boy, dy / boy, 55 * k
-            hedef.add_solid(
+        if id(el) not in ornek:
+            _eleman(hedef, el, olcek, blokta)
+            continue
+        ad, liste = ornek[id(el)]
+        if id(liste) in yazilan:
+            continue
+        yazilan.add(id(liste))
+        sayac[ad] = sayac.get(ad, 0) + 1
+        x0, y0, _x1, _y1 = geometri.sinir(liste)
+        blok = d.blocks.new(name=_blok_adi(d, onek, ad, sayac[ad]), base_point=(x0, y0))
+        for p in liste:
+            _eleman(blok, p, olcek, blokta)
+        hedef.add_blockref(blok.name, (x0, y0), dxfattribs={"layer": "0"})
+
+
+def _eleman(hedef, el, olcek, blokta):
+    """Tek elemanı `hedef`e yazar."""
+    k = olcek / 20.0  # ok ve boşluklar 1/20'ye göre
+    tur, kat = el["tip"], el["katman"]
+    lt = _cizgi_tipi(el, olcek, blokta)
+    if tur == "dikdortgen" and "bicim" in el:
+        _bicim(hedef, el, lt)
+    elif tur in ("dikdortgen", "tarama", "tarama_tugla"):
+        _dikdortgen(hedef, el, lt)
+        if tur in ("tarama", "tarama_tugla"):
+            #  Duvar kesiti taraması:  CAD'in kendi HATCH varlığı
+            tarama = hedef.add_hatch(color=uslup.KATMAN[kat].aci, dxfattribs={"layer": kat})
+            tarama.set_pattern_fill(uslup.TARAMALAR[tur].dxf, scale=uslup.tarama_olcegi(tur, olcek))
+            tarama.paths.add_polyline_path(
                 [
-                    (el["x2"], el["y2"]),
-                    (el["x2"] - ux * u - uy * u * 0.4, el["y2"] - uy * u + ux * u * 0.4),
-                    (el["x2"] - ux * u + uy * u * 0.4, el["y2"] - uy * u - ux * u * 0.4),
+                    (el["x"], el["y"]),
+                    (el["x"] + el["g"], el["y"]),
+                    (el["x"] + el["g"], el["y"] + el["d"]),
+                    (el["x"], el["y"] + el["d"]),
                 ],
-                dxfattribs={"layer": kat},
+                is_closed=True,
             )
-        elif tur == "olcu":
-            _olcu(hedef, el, olcek)
-        elif tur == "yazi":
-            _etiket(hedef, el)
+    elif tur in ("cizgi", "eksen"):
+        hedef.add_line(
+            (el["x1"], el["y1"]),
+            (el["x2"], el["y2"]),
+            dxfattribs={"layer": kat, **lt},
+        )
+    elif tur == "daire":
+        hedef.add_circle((el["x"], el["y"]), el["r"], dxfattribs={"layer": kat, **lt})
+    elif tur == "ok":
+        hedef.add_line((el["x1"], el["y1"]), (el["x2"], el["y2"]), dxfattribs={"layer": kat})
+        dx, dy = el["x2"] - el["x1"], el["y2"] - el["y1"]
+        boy = max((dx * dx + dy * dy) ** 0.5, 1e-6)
+        ux, uy, u = dx / boy, dy / boy, 55 * k
+        hedef.add_solid(
+            [
+                (el["x2"], el["y2"]),
+                (el["x2"] - ux * u - uy * u * 0.4, el["y2"] - uy * u + ux * u * 0.4),
+                (el["x2"] - ux * u + uy * u * 0.4, el["y2"] - uy * u - ux * u * 0.4),
+            ],
+            dxfattribs={"layer": kat},
+        )
+    elif tur == "olcu":
+        _olcu(hedef, el, olcek)
+    elif tur == "yazi":
+        _etiket(hedef, el)
 
 
 def belge(elemanlar, baslik="", olcek=20):
