@@ -150,6 +150,7 @@ YERLESIM_OLCULERI = (
     "kasnak_agirlik_adedi",
     "saptirma_agirlik_capi",
     "makine_yuku_x",
+    "agirlik_baglanti_x",
     "yan_yatak_boyu",
     "agirlik_dolgu_yuksekligi",
 )
@@ -189,6 +190,7 @@ def yerlesim_olculeri(g):
         duvar = g.get("agirlik_yeri") == "Arka"
         if mukavemet_tablolari.makine_raya_mi(g.get("makine_raya_biniyor")) == duvar:
             o.pop("makine_yuku_x", None)
+            o.pop("agirlik_baglanti_x", None)
             o.pop("yan_yatak_boyu", None)
     d = {k: o[k] for k in YERLESIM_OLCULERI if k in o}
     isaret = {k: "yerleşim" for k in d}

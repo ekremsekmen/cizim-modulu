@@ -179,27 +179,76 @@ def _cizim_olcusu(g, anahtar):
     return v if (sayi_mi(v) and anahtar in (g.get("_cizimden") or {})) else None
 
 
-#  MAKİNE YÜKÜ DÖRT RAYA EŞİT DAĞILIR  ( MRL · "Kılavuz raylara" ).
-#  MRL makinesinin şasesi kabin raylarıyla birlikte karşı ağırlık raylarına da
-#  oturur;  referans projenin örnek projesi de yükü dört raya birden verir ( bina
-#  yükleri M1 … M4 ).  Eskiden yalnız kabin raylarına bölünüyordu:  kabin rayı
-#  payı iki katı çıkıyor, karşı ağırlık rayları ise makineyi hiç görmüyordu
-#  ( 50 N ofis kabulü ) — o rayların σv · σc'si ve kuyu tabanı yükü FAR
-#  EMNİYETSİZ taraftaydı.  Ofisin MRL makineleri dört raya oturur ( kullanıcı
-#  kararı ).  Toplam:  makine ağırlığı + kasnağın statik yükü ( Tst ).
-def _makine_ray_payi(g, o):
-    """Makine raylara biniyorsa ( BİR RAYA düşen yük N , kaynak );  binmiyorsa None."""
-    if not (evet_mi(g.get("mk_yok")) and mukavemet_tablolari.makine_raya_mi(g.get("makine_raya_biniyor"))):
-        return None
-    nk, na = g["kabin_ray_sayisi"] or 0, g["agirlik_ray_sayisi"] or 0
-    n_top = nk + na
-    toplam = (g["makine_agirligi"] or 0.0) + (o.get("Tst_hesap") or 0.0)
-    kutle = toplam / n_top if n_top else toplam
-    return (
-        kutle * SABIT["gn"],
-        f"( Gm + Tst ) / {trn(n_top, 0)} ray  ( {trn(nk, 0)} kabin + {trn(na, 0)} "
-        "karşı ağırlık rayı · makine raylara biniyor — m.5.7.2.3.7 )",
-    )
+def _kiris_yuk_yeri(g, O):
+    """Makine kirişinin açıklığı ve tahrik kasnağının mesnetten uzaklığı:
+    ( L , X , X çizimden mi ).  Bölüm 2 ( kirişin kendisi ) ile bölüm 7 · 8
+    ( rayların mesnet tepkisi ) AYNI kirişi okur.  L yoksa ( None , None , False );
+    X çizimden gelmezse ya da açıklığın dışındaysa ofis kabulü:  L − 335."""
+    L = g["yan_yatak_boyu"]
+    if not (sayi_mi(L) and L > 0):
+        return None, None, False
+    X_ciz = _cizim_olcusu(g, "makine_yuku_x")
+    if X_ciz is not None and 0 < X_ciz < L:
+        return L, float(X_ciz), True
+    return L, L - O["yan_yatak_L_X"], False
+
+
+#  RAYA BAĞLI MAKİNE VE HALAT ASKILARI  ( TS EN 81-20 m.5.7.2.3.7:  "If the machine
+#  or rope suspensions are fixed to the guide rails, additional load cases ... shall
+#  be considered" ).  Yük yolu çizimdeki gibidir ( kuyu_ustu ) — makine dairesizde:
+#
+#    · YANDAKİ AĞIRLIKTA ( "Kılavuz raylara" ) makine kirişleri İKİ KARŞI AĞIRLIK
+#      RAYINA oturur — bölüm 2'nin kirişi ( açıklık L, kasnak X'te ).  Kirişin yükü:
+#      makine ( Gm ) + kasnağın statik yükü ( Tst ) + ağırlık tarafının halat
+#      bağlantısı ( Ga / r — bağlantı kirişin üstündedir, Xh'de ).  Mesnet
+#      tepkileri kaldıraçla bulunur, EN YÜKLÜ ağırlık rayı alınır.
+#    · 2:1'de KABİN TARAFININ HALAT BAĞLANTISI kendi kabin rayının başındadır
+#      ( çizimdeki halat konsolu ):  o raya ( Q + P + Gh ) / r biner.  Arkadaki
+#      ağırlıkta da böyledir — makine orada duvardan duvara kirişlerdedir.
+#
+#  ARAŞTIRMA ( 14 Eki, kullanıcı "gerçekte nasıl, bakalım" ):  referans projenin kuyu
+#  üstü planında şase yalnız iki ağırlık rayının üstündedir ( şase hesabında da
+#  L = A + B = DBGW );  LiftDesigner 4815-6'da makine ağırlık raylarının başındadır,
+#  inşaat planında duvara yük yoktur;  1250 KG'de ise duvardan duvara kirişlerdedir
+#  ( bina yapısı ).  Hiçbirinde makine dört raya oturmaz.
+#
+#  ESKİDEN ( Gm + Tst ) kabin ve ağırlık raylarının toplam sayısına EŞİT bölünüyor,
+#  halat bağlantıları hiç sayılmıyordu.  Referans projede en yüklü ağırlık rayı
+#  1.426 kg yerine 457 kg, kabin bağlantısının rayı 894 kg yerine 457 kg çıkıyordu —
+#  rayların σk · σc'si ve kuyu tabanı yükü EMNİYETSİZ taraftaydı.
+def _ray_askilari(g, o):
+    """Bir raya binen makine / halat askısı yükü:  { "kabin": ( N , kaynak ) ,
+    "agirlik": ( N , kaynak ) };  yükün binmediği tarafta None ( ofis kabulü kalır )."""
+    if "ray_askilari" in o:
+        return o["ray_askilari"]
+    gn, r = SABIT["gn"], int(o.get("r") or 1)
+    mrl = evet_mi(g.get("mk_yok"))
+    sonuc = {"kabin": None, "agirlik": None}
+    if mrl and r >= 2:
+        sonuc["kabin"] = (
+            gn * o["F1"] / r,
+            f"kabin halat bağlantısı ( Q + P + Gh ) / {r}  ·  kabin rayının başında — m.5.7.2.3.7",
+        )
+    if (
+        mrl
+        and mukavemet_tablolari.makine_raya_mi(g.get("makine_raya_biniyor"))
+        and g.get("agirlik_yeri") != "Arka"
+    ):
+        W = (g["makine_agirligi"] or 0.0) + (o.get("Tst_hesap") or 0.0)
+        Wh = o["Ga"] / r if r >= 2 else 0.0
+        yuk = f"Gm + Tst + Ga / {r}" if r >= 2 else "Gm + Tst"
+        L, X, _ = _kiris_yuk_yeri(g, o["ofis"])
+        if L is None:
+            #  Açıklık bilinmezse bir mesnedin tepkisi yükün tamamını aşamaz:  üst sınır.
+            R, nasil = W + Wh, "kirişin açıklığı çizimden gelmedi:  tamamı bir raya"
+        else:
+            Xh = _cizim_olcusu(g, "agirlik_baglanti_x")
+            Xh = Xh if (Xh is not None and 0 < Xh < L) else X
+            Rb = (W * X + Wh * Xh) / L
+            R, nasil = max(W + Wh - Rb, Rb), "kirişin en yüklü mesnedi ( kaldıraç )"
+        sonuc["agirlik"] = (gn * R, f"( {yuk} ) · {nasil} — m.5.7.2.3.7")
+    o["ray_askilari"] = sonuc
+    return sonuc
 
 
 def _gezici_kablo(g):
@@ -857,9 +906,9 @@ class _Makine:
         #  YÜKÜN KİRİŞTEKİ YERİ çizimden ( tahrik kasnağı:  makine dairesizde
         #  ağırlık raylarına oturan kirişte, makine dairelide kaidede );  yoksa
         #  ofis kabulü:  mesnetten L − 335.
-        X_ciz = _cizim_olcusu(g, "makine_yuku_x")
-        self.X_ciz = X_ciz if (X_ciz is not None and 0 < X_ciz < L) else None
-        self.X = X = float(self.X_ciz) if self.X_ciz is not None else L - O["yan_yatak_L_X"]
+        _L, X, _ciz = _kiris_yuk_yeri(g, O)
+        self.X_ciz = X if _ciz else None
+        self.X = X
         self.FB = FB = F1 * X / L
         self.FA = FA = F1 - FB
         self.Mmax = Mmax = FA * X
@@ -3180,23 +3229,25 @@ class _KabinRaylari:
         bu durumda da 150 N kullanıyordu — referans proje aynı alana 1.000 kg yazar,
         yani 65 kat.
 
-        YENİ GİRDİ İSTENMEZ, ELDEKİ İKİ SAYI YÖNLENDİRİLİR:
+        YENİ GİRDİ İSTENMEZ, YÜK ÇİZİMDEKİ YOLUNDAN BULUNUR ( bkz. _ray_askilari ):
             makinenin kendi ağırlığı            Gm   ( girdi )
           + tahrik kasnağına gelen statik yük   Tst  ( bölüm 1'de hesaplanıyor )
+          + halat bağlantıları                  ( Q + P + Gh ) / r ,  Ga / r
         referans projenin kendi notu da bunu tarif eder:  "the weight of the motor,
         the loads on the traction sheave from the cabin and counterweight, and
-        the motor bedplate weight should all be summed".
+        the motor bedplate weight should all be summed.  Additionally, fixpoint
+        loads must be considered".
 
         Maux RAY BAŞINA BİR BÜYÜKLÜKTÜR.  m.5.7.2.3.7 açıkça böyle yazar:
         "Forces and torques PER GUIDE RAIL due to auxiliary equipment fixed to
          the guide rail Maux shall be considered".  150 N da ray başınadır ( şalter · kam · kanal ), o yüzden bölünmez.
 
-        TÜRETİLEN DEĞER İSE TOPLAMDIR:  Gm + Tst makinenin tamamının yüküdür.
-        KABİN VE KARŞI AĞIRLIK RAYLARININ TOPLAM SAYISINA EŞİT bölünür — makine
-        şasesi dört raya oturur ve yük simetrik paylaşılır kabul edilir
-        ( bkz. _makine_ray_payi;  karşı ağırlık rayı aynı payı bölüm 8'de
-        görür ).  Bir raya düşen yük ayrıca SORULMAZ ( kullanıcı kararı:
-        imalatçının asimetrik değeri için duran kutu kaldırıldı ).
+        KABİN RAYINA kabin tarafının halat bağlantısı biner ( 2:1 makine dairesizde
+        rayın başındaki konsol );  makine kirişleri karşı ağırlık raylarındadır ve
+        kabin rayına binmez ( bölüm 8 en yüklü ağırlık rayını alır ).  Eskiden
+        Gm + Tst dört raya eşit bölünüyordu ( 14 Eki'ye kadar ).  Bir raya düşen yük
+        ayrıca SORULMAZ ( kullanıcı kararı:  imalatçının asimetrik değeri için duran
+        kutu kaldırıldı ).
         SEÇİM YALNIZ MAKİNE DAİRESİZ TESİSTE GEÇERLİDİR.  Makine dairesi
         varsa makine kendi kaidesinde durur ve yükü bölüm 2'de hesaplanır;
         aynı yükü bir de raya bindirmek onu İKİ KEZ saymaktır ve paftaya
@@ -3214,7 +3265,7 @@ class _KabinRaylari:
         self.mrl = evet_mi(g.get("mk_yok"))
         self.raya = mukavemet_tablolari.makine_raya_mi(g.get("makine_raya_biniyor"))
         MY, MY_kaynak = SABIT["MY_kabin"], "KABUL"
-        _pay = _makine_ray_payi(g, o)
+        _pay = _ray_askilari(g, o)["kabin"]
         if _pay:
             MY, MY_kaynak = _pay
         self.MY, self.MY_kaynak = MY, MY_kaynak
@@ -3940,7 +3991,7 @@ class _AgirlikRaylari:
         #  sayma değildir  ( bkz. _motor'daki P_std açıklaması ).
         self.Mcwt = Mcwt = g["karsi_agirlik"] + (o.get("MCR") or 0.0)
         MY, MY_kaynak = S["MY_agirlik"], "KABUL"
-        _pay = _makine_ray_payi(g, o)
+        _pay = _ray_askilari(g, o)["agirlik"]
         if _pay:
             MY, MY_kaynak = _pay
         self.MY, self.MY_kaynak = MY, MY_kaynak

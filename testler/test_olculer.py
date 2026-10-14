@@ -127,12 +127,34 @@ class MakineYuku(unittest.TestCase):
         self.assertAlmostEqual(o["yan_yatak_boyu"], gc["agirlik"]["ray_arasi"])
         self.assertTrue(0 < o["makine_yuku_x"] < o["yan_yatak_boyu"])
 
+    def test_agirlik_baglantisi_kirisin_ustunde(self):
+        #  14 Eki:  ağırlık tarafının halat bağlantısı kirişlerin üstündedir;
+        #  rayların mesnet tepkisi ( mukavemet._ray_askilari ) yerini çizimden okur.
+        #  Bağlantı ağırlık kasnağının öbür teğetinde:  kasnaktan ağırlık
+        #  kasnağının çapı kadar uzakta.
+        gc, _h = kopru.cizim_girdisi(_girdi())
+        o = _olc()
+        self.assertTrue(0 < o["agirlik_baglanti_x"] < o["yan_yatak_boyu"])
+        self.assertNotAlmostEqual(o["agirlik_baglanti_x"], o["makine_yuku_x"], delta=100)
+        s = uygulama_hesabi.hesapla({})
+        self.assertIn(
+            "kaldıraç",
+            next(
+                a["kaynak"]
+                for b in s["bolumler"]
+                if b["kimlik"] == "agirlik_raylari"
+                for a in b["adimlar"]
+                if a.get("sembol") == "MY"
+            ),
+        )
+
     def test_bina_yapisina_oturan_kiris_cizilmiyor(self):
         #  Karar 3:  duvardan duvara kiriş henüz çizilmiyor — açıklık yok,
         #  bölüm 2 HESAP EKSİK ( 1.400 sessizce kullanılmaz )
         o = _olc(makine_raya_biniyor="Bina yapısına")
         self.assertIsNone(o["yan_yatak_boyu"])
         self.assertNotIn("makine_yuku_x", o)
+        self.assertNotIn("agirlik_baglanti_x", o)
         s = uygulama_hesabi.hesapla({"makine_raya_biniyor": "Bina yapısına"})
         b2 = next(b for b in s["bolumler"] if b["baslik"].startswith("2 "))
         self.assertIn("HESAP EKSİK", b2.get("eksik_hesap") or "")

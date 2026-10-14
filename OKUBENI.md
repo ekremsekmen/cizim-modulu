@@ -1487,12 +1487,27 @@ eşit;  tampon adetleri aynı.  Birisi tutmazsa proje üretilmez.
 
 Makine dairesiz tesiste makine şasesi raylara oturur ( referans proje "Motor Bedplate
 Calculation" ):  hesap girdisinde "Makine yükünün yolu = Kılavuz raylara" ve
-makine ağırlığı 250 kg ( referans proje motoru ).  Hesap programı bir raya
-( Gm + Tst ) / 4 = 4.490 N yükler ( m.5.7.2.3.7 );  referans proje aynı yere kendi
-kabulüyle 800 kg ( ray hesabında 1.000 kg ) koyar.  **Hesap programının
-modelinde olmayanlar** ( çizim işi bitince ele alınacak ):  şasenin kendi
-ağırlığı ( referans proje 150 kg ) ve şaseye bağlı halat bağlantısının yükü ( referans proje
-M3 = 686 kg ).
+makine ağırlığı 250 kg ( referans proje motoru ).
+
+**Raya binen yük çizimdeki yolundan** ( m.5.7.2.3.7 "machine or rope suspensions
+fixed to the guide rails" — `mukavemet._ray_askilari`, 14 Eki ):
+- **Karşı ağırlık rayları:** makine kirişleri iki karşı ağırlık rayına oturur
+  ( bölüm 2'nin kirişi:  açıklık L = DBGW, kasnak X'te ).  Kirişin yükü makine +
+  kasnağın statik yükü + ağırlık tarafının halat bağlantısı:  Gm + Tst + Ga / r.
+  Bağlantının kirişteki yeri ( Xh ) çizimden gelir ( `olculer.agirlik_baglanti_x` ).
+  Mesnet tepkileri kaldıraçla bulunur;  en yüklü ray alınır.  Açıklık çizimden
+  gelmezse yükün tamamı bir raya ( üst sınır ).
+- **Kabin rayı:** 2:1'de kabin tarafının halat bağlantısı kabin rayının başındadır
+  ( çizimdeki halat konsolu ):  ( Q + P + Gh ) / r.  Arkadaki ağırlıkta da böyledir;
+  makine orada duvardan duvara kirişlerdedir.
+
+Referans projede bu, en yüklü ağırlık rayına 1.502 kg, kabin rayına 894 kg
+verir;  kuyu tabanı FKR 38,1 kN ( referans proje 37,5 kN ).  Eskiden ( Gm + Tst ) / 4
+= 457 kg dört raya eşit bölünüyor, halat bağlantıları sayılmıyordu.  Araştırma:
+referans projenin kuyu üstü planında şase yalnız ağırlık raylarının üstündedir,
+LiftDesigner 4815-6'da makine ağırlık raylarının başında, 1250 KG'de duvardan
+duvara kirişlerde;  hiçbirinde dört raya oturmaz.  Şasenin kendi ağırlığı ayrı
+bir girdi değildir:  makine ağırlığına ( Gm ) katılmalıdır ( referans proje 150 kg ).
 
 ## Pafta ( TİP PROJE FORMATI )
 

@@ -59,6 +59,7 @@ FORMDA_YOK = {
     "kasnak_agirlik_adedi",
     "saptirma_agirlik_capi",
     "makine_yuku_x",
+    "agirlik_baglanti_x",
     #  4. adım:  kirişin açıklığı çizimden ( kaide halatlara ortalı, makineyi sarar );
     #  karşı ağırlık dolgusuna kalan yükseklik ( karar 11 )
     "yan_yatak_boyu",

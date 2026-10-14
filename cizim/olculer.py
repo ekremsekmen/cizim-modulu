@@ -32,6 +32,8 @@ içinde çelişiyordu.  Burada o büyüklükler çizimin kurduğu yerleşimden
                         halatlara ortalı, makineyi sarar — makine_dairesi.yerlesim )
     makine_yuku_x       makine yükünün ( tahrik kasnağının ) aynı kirişte mesnede
                         uzaklığı ( bölüm 2'nin X'i )
+    agirlik_baglanti_x  makine dairesizde ağırlık tarafının halat bağlantısının aynı
+                        kirişte mesnede uzaklığı ( bölüm 7 · 8:  rayların mesnet tepkisi )
 
 KURMA İLE DENETİM AYRIDIR:  çizimin denetim hataları ( sığınma alanı,
 çakışma … ) bu ölçüleri durdurmaz;  yalnız geometri hiç kurulamazsa ilgili
@@ -85,18 +87,39 @@ def kasnak_sayilari(g, saptirma):
     }
 
 
+def _mrl_mesnetler(KU):
+    """Makine dairesizde kirişlerin mesnetleri:  karşı ağırlık raylarının
+    birbirine bakan yüzleri ( ön rayın arka, arka rayın ön yüzü — aralık DBGW ).
+    ( a , b ) ya da None."""
+    raylar = sorted(kuyu_dibi.raylari_topla(KU["taban"], "agirlik_ray"), key=lambda r: r[1])
+    if len(raylar) < 2:
+        return None
+    return raylar[0][3], raylar[-1][1]
+
+
 def _mrl_kiris_yuku(g, S, KU):
     """Makine dairesizde makine kirişleri karşı ağırlık raylarına oturur:
     mesnetler rayların birbirine bakan yüzleri ( aralık DBGW ), yük tahrik
     kasnağının düzleminde ( iki halat inişi de oradadır ).  X mesnetten yüke."""
-    taban = KU["taban"]
-    raylar = sorted(kuyu_dibi.raylari_topla(taban, "agirlik_ray"), key=lambda r: r[1])
-    if len(raylar) < 2:
+    m = _mrl_mesnetler(KU)
+    if m is None:
         return None, None
-    a, b = raylar[0][3], raylar[-1][1]  # ön rayın arka, arka rayın ön yüzü
+    a, b = m
     y0 = (KU["kasnak"][1] + KU["kasnak"][3]) / 2.0
     X = y0 - a
     return (round(X, 3) if 0.0 < X < b - a else None), round(b - a, 3)
+
+
+def _mrl_baglanti_yeri(KU):
+    """Ağırlık tarafının halat bağlantısı kirişlerin üstündedir ( kuyu_ustu:
+    ağırlık kasnağının öbür teğetinin hizası ):  mesnetten uzaklığı — bölüm 7 · 8
+    mesnet tepkilerini kaldıraçla bulur.  Açıklığın dışındaysa None."""
+    m, kutu = _mrl_mesnetler(KU), KU.get("agirlik_baglanti")
+    if m is None or not kutu:
+        return None
+    a, b = m
+    Xh = (kutu[1] + kutu[3]) / 2.0 - a
+    return round(Xh, 3) if 0.0 < Xh < b - a else None
 
 
 def _duvar_kiris_yuku(KU):
@@ -177,6 +200,9 @@ def hesap_olculeri(g):
         out.update(
             _kiris(*(_duvar_kiris_yuku(KU) if KU.get("duvardan_duvara") else _mrl_kiris_yuku(g, S, KU)))
         )
+        Xh = None if KU.get("duvardan_duvara") else _mrl_baglanti_yeri(KU)
+        if Xh is not None and "yan_yatak_boyu" in out:
+            out["agirlik_baglanti_x"] = Xh
 
     for tur, anahtar in (("kabin", "kabin_ray_boyu"), ("agirlik", "agirlik_ray_boyu")):
         boy = [r["ust"] - r["alt"] for r in M["raylar"] if r["tur"] == tur]

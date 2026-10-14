@@ -1891,7 +1891,8 @@ _GRUPLAR = (
                 pozitif=True,  # 0 anlamsız ( 13 Eki )
                 bilgi=(
                     "Gm — makine ve motorun katalogdaki ağırlığı. Makine kaidesine ve kuyu üstüne gelen "
-                    "yüke girer."
+                    "yüke girer;  makine dairesizde raylara da biner — makinenin şasesi varsa ağırlığını "
+                    "buna katın."
                 ),
             ),
             #  C ( sap. kasnak yükü ) ve D ( makine yatak yükü ) KALDIRILDI.
@@ -1917,11 +1918,13 @@ _GRUPLAR = (
                     " oranı en az 40 olmalıdır."
                 ),
             ),
-            #  BİR RAYA DÜŞEN MAKİNE YÜKÜ SORULMAZ.  "Bina yapısına" seçildiğinde
-            #  hesaba hiç girmez;  "Kılavuz raylara" seçildiğinde makinenin yükü
-            #  ( Gm + Tst ) kabin VE karşı ağırlık raylarına EŞİT dağıtılır ( bkz.
-            #  mukavemet._makine_ray_payi ).  Eskiden imalatçının asimetrik değeri için ayrı bir
-            #  kutu vardı;  yük yolu "bina yapısına" iken de görünüyordu.
+            #  BİR RAYA DÜŞEN MAKİNE YÜKÜ SORULMAZ, ÇİZİMDEN BULUNUR.  "Bina yapısına"
+            #  seçildiğinde hesaba girmez;  "Kılavuz raylara" seçildiğinde kirişler
+            #  iki karşı ağırlık rayına oturur ve yük ( makine + kasnak + ağırlık halat
+            #  bağlantısı ) kaldıraçla bölünür;  kabin tarafının halat bağlantısı kendi
+            #  kabin rayındadır ( bkz. mukavemet._ray_askilari — 14 Eki, referans proje ve
+            #  LiftDesigner 4815-6 ).  Eskiden ( Gm + Tst ) dört raya eşit bölünüyordu.
+            #  İmalatçının asimetrik değeri için ayrı bir kutu da vardı;  kaldırıldı.
             A(
                 "makine_tst",
                 "Tst — makinenin azami kasnak statik yükü  ( imalatçı )",
@@ -1976,9 +1979,10 @@ _GRUPLAR = (
                 sozlesme=MUK,
                 yerlesim="mrl",
                 bilgi=(
-                    "Makine ağırlığı ve kasnak yükü nereye iniyor. 'Kılavuz raylara':  kirişler karşı "
-                    "ağırlık raylarına oturur, yük rayların yardımcı donanım kalemine ( MY ) eklenir. "
-                    "'Bina yapısına' ( duvardan duvara kiriş ) henüz çizilmiyor."
+                    "Makine ağırlığı ve kasnak yükü nereye iniyor. 'Kılavuz raylara':  kirişler iki karşı "
+                    "ağırlık rayına oturur, yük kaldıraçla bu raylara bölünür ve rayların yardımcı "
+                    "donanım kalemine ( MY ) eklenir. 'Bina yapısına' ( duvardan duvara kiriş ) "
+                    "yandaki ağırlıkta henüz çizilmiyor."
                 ),
             ),
             #  PROJENİN MAKİNESİNE AİT VERİM.  Ofis değeri makine tipine göre tektir
@@ -2062,6 +2066,26 @@ _GRUPLAR = (
                     "X — tahrik kasnağının kiriş boyunca mesnetten uzaklığı:  makine dairesizde "
                     "kirişler karşı ağırlık raylarına oturur, makine dairesinde kaidenin yan "
                     "yataklarıdır. Hesap eskiden L − 335 alıyordu."
+                ),
+            ),
+            #  Makine dairesizde ağırlık tarafının halat bağlantısı da kirişlerin
+            #  üstündedir ( kuyu_ustu ):  ağırlık raylarının mesnet tepkileri ( bölüm
+            #  7 · 8 · 9 ) yükün yerinden kaldıraçla bulunur.  Yoksa bağlantı kasnağın
+            #  hizasında ( X ) sayılır.
+            A(
+                "agirlik_baglanti_x",
+                "Ağırlık halat bağlantısının kiriş mesnedine uzaklığı  ( Xh )",
+                "mm",
+                "sayi",
+                None,
+                None,
+                kaynak=CIZIM,
+                sozlesme=MUK,
+                formda=False,
+                opsiyonel=True,
+                bilgi=(
+                    "Xh — makine dairesizde ağırlık tarafının halat bağlantısının makine kirişi "
+                    "boyunca mesnetten uzaklığı:  ağırlık raylarına binen yük kaldıraçla bölünür."
                 ),
             ),
             A(

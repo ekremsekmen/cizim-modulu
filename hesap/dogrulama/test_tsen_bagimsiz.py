@@ -551,103 +551,117 @@ class PveMRLDenetimi(unittest.TestCase):
         katalog = mukavemet.hesapla({"reg_halat_capi": 6, "reg_halat_birim_kutle": 0.30})
         self.assertGreater(katalog["ara"]["regulator.gh"], tablo["ara"]["regulator.gh"])
 
-    #  ── MAKİNE YÜKÜNÜN YOLU  ( m.5.7.2.3.7 · m.5.2.1.8.4 ) ─────────────
-    def test_makine_raya_binince_Maux_turetilir(self):
-        """m.5.7.2.3.7:  Maux "per guide rail" — KABİN VE KARŞI AĞIRLIK
-        raylarının toplam sayısına eşit bölünür ( makine şasesi dört raya
-        oturur;  kullanıcı kararı ).
+    #  ── RAYA BAĞLI MAKİNE VE HALAT ASKILARI  ( m.5.7.2.3.7 · m.5.2.1.8.4 ) ──
+    #  14 Eki:  yük çizimdeki yolundan ( mukavemet._ray_askilari ) — eskiden
+    #  ( Gm + Tst ) dört raya eşit bölünüyor, halat bağlantıları sayılmıyordu.
+    _RAYA = {"mk_yok": True, "makine_raya_biniyor": mukavemet_tablolari.MAKINE_YUK_YOLU_RAY}
+    _BINA = {"mk_yok": True, "makine_raya_biniyor": mukavemet_tablolari.MAKINE_YUK_YOLU[0]}
 
-        Seçim YALNIZ makine dairesiz tesiste uygulanır;  makine dairesi varsa
-        makine kendi kaidesindedir ve yük iki kez sayılmamalıdır.
-        """
+    def test_kabin_rayina_kabin_halat_baglantisi_biner(self):
+        """m.5.7.2.3.7 "machine OR ROPE SUSPENSIONS are fixed to the guide rails":
+        makine dairesizde 2:1'de kabin tarafının halat bağlantısı kabin rayının
+        başındadır ( çizimdeki halat konsolu ) — o raya ( Q + P + Gh ) / r biner.
+        Makine kirişleri karşı ağırlık raylarındadır, kabin rayına binmez."""
+        s = mukavemet.hesapla(dict(self._RAYA))
+        self.assertTrue(s["aktif"], s.get("hata"))
+        a = s["ara"]
+        self.assertEqual(s["girdi"]["aski_orani"], 2)
+        self.assertAlmostEqual(a["kabin_ray.MY"], 9.81 * a["motor.F1"] / 2, places=6)
+        kb = next(b for b in s["bolumler"] if b["kimlik"] == "kabin_raylari")
+        my = next(x for x in kb["adimlar"] if x.get("sembol") == "MY")
+        self.assertIn("halat bağlantısı", my["kaynak"])
+
+    def test_agirlik_raylarina_kirisin_mesnet_tepkisi_biner(self):
+        """Yandaki ağırlıkta makine kirişleri iki karşı ağırlık rayına oturur
+        ( bölüm 2'nin kirişi:  açıklık L, kasnak X'te — referans proje ve
+        LiftDesigner 4815-6 ).  Kirişin yükü Gm + Tst + Ga / r;  en yüklü mesnet
+        alınır.  Çizim yokken ağırlık bağlantısı da kasnağın hizasında sayılır."""
+        s = mukavemet.hesapla(dict(self._RAYA))
+        a, g = s["ara"], s["girdi"]
+        W = g["makine_agirligi"] + s["ozet"]["Tst_hesap"] + a["motor.Ga"] / 2
+        L, X = g["yan_yatak_boyu"], a["makine.X"]
+        self.assertAlmostEqual(a["agirlik_ray.MY"], 9.81 * W * max(X, L - X) / L, places=6)
+        kb = next(b for b in s["bolumler"] if b["kimlik"] == "agirlik_raylari")
+        my = next(x for x in kb["adimlar"] if x.get("sembol") == "MY")
+        self.assertIn("kaldıraç", my["kaynak"])
+
+    def test_baglantinin_yeri_cizimden_kaldiraca_girer(self):
+        """Ağırlık bağlantısının kirişteki yeri ( Xh ) çizimden gelince
+        kaldıraç onu kullanır;  kasnak X'te kalır."""
+        ciz = {"yan_yatak_boyu": "yerleşim", "makine_yuku_x": "yerleşim", "agirlik_baglanti_x": "yerleşim"}
         s = mukavemet.hesapla(
-            {"mk_yok": True, "makine_raya_biniyor": mukavemet_tablolari.MAKINE_YUK_YOLU_RAY}
+            dict(self._RAYA, yan_yatak_boyu=1000, makine_yuku_x=200, agirlik_baglanti_x=800, _cizimden=ciz)
         )
         self.assertTrue(s["aktif"], s.get("hata"))
-        g = s["girdi"]
-        Gm, Tst = g["makine_agirligi"], s["ozet"]["Tst_hesap"]
-        n = g["kabin_ray_sayisi"] + g["agirlik_ray_sayisi"]
-        self.assertEqual(n, 4)
-        self.assertAlmostEqual(s["ara"]["kabin_ray.MY"], (Gm + Tst) * 9.81 / n, places=6)
-        self.assertAlmostEqual(s["ara"]["agirlik_ray.MY"], (Gm + Tst) * 9.81 / n, places=6)
+        a = s["ara"]
+        self.assertEqual(a["makine.X"], 200)
+        W, Wh = s["girdi"]["makine_agirligi"] + s["ozet"]["Tst_hesap"], a["motor.Ga"] / 2
+        Rb = (W * 200 + Wh * 800) / 1000
+        self.assertAlmostEqual(a["agirlik_ray.MY"], 9.81 * max(W + Wh - Rb, Rb), places=6)
 
-    def test_Maux_ray_sayisina_bolunur(self):
-        """Kabin rayları 2'den 4'e çıkınca toplam 4'ten 6 raya bölünür."""
-        iki = mukavemet.hesapla(
-            {
-                "mk_yok": True,
-                "makine_raya_biniyor": mukavemet_tablolari.MAKINE_YUK_YOLU_RAY,
-                "kabin_ray_sayisi": 2,
-            }
-        )
-        dort = mukavemet.hesapla(
-            {
-                "mk_yok": True,
-                "makine_raya_biniyor": mukavemet_tablolari.MAKINE_YUK_YOLU_RAY,
-                "kabin_ray_sayisi": 4,
-            }
-        )
-        self.assertAlmostEqual(dort["ara"]["kabin_ray.MY"] * 6, iki["ara"]["kabin_ray.MY"] * 4, places=6)
-        self.assertAlmostEqual(dort["ara"]["agirlik_ray.MY"], dort["ara"]["kabin_ray.MY"], places=9)
+    def test_aciklik_bilinmezse_yukun_tamami_bir_raya(self):
+        """Kirişin açıklığı çizimden gelmediyse bir mesnedin tepkisi yükün
+        tamamını aşamaz:  üst sınır alınır ( sayı uydurulmaz )."""
+        s = mukavemet.hesapla(dict(self._RAYA, yan_yatak_boyu=None))
+        a = s["ara"]
+        W = s["girdi"]["makine_agirligi"] + s["ozet"]["Tst_hesap"] + a["motor.Ga"] / 2
+        self.assertAlmostEqual(a["agirlik_ray.MY"], 9.81 * W, places=6)
 
-    def test_makine_yuku_karsi_agirlik_raylarina_da_biner(self):
-        """Karşı ağırlık rayları makinenin payını σv · σc'de ve kuyu tabanında
-        ( FAR ) görür;  dört rayın payları toplamı makinenin tamamıdır."""
-        bina = mukavemet.hesapla(
-            {"mk_yok": True, "makine_raya_biniyor": mukavemet_tablolari.MAKINE_YUK_YOLU[0]}
-        )
-        raya = mukavemet.hesapla(
-            {"mk_yok": True, "makine_raya_biniyor": mukavemet_tablolari.MAKINE_YUK_YOLU_RAY}
-        )
+    def test_kabin_rayi_sayisi_baglantinin_yukunu_bolmez(self):
+        """Halat bağlantısı TEK bir kabin rayının başındadır:  ray sayısı onu bölmez."""
+        iki = mukavemet.hesapla(dict(self._RAYA, kabin_ray_sayisi=2))
+        dort = mukavemet.hesapla(dict(self._RAYA, kabin_ray_sayisi=4))
+        self.assertAlmostEqual(dort["ara"]["kabin_ray.MY"], iki["ara"]["kabin_ray.MY"], places=9)
+
+    def test_makine_binaya_oturunca_agirlik_rayi_ofis_kabulu_kabin_bagi_yine_rayda(self):
+        """'Bina yapısına':  makine ve ağırlık bağlantısı binadadır ( ağırlık rayı
+        ofis kabulü );  kabin bağlantısı yine kabin rayının başındadır."""
+        bina = mukavemet.hesapla(dict(self._BINA))
+        raya = mukavemet.hesapla(dict(self._RAYA))
         self.assertAlmostEqual(bina["ara"]["agirlik_ray.MY"], mukavemet.SABIT["MY_agirlik"], places=9)
+        self.assertAlmostEqual(bina["ara"]["kabin_ray.MY"], raya["ara"]["kabin_ray.MY"], places=9)
         self.assertGreater(raya["ara"]["agirlik_ray.sv"], bina["ara"]["agirlik_ray.sv"])
         self.assertGreater(raya["ara"]["kuyu.FAR"], bina["ara"]["kuyu.FAR"])
-        g = raya["girdi"]
-        toplam = (
-            raya["ara"]["kabin_ray.MY"] * g["kabin_ray_sayisi"]
-            + raya["ara"]["agirlik_ray.MY"] * g["agirlik_ray_sayisi"]
-        )
-        self.assertAlmostEqual(toplam, (g["makine_agirligi"] + raya["ozet"]["Tst_hesap"]) * 9.81, places=6)
-        kb = next(b for b in raya["bolumler"] if b["kimlik"] == "agirlik_raylari")
-        my = next(a for a in kb["adimlar"] if a.get("sembol") == "MY")
-        self.assertIn("karşı ağırlık", my["kaynak"])
+
+    def test_arkadaki_agirlikta_makine_binada_kabin_bagi_rayda(self):
+        """Arkadaki ağırlıkta makine duvardan duvara kirişlerdedir ( kullanıcı
+        kararı — 12495-18 );  kabin bağlantısı yakın kabin rayının başındadır."""
+        s = mukavemet.hesapla(dict(self._RAYA, agirlik_yeri="Arka"))
+        self.assertTrue(s["aktif"], s.get("hata"))
+        self.assertAlmostEqual(s["ara"]["agirlik_ray.MY"], mukavemet.SABIT["MY_agirlik"], places=9)
+        self.assertAlmostEqual(s["ara"]["kabin_ray.MY"], 9.81 * s["ara"]["motor.F1"] / 2, places=6)
+
+    def test_bir_e_bir_askida_halat_baglantisi_yok(self):
+        """1:1'de halatlar kabinde ve ağırlıkta biter:  kuyu tepesinde bağlantı
+        yoktur.  Kirişin yükü Gm + Tst."""
+        s = mukavemet.hesapla(dict(self._RAYA, aski_orani=1))
+        a, g = s["ara"], s["girdi"]
+        self.assertAlmostEqual(a["kabin_ray.MY"], mukavemet.SABIT["MY_kabin"], places=9)
+        W = g["makine_agirligi"] + s["ozet"]["Tst_hesap"]
+        L, X = g["yan_yatak_boyu"], a["makine.X"]
+        self.assertAlmostEqual(a["agirlik_ray.MY"], 9.81 * W * max(X, L - X) / L, places=6)
 
     def test_bir_raya_dusen_yuk_sorulmaz(self):
-        """Bir raya düşen makine yükü formda YOKTUR:  "bina yapısına"da hesaba
-        girmez, "kılavuz raylara"da ( Gm + Tst ) raylara eşit dağıtılır."""
+        """Bir raya düşen makine yükü formda YOKTUR:  yük çizimdeki yolundan
+        bulunur ( kirişin mesnet tepkisi, halat bağlantısı )."""
         self.assertNotIn("raya_binen_yuk", mukavemet_girdi.ALAN)
         self.assertEqual(mukavemet_girdi.RAYA_BINEN_ALANLARI, ("makine_raya_biniyor",))
 
-    def test_makine_raya_binmezse_ofis_kabulu_kalir(self):
-        s = mukavemet.hesapla({"mk_yok": True, "makine_raya_biniyor": mukavemet_tablolari.MAKINE_YUK_YOLU[0]})
-        self.assertAlmostEqual(s["ara"]["kabin_ray.MY"], mukavemet.SABIT["MY_kabin"], places=9)
-
-    def test_form_disi_ray_yuku_esit_dagilimi_ezmez(self):
-        """Form dışından gelen bir 'bir raya düşen yük' değeri eşit dağılımı
-        değiştirmez — hesap yalnız Gm + Tst ile ray sayısını kullanır."""
-        esit = mukavemet.hesapla(
-            {"mk_yok": True, "makine_raya_biniyor": mukavemet_tablolari.MAKINE_YUK_YOLU_RAY}
-        )
-        disari = mukavemet.hesapla(
-            {
-                "mk_yok": True,
-                "makine_raya_biniyor": mukavemet_tablolari.MAKINE_YUK_YOLU_RAY,
-                "raya_binen_yuk": 1000,
-            }
-        )
+    def test_form_disi_ray_yuku_hesabi_ezmez(self):
+        """Form dışından gelen bir 'bir raya düşen yük' değeri hesabı değiştirmez."""
+        esit = mukavemet.hesapla(dict(self._RAYA))
+        disari = mukavemet.hesapla(dict(self._RAYA, raya_binen_yuk=1000))
         self.assertAlmostEqual(disari["ara"]["kabin_ray.MY"], esit["ara"]["kabin_ray.MY"], places=9)
+        self.assertAlmostEqual(disari["ara"]["agirlik_ray.MY"], esit["ara"]["agirlik_ray.MY"], places=9)
 
     def test_makine_raya_binince_kuyu_tabani_da_buyur(self):
         """m.5.2.1.8.4 kalemi adıyla anar:  'load on traction sheave due to
-        rebound when machine on rails'."""
-        yok = mukavemet.hesapla(
-            {"mk_yok": True, "makine_raya_biniyor": mukavemet_tablolari.MAKINE_YUK_YOLU[0]}
-        )
-        var = mukavemet.hesapla(
-            {"mk_yok": True, "makine_raya_biniyor": mukavemet_tablolari.MAKINE_YUK_YOLU_RAY}
-        )
-        self.assertGreater(var["ara"]["kuyu.FKR"], yok["ara"]["kuyu.FKR"])
-        self.assertGreater(var["ara"]["kabin_ray.sigma_k"], yok["ara"]["kabin_ray.sigma_k"])
+        rebound when machine on rails' — makinenin oturduğu ağırlık raylarının
+        tabanı ( FAR ) büyür."""
+        yok = mukavemet.hesapla(dict(self._BINA))
+        var = mukavemet.hesapla(dict(self._RAYA))
+        self.assertGreater(var["ara"]["kuyu.FAR"], yok["ara"]["kuyu.FAR"])
+        self.assertGreater(var["ara"]["agirlik_ray.sv"], yok["ara"]["agirlik_ray.sv"])
 
     def test_MRL_de_bolum_2_makine_kirisini_denetler(self):
         """MRL'de tabliye ve kolon yoktur;  makine kuyu üstündeki NPU kirişlere
