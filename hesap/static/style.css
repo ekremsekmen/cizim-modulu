@@ -383,6 +383,10 @@ html,body{max-width:100%;overflow-x:hidden;overflow-x:clip}
   opacity:0;visibility:hidden;transform:translateY(-4px);
   transition:opacity .12s ease,transform .12s ease;pointer-events:none;
 }
+/*  Açıkken üst katmana ( popover ) alınır — bkz. ortak.js bilgiTazele.
+    Tarayıcının popover varsayılanları ( ortalayan margin:auto, inset:0,
+    kaydırma çubuğu ) balonu bozmasın. */
+.bilgi-balon[popover]{margin:0;right:auto;bottom:auto;height:auto;overflow:visible}
 .bilgi:hover>.bilgi-balon,.bilgi:focus-visible>.bilgi-balon,.bilgi.acik>.bilgi-balon{
   opacity:1;visibility:visible;transform:none;
 }

@@ -3126,6 +3126,34 @@ def calistir():
             ),
             0,
         )
+        #  ( i ) BALONU TUVALİN ALTINDA KALMIYOR ( 15 Eki ):  sol panel sticky
+        #  olduğu için kendi katman bağlamını kuruyor;  balon fixed + z-index
+        #  ile bile tuvalin altında kalıp panelin kenarında kesik görünüyordu.
+        #  Balon açıkken üst katmana ( popover ) alınır.
+        #  En sağdaki simge:  balonu tuvalin üstüne en çok o taşar.
+        _bb_i = pg.evaluate("""() => {
+            const l = [...document.querySelectorAll('#m_form .alan label .bilgi')].filter(x => x.offsetParent);
+            const sag = x => x.getBoundingClientRect().right;
+            return l.indexOf(l.reduce((a, x) => (sag(x) > sag(a) ? x : a)));
+        }""")
+        _bb = pg.locator("#m_form .alan label .bilgi:visible").nth(_bb_i)
+        _bb.hover()
+        pg.wait_for_timeout(300)
+        r.kontrol(
+            "( i ) balonu çizim tuvalinin altında kalmıyor",
+            pg.evaluate("""() => {
+                const b = document.querySelector('#m_form .bilgi:hover .bilgi-balon');
+                if (!b) return false;
+                b.style.pointerEvents = 'auto';
+                const r = b.getBoundingClientRect(),
+                      t = document.getElementById('m_tuval').getBoundingClientRect();
+                const x = Math.max(r.right - 12, t.left + 4), y = r.top + r.height / 2;
+                const ust = b.contains(document.elementFromPoint(x, y));
+                b.style.pointerEvents = '';
+                return r.right > t.left && ust;
+            }"""),
+        )
+        pg.mouse.move(0, 0)
         #  TUVAL:  çizimler tek düzlemde yan yana ( CAD'in model alanı gibi ),
         #  açılışta hepsi sığar;  tekerlek imlecin altında yakınlaştırır,
         #  sürükleme kaydırır ( ölçü açmaz ), "Sığdır" hepsini geri getirir.

@@ -242,7 +242,31 @@ function bilgiSimgesi(metinler, sinif, harf){
     + `</span></span>`;
 }
 /* Balon fixed konumlandırılır; yoksa kartların overflow'u kırpıyor.
-   Ekranın sağına / altına taşacaksa kendini içeri alır. */
+   Ekranın sağına / altına taşacaksa kendini içeri alır.
+   ÜST KATMAN ( popover ):  fixed + z-index yetmiyordu — sol panel sticky
+   olduğu için kendi katman bağlamını kuruyor, balonun z-index'i onun içinde
+   kalıyor ve Çizimler görünümünde tuval balonun üstüne çiziliyordu ( balon
+   panelin kenarında kesik görünüyordu ).  Açıkken popover yapılır:  üst
+   katmandaki öğeyi hiçbir panel, sticky ya da overflow örtemez.  Görünürlük
+   yine CSS'te ( :hover / :focus-visible / .acik ).  Kapanınca popover'lığı
+   da kaldırılır — yazdırmada balon yerinde not olarak basılsın.  Popover'ı
+   tanımayan tarayıcıda eski hâl. */
+function _bilgiUstKatman(e, ac){
+  const balon=e.querySelector('.bilgi-balon');
+  if(!balon || !balon.showPopover) return;
+  const acikMi=balon.matches(':popover-open');
+  if(ac && !acikMi){ balon.setAttribute('popover','manual'); balon.showPopover(); }
+  if(!ac && acikMi){ balon.hidePopover(); balon.removeAttribute('popover'); }
+}
+function _bilgiGorunur(e){
+  return e.isConnected && e.matches(':hover, :focus-visible, .acik');
+}
+/* Simgenin durumu değiştiğinde:  görünmesi gerekiyorsa üst katmana alıp
+   konumlar, gerekmiyorsa üst katmandan indirir. */
+function bilgiTazele(e){
+  if(_bilgiGorunur(e)){ _bilgiUstKatman(e, true); bilgiKonumla(e); }
+  else _bilgiUstKatman(e, false);
+}
 function bilgiKonumla(e){
   const balon=e.querySelector('.bilgi-balon'); if(!balon) return;
   balon.style.maxWidth=Math.min(430,window.innerWidth-24)+'px';
@@ -257,20 +281,29 @@ function bilgiKonumla(e){
 function bilgiAc(e, olay){
   if(olay) olay.stopPropagation();
   const acik=e.classList.contains('acik');
-  document.querySelectorAll('.bilgi.acik').forEach(x=>x.classList.remove('acik'));
-  if(!acik){ e.classList.add('acik'); bilgiKonumla(e); }
+  _bilgiAciklariKapat();
+  if(!acik){ e.classList.add('acik'); bilgiTazele(e); }
+}
+function _bilgiAciklariKapat(){
+  document.querySelectorAll('.bilgi.acik').forEach(x=>{
+    x.classList.remove('acik'); bilgiTazele(x);
+  });
 }
 function _bilgiHedef(ev){
   const t=ev.target;
   return (t && t.closest) ? t.closest('.bilgi') : null;
 }
-document.addEventListener('mouseover',ev=>{const e=_bilgiHedef(ev); if(e) bilgiKonumla(e);}, true);
-document.addEventListener('focusin',ev=>{const e=_bilgiHedef(ev); if(e) bilgiKonumla(e);});
-document.addEventListener('click',()=>document.querySelectorAll('.bilgi.acik')
-  .forEach(x=>x.classList.remove('acik')));
+/* :hover ve :focus-visible olaydan hemen sonra güncellenir;  bir kare
+   bekleyip öyle bakıyoruz. */
+function _bilgiSonra(e){ requestAnimationFrame(()=>bilgiTazele(e)); }
+document.addEventListener('mouseover',ev=>{const e=_bilgiHedef(ev); if(e) bilgiTazele(e);}, true);
+document.addEventListener('mouseout',ev=>{const e=_bilgiHedef(ev); if(e) _bilgiSonra(e);}, true);
+document.addEventListener('focusin',ev=>{const e=_bilgiHedef(ev); if(e) _bilgiSonra(e);});
+document.addEventListener('focusout',ev=>{const e=_bilgiHedef(ev); if(e) _bilgiSonra(e);});
+document.addEventListener('click',_bilgiAciklariKapat);
 document.addEventListener('keydown',ev=>{
   if(ev.key!=='Escape') return;
-  document.querySelectorAll('.bilgi.acik').forEach(x=>x.classList.remove('acik'));
+  _bilgiAciklariKapat();
   /* Esc'ten sonra tarayıcı odağı :focus-visible'a yükseltiyor ve balon açık
      kalıyordu; kapatırken odağı da bırakıyoruz. */
   const o=document.activeElement;
@@ -278,8 +311,7 @@ document.addEventListener('keydown',ev=>{
 });
 addEventListener('scroll',()=>{const a=document.querySelector('.bilgi.acik');
   if(a) bilgiKonumla(a);}, true);
-addEventListener('resize',()=>document.querySelectorAll('.bilgi.acik')
-  .forEach(x=>x.classList.remove('acik')));
+addEventListener('resize',_bilgiAciklariKapat);
 
 /*  ek ( isteğe bağlı ):  {id, sag}  —  şeride kimlik ve sağ uca bir düğme
     ( uygulama projesinin "Özete dön"ü ).  Verilmezse şerit eskisinin
