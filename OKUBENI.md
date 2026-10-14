@@ -93,8 +93,19 @@ kasnak açıklığın ortasında ve açıklık kısa ( varsayılanda L 773 ), di
 σb = max( FA ; FB ) · ω / A ( X = L − 335'te yük hep B'ye yakındı ).
 
 **Karar 3:**  makine dairesizde "Makine yükünün yolu" varsayılanı "Kılavuz
-raylara";  "Bina yapısına" ( duvardan duvara kiriş ) henüz çizilmiyor —
-çizim durur, bölüm 2 HESAP EKSİK.
+raylara".  "Bina yapısına" ( duvardan duvara kiriş ) yandaki ağırlıkta da
+çizilir ( 14 Eki — LiftDesigner 1250 KG;  önce çizim duruyor, bölüm 2 HESAP
+EKSİK kalıyordu ):  iki kiriş kuyunun genişliğince, uçları yan duvarlarda
+( bağlantı levhası );  kuyu tepesindeki parçaları — tahrik kasnağı, makine,
+iki halat bağlantısı, regülatör — içine alır, bütün halatlar aralarından iner
+( `kuyu_ustu._yandaki_duvar_kirisleri` ).  Arkadaki ağırlıktaki gibi kasnağa
+simetrik konamaz:  ağırlık kasnağı 90° dönüktür, bağlantısının halatı
+kasnağınkinden ağırlık kasnağı çapı kadar uzaktadır ve simetrik kirişin
+gövdesine düşerdi.  Bölüm 2'de açıklık kuyu genişliği, yük kasnağın duvardan
+uzaklığında;  raylar makineyi taşımaz, kabin bağlantısı yine kabin rayındadır.
+Gerçekte halat bağlantısı makine şasesinde ya da duvara ankrajlı konsolda
+olur ( referans proje;  Kleemann Atlas EU 2:1 MRL kılavuzu ) — ikisinde de
+yük binaya gider.
 
 **Kurma ile denetim ayrıdır.**  Çizimin denetim hataları ( çakışma, sığınma
 alanı … ) ölçüleri durdurmaz;  yalnız geometri kurulamazsa ( girdi eksik, kaide
@@ -1570,9 +1581,7 @@ DÜZ çizgi görünüyordu ( 5 Eki ).
 ## Sırada ne var
 
 1. Çizimin henüz modellemediği düzenler:  kabin raylara göre kaçık ( yc ),
-   yana kaçık askı ( ys ) — ikisi de çizimde söylenir;  makine dairesizde 1:1;
-   yandaki ağırlıkta makine yükü "Bina yapısına" iken duvardan duvara kiriş
-   ( karar 3 — arkadaki ağırlıkta çiziliyor ).
+   yana kaçık askı ( ys ) — ikisi de çizimde söylenir;  makine dairesizde 1:1.
 2. Makaralı kabin pateninin ölçüleri gelince o da çizilecek ( karar 2 ).
    Revizyon kutusu çizilmez ( karar 10, 1 Eki — LiftDesigner da çizmiyor ):
    bölüm 11'in satırı kabinin bütün izdüşümünde, Sabitler'deki 500 yükseklikle.

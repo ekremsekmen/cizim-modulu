@@ -192,7 +192,9 @@ def _kuyu_ustundeki_makine(g, S, tavan, M, kabin_raylari, agirlik_raylari):
     M.update(
         {
             "makine": _makine_parcalari(g, KU, zk, kapak),
-            "sase_parcalari": makine.upn_sase(sase, my, KU["yan_yatak"], KU["sase_delikleri"]),
+            "sase_parcalari": makine.sase_parcalari(
+                sase, (mx, my), KU["yan_yatak"], KU["sase_delikleri"], KU.get("kiris_yonu", "y")
+            ),
             "sase": sase,
             "govde": (gx0, gy0, gx1, gy1, zs, zs + S["makine_en"]),
             "kapak": kapak,
@@ -208,7 +210,7 @@ def _kuyu_ustundeki_makine(g, S, tavan, M, kabin_raylari, agirlik_raylari):
     M["halat_konsolu"] = makine.kaydir(
         KU["halat_konsolu"], (M["kabin_baglanti"][4] + M["kabin_baglanti"][5]) / 2
     )
-    _tavan_alti_parcalari(M, KU, my)
+    _tavan_alti_parcalari(M, KU, mx, my)
     #  Öbür kabin rayı referans projede tavanın 50 altına çıkar;  tavanın en alt
     #  kısmı ( tavan_kirisi payı ) hesaba katılınca onun 50 altına — eskiden
     #  payın alt yüzüne tam değiyordu.
@@ -229,7 +231,7 @@ def _kuyu_ustundeki_makine(g, S, tavan, M, kabin_raylari, agirlik_raylari):
     return None
 
 
-def _tavan_alti_parcalari(M, KU, my):
+def _tavan_alti_parcalari(M, KU, mx, my):
     """Tavanın altındaki parçalar:  sığınma ve açıklıklar bunlara da ölçülür
     ( m.5.2.5.7.2:  "kuyu tavanının en alt kısımları — kirişler ve tavanın
     altına yerleştirilmiş parçalar dahil" )."""
@@ -238,18 +240,22 @@ def _tavan_alti_parcalari(M, KU, my):
         if ad == "sase" and KU.get("duvardan_duvara"):
             #  Duvardan duvara iki kiriş kabinin üstünden geçer:  aralarındaki
             #  boşluk engel değil ( çapraz kasnaklar oradan yükselir ) —
-            #  kirişler ve motor plakası ayrı parçalar.
-            b_ = KU["yan_yatak"]["b"]
-            for kutu in (
-                (p[0], p[1], p[0] + b_, p[3]),
-                (p[2] - b_, p[1], p[2], p[3]),
-                (
-                    p[0] + b_,
-                    my - makine.MOTOR_PLAKASI_BOY / 2.0,
-                    p[2] - b_,
-                    my + makine.MOTOR_PLAKASI_BOY / 2.0,
-                ),
-            ):
+            #  kirişler ve motor plakası ayrı parçalar.  Kirişler y boyunca
+            #  ( arkadaki ağırlık ) ya da x boyunca ( yandaki ağırlık ).
+            b_, yarim = KU["yan_yatak"]["b"], makine.MOTOR_PLAKASI_BOY / 2.0
+            if KU.get("kiris_yonu") == "x":
+                kutular = (
+                    (p[0], p[1], p[2], p[1] + b_),
+                    (p[0], p[3] - b_, p[2], p[3]),
+                    (mx - yarim, p[1] + b_, mx + yarim, p[3] - b_),
+                )
+            else:
+                kutular = (
+                    (p[0], p[1], p[0] + b_, p[3]),
+                    (p[2] - b_, p[1], p[2], p[3]),
+                    (p[0] + b_, my - yarim, p[2] - b_, my + yarim),
+                )
+            for kutu in kutular:
                 M["parcalar"].append((ad, kutu, p[4]))
             continue
         M["parcalar"].append((ad, p[:4], p[4]))

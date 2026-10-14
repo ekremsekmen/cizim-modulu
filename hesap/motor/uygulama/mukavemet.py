@@ -850,12 +850,7 @@ def _makine_eksik(g, b):
     _mrl = evet_mi(g.get("mk_yok"))
     _raya = mukavemet_tablolari.makine_raya_mi(g.get("makine_raya_biniyor"))
     _arka = g.get("agirlik_yeri") == "Arka"
-    if _mrl and not _raya and not _arka:
-        neden = (
-            "makine kirişleri bina yapısına ( duvardan duvara ) oturuyor — yandaki ağırlıkta "
-            "bu kiriş henüz çizilmiyor ( karar 3 )"
-        )
-    elif _mrl and _raya and _arka:
+    if _mrl and _raya and _arka:
         neden = (
             "karşı ağırlık arkadayken makine duvardan duvara kirişlere oturur — "
             "'Makine yükünün yolu' 'Bina yapısına' olmalı"
@@ -872,6 +867,15 @@ def _makine_eksik(g, b):
     b["sonuc"] = {"baslik": "KONTROL      σe ≤ σem", "metin": metin_, "uygun": False}
     b["eksik_hesap"] = metin_
     return b
+
+
+def _duvar_kirisi_yonu(g, bicim="boyunca"):
+    """Duvardan duvara kirişin uzandığı kuyu ölçüsü:  arkadaki ağırlıkta derinlik,
+    yandakinde genişlik ( kuyu_ustu._yandaki_duvar_kirisleri )."""
+    arka = g.get("agirlik_yeri") == "Arka"
+    if bicim == "adi":
+        return "derinliği" if arka else "genişliği"
+    return "derinliğince" if arka else "genişliğince"
 
 
 class _Makine:
@@ -894,11 +898,12 @@ class _Makine:
         Gm, L = g["makine_agirligi"], g["yan_yatak_boyu"]
         self.Gm, self.L = Gm, L
         #  Makine dairesizde kirişin türü:  raylara oturan ( yandaki ağırlık ) ya da
-        #  duvardan duvara ( arkadaki ağırlık — bina yapısına )
+        #  duvardan duvara ( bina yapısına — arkadaki ağırlıkta kuyunun derinliğince,
+        #  yandakinde genişliğince )
         self.kiris = (
-            "duvardan duvara kiriş ( kuyu derinliğince, uçları duvarlarda )"
-            if not mukavemet_tablolari.makine_raya_mi(g.get("makine_raya_biniyor"))
-            else "kirişler karşı ağırlık raylarına oturur"
+            "kirişler karşı ağırlık raylarına oturur"
+            if mukavemet_tablolari.makine_raya_mi(g.get("makine_raya_biniyor"))
+            else f"duvardan duvara kiriş ( kuyu {_duvar_kirisi_yonu(g)}, uçları duvarlarda )"
         )
         self.Wx = Wx = mukavemet_tablolari.npu(g["yan_yatak"], "Wx") * 1000  # cm³ → mm³
         self.F = F = k1 * gn * (o["Q"] + o["P"] + o["Gh"] + o["Ga"] + Gm)
@@ -1020,7 +1025,7 @@ class _Makine:
                 CIZIMDEN + "  ·  kaidenin dikine kirişleri arası:  kaide halatlara ortalı, makineyi sarar"
             )
         elif not mukavemet_tablolari.makine_raya_mi(g.get("makine_raya_biniyor")):
-            L_kaynagi = CIZIMDEN + "  ·  kuyu derinliği ( duvardan duvara kiriş )"
+            L_kaynagi = CIZIMDEN + f"  ·  kuyu {_duvar_kirisi_yonu(g, 'adi')} ( duvardan duvara kiriş )"
         else:
             L_kaynagi = CIZIMDEN + "  ·  karşı ağırlık rayları arası ( DBGW )"
         satirlar += [

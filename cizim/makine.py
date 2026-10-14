@@ -312,16 +312,35 @@ def upn_sase(sase, motor_y, P, delikler=()):
     return p
 
 
+def sase_parcalari(sase, motor, P, delikler=(), yon="y"):
+    """Makine şasesinin kirişleri ( upn_sase ).  yon "y":  kirişler y boyunca
+    ( raylara oturan şase, arkadaki ağırlıkta duvardan duvara );  yon "x":
+    kuyunun genişliğince ( yandaki ağırlıkta duvardan duvara ) — x ↔ y takasıyla
+    aynı fonksiyondan.  motor:  makinenin ( x , y ) merkezi — motor plakası
+    kirişler boyunca onun çevresinde."""
+    if yon != "x":
+        return upn_sase(sase, motor[1], P, delikler)
+
+    def t(k):
+        return (k[1], k[0], k[3], k[2])
+
+    return takas(upn_sase(t(sase[:4]) + tuple(sase[4:]), motor[0], P, [t(d) for d in delikler]))
+
+
 def plan_parcalari(Y, S, sase=True):
     """Kuyu üstü / makine dairesi planı için makine ( ve kuyu üstünde şase )
     cisimleri — kuyu_ustu.yerlesim'in çıktısından;  kotlar yalnız çizim sırası
     içindir ( kasnak merkezi 0, şase makinenin altında )."""
     gv = Y["govde"]
-    my = (gv[1] + gv[3]) / 2.0
+    mx, my = (gv[0] + gv[2]) / 2.0, (gv[1] + gv[3]) / 2.0
     p = []
     if sase:
-        p += upn_sase(
-            Y["sase"] + (-1000.0 - Y["yan_yatak"]["h"], -1000.0), my, Y["yan_yatak"], Y["sase_delikleri"]
+        p += sase_parcalari(
+            Y["sase"] + (-1000.0 - Y["yan_yatak"]["h"], -1000.0),
+            (mx, my),
+            Y["yan_yatak"],
+            Y["sase_delikleri"],
+            Y.get("kiris_yonu", "y"),
         )
     p += Y["makine"]
     if Y["tip"] == "Dişlisiz":

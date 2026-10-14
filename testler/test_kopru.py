@@ -85,6 +85,8 @@ class OrnekProjeler(unittest.TestCase):
             }
         )
         g["kabin_ustu"]["siginma_tipi"] = "Çömelme"
+        #  Makine dairesizde kirişlerin oturduğu yer ( "Makine yükünün yolu" — 14 Eki )
+        g["makine"]["kiris"] = "ray"
         if md:
             g["makine"].update(tip="Dişli", yeri="Makine dairesi", yan_yatak=140)
         else:
@@ -273,9 +275,9 @@ class Tutarlilik(unittest.TestCase):
         #  Kirişin açıklığı girdi değildir ( çizimden:  raylara oturan kirişte DBGW ):
         #  formdan gelmez, eski projede yazılı olsa da okunmaz.
         self.assertEqual(self._hata(yan_yatak_boyu=900), [])
-        #  Karar 3:  bina yapısına ( duvardan duvara ) oturan kiriş henüz çizilmiyor
-        hata = self._hata(makine_raya_biniyor="Bina yapısına")
-        self.assertTrue(any("bina yapısına" in h and "karar 3" in h for h in hata), hata)
+        #  Yandaki ağırlıkta bina yapısına ( duvardan duvara ) oturan kiriş de
+        #  çizilir ( 14 Eki;  karar 3'te çizim duruyordu ).
+        self.assertEqual(self._hata(makine_raya_biniyor="Bina yapısına"), [])
 
     def test_kuyu_dibi_zinciri(self):
         #  Kaide formdan gelmez ( zincirden );  motora doğrudan verilmişse zincir denetlenir.

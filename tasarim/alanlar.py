@@ -1967,7 +1967,8 @@ _GRUPLAR = (
             #  ( Eski projeler True/'EVET' taşır;  MT.makine_raya_mi ikisini de anlar. )
             #  KARAR 3 ( 29 Eyl ):  varsayılan raylara — çizim makine kirişlerini
             #  karşı ağırlık raylarına oturtur ( referans proje de öyle ).  "Bina
-            #  yapısına" ( duvardan duvara kiriş ) henüz çizilmiyor:  çizim durur.
+            #  yapısına" ( duvardan duvara kiriş ) yandaki ağırlıkta 14 Eki'den beri
+            #  çizilir ( LiftDesigner 1250 KG );  önce çizim duruyordu.
             A(
                 "makine_raya_biniyor",
                 "Makine yükünün yolu",
@@ -1981,8 +1982,8 @@ _GRUPLAR = (
                 bilgi=(
                     "Makine ağırlığı ve kasnak yükü nereye iniyor. 'Kılavuz raylara':  kirişler iki karşı "
                     "ağırlık rayına oturur, yük kaldıraçla bu raylara bölünür ve rayların yardımcı "
-                    "donanım kalemine ( MY ) eklenir. 'Bina yapısına' ( duvardan duvara kiriş ) "
-                    "yandaki ağırlıkta henüz çizilmiyor."
+                    "donanım kalemine ( MY ) eklenir. 'Bina yapısına':  makine duvardan duvara iki "
+                    "kirişe oturur ( yandaki ağırlıkta kuyunun genişliğince ), yük binaya gider."
                 ),
             ),
             #  PROJENİN MAKİNESİNE AİT VERİM.  Ofis değeri makine tipine göre tektir

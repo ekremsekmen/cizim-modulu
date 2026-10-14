@@ -36,6 +36,14 @@
    "durum": "çizildi",
    "sebep": ""
   },
+  "1000 Sağ MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sağ MRL bina yapısına Kabin üstü": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
   "1000 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
    "durum": "çizildi",
    "sebep": ""
@@ -57,6 +65,14 @@
    "sebep": ""
   },
   "1000 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol MRL bina yapısına Kabin üstü": {
    "durum": "çizildi",
    "sebep": ""
   },
@@ -108,6 +124,14 @@
    "durum": "çizildi",
    "sebep": ""
   },
+  "1275 Sağ MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ MRL bina yapısına Kabin üstü": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
   "1275 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
    "durum": "çizildi",
    "sebep": ""
@@ -129,6 +153,14 @@
    "sebep": ""
   },
   "1275 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol MRL bina yapısına Kabin üstü": {
    "durum": "çizildi",
    "sebep": ""
   },
@@ -180,6 +212,14 @@
    "durum": "çizildi",
    "sebep": ""
   },
+  "1600 Sağ MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sağ MRL bina yapısına Kabin üstü": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
   "1600 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
    "durum": "çizildi",
    "sebep": ""
@@ -201,6 +241,14 @@
    "sebep": ""
   },
   "1600 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sol MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1600 Sol MRL bina yapısına Kabin üstü": {
    "durum": "çizildi",
    "sebep": ""
   },
@@ -252,6 +300,14 @@
    "durum": "çizildi",
    "sebep": ""
   },
+  "2000 Sağ MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Sağ MRL bina yapısına Kabin üstü": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
   "2000 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
    "durum": "çizildi",
    "sebep": ""
@@ -273,6 +329,14 @@
    "sebep": ""
   },
   "2000 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Sol MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2000 Sol MRL bina yapısına Kabin üstü": {
    "durum": "çizildi",
    "sebep": ""
   },
@@ -324,6 +388,14 @@
    "durum": "çizildi",
    "sebep": ""
   },
+  "2500 Sağ MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sağ MRL bina yapısına Kabin üstü": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
   "2500 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
    "durum": "çizildi",
    "sebep": ""
@@ -345,6 +417,14 @@
    "sebep": ""
   },
   "2500 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sol MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "2500 Sol MRL bina yapısına Kabin üstü": {
    "durum": "çizildi",
    "sebep": ""
   },
@@ -396,6 +476,14 @@
    "durum": "ret",
    "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
   },
+  "320 Sağ MRL bina yapısına Kabin altı": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Sağ MRL bina yapısına Kabin üstü": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
   "320 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
    "durum": "ret",
    "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
@@ -417,6 +505,14 @@
    "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
   },
   "320 Sol MD {'aski_orani': 1}": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Sol MRL bina yapısına Kabin altı": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "320 Sol MRL bina yapısına Kabin üstü": {
    "durum": "ret",
    "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 300 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
   },
@@ -468,6 +564,14 @@
    "durum": "çizildi",
    "sebep": ""
   },
+  "450 Sağ MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sağ MRL bina yapısına Kabin üstü": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
   "450 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
    "durum": "çizildi",
    "sebep": ""
@@ -489,6 +593,14 @@
    "sebep": ""
   },
   "450 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sol MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "450 Sol MRL bina yapısına Kabin üstü": {
    "durum": "çizildi",
    "sebep": ""
   },
@@ -540,6 +652,14 @@
    "durum": "çizildi",
    "sebep": ""
   },
+  "630 Sağ MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ MRL bina yapısına Kabin üstü": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
   "630 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
    "durum": "çizildi",
    "sebep": ""
@@ -561,6 +681,14 @@
    "sebep": ""
   },
   "630 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol MRL bina yapısına Kabin üstü": {
    "durum": "çizildi",
    "sebep": ""
   },
@@ -612,6 +740,14 @@
    "durum": "çizildi",
    "sebep": ""
   },
+  "800 Sağ MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sağ MRL bina yapısına Kabin üstü": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
   "800 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
    "durum": "çizildi",
    "sebep": ""
@@ -633,6 +769,14 @@
    "sebep": ""
   },
   "800 Sol MD {'aski_orani': 1}": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sol MRL bina yapısına Kabin altı": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "800 Sol MRL bina yapısına Kabin üstü": {
    "durum": "çizildi",
    "sebep": ""
   },

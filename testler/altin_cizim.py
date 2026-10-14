@@ -131,6 +131,11 @@ def duzenler():
         "Otomatik Merkezi 4 Kanat"
     )
     d["1000 Sağ MRL duvar boşluğunda kapı"] = _standart(1000, "Sağ", True, kapi_montaji="Duvar boşluğuna")
+    #  Yandaki ağırlıkta makine duvardan duvara kirişte ( bina yapısına — 14 Eki )
+    for Q, yer in ((1000, "Sağ"), (1600, "Sol")):
+        d[f"{Q} {yer} MRL duvardan duvara kiriş"] = _standart(
+            Q, yer, True, makine_raya_biniyor="Bina yapısına"
+        )
     #  Reddedilenler:  kanat cebi ray ara kirişine çarpar;  tavanda çömelme alanı
     #  yok;  ağırlık kabinin arkasına sığmaz
     d["1000 Sağ MRL Otomatik Merkezi ( ret )"] = _standart(

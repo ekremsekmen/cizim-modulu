@@ -13,6 +13,7 @@ import unittest
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from cizim import kopru
+from cizim import kuyu_ustu
 from cizim import makine_dairesi
 from cizim import olculer
 from cizim import sabitler
@@ -148,17 +149,35 @@ class MakineYuku(unittest.TestCase):
             ),
         )
 
-    def test_bina_yapisina_oturan_kiris_cizilmiyor(self):
-        #  Karar 3:  duvardan duvara kiriş henüz çizilmiyor — açıklık yok,
-        #  bölüm 2 HESAP EKSİK ( 1.400 sessizce kullanılmaz )
+    def test_yandaki_agirlikta_duvardan_duvara_kiris(self):
+        #  14 Eki ( LiftDesigner 1250 KG;  karar 3'te çizilmiyordu ):  yandaki
+        #  ağırlıkta "Bina yapısına" seçilince iki kiriş kuyunun genişliğince
+        #  çizilir — açıklık kuyu genişliği, yük kasnağın duvardan uzaklığında.
+        #  Ağırlık bağlantısı kirişlerin arasındadır ( raya binmez ).
+        gc, _h = kopru.cizim_girdisi(_girdi(makine_raya_biniyor="Bina yapısına"))
         o = _olc(makine_raya_biniyor="Bina yapısına")
-        self.assertIsNone(o["yan_yatak_boyu"])
-        self.assertNotIn("makine_yuku_x", o)
+        self.assertEqual(o["yan_yatak_boyu"], gc["kuyu"]["genislik"])
+        self.assertTrue(0 < o["makine_yuku_x"] < o["yan_yatak_boyu"])
         self.assertNotIn("agirlik_baglanti_x", o)
         s = uygulama_hesabi.hesapla({"makine_raya_biniyor": "Bina yapısına"})
         b2 = next(b for b in s["bolumler"] if b["baslik"].startswith("2 "))
-        self.assertIn("HESAP EKSİK", b2.get("eksik_hesap") or "")
-        self.assertIn("karar 3", b2["eksik_hesap"])
+        self.assertNotIn("eksik_hesap", b2)
+        self.assertEqual(s["ara"]["makine.X"], o["makine_yuku_x"])
+
+    def test_duvardan_duvara_kirisler_bagin_ve_kasnagin_iki_yaninda(self):
+        #  Kirişler kuyu tepesindeki parçaları içine alır:  bütün halatlar
+        #  aralarından iner ( ağırlık kasnağı 90° dönük — bağlantının halatı
+        #  kasnağınkinden uzakta;  simetrik kiriş onun gövdesine düşerdi ).
+        gc, _h = kopru.cizim_girdisi(_girdi(makine_raya_biniyor="Bina yapısına"))
+        KU = kuyu_ustu.yerlesim(gc)
+        self.assertTrue(KU["duvardan_duvara"])
+        self.assertEqual(KU["kiris_yonu"], "x")
+        x0, y0, x1, y1 = KU["sase"]
+        b = KU["yan_yatak"]["b"]
+        self.assertEqual((x0, x1), (0.0, gc["kuyu"]["genislik"]))
+        for ad in ("kasnak", "govde", "agirlik_baglanti", "kabin_baglanti", "reg_govde"):
+            k = KU[ad]
+            self.assertTrue(y0 + b <= k[1] and k[3] <= y1 - b, ad)
 
 
 class Hesapta(unittest.TestCase):

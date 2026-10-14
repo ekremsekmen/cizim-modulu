@@ -123,13 +123,15 @@ def _mrl_baglanti_yeri(KU):
 
 
 def _duvar_kiris_yuku(KU):
-    """Arkadaki ağırlıkta makine dairesizde makine duvardan duvara iki kirişe
-    oturur ( kuyu_ustu._arka ):  mesnetler ön ve arka duvarın iç yüzü ( uçlarda
-    bağlantı levhası — "duvarlara monteli" ), açıklık kuyu derinliği;  yük
-    tahrik kasnağının merkezinde ( iki kirişin ortasında:  her birine F / 2 )."""
+    """Makine dairesizde makine duvardan duvara iki kirişe oturur:  mesnetler
+    duvarların iç yüzü ( uçlarda bağlantı levhası — "duvarlara monteli" ),
+    açıklık arkadaki ağırlıkta kuyunun derinliği ( kirişler y boyunca —
+    kuyu_ustu._arka ), yandaki ağırlıkta genişliği ( x boyunca —
+    kuyu_ustu._yandaki_duvar_kirisleri );  yük tahrik kasnağının merkezinde."""
     sase, ks = KU["sase"], KU["kasnak"]
-    L = sase[3] - sase[1]
-    X = (ks[1] + ks[3]) / 2.0 - sase[1]
+    i = 0 if KU.get("kiris_yonu") == "x" else 1
+    L = sase[i + 2] - sase[i]
+    X = (ks[i] + ks[i + 2]) / 2.0 - sase[i]
     return (round(X, 3) if 0.0 < X < L else None), round(L, 3)
 
 

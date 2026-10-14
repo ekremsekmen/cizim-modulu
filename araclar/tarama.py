@@ -145,6 +145,16 @@ def duzenler(grup):
                         if aski.get("aski_duzeni") == "Kabin üstü":
                             v["asansorler"][0]["son_kat_yuksekligi"] = 5000
                         yield f"{Q} {yer} {'MRL' if mrl else 'MD'} {aski}", v
+        #  Yandaki ağırlıkta makine duvardan duvara kirişte ( "Bina yapısına" —
+        #  14 Eki, LiftDesigner 1250 KG;  önce çizim duruyordu )
+        for Q in test_yerlesim_saglamligi.KABIN:
+            for yer in ("Sağ", "Sol"):
+                for aski in ("Kabin altı", "Kabin üstü"):
+                    ek = {"son_kat_yuksekligi": 5000} if aski == "Kabin üstü" else {}
+                    v = test_yerlesim_saglamligi.standart_istek(
+                        Q, True, yer, aski_duzeni=aski, makine_raya_biniyor="Bina yapısına", **ek
+                    )
+                    yield f"{Q} {yer} MRL bina yapısına {aski}", v
     elif grup == "kapi":
         from motor.uygulama import mukavemet_tablolari
 

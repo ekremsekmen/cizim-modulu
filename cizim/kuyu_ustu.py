@@ -19,7 +19,9 @@ karşı ağırlık kasnağının teğetine düşmelidir.  Düşmüyorsa sapma ö
 gösterilir — bu referans projenin paftasında birebir tutar ( 370 − 240 = 130 ).
 
 Bugün çizilen düzen:  karşı ağırlık yanda, kabin altı 2:1 askı ( ofisin ve
-referans projenin düzeni ).  Öteki düzenler için doğrulama açıkça reddeder.
+referans projenin düzeni ).  Makine ağırlık raylarına oturan şasede ya da
+( "Bina yapısına" ) kuyunun genişliğince duvardan duvara iki kirişte
+( LiftDesigner 1250 KG ).  Öteki düzenler için doğrulama açıkça reddeder.
 """
 
 from temel import eleman_kutusu, ortusur, sayi_mi
@@ -363,6 +365,9 @@ def _yandaki_agirlik(g, S, mk, ag, acil_pano):
     )
     govde = zarf or govde
     hata += _iki_bir_cakismalari(govde, kasnak, agirlik_baglanti, kabin_baglanti, reg_govde, oda_, G, D)
+    duvar = mk.get("kiris") == "duvar" and oda_ is None
+    if duvar:
+        sase = _yandaki_duvar_kirisleri(mk, G, kasnak, govde, agirlik_baglanti, kabin_baglanti, reg_govde)
     aski = g["aski"]
     return {
         "taban": taban,
@@ -380,6 +385,8 @@ def _yandaki_agirlik(g, S, mk, ag, acil_pano):
         "m_yon": m_yon,
         "s": s,
         "sase": sase,
+        "duvardan_duvara": duvar,
+        "kiris_yonu": "x" if duvar else "y",
         "tip": mk["tip"],
         "yan_yatak": makine.npu(mk["yan_yatak"]),
         #  Şaseden aşağı inen halatların delikleri ( plakaya düşenler açılır ):
@@ -427,6 +434,22 @@ def _yandaki_sase(S, taban, sol, G):
     if sol:
         return kab_r, (S["makine_sase_duvar"], sase_y[0], yakin_ray[0], sase_y[1])
     return kab_r, (yakin_ray[2], sase_y[0], G - S["makine_sase_duvar"], sase_y[1])
+
+
+def _yandaki_duvar_kirisleri(mk, G, *kutular):
+    """YANDAKİ AĞIRLIKTA BİNA YAPISINA ( "Makine yükünün yolu" — LiftDesigner 1250 KG ):
+    iki kiriş kuyunun GENİŞLİĞİNCE, uçları yan duvarlarda.  Kuyu tepesindeki
+    parçaları — tahrik kasnağı, makine gövdesi, iki halat bağlantısı, regülatör —
+    İÇİNE ALIR:  halatlar kirişlerin arasından iner, parçalar aradaki plakalara
+    oturur.  Arkadaki ağırlıktaki gibi kasnağın iki yanına simetrik konamaz:
+    ağırlık kasnağı 90° dönüktür ( referans proje ), bağlantısının halatı kasnağın
+    halatlarından ağırlık kasnağı çapı kadar uzaktadır ve simetrik kirişin
+    gövdesine düşerdi;  kabin bağlantısı ve regülatör de kirişlerin kotundadır.
+    ( x0 , y0 , x1 , y1 ) — kirişlerin dış yüzleri."""
+    b = makine.npu(mk["yan_yatak"])["b"]
+    ic0 = min(k[1] for k in kutular if k)
+    ic1 = max(k[3] for k in kutular if k)
+    return (0.0, ic0 - b, G, ic1 + b)
 
 
 def _yandaki_baglantilar(S, y0, teget2, s, ex, uzak, y_):
@@ -635,6 +658,7 @@ def _arka(g, S, mk, ag, acil_pano):
         "s": s,
         "sase": sase,
         "duvardan_duvara": True,
+        "kiris_yonu": "y",
         "tip": mk["tip"],
         "yan_yatak": yy,
         "sase_delikleri": [

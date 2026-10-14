@@ -183,15 +183,15 @@ def yerlesim_olculeri(g):
     except Exception:  # noqa: BLE001 — çizim kendi hatasını söyler
         o = {}
     if evet_mi(g.get("mk_yok")):
-        #  Makine dairesizde çizilen kiriş seçilen yük yoluna uymalı:  yandaki
-        #  ağırlıkta kirişler karşı ağırlık raylarına oturur, arkadakinde
-        #  duvardan duvara ( bina yapısına ).  Uymuyorsa çizim durur ( köprü
-        #  uyuşmazlığı ) ve kirişin ölçüsü hesaba girmez.
-        duvar = g.get("agirlik_yeri") == "Arka"
-        if mukavemet_tablolari.makine_raya_mi(g.get("makine_raya_biniyor")) == duvar:
-            o.pop("makine_yuku_x", None)
-            o.pop("agirlik_baglanti_x", None)
-            o.pop("yan_yatak_boyu", None)
+        #  Makine dairesizde çizilen kiriş seçilen yük yoluna uymalı:  arkadaki
+        #  ağırlıkta makine yalnız duvardan duvara kirişlerdedir ( bina yapısına );
+        #  "Kılavuz raylara" seçilmişse çizim durur ( köprü uyuşmazlığı ) ve
+        #  kirişin ölçüsü hesaba girmez.  Yandaki ağırlıkta iki yol da çizilir
+        #  ( 14 Eki'ye kadar "Bina yapısına" çizilmiyordu — karar 3 ).
+        arka = g.get("agirlik_yeri") == "Arka"
+        if arka and mukavemet_tablolari.makine_raya_mi(g.get("makine_raya_biniyor")):
+            for k in ("makine_yuku_x", "agirlik_baglanti_x", "yan_yatak_boyu"):
+                o.pop(k, None)
     d = {k: o[k] for k in YERLESIM_OLCULERI if k in o}
     isaret = {k: "yerleşim" for k in d}
     #  KİRİŞİN AÇIKLIĞI GİRDİ DEĞİLDİR:  çizimden gelmezse boş kalır ( bölüm 2

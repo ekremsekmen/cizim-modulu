@@ -584,6 +584,10 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
             "yeri": "Kuyu üstü" if h["mk_yok"] else "Makine dairesi",
             "tip": h["mk_tip"],
             "yan_yatak": h["yan_yatak"],
+            #  Makine dairesizde kirişlerin oturduğu yer ( hesabın "Makine yükünün
+            #  yolu" ):  karşı ağırlık raylarına ya da duvardan duvara ( bina yapısı ).
+            #  Arkadaki ağırlıkta makine hep duvardan duvara kirişlerdedir.
+            "kiris": "duvar" if A.get("makine_raya_biniyor") == "Bina yapısına" else "ray",
             "saptirma_kasnak_capi": sayi("makine_saptirma_capi"),
         },
         "kuyu_ustu": {"acil_pano_yan": secim("acil_pano_yani")},
@@ -981,21 +985,12 @@ def _uyusmazliklar(g, A):
                     {"saptirma_kasnak_min_capi": en_kucuk},
                 )
             )
-    #  MAKİNE KİRİŞİ BİNA YAPISINA ( karar 3 ):  makine dairesizde çizim
-    #  kirişleri karşı ağırlık raylarına oturtur;  duvardan duvara oturan kiriş
-    #  ( kuyu genişliğince platform ) henüz çizilmiyor — çizim durur, hesabın
-    #  kiriş açıklığı çizimden gelmez ( bölüm 2 HESAP EKSİK ).  Yan yatak boyu
-    #  girdi değildir:  raylara oturan kirişte DBGW, kaidede kaidenin açıklığı.
+    #  MAKİNE KİRİŞİ BİNA YAPISINA:  yandaki ağırlıkta da duvardan duvara
+    #  kirişler çizilir ( 14 Eki — LiftDesigner 1250 KG;  karar 3'te çizilmiyordu,
+    #  çizim duruyordu ).  Yan yatak boyu girdi değildir:  raylara oturan kirişte
+    #  DBGW, duvardan duvara kirişte kuyunun genişliği / derinliği, kaidede
+    #  kaidenin açıklığı.
     arka = g["agirlik"]["yeri"] == "Arka"
-    if g["makine"]["yeri"] == "Kuyu üstü" and A.get("makine_raya_biniyor") == "Bina yapısına" and not arka:
-        liste.append(
-            (
-                "Makine kirişleri bina yapısına ( duvardan duvara ) oturuyor:  bu kiriş henüz "
-                "çizilmiyor ( karar 3 ) — çizim kirişleri karşı ağırlık raylarına oturtur; "
-                "'Makine yükünün yolu' için 'Kılavuz raylara' seçin.",
-                None,
-            )
-        )
     #  ARKADAKİ AĞIRLIKTA makine dairesizde makine duvardan duvara iki kirişe
     #  oturur ( kullanıcı kararı — 12495-18 ):  yük bina yapısına gider.
     if g["makine"]["yeri"] == "Kuyu üstü" and arka and A.get("makine_raya_biniyor") == "Kılavuz raylara":
