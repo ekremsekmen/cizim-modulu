@@ -715,7 +715,7 @@ body.tuval-tam-acik{overflow:hidden}
 .tuval-hata{position:absolute;right:10px;top:52px;z-index:21;width:380px;max-width:calc(100% - 20px);
   max-height:calc(100% - 110px);overflow:auto;background:#fff;border:1px solid #EFB4B0;
   border-left:4px solid var(--kirmizi);border-radius:8px;box-shadow:var(--golge);padding:8px 12px;
-  font-size:12.5px;cursor:auto;user-select:text;-webkit-user-select:text}
+  font-size:12.5px;cursor:auto;user-select:text;-webkit-user-select:text;color-scheme:light}
 .tuval-hata-bas{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--kirmizi)}
 .tuval-hata-sayi{background:var(--kirmizi);color:#fff;border-radius:10px;padding:0 7px;font-size:11px;font-weight:700}
 .tuval-hata .ipucu{display:block;margin:4px 0 0}
@@ -773,9 +773,11 @@ body.tuval-tam-acik{overflow:hidden}
 .tuval-bas .alt{margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .olcu-bildirim{margin:0 0 10px;padding:8px 12px;border-radius:7px;background:var(--mavi-cok-ac);
   border:1px solid var(--mavi-ac);color:var(--mavi);font-size:12.5px}
+/*  Tuvalin koyu teması ( color-scheme:dark ) beyaz kutulara geçmesin:  geçerse kutudaki
+    giriş ve seçim kutuları koyu zeminli olur, koyu yazı okunmaz. */
 .olcu-kutu{position:absolute;z-index:30;width:340px;max-width:calc(100% - 16px);background:#fff;
   border:1px solid var(--cizgi);border-radius:9px;box-shadow:var(--golge);font-size:12.5px;
-  text-align:left;max-height:min(560px,80vh);overflow:auto}
+  text-align:left;max-height:min(560px,80vh);overflow:auto;color-scheme:light}
 .olcu-kutu.bekliyor{opacity:.6;pointer-events:none}
 .olcu-bas{display:flex;justify-content:space-between;align-items:center;gap:8px;
   padding:8px 10px;border-bottom:1px solid var(--cizgi2);color:var(--mavi)}
