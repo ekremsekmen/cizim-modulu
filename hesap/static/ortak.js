@@ -77,6 +77,43 @@ function durum(msg, hata){
   clearTimeout(d._t); d._t=setTimeout(()=>d.className='durum',2600);
 }
 
+/*  PENCERE ( 15 Eki ):  tarayıcının gri alert / confirm pencereleri yerine
+    programın kendi penceresi.  Okunması gereken bir şey ( dosya üretilemedi,
+    tanınmayan değer ) ya da geri dönüşü olmayan bir işin onayı için.
+        pencere({ baslik, metin, tur:'bilgi'|'uyari'|'hata', evet:'Tamam',
+                  hayir:'Vazgeç', tehlikeli:true })  →  Promise<boolean>
+    "evet"e basılırsa true;  "hayır", Esc ya da kapatma false.  Pencereler
+    sıraya girer — ikincisi birincinin üstüne yazılmaz.  Tehlikeli onayda
+    ilk odak "Vazgeç"tedir:  Enter'a yanlışlıkla basmak silmesin.          */
+let _pencereSira = Promise.resolve();
+function pencere(o){
+  const is = _pencereSira.then(() => _pencereGoster(o || {}));
+  _pencereSira = is.catch(() => {});
+  return is;
+}
+function _pencereGoster({baslik='', metin='', tur='bilgi', evet='Tamam', hayir=null, tehlikeli=false}){
+  return new Promise(coz => {
+    let d = $('pencere');
+    if(!d){
+      d = document.createElement('dialog'); d.id = 'pencere';
+      d.setAttribute('aria-labelledby', 'pencere_baslik');
+      document.body.appendChild(d);
+    }
+    d.className = 'pencere pencere-' + tur;   // 'uyari' / 'hata' tek başına başka kutuların sınıfı
+    d.innerHTML = `<h3 id="pencere_baslik">${kacis(baslik)}</h3>`
+      + (metin ? `<div class="pencere-metin">${kacis(metin)}</div>` : '')
+      + `<div class="pencere-dg">`
+      + (hayir ? `<button type="button" class="dg" data-cevap="0">${kacis(hayir)}</button>` : '')
+      + `<button type="button" class="dg ${tehlikeli ? 'tehlike' : 'ana'}" data-cevap="1">${kacis(evet)}</button></div>`;
+    d.querySelectorAll('button').forEach(b => b.onclick = () => d.close(b.dataset.cevap));
+    d.returnValue = '';
+    d.onclose = () => coz(d.returnValue === '1');
+    d.showModal();
+    const ilk = d.querySelector(tehlikeli && hayir ? '[data-cevap="0"]' : '[data-cevap="1"]');
+    if(ilk) ilk.focus();
+  });
+}
+
 /* ---------------------------------------------------------- sekmeler */
 /* Trafik hesabı TEK sekmedir; asansör adedine göre iki gövdeden biri
    gösterilir:  1 asansör → #s-trafik (adet hesaplanır),
@@ -489,7 +526,7 @@ async function indir(uc){
     if(tur.includes('application/json')){
       const h = await r.json();
       durum(h.hata || 'Dosya üretilemedi', true);
-      alert(h.hata || 'Dosya üretilemedi');
+      pencere({baslik:'Dosya üretilemedi', metin:h.hata || '', tur:'hata'});
       return;
     }
     if(!r.ok) throw new Error('sunucu hatası '+r.status);
@@ -637,8 +674,9 @@ function taninmayanBildir(liste, kaynak){
   const satir = x => `• ${x.etiket} :  "${x.deger}"  →  ${x.yeni === '' ? '( boş — ofis standardı )' : `"${x.yeni}"`}`;
   const kisa = `${liste.length} değer bu sürümde yok, VARSAYILAN kullanıldı`;
   console.warn(kaynak + ' tanınmayan değerler:', liste);
-  alert(`${kaynak} ${kisa}:\n\n${liste.map(satir).join('\n')}\n\n`
-        + 'Hesap artık bu yeni değerlerle yapılıyor.  Doğru değerleri seçip projeyi yeniden kaydedin.');
+  pencere({baslik:`${kaynak} ${kisa}`, tur:'uyari',
+    metin:`${liste.map(satir).join('\n')}\n\n`
+        + 'Hesap artık bu yeni değerlerle yapılıyor.  Doğru değerleri seçip projeyi yeniden kaydedin.'});
   return kisa;
 }
 
@@ -879,10 +917,12 @@ function eksikAlanlar(govde, mod){
   });
   return eksik;
 }
-function hepsiniTemizle(){
+async function hepsiniTemizle(){
   const ad = MOD === 'uygulama' ? 'uygulama projesinin' : 'avan projesinin';
   //  YALNIZ İÇİNDE BULUNULAN PROJE silinir — öbürü ayrı kovadadır.
-  if(!confirm(`Bu ${ad} tüm girdileri silinecek. Emin misiniz?\n\n( Öbür proje etkilenmez. )`)) return;
+  if(!await pencere({baslik:`Bu ${ad} tüm girdileri silinsin mi?`,
+      metin:'Öbür proje etkilenmez.  Kaydedilmemiş girdiler geri getirilemez.',
+      tur:'uyari', evet:'Tümünü sil', hayir:'Vazgeç', tehlikeli:true})) return;
   localStorage.removeItem(KOVA[MOD]); location.reload();
 }
 function ornekYukle(){

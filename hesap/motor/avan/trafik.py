@@ -1089,10 +1089,40 @@ def _hiz_yok_hatasi(bina_tipi, on_ek=""):
     )
 
 
+#  KAPI SEÇİLMEMİŞ  —  tek ve çoklu hesapta AYNI mesaj.  ( Kapı tipi boşken
+#  ekrana "800 mm / None için Tablo-4'te ta-tk karşılığı yok" yazılıyordu:
+#  eksik olan tablo satırı değil, seçimdi. )  Süreler ( ta · tk · tp ) elle
+#  girildiyse kapı seçimi gerekmez;  tp genişlikten, ta / tk tipten de okunur.
+def _kapi_secim_hatasi(kg_, kt, ta, tk, tp, on_ek=""):
+    sure_tam = sayi_mi(ta) and sayi_mi(tk)
+    if sure_tam and sayi_mi(tp):
+        return None
+    if kg_ not in tablolar.KAPI_GENISLIKLERI:
+        return (
+            f"HESAP HATASI: {on_ek}⑨ kapı genişliği listeden seçilmelidir ( "
+            + " / ".join(str(x) for x in tablolar.KAPI_GENISLIKLERI)
+            + " mm )."
+        )
+    if not sure_tam and kt not in tablolar.KAPI_TIPLERI:
+        return (
+            f"HESAP HATASI: {on_ek}⑩ kapı tipi listeden seçilmelidir ( "
+            + " / ".join(tablolar.KAPI_TIPLERI)
+            + " )."
+        )
+    return None
+
+
 def _dogrula_tek(g, b, N, P, kg_, kt, ta, tk, tg, tp, k, V, h, by, yy, k_tipi):
     """HESAPLAMA!E45 + H45 doğrulama zinciri."""
+    #  Kapasite boşken eskiden "⑨ kapı genişliği seçilmelidir" deniyordu —
+    #  eksik olan ilk girdi kapasitedir.
+    if not sayi_mi(P):
+        return "HESAP HATASI: ⑧ kapasite P seçilmedi — asansörün kapasitesini ( kişi ) seçin."
     if kg_ not in tablolar.KAPI_GENISLIKLERI:
         return "HESAP HATASI: ⑨ kapı genişliği listeden seçilmelidir (700/800/900/1000/1100/1200/1300 mm)."
+    kapi = _kapi_secim_hatasi(kg_, kt, ta, tk, tp)
+    if kapi:
+        return kapi
     if sayi_mi(N) and N > 30:
         return (
             f"HESAP HATASI: N = {int(N)} > 30. MMO/697 Tablo-3 ve Tablo-5 en fazla 30 katı "
@@ -1548,6 +1578,9 @@ def _coklu_asansor(i, a, ortak, U):
 
 def _coklu_sure_hatasi(ad, bina_tipi, Ni, P, kg_, kt, Vi, ta, tk, tg, tp):
     """Bir asansörün süre, hız ve kapasite hatası ( ilk bulunan ) ya da None."""
+    kapi = _kapi_secim_hatasi(kg_, kt, ta, tk, tp, on_ek=f"{ad} — ")
+    if kapi:
+        return kapi
     if not sayi_mi(ta) or not sayi_mi(tk):
         return (
             f"HESAP HATASI: {ad} — {kg_} mm / {kt} için Tablo-4'te ta-tk "

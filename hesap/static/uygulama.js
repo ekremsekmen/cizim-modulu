@@ -700,6 +700,25 @@ function cizMukavemet(r){
      + kutu('Sonuç', o.genel_sonuc_kisa || (o.tumu_uygun?'UYGUN':'UYGUN DEĞİL'), '', o.tumu_uygun?'ok':'hata')
      + '</div>';
 
+  /*  NEREDE TAKILDI ( 15 Eki ):  kart yalnız "UYGUN DEĞİL" diyordu;  hangi
+      bölüm olduğu tabloda aranıyordu.  Uygun olmayan bölümler kartın hemen
+      altında sayılır, her biri kendi hesabına götürür. */
+  const kalan = mUygunOlmayanlar(r);
+  if(kalan.length){
+    h += `<div class="uyari kirmizi liste-kutu"><b>${mUygunOlmayanMetni(kalan)}</b>
+      <span class="ipucu-satir">— tıklayınca hesabına iner</span><ul>`
+      + kalan.map(b => {
+          //  "HESAP EKSİK — α girilmedi" olduğu gibi kalır:  o bölüm uygun
+          //  değil diye değil, hesaplanamadığı için listededir.
+          const neden = String((b.sonuc || {}).metin || '').replace(/^UYGUN DEĞİLDİR\.?\s*(—\s*)?/, '');
+          const ad = kacis(b.baslik || '');
+          return `<li>${b.kimlik ? `<button type="button" class="baglanti"
+                    onclick="mHesabaGit('${kacis(b.kimlik)}')">${ad}</button>` : ad}`
+            + (neden ? ` <span class="neden">— ${kacis(neden)}</span>` : '') + '</li>';
+        }).join('')
+      + '</ul></div>';
+  }
+
   /* bölüm sonuçları — hangi bölüm takıldı, bir bakışta görünsün */
   h += `<div class="serit"><span>BÖLÜM SONUÇLARI</span>
         <span class="kaynak">${(r.bolumler||[]).length} hesap bölümü</span></div>
@@ -1104,6 +1123,19 @@ function mBolumGruplari(kimlik){
   const g = (MUK && MUK.bolum_grubu || {})[String(kimlik || '')];
   return !g ? [] : (Array.isArray(g) ? g : [g]);
 }
+/*  Bir asansörün ( ya da proje genelinin ) UYGUN OLMAYAN bölümleri.  Sonucu
+    "uygun" diye işaretlenmeyen bilgi bölümleri ( uygun:null ) sayılmaz. */
+function mUygunOlmayanlar(s){
+  return ((s && s.bolumler) || []).filter(b => b && b.sonuc && b.sonuc.uygun === false);
+}
+/*  Hesabı EKSİK kalan bölüm de uygun sayılmaz ( uygun:false ) ama "uygun
+    değil" demek yanıltır:  "1 bölüm uygun değil · 1 bölümün hesabı eksik". */
+function mUygunOlmayanMetni(l){
+  const eksik = l.filter(b => /^HESAP EKSİK/i.test(String((b.sonuc || {}).metin || '').trim())).length;
+  const uygunDegil = l.length - eksik;
+  return [uygunDegil ? `${uygunDegil} bölüm uygun değil` : '',
+          eksik ? `${eksik} bölümün hesabı eksik` : ''].filter(Boolean).join(' · ');
+}
 
 
 /* ==========================================================================
@@ -1125,10 +1157,17 @@ function mAsansorSekmeleriTazele(){
     //  kaldığı görünmezdi.  Her sekme kendi sonucundan okur.
     const d = ((SON.mc && SON.mc.ozet && SON.mc.ozet.asansorler) || [])[i];
     let rozet = '';
-    if(d && d.aktif === false)
+    //  Proje geneli bir girdi reddedildiyse özet hiç gelmez — her asansör durur.
+    const durdu = SON.mc && SON.mc.aktif === false && !SON.mc.asansorler;
+    if(durdu || (d && d.aktif === false))
       rozet = `<span class="sekme-rozet kirmizi" title="Hesap yapılamadı">!</span>`;
-    else if(d && d.tumu_uygun === false)
-      rozet = `<span class="sekme-rozet kirmizi" title="Bir ya da daha çok bölüm uygun değil">✕</span>`;
+    else if(d && d.tumu_uygun === false){
+      //  ✕ DEĞİL SAYI ( 15 Eki ):  sekmenin yanındaki kırmızı ✕ "kapat"
+      //  düğmesi sanılıyordu.  Uygun olmayan bölüm sayısı yazılır;  sayılacak
+      //  bölüm yoksa ( engelleyici bir eksik ) "!".
+      const l = mUygunOlmayanlar(((SON.mc && SON.mc.asansorler) || [])[i]);
+      rozet = `<span class="sekme-rozet kirmizi" title="${l.length ? mUygunOlmayanMetni(l) : 'Proje uygun değil'}">${l.length || '!'}</span>`;
+    }
     h += `<button class="sekme${etkin ? ' etkin' : ''}" data-sekme="mukavemet"
                   data-asansor="${i}" onclick="mAsansorSekmesi(${i})"
                   title="${kacis(ad || (i + 1) + ' nolu asansör')}"
@@ -1190,6 +1229,22 @@ function mAsansorSec(i){
   if(i < 0 || i >= MUK_ADET) return;
   mAsansorSekmesi(i);
 }
+/*  Proje geneli hesaplar asansör sekmesinin HESAP görünümünün altındadır
+    ( #p_geneli ):  açık asansörün sekmesine geçilir, hesap görünümüne
+    dönülür, karta inilir. */
+function mProjeGeneline(){
+  mAsansorSekmesi(Math.min(MUK_AKTIF || 0, MUK_ADET - 1));
+  if(M_GORUNUM !== 'hesap') mGorunumSec('hesap');
+  //  mGit:  sekme değişince hesap yeniden çizilir;  süren gidiş çizimden
+  //  sonra yinelenir ( bkz. mBolumeIn ).
+  mGit(() => {
+    const k = $('p_geneli');
+    if(!k || !k.offsetParent) return null;
+    const y = mSayfaHedefi(k.getBoundingClientRect().top + scrollY - mUstPay());
+    window.scrollTo({top: y, behavior: mKaydirma()});
+    return y;
+  });
+}
 
 
 
@@ -1232,6 +1287,15 @@ function mProjeGeneliCiz(c){
     Ayrıntı asansör sekmelerinde;  burada yalnız "hangisi kaldı" görünür. */
 function mProjeOzetiCiz(c){
   const kutu = $('p_ozet'); if(!kutu) return;
+  //  PROJE GENELİ BİR GİRDİ REDDEDİLİNCE ( ofis standardında aralık dışı bir
+  //  değer ) hiçbir asansör hesaplanmaz.  Özet boş kalıyordu ( 15 Eki ):  Proje
+  //  sekmesindeki kullanıcı hesabın durduğunu görmüyordu.
+  if(c && !c.asansorler && (c.hata || []).length){
+    kutu.innerHTML = `<div class="kart-ic"><div class="serit"><span>PROJE ÖZETİ</span>
+      <span class="kaynak">hesap yapılamadı</span></div>`
+      + c.hata.map(x => `<div class="uyari kirmizi">${kacis(x)}</div>`).join('') + '</div>';
+    return;
+  }
   if(!c || !c.asansorler){ kutu.innerHTML = ''; return; }
   const liste = (c.ozet && c.ozet.asansorler) || [];
   let h = `<div class="kart-ic"><div class="serit"><span>PROJE ÖZETİ</span>
@@ -1249,6 +1313,19 @@ function mProjeOzetiCiz(c){
             <td>${a.N_hesap == null ? '—' : tr(a.N_hesap)}</td>
             <td class="${sinif}">${metin}</td></tr>`;
   });
+  //  Proje geneli hesaplar ( topraklama · makine dairesi aydınlatması ) da
+  //  projenin hükmüne girer;  özet onları atlayınca topraklaması yetersiz bir
+  //  projede her asansör satırı "uygun" görünebiliyordu ( 15 Eki ).
+  const pgl = c.proje_geneli || [];
+  if(pgl.length){
+    const kalan = mUygunOlmayanlar({bolumler: pgl});
+    const pu = c.ozet && c.ozet.proje_geneli_uygun;
+    h += `<tr class="m-gidilir" onclick="mProjeGeneline()"
+              title="Proje geneli hesaplara git">
+            <td class="etiket">—</td><td>Proje geneli ( ${pgl.length} bölüm )</td><td>—</td>
+            <td class="${pu === false ? 'hata' : (pu === true ? 'ok' : '')}">${pu === false
+              ? kacis(mUygunOlmayanMetni(kalan) || 'UYGUN DEĞİLDİR') : 'UYGUNDUR.'}</td></tr>`;
+  }
   kutu.innerHTML = h + '</table></div></div>';
 }
 

@@ -30,6 +30,7 @@ import yollar
 yollar.kur()
 
 from dogrulama.rapor import Rapor
+from dogrulama.pencere import pencere_dinle
 
 BASE = os.environ.get("AVAN_TEST_URL", "http://127.0.0.1:8780")
 
@@ -659,6 +660,8 @@ def calistir():
         pg.on("console", lambda m: konsol.append(m.text) if m.type == "error" else None)
         pg.on("pageerror", lambda e: konsol.append("PAGEERROR " + str(e)))
         pg.on("dialog", lambda d: (_PENCERE.append(d.message), d.dismiss()))
+        #  15 Eki'den beri program kendi penceresini açar ( ortak.js pencere )
+        pencere_dinle(pg, _PENCERE)
 
         _gidis_donus(r, pg, "avan", _avan_hazirla)
         avan_dosya = _gidis_donus(r, pg, "avan", _avan_gecerli, gecerli=True)

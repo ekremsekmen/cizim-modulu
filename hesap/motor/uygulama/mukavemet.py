@@ -1433,9 +1433,15 @@ class _AskiHalatlari:
         #  STANDARDA UYAN EN YAKIN ÇİFT:  halat en az 8 mm, her kasnak 40 × halat.
         d_std = max(dh, S["halat_capi_asgari"])
         D_std = S["Dt_dh_asgari"] * d_std
+        #  Ds TAHRİK DIŞINDAKİ BÜTÜN kasnakların en küçüğüdür ( 2:1'de kabin askı
+        #  kasnakları ).  Yalnız "saptırma kasnağı" denince kullanıcı formdaki
+        #  "Saptırma kasnağı çapı" alanını büyütüyor, sonuç değişmiyordu ( 15 Eki ).
         kasnaklar = [
             ad
-            for ad, D, denetle in (("tahrik kasnağı", Dt, True), ("saptırma kasnağı", Ds, kasnak_var))
+            for ad, D, denetle in (
+                ("tahrik kasnağı", Dt, True),
+                ("saptırma kasnağı ( tahrik dışındaki her kasnak — askı kasnakları dahil )", Ds, kasnak_var),
+            )
             if denetle and D < D_std - 1e-9
         ]
         parca = ([f"en az {self.cap_esik} halat"] if not self.cap_std else []) + (

@@ -299,6 +299,54 @@ function sekmeRozeti(sekme, hata, sayi){
   r.title = hata ? 'Hesap hatası var' : sayi+' uyarı';
 }
 
+/*  EKSİK GİRDİ ≠ HATA  ( 15 Eki ):  program boş açıldığında sağda kırmızı
+    "HESAP HATASI: ⑨ kapı genişliği listeden seçilmelidir" çıkıyordu —
+    kullanıcı daha hiçbir şey girmeden.  Sunucunun hatası BOŞ bir zorunlu
+    alandan geliyorsa ( mesajdaki daire içi numara boş alanınki ise ) bu bir
+    hata değil, eksik girdidir:  mavi kutuda eksiklerin hepsi listelenir,
+    tıklanınca o kutuya gidilir, sekmede kırmızı rozet çıkmaz.  Dolu bir
+    alanın hatası ( N = 50 gibi ) eskisi gibi kırmızı kalır. */
+const TRAFIK_ZORUNLU = [
+  ['c_bina_yuksekligi','②'], ['c_yapi_yuksekligi','④'], ['c_N','③'],
+  ['c_h','⑦'], ['c_hizli1','⑤'],
+];
+function _alanAdi(id){
+  const lb=$(id)?.closest('.alan')?.querySelector('label');
+  if(!lb) return id;
+  return [...lb.childNodes].filter(n=>n.nodeType===3 || (n.nodeType===1 && !n.matches('.ipucu,.bilgi')))
+    .map(n=>n.textContent).join('').replace(/\s+/g,' ').trim();
+}
+function trafikEksikleri(){
+  const l=TRAFIK_ZORUNLU.filter(([id])=>$(id) && v(id)==='').map(([id,no])=>({id,no,ad:_alanAdi(id)}));
+  for(let i=1;i<=TRAFIK_ADET;i++){
+    for(const [k,no] of [['c_P','⑧'],['c_kg','⑨'],['c_kt','⑩']]){
+      if($(k+i) && v(k+i)==='') l.push({id:k+i, no, ad:(TRAFIK_ADET>1?`ASANSÖR-${i} — `:'')+_alanAdi(k+i)});
+    }
+  }
+  //  formdaki numara sırası ( ② ③ ④ … ) — daire içi rakamlar ardışık kodlu
+  return l.sort((a,b)=>a.no.codePointAt(0)-b.no.codePointAt(0));
+}
+/*  Hata boş bir alandan mı geliyor?  Öyleyse eksik listesi, değilse null. */
+function trafikEksikDurumu(r){
+  if(!r || !r.hata) return null;
+  const l=trafikEksikleri(); if(!l.length) return null;
+  const nolar=new Set(l.map(x=>x.no));
+  const hata=String(r.hata);
+  const ilgili=[...nolar].some(n=>hata.includes(n))
+    || (/en az bir asansör/.test(hata) && nolar.has('⑧'))
+    || (/Nüfus girilmedi/.test(hata) && nolar.has('⑤'));
+  return ilgili ? l : null;
+}
+function alanaGit(id){
+  const e=$(id); if(!e) return;
+  e.scrollIntoView({block:'center', behavior:'smooth'});
+  e.focus({preventScroll:true});
+}
+function eksikKutusu(l){
+  return `<div class="uyari mavi liste-kutu eksik-kutu"><b>Hesap için şu girdiler gerekli:</b>
+    <ul>${l.map(x=>`<li><button type="button" class="baglanti" onclick="alanaGit('${x.id}')">${kacis(x.ad)}</button></li>`).join('')}</ul></div>`;
+}
+
 /* ---------------------------------------------------------- hesap */
 /* Önce trafik hesaplanır — avan adedi ve kapasite/hız oradan gelir; avan
    ondan SONRA hesaplanır ki ilk çizimde eksik asansör görünmesin. */
@@ -317,10 +365,11 @@ async function hesapTrafik(){
     const r = await (await fetch('/api/trafik',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({girdiler:trafikGirdi()})})).json();
     if(sira !== ISTEK.trafik) return;          // daha yeni bir istek var — bu yanıt eski
-    SON.c=r; SON.t=r; ciz('c_sonuc', r, r.yol||'tek'); kapakYerTutuculari();
+    const eksik = trafikEksikDurumu(r);
+    SON.c=r; SON.t=r; ciz('c_sonuc', r, r.yol||'tek', eksik); kapakYerTutuculari();
     const _kopru = trafikKoprusu();
     if(_kopru) AVAN_TABAN = _kopru.asansorler.length;   // son bilinen grup adedi
-    sekmeRozeti('trafik', !!r.hata, (r.uyarilar||[]).length);
+    sekmeRozeti('trafik', !!r.hata && !eksik, (r.uyarilar||[]).length);
     const rz=$('c_std_rozet');
     if(rz) rz.innerHTML = r.ozet && r.ozet.standart
       ? `<span class="rozet ${r.ozet.standart==='Yükseltilmiş'?'sari':'ok'}">Hesap standardı: ${r.ozet.standart}</span>` : '';
@@ -341,7 +390,7 @@ async function hesapAvan(){
 function uyariSinifi(u){ return String(u||'').trim().startsWith('ℹ') ? 'mavi' : 'sari'; }
 
 /* ---------------------------------------------------------- çizim: trafik */
-function ciz(hedef, r, mod){
+function ciz(hedef, r, mod, eksik){
   const o=r.ozet||{};
   let h=`<div class="pafta-bas"><h2>ASANSÖR TRAFİK HESABI${mod==='coklu'?'  —  ÇOKLU ASANSÖR':''}</h2>
          <div class="alt">MMO/697, 2. Baskı, Ocak 2020, s.11-17</div></div><div class="kart-ic">`;
@@ -353,7 +402,8 @@ function ciz(hedef, r, mod){
       ${ayni ? 'Asansörlerin hepsi <b>aynı tip</b> — MMO/697 s.11-12 yolu.'
              : 'Asansörler <b>farklı tipte</b> — grup formülü ( MMO/697 s.12 ).'}</div>`;
   }
-  if(r.hata) h+=`<div class="uyari kirmizi">${kacis(r.hata)}</div>`;
+  if(eksik) h+=eksikKutusu(eksik);
+  else if(r.hata) h+=`<div class="uyari kirmizi">${kacis(r.hata)}</div>`;
   (r.uyarilar||[]).forEach(u=>h+=`<div class="uyari ${uyariSinifi(u)}">${kacis(u)}</div>`);
 
   if(!r.hata){
@@ -769,7 +819,8 @@ async function indirProjeDwg(){
     const tur = r.headers.get('Content-Type')||'';
     if(tur.includes('application/json')){
       const h = await r.json();
-      durum(h.hata || 'Çizim üretilemedi', true); alert(h.hata || 'Çizim üretilemedi'); return;
+      durum(h.hata || 'Çizim üretilemedi', true);
+      pencere({baslik:'Çizim üretilemedi', metin:h.hata || '', tur:'hata'}); return;
     }
     if(!r.ok) throw new Error('sunucu hatası '+r.status);
     const cd = r.headers.get('Content-Disposition')||'';
@@ -793,7 +844,8 @@ async function indirProjeDwg(){
               + 'alta taşan sayfalar var. Çizimi baskıya göndermeden kontrol edin.');
     if(uyarilar.length){
       const u = 'DİKKAT: ' + uyarilar.join('  —  ');
-      durum('İndirildi: '+ad+bicim+'  '+u, true); alert(u);
+      durum('İndirildi: '+ad+bicim+'  '+u, true);
+      pencere({baslik:'Çizim indirildi — dikkat', metin:uyarilar.join('\n'), tur:'uyari'});
     }else{
       durum('İndirildi: '+ad+bicim);
     }

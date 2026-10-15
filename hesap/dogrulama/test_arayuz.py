@@ -20,6 +20,7 @@ import yollar
 yollar.kur()
 
 from dogrulama.rapor import Rapor
+from dogrulama.pencere import pencere_dinle
 
 BASE = os.environ.get("AVAN_TEST_URL", "http://127.0.0.1:8780")
 
@@ -165,6 +166,7 @@ def calistir():
         #  görünmemelidir;  yoksa iki ayrı hesap birbirine karışır.
         # ---------------------------------------------------------------
         pg.on("dialog", lambda d: d.dismiss())
+        pencere_dinle(pg)  # programın kendi penceresi de kapatılır
         r.kontrol("açılışta proje seçim ekranı görünüyor", pg.is_visible("#giris"))
         r.kontrol("açılışta hesap sekmeleri gizli", not pg.is_visible('.sekme[data-sekme="avan"]'))
         r.esit("açılışta iki seçenek var", pg.eval_on_selector_all(".giris-kart", "e=>e.length"), 2)
@@ -1598,9 +1600,33 @@ def calistir():
         r.kontrol("başvuru sekmeleri sağ uca itildi", _yer["sabit"] - _yer["kapak"] > 100, f"→ {_yer}")
         r.kontrol("son sekme şeridin sağ ucunda", _yer["serit"] - _yer["tablo"] < 40, f"→ {_yer}")
 
+        #  BOŞ FORM HATA DEĞİL ( 15 Eki ):  program boş açılınca kırmızı "HESAP
+        #  HATASI: ⑨ kapı genişliği…" çıkıyordu.  Eksik girdiler mavi kutuda
+        #  listelenir, sekmede kırmızı rozet çıkmaz, satır kutuya götürür.
+        pg.wait_for_timeout(800)
+        r.kontrol("boş avan formunda kırmızı hesap hatası yok", not pg.is_visible("#c_sonuc .uyari.kirmizi"))
+        _eksik = pg.inner_text("#c_sonuc .eksik-kutu") if pg.is_visible("#c_sonuc .eksik-kutu") else ""
+        r.kontrol(
+            "boş avan formunda eksik girdiler listeleniyor",
+            all(x in _eksik for x in ("②", "③", "④", "⑦", "⑧")),
+            f"→ {_eksik[:120]!r}",
+        )
+        r.kontrol(
+            "boş formda trafik sekmesinde kırmızı rozet yok",
+            not pg.is_visible('.sekme[data-sekme="trafik"] .sekme-rozet.kirmizi'),
+        )
+        pg.click("#c_sonuc .eksik-kutu li button >> nth=0")
+        pg.wait_for_timeout(500)
+        r.esit(
+            "eksik girdi satırı kutusuna götürüyor",
+            pg.evaluate("document.activeElement.id"),
+            "c_bina_yuksekligi",
+        )
+
         # örnek proje yüklensin
         pg.evaluate("ornekYukle()")
         pg.wait_for_timeout(1800)
+        r.kontrol("girdiler dolunca eksik kutusu kalkıyor", not pg.is_visible("#c_sonuc .eksik-kutu"))
 
         # --- her sekme açılıyor ve içerik üretiyor
         r.esit(
@@ -1745,12 +1771,17 @@ def calistir():
             pg.evaluate("[kapakCiktisi().stops, kapakCiktisi().travel]"),
             ["", ""],
         )
-        #  Kat sayısı boşken mesaj eksik olanı söyler, tg'yi değil
+        #  Kat sayısı boşken mesaj eksik olanı söyler, tg'yi değil.  15 Eki'den
+        #  beri boş alan hata değil eksik girdidir:  mavi kutuda "③ Kat sayısı N".
         _hm = pg.inner_text("#c_sonuc")
         r.kontrol(
             "trafik · N boşken mesaj kat sayısını söylüyor",
-            "③ kat sayısı N" in _hm and "tg'yi elle girin" not in _hm,
+            "③ kat sayısı n" in _hm.lower() and "tg'yi elle girin" not in _hm,
             f"→ {_hm[:140]!r}",
+        )
+        r.kontrol(
+            "trafik · N boşken eksik girdi kutusu ( kırmızı hata değil )",
+            pg.is_visible("#c_sonuc .eksik-kutu"),
         )
         pg.fill("#c_N", "11")
         pg.wait_for_timeout(1500)
@@ -2944,6 +2975,50 @@ def calistir():
             _renk["ozet"] and all(b == g for _u, b, g in _renk["ozet"]),
             f"→ {_renk['ozet']}",
         )
+        #  NEREDE TAKILDI ( 15 Eki ):  sonuç kartının altında uygun olmayan
+        #  bölümler sayılır;  sekme rozeti de "kapat" sanılan ✕ değil, sayıdır.
+        _kalan = pg.evaluate("""() => ({
+            bek: SON.m.bolumler.filter(b => (b.sonuc || {}).uygun === false).map(b => b.baslik),
+            liste: [...document.querySelectorAll('#m_sonuc .liste-kutu li')].map(li => li.textContent),
+            dugme: document.querySelectorAll('#m_sonuc .liste-kutu li button').length,
+            rozet: (document.querySelector('#m_asansor_sekmeleri .sekme.etkin .sekme-rozet') || {}).textContent || '',
+        })""")
+        r.kontrol(
+            "sonuç kartı: uygun olmayan her bölüm altında sayılıyor",
+            _kalan["bek"]
+            and len(_kalan["liste"]) == len(_kalan["bek"])
+            and all(any(b in x for x in _kalan["liste"]) for b in _kalan["bek"]),
+            f"→ {_kalan}"[:220],
+        )
+        r.esit("sonuç kartı: her satır hesabına götüren düğme", _kalan["dugme"], len(_kalan["bek"]))
+        r.esit(
+            "sekme rozeti uygun olmayan bölüm sayısı ( ✕ değil )", _kalan["rozet"], str(len(_kalan["bek"]))
+        )
+        #  AYNI SATIRDAKİ KUTULAR AYNI HİZADA:  ( i ) simgesiyle iki satıra inen
+        #  etiket yanındaki kutuyu 15–17 px kaydırıyordu.
+        _kayik = pg.evaluate("""async () => {
+            const gor = e => { const r = e.getBoundingClientRect(); return !!e.offsetParent && r.width > 2 && r.height > 2; };
+            const k = [];
+            const ilk = document.querySelector('#m_form .m-grup.acik');
+            for (const g of document.querySelectorAll('#m_form .m-grup')) {
+                mGrupAc(+g.dataset.grup);
+                await new Promise(r => setTimeout(r, 60));
+                for (const s of document.querySelectorAll('#m_form .satir')) {
+                    if (!gor(s)) continue;
+                    const kt = [...s.children].filter(a => gor(a) && a.classList.contains('alan'))
+                        .map(a => [...a.children].find(c => c.tagName !== 'LABEL' && gor(c))).filter(Boolean)
+                        .map(x => x.getBoundingClientRect());
+                    if (kt.length < 2) continue;
+                    const ust = Math.max(...kt.map(b => b.top)) - Math.min(...kt.map(b => b.top));
+                    const boy = Math.max(...kt.map(b => b.height)) - Math.min(...kt.map(b => b.height));
+                    if (ust > 1.5 || boy > 1.5) k.push(s.textContent.trim().slice(0, 40) + ' ' + Math.round(ust) + '/' + Math.round(boy));
+                }
+            }
+            //  sonraki adımlar formu bulduğu gibi bulsun
+            if (ilk) mGrupAc(+ilk.dataset.grup); else mGruplariKapat();
+            return k;
+        }""")
+        r.kontrol("form satırlarında kutular aynı hizada ve boyda", not _kayik, f"→ {_kayik[:4]}")
 
         # ==============================================================
         #  v3.2 — SONUÇ TABLOSU ↔ AYRINTILI HESAP

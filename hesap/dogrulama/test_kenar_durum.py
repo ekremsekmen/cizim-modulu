@@ -3044,6 +3044,45 @@ def calistir():
     ):
         r.esit(f"paftada V kaynağı · {_ad}", _v_kaynak(trafik.hesapla(_g)), _bek)
 
+    #  BOŞ SEÇİM DOĞRU ALANI SÖYLER ( 15 Eki ).  Kapı tipi boşken "800 mm / None
+    #  için Tablo-4'te ta-tk karşılığı yok",  kapasite boşken "⑨ kapı genişliği
+    #  seçilmelidir" deniyordu.  Ekran, eksik girdiyi hatadan mesajdaki daire
+    #  içi numarayla ayırır ( avan.js trafikEksikDurumu ) — numara doğru olmalı.
+    _k = {"P": 8, "kapi_genisligi": 900, "kapi_tipi": "Teleskopik Otomatik"}
+    for _ad, _g, _no in (
+        ("tek · kapasite boş", g(P=None), "⑧"),
+        ("tek · kapı genişliği boş", g(kapi_genisligi=None), "⑨"),
+        ("tek · kapı tipi boş", g(kapi_tipi=None), "⑩"),
+        (
+            "çoklu · 2. asansörün kapı genişliği boş",
+            dict(g(), asansorler=[_k, dict(_k, P=13, kapi_genisligi=None)]),
+            "⑨",
+        ),
+        (
+            "çoklu · 2. asansörün kapı tipi boş",
+            dict(g(), asansorler=[_k, dict(_k, P=13, kapi_tipi=None)]),
+            "⑩",
+        ),
+    ):
+        _h = trafik.hesapla(_g).get("hata") or ""
+        r.kontrol(f"boş seçim · {_ad} → {_no}", _no in _h and "None" not in _h, f"→ {_h[:110]}")
+    #  Elle ta / tk girildiyse kapı tipi süre için gerekmez
+    _h = trafik.hesapla(
+        dict(g(), asansorler=[_k, dict(_k, P=13, kapi_tipi=None, manuel_ta=3, manuel_tk=3)])
+    ).get("hata")
+    r.kontrol("boş seçim · elle ta/tk varken kapı tipi istenmez", _h is None, f"→ {_h}")
+    #  tp kapı GENİŞLİĞİNDEN okunur:  genişlik boş, ta / tk elle ve tp yoksa
+    #  sebep genişliktir ( "None mm için tp değeri bulunamadı" değil ).
+    _h = (
+        trafik.hesapla(
+            dict(g(), asansorler=[_k, dict(_k, P=13, kapi_genisligi=None, manuel_ta=3, manuel_tk=3)])
+        ).get("hata")
+        or ""
+    )
+    r.kontrol(
+        "boş seçim · elle ta/tk, tp yok, genişlik boş → ⑨", "⑨" in _h and "None" not in _h, f"→ {_h[:110]}"
+    )
+
     return r
 
 

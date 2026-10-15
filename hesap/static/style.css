@@ -154,8 +154,8 @@ body.ayirici-surukleniyor{cursor:col-resize;user-select:none;-webkit-user-select
   overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);
   white-space:nowrap;border:0 !important}
 .secim-ikili{display:flex;gap:3px;padding:3px;border:1px solid var(--cizgi);
-  border-radius:9px;background:var(--gri-ac)}
-.secim-dg{flex:1;padding:7px 10px;border:0;border-radius:6px;background:transparent;
+  border-radius:9px;background:var(--gri-ac);height:36px}  /* yanındaki kutularla aynı boy */
+.secim-dg{flex:1;padding:0 10px;border:0;border-radius:6px;background:transparent;
   cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--gri);
   white-space:nowrap;line-height:1.25;transition:background .13s,color .13s,box-shadow .13s}
 .secim-dg:hover:not(.secili){background:#fff;color:var(--mavi)}
@@ -164,7 +164,9 @@ body.ayirici-surukleniyor{cursor:col-resize;user-select:none;-webkit-user-select
 .gorsel-gizli:focus-visible+.secim-ikili{outline:2px solid var(--mavi2);outline-offset:2px}
 .alan:last-child{margin-bottom:0}
 .alan label{display:block;font-size:11.5px;font-weight:600;color:var(--gri);margin-bottom:3px;line-height:1.35}
-.alan .ipucu{font-weight:400;color:#8A96A3;font-size:10.5px}
+/*  İpucu ve kaynak yazıları:  #8A96A3 / #98A2AE beyazda 2,6–3,0 kontrasttı ( okunurluk
+    için en az 4,5 );  #66717D 4,97.  Boy da 10,5 → 11 px ( 15 Eki ). */
+.alan .ipucu{font-weight:400;color:#66717D;font-size:11px}
 .alan input,.alan select{
   width:100%;padding:7px 9px;border:1px solid var(--cizgi);border-radius:6px;background:#fff;
   transition:.12s;font-size:13.5px;
@@ -178,6 +180,17 @@ body.ayirici-surukleniyor{cursor:col-resize;user-select:none;-webkit-user-select
 .alan input.girdi.salt:focus{background:#F1F4F8;border-color:#D5DDE6;color:#123E6B;
   font-weight:600;cursor:default}
 .alan input:disabled{background:var(--gri-ac);color:#9AA5B1}
+/*  AYNI SATIRDAKİ KUTULAR AYNI HİZADA ( 15 Eki ):  bir etiket ( i ) simgesiyle
+    iki satıra inince yanındaki kutu 15–17 px yukarıda kalıyordu.  Izgara
+    alanları satır boyunca uzar;  etiket kalan boşluğu doldurur, kutu alta
+    iner.  Kutu ile açılır liste de aynı yükseklikte ( 36 / 34 px'ti ). */
+.satir>.alan{display:flex;flex-direction:column;margin-bottom:0}
+.satir>.alan>label{flex:1 0 auto}
+/*  Alt boşluk alanda değil satırda:  satırın son alanında boşluk yoktu
+    ( .alan:last-child ), uzayan alanlar arasında 11 px fark doğuyordu. */
+.satir{margin-bottom:11px}
+.satir:last-child{margin-bottom:0}
+.alan input:not([type=checkbox]):not([type=radio]),.alan select{height:36px}
 .satir{display:grid;gap:10px}
 .satir.i2{grid-template-columns:1fr 1fr}
 .satir.i3{grid-template-columns:1fr 1fr 1fr}
@@ -206,6 +219,21 @@ body.ayirici-surukleniyor{cursor:col-resize;user-select:none;-webkit-user-select
 .dg.yesil{background:var(--yesil);color:#fff;border-color:var(--yesil)}
 .dg.yesil:hover{filter:brightness(1.12);color:#fff}
 .dg:disabled{opacity:.45;cursor:not-allowed}
+.dg.tehlike{background:var(--kirmizi);color:#fff;border-color:var(--kirmizi)}
+.dg.tehlike:hover{filter:brightness(1.12);color:#fff}
+/*  PENCERE ( ortak.js pencere ):  alert / confirm yerine.  <dialog> üst
+    katmanda açılır;  arkası karartılır, Esc kapatır. */
+.pencere{margin:auto;width:min(520px,calc(100vw - 32px));max-height:calc(100vh - 64px);overflow:auto;
+  padding:18px 20px 16px;border:1px solid var(--cizgi);border-top:4px solid var(--mavi2);
+  border-radius:10px;background:var(--zemin);color:var(--yazi);
+  box-shadow:0 18px 48px rgba(18,62,107,.28)}
+.pencere-uyari{border-top-color:#D9A300}
+.pencere-hata{border-top-color:var(--kirmizi)}
+.pencere::backdrop{background:rgba(18,30,45,.45)}
+.pencere h3{margin:0 0 8px;font-size:15px;line-height:1.35;color:var(--mavi)}
+.pencere-hata h3{color:var(--kirmizi)}
+.pencere-metin{font-size:12.5px;line-height:1.55;white-space:pre-wrap;color:var(--yazi)}
+.pencere-dg{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 .dg.kucuk{padding:5px 10px;font-size:11.5px}
 
 /* ---------------------------------------------------------- sonuç */
@@ -225,10 +253,10 @@ table.hesap td{padding:4px 8px;border-bottom:1px solid #EDF0F4;vertical-align:mi
 table.hesap tr:last-child td{border-bottom:0}
 td.sembol{width:46px;font-weight:700;color:var(--mavi);white-space:nowrap}
 td.aciklama{color:#3C4652}
-td.esit{width:16px;text-align:center;color:#9AA5B1}
+td.esit{width:16px;text-align:center;color:#66717D}
 td.deger{width:118px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 td.birim{width:58px;color:var(--gri);font-size:11.5px}
-td.kaynak{width:150px;color:#98A2AE;font-size:10.5px;text-align:right}
+td.kaynak{width:150px;color:#66717D;font-size:11px;text-align:right}
 tr.baslik-satir td{background:var(--mavi-ac);font-weight:700;color:var(--mavi);font-size:11.5px;
   padding:6px 8px;letter-spacing:.3px}
 tr.formul td{padding:8px 8px 1px;font-weight:700;color:var(--mavi2);font-size:12.5px}
@@ -252,6 +280,16 @@ tr.islem td{border-bottom:1px solid var(--cizgi2)}
 .uyari.kirmizi{background:var(--kirmizi-ac);border:1px solid #EFB4B0;color:var(--kirmizi);font-weight:600}
 .uyari.mavi{background:var(--mavi-ac);border:1px solid #BBD3EA;color:var(--mavi)}
 .uyari.yesil{background:#ECFDF5;border:1px solid #A7F3D0;color:#065F46}
+/*  Liste kutusu:  eksik girdiler ( avan.js eksikKutusu ) ve uygun olmayan
+    bölümler ( uygulama.js cizMukavemet ) — her satır gideceği yere götürür. */
+.liste-kutu ul{margin:6px 0 0;padding-left:18px}
+.liste-kutu li{margin:2px 0;font-weight:400}
+.liste-kutu li button.baglanti{font-weight:600}
+.liste-kutu .ipucu-satir{font-weight:400;opacity:.85}
+button.baglanti{background:none;border:none;padding:0;font:inherit;color:inherit;
+  text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+button.baglanti:hover{color:var(--mavi2)}
+button.baglanti:focus-visible{outline:2px solid var(--mavi2);outline-offset:2px;border-radius:2px}
 
 /* veri tabloları */
 table.veri{width:100%;border-collapse:collapse;font-size:12px}
@@ -287,7 +325,7 @@ table.veri{min-width:520px}
 .rozet.hata{background:var(--kirmizi-ac);color:var(--kirmizi)}
 .rozet.sari{background:var(--sari-ac);color:var(--sari)}
 
-.bos{padding:40px 20px;text-align:center;color:#98A2AE;font-size:13px}
+.bos{padding:40px 20px;text-align:center;color:#66717D;font-size:13px}
 .bos svg{opacity:.35;margin-bottom:10px}
 
 /* ölçüt kartları */
@@ -354,7 +392,7 @@ html,body{max-width:100%;overflow-x:hidden;overflow-x:clip}
   min-width:17px;height:17px;margin-left:7px;padding:0 5px;border-radius:9px;
   font-size:11px;font-weight:700;line-height:1;vertical-align:1px}
 .sekme-rozet.sari{background:#f7c948;color:#4a3600}
-.sekme-rozet.kirmizi{background:#d64545;color:#fff}
+.sekme-rozet.kirmizi{background:#C53030;color:#fff}
 
 /* ------------------------------------------------- açıklama simgesi  ( ! ) */
 /*  Yöntemi anlatan, hesabı değiştirmeyen metinler ekranda yer kaplamasın diye
@@ -396,7 +434,7 @@ html,body{max-width:100%;overflow-x:hidden;overflow-x:clip}
 .bilgi-im{pointer-events:none}
 /*  Girdi etiketindeki ( i ) — form kalabalık görünmesin diye normalde daha
     siliktir, üzerine gelince tam görünür.  Balon ve davranış aynıdır.      */
-.alan label .bilgi{opacity:.42;width:14px;height:14px;font-size:9.5px;margin-left:5px}
+.alan label .bilgi{opacity:.75;width:14px;height:14px;font-size:9.5px;margin-left:5px}
 .alan label .bilgi:hover,.alan label .bilgi:focus-visible,.alan label .bilgi.acik{opacity:1}
 /*  Tanım metninde madde imi istemiyoruz — tek bir cümledir, liste değil.   */
 .bilgi-alan .bilgi-balon p{padding-left:0;text-indent:0}
@@ -552,7 +590,7 @@ body:not(.giriste) .giris{display:none}
 .m-grup-ok{font-size:10px;width:10px;flex:0 0 10px}
 .m-grup-ad{flex:1 1 auto}
 .m-grup-adet{
-  font-weight:600;font-size:10px;opacity:.65;
+  font-weight:600;font-size:10.5px;
   background:rgba(0,0,0,.07);border-radius:9px;padding:2px 7px;
 }
 .m-grup.acik .m-grup-adet{background:rgba(255,255,255,.18)}
@@ -611,7 +649,7 @@ tr.m-vurgu td{animation:m-vurgu 1.6s ease-out}
   padding-bottom:9px;border-bottom:1px solid var(--cizgi,#E3E8EF);
 }
 .m-asansor-etiket{
-  font:700 10px/1 inherit;letter-spacing:.08em;color:#8A96A3;margin-right:4px;
+  font:700 10.5px/1 inherit;letter-spacing:.08em;color:#66717D;margin-right:4px;
 }
 .m-asansor{
   font:600 11.5px/1 inherit;color:var(--gri,#5A6A7A);cursor:pointer;
@@ -706,8 +744,12 @@ body.tuval-tam-acik{overflow:hidden}
 .tuval [data-k="013"]{stroke-width:calc(var(--k013) / var(--mu))}
 /*  AYRINTI KADEMESİ ( uzak ):  okunmayacak kadar küçük yazılar gizli, çizimin adı tuvalde */
 .tuval.tuval-uzak .cizim-svg text{display:none}
-.tuval .cizim-ad{position:absolute;left:6px;top:6px;max-width:calc(100% - 12px);overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap;pointer-events:none;font:600 11.5px/1.25 inherit;
+/*  Ad tek satıra zorlanmaz:  dar çizimde ( A-A düşey kesit ) "A-A KUYU DÜŞEY K…"
+    diye kesiliyordu.  Sığmazsa kelime arasından alt satıra geçer;  kelimenin
+    ortası bölünmez ( "KISALTMAL / AR" ) — tek kelime çerçeveden genişse kutu
+    o kelime kadar genişler ( min-width, max-width'in önüne geçer ). */
+.tuval .cizim-ad{position:absolute;left:6px;top:6px;max-width:calc(100% - 12px);min-width:min-content;
+  white-space:normal;pointer-events:none;font:600 11.5px/1.25 inherit;
   color:#E3E9EF;background:rgba(33,40,48,.88);border:1px solid #3B4654;border-radius:5px;
   padding:2px 7px;display:none}
 .tuval.tuval-uzak .cizim-ad{display:block}
