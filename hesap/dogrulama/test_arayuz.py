@@ -74,6 +74,23 @@ def _mrl_sec(pg, mrl):
     pg.wait_for_timeout(300)
 
 
+#  ERİŞİLEBİLİRLİK ( 15 Eki ):  görünen her kutunun bir adı ( etiketi ) var mı,
+#  onclick'i olan ama düğme olmayan her öğe klavyeyle seçilebiliyor mu.
+_ERISIM_OLC = """() => {
+    const gor = e => e.offsetParent !== null && e.getClientRects().length > 0;
+    const dogal = ['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA', 'SUMMARY', 'LABEL', 'OPTION'];
+    return {
+        etiketsiz: [...document.querySelectorAll('input:not([type=hidden]),select,textarea')].filter(gor)
+            .filter(e => !(e.labels && e.labels.length) && !e.getAttribute('aria-label')
+                         && !e.getAttribute('aria-labelledby') && !e.title)
+            .map(e => e.id || e.className),
+        klavyesiz: [...document.querySelectorAll('[onclick]')].filter(gor)
+            .filter(e => !dogal.includes(e.tagName) && !(e.tabIndex >= 0) && !e.closest('svg'))
+            .map(e => e.tagName + '.' + e.className),
+    };
+}"""
+
+
 def calistir():
     print("\n\033[1mTEST 5 — ARAYÜZ (tarayıcı)\033[0m")
     r = Rapor("Arayüz")
@@ -1622,6 +1639,22 @@ def calistir():
             pg.evaluate("document.activeElement.id"),
             "c_bina_yuksekligi",
         )
+        _er = pg.evaluate(_ERISIM_OLC)
+        r.esit("avan · görünen her kutunun etiketi var", _er["etiketsiz"], [])
+        r.esit("avan · tıklanır başlıklar klavyeyle seçiliyor", _er["klavyesiz"], [])
+        pg.evaluate("document.activeElement.blur()")
+        pg.click("label[for=c_N]")
+        r.esit("avan · etikete tıklayınca kutusu seçiliyor", pg.evaluate("document.activeElement.id"), "c_N")
+        pg.focus(".katla >> text=Manuel değerler")
+        pg.keyboard.press("Enter")
+        pg.wait_for_timeout(200)
+        r.kontrol(
+            "avan · Enter katlanan başlığı açıyor",
+            pg.evaluate("$('c_manuel').style.display !== 'none'")
+            and pg.get_attribute(".katla >> text=Manuel değerler", "aria-expanded") == "true",
+        )
+        pg.keyboard.press("Enter")
+        pg.wait_for_timeout(200)
 
         # örnek proje yüklensin
         pg.evaluate("ornekYukle()")
@@ -3019,6 +3052,23 @@ def calistir():
             return k;
         }""")
         r.kontrol("form satırlarında kutular aynı hizada ve boyda", not _kayik, f"→ {_kayik[:4]}")
+        _er = pg.evaluate(_ERISIM_OLC)
+        r.esit("uygulama · görünen her kutunun etiketi var", _er["etiketsiz"], [])
+        r.esit("uygulama · tıklanır satırlar klavyeyle seçiliyor", _er["klavyesiz"], [])
+        #  ( i ) etiketin içindedir:  tıklanınca balon açılır, odak kutuya kaymaz
+        _bi = pg.evaluate("""() => {
+            document.activeElement.blur();
+            const b = document.querySelector('#m_form label[for] .bilgi');
+            b.click();
+            const s = {odak: document.activeElement.tagName, acik: b.classList.contains('acik')};
+            b.click();
+            return s;
+        }""")
+        r.kontrol(
+            "uygulama · ( i ) tıklaması kutuya geçmiyor",
+            _bi["odak"] != "SELECT" and _bi["odak"] != "INPUT" and _bi["acik"],
+            f"→ {_bi}",
+        )
 
         # ==============================================================
         #  v3.2 — SONUÇ TABLOSU ↔ AYRINTILI HESAP

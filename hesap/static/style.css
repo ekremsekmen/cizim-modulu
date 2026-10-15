@@ -204,6 +204,8 @@ body.ayirici-surukleniyor{cursor:col-resize;user-select:none;-webkit-user-select
 }
 .bolum-bas:first-child{margin-top:0}
 .katla{cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px}
+/*  Klavyeyle seçilen başlık / satır görünsün ( ortak.js erisimTazele ). */
+.katla:focus-visible,tr.m-gidilir:focus-visible{outline:2px solid var(--mavi2);outline-offset:-2px;border-radius:3px}
 .katla::before{content:"▾";font-size:10px;transition:.15s}
 .katla.kapali::before{transform:rotate(-90deg)}
 

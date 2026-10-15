@@ -59,7 +59,7 @@ async function mukavemetKur(){
   //  grupları dolaşıp okur ve kapalı gruptaki alan da okunur.  Görünüm
   //  değişikliği hesabın hiçbir noktasına dokunmaz.
   h += `<div class="m-ara-satir">
-          <input id="m_ara" class="m-ara" type="search" placeholder="alan ara…" data-formdisi
+          <input id="m_ara" class="m-ara" type="search" placeholder="alan ara…" aria-label="Alan ara" data-formdisi
                  oninput="mAramaUygula()" autocomplete="off">
         </div>`;
   //  PROJE GENELİ ALANLAR AKORDEONDA, kendi grubunun ( Elektrik ve

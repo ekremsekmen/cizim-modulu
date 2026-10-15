@@ -164,7 +164,55 @@ document.querySelectorAll('.sekme').forEach(b=>b.onclick=()=>sekmeGoster(b.datas
 function katla(bas, hedef){
   bas.classList.toggle('kapali');
   $(hedef).style.display = bas.classList.contains('kapali') ? 'none' : '';
+  bas.setAttribute('aria-expanded', String(!bas.classList.contains('kapali')));
 }
+
+/* ---------------------------------------------------------- erişilebilirlik
+   ( 15 Eki )  Formlar sık sık yeniden çizildiği için tek tek elle bağlanmaz;
+   sayfaya eklenen her şey burada bir kez düzenlenir ( MutationObserver ):
+     · ETİKET → KUTU:  .alan içindeki etiket kutusuna bağlanır.  Etikete
+       tıklayınca kutu seçilir, ekran okuyucu kutunun adını okur.  Onay
+       kutusunda ( Var / Yok seçicisinin gizli kutusu ) "for" kullanılmaz —
+       etikete tıklamak seçimi değiştirirdi;  aria-labelledby ile bağlanır.
+     · KLAVYE:  onclick'i olan ama düğme olmayan öğeler ( katlanan başlık,
+       sonuç tablosunun satırları ) Tab ile seçilir, Enter / Boşluk ile açılır. */
+const _DOGAL = 'BUTTON,A,INPUT,SELECT,TEXTAREA,SUMMARY,LABEL,OPTION';
+let _erisimNo = 0, _erisimSirada = false;
+function erisimTazele(){
+  _erisimSirada = false;
+  document.querySelectorAll('.alan > label:not([for]):not([data-bagli])').forEach(lb => {
+    lb.dataset.bagli = '1';
+    if(lb.querySelector('input,select,textarea')) return;      // kutu etiketin içinde
+    const k = [...lb.parentElement.querySelectorAll('input:not([type=hidden]),select,textarea')]
+      .find(x => !lb.contains(x));
+    if(!k) return;
+    if(!k.id) k.id = 'alan_' + (++_erisimNo);
+    if(k.type === 'checkbox' || k.type === 'radio'){
+      if(!lb.id) lb.id = k.id + '_etiket';
+      if(!k.hasAttribute('aria-labelledby')) k.setAttribute('aria-labelledby', lb.id);
+    } else lb.htmlFor = k.id;
+  });
+  document.querySelectorAll('[onclick]:not([tabindex])').forEach(e => {
+    if(_DOGAL.split(',').includes(e.tagName) || e.closest('svg')) return;
+    e.tabIndex = 0;
+    if(e.tagName !== 'TR' && !e.hasAttribute('role')) e.setAttribute('role', 'button');
+    if(e.classList.contains('katla')) e.setAttribute('aria-expanded', String(!e.classList.contains('kapali')));
+  });
+}
+function _erisimPlanla(){
+  if(_erisimSirada) return;
+  _erisimSirada = true;
+  queueMicrotask(erisimTazele);
+}
+new MutationObserver(_erisimPlanla).observe(document.documentElement, {childList: true, subtree: true});
+_erisimPlanla();
+document.addEventListener('keydown', ev => {
+  if(ev.key !== 'Enter' && ev.key !== ' ') return;
+  const t = ev.target;
+  if(!t || !t.matches || !t.matches('[onclick][tabindex]') || _DOGAL.split(',').includes(t.tagName)) return;
+  ev.preventDefault();          // Boşluk sayfayı kaydırmasın
+  t.click();
+});
 
 /* ---------------------------------------------------------- kurulum */
 async function kur(){
@@ -316,7 +364,9 @@ function bilgiKonumla(e){
   balon.style.left=Math.round(x)+'px'; balon.style.top=Math.round(y)+'px';
 }
 function bilgiAc(e, olay){
-  if(olay) olay.stopPropagation();
+  //  preventDefault:  ( i ) etiketin içindedir;  etiket kutusuna bağlı olduğundan
+  //  ( erisimTazele ) tıklama kutuya da geçiyor, odak kutuya kayıyordu.
+  if(olay){ olay.stopPropagation(); olay.preventDefault(); }
   const acik=e.classList.contains('acik');
   _bilgiAciklariKapat();
   if(!acik){ e.classList.add('acik'); bilgiTazele(e); }
