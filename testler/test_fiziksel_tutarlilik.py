@@ -349,13 +349,25 @@ class FizikselTutarlilik(unittest.TestCase):
         #  Son düzen:  ø400 dişli kasnağı plakanın altına sarkar ( merkez kaide
         #  üstünün 195 üstünde ) — plakada kasnağın yuvası açılır
         duzenler = [(tip, sap, {}) for tip in ("Dişli", "Dişlisiz") for sap in (False, True)] + [
-            ("Dişli", True, {"aski": {"kasnak_arasi": 1000}, "D1": 400, "D2": 320})
+            #  Kasnaklar arası 1000 kabinden dar ( 1350 ):  kabin altında halat kabinin
+            #  İÇİNDEN geçerdi ( kabin_ustu._halatlar reddeder — 15 Eki );  ø400 bu
+            #  kuyuda yalnız kabin üstü askıyla kurulur.  Sığınma bu testin konusu değil.
+            (
+                "Dişli",
+                True,
+                {
+                    "aski": {"kasnak_arasi": 1000, "duzen": "Kabin üstü"},
+                    "kabin_ustu": {"siginma_tipi": "Dik duruş"},
+                    "D1": 400,
+                    "D2": 320,
+                },
+            )
         ]
         for tip, sap, ek in duzenler:
             mk = {"yeri": "Makine dairesi", "tip": tip}
             if sap:
                 mk.update(tahrik_kasnak_capi=ek.get("D1", 200), saptirma_kasnak_capi=ek.get("D2", 294))
-            g = _ornek(makine=mk, **({"aski": ek["aski"]} if "aski" in ek else {}))
+            g = _ornek(makine=mk, **{b: ek[b] for b in ("aski", "kabin_ustu") if b in ek})
             Y = kuyu_kesiti.yerlesim(g)
             self.assertEqual(Y["hata"], [])
             M = Y["M"]

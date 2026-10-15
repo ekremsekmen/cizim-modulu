@@ -887,26 +887,31 @@ def _kabin_rayi_konsolu(P, yon, arka):
     cıvatalar, kol ve tırnaklar."""
     S, kr, ry = P.S, P.g["kabin_ray"], P.ry
     duvar_x = 0 if yon < 0 else P.G
-    kx0 = duvar_x - S["konsol_kabin_en"] if yon > 0 else duvar_x
+    #  PLAKA DUVAR İLE RAY ARASINDA:  boşluk konsol eninden darsa plaka boşluk
+    #  kadardır ( 15 Eki:  hep 55 çiziliyor, dar boşlukta raya ve patene biniyordu );
+    #  ray duvara dayalıysa ( < 1 mm ) plaka yok, tek sac biçimi aşağıda.
+    en = min(S["konsol_kabin_en"], abs(arka - duvar_x))
+    kx0 = duvar_x - en if yon > 0 else duvar_x
     plaka = eleman.dikdortgen(
         "KONSOL",
         kx0,
         ry - S["konsol_kabin_boy"] / 2.0,
-        S["konsol_kabin_en"],
+        max(en, 1.0),
         S["konsol_kabin_boy"],
         ad="plaka",
     )
     e = [plaka]
-    for cy in (ry - S["konsol_civata_araligi"], ry + S["konsol_civata_araligi"]):
-        e.append(eleman.daire("CIVATA", kx0 + S["konsol_kabin_en"] / 2.0, cy, S["konsol_civata_capi"] / 2.0))
+    if en >= S["konsol_civata_capi"]:
+        for cy in (ry - S["konsol_civata_araligi"], ry + S["konsol_civata_araligi"]):
+            e.append(eleman.daire("CIVATA", kx0 + en / 2.0, cy, S["konsol_civata_capi"] / 2.0))
     #  KONSOL KOLU:  plakayı rayın arkasına bağlar ( zarf — mantık ).
     #  ÇİZİLEN:  duvar konsolu + ray konsolu ( parcalar.konsol_cifti_bicimi ),
     #  plakanın ve kolun kapsadığı dikdörtgende ( duvardan ray arkasına,
     #  plakanın boyunca ).  Kolun zarfı dar kalır:  geniş zarfta kuyu dibi
     #  gergi kasnağı ( ray ortasına hizalı, ray arkasından 1,5 mm taşar )
     #  konsolla "çakışıyor" sayılıyordu — gergi raya bağlıdır, arkasına geçmez.
-    kol_bas = min(arka, kx0 + S["konsol_kabin_en"]) if yon < 0 else min(arka, kx0)
-    kol_son = max(arka, kx0 + S["konsol_kabin_en"]) if yon < 0 else max(arka, kx0)
+    kol_bas = min(arka, kx0 + en) if yon < 0 else min(arka, kx0)
+    kol_son = max(arka, kx0 + en) if yon < 0 else max(arka, kx0)
     cift = parcalar.konsol_cifti_bicimi(duvar_x, arka, ry, S["konsol_kabin_boy"], kr["b"])
     if kol_son - kol_bas > 1:
         kol = eleman.dikdortgen(

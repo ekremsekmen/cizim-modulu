@@ -661,7 +661,8 @@ def _kasnak_arasi_sec(g, eski_kural):
     kalır, ağırlığa eğik iner ( sapma ölçüsü;  sarım açısı girilmeli )."""
 
     try:
-        carpar = any(h.startswith("Halat (") for h in kabin_ustu.yerlesim(g)["hata"])
+        #  Kasnağın kendisi de çarpabilir ( kabin_ustu._kasnak_engelleri — 15 Eki )
+        carpar = any(h.startswith(("Halat (", "Kabin kasnağı (")) for h in kabin_ustu.yerlesim(g)["hata"])
     except Exception:
         log.debug("yedek değer kullanılıyor ( çizim kurulamadı )", exc_info=True)
         carpar = True

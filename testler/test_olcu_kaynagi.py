@@ -550,8 +550,8 @@ def _gercek(ad):
 
 class RegulatorunYeri(unittest.TestCase):
     """Regülatörün yeri boşsa program onu kuralla arar ( kopru._regulator_yeri:
-    varsayılan xs'in işaretine göre ±280, gergi çarpıyorsa başka yer ).  1022'de
-    280'de gergi konsola değer, 360 seçilir.  Çözümleme her girdiyi 1 mm oynatıp
+    varsayılan xs'in işaretine göre ±280, gergi çarpıyorsa başka yer;  1022'de
+    280 — test_gercek_projeler ).  Çözümleme her girdiyi 1 mm oynatıp
     çizimi yeniden kurar:  arama her kuruluşta baştan yapılıyor ( bir çizimin
     çözümlemesi 6 – 8 sn, ön istekle tıklama 12 sn ) ve askı kaçıklığı 0 → 1
     olunca regülatör rayın öbür yanına atlıyordu — kuyu dibinin ölçü zinciri
@@ -576,7 +576,7 @@ class RegulatorunYeri(unittest.TestCase):
 
     def test_sayi_oynatmada_arama_yapilmaz(self):
         kd = _g(self.v)[0]["kuyu_dibi"]
-        self.assertEqual((kd["regulator_yan"], kd["regulator_kaciklik"]), ("Sağ", 360))
+        self.assertEqual((kd["regulator_yan"], kd["regulator_kaciklik"]), ("Sağ", 280))
         with mock.patch.object(kopru, "_regulator_yeri") as m:
             self.r["kur"]({("girdi", "aski_kaciklik_x"): 1.0})
             self.r["kur"]({("girdi", "kuyu_derinligi"): 2251.0})

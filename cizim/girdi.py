@@ -286,6 +286,19 @@ def _ana_olculer(g):
         hata.append("Ray – kapı arası kuyu derinliğinden büyük olamaz.")
     if kr["arasi"] > k["genislik"]:
         hata.append("Kabin rayları arası kuyu genişliğine sığmıyor.")
+    #  KABİN RAYI DUVARA GİREMEZ ( 15 Eki — senaryo taraması:  K111, r270 ):  ray
+    #  arası sığsa da kabin kaçıklığı ve rayın yüksekliği rayı duvara sokabiliyor.
+    #  Eşik 0 ( kullanıcı kararı ):  EN 81-20'de ray – duvar için sayı yok;  dar
+    #  boşlukta ray tek sacla duvara bağlanır ( parcalar.konsol_cifti_bicimi ),
+    #  gerçek projede 15 mm görüldü.  Ağırlık tarafında ray ara kirişe bağlıdır
+    #  ( _ara_kiris denetler ).
+    for yan, bosluk in kabin_rayi_duvar_bosluklari(g).items():
+        if bosluk < 0 and g["agirlik"]["yeri"] != yan:
+            hata.append(
+                f"Kabin rayı {yan.lower()} duvara {-bosluk:g} mm giriyor ( rayın arkası ile duvar "
+                "arası ≥ 0 olmalı ):  kabin rayları arasını ( DBG ), kabinin yana kaçıklığını "
+                "ya da kuyu genişliğini gözden geçirin."
+            )
     #  KABİN RAYLARININ ARASINDA GİDER:  ray ekseni kabinin derinliği içinden
     #  geçmeli;  geçmezse patenler kabine değil boşluğa bağlanır.
     if not (kb["on_pay"] <= kr["kapi_arasi"] <= kb["on_pay"] + kb["derinlik"]):
@@ -295,6 +308,18 @@ def _ana_olculer(g):
             f"{kb['on_pay'] + kb['derinlik']:g} )."
         )
     return hata
+
+
+def kabin_rayi_duvar_bosluklari(g):
+    """{ "Sol" | "Sağ" :  kabin rayının arka yüzü ile o yandaki duvar arası ( mm ) }
+    — geometri._kabin_raylari ile aynı bağıntı:  ray yüzleri kabin ekseninin
+    ± DBG / 2'sinde, arka yüzleri rayın yüksekliği kadar dışarıda."""
+    k, kb, kr = g["kuyu"], g["kabin"], g["kabin_ray"]
+    kx = k["genislik"] / 2.0 + kb["kaciklik_y"]
+    return {
+        "Sol": kx - kr["arasi"] / 2.0 - kr["h"],
+        "Sağ": k["genislik"] - (kx + kr["arasi"] / 2.0 + kr["h"]),
+    }
 
 
 def _kabin_ve_agirlik_kutulari(g, S):

@@ -36,6 +36,7 @@ from cizim import standart
 from cizim import parca_kotlari
 from cizim import arka_aski
 from cizim import hareketli
+from cizim import parca_adlari
 
 #  TS EN 81-20 Çizelge 3 — kabin üstü sığınma alanının yatay ölçüleri ( mm ).
 #  Adlar hesap programının "Kabin üstü sığınma hacmi tipi" seçenekleriyle
@@ -233,25 +234,106 @@ def _korkuluk_kenarlari(g, tavan, parcalar, hata):
     return kenarlar
 
 
+#  HALAT PAYI:  halatın kuyudaki ve kabindeki parçalardan uzaklığı ( kullanıcı
+#  kararı 15 Eki — standartta sayı yok ).
+HALAT_PAYI = 20.0
+#  Kabin altı askıda halat kasnağın teğetinden kabinin YANINDAN yukarı çıkar:
+#  kasnağın üstündeki kabin parçaları ( kabin, şase, patenler ) ona değemez.
+_KABINLE_GIDEN = ("kabin_dis", "sase_dikme", "sase_kiris")
+
+
+def _gercek_kutu(el):
+    """Elemanın planda kapladığı kutu.  Konsolun mantık zarfı ( "kol" ) dar
+    tutulur ( geometri._kabin_rayi_konsolu );  çizilen biçimi duvardan ray
+    arkasına, konsolun bütün boyuncadır — halat ona göre denetlenir."""
+    k = eleman_kutusu(el)
+    for b in el.get("bicim") or []:
+        for x, y in b["noktalar"]:
+            k = (min(k[0], x), min(k[1], y), max(k[2], x), max(k[3], y))
+    return k
+
+
+def _parca_adi(el):
+    """İletideki adı:  "ara kiriş", "kabin rayı" … ( parca_adlari )."""
+    return parca_adlari.ad(el["ad"]).lower() if el.get("ad") else el["katman"].lower()
+
+
 def _halatlar(g, S, taban, hata):
-    """Halatların planda yeri.  HALAT KUYUDAKİ BİR PARÇANIN İÇİNDEN GEÇEMEZ
-    ( kabin altı askı )."""
+    """Halatların planda yeri ve engelleri ( 15 Eki — senaryo taraması r467 ).
+    HALAT kuyuya sabit bir düşey çizgidir:  kuyudaki parçaların ( konsol GERÇEK
+    zarfıyla ) içinden geçemez;  kabin altı askıda kasnağın üstündeki kabin
+    parçalarına da değemez ( kabin halat boyunca iner )."""
     G = g["kuyu"]["genislik"]
     halatlar = geometri.halat_konumlari(g, S)
+    duzen = (g.get("aski") or {}).get("duzen")
+    engel = [el for el in taban if el["tip"] == "dikdortgen" and el["katman"] in _KUYU_PARCALARI]
+    if duzen == "Kabin altı":
+        engel += [
+            el
+            for el in taban
+            if el["tip"] == "dikdortgen"
+            and (
+                el.get("ad") in _KABINLE_GIDEN
+                or (el["katman"] == "PATEN" and el.get("ad") != "agirlik_pateni")
+            )
+        ]
     for hx, hy in halatlar:
         if not (0 < hx < G):
             hata.append(f"Halat kuyunun dışına düşüyor ( x = {hx:g} ) — kasnak aralığını gözden geçirin.")
             continue
-        for el in taban:
-            if el["tip"] == "dikdortgen" and el["katman"] in _KUYU_PARCALARI:
-                p = eleman_kutusu(el)
-                if p[0] - 20 < hx < p[2] + 20 and p[1] - 20 < hy < p[3] + 20:
-                    hata.append(
-                        f"Halat ( x = {hx:g}, y = {hy:g} ) kuyudaki bir parçanın "
-                        f"( {el['katman'].lower()} ) içinden geçiyor."
+        for el in engel:
+            p = _gercek_kutu(el)
+            if p[0] - HALAT_PAYI < hx < p[2] + HALAT_PAYI and p[1] - HALAT_PAYI < hy < p[3] + HALAT_PAYI:
+                kabinle = el["katman"] not in _KUYU_PARCALARI
+                hata.append(
+                    f"Halat ( x = {hx:g}, y = {hy:g} ) {_parca_adi(el)} parçasının içinden ya da ona "
+                    f"{HALAT_PAYI:g} mm'den yakın geçiyor — "
+                    + (
+                        "kabin halat boyunca indiğinden sürtünür:  askı noktasının derinlikteki yerini "
+                        "( xs ) ya da kasnak aralığını gözden geçirin."
+                        if kabinle
+                        else "kasnak aralığını gözden geçirin."
                     )
-                    break
+                )
+                break
+    _kasnak_engelleri(g, S, taban, hata)
     return halatlar
+
+
+def _kasnak_engelleri(g, S, taban, hata):
+    """KABİN KASNAĞI KABİNLE BİRLİKTE BÜTÜN KUYU BOYUNCA GİDER ( 15 Eki — senaryo
+    taraması r016, r715:  kabin altı kasnağın ucu ara kirişin içindeydi ):
+    kuyu boyunca uzanan sabit parçalarla ( ray, konsol, ara kiriş ) planda
+    örtüşmesi çarpışmadır ( kot önemsiz );  karşı ağırlıktan da m.5.2.5.5.1 h
+    açıklığı kadar uzak durur.  Kabinin kendi parçalarıyla ( şase dikmesi )
+    plan örtüşmesi çarpışma DEĞİLDİR:  kabin altı kasnaklar alt kirişin
+    altındadır ( parca_kotlari ).  Kenarda değmek sayılmaz ( 1 mm )."""
+    duzen = (g.get("aski") or {}).get("duzen")
+    if duzen not in ("Kabin altı", "Kabin üstü"):
+        return
+    sabit = [el for el in taban if el["tip"] == "dikdortgen" and el["katman"] in ("RAY", "KONSOL")]
+    agirlik = [
+        el
+        for el in taban
+        if el["tip"] == "dikdortgen"
+        and (el["katman"] == "AGIRLIK" or el.get("ad") in ("agirlik_kasnak", "agirlik_pateni"))
+    ]
+    A = girdi.KABIN_AGIRLIK_ACIKLIGI
+    for k in geometri.kabin_kasnak_kutulari(g, S, taban):
+        yer = f"x {k[0]:g} – {k[2]:g}"
+        p = next((el for el in sabit if ortusur(k, _gercek_kutu(el), -1.0)), None)
+        if p is not None:
+            hata.append(
+                f"Kabin kasnağı ( {yer} ) {_parca_adi(p)} ile üst üste biniyor — kabin kuyu boyunca "
+                "indiğinden çarpar:  kasnak aralığını ( ya da çapını ) gözden geçirin."
+            )
+            continue
+        p = next((el for el in agirlik if ortusur(k, eleman_kutusu(el), A)), None)
+        if p is not None:
+            hata.append(
+                f"Kabin kasnağı ( {yer} ) karşı ağırlığa {A:g} mm'den yakın ( TS EN 81-20 m.5.2.5.5.1 h ) "
+                "— kasnak aralığını gözden geçirin."
+            )
 
 
 def _tavan_engelleri(g, S, taban, tavan, parcalar, kenarlar, ic, hata):

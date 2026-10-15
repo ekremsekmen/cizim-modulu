@@ -415,6 +415,7 @@ def _yandaki_agirlik(g, S, mk, ag, acil_pano):
         "ag_y": ag_y,
         "ry": ry,
         "ex": ex,
+        "ag_eksen_x": ex,
         "hata": hata,
         "S": S,
     }
@@ -681,7 +682,9 @@ def _arka(g, S, mk, ag, acil_pano):
         "uzak": hy,
         "ag_y": wy,
         "ry": ry,
+        #  ex düzlem boyunca ( u = y );  plandaki x ag_eksen_x ( _olculer — 15 Eki )
         "ex": wy,
+        "ag_eksen_x": (blok[0] + blok[2]) / 2.0,
         "hata": hata,
         "S": S,
     }
@@ -797,7 +800,10 @@ def _olculer(g, Y):
     #  çakışır;  kümede ilk yazılan kaldığı için ölçünün kaynağı eksenin
     #  kaynakları görünüyordu — izli.py )
     xs = sorted(
-        {next((u for u in kasnak if u == x), x) for x in (0.0, G, Y["ex"], Y["ag_dusus"][0], xl, xr, kx)}
+        {
+            next((u for u in kasnak if u == x), x)
+            for x in (0.0, G, Y["ag_eksen_x"], Y["ag_dusus"][0], xl, xr, kx)
+        }
     )
     e = [
         eleman.olcu("yatay", (a, 0), (b, 0), u0, f"ø {Y['D1']:g}" if (a, b) == kasnak else None)
@@ -839,7 +845,7 @@ def _olculer(g, Y):
     olculen = {geometri.olcu_araligi(el) for el in e}
     dx, dy = Y["sapma"]
     if abs(dx) > 0.5:
-        a, b = sorted((Y["ag_dusus"][0], Y["ex"]))
+        a, b = sorted((Y["ag_dusus"][0], Y["ag_eksen_x"]))
         if ("yatay", round(a, 1), round(b, 1)) not in olculen:
             e.append(
                 eleman.olcu("yatay", (a, 0), (b, 0), Y["ag_dusus"][1] - 150, f"HALAT SAPMASI {abs(dx):g}")
@@ -847,7 +853,9 @@ def _olculer(g, Y):
     if abs(dy) > 0.5:
         a, b = sorted((Y["ag_dusus"][1], t1))
         if ("dusey", round(a, 1), round(b, 1)) not in olculen:
-            e.append(eleman.olcu("dusey", (0, a), (0, b), Y["ex"] + 150, f"HALAT SAPMASI {abs(dy):g}"))
+            e.append(
+                eleman.olcu("dusey", (0, a), (0, b), Y["ag_eksen_x"] + 150, f"HALAT SAPMASI {abs(dy):g}")
+            )
     return e
 
 
