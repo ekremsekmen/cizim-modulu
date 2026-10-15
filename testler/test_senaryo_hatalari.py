@@ -11,8 +11,11 @@ import itertools
 import unittest
 
 from cizim import geometri, girdi, kabin_ustu, kuyu_ustu
+from motor.ortak import adimlar
+from motor.uygulama import uygulama_hesabi
 from temel import eleman_kutusu
 from testler import test_yerlesim_saglamligi
+from uclar import uygulama_istegi
 
 
 def _kaydir(dx):
@@ -162,6 +165,80 @@ class ArkaMrlOlcuZinciri(unittest.TestCase):
                     all(-k["duvar_sol"] - 1 <= p <= k["genislik"] + k["duvar_sag"] + 1 for p in ust), ust
                 )
         self.assertGreater(sayilan, 40)
+
+
+#  ── İKİNCİ TUR ( 15 Eki gece — uç değer ve rastgele fiziksel tarama ) ──
+
+
+class BuyukSayi(unittest.TestCase):
+    """yuvarla | x | ≳ 1e26'da çöküyordu ( ondalığın 28 hanesi ):  regülatör kanal
+    açısı 1° — geçerli aralıkta — e^( f α ) ~ 1e31 yapıyordu."""
+
+    def test_yuvarla_buyuk_ve_sonsuz(self):
+        self.assertEqual(adimlar.yuvarla(1e31, 2), 1e31)
+        self.assertEqual(adimlar.yuvarla(-1e40), -1e40)
+        self.assertEqual(adimlar.yuvarla(float("inf"), 2), float("inf"))
+        self.assertTrue(adimlar.tr(1e31))
+        #  olağan yuvarlama değişmedi
+        self.assertEqual((adimlar.yuvarla(2.5), adimlar.yuvarla(1.005, 2)), (3.0, 1.01))
+
+    def test_regulator_kanal_acisi_1_derece_coksuz(self):
+        v = test_yerlesim_saglamligi.standart_istek(800, True, "Sağ")
+        v["asansorler"][0]["reg_kanal_acisi"] = 1
+        s = uygulama_hesabi.hesapla_coklu(*uygulama_istegi.asansor_girdileri(copy.deepcopy(v)))
+        b = next(x for x in s["asansorler"][0]["bolumler"] if "REGÜLATÖR" in x["baslik"])
+        self.assertIs(b["sonuc"]["uygun"], False)
+
+
+class RegulatorHalatiKiris(unittest.TestCase):
+    """MRL'de duvardan duvara kirişler regülatörün halatlarını ( kasnağın iki
+    teğeti ) payıyla içine alır;  halat kirişin yüzüne düşüyordu ( r095, r670 )."""
+
+    def test_yandaki_agirlikta_halat_kirise_degmez(self):
+        sayilan = 0
+        for Q, yer in itertools.product((630, 1000, 1600), ("Sağ", "Sol")):
+            v = test_yerlesim_saglamligi.standart_istek(
+                Q, True, yer, aski_duzeni="Kabin üstü", makine_raya_biniyor="Bina yapısına"
+            )
+            g, _A, _h = test_yerlesim_saglamligi.duzen_girdisi(copy.deepcopy(v))
+            Y = kuyu_ustu.yerlesim(g)
+            if Y.get("hata") or not Y.get("duvardan_duvara"):
+                continue
+            sayilan += 1
+            k, r = Y["sase"], Y["reg_kasnak"]
+            pay = kuyu_ustu._reg_halat_payi(g)
+            with self.subTest(Q=Q, yer=yer):
+                self.assertGreaterEqual(r[1] - pay, k[1])
+                self.assertLessEqual(r[3] + pay, k[3])
+                self.assertEqual(kuyu_ustu._reg_halat_kiris_hatasi(g, r, [(k[0], k[1], k[2], k[1] + 1)]), [])
+        self.assertGreater(sayilan, 0)
+
+    def test_halat_kirise_yakinsa_ileti(self):
+        g = copy.deepcopy(girdi.ORNEK)
+        r = (100.0, 300.0, 180.0, 600.0)
+        self.assertEqual(
+            kuyu_ustu._reg_halat_kiris_hatasi(g, r, [(0.0, 240.0, 1000.0, 300.0)])[0][:20],
+            "Regülatör halatı ( x",
+        )
+
+
+class KapiOnerisi(unittest.TestCase):
+    """Merkezi kapının öbür yanı yoktur:  öğüt kapının tipine göre."""
+
+    def test_tipine_gore(self):
+        self.assertIn("öbür yana", girdi.kapi_onerisi("Teleskopik Sol"))
+        self.assertNotIn("öbür yana", girdi.kapi_onerisi("Otomatik Merkezi"))
+        self.assertIn("4 kanatlı", girdi.kapi_onerisi("Otomatik Merkezi"))
+        self.assertNotIn("4 kanatlı", girdi.kapi_onerisi("Otomatik Merkezi 4 Kanat"))
+
+    def test_merkezi_kapi_iletisinde_obur_yan_yok(self):
+        v = test_yerlesim_saglamligi.standart_istek(
+            630, True, "Sağ", kat_kapisi_tipi="Otomatik Merkezi", kapi_kaciklik=0
+        )
+        v["asansorler"][0]["kuyu_genisligi"] = 2000
+        h = test_yerlesim_saglamligi.cizim_yaniti(copy.deepcopy(v)).get("hata") or []
+        self.assertTrue(any("kanat cebi" in x for x in h), h)
+        self.assertFalse(any("öbür yana" in x for x in h), h)
 
 
 if __name__ == "__main__":

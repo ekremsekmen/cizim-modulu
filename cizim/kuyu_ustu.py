@@ -30,6 +30,7 @@ from cizim import kisaltmalar
 from cizim import uslup
 from cizim import izli
 from cizim import geometri
+from cizim import girdi
 from cizim import kuyu_dibi
 from cizim import makine
 from cizim import baglantilar
@@ -101,6 +102,34 @@ def _regulator(g, S, taban, kabin, G):
     reg_govde = (rx - ge, rgy - gb, rx + ge, rgy + gb)
     reg_ayak = (reg_govde[2], rgy - gb, G, rgy + gb) if sag_reg else (0.0, rgy - gb, reg_govde[0], rgy + gb)
     return rx, rgy, reg_kasnak, reg_govde, reg_ayak
+
+
+def _reg_halat_payi(g):
+    """Regülatör halatının ekseninden kirişe en az uzaklık:  halat payı + yarıçap."""
+    return girdi.HALAT_PAYI + (g["kuyu_dibi"].get("regulator_halat_capi") or 0.0) / 2.0
+
+
+def _reg_halat_kutusu(g, reg_kasnak):
+    """REGÜLATÖR HALATLARI kasnağın düzleminde ( derinlik boyunca ) iki teğetinden
+    iner:  kasnak kutusunun y uçları.  Kirişler bu kutuyu payıyla içine alır
+    ( 15 Eki:  yalnız gövde alınıyordu, halat kirişin yüzüne düşüyordu — r095 )."""
+    p = _reg_halat_payi(g)
+    return (reg_kasnak[0], reg_kasnak[1] - p, reg_kasnak[2], reg_kasnak[3] + p)
+
+
+def _reg_halat_kiris_hatasi(g, reg_kasnak, kirisler):
+    """Regülatör halatı ( kasnağın teğetlerinden ) duvardan duvara kirişlere halat
+    payından yakın inemez — çelik kirişin içinden geçerdi.  [ ileti ]"""
+    p = _reg_halat_payi(g)
+    x = (reg_kasnak[0] + reg_kasnak[2]) / 2.0
+    for y in (reg_kasnak[1], reg_kasnak[3]):
+        if any(k[0] - p < x < k[2] + p and k[1] - p < y < k[3] + p for k in kirisler):
+            return [
+                f"Regülatör halatı ( x = {x:g}, y = {y:g} ) makinenin duvardan duvara kirişine "
+                f"{girdi.HALAT_PAYI:g} mm'den yakın iniyor — regülatör kaçıklığını ya da yanını "
+                "değiştirin."
+            ]
+    return []
 
 
 def duzen_hatalari(g):
@@ -367,7 +396,8 @@ def _yandaki_agirlik(g, S, mk, ag, acil_pano):
     hata += _iki_bir_cakismalari(govde, kasnak, agirlik_baglanti, kabin_baglanti, reg_govde, oda_, G, D)
     duvar = mk.get("kiris") == "duvar" and oda_ is None
     if duvar:
-        sase = _yandaki_duvar_kirisleri(mk, G, kasnak, govde, agirlik_baglanti, kabin_baglanti, reg_govde)
+        parcalar = (kasnak, govde, agirlik_baglanti, kabin_baglanti, reg_govde)
+        sase = _yandaki_kiris_sasesi(g, mk, parcalar, reg_kasnak, hata)
     aski = g["aski"]
     return {
         "taban": taban,
@@ -435,6 +465,32 @@ def _yandaki_sase(S, taban, sol, G):
     if sol:
         return kab_r, (S["makine_sase_duvar"], sase_y[0], yakin_ray[0], sase_y[1])
     return kab_r, (yakin_ray[2], sase_y[0], G - S["makine_sase_duvar"], sase_y[1])
+
+
+def _yandaki_kiris_sasesi(g, mk, kutular, reg_kasnak, hata):
+    """Yandaki ağırlıkta duvardan duvara kirişler:  parçaları ve regülatörün
+    halatlarını ( payıyla ) içine alır;  kuyunun derinliğine sığmalı."""
+    k = g["kuyu"]
+    sase = _yandaki_duvar_kirisleri(mk, k["genislik"], *kutular, _reg_halat_kutusu(g, reg_kasnak))
+    if sase[1] < 0.0 or sase[3] > k["derinlik"]:
+        hata.append("Makinenin duvardan duvara kirişleri kuyunun derinliğine sığmıyor.")
+    b = makine.npu(mk["yan_yatak"])["b"]
+    hata += _reg_halat_kiris_hatasi(
+        g, reg_kasnak, [(sase[0], sase[1], sase[2], sase[1] + b), (sase[0], sase[3] - b, sase[2], sase[3])]
+    )
+    return sase
+
+
+def _arka_kiris_hatalari(g, sase, b, reg_kasnak):
+    """Arkadaki ağırlıkta duvardan duvara kirişler ( derinlik boyunca ):  kuyunun
+    genişliğine sığmalı, regülatör halatı onlara değmemeli."""
+    G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
+    hata = []
+    if not (0.0 <= sase[0] and sase[2] <= G):
+        hata.append("Makinenin duvardan duvara kirişleri kuyunun genişliğine sığmıyor.")
+    return hata + _reg_halat_kiris_hatasi(
+        g, reg_kasnak, [(sase[0], 0.0, sase[0] + b, D), (sase[2] - b, 0.0, sase[2], D)]
+    )
 
 
 def _yandaki_duvar_kirisleri(mk, G, *kutular):
@@ -633,8 +689,8 @@ def _arka(g, S, mk, ag, acil_pano):
     n_, dh_, pay_ = a["halat_adedi"], a["halat_capi"], S["halat_delik_payi"]
     pano, calisma = _acil_pano(g, S) if acil_pano else (None, None)
     hata += _iki_bir_cakismalari(govde, kasnak, agirlik_baglanti, kabin_baglanti, reg_govde, oda_, G, D)
-    if oda_ is None and not (0.0 <= sase[0] and sase[2] <= G):
-        hata.append("Makinenin duvardan duvara kirişleri kuyunun genişliğine sığmıyor.")
+    if oda_ is None:
+        hata += _arka_kiris_hatalari(g, sase, yy["b"], reg_kasnak)
     return {
         "taban": taban,
         "kabin": kabin,

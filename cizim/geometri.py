@@ -437,8 +437,7 @@ def kanat_cebi_carpismalari(g, cizim_sabitleri=None):
                 kim = "Kabin kapısının" if c["ad"] == "kabin_kanat_cebi" else "Kat kapısının"
                 metin = (
                     f"{kim} kanat cebi {_CEP_ENGELLERI[o['ad']]} çarpıyor:  açılan kanatlar "
-                    "kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın "
-                    "ya da kapının yerini değiştirin."
+                    f"kuyuda yer bulamıyor — {girdi.kapi_onerisi(g['kapi'].get('tip'))}."
                 )
                 if metin not in hata:
                     hata.append(metin)

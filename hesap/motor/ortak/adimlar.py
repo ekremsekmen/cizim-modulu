@@ -12,7 +12,7 @@ Paftanın "işlem satırı":
 
 import math
 from temel import sayi_mi
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import ROUND_HALF_UP, Decimal, localcontext
 
 
 # ----------------------------------------------------------------- biçimleme
@@ -89,7 +89,14 @@ def yuvarla(x, basamak=0):
     if x is None:
         return None
     d = Decimal(format(x, f".{_ANLAMLI_HANE}g"))
-    return float(d.quantize(Decimal(1).scaleb(-basamak), rounding=ROUND_HALF_UP))
+    if not d.is_finite():
+        return float(d)
+    #  HASSASİYET SAYININ BÜYÜKLÜĞÜNE GÖRE ( 15 Eki ):  ondalık bağlamın 28
+    #  hanesi | x | ≳ 1e26'da yetmiyor, quantize InvalidOperation ile çöküyordu
+    #  ( regülatör kanal açısı 1° — e^( f α ) ~ 1e31 ).
+    with localcontext() as c:
+        c.prec = max(c.prec, d.adjusted() + basamak + 2)
+        return float(d.quantize(Decimal(1).scaleb(-basamak), rounding=ROUND_HALF_UP))
 
 
 def bagla(metin):

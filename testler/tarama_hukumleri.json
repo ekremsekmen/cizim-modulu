@@ -1222,7 +1222,7 @@
   },
   "1000 Sağ Otomatik Merkezi": {
    "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — 4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin."
   },
   "1000 Sağ Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1254,7 +1254,7 @@
   },
   "1000 Sol Otomatik Merkezi": {
    "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — 4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin."
   },
   "1000 Sol Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1318,7 +1318,7 @@
   },
   "1600 Sağ Otomatik Merkezi": {
    "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — 4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin."
   },
   "1600 Sağ Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1350,7 +1350,7 @@
   },
   "1600 Sol Otomatik Merkezi": {
    "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — 4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin."
   },
   "1600 Sol Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1418,7 +1418,7 @@
   },
   "2500 Sağ Otomatik Merkezi 4 Kanat": {
    "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı daraltın ya da kapının yerini değiştirin."
   },
   "2500 Sağ Teleskopik 3 Kanat Sağ": {
    "durum": "ret",
@@ -1450,7 +1450,7 @@
   },
   "2500 Sol Otomatik Merkezi 4 Kanat": {
    "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı daraltın ya da kapının yerini değiştirin."
   },
   "2500 Sol Teleskopik 3 Kanat Sağ": {
    "durum": "çizildi",
@@ -1510,7 +1510,7 @@
   },
   "450 Sağ Otomatik Merkezi": {
    "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — 4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin."
   },
   "450 Sağ Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1542,7 +1542,7 @@
   },
   "450 Sol Otomatik Merkezi": {
    "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — 4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin."
   },
   "450 Sol Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1606,7 +1606,7 @@
   },
   "800 Sağ Otomatik Merkezi": {
    "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — 4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin."
   },
   "800 Sağ Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1638,7 +1638,7 @@
   },
   "800 Sol Otomatik Merkezi": {
    "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — 4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin."
   },
   "800 Sol Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",

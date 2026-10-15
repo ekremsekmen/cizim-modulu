@@ -58,6 +58,21 @@ ASGARI_ACIKLIK = 20.0
 #  TS EN 81-20 m.5.2.5.5.1 h:  kabin ve ona bağlı parçalar karşı ağırlıktan
 #  ve ona bağlı parçalardan en az 50 mm uzakta olmalıdır.
 KABIN_AGIRLIK_ACIKLIGI = 50.0
+#  HALAT PAYI:  halatın kuyudaki ve kabindeki parçalardan uzaklığı ( kullanıcı
+#  kararı 15 Eki — standartta sayı yok );  kabin_ustu ve kuyu_ustu kullanır.
+HALAT_PAYI = 20.0
+
+
+def kapi_onerisi(tip):
+    """Kanat cebi / operatör sığmayınca kapı için öğüt — tipine göre ( 15 Eki:
+    merkezi kapıya da "öbür yana açın" deniyordu;  merkezinin öbür yanı yoktur ).
+    4 kanatlı merkezide kanatlar daralır, cepler küçülür."""
+    t = kapi_tipi(tip)
+    if t["tur"] == "teleskopik":
+        return "kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin"
+    if t["tur"] == "merkezi" and t["kanat"] < 4:
+        return "4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin"
+    return "kapıyı daraltın ya da kapının yerini değiştirin"
 
 
 def kapi_tipi(tip):
