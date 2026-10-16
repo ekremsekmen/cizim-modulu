@@ -881,7 +881,7 @@ def ciz(g, cizim_sabitleri=None):
     #  Kat kapısı:  yalnız yer göstermek için, kesik ( kabin bu kesitte yok )
     kp = g["kapi"]
     e.append(eleman.ad(eleman.dikdortgen("GIZLI", kp["sol_pay"], -don, kp["genislik"], don), "kapi_izi"))
-    e += _donanim(Y, G, _engeller(e)[0])
+    e += _donanim(Y, G, _engeller(e)[0], parcalar.tampon_tipi((g.get("veri") or {}).get("tampon")))
 
     #  ── YAZILAR ──────────────────────────────────────────────────────
     #  Kuyu tabanına yük aktaran noktalar ( kutuları en sonda, ölçülerden sonra
@@ -949,11 +949,61 @@ def _merdiven_yazisi(m, ic, G, engeller):
     )
 
 
-def _donanim(Y, G, plan_kutulari=()):
-    """Tamponlar ( taban plakası + gövde ), perde, regülatör gergisi ve
-    donanımı, merdiven, sığınma alanı.  ``plan_kutulari``:  plandan gelen parçaların
-    kutuları ( raylar, konsollar — merdiven yazısı onlara binmesin )."""
+def _kenarlari_bol(kutu, ortuler):
+    """Dikdörtgenin kenarlarını üstündeki parçaların ( kutular ) örttüğü ve
+    görünen kısımlarına böler:  ( görünen kenarlar [ [ p, q ] ], örtülenler [ ( p, q ) ] ).
+    Örtünün kenarına denk gelen çizgi görünür sayılır."""
+    x0, y0, x1, y1 = kutu
+    gorunur, gizli = [], []
+    for p, q in (((x0, y0), (x1, y0)), ((x1, y0), (x1, y1)), ((x1, y1), (x0, y1)), ((x0, y1), (x0, y0))):
+        yatay = p[1] == q[1]
+        a, b = sorted((p[0], q[0])) if yatay else sorted((p[1], q[1]))
+        sabit = p[1] if yatay else p[0]
+        araliklar = []
+        for k in ortuler:
+            k0, k1, l0, l1 = (k[0], k[2], k[1], k[3]) if yatay else (k[1], k[3], k[0], k[2])
+            if l0 < sabit < l1 and max(a, k0) < min(b, k1):
+                araliklar.append((max(a, k0), min(b, k1)))
+        kesim = sorted({a, b, *(v for ab in araliklar for v in ab)})
+        for s0, s1 in zip(kesim, kesim[1:]):
+            m = (s0 + s1) / 2.0
+            u, v = ((s0, sabit), (s1, sabit)) if yatay else ((sabit, s0), (sabit, s1))
+            if any(r0 <= m <= r1 for r0, r1 in araliklar):
+                gizli.append((u, v))
+            else:
+                gorunur.append([u, v])
+    return gorunur, gizli
+
+
+def _gergi_konsol_altinda(Y):
+    """Kabin rayının en alttaki konsolu ( kuyu tabanından konsol_ilk, konsol_yukseklik
+    kalın ) gerginin plakasının ve kontağının üstündeyse tepeden bakınca onları
+    örter:  { parça:  ( görünen kenarlar, örtülen kenarlar ) } — örtülen yoksa boş."""
     S = Y["S"]
+    alt = S["konsol_ilk"] - S["konsol_yukseklik"]
+    K = gergi_geometrisi(S, Y["gergi"])["kutular"]
+    konsollar = [
+        eleman_kutusu(el) for el in Y["taban"] if el["katman"] == "KONSOL" and el["tip"] == "dikdortgen"
+    ]
+    sonuc = {}
+    for ad in ("plaka", "kontak"):
+        if S["gergi_kasnak_merkez"] + K[ad][3] >= alt:
+            continue
+        kutu = Y["gergi_donanim"][ad]
+        gorunur, gizli = _kenarlari_bol(kutu, [k for k in konsollar if ortusur(kutu, k)])
+        if gizli:
+            sonuc[ad] = (gorunur, gizli)
+    return sonuc
+
+
+def _donanim(Y, G, plan_kutulari=(), tampon_tipi="poliuretan"):
+    """Tamponlar ( taban sacı + gövde;  tipine göre poliüretanın pahı, hidroliğin
+    başlığı ve kontağı — parcalar.tampon_plani ), perde, regülatör gergisi ve
+    donanımı ( regülatör halatının iki noktası;  konsolun altında kalan plaka ve
+    kontak kesik ), merdiven, sığınma alanı.  ``plan_kutulari``:  plandan gelen
+    parçaların kutuları ( raylar, konsollar — merdiven yazısı onlara binmesin )."""
+    S = Y["S"]
+    tc = S["tampon_capi"]
     e = []
     for liste, ad in ((Y["kabin_tamponlari"], "kabin_tamponu"), (Y["agirlik_tamponlari"], "agirlik_tamponu")):
         for kutu in liste:
@@ -963,23 +1013,39 @@ def _donanim(Y, G, plan_kutulari=()):
                     eleman.dikdortgen("TAMPON", kutu[0], kutu[1], kutu[2] - kutu[0], kutu[3] - kutu[1]), ad
                 )
             )
-            e.append(eleman.ad(eleman.daire("TAMPON", cx, cy, S["tampon_capi"] / 2.0), ad))
+            e.append(eleman.ad(eleman.daire("TAMPON", cx, cy, tc / 2.0), ad))
+            for r in parcalar.tampon_plani(tampon_tipi, tc):
+                e.append(eleman.ad(eleman.daire("TAMPON", cx, cy, r), ad))
+            if tampon_tipi == "hidrolik":
+                x0, y0, x1, y1 = parcalar.tampon_kontagi(tc, S["tampon_taban"])
+                e.append(eleman.ad(eleman.dikdortgen("TAMPON", cx + x0, cy + y0, x1 - x0, y1 - y0), ad))
     e.append(eleman.ad(eleman.cizgi("PERDE", *Y["perde"]), "perde"))
     gr = Y["gergi"]
     e.append(eleman.ad(eleman.dikdortgen("KASNAK", gr[0], gr[1], gr[2] - gr[0], gr[3] - gr[1]), "gergi"))
-    for ad, kutu in Y["gergi_donanim"].items():
+    #  Regülatör halatı kasnağın iki ucundan tepedeki regülatöre çıkar ( kuyu üstü
+    #  planında aynı noktalar — kuyu_ustu.regulator_cizimi )
+    gx, gy = kutu_merkezi(gr)
+    for y in (gr[1], gr[3]):
         e.append(
-            eleman.ad(
-                eleman.dikdortgen(
-                    "KONSOL" if ad in ("kol", "plaka") else "MAKINE",
-                    kutu[0],
-                    kutu[1],
-                    kutu[2] - kutu[0],
-                    kutu[3] - kutu[1],
-                ),
-                "gergi_" + ad,
-            )
+            eleman.ad(eleman.daire("HALAT", gx, y, parcalar.REGULATOR_HALAT_SEMBOLU), "regulator_halati")
         )
+    gizli = _gergi_konsol_altinda(Y)
+    for ad, kutu in Y["gergi_donanim"].items():
+        el = eleman.ad(
+            eleman.dikdortgen(
+                "KONSOL" if ad in ("kol", "plaka") else "MAKINE",
+                kutu[0],
+                kutu[1],
+                kutu[2] - kutu[0],
+                kutu[3] - kutu[1],
+            ),
+            "gergi_" + ad,
+        )
+        e.append(el)
+        if ad in gizli:
+            gorunur, arkada = gizli[ad]
+            el["bicim"] = [{"noktalar": k, "kapali": False} for k in gorunur]
+            e += [eleman.ad(eleman.cizgi("GIZLI", *p, *q), "gergi_" + ad) for p, q in arkada]
     m = Y["merdiven"]
     if m:
         engel = list(plan_kutulari) + _engeller(e)[0]  # merdivenin kendisi değil

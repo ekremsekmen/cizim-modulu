@@ -190,6 +190,58 @@ class FizikselTutarlilik(unittest.TestCase):
         self.assertEqual(Mm["regulator"][4], Mm["tabliye_ustu"])
         self.assertEqual(Mm["regulator_kasnak"][4] - Mm["tabliye_ustu"], 168.0)
 
+    def test_regulator_halati_iki_planda_ayni_noktada(self):
+        """Regülatör halatı kuyu üstü planında regülatör kasnağının, kuyu dibi
+        planında gergi kasnağının iki ucunda — aynı iki nokta ( halat düşey iner )."""
+        from cizim import cizimler
+
+        g = _ornek()
+
+        def noktalar(ad):
+            return sorted(
+                (el["x"], el["y"]) for el in cizimler.CIZIMLER[ad][1](g) if el.get("ad") == "regulator_halati"
+            )
+
+        gr = kuyu_dibi.yerlesim(g)["gergi"]
+        gx = (gr[0] + gr[2]) / 2.0
+        self.assertEqual(noktalar("kuyu_dibi"), [(gx, gr[1]), (gx, gr[3])])
+        self.assertEqual(noktalar("kuyu_ustu"), noktalar("kuyu_dibi"))
+
+    def test_konsolun_altindaki_gergi_parcalari_kesik(self):
+        """En alttaki konsol ( 440 – 500 ) plakanın ( 260 – 420 ) ve kontağın
+        üstünde:  tepeden bakınca örttüğü kenarlar kesik;  konsol alçaktaysa düz."""
+        gizli = [
+            el
+            for el in kuyu_dibi.ciz(_ornek())
+            if el["katman"] == "GIZLI" and el.get("ad", "").startswith("gergi_")
+        ]
+        self.assertEqual({el["ad"] for el in gizli}, {"gergi_plaka", "gergi_kontak"})
+        g = _ornek()
+        g["_cizim_sabitleri"] = {"konsol_ilk": 250}
+        self.assertFalse(
+            [
+                el
+                for el in kuyu_dibi.ciz(g)
+                if el["katman"] == "GIZLI" and el.get("ad", "").startswith("gergi_")
+            ]
+        )
+
+    def test_tampon_kesitte_tipine_gore(self):
+        """Kesitte tampon:  kaide, taban sacı, tipine göre gövde — sacın altından
+        gövdenin tepesine kurulu boy;  hidrolikte gövdenin yanında kontak ( B-B )."""
+        for tip in ("Poliüretan ( lineer olmayan )", "Yaylı ( lineer )", "Hidrolik ( enerji yutmalı )"):
+            g = _ornek()
+            g["veri"] = {"tampon": tip}
+            e = kuyu_kesiti.on_kesit(g)
+            t = [el for el in e if el.get("ad") == "kabin_tamponu"]
+            with self.subTest(tip=tip):
+                govde = [el for el in t if el.get("bicim")]
+                self.assertEqual(len(govde), 1)
+                alt = min(el["y"] for el in t)
+                ust = max(el["y"] + el["d"] for el in t)
+                self.assertAlmostEqual(ust - alt, g["dusey"]["kabin_tampon_boyu"])
+                self.assertEqual(len(t), 3 if tip.startswith("Hidrolik") else 2)
+
     def test_kasnak_tasiyicisi_kasnagi_saseye_baglar(self):
         """Kabin altı kasnaklar şaseye bağlıdır:  planda yol kasnağın
         merkezinden şase dikmesine ( ray eksenine ) gider;  iki kesitte de
