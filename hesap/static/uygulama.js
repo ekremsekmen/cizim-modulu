@@ -655,7 +655,10 @@ async function hesapMukavemet(){
     mYeriKoruyarakCiz(()=>cizMukavemet(aktif));
     mGelismisTazele();
     mCizimdenTazele(aktif);
-    //  Çizimler aynı girdiden:  görünürse onlar da tazelenir.
+    //  Çizimler aynı girdiden:  görünürse onlar da tazelenir.  Bağlantı
+    //  kopmuşken konan "güncellenmedi" işareti kalkar ( görünmüyorsa çizim
+    //  açılınca zaten yeniden istenir ).
+    if(M_CIZIM_DURUM && M_CIZIM_DURUM.baglanti){ M_CIZIM_DURUM = null; mTuvalHata(null); mGorunumTazele(); }
     cizimleriGetir();
     //  Asansör listesi YALNIZ PROJE sekmesindedir.  Bir süre her asansörün
     //  sonuç panelinin başına da basılıyordu;  ASANSÖR 1 sekmesinde "1 · 2"
@@ -669,8 +672,10 @@ async function hesapMukavemet(){
     sekmeRozeti('uygproje', hatali, hatali ? 0 : (aktif.uyarilar||[]).length);
     mAsansorSekmeleriTazele();
   }catch(e){
+    if(sira !== ISTEK.mukavemet) return;      // daha yeni istek var
     $('m_sonuc').innerHTML =
       `<div class="kart-ic"><div class="uyari kirmizi">Bağlantı hatası: ${kacis(e)}</div></div>`;
+    mCizimBaglantiHatasi(e);
   }
 }
 
@@ -1386,11 +1391,30 @@ async function cizimleriGetir(){
     cizCizimler(c);
     mGorunumTazele();
   }catch(e){
-    if(sira === ISTEK.cizim)
-      kutu.innerHTML = `<div class="kart-ic"><div class="uyari kirmizi">Bağlantı hatası: ${kacis(e)}</div></div>`;
+    if(sira === ISTEK.cizim) mCizimBaglantiHatasi(e);
   }finally{
     if(sira === ISTEK.cizim) kutu.classList.remove('yukleniyor');
   }
+}
+
+/*  BAĞLANTI KOPTU:  hesap ya da çizim isteği sunucuya ulaşamadıysa ekrandaki
+    çizim artık formun girdisine ait değildir.  Eskiden hata yalnız hesap
+    paneline yazılıyordu ( çizime bakan görmüyordu ), çizim de güncel duruyordu:
+    kuyu 2400 → 2500 yapılınca form 2500, çizim 2400 — kullanıcı yeni girdinin
+    işlendiğini sanıyordu ( yayın denetimi, 16 Eki ).  Çizim isteğinin kendi
+    hatası da tuvali silip yerine yazı koyuyordu.  Artık çizim yerinde kalır,
+    kurulamayan çizim gibi "Çizim güncellenmedi" diye işaretlenir ( mTuvalHata );
+    o girdinin ilk başarılı yanıtı işareti kaldırır.  Yoldaki eski çizim
+    yanıtı geçersizdir:  gelse çizimi yeniden "güncel" gösterirdi. */
+function mCizimBaglantiHatasi(e){
+  ++ISTEK.cizim;
+  const kutu = $('m_cizimler'), t = $('m_tuval');
+  if(kutu) kutu.classList.remove('yukleniyor');
+  const hata = [`Bağlantı hatası: ${e && e.message || e}  —  sunucuya ulaşılamadı;  bağlantı gelince çizim kendiliğinden güncellenir.`];
+  M_CIZIM_DURUM = {aktif: false, hata, baglanti: true};
+  if(t && t.querySelector('figure.cizim')) mTuvalHata(hata, true);
+  else if(kutu) kutu.innerHTML = `<div class="kart-ic"><div class="uyari kirmizi">${kacis(hata[0])}</div></div>`;
+  mGorunumTazele();
 }
 
 /*  Form başka asansöre ( ya da yüklenen projeye ) geçtiğinde eski ölçü
