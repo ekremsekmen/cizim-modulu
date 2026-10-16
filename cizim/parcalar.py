@@ -631,7 +631,8 @@ def gergi_mafsal_kasnak(cap):
     return GERGI_MAFSAL_KASNAK[0] if cap <= GERGI_KUCUK_KASNAK else GERGI_MAFSAL_KASNAK[1]
 
 
-def _yay(m, r, a0, a1, adim=24):
+def yay(m, r, a0, a1, adim=24):
+    """Yayın noktaları:  m merkezli, r yarıçaplı, a0'dan a1'e ( derece ), adim parça."""
     return [
         (
             m[0] + r * math.cos(math.radians(a0 + (a1 - a0) * i / adim)),
@@ -644,8 +645,8 @@ def _yay(m, r, a0, a1, adim=24):
 def _oluk(s0, s1, z, en, adim=6):
     """Yuvarlak uçlu oluk ( kapalı çokgen )."""
     r = en / 2.0
-    sag = _yay((s1 - r, z), r, -90.0, 90.0, adim)
-    sol = _yay((s0 + r, z), r, 90.0, 270.0, adim)
+    sag = yay((s1 - r, z), r, -90.0, 90.0, adim)
+    sol = yay((s0 + r, z), r, 90.0, 270.0, adim)
     return sag + sol
 
 
@@ -667,7 +668,7 @@ def gergi_geometrisi(cap, agirlik_merkez, agirlik_eni, agirlik_boyu):
     pim = (agirlik_merkez, agirlik_merkez * math.tan(t))
     #  Kol:  iki ucu yuvarlak lama ( mafsalda ve pimde lamanın yarı eniyle )
     h, a_ = GERGI_KOL_LAMA / 2.0, GERGI_KOL_ACISI
-    kol = _yay(pim, h, a_ + 90.0, a_ - 90.0, 8) + _yay(mafsal, h, a_ + 270.0, a_ + 90.0, 8)
+    kol = yay(pim, h, a_ + 90.0, a_ - 90.0, 8) + yay(mafsal, h, a_ + 270.0, a_ + 90.0, 8)
     ust = pim[1] + GERGI_PIM_UST
     W, H = agirlik_eni, agirlik_boyu
     Wt, Ha = GERGI_ASKI[0] * W, GERGI_ASKI[1] * H
@@ -687,7 +688,7 @@ def gergi_geometrisi(cap, agirlik_merkez, agirlik_eni, agirlik_boyu):
     uc, boy, en, ara = GERGI_OLUK
     oluklar = [_oluk(s0 + uc, s0 + uc + boy, mafsal[1] + k * ara / 2.0, en) for k in (-1, 1)]
     R = max(GERGI_KAPAK_R, cap / 2.0 + GERGI_KAPAK_PAYI)
-    kapak = _yay((0.0, 0.0), R, *GERGI_KAPAK_ACI)
+    kapak = yay((0.0, 0.0), R, *GERGI_KAPAK_ACI)
     kb, ka = GERGI_KONTAK
     kontak = (mafsal[0] - kb / 2.0, mafsal[0] + kb / 2.0, mafsal[1] - ka - kb, mafsal[1] - ka)
 
@@ -723,3 +724,99 @@ def gergi_ray_araligi(cap):
     uc, boy, _en, _ara = GERGI_OLUK
     raya = GERGI_PLAKA[0]
     return a + (raya - uc - boy), a + (raya - uc)
+
+
+#  ── HIZ REGÜLATÖRÜ  ( iki oluklu kasnak, U büküm sac gövde, delikli ayaklar ) ──
+#  KAYNAK:  PFB kılavuzu ( download.pfb.it 5799 ) s. 65 "6.2 Overspeed governor
+#  type R5" ve s. 68 "6.7 type R6" ölçülü resimleri.  Biçim tipin ortak biçimidir
+#  ( kasnakta halat oluğu ve küçük çaplı deneme oluğu, kasnağın iki yanında sac
+#  bacaklar — üstünden büküm —, altta delikli ayaklar, bir yanda merkezkaç
+#  mekanizması ve güvenlik kontağı ) — markasız;  ölçü PFB'nin.
+#  u kasnağın düzleminde ( yatay ), v düzleme dik ( + mekanizmanın yanı ), z
+#  yukarı;  kök kasnağın merkezi ( halat oluğunun düzlemi ).
+#  Aile kasnağın çapından:  250'ye kadar R5 ( Ø200 ), büyüğü R6 ( Ø300 );
+#  kasnak projenin çapında, gövde ailenin.  Ölçüler ( resimden okunan ):
+#      deneme   deneme oluğu ( R5 Ø143, R6 Ø220 )
+#      eksen    kasnağın ekseni tabandan ( R5 120, R6 168 )
+#      boy      toplam yükseklik ( R5 261, R6 335 )
+#      ayak     tabanın düzlem boyu eni ( 110 + 2 · 20 = 150 ) ve düzleme dik iki
+#               ucu ( R5 204:  24 · 44 · 30 · 82 · 24;  R6 238:  25 · 55 · 15 ·
+#               118 · 25 — kasnak ortada ):  halat düzleminden v
+#      delik    iki Ø16 delik, uçlardan 24 / 25
+#      bacak    bacakların düzlem boyu eni ( önden:  R5 ~130, R6 ~140 — ÇİZİM KABULÜ )
+#      govde    mekanizma ve kontağın düzlemden uzaklığı ( yandan:  R5 98, R6 116
+#               toplam — ÇİZİM KABULÜ )
+REGULATOR_AILE = {
+    "R5": {
+        "D": 200.0,
+        "deneme": 143.0,
+        "eksen": 120.0,
+        "boy": 261.0,
+        "ayak": (150.0, -83.0, 121.0),
+        "delik": (-59.0, 97.0),
+        "bacak": 130.0,
+        "govde": 76.0,
+    },
+    "R6": {
+        "D": 300.0,
+        "deneme": 220.0,
+        "eksen": 168.0,
+        "boy": 335.0,
+        "ayak": (150.0, -86.0, 152.0),
+        "delik": (-61.0, 127.0),
+        "bacak": 140.0,
+        "govde": 91.0,
+    },
+}
+REGULATOR_DELIK = 16.0  # "N.2 fori Ø 16"
+#  Kasnağın eni ( iki oluk ), bacakla arası, sacın kalınlığı:  R6 planından
+#  ~36 · ~3 · ~4 ( ÇİZİM KABULÜ );  kasnak bacakların üstünde 17 ( 335 − 168 − 150 ).
+REGULATOR_KASNAK_ENI = 36.0
+REGULATOR_KASNAK_BOSLUK = 3.0
+REGULATOR_SAC = 4.0
+REGULATOR_UST_PAY = 17.0
+#  Oluğun derinliği ( "A" büyütmesi:  12, 35° ) — kesitte oluğun dibi
+REGULATOR_OLUK_DERIN = 12.0
+#  Güvenlik kontağı önden bacağın üst yarısında ( R6:  u 21 – 69, z 36 – 119 —
+#  kasnak yarıçapının 0,14 – 0,46'sı ve 0,24 – 0,79'u;  ÇİZİM KABULÜ — resimden ).
+REGULATOR_KONTAK = (0.14, 0.46, 0.24, 0.79)
+
+
+def regulator_ailesi(cap):
+    return REGULATOR_AILE["R5" if cap <= 250 else "R6"]
+
+
+def regulator_geometrisi(cap):
+    """Hız regülatörünün kasnağa göre geometrisi ( u, v, z ).  Döner:
+    R · deneme               kasnağın ve deneme oluğunun yarıçapı
+    eksen · tepe             kasnağın ekseni tabandan, tepe eksenden
+    kasnak                   ( u0, u1, v0, v1 )
+    bacak                    ( u0, u1 ) · bacaklar:  [ ( v0, v1 ) ] iki sac
+    ayaklar                  [ ( u0, u1, v0, v1 ) ] iki ayak ( taban )
+    delikler                 [ ( u, v ) ] — Ø REGULATOR_DELIK
+    kontak                   ( u0, u1, v0, v1, z0, z1 )
+    zarf                     ( u0, u1, v0, v1 ) — planda gövdenin izi"""
+    A = regulator_ailesi(cap)
+    R = cap / 2.0
+    eksen = max(A["eksen"], R + REGULATOR_UST_PAY)  # kasnak tabana değmez
+    tepe = max(A["boy"] - A["eksen"], R + REGULATOR_UST_PAY)
+    k = REGULATOR_KASNAK_ENI / 2.0
+    b0 = k + REGULATOR_KASNAK_BOSLUK
+    b1 = b0 + REGULATOR_SAC
+    w = A["bacak"] / 2.0
+    au, av0, av1 = A["ayak"]
+    Rn = A["D"] / 2.0
+    ku0, ku1, kz0, kz1 = (f * Rn for f in REGULATOR_KONTAK)
+    return {
+        "R": R,
+        "deneme": cap * A["deneme"] / A["D"] / 2.0,
+        "eksen": eksen,
+        "tepe": tepe,
+        "kasnak": (-R, R, -k, k),
+        "bacak": (-w, w),
+        "bacaklar": [(-b1, -b0), (b0, b1)],
+        "ayaklar": [(-au / 2.0, au / 2.0, av0, -b1), (-au / 2.0, au / 2.0, b1, av1)],
+        "delikler": [(0.0, v) for v in A["delik"]],
+        "kontak": (ku0, ku1, b1, A["govde"], kz0, kz1),
+        "zarf": (-au / 2.0, au / 2.0, av0, av1),
+    }

@@ -447,13 +447,91 @@ def _kuyu_tepesi(e, B, g, M, K):
         )
     if M["mrl"]:
         e += makine.gorunus(M["halat_konsolu"], B, eleman.dikdortgen, eleman.daire, eleman.cizgi)
-    rg = M["regulator"]
-    B.kutu(e, "MAKINE", rg[:4], rg[4], rg[5], "regulator")
     if M.get("pano"):
         p = M["pano"]
         B.kutu(e, "PANO", p[:4], p[4], p[5], "kumanda_panosu")
-    rk = M["regulator_kasnak"]
-    kasnak(e, B, rk[:4], rk[4], M["gergi"]["cap"], "y", "regulator_kasnagi")
+    regulator(e, B, M)
+
+
+def regulator(e, B, M):
+    """Hız regülatörü ( parcalar.regulator_geometrisi ).  Kasnağın düzlemi kuyunun
+    derinliği boyuncadır:  B-B ( ön ) onu yandan görür — iki ayak, bacaklar ve
+    üstteki büküm, aralarında iki oluklu kasnak, mekanizma ve kontak;  A-A ( yan )
+    önden — bacak, kasnağın bacaktan taşan yayları ( halat ve deneme oluğu ),
+    ayaklar, mil, kontak.  Zarflar plandaki kutular ( reg_govde · reg_kasnak )."""
+    rc = M["KU"]["reg_cizim"]
+    geo, rg, zc = rc["geo"], M["regulator"], M["regulator_kasnak"][4]
+    zb, zt = zc - geo["eksen"], zc + geo["tepe"]
+    t = parcalar.REGULATOR_SAC
+    el = B.kutu(e, "MAKINE", rg[:4], rg[4], rg[5], "regulator")
+    if el is None:
+        return
+    R = geo["R"]
+    (b0, b0i), (b1i, b1) = geo["bacaklar"]
+    ku0, ku1, kv0, kv1, kz0, kz1 = geo["kontak"]
+    if B.tur == "on":
+
+        def u(v):  # v ( düzleme dik ) → bakışın u'su
+            return B.u(rc["x"] - rc["yan"] * v, rc["y"])
+
+        def dortgen(v0, v1, z0, z1):
+            return [(u(v0), z0), (u(v1), z0), (u(v1), z1), (u(v0), z1)]
+
+        el["bicim"] = [{"noktalar": dortgen(a[2], a[3], zb, zb + t)} for a in geo["ayaklar"]] + [
+            #  U:  iki bacak ve üstteki büküm
+            {
+                "noktalar": [
+                    (u(b0), zb + t),
+                    (u(b0), zt),
+                    (u(b1), zt),
+                    (u(b1), zb + t),
+                    (u(b1i), zb + t),
+                    (u(b1i), zt - t),
+                    (u(b0i), zt - t),
+                    (u(b0i), zb + t),
+                ]
+            },
+            {"noktalar": dortgen(kv0, kv1, zc + kz0, zc + kz1)},
+        ]
+        _, _, sv0, sv1 = geo["kasnak"]
+        k = eleman.ad(
+            eleman.dikdortgen("KASNAK", min(u(sv0), u(sv1)), zc - R, abs(u(sv1) - u(sv0)), 2 * R),
+            "regulator_kasnagi",
+        )
+        #  İki oluğun dibi ( halat oluğu ve deneme oluğu ) ince
+        k["bicim"] = [{"noktalar": dortgen(sv0, sv1, zc - R, zc + R)}] + [
+            {"noktalar": [(u(v), zc - r), (u(v), zc + r)], "kapali": False, "ince": True}
+            for v, r in ((0.0, R - parcalar.REGULATOR_OLUK_DERIN), (sv0 + (sv1 - sv0) / 4.0, geo["deneme"]))
+        ]
+        e.append(B.derin_kutu(k, M["regulator_kasnak"][:4]))
+        return
+    #  Önden ( A-A ):  bacak kasnağın ortasını örter — yaylar bacağın iki yanında
+    uc = B.u(rc["x"], rc["y"])
+    w0, w1 = geo["bacak"]
+    au0, au1 = geo["ayaklar"][0][:2]
+    el["bicim"] = [
+        {"noktalar": [(uc + au0, zb), (uc + au1, zb), (uc + au1, zb + t), (uc + au0, zb + t)]},
+        {"noktalar": [(uc + w0, zb + t), (uc + w1, zb + t), (uc + w1, zt), (uc + w0, zt)]},
+        {
+            "noktalar": [
+                (uc + ku0, zc + kz0),
+                (uc + ku1, zc + kz0),
+                (uc + ku1, zc + kz1),
+                (uc + ku0, zc + kz1),
+            ]
+        },
+    ]
+    k = eleman.ad(eleman.dikdortgen("KASNAK", uc - R, zc - R, 2 * R, 2 * R), "regulator_kasnagi")
+    k["bicim"] = []
+    for r, ince in ((R, False), (geo["deneme"], True)):
+        if r > w1:
+            a = math.degrees(math.acos(w1 / r))
+            for a0, a1 in ((-a, a), (180.0 - a, 180.0 + a)):
+                k["bicim"].append(
+                    {"noktalar": parcalar.yay((uc, zc), r, a0, a1, 12), "kapali": False, "ince": ince}
+                )
+    e.append(B.derin_kutu(k, M["regulator_kasnak"][:4]))
+    e.append(B.derin_kutu(eleman.ad(eleman.daire("KONSOL", uc, zc, 10.0), "regulator"), rg[:4]))
 
 
 def _halatlar_yan(e, B, g, M, P, KU, kt, AK, zt):

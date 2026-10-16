@@ -1093,7 +1093,13 @@ planından;  kabin, karşı ağırlık ve kat kapısı yalnız izleriyle ( kesik
   ( kabin genişliği + 30 — halat eğik iner, α girilir ).
 - **Makine** tahrik kasnağının ağırlık eksenine bakan tarafında;  **halat
   bağlantıları** ağırlık kasnağının öbür teğetinin ve kabinin uzak halatının
-  üstünde;  **regülatör** kuyu dibindeki gergi kasnağının tam üstünde.
+  üstünde;  **regülatör** kuyu dibindeki gergi kasnağının tam üstünde,
+  gerçek ölçüleriyle ( `parcalar.regulator_geometrisi` — PFB kılavuzu s. 65 ·
+  68:  Ø300 kasnakta R6 — eksen tabandan 168, boy 335, taban 150 × 238, Ø16
+  delikli iki ayak;  Ø250'ye kadar R5 ):  iki oluklu kasnak ( halat ve deneme
+  oluğu ), U büküm sac bacaklar, mekanizma ve kontak kuyunun içine bakar,
+  ayağın kısa ucu duvara ( konsol ).  Kasnak tavandan 462;  makine dairesinde
+  ayaklar döşemede ( orada kuyunun izi değil oda ve tabliye sınırlar ).
 - **Acil kurtarma ve test panosu** ( m.5.2.6.6 ) kuyunun dışında, en üst katta
   kapının seçilen yanında;  önünde **0,70 m** derin, **en az 0,50 m** ya da pano
   eni kadar çalışma alanı ( m.5.2.6.6.4 → m.5.2.6.3.2.1 a ).

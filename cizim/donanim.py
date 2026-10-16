@@ -227,8 +227,13 @@ def _kuyu_ustundeki_makine(g, S, tavan, M, kabin_raylari, agirlik_raylari):
             "agirlik_baglanti": KU["agirlik_baglanti"] + (zs, zs + S["agirlik_baglanti_yukseklik"]),
             "kabin_baglanti": KU["kabin_baglanti"]
             + (tavan - S["kabin_baglanti_alt"], tavan - S["kabin_baglanti_ust"]),
+            #  Regülatör ayağının ( konsol ) üstünde:  kasnak tavandan
+            #  regulator_kasnak_merkez, gövde onun eksen altında / tepe üstünde
             "regulator": KU["reg_govde"]
-            + (tavan - S["regulator_govde_alt"], tavan - S["regulator_govde_ust"]),
+            + (
+                tavan - S["regulator_kasnak_merkez"] - KU["reg_cizim"]["geo"]["eksen"],
+                tavan - S["regulator_kasnak_merkez"] + KU["reg_cizim"]["geo"]["tepe"],
+            ),
             "regulator_kasnak": KU["reg_kasnak"] + (tavan - S["regulator_kasnak_merkez"],),
         }
     )
@@ -339,7 +344,7 @@ def _makine_dairesi(g, S, tavan, M):
     _, gv0, _, gv1 = d.kanonik(KU["govde"])
     mx, my = (ku0 + ku1) / 2.0, (gv0 + gv1) / 2.0
     kab = S["kabin_baglanti_alt"] - S["kabin_baglanti_ust"]
-    rg = S["regulator_govde_alt"] - S["regulator_govde_ust"]
+    rgeo = KU["reg_cizim"]["geo"]  # regülatör odanın döşemesinde ( ayakları )
     zs = zd + md["sase_yuksekligi"]  # makine hesap programının kaidesine oturur
     dis = g["makine"]["tip"] == "Dişli"
     zk = zs - makine.DISLI_ZARF["z"][0] if dis else zs + S["makine_en"] / 2.0  # kasnak merkezi
@@ -373,9 +378,8 @@ def _makine_dairesi(g, S, tavan, M):
             if KU["agirlik_baglanti"]
             else None,
             "kabin_baglanti": KU["kabin_baglanti"] + (zd, zd + kab) if KU["kabin_baglanti"] else None,
-            "regulator": KU["reg_govde"] + (zd, zd + rg),
-            "regulator_kasnak": KU["reg_kasnak"]
-            + (zd + S["regulator_govde_alt"] - S["regulator_kasnak_merkez"],),
+            "regulator": KU["reg_govde"] + (zd, zd + rgeo["eksen"] + rgeo["tepe"]),
+            "regulator_kasnak": KU["reg_kasnak"] + (zd + rgeo["eksen"],),
             #  Pano odaya sığmadıysa yok ( denetim hatası;  kurma sürer — hesabın
             #  ölçüleri için çizilmesi gerekmez ).
             #  Pano bulunduğu zeminde:  tabliyenin üstünde ya da oda zemininde

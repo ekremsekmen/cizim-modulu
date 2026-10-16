@@ -718,7 +718,7 @@ def saptirma_kotu(M, sp, kasnak, D1, hs, hk, y_, S):
     for kutu_, h_ in (
         (M["agirlik_baglanti"], S["agirlik_baglanti_yukseklik"]),
         (M["kabin_baglanti"], S["kabin_baglanti_alt"] - S["kabin_baglanti_ust"]),
-        (M["reg_govde"], S["regulator_govde_alt"] - S["regulator_govde_ust"]),
+        (M["reg_govde"], M["reg_cizim"]["geo"]["eksen"] + M["reg_cizim"]["geo"]["tepe"]),
     ):
         if kutu_ and ortusur(kutu_, sp["kutu"]):
             z = max(z, h_ + 50.0 + R2)
@@ -922,8 +922,7 @@ def _makine_ve_donanim(Y, md, G):
     for ad_ in ("agirlik_baglanti", "kabin_baglanti"):  # 1:1 askıda yok
         if M[ad_]:
             e.append(_kutu("BAGLANTI", M[ad_], ad_))
-    e.append(_kutu("MAKINE", M["reg_govde"], "regulator"))
-    e.append(_kutu("KASNAK", M["reg_kasnak"], "regulator_kasnak"))
+    kuyu_ustu.regulator_cizimi(e, M)
     rg = M["reg_govde"]
     e.append(
         eleman.yazi(

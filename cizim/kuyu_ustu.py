@@ -36,6 +36,7 @@ from cizim import makine
 from cizim import baglantilar
 from cizim import sabitler
 from cizim import arka_aski
+from cizim import parcalar
 
 #  TS EN 81-20 m.5.2.6.6.4 → m.5.2.6.3.2.1 a:  panonun önünde en az 0,70 m
 #  derinlikte, en az 0,50 m ya da pano eni kadar genişlikte boş alan.
@@ -79,13 +80,24 @@ class Duzlem:
         """Gerçek kutu → ( u0, v0, u1, v1 )."""
         return kutu if self.yon == "x" else (kutu[1], kutu[0], kutu[3], kutu[2])
 
-    def parcalar(self, parcalar):
-        return parcalar if self.yon == "x" else makine.takas(parcalar)
+    def parcalar(self, kutular):
+        return kutular if self.yon == "x" else makine.takas(kutular)
+
+
+def regulator_plani(rc, u0, u1, v0, v1):
+    """Regülatörün kendi ekseninden ( u, v — parcalar.regulator_geometrisi )
+    plana:  u kuyunun derinliği boyunca ( halat düzlemi ), v duvardan kuyuya —
+    mekanizma ve kontak kuyunun içine bakar ( kabin üstünden bakılır ), ayağın
+    kısa ucu duvara."""
+    xa, xb = rc["x"] - rc["yan"] * v0, rc["x"] - rc["yan"] * v1
+    return (min(xa, xb), rc["y"] + u0, max(xa, xb), rc["y"] + u1)
 
 
 def _regulator(g, S, taban, kabin, G):
     """Hız regülatörü:  kuyu dibindeki gergi kasnağının tam üstü — seçilen
-    yandaki kabin rayının hizasında, ray ekseninden regülatör kaçıklığı kadar."""
+    yandaki kabin rayının hizasında, ray ekseninden regülatör kaçıklığı kadar.
+    Kasnak ve gövde gerçek ölçüleriyle ( parcalar.regulator_geometrisi );
+    ayağı ( konsol ) gövdeden duvara."""
     kd = g["kuyu_dibi"]
     ry = g["kabin_ray"]["kapi_arasi"]
     raylar = sorted((eleman_kutusu(el) for el in taban if el.get("ad") == "kabin_ray"), key=lambda r: r[0])
@@ -96,12 +108,20 @@ def _regulator(g, S, taban, kabin, G):
     if ray_parca:
         rx = (min(r[0] for r in ray_parca) + max(r[2] for r in ray_parca)) / 2.0
     rgy = ry + kd["regulator_kaciklik"]
-    re_, rd = S["regulator_eni"] / 2.0, kd["regulator_kasnak_capi"] / 2.0
-    reg_kasnak = (rx - re_, rgy - rd, rx + re_, rgy + rd)
-    ge, gb = S["regulator_govde_en"] / 2.0, S["regulator_govde_boy"] / 2.0
-    reg_govde = (rx - ge, rgy - gb, rx + ge, rgy + gb)
-    reg_ayak = (reg_govde[2], rgy - gb, G, rgy + gb) if sag_reg else (0.0, rgy - gb, reg_govde[0], rgy + gb)
-    return rx, rgy, reg_kasnak, reg_govde, reg_ayak
+    rc = {
+        "x": rx,
+        "y": rgy,
+        "yan": 1.0 if sag_reg else -1.0,
+        "geo": parcalar.regulator_geometrisi(kd["regulator_kasnak_capi"]),
+    }
+    reg_kasnak = regulator_plani(rc, *rc["geo"]["kasnak"])
+    reg_govde = regulator_plani(rc, *rc["geo"]["zarf"])
+    reg_ayak = (
+        (reg_govde[2], reg_govde[1], G, reg_govde[3])
+        if sag_reg
+        else (0.0, reg_govde[1], reg_govde[0], reg_govde[3])
+    )
+    return rx, rgy, reg_kasnak, reg_govde, reg_ayak, rc
 
 
 def _reg_halat_payi(g):
@@ -212,7 +232,7 @@ def _oda(g, yeri_sart=True):
     return (md["x"], md["y"], md["x"] + md["genislik"], md["y"] + md["derinlik"])
 
 
-def _makine(mk, S, merkez, D1, kt, s, m_yon, engeller, oda_, sira, kutu, parcalar):
+def _makine(mk, S, merkez, D1, kt, s, m_yon, engeller, oda_, sira, kutu, plana):
     """Makinenin parçaları ve gövdesi ( dişlide zarfı ):  ( parçalar, gövde |
     None ( dişlisiz:  çağıranınki ), s, m_yon ).
 
@@ -220,10 +240,10 @@ def _makine(mk, S, merkez, D1, kt, s, m_yon, engeller, oda_, sira, kutu, parcala
     ( yalnız makine dairesinde ):  dişli kutusu kasnağın iki yanından
     birinde, motor kasnak eksenine dik iki yöndan birinde — engellere
     binmeyen, odaya sığan ilk düzen ( sira:  denenecek ( s, m ) çarpanları ).
-    kutu / parcalar:  makinenin kendi ekseninden plana ( halat düzlemi )."""
+    kutu / plana:  makinenin kendi ekseninden plana ( halat düzlemi )."""
     if mk["tip"] != "Dişli":
         return (
-            parcalar(
+            plana(
                 makine.dislisiz(
                     merkez, D1, 2 * kt, s, S["makine_en"], S["makine_kasnak_boslugu"] + S["makine_boy"]
                 )
@@ -240,7 +260,7 @@ def _makine(mk, S, merkez, D1, kt, s, m_yon, engeller, oda_, sira, kutu, parcala
             s, m_yon = s_, m_
             break
     return (
-        parcalar(makine.disli(merkez, D1, 2 * kt, s, m_yon)),
+        plana(makine.disli(merkez, D1, 2 * kt, s, m_yon)),
         kutu(makine.disli_zarfi(merkez, s, m_yon)),
         s,
         m_yon,
@@ -270,21 +290,23 @@ def _acil_pano(g, S):
     return pano, (pm - ce / 2.0, pano[1] - CALISMA_DERINLIK, pm + ce / 2.0, pano[1])
 
 
-def _cakismalar(parcalar, oda_, G, D):
+def _cakismalar(kutular, oda_, G, D):
     """ÇAKIŞMALAR:  kuyu üstündeki parçalar kuyunun içinde ( makine dairesinde
     makine odanın içindedir — makine_dairesi denetler ) ve birbirine binmeden."""
     hata = []
-    for ad, p in parcalar.items():
-        if oda_ is not None and ad in ("makine", "tahrik kasnağı"):
+    for ad, p in kutular.items():
+        #  Makine dairesinde makine, kasnak ve regülatör odanın döşemesindedir:
+        #  kuyunun izi değil oda ve tabliye sınırlar ( makine_dairesi._oda_hatalari )
+        if oda_ is not None and ad in ("makine", "tahrik kasnağı", "regülatör"):
             continue
         if p[0] < 0 or p[1] < 0 or p[2] > G or p[3] > D:
             hata.append(f"{ad.capitalize()} kuyunun dışına taşıyor.")
-    adlar = list(parcalar)
+    adlar = list(kutular)
     for i, a in enumerate(adlar):
         for b in adlar[i + 1 :]:
             if {a, b} == {"makine", "tahrik kasnağı"}:
                 continue
-            if ortusur(parcalar[a], parcalar[b]):
+            if ortusur(kutular[a], kutular[b]):
                 hata.append(f"Kuyu üstünde {a} ile {b} üst üste biniyor.")
     return hata
 
@@ -372,7 +394,7 @@ def _yandaki_agirlik(g, S, mk, ag, acil_pano):
     agirlik_baglanti, kabin_baglanti = _yandaki_baglantilar(S, y0, teget2, s, ex, uzak, y_)
 
     #  ── REGÜLATÖR:  gergi kasnağının tam üstü ─────────────────────────
-    rx, rgy, reg_kasnak, reg_govde, reg_ayak = _regulator(g, S, taban, kabin, G)
+    rx, rgy, reg_kasnak, reg_govde, reg_ayak, reg_cizim = _regulator(g, S, taban, kabin, G)
     pano, calisma = _acil_pano(g, S) if acil_pano else (None, None)
 
     #  ── MAKİNENİN PARÇALARI ( makine.py ):  önce ağırlık tarafı ve kuyunun ortası
@@ -396,8 +418,8 @@ def _yandaki_agirlik(g, S, mk, ag, acil_pano):
     hata += _iki_bir_cakismalari(govde, kasnak, agirlik_baglanti, kabin_baglanti, reg_govde, oda_, G, D)
     duvar = mk.get("kiris") == "duvar" and oda_ is None
     if duvar:
-        parcalar = (kasnak, govde, agirlik_baglanti, kabin_baglanti, reg_govde)
-        sase = _yandaki_kiris_sasesi(g, mk, parcalar, reg_kasnak, hata)
+        kutular = (kasnak, govde, agirlik_baglanti, kabin_baglanti, reg_govde)
+        sase = _yandaki_kiris_sasesi(g, mk, kutular, reg_kasnak, hata)
     aski = g["aski"]
     return {
         "taban": taban,
@@ -435,6 +457,7 @@ def _yandaki_agirlik(g, S, mk, ag, acil_pano):
         "reg_kasnak": reg_kasnak,
         "reg_govde": reg_govde,
         "reg_ayak": reg_ayak,
+        "reg_cizim": reg_cizim,
         "pano": pano,
         "calisma": calisma,
         "D1": D1,
@@ -567,7 +590,7 @@ def _dogrudan(g, S, mk, ag):
     kmu = (uk + ud) / 2.0
     g0 = d.v0 + s * (kt + S["makine_kasnak_boslugu"])
     govde = d.kutu(kmu - S["makine_en"] / 2.0, kmu + S["makine_en"] / 2.0, g0, g0 + s * S["makine_boy"])
-    rx, rgy, reg_kasnak, reg_govde, reg_ayak = _regulator(g, S, taban, kabin, G)
+    rx, rgy, reg_kasnak, reg_govde, reg_ayak, reg_cizim = _regulator(g, S, taban, kabin, G)
     m_yon = 1.0 if kmu < (G if d.yon == "x" else D) / 2.0 else -1.0
     makine_parcalari, zarf, s, m_yon = _makine(
         mk,
@@ -586,8 +609,6 @@ def _dogrudan(g, S, mk, ag):
     govde = zarf or govde
     if ortusur(kasnak, reg_govde) or ortusur(govde, reg_govde):
         hata.append("Makine dairesinde makine ile regülatör üst üste biniyor.")
-    if reg_govde[0] < 0 or reg_govde[1] < 0 or reg_govde[2] > G or reg_govde[3] > D:
-        hata.append("Regülatör kuyunun dışına taşıyor.")
     return {
         "dogrudan": True,
         "duzlem": d,
@@ -614,6 +635,7 @@ def _dogrudan(g, S, mk, ag):
         "reg_kasnak": reg_kasnak,
         "reg_govde": reg_govde,
         "reg_ayak": reg_ayak,
+        "reg_cizim": reg_cizim,
         "pano": None,
         "calisma": None,
         "D1": D1,
@@ -659,7 +681,7 @@ def _arka(g, S, mk, ag, acil_pano):
     s = yon  # gövde ağırlık kasnağından uzağa
     g0 = xk + s * (kt + S["makine_kasnak_boslugu"])
     govde = d.kutu(kmu - S["makine_en"] / 2.0, kmu + S["makine_en"] / 2.0, g0, g0 + s * S["makine_boy"])
-    rx, rgy, reg_kasnak, reg_govde, reg_ayak = _regulator(g, S, taban, kabin, G)
+    rx, rgy, reg_kasnak, reg_govde, reg_ayak, reg_cizim = _regulator(g, S, taban, kabin, G)
     oda_ = _oda(g)
     makine_parcalari, zarf, s, m_yon = _makine(
         mk,
@@ -728,6 +750,7 @@ def _arka(g, S, mk, ag, acil_pano):
         "reg_kasnak": reg_kasnak,
         "reg_govde": reg_govde,
         "reg_ayak": reg_ayak,
+        "reg_cizim": reg_cizim,
         "pano": pano,
         "calisma": calisma,
         "D1": D1,
@@ -791,6 +814,37 @@ def _kutu(katman, p, ad):
     return eleman.ad(eleman.dikdortgen(katman, p[0], p[1], p[2] - p[0], p[3] - p[1]), ad)
 
 
+def regulator_cizimi(e, Y):
+    """Regülatör planda ( tepeden — parcalar.regulator_geometrisi ):  iki ayak ve
+    Ø16 delikleri, bacakların üstündeki büküm ( kasnağın ortasını örter ), güvenlik
+    kontağı;  kasnağın bükümden taşan iki ucu.  Zarflar denetimin kutularıdır
+    ( reg_govde · reg_kasnak );  makine dairesi de bunu çizer."""
+    rc = Y["reg_cizim"]
+    geo = rc["geo"]
+
+    def dortgen(u0, u1, v0, v1):
+        x0, y0, x1, y1 = regulator_plani(rc, u0, u1, v0, v1)
+        return [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+
+    w0, w1 = geo["bacak"]
+    (b0, _), (_, b1) = geo["bacaklar"]
+    ku0, ku1, kv0, kv1, _kz0, _kz1 = geo["kontak"]
+    govde = _kutu("MAKINE", Y["reg_govde"], "regulator")
+    govde["bicim"] = [{"noktalar": dortgen(*a)} for a in geo["ayaklar"]] + [
+        {"noktalar": dortgen(w0, w1, b0, b1)},
+        {"noktalar": dortgen(ku0, ku1, kv0, kv1)},
+    ]
+    e.append(govde)
+    for u, v in geo["delikler"]:
+        x, _y, _x, y = regulator_plani(rc, u, u, v, v)
+        e.append(eleman.ad(eleman.daire("CIVATA", x, y, parcalar.REGULATOR_DELIK / 2.0), "regulator"))
+    kasnak = _kutu("KASNAK", Y["reg_kasnak"], "regulator_kasnak")
+    R, (_, _, sv0, sv1) = geo["R"], geo["kasnak"]
+    if R > w1:
+        kasnak["bicim"] = [{"noktalar": dortgen(-R, w0, sv0, sv1)}, {"noktalar": dortgen(w1, R, sv0, sv1)}]
+    e.append(kasnak)
+
+
 def _parcalar(g, Y):
     """İzler, makine ve şasesi, halat bağlantıları ve halatlar, regülatör,
     acil pano ve çalışma alanı."""
@@ -819,8 +873,7 @@ def _parcalar(g, Y):
 
     #  Regülatör
     e.append(_kutu("KONSOL", Y["reg_ayak"], "regulator_ayak"))
-    e.append(_kutu("MAKINE", Y["reg_govde"], "regulator"))
-    e.append(_kutu("KASNAK", Y["reg_kasnak"], "regulator_kasnak"))
+    regulator_cizimi(e, Y)
     rg = Y["reg_govde"]
     e.append(
         eleman.yazi(

@@ -103,10 +103,6 @@ SABIT = {
     "kabin_baglanti_en": 127,
     "kabin_baglanti_boy": 200,
     "kabin_baglanti_x": 100,  # halattan plakanın kabin tarafı kenarına
-    #  Hız regülatörü:  kasnak eni ve gövde
-    "regulator_eni": 80,
-    "regulator_govde_en": 130,
-    "regulator_govde_boy": 180,
     #  ── MAKİNE DAİRESİ ───────────────────────────────────────────────
     #  Kumanda panosu:  LiftDesigner makine dairesi planındaki pano 600 × 400.
     "kumanda_pano_en": 600,
@@ -210,10 +206,10 @@ SABIT = {
     "kabin_baglanti_ust": 280,
     "kabin_baglanti_alt": 645,
     "agirlik_baglanti_yukseklik": 298,
-    #  Hız regülatörü:  kasnak merkezi tavandan 462, gövde 433 – 645.
+    #  Hız regülatörü:  kasnak merkezi tavandan 462 ( referans proje );  gövdesi
+    #  ( ayakları, bacakları, kontağı ) kasnağın çapından — parcalar.regulator_geometrisi
+    #  ( PFB kılavuzu s. 65 · 68 ).  Eskiden gövde 433 – 645, 130 × 180 kutu.
     "regulator_kasnak_merkez": 462,
-    "regulator_govde_ust": 433,
-    "regulator_govde_alt": 645,
     #  Kuyu dibindeki gergi düzeni:  R4K tipi yatay ağırlıklı kollu gergi
     #  ( parcalar.gergi_geometrisi — PFB kılavuzu s. 70 ).  Kol, plaka, kapak ve
     #  kontak kasnağa göre türer;  burada yalnız montaja ve ağırlığa bağlı olanlar.
@@ -334,9 +330,6 @@ ETIKET = {
     "kabin_baglanti_en": "Kabin halat bağlantısının eni",
     "kabin_baglanti_boy": "Kabin halat bağlantısının boyu",
     "kabin_baglanti_x": "Kabin halat bağlantısının kabin tarafı payı",
-    "regulator_eni": "Hız regülatörü kasnağının eni",
-    "regulator_govde_en": "Hız regülatörü gövdesinin eni",
-    "regulator_govde_boy": "Hız regülatörü gövdesinin boyu",
     "kumanda_pano_en": "Kumanda panosunun eni",
     "kumanda_pano_derinlik": "Kumanda panosunun derinliği",
     "kumanda_pano_yukseklik": "Kumanda panosunun yüksekliği",
@@ -375,8 +368,6 @@ ETIKET = {
     "kabin_baglanti_alt": "Kuyu tavanından kabin halat bağlantısının altına",
     "agirlik_baglanti_yukseklik": "Ağırlık halat bağlantısının yüksekliği",
     "regulator_kasnak_merkez": "Kuyu tavanından regülatör kasnağı merkezine",
-    "regulator_govde_ust": "Kuyu tavanından regülatör gövdesinin üstüne",
-    "regulator_govde_alt": "Kuyu tavanından regülatör gövdesinin altına",
     "gergi_kasnak_merkez": "Kuyu tabanından gergi kasnağı merkezine",
     "gergi_agirlik_yukseklik": "Gergi ağırlığının yüksekliği ( askısıyla )",
     "gergi_agirlik_yakin": "Gergi ağırlığının kasnağa yakın ucu",
@@ -574,12 +565,7 @@ BOLUMLER = (
             "kabin_baglanti_x",
             "kabin_baglanti_ust",
             "kabin_baglanti_alt",
-            "regulator_eni",
-            "regulator_govde_en",
-            "regulator_govde_boy",
             "regulator_kasnak_merkez",
-            "regulator_govde_ust",
-            "regulator_govde_alt",
             "acil_pano_en",
             "acil_pano_derinlik",
         ),
