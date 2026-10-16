@@ -34,6 +34,8 @@ kasnağının ekseni ( x ) boyunca dizilir.  Regülatör halatının deliği de 
 kuralla ( tek halat:  çap + 2 × pay ).
 """
 
+import math
+
 from temel import ortusur, sayi_mi
 from cizim import eleman
 from cizim import kisaltmalar
@@ -877,18 +879,26 @@ def _tabliye_kenari(Y):
     )
     if Y["merdiven"]:
         d = -min(bos / 2.0, 300.0) if bos > GIRINTI[1] else 150.0
-        e.append(
-            eleman.ad(
-                eleman.yazi(
-                    cx + yon[0] * d,
-                    cy + yon[1] * d,
-                    f"KOT FARKI {TB['yukseklik']:g} > {KOT_FARKI_MERDIVEN:g}:  MERDİVEN VE KORKULUK ( m.5.2.6.3.2.4 )",
-                    uslup.NORMAL,
-                    aci=aci,
-                ),
-                "merdiven_notu",
-            )
+        bas = f"KOT FARKI {TB['yukseklik']:g} > {KOT_FARKI_MERDIVEN:g}:"
+        son = "MERDİVEN VE KORKULUK ( m.5.2.6.3.2.4 )"
+        #  Dar odada ( not, kenarın ortasından iki yandaki duvara bir harf
+        #  payıyla sığmıyorsa ) iki satır:  ikincisi kenardan uzağa.  Eskiden hep
+        #  tek satırdı — 2.100'lük odada duvarların içine taşıyordu ( 63444-2 A
+        #  BLOK, 17 Eki ).  Not zeminde:  zemin odanın eninde uzanır.
+        u, u0, u1 = (cy, oda[1], oda[3]) if yon[0] != 0 else (cx, oda[0], oda[2])
+        kenar = 2.0 * (min(u - u0, u1 - u) - uslup.NORMAL)
+        satirlar = (
+            [(bas + "  " + son, d)]
+            if eleman.yazi_eni(bas + "  " + son, uslup.NORMAL) <= kenar
+            else [(bas, d), (son, d + math.copysign(1.6 * uslup.NORMAL, d))]
         )
+        for metin, uzak in satirlar:
+            e.append(
+                eleman.ad(
+                    eleman.yazi(cx + yon[0] * uzak, cy + yon[1] * uzak, metin, uslup.NORMAL, aci=aci),
+                    "merdiven_notu",
+                )
+            )
     return e
 
 

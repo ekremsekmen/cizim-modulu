@@ -1669,6 +1669,25 @@ def _md_projeler():
 
 
 class MakineDairesi(unittest.TestCase):
+    def test_merdiven_notu_odanin_icinde(self):
+        """Kot farkı notu odanın içinde kalır:  dar odada iki satır.  Eskiden hep
+        tek satırdı — 2.100'lük odada iki yandaki duvarın içine taşıyordu
+        ( 63444-2 A BLOK, 17 Eki )."""
+        for gen, x, satir in ((2100, 0, 2), (2600, -250, 1)):
+            with self.subTest(oda=gen):
+                g = _ornek(
+                    makine={"yeri": "Makine dairesi"},
+                    makine_dairesi={"genislik": gen, "x": x, "tabliye_yuksekligi": 1500},
+                )
+                self.assertEqual(makine_dairesi.dogrula(g), [])
+                oda = makine_dairesi.yerlesim(g)["oda"]
+                es = [el for el in makine_dairesi.ciz(g) if el.get("ad") == "merdiven_notu"]
+                self.assertEqual(len(es), satir)
+                for el in es:
+                    w = eleman.yazi_eni(el["metin"], el["yukseklik"]) / 2.0
+                    self.assertGreater(el["x"] - w, oda[0], el["metin"])
+                    self.assertLess(el["x"] + w, oda[2], el["metin"])
+
     def test_ornekler_gecerli(self):
         for ad, g in _md_projeler():
             with self.subTest(proje=ad):
