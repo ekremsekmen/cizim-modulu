@@ -471,5 +471,47 @@ class AgirlikPatenleri(unittest.TestCase):
                 self.assertEqual(any("m.5.2.5.5.1 h" in x for x in h), ret, h)
 
 
+class Tamponlar(unittest.TestCase):
+    """Tamponun biçimi tipinden ( TS EN 81-20 m.5.8 ), ölçüsü projeden:  kurulu boy,
+    strok ( hesap ), gövde çapı, taban sacı ( ofis sabitleri ) — parcalar.tampon_*."""
+
+    def test_tip_hesabin_adlarindan(self):
+        beklenen = {"Yaylı": "yayli", "Poliüretan": "poliuretan", "Hidrolik": "hidrolik"}
+        for ad in mukavemet_tablolari.TAMPON_TIPLERI_ADLARI:
+            with self.subTest(ad=ad):
+                self.assertEqual(parcalar.tampon_tipi(" ".join(ad.split())), beklenen[ad.split()[0]])
+        self.assertEqual(parcalar.tampon_tipi(None), "poliuretan")
+
+    def test_bicim_govdenin_zarfinda(self):
+        for tip in ("poliuretan", "yayli", "hidrolik"):
+            for boy, strok in ((160, 90), (495, 175)):
+                bicim, zg = parcalar.tampon_kesiti(tip, 100, boy, strok)
+                nok = [n for b in bicim for n in b["noktalar"]]
+                with self.subTest(tip=tip, boy=boy):
+                    self.assertTrue(all(abs(r) <= 50 + 1e-9 for r, _ in nok))
+                    self.assertTrue(all(-1e-9 <= z <= boy - parcalar.TAMPON_SAC + 1e-9 for _, z in nok))
+                    self.assertAlmostEqual(max(z for _, z in nok), boy - parcalar.TAMPON_SAC)
+
+    def test_hidrolik_kaynaktaki_tamponla_tutar(self):
+        """ETN H13:  strok 175, boy 495 — gövde sacın 285 üstünde biter ( 495 − 10
+        sac − 25 başlık − 175 kol ), kol ø40."""
+        bicim, zg = parcalar.tampon_kesiti("hidrolik", 100, 495, 175)
+        self.assertAlmostEqual(zg, 285.0)
+        kol = bicim[1]["noktalar"]
+        self.assertAlmostEqual(kol[1][0] - kol[0][0], 40.0)
+        self.assertAlmostEqual(kol[2][1] - kol[1][1], 175.0)
+
+    def test_yay_teli_dis_capin_015i(self):
+        bicim, _ = parcalar.tampon_kesiti("yayli", 100, 180, 66)
+        zik = bicim[1]["noktalar"]
+        self.assertAlmostEqual(max(r for r, _ in zik), 50 - 0.15 * 100 / 2.0)
+        self.assertGreaterEqual(len(zik), 7)  # en az üç sarım
+
+    def test_kontak_sacin_izinde_govdenin_disinda(self):
+        x0, y0, x1, y1 = parcalar.tampon_kontagi(100, 150)
+        self.assertTrue(-75 <= x0 < x1 <= 75 and -75 <= y0 < y1 <= 75)
+        self.assertGreater((x0**2 + y0**2) ** 0.5, 50)
+
+
 if __name__ == "__main__":
     unittest.main()

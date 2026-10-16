@@ -777,6 +777,10 @@ REGULATOR_SAC = 4.0
 REGULATOR_UST_PAY = 17.0
 #  Oluğun derinliği ( "A" büyütmesi:  12, 35° ) — kesitte oluğun dibi
 REGULATOR_OLUK_DERIN = 12.0
+#  Regülatör halatının planda sembolü ( kuyu üstü, makine dairesi ve kuyu dibi
+#  planında kasnağın iki ucunda — üç plan birbirine bağlanır ):  Ø20 daire
+#  ( halatın kendisi ø6 — 1/20'de görünmez;  ÇİZİM KABULÜ )
+REGULATOR_HALAT_SEMBOLU = 10.0
 #  Güvenlik kontağı önden bacağın üst yarısında ( R6:  u 21 – 69, z 36 – 119 —
 #  kasnak yarıçapının 0,14 – 0,46'sı ve 0,24 – 0,79'u;  ÇİZİM KABULÜ — resimden ).
 REGULATOR_KONTAK = (0.14, 0.46, 0.24, 0.79)
@@ -820,3 +824,95 @@ def regulator_geometrisi(cap):
         "kontak": (ku0, ku1, b1, A["govde"], kz0, kz1),
         "zarf": (-au / 2.0, au / 2.0, av0, av1),
     }
+
+
+#  ── TAMPONLAR  ( kuyu dibi — kabin ve karşı ağırlık ) ─────────────────
+#  TS EN 81-20 m.5.8:  enerji biriktirmeli ( lineer:  yaylı;  lineer olmayan:
+#  poliüretan ) ya da enerji yutmalı ( hidrolik ) tampon.  Standart biçim ve
+#  ölçü vermez ( strok, yavaşlama, hız sınırı ister );  çizim tipin ortak
+#  biçimidir — markasız.  Ölçüler projeden:  kurulu boy ve strok ( hesap ),
+#  gövde çapı ve taban sacı ( ofis sabitleri tampon_capi · tampon_taban ).
+#  Oranlar üreticilerin ürünlerinden:
+#      poliüretan  dolu silindir ( hücreli PU, çelik ekle cıvatalı ):  ACLA
+#                  AUTAN · Posenato Ø80 – 165 × 80;  üst kenar pahı ÇİZİM KABULÜ
+#      yaylı       helezon yay, iki sac arasında:  FIAM Ø91, tel 14 ( dış çapın
+#                  0,15'i ), strok 66, boy 180;  sarım adedi ÇİZİM KABULÜ
+#      hidrolik    silindir gövde, piston kolu, üstte poliüretan başlık, gövdenin
+#                  yanında geri dönüş kontağı ( m.5.8.2.2.4:  normal uzun konuma
+#                  dönüşü elektrik güvenlik düzeni denetler ):  ETN H13 ø40 × 175
+#                  boy 495, ADS-26 / 40-175 boy 502 / 497 ( ≈ 2 · strok + 150 );
+#                  başlık ve kontak ÇİZİM KABULÜ
+TAMPON_SAC = 10.0  # taban sacı ( yaylıda üst sac da ) — ÇİZİM KABULÜ
+TAMPON_PAH = 0.1  # poliüretanın üst kenar pahı, çapın — ÇİZİM KABULÜ
+TAMPON_TEL = 0.15  # yaylının tel çapı, dış çapın ( FIAM 14 / 91 )
+TAMPON_HIDROLIK_KOL = 40.0  # piston kolu ( ETN H13 ø40 )
+TAMPON_BASLIK = (0.8, 25.0)  # hidroliğin başlığı:  çapın 0,8'i, 25 yüksek — ÇİZİM KABULÜ
+#  Hidroliğin kontağı:  planda gövde ile taban sacının köşesi arasında ( 45° ),
+#  25 × 25, gövdenin üst ucunun 60 altından — ÇİZİM KABULÜ
+TAMPON_KONTAK = (25.0, 60.0)
+
+
+def tampon_tipi(ad):
+    """Hesabın tampon tipinin adından çizimin biçimi:  "yayli" · "hidrolik" ·
+    "poliuretan" ( tanınmayan ya da boş:  poliüretan — hesap da öyle sayar )."""
+    a = (ad or "").strip().lower()
+    if a.startswith("yay"):
+        return "yayli"
+    if a.startswith("hidrolik"):
+        return "hidrolik"
+    return "poliuretan"
+
+
+def tampon_kontagi(cap, taban):
+    """Hidrolik tamponun kontağının plandaki kutusu, tamponun ekseninden
+    ( x0, y0, x1, y1 ):  gövde ile taban sacının köşesi arasında."""
+    a = TAMPON_KONTAK[0]
+    m = min((cap + taban) / 4.0, (taban - a) / 2.0)  # gövdenin yüzü ile sacın kenarının ortası
+    return (m - a / 2.0, m - a / 2.0, m + a / 2.0, m + a / 2.0)
+
+
+def tampon_kesiti(tip, cap, boy, strok, sikisma=0.0):
+    """Tamponun gövdesi yandan ( r, z ):  r eksenden, z taban sacının üstünden.
+    Dönel parça — iki kesitte aynı.  boy kurulu boy ( taban sacıyla ), strok
+    tamponun stroku, sikisma o anki ezilmesi ( kabin en alt durakta 0 ).  Döner:
+    ( biçim — parcalar'ın biçim sözlükleri, gövdenin üst ucu — hidrolik
+    kontağın yeri için;  taban sacının üstünden )."""
+    t = TAMPON_SAC
+    h = max(boy - sikisma - t, 0.0)  # gövdenin boyu ( sacın üstünden )
+    R = cap / 2.0
+    if tip == "yayli":
+        d = TAMPON_TEL * cap
+        ust = min(t, h / 4.0)  # üst sac
+        L = h - ust
+        n = max(3, int(round(L / (2.5 * d)))) if L > 0 else 0
+        p = L / n if n else 0.0
+        rm = R - d / 2.0
+        zik = [((-rm if i % 2 == 0 else rm), i * p / 2.0) for i in range(2 * n + 1)]
+        bicim = [{"noktalar": [(-R, h - ust), (R, h - ust), (R, h), (-R, h)]}]
+        if zik:
+            bicim.append({"noktalar": zik, "kapali": False})
+        return bicim, h
+    if tip == "hidrolik":
+        dp, hp = TAMPON_BASLIK[0] * cap / 2.0, min(TAMPON_BASLIK[1], h / 6.0)
+        acik = max(strok - sikisma, 0.0)  # dışarıdaki kol
+        zg = max(h - hp - acik, 0.3 * h)  # gövdenin üstü:  boy stroka yetmiyorsa kol kısalır
+        k = TAMPON_HIDROLIK_KOL / 2.0
+        bicim = [
+            {"noktalar": [(-R, 0.0), (R, 0.0), (R, zg), (-R, zg)]},
+            {"noktalar": [(-k, zg), (k, zg), (k, h - hp), (-k, h - hp)]},
+            {"noktalar": [(-dp, h - hp), (dp, h - hp), (dp, h), (-dp, h)]},
+        ]
+        return bicim, zg
+    c = min(TAMPON_PAH * cap, h / 4.0)
+    bicim = [{"noktalar": [(-R, 0.0), (R, 0.0), (R, h - c), (R - c, h), (-R + c, h), (-R, h - c)]}]
+    return bicim, h
+
+
+def tampon_plani(tip, cap):
+    """Tamponun tepeden görünüşündeki ek dairelerin yarıçapları — taban sacı ve
+    gövde dairesi dışında:  poliüretanın pahı, hidroliğin başlığı."""
+    if tip == "poliuretan":
+        return [cap / 2.0 - TAMPON_PAH * cap]
+    if tip == "hidrolik":
+        return [TAMPON_BASLIK[0] * cap / 2.0]
+    return []

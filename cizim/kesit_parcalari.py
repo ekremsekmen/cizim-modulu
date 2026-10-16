@@ -137,26 +137,43 @@ def konsollar(e, B, kutular, kotlar, S, ad):
             B.kutu(e, "KONSOL", p, z - S["konsol_yukseklik"], z, ad)
 
 
-def tamponlar(e, B, kutular, taban, baba, boy, ezilme, S, ad):
+def tamponlar(e, B, kutular, taban, baba, boy, ezilme, S, ad, tip="poliuretan", strok=0.0):
+    """Tampon:  kaide ( kutu — beton mu çelik ayak mı bilinmez ), taban sacı,
+    tipine göre gövde ( parcalar.tampon_kesiti ), hidrolikte geri dönüş kontağı.
+    Zarflar planın kutularıdır ( taban sacı · gövde dairesi );  ezilme o anki
+    sıkışma ( kabin en alt durakta 0 ), strok tamponun stroku ( hidroliğin kolu )."""
     tb, tc = S["tampon_taban"], S["tampon_capi"]
+    t = parcalar.TAMPON_SAC
+    z0 = taban + baba
     for k in kutular:
         cx, cy = (k[0] + k[2]) / 2.0, (k[1] + k[3]) / 2.0
-        B.kutu(
-            e,
-            "TAMPON",
-            (cx - tb / 2.0, cy - tb / 2.0, cx + tb / 2.0, cy + tb / 2.0),
-            taban,
-            taban + baba,
-            ad + "_kaidesi",
-        )
-        B.kutu(
+        sac = (cx - tb / 2.0, cy - tb / 2.0, cx + tb / 2.0, cy + tb / 2.0)
+        B.kutu(e, "TAMPON", sac, taban, z0, ad + "_kaidesi")
+        B.kutu(e, "TAMPON", sac, z0, z0 + t, ad + "_tamponu")
+        govde = B.kutu(
             e,
             "TAMPON",
             (cx - tc / 2.0, cy - tc / 2.0, cx + tc / 2.0, cy + tc / 2.0),
-            taban + baba,
-            taban + baba + boy - ezilme,
+            z0 + t,
+            z0 + max(boy - ezilme, t),
             ad + "_tamponu",
         )
+        if govde is None:
+            continue
+        uc = B.u(cx, cy)
+        bicim, zg = parcalar.tampon_kesiti(tip, tc, boy, strok, ezilme)
+        govde["bicim"] = [dict(p, noktalar=[(uc + r, z0 + t + z) for r, z in p["noktalar"]]) for p in bicim]
+        if tip == "hidrolik":
+            kx0, ky0, kx1, ky1 = parcalar.tampon_kontagi(tc, tb)
+            zk1 = z0 + t + zg
+            B.kutu(
+                e,
+                "TAMPON",
+                (cx + kx0, cy + ky0, cx + kx1, cy + ky1),
+                max(z0 + t, zk1 - parcalar.TAMPON_KONTAK[1]),
+                zk1,
+                ad + "_tamponu",
+            )
 
 
 def kot_isareti(e, u, z, metin, K, yon=1.0):
@@ -282,13 +299,15 @@ def _ray_ve_dip_gruplari(B, g, Y, P, kabin_ezilme):
             konsollar(el, B, [p], kotlar, S, ad)
             gruplar.append((p, el))
     KD = Y["KD"]
+    tip = parcalar.tampon_tipi((g.get("veri") or {}).get("tampon"))
     for kutular, baba, boy, ezilme, ad in (
         (KD["kabin_tamponlari"], dy["kabin_tampon_baba"], dy["kabin_tampon_boyu"], kabin_ezilme, "kabin"),
         (KD["agirlik_tamponlari"], dy["agirlik_tampon_baba"], dy["agirlik_tampon_boyu"], 0.0, "agirlik"),
     ):
+        strok = dy.get(f"{ad}_tampon_ezilme") or 0.0
         for k in kutular:
             el = []
-            tamponlar(el, B, [k], taban, baba, boy, ezilme, S, ad)
+            tamponlar(el, B, [k], taban, baba, boy, ezilme, S, ad, tip, strok)
             gruplar.append((k, el))
     return gruplar + _gergi_gruplari(B, Y)
 

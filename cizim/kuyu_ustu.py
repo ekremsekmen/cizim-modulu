@@ -843,6 +843,11 @@ def regulator_cizimi(e, Y):
     if R > w1:
         kasnak["bicim"] = [{"noktalar": dortgen(-R, w0, sv0, sv1)}, {"noktalar": dortgen(w1, R, sv0, sv1)}]
     e.append(kasnak)
+    #  Regülatör halatı kasnağın iki ucundan kuyu dibindeki gergiye iner ( kuyu
+    #  dibi planında aynı noktalar )
+    for u in (-R, R):
+        x, _y, _x, y = regulator_plani(rc, u, u, 0.0, 0.0)
+        e.append(eleman.ad(eleman.daire("HALAT", x, y, parcalar.REGULATOR_HALAT_SEMBOLU), "regulator_halati"))
 
 
 def _parcalar(g, Y):
