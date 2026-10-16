@@ -5014,8 +5014,18 @@ def _tamponlar(g, o):
     ad = [
         veri("", "Tampon tipi", ad_t, "", "GİRİŞ"),
         veri("v", "Beyan hızı", v, "m/s", "GİRİŞ"),
-        veri("", "Kabin tamponu strok ( ezilme ) miktarı", e_kabin, "mm", "GİRİŞ", 0),
-        veri("", "Ağırlık tamponu strok ( ezilme ) miktarı", e_agirlik, "mm", "GİRİŞ", 0),
+        #  Boş bırakılan strok kuraldan dolar ( mukavemet_girdi.tamamla ):  kaynağı KURAL
+        veri(
+            "", "Kabin tamponu strok ( ezilme ) miktarı", e_kabin, "mm", _kaynak(g, "kabin_tampon_ezilme"), 0
+        ),
+        veri(
+            "",
+            "Ağırlık tamponu strok ( ezilme ) miktarı",
+            e_agirlik,
+            "mm",
+            _kaynak(g, "agirlik_tampon_ezilme"),
+            0,
+        ),
     ]
     uygunlar = []
 
@@ -5033,7 +5043,7 @@ def _tamponlar(g, o):
         ),
     ]
     uygunlar.append(hiz_uygun)
-    gereken = _tampon_stroku(v, biriktirmeli, katsayi, e_kabin, e_agirlik, ad, uygunlar)
+    gereken = _tampon_stroku(v, ad_t, biriktirmeli, katsayi, e_kabin, e_agirlik, ad, uygunlar)
 
     b["adimlar"] = ad
     b["aciklamalar"] = [
@@ -5071,7 +5081,7 @@ def _tamponlar(g, o):
     return b
 
 
-def _tampon_stroku(v, biriktirmeli, katsayi, e_kabin, e_agirlik, ad, uygunlar):
+def _tampon_stroku(v, ad_t, biriktirmeli, katsayi, e_kabin, e_agirlik, ad, uygunlar):
     """STROK satırları ve kontrolleri ( ad · uygunlar'a eklenir ).  Döner:
     gereken strok ( mm ) ya da None ( lineer olmayan tampon:  tip deneyi )."""
     if katsayi is None:
@@ -5089,9 +5099,8 @@ def _tampon_stroku(v, biriktirmeli, katsayi, e_kabin, e_agirlik, ad, uygunlar):
             ),
         ]
         return None
-    gereken = katsayi * v * v * 1000.0  # m  →  mm
-    alt = mukavemet_tablolari.TAMPON_ASGARI_STROK if biriktirmeli else 0.0
-    gereken = max(gereken, alt)
+    #  Boş alanın kuralı ( mukavemet_tablolari.tampon_kural_stroku ) da bu sayıyı kullanır
+    gereken = mukavemet_tablolari.tampon_gereken_stroku(ad_t, v)
     madde = "m.5.8.2.1.1.1" if biriktirmeli else "m.5.8.2.2.1"
     #  KATSAYI STANDARTTAKİ HANESİYLE YAZILIR.  tr() iki haneye yuvarlar:
     #  paftada "0,07 × 1,60² × 1000 = 173" duruyordu ( 0,07 ile 179 çıkar,

@@ -52,11 +52,13 @@ class KesitYerlesimRegresyon(unittest.TestCase):
                 yield ad, g, Y
 
     def test_yuksek_kabin_sase_cakismasi_api_ve_hesapta_reddedilir(self):
-        values = {"kabin_ic_yuksekligi": 2500, "son_kat_yuksekligi": 5000}
+        #  Paten arası 2.660 GİRİLMİŞ:  2.500'lük kabinin tavanı 2.560, kirişin altı
+        #  2.200 → 3.020 gerekir.  ( Boş bırakılsa kural iç yükseklik + 660 = 3.160
+        #  verir, çakışma olmaz.  16 Eki'ye dek eksik girdili API çağrısında
+        #  varsayılan projenin 2.000 + 660'ı taşınıyordu — test ona dayanıyordu. )
+        values = {"kabin_ic_yuksekligi": 2500, "kabin_paten_arasi": 2660, "son_kat_yuksekligi": 5000}
         g = _girdi(values)
         Y = kuyu_kesiti.yerlesim(g)
-        #  8 Eki:  varsayılan paten arası 2.660 ( LiftDesigner — patenler kirişlerin
-        #  dışında );  2.500'lük kabinin tavanı 2.560, kirişin altı 2.200 → 3.020
         self.assertEqual(g["dusey"]["kabin_paten_arasi"], 2660)
         self.assertTrue(any("üst şase kirişi" in h and "3020 mm" in h for h in Y["hata"]), Y["hata"])
         self.assertIn(Y["hata"][0], Y["diger"])

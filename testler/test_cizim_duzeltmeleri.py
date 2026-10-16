@@ -137,10 +137,10 @@ class Tamponlar(unittest.TestCase):
                 {**mukavemet_girdi.varsayilanlar(), "agirlik_tampon_boyu": boy, "agirlik_tampon_ezilme": 110}
             )
             self.assertTrue(
-                any("Ağırlık tamponu ezilme" in h and "aşamaz" in h for h in mukavemet_girdi.dogrula(g))
+                any("Ağırlık tamponunun ezilmesi" in h and "aşamaz" in h for h in mukavemet_girdi.dogrula(g))
             )
         g["agirlik_tampon_boyu"] = 120
-        self.assertFalse(any("Ağırlık tamponu ezilme" in h for h in mukavemet_girdi.dogrula(g)))
+        self.assertFalse(any("Ağırlık tamponunun ezilmesi" in h for h in mukavemet_girdi.dogrula(g)))
 
 
 class KesikCizgiler(unittest.TestCase):

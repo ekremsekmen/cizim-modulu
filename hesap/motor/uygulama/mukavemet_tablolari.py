@@ -797,6 +797,45 @@ def tampon(ad):
     return TAMPON_TIPLERI[1]  # tanınmayan ad: poliüretan sayılır
 
 
+def tampon_gereken_stroku(ad, v):
+    """Standardın istediği en küçük strok ( mm ):  lineerde 0,135·v² ( en az
+    65 mm ), enerji yutmalıda 0,0674·v²;  lineer olmayanda None ( tip deneyi ).
+    Hesabın denetimi ( mukavemet._tampon_stroku ) ve boş alanın kuralı
+    ( tampon_kural_stroku ) bu tek bağıntıyı kullanır."""
+    _ad, biriktirmeli, katsayi = tampon(ad)
+    if katsayi is None or not sayi_mi(v):
+        return None
+    s = katsayi * v * v * 1000.0
+    return max(s, TAMPON_ASGARI_STROK) if biriktirmeli else s
+
+
+def tampon_kural_stroku(ad, v, boy):
+    """BOŞ BIRAKILAN TAMPON STROKU ( ezilme ) — ( mm , kuralın yazısı ) ya da
+    ( None , None ).
+
+        lineer · enerji yutmalı   gereken strok, tam mm'ye YUKARI:  denetimi
+                                  her zaman geçer ( 1,6 m/s hidrolik → 173 )
+        lineer olmayan            kurulu boyun %90'ı:  strok bağıntısı yoktur,
+                                  m.5.8.2.1.2.2 "tam ezilmiş"i böyle tanımlar
+                                  ( 100 mm'lik tampon → 90 )
+
+    Eskiden iki ezilme de hızdan bağımsız 90 mm varsayılandı:  1,6 m/s'de
+    hidrolik tampon seçilince çizim kuyu dibini ve kuyu üstünü 90 mm'yle
+    kuruyor, hesap aynı tamponu "en az 173 mm" diye reddediyordu ( 16 Eki
+    gerçek senaryo taraması )."""
+    _ad, biriktirmeli, katsayi = tampon(ad)
+    if katsayi is None:
+        if not (sayi_mi(boy) and boy > 0):
+            return None, None
+        return math.ceil(round(TAMPON_TAM_EZILME_ORANI * boy, 6)), "kurulu boyun %90'ı — m.5.8.2.1.2.2"
+    s = tampon_gereken_stroku(ad, v)
+    if s is None or s <= 0:
+        return None, None
+    madde = "m.5.8.2.1.1" if biriktirmeli else "m.5.8.2.2.1"
+    alt = f" , en az {TAMPON_ASGARI_STROK:g} mm" if biriktirmeli else ""
+    return math.ceil(round(s, 6)), f"{str(katsayi).replace('.', ',')} × v²{alt} — {madde}"
+
+
 # =====================================================================
 #  SIĞINMA HACMİ TİPLERİ   ( TS EN 81-20 m.5.2.5.7.1 · m.5.2.5.8.1 )
 # =====================================================================

@@ -321,6 +321,11 @@ PROJE_SENARYOLARI = (
             agirlik_genisligi=850,
             agirlik_derinligi=160,
             tampon_tipi="Hidrolik  ( enerji yutmalı )",
+            #  Referans paftada strok yok;  14 Eki'den beri 90 kabulü ( tampon
+            #  bölümü bu yüzden "en az 173 mm" der — beklenen ).  Boş kalsa kural
+            #  173 verir ve 100 mm'lik varsayılan tampon boyunu aşar ( 16 Eki ).
+            kabin_tampon_ezilme=90,
+            agirlik_tampon_ezilme=90,
             _ofis={"k3_yardimci": 2},
         ),
     ),

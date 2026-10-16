@@ -484,7 +484,8 @@ class UcDuzeltmeDenetimi(unittest.TestCase):
             self.assertAlmostEqual(b, a - 60, places=6)
 
     def test_tampon_ezilmesi_ust_bosluktan_dusulur(self):
-        taban = self._ust_acikliklar()
+        #  Taban strok AÇIKÇA:  boşsa kural, 200 mm'lik poliüretanda 0,9 × 200 = 180 verir
+        taban = self._ust_acikliklar(agirlik_tampon_ezilme=90)
         artan = self._ust_acikliklar(agirlik_tampon_ezilme=90 + 40)
         for a, b in zip(taban, artan):
             self.assertAlmostEqual(b, a - 40, places=6)
