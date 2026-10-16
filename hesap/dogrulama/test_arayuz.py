@@ -3574,6 +3574,7 @@ def calistir():
         #  isteği sunucuya ulaşamayınca form yeni değeri, çizim eskisini
         #  gösteriyordu ve hata yalnız ( görünmeyen ) hesap panelindeydi.
         _eski = "document.getElementById('m_tuval').classList.contains('eski')"
+        _k0 = len(konsol)
         pg.route("**/api/uygulama/coklu", lambda rota: rota.abort())
         pg.fill("#m_kuyu_genisligi", str(_kg + 100))
         pg.wait_for_function("!document.getElementById('m_tuval_hata').hidden", timeout=30000)
@@ -3588,6 +3589,10 @@ def calistir():
         pg.fill("#m_kuyu_genisligi", str(_kg))
         pg.wait_for_function("document.getElementById('m_tuval_hata').hidden", timeout=30000)
         r.kontrol("bağlantı gelince 'güncellenmedi' işareti kalkıyor", not pg.evaluate(_eski))
+        #  Kesilen istek tarayıcının konsoluna "Failed to load resource:
+        #  net::ERR_FAILED" yazar;  bu aralıkta yalnız o beklenen satır silinir
+        #  ( sondaki "konsol hatası yok" başka hatayı yine yakalar ).
+        konsol[_k0:] = [m for m in konsol[_k0:] if "net::ERR_FAILED" not in m]
         pg.wait_for_timeout(1500)
         pg.evaluate("mGorunumSec('hesap')")
 
