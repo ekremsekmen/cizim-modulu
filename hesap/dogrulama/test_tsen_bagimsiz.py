@@ -84,7 +84,9 @@ class BagimsizDenetim(unittest.TestCase):
         self.assertAlmostEqual(h["kabin_ray.sigma_k"], expected, places=6)
 
     def test_narinlik_250_sinirinin_asimi_burkulmayi_dusurmeli(self):
-        # ix=20.9; iy=14.0. Gerçek narinlik 3600/14 = 257.143 > 250.
+        # ISO 8100-33 Tablo 5, T70/A ( 6 Eki'den beri katalog ):  ix 20,87 ·
+        # iy 14,17.  Narinlik 3600 / 14,17 = 254,06 → 255 > 250.  ( Test eski
+        # iy = 14,0 ile 258 bekliyordu;  kontrol.py'de koşmadığı için kalmıştı. )
         # m.5.10.3'ün ω tablosu 20 ≤ λ ≤ 250 arasında tanımlıdır: dışında ω
         # yoktur, dolayısıyla σk hesaplanamaz ve BURKULMA kontrolü düşer.
         # Hesabın tamamı durmaz — eğilme, birleşik gerilme, flanş ve sehim
@@ -101,8 +103,68 @@ class BagimsizDenetim(unittest.TestCase):
             min(mukavemet_tablolari.ray("70 x 65 x 9", "ix"), mukavemet_tablolari.ray("70 x 65 x 9", "iy")),
             370,
         )
-        self.assertEqual(lam, 258)
+        self.assertEqual(lam, math.ceil(3600 / mukavemet_tablolari.ray("70 x 65 x 9", "iy")))
+        self.assertGreater(lam, 250)
         self.assertIsNone(omega)
+
+    #  ------------------------------------------------------------------
+    #  İKİNCİ YAYIN:  Kaczmarczyk & Andrew, "The systems analysis and design of
+    #  lifts ( elevators ):  the models and assumptions appraised", 10th
+    #  Symposium on Lift & Escalator Technologies ( 2019 ), bölüm 2 — çözümlü
+    #  sayısal örnek ( liftescalatorlibrary.org, paper 00000207 ):
+    #      Q 800 kg · P 1000 kg · H 25 m · 1:1 · Dt = Dp = 560 mm · V kanal 40°
+    #      sertleştirilmiş · 4 × 13 mm 8×19 S-FC ( 80,2 kN · 0,569 kg/m ) ·
+    #      α 139,87° ( halat arası 1150, düşey 700 ) · B 0,45 · ab 1 m/s²
+    #  Yayının sonuçları:  Nequiv 11 · Sf 17,18 · uygulanan Sf' 17,54 ·
+    #  f 0,2924 / 0,2658 · e^fα 2,04 / 1,91 · T1/T2 yükleme 1,51 ( 20,256 /
+    #  13,420 kN ) · acil frenleme 1,67 ( 20,159 / 12,052 kN ).
+    #  BİLİNEN FARK:  yayın iki tarafın halatına tepe payını ( lhead 3,5 m ) da
+    #  katar;  motor MSR'yi seyirden alır ( m.5.11.2.2 · _terimler ).  T1 ve T2
+    #  aynı miktarda ( n·m·lhead·( g ± a ) — 86 / 70 N ) küçük çıkar;  oran
+    #  ikinci hanede aynıdır ve tutma koşullarında emniyetli yöndedir.
+    #  ------------------------------------------------------------------
+    def test_kaczmarczyk_andrew_2019_halat_ve_tahrik(self):
+        s = mukavemet.hesapla(
+            {
+                "beyan_yuku": 800,
+                "kabin_agirligi": 1000,
+                "seyir_mesafesi": 25,
+                "beyan_hizi": 1.0,
+                "aski_orani": 1,
+                "halat_capi": 13,
+                "halat_adedi": 4,
+                "halat_kopma_kN": 80.2,
+                "halat_birim_kutle": 0.569,
+                "tahrik_kasnak_capi": 560,
+                "saptirma_kasnak_capi": 560,
+                "kanal_sekli": "V Kanal",
+                "kasnak_gama": 40,
+                "kanal_isleme": "Sertleştirilmiş",
+                "sarilma_acisi": 139.87,
+                "acil_frenleme_a": 1.0,
+                "denge_zinciri": "Yok",
+                #  Yayın kuyu sürtünmesini hesaba katmaz
+                "_ofis": {"q_denge": 0.45, "kuyu_surtunme_kabin": 0, "kuyu_surtunme_agirlik": 0},
+            }
+        )
+        self.assertTrue(s["aktif"], s.get("hata"))
+        a = s["ara"]
+        self.assertEqual(a["aski.Nequiv_t"], 10)
+        self.assertEqual(a["aski.Nequiv"], 11)
+        self.assertAlmostEqual(a["aski.Sf"], 17.18, delta=0.005)
+        self.assertAlmostEqual(a["aski.S"], 17.54, delta=0.05)  # halat boyu kabulü
+        self.assertAlmostEqual(a["tahrik.f_yukleme"], 0.2924, places=4)
+        self.assertAlmostEqual(a["tahrik.f_frenleme"], 0.2658, places=4)
+        self.assertAlmostEqual(a["tahrik.yukleme.sinir"], 2.04, delta=0.005)
+        self.assertAlmostEqual(a["tahrik.fren_alt.sinir"], 1.91, delta=0.005)
+        self.assertAlmostEqual(a["tahrik.yukleme.oran"], 1.51, delta=0.005)
+        self.assertAlmostEqual(a["tahrik.fren_alt.oran"], 1.67, delta=0.01)
+        #  Fark yalnız tepe payının halatıdır:  n · m · lhead · ( g ± a )
+        tepe = 4 * 0.569 * 3.5
+        self.assertAlmostEqual(a["tahrik.yukleme.T1"] + tepe * 9.81, 20256, delta=5)
+        self.assertAlmostEqual(a["tahrik.yukleme.T2"] + tepe * 9.81, 13420, delta=5)
+        self.assertAlmostEqual(a["tahrik.fren_alt.T1"] + tepe * 10.81, 20159, delta=5)
+        self.assertAlmostEqual(a["tahrik.fren_alt.T2"] + tepe * 8.81, 12052, delta=5)
 
     def test_kabin_y_kacikligi_guvenlik_yukune_girmeli(self):
         # Girdinin ilan edilen anlamı kabin merkezinin y kaçıklığıdır.
