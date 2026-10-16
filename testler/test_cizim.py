@@ -1669,6 +1669,46 @@ def _md_projeler():
 
 
 class MakineDairesi(unittest.TestCase):
+    def test_merdiven_notu_panoya_binmez(self):
+        """Pano tabliyenin önündeki zemindeyse kot farkı notu panoya, çalışma
+        alanına ve ölçülerine binmez.  Eskiden hep kenarın ortasında 300
+        içerideydi:  çalışma alanının ( y 2.000 – 2.600 ) içine düşüyordu
+        ( girdi taraması, oda grubu, 17 Eki )."""
+        g = _ornek(
+            makine={"yeri": "Makine dairesi"},
+            makine_dairesi={"kapi_duvar": "Ön", "pano_duvar": "Sol", "tabliye_yuksekligi": 600},
+        )
+        self.assertEqual(makine_dairesi.dogrula(g), [])
+        Y = makine_dairesi.yerlesim(g)
+        es = [el for el in makine_dairesi.ciz(g) if el.get("ad") == "merdiven_notu"]
+        self.assertTrue(es)
+        p = makine_dairesi.NOT_PAYI
+        for el in es:
+            w, h = eleman.yazi_eni(el["metin"], el["yukseklik"]) / 2.0, 0.6 * el["yukseklik"]
+            yazi = (el["x"] - w, el["y"] - h, el["x"] + w, el["y"] + h)
+            for k in (Y["pano"], Y["calisma"]):
+                self.assertFalse(ortusur(yazi, (k[0] - p, k[1] - p, k[2] + p, k[3] + p)), (el["metin"], k))
+
+    def test_merdiven_notu_odanin_icinde(self):
+        """Kot farkı notu odanın içinde kalır:  dar odada iki satır.  Eskiden hep
+        tek satırdı — 2.100'lük odada iki yandaki duvarın içine taşıyordu
+        ( 63444-2 A BLOK, 17 Eki ).  Örnekte 2.200:  2.100'lük odaya örneğin
+        kaidesi ayak plakalarıyla sığmaz ( PR #26 )."""
+        for gen, x, satir in ((2200, -50, 2), (2600, -250, 1)):
+            with self.subTest(oda=gen):
+                g = _ornek(
+                    makine={"yeri": "Makine dairesi"},
+                    makine_dairesi={"genislik": gen, "x": x, "tabliye_yuksekligi": 1500},
+                )
+                self.assertEqual(makine_dairesi.dogrula(g), [])
+                oda = makine_dairesi.yerlesim(g)["oda"]
+                es = [el for el in makine_dairesi.ciz(g) if el.get("ad") == "merdiven_notu"]
+                self.assertEqual(len(es), satir)
+                for el in es:
+                    w = eleman.yazi_eni(el["metin"], el["yukseklik"]) / 2.0
+                    self.assertGreater(el["x"] - w, oda[0], el["metin"])
+                    self.assertLess(el["x"] + w, oda[2], el["metin"])
+
     def test_ornekler_gecerli(self):
         for ad, g in _md_projeler():
             with self.subTest(proje=ad):

@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
-"""GİRDİ TARAMASI — 378 standart düzen programın yolundan geçer.
+"""GİRDİ TARAMASI — 414 standart düzen ve 96 makine dairesi yerleşimi programın
+yolundan geçer.
 
 Her düzen formun isteği gibi api_cizimler'e gider;  çizilirse paftanın bütün
 çizimleri kurulur ve denetlenir:  ölçü zincirleri kapanıyor mu, yazılar
-birbirine, parçalara, parça kenarlarına binmiyor mu, NaN var mı.  Hükümler
+birbirine, parçalara, parça kenarlarına binmiyor mu, NaN var mı, çizim fiziksel
+olarak tutarlı mı ( araclar/fiziksel.py ).  Hükümler
 ( çizildi / ret ve ret sebebi ) depodaki kayıtla ( testler/tarama_hukumleri.json )
 karşılaştırılır:  beklenmeyen bir hüküm değişikliği ya da sorunlu bir düzen
 taramayı BAŞARISIZ yapar.
 
-    .venv/bin/python -m araclar.tarama                 üç grup ( ana · kapi · diger )
+    .venv/bin/python -m araclar.tarama                 dört grup ( ana · kapi · diger · oda )
     .venv/bin/python -m araclar.tarama kapi            tek grup
     .venv/bin/python -m araclar.tarama --yenile        hüküm kaydını yeniden yazar
 
@@ -29,6 +31,7 @@ import yollar
 
 yollar.kur()
 
+from araclar import fiziksel
 from araclar import kesisme
 from cizim import cizimler
 from cizim import geometri
@@ -38,7 +41,7 @@ from testler import test_yerlesim_saglamligi
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CIKTI = os.path.join(KOK, "cikti", "tarama")
 HUKUMLER = os.path.join(KOK, "testler", "tarama_hukumleri.json")
-GRUPLAR = ("ana", "kapi", "diger")
+GRUPLAR = ("ana", "kapi", "diger", "oda")
 
 PARCA = set(geometri.PARCA_KATMANLARI) | {"KAPI", "AGIRLIK", "KASNAK"}
 #  Yazının üstünden geçebilecek ( maskeyle kesilecek ) çizgiler:  eksen, ölçü
@@ -108,6 +111,7 @@ def denetle(g):
                 for a in ("x", "y", "g", "d", "x1", "y1", "x2", "y2", "r")
             ):
                 sorun.append(f"{c}: NaN {el.get('ad')}")
+        sorun += fiziksel.sorunlar(g, c, e)
     return sorun
 
 
@@ -190,6 +194,26 @@ def duzenler(grup):
                                 beyan_hizi=hiz,
                             )
                             yield f"{Q} üst={su} dip={sd} {mont} v={hiz}", v
+    elif grup == "oda":
+        #  MAKİNE DAİRESİNİN YERİ ( 17 Eki ):  oda kuyunun önüne taşar, kapısı
+        #  ve panosu dört duvarda, tabliye alçak / yüksek.  Ana grupta oda hep
+        #  kendi yerindedir:  kuyunun içine inen oda duvarı, duvara giren kaide
+        #  plakası, betonun içinden çizilen pano bu grupta bulundu ( PR #26 ).
+        for Q in (630, 1275):
+            for yer in ("Sağ", "Sol"):
+                for y in (None, -1000, -2200):
+                    for kapi, pano in (("Arka", "Sağ"), ("Ön", "Sol"), ("Sol", "Ön"), ("Sağ", "Arka")):
+                        for tabliye in (600, 1500):
+                            v = test_yerlesim_saglamligi.standart_istek(
+                                Q, False, yer, tabliye_yuksekligi=tabliye
+                            )
+                            pg = v["proje_geneli"]
+                            #  3.700:  1.500'lük tabliyenin üstünde 2.200 ( makinenin başında
+                            #  en az 2.100 — m.5.2.6.3.2.1;  3.500'de 35 düzen bundan reddediliyordu )
+                            pg.update(md_kapi_duvar=kapi, md_pano_duvar=pano, md_yukseklik=3700)
+                            if y is not None:
+                                pg["md_y"] = y
+                            yield f"{Q} {yer} y={y} kapı={kapi} pano={pano} tabliye={tabliye}", v
     else:
         raise ValueError(f"bilinmeyen grup:  {grup!r} — {GRUPLAR}")
 

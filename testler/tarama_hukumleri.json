@@ -1660,5 +1660,391 @@
    "durum": "ret",
    "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
   }
+ },
+ "oda": {
+  "1275 Sağ y=-1000 kapı=Arka pano=Sağ tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=-1000 kapı=Arka pano=Sağ tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=-1000 kapı=Sağ pano=Arka tabliye=1500": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla arka duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "1275 Sağ y=-1000 kapı=Sağ pano=Arka tabliye=600": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla arka duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "1275 Sağ y=-1000 kapı=Sol pano=Ön tabliye=1500": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla ön duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "1275 Sağ y=-1000 kapı=Sol pano=Ön tabliye=600": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla ön duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "1275 Sağ y=-1000 kapı=Ön pano=Sol tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=-1000 kapı=Ön pano=Sol tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=-2200 kapı=Arka pano=Sağ tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=-2200 kapı=Arka pano=Sağ tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=-2200 kapı=Sağ pano=Arka tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=-2200 kapı=Sağ pano=Arka tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=-2200 kapı=Sol pano=Ön tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=-2200 kapı=Sol pano=Ön tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=-2200 kapı=Ön pano=Sol tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=-2200 kapı=Ön pano=Sol tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=None kapı=Arka pano=Sağ tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=None kapı=Arka pano=Sağ tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=None kapı=Sağ pano=Arka tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=None kapı=Sağ pano=Arka tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=None kapı=Sol pano=Ön tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=None kapı=Sol pano=Ön tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=None kapı=Ön pano=Sol tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sağ y=None kapı=Ön pano=Sol tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=-1000 kapı=Arka pano=Sağ tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=-1000 kapı=Arka pano=Sağ tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=-1000 kapı=Sağ pano=Arka tabliye=1500": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla arka duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "1275 Sol y=-1000 kapı=Sağ pano=Arka tabliye=600": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla arka duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "1275 Sol y=-1000 kapı=Sol pano=Ön tabliye=1500": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla ön duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "1275 Sol y=-1000 kapı=Sol pano=Ön tabliye=600": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla ön duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "1275 Sol y=-1000 kapı=Ön pano=Sol tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=-1000 kapı=Ön pano=Sol tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=-2200 kapı=Arka pano=Sağ tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=-2200 kapı=Arka pano=Sağ tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=-2200 kapı=Sağ pano=Arka tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=-2200 kapı=Sağ pano=Arka tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=-2200 kapı=Sol pano=Ön tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=-2200 kapı=Sol pano=Ön tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=-2200 kapı=Ön pano=Sol tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=-2200 kapı=Ön pano=Sol tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=None kapı=Arka pano=Sağ tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=None kapı=Arka pano=Sağ tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=None kapı=Sağ pano=Arka tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=None kapı=Sağ pano=Arka tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=None kapı=Sol pano=Ön tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=None kapı=Sol pano=Ön tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=None kapı=Ön pano=Sol tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1275 Sol y=None kapı=Ön pano=Sol tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ y=-1000 kapı=Arka pano=Sağ tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ y=-1000 kapı=Arka pano=Sağ tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ y=-1000 kapı=Sağ pano=Arka tabliye=1500": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla arka duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "630 Sağ y=-1000 kapı=Sağ pano=Arka tabliye=600": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla arka duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "630 Sağ y=-1000 kapı=Sol pano=Ön tabliye=1500": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla ön duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "630 Sağ y=-1000 kapı=Sol pano=Ön tabliye=600": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla ön duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "630 Sağ y=-1000 kapı=Ön pano=Sol tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ y=-1000 kapı=Ön pano=Sol tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ y=-2200 kapı=Arka pano=Sağ tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ y=-2200 kapı=Arka pano=Sağ tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ y=-2200 kapı=Sağ pano=Arka tabliye=1500": {
+   "durum": "ret",
+   "sebep": "Makinenin başında 0,50 × 0,60 m bakım alanı kalmıyor ( TS EN 81-20 m.5.2.6.3.2.1 b )."
+  },
+  "630 Sağ y=-2200 kapı=Sağ pano=Arka tabliye=600": {
+   "durum": "ret",
+   "sebep": "Makinenin başında 0,50 × 0,60 m bakım alanı kalmıyor ( TS EN 81-20 m.5.2.6.3.2.1 b )."
+  },
+  "630 Sağ y=-2200 kapı=Sol pano=Ön tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ y=-2200 kapı=Sol pano=Ön tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ y=-2200 kapı=Ön pano=Sol tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ y=-2200 kapı=Ön pano=Sol tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ y=None kapı=Arka pano=Sağ tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ y=None kapı=Arka pano=Sağ tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ y=None kapı=Sağ pano=Arka tabliye=1500": {
+   "durum": "ret",
+   "sebep": "Makine dairesi kapısının önü tabliyenin kenarına denk geliyor:  kapının önündeki geçiş tek kotta olmalı — kapının yerini değiştirin."
+  },
+  "630 Sağ y=None kapı=Sağ pano=Arka tabliye=600": {
+   "durum": "ret",
+   "sebep": "Makine dairesi kapısının önü tabliyenin kenarına denk geliyor:  kapının önündeki geçiş tek kotta olmalı — kapının yerini değiştirin."
+  },
+  "630 Sağ y=None kapı=Sol pano=Ön tabliye=1500": {
+   "durum": "ret",
+   "sebep": "Makine dairesi kapısının önü tabliyenin kenarına denk geliyor:  kapının önündeki geçiş tek kotta olmalı — kapının yerini değiştirin."
+  },
+  "630 Sağ y=None kapı=Sol pano=Ön tabliye=600": {
+   "durum": "ret",
+   "sebep": "Makine dairesi kapısının önü tabliyenin kenarına denk geliyor:  kapının önündeki geçiş tek kotta olmalı — kapının yerini değiştirin."
+  },
+  "630 Sağ y=None kapı=Ön pano=Sol tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ y=None kapı=Ön pano=Sol tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=-1000 kapı=Arka pano=Sağ tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=-1000 kapı=Arka pano=Sağ tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=-1000 kapı=Sağ pano=Arka tabliye=1500": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla arka duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "630 Sol y=-1000 kapı=Sağ pano=Arka tabliye=600": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla arka duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "630 Sol y=-1000 kapı=Sol pano=Ön tabliye=1500": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla ön duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "630 Sol y=-1000 kapı=Sol pano=Ön tabliye=600": {
+   "durum": "ret",
+   "sebep": "Kumanda panosu önündeki 700 mm çalışma alanıyla ön duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
+  },
+  "630 Sol y=-1000 kapı=Ön pano=Sol tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=-1000 kapı=Ön pano=Sol tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=-2200 kapı=Arka pano=Sağ tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=-2200 kapı=Arka pano=Sağ tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=-2200 kapı=Sağ pano=Arka tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=-2200 kapı=Sağ pano=Arka tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=-2200 kapı=Sol pano=Ön tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=-2200 kapı=Sol pano=Ön tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=-2200 kapı=Ön pano=Sol tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=-2200 kapı=Ön pano=Sol tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=None kapı=Arka pano=Sağ tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=None kapı=Arka pano=Sağ tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=None kapı=Sağ pano=Arka tabliye=1500": {
+   "durum": "ret",
+   "sebep": "Makine dairesi kapısının önü tabliyenin kenarına denk geliyor:  kapının önündeki geçiş tek kotta olmalı — kapının yerini değiştirin."
+  },
+  "630 Sol y=None kapı=Sağ pano=Arka tabliye=600": {
+   "durum": "ret",
+   "sebep": "Makine dairesi kapısının önü tabliyenin kenarına denk geliyor:  kapının önündeki geçiş tek kotta olmalı — kapının yerini değiştirin."
+  },
+  "630 Sol y=None kapı=Sol pano=Ön tabliye=1500": {
+   "durum": "ret",
+   "sebep": "Makine dairesi kapısının önü tabliyenin kenarına denk geliyor:  kapının önündeki geçiş tek kotta olmalı — kapının yerini değiştirin."
+  },
+  "630 Sol y=None kapı=Sol pano=Ön tabliye=600": {
+   "durum": "ret",
+   "sebep": "Makine dairesi kapısının önü tabliyenin kenarına denk geliyor:  kapının önündeki geçiş tek kotta olmalı — kapının yerini değiştirin."
+  },
+  "630 Sol y=None kapı=Ön pano=Sol tabliye=1500": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol y=None kapı=Ön pano=Sol tabliye=600": {
+   "durum": "çizildi",
+   "sebep": ""
+  }
  }
 }

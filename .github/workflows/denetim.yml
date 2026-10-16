@@ -6,7 +6,7 @@
 #
 #    PR ve elle başlatma ( Actions → Denetim → Run workflow ):
 #      tam      lint + biçim, hesap, bütün çizim testleri ( yavaş dahil ), node
-#      tarama   378 düzenin hükmü kayıtla ( testler/tarama_hukumleri.json )
+#      tarama   510 düzenin hükmü kayıtla ( testler/tarama_hukumleri.json ), yazı ve fiziksel tutarlılık
 #      arayuz   gerçek tarayıcıyla formu doldurup çıktıları denetler ( ~30 dk )
 #    main'e push:  yalnız hızlı denetim ( PR'da hepsi zaten koştu )
 #

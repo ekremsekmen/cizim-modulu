@@ -7,7 +7,7 @@
     .venv/bin/python kontrol.py tam        hızlı + yavaş test ( ~9 dk — o tek test 7 dk )
     .venv/bin/python kontrol.py arayuz     arayüz testleri:  programı 8790'da
                                            açar, testleri koşar, kapatır ( ~20 dk )
-    .venv/bin/python kontrol.py tarama     girdi taraması ( 378 düzen;  ~4 dk )
+    .venv/bin/python kontrol.py tarama     girdi taraması ( 510 düzen;  ~5 dk )
     .venv/bin/python kontrol.py bicim      ruff format + ruff check --fix ( düzeltir )
 
 Çizim testleri pytest ile paralel koşar:  KONTROL_IS işçi ( varsayılan 4 —
