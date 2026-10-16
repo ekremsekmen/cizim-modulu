@@ -280,8 +280,16 @@ def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar, dis=None):
         #  Okun başladığı nokta bir yazının payının içindeyse ( yazı noktaya
         #  bitişik ) o yazı paysız sayılır:  yoksa noktadan çıkan her ok onu
         #  "kesiyor" sayılıyor, kutuya aday kalmıyordu ( yazılar büyüyünce, 5 Eki )
+        #  Nokta bir yazının ALTINDAYSA ( içinde ) her ok o yazıyı keser:  o
+        #  yazı ok için engel sayılmaz ( None ) — saymak kutuyu yersiz bırakıp
+        #  bütün çizimi durduruyordu.  Kutunun kendisi yine yazıya binemez.
         okp = [
-            0.0 if (b[0] - 15 <= px <= b[2] + 15 and b[1] - 15 <= py <= b[3] + 15) else 15.0 for b in yazilar
+            None
+            if (b[0] < px < b[2] and b[1] < py < b[3])
+            else 0.0
+            if (b[0] - 15 <= px <= b[2] + 15 and b[1] - 15 <= py <= b[3] + 15)
+            else 15.0
+            for b in yazilar
         ]
         sira = sorted(yonler, key=lambda u: -(u[0] * ox + u[1] * oy) / (u[0] ** 2 + u[1] ** 2) ** 0.5)
         for L in (220, 285, 350, 425, 500, 575, 650, 725, 800, 900, 1000, 1100, 1200, 1400) + (
@@ -309,7 +317,7 @@ def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar, dis=None):
                     ):
                         continue
                 if any(ortusur(k, b, 20) for b in kutular + yazilar) or any(
-                    _kesisir(p, q, b, pay) for b, pay in zip(yazilar, okp)
+                    pay is not None and _kesisir(p, q, b, pay) for b, pay in zip(yazilar, okp)
                 ):
                     continue
                 yield q, k
@@ -823,7 +831,7 @@ def ciz(g, cizim_sabitleri=None):
     #  Kat kapısı:  yalnız yer göstermek için, kesik ( kabin bu kesitte yok )
     kp = g["kapi"]
     e.append(eleman.ad(eleman.dikdortgen("GIZLI", kp["sol_pay"], -don, kp["genislik"], don), "kapi_izi"))
-    e += _donanim(Y, G)
+    e += _donanim(Y, G, _engeller(e)[0])
 
     #  ── YAZILAR ──────────────────────────────────────────────────────
     #  Kuyu tabanına yük aktaran noktalar ( kutuları en sonda, ölçülerden sonra
@@ -872,9 +880,29 @@ def ciz(g, cizim_sabitleri=None):
     return e
 
 
-def _donanim(Y, G):
+def _merdiven_yazisi(m, ic, G, parcalar):
+    """MERDİVEN yazısı:  sığıyorsa merdivenin içine, sığmıyorsa kuyunun içine
+    doğru yanına ( 110 mm ).  Yanındaki yer bir parçanın ( ağırlık rayı,
+    konsol, tampon ) üstüne düşüyorsa yazı aynı doğrultuda dışarı kayar:
+    175 – 190 mm'lik merdivende yazı ağırlık rayının ayağını örtüyor, oradaki
+    yük noktasından çıkan her ok onu kestiği için yük kutusu yer bulamıyor ve
+    bütün çizim duruyordu ( 150'de de rayın üstündeydi )."""
+    cx, cy = kutu_merkezi(m)
+    yon = 1.0 if m[0] < G / 2 else -1.0
+    yazilar = [
+        eleman.yazi(cx + yon * d, cy, "MERDİVEN", uslup.NORMAL, aci=90)
+        for d in ((0.0,) if ic else (110.0, 180.0, 250.0, 320.0, 390.0))
+    ]
+    return next(
+        (y for y in yazilar if not any(ortusur(geometri.sinir([y]), p) for p in parcalar)),
+        yazilar[0],
+    )
+
+
+def _donanim(Y, G, parcalar=()):
     """Tamponlar ( taban plakası + gövde ), perde, regülatör gergisi ve
-    donanımı, merdiven, sığınma alanı."""
+    donanımı, merdiven, sığınma alanı.  ``parcalar``:  plandan gelen parçaların
+    kutuları ( raylar, konsollar — merdiven yazısı onlara binmesin )."""
     S = Y["S"]
     e = []
     for liste, ad in ((Y["kabin_tamponlari"], "kabin_tamponu"), (Y["agirlik_tamponlari"], "agirlik_tamponu")):
@@ -904,21 +932,14 @@ def _donanim(Y, G):
         )
     m = Y["merdiven"]
     if m:
+        engel = list(parcalar) + _engeller(e)[0]  # merdivenin kendisi değil
         e.append(eleman.ad(eleman.dikdortgen("MERDIVEN", m[0], m[1], m[2] - m[0], m[3] - m[1]), "merdiven"))
         #  Etiket sığıyorsa merdivenin içine:  yanına yazılınca sığınma alanının
         #  ölçüsüne biniyordu
         ic = (
             eleman.yazi_eni("MERDİVEN", uslup.NORMAL) <= m[3] - m[1] - 40 and uslup.NORMAL <= m[2] - m[0] - 20
         )
-        e.append(
-            eleman.yazi(
-                kutu_merkezi(m)[0] + (0 if ic else 110 if m[0] < G / 2 else -110),
-                kutu_merkezi(m)[1],
-                "MERDİVEN",
-                uslup.NORMAL,
-                aci=90,
-            )
-        )
+        e.append(_merdiven_yazisi(m, ic, G, engel))
     sg = Y["siginma"]
     if sg:
         e.append(

@@ -3570,6 +3570,25 @@ def calistir():
         )
         pg.fill("#m_kuyu_genisligi", str(_kg))
         pg.wait_for_timeout(1500)
+        #  BAĞLANTI KOPUNCA ÇİZİM "GÜNCELLENMEDİ" ( yayın denetimi, 16 Eki ):  hesap
+        #  isteği sunucuya ulaşamayınca form yeni değeri, çizim eskisini
+        #  gösteriyordu ve hata yalnız ( görünmeyen ) hesap panelindeydi.
+        _eski = "document.getElementById('m_tuval').classList.contains('eski')"
+        pg.route("**/api/uygulama/coklu", lambda rota: rota.abort())
+        pg.fill("#m_kuyu_genisligi", str(_kg + 100))
+        pg.wait_for_function("!document.getElementById('m_tuval_hata').hidden", timeout=30000)
+        r.kontrol(
+            "bağlantı kopunca çizim yerinde, 'güncellenmedi' diye işaretli",
+            pg.evaluate("document.querySelectorAll('#m_cizimler figure.cizim').length") == _sekil
+            and pg.evaluate(_eski)
+            and "Bağlantı hatası" in pg.inner_text("#m_tuval_hata"),
+            f"→ {pg.inner_text('#m_tuval_hata')[:160]!r}",
+        )
+        pg.unroute("**/api/uygulama/coklu")
+        pg.fill("#m_kuyu_genisligi", str(_kg))
+        pg.wait_for_function("document.getElementById('m_tuval_hata').hidden", timeout=30000)
+        r.kontrol("bağlantı gelince 'güncellenmedi' işareti kalkıyor", not pg.evaluate(_eski))
+        pg.wait_for_timeout(1500)
         pg.evaluate("mGorunumSec('hesap')")
 
         pg.emulate_media(media="print")

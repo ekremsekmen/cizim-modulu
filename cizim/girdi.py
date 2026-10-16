@@ -451,6 +451,17 @@ def _agirlik_raylari(g, S, K):
             f"Karşı ağırlık genişliği ({ag['genislik']:g}) ağırlık rayları arasından "
             f"( DBGW {ag['ray_arasi']:g} ) küçük olmalı — çerçeve iki rayın arasında durur."
         )
+    #  ÇERÇEVENİN İÇİ:  dolgu ve kasnak iki çerçeve profilinin arasında durur
+    #  ( geometri._agirlik_blogu:  iç ölçü = dış − 2 × agirlik_cerceve ).  İç
+    #  ölçü sıfır ya da eksiyken plan ve kesit eksi enli dolgu ve kasnak çizip
+    #  paketi üretiyordu ( Gx 60, çerçeve 40 → −20 ).
+    cer = S["agirlik_cerceve"]
+    for ad, olcu in (("derinliği ( Gx )", ag["derinlik"]), ("genişliği", ag["genislik"])):
+        if olcu <= 2 * cer:
+            hata.append(
+                f"Karşı ağırlık {ad} {olcu:g} mm:  çerçeve profilinin iki kalınlığından "
+                f"( 2 × {cer:g} = {2 * cer:g} ) büyük olmalı — dolguya ve kasnağa yer kalmıyor."
+            )
     ray_yari = ag["ray_arasi"] / 2.0 + ag["h"] + S["konsol_agirlik_boy"] / 2.0
     if ag["yeri"] in ("Sağ", "Sol"):
         ex, ag_y = K["ex"], K["ag_y"]
