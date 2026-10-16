@@ -2083,7 +2083,9 @@ class KuyuKesitleri(unittest.TestCase):
         #  referans proje kesitlerinin vektörlerinden ölçülenler:  tavandan makine
         #  kapağının üstü 250, tahrik kasnağı merkezi 446, şase 595 – 795;
         #  şasenin altındaki raylar 650'de biter, regülatör kasnağı 462,
-        #  gergi kasnağı tabandan 520, karşı ağırlık çerçevesi 2.920.
+        #  karşı ağırlık çerçevesi 2.920.  Gergi kasnağı tabandan 397 ( eskiden
+        #  referans projenin 520'si — kollu gergide plaka en alt konsola çakışıyordu;
+        #  PFB kılavuzu:  plakanın altı ~260 ).
         g = _ornek()
         Y = dusey.yerlesim(g)
         M = Y["M"]
@@ -2101,7 +2103,7 @@ class KuyuKesitleri(unittest.TestCase):
         #  payın alt yüzüne tam değiyordu:  150 )
         self.assertEqual(ustler, [200, 650, 650, 650])
         self.assertEqual(T - M["regulator_kasnak"][4], 462)
-        self.assertEqual(M["gergi"]["merkez"] - Y["taban"], 520)
+        self.assertEqual(M["gergi"]["merkez"] - Y["taban"], 397)
         self.assertEqual(parca_kotlari.agirlik_kotlari(M, 0)["ust"], 2920)
 
     def test_konsollar_ve_ekler(self):

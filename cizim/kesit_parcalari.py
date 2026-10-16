@@ -23,6 +23,7 @@ from cizim import makine
 from cizim import kabin_ustu
 from cizim import baglantilar
 from cizim import parca_kotlari
+from cizim import parcalar
 import math
 
 
@@ -129,10 +130,10 @@ def ray(e, B, r, S, ad):
             ek["_ray"] = ad  # kabin_arkasi:  eki rayıyla birlikte
 
 
-def konsollar(e, B, parcalar, kotlar, S, ad):
+def konsollar(e, B, kutular, kotlar, S, ad):
     """Her konsol kotunda konsolun plandaki parçaları ( plaka, kol, ara kiriş )."""
     for z in kotlar:
-        for p in parcalar:
+        for p in kutular:
             B.kutu(e, "KONSOL", p, z - S["konsol_yukseklik"], z, ad)
 
 
@@ -272,11 +273,11 @@ def _ray_ve_dip_gruplari(B, g, Y, P, kabin_ezilme):
     ag_raylari = [r for r in M["raylar"] if r["tur"] == "agirlik"]
     kabin_raylari = [r for r in M["raylar"] if r["tur"] == "kabin"]
     uzak = max(kabin_raylari, key=lambda r: r["ust"])
-    for parcalar, kotlar, ad in (
+    for konsol_kutulari, kotlar, ad in (
         (P["konsol_agirlik"], ag_raylari[0]["konsollar"], "agirlik_konsolu"),
         (P["konsol_kabin"], uzak["konsollar"], "kabin_konsolu"),
     ):
-        for p in parcalar:
+        for p in konsol_kutulari:
             el = []
             konsollar(el, B, [p], kotlar, S, ad)
             gruplar.append((p, el))
@@ -289,22 +290,74 @@ def _ray_ve_dip_gruplari(B, g, Y, P, kabin_ezilme):
             el = []
             tamponlar(el, B, [k], taban, baba, boy, ezilme, S, ad)
             gruplar.append((k, el))
-    gr = M["gergi"]
-    gp = gr["plan"]
-    rgx = (gp[0] + gp[2]) / 2.0
-    kol = (gp[0], gr["kol"][0], gp[2], gr["kol"][1])
+    return gruplar + _gergi_gruplari(B, Y)
+
+
+#  Kesitte gerginin parçaları:  ad · katman · zarfın plan adı ( kuyu dibi )
+_GERGI_PARCALARI = (
+    ("plaka", "KONSOL", "gergi_plakasi"),
+    ("kontak", "MAKINE", "gergi_kontagi"),
+    ("kol", "KONSOL", "gergi_kolu"),
+    ("agirlik", "MAKINE", "gergi_agirligi"),
+)
+
+
+def _gergi_gruplari(B, Y):
+    """Regülatör gergisi ( R4K tipi kollu — parcalar.gergi_geometrisi ):  [ ( plan
+    kutusu, elemanlar ) ].  Kasnağın düzlemi bakışa dikse ( yan ) gerçek biçimi:
+    olukları ile raya bağlantı plakası, güvenlik kontağı, eğik kol, mafsal ve
+    pim, oluk dibiyle kasnak, koruma kapağı, askılı ağırlık.  Öbür bakışta
+    ( ön ) parçalar yandan, kalınlıklarıyla ( zarflar ).  Zarflar kuyu dibinin
+    zarflarıdır:  denetim ile çizim aynı kutuyu kullanır."""
+    gr, gd = Y["M"]["gergi"], Y["KD"]["gergi_donanim"]
+    gp, zc, geo, yon = gr["plan"], gr["merkez"], gr["geo"], gr["yon"]
+    gx, gy = (gp[0] + gp[2]) / 2.0, (gp[1] + gp[3]) / 2.0
+    duz = B.tur == "yan"
+
+    def nok(p):  # kasnağa göre ( s, z ) → bakışın ( u, z )
+        return (B.u(gx, gy + yon * p[0]), zc + p[1])
+
+    gruplar = []
+    for ad, katman, adi in _GERGI_PARCALARI:
+        el = []
+        k = B.kutu(el, katman, gd[ad], gr[ad][2], gr[ad][3], adi)
+        if k is not None and duz:
+            cokgen = _dortgen(geo[ad]) if ad == "kontak" else geo[ad]
+            k["bicim"] = [{"noktalar": [nok(p) for p in cokgen]}] + (
+                [{"noktalar": [nok(p) for p in o], "ince": True} for o in geo["oluklar"]]
+                if ad == "plaka"
+                else []
+            )
+            #  Mafsal ( plakada ) ve pim ( ağırlığın askısı ) — kolun üstünde
+            if ad == "kol":
+                for p, r in (
+                    (geo["mafsal"], parcalar.GERGI_GOBEK[0]),
+                    (geo["pim"], parcalar.GERGI_GOBEK[0] / 2.0),
+                ):
+                    u, z = nok(p)
+                    el.append(B.derin_kutu(eleman.ad(eleman.daire("KONSOL", u, z, r), adi), gd[ad]))
+        gruplar.append((gd[ad], el))
     el = []
-    B.kutu(el, "KONSOL", kol, gr["kol"][2], gr["kol"][3], "gergi_kolu")
-    gruplar.append((kol, el))
-    ge = S["gergi_agirlik_eni"]  # duvara dik eni
-    agr = (rgx - ge / 2.0, gr["agirlik"][0], rgx + ge / 2.0, gr["agirlik"][1])
-    el = []
-    B.kutu(el, "MAKINE", agr, gr["agirlik"][2], gr["agirlik"][3], "gergi_agirligi")
-    gruplar.append((agr, el))
-    el = []
-    kasnak(el, B, gp, gr["merkez"], gr["cap"], "y", "gergi_kasnagi")
+    kasnak(el, B, gp, zc, gr["cap"], "y", "gergi_kasnagi")
+    if duz and B.gorunur(gp):
+        u, _z = nok((0.0, 0.0))
+        for r, katman in ((gr["cap"] / 2.0 - 10.0, "KASNAK"), (parcalar.GERGI_GOBEK[1], "KASNAK")):
+            el.append(B.derin_kutu(eleman.ad(eleman.daire(katman, u, zc, r), "gergi_kasnagi"), gp))
+        pts = [nok(p) for p in geo["kapak"]]
+        us, zs = [p[0] for p in pts], [p[1] for p in pts]
+        k = eleman.ad(
+            eleman.dikdortgen("KASNAK", min(us), min(zs), max(us) - min(us), max(zs) - min(zs)),
+            "gergi_kapagi",
+        )
+        k["bicim"] = [{"noktalar": pts, "kapali": False}]
+        el.append(B.derin_kutu(k, gp))
     gruplar.append((gp, el))
     return gruplar
+
+
+def _dortgen(k):
+    s0, s1, z0, z1 = k
+    return [(s0, z0), (s1, z0), (s1, z1), (s0, z1)]
 
 
 def _agirlik_gruplari(B, g, S, M, P, AK, K):
@@ -559,14 +612,14 @@ def _kutu_farki(el, S):
     x0, y0, x1, y1 = el["x"], el["y"], el["x"] + el["g"], el["y"] + el["d"]
     if not (x0 < S[2] and S[0] < x1 and y0 < S[3] and S[1] < y1):
         return [el]
-    parcalar = [
+    kalanlar = [
         (x0, y0, x1, S[1]),
         (x0, S[3], x1, y1),  # alt · üst
         (x0, max(y0, S[1]), S[0], min(y1, S[3])),
         (S[2], max(y0, S[1]), x1, min(y1, S[3])),
     ]
     cikti = []
-    for a, b, c, d in parcalar:
+    for a, b, c, d in kalanlar:
         if c - a > 1e-6 and d - b > 1e-6:
             yeni = dict(el, x=a, y=b, g=c - a, d=d - b)
             cikti.append(yeni)

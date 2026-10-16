@@ -109,25 +109,27 @@ def yerlesim(g, S, H, tavan, taban):
         hata.extend(oda)
 
     #  ── GERGİ DÜZENİ ( kuyu dibi ) ──────────────────────────────────────
+    #  R4K tipi kollu gergi ( kuyu_dibi.gergi_geometrisi ):  plan zarfları
+    #  kuyu dibinden, kotlar kasnağın merkezinden ( geometrinin kökü ).
     gp = KD["gergi_donanim"]
-    kol = (gp["kol"][1], gp["kol"][3])
-    agr = (gp["agirlik"][1], gp["agirlik"][3])
+    zc = taban + S["gergi_kasnak_merkez"]
+    geo = kuyu_dibi.gergi_geometrisi(S, KD["gergi"])
+    yon, yan = kuyu_dibi.gergi_yonu(g, KD["gergi"])
+    K = geo["kutular"]
     M["gergi"] = {
-        "merkez": taban + S["gergi_kasnak_merkez"],
+        "merkez": zc,
         "cap": g["kuyu_dibi"]["regulator_kasnak_capi"],
-        "kol": (
-            kol[0],
-            kol[1],
-            taban + S["gergi_kol_alt"],
-            taban + S["gergi_kol_alt"] + S["gergi_kol_yukseklik"],
-        ),
-        "agirlik": (
-            agr[0],
-            agr[1],
-            taban + S["gergi_agirlik_alt"],
-            taban + S["gergi_agirlik_alt"] + S["gergi_agirlik_yukseklik"],
-        ),
         "plan": KD["gergi"],
+        "yon": yon,
+        "yan": yan,
+        "geo": geo,
+        #  ( y0 , y1 , z0 , z1 ) — planın y aralığı, kesitin kotları
+        **{
+            ad: (gp[ad][1], gp[ad][3], zc + K[ad][2], zc + K[ad][3])
+            for ad in ("kol", "agirlik", "plaka", "kontak")
+        },
+        #  En yüksek noktası ( koruma kapağı ya da ağırlığın askısı ):  m.5.2.5.8.2 b
+        "tepe": zc + geo["tepe"],
     }
     #  ── RAYLAR:  konsollar ve ekler ─────────────────────────────────────
     M["raylar"] = [
@@ -143,6 +145,7 @@ def yerlesim(g, S, H, tavan, taban):
         }
         for tur, kutu, ust in M["raylar"]
     ]
+    hata += _gergi_konsolda(M, S, taban)
     #  ── KARŞI AĞIRLIK ────────────────────────────────────────────────────
     #  Çerçevenin yüksekliği hesabın ağırlık paten arasıdır ( kabin şasesi gibi )
     M["agirlik"] = {
@@ -154,6 +157,28 @@ def yerlesim(g, S, H, tavan, taban):
         "tampon_ustu": taban + dy["agirlik_tampon_baba"] + dy["agirlik_tampon_boyu"],
     }
     return M
+
+
+def _gergi_konsolda(M, S, taban):
+    """Gerginin plakası ve kontağı bağlı olduğu kabin rayının arkasındadır,
+    konsollar gibi:  planda hep üst üste ( kuyu dibi planı yüksekliği bilmez );
+    kotları konsollarınkine binmemeli."""
+    gr = M["gergi"]
+    gx = (gr["plan"][0] + gr["plan"][2]) / 2.0
+    ray = next((r for r in M["raylar"] if r["tur"] == "kabin" and r["kutu"][0] <= gx <= r["kutu"][2]), None)
+    hata = []
+    for ad in ("plaka", "kontak") if ray else ():
+        z0, z1 = gr[ad][2], gr[ad][3]
+        for z in ray["konsollar"]:
+            if z0 < z and z - S["konsol_yukseklik"] < z1:
+                hata.append(
+                    f"Regülatör gergisinin {kuyu_dibi.GERGI_PARCA[ad]} kabin rayının konsoluna "
+                    f"çarpıyor:  konsol tabandan {z - S['konsol_yukseklik'] - taban:g} – {z - taban:g}, "
+                    f"{kuyu_dibi.GERGI_PARCA[ad]} {z0 - taban:.0f} – {z1 - taban:.0f} — Sabitler:  "
+                    "gergi kasnağının yüksekliği ya da ilk konsol."
+                )
+                break
+    return hata
 
 
 def _kuyu_ustundeki_makine(g, S, tavan, M, kabin_raylari, agirlik_raylari):

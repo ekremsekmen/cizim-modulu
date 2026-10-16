@@ -78,8 +78,10 @@ SABIT = {
     #  paftasından ölçüldü ( ~100 mm gövde, ~150 mm kare taban ).
     "tampon_capi": 100,
     "tampon_taban": 150,
-    #  Regülatör gergi kasnağının planda görünen eni ( referans proje:  ~67 mm ).
-    "gergi_kasnak_eni": 65,
+    #  Regülatör gergisinin kasnağı ve kolu planda:  iki lama, aralarında kasnak
+    #  ( PFB R4K planı:  45 — parcalar.GERGI_* ).  Eskiden 65 ( referans projenin
+    #  sembolü ).
+    "gergi_kasnak_eni": 45,
     #  Kuyu dibi merdiveni  ( TS EN 81-20 Ek F ):  basamak net eni en az
     #  280 mm ( F.3.2 a ) + iki dikme en çok 35'er mm ( F.3.1 a ) = 350;
     #  dikme derinliği en çok 100 mm ( F.3.1 a ).  Duvara yaslı saklanır.
@@ -212,21 +214,24 @@ SABIT = {
     "regulator_kasnak_merkez": 462,
     "regulator_govde_ust": 433,
     "regulator_govde_alt": 645,
-    #  Kuyu dibindeki gergi düzeni ( referans proje "Cabin at Top Floor" ):  kasnak
-    #  merkezi tabandan 520;  kol tabandan 500 – 540, kabin ray ekseninin 80
-    #  önünden kasnağın 360 ötesine;  ağırlık 160 × 175, tabandan 390.
-    #  Ağırlığın merkezi kasnak merkezinden 300 ( referans proje regülatör hesabı:
+    #  Kuyu dibindeki gergi düzeni:  R4K tipi yatay ağırlıklı kollu gergi
+    #  ( parcalar.gergi_geometrisi — PFB kılavuzu s. 70 ).  Kol, plaka, kapak ve
+    #  kontak kasnağa göre türer;  burada yalnız montaja ve ağırlığa bağlı olanlar.
+    #  Kasnak merkezi tabandan 397:  PFB kılavuzu s. 37 Şekil 4 — raya bağlı
+    #  yatay ağırlıklı gergide plakanın altı tabandan ~260, ağırlığın altı ~230;
+    #  260 + 80 ( plakanın yarısı ) + 220 · sin 15° ( mafsal kasnağın altında ).
+    #  Plaka rayın arkasında, en alttaki kabin rayı konsolunun ( konsol_ilk 500,
+    #  60 yüksek — 440 – 500 ) altında kalır.  Eskiden 520 ( referans proje
+    #  "Cabin at Top Floor" ):  kollu gerginin plakası 383 – 543'te konsolla
+    #  çakışıyordu ( kullanıcı kararı 16 Eki ).
+    "gergi_kasnak_merkez": 397,
+    #  Ağırlık:  merkezi kasnaktan A = 300 ( referans proje regülatör hesabı:
     #  "Distance from the center of the suspended weight to the center of the
-    #  tension pulley A : 300 mm" ) → kasnağın 220 – 380 ötesinde.  Kesitteki
-    #  sembolden 260 – 420 ( merkez 340 ) ölçülmüştü:  referans projenin 280'lik
-    #  regülatör kaçıklığında ağırlık kuyudan taşıyordu.
-    "gergi_kasnak_merkez": 520,
-    "gergi_kol_alt": 500,
-    "gergi_kol_yukseklik": 40,
-    "gergi_kol_ray": 80,
-    "gergi_kol_uc": 360,
-    "gergi_agirlik_alt": 390,
-    "gergi_agirlik_yukseklik": 175,
+    #  tension pulley A : 300 mm";  R4K'de pim kol boyunca 310 → 299,4 ) —
+    #  kasnağın 220 – 380 ötesinde ( 160 eninde:  Akşöz 150 · PFB en çok 178 ).
+    #  Boyu askısıyla 279 ( PFB s. 70, 22 kg;  Akşöz 25 kg 296 ) — eskiden 175
+    #  ( referans projenin sembolü:  o boyda 82 kalınlıkta 35 kg dökme sığmaz ).
+    "gergi_agirlik_yukseklik": 279,
     "gergi_agirlik_yakin": 220,
     "gergi_agirlik_uzak": 380,
     #  Ağırlığın planda duvara dik ENİ ( kasnak düzlemine ortalı ):  referans
@@ -236,6 +241,7 @@ SABIT = {
     #  ASPAR / Akşöz OSG-A/B kılavuzu:  gergiler kabin rayına tırnakla bağlanır,
     #  tabandan ~450;  25 kg ağırlık 296 × 150 × 82 kasnak düzleminde asılı
     #  ( s. 13 ), gövde 103;  12 kg 2 × 53;  yaylı 108 – 133 ( s. 10 – 12 ).
+    #  PFB R4K en çok 80.
     "gergi_agirlik_eni": 82,
     #  ── KARŞI AĞIRLIK ( düşey ) ──────────────────────────────────────
     #  referans proje "Counterweight Sits on Buffer" ( 1/30 ):  çerçeve alt kirişin
@@ -314,7 +320,7 @@ ETIKET = {
     "agirlik_cerceve": "Karşı ağırlık çerçeve profili kalınlığı",
     "tampon_capi": "Tampon gövdesi çapı",
     "tampon_taban": "Tampon taban plakası",
-    "gergi_kasnak_eni": "Regülatör gergi kasnağının eni",
+    "gergi_kasnak_eni": "Regülatör gergisinin kasnağı ve kolu ( planda eni )",
     "merdiven_eni": "Kuyu dibi merdiveninin eni",
     "merdiven_derinlik": "Kuyu dibi merdiveninin derinliği",
     "tahrik_kasnak_kalinlik": "Tahrik kasnağının planda görünen eni",
@@ -372,12 +378,7 @@ ETIKET = {
     "regulator_govde_ust": "Kuyu tavanından regülatör gövdesinin üstüne",
     "regulator_govde_alt": "Kuyu tavanından regülatör gövdesinin altına",
     "gergi_kasnak_merkez": "Kuyu tabanından gergi kasnağı merkezine",
-    "gergi_kol_alt": "Kuyu tabanından gergi kolunun altına",
-    "gergi_kol_yukseklik": "Gergi kolunun yüksekliği",
-    "gergi_kol_ray": "Gergi kolunun kabin ray ekseninden payı",
-    "gergi_kol_uc": "Gergi kolunun kasnaktan ötesi",
-    "gergi_agirlik_alt": "Kuyu tabanından gergi ağırlığının altına",
-    "gergi_agirlik_yukseklik": "Gergi ağırlığının yüksekliği",
+    "gergi_agirlik_yukseklik": "Gergi ağırlığının yüksekliği ( askısıyla )",
     "gergi_agirlik_yakin": "Gergi ağırlığının kasnağa yakın ucu",
     "gergi_agirlik_uzak": "Gergi ağırlığının kasnağa uzak ucu",
     "gergi_agirlik_eni": "Gergi ağırlığının planda duvara dik eni",
@@ -533,11 +534,6 @@ BOLUMLER = (
             "merdiven_derinlik",
             "gergi_kasnak_eni",
             "gergi_kasnak_merkez",
-            "gergi_kol_alt",
-            "gergi_kol_yukseklik",
-            "gergi_kol_ray",
-            "gergi_kol_uc",
-            "gergi_agirlik_alt",
             "gergi_agirlik_yukseklik",
             "gergi_agirlik_yakin",
             "gergi_agirlik_uzak",
@@ -618,7 +614,6 @@ SIFIR_OLABILIR = frozenset(
         "kapi_ust_payi",
         "esik_kalinlik",
         "bina_duvari",
-        "gergi_kol_ray",
         "makine_kasnak_boslugu",
         "tavan_kirisi",
         "alt_paten_payi",
