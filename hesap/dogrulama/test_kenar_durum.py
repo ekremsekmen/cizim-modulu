@@ -2905,6 +2905,9 @@ def calistir():
         saptirma_kasnak_capi=400,
         denge_zinciri="Var",
         tampon_tipi="Hidrolik  ( enerji yutmalı )",
+        #  2,5 m/s hidrolikte strok kuraldan 422 mm ( 0,0674·v² ):  tamponun boyu
+        #  onu taşımalı ( 16 Eki'ye dek strok hızdan bağımsız 90 mm'ydi )
+        kabin_tampon_boyu=1000,
         son_kat_yuksekligi=5000,
         kuyu_dibi=2500,
         kabin_ray_profili="125 x 82 x 16",

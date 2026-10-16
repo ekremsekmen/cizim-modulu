@@ -450,6 +450,14 @@ BILEREK_DEGISEN_VARSAYILAN = {
     #  m.5.11.2.2.2 hesaba girecek en küçük yavaşlamayı 0,5 m/s² der;  referans
     #  program ( referans proje ) da 0,5 kullanır.  Bilinmeyen makinede standardın
     #  tabanı alınır, gerçek değer imalatçıdan girilir.
+    #  Tampon stroku boşsa tipten ve hızdan ( mukavemet_tablolari.tampon_kural_stroku );
+    #  varsayılan poliüretan tamponda kurulu boyun %90'ı — 100 mm'de yine 90
+    "kabin_tampon_ezilme": (
+        None,
+        "tampon stroku — boşsa tipten ve hızdan:  hesabın denetlediği bağıntı;  "
+        "poliüretanda kurulu boyun %90'ı ( kullanıcı kararı 16 Eki )",
+    ),
+    "agirlik_tampon_ezilme": (None, "tampon stroku — boşsa kabin tamponunun kuralıyla ( 16 Eki )"),
     "kabin_paten_arasi": (
         None,
         "kabin paten arası h — boşsa kabin iç yüksekliği + 660 ( şase kabini "

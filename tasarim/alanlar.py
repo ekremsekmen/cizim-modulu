@@ -2453,20 +2453,29 @@ _GRUPLAR = (
                 gelismis=True,
                 bilgi="Tamponun kendi boyu ( ezilmemiş hâlde ).",
             ),
+            #  STROK BOŞSA TİPTEN VE HIZDAN ( 16 Eki, kullanıcı kararı ):  eskiden
+            #  hızdan bağımsız 90 mm varsayılandı — 1,6 m/s hidrolikte çizim kuyu
+            #  dibini 90 mm'yle kuruyor, hesap aynı tamponu "en az 173 mm" diye
+            #  reddediyordu.  Kural hesabın denetlediği bağıntının kendisidir
+            #  ( mukavemet_tablolari.tampon_kural_stroku );  kayıtlı projede yazılı
+            #  sayı olduğu gibi kalır.
             A(
                 "kabin_tampon_ezilme",
-                "Kabin tamponu ezilme miktarı",
+                "Kabin tamponu ezilme miktarı  ( strok — boşsa tipten ve hızdan )",
                 "mm",
                 "sayi",
                 None,
-                90,
-                kaynak=KATALOG,
+                None,
+                kaynak=KURAL,
                 sozlesme=MUK,
+                opsiyonel=True,  # boşsa kuraldan;  kuralın girdileri ( tip, hız, boy ) ayrıca doğrulanır
                 pozitif=True,  # 0 anlamsız ( 13 Eki )
                 gelismis=True,
                 bilgi=(
-                    "Tamponun tam ezildiğinde kısalacağı miktar ( stroku ). Kabinin tampona oturduğu en "
-                    "alçak konum bununla bulunur."
+                    "Tamponun tam ezildiğinde kısalacağı miktar ( stroku );  kabinin en alçak konumu "
+                    "bununla bulunur.  Boşsa standardın en küçüğü:  yaylıda 0,135·v² ( en az 65 mm ), "
+                    "hidrolikte 0,0674·v², poliüretanda kurulu boyun %90'ı.  Katalogdaki strok "
+                    "büyükse onu yazın."
                 ),
             ),
             A(
@@ -2512,16 +2521,21 @@ _GRUPLAR = (
             ),
             A(
                 "agirlik_tampon_ezilme",
-                "Ağırlık tamponu ezilme miktarı",
+                "Ağırlık tamponu ezilme miktarı  ( strok — boşsa tipten ve hızdan )",
                 "mm",
                 "sayi",
                 None,
-                90,
-                kaynak=KATALOG,
+                None,
+                kaynak=KURAL,
                 sozlesme=MUK,
+                opsiyonel=True,  # boşsa kuraldan;  kuralın girdileri ( tip, hız, boy ) ayrıca doğrulanır
                 pozitif=True,  # 0 anlamsız ( 13 Eki )
                 gelismis=True,
-                bilgi="Karşı ağırlık tamponunun ezilme miktarı.",
+                bilgi=(
+                    "Karşı ağırlık tamponunun ezilme miktarı ( stroku ).  Karşı ağırlığın en üst "
+                    "konumu, yani kabinin en yükseğe çıktığı yer bununla bulunur.  Boşsa kabin "
+                    "tamponunun kuralıyla ( aynı tip ve hız;  poliüretanda bu tamponun boyunun %90'ı )."
+                ),
             ),
             A(
                 "agirlik_carpma_arasi",

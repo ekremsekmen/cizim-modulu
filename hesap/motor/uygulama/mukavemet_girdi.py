@@ -324,8 +324,12 @@ def varsayilanlar():
     #  girdide de kalırdı ( kuyu dibi değişse de kaide 870 ).
     for _k in gorunum.cizimden():
         g[_k] = None
-    #  Karşı ağırlığın genişliği de:  boşsa ray arasından türer ( tamamla );
-    #  varsayılanda dolu kalsaydı girilen ray arası onu hiç değiştirmezdi.
+    #  KURALLA DOLANLAR DA:  karşı ağırlığın genişliği ( ray arasından ),
+    #  kabin paten arası ( iç yükseklikten ), tampon strokları ( tipten, hızdan
+    #  ) — varsayılanda dolu kalsalardı girdi kurallarının girdisini
+    #  değiştirse de ( ör. hız ) varsayılan projenin sayısı taşınırdı.
+    for _k in g.get("_kural") or {}:
+        g[_k] = None
     g["agirlik_genisligi"] = None
     #  Kaynak işaretleri de gider:  kalsaydı kullanıcının girdiği α raporda
     #  "ÇİZİMDEN" yazardı ( işaret varsayılandan girdiye taşınırdı ).
@@ -432,6 +436,23 @@ def tamamla(g):
         if sayi_mi(kh):
             g["kabin_paten_arasi"] = kh + alanlar.KABIN_PATEN_PAYI
             _kural_isareti(g, "kabin_paten_arasi", f"kabin iç yüksekliği + {alanlar.KABIN_PATEN_PAYI:g}")
+
+    #  TAMPON STROKU ( ezilme ):  boşsa tipten ve beyan hızından — hesabın
+    #  denetlediği bağıntının kendisi ( mukavemet_tablolari.tampon_kural_stroku );
+    #  lineer olmayanda kurulu boyun %90'ı.  Ağırlık tamponu aynı tiptir, boyu
+    #  boşsa kabin tamponununki.  Kural da kurulamazsa ( hız geçersiz ) alan boş
+    #  kalır, doğrulama "boş bırakılamaz" der.
+    def _deger(k):  # girilen ya da sözleşmenin varsayılanı ( motor eksik girdiyle de çağrılır )
+        return ALAN[k][5] if bos_mu(g.get(k)) else g.get(k)
+
+    _tip, _v, _kb = _deger("tampon_tipi"), _deger("beyan_hizi"), _deger("kabin_tampon_boyu")
+    _ab = _kb if bos_mu(g.get("agirlik_tampon_boyu")) else g.get("agirlik_tampon_boyu")
+    for _anahtar, _boy in (("kabin_tampon_ezilme", _kb), ("agirlik_tampon_ezilme", _ab)):
+        if bos_mu(g.get(_anahtar)):
+            _s, _kural = mukavemet_tablolari.tampon_kural_stroku(_tip, _v, _boy)
+            if _s is not None:
+                g[_anahtar] = _s
+                _kural_isareti(g, _anahtar, _kural)
     _cd = kopru.cizimden({**{a[0]: a[5] for a in EK_ALANLAR}, **g})
     g.update(_cd)
     #  KAYNAK İŞARETİ:  çizimden gelen değer raporda "ÇİZİMDEN" yazar ( girilmiş
@@ -642,24 +663,39 @@ def _tampon_ezilmesi(g, atla):
     ondan türeyen a · a.1 · a.2 · b açıklıkları ile Ç.4 sığınma hacmi de
     sessizce bozulur.  Denetimde 100 mm'lik tampona 5.000 mm ezilme
     girilebiliyor ve a_dip = −3.900 mm çıkıyordu — hiçbir uyarı yoktu."""
+    #  Strok boş bırakılıp KURALDAN geldiyse ( tipten, hızdan — tamamla ) ileti
+    #  bunu söyler:  kullanıcı o sayıyı yazmadı;  eksik olan tamponun boyudur
+    #  ( ör. 1,6 m/s hidrolikte 173 mm strok, varsayılan boy 100 ) — program
+    #  boy uydurmaz, kataloğundaki boy girilir.
+    kural = g.get("_kural") or {}
     hata = []
-    _tb, _te = g.get("kabin_tampon_boyu"), g.get("kabin_tampon_ezilme")
-    if sayi_mi(_tb) and sayi_mi(_te) and float(_te) > float(_tb):
-        hata.append(
-            f"{ALAN['kabin_tampon_ezilme'][1]} ({_te} mm), tamponun "
-            f"kendi boyunu ({_tb} mm) aşamaz — tampon en çok kendi "
-            "boyu kadar kısalabilir.  Kuyu dibi açıklıkları ve Ç.4 "
-            "sığınma hacmi bu farktan türer."
-        )
+    _tb = g.get("kabin_tampon_boyu")
     _ab = g.get("agirlik_tampon_boyu")
     if _ab is None or (isinstance(_ab, str) and not _ab.strip()):
         _ab = _tb
-    _ae = g.get("agirlik_tampon_ezilme")
-    if sayi_mi(_ab) and sayi_mi(_ae) and float(_ae) > float(_ab):
-        hata.append(
-            f"{ALAN['agirlik_tampon_ezilme'][1]} ({_ae} mm), tamponun "
-            f"kendi boyunu ({_ab} mm) aşamaz — tampon en çok kendi boyu kadar kısalabilir."
-        )
+    for anahtar, ad, boy, ek in (
+        (
+            "kabin_tampon_ezilme",
+            "Kabin",
+            _tb,
+            "  Kuyu dibi açıklıkları ve Ç.4 sığınma hacmi bu farktan türer.",
+        ),
+        ("agirlik_tampon_ezilme", "Ağırlık", _ab, ""),
+    ):
+        ez = g.get(anahtar)
+        if not (sayi_mi(boy) and sayi_mi(ez) and float(ez) > float(boy)):
+            continue
+        if anahtar in kural:
+            hata.append(
+                f"{ad} tamponunun stroku boş:  tipten ve hızdan {ez:g} mm ( {kural[anahtar]} ).  "
+                f"Tamponun boyu ( {boy:g} mm ) bundan kısa olamaz — kullandığınız tamponun boyunu "
+                "( kataloğundan ) ya da strokunu girin."
+            )
+        else:
+            hata.append(
+                f"{ad} tamponunun ezilmesi ({ez:g} mm), tamponun kendi boyunu ({boy:g} mm) aşamaz — "
+                "tampon en çok kendi boyu kadar kısalabilir." + ek
+            )
     return hata
 
 

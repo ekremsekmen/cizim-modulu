@@ -2553,4 +2553,14 @@ function mCizimdenTazele(aktif){
     const v = g[a];
     e.placeholder = (v === null || v === undefined) ? '' : 'çizimden:  ' + mSayi(v);
   }
+  /*  KURALLA DOLANLAR da aynı yolla görünür ( g._kural:  boş bırakılıp
+      kuralla doldurulan alanlar — tampon stroku, karşı ağırlık genişliği,
+      paten arası … ):  boş kutuda "kural:  173".  Eskiden kutu boş görünüyor,
+      hangi sayıyla hesaplandığı yalnız paftada okunuyordu. */
+  const kural = g._kural || {};
+  for(const f of mAlanlar(x => x.kaynak === 'KURAL')){
+    const e = $(M_ID(f.anahtar)); if(!e || e.tagName !== 'INPUT') continue;
+    const v = g[f.anahtar];
+    e.placeholder = (f.anahtar in kural && v !== null && v !== undefined) ? 'kural:  ' + mSayi(v) : '';
+  }
 }
