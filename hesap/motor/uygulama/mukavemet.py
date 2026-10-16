@@ -4957,15 +4957,35 @@ class _Siginma:
             self.satir(et, *da[ad_ara], ara)
         #  m.5.2.5.8.2 b:  kuyuya sabit parça ( regülatör gergisi ) kabinin
         #  izdüşümündeyse kabinin üstündeki en alt kısmıyla arası en az 0,30 m
-        #  ( kabinin parçaları — cizim/hareketli;  eskiden platformun altı )
-        gr = Y["M"]["gergi"]
-        if ortusur(gr["plan"], Y["KU"]["tavan"]):
-            z_, ad_ = hareketli.ustundeki_en_alt(
-                Y["dip_parcalar"], gr["plan"], (dip["taban_alti"], hareketli.KABIN)
+        #  ( kabinin parçaları — cizim/hareketli;  eskiden platformun altı ).
+        #  Kollu gerginin parçaları ayrı ayrı ( cizim/parcalar — REGÜLATÖR
+        #  GERGİSİ ):  kasnak koruma kapağıyla, kol, ağırlık ( askısıyla ),
+        #  plaka, kontak — her birinin tepesi ile üstündeki kabin parçası arası,
+        #  en kısası.  Eskiden yalnız kasnağın tepesi ( kapak ve askı yoktu ).
+        gr, gd = Y["M"]["gergi"], Y["KD"]["gergi_donanim"]
+        gp, Rk = gr["plan"], gr["geo"]["kapak_r"]
+        gy = (gp[1] + gp[3]) / 2.0
+        gergi = [((gp[0], gy - Rk, gp[2], gy + Rk), gr["merkez"] + Rk, "gergi kasnağının koruma kapağı")] + [
+            (gd[ad], gr[ad][3], adi)
+            for ad, adi in (
+                ("kol", "gergi kolu"),
+                ("agirlik", "gergi ağırlığı"),
+                ("plaka", "gergi plakası"),
+                ("kontak", "gergi kontağı"),
             )
+        ]
+        aralar = []
+        for kutu, tepe, adi in gergi:
+            if ortusur(kutu, Y["KU"]["tavan"]):
+                z_, ad_ = hareketli.ustundeki_en_alt(
+                    Y["dip_parcalar"], kutu, (dip["taban_alti"], hareketli.KABIN)
+                )
+                aralar.append((z_ - tepe, adi, ad_))
+        if aralar:
+            ara, adi, ad_ = min(aralar)
             self.satir(
-                f"Regülatör gergi kasnağı / kabinin en alt kısmı ( {ad_} )",
-                z_ - (gr["merkez"] + gr["cap"] / 2.0),
+                f"Regülatör {adi} / kabinin en alt kısmı ( {ad_} )",
+                ara,
                 SIGINMA["min_regulator"],
                 "m.5.2.5.8.2 b",
                 "regulator_kabin",
@@ -4973,7 +4993,7 @@ class _Siginma:
         else:
             self.ad.append(
                 metin(
-                    "Regülatör gergi kasnağı kabinin izdüşümünde değil — m.5.2.5.8.2 b'nin "
+                    "Regülatör gergisi kabinin izdüşümünde değil — m.5.2.5.8.2 b'nin "
                     "0,30 m'si aranmaz ( kuyu dibi planı ).",
                     vurgu=False,
                 )

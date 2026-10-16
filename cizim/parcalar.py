@@ -573,3 +573,153 @@ def ray_dil_kalinligi(b, h):
     if a in RAY_PARALEL:
         return RAY_PARALEL[a][2]
     return None
+
+
+#  ── REGÜLATÖR GERGİSİ  ( yatay ağırlıklı, kollu — "R4K tipi" ) ──────────
+#  KAYNAK:  PFB kullanım ve bakım kılavuzu ( download.pfb.it 5799 ), s. 70,
+#  6.10 "Tension weight with horizontal counterweight — Type R4K Ø200-250-300"
+#  ölçülü resmi;  s. 46 Şekil 4:  doğru kurulumda kol "hafifçe yukarı eğik".
+#  Biçim tipin ortak biçimidir ( Montanari TE yatay gergi, Dynatech TEN300:
+#  raya bağlı plaka, mafsal, kol, kasnak, kolun ucunda asılı dökme ağırlık,
+#  güvenlik kontağı ) — markasız;  ölçü PFB'nin.  Referans projenin regülatör
+#  hesabı ağırlığın merkezini kasnaktan A = 300 verir;  R4K'de pim kasnaktan
+#  kol boyunca 310 ( 310 · cos 15° = 299,4 ) — ikisi aynı düzen.
+#  Kesitin düzlemi kasnağın düzlemidir:  s kol doğrultusunda ( + ağırlığa,
+#  − raya ), z yukarı;  ikisinin de kökü kasnağın merkezi.
+GERGI_KOL_ACISI = 15.0  # °  ( s. 70 )
+#  Mafsal – kasnak ( kol boyunca ):  kolda iki delik — Ø150–200 kasnak 162,5,
+#  Ø250–315 kasnak 220 ( s. 70 ).  200 ile 250 arası ( 240 ):  büyük delik
+#  ( ÇİZİM KABULÜ — 120 yarıçaplı kasnak küçük delikte mafsalın göbeğine yaklaşır ).
+GERGI_MAFSAL_KASNAK = (162.5, 220.0)
+GERGI_KUCUK_KASNAK = 200.0
+#  Raya bağlantı plakası:  mafsaldan raya 257, mafsalın öbür yanında 43
+#  ( 300 − 257 ), 160 yüksek;  iki oluk ( 15 × 175, aralarında 100 ) plakanın
+#  ray ucundan 27,5 içeride ( s. 70 ).  Kalınlık 6 ( R4R planı ).  Plaka kasnak
+#  düzlemine paralel, kolun bir yanında ( R4K planı:  kolun dış yüzünden plakanın
+#  arka yüzüne 9,2 );  ray tabanı plakanın önünde, tırnaklarla plakaya bastırılır
+#  — plaka rayın tabanının arkasında ( duvar yanında;  s. 37 Şekil 4 ).  Mafsalın
+#  altındaki pah ÇİZİM KABULÜ ( resimde ~40 ).
+GERGI_PLAKA = (257.0, 43.0, 160.0, 6.0)
+GERGI_OLUK = (27.5, 175.0, 15.0, 100.0)
+GERGI_PLAKA_PAH = 40.0
+#  Kol:  iki lama, aralarında kasnak — planda 45 ( R4K planı;  ofis sabiti
+#  gergi_kasnak_eni );  yandan lamanın eni 30, mafsal göbeği R 20, kasnak
+#  göbeği R 25 ( ÇİZİM KABULÜ — resimden ).
+GERGI_KOL_LAMA = 30.0
+GERGI_GOBEK = (20.0, 25.0)
+#  Ağırlık:  askısının tepesi pimin 34 üstünde ( s. 70 );  askı ağırlığın
+#  üstünde daralan levha — tepe eni ağırlığın 0,57'si, boyu 0,32'si
+#  ( ÇİZİM KABULÜ — resimden:  178'lik ağırlıkta ~102 · 279'luğunda ~89 ).
+#  Ağırlığın kendi ölçüleri ofis sabitidir ( cizim/sabitler:  gergi_agirlik_* ).
+GERGI_PIM_UST = 34.0
+GERGI_ASKI = (0.57, 0.32)
+#  Koruma kapağı:  R 192,5 ( s. 70;  Ø315'te kasnaktan 35 ) — büyük kasnakta
+#  kasnak + 35 ( ÇİZİM KABULÜ ).  Ağırlık tarafında 20° aşağıdan mafsal tarafında
+#  15° aşağıya, tepeden geçen yay ( resimden ).
+GERGI_KAPAK_R = 192.5
+GERGI_KAPAK_PAYI = 35.0
+GERGI_KAPAK_ACI = (-20.0, 195.0)
+#  Güvenlik kontağı ( m.5.6.2.2.1.6 c:  halat koparsa ya da uzarsa durdurur ):
+#  mafsalın altında 80 × 80 kutu, tepesi mafsalın 25 altında ( ÇİZİM KABULÜ — resimden );
+#  plakanın arkasında, 38 derin ( R4K planı ).
+GERGI_KONTAK = (80.0, 25.0)
+GERGI_KONTAK_DERIN = 38.0
+
+
+def gergi_mafsal_kasnak(cap):
+    """Mafsal – kasnak merkezi, kol boyunca ( mm )."""
+    return GERGI_MAFSAL_KASNAK[0] if cap <= GERGI_KUCUK_KASNAK else GERGI_MAFSAL_KASNAK[1]
+
+
+def _yay(m, r, a0, a1, adim=24):
+    return [
+        (
+            m[0] + r * math.cos(math.radians(a0 + (a1 - a0) * i / adim)),
+            m[1] + r * math.sin(math.radians(a0 + (a1 - a0) * i / adim)),
+        )
+        for i in range(adim + 1)
+    ]
+
+
+def _oluk(s0, s1, z, en, adim=6):
+    """Yuvarlak uçlu oluk ( kapalı çokgen )."""
+    r = en / 2.0
+    sag = _yay((s1 - r, z), r, -90.0, 90.0, adim)
+    sol = _yay((s0 + r, z), r, 90.0, 270.0, adim)
+    return sag + sol
+
+
+def gergi_geometrisi(cap, agirlik_merkez, agirlik_eni, agirlik_boyu):
+    """R4K'nin kasnak merkezine göre geometrisi ( s, z ).
+
+    agirlik_merkez:  ağırlığın ( pimin ) kasnaktan yatay uzaklığı.  Döner:
+        mafsal · pim             ( s, z )
+        kol · agirlik · plaka     kapalı çokgenler
+        oluklar                   iki kapalı çokgen
+        kapak                     açık çoklu çizgi
+        kontak                    ( s0, s1, z0, z1 )
+        kutular                   parça → ( s0, s1, z0, z1 ) — zarflar ( kol · agirlik · plaka · kontak )
+        tepe                      gerginin en yüksek noktası ( kasnak merkezinden )"""
+    t = math.radians(GERGI_KOL_ACISI)
+    d = (math.cos(t), math.sin(t))
+    a = gergi_mafsal_kasnak(cap)
+    mafsal = (-a * d[0], -a * d[1])
+    pim = (agirlik_merkez, agirlik_merkez * math.tan(t))
+    #  Kol:  iki ucu yuvarlak lama ( mafsalda ve pimde lamanın yarı eniyle )
+    h, a_ = GERGI_KOL_LAMA / 2.0, GERGI_KOL_ACISI
+    kol = _yay(pim, h, a_ + 90.0, a_ - 90.0, 8) + _yay(mafsal, h, a_ + 270.0, a_ + 90.0, 8)
+    ust = pim[1] + GERGI_PIM_UST
+    W, H = agirlik_eni, agirlik_boyu
+    Wt, Ha = GERGI_ASKI[0] * W, GERGI_ASKI[1] * H
+    sc = pim[0]
+    agirlik = [
+        (sc - W / 2.0, ust - H),
+        (sc + W / 2.0, ust - H),
+        (sc + W / 2.0, ust - Ha),
+        (sc + Wt / 2.0, ust),
+        (sc - Wt / 2.0, ust),
+        (sc - W / 2.0, ust - Ha),
+    ]
+    raya, obur, py, _k = GERGI_PLAKA
+    s0, s1, z0, z1 = mafsal[0] - raya, mafsal[0] + obur, mafsal[1] - py / 2.0, mafsal[1] + py / 2.0
+    pah = GERGI_PLAKA_PAH
+    plaka = [(s0, z0), (s1, z0), (s1, z1 - pah), (s1 - pah, z1), (s0, z1)]
+    uc, boy, en, ara = GERGI_OLUK
+    oluklar = [_oluk(s0 + uc, s0 + uc + boy, mafsal[1] + k * ara / 2.0, en) for k in (-1, 1)]
+    R = max(GERGI_KAPAK_R, cap / 2.0 + GERGI_KAPAK_PAYI)
+    kapak = _yay((0.0, 0.0), R, *GERGI_KAPAK_ACI)
+    kb, ka = GERGI_KONTAK
+    kontak = (mafsal[0] - kb / 2.0, mafsal[0] + kb / 2.0, mafsal[1] - ka - kb, mafsal[1] - ka)
+
+    def kutu(cokgen):
+        return (
+            min(p[0] for p in cokgen),
+            max(p[0] for p in cokgen),
+            min(p[1] for p in cokgen),
+            max(p[1] for p in cokgen),
+        )
+
+    kutular = {"kol": kutu(kol), "agirlik": kutu(agirlik), "plaka": (s0, s1, z0, z1), "kontak": kontak}
+    tepe = max(kutular["kol"][3], kutular["agirlik"][3], R, z1)
+    return {
+        "mafsal": mafsal,
+        "pim": pim,
+        "kol": kol,
+        "agirlik": agirlik,
+        "plaka": plaka,
+        "oluklar": oluklar,
+        "kapak": kapak,
+        "kontak": kontak,
+        "kutular": kutular,
+        "tepe": tepe,
+        "kapak_r": R,
+    }
+
+
+def gergi_ray_araligi(cap):
+    """Ray ekseninin kasnaktan yatay uzaklığı için geçerli aralık:  plakanın
+    olukları rayın üstünde kalmalı ( mafsal + oluğun iki ucu )."""
+    a = gergi_mafsal_kasnak(cap) * math.cos(math.radians(GERGI_KOL_ACISI))
+    uc, boy, _en, _ara = GERGI_OLUK
+    raya = GERGI_PLAKA[0]
+    return a + (raya - uc - boy), a + (raya - uc)

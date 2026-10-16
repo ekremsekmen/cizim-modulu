@@ -36,6 +36,7 @@ from cizim import geometri
 from cizim import girdi
 from cizim import sabitler
 from cizim import parca_kotlari
+from cizim import parcalar
 from cizim import arka_aski
 from cizim import hareketli
 
@@ -52,7 +53,12 @@ MERDIVEN_KAPI_AZAMI = 800.0
 #  m.5.2.5.5.1 e:  ağırlık rayları ile kuyu duvarı arasındaki boşluk bundan
 #  büyükse o bölge de perdeyle korunur ( mm ).
 PERDE_BOSLUGU_AZAMI = 300.0
-GERGI_PARCA = {"kol": "kolu", "agirlik": "ağırlığı"}
+GERGI_PARCA = {
+    "kol": "kolu",
+    "agirlik": "ağırlığı",
+    "plaka": "raya bağlantı plakası",
+    "kontak": "güvenlik kontağı",
+}
 TAMPON_ADETLERI = (1, 2)
 #  Hesap programının 9. bölümündeki adlar ( ozet:  FKR · FAR · Fkt · Fat, N )
 KUVVETLER = ("FKR", "FAR", "Fkt", "Fat", "Fx_kabin", "Fy_kabin", "Fx_agirlik", "Fy_agirlik")
@@ -72,9 +78,9 @@ def _birlesim(kutular):
 
 def raylari_topla(taban, ad):
     """Aynı adlı ray parçalarını ( flanş + gövde ) raylara toplar."""
-    parcalar = [eleman_kutusu(el) for el in taban if el.get("ad") == ad and el["tip"] == "dikdortgen"]
+    kutular = [eleman_kutusu(el) for el in taban if el.get("ad") == ad and el["tip"] == "dikdortgen"]
     raylar = []
-    for p in parcalar:
+    for p in kutular:
         for r in raylar:
             if ortusur(p, _birlesim(r), 1.0):
                 r.append(p)
@@ -442,28 +448,66 @@ def _perdeyi_uzat(perde, ag_yan, G, D, engeller):
     return (x0, y0, x1, y1), korunan
 
 
-def gergi_parcalari(g, S, kasnak):
-    """Gerginin ortak plan kutuları; kol rayı, kasnağı ve ağırlığı birleştirir."""
+def gergi_yonu(g, kasnak):
+    """( yon , yan ):  kolun planda doğrultusu ( y ekseninde, raydan kasnağa:  +1 /
+    −1 ) ve plakanın rayın hangi yanında olduğu ( x ekseninde, duvara doğru )."""
     gx, gy = kutu_merkezi(kasnak)
-    ry = g["kabin_ray"]["kapi_arasi"]
-    yon = 1.0 if gy >= ry else -1.0
-    D = g["kuyu"]["derinlik"]
-    #  Ağırlık duvara en az ASGARI_ACIKLIK ( çizimin çakışma payı ) kalmalı:
-    #  sığmıyorsa kol öbür yöne döner ( montajcı da böyle yapar )
-    a = girdi.ASGARI_ACIKLIK
-    if not a <= gy + yon * S["gergi_agirlik_uzak"] <= D - a:
-        yon = -yon
-    agirlik_y = sorted((gy + yon * S["gergi_agirlik_yakin"], gy + yon * S["gergi_agirlik_uzak"]))
-    en = S["gergi_agirlik_eni"]  # duvara dik:  kasnak düzlemine ortalı
-    # Yön ters dönse de kolun zarfı kasnak milini ve raydaki mesnedi içerir.
-    kol_y = (
-        min(ry - S["gergi_kol_ray"], gy, gy + yon * S["gergi_kol_uc"]),
-        max(ry + S["gergi_kol_ray"], gy, gy + yon * S["gergi_kol_uc"]),
+    yon = 1.0 if gy >= g["kabin_ray"]["kapi_arasi"] else -1.0
+    yan = 1.0 if gx > g["kuyu"]["genislik"] / 2.0 else -1.0
+    return yon, yan
+
+
+def gergi_geometrisi(S, kasnak):
+    """R4K'nin geometrisi ( parcalar.gergi_geometrisi ) ofisin ağırlık ölçüleriyle."""
+    yakin, uzak = S["gergi_agirlik_yakin"], S["gergi_agirlik_uzak"]
+    return parcalar.gergi_geometrisi(
+        kasnak[3] - kasnak[1], (yakin + uzak) / 2.0, uzak - yakin, S["gergi_agirlik_yukseklik"]
     )
+
+
+def gergi_parcalari(g, S, kasnak, ray):
+    """R4K tipi gerginin plan zarfları:  kol ( mafsaldan pime ), ağırlık, raya
+    bağlantı plakası, güvenlik kontağı ( parcalar.gergi_geometrisi — PFB
+    kılavuzu s. 70 ).  ray:  plakanın bağlı olduğu kabin rayının plan kutusu.
+
+    Kol HEP RAYDAN KASNAĞA DOĞRUDUR:  mafsal rayın plakasında, kasnak ortada,
+    ağırlık uçta.  Eskiden ağırlık duvara sığmayınca kol öbür yöne dönüyordu
+    ( kasnağın öbür yanına ) — kollu gergide bu, plakanın raydan kopması olur;
+    ağırlık sığmıyorsa regülatörün yeri değişir ( kopru._regulator_yeri ).
+    Plaka rayın tabanının arka yüzünde ( duvar yanında — tırnaklar tabanı plakaya
+    bastırır ), kontak plakanın arkasında."""
+    gx, gy = kutu_merkezi(kasnak)
+    yon, yan = gergi_yonu(g, kasnak)
+    K = gergi_geometrisi(S, kasnak)["kutular"]
+
+    def plan(s, x0, x1):
+        y0, y1 = sorted((gy + yon * s[0], gy + yon * s[1]))
+        return (min(x0, x1), y0, max(x0, x1), y1)
+
+    ke, ae = S["gergi_kasnak_eni"] / 2.0, S["gergi_agirlik_eni"] / 2.0
+    arka = ray[2] if yan > 0 else ray[0]  # rayın tabanının arka yüzü
+    pa = arka + yan * parcalar.GERGI_PLAKA[3]  # plakanın arka yüzü
     return {
-        "kol": (kasnak[0], kol_y[0], kasnak[2], kol_y[1]),
-        "agirlik": (gx - en / 2.0, agirlik_y[0], gx + en / 2.0, agirlik_y[1]),
+        "kol": plan(K["kol"], gx - ke, gx + ke),
+        "agirlik": plan(K["agirlik"], gx - ae, gx + ae),
+        "plaka": plan(K["plaka"], arka, pa),
+        "kontak": plan(K["kontak"], pa, pa + yan * parcalar.GERGI_KONTAK_DERIN),
     }
+
+
+def _gergi_rayda(kasnak, ry):
+    """Plakanın olukları rayın üstüne düşmeli:  kasnak ile ray ekseni arası
+    oluğun boyunca ( PFB R4K:  175 mm'lik oluklar )."""
+    kac = abs(kutu_merkezi(kasnak)[1] - ry)
+    cap = kasnak[3] - kasnak[1]
+    lo, hi = parcalar.gergi_ray_araligi(cap)
+    if lo - 0.5 <= kac <= hi + 0.5:
+        return []
+    return [
+        f"Regülatör gergisinin raya bağlantı plakası kabin rayına oturmuyor:  kasnak ile ray "
+        f"ekseni arası {kac:.0f} mm — Ø{cap:g} kasnakta {lo:.0f} – {hi:.0f} olmalı ( kollu gergi, "
+        "plakanın oluğu 175 mm ) — regülatör kaçıklığını değiştirin."
+    ]
 
 
 def _girdi_hatalari(kd):
@@ -537,7 +581,8 @@ def yerlesim(g, cizim_sabitleri=None):
     gx, gy = kutu_merkezi(ray)[0], ry + kd["regulator_kaciklik"]
     dg_, eg = kd["regulator_kasnak_capi"] / 2.0, S["gergi_kasnak_eni"] / 2.0
     gergi = (gx - eg, gy - dg_, gx + eg, gy + dg_)
-    gergi_donanim = gergi_parcalari(g, S, gergi)
+    gergi_donanim = gergi_parcalari(g, S, gergi, ray)
+    hata += _gergi_rayda(gergi, ry)
 
     #  m.5.2.5.5.1 e:  perdenin ucu ile duvar arasında 0,30 m'den büyük boşluk
     #  kalıyorsa o bölge de korunur — perde o yanda duvara ya da araya giren
@@ -729,7 +774,7 @@ def _cakismalar(
                 hata.append(f"{ad.capitalize()} bir ray ya da konsolla çakışıyor.")
     for ad, parca in gergi_donanim.items():
         if parca[0] < 0 or parca[1] < 0 or parca[2] > G or parca[3] > D:
-            hata.append(f"Regülatör gergisi {ad} kuyunun dışına taşıyor.")
+            hata.append(f"Regülatör gergisinin {GERGI_PARCA[ad]} kuyunun dışına taşıyor.")
         elif ad == "agirlik" and min(parca[0], parca[1], G - parca[2], D - parca[3]) < girdi.ASGARI_ACIKLIK:
             #  Eskiden örnekte arka duvara 3 mm kalıyordu:  pratikte değiyordu
             hata.append(
@@ -737,10 +782,15 @@ def _cakismalar(
                 f"{min(parca[0], parca[1], G - parca[2], D - parca[3]):g} mm ( en az "
                 f"{girdi.ASGARI_ACIKLIK:g} — çizimin çakışma payı ) — regülatör kaçıklığını değiştirin."
             )
-        # Kol raydaki mesnede bağlanır; ağırlık rayların içine giremez.
+        #  Plaka ve kontak bağlı olduğu rayın arkasındadır ( konsollar gibi );  kol o
+        #  rayın yanında biter ( oluk aralığı — _gergi_rayda ), öbür raylara
+        #  değmemeli;  ağırlık hiçbir raya.
         engeller = kabin_tamponlari + agirlik_tamponlari
         if ad == "agirlik":
             engeller += kabin_raylari + agirlik_raylari
+        elif ad == "kol":
+            gx_ = kutu_merkezi(gergi)[0]  # bağlı olduğu ray:  kasnakla aynı x çizgisinde
+            engeller += [r for r in kabin_raylari if not r[0] <= gx_ <= r[2]] + agirlik_raylari
         if any(ortusur(parca, p) for p in engeller):
             hata.append(
                 f"Regülatör gergisinin {GERGI_PARCA[ad]} tampona ya da raya çarpıyor — "
@@ -880,7 +930,7 @@ def ciz(g, cizim_sabitleri=None):
     return e
 
 
-def _merdiven_yazisi(m, ic, G, parcalar):
+def _merdiven_yazisi(m, ic, G, engeller):
     """MERDİVEN yazısı:  sığıyorsa merdivenin içine, sığmıyorsa kuyunun içine
     doğru yanına ( 110 mm ).  Yanındaki yer bir parçanın ( ağırlık rayı,
     konsol, tampon ) üstüne düşüyorsa yazı aynı doğrultuda dışarı kayar:
@@ -894,14 +944,14 @@ def _merdiven_yazisi(m, ic, G, parcalar):
         for d in ((0.0,) if ic else (110.0, 180.0, 250.0, 320.0, 390.0))
     ]
     return next(
-        (y for y in yazilar if not any(ortusur(geometri.sinir([y]), p) for p in parcalar)),
+        (y for y in yazilar if not any(ortusur(geometri.sinir([y]), p) for p in engeller)),
         yazilar[0],
     )
 
 
-def _donanim(Y, G, parcalar=()):
+def _donanim(Y, G, plan_kutulari=()):
     """Tamponlar ( taban plakası + gövde ), perde, regülatör gergisi ve
-    donanımı, merdiven, sığınma alanı.  ``parcalar``:  plandan gelen parçaların
+    donanımı, merdiven, sığınma alanı.  ``plan_kutulari``:  plandan gelen parçaların
     kutuları ( raylar, konsollar — merdiven yazısı onlara binmesin )."""
     S = Y["S"]
     e = []
@@ -921,7 +971,7 @@ def _donanim(Y, G, parcalar=()):
         e.append(
             eleman.ad(
                 eleman.dikdortgen(
-                    "KONSOL" if ad == "kol" else "MAKINE",
+                    "KONSOL" if ad in ("kol", "plaka") else "MAKINE",
                     kutu[0],
                     kutu[1],
                     kutu[2] - kutu[0],
@@ -932,7 +982,7 @@ def _donanim(Y, G, parcalar=()):
         )
     m = Y["merdiven"]
     if m:
-        engel = list(parcalar) + _engeller(e)[0]  # merdivenin kendisi değil
+        engel = list(plan_kutulari) + _engeller(e)[0]  # merdivenin kendisi değil
         e.append(eleman.ad(eleman.dikdortgen("MERDIVEN", m[0], m[1], m[2] - m[0], m[3] - m[1]), "merdiven"))
         #  Etiket sığıyorsa merdivenin içine:  yanına yazılınca sığınma alanının
         #  ölçüsüne biniyordu

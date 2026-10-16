@@ -165,13 +165,15 @@ class GercekProjeler(unittest.TestCase):
         bağlanır, duvara paralel ince bir dilimdedir ( ASPAR / Akşöz OSG kılavuzu:
         25 kg ağırlık 82 kalınlıkta );  ağırlık eskiden 160 × 160 sayıldığı için
         duvarı aşıyordu.  LiftDesigner regülatör halatını sol rayın yanında, ray
-        ekseninin ~280 / 580 arkasında indiriyor;  program ( karşı ağırlığın
-        karşısı ) sağ rayı seçer, varsayılan 280'de.  ( 15 Eki'ye kadar 360'a
+        ekseninin ~280 / 580 arkasında indiriyor;  program da ( karşı ağırlığın
+        karşısı:  önce sağ, sığmazsa sol ) sol rayı seçer, varsayılan 280'de:
+        kollu gerginin plakası ve kontağı rayın arkasında 6 + 38 ister, sağ ray
+        duvara 35 ( 16 Eki'ye kadar sağ rayda 280;  15 Eki'ye kadar 360'a
         alıyordu:  konsol plakası boşluktan geniş — 55 > 45 — çizilip rayın içine
         taşıyor, gergi o sahte parçaya "değiyordu".  Plaka artık boşluk kadar. )"""
         _c, g, _b = self.S["1022"]
         kd = g["kuyu_dibi"]
-        self.assertEqual((kd["regulator_yan"], kd["regulator_kaciklik"]), ("Sağ", 280))
+        self.assertEqual((kd["regulator_yan"], kd["regulator_kaciklik"]), ("Sol", 280))
         Y = kuyu_dibi.yerlesim(g)
         self.assertEqual(Y["hata"], [])
         k = Y["gergi_donanim"]["agirlik"]

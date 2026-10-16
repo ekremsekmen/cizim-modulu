@@ -28,6 +28,7 @@ x kabin derinliği boyunca kapıdan arkaya, y rayları birleştiren doğrultu;
 """
 
 import logging
+import math
 
 from temel import bos_mu, sayi_mi
 from cizim import girdi
@@ -38,6 +39,7 @@ from tasarim import alanlar, gorunum
 from cizim import arka_aski
 from cizim import kabin_ustu
 from cizim import kuyu_dibi, makine
+from cizim import parcalar
 from cizim import kuyu_ustu
 from cizim import makine_dairesi
 
@@ -672,10 +674,10 @@ def _kasnak_arasi_sec(g, eski_kural):
 
 def _regulator_yeri(g, kaciklik_serbest=True, yan_serbest=False):
     """Regülatör kaçıklığı boşsa:  varsayılan yer ( 280, askı halatlarının
-    öbür yanında ) gergiyi bir raya ya da tampona çarptırıyorsa ( sığ kuyuda
-    kol döner, ağırlık raya iner — 320 kg kabinlerde ) çarpmayan en yakın yer
-    seçilir:  öbür yan, sonra 200 · 360 · 440.  yan_serbest ( ağırlık arkada,
-    "karşı ağırlığın karşısı" ):  ilk ray çarpıyorsa öbür kabin rayı da denenir
+    öbür yanında ) gergiyi bir raya, tampona ya da duvara çarptırıyorsa ( 320
+    kg kabinlerde ağırlık arka duvarı aşar ) çarpmayan en yakın yer seçilir:  öbür yan,
+    sonra 200 · 360 · 440 ( gerginin oluk aralığına kırpılır ).  yan_serbest
+    ( ağırlık arkada, "karşı ağırlığın karşısı" ):  ilk ray çarpıyorsa öbür kabin rayı da denenir
     ( 12495-18:  sağ ray duvara 50 mm, eski 160'lık gergi ağırlığı duvara 7,5
     kalıyordu;  82'lik ağırlıkla sağ rayın önüne, −280'e iner ).
     Hiçbiri çarpmaktan kurtulmuyorsa varsayılan kalır ( çizim hatayı söyler )."""
@@ -702,18 +704,12 @@ def _regulator_yeri(g, kaciklik_serbest=True, yan_serbest=False):
         return [x for x in h if "egülatör" in x]
 
     isaret = 1 if ilk > 0 else -1
+    #  Adaylar gerginin oluk aralığına kırpılır ( kuyu_dibi._gergi_rayda:  plaka
+    #  rayda kalmalı — Ø240'ta 267 – 442 )
+    lo, hi = parcalar.gergi_ray_araligi(kd["regulator_kasnak_capi"])
+    adaylar = (max(200.0, math.ceil(lo)), 360.0, min(440.0, math.floor(hi)))
     kaciklar = [ilk] + (
-        [
-            -ilk,
-            200.0 * isaret,
-            -200.0 * isaret,
-            360.0 * isaret,
-            -360.0 * isaret,
-            440.0 * isaret,
-            -440.0 * isaret,
-        ]
-        if kaciklik_serbest
-        else []
+        [-ilk] + [v * i for v in adaylar for i in (isaret, -isaret)] if kaciklik_serbest else []
     )
     yanlar = [ilk_yan] + ([("Sol" if ilk_yan == "Sağ" else "Sağ")] if yan_serbest else [])
     for yan in yanlar:

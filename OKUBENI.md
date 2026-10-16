@@ -866,11 +866,20 @@ ağırlık paten tipi"ne göre;  makaralının makaraları zarfın dışına ta�
 ( m.5.2.5.7.2 b ) yalnız kabin patenlerini sayar. Kabin üstü korkulukları plan, düşey kesit ve açıklık kontrolünde
 aynı konumları kullanır; kesit kırığı korkuluğu kesmez.
 
-Regülatör gergisinin kasnağı, taşıyıcı kolu ve ağırlığı kuyu dibi planında
-birlikte gösterilir. Kol ve ağırlığın plan kutuları düşey kesitte de
-kullanılır; merdiven ve sığınma alanı bu kutuların dışında yerleştirilir.
-Kolun raydaki bağlantısı bilinçlidir; ağırlığın rayla veya tamponla
-çakışmasına izin verilmez.
+Regülatör gergisi yatay ağırlıklı KOLLU gergidir ( `cizim/parcalar.py`
+REGÜLATÖR GERGİSİ — ölçüler PFB kılavuzu 5799 s. 70, R4K;  biçim üreticilerin
+ortak biçimi ):  raya bağlantı plakası ( 300 × 160, iki oluk 15 × 175 ) kabin
+rayının tabanının arkasında, mafsal plakada, kol 15° yukarı eğik, kasnak kolun
+üstünde, ağırlık kolun ucunda askılı, güvenlik kontağı plakanın arkasında,
+kasnağın üstünde koruma kapağı.  Kasnağın, kolun, ağırlığın, plakanın ve
+kontağın plan kutuları kuyu dibi planında ve düşey kesitlerde aynıdır;  merdiven
+ve sığınma alanı bu kutuların dışındadır.  Ray ekseni plakanın oluğunun
+boyunca olmalı ( kasnak ile ray ekseni arası Ø240 – 315'te 267 – 442,
+Ø150 – 200'de 211,5 – 386,5 — `kuyu_dibi._gergi_rayda` );  ağırlık rayla ya
+da tamponla, plaka ve kontak rayın konsoluyla ( kotlarıyla — `donanim._gergi_konsolda` )
+çakışmaz.  Gerçek biçimi ( oluklu plaka, eğik kol, kapak, askılı ağırlık,
+kontak ) kasnağın düzlemini dik gören düşey kesitte çizilir;  öbür kesitte ve
+planda zarflarıyla.
 
 Gergi ağırlığının merkezi kasnak merkezinden 300 mm ötededir ( referans proje regülatör
 hesabı, "A = 300";  ağırlık 160 boyunda:  kasnağın 220 – 380 ötesi ).  Kesitteki
@@ -885,8 +894,11 @@ Gerçek gergiler ( ASPAR / Akşöz OSG-A/B kılavuzu ) kabin rayına tırnakla, 
 296 × 150 × 82 kasnak düzleminde asılı, gövde 103;  12 kg 2 × 53;  yaylı
 108 – 133.  Ağırlık duvarlara
 en az çizimin çakışma payı ( `girdi.ASGARI_ACIKLIK`, 20 ) kadar uzak durur;
-bir yönde sığmazsa kol öbür yöne döner, ikisinde de sığmazsa çizim durur.  Üst
-regülatör aynı girdiyi kullanarak gergi kasnağıyla hizalı kalır.
+sığmazsa çizim durur.  Eskiden kol öbür yöne dönüyordu:  kollu gergide bu,
+plakanın raydan kopmasıdır ( kol hep raydan kasnağa ve ağırlığa doğru ).  Üst
+regülatör aynı girdiyi kullanarak gergi kasnağıyla hizalı kalır.  Kasnağın
+merkezi tabandan 397 ( `gergi_kasnak_merkez`;  kılavuz s. 37:  plakanın altı
+~260 — eskiden referans projenin 520'si, plaka en alt konsola biniyordu ).
 
 Patenlerin MERKEZLERİ arası hesap programının paten arasıdır ( TS EN 81-50'nin
 kuvvet kolu h;  `dusey.kabin_paten_arasi`, `dusey.agirlik_paten_arasi` — kabinde
@@ -1061,9 +1073,9 @@ Eksene uzaklık boşsa program, gergi kolu ve ağırlığı tampona ya da raya,
 regülatör tepede makineye ya da bağlantılara çarpmayan en yakın yeri seçer;
 ağırlık arkadayken yan "karşı ağırlığın karşısı" ise öbür kabin rayını da dener.
 Girilen değer değiştirilmez ( çarpıyorsa çizim söyler ).  Gergi kasnağı en
-alttaki ray konsolunun hizasındadır ( konsol 440 – 500, kasnak 520 ± D/2 ):
-kasnak konsola değiyorsa program onu raydan uzaklaştırır ( 1022:  280'de
-değiyor, 360 ).
+alttaki ray konsolunun hizasındadır ( konsol 440 – 500, kasnak 397 ± D/2 ):
+kasnak konsola değiyorsa program onu raydan uzaklaştırır.  Aranan yerler
+gerginin oluk aralığına kırpılır ( plaka rayda kalsın ).
 Çizilmeyenler:  kuyu dibi durdurma düğmesi ve revizyon kutusu ( yer kuralları
 m.5.2.1.5.1 — ölçüleri yok ).
 

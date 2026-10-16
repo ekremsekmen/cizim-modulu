@@ -247,12 +247,18 @@ class KasnaklarArasi(unittest.TestCase):
 
 class Regulator(unittest.TestCase):
     def test_bossa_carpmayan_yer(self):
-        #  900 × 1.000 kabin, 1.450 derin kuyu:  varsayılan yerde gergi kolu döner,
-        #  ağırlık kabin rayına iner — program çarpmayan en yakın yeri seçer.
-        g, _A, _h = duzen_girdisi(standart_istek(320))
-        self.assertNotEqual(abs(g["kuyu_dibi"]["regulator_kaciklik"]), 0)
+        #  900 × 1.000 kabin, 1.450 derin kuyu, Ø200 gergi kasnağı:  varsayılan
+        #  280'de ağırlık arka duvarı aşar ( 800 + 280 + 380 ), önde regülatör
+        #  tepede kabin halat bağlantısına biner — program çarpmayan en yakın yeri
+        #  seçer:  oluğun en kısası 212 ( 162,5 · cos 15° + 54,5 ).
+        g, _A, _h = duzen_girdisi(standart_istek(320, reg_kasnak_capi=200))
+        self.assertEqual(g["kuyu_dibi"]["regulator_kaciklik"], 212)
         self.assertEqual([h for h in kuyu_dibi.yerlesim(g)["hata"] if "egülatör" in h], [])
         self.assertEqual([h for h in kuyu_ustu.yerlesim(g)["hata"] if "egülatör" in h], [])
+        #  Ø300'de oluğun en kısası 267:  ağırlık duvara 3 mm — yer yok, çizim söyler
+        #  ( eskiden kol öne dönüp rayın üstüne biniyordu )
+        g, _A, _h = duzen_girdisi(standart_istek(320))
+        self.assertTrue(any("gergisinin ağırlığı" in h for h in kuyu_dibi.yerlesim(g)["hata"]))
 
     def test_girilen_yer_degismez(self):
         g, _A, _h = duzen_girdisi(standart_istek(320, regulator_kaciklik=280))

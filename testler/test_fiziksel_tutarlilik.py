@@ -1,5 +1,6 @@
 """Plan ve kesitte aynı parçaların konumu ve fiziksel bağlantıları."""
 
+import math
 import unittest
 
 from temel import ortusur
@@ -24,22 +25,63 @@ class FizikselTutarlilik(unittest.TestCase):
             self.assertEqual(max(e["x"] + e["g"] for e in yan), plan[0]["y"] + plan[0]["d"])
             self.assertEqual(plan[0]["d"], 360)
 
-    def test_gergi_kolu_her_yonde_ray_kasnak_agirligi_baglar(self):
-        for kaciklik in (280, -600):
-            g = _ornek(kuyu_dibi={"regulator_kaciklik": kaciklik})
+    def test_gergi_plakasi_rayda_kol_kasnagi_ve_agirligi_tasir(self):
+        """Kollu gergi ( R4K ):  plaka rayın tabanının arka yüzünde ve ray
+        ekseni plakanın üstünde;  kontak plakanın arkasında;  kol plakadan
+        ( mafsal ) kasnağa ve ağırlığa — hep raydan uzağa doğru."""
+        for yan, kaciklik in (("Sol", 280), ("Sol", -280), ("Sağ", -440)):
+            g = _ornek(kuyu_dibi={"regulator_kaciklik": kaciklik, "regulator_yan": yan})
             Y = kuyu_dibi.yerlesim(g)
-            self.assertEqual(Y["hata"], [])
-            gp = Y["gergi_donanim"]
-            kol, ag = gp["kol"], gp["agirlik"]
-            gy = (Y["gergi"][1] + Y["gergi"][3]) / 2
-            for y in (g["kabin_ray"]["kapi_arasi"], gy, (ag[1] + ag[3]) / 2):
-                self.assertLessEqual(kol[1], y)
-                self.assertGreaterEqual(kol[3], y)
+            with self.subTest(yan=yan, kaciklik=kaciklik):
+                self.assertEqual(Y["hata"], [])
+                gp = Y["gergi_donanim"]
+                kol, ag, pl, kt = gp["kol"], gp["agirlik"], gp["plaka"], gp["kontak"]
+                ry = g["kabin_ray"]["kapi_arasi"]
+                gy = (Y["gergi"][1] + Y["gergi"][3]) / 2
+                ray = Y["kabin_raylari"][-1 if yan == "Sağ" else 0]
+                self.assertTrue(pl[1] <= ry <= pl[3])
+                if yan == "Sağ":
+                    self.assertEqual((pl[0], kt[0]), (ray[2], pl[2]))
+                else:
+                    self.assertEqual((pl[2], kt[2]), (ray[0], pl[0]))
+                self.assertTrue(ortusur(kol, pl) or kol[1] <= pl[3] and pl[1] <= kol[3])
+                for y in (gy, (ag[1] + ag[3]) / 2):
+                    self.assertTrue(kol[1] <= y <= kol[3])
+                self.assertGreater(abs((ag[1] + ag[3]) / 2 - ry), abs(gy - ry))
 
-    def test_eski_gergi_yeri_rayla_cakistigi_icin_reddedilir(self):
-        #  300:  arkada ağırlık duvara 3 mm — kol öne döner, önde rayla çakışır
+    def test_gergi_agirligi_sigmayinca_kol_donmez(self):
+        #  300:  arkada ağırlık duvara 3 mm.  Eskiden kol öne dönüp rayla çakışıyordu;
+        #  kollu gergide dönmek plakanın raydan kopması olur — yer reddedilir
         hata = kuyu_dibi.dogrula(_ornek(kuyu_dibi={"regulator_kaciklik": 300}))
-        self.assertTrue(any("gergisinin ağırlığı" in h and "çarpıyor" in h for h in hata), hata)
+        self.assertTrue(any("gergisinin ağırlığı duvara 3 mm" in h for h in hata), hata)
+
+    def test_gergi_plakasi_raya_oturmali(self):
+        """Ray ekseni plakanın oluğunun boyunca:  Ø240 kasnakta kasnak – ray
+        ekseni 267 – 442 ( mafsal kasnaktan kol boyunca 220, kol 15° — PFB s. 70 ),
+        Ø200'de 211,5 – 386,5 ( mafsal 162,5 )."""
+        from cizim import parcalar
+
+        lo, hi = parcalar.gergi_ray_araligi(240)
+        self.assertAlmostEqual(lo, 220 * math.cos(math.radians(15)) + 54.5)
+        self.assertAlmostEqual(hi, 220 * math.cos(math.radians(15)) + 229.5)
+        self.assertEqual((round(lo), round(hi)), (267, 442))
+        lo, hi = parcalar.gergi_ray_araligi(200)
+        self.assertAlmostEqual(hi - lo, 175.0)
+        self.assertAlmostEqual(lo, 162.5 * math.cos(math.radians(15)) + 54.5)
+        for kac, cap in ((260, 240), (460, 300), (-700, 300), (200, 200)):
+            hata = kuyu_dibi.dogrula(
+                _ornek(kuyu_dibi={"regulator_kaciklik": kac, "regulator_kasnak_capi": cap})
+            )
+            with self.subTest(kaciklik=kac, cap=cap):
+                self.assertTrue(any("kabin rayına oturmuyor" in h for h in hata), hata)
+        for kac, cap in ((280, 240), (280, 200), (-440, 300)):
+            with self.subTest(kaciklik=kac, cap=cap):
+                self.assertEqual(
+                    kuyu_dibi.dogrula(
+                        _ornek(kuyu_dibi={"regulator_kaciklik": kac, "regulator_kasnak_capi": cap})
+                    ),
+                    [],
+                )
 
     def test_gergi_plan_kesit_ayni_kutular_ve_siginma_bos(self):
         for factory in (_ornek, _sag_ayna):
@@ -62,8 +104,9 @@ class FizikselTutarlilik(unittest.TestCase):
     def test_gergi_donanimi_merdiven_ve_siginmaya_engel(self):
         """Gergi kolu ve ağırlığı kuyu dibinde yer tutar:  merdiven ve sığınma
         onlara basmaz.  Gergi sağ rayda, kaçıklık −900 iken engel sayılmasa
-        merdiven sağ yanda kolun ve ağırlığın üstüne düşüyordu."""
-        for kac in (-900, -700, 280):
+        merdiven sağ yanda kolun ve ağırlığın üstüne düşüyordu ( kollu gergide
+        plaka raydan kopar:  artık reddedilir — en uzağı −440 )."""
+        for kac in (-440, -280, 280):
             for tip in ("Yatarak", "Çömelme", "Dik duruş"):
                 g = _ornek(kuyu_dibi={"regulator_yan": "Sağ", "regulator_kaciklik": kac, "siginma_tipi": tip})
                 Y = kuyu_dibi.yerlesim(g)
@@ -76,7 +119,7 @@ class FizikselTutarlilik(unittest.TestCase):
     def test_gergi_agirligi_duvara_degmez(self):
         """Gergi ağırlığı duvarlara en az çizimin çakışma payı ( 20 ) kadar uzak:
         örnekte arka duvara 3 mm kalıyordu.  Kabul edilen her düzende pay var;
-        300 reddedilir ( arkada 3 mm, öbür yönde ağırlık raya biner )."""
+        300 reddedilir ( arkada 3 mm;  kol dönmez )."""
         from cizim import sabitler
 
         S = sabitler.sabitler()
@@ -85,10 +128,14 @@ class FizikselTutarlilik(unittest.TestCase):
         self.assertEqual(girdi.ORNEK["kuyu_dibi"]["regulator_kaciklik"], 280)  # referans proje
         self.assertEqual(kuyu_dibi.dogrula(_ornek()), [])
         self.assertTrue(kuyu_dibi.dogrula(_ornek(kuyu_dibi={"regulator_kaciklik": 300})))
-        #  Kaçıklık −780:  önde ağırlık ön duvara 7 mm kalırdı — kol arkaya döner, kabul
-        Y = kuyu_dibi.yerlesim(_ornek(kuyu_dibi={"regulator_kaciklik": -780}))
-        self.assertEqual(Y["hata"], [])
-        self.assertGreater(Y["gergi_donanim"]["agirlik"][1], Y["gergi"][1])
+        #  Kaçıklık −780:  eskiden kol arkaya dönüp kabul ediliyordu;  kollu
+        #  gergide plaka raydan kopar — reddedilir
+        self.assertTrue(
+            any(
+                "kabin rayına oturmuyor" in h
+                for h in kuyu_dibi.dogrula(_ornek(kuyu_dibi={"regulator_kaciklik": -780}))
+            )
+        )
         #  Ağırlığın duvara dik eni katalogdan ( ASPAR 25 kg:  82 ), kasnak düzlemine
         #  ortalı — eskiden boyuyla aynı 160 sayılıyordu
         self.assertEqual(S["gergi_agirlik_eni"], 82)
@@ -112,7 +159,9 @@ class FizikselTutarlilik(unittest.TestCase):
                     min(k[0], k[1], g["kuyu"]["genislik"] - k[2], g["kuyu"]["derinlik"] - k[3]),
                     girdi.ASGARI_ACIKLIK,
                 )
-        self.assertGreater(kabul, 10)
+        #  Ø300 kasnakta oluğun aralığı −442 … −267 ve 267 … 442;  örnekte arkada
+        #  280'den ötesi duvara değer:  −440 … −280 ve 280
+        self.assertEqual(kabul, 10)
 
     def test_kasnak_tasiyicisi_kasnagi_saseye_baglar(self):
         """Kabin altı kasnaklar şaseye bağlıdır:  planda yol kasnağın
