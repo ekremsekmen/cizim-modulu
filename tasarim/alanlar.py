@@ -130,7 +130,9 @@ _GRUPLAR = (
             #  asansörün TİPİNE göre verir:  insan asansöründe Fs = 0,4·gn·Q, yük-insan
             #  asansöründe 0,6·gn·Q.  Beyan yüküne bağlı bir eşik ( Q < 2500 kg →
             #  0,4 ) standartta yoktur — 1600 kg bir yük-insan asansörü 0,4 ile
-            #  emniyetsiz hesaplanırdı.
+            #  emniyetsiz hesaplanırdı.  Gelişmiş'te DEĞİL ( 16 Eki, kullanıcı ):  ray
+            #  hesabını değiştiren bir tasarım kararıdır, gözden kaçmamalı;  formda
+            #  asansörün adının yanında durur.
             A(
                 "asansor_tipi",
                 "Asansör tipi",
@@ -140,7 +142,6 @@ _GRUPLAR = (
                 mukavemet_tablolari.ASANSOR_TIPLERI[0],
                 kaynak=GIRDI,
                 sozlesme=MUK,
-                gelismis=True,
                 bilgi=(
                     "İnsan mı yük-insan mı. Yükleme sırasında eşiğe gelen kuvveti değiştirir: insan "
                     "asansöründe Fs = 0,4·gn·Q, yük-insanda 0,6·gn·Q ( m.5.7.2.3.6 )."
