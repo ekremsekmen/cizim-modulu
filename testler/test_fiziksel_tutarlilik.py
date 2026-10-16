@@ -163,6 +163,33 @@ class FizikselTutarlilik(unittest.TestCase):
         #  280'den ötesi duvara değer:  −440 … −280 ve 280
         self.assertEqual(kabul, 10)
 
+    def test_regulator_gercek_olculerle(self):
+        """Hız regülatörü PFB kılavuzunun R5 / R6 resimlerinden ( parcalar.
+        regulator_geometrisi ):  plan ile kesit aynı kutular;  kasnak tavandan 462,
+        gövde eksenin 168 altından 167 üstüne ( R6 );  taban 150 × 238, uzun ucu
+        ( mekanizma ve kontak ) kuyunun içine;  makine dairesinde ayaklar döşemede."""
+        from cizim import parcalar
+        from testler.test_olcu_kaynagi import _g, _gercek
+
+        g6, g5 = parcalar.regulator_geometrisi(300), parcalar.regulator_geometrisi(200)
+        self.assertEqual((g6["eksen"], g6["tepe"], g6["zarf"]), (168.0, 167.0, (-75.0, 75.0, -86.0, 152.0)))
+        self.assertEqual((g5["eksen"], g5["tepe"], g5["zarf"]), (120.0, 141.0, (-75.0, 75.0, -83.0, 121.0)))
+        self.assertAlmostEqual(2 * g6["deneme"], 220.0)
+        self.assertAlmostEqual(2 * g5["deneme"], 143.0)
+        g = _ornek()
+        M = kuyu_kesiti.yerlesim(g)["M"]
+        KU, rg, rk = M["KU"], M["regulator"], M["regulator_kasnak"]
+        self.assertEqual((rg[:4], rk[:4]), (KU["reg_govde"], KU["reg_kasnak"]))
+        self.assertEqual(M["tavan"] - rk[4], 462)
+        self.assertEqual((rk[4] - rg[4], rg[5] - rk[4]), (168.0, 167.0))
+        gv, rx = KU["reg_govde"], (rk[0] + rk[2]) / 2.0
+        self.assertEqual((gv[2] - gv[0], gv[3] - gv[1]), (238.0, 150.0))
+        ic = gv[0] if rx > g["kuyu"]["genislik"] / 2.0 else gv[2]
+        self.assertEqual(abs(ic - rx), 152.0)
+        Mm = kuyu_kesiti.yerlesim(_g(_gercek("1022"))[0])["M"]
+        self.assertEqual(Mm["regulator"][4], Mm["tabliye_ustu"])
+        self.assertEqual(Mm["regulator_kasnak"][4] - Mm["tabliye_ustu"], 168.0)
+
     def test_kasnak_tasiyicisi_kasnagi_saseye_baglar(self):
         """Kabin altı kasnaklar şaseye bağlıdır:  planda yol kasnağın
         merkezinden şase dikmesine ( ray eksenine ) gider;  iki kesitte de
