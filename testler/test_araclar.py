@@ -6,7 +6,13 @@ import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+from araclar import fiziksel
 from araclar import tarama
+from cizim import cizimler
+from cizim import eleman
+from cizim import girdi
+from cizim import kuyu_kesiti
+from cizim import pafta
 
 KAYIT = {"ana": {"A": {"durum": "çizildi", "sebep": ""}, "B": {"durum": "ret", "sebep": "X sığmıyor"}}}
 
@@ -50,6 +56,78 @@ class Karsilastirma(unittest.TestCase):
             {g: len(v) for g, v in kayit.items()},
             {g: sum(1 for _ in tarama.duzenler(g)) for g in tarama.GRUPLAR},
         )
+
+
+def _beton(x, y, g, d):
+    return eleman.dikdortgen("TARAMA", x, y, g, d, tip="tarama")
+
+
+def _ornek():
+    return {k: (dict(v) if isinstance(v, dict) else v) for k, v in girdi.ORNEK.items()}
+
+
+class Fiziksel(unittest.TestCase):
+    """araclar/fiziksel.py:  her kural bir hatalı, bir doğru düzenle ( 17 Eki —
+    PR #26'nın üç hatası bu kurallarla bulundu )."""
+
+    def test_r1_beton_parcaya_giriyor(self):
+        duvar = _beton(1000, 0, 200, 2000)
+        icinde = eleman.dikdortgen("KONSOL", 980, 500, 150, 150, ad="makine_sasesi")
+        yaninda = eleman.dikdortgen("KONSOL", 840, 500, 150, 150, ad="makine_sasesi")
+        f = fiziksel.sorunlar({}, "makine_dairesi", [duvar, icinde])
+        self.assertEqual(len(f), 1)
+        self.assertIn("R1 beton parçaya giriyor  makine_sasesi", f[0])
+        self.assertEqual(fiziksel.sorunlar({}, "makine_dairesi", [duvar, yaninda]), [])
+
+    def test_r1_bicime_bakar(self):
+        """Biçimi olan parçada zarfa değil biçime bakılır:  zarfı duvara
+        değen ama biçimi değmeyen parça sorun değildir."""
+        duvar = _beton(1000, 0, 200, 2000)
+        el = eleman.dikdortgen("KONSOL", 900, 500, 150, 150, ad="konsol")
+        el["bicim"] = [{"noktalar": [(900, 500), (990, 500), (990, 650), (900, 650)]}]
+        self.assertEqual(fiziksel.sorunlar({}, "makine_dairesi", [duvar, el]), [])
+
+    def test_r2_kuyu_boslugunda_beton(self):
+        g = _ornek()
+        tavan = kuyu_kesiti.yerlesim(g)["M"]["tavan"]
+        D = g["kuyu"]["derinlik"]
+        e = [_beton(-150, -1500, D + 300, 150), _beton(D, -1500, 150, tavan + 1650)]
+        self.assertEqual(fiziksel.sorunlar(g, "kuyu_kesiti_yan", e), [])
+        #  Kuyunun içine inen duvar ( oda duvarı hatası, PR #26 )
+        e.append(_beton(D - 300, tavan - 1200, 200, 1200))
+        f = fiziksel.sorunlar(g, "kuyu_kesiti_yan", e)
+        self.assertTrue(any("R2 kuyu boşluğunda beton" in m for m in f), f)
+
+    def test_r3_duvarin_alti_bosta_lento_haric(self):
+        g = _ornek()
+        taban = _beton(-150, -1500, 2500, 150)
+        havada = _beton(-150, 3000, 150, 2000)
+        f = fiziksel.sorunlar(g, "kuyu_kesiti_yan", [taban, havada])
+        self.assertTrue(any("R3 duvarın altı boşta" in m for m in f), f)
+        #  Altında kapı varsa lentodur
+        kapi = eleman.dikdortgen("KAPI", -150, 0, 150, 2300)
+        self.assertEqual(fiziksel.sorunlar(g, "kuyu_kesiti_yan", [taban, havada, kapi]), [])
+
+    def test_r4_kuyu_planinda_binis(self):
+        kabin = eleman.dikdortgen("KABIN", 500, 300, 1000, 1200, ad="kabin")
+        agirlik = eleman.dikdortgen("AGIRLIK", 1450, 400, 150, 800, ad="agirlik")
+        f = fiziksel.sorunlar({}, "kuyu_plani", [kabin, agirlik])
+        self.assertEqual(len(f), 1)
+        self.assertIn("R4 kabin / agirlik biniyor", f[0])
+        agirlik["x"] = 1550
+        self.assertEqual(fiziksel.sorunlar({}, "kuyu_plani", [kabin, agirlik]), [])
+
+    def test_ornek_projeler_temiz(self):
+        """Programın örnek projeleri ( makine dairesiz ve daireli ) bütün
+        çizimlerinde fiziksel olarak tutarlıdır."""
+        for md in (False, True):
+            with self.subTest(makine_dairesi=md):
+                g = _ornek()
+                if md:
+                    g["makine"] = dict(g["makine"], yeri="Makine dairesi")
+                for c in pafta.SIRA_MD if md else pafta.SIRA_MRL:
+                    e = cizimler.CIZIMLER[c][1](g)
+                    self.assertEqual(fiziksel.sorunlar(g, c, e), [], c)
 
 
 if __name__ == "__main__":

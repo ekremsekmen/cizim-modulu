@@ -34,6 +34,8 @@ kasnağının ekseni ( x ) boyunca dizilir.  Regülatör halatının deliği de 
 kuralla ( tek halat:  çap + 2 × pay ).
 """
 
+import math
+
 from temel import ortusur, sayi_mi
 from cizim import eleman
 from cizim import kisaltmalar
@@ -894,19 +896,71 @@ def _tabliye_kenari(Y):
     )
     if Y["merdiven"]:
         d = -min(bos / 2.0, 300.0) if bos > GIRINTI[1] else 150.0
-        e.append(
-            eleman.ad(
-                eleman.yazi(
-                    cx + yon[0] * d,
-                    cy + yon[1] * d,
-                    f"KOT FARKI {TB['yukseklik']:g} > {KOT_FARKI_MERDIVEN:g}:  MERDİVEN VE KORKULUK ( m.5.2.6.3.2.4 )",
-                    uslup.NORMAL,
-                    aci=aci,
-                ),
-                "merdiven_notu",
-            )
+        bas = f"KOT FARKI {TB['yukseklik']:g} > {KOT_FARKI_MERDIVEN:g}:"
+        son = "MERDİVEN VE KORKULUK ( m.5.2.6.3.2.4 )"
+        #  Dar odada ( not, kenarın ortasından iki yandaki duvara bir harf
+        #  payıyla sığmıyorsa ) iki satır:  ikincisi kenardan uzağa.  Eskiden hep
+        #  tek satırdı — 2.100'lük odada duvarların içine taşıyordu ( 63444-2 A
+        #  BLOK, 17 Eki ).  Not zeminde:  zemin odanın eninde uzanır.
+        u, u0, u1 = (cy, oda[1], oda[3]) if yon[0] != 0 else (cx, oda[0], oda[2])
+        kenar = 2.0 * (min(u - u0, u1 - u) - uslup.NORMAL)
+        satirlar = (
+            [bas + "  " + son] if eleman.yazi_eni(bas + "  " + son, uslup.NORMAL) <= kenar else [bas, son]
         )
+        kayma, uzak = _merdiven_notu_yeri(Y, satirlar, d, u, u0, u1, (cx, cy), yon, bos)
+        for i, metin in enumerate(satirlar):
+            n = uzak + math.copysign(1.6 * uslup.NORMAL * i, uzak)  # kenardan uzaklık
+            x, y = (cx + yon[0] * n, cy + kayma) if yon[0] != 0 else (cx + kayma, cy + yon[1] * n)
+            e.append(eleman.ad(eleman.yazi(x, y, metin, uslup.NORMAL, aci=aci), "merdiven_notu"))
     return e
+
+
+#  Notun odadaki yazılı alanlardan uzaklığı:  pano, çalışma ve bakım alanının
+#  ölçüleri ve adları kutularının yanına yazılır
+NOT_PAYI = 250.0
+
+
+def _merdiven_notu_yeri(Y, satirlar, d, u, u0, u1, merkez, yon, bos):
+    """Kot farkı notunun yeri:  ( kenar boyunca kayma, kenardan uzaklık ).
+    Önce eski yer ( kenarın ortası, d ), sonra zeminde kenardan uzağa, sonra
+    yana:  pano, çalışma ve bakım alanına ( NOT_PAYI kadar ) değmeyen ilki;
+    yoksa eski yer.  Eskiden hep eski yerdi — pano o duvardaysa not panonun
+    çalışma alanının ve ölçüsünün üstüne biniyordu ( girdi taraması, oda
+    grubu, 17 Eki )."""
+    h = uslup.NORMAL
+    w = max(eleman.yazi_eni(m, h) for m in satirlar) / 2.0
+    derin = 1.6 * h * (len(satirlar) - 1)  # satırların kenara dik yayılışı
+    engel = [
+        (k[0] - NOT_PAYI, k[1] - NOT_PAYI, k[2] + NOT_PAYI, k[3] + NOT_PAYI)
+        for k in (Y.get("pano"), Y.get("calisma"), Y.get("bakim"))
+        if k
+    ]
+    dikey = yon[0] != 0  # kenar düşey:  yazı 90°, kenar boyunca y
+
+    def kutusu(kayma, uzak):
+        n0, n1 = sorted((uzak, uzak + math.copysign(derin, uzak)))
+        a0, a1 = n0 - 0.6 * h, n1 + 0.6 * h  # kenara dik ( yon yönünde )
+        b0, b1 = u + kayma - w, u + kayma + w  # kenar boyunca
+        if dikey:
+            xs = sorted((merkez[0] + yon[0] * a0, merkez[0] + yon[0] * a1))
+            return (xs[0], b0, xs[1], b1)
+        ys = sorted((merkez[1] + yon[1] * a0, merkez[1] + yon[1] * a1))
+        return (b0, ys[0], b1, ys[1])
+
+    uzaklar = [d]
+    if d < 0:  # zeminde:  duvara bir harf payı kalana kadar kenardan uzağa
+        uzaklar += [-n for n in range(150, int(bos - derin - 1.6 * h), 150) if abs(-n - d) > 1e-6]
+    kaymalar = [0.0]
+    for s in range(150, int(u1 - u0), 150):
+        kaymalar += [s, -s]
+    for kayma in kaymalar:
+        if u + kayma - w < u0 + h or u + kayma + w > u1 - h:
+            continue
+        for uzak in uzaklar:
+            k = kutusu(kayma, uzak)
+            if not any(ortusur(k, x) for x in engel):
+                return kayma, uzak
+    return 0.0, d
 
 
 def _makine_ve_donanim(Y, md, G):
