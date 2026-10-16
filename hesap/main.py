@@ -8,6 +8,13 @@ Yerel sunucu + tarayıcı arayüzü.  Çalıştırmak için:
 
 Tarayıcı kendiliğinden açılır (http://127.0.0.1:8780).
 Program tümüyle bilgisayarınızda çalışır, internet gerektirmez.
+
+WEB SUNUCUSUNDA ( yayın ):
+
+    python3 hesap/main.py --sunucu
+
+Tarayıcı açılmaz, port aranmaz;  adres, port ve işçi sayısı ortamdan
+( bkz. sunucu_ayari ).  Sağlık denetimi için:  GET /api/saglik
 """
 
 import json
@@ -171,5 +178,41 @@ def calistir():
         print("\n  Program kapatıldı.\n")
 
 
+def sunucu_ayari(ortam=None):
+    """Web sunucusunda çalışma ayarı — ortam değişkenlerinden.
+
+    AVAN_HOST        dinlenen adres.  Varsayılan 0.0.0.0 ( bütün ağ arayüzleri:
+                     kapsayıcı ve barındırma servisi );  önünde aynı makinede
+                     ters vekil ( nginx, Caddy ) varsa 127.0.0.1
+    PORT             barındırma servislerinin verdiği port ( Render, Railway,
+                     Fly … ister );  yoksa AVAN_PORT, o da yoksa 8780
+    WEB_CONCURRENCY  işçi süreç sayısı ( uvicorn'un kendi değişkeni ).  Çizim
+                     ve PDF işlemciyi tutar:  bir işçi aynı anda yalnız bir
+                     ağır isteği hesaplar.  Varsayılan 1
+    """
+    ortam = os.environ if ortam is None else ortam
+    return {
+        "host": ortam.get("AVAN_HOST") or "0.0.0.0",
+        "port": int(ortam.get("PORT") or ortam.get("AVAN_PORT") or 8780),
+        "workers": int(ortam.get("WEB_CONCURRENCY") or 1),
+    }
+
+
+def sunucu():
+    """Web sunucusu:  tarayıcı açmaz, port aramaz ( port doluysa durur ).
+
+    Uygulama "main:app" adıyla verilir:  uvicorn birden çok işçiyi ancak
+    içe aktarma yolundan kurabilir.  Erişim kaydı açık ( INFO ).
+    """
+    import uvicorn
+
+    a = sunucu_ayari()
+    print(f"  ASANSÖR PROJE PROGRAMI  ·  sürüm {SURUM}  ·  sunucu  {a['host']}:{a['port']}", flush=True)
+    uvicorn.run("main:app", host=a["host"], port=a["port"], workers=a["workers"], log_level="info")
+
+
 if __name__ == "__main__":
-    calistir()
+    if "--sunucu" in sys.argv[1:]:
+        sunucu()
+    else:
+        calistir()
