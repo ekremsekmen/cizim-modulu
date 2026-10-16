@@ -138,8 +138,12 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
             kp[0] < kx < kp[2] if ad in ("Ön", "Arka") else kp[1] < yb < kp[3]
         )
         #  Duvar kuyunun üstündeyse tabliyede ( kuyu duvarı onu taşır ), değilse
-        #  oda zemininde başlar
-        za = zemin(kutu)
+        #  oda zemininde başlar.  Kesitte görünen, duvarın kesit düzlemindeki
+        #  dilimidir:  ona bakılır.  Eskiden duvarın bütün boyuna bakılıyordu —
+        #  bir ucu kuyunun dışına taşan duvar, kuyunun üstündeki diliminde de
+        #  oda zeminine iniyor, tabliyenin altında kuyunun içinden geçiyordu.
+        dilim = (kx, kutu[1], kx, kutu[3]) if ad in ("Ön", "Arka") else (kutu[0], yb, kutu[2], yb)
+        za = zemin(dilim)
         zk = zemin(kp)
         zb = zk + kh if kapidan else za
         B.kutu(e, "TARAMA", kutu, zb, ztv, tip="tarama")
@@ -150,7 +154,7 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
                 B.kutu(e, "KUYU-DUVAR", kutu, za, zk, "oda_duvari")
             B.kutu(e, "KAPI", kutu, zk, zb, "oda_kapisi")
     if md["kapi_duvar"] == uzak_duvar:
-        B.kutu(e, "KAPI", kp, zemin(kp), zemin(kp) + kh, "oda_kapisi")
+        B.kutu_ardinda(e, "KAPI", kp, zemin(kp), zemin(kp) + kh, "oda_kapisi", TB["izi"], zt)
     for _, d in MD["delikler"]:
         B.kutu(e, "GIZLI", d, tv, zt, "doseme_deligi")
     u0, u1 = B.aralik(dis)
