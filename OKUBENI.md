@@ -433,6 +433,33 @@ python3 -m venv .venv
 .venv/bin/python ornekler/uret.py
 ```
 
+### Web sunucusunda
+
+Sunucuya testlerin geçtiği sürümler kurulur ( `requirements-kilit.txt` ) ve
+program **sunucu kipinde** açılır:  tarayıcı açmaz, boş port aramaz ( port
+doluysa durur ), erişim kaydı tutar.
+
+```bash
+python3 -m pip install -r requirements-kilit.txt
+python3 hesap/main.py --sunucu
+```
+
+| Ortam değişkeni | Anlamı | Varsayılan |
+|---|---|---|
+| `PORT` | Dinlenen port ( barındırma servisleri — Render, Railway, Fly … — kendisi verir );  yoksa `AVAN_PORT` | 8780 |
+| `AVAN_HOST` | Dinlenen adres.  Aynı makinede önünde ters vekil ( nginx, Caddy ) varsa `127.0.0.1` | 0.0.0.0 |
+| `WEB_CONCURRENCY` | İşçi süreç sayısı.  Çizim ve PDF işlemciyi tutar;  bir işçi aynı anda bir ağır isteği hesaplar | 1 |
+| `AVAN_KAYIT` | Kayıt düzeyi ( DEBUG · INFO · WARNING · ERROR ) | WARNING |
+
+Sağlık denetimi:  `GET /api/saglik` → `{"durum": "calisiyor", "surum": …}`.
+
+**Kullanıcılar birbirini görmez.**  Sunucu proje saklamaz ( projeler
+kullanıcının tarayıcısında durur );  isteğe özel durum — reddedilen girdilerin
+listesi, PDF ölçeği, okunan sabitlerin kaydı — iş parçacığına özeldir;  liste
+istek başında temizlenir, öbürleri iş bitince eski hâline döner.  Ortak tek şey çizim çözümlemesinin önbelleğidir ( girdinin
+tamamıyla anahtarlı:  aynı girdi aynı sonucu verir ).  Eş zamanlı iki
+kullanıcının birbirinin girdisiyle karışmadığını TEST 3 denetler.
+
 ## Denetim
 
 Çalışma akışı:  değişiklik bir dala push'lanır ve PR açılır;  GitHub ağır

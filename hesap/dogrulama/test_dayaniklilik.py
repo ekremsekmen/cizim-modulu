@@ -817,6 +817,37 @@ def calistir():
         _k, _ic, _b = istek(_yol, _gov)
         r.kontrol(f"{_yol} temiz girdide yine üretiyor", _ic[: len(_im)] == _im)
 
+    #  EŞ ZAMANLI KULLANICILAR ( web sunucusu ):  reddedilen girdilerin listesi
+    #  iş parçacığına özel ( uc_ortak._BELIRSIZ );  havuzun aynı iş parçacığı
+    #  sıradaki isteği — başka bir kullanıcınınkini — de koşar.  Bir kullanıcının
+    #  belirsiz sayısı ötekinin hesabını reddetmemeli, ötekinin temiz isteği de
+    #  ilkinin hatasını silmemeli.
+    from concurrent.futures import ThreadPoolExecutor
+
+    _isler = [
+        (yol, gov, bozuk)
+        for _ in range(12)
+        for yol, gov, bozuk in (
+            ("/api/trafik", {"mod": "tek", "girdiler": _BT}, True),
+            ("/api/trafik", {"mod": "tek", "girdiler": dict(TEMEL)}, False),
+            ("/api/avan", {"girdiler": _BA}, True),
+            ("/api/avan", {"girdiler": dict(_BA, asansorler=[dict(_BA["asansorler"][0], Hk="38,5")])}, False),
+        )
+    ]
+
+    def _es_zamanli(is_):
+        yol, gov, bozuk = is_
+        hata = json.loads(istek(yol, gov)[1]).get("hata") or ""
+        return ("Belirsiz sayı" in hata) == bozuk
+
+    with ThreadPoolExecutor(16) as havuz:
+        _tutan = sum(havuz.map(_es_zamanli, _isler))
+    r.kontrol(
+        f"eş zamanlı {len(_isler)} istek:  belirsiz sayı yalnız kendi isteğini reddediyor",
+        _tutan == len(_isler),
+        f"→ {len(_isler) - _tutan} istek başkasının girdisiyle karıştı",
+    )
+
     # proje adı dosya adına güvenli biçimde geçmeli
     kod, icerik, basliklar = istek(
         "/api/indir/trafik-pdf",
