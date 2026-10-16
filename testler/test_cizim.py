@@ -2764,8 +2764,22 @@ class MakineVeSase(unittest.TestCase):
                 #  Makineyi sarar;  tabliyenin kenarına dayanan yanda pay daralır
                 #  ( dişli makine halatların yerinde kuyunun kenarına 80 mm yakın:
                 #  kaide tabliyeye kaydırılır — 5 Eki )
+                #  Kenara dayanan kaidenin izi:  kutusu ve ayak plakaları ( plaka
+                #  kutudan taşar — tabliyeden sarkmaz )
                 tb = Y["tabliye"]["izi"]
-                p_ = [0.0 if abs(c[i] - tb[i]) < 1e-6 else pay for i in range(4)]
+                a = makine.ayak_plakasi(K["E"], S)
+                ps = [
+                    (x - a / 2.0, y - a / 2.0, x + a / 2.0, y + a / 2.0)
+                    for x, y in makine.ayaklar(c, K["E"], K["F"], K["uzun_x"])
+                ]
+                t = (
+                    min([c[0]] + [q[0] for q in ps]),
+                    min([c[1]] + [q[1] for q in ps]),
+                    max([c[2]] + [q[2] for q in ps]),
+                    max([c[3]] + [q[3] for q in ps]),
+                )
+                self.assertTrue(makine_dairesi.icinde(t, tb), (t, tb))
+                p_ = [0.0 if abs(t[i] - tb[i]) < 1e-6 else pay for i in range(4)]
                 self.assertTrue(
                     c[0] <= iz[0] - p_[0] + 1e-6
                     and c[1] <= iz[1] - p_[1] + 1e-6

@@ -245,6 +245,24 @@ class KasnaklarArasi(unittest.TestCase):
         self.assertEqual(duzen_girdisi(v)[0]["aski"]["kasnak_arasi"], 1400)
 
 
+class MakineKaidesi(unittest.TestCase):
+    def test_ayak_plakalari_odanin_icinde(self):
+        """Dikine kirişlerin ayak plakaları ( 150 ) kaidenin kutusundan taşar:
+        kaide odaya plakalarıyla sığar.  Eskiden yalnız kutuya bakılıyordu —
+        1.275 kg makine dairesinde plaka oda duvarının 21,5 mm içine
+        çiziliyordu."""
+        from cizim import makine, makine_dairesi
+
+        for yer in ("Sağ", "Sol"):
+            g, _A, _h = duzen_girdisi(standart_istek(1275, False, yer, aski_duzeni="Kabin altı"))
+            Y = makine_dairesi.yerlesim(g)
+            k, S = Y["kaide"], kuyu_ustu.yerlesim(g)["S"]
+            a = makine.ayak_plakasi(k["E"], S)
+            for x, y in makine.ayaklar(Y["cerceve"], k["E"], k["F"], k["uzun_x"]):
+                p = (x - a / 2.0, y - a / 2.0, x + a / 2.0, y + a / 2.0)
+                self.assertTrue(makine_dairesi.icinde(p, Y["oda"]), (yer, p, Y["oda"]))
+
+
 class Regulator(unittest.TestCase):
     def test_bossa_carpmayan_yer(self):
         #  900 × 1.000 kabin, 1.450 derin kuyu, Ø200 gergi kasnağı:  varsayılan

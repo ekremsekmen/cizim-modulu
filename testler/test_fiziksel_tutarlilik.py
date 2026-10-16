@@ -546,6 +546,41 @@ class FizikselTutarlilik(unittest.TestCase):
                         )
                     )
 
+    def test_kuyunun_ustundeki_oda_duvari_tabliyede_baslar(self):
+        """Makine dairesi öne kayınca arka duvarı kuyunun üstüne düşer:  o duvar
+        tabliyenin üstünde başlar.  Eskiden duvarın kesit düzlemindeki dilimine
+        değil bütün kutusuna bakılıyordu — duvar oda zemininden başlıyor,
+        tabliyenin altında kuyunun içinden geçiyordu."""
+        g = _ornek(makine={"yeri": "Makine dairesi"}, makine_dairesi={"y": -2200})
+        self.assertEqual(kuyu_kesiti.dogrula(g), [])
+        M = kuyu_kesiti.yerlesim(g)["M"]
+        duvarlar = [e for e in kuyu_kesiti.yan_kesit(g) if e.get("ad") == "oda_duvari"]
+        kuyuda = [e for e in duvarlar if 0 <= e["x"] < g["kuyu"]["derinlik"]]
+        self.assertTrue(kuyuda)
+        for e in kuyuda:
+            self.assertEqual(e["y"], M["tabliye_ustu"])
+
+    def test_kuyunun_onundeki_oda_parcalari_betonun_ardinda(self):
+        """Oda kuyunun önüne kayınca kapısı ve oda zemininde duran pano B-B'de
+        kuyunun ön duvarının ve tabliyenin ardında kalır:  tabliyenin üstünden
+        aşağısı ( kuyunun genişliğinde ) çizilmez.  Eskiden betonun içinden
+        geçerek çiziliyordu."""
+        g = _ornek(
+            makine={"yeri": "Makine dairesi"},
+            makine_dairesi={"x": -250, "y": -2200, "kapi_duvar": "Ön"},
+        )
+        self.assertEqual(kuyu_kesiti.dogrula(g), [])
+        M = kuyu_kesiti.yerlesim(g)["M"]
+        G, zt = g["kuyu"]["genislik"], M["tabliye_ustu"]
+        o0, o1 = G - M["tabliye"]["izi"][2], G - M["tabliye"]["izi"][0]
+        es = [e for e in kuyu_kesiti.on_kesit(g) if e.get("ad") in ("oda_kapisi", "kumanda_panosu")]
+        self.assertEqual({e["ad"] for e in es}, {"oda_kapisi", "kumanda_panosu"})
+        for e in es:
+            u0, u1 = sorted((e["x1"], e["x2"])) if e["tip"] == "cizgi" else (e["x"], e["x"] + e["g"])
+            z0 = min(e["y1"], e["y2"]) if e["tip"] == "cizgi" else e["y"]
+            if o0 + 1 < u1 and u0 < o1 - 1:
+                self.assertGreaterEqual(z0, zt - 1e-6, e["ad"])
+
     def test_korkuluk_yuksekligi_ve_kotu_iki_kesitte(self):
         g = _ornek()
         Y = kuyu_kesiti.yerlesim(g)

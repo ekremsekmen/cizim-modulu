@@ -520,13 +520,27 @@ class _KaideAramasi:
         ea, eb = self._aralik(*self.e, self.ce, pe, te)
         return ((ua, ea, ub, eb) if self.uzun_x else (ea, ua, eb, ub)), ub - ua
 
-    def _deliklere_basar(self, c):
+    def _plakalar(self, c):
         a = self.a
-        plakalar = [
+        return [
             (x - a / 2.0, y - a / 2.0, x + a / 2.0, y + a / 2.0)
             for x, y in makine.ayaklar(c, self.E, self.F, self.uzun_x)
         ]
-        return any(ortusur(p, d_) for p in plakalar for _, d_ in self.delikler)
+
+    def _izi(self, c):
+        """Kaidenin döşemedeki izi:  kutusu ve ayak plakaları — plaka kutunun
+        dışına taşar ( 150'lik plaka, 60'lık yan yatağın ekseninde ).  Eskiden
+        yalnız kutuya bakılıyordu:  plaka oda duvarının içine çiziliyordu."""
+        ps = self._plakalar(c)
+        return (
+            min([c[0]] + [p[0] for p in ps]),
+            min([c[1]] + [p[1] for p in ps]),
+            max([c[2]] + [p[2] for p in ps]),
+            max([c[3]] + [p[3] for p in ps]),
+        )
+
+    def _deliklere_basar(self, c):
+        return any(ortusur(p, d_) for p in self._plakalar(c) for _, d_ in self.delikler)
 
     def _adaylar(self):
         for te, tu in ((te, tu) for te in self.ORANLAR for tu in self.ORANLAR):
@@ -542,9 +556,10 @@ class _KaideAramasi:
             c, boy = self._kutu(pu, pe, tu, te)
             #  Kot farkı varsa kaide tabliyenin üstündedir ( halatlar oradan iner ):
             #  taşan aday burada geçilir ( aşağıda kaydırılarak denenir )
-            if TB["yukseklik"] > 1e-9 and not icinde(c, TB["izi"]):
+            taban = self._izi(c)
+            if TB["yukseklik"] > 1e-9 and not icinde(taban, TB["izi"]):
                 continue
-            if not icinde(c, self.oda) or self._deliklere_basar(c):
+            if not icinde(taban, self.oda) or self._deliklere_basar(c):
                 continue
             aday = (c, boy, (te, tu) == (1.0, 1.0))
             alanlar = self.alanlar(c)
@@ -573,14 +588,16 @@ class _KaideAramasi:
         iz_, kaydirilan = self.TB["izi"], []
         for pu, pe, tu, te in self._adaylar():
             c, boy = self._kutu(pu, pe, tu, te)
-            dx = max(0.0, iz_[0] - c[0]) - max(0.0, c[2] - iz_[2])
-            dy = max(0.0, iz_[1] - c[1]) - max(0.0, c[3] - iz_[3])
+            t = self._izi(c)
+            dx = max(0.0, iz_[0] - t[0]) - max(0.0, t[2] - iz_[2])
+            dy = max(0.0, iz_[1] - t[1]) - max(0.0, t[3] - iz_[3])
             c = (c[0] + dx, c[1] + dy, c[2] + dx, c[3] + dy)
+            t = self._izi(c)
             #  Kaide makineyi ( ve saptırma kasnağını ) yine sarar;  tabliyenin
             #  kenarındaki yanda payı daralır
             if (
-                not icinde(c, iz_)
-                or not icinde(c, self.oda)
+                not icinde(t, iz_)
+                or not icinde(t, self.oda)
                 or not icinde(self.iz, c)
                 or self._deliklere_basar(c)
             ):

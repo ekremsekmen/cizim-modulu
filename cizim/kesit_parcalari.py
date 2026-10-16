@@ -77,6 +77,47 @@ class Bakis:
         e.append(el)
         return el
 
+    def kutu_ardinda(self, e, katman, k, z0, z1, ad, ortu, z_ortu):
+        """Plandaki ortu kutusunun ( kuyu ve tabliye:  z_ortu'ya kadar dolu )
+        ardındaki parça:  örtünün gerisinde kalan kısmı çizilmez.  Makine
+        dairesinde kuyunun önündeki oda kapısı, oda zemininde duran pano —
+        eskiden kuyu duvarının ve tabliyenin içinden geçerek çiziliyordu.
+        Görünen kısım dış çizgisiyle çizilir ( dikdörtgen parçalara bölününce
+        aralarında dikiş kalıyordu )."""
+        if not self.gorunur(k):
+            return
+        eksen, _, yon = self.kesit
+        ek = 0 if eksen == "x" else 1
+        ardinda = k[ek + 2] <= ortu[ek] + 1e-6 if yon < 0 else k[ek] >= ortu[ek + 2] - 1e-6
+        u0, u1 = self.aralik(k)
+        o0, o1 = self.aralik(ortu)
+        if not ardinda or min(z0, z1) >= z_ortu - 1e-6 or u1 <= o0 or u0 >= o1:
+            self.kutu(e, katman, k, z0, z1, ad)
+            return
+        #  Görünen bölgenin dış çizgisi ( iç dikiş yok ):  ızgaranın gizli
+        #  gözü örtünün arkasındaki alt orta göz
+        us = sorted({u0, u1, min(max(o0, u0), u1), min(max(o1, u0), u1)})
+        zs = sorted({min(z0, z1), min(max(z0, z1), z_ortu), max(z0, z1)})
+
+        def gorunen(i, j):
+            if not (0 <= i < len(us) - 1 and 0 <= j < len(zs) - 1):
+                return False
+            ortada = us[i] >= o0 - 1e-6 and us[i + 1] <= o1 + 1e-6
+            return not (ortada and zs[j + 1] <= z_ortu + 1e-6)
+
+        for i in range(len(us) - 1):
+            for j in range(len(zs) - 1):
+                if not gorunen(i, j):
+                    continue
+                for komsu, (a, c, b, d) in (
+                    ((i - 1, j), (us[i], zs[j], us[i], zs[j + 1])),
+                    ((i + 1, j), (us[i + 1], zs[j], us[i + 1], zs[j + 1])),
+                    ((i, j - 1), (us[i], zs[j], us[i + 1], zs[j])),
+                    ((i, j + 1), (us[i], zs[j + 1], us[i + 1], zs[j + 1])),
+                ):
+                    if not gorunen(*komsu):
+                        e.append(self.derin_kutu(eleman.ad(eleman.cizgi(katman, a, c, b, d), ad), k))
+
     def halat(self, e, x, y, z0, z1, ad="halat"):
         u = self.u(x, y)
         e.append(self.derin_nokta(eleman.ad(eleman.cizgi("HALAT", u, z0, u, z1), ad), x, y))
@@ -468,7 +509,12 @@ def _kuyu_tepesi(e, B, g, M, K):
         e += makine.gorunus(M["halat_konsolu"], B, eleman.dikdortgen, eleman.daire, eleman.cizgi)
     if M.get("pano"):
         p = M["pano"]
-        B.kutu(e, "PANO", p[:4], p[4], p[5], "kumanda_panosu")
+        if "MD" in M:
+            B.kutu_ardinda(
+                e, "PANO", p[:4], p[4], p[5], "kumanda_panosu", M["tabliye"]["izi"], M["tabliye_ustu"]
+            )
+        else:
+            B.kutu(e, "PANO", p[:4], p[4], p[5], "kumanda_panosu")
     regulator(e, B, M)
 
 
