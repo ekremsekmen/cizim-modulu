@@ -57,7 +57,9 @@ quote-style = "double"
 #  hesap/dogrulama/calistir.py ile koşar ( kontrol.py ikisini de çağırır ).
 #  ─────────────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
-testpaths = ["testler"]
+#  test_tsen_bagimsiz:  yayımlanmış çözümlü örneklere karşı bağımsız denetim
+#  ( unittest;  hesabın Rapor tabanlı paketine girmez — kontrol.py'de buradan koşar )
+testpaths = ["testler", "hesap/dogrulama/test_tsen_bagimsiz.py"]
 #  İki kök:  depo ( cizim, tasarim, araclar, testler ) ve hesap ( api, engine,
 #  exports ) — kütüphane modülleri sys.path'e dokunmaz.
 pythonpath = [".", "hesap", "ornekler"]
