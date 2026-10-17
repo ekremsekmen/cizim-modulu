@@ -609,11 +609,119 @@ function mukavemetPlanla(hedef){
   mGelismisTazele();
   yaz();                              // girdiler tarayıcıda saklansın
   clearTimeout(mZaman);
+  //  KURAL DIŞI GİRDİ SUNUCUYA GİTMEZ ( mGirdiDenetle ):  kutu anında
+  //  işaretlenir, sonuç ve çizim "düzeltilince güncellenir" der.
+  const hatalar = mGirdiDenetle();
+  if(hatalar.length){ mGirdiHatasiGoster(hatalar); return; }
   mZaman = setTimeout(hesapMukavemet, 220);
+}
+
+/* ==========================================================================
+   ÖN YÜZ DENETİMİ  ( 17 Eki )
+   Tek alana bakan kurallar ( sayı mı, negatif / sıfır, tam sayı, en az / en
+   çok ) kutu yazılırken denetlenir;  kural dışı değer sunucuya gönderilmez.
+   KURALLAR SUNUCUDAN GELİR ( MUK.kurallar — mukavemet_girdi.form_kurallari ):
+   sayılar sunucunun kendi denetiminin sabitleridir, burada kopyası yok.
+   Ön yüz sunucudan SIKI OLAMAZ:  alanlar arası kurallar ( konsol boyu, kuyuya
+   sığma ) ve son söz sunucudadır — web'de form atlanabilir, sunucu yine korur.
+   Uyum testi:  testler/test_on_yuz_denetimi.py.
+   ========================================================================== */
+
+/*  Sunucunun okuyucusunun ( uc_ortak._sayi ) aynısı:  "1.234,56" · "1,6" ·
+    "1,234.56";  "1.200" belirsizdir ( binlik mi ondalık mı ), çöp ve
+    sonsuz sayı değildir.  sayiOku gevşektir ( "12abc" → 12 ), denetimde
+    kullanılamaz.  { bos } · { belirsiz } · { degil } · { d } */
+const M_SAYI_BELIRSIZ = /^[+-]?[1-9]\d{0,2}[.,]\d{3}$/;
+const M_SAYI_BICIMI = /^[+-]?(\d(_?\d)*(\.(\d(_?\d)*)?)?|\.\d(_?\d)*)(e[+-]?\d(_?\d)*)?$/i;
+function mSayiCoz(ham){
+  const s = String(ham == null ? '' : ham).trim().replace(/[ \u00a0]/g, '');
+  if(!s) return {bos: true};
+  if(M_SAYI_BELIRSIZ.test(s)) return {belirsiz: true};
+  const sv = s.lastIndexOf(','), sn = s.lastIndexOf('.');
+  let t = s;
+  if(sv >= 0 && sn >= 0) t = sv > sn ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  else if(sv >= 0) t = s.replace(',', '.');
+  if(!M_SAYI_BICIMI.test(t)) return {degil: true};
+  const d = Number(t.replace(/_/g, ''));
+  return isFinite(d) && Math.abs(d) <= 1e12 ? {d} : {degil: true};
+}
+
+/*  Kuralın ilettiği hata ( etiketsiz — kutunun altına yazılır );  geçerliyse ''. */
+function mKuralHatasi(kural, ham, birim){
+  const c = mSayiCoz(ham);
+  if(c.bos || !kural) return '';
+  if(c.belirsiz) return 'binlik mi ondalık mı belli değil ( 1200 ya da 1,2 yazın )';
+  if(c.degil) return 'sayı olmalı';
+  const d = c.d, b = birim && birim !== '—' ? ' ' + birim : '';
+  const az = kural.en_az, cok = kural.en_cok;
+  if(az != null && cok != null && az > 0 && (d < az || d > cok))
+    return `${trn(az, 2)} ile ${trn(cok, 2)}${b} arasında olmalı`;
+  if(az != null && (kural.en_az_dahil ? d < az : d <= az))
+    return az === 0 ? (kural.en_az_dahil ? 'negatif olamaz' : 'sıfırdan büyük olmalı')
+                    : `en az ${trn(az, 2)}${b} olmalı`;
+  if(cok != null && d > cok) return `en çok ${trn(cok, 2)}${b} olabilir`;
+  if(kural.tam_sayi && !Number.isInteger(d)) return 'tam sayı olmalı';
+  return '';
+}
+
+/*  Formdaki bütün sayı kutularını denetler, kural dışı olanı işaretler:
+    [ { anahtar, etiket, ileti } ].  Bu yerleşimde hesaba girmeyen ( gizli,
+    .kural-disi ) kutu denetlenmez — sunucu da okumaz.  Kapalı "Gelişmiş"
+    bölümündeki hatalı kutunun bölümü açılır. */
+function mGirdiDenetle(){
+  const kurallar = (MUK && MUK.kurallar) || {};
+  const hatalar = [];
+  for(const f of mAlanlar(x => x.tur === 'sayi')){
+    const e = $(M_ID(f.anahtar));
+    if(!e) continue;
+    const kap = e.closest('.alan') || e.parentNode;
+    const ileti = kap && kap.closest('.kural-disi') ? '' : mKuralHatasi(kurallar[f.anahtar], e.value, f.birim);
+    const kimlik = M_ID(f.anahtar) + '_hata';
+    let not = $(kimlik);
+    if(ileti){
+      if(!not && kap){
+        not = document.createElement('div');
+        not.id = kimlik; not.className = 'alan-hata'; not.setAttribute('role', 'alert');
+        kap.appendChild(not);
+      }
+      if(not){ not.textContent = ileti; not.title = ileti; }
+      e.classList.add('gecersiz');
+      e.setAttribute('aria-invalid', 'true');
+      e.setAttribute('aria-describedby', kimlik);
+      hatalar.push({anahtar: f.anahtar, etiket: f.etiket, ileti});
+    }else{
+      if(not) not.remove();
+      e.classList.remove('gecersiz');
+      e.removeAttribute('aria-invalid');
+      if(e.getAttribute('aria-describedby') === kimlik) e.removeAttribute('aria-describedby');
+    }
+  }
+  if(hatalar.length) mGelismisHataAc(hatalar.map(h => h.etiket));
+  return hatalar;
+}
+
+/*  Kural dışı girdi varken:  yoldaki hesap ve çizim yanıtları geçersizdir
+    ( gelseler eski girdinin sonucunu "güncel" gösterirlerdi );  hesap paneli
+    ve tuval sunucunun reddiyle aynı biçimde düzeltilecekleri söyler. */
+function mGirdiHatasiGoster(hatalar){
+  ++ISTEK.mukavemet; ++ISTEK.cizim;
+  const hata = hatalar.map(h => `${h.etiket}:  ${h.ileti}.`);
+  mYeriKoruyarakCiz(() => cizMukavemet({aktif: false, hata}));
+  sekmeRozeti('uygproje', true, 0);
+  const kutu = $('m_cizimler'), t = $('m_tuval');
+  if(kutu) kutu.classList.remove('yukleniyor');
+  M_CIZIM_DURUM = {aktif: false, hata};
+  if(t && t.querySelector('figure.cizim')) mTuvalHata(hata, true);
+  else if(kutu) kutu.innerHTML = `<div class="kart-ic">${hata.map(x =>
+    `<div class="uyari kirmizi">${kacis(x)}</div>`).join('')}</div>`;
+  mGorunumTazele();
 }
 
 async function hesapMukavemet(){
   if(!MUK) return;
+  //  Her yoldan ( açılış, proje yükleme, asansör değişimi ) aynı kapı
+  const girdiHatasi = mGirdiDenetle();
+  if(girdiHatasi.length){ mGirdiHatasiGoster(girdiHatasi); return; }
   const sira = ++ISTEK.mukavemet;
   //  TAZELEMEYİ YALNIZ ONU İSTEYEN İSTEK TAMAMLAR.  Bayrak yanıtta okunuyordu:
   //  beyan yükü değiştirildiği sırada YOLDA olan eski bir istek ( kabin
@@ -1378,6 +1486,8 @@ function mGorunumTazele(){
 
 async function cizimleriGetir(){
   if(M_GORUNUM !== 'cizim' || !MUK) return;
+  const girdiHatasi = mGirdiDenetle();
+  if(girdiHatasi.length){ mGirdiHatasiGoster(girdiHatasi); return; }
   const sira = ++ISTEK.cizim;
   const kutu = $('m_cizimler'); if(!kutu) return;
   kutu.classList.add('yukleniyor');

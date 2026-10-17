@@ -308,6 +308,7 @@ def arayuz_alanlari():
             for r in mukavemet_tablolari.AGIRLIK_MALZEMESI
         },
         "hesaplanan": list(HESAPLANAN),
+        "kurallar": form_kurallari(),
     }
 
 
@@ -730,6 +731,44 @@ def _fiziksel_sinirlar(g, atla):
         if anahtar not in atla and anahtar not in ACI_ALANLARI and anahtar not in KATALOG_ARALIKLARI:
             hata += azami_hatasi(anahtar, ALAN[anahtar][1], g.get(anahtar))
     return hata
+
+
+def form_kurallari():
+    """ÖN YÜZ DENETİMİNİN KURALLARI — tek alana bakan, sunucunun da uyguladığı
+    kurallar ( arayüz kutuyu yazılırken denetler, kural dışı değeri sunucuya
+    göndermez ).  Sayılar buradaki denetimin kendi sabitleridir:  ikinci bir
+    kopya yoktur.
+
+    Ön yüz SUNUCUDAN SIKI OLAMAZ ( geçerli girdiyi engellerdi ):  bir kural
+    yalnız sunucunun onu kesin uyguladığı alana yazılır — pozitiflik, tam sayı,
+    açı ve katalog aralığı mukavemet alanlarında;  negatiflik her sayı
+    alanında ( işaretli hariç );  tavan her alanda.  Alanlar arası kurallar
+    ( konsol boyu, yığın, kuyu ) sunucuda kalır.  Uyum testi:
+    testler/test_on_yuz_denetimi.py.
+
+    { anahtar:  { en_az, en_az_dahil, en_cok, tam_sayi } } — en_az / en_cok
+    None:  sınır yok."""
+    kurallar = {}
+    for a in alanlar.ALANLAR:
+        if a.tur != "sayi" or not a.formda:
+            continue
+        muk = a.sozlesme == alanlar.MUK
+        alt, dahil = (None, True) if a.isaretli else (0, True)
+        if muk and a.anahtar in (set(POZITIF_ALANLAR) | set(BOLEN_ALANLAR)):
+            alt, dahil = 0, False
+        ust = alanlar.AZAMI.get(a.anahtar)
+        if muk and a.anahtar in ACI_ALANLARI:
+            alt, dahil = ACI_ALANLARI[a.anahtar][0], True
+        if muk and a.anahtar in KATALOG_ARALIKLARI:
+            k_alt, k_ust = KATALOG_ARALIKLARI[a.anahtar]
+            alt, dahil, ust = k_alt, True, min(ust, k_ust) if ust is not None else k_ust
+        kurallar[a.anahtar] = {
+            "en_az": alt,
+            "en_az_dahil": dahil,
+            "en_cok": ust,
+            "tam_sayi": muk and a.anahtar in TAM_SAYI_ALANLARI,
+        }
+    return kurallar
 
 
 def _konsol_araliklari(g, atla):
