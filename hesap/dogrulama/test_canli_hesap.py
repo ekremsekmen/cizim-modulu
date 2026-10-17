@@ -154,7 +154,19 @@ _ALET = """() => {
       if (JSON.stringify(ekranda) !== JSON.stringify(taze))
         sonuc.farklar.push(`${ad} çıktısı ekrandan farklı — ` + (T.ilkFark(ekranda, taze).join(' | ') || 'yapı farklı'));
     };
-    if (mod === 'uygulama') {
+    if (mod === 'uygulama' && SON.mc && SON.mc.on_yuz) {
+      //  ÖN YÜZ GİRDİYİ DURDURDU ( uygulama.js mGirdiDenetle ):  istek gitmedi,
+      //  ekranda ön yüzün iletisi var.  Kural:  sunucu da reddeder ( hesap ya
+      //  da — çizim alanında — çizim ucu ) — ön yüz sunucudan sıkı olamaz.
+      const ist = mukavemetIstek();
+      const taze = await T.post('/api/uygulama/coklu', ist);
+      let red = taze.aktif === false || ((taze.asansorler || [])[MUK_AKTIF] || {}).aktif === false;
+      if (!red) red = (await T.post('/api/uygulama/cizimler', {...ist, asansor: MUK_AKTIF})).aktif === false;
+      if (!red) sonuc.farklar.push('ön yüz girdiyi durdurdu, sunucu kabul ediyor — ' + SON.mc.hata.join(' · '));
+      const metin = tek(document.getElementById('m_sonuc').innerText);
+      for (const m of SON.mc.hata) if (!metin.includes(tek(m))) sonuc.dom.push(`ön yüz: ekranda yok → ${m.slice(0, 80)}`);
+      sonuc.kabin = MUK_ASANSORLER.slice(0, MUK_ADET).map((a, j) => [a.beyan_yuku, a.kabin_agirligi, false, mGkTazelenecek(j)]);
+    } else if (mod === 'uygulama') {
       const ist = mukavemetIstek();
       await kiyas('uygulama', SON.mc, ist, '/api/uygulama/coklu', 'm_sonuc',
                   c => ({...((c.asansorler || [])[MUK_AKTIF] || c), proje_geneli: null}));
