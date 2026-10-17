@@ -130,6 +130,23 @@ class FizikselTavan(unittest.TestCase):
     def test_verim_biri_asamaz(self):
         self.assertEqual(alanlar.AZAMI["makine_verimi"], 1)
 
+    def test_elektrik_alaninin_tavani_tek_iletiyle(self):
+        """Kesit ve motor gücünün avan aralığı da var:  tavanı aşan değer tavan
+        iletisiyle durur ( iki denetim birbirini atlayınca 1.001 mm² geçiyordu ),
+        aralığın dışı ama tavanın altı avan iletisiyle."""
+        for alan, deger, parca in (
+            ("kolon_kesit", 1001, "en çok 1.000 mm²"),
+            ("makine_kesit", 1e9, "en çok 1.000 mm²"),
+            ("motor_gucu", 600, "geçerli aralık"),
+            ("motor_gucu", 1e9, "en çok 5.000 kW"),
+        ):
+            with self.subTest(alan=alan, deger=deger):
+                v = test_yerlesim_saglamligi.standart_istek(1000, False, "Sağ")
+                v["asansorler"][0][alan] = deger
+                hata = json.loads(uygulama_uclari.api_uygulama_coklu(v).body).get("hata") or []
+                self.assertEqual(len(hata), 1, hata)
+                self.assertIn(parca, hata[0])
+
     def test_konsollar_ust_uste_binemez(self):
         """0,001 mm'lik konsol aralığı 21 milyon konsol diziyordu:  konsolun
         kendi boyundan ( kabin 300, ağırlık 100 ) küçük aralık hesapta da

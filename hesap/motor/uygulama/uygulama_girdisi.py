@@ -230,7 +230,7 @@ def dogrula(g):
             continue  # boş bırakılabilir — hesap uyarır
         if not isinstance(d, (int, float)) or isinstance(d, bool) or d < 0:
             hata.append(f"{ad}: negatif olmayan bir sayı olmalı ( {d!r} girildi ).")
-        elif a not in AVAN_SINIRLI:  # onların dar aralığı _avan_siniri_hatalari'nda
+        else:  # tavanı aşanın avan aralığı ayrıca söylenmez ( _avan_siniri_hatalari )
             hata += mukavemet_girdi.azami_hatasi(a, et, d)
     hata += _avan_siniri_hatalari(g, atla)
     #  Makine dairesi işaretli DEĞİLSE ölçüsü istenir;  yoksa aydınlatma
@@ -261,7 +261,7 @@ def _avan_siniri_hatalari(g, atla):
             or isinstance(d, bool)
             or d < 0
             or (d == 0 and a in mukavemet_girdi.BOLEN_ALANLAR)
-            or mukavemet_girdi.azami_hatasi(a, "", d)  # tavanı aşan mukavemet alanı orada söylendi
+            or mukavemet_girdi.azami_hatasi(a, "", d)  # tavanı aşan alan tavan iletisiyle söylendi
         ):
             continue
         (alt, ust), birim = sinir[avan_adi]
