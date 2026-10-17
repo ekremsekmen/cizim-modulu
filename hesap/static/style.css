@@ -173,6 +173,17 @@ body.ayirici-surukleniyor{cursor:col-resize;user-select:none;-webkit-user-select
 }
 .alan input:focus,.alan select:focus{outline:0;border-color:var(--mavi2);box-shadow:0 0 0 3px rgba(27,90,158,.13)}
 .alan input.girdi{background:#FFFDF2;border-color:#E6D9A8}
+/* ÖN YÜZ DENETİMİ ( uygulama.js mGirdiDenetle ):  kural dışı kutu ve altındaki ileti */
+.alan input.gecersiz{background:var(--kirmizi-ac);border-color:var(--kirmizi)}
+.alan input.gecersiz:focus{border-color:var(--kirmizi);box-shadow:0 0 0 3px rgba(168,35,31,.15)}
+.alan .alan-hata{margin-top:3px;font-size:11px;font-weight:600;color:var(--kirmizi);line-height:1.35}
+/*  Satırdaki kutular alta hizalıdır ( label flex:1 ):  ileti hücreyi uzatsa
+    komşu kutu aşağı kayardı.  İletisi olan satırın bütün hücreleri aynı alt
+    boşluğu alır, ileti o boşluğa oturur.                                     */
+.satir>.alan{position:relative}
+.satir:has(.alan-hata)>.alan{padding-bottom:17px}
+.satir>.alan>.alan-hata{position:absolute;left:0;right:0;bottom:0;margin:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .alan input.girdi:focus{background:#fff}
 /*  TÜRETİLEN ( salt okunur ) alan — sarı zemin "sizin doldurduğunuz girdi"
     demektir; bu alanlar tablodan geldiği için gri gösterilir. */

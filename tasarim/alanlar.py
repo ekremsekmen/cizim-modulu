@@ -588,6 +588,7 @@ _GRUPLAR = (
                 0,
                 kaynak=GIRDI,
                 sozlesme=CIZ,
+                isaretli=True,  # konum kayması:  iki yöne de ( köprü öyle okur )
                 bilgi=(
                     "Kapıya bakana göre kabin ekseninin kuyu genişliğinin ortasından uzaklığı. Karşı "
                     "ağırlık yandaysa kabin çoğunlukla öbür yana kaçar.  Kabin rayları ve kat kapısı "
@@ -660,6 +661,7 @@ _GRUPLAR = (
                 0,
                 kaynak=GIRDI,
                 sozlesme=CIZ,
+                isaretli=True,  # konum kayması:  iki yöne de ( köprü öyle okur )
                 gelismis=True,
                 bilgi="Kapı boşluğunun ekseni kabinin ekseninde değilse ( sola − ).",
             ),
@@ -1334,6 +1336,7 @@ _GRUPLAR = (
                 0,
                 kaynak=GIRDI,
                 sozlesme=CIZ,
+                isaretli=True,  # konum kayması:  iki yöne de ( köprü öyle okur )
                 gelismis=True,
                 bilgi=(
                     "Yandaki karşı ağırlığın ekseni kabin ray ekseninin önünde ( − ) ya da arkasında ( + "
@@ -2266,6 +2269,7 @@ _GRUPLAR = (
                 None,
                 kaynak=KURAL,
                 sozlesme=CIZ,
+                isaretli=True,  # konum kayması:  iki yöne de ( köprü öyle okur )
                 gelismis=True,
                 proje_geneli=True,
                 yerlesim="daireli",
@@ -2283,6 +2287,7 @@ _GRUPLAR = (
                 None,
                 kaynak=KURAL,
                 sozlesme=CIZ,
+                isaretli=True,  # konum kayması:  iki yöne de ( köprü öyle okur )
                 gelismis=True,
                 proje_geneli=True,
                 yerlesim="daireli",
