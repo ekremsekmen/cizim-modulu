@@ -702,12 +702,17 @@ function mGirdiDenetle(){
 
 /*  Kural dışı girdi varken:  yoldaki hesap ve çizim yanıtları geçersizdir
     ( gelseler eski girdinin sonucunu "güncel" gösterirlerdi );  hesap paneli
-    ve tuval sunucunun reddiyle aynı biçimde düzeltilecekleri söyler. */
+    ve tuval sunucunun reddiyle aynı biçimde düzeltilecekleri söyler.
+    SON DA REDDEDİLMİŞ OLUR ( on_yuz ):  eski geçerli sonuç orada kalıyordu —
+    ekran kırmızıyken programın içinde "hesap yapıldı" duruyordu ( TEST 5 ·
+    TEST 13 ).  Proje bütünüyle hesaplanamaz:  her asansör sekmesi "!" taşır. */
 function mGirdiHatasiGoster(hatalar){
   ++ISTEK.mukavemet; ++ISTEK.cizim;
   const hata = hatalar.map(h => `${h.etiket}:  ${h.ileti}.`);
-  mYeriKoruyarakCiz(() => cizMukavemet({aktif: false, hata}));
+  SON.mc = SON.m = {aktif: false, hata, on_yuz: true};
+  mYeriKoruyarakCiz(() => cizMukavemet(SON.m));
   sekmeRozeti('uygproje', true, 0);
+  mAsansorSekmeleriTazele();
   const kutu = $('m_cizimler'), t = $('m_tuval');
   if(kutu) kutu.classList.remove('yukleniyor');
   M_CIZIM_DURUM = {aktif: false, hata};
