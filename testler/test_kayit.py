@@ -42,6 +42,7 @@ class UcunKaydi(unittest.TestCase):
 
         with (
             mock.patch.object(uygulama_istegi, "asansor_girdileri", side_effect=KeyError("bozuk")),
+            mock.patch.dict("os.environ", {"AVAN_SUNUCU": ""}),
             self.assertLogs(cizim_uclari.log, level="ERROR") as k,
         ):
             yanit = cizim_uclari.api_cizimler({"asansorler": [{}]})

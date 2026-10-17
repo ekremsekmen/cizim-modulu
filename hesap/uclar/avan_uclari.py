@@ -15,6 +15,7 @@ from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
 from uclar.uc_ortak import (
+    hata_iletisi,
     hata_kaydi,
     _BELIRSIZ,
     _RED,
@@ -334,7 +335,7 @@ def api_trafik(veri: dict = Body(...)):
         return JSONResponse(json.loads(json.dumps(s, default=str)))
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
-        return JSONResponse({"hata": f"HESAP HATASI: {e}"}, status_code=200)
+        return JSONResponse({"hata": hata_iletisi("HESAP HATASI", e, ": ")}, status_code=200)
 
 
 @router.post("/api/avan")
@@ -347,7 +348,7 @@ def api_avan(veri: dict = Body(...)):
         return JSONResponse(json.loads(json.dumps(s, default=str)))
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
-        return JSONResponse({"hata": f"HESAP HATASI: {e}"}, status_code=200)
+        return JSONResponse({"hata": hata_iletisi("HESAP HATASI", e, ": ")}, status_code=200)
 
 
 @router.post("/api/indir/trafik-pdf")

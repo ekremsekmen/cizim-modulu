@@ -32,6 +32,7 @@ MAKİNE DAİRESİNİN DENETİMLERİ ( TS EN 81-20 )
 """
 
 from temel import ortusur, sayi_mi
+from cizim import istek_onbellegi
 from cizim import kuyu_dibi
 from cizim import kuyu_ustu
 from cizim import makine
@@ -62,6 +63,7 @@ def ek_kotlari(taban, ust, S):
     return kotlar
 
 
+@istek_onbellegi.sakla
 def yerlesim(g, S, H, tavan, taban):
     """H:  en üst durağın kotu ( seyir ),  tavan:  kuyu tavanı ( döşeme altı ),
     taban:  kuyu tabanı.  Dönen sözlükte her parça ( plandaki kutu, z0, z1 )."""

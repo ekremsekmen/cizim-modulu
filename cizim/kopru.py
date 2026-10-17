@@ -223,6 +223,12 @@ class _Okuyucu:
                 f"{et}:  " + ("negatif olamaz" if sifir else "sıfırdan büyük olmalı") + f" ( {v:g} )."
             )
             return None
+        #  FİZİKSEL TAVAN ( alanlar.BIRIM_AZAMI ):  10¹² mm'lik kuyu yazı
+        #  yerleştiricinin ızgarasında milyarlarca hücre kurup belleği bitirdi
+        asim = alanlar.azami_asimi(anahtar, v)
+        if asim:
+            self.hata.append(f"{et}:  {asim}")
+            return None
         return izli.sayi(v)
 
     def secim(self, anahtar, etiket=None, secenekler=None):
@@ -263,6 +269,7 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
     if o.hata:
         return None, o.hata
     g = _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k)
+    o.hata += konsol_araligi_hatalari(g["dusey"], S)
     if not h["mk_yok"]:
         _makine_dairesi_girdisi(o, g, h)
     if o.hata:
@@ -285,6 +292,26 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
     if k["reg_bos"] or k["reg_yan_serbest"]:
         _regulator_yeri(g, kaciklik_serbest=k["reg_bos"], yan_serbest=k["reg_yan_serbest"])
     return g, []
+
+
+def konsol_araligi_hatalari(dy, S):
+    """KONSOLLAR ÜST ÜSTE BİNEMEZ:  aralık, konsolun ray boyunca boyundan
+    küçük olamaz.  0,001 mm'lik aralık 21 m seyirde 21 milyon konsol dizip
+    belleği bitiriyordu ( 17 Eki ).  dy:  konsol aralıkları ( çizimin düşey
+    girdisi ya da hesabın girdisi — anahtarlar aynı ).  Hesap da buradan
+    söyler ( mukavemet_girdi._konsol_araliklari )."""
+    hata = []
+    for alan, ad, boy in (
+        ("kabin_konsol_arasi", "Kabin rayı konsollar arası", S["konsol_kabin_boy"]),
+        ("agirlik_konsol_arasi", "Ağırlık rayı konsollar arası", S["konsol_agirlik_boy"]),
+    ):
+        v = dy.get(alan)
+        if sayi_mi(v) and 0 < v < boy:
+            hata.append(
+                f"{ad}:  konsolun ray boyunca boyundan ( {boy:g} mm ) küçük olamaz — "
+                f"konsollar üst üste biner ( {v:g} girildi )."
+            )
+    return hata
 
 
 def _ana_alanlar(o):
@@ -372,6 +399,11 @@ def _cizilemeyen_kacikliklar(o, h, S):
         )
 
 
+#  DURAK SINIRI ( gerekçesi şemada, durak_adedi ):  okuyucunun fiziksel tavanı
+#  ( _Okuyucu.sayi ) aşanı _ana_alanlar'da durdurur.
+DURAK_AZAMI = alanlar.AZAMI["durak_adedi"]
+
+
 def _dusey_alanlar(o, S, durak):
     """Duraklar, kat yükseklikleri, kuyu dibi zinciri, yükseklikler, tamponlar."""
     sayi = o.sayi
@@ -379,7 +411,7 @@ def _dusey_alanlar(o, S, durak):
         o.hata.append(f"Durak adedi en az 2 olan bir tam sayı olmalı ( {durak:g} ).")
     seyir = sayi("seyir_mesafesi", "Seyir mesafesi")
     kat_yuksekligi = None
-    if seyir is not None and durak >= 2 and durak == int(durak):
+    if seyir is not None and 2 <= durak <= DURAK_AZAMI and durak == int(durak):
         kat_yuksekligi, kat_hata = katlar.araliklar(o.A.get("kat_yukseklikleri"), int(durak), seyir)
         o.hata += kat_hata
     #  KUYU DİBİ ZİNCİRİ:  kabin en alt durakta dururken kaide + tampon +

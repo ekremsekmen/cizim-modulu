@@ -2053,8 +2053,11 @@ def _denetim_bulgulari(r):
         f"→ {_d2.get('hata')}",
     )
     #  SINIRDA da reddedilmeli:  yığın TAM kuyu boyuna eşitken halat boyu
-    #  ( paydan önce ) sıfırdır — fiziksel değildir.
-    _gv = mukavemet_girdi.tamamla(mukavemet_girdi.varsayilanlar())
+    #  ( paydan önce ) sıfırdır — fiziksel değildir.  Kısa kuyuda ( seyir 6 m ):
+    #  varsayılan 21 m'lik kuyuda sınır 26 m'lik paten arasına düşüyor, o da
+    #  fiziksel tavanda ( 20 m — alanlar.BIRIM_AZAMI ) duruyordu ( 17 Eki ).
+    _kisa = {"seyir_mesafesi": 6}
+    _gv = mukavemet_girdi.tamamla({**mukavemet_girdi.varsayilanlar(), **_kisa})
     _tam = (
         _gv["kuyu_boyu"]
         - _gv["agirlik_tampon_baba"]
@@ -2064,12 +2067,12 @@ def _denetim_bulgulari(r):
     )
     r.kontrol(
         "D2  sınırda ( yığın = kuyu boyu ) da reddediliyor",
-        mukavemet.hesapla({"kabin_paten_arasi": _tam})["aktif"] is False,
+        mukavemet.hesapla({**_kisa, "kabin_paten_arasi": _tam})["aktif"] is False,
         f"→ kabin paten arası {_tam:g} mm",
     )
     r.kontrol(
         "D2  sınırın 1 mm altı kabul ediliyor",
-        mukavemet.hesapla({"kabin_paten_arasi": _tam - 1})["aktif"] is True,
+        mukavemet.hesapla({**_kisa, "kabin_paten_arasi": _tam - 1})["aktif"] is True,
     )
     #  Normal geometri geçmeye devam ediyor
     r.kontrol(

@@ -14,9 +14,11 @@ import os
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
+from cizim import istek_onbellegi
 from uclar import cizim_uclari
 from uclar import uygulama_istegi
 from uclar.uc_ortak import (
+    hata_iletisi,
     hata_kaydi,
     _belirsiz_hata,
     _dosya_adi,
@@ -61,7 +63,9 @@ def _coklu_sonuc(veri):
     belirsiz = _belirsiz_hata()
     if belirsiz:
         return None, JSONResponse({"aktif": False, "hata": [belirsiz]}, status_code=200)
-    s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
+    #  Hesap çizimden gelen girdiler için yerleşim kurar:  bu istekte bir kez
+    with istek_onbellegi.etkin():
+        s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
     if not s.get("aktif"):
         return None, JSONResponse(
             {"aktif": False, "hata": s.get("hata") or ["HESAP HATASI"]}, status_code=200
@@ -81,7 +85,9 @@ def api_uygulama_coklu(veri: dict = Body(...)):
         return JSONResponse(json.loads(json.dumps(s, default=str)))
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
-        return JSONResponse({"aktif": False, "hata": [f"HESAP HATASI: {e}"]}, status_code=200)
+        return JSONResponse(
+            {"aktif": False, "hata": [hata_iletisi("HESAP HATASI", e, ": ")]}, status_code=200
+        )
 
 
 @router.post("/api/indir/uygulama-pdf")
@@ -113,6 +119,12 @@ def indir_uygulama_dwg(veri: dict = Body(...)):
             },
             status_code=200,
         )
+    #  Hesap, çizimler ve paftalar aynı yerleşimleri kurar:  bu istekte bir kez
+    with istek_onbellegi.etkin():
+        return _uygulama_paketi(veri)
+
+
+def _uygulama_paketi(veri):
     try:
         _p = _proje_kimligi(veri)
         s, yanit = _coklu_sonuc(veri)
