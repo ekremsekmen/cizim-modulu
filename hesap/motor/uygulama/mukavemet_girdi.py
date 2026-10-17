@@ -20,6 +20,7 @@ from motor.ortak.adimlar import evet_mi
 from motor.uygulama import mukavemet_tablolari
 from tasarim import alanlar, gorunum
 from cizim import kopru
+from cizim import sabitler
 from motor.uygulama import uygulama_sabitleri
 
 
@@ -673,6 +674,11 @@ def _tampon_ezilmesi(g, atla):
     _ab = g.get("agirlik_tampon_boyu")
     if _ab is None or (isinstance(_ab, str) and not _ab.strip()):
         _ab = _tb
+    #  Ağırlık tamponunun boyu çizim alanıdır ( POZITIF_ALANLAR'da değil );
+    #  0 ya da negatifte strok kuralı kurulamıyor, hesap çöküyordu ( 17 Eki ).
+    #  Kabininki pozitif alandır, orada söylenir.
+    elif sayi_mi(_ab) and _ab <= 0:
+        return [f"Ağırlık tamponu uzunluğu:  sıfırdan büyük olmalıdır ( {_ab:g} girildi )."]
     for anahtar, ad, boy, ek in (
         (
             "kabin_tampon_ezilme",
@@ -719,7 +725,23 @@ def _fiziksel_sinirlar(g, atla):
         d = g.get(anahtar)
         if d is not None and (not sayi_mi(d) or not (alt <= d <= ust)):
             hata.append(f"{ALAN[anahtar][1]}: {alt}° ile {ust}° arasında olmalıdır ( {d} girildi ).")
+    #  Kendi dar aralığı olan alan ( katalog aralıkları, açılar ) orada söylenir
+    for anahtar in ALAN:
+        if anahtar not in atla and anahtar not in ACI_ALANLARI and anahtar not in KATALOG_ARALIKLARI:
+            hata += azami_hatasi(anahtar, ALAN[anahtar][1], g.get(anahtar))
     return hata
+
+
+def _konsol_araliklari(g, atla):
+    """Ray konsolları üst üste binemez ( kopru.konsol_araligi_hatalari )."""
+    return kopru.konsol_araligi_hatalari(g, sabitler.sabitler(kopru.cizim_sabitleri(g)))
+
+
+def azami_hatasi(anahtar, etiket, d):
+    """FİZİKSEL TAVAN ( tasarim.alanlar.BIRIM_AZAMI ):  gerçekte olamayacak
+    değer — 10¹² mm'lik kuyu çizimde belleği bitiriyordu ( 17 Eki )."""
+    govde = alanlar.azami_asimi(anahtar, d) if sayi_mi(d) else None
+    return [f"{etiket}: {govde}"] if govde else []
 
 
 def _sarilma_acisi(g, atla):
@@ -841,22 +863,25 @@ def _katalog_verileri(g, atla):
     güvenlik katsayısı 1000 kat büyür ve HER tasarım "UYGUN" görünürdü.
     Üst sınır o hatayı yakalar."""
     hata = []
-    for _ad, _alt, _ust in (
-        ("halat_birim_kutle", 0.02, 5.0),
-        ("kablo_birim_kutle", 0.05, 20.0),
-        ("halat_kopma_kN", 5.0, 2000.0),
-        ("reg_halat_birim_kutle", 0.02, 5.0),
-        ("reg_halat_kopma_kN", 5.0, 2000.0),
-        ("makine_tst", 100.0, 100000.0),
-        #  Sabitler'deki ofis verimiyle aynı aralık.
-        ("makine_verimi", 0.1, 1.0),
-    ):
+    for _ad, (_alt, _ust) in KATALOG_ARALIKLARI.items():
         _v = g.get(_ad)
         if _v is None or _v == "":
             continue
         if not sayi_mi(_v) or not (_alt <= _v <= _ust):
             hata.append(f"{ALAN[_ad][1]}: {_alt} - {_ust} aralığında olmalıdır ( {_v!r} girildi ).")
     return hata
+
+
+KATALOG_ARALIKLARI = {
+    "halat_birim_kutle": (0.02, 5.0),
+    "kablo_birim_kutle": (0.05, 20.0),
+    "halat_kopma_kN": (5.0, 2000.0),
+    "reg_halat_birim_kutle": (0.02, 5.0),
+    "reg_halat_kopma_kN": (5.0, 2000.0),
+    "makine_tst": (100.0, 100000.0),
+    #  Sabitler'deki ofis verimiyle aynı aralık.
+    "makine_verimi": (0.1, 1.0),
+}
 
 
 def _kaide_geometrisi(g, atla):
@@ -961,6 +986,7 @@ _DENETIMLER = (
     _kabin_alt_konumu,
     _tampon_ezilmesi,
     _fiziksel_sinirlar,
+    _konsol_araliklari,
     _sarilma_acisi,
     _kanal_bicimi,
     _opsiyonel_alanlar,

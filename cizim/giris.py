@@ -26,6 +26,7 @@ kapının yanındaki kesikli 100 mm'lik dikdörtgeni, döşemeden 2.500'deki çi
 kasanın ve eşiğin bağlantı noktaları.
 """
 
+from cizim import istek_onbellegi
 from cizim import eleman
 from cizim import kisaltmalar
 from cizim import dusey
@@ -39,6 +40,7 @@ def dogrula(g):
     return geometri.dogrula(g)
 
 
+@istek_onbellegi.sakla
 def yerlesim(g, cizim_sabitleri=None):
     """Görünüşün parçaları ( x, z kutuları ) — çizim ve ölçüler bunu okur."""
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)

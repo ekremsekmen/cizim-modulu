@@ -26,6 +26,7 @@ kalıyordu ( kullanıcı 5 Eki:  "kapının görünmemesi saçma" ).
 from dataclasses import dataclass
 
 from temel import eleman_kutusu, ortusur
+from cizim import istek_onbellegi
 from cizim import eleman
 from cizim import kisaltmalar
 from cizim import uslup
@@ -134,6 +135,7 @@ def _operator(g, tavan, S):
     return (x1, girdi.kapi_bolgesi(g, S)["kabin_esik"][0], x2, tavan[1] + S["kabin_kapisi_kutu_boy"])
 
 
+@istek_onbellegi.sakla
 def yerlesim(g, cizim_sabitleri=None):
     """Kabin üstünün yerleşimi — çizim de doğrulama da bunu kullanır.
 

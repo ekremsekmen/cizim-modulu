@@ -27,6 +27,7 @@ import threading
 import webbrowser
 
 from fastapi import FastAPI
+from starlette.middleware.gzip import DEFAULT_EXCLUDED_CONTENT_TYPES, GZipMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -56,6 +57,76 @@ logging.basicConfig(
 )
 
 app = FastAPI(title="Asansör Proje Programı", version=SURUM, docs_url=None, redoc_url=None)
+#  YANIT SIKIŞTIRMA:  çizim yanıtı ( 11 SVG ) 834 KB, gzip'le 53 KB — her ölçü
+#  değişikliğinde iner;  yavaş bağlantıda saniyeler.  Düzey 6:  4,5 ms ( 9'da
+#  11 ms, 2 KB küçük ).  PDF zaten sıkışık ( ZIP Starlette'in dışladıkları
+#  arasında ).
+app.add_middleware(
+    GZipMiddleware,
+    minimum_size=1000,
+    compresslevel=6,
+    exclude_content_types=DEFAULT_EXCLUDED_CONTENT_TYPES + ("application/pdf",),
+)
+
+#  İSTEK BOYUTU SINIRI:  formun en büyük isteği ( paket:  dört asansör, kapak,
+#  proje dosyası ) onlarca KB'tır;  dosya yükleyen uç yok ( "Proje aç"
+#  tarayıcıda okur ).  5 MB'lık bir asansör adı çizim işçisini 3,9 sn tutuyordu
+#  ( 17 Eki ).  Başlığa güvenilmez ( parça parça gelen gövde ):  baytlar sayılır.
+ISTEK_AZAMI = 1024 * 1024
+
+
+class IstekBoyutu:
+    def __init__(self, uygulama, azami=ISTEK_AZAMI):
+        self.uygulama, self.azami = uygulama, azami
+
+    async def __call__(self, kapsam, al, gonder):
+        if kapsam["type"] != "http" or kapsam["method"] not in ("POST", "PUT", "PATCH"):
+            return await self.uygulama(kapsam, al, gonder)
+        boy = dict(kapsam["headers"]).get(b"content-length")
+        if boy is not None and boy.isdigit() and int(boy) > self.azami:
+            return await self._reddet(gonder)
+        govde, parcalar = 0, []
+        while True:
+            m = await al()
+            if m["type"] != "http.request":
+                parcalar.append(m)
+                break
+            govde += len(m.get("body", b""))
+            if govde > self.azami:
+                return await self._reddet(gonder)
+            parcalar.append(m)
+            if not m.get("more_body"):
+                break
+
+        async def tekrar():
+            return parcalar.pop(0) if parcalar else await al()
+
+        return await self.uygulama(kapsam, tekrar, gonder)
+
+    async def _reddet(self, gonder):
+        ileti = json.dumps(
+            {
+                "aktif": False,
+                "hata": [
+                    f"İstek çok büyük ( en çok {self.azami // 1024 // 1024} MB ) — girdileri kontrol edin."
+                ],
+            },
+            ensure_ascii=False,
+        ).encode("utf-8")
+        await gonder(
+            {
+                "type": "http.response.start",
+                "status": 413,
+                "headers": [
+                    (b"content-type", b"application/json; charset=utf-8"),
+                    (b"content-length", str(len(ileti)).encode()),
+                ],
+            }
+        )
+        await gonder({"type": "http.response.body", "body": ileti})
+
+
+app.add_middleware(IstekBoyutu)
 
 
 # ------------------------------------------------------------------ yardımcı
@@ -189,6 +260,8 @@ def sunucu_ayari(ortam=None):
     WEB_CONCURRENCY  işçi süreç sayısı ( uvicorn'un kendi değişkeni ).  Çizim
                      ve PDF işlemciyi tutar:  bir işçi aynı anda yalnız bir
                      ağır isteği hesaplar.  Varsayılan 1
+    AVAN_SUNUCU      1:  programın kendi hatasında Python metni yerine genel
+                     ileti ( uc_ortak.hata_iletisi ).  sunucu() kendisi koyar.
     """
     ortam = os.environ if ortam is None else ortam
     return {
@@ -207,6 +280,10 @@ def sunucu():
     import uvicorn
 
     a = sunucu_ayari()
+    #  Web'de programın kendi hatasının Python metni kullanıcıya gitmez
+    #  ( uc_ortak.hata_iletisi );  işçi süreçler ortamı devralır.  Program
+    #  doğrudan uvicorn'la başlatılırsa barındırma ayarına AVAN_SUNUCU=1 yazılır.
+    os.environ["AVAN_SUNUCU"] = "1"
     print(f"  ASANSÖR PROJE PROGRAMI  ·  sürüm {SURUM}  ·  sunucu  {a['host']}:{a['port']}", flush=True)
     uvicorn.run("main:app", host=a["host"], port=a["port"], workers=a["workers"], log_level="info")
 

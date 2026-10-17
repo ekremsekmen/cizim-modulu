@@ -24,11 +24,12 @@ from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
 from temel import sayi_mi
-from uclar.uc_ortak import hata_kaydi
+from uclar.uc_ortak import hata_iletisi, hata_kaydi
 
 
 from cizim import cizimler
 from cizim import geometri
+from cizim import istek_onbellegi
 from cizim import izli
 from cizim import kopru
 from cizim import olcu_kaynagi
@@ -121,6 +122,14 @@ def api_cizimler(veri: dict = Body(...)):
     Asıl çıktı "Projeyi paketle" ile inen paftadır ( DXF / DWG );  SVG aynı
     eleman listesinden çıkar ( cizim/svg.py · cizim/dxf.py )."""
 
+    #  Yerleşimler bu istekte bir kez kurulur ( cizim/istek_onbellegi.py )
+    with istek_onbellegi.etkin():
+        return cizimler_yaniti(veri)
+
+
+def cizimler_yaniti(veri):
+    """Çizimlerin yanıtı ( önbelleği etkinleştiren api_cizimler çağırır;  test
+    önbelleksizini karşılaştırır )."""
     try:
         asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
         belirsiz = _belirsiz_hata()
@@ -148,7 +157,7 @@ def api_cizimler(veri: dict = Body(...)):
         )
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
-        return JSONResponse({"aktif": False, "hata": [f"ÇİZİM HATASI: {e}"]})
+        return JSONResponse({"aktif": False, "hata": [hata_iletisi("ÇİZİM HATASI", e, ": ")]})
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -551,7 +560,7 @@ def api_olcu(veri: dict = Body(...)):
         )
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
-        return JSONResponse({"aktif": False, "hata": [f"ÖLÇÜ HATASI: {e}"]})
+        return JSONResponse({"aktif": False, "hata": [hata_iletisi("ÖLÇÜ HATASI", e, ": ")]})
 
 
 def _yuvarla(x):
@@ -652,7 +661,7 @@ def api_olcu_degistir(veri: dict = Body(...)):
         )
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
-        return JSONResponse({"aktif": False, "hata": [f"ÖLÇÜ HATASI: {e}"]})
+        return JSONResponse({"aktif": False, "hata": [hata_iletisi("ÖLÇÜ HATASI", e, ": ")]})
 
 
 def _en_az_serbest(r, k, aday):
@@ -698,7 +707,7 @@ def _yeni_hatalar(r, degisiklik):
         return hata if g is None else _cizim_hatalari(g, A)
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
-        return [f"ÇİZİM HATASI: {e}"]
+        return [hata_iletisi("ÇİZİM HATASI", e, ": ")]
 
 
 def _tutarlilik_duzeltmeleri(r, degisiklik):

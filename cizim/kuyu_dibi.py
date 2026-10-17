@@ -29,6 +29,7 @@ olanlar gelir:
 """
 
 from temel import eleman_kutusu, kutu_merkezi, ortusur, sayi_mi
+from cizim import istek_onbellegi
 from cizim import eleman
 from cizim import kisaltmalar
 from cizim import uslup
@@ -554,6 +555,7 @@ def _girdi_hatalari(kd):
     return hata
 
 
+@istek_onbellegi.sakla
 def yerlesim(g, cizim_sabitleri=None):
     """Kuyu dibinin yerleşimi — çizim de doğrulama da bunu kullanır."""
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)

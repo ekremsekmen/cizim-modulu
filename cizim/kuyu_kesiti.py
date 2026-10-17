@@ -27,6 +27,7 @@ Kotlar donanim.py'de, planla aynı yerlerden;  açıklık denetimleri dusey.py'd
 ( bu kesitler de aynı yerleşimle durur ).
 """
 
+from cizim import istek_onbellegi
 from cizim import eleman
 from cizim import kisaltmalar
 from cizim import uslup
@@ -60,6 +61,7 @@ PLAN_HARFLERI = {
 }
 
 
+@istek_onbellegi.sakla
 def yerlesim(g, cizim_sabitleri=None):
     return dusey.yerlesim(g, cizim_sabitleri)
 

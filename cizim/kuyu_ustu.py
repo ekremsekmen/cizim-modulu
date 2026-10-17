@@ -25,6 +25,7 @@ referans projenin düzeni ).  Makine ağırlık raylarına oturan şasede ya da
 """
 
 from temel import eleman_kutusu, ortusur, sayi_mi
+from cizim import istek_onbellegi
 from cizim import eleman
 from cizim import kisaltmalar
 from cizim import uslup
@@ -339,6 +340,7 @@ def _aynen(x):
     return x
 
 
+@istek_onbellegi.sakla
 def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
     """Makinenin, halatların, bağlantıların ve regülatörün yeri.
 

@@ -39,6 +39,7 @@ STANDARDIN DENETLEDİĞİ AÇIKLIKLAR
 """
 
 from temel import eleman_kutusu, ortusur, sayi_mi
+from cizim import istek_onbellegi
 from cizim import eleman
 from cizim import arka_aski
 from cizim import donanim
@@ -140,6 +141,7 @@ def durak_kotlari(g, cizim_sabitleri=None):
 kabin_kotlari = parca_kotlari.kabin_kotlari
 
 
+@istek_onbellegi.sakla
 def yerlesim(g, cizim_sabitleri=None):
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     dy = g.get("dusey") or {}

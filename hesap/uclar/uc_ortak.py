@@ -245,6 +245,23 @@ def _paket_ekleri(veri, mod):
     return ekler
 
 
+GENEL_HATA = (
+    "beklenmeyen bir hata oluştu ve kayda geçti — girdileri kontrol edip yeniden deneyin;  sürerse bildirin."
+)
+
+
+def hata_iletisi(onek: str, e: Exception, ayrac: str = ": ") -> str:
+    """Uçların genel except'inde kullanıcıya dönen ileti.  Girdiden doğan ret
+    ( ValueError ) her zaman kendi metniyle;  programın kendi hatası web
+    sunucusunda ( AVAN_SUNUCU — `main.py --sunucu` koyar ) genel iletiyle:
+    Python'un metni ( "KeyError: 'x'" ) kullanıcıya bir şey söylemez, iç yapıyı
+    gösterir.  Ayrıntı kayıtta ( hata_kaydi ).  Kendi bilgisayarında çalışırken
+    metin eskisi gibi görünür ( 17 Eki )."""
+    if isinstance(e, ValueError) or os.environ.get("AVAN_SUNUCU") != "1":
+        return f"{onek}{ayrac}{e}"
+    return f"{onek}{ayrac}{GENEL_HATA}"
+
+
 def hata_kaydi(log: logging.Logger, e: Exception):
     """Uçların genel except'inde kayıt:  girdiden doğan ret ( ValueError — ör.
     "pafta çizilemiyor" ) bilgi düzeyinde, öbürü ( programlama hatası ) izle
@@ -261,4 +278,4 @@ def _uretilemedi(e: Exception):
     Dosya üretilemediğinde JSON hata döndürür.  Arayüz Content-Type'a bakarak
     bunu bozuk bir dosya olarak indirmek yerine ekranda mesaj olarak gösterir.
     """
-    return JSONResponse({"hata": f"DOSYA ÜRETİLEMEDİ — {e}"}, status_code=422)
+    return JSONResponse({"hata": hata_iletisi("DOSYA ÜRETİLEMEDİ", e, " — ")}, status_code=422)

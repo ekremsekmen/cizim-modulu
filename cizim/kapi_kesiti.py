@@ -15,6 +15,7 @@ kabin eşiği ), kanat düzlemleri sabitlerden ( kanat_esik_payi, kanat_araligi,
 kanat_kalinlik ).
 """
 
+from cizim import istek_onbellegi
 from cizim import izli
 from cizim import eleman
 from cizim import kisaltmalar
@@ -60,6 +61,7 @@ def _duzlemler(S, tip, esik0, esik1):
     return [esik0 + S["kanat_esik_payi"] + i * S["kanat_araligi"] for i in range(KT["duzlem"])]
 
 
+@istek_onbellegi.sakla
 def yerlesim(g, cizim_sabitleri=None):
     """Kesitin parçaları ( u, z ) — çizim, ölçüler ve testler bunu okur."""
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)

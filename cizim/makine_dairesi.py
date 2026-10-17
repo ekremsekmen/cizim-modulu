@@ -37,6 +37,7 @@ kuralla ( tek halat:  çap + 2 × pay ).
 import math
 
 from temel import ortusur, sayi_mi
+from cizim import istek_onbellegi
 from cizim import eleman
 from cizim import kisaltmalar
 from cizim import uslup
@@ -235,6 +236,7 @@ def _girdi_hatalari(g, md, a):
     return hata
 
 
+@istek_onbellegi.sakla
 def yerlesim(g, cizim_sabitleri=None):
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     md, a = g.get("makine_dairesi") or {}, g.get("aski") or {}

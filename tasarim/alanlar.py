@@ -67,6 +67,41 @@ MUK, ELK, CIZ = "mukavemet", "elektrik", "cizim"
 ACIL_FRENLEME_ASGARI = 0.5
 
 
+#  FİZİKSEL TAVAN — gerçekte olamayacak değer girdi olarak alınmaz ( 17 Eki ).
+#  10¹² mm'lik kuyu genişliği yazı yerleştiricinin ızgarasında milyarlarca
+#  hücre kurdu, belleği bitirdi ( geliştirme bilgisayarı çöktü;  web'de tek
+#  istek sunucuyu düşürürdü ).  Her tavan o birimdeki en büyük GERÇEK değerin
+#  çok üstündedir:  gerçek hiçbir proje reddedilmez, yalnız imkânsız değer.
+#    mm      20 m:  tek bir asansör ölçüsü ( kuyu, kabin, kat yüksekliği, makine
+#            dairesi ) — gerçek projelerde en büyüğü 4.700 ( makine dairesi )
+#    m       5 km:  seyir en çok 99 × 11 m ≈ 1,1 km ( durak sınırı ve m.5.2.3.1 );
+#            4:1 askıda halat boyu seyrin dört katı
+#    adet    100:  durak sınırıyla aynı ( durak_adedi )
+#    kg      100 t:  en ağır araç asansörü kabini ve makine birkaç ton
+#    kg/m    100:  halat 0,1–2, dengeleme zinciri en çok birkaç on kg/m
+#    N       1 MN · kN 10.000:  halat kopma yükü birkaç yüz kN
+#    mm²     1.000:  kablo kesiti en çok birkaç yüz mm²
+#    m/s²    50:  frenleme ivmesi g'nin birkaç katını aşamaz
+#    kW      5.000:  en hızlı asansörlerin motoru birkaç yüz kW
+#    m/s     50:  dünyanın en hızlı asansörü ~ 21 m/s
+#    —       verim ( η ) 1'i aşamaz ( alanın kendi azami'si )
+#    °       360:  tam tur;  aralığı olan açı alanı kendi aci'siyle denetlenir
+BIRIM_AZAMI = {
+    "mm": 20_000,
+    "m": 5_000,
+    "adet": 100,
+    "kg": 100_000,
+    "kg/m": 100,
+    "N": 1_000_000,
+    "kN": 10_000,
+    "mm²": 1_000,
+    "m/s²": 50,
+    "kW": 5_000,
+    "m/s": 50,
+    "°": 360,
+}
+
+
 def _s(*d):
     return tuple(d)
 
@@ -91,6 +126,7 @@ class Alan:
     opsiyonel: bool = False  # boş bırakılabilir ( motor türetir ya da atlar )
     bolen: bool = False  # hesapta bölen:  sıfır kabul edilmez
     aci: tuple = None  # ( en az , en çok ) derece
+    azami: float = None  # en çok değer;  boşsa birimin fiziksel tavanı ( BIRIM_AZAMI )
     secenek_metni: dict = None  # açılır listede değerin yerine görünen yazı
     secenek_kosulu: dict = None  # { seçenek : ( yerleşim , sebep ) } — yalnız o yerleşimde
     cizimden: str = ""  # boşsa çizimden gelen değerin kuralı ( ⓘ metnine eklenir )
@@ -297,8 +333,14 @@ _GRUPLAR = (
                 8,
                 kaynak=GIRDI,
                 sozlesme=CIZ,
+                #  DURAK SINIRI:  kesitlerin çizimi durakla hızla büyür ( 100 durak
+                #  0,5 sn, 150 1,75 sn, 300 9 sn, 1.000 dakikalar — 17 Eki );  web'de
+                #  tek istek bir işçiyi kilitlerdi.  100, Türkiye'nin en yüksek
+                #  binalarını bodrumlarıyla kapsar.  Seyir ayrıca sınırlanmaz:
+                #  duraklar arası 11 m kuralı ( m.5.2.3.1 ) onu durakla bağlar.
+                azami=100,
                 bilgi=(
-                    "Kat kapısı sayısı. Kat yükseklikleri boşsa duraklar "
+                    "Kat kapısı sayısı ( en çok 100 ). Kat yükseklikleri boşsa duraklar "
                     "seyir / ( durak − 1 ) aralığıyla dizilir."
                 ),
             ),
@@ -2004,6 +2046,7 @@ _GRUPLAR = (
                 sozlesme=MUK,
                 gelismis=True,
                 opsiyonel=True,
+                azami=1,
                 bilgi=(
                     "η — askı ( palanga ) kaybı DÂHİL toplam sistem verimi. İmalatçının katalog değeri; "
                     "boş bırakılırsa makine tipine göre ofis değeri kullanılır."
@@ -2450,6 +2493,7 @@ _GRUPLAR = (
                 100,
                 kaynak=KATALOG,
                 sozlesme=MUK,
+                pozitif=True,  # 0'da strok kuralı kurulamıyor, hesap çöküyordu ( 17 Eki )
                 gelismis=True,
                 bilgi="Tamponun kendi boyu ( ezilmemiş hâlde ).",
             ),
@@ -2892,11 +2936,33 @@ ALANLAR = tuple(replace(a, grup=ad) for ad, al in _GRUPLAR for a in al)
 ALAN = {a.anahtar: a for a in ALANLAR}
 
 
+def azami(a):
+    """Sayı alanının en çok değeri ( açı alanında aci'nin üst ucu )."""
+    if a.aci:
+        return a.aci[1]
+    return a.azami if a.azami is not None else BIRIM_AZAMI.get(a.birim)
+
+
+AZAMI = {a.anahtar: azami(a) for a in ALANLAR if a.tur == "sayi"}
+
+
+def azami_asimi(anahtar, d):
+    """Tavanı aşan değerin iletisinin gövdesi ( "en çok 20.000 mm olabilir
+    ( 1e+12 girildi )" );  aşmıyorsa None."""
+    ust = AZAMI.get(anahtar)
+    if ust is None or d <= ust:
+        return None
+    birim = ALAN[anahtar].birim
+    ust_ = f"{ust:,}".replace(",", ".")  # tavanlar tam sayıdır:  20.000 ( Türkçe binlik )
+    return f"en çok {ust_}{'' if birim == '—' else ' ' + birim} olabilir ( {d:g} girildi )."
+
+
 def _denetle():
     """Şemanın kendi tutarlılığı — içe aktarılırken bir kez."""
     gorulen = set()
     for a in ALANLAR:
         assert a.anahtar not in gorulen, f"iki kez tanımlı: {a.anahtar}"
+        assert a.tur != "sayi" or float(azami(a) or 0).is_integer(), f"tavan tam sayı değil: {a.anahtar}"
         gorulen.add(a.anahtar)
         assert a.kaynak in KAYNAKLAR, (a.anahtar, a.kaynak)
         assert a.sozlesme in (MUK, ELK, CIZ), (a.anahtar, a.sozlesme)
@@ -2906,6 +2972,10 @@ def _denetle():
         assert a.bilgi.strip() or not a.formda, f"açıklaması yok: {a.anahtar}"
         if a.secenek_kosulu:
             assert set(a.secenek_kosulu) <= set(a.secenekler or ()), a.anahtar
+        #  Yeni bir birim tavansız kalmasın:  üst sınırı olmayan sayı alanı
+        #  imkânsız değeri ( 10¹² ) çizime kadar taşır
+        if a.tur == "sayi":
+            assert azami(a) is not None, f"fiziksel tavanı yok ( BIRIM_AZAMI ): {a.anahtar} [{a.birim}]"
 
 
 _denetle()
