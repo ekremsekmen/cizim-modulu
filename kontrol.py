@@ -5,9 +5,11 @@
                                            hariç ), çizim ( yavaş test hariç,
                                            altın çıktı dahil ), ön yüz ( tip,
                                            lint, test, derleme )  ( ~4 dk )
-    .venv/bin/python kontrol.py tam        hızlı + yavaş test + sunucu ( ~10 dk — yavaş test 7 dk )
+    .venv/bin/python kontrol.py tam        hızlı + yavaş test + sunucu + uçtan uca ( ~12 dk — yavaş test 7 dk )
     .venv/bin/python kontrol.py sunucu     programı 8790'da açar, uçlarını ve kök
                                            sayfayı dener ( TEST 3 ), kapatır ( ~1 dk )
+    .venv/bin/python kontrol.py uctan_uca  ön yüz gerçek tarayıcıda:  örnek proje, canlı
+                                           hesap, proje dosyası, ölçü, teslim ( ~1 dk )
     .venv/bin/python kontrol.py tarama     girdi taraması ( 510 düzen;  ~5 dk )
     .venv/bin/python kontrol.py bicim      ruff format + ruff check --fix ( düzeltir )
 
@@ -144,6 +146,21 @@ def sunucu():
         sunucu.wait(timeout=30)
 
 
+def uctan_uca(derlendi=True):
+    """Ön yüz gerçek tarayıcıda ( testler/test_on_yuz_uctan_uca.py ):  test kendi
+    programını boş bir portta açar.  Derlenmiş ön yüzü dener — ön yüz
+    derlendikten sonra koşar.  Derleme başarısızsa koşmaz:  dist'te kalan ESKİ
+    derlemeyi dener ve yanıltıcı biçimde geçerdi."""
+    if not derlendi:
+        print("\n━━ ön yüz uçtan uca ( tarayıcı ):  ATLANDI — ön yüz derlenemedi", flush=True)
+        return False
+    return _kos(
+        "ön yüz uçtan uca ( tarayıcı )",
+        [PY, "-m", "pytest", "-q", "testler/test_on_yuz_uctan_uca.py"],
+        ortam={"KONTROL_UCTAN_UCA": "1"},
+    )
+
+
 def tarama():
     """Hükümler depodaki kayıtla karşılaştırılır ( araclar/tarama.py )."""
     return _kos("girdi taraması", [PY, "-m", "araclar.tarama"])
@@ -153,9 +170,17 @@ def main(argv):
     kip = argv[0] if argv else "hizli"
     adimlar = {
         "hizli": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), cizim(False), on_yuz()],
-        "tam": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), cizim(True), on_yuz(), sunucu()],
+        "tam": lambda: [
+            lint(),
+            hesap(HESAP_TESTLERI, SUNUCUSUZ),
+            cizim(True),
+            (derlendi := on_yuz()),
+            sunucu(),
+            uctan_uca(derlendi),
+        ],
         "bicim": lambda: [bicim()],
         "sunucu": lambda: [sunucu()],
+        "uctan_uca": lambda: [uctan_uca(on_yuz())],
         "tarama": lambda: [tarama()],
     }
     if kip not in adimlar:
