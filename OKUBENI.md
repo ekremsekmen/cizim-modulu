@@ -470,6 +470,13 @@ Geçiş boyunca eski arayüz `/` adresinde kalır, yenisi `/yeni` altındadır;
 ekranlar yenide eşitlendikçe ( aynı girdi → aynı hesap ve çizim ) eskisi
 kaldırılır.
 
+Proje dosyaları ( `.uygulama` · `.avan` ) iki arayüzde aynı biçimdedir:  yenide
+kaydedilen eskide, eskide kaydedilen yenide açılır.  Yeni ön yüz yalnız
+yazılan değeri gönderir ( gönderilmeyen = varsayılan );  boş metnin ayrı anlamı
+olan alanları sunucu söyler ( `bos_tablodan`:  boş kabin kütlesi = tablodan ),
+sözleşme `testler/test_on_yuz_sozlesmesi.py`'dedir.  Avan ofis standardının
+adları da sunucudadır ( `motor/avan/avan_sabitleri.py` → `/api/secenekler` ).
+
 ```bash
 cd on-yuz && npm ci            # bir kez ( node 22 )
 npm run dev                    # geliştirme:  http://localhost:5174/yeni/  ( /api → 8790'daki program )

@@ -132,16 +132,19 @@ export function useUygulamaProjesi(baslangic: UygulamaProjesi) {
 }
 
 /**  Alan değeri:  proje geneli alanlar binaya aittir ( bütün asansörlerde aynı ).
-     Boş değer alanı siler:  isteğe girmez, sunucu varsayılanını ya da kuralını uygular.  */
+     Boş değer alanı siler:  isteğe girmez, sunucu varsayılanını uygular.
+     bos_tablodan alanlarında boş, BOŞ olarak kalır ve gönderilir:  sunucu
+     tablonun değerini kullanır ( boş kabin kütlesi;  gönderilmezse varsayılan 700 olurdu ).  */
 export function alanYaz(p: UygulamaProjesi, sema: AlanSemasi, asansor: number, anahtar: string, deger: string) {
   const geneli = sema.proje_geneli.includes(anahtar);
   const temizle = (h: Ham) => {
     const y = { ...h };
-    if (deger.trim() === "") delete y[anahtar];
-    else y[anahtar] = deger;
+    if (deger.trim() !== "") y[anahtar] = deger;
+    else if (sema.bos_tablodan.includes(anahtar)) y[anahtar] = "";
+    else delete y[anahtar];
     //  YÜK DEĞİŞİNCE KABİN AĞIRLIĞI TABLOYA DÖNER ( eski arayüzün kuralı:
     //  yeni yükün yanında eski yükün kabin kütlesi kalmasın;  boş = tablodan )
-    if (anahtar === "beyan_yuku" && h.beyan_yuku !== y.beyan_yuku) delete y.kabin_agirligi;
+    if (anahtar === "beyan_yuku" && h.beyan_yuku !== y.beyan_yuku) y.kabin_agirligi = "";
     return y;
   };
   if (geneli) return { ...p, proje_geneli: temizle(p.proje_geneli) };
@@ -162,8 +165,11 @@ export function gizliAlanlar(sema: AlanSemasi, p: UygulamaProjesi): Set<string> 
   return new Set(mrlMi(sema, p) ? sema.yerlesime_gore_gizli.mrl : sema.yerlesime_gore_gizli.daireli);
 }
 
+/**  Kullanıcının yazdığı değer;  yazılmamışsa undefined.  Boş metin ( bos_tablodan:
+     "tablodan" ) de yazılmamış sayılır — kutu sunucunun kullandığını soluk gösterir.  */
 export function alanOku(p: UygulamaProjesi, sema: AlanSemasi, asansor: number, anahtar: string): string | undefined {
-  return sema.proje_geneli.includes(anahtar) ? p.proje_geneli[anahtar] : p.asansorler[asansor]?.[anahtar];
+  const v = sema.proje_geneli.includes(anahtar) ? p.proje_geneli[anahtar] : p.asansorler[asansor]?.[anahtar];
+  return v === "" ? undefined : v;
 }
 
 /* ───────────────────────────── Ofis standardı:  bütün projelerde geçerli */
@@ -200,9 +206,10 @@ export function alanHatasi(sema: AlanSemasi, anahtar: string, ham: string | unde
   const n = sayiOku(ham);
   if (n === null) return null;
   if (k.tam_sayi && !Number.isInteger(n)) return "Tam sayı olmalı";
-  if (k.en_az !== undefined && (k.en_az_dahil ? n < k.en_az : n <= k.en_az))
+  //  null = o yönde sınır yok ( "n < null" JavaScript'te n < 0 olurdu )
+  if (k.en_az != null && (k.en_az_dahil ? n < k.en_az : n <= k.en_az))
     return k.en_az_dahil ? `En az ${k.en_az.toLocaleString("tr-TR")}` : `${k.en_az.toLocaleString("tr-TR")} üstünde olmalı`;
-  if (k.en_cok !== undefined && n > k.en_cok) return `En çok ${k.en_cok.toLocaleString("tr-TR")}`;
+  if (k.en_cok != null && n > k.en_cok) return `En çok ${k.en_cok.toLocaleString("tr-TR")}`;
   return null;
 }
 

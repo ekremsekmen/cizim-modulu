@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alanHatasi, alanYaz, formHatalari, gizliAlanlar, istekKur, kutuyaYaz, sayiOku, type UygulamaProjesi } from "./proje";
+import { alanHatasi, alanOku, alanYaz, formHatalari, gizliAlanlar, istekKur, kutuyaYaz, sayiOku, type UygulamaProjesi } from "./proje";
 import { SEMA } from "./test-semasi";
 
 const proje = (p: Partial<UygulamaProjesi> = {}): UygulamaProjesi => ({
@@ -31,6 +31,10 @@ describe("alanın kuralı ( sunucunun kurallar sözlüğünden )", () => {
     expect(alanHatasi(SEMA, "durak_adedi", "7,5")).toBe("Tam sayı olmalı");
     expect(alanHatasi(SEMA, "durak_adedi", "12")).toBeNull();
     expect(alanHatasi(SEMA, "mk_uzunluk", "0")).toBe("0 üstünde olmalı");
+  });
+  it("null sınır yok demektir:  eksi kaçıklık geçerli ( gerçek projeler açılınca ekran çöküyordu )", () => {
+    expect(alanHatasi(SEMA, "kabin_yana_kaciklik", "-150")).toBeNull();
+    expect(alanHatasi(SEMA, "kabin_yana_kaciklik", "25000")).toBe("En çok 20.000");
   });
   it("okunamayan yazım ön yüzde reddedilmez:  sebebi sunucunundur", () => {
     expect(alanHatasi(SEMA, "durak_adedi", "abc")).toBeNull();
@@ -67,8 +71,15 @@ describe("alan yazma", () => {
   it("yük değişince kabin ağırlığı tabloya döner ( eski arayüzün kuralı )", () => {
     const p0 = proje({ asansorler: [{ beyan_yuku: "800", kabin_agirligi: "700" }, { kabin_agirligi: "650" }] });
     const p = alanYaz(p0, SEMA, 0, "beyan_yuku", "1000");
-    expect(p.asansorler[0]).toEqual({ beyan_yuku: "1000" });
+    //  boş metin = tablodan;  alan silinseydi sunucu varsayılanı ( 700 ) kullanırdı
+    expect(p.asansorler[0]).toEqual({ beyan_yuku: "1000", kabin_agirligi: "" });
     expect(p.asansorler[1]).toEqual({ kabin_agirligi: "650" });
+    expect(alanOku(p, SEMA, 0, "kabin_agirligi")).toBeUndefined();
+  });
+  it("tablodan alanı silinince boş kalır, öbür alan silinir", () => {
+    const p0 = proje({ asansorler: [{ kabin_agirligi: "900", kuyu_genisligi: "2400" }] });
+    const p = alanYaz(alanYaz(p0, SEMA, 0, "kabin_agirligi", " "), SEMA, 0, "kuyu_genisligi", "");
+    expect(p.asansorler[0]).toEqual({ kabin_agirligi: "" });
   });
   it("aynı yük yeniden seçilince kabin ağırlığı kalır", () => {
     const p = alanYaz(proje({ asansorler: [{ beyan_yuku: "800", kabin_agirligi: "700" }] }), SEMA, 0, "beyan_yuku", "800");

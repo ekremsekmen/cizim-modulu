@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, CircleQuestionMark, RotateCcw, Search, X } from "lucide-react";
 import type { Alan, AlanSemasi, Deger } from "@/lib/api";
-import { alanHatasi, alanOku, gizliAlanlar, mrlMi, type UygulamaProjesi } from "@/lib/proje";
+import { alanHatasi, alanOku, gizliAlanlar, mrlMi, sayiOku, type UygulamaProjesi } from "@/lib/proje";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
 import { Anahtar, Bolumlu, Girdi, Ipucu, Rozet, Secim } from "@/components/ui";
 
@@ -207,6 +207,12 @@ function GrupAlanlari({
   );
 }
 
+/**  Kutudaki değer listedeki yazımıyla:  tarayıcıda "1,6" saklı kalmış olabilir ( seçenek "1.6" )  */
+function secimDegeri(secenekler: Deger[], d: string): string {
+  const s = secenekler.find((x) => String(x) === d || (typeof x === "number" && sayiOku(d) === x));
+  return s === undefined ? d : String(s);
+}
+
 function AlanSatiri({
   a,
   sema,
@@ -257,7 +263,7 @@ function AlanSatiri({
       <Secim
         id={id}
         etiket={ad}
-        deger={ham ?? String(etkin ?? "")}
+        deger={secimDegeri(a.secenekler, ham ?? String(etkin ?? ""))}
         varsayilanMi={!girildi}
         degisti={(d) => yaz(a.anahtar, d)}
         secenekler={a.secenekler.map((s) => {

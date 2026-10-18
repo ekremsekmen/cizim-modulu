@@ -31,10 +31,11 @@ export interface Grup {
   alanlar: Alan[];
 }
 
+/**  Sınırı olmayan yön null gelir ( kaçıklıklar eksi olabilir:  en_az null )  */
 export interface Kural {
-  en_az?: number;
+  en_az?: number | null;
   en_az_dahil?: boolean;
-  en_cok?: number;
+  en_cok?: number | null;
   tam_sayi?: boolean;
 }
 
@@ -51,6 +52,8 @@ export interface AlanSemasi {
   bolum_grubu: Record<string, string[]>;
   hesaplanan: string[];
   kurallar: Record<string, Kural>;
+  /**  Boş metni "tablodan al" demek olan alanlar ( gönderilmeyen = varsayılan;  boş = tablo )  */
+  bos_tablodan: string[];
   proje_geneli: string[];
   yerlesime_gore_gizli: { mrl: string[]; daireli: string[] };
   cizimden: string[];
@@ -189,6 +192,15 @@ export interface Secenekler {
   kapak_turetilen: string[];
   ofis_varsayilan: Record<string, Deger>;
   sabit_b: Record<string, Deger>;
+  /**  Avan ofis standardının formu ( gruplar · etiketler · varsayılanlar )  */
+  sabit_sema: AvanSabitSemasi;
+}
+
+export interface AvanSabitSemasi {
+  gruplar: { baslik: string; aciklama: string; alanlar: string[] }[];
+  etiket: Record<string, [string, string]>;
+  varsayilan: Record<string, Deger>;
+  metin: string[];
 }
 
 export interface AvanKoprusu {

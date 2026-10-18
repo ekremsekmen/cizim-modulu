@@ -48,7 +48,10 @@ export const SEMA: AlanSemasi = {
     kuyu_genisligi: { en_az: 0, en_az_dahil: true, en_cok: 20000 },
     durak_adedi: { en_az: 0, en_az_dahil: true, en_cok: 100, tam_sayi: true },
     mk_uzunluk: { en_az: 0, en_az_dahil: false, en_cok: 20000 },
+    //  sunucunun biçimi:  alt sınırı olmayan alanda en_az null
+    kabin_yana_kaciklik: { en_az: null, en_az_dahil: true, en_cok: 20000, tam_sayi: false },
   },
+  bos_tablodan: ["kabin_agirligi"],
   proje_geneli: ["mk_yok", "mk_uzunluk"],
   yerlesime_gore_gizli: { mrl: ["mk_uzunluk"], daireli: [] },
   cizimden: [],

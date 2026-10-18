@@ -2,12 +2,27 @@
     Adımlar birbirini besler:  trafik asansör adedini, kapasiteyi ve hızı
     verir ( avan_koprusu );  ikisi kapağın asansör satırlarını doldurur
     ( kapak_bilgileri ).  Her adımın sonucu sunucudan, aynı hesap belgesiyle.  */
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
-import { NavLink, useNavigate, useParams } from "react-router";
-import { Check, ChevronRight, CircleAlert, Download, FileArchive, Loader2, Plus, X } from "lucide-react";
+import { NavLink, useLocation, useNavigate, useParams } from "react-router";
+import { Check, ChevronRight, CircleAlert, Download, FileArchive, FolderOpen, Info, Loader2, Plus, Save, Undo2, X } from "lucide-react";
 import { api, indir, paketNotu, type AvanKoprusu, type AvanYaniti, type Secenekler, type TrafikYaniti } from "@/lib/api";
 import { useGecikmeli, type Ham } from "@/lib/proje";
+import {
+  AVAN_AZAMI,
+  AVAN_SECIM_VARSAYILANI,
+  avanDosyayaKaydet,
+  avanDosyasiniAc,
+  avanSabitleri,
+  sabitDegeri,
+  TRAFIK_AZAMI,
+  trafikFarki,
+  useAvanOfisi,
+  useAvanProjesi,
+  type Acilis,
+  type AvanProjesi,
+  type EkNufus,
+} from "@/lib/avan";
 import { KAPAK_GRUPLARI } from "@/lib/kapak";
 import { cn, sayiYaz } from "@/lib/utils";
 import { AnaSayfaBaglantisi, BasvuruBaglantilari, UstSerit } from "@/components/Kabuk";
@@ -15,54 +30,6 @@ import { Anahtar, Dugme, Girdi, Ipucu, Rozet, Secim } from "@/components/ui";
 import { HesapBelgesi, HukumRozeti } from "@/components/HesapBelgesi";
 //  pdf.js büyüktür ( ~1 MB ):  yalnız kapak adımı açılınca iner
 const PdfOnizleme = lazy(() => import("@/components/PdfOnizleme").then((m) => ({ default: m.PdfOnizleme })));
-
-/**  Ek nüfus kalemi ( Tablo-1 ):  hızlı girişi olmayan bina tiplerinde nüfus buradan  */
-interface EkNufus {
-  kalem: string;
-  miktar: string;
-  aciklama: string;
-}
-
-/**  Avan sunucuya en çok 4 asansör hesaplatır ( avan_hesabi )  */
-const AVAN_AZAMI = 4;
-
-interface AvanProjesi {
-  kimlik: string;
-  trafik: Ham;
-  ekNufus: EkNufus[];
-  trafikAsansorleri: Ham[];
-  ortak: Ham;
-  avanAsansorleri: Ham[];
-  kapak: Ham;
-}
-
-const BOS: AvanProjesi = {
-  kimlik: "",
-  trafik: {},
-  ekNufus: [],
-  trafikAsansorleri: [{}],
-  ortak: {},
-  avanAsansorleri: [{}, {}, {}, {}],
-  kapak: {},
-};
-
-function useAvanProjesi() {
-  const [p, setP] = useState<AvanProjesi>(() => {
-    try {
-      return { ...BOS, ...JSON.parse(localStorage.getItem("asansor:avan") || "{}") };
-    } catch {
-      return BOS;
-    }
-  });
-  useEffect(() => {
-    try {
-      localStorage.setItem("asansor:avan", JSON.stringify(p));
-    } catch {
-      /* özel pencere */
-    }
-  }, [p]);
-  return [p, setP] as const;
-}
 
 const ADIMLAR = [
   { yol: "trafik", ad: "Trafik hesabı" },
@@ -75,6 +42,9 @@ export function AvanCalisma() {
   const git = useNavigate();
   const sec = useQuery({ queryKey: ["secenekler"], queryFn: api.secenekler });
   const [p, setP] = useAvanProjesi();
+  const [ofis] = useAvanOfisi();
+  const konum = useLocation();
+  const [acilis, setAcilis] = useState<Acilis | null>(() => (konum.state as { acilis?: Acilis } | null)?.acilis ?? null);
 
   //  TRAFİK isteği:  bina + görünen asansör sütunları
   const trafikGirdi = useMemo(
@@ -104,20 +74,22 @@ export function AvanCalisma() {
       asansorler: Array.from({ length: AVAN_AZAMI }, (_, i) => {
         const h = p.avanAsansorleri[i] ?? {};
         if (!ka[i]) return { aktif: false };
-        const tip = h.makine_tipi || "Dişlisiz";
+        //  Seçimler eski formdaki gibi hep gider:  kutudaki değer kullanıcının
+        //  seçimidir, pafta kaynağını GİRİŞ yazar ( gönderilmezse KABUL )
+        const secimler = Object.fromEntries(Object.entries(AVAN_SECIM_VARSAYILANI).map(([k, d]) => [k, h[k] || d]));
         return {
           ...h,
+          ...secimler,
           aktif: true,
           kapasite: String(ka[i].P),
           V: String(ka[i].V),
-          makine_tipi: tip,
-          eta: h.eta || String(verim[tip] ?? ""),
+          eta: h.eta || String(verim[secimler.makine_tipi] ?? ""),
         };
       }),
-      sabitler: {},
+      sabitler: avanSabitleri(ofis),
       trafik: kopru,
     };
-  }, [p.ortak, p.avanAsansorleri, kopru, sec.data]);
+  }, [p.ortak, p.avanAsansorleri, kopru, sec.data, ofis]);
   const ag = useGecikmeli(avanGirdi);
   const avan = useQuery({
     queryKey: ["avan", ag],
@@ -156,6 +128,20 @@ export function AvanCalisma() {
         <Loader2 className="size-4 animate-spin" /> Yükleniyor
       </div>
     );
+
+  //  Dosya açılınca açık proje ezilir ( avan tek projedir, eski arayüz gibi ):
+  //  önceki hâli "Geri al" için tutulur
+  const dosyaAc = (o: Acilis) => {
+    setAcilis({ ...o, onceki: p });
+    setP(o.proje);
+    git("/avan/trafik", { replace: true });
+  };
+  const fark = acilis ? trafikFarki(acilis.dosyaAvani, kopru) : null;
+  //  Geçmişteki bildirim de silinir:  sayfa yenilenince yeniden çıkmasın
+  const kapat = () => {
+    setAcilis(null);
+    git(konum.pathname, { replace: true });
+  };
 
   return (
     <div className="flex h-dvh flex-col">
@@ -205,12 +191,34 @@ export function AvanCalisma() {
         sag={
           <>
             <BasvuruBaglantilari />
+            <DosyaDugmeleri sec={sec.data} ofis={ofis} ac={dosyaAc} kaydet={() => avanDosyayaKaydet(p, sec.data!, ofis, kopru)} />
             <Dugme tur="birincil" className="ml-1" onClick={() => paket.mutate()} disabled={paket.isPending}>
               {paket.isPending ? <Loader2 className="animate-spin" /> : <FileArchive />} Projeyi indir
             </Dugme>
           </>
         }
       />
+      {acilis && (
+        <div className="flex items-start gap-2 border-b border-vurgu-cizgi bg-vurgu-acik px-4 py-2 text-[12.5px] text-vurgu-koyu">
+          <Info className="mt-0.5 size-3.5 shrink-0" />
+          <span className="flex-1 whitespace-pre-line">{[acilis.bildirim, fark].filter(Boolean).join("\n")}</span>
+          {acilis.onceki && (
+            <Dugme
+              tur="hayalet"
+              boy="kucuk"
+              onClick={() => {
+                setP(acilis.onceki!);
+                kapat();
+              }}
+            >
+              <Undo2 /> Geri al
+            </Dugme>
+          )}
+          <Dugme tur="hayalet" boy="simge-kucuk" aria-label="Bildirimi kapat" onClick={kapat}>
+            <X />
+          </Dugme>
+        </div>
+      )}
       {paket.data?.hata && (
         <div className="flex items-center justify-center gap-2 border-b border-red-cizgi bg-red-acik px-4 py-1.5 text-[12.5px] whitespace-pre-line text-red">
           <CircleAlert className="size-3.5 shrink-0" /> {paket.data.hata}
@@ -231,10 +239,58 @@ export function AvanCalisma() {
         <TrafikAdimi p={p} setP={setP} sec={sec.data} sonuc={trafik.data} yukleniyor={trafik.isFetching} govde={{ girdiler: trafikGirdi, kapak: kapakVerisi }} ileri={() => git("/avan/hesaplar")} />
       )}
       {adim === "hesaplar" && (
-        <HesaplarAdimi p={p} setP={setP} sec={sec.data} kopru={kopru} sonuc={avan.data} govde={{ girdiler: avanGirdi, kapak: kapakVerisi }} geri={() => git("/avan/trafik")} />
+        <HesaplarAdimi p={p} setP={setP} sec={sec.data} ofis={ofis} kopru={kopru} sonuc={avan.data} govde={{ girdiler: avanGirdi, kapak: kapakVerisi }} geri={() => git("/avan/trafik")} />
       )}
       {adim === "kapak" && <KapakAdimi p={p} setP={setP} sec={sec.data} kapak={kapakVerisi} />}
     </div>
+  );
+}
+
+function DosyaDugmeleri({
+  sec,
+  ofis,
+  ac,
+  kaydet,
+}: {
+  sec: Secenekler;
+  ofis: Ham;
+  ac: (o: Acilis) => void;
+  kaydet: () => void;
+}) {
+  const girdi = useRef<HTMLInputElement>(null);
+  const [hata, setHata] = useState("");
+  const oku = async (f: File | undefined) => {
+    if (!f) return;
+    if (f.size > 2 * 1024 * 1024) return setHata("Dosya çok büyük — bir proje dosyası değil.");
+    const o = avanDosyasiniAc(await f.text(), f.name, sec, ofis);
+    if (typeof o === "string") return setHata(o);
+    setHata("");
+    ac(o);
+  };
+  return (
+    <span className="flex items-center gap-1">
+      {hata && <span className="max-w-72 text-right text-[12px] leading-snug text-red">{hata}</span>}
+      <Ipucu metin="Proje dosyasını aç ( .avan )">
+        <Dugme tur="hayalet" boy="simge" aria-label="Proje dosyasını aç" onClick={() => girdi.current?.click()}>
+          <FolderOpen />
+        </Dugme>
+      </Ipucu>
+      <Ipucu metin="Proje dosyası olarak kaydet ( .avan ) — eski arayüz de açar">
+        <Dugme tur="hayalet" boy="simge" aria-label="Proje dosyası olarak kaydet" onClick={kaydet}>
+          <Save />
+        </Dugme>
+      </Ipucu>
+      <input
+        ref={girdi}
+        type="file"
+        accept=".avan,.json"
+        className="hidden"
+        onChange={(e) => {
+          void oku(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
+    </span>
   );
 }
 
@@ -300,6 +356,11 @@ function TrafikAdimi({
   const ekYaz = (i: number, d: Partial<EkNufus>) =>
     setP((q) => ({ ...q, ekNufus: q.ekNufus.map((x, j) => (j === i ? { ...x, ...d } : x)) }));
   const o = sonuc?.ozet;
+  const ILERI = ["h", "bodrum", "manuel_ta", "manuel_tk", "manuel_tg", "manuel_tp"];
+  const ileriDolu = p.trafikAsansorleri.reduce((n, a) => n + ILERI.filter((k) => (a[k] ?? "").trim()).length, 0);
+  //  Kullanıcı açıp kapatmadıysa ( null ) doluyken açıktır:  dosyadan gelen değer gizli kalmasın
+  const [ileriAcik, setIleri] = useState<boolean | null>(null);
+  const ayrinti = ileriAcik ?? ileriDolu > 0;
 
   return (
     <Duzen
@@ -327,6 +388,20 @@ function TrafikAdimi({
               </Satir>
             ))}
           </Kume>
+          <Kume baslik="Elle ortak V ve k" alt="Boş bırakın — hız Tablo-2 asgarisinden, k Tablo-9'dan.  Elle değerin gerekçesi paftaya yazılır.">
+            <Satir etiket="Manuel ortak V" id="t-mV">
+              <Secim
+                id="t-mV"
+                etiket="Manuel ortak V"
+                deger={t("manuel_V") || "_"}
+                degisti={(d) => yaz("manuel_V", d === "_" ? "" : d)}
+                secenekler={[{ deger: "_", ad: "Tablo-2" }, ...sec.hizlar.map((x) => ({ deger: String(x), ad: `${sayiYaz(x)} m/s` }))]}
+              />
+            </Satir>
+            <Satir etiket="Manuel k" id="t-mk" ipucu="0 – 1;  yalnız Tablo-9'da olmayan bina tiplerinde">
+              <Girdi id="t-mk" value={t("manuel_k")} placeholder="Tablo-9" onChange={(e) => yaz("manuel_k", e.target.value)} />
+            </Satir>
+          </Kume>
           <Kume baslik="Nüfus" alt={hizliVar ? "Hızlı giriş bina tipine göre;  ek kalemler Tablo-1'den" : "Bu bina tipinde hızlı giriş yok — nüfus Tablo-1 kalemlerinden"}>
             {hizliVar && (
               <Satir etiket={hizli.hizli1[0]} id="t-h1" ipucu={hizli.hizli1[1].replace(/[()]/g, "").trim()}>
@@ -339,12 +414,21 @@ function TrafikAdimi({
               </Satir>
             )}
             {p.ekNufus.map((x, i) => (
-              <div key={i} className="grid grid-cols-[1fr_96px_auto] items-center gap-2">
+              <div key={i} className="grid grid-cols-[1fr_96px_auto] items-center gap-x-2 gap-y-1">
                 <Secim
+                  className="col-span-3"
                   etiket={`${i + 1}. nüfus kalemi`}
                   deger={x.kalem}
                   degisti={(d) => ekYaz(i, { kalem: d })}
                   secenekler={sec.nufus_kalemleri.map((k) => ({ deger: k, ad: k }))}
+                />
+                <Girdi
+                  aria-label={`${i + 1}. kalemin açıklaması`}
+                  yazi
+                  maxLength={120}
+                  value={x.aciklama}
+                  placeholder="Açıklama"
+                  onChange={(e) => ekYaz(i, { aciklama: e.target.value })}
                 />
                 <Girdi
                   aria-label={`${i + 1}. kalemin miktarı`}
@@ -373,8 +457,13 @@ function TrafikAdimi({
             </Dugme>
           </Kume>
           <Kume baslik="Asansörler" alt="Farklı tiplerde grup formülü kendiliğinden uygulanır">
-            <div className="overflow-hidden rounded-orta border border-cizgi">
-              <table className="w-full text-[12.5px]">
+            {/*  Sabit sütun düzeni:  seçim kutusunun uzun metni ( "Teleskopik Otomatik" )
+                 sütunu genişletip ikinci asansörü panelin dışına itiyordu  */}
+            <div className="overflow-x-auto rounded-orta border border-cizgi">
+              <table className="w-full table-fixed text-[12.5px]">
+                <colgroup>
+                  <col className="w-[84px]" />
+                </colgroup>
                 <thead className="bg-yuzey-2 text-[11.5px] text-metin-3">
                   <tr>
                     <th className="px-2 py-1.5 text-left font-medium"> </th>
@@ -399,7 +488,11 @@ function TrafikAdimi({
                 <tbody className="divide-y divide-cizgi">
                   {[
                     { k: "P", e: "⑧ Kapasite", s: sec.kapasiteler.map((x) => ({ deger: String(x), ad: `${x} kişi` })) },
-                    { k: "V", e: "Hız", s: sec.hizlar.map((x) => ({ deger: String(x), ad: `${sayiYaz(x)} m/s` })) },
+                    {
+                      k: "V",
+                      e: "Hız",
+                      s: [{ deger: "_", ad: "Tablo-2 asgari" }, ...sec.hizlar.map((x) => ({ deger: String(x), ad: `${sayiYaz(x)} m/s` }))],
+                    },
                     { k: "kapi_genisligi", e: "Kapı", s: sec.kapi_genislikleri.map((x) => ({ deger: String(x), ad: `${x} mm` })) },
                     { k: "kapi_tipi", e: "Kapı tipi", s: sec.kapi_tipleri.map((x) => ({ deger: x, ad: x })) },
                   ].map(({ k, e, s }) => (
@@ -407,22 +500,56 @@ function TrafikAdimi({
                       <td className="px-2 py-1 text-metin-2">{e}</td>
                       {p.trafikAsansorleri.map((a, i) => (
                         <td key={i} className="px-1 py-1">
-                          <Secim etiket={`${i + 1}. asansör ${e}`} deger={a[k] ?? ""} degisti={(d) => ay(i, k, d)} secenekler={s} />
+                          <Secim
+                            etiket={`${i + 1}. asansör ${e}`}
+                            deger={a[k] || (k === "V" ? "_" : "")}
+                            degisti={(d) => ay(i, k, d === "_" ? "" : d)}
+                            secenekler={s}
+                          />
                         </td>
                       ))}
                     </tr>
                   ))}
-                  <tr>
-                    <td className="px-2 py-1 text-metin-2">Durak</td>
-                    {p.trafikAsansorleri.map((a, i) => (
-                      <td key={i} className="px-1 py-1">
-                        <Girdi aria-label={`${i + 1}. asansör durak`} value={a.durak ?? ""} onChange={(e) => ay(i, "durak", e.target.value)} />
-                      </td>
-                    ))}
-                  </tr>
+                  {[
+                    ["durak", "Durak", "N+1"],
+                    ...(ayrinti
+                      ? [
+                          ["h", "h (m)", "ortak"],
+                          ["bodrum", "Bodrum durağı", "ortak"],
+                          ["manuel_ta", "ta (s)", "T-4"],
+                          ["manuel_tk", "tk (s)", "T-4"],
+                          ["manuel_tg", "tg (s)", "T-6"],
+                          ["manuel_tp", "tp (s)", "T-8"],
+                        ]
+                      : []),
+                  ].map(([k, e, yer]) => (
+                    <tr key={k}>
+                      <td className="px-2 py-1 text-metin-2">{e}</td>
+                      {p.trafikAsansorleri.map((a, i) => (
+                        <td key={i} className="px-1 py-1">
+                          <Girdi aria-label={`${i + 1}. asansör ${e}`} value={a[k] ?? ""} placeholder={yer} onChange={(ev) => ay(i, k, ev.target.value)} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
+            <button
+              type="button"
+              onClick={() => setIleri(!ayrinti)}
+              aria-expanded={ayrinti}
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-metin-2 hover:text-metin"
+            >
+              <ChevronRight className={cn("size-3 transition-transform", ayrinti && "rotate-90")} />
+              İleri seçenekler · bodrum ve imalatçı süreleri
+              {ileriDolu > 0 && <Rozet tur="vurgu">{ileriDolu} dolu</Rozet>}
+            </button>
+            {ayrinti && (
+              <p className="text-[12px] text-metin-3">
+                İmalatçı katalog süresi girilirse tablo değerinin yerine o kullanılır;  paftada marka-model ve teknik föy referansı belirtilmelidir.
+              </p>
+            )}
             {p.trafikAsansorleri.length === 1 && (
               <Satir etiket="Taahhütname" id="t-taahhut" ipucu="Tablo-10 şartlı kabul">
                 <Secim
@@ -437,7 +564,7 @@ function TrafikAdimi({
                 />
               </Satir>
             )}
-            {p.trafikAsansorleri.length < 4 && (
+            {p.trafikAsansorleri.length < TRAFIK_AZAMI && (
               <Dugme
                 tur="hayalet"
                 boy="kucuk"
@@ -544,8 +671,8 @@ type AvanAlani = {
   secenekler?: (s: Secenekler) => { deger: string; ad: string }[];
   /**  Seçimde "ofis standardı" ( boş ) şıkkı var mı  */
   bosOlur?: boolean;
-  /**  Boş kutuda görünen:  ofis standardı ya da kural  */
-  yer?: (s: Secenekler, h: Ham) => string;
+  /**  Boş kutuda görünen:  ofis standardı ( bu tarayıcınınki ) ya da kural  */
+  yer?: (s: Secenekler, h: Ham, ofis: Ham) => string;
 };
 
 const VAR_YOK = () => [
@@ -553,7 +680,7 @@ const VAR_YOK = () => [
   { deger: "Var", ad: "Var" },
 ];
 const KESIT = (s: Secenekler) => s.kesitler.map((x) => ({ deger: String(x), ad: `${sayiYaz(x)} mm²` }));
-const OFIS = (k: string) => (s: Secenekler) => sayiYaz(s.ofis_varsayilan[k]);
+const OFIS = (k: string) => (s: Secenekler, _h: Ham, ofis: Ham) => sabitDegeri(s, ofis, k);
 
 /*  Eski arayüzün avan formuyla aynı alanlar, aynı birimler ( hesap/static/avan.js ).
     Uzunluklar karışıktır:  kuyu ve kabin ölçüleri mm, kuyu yüksekliği ve
@@ -582,19 +709,28 @@ const AVAN_OFISTEN_FARKLI: AvanAlani[] = [
   { k: "gr", e: "gr — Ray birim kütlesi", birim: "kg/m", yer: OFIS("gr") },
   { k: "Fmk", e: "Fmk — Makine ağırlığı", birim: "kg", yer: OFIS("Fmk") },
   { k: "Fsh", e: "Fsh — Sehpa ağırlığı", birim: "kg", yer: OFIS("Fsh") },
-  { k: "q_denge", e: "q — Denge faktörü", yer: (s) => sayiYaz(s.sabit_b.q_denge) },
-  { k: "S1", e: "S1 — Kolon hattı kesiti", tur: "secim", secenekler: KESIT, bosOlur: true },
+  { k: "q_denge", e: "q — Denge faktörü", yer: OFIS("q_denge") },
+  { k: "S1", e: "S1 — Kolon hattı kesiti", tur: "secim", secenekler: KESIT, bosOlur: true, yer: OFIS("S1") },
   { k: "L1", e: "L1 — Kolon hattı uzunluğu", birim: "m", yer: () => "Hk + pay" },
-  { k: "S2", e: "S2 — Makine besleme kesiti", tur: "secim", secenekler: KESIT, bosOlur: true },
+  { k: "S2", e: "S2 — Makine besleme kesiti", tur: "secim", secenekler: KESIT, bosOlur: true, yer: OFIS("S2") },
   { k: "L2", e: "L2 — Makine besleme uzunluğu", birim: "m", yer: OFIS("L2") },
   { k: "kablo_tipi", e: "Kablo tipi", tur: "metin", yer: OFIS("kablo_tipi") },
   { k: "zincir_birim_kutle", e: "mz — Denge zinciri birim kütlesi", birim: "kg/m", yer: OFIS("zincir_birim_kutle") },
 ];
 
-/**  Seçimlerin varsayılanı ( eski formun açılış değeri ):  boş istek de bunu demektir  */
-const SECIM_VARSAYILANI: Record<string, string> = { i_palanga: "2", denge_zinciri: "Yok", agirlik_guvenlik_tertibati: "Yok" };
-
-function AvanAlanSatiri({ a, sec, h, yaz }: { a: AvanAlani; sec: Secenekler; h: Ham; yaz: (k: string, d: string) => void }) {
+function AvanAlanSatiri({
+  a,
+  sec,
+  ofis,
+  h,
+  yaz,
+}: {
+  a: AvanAlani;
+  sec: Secenekler;
+  ofis: Ham;
+  h: Ham;
+  yaz: (k: string, d: string) => void;
+}) {
   const id = `a-${a.k}`;
   return (
     <Satir etiket={a.e} id={id}>
@@ -602,9 +738,12 @@ function AvanAlanSatiri({ a, sec, h, yaz }: { a: AvanAlani; sec: Secenekler; h: 
         <Secim
           id={id}
           etiket={a.e}
-          deger={h[a.k] ?? SECIM_VARSAYILANI[a.k] ?? ""}
+          deger={h[a.k] || AVAN_SECIM_VARSAYILANI[a.k] || (a.bosOlur ? "_" : "")}
           degisti={(d) => yaz(a.k, d === "_" ? "" : d)}
-          secenekler={[...(a.bosOlur ? [{ deger: "_", ad: "ofis standardı" }] : []), ...a.secenekler(sec)]}
+          secenekler={[
+            ...(a.bosOlur ? [{ deger: "_", ad: `ofis standardı ( ${a.yer?.(sec, h, ofis) ?? ""} mm² )` }] : []),
+            ...a.secenekler(sec),
+          ]}
         />
       ) : (
         <Girdi
@@ -613,7 +752,7 @@ function AvanAlanSatiri({ a, sec, h, yaz }: { a: AvanAlani; sec: Secenekler; h: 
           birim={a.birim}
           yazi={a.tur === "metin"}
           maxLength={a.tur === "metin" ? 120 : 32}
-          placeholder={a.yer?.(sec, h) ?? ""}
+          placeholder={a.yer?.(sec, h, ofis) ?? ""}
           onChange={(ev) => yaz(a.k, ev.target.value)}
         />
       )}
@@ -625,6 +764,7 @@ function HesaplarAdimi({
   p,
   setP,
   sec,
+  ofis,
   kopru,
   sonuc,
   govde,
@@ -634,6 +774,7 @@ function HesaplarAdimi({
   p: AvanProjesi;
   setP: React.Dispatch<React.SetStateAction<AvanProjesi>>;
   sec: Secenekler;
+  ofis: Ham;
   kopru: AvanKoprusu | null;
   sonuc: AvanYaniti | undefined;
   geri: () => void;
@@ -701,13 +842,13 @@ function HesaplarAdimi({
               <Secim
                 id="a-mt"
                 etiket="Makine tipi"
-                deger={h.makine_tipi || "Dişlisiz"}
+                deger={h.makine_tipi || AVAN_SECIM_VARSAYILANI.makine_tipi}
                 degisti={(d) => ay("makine_tipi", d)}
                 secenekler={Object.keys(sec.makine_tipleri).map((x) => ({ deger: x, ad: x }))}
               />
             </Satir>
             {AVAN_TEMEL.map((a) => (
-              <AvanAlanSatiri key={a.k} a={a} sec={sec} h={h} yaz={ay} />
+              <AvanAlanSatiri key={a.k} a={a} sec={sec} ofis={ofis} h={h} yaz={ay} />
             ))}
             <button
               type="button"
@@ -723,7 +864,7 @@ function HesaplarAdimi({
               <div className="space-y-2 border-l border-cizgi pl-3">
                 <p className="text-[12px] text-metin-3">Boş bırakılan ofis standardıdır;  yalnız bu asansörde farklıysa doldurun.</p>
                 {AVAN_OFISTEN_FARKLI.map((a) => (
-                  <AvanAlanSatiri key={a.k} a={a} sec={sec} h={h} yaz={ay} />
+                  <AvanAlanSatiri key={a.k} a={a} sec={sec} ofis={ofis} h={h} yaz={ay} />
                 ))}
               </div>
             )}

@@ -118,17 +118,16 @@ def avan_projesi(s):
     s.goto(KOK + "/")
     s.evaluate(
         """() => localStorage.setItem('asansor:avan', JSON.stringify({
-            kimlik: '',
             trafik: {bina_tipi: 'Konut', bina_yuksekligi: '30', yapi_yuksekligi: '31', N: '10', h: '3',
                      hizli1: '20', hizli2: '2'},
             trafikAsansorleri: [{P: '8', V: '1', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik',
                                  durak: '11'}],
             ortak: {mk_yok: 'true', temel_a: '20', temel_b: '15'},
             avanAsansorleri: [
-              {makine_tipi: 'Dişlisiz', Hk: '34', kuyu_genisligi: '1,8', kabin_boyu: '1,4',
-               kabin_genisligi: '1,1', L1: '40'},
-              {makine_tipi: 'Dişlisiz', Hk: '34', kuyu_genisligi: '1,8', kabin_boyu: '1,4',
-               kabin_genisligi: '1,1', L1: '40'}, {}, {}],
+              {makine_tipi: 'Dişlisiz', Hk: '34', kuyu_genisligi: '1800', kabin_boyu: '1400',
+               kabin_genisligi: '1100', L1: '40'},
+              {makine_tipi: 'Dişlisiz', Hk: '34', kuyu_genisligi: '1800', kabin_boyu: '1400',
+               kabin_genisligi: '1100', L1: '40'}, {}, {}],
             kapak: {project_title: 'Konut — A Blok', owner: '[İŞVEREN]', city: '[İL]', district: '[İLÇE]'}
         }))"""
     )

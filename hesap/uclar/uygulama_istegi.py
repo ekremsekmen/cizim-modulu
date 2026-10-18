@@ -46,7 +46,17 @@ def alanlar():
     #  tablosuna bakamıyordu.
     veri["tablolar"] = tablolar_gorunum.arayuz_tablolari()
     veri["asansor_azami"] = uygulama_hesabi.ASANSOR_AZAMI
+    #  BOŞ METNİN ANLAMI OLAN ALANLAR.  Gönderilmeyen alan varsayılandır
+    #  ( boş kabin kütlesinde 700 );  BOŞ METİN ise "tablodan al" demektir
+    #  ( mukavemet_girdi.tamamla:  beyan yükünün ofis tablosu değeri ).  Ön yüz
+    #  bu alanlarda boşu boş olarak gönderir — beyan yükü değişince de, eski
+    #  dosyadaki boş kutu da tablo değerini verir.  Liste
+    #  testler/test_on_yuz_sozlesmesi.py taramasıyla eşit tutulur.
+    veri["bos_tablodan"] = list(BOS_TABLODAN)
     return veri
+
+
+BOS_TABLODAN = ("kabin_agirligi",)
 
 
 def mukavemet_girdisi(veri: dict):
