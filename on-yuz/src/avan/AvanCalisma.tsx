@@ -682,7 +682,7 @@ const VAR_YOK = () => [
 const KESIT = (s: Secenekler) => s.kesitler.map((x) => ({ deger: String(x), ad: `${sayiYaz(x)} mm²` }));
 const OFIS = (k: string) => (s: Secenekler, _h: Ham, ofis: Ham) => sabitDegeri(s, ofis, k);
 
-/*  Eski arayüzün avan formuyla aynı alanlar, aynı birimler ( hesap/static/avan.js ).
+/*  Eski arayüzün avan formuyla aynı alanlar, aynı birimler ( 19 Eki kaldırıldı ).
     Uzunluklar karışıktır:  kuyu ve kabin ölçüleri mm, kuyu yüksekliği ve
     kablo uzunlukları m — sunucunun beklediği budur.                      */
 const AVAN_TEMEL: AvanAlani[] = [

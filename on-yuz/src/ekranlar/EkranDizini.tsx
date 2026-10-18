@@ -1,4 +1,4 @@
-/*  EKRAN DİZİNİ — yalnız geliştirmede ( /yeni/ekranlar ):  her ekran, ne işe
+/*  EKRAN DİZİNİ — yalnız geliştirmede ( /ekranlar ):  her ekran, ne işe
     yaradığı, hangi uçtan beslendiği ve o durumu kuran bir bağlantı.  Ekran
     ekran geçişte görsel denetim buradan yapılır ( araclar/on_yuz_goruntu.py ).  */
 import { useNavigate } from "react-router";

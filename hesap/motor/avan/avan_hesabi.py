@@ -414,7 +414,7 @@ def _aydinlatma(a_m, b_m, E, OL, S, hh=None):
 #  PROJE GENELİ DEĞERLERİN ADLARI  —  reddedilen değerin metninde görünür.
 #  Ofis sekmesi ile ortak paneldeki her sayısal alanın burada karşılığı
 #  olmalıdır ( TEST 2 denetler );  yoksa kullanıcı "goz_araligi" gibi bir iç
-#  adla karşılaşır.  Arayüzdeki uzun etiketler static/ortak.js SABIT_ETIKET'te.
+#  adla karşılaşır.  Ekrandaki uzun etiketler motor/avan/avan_sabitleri.py ETIKET'te.
 OFIS_ETIKET = {
     "i_palanga": ("i — askı oranı", "—"),
     "q_denge": ("q — denge faktörü", "—"),

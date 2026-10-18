@@ -1,7 +1,6 @@
-/*  PROJE DOSYASI ( .uygulama ) — ESKİ ARAYÜZLE AYNI BİÇİM.
-    Geçiş boyunca iki arayüz yan yana:  yenide kaydedilen dosya ( ve paketin
-    içindeki .uygulama ) eskide açılmalı, eski dosyalar yenide.  Biçim eski
-    arayüzün projeGovdesi'dir ( hesap/static/ortak.js ):
+/*  PROJE DOSYASI ( .uygulama ) — ESKİ ARAYÜZÜN BİÇİMİ ( 19 Eki kaldırıldı ).
+    Biçim değişmedi:  eski arayüzde kaydedilmiş bütün dosyalar açılır;  yenide
+    kaydedilen dosya ( ve paketin içindeki .uygulama ) aynı biçimdedir:
 
       { __mod, __surum, __program, __tarih,
         alanlar: { mk_proje_adi, mk_isveren, mk_pafta_no, m_adet,

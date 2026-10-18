@@ -704,13 +704,14 @@ def calistir():
         r.kontrol(f"secenekler.{anahtar} var", anahtar in sec and sec[anahtar])
 
     # ana sayfa
+    #  Ön yüz derlenmişse ( on-yuz/dist ) React sayfası, değilse 503 ve derleme talimatı
     req = urllib.request.Request(BASE + "/", method="GET")
-    with urllib.request.urlopen(req, timeout=30) as c:
-        html = c.read().decode()
-    r.kontrol(
-        "ana sayfa yüklendi",
-        "<title>" in html and all(x in html for x in ("ortak.js", "avan.js", "uygulama.js")),
-    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as c:
+            html = c.read().decode()
+    except urllib.error.HTTPError as e:
+        html = e.read().decode() if e.code == 503 else ""
+    r.kontrol("ana sayfa yüklendi", "<title>" in html and ('id="kok"' in html or "npm run build" in html))
 
     # bozuk gövdeler — 500 dönmemeli
     for govde in (

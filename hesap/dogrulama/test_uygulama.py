@@ -20,6 +20,20 @@ import os
 import sys
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _on_yuz_kaynagi():
+    """Ön yüzün ( on-yuz/src, React ) bütün kaynağı — ekranın kendi metin ya da
+    hüküm kurmadığını denetlemek için."""
+    import glob
+
+    kok = os.path.join(os.path.dirname(KOK), "on-yuz", "src")
+    return "".join(
+        open(p, encoding="utf-8").read()
+        for p in sorted(glob.glob(os.path.join(kok, "**", "*.ts*"), recursive=True))
+    )
+
+
 #  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
 sys.path.insert(0, os.path.dirname(KOK))
 import yollar
@@ -869,11 +883,11 @@ def calistir():
         _kaynak13.count('o.get("genel_sonuc")') == 2 and "HESAP EKSİK" not in _kaynak13,
         "→ pdf_export hâlâ kendi hükmünü kuruyor",
     )
-    _js13 = open(os.path.join(KOK, "static", "uygulama.js"), encoding="utf-8").read()
+    _js13 = _on_yuz_kaynagi()
     r.kontrol(
         "⑬ ekran hükmü kendi kurmuyor, motordan okuyor",
-        "genel_sonuc_kisa" in _js13 and "'HESAP EKSİK'" not in _js13,
-        "→ uygulama.js hâlâ kendi hükmünü kuruyor",
+        len(_js13) > 10000 and "HESAP EKSİK" not in _js13,
+        "→ ön yüz kendi hükmünü kuruyor",
     )
 
     #  ⑮  α — SARILMA AÇISI ZORUNLU BEYANDIR, VARSAYIMI YOKTUR
@@ -1099,11 +1113,7 @@ def calistir():
             not any(x.lower().endswith((".xlsx", ".txt")) and x != "OKUBENI.txt" for x in _n20),
             f"→ {_n20}",
         )
-    _js20 = (
-        open(os.path.join(KOK, "static", "ortak.js"), encoding="utf-8").read()
-        + open(os.path.join(KOK, "static", "avan.js"), encoding="utf-8").read()
-        + open(os.path.join(KOK, "static", "uygulama.js"), encoding="utf-8").read()
-    )
+    _js20 = _on_yuz_kaynagi()
     r.kontrol(
         "⑳ arayüzde Excel yükleme / kitap notu kalmadı", "KITAP" not in _js20 and "xlsx" not in _js20.lower()
     )
@@ -1832,19 +1842,17 @@ def _muhendis_okumasi(r):
         f"→ {_kt['sonuc']['metin']}",
     )
     _pdf = open(os.path.join(KOK, "ciktilar", "pdf_cikti.py"), encoding="utf-8").read()
-    _js = open(os.path.join(KOK, "static", "uygulama.js"), encoding="utf-8").read()
+    _js = _on_yuz_kaynagi()
     r.kontrol(
         "① PDF özetleri ( tek ve çoklu ) 'bir rayına' yazıyor",
         _pdf.count("FKR — Bir kabin rayına gelen kuvvet") == 2
         and _pdf.count("FAR — Bir ağırlık rayına gelen kuvvet") == 2
         and "raylarına gelen kuvvet" not in _pdf,
     )
+    #  Ekran kuvvet adlarını kendi yazmaz:  bölüm sonucunu sunucudan okur
     r.kontrol(
-        "① ekran kutuları 'bir rayına' yazıyor",
-        "FKR — Bir kabin rayına" in _js
-        and "FAR — Bir ağırlık rayına" in _js
-        and "Kabin rayları'" not in _js
-        and "Ağırlık rayları'" not in _js,
+        "① ekran kuvvet adlarını kendi kurmuyor ( sunucunun metni )",
+        len(_js) > 10000 and "FKR" not in _js and "rayları'" not in _js,
     )
 
     #  ②  HALAT BOYUNDAKİ YIĞIN AÇIK YAZILIR.  Paftada yalnız toplamı

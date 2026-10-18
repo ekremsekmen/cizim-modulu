@@ -4,7 +4,7 @@ import { CircleAlert, Loader2 } from "lucide-react";
 import { Acilis } from "@/ekranlar/Acilis";
 import { projeOku, yeniUygulama } from "@/lib/proje";
 
-/*  ADRESLER  ( hepsi /yeni altında — FastAPI derlenmiş dosyaları orada sunar )
+/*  ADRESLER  ( programın kökünde — FastAPI derlenmiş dosyaları sunar;  eski /yeni buraya yönlenir )
     /                     açılış
     /uygulama/:id         uygulama projesinin çalışma alanı  ( ?gorunum=hesap · ?cizim=kuyu_plani · ?teslim=1 )
     /avan/:adim           avan projesi  ( trafik · hesaplar · kapak )

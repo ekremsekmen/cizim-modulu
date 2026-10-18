@@ -1,15 +1,20 @@
-"""ÖN YÜZ DENETİMİ — SUNUCUYLA UYUM ( 17 Eki )
+"""ÖN YÜZ DENETİMİ — SUNUCUYLA UYUM
 
-Arayüz kutuyu yazılırken denetler ( hesap/static/uygulama.js mKuralHatasi ),
-kural dışı değeri sunucuya göndermez.  Kurallar sunucudan gelir
-( mukavemet_girdi.form_kurallari ).  İki yönlü uyum:
+Ön yüz ( on-yuz/src/lib/proje.ts alanHatasi ) kutuyu yazılırken denetler, kural
+dışı değeri sunucuya göndermez.  Kurallar sunucudan gelir
+( mukavemet_girdi.form_kurallari ).  Uyum:
 
   -  ÖN YÜZ SUNUCUDAN SIKI OLAMAZ:  ön yüzün reddettiği her değeri sunucu da
      reddeder — yoksa geçerli bir girdi ekranda engellenirdi.  Her sayı alanı
      hesaba girdiği yerleşimde ( gizli alan denetlenmez ) sınırın hemen
      dışındaki değerlerle denenir.
   -  İMKÂNSIZ DEĞER ÖN YÜZDE DURUR:  10¹² her alanda, −1 işaretli olmayan
-     alanda sunucuya gitmeden reddedilir;  sınırın kendisi geçer."""
+     alanda sunucuya gitmeden reddedilir;  sınırın kendisi geçer.
+  -  OKUNAMAYAN YAZIMIN KARARI SUNUCUNUNDUR:  "12abc", belirsiz "1.200", "1e3"
+     ön yüzde reddedilmez, sebebiyle sunucu reddeder.
+
+Ön yüzün kendi kodu koşar:  Node TypeScript'i doğrudan çalıştırır ( 22+ ).
+"""
 
 import json
 import os
@@ -21,24 +26,33 @@ from testler import test_yerlesim_saglamligi
 from uclar import cizim_uclari, uygulama_istegi, uygulama_uclari
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJE_TS = os.path.join(KOK, "on-yuz", "src", "lib", "proje.ts")
+NODE_MODULES = os.path.join(KOK, "on-yuz", "node_modules")
 
-#  uygulama.js'i küçük bir bağlamla yükler ( olcu_arayuz.test.cjs gibi ),
-#  durumları stdin'den alır:  [ [ kural , ham , birim ] ] → [ ileti ]
+#  Durumlar stdin'den:  [ [ anahtar , kural , ham ] ] → [ ileti | null ]
 _NODE = r"""
-const fs = require('fs'), vm = require('vm'), path = require('path');
-const ctx = vm.createContext({ISTEK: {mukavemet: 0}, MUK: {asansor_azami: 4},
-  localStorage: {getItem: () => null}, addEventListener() {}, kur() {},
-  Event: class {}, kacis: x => String(x), trn: x => String(x)});
-vm.runInContext(fs.readFileSync(path.join(process.argv[1], 'hesap/static/uygulama.js'), 'utf8'), ctx);
-const f = vm.runInContext('mKuralHatasi', ctx);
-const durumlar = JSON.parse(fs.readFileSync(0, 'utf8'));
-process.stdout.write(JSON.stringify(durumlar.map(([k, h, b]) => f(k, h, b))));
+const { pathToFileURL } = require('url');
+const { alanHatasi } = await import(pathToFileURL(process.argv[1]).href);
+const durumlar = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+process.stdout.write(JSON.stringify(durumlar.map(([a, k, h]) => alanHatasi({ kurallar: { [a]: k } }, a, h))));
 """
 
 
 def on_yuz(durumlar):
     r = subprocess.run(
-        ["node", "-e", _NODE, KOK], input=json.dumps(durumlar), capture_output=True, text=True, check=True
+        [
+            "node",
+            "--experimental-strip-types",
+            "--no-warnings",
+            "--input-type=commonjs",
+            "-e",
+            f"(async () => {{ {_NODE} }})()",
+            PROJE_TS,
+        ],
+        input=json.dumps(durumlar),
+        capture_output=True,
+        text=True,
+        check=True,
     )
     return json.loads(r.stdout)
 
@@ -48,7 +62,7 @@ def _tr(x):
 
 
 def _dis_degerler(k):
-    """Kuralın hemen dışındaki ( ön yüzün reddettiği ) değerler."""
+    """Kuralın hemen dışındaki ( ön yüzün reddedebileceği ) değerler."""
     d = ["12abc", "1.200"]
     if k["en_cok"] is not None:
         d.append(_tr(k["en_cok"] + 1))
@@ -61,7 +75,9 @@ def _dis_degerler(k):
     return d
 
 
-@unittest.skipUnless(shutil.which("node"), "node yok")
+@unittest.skipUnless(
+    shutil.which("node") and os.path.isdir(NODE_MODULES), "node ya da ön yüz bağımlılıkları yok ( npm ci )"
+)
 class OnYuzDenetimi(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -90,7 +106,8 @@ class OnYuzDenetimi(unittest.TestCase):
             if a in self.alanlar and not (a in self.mrl_gizli and a in self.daireli_gizli)
             for ham in _dis_degerler(k)
         ]
-        iletiler = on_yuz([[self.kurallar[a], ham, self.alanlar[a]["birim"]] for a, ham in durumlar])
+        iletiler = on_yuz([[a, self.kurallar[a], ham] for a, ham in durumlar])
+        self.assertTrue(any(iletiler), "ön yüz hiçbir değeri reddetmedi — test bir şey denemiyor")
         siki = []
         for (a, ham), ileti in zip(durumlar, iletiler):
             if not ileti:
@@ -108,25 +125,26 @@ class OnYuzDenetimi(unittest.TestCase):
     def test_imkansiz_deger_on_yuzde_durur_sinir_gecer(self):
         durumlar, beklenen = [], []
         for a, k in self.kurallar.items():
-            b = self.alanlar.get(a, {}).get("birim", "")
-            durumlar += [[k, "1000000000000", b], [k, _tr(k["en_cok"]), b]]
+            durumlar += [[a, k, "1000000000000"], [a, k, _tr(k["en_cok"])]]
             beklenen += [(a, "1e12", True), (a, "tavan", False)]
             if k["en_az"] is not None and k["en_az"] == 0 and k["en_az_dahil"]:
-                durumlar.append([k, "-1", b])
+                durumlar.append([a, k, "-1"])
                 beklenen.append((a, "-1", True))
+            if k["en_az"] is None:
+                #  alt sınırı olmayan alan ( kaçıklık ):  eksi değer geçer
+                durumlar.append([a, k, "-150"])
+                beklenen.append((a, "-150", False))
         iletiler = on_yuz(durumlar)
         yanlis = [
             f"{a} {ne}:  {ileti!r}" for (a, ne, red), ileti in zip(beklenen, iletiler) if bool(ileti) != red
         ]
         self.assertEqual(yanlis, [], "\n".join(yanlis))
 
-    def test_okuma_sunucuyla_ayni(self):
-        """Gevşek okuma ( "12abc" → 12 ) ve belirsiz yazım ( "1.200" ) sunucuda
-        reddedilir;  ön yüz de reddeder.  Türkçe ve İngilizce ondalık geçer."""
-        k = {"en_az": None, "en_az_dahil": True, "en_cok": None, "tam_sayi": False}
-        hamlar = ["12abc", "1.200", "1,200", "inf", "nan", "1.234,5", "1,234.5", "0,001", "-3", " 7 ", "1e3"]
-        iletiler = on_yuz([[k, h, "mm"] for h in hamlar])
-        self.assertEqual([bool(x) for x in iletiler], [True] * 5 + [False] * 6, list(zip(hamlar, iletiler)))
+    def test_okunamayan_yazimin_karari_sunucunun(self):
+        k = {"en_az": 0, "en_az_dahil": True, "en_cok": 20000, "tam_sayi": False}
+        hamlar = ["12abc", "1.200", "1,200", "inf", "nan", "1.234,5", "1e3", " 7 ", "0,001"]
+        iletiler = on_yuz([["x", k, h] for h in hamlar])
+        self.assertEqual(iletiler, [None] * len(hamlar), list(zip(hamlar, iletiler)))
 
 
 if __name__ == "__main__":

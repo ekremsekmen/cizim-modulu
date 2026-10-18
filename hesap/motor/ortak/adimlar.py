@@ -22,7 +22,7 @@ def tr(x, ondalik=2):
     Son hane YARIMI YUKARI yuvarlanır ( bkz. yuvarla ).  Python'un kendi
     biçimlendirmesi sayının İKİLİ değerini bankacı kuralıyla yuvarlıyordu:
     2,5 → "2" ama 3,5 → "4";  9,325 ( ikilide 9,32499… ) → "9,32".  Ekran
-    ( static/ortak.js tr ) aynı kuralla yuvarlar — pafta ile ayrışmasınlar.
+    hesap adımlarını bu metinle gösterir ( adımın "metin"i ) — pafta ile ayrışmasınlar.
     """
     if x is None:
         return "—"

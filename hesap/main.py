@@ -18,7 +18,6 @@ Tarayıcı açılmaz, port aranmaz;  adres, port ve işçi sayısı ortamdan
 """
 
 import json
-import hashlib
 import logging
 import os
 import re
@@ -26,9 +25,9 @@ import sys
 import threading
 import webbrowser
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from starlette.middleware.gzip import DEFAULT_EXCLUDED_CONTENT_TYPES, GZipMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 #  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
@@ -36,6 +35,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import yollar
 
 yollar.kur()
+
+from cizim import uslup
 
 #  CAD çıktısı ezdxf + pdfminer.six ister.  Bunlar kurulu değilse PROGRAM
 #  YİNE AÇILIR — yalnız CAD düğmeleri anlaşılır bir hata verir.
@@ -155,43 +156,21 @@ app.include_router(uygulama_uclari.router)
 app.include_router(cizim_uclari.router)
 
 
-@app.get("/", response_class=HTMLResponse)
-def anasayfa():
-    with open(os.path.join(KOK, "static", "index.html"), encoding="utf-8") as f:
-        return HTMLResponse(f.read().replace("?v=SURUM", "?v=" + _statik_damga()))
-
-
-def _statik_damga():
-    """Betik ve biçem dosyalarının içeriğinden türetilen önbellek damgası.
-
-    Elle yazılan bir sürüm etiketi ( "?v=3.0" ) unutulabiliyordu:  JS
-    değiştiğinde etiket aynı kaldığı için tarayıcı ESKİ betiği önbellekten
-    çalıştırıyor, YENİ index.html ile birleşince ekran sessizce bozuluyordu.
-    İçerikten türetilen damga unutulamaz — dosya değişince damga da değişir.
-    """
-    h = hashlib.sha1()
-    for ad in ("ortak.js", "avan.js", "uygulama.js", "style.css"):
-        try:
-            with open(os.path.join(KOK, "static", ad), "rb") as f:
-                h.update(f.read())
-        except OSError:
-            h.update(ad.encode())
-    return h.hexdigest()[:12]
-
-
 @app.get("/api/saglik")
 def saglik():
     return {"durum": "calisiyor", "surum": SURUM}
 
 
-app.mount("/static", StaticFiles(directory=os.path.join(KOK, "static")), name="static")
+#  ÇİZİM YAZI TİPİ ( cizim/yazi, OFL ):  SVG'deki yazılar "CizimYazi"yı ister;
+#  ekran onu buradan yükler ( on-yuz/src/styles.css ).  Çizim yazının enini bu
+#  yazı tipinin enleriyle hesaplar — her bilgisayarda aynı yazı tipi, aynı en.
+app.mount("/yazi", StaticFiles(directory=uslup.YAZI_KLASORU), name="yazi")
 
 
-# ------------------------------------------------------------------ yeni ön yüz
-#  YENİ ÖN YÜZ ( on-yuz/, React ) — /yeni altında.  Geçişte eski arayüz /
-#  adresinde kalır;  ekranlar yenide eşitlenince eskisi kaldırılır.  Derlenmiş
-#  dosyalar on-yuz/dist'te ( npm run build;  depoda değil ) — yoksa /yeni
-#  nasıl derleneceğini söyler, program yine açılır.
+# ------------------------------------------------------------------ ön yüz
+#  ÖN YÜZ ( on-yuz/, React ) — derlenmiş dosyalar on-yuz/dist'te ( npm run
+#  build;  depoda değil ).  Derleme yoksa program yine açılır ve nasıl
+#  derleneceğini söyler.
 ON_YUZ = os.path.join(os.path.dirname(KOK), "on-yuz", "dist")
 #  Vite dosya adına içerik özeti koyar ( index-BfWyniNr.js ):  değişen dosyanın
 #  adı da değişir, tarayıcı bir yıl önbellekte tutabilir.  index.html her
@@ -201,15 +180,26 @@ _OZETLI = "public, max-age=31536000, immutable"
 
 @app.get("/yeni", include_in_schema=False)
 @app.get("/yeni/{yol:path}", include_in_schema=False)
-def yeni_on_yuz(yol: str = ""):
+def eski_yeni_adresi(istek: Request, yol: str = ""):
+    """Geçiş dönemi adresi ( /yeni ):  yer imleri kırılmasın ( sorgusuyla:  ?cizim=… )."""
+    sorgu = istek.url.query
+    return RedirectResponse("/" + yol + (f"?{sorgu}" if sorgu else ""), status_code=301)
+
+
+@app.get("/{yol:path}", include_in_schema=False)
+def on_yuz(yol: str = ""):
+    #  Bilinmeyen bir API adresi sayfa değil 404'tür ( yanlış yazılmış uç
+    #  HTML döndürüp istemciyi "JSON değil" hatasına sokmasın )
+    if yol == "api" or yol.startswith("api/"):
+        return JSONResponse({"hata": "Bulunamadı"}, status_code=404)
     kok = os.path.realpath(ON_YUZ)
     giris = os.path.join(kok, "index.html")
     if not os.path.isfile(giris):
         return HTMLResponse(
-            "<!doctype html><meta charset='utf-8'><title>Yeni ön yüz derlenmemiş</title>"
-            "<p style='font:15px system-ui;margin:48px'>Yeni ön yüz derlenmemiş.  "
+            "<!doctype html><meta charset='utf-8'><title>Ön yüz derlenmemiş</title>"
+            "<p style='font:15px system-ui;margin:48px'>Ön yüz derlenmemiş.  "
             "<code>on-yuz</code> klasöründe <code>npm ci</code> ve <code>npm run build</code> "
-            "çalıştırın.  Eski arayüz: <a href='/'>/</a></p>",
+            "çalıştırın.</p>",
             status_code=503,
         )
     dosya = os.path.realpath(os.path.join(kok, yol))
@@ -220,7 +210,7 @@ def yeni_on_yuz(yol: str = ""):
     #  yerine index.html dönmek tarayıcıda "yanlış MIME türü" hatası olurdu.
     if "." in os.path.basename(yol):
         return HTMLResponse("Bulunamadı", status_code=404)
-    #  Uygulamanın kendi adresleri ( /yeni/uygulama/abc ):  yönlendirmeyi React yapar
+    #  Uygulamanın kendi adresleri ( /uygulama/abc ):  yönlendirmeyi React yapar
     return FileResponse(giris, headers={"Cache-Control": "no-cache"})
 
 

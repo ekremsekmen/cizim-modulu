@@ -11,8 +11,7 @@ Kullanıcı için bu ayrımın anlamı yoktur;  onun sorusu "bu sabit hangi hesa
 giriyor".  Bu yüzden ekranda tek liste vardır ve alanlar HESABA göre gruplanır.
 İkisi de istekte aynı "sabitler" sözlüğüyle gider.
 
-Etiketler eskiden yalnız eski arayüzdeydi ( hesap/static/ortak.js SABIT_ETIKET );
-yeni ön yüz etiket uydurmasın diye sunucu söyler ( /api/secenekler ).
+Ön yüz etiket uydurmasın diye sunucu söyler ( /api/secenekler ).
 """
 
 from motor.avan import avan_hesabi

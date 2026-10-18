@@ -3,23 +3,22 @@
 
     .venv/bin/python kontrol.py            hızlı:  lint + biçim, hesap ( arayüz
                                            hariç ), çizim ( yavaş test hariç,
-                                           altın çıktı dahil ), node, yeni ön
-                                           yüz ( tip + derleme )  ( ~3 dk )
-    .venv/bin/python kontrol.py tam        hızlı + yavaş test ( ~9 dk — o tek test 7 dk )
-    .venv/bin/python kontrol.py arayuz     arayüz testleri:  programı 8790'da
-                                           açar, testleri koşar, kapatır ( ~20 dk )
+                                           altın çıktı dahil ), ön yüz ( tip,
+                                           lint, test, derleme )  ( ~4 dk )
+    .venv/bin/python kontrol.py tam        hızlı + yavaş test + sunucu ( ~10 dk — yavaş test 7 dk )
+    .venv/bin/python kontrol.py sunucu     programı 8790'da açar, uçlarını ve kök
+                                           sayfayı dener ( TEST 3 ), kapatır ( ~1 dk )
     .venv/bin/python kontrol.py tarama     girdi taraması ( 510 düzen;  ~5 dk )
     .venv/bin/python kontrol.py bicim      ruff format + ruff check --fix ( düzeltir )
 
 Çizim testleri pytest ile paralel koşar:  KONTROL_IS işçi ( varsayılan 4 —
 bilgisayarın hepsini doldurmasın;  CI'da "auto" ).
 
-Her değişiklikte en az hızlı denetim koşulur;  commit'ten önce tam + arayüz.
+Her değişiklikte en az hızlı denetim koşulur;  commit'ten önce tam.
 Adımlar SIRAYLA koşar ( ağır işler aynı anda koşturulmaz ).  Çıkış kodu:  bir
 adım başarısızsa 1 — CI ( .github/workflows ) bunu okur.
 """
 
-import glob
 import os
 import shutil
 import subprocess
@@ -32,15 +31,15 @@ PY = sys.executable
 HESAP = os.path.join(KOK, "hesap")
 ON_YUZ = os.path.join(KOK, "on-yuz")
 
-#  Hesap programının arayüz istemeyen testleri ( hesap/dogrulama/calistir.py
-#  numaraları ) ve arayüz testleri ( 8790'da açık program ister )
-HESAP_TESTLERI = ["1", "2", "3", "4", "6", "7", "8", "9", "10", "11", "12", "14"]
-ARAYUZ_TESTLERI = ["3", "5", "13", "6"]
-ARAYUZ_PORTU = 8790
-#  Hızlı / tam denetimde hesabın HTTP bölümleri ( TEST 3 · 6 ) sunucu aramaz:
-#  yoksa 8780'de o an açık olan programa ( kullanıcınınkine, belki eski koda )
-#  bağlanıyor, sonuç makinede neyin açık olduğuna göre değişiyordu.  O
-#  bölümler arayüz denetiminde kendi açtığı programa karşı koşar.
+#  Hesap programının testleri ( hesap/dogrulama/calistir.py numaraları ) ve
+#  açık program isteyen bölümleri ( 8790'da kendi açtığı program )
+HESAP_TESTLERI = ["1", "2", "3", "4", "7", "8", "9", "10", "11", "12", "14"]
+SUNUCU_TESTLERI = ["3"]
+SUNUCU_PORTU = 8790
+#  Hesap testlerinde HTTP bölümü ( TEST 3 ) sunucu aramaz:  yoksa 8780'de o an
+#  açık olan programa ( kullanıcınınkine, belki eski koda ) bağlanıyor, sonuç
+#  makinede neyin açık olduğuna göre değişiyordu.  O bölüm sunucu denetiminde
+#  kendi açtığı programa karşı koşar.
 SUNUCUSUZ = {"AVAN_TEST_URL": "http://127.0.0.1:1"}
 
 
@@ -89,28 +88,31 @@ def cizim(tam):
     )
 
 
-def node():
-    dosyalar = glob.glob(os.path.join(KOK, "testler", "*.test.cjs"))
-    if not dosyalar:
-        return True
-    return _kos("arayüz yardımcıları ( node )", ["node", "--test"] + dosyalar)
-
-
 def on_yuz():
-    """Yeni ön yüz ( on-yuz/, React ):  TypeScript denetimi ve derleme.  Derleme
-    hesap/main.py'nin /yeni altında sunduğu dist'i de tazeler.  Bağımlılıklar
+    """Ön yüz ( on-yuz/, React ):  tip, lint, birim testleri ve derleme.  Derleme
+    hesap/main.py'nin kökte sunduğu dist'i de tazeler.  Bağımlılıklar
     yoksa önce kilit dosyasından kurulur ( npm ci )."""
     npm = shutil.which("npm") or "npm"
     if not os.path.isdir(os.path.join(ON_YUZ, "node_modules")) and not _kos(
         "ön yüz bağımlılıkları ( npm ci )", [npm, "ci", "--no-audit", "--no-fund"], cwd=ON_YUZ
     ):
         return False
-    return _kos("yeni ön yüz ( tip + derleme )", [npm, "run", "denetim"], cwd=ON_YUZ)
+    return _kos("ön yüz ( tip, lint, test, derleme )", [npm, "run", "denetim"], cwd=ON_YUZ)
 
 
-def arayuz():
+def sunucu():
     """Programı test portunda açar ( kullanıcının açık programına dokunmaz ),
-    arayüz testlerini koşar, programı kapatır."""
+    uçlarını ve kök sayfayı dener, programı kapatır.  Tam denetimde ön yüz
+    derlendikten sonra koşar:  kök sayfa derlenmiş React'tir."""
+    url = f"http://127.0.0.1:{SUNUCU_PORTU}/api/saglik"
+    #  Port doluysa ( açık bir program ya da önizleme ) denenen o olurdu —
+    #  belki eski kod.  Yanıltmasın:  açıkça söylenir.
+    try:
+        with urllib.request.urlopen(url, timeout=1):
+            print(f"{SUNUCU_PORTU} portunda açık bir program var — kapatıp yeniden deneyin")
+            return False
+    except OSError:
+        pass
     sunucu = subprocess.Popen(
         [
             PY,
@@ -120,14 +122,13 @@ def arayuz():
             "--host",
             "127.0.0.1",
             "--port",
-            str(ARAYUZ_PORTU),
+            str(SUNUCU_PORTU),
             "--log-level",
             "warning",
         ],
         cwd=HESAP,
     )
     try:
-        url = f"http://127.0.0.1:{ARAYUZ_PORTU}/api/saglik"
         for _ in range(60):
             try:
                 with urllib.request.urlopen(url, timeout=1):
@@ -137,7 +138,7 @@ def arayuz():
         else:
             print("program açılamadı")
             return False
-        return hesap(ARAYUZ_TESTLERI, {"AVAN_TEST_URL": f"http://127.0.0.1:{ARAYUZ_PORTU}"})
+        return hesap(SUNUCU_TESTLERI, {"AVAN_TEST_URL": f"http://127.0.0.1:{SUNUCU_PORTU}"})
     finally:
         sunucu.terminate()
         sunucu.wait(timeout=30)
@@ -151,10 +152,10 @@ def tarama():
 def main(argv):
     kip = argv[0] if argv else "hizli"
     adimlar = {
-        "hizli": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), cizim(False), node(), on_yuz()],
-        "tam": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), cizim(True), node(), on_yuz()],
+        "hizli": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), cizim(False), on_yuz()],
+        "tam": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), cizim(True), on_yuz(), sunucu()],
         "bicim": lambda: [bicim()],
-        "arayuz": lambda: [arayuz()],
+        "sunucu": lambda: [sunucu()],
         "tarama": lambda: [tarama()],
     }
     if kip not in adimlar:
