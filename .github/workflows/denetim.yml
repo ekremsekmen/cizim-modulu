@@ -5,7 +5,8 @@
 #  yeşilken bağlanır.  Yerelde yalnız hızlı denetim koşar ( kontrol.py, ~3 dk ).
 #
 #    PR ve elle başlatma ( Actions → Denetim → Run workflow ):
-#      tam      lint + biçim, hesap, bütün çizim testleri ( yavaş dahil ), node
+#      tam      lint + biçim, hesap, bütün çizim testleri ( yavaş dahil ), node,
+#               yeni ön yüz ( on-yuz/:  tip denetimi + derleme )
 #      tarama   510 düzenin hükmü kayıtla ( testler/tarama_hukumleri.json ), yazı ve fiziksel tutarlılık
 #      arayuz   gerçek tarayıcıyla formu doldurup çıktıları denetler ( ~30 dk )
 #    main'e push:  yalnız hızlı denetim ( PR'da hepsi zaten koştu )
@@ -40,6 +41,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
+          cache-dependency-path: on-yuz/package-lock.json
       - run: python -m pip install -r requirements-kilit.txt -r requirements-gelistirme.txt
       - run: python kontrol.py hizli
         env:
@@ -59,6 +62,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
+          cache-dependency-path: on-yuz/package-lock.json
       - run: python -m pip install -r requirements-kilit.txt -r requirements-gelistirme.txt
       - run: python kontrol.py tam
         env:

@@ -28,7 +28,7 @@ import webbrowser
 
 from fastapi import FastAPI
 from starlette.middleware.gzip import DEFAULT_EXCLUDED_CONTENT_TYPES, GZipMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 #  Giriş noktası:  programın kökleri ( depo kökü, hesap/ ) — yollar.py
@@ -185,6 +185,43 @@ def saglik():
 
 
 app.mount("/static", StaticFiles(directory=os.path.join(KOK, "static")), name="static")
+
+
+# ------------------------------------------------------------------ yeni ön yüz
+#  YENİ ÖN YÜZ ( on-yuz/, React ) — /yeni altında.  Geçişte eski arayüz /
+#  adresinde kalır;  ekranlar yenide eşitlenince eskisi kaldırılır.  Derlenmiş
+#  dosyalar on-yuz/dist'te ( npm run build;  depoda değil ) — yoksa /yeni
+#  nasıl derleneceğini söyler, program yine açılır.
+ON_YUZ = os.path.join(os.path.dirname(KOK), "on-yuz", "dist")
+#  Vite dosya adına içerik özeti koyar ( index-BfWyniNr.js ):  değişen dosyanın
+#  adı da değişir, tarayıcı bir yıl önbellekte tutabilir.  index.html her
+#  seferinde sorulur — yeni derlemenin adlarını o taşır.
+_OZETLI = "public, max-age=31536000, immutable"
+
+
+@app.get("/yeni", include_in_schema=False)
+@app.get("/yeni/{yol:path}", include_in_schema=False)
+def yeni_on_yuz(yol: str = ""):
+    kok = os.path.realpath(ON_YUZ)
+    giris = os.path.join(kok, "index.html")
+    if not os.path.isfile(giris):
+        return HTMLResponse(
+            "<!doctype html><meta charset='utf-8'><title>Yeni ön yüz derlenmemiş</title>"
+            "<p style='font:15px system-ui;margin:48px'>Yeni ön yüz derlenmemiş.  "
+            "<code>on-yuz</code> klasöründe <code>npm ci</code> ve <code>npm run build</code> "
+            "çalıştırın.  Eski arayüz: <a href='/'>/</a></p>",
+            status_code=503,
+        )
+    dosya = os.path.realpath(os.path.join(kok, yol))
+    if yol and dosya.startswith(kok + os.sep) and os.path.isfile(dosya):
+        ozetli = os.path.dirname(dosya) == os.path.join(kok, "assets")
+        return FileResponse(dosya, headers={"Cache-Control": _OZETLI if ozetli else "no-cache"})
+    #  Uzantılı bir ad istenip bulunamadıysa ( eski derlemenin betiği ) 404:
+    #  yerine index.html dönmek tarayıcıda "yanlış MIME türü" hatası olurdu.
+    if "." in os.path.basename(yol):
+        return HTMLResponse("Bulunamadı", status_code=404)
+    #  Uygulamanın kendi adresleri ( /yeni/uygulama/abc ):  yönlendirmeyi React yapar
+    return FileResponse(giris, headers={"Cache-Control": "no-cache"})
 
 
 # ------------------------------------------------------------------ başlat

@@ -460,6 +460,28 @@ istek başında temizlenir, öbürleri iş bitince eski hâline döner.  Ortak t
 tamamıyla anahtarlı:  aynı girdi aynı sonucu verir ).  Eş zamanlı iki
 kullanıcının birbirinin girdisiyle karışmadığını TEST 3 denetler.
 
+### Yeni ön yüz ( `/yeni` — geçiş )
+
+Arayüz baştan yazılıyor:  **React + TypeScript + Vite**, Tailwind, Radix,
+TanStack Query ( `on-yuz/` ).  Hesap ve çizim Python'da kalır;  yeni ön yüz
+yalnız kabuktur ve **yalnız var olan uçları** kullanır ( form şeması
+`/api/uygulama/alanlar`, hesap, sunucunun SVG'si, ölçü kaynağı, indirmeler ).
+Geçiş boyunca eski arayüz `/` adresinde kalır, yenisi `/yeni` altındadır;
+ekranlar yenide eşitlendikçe ( aynı girdi → aynı hesap ve çizim ) eskisi
+kaldırılır.
+
+```bash
+cd on-yuz && npm ci            # bir kez ( node 22 )
+npm run dev                    # geliştirme:  http://localhost:5174/yeni/  ( /api → 8790'daki program )
+npm run build                  # dist/  →  program /yeni altında sunar
+```
+
+Derlenmiş dosyalar depoda değildir ( `on-yuz/dist` );  sunucuya kurarken
+`npm ci && npm run build` bir kez koşulur.  Derleme yoksa program yine açılır,
+`/yeni` nasıl derleneceğini söyler.  `kontrol.py` hızlı denetimde ön yüzün
+tip denetimini ve derlemesini de yapar.  Ekranların görüntüleri:
+`.venv/bin/python -m araclar.on_yuz_goruntu` ( `cikti/on-yuz-goruntuleri/` ).
+
 ## Denetim
 
 Çalışma akışı:  değişiklik bir dala push'lanır ve PR açılır;  GitHub ağır
@@ -532,6 +554,7 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
 | Yol | Ne var |
 |---|---|
 | `hesap/` | Hesap programının kopyası ( sunucu, arayüz, hesap motoru, kendi testleri ) |
+| `on-yuz/` | **Yeni ön yüz** ( React + TypeScript + Vite;  `/yeni` altında ):  `src/uygulama` çalışma alanı ( girdiler · tuval · ölçü kutusu · uygunluk · teslim ), `src/avan` trafik · hesaplar · kapak, `src/ekranlar` açılış · ofis standardı · tablolar, `src/lib/api.ts` sunucu sözleşmesi |
 | `baslat.command` · `baslat.bat` | Birleşik programın başlatıcıları ( `.venv` + `hesap/main.py` ) |
 | `tasarim/alanlar.py` | **Tasarım şeması**:  bütün girdilerin tek tanımı, tasarım sırasıyla ( grup, kaynak, formda mı, yerleşim, doğrulama bayrakları, ⓘ metni ) |
 | `tasarim/gorunum.py` | Şemadan türetilenler:  motorların alan sözleşmeleri, form, yerleşime göre gizlenenler, çizimden gelenler |
@@ -578,7 +601,7 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
 | `araclar/mimari.py` | Mimari denetimi:  katmanlar, döngüler, modül adları, içinden uzanma, gölgeleme |
 | `yollar.py` | Programın import kökleri ( depo kökü, `hesap/`, `ornekler/` ) — giriş noktaları bir kez kurar, kütüphane modülleri `sys.path`'e dokunmaz |
 | `hesap/dogrulama/` | Hesabın doğrulama paketi ( `calistir.py`;  eski adı `hesap/testler` — depo kökündeki `testler/` ile çakışıyordu ) |
-| `araclar/` | Girdi taraması ( `tarama.py` ) ve yazı – çizgi kesişmeleri ( `kesisme.py` ) |
+| `araclar/` | Girdi taraması ( `tarama.py` ), yazı – çizgi kesişmeleri ( `kesisme.py` ), yeni ön yüzün ekran görüntüleri ( `on_yuz_goruntu.py` ) |
 | `requirements-kilit.txt` | Sabitlenmiş bağımlılıklar ( CI ve sunucu bunu kurar ) |
 
 ## Kurallar

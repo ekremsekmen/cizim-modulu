@@ -28,6 +28,12 @@
         "8791"
       ],
       "port": 8791
+    },
+    {
+      "name": "on-yuz",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "on-yuz"],
+      "port": 5174
     }
   ]
 }
