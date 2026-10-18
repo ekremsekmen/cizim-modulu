@@ -2,6 +2,15 @@
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
 
+/*  ÇİZİM YAZI TİPİ:  sunucunun SVG'si yazıları "CizimYazi" ile ister ( cizim/svg.py ).
+    Liberation Sans ( OFL, cizim/yazi ) — çizim yazının enini bu enlerle hesaplar;
+    her bilgisayarda aynı yazı tipi, aynı en.  Sunucu /yazi altında sunar.        */
+@font-face {
+  font-family: "CizimYazi";
+  src: url("/yazi/LiberationSans-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
 /*  TASARIM DİLİ
     Kabuk açık ve sessiz:  gri zemin, beyaz paneller, tek vurgu rengi ( mavi ).
     Tuval koyu:  sunucunun SVG'si zaten #212830 zeminle gelir ( ekran = PDF = DXF

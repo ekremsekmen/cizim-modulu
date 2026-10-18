@@ -1,7 +1,7 @@
 """HARF ENLERİ — cizim/harf_eni.py'yi yazı tipinin kendisinden üretir.
 
 Çizimin yazı tipi Arial ( DXF );  ekranda Arial'le harf enleri birebir aynı
-Liberation Sans gömülür ( hesap/static/yazi — OFL, değiştirilmeden ).
+Liberation Sans gömülür ( cizim/yazi — OFL, değiştirilmeden ).
 Yerleşim yazının enini buradaki tablodan hesaplar ( eskiden harf × 0,6 em:
 gerçek Arial'den −%6 … +%20 sapıyordu;  "W" 0,94 em ).  Tablo yazı tipiyle
 aynı mı:  testler/test_uslup.py.
@@ -14,7 +14,7 @@ import subprocess
 import sys
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-YAZI_TIPI = os.path.join(KOK, "hesap", "static", "yazi", "LiberationSans-Regular.ttf")  # uslup.YAZI_DOSYASI
+YAZI_TIPI = os.path.join(KOK, "cizim", "yazi", "LiberationSans-Regular.ttf")  # uslup.YAZI_DOSYASI
 HEDEF = os.path.join(KOK, "cizim", "harf_eni.py")
 #  Tabloya girenler:  ASCII, Latin-1, Türkçe harfler ve çizimlerin işaretleri
 KUME = (

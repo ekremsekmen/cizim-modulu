@@ -5,7 +5,7 @@
 3.  175 – 190 mm'lik merdivende MERDİVEN yazısı ağırlık rayının ayağını
     örtüyor, oradaki yük kutusu yer bulamıyor, bütün çizim duruyordu.
 
-( 2. bulgu ekrandadır:  bağlantı kopunca çizim "güncellenmedi" — test_arayuz. )
+( 2. bulgu ekrandadır:  bağlantı kopunca çizim "güncel değil" der — on-yuz/src/uygulama/useSunucu.ts. )
 """
 
 import copy

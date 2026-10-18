@@ -1545,19 +1545,13 @@ AVAN HESAPLAMA PROGRAMI/
 │   ├── dxf_export.py       ← CAD çıktısı  ( ortak )
 │   └── kapak_export.py     ← avan proje kapağı
 │
-├── static/                 ← ARAYÜZ.  Yükleme sırası önemli:
-│   ├── index.html
-│   ├── style.css
-│   ├── ortak.js            ← biçimleme · sekme şeridi ve MOD anahtarı ·
-│   │                          çizim yardımcıları · indirme · kalıcılık ·
-│   │                          proje dosyası · açılış ekranı
-│   ├── avan.js             ← trafik · avan · ofis standardı · tablolar
-│   └── uygulama.js         ← mukavemet + elektrik  ·  en sonda kur() çağrısı
+│   ( ARAYÜZ depo kökündeki on-yuz/'dadır — React;  program kökte sunar.
+│     Eski arayüz static/ 19 Eki'de kaldırıldı. )
 │
 ├── dogrulama/                ← doğrulama paketi
 │   ├── calistir.py         ← hepsini çalıştırır
 │   ├── test_avan_tarama.py · test_kenar_durum.py · test_dayaniklilik.py
-│   ├── test_ciktilar.py · test_arayuz.py · test_geri_yukleme.py
+│   ├── test_ciktilar.py
 │   ├── test_altin.py       ← altın çıktı kalkanı
 │   ├── altin_uret.py       ← altın çıktıyı yeniden üretir
 │   ├── test_mukavemet_tablolari.py · test_mukavemet.py
@@ -1611,7 +1605,7 @@ Tek dosyalık `.app` / `.exe` isterseniz PyInstaller ile paketlenebilir:
 
 ```bash
 ./.venv/bin/pip install pyinstaller
-./.venv/bin/pyinstaller --onefile --add-data "static:static" \
+./.venv/bin/pyinstaller --onefile --add-data "../on-yuz/dist:on-yuz/dist" \
     --add-data "templates:templates" --add-data "fonts:fonts" \
     --name "Asansor Avan" main.py
 ```

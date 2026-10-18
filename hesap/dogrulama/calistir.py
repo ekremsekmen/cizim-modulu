@@ -26,8 +26,6 @@ TESTLER = [
     ("2", "Kenar durumlar", "dogrulama.test_kenar_durum"),
     ("3", "Girdi dayanıklılığı", "dogrulama.test_dayaniklilik"),
     ("4", "Çıktı bütünlüğü", "dogrulama.test_ciktilar"),
-    ("5", "Arayüz", "dogrulama.test_arayuz"),
-    ("6", "Proje dosyası geri yükleme", "dogrulama.test_geri_yukleme"),
     ("7", "Altın çıktı", "dogrulama.test_altin"),
     ("8", "Mukavemet tabloları", "dogrulama.test_mukavemet_tablolari"),
     ("9", "Mukavemet motoru", "dogrulama.test_mukavemet"),
@@ -37,10 +35,6 @@ TESTLER = [
     #  ( dondurulmuş referans · altın çıktı ) karşı denetler;  bu, bizden
     #  bağımsız iki programın yayımlanmış paftalarına karşı denetler.
     ("12", "Dış referans paftaları", "dogrulama.test_referans_paftalar"),
-    #  Canlı hesap:  motor doğru hesaplasa bile ekran eski bir girdinin
-    #  sonucunu gösterebilir ya da eski bir değeri sonraki hesaba taşıyabilir.
-    #  Her girdi değişikliğinden sonra ekran = formun taze hesabı = çıktı.
-    ("13", "Canlı hesap tutarlılığı", "dogrulama.test_canli_hesap"),
     #  İşlem satırları:  sonuç doğru olsa bile paftadaki işlem satırı o sonucu
     #  vermeyebilir ( eksik parantez, yazılmamış yuvarlama, eksik hane ).  Her
     #  satır, basıldığı hanelerle yeniden hesaplanır.

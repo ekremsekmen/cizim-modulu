@@ -239,10 +239,9 @@ Karşı ağırlıkta makaralı paten çizilir:  referans projenin ( çizimin bü
 ölçülerinin kaynağı ) ağırlık patenleri makaralıdır, çizim ikisinde aynı izi
 kullanır ( kullanıcı kararı 30 Eyl ).
 
-**Ekran.**  Asansör sekmesinin sağ sütunu **Hesap | Çizimler** arasında
-geçer;  çizimler aktif asansörün, girdi değiştikçe tazelenir
-( `hesap/static/uygulama.js`, uç `POST /api/uygulama/cizimler` —
-`hesap/api/cizim.py` ).
+**Ekran.**  Çalışma alanı **Çizim | Hesap** arasında geçer;  çizimler aktif
+asansörün, girdi değiştikçe tazelenir ( `on-yuz/src/uygulama`, uç
+`POST /api/uygulama/cizimler` — `hesap/uclar/cizim_uclari.py` ).
 
 **Tuval** ( kullanıcı isteği:  "AutoCAD gibi yan yana, istediğimde
 yakınlaştırayım" ):  çizimler alt alta değil, tek düzlemde yan yana durur —
@@ -389,8 +388,8 @@ kurulamıyorsa paket inmez, sebebi söylenir — eksik proje teslim edilmesin
 
 **Kopyanın orijinalden farkları** ( `hesap/` ):  `uclar/cizim_uclari.py` ( yeni ),
 `uclar/uygulama_uclari.py` ( çizim alanları, paket ), `main.py` ( port 8780, çizim
-uçları ), `ciktilar/dxf_cikti.py` ( paketin son işlemi ), `static/` ( Hesap |
-Çizimler, ölçüye tıklama );  hesap motorunda `motor/uygulama/mukavemet.py` ( bölüm 11 çizimden ),
+uçları ), `ciktilar/dxf_cikti.py` ( paketin son işlemi ), ön yüz `on-yuz/` ( Çizim |
+Hesap, ölçüye tıklama );  hesap motorunda `motor/uygulama/mukavemet.py` ( bölüm 11 çizimden ),
 `mukavemet_girdi.py` ( alan tanımları, gruplar, "Gelişmiş" listesi, ⓘ metinleri ve
 doğrulama listeleri artık tasarım şemasından türetilir — `tasarim/alanlar.py`;
 motorun sözleşmesinin biçimi ve içeriği aynı kaldı.  Çizimden türeyen beş girdi:
@@ -399,7 +398,7 @@ değer;  3.750'de varsayılan asansörün üst pateni kuyu tavanına giriyordu )
 ( çizim modülünün yolu ).  Testler yeni modele göre güncellendi, TEST 7 ve
 TEST 10'un dondurulmuş referansları farklar incelenerek yeniden üretildi
 ( fark:  bölüm 11, xs'in ray hesabı, D2'nin halat ve tahrik hesabı;  α'nın çizimden geldiği senaryolarda tahrik sınırları — düşey inişli 180°, makine daireli 1:1'de 134,3° — ve α uyarısının metni ).  Motor doğrudan çağrılınca da ( testler ) türetme uygulama alanlarının varsayılanlarıyla yapılır — program ile motor aynı α'yı, aynı D2'yi bulur.
-Arayüz testleri ( TEST 5 ) birleşik formun sözleşmesine göre:  tasarım sırasıyla 11 grup, hesaptan kaldırılan KD · ağırlık ray arası · ray–duvar kendi tasarım grubunda bir kez ( aynı anlam, hesaba girmez ), D2 formda yok, son kat 4.200;  çizimlerde tuval ( açılışta hepsi sığar, tekerlek imlecin altında yakınlaştırır, sürükleme kaydırır ve ölçü açmaz, Sığdır, değişiklikten sonra görünüm yerinde ) ve ölçüye tıklama ( kutu, önce sorma, uygulama, Formda göster ).  Testlerin varsayılan adresi 8780.
+Eski arayüzün testleri ( TEST 5;  19 Eki eski arayüzle kaldırıldı ) birleşik formun sözleşmesine göre:  tasarım sırasıyla 11 grup, hesaptan kaldırılan KD · ağırlık ray arası · ray–duvar kendi tasarım grubunda bir kez ( aynı anlam, hesaba girmez ), D2 formda yok, son kat 4.200;  çizimlerde tuval ( açılışta hepsi sığar, tekerlek imlecin altında yakınlaştırır, sürükleme kaydırır ve ölçü açmaz, Sığdır, değişiklikten sonra görünüm yerinde ) ve ölçüye tıklama ( kutu, önce sorma, uygulama, Formda göster ).  Testlerin varsayılan adresi 8780.
 
 ## Kurulum ve çalıştırma
 
@@ -422,10 +421,10 @@ python3 -m venv .venv
 
 # DENETİM — tek komut ( kontrol.py;  adımlar sırayla koşar )
 .venv/bin/python -m pip install -r requirements-gelistirme.txt   # ruff, pytest ( bir kez )
-.venv/bin/python kontrol.py           # hızlı:  lint + biçim, hesap, çizim ( yavaş test hariç ), node  ( ~3 dk )
-.venv/bin/python kontrol.py tam       # + yavaş test ( her ölçünün kaynağı, ~7 dk )
+.venv/bin/python kontrol.py           # hızlı:  lint + biçim, hesap, çizim ( yavaş test hariç ), ön yüz  ( ~4 dk )
+.venv/bin/python kontrol.py tam       # + yavaş test ( her ölçünün kaynağı, ~7 dk ) + sunucu
 .venv/bin/python kontrol.py bicim     # biçimi ve düzeltilebilir lint bulgularını düzeltir
-.venv/bin/python kontrol.py arayuz    # arayüz testleri:  programı 8790'da açar, kapatır ( ~20 dk )
+.venv/bin/python kontrol.py sunucu    # programı 8790'da açar, uçlarını ve kök sayfayı dener, kapatır ( ~1 dk )
 .venv/bin/python kontrol.py tarama    # girdi taraması:  378 düzen, hükümler kayıtla ( ~15 dk )
 
 # Örnek tam projeler ( hesap + çizim, tek pafta ) → ornekler/ — programın
@@ -460,43 +459,46 @@ istek başında temizlenir, öbürleri iş bitince eski hâline döner.  Ortak t
 tamamıyla anahtarlı:  aynı girdi aynı sonucu verir ).  Eş zamanlı iki
 kullanıcının birbirinin girdisiyle karışmadığını TEST 3 denetler.
 
-### Yeni ön yüz ( `/yeni` — geçiş )
+### Ön yüz ( `on-yuz/` )
 
-Arayüz baştan yazılıyor:  **React + TypeScript + Vite**, Tailwind, Radix,
-TanStack Query ( `on-yuz/` ).  Hesap ve çizim Python'da kalır;  yeni ön yüz
-yalnız kabuktur ve **yalnız var olan uçları** kullanır ( form şeması
-`/api/uygulama/alanlar`, hesap, sunucunun SVG'si, ölçü kaynağı, indirmeler ).
-Geçiş boyunca eski arayüz `/` adresinde kalır, yenisi `/yeni` altındadır;
-ekranlar yenide eşitlendikçe ( aynı girdi → aynı hesap ve çizim ) eskisi
-kaldırılır.
+Arayüz **React + TypeScript + Vite**, Tailwind, Radix, TanStack Query.  Hesap ve
+çizim Python'da kalır;  ön yüz yalnız kabuktur ve **yalnız var olan uçları**
+kullanır ( form şeması `/api/uygulama/alanlar`, hesap, sunucunun SVG'si, ölçü
+kaynağı, indirmeler ).  Program kökte sunar ( `/` );  geçiş dönemi adresi
+`/yeni` köke yönlenir.  Eski arayüz ( `hesap/static` ) 19 Eki'de kaldırıldı —
+dört gerçek proje, iki ve üç asansörlü projeler ve avan örneği iki arayüzde aynı
+hesabı ve çizimi verdikten sonra.
 
-Proje dosyaları ( `.uygulama` · `.avan` ) iki arayüzde aynı biçimdedir:  yenide
-kaydedilen eskide, eskide kaydedilen yenide açılır.  Yeni ön yüz yalnız
-yazılan değeri gönderir ( gönderilmeyen = varsayılan );  boş metnin ayrı anlamı
-olan alanları sunucu söyler ( `bos_tablodan`:  boş kabin kütlesi = tablodan ),
-sözleşme `testler/test_on_yuz_sozlesmesi.py`'dedir.  Avan ofis standardının
-adları da sunucudadır ( `motor/avan/avan_sabitleri.py` → `/api/secenekler` ).
+Proje dosyaları ( `.uygulama` · `.avan` ) eski arayüzün biçimindedir:  eskide
+kaydedilmiş dosyalar açılır.  Ön yüz yalnız yazılan değeri gönderir
+( gönderilmeyen = varsayılan );  boş metnin ayrı anlamı olan alanları sunucu
+söyler ( `bos_tablodan`:  boş kabin kütlesi = tablodan ), sözleşme
+`testler/test_on_yuz_sozlesmesi.py`'dedir;  ön yüzün denetimi sunucudan sıkı
+olamaz ( `testler/test_on_yuz_denetimi.py` ön yüzün kendi kodunu koşar ).  Avan
+ofis standardının adları da sunucudadır ( `motor/avan/avan_sabitleri.py` →
+`/api/secenekler` ).
 
 ```bash
 cd on-yuz && npm ci            # bir kez ( node 22 )
-npm run dev                    # geliştirme:  http://localhost:5174/yeni/  ( /api → 8790'daki program )
-npm run build                  # dist/  →  program /yeni altında sunar
+npm run dev                    # geliştirme:  http://localhost:5174/  ( /api ve /yazi → 8790'daki program )
+npm run build                  # dist/  →  program kökte sunar
+npm run denetim                # tip + lint + birim testleri + derleme
 ```
 
 Derlenmiş dosyalar depoda değildir ( `on-yuz/dist` );  sunucuya kurarken
 `npm ci && npm run build` bir kez koşulur.  Derleme yoksa program yine açılır,
-`/yeni` nasıl derleneceğini söyler.  `kontrol.py` hızlı denetimde ön yüzün
-tip denetimini ve derlemesini de yapar.  Ekranların görüntüleri:
+kök adres nasıl derleneceğini söyler.  `kontrol.py` hızlı denetimde ön yüzün
+tip denetimini, testlerini ve derlemesini de yapar.  Ekranların görüntüleri:
 `.venv/bin/python -m araclar.on_yuz_goruntu` ( `cikti/on-yuz-goruntuleri/` ).
 
 ## Denetim
 
 Çalışma akışı:  değişiklik bir dala push'lanır ve PR açılır;  GitHub ağır
-testleri ( tam denetim, girdi taraması, gerçek tarayıcıyla arayüz testleri )
+testleri ( tam denetim, girdi taraması )
 orada kendiliğinden koşar ve main'e ancak hepsi yeşilken bağlanır
 ( `.github/workflows/denetim.yml`;  main'e her push'ta hızlı denetim ).
 Yerelde her değişiklikte yalnız `kontrol.py` ( hızlı, ~3 dk ) — ağır testleri
-bilgisayarda koşturmak gerekmez ( istenirse `tam`, `arayuz`, `tarama` yine
+bilgisayarda koşturmak gerekmez ( istenirse `tam`, `sunucu`, `tarama` yine
 çalışır ).  Program değişince iş akışı değişmez:  testleri `kontrol.py` bulur.  Ortam `requirements-kilit.txt`
 ile birebir kurulur ( sabitlenmiş sürümler ).
 
@@ -561,7 +563,7 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
 | Yol | Ne var |
 |---|---|
 | `hesap/` | Hesap programının kopyası ( sunucu, arayüz, hesap motoru, kendi testleri ) |
-| `on-yuz/` | **Yeni ön yüz** ( React + TypeScript + Vite;  `/yeni` altında ):  `src/uygulama` çalışma alanı ( girdiler · tuval · ölçü kutusu · uygunluk · teslim ), `src/avan` trafik · hesaplar · kapak, `src/ekranlar` açılış · ofis standardı · tablolar, `src/lib/api.ts` sunucu sözleşmesi |
+| `on-yuz/` | **Ön yüz** ( React + TypeScript + Vite;  programın kökünde ):  `src/uygulama` çalışma alanı ( girdiler · tuval · ölçü kutusu · uygunluk · teslim ), `src/avan` trafik · hesaplar · kapak, `src/ekranlar` açılış · ofis standardı · tablolar, `src/lib/api.ts` sunucu sözleşmesi |
 | `baslat.command` · `baslat.bat` | Birleşik programın başlatıcıları ( `.venv` + `hesap/main.py` ) |
 | `tasarim/alanlar.py` | **Tasarım şeması**:  bütün girdilerin tek tanımı, tasarım sırasıyla ( grup, kaynak, formda mı, yerleşim, doğrulama bayrakları, ⓘ metni ) |
 | `tasarim/gorunum.py` | Şemadan türetilenler:  motorların alan sözleşmeleri, form, yerleşime göre gizlenenler, çizimden gelenler |
@@ -739,7 +741,7 @@ düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNI
    küçüğü 1,8'in altında );  her çağrı yeri elle bir boy veriyordu.  Yazının ENİ
    harflerin gerçek eninden ( `eleman.yazi_eni` — `cizim/harf_eni.py`, Arial'le
    aynı enler;  eskiden harf × 0,6 em:  gerçeğinden −%6 … +%20, "W" 0,94 em ).
-   Ekran yazı tipini gömer ( Liberation Sans — `hesap/static/yazi`, OFL ),
+   Ekran yazı tipini gömer ( Liberation Sans — `cizim/yazi`, OFL;  sunucu `/yazi` altında sunar ),
    kerning kapalı:  her bilgisayarda aynı en.  Büyüyen yazılar için:
    * Üst üste konan ölçü yazılarının sıra adımı `KAT_ARALIGI` ( yazı boyu + 10 );
      yazı yalnız kendi sırasındakilere değil, başka sıraların yazılarına da

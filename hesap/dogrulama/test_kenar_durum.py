@@ -118,8 +118,8 @@ def calistir():
     r.esit("tr(None)", TRS(None), "—")
     #  PAFTADAKİ SAYI DA YARIMI YUKARI YUVARLANIR.  Python'un biçimlendirmesi
     #  sayının ikili değerini bankacı kuralıyla yuvarlıyordu:  2,5 → "2",
-    #  0,125 → "0,12", 9,325 ( ikilide 9,32499… ) → "9,32".  Ekranla aynı
-    #  kural TEST 5'te tarayıcıda denetlenir.
+    #  0,125 → "0,12", 9,325 ( ikilide 9,32499… ) → "9,32".  Ekran hesap
+    #  adımlarını bu metinle gösterir ( adımın "metin"i ).
     for x, n, bek in (
         (2.5, 0, "3"),
         (3.5, 0, "4"),

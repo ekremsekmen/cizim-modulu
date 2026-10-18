@@ -1,8 +1,8 @@
 /*  AVAN PROJESİ — durum, ofis standardı ve proje dosyası ( .avan ).
 
-    DOSYA ESKİ ARAYÜZLE AYNI BİÇİMDEDİR ( hesap/static/ortak.js projeGovdesi ):
-    geçiş boyunca yenide kaydedilen dosya eskide, eskide kaydedilen yenide
-    açılır.  Eski dosya formun kutu kimlikleriyle düz bir sözlüktür:
+    DOSYA ESKİ ARAYÜZÜN BİÇİMİNDEDİR ( 19 Eki kaldırıldı;  biçim değişmedi ):
+    eskide kaydedilmiş bütün .avan dosyaları açılır.  Dosya eski formun kutu
+    kimlikleriyle düz bir sözlüktür:
 
       { __mod:"avan", __surum:1, __program, __tarih,
         alanlar: { c_<bina>,  c_<kısa><i>     trafik ( i = 1…4 sütun ),

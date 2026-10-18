@@ -16,11 +16,10 @@ için çizici ölçekle çarpar ( 1/20'de 1 mm kâğıt = 20 mm çizim ).
 import os
 from typing import NamedTuple
 
-#  YAZI TİPİ DOSYALARI ( OFL — hesap/static/yazi/OFL.txt;  değiştirilmeden ):
-#  ekran ve PDF gömer, DXF aynı enlerdeki Arial / Times'ı adıyla ister.
-YAZI_KLASORU = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "hesap", "static", "yazi"
-)
+#  YAZI TİPİ DOSYALARI ( OFL — cizim/yazi/OFL.txt;  değiştirilmeden ):
+#  ekran ( sunucu /yazi altında sunar ) ve PDF gömer, DXF aynı enlerdeki
+#  Arial / Times'ı adıyla ister.
+YAZI_KLASORU = os.path.join(os.path.dirname(os.path.abspath(__file__)), "yazi")
 YAZI_DOSYASI = os.path.join(YAZI_KLASORU, "LiberationSans-Regular.ttf")  # Arial'in enleri
 SERIF_DOSYASI = os.path.join(YAZI_KLASORU, "LiberationSerif-Regular.ttf")  # Times'ın enleri
 

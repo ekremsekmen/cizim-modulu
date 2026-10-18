@@ -2,12 +2,12 @@
 
 Ekran ekran geçişte görsel denetim:  bir değişiklikten sonra bütün ekranlar
 aynı durumlarla yeniden çekilir, gözle karşılaştırılır.  Program açık olmalı
-( 8790 — .claude/launch.json "program" ) ve ön yüz derlenmiş ( /yeni ) ya da
-geliştirme sunucusunda ( 5174/yeni ) olmalı.
+( 8790 — .claude/launch.json "program" ) ve ön yüz derlenmiş ( kök ) ya da
+geliştirme sunucusunda ( 5174 ) olmalı.
 
     .venv/bin/python -m araclar.on_yuz_goruntu                 # bütün ekranlar
     .venv/bin/python -m araclar.on_yuz_goruntu olcu teslim     # adında geçenler
-    ON_YUZ_URL=http://localhost:5174/yeni .venv/bin/python -m araclar.on_yuz_goruntu
+    ON_YUZ_URL=http://localhost:5174 .venv/bin/python -m araclar.on_yuz_goruntu
 
 Çıktı:  cikti/on-yuz-goruntuleri/ ( git'e girmez ).
 """
@@ -18,7 +18,7 @@ import time
 
 from playwright.sync_api import sync_playwright
 
-KOK = os.environ.get("ON_YUZ_URL", "http://127.0.0.1:8790/yeni").rstrip("/")
+KOK = os.environ.get("ON_YUZ_URL", "http://127.0.0.1:8790").rstrip("/")
 CIKTI = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cikti", "on-yuz-goruntuleri"
 )

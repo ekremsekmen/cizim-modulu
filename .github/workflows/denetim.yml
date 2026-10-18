@@ -1,14 +1,14 @@
 #  DENETİM — programın bütün testleri ( kontrol.py ).
 #
 #  Çalışma akışı:  değişiklik bir dala push'lanır ve PR açılır;  ağır testler
-#  ( tam denetim, girdi taraması, arayüz ) burada koşar — main'e ancak hepsi
+#  ( tam denetim, girdi taraması ) burada koşar — main'e ancak hepsi
 #  yeşilken bağlanır.  Yerelde yalnız hızlı denetim koşar ( kontrol.py, ~3 dk ).
 #
 #    PR ve elle başlatma ( Actions → Denetim → Run workflow ):
-#      tam      lint + biçim, hesap, bütün çizim testleri ( yavaş dahil ), node,
-#               yeni ön yüz ( on-yuz/:  tip denetimi + derleme )
+#      tam      lint + biçim, hesap, bütün çizim testleri ( yavaş dahil ),
+#               ön yüz ( on-yuz/:  tip, lint, test, derleme ), açık programın
+#               uçları ve kök sayfası
 #      tarama   510 düzenin hükmü kayıtla ( testler/tarama_hukumleri.json ), yazı ve fiziksel tutarlılık
-#      arayuz   gerçek tarayıcıyla formu doldurup çıktıları denetler ( ~30 dk )
 #    main'e push:  yalnız hızlı denetim ( PR'da hepsi zaten koştu )
 #
 #  Dakika tasarrufu ( özel depoda Actions dakikası sınırlı ):  aynı PR'a yeni
@@ -82,18 +82,3 @@ jobs:
           cache-dependency-path: requirements-*.txt
       - run: python -m pip install -r requirements-kilit.txt -r requirements-gelistirme.txt
       - run: python kontrol.py tarama
-
-  arayuz:
-    if: github.event_name != 'push'
-    runs-on: ubuntu-latest
-    timeout-minutes: 75
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
-          cache: pip
-          cache-dependency-path: requirements-*.txt
-      - run: python -m pip install -r requirements-kilit.txt -r requirements-gelistirme.txt
-      - run: python -m playwright install --with-deps chromium
-      - run: python kontrol.py arayuz
