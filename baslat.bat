@@ -39,6 +39,11 @@ if errorlevel 1 (
   echo.
 )
 
+rem  ── ON YUZ ─────────────────────────────────────────────────
+rem  Ekran derlenmis dosyalardan sunulur ( on-yuz\dist ).  Program guncellenmisse
+rem  bir kez derlenir;  guncelse beklemeden gecer ( araclar\on_yuz_derle.py ).
+.venv\Scripts\python.exe -m araclar.on_yuz_derle
+
 .venv\Scripts\python.exe hesap\main.py
 echo.
 pause

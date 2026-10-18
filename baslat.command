@@ -45,6 +45,11 @@ if ! ./.venv/bin/python -c "import importlib.util as u; assert all(u.find_spec(m
   echo ""
 fi
 
+#  ── ÖN YÜZ ─────────────────────────────────────────────────────
+#  Ekran derlenmiş dosyalardan sunulur ( on-yuz/dist ).  Program güncellenmişse
+#  bir kez derlenir;  güncelse beklemeden geçer ( araclar/on_yuz_derle.py ).
+./.venv/bin/python -m araclar.on_yuz_derle
+
 ./.venv/bin/python hesap/main.py
 echo ""
 read -r -p "  Program kapandı. Pencereyi kapatmak için Enter..."

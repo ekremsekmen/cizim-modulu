@@ -485,8 +485,10 @@ npm run build                  # dist/  →  program kökte sunar
 npm run denetim                # tip + lint + birim testleri + derleme
 ```
 
-Derlenmiş dosyalar depoda değildir ( `on-yuz/dist` );  sunucuya kurarken
-`npm ci && npm run build` bir kez koşulur.  Derleme yoksa program yine açılır,
+Derlenmiş dosyalar depoda değildir ( `on-yuz/dist` ).  Başlatıcılar
+( `baslat.command` · `baslat.bat` ) gerekirse kendileri derler
+( `araclar/on_yuz_derle.py`:  derleme yoksa ya da kaynak ondan yeniyse;  Node.js
+22 gerekir );  sunucuya kurarken `npm ci && npm run build` bir kez koşulur.  Derleme yoksa program yine açılır,
 kök adres nasıl derleneceğini söyler.  `kontrol.py` hızlı denetimde ön yüzün
 tip denetimini, testlerini ve derlemesini de yapar.  Ekranların görüntüleri:
 `.venv/bin/python -m araclar.on_yuz_goruntu` ( `cikti/on-yuz-goruntuleri/` ).
