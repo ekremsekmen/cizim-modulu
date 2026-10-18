@@ -422,9 +422,10 @@ python3 -m venv .venv
 # DENETİM — tek komut ( kontrol.py;  adımlar sırayla koşar )
 .venv/bin/python -m pip install -r requirements-gelistirme.txt   # ruff, pytest ( bir kez )
 .venv/bin/python kontrol.py           # hızlı:  lint + biçim, hesap, çizim ( yavaş test hariç ), ön yüz  ( ~4 dk )
-.venv/bin/python kontrol.py tam       # + yavaş test ( her ölçünün kaynağı, ~7 dk ) + sunucu
+.venv/bin/python kontrol.py tam       # + yavaş test ( her ölçünün kaynağı, ~7 dk ) + sunucu + uçtan uca
 .venv/bin/python kontrol.py bicim     # biçimi ve düzeltilebilir lint bulgularını düzeltir
 .venv/bin/python kontrol.py sunucu    # programı 8790'da açar, uçlarını ve kök sayfayı dener, kapatır ( ~1 dk )
+.venv/bin/python kontrol.py uctan_uca # ön yüz gerçek tarayıcıda:  örnek proje, canlı hesap, proje dosyası, ölçü, teslim ( ~1 dk )
 .venv/bin/python kontrol.py tarama    # girdi taraması:  378 düzen, hükümler kayıtla ( ~15 dk )
 
 # Örnek tam projeler ( hesap + çizim, tek pafta ) → ornekler/ — programın
@@ -474,7 +475,11 @@ kaydedilmiş dosyalar açılır.  Ön yüz yalnız yazılan değeri gönderir
 ( gönderilmeyen = varsayılan );  boş metnin ayrı anlamı olan alanları sunucu
 söyler ( `bos_tablodan`:  boş kabin kütlesi = tablodan ), sözleşme
 `testler/test_on_yuz_sozlesmesi.py`'dedir;  ön yüzün denetimi sunucudan sıkı
-olamaz ( `testler/test_on_yuz_denetimi.py` ön yüzün kendi kodunu koşar ).  Avan
+olamaz ( `testler/test_on_yuz_denetimi.py` ön yüzün kendi kodunu koşar ).  Gerçek
+tarayıcıda uçtan uca:  `testler/test_on_yuz_uctan_uca.py` ( örnek projenin hükmü ve
+çizimleri sunucununkiyle aynı, canlı hesap, `.uygulama` / `.avan` gidiş-dönüşü, ölçü
+kutusu, teslim paketi, adresler;  konsol hatası yok ) — `kontrol.py uctan_uca`,
+tam denetimde ön yüz derlendikten sonra.  Avan
 ofis standardının adları da sunucudadır ( `motor/avan/avan_sabitleri.py` →
 `/api/secenekler` ).
 
