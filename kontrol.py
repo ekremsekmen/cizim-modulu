@@ -3,7 +3,8 @@
 
     .venv/bin/python kontrol.py            hızlı:  lint + biçim, hesap ( arayüz
                                            hariç ), çizim ( yavaş test hariç,
-                                           altın çıktı dahil ), node  ( ~3 dk )
+                                           altın çıktı dahil ), node, yeni ön
+                                           yüz ( tip + derleme )  ( ~3 dk )
     .venv/bin/python kontrol.py tam        hızlı + yavaş test ( ~9 dk — o tek test 7 dk )
     .venv/bin/python kontrol.py arayuz     arayüz testleri:  programı 8790'da
                                            açar, testleri koşar, kapatır ( ~20 dk )
@@ -20,6 +21,7 @@ adım başarısızsa 1 — CI ( .github/workflows ) bunu okur.
 
 import glob
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -28,6 +30,7 @@ import urllib.request
 KOK = os.path.dirname(os.path.abspath(__file__))
 PY = sys.executable
 HESAP = os.path.join(KOK, "hesap")
+ON_YUZ = os.path.join(KOK, "on-yuz")
 
 #  Hesap programının arayüz istemeyen testleri ( hesap/dogrulama/calistir.py
 #  numaraları ) ve arayüz testleri ( 8790'da açık program ister )
@@ -93,6 +96,18 @@ def node():
     return _kos("arayüz yardımcıları ( node )", ["node", "--test"] + dosyalar)
 
 
+def on_yuz():
+    """Yeni ön yüz ( on-yuz/, React ):  TypeScript denetimi ve derleme.  Derleme
+    hesap/main.py'nin /yeni altında sunduğu dist'i de tazeler.  Bağımlılıklar
+    yoksa önce kilit dosyasından kurulur ( npm ci )."""
+    npm = shutil.which("npm") or "npm"
+    if not os.path.isdir(os.path.join(ON_YUZ, "node_modules")) and not _kos(
+        "ön yüz bağımlılıkları ( npm ci )", [npm, "ci", "--no-audit", "--no-fund"], cwd=ON_YUZ
+    ):
+        return False
+    return _kos("yeni ön yüz ( tip + derleme )", [npm, "run", "denetim"], cwd=ON_YUZ)
+
+
 def arayuz():
     """Programı test portunda açar ( kullanıcının açık programına dokunmaz ),
     arayüz testlerini koşar, programı kapatır."""
@@ -136,8 +151,8 @@ def tarama():
 def main(argv):
     kip = argv[0] if argv else "hizli"
     adimlar = {
-        "hizli": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), cizim(False), node()],
-        "tam": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), cizim(True), node()],
+        "hizli": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), cizim(False), node(), on_yuz()],
+        "tam": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), cizim(True), node(), on_yuz()],
         "bicim": lambda: [bicim()],
         "arayuz": lambda: [arayuz()],
         "tarama": lambda: [tarama()],

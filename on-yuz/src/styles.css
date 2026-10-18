@@ -1,0 +1,116 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+/*  TASARIM DİLİ
+    Kabuk açık ve sessiz:  gri zemin, beyaz paneller, tek vurgu rengi ( mavi ).
+    Tuval koyu:  sunucunun SVG'si zaten #212830 zeminle gelir ( ekran = PDF = DXF
+    aynı geometri ), kabuk ona uyar.  Hüküm renkleri yalnız hüküm için:
+    yeşil uygun, kırmızı uygun değil, amber varsayılan / uyarı.             */
+@theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", monospace;
+
+  --color-zemin: #f5f6f8;
+  --color-yuzey: #ffffff;
+  --color-yuzey-2: #fafbfc;
+  --color-cizgi: #e4e7ec;
+  --color-cizgi-2: #d0d5dd;
+  --color-metin: #101828;
+  --color-metin-2: #475467;
+  --color-metin-3: #667085;
+
+  --color-vurgu: #1f4fd8;
+  --color-vurgu-koyu: #1a42b5;
+  --color-vurgu-acik: #eef3ff;
+  --color-vurgu-cizgi: #c7d5fe;
+
+  --color-uygun: #067647;
+  --color-uygun-acik: #ecfdf3;
+  --color-uygun-cizgi: #abefc6;
+  --color-red: #b42318;
+  --color-red-acik: #fef3f2;
+  --color-red-cizgi: #fecdca;
+  --color-uyari: #b54708;
+  --color-uyari-acik: #fffaeb;
+  --color-uyari-cizgi: #fedf89;
+
+  --color-tuval: #212830;
+  --color-tuval-2: #2a323c;
+  --color-tuval-3: #35404c;
+  --color-tuval-cizgi: #3d4855;
+  --color-tuval-metin: #d5dce4;
+  --color-tuval-metin-2: #9aa6b3;
+  --color-olcu: #ffd24d;
+
+  --radius-kucuk: 6px;
+  --radius-orta: 8px;
+  --radius-buyuk: 12px;
+
+  --shadow-panel: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow-kalkik: 0 12px 32px -8px rgb(16 24 40 / 0.18), 0 2px 6px rgb(16 24 40 / 0.06);
+  --shadow-tuval: 0 8px 24px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.06);
+}
+
+@layer base {
+  html {
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-zemin text-metin font-sans;
+    font-feature-settings: "ss01", "cv11";
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-vurgu);
+    outline-offset: 1px;
+  }
+  .sayi {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    background: var(--color-vurgu-cizgi);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-cizgi-2) transparent;
+  }
+}
+
+/*  TUVAL — sunucu SVG'si.  Ölçüler tıklanır ( .olcu ), katmanlar
+    data-katman ile gizlenir;  boyama sunucunundur, burada yalnız vurgu.   */
+.tuval-svg svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.tuval-svg .olcu {
+  cursor: pointer;
+}
+.tuval-svg .olcu:hover line:not(.tut),
+.tuval-svg .olcu.secili line:not(.tut) {
+  stroke: var(--color-olcu);
+}
+.tuval-svg .olcu:hover text,
+.tuval-svg .olcu.secili text {
+  fill: var(--color-olcu);
+}
+.tuval-svg .olcu:focus {
+  outline: none;
+}
+.tuval-svg [data-parca].vurgulu * {
+  stroke: #7cc4ff !important;
+}
+/*  Ekran kalemi:  piksel kalınlık / ( piksel / çizim birimi )  */
+.tuval-svg [data-k="070"] { stroke-width: calc(var(--k070) / var(--mu)); }
+.tuval-svg [data-k="050"] { stroke-width: calc(var(--k050) / var(--mu)); }
+.tuval-svg [data-k="035"] { stroke-width: calc(var(--k035) / var(--mu)); }
+.tuval-svg [data-k="025"] { stroke-width: calc(var(--k025) / var(--mu)); }
+.tuval-svg [data-k="018"] { stroke-width: calc(var(--k018) / var(--mu)); }
+.tuval-svg [data-k="013"] { stroke-width: calc(var(--k013) / var(--mu)); }
+.tuval-uzak .tuval-svg text {
+  display: none;
+}
