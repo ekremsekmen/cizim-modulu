@@ -118,11 +118,22 @@ export function dosyaOku(metin: string, sema: AlanSemasi, ofis: Ham): DosyaOkuma
   const taninmayan: string[] = [];
   const oku = (k: string, ham: unknown, hedef: Ham) => {
     const a = alanlar.get(k);
-    const v = ice(ham);
-    if (!a || v === null) return;
-    if (a.secenekler && !a.secenekler.some((s) => String(s) === v || sayiOku(v) === s)) {
-      taninmayan.push(`${a.etiket.split("(")[0].trim()} = ${v}`);
+    //  Boş kutu bu alanlarda "tablodan" demektir:  boş olarak taşınır ( gönderilmezse varsayılan olurdu )
+    if (a && sema.bos_tablodan.includes(k) && typeof ham === "string" && ham.trim() === "") {
+      hedef[k] = "";
       return;
+    }
+    let v = ice(ham);
+    if (!a || v === null) return;
+    if (a.secenekler) {
+      //  Seçim listedeki yazımıyla saklanır:  eski dosyada "1,6" durur, seçenek "1.6"dır —
+      //  olduğu gibi kalsa kutu boş görünürdü ( hesap yine 1,6 ile yapılırken )
+      const s = a.secenekler.find((x) => String(x) === v || sayiOku(v!) === x);
+      if (s === undefined) {
+        taninmayan.push(`${a.etiket.split("(")[0].trim()} = ${v}`);
+        return;
+      }
+      v = String(s);
     }
     if (!ayniDeger(v, a.varsayilan)) hedef[k] = v;
   };

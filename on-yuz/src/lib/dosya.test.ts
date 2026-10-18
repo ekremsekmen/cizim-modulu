@@ -68,6 +68,12 @@ describe("proje dosyası — eski arayüzün biçimi", () => {
   });
 
   it("listede olmayan seçim varsayılana döner ve söylenir", () => {
+    const c = dosyaOku(JSON.stringify({ alanlar: { __muk_asansorler: [{ beyan_yuku: "1000,0" }] } }), SEMA, {});
+    //  seçim listedeki yazımıyla:  kutu onu tanır
+    expect(c.tamam && c.icerik.asansorler).toEqual([{ beyan_yuku: "1000" }]);
+    const b = dosyaOku(JSON.stringify({ alanlar: { __muk_asansorler: [{ kabin_agirligi: "", kuyu_genisligi: "" }] } }), SEMA, {});
+    //  boş kabin kutusu "tablodan" demektir:  boş olarak taşınır
+    expect(b.tamam && b.icerik.asansorler).toEqual([{ kabin_agirligi: "" }]);
     const o = dosyaOku(JSON.stringify({ alanlar: { __muk_asansorler: [{ beyan_yuku: "999" }] } }), SEMA, {});
     expect(o.tamam && o.taninmayan).toEqual(["beyan_yuku = 999"]);
   });

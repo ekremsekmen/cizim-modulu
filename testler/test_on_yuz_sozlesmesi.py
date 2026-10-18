@@ -17,6 +17,7 @@ import json
 import unittest
 
 from cizim import istek_onbellegi
+from motor.ortak import ofis
 from motor.uygulama import uygulama_hesabi
 from uclar import uygulama_istegi
 from uclar import uc_ortak
@@ -109,6 +110,37 @@ class BosAlanVarsayilandir(unittest.TestCase):
                 if _ozet(_hesap(*_istek({a["anahtar"]: yazim(a["varsayilan"])}))) != self.bos:
                     sapan.append((a["anahtar"], yazim.__name__))
         self.assertEqual(sapan, [])
+
+
+class BosMetinTablodan(unittest.TestCase):
+    """Boş metin ile gönderilmeyen alan bir tek bos_tablodan alanlarında ayrışır:
+    gönderilmeyen varsayılandır, boş metin tablonun değeridir.  Yeni ön yüz bu
+    alanlarda boşu boş gönderir ( 18 Eki:  boş kabin kütlesi gönderilmiyordu,
+    beyan yükü 1275 kg iken hesap tablonun 1100'ü yerine 700 ile yapılıyordu ).
+    """
+
+    def test_liste_taramayla_esit(self):
+        """Boş metnin HESAP EKSİK demeden başka bir hesap verdiği alanlar listede
+        olmalı — yenisi eklenirse ön yüz onu da boş göndermeyi öğrenir."""
+        bos = _ozet(_hesap({}, {}))
+        ayrisan = []
+        for a in SEMA_ALANLARI:
+            if a["varsayilan"] is None:
+                continue
+            o = _ozet(_hesap(*_istek({a["anahtar"]: ""})))
+            if not isinstance(o, list) or o == bos:
+                continue
+            if any(str(b[1]).startswith("HESAP EKSİK") for b in o):
+                continue  # boş = eksik girdi ( kuyu genişliği gibi ):  sunucu söyler
+            ayrisan.append(a["anahtar"])
+        self.assertEqual(sorted(ayrisan), sorted(ALANLAR["bos_tablodan"]))
+
+    def test_bos_kabin_kutlesi_tablonun_degeri(self):
+        tablo = ofis.bos_kabin_kutlesi(1275)
+        bos = _ozet(_hesap({"beyan_yuku": "1275", "kabin_agirligi": ""}, {}))
+        yazili = _ozet(_hesap({"beyan_yuku": "1275", "kabin_agirligi": _eski_arayuz_yazimi(tablo)}, {}))
+        self.assertEqual(bos, yazili)
+        self.assertNotEqual(bos, _ozet(_hesap({"beyan_yuku": "1275"}, {})))
 
 
 class SecimYazimi(unittest.TestCase):

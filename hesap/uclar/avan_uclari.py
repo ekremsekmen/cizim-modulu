@@ -33,6 +33,7 @@ from uclar.uc_ortak import (
     belirsiz_sayi_mi,
 )
 from motor.avan import avan_hesabi
+from motor.avan import avan_sabitleri
 from motor.avan import kapak
 from motor.avan import tablolar
 from motor.avan import trafik
@@ -303,6 +304,8 @@ def secenekler():
         "ofis_varsayilan": avan_hesabi.OFIS_VARSAYILAN,
         "ofis_asansor_alanlari": list(avan_hesabi.OFIS_ASANSOR_ALANLARI),
         "ofis_ortak_alanlari": list(avan_hesabi.OFIS_ORTAK_ALANLARI),
+        #  Ofis standardı formu ( gruplar · etiketler ) — uygulamanınkiyle aynı biçim
+        "sabit_sema": avan_sabitleri.sema(),
         "motor_kademeleri": list(tablolar.MOTOR_KADEMELERI),
         "sabit_a": avan_hesabi.SABIT_A,
         "bugun": date.today().strftime("%d.%m.%Y"),
