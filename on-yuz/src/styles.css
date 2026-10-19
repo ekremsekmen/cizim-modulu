@@ -110,7 +110,12 @@
 .tuval-svg .olcu:focus {
   outline: none;
 }
-.tuval-svg [data-parca].vurgulu * {
+/*  PARÇALAR ( sunucu her parça öğesini <g data-parca data-ad> içine koyar ):
+    içleri de yakalanır — fareyle üstüne gelince adı yazar ve vurgulanır.    */
+.tuval-svg [data-parca] :is(path, rect, polygon, circle, ellipse, line, polyline) {
+  pointer-events: all;
+}
+.tuval-svg [data-parca].parca-ustunde * {
   stroke: #7cc4ff !important;
 }
 /*  Ekran kalemi:  piksel kalınlık / ( piksel / çizim birimi )  */

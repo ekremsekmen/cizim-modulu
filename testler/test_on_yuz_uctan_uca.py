@@ -470,6 +470,26 @@ class OnYuzUctanUca(unittest.TestCase):
         )
         self.assertEqual(float(str(yer[degisiklik["anahtar"]]).replace(",", ".")), degisiklik["deger"])
 
+    def test_parca_adi_ve_vurgusu(self):
+        """Parçanın üstüne gelince adı yazar ( sunucunun data-ad'ı ) ve o parçanın
+        bütün öğeleri vurgulanır;  fare çıkınca ikisi de kalkar."""
+        self.ornek_projeyi_ac()
+        ray = self.sayfa.locator('figure[data-cizim="kuyu_plani"] [data-parca^="kabin_ray-"]').first
+        kutu = ray.bounding_box()
+        self.sayfa.mouse.move(kutu["x"] + kutu["width"] / 2, kutu["y"] + kutu["height"] / 2)
+        ipucu = self.sayfa.get_by_role("tooltip")
+        ipucu.wait_for()
+        #  Vurgulanan TEK parça ( bütün öğeleri ) ve ipucu onun adı — üst üste
+        #  gelenlerden en küçüğü:  rayın ortasında ray tırnağı olabilir
+        vurgulu = self.sayfa.locator(".parca-ustunde")
+        self.assertGreater(vurgulu.count(), 0)
+        kimlikler = {vurgulu.nth(j).get_attribute("data-parca") for j in range(vurgulu.count())}
+        self.assertEqual(len(kimlikler), 1, kimlikler)
+        self.assertEqual(ipucu.inner_text().strip(), vurgulu.first.get_attribute("data-ad"))
+        self.sayfa.mouse.move(1, 1)
+        ipucu.wait_for(state="hidden")
+        self.assertEqual(vurgulu.count(), 0)
+
     # ------------------------------------------------------------ 5 teslim
     def test_teslim_onaysiz_kapali_onayli_paket_iner(self):
         self.ornek_projeyi_ac()
