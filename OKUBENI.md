@@ -318,6 +318,11 @@ geçersizdir, liste her tuşta açılıp kapanıyordu ), açıksa içeriği heme
 Uyarıların kendisi değişmedi:  program eskiden hangi durumda "çizim kurulamadı"
 diyorsa yine yalnız onlarda söyler.
 
+**Parçanın adı** ( 19 Eki ).  Fareyle bir parçanın üstüne gelince adı yazar
+ve parça ( bütün öğeleri ) vurgulanır;  üst üste gelenlerden en küçüğü seçilir
+( kabinin içindeki tampon kabin değil tampon ).  Ad sunucunun çiziminden gelir
+( `data-ad` ), ekran hiçbir şey hesaplamaz.
+
 **Ölçüye tıklama.**  Çizimlerdeki her ölçü tıklanır ( klavyeyle de ):  küçük
 bir kutu ölçünün **hangi girdiden geldiğini** söyler ve yeni değer yazılabilir.
 Çizim elle değişmez — yeni değer ölçünün geldiği **girdi kutusuna** yazılır,

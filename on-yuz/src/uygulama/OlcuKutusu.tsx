@@ -10,7 +10,7 @@ import { api, type UygulamaIstegi } from "@/lib/api";
 import { kutuyaYaz } from "@/lib/proje";
 import { cn, sayiYaz } from "@/lib/utils";
 import { Dugme, Girdi, Rozet } from "@/components/ui";
-import type { OlcuKonumu, OlcuSecimi } from "./Tuval";
+import { kutuYeri, type OlcuKonumu, type OlcuSecimi } from "./Tuval";
 
 const YER: Record<string, string> = { asansor: "asansör", proje: "bina", ofis: "ofis standardı" };
 
@@ -67,25 +67,14 @@ export function OlcuKutusu({
     if (y?.kaynaklar) kaynaklarGeldi?.(y.kaynaklar.filter((k) => k.yer !== "ofis").map((k) => k.anahtar));
   }, [y]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  //  Kutu ölçüyü ÖRTMEZ:  önce sağında, sığmazsa solunda, o da olmazsa altında
-  const GEN = 344;
-  const BOY = 420;
-  const ARA = 16;
-  let sol: number;
-  let ust: number;
-  if (konum.sag + ARA + GEN < konum.w - 12) sol = konum.sag + ARA;
-  else if (konum.sol - ARA - GEN > 12) sol = konum.sol - ARA - GEN;
-  else sol = Math.min(Math.max(12, konum.sol), konum.w - GEN - 12);
-  if (sol >= konum.sag || sol + GEN <= konum.sol) ust = (konum.ust + konum.alt) / 2 - 80;
-  else ust = konum.alt + ARA + BOY < konum.h ? konum.alt + ARA : konum.ust - ARA - BOY;
-  ust = Math.max(12, Math.min(ust, konum.h - BOY));
+  const { sol, ust, en } = kutuYeri(konum, 344, 420);
   return (
     <div
       data-olcu-kutu
       role="dialog"
       aria-label={`Ölçü ${olcu.metin}`}
-      className="absolute z-30 w-[344px] overflow-hidden rounded-buyuk border border-cizgi bg-yuzey text-metin shadow-kalkik select-text"
-      style={{ left: sol, top: ust }}
+      className="absolute z-30 overflow-hidden rounded-buyuk border border-cizgi bg-yuzey text-metin shadow-kalkik select-text"
+      style={{ left: sol, top: ust, width: en }}
     >
       <div className="flex items-start justify-between gap-3 border-b border-cizgi px-4 py-3">
         <div>

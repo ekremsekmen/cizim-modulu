@@ -1,7 +1,8 @@
 /*  TUVAL — sunucunun çizimleri, gerçek boyutlarıyla ( SVG width / height mm ).
     Kesitler solda yan yana, planlar sağda sütun sütun:  paftadaki düzen.
     Tekerlek yakınlaştırır ( imleç çevresinde ), sürükleme kaydırır, ölçüye
-    tıklamak kaynağını açar.  Uzak görünümde çizim yazıları gizlenir, çizimin
+    tıklamak kaynağını açar.  Parçanın üstüne gelince adı yazar ve parça
+    vurgulanır.  Uzak görünümde çizim yazıları gizlenir, çizimin
     adı tuvalin üstünde okunur ( ayrıntı kademesi ).                        */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Check, Layers, Loader2, Maximize, Minus, Plus, Scan } from "lucide-react";
@@ -14,6 +15,13 @@ export interface OlcuSecimi {
   index: number;
   metin: string;
   aciklama: string;
+}
+
+/**  Fare altındaki parça:  çizimi, ekrandaki kimliği ( "ad-n" ) ve görünen adı.  */
+interface Parca {
+  cizim: string;
+  id: string;
+  adi: string;
 }
 
 /**  Seçili ölçünün tuvaldeki kutusu ve tuvalin boyu ( piksel ).  */
@@ -100,6 +108,49 @@ function kalemleriIsaretle(fig: HTMLElement, olcek: number) {
     const k = KALEMLER.reduce((a, b) => (Math.abs(b[0] - mm) < Math.abs(a[0] - mm) ? b : a));
     if (Math.abs(k[0] - mm) <= 0.3 * k[0]) el.setAttribute("data-k", kalemAdi(k[0]));
   }
+}
+
+/**  Ekrandaki noktanın altındaki parça:  üst üste gelenlerden EN KÜÇÜĞÜ ( kabinin
+     içindeki tampon kabin değil tampon;  eski arayüzle aynı kural ).  Ölçünün,
+     araç şeridinin ya da bir kutunun üstündeyse yok.  */
+function parcaBul(x: number, y: number, kap: HTMLElement | null): Parca | null {
+  let en: Element | null = null;
+  let alan = Infinity;
+  for (const s of document.elementsFromPoint(x, y)) {
+    if (s === kap) break;
+    if (s.closest(".olcu, [data-tuval-arac], [data-olcu-kutu]")) return null;
+    const g = s.closest("[data-parca]");
+    if (!g || !(s instanceof SVGGraphicsElement)) continue;
+    const b = s.getBBox();
+    const a = Math.max(b.width, 1) * Math.max(b.height, 1);
+    if (a < alan) {
+      en = g;
+      alan = a;
+    }
+  }
+  if (!en) return null;
+  const fig = en.closest("figure[data-cizim]") as HTMLElement | null;
+  const id = (en as SVGGElement).dataset.parca!;
+  return { cizim: fig?.dataset.cizim ?? "", id, adi: (en as SVGGElement).dataset.ad ?? id.slice(0, id.lastIndexOf("-")) };
+}
+
+/**  Tuvaldeki kutunun ( ölçü ) yeri:  seçileni ÖRTMEZ — önce sağında,
+     sığmazsa solunda, o da olmazsa altında ya da üstünde;  tuvalin dışına
+     taşmaz.  Tuval kutudan darsa kutu tuvalin enine iner ( dar pencerede kutu
+     sola taşıp kesiliyordu — 19 Eki ).  */
+export function kutuYeri(konum: OlcuKonumu, istenenEn: number, boy: number) {
+  const ARA = 16;
+  const KENAR = 12;
+  const en = Math.min(istenenEn, konum.w - 2 * KENAR);
+  let sol: number;
+  let ust: number;
+  if (konum.sag + ARA + en < konum.w - KENAR) sol = konum.sag + ARA;
+  else if (konum.sol - ARA - en > KENAR) sol = konum.sol - ARA - en;
+  else sol = Math.min(Math.max(KENAR, konum.sol), konum.w - en - KENAR);
+  if (sol >= konum.sag || sol + en <= konum.sol) ust = (konum.ust + konum.alt) / 2 - 80;
+  else ust = konum.alt + ARA + boy < konum.h ? konum.alt + ARA : konum.ust - ARA - boy;
+  ust = Math.max(KENAR, Math.min(ust, konum.h - boy - KENAR));
+  return { sol, ust, en };
 }
 
 function kisaAd(baslik: string) {
@@ -203,17 +254,42 @@ export function Tuval({
   const surukle = useRef<{ x: number; y: number; gx: number; gy: number } | null>(null);
   const kaydi = useRef(false);
   const [surukluyor, setSurukluyor] = useState(false);
+  //  Portaldaki öğelerin olayları da React ağacından tuvale yayılır ( ölçü kutusundaki
+  //  seçim listesi body'de çizilir ):  tuval onları yok sayar — yoksa seçeneğe
+  //  basmak sürüklemeyi başlatıp fareyi tuvale bağlıyor, seçim hiç olmuyordu
+  const disarida = (e: React.SyntheticEvent) => !kap.current?.contains(e.target as Node);
   const basildi = (e: React.PointerEvent) => {
-    if (e.button !== 0 || (e.target as Element).closest(".olcu, [data-tuval-arac], [data-olcu-kutu]")) return;
+    if (disarida(e) || e.button !== 0 || (e.target as Element).closest(".olcu, [data-tuval-arac], [data-olcu-kutu]")) return;
     surukle.current = { x: e.clientX, y: e.clientY, gx: g.x, gy: g.y };
     kaydi.current = false;
     setSurukluyor(true);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
+  //  Üstündeki parça:  durum yalnız parça değişince;  ipucu fareyi DOM'dan izler
+  //  ( her harekette tuval yeniden çizilmesin )
+  const [ustunde, setUstunde] = useState<Parca | null>(null);
+  const ipucu = useRef<HTMLDivElement>(null);
+  const ipucunuKoy = (x: number, y: number) => {
+    const el = kap.current;
+    const t = ipucu.current;
+    if (!el || !t) return;
+    const r = el.getBoundingClientRect();
+    t.style.left = `${Math.min(x - r.left + 14, r.width - t.offsetWidth - 6)}px`;
+    t.style.top = `${Math.max(y - r.top - 30, 6)}px`;
+  };
   const oynadi = (e: React.PointerEvent) => {
+    if (disarida(e)) return;
     const s = surukle.current;
+    if (!s || !kaydi.current) {
+      const p = parcaBul(e.clientX, e.clientY, kap.current);
+      if (p?.id !== ustunde?.id || p?.cizim !== ustunde?.cizim) setUstunde(p);
+      if (p) ipucunuKoy(e.clientX, e.clientY);
+    }
     if (!s) return;
-    if (Math.abs(e.clientX - s.x) + Math.abs(e.clientY - s.y) > 4) kaydi.current = true;
+    if (Math.abs(e.clientX - s.x) + Math.abs(e.clientY - s.y) > 4) {
+      kaydi.current = true;
+      setUstunde(null);
+    }
     setG((o) => ({ ...o, x: s.gx + e.clientX - s.x, y: s.gy + e.clientY - s.y }));
   };
   const birakti = () => {
@@ -232,6 +308,7 @@ export function Tuval({
   };
   //  Sunucunun ölçüleri odaklanabilir ( tabindex, role=button ):  Enter / boşluk tıklama gibidir
   const tusa = (e: React.KeyboardEvent) => {
+    if (disarida(e)) return;
     const o = (e.target as Element).closest?.(".olcu");
     if (o && (e.key === "Enter" || e.key === " ")) {
       e.preventDefault();
@@ -240,6 +317,7 @@ export function Tuval({
   };
 
   const tiklandi = (e: React.MouseEvent) => {
+    if (disarida(e)) return;
     const hedef = e.target as Element;
     if (hedef.closest("[data-tuval-arac], [data-olcu-kutu]")) return;
     const o = hedef.closest(".olcu") as SVGGElement | null;
@@ -264,6 +342,17 @@ export function Tuval({
     const b = o.getBoundingClientRect();
     setKonum({ sol: b.left - r.left, sag: b.right - r.left, ust: b.top - r.top, alt: b.bottom - r.top, w: r.width, h: r.height });
   }, [secili, g, cizimler]);
+
+  //  Parça vurgusu:  fare altındaki parçanın bütün öğeleri
+  useLayoutEffect(() => {
+    const el = kap.current;
+    if (!el) return;
+    el.querySelectorAll(".parca-ustunde").forEach((x) => x.classList.remove("parca-ustunde"));
+    if (ustunde)
+      el.querySelectorAll(`[data-cizim="${ustunde.cizim}"] [data-parca="${CSS.escape(ustunde.id)}"]`).forEach((x) =>
+        x.classList.add("parca-ustunde"),
+      );
+  }, [ustunde, cizimler]);
 
   useLayoutEffect(() => {
     kap.current?.querySelectorAll<HTMLElement>("figure[data-cizim]").forEach((f) => {
@@ -295,6 +384,7 @@ export function Tuval({
       onPointerDown={basildi}
       onPointerMove={oynadi}
       onPointerUp={birakti}
+      onPointerLeave={() => setUstunde(null)}
       onClick={tiklandi}
       onKeyDown={tusa}
       //  Odak ( ölçü kutusundaki girdi ) tuvali kaydırmasın:  görünüm yalnız g'den
@@ -435,6 +525,16 @@ export function Tuval({
             <span className="size-1.5 rounded-full bg-[#4ade80]" /> Güncel
           </DurumHapi>
         )}
+      </div>
+
+      {/*  Parçanın adı ( fareyi izler )  */}
+      <div
+        ref={ipucu}
+        role="tooltip"
+        hidden={!ustunde || surukluyor}
+        className="pointer-events-none absolute z-20 rounded-orta border border-white/10 bg-tuval-2/95 px-2 py-1 text-[12px] font-medium whitespace-nowrap text-tuval-metin shadow-tuval"
+      >
+        {ustunde?.adi}
       </div>
 
       <p className="pointer-events-none absolute bottom-3 left-3 text-[11.5px] text-tuval-metin-2/80">
