@@ -109,4 +109,4 @@ def ad(anahtar):
     if anahtar in ADLAR:
         return ADLAR[anahtar]
     yazi = anahtar.replace("_", " ").strip()
-    return yazi[:1].upper() + yazi[1:]
+    return yazi[:1].replace("i", "İ").replace("ı", "I").upper() + yazi[1:]

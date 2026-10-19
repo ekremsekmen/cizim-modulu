@@ -29,6 +29,7 @@ from cizim import girdi
 from cizim import parcalar
 from cizim import sabitler
 from cizim import arka_aski
+from cizim import sorun
 from cizim import baglantilar, makine
 
 _KIP = threading.local()
@@ -435,9 +436,11 @@ def kanat_cebi_carpismalari(g, cizim_sabitleri=None):
                 and o["y"] < c["y"] + c["d"] - 1e-6
             ):
                 kim = "Kabin kapısının" if c["ad"] == "kabin_kanat_cebi" else "Kat kapısının"
-                metin = (
+                metin = sorun.Sorun(
                     f"{kim} kanat cebi {_CEP_ENGELLERI[o['ad']]} çarpıyor:  açılan kanatlar "
-                    f"kuyuda yer bulamıyor — {girdi.kapi_onerisi(g['kapi'].get('tip'))}."
+                    f"kuyuda yer bulamıyor — {girdi.kapi_onerisi(g['kapi'].get('tip'))}.",
+                    (c["ad"], o["ad"]),
+                    "kuyu_plani",
                 )
                 if metin not in hata:
                     hata.append(metin)

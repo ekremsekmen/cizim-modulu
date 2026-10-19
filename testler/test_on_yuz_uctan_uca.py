@@ -12,7 +12,10 @@ gerçek sunucu ve gerçek tarayıcıyla:
   3  proje dosyası:  .uygulama ve .avan kaydet → aç → aynı istek, aynı hesap;
      iki asansör ayrı kalır
   4  ölçü kutusu:  ölçüye tıkla → kaynakları;  yeni değer → girdi değişir
-  5  teslim:  onaysız paket kapalı;  onaylı ZIP iner, içinde PDF ve .uygulama
+  5  teslim:  onaysız paket kapalı;  onaylı ZIP iner, içinde PDF ve .uygulama;
+     çizimde sorun varken paket kapalı, hesap PDF'i açık
+  7  sorunlu çizim:  kural sağlanmasa da çizim ekranda, sorunlu parça kırmızı;
+     karttaki soruna tıklanınca tuval onun yerine yakınlaşır
   6  adresler:  bilinmeyen proje açılışa döner;  /yeni köke yönlenir
   Hiçbir testte konsol hatası yok.
 
@@ -514,6 +517,55 @@ class OnYuzUctanUca(unittest.TestCase):
         ipucu.wait_for(state="hidden")
         self.assertEqual(vurgulu.count(), 0)
 
+    # ------------------------------------------------------------ 7 sorunlu çizim
+    def test_sorunlu_cizim_ekranda_parcasi_kirmizi(self):
+        """Kuyu 2200 → 2300:  sol boşluk 500'ü aşar, korkuluk 1,10 m olur ve
+        tavana sığmaz ( 19 Eki ölçümü ).  Çizim yine gelir;  sorunun parçaları
+        kırmızı;  soruna tıklayınca tuval o çizimde parçaya yakınlaşır ( bütün
+        kesit sığınca tepedeki korkuluk okunmuyordu );  düzelince işaret kalkar."""
+        self.ornek_projeyi_ac()
+        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        istek, cizim = self.iz.son("/api/uygulama/cizimler")
+        self.assertEqual(istek["asansorler"][0]["kuyu_genisligi"], "2300")
+        self.assertFalse(cizim["aktif"])
+        self.assertEqual(self.sayfa.locator("figure[data-cizim]").count(), len(cizim["cizimler"]))
+        kart = self.sayfa.get_by_role("alert")
+        self.assertIn("Çizim uygun değil", kart.inner_text())
+        (sorun,) = cizim["sorunlar"]
+        self.assertTrue(sorun["parcalar"])
+        kirmizi = self.sayfa.locator(".parca-sorunlu")
+        self.assertGreater(kirmizi.count(), 0)
+        adlar = {kirmizi.nth(j).get_attribute("data-ad") for j in range(kirmizi.count())}
+        self.assertEqual(adlar, set(sorun["parcalar"]))
+
+        kart.get_by_role("button", name=sorun["metin"]).click()
+        secili = self.sayfa.locator(f'figure[data-cizim="{sorun["cizim"]}"] .parca-sorun-secili')
+        secili.first.wait_for(state="attached")
+        self.sayfa.wait_for_timeout(400)
+        tuval = self.sayfa.locator(".bg-tuval").bounding_box()
+        #  Görünür öğeler ( boyutsuz öğenin kutusu yok )
+        kutular = [
+            k
+            for j in range(secili.count())
+            if (k := secili.nth(j).bounding_box()) and (k["width"] or k["height"])
+        ]
+        self.assertTrue(kutular)
+        ust = min(k["y"] for k in kutular)
+        alt = max(k["y"] + k["height"] for k in kutular)
+        #  Parçalar tuvalin içinde ve okunacak boyda
+        self.assertGreaterEqual(ust, tuval["y"])
+        self.assertLessEqual(alt, tuval["y"] + tuval["height"])
+        self.assertGreater(alt - ust, 80, kutular)
+        #  Yakınlaştı ( hepsi sığdığındaki görünümden büyük ) — A-A'ya gidip bütün
+        #  kuyuyu sığdırınca %63'e uzaklaşıyordu
+        arac = self.sayfa.locator("[data-tuval-arac]").first.inner_text()
+        self.assertGreater(int(re.search(r"(\d+)%", arac).group(1)), 100, arac)
+
+        #  Açılıştaki girdiye dönüş:  yanıt önbellekten ( istek gitmeyebilir ) — ekrana bakılır
+        self.alan_kutusu("kuyu_genisligi").fill("2200")
+        self.sayfa.get_by_role("alert").wait_for(state="detached")
+        self.assertEqual(self.sayfa.locator(".parca-sorunlu, .parca-sorun-secili").count(), 0)
+
     # ------------------------------------------------------------ 5 teslim
     def test_teslim_onaysiz_kapali_onayli_paket_iner(self):
         self.ornek_projeyi_ac()
@@ -533,6 +585,17 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertTrue(any(a.endswith(".pdf") for a in adlar), adlar)
         self.assertTrue(any(a.endswith(".uygulama") for a in adlar), adlar)
         self.assertTrue(any(a.lower().endswith((".dxf", ".dwg")) for a in adlar), adlar)
+
+    def test_teslim_sorunlu_cizimde_paket_kapali_hesap_pdf_acik(self):
+        self.ornek_projeyi_ac()
+        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.iz.sakin()
+        self.sayfa.get_by_role("button", name="Teslim").click()
+        teslim = self.sayfa.get_by_role("dialog", name="Teslim")
+        teslim.get_by_text(re.compile(r"Çizimde 1 sorun var")).wait_for()
+        teslim.get_by_role("checkbox").check()
+        self.assertTrue(teslim.get_by_role("button", name=re.compile("Paketi indir")).is_disabled())
+        self.assertTrue(teslim.get_by_role("button", name="Yalnız hesap PDF'i").is_enabled())
 
     # ------------------------------------------------------------ 6 adresler
     def test_bilinmeyen_proje_acilisa_doner(self):

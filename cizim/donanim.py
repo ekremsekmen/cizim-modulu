@@ -32,6 +32,7 @@ MAKİNE DAİRESİNİN DENETİMLERİ ( TS EN 81-20 )
 """
 
 from temel import ortusur, sayi_mi
+from cizim import sorun
 from cizim import istek_onbellegi
 from cizim import kuyu_dibi
 from cizim import kuyu_ustu
@@ -174,10 +175,18 @@ def _gergi_konsolda(M, S, taban):
         for z in ray["konsollar"]:
             if z0 < z and z - S["konsol_yukseklik"] < z1:
                 hata.append(
-                    f"Regülatör gergisinin {kuyu_dibi.GERGI_PARCA[ad]} kabin rayının konsoluna "
-                    f"çarpıyor:  konsol tabandan {z - S['konsol_yukseklik'] - taban:g} – {z - taban:g}, "
-                    f"{kuyu_dibi.GERGI_PARCA[ad]} {z0 - taban:.0f} – {z1 - taban:.0f} — Sabitler:  "
-                    "gergi kasnağının yüksekliği ya da ilk konsol."
+                    sorun.Sorun(
+                        f"Regülatör gergisinin {kuyu_dibi.GERGI_PARCA[ad]} kabin rayının konsoluna "
+                        f"çarpıyor:  konsol tabandan {z - S['konsol_yukseklik'] - taban:g} – {z - taban:g}, "
+                        f"{kuyu_dibi.GERGI_PARCA[ad]} {z0 - taban:.0f} – {z1 - taban:.0f} — Sabitler:  "
+                        "gergi kasnağının yüksekliği ya da ilk konsol.",
+                        (
+                            f"gergi_{ad}",
+                            "gergi_plakasi" if ad == "plaka" else "gergi_kontagi",
+                            "kabin_konsolu",
+                        ),
+                        "kuyu_kesiti_on",
+                    )
                 )
                 break
     return hata

@@ -25,7 +25,7 @@ kalıyordu ( kullanıcı 5 Eki:  "kapının görünmemesi saçma" ).
 
 from dataclasses import dataclass
 
-from temel import eleman_kutusu, ortusur
+from temel import eleman_kutusu, kucuk, ortusur
 from cizim import istek_onbellegi
 from cizim import eleman
 from cizim import kisaltmalar
@@ -38,6 +38,7 @@ from cizim import parca_kotlari
 from cizim import arka_aski
 from cizim import hareketli
 from cizim import parca_adlari
+from cizim import sorun
 
 #  TS EN 81-20 Çizelge 3 — kabin üstü sığınma alanının yatay ölçüleri ( mm ).
 #  Adlar hesap programının "Kabin üstü sığınma hacmi tipi" seçenekleriyle
@@ -223,9 +224,13 @@ def _korkuluk_kenarlari(g, tavan, parcalar, hata):
             k["iceri"] = max(0.0, standart.KORKULUK_PARCA_ASGARI - (k["parca"] if yakin else 1e9))
             if k["iceri"] > standart.KORKULUK_KENAR_AZAMI:
                 hata.append(
-                    f"{yan} kenarda korkuluk kuyudaki parçalara {standart.KORKULUK_PARCA_ASGARI:g} mm "
-                    f"uzak durmak için {k['iceri']:g} mm içeri alınmalı;  TS EN 81-20 "
-                    f"m.5.4.7.4 c en çok {standart.KORKULUK_KENAR_AZAMI:g} mm verir."
+                    sorun.Sorun(
+                        f"{yan} kenarda korkuluk kuyudaki parçalara {standart.KORKULUK_PARCA_ASGARI:g} mm "
+                        f"uzak durmak için {k['iceri']:g} mm içeri alınmalı;  TS EN 81-20 "
+                        f"m.5.4.7.4 c en çok {standart.KORKULUK_KENAR_AZAMI:g} mm verir.",
+                        ("korkuluk",),
+                        "kabin_ustu",
+                    )
                 )
             k["yukseklik"] = (
                 standart.KORKULUK_ALCAK
@@ -255,7 +260,7 @@ def _gercek_kutu(el):
 
 def _parca_adi(el):
     """İletideki adı:  "ara kiriş", "kabin rayı" … ( parca_adlari )."""
-    return parca_adlari.ad(el["ad"]).lower() if el.get("ad") else el["katman"].lower()
+    return kucuk(parca_adlari.ad(el["ad"])) if el.get("ad") else kucuk(el["katman"])
 
 
 def _halatlar(g, S, taban, hata):
@@ -279,20 +284,30 @@ def _halatlar(g, S, taban, hata):
         ]
     for hx, hy in halatlar:
         if not (0 < hx < G):
-            hata.append(f"Halat kuyunun dışına düşüyor ( x = {hx:g} ) — kasnak aralığını gözden geçirin.")
+            hata.append(
+                sorun.Sorun(
+                    f"Halat kuyunun dışına düşüyor ( x = {hx:g} ) — kasnak aralığını gözden geçirin.",
+                    ("halat", "aski_halati", "kabin_kasnak", "kabin_kasnagi"),
+                    "kabin_ustu",
+                )
+            )
             continue
         for el in engel:
             p = _gercek_kutu(el)
             if p[0] - HALAT_PAYI < hx < p[2] + HALAT_PAYI and p[1] - HALAT_PAYI < hy < p[3] + HALAT_PAYI:
                 kabinle = el["katman"] not in _KUYU_PARCALARI
                 hata.append(
-                    f"Halat ( x = {hx:g}, y = {hy:g} ) {_parca_adi(el)} parçasının içinden ya da ona "
-                    f"{HALAT_PAYI:g} mm'den yakın geçiyor — "
-                    + (
-                        "kabin halat boyunca indiğinden sürtünür:  askı noktasının derinlikteki yerini "
-                        "( xs ) ya da kasnak aralığını gözden geçirin."
-                        if kabinle
-                        else "kasnak aralığını gözden geçirin."
+                    sorun.Sorun(
+                        f"Halat ( x = {hx:g}, y = {hy:g} ) {_parca_adi(el)} parçasının içinden ya da ona "
+                        f"{HALAT_PAYI:g} mm'den yakın geçiyor — "
+                        + (
+                            "kabin halat boyunca indiğinden sürtünür:  askı noktasının derinlikteki yerini "
+                            "( xs ) ya da kasnak aralığını gözden geçirin."
+                            if kabinle
+                            else "kasnak aralığını gözden geçirin."
+                        ),
+                        ("halat", el.get("ad")),
+                        "kabin_ustu",
                     )
                 )
                 break
@@ -324,15 +339,23 @@ def _kasnak_engelleri(g, S, taban, hata):
         p = next((el for el in sabit if ortusur(k, _gercek_kutu(el), -1.0)), None)
         if p is not None:
             hata.append(
-                f"Kabin kasnağı ( {yer} ) {_parca_adi(p)} ile üst üste biniyor — kabin kuyu boyunca "
-                "indiğinden çarpar:  kasnak aralığını ( ya da çapını ) gözden geçirin."
+                sorun.Sorun(
+                    f"Kabin kasnağı ( {yer} ) {_parca_adi(p)} ile üst üste biniyor — kabin kuyu boyunca "
+                    "indiğinden çarpar:  kasnak aralığını ( ya da çapını ) gözden geçirin.",
+                    ("kabin_kasnak", "kabin_kasnak_capraz", p.get("ad")),
+                    "kuyu_plani",
+                )
             )
             continue
         p = next((el for el in agirlik if ortusur(k, eleman_kutusu(el), A)), None)
         if p is not None:
             hata.append(
-                f"Kabin kasnağı ( {yer} ) karşı ağırlığa {A:g} mm'den yakın ( TS EN 81-20 m.5.2.5.5.1 h ) "
-                "— kasnak aralığını gözden geçirin."
+                sorun.Sorun(
+                    f"Kabin kasnağı ( {yer} ) karşı ağırlığa {A:g} mm'den yakın ( TS EN 81-20 m.5.2.5.5.1 h ) "
+                    "— kasnak aralığını gözden geçirin.",
+                    ("kabin_kasnak", "kabin_kasnak_capraz", p.get("ad")),
+                    "kuyu_plani",
+                )
             )
 
 
@@ -344,13 +367,18 @@ def _tavan_engelleri(g, S, taban, tavan, parcalar, kenarlar, ic, hata):
     for p in parcalar:
         if ortusur(operator, p):
             hata.append(
-                f"Kabin kapısı operatörü ( kanatların yolu, x {operator[0]:g} – "
-                f"{operator[2]:g} ) kuyudaki bir parçaya değiyor ( x {p[0]:g} – {p[2]:g}, "
-                f"y {p[1]:g} – {p[3]:g} ):  "
-                + (
-                    "kapıyı öbür yana açın ya da kabini kaydırın."
-                    if girdi.kapi_tipi(g["kapi"].get("tip"))["tur"] == "teleskopik"
-                    else "kabini kaydırın."
+                sorun.Sorun(
+                    f"Kabin kapısı operatörü ( kanatların yolu, x {operator[0]:g} – "
+                    f"{operator[2]:g} ) kuyudaki bir parçaya değiyor ( x {p[0]:g} – {p[2]:g}, "
+                    f"y {p[1]:g} – {p[3]:g} ):  "
+                    + (
+                        "kapıyı öbür yana açın ya da kabini kaydırın."
+                        if girdi.kapi_tipi(g["kapi"].get("tip"))["tur"] == "teleskopik"
+                        else "kabini kaydırın."
+                    ),
+                    #  Operatör gizli çizgide ( parça olarak işaretlenmez ):  kanatları yanar
+                    ("kabin_kapisi_operatoru", "kabin_kanadi", "kabin_kanat_cebi"),
+                    "kuyu_plani",
                 )
             )
             break
@@ -376,7 +404,12 @@ def _tavan_engelleri(g, S, taban, tavan, parcalar, kenarlar, ic, hata):
                 kesiyor = p[1] < y < p[3] and p[0] < ic[2] and ic[0] < p[2]
             if kesiyor:
                 hata.append(
-                    f"Kabin üstü kasnağı {yan.lower()} kenardaki korkuluğun yolunu kesiyor — kasnak aralığını daraltın."
+                    sorun.Sorun(
+                        f"Kabin üstü kasnağı {yan.lower()} kenardaki korkuluğun yolunu kesiyor — "
+                        "kasnak aralığını daraltın.",
+                        ("kabin_kasnak", "korkuluk"),
+                        "kabin_ustu",
+                    )
                 )
                 break
 
@@ -420,11 +453,15 @@ def _siginma_yeri(S, tip, tavan, ic, engeller, hata):
         return min(adaylar)[2]
     a, b = SIGINMA[tip]
     hata.append(
-        f"Kabin tavanında {tip.lower()} tipi sığınma alanına ( {a:g} × {b:g} mm, "
-        "TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı "
-        "operatörü, şasenin üst kirişi ( ray ekseninde "
-        f"{S['sase_dikme_derinlik']:g} mm — Sabitler:  kabin şasesi dikmesinin "
-        "kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+        sorun.Sorun(
+            f"Kabin tavanında {tip.lower()} tipi sığınma alanına ( {a:g} × {b:g} mm, "
+            "TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı "
+            "operatörü, şasenin üst kirişi ( ray ekseninde "
+            f"{S['sase_dikme_derinlik']:g} mm — Sabitler:  kabin şasesi dikmesinin "
+            "kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı.",
+            ("tavan", "korkuluk"),
+            "kabin_ustu",
+        )
     )
     return None
 

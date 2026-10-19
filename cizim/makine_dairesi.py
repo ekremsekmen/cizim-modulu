@@ -36,7 +36,8 @@ kuralla ( tek halat:  çap + 2 × pay ).
 
 import math
 
-from temel import ortusur, sayi_mi
+from temel import cumle_basi, kucuk, ortusur, sayi_mi
+from cizim import sorun
 from cizim import istek_onbellegi
 from cizim import eleman
 from cizim import kisaltmalar
@@ -236,6 +237,38 @@ def _girdi_hatalari(g, md, a):
     return hata
 
 
+#  ODANIN SORUNLARI ( sorun.Sorun — makine dairesi planında işaretlenir )
+_KAIDE_SIGMIYOR = sorun.Sorun(
+    "Makine kaidesi odaya sığmıyor ya da ayakları döşeme deliklerine basıyor.",
+    ("makine", "makine_sasesi", "delik"),
+    "makine_dairesi",
+)
+_BAKIM_ALANI_YOK = sorun.Sorun(
+    "Makinenin başında 0,50 × 0,60 m bakım alanı kalmıyor ( TS EN 81-20 m.5.2.6.3.2.1 b ).",
+    ("bakim_alani", "makine"),
+    "makine_dairesi",
+)
+
+
+def _kapi_sorunu(md):
+    return sorun.Sorun(
+        f"Makine dairesi kapısı {md['kapi_genislik']:g} mm — TS EN 81-20 m.5.2.3.2 a "
+        f"en az {KAPI_ASGARI:g} mm ister.",
+        ("oda_kapisi",),
+        "makine_dairesi",
+    )
+
+
+def _pano_sorunu(md):
+    """Pano yerleşemeyince çizilmez:  duvarı dolduran parçalar işaretlenir."""
+    return sorun.Sorun(
+        f"Kumanda panosu önündeki {CALISMA_DERINLIK:g} mm çalışma alanıyla "
+        f"{md['pano_duvar'].lower()} duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a ).",
+        ("kumanda_panosu", "calisma_alani", "oda_kapisi", "makine_sasesi", "delik"),
+        "makine_dairesi",
+    )
+
+
 @istek_onbellegi.sakla
 def yerlesim(g, cizim_sabitleri=None):
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
@@ -244,10 +277,7 @@ def yerlesim(g, cizim_sabitleri=None):
     if hata:
         return {"hata": hata}
     if md["kapi_genislik"] < KAPI_ASGARI:
-        hata.append(
-            f"Makine dairesi kapısı {md['kapi_genislik']:g} mm — TS EN 81-20 m.5.2.3.2 a "
-            f"en az {KAPI_ASGARI:g} mm ister."
-        )
+        hata.append(_kapi_sorunu(md))
     M = kuyu_ustu.yerlesim(g, S, acil_pano=False)
     #  Kurma ile denetim ayrı ( bkz. donanim.yerlesim ):  kuyu üstünün denetim
     #  hatası odanın yerleşimini durdurmaz, yalnız girdisi eksikse dur.
@@ -295,7 +325,7 @@ def yerlesim(g, cizim_sabitleri=None):
         kaide["L"] = boy - E["h"]
         kaide["ortali"] = ortali
     else:
-        hata.append("Makine kaidesi odaya sığmıyor ya da ayakları döşeme deliklerine basıyor.")
+        hata.append(_KAIDE_SIGMIYOR)
 
     kaide_delikleri = _makine_plakasi(
         g, M, S, dz, kaide, cerceve, makine_izi, saptirma, uk, y_, n, dh, p, demet, hata
@@ -308,10 +338,7 @@ def yerlesim(g, cizim_sabitleri=None):
     if pano is None:
         pano, calisma = _pano_yeri(oda, md, S, sabit + [kapi_onu], kapi, TB)
     if pano is None:
-        hata.append(
-            f"Kumanda panosu önündeki {CALISMA_DERINLIK:g} mm çalışma alanıyla "
-            f"{md['pano_duvar'].lower()} duvara sığmıyor ( TS EN 81-20 m.5.2.6.3.2.1 a )."
-        )
+        hata.append(_pano_sorunu(md))
 
     #  ── MAKİNENİN BAŞINDA BAKIM ALANI  ( 0,50 × 0,60 ) ─────────────────
     #  Makinenin ( gövde + kasnak ) dört yanından birine, deliklere, panoya
@@ -320,7 +347,7 @@ def yerlesim(g, cizim_sabitleri=None):
     if bakim is None:
         bakim = _bakim_yeri(mk, sabit + [kapi_onu] + ([pano, calisma] if pano else []), oda, TB)
     if bakim is None:
-        hata.append("Makinenin başında 0,50 × 0,60 m bakım alanı kalmıyor ( TS EN 81-20 m.5.2.6.3.2.1 b ).")
+        hata.append(_BAKIM_ALANI_YOK)
     hata += _oda_hatalari(M, mk, oda, TB, kapi_onu)
 
     return {
@@ -360,11 +387,21 @@ def _delik_hatalari(delikler, G, D):
     hata = []
     for ad, d in delikler:
         if d[0] < 0 or d[1] < 0 or d[2] > G or d[3] > D:
-            hata.append(f"{ad.capitalize()} halatı deliği kuyunun dışına düşüyor.")
+            hata.append(
+                sorun.Sorun(
+                    f"{cumle_basi(ad)} halatı deliği kuyunun dışına düşüyor.", ("delik",), "delik_plani"
+                )
+            )
     for i, (a1, d1) in enumerate(delikler):
         for a2, d2 in delikler[i + 1 :]:
             if ortusur(d1, d2):
-                hata.append(f"{a1.capitalize()} ve {a2.lower()} delikleri üst üste biniyor.")
+                hata.append(
+                    sorun.Sorun(
+                        f"{cumle_basi(a1)} ve {kucuk(a2)} delikleri üst üste biniyor.",
+                        ("delik",),
+                        "delik_plani",
+                    )
+                )
     return hata
 
 
@@ -393,9 +430,13 @@ def _saptirma(g, M, dz, y_, ex, fark, hata):
     sebebi hataya )."""
     if fark < -1e-6:
         hata.append(
-            f"Karşı ağırlık halatı tahrik kasnağının öbür teğetinden {-fark:g} mm içeride "
-            f"inmeli:  halat aralığı kasnak çapından ( {M['D1']:g} ) küçük — saptırma "
-            "kasnağıyla çözülmez, tahrik kasnağı çapını ya da ağırlığın yerini değiştirin."
+            sorun.Sorun(
+                f"Karşı ağırlık halatı tahrik kasnağının öbür teğetinden {-fark:g} mm içeride "
+                f"inmeli:  halat aralığı kasnak çapından ( {M['D1']:g} ) küçük — saptırma "
+                "kasnağıyla çözülmez, tahrik kasnağı çapını ya da ağırlığın yerini değiştirin.",
+                ("tahrik_kasnagi", "agirlik_baglanti"),
+                "makine_dairesi",
+            )
         )
         return None
     if fark <= 1e-6:
@@ -652,8 +693,11 @@ def _makine_plakasi(g, M, S, dz, kaide, cerceve, makine_izi, saptirma, uk, y_, n
         saptirma.update(saptirma_kotu(M, saptirma, dz.kanonik(M["kasnak"]), M["D1"], hs, hk, y_, S))
         if saptirma["z"] + saptirma["D"] / 2.0 > hs - t - 50.0:
             hata.append(
-                f"Saptırma kasnağı ( ø {saptirma['D']:g} ) döşemedeki bağlantıların üstünde, "
-                "makine plakasının altına sığmıyor — şase yüksekliğini büyütün."
+                sorun.Sorun(
+                    f"Saptırma kasnağı ( ø {saptirma['D']:g} ) döşemedeki bağlantıların üstünde, "
+                    "makine plakasının altına sığmıyor — şase yüksekliğini büyütün.",
+                    ("saptirma_kasnagi", "makine_sasesi"),
+                )
             )
     #  Plakadan geçen halatlar:  tahrik kasnağının iki yanından inenler;
     #  saptırmada ağırlık tarafı eğik iner — plakayı kestiği yerde delik.
@@ -691,21 +735,31 @@ def _oda_hatalari(M, mk, oda, TB, kapi_onu):
     """Odada durması gerekenler odanın içinde;  kot farkı varsa tabliyenin
     üstünde.  Kapıdan girilen yer tek kotta."""
     hata = []
-    for ad, kutu in (
-        ("Makine", mk),
-        ("Ağırlık bağlantısı", M["agirlik_baglanti"]),
-        ("Kabin bağlantısı", M["kabin_baglanti"]),
-        ("Regülatör", M["reg_govde"]),
+    for ad, kutu, parca in (
+        ("Makine", mk, ("makine", "makine_sasesi")),
+        ("Ağırlık bağlantısı", M["agirlik_baglanti"], ("agirlik_baglanti",)),
+        ("Kabin bağlantısı", M["kabin_baglanti"], ("kabin_baglanti",)),
+        ("Regülatör", M["reg_govde"], ("regulator", "regulator_kasnak")),
     ):
         if kutu and not icinde(kutu, oda):
-            hata.append(f"{ad} makine dairesinin dışına taşıyor.")
+            hata.append(sorun.Sorun(f"{ad} makine dairesinin dışına taşıyor.", parca, "makine_dairesi"))
         elif kutu and TB["yukseklik"] > 1e-9 and not icinde(kutu, TB["izi"]):
-            hata.append(f"{ad} tabliyenin ( kuyunun üstündeki betonun ) dışına taşıyor.")
+            hata.append(
+                sorun.Sorun(
+                    f"{ad} tabliyenin ( kuyunun üstündeki betonun ) dışına taşıyor.",
+                    parca + ("tabliye_kenari",),
+                    "makine_dairesi",
+                )
+            )
     #  Oda tabliyeden büyük olmalı ki zemini olsun
     if not tek_kotta(kapi_onu, TB):
         hata.append(
-            "Makine dairesi kapısının önü tabliyenin kenarına denk geliyor:  kapının "
-            "önündeki geçiş tek kotta olmalı — kapının yerini değiştirin."
+            sorun.Sorun(
+                "Makine dairesi kapısının önü tabliyenin kenarına denk geliyor:  kapının "
+                "önündeki geçiş tek kotta olmalı — kapının yerini değiştirin.",
+                ("oda_kapisi", "tabliye_kenari"),
+                "makine_dairesi",
+            )
         )
     return hata
 

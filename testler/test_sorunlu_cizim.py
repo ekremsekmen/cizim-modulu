@@ -13,15 +13,22 @@ Değişmezler:
   3.  Paket uygunsuz çizimi yine reddeder.
   4.  Kip kapalıyken yerleşim bugünkü gibi durur;  aynı istekte iki kip
       karışmaz ( istek içi önbellek ).
+  5.  Her sorun parçalıdır ( cizim/sorun.py ) ve parçası gösterilen çizimde
+      gerçekten vardır — yoksa ekranın kırmızı işareti boşa düşer.  Sorunun
+      söylediği çizim gelmişse parça o çizimdedir.
 """
 
+import html
 import json
+import pickle
+import re
 import unittest
 
 from cizim import dusey
 from cizim import istek_onbellegi
 from cizim import kopru
 from cizim import pafta
+from cizim import sorun
 from cizim import sorunlu
 from motor.uygulama import uygulama_girdisi
 from motor.uygulama import uygulama_hesabi
@@ -47,6 +54,13 @@ VAKALAR = {
     (False, "kabin_yana_kaciklik", 0): (),
     (True, "son_kat_yuksekligi", 3200): (),
     (True, "ray_kapi_arasi", 500): (),
+    #  Kuyu dibi ( regülatör gergisi ), kabin üstü ( kasnak – ara kiriş ),
+    #  makine dairesi ( kaide ), kat aralığı ( ara acil kapı )
+    (False, "kuyu_genisligi", 2000): (),
+    (False, "kuyu_derinligi", 1800): (),
+    (False, "kabin_genisligi", 900): (),
+    (False, "durak_adedi", 2): (),
+    (True, "kuyu_genisligi", 2800): KESITLER,
     #  BILINEN:  arkadaki ağırlıkla 2:1 kabin altı askı çizilemeyen düzendir
     #  ( kuyu_ustu.duzen_hatalari ) — donanımın geometrisi hiç kurulmaz
     (False, "agirlik_yeri", "Arka"): KESITLER + ("KUYU ÜSTÜ PLANI",),
@@ -98,6 +112,44 @@ class SorunluCizim(unittest.TestCase):
                 self.assertEqual(r["hata"], siki)
                 self.assertEqual(set(r["kurulamayan"]), set(bilinen))
                 self.assertEqual(len(r["cizimler"]) + len(r["kurulamayan"]), len(pafta.sira(_g(veri))))
+
+    def test_sorunun_parcasi_cizimde(self):
+        for (md, alan, deger), _bilinen in VAKALAR.items():
+            with self.subTest(md=md, alan=alan, deger=deger):
+                r = _ekran(_veri(md, **{alan: deger}))
+                self.assertEqual([m["metin"] for m in r["sorunlar"]], r["hata"])
+                svg = {
+                    c["ad"]: {html.unescape(x) for x in re.findall(r'data-ad="([^"]+)"', c["svg"])}
+                    for c in r["cizimler"]
+                }
+                hepsi = set().union(*svg.values())
+                for m in r["sorunlar"]:
+                    self.assertTrue(m["parcalar"], m["metin"])
+                    self.assertTrue(set(m["parcalar"]) & hepsi, (m["metin"], m["parcalar"]))
+                    if m["cizim"] in svg:
+                        self.assertTrue(set(m["parcalar"]) & svg[m["cizim"]], (m["metin"], m["cizim"]))
+                    #  Türkçe harf:  capitalize / lower "Kabi̇n bağlantisi" yazıyordu
+                    self.assertNotIn("\u0307", m["metin"])
+
+    def test_sorun_duz_metin_gibi(self):
+        s = sorun.Sorun("Kabin taşıyor.", ("kabin_dis", "", "kabin", "kabin_dis"), "kuyu_plani")
+        self.assertEqual((s, hash(s)), ("Kabin taşıyor.", hash("Kabin taşıyor.")))
+        self.assertEqual(s.parcalar, ("kabin_dis", "kabin"))
+        self.assertEqual(json.dumps([s]), json.dumps(["Kabin taşıyor."]))
+        t = pickle.loads(pickle.dumps(s, protocol=pickle.HIGHEST_PROTOCOL))
+        self.assertEqual((type(t), t.parcalar, t.cizim), (sorun.Sorun, s.parcalar, "kuyu_plani"))
+        self.assertIs(type(s + "x"), str)
+        b = sorun.birlestir(
+            ["a", sorun.Sorun("b", ("x",)), sorun.Sorun("a", ("y",), "k"), sorun.Sorun("b", ("z",))]
+        )
+        self.assertEqual(b, ["a", "b"])
+        self.assertEqual(
+            [(sorun.parcalari(x), getattr(x, "cizim", None)) for x in b], [(("y",), "k"), (("x", "z"), None)]
+        )
+        self.assertEqual(
+            sorun.yapili(s),
+            {"metin": "Kabin taşıyor.", "parcalar": ["Kabin ( dış )", "Kabin"], "cizim": "kuyu_plani"},
+        )
 
     def test_sorunsuz_girdide_yanit_bugunku_gibi(self):
         for md in (False, True):

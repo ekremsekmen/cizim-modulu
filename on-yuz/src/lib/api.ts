@@ -130,6 +130,14 @@ export interface Cizim {
   svg: string;
 }
 
+/**  Çizimin bir sorunu ( sunucu:  cizim/sorun.py ) — parçalar çizimdeki adlarıyla
+     ( SVG'nin data-ad'ı ), cizim:  sorunun en iyi görüldüğü çizim  */
+export interface CizimSorunu {
+  metin: string;
+  parcalar: string[];
+  cizim: string | null;
+}
+
 /**  aktif:  çizim uygun.  Aktif değilse hata sebebidir;  çizimler de geldiyse
      çizim SORUNLU kuruldu ( ekranda gösterilir, paket inmez ), gelmediyse girdi
      çizime hiç çevrilemedi.  */
@@ -139,6 +147,8 @@ export interface CizimYanit {
   hata?: string[];
   /**  Sorunlu girdiyle kurulamayan çizimlerin başlıkları  */
   kurulamayan?: string[];
+  /**  hata'nın yapılı hâli ( sorunlu çizimde )  */
+  sorunlar?: CizimSorunu[];
 }
 
 export interface OlcuKaynagi {

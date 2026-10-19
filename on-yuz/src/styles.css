@@ -115,6 +115,28 @@
 .tuval-svg [data-parca] :is(path, rect, polygon, circle, ellipse, line, polyline) {
   pointer-events: all;
 }
+/*  SORUNLU PARÇALAR ( sunucu:  cizim/sorun.py ):  kırmızı;  seçilen sorununki
+    parlak ve üç kez yanıp söner.  Üstüne gelinen parçanın vurgusu öndedir.   */
+/*  Kalınlık ekran pikselinde ( --mu:  piksel / çizim birimi — ekran kalemi gibi ):
+    ince kalemli parça kırmızıyken de seçilsin  */
+.tuval-svg [data-parca].parca-sorunlu * {
+  stroke: #f97066 !important;
+  stroke-width: calc(1.5px / var(--mu)) !important;
+}
+.tuval-svg [data-parca].parca-sorun-secili * {
+  stroke: #ff3b30 !important;
+  stroke-width: calc(2.5px / var(--mu)) !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tuval-svg [data-parca].parca-sorun-secili {
+    animation: sorun-yanip 0.9s ease-in-out 3;
+  }
+}
+@keyframes sorun-yanip {
+  50% {
+    opacity: 0.2;
+  }
+}
 .tuval-svg [data-parca].parca-ustunde * {
   stroke: #7cc4ff !important;
 }

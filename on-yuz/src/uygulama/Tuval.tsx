@@ -6,7 +6,7 @@
     adı tuvalin üstünde okunur ( ayrıntı kademesi ).                        */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Check, Layers, Loader2, Maximize, Minus, Plus, Scan } from "lucide-react";
-import type { Cizim } from "@/lib/api";
+import type { Cizim, CizimSorunu } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Acilir, AcilirIcerik, AcilirTetik, Dugme, Ipucu, Secim } from "@/components/ui";
 
@@ -163,8 +163,15 @@ export function Tuval({
   secili,
   olcuSec,
   odak,
+  sorunluParcalar = [],
+  sorunOdak = null,
   children,
 }: {
+  /**  Sorunlu parçalar ( data-ad ) — kırmızı işaretlenir  */
+  sorunluParcalar?: string[];
+  /**  Kartta seçilen sorun:  parçaları öne çıkar, tuval onun çizimine gider
+       ( n her seçimde artar — aynı soruna yeniden tıklamak da götürür )  */
+  sorunOdak?: { sorun: CizimSorunu; n: number } | null;
   /**  İlk açılışta yakınlaşılacak çizim ( adres:  ?cizim=kuyu_plani )  */
   odak?: string | null;
   cizimler: Cizim[];
@@ -222,6 +229,27 @@ export function Tuval({
       setSigdirilan(hedef);
     },
     [yerler],
+  );
+
+  //  Levhadaki bir kutuya ( 1 px = 1 mm kâğıt ) yakınlaş:  çevresiyle ( kutunun
+  //  yarısı kadar, en az 30 ), en çok 5× ( parça okunur, yanındakiler de görünür ).
+  //  Kutu çizimin kendisinden büyük çıkarsa çizim sığdırılır ( uzaklaşılmaz ).
+  const kutuyaGit = useCallback(
+    (hedef: string, x0: number, y0: number, x1: number, y1: number) => {
+      const el = kap.current;
+      const yer = yerler.find((y) => y.c.ad === hedef);
+      if (!el || !yer) return;
+      const pay = Math.max(30, Math.max(x1 - x0, y1 - y0) / 2);
+      const [a0, b0, a1, b1] = [x0 - pay, y0 - pay, x1 + pay, y1 + pay];
+      const W = el.clientWidth;
+      const Hh = el.clientHeight;
+      const ust = 64;
+      const k = Math.min(5, (W - 64) / (a1 - a0), (Hh - ust - 40) / (b1 - b0));
+      const cizimin = Math.min((W - 64) / yer.w, (Hh - ust - 40) / yer.h);
+      if (k <= cizimin) return sigdir(hedef);
+      setG({ k, x: (W - (a1 - a0) * k) / 2 - a0 * k, y: ust + (Hh - ust - 40 - (b1 - b0) * k) / 2 - b0 * k });
+    },
+    [yerler, sigdir],
   );
 
   //  İlk çizim gelince sığdır;  sonraki yanıtlarda görünüm yerinde kalır
@@ -343,6 +371,53 @@ export function Tuval({
     const b = o.getBoundingClientRect();
     setKonum({ sol: b.left - r.left, sag: b.right - r.left, ust: b.top - r.top, alt: b.bottom - r.top, w: r.width, h: r.height });
   }, [secili, g, cizimler]);
+
+  //  Sorunlu parçalar ( sunucu:  cizim/sorun.py ) kırmızı;  seçilen sorununki öne çıkar
+  useLayoutEffect(() => {
+    const el = kap.current;
+    if (!el) return;
+    el.querySelectorAll(".parca-sorunlu, .parca-sorun-secili").forEach((x) =>
+      x.classList.remove("parca-sorunlu", "parca-sorun-secili"),
+    );
+    for (const ad of sorunluParcalar) el.querySelectorAll(adSecici(ad)).forEach((x) => x.classList.add("parca-sorunlu"));
+    for (const ad of sorunOdak?.sorun.parcalar ?? [])
+      el.querySelectorAll(adSecici(ad)).forEach((x) => x.classList.add("parca-sorun-secili"));
+  }, [sorunluParcalar, sorunOdak, cizimler]);
+
+  //  Seçilen sorunun yerine git:  sunucunun söylediği çizim ( parçası oradaysa ),
+  //  yoksa parçanın göründüğü ilk çizim;  o çizimdeki parçaların kutusuna
+  //  yakınlaşılır ( bütün kesit sığınca tepedeki parça okunmuyordu ).  Her
+  //  seçim bir kez götürür.
+  const gidilenSorun = useRef(0);
+  useLayoutEffect(() => {
+    const el = kap.current;
+    if (!el || !sorunOdak || sorunOdak.n === gidilenSorun.current) return;
+    const { cizim, parcalar } = sorunOdak.sorun;
+    const ogeler = (ad: string) =>
+      parcalar.flatMap((p) => [...el.querySelectorAll(`[data-cizim="${ad}"] ${adSecici(p)}`)]);
+    const hedef = cizim && ogeler(cizim).length ? cizim : yerler.find((y) => ogeler(y.c.ad).length)?.c.ad;
+    const yer = yerler.find((y) => y.c.ad === hedef);
+    const fig = el.querySelector(`figure[data-cizim="${hedef}"]`);
+    if (!hedef || !yer || !fig) return;
+    gidilenSorun.current = sorunOdak.n;
+    setSigdirilan(hedef);
+    //  Ekrandaki kutular levhaya:  figürün içindeki oranı × figürün levhadaki boyu
+    const f = fig.getBoundingClientRect();
+    //  Boyutsuz öğe ( gizli, boş ) ( 0, 0 ) noktasında döner:  kutuyu ekranın köşesine uzatırdı
+    const kutular = ogeler(hedef)
+      .map((o) => o.getBoundingClientRect())
+      .filter((r) => r.width > 0 || r.height > 0);
+    if (!f.width || !f.height || !kutular.length) return sigdir(hedef);
+    const lx = (x: number) => yer.x + ((x - f.left) / f.width) * yer.w;
+    const ly = (y: number) => yer.y + ((y - f.top) / f.height) * yer.h;
+    kutuyaGit(
+      hedef,
+      lx(Math.min(...kutular.map((r) => r.left))),
+      ly(Math.min(...kutular.map((r) => r.top))),
+      lx(Math.max(...kutular.map((r) => r.right))),
+      ly(Math.max(...kutular.map((r) => r.bottom))),
+    );
+  }, [sorunOdak, yerler, sigdir, kutuyaGit]);
 
   //  Parça vurgusu:  fare altındaki parçanın bütün öğeleri
   useLayoutEffect(() => {
@@ -549,6 +624,11 @@ export function Tuval({
       {children?.(konum)}
     </div>
   );
+}
+
+/**  data-ad ( parçanın ekrandaki adı ) seçicisi  */
+function adSecici(ad: string) {
+  return `[data-ad="${ad.replace(/["\\]/g, "\\$&")}"]`;
 }
 
 function yakinlik(o: { x: number; y: number; k: number }, f: number, el: HTMLDivElement | null) {

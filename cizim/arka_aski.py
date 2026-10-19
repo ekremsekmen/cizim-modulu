@@ -28,6 +28,7 @@ y ön duvardan arkaya ).
 """
 
 from temel import sayi_mi
+from cizim import sorun
 from cizim import izli
 from cizim import standart
 
@@ -114,14 +115,22 @@ def geometri(g, S, yon=None):
     aralik = L - 2.0 * Rk  # kasnak merkezleri arası
     if aralik < 2.0 * Rk + KASNAK_ARALIGI_ASGARI:
         hata.append(
-            f"Arkadaki ağırlıkla 2:1:  kabin kasnakları ( ø {2 * Rk:g} ) üst üste biniyor — "
-            f"merkezleri arası {aralik:.0f} mm, en az {2 * Rk:g};  kabin askı merkezinden "
-            f"tahrik kasnağının inişine uzaklık {L / 2.0:.0f} mm."
+            sorun.Sorun(
+                f"Arkadaki ağırlıkla 2:1:  kabin kasnakları ( ø {2 * Rk:g} ) üst üste biniyor — "
+                f"merkezleri arası {aralik:.0f} mm, en az {2 * Rk:g};  kabin askı merkezinden "
+                f"tahrik kasnağının inişine uzaklık {L / 2.0:.0f} mm.",
+                ("kabin_kasnak_capraz", "kabin_kasnak"),
+                "kuyu_plani",
+            )
         )
     if not (0.0 < H[0] < G and 0.0 < H[1] < D):
         hata.append(
-            f"Arkadaki ağırlıkla 2:1:  kabin halatının bağlantısı ( x {H[0]:.0f}, y {H[1]:.0f} ) "
-            "kuyunun dışına düşüyor."
+            sorun.Sorun(
+                f"Arkadaki ağırlıkla 2:1:  kabin halatının bağlantısı ( x {H[0]:.0f}, y {H[1]:.0f} ) "
+                "kuyunun dışına düşüyor.",
+                ("kabin_baglanti",),
+                "kuyu_ustu",
+            )
         )
     #  Kasnaklar kabinin üstünde:  tahrik kasnağından inen halat kabinin
     #  tavanına iner ( kabin hep onun altındadır ) — kabinin yanından geçmesi
@@ -129,9 +138,13 @@ def geometri(g, S, yon=None):
     blok_on = ey - ag["derinlik"] / 2.0
     if not P[1] < blok_on:
         hata.append(
-            f"Arkadaki ağırlıkla 2:1:  tahrik kasnağından kabine inen halat ( y {P[1]:.0f} ) "
-            f"karşı ağırlığın içinden geçiyor ( ağırlığın önü {blok_on:.0f} ) — tahrik "
-            "kasnağı çapı ağırlığın derinliğinin yarısından büyük olmalı."
+            sorun.Sorun(
+                f"Arkadaki ağırlıkla 2:1:  tahrik kasnağından kabine inen halat ( y {P[1]:.0f} ) "
+                f"karşı ağırlığın içinden geçiyor ( ağırlığın önü {blok_on:.0f} ) — tahrik "
+                "kasnağı çapı ağırlığın derinliğinin yarısından büyük olmalı.",
+                ("agirlik_blok", "agirlik", "tahrik_kasnagi"),
+                "kuyu_plani",
+            )
         )
 
     def ayak_izi(merkez):

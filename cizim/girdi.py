@@ -16,6 +16,7 @@ import math
 
 from cizim import parcalar, sabitler
 from cizim import arka_aski
+from cizim import sorun
 
 
 def _sonlu_sayi(v):
@@ -95,6 +96,18 @@ KABIN_AGIRLIK_ACIKLIGI = 50.0
 #  HALAT PAYI:  halatın kuyudaki ve kabindeki parçalardan uzaklığı ( kullanıcı
 #  kararı 15 Eki — standartta sayı yok );  kabin_ustu ve kuyu_ustu kullanır.
 HALAT_PAYI = 20.0
+
+#  SORUNLARIN PARÇALARI ( sorun.Sorun — ekran çizimde kırmızı işaretler ).
+#  Aynı parçanın planda ve kesitte adı ayrıdır ( "kabin_dis" · "kabin",
+#  "kabin_ray" · "kabin_rayi" ):  ikisi de verilir, hangisi çizimdeyse yanar.
+P_KABIN = ("kabin_dis", "kabin", "sase_dikme", "sase")
+P_KABIN_RAYI = ("kabin_ray", "kabin_rayi")
+P_AGIRLIK = ("agirlik_blok", "agirlik", "agirlik_pateni", "agirlik_paten")
+P_AGIRLIK_RAYI = ("agirlik_ray", "agirlik_rayi")
+P_KANAT = ("kanat_cebi", "kabin_kanat_cebi", "kat_kanadi", "kabin_kanadi")
+P_KAPI = ("kapi_boslugu", "kat_kanadi", "kat_kapisi")
+P_ASKI = ("kabin_kasnak", "kabin_kasnak_ucu", "kabin_kasnagi", "aski_nokta")
+P_ESIK = ("kabin_esigi", "kat_esigi")
 
 
 def kapi_onerisi(tip):
@@ -311,16 +324,28 @@ def _yukseklikler(g):
     kapi_h = g["kapi"].get("yukseklik")
     if _sonlu_sayi(kabin_h) and kabin_h < ASGARI_YUKSEKLIK:
         hata.append(
-            f"Kabin iç yüksekliği {kabin_h:g} mm:  TS EN 81-20 m.5.4.1 en az {ASGARI_YUKSEKLIK:g} mm ister."
+            sorun.Sorun(
+                f"Kabin iç yüksekliği {kabin_h:g} mm:  TS EN 81-20 m.5.4.1 en az {ASGARI_YUKSEKLIK:g} mm ister.",
+                ("kabin",),
+                "kuyu_kesiti_yan",
+            )
         )
     if _sonlu_sayi(kapi_h) and kapi_h < ASGARI_YUKSEKLIK:
         hata.append(
-            f"Kat kapısı yüksekliği {kapi_h:g} mm:  TS EN 81-20 m.5.3.1.1 en az {ASGARI_YUKSEKLIK:g} mm ister."
+            sorun.Sorun(
+                f"Kat kapısı yüksekliği {kapi_h:g} mm:  TS EN 81-20 m.5.3.1.1 en az {ASGARI_YUKSEKLIK:g} mm ister.",
+                P_KAPI,
+                "kapi_kesiti",
+            )
         )
     if _sonlu_sayi(kabin_h) and _sonlu_sayi(kapi_h) and kapi_h > kabin_h:
         hata.append(
-            f"Kat kapısı yüksekliği ( {kapi_h:g} mm ) kabin iç yüksekliğinden "
-            f"( {kabin_h:g} mm ) büyük olamaz:  kapı kabinin girişidir."
+            sorun.Sorun(
+                f"Kat kapısı yüksekliği ( {kapi_h:g} mm ) kabin iç yüksekliğinden "
+                f"( {kabin_h:g} mm ) büyük olamaz:  kapı kabinin girişidir.",
+                P_KAPI + ("kabin",),
+                "kuyu_kesiti_yan",
+            )
         )
     return hata
 
@@ -331,15 +356,29 @@ def _ana_olculer(g):
     hata = []
     k, kb, kp, kr = g["kuyu"], g["kabin"], g["kapi"], g["kabin_ray"]
     if kb["genislik"] >= k["genislik"]:
-        hata.append(f"Kabin genişliği ({kb['genislik']}) kuyu genişliğinden ({k['genislik']}) küçük olmalı.")
+        hata.append(
+            sorun.Sorun(
+                f"Kabin genişliği ({kb['genislik']}) kuyu genişliğinden ({k['genislik']}) küçük olmalı.",
+                P_KABIN,
+                "kuyu_plani",
+            )
+        )
     if kb["derinlik"] >= k["derinlik"]:
-        hata.append(f"Kabin derinliği ({kb['derinlik']}) kuyu derinliğinden ({k['derinlik']}) küçük olmalı.")
+        hata.append(
+            sorun.Sorun(
+                f"Kabin derinliği ({kb['derinlik']}) kuyu derinliğinden ({k['derinlik']}) küçük olmalı.",
+                P_KABIN,
+                "kuyu_plani",
+            )
+        )
     if kp["sol_pay"] + kp["genislik"] > k["genislik"]:
-        hata.append("Kapı boşluğu kuyu genişliğine sığmıyor.")
+        hata.append(sorun.Sorun("Kapı boşluğu kuyu genişliğine sığmıyor.", P_KAPI, "kuyu_plani"))
     if kr["kapi_arasi"] >= k["derinlik"]:
-        hata.append("Ray – kapı arası kuyu derinliğinden büyük olamaz.")
+        hata.append(
+            sorun.Sorun("Ray – kapı arası kuyu derinliğinden büyük olamaz.", P_KABIN_RAYI, "kuyu_plani")
+        )
     if kr["arasi"] > k["genislik"]:
-        hata.append("Kabin rayları arası kuyu genişliğine sığmıyor.")
+        hata.append(sorun.Sorun("Kabin rayları arası kuyu genişliğine sığmıyor.", P_KABIN_RAYI, "kuyu_plani"))
     #  KABİN RAYI DUVARA GİREMEZ ( 15 Eki — senaryo taraması:  K111, r270 ):  ray
     #  arası sığsa da kabin kaçıklığı ve rayın yüksekliği rayı duvara sokabiliyor.
     #  Eşik 0 ( kullanıcı kararı ):  EN 81-20'de ray – duvar için sayı yok;  dar
@@ -349,17 +388,25 @@ def _ana_olculer(g):
     for yan, bosluk in kabin_rayi_duvar_bosluklari(g).items():
         if bosluk < 0 and g["agirlik"]["yeri"] != yan:
             hata.append(
-                f"Kabin rayı {yan.lower()} duvara {-bosluk:g} mm giriyor ( rayın arkası ile duvar "
-                "arası ≥ 0 olmalı ):  kabin rayları arasını ( DBG ), kabinin yana kaçıklığını "
-                "ya da kuyu genişliğini gözden geçirin."
+                sorun.Sorun(
+                    f"Kabin rayı {yan.lower()} duvara {-bosluk:g} mm giriyor ( rayın arkası ile duvar "
+                    "arası ≥ 0 olmalı ):  kabin rayları arasını ( DBG ), kabinin yana kaçıklığını "
+                    "ya da kuyu genişliğini gözden geçirin.",
+                    P_KABIN_RAYI,
+                    "kuyu_plani",
+                )
             )
     #  KABİN RAYLARININ ARASINDA GİDER:  ray ekseni kabinin derinliği içinden
     #  geçmeli;  geçmezse patenler kabine değil boşluğa bağlanır.
     if not (kb["on_pay"] <= kr["kapi_arasi"] <= kb["on_pay"] + kb["derinlik"]):
         hata.append(
-            f"Kabin rayı ekseni ( kapıdan {kr['kapi_arasi']:g} ) kabinin "
-            f"derinliği içinden geçmiyor ( kabin {kb['on_pay']:g} – "
-            f"{kb['on_pay'] + kb['derinlik']:g} )."
+            sorun.Sorun(
+                f"Kabin rayı ekseni ( kapıdan {kr['kapi_arasi']:g} ) kabinin "
+                f"derinliği içinden geçmiyor ( kabin {kb['on_pay']:g} – "
+                f"{kb['on_pay'] + kb['derinlik']:g} ).",
+                P_KABIN_RAYI + P_KABIN,
+                "kuyu_plani",
+            )
         )
     return hata
 
@@ -441,7 +488,7 @@ def _kabin_ve_agirlik(g, K):
         or kabin_kutu[1] < 0
         or kabin_kutu[3] > k["derinlik"]
     ):
-        hata.append("Kabin veya şasesi kuyunun dışına taşıyor.")
+        hata.append(sorun.Sorun("Kabin veya şasesi kuyunun dışına taşıyor.", P_KABIN, "kuyu_plani"))
     A = KABIN_AGIRLIK_ACIKLIGI
     if (
         ag_kutu[0] < kabin_kutu[2] + A
@@ -450,12 +497,16 @@ def _kabin_ve_agirlik(g, K):
         and kabin_kutu[1] < ag_kutu[3] + A
     ):
         hata.append(
-            f"Karşı ağırlık ile kabin arasında {A:g} mm açıklık yok ( TS EN 81-20 "
-            "m.5.2.5.5.1 h ) — ağırlık rayı – duvar ölçüsünü ya da kabin ölçülerini "
-            "gözden geçirin."
+            sorun.Sorun(
+                f"Karşı ağırlık ile kabin arasında {A:g} mm açıklık yok ( TS EN 81-20 "
+                "m.5.2.5.5.1 h ) — ağırlık rayı – duvar ölçüsünü ya da kabin ölçülerini "
+                "gözden geçirin.",
+                P_AGIRLIK + P_KABIN,
+                "kuyu_plani",
+            )
         )
     if ag_kutu[0] < 0 or ag_kutu[2] > k["genislik"] or ag_kutu[1] < 0 or ag_kutu[3] > k["derinlik"]:
-        hata.append("Karşı ağırlık kuyunun dışına taşıyor.")
+        hata.append(sorun.Sorun("Karşı ağırlık kuyunun dışına taşıyor.", P_AGIRLIK, "kuyu_plani"))
     return hata
 
 
@@ -470,10 +521,14 @@ def _kanat_cebi_hatalari(g, S):
             n = kapi_tipi(kp.get("tip"))["kanat"]
             oneri = [t for t in KAPI_CEP_ONERILERI if t != kp.get("tip") and _cep_sigar(g, S, t)]
             hata.append(
-                f"Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara {yan:g} mm, "
-                f"açılan {n} kanat için {c1 - c0:g} mm gerekir ( bir kanat eni "
-                f"{kp['genislik'] / n:g} + {S['kanat_cebi_payi']:g} )"
-                + (f";  sığan kapı tipi:  {' · '.join(oneri)}." if oneri else ".")
+                sorun.Sorun(
+                    f"Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara {yan:g} mm, "
+                    f"açılan {n} kanat için {c1 - c0:g} mm gerekir ( bir kanat eni "
+                    f"{kp['genislik'] / n:g} + {S['kanat_cebi_payi']:g} )"
+                    + (f";  sığan kapı tipi:  {' · '.join(oneri)}." if oneri else "."),
+                    P_KANAT,
+                    "kuyu_plani",
+                )
             )
     return hata
 
@@ -487,8 +542,12 @@ def _agirlik_raylari(g, S, K):
     k, ag = g["kuyu"], g["agirlik"]
     if ag["genislik"] >= ag["ray_arasi"]:
         hata.append(
-            f"Karşı ağırlık genişliği ({ag['genislik']:g}) ağırlık rayları arasından "
-            f"( DBGW {ag['ray_arasi']:g} ) küçük olmalı — çerçeve iki rayın arasında durur."
+            sorun.Sorun(
+                f"Karşı ağırlık genişliği ({ag['genislik']:g}) ağırlık rayları arasından "
+                f"( DBGW {ag['ray_arasi']:g} ) küçük olmalı — çerçeve iki rayın arasında durur.",
+                P_AGIRLIK + P_AGIRLIK_RAYI,
+                "kuyu_plani",
+            )
         )
     #  ÇERÇEVENİN İÇİ:  dolgu ve kasnak iki çerçeve profilinin arasında durur
     #  ( geometri._agirlik_blogu:  iç ölçü = dış − 2 × agirlik_cerceve ).  İç
@@ -498,8 +557,12 @@ def _agirlik_raylari(g, S, K):
     for ad, olcu in (("derinliği ( Gx )", ag["derinlik"]), ("genişliği", ag["genislik"])):
         if olcu <= 2 * cer:
             hata.append(
-                f"Karşı ağırlık {ad} {olcu:g} mm:  çerçeve profilinin iki kalınlığından "
-                f"( 2 × {cer:g} = {2 * cer:g} ) büyük olmalı — dolguya ve kasnağa yer kalmıyor."
+                sorun.Sorun(
+                    f"Karşı ağırlık {ad} {olcu:g} mm:  çerçeve profilinin iki kalınlığından "
+                    f"( 2 × {cer:g} = {2 * cer:g} ) büyük olmalı — dolguya ve kasnağa yer kalmıyor.",
+                    P_AGIRLIK + ("agirlik_dolgu",),
+                    "kuyu_plani",
+                )
             )
     ray_yari = ag["ray_arasi"] / 2.0 + ag["h"] + S["konsol_agirlik_boy"] / 2.0
     if ag["yeri"] in ("Sağ", "Sol"):
@@ -521,7 +584,13 @@ def _agirlik_raylari(g, S, K):
             or S["konsol_agirlik_en"] > k["derinlik"]
         )
     if tasiyor:
-        hata.append("Karşı ağırlık rayları veya konsolları kuyunun dışına taşıyor.")
+        hata.append(
+            sorun.Sorun(
+                "Karşı ağırlık rayları veya konsolları kuyunun dışına taşıyor.",
+                P_AGIRLIK_RAYI + ("agirlik_konsolu",),
+                "kuyu_plani",
+            )
+        )
     return hata
 
 
@@ -532,8 +601,12 @@ def _sase_ve_kapi(g, K):
     sase_dis = K["kabin"][2] - K["kabin"][0]
     if sase_dis >= g["kabin_ray"]["arasi"]:
         hata.append(
-            f"Kabin şasesinin dış genişliği ({sase_dis:g}) kabin rayları arasından "
-            f"( DBG {g['kabin_ray']['arasi']:g} ) küçük olmalı."
+            sorun.Sorun(
+                f"Kabin şasesinin dış genişliği ({sase_dis:g}) kabin rayları arasından "
+                f"( DBG {g['kabin_ray']['arasi']:g} ) küçük olmalı.",
+                ("sase_dikme", "sase") + P_KABIN_RAYI,
+                "kuyu_plani",
+            )
         )
     #  KAPI KABİNİN ÖNÜNE DÜŞMELİ:  kat kapısının net boşluğu kabin iç
     #  genişliğinin dışına taşarsa kabin kapısıyla karşılaşmaz.
@@ -543,8 +616,12 @@ def _sase_ve_kapi(g, K):
         or kp["sol_pay"] + kp["genislik"] > kx + kb["genislik"] / 2.0
     ):
         hata.append(
-            "Kat kapısı boşluğu kabinin önüne düşmüyor — kapının soldan uzaklığını "
-            "ya da kabinin yana kaçıklığını gözden geçirin."
+            sorun.Sorun(
+                "Kat kapısı boşluğu kabinin önüne düşmüyor — kapının soldan uzaklığını "
+                "ya da kabinin yana kaçıklığını gözden geçirin.",
+                P_KAPI + ("kabin_dis",),
+                "kuyu_plani",
+            )
         )
     return hata
 
@@ -564,9 +641,13 @@ def _ara_kiris(g, S, K):
         bosluk = ag_kutu[0] - (ray_arkasi + S["ara_kiris_en"])
     if bosluk < ASGARI_ACIKLIK:
         return [
-            f"Karşı ağırlık ile kabin rayının ara kirişi arasında {bosluk:g} mm kalıyor "
-            f"( en az {ASGARI_ACIKLIK:g} ) — ağırlık rayı – duvar ölçüsünü ya da "
-            "kabinin yana kaçıklığını gözden geçirin."
+            sorun.Sorun(
+                f"Karşı ağırlık ile kabin rayının ara kirişi arasında {bosluk:g} mm kalıyor "
+                f"( en az {ASGARI_ACIKLIK:g} ) — ağırlık rayı – duvar ölçüsünü ya da "
+                "kabinin yana kaçıklığını gözden geçirin.",
+                ("ara_kiris",) + P_AGIRLIK,
+                "kuyu_plani",
+            )
         ]
     return []
 
@@ -601,7 +682,9 @@ def _aski_hatalari(g, S):
             or aski_y - yari_y < 0
             or aski_y + yari_y > k["derinlik"]
         ):
-            hata.append("Askı kasnakları / noktaları kuyunun dışına taşıyor.")
+            hata.append(
+                sorun.Sorun("Askı kasnakları / noktaları kuyunun dışına taşıyor.", P_ASKI, "kuyu_plani")
+            )
     return hata
 
 
@@ -615,27 +698,43 @@ def _kapi_acikliklari(g, S):
     esik_arasi = kabin_esigi - KB["hat"]
     if esik_arasi <= 0:
         hata.append(
-            f"Kabin eşiği kat kapısı eşiğine biniyor ( {esik_arasi:g} mm ):  kabin "
-            f"ön yüzü ( on_pay {kb['on_pay']:g} ) en az "
-            f"{KB['hat'] + S['kabin_esik_derinlik']:g} olmalı."
+            sorun.Sorun(
+                f"Kabin eşiği kat kapısı eşiğine biniyor ( {esik_arasi:g} mm ):  kabin "
+                f"ön yüzü ( on_pay {kb['on_pay']:g} ) en az "
+                f"{KB['hat'] + S['kabin_esik_derinlik']:g} olmalı.",
+                P_ESIK,
+                "kapi_kesiti",
+            )
         )
     elif esik_arasi > ESIK_ARASI_AZAMI:
         hata.append(
-            f"Kabin eşiği ile kat kapısı eşiği arası {esik_arasi:g} mm — "
-            f"TS EN 81-20 m.5.3.4.1 en çok {ESIK_ARASI_AZAMI:g} mm verir."
+            sorun.Sorun(
+                f"Kabin eşiği ile kat kapısı eşiği arası {esik_arasi:g} mm — "
+                f"TS EN 81-20 m.5.3.4.1 en çok {ESIK_ARASI_AZAMI:g} mm verir.",
+                P_ESIK,
+                "kapi_kesiti",
+            )
         )
     if kp["montaj"] == "Duvar boşluğuna" and (
         S["kasa_yan"] > S["kaba_bosluk_yan_payi"] or S["kasa_ust"] > S["kapi_ust_payi"]
     ):
         hata.append(
-            f"Kat kapısının kasası duvardaki kaba boşluğa sığmıyor:  kasa yanda "
-            f"{S['kasa_yan']:g}, kapının üstünde {S['kasa_ust']:g} mm;  boşluğun payları "
-            f"{S['kaba_bosluk_yan_payi']:g} ve {S['kapi_ust_payi']:g} mm ( Sabitler )."
+            sorun.Sorun(
+                f"Kat kapısının kasası duvardaki kaba boşluğa sığmıyor:  kasa yanda "
+                f"{S['kasa_yan']:g}, kapının üstünde {S['kasa_ust']:g} mm;  boşluğun payları "
+                f"{S['kaba_bosluk_yan_payi']:g} ve {S['kapi_ust_payi']:g} mm ( Sabitler ).",
+                ("kapi_kasasi",),
+                "giris",
+            )
         )
     if kabin_esigi - KB["yuzey"] > KAPI_ARASI_AZAMI:
         hata.append(
-            f"Kuyu iç yüzü ile kabin eşiği arası {kabin_esigi - KB['yuzey']:g} mm — "
-            f"TS EN 81-20 m.5.2.5.3.1 en çok {KAPI_ARASI_AZAMI:g} mm verir."
+            sorun.Sorun(
+                f"Kuyu iç yüzü ile kabin eşiği arası {kabin_esigi - KB['yuzey']:g} mm — "
+                f"TS EN 81-20 m.5.2.5.3.1 en çok {KAPI_ARASI_AZAMI:g} mm verir.",
+                ("kabin_esigi",),
+                "kapi_kesiti",
+            )
         )
     return hata
 

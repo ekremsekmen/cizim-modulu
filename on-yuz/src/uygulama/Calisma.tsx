@@ -5,8 +5,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
-import { Calculator, ChevronDown, CircleAlert, DraftingCompass, Loader2, Package, Plus, TriangleAlert, Undo2, X } from "lucide-react";
-import { api, type AlanSemasi, type Bolum } from "@/lib/api";
+import { Calculator, ChevronDown, CircleAlert, DraftingCompass, Loader2, LocateFixed, Package, Plus, TriangleAlert, Undo2, X } from "lucide-react";
+import { api, type AlanSemasi, type Bolum, type CizimSorunu } from "@/lib/api";
 import {
   alanYaz,
   asansorAdedi,
@@ -73,6 +73,8 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     },
     [sema],
   );
+  //  Kartta seçilen sorun:  tuval onun çizimine gider, parçaları öne çıkar
+  const [sorunOdak, setSorunOdak] = useState<{ sorun: CizimSorunu; n: number } | null>(null);
   const [teslimAcik, setTeslimAcik] = useState(params.get("teslim") === "1");
   const [bilgilerAcik, setBilgilerAcik] = useState(false);
   const [duyuru, setDuyuru] = useState(bildirim ?? "");
@@ -128,6 +130,17 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     else y.set("gorunum", g);
     setParams(y, { replace: true });
     setOlcu(null);
+  };
+  //  Seçim yalnız o sorun hâlâ listedeyse geçerli ( giderilince işaret kalkar )
+  const gecerliOdak =
+    sorunOdak &&
+    (s.sorun?.tur === "hesap" || s.sorun?.tur === "cizim") &&
+    s.sorun.maddeler.some((m) => m.metin === sorunOdak.sorun.metin)
+      ? sorunOdak
+      : null;
+  const sorunuGoster = (m: CizimSorunu) => {
+    if (gorunum !== "cizim") gorunumSec("cizim");
+    setSorunOdak((o) => ({ sorun: m, n: (o?.n ?? 0) + 1 }));
   };
 
   const asansorHukmu = (i: number) => s.sonHesap?.ozet?.asansorler?.[i]?.tumu_uygun;
@@ -338,6 +351,8 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
               secili={olcu}
               olcuSec={(o) => setOlcu(o)}
               odak={params.get("cizim")}
+              sorunluParcalar={s.sorunluParcalar}
+              sorunOdak={gecerliOdak}
             >
               {(konum) =>
                 olcu &&
@@ -383,6 +398,8 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
               orta={eskiSonucYok}
               etiket={(k) => etiket(k)}
               cokAsansor={proje.asansorler.length > 1}
+              sorunuGoster={sorunuGoster}
+              seciliSorun={gecerliOdak?.sorun.metin ?? null}
             />
           )}
         </main>
@@ -446,6 +463,8 @@ function SorunKarti({
   orta,
   etiket,
   cokAsansor,
+  sorunuGoster,
+  seciliSorun,
 }: {
   sorun: Sorun;
   koyu: boolean;
@@ -453,6 +472,9 @@ function SorunKarti({
   orta: boolean;
   etiket: (anahtar: string) => string;
   cokAsansor: boolean;
+  /**  Parçası olan sorun tıklanınca:  tuval onu çizimde gösterir  */
+  sorunuGoster: (m: CizimSorunu) => void;
+  seciliSorun: string | null;
 }) {
   //  Çizim sorunlu da olsa ekrandaysa kart küçültülebilir ( çizime bakılsın )
   const [kucuk, setKucuk] = useState(false);
@@ -474,7 +496,8 @@ function SorunKarti({
         ? "Çizim bu girdilerle kuruldu;  hükümler son geçerli girdilerin."
         : "Çizim bu girdilerle kuruldu;  sorunlar giderilmeden paket inmez."
       : "Ekrandaki çizim ve hükümler son geçerli girdilerin.";
-  const maddeler: { metin: string; git?: () => void }[] =
+  //  git:  maddenin gösterdiği yer ( kural dışı girdide kutu, sorunda çizimdeki parça )
+  const maddeler: { metin: string; git?: () => void; cizimde?: boolean }[] =
     sorun.tur === "kural"
       ? sorun.maddeler.map((h) => ({
           metin: `${h.asansor !== null && cokAsansor ? `Asansör ${h.asansor + 1} · ` : ""}${etiket(h.anahtar)}:  ${h.hata}`,
@@ -482,7 +505,11 @@ function SorunKarti({
         }))
       : sorun.tur === "baglanti"
         ? [{ metin: sorun.ileti }]
-        : sorun.maddeler.map((m) => ({ metin: m }));
+        : sorun.maddeler.map((m) =>
+            cizimGuncel && m.parcalar.length
+              ? { metin: m.metin, git: () => sorunuGoster(m), cizimde: true }
+              : { metin: m.metin },
+          );
   return (
     <div
       role="alert"
@@ -518,8 +545,17 @@ function SorunKarti({
         {maddeler.map((m, i) => (
           <li key={i} className="list-disc text-[12.5px] leading-snug marker:text-current/50">
             {m.git ? (
-              <button type="button" onClick={m.git} className="text-left underline-offset-2 hover:underline">
+              <button
+                type="button"
+                onClick={m.git}
+                title={m.cizimde ? "Çizimde göster" : undefined}
+                className={cn(
+                  "text-left underline-offset-2 hover:underline",
+                  m.cizimde && seciliSorun === m.metin && (koyu ? "text-white" : "font-medium"),
+                )}
+              >
                 {m.metin}
+                {m.cizimde && <LocateFixed aria-hidden className="ml-1 inline size-3 align-[-1px] opacity-60" />}
               </button>
             ) : (
               m.metin

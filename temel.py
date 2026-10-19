@@ -33,5 +33,18 @@ def ortusur(a, b, pay=0.0):
     return a[0] < b[2] + pay and b[0] < a[2] + pay and a[1] < b[3] + pay and b[1] < a[3] + pay
 
 
+def kucuk(metin):
+    """Türkçe küçük harf:  str.lower() "I"yı "i", "İ"yi noktalı "i̇" yapar
+    ( "AĞIRLIK" → "ağirlik" — iletilerde böyle yazıyordu, 19 Eki )."""
+    return metin.replace("I", "ı").replace("İ", "i").lower()
+
+
+def cumle_basi(metin):
+    """Türkçe ilk harf büyük, gerisi küçük — str.capitalize'ın Türkçesi
+    ( "KABİN BAĞLANTISI" → "Kabin bağlantısı";  capitalize "Kabi̇n bağlantisi" yazıyordu )."""
+    k = kucuk(metin)
+    return k[:1].replace("i", "İ").replace("ı", "I").upper() + k[1:]
+
+
 def kutu_merkezi(k):
     return ((k[0] + k[2]) / 2.0, (k[1] + k[3]) / 2.0)

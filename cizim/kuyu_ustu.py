@@ -24,7 +24,8 @@ referans projenin düzeni ).  Makine ağırlık raylarına oturan şasede ya da
 ( LiftDesigner 1250 KG ).  Öteki düzenler için doğrulama açıkça reddeder.
 """
 
-from temel import eleman_kutusu, ortusur, sayi_mi
+from temel import cumle_basi, eleman_kutusu, ortusur, sayi_mi
+from cizim import sorun
 from cizim import istek_onbellegi
 from cizim import eleman
 from cizim import kisaltmalar
@@ -146,9 +147,13 @@ def _reg_halat_kiris_hatasi(g, reg_kasnak, kirisler):
     for y in (reg_kasnak[1], reg_kasnak[3]):
         if any(k[0] - p < x < k[2] + p and k[1] - p < y < k[3] + p for k in kirisler):
             return [
-                f"Regülatör halatı ( x = {x:g}, y = {y:g} ) makinenin duvardan duvara kirişine "
-                f"{girdi.HALAT_PAYI:g} mm'den yakın iniyor — regülatör kaçıklığını ya da yanını "
-                "değiştirin."
+                sorun.Sorun(
+                    f"Regülatör halatı ( x = {x:g}, y = {y:g} ) makinenin duvardan duvara kirişine "
+                    f"{girdi.HALAT_PAYI:g} mm'den yakın iniyor — regülatör kaçıklığını ya da yanını "
+                    "değiştirin.",
+                    ("regulator_halati",) + _PARCA["regülatör"] + _KIRISLER,
+                    "kuyu_ustu",
+                )
             ]
     return []
 
@@ -174,9 +179,13 @@ def duzen_hatalari(g):
         hata.append(f"aski.duzen:  ( 'Kabin altı', 'Kabin üstü', 'Doğrudan' ) içinden olmalı ( {duzen!r} ).")
     if yer == "Arka" and duzen == "Kabin altı":
         hata.append(
-            "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — "
-            "ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri "
-            "için 'Kabin üstü' seçin ya da ağırlığı yana alın."
+            sorun.Sorun(
+                "Arkadaki karşı ağırlıkla 2:1 askı kabin üstünde çizilir ( kasnaklar çapraz — "
+                "ofisin 12495-18 ve 1275 projeleri de kabin üstü ):  askı kasnaklarının yeri "
+                "için 'Kabin üstü' seçin ya da ağırlığı yana alın.",
+                ("kabin_kasnak", "kabin_kasnak_ucu", "agirlik_blok"),
+                "kuyu_plani",
+            )
         )
     elif yer not in YANLAR + ("Arka",):
         hata.append(f"agirlik.yeri:  ( 'Sol', 'Sağ', 'Arka' ) içinden olmalı ( {yer!r} ).")
@@ -291,6 +300,17 @@ def _acil_pano(g, S):
     return pano, (pm - ce / 2.0, pano[1] - CALISMA_DERINLIK, pm + ce / 2.0, pano[1])
 
 
+#  Sorunların parçaları ( sorun.Sorun — ekran kuyu üstü planında işaretler )
+_PARCA = {
+    "makine": ("makine", "makine_sasesi"),
+    "tahrik kasnağı": ("tahrik_kasnagi",),
+    "ağırlık halat bağlantısı": ("agirlik_baglanti",),
+    "kabin halat bağlantısı": ("kabin_baglanti",),
+    "regülatör": ("regulator", "regulator_kasnak"),
+}
+_KIRISLER = ("makine_sasesi",)
+
+
 def _cakismalar(kutular, oda_, G, D):
     """ÇAKIŞMALAR:  kuyu üstündeki parçalar kuyunun içinde ( makine dairesinde
     makine odanın içindedir — makine_dairesi denetler ) ve birbirine binmeden."""
@@ -301,14 +321,22 @@ def _cakismalar(kutular, oda_, G, D):
         if oda_ is not None and ad in ("makine", "tahrik kasnağı", "regülatör"):
             continue
         if p[0] < 0 or p[1] < 0 or p[2] > G or p[3] > D:
-            hata.append(f"{ad.capitalize()} kuyunun dışına taşıyor.")
+            hata.append(
+                sorun.Sorun(f"{cumle_basi(ad)} kuyunun dışına taşıyor.", _PARCA.get(ad, ()), "kuyu_ustu")
+            )
     adlar = list(kutular)
     for i, a in enumerate(adlar):
         for b in adlar[i + 1 :]:
             if {a, b} == {"makine", "tahrik kasnağı"}:
                 continue
             if ortusur(kutular[a], kutular[b]):
-                hata.append(f"Kuyu üstünde {a} ile {b} üst üste biniyor.")
+                hata.append(
+                    sorun.Sorun(
+                        f"Kuyu üstünde {a} ile {b} üst üste biniyor.",
+                        _PARCA.get(a, ()) + _PARCA.get(b, ()),
+                        "kuyu_ustu",
+                    )
+                )
     return hata
 
 
@@ -498,7 +526,11 @@ def _yandaki_kiris_sasesi(g, mk, kutular, reg_kasnak, hata):
     k = g["kuyu"]
     sase = _yandaki_duvar_kirisleri(mk, k["genislik"], *kutular, _reg_halat_kutusu(g, reg_kasnak))
     if sase[1] < 0.0 or sase[3] > k["derinlik"]:
-        hata.append("Makinenin duvardan duvara kirişleri kuyunun derinliğine sığmıyor.")
+        hata.append(
+            sorun.Sorun(
+                "Makinenin duvardan duvara kirişleri kuyunun derinliğine sığmıyor.", _KIRISLER, "kuyu_ustu"
+            )
+        )
     b = makine.npu(mk["yan_yatak"])["b"]
     hata += _reg_halat_kiris_hatasi(
         g, reg_kasnak, [(sase[0], sase[1], sase[2], sase[1] + b), (sase[0], sase[3] - b, sase[2], sase[3])]
@@ -512,7 +544,11 @@ def _arka_kiris_hatalari(g, sase, b, reg_kasnak):
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
     hata = []
     if not (0.0 <= sase[0] and sase[2] <= G):
-        hata.append("Makinenin duvardan duvara kirişleri kuyunun genişliğine sığmıyor.")
+        hata.append(
+            sorun.Sorun(
+                "Makinenin duvardan duvara kirişleri kuyunun genişliğine sığmıyor.", _KIRISLER, "kuyu_ustu"
+            )
+        )
     return hata + _reg_halat_kiris_hatasi(
         g, reg_kasnak, [(sase[0], 0.0, sase[0] + b, D), (sase[2] - b, 0.0, sase[2], D)]
     )
@@ -610,7 +646,13 @@ def _dogrudan(g, S, mk, ag):
     )
     govde = zarf or govde
     if ortusur(kasnak, reg_govde) or ortusur(govde, reg_govde):
-        hata.append("Makine dairesinde makine ile regülatör üst üste biniyor.")
+        hata.append(
+            sorun.Sorun(
+                "Makine dairesinde makine ile regülatör üst üste biniyor.",
+                _PARCA["makine"] + _PARCA["regülatör"],
+                "makine_dairesi",
+            )
+        )
     return {
         "dogrudan": True,
         "duzlem": d,

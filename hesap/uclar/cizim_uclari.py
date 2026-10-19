@@ -35,6 +35,7 @@ from cizim import kopru
 from cizim import olcu_kaynagi
 from cizim import pafta
 from cizim import sabitler
+from cizim import sorun
 from cizim import sorunlu
 from motor.uygulama import mukavemet_girdi
 from cizim import svg
@@ -80,13 +81,9 @@ def asansor_girdisi(asansorler, ortak, sonuc, proje_adi, i):
 def _cizim_hatalari(g, A):
     """Çizimlerin doğrulaması ( hepsi ) ve hesapla tutarlılık — ekranın
     "Çizimler kurulamadı" listesi.  Aynı hata birçok çizimde tekrarlanır
-    ( hepsi kuyu planının doğrulamasından geçer );  bir kez söylenir."""
-    gorulen, tek = set(), []
-    for ad in pafta.sira(g):
-        for h in cizimler.CIZIMLER[ad][0](g):
-            if h not in gorulen:
-                gorulen.add(h)
-                tek.append(h)
+    ( hepsi kuyu planının doğrulamasından geçer );  bir kez söylenir
+    ( parçaları birleşir — cizim/sorun.py )."""
+    tek = sorun.birlestir(h for ad in pafta.sira(g) for h in cizimler.CIZIMLER[ad][0](g))
     return tek or kopru.tutarlilik(g, A)
 
 
@@ -167,10 +164,13 @@ def cizimler_yaniti(veri):
         #  SORUNLU ÇİZİM:  "aktif" bugünkü anlamında kalır ( çizim uygun değil —
         #  testler ve ön yüzün denetimi reddi buradan okur );  ekran çizimleri
         #  yine alır.  kurulamayan:  sorunlu girdiyle kurulamayan çizimlerin başlıkları.
+        #  sorunlar:  hata'nın yapılı hâli ( metin, ilgili parçalar, görüldüğü
+        #  çizim — cizim/sorun.py );  ekran parçaları çizimde işaretler.
         return JSONResponse(
             {
                 "aktif": False,
                 "hata": hata,
+                "sorunlar": [sorun.yapili(h) for h in hata],
                 "hesap": bool(s["asansorler"][i].get("aktif")),
                 "cizimler": cizimler_,
                 "kurulamayan": kurulamayan,

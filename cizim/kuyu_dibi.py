@@ -28,7 +28,8 @@ olanlar gelir:
     konsola gelir, tablo ve ray şemasıyla ( referans proje "Building Forces" gibi )
 """
 
-from temel import eleman_kutusu, kutu_merkezi, ortusur, sayi_mi
+from temel import cumle_basi, eleman_kutusu, kutu_merkezi, ortusur, sayi_mi
+from cizim import sorun
 from cizim import istek_onbellegi
 from cizim import eleman
 from cizim import kisaltmalar
@@ -54,6 +55,17 @@ MERDIVEN_KAPI_AZAMI = 800.0
 #  m.5.2.5.5.1 e:  ağırlık rayları ile kuyu duvarı arasındaki boşluk bundan
 #  büyükse o bölge de perdeyle korunur ( mm ).
 PERDE_BOSLUGU_AZAMI = 300.0
+#  Sorunların parçaları ( sorun.Sorun — ekran kuyu dibi planında işaretler )
+_PARCA = {
+    "kabin tamponu": ("kabin_tamponu",),
+    "ağırlık tamponu": ("agirlik_tamponu",),
+    "regülatör gergisi": ("gergi",),
+    "kol": ("gergi_kol", "gergi_kolu"),
+    "agirlik": ("gergi_agirlik", "gergi_agirligi"),
+    "plaka": ("gergi_plaka", "gergi_plakasi"),
+    "kontak": ("gergi_kontak", "gergi_kontagi"),
+}
+_RAYLAR = ("kabin_ray", "agirlik_ray", "plaka", "kol")
 GERGI_PARCA = {
     "kol": "kolu",
     "agirlik": "ağırlığı",
@@ -505,9 +517,13 @@ def _gergi_rayda(kasnak, ry):
     if lo - 0.5 <= kac <= hi + 0.5:
         return []
     return [
-        f"Regülatör gergisinin raya bağlantı plakası kabin rayına oturmuyor:  kasnak ile ray "
-        f"ekseni arası {kac:.0f} mm — Ø{cap:g} kasnakta {lo:.0f} – {hi:.0f} olmalı ( kollu gergi, "
-        "plakanın oluğu 175 mm ) — regülatör kaçıklığını değiştirin."
+        sorun.Sorun(
+            f"Regülatör gergisinin raya bağlantı plakası kabin rayına oturmuyor:  kasnak ile ray "
+            f"ekseni arası {kac:.0f} mm — Ø{cap:g} kasnakta {lo:.0f} – {hi:.0f} olmalı ( kollu gergi, "
+            "plakanın oluğu 175 mm ) — regülatör kaçıklığını değiştirin.",
+            _PARCA["plaka"] + ("kabin_ray",),
+            "kuyu_dibi",
+        )
     ]
 
 
@@ -741,9 +757,13 @@ def _merdiven(g, kd, S, sabit, hata):
     if adaylar:
         return min(adaylar)[3]
     hata.append(
-        "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 "
-        "Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, "
-        "ray ya da konsol var."
+        sorun.Sorun(
+            "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 "
+            "Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, "
+            "ray ya da konsol var.",
+            ("merdiven",),
+            "kuyu_dibi",
+        )
     )
     return None
 
@@ -771,18 +791,32 @@ def _cakismalar(
     ):
         for k in liste:
             if k[0] < 0 or k[1] < 0 or k[2] > G or k[3] > D:
-                hata.append(f"{ad.capitalize()} kuyunun dışına taşıyor.")
+                hata.append(sorun.Sorun(f"{cumle_basi(ad)} kuyunun dışına taşıyor.", _PARCA[ad], "kuyu_dibi"))
             elif any(ortusur(k, p) for p in konsollar + kabin_raylari + agirlik_raylari):
-                hata.append(f"{ad.capitalize()} bir ray ya da konsolla çakışıyor.")
+                hata.append(
+                    sorun.Sorun(
+                        f"{cumle_basi(ad)} bir ray ya da konsolla çakışıyor.",
+                        _PARCA[ad] + _RAYLAR,
+                        "kuyu_dibi",
+                    )
+                )
     for ad, parca in gergi_donanim.items():
         if parca[0] < 0 or parca[1] < 0 or parca[2] > G or parca[3] > D:
-            hata.append(f"Regülatör gergisinin {GERGI_PARCA[ad]} kuyunun dışına taşıyor.")
+            hata.append(
+                sorun.Sorun(
+                    f"Regülatör gergisinin {GERGI_PARCA[ad]} kuyunun dışına taşıyor.", _PARCA[ad], "kuyu_dibi"
+                )
+            )
         elif ad == "agirlik" and min(parca[0], parca[1], G - parca[2], D - parca[3]) < girdi.ASGARI_ACIKLIK:
             #  Eskiden örnekte arka duvara 3 mm kalıyordu:  pratikte değiyordu
             hata.append(
-                f"Regülatör gergisinin ağırlığı duvara "
-                f"{min(parca[0], parca[1], G - parca[2], D - parca[3]):g} mm ( en az "
-                f"{girdi.ASGARI_ACIKLIK:g} — çizimin çakışma payı ) — regülatör kaçıklığını değiştirin."
+                sorun.Sorun(
+                    f"Regülatör gergisinin ağırlığı duvara "
+                    f"{min(parca[0], parca[1], G - parca[2], D - parca[3]):g} mm ( en az "
+                    f"{girdi.ASGARI_ACIKLIK:g} — çizimin çakışma payı ) — regülatör kaçıklığını değiştirin.",
+                    _PARCA["agirlik"],
+                    "kuyu_dibi",
+                )
             )
         #  Plaka ve kontak bağlı olduğu rayın arkasındadır ( konsollar gibi );  kol o
         #  rayın yanında biter ( oluk aralığı — _gergi_rayda ), öbür raylara
@@ -795,19 +829,47 @@ def _cakismalar(
             engeller += [r for r in kabin_raylari if not r[0] <= gx_ <= r[2]] + agirlik_raylari
         if any(ortusur(parca, p) for p in engeller):
             hata.append(
-                f"Regülatör gergisinin {GERGI_PARCA[ad]} tampona ya da raya çarpıyor — "
-                "regülatörün yerini ( kaçıklığı ya da yanı ) değiştirin."
+                sorun.Sorun(
+                    f"Regülatör gergisinin {GERGI_PARCA[ad]} tampona ya da raya çarpıyor — "
+                    "regülatörün yerini ( kaçıklığı ya da yanı ) değiştirin.",
+                    _PARCA[ad] + ("kabin_tamponu", "agirlik_tamponu") + _RAYLAR,
+                    "kuyu_dibi",
+                )
             )
     for k in agirlik_tamponlari:
         if not (blok[0] <= kutu_merkezi(k)[0] <= blok[2] and blok[1] <= kutu_merkezi(k)[1] <= blok[3]):
-            hata.append("Ağırlık tamponu karşı ağırlığın altına düşmüyor — tamponlar arasını daraltın.")
+            hata.append(
+                sorun.Sorun(
+                    "Ağırlık tamponu karşı ağırlığın altına düşmüyor — tamponlar arasını daraltın.",
+                    ("agirlik_tamponu",),
+                    "kuyu_dibi",
+                )
+            )
     for k in kabin_tamponlari:
         if not (kabin[0] <= kutu_merkezi(k)[0] <= kabin[2]):
-            hata.append("Kabin tamponu kabinin altına düşmüyor — tamponlar arasını daraltın.")
+            hata.append(
+                sorun.Sorun(
+                    "Kabin tamponu kabinin altına düşmüyor — tamponlar arasını daraltın.",
+                    ("kabin_tamponu",),
+                    "kuyu_dibi",
+                )
+            )
     if len(kabin_tamponlari) == 2 and ortusur(*kabin_tamponlari):
-        hata.append("İki kabin tamponu üst üste biniyor — tamponlar arasını açın.")
+        hata.append(
+            sorun.Sorun(
+                "İki kabin tamponu üst üste biniyor — tamponlar arasını açın.",
+                ("kabin_tamponu",),
+                "kuyu_dibi",
+            )
+        )
     if len(agirlik_tamponlari) == 2 and ortusur(*agirlik_tamponlari):
-        hata.append("İki ağırlık tamponu üst üste biniyor — tamponlar arasını açın.")
+        hata.append(
+            sorun.Sorun(
+                "İki ağırlık tamponu üst üste biniyor — tamponlar arasını açın.",
+                ("agirlik_tamponu",),
+                "kuyu_dibi",
+            )
+        )
     return hata
 
 
@@ -859,9 +921,13 @@ def _siginma_yeri(g, S, taban, tip, kabin, perde, ag_yan, engel, hata):
         return min(adaylar)[2]
     a, b = SIGINMA[tip]
     hata.append(
-        f"Kuyu dibinde {tip.lower()} tipi sığınma alanına ( {a:g} × {b:g} mm, "
-        "TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı "
-        "ağırlığın şeridi dışında kalmalı."
+        sorun.Sorun(
+            f"Kuyu dibinde {tip.lower()} tipi sığınma alanına ( {a:g} × {b:g} mm, "
+            "TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı "
+            "ağırlığın şeridi dışında kalmalı.",
+            ("siginma", "kabin_tamponu", "agirlik_tamponu", "gergi", "merdiven"),
+            "kuyu_dibi",
+        )
     )
     return None
 

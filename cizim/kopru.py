@@ -31,6 +31,7 @@ import logging
 import math
 
 from temel import bos_mu, sayi_mi
+from cizim import sorun
 from cizim import girdi
 from cizim import izli
 from cizim import katlar
@@ -958,6 +959,10 @@ def sarim_acisi(g):
         return None
 
 
+#  Saptırma uyuşmazlığında işaretlenen:  çizilen kasnaklar ( sorun.Sorun )
+_KASNAKLAR = ("saptirma_kasnagi", "kabin_kasnak", "kabin_kasnagi", "agirlik_kasnagi", "agirlik_kasnak")
+
+
 def _uyusmazliklar(g, A):
     """[ ( ileti , düzeltme ) ] — hesabın girdisi ile çizimin geometrisinin
     ayrı söylediği büyüklükler.  Düzeltme { girdi : çizimdeki değer } ( ya
@@ -975,8 +980,12 @@ def _uyusmazliklar(g, A):
     if _cift_sarim(A):
         liste.append(
             (
-                "Çift sarımlı kanal:  çizim halatı tahrik kasnağının üzerinden bir kez "
-                "geçirir — çift sarım ( ikinci kasnak, iki geçiş ) henüz çizilemiyor.",
+                sorun.Sorun(
+                    "Çift sarımlı kanal:  çizim halatı tahrik kasnağının üzerinden bir kez "
+                    "geçirir — çift sarım ( ikinci kasnak, iki geçiş ) henüz çizilemiyor.",
+                    ("tahrik_kasnagi",),
+                    "kasnak_duzeni",
+                ),
                 None,
             )
         )
@@ -984,8 +993,12 @@ def _uyusmazliklar(g, A):
     if sarim is not None and sayi_mi(alfa) and abs(alfa - sarim) >= 0.5:
         liste.append(
             (
-                f"Halat sarılma açısı:  çizimdeki halat geometrisi α = {sarim:.1f}° veriyor, "
-                f"hesapta {alfa:g}° — α'yı boş bırakın ( çizimden gelir ).",
+                sorun.Sorun(
+                    f"Halat sarılma açısı:  çizimdeki halat geometrisi α = {sarim:.1f}° veriyor, "
+                    f"hesapta {alfa:g}° — α'yı boş bırakın ( çizimden gelir ).",
+                    ("tahrik_kasnagi",),
+                    "kasnak_duzeni",
+                ),
                 {"sarilma_acisi": round(sarim, 1)},
             )
         )
@@ -1000,17 +1013,23 @@ def _uyusmazliklar(g, A):
         if sayi_mi(D2) and abs(D2 - ort) >= 1.0:
             liste.append(
                 (
-                    f"Saptırma kasnakları:  çizimdeki kasnaklar ( {yazi} ) ortalaması "
-                    f"{ort:.1f} mm, hesaptaki D2 {D2:g} — D2'yi boş bırakın ( çizimden gelir ) "
-                    "ya da kasnak çaplarını düzeltin.",
+                    sorun.Sorun(
+                        f"Saptırma kasnakları:  çizimdeki kasnaklar ( {yazi} ) ortalaması "
+                        f"{ort:.1f} mm, hesaptaki D2 {D2:g} — D2'yi boş bırakın ( çizimden gelir ) "
+                        "ya da kasnak çaplarını düzeltin.",
+                        _KASNAKLAR,
+                    ),
                     {"saptirma_kasnak_capi": round(ort, 1)},
                 )
             )
         if sayi_mi(Ds) and abs(Ds - en_kucuk) >= 0.5:
             liste.append(
                 (
-                    f"Saptırma kasnakları:  çizimdeki en küçük kasnak {en_kucuk:g} mm, hesaptaki "
-                    f"Ds {Ds:g} — Ds'yi boş bırakın ( çizimden gelir ).",
+                    sorun.Sorun(
+                        f"Saptırma kasnakları:  çizimdeki en küçük kasnak {en_kucuk:g} mm, hesaptaki "
+                        f"Ds {Ds:g} — Ds'yi boş bırakın ( çizimden gelir ).",
+                        _KASNAKLAR,
+                    ),
                     {"saptirma_kasnak_min_capi": en_kucuk},
                 )
             )
@@ -1025,9 +1044,13 @@ def _uyusmazliklar(g, A):
     if g["makine"]["yeri"] == "Kuyu üstü" and arka and A.get("makine_raya_biniyor") == "Kılavuz raylara":
         liste.append(
             (
-                "Karşı ağırlık arkadayken makine dairesizde makine duvardan duvara iki kirişe "
-                "oturur ( kuyu derinliğince ) — yük bina yapısına gider:  'Makine yükünün "
-                "yolu' için 'Bina yapısına' seçin.",
+                sorun.Sorun(
+                    "Karşı ağırlık arkadayken makine dairesizde makine duvardan duvara iki kirişe "
+                    "oturur ( kuyu derinliğince ) — yük bina yapısına gider:  'Makine yükünün "
+                    "yolu' için 'Bina yapısına' seçin.",
+                    ("makine_sasesi",),
+                    "kuyu_ustu",
+                ),
                 {"makine_raya_biniyor": "Bina yapısına"},
             )
         )
@@ -1040,9 +1063,13 @@ def _uyusmazliklar(g, A):
     ):
         liste.append(
             (
-                f"Arkadaki ağırlıkla 2:1:  kabin kasnaklarının aralığı çapraz düzlemden "
-                f"{g['aski']['kasnak_arasi']:g} mm ( askı kabin merkezinde ), girilen "
-                f"{A['kabin_kasnak_arasi']:g} — kutuyu boş bırakın.",
+                sorun.Sorun(
+                    f"Arkadaki ağırlıkla 2:1:  kabin kasnaklarının aralığı çapraz düzlemden "
+                    f"{g['aski']['kasnak_arasi']:g} mm ( askı kabin merkezinde ), girilen "
+                    f"{A['kabin_kasnak_arasi']:g} — kutuyu boş bırakın.",
+                    ("kabin_kasnak", "kabin_kasnak_capraz"),
+                    "kuyu_plani",
+                ),
                 {"kabin_kasnak_arasi": g["aski"]["kasnak_arasi"]},
             )
         )

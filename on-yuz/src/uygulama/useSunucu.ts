@@ -15,7 +15,7 @@
          reddedildiyse çizim bir önceki girdinindir.                         */
 import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { api, type AlanSemasi, type CizimYanit, type CokluYanit, type UygulamaIstegi } from "@/lib/api";
+import { api, type AlanSemasi, type CizimSorunu, type CizimYanit, type CokluYanit, type UygulamaIstegi } from "@/lib/api";
 import { formHatalari, istekKur, useGecikmeli, type FormHatasi, type Ham, type UygulamaProjesi } from "@/lib/proje";
 
 /**  Büyük SVG yanıtları ( ~800 KB ) her tuşta önbellekte birikmesin  */
@@ -24,8 +24,12 @@ const ONBELLEK_MS = 30_000;
 export type Sorun =
   | { tur: "kural"; maddeler: FormHatasi[] }
   | { tur: "baglanti"; ileti: string }
-  /**  cizimGuncel:  ekrandaki çizim bu girdinin ( sorunlu da olsa )  */
-  | { tur: "hesap" | "cizim"; maddeler: string[]; cizimGuncel: boolean };
+  /**  cizimGuncel:  ekrandaki çizim bu girdinin ( sorunlu da olsa );  maddelerin
+       parçaları varsa çizimde işaretlenir  */
+  | { tur: "hesap" | "cizim"; maddeler: CizimSorunu[]; cizimGuncel: boolean };
+
+/**  Düz metin sorun ( hesabın iletisi, kurulamayan çizim ):  parçası yok  */
+const duz = (metin: string): CizimSorunu => ({ metin, parcalar: [], cizim: null });
 
 export function useSunucu(
   sema: AlanSemasi,
@@ -80,25 +84,36 @@ export function useSunucu(
   //  Ekrandaki çizim son girdinin değil ( kural dışı girdi gönderilmedi, çizim
   //  kurulamadı, bağlantı yok ya da başka asansörün çizimi )
   const cizimEski = !!hatalar.length || cizimKurulamadi || !!cizim.error || sonCizim?.asansor !== asansor;
-  //  Ekrandaki çizimin sorunları ( çizim yine gösterilir ) ve kurulamayan çizimleri
-  const cizimSorunlari = useMemo(() => {
+  //  Ekrandaki çizimin sorunları ( çizim yine gösterilir;  parçaları işaretlenir )
+  //  ve kurulamayan çizimleri
+  const cizimSorunlari = useMemo<CizimSorunu[]>(() => {
     const y = sonCizim?.yanit;
     if (cizimEski || !y || y.aktif) return [];
-    return [...(y.hata ?? []), ...(y.kurulamayan ?? []).map((b) => `${b} bu girdilerle kurulamadı.`)];
+    return [
+      ...(y.sorunlar ?? (y.hata ?? []).map(duz)),
+      ...(y.kurulamayan ?? []).map((b) => duz(`${b} bu girdilerle kurulamadı.`)),
+    ];
   }, [cizimEski, sonCizim]);
+
+  const sorunluParcalar = useMemo(() => [...new Set(cizimSorunlari.flatMap((m) => m.parcalar))], [cizimSorunlari]);
 
   let sorun: Sorun | null = null;
   if (hatalar.length) sorun = { tur: "kural", maddeler: hatalar };
   else if (baglanti)
     sorun = { tur: "baglanti", ileti: `Sunucuya ulaşılamadı ( ${baglanti.message} ) — bağlantı gelince kendiliğinden güncellenir.` };
-  else if (hesapDurdu)
+  else if (hesapDurdu) {
     //  Hesabın durduğu sebep çoğu kez çizimin sorunuyla aynı metindir:  bir kez
+    //  ( çizimdekinin parçalarıyla )
+    const cizimde = new Map((cizimGerekli ? cizimSorunlari : []).map((m) => [m.metin, m]));
+    const hesaptaki = (hesap.data?.hata ?? []).map((h) => cizimde.get(h) ?? duz(h));
+    const metinler = new Set(hesaptaki.map((m) => m.metin));
     sorun = {
       tur: "hesap",
-      maddeler: [...new Set([...(hesap.data?.hata ?? []), ...(cizimGerekli ? cizimSorunlari : [])])],
+      maddeler: [...hesaptaki, ...[...cizimde.values()].filter((m) => !metinler.has(m.metin))],
       cizimGuncel: cizimGerekli && !cizimEski,
     };
-  else if (cizimGerekli && cizimKurulamadi) sorun = { tur: "cizim", maddeler: cizim.data?.hata ?? [], cizimGuncel: false };
+  } else if (cizimGerekli && cizimKurulamadi)
+    sorun = { tur: "cizim", maddeler: (cizim.data?.hata ?? []).map(duz), cizimGuncel: false };
   else if (cizimGerekli && cizimSorunlari.length) sorun = { tur: "cizim", maddeler: cizimSorunlari, cizimGuncel: true };
 
   //  Ekrandaki hükümler son girdinin mi?
@@ -122,6 +137,8 @@ export function useSunucu(
     cizimDurumu,
     /**  Ekrandaki ( güncel ) çizimin sorun sayısı — paket inmez  */
     cizimSorunSayisi: cizimSorunlari.length,
+    /**  Ekrandaki ( güncel ) çizimin sorunlu parçaları ( data-ad ) — tuval kırmızı işaretler  */
+    sorunluParcalar,
     sorun,
   };
 }

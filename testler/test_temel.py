@@ -3,7 +3,7 @@
 import math
 import unittest
 
-from temel import bos_mu, eleman_kutusu, kutu_merkezi, ortusur, sayi_mi
+from temel import bos_mu, cumle_basi, eleman_kutusu, kucuk, kutu_merkezi, ortusur, sayi_mi
 
 
 class Sayi(unittest.TestCase):
@@ -29,6 +29,14 @@ class Kutu(unittest.TestCase):
         k = eleman_kutusu({"x": 10.0, "y": 20.0, "g": 30.0, "d": 40.0})
         self.assertEqual(k, (10.0, 20.0, 40.0, 60.0))
         self.assertEqual(kutu_merkezi(k), (25.0, 40.0))
+
+    def test_turkce_kucuk_ve_cumle_basi(self):
+        """str.lower / capitalize Türkçe İ ve I'yı bozar ( "Kabi̇n bağlantisi" — 19 Eki )."""
+        self.assertEqual(kucuk("AĞIRLIK BAĞLANTISI"), "ağırlık bağlantısı")
+        self.assertEqual(cumle_basi("KABİN"), "Kabin")
+        self.assertEqual(cumle_basi("ağırlık"), "Ağırlık")
+        self.assertEqual(cumle_basi("iki kabin tamponu"), "İki kabin tamponu")
+        self.assertEqual(cumle_basi(""), "")
 
     def test_ortusur_kenarda_degmek_sayilmaz(self):
         a = (0, 0, 10, 10)
