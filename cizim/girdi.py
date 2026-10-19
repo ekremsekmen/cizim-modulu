@@ -38,6 +38,40 @@ ZORUNLU = {
     "aski": ("duzen",),
 }
 
+#  Zorunlu alanların ekrandaki adı ( iletiler için ).  Çoğu formun bir kutusudur
+#  ve kopru.py onları kutunun adıyla zaten denetler;  buraya ancak TÜRETİLEN
+#  değerler düşer ( kapının sol duvara uzaklığı gibi ) — iç ad ( "kapi.sol_pay" )
+#  mühendise neyin yanlış olduğunu söylemiyordu ( 19 Eki denetimi ).
+ADLAR = {
+    "kuyu.genislik": "Kuyu genişliği",
+    "kuyu.derinlik": "Kuyu derinliği",
+    "kuyu.duvar_on": "Kuyu ön duvarı kalınlığı",
+    "kuyu.duvar_arka": "Kuyu arka duvarı kalınlığı",
+    "kuyu.duvar_sol": "Kuyu sol duvarı kalınlığı",
+    "kuyu.duvar_sag": "Kuyu sağ duvarı kalınlığı",
+    "kabin.genislik": "Kabin genişliği",
+    "kabin.derinlik": "Kabin derinliği",
+    "kabin.on_pay": "Kabinin kuyu ön duvarına uzaklığı",
+    "kapi.genislik": "Kapı genişliği",
+    "kapi.sol_pay": "Kapı kuyuya sığmıyor:  kapı boşluğunun sol duvara uzaklığı",
+    "kabin_ray.arasi": "Kabin ray arası",
+    "kabin_ray.kapi_arasi": "Kabin ray ekseninin kapıya uzaklığı",
+    "kabin_ray.b": "Kabin rayının taban genişliği",
+    "kabin_ray.h": "Kabin rayının yüksekliği",
+    "agirlik.genislik": "Karşı ağırlık genişliği",
+    "agirlik.derinlik": "Karşı ağırlık derinliği",
+    "agirlik.ray_arasi": "Karşı ağırlık ray arası",
+    "agirlik.ray_duvar": "Ağırlık rayının duvara uzaklığı",
+    "agirlik.b": "Ağırlık rayının taban genişliği",
+    "agirlik.h": "Ağırlık rayının yüksekliği",
+}
+#  Türetilen değerlerin kaynağı:  mühendis hangi kutuyu değiştireceğini bilsin
+TURETILEN = {
+    "kabin.on_pay": "kapı tipinden ve eşik arasından",
+    "kapi.sol_pay": "kuyu genişliğinden, kabinin yerinden ve kapı genişliğinden",
+    "kabin_ray.kapi_arasi": "kabin derinliğinden",
+}
+
 AGIRLIK_YERLERI = ("Sağ", "Sol", "Arka")
 #  KAT KAPISININ MONTAJI:  kapı ünitesi ( kasa + eşik ) ya kuyu ön duvarının
 #  boşluğuna oturur ( kasa duvarda, eşik kuyuya taşar ) ya da duvarın İÇ
@@ -253,12 +287,17 @@ def _zorunlu_alanlar(g):
                 if v not in KAPI_MONTAJLARI:
                     hata.append(f"kapi.montaj: {KAPI_MONTAJLARI} içinden olmalı ( {v!r} ).")
                 continue
+            ad = ADLAR.get(f"{bolum}.{a}", f"{bolum}.{a}")
             if not _sonlu_sayi(v):
-                hata.append(f"{bolum}.{a}: sayı olmalı ( {v!r} ).")
+                hata.append(f"{ad}:  sayı olmalı ( {v!r} ).")
             elif a in ("kaciklik_y", "eksen_kaciklik"):
                 continue  # işaretli olabilir
             elif v <= 0:
-                hata.append(f"{bolum}.{a}: sıfırdan büyük olmalı ( {v!r} ).")
+                kaynak = TURETILEN.get(f"{bolum}.{a}")
+                hata.append(
+                    f"{ad} {f'{v:g}'.replace('.', ',')} mm çıktı;  sıfırdan büyük olmalı"
+                    + (f" ( {kaynak} türetilir )." if kaynak else ".")
+                )
     return hata
 
 

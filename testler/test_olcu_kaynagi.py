@@ -770,5 +770,32 @@ class Parcalar(unittest.TestCase):
         self.assertIn("kural", eleman.olcu("yatay", (0, 0), (1, 0), 0, kural="x"))
 
 
+class FormunKurali(unittest.TestCase):
+    """Ölçü kutusu formun kuralını çiğneyen değeri yazmaz ( 19 Eki denetimi:
+    kuyu dibi 99.999.999 "çizim kuruldu" deyip kutuya yazılıyor, ardından form
+    "en çok 20.000" deyip hesabı durduruyordu )."""
+
+    def setUp(self):
+        self.v = _veri()
+        self.r = cizim_uclari._cozumleme(self.v, "kuyu_kesiti_yan")
+        self.i = _olcu(self.r, "KUYU DİBİ")
+
+    def test_kural_disi_hedef_reddedilir(self):
+        y = _degistir(self.v, "kuyu_kesiti_yan", self.i, self.r, "kuyu_dibi", "99999999")
+        self.assertFalse(y["aktif"], y)
+        self.assertIn("en çok 20.000", y["hata"][0])
+        self.assertIn("Kuyu dibi", y["hata"][0])
+
+    def test_kural_icindeki_hedef_yazilir(self):
+        y = _degistir(self.v, "kuyu_kesiti_yan", self.i, self.r, "kuyu_dibi", "1650")
+        self.assertTrue(y["aktif"], y)
+        self.assertEqual(y["degisiklikler"][0]["deger"], 1650)
+
+    def test_iletiler_on_yuzunkuyle_ayni_bicimde(self):
+        self.assertEqual(cizim_uclari._tr_sayi(20000), "20.000")
+        self.assertEqual(cizim_uclari._tr_sayi(1234.5), "1.234,5")
+        self.assertEqual(cizim_uclari._tr_sayi(0.25), "0,25")
+
+
 if __name__ == "__main__":
     unittest.main()

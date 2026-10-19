@@ -224,5 +224,34 @@ class HesapGeometriyleDurur(unittest.TestCase):
         self.assertTrue(hesap.get("aktif"))
 
 
+class IletiDili(unittest.TestCase):
+    """Çizimin iletisi iç ad söylemez ( 19 Eki denetimi:  dar kuyuda
+    "kapi.sol_pay: sıfırdan büyük olmalı ( -400.0 )" çıkıyordu )."""
+
+    def test_dar_kuyu_kapinin_sigmadigini_soyler(self):
+        r = json.loads(
+            cizim_uclari.api_cizimler(
+                {"asansorler": [{"kuyu_genisligi": "100"}], "proje_geneli": {}, "sabitler": {}, "asansor": 0}
+            ).body
+        )
+        self.assertFalse(r["aktif"])
+        metin = " ".join(r["hata"])
+        self.assertIn("Kapı kuyuya sığmıyor", metin)
+        self.assertIn("kuyu genişliğinden", metin)
+        self.assertNotRegex(metin, r"\b[a-z_]+\.[a-z_]+:")
+
+    def test_her_zorunlu_alanin_adi_var(self):
+        from cizim import girdi
+
+        isaretli = {"yeri", "duzen", "montaj", "kaciklik_y", "eksen_kaciklik"}
+        adsiz = [
+            f"{b}.{a}"
+            for b, al in girdi.ZORUNLU.items()
+            for a in al
+            if a not in isaretli and f"{b}.{a}" not in girdi.ADLAR
+        ]
+        self.assertEqual(adsiz, [])
+
+
 if __name__ == "__main__":
     unittest.main()
