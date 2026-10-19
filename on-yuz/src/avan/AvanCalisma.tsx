@@ -623,7 +623,7 @@ function TrafikAdimi({
           </div>
           {sonuc?.hata ? (
             <div className="rounded-buyuk border border-uyari-cizgi bg-uyari-acik px-5 py-4">
-              <p className="text-[13px] font-semibold text-uyari">Hesap için eksik girdi</p>
+              <p className="text-[13px] font-semibold text-uyari">Trafik hesabı yapılamadı</p>
               <p className="mt-1 text-[12.5px] text-metin-2">{String(sonuc.hata).replace(/^HESAP HATASI:\s*/, "")}</p>
             </div>
           ) : o ? (

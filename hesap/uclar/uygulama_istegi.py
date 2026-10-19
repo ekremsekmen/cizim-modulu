@@ -152,7 +152,8 @@ def _girdi_coz(v, veri, atla=frozenset()):
     g["_ofis"] = _sabitler_coz(
         (veri or {}).get("sabitler"),
         uygulama_sabitleri.METIN,
-        lambda k: uygulama_sabitleri.ETIKET.get(k, (k,))[0],
+        #  Değer ofis standardındadır ( proje formunda aranmasın ) — avandaki gibi
+        lambda k: f"Ofis standardı · {uygulama_sabitleri.ETIKET.get(k, (k,))[0]}",
     )
     return g
 

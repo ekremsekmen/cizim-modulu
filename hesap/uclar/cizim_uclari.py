@@ -35,6 +35,7 @@ from cizim import kopru
 from cizim import olcu_kaynagi
 from cizim import pafta
 from cizim import sabitler
+from motor.uygulama import mukavemet_girdi
 from cizim import svg
 from uclar import uygulama_istegi
 from motor.uygulama import uygulama_girdisi
@@ -648,6 +649,14 @@ def api_olcu_degistir(veri: dict = Body(...)):
         if serbest:
             degisiklik += _bagli_degerler(r, anahtar, x, serbest)
         degisiklik += _tutarlilik_duzeltmeleri(r, degisiklik)
+        #  FORMUN KURALI ÖLÇÜDE DE GEÇERLİ:  kutu "çizim kuruldu" deyip formun
+        #  reddedeceği değeri yazıyordu ( kuyu dibi 99.999.999 → form "en çok
+        #  20.000" der, hesap durur ).  Değişiklik kutuya yazılmadan reddedilir.
+        red = _kural_disi(degisiklik)
+        if red:
+            return JSONResponse(
+                {"aktif": False, "hata": [f"{red}  —  bu ölçü {_tr_sayi(hedef)} mm yapılamaz."]}
+            )
         return JSONResponse(
             {
                 "aktif": True,
@@ -662,6 +671,42 @@ def api_olcu_degistir(veri: dict = Body(...)):
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
         return JSONResponse({"aktif": False, "hata": [hata_iletisi("ÖLÇÜ HATASI", e, ": ")]})
+
+
+@functools.lru_cache(maxsize=1)
+def _form_kurallari():
+    return mukavemet_girdi.form_kurallari()
+
+
+def _tr_sayi(x):
+    """Ekrandaki yazım:  binlik nokta, ondalık virgül ( on-yuz sayiYaz gibi )."""
+    if float(x).is_integer():
+        return f"{int(x):,}".replace(",", ".")
+    return f"{x:,.2f}".rstrip("0").rstrip(".").replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def _kural_disi(degisiklik):
+    """Değişikliklerden formun kuralını çiğneyen ilki:  ileti ( yoksa None ).
+    İletiler ön yüzünküyle aynı ( on-yuz/src/lib/denetim.ts alanHatasi )."""
+    kurallar = _form_kurallari()
+    for d in degisiklik:
+        k, n = kurallar.get(d["anahtar"]), d.get("deger")
+        if not k or not isinstance(n, (int, float)) or isinstance(n, bool):
+            continue
+        ileti = None
+        if k["tam_sayi"] and not float(n).is_integer():
+            ileti = "tam sayı olmalı"
+        elif k["en_az"] is not None and (n < k["en_az"] if k["en_az_dahil"] else n <= k["en_az"]):
+            ileti = (
+                f"en az {_tr_sayi(k['en_az'])}"
+                if k["en_az_dahil"]
+                else f"{_tr_sayi(k['en_az'])} üstünde olmalı"
+            )
+        elif k["en_cok"] is not None and n > k["en_cok"]:
+            ileti = f"en çok {_tr_sayi(k['en_cok'])}"
+        if ileti:
+            return f"{d['etiket']} {_tr_sayi(n)} olurdu:  {ileti}"
+    return None
 
 
 def _en_az_serbest(r, k, aday):
