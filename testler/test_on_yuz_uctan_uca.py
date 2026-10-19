@@ -370,9 +370,33 @@ class OnYuzUctanUca(unittest.TestCase):
             ({"bina_tipi": "Konut", "N": "10"}, {"project_title": "Eski avan"}),
         )
 
+    def test_ornek_proje_gercek_ve_her_bolumu_uygun(self):
+        """Örnek gerçekte var olan bir asansör ( on-yuz/src/lib/ornek.ts ):  hiçbir
+        bölüm "uygun değil" değil, çizimler kurulur;  tarayıcıda kalmış ESKİ
+        örnek ( boş değerli, sürümsüz ) açılınca yenilenir."""
+        self.ornek_projeyi_ac()
+        self.assertEqual(self.sayaclar()[0], 0)
+        _istek, hesap = self.iz.son("/api/uygulama/coklu")
+        self.assertTrue(hesap["ozet"]["tumu_uygun"], hesap["ozet"])
+        _istek, cizim = self.iz.son("/api/uygulama/cizimler")
+        self.assertTrue(cizim["aktif"], cizim.get("hata"))
+        kimlik = self.sayfa.url.rstrip("/").rsplit("/", 1)[-1]
+        self.assertEqual(self.kayitli_asansorler()[0].get("beyan_yuku"), "1275")
+        self.sayfa.evaluate(
+            f"""(() => {{ const k = 'asansor:proje:{kimlik}';
+                const p = JSON.parse(localStorage.getItem(k));
+                delete p.ornekSurumu;  p.asansorler = [{{}}];
+                localStorage.setItem(k, JSON.stringify(p)); }})()"""
+        )
+        self.sayfa.goto(self.url + "/")
+        self.ornek_projeyi_ac()
+        self.assertTrue(self.sayfa.url.endswith(kimlik))
+        self.assertEqual(self.kayitli_asansorler()[0].get("beyan_yuku"), "1275")
+
     def test_ornek_proje_tektir_ve_sifirlanir(self):
         self.ornek_projeyi_ac()
         ilk = self.sayfa.url
+        ornek = self.kayitli_asansorler()
         self.secim_yap("beyan_yuku", "1.000")
         self.sayfa.goto(self.url + "/")
         self.ornek_projeyi_ac()
@@ -384,7 +408,7 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(ornekler, 1)
         self.assertEqual(self.kayitli_asansorler()[0].get("beyan_yuku"), "1000")
         self.sayfa.get_by_role("button", name="Örneği sıfırla").click()
-        self.assertEqual(self.kayitli_asansorler(), [{}])
+        self.assertEqual(self.kayitli_asansorler(), ornek)
 
     def test_iki_sekme_ayni_projeyi_esitler(self):
         self.ornek_projeyi_ac()

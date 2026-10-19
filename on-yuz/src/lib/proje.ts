@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AlanSemasi, UygulamaIstegi } from "./api";
 import { alanHatasi } from "./denetim";
 import { useSekmeEsitle } from "./sekme";
+import { ORNEK_ASANSOR, ORNEK_SURUMU } from "./ornek";
 
 export type Ham = Record<string, string>;
 
@@ -14,6 +15,8 @@ export interface UygulamaProjesi {
   id: string;
   tur: "uygulama";
   ornek?: boolean;
+  /**  Örneğin değerlerinin sürümü ( lib/ornek ):  eskiyse örnek yenilenir  */
+  ornekSurumu?: number;
   kimlik: { project_title: string; owner: string; sheet_no: string };
   asansorler: Ham[];
   proje_geneli: Ham;
@@ -71,8 +74,9 @@ export function yeniUygulama(
     id: yeniKimlik(),
     tur: "uygulama",
     ornek,
+    ...(ornek && !icerik && { ornekSurumu: ORNEK_SURUMU }),
     kimlik: icerik?.kimlik ?? { project_title: ornek ? "Örnek proje" : "", owner: "", sheet_no: "" },
-    asansorler: icerik?.asansorler.length ? icerik.asansorler : [{}],
+    asansorler: icerik?.asansorler.length ? icerik.asansorler : [ornek ? { ...ORNEK_ASANSOR } : {}],
     proje_geneli: icerik?.proje_geneli ?? {},
     kapak: icerik?.kapak ?? {},
     guncellendi: Date.now(),
@@ -82,11 +86,16 @@ export function yeniUygulama(
 }
 
 /**  Örnek proje TEKTİR:  varsa o açılır ( her açılışta yeni kopya listeyi dolduruyordu ),
-     yoksa kurulur.  Değerlerini baştan almak için örnekSifirla.  */
+     yoksa kurulur.  Değerlerini baştan almak için örnekSifirla.  Örneğin değerleri
+     programla değiştiyse ( ORNEK_SURUMU ) tarayıcıdaki eski örnek yenilenir.  */
 export function ornekProjesi(): UygulamaProjesi {
   for (const x of projeListesi()) {
     const p = x.ornek ? projeOku(x.id) : null;
-    if (p) return p;
+    if (!p) continue;
+    if (p.ornekSurumu === ORNEK_SURUMU) return p;
+    const y = { ...ornekSifirla(p), guncellendi: Date.now() };
+    kaydet(y);
+    return y;
   }
   return yeniUygulama(true);
 }
@@ -95,8 +104,9 @@ export function ornekProjesi(): UygulamaProjesi {
 export function ornekSifirla(p: UygulamaProjesi): UygulamaProjesi {
   return {
     ...p,
+    ornekSurumu: ORNEK_SURUMU,
     kimlik: { project_title: "Örnek proje", owner: "", sheet_no: "" },
-    asansorler: [{}],
+    asansorler: [{ ...ORNEK_ASANSOR }],
     proje_geneli: {},
     kapak: {},
     son: undefined,
