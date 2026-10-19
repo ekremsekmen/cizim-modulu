@@ -151,6 +151,28 @@ export function alanYaz(p: UygulamaProjesi, sema: AlanSemasi, asansor: number, a
   return { ...p, asansorler: p.asansorler.map((h, i) => (i === asansor ? temizle(h) : h)) };
 }
 
+/* ───────────────────────────── asansör ekleme / kaldırma */
+/**  Yeni asansör 1 nolunun kopyasıdır ( aynı kuyu düzeni sık );  adı kopyalanmaz —
+     iki sekme aynı adla görünmesin.  */
+export function asansorEkle(p: UygulamaProjesi, azami: number): UygulamaProjesi {
+  if (p.asansorler.length >= azami) return p;
+  const { asansor_adi: _ad, ...kopya } = p.asansorler[0] ?? {};
+  return { ...p, asansorler: [...p.asansorler, kopya] };
+}
+
+/**  i. asansörü kaldırır;  son asansör kaldırılmaz ( proje en az bir asansördür ).  */
+export function asansorKaldir(p: UygulamaProjesi, i: number): UygulamaProjesi {
+  if (p.asansorler.length <= 1 || i < 0 || i >= p.asansorler.length) return p;
+  return { ...p, asansorler: p.asansorler.filter((_, j) => j !== i) };
+}
+
+/**  Adet:  artınca 1 nolunun kopyaları eklenir, azalınca sondakiler kaldırılır.  */
+export function asansorAdedi(p: UygulamaProjesi, n: number, azami: number): UygulamaProjesi {
+  let q = p;
+  while (q.asansorler.length < Math.min(n, azami)) q = asansorEkle(q, azami);
+  return n >= 1 && q.asansorler.length > n ? { ...q, asansorler: q.asansorler.slice(0, n) } : q;
+}
+
 /**  Makine dairesiz mi ( yazılmadıysa şemanın varsayılanı ).  */
 export function mrlMi(sema: AlanSemasi, p: UygulamaProjesi): boolean {
   const ham = p.proje_geneli.mk_yok;

@@ -307,6 +307,69 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(sonra, once)
         self.assertEqual(avan_sonra, avan_once)
 
+    def kayitli_asansorler(self):
+        """Tarayıcıda kayıtlı projenin asansörleri ( aynı istek önbellekten yanıtlanır,
+        ağdan görünmez — durum kaydın kendisinden okunur )."""
+        self.iz.sakin()
+        kimlik = self.sayfa.url.rstrip("/").rsplit("/", 1)[-1].split("?")[0]
+        return self.sayfa.evaluate(f"JSON.parse(localStorage.getItem('asansor:proje:{kimlik}')).asansorler")
+
+    def sekmeler(self):
+        return self.sayfa.get_by_role("navigation", name="Asansörler").get_by_role(
+            "button", name=re.compile(r"^(?!.*kaldır)")
+        )
+
+    def test_asansor_eklenir_kaldirilir_geri_alinir(self):
+        self.ornek_projeyi_ac()
+        ekle = self.sayfa.get_by_role("button", name="Asansör ekle")
+        ekle.click()
+        ekle.click()
+        #  Eklenen asansöre geçilir;  ad kopyalanmaz ( "Asansör 3" )
+        self.assertEqual(self.sekmeler().count() - 1, 3)  # ekle düğmesi de bir düğme
+        self.assertEqual(
+            self.sayfa.get_by_role("button", name="Asansör 3", exact=True).get_attribute("aria-current"),
+            "page",
+        )
+        self.secim_yap("beyan_yuku", "1.000")
+        once, _h = self._hesap_istegi()
+        self.assertEqual([x.get("beyan_yuku") for x in once["asansorler"]][2], "1000")
+
+        #  Ortadaki kaldırılır:  sıra korunur
+        self.sayfa.get_by_role("button", name="Asansör 2 asansörünü kaldır").click()
+        sonra, _h = self._hesap_istegi()
+        self.assertEqual(sonra["asansorler"], [once["asansorler"][0], once["asansorler"][2]])
+        #  Geri alınır:  üç asansör, aynı girdiler
+        self.sayfa.get_by_role("status").get_by_role("button", name="Geri al").click()
+        self.assertEqual(self.kayitli_asansorler(), once["asansorler"])
+        self.assertEqual(self.sekmeler().count() - 1, 3)
+        #  Tek asansörde kaldırma düğmesi yok
+        for _ in range(2):
+            self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).first.click()
+        self.assertEqual(self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).count(), 0)
+
+    def test_yeni_avan_projesi_oncekini_geri_alir(self):
+        self.sayfa.goto(self.url + "/avan/trafik")
+        self.sayfa.evaluate(
+            """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut', N: '10'}, ekNufus: [], trafikAsansorleri: [{P: '8'}],
+                ortak: {}, avanAsansorleri: [{}, {}, {}, {}], kapak: {project_title: 'Eski avan'}}))"""
+        )
+        self.sayfa.reload()
+        self.iz.sakin()
+        kayit = "JSON.parse(localStorage.getItem('asansor:avan'))"
+        self.sayfa.get_by_role("button", name="Yeni avan projesi").click()
+        istek, _y = self.iz.son("/api/trafik")
+        self.assertNotIn("bina_tipi", istek["girdiler"])
+        self.assertEqual(istek["girdiler"]["asansorler"], [])
+        self.assertEqual(self.sayfa.evaluate(kayit)["kapak"], {})
+        self.sayfa.get_by_role("button", name="Geri al").click()
+        self.iz.sakin()
+        eski = self.sayfa.evaluate(kayit)
+        self.assertEqual(
+            (eski["trafik"], eski["kapak"]),
+            ({"bina_tipi": "Konut", "N": "10"}, {"project_title": "Eski avan"}),
+        )
+
     # ------------------------------------------------------------ 4 ölçü kutusu
     def test_olcu_kutusu_girdiyi_degistirir(self):
         self.ornek_projeyi_ac()

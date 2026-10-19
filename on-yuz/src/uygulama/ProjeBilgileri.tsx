@@ -19,6 +19,7 @@ export function ProjeBilgileri({
   degisti,
   proje,
   guncelle,
+  adetDegisti,
   sil,
   sema,
   ofis,
@@ -27,6 +28,8 @@ export function ProjeBilgileri({
   degisti: (a: boolean) => void;
   proje: UygulamaProjesi;
   guncelle: (f: (p: UygulamaProjesi) => UygulamaProjesi) => void;
+  /**  Azalınca sondakiler kaldırılır — çalışma alanı "Geri al" sunar  */
+  adetDegisti: (n: number) => void;
   sil: () => void;
   sema: AlanSemasi;
   ofis: Ham;
@@ -40,16 +43,6 @@ export function ProjeBilgileri({
   const kapak = (k: string, d: string) => guncelle((p) => ({ ...p, kapak: { ...p.kapak, [k]: d } }));
   const kapakDolu = Object.values(proje.kapak ?? {}).filter((v) => v.trim()).length;
   const adet = proje.asansorler.length;
-  const adetYaz = (n: number) =>
-    guncelle((p) => ({
-      ...p,
-      //  Yeni asansör 1 nolunun kopyası olarak açılır;  azaltmak fazlasını siler
-      asansorler:
-        n > p.asansorler.length
-          ? [...p.asansorler, ...Array.from({ length: n - p.asansorler.length }, () => ({ ...p.asansorler[0] }))]
-          : p.asansorler.slice(0, n),
-    }));
-
   return (
     <Cekmece
       acik={acik}
@@ -107,12 +100,12 @@ export function ProjeBilgileri({
             <Bolumlu
               etiket="Asansör adedi"
               deger={String(adet)}
-              degisti={(d) => adetYaz(Number(d))}
+              degisti={(d) => adetDegisti(Number(d))}
               secenekler={Array.from({ length: sema.asansor_azami }, (_, i) => ({ deger: String(i + 1), ad: String(i + 1) }))}
             />
           </div>
           <p className="mt-2 text-[12px] leading-relaxed text-metin-3">
-            Her asansör ayrı kuyudadır.  Yeni asansör 1 nolu asansörün kopyası olarak açılır;  binaya ait alanlar ( makine
+            Her asansör ayrı kuyudadır.  Yeni asansör 1 nolu asansörün kopyası olarak açılır ( adı hariç );  azaltmak sondakileri kaldırır ( geri alınabilir );  binaya ait alanlar ( makine
             dairesi, temel ) bütün asansörlerde aynıdır.
           </p>
         </section>
