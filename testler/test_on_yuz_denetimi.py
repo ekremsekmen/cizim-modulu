@@ -1,6 +1,6 @@
 """ÖN YÜZ DENETİMİ — SUNUCUYLA UYUM
 
-Ön yüz ( on-yuz/src/lib/proje.ts alanHatasi ) kutuyu yazılırken denetler, kural
+Ön yüz ( on-yuz/src/lib/denetim.ts alanHatasi ) kutuyu yazılırken denetler, kural
 dışı değeri sunucuya göndermez.  Kurallar sunucudan gelir
 ( mukavemet_girdi.form_kurallari ).  Uyum:
 
@@ -26,7 +26,7 @@ from testler import test_yerlesim_saglamligi
 from uclar import cizim_uclari, uygulama_istegi, uygulama_uclari
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROJE_TS = os.path.join(KOK, "on-yuz", "src", "lib", "proje.ts")
+PROJE_TS = os.path.join(KOK, "on-yuz", "src", "lib", "denetim.ts")
 NODE_MODULES = os.path.join(KOK, "on-yuz", "node_modules")
 
 #  Durumlar stdin'den:  [ [ anahtar , kural , ham ] ] → [ ileti | null ]

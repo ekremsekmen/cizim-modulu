@@ -2,13 +2,15 @@
     Adımlar birbirini besler:  trafik asansör adedini, kapasiteyi ve hızı
     verir ( avan_koprusu );  ikisi kapağın asansör satırlarını doldurur
     ( kapak_bilgileri ).  Her adımın sonucu sunucudan, aynı hesap belgesiyle.  */
-import { lazy, Suspense, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router";
 import { Check, ChevronRight, CircleAlert, Download, FileArchive, FilePlus, FolderOpen, Info, Loader2, Plus, Save, Undo2, X } from "lucide-react";
 import { api, indir, paketNotu, type AvanKoprusu, type AvanYaniti, type Secenekler, type TrafikYaniti } from "@/lib/api";
 import { useGecikmeli, type Ham } from "@/lib/proje";
 import {
+  acilisiOku,
+  acilisiYaz,
   AVAN_AZAMI,
   BOS_AVAN,
   AVAN_SECIM_VARSAYILANI,
@@ -45,7 +47,12 @@ export function AvanCalisma() {
   const [p, setP] = useAvanProjesi();
   const [ofis] = useAvanOfisi();
   const konum = useLocation();
-  const [acilis, setAcilis] = useState<Acilis | null>(() => (konum.state as { acilis?: Acilis } | null)?.acilis ?? null);
+  //  Açılış bildirimi ve "Geri al"ın önceki projesi tarayıcıda da durur:  sayfa
+  //  yenilenince kaybolmasın ( avan tek projedir — önceki yalnız burada yaşar )
+  const [acilis, setAcilis] = useState<Acilis | null>(
+    () => (konum.state as { acilis?: Acilis } | null)?.acilis ?? acilisiOku(),
+  );
+  useEffect(() => acilisiYaz(acilis), [acilis]);
 
   //  TRAFİK isteği:  bina + görünen asansör sütunları
   const trafikGirdi = useMemo(
@@ -142,7 +149,7 @@ export function AvanCalisma() {
     setAcilis({
       proje: BOS_AVAN,
       bildirim:
-        "Yeni avan projesi başlatıldı.  Önceki proje “Geri al” ile döner — sayfadan çıkınca geri alınamaz;  saklamak için önce dosyaya kaydedin.",
+        "Yeni avan projesi başlatıldı.  Önceki proje bu bildirimi kapatana kadar “Geri al” ile döner;  kalıcı saklamak için dosyaya kaydedin.",
       dosyaAvani: [],
       onceki: p,
     });

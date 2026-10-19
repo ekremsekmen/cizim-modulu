@@ -17,10 +17,11 @@
       Dosyadaki değer trafikten farklıysa açılışta söylenir.
     · Ofis standardı bütün avan projelerinde geçerlidir ( uygulamadaki gibi ):
       dosyadaki uygulanmaz, farklıysa söylenir.                              */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AvanKoprusu, Deger, Secenekler } from "./api";
 import { KAPAK_GRUPLARI } from "./kapak";
 import { sayiOku, type Ham } from "./proje";
+import { useSekmeEsitle } from "./sekme";
 
 /**  Ek nüfus kalemi ( Tablo-1 ):  hızlı girişi olmayan bina tiplerinde nüfus buradan  */
 export interface EkNufus {
@@ -54,6 +55,7 @@ export const BOS_AVAN: AvanProjesi = {
 
 const PROJE = "asansor:avan";
 const OFIS = "asansor:avan-ofis";
+const ACILIS = "asansor:avan-acilis";
 
 function oku<T extends object>(anahtar: string, yedek: T): T {
   try {
@@ -80,6 +82,8 @@ export function avanProjesiniYaz(p: AvanProjesi) {
 export function useAvanProjesi() {
   const [p, setP] = useState<AvanProjesi>(avanProjesiniOku);
   useEffect(() => yaz(PROJE, p), [p]);
+  //  Başka sekmede değişti:  o hâl alınır ( silindiyse boş proje )
+  useSekmeEsitle(PROJE, useCallback((d: Partial<AvanProjesi> | null) => setP({ ...BOS_AVAN, ...(d ?? {}) }), []));
   return [p, setP] as const;
 }
 
@@ -90,6 +94,7 @@ export function avanOfisiniOku(): Ham {
 export function useAvanOfisi() {
   const [ofis, setOfis] = useState<Ham>(avanOfisiniOku);
   useEffect(() => yaz(OFIS, ofis), [ofis]);
+  useSekmeEsitle(OFIS, useCallback((d: Ham | null) => setOfis(d ?? {}), []));
   return [ofis, setOfis] as const;
 }
 
@@ -449,6 +454,24 @@ export interface Acilis {
   bildirim: string;
   dosyaAvani: { P: string; V: string }[];
   onceki?: AvanProjesi;
+}
+
+/**  Açılış bildirimi ve önceki proje ( "Geri al" ) — sayfa yenilenince de durur  */
+export function acilisiOku(): Acilis | null {
+  try {
+    const d = JSON.parse(localStorage.getItem(ACILIS) || "null");
+    return d && typeof d === "object" && typeof d.bildirim === "string" ? (d as Acilis) : null;
+  } catch {
+    return null;
+  }
+}
+export function acilisiYaz(a: Acilis | null) {
+  try {
+    if (a) localStorage.setItem(ACILIS, JSON.stringify(a));
+    else localStorage.removeItem(ACILIS);
+  } catch {
+    /*  özel pencere:  bildirim yalnız bu açılışta kalır  */
+  }
 }
 
 /**  Dosyayı okur;  hata ya da açılış  */
