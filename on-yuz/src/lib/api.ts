@@ -143,14 +143,17 @@ export interface CizimSorunu {
 export interface CareOnerisi {
   anahtar: string;
   etiket: string;
-  /**  Bugünkü etkin değer ( boş kutuda kuralın / varsayılanın değeri )  */
-  eski: number | null;
+  /**  Bugünkü etkin değer ( boş kutuda kuralın / varsayılanın değeri;  seçimde metin )  */
+  eski: number | string | null;
   girilmis: boolean;
-  yeni: number;
+  yeni: number | string;
   /**  Bu değişiklikle giden sorunlar ( metinleri )  */
   gider: string[];
+  /**  Bu değişiklikten sonra görünür olacak sorunlar:  bugün de var ama denetim
+       ilk hatada durduğu için gizli ( yeni sorun DEĞİL )  */
+  ortaya_cikan: string[];
   bina: boolean;
-  yontem: "türev" | "son değişiklik";
+  yontem: "türev" | "son değişiklik" | "seçim";
 }
 
 export interface CareYanit {

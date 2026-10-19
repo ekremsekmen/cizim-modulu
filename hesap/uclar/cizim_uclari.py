@@ -472,6 +472,36 @@ def izli_sorunlar(veri, i):
     return sorunlar, degerler, gizli
 
 
+def genis_sorunlar(veri, i):
+    """Aktif asansörün sorunları, denetimler ilk hatada DURMADAN ( sorunlu kip —
+    cizim/sorunlu.py ):  gizli kalanlar da.  Kanat cebi çarpınca kabin üstünün,
+    kesitin, makine dairesinin denetimi hiç koşmuyordu;  çare bulucu ( uclar/
+    care_uclari.py ) ilk sorunu giderince ortaya çıkanları YENİ sayıp doğru
+    düzeltmeyi eliyordu.  Bir çizimin denetimi sorunlu kipte kurulamazsa sıkı
+    hâli.  Girdi çizime hiç çevrilemiyorsa köprünün sorunları.  [ Sorun ]."""
+    with istek_onbellegi.etkin():
+        asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
+        pg = {k: ortak[k] for k in ortak if k != "_ofis"}
+        A = uygulama_girdisi.tamamla({**uygulama_girdisi.varsayilanlar(), **ortak, **asansorler[i], **pg})
+        g, hata = kopru.cizim_girdisi(A, None, "", i + 1)
+        if g is None:
+            return hata
+        liste = []
+        for ad in pafta.sira(g):
+            dogrula = cizimler.CIZIMLER[ad][0]
+            try:
+                with sorunlu.kip():
+                    liste += dogrula(g)
+            except Exception:  # sorunlu kipte kurulamayan denetim:  sıkı hâli
+                log.debug("geniş denetim kurulamadı:  %s", ad, exc_info=True)
+                liste += dogrula(g)
+        try:
+            liste += kopru.tutarlilik(g, A)
+        except Exception:  # tutarlılık geçerli çizim ister
+            log.debug("geniş denetim:  tutarlılık atlandı", exc_info=True)
+        return sorun.birlestir(liste)
+
+
 def _izli_olculer(ham, ad, proje, sira, g_taban, adaylar):
     """Çizimin ölçüleri, uzunlukları kaynaklarını taşıyarak — çizim BİR KEZ
     kurulur ( izli_cizim_girdisi ).  Kurulamazsa None."""

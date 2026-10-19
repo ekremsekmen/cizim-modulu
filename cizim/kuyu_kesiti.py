@@ -27,6 +27,7 @@ Kotlar donanim.py'de, planla aynı yerlerden;  açıklık denetimleri dusey.py'd
 ( bu kesitler de aynı yerleşimle durur ).
 """
 
+from cizim import sorunlu
 from cizim import istek_onbellegi
 from cizim import eleman
 from cizim import kisaltmalar
@@ -68,9 +69,11 @@ def yerlesim(g, cizim_sabitleri=None):
 
 def dogrula(g):
     hata = dusey.dogrula(g)
-    if hata:
+    #  Sorunlu kipte ( cizim/sorunlu.py ) ilk hatada durulmaz:  çare bulucu gizli
+    #  kalan sorunları da görür ( uclar/care_uclari.py ).  Kip kapalıyken aynı.
+    if hata and not sorunlu.acik():
         return hata
-    return yerlesim(g)["hata"]
+    return hata + yerlesim(g)["hata"]
 
 
 def _duvar(e, u, z, w, h, ad=None):

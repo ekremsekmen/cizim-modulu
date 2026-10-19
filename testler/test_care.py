@@ -4,6 +4,9 @@ Değişmezler:
   1.  Gösterilen her çare BAĞIMSIZ olarak yeniden sınanır:  uygulanınca
       sorunu giderir, yeni sorun doğurmaz, hesabı kötüleştirmez ( hesap
       durmaz, "uygun değil" bölüm artmaz ).  Çözücü tahminle öneri vermez.
+      "Yeni" sayılmayan tek şey:  bugün de var olan ama denetim ilk hatada
+      durduğu için gizli kalan sorun ( cizim_uclari.genis_sorunlar ) — o
+      öneride ortaya_cikan olarak söylenir.
   2.  Sorunun açığı ( sorun.Sorun.fark ) sorun varken ≤ 0 — türevin yönü
       buna dayanır.
   3.  Kullanıcının örnekleri ( 19 Eki ölçümü, örnek proje ):  kuyu 2300 →
@@ -67,6 +70,7 @@ VAKALAR = (
     ("mrl", "kapi_genisligi", "1200"),
     ("mrl", "durak_adedi", "30"),
     ("md", "son_kat_yuksekligi", "3200"),
+    ("ornek", "agirlik_yeri", "Arka"),
 )
 
 
@@ -108,15 +112,17 @@ class Care(unittest.TestCase):
         for vaka in VAKALAR:
             veri, r = self.coz(*vaka)
             once = care_uclari._durum(veri, 0)
+            ortulu = {care_uclari.kimlik(h) for h in cizim_uclari.genis_sorunlar(veri, 0)} - set(once[0])
             self.assertTrue(r["careler"], vaka)
             self.assertLess(r["sure"], care_uclari.SURE + 2.0, vaka)
             for c in r["careler"]:
                 for o in c["oneriler"]:
                     with self.subTest(vaka=vaka, sorun=c["metin"][:50], care=(o["anahtar"], o["yeni"])):
                         sonra = care_uclari._durum(care_uclari._yaz(veri, 0, o["anahtar"], o["yeni"]), 0)
-                        s = care_uclari._sonucu(once, sonra)
+                        s = care_uclari._sonucu(once, sonra, ortulu)
                         self.assertIn(care_uclari.kimlik(c["metin"]), s["gider"])
                         self.assertEqual(s["yeni"], [])
+                        self.assertEqual(sorted(s["ortaya"]), sorted(o["ortaya_cikan"]))
                         self.assertFalse(s["kotu"])
                         self.assertNotIn(o["anahtar"], care_uclari.DISI)
 
@@ -149,6 +155,13 @@ class Care(unittest.TestCase):
         _veri, r = self.coz("ornek", "kuyu_dibi", "1000")
         o = _oneriler(r, "Kabin tamponu baba yüksekliği")
         self.assertEqual(o["kuyu_dibi"][:2], (1415.0, "son değişiklik"))
+
+    def test_secim_duzeltmesi(self):
+        """Arkadaki ağırlıkla kabin altı askı çizilemez:  seçim düzeltmesi
+        askı düzenini kabin üstüne alır ( türevin göremediği seçim )."""
+        _veri, r = self.coz("ornek", "agirlik_yeri", "Arka")
+        o = _oneriler(r, "Arkadaki karşı ağırlıkla")
+        self.assertEqual(o["aski_duzeni"][:2], ("Kabin üstü", "seçim"))
 
     def test_bina_olcusu_en_sonda(self):
         for vaka in VAKALAR:

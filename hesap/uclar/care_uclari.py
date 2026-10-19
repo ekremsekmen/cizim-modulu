@@ -11,6 +11,11 @@ cevabını arıyordu.  Çare bulucu iki yoldan aday üretir:
                    girdi − fark / eğim, bütün mm'ye güvenli yönde yuvarlanır.
                    Aynı kutuya bağlı birkaç sorun varsa en uzaktaki değer
                    hepsine birden aday olur ( kuyu dibi 1300 → 1415:  dört sorun ).
+  SEÇİM            Türevin göremediği seçimler ( kapı tipi, sığınma tipi, askı
+                   düzeni, ağırlığın yeri … ):  sorunun parçasına göre ilgili
+                   seçim kutusunun öbür seçenekleri denenir ( SECIMLER — gerçek
+                   projelerde düzeltmesiz kalanların çoğu buydu:  "kabin
+                   tavanında çömelme tipi sığınma alanına yer yok" ).
   SON DEĞİŞİKLİK   Sorun son değişiklikle çıktıysa ( ön yüz son temiz girdiyi
                    gönderir ) değişen kutuda ikiye bölmeyle sınır aranır:
                    "kuyu genişliği 2230'a kadar bu sorun yok".  Türevin
@@ -41,6 +46,7 @@ from fastapi.responses import JSONResponse
 
 from cizim import istek_onbellegi
 from cizim import izli
+from cizim import sorun
 from motor.uygulama import uygulama_hesabi
 from uclar import cizim_uclari
 from uclar import uygulama_istegi
@@ -93,6 +99,44 @@ SURE = 6.0
 YENIDEN = (0, 1.25, 1.5, 2.0)
 #  Sorun başına gösterilen çare
 SORUN_BASINA = 4
+#  SEÇİM DÜZELTMELERİ:  sorunun parçasına göre denenen seçim kutuları ( sığınma
+#  tipleri ayrıca — sorunun çizimine göre kabin üstü ya da kuyu dibi )
+SECIMLER = {
+    "kat_kapisi_tipi": frozenset(
+        (
+            "kanat_cebi",
+            "kabin_kanat_cebi",
+            "kat_kanadi",
+            "kabin_kanadi",
+            "kabin_kapisi_operatoru",
+            "kapi_boslugu",
+        )
+    ),
+    "aski_duzeni": frozenset(
+        ("kabin_kasnak", "kabin_kasnak_ucu", "kabin_kasnagi", "kabin_kasnak_capraz", "aski_nokta", "halat")
+    ),
+    "agirlik_yeri": frozenset(("agirlik_blok", "agirlik", "ara_kiris")),
+    "regulator_yani": frozenset(
+        (
+            "gergi",
+            "gergi_kol",
+            "gergi_kolu",
+            "gergi_agirlik",
+            "gergi_agirligi",
+            "gergi_kontak",
+            "gergi_kontagi",
+        )
+        + ("gergi_plaka", "gergi_plakasi", "regulator", "regulator_kasnak")
+    ),
+    "md_pano_duvar": frozenset(("kumanda_panosu", "calisma_alani")),
+    "md_kapi_duvar": frozenset(("oda_kapisi",)),
+    "acil_pano_yani": frozenset(("acil_pano",)),
+    "kapi_montaji": frozenset(("kabin_esigi", "kat_esigi", "kapi_kasasi")),
+}
+#  Sayı seçenekli seçim ( kapı genişliği ):  yalnız komşu seçenekler
+KOMSU_SECIM = {"kapi_genisligi": SECIMLER["kat_kapisi_tipi"]}
+#  Bir istekte en çok sınanan seçim
+AZAMI_SECIM = 12
 
 
 def kimlik(metin):
@@ -127,18 +171,22 @@ def _yaz(veri, i, anahtar, deger):
         if anahtar in uygulama_istegi.PROJE_GENELI_ALANLAR
         else y["asansorler"][i]
     )
-    yer[anahtar] = f"{deger:g}"
+    yer[anahtar] = deger if isinstance(deger, str) else f"{deger:g}"
     return y
 
 
-def _sonucu(once, sonra):
-    """Bir değişikliğin hükmü:  { gider ( kimlikler ) , yeni , kotu }."""
+def _sonucu(once, sonra, ortulu=frozenset()):
+    """Bir değişikliğin hükmü:  { gider ( kimlikler ) , yeni , ortaya ( gizliyken
+    görünür olan — yeni sayılmaz ) , kotu }.  ortulu:  bugün de var olan ama
+    denetim ilk hatada durduğu için görünmeyen sorunların kimlikleri
+    ( cizim_uclari.genis_sorunlar )."""
     s0, h0, hk0, u0 = once
     s1, h1, hk1, u1 = sonra
-    kotu = (h0 and not h1) or (not h0 and not h1 and not hk1 <= hk0) or (h0 and h1 and u1 > u0)
+    kotu = (h0 and not h1) or (not h0 and not h1 and not hk1 <= hk0 | ortulu) or (h0 and h1 and u1 > u0)
     return {
         "gider": [k for k in s0 if k not in s1],
-        "yeni": [s1[k] for k in s1 if k not in s0],
+        "yeni": [s1[k] for k in s1 if k not in s0 and k not in ortulu],
+        "ortaya": [s1[k] for k in s1 if k not in s0 and k in ortulu],
         "kotu": bool(kotu),
     }
 
@@ -194,7 +242,7 @@ def _form_kurali_uyar(anahtar, deger, alan):
     )
 
 
-def _turevle(veri, i, once, sorunlar, degerler, gizli, alan, bitis):
+def _turevle(veri, i, once, sorunlar, degerler, gizli, alan, bitis, ortulu):
     """Türev adaylarını sınar:  [ { anahtar , yeni , gider , yontem } ] ( kabul edilenler )."""
     adaylar = _turev_adaylari(sorunlar, degerler, gizli, alan)
 
@@ -212,9 +260,11 @@ def _turevle(veri, i, once, sorunlar, degerler, gizli, alan, bitis):
             if (k, v) in denenen or not _form_kurali_uyar(k, v, alan):
                 continue
             denenen.add((k, v))
-            r = _sonucu(once, _durum(_yaz(veri, i, k, v), i))
+            r = _sonucu(once, _durum(_yaz(veri, i, k, v), i), ortulu)
             if not r["yeni"] and not r["kotu"] and r["gider"]:
-                kabul.append({"anahtar": k, "yeni": v, "gider": r["gider"], "yontem": "türev"})
+                kabul.append(
+                    {"anahtar": k, "yeni": v, "gider": r["gider"], "ortaya": r["ortaya"], "yontem": "türev"}
+                )
             #  Hedeflerinden biri gittiyse büyütmek gerekmez
             if adaylar[(k, adim)] & set(r["gider"]) or r["yeni"] or r["kotu"]:
                 break
@@ -235,7 +285,7 @@ def _degisenler(veri, i, onceki, alan, gizli):
     return out[:3]
 
 
-def _son_degisiklikle(veri, i, once, onceki, alan, gizli, bitis):
+def _son_degisiklikle(veri, i, once, onceki, alan, gizli, bitis, ortulu):
     """Son değişiklikle çıkan sorunların sınırı ( ikiye bölme ):  değişen kutuda
     eski değerdeki kadar temiz olan ( orada olmayan hiçbir sorun yok ),
     bugünküne en yakın değer — doğrulanmış.  "Eski değerde olmayan" ölçüt:
@@ -260,9 +310,73 @@ def _son_degisiklikle(veri, i, once, onceki, alan, gizli, bitis):
                 kotu_ = orta
             else:
                 iyi = (orta, d)
-        r = _sonucu(once, iyi[1])
+        r = _sonucu(once, iyi[1], ortulu)
         if r["gider"] and not r["yeni"] and not r["kotu"] and _form_kurali_uyar(k, iyi[0], alan):
-            kabul.append({"anahtar": k, "yeni": iyi[0], "gider": r["gider"], "yontem": "son değişiklik"})
+            kabul.append(
+                {
+                    "anahtar": k,
+                    "yeni": iyi[0],
+                    "gider": r["gider"],
+                    "ortaya": r["ortaya"],
+                    "yontem": "son değişiklik",
+                }
+            )
+    return kabul
+
+
+def _secim_alanlari(s):
+    """Sorunun parçalarına göre denenecek seçim kutuları."""
+    p = set(sorun.parcalari(s))
+    out = [k for k, parcalar in list(SECIMLER.items()) + list(KOMSU_SECIM.items()) if p & parcalar]
+    if "siginma" in p or "sığınma" in str(s).lower():
+        ust = getattr(s, "cizim", None) in ("kabin_ustu", "kuyu_kesiti_on")
+        out.append("siginma_tipi_ust" if ust else "siginma_tipi_dip")
+    return out
+
+
+def _secenekler(k, a, simdi):
+    """Seçim kutusunun bugünkü dışındaki seçenekleri ( sayı seçeneklide komşular )."""
+    secenek = list(a.get("secenekler") or [])
+    sayi = _sayi(simdi)
+    ayni = [
+        j for j, v in enumerate(secenek) if str(v) == str(simdi) or (sayi is not None and _sayi(v) == sayi)
+    ]
+    if k in KOMSU_SECIM:
+        if not ayni:
+            return []
+        j = ayni[0]
+        return [secenek[x] for x in (j - 1, j + 1, j - 2, j + 2) if 0 <= x < len(secenek)]
+    return [v for j, v in enumerate(secenek) if j not in ayni]
+
+
+def _secimle(veri, i, once, sorunlar, alan, gizli, girilen, bitis, oncelikli, ortulu):
+    """Seçim düzeltmeleri:  sorunun parçasına göre ilgili seçimin öbür
+    seçenekleri uygulanıp sınanır.  Düzeltmesi olmayan sorunların seçimleri önce."""
+    alanlar = []
+    for s in sorted(sorunlar, key=lambda x: kimlik(x) not in oncelikli):
+        for k in _secim_alanlari(s):
+            if k not in alanlar and k in alan and k not in gizli:
+                alanlar.append(k)
+    kabul, sayac = [], 0
+    for k in alanlar:
+        simdi = girilen.get(k)
+        simdi = alan[k]["varsayilan"] if simdi in (None, "") else simdi
+        for v in _secenekler(k, alan[k], simdi):
+            if time.time() > bitis or sayac >= AZAMI_SECIM:
+                return kabul
+            sayac += 1
+            r = _sonucu(once, _durum(_yaz(veri, i, k, v), i), ortulu)
+            if r["gider"] and not r["yeni"] and not r["kotu"]:
+                kabul.append(
+                    {
+                        "anahtar": k,
+                        "eski": simdi,
+                        "yeni": v,
+                        "gider": r["gider"],
+                        "ortaya": r["ortaya"],
+                        "yontem": "seçim",
+                    }
+                )
     return kabul
 
 
@@ -274,9 +388,14 @@ def coz(veri, i=0, onceki=None):
     once = _durum(veri, i)
     sorunlar, degerler, gizli = cizim_uclari.izli_sorunlar(veri, i)
     alan = {a["anahtar"]: a for gr in uygulama_istegi.alanlar()["gruplar"] for a in gr["alanlar"]}
-    kabul = _son_degisiklikle(veri, i, once, onceki, alan, gizli, bitis)
-    kabul += _turevle(veri, i, once, sorunlar, degerler, gizli, alan, bitis)
+    #  Denetim ilk hatada durduğu için bugün görünmeyen ( ama var olan ) sorunlar
+    ortulu = {kimlik(h) for h in cizim_uclari.genis_sorunlar(veri, i)} - set(once[0])
+    kabul = _son_degisiklikle(veri, i, once, onceki, alan, gizli, bitis, ortulu)
+    kabul += _turevle(veri, i, once, sorunlar, degerler, gizli, alan, bitis, ortulu)
     girilen = dict(veri.get("proje_geneli") or {}, **veri["asansorler"][i])
+    cozulen = {x for c in kabul for x in c["gider"]}
+    oncelikli = {x for x in once[0] if x not in cozulen}
+    kabul += _secimle(veri, i, once, sorunlar, alan, gizli, girilen, bitis, oncelikli, ortulu)
     careler = []
     for kim, metin in once[0].items():
         oneriler = _sirala([c for c in kabul if kim in c["gider"]], degerler)
@@ -287,10 +406,12 @@ def coz(veri, i=0, onceki=None):
                     {
                         "anahtar": c["anahtar"],
                         "etiket": alan[c["anahtar"]]["etiket"],
-                        "eski": degerler.get(c["anahtar"]),
-                        "girilmis": _sayi(girilen.get(c["anahtar"])) is not None,
+                        "eski": c["eski"] if "eski" in c else degerler.get(c["anahtar"]),
+                        "girilmis": girilen.get(c["anahtar"]) not in (None, ""),
                         "yeni": c["yeni"],
                         "gider": [once[0][x] for x in c["gider"]],
+                        #  Düzeltmeden sonra görünür olacak ( bugün gizli ) sorunlar
+                        "ortaya_cikan": c.get("ortaya", []),
                         "bina": c["anahtar"] in BINA,
                         "yontem": c["yontem"],
                     }
@@ -302,14 +423,17 @@ def coz(veri, i=0, onceki=None):
 
 
 def _sirala(liste, degerler):
-    """Son değişikliğin sınırı → bina olmayan → en çok sorunu gideren → en küçük
-    değişiklik;  aynı kutudan tek öneri ( en iyisi )."""
+    """Son değişikliğin sınırı → sayı ( bina olmayan ) → seçim → bina ölçüsü;
+    sonra en çok sorunu gideren → en küçük değişiklik;  aynı kutudan tek
+    öneri ( en iyisi )."""
 
     def anahtar(c):
+        if c["yontem"] == "seçim":
+            return (True, 1, -len(c["gider"]), 0.0)
         eski = degerler.get(c["anahtar"]) or 0.0
         return (
             c["yontem"] != "son değişiklik",
-            c["anahtar"] in BINA,
+            2 if c["anahtar"] in BINA else 0,
             -len(c["gider"]),
             abs(c["yeni"] - eski) / max(abs(eski), 100.0),
         )

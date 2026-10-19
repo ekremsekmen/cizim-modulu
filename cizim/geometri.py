@@ -21,6 +21,7 @@ import re
 import threading
 from dataclasses import dataclass
 
+from cizim import sorunlu
 from cizim import izli
 from cizim import kisaltmalar
 from cizim import eleman
@@ -460,7 +461,9 @@ def dogrula(g):
     girdi geometriyi fonksiyon içinden import ediyordu ( iki modül birbirine
     dolanmıştı )."""
     hata = girdi.dogrula(g)
-    if not hata:
+    #  Sorunlu kipte ( cizim/sorunlu.py ) ilk hatada durulmaz:  çare bulucu gizli
+    #  kalan sorunları da görür ( uclar/care_uclari.py ).  Kip kapalıyken aynı.
+    if not hata or sorunlu.acik():
         hata += kanat_cebi_carpismalari(g, sabitler.sabitler(g.get("_cizim_sabitleri")))
     return hata
 
@@ -1810,7 +1813,7 @@ def _kayma_adimlari(menzil, adim, ic=0):
     )
 
 
-def _etiket_yeri(kb, maske, k, sorunlu, parca_kutulari, adimlar):
+def _etiket_yeri(kb, maske, k, cakisir, parca_kutulari, adimlar):
     """Sorunlu etiketin kayması:  ( dx, dy, oklu mu ) ya da None ( yerinde kalır ).
 
     Maskesi ( uslup.maske_payi ) ya da kutusu kıl payı ( 2 mm'den az ) bir
@@ -1833,14 +1836,14 @@ def _etiket_yeri(kb, maske, k, sorunlu, parca_kutulari, adimlar):
             (
                 (dx, dy)
                 for dx, dy in liste[1:]
-                if not sorunlu(kayik(dx, dy), pay=pay)
+                if not cakisir(kayik(dx, dy), pay=pay)
                 and sum(1 for q in parca_kutulari if _ust(kayik(dx, dy), q, 0.0)) <= eski_parca
             ),
             None,
         )
 
     yer = yakinda(maske, itme) or yakinda(0.0, itme)
-    if yer is None and not sorunlu(kb, pay=2.0 * k):
+    if yer is None and not cakisir(kb, pay=2.0 * k):
         return None
     yer = yer or yakinda(2.0 * k, yakin)
     if yer is not None:
@@ -1849,7 +1852,7 @@ def _etiket_yeri(kb, maske, k, sorunlu, parca_kutulari, adimlar):
         (
             (dx, dy)
             for dx, dy in uzak
-            if not sorunlu(kayik(dx, dy)) and not any(_ust(kayik(dx, dy), q, 0.0) for q in parca_kutulari)
+            if not cakisir(kayik(dx, dy)) and not any(_ust(kayik(dx, dy), q, 0.0) for q in parca_kutulari)
         ),
         None,
     )
@@ -1905,7 +1908,7 @@ def etiketleri_ayir(e, olcek=20):
         kb = kutular[id(el)]
         obur = [kutular[id(x)] for x in yazilar if x is not el and kutular[id(x)]]
 
-        def sorunlu(kt, obur=obur, pay=2.0 * k):
+        def cakisir(kt, obur=obur, pay=2.0 * k):
             #  pay:  kenar denetiminde kutunun küçültülmesi ( eksi:  büyütülmesi )
             return (
                 any(_ust(kt, b) for b in obur)
@@ -1914,9 +1917,9 @@ def etiketleri_ayir(e, olcek=20):
             )
 
         maske = -uslup.maske_payi(el["yukseklik"])
-        if not sorunlu(kb, pay=maske):
+        if not cakisir(kb, pay=maske):
             continue
-        yer = _etiket_yeri(kb, maske, k, sorunlu, parca_kutulari, adimlar)
+        yer = _etiket_yeri(kb, maske, k, cakisir, parca_kutulari, adimlar)
         if yer is None:
             continue
         dx, dy, ok = yer

@@ -617,9 +617,11 @@ def _aciklik_parcalari(yer, ad, dip_engel, ust_engel):
 
 def dogrula(g):
     hata = geometri.dogrula(g)
-    if hata:
+    #  Sorunlu kipte ( cizim/sorunlu.py ) ilk hatada durulmaz:  çare bulucu gizli
+    #  kalan sorunları da görür ( uclar/care_uclari.py ).  Kip kapalıyken aynı.
+    if hata and not sorunlu.acik():
         return hata
-    return yerlesim(g)["hata"]
+    return hata + yerlesim(g)["hata"]
 
 
 def kot_yazisi(z):
