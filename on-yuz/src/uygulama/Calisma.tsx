@@ -169,7 +169,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   const careBul = s.cizimIstegi
     ? () => care.mutate({ istek: s.cizimIstegi!, onceki: s.oncekiTemiz })
     : undefined;
-  const careUygula = (o: CareOnerisi) => yaz(o.anahtar, kutuyaYaz(o.yeni));
+  const careUygula = (o: CareOnerisi) => yaz(o.anahtar, typeof o.yeni === "number" ? kutuyaYaz(o.yeni) : o.yeni);
   const sorunuGoster = (m: CizimSorunu) => {
     if (gorunum !== "cizim") gorunumSec("cizim");
     setSorunOdak((o) => ({ sorun: m, n: (o?.n ?? 0) + 1 }));
@@ -635,6 +635,11 @@ function SorunKarti({
   );
 }
 
+/**  Düzeltmedeki değer:  sayı Türkçe biçimde, seçim olduğu gibi  */
+function degerYaz(v: number | string | null) {
+  return typeof v === "number" ? sayiYaz(v) : (v ?? "");
+}
+
 /**  Bir sorunun doğrulanmış düzeltmeleri ( ekranda "düzeltme";  kodda çare ):
      "Kuyu genişliği  2.300 → 2.230  [ Uygula ]" — program kendiliğinden
      uygulamaz, seçim mühendisin ( bina ölçüsü olabilir )  */
@@ -661,11 +666,16 @@ function CareListesi({
         >
           <span className="min-w-0 flex-1">
             <span className="font-medium">{etiketBol(o.etiket)[0]}</span>{" "}
-            <span className="sayi whitespace-nowrap">
-              {o.girilmis ? sayiYaz(o.eski) : `boş ( ${sayiYaz(o.eski)} )`} → <b>{sayiYaz(o.yeni)}</b>
+            <span className={cn("whitespace-nowrap", typeof o.yeni === "number" && "sayi")}>
+              {o.girilmis ? degerYaz(o.eski) : `boş ( ${degerYaz(o.eski)} )`} → <b>{degerYaz(o.yeni)}</b>
             </span>
             {o.gider.length > 1 && <span className="opacity-70">  ·  {o.gider.length} sorun birden gider</span>}
             {o.yontem === "son değişiklik" && <span className="opacity-70">  ·  son değişikliğin sınırı</span>}
+            {o.ortaya_cikan.length > 0 && (
+              <span className="opacity-70" title={o.ortaya_cikan.join("\n")}>
+                {"  ·  "}sonra {o.ortaya_cikan.length} gizli sorun görünür
+              </span>
+            )}
             {o.bina && (
               <span className={cn("ml-1.5 rounded-full px-1.5 text-[10.5px]", koyu ? "bg-[#3a2c12] text-[#fbbf24]" : "bg-uyari-acik text-uyari")}>
                 bina ölçüsü
@@ -675,7 +685,7 @@ function CareListesi({
           <button
             type="button"
             onClick={() => uygula(o)}
-            aria-label={`${etiketBol(o.etiket)[0]} ${sayiYaz(o.yeni)} yap`}
+            aria-label={`${etiketBol(o.etiket)[0]} ${degerYaz(o.yeni)} yap`}
             className={cn(
               "shrink-0 rounded-kucuk border px-2 py-0.5 text-[11.5px] font-medium",
               koyu ? "border-white/20 text-white hover:bg-white/10" : "border-cizgi hover:bg-black/[0.04]",

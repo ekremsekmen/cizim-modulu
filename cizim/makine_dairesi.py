@@ -37,6 +37,7 @@ kuralla ( tek halat:  çap + 2 × pay ).
 import math
 
 from temel import cumle_basi, kucuk, ortusur, sayi_mi
+from cizim import sorunlu
 from cizim import sorun
 from cizim import istek_onbellegi
 from cizim import eleman
@@ -823,9 +824,11 @@ def _bitisik_adaylar(mk, w, h, adim=25.0):
 
 def dogrula(g):
     hata = geometri.dogrula(g)
-    if hata:
+    #  Sorunlu kipte ( cizim/sorunlu.py ) ilk hatada durulmaz:  çare bulucu gizli
+    #  kalan sorunları da görür ( uclar/care_uclari.py ).  Kip kapalıyken aynı.
+    if hata and not sorunlu.acik():
         return hata
-    return yerlesim(g)["hata"]
+    return hata + yerlesim(g)["hata"]
 
 
 def _duvarlar(e, oda, t, kapi):

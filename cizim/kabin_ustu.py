@@ -26,6 +26,7 @@ kalıyordu ( kullanıcı 5 Eki:  "kapının görünmemesi saçma" ).
 from dataclasses import dataclass
 
 from temel import eleman_kutusu, kucuk, ortusur
+from cizim import sorunlu
 from cizim import istek_onbellegi
 from cizim import eleman
 from cizim import kisaltmalar
@@ -484,9 +485,11 @@ def _yazi_kutusu(el):
 def dogrula(g):
     """Kuyu planının doğrulaması + kabin üstünün kendi kuralları."""
     hata = geometri.dogrula(g)
-    if hata:
+    #  Sorunlu kipte ( cizim/sorunlu.py ) ilk hatada durulmaz:  çare bulucu gizli
+    #  kalan sorunları da görür ( uclar/care_uclari.py ).  Kip kapalıyken aynı.
+    if hata and not sorunlu.acik():
         return hata
-    return yerlesim(g)["hata"]
+    return hata + yerlesim(g)["hata"]
 
 
 def korkuluklar(Y):

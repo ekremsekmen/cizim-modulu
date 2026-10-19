@@ -25,6 +25,7 @@ referans projenin düzeni ).  Makine ağırlık raylarına oturan şasede ya da
 """
 
 from temel import cumle_basi, eleman_kutusu, ortusur, sayi_mi
+from cizim import sorunlu
 from cizim import sorun
 from cizim import istek_onbellegi
 from cizim import eleman
@@ -841,9 +842,11 @@ def _arka_baglantilar(S, wx, wy, yon, hx, hy):
 
 def dogrula(g):
     hata = geometri.dogrula(g)
-    if hata:
+    #  Sorunlu kipte ( cizim/sorunlu.py ) ilk hatada durulmaz:  çare bulucu gizli
+    #  kalan sorunları da görür ( uclar/care_uclari.py ).  Kip kapalıyken aynı.
+    if hata and not sorunlu.acik():
         return hata
-    return yerlesim(g)["hata"]
+    return hata + yerlesim(g)["hata"]
 
 
 def ciz(g, cizim_sabitleri=None):
