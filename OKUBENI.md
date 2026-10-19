@@ -318,6 +318,14 @@ geçersizdir, liste her tuşta açılıp kapanıyordu ), açıksa içeriği heme
 Uyarıların kendisi değişmedi:  program eskiden hangi durumda "çizim kurulamadı"
 diyorsa yine yalnız onlarda söyler.
 
+**Örnek proje** ( 19 Eki ).  Gerçekte var olan bir asansör:  ölçü formundan
+çıkarılan uygulama projesi ( MRL dişlisiz, 1275 kg, 1,6 m/s, 15 durak, 42 m;
+denge zinciri, sertleştirilmiş kanal ) — `on-yuz/src/lib/ornek.ts`.  Yalnız
+teknik değerler, bina ve işveren bilgisi yok ( program webde yayınlanır ).
+Hiçbir bölümü "uygun değil" değil, çizimleri kurulur ( uçtan uca test ).
+Değerler değişirse `ORNEK_SURUMU` artar:  tarayıcıda kalmış eski örnek
+açılınca yenilenir.
+
 **Parçanın adı** ( 19 Eki ).  Fareyle bir parçanın üstüne gelince adı yazar
 ve parça ( bütün öğeleri ) vurgulanır;  üst üste gelenlerden en küçüğü seçilir
 ( kabinin içindeki tampon kabin değil tampon ).  Ad sunucunun çiziminden gelir
