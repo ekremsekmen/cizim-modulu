@@ -36,15 +36,16 @@ export function Teslim({
        görünen girdiyle iner, gecikmeli olanla değil  */
   istek: UygulamaIstegi | null;
   /**  Paketi şimdi indirmeyi engelleyen durum:  ciddi = girdi düzeltilmeli,
-       değilse geçici ( hesap yolda )  */
-  engel: { metin: string; ciddi: boolean } | null;
+       değilse geçici ( hesap yolda );  yalnizPaket:  hesap geçerli, yalnız
+       çizim sorunlu — hükümler görünür, hesap PDF'i iner  */
+  engel: { metin: string; ciddi: boolean; yalnizPaket?: boolean } | null;
   ofis: Ham;
   cizimSayisi: number;
   projeyiAc: () => void;
 }) {
   const [onay, setOnay] = useState(false);
   const [listeAcik, setListeAcik] = useState(false);
-  const durdu = !!engel?.ciddi;
+  const durdu = !!engel?.ciddi && !engel.yalnizPaket;
 
   //  Görünür ( gelişmiş olmayan ) alanlardan kullanıcının yazmadıkları:
   //  hesap şemanın varsayılanıyla ( örnek projenin değeriyle ) yapıldı.
@@ -103,7 +104,7 @@ export function Teslim({
             <div
               className={cn(
                 "mb-2 rounded-orta border px-3.5 py-3 text-[12.5px]",
-                durdu ? "border-red-cizgi bg-red-acik text-red" : "border-cizgi bg-yuzey-2 text-metin-2",
+                engel.ciddi ? "border-red-cizgi bg-red-acik text-red" : "border-cizgi bg-yuzey-2 text-metin-2",
               )}
             >
               {engel.metin}
@@ -122,7 +123,7 @@ export function Teslim({
               ))}
             </div>
           )}
-          {!durdu && hesap?.ozet && !hesap.ozet.tumu_uygun && (
+          {!engel?.ciddi && hesap?.ozet && !hesap.ozet.tumu_uygun && (
             <p className="mt-2 text-[12.5px] leading-relaxed text-metin-2">
               Paket indirilebilir;  uygun olmayan bölümler paftada <b className="font-semibold text-red">UYGUN DEĞİLDİR</b>{" "}
               hükmüyle basılır.
@@ -236,7 +237,7 @@ export function Teslim({
       </div>
 
       <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-cizgi bg-yuzey px-5 py-3.5">
-        <Dugme onClick={() => pdf.mutate()} disabled={!!engel || pdf.isPending}>
+        <Dugme onClick={() => pdf.mutate()} disabled={(!!engel && !engel.yalnizPaket) || pdf.isPending}>
           {pdf.isPending ? <Loader2 className="animate-spin" /> : <FileText />}
           Yalnız hesap PDF'i
         </Dugme>

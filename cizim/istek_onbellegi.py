@@ -20,6 +20,8 @@ GÜVENLİK ( deneyle bulunan üç tuzak ):
      dışıdır:  izli sayı float'tır, JSON'da düz sayıya döner — anahtarı düz
      girdiyle aynı olur, türevi taşımayan sonuç dönerdi.  JSON'a çevrilemeyen
      girdi de önbelleğe girmez.
+  -  Sorunlu çizim kipi ( cizim/sorunlu.py ) anahtara girer:  kip açıkken
+     yerleşimler denetim hatasında durmaz, sonuçları kapalıdakinden farklıdır.
 Önbellek yalnız `etkin` bloğunun içinde yaşar:  istekler ve kullanıcılar arası
 hiçbir şey paylaşılmaz."""
 
@@ -30,6 +32,7 @@ import json
 import pickle
 
 from cizim import izli
+from cizim import sorunlu
 
 _ETKIN = contextvars.ContextVar("istek_onbellegi", default=None)
 
@@ -50,7 +53,7 @@ def sakla(f):
         d = _ETKIN.get()
         if d is None or izli.izlemede():
             return f(*a, **k)
-        anahtar = _anahtar(ad, a, k)
+        anahtar = _anahtar(ad + ("sorunlu:" if sorunlu.acik() else ""), a, k)
         if anahtar is None:
             return f(*a, **k)
         if anahtar not in d:

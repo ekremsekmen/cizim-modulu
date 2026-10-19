@@ -409,7 +409,13 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
             ? { metin: "Kural dışı girdi var — düzeltilmeden paket inmez.", ciddi: true }
             : s.hesapEski
               ? { metin: "Hesap güncel girdilerle yapılamadı — sebebi çalışma alanında.", ciddi: true }
-              : s.hesapYolda
+              : s.cizimSorunSayisi
+                ? {
+                    metin: `Çizimde ${s.cizimSorunSayisi} sorun var — giderilmeden paket inmez ( sorunlar çalışma alanında ).`,
+                    ciddi: true,
+                    yalnizPaket: true,
+                  }
+                : s.hesapYolda
                 ? { metin: "Hesap yenileniyor…", ciddi: false }
                 : null
         }
@@ -448,6 +454,9 @@ function SorunKarti({
   etiket: (anahtar: string) => string;
   cokAsansor: boolean;
 }) {
+  //  Çizim sorunlu da olsa ekrandaysa kart küçültülebilir ( çizime bakılsın )
+  const [kucuk, setKucuk] = useState(false);
+  const cizimGuncel = (sorun.tur === "hesap" || sorun.tur === "cizim") && sorun.cizimGuncel;
   const baslik =
     sorun.tur === "kural"
       ? "Kural dışı girdi — sunucuya gönderilmedi"
@@ -455,10 +464,16 @@ function SorunKarti({
         ? "Bağlantı yok"
         : sorun.tur === "hesap"
           ? "Hesap durdu"
-          : "Çizim kurulamadı";
+          : cizimGuncel
+            ? "Çizim uygun değil"
+            : "Çizim kurulamadı";
   const alt = orta
     ? "Bu girdilerle hesap ve çizim kurulamıyor;  düzeltince kendiliğinden gelir."
-    : "Ekrandaki çizim ve hükümler son geçerli girdilerin.";
+    : cizimGuncel
+      ? sorun.tur === "hesap"
+        ? "Çizim bu girdilerle kuruldu;  hükümler son geçerli girdilerin."
+        : "Çizim bu girdilerle kuruldu;  sorunlar giderilmeden paket inmez."
+      : "Ekrandaki çizim ve hükümler son geçerli girdilerin.";
   const maddeler: { metin: string; git?: () => void }[] =
     sorun.tur === "kural"
       ? sorun.maddeler.map((h) => ({
@@ -479,16 +494,27 @@ function SorunKarti({
         koyu ? "border-red/40 bg-[#2b1d1f] text-[#fecdca]" : "border-red-cizgi bg-yuzey text-metin",
       )}
     >
-      <div className="flex items-start gap-2 px-4 pt-3 pb-2">
+      <div className={cn("flex items-start gap-2 px-4 pt-3", kucuk ? "pb-3" : "pb-2")}>
         <CircleAlert className={cn("mt-0.5 size-4 shrink-0", koyu ? "text-[#f97066]" : "text-red")} />
-        <div>
+        <div className="min-w-0 flex-1">
           <p className={cn("text-[13px] font-semibold", koyu ? "text-white" : "text-red")}>
             {baslik} <span className="sayi font-normal opacity-70">· {maddeler.length}</span>
           </p>
-          <p className={cn("text-[12px]", koyu ? "text-[#fecdca]/70" : "text-metin-3")}>{alt}</p>
+          {!kucuk && <p className={cn("text-[12px]", koyu ? "text-[#fecdca]/70" : "text-metin-3")}>{alt}</p>}
         </div>
+        {cizimGuncel && !orta && (
+          <button
+            type="button"
+            aria-expanded={!kucuk}
+            aria-label={kucuk ? "Sorunları göster" : "Sorunları gizle"}
+            onClick={() => setKucuk(!kucuk)}
+            className="-mr-1 inline-flex size-6 shrink-0 items-center justify-center rounded-kucuk opacity-70 hover:bg-white/10 hover:opacity-100"
+          >
+            <ChevronDown className={cn("size-4 transition-transform", !kucuk && "rotate-180")} />
+          </button>
+        )}
       </div>
-      <ul className="max-h-52 space-y-1 overflow-y-auto px-4 pb-3 pl-10">
+      <ul hidden={kucuk} className="max-h-52 space-y-1 overflow-y-auto px-4 pb-3 pl-10">
         {maddeler.map((m, i) => (
           <li key={i} className="list-disc text-[12.5px] leading-snug marker:text-current/50">
             {m.git ? (

@@ -52,6 +52,7 @@ from cizim import sabitler
 from cizim import parca_kotlari
 from cizim import kuyu_ustu
 from cizim import makine
+from cizim import sorunlu
 
 #  Çizelge 3 / Çizelge 4 — sığınma alanının YÜKSEKLİĞİ ( mm )
 SIGINMA_UST_YUKSEKLIK = kabin_ustu.SIGINMA_YUKSEKLIK
@@ -145,22 +146,35 @@ kabin_kotlari = parca_kotlari.kabin_kotlari
 def yerlesim(g, cizim_sabitleri=None):
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     dy = g.get("dusey") or {}
+    #  Denetim hatası yerleşimi durdurur;  sorunlu çizim kipinde ( yalnız ekran —
+    #  cizim/sorunlu.py ) durmaz, kurabildiği kadar kurar.  Kip kapalıyken
+    #  dönüş bugünküyle aynıdır ( hesap, paket ve sorun listesi kipin dışında ).
+    surdur = sorunlu.acik()
     kotlar, hata = _girdi_hatalari(g, S, dy)
-    if hata:
+    if hata and not surdur:
         return {"hata": hata}
     durdu = _cerceve_ve_sase(g, S, dy, hata)
     if durdu:
-        return durdu
+        if not surdur:
+            return durdu
+        hata += durdu["hata"]
     KD, KU = kuyu_dibi.yerlesim(g, S), kabin_ustu.yerlesim(g, S)
     if KD["hata"] or KU["hata"]:
-        return {"hata": KD["hata"] + KU["hata"]}
+        #  Kuyu dibinin geometrisi hiç kurulamadıysa ( "taban" yok ) kip de durur
+        if not surdur or "taban" not in KD:
+            return {"hata": KD["hata"] + KU["hata"]}
+        hata += KD["hata"] + KU["hata"]
     dip = _kuyu_dibi_acikliklari(g, S, dy, KD, hata)
     #  ── KUYU ÜSTÜ:  kabin en üst konumunda ────────────────────────────
     #  Karşı ağırlık tam ezilmiş tamponunda + 0,035·v²  ( m.5.2.5.6.1 )
     H = kotlar[-1]
     M = donanim.yerlesim(g, S, H, H + dy["son_kat"], dip["taban"])
     if M["hata"]:
-        return {"hata": hata + M["hata"]}
+        #  Donanımın geometrisi hiç kurulamadıysa ( "raylar" yok — örneğin
+        #  çizilemeyen askı düzeni ) kip de durur
+        if not surdur or "raylar" not in M:
+            return {"hata": hata + M["hata"]}
+        hata += M["hata"]
     ust = _kuyu_ustu_acikliklari(g, S, dy, KD, KU, M, H)
     AK, AKd = _agirlik_uc_konumlari(g, S, dy, KD, M, H, dip["taban"], ust["ust_aciklik"], hata)
     #  Açıklık dışındaki fiziksel hatalar ( kuyu dibi zinciri, ağırlığın

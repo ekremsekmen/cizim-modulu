@@ -130,10 +130,15 @@ export interface Cizim {
   svg: string;
 }
 
+/**  aktif:  çizim uygun.  Aktif değilse hata sebebidir;  çizimler de geldiyse
+     çizim SORUNLU kuruldu ( ekranda gösterilir, paket inmez ), gelmediyse girdi
+     çizime hiç çevrilemedi.  */
 export interface CizimYanit {
   aktif: boolean;
   cizimler?: Cizim[];
   hata?: string[];
+  /**  Sorunlu girdiyle kurulamayan çizimlerin başlıkları  */
+  kurulamayan?: string[];
 }
 
 export interface OlcuKaynagi {

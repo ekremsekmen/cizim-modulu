@@ -168,7 +168,8 @@ export function Tuval({
   /**  İlk açılışta yakınlaşılacak çizim ( adres:  ?cizim=kuyu_plani )  */
   odak?: string | null;
   cizimler: Cizim[];
-  durum: "guncel" | "yukleniyor" | "eski";
+  /**  sorunlu:  çizim güncel ama kuralları sağlamıyor ( sorunlar kartta )  */
+  durum: "guncel" | "yukleniyor" | "eski" | "sorunlu";
   secili: OlcuSecimi | null;
   olcuSec: (o: OlcuSecimi | null, kutu?: DOMRect) => void;
   children?: (konum: OlcuKonumu | null) => React.ReactNode;
@@ -512,7 +513,7 @@ export function Tuval({
         </Ipucu>
       </div>
 
-      {/*  Çizimin durumu:  güncel mi, yolda mı, eski mi  */}
+      {/*  Çizimin durumu:  güncel mi, yolda mı, eski mi, uygun değil mi  */}
       <div data-tuval-arac className="absolute top-3 right-3">
         {durum === "yukleniyor" ? (
           <DurumHapi>
@@ -520,6 +521,10 @@ export function Tuval({
           </DurumHapi>
         ) : durum === "eski" ? (
           <DurumHapi uyari>Çizim güncel değil</DurumHapi>
+        ) : durum === "sorunlu" ? (
+          <DurumHapi tehlike>
+            <span className="size-1.5 rounded-full bg-[#f97066]" /> Uygun değil
+          </DurumHapi>
         ) : (
           <DurumHapi>
             <span className="size-1.5 rounded-full bg-[#4ade80]" /> Güncel
@@ -553,12 +558,16 @@ function yakinlik(o: { x: number; y: number; k: number }, f: number, el: HTMLDiv
   return { k, x: mx - ((mx - o.x) * k) / o.k, y: my - ((my - o.y) * k) / o.k };
 }
 
-function DurumHapi({ children, uyari }: { children: React.ReactNode; uyari?: boolean }) {
+function DurumHapi({ children, uyari, tehlike }: { children: React.ReactNode; uyari?: boolean; tehlike?: boolean }) {
   return (
     <span
       className={cn(
         "inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[11.5px] font-medium shadow-tuval backdrop-blur",
-        uyari ? "border-[#f5a524]/40 bg-[#3a2c12]/90 text-[#fbbf24]" : "border-white/[0.08] bg-tuval-2/95 text-tuval-metin",
+        uyari
+          ? "border-[#f5a524]/40 bg-[#3a2c12]/90 text-[#fbbf24]"
+          : tehlike
+            ? "border-[#f97066]/40 bg-[#2b1d1f]/90 text-[#fecdca]"
+            : "border-white/[0.08] bg-tuval-2/95 text-tuval-metin",
       )}
     >
       {children}

@@ -6,6 +6,9 @@
       ·  Eski yanıt yenisini ezemez:  sorgu anahtarı isteğin kendisidir.
       ·  Hesap durur ya da bağlantı koparsa son BAŞARILI hesap ve çizim yerinde
          kalır, işaretlenir;  ilk başarılı yanıt işareti kaldırır.
+      ·  Çizimde sorun varsa ( kural sağlanmıyor ) çizim yine gelir ve günceldir:
+         sorunlar kartta, çizim "uygun değil" diye işaretli ( sunucu:
+         cizim/sorunlu.py ).  Hesap dursa da çizim bu girdinindir.
       ·  Proje kimliği hesaba girmez ( değişince hesap tekrarlanmaz );  çizimin
          antetinde yazdığı için çizim isteğine girer.
       ·  Ölçü kutusu EKRANDAKİ çizimi üreten istekle konuşur:  son istek
@@ -21,7 +24,8 @@ const ONBELLEK_MS = 30_000;
 export type Sorun =
   | { tur: "kural"; maddeler: FormHatasi[] }
   | { tur: "baglanti"; ileti: string }
-  | { tur: "hesap" | "cizim"; maddeler: string[] };
+  /**  cizimGuncel:  ekrandaki çizim bu girdinin ( sorunlu da olsa )  */
+  | { tur: "hesap" | "cizim"; maddeler: string[]; cizimGuncel: boolean };
 
 export function useSunucu(
   sema: AlanSemasi,
@@ -64,28 +68,47 @@ export function useSunucu(
   //  sırasında bir kez yazılır ( efekt ve fazladan çizim yok ).
   const [sonHesap, setSonHesap] = useState<CokluYanit>();
   if (hesap.data?.aktif && !hesap.isPlaceholderData && hesap.data !== sonHesap) setSonHesap(hesap.data);
+  //  Sorunlu çizim de ( aktif değil ama çizimler geldi ) ekrana girer
   const [sonCizim, setSonCizim] = useState<{ yanit: CizimYanit; asansor: number; istek: UygulamaIstegi }>();
-  if (cizim.data?.aktif && !cizim.isPlaceholderData && gonderilen && cizim.data !== sonCizim?.yanit)
+  if (cizim.data?.cizimler && !cizim.isPlaceholderData && gonderilen && cizim.data !== sonCizim?.yanit)
     setSonCizim({ yanit: cizim.data, asansor, istek: gonderilen });
 
   const hesapDurdu = !!hesap.data && !hesap.data.aktif;
-  const cizimKurulamadi = !!cizim.data && !cizim.data.aktif;
+  //  Girdi çizime hiç çevrilemedi ( eksik / geçersiz alan ) — sorunlu çizim değil
+  const cizimKurulamadi = !!cizim.data && !cizim.data.aktif && !cizim.data.cizimler;
   const baglanti = hesap.error ?? cizim.error;
+  //  Ekrandaki çizim son girdinin değil ( kural dışı girdi gönderilmedi, çizim
+  //  kurulamadı, bağlantı yok ya da başka asansörün çizimi )
+  const cizimEski = !!hatalar.length || cizimKurulamadi || !!cizim.error || sonCizim?.asansor !== asansor;
+  //  Ekrandaki çizimin sorunları ( çizim yine gösterilir ) ve kurulamayan çizimleri
+  const cizimSorunlari = useMemo(() => {
+    const y = sonCizim?.yanit;
+    if (cizimEski || !y || y.aktif) return [];
+    return [...(y.hata ?? []), ...(y.kurulamayan ?? []).map((b) => `${b} bu girdilerle kurulamadı.`)];
+  }, [cizimEski, sonCizim]);
 
   let sorun: Sorun | null = null;
   if (hatalar.length) sorun = { tur: "kural", maddeler: hatalar };
   else if (baglanti)
     sorun = { tur: "baglanti", ileti: `Sunucuya ulaşılamadı ( ${baglanti.message} ) — bağlantı gelince kendiliğinden güncellenir.` };
-  else if (hesapDurdu) sorun = { tur: "hesap", maddeler: hesap.data?.hata ?? [] };
-  else if (cizimGerekli && cizimKurulamadi) sorun = { tur: "cizim", maddeler: cizim.data?.hata ?? [] };
+  else if (hesapDurdu)
+    //  Hesabın durduğu sebep çoğu kez çizimin sorunuyla aynı metindir:  bir kez
+    sorun = {
+      tur: "hesap",
+      maddeler: [...new Set([...(hesap.data?.hata ?? []), ...(cizimGerekli ? cizimSorunlari : [])])],
+      cizimGuncel: cizimGerekli && !cizimEski,
+    };
+  else if (cizimGerekli && cizimKurulamadi) sorun = { tur: "cizim", maddeler: cizim.data?.hata ?? [], cizimGuncel: false };
+  else if (cizimGerekli && cizimSorunlari.length) sorun = { tur: "cizim", maddeler: cizimSorunlari, cizimGuncel: true };
 
   //  Ekrandaki hükümler son girdinin mi?
   const hesapEski = !!hatalar.length || hesapDurdu || !!hesap.error;
-  const cizimDurumu: "guncel" | "yukleniyor" | "eski" =
-    hesapEski || cizimKurulamadi || !!cizim.error || sonCizim?.asansor !== asansor
-      ? "eski"
-      : cizim.isFetching || hesap.isFetching || (istek !== null && gonderilen !== istek)
-        ? "yukleniyor"
+  const cizimDurumu: "guncel" | "yukleniyor" | "eski" | "sorunlu" = cizimEski
+    ? "eski"
+    : cizim.isFetching || hesap.isFetching || (istek !== null && gonderilen !== istek)
+      ? "yukleniyor"
+      : cizimSorunlari.length
+        ? "sorunlu"
         : "guncel";
 
   return {
@@ -97,6 +120,8 @@ export function useSunucu(
     cizimler: sonCizim?.yanit.cizimler ?? [],
     cizimIstegi: sonCizim?.istek ?? null,
     cizimDurumu,
+    /**  Ekrandaki ( güncel ) çizimin sorun sayısı — paket inmez  */
+    cizimSorunSayisi: cizimSorunlari.length,
     sorun,
   };
 }

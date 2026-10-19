@@ -35,6 +35,7 @@ from cizim import kopru
 from cizim import olcu_kaynagi
 from cizim import pafta
 from cizim import sabitler
+from cizim import sorunlu
 from motor.uygulama import mukavemet_girdi
 from cizim import svg
 from uclar import uygulama_istegi
@@ -55,16 +56,25 @@ def girdiler(veri, asansorler, ortak, sonuc, proje_adi):
     varsayılanlar + girilenler, sonra tamamlama ):  çizim hesabın kullandığı
     sayıyı görür."""
 
-    pg = {k: ortak[k] for k in ortak if k != "_ofis"}
     liste = []
-    for i, a in enumerate(asansorler):
-        A = uygulama_girdisi.tamamla({**uygulama_girdisi.varsayilanlar(), **ortak, **a, **pg})
-        s = sonuc["asansorler"][i] if sonuc and i < len(sonuc.get("asansorler") or []) else None
-        g, hata = kopru.cizim_girdisi(A, s, proje_adi, i + 1)
-        if g is not None:
-            hata = _cizim_hatalari(g, A)
+    for i in range(len(asansorler)):
+        g, hata = asansor_girdisi(asansorler, ortak, sonuc, proje_adi, i)
         liste.append((g if not hata else None, hata))
     return liste
+
+
+def asansor_girdisi(asansorler, ortak, sonuc, proje_adi, i):
+    """i. asansörün çizim girdisi ve sorunları:  ( g , hatalar ).  g, sorun
+    olsa da geometri kurulabiliyorsa döner ( ekran sorunlu çizimi gösterir —
+    cizim/sorunlu.py );  None ise girdi çizime hiç çevrilemedi ( köprünün
+    hatası:  eksik / geçersiz alan )."""
+    pg = {k: ortak[k] for k in ortak if k != "_ofis"}
+    A = uygulama_girdisi.tamamla({**uygulama_girdisi.varsayilanlar(), **ortak, **asansorler[i], **pg})
+    s = sonuc["asansorler"][i] if sonuc and i < len(sonuc.get("asansorler") or []) else None
+    g, hata = kopru.cizim_girdisi(A, s, proje_adi, i + 1)
+    if g is not None:
+        hata = _cizim_hatalari(g, A)
+    return g, hata
 
 
 def _cizim_hatalari(g, A):
@@ -142,23 +152,53 @@ def cizimler_yaniti(veri):
             i = 0
         i = min(max(i, 0), len(asansorler) - 1)
         s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
-        g, hata = girdiler(
-            veri, asansorler, ortak, s if s.get("aktif") else None, _proje_kimligi(veri)["proje_adi"]
-        )[i]
-        if hata:
+        g, hata = asansor_girdisi(
+            asansorler, ortak, s if s.get("aktif") else None, _proje_kimligi(veri)["proje_adi"], i
+        )
+        if g is None:
             return JSONResponse({"aktif": False, "hata": hata})
+        cizimler_, kurulamayan = _ekran_cizimleri(g, hata)
         #  Projenin aktif olması en az bir hesabın yapıldığını söyler;
         #  bu çizimdeki kuvvetlerin durumu seçili asansöre aittir.
+        if not hata:
+            return JSONResponse(
+                {"aktif": True, "hesap": bool(s["asansorler"][i].get("aktif")), "cizimler": cizimler_}
+            )
+        #  SORUNLU ÇİZİM:  "aktif" bugünkü anlamında kalır ( çizim uygun değil —
+        #  testler ve ön yüzün denetimi reddi buradan okur );  ekran çizimleri
+        #  yine alır.  kurulamayan:  sorunlu girdiyle kurulamayan çizimlerin başlıkları.
         return JSONResponse(
             {
-                "aktif": True,
+                "aktif": False,
+                "hata": hata,
                 "hesap": bool(s["asansorler"][i].get("aktif")),
-                "cizimler": [_svg(g, ad, onek=f"c{n}-") for n, ad in enumerate(pafta.sira(g))],
+                "cizimler": cizimler_,
+                "kurulamayan": kurulamayan,
             }
         )
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
         return JSONResponse({"aktif": False, "hata": [hata_iletisi("ÇİZİM HATASI", e, ": ")]})
+
+
+def _ekran_cizimleri(g, hata):
+    """Ekranın çizimleri ( SVG ) ve kurulamayanların başlıkları.  Sorun varsa
+    çizimler sorunlu çizim kipinde kurulur ( yerleşimler denetim hatasında
+    durmaz — cizim/sorunlu.py );  yine de kurulamayan çizim atlanır, adı
+    söylenir.  Sorun yoksa kip kapalıdır ve kurulamayan çizim bugünkü gibi
+    isteğin hatasıdır ( uygun girdide çizim kurulamaması programın hatası )."""
+    liste, kurulamayan = [], []
+    with sorunlu.kip(bool(hata)):
+        for n, ad in enumerate(pafta.sira(g)):
+            if not hata:
+                liste.append(_svg(g, ad, onek=f"c{n}-"))
+                continue
+            try:
+                liste.append(_svg(g, ad, onek=f"c{n}-"))
+            except Exception:  # sorunlu girdi:  çizim atlanır, adı söylenir
+                log.debug("sorunlu girdiyle kurulamayan çizim:  %s", ad, exc_info=True)
+                kurulamayan.append(cizimler.CIZIMLER[ad][2].partition("  (")[0])
+    return liste, kurulamayan
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -545,7 +585,7 @@ def api_olcu(veri: dict = Body(...)):
             return JSONResponse({"aktif": False, "hata": ["Bilinmeyen çizim."]})
         r = _cozumleme(veri, ad)
         if r is None:
-            return JSONResponse({"aktif": False, "hata": ["Çizim bu girdilerle kurulamıyor."]})
+            return JSONResponse({"aktif": False, "hata": [_cozumlenemedi(veri)]})
         i, hata = _olcu_bul(veri, r)
         if hata:
             return JSONResponse({"aktif": False, "hata": [hata]})
@@ -562,6 +602,22 @@ def api_olcu(veri: dict = Body(...)):
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
         return JSONResponse({"aktif": False, "hata": [hata_iletisi("ÖLÇÜ HATASI", e, ": ")]})
+
+
+def _cozumlenemedi(veri):
+    """Ölçü çözümlenemeyince sebep:  çizim ekranda sorunlu kurulmuş olabilir
+    ( cizim/sorunlu.py ) — o zaman "kurulamıyor" yanıltır.  Sorunlu çizimde
+    ölçünün kaynağı ( türev ) henüz çözülmüyor:  sorunun çaresiyle aynı
+    altyapı, sonraki adımın işi."""
+    try:
+        ham, i, proje = _istek(veri)
+        g, _hata = kopru.cizim_girdisi(uygulama_girdisi.tamamla(dict(ham)), None, proje, i + 1)
+    except Exception:  # sebep bulunamazsa eski ileti
+        log.debug("ölçü:  çizim girdisi kurulamadı", exc_info=True)
+        g = None
+    if g is not None:
+        return "Çizimde sorun var — ölçünün kaynağı sorunlar giderilince gösterilir."
+    return "Çizim bu girdilerle kurulamıyor."
 
 
 def _yuvarla(x):
@@ -582,7 +638,7 @@ def api_olcu_degistir(veri: dict = Body(...)):
             return JSONResponse({"aktif": False, "hata": ["Bilinmeyen çizim."]})
         r = _cozumleme(veri, ad)
         if r is None:
-            return JSONResponse({"aktif": False, "hata": ["Çizim bu girdilerle kurulamıyor."]})
+            return JSONResponse({"aktif": False, "hata": [_cozumlenemedi(veri)]})
         i, hata = _olcu_bul(veri, r)
         if hata:
             return JSONResponse({"aktif": False, "hata": [hata]})
