@@ -370,6 +370,81 @@ class OnYuzUctanUca(unittest.TestCase):
             ({"bina_tipi": "Konut", "N": "10"}, {"project_title": "Eski avan"}),
         )
 
+    def test_ornek_proje_tektir_ve_sifirlanir(self):
+        self.ornek_projeyi_ac()
+        ilk = self.sayfa.url
+        self.secim_yap("beyan_yuku", "1.000")
+        self.sayfa.goto(self.url + "/")
+        self.ornek_projeyi_ac()
+        #  Aynı örnek açılır ( yeni kopya değil ), değeri durur
+        self.assertEqual(self.sayfa.url, ilk)
+        ornekler = self.sayfa.evaluate(
+            "JSON.parse(localStorage.getItem('asansor:projeler')).filter(x => x.ornek).length"
+        )
+        self.assertEqual(ornekler, 1)
+        self.assertEqual(self.kayitli_asansorler()[0].get("beyan_yuku"), "1000")
+        self.sayfa.get_by_role("button", name="Örneği sıfırla").click()
+        self.assertEqual(self.kayitli_asansorler(), [{}])
+
+    def test_iki_sekme_ayni_projeyi_esitler(self):
+        self.ornek_projeyi_ac()
+        adres = self.sayfa.url
+        ikinci = self.baglam.new_page()
+        iz2 = Izleyici(ikinci)
+        ikinci.goto(adres)
+        iz2.sakin()
+
+        def beyan(sayfa):
+            return sayfa.get_by_role("complementary", name="Girdiler").get_by_role(
+                "combobox", name=self.ad("beyan_yuku"), exact=True
+            )
+
+        #  Birinci sekmede değişen ikincide görünür
+        self.secim_yap("beyan_yuku", "1.000")
+        iz2.sakin()
+        ikinci.get_by_role("complementary", name="Girdiler").get_by_label("Alan ara").fill(
+            self.ad("beyan_yuku")
+        )
+        self.assertEqual(beyan(ikinci).inner_text().strip(), "1.000")
+        #  İkincide eklenen asansör birinciye geçer;  birincinin değişikliği ezilmez
+        ikinci.get_by_role("button", name="Asansör ekle").click()
+        iz2.sakin()
+        kayit = self.kayitli_asansorler()
+        self.assertEqual(len(kayit), 2)
+        self.assertEqual(kayit[0].get("beyan_yuku"), "1000")
+        self.assertEqual(self.sekmeler().count() - 1, 2)
+        #  Birincide silinince ikinci söyler ve projeyi yeniden yazmaz
+        self.sayfa.get_by_role("button", name=re.compile("Örnek proje")).first.click()
+        self.sayfa.get_by_role("button", name="Projeyi sil").click()
+        self.sayfa.get_by_role("button", name="Sil", exact=True).click()
+        uyari = ikinci.get_by_role("alert").filter(has_text="başka bir sekmede silindi")
+        uyari.wait_for()
+        kimlik = adres.rsplit("/", 1)[-1]
+        ikinci.get_by_role("button", name="Asansör ekle").click()
+        iz2.sakin()
+        self.assertIsNone(ikinci.evaluate(f"localStorage.getItem('asansor:proje:{kimlik}')"))
+        self.assertEqual(iz2.hatalar, [])
+
+    def test_avan_geri_al_sayfa_yenilenince_durur(self):
+        self.sayfa.goto(self.url + "/avan/trafik")
+        self.sayfa.evaluate(
+            """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut'}, ekNufus: [], trafikAsansorleri: [{P: '8'}],
+                ortak: {}, avanAsansorleri: [{}, {}, {}, {}], kapak: {project_title: 'Eski avan'}}))"""
+        )
+        self.sayfa.reload()
+        self.sayfa.get_by_role("button", name="Yeni avan projesi").click()
+        self.iz.sakin()
+        self.sayfa.reload()
+        self.sayfa.get_by_role("button", name="Geri al").click()
+        self.iz.sakin()
+        kayit = self.sayfa.evaluate("JSON.parse(localStorage.getItem('asansor:avan'))")
+        self.assertEqual(kayit["kapak"], {"project_title": "Eski avan"})
+        #  Bildirim kapandı:  bir daha yenilenince çıkmaz
+        self.sayfa.reload()
+        self.iz.sakin()
+        self.assertEqual(self.sayfa.get_by_role("button", name="Geri al").count(), 0)
+
     # ------------------------------------------------------------ 4 ölçü kutusu
     def test_olcu_kutusu_girdiyi_degistirir(self):
         self.ornek_projeyi_ac()

@@ -13,6 +13,7 @@ import {
   asansorEkle,
   asansorKaldir,
   kutuyaYaz,
+  ornekSifirla,
   useOfisStandardi,
   useUygulamaProjesi,
   type Ham,
@@ -50,7 +51,7 @@ export function Calisma({ proje, bildirim }: { proje: UygulamaProjesi; bildirim?
 }
 
 function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic: UygulamaProjesi; bildirim?: string }) {
-  const [proje, guncelle, sil] = useUygulamaProjesi(baslangic);
+  const [proje, guncelle, sil, baskaSekmedeSilindi] = useUygulamaProjesi(baslangic);
   const [ofis] = useOfisStandardi();
   const [params, setParams] = useSearchParams();
   const gorunum = (params.get("gorunum") as "cizim" | "hesap") ?? "cizim";
@@ -257,6 +258,13 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
         }
       />
 
+      {baskaSekmedeSilindi && (
+        <div role="alert" className="flex shrink-0 items-center gap-2 border-b border-red-cizgi bg-red-acik px-4 py-1.5 text-[12.5px] text-red">
+          <CircleAlert className="size-3.5 shrink-0" />
+          Bu proje başka bir sekmede silindi — buradaki değişiklikler kaydedilmiyor.  Saklamak için dosyaya kaydedin
+          ( proje bilgileri ).
+        </div>
+      )}
       {geriAl && (
         <div role="status" className="flex shrink-0 items-center gap-2 border-b border-vurgu-cizgi bg-vurgu-acik px-4 py-1.5 text-[12.5px] text-vurgu-koyu">
           <span className="flex-1">{geriAl.metin}</span>
@@ -292,6 +300,19 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
           <Link to="/uygulama/yeni" className="font-medium underline underline-offset-2">
             Kendi projenizi başlatın
           </Link>
+          <span aria-hidden>·</span>
+          <button
+            type="button"
+            onClick={() => {
+              guncelle(ornekSifirla);
+              setAsansor(0);
+              setGeriAl(null);
+              setOlcu(null);
+            }}
+            className="font-medium underline underline-offset-2"
+          >
+            Örneği sıfırla
+          </button>
         </div>
       )}
 

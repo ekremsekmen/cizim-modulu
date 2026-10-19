@@ -5,6 +5,8 @@
     Ekran o değeri soluk gösterir ( "siz girmediniz" ).                       */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AlanSemasi, UygulamaIstegi } from "./api";
+import { alanHatasi } from "./denetim";
+import { useSekmeEsitle } from "./sekme";
 
 export type Ham = Record<string, string>;
 
@@ -79,6 +81,28 @@ export function yeniUygulama(
   return p;
 }
 
+/**  Örnek proje TEKTİR:  varsa o açılır ( her açılışta yeni kopya listeyi dolduruyordu ),
+     yoksa kurulur.  Değerlerini baştan almak için örnekSifirla.  */
+export function ornekProjesi(): UygulamaProjesi {
+  for (const x of projeListesi()) {
+    const p = x.ornek ? projeOku(x.id) : null;
+    if (p) return p;
+  }
+  return yeniUygulama(true);
+}
+
+/**  Örneğin değerleri baştan ( kimliği aynı kalır )  */
+export function ornekSifirla(p: UygulamaProjesi): UygulamaProjesi {
+  return {
+    ...p,
+    kimlik: { project_title: "Örnek proje", owner: "", sheet_no: "" },
+    asansorler: [{}],
+    proje_geneli: {},
+    kapak: {},
+    son: undefined,
+  };
+}
+
 export function projeOku(id: string): UygulamaProjesi | null {
   const p = oku<UygulamaProjesi | null>(`asansor:proje:${id}`, null);
   return p && Array.isArray(p.asansorler) && p.asansorler.length ? p : null;
@@ -116,9 +140,19 @@ function kaydet(p: UygulamaProjesi) {
 export function useUygulamaProjesi(baslangic: UygulamaProjesi) {
   const [proje, setProje] = useState<UygulamaProjesi>(baslangic);
   const silindi = useRef(false);
+  //  Başka sekmede silindiyse bu sekme onu yeniden yazmaz ( ekran söyler )
+  const [baskaSekmedeSilindi, setBaskaSekmedeSilindi] = useState(false);
   useEffect(() => {
     if (!silindi.current) kaydet(proje);
   }, [proje]);
+  //  Aynı proje başka sekmede değişti:  o hâl alınır
+  const disaridan = useCallback((d: UygulamaProjesi | null) => {
+    if (d === null) {
+      silindi.current = true;
+      setBaskaSekmedeSilindi(true);
+    } else if (Array.isArray(d.asansorler) && d.asansorler.length) setProje(d);
+  }, []);
+  useSekmeEsitle(`asansor:proje:${proje.id}`, disaridan);
 
   const guncelle = useCallback((f: (p: UygulamaProjesi) => UygulamaProjesi) => {
     setProje((p) => ({ ...f(p), guncellendi: Date.now() }));
@@ -128,7 +162,7 @@ export function useUygulamaProjesi(baslangic: UygulamaProjesi) {
     silindi.current = true;
     projeSil(proje.id);
   }, [proje.id]);
-  return [proje, guncelle, sil] as const;
+  return [proje, guncelle, sil, baskaSekmedeSilindi] as const;
 }
 
 /**  Alan değeri:  proje geneli alanlar binaya aittir ( bütün asansörlerde aynı ).
@@ -198,6 +232,8 @@ export function alanOku(p: UygulamaProjesi, sema: AlanSemasi, asansor: number, a
 export function useOfisStandardi() {
   const [ofis, setOfis] = useState<Ham>(() => oku<Ham>(OFIS, {}));
   useEffect(() => yaz(OFIS, ofis), [ofis]);
+  //  Başka sekmede değişti ( silindiyse boş = varsayılanlar )
+  useSekmeEsitle(OFIS, useCallback((d: Ham | null) => setOfis(d ?? {}), []));
   return [ofis, setOfis] as const;
 }
 
@@ -208,32 +244,9 @@ export function istekKur(p: UygulamaProjesi, ofis: Ham): UygulamaIstegi {
   return { asansorler: p.asansorler, proje_geneli: p.proje_geneli, sabitler };
 }
 
-/* ───────────────────────────── Ön yüz denetimi ( kurallar sunucudan )
-    ÖN YÜZ SUNUCUDAN SIKI OLAMAZ:  yalnız tartışmasız okunan sayı denetlenir.
-    "abc", "1 200", "1e3" ve belirsiz "1.200" sunucuya gider — kabul ya da
-    reddi, sebebiyle birlikte, sunucunundur.                                   */
-const BELIRSIZ = /^[+-]?[1-9]\d{0,2}[.,]\d{3}$/;
-const ACIK_SAYI = /^[+-]?\d+([.,]\d+)?$/;
-
-export function sayiOku(m: string): number | null {
-  const t = m.trim();
-  if (!ACIK_SAYI.test(t) || BELIRSIZ.test(t)) return null;
-  return Number(t.replace(",", "."));
-}
-
-export function alanHatasi(sema: AlanSemasi, anahtar: string, ham: string | undefined): string | null {
-  if (ham === undefined || ham.trim() === "") return null;
-  const k = sema.kurallar[anahtar];
-  if (!k) return null;
-  const n = sayiOku(ham);
-  if (n === null) return null;
-  if (k.tam_sayi && !Number.isInteger(n)) return "Tam sayı olmalı";
-  //  null = o yönde sınır yok ( "n < null" JavaScript'te n < 0 olurdu )
-  if (k.en_az != null && (k.en_az_dahil ? n < k.en_az : n <= k.en_az))
-    return k.en_az_dahil ? `En az ${k.en_az.toLocaleString("tr-TR")}` : `${k.en_az.toLocaleString("tr-TR")} üstünde olmalı`;
-  if (k.en_cok != null && n > k.en_cok) return `En çok ${k.en_cok.toLocaleString("tr-TR")}`;
-  return null;
-}
+/* ───────────────────────────── Ön yüz denetimi:  saf işlevler lib/denetim.ts'te
+    ( bağımlılıksız — testler/test_on_yuz_denetimi.py onu Node ile doğrudan koşar ) */
+export { alanHatasi, kutuyaYaz, sayiOku } from "./denetim";
 
 export interface FormHatasi {
   anahtar: string;
@@ -257,14 +270,6 @@ export function formHatalari(sema: AlanSemasi, p: UygulamaProjesi): FormHatasi[]
     if (e) l.push({ anahtar: k, hata: e, asansor: null });
   });
   return l;
-}
-
-/**  Sunucunun döndürdüğü sayıyı kutuya yazar.  Ondalık virgülle;  "123,456"
-     gibi üç ondalıklı yazım sunucuda BELİRSİZ sayılır ( binlik mi ondalık mı ) —
-     sona sıfır eklenir, değer aynı kalır.  */
-export function kutuyaYaz(n: number): string {
-  const m = String(n).replace(".", ",");
-  return BELIRSIZ.test(m) ? m + "0" : m;
 }
 
 /**  Kısa gecikmeli değer — yazarken her tuşta istek gitmesin.

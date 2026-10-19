@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { createBrowserRouter, Navigate, useLocation, useNavigate, useParams, useRouteError } from "react-router";
 import { CircleAlert, Loader2 } from "lucide-react";
 import { Acilis } from "@/ekranlar/Acilis";
-import { projeOku, yeniUygulama } from "@/lib/proje";
+import { ornekProjesi, projeOku, yeniUygulama } from "@/lib/proje";
 
 /*  ADRESLER  ( programın kökünde — FastAPI derlenmiş dosyaları sunar;  eski /yeni buraya yönlenir )
     /                     açılış
@@ -37,7 +37,7 @@ function Bekle({ children }: { children: React.ReactNode }) {
 function YeniUygulama({ ornek }: { ornek?: boolean }) {
   const git = useNavigate();
   useEffect(() => {
-    git(`/uygulama/${yeniUygulama(ornek).id}`, { replace: true });
+    git(`/uygulama/${(ornek ? ornekProjesi() : yeniUygulama()).id}`, { replace: true });
   }, [git, ornek]);
   return null;
 }
