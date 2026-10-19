@@ -317,8 +317,13 @@ def yerlesim(g, cizim_sabitleri=None):
     sabit0 = _sabit_parcalar(M, delikler, saptirma)
     kx, ky = dz.p(uk)
     halat_ortasi = ((kx + agirlik_dusus[0]) / 2.0, (ky + agirlik_dusus[1]) / 2.0)
-    arama = _KaideAramasi(oda, md, S, TB, iz, uzun_x, E, F, delikler, sabit0, kapi, kapi_onu, halat_ortasi)
-    cerceve, alanlar = arama.ara()
+    girdi = (oda, md, S, TB, iz, uzun_x, E, F, delikler, sabit0, kapi, kapi_onu, halat_ortasi)
+    if izli.izlemede() and izli.aramalar_duz():
+        #  Çare bulucu:  yer araması düz sayılarla ( izli.duz_arama )
+        with izli.izsiz():
+            cerceve, alanlar = _KaideAramasi(*izli.duz(girdi)).ara()
+    else:
+        cerceve, alanlar = _KaideAramasi(*girdi).ara()
     if cerceve:
         cerceve, boy, ortali = cerceve
         #  Yan yatakların mesnet aralığı:  dikine kirişlerin eksenleri arası

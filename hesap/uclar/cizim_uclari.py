@@ -436,6 +436,42 @@ def izli_cizim_girdisi(ham, proje, sira, g_taban, adaylar):
     return g
 
 
+def izli_sorunlar(veri, i):
+    """Aktif asansörün sorunları, AÇIKLARI ( sorun.Sorun.fark ) izli — her
+    girdiye türeviyle ( çare bulucu:  uclar/care_uclari.py ).  Çizim girdisi
+    bir kez izli kurulur, denetimler onun üstünde koşar ( ölçü kaynağıyla aynı
+    yol:  izli_cizim_girdisi ).  Köprü girdiyi çizime çeviremezse onun
+    sorunları ( tampon kaidesi ≤ 0 … ) — onlar da farklı.
+
+    Döner:  ( sorunlar , değerler { anahtar:  bugünkü etkin değer } ,
+    gizli { yerleşime göre formda görünmeyen anahtarlar } )."""
+    ham, _i, proje = _istek(dict(veri, asansor=i))
+    A0 = uygulama_girdisi.tamamla(dict(ham))
+    g0, _h = kopru.cizim_girdisi(A0, None, proje, i + 1)
+    alan, _pg, gizli = _sozlesme()
+    gizli = set(gizli["mrl" if kopru.mrl_mi(A0) else "daireli"])
+    ad = _adaylar(ham, A0, g0 or {}, set())
+    sayilar = [a["kimlik"][1] for a in ad if a["kimlik"][0] == "girdi" and a["tur"] == "sayi"]
+    #  İz sürerken önbellek anahtarı türevi taşır ( istek_onbellegi );  makine
+    #  dairesinin yer araması düz sayılarla ( izli.duz_arama — hız )
+    with istek_onbellegi.etkin(), izli.izleme(), izli.duz_arama():
+        h = dict(ham)
+        if g0 is not None:
+            _regulatoru_tut(h, g0, {})
+        for k in sayilar:
+            h[k] = izli.girdi(h.get(k), ("girdi", k))
+        A = uygulama_girdisi.tamamla(h)
+        for k in sayilar:
+            if h.get(k) is None:
+                A[k] = izli.oz(A.get(k), ("girdi", k))
+        g, hata = kopru.cizim_girdisi(A, None, proje, i + 1)
+        sorunlar = _cizim_hatalari(g, A) if g is not None else hata
+    degerler = {
+        a["kimlik"][1]: a["deger"] for a in ad if a["kimlik"][0] == "girdi" and a["tur"] in ("sayi", "tam")
+    }
+    return sorunlar, degerler, gizli
+
+
 def _izli_olculer(ham, ad, proje, sira, g_taban, adaylar):
     """Çizimin ölçüleri, uzunlukları kaynaklarını taşıyarak — çizim BİR KEZ
     kurulur ( izli_cizim_girdisi ).  Kurulamazsa None."""
@@ -708,7 +744,7 @@ def api_olcu_degistir(veri: dict = Body(...)):
         #  FORMUN KURALI ÖLÇÜDE DE GEÇERLİ:  kutu "çizim kuruldu" deyip formun
         #  reddedeceği değeri yazıyordu ( kuyu dibi 99.999.999 → form "en çok
         #  20.000" der, hesap durur ).  Değişiklik kutuya yazılmadan reddedilir.
-        red = _kural_disi(degisiklik)
+        red = kural_disi(degisiklik)
         if red:
             return JSONResponse(
                 {"aktif": False, "hata": [f"{red}  —  bu ölçü {_tr_sayi(hedef)} mm yapılamaz."]}
@@ -741,7 +777,7 @@ def _tr_sayi(x):
     return f"{x:,.2f}".rstrip("0").rstrip(".").replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-def _kural_disi(degisiklik):
+def kural_disi(degisiklik):
     """Değişikliklerden formun kuralını çiğneyen ilki:  ileti ( yoksa None ).
     İletiler ön yüzünküyle aynı ( on-yuz/src/lib/denetim.ts alanHatasi )."""
     kurallar = _form_kurallari()

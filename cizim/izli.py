@@ -151,6 +151,50 @@ def izlemede():
     return getattr(_DURUM, "acik", False)
 
 
+@contextlib.contextmanager
+def duz_arama():
+    """Bu blokta YER ARAMALARI ( makine dairesinde kaidenin, panonun ve bakım
+    alanının yeri — makine_dairesi ) iz sürmeden, düz sayılarla koşar:  bir
+    seçimdir, türevi anlamsızdır;  izli sayılarla yüzlerce adayı denemek
+    saniyeler sürüyordu.  Yalnız çare bulucu açar ( cizim_uclari.izli_sorunlar —
+    önerisi zaten yeniden kurularak sınanır );  ölçü kaynağı açmaz:  kaidenin
+    ölçüleri türeviyle kalsın."""
+    eski = getattr(_DURUM, "duz_arama", False)
+    _DURUM.duz_arama = True
+    try:
+        yield
+    finally:
+        _DURUM.duz_arama = eski
+
+
+def aramalar_duz():
+    return getattr(_DURUM, "duz_arama", False)
+
+
+@contextlib.contextmanager
+def izsiz():
+    """Bloğun içinde izleme kapalı ( izli sayı üretilmez )."""
+    eski = getattr(_DURUM, "acik", False)
+    _DURUM.acik = False
+    try:
+        yield
+    finally:
+        _DURUM.acik = eski
+
+
+def duz(x):
+    """İzli sayıların izi düşmüş kopyası ( iç içe sözlük, liste, demet )."""
+    if isinstance(x, Izli):
+        return _float(x)
+    if isinstance(x, dict):
+        return {k: duz(v) for k, v in x.items()}
+    if isinstance(x, list):
+        return [duz(v) for v in x]
+    if isinstance(x, tuple):
+        return tuple(duz(v) for v in x)
+    return x
+
+
 def turev(x):
     """{ kimlik:  eğim } — izli değilse boş."""
     return dict(x.t) if isinstance(x, Izli) else {}

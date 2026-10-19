@@ -441,6 +441,11 @@ def kanat_cebi_carpismalari(g, cizim_sabitleri=None):
                     f"kuyuda yer bulamıyor — {girdi.kapi_onerisi(g['kapi'].get('tip'))}.",
                     (c["ad"], o["ad"]),
                     "kuyu_plani",
+                    fark=sorun.ayrik(
+                        (c["x"], c["y"], c["x"] + c["g"], c["y"] + c["d"]),
+                        (o["x"], o["y"], o["x"] + o["g"], o["y"] + o["d"]),
+                        -1e-6,
+                    ),
                 )
                 if metin not in hata:
                     hata.append(metin)

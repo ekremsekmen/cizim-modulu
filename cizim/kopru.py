@@ -220,8 +220,13 @@ class _Okuyucu:
             self.hata.append(f"{et}:  girilmemiş." if bos_mu(v) else f"{et}:  sayı olmalı ( {v!r} ).")
             return None
         if not isaretli and (v < 0 if sifir else v <= 0):
+            #  Açığı ( sorun.Sorun.fark ) değerin kendisi:  kuraldan türetilen
+            #  alanda ( tampon kaidesi = kuyu dibi − … ) türevi kaynağına gider
             self.hata.append(
-                f"{et}:  " + ("negatif olamaz" if sifir else "sıfırdan büyük olmalı") + f" ( {v:g} )."
+                sorun.Sorun(
+                    f"{et}:  " + ("negatif olamaz" if sifir else "sıfırdan büyük olmalı") + f" ( {v:g} ).",
+                    fark=v,
+                )
             )
             return None
         #  FİZİKSEL TAVAN ( alanlar.BIRIM_AZAMI ):  10¹² mm'lik kuyu yazı

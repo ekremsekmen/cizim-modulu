@@ -138,6 +138,34 @@ export interface CizimSorunu {
   cizim: string | null;
 }
 
+/**  Bir sorunun doğrulanmış çaresi ( sunucu:  uclar/care_uclari.py ) — uygulanıp
+     hesap ve çizim yeniden kurularak sınanmıştır  */
+export interface CareOnerisi {
+  anahtar: string;
+  etiket: string;
+  /**  Bugünkü etkin değer ( boş kutuda kuralın / varsayılanın değeri )  */
+  eski: number | null;
+  girilmis: boolean;
+  yeni: number;
+  /**  Bu değişiklikle giden sorunlar ( metinleri )  */
+  gider: string[];
+  bina: boolean;
+  yontem: "türev" | "son değişiklik";
+}
+
+export interface CareYanit {
+  aktif: boolean;
+  careler?: { metin: string; oneriler: CareOnerisi[] }[];
+  sure?: number;
+  hata?: string[];
+}
+
+/**  Son temiz girdi ( son değişikliğin sınırı için ):  asansörün girdisi ve proje geneli  */
+export interface OncekiGirdi {
+  asansor: Record<string, string>;
+  proje_geneli: Record<string, string>;
+}
+
 /**  aktif:  çizim uygun.  Aktif değilse hata sebebidir;  çizimler de geldiyse
      çizim SORUNLU kuruldu ( ekranda gösterilir, paket inmez ), gelmediyse girdi
      çizime hiç çevrilemedi.  */
@@ -293,6 +321,8 @@ export const api = {
   hesap: (i: UygulamaIstegi, s?: AbortSignal) => gonder<CokluYanit>("/api/uygulama/coklu", i, s),
   cizimler: (i: UygulamaIstegi, asansor: number, s?: AbortSignal) =>
     gonder<CizimYanit>("/api/uygulama/cizimler", { ...i, asansor }, s),
+  care: (i: UygulamaIstegi, asansor: number, onceki: OncekiGirdi | null) =>
+    gonder<CareYanit>("/api/uygulama/care", { ...i, asansor, onceki }),
   olcu: (i: UygulamaIstegi, asansor: number, cizim: string, olcu: number, metin: string) =>
     gonder<OlcuYanit>("/api/uygulama/olcu", { ...i, asansor, cizim, olcu, metin }),
   olcuDegistir: (

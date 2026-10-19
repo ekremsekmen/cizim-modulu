@@ -15,7 +15,15 @@
          reddedildiyse çizim bir önceki girdinindir.                         */
 import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { api, type AlanSemasi, type CizimSorunu, type CizimYanit, type CokluYanit, type UygulamaIstegi } from "@/lib/api";
+import {
+  api,
+  type AlanSemasi,
+  type CizimSorunu,
+  type CizimYanit,
+  type CokluYanit,
+  type OncekiGirdi,
+  type UygulamaIstegi,
+} from "@/lib/api";
 import { formHatalari, istekKur, useGecikmeli, type FormHatasi, type Ham, type UygulamaProjesi } from "@/lib/proje";
 
 /**  Büyük SVG yanıtları ( ~800 KB ) her tuşta önbellekte birikmesin  */
@@ -76,6 +84,19 @@ export function useSunucu(
   const [sonCizim, setSonCizim] = useState<{ yanit: CizimYanit; asansor: number; istek: UygulamaIstegi }>();
   if (cizim.data?.cizimler && !cizim.isPlaceholderData && gonderilen && cizim.data !== sonCizim?.yanit)
     setSonCizim({ yanit: cizim.data, asansor, istek: gonderilen });
+
+  //  Asansörün son TEMİZ çiziminin girdisi:  çare bulucu sorunun son değişiklikle
+  //  çıkıp çıkmadığına buna bakar ( değişen kutuda sınır — uclar/care_uclari.py )
+  //  Karşılaştırma nesnenin kendisiyle:  istekte o asansör yoksa ( asansör yeni
+  //  eklendi, dosya açılıyor ) yazılmaz — her çizimde yeni boş nesne yazmak
+  //  sonsuz yeniden çizime ( React #301 ) yol açıyordu
+  const [sonTemiz, setSonTemiz] = useState<Record<number, OncekiGirdi>>({});
+  const temizGirdi = gonderilen?.asansorler[asansor];
+  if (cizim.data?.aktif && !cizim.isPlaceholderData && gonderilen && temizGirdi) {
+    const e = sonTemiz[asansor];
+    if (e?.asansor !== temizGirdi || e?.proje_geneli !== gonderilen.proje_geneli)
+      setSonTemiz({ ...sonTemiz, [asansor]: { asansor: temizGirdi, proje_geneli: gonderilen.proje_geneli } });
+  }
 
   const hesapDurdu = !!hesap.data && !hesap.data.aktif;
   //  Girdi çizime hiç çevrilemedi ( eksik / geçersiz alan ) — sorunlu çizim değil
@@ -139,6 +160,8 @@ export function useSunucu(
     cizimSorunSayisi: cizimSorunlari.length,
     /**  Ekrandaki ( güncel ) çizimin sorunlu parçaları ( data-ad ) — tuval kırmızı işaretler  */
     sorunluParcalar,
+    /**  Bu asansörün son temiz çiziminin girdisi ( yoksa null )  */
+    oncekiTemiz: sonTemiz[asansor] ?? null,
     sorun,
   };
 }

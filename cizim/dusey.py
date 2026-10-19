@@ -125,6 +125,7 @@ def durak_kotlari(g, cizim_sabitleri=None):
                     f"kapı üstteki durağın döşemesine giriyor.",
                     _KAT_KAPISI,
                     "kuyu_kesiti_yan",
+                    fark=h - kapi_h,
                 )
             )
         elif h <= bosluk_h:
@@ -135,6 +136,7 @@ def durak_kotlari(g, cizim_sabitleri=None):
                     "ardışık kapı boşlukları arasında duvar kalmıyor.",
                     _KAT_KAPISI,
                     "kuyu_kesiti_yan",
+                    fark=h - bosluk_h,
                 )
             )
         if h > ESIK_ARASI:
@@ -144,6 +146,7 @@ def durak_kotlari(g, cizim_sabitleri=None):
                     f"( TS EN 81-20 m.5.2.3.1 );  bu çizim acil kapı çizmez.",
                     _KAT_KAPISI,
                     "kuyu_kesiti_yan",
+                    fark=ESIK_ARASI - h,
                 )
             )
     kotlar = [0.0]
@@ -202,6 +205,7 @@ def yerlesim(g, cizim_sabitleri=None):
                         f"{AD[ad]}:  {deger:g} mm < {asgari:g} mm  ( TS EN 81-20 {madde} ).",
                         _aciklik_parcalari(yer, ad, dip["dip_engel"], ust["ust_engel"]),
                         _aciklik_kesiti(yer, ad),
+                        fark=deger - asgari,
                     )
                 )
     return {
@@ -248,6 +252,7 @@ def _girdi_hatalari(g, S, dy):
                     f"{ad} tamponu ezilme miktarı ({ezilme:g} mm), tamponun boyundan ({boy:g} mm) büyük olamaz.",
                     (tur + "_tamponu",),
                     "kuyu_kesiti_yan",
+                    fark=boy - ezilme,
                 )
             )
     #  Çizilemeyen askı / ağırlık birleşimi ilk söylenir ( öbür planların
@@ -274,6 +279,7 @@ def _cerceve_ve_sase(g, S, dy, hata):
                     "kirişlerine yetmiyor.",
                     ("agirlik", "agirlik_paten", "agirlik_kasnagi"),
                     "kuyu_kesiti_yan",
+                    fark=cerceve - max(2 * S["agirlik_kiris"], S["agirlik_kasnak_ust"] + R),
                 )
             ]
         }
@@ -292,6 +298,7 @@ def _cerceve_ve_sase(g, S, dy, hata):
                     "( Sabitler:  şase altı, alt paten payı, paten ve alt kiriş yüksekliği ).",
                     ("sase_kiris", "sase_kirisi", "kabin"),
                     "kuyu_kesiti_yan",
+                    fark=kabin["taban_alti"] - kabin["alt_kiris_ust"],
                 )
             ]
         }
@@ -304,6 +311,7 @@ def _cerceve_ve_sase(g, S, dy, hata):
                 f"bu ölçülerle kabin paten arası en az {gerekli:g} mm olmalı.",
                 ("sase_kiris", "sase_kirisi", "kabin"),
                 "kuyu_kesiti_yan",
+                fark=kiris_alti - kabin["tavan"],
             )
         )
     return None
@@ -513,6 +521,7 @@ def _agirlik_uc_konumlari(g, S, dy, KD, M, H, taban, ust_aciklik, hata):
                 f"{z - H:g} mm ( son kattan ){ayrica(ust_carpan, en)}.",
                 sum((_KESIT_PARCASI.get(a, ()) for a in ust_carpan), ()) + _KESIT_PARCASI.get(engel_ad, ()),
                 "kuyu_kesiti_yan",
+                fark=-ust_carpan[en][0],
             )
         )
     if alt_carpan:
@@ -526,6 +535,7 @@ def _agirlik_uc_konumlari(g, S, dy, KD, M, H, taban, ust_aciklik, hata):
                 + ("agirlik_tamponu", "agirlik_kaidesi"),
                 #  Ağırlık en altta = kabin en üstte:  B-B
                 "kuyu_kesiti_on",
+                fark=-alt_carpan[en],
             )
         )
     return AK, AKd

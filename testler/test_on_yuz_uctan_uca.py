@@ -15,7 +15,8 @@ gerçek sunucu ve gerçek tarayıcıyla:
   5  teslim:  onaysız paket kapalı;  onaylı ZIP iner, içinde PDF ve .uygulama;
      çizimde sorun varken paket kapalı, hesap PDF'i açık
   7  sorunlu çizim:  kural sağlanmasa da çizim ekranda, sorunlu parça kırmızı;
-     karttaki soruna tıklanınca tuval onun yerine yakınlaşır
+     karttaki soruna tıklanınca tuval onun yerine yakınlaşır;  "Düzeltme öner"
+     doğrulanmış düzeltmeleri getirir, "Uygula" kutuya yazar, sorun kalkar
   6  adresler:  bilinmeyen proje açılışa döner;  /yeni köke yönlenir
   Hiçbir testte konsol hatası yok.
 
@@ -565,6 +566,33 @@ class OnYuzUctanUca(unittest.TestCase):
         self.alan_kutusu("kuyu_genisligi").fill("2200")
         self.sayfa.get_by_role("alert").wait_for(state="detached")
         self.assertEqual(self.sayfa.locator(".parca-sorunlu, .parca-sorun-secili").count(), 0)
+
+    def test_duzeltme_oner_ve_uygula(self):
+        """Kuyu 2200 → 2300 ( korkuluk tavana sığmaz ):  düzeltmeler gelir —
+        kuyu genişliğinin sınırı 2230 ( son değişiklik:  ön yüz son temiz
+        girdiyi gönderir ) ve son kat 4515 ( türev );  "Uygula" kutuya yazar,
+        sorun kalkar ( uclar/care_uclari.py )."""
+        self.ornek_projeyi_ac()
+        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.iz.sakin()
+        kart = self.sayfa.get_by_role("alert")
+        with self.sayfa.expect_response(
+            lambda r: r.url.endswith("/api/uygulama/care"), timeout=30_000
+        ) as yanit:
+            kart.get_by_role("button", name="Düzeltme öner").click()
+        d = yanit.value.json()
+        self.assertTrue(d["aktif"], d)
+        oneriler = {o["anahtar"]: o["yeni"] for c in d["careler"] for o in c["oneriler"]}
+        self.assertEqual((oneriler["kuyu_genisligi"], oneriler["son_kat_yuksekligi"]), (2230, 4515))
+        liste = kart.get_by_role("list", name="Düzeltmeler")
+        liste.wait_for()
+        self.assertIn("bina ölçüsü", liste.inner_text())
+        kart.get_by_role("button", name=re.compile(r"^Kuyu genişliği 2\.230 yap$")).click()
+        self.sayfa.get_by_role("alert").wait_for(state="detached")
+        self.assertEqual(self.alan_kutusu("kuyu_genisligi").input_value(), "2230")
+        istek, cizim = self.iz.son("/api/uygulama/cizimler")
+        self.assertEqual(istek["asansorler"][0]["kuyu_genisligi"], "2230")
+        self.assertTrue(cizim["aktif"], cizim.get("hata"))
 
     # ------------------------------------------------------------ 5 teslim
     def test_teslim_onaysiz_kapali_onayli_paket_iner(self):

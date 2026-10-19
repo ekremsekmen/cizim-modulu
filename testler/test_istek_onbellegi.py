@@ -73,9 +73,10 @@ class Kurallar(unittest.TestCase):
             s.kur({"a": 1})
         self.assertEqual(s.n, 2)
 
-    def test_iz_surerken_devre_disi(self):
-        """İzli sayı float'tır, JSON'da düz sayıya döner:  iz sürerken önbellek
-        kapalı olmalı ( ölçüye tıklamanın türevi )."""
+    def test_iz_surerken_duz_ile_karismaz(self):
+        """İzli sayı float'tır, JSON'da düz sayıya döner:  iz sürerken anahtar
+        türevi yazar — düz girdinin sonucu izliye verilmez ( ölçüye tıklamanın
+        türevi )."""
         s = _Sayac()
         with istek_onbellegi.etkin():
             s.kur({"a": 1.0})
@@ -83,6 +84,23 @@ class Kurallar(unittest.TestCase):
                 r = s.kur({"a": izli.girdi(1.0, "a")})
         self.assertEqual(s.n, 2)
         self.assertEqual(izli.turev(r["liste"][0]["a"]), {"a": 1.0})
+
+    def test_iz_surerken_ayni_izli_girdi_bir_kez_kurulur(self):
+        """Çare bulucu:  makine dairesinin yerleşimi izli sayılarla dört kez
+        kuruluyordu.  Aynı izli girdi ( değer + türev ) bir kez;  türevi ayrı
+        aynı değer ayrı;  iz sürerken düz girdi de iz sürülmeyenden ayrı."""
+        s = _Sayac()
+        with istek_onbellegi.etkin():
+            s.kur({"a": 2.0})
+            with izli.izleme():
+                ilk = s.kur({"a": izli.girdi(2.0, "a")})
+                ikinci = s.kur({"a": izli.girdi(2.0, "a")})
+                baska = s.kur({"a": izli.girdi(2.0, "b")})
+                s.kur({"a": 2.0})
+        self.assertEqual(s.n, 4)
+        self.assertEqual(izli.turev(ikinci["liste"][0]["a"]), {"a": 1.0})
+        self.assertEqual(izli.turev(baska["liste"][0]["a"]), {"b": 1.0})
+        self.assertIsNot(ilk["liste"][0], ikinci["liste"][0])
 
     def test_json_olmayan_girdi_onbellege_girmez(self):
         s = _Sayac()

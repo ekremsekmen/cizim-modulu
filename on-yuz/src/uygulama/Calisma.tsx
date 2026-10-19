@@ -3,10 +3,32 @@
     Sunucuyla konuşma useSunucu'da ( gecikme, yarış, hata ve "güncel değil"
     kuralları );  burada yalnız ekranın durumu ve düzeni.                    */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
-import { Calculator, ChevronDown, CircleAlert, DraftingCompass, Loader2, LocateFixed, Package, Plus, TriangleAlert, Undo2, X } from "lucide-react";
-import { api, type AlanSemasi, type Bolum, type CizimSorunu } from "@/lib/api";
+import {
+  Calculator,
+  ChevronDown,
+  CircleAlert,
+  DraftingCompass,
+  Lightbulb,
+  Loader2,
+  LocateFixed,
+  Package,
+  Plus,
+  TriangleAlert,
+  Undo2,
+  X,
+} from "lucide-react";
+import {
+  api,
+  type AlanSemasi,
+  type Bolum,
+  type CareOnerisi,
+  type CareYanit,
+  type CizimSorunu,
+  type OncekiGirdi,
+  type UygulamaIstegi,
+} from "@/lib/api";
 import {
   alanYaz,
   asansorAdedi,
@@ -19,7 +41,7 @@ import {
   type Ham,
   type UygulamaProjesi,
 } from "@/lib/proje";
-import { cn, etiketBol } from "@/lib/utils";
+import { cn, etiketBol, sayiYaz } from "@/lib/utils";
 import { AnaSayfaBaglantisi, BasvuruBaglantilari, UstSerit } from "@/components/Kabuk";
 import { Bolumlu, Dugme, HukumNoktasi, Ipucu, Rozet } from "@/components/ui";
 import { HesapBelgesi } from "@/components/HesapBelgesi";
@@ -138,6 +160,16 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     s.sorun.maddeler.some((m) => m.metin === sorunOdak.sorun.metin)
       ? sorunOdak
       : null;
+  //  ÇARE ( sunucu:  uclar/care_uclari.py ):  istenince bulunur ( birkaç saniye —
+  //  her tuşta değil );  yalnız ekrandaki çizimin girdisi için geçerlidir
+  const care = useMutation({
+    mutationFn: (v: { istek: UygulamaIstegi; onceki: OncekiGirdi | null }) => api.care(v.istek, a, v.onceki),
+  });
+  const careler = care.variables?.istek === s.cizimIstegi ? care.data : undefined;
+  const careBul = s.cizimIstegi
+    ? () => care.mutate({ istek: s.cizimIstegi!, onceki: s.oncekiTemiz })
+    : undefined;
+  const careUygula = (o: CareOnerisi) => yaz(o.anahtar, kutuyaYaz(o.yeni));
   const sorunuGoster = (m: CizimSorunu) => {
     if (gorunum !== "cizim") gorunumSec("cizim");
     setSorunOdak((o) => ({ sorun: m, n: (o?.n ?? 0) + 1 }));
@@ -400,6 +432,10 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
               cokAsansor={proje.asansorler.length > 1}
               sorunuGoster={sorunuGoster}
               seciliSorun={gecerliOdak?.sorun.metin ?? null}
+              careBul={careBul}
+              careYolda={care.isPending && care.variables?.istek === s.cizimIstegi}
+              careler={careler}
+              careUygula={careUygula}
             />
           )}
         </main>
@@ -465,6 +501,10 @@ function SorunKarti({
   cokAsansor,
   sorunuGoster,
   seciliSorun,
+  careBul,
+  careYolda,
+  careler,
+  careUygula,
 }: {
   sorun: Sorun;
   koyu: boolean;
@@ -475,6 +515,11 @@ function SorunKarti({
   /**  Parçası olan sorun tıklanınca:  tuval onu çizimde gösterir  */
   sorunuGoster: (m: CizimSorunu) => void;
   seciliSorun: string | null;
+  /**  Çareleri iste ( ekrandaki çizimin girdisiyle );  yoksa düğme yok  */
+  careBul?: () => void;
+  careYolda: boolean;
+  careler?: CareYanit;
+  careUygula: (o: CareOnerisi) => void;
 }) {
   //  Çizim sorunlu da olsa ekrandaysa kart küçültülebilir ( çizime bakılsın )
   const [kucuk, setKucuk] = useState(false);
@@ -497,7 +542,7 @@ function SorunKarti({
         : "Çizim bu girdilerle kuruldu;  sorunlar giderilmeden paket inmez."
       : "Ekrandaki çizim ve hükümler son geçerli girdilerin.";
   //  git:  maddenin gösterdiği yer ( kural dışı girdide kutu, sorunda çizimdeki parça )
-  const maddeler: { metin: string; git?: () => void; cizimde?: boolean }[] =
+  const maddeler: { metin: string; git?: () => void; cizimde?: boolean; cozum?: boolean }[] =
     sorun.tur === "kural"
       ? sorun.maddeler.map((h) => ({
           metin: `${h.asansor !== null && cokAsansor ? `Asansör ${h.asansor + 1} · ` : ""}${etiket(h.anahtar)}:  ${h.hata}`,
@@ -507,9 +552,12 @@ function SorunKarti({
         ? [{ metin: sorun.ileti }]
         : sorun.maddeler.map((m) =>
             cizimGuncel && m.parcalar.length
-              ? { metin: m.metin, git: () => sorunuGoster(m), cizimde: true }
-              : { metin: m.metin },
+              ? { metin: m.metin, git: () => sorunuGoster(m), cizimde: true, cozum: true }
+              : { metin: m.metin, cozum: cizimGuncel },
           );
+  //  Çareler sorunun metniyle eşleşir ( hesabın yalnız kendi iletisi olan sorunun çaresi yok )
+  const careSorunu = (metin: string) => careler?.careler?.find((c) => c.metin === metin);
+  const careAcik = !!careler?.aktif && !orta;
   return (
     <div
       role="alert"
@@ -529,6 +577,22 @@ function SorunKarti({
           </p>
           {!kucuk && <p className={cn("text-[12px]", koyu ? "text-[#fecdca]/70" : "text-metin-3")}>{alt}</p>}
         </div>
+        {cizimGuncel && !orta && careBul && !kucuk && (
+          <button
+            type="button"
+            onClick={careBul}
+            disabled={careYolda}
+            title="Her sorun için hesap ve çizim yeniden kurularak sınanmış sayılı düzeltmeler — uygulamak sizin kararınız"
+            className={cn(
+              "inline-flex h-6 shrink-0 items-center gap-1 rounded-kucuk border px-2 text-[11.5px] font-medium",
+              koyu ? "border-white/15 text-white hover:bg-white/10" : "border-cizgi text-metin hover:bg-black/[0.04]",
+              careYolda && "opacity-70",
+            )}
+          >
+            {careYolda ? <Loader2 className="size-3 animate-spin" /> : <Lightbulb className="size-3" />}
+            {careYolda ? "Aranıyor…" : careAcik ? "Yeniden ara" : "Düzeltme öner"}
+          </button>
+        )}
         {cizimGuncel && !orta && (
           <button
             type="button"
@@ -541,7 +605,10 @@ function SorunKarti({
           </button>
         )}
       </div>
-      <ul hidden={kucuk} className="max-h-52 space-y-1 overflow-y-auto px-4 pb-3 pl-10">
+      {careler && !careler.aktif && !kucuk && (
+        <p className="px-4 pb-2 pl-10 text-[12px] opacity-80">{careler.hata?.join(" ") || "Düzeltme aranamadı."}</p>
+      )}
+      <ul hidden={kucuk} className={cn("space-y-1 overflow-y-auto px-4 pb-3 pl-10", careAcik ? "max-h-96" : "max-h-52")}>
         {maddeler.map((m, i) => (
           <li key={i} className="list-disc text-[12.5px] leading-snug marker:text-current/50">
             {m.git ? (
@@ -560,9 +627,64 @@ function SorunKarti({
             ) : (
               m.metin
             )}
+            {careAcik && m.cozum && <CareListesi c={careSorunu(m.metin)} koyu={koyu} uygula={careUygula} />}
           </li>
         ))}
       </ul>
     </div>
+  );
+}
+
+/**  Bir sorunun doğrulanmış düzeltmeleri ( ekranda "düzeltme";  kodda çare ):
+     "Kuyu genişliği  2.300 → 2.230  [ Uygula ]" — program kendiliğinden
+     uygulamaz, seçim mühendisin ( bina ölçüsü olabilir )  */
+function CareListesi({
+  c,
+  koyu,
+  uygula,
+}: {
+  c: { metin: string; oneriler: CareOnerisi[] } | undefined;
+  koyu: boolean;
+  uygula: (o: CareOnerisi) => void;
+}) {
+  if (!c?.oneriler.length)
+    return <p className="mt-1 text-[11.5px] opacity-70">Doğrulanmış düzeltme bulunamadı — girdileri elle gözden geçirin.</p>;
+  return (
+    <ul aria-label="Düzeltmeler" className="mt-1 mb-1.5 space-y-1">
+      {c.oneriler.map((o) => (
+        <li
+          key={o.anahtar}
+          className={cn(
+            "flex items-center gap-2 rounded-kucuk px-2 py-1 text-[12px]",
+            koyu ? "bg-white/[0.06]" : "bg-black/[0.03]",
+          )}
+        >
+          <span className="min-w-0 flex-1">
+            <span className="font-medium">{etiketBol(o.etiket)[0]}</span>{" "}
+            <span className="sayi whitespace-nowrap">
+              {o.girilmis ? sayiYaz(o.eski) : `boş ( ${sayiYaz(o.eski)} )`} → <b>{sayiYaz(o.yeni)}</b>
+            </span>
+            {o.gider.length > 1 && <span className="opacity-70">  ·  {o.gider.length} sorun birden gider</span>}
+            {o.yontem === "son değişiklik" && <span className="opacity-70">  ·  son değişikliğin sınırı</span>}
+            {o.bina && (
+              <span className={cn("ml-1.5 rounded-full px-1.5 text-[10.5px]", koyu ? "bg-[#3a2c12] text-[#fbbf24]" : "bg-uyari-acik text-uyari")}>
+                bina ölçüsü
+              </span>
+            )}
+          </span>
+          <button
+            type="button"
+            onClick={() => uygula(o)}
+            aria-label={`${etiketBol(o.etiket)[0]} ${sayiYaz(o.yeni)} yap`}
+            className={cn(
+              "shrink-0 rounded-kucuk border px-2 py-0.5 text-[11.5px] font-medium",
+              koyu ? "border-white/20 text-white hover:bg-white/10" : "border-cizgi hover:bg-black/[0.04]",
+            )}
+          >
+            Uygula
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }

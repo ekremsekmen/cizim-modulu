@@ -289,6 +289,7 @@ def _halatlar(g, S, taban, hata):
                     f"Halat kuyunun dışına düşüyor ( x = {hx:g} ) — kasnak aralığını gözden geçirin.",
                     ("halat", "aski_halati", "kabin_kasnak", "kabin_kasnagi"),
                     "kabin_ustu",
+                    fark=min(hx, G - hx),
                 )
             )
             continue
@@ -308,6 +309,12 @@ def _halatlar(g, S, taban, hata):
                         ),
                         ("halat", el.get("ad")),
                         "kabin_ustu",
+                        fark=max(
+                            p[0] - HALAT_PAYI - hx,
+                            hx - p[2] - HALAT_PAYI,
+                            p[1] - HALAT_PAYI - hy,
+                            hy - p[3] - HALAT_PAYI,
+                        ),
                     )
                 )
                 break
@@ -344,6 +351,7 @@ def _kasnak_engelleri(g, S, taban, hata):
                     "indiğinden çarpar:  kasnak aralığını ( ya da çapını ) gözden geçirin.",
                     ("kabin_kasnak", "kabin_kasnak_capraz", p.get("ad")),
                     "kuyu_plani",
+                    fark=sorun.ayrik(k, _gercek_kutu(p), -1.0),
                 )
             )
             continue
@@ -355,6 +363,7 @@ def _kasnak_engelleri(g, S, taban, hata):
                     "— kasnak aralığını gözden geçirin.",
                     ("kabin_kasnak", "kabin_kasnak_capraz", p.get("ad")),
                     "kuyu_plani",
+                    fark=sorun.ayrik(k, eleman_kutusu(p), A),
                 )
             )
 
@@ -379,6 +388,7 @@ def _tavan_engelleri(g, S, taban, tavan, parcalar, kenarlar, ic, hata):
                     #  Operatör gizli çizgide ( parça olarak işaretlenmez ):  kanatları yanar
                     ("kabin_kapisi_operatoru", "kabin_kanadi", "kabin_kanat_cebi"),
                     "kuyu_plani",
+                    fark=sorun.ayrik(operator, p),
                 )
             )
             break

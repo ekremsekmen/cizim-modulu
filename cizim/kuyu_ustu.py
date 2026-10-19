@@ -322,7 +322,12 @@ def _cakismalar(kutular, oda_, G, D):
             continue
         if p[0] < 0 or p[1] < 0 or p[2] > G or p[3] > D:
             hata.append(
-                sorun.Sorun(f"{cumle_basi(ad)} kuyunun dışına taşıyor.", _PARCA.get(ad, ()), "kuyu_ustu")
+                sorun.Sorun(
+                    f"{cumle_basi(ad)} kuyunun dışına taşıyor.",
+                    _PARCA.get(ad, ()),
+                    "kuyu_ustu",
+                    fark=sorun.icinde(p, G, D),
+                )
             )
     adlar = list(kutular)
     for i, a in enumerate(adlar):
@@ -335,6 +340,7 @@ def _cakismalar(kutular, oda_, G, D):
                         f"Kuyu üstünde {a} ile {b} üst üste biniyor.",
                         _PARCA.get(a, ()) + _PARCA.get(b, ()),
                         "kuyu_ustu",
+                        fark=sorun.ayrik(kutular[a], kutular[b]),
                     )
                 )
     return hata

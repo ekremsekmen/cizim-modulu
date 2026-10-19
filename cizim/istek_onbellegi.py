@@ -16,10 +16,15 @@ GÜVENLİK ( deneyle bulunan üç tuzak ):
      Her çağıran bugünkü gibi kendine ait bir sonuç alır.  Kopya pickle'la:
      deepcopy'nin üçte biri kadar sürer ( 63444-2:  360 → 285 ms ).
      Paketlenemeyen sonuç önbelleğe girmez.
-  -  Ölçüye tıklamanın iz sürmesi açıkken ( izli.izlemede ) önbellek devre
-     dışıdır:  izli sayı float'tır, JSON'da düz sayıya döner — anahtarı düz
-     girdiyle aynı olur, türevi taşımayan sonuç dönerdi.  JSON'a çevrilemeyen
-     girdi de önbelleğe girmez.
+  -  İz sürülürken ( izli.izlemede — ölçü kaynağı, çare bulucu ) izli sayı
+     float'tır, JSON'da düz sayıya döner:  anahtarı düz girdiyle aynı olur,
+     türevi taşımayan sonuç dönerdi.  Bu yüzden iz sürerken anahtar TÜREVİ de
+     yazar ( _izi_ac ) ve izleme kipini taşır ( izlemede sabitler de izli
+     üretir — düz girdinin sonucu bile farklıdır ):  izli ile düz, ya da
+     türevleri ayrı iki izli sayı aynı anahtarı almaz.  ( 19 Eki'ye kadar
+     iz sürerken önbellek kapalıydı;  makine dairesinin yerleşim araması izli
+     sayılarla dört kez tekrarlanıyor, çare bulucu 3 – 12 sn sürüyordu. )
+     JSON'a çevrilemeyen girdi önbelleğe girmez.
   -  Sorunlu çizim kipi ( cizim/sorunlu.py ) anahtara girer:  kip açıkken
      yerleşimler denetim hatasında durmaz, sonuçları kapalıdakinden farklıdır.
 Önbellek yalnız `etkin` bloğunun içinde yaşar:  istekler ve kullanıcılar arası
@@ -37,6 +42,17 @@ from cizim import sorunlu
 _ETKIN = contextvars.ContextVar("istek_onbellegi", default=None)
 
 
+def _izi_ac(x):
+    """Anahtar için:  izli sayı değeri ve türeviyle yazılır ( iç içe yapılarda )."""
+    if isinstance(x, izli.Izli):
+        return ["~izli", float(x), sorted([str(k), v] for k, v in x.t.items())]
+    if isinstance(x, dict):
+        return {k: _izi_ac(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [_izi_ac(v) for v in x]
+    return x
+
+
 def _anahtar(ad, a, k):
     try:
         return ad + json.dumps((a, k), sort_keys=True, allow_nan=True)
@@ -51,9 +67,13 @@ def sakla(f):
     @functools.wraps(f)
     def sarili(*a, **k):
         d = _ETKIN.get()
-        if d is None or izli.izlemede():
+        if d is None:
             return f(*a, **k)
-        anahtar = _anahtar(ad + ("sorunlu:" if sorunlu.acik() else ""), a, k)
+        onek = ad + ("sorunlu:" if sorunlu.acik() else "")
+        if izli.izlemede():
+            anahtar = _anahtar(onek + "izli:", _izi_ac(a), _izi_ac(k))
+        else:
+            anahtar = _anahtar(onek, a, k)
         if anahtar is None:
             return f(*a, **k)
         if anahtar not in d:

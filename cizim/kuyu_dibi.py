@@ -791,20 +791,31 @@ def _cakismalar(
     ):
         for k in liste:
             if k[0] < 0 or k[1] < 0 or k[2] > G or k[3] > D:
-                hata.append(sorun.Sorun(f"{cumle_basi(ad)} kuyunun dışına taşıyor.", _PARCA[ad], "kuyu_dibi"))
+                hata.append(
+                    sorun.Sorun(
+                        f"{cumle_basi(ad)} kuyunun dışına taşıyor.",
+                        _PARCA[ad],
+                        "kuyu_dibi",
+                        fark=sorun.icinde(k, G, D),
+                    )
+                )
             elif any(ortusur(k, p) for p in konsollar + kabin_raylari + agirlik_raylari):
                 hata.append(
                     sorun.Sorun(
                         f"{cumle_basi(ad)} bir ray ya da konsolla çakışıyor.",
                         _PARCA[ad] + _RAYLAR,
                         "kuyu_dibi",
+                        fark=min(sorun.ayrik(k, p) for p in konsollar + kabin_raylari + agirlik_raylari),
                     )
                 )
     for ad, parca in gergi_donanim.items():
         if parca[0] < 0 or parca[1] < 0 or parca[2] > G or parca[3] > D:
             hata.append(
                 sorun.Sorun(
-                    f"Regülatör gergisinin {GERGI_PARCA[ad]} kuyunun dışına taşıyor.", _PARCA[ad], "kuyu_dibi"
+                    f"Regülatör gergisinin {GERGI_PARCA[ad]} kuyunun dışına taşıyor.",
+                    _PARCA[ad],
+                    "kuyu_dibi",
+                    fark=sorun.icinde(parca, G, D),
                 )
             )
         elif ad == "agirlik" and min(parca[0], parca[1], G - parca[2], D - parca[3]) < girdi.ASGARI_ACIKLIK:
@@ -816,6 +827,7 @@ def _cakismalar(
                     f"{girdi.ASGARI_ACIKLIK:g} — çizimin çakışma payı ) — regülatör kaçıklığını değiştirin.",
                     _PARCA["agirlik"],
                     "kuyu_dibi",
+                    fark=sorun.icinde(parca, G, D) - girdi.ASGARI_ACIKLIK,
                 )
             )
         #  Plaka ve kontak bağlı olduğu rayın arkasındadır ( konsollar gibi );  kol o
@@ -834,6 +846,7 @@ def _cakismalar(
                     "regülatörün yerini ( kaçıklığı ya da yanı ) değiştirin.",
                     _PARCA[ad] + ("kabin_tamponu", "agirlik_tamponu") + _RAYLAR,
                     "kuyu_dibi",
+                    fark=min(sorun.ayrik(parca, p) for p in engeller),
                 )
             )
     for k in agirlik_tamponlari:
