@@ -5,9 +5,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
-import { Calculator, ChevronDown, CircleAlert, DraftingCompass, Loader2, Package, Plus, TriangleAlert, X } from "lucide-react";
+import { Calculator, ChevronDown, CircleAlert, DraftingCompass, Loader2, Package, Plus, TriangleAlert, Undo2, X } from "lucide-react";
 import { api, type AlanSemasi, type Bolum } from "@/lib/api";
-import { alanYaz, kutuyaYaz, useOfisStandardi, useUygulamaProjesi, type UygulamaProjesi } from "@/lib/proje";
+import {
+  alanYaz,
+  asansorAdedi,
+  asansorEkle,
+  asansorKaldir,
+  kutuyaYaz,
+  useOfisStandardi,
+  useUygulamaProjesi,
+  type Ham,
+  type UygulamaProjesi,
+} from "@/lib/proje";
 import { cn, etiketBol } from "@/lib/utils";
 import { AnaSayfaBaglantisi, BasvuruBaglantilari, UstSerit } from "@/components/Kabuk";
 import { Bolumlu, Dugme, HukumNoktasi, Ipucu, Rozet } from "@/components/ui";
@@ -65,6 +75,8 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   const [teslimAcik, setTeslimAcik] = useState(params.get("teslim") === "1");
   const [bilgilerAcik, setBilgilerAcik] = useState(false);
   const [duyuru, setDuyuru] = useState(bildirim ?? "");
+  //  Kaldırılan asansörler geri alınabilir ( onay sorulmaz, geri dönüş var )
+  const [geriAl, setGeriAl] = useState<{ metin: string; asansorler: Ham[]; aktif: number } | null>(null);
   const a = Math.min(asansor, proje.asansorler.length - 1);
 
   const s = useSunucu(sema, proje, ofis, a, gorunum === "cizim");
@@ -94,7 +106,11 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   }, [s.sonHesap, s.hesapEski, proje.asansorler.length, proje.son, guncelle]);
 
   const yaz = useCallback(
-    (anahtar: string, deger: string) => guncelle((p) => alanYaz(p, sema, a, anahtar, deger)),
+    (anahtar: string, deger: string) => {
+      guncelle((p) => alanYaz(p, sema, a, anahtar, deger));
+      //  Kaldırmadan sonra girdi değişti:  geri almak bu değişikliği ezerdi
+      setGeriAl(null);
+    },
     [guncelle, sema, a],
   );
 
@@ -115,6 +131,32 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
 
   const asansorHukmu = (i: number) => s.sonHesap?.ozet?.asansorler?.[i]?.tumu_uygun;
   const asansorAdi = (i: number) => proje.asansorler[i]?.asansor_adi?.trim() || `Asansör ${i + 1}`;
+
+  const ekle = () => {
+    guncelle((p) => asansorEkle(p, sema.asansor_azami));
+    setAsansor(proje.asansorler.length);
+    setGeriAl(null);
+    setOlcu(null);
+  };
+  /**  Asansör kaldırma ( sekmeden ya da adetten ):  önceki hâl "Geri al" için tutulur  */
+  const kaldirildi = (metin: string, yeni: UygulamaProjesi) => {
+    setGeriAl({ metin, asansorler: proje.asansorler, aktif: a });
+    guncelle(() => yeni);
+    setOlcu(null);
+  };
+  const kaldir = (i: number) => {
+    kaldirildi(`"${asansorAdi(i)}" kaldırıldı.`, asansorKaldir(proje, i));
+    //  Sağdaki sekme kaldırılınca aynı asansörde kalınır;  kendisi kaldırılınca soldakine geçilir
+    if (i < a || (i === a && a > 0)) setAsansor(a - 1);
+  };
+  const adetDegisti = (n: number) => {
+    if (n >= proje.asansorler.length) {
+      guncelle((p) => asansorAdedi(p, n, sema.asansor_azami));
+      return setGeriAl(null);
+    }
+    const giden = proje.asansorler.length - n;
+    kaldirildi(`Son ${giden} asansör kaldırıldı.`, asansorAdedi(proje, n, sema.asansor_azami));
+  };
   const ad = proje.kimlik.project_title || "Adsız uygulama projesi";
   const etiket = (k: string) => {
     for (const g of sema.gruplar) for (const x of g.alanlar) if (x.anahtar === k) return etiketBol(x.etiket)[0];
@@ -145,29 +187,48 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
         orta={
           <nav aria-label="Asansörler" className="flex items-center gap-0.5 rounded-orta bg-black/[0.05] p-0.5">
             {proje.asansorler.map((_, i) => (
-              <button
+              <div
                 key={i}
-                type="button"
-                onClick={() => {
-                  setAsansor(i);
-                  setOlcu(null);
-                }}
-                aria-current={i === a ? "page" : undefined}
                 className={cn(
-                  "inline-flex h-7 items-center gap-1.5 rounded-kucuk px-2.5 text-[12.5px] font-medium text-metin-2 hover:text-metin",
+                  "group inline-flex h-7 items-center rounded-kucuk text-[12.5px] font-medium text-metin-2 hover:text-metin",
                   i === a && "bg-yuzey text-metin shadow-panel",
                 )}
               >
-                <HukumNoktasi uygun={asansorHukmu(i)} />
-                <span className="max-w-32 truncate">{asansorAdi(i)}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAsansor(i);
+                    setOlcu(null);
+                  }}
+                  aria-current={i === a ? "page" : undefined}
+                  className={cn("inline-flex h-7 items-center gap-1.5 pl-2.5", proje.asansorler.length > 1 ? "pr-1" : "pr-2.5")}
+                >
+                  <HukumNoktasi uygun={asansorHukmu(i)} />
+                  <span className="max-w-32 truncate">{asansorAdi(i)}</span>
+                </button>
+                {proje.asansorler.length > 1 && (
+                  <Ipucu metin="Asansörü kaldır ( geri alınabilir )" yan="bottom">
+                    <button
+                      type="button"
+                      aria-label={`${asansorAdi(i)} asansörünü kaldır`}
+                      onClick={() => kaldir(i)}
+                      className={cn(
+                        "mr-1 inline-flex size-5 items-center justify-center rounded-kucuk text-metin-3 hover:bg-black/[0.06] hover:text-metin focus-visible:opacity-100",
+                        i === a ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+                      )}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </Ipucu>
+                )}
+              </div>
             ))}
             {proje.asansorler.length < sema.asansor_azami && (
               <Ipucu metin="Asansör ekle ( 1 nolunun kopyası )" yan="bottom">
                 <button
                   type="button"
                   aria-label="Asansör ekle"
-                  onClick={() => guncelle((p) => ({ ...p, asansorler: [...p.asansorler, { ...p.asansorler[0] }] }))}
+                  onClick={ekle}
                   className="inline-flex size-7 items-center justify-center rounded-kucuk text-metin-3 hover:bg-black/[0.05] hover:text-metin"
                 >
                   <Plus className="size-3.5" />
@@ -196,6 +257,25 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
         }
       />
 
+      {geriAl && (
+        <div role="status" className="flex shrink-0 items-center gap-2 border-b border-vurgu-cizgi bg-vurgu-acik px-4 py-1.5 text-[12.5px] text-vurgu-koyu">
+          <span className="flex-1">{geriAl.metin}</span>
+          <Dugme
+            tur="hayalet"
+            boy="kucuk"
+            onClick={() => {
+              guncelle((p) => ({ ...p, asansorler: geriAl.asansorler }));
+              setAsansor(geriAl.aktif);
+              setGeriAl(null);
+            }}
+          >
+            <Undo2 /> Geri al
+          </Dugme>
+          <button type="button" aria-label="Kapat" onClick={() => setGeriAl(null)}>
+            <X className="size-3.5" />
+          </button>
+        </div>
+      )}
       {duyuru && (
         <div role="status" className="flex shrink-0 items-start gap-2 border-b border-vurgu-cizgi bg-vurgu-acik px-4 py-2 text-[12.5px] text-vurgu-koyu">
           <span className="flex-1 whitespace-pre-line">{duyuru}</span>
@@ -250,9 +330,10 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
                     konum={konum}
                     kapat={() => setOlcu(null)}
                     kaynaklarGeldi={olcuKaynaklari}
-                    yaz={(d) =>
-                      guncelle((p) => d.reduce((q, x) => alanYaz(q, sema, a, x.anahtar, kutuyaYaz(x.deger)), p))
-                    }
+                    yaz={(d) => {
+                      guncelle((p) => d.reduce((q, x) => alanYaz(q, sema, a, x.anahtar, kutuyaYaz(x.deger)), p));
+                      setGeriAl(null);
+                    }}
                   />
                 )
               }
@@ -323,6 +404,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
         degisti={setBilgilerAcik}
         proje={proje}
         guncelle={guncelle}
+        adetDegisti={adetDegisti}
         sil={sil}
         sema={sema}
         ofis={ofis}

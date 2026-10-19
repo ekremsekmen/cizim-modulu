@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alanHatasi, alanOku, alanYaz, formHatalari, gizliAlanlar, istekKur, kutuyaYaz, sayiOku, type UygulamaProjesi } from "./proje";
+import { alanHatasi, alanOku, alanYaz, asansorAdedi, asansorEkle, asansorKaldir, formHatalari, gizliAlanlar, istekKur, kutuyaYaz, sayiOku, type UygulamaProjesi } from "./proje";
 import { SEMA } from "./test-semasi";
 
 const proje = (p: Partial<UygulamaProjesi> = {}): UygulamaProjesi => ({
@@ -102,5 +102,24 @@ describe("sunucudan gelen sayıyı kutuya yazma", () => {
   it("üç ondalıklı yazım belirsiz sayılmasın diye sıfır eklenir", () => {
     expect(kutuyaYaz(123.456)).toBe("123,4560");
     expect(sayiOku(kutuyaYaz(123.456))).toBe(123.456);
+  });
+});
+
+describe("asansör ekleme / kaldırma", () => {
+  const p0 = proje({ asansorler: [{ asansor_adi: "A", kuyu_genisligi: "2400" }, { asansor_adi: "B" }, { asansor_adi: "C" }] });
+  it("yeni asansör 1 nolunun kopyası, adı hariç", () => {
+    const p = asansorEkle(p0, 4);
+    expect(p.asansorler[3]).toEqual({ kuyu_genisligi: "2400" });
+    expect(asansorEkle(p, 4)).toBe(p);
+  });
+  it("ortadaki asansör kaldırılır, sırası korunur;  son asansör kalır", () => {
+    expect(asansorKaldir(p0, 1).asansorler.map((h) => h.asansor_adi)).toEqual(["A", "C"]);
+    const tek = proje({ asansorler: [{ asansor_adi: "A" }] });
+    expect(asansorKaldir(tek, 0)).toBe(tek);
+  });
+  it("adet artınca kopyalar, azalınca sondakiler gider", () => {
+    expect(asansorAdedi(p0, 1, 4).asansorler).toEqual([{ asansor_adi: "A", kuyu_genisligi: "2400" }]);
+    expect(asansorAdedi(p0, 4, 4).asansorler).toHaveLength(4);
+    expect(asansorAdedi(p0, 9, 4).asansorler).toHaveLength(4);
   });
 });

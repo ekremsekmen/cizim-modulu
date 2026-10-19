@@ -5,11 +5,12 @@
 import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router";
-import { Check, ChevronRight, CircleAlert, Download, FileArchive, FolderOpen, Info, Loader2, Plus, Save, Undo2, X } from "lucide-react";
+import { Check, ChevronRight, CircleAlert, Download, FileArchive, FilePlus, FolderOpen, Info, Loader2, Plus, Save, Undo2, X } from "lucide-react";
 import { api, indir, paketNotu, type AvanKoprusu, type AvanYaniti, type Secenekler, type TrafikYaniti } from "@/lib/api";
 import { useGecikmeli, type Ham } from "@/lib/proje";
 import {
   AVAN_AZAMI,
+  BOS_AVAN,
   AVAN_SECIM_VARSAYILANI,
   avanDosyayaKaydet,
   avanDosyasiniAc,
@@ -136,6 +137,18 @@ export function AvanCalisma() {
     setP(o.proje);
     git("/avan/trafik", { replace: true });
   };
+  //  Avan tek projedir:  yenisi öncekinin yerine geçer, önceki "Geri al" ile döner
+  const yeniAvan = () => {
+    setAcilis({
+      proje: BOS_AVAN,
+      bildirim:
+        "Yeni avan projesi başlatıldı.  Önceki proje “Geri al” ile döner — sayfadan çıkınca geri alınamaz;  saklamak için önce dosyaya kaydedin.",
+      dosyaAvani: [],
+      onceki: p,
+    });
+    setP(BOS_AVAN);
+    git("/avan/trafik", { replace: true });
+  };
   const fark = acilis ? trafikFarki(acilis.dosyaAvani, kopru) : null;
   //  Geçmişteki bildirim de silinir:  sayfa yenilenince yeniden çıkmasın
   const kapat = () => {
@@ -191,7 +204,13 @@ export function AvanCalisma() {
         sag={
           <>
             <BasvuruBaglantilari />
-            <DosyaDugmeleri sec={sec.data} ofis={ofis} ac={dosyaAc} kaydet={() => avanDosyayaKaydet(p, sec.data!, ofis, kopru)} />
+            <DosyaDugmeleri
+              sec={sec.data}
+              ofis={ofis}
+              ac={dosyaAc}
+              yeni={yeniAvan}
+              kaydet={() => avanDosyayaKaydet(p, sec.data!, ofis, kopru)}
+            />
             <Dugme tur="birincil" className="ml-1" onClick={() => paket.mutate()} disabled={paket.isPending}>
               {paket.isPending ? <Loader2 className="animate-spin" /> : <FileArchive />} Projeyi indir
             </Dugme>
@@ -250,11 +269,13 @@ function DosyaDugmeleri({
   sec,
   ofis,
   ac,
+  yeni,
   kaydet,
 }: {
   sec: Secenekler;
   ofis: Ham;
   ac: (o: Acilis) => void;
+  yeni: () => void;
   kaydet: () => void;
 }) {
   const girdi = useRef<HTMLInputElement>(null);
@@ -270,6 +291,11 @@ function DosyaDugmeleri({
   return (
     <span className="flex items-center gap-1">
       {hata && <span className="max-w-72 text-right text-[12px] leading-snug text-red">{hata}</span>}
+      <Ipucu metin="Yeni avan projesi ( önceki geri alınabilir )">
+        <Dugme tur="hayalet" boy="simge" aria-label="Yeni avan projesi" onClick={yeni}>
+          <FilePlus />
+        </Dugme>
+      </Ipucu>
       <Ipucu metin="Proje dosyasını aç ( .avan )">
         <Dugme tur="hayalet" boy="simge" aria-label="Proje dosyasını aç" onClick={() => girdi.current?.click()}>
           <FolderOpen />
