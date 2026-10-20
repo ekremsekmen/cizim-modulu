@@ -1443,6 +1443,15 @@ def calistir():
             not any(x.lower().endswith((".xlsx", ".xls")) for x in _za),
             f"→ {_za}",
         )
+        #  Hesabı reddedilen trafik ( N > 30 ) pakete girmez:  ekran da reddediyor
+        _yk = avan_uclari.indir_proje_dwg(
+            {"kapak": {"project_title": "Deneme"}, "girdiler": {"trafik": dict(_trf_g, N="35")}}
+        )
+        r.kontrol(
+            "[avan paketi] reddedilen trafik hesabıyla paket inmez",
+            _yk.media_type != "application/zip" and "N = 35" in str(_js.loads(_yk.body).get("hata")),
+            f"→ {_yk.media_type}",
+        )
 
     #  İndirme uçları
     _mg = {a[0]: a[5] for a in mukavemet_girdi.ALANLAR if a[3] != "hesap"}
