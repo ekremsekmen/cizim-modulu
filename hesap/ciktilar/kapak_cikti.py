@@ -414,7 +414,8 @@ def _sayfaya_sigdir(c):
 
 def pdf_baytlari(kapak: Mapping[str, object] | None) -> bytes:
     """Kapağı tek sayfalı, temiz ve bağımsız PDF baytları olarak verir."""
-    d = dict(kapak or {})
+    #  Sözlük olmayan gövde ( bozuk istek ) boş kapak sayılır — _proje_kimligi gibi
+    d = dict(kapak) if isinstance(kapak, Mapping) else {}
     if not _tek_satir(d.get("project_title")):
         d["project_title"] = "ASANSÖR AVAN PROJESİ"
     cikti = io.BytesIO()

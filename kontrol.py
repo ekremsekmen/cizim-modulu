@@ -169,12 +169,14 @@ def tarama():
 def main(argv):
     kip = argv[0] if argv else "hizli"
     adimlar = {
-        "hizli": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), cizim(False), on_yuz()],
+        #  Ön yüz çizim testlerinden ÖNCE derlenir:  test_sunucu kök sayfayı
+        #  ( on-yuz/dist ) ister;  temiz kopyada ( CI ) derleme yoksa 503 alırdı.
+        "hizli": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), on_yuz(), cizim(False)],
         "tam": lambda: [
             lint(),
             hesap(HESAP_TESTLERI, SUNUCUSUZ),
-            cizim(True),
             (derlendi := on_yuz()),
+            cizim(True),
             sunucu(),
             uctan_uca(derlendi),
         ],
