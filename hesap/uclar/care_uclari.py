@@ -32,7 +32,11 @@ Sıra ( kullanıcı kararı 19 Eki ):  son değişikliğin sınırı → aynı a
 sorunu gideren → en küçük değişiklik;  bina ölçüleri ( kuyu, son kat, kuyu
 dibi, duvarlar, makine dairesi ) en sonda ve işaretli.  Ürünün özelliği olan
 ya da geometriyle ilgisi olmayan alanlar ( tampon ezilmesi, yapı sehimi … )
-çare sayılmaz.  Süre sınırlı ( SURE ):  istek birkaç saniyeyi geçmez.
+çare sayılmaz.
+
+BÜTÇE SINAMA SAYISIDIR, SAAT DEĞİL ( _Butce;  20 Eki ):  aynı proje her
+bilgisayarda, her seferinde aynı çareleri alır.  Saat yalnız güvenlik
+sınırıdır;  ona ya da sayıya takılan arama yanıtta "tamamlandi: false" der.
 """
 
 import copy
@@ -92,9 +96,19 @@ DISI = frozenset(
 #  Düzeltici olabilen birimler ve adımları:  değer bu adıma güvenli yönde yuvarlanır
 #  ( seyir mesafesi m — 1 cm;  durak adedi — tam sayı )
 ADIM = {"mm": 1.0, "m": 0.01, "adet": 1.0}
-#  Bir istekte en çok:  sınanan aday, saniye
+#  Bir istekte en çok sınanan türev adayı
 AZAMI_ADAY = 16
-SURE = 6.0
+#  BİR İSTEĞİN BÜTÇESİ — SINAMA SAYISI ( her sınama hesap ve çizimin yeniden
+#  kurulmasıdır, _durum ).  Eskiden 6 sn'lik duvar saatiydi:  arama makinenin o
+#  anki yüküne göre farklı yerde kesiliyor, aynı proje farklı çareler alıyordu
+#  ( ölçüldü 20 Eki:  makine daireli örnekte 6 sn'de sınır 4.310 ve tek çare —
+#  kesilmeden 4.303 ve dört çare;  yük altında test_care ara sıra düşüyordu ).
+#  Büyük çözücülerin iş sınırı gibi ( Gurobi WorkLimit, CPLEX DetTimeLimit ).
+#  Test vakalarında en çok 29 sınama:  bütçe onun iki katı.
+AZAMI_SINAMA = 60
+#  GÜVENLİK SÜRESİ ( sn ):  yalnız bir isteğin sunucuyu kilitlememesi için;
+#  normal istekte ulaşılmaz ( en uzun vaka 13,5 sn ).  Ulaşılırsa yanıt söyler.
+GUVENLIK_SURESI = 60.0
 #  Türevin tahmini tutmazsa adımın çarpanları ( 0:  1 mm daha )
 YENIDEN = (0, 1.25, 1.5, 2.0)
 #  Sorun başına gösterilen çare
@@ -161,6 +175,29 @@ def _durum(veri, i):
         {kimlik(h) for h in a.get("hata") or []},
         uygun_degil,
     )
+
+
+class _Butce:
+    """Bir isteğin sınama bütçesi ( AZAMI_SINAMA ) ve güvenlik süresi.  Biten
+    bütçe sebebini tutar:  "sinama" ( belirlenimli ) ya da "sure" ( güvenlik )."""
+
+    def __init__(self, sinama=AZAMI_SINAMA, sure=GUVENLIK_SURESI):
+        self.kalan = sinama
+        self.bitis = time.monotonic() + sure
+        self.neden = None
+
+    def var(self):
+        """Bir sınama daha yapılabilir mi."""
+        if self.neden is None and self.kalan <= 0:
+            self.neden = "sinama"
+        elif self.neden is None and time.monotonic() > self.bitis:
+            self.neden = "sure"
+        return self.neden is None
+
+    def durum(self, veri, i):
+        """_durum — bütçeden bir sınama düşerek."""
+        self.kalan -= 1
+        return _durum(veri, i)
 
 
 def _yaz(veri, i, anahtar, deger):
@@ -242,7 +279,7 @@ def _form_kurali_uyar(anahtar, deger, alan):
     )
 
 
-def _turevle(veri, i, once, sorunlar, degerler, gizli, alan, bitis, ortulu):
+def _turevle(veri, i, once, sorunlar, degerler, gizli, alan, butce, ortulu):
     """Türev adaylarını sınar:  [ { anahtar , yeni , gider , yontem } ] ( kabul edilenler )."""
     adaylar = _turev_adaylari(sorunlar, degerler, gizli, alan)
 
@@ -254,13 +291,13 @@ def _turevle(veri, i, once, sorunlar, degerler, gizli, alan, bitis, ortulu):
     kabul, denenen = [], set()
     for k, adim in secilen:
         for carpan in (1.0,) + YENIDEN:
-            if time.time() > bitis:
-                return kabul
             v = _deger(degerler[k], adim, carpan, alan[k]["birim"])
             if (k, v) in denenen or not _form_kurali_uyar(k, v, alan):
                 continue
+            if not butce.var():
+                return kabul
             denenen.add((k, v))
-            r = _sonucu(once, _durum(_yaz(veri, i, k, v), i), ortulu)
+            r = _sonucu(once, butce.durum(_yaz(veri, i, k, v), i), ortulu)
             if not r["yeni"] and not r["kotu"] and r["gider"]:
                 kabul.append(
                     {"anahtar": k, "yeni": v, "gider": r["gider"], "ortaya": r["ortaya"], "yontem": "türev"}
@@ -285,7 +322,7 @@ def _degisenler(veri, i, onceki, alan, gizli):
     return out[:3]
 
 
-def _son_degisiklikle(veri, i, once, onceki, alan, gizli, bitis, ortulu):
+def _son_degisiklikle(veri, i, once, onceki, alan, gizli, butce, ortulu):
     """Son değişiklikle çıkan sorunların sınırı ( ikiye bölme ):  değişen kutuda
     eski değerdeki kadar temiz olan ( orada olmayan hiçbir sorun yok ),
     bugünküne en yakın değer — doğrulanmış.  "Eski değerde olmayan" ölçüt:
@@ -294,18 +331,18 @@ def _son_degisiklikle(veri, i, once, onceki, alan, gizli, bitis, ortulu):
     çıkarabilir — sınır onları da geçen değerdir ( kuyu dibi 1000 → 1415 )."""
     kabul = []
     for k, v0, v1 in _degisenler(veri, i, onceki, alan, gizli):
-        if time.time() > bitis:
+        if not butce.var():
             break
-        eski = _durum(_yaz(veri, i, k, v0), i)
+        eski = butce.durum(_yaz(veri, i, k, v0), i)
         if not [x for x in once[0] if x not in eski[0]]:
             continue
         iyi, kotu_ = (v0, eski), v1
         a = ADIM[alan[k]["birim"]]
-        while abs(kotu_ - iyi[0]) > a + 1e-9 and time.time() < bitis:
+        while abs(kotu_ - iyi[0]) > a + 1e-9:
             orta = round(round((iyi[0] + kotu_) / 2.0 / a) * a, 6)
-            if orta in (iyi[0], kotu_):
+            if orta in (iyi[0], kotu_) or not butce.var():
                 break
-            d = _durum(_yaz(veri, i, k, orta), i)
+            d = butce.durum(_yaz(veri, i, k, orta), i)
             if any(x not in eski[0] for x in d[0]):
                 kotu_ = orta
             else:
@@ -349,7 +386,7 @@ def _secenekler(k, a, simdi):
     return [v for j, v in enumerate(secenek) if j not in ayni]
 
 
-def _secimle(veri, i, once, sorunlar, alan, gizli, girilen, bitis, oncelikli, ortulu):
+def _secimle(veri, i, once, sorunlar, alan, gizli, girilen, butce, oncelikli, ortulu):
     """Seçim düzeltmeleri:  sorunun parçasına göre ilgili seçimin öbür
     seçenekleri uygulanıp sınanır.  Düzeltmesi olmayan sorunların seçimleri önce."""
     alanlar = []
@@ -362,10 +399,10 @@ def _secimle(veri, i, once, sorunlar, alan, gizli, girilen, bitis, oncelikli, or
         simdi = girilen.get(k)
         simdi = alan[k]["varsayilan"] if simdi in (None, "") else simdi
         for v in _secenekler(k, alan[k], simdi):
-            if time.time() > bitis or sayac >= AZAMI_SECIM:
+            if sayac >= AZAMI_SECIM or not butce.var():
                 return kabul
             sayac += 1
-            r = _sonucu(once, _durum(_yaz(veri, i, k, v), i), ortulu)
+            r = _sonucu(once, butce.durum(_yaz(veri, i, k, v), i), ortulu)
             if r["gider"] and not r["yeni"] and not r["kotu"]:
                 kabul.append(
                     {
@@ -380,22 +417,25 @@ def _secimle(veri, i, once, sorunlar, alan, gizli, girilen, bitis, oncelikli, or
     return kabul
 
 
-def coz(veri, i=0, onceki=None):
+def coz(veri, i=0, onceki=None, butce=None):
     """Aktif asansörün her sorununun doğrulanmış çareleri:
-    { careler:  [ { metin , oneriler:  [ … ] } ] , sure }."""
-    t0 = time.time()
-    bitis = t0 + SURE
+    { careler:  [ { metin , oneriler:  [ … ] } ] , sinama , tamamlandi , neden , sure }.
+    tamamlandi:  arama bütçeye ( neden "sinama" ) ya da güvenlik süresine
+    ( "sure" ) takılmadan bitti mi — takıldıysa çareler eksik olabilir."""
+    t0 = time.monotonic()
+    butce = butce or _Butce()
+    ilk = butce.kalan
     once = _durum(veri, i)
     sorunlar, degerler, gizli = cizim_uclari.izli_sorunlar(veri, i)
     alan = {a["anahtar"]: a for gr in uygulama_istegi.alanlar()["gruplar"] for a in gr["alanlar"]}
     #  Denetim ilk hatada durduğu için bugün görünmeyen ( ama var olan ) sorunlar
     ortulu = {kimlik(h) for h in cizim_uclari.genis_sorunlar(veri, i)} - set(once[0])
-    kabul = _son_degisiklikle(veri, i, once, onceki, alan, gizli, bitis, ortulu)
-    kabul += _turevle(veri, i, once, sorunlar, degerler, gizli, alan, bitis, ortulu)
+    kabul = _son_degisiklikle(veri, i, once, onceki, alan, gizli, butce, ortulu)
+    kabul += _turevle(veri, i, once, sorunlar, degerler, gizli, alan, butce, ortulu)
     girilen = dict(veri.get("proje_geneli") or {}, **veri["asansorler"][i])
     cozulen = {x for c in kabul for x in c["gider"]}
     oncelikli = {x for x in once[0] if x not in cozulen}
-    kabul += _secimle(veri, i, once, sorunlar, alan, gizli, girilen, bitis, oncelikli, ortulu)
+    kabul += _secimle(veri, i, once, sorunlar, alan, gizli, girilen, butce, oncelikli, ortulu)
     careler = []
     for kim, metin in once[0].items():
         oneriler = _sirala([c for c in kabul if kim in c["gider"]], degerler)
@@ -419,7 +459,13 @@ def coz(veri, i=0, onceki=None):
                 ],
             }
         )
-    return {"careler": careler, "sure": round(time.time() - t0, 2)}
+    return {
+        "careler": careler,
+        "sinama": ilk - butce.kalan,
+        "tamamlandi": butce.neden is None,
+        "neden": butce.neden,
+        "sure": round(time.monotonic() - t0, 2),
+    }
 
 
 def _sirala(liste, degerler):
