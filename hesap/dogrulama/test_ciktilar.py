@@ -1452,6 +1452,18 @@ def calistir():
             _yk.media_type != "application/zip" and "N = 35" in str(_js.loads(_yk.body).get("hata")),
             f"→ {_yk.media_type}",
         )
+        #  Engelleyici uyarılı tasarım ( kabin kuyudan geniş ) da:  ekran avan
+        #  PDF'ini kapatıyor
+        _avan_e = _js.loads(_js.dumps(_avan_g))
+        _avan_e["asansorler"][0]["kabin_genisligi"] = 1900
+        _ye = avan_uclari.indir_proje_dwg(
+            {"kapak": {"project_title": "Deneme"}, "girdiler": {"avan": _avan_e}}
+        )
+        r.kontrol(
+            "[avan paketi] engelleyici uyarılı tasarımla paket inmez",
+            _ye.media_type != "application/zip" and "KUYUYA SIĞMIYOR" in str(_js.loads(_ye.body).get("hata")),
+            f"→ {_ye.media_type}",
+        )
 
     #  İndirme uçları
     _mg = {a[0]: a[5] for a in mukavemet_girdi.ALANLAR if a[3] != "hesap"}

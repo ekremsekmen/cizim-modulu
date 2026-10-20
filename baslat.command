@@ -12,18 +12,26 @@ echo "   ASANSÖR PROJE PROGRAMI  ( HESAP + ÇİZİM )"
 echo "══════════════════════════════════════════════════════════════"
 echo ""
 
+#  PYTHON 3.12 YA DA YENİSİ ( pyproject.toml ):  macOS'un kendi python3'ü 3.9'dur
+#  ve program onunla hiç açılmıyordu ( 20 Eki ).  İlk uygun sürüm seçilir.
+uygun() { "$1" -c 'import sys; sys.exit(sys.version_info < (3, 12))' >/dev/null 2>&1; }
 PY=""
-for c in python3 python3.12 python3.11 python3.10 /usr/bin/python3; do
-  if command -v "$c" >/dev/null 2>&1; then PY="$c"; break; fi
+for c in python3.14 python3.13 python3.12 python3 /opt/homebrew/bin/python3 /usr/local/bin/python3; do
+  if command -v "$c" >/dev/null 2>&1 && uygun "$c"; then PY="$c"; break; fi
 done
-if [ -z "$PY" ]; then
-  echo "  Python bulunamadı."
-  echo "  https://www.python.org/downloads/ adresinden Python 3 kurup"
-  echo "  bu dosyayı yeniden çift tıklayın."
-  echo ""; read -r -p "  Kapatmak için Enter..."; exit 1
+#  Eski bir Python'la kurulmuş sanal ortam, uygun Python varsa yeniden kurulur
+if [ -d ".venv" ] && [ -n "$PY" ] && ! uygun ./.venv/bin/python; then
+  echo "  Sanal ortam eski bir Python sürümüyle kurulmuş — yeniden kuruluyor…"
+  rm -rf .venv
 fi
 
 if [ ! -d ".venv" ]; then
+  if [ -z "$PY" ]; then
+    echo "  Python 3.12 ya da yenisi bulunamadı."
+    echo "  https://www.python.org/downloads/ adresinden Python'un güncel"
+    echo "  sürümünü kurup bu dosyayı yeniden çift tıklayın."
+    echo ""; read -r -p "  Kapatmak için Enter..."; exit 1
+  fi
   echo "  İlk kurulum yapılıyor (yalnız bir kez, ~1 dakika)…"
   "$PY" -m venv .venv || { echo "  Sanal ortam oluşturulamadı."; read -r -p "  Enter..."; exit 1; }
   ./.venv/bin/python -m pip install --upgrade pip -q

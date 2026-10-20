@@ -2041,7 +2041,10 @@ def sinir(elemanlar, pay=0.0):
     """Elemanların kapsayan dikdörtgeni  ( x1, y1, x2, y2 )."""
     xs, ys = [], []
     for el in elemanlar:
-        if el["tip"] in ("dikdortgen", "tarama"):
+        #  Tuğla tarama da ( bina duvarı — Sabitler'de bina_duvari > 0 ):
+        #  yoksa etiketleri_ayir boş kutuda min() hatası veriyor, ekrana
+        #  hiçbir çizim gelmiyordu ( 20 Eki ).
+        if el["tip"] in ("dikdortgen", "tarama", "tarama_tugla"):
             xs += [el["x"], el["x"] + el["g"]]
             ys += [el["y"], el["y"] + el["d"]]
         elif el["tip"] in ("cizgi", "eksen", "ok"):

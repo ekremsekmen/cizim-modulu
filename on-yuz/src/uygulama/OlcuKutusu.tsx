@@ -6,7 +6,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRight, Check, Loader2, X } from "lucide-react";
-import { api, type UygulamaIstegi } from "@/lib/api";
+import { api, type OlcuDegisikligi, type UygulamaIstegi } from "@/lib/api";
 import { kutuyaYaz } from "@/lib/proje";
 import { cn, sayiYaz } from "@/lib/utils";
 import { Dugme, Girdi, Rozet } from "@/components/ui";
@@ -48,13 +48,23 @@ export function OlcuKutusu({
   const anahtar = anahtarSecimi ?? degisebilen[0]?.anahtar ?? null;
   const hedef = hedefYazi ?? (y?.deger !== undefined ? kutuyaYaz(y.deger) : "");
 
+  //  YENİ DEĞERLERLE ÇİZİM KURULAMAYACAKSA ÖNCE SORULUR ( sunucunun
+  //  uyarilar'ı — "Yine de uygula" ):  eski arayüzde vardı, React'e geçişte
+  //  düşmüştü;  tek tık çizimi sessizce bozuyordu ( 20 Eki )
+  const [uygulandi, setUygulandi] = useState(false);
+  const uygula = (r: OlcuDegisikligi) => {
+    yaz((r.degisiklikler ?? []).map((d) => ({ anahtar: d.anahtar, deger: d.deger })));
+    setUygulandi(true);
+  };
   const degistir = useMutation({
     mutationFn: () => api.olcuDegistir(sabit, asansor, olcu.cizim, olcu.index, olcu.metin, anahtar!, hedef),
+    onMutate: () => setUygulandi(false),
     onSuccess: (r) => {
-      if (r.aktif && r.degisiklikler) yaz(r.degisiklikler.map((d) => ({ anahtar: d.anahtar, deger: d.deger })));
+      if (r.aktif && r.degisiklikler && !r.uyarilar?.length) uygula(r);
     },
   });
   const sonuc = degistir.data;
+  const soruluyor = !!sonuc?.aktif && !!sonuc.uyarilar?.length && !uygulandi;
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && kapat();
@@ -178,7 +188,19 @@ export function OlcuKutusu({
                 </Dugme>
               </div>
               {sonuc &&
-                (sonuc.aktif ? (
+                (soruluyor ? (
+                  <div className="mt-2.5 space-y-1.5">
+                    <p className="text-[12px] font-medium text-uyari">Bu değişiklikle çizim kurulamaz:</p>
+                    {sonuc.uyarilar!.map((u) => (
+                      <p key={u} className="text-[12px] text-uyari">
+                        {u}
+                      </p>
+                    ))}
+                    <Dugme boy="kucuk" onClick={() => uygula(sonuc)}>
+                      Yine de uygula
+                    </Dugme>
+                  </div>
+                ) : sonuc.aktif ? (
                   <div className="mt-2.5 space-y-1">
                     {sonuc.degisiklikler?.map((d) => (
                       <p key={d.anahtar} className="flex items-center gap-1.5 text-[12px] text-uygun">

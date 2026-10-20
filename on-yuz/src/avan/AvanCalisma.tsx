@@ -14,6 +14,7 @@ import {
   AVAN_AZAMI,
   BOS_AVAN,
   AVAN_SECIM_VARSAYILANI,
+  avanDosyaGovdesi,
   avanDosyayaKaydet,
   avanDosyasiniAc,
   avanSabitleri,
@@ -109,10 +110,13 @@ export function AvanCalisma() {
   const kapakVerisi = useMemo(
     () => ({
       ...(trafik.data?.kapak_bilgileri ?? {}),
-      ...(avan.data?.kapak_bilgileri ?? {}),
+      //  Trafik hata verince avan sorgusu kapanır ama keepPreviousData eski
+      //  sonucu tutar:  kapak artık var olmayan asansörlerin değerlerini
+      //  basıyordu ( 20 Eki )
+      ...((kopru && avan.data?.kapak_bilgileri) || {}),
       ...Object.fromEntries(Object.entries(p.kapak).filter(([, v]) => v !== "")),
     }),
-    [trafik.data, avan.data, p.kapak],
+    [trafik.data, kopru, avan.data, p.kapak],
   );
 
   const trafikDurum = !trafik.data ? null : trafik.data.hata ? "eksik" : "tamam";
@@ -125,9 +129,15 @@ export function AvanCalisma() {
     kapak: p.kapak.project_title ? "tamam" : null,
   };
 
+  //  Pakete PROJE DOSYASI da girer ( geri dönüş noktası — uygulamanın
+  //  Teslim'i gibi );  React'e geçişte düşmüştü ( 20 Eki )
   const paket = useMutation({
     mutationFn: () =>
-      indir("proje-dwg", { kapak: kapakVerisi, girdiler: { trafik: trafikGirdi, avan: avanGirdi } }),
+      indir("proje-dwg", {
+        kapak: kapakVerisi,
+        girdiler: { trafik: trafikGirdi, avan: avanGirdi },
+        proje_dosyasi: avanDosyaGovdesi(p, sec.data!, ofis, kopru),
+      }),
   });
 
   if (!sec.data)

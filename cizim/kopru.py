@@ -665,7 +665,7 @@ def _veri(A, sonuc):
 def _makine_dairesi_girdisi(o, g, h):
     """Makine dairesinin girdisi ( g["makine_dairesi"] )."""
     sayi, secim = o.sayi, o.secim
-    G, duvar = h["G"], h["duvar"]
+    G, ku = h["G"], g["kuyu"]
     genislik, derinlik = (
         sayi("mk_genislik", "Makine dairesi genişliği"),
         sayi("mk_uzunluk", "Makine dairesi uzunluğu"),
@@ -679,9 +679,15 @@ def _makine_dairesi_girdisi(o, g, h):
         "derinlik": derinlik,
         "duvar": md_duvar,
         #  Boşsa oda kuyunun dış genişliğine ortalı, önü kuyunun ön
-        #  duvarının dış yüzüyle hizalı ( çizim örneğinin düzeni ).
-        "x": mx if mx is not None else _kural(-duvar - (genislik - (G + 2 * duvar)) / 2.0, "md_x"),
-        "y": my if my is not None else _kural(-duvar, "md_y"),
+        #  duvarının dış yüzüyle hizalı ( çizim örneğinin düzeni ).  Duvarlar
+        #  KENDİ kalınlıklarıyla:  ortak kalınlıkla kurulunca sol / ön duvarı
+        #  farklı kuyuda oda sessizce kayıyordu ( 20 Eki ).
+        "x": (
+            mx
+            if mx is not None
+            else _kural(-ku["duvar_sol"] - (genislik - (G + ku["duvar_sol"] + ku["duvar_sag"])) / 2.0, "md_x")
+        ),
+        "y": my if my is not None else _kural(-ku["duvar_on"], "md_y"),
         "kapi_duvar": secim("md_kapi_duvar"),
         "kapi_konum": sayi("md_kapi_konum"),
         "kapi_genislik": sayi("md_kapi_genislik"),

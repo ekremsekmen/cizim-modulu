@@ -169,3 +169,56 @@ class KesikCizgiler(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Duvarlar(unittest.TestCase):
+    def test_bina_duvari_girilince_cizimler_kurulur(self):
+        """Sabitler'de bina duvarı ( tuğla tarama ) girilince geometri.sinir
+        tuğla taramayı tanımıyordu:  min() hatası, ekrana hiçbir çizim
+        gelmiyordu ( 20 Eki )."""
+        from testler import test_yerlesim_saglamligi
+
+        v = test_yerlesim_saglamligi.standart_istek(800, True, "Sağ")
+        v["sabitler"] = {"bina_duvari": 200}
+        yanit = json.loads(cizim_uclari.api_cizimler(v).body)
+        self.assertTrue(yanit.get("aktif"), yanit.get("hata"))
+        tugla = [e for e in geometri.plan(_g(v)[0]) if e["tip"] == "tarama_tugla"]
+        self.assertTrue(tugla)
+        x1, y1, x2, y2 = geometri.sinir(tugla)
+        self.assertEqual(y2 - y1, 200)
+
+    def test_makine_dairesi_duvarlarin_kendi_kalinligiyla_ortalanir(self):
+        """Boş md_x / md_y:  oda kuyunun DIŞ genişliğine ortalı, önü ön
+        duvarın dış yüzünde — sol / ön duvar ortak kalınlıktan farklıyken de
+        ( eskiden ortak kalınlıkla kurulup 100 mm kayıyordu )."""
+        from testler import test_yerlesim_saglamligi
+
+        v = test_yerlesim_saglamligi.standart_istek(800, False, "Sağ")
+        v["asansorler"][0].update(kuyu_duvar_kalinligi=200, kuyu_duvar_on=300, kuyu_duvar_sol=400)
+        g = _g(v)[0]
+        k, md = g["kuyu"], g["makine_dairesi"]
+        self.assertEqual(
+            md["x"] + md["genislik"] / 2.0, (k["genislik"] + k["duvar_sag"] - k["duvar_sol"]) / 2.0
+        )
+        self.assertEqual(md["y"], -k["duvar_on"])
+
+
+class KatKirigi(unittest.TestCase):
+    def test_kirilan_kesitte_parcanin_bicimi_zarfiyla_kayar(self):
+        """Uzun kuyuda ara katlar kesitten çıkarılınca regülatörün gerçek
+        biçimi kırılmamış kotunda — paftanın dışında — kalıyordu ( 20 Eki )."""
+        from cizim import pafta
+        from testler import test_yerlesim_saglamligi
+
+        for mrl in (True, False):
+            v = test_yerlesim_saglamligi.standart_istek(630, mrl, "Sağ", durak_adedi=12, seyir_mesafesi=33)
+            g = test_yerlesim_saglamligi.duzen_girdisi(v)[0]
+            for ad, _baslik, _olcek, e in pafta.cizim_listesi(g):
+                if not ad.startswith("kuyu_kesiti"):
+                    continue
+                for el in e:
+                    if el.get("bicim"):
+                        ys = [y for p in el["bicim"] for _x, y in p["noktalar"]]
+                        with self.subTest(mrl=mrl, cizim=ad, parca=el.get("ad")):
+                            self.assertGreaterEqual(min(ys), el["y"] - 1)
+                            self.assertLessEqual(max(ys), el["y"] + el["d"] + 1)

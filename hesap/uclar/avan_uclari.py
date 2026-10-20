@@ -431,6 +431,10 @@ def indir_proje_dwg(veri: dict = Body(...)):
             a, yanit = _avan_sonuc({"girdiler": avan_ham})
             if yanit is not None:
                 return yanit
+            #  Engelleyici uyarılı tasarım da ( kabin kuyuya sığmıyor … ):  ekran
+            #  avan PDF'ini bu durumda kapatıyor, paket de vermez ( 20 Eki )
+            if a.get("engelleyici"):
+                return JSONResponse({"hata": a["engelleyici"]}, status_code=200)
             paftalar.append(("Avan", pdf_cikti.avan_pdf(a)))
 
         if not paftalar:
