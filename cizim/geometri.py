@@ -263,28 +263,33 @@ class _YaziYerleri:
     def _kaydir(self, yon, kot, yerlesen, bas, son, w):
         """Adayların hepsi bir parçaya biniyor ( kuyunun içinden geçen sıralar ):
         yazı kendi ölçüsü boyunca kayar — uçların hemen dışına kadar, önce az
-        kayan, sonra dış katlar.  ( kat, orta ) ya da None"""
+        kayan, sonra dış katlar.  Adım 20 mm;  bulamazsa 5 mm:  iki kenar arasındaki
+        boşluk yazıya ancak yetiyorsa kaba adım onu atlayabilir ( kabin üstünde
+        sığınma alanının arkadaki 70 mm'lik yerinin yazısı tavanın kenarı ile
+        konsol plakası arasındaki 5 mm'lik pencereyi kaçırıyordu — şase 240,
+        20 Eki;  300'de adım tesadüfen pencereye düşüyordu ).  ( kat, orta ) ya da None"""
         k = self.k
         orta0 = (bas + son) / 2.0
         yari = (son - bas + w) / 2.0 + 30 * k
-        kaymalar = sorted(
-            {
-                (kat_, d * 20 * k * sgn)
-                for kat_ in (0, 1, 2)
-                for d in range(1, int(yari / (20 * k)) + 1)
-                for sgn in (-1, 1)
-            },
-            key=lambda a: (abs(a[1]), a[0]),
-        )
-        for kat_, kay in kaymalar:
-            orta = orta0 + kay
-            if _sirada_biner(yerlesen, kat_, orta, w, k):
-                continue
-            kb_ = self.kutu(yon, kot, kat_, orta, w)
-            if self.yaziya_biner(kb_):
-                continue
-            if not self.kenara_biner(kb_):
-                return (kat_, orta)
+        for adim in (20 * k, 5 * k):
+            kaymalar = sorted(
+                {
+                    (kat_, d * adim * sgn)
+                    for kat_ in (0, 1, 2)
+                    for d in range(1, int(yari / adim) + 1)
+                    for sgn in (-1, 1)
+                },
+                key=lambda a: (abs(a[1]), a[0]),
+            )
+            for kat_, kay in kaymalar:
+                orta = orta0 + kay
+                if _sirada_biner(yerlesen, kat_, orta, w, k):
+                    continue
+                kb_ = self.kutu(yon, kot, kat_, orta, w)
+                if self.yaziya_biner(kb_):
+                    continue
+                if not self.kenara_biner(kb_):
+                    return (kat_, orta)
         return None
 
 

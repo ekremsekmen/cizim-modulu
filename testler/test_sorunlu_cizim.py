@@ -23,9 +23,12 @@ import json
 import pickle
 import re
 import unittest
+from unittest import mock
 
+from cizim import cizimler
 from cizim import dusey
 from cizim import istek_onbellegi
+from cizim import kuyu_kesiti
 from cizim import kopru
 from cizim import pafta
 from cizim import sorun
@@ -36,6 +39,7 @@ from uclar import cizim_uclari
 from uclar import uygulama_istegi
 from uclar import uygulama_uclari
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
+from testler import gercek_projeler
 
 KESITLER = ("A-A KUYU DÜŞEY KESİTİ", "B-B KUYU DÜŞEY KESİTİ", "KASNAK DÜZENLEMESİ")
 
@@ -175,6 +179,43 @@ class SorunluCizim(unittest.TestCase):
                         self.assertIn("S", Y)
                     else:
                         self.assertEqual(set(Y), {"hata"})
+
+    def test_siginma_yerlesemezse_butun_cizimler_gelir(self):
+        """Ofisin gerçek projesi 12495-18 ( makine dairesiz, 1.100 × 1.100,
+        arkada ağırlıkla kabin üstü 2:1 ):  kabin tavanında çömelme alanına yer
+        yok.  Eskiden boş sığınma kutusu kuyu üstü açıklığında çöküyor, pafta
+        başlığı bu denetimi her çizimde çağırdığından ekranın 7 çiziminin
+        hepsi kayboluyordu ( 20 Eki ).  Kuyu dibinde de yer yoksa aynı."""
+        a = dict(gercek_projeler.PROJELER["12495-18"])
+        pg = {k: a.pop(k) for k in list(a) if k in uygulama_istegi.PROJE_GENELI_ALANLAR}
+        for ek, sorunlar in (
+            ({}, ("Kabin tavanında",)),
+            ({"siginma_tipi_dip": "Yatarak"}, ("Kabin tavanında", "Kuyu dibinde")),
+        ):
+            with self.subTest(**ek):
+                veri = {"asansorler": [dict(a, **ek)], "proje_geneli": pg, "sabitler": {}}
+                r = _ekran(veri)
+                self.assertFalse(r["aktif"])
+                self.assertEqual(r["kurulamayan"], [])
+                self.assertEqual(len(r["cizimler"]), len(pafta.sira(_g(veri))))
+                for bas in sorunlar:
+                    self.assertTrue(any(h.startswith(bas) for h in r["hata"]), (bas, r["hata"]))
+                #  Paketin hükmü değişmez:  uygunsuz çizim inmez
+                g_siki, siki = _siki(veri)
+                self.assertIsNone(g_siki)
+                self.assertEqual(r["hata"], siki)
+
+    def test_kesit_kurulamazsa_plan_yine_kurulur(self):
+        """Sorunlu kipte kesitin yerleşimi çökse de planın başlığı harfsiz
+        yazılır;  kip kapalıyken hata bugünkü gibi yükselir."""
+        g = _g(_veri(False))
+        baslik = "KUYU PLANI  ( kabin hizasından yatay kesit )"
+        with mock.patch.object(kuyu_kesiti, "dogrula", side_effect=TypeError("kesit")):
+            with sorunlu.kip():
+                self.assertEqual(cizimler.plan_basligi(g, "kuyu_plani", baslik), baslik)
+            with self.assertRaises(TypeError):
+                cizimler.plan_basligi(g, "kuyu_plani", baslik)
+        self.assertIn("C-C", cizimler.plan_basligi(g, "kuyu_plani", baslik))
 
     def test_kip_yalniz_blokta_acik(self):
         self.assertFalse(sorunlu.acik())

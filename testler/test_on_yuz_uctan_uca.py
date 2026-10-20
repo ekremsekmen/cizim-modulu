@@ -637,6 +637,52 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(istek["asansorler"][0]["kuyu_genisligi"], "2230")
         self.assertTrue(cizim["aktif"], cizim.get("hata"))
 
+    def test_duzeltme_asansorune_yazilir(self):
+        """İkiz asansörler ( eklenen asansör 1. asansörün kopyası ):  sorunun
+        metni ikisinde aynı.  1.'nin düzeltmeleri 2.'nin kartında görünmez —
+        istek bütün asansörleri taşır, sekme değişince aynı kalıyordu;  "Uygula"
+        1. için bulunan değeri 2.'ye yazıyordu ( 20 Eki ).  2.'nin düzeltmeleri
+        kendisinin:  hiç temiz çizimi olmadığından son değişikliğin sınırı
+        ( kuyu 2.230 ) yok, türevden son kat 4.515 var;  yalnız 2.'ye yazılır."""
+        self.ornek_projeyi_ac()
+        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.iz.sakin()
+        self.sayfa.get_by_role("button", name="Asansör ekle").click()
+        self.iz.sakin()
+        birinci, ikinci = self.sekmeler().nth(0), self.sekmeler().nth(1)
+        birinci.click()
+        self.iz.sakin()
+
+        def care_iste():
+            kart = self.sayfa.get_by_role("alert")
+            with self.sayfa.expect_response(
+                lambda r: r.url.endswith("/api/uygulama/care"), timeout=30_000
+            ) as yanit:
+                kart.get_by_role("button", name="Düzeltme öner").click()
+            kart.get_by_role("list", name="Düzeltmeler").wait_for()
+            return yanit.value.request.post_data_json["asansor"], kart
+
+        self.assertEqual(care_iste()[0], 0)
+        ikinci.click()
+        self.iz.sakin()
+        kart = self.sayfa.get_by_role("alert")
+        self.assertIn("Korkuluk – kuyu tavanı", kart.inner_text())
+        self.assertEqual(kart.get_by_role("list", name="Düzeltmeler").count(), 0)
+        self.assertEqual(kart.get_by_role("button", name="Yeniden ara").count(), 0)
+
+        asansor, kart = care_iste()
+        self.assertEqual(asansor, 1)
+        self.assertEqual(
+            kart.get_by_role("button", name=re.compile(r"^Kuyu genişliği 2\.230 yap$")).count(), 0
+        )
+        son_kat = re.escape(self.ad("son_kat_yuksekligi"))
+        kart.get_by_role("button", name=re.compile(rf"^{son_kat} 4\.515 yap$")).click()
+        self.sayfa.get_by_role("alert").wait_for(state="detached")
+        self.assertEqual(
+            [(a.get("kuyu_genisligi"), a.get("son_kat_yuksekligi")) for a in self.kayitli_asansorler()],
+            [("2300", "4250"), ("2300", "4515")],
+        )
+
     # ------------------------------------------------------------ 5 teslim
     def test_teslim_onaysiz_kapali_onayli_paket_iner(self):
         self.ornek_projeyi_ac()

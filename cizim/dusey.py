@@ -349,26 +349,34 @@ def _kuyu_dibi_acikliklari(g, S, dy, KD, hata):
     #  kirişi sığınma alanının üstündeyken de yükseklik platformdan ölçülüyordu.
     kasnaklar = kuyu_dibi.kabin_alti_askisi(g, S, KD["taban"])
     dip_parcalar = hareketli.kabin_parcalari(g, S, KD["taban"], dip)
-    siginma_ustu, siginma_ad = hareketli.ustundeki_en_alt(
-        dip_parcalar, KD["siginma"], (dip["taban_alti"], hareketli.KABIN)
-    )
     en_alt, en_alt_ad = min(
         [(dip["taban_alti"], hareketli.KABIN)]
         + [(p[2], p[0]) for p in dip_parcalar if p[0] not in hareketli.RAYA_YAKIN]
     )
+    dip_engel, sg_aciklik = {}, {}
+    #  Sığınma alanı yerleşemediyse ( yalnız sorunlu kipte buraya gelinir —
+    #  sorunu kuyu dibi planı söyler ) üstündeki yükseklik ölçülmez.  Eskiden
+    #  boş kutu karşılaştırmada çöküyor, ekranın bütün çizimleri kayboluyordu
+    #  ( pafta başlığı da bu denetimi çağırır — 20 Eki ).
+    if KD["siginma"] is not None:
+        siginma_ustu, dip_engel["siginma"] = hareketli.ustundeki_en_alt(
+            dip_parcalar, KD["siginma"], (dip["taban_alti"], hareketli.KABIN)
+        )
+        sg_aciklik["siginma"] = (
+            siginma_ustu - taban,
+            SIGINMA_DIP_YUKSEKLIK[kd["siginma_tipi"]],
+            "m.5.2.5.8.1 · Çizelge 4",
+        )
+    dip_engel["en_alt"] = en_alt_ad
     return {
         "dip": dip,
         "taban": taban,
         "kasnaklar": kasnaklar,
         "kasnak_capi": aski.get("kasnak_capi") or 0,
         "dip_parcalar": dip_parcalar,
-        "dip_engel": {"siginma": siginma_ad, "en_alt": en_alt_ad},
+        "dip_engel": dip_engel,
         "dip_aciklik": {
-            "siginma": (
-                siginma_ustu - taban,
-                SIGINMA_DIP_YUKSEKLIK[kd["siginma_tipi"]],
-                "m.5.2.5.8.1 · Çizelge 4",
-            ),
+            **sg_aciklik,
             "en_alt": (en_alt - taban, DIP_EN_ALT, "m.5.2.5.8.2 a"),
             "etek": (dip["etek_alti"] - taban, DIP_ETEK, "m.5.2.5.8.2 a 1"),
             "sase": (
@@ -398,23 +406,27 @@ def _kuyu_ustu_acikliklari(g, S, dy, KD, KU, M, H):
 
     ray_ustu = min(r["ust"] for r in M["raylar"] if r["tur"] == "kabin") - H
     korkuluk = max((k["yukseklik"] for k in KU["kenarlar"].values() if k["gerekli"]), default=0.0)
-    sg_engel = engel(KU["siginma"])
     patenler = [
         eleman_kutusu(el)
         for el in KD["taban"]
         if el["katman"] == "PATEN" and el.get("ad") != "agirlik_pateni"
     ]
     pt_engel = min(engel(_genislet(p, YATAY_UZAKLIK)) for p in patenler)
-    ust_engel = {"siginma": sg_engel, "paten": pt_engel, "ray": (ray_ustu, "ray")}
-    ust_aciklik = {
-        "siginma": (
+    ust_engel, ust_aciklik = {}, {}
+    #  Kabin üstünde sığınma alanı yerleşemediyse ( yalnız sorunlu kipte —
+    #  sorunu kabin üstü planı söyler ) yüksekliği ölçülmez ( kuyu dibindeki gibi )
+    if KU["siginma"] is not None:
+        ust_engel["siginma"] = sg_engel = engel(KU["siginma"])
+        ust_aciklik["siginma"] = (
             sg_engel[0] - ust["tavan"],
             SIGINMA_UST_YUKSEKLIK[g["kabin_ustu"]["siginma_tipi"]],
             "m.5.2.5.7.1 · Çizelge 3",
-        ),
-        "paten": (pt_engel[0] - ust["ust_paten"], UST_PATEN, "m.5.2.5.7.2 b"),
-        "ray": (ray_ustu - ust["ust_paten"], RAY_UZANTISI, "m.5.2.5.6.2"),
-    }
+        )
+    ust_engel.update(paten=pt_engel, ray=(ray_ustu, "ray"))
+    ust_aciklik.update(
+        paten=(pt_engel[0] - ust["ust_paten"], UST_PATEN, "m.5.2.5.7.2 b"),
+        ray=(ray_ustu - ust["ust_paten"], RAY_UZANTISI, "m.5.2.5.6.2"),
+    )
     #  KABİN ÜSTÜ ASKIDA kasnaklar kabin tavanına bağlı donanımdır:  en yüksek
     #  noktaları ile kabinin izdüşümündeki en alt tavan parçası arası en az
     #  0,50 m ( m.5.2.5.7.2 a ).

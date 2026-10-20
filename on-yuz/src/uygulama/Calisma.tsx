@@ -161,13 +161,18 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
       ? sorunOdak
       : null;
   //  ÇARE ( sunucu:  uclar/care_uclari.py ):  istenince bulunur ( birkaç saniye —
-  //  her tuşta değil );  yalnız ekrandaki çizimin girdisi için geçerlidir
+  //  her tuşta değil );  yalnız ekrandaki çizimin girdisi ve ASANSÖRÜ için
+  //  geçerlidir.  İstek bütün asansörleri taşır, sekme değişince aynı kalır:
+  //  eskiden 1. asansörün çareleri 2.'nin kartında görünüyor ( sorun metni
+  //  aynıysa — ikiz asansörler ), "Uygula" 2.'ye yazıyordu ( 20 Eki ).
   const care = useMutation({
-    mutationFn: (v: { istek: UygulamaIstegi; onceki: OncekiGirdi | null }) => api.care(v.istek, a, v.onceki),
+    mutationFn: (v: { istek: UygulamaIstegi; asansor: number; onceki: OncekiGirdi | null }) =>
+      api.care(v.istek, v.asansor, v.onceki),
   });
-  const careler = care.variables?.istek === s.cizimIstegi ? care.data : undefined;
+  const careBuGirdinin = care.variables?.istek === s.cizimIstegi && care.variables?.asansor === a;
+  const careler = careBuGirdinin ? care.data : undefined;
   const careBul = s.cizimIstegi
-    ? () => care.mutate({ istek: s.cizimIstegi!, onceki: s.oncekiTemiz })
+    ? () => care.mutate({ istek: s.cizimIstegi!, asansor: a, onceki: s.oncekiTemiz })
     : undefined;
   const careUygula = (o: CareOnerisi) => yaz(o.anahtar, typeof o.yeni === "number" ? kutuyaYaz(o.yeni) : o.yeni);
   const sorunuGoster = (m: CizimSorunu) => {
@@ -433,7 +438,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
               sorunuGoster={sorunuGoster}
               seciliSorun={gecerliOdak?.sorun.metin ?? null}
               careBul={careBul}
-              careYolda={care.isPending && care.variables?.istek === s.cizimIstegi}
+              careYolda={care.isPending && careBuGirdinin}
               careler={careler}
               careUygula={careUygula}
             />

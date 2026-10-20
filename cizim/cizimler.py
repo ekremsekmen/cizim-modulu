@@ -15,6 +15,7 @@ from cizim import kuyu_dibi
 from cizim import kuyu_kesiti
 from cizim import kuyu_ustu
 from cizim import makine_dairesi
+from cizim import sorunlu
 from cizim import veri_tablosu
 
 
@@ -82,6 +83,20 @@ CIZIMLER = {
 }
 
 
+def _kesit_sorunlu(g):
+    """Düşey kesitlerin sorunu var mı.  Sorunlu kipte ( yalnız ekran —
+    cizim/sorunlu.py ) kesitlerin yerleşimi kurulamazsa da "var":  harf
+    yazılmaz, plan çizimi yine kurulur.  Eskiden kesitin hatası her planın
+    başlığından taşıyor, ekranın bütün çizimleri kayboluyordu ( 20 Eki ).
+    Kip kapalıyken hata bugünkü gibi yükselir."""
+    if not sorunlu.acik():
+        return kuyu_kesiti.dogrula(g)
+    try:
+        return kuyu_kesiti.dogrula(g)
+    except Exception:  # noqa: BLE001 — kesit kendi çiziminde kurulamayan diye söylenir
+        return True
+
+
 def plan_basligi(g, cizim, baslik):
     """Plan başlığına düşey kesitlerdeki seviye harfi:  "KUYU PLANI  C-C  ( … )".
     Düşey kesitler çizilemeyen düzende harf de yazılmaz."""
@@ -92,7 +107,7 @@ def plan_basligi(g, cizim, baslik):
     gecerli = (
         oda if cizim in ("makine_dairesi", "delik_plani") else (not oda if cizim == "kuyu_ustu" else True)
     )
-    if not harf or not gecerli or kuyu_kesiti.dogrula(g):
+    if not harf or not gecerli or _kesit_sorunlu(g):
         return baslik
     ad, _, ek = baslik.partition("  (")
     return f"{ad}  {harf}-{harf}" + (f"  ({ek}" if ek else "")
