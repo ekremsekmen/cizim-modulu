@@ -208,6 +208,20 @@ class BozukGovde(unittest.TestCase):
             with self.subTest(kapak=kapak):
                 self.assertTrue(kapak_cikti.pdf_baytlari(kapak).startswith(b"%PDF"))
 
+    def test_asansor_adindaki_etiket_yazildigi_gibi_basilir(self):
+        """Asansör adındaki "<b>" paftanın biçim etiketi sayılmaz:  eskiden
+        ayrıştırıcı kırılıyor, PDF hiç üretilemiyordu ( 422 )."""
+        from ciktilar import pdf_cikti
+
+        for ad in ("Yolcu <b>A", "A</i> & <br/>"):
+            with self.subTest(ad=ad):
+                v = test_yerlesim_saglamligi.standart_istek(1000, True, "Sağ")
+                v["asansorler"].append(dict(v["asansorler"][0], asansor_adi="İkinci"))
+                v["asansorler"][0]["asansor_adi"] = ad
+                yanit = uygulama_uclari.indir_uygulama_pdf(v)
+                self.assertEqual(yanit.headers.get("content-type"), "application/pdf")
+                self.assertIn(ad, pdf_cikti._p(f"ASANSÖR {pdf_cikti._duz(ad)}").getPlainText())
+
 
 if __name__ == "__main__":
     unittest.main()

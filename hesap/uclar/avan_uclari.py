@@ -419,7 +419,12 @@ def indir_proje_dwg(veri: dict = Body(...)):
             belirsiz = _belirsiz_hata()
             if belirsiz:
                 return JSONResponse({"hata": belirsiz}, status_code=200)
-            paftalar.append(("Trafik", pdf_cikti.trafik_pdf(trafik.hesapla(g))))
+            #  Hesabın kendi reddi de ( N > 30 kat, ts ≤ 0 … ):  eskiden hata
+            #  kutulu trafik sayfası teslim paketine giriyordu ( 20 Eki ).
+            t = trafik.hesapla(g)
+            if t.get("hata"):
+                return JSONResponse({"hata": t["hata"]}, status_code=200)
+            paftalar.append(("Trafik", pdf_cikti.trafik_pdf(t)))
 
         avan_ham = ham.get("avan")
         if isinstance(avan_ham, dict):

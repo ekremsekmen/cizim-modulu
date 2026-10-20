@@ -433,6 +433,19 @@ def _k_degeri(bina_tipi, k_tipi, standart, manuel_k, U):
     return k, "Tablo-9'da kamu yok → İş Merkezi %k varsayıldı"
 
 
+def _manuel_k_hatasi(manuel_k):
+    """YAZILAN MANUEL k YA KULLANILIR YA DA HESAP DURUR.  Kamu binasında aralık
+    dışı değer ( yüzde sanılıp yazılan 15 ) sessizce İş Merkezi'nin %17'sine
+    düşüyordu;  çoklu hesap aynı girdiyi yanlış metinle ( "Tablo-9 varken" )
+    reddediyordu ( 20 Eki )."""
+    if sayi_mi(manuel_k) and not 0 < manuel_k <= 1:
+        return (
+            f"HESAP HATASI: Manuel k = {trn(manuel_k)} geçersiz — taşınacak insan oranı "
+            "0 ile 1 arasında yazılır ( %15 için 0,15 )."
+        )
+    return None
+
+
 def _kamu_hiz_uyarisi(bina_tipi, U):
     if bina_tipi.startswith("Kamu"):
         U.append(
@@ -1155,6 +1168,9 @@ def _dogrula_tek(g, b, N, P, kg_, kt, ta, tk, tg, tp, k, V, h, by, yy, k_tipi):
         return "HESAP HATASI: Nüfus girilmedi — ⑤ (ve gerekiyorsa ⑥) kutusunu doldurun"
     if k_tipi is not None and not bt.startswith("Kamu") and sayi_mi(g.get("manuel_k")):
         return "HESAP HATASI: Tablo-9 varken manuel k girilemez"
+    manuel_k = _manuel_k_hatasi(g.get("manuel_k"))
+    if manuel_k:
+        return manuel_k
     if tablolar.kapsam_disi(N, P):
         return "HESAP HATASI: P/N aralık dışı (P: 6-34 kişi, N: 1-30 kat)"
     nb = g.get("bodrum")
@@ -1475,11 +1491,13 @@ def _coklu_girdi_hatasi(g, bina_tipi, t10, N, h, by, yy):
     #  sayılmamalıdır — tek asansör hesabında olduğu gibi burada da
     #  açıkça reddedilir.  ( Aksi hâlde kullanıcı bir değer yazar, program
     #  onu görmezden gelir ve hiçbir şey söylemezdi. )  Kamu binasında
-    #  geçerli manuel k Tablo-9'un önüne geçer ( _k_degeri ).
+    #  manuel k Tablo-9'un önüne geçer ( _k_degeri );  aralığı denetlenir.
     manuel_k = g.get("manuel_k")
-    kamu_elle = bina_tipi.startswith("Kamu") and sayi_mi(manuel_k) and 0 < manuel_k <= 1
-    if t10["k_tipi"] is not None and not kamu_elle and sayi_mi(manuel_k):
+    if t10["k_tipi"] is not None and not bina_tipi.startswith("Kamu") and sayi_mi(manuel_k):
         return "HESAP HATASI: Tablo-9 varken manuel k girilemez"
+    mk_hata = _manuel_k_hatasi(manuel_k)
+    if mk_hata:
+        return mk_hata
     #  Ortak manuel hız da tek hesaptaki gibi GEÇERLİ LİSTEDEN olmalıdır.
     manuel_V = g.get("manuel_V")
     if sayi_mi(manuel_V) and manuel_V not in tablolar.GECERLI_HIZLAR:

@@ -153,6 +153,7 @@ S = {
 
 
 _IZINLI = (("<b>", "\x01"), ("</b>", "\x02"), ("<br/>", "\x03"), ("<i>", "\x04"), ("</i>", "\x05"))
+_DUZ_KUCUKTUR = "\x06"  # _duz'un işaretlediği "<":  _p etiket saymaz
 
 
 def _p(metin, stil="n"):
@@ -165,7 +166,15 @@ def _p(metin, stil="n"):
     s = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     for etiket, yer in _IZINLI:
         s = s.replace(yer, etiket)
-    return Paragraph(s, S[stil])
+    return Paragraph(s.replace(_DUZ_KUCUKTUR, "&lt;"), S[stil])
+
+
+def _duz(metin):
+    """KULLANICININ YAZDIĞI METİN ( asansör tanımı ) _p'ye böyle verilir:
+    içindeki "<b>" biçim etiketi sayılmaz, yazıldığı gibi basılır.  İzinli
+    etiketler programın kendi metni içindir;  tanımdaki tek bir "<b>" ya da
+    "</i>" ayrıştırıcıyı kırıyor, PDF hiç üretilemiyordu.  Uç taraması, 20 Eki."""
+    return str(metin or "").replace("<", _DUZ_KUCUKTUR)
 
 
 def _kisalt(metin, font, boy, en):
@@ -1059,7 +1068,7 @@ def avan_pdf(sonuc: dict, proje: dict = None) -> bytes:
         if not a.get("aktif"):
             continue
         ust = _baslik_seridi(
-            f"{a['baslik']}" + (f"   —   {a['tanim']}" if a["tanim"] else ""), "AVAN PROJE HESAPLARI"
+            f"{a['baslik']}" + (f"   —   {_duz(a['tanim'])}" if a["tanim"] else ""), "AVAN PROJE HESAPLARI"
         )
         _onek = f"{a['baslik']}" + (f" · {a['tanim']}" if a["tanim"] else "")
         for i, b in enumerate(a["bolumler"]):
@@ -1112,7 +1121,7 @@ def _avan_ozet_tablo(sonuc):
     if not aktif:
         return _p("Tanımlı asansör yok.", "n")
     satirlar = [
-        ("Asansör tanımı", lambda o: o["tanim"] or "—", "—"),
+        ("Asansör tanımı", lambda o: _duz(o["tanim"]) or "—", "—"),
         ("P — Kabin kapasitesi", lambda o: trn(o["kapasite"], 0), "kişi"),
         ("Q — Anma yükü", lambda o: trn(o["Q"], 0), "kg"),
         ("V — Kabin hızı", lambda o: tr(o["V"]), "m/s"),
@@ -1264,7 +1273,7 @@ def _uygulama_govdesi(sonuc, ust_ek=""):
     if sonuc.get("uyarilar"):
         ic += _uyari_kutusu(sonuc["uyarilar"])
 
-    kaynak = ust_ek or "UYGULAMA PROJESİ"
+    kaynak = _duz(ust_ek) or "UYGULAMA PROJESİ"
     #  Mukavemet ve elektrik bölümleri ayrı şeritlerle açılır ki paftada
     #  hangi ailenin nerede bittiği görünsün.
     muk_sayi = int(sonuc.get("mukavemet_bolum_sayisi") or 0)
@@ -1332,7 +1341,7 @@ def uygulama_pdf(sonuc: dict, proje: dict = None) -> bytes:
         if not tek:
             if i:
                 ic.append(PageBreak())
-            ic.append(_baslik_seridi(f"ASANSÖR {etiket}", f"{len(asansorler)} asansörden {i + 1}."))
+            ic.append(_baslik_seridi(f"ASANSÖR {_duz(etiket)}", f"{len(asansorler)} asansörden {i + 1}."))
             ic.append(Spacer(1, 1.5 * mm))
         if not a.get("aktif"):
             ic += _uyari_kutusu(list(a.get("hata") or ["Hesap yapılamadı."]), hata=True)

@@ -383,6 +383,13 @@ def calistir():
         "kamuda manuel k kabul edilir",
         trafik.hesapla_tek(g(bina_tipi="Kamu Binaları", manuel_k=0.13))["ozet"]["k"] == 0.13,
     )
+    #  Aralık dışı manuel k sessizce İş Merkezi'ne düşmez ( yüzde sanılan 15 )
+    for _mk in (15, 0, -1):
+        r.kontrol(
+            f"kamuda aralık dışı manuel k = {_mk} reddedilir",
+            "Manuel k = "
+            in (trafik.hesapla_tek(g(bina_tipi="Kamu Binaları", manuel_k=_mk)).get("hata") or ""),
+        )
 
     # ==================================================================
     #  v2.8 — KİTAP DENETİMİ:  motor tabloları MMO/697 ile BİREBİR mi?
@@ -762,6 +769,18 @@ def calistir():
     r.kontrol("TReş her TR'den küçük", all(s["ozet"]["TRes"] < a["TR"] for a in s["asansorler"]))
     r.kontrol(
         "boş liste → uyarı", "en az bir" in (trafik.hesapla_coklu(dict(c, asansorler=[])).get("hata") or "")
+    )
+    #  Kamu binasında manuel k tekteki gibi:  geçerlisi kullanılır, aralık dışı
+    #  kendi iletisiyle durur ( eskiden "Tablo-9 varken manuel k girilemez" )
+    _kamu = dict(c, bina_tipi="Kamu Binaları", hizli1=2000, hizli2=None)
+    r.esit(
+        "çoklu:  kamuda manuel k kullanılır",
+        trafik.hesapla_coklu(dict(_kamu, manuel_k=0.13))["ozet"]["k"],
+        0.13,
+    )
+    r.kontrol(
+        "çoklu:  kamuda aralık dışı manuel k kendi iletisiyle reddedilir",
+        "Manuel k = 15 geçersiz" in (trafik.hesapla_coklu(dict(_kamu, manuel_k=15)).get("hata") or ""),
     )
     r.kontrol(
         "geçersiz durak reddedilir",
