@@ -138,9 +138,14 @@ function parcaBul(x: number, y: number, kap: HTMLElement | null): Parca | null {
      sığmazsa solunda, o da olmazsa altında ya da üstünde;  tuvalin dışına
      taşmaz.  Tuval kutudan darsa kutu tuvalin enine iner ( dar pencerede kutu
      sola taşıp kesiliyordu — 19 Eki ).  */
+/**  Ölçü kutusunun tuvalde başlayabileceği en üst yer ( araç şeridinin altı )  */
+export const KUTU_UST = 64;
+
 export function kutuYeri(konum: OlcuKonumu, istenenEn: number, boy: number) {
   const ARA = 16;
   const KENAR = 12;
+  //  Üstte araç şeridi ( görünüm, yakınlık, katmanlar ):  kutu onun altında başlar
+  const UST = KUTU_UST;
   const en = Math.min(istenenEn, konum.w - 2 * KENAR);
   let sol: number;
   let ust: number;
@@ -149,7 +154,7 @@ export function kutuYeri(konum: OlcuKonumu, istenenEn: number, boy: number) {
   else sol = Math.min(Math.max(KENAR, konum.sol), konum.w - en - KENAR);
   if (sol >= konum.sag || sol + en <= konum.sol) ust = (konum.ust + konum.alt) / 2 - 80;
   else ust = konum.alt + ARA + boy < konum.h ? konum.alt + ARA : konum.ust - ARA - boy;
-  ust = Math.max(KENAR, Math.min(ust, konum.h - boy - KENAR));
+  ust = Math.max(UST, Math.min(ust, konum.h - boy - KENAR));
   return { sol, ust, en };
 }
 
@@ -183,6 +188,18 @@ export function Tuval({
 }) {
   const kap = useRef<HTMLDivElement>(null);
   const [g, setG] = useState({ x: 40, y: 60, k: 0.3 });
+  //  NETLİK ( 20 Eki — kullanıcı:  "çizim ekranının bulanıklaşması kritik" ):
+  //  levha yalnız CSS ölçeğiyle büyütülünce tarayıcı ( Safari ) çizimi bir kez
+  //  resme çevirip büyütüyordu — yakında bulanık.  Gezinirken ölçek hızlı
+  //  ( transform ), durunca 120 ms sonra çizimler kendi boyunda yeniden çizilir
+  //  ( vektör, keskin ):  kNet figürlerin boyutuna geçer, transform yalnız
+  //  aradaki farkı taşır.  Ekrandaki ölçek ( g.k ) ve kalemler değişmez.
+  const [kNet, setKNet] = useState(g.k);
+  useEffect(() => {
+    if (g.k === kNet) return;
+    const t = setTimeout(() => setKNet(g.k), 120);
+    return () => clearTimeout(t);
+  }, [g.k, kNet]);
   const [gizli, setGizli] = useState<Set<string>>(new Set());
   const [sigdirilan, setSigdirilan] = useState<string>("tumu");
   //  Tuvalin ölçüsü ( ResizeObserver ).  Yerleşim İLK ölçüyle kurulur:  pencere
@@ -474,7 +491,7 @@ export function Tuval({
       {/*  Çizim levhası:  1 px = 1 mm, bütün levha ölçeklenir  */}
       <div
         className={cn("absolute top-0 left-0 origin-top-left transition-opacity", durum === "eski" && "opacity-40")}
-        style={{ transform: `translate(${g.x}px, ${g.y}px) scale(${g.k})`, ...kalemStili }}
+        style={{ transform: `translate(${g.x}px, ${g.y}px) scale(${g.k / kNet})`, ...kalemStili }}
       >
         {yerler.map((y) => (
           <figure
@@ -482,7 +499,13 @@ export function Tuval({
             data-cizim={y.c.ad}
             aria-label={y.c.baslik}
             className="tuval-svg absolute m-0"
-            style={{ left: y.x, top: y.y, width: y.w, height: y.h, ["--mu" as string]: (g.k / (y.c.olcek || 20)).toPrecision(6) }}
+            style={{
+              left: y.x * kNet,
+              top: y.y * kNet,
+              width: y.w * kNet,
+              height: y.h * kNet,
+              ["--mu" as string]: (g.k / (y.c.olcek || 20)).toPrecision(6),
+            }}
             dangerouslySetInnerHTML={{ __html: y.c.svg }}
           />
         ))}

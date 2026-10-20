@@ -498,6 +498,49 @@ class OnYuzUctanUca(unittest.TestCase):
         )
         self.assertEqual(float(str(yer[degisiklik["anahtar"]]).replace(",", ".")), degisiklik["deger"])
 
+    def test_yakinda_net_ve_olcu_kutusu_tuvale_sigar(self):
+        """20 Eki ( kullanıcı:  "ölçüyü belirleyen kutucuğun tamamı görünmüyor,
+        çizim ekranı bulanıklaşıyor" ):  yakınlaşma durunca levhanın CSS ölçeği
+        1'e döner, çizimler kendi boyunda yeniden çizilir ( Safari büyütülmüş
+        resim gösteriyordu );  kaynağı çok ölçünün kutusu kısa pencerede de
+        tuvale, araç şeridinin altına sığar, listesi kayar, "Uygula" görünür."""
+        self.sayfa.set_viewport_size({"width": 1280, "height": 560})
+        self.ornek_projeyi_ac()
+        plan = self.sayfa.locator('figure[data-cizim="kuyu_plani"]').bounding_box()
+        self.sayfa.mouse.move(plan["x"] + plan["width"] / 2, plan["y"] + plan["height"] / 2)
+        for _ in range(12):
+            self.sayfa.mouse.wheel(0, -120)
+        self.sayfa.wait_for_timeout(500)
+        levha = "document.querySelector('figure[data-cizim]').parentElement"
+        self.assertTrue(self.sayfa.evaluate(f"{levha}.style.transform").endswith("scale(1)"))
+        en = self.sayfa.evaluate(
+            "(() => { const f = document.querySelector('figure[data-cizim=\"kuyu_plani\"]');"
+            "  return [parseFloat(f.style.width), f.getBoundingClientRect().width] })()"
+        )
+        self.assertAlmostEqual(en[0], en[1], delta=1.0)
+        self.sayfa.get_by_role("button", name="Sığdır").click()
+        self.sayfa.wait_for_timeout(300)
+        #  Kaynağı en az 6 olan bir kuyu planı ölçüsü
+        tuval = self.sayfa.locator(".bg-tuval").bounding_box()
+        olculer = self.sayfa.locator('figure[data-cizim="kuyu_plani"] .olcu')
+        kutu = self.sayfa.get_by_role("dialog", name=re.compile(r"^Ölçü "))
+        for j in range(olculer.count()):
+            olculer.nth(j).focus()
+            self.sayfa.keyboard.press("Enter")
+            kutu.get_by_role("radiogroup").wait_for()
+            if kutu.get_by_role("radio").count() >= 6:
+                break
+            self.sayfa.keyboard.press("Escape")
+        else:
+            self.fail("kaynağı 6'dan çok ölçü yok")
+        self.sayfa.wait_for_timeout(300)
+        k = kutu.bounding_box()
+        self.assertGreaterEqual(k["y"], tuval["y"] + 60)
+        self.assertLessEqual(k["y"] + k["height"], tuval["y"] + tuval["height"])
+        self.assertTrue(kutu.get_by_role("button", name="Uygula").is_visible())
+        liste = kutu.get_by_role("radiogroup")
+        self.assertEqual(liste.evaluate("u => getComputedStyle(u).overflowY"), "auto")
+
     def test_parca_adi_ve_vurgusu(self):
         """Parçanın üstüne gelince adı yazar ( sunucunun data-ad'ı ) ve o parçanın
         bütün öğeleri vurgulanır;  fare çıkınca ikisi de kalkar."""

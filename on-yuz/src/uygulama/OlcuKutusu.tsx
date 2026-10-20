@@ -3,14 +3,14 @@
     değişince ölçü kaç mm değişir ).  /api/uygulama/olcu_degistir:  hedef
     ölçüye götüren girdi değişikliği — sunucu çizimi yeniden kurup doğrular,
     biz yalnız kutulara yazarız;  hesap ve çizim kendi akışıyla yenilenir.     */
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRight, Check, Loader2, X } from "lucide-react";
 import { api, type UygulamaIstegi } from "@/lib/api";
 import { kutuyaYaz } from "@/lib/proje";
 import { cn, sayiYaz } from "@/lib/utils";
 import { Dugme, Girdi, Rozet } from "@/components/ui";
-import { kutuYeri, type OlcuKonumu, type OlcuSecimi } from "./Tuval";
+import { KUTU_UST, kutuYeri, type OlcuKonumu, type OlcuSecimi } from "./Tuval";
 
 const YER: Record<string, string> = { asansor: "asansör", proje: "bina", ofis: "ofis standardı" };
 
@@ -67,16 +67,32 @@ export function OlcuKutusu({
     if (y?.kaynaklar) kaynaklarGeldi?.(y.kaynaklar.filter((k) => k.yer !== "ofis").map((k) => k.anahtar));
   }, [y]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { sol, ust, en } = kutuYeri(konum, 344, 420);
+  //  KUTU TUVALE SIĞAR ( 20 Eki — kaynak listesi uzayınca alttan kesiliyordu ):
+  //  en çok tuvalin boyu kadar;  liste kendi içinde kayar, başlık ve "Yeni ölçü"
+  //  görünür kalır;  yeri kutunun GERÇEK yüksekliğiyle hesaplanır ( eskiden
+  //  420 varsayılıyordu )
+  const kutu = useRef<HTMLDivElement>(null);
+  const [boy, setBoy] = useState(420);
+  useLayoutEffect(() => {
+    const el = kutu.current;
+    if (!el) return;
+    const olc = () => setBoy(el.offsetHeight);
+    olc();
+    const ro = new ResizeObserver(olc);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const { sol, ust, en } = kutuYeri(konum, 344, boy);
   return (
     <div
+      ref={kutu}
       data-olcu-kutu
       role="dialog"
       aria-label={`Ölçü ${olcu.metin}`}
-      className="absolute z-30 overflow-hidden rounded-buyuk border border-cizgi bg-yuzey text-metin shadow-kalkik select-text"
-      style={{ left: sol, top: ust, width: en }}
+      className="absolute z-30 flex flex-col overflow-hidden rounded-buyuk border border-cizgi bg-yuzey text-metin shadow-kalkik select-text"
+      style={{ left: sol, top: ust, width: en, maxHeight: Math.max(160, konum.h - KUTU_UST - 12) }}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-cizgi px-4 py-3">
+      <div className="flex shrink-0 items-start justify-between gap-3 border-b border-cizgi px-4 py-3">
         <div>
           <p className="text-[12px] text-metin-3">{olcu.aciklama || olcu.metin.replace(/\s*[\d.,]+$/, "") || "Ölçü"}</p>
           <p className="mt-0.5 flex items-baseline gap-2">
@@ -98,11 +114,11 @@ export function OlcuKutusu({
         <p className="px-4 py-3 text-[12.5px] text-red">{y.hata?.join(" ")}</p>
       ) : (
         <>
-          <div className="px-4 pt-3 pb-1">
+          <div className="shrink-0 px-4 pt-3 pb-1">
             <p className="text-[11.5px] font-medium tracking-wide text-metin-3 uppercase">Bu ölçüyü belirleyen</p>
             {y?.kural && <p className="mt-1 text-[12px] text-metin-2">{y.kural}</p>}
           </div>
-          <ul className="px-2 pb-2" role="radiogroup" aria-label="Değiştirilecek girdi">
+          <ul className="min-h-0 flex-1 overflow-y-auto px-2 pb-2" role="radiogroup" aria-label="Değiştirilecek girdi">
             {y?.kaynaklar?.map((k) => {
               const sec = anahtar === k.anahtar;
               return (
@@ -145,7 +161,7 @@ export function OlcuKutusu({
 
           {degisebilen.length > 0 && (
             <form
-              className="border-t border-cizgi bg-yuzey-2 px-4 py-3"
+              className="shrink-0 border-t border-cizgi bg-yuzey-2 px-4 py-3"
               onSubmit={(e) => {
                 e.preventDefault();
                 degistir.mutate();
