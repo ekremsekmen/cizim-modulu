@@ -18,6 +18,7 @@ Değişmezler:
 
 import json
 import unittest
+from unittest import mock
 
 from uclar import care_uclari
 from uclar import cizim_uclari
@@ -114,7 +115,9 @@ class Care(unittest.TestCase):
             once = care_uclari._durum(veri, 0)
             ortulu = {care_uclari.kimlik(h) for h in cizim_uclari.genis_sorunlar(veri, 0)} - set(once[0])
             self.assertTrue(r["careler"], vaka)
-            self.assertLess(r["sure"], care_uclari.SURE + 2.0, vaka)
+            #  Vakaların hepsi bütçenin içinde biter ( kesilmiş arama değil )
+            self.assertTrue(r["tamamlandi"], (vaka, r["neden"]))
+            self.assertLessEqual(r["sinama"], care_uclari.AZAMI_SINAMA, vaka)
             for c in r["careler"]:
                 for o in c["oneriler"]:
                     with self.subTest(vaka=vaka, sorun=c["metin"][:50], care=(o["anahtar"], o["yeni"])):
@@ -169,6 +172,34 @@ class Care(unittest.TestCase):
             for c in r["careler"]:
                 turev = [o["bina"] for o in c["oneriler"] if o["yontem"] == "türev"]
                 self.assertEqual(turev, sorted(turev), (vaka, c["metin"][:50]))
+
+    def test_yavas_bilgisayarda_ayni_careler(self):
+        """BÜTÇE SINAMA SAYISIDIR, SAAT DEĞİL:  her sınama saati 1 sn
+        ilerletince ( yavaş, yüklü bilgisayar ) çareler aynı kalır.  6 sn'lik
+        duvar saatiyle bu vaka türev aşamasında kesiliyor, "Yatarak" sığınma
+        çaresi düşüyordu ( ölçüldü 20 Eki )."""
+        vaka = ("ornek", "kuyu_dibi", "1300")
+        veri, r = self.coz(*vaka)
+        asil, saat = care_uclari._durum, [0.0]
+
+        def yavas(v, i):
+            saat[0] += 1.0
+            return asil(v, i)
+
+        sahte = mock.Mock(time=lambda: saat[0], monotonic=lambda: saat[0])
+        with mock.patch.object(care_uclari, "_durum", yavas), mock.patch.object(care_uclari, "time", sahte):
+            y = care_uclari.coz(veri, 0, _vaka(*vaka)[1])
+        self.assertEqual(y["careler"], r["careler"])
+        self.assertEqual((y["sinama"], y["tamamlandi"]), (r["sinama"], True))
+
+    def test_butce_biterse_yanit_soyler(self):
+        """Bütçeye ya da güvenlik süresine takılan arama "tamamlandı" demez;
+        bulduğu çareler yine sınanmıştır."""
+        veri, onceki = _vaka("ornek", "kuyu_genisligi", "2300")
+        r = care_uclari.coz(veri, 0, onceki, care_uclari._Butce(sinama=3))
+        self.assertEqual((r["tamamlandi"], r["neden"], r["sinama"]), (False, "sinama", 3))
+        r = care_uclari.coz(veri, 0, onceki, care_uclari._Butce(sure=-1.0))
+        self.assertEqual((r["tamamlandi"], r["neden"], r["sinama"]), (False, "sure", 0))
 
     def test_kimlik_sayilardan_ve_sonundan_bagimsiz(self):
         self.assertEqual(

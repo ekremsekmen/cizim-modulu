@@ -160,8 +160,9 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     s.sorun.maddeler.some((m) => m.metin === sorunOdak.sorun.metin)
       ? sorunOdak
       : null;
-  //  ÇARE ( sunucu:  uclar/care_uclari.py ):  istenince bulunur ( birkaç saniye —
-  //  her tuşta değil );  yalnız ekrandaki çizimin girdisi ve ASANSÖRÜ için
+  //  ÇARE ( sunucu:  uclar/care_uclari.py ):  istenince bulunur ( birkaç saniye,
+  //  makine daireli projede 10 sn'yi aşabilir — her tuşta değil;  bütçe sınama
+  //  sayısıdır, saat değil );  yalnız ekrandaki çizimin girdisi ve ASANSÖRÜ için
   //  geçerlidir.  İstek bütün asansörleri taşır, sekme değişince aynı kalır:
   //  eskiden 1. asansörün çareleri 2.'nin kartında görünüyor ( sorun metni
   //  aynıysa — ikiz asansörler ), "Uygula" 2.'ye yazıyordu ( 20 Eki ).
@@ -612,6 +613,16 @@ function SorunKarti({
       </div>
       {careler && !careler.aktif && !kucuk && (
         <p className="px-4 pb-2 pl-10 text-[12px] opacity-80">{careler.hata?.join(" ") || "Düzeltme aranamadı."}</p>
+      )}
+      {/*  Kesilen arama söylenir ( eksik sonuç tamamlanmış gibi görünmesin ):  bütçe
+           sayıdır, yeniden denemek aynı sonucu verir;  güvenlik süresi ( yüklü
+           bilgisayar ) yeniden denemeyle geçebilir  */}
+      {careAcik && careler.tamamlandi === false && !kucuk && (
+        <p className="px-4 pb-2 pl-10 text-[12px] opacity-80">
+          {careler.neden === "sure"
+            ? "Arama güvenlik süresinde kesildi — düzeltmeler eksik olabilir;  yeniden deneyin."
+            : "Arama sınırına ulaşıldı — bütün adaylar denenmedi, düzeltmeler eksik olabilir."}
+        </p>
       )}
       <ul hidden={kucuk} className={cn("space-y-1 overflow-y-auto px-4 pb-3 pl-10", careAcik ? "max-h-96" : "max-h-52")}>
         {maddeler.map((m, i) => (

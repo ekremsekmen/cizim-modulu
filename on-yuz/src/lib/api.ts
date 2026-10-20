@@ -159,6 +159,12 @@ export interface CareOnerisi {
 export interface CareYanit {
   aktif: boolean;
   careler?: { metin: string; oneriler: CareOnerisi[] }[];
+  /**  Yapılan sınama ( hesap + çizim yeniden kurulumu ) — bütçe saat değil, sayıdır  */
+  sinama?: number;
+  /**  false:  arama bütçeye ( neden "sinama" ) ya da güvenlik süresine ( "sure" )
+       takıldı — çareler eksik olabilir  */
+  tamamlandi?: boolean;
+  neden?: "sinama" | "sure" | null;
   sure?: number;
   hata?: string[];
 }
