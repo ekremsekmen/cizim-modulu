@@ -19,7 +19,16 @@ if errorlevel 1 (
   pause & exit /b 1
 )
 
+rem  Python 3.12 ya da yenisi ( pyproject.toml ):  eski surumle program acilmiyordu
 if not exist ".venv" (
+  python -c "import sys; sys.exit(sys.version_info < (3, 12))" >nul 2>&1
+  if errorlevel 1 (
+    echo   Python 3.12 ya da yenisi gerekli - kurulu olan daha eski.
+    echo   https://www.python.org/downloads/ adresinden guncel surumu kurun
+    echo   ve bu dosyayi yeniden cift tiklayin.
+    echo.
+    pause & exit /b 1
+  )
   echo   Ilk kurulum yapiliyor ^(yalniz bir kez, ~1 dakika^)...
   python -m venv .venv || (echo   Sanal ortam olusturulamadi. & pause & exit /b 1)
   .venv\Scripts\python.exe -m pip install --upgrade pip -q

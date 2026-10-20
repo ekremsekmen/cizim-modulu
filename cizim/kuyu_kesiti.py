@@ -361,10 +361,23 @@ def _kir(e, za, zu, bosluk):
                     m(el["kot"]),
                 )
                 out.append(n)
-        elif t in ("dikdortgen", "tarama"):
-            for a, b in bol(el["y"], el["y"] + el["d"]):
+        elif t in ("dikdortgen", "tarama", "tarama_tugla"):
+            kalan = bol(el["y"], el["y"] + el["d"])
+            for a, b in kalan:
                 n = dict(el)
                 n["y"], n["d"] = m(a), b - a
+                if "bicim" in el:
+                    #  GERÇEK BİÇİM DE KAYAR ( regülatör, kasnak … ):  eskiden yalnız
+                    #  zarf kayıyor, biçim kırılmamış kotunda — paftanın 300 mm
+                    #  dışında — çiziliyordu ( 20 Eki ).  Kırığa giren parçanın
+                    #  biçimi kesilemez:  zarfı çizilir.
+                    if len(kalan) == 1 and b - a >= el["d"] - 1e-6:
+                        dy = n["y"] - el["y"]
+                        n["bicim"] = [
+                            dict(p, noktalar=[(x, y + dy) for x, y in p["noktalar"]]) for p in el["bicim"]
+                        ]
+                    else:
+                        del n["bicim"]
                 out.append(n)
         elif t in ("cizgi", "eksen", "ok"):
             y1, y2 = el["y1"], el["y2"]
