@@ -189,5 +189,25 @@ class BeklenmeyenHata(unittest.TestCase):
         self.assertNotIn("ic_alan", yanit["hata"][0])
 
 
+class BozukGovde(unittest.TestCase):
+    """Bozuk gövde programın hatası sayılmaz:  kendi iletisiyle reddedilir
+    ( eskiden liste çizim adı "unhashable type", sayı kapak "not iterable"
+    ile uçta beklenmeyen hata kaydı düşüyordu ).  Uç taraması, 20 Eki."""
+
+    def test_cizim_adi_metin_degilse_bilinmeyen_cizim(self):
+        for uc in (cizim_uclari.api_olcu, cizim_uclari.api_olcu_degistir):
+            for ad in ([], {}, ["kuyu_plani"]):
+                with self.subTest(uc=uc.__name__, ad=ad):
+                    yanit = json.loads(uc({"cizim": ad, "asansorler": [{}]}).body)
+                    self.assertEqual(yanit, {"aktif": False, "hata": ["Bilinmeyen çizim."]})
+
+    def test_sozluk_olmayan_kapak_bos_kapak(self):
+        from ciktilar import kapak_cikti
+
+        for kapak in (-5, True, [None], "x"):
+            with self.subTest(kapak=kapak):
+                self.assertTrue(kapak_cikti.pdf_baytlari(kapak).startswith(b"%PDF"))
+
+
 if __name__ == "__main__":
     unittest.main()

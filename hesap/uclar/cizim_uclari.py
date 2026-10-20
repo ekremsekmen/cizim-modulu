@@ -647,7 +647,7 @@ def api_olcu(veri: dict = Body(...)):
     """Tıklanan ölçünün kaynakları."""
     try:
         ad = veri.get("cizim")
-        if ad not in cizimler.CIZIMLER:
+        if not isinstance(ad, str) or ad not in cizimler.CIZIMLER:
             return JSONResponse({"aktif": False, "hata": ["Bilinmeyen çizim."]})
         r = _cozumleme(veri, ad)
         if r is None:
@@ -700,7 +700,7 @@ def api_olcu_degistir(veri: dict = Body(...)):
 
     try:
         ad = veri.get("cizim")
-        if ad not in cizimler.CIZIMLER:
+        if not isinstance(ad, str) or ad not in cizimler.CIZIMLER:
             return JSONResponse({"aktif": False, "hata": ["Bilinmeyen çizim."]})
         r = _cozumleme(veri, ad)
         if r is None:
