@@ -616,7 +616,10 @@ class Degistirilemeyen(unittest.TestCase):
         #  Türev adımla kaymada 0'dır:  ray – kapı arası bu ölçünün kaynağı olarak
         #  önerilmez ( eskiden oynatma "doğrusal değil" diye listeliyordu ),
         #  istense de kutuya değer yazılmaz.
+        #  Şase referans projeninki ( 300 ):  20 Eki'den beri varsayılan 240'ta
+        #  kirişin önünde 500 mm kalır, alan oraya ( kapıya en yakın ) geçer.
         v = _gercek("4815-6")
+        v.setdefault("sabitler", {})["sase_dikme_derinlik"] = 300
         r = cizim_uclari._cozumleme(v, "kabin_ustu")
         i = _olcu(r, "920")
         self.assertNotIn(("girdi", "ray_kapi_arasi"), [x["kimlik"] for x in r["kaynak"][i]])

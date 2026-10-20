@@ -909,8 +909,9 @@ dil ucundan dikmenin sırtının arkasına:  paten_en / 2 + 5 mm sac ( ÇİZİM 
 — girdinin "kabin dışı + 2 × 30 < DBG" denetimi böylece "kabin dikmenin sırtına
 değmez" demektir ( referans projede sırt ile kabin arası 25, ofis kabininde 55 ).
 Şasenin kirişleri ( planda kesik ) iki dikmenin sırtını bağlar.  Plan
-derinliği yan kesitte de kullanılan `sase_dikme_derinlik` değeridir ( örnekte
-300 mm );  dikmeler ray eksenine ortalanır.  **Karşı ağırlığın patenleri**
+derinliği yan kesitte de kullanılan `sase_dikme_derinlik` değeridir ( 240 mm —
+ofisin şaseleri LiftDesigner'dakiler gibi, 40 + 160 + 40;  20 Eki'ye dek referans
+projenin 300'ü );  dikmeler ray eksenine ortalanır.  **Karşı ağırlığın patenleri**
 planda da çizilir ( eskiden yalnız kesitlerde vardı ):  kesitlerin kutusuyla aynı
 zarf ( kullanıcı kararı 30 Eyl:  iki tipte aynı iz ), biçim formdaki "Karşı
 ağırlık paten tipi"ne göre;  makaralının makaraları zarfın dışına taşar
@@ -1029,8 +1030,8 @@ yukarıdan görünür — LiftDesigner 1022'nin kabin üstü kesiti ( X-X ) gibi
 dolu çiziliyor, kapı bölgesi boş kalıyordu — kullanıcı "kapının görünmemesi
 saçma". )
 Tavanda:  kabin tavanı, şase dikmeleri ve **şasenin üst kirişi** ( ray ekseninde
-dikmeden dikmeye;  kuyu planındaki kiriş zarfı, `sase_dikme_derinlik` 300 —
-ÇİZİM KABULÜ, tedarikçi profili yok ), askı ( kabin üstünde kasnaklar · kabin altında
+dikmeden dikmeye;  kuyu planındaki kiriş zarfı, `sase_dikme_derinlik` 240 —
+ofisin LiftDesigner şasesi;  tedarikçi profili yok ), askı ( kabin üstünde kasnaklar · kabin altında
 halatların tavan dışından geçtiği yer · doğrudan askıda askı noktaları ).
 Standarttan hesaplananlar:
 
@@ -1062,8 +1063,8 @@ altına giriyordu ( gerçek projelerde 30 – 300 mm, 1022 ve 800 KG'de tamamen 
 şimdi kirişin önüne / arkasına kayar — dört gerçek projede de sığar,
 yükseklikler aynı kalır.  320 kg'ın ( 900 × 1.000 ) yan ağırlıklı 2:1
 düzenlerinde kiriş tavanı ikiye böler, çömelme alanına yer kalmaz:  çizim
-söyler ( kirişin eni `sase_dikme_derinlik` 300 — ÇİZİM KABULÜ;  tedarikçinin
-şasesi darsa Sabitler'den küçültülür ).  Hesabın referans taraması bu yüzden
+söyler ( kirişin eni `sase_dikme_derinlik` — o gün 300, 20 Eki'den beri 240;  tedarikçinin
+şasesi farklıysa Sabitler'den değiştirilir ).  Hesabın referans taraması bu yüzden
 yeniden üretildi ( yalnız 320 kg'ın sığınma ara değerleri ).  **Kabin üstü
 askıda henüz sayılmaz:**  kasnaklar askı ekseninde, kiriş ray ekseninde iki
 ayrı bant olur, tavan dar şeritlere bölünür ( köprü testinin düzeninde 461 · 54 ·

@@ -153,7 +153,12 @@ SABIT = {
     #  2.080 – 2.320;  1275 ( makine daireli ):  kasnak merkezi tavanın ~210
     #  üstünde.  Kasnakların arasındaki halat şasenin üst kirişinin altından geçer.
     "kabin_tavani_kasnak_boslugu": 80,
-    "sase_dikme_derinlik": 300,  # şase dikmesinin kesitteki eni ( ray ekseninde )
+    #  Şase dikmesinin ( ve üst / alt kirişinin ) kesitteki eni, ray ekseninde:
+    #  ofisin şaseleri LiftDesigner'dakiler gibi ( kullanıcı 20 Eki ) — iki C
+    #  140 × 40, 40 + 160 + 40 ( 4815-6 kuyu tepesi kesiti ).  Referans projenin
+    #  ağır şasesi ( UPN 200 kirişler ) 50 + 200 + 50 = 300;  20 Eki'ye dek
+    #  varsayılan oydu ( K379 kabin üstü sığınması 10 mm farkla sığmıyordu ).
+    "sase_dikme_derinlik": 240,
     "etek_tahtasi": 100,  # TS EN 81-20 m.5.4.7.2 a — en az 0,10 m
     #  Kuyu tavanının en alt kısmı ( kiriş vb. ) döşeme altından — hesap
     #  programının "kuyu tavanı payı" ( 150 ) ile aynı kabul.

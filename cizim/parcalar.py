@@ -195,14 +195,15 @@ def makarali_paten_bicimi(uc, eksen, k, yon, yatay=True):
 #  ucunu geçer.  KAYNAKLAR:  LiftDesigner K431 planı ( C dikme, kanatlar raya,
 #  paten içinde ) · referans projenin yatay kesiti ( patenin arkasında levha,
 #  50'lik iki C kirişin uçları patenin iki yanından dilin ucunu ~24 geçer;
-#  dış ölçü 300 = sabitlerin sase_dikme_derinlik'i ) · Has Asansör şase
-#  kılavuzu Şekil 1 ( iki kiriş, paten aralarında, rayın ucunda ).
+#  dış ölçü 300 ) · Has Asansör şase kılavuzu Şekil 1 ( iki kiriş, paten
+#  aralarında, rayın ucunda ).  Dış ölçü sabitlerin sase_dikme_derinlik'i
+#  ( ofisin LiftDesigner şasesi 240 ).
 #  Sac kalınlığı ( sase_dikme − paten_en / 2 = 5 ) ÇİZİM KABULÜ;  kesilen ince
 #  çelik kesit dolu çizilir ( ISO 128-50 ).
 
 
 #  Şasenin kirişleri ( ve yan kesitte dikmenin iki profili ) ray ekseninin iki
-#  yanında iki C profil:  dışları arası sabitlerin sase_dikme_derinlik'i ( 300 ),
+#  yanında iki C profil:  dışları arası sabitlerin sase_dikme_derinlik'i ( 240 ),
 #  her profil planda 50 — referans projenin yatay kesiti ve kesitleri ( 50 + 200
 #  + 50 ).  LiftDesigner ( 4815-6 kuyu tepesi kesiti, 1/20 ):  40 + 160 + 40.
 SASE_PROFIL_ENI = 50.0
