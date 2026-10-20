@@ -188,20 +188,30 @@ def _bakim_yeri(mk, engeller, oda, TB=None):
     """Makinenin başında 0,50 × 0,60 bakım alanı ( m.5.2.6.3.2.1 b ):  makinenin
     ( kaidenin ) dört yanından birine, engellere basmadan, makineye en yakın;
     yoksa None.  Kot farkı varsa tabliyenin üstünde ( makineyle aynı kotta )."""
-    adaylar = []
     mc = ((mk[0] + mk[2]) / 2.0, (mk[1] + mk[3]) / 2.0)
     #  Adaylar makinenin en çok alanın uzun kenarı kadar çevresindedir
     r = max(BAKIM_ALANI)
     cevre = (mk[0] - r, mk[1] - r, mk[2] + r, mk[3] + r)
     engeller = [x for x in engeller if ortusur(x, cevre)]
-    for w, h in (BAKIM_ALANI, BAKIM_ALANI[::-1]):
-        for kutu in _bitisik_adaylar(mk, w, h):
-            if TB and TB["yukseklik"] > 1e-9 and not icinde(kutu, TB["izi"]):
-                continue
-            if icinde(kutu, oda) and not any(ortusur(kutu, x) for x in engeller):
-                c = ((kutu[0] + kutu[2]) / 2.0, (kutu[1] + kutu[3]) / 2.0)
-                adaylar.append((abs(c[0] - mc[0]) + abs(c[1] - mc[1]), kutu))
-    return min(adaylar)[1] if adaylar else None
+
+    def uzaklik(kutu):
+        c = ((kutu[0] + kutu[2]) / 2.0, (kutu[1] + kutu[3]) / 2.0)
+        return abs(c[0] - mc[0]) + abs(c[1] - mc[1])
+
+    #  YAKINDAN UZAĞA, İLK UYAN ( 20 Eki ):  bütün adayları sınayıp en yakını
+    #  seçmekle aynı sonuç ( eşitlikte kutunun kendisi — eski min() gibi ),
+    #  sınama çoğunlukla ilk birkaç adayda biter.  Eskiden kaide araması
+    #  başına ~320 aday × engeller sınanıyordu:  çare bulucunun makine daireli
+    #  bir sınamasının üçte ikisi buydu.
+    for kutu in sorted(
+        (k for w, h in (BAKIM_ALANI, BAKIM_ALANI[::-1]) for k in _bitisik_adaylar(mk, w, h)),
+        key=lambda k: (uzaklik(k), k),
+    ):
+        if TB and TB["yukseklik"] > 1e-9 and not icinde(kutu, TB["izi"]):
+            continue
+        if icinde(kutu, oda) and not any(ortusur(kutu, x) for x in engeller):
+            return kutu
+    return None
 
 
 def _girdi_hatalari(g, md, a):
@@ -637,7 +647,7 @@ class _KaideAramasi:
         olsaydı tabliye genişliğinde bir kaide küçük adaylardan önce
         seçilebiliyordu."""
         iz_, kaydirilan = self.TB["izi"], []
-        for pu, pe, tu, te in self._adaylar():
+        for sira, (pu, pe, tu, te) in enumerate(self._adaylar()):
             c, boy = self._kutu(pu, pe, tu, te)
             t = self._izi(c)
             dx = max(0.0, iz_[0] - t[0]) - max(0.0, t[2] - iz_[2])
@@ -653,14 +663,21 @@ class _KaideAramasi:
                 or self._deliklere_basar(c)
             ):
                 continue
-            al_ = self.alanlar(c)
-            kaydirilan.append(
-                (al_ is None, -te, (c[2] - c[0]) * (c[3] - c[1]), abs(dx) + abs(dy), c, boy, al_)
-            )
+            kaydirilan.append((-te, (c[2] - c[0]) * (c[3] - c[1]), abs(dx) + abs(dy), sira, c, boy))
         if not kaydirilan:
             return None, None
-        _, _, _, _, c, boy, alanlar = min(kaydirilan, key=lambda k_: k_[:4])
-        return (c, boy, False), alanlar
+        #  SIRAYLA, İLK UYAN ( 20 Eki ):  ölçüt ( alanlar var mı , ortalılık , alan ,
+        #  kayma ) — alanlara yer bırakan aday her zaman öndedir;  adaylar kalan
+        #  ölçüte göre sıralanıp alanları olan İLK aday alınır ( hepsinin alanlarını
+        #  arayıp en küçüğü seçmekle aynı sonuç;  eşitlikte önce denenen — sira ).
+        #  Hiçbiri yer bırakmıyorsa en öndeki, alansız.
+        kaydirilan.sort(key=lambda k_: k_[:4])
+        for *_, c, boy in kaydirilan:
+            alanlar = self.alanlar(c)
+            if alanlar:
+                return (c, boy, False), alanlar
+        c, boy = kaydirilan[0][4:]
+        return (c, boy, False), None
 
 
 def _makine_plakasi(g, M, S, dz, kaide, cerceve, makine_izi, saptirma, uk, y_, n, dh, p, demet, hata):
