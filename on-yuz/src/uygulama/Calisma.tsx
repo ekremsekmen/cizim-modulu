@@ -26,6 +26,7 @@ import {
   type CareOnerisi,
   type CareYanit,
   type CizimSorunu,
+  type CokluYanit,
   type OncekiGirdi,
   type UygulamaIstegi,
 } from "@/lib/api";
@@ -105,10 +106,16 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   const a = Math.min(asansor, proje.asansorler.length - 1);
 
   const s = useSunucu(sema, proje, ofis, a, gorunum === "cizim");
-  const sonuc = s.sonHesap?.asansorler?.[a];
+  //  SIRAYI KAYDIRAN KALDIRMADAN SONRA ( 21 Eki ):  son hesap eski dizilişindir —
+  //  sonuç asansöre sırasıyla eşlendiği için kaldırılan asansörün hükümleri
+  //  ( ve sekme noktaları ) kalanınkinde görünüyordu.  Yeni hesap gelene kadar
+  //  gösterilmez;  sondan kaldırma sırayı bozmaz, geri alma eski dizilişi döndürür.
+  const [kaymis, setKaymis] = useState<CokluYanit>();
+  const sonHesap = s.sonHesap !== kaymis ? s.sonHesap : undefined;
+  const sonuc = sonHesap?.asansorler?.[a];
   const bolumler: Bolum[] = useMemo(
-    () => [...(sonuc?.bolumler ?? []), ...(s.sonHesap?.proje_geneli ?? [])],
-    [sonuc, s.sonHesap],
+    () => [...(sonuc?.bolumler ?? []), ...(sonHesap?.proje_geneli ?? [])],
+    [sonuc, sonHesap],
   );
 
   const grupHatasi = useMemo(() => {
@@ -120,7 +127,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
 
   //  Açılış listesindeki durum ( son başarılı hesabın özeti )
   useEffect(() => {
-    const d = s.sonHesap;
+    const d = sonHesap;
     if (!d) return;
     const son = {
       adet: proje.asansorler.length,
@@ -128,7 +135,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
       uygunDegil: (d.asansorler ?? []).reduce((t, x) => t + x.bolumler.filter((b) => b.sonuc?.uygun === false).length, 0),
     };
     if (JSON.stringify(son) !== JSON.stringify(proje.son)) guncelle((p) => ({ ...p, son }));
-  }, [s.sonHesap, s.hesapEski, proje.asansorler.length, proje.son, guncelle]);
+  }, [sonHesap, s.hesapEski, proje.asansorler.length, proje.son, guncelle]);
 
   const yaz = useCallback(
     (anahtar: string, deger: string) => {
@@ -181,7 +188,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     setSorunOdak((o) => ({ sorun: m, n: (o?.n ?? 0) + 1 }));
   };
 
-  const asansorHukmu = (i: number) => s.sonHesap?.ozet?.asansorler?.[i]?.tumu_uygun;
+  const asansorHukmu = (i: number) => sonHesap?.ozet?.asansorler?.[i]?.tumu_uygun;
   const asansorAdi = (i: number) => proje.asansorler[i]?.asansor_adi?.trim() || `Asansör ${i + 1}`;
 
   const ekle = () => {
@@ -197,6 +204,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     setOlcu(null);
   };
   const kaldir = (i: number) => {
+    if (i < proje.asansorler.length - 1) setKaymis(s.sonHesap);
     kaldirildi(`"${asansorAdi(i)}" kaldırıldı.`, asansorKaldir(proje, i));
     //  Sağdaki sekme kaldırılınca aynı asansörde kalınır;  kendisi kaldırılınca soldakine geçilir
     if (i < a || (i === a && a > 0)) setAsansor(a - 1);
@@ -326,6 +334,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
               guncelle((p) => ({ ...p, asansorler: geriAl.asansorler }));
               setAsansor(geriAl.aktif);
               setGeriAl(null);
+              setKaymis(undefined);
             }}
           >
             <Undo2 /> Geri al
@@ -461,7 +470,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
         degisti={setTeslimAcik}
         sema={sema}
         proje={proje}
-        hesap={s.sonHesap}
+        hesap={sonHesap}
         istek={s.istek}
         engel={
           s.hatalar.length

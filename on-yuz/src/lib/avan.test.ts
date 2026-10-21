@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AvanKoprusu, Secenekler } from "./api";
-import { avanDosyaGovdesi, avanDosyasiMi, avanOku, BOS_AVAN, trafikFarki, type AvanProjesi } from "./avan";
+import { avanDosyaGovdesi, avanDosyasiMi, avanOku, BOS_AVAN, manuelKMetni, trafikFarki, yeniAvanAcilisi, type AvanProjesi } from "./avan";
 
 /*  Seçenekler /api/secenekler'in bu testin kullandığı alt kümesidir;  listeler
     sunucununkiyle aynı ( 18 Eki ), sabit şeması birkaç sabite kısaltıldı.  */
@@ -195,5 +195,42 @@ describe("avan dosyası — eski arayüzün biçimi", () => {
     expect(avanDosyasiMi({ c_N: "5" })).toBe(true);
     expect(avanDosyasiMi({ __mod: "uygulama", m_adet: "1" })).toBe(false);
     expect(avanDosyasiMi(BOS_AVAN)).toBe(false);
+  });
+});
+
+describe("manuel k kutusunun metni", () => {
+  //  Sunucunun Tablo-10'undan ( motor/avan/tablolar.TABLO_10 — k_tipi )
+  const sec = {
+    tablo_10: {
+      Konut: { k_tipi: "Konut" },
+      "Kamu Binaları": { k_tipi: "İş Merkezi" },
+      "Karma Binalar (İşyeri ve Konut)": { k_tipi: null },
+      "Poliklinik Binaları ve Yaşlı Bakım Ev.": { k_tipi: null },
+    },
+  };
+  it("Kamu'da manuel k İş Merkezi oranının önüne geçer", () => {
+    expect(manuelKMetni("Kamu Binaları", sec)).toEqual({
+      ipucu: "0 – 1;  boşsa İş Merkezi oranı ( Kamu binaları Tablo-9'da yok )",
+      yer: "İş Merkezi",
+    });
+  });
+  it("Tablo-9'da olmayan tipte zorunlu", () => {
+    for (const b of ["Karma Binalar (İşyeri ve Konut)", "Poliklinik Binaları ve Yaşlı Bakım Ev."])
+      expect(manuelKMetni(b, sec).yer).toBe("girin");
+  });
+  it("Tablo-9'u olan tipte girilemez;  tip seçilmeden yalnız aralık", () => {
+    expect(manuelKMetni("Konut", sec).ipucu).toContain("girilemez");
+    expect(manuelKMetni("", sec)).toEqual({ ipucu: "0 – 1", yer: "" });
+  });
+});
+
+describe("yeni avan projesi", () => {
+  it("açık proje geri alınabilir;  boş projede bildirim yok", () => {
+    const acik: AvanProjesi = { ...BOS_AVAN, kapak: { project_title: "Eski avan" } };
+    const a = yeniAvanAcilisi(acik);
+    expect(a?.proje).toEqual(BOS_AVAN);
+    expect(a?.onceki).toEqual(acik);
+    expect(a?.bildirim).toContain("Geri al");
+    expect(yeniAvanAcilisi(BOS_AVAN)).toBeNull();
   });
 });

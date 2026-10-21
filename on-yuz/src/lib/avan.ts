@@ -493,3 +493,30 @@ export function trafikFarki(dosyaAvani: { P: string; V: string }[], kopru: AvanK
     l.map((x) => `${x.P} kişi · ${String(x.V).replace(".", ",")} m/s`).join(" + ");
   return `Dosyada avan ${yaz(dosyaAvani)} idi;  trafik hesabı ${yaz(ka)} veriyor — avan trafiğe göre hesaplanıyor.`;
 }
+
+/**  MANUEL k KUTUSUNUN METNİ — bina tipine göre ( sunucu:  motor/avan/trafik._k_degeri ).
+     Eskiden her tipte "yalnız Tablo-9'da olmayan bina tiplerinde · Tablo-9" yazıyordu:
+     Kamu'da manuel k Tablo-9'un ( İş Merkezi ) önüne geçer;  Karma ve Poliklinik'te
+     boş bırakılamaz;  öbürlerinde girilemez ( 21 Eki ).  */
+export function manuelKMetni(binaTipi: string, sec: Pick<Secenekler, "tablo_10">): { ipucu: string; yer: string } {
+  const satir = binaTipi ? sec.tablo_10?.[binaTipi] : undefined;
+  if (!satir) return { ipucu: "0 – 1", yer: "" };
+  if (binaTipi.startsWith("Kamu"))
+    return { ipucu: "0 – 1;  boşsa İş Merkezi oranı ( Kamu binaları Tablo-9'da yok )", yer: "İş Merkezi" };
+  if (satir.k_tipi === null) return { ipucu: "0 – 1;  bu bina tipi Tablo-9'da yok — girilmeli", yer: "girin" };
+  return { ipucu: "Bu bina tipinde k Tablo-9'dan okunur — manuel k girilemez", yer: "Tablo-9" };
+}
+
+/**  YENİ AVAN PROJESİ:  açık proje "Geri al" için önceki olarak tutulur;  boşsa
+     geri alınacak bir şey yok, bildirim de yok.  Avan ekranının "Yeni" düğmesi ve
+     açılıştaki "Avan proje" kartı aynı yoldan ( 21 Eki — kart açık projeyi açıyordu ).  */
+export function yeniAvanAcilisi(onceki: AvanProjesi): Acilis | null {
+  if (JSON.stringify(onceki) === JSON.stringify(BOS_AVAN)) return null;
+  return {
+    proje: BOS_AVAN,
+    bildirim:
+      "Yeni avan projesi başlatıldı.  Önceki proje bu bildirimi kapatana kadar “Geri al” ile döner;  kalıcı saklamak için dosyaya kaydedin.",
+    dosyaAvani: [],
+    onceki,
+  };
+}

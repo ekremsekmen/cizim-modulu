@@ -1369,7 +1369,7 @@ def hesapla_coklu(g: dict) -> dict:
     }
     asansorler = []
     for i, a in enumerate(girisler, 1):
-        asansor, a_hata = _coklu_asansor(i, a, ortak, U)
+        asansor, a_hata = _coklu_asansor(_sira(a, i), a, ortak, U)
         hata = hata or a_hata
         asansorler.append(asansor)
 
@@ -1484,7 +1484,7 @@ def _coklu_girdi_hatasi(g, bina_tipi, t10, N, h, by, yy):
     if hata:
         return hata
     for i, a in enumerate(g.get("asansorler") or [], 1):
-        hata = _manuel_sure_hatasi(a, on_ek=f"ASANSÖR-{i} — ")
+        hata = _manuel_sure_hatasi(a, on_ek=f"ASANSÖR-{_sira(a, i)} — ")
         if hata:
             return hata
     #  Tablo-9'da değeri olan bir bina tipinde manuel k SESSİZCE yok
@@ -1503,6 +1503,13 @@ def _coklu_girdi_hatasi(g, bina_tipi, t10, N, h, by, yy):
     if sayi_mi(manuel_V) and manuel_V not in tablolar.GECERLI_HIZLAR:
         return _MANUEL_HIZ_HATASI
     return None
+
+
+def _sira(a, i):
+    """Asansörün numarası:  ekrandaki sütunu ( sira — uç taşır;  kapasitesiz sütun
+    atılınca numaralar kayıyordu ), yoksa listedeki yeri."""
+    s = a.get("sira")
+    return s if isinstance(s, int) and not isinstance(s, bool) and s > 0 else i
 
 
 def _coklu_asansor(i, a, ortak, U):

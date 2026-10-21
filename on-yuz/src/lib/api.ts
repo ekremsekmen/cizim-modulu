@@ -241,6 +241,8 @@ export interface Secenekler {
   aski_oranlari: Record<string, number>;
   kesitler: number[];
   tablo_7: Record<string, number>;
+  /**  Tablo-10:  bina tipinin %k satırı ( k_tipi null:  Tablo-9'da yok, manuel k zorunlu )  */
+  tablo_10?: Record<string, { k_tipi: string | null }>;
   kapak_turetilen: string[];
   ofis_varsayilan: Record<string, Deger>;
   sabit_b: Record<string, Deger>;

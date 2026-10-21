@@ -5,6 +5,7 @@ import { ArrowRight, Building, FileUp, FlaskConical, ChartLine, Ruler } from "lu
 import { BasvuruBaglantilari, Isaret, UstSerit } from "@/components/Kabuk";
 import { Dugme, Rozet } from "@/components/ui";
 import { api } from "@/lib/api";
+import { acilisiYaz, avanProjesiniOku, avanProjesiniYaz, BOS_AVAN, yeniAvanAcilisi } from "@/lib/avan";
 import { projeListesi, useGoreceZaman, useOfisStandardi, type ProjeOzeti } from "@/lib/proje";
 import { useDosyaAc } from "./useDosyaAc";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,11 @@ export function Acilis() {
             />
             <BaslatKarti
               to="/avan/trafik"
+              tikla={() => {
+                //  Yeni proje:  açık olan "Geri al" için tutulur ( avan ekranı okur )
+                acilisiYaz(yeniAvanAcilisi(avanProjesiniOku()));
+                avanProjesiniYaz(BOS_AVAN);
+              }}
               simge={<ChartLine />}
               baslik="Avan proje"
               metin="Trafik hesabı, avan hesapları ve proje kapağı."
@@ -132,6 +138,7 @@ export function Acilis() {
 
 function BaslatKarti({
   to,
+  tikla,
   simge,
   baslik,
   metin,
@@ -140,6 +147,8 @@ function BaslatKarti({
   birincil,
 }: {
   to: string;
+  /**  Gitmeden önce ( avan:  yeni projeyi kur )  */
+  tikla?: () => void;
   simge: React.ReactNode;
   baslik: string;
   metin: string;
@@ -150,6 +159,7 @@ function BaslatKarti({
   return (
     <Link
       to={to}
+      onClick={tikla}
       className={cn(
         "group flex flex-col rounded-buyuk border bg-yuzey p-5 shadow-panel transition-[border-color,box-shadow] hover:shadow-kalkik",
         birincil ? "border-vurgu-cizgi hover:border-vurgu" : "border-cizgi hover:border-cizgi-2",

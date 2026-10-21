@@ -15,12 +15,14 @@ import {
   BOS_AVAN,
   AVAN_SECIM_VARSAYILANI,
   avanDosyaGovdesi,
+  manuelKMetni,
   avanDosyayaKaydet,
   avanDosyasiniAc,
   avanSabitleri,
   sabitDegeri,
   TRAFIK_AZAMI,
   trafikFarki,
+  yeniAvanAcilisi,
   useAvanOfisi,
   useAvanProjesi,
   type Acilis,
@@ -62,7 +64,9 @@ export function AvanCalisma() {
       ek_nufus: p.ekNufus.filter((x) => x.miktar.trim() !== ""),
       //  Taahhütname yalnız tek asansör tipinde ( Tablo-10 şartlı kabul );  gizliyken hesaba girmez
       taahhutname: p.trafikAsansorleri.length === 1 ? (p.trafik.taahhutname ?? "") : "",
-      asansorler: p.trafikAsansorleri.filter((a) => a.P),
+      //  Bütün sütunlar:  kapasitesiz sütunu sunucu atar ama ekrandaki numarasını
+      //  korur — burada atılınca iletiler "ASANSÖR-1" derken ekranda 2. sütundu
+      asansorler: p.trafikAsansorleri,
     }),
     [p.trafik, p.ekNufus, p.trafikAsansorleri],
   );
@@ -129,6 +133,14 @@ export function AvanCalisma() {
     kapak: p.kapak.project_title ? "tamam" : null,
   };
 
+  //  EKRANDAKİ SONUÇLAR CANLI GİRDİNİN Mİ ( 21 Eki ):  paket canlı girdiyi
+  //  gönderir, avan kısmının kapasitesi ve hızı ise ekrandaki trafik sonucundan
+  //  ( kopru ) — trafik yenilenirken basılınca trafik sayfası yeni, avan sayfası
+  //  eski kapasiteyle çıkabiliyordu.  Yenilenme bitene kadar paket inmez.
+  const trafikGuncel = tg === trafikGirdi && !trafik.isFetching && !trafik.isPlaceholderData;
+  const avanGuncel = !kopru || (ag === avanGirdi && !avan.isFetching && !avan.isPlaceholderData);
+  const sonuclarGuncel = trafikGuncel && avanGuncel;
+
   //  Pakete PROJE DOSYASI da girer ( geri dönüş noktası — uygulamanın
   //  Teslim'i gibi );  React'e geçişte düşmüştü ( 20 Eki )
   const paket = useMutation({
@@ -140,6 +152,13 @@ export function AvanCalisma() {
       }),
   });
 
+  //  Avan tek projedir:  yenisi öncekinin yerine geçer, önceki "Geri al" ile döner
+  //  ( açılıştaki kart da aynı yoldan — yeniAvanAcilisi )
+  const yeniAvan = () => {
+    setAcilis(yeniAvanAcilisi(p));
+    setP(BOS_AVAN);
+    git("/avan/trafik", { replace: true });
+  };
   if (!sec.data)
     return (
       <div className="flex h-dvh items-center justify-center gap-2 text-[13px] text-metin-3">
@@ -152,18 +171,6 @@ export function AvanCalisma() {
   const dosyaAc = (o: Acilis) => {
     setAcilis({ ...o, onceki: p });
     setP(o.proje);
-    git("/avan/trafik", { replace: true });
-  };
-  //  Avan tek projedir:  yenisi öncekinin yerine geçer, önceki "Geri al" ile döner
-  const yeniAvan = () => {
-    setAcilis({
-      proje: BOS_AVAN,
-      bildirim:
-        "Yeni avan projesi başlatıldı.  Önceki proje bu bildirimi kapatana kadar “Geri al” ile döner;  kalıcı saklamak için dosyaya kaydedin.",
-      dosyaAvani: [],
-      onceki: p,
-    });
-    setP(BOS_AVAN);
     git("/avan/trafik", { replace: true });
   };
   const fark = acilis ? trafikFarki(acilis.dosyaAvani, kopru) : null;
@@ -228,8 +235,14 @@ export function AvanCalisma() {
               yeni={yeniAvan}
               kaydet={() => avanDosyayaKaydet(p, sec.data!, ofis, kopru)}
             />
-            <Dugme tur="birincil" className="ml-1" onClick={() => paket.mutate()} disabled={paket.isPending}>
-              {paket.isPending ? <Loader2 className="animate-spin" /> : <FileArchive />} Projeyi indir
+            <Dugme
+              tur="birincil"
+              className="ml-1"
+              onClick={() => paket.mutate()}
+              disabled={paket.isPending || !sonuclarGuncel}
+              title={sonuclarGuncel ? undefined : "Hesap güncelleniyor — bitince indirilebilir"}
+            >
+              {paket.isPending || !sonuclarGuncel ? <Loader2 className="animate-spin" /> : <FileArchive />} Projeyi indir
             </Dugme>
           </>
         }
@@ -394,6 +407,7 @@ function TrafikAdimi({
   const ay = (i: number, k: string, d: string) =>
     setP((q) => ({ ...q, trafikAsansorleri: q.trafikAsansorleri.map((a, j) => (j === i ? { ...a, [k]: d } : a)) }));
   const hizli = sec.hizli_etiketleri[t("bina_tipi")] ?? sec.hizli_etiketleri[""];
+  const manuelK = manuelKMetni(t("bina_tipi"), sec);
   //  Etiketi yalnız numaradan ibaretse ( "⑤" ) bu bina tipinde hızlı giriş yoktur
   const hizliVar = hizli.hizli1[0].trim().length > 1;
   const ekYaz = (i: number, d: Partial<EkNufus>) =>
@@ -441,8 +455,8 @@ function TrafikAdimi({
                 secenekler={[{ deger: "_", ad: "Tablo-2" }, ...sec.hizlar.map((x) => ({ deger: String(x), ad: `${sayiYaz(x)} m/s` }))]}
               />
             </Satir>
-            <Satir etiket="Manuel k" id="t-mk" ipucu="0 – 1;  yalnız Tablo-9'da olmayan bina tiplerinde">
-              <Girdi id="t-mk" value={t("manuel_k")} placeholder="Tablo-9" onChange={(e) => yaz("manuel_k", e.target.value)} />
+            <Satir etiket="Manuel k" id="t-mk" ipucu={manuelK.ipucu}>
+              <Girdi id="t-mk" value={t("manuel_k")} placeholder={manuelK.yer} onChange={(e) => yaz("manuel_k", e.target.value)} />
             </Satir>
           </Kume>
           <Kume baslik="Nüfus" alt={hizliVar ? "Hızlı giriş bina tipine göre;  ek kalemler Tablo-1'den" : "Bu bina tipinde hızlı giriş yok — nüfus Tablo-1 kalemlerinden"}>
