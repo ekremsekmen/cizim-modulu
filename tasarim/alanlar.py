@@ -2951,15 +2951,43 @@ def azami(a):
 AZAMI = {a.anahtar: azami(a) for a in ALANLAR if a.tur == "sayi"}
 
 
+def _sayi_secenek(s):
+    return isinstance(s, (int, float)) and not isinstance(s, bool)
+
+
+#  SAYISAL SEÇİMİN TAVANI:  listenin en büyüğü.  21 Eki:  kat kapısı genişliği
+#  seçim alanı olduğu için tavansızdı — hesap 10¹²'yi "geçersiz seçim" diye
+#  reddederken çizim köprüsü aynı değerle planı kurup ( yazı yerleştiricinin
+#  ızgarası ) belleği bitiriyordu.  Hesabın kendi iletisi değişmez:  yalnız
+#  çizim köprüsü bakar ( kopru._Okuyucu.sayi ).
+SECIM_AZAMI = {
+    a.anahtar: max(s for s in a.secenekler if _sayi_secenek(s))
+    for a in ALANLAR
+    if a.tur == "secim" and any(_sayi_secenek(s) for s in a.secenekler or ())
+}
+
+
+def _asim_iletisi(anahtar, ust, d):
+    birim = ALAN[anahtar].birim
+    ust_ = f"{ust:,}".replace(",", ".")  # tavanlar tam sayıdır:  20.000 ( Türkçe binlik )
+    return f"en çok {ust_}{'' if birim == '—' else ' ' + birim} olabilir ( {d:g} girildi )."
+
+
 def azami_asimi(anahtar, d):
     """Tavanı aşan değerin iletisinin gövdesi ( "en çok 20.000 mm olabilir
     ( 1e+12 girildi )" );  aşmıyorsa None."""
     ust = AZAMI.get(anahtar)
     if ust is None or d <= ust:
         return None
-    birim = ALAN[anahtar].birim
-    ust_ = f"{ust:,}".replace(",", ".")  # tavanlar tam sayıdır:  20.000 ( Türkçe binlik )
-    return f"en çok {ust_}{'' if birim == '—' else ' ' + birim} olabilir ( {d:g} girildi )."
+    return _asim_iletisi(anahtar, ust, d)
+
+
+def secim_asimi(anahtar, d):
+    """Sayısal seçim alanında listenin en büyüğünü aşan değerin iletisi;  aşmıyorsa None."""
+    ust = SECIM_AZAMI.get(anahtar)
+    if ust is None or d <= ust:
+        return None
+    return _asim_iletisi(anahtar, ust, d)
 
 
 def _denetle():

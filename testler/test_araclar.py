@@ -7,6 +7,7 @@ import unittest
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from araclar import fiziksel
+from araclar import kesisme
 from araclar import tarama
 from cizim import cizimler
 from cizim import eleman
@@ -66,6 +67,41 @@ def _ornek():
     return {k: (dict(v) if isinstance(v, dict) else v) for k, v in girdi.ORNEK.items()}
 
 
+class Kesisme(unittest.TestCase):
+    """araclar/kesisme.py:  biçimi olan parçada çizilen biçimdir, dikdörtgen yalnız
+    mantık zarfı ( svg._bicim zarfı çizmez ) — 21 Eki:  ağırlık konsolunun
+    görünmeyen zarfı perde yazısına "binen" sayılıyordu ( 4815-6 DBGW 1315,
+    63444-2 kuyu 2455 )."""
+
+    def _yazi(self):
+        return eleman.yazi(138.25, 651.25, "AĞIRLIK PERDESİ", 70.0, aci=90)
+
+    def test_bicimli_parcada_zarf_kenari_sayilmaz(self):
+        plaka = eleman.dikdortgen("KONSOL", 0, 282, 160, 100, ad="plaka")
+        plaka["bicim"] = [{"noktalar": [(0, 292), (40, 292), (40, 1788), (0, 1788)]}]
+        self.assertEqual(kesisme.kesismeler([plaka, self._yazi()]), [])
+        #  Biçimsiz aynı dikdörtgen çizilir:  kenarı yazıdan geçer
+        dz = eleman.dikdortgen("KONSOL", 0, 282, 160, 100, ad="plaka")
+        self.assertEqual([x[2:] for x in kesisme.kesismeler([dz, self._yazi()])], [("KONSOL", "plaka")] * 2)
+
+    def test_duvar_ici_kenar_payiyla(self):
+        """Duvara 1 mm giren yazı kutusu ( kâğıtta 0,05 mm ) duvarın içinde sayılmaz
+        — kenar denetimiyle aynı pay ( 2·k );  gerçekten içindeki sayılır."""
+        duvar = eleman.dikdortgen("TARAMA", -150, 0, 150, 1850, tip="tarama")
+        yazi = eleman.yazi(328, 1698, "HALAT BAĞLANTISI", 70.0)
+        kb = kesisme.yazi_kutusu(yazi)
+        self.assertLess(kb[1], 0.0)  # kutu duvara giriyor ( −1 )
+        self.assertEqual(kesisme.kesismeler([duvar, yazi]), [])
+        yazi["x"] -= 100
+        self.assertIn("TARAMA-İÇİ", [x[2] for x in kesisme.kesismeler([duvar, yazi])])
+
+    def test_bicimin_kenari_sayilir(self):
+        kol = eleman.dikdortgen("KONSOL", 160, 2000, 100, 30, ad="kol")
+        kol["bicim"] = [{"noktalar": [(0, 600), (283, 600), (283, 640), (0, 640)]}]
+        f = kesisme.kesismeler([kol, self._yazi()])
+        self.assertTrue(f and all(x[2:] == ("KONSOL", "kol") for x in f), f)
+
+
 class Fiziksel(unittest.TestCase):
     """araclar/fiziksel.py:  her kural bir hatalı, bir doğru düzenle ( 17 Eki —
     PR #26'nın üç hatası bu kurallarla bulundu )."""
@@ -107,6 +143,18 @@ class Fiziksel(unittest.TestCase):
         #  Altında kapı varsa lentodur
         kapi = eleman.dikdortgen("KAPI", -150, 0, 150, 2300)
         self.assertEqual(fiziksel.sorunlar(g, "kuyu_kesiti_yan", [taban, havada, kapi]), [])
+
+    def test_r3_dar_doseme_duvar_sayilmaz(self):
+        """Kuyunun arkasından 195 mm taşan, 250 kalın oda döşemesi:  dar da olsa
+        döşemedir ( 21 Eki bulanık tarama — 63444-2, kuyu derinliği 2455 ).  Aynı
+        ölçüde adsız düşey beton ise duvardır, altı boştaysa sorun."""
+        g = _ornek()
+        taban = _beton(-150, -1500, 2500, 150)
+        doseme = _beton(2705, 6000, 195, 250)
+        ad = eleman.ad(eleman.dikdortgen("KUYU-DUVAR", 2705, 6000, 195, 250), "oda_dosemesi")
+        self.assertEqual(fiziksel.sorunlar(g, "kuyu_kesiti_yan", [taban, doseme, ad]), [])
+        f = fiziksel.sorunlar(g, "kuyu_kesiti_yan", [taban, doseme])
+        self.assertTrue(any("R3 duvarın altı boşta" in m for m in f), f)
 
     def test_r4_kuyu_planinda_binis(self):
         kabin = eleman.dikdortgen("KABIN", 500, 300, 1000, 1200, ad="kabin")

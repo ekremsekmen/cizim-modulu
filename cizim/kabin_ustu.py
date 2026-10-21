@@ -719,7 +719,18 @@ def _siginma_olculeri(g, Y, e):
             eleman.olcu("dusey", (0, sg[3]), (0, tavan[3]), kot_x, kural=yer),
         ]
 
-    engel = [geometri.sinir([el]) for el in e if el.get("ad") == "sase_kiris"] + list(Y["engeller"])
+    #  Tavanın dışındaki karşı ağırlık da ( blok, çerçeve, paten ):  zincirin
+    #  ucundan taşan yazı arkadaki ağırlığa biniyordu — 21 Eki bulanık tarama,
+    #  dar kuyuda arka ağırlık ( "70" ağırlık patenine )
+    engel = (
+        [geometri.sinir([el]) for el in e if el.get("ad") == "sase_kiris"]
+        + list(Y["engeller"])
+        + [
+            geometri.sinir([el])
+            for el in e
+            if el["tip"] == "dikdortgen" and el["katman"] in ("AGIRLIK", "PATEN")
+        ]
+    )
     yazilar = [geometri.sinir([el]) for el in e if el["tip"] == "yazi"]
 
     def puan(kot_y, kot_x):

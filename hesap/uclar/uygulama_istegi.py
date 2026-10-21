@@ -81,6 +81,18 @@ def uygulanmayan(ham):
     return uygulama_girdisi.uygulanmayan_alanlar(mk_yok)
 
 
+def _secim_hami(ham):
+    """Seçim / metin kutusunun ham değeri:  metin, sayı ya da boş.  Başka tür
+    ( mantıksal, liste, sözlük — yalnız API'den gelir;  form göndermez ) metne
+    çevrilir:  hiçbir seçeneğe uymaz, "geçersiz seçim" iletisiyle reddedilir.
+    21 Eki uç tarama:  True seçenek 1 sanılıyordu ( True == 1 — askı oranı
+    sessizce 1:1, beyan hızında tampon hesabı çöküyordu ), liste / sözlük
+    sözlük anahtarı olunca ( makine tipi ) hesap ve çizim çöküyordu."""
+    if ham is None or (isinstance(ham, (str, int, float)) and not isinstance(ham, bool)):
+        return ham
+    return str(ham)
+
+
 def _girdi_coz(v, veri, atla=frozenset()):
     """Tek asansörün ham alanlarını türlerine çevirir.
 
@@ -113,7 +125,7 @@ def _girdi_coz(v, veri, atla=frozenset()):
         if anahtar in atla:
             g[anahtar] = None
             continue
-        ham = v[anahtar]
+        ham = v[anahtar] if tur3 == "sayi" else _secim_hami(v[anahtar])
         g[anahtar] = _sayi_oku(ham, _et) if tur3 == "sayi" else (ham if str(ham).strip() != "" else None)
     for anahtar, etiket, _b, tur, secenekler, _var in mukavemet_girdi.ALANLAR:
         if tur == "hesap" or anahtar not in v or anahtar not in _FORMDA:
@@ -121,7 +133,7 @@ def _girdi_coz(v, veri, atla=frozenset()):
         if anahtar in atla:
             g[anahtar] = None
             continue
-        ham = v[anahtar]
+        ham = v[anahtar] if tur == "sayi" else _secim_hami(v[anahtar])
         if secenekler is None:
             #  Serbest sayı:  okunamayan yazım boş SAYILMAZ, sebebiyle
             #  reddedilir ( boş kabin kütlesi gibi tablodan doldurulan bir

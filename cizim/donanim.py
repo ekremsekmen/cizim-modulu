@@ -217,14 +217,20 @@ def _kuyu_ustundeki_makine(g, S, tavan, M, kabin_raylari, agirlik_raylari):
     gx0, gy0, gx1, gy1 = KU["govde"]
     mx, my = (kx0 + kx1) / 2.0, (gy0 + gy1) / 2.0
     zk = zs + S["makine_en"] / 2.0  # kasnak merkezi
-    kapak = (
-        mx - S["makine_kapak_en"] / 2.0,
-        my - S["makine_kapak_boy"] / 2.0,
-        mx + S["makine_kapak_en"] / 2.0,
-        my + S["makine_kapak_boy"] / 2.0,
-        zs + S["makine_en"],
-        z_ust,
-    )
+    #  Kapak ( klemens kutusu ) gövdenin üstünde:  kasnağın düzlem boyundaki
+    #  ortası, gövdenin düzleme dik ortası ( makine dairesindeki gibi kanonik ).
+    #  21 Eki:  x / y sabitti — arkadaki ağırlıkta kasnak ekseni x olunca kapak
+    #  gövdenin değil kasnağın üstüne düşüyor, B-B'de havada duruyordu.
+    d = KU.get("duzlem") or kuyu_ustu.Duzlem("x", 0.0)
+    ku0, _, ku1, _ = d.kanonik(KU["kasnak"])
+    _, gv0, _, gv1 = d.kanonik(KU["govde"])
+    ku, gv = (ku0 + ku1) / 2.0, (gv0 + gv1) / 2.0
+    kapak = d.kutu(
+        ku - S["makine_kapak_en"] / 2.0,
+        ku + S["makine_kapak_en"] / 2.0,
+        gv - S["makine_kapak_boy"] / 2.0,
+        gv + S["makine_kapak_boy"] / 2.0,
+    ) + (zs + S["makine_en"], z_ust)
     M.update(
         {
             "makine": _makine_parcalari(g, KU, zk, kapak),
@@ -401,8 +407,11 @@ def _makine_dairesi(g, S, tavan, M):
             "regulator_y": KU["rgy"],
         }
     )
+    #  Kapının zemini:  izi tabliyedeyse tabliyenin üstü, değilse oda zemini
+    #  ( kuyu_kesiti.yan_kesit'in çizdiği gibi )
+    zkapi = zd if makine_dairesi.icinde(MD["kapi"], TB["izi"]) else zo
     return hata + _oda_yukseklikleri(
-        md, TB, zd, ztv, M["kasnak"][4] + g["makine"]["tahrik_kasnak_capi"] / 2.0
+        md, TB, zd, ztv, M["kasnak"][4] + g["makine"]["tahrik_kasnak_capi"] / 2.0, zkapi
     )
 
 
@@ -440,9 +449,10 @@ def _kaide_ve_saptirma(MD, md, S, d, zd, zs, zk):
     return kaide_parcalari, sarim, yol, dusus_z
 
 
-def _oda_yukseklikleri(md, TB, zd, ztv, kasnak_ustu):
+def _oda_yukseklikleri(md, TB, zd, ztv, kasnak_ustu, zkapi):
     """Makine dairesinin temiz yüksekliği, tabliyenin ve tahrik kasnağının
-    üstündeki boşluk, kapısının yüksekliği ( TS EN 81-20 m.5.2.6.3.2 · m.5.2.3.2 )."""
+    üstündeki boşluk, kapısının yüksekliği ( TS EN 81-20 m.5.2.6.3.2 · m.5.2.3.2 )
+    ve kapının zemininden ( zkapi ) tavana sığması."""
     hata = []
     if md["yukseklik"] < ODA_YUKSEKLIK - 1e-9:
         hata.append(
@@ -463,6 +473,19 @@ def _oda_yukseklikleri(md, TB, zd, ztv, kasnak_ustu):
     if md["kapi_yukseklik"] < ODA_KAPI_YUKSEKLIK - 1e-9:
         hata.append(
             f"Makine dairesi kapısı {md['kapi_yukseklik']:g} mm yüksek < {ODA_KAPI_YUKSEKLIK:g} mm ( TS EN 81-20 m.5.2.3.2 a )."
+        )
+    elif zkapi + md["kapi_yukseklik"] > ztv + 1e-9:
+        #  21 Eki bulanık tarama:  tabliyedeki kapı ( 1.500 + 2.425 ) oda tavanını
+        #  ( 3.700 ) aşıyor, kesitte çatının betonuna giriyordu
+        hata.append(
+            sorun.Sorun(
+                f"Makine dairesi kapısı ( {md['kapi_yukseklik']:g} mm ) tavana sığmıyor:  kapının "
+                f"durduğu zeminden ( {'tabliyenin üstünden' if zkapi > ztv - md['yukseklik'] + 1e-9 else 'oda zemininden'} ) "
+                f"tavana {ztv - zkapi:g} mm var — kapıyı alçaltın ya da makine dairesini yükseltin.",
+                ("oda_kapisi",),
+                "kuyu_kesiti_yan",
+                fark=(ztv - zkapi) - md["kapi_yukseklik"],
+            )
         )
     return hata
 

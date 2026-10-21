@@ -102,6 +102,11 @@ def _yuvarla(k):
     return tuple(round(v) for v in k)
 
 
+def _doseme_mi(ad):
+    """Kesitte yatay beton parçası mı ( kat döşemesi, tabliye, oda döşemesi / çatısı )."""
+    return bool(ad) and (ad.endswith("dosemesi") or ad in ("tabliye", "oda_catisi"))
+
+
 def _altinda(b, k):
     """b'nin üstü k'nin altına değiyor ve yatayda örtüşüyor mu."""
     return abs(b[3] - k[1]) < 1.0 and min(b[2], k[2]) - max(b[0], k[0]) > 1.0
@@ -126,8 +131,15 @@ def sorunlar(g, c, e):
             if a > ESIK:
                 out.append(f"{c}: R2 kuyu boşluğunda beton  {_yuvarla(k)}  ( {a:.0f} mm² )")
         kapilar = [kutu(el) for el in e if el["katman"] == "KAPI" and el["tip"] == "dikdortgen"]
+        #  Adı döşeme olan beton dar da olsa yataydır:  kuyunun arkasından 195 mm
+        #  taşan oda döşemesi ( 250 kalın ) duvar sanılıyordu ( 21 Eki )
+        doseme = {
+            _yuvarla(kutu(el))
+            for el in e
+            if el["tip"] == "dikdortgen" and el["katman"] == "KUYU-DUVAR" and _doseme_mi(el.get("ad"))
+        }
         for k in beton:
-            if k[3] - k[1] <= k[2] - k[0] or abs(k[1] - dip) < 1.0:
+            if k[3] - k[1] <= k[2] - k[0] or abs(k[1] - dip) < 1.0 or _yuvarla(k) in doseme:
                 continue  # yatay beton ( döşeme ) ya da kuyunun tabanı
             if any(_altinda(b, k) for b in beton if b is not k):
                 continue

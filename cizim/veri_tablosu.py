@@ -48,7 +48,9 @@ def satirlar(g):
     r = []
 
     def ekle(ad, *degerler):
-        dolu = [d for d in degerler if d]
+        #  str:  geçersiz bir seçim sayı olarak gelebilir ( kat kapısı tipi −1 — API;
+        #  hesap reddeder, çizim sorunlu kurulur ) — 21 Eki:  tablo çöküyordu
+        dolu = [str(d) for d in degerler if d]
         if dolu:
             r.append((ad, "  ·  ".join(dolu)))
 

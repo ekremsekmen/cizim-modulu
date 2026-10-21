@@ -1833,6 +1833,22 @@ def _etiket_yeri(kb, maske, k, cakisir, parca_kutulari, adimlar):
         ),
         None,
     )
+    if yer is None:
+        #  Uzakta hiçbir parçanın içinde olmayan yer de yoksa ( kuyunun iç kutusu
+        #  da parça sayılır:  kuyu üstünde makinenin yanındaki HALAT BAĞLANTISI
+        #  kuyunun dışına, duvarın ötesine atılıyordu;  duvar 370 mm'yi geçince
+        #  orası da duvara değdi, yazı makinenin üstünde kaldı — 21 Eki, BAR
+        #  2515 ):  yakın aramanın kuralıyla ( eskisinden daha çok parçanın içine
+        #  girmeyen ) en yakın temiz yer — yerinde kalıp çizgilere binmektense.
+        yer = next(
+            (
+                (dx, dy)
+                for dx, dy in uzak
+                if not cakisir(kayik(dx, dy))
+                and sum(1 for q in parca_kutulari if _ust(kayik(dx, dy), q, 0.0)) <= eski_parca
+            ),
+            None,
+        )
     return None if yer is None else yer + (True,)
 
 

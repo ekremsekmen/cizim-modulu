@@ -1108,45 +1108,45 @@ def _makine_ve_donanim(Y, md, G):
     return e
 
 
+def _oda_kuyu_zinciri(yon, kuyu, oda, ic, dis, kuyu_kodu, oda_kodu):
+    """Kuyunun ve odanın eni ( boyu ):  iç sırada sınırlar arası zincir, dış
+    sırada odanın tümü — oda kuyunun İÇİNDEYSE ( kuyudan dar ) zincirin ortası
+    odanın ölçüsüdür ( kimlikli ), dış sıra kuyunun tümü.  21 Eki bulanık
+    tarama:  oda kuyudan dar olunca zincirin kimliksiz ortası dış sıradaki odanın
+    ölçüsüyle aynı aralıktı, tekrar ayıklayıcı ( geometri.tekrarlari_at ) onu
+    silip zinciri koparıyordu ( yalnız iki uçtaki taşma payları kalıyordu )."""
+
+    def olcu(a, b, kot, kod=None):
+        p, q = ((a, 0), (b, 0)) if yon == "yatay" else ((0, a), (0, b))
+        if kod is None:
+            return eleman.olcu(yon, p, q, kot)
+        return eleman.olcu(yon, p, q, kot, kisaltmalar.kodlu(kod[0], b - a), ad=kod[1])
+
+    sinirlar = sorted({oda[0], oda[1], 0.0, kuyu})
+    icinde = 0.0 <= oda[0] and oda[1] <= kuyu and (oda[0], oda[1]) != (0.0, kuyu)
+    e = []
+    for a, b in zip(sinirlar, sinirlar[1:]):
+        if (a, b) == (0.0, kuyu):
+            e.append(olcu(a, b, ic, kuyu_kodu))
+        elif icinde and (a, b) == oda:
+            e.append(olcu(a, b, ic, oda_kodu))
+        else:
+            e.append(olcu(a, b, ic))
+    e.append(olcu(0.0, kuyu, dis, kuyu_kodu) if icinde else olcu(oda[0], oda[1], dis, oda_kodu))
+    return e
+
+
 def _olculer(Y, md, G, D):
     """Oda ve odanın kuyuya göre yeri;  çalışma ve bakım alanlarının ölçüleri
     ( standardın sayıları )."""
     oda, t = Y["oda"], md["duvar"]
     u0, u1 = oda[3] + t + 120, oda[3] + t + 120 + geometri.SIRA_ARASI
-    xs = sorted({oda[0], oda[2], 0.0, G})
-    e = [
-        eleman.olcu("yatay", (a_, 0), (b_, 0), u0, kisaltmalar.kodlu("SW", G), ad="kuyu_genisligi")
-        if (a_, b_) == (0.0, G)
-        else eleman.olcu("yatay", (a_, 0), (b_, 0), u0)
-        for a_, b_ in zip(xs, xs[1:])
-    ]
-    e.append(
-        eleman.olcu(
-            "yatay",
-            (oda[0], 0),
-            (oda[2], 0),
-            u1,
-            kisaltmalar.kodlu("MRW", oda[2] - oda[0]),
-            ad="oda_genisligi",
-        )
-    )
     s0, s1 = oda[2] + t + 120, oda[2] + t + 120 + geometri.SIRA_ARASI
-    ys = sorted({oda[1], oda[3], 0.0, D})
-    e += [
-        eleman.olcu("dusey", (0, a_), (0, b_), s0, kisaltmalar.kodlu("SD", D), ad="kuyu_derinligi")
-        if (a_, b_) == (0.0, D)
-        else eleman.olcu("dusey", (0, a_), (0, b_), s0)
-        for a_, b_ in zip(ys, ys[1:])
-    ]
-    e.append(
-        eleman.olcu(
-            "dusey",
-            (0, oda[1]),
-            (0, oda[3]),
-            s1,
-            kisaltmalar.kodlu("MRD", oda[3] - oda[1]),
-            ad="oda_derinligi",
-        )
+    e = _oda_kuyu_zinciri(
+        "yatay", G, (oda[0], oda[2]), u0, u1, ("SW", "kuyu_genisligi"), ("MRW", "oda_genisligi")
+    )
+    e += _oda_kuyu_zinciri(
+        "dusey", D, (oda[1], oda[3]), s0, s1, ("SD", "kuyu_derinligi"), ("MRD", "oda_derinligi")
     )
     for alan, kural in (
         (
