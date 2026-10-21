@@ -62,7 +62,8 @@ DIP_EN_ALT = 500.0  # m.5.2.5.8.2 a
 DIP_ETEK = 100.0  # m.5.2.5.8.2 a 1)
 DIP_RAYA_YAKIN = 100.0  # m.5.2.5.8.2 a 2) · Şekil 7  ( XH ≤ 0,15 m )
 UST_PATEN = 100.0  # m.5.2.5.7.2 b
-UST_DONANIM = 500.0  # m.5.2.5.7.2 a  kabin tavanına bağlı donanım ( kabin üstü kasnaklar )
+UST_DONANIM = 500.0  # m.5.2.5.7.2 a  kabin tavanına bağlı donanım ( revizyon kutusu, kabin üstü kasnaklar )
+DIP_SABIT = 300.0  # m.5.2.5.8.2 b  kuyuya sabit parça ( regülatör gergisi ) – kabinin en alt kısmı
 UST_KORKULUK = 300.0  # m.5.2.5.7.2 c 1)  kabin izdüşümünde
 UST_KORKULUK_DIS = 100.0  # m.5.2.5.7.2 c 1)  korkuluğun dışında
 YATAY_UZAKLIK = 400.0  # m.5.2.5.7.2 b / c 1)  "0,40 m yatay uzaklık içinde"
@@ -191,6 +192,7 @@ def yerlesim(g, cizim_sabitleri=None):
         if not surdur or "raylar" not in M:
             return {"hata": hata + M["hata"]}
         hata += M["hata"]
+    _regulator_acikligi(KD, KU, M, dip)
     ust = _kuyu_ustu_acikliklari(g, S, dy, KD, KU, M, H)
     AK, AKd = _agirlik_uc_konumlari(g, S, dy, KD, M, H, dip["taban"], ust["ust_aciklik"], hata)
     #  Açıklık dışındaki fiziksel hatalar ( kuyu dibi zinciri, ağırlığın
@@ -388,6 +390,38 @@ def _kuyu_dibi_acikliklari(g, S, dy, KD, hata):
     }
 
 
+def _regulator_acikligi(KD, KU, M, dip):
+    """KUYUYA SABİT PARÇA ( regülatör gergisi ) kabinin izdüşümündeyse, tam
+    ezilmiş tamponundaki kabinin üstündeki en alt kısmıyla arası en az 0,30 m
+    ( m.5.2.5.8.2 b ).  Kollu gerginin parçaları ayrı ayrı:  kasnak koruma
+    kapağıyla, kol, ağırlık ( askısıyla ), plaka, kontak — en kısası.  Eskiden
+    yalnız bölüm 11 ölçüyordu ( 21 Eki ).  İzdüşümde değilse açıklık yoktur."""
+    gr, gd = M["gergi"], KD["gergi_donanim"]
+    gp, Rk = gr["plan"], gr["geo"]["kapak_r"]
+    gy = (gp[1] + gp[3]) / 2.0
+    gergi = [((gp[0], gy - Rk, gp[2], gy + Rk), gr["merkez"] + Rk, "gergi kasnağının koruma kapağı")] + [
+        (gd[ad], gr[ad][3], adi)
+        for ad, adi in (
+            ("kol", "gergi kolu"),
+            ("agirlik", "gergi ağırlığı"),
+            ("plaka", "gergi plakası"),
+            ("kontak", "gergi kontağı"),
+        )
+    ]
+    aralar = []
+    for kutu, tepe, adi in gergi:
+        if ortusur(kutu, KU["tavan"]):
+            z, ad = hareketli.ustundeki_en_alt(
+                dip["dip_parcalar"], kutu, (dip["dip"]["taban_alti"], hareketli.KABIN)
+            )
+            aralar.append((z - tepe, adi, ad))
+    if aralar:
+        ara, adi, ad = min(aralar)
+        dip["dip_aciklik"]["regulator"] = (ara, DIP_SABIT, "m.5.2.5.8.2 b")
+        dip["dip_engel"]["regulator"] = ad
+        dip["dip_engel"]["regulator_parcasi"] = adi
+
+
 def _genislet(k, d):
     return (k[0] - d, k[1] - d, k[2] + d, k[3] + d)
 
@@ -422,6 +456,16 @@ def _kuyu_ustu_acikliklari(g, S, dy, KD, KU, M, H):
             SIGINMA_UST_YUKSEKLIK[g["kabin_ustu"]["siginma_tipi"]],
             "m.5.2.5.7.1 · Çizelge 3",
         )
+    #  REVİZYON KUTUSU ( kabin üstündeki en yüksek donanım;  çizilmez — karar 10 ):
+    #  kabin tavanından revizyon_payi yukarıda, kabinin izdüşümündeki en alt tavan
+    #  parçasıyla arası en az 0,50 m ( m.5.2.5.7.2 a ).  Eskiden yalnız bölüm 11
+    #  ölçüyordu:  çizim "uygun" derken hesap kalabiliyordu ( 21 Eki ).
+    ust_engel["revizyon"] = rv_engel = engel(KU["tavan"])
+    ust_aciklik["revizyon"] = (
+        rv_engel[0] - (ust["tavan"] + S["revizyon_payi"]),
+        UST_DONANIM,
+        "m.5.2.5.7.2 a",
+    )
     ust_engel.update(paten=pt_engel, ray=(ray_ustu, "ray"))
     ust_aciklik.update(
         paten=(pt_engel[0] - ust["ust_paten"], UST_PATEN, "m.5.2.5.7.2 b"),
@@ -555,6 +599,8 @@ def _agirlik_uc_konumlari(g, S, dy, KD, M, H, taban, ust_aciklik, hata):
 
 AD = {
     "siginma": "Sığınma yüksekliği",
+    "regulator": "Regülatör gergisi – kabinin en alt kısmı",
+    "revizyon": "Revizyon kutusu – kuyu tavanı",
     "en_alt": "Kuyu tabanı – kabinin en alt kısmı",
     "etek": "Kuyu tabanı – kabin eteği",
     "sase": "Kuyu tabanı – şase / paten / fren bloğu",
@@ -601,7 +647,17 @@ _ACIKLIK_PARCASI = {
     ("dip", "siginma"): ("siginma", "kabin"),
     ("dip", "etek"): ("etek",),
     ("dip", "sase"): ("sase", "alt_paten", "fren", "sase_kiris", "sase_kirisi"),
+    ("dip", "regulator"): (
+        "gergi",
+        "gergi_kapagi",
+        "gergi_kasnagi",
+        "gergi_kolu",
+        "gergi_agirligi",
+        "gergi_plakasi",
+        "gergi_kontagi",
+    ),
     ("ust", "siginma"): ("siginma", "kabin"),
+    ("ust", "revizyon"): ("kabin",),
     ("ust", "paten"): ("ust_paten",),
     ("ust", "ray"): ("ust_paten",),
     ("ust", "kasnak"): ("kabin_kasnak", "kabin_kasnagi"),

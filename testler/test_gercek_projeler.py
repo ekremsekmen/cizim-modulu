@@ -108,6 +108,8 @@ class GercekProjeler(unittest.TestCase):
                 "2753 mm, üstündeki en alt tavan kısmı ( makine şasesi ) 2665 mm ( son kattan )  "
                 "( ayrıca karşı ağırlık kasnağı ).",
                 "Sığınma yüksekliği:  937 mm < 1000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 ).",
+                #  21 Eki:  0,50 m yalnız bölüm 11'de denetleniyordu, çizim de söyler
+                "Revizyon kutusu – kuyu tavanı:  -43 mm < 500 mm  ( TS EN 81-20 m.5.2.5.7.2 a ).",
                 "Üst paten – kuyu tavanı:  -28 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 b ).",
                 "Üst paten – rayın üst ucu:  57 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 ).",
                 "Korkuluk – kuyu tavanı:  -348 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 c ).",
@@ -124,6 +126,7 @@ class GercekProjeler(unittest.TestCase):
             "( -348 < 100 mm )",
             "( 57 < 100 mm )",
             "( -3 < 100 mm )",
+            "( -43 < 500 mm )",
             "tavana çarpıyor",
         ):
             self.assertIn(parca, b11)
