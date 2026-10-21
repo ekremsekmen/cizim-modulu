@@ -381,6 +381,7 @@ def _tavan_engelleri(g, S, taban, tavan, parcalar, kenarlar, ic, hata):
                     f"Kabin kapısı operatörü ( kanatların yolu, x {operator[0]:g} – "
                     f"{operator[2]:g} ) kuyudaki bir parçaya değiyor ( x {p[0]:g} – {p[2]:g}, "
                     f"y {p[1]:g} – {p[3]:g} ):  "
+                    + f"{girdi.RK_ONERISI}, "
                     + (
                         "kapıyı öbür yana açın ya da kabini kaydırın."
                         if girdi.kapi_tipi(g["kapi"].get("tip"))["tur"] == "teleskopik"

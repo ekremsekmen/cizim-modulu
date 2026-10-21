@@ -444,7 +444,7 @@ def kanat_cebi_carpismalari(g, cizim_sabitleri=None):
                 kim = "Kabin kapısının" if c["ad"] == "kabin_kanat_cebi" else "Kat kapısının"
                 metin = sorun.Sorun(
                     f"{kim} kanat cebi {_CEP_ENGELLERI[o['ad']]} çarpıyor:  açılan kanatlar "
-                    f"kuyuda yer bulamıyor — {girdi.kapi_onerisi(g['kapi'].get('tip'))}.",
+                    f"kuyuda yer bulamıyor — {girdi.RK_ONERISI}, {girdi.kapi_onerisi(g['kapi'].get('tip'))}.",
                     (c["ad"], o["ad"]),
                     "kuyu_plani",
                     fark=sorun.ayrik(

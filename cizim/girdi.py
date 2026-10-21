@@ -122,6 +122,16 @@ def kapi_onerisi(tip):
     return "kapıyı daraltın ya da kapının yerini değiştirin"
 
 
+#  KANAT CEBİ / OPERATÖR RAYA BAĞLI BİR PARÇAYA ÇARPINCA ilk çare rayı geri
+#  almaktır:  kanatlar ve operatör kapı bölgesindedir ( kabinin önü ), raylar,
+#  konsolları, ara kiriş ve yandaki karşı ağırlık ray ekseninde durur ve RK
+#  büyüdükçe geriye kayar.  İleti eskiden yalnız kapıyı değiştirmeyi
+#  öneriyordu:  1100 × 1400 kabinde 900'lük merkezi kapı yan ağırlıkla
+#  hiçbir kuyu eninde kurulmuyordu, oysa RK 650 → 880 yetiyordu ( 21 Eki,
+#  TK Elevator EOX karşılaştırması ).
+RK_ONERISI = "ray – kapı arasını ( RK ) büyütün"
+
+
 def kapi_tipi(tip):
     """Kat kapısı tipinin çizime girenleri:  { tur , kanat , yon , duzlem }.
 
