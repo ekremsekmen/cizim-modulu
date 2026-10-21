@@ -34,12 +34,33 @@ import contextlib
 import contextvars
 import functools
 import json
+import os
 import pickle
 
 from cizim import izli
+from cizim import sabitler
 from cizim import sorunlu
 
 _ETKIN = contextvars.ContextVar("istek_onbellegi", default=None)
+#  Bütün yerleşimlerin imzası:  ( g , cizim_sabitleri , … ) — bkz. _kanonik
+_SABITLER = "cizim_sabitleri"
+#  DENETİM KİPİ ( ONBELLEK_DENETIM=1 ):  her isabette sonuç bir de baştan
+#  kurulur ve önbellektekiyle karşılaştırılır;  anahtarın bir bağımlılığı
+#  atladığını yakalar ( test takımı bu kiple de koşar — testler/test_istek_onbellegi ).
+DENETIM = os.environ.get("ONBELLEK_DENETIM") == "1"
+
+
+class Tutarsiz(AssertionError):
+    """Denetim kipinde önbellekten dönen sonuç baştan kurulandan farklı."""
+
+
+def _denetle(ad, sakli, taze):
+    if pickle.dumps(taze, protocol=pickle.HIGHEST_PROTOCOL) == sakli:
+        return
+    #  Bayt farkı paylaşılan nesnelerden olabilir:  içerik karşılaştırılır
+    #  ( izli sayı türeviyle )
+    if _izi_ac(pickle.loads(sakli)) != _izi_ac(taze):
+        raise Tutarsiz(f"önbellek tutarsız:  {ad} — isabet baştan kurulandan farklı")
 
 
 def _izi_ac(x):
@@ -60,6 +81,27 @@ def _anahtar(ad, a, k):
         return None  # JSON'a çevrilemeyen girdi:  önbelleğe girmez
 
 
+def _kanonik(a, k):
+    """( g , cizim_sabitleri , … ) çağrısının anahtar biçimi:  sabitler ETKİN
+    değerleriyle ( sabitler.sabitler ).  Aynı yerleşim iki biçimde çağrılıyordu
+    ve ikisi de baştan kuruluyordu:  sabitleri ayrı argümanla ( S ) ya da g'nin
+    içinden;  g'nin ezmeleri bir yolda dolu ( ofis standardının hepsi ), öbüründe
+    boş — etkin değerleri aynı ( 21 Eki ölçümü, çare bulucunun iki sınaması:
+    baştan kurulum makine daireli örnekte 23 → 19, kuyu dibi örneğinde 25 → 20 ).  Sabitler yalnız sabitler() ile okunur ( SABIT'i
+    doğrudan okuyan kod yok — test ), bu yüzden etkin değerler yeter.
+
+    Ayrı argümanla gelen sabitler g'ninkinden FARKLIYSA biçim değişmez:  iç
+    içe çağrılar g'nin kendisinden okuyabilir, ikisi de anahtarda kalmalıdır."""
+    if not a or not isinstance(a[0], dict) or "_cizim_sabitleri" not in a[0]:
+        return a, k
+    g, kalan, k_ = a[0], list(a[1:]), dict(k)
+    S = kalan.pop(0) if kalan else k_.pop(_SABITLER, None)
+    etkin_ = sabitler.sabitler(g["_cizim_sabitleri"])
+    if S is not None and _izi_ac(S) != _izi_ac(etkin_):
+        return a, k
+    return [{x: v for x, v in g.items() if x != "_cizim_sabitleri"}, etkin_] + kalan, k_
+
+
 def sakla(f):
     """f'yi istek içi önbelleğe bağlar ( etkin istek yoksa olduğu gibi çalışır )."""
     ad = f"{f.__module__}.{f.__qualname__}:"
@@ -67,13 +109,18 @@ def sakla(f):
     @functools.wraps(f)
     def sarili(*a, **k):
         d = _ETKIN.get()
-        if d is None:
+        #  Okunan sabitler kaydedilirken önbellek atlanır:  önbellekten dönen
+        #  sonuç sabitleri okumadan gelir, kayıt eksik kalırdı ( ölçü kaynağı )
+        if d is None or sabitler.okunuyor():
             return f(*a, **k)
         onek = ad + ("sorunlu:" if sorunlu.acik() else "")
+        a_, k_ = _kanonik(a, k)
         if izli.izlemede():
-            anahtar = _anahtar(onek + "izli:", _izi_ac(a), _izi_ac(k))
+            #  Düz arama kipi de:  makine dairesinin yer araması onda başka sonuç verir
+            onek += "izli:" + ("duz:" if izli.aramalar_duz() else "")
+            anahtar = _anahtar(onek, _izi_ac(a_), _izi_ac(k_))
         else:
-            anahtar = _anahtar(onek, a, k)
+            anahtar = _anahtar(onek, a_, k_)
         if anahtar is None:
             return f(*a, **k)
         if anahtar not in d:
@@ -85,6 +132,8 @@ def sakla(f):
             return sonuc if d[anahtar] is None else pickle.loads(d[anahtar])
         if d[anahtar] is None:
             return f(*a, **k)
+        if DENETIM:
+            _denetle(ad, d[anahtar], f(*a, **k))
         return pickle.loads(d[anahtar])
 
     return sarili
