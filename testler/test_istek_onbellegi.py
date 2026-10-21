@@ -5,12 +5,15 @@ isteği 644 → 274 ms )."""
 import json
 import os
 import unittest
+from unittest import mock
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from cizim import istek_onbellegi
 from cizim import izli
+from cizim import sabitler
 from testler import test_yerlesim_saglamligi
+from uclar import care_uclari
 from uclar import cizim_uclari
 
 
@@ -108,6 +111,103 @@ class Kurallar(unittest.TestCase):
             s.kur({"a": object()})
             s.kur({"a": object()})
         self.assertEqual(s.n, 2)
+
+
+class _Yerlesim:
+    """Yerleşimlerin imzası:  ( g , cizim_sabitleri ) — sabitler g'den ya da ayrı."""
+
+    def __init__(self):
+        self.n = 0
+
+        @istek_onbellegi.sakla
+        def yerlesim(g, cizim_sabitleri=None):
+            self.n += 1
+            S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
+            return {"bina_duvari": S["bina_duvari"], "a": g["a"]}
+
+        self.yerlesim = yerlesim
+
+
+class Sabitler(unittest.TestCase):
+    """Anahtar sabitlerin ETKİN değerleridir ( 21 Eki ):  aynı yerleşim sabitleri
+    ayrı argümanla ya da g'nin içinden, ezmeleri dolu ya da boş alıyordu ve her
+    biri baştan kuruluyordu."""
+
+    def test_ayni_etkin_sabitler_bir_kez_kurulur(self):
+        y, bos = _Yerlesim(), {"a": 1, "_cizim_sabitleri": {}}
+        dolu = dict(bos, _cizim_sabitleri=dict(sabitler.SABIT))
+        with istek_onbellegi.etkin():
+            r = [
+                y.yerlesim(bos),
+                y.yerlesim(dolu),
+                y.yerlesim(bos, sabitler.sabitler({})),
+                y.yerlesim(dolu, cizim_sabitleri=sabitler.sabitler(None)),
+            ]
+        self.assertEqual(y.n, 1)
+        self.assertEqual(len({json.dumps(x, sort_keys=True) for x in r}), 1)
+
+    def test_farkli_sabitler_ayri_kurulur(self):
+        y, g = _Yerlesim(), {"a": 1, "_cizim_sabitleri": {}}
+        with istek_onbellegi.etkin():
+            y.yerlesim(g)
+            r = y.yerlesim(dict(g, _cizim_sabitleri={"bina_duvari": 200}))
+            #  Ayrı argüman g'ninkinden farklı:  ikisi de anahtarda kalır
+            s = y.yerlesim(g, sabitler.sabitler({"bina_duvari": 300}))
+        self.assertEqual(y.n, 3)
+        self.assertEqual((r["bina_duvari"], s["bina_duvari"]), (200, 300))
+
+    def test_duz_arama_ayri_kurulur(self):
+        """Makine dairesinin yer araması düz arama kipinde başka sonuç verir."""
+        y, g = _Yerlesim(), {"a": 1, "_cizim_sabitleri": {}}
+        with istek_onbellegi.etkin(), izli.izleme():
+            y.yerlesim(g)
+            with izli.duz_arama():
+                y.yerlesim(g)
+        self.assertEqual(y.n, 2)
+
+    def test_okunan_sabitler_kaydedilirken_atlanir(self):
+        """Ölçü kaynağı hangi sabitlerin okunduğunu kaydeder:  önbellekten dönen
+        sonuç sabitleri okumadan gelirdi."""
+        y, g = _Yerlesim(), {"a": 1, "_cizim_sabitleri": {}}
+        with istek_onbellegi.etkin():
+            y.yerlesim(g)
+            with sabitler.okunanlar() as okunan:
+                y.yerlesim(g)
+        self.assertEqual(y.n, 2)
+        self.assertIn("bina_duvari", okunan)
+
+
+class Denetim(unittest.TestCase):
+    def test_atlanan_bagimlilik_yakalanir(self):
+        """Denetim kipi:  isabet baştan kurulanla karşılaştırılır — anahtarın
+        görmediği bir şeye bağlı sonuç yakalanır."""
+        dis = {"x": 1}
+
+        @istek_onbellegi.sakla
+        def kur(g):
+            return {"x": dis["x"]}
+
+        with mock.patch.object(istek_onbellegi, "DENETIM", True), istek_onbellegi.etkin():
+            kur({"a": 1})
+            kur({"a": 1})  # aynı:  geçer
+            dis["x"] = 2
+            with self.assertRaises(istek_onbellegi.Tutarsiz):
+                kur({"a": 1})
+
+    def test_cizim_ve_care_isabetleri_tutarli(self):
+        """Gerçek istekler denetim kipinde:  çizim yanıtı ve çare bulucunun
+        sınamaları — her isabet baştan kurulanla aynı."""
+        from testler import test_care
+
+        with mock.patch.object(istek_onbellegi, "DENETIM", True):
+            for v in (
+                test_yerlesim_saglamligi.standart_istek(1000, True, "Sağ"),
+                test_yerlesim_saglamligi.standart_istek(1275, False, "Sol"),
+            ):
+                self.assertTrue(json.loads(cizim_uclari.api_cizimler(v).body)["aktif"])
+            for vaka in (("md", "son_kat_yuksekligi", "3200"), ("ornek", "kuyu_dibi", "1300")):
+                veri, _onceki = test_care._vaka(*vaka)
+                care_uclari._durum(veri, 0)
 
 
 class CizimYaniti(unittest.TestCase):

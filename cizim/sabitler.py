@@ -685,6 +685,11 @@ class _Okunan(dict):
         return super().get(k, v)
 
 
+def okunuyor():
+    """Okunan sabitler kaydediliyor mu ( okunanlar bloğunda )."""
+    return getattr(_KAYIT, "kume", None) is not None
+
+
 @contextlib.contextmanager
 def okunanlar():
     """Blok içinde okunan sabitlerin kümesi."""
