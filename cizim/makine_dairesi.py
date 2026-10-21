@@ -298,8 +298,8 @@ def yerlesim(g, cizim_sabitleri=None):
     oda = (md["x"], md["y"], md["x"] + md["genislik"], md["y"] + md["derinlik"])
     TB = tabliye(g)
 
-    #  1:1 askıda halat düzlemi ( kuyu_ustu.Duzlem ) ağırlık arkadaysa derinlik
-    #  boyuncadır;  2:1'de hep genişlik boyunca ( y0 çizgisi ).
+    #  Halat düzlemi ( kuyu_ustu.Duzlem ) ağırlık yandaysa genişlik boyunca
+    #  ( y0 çizgisi ), arkadaysa derinlik boyuncadır — 1:1'de de 2:1'de de.
     dz = M.get("duzlem") or kuyu_ustu.Duzlem("x", M["halatlar"][0][1])
     if M.get("dogrudan"):
         y_ = M["y_"]

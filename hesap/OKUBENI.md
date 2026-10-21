@@ -1237,8 +1237,9 @@ Kapsam tablo sınırlarıyla aynıdır: **P = 6…34 kişi, N = 1…30 kat.**
 - **L1 (kolon hattı uzunluğu)**: gerçek kablo güzergâhıdır — ana panodan asansör
   panosuna yatay + düşey toplam. **Kuyu yüksekliğine eşit kabul etmeyin,
   plandan ölçün.**
-- **Kılavuz ray > 40 m**: halat / kompanzasyon kuvveti Fp uygulama projesinde
-  ayrıca hesaplanır (MMO/697 s.20).
+- **Kılavuz ray > 40 m**: konsol klipslerinin itme kuvveti Fp (MMO/697 s.20)
+  avan hesabına girmez; uygulama projesinde ray hesabına **girdi** olarak verilir
+  (gelişmiş alan, bilinmiyorsa 0).
 - **Bodrum durağı (⑪)**: ana giriş altında hizmet verilen durak adedidir.
   MMO/697 s.14 ve s.16, H (Tablo-3) ve S (Tablo-5) büyüklüklerini **ana giriş
   üstündeki** kat adedi N üzerinden tanımlar; yukarı yoğun trafikte tur ana
@@ -1279,7 +1280,7 @@ Kapsam tablo sınırlarıyla aynıdır: **P = 6…34 kişi, N = 1…30 kat.**
 - **Yardımcı donanım darbe katsayısı k3 bir OFİS SABİTİDİR.** EN 81-20
   Çizelge 14 k1 ve k2'nin değerini verir ama k3 için *"the value has to be
   determined by the manufacturer due to the actual installation"* der. Ofisin
-  varsayılanı **1,2**'dir; paftada değeri ve
+  varsayılanı **2**'dir; paftada değeri ve
   "standart sayı vermez" notu birlikte basılır. Tesise özgü bir değer varsa
   ofis sabitlerinden değiştirilmelidir.
 - **Paten balatası uzunluğu ( ℓ )** flanş eğilmesine girer ( EN 81-50 m.5.10.5 ).
@@ -1288,14 +1289,15 @@ Kapsam tablo sınırlarıyla aynıdır: **P = 6…34 kişi, N = 1…30 kat.**
   bırakır. **Kesin değer paten imalatçısından alınmalıdır.** Girilen ℓ kabin
   pateninindir;  karşı ağırlığın kaymalı pateninde ℓ her zaman kendi rayından
   2·b olarak türetilir ( kabinin daha uzun balatası ona verilmez ).
-- **Sığınma alanı payları** ( kabin gövde yüksekliği 2400, kabin üstü kotu 2100,
-  revizyon kutusu 500, etek 400 / 950, ray altı 270 mm ) **ofis kabulüdür —
-  TS EN 81-20 sayısı değildir.** Farklı kabin imalatında Sabitler sekmesinden
-  güncellenmelidir.
-  Buna karşılık aynı sözlükteki **asgari açıklıklar** ( 100 · 500 · 500 · 100 ·
-  100 · 300 mm ve sığınma hacimleri ) doğrudan **TS EN 81-20 m.5.2.5.7 /
-  m.5.2.5.8**'dendir — her satırın karşısında madde numarası yazılıdır ve
-  ofis kabulü olarak değiştirilmemelidir. Ray dibi açıklığı, parçanın raya
+- **Sığınma açıklıkları kuyunun çiziminden ölçülür** ( bölüm 11 ile çizimin
+  sorunları aynı sayıdır ). Kabinin düşey ölçüleri ( kuyu tavanı kiriş payı 150,
+  şase altı 320, kabin tabanı 50 / tavanı 60, paten 100, fren bloğu 270, kabin
+  kasnağı 425, revizyon kutusu 500 mm ) **ofis kabulüdür — TS EN 81-20 sayısı
+  değildir.** Farklı kabin imalatında Sabitler sekmesinden güncellenmelidir.
+  Buna karşılık **asgari açıklıklar** ( kuyu dibinde 0,50 · 0,10 · 0,10 · 0,30 m,
+  kuyu üstünde 0,10 · 0,50 · 0,30 m ve sığınma hacimleri ) doğrudan **TS EN 81-20
+  m.5.2.5.7 / m.5.2.5.8**'dendir ( `cizim/dusey.py` ) — her satırın karşısında
+  madde numarası yazılıdır ve ofis kabulü olarak değiştirilmemelidir. Ray dibi açıklığı, parçanın raya
   **yatay Xₕ ≤ 0,15 m** uzaklıkta olduğu kabulüyle Şekil 7'den 0,10 m alınır;
   daha uzaktaki parçalar için sınır 0,30 m ( Xₕ = 0,30 ) ve 0,50 m
   ( Xₕ ≥ 0,50 ) olur.
@@ -1351,8 +1353,9 @@ Kapsam tablo sınırlarıyla aynıdır: **P = 6…34 kişi, N = 1…30 kat.**
   ( yani küçük almak emniyetsiz ), buna karşılık tahrik oranı T1/T2'yi %3
   **düşürür** ( yani büyük almak tahriki olduğundan iyi gösterir ). Motor
   gücü etkilenmez:  P, Gmax = F1 + Gs − Ga bağıntısında sadeleşir.
-- Uygulama projesi **tek asansör** içindir. Grup projesinde her asansör için
-  ayrı koşturulup ayrı pafta alınır.
+- Uygulama projesi **en çok 4 asansör** alır; her asansör kendi kuyusunda,
+  kendi girdisiyle hesaplanır ( proje geneli alanlar ortaktır ). Aynı kuyuda
+  yan yana asansör ( ortak kuyu ) modellenmez.
 - **Elektrik hesapları avan motorunun aynısıdır** ( `motor/avan/avan_hesabi.py` ) — avan
   projesindeki bütün sınırlar burada da geçerlidir: topraklama TT sistem,
   UL = 50 V, IΔn = 300 mA kabulüyle hesaplanır ve **tesis tamamlandıktan sonra
@@ -1369,25 +1372,25 @@ Kapsam tablo sınırlarıyla aynıdır: **P = 6…34 kişi, N = 1…30 kat.**
   m.5.5.3 ).  Kolon hattının akımı ve gerilim düşümü ise motorun **şebekeden
   çektiği** güçle hesaplanır ( Pşeb = Nsç / ηm );  bölüm 6'da ayrı satırdır
   ( P1 = Pşeb + aydınlatma + priz ) ve kesitler ondan seçilir.
-- **Çift sarımda sarılma açısı α tek sarım bağıntısıyla hesaplanır**
-  ( α = 180° − arctan(A/B), yani **α ≤ 180°** ). Gerçekte halat kasnağı iki kez
-  dolanır ve α bunun yaklaşık iki katıdır. Hesap bu yüzden tahrik yeteneğini
-  **olduğundan kötü** gösterir — emniyetli taraftadır, ama "Yarım Daire Kanal
-  ( Çift Sarım )" seçildiğinde bölüm bunu not olarak yazar ve gerçek α saptırma
-  düzenine göre ayrıca belirlenmelidir. `Nequiv(t)` ise çift geçişle doğru
-  hesaplanır.
+- **Çift sarımda sarılma açısı α elle girilir.** Tek sarımda α boş bırakılırsa
+  çizimden ( saptırma kasnağının yerinden ) bulunur ve en çok 180°'dir; çift sarımı çizim
+  çizmez ( tek geçiş ), halat kasnaktan iki kez geçer ve **iki geçişin toplam
+  açısı** ( 180° < α ≤ 360° ) girilmelidir — 180° ve altı bir değer tek sarıma
+  ait sayılıp reddedilir. `Nequiv(t)` çift geçişle hesaplanır.
 - **Tahrik yeteneğinde dört yük durumu hesaplanır**: yükleme, en altta ve en
   üstte acil frenleme, karşı ağırlığın asılı kalması. TS EN 81-50 m.5.11.2.2.3
   bloke durumunu *"empty car at the **highest and lowest** position"* der;
   program üsttekini kurar. **Kabinin tampona oturduğu** karşı durum ( kaynak
   kitabın da hesaplamadığı ) modellenmez — kuyu dibine girilebiliyorsa bu
   durum ayrıca değerlendirilmelidir.
-- **Konsol itme kuvveti Fp modellenmez.** TS EN 81-50 Ek C.1.3 `Fp`'yi
-  *"push through forces of all brackets at one guide rail ( due to normal
+- **Konsol itme kuvveti Fp girdidir, varsayılanı 0'dır.** TS EN 81-50 Ek C.1.3
+  `Fp`'yi *"push through forces of all brackets at one guide rail ( due to normal
   settling of the building or shrinkage of concrete )"* diye tanımlar ve
-  C.2.1.2 / C.2.2.2'de Fv'ye ekler. Betonarme kuyuda oturma / rötre bekleniyorsa
-  bu kalem ayrıca hesaplanmalıdır.
-- **Ray narinliği λ = konsol arası / ix, 250'yi aşamaz.** ω tablosu
+  C.2.1.2 / C.2.2.2'de Fv'ye ekler; program da öyle ekler. Değeri tesise
+  bağlıdır:  betonarme kuyuda oturma / rötre bekleniyorsa konsol imalatçısından
+  alınıp girilmelidir.
+- **Ray narinliği λ = konsol arası / imin, 250'yi aşamaz** ( imin rayın en
+  küçük atalet yarıçapıdır;  paftada ix ve iy birlikte yazılır ). ω tablosu
   ( m.5.10.3 ) o aralıkta tanımlıdır; program aşan girdiyi **izin verilen en
   büyük konsol aralığını söyleyerek** reddeder. `λ < 20` burkulmanın belirleyici
   olmadığı bölgedir, tablonun ilk satırı kullanılır.
