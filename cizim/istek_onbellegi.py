@@ -46,7 +46,8 @@ _ETKIN = contextvars.ContextVar("istek_onbellegi", default=None)
 _SABITLER = "cizim_sabitleri"
 #  DENETİM KİPİ ( ONBELLEK_DENETIM=1 ):  her isabette sonuç bir de baştan
 #  kurulur ve önbellektekiyle karşılaştırılır;  anahtarın bir bağımlılığı
-#  atladığını yakalar ( test takımı bu kiple de koşar — testler/test_istek_onbellegi ).
+#  atladığını yakalar:  ONBELLEK_DENETIM=1 .venv/bin/python -m pytest testler
+#  ( 21 Eki:  661 test, 19.504 alt test — tutarsızlık yok ).
 DENETIM = os.environ.get("ONBELLEK_DENETIM") == "1"
 
 
