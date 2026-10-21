@@ -142,6 +142,12 @@ SABIT = {
     "sase_alt_kiris": 140,  # alt kirişin yüksekliği ( alt patenin üstünde )
     "fren_blogu_yukseklik": 270,
     "kabin_kasnak_derinlik": 425,  # döşemeden kabin kasnağının merkezine
+    #  KABİN ÜSTÜNDEKİ EN YÜKSEK DONANIM ( revizyon kutusu ) kabin tavanının bu
+    #  kadar üstünde:  kuyu tavanıyla arası en az 0,50 m ( m.5.2.5.7.2 a ).  Kutu
+    #  çizilmez ( karar 10:  LiftDesigner da çizmiyor, ölçüsü yok );  bölüm 11 ve
+    #  çizimin denetimi aynı sayıyı okur ( 21 Eki'ye dek yalnız hesabın sabitiydi,
+    #  çizim "uygun" derken bölüm 11 kalabiliyordu ).
+    "revizyon_payi": 500,
     #  KABİN ÜSTÜ ASKI ( 2:1, ağırlık yanda ):  kasnaklar şasenin üst kirişinin
     #  üstünde;  alt uçları kirişin bu kadar üstünde.  ÇİZİM KABULÜ — referans
     #  projede ve LiftDesigner örneklerinde yandaki ağırlıkla kabin üstü askı
@@ -349,6 +355,7 @@ ETIKET = {
     "sase_alt_kiris": "Kabin şasesi alt kirişinin yüksekliği",
     "fren_blogu_yukseklik": "Fren bloğunun yüksekliği",
     "kabin_kasnak_derinlik": "Kabin döşemesinden kabin kasnağı merkezine",
+    "revizyon_payi": "Revizyon kutusunun kabin tavanından yüksekliği",
     "alt_paten_payi": "Şasenin altından alt patenin merkezine ( + yukarı )",
     "kabin_ustu_kasnak_boslugu": "Kabin üstü kasnağının kirişten boşluğu",
     "kabin_tavani_kasnak_boslugu": "Çapraz kabin kasnağının kabin tavanından boşluğu",
@@ -475,6 +482,7 @@ BOLUMLER = (
             "sase_alt_derinlik",
             "fren_blogu_yukseklik",
             "etek_tahtasi",
+            "revizyon_payi",
         ),
     ),
     (
@@ -633,6 +641,7 @@ _ARALIK_OZEL = {
     #  alt paten şasenin altından aşağıda da olabilir ( referans proje −70 )
     "alt_paten_payi": (-2000, 5000),
     "kabin_kasnak_derinlik": (1, 2000),
+    "revizyon_payi": (0, 5000),
 }
 
 

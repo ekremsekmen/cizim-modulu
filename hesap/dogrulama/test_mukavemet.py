@@ -866,8 +866,9 @@ def _sapmalar(r):
     r.esit("⑧ ray dibi açıklığı  ( m.5.2.5.8.2 a) 2) · Şekil 7 )", dusey.DIP_RAYA_YAKIN, 100)
     r.esit("⑧ kuyu dibi - kabin  ( m.5.2.5.8.2 a) )", dusey.DIP_EN_ALT, 500)
     r.esit("⑧ etek açıklığı  ( m.5.2.5.8.2 a) 1) )", dusey.DIP_ETEK, 100)
-    r.esit("⑧ kuyuya sabit parça  ( m.5.2.5.8.2 b) )", _S["min_regulator"], 300)
-    r.esit("⑧ kabin üstü donanım  ( m.5.2.5.7.2 a) )", _S["min_revizyon"], 500)
+    #  Revizyon kutusu ve regülatör gergisi de çizimde ölçülür ( 21 Eki )
+    r.esit("⑧ kuyuya sabit parça  ( m.5.2.5.8.2 b) )", dusey.DIP_SABIT, 300)
+    r.esit("⑧ kabin üstü donanım  ( m.5.2.5.7.2 a) )", dusey.UST_DONANIM, 500)
     r.esit("⑧ ilave kılavuzlu yol  ( m.5.2.5.6.2 )", dusey.RAY_UZANTISI, 100)
     r.esit("⑧ üst paten – tavan  ( m.5.2.5.7.2 b) )", dusey.UST_PATEN, _S["min_paten_tavan"])
     #  Sığınma hacimleri SIGINMA sözlüğünden çıkarıldı:  duruş tipi artık

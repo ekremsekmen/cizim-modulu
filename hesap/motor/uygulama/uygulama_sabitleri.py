@@ -183,10 +183,8 @@ VARSAYILAN = {
     #  tavanı payı ( tavan_payi — çizimde tavan_kirisi;  kayıtlı projeler bu
     #  adı taşır ).
     **{cizim_sabitleri.ofis_adi(c): v for c, v in cizim_sabitleri.SABIT.items()},
-    #  Kabin üstündeki en yüksek donanım ( revizyon kutusu ) kabin tavanının
-    #  bu kadar üstünde ( m.5.2.5.7.2 a );  çizim revizyon kutusunu çizmez
-    #  ( karar 10:  LiftDesigner da çizmiyor, ölçüsü yok ).
-    "revizyon_payi": 500,
+    #  Revizyon kutusunun yüksekliği ( revizyon_payi ) de çizim sabitidir:  bölüm
+    #  11 ve çizimin denetimi aynı sayıyı okur ( cizim/sabitler.py ).
     #  ④ ⑤ ⑥ ELEKTRİK VARSAYILANLARI AVAN MOTORUNDAN OKUNUR.
     #  Bu hesaplar avan motorunda koşar ve köprü oraya yalnız DEĞİŞTİRİLEN
     #  değeri geçirir ( bkz. girdi._avan_sabitleri );  boş bırakılan alanı
@@ -269,7 +267,6 @@ ARALIK = {
     "reg_mu": (0.01, mukavemet_tablolari.REG_MU_AZAMI),
     "dolgu_yogunlugu_barit": (1000, 20000),
     "dolgu_yogunlugu_pik": (1000, 20000),
-    "revizyon_payi": (0, 5000),
     "kabin_armatur_W": (0.1, 1000),
     "kabin_armatur_lm": (1, 100000),
     "kabin_ustu_armatur": (0, 20),
@@ -313,7 +310,7 @@ _CIZIM_GRUPLARI = tuple(
             else ""
         )
         + a,
-        tuple(cizim_sabitleri.ofis_adi(c) for c in al) + (("revizyon_payi",) if b == "KABİN" else ()),
+        tuple(cizim_sabitleri.ofis_adi(c) for c in al),
     )
     for i, (b, a, al) in enumerate(cizim_sabitleri.BOLUMLER)
 )

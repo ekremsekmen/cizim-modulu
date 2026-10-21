@@ -330,6 +330,23 @@ class Bolum11CizimdenOlculur(unittest.TestCase):
                 ("sase", "ray_kabin_alt"),
             ):
                 self.assertAlmostEqual(ara[f"siginma.{anahtar}"], Y["dip_aciklik"][ad][0], places=6)
+            self.assertAlmostEqual(ara["siginma.revizyon_tavan"], Y["ust_aciklik"]["revizyon"][0], places=6)
+            if "regulator" in Y["dip_aciklik"]:
+                self.assertAlmostEqual(
+                    ara["siginma.regulator_kabin"], Y["dip_aciklik"]["regulator"][0], places=6
+                )
+
+    def test_revizyon_kutusu_cizimde_de_denetlenir(self):
+        #  0,50 m ( m.5.2.5.7.2 a ) eskiden yalnız hesapta denetleniyordu:  bölüm
+        #  11 "uygun değil" derken çizim aynı kuyuyu sorunsuz çiziyordu ( 21 Eki )
+        v = _veri()
+        v["sabitler"]["revizyon_payi"] = 2500
+        ((g, hata),), s, _a = _kur(v)
+        self.assertIsNone(g)
+        self.assertEqual(len(hata), 1, hata)
+        self.assertTrue(hata[0].startswith("Revizyon kutusu – kuyu tavanı:"), hata)
+        ara = s["asansorler"][0]["ara"]
+        self.assertAlmostEqual(ara["siginma.revizyon_tavan"] - 500, hata[0].fark, places=6)
 
     def test_sabitler_sekmesindeki_kabin_olcusu_ikisine_birden_girer(self):
         #  Şase altı 480 → 500:  kaide çizimden 20 kısalır, kuyu dibi açıklıkları

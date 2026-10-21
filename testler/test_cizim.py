@@ -1902,14 +1902,29 @@ class DuseyKesitler(unittest.TestCase):
         #  Karşı ağırlık en üstte:  −1.040 + 150 + 21.000 + 96 + 90 + 35 = 20.331 ( çerçeve
         #  altı ),  çerçeve 3.060 − 140 = 2.920, üst paten 20.331 + 2.920 + 140 = 23.391;
         #  ağırlık rayı 26.000 − 650 = 25.350 → 1.959.
+        #  Revizyon kutusu tavandan 500 yukarıda ( 3.085 );  kabinin izdüşümündeki
+        #  en alt tavan parçası kabin halat bağlantısı 5.000 − 645 = 4.355 → 1.270.
         self.assertEqual(Y["yukselme"], 275)
         self.assertEqual(
             {k: v[0] for k, v in Y["ust_aciklik"].items()},
-            {"siginma": 2265, "paten": 1110, "ray": 1255, "korkuluk": 520, "agirlik_ray": 1959},
+            {
+                "siginma": 2265,
+                "revizyon": 1270,
+                "paten": 1110,
+                "ray": 1255,
+                "korkuluk": 520,
+                "agirlik_ray": 1959,
+            },
         )
         self.assertEqual(
             {k: v[1] for k, v in Y["ust_engel"].items()},
-            {"siginma": "kuyu tavanı", "paten": "sase", "ray": "ray", "korkuluk": "sase"},
+            {
+                "siginma": "kuyu tavanı",
+                "revizyon": "kabin_baglanti",
+                "paten": "sase",
+                "ray": "ray",
+                "korkuluk": "sase",
+            },
         )
 
     def test_kabin_modeli_tutarli(self):

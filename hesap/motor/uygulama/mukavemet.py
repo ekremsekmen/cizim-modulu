@@ -24,7 +24,7 @@ kontrol ), böylece ekran, PDF ve CAD katmanları ortak kalır.
 
 import math
 
-from temel import ortusur, sayi_mi
+from temel import sayi_mi
 from motor.uygulama import mukavemet_girdi
 from motor.uygulama import uygulama_sabitleri
 from motor.uygulama import mukavemet_tablolari
@@ -32,7 +32,6 @@ from motor.ortak.adimlar import Bolum, hesap, kontrol, numarala, veri
 from motor.ortak.adimlar import bagla, metin, tr, trn, evet_mi
 from cizim import donanim
 from cizim import dusey
-from cizim import hareketli
 from cizim import kopru
 
 # =====================================================================
@@ -108,8 +107,8 @@ SABIT = {
 #  Kabinin düşey ölçüleri OFİS STANDARDINDADIR ( ekrandan değiştirilir, çizim
 #  de aynı sayıyı kullanır — cizim/kopru.OFIS_SABITLERI );  sığınma hacimleri
 #  duruş tipinden ( mukavemet_tablolari.SIGINMA_HACMI ).  Standardın asgari
-#  açıklıkları çizim modülündedir ( cizim/dusey.py );  aşağıdaki ikisi çizimin
-#  ölçmediği iki satırındır.
+#  açıklıkları çizim modülündedir ( cizim/dusey.py ) — revizyon kutusu ve
+#  regülatör gergisi de ( 21 Eki'ye dek ikisi yalnız burada ölçülüyordu ).
 SIGINMA_PAYLARI = (
     "tavan_payi",
     "sase_alt_derinlik",
@@ -121,8 +120,6 @@ SIGINMA_PAYLARI = (
     "revizyon_payi",
 )
 SIGINMA = {
-    "min_revizyon": 500,  # m.5.2.5.7.2 a) kabin üstü donanım  0,50 m
-    "min_regulator": 300,  # m.5.2.5.8.2 b) kuyuya sabit parça  0,30 m
     #  m.5.2.5.7.2 b):  paten / makara ve halat bağlantısı ile kuyu tavanı
     #  arası 0,10 m ( çizimde dusey.UST_PATEN ile aynı sayı ).
     "min_paten_tavan": 100,
@@ -4869,7 +4866,7 @@ class _Siginma:
     def _kabin_ustu(self):
         """KABİN ÜSTÜ:  kabin en üst konumunda."""
         Y, satir, parca = self.Y, self.satir, self.parca
-        ust, ua, ue = Y["ust"], Y["ust_aciklik"], Y["ust_engel"]
+        ua, ue = Y["ust_aciklik"], Y["ust_engel"]
         self.ad.append(
             metin(
                 "Kabin tavanı üzerindeki sığınma alanı ve açıklıklar  ( m.5.2.5.7 · kabin en üst konumunda ) :",
@@ -4891,13 +4888,11 @@ class _Siginma:
             "kabin_ustu_tavan",
         )
         #  m.5.2.5.7.2 a:  kabin üstündeki en yüksek donanım ( revizyon kutusu ) ile
-        #  kabinin izdüşümündeki en alt tavan parçası
-        z, ad_ = donanim.tavan_engeli(Y["M"], Y["KU"]["tavan"])
+        #  kabinin izdüşümündeki en alt tavan parçası — çizimin açıklığı ( dusey;
+        #  21 Eki'ye dek burada ayrıca ölçülüyordu, çizim denetlemiyordu )
         satir(
-            f"Revizyon kutusu / kuyu tavanının en alt kısmı ( {parca((z, ad_))} )",
-            (z - Y["kotlar"][-1]) - (ust["tavan"] + self.O["revizyon_payi"]),
-            SIGINMA["min_revizyon"],
-            "m.5.2.5.7.2 a",
+            f"Revizyon kutusu / kuyu tavanının en alt kısmı ( {parca(ue['revizyon'])} )",
+            *ua["revizyon"],
             "revizyon_tavan",
         )
         satir(
@@ -4931,7 +4926,7 @@ class _Siginma:
     def _kuyu_dibi(self):
         """KUYU DİBİ:  kabin tam ezilmiş tamponunda."""
         Y = self.Y
-        da, dip = Y["dip_aciklik"], Y["dip"]
+        da = Y["dip_aciklik"]
         self.ad.append(
             metin(
                 "Kuyu dibindeki sığınma alanı ve açıklıklar  ( m.5.2.5.8 · kabin tam ezilmiş tamponunda ) :",
@@ -4956,38 +4951,13 @@ class _Siginma:
         ):
             self.satir(et, *da[ad_ara], ara)
         #  m.5.2.5.8.2 b:  kuyuya sabit parça ( regülatör gergisi ) kabinin
-        #  izdüşümündeyse kabinin üstündeki en alt kısmıyla arası en az 0,30 m
-        #  ( kabinin parçaları — cizim/hareketli;  eskiden platformun altı ).
-        #  Kollu gerginin parçaları ayrı ayrı ( cizim/parcalar — REGÜLATÖR
-        #  GERGİSİ ):  kasnak koruma kapağıyla, kol, ağırlık ( askısıyla ),
-        #  plaka, kontak — her birinin tepesi ile üstündeki kabin parçası arası,
-        #  en kısası.  Eskiden yalnız kasnağın tepesi ( kapak ve askı yoktu ).
-        gr, gd = Y["M"]["gergi"], Y["KD"]["gergi_donanim"]
-        gp, Rk = gr["plan"], gr["geo"]["kapak_r"]
-        gy = (gp[1] + gp[3]) / 2.0
-        gergi = [((gp[0], gy - Rk, gp[2], gy + Rk), gr["merkez"] + Rk, "gergi kasnağının koruma kapağı")] + [
-            (gd[ad], gr[ad][3], adi)
-            for ad, adi in (
-                ("kol", "gergi kolu"),
-                ("agirlik", "gergi ağırlığı"),
-                ("plaka", "gergi plakası"),
-                ("kontak", "gergi kontağı"),
-            )
-        ]
-        aralar = []
-        for kutu, tepe, adi in gergi:
-            if ortusur(kutu, Y["KU"]["tavan"]):
-                z_, ad_ = hareketli.ustundeki_en_alt(
-                    Y["dip_parcalar"], kutu, (dip["taban_alti"], hareketli.KABIN)
-                )
-                aralar.append((z_ - tepe, adi, ad_))
-        if aralar:
-            ara, adi, ad_ = min(aralar)
+        #  izdüşümündeyse kabinin üstündeki en alt kısmıyla arası en az 0,30 m —
+        #  çizimin açıklığı ( dusey._regulator_acikligi:  kollu gerginin parçaları
+        #  ayrı ayrı, en kısası;  21 Eki'ye dek burada ölçülüyordu )
+        if "regulator" in da:
             self.satir(
-                f"Regülatör {adi} / kabinin en alt kısmı ( {ad_} )",
-                ara,
-                SIGINMA["min_regulator"],
-                "m.5.2.5.8.2 b",
+                f"Regülatör {de['regulator_parcasi']} / kabinin en alt kısmı ( {de['regulator']} )",
+                *da["regulator"],
                 "regulator_kabin",
             )
         else:
