@@ -4,7 +4,7 @@
     boş alan isteğe girmez, sunucu kendi varsayılanını ya da kuralını uygular.
     Ekran o değeri soluk gösterir ( "siz girmediniz" ).                       */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AlanSemasi, UygulamaIstegi } from "./api";
+import type { Alan, AlanSemasi, Deger, UygulamaIstegi } from "./api";
 import { alanHatasi } from "./denetim";
 import { useSekmeEsitle } from "./sekme";
 import { ORNEK_ASANSOR, ORNEK_SURUMU } from "./ornek";
@@ -223,6 +223,15 @@ export function mrlMi(sema: AlanSemasi, p: UygulamaProjesi): boolean {
   if (ham !== undefined) return ham !== "false";
   const v = sema.gruplar.flatMap((g) => g.alanlar).find((a) => a.anahtar === "mk_yok")?.varsayilan;
   return v !== false && v !== "false";
+}
+
+/**  YERLEŞİME BAĞLI SEÇENEK ( şemanın secenek_kosulu'su:  seçenek YALNIZ o
+     yerleşimde seçilir — 1:1 askı yalnız makine dairelide ):  öbür yerleşimde
+     seçenek kapalıdır, dönen sebep altına yazılır.  21 Eki:  koşul ters
+     okunuyordu — makine daireli projede 1:1 kapalı, dairesizde açıktı.  */
+export function secenekKapali(a: Alan, s: Deger, mrl: boolean): string | undefined {
+  const k = a.secenek_kosulu?.[String(s)];
+  return k && k.yerlesim !== (mrl ? "mrl" : "daireli") ? k.sebep : undefined;
 }
 
 /**  Makine yerleşimine göre hesaba girmeyen alanlar:  ekranda gizli, sunucu

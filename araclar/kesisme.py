@@ -35,7 +35,15 @@ def parcalar(e, k=1.0):
     out = []
     for i, el in enumerate(e):
         t, kat = el["tip"], el["katman"]
-        if t in ("dikdortgen", "tarama", "tarama_tugla"):
+        if t == "dikdortgen" and "bicim" in el:
+            #  Biçimi olan parçada çizilen biçimdir;  dikdörtgen yalnız mantık
+            #  zarfıdır ( svg._bicim zarfı çizmez ).  21 Eki:  ağırlık konsolunun
+            #  görünmeyen zarfı perde yazısına "binen" sayılıyordu.
+            for p in el["bicim"]:
+                n = p["noktalar"]
+                for j in range(0 if p.get("kapali", True) else 1, len(n)):
+                    out.append((kat, el.get("ad", ""), *n[j - 1], *n[j], i))
+        elif t in ("dikdortgen", "tarama", "tarama_tugla"):
             x, y, g, d = el["x"], el["y"], el["g"], el["d"]
             for s in ((x, y, x + g, y), (x + g, y, x + g, y + d), (x + g, y + d, x, y + d), (x, y + d, x, y)):
                 out.append((kat, el.get("ad", ""), *s, i))
@@ -113,10 +121,12 @@ def kesismeler(e, k=1.0):
                     continue
                 if _kesisir(s, kb[1:], 2.0 * k):
                     out.append((kb[0], el["tip"], kat, ad or ("kendi tiki" if j == i else "")))
-            # taramalı duvarın içi
+            # taramalı duvarın içi — kenar denetimiyle aynı payla ( 2·k:  21 Eki,
+            # duvara 1 mm giren yazı kutusu — kâğıtta 0,05 mm — bulgu sayılıyordu )
+            p = 2.0 * k
             for el2 in e:
                 if el2["tip"] in ("tarama", "tarama_tugla"):
                     x, y, g, d = el2["x"], el2["y"], el2["g"], el2["d"]
-                    if kb[1] < x + g and x < kb[3] and kb[2] < y + d and y < kb[4]:
+                    if kb[1] + p < x + g and x < kb[3] - p and kb[2] + p < y + d and y < kb[4] - p:
                         out.append((kb[0], el["tip"], "TARAMA-İÇİ", el2.get("ad", "")))
     return out

@@ -127,6 +127,32 @@ class FizikselTavan(unittest.TestCase):
             any(ileti in h for h in json.loads(cizim_uclari.api_cizimler(v).body).get("hata") or [])
         )
 
+    def test_sayisal_secim_listenin_ustunu_cizime_gecirmez(self):
+        """21 Eki bulanık tarama:  kat kapısı genişliği SEÇİM alanı olduğu için
+        tavansızdı — 10¹² mm'de hesap "geçersiz seçim" derken çizim köprüsü
+        planı kurup belleği bitiriyordu ( 2,5 GB, işlem öldürüldü ).  Sayıyla
+        okunan her seçim alanında hesap reddeder, iki uç da saniyeler içinde
+        yanıt verir ( beyan yükü çizimde yalnız veri tablosundadır — çizim
+        kurulur, hesap durur );  listenin en büyüğü kapıdan geçer."""
+        self.assertEqual(alanlar.SECIM_AZAMI["kapi_genisligi"], 1400)
+        for alan in ("kapi_genisligi", "halat_capi", "reg_halat_capi", "beyan_hizi", "beyan_yuku"):
+            v = test_yerlesim_saglamligi.standart_istek(1000, True, "Sağ")
+            v["asansorler"][0][alan] = 1e12
+            for ad, uc in (
+                ("hesap", uygulama_uclari.api_uygulama_coklu),
+                ("cizim", cizim_uclari.api_cizimler),
+            ):
+                with self.subTest(alan=alan, uc=ad):
+                    t = time.perf_counter()
+                    yanit = json.loads(uc(v).body)
+                    self.assertLess(time.perf_counter() - t, 2.0)
+                    self.assertFalse(yanit["aktif"] if ad == "hesap" else yanit.get("hesap"))
+        v = test_yerlesim_saglamligi.standart_istek(1000, True, "Sağ")
+        v["asansorler"][0]["kapi_genisligi"] = 1e12
+        hata = json.loads(cizim_uclari.api_cizimler(v).body)["hata"]
+        self.assertIn("Kat kapısı genişliği:  en çok 1.400 mm olabilir", hata[0])
+        self.assertIsNone(alanlar.secim_asimi("kapi_genisligi", 1400))
+
     def test_verim_biri_asamaz(self):
         self.assertEqual(alanlar.AZAMI["makine_verimi"], 1)
 
@@ -200,6 +226,33 @@ class BozukGovde(unittest.TestCase):
                 with self.subTest(uc=uc.__name__, ad=ad):
                     yanit = json.loads(uc({"cizim": ad, "asansorler": [{}]}).body)
                     self.assertEqual(yanit, {"aktif": False, "hata": ["Bilinmeyen çizim."]})
+
+    def test_secim_alaninda_yanlis_tur_kendi_iletisiyle_reddedilir(self):
+        """Seçim alanına mantıksal / liste / sözlük ( yalnız API — form göndermez ):
+        21 Eki uç tarama — True seçenek 1 sayılıyordu ( True == 1:  askı oranı
+        sessizce 1:1 hesaplanıyor, beyan hızında tampon hesabı TypeError ),
+        liste / sözlük makine tipinde sözlük anahtarı olunca hesap da çizim de
+        çöküyordu ( uçta beklenmeyen hata kaydı ).  Şimdi hesap "geçersiz seçim"
+        der, uçlarda ERROR kaydı yok;  veri tablosu sayı gelen kapı tipinde
+        çökmez."""
+        for alan, deger in (
+            ("aski_orani", True),
+            ("beyan_hizi", True),
+            ("beyan_yuku", False),
+            ("makine_tipi", []),
+            ("makine_tipi", {}),
+            ("tampon_tipi", {}),
+            ("kat_kapisi_tipi", -1),
+        ):
+            v = test_yerlesim_saglamligi.standart_istek(1000, True, "Sağ")
+            v["asansorler"][0][alan] = deger
+            with self.subTest(alan=alan, deger=deger):
+                with self.assertNoLogs("uclar", level="ERROR"):
+                    hesap = json.loads(uygulama_uclari.api_uygulama_coklu(v).body)
+                    cizim = json.loads(cizim_uclari.api_cizimler(v).body)
+                self.assertFalse(hesap["aktif"])
+                self.assertTrue(any("geçersiz seçim" in h for h in hesap["hata"]), hesap["hata"])
+                self.assertFalse(cizim.get("kurulamayan"), cizim.get("kurulamayan"))
 
     def test_sozluk_olmayan_kapak_bos_kapak(self):
         from ciktilar import kapak_cikti

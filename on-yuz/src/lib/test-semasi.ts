@@ -23,7 +23,15 @@ export const SEMA: AlanSemasi = {
         alan({ anahtar: "asansor_adi", tur: "metin" }),
         alan({ anahtar: "beyan_yuku", tur: "secim", secenekler: [630, 800, 1000], varsayilan: 800, birim: "kg" }),
         alan({ anahtar: "mk_yok", tur: "onay", varsayilan: true }),
-        alan({ anahtar: "aski_orani", tur: "secim", secenekler: [1, 2], varsayilan: 2, secenek_metni: { "1": "1:1", "2": "2:1" } }),
+        alan({
+          anahtar: "aski_orani",
+          tur: "secim",
+          secenekler: [1, 2],
+          varsayilan: 2,
+          secenek_metni: { "1": "1:1", "2": "2:1" },
+          //  Sunucunun koşulu:  1:1 YALNIZ makine dairelide ( tasarim/alanlar.py )
+          secenek_kosulu: { "1": { yerlesim: "daireli", sebep: "Makine dairesizde 1:1 askı kullanılmaz" } },
+        }),
       ],
     },
     {

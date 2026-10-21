@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, CircleQuestionMark, RotateCcw, Search, X } from "lucide-react";
 import type { Alan, AlanSemasi, Deger } from "@/lib/api";
-import { alanHatasi, alanOku, gizliAlanlar, mrlMi, sayiOku, type UygulamaProjesi } from "@/lib/proje";
+import { alanHatasi, alanOku, gizliAlanlar, mrlMi, sayiOku, secenekKapali, type UygulamaProjesi } from "@/lib/proje";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
 import { Anahtar, Bolumlu, Girdi, Ipucu, Rozet, Secim } from "@/components/ui";
 
@@ -258,7 +258,6 @@ function AlanSatiri({
   } else if (a.tur === "onay") {
     kutu = <Anahtar id={id} acik={(ham ?? String(etkin)) === "true"} degisti={(d) => yaz(a.anahtar, String(d))} etiket={ad} />;
   } else if (a.tur === "secim" && a.secenekler) {
-    const yerlesim = mrl ? "mrl" : "daireli";
     kutu = (
       <Secim
         id={id}
@@ -266,14 +265,11 @@ function AlanSatiri({
         deger={secimDegeri(a.secenekler, ham ?? String(etkin ?? ""))}
         varsayilanMi={!girildi}
         degisti={(d) => yaz(a.anahtar, d)}
-        secenekler={a.secenekler.map((s) => {
-          const k = a.secenek_kosulu?.[String(s)];
-          return {
-            deger: String(s),
-            ad: a.secenek_metni?.[String(s)] ?? sayiYaz(s),
-            kapali: k && k.yerlesim === yerlesim ? k.sebep : undefined,
-          };
-        })}
+        secenekler={a.secenekler.map((s) => ({
+          deger: String(s),
+          ad: a.secenek_metni?.[String(s)] ?? sayiYaz(s),
+          kapali: secenekKapali(a, s, mrl),
+        }))}
       />
     );
   } else {

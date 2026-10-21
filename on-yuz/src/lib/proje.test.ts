@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alanHatasi, alanOku, alanYaz, asansorAdedi, asansorEkle, asansorKaldir, formHatalari, gizliAlanlar, istekKur, kutuyaYaz, sayiOku, type UygulamaProjesi } from "./proje";
+import { alanHatasi, alanOku, alanYaz, asansorAdedi, asansorEkle, asansorKaldir, formHatalari, gizliAlanlar, istekKur, kutuyaYaz, sayiOku, secenekKapali, type UygulamaProjesi } from "./proje";
 import { SEMA } from "./test-semasi";
 
 const proje = (p: Partial<UygulamaProjesi> = {}): UygulamaProjesi => ({
@@ -39,6 +39,18 @@ describe("alanın kuralı ( sunucunun kurallar sözlüğünden )", () => {
   it("okunamayan yazım ön yüzde reddedilmez:  sebebi sunucunundur", () => {
     expect(alanHatasi(SEMA, "durak_adedi", "abc")).toBeNull();
     expect(alanHatasi(SEMA, "durak_adedi", "1.200")).toBeNull();
+  });
+});
+
+describe("yerleşime bağlı seçenek ( secenek_kosulu:  yalnız o yerleşimde )", () => {
+  const aski = SEMA.gruplar.flatMap((g) => g.alanlar).find((a) => a.anahtar === "aski_orani")!;
+  it("1:1 makine dairelide açık, dairesizde sebebiyle kapalı ( 21 Eki:  ters okunuyordu )", () => {
+    expect(secenekKapali(aski, 1, false)).toBeUndefined();
+    expect(secenekKapali(aski, 1, true)).toBe("Makine dairesizde 1:1 askı kullanılmaz");
+  });
+  it("koşulsuz seçenek her yerleşimde açık", () => {
+    expect(secenekKapali(aski, 2, true)).toBeUndefined();
+    expect(secenekKapali(aski, 2, false)).toBeUndefined();
   });
 });
 

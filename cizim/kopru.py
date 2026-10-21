@@ -230,8 +230,9 @@ class _Okuyucu:
             )
             return None
         #  FİZİKSEL TAVAN ( alanlar.BIRIM_AZAMI ):  10¹² mm'lik kuyu yazı
-        #  yerleştiricinin ızgarasında milyarlarca hücre kurup belleği bitirdi
-        asim = alanlar.azami_asimi(anahtar, v)
+        #  yerleştiricinin ızgarasında milyarlarca hücre kurup belleği bitirdi.
+        #  Sayıyla okunan seçim alanında ( kapı genişliği … ) listenin en büyüğü.
+        asim = alanlar.azami_asimi(anahtar, v) or alanlar.secim_asimi(anahtar, v)
         if asim:
             self.hata.append(f"{et}:  {asim}")
             return None

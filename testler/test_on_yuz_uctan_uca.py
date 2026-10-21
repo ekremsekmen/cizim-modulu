@@ -77,25 +77,43 @@ class Izleyici:
         #  gittiğini söyler ( CI'da bir kez sebebi görünmeden düştü — 21 Eki )
         self.suren = {}
         self.sayi = 0
+        #  Sayfa yeniden yüklenirken ( goto / reload ) yoldaki istekler:  yeni
+        #  belge gelince iptal olurlar, ama Playwright onlar için ne
+        #  requestfinished ne requestfailed gönderir — sayaçta kalırlar.  21 Eki:
+        #  "Avan proje" kartı testi reload sırasında yoldaki alanlar isteği yüzünden
+        #  60 sn bekleyip düşüyordu ( bilgisayar yüklüyken;  isteği 3 sn
+        #  geciktiren sunucuyla her seferinde üretildi ).
+        self.eski = set()
         self.ciftler = {u: [] for u in self.UCLAR}
         self.hatalar = []
         sayfa.on("request", self._istek)
         sayfa.on("requestfinished", self._bitti)
         sayfa.on("requestfailed", self._bitti)
+        sayfa.on("framenavigated", self._yeni_belge)
         sayfa.on("pageerror", lambda e: self.hatalar.append(f"pageerror:  {e}"))
         sayfa.on("console", lambda m: m.type == "error" and self.hatalar.append(f"console:  {m.text}"))
 
     def _istek(self, r):
+        if r.is_navigation_request() and r.frame == self.sayfa.main_frame:
+            self.eski = set(self.suren)
         if "/api/" in r.url:
             self.yolda += 1
             self.sayi += 1
             self.suren[id(r)] = (f"{r.method} {r.url.split('/api/', 1)[1]}", time.time())
 
-    def _bitti(self, r):
-        if "/api/" not in r.url:
+    def _yeni_belge(self, cerceve):
+        """Yeni belge geldi:  yeniden yüklemeden önce yolda kalanlar iptal oldu."""
+        if cerceve != self.sayfa.main_frame:
             return
+        for k in self.eski & set(self.suren):
+            self.suren.pop(k)
+            self.yolda -= 1
+        self.eski = set()
+
+    def _bitti(self, r):
+        if "/api/" not in r.url or self.suren.pop(id(r), None) is None:
+            return  # iptal sayılıp düşülmüş istek geç bitti
         self.yolda -= 1
-        self.suren.pop(id(r), None)
         uc = next((u for u in self.UCLAR if r.url.endswith(u)), None)
         yanit = r.response() if r.failure is None else None
         if uc and yanit is not None and yanit.ok:
@@ -124,6 +142,53 @@ class Izleyici:
         self.sakin()
         assert self.ciftler[uc], f"{uc} isteği gitmedi"
         return self.ciftler[uc][-1]
+
+
+class _SahteSayfa:
+    def __init__(self):
+        self.main_frame = object()
+        self.olay = {}
+
+    def on(self, ad, f):
+        self.olay[ad] = f
+
+
+class _SahteIstek:
+    def __init__(self, sayfa, url, gezinti=False):
+        self.url, self.method, self.frame = url, "GET", sayfa.main_frame
+        self.failure, self.post_data, self._gezinti = None, None, gezinti
+
+    def is_navigation_request(self):
+        return self._gezinti
+
+    def response(self):
+        return None
+
+
+class IzleyiciSayaci(unittest.TestCase):
+    """Tarayıcısız:  yoldaki istek sayacı ( 21 Eki — reload sırasında iptal olan
+    istek için olay gelmiyor, sayaç takılı kalıyordu )."""
+
+    def test_yeniden_yuklemede_iptal_olan_istek_duser(self):
+        s = _SahteSayfa()
+        iz = Izleyici(s)
+        eski = _SahteIstek(s, "http://x/api/uygulama/alanlar")
+        s.olay["request"](eski)
+        s.olay["request"](_SahteIstek(s, "http://x/", gezinti=True))  # reload
+        s.olay["framenavigated"](s.main_frame)
+        yeni = _SahteIstek(s, "http://x/api/uygulama/alanlar")
+        s.olay["request"](yeni)
+        s.olay["requestfinished"](yeni)
+        self.assertEqual((iz.yolda, iz.suren), (0, {}))
+        s.olay["requestfinished"](eski)  # geç gelen olay sayacı eksiye düşürmez
+        self.assertEqual(iz.yolda, 0)
+
+    def test_tek_sayfa_gezintisi_yoldaki_istegi_dusurmez(self):
+        s = _SahteSayfa()
+        iz = Izleyici(s)
+        s.olay["request"](_SahteIstek(s, "http://x/api/avan"))
+        s.olay["framenavigated"](s.main_frame)  # pushState:  belge isteği yok
+        self.assertEqual(iz.yolda, 1)
 
 
 @unittest.skipIf(ATLA, ATLA)

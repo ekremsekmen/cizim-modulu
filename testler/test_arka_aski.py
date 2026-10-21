@@ -18,6 +18,7 @@ from cizim import kabin_ustu
 from cizim import kopru
 from cizim import dusey
 from cizim import kuyu_ustu
+from cizim import makine
 from cizim import makine_dairesi
 from cizim import sabitler
 from cizim import veri_tablosu
@@ -192,6 +193,24 @@ class Dusey(unittest.TestCase):
         M = dusey.yerlesim(g)["M"]
         self.assertFalse(M["KU"].get("duvardan_duvara"))
         self.assertAlmostEqual(M["kapak"][5], M["tavan"] - S["makine_tepe_boslugu"])
+
+    def test_klemens_kutusu_govdenin_ustunde(self):
+        """Kapak ( klemens kutusu ) gövdenin tepesine oturur:  planda gövdenin
+        ortasında.  21 Eki:  makine dairesizde x / y sabitti — arkadaki ağırlıkta
+        kasnak ekseni x olunca kutu kasnağın üstüne düşüyor, B-B'de havada
+        duruyordu.  Yandaki ağırlıkta yeri değişmedi."""
+        yan = kopru.cizim_girdisi(uygulama_girdisi.tamamla(uygulama_girdisi.varsayilanlar()))[0]
+        for ad, g in (("arka", _cizim()[1]), ("yan", yan)):
+            with self.subTest(ad):
+                M = dusey.yerlesim(g)["M"]
+                x0, y0, x1, y1, _z0, z1 = makine.sinirlar(
+                    next(p for p in M["makine"] if p.get("parca") == "govde")
+                )
+                k = makine.sinirlar(next(p for p in M["makine"] if p.get("parca") == "klemens_kutusu"))
+                self.assertAlmostEqual(k[4], z1)  # gövdenin tepesinde
+                #  Planda gövdenin ortası kutunun içinde
+                orta = ((x0 + x1) / 2.0, (y0 + y1) / 2.0)
+                self.assertTrue(k[0] < orta[0] < k[2] and k[1] < orta[1] < k[3], (k, orta))
 
     def test_son_kat(self):
         #  1.350 × 1.400, ofisin kabini ( 2.000 ):  4.260'ta yalnız arkadaki 1,10
