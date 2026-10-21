@@ -72,6 +72,11 @@ class Izleyici:
     def __init__(self, sayfa):
         self.sayfa = sayfa
         self.yolda = 0
+        #  Yoldaki istekler ( adres, başladığı an ) ve bütün isteklerin sayısı:
+        #  sakinleşmezse ileti hangisinin takıldığını ya da durmadan istek
+        #  gittiğini söyler ( CI'da bir kez sebebi görünmeden düştü — 21 Eki )
+        self.suren = {}
+        self.sayi = 0
         self.ciftler = {u: [] for u in self.UCLAR}
         self.hatalar = []
         sayfa.on("request", self._istek)
@@ -83,11 +88,14 @@ class Izleyici:
     def _istek(self, r):
         if "/api/" in r.url:
             self.yolda += 1
+            self.sayi += 1
+            self.suren[id(r)] = (f"{r.method} {r.url.split('/api/', 1)[1]}", time.time())
 
     def _bitti(self, r):
         if "/api/" not in r.url:
             return
         self.yolda -= 1
+        self.suren.pop(id(r), None)
         uc = next((u for u in self.UCLAR if r.url.endswith(u)), None)
         yanit = r.response() if r.failure is None else None
         if uc and yanit is not None and yanit.ok:
@@ -98,13 +106,19 @@ class Izleyici:
         280 ms bekletip gönderir )."""
         son_hareket = time.time()
         bitis = time.time() + ZAMAN / 1000
+        ilk_sayi = self.sayi
         while time.time() < bitis:
             self.sayfa.wait_for_timeout(100)
             if self.yolda > 0:
                 son_hareket = time.time()
             elif (time.time() - son_hareket) * 1000 >= sure:
                 return
-        raise AssertionError("sayfa sakinleşmedi:  istekler bitmiyor")
+        simdi = time.time()
+        yolda = [f"{ad} ( {simdi - t:.0f} sn )" for ad, t in self.suren.values()]
+        raise AssertionError(
+            f"sayfa sakinleşmedi:  istekler bitmiyor — beklerken {self.sayi - ilk_sayi} istek gitti, "
+            f"yolda {self.yolda}:  {yolda}"
+        )
 
     def son(self, uc):
         self.sakin()
