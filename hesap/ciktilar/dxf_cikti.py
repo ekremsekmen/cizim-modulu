@@ -49,6 +49,8 @@ from reportlab.pdfbase import pdfmetrics
 from pdfminer.high_level import extract_pages
 from pdfminer.layout import LTChar, LTCurve, LTLine, LTRect
 
+from temel import cad_yazisi
+
 #  PDF birimi punto, CAD birimi milimetre.
 PT_MM = 25.4 / 72.0
 
@@ -299,7 +301,9 @@ def _cad_metni(t):
     for kaynak, hedef in CAD_SIMGE.items():
         if kaynak in t:
             t = t.replace(kaynak, hedef)
-    return t
+    #  "%%" AutoCAD'in özel karakter kodu ( %%c → Ø ):  paftadaki kullanıcı
+    #  yazısında ( proje, asansör adı ) geçerse kaçırılır
+    return cad_yazisi(t)
 
 
 def _kalin_mi(m):
