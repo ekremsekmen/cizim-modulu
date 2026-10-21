@@ -182,6 +182,25 @@ def calistir():
         except Exception as e:  # noqa: BLE001
             r.kontrol(f"çoklu asansorler={str(asl)[:38]} çökme", False, f"→ {e}")
 
+    #  Kapasitesiz sütun atılınca iletiler ekrandaki sütun numarasıyla ( 21 Eki:
+    #  boş 1. sütunda 3. sütunun hatası "ASANSÖR-2" diyordu )
+    _iyi = {"P": "8", "kapi_genisligi": "800", "kapi_tipi": "Merkezden Açılan Oto."}
+    _s = trafik.hesapla(
+        avan_uclari._trafik_girdi(
+            {"girdiler": dict(C, asansorler=[{}, _iyi, dict(_iyi, P="10", kapi_genisligi="850")])}
+        )
+    )
+    r.kontrol(
+        "boş sütundan sonra ileti ekrandaki numarayla",
+        "ASANSÖR-3 —" in str(_s.get("hata")),
+        f"→ {_s.get('hata')}",
+    )
+    r.esit(
+        "boş sütundan sonra asansör adları ekrandaki numarayla",
+        [a["ad"] for a in _s.get("asansorler") or []],
+        ["ASANSÖR-2", "ASANSÖR-3"],
+    )
+
     # ------------------------------------------------ avan: bozuk girdiler
     A = dict(
         aktif=True,

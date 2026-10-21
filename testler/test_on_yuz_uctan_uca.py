@@ -323,6 +323,35 @@ class OnYuzUctanUca(unittest.TestCase):
             "button", name=re.compile(r"^(?!.*kaldır)")
         )
 
+    def test_kaldirilan_asansorun_sonucu_kalanda_gorunmez(self):
+        """Sırayı kaydıran kaldırmada son hesap eski dizilişindir:  sonuç asansöre
+        sırasıyla eşlendiği için 1.'nin ( hepsi uygun ) hükümleri 2.'nin
+        sekmesinde görünüyordu ( 21 Eki ).  Yeni hesap tutulurken sonuç yok;
+        gelince 2.'nin kendi hükmü ( kuyu 2.300:  uygun değil bölüm var )."""
+        self.ornek_projeyi_ac()
+        self.sayfa.get_by_role("button", name="Asansör ekle").click()
+        self.iz.sakin()
+        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.iz.sakin()
+        self.assertGreater(self.sayaclar()[0], 0)
+        tutulan = []
+        self.sayfa.route("**/api/uygulama/coklu", lambda r: tutulan.append(r))
+        try:
+            self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).first.click()
+            self.sayfa.wait_for_timeout(1500)  # girdi gecikmesi geçsin, yeni hesap tutulsun
+            self.assertTrue(tutulan, "yeni hesap istenmedi")
+            metin = self.sayfa.get_by_role("complementary", name="Uygunluk").inner_text()
+            m = re.search(r"(\d+)\s*uygun değil\s*(\d+)\s*uygun", metin)
+            self.assertFalse(
+                m and int(m.group(2)) > 0, f"kaldırılan asansörün hükümleri görünüyor:  {metin[:200]}"
+            )
+        finally:
+            for r in tutulan:
+                r.continue_()
+            self.sayfa.unroute("**/api/uygulama/coklu")
+        self.iz.sakin()
+        self.assertGreater(self.sayaclar()[0], 0)
+
     def test_asansor_eklenir_kaldirilir_geri_alinir(self):
         self.ornek_projeyi_ac()
         ekle = self.sayfa.get_by_role("button", name="Asansör ekle")
@@ -364,7 +393,9 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.get_by_role("button", name="Yeni avan projesi").click()
         istek, _y = self.iz.son("/api/trafik")
         self.assertNotIn("bina_tipi", istek["girdiler"])
-        self.assertEqual(istek["girdiler"]["asansorler"], [])
+        #  Yeni projenin tek, boş sütunu:  sütunlar olduğu gibi gider, kapasitesizi
+        #  sunucu atar ( ekrandaki numarası korunsun — 21 Eki )
+        self.assertEqual(istek["girdiler"]["asansorler"], [{}])
         self.assertEqual(self.sayfa.evaluate(kayit)["kapak"], {})
         self.sayfa.get_by_role("button", name="Geri al").click()
         self.iz.sakin()
@@ -473,6 +504,27 @@ class OnYuzUctanUca(unittest.TestCase):
         self.iz.sakin()
         self.assertEqual(self.sayfa.get_by_role("button", name="Geri al").count(), 0)
 
+    def test_acilistaki_avan_karti_yeni_proje_baslatir(self):
+        """Açılıştaki "Avan proje" kartı açık projeyi açıyordu ( 21 Eki ):  yeni
+        proje başlatır, önceki "Geri al" ile döner;  "Son projeler" satırı açık
+        projeye dönmeye devam eder."""
+        self.sayfa.goto(self.url + "/")
+        self.sayfa.evaluate(
+            """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut'}, ekNufus: [], trafikAsansorleri: [{P: '8'}],
+                ortak: {}, avanAsansorleri: [{}, {}, {}, {}], kapak: {project_title: 'Eski avan'}}))"""
+        )
+        self.sayfa.reload()
+        self.sayfa.get_by_role("link", name=re.compile(r"^Avan proje")).click()
+        self.sayfa.get_by_role("button", name="Geri al").wait_for()
+        self.iz.sakin()
+        kayit = self.sayfa.evaluate("JSON.parse(localStorage.getItem('asansor:avan'))")
+        self.assertEqual(kayit["kapak"], {})
+        self.sayfa.get_by_role("button", name="Geri al").click()
+        self.iz.sakin()
+        kayit = self.sayfa.evaluate("JSON.parse(localStorage.getItem('asansor:avan'))")
+        self.assertEqual(kayit["kapak"], {"project_title": "Eski avan"})
+
     # ------------------------------------------------------------ 4 ölçü kutusu
     def test_olcu_kutusu_girdiyi_degistirir(self):
         self.ornek_projeyi_ac()
@@ -497,6 +549,10 @@ class OnYuzUctanUca(unittest.TestCase):
             else istek["asansorler"][0]
         )
         self.assertEqual(float(str(yer[degisiklik["anahtar"]]).replace(",", ".")), degisiklik["deger"])
+        #  Bir kutu, bir değişiklik:  ikinci "Uygula" ilk değişikliği görmeden
+        #  hesaplanıyordu ( kutu açıldığı andaki girdilerle konuşur;  21 Eki )
+        self.assertTrue(kutu.get_by_role("button", name="Uygula").is_disabled())
+        self.assertTrue(kutu.get_by_text("ölçüye yeniden tıklayın").is_visible())
 
     def test_yakinda_net_ve_olcu_kutusu_tuvale_sigar(self):
         """20 Eki ( kullanıcı:  "ölçüyü belirleyen kutucuğun tamamı görünmüyor,

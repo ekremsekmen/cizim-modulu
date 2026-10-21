@@ -196,8 +196,10 @@ def _trafik_girdi(veri: dict):
     #  Kişi sayısı YAZILMIŞ asansör tanımlıdır.  Okunabilir P aranıyordu:
     #  "8 kişi" yazılan asansör listeden sessizce düşüyor, trafik bir asansör
     #  eksik hesaplanıyordu.  Artık okunamayan P, sebebiyle reddedilir.
+    #  SÜTUNUN EKRANDAKİ NUMARASI ( sira ) taşınır ( 21 Eki ):  boş sütun atılınca
+    #  hesabın iletileri "ASANSÖR-1" derken ekranda 2. sütundu.
     liste = [
-        _temiz(a, ASANSOR_SAYISAL, f"ASANSÖR-{i}: ", etiket=trafik.ASANSOR_ETIKET)
+        dict(_temiz(a, ASANSOR_SAYISAL, f"ASANSÖR-{i}: ", etiket=trafik.ASANSOR_ETIKET), sira=i)
         for i, a in enumerate(_sozluk_listesi(ham.get("asansorler")), 1)
         if not _bos_mu(a.get("P"))
     ][:4]

@@ -174,7 +174,7 @@ export function OlcuKutusu({
               className="shrink-0 border-t border-cizgi bg-yuzey-2 px-4 py-3"
               onSubmit={(e) => {
                 e.preventDefault();
-                degistir.mutate();
+                if (!uygulandi) degistir.mutate();
               }}
             >
               <label htmlFor="olcu-hedef" className="text-[12px] font-medium text-metin-2">
@@ -182,7 +182,11 @@ export function OlcuKutusu({
               </label>
               <div className="mt-1.5 flex gap-2">
                 <Girdi id="olcu-hedef" value={hedef} onChange={(e) => setHedef(e.target.value)} birim="mm" className="flex-1" />
-                <Dugme tur="birincil" type="submit" disabled={degistir.isPending || !anahtar}>
+                {/*  BİR KUTU, BİR DEĞİŞİKLİK ( 21 Eki ):  kutu açıldığı andaki girdilerle
+                     konuşur ( değişiklikten sonra ölçünün çizimdeki yeri değişebilir ) —
+                     ikinci "Uygula" ilk değişikliği görmeden hesaplanıyor, ölçü hedefi
+                     tutmuyordu.  Yenisi için ölçüye yeniden tıklanır ( güncel girdiyle )  */}
+                <Dugme tur="birincil" type="submit" disabled={degistir.isPending || !anahtar || uygulandi}>
                   {degistir.isPending ? <Loader2 className="animate-spin" /> : <ArrowRight />}
                   Uygula
                 </Dugme>
@@ -213,6 +217,9 @@ export function OlcuKutusu({
                     ))}
                     {sonuc.dogrulandi && (
                       <Rozet tur="uygun">Çizim yeniden kuruldu — ölçü {sayiYaz(sonuc.olcu)} mm</Rozet>
+                    )}
+                    {uygulandi && (
+                      <p className="text-[11.5px] text-metin-3">Başka bir değişiklik için ölçüye yeniden tıklayın.</p>
                     )}
                   </div>
                 ) : (
