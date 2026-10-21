@@ -16,6 +16,7 @@ from decimal import ROUND_HALF_UP, Decimal
 import ezdxf
 from ezdxf.enums import TextEntityAlignment
 
+from temel import cad_yazisi
 from cizim import geometri
 from cizim import uslup
 
@@ -214,9 +215,11 @@ MASKE_PAYI = uslup.MASKE_PAYI
 _MTEXT_HIZA = {"sol": 4, "sag": 6}  # MIDDLE_LEFT · MIDDLE_RIGHT;  yoksa 5 ( orta )
 
 
+#  Kullanıcının yazdığı adlar ( asansör, proje ) plan başlığına girer:
+#  AutoCAD'in kodları ( "%%c" → Ø, "^I" → sekme ) temel.cad_yazisi'nde kaçırılır.
 def _mtext_kacis(metin):
-    """MTEXT biçim kodlarını ( \\  {  } ) düz yazıya çevirir."""
-    return metin.replace("\\", "\\\\").replace("{", "\\{").replace("}", "\\}")
+    """MTEXT biçim kodlarını ( \\  {  } ) ve AutoCAD kodlarını düz yazıya çevirir."""
+    return cad_yazisi(metin.replace("\\", "\\\\").replace("{", "\\{").replace("}", "\\}"))
 
 
 def _etiket(hedef, el):
@@ -377,7 +380,7 @@ def belge(elemanlar, baslik="", olcek=20):
         x1 = min(el.get("x", el.get("x1", 0)) for el in elemanlar if el["tip"] != "olcu")
         y1 = min(el.get("y", el.get("y1", 0)) for el in elemanlar if el["tip"] != "olcu")
         msp.add_text(
-            f"{baslik}   1/{olcek:g}",
+            cad_yazisi(f"{baslik}   1/{olcek:g}"),
             height=90 * BUYUK_HARF,
             dxfattribs={"layer": "YAZI", "style": YAZI_TIPI},
         ).set_placement((x1, y1 - 400), align=TextEntityAlignment.LEFT)

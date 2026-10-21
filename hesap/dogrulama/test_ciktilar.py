@@ -1114,6 +1114,10 @@ def calistir():
         _yuzdeli = [_e.dxf.text for _e in _m.query("TEXT") if "%%" in _e.dxf.text]
         r.kontrol("CAD: hiçbir yazıda AutoCAD kaçış dizisi ( %% ) yok", not _yuzdeli, f"→ {_yuzdeli[:3]}")
         r.esit("CAD: şapkanın karşılığı U+02C6", dxf_cikti.CAD_SIMGE["^"], "\u02c6")
+        #  Kullanıcının yazdığı "%%" ( proje, asansör adı ) AutoCAD'in tek yüzde
+        #  koduyla ( %%% ) yazılır;  tek "%" kod değildir, dokunulmaz
+        r.esit("CAD: kullanıcı yazısındaki %% kaçırılır", dxf_cikti._cad_metni("A %%c 2"), "A %%%%%%c 2")
+        r.esit("CAD: tek yüzdeye dokunulmaz", dxf_cikti._cad_metni("%50 eğim"), "%50 eğim")
         if "^" in _pdf_yazi:
             r.kontrol("CAD: paftadaki üs işaretleri çizimde de duruyor", "\u02c6" in _cad_yazi)
 

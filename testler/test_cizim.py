@@ -600,6 +600,21 @@ class YerlesimRegresyonlari(unittest.TestCase):
         self.assertEqual([m.dxf.attachment_point for m in yazilar], [4, 5, 6])
         self.assertEqual([m.plain_text() for m in yazilar], ["sol", "orta", "sag"])
 
+    def test_dxf_kullanici_yazisi_kod_sayilmaz(self):
+        """Asansörün adı plan başlığına girer:  AutoCAD'in kodları ( "%%c" → Ø,
+        "^I" → sekme;  şapka macOS'ta AutoCAD'i çökertiyor ) yazıyı bozmaz."""
+        from cizim import dxf
+
+        adlar = ("BLOK A %%c 2", "A^1 {x}\\", "%50 EĞİM", "%%%")
+        d = dxf.belge([eleman.yazi(0, 0, a) for a in adlar], baslik="KUYU %%d PLANI")
+        yazilar = [m.text for m in d.modelspace().query("MTEXT")]
+        self.assertEqual(
+            yazilar,
+            ["BLOK A %%%%%%c 2", "A\u02c61 \\{x\\}\\\\", "%50 EĞİM", "%%%%%%%%%"],
+        )
+        baslik = [t.dxf.text for t in d.modelspace().query("TEXT")]
+        self.assertEqual(baslik, ["KUYU %%%%%%d PLANI   1/20"])
+
 
 class ParcaTutarliligi(unittest.TestCase):
     """Parçalar kendi rayları arasında, birbirinin içinden geçmeden durur."""

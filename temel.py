@@ -39,6 +39,19 @@ def kucuk(metin):
     return metin.replace("I", "ı").replace("İ", "i").lower()
 
 
+#  AutoCAD'in TEXT ve MTEXT'te ortak kodları:  "%%" + harf özel karakterdir
+#  ( %%c → Ø, %%d → °, %%p → ± ), "^" + harf denetim karakteri ( ^I sekme,
+#  ^J satır başı ).  Kullanıcının yazdığı adlar ( asansör, proje ) çizime ve
+#  paftaya girer:  "%%c" Ø olur, şapka macOS'ta AutoCAD'i çökertir
+#  ( hesap/ciktilar/dxf_cikti.CAD_SIMGE — orada ölçüldü ).  Şapka aynı
+#  görünüşteki U+02C6'ya çevrilir;  "%%" geçen yazıda her "%" AutoCAD'in
+#  tek yüzde kodu "%%%" olur ( tek "%" kod değildir, olduğu gibi kalır ).
+def cad_yazisi(metin):
+    """Yazıyı AutoCAD'in kod saymayacağı biçime çevirir ( TEXT ve MTEXT )."""
+    metin = metin.replace("^", "ˆ")
+    return metin.replace("%", "%%%") if "%%" in metin else metin
+
+
 def cumle_basi(metin):
     """Türkçe ilk harf büyük, gerisi küçük — str.capitalize'ın Türkçesi
     ( "KABİN BAĞLANTISI" → "Kabin bağlantısı";  capitalize "Kabi̇n bağlantisi" yazıyordu )."""
