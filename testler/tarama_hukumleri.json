@@ -1382,7 +1382,7 @@
   },
   "2500 Arka Otomatik Merkezi": {
    "durum": "ret",
-   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 2 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
+   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 1 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
   },
   "2500 Arka Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1414,7 +1414,7 @@
   },
   "2500 Sağ Otomatik Merkezi": {
    "durum": "ret",
-   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 2 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
+   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 1 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
   },
   "2500 Sağ Otomatik Merkezi 4 Kanat": {
    "durum": "ret",
@@ -1446,7 +1446,7 @@
   },
   "2500 Sol Otomatik Merkezi": {
    "durum": "ret",
-   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 2 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
+   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 1 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
   },
   "2500 Sol Otomatik Merkezi 4 Kanat": {
    "durum": "ret",

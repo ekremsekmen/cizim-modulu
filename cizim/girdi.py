@@ -559,12 +559,14 @@ def _kanat_cebi_hatalari(g, S):
     for c0, c1 in kanat_cepleri(g, S):
         if c0 < -1e-6 or c1 > k["genislik"] + 1e-6:
             yan = kp["sol_pay"] if c0 < 0 else k["genislik"] - kp["sol_pay"] - kp["genislik"]
-            n = kapi_tipi(kp.get("tip"))["kanat"]
+            #  O yana toplanan kanat:  teleskopikte hepsi, merkezide yarısı ( duzlem )
+            kt = kapi_tipi(kp.get("tip"))
+            n, yandaki = kt["kanat"], kt["duzlem"]
             oneri = [t for t in KAPI_CEP_ONERILERI if t != kp.get("tip") and _cep_sigar(g, S, t)]
             hata.append(
                 sorun.Sorun(
                     f"Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara {yan:g} mm, "
-                    f"açılan {n} kanat için {c1 - c0:g} mm gerekir ( bir kanat eni "
+                    f"açılan {yandaki} kanat için {c1 - c0:g} mm gerekir ( bir kanat eni "
                     f"{kp['genislik'] / n:g} + {S['kanat_cebi_payi']:g} )"
                     + (f";  sığan kapı tipi:  {' · '.join(oneri)}." if oneri else "."),
                     P_KANAT,
