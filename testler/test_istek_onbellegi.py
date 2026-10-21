@@ -29,7 +29,17 @@ class _Sayac:
         self.kur = kur
 
 
-class Kurallar(unittest.TestCase):
+class _Sayan(unittest.TestCase):
+    """Kurulum SAYAN testler denetim kipinden ( ONBELLEK_DENETIM=1 ) bağımsız:
+    kip isabette de baştan kurar, sayı artar."""
+
+    def setUp(self):
+        kip = mock.patch.object(istek_onbellegi, "DENETIM", False)
+        kip.start()
+        self.addCleanup(kip.stop)
+
+
+class Kurallar(_Sayan):
     def test_etkin_istek_yoksa_her_seferinde_kurar(self):
         s = _Sayac()
         s.kur({"a": 1})
@@ -128,7 +138,7 @@ class _Yerlesim:
         self.yerlesim = yerlesim
 
 
-class Sabitler(unittest.TestCase):
+class Sabitler(_Sayan):
     """Anahtar sabitlerin ETKİN değerleridir ( 21 Eki ):  aynı yerleşim sabitleri
     ayrı argümanla ya da g'nin içinden, ezmeleri dolu ya da boş alıyordu ve her
     biri baştan kuruluyordu."""
