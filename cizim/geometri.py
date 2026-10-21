@@ -1587,35 +1587,7 @@ def _kabin_ici_yazi_adaylari(P, e):
             )
         elif ad == "kabin_yazi":
             adaylar.append((el, [(kx, el["y"])] + [(kx, ky + d) for d in (200, -200, 350, -350, 500)]))
-        elif el["tip"] == "olcu" and el["metin"].startswith("ASKI KAÇIKLIĞI"):
-            adaylar.append((el, _kaciklik_adaylari(el)))
     return adaylar
-
-
-def _kaciklik_adaylari(el):
-    """Askı kaçıklığı ölçüsünün yazısının yerleri:  yerinde, ölçünün iki
-    yanında;  bunlar da doluysa çevresinde adım adım ( en yakın önce ):  küçük
-    kabinde dört yer de şase dikmesine ya da kasnak yazısına düşüyordu
-    ( yazılar büyüyünce, 5 Eki )."""
-    y_ = el["yazi"]
-    w = eleman.yazi_eni(el["metin"]) / 2.0
-    z0, z1 = sorted((el["a"][1], el["b"][1]))
-    k_ = el["kot"]
-    adim = eleman.OLCU_YAZI / 2.0 + 40
-    ek = sorted(
-        (
-            (y_["x"] + dx * adim, y_["y"] + dy)
-            for dx in (0, -1, 1, -2, 2, -3, 3)
-            for dy in range(-600, 601, 50)
-        ),
-        key=lambda a: (a[0] - y_["x"]) ** 2 + (a[1] - y_["y"]) ** 2,
-    )
-    return [
-        (y_["x"], y_["y"]),
-        (k_ - 30 - w, (z0 + z1) / 2.0),
-        (k_ + 30 + w, z1 + 25 + eleman.OLCU_YAZI / 2.0),
-        (k_ + 30 + w, z0 - 25 - eleman.OLCU_YAZI / 2.0),
-    ] + ek
 
 
 def yazi_kutusu(el):

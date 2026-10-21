@@ -18,10 +18,12 @@ hizasındadır ( kabin kasnağının dış teğeti );  öbür teğetinden inen h
 karşı ağırlık kasnağının teğetine düşmelidir.  Düşmüyorsa sapma ölçüyle
 gösterilir — bu referans projenin paftasında birebir tutar ( 370 − 240 = 130 ).
 
-Bugün çizilen düzen:  karşı ağırlık yanda, kabin altı 2:1 askı ( ofisin ve
-referans projenin düzeni ).  Makine ağırlık raylarına oturan şasede ya da
-( "Bina yapısına" ) kuyunun genişliğince duvardan duvara iki kirişte
-( LiftDesigner 1250 KG ).  Öteki düzenler için doğrulama açıkça reddeder.
+Çizilen düzenler ( duzen_hatalari ):  karşı ağırlık yanda 2:1 — kasnaklar
+kabinin altında ( ofisin ve referans projenin düzeni ) ya da üstünde;  ağırlık
+arkada 2:1 kabin üstünde ( çapraz kasnaklar — _arka );  makine dairesinde 1:1
+( ağırlık yanda ya da arkada — _dogrudan ).  Makine ağırlık raylarına oturan
+şasede ya da ( "Bina yapısına" ) kuyunun genişliğince duvardan duvara iki
+kirişte ( LiftDesigner 1250 KG ).  Öteki düzenleri doğrulama açıkça reddeder.
 """
 
 from temel import cumle_basi, eleman_kutusu, ortusur, sayi_mi
@@ -162,8 +164,8 @@ def _reg_halat_kiris_hatasi(g, reg_kasnak, kirisler):
 def duzen_hatalari(g):
     """Askı düzeni ile karşı ağırlığın yerinin çizilebilir bir birleşim olup
     olmadığı.  Çizilenler:  yandaki ağırlıkla 2:1 ( kasnaklar kabinin altında ya
-    da üstünde ), makine dairesinde 1:1 ( ağırlık yanda ya da arkada — ofisin
-    12744-3 ve 477-8 projeleri ).  Öbürleri gerçek projelerde yoktur, sebebiyle
+    da üstünde ), arkadaki ağırlıkla 2:1 kabin üstünde, makine dairesinde 1:1
+    ( ağırlık yanda ya da arkada — ofisin 12744-3 ve 477-8 projeleri ).  Öbürleri gerçek projelerde yoktur, sebebiyle
     reddedilir ( düşey kesit de ilk bunu söyler ).  Döner:  hata listesi."""
     hata = []
     duzen = (g.get("aski") or {}).get("duzen")
