@@ -6,6 +6,8 @@ calistir.py ( tek tek çizim ) ve pafta.py ( TİP PROJE FORMATI ) buradan okur;
 başlıklar ve ölçekler iki yerde ayrı yazılıp zamanla ayrışmasın.
 """
 
+import logging
+
 from cizim import geometri
 from cizim import kabin_ustu
 from cizim import giris
@@ -15,8 +17,11 @@ from cizim import kuyu_dibi
 from cizim import kuyu_kesiti
 from cizim import kuyu_ustu
 from cizim import makine_dairesi
+from cizim import sorun
 from cizim import sorunlu
 from cizim import veri_tablosu
+
+log = logging.getLogger(__name__)
 
 
 CIZIMLER = {
@@ -88,12 +93,17 @@ def _kesit_sorunlu(g):
     cizim/sorunlu.py ) kesitlerin yerleşimi kurulamazsa da "var":  harf
     yazılmaz, plan çizimi yine kurulur.  Eskiden kesitin hatası her planın
     başlığından taşıyor, ekranın bütün çizimleri kayboluyordu ( 20 Eki ).
-    Kip kapalıyken hata bugünkü gibi yükselir."""
+    Programın hatası da planı silmez ama kayıtta ERROR olur ( yalnız bilinen
+    sınır sessizdir — sorun.BILINEN ).  Kip kapalıyken hata bugünkü gibi
+    yükselir."""
     if not sorunlu.acik():
         return kuyu_kesiti.dogrula(g)
     try:
         return kuyu_kesiti.dogrula(g)
-    except Exception:  # noqa: BLE001 — kesit kendi çiziminde kurulamayan diye söylenir
+    except sorun.BILINEN:  # kesit kendi çiziminde kurulamayan diye söylenir
+        return True
+    except Exception:  # programın hatası:  ERROR;  plan yine harfsiz kurulur
+        log.error("kesitlerin denetimi kurulamadı — programın hatası", exc_info=True)
         return True
 
 

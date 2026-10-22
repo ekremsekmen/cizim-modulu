@@ -540,7 +540,8 @@ hızlı denetimde atlanır ( çıktıda "skipped" ), tam denetimde koşar.
 **Kod üslubu** ( `pyproject.toml` ):  biçimi `ruff format` verir ( satır 110,
 elle hizalama yapılmaz );  `ruff check` yalnız hata yakalayan kuralları
 uygular — kullanılmayan ad, döngü değişkenini yakalayan iç fonksiyon, genel
-`except` ( her biri `# noqa: BLE001 — sebep` ile bilinçli olmalı ).  Çizim
+`except` ( her biri `# noqa: BLE001 — sebep` ile bilinçli olmalı ya da hatayı
+ERROR yazmalı;  `log.debug` ile yutmak yok — `test_mimari` denetler ).  Çizim
 testleri pytest ile paralel koşar ( `KONTROL_IS`, varsayılan 4 işçi ).  Biçim
 commit'leri `.git-blame-ignore-revs`'te:  `git config blame.ignoreRevsFile
 .git-blame-ignore-revs`.
@@ -574,8 +575,14 @@ isteği `uclar/uygulama_istegi.py`.
 
 **Kayıt** ( `logging` ):  uçların genel `except`'i kullanıcıya iletiyi
 döndürür ve hatayı kaydeder ( `uclar/uc_ortak.hata_kaydi`:  girdiden doğan ret
-bilgi, beklenmeyen hata izleriyle hata düzeyinde );  çizimin yedek değere
-düştüğü yerler ayrıntı düzeyinde.  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNING|ERROR`
+bilgi, beklenmeyen hata izleriyle hata düzeyinde ).  Yedek yollar ( sorunlu
+kipte kurulamayan çizim, ölçü çözümlemesinin denemeleri, köprünün yedek
+değerleri ) yalnız BİLİNEN SINIRI sessizce, ayrıntı düzeyinde karşılar
+( `cizim/sorun.py` `BILINEN`:  `CizimKurulamaz` — durmuş yerleşimin olmayan
+geometrisi okununca, bu düzen bu çizimde kurulamaz — ve girdi reddi
+`ValueError` );  programın hatası yutulmaz:  ucun son savunmasına çıkar ya da
+kayda hata düzeyinde yazılır.  Testler beklenmeyen hata kaydında kırılır
+( `testler/conftest.py` ).  Düzey:  `AVAN_KAYIT=DEBUG|INFO|WARNING|ERROR`
 ( varsayılan WARNING ).
 
 ## Klasörler

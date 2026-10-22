@@ -711,7 +711,7 @@ def _kasnak_arasi_sec(g, eski_kural):
     try:
         #  Kasnağın kendisi de çarpabilir ( kabin_ustu._kasnak_engelleri — 15 Eki )
         carpar = any(h.startswith(("Halat (", "Kabin kasnağı (")) for h in kabin_ustu.yerlesim(g)["hata"])
-    except Exception:
+    except sorun.BILINEN:
         log.debug("yedek değer kullanılıyor ( çizim kurulamadı )", exc_info=True)
         carpar = True
     if carpar:
@@ -744,7 +744,7 @@ def _regulator_yeri(g, kaciklik_serbest=True, yan_serbest=False):
             h = (
                 kuyu_ustu.yerlesim(g) if g["makine"]["yeri"] == "Kuyu üstü" else makine_dairesi.yerlesim(g)
             ).get("hata") or []
-        except Exception:
+        except sorun.BILINEN:
             log.debug("yedek değer kullanılıyor ( çizim kurulamadı )", exc_info=True)
             return ["?"]
         return [x for x in h if "egülatör" in x]
@@ -783,7 +783,7 @@ def kasnaklar(g):
     if g["makine"]["yeri"] == "Makine dairesi":
         try:
             sap = makine_dairesi.yerlesim(g).get("saptirma")
-        except Exception:
+        except sorun.BILINEN:
             log.debug("yedek değer kullanılıyor ( çizim zaten reddeder )", exc_info=True)
             sap = None
         if sap:
@@ -864,7 +864,7 @@ def _saptirma(g):
 
     try:
         return makine_dairesi.yerlesim(g).get("saptirma")
-    except Exception:
+    except sorun.BILINEN:
         log.debug("yedek değer kullanılıyor ( çizim kendi hatasını söyler )", exc_info=True)
         return None
 
@@ -967,7 +967,7 @@ def sarim_acisi(g):
         if not sp:
             return 180.0
         return round(sp["sarim"], 1) if "sarim" in sp else None
-    except Exception:
+    except sorun.BILINEN:
         log.debug("yedek değer kullanılıyor ( çizim zaten reddetti )", exc_info=True)
         return None
 

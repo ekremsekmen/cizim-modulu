@@ -7,7 +7,9 @@ hiçbir çizim göstermiyordu:  mühendis sorunu çizimde göremiyordu ( 19 Eki
 doğrulama atlanınca bunların 95'inde çizim kurulabiliyordu ).  Bu kip açıkken
 yerleşimler denetim hatasında DURMAZ, kurabildikleri kadar kurar;  yalnız
 geometri hiç kurulamıyorsa ( girdi eksik ) durulur — donanim.yerlesim'deki
-"kurma ile denetim ayrı" ilkesinin aynısı.
+"kurma ile denetim ayrı" ilkesinin aynısı.  Durmuş yerleşimin geometrisini
+okuyan çizim sorun.CizimKurulamaz verir ( bilinen sınır:  ekranda
+"kurulamayan" );  başka her istisna programın hatasıdır.
 
 Kip yalnız EKRANIN çiziminde açılır ( cizim_uclari.cizimler_yaniti ).  Hesap,
 paket ( pafta.cizim_listesi ) ve sorun listesi kipin dışında kurulur:  onların

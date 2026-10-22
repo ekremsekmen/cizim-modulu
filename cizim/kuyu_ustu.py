@@ -389,7 +389,7 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     hata = _girdi_hatalari(g, acil_pano)
     if hata:
-        return {"hata": hata}
+        return sorun.durdu(hata)
     ag, mk = g["agirlik"], g.get("makine") or {}
     if (g.get("aski") or {}).get("duzen") == "Doğrudan":
         return _dogrudan(g, S, mk, ag)
@@ -716,7 +716,7 @@ def _arka(g, S, mk, ag, acil_pano):
     150 mm taşkındı:  yakın kiriş yükün 1,6 katını taşır, uzak kiriş kalkardı."""
     A = arka_aski.geometri(g, S)
     if "P" not in A:
-        return {"hata": A["hata"]}
+        return sorun.durdu(A["hata"])
     hata = list(A["hata"])
     taban, kabin, blok = _taban(g, S)
     k, a = g["kuyu"], g["aski"]

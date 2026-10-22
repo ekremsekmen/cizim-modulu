@@ -579,7 +579,7 @@ def yerlesim(g, cizim_sabitleri=None):
     kd = g.get("kuyu_dibi") or {}
     hata = _girdi_hatalari(kd)
     if hata:
-        return {"hata": hata}
+        return sorun.durdu(hata)
 
     taban = geometri.plan(g, S, kapi_duzeyi=False)
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]

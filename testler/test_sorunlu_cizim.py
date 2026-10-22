@@ -206,13 +206,18 @@ class SorunluCizim(unittest.TestCase):
                 self.assertEqual(r["hata"], siki)
 
     def test_kesit_kurulamazsa_plan_yine_kurulur(self):
-        """Sorunlu kipte kesitin yerleşimi çökse de planın başlığı harfsiz
-        yazılır;  kip kapalıyken hata bugünkü gibi yükselir."""
+        """Sorunlu kipte kesitin yerleşimi kurulamasa da planın başlığı harfsiz
+        yazılır:  bilinen sınır ( CizimKurulamaz ) sessizce, programın hatası
+        kayıtta ERROR ile.  Kip kapalıyken hata bugünkü gibi yükselir."""
         g = _g(_veri(False))
         baslik = "KUYU PLANI  ( kabin hizasından yatay kesit )"
-        with mock.patch.object(kuyu_kesiti, "dogrula", side_effect=TypeError("kesit")):
-            with sorunlu.kip():
+        with mock.patch.object(kuyu_kesiti, "dogrula", side_effect=sorun.CizimKurulamaz(["kesit"])):
+            with sorunlu.kip(), self.assertNoLogs(cizimler.log, level="ERROR"):
                 self.assertEqual(cizimler.plan_basligi(g, "kuyu_plani", baslik), baslik)
+        with mock.patch.object(kuyu_kesiti, "dogrula", side_effect=TypeError("kesit")):
+            with sorunlu.kip(), self.assertLogs(cizimler.log, level="ERROR") as k:
+                self.assertEqual(cizimler.plan_basligi(g, "kuyu_plani", baslik), baslik)
+            self.assertIsNotNone(k.records[0].exc_info)  # izi ( traceback ) var
             with self.assertRaises(TypeError):
                 cizimler.plan_basligi(g, "kuyu_plani", baslik)
         self.assertIn("C-C", cizimler.plan_basligi(g, "kuyu_plani", baslik))

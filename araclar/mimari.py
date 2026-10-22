@@ -308,6 +308,56 @@ def ozel_erisimler():
     return sorted(set(out))
 
 
+#  Hatayı ERROR düzeyinde kaydeden çağrılar ( uc_ortak.hata_kaydi programın
+#  hatasını ERROR yazar )
+_ERROR_KAYDI = frozenset(("error", "exception", "critical", "hata_kaydi"))
+
+
+def yutan_exceptler(kaynak):
+    """[ satır ] — kaynağın genel except'leri ( except Exception / BaseException
+    / çıplak ) içinden hatayı ERROR yazmadan, yeniden fırlatmadan ve noqa'sız
+    ( sebebi yazılı ) karşılayanlar.  ruff'ın BLE001'i exc_info'lu HER kaydı
+    yeterli sayar:  log.debug( … , exc_info=True ) ile yutulan programlama
+    hatası ancak istisnaları izleyen ayrı bir araçla görülüyordu ( 21 Eki son
+    denetimi ).  Bilinen sınır kendi türüyle yakalanır ( cizim/sorun.py
+    BILINEN )."""
+    satirlar = kaynak.splitlines()
+    out = []
+    for n in ast.walk(ast.parse(kaynak)):
+        if not (isinstance(n, ast.ExceptHandler) and _genel_mi(n.type)):
+            continue
+        if "noqa: BLE001" in satirlar[n.lineno - 1]:
+            continue
+        if not any(_error_kaydi_mi(m) or isinstance(m, ast.Raise) for b in n.body for m in ast.walk(b)):
+            out.append(n.lineno)
+    return sorted(out)
+
+
+def _genel_mi(tur):
+    if tur is None:
+        return True
+    adlar = tur.elts if isinstance(tur, ast.Tuple) else [tur]
+    return any(isinstance(a, ast.Name) and a.id in ("Exception", "BaseException") for a in adlar)
+
+
+def _error_kaydi_mi(n):
+    if not isinstance(n, ast.Call):
+        return False
+    f = n.func
+    ad = f.attr if isinstance(f, ast.Attribute) else f.id if isinstance(f, ast.Name) else None
+    return ad in _ERROR_KAYDI
+
+
+def yutan_genel_exceptler():
+    """[ ( dosya, satır ) ] — programın ( katmanlar ) hatayı yutan genel
+    except'leri ( yutan_exceptler )."""
+    out = []
+    for f in program_dosyalari():
+        with open(os.path.join(KOK, f), encoding="utf-8") as d:
+            out += [(f, s) for s in yutan_exceptler(d.read())]
+    return sorted(out)
+
+
 if __name__ == "__main__":
     for f, s, i in ihlaller() + golgeler() + ozel_erisimler():
         print(f"{f}:{s}:  {i}")

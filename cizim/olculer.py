@@ -51,6 +51,7 @@ from cizim import girdi
 from cizim import kuyu_dibi
 from cizim import makine_dairesi
 from cizim import sabitler
+from cizim import sorun
 from cizim import parca_kotlari
 
 log = logging.getLogger(__name__)
@@ -173,7 +174,7 @@ def hesap_olculeri(g):
     if not mrl:
         try:
             MD = makine_dairesi.yerlesim(g, S)
-        except Exception:
+        except sorun.BILINEN:
             log.debug("yedek değer kullanılıyor ( çizim kendi hatasını söyler )", exc_info=True)
             MD = {}
         #  Ağırlık halatının yolu kurulamadıysa saptırma kasnağı var mı yok mu
@@ -192,7 +193,7 @@ def hesap_olculeri(g):
         H = kotlar[-1]
         KY = g["kuyu_dibi"]["derinlik"]
         M = donanim.yerlesim(g, S, H, H + dy["son_kat"], -KY)
-    except Exception:
+    except sorun.BILINEN:
         log.debug("yedek değer kullanılıyor ( çizim kurulamadı )", exc_info=True)
         return out
     if "raylar" not in M or "kasnak" not in M:
