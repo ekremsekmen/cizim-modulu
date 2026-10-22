@@ -87,7 +87,7 @@ export function Teslim({
   const hata = paket.data?.hata || pdf.data?.hata;
   const notlar = paket.data?.notlar ?? [];
 
-  const kalan = (hesap?.asansorler ?? []).map((a) => a.bolumler.filter((b) => b.sonuc?.uygun === false).length);
+  const kalan = (hesap?.asansorler ?? []).map((a) => (a.bolumler ?? []).filter((b) => b.sonuc?.uygun === false).length);
 
   return (
     <Cekmece
@@ -214,7 +214,7 @@ export function Teslim({
               ek={Object.keys(kapak).length ? `${Object.keys(kapak).length} alan dolu` : "kapak alanları boş — kapak girmez"}
               soluk={!Object.keys(kapak).length}
             />
-            <Icerik simge={<FileText />} ad="Uygulama projesi hesapları" ek={`PDF · ${hesap?.asansorler?.[0]?.bolumler.length ?? "—"} bölüm × ${proje.asansorler.length} asansör`} />
+            <Icerik simge={<FileText />} ad="Uygulama projesi hesapları" ek={`PDF · ${hesap?.asansorler?.[0]?.bolumler?.length ?? "—"} bölüm × ${proje.asansorler.length} asansör`} />
             <Icerik simge={<DraftingCompass />} ad="Çizimler" ek={`DXF / DWG ve PDF · asansör başına ${cizimSayisi || "—"} çizim`} />
             <Icerik simge={<FileCode />} ad="Proje dosyası" ek=".uygulama — geri dönüş noktası" />
           </ul>

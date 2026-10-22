@@ -83,9 +83,13 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   const [secili, setSecili] = useState<string | null>(null);
   const [olcu, setOlcuHam] = useState<OlcuSecimi | null>(null);
   //  Ölçü kutusu açıkken ölçüyü belirleyen alanlar solda vurgulu
+  //  Her tıklama yeni bir kutu ( aynı ölçüye de ):  kutu açıldığı andaki girdiyle
+  //  çalışır, "ölçüye yeniden tıklayın" güncel girdiyle yeniden açar
+  const [olcuOturumu, setOlcuOturumu] = useState(0);
   const [olcuAlanlari, setOlcuAlanlari] = useState<string[]>([]);
   const setOlcu = (o: OlcuSecimi | null) => {
     setOlcuHam(o);
+    if (o) setOlcuOturumu((n) => n + 1);
     if (!o) setOlcuAlanlari([]);
   };
   const olcuKaynaklari = useCallback(
@@ -105,7 +109,9 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   const [geriAl, setGeriAl] = useState<{ metin: string; asansorler: Ham[]; aktif: number } | null>(null);
   const a = Math.min(asansor, proje.asansorler.length - 1);
 
-  const s = useSunucu(sema, proje, ofis, a, gorunum === "cizim");
+  //  Çizim, çizim görünümünde ve teslim açıkken istenir:  teslim son girdinin
+  //  çiziminin sorunlarına bakar ( hesap görünümünde eski çizime bakıyordu )
+  const s = useSunucu(sema, proje, ofis, a, gorunum === "cizim" || teslimAcik);
   //  SIRAYI KAYDIRAN KALDIRMADAN SONRA ( 21 Eki ):  son hesap eski dizilişindir —
   //  sonuç asansöre sırasıyla eşlendiği için kaldırılan asansörün hükümleri
   //  ( ve sekme noktaları ) kalanınkinde görünüyordu.  Yeni hesap gelene kadar
@@ -132,7 +138,10 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     const son = {
       adet: proje.asansorler.length,
       hata: s.hesapEski,
-      uygunDegil: (d.asansorler ?? []).reduce((t, x) => t + x.bolumler.filter((b) => b.sonuc?.uygun === false).length, 0),
+      uygunDegil: (d.asansorler ?? []).reduce(
+        (t, x) => t + (x.bolumler ?? []).filter((b) => b.sonuc?.uygun === false).length,
+        0,
+      ),
     };
     if (JSON.stringify(son) !== JSON.stringify(proje.son)) guncelle((p) => ({ ...p, son }));
   }, [sonHesap, s.hesapEski, proje.asansorler.length, proje.son, guncelle]);
@@ -406,8 +415,9 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
                 konum &&
                 s.cizimIstegi && (
                   <OlcuKutusu
-                    key={`${olcu.cizim}-${olcu.index}`}
+                    key={olcuOturumu}
                     istek={s.cizimIstegi}
+                    guncel={s.istek}
                     asansor={a}
                     olcu={olcu}
                     konum={konum}
@@ -475,8 +485,15 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
         engel={
           s.hatalar.length
             ? { metin: "Kural dışı girdi var — düzeltilmeden paket inmez.", ciddi: true }
+            : s.reddedilen.length
+              ? {
+                  metin: `${s.reddedilen.map((i) => i + 1).join(", ")} nolu asansör hesaplanamadı — sebebi o asansörün çalışma alanında.`,
+                  ciddi: true,
+                }
             : s.hesapEski
               ? { metin: "Hesap güncel girdilerle yapılamadı — sebebi çalışma alanında.", ciddi: true }
+              : s.cizimDenetleniyor
+                ? { metin: "Çizim denetleniyor…", ciddi: false }
               : s.cizimSorunSayisi
                 ? {
                     metin: `Çizimde ${s.cizimSorunSayisi} sorun var — giderilmeden paket inmez ( sorunlar çalışma alanında ).`,

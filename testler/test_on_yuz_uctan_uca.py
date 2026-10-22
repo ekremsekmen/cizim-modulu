@@ -398,7 +398,9 @@ class OnYuzUctanUca(unittest.TestCase):
             with self.sayfa.expect_file_chooser() as secici:
                 self.sayfa.get_by_role("button", name="Dosyadan aç").click()
             secici.value.set_files(dosya)
-            self.sayfa.get_by_text("Bu bir avan projesi dosyası — avan ekranından ya da açılış sayfasından açın.").wait_for()
+            self.sayfa.get_by_text(
+                "Bu bir avan projesi dosyası — avan ekranından ya da açılış sayfasından açın."
+            ).wait_for()
             self.assertEqual(self.sayfa.url, adres)
             self.assertEqual(self.sayfa.evaluate("localStorage.getItem('asansor:avan')"), avan_kaydi)
 
@@ -652,6 +654,54 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertTrue(kutu.get_by_role("button", name="Uygula").is_disabled())
         self.assertTrue(kutu.get_by_text("ölçüye yeniden tıklayın").is_visible())
 
+    def _olcuyu_ac(self, desen=r"^Ölçü KUYU DİBİ"):
+        olcu = self.sayfa.get_by_role("button", name=re.compile(desen)).first
+        olcu.scroll_into_view_if_needed()
+        olcu.focus()
+        self.sayfa.keyboard.press("Enter")
+        kutu = self.sayfa.get_by_role("dialog", name=re.compile(r"^Ölçü "))
+        kutu.get_by_role("button", name="Uygula").wait_for()
+        return olcu, kutu
+
+    def test_olcu_kutusu_degisen_girdiyle_uygulanmaz(self):
+        """22 Eki ( dış inceleme ):  kutu açıkken başka bir girdi ( kuyu genişliği )
+        değişti, kutu eski girdiyle hesaplayıp "doğrulandı" dedi, yazılan değer
+        yeni girdinin üstüne binip başka bir ölçü kurdu.  Artık "Uygula" kapanır;
+        aynı ölçüye yeniden tıklamak güncel girdiyle açar.  Yanıt yoldayken kutu
+        kapanırsa geç gelen değişiklik projeye yazılmaz."""
+        self.ornek_projeyi_ac()
+        _olcu, kutu = self._olcuyu_ac()
+        self.alan_kutusu("kuyu_genisligi").fill("2220")
+        self.iz.sakin()
+        self.assertTrue(kutu.get_by_role("button", name="Uygula").is_disabled())
+        self.assertIn("Girdiler kutu açıldıktan sonra değişti", kutu.inner_text())
+        #  Yeniden tıklama güncel girdiyle yeni kutu açar
+        olcu, kutu = self._olcuyu_ac()
+        self.assertTrue(kutu.get_by_role("button", name="Uygula").is_enabled())
+        self.assertNotIn("Girdiler kutu açıldıktan sonra değişti", kutu.inner_text())
+
+        #  Yanıt yoldayken kutu kapanır:  geç yanıt yazılmaz
+        once = self.kayitli_asansorler()
+        eski = int(re.search(r"\d+", olcu.get_attribute("aria-label").replace(".", "")).group())
+        tutulan = []
+        self.sayfa.route("**/api/uygulama/olcu_degistir", lambda r: tutulan.append(r))
+        try:
+            kutu.get_by_role("textbox").fill(str(eski + 50))
+            kutu.get_by_role("button", name="Uygula").click()
+            for _ in range(100):
+                if tutulan:
+                    break
+                self.sayfa.wait_for_timeout(100)
+            self.assertTrue(tutulan, "ölçü isteği gitmedi")
+            self.sayfa.keyboard.press("Escape")
+            kutu.wait_for(state="detached")
+        finally:
+            for r in tutulan:
+                r.continue_()
+            self.sayfa.unroute("**/api/uygulama/olcu_degistir")
+        self.sayfa.wait_for_timeout(1500)
+        self.assertEqual(self.kayitli_asansorler(), once)
+
     def test_yakinda_net_ve_olcu_kutusu_tuvale_sigar(self):
         """20 Eki ( kullanıcı:  "ölçüyü belirleyen kutucuğun tamamı görünmüyor,
         çizim ekranı bulanıklaşıyor" ):  yakınlaşma durunca levhanın CSS ölçeği
@@ -867,6 +917,54 @@ class OnYuzUctanUca(unittest.TestCase):
         teslim.get_by_role("checkbox").check()
         self.assertTrue(teslim.get_by_role("button", name=re.compile("Paketi indir")).is_disabled())
         self.assertTrue(teslim.get_by_role("button", name="Yalnız hesap PDF'i").is_enabled())
+
+    def test_reddedilen_asansor_ekrani_cokertmez_teslimi_kapatir(self):
+        """22 Eki ( dış inceleme ):  ikinci asansöre dar kuyu ( 1000 ) girilince
+        yanıt yine aktif, reddedilenin bölümleri yok — ekran olmayan listeyi
+        okuyup çöküyordu, yenilemek de kurtarmıyordu ( proje kayıtlı ).  Artık
+        sebebi görünür, teslim kapanır;  yenilenen sayfa açılır."""
+        self.ornek_projeyi_ac()
+        self.sayfa.get_by_role("button", name="Asansör ekle").click()
+        self.iz.sakin()
+        self.alan_kutusu("kuyu_genisligi").fill("1000")
+        _istek, hesap = self.iz.son("/api/uygulama/coklu")
+        self.assertTrue(hesap["aktif"])
+        self.assertFalse(hesap["asansorler"][1]["aktif"])
+        self.assertIn("2 nolu asansör", self.sayfa.get_by_role("alert").inner_text())
+        self.sayfa.get_by_role("button", name="Teslim").click()
+        teslim = self.sayfa.get_by_role("dialog", name="Teslim")
+        teslim.get_by_text(re.compile(r"2 nolu asansör hesaplanamadı")).wait_for()
+        teslim.get_by_role("checkbox").check()
+        self.assertTrue(teslim.get_by_role("button", name=re.compile("Paketi indir")).is_disabled())
+        #  Kayıtlı proje yeniden açılır ( eskiden yenilemede de çöküyordu )
+        self.sayfa.reload()
+        self.iz.sakin()
+        self.sayfa.get_by_role("button", name="Teslim").wait_for()
+
+    def test_hesap_gorunumunde_duzelen_cizim_teslimi_kapatmaz(self):
+        """22 Eki ( dış inceleme ):  çizimde sorun varken hesap görünümüne geçilip
+        girdi düzeltildi;  hesap görünümünde çizim istenmediği için eski sorunlu
+        çizim teslimi kapatıyordu.  Teslim açılınca son girdinin çizimi istenir."""
+        self.ornek_projeyi_ac()
+        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.iz.sakin()
+        self.sayfa.get_by_role("radio", name="Hesap").click()
+        self.iz.sakin()
+        self.alan_kutusu("kuyu_genisligi").fill("2200")
+        self.iz.sakin()
+        self.sayfa.get_by_role("button", name="Teslim").click()
+        teslim = self.sayfa.get_by_role("dialog", name="Teslim")
+        self.iz.sakin()
+        self.assertNotIn("Çizimde 1 sorun var", teslim.inner_text())
+        teslim.get_by_role("checkbox").check()
+        self.assertTrue(teslim.get_by_role("button", name=re.compile("Paketi indir")).is_enabled())
+        #  Ters yön:  hesap görünümünde bozulan çizim teslimde yakalanır
+        self.sayfa.keyboard.press("Escape")
+        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.iz.sakin()
+        self.sayfa.get_by_role("button", name="Teslim").click()
+        teslim.get_by_text(re.compile(r"Çizimde 1 sorun var")).wait_for()
+        self.assertTrue(teslim.get_by_role("button", name=re.compile("Paketi indir")).is_disabled())
 
     # ------------------------------------------------------------ 6 adresler
     def test_bilinmeyen_proje_acilisa_doner(self):

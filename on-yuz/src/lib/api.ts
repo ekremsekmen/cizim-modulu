@@ -100,14 +100,19 @@ export interface Bolum {
   sira: number;
 }
 
+/**  Bir asansörün sonucu.  Çok asansörlü projede biri reddedilirse yanıtın
+     kendisi yine aktiftir;  reddedilenin yalnız aktif:false, no, tanim, girdi
+     ve hata'sı gelir — bölüm, uyarı ve özeti YOKTUR ( 22 Eki:  ikinci asansöre
+     dar kuyu girilince ön yüz olmayan listeyi okuyup çöküyordu ).  */
 export interface AsansorSonucu {
   aktif: boolean;
   no: number;
   tanim: string;
-  girdi: Record<string, Deger>;
-  bolumler: Bolum[];
-  uyarilar: string[];
-  ozet: Record<string, unknown>;
+  girdi?: Record<string, Deger>;
+  hata?: string[];
+  bolumler?: Bolum[];
+  uyarilar?: string[];
+  ozet?: Record<string, unknown>;
 }
 
 export interface CokluYanit {

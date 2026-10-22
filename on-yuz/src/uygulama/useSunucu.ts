@@ -98,7 +98,17 @@ export function useSunucu(
       setSonTemiz({ ...sonTemiz, [asansor]: { asansor: temizGirdi, proje_geneli: gonderilen.proje_geneli } });
   }
 
-  const hesapDurdu = !!hesap.data && !hesap.data.aktif;
+  //  ÇOK ASANSÖRDE BİRİ REDDEDİLİRSE yanıt yine aktiftir:  reddedilenin yalnız
+  //  hata'sı gelir, bölümleri gelmez ( 22 Eki:  ikinci asansöre dar kuyu girilince
+  //  ekran olmayan listeyi okuyup çöküyordu, düzelse de sebep görünmüyordu ).
+  //  Seçili asansör reddedildiyse hesap onun için durmuştur;  teslim herhangi
+  //  biri reddedilince kapanır ( sunucu da o paketi vermez ).
+  const secili = hesap.data?.asansorler?.[asansor];
+  const hesapDurdu = !!hesap.data && (!hesap.data.aktif || secili?.aktif === false);
+  const durmaSebebi = hesap.data?.aktif ? (secili?.hata ?? []) : (hesap.data?.hata ?? []);
+  const reddedilen = (hesap.data?.aktif ? (hesap.data.asansorler ?? []) : [])
+    .map((x, i) => (x.aktif ? null : i))
+    .filter((i): i is number => i !== null);
   //  Girdi çizime hiç çevrilemedi ( eksik / geçersiz alan ) — sorunlu çizim değil
   const cizimKurulamadi = !!cizim.data && !cizim.data.aktif && !cizim.data.cizimler;
   const baglanti = hesap.error ?? cizim.error;
@@ -126,7 +136,7 @@ export function useSunucu(
     //  Hesabın durduğu sebep çoğu kez çizimin sorunuyla aynı metindir:  bir kez
     //  ( çizimdekinin parçalarıyla )
     const cizimde = new Map((cizimGerekli ? cizimSorunlari : []).map((m) => [m.metin, m]));
-    const hesaptaki = (hesap.data?.hata ?? []).map((h) => cizimde.get(h) ?? duz(h));
+    const hesaptaki = durmaSebebi.map((h) => cizimde.get(h) ?? duz(h));
     const metinler = new Set(hesaptaki.map((m) => m.metin));
     sorun = {
       tur: "hesap",
@@ -139,6 +149,17 @@ export function useSunucu(
 
   //  Ekrandaki hükümler son girdinin mi?
   const hesapEski = !!hatalar.length || hesapDurdu || !!hesap.error;
+  //  EKRANDAKİ ÇİZİM SON GİRDİNİN Mİ?  Hesap görünümünde çizim istenmez:  son
+  //  çizim yanıtı eski girdinindir.  Onun sorunları teslimi kapatıyordu — sorun
+  //  hesap görünümünde düzeltilse de ( 22 Eki ).  Teslim açılınca çizim istenir
+  //  ( Calisma ), gelene kadar "denetleniyor".
+  //  İçerikle karşılaştırılır:  aynı girdiden yeni bir istek nesnesi kurulur ( proje
+  //  özeti yazılınca ) ve çizim önbellekten gelir — kimlikle karşılaştırınca teslim
+  //  "denetleniyor"da kalıyordu.
+  const sonCizimAnahtari = useMemo(() => (sonCizim ? JSON.stringify(sonCizim.istek) : null), [sonCizim]);
+  const gonderilenAnahtari = useMemo(() => (gonderilen ? JSON.stringify(gonderilen) : null), [gonderilen]);
+  const cizimSonGirdinin =
+    !!gonderilenAnahtari && sonCizimAnahtari === gonderilenAnahtari && sonCizim?.asansor === asansor;
   const cizimDurumu: "guncel" | "yukleniyor" | "eski" | "sorunlu" = cizimEski
     ? "eski"
     : cizim.isFetching || hesap.isFetching || (istek !== null && gonderilen !== istek)
@@ -157,7 +178,11 @@ export function useSunucu(
     cizimIstegi: sonCizim?.istek ?? null,
     cizimDurumu,
     /**  Ekrandaki ( güncel ) çizimin sorun sayısı — paket inmez  */
-    cizimSorunSayisi: cizimSorunlari.length,
+    cizimSorunSayisi: cizimSonGirdinin ? cizimSorunlari.length : 0,
+    /**  Son girdinin çizimi henüz gelmedi ( teslim beklesin )  */
+    cizimDenetleniyor: cizimGerekli && !cizimSonGirdinin && !hatalar.length && !cizimKurulamadi,
+    /**  Hesaplanamayan asansörlerin sırası ( 0'dan ) — teslim kapalı  */
+    reddedilen,
     /**  Ekrandaki ( güncel ) çizimin sorunlu parçaları ( data-ad ) — tuval kırmızı işaretler  */
     sorunluParcalar,
     /**  Bu asansörün son temiz çiziminin girdisi ( yoksa null )  */

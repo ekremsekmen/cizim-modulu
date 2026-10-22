@@ -14,8 +14,17 @@ import { KUTU_UST, kutuYeri, type OlcuKonumu, type OlcuSecimi } from "./Tuval";
 
 const YER: Record<string, string> = { asansor: "asansör", proje: "bina", ofis: "ofis standardı" };
 
+/**  İki istek aynı girdiyi mi taşıyor ( kapak / antet ölçüyü değiştirmez )  */
+function ayniGirdi(a: UygulamaIstegi | null, b: UygulamaIstegi | null) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const g = (x: UygulamaIstegi) => JSON.stringify({ ...x, kapak: undefined });
+  return g(a) === g(b);
+}
+
 export function OlcuKutusu({
   istek,
+  guncel,
   asansor,
   olcu,
   konum,
@@ -24,6 +33,9 @@ export function OlcuKutusu({
   kaynaklarGeldi,
 }: {
   istek: UygulamaIstegi;
+  /**  Formun ŞU ANKİ girdisi ( kural dışıysa null ) — kutu açıldıktan sonra
+       değiştiyse kutunun sonucu eski girdinindir  */
+  guncel: UygulamaIstegi | null;
   asansor: number;
   olcu: OlcuSecimi;
   konum: OlcuKonumu;
@@ -52,7 +64,27 @@ export function OlcuKutusu({
   //  uyarilar'ı — "Yine de uygula" ):  eski arayüzde vardı, React'e geçişte
   //  düşmüştü;  tek tık çizimi sessizce bozuyordu ( 20 Eki )
   const [uygulandi, setUygulandi] = useState(false);
+  //  GİRDİ KUTU AÇIKKEN DEĞİŞTİ ( 22 Eki ):  kutu açıldığı andaki girdiyle
+  //  konuşur;  arada başka bir kutu ( kuyu genişliği … ) değişirse sunucunun
+  //  "doğrulandı"sı eski girdinindir — yazılan değer yeni girdinin üstüne
+  //  binip başka bir ölçü kuruyordu ( 420 istendi, 430 çıktı ).  Kendi
+  //  uygulamamızdan sonraki değişiklik beklenendir ( uygulandi ).  Yanıt
+  //  yoldayken girdi değişir ya da kutu kapanırsa ( useMutation'ın onSuccess'i
+  //  kutu kapandıktan sonra da çalışır ) gelen değişiklik yazılmaz.
+  const guncelRef = useRef(guncel);
+  const acik = useRef(true);
+  useLayoutEffect(() => {
+    guncelRef.current = guncel;
+  }, [guncel]);
+  useLayoutEffect(() => {
+    acik.current = true;
+    return () => {
+      acik.current = false;
+    };
+  }, []);
+  const girdiDegisti = !uygulandi && !ayniGirdi(guncel, sabit);
   const uygula = (r: OlcuDegisikligi) => {
+    if (!acik.current || !ayniGirdi(guncelRef.current, sabit)) return;
     yaz((r.degisiklikler ?? []).map((d) => ({ anahtar: d.anahtar, deger: d.deger })));
     setUygulandi(true);
   };
@@ -174,7 +206,7 @@ export function OlcuKutusu({
               className="shrink-0 border-t border-cizgi bg-yuzey-2 px-4 py-3"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!uygulandi) degistir.mutate();
+                if (!uygulandi && !girdiDegisti) degistir.mutate();
               }}
             >
               <label htmlFor="olcu-hedef" className="text-[12px] font-medium text-metin-2">
@@ -186,12 +218,20 @@ export function OlcuKutusu({
                      konuşur ( değişiklikten sonra ölçünün çizimdeki yeri değişebilir ) —
                      ikinci "Uygula" ilk değişikliği görmeden hesaplanıyor, ölçü hedefi
                      tutmuyordu.  Yenisi için ölçüye yeniden tıklanır ( güncel girdiyle )  */}
-                <Dugme tur="birincil" type="submit" disabled={degistir.isPending || !anahtar || uygulandi}>
+                <Dugme
+                  tur="birincil"
+                  type="submit"
+                  disabled={degistir.isPending || !anahtar || uygulandi || girdiDegisti}
+                >
                   {degistir.isPending ? <Loader2 className="animate-spin" /> : <ArrowRight />}
                   Uygula
                 </Dugme>
               </div>
-              {sonuc &&
+              {girdiDegisti ? (
+                <p className="mt-2 text-[12px] text-uyari">
+                  Girdiler kutu açıldıktan sonra değişti — güncel çizimle çalışmak için ölçüye yeniden tıklayın.
+                </p>
+              ) : sonuc &&
                 (soruluyor ? (
                   <div className="mt-2.5 space-y-1.5">
                     <p className="text-[12px] font-medium text-uyari">Bu değişiklikle çizim kurulamaz:</p>

@@ -54,9 +54,16 @@ def _dolgu(katman, r):
 def _dikdortgen(el, renk, kalinlik, k=1.0, r=KAGIT):
     dolgu = _dolgu(el["katman"], r)
     kesik = _kesik_ozniteligi(el, k)
+    #  TERS DÖNMÜŞ KUTU:  sorunlu girdide ( 22 Eki:  kuyu kabinden dar ) bir
+    #  parçanın iki ucu yer değiştirebilir — regülatör gövdesi duvarın dışına
+    #  taşar, ayağı "gövdeden duvara" eksi genişlik alır.  Çizim yine gösterilir
+    #  ( sorunlu ), ama eksi genişlik SVG'de geçersizdir ( tarayıcı hata yazar ):
+    #  aynı alanı kaplayan kutuya çevrilir.
+    x, g = (el["x"] + el["g"], -el["g"]) if el["g"] < 0 else (el["x"], el["g"])
+    y, d = (el["y"] + el["d"], -el["d"]) if el["d"] < 0 else (el["y"], el["d"])
     return (
-        f'<rect x="{el["x"]:.1f}" y="{el["y"]:.1f}" width="{el["g"]:.1f}" '
-        f'height="{el["d"]:.1f}" fill="{dolgu}" stroke="{renk}" '
+        f'<rect x="{x:.1f}" y="{y:.1f}" width="{g:.1f}" '
+        f'height="{d:.1f}" fill="{dolgu}" stroke="{renk}" '
         f'stroke-width="{kalinlik}"{kesik}/>'
     )
 
