@@ -5,17 +5,33 @@ Hem uygulama uçları ( uygulama_uclari ) hem çizim uçları ( cizim_uclari )
 kullanır.  Eskiden uygulama_uclari'nın içindeydi;  cizim_uclari onu
 fonksiyon içinden import ediyor, uygulama_uclari de cizim_uclari'nı import
 ediyordu ( iki uç modülü birbirine dolanmıştı ).
+
+TEK KAPI:  isteğin değerleri yalnız burada denetlenir ( asansor_girdileri ) —
+tür, okunuş, seçenek, tam sayı, alt sınır, tavan.  Geçersiz girdide uç
+GecersizGirdi'nin iletilerini döndürür, hesap da çizim de başlamaz.
 """
+
+import math
 
 from cizim import kopru
 from motor.ortak.adimlar import evet_mi
 from motor.uygulama import mukavemet_girdi
+from motor.uygulama import mukavemet_tablolari
 from motor.uygulama import tablolar_gorunum
 from motor.uygulama import uygulama_girdisi
 from motor.uygulama import uygulama_hesabi
 from motor.uygulama import uygulama_sabitleri
-from tasarim import gorunum
-from uclar.uc_ortak import _BELIRSIZ, _RED, _sabitler_coz, _sayi, _sayi_oku, belirsiz_sayi_mi
+from tasarim.alanlar import ALANLAR, CIZ, ELK, MUK
+from uclar.uc_ortak import (
+    _BELIRSIZ,
+    _RED,
+    _belirsiz_hata,
+    _bos_mu,
+    _sabitler_coz,
+    _sayi,
+    _sayi_oku,
+    belirsiz_sayi_mi,
+)
 
 
 def alanlar():
@@ -59,13 +75,18 @@ def alanlar():
 BOS_TABLODAN = ("kabin_agirligi",)
 
 
-def mukavemet_girdisi(veri: dict):
-    """Arayüzden gelen ham metinleri sözleşmenin beklediği türlere çevirir.
+class GecersizGirdi(ValueError):
+    """İstek kapıdan geçmedi:  hatalar alan alan, Türkçe ve alanın adıyla.
+    Uçlar bunları olduğu gibi döndürür;  hiçbir hesap ya da çizim işi başlamaz."""
 
-    Seçim alanları LİSTEDEKİ değere eşlenir:  arayüz her şeyi metin olarak
-    yollar, oysa seçeneklerin çoğu sayıdır ( 800 · 1,6 · 370 ).  Eşleme
-    burada yapılmazsa motorun doğrulaması "geçersiz seçim" der.
-    """
+    def __init__(self, hatalar):
+        super().__init__("  ·  ".join(hatalar))
+        self.hatalar = list(hatalar)
+
+
+def mukavemet_girdisi(veri: dict):
+    """Eski tek asansörlük isteğin ( "girdiler" ) çözümü — kapının hatalarını
+    yükseltmez ( okunamayan yazım _BELIRSIZ / _RED'de kalır )."""
     _BELIRSIZ.clear()
     _RED.clear()
     girdiler = (veri or {}).get("girdiler")
@@ -81,24 +102,79 @@ def uygulanmayan(ham):
     return uygulama_girdisi.uygulanmayan_alanlar(mk_yok)
 
 
-def _secim_hami(ham):
-    """Seçim / metin kutusunun ham değeri:  metin, sayı ya da boş.  Başka tür
-    ( mantıksal, liste, sözlük — yalnız API'den gelir;  form göndermez ) metne
-    çevrilir:  hiçbir seçeneğe uymaz, "geçersiz seçim" iletisiyle reddedilir.
-    21 Eki uç tarama:  True seçenek 1 sanılıyordu ( True == 1 — askı oranı
-    sessizce 1:1, beyan hızında tampon hesabı çöküyordu ), liste / sözlük
-    sözlük anahtarı olunca ( makine tipi ) hesap ve çizim çöküyordu."""
-    if ham is None or (isinstance(ham, (str, int, float)) and not isinstance(ham, bool)):
-        return ham
-    return str(ham)
+class _Kisa:
+    """İletide uzun liste / sözlük yerine kısaltılmış yazımı."""
+
+    def __init__(self, x):
+        self.r = repr(x)
+
+    def __repr__(self):
+        return self.r if len(self.r) <= 40 else self.r[:37] + "…"
+
+    __str__ = __repr__
 
 
-def _girdi_coz(v, veri, atla=frozenset()):
-    """Tek asansörün ham alanlarını türlerine çevirir.
+def _sayi_turu(x):
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+def _secim_oku(a, ham):
+    """Seçim kutusu:  listedeki değer ( birebir ya da sayısal eşleşme — arayüz
+    "1,6" yollar ) ya da hata.  Mantıksal, liste, sözlük hiçbir seçeneğe uymaz
+    ( 21 Eki:  True == 1 askı oranını sessizce 1:1 yapıyordu )."""
+    if a.anahtar == "makine_raya_biniyor" and isinstance(ham, (bool, str)):
+        #  Eski onay kutusu ( True / "EVET" ) — eski .uygulama dosyaları
+        return mukavemet_tablolari.makine_yuk_yolu(ham), None
+    if not (isinstance(ham, str) or _sayi_turu(ham)):
+        return None, mukavemet_girdi.secim_iletisi(a.anahtar, _Kisa(ham))
+    if belirsiz_sayi_mi(ham):
+        _BELIRSIZ.append(f"{a.etiket} = {ham.strip()}")
+        return None, None
+    sayi = _sayi(ham)
+    for o in a.secenekler:
+        if o == ham or (_sayi_turu(o) and sayi is not None and abs(o - sayi) < 1e-9):
+            return o, None
+    return None, mukavemet_girdi.secim_iletisi(a.anahtar, ham)
+
+
+def _oku(a, ham):
+    """Bir kutunun ham değeri → ( değer , hata ):  tür, okunuş, seçenek, tam
+    sayı, alt sınır, tavan ( mukavemet_girdi.alan_hatasi — ön yüzün kural
+    tablosu ).  Okunamayan / belirsiz yazım _RED / _BELIRSIZ'e gider ( bugünkü
+    toplu ileti )."""
+    if a.tur == "onay":
+        if ham is None or isinstance(ham, (bool, str)) or _sayi_turu(ham):
+            return evet_mi(ham), None
+        return None, f"{a.etiket}: işaretli ya da işaretsiz olmalı ( {_Kisa(ham)!r} girildi )."
+    if _bos_mu(ham):
+        return None, None
+    if a.tur == "sayi":
+        d = _sayi_oku(ham, a.etiket)
+        return d, (None if d is None else mukavemet_girdi.alan_hatasi(a.anahtar, d))
+    if a.tur == "secim":
+        return _secim_oku(a, ham)
+    #  metin
+    if isinstance(ham, str) or (_sayi_turu(ham) and math.isfinite(ham)):
+        return str(ham), None
+    return None, f"{a.etiket}: yazı olmalı ( {_Kisa(ham)!r} girildi )."
+
+
+#  Okunan alanlar:  FORMDA KUTUSU OLANLAR ( elektrik · çizim · mukavemet ).
+#  Çizimden ya da hesaptan gelen alan istekte olsa da okunmaz — eski proje
+#  dosyalarında saptırma kasnağı çapı, kaide, ray sayısı yazılı olabilir.
+_OKUNAN = tuple(
+    a for s in (ELK, CIZ, MUK) for a in ALANLAR if a.sozlesme == s and a.formda and a.tur != "hesap"
+)
+
+
+def _girdi_coz(v, veri, atla=frozenset(), hatalar=None):
+    """Tek asansörün ham alanlarını okur ve DENETLER ( _oku ):  değerler
+    türünde, hatalar ( anahtar , ileti ) olarak ``hatalar``a.
 
     ``atla``:  makine yerleşimine göre hesaba girmeyen ( ekranda gizli )
     alanlar.  OKUNMAZLAR — içlerinde kalmış "4.000" ya da "-3" projeyi
-    durdurmaz, çünkü kullanıcı gizli alanı göremez ve düzeltemez.
+    durdurmaz, çünkü kullanıcı gizli alanı göremez ve düzeltemez.  Formda
+    kutusu olmayan alan da okunmaz ( eski proje dosyaları ).
 
     _BELIRSIZ / _RED KASITLI OLARAK TEMİZLENMEZ:  çoklu projede her asansör
     ayrı çağrılır ve belirsiz girdiler hepsinden TOPLANMALIDIR — temizlik
@@ -106,59 +182,15 @@ def _girdi_coz(v, veri, atla=frozenset()):
     """
     v = v if isinstance(v, dict) else {}
     g = {}
-    #  Elektrik hesaplarının ek alanları  ( kuyu genişliği · kesitler ·
-    #  temel ölçüleri · makine dairesi ).  Onay kutusu mantıksal, geri kalanı
-    #  serbest sayıdır;  boş bırakılabilir — hesap eksikliği kendisi bildirir.
-    for anahtar, _et, _b2, tur2, _s2, _v2 in uygulama_girdisi.EK_ALANLAR:
-        if anahtar not in v or anahtar not in _FORMDA:
+    for a in _OKUNAN:
+        if a.anahtar not in v:
             continue
-        if anahtar in atla:
-            g[anahtar] = None
+        if a.anahtar in atla:
+            g[a.anahtar] = None
             continue
-        ham = v[anahtar]
-        g[anahtar] = evet_mi(ham) if tur2 == "onay" else _sayi_oku(ham, _et)
-    #  Çizim alanları:  sayılar okunur ( okunamayan yazım reddedilir ),
-    #  seçimler olduğu gibi;  boş alan None — köprü kuralını uygular.
-    for anahtar, _et, _b3, tur3, _s3, _v3, _gel, _bil in kopru.ALANLAR:
-        if anahtar not in v or anahtar not in _FORMDA:
-            continue
-        if anahtar in atla:
-            g[anahtar] = None
-            continue
-        ham = v[anahtar] if tur3 == "sayi" else _secim_hami(v[anahtar])
-        g[anahtar] = _sayi_oku(ham, _et) if tur3 == "sayi" else (ham if str(ham).strip() != "" else None)
-    for anahtar, etiket, _b, tur, secenekler, _var in mukavemet_girdi.ALANLAR:
-        if tur == "hesap" or anahtar not in v or anahtar not in _FORMDA:
-            continue
-        if anahtar in atla:
-            g[anahtar] = None
-            continue
-        ham = v[anahtar] if tur == "sayi" else _secim_hami(v[anahtar])
-        if secenekler is None:
-            #  Serbest sayı:  okunamayan yazım boş SAYILMAZ, sebebiyle
-            #  reddedilir ( boş kabin kütlesi gibi tablodan doldurulan bir
-            #  alanda "abc" eskiden tablo değerine dönüşürdü ).
-            g[anahtar] = _sayi_oku(ham, etiket) if tur == "sayi" else ham
-            continue
-        if belirsiz_sayi_mi(ham):
-            _BELIRSIZ.append(f"{etiket} = {str(ham).strip()}")
-        #  Seçenek listesi:  önce birebir, sonra sayısal eşleşme aranır
-        if ham in secenekler:
-            g[anahtar] = ham
-            continue
-        sayi = _sayi(ham)
-        esles = next(
-            (
-                o
-                for o in secenekler
-                if isinstance(o, (int, float))
-                and not isinstance(o, bool)
-                and sayi is not None
-                and abs(o - sayi) < 1e-9
-            ),
-            None,
-        )
-        g[anahtar] = esles if esles is not None else (ham if str(ham).strip() != "" else None)
+        g[a.anahtar], hata = _oku(a, v[a.anahtar])
+        if hata and hatalar is not None:
+            hatalar.append((a.anahtar, hata))
     #  Ofis standardı ( Sabitler sekmesi ) — elektrik ve topraklama hesapları
     #  buradan besleniyor;  avan tarafındaki ile aynı biçimde alınır.
     g["_ofis"] = _sabitler_coz(
@@ -172,16 +204,20 @@ def _girdi_coz(v, veri, atla=frozenset()):
 
 #  Makine dairesinin çizim ölçüleri de binaya aittir.
 PROJE_GENELI_ALANLAR = uygulama_girdisi.PROJE_GENELI_ALANLAR + kopru.PROJE_GENELI
-#  FORMDA KUTUSU OLAN alanlar okunur ( tasarım şeması ).  Çizimden ya da
-#  hesaptan gelen alan istekte olsa da okunmaz — eski proje dosyalarında
-#  saptırma kasnağı çapı, kaide, ray sayısı yazılı olabilir.
-_FORMDA = frozenset(gorunum.anahtarlar(formda=True))
 
 
 def asansor_girdileri(veri):
-    """Arayüzden gelen isteği ( 1 - 4 asansör ) çözer.
+    """TEK KAPI:  arayüzden gelen isteği ( 1 - 4 asansör ) çözer ve denetler.
+    Uygulamanın bütün uçları isteği yalnız buradan okur.
 
-    Döner:  ( [ asansör girdi sözlükleri ] , ortak )
+    Döner:  ( [ asansör girdi sözlükleri ] , ortak ) — her değer türünde,
+    tek alanın kuralına uyar ( _oku ).  Geçersiz girdide GecersizGirdi:
+    okunamayan / belirsiz yazım ( bugünkü toplu ileti ), alan alan kural
+    dışı değerler ( çok asansörlüde asansörün adıyla ), Sabitler sekmesinin
+    aralık dışı değerleri.  21 Eki:  hesap girdiyi denetlemeden çizimi kurup
+    değer türetiyordu ( tamamla → kopru.cizimden ) — kapı genişliği 10¹²
+    belleği bitirdi, True / liste / sözlük çökertti.  Alanlar arası ve
+    mühendislik kuralları motorda kalır.
 
     GERİYE DÖNÜK:  "asansorler" yoksa eski tek asansörlük "girdiler" alanı
     kullanılır — kayıtlı eski projeler ve eski istekler çalışmaya devam eder.
@@ -206,7 +242,23 @@ def asansor_girdileri(veri):
         pg_ham = {k: ham[0][k] for k in PROJE_GENELI_ALANLAR if k in ham[0]}
     #  Makine yerleşimi proje genelidir:  gizli alanlar bütün asansörlerde aynı.
     atla = uygulanmayan(pg_ham)
+    hatalar = []
     ortak = {
-        k: v for k, v in _girdi_coz(pg_ham, veri, atla).items() if k in PROJE_GENELI_ALANLAR or k == "_ofis"
+        k: v
+        for k, v in _girdi_coz(pg_ham, veri, atla, hatalar).items()
+        if k in PROJE_GENELI_ALANLAR or k == "_ofis"
     }
-    return [_girdi_coz(x, veri, atla) for x in ham], ortak
+    hatalar = [h for k, h in hatalar if k in PROJE_GENELI_ALANLAR]
+    asansorler = []
+    for i, x in enumerate(ham, 1):
+        h = []
+        asansorler.append(_girdi_coz(x, veri, atla, h))
+        #  Binanın alanı ( ilk asansörde taşınıyorsa ) yukarıda bir kez söylendi
+        h = [m for k, m in h if k not in PROJE_GENELI_ALANLAR]
+        ad = str(x.get("asansor_adi") or "").strip() or f"{i} nolu asansör"
+        hatalar += [f"{ad}:  {m}" for m in h] if len(ham) > 1 else h
+    hatalar += uygulama_sabitleri.ofis_hatalari(ortak["_ofis"])
+    belirsiz = _belirsiz_hata()
+    if belirsiz or hatalar:
+        raise GecersizGirdi(([belirsiz] if belirsiz else []) + list(dict.fromkeys(hatalar)))
+    return asansorler, ortak

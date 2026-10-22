@@ -139,10 +139,10 @@ def cizimler_yaniti(veri):
     """Çizimlerin yanıtı ( önbelleği etkinleştiren api_cizimler çağırır;  test
     önbelleksizini karşılaştırır )."""
     try:
-        asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
-        belirsiz = _belirsiz_hata()
-        if belirsiz:
-            return JSONResponse({"aktif": False, "hata": [belirsiz]})
+        try:
+            asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
+        except uygulama_istegi.GecersizGirdi as e:
+            return JSONResponse({"aktif": False, "hata": e.hatalar})
         try:
             i = int(veri.get("asansor") or 0)
         except (TypeError, ValueError):
@@ -230,12 +230,10 @@ def _sozlesme():
 
 
 def _istek(veri):
-    """Aktif asansörün tamamlanmamış girdisi — girdiler()'in kurduğunun aynısı."""
+    """Aktif asansörün tamamlanmamış girdisi — girdiler()'in kurduğunun aynısı.
+    Geçersiz girdide kapının hatası ( GecersizGirdi — bir ValueError )."""
 
     asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
-    belirsiz = _belirsiz_hata()
-    if belirsiz:
-        raise ValueError(belirsiz)
     try:
         i = int(veri.get("asansor") or 0)
     except (TypeError, ValueError):

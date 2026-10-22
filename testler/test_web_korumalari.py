@@ -88,13 +88,15 @@ class DurakSiniri(unittest.TestCase):
                 v = test_yerlesim_saglamligi.standart_istek(
                     1000, True, "Sağ", durak_adedi=durak, seyir_mesafesi=round((durak - 1) * 3.3, 1)
                 )
-                g, _A, hata = test_yerlesim_saglamligi.duzen_girdisi(v)
                 if gecer:
+                    g, _A, hata = test_yerlesim_saglamligi.duzen_girdisi(v)
                     self.assertIsNotNone(g, hata)
                 else:
-                    self.assertIsNone(g)
-                    self.assertIn(
-                        f"Durak adedi:  en çok {kopru.DURAK_AZAMI} adet olabilir ( 101 girildi ).", hata
+                    with self.assertRaises(uygulama_istegi.GecersizGirdi) as k:
+                        test_yerlesim_saglamligi.duzen_girdisi(v)
+                    self.assertEqual(
+                        k.exception.hatalar,
+                        [f"Durak adedi: en çok {kopru.DURAK_AZAMI} adet olabilir ( 101 girildi )."],
                     )
 
 
@@ -127,17 +129,16 @@ class FizikselTavan(unittest.TestCase):
             any(ileti in h for h in json.loads(cizim_uclari.api_cizimler(v).body).get("hata") or [])
         )
 
-    def test_sayisal_secim_listenin_ustunu_cizime_gecirmez(self):
+    def test_sayisal_secim_listenin_disi_kapida_durur(self):
         """21 Eki bulanık tarama:  kat kapısı genişliği SEÇİM alanı olduğu için
         tavansızdı — 10¹² mm'de hesap "geçersiz seçim" derken çizim köprüsü
-        planı kurup belleği bitiriyordu ( 2,5 GB, işlem öldürüldü ).  Sayıyla
-        okunan her seçim alanında hesap reddeder, iki uç da saniyeler içinde
-        yanıt verir ( beyan yükü çizimde yalnız veri tablosundadır — çizim
-        kurulur, hesap durur );  listenin en büyüğü kapıdan geçer."""
-        self.assertEqual(alanlar.SECIM_AZAMI["kapi_genisligi"], 1400)
+        planı kurup belleği bitiriyordu ( 2,5 GB, işlem öldürüldü ).  Seçenek
+        artık isteğin kapısında denetlenir:  iki uç aynı iletiyi verir, çizim
+        hiç kurulmaz;  listenin en büyüğü geçer."""
         for alan in ("kapi_genisligi", "halat_capi", "reg_halat_capi", "beyan_hizi", "beyan_yuku"):
             v = test_yerlesim_saglamligi.standart_istek(1000, True, "Sağ")
             v["asansorler"][0][alan] = 1e12
+            yanitlar = []
             for ad, uc in (
                 ("hesap", uygulama_uclari.api_uygulama_coklu),
                 ("cizim", cizim_uclari.api_cizimler),
@@ -146,12 +147,14 @@ class FizikselTavan(unittest.TestCase):
                     t = time.perf_counter()
                     yanit = json.loads(uc(v).body)
                     self.assertLess(time.perf_counter() - t, 2.0)
-                    self.assertFalse(yanit["aktif"] if ad == "hesap" else yanit.get("hesap"))
+                    self.assertFalse(yanit["aktif"])
+                    self.assertNotIn("cizimler", yanit)
+                    self.assertIn("geçersiz seçim", yanit["hata"][0])
+                    yanitlar.append(yanit["hata"])
+            self.assertEqual(yanitlar[0], yanitlar[1])
         v = test_yerlesim_saglamligi.standart_istek(1000, True, "Sağ")
-        v["asansorler"][0]["kapi_genisligi"] = 1e12
-        hata = json.loads(cizim_uclari.api_cizimler(v).body)["hata"]
-        self.assertIn("Kat kapısı genişliği:  en çok 1.400 mm olabilir", hata[0])
-        self.assertIsNone(alanlar.secim_asimi("kapi_genisligi", 1400))
+        v["asansorler"][0]["kapi_genisligi"] = "1400"
+        self.assertEqual(uygulama_istegi.asansor_girdileri(v)[0][0]["kapi_genisligi"], 1400)
 
     def test_verim_biri_asamaz(self):
         self.assertEqual(alanlar.AZAMI["makine_verimi"], 1)

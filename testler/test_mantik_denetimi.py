@@ -30,7 +30,10 @@ def _calistir(**ek):
     v = test_yerlesim_saglamligi.standart_istek(800, True, "Sağ")
     v["asansorler"][0].update(ek)
     cizim = json.loads(cizim_uclari.api_cizimler(v).body)
-    asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
+    try:
+        asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
+    except uygulama_istegi.GecersizGirdi as e:  # kapıdan geçmedi:  uç bunu döndürür
+        return cizim, {"aktif": False, "hata": e.hatalar}
     return cizim, uygulama_hesabi.hesapla_coklu(asansorler, ortak)
 
 
@@ -140,7 +143,9 @@ class SifirOlamaz(unittest.TestCase):
     kuruluyordu ).  Formda olmayan, çizimden ölçülenler ( ray ve halat boyları,
     dolgu yüksekliği ) motoru doğrudan çağırana karşı korunur."""
 
-    def test_formdaki_sifir_durur(self):
+    def test_formdaki_sifir_kapida_durur(self):
+        """Formdan gelen 0 isteğin kapısında durur ( uygulama_istegi — hesap ve
+        çizim başlamaz );  motorun kendi denetimi doğrudan çağrıda aynı iletiyi verir."""
         for alan in (
             "agirlik_genisligi",
             "agirlik_derinligi",
@@ -153,13 +158,14 @@ class SifirOlamaz(unittest.TestCase):
             with self.subTest(alan):
                 v = test_yerlesim_saglamligi.standart_istek(800, True, "Sağ")
                 v["asansorler"][0][alan] = 0
+                with self.assertRaises(uygulama_istegi.GecersizGirdi) as k:
+                    uygulama_istegi.asansor_girdileri(v)
+                self.assertTrue(any("sıfırdan büyük" in h for h in k.exception.hatalar), k.exception.hatalar)
+                v["asansorler"][0].pop(alan)
                 asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
-                hesap = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
+                hesap = uygulama_hesabi.hesapla_coklu([{**asansorler[0], alan: 0}], ortak)
                 self.assertFalse(hesap["asansorler"][0].get("aktif"))
-                self.assertTrue(
-                    any("sıfırdan büyük" in h for h in hesap["asansorler"][0]["hata"]),
-                    hesap["asansorler"][0]["hata"],
-                )
+                self.assertIn(k.exception.hatalar[0], hesap["asansorler"][0]["hata"])
 
     def test_cizimden_olculenler_motorda_durur(self):
         for alan in ("kabin_ray_boyu", "agirlik_ray_boyu", "reg_halat_boyu", "aski_halat_boyu"):

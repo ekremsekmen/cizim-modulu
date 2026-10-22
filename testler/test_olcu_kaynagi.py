@@ -298,7 +298,9 @@ class CokAsansor(unittest.TestCase):
     def test_cizimin_hesap_durumu_secilen_asansorundur(self):
         v = _veri()
         saglam = dict(v["asansorler"][0])
-        hatali = dict(saglam, motor_gucu=-1)
+        #  Hesabın kendi kuralı ( elektrik aralığı ):  hesap durur, çizim kurulur.
+        #  Tek alanın kuralını çiğneyen değer ( −1 ) isteğin kapısında durur.
+        hatali = dict(saglam, motor_gucu=600)
         for asansorler, beklenen in (
             ([saglam, hatali], [True, False]),
             ([hatali, saglam], [False, True]),
