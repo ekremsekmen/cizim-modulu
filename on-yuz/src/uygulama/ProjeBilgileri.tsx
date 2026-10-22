@@ -6,7 +6,7 @@ import { ChevronRight, Download, FolderOpen, Trash } from "lucide-react";
 import type { AlanSemasi } from "@/lib/api";
 import type { Ham, UygulamaProjesi } from "@/lib/proje";
 import { dosyayaKaydet } from "@/lib/dosya";
-import { KAPAK_GRUPLARI } from "@/lib/kapak";
+import { asansorAnahtari, KAPAK_GRUPLARI, UYGULAMA_TURETILMEYEN } from "@/lib/kapak";
 import { cn } from "@/lib/utils";
 import { Bolumlu, Cekmece, Dugme } from "@/components/ui";
 import { useDosyaAc } from "@/ekranlar/useDosyaAc";
@@ -36,6 +36,8 @@ export function ProjeBilgileri({
 }) {
   const git = useNavigate();
   const [kapakAcik, setKapakAcik] = useState(false);
+  //  Kapağın asansör alanları:  "hepsi" ya da bir asansörün sırası ( 1 … )
+  const [kapakAsansoru, setKapakAsansoru] = useState("hepsi");
   const [silOnay, setSilOnay] = useState(false);
   const dosya = useDosyaAc(sema, ofis, "uygulama");
   const kimlik = (k: keyof UygulamaProjesi["kimlik"], d: string) =>
@@ -43,6 +45,14 @@ export function ProjeBilgileri({
   const kapak = (k: string, d: string) => guncelle((p) => ({ ...p, kapak: { ...p.kapak, [k]: d } }));
   const kapakDolu = Object.values(proje.kapak ?? {}).filter((v) => v.trim()).length;
   const adet = proje.asansorler.length;
+  //  Asansör azalınca seçili olan artık yoksa "hepsi"
+  const kapakNo = kapakAsansoru !== "hepsi" && Number(kapakAsansoru) <= adet ? Number(kapakAsansoru) : 0;
+  //  Asansör grubunda kutunun anahtarı ve boşken basılacak olanın yer tutucusu
+  const asansorKutusu = (k: string) => {
+    if (!kapakNo) return { anahtar: k, yer: UYGULAMA_TURETILMEYEN.has(k) ? "" : "projeden" };
+    const ortak = proje.kapak?.[k]?.trim();
+    return { anahtar: asansorAnahtari(k, kapakNo), yer: ortak || (UYGULAMA_TURETILMEYEN.has(k) ? "" : "projeden") };
+  };
   return (
     <Cekmece
       acik={acik}
@@ -72,7 +82,8 @@ export function ProjeBilgileri({
             </span>
           </button>
           <p className="mt-1 pl-5 text-[12px] leading-relaxed text-metin-3">
-            Dolu alan varsa pakete kapak sayfası girer ( avan kapağıyla aynı biçim ).
+            Dolu alan varsa pakete kapak sayfası girer ( avan kapağıyla aynı biçim ).  Asansör tabloları — her
+            asansöre bir tablo — projeden dolar;  yazdığınız değer onu ezer.
           </p>
           {kapakAcik && (
             <div className="mt-3 space-y-4 pl-5">
@@ -82,10 +93,39 @@ export function ProjeBilgileri({
                 return (
                   <div key={g.baslik}>
                     <p className="mb-1.5 text-[11.5px] font-medium tracking-wide text-metin-3 uppercase">{g.baslik}</p>
+                    {g.baslik === "Asansör" && adet > 1 && (
+                      <div className="mb-2">
+                        <Bolumlu
+                          etiket="Kapakta yazılacak asansör"
+                          deger={kapakNo ? String(kapakNo) : "hepsi"}
+                          degisti={setKapakAsansoru}
+                          secenekler={[
+                            { deger: "hepsi", ad: "Hepsi" },
+                            ...Array.from({ length: adet }, (_, i) => ({ deger: String(i + 1), ad: `${i + 1}. asansör` })),
+                          ]}
+                        />
+                        <p className="mt-1.5 text-[12px] leading-relaxed text-metin-3">
+                          {kapakNo
+                            ? `Yalnız ${kapakNo}. asansörün tablosuna yazılır;  "Hepsi"de yazılanı ezer.`
+                            : "Bütün asansörlerin tablosuna yazılır."}
+                        </p>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-2">
-                      {alanlar.map(([k, e]) => (
-                        <Alan key={k} etiket={e} id={`pb-k-${k}`} deger={proje.kapak?.[k] ?? ""} yaz={(d) => kapak(k, d)} kucuk />
-                      ))}
+                      {alanlar.map(([k, e]) => {
+                        const { anahtar, yer } = g.baslik === "Asansör" ? asansorKutusu(k) : { anahtar: k, yer: "" };
+                        return (
+                          <Alan
+                            key={anahtar}
+                            etiket={e}
+                            id={`pb-k-${anahtar}`}
+                            deger={proje.kapak?.[anahtar] ?? ""}
+                            yaz={(d) => kapak(anahtar, d)}
+                            yerTutucu={yer}
+                            kucuk
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -164,12 +204,15 @@ function Alan({
   id,
   deger,
   yaz,
+  yerTutucu,
   kucuk,
 }: {
   etiket: string;
   id: string;
   deger: string;
   yaz: (d: string) => void;
+  /**  Boş kutuda basılacak olan ( "projeden" — kapağın asansör tablosu )  */
+  yerTutucu?: string;
   kucuk?: boolean;
 }) {
   return (
@@ -180,6 +223,7 @@ function Alan({
       <input
         id={id}
         value={deger}
+        placeholder={yerTutucu || undefined}
         maxLength={200}
         onChange={(e) => yaz(e.target.value)}
         className={cn(

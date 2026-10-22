@@ -458,6 +458,8 @@ def calistir():
             "speed": "1,60 / 1,00 m/s",
             "cabin_width": "1300/2100",
             "cabin_depth": "1450/1350",
+            "elevator_class": "Sınıf I",
+            "drive_type": "Elektrikli",
             "suspension": avan_hesabi.hesapla({"ortak": ORT, "asansorler": [A1]})["ozet"]["asansorler"][0][
                 "aski"
             ],
@@ -485,15 +487,16 @@ def calistir():
     _mrl = dict(ORT, mk_yok=True)
     _a1d = dict(A1, makine_tipi="Dişlisiz", i_palanga=2, Nsc=5.5)
     _k1 = kapak.avandan(avan_hesabi.hesapla({"ortak": _mrl, "asansorler": [_a1d]}))
+    #  Tahrik cinsi elektriklidir ( makine tipi ya da MRL tahrik cinsi değil — kullanıcı 22 Eki )
     r.esit(
-        "kapak · MRL işaretliyse tahrik cinsine yazılır",
+        "kapak · MRL projede tahrik cinsi elektrikli;  askı, motor gücü hesaptan",
         (_k1.get("drive_type"), _k1.get("suspension"), _k1.get("motor_power")),
-        ("Dişlisiz (MRL)", "2:1", "5,5 kW"),
+        ("Elektrikli", "2:1", "5,5 kW"),
     )
     r.esit(
-        "kapak · makine daireli projede MRL yazılmaz",
+        "kapak · makine daireli projede de tahrik cinsi elektrikli",
         kapak.avandan(avan_hesabi.hesapla({"ortak": ORT, "asansorler": [_a1d]})).get("drive_type"),
-        "Dişlisiz",
+        "Elektrikli",
     )
     r.esit(
         "kapak · yalnız anma yükü girilmiş asansör kg ile, birimler karışıksa her değerde",
@@ -512,7 +515,13 @@ def calistir():
     #  türemeyen ayrıktır ve asansör bilgilerinin hepsini kapsar.
     import inspect as _insp
 
-    _basilan = set(re.findall(r'"([a-z_]+)"', _insp.getsource(kapak_cikti._degerler)))
+    #  Asansör tablosunun alanları kendi işlevindedir ( çok asansörlü kapakta her tabloya )
+    _basilan = set(
+        re.findall(
+            r'"([a-z_]+)"',
+            _insp.getsource(kapak_cikti._degerler) + _insp.getsource(kapak_cikti._asansor_degerleri),
+        )
+    )
     r.kontrol(
         "kapak · türeyen / türemeyen her alanı kapak PDF'i basıyor",
         set(kapak.ALANLAR) | set(kapak.TURETILMEYEN) <= _basilan,

@@ -3,8 +3,8 @@
 PROJE KAPAĞI  —  HESAPTAN TÜREYEN ASANSÖR BİLGİLERİ
 
 Kapağın "Asansör bilgileri" bölümü projenin kendi hesabında zaten vardır:
-kapasite, hız, durak, seyir mesafesi, kabin ölçüleri, askı, adet, tahrik ve
-motor gücü.  Kullanıcı bunları kapak formuna ikinci kez yazmak zorunda
+kapasite, hız, durak, seyir mesafesi, kabin ölçüleri, sınıf, askı, adet,
+tahrik ve motor gücü.  Kullanıcı bunları kapak formuna ikinci kez yazmak zorunda
 kalmamalı;  yazmazsa da kapak BOŞ basılmamalı.  Eskiden formdaki gri
 örnek değerler ( "10 kişi", "7,5 kW" … ) dolu gibi görünüyor, çıktıya ise
 hiçbiri girmiyordu.
@@ -14,12 +14,12 @@ Kural:
     kutu boş               →  buradaki türetilmiş değer basılır;  arayüz
                               bunu kutunun gri yer tutucusunda gösterir
                               ( ekranda görünen = kâğıda basılan )
-    türetilemeyen alan     →  ( blok, asansör sınıfı, ray ölçüsü, ölçek )
+    türetilemeyen alan     →  ( blok, ray ölçüsü, ölçek )
                               boş kalır;  yer tutucusu da boştur
 
 İki kaynak ayrı ayrı okunur — her biri kendi yanıtında döner:
     trafikten()  →  yapı kullanım amacı · durak sayısı · seyir mesafesi
-    avandan()    →  kapasite · hız · kabin · askı · adet · tahrik · motor · standart
+    avandan()    →  kapasite · hız · kabin · sınıf · askı · adet · tahrik · motor · standart
 Hesabı hatalı ya da eksik olan kaynaktan HİÇBİR ŞEY türetilmez:  yarım bir
 hesabın değeri kapağa "doğru" gibi basılmamalıdır.
 
@@ -32,6 +32,13 @@ from temel import sayi_mi
 
 #  Program TS EN 81-20 / 50'ye göre hesap yapar ( bkz. Sabitler A ).
 STANDART = "TS EN 81-20"
+#  TAHRİK CİNSİ:  programın hesapladığı asansörlerin hepsi elektrikli ( halatlı,
+#  dişli / dişlisiz makine — tablolar.MAKINE_TIPLERI;  hidrolik yok ).  Makine
+#  tipi ( "Dişlisiz ( MRL )" ) tahrik cinsi değildir — kullanıcı 22 Eki.
+TAHRIK = "Elektrikli"
+#  ASANSÖR SINIFI ( ISO 4190-1 ):  Sınıf I insan taşımak için tasarlanmış
+#  asansördür.  Avan hesabı ( trafik ) insan asansörünün hesabıdır.
+SINIF_I = "Sınıf I"
 
 #  Hesaptan türeyen kapak alanları ( anahtarlar kapak formunun / kapak
 #  PDF'inin adlarıdır ).  Arayüz bu listeyi /api/secenekler'den okur.
@@ -43,6 +50,7 @@ ALANLAR = (
     "speed",
     "cabin_width",
     "cabin_depth",
+    "elevator_class",
     "suspension",
     "elevator_count",
     "drive_type",
@@ -51,7 +59,7 @@ ALANLAR = (
 )  # avandan
 
 #  Projeden türetilemeyen kapak alanları — yer tutucuları boş kalır.
-TURETILMEYEN = ("block", "elevator_class", "rail_size", "scale")
+TURETILMEYEN = ("block", "rail_size", "scale")
 
 
 def _birlestir(degerler, birim="", ayrac=" / "):
@@ -65,17 +73,17 @@ def _birlestir(degerler, birim="", ayrac=" / "):
     return ayrac.join(goruldu) + (f" {birim}" if birim else "")
 
 
-def _tam(x):
+def tam(x):
     """Ölçü ve yük binlik ayracısız yazılır ( çizim teamülü ):  1100 · 1275."""
-    return str(int(round(x))) if abs(x - round(x)) < 1e-9 else _sade(x)
+    return str(int(round(x))) if abs(x - round(x)) < 1e-9 else sade(x)
 
 
 def _mm(metre):
     """Özetteki kabin ölçüsü metre cinsindendir ( 1,1 m → "1100" )."""
-    return _tam(metre * 1000) if sayi_mi(metre) and metre > 0 else ""
+    return tam(metre * 1000) if sayi_mi(metre) and metre > 0 else ""
 
 
-def _sade(x):
+def sade(x):
     """En çok iki ondalık, sondaki sıfırsız:  5,5 · 11 · 0,75."""
     return tr(x, 2).rstrip("0").rstrip(",") if "," in tr(x, 2) else tr(x, 2)
 
@@ -93,7 +101,7 @@ def trafikten(sonuc) -> dict:
         k: v
         for k, v in {
             "usage": o.get("bina_tipi") or "",
-            "stops": _birlestir(_tam(a.get("durak")) for a in liste if sayi_mi(a.get("durak"))),
+            "stops": _birlestir(tam(a.get("durak")) for a in liste if sayi_mi(a.get("durak"))),
             "travel": _birlestir(
                 (tr(a.get("toplam_seyahat")) for a in liste if sayi_mi(a.get("toplam_seyahat"))), "m"
             ),
@@ -118,7 +126,7 @@ def avandan(sonuc) -> dict:
     #  Kapasite kişi ile tanımlanır;  yalnız anma yükü girilmişse kg.
     #  Birim hepsinde aynıysa sona bir kez, değilse her değerin yanına yazılır.
     kap = [
-        (_tam(a["kapasite"]), "kişi") if sayi_mi(a.get("kapasite")) else (_tam(a["Q"]), "kg")
+        (tam(a["kapasite"]), "kişi") if sayi_mi(a.get("kapasite")) else (tam(a["Q"]), "kg")
         for a in liste
         if sayi_mi(a.get("kapasite")) or sayi_mi(a.get("Q"))
     ]
@@ -129,9 +137,6 @@ def avandan(sonuc) -> dict:
         else _birlestir(f"{s} {b}" for s, b in kap)
     )
 
-    #  Makine dairesi yok ( MRL ) işareti bütün proje içindir.
-    mrl = bool((sonuc.get("makine_dairesi") or {}).get("mk_yok"))
-    tahrik = _birlestir(a.get("makine_tipi") or "" for a in liste)
     #  KABİN ÖLÇÜLERİ mm, BİRİMSİZ yazılır:  kapaktaki "D:" hücresi 17 pt'dir,
     #  "1400 mm" en küçük puntoda bile sığmaz ( 4 hane sığar ).  İki farklı
     #  kabin iki satıra basılır ( "1450/1350" ); daha fazlası o hücrede
@@ -147,10 +152,11 @@ def avandan(sonuc) -> dict:
             "speed": _birlestir((tr(a.get("V")) for a in liste if sayi_mi(a.get("V"))), "m/s"),
             "cabin_width": gen,
             "cabin_depth": der,
+            "elevator_class": SINIF_I,
             "suspension": _birlestir(a.get("aski") or "" for a in liste),
             "elevator_count": str(len(liste)),
-            "drive_type": (f"{tahrik} (MRL)" if tahrik else "MRL") if mrl else tahrik,
-            "motor_power": _birlestir((_sade(a.get("Nsc")) for a in liste if sayi_mi(a.get("Nsc"))), "kW"),
+            "drive_type": TAHRIK,
+            "motor_power": _birlestir((sade(a.get("Nsc")) for a in liste if sayi_mi(a.get("Nsc"))), "kW"),
             "standard": STANDART,
         }.items()
         if v

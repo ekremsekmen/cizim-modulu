@@ -145,6 +145,16 @@ def _antet_yazisi(d, yer, ornek=None):
     return None
 
 
+def cizim_olcegi(ad):
+    """Çizimin paftadaki ölçeği ( 1/olcek ) — başlıkta yazmasa da ( OLCEKSIZ )."""
+    return cizimler.OLCEKLER.get(ad, 20)
+
+
+def olcek_yazisi(olcekler):
+    """Antetin ve kapağın ölçek hücresi:  "1/20 1/50"."""
+    return " ".join(f"1/{o:g}" for o in sorted(set(olcekler)))
+
+
 def antet_degerleri(g, olcekler):
     """Antete yazılacaklar;  boş dize = çizimin bilmediği değer ( boş kalır )."""
     dy, kb, kr = g["dusey"], g["kabin"], g["kabin_ray"]
@@ -163,7 +173,7 @@ def antet_degerleri(g, olcekler):
         "adet": "1",
         "tahrik": "Elektrikli",
         "ray": f"{kr['b']:g}*{kr['h']:g}",
-        "olcek": " ".join(f"1/{o:g}" for o in sorted(set(olcekler))),
+        "olcek": olcek_yazisi(olcekler),
     }
 
 
@@ -195,7 +205,7 @@ def cizim_listesi(g, seritler=()):
         if h:
             hata += [f"{ad}: {x}" for x in h]
             continue
-        olcek = cizimler.OLCEKLER.get(ad, 20)
+        olcek = cizim_olcegi(ad)
         e = ciz(g, azami=yukseklik * olcek) if ad in cizimler.OLCEKLER else ciz(g)
         cikti.append(
             (
