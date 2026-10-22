@@ -2,8 +2,10 @@
     Dosya ( eski arayüzün .uygulama biçimi ) yeni bir proje olarak açılır;
     açık proje ezilmez.  Dosyadaki ofis standardı uygulanmaz ( yeni arayüzde
     ofis standardı bütün projelerde geçerlidir ) — farklıysa söylenir.
-    Avan dosyası ( .avan ) avan ekranında açılır:  avan tek projedir, önceki
-    hâli orada "Geri al" ile döner.                                          */
+    Avan dosyası ( .avan ) yalnız açılışta alınır ve avan ekranında açılır:
+    avan tek projedir, önceki hâli orada "Geri al" ile döner.  Uygulama
+    kısmı ( kip "uygulama" ) yalnız .uygulama alır;  avan dosyası açık hatayla
+    reddedilir — kullanıcı sessizce avan ekranına atılmaz.                   */
 import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
@@ -12,7 +14,10 @@ import { avanDosyasiMi, avanDosyasiniAc, avanOfisiniOku, avanProjesiniOku, avanP
 import { dosyaOku } from "@/lib/dosya";
 import { yeniUygulama, type Ham } from "@/lib/proje";
 
-export function useDosyaAc(sema: AlanSemasi | undefined, ofis: Ham) {
+/**  açılış:  iki tür, her biri kendi kısmında;  uygulama:  yalnız .uygulama  */
+export type DosyaKipi = "acilis" | "uygulama";
+
+export function useDosyaAc(sema: AlanSemasi | undefined, ofis: Ham, kip: DosyaKipi = "acilis") {
   const girdiRef = useRef<HTMLInputElement>(null);
   const git = useNavigate();
   const istemci = useQueryClient();
@@ -44,7 +49,7 @@ export function useDosyaAc(sema: AlanSemasi | undefined, ofis: Ham) {
     } catch {
       /*  dosyaOku söyler  */
     }
-    if (avanDosyasiMi(d)) return avanAc(metin, f.name);
+    if (kip === "acilis" && avanDosyasiMi(d)) return avanAc(metin, f.name);
     const o = dosyaOku(metin, sema, ofis);
     if (!o.tamam) return setHata(o.hata);
     setHata("");
@@ -67,7 +72,7 @@ export function useDosyaAc(sema: AlanSemasi | undefined, ofis: Ham) {
       <input
         ref={girdiRef}
         type="file"
-        accept=".uygulama,.avan,.json"
+        accept={kip === "acilis" ? ".uygulama,.avan,.json" : ".uygulama,.json"}
         className="hidden"
         onChange={(e) => {
           void ac(e.target.files?.[0]);

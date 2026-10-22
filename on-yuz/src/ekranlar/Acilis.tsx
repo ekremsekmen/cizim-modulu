@@ -28,7 +28,8 @@ export function Acilis() {
         }
         sag={<BasvuruBaglantilari />}
       />
-      <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 content-start gap-x-10 gap-y-12 px-8 pt-14 pb-16 lg:grid-cols-[1fr_400px]">
+      {/*  Çalışma masası:  solda eylemler, sağda son projeler tablosu ( geniş ekranı doldurur )  */}
+      <main className="mx-auto grid w-full max-w-[1680px] flex-1 grid-cols-1 content-start gap-x-10 gap-y-10 px-5 pt-10 pb-14 sm:px-8 lg:grid-cols-[360px_minmax(0,1fr)] xl:grid-cols-[400px_minmax(0,1fr)] xl:gap-x-14 xl:px-12">
         <section aria-labelledby="baslat">
           {bulunamadi && (
             <p role="status" className="mb-6 rounded-orta border border-uyari-cizgi bg-uyari-acik px-4 py-2.5 text-[12.5px] text-uyari">
@@ -38,11 +39,11 @@ export function Acilis() {
           <h1 id="baslat" className="text-2xl font-semibold tracking-tight">
             Proje başlat
           </h1>
-          <p className="mt-1.5 text-[14px] text-metin-2">
+          <p className="mt-1.5 text-[13.5px] leading-relaxed text-metin-2">
             Hesap ve çizim sunucuda yapılır;  proje bu tarayıcıda ve proje dosyasında saklanır.
           </p>
 
-          <div className="mt-7 grid gap-4 md:grid-cols-2">
+          <div className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-1">
             <BaslatKarti
               to="/uygulama/yeni"
               simge={<Building />}
@@ -69,9 +70,9 @@ export function Acilis() {
 
           <DosyaAc />
 
-          <div className="mt-6 flex items-start gap-3 rounded-buyuk border border-cizgi bg-yuzey px-4 py-3.5">
+          <div className="mt-3 flex items-start gap-3 rounded-buyuk border border-cizgi bg-yuzey px-4 py-3">
             <FlaskConical className="mt-0.5 size-4 shrink-0 text-metin-3" />
-            <div className="text-[13px] leading-relaxed text-metin-2">
+            <div className="text-[12.5px] leading-relaxed text-metin-2">
               <Link to="/uygulama/ornek" className="font-medium text-vurgu hover:underline">
                 Örnek projeyi aç
               </Link>{" "}
@@ -81,60 +82,74 @@ export function Acilis() {
           </div>
         </section>
 
-        <aside aria-labelledby="son">
-          <div className="flex items-baseline justify-between">
-            <h2 id="son" className="text-[13px] font-semibold">
-              Son projeler
-            </h2>
-            <span className="text-[12px] text-metin-3">bu tarayıcıda</span>
-          </div>
-          <div className="mt-3 overflow-hidden rounded-buyuk border border-cizgi bg-yuzey shadow-panel">
-            {projeler.length === 0 ? (
-              <div className="px-5 py-10 text-center">
-                <Ruler className="mx-auto size-5 text-metin-3" />
-                <p className="mt-2 text-[13px] font-medium">Henüz proje yok</p>
-                <p className="mt-1 text-[12.5px] text-metin-3">Başlattığınız projeler burada listelenir.</p>
-              </div>
-            ) : (
-              <ul className="divide-y divide-cizgi">
-                {projeler.slice(0, 8).map((p) => (
-                  <SonProje key={p.id} p={p} />
-                ))}
-              </ul>
-            )}
-          </div>
-          <p className="mt-3 text-[12px] leading-relaxed text-metin-3">
-            Başka bilgisayarda açmak için projeyi dosya olarak kaydedin ( Proje › Dosyaya kaydet ).
-          </p>
-        </aside>
+        <div className="flex min-w-0 flex-col gap-10">
+          <section aria-labelledby="son">
+            <div className="flex items-baseline justify-between">
+              <h2 id="son" className="text-[13px] font-semibold">
+                Son projeler
+              </h2>
+              <span className="text-[12px] text-metin-3">bu tarayıcıda</span>
+            </div>
+            <div className="mt-3 overflow-hidden rounded-buyuk border border-cizgi bg-yuzey shadow-panel">
+              {projeler.length === 0 ? (
+                <div className="px-5 py-14 text-center">
+                  <Ruler className="mx-auto size-5 text-metin-3" />
+                  <p className="mt-2 text-[13px] font-medium">Henüz proje yok</p>
+                  <p className="mt-1 text-[12.5px] text-metin-3">Başlattığınız projeler burada listelenir.</p>
+                </div>
+              ) : (
+                <>
+                  <div aria-hidden className={cn(SUTUNLAR, "hidden border-b border-cizgi bg-yuzey-2 px-4 py-2 text-[11.5px] font-medium text-metin-3 xl:grid")}>
+                    <span className="pl-11">Proje</span>
+                    <span>Tür</span>
+                    <span className="text-right">Asansör</span>
+                    <span>Güncellendi</span>
+                    <span>Durum</span>
+                  </div>
+                  <ul className="divide-y divide-cizgi">
+                    {projeler.slice(0, 12).map((p) => (
+                      <SonProje key={p.id} p={p} />
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+            <p className="mt-3 text-[12px] leading-relaxed text-metin-3">
+              Başka bilgisayarda açmak için projeyi dosya olarak kaydedin ( Proje › Dosyaya kaydet ).
+            </p>
+          </section>
 
-        {/*  İş akışı:  yeni kullanıcı ne olacağını baştan görür  */}
-        <section aria-labelledby="akis" className="lg:col-span-2">
-          <h2 id="akis" className="text-[13px] font-semibold">
-            Uygulama projesi nasıl ilerler
-          </h2>
-          <ol className="mt-3 grid gap-3 md:grid-cols-3">
-            {[
-              ["Girdiler", "Ölçü formundaki değerleri yazın.  Çizim ve hesap yazdıkça gelir;  girmediğiniz alan programın değeriyle, soluk görünür."],
-              ["Uygunluk", "Kalan bölümler en üstte, sunucunun önerdiği çareyle.  Bölüme tıklayın:  ona bağlı girdi grupları açılır."],
-              ["Teslim", "Girmediğiniz değerleri onaylayın;  hesap PDF'i, çizimler ve proje dosyası tek pakette iner."],
-            ].map(([ad, metin], i) => (
-              <li key={ad} className="flex gap-3 rounded-buyuk border border-cizgi bg-yuzey px-4 py-3.5">
-                <span className="sayi flex size-6 shrink-0 items-center justify-center rounded-full bg-black/[0.06] text-[11.5px] text-metin-2">
-                  {i + 1}
-                </span>
-                <span>
-                  <span className="block text-[13px] font-semibold">{ad}</span>
-                  <span className="mt-0.5 block text-[12.5px] leading-relaxed text-metin-2">{metin}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </section>
+          {/*  İş akışı:  yeni kullanıcı ne olacağını baştan görür  */}
+          <section aria-labelledby="akis">
+            <h2 id="akis" className="text-[13px] font-semibold">
+              Uygulama projesi nasıl ilerler
+            </h2>
+            <ol className="mt-3 grid gap-3 md:grid-cols-3">
+              {[
+                ["Girdiler", "Ölçü formundaki değerleri yazın.  Çizim ve hesap yazdıkça gelir;  girmediğiniz alan programın değeriyle, soluk görünür."],
+                ["Uygunluk", "Kalan bölümler en üstte, sunucunun önerdiği çareyle.  Bölüme tıklayın:  ona bağlı girdi grupları açılır."],
+                ["Teslim", "Girmediğiniz değerleri onaylayın;  hesap PDF'i, çizimler ve proje dosyası tek pakette iner."],
+              ].map(([ad, metin], i) => (
+                <li key={ad} className="flex gap-3 rounded-buyuk border border-cizgi bg-yuzey px-4 py-3.5">
+                  <span className="sayi flex size-6 shrink-0 items-center justify-center rounded-full bg-black/[0.06] text-[11.5px] text-metin-2">
+                    {i + 1}
+                  </span>
+                  <span>
+                    <span className="block text-[13px] font-semibold">{ad}</span>
+                    <span className="mt-0.5 block text-[12.5px] leading-relaxed text-metin-2">{metin}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        </div>
       </main>
     </div>
   );
 }
+
+/**  Son projeler tablosunun sütunları ( başlık ve satır aynı ızgarayı paylaşır );  dar ekranda tek satır listesi.  */
+const SUTUNLAR = "xl:grid-cols-[minmax(0,1fr)_88px_64px_104px_168px] xl:gap-x-4 xl:items-center";
 
 function BaslatKarti({
   to,
@@ -161,30 +176,30 @@ function BaslatKarti({
       to={to}
       onClick={tikla}
       className={cn(
-        "group flex flex-col rounded-buyuk border bg-yuzey p-5 shadow-panel transition-[border-color,box-shadow] hover:shadow-kalkik",
+        "group flex gap-4 rounded-buyuk border bg-yuzey p-4 shadow-panel transition-[border-color,box-shadow] hover:shadow-kalkik",
         birincil ? "border-vurgu-cizgi hover:border-vurgu" : "border-cizgi hover:border-cizgi-2",
       )}
     >
       <span
         className={cn(
-          "flex size-9 items-center justify-center rounded-orta [&_svg]:size-[18px]",
+          "flex size-9 shrink-0 items-center justify-center rounded-orta [&_svg]:size-[18px]",
           birincil ? "bg-vurgu text-white" : "bg-black/[0.05] text-metin",
         )}
       >
         {simge}
       </span>
-      <span className="mt-4 text-[16px] font-semibold">{baslik}</span>
-      <span className="mt-0.5 text-[11.5px] text-metin-3">{kaynak}</span>
-      <span className="mt-2.5 text-[13px] leading-relaxed text-metin-2">{metin}</span>
-      <span className="mt-4 flex flex-wrap gap-1.5">
-        {ciktilar.map((c) => (
-          <Rozet key={c}>{c}</Rozet>
-        ))}
-      </span>
-      <span className="mt-5 flex items-center justify-end border-t border-cizgi pt-3.5">
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-[15px] font-semibold">{baslik}</span>
+        <span className="mt-0.5 text-[11.5px] text-metin-3">{kaynak}</span>
+        <span className="mt-2 text-[12.5px] leading-relaxed text-metin-2">{metin}</span>
+        <span className="mt-3 flex flex-wrap gap-1.5">
+          {ciktilar.map((c) => (
+            <Rozet key={c}>{c}</Rozet>
+          ))}
+        </span>
         <span
           className={cn(
-            "inline-flex items-center gap-1 text-[13px] font-medium",
+            "mt-3 inline-flex items-center gap-1 self-end text-[13px] font-medium",
             birincil ? "text-vurgu" : "text-metin",
           )}
         >
@@ -213,7 +228,7 @@ function DosyaAc() {
         void dosya.ac(e.dataTransfer.files[0]);
       }}
       className={cn(
-        "mt-4 flex items-center gap-4 rounded-buyuk border border-dashed px-5 py-4 transition-colors",
+        "mt-3 flex items-center gap-4 rounded-buyuk border border-dashed px-4 py-3.5 transition-colors",
         ustunde ? "border-vurgu bg-vurgu-acik" : "border-cizgi-2 bg-yuzey-2",
       )}
     >
@@ -225,7 +240,8 @@ function DosyaAc() {
         <p className={cn("text-[12.5px]", dosya.hata ? "text-red" : "text-metin-3")}>
           {dosya.hata || (
             <>
-              <span className="font-mono">.uygulama</span> dosyasını buraya bırakın — eski arayüzün dosyaları da açılır
+              <span className="font-mono">.uygulama</span> ya da <span className="font-mono">.avan</span> dosyasını buraya
+              bırakın — her biri kendi kısmında açılır
             </>
           )}
         </p>
@@ -248,27 +264,34 @@ function SonProje({ p }: { p: ProjeOzeti }) {
   ) : (
     <Rozet tur="uygun">Uygun</Rozet>
   );
+  const tur = p.tur === "uygulama" ? "Uygulama" : "Avan";
   return (
     <li>
       <button
         type="button"
         onClick={() => git(p.tur === "uygulama" ? `/uygulama/${p.id}` : "/avan/trafik")}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-yuzey-2"
+        className={cn(SUTUNLAR, "flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-yuzey-2 xl:grid")}
       >
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-orta bg-black/[0.04] text-metin-2">
-          {p.tur === "uygulama" ? <Building className="size-4" /> : <ChartLine className="size-4" />}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-1.5">
-            <span className="truncate text-[13.5px] font-medium">{p.ad}</span>
-            {p.ornek && <Rozet tur="uyari">ÖRNEK</Rozet>}
+        <span className="flex min-w-0 flex-1 items-center gap-3">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-orta bg-black/[0.04] text-metin-2">
+            {p.tur === "uygulama" ? <Building className="size-4" /> : <ChartLine className="size-4" />}
           </span>
-          <span className="block text-[12px] text-metin-3">
-            {p.tur === "uygulama" ? "Uygulama" : "Avan"}
-            {p.son ? ` · ${p.son.adet} asansör` : ""} · {zaman}
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5">
+              <span className="truncate text-[13.5px] font-medium">{p.ad}</span>
+              {p.ornek && <Rozet tur="uyari">ÖRNEK</Rozet>}
+            </span>
+            {/*  Tablo sığmayan genişlikte sütunlar yerine alt satır  */}
+            <span className="block text-[12px] text-metin-3 xl:hidden">
+              {tur}
+              {p.son ? ` · ${p.son.adet} asansör` : ""} · {zaman}
+            </span>
           </span>
         </span>
-        {durum}
+        <span className="hidden text-[12.5px] text-metin-2 xl:block">{tur}</span>
+        <span className="sayi hidden text-right text-[12.5px] text-metin-2 xl:block">{p.son ? p.son.adet : "—"}</span>
+        <span className="hidden text-[12.5px] text-metin-2 xl:block">{zaman}</span>
+        <span className="shrink-0">{durum}</span>
       </button>
     </li>
   );

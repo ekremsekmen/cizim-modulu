@@ -12,6 +12,7 @@
     sözleşmesi:  gönderilmeyen alan = varsayılanı gönderilmiş alan;
     testler/test_on_yuz_sozlesmesi.py ).                                   */
 import type { AlanSemasi, Deger } from "./api";
+import { avanDosyasiMi } from "./avan";
 import { sayiOku, type Ham, type UygulamaProjesi } from "./proje";
 
 /**  Eski arayüzün PROJE_SURUM'u — iki taraf aynı sürümü yazar.  */
@@ -99,6 +100,10 @@ function ice(v: unknown): string | null {
   return null;
 }
 
+/**  Uygulama kısmına avan dosyası verilince ( avan ekranındaki karşılığı lib/avan.ts )  */
+export const AVAN_DOSYASI_UYGULAMADA =
+  "Bu bir avan projesi dosyası — avan ekranından ya da açılış sayfasından açın.";
+
 export function dosyaOku(metin: string, sema: AlanSemasi, ofis: Ham): DosyaOkumasi {
   let d: Record<string, unknown>;
   try {
@@ -110,7 +115,8 @@ export function dosyaOku(metin: string, sema: AlanSemasi, ofis: Ham): DosyaOkuma
   //  Eski biçim ( başlıksız düz girdi sözlüğü ) da okunur
   const govde = (d.alanlar && typeof d.alanlar === "object" ? d.alanlar : d) as Record<string, unknown>;
   const mod = (d.__mod ?? govde.__mod) as string | undefined;
-  if (mod === "avan") return { tamam: false, hata: "Bu bir avan projesi dosyası — yeni arayüz avan dosyası açmayı henüz bilmiyor;  eski arayüzden açın." };
+  //  Başlıksız eski avan dosyası da ( c_ / a_ … anahtarları ) uygulama sanılmaz
+  if (avanDosyasiMi(d)) return { tamam: false, hata: AVAN_DOSYASI_UYGULAMADA };
   if (mod && mod !== "uygulama") return { tamam: false, hata: "Tanınmayan proje dosyası." };
 
   const alanlar = new Map(sema.gruplar.flatMap((g) => g.alanlar).map((a) => [a.anahtar, a]));
