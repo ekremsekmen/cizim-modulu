@@ -384,11 +384,30 @@ class OnYuzUctanUca(unittest.TestCase):
             with self.sayfa.expect_file_chooser() as secici:
                 self.sayfa.get_by_role("button", name="Proje dosyasını aç").click()
             secici.value.set_files(dosya)
-        self.assertIn("açıldı", self.sayfa.get_by_text(re.compile("açıldı")).first.inner_text())
-        self.sayfa.get_by_role("link", name=re.compile("Avan hesapları")).click()
-        sonra, avan_sonra = self.iz.son("/api/avan")
-        self.assertEqual(sonra, once)
-        self.assertEqual(avan_sonra, avan_once)
+            self.assertIn("açıldı", self.sayfa.get_by_text(re.compile("açıldı")).first.inner_text())
+            self.sayfa.get_by_role("link", name=re.compile("Avan hesapları")).click()
+            sonra, avan_sonra = self.iz.son("/api/avan")
+            self.assertEqual(sonra, once)
+            self.assertEqual(avan_sonra, avan_once)
+
+            #  Uygulama kısmı avan dosyasını açmaz:  açık hata, sayfa ve avan projesi yerinde
+            avan_kaydi = self.sayfa.evaluate("localStorage.getItem('asansor:avan')")
+            self.ornek_projeyi_ac()
+            adres = self.sayfa.url
+            self.sayfa.get_by_role("button", name=re.compile("Örnek proje")).first.click()
+            with self.sayfa.expect_file_chooser() as secici:
+                self.sayfa.get_by_role("button", name="Dosyadan aç").click()
+            secici.value.set_files(dosya)
+            self.sayfa.get_by_text("Bu bir avan projesi dosyası — avan ekranından ya da açılış sayfasından açın.").wait_for()
+            self.assertEqual(self.sayfa.url, adres)
+            self.assertEqual(self.sayfa.evaluate("localStorage.getItem('asansor:avan')"), avan_kaydi)
+
+            #  Açılış ikisini de alır, avan dosyası avan kısmında açılır
+            self.sayfa.goto(self.url + "/")
+            with self.sayfa.expect_file_chooser() as secici:
+                self.sayfa.get_by_role("button", name="Dosya seç").click()
+            secici.value.set_files(dosya)
+            self.sayfa.wait_for_url(re.compile(r"/avan/trafik$"))
 
     def kayitli_asansorler(self):
         """Tarayıcıda kayıtlı projenin asansörleri ( aynı istek önbellekten yanıtlanır,

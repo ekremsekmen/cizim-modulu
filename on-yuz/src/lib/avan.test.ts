@@ -185,7 +185,10 @@ describe("avan dosyası — eski arayüzün biçimi", () => {
   });
 
   it("uygulama dosyası ve bozuk dosya reddedilir", () => {
-    expect(avanOku(JSON.stringify({ __mod: "uygulama", alanlar: {} }), SEC, {}).tamam).toBe(false);
+    expect(avanOku(JSON.stringify({ __mod: "uygulama", alanlar: {} }), SEC, {})).toEqual({
+      tamam: false,
+      hata: expect.stringMatching(/uygulama projesi dosyası — açılış sayfasındaki/),
+    });
     expect(avanOku("{", SEC, {}).tamam).toBe(false);
     expect(avanOku(JSON.stringify({ x: 1 }), SEC, {}).tamam).toBe(false);
   });

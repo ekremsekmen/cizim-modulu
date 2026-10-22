@@ -37,7 +37,7 @@ export function ProjeBilgileri({
   const git = useNavigate();
   const [kapakAcik, setKapakAcik] = useState(false);
   const [silOnay, setSilOnay] = useState(false);
-  const dosya = useDosyaAc(sema, ofis);
+  const dosya = useDosyaAc(sema, ofis, "uygulama");
   const kimlik = (k: keyof UygulamaProjesi["kimlik"], d: string) =>
     guncelle((p) => ({ ...p, kimlik: { ...p.kimlik, [k]: d } }));
   const kapak = (k: string, d: string) => guncelle((p) => ({ ...p, kapak: { ...p.kapak, [k]: d } }));

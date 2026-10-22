@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dosyaGovdesi, dosyaOku } from "./dosya";
+import { AVAN_DOSYASI_UYGULAMADA, dosyaGovdesi, dosyaOku } from "./dosya";
 import type { UygulamaProjesi } from "./proje";
 import { SEMA } from "./test-semasi";
 
@@ -86,6 +86,14 @@ describe("proje dosyası — eski arayüzün biçimi", () => {
   it("avan dosyası ve bozuk dosya anlaşılır biçimde reddedilir", () => {
     expect(dosyaOku(JSON.stringify({ __mod: "avan", alanlar: {} }), SEMA, {}).tamam).toBe(false);
     expect(dosyaOku("{bozuk", SEMA, {}).tamam).toBe(false);
+  });
+
+  it("uygulama kısmı avan dosyasını açmaz, nereden açılacağını söyler ( başlıksız eski avan dosyası da )", () => {
+    for (const d of [{ __mod: "avan", alanlar: {} }, { alanlar: { c_bina_tipi: "Konut" } }, { a_Hk: "34" }]) {
+      const o = dosyaOku(JSON.stringify(d), SEMA, {});
+      expect(o).toEqual({ tamam: false, hata: AVAN_DOSYASI_UYGULAMADA });
+    }
+    expect(AVAN_DOSYASI_UYGULAMADA).toMatch(/avan ekranından ya da açılış sayfasından/);
   });
 
   it("asansör adedi dört ile sınırlı", () => {
