@@ -702,6 +702,50 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.wait_for_timeout(1500)
         self.assertEqual(self.kayitli_asansorler(), once)
 
+    def test_olcu_hedefi_guncel_cizimde_dogrulanir_ve_sonradan_gecersizlesir(self):
+        """Kuyu değişince 420 yerine 430 üreten senaryo; onay yalnız yeni
+        çizim gelince görünür ve sonraki girdi değişiminde kaldırılır."""
+        self.ornek_projeyi_ac()
+        olcu = self.sayfa.locator('figure[data-cizim="kuyu_plani"] .olcu[data-olcu="4"]')
+        self.assertEqual(olcu.get_attribute("aria-label"), "Ölçü 425")
+
+        def ac():
+            olcu.scroll_into_view_if_needed()
+            olcu.focus()
+            self.sayfa.keyboard.press("Enter")
+            kutu = self.sayfa.get_by_role("dialog", name=re.compile(r"^Ölçü "))
+            kutu.get_by_role("button", name="Uygula", exact=True).wait_for()
+            return kutu
+
+        kutu = ac()
+        self.alan_kutusu("kuyu_genisligi").fill("2220")
+        self.iz.sakin()
+        self.assertTrue(kutu.get_by_role("button", name="Uygula", exact=True).is_disabled())
+        kutu = ac()
+        kutu.get_by_role("textbox").fill("420")
+        tutulan = []
+        self.sayfa.route("**/api/uygulama/cizimler", lambda r: tutulan.append(r))
+        try:
+            with self.sayfa.expect_response(lambda r: r.url.endswith("/api/uygulama/olcu_degistir")) as yanit:
+                kutu.get_by_role("button", name="Uygula", exact=True).click()
+            d = yanit.value.json()
+            self.assertTrue(d["aktif"], d)
+            if d.get("uyarilar"):
+                kutu.get_by_role("button", name="Yine de uygula", exact=True).click()
+            kutu.get_by_text("Değişiklik uygulandı; çizim güncelleniyor.").wait_for()
+            self.assertNotIn("Çizim yeniden kuruldu", kutu.inner_text())
+        finally:
+            self.sayfa.unroute("**/api/uygulama/cizimler")
+            for rota in tutulan:
+                rota.continue_()
+        self.iz.sakin()
+        self.assertEqual(olcu.get_attribute("aria-label"), "Ölçü 420")
+        self.assertIn("ölçü 420 mm", kutu.inner_text())
+        self.alan_kutusu("kuyu_genisligi").fill("2240")
+        self.iz.sakin()
+        self.assertIn("Girdiler kutu açıldıktan sonra değişti", kutu.inner_text())
+        self.assertNotIn("Çizim yeniden kuruldu", kutu.inner_text())
+
     def test_yakinda_net_ve_olcu_kutusu_tuvale_sigar(self):
         """20 Eki ( kullanıcı:  "ölçüyü belirleyen kutucuğun tamamı görünmüyor,
         çizim ekranı bulanıklaşıyor" ):  yakınlaşma durunca levhanın CSS ölçeği

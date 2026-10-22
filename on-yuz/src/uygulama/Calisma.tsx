@@ -36,6 +36,7 @@ import {
   asansorEkle,
   asansorKaldir,
   kutuyaYaz,
+  istekKur,
   ornekSifirla,
   useOfisStandardi,
   useUygulamaProjesi,
@@ -424,8 +425,11 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
                     kapat={() => setOlcu(null)}
                     kaynaklarGeldi={olcuKaynaklari}
                     yaz={(d) => {
-                      guncelle((p) => d.reduce((q, x) => alanYaz(q, sema, a, x.anahtar, kutuyaYaz(x.deger)), p));
+                      const degistir = (p: UygulamaProjesi) =>
+                        d.reduce((q, x) => alanYaz(q, sema, a, x.anahtar, kutuyaYaz(x.deger)), p);
+                      guncelle(degistir);
                       setGeriAl(null);
+                      return istekKur(degistir(proje), ofis);
                     }}
                   />
                 )
