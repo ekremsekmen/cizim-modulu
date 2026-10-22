@@ -42,7 +42,7 @@ export function OlcuKutusu({
   /**  Kaynak girdiler gelince:  solda gruplarını aç, alanları vurgula  */
   kaynaklarGeldi?: (anahtarlar: string[]) => void;
   kapat: () => void;
-  yaz: (degisiklikler: { anahtar: string; deger: number }[]) => void;
+  yaz: (degisiklikler: { anahtar: string; deger: number }[]) => UygulamaIstegi;
 }) {
   //  Kutu açıldığı andaki girdilerle konuşur:  değişiklik uygulanınca çizim
   //  yenilenir ama kutu kendi ölçüsünün sonucunu göstermeye devam eder
@@ -63,12 +63,13 @@ export function OlcuKutusu({
   //  YENİ DEĞERLERLE ÇİZİM KURULAMAYACAKSA ÖNCE SORULUR ( sunucunun
   //  uyarilar'ı — "Yine de uygula" ):  eski arayüzde vardı, React'e geçişte
   //  düşmüştü;  tek tık çizimi sessizce bozuyordu ( 20 Eki )
-  const [uygulandi, setUygulandi] = useState(false);
+  const [uygulanan, setUygulanan] = useState<UygulamaIstegi | null>(null);
+  const uygulandi = uygulanan !== null;
   //  GİRDİ KUTU AÇIKKEN DEĞİŞTİ ( 22 Eki ):  kutu açıldığı andaki girdiyle
   //  konuşur;  arada başka bir kutu ( kuyu genişliği … ) değişirse sunucunun
   //  "doğrulandı"sı eski girdinindir — yazılan değer yeni girdinin üstüne
   //  binip başka bir ölçü kuruyordu ( 420 istendi, 430 çıktı ).  Kendi
-  //  uygulamamızdan sonraki değişiklik beklenendir ( uygulandi ).  Yanıt
+  //  uygulamamızdan sonra yalnız yazdığımız girdi geçerlidir.  Yanıt
   //  yoldayken girdi değişir ya da kutu kapanırsa ( useMutation'ın onSuccess'i
   //  kutu kapandıktan sonra da çalışır ) gelen değişiklik yazılmaz.
   const guncelRef = useRef(guncel);
@@ -82,15 +83,14 @@ export function OlcuKutusu({
       acik.current = false;
     };
   }, []);
-  const girdiDegisti = !uygulandi && !ayniGirdi(guncel, sabit);
+  const girdiDegisti = !ayniGirdi(guncel, uygulanan ?? sabit);
+  const cizimDogrulandi = uygulandi && ayniGirdi(istek, uygulanan);
   const uygula = (r: OlcuDegisikligi) => {
     if (!acik.current || !ayniGirdi(guncelRef.current, sabit)) return;
-    yaz((r.degisiklikler ?? []).map((d) => ({ anahtar: d.anahtar, deger: d.deger })));
-    setUygulandi(true);
+    setUygulanan(yaz((r.degisiklikler ?? []).map((d) => ({ anahtar: d.anahtar, deger: d.deger }))));
   };
   const degistir = useMutation({
     mutationFn: () => api.olcuDegistir(sabit, asansor, olcu.cizim, olcu.index, olcu.metin, anahtar!, hedef),
-    onMutate: () => setUygulandi(false),
     onSuccess: (r) => {
       if (r.aktif && r.degisiklikler && !r.uyarilar?.length) uygula(r);
     },
@@ -169,8 +169,11 @@ export function OlcuKutusu({
                     type="button"
                     role="radio"
                     aria-checked={sec}
-                    disabled={!k.degistirilir}
-                    onClick={() => setAnahtar(k.anahtar)}
+                    disabled={!k.degistirilir || degistir.isPending || uygulandi || girdiDegisti}
+                    onClick={() => {
+                      setAnahtar(k.anahtar);
+                      degistir.reset();
+                    }}
                     className={cn(
                       "flex w-full items-center gap-2.5 rounded-orta px-2 py-2 text-left",
                       k.degistirilir ? "hover:bg-black/[0.035]" : "cursor-default",
@@ -206,14 +209,24 @@ export function OlcuKutusu({
               className="shrink-0 border-t border-cizgi bg-yuzey-2 px-4 py-3"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!uygulandi && !girdiDegisti) degistir.mutate();
+                if (!uygulandi && !girdiDegisti && !degistir.isPending && anahtar) degistir.mutate();
               }}
             >
               <label htmlFor="olcu-hedef" className="text-[12px] font-medium text-metin-2">
                 Yeni ölçü
               </label>
               <div className="mt-1.5 flex gap-2">
-                <Girdi id="olcu-hedef" value={hedef} onChange={(e) => setHedef(e.target.value)} birim="mm" className="flex-1" />
+                <Girdi
+                  id="olcu-hedef"
+                  value={hedef}
+                  disabled={degistir.isPending || uygulandi || girdiDegisti}
+                  onChange={(e) => {
+                    setHedef(e.target.value);
+                    degistir.reset();
+                  }}
+                  birim="mm"
+                  className="flex-1"
+                />
                 {/*  BİR KUTU, BİR DEĞİŞİKLİK ( 21 Eki ):  kutu açıldığı andaki girdilerle
                      konuşur ( değişiklikten sonra ölçünün çizimdeki yeri değişebilir ) —
                      ikinci "Uygula" ilk değişikliği görmeden hesaplanıyor, ölçü hedefi
@@ -255,8 +268,11 @@ export function OlcuKutusu({
                         </span>
                       </p>
                     ))}
-                    {sonuc.dogrulandi && (
+                    {sonuc.dogrulandi && cizimDogrulandi && (
                       <Rozet tur="uygun">Çizim yeniden kuruldu — ölçü {sayiYaz(sonuc.olcu)} mm</Rozet>
+                    )}
+                    {uygulandi && !cizimDogrulandi && (
+                      <p className="text-[12px] text-metin-3">Değişiklik uygulandı; çizim güncelleniyor.</p>
                     )}
                     {uygulandi && (
                       <p className="text-[11.5px] text-metin-3">Başka bir değişiklik için ölçüye yeniden tıklayın.</p>
