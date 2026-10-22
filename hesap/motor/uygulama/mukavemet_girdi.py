@@ -14,6 +14,8 @@ MMO/697 avan kitabından gelir;  uygulama projesinin tabloları bilerek ayrı
 tutulmuştur ( bkz. motor/uygulama/mukavemet_tablolari.py ).
 """
 
+import functools
+
 from temel import bos_mu, sayi_mi
 from motor.ortak import ofis
 from motor.ortak.adimlar import evet_mi
@@ -467,11 +469,7 @@ def tamamla(g):
     #  doğrulama "geçersiz seçim — True" deyip projeyi hiç açmaz.
     _yy = g.get("makine_raya_biniyor")
     if _yy is not None and _yy not in mukavemet_tablolari.MAKINE_YUK_YOLU:
-        g["makine_raya_biniyor"] = (
-            mukavemet_tablolari.MAKINE_YUK_YOLU[1]
-            if mukavemet_tablolari.makine_raya_mi(_yy)
-            else mukavemet_tablolari.MAKINE_YUK_YOLU[0]
-        )
+        g["makine_raya_biniyor"] = mukavemet_tablolari.makine_yuk_yolu(_yy)
     return g
 
 
@@ -523,22 +521,21 @@ def dogrula(g):
 def _alan_turleri(g, atla):
     """Boş, geçersiz seçim, sayı değil, negatif."""
     hata = []
-    for anahtar, etiket, birim, tur, secenekler, _v in ALANLAR:
+    for anahtar, _etiket, _birim, tur, secenekler, _v in ALANLAR:
         if tur == "hesap" or anahtar in atla:
             continue
         d = g.get(anahtar)
-        ad = f"{etiket} ({birim})" if birim not in ("—", "") else etiket
         if d is None or d == "":
             if anahtar not in OPSIYONEL_ALANLAR:
-                hata.append(f"{ad}: boş bırakılamaz.")
+                hata.append(f"{alan_adi(anahtar)}: boş bırakılamaz.")
             continue
         if secenekler is not None and d not in secenekler:
-            hata.append(f"{ad}: geçersiz seçim — {d!r}. Seçenekler: {', '.join(str(x) for x in secenekler)}.")
+            hata.append(secim_iletisi(anahtar, d))
             continue
         if tur == "sayi" and not sayi_mi(d):
-            hata.append(f"{ad}: sayı olmalı ( {d!r} girildi ).")
+            hata.append(f"{alan_adi(anahtar)}: sayı olmalı ( {d!r} girildi ).")
         elif tur == "sayi" and d < 0 and anahtar not in ISARETLI_ALANLAR:
-            hata.append(f"{ad}: negatif olmayan bir sayı olmalı ( {d!r} girildi ).")
+            hata.append(negatif_iletisi(anahtar, d))
     return hata
 
 
@@ -547,7 +544,7 @@ def _bolenler(g, atla):
     girilirse motor ZeroDivisionError ile çöker.  Kullanıcıya çökme değil
     neyi düzelteceği söylenmeli."""
     return [
-        f"{ALAN[anahtar][1]}: sıfır olamaz — bu değer hesapta bölen olarak kullanılır."
+        bolen_iletisi(anahtar)
         for anahtar in BOLEN_ALANLAR
         if anahtar not in atla and sayi_mi(g.get(anahtar)) and g.get(anahtar) == 0
     ]
@@ -712,7 +709,7 @@ def _fiziksel_sinirlar(g, atla):
     for anahtar in TAM_SAYI_ALANLARI:
         d = g.get(anahtar)
         if sayi_mi(d) and float(d) != int(d):
-            hata.append(f"{ALAN[anahtar][1]}: adet tam sayı olmalıdır ( {d} girildi ).")
+            hata.append(tam_sayi_iletisi(anahtar, d))
     nh = g.get("halat_adedi")
     if sayi_mi(nh) and nh < 2:
         hata.append("Askı halatı adedi en az 2 olmalıdır (TS EN 81-20 m.5.5.1.3).")
@@ -721,11 +718,11 @@ def _fiziksel_sinirlar(g, atla):
         if anahtar in atla:
             continue
         if anahtar in ALAN and d is not None and (not sayi_mi(d) or d <= 0):
-            hata.append(f"{ALAN[anahtar][1]}: sıfırdan büyük olmalıdır ( {d} girildi ).")
+            hata.append(pozitif_iletisi(anahtar, d))
     for anahtar, (alt, ust) in ACI_ALANLARI.items():
         d = g.get(anahtar)
         if d is not None and (not sayi_mi(d) or not (alt <= d <= ust)):
-            hata.append(f"{ALAN[anahtar][1]}: {alt}° ile {ust}° arasında olmalıdır ( {d} girildi ).")
+            hata.append(aci_iletisi(anahtar, d))
     #  Kendi dar aralığı olan alan ( katalog aralıkları, açılar ) orada söylenir
     for anahtar in ALAN:
         if anahtar not in atla and anahtar not in ACI_ALANLARI and anahtar not in KATALOG_ARALIKLARI:
@@ -766,9 +763,89 @@ def form_kurallari():
             "en_az": alt,
             "en_az_dahil": dahil,
             "en_cok": ust,
-            "tam_sayi": muk and a.anahtar in TAM_SAYI_ALANLARI,
+            "tam_sayi": a.tam_sayi,
         }
     return kurallar
+
+
+#  ─── TEK ALANIN İLETİLERİ ────────────────────────────────────────────────
+#  Motorun kendi denetimi ( dogrula — motor doğrudan çağrılınca ) ve web
+#  isteğinin kapısı ( uclar/uygulama_istegi — alan_hatasi ) AYNI cümleyi kurar.
+
+
+def alan_adi(anahtar):
+    """İletideki ad:  etiket ve birimi ( "Kabin genişliği (mm)" )."""
+    a = alanlar.ALAN[anahtar]
+    return f"{a.etiket} ({a.birim})" if a.birim not in ("—", "") else a.etiket
+
+
+def secim_iletisi(anahtar, d):
+    secenekler = alanlar.ALAN[anahtar].secenekler
+    return (
+        f"{alan_adi(anahtar)}: geçersiz seçim — {d!r}. Seçenekler: {', '.join(str(x) for x in secenekler)}."
+    )
+
+
+def negatif_iletisi(anahtar, d):
+    return f"{alan_adi(anahtar)}: negatif olmayan bir sayı olmalı ( {d!r} girildi )."
+
+
+def pozitif_iletisi(anahtar, d):
+    return f"{alanlar.ALAN[anahtar].etiket}: sıfırdan büyük olmalıdır ( {d} girildi )."
+
+
+def bolen_iletisi(anahtar):
+    return f"{alanlar.ALAN[anahtar].etiket}: sıfır olamaz — bu değer hesapta bölen olarak kullanılır."
+
+
+def tam_sayi_iletisi(anahtar, d):
+    return f"{alanlar.ALAN[anahtar].etiket}: adet tam sayı olmalıdır ( {d} girildi )."
+
+
+def aci_iletisi(anahtar, d):
+    alt, ust = ACI_ALANLARI[anahtar]
+    return f"{alanlar.ALAN[anahtar].etiket}: {alt}° ile {ust}° arasında olmalıdır ( {d} girildi )."
+
+
+def katalog_iletisi(anahtar, d):
+    alt, ust = KATALOG_ARALIKLARI[anahtar]
+    return f"{alanlar.ALAN[anahtar].etiket}: {alt} - {ust} aralığında olmalıdır ( {d!r} girildi )."
+
+
+@functools.lru_cache(maxsize=1)
+def _kurallar():
+    return form_kurallari()
+
+
+def alan_hatasi(anahtar, d):
+    """TEK ALANIN KURALI — form_kurallari'nın sunucudaki ikizi:  okunmuş bir
+    sayının ( d ) ilk çiğnediği kuralın iletisi ( tam sayı → alt sınır →
+    tavan );  kuralı yoksa ya da uyuyorsa None.  Ön yüz aynı tabloyla
+    denetler ( on-yuz/src/lib/denetim.ts ):  ön yüzün reddettiğini kapı da
+    reddeder.  Alt sınırın sebebi iletide:  açı, katalog aralığı, bölen sıfır,
+    sıfırdan büyük, negatif olamaz."""
+    k = _kurallar().get(anahtar)
+    if k is None:
+        return None
+    muk = alanlar.ALAN[anahtar].sozlesme == alanlar.MUK
+    if k["tam_sayi"] and float(d) != int(d):
+        return tam_sayi_iletisi(anahtar, d)
+    alt, ust = k["en_az"], k["en_cok"]
+    asagi = alt is not None and (d < alt if k["en_az_dahil"] else d <= alt)
+    yukari = ust is not None and d > ust
+    if not (asagi or yukari):
+        return None
+    if muk and anahtar in ACI_ALANLARI:
+        return aci_iletisi(anahtar, d)
+    if muk and anahtar in KATALOG_ARALIKLARI:
+        return katalog_iletisi(anahtar, d)
+    if yukari:
+        return azami_hatasi(anahtar, alanlar.ALAN[anahtar].etiket, d)[0]
+    if muk and anahtar in BOLEN_ALANLAR and d == 0:
+        return bolen_iletisi(anahtar)
+    if not k["en_az_dahil"]:
+        return pozitif_iletisi(anahtar, d)
+    return negatif_iletisi(anahtar, d)
 
 
 def _konsol_araliklari(g, atla):
@@ -907,7 +984,7 @@ def _katalog_verileri(g, atla):
         if _v is None or _v == "":
             continue
         if not sayi_mi(_v) or not (_alt <= _v <= _ust):
-            hata.append(f"{ALAN[_ad][1]}: {_alt} - {_ust} aralığında olmalıdır ( {_v!r} girildi ).")
+            hata.append(katalog_iletisi(_ad, _v))
     return hata
 
 

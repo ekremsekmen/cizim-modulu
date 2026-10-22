@@ -221,15 +221,14 @@ def dogrula(g):
     """Mukavemet doğrulaması + elektrik girdilerinin denetimi."""
     hata = list(mukavemet_girdi.dogrula(g))
     atla = uygulanmayan_alanlar(g.get("mk_yok"))
-    for a, et, birim, tur, _s, _v in EK_ALANLAR:
+    for a, et, _birim, tur, _s, _v in EK_ALANLAR:
         d = g.get(a)
-        ad = f"{et} ({birim})" if birim not in ("—", "") else et
         if tur == "onay" or a in atla:
             continue
         if d is None or d == "":
             continue  # boş bırakılabilir — hesap uyarır
         if not isinstance(d, (int, float)) or isinstance(d, bool) or d < 0:
-            hata.append(f"{ad}: negatif olmayan bir sayı olmalı ( {d!r} girildi ).")
+            hata.append(mukavemet_girdi.negatif_iletisi(a, d))
         else:  # tavanı aşanın avan aralığı ayrıca söylenmez ( _avan_siniri_hatalari )
             hata += mukavemet_girdi.azami_hatasi(a, et, d)
     hata += _avan_siniri_hatalari(g, atla)

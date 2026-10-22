@@ -20,7 +20,6 @@ from uclar import uygulama_istegi
 from uclar.uc_ortak import (
     hata_iletisi,
     hata_kaydi,
-    _belirsiz_hata,
     _dosya_adi,
     _indir,
     _paket_ekleri,
@@ -59,10 +58,10 @@ def uygulama_alanlari():
 
 def _coklu_sonuc(veri):
     """Çoklu uygulama hesabı.  ( sonuc , hata_yaniti )"""
-    asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
-    belirsiz = _belirsiz_hata()
-    if belirsiz:
-        return None, JSONResponse({"aktif": False, "hata": [belirsiz]}, status_code=200)
+    try:
+        asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
+    except uygulama_istegi.GecersizGirdi as e:
+        return None, JSONResponse({"aktif": False, "hata": e.hatalar}, status_code=200)
     #  Hesap çizimden gelen girdiler için yerleşim kurar:  bu istekte bir kez
     with istek_onbellegi.etkin():
         s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)

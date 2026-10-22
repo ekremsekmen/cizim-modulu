@@ -163,8 +163,13 @@ def kimlik(metin):
 def _durum(veri, i):
     """Bir girdinin hükmü:  ( çizim sorunları { kimlik:  metin } , hesap
     çalıştı mı , hesabın sorun kimlikleri , uygun olmayan bölüm sayısı )."""
-    with istek_onbellegi.etkin():
+    try:
         asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
+    except uygulama_istegi.GecersizGirdi as e:
+        #  Aday kapıdan geçmiyor:  hesap durur, kapının iletileri yeni sorun
+        hk = {kimlik(h): h for h in e.hatalar}
+        return hk, False, set(hk), 0
+    with istek_onbellegi.etkin():
         s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
         _g, hata = cizim_uclari.asansor_girdisi(asansorler, ortak, s if s.get("aktif") else None, "", i)
     a = s["asansorler"][i]
@@ -506,6 +511,10 @@ def api_care(veri: dict = Body(...)):
         if not isinstance(asansorler, list) or not asansorler:
             return JSONResponse({"aktif": False, "hata": ["Asansör yok."]})
         i = min(max(i, 0), len(asansorler) - 1)
+        try:
+            uygulama_istegi.asansor_girdileri(veri)
+        except uygulama_istegi.GecersizGirdi as e:
+            return JSONResponse({"aktif": False, "hata": e.hatalar})
         onceki = veri.get("onceki") if isinstance(veri.get("onceki"), dict) else None
         return JSONResponse({"aktif": True, **coz(veri, i, onceki)})
     except Exception as e:  # noqa: BLE001

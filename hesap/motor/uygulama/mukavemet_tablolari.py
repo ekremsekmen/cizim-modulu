@@ -904,6 +904,14 @@ MAKINE_YUK_YOLU = ("Bina yapısına", "Kılavuz raylara")
 MAKINE_YUK_YOLU_RAY = MAKINE_YUK_YOLU[1]
 
 
+def makine_yuk_yolu(deger):
+    """Eski onay kutusu ( True / "EVET" … ) seçime çevrilir:  işaretliyse
+    raylara, değilse bina yapısına.  Seçenek olduğu gibi kalır."""
+    if deger in MAKINE_YUK_YOLU:
+        return deger
+    return MAKINE_YUK_YOLU[1] if makine_raya_mi(deger) else MAKINE_YUK_YOLU[0]
+
+
 def makine_raya_mi(deger):
     """Seçim 'raylara' mı  —  eski onay kutusu ( True/'Evet' ) da anlaşılır."""
     if isinstance(deger, bool):

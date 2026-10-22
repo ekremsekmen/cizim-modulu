@@ -86,13 +86,16 @@ class Katlar(unittest.TestCase):
             "nan; 3000; 3200",
             "-1; 3000; 3200",
             "3400;;3200",
-            [True, 3000, 3200],
-            {"kat": 3400},
         ):
             with self.subTest(ham=ham):
                 g, hata, _ = _g(_veri(durak_adedi=4, seyir_mesafesi=9.6, kat_yukseklikleri=ham))
                 self.assertIsNone(g)
                 self.assertTrue(any("kat yüksekli" in h.lower() for h in hata), hata)
+        #  Yazı olmayan değer isteğin kapısında durur ( uygulama_istegi )
+        for ham in ([True, 3000, 3200], {"kat": 3400}):
+            with self.subTest(ham=ham), self.assertRaises(uygulama_istegi.GecersizGirdi) as k:
+                _g(_veri(durak_adedi=4, seyir_mesafesi=9.6, kat_yukseklikleri=ham))
+            self.assertIn("Kat yükseklikleri", k.exception.hatalar[0])
 
     def test_ondalik_virgul_desteklenir(self):
         g, hata, _ = _g(_veri(durak_adedi=3, seyir_mesafesi=6.4005, kat_yukseklikleri="3400,5; 3000"))
