@@ -77,7 +77,7 @@ def yerlesim(g, S, H, tavan, taban):
         if not (sayi_mi(dy.get(alan)) and dy[alan] > 0):
             hata.append(f"dusey.{alan}: sıfırdan büyük bir sayı olmalı ( {dy.get(alan)!r} ).")
     if hata:
-        return {"hata": hata}
+        return sorun.durdu(hata)
     KD = kuyu_dibi.yerlesim(g, S)
     #  KURMA İLE DENETİM AYRI.  Kuyu dibinin, kuyu üstünün, makine dairesinin
     #  DENETİM hatası ( sığınma alanı sığmıyor, gergi çarpıyor, parçalar üst
@@ -86,7 +86,7 @@ def yerlesim(g, S, H, tavan, taban):
     #  geometriden okunur;  hatalar M["hata"] ile çağırana yine gider.  Yalnız
     #  girdi eksikse ( geometri hiç kurulamadıysa ) durulur.
     if "taban" not in KD:
-        return {"hata": KD["hata"]}
+        return sorun.durdu(KD["hata"])
     hata.extend(KD["hata"])
     mrl = yeri == "Kuyu üstü"
     kabin_raylari = sorted(KD["kabin_raylari"], key=lambda r: r[0])
@@ -97,7 +97,7 @@ def yerlesim(g, S, H, tavan, taban):
     if mrl:
         durdu = _kuyu_ustundeki_makine(g, S, tavan, M, kabin_raylari, agirlik_raylari)
         if durdu is not None:
-            return {"hata": hata + durdu}
+            return sorun.durdu(hata + durdu)
     else:
         ray_ust = tavan_alti - S["kabin_rayi_tepe"]
         M["raylar"] = [("kabin", r, ray_ust) for r in kabin_raylari] + [
@@ -108,7 +108,7 @@ def yerlesim(g, S, H, tavan, taban):
         M["regulator_y"] = (rg[1] + rg[3]) / 2.0
         oda = _makine_dairesi(g, S, tavan, M)
         if "kasnak" not in M:
-            return {"hata": hata + oda}
+            return sorun.durdu(hata + oda)
         hata.extend(oda)
 
     #  ── GERGİ DÜZENİ ( kuyu dibi ) ──────────────────────────────────────

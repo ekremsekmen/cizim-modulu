@@ -23,7 +23,11 @@ yanında taşıdıkları:
 
 Metne bir şey eklemek ( + , f-metin ) düz metin verir:  yapı yalnız sorunun
 kendisinde taşınır.  Aynı metin iki denetimden gelirse birlestir parçaları
-birleştirir."""
+birleştirir.
+
+Geometrisi hiç kurulamayan düzen ( bilinen sınır ) ayrı bir istisnadır:
+CizimKurulamaz ( aşağıda ).  Uçlar yalnız onu ve girdi reddini ( ValueError )
+sessizce karşılar ( BILINEN );  gerisi programın hatasıdır."""
 
 from cizim import parca_adlari
 
@@ -42,6 +46,50 @@ class Sorun(str):
     def __reduce__(self):
         #  İstek içi önbellek yerleşimleri pickle'la kopyalar ( istek_onbellegi )
         return (Sorun, (str(self), self.parcalar, self.cizim, self.fark))
+
+
+class CizimKurulamaz(Exception):
+    """BU DÜZEN BU ÇİZİMDE KURULAMAZ — bilinen sınır, programın hatası değil.
+
+    Yerleşim denetim hatasında durur ( sorunlu kipte bile geometri hiç
+    kurulamayınca:  kaide odaya yerleşemedi, çizilmeyen askı düzeni … ) ve
+    yalnız sorunlarını döndürür ( durdu );  çizim onun geometrisini okuyunca
+    bu istisna yükselir.  hata:  yerleşimin durduğu sorunlar.
+
+    ValueError değildir:  ucun son savunmasına kadar çıkarsa denetim "uygun"
+    deyip çizim kurulamamış demektir — programın hatası ( uc_ortak.hata_kaydi
+    ERROR yazar )."""
+
+    def __init__(self, hata=()):
+        self.hata = list(hata)
+        #  args ( hata ) pickle'da aynen geri gelir
+        super().__init__(self.hata)
+
+    def __str__(self):
+        return str(self.hata[0]) if self.hata else "Çizim kurulamadı."
+
+
+class Durdu(dict):
+    """Durmuş yerleşim:  geometri kurulamadı, yalnız { hata } ( yerleşimlerin
+    erken dönüşü ).  Eskiden düz sözlüktü:  çizim geometrisini okuyunca
+    KeyError 'S' / 'M' / 'taban' / 'oda' doğuyor, programlama hatasından
+    ayrılamıyordu ( 21 Eki son denetimi ).  Olmayan anahtar okununca artık
+    CizimKurulamaz;  "taban" in KD yoklamaları, .get ve ["hata"] aynı — hesap,
+    denetimler ve istek içi önbellek ( pickle ) eskisi gibi."""
+
+    def __missing__(self, anahtar):
+        raise CizimKurulamaz(self.get("hata") or ())
+
+
+def durdu(hata):
+    """Yerleşimin erken dönüşü:  { "hata": hata } ( Durdu )."""
+    return Durdu(hata=hata)
+
+
+#  Uçların sessizce karşıladığı istisnalar:  bilinen sınır ve girdi reddi
+#  ( ValueError — "Pafta çizilemiyor", yük kutusuna yer yok … ).  Gerisi
+#  programın hatasıdır:  yutulmaz, kayıtta ERROR.
+BILINEN = (CizimKurulamaz, ValueError)
 
 
 def ayrik(a, b, pay=0.0):

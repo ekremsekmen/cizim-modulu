@@ -286,14 +286,14 @@ def yerlesim(g, cizim_sabitleri=None):
     md, a = g.get("makine_dairesi") or {}, g.get("aski") or {}
     hata = _girdi_hatalari(g, md, a)
     if hata:
-        return {"hata": hata}
+        return sorun.durdu(hata)
     if md["kapi_genislik"] < KAPI_ASGARI:
         hata.append(_kapi_sorunu(md))
     M = kuyu_ustu.yerlesim(g, S, acil_pano=False)
     #  Kurma ile denetim ayrı ( bkz. donanim.yerlesim ):  kuyu üstünün denetim
     #  hatası odanın yerleşimini durdurmaz, yalnız girdisi eksikse dur.
     if "kasnak" not in M:
-        return {"hata": hata + M["hata"]}
+        return sorun.durdu(hata + M["hata"])
     hata += M["hata"]
     oda = (md["x"], md["y"], md["x"] + md["genislik"], md["y"] + md["derinlik"])
     TB = tabliye(g)

@@ -195,8 +195,11 @@ def _ekran_cizimleri(g, hata):
                 continue
             try:
                 liste.append(_svg(g, ad, onek=f"c{n}-"))
-            except Exception:  # sorunlu girdi:  çizim atlanır, adı söylenir
+            except sorun.BILINEN:  # bu düzen bu çizimde kurulamaz:  atlanır, adı söylenir
                 log.debug("sorunlu girdiyle kurulamayan çizim:  %s", ad, exc_info=True)
+                kurulamayan.append(cizimler.CIZIMLER[ad][2].partition("  (")[0])
+            except Exception:  # programın hatası:  ERROR;  öteki çizimler yine gelir
+                log.error("çizim kurulamadı — programın hatası:  %s", ad, exc_info=True)
                 kurulamayan.append(cizimler.CIZIMLER[ad][2].partition("  (")[0])
     return liste, kurulamayan
 
@@ -280,8 +283,15 @@ def _kurucu(ham, ad, proje_adi, sira):
             #  değişimlerde ( seçim, tam sayı — düzen değişebilir ):  1 mm
             #  oynatmada ölçünün değişimi denetimden bağımsızdır ( kurulamayan
             #  girdi zaten hata verir ).  Değiştirilen değer uygulanmadan önce
-            #  bütün çizimlerin denetiminden geçer ( _yeni_hatalar ).
-            if g is None or (("g" not in taban or denetle) and cizimler.CIZIMLER[ad][0](g)):
+            #  bütün çizimlerin denetiminden geçer ( _yeni_hatalar ).  Bu
+            #  projenin paftasında olmayan çizim ( makine dairesinde kuyu üstü
+            #  planı — pafta.sira ) kurulmaz:  eskiden kurulmaya çalışılıyor,
+            #  hatası ( şasesiz makinede TypeError ) yutuluyordu.
+            if (
+                g is None
+                or ad not in pafta.sira(g)
+                or (("g" not in taban or denetle) and cizimler.CIZIMLER[ad][0](g))
+            ):
                 return None
             if "g" in taban and g == taban["g"]:
                 return taban["e"]
@@ -290,7 +300,7 @@ def _kurucu(ham, ad, proje_adi, sira):
             #  denetimini yeniden yapıyordu.
             with geometri.yalniz_olculer():
                 e = olcu_kaynagi.olculer(cizimler.CIZIMLER[ad][1](g))
-        except Exception:
+        except sorun.BILINEN:
             log.debug("yedek değer kullanılıyor ( kurulamayan girdi )", exc_info=True)
             return None
         if "g" not in taban:
@@ -490,12 +500,12 @@ def genis_sorunlar(veri, i):
             try:
                 with sorunlu.kip():
                     liste += dogrula(g)
-            except Exception:  # sorunlu kipte kurulamayan denetim:  sıkı hâli
+            except sorun.BILINEN:  # sorunlu kipte kurulamayan denetim:  sıkı hâli
                 log.debug("geniş denetim kurulamadı:  %s", ad, exc_info=True)
                 liste += dogrula(g)
         try:
             liste += kopru.tutarlilik(g, A)
-        except Exception:  # tutarlılık geçerli çizim ister
+        except sorun.BILINEN:  # tutarlılık geçerli çizim ister ( durmuş yerleşim )
             log.debug("geniş denetim:  tutarlılık atlandı", exc_info=True)
         return sorun.birlestir(liste)
 
@@ -510,8 +520,11 @@ def _izli_olculer(ham, ad, proje, sira, g_taban, adaylar):
                 return None
             with geometri.yalniz_olculer():
                 return olcu_kaynagi.olculer(cizimler.CIZIMLER[ad][1](g))
-    except Exception:
+    except sorun.BILINEN:
         log.warning("izli kurulum yapılamadı ( %s )", ad, exc_info=True)
+        return None
+    except Exception:  # eski yol sürer;  programın hatası ERROR
+        log.error("izli kurulum yapılamadı — programın hatası ( %s )", ad, exc_info=True)
         return None
 
 
@@ -676,7 +689,7 @@ def _cozumlenemedi(veri):
     try:
         ham, i, proje = _istek(veri)
         g, _hata = kopru.cizim_girdisi(uygulama_girdisi.tamamla(dict(ham)), None, proje, i + 1)
-    except Exception:  # sebep bulunamazsa eski ileti
+    except sorun.BILINEN:  # sebep bulunamazsa eski ileti
         log.debug("ölçü:  çizim girdisi kurulamadı", exc_info=True)
         g = None
     if g is not None:
@@ -888,7 +901,7 @@ def _tutarlilik_duzeltmeleri(r, degisiklik):
         A = uygulama_girdisi.tamamla(h)
         g, _hata = kopru.cizim_girdisi(A)
         duz = kopru.tutarlilik_duzeltmeleri(g, A) if g is not None else {}
-    except Exception:
+    except sorun.BILINEN:
         log.debug("yedek değer kullanılıyor ( çizim kendi hatasını söyler )", exc_info=True)
         return []
     zaten = {d["anahtar"] for d in degisiklik}

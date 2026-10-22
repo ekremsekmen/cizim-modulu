@@ -35,6 +35,7 @@ LibreDWG'nin dxf2dwg aracı DENENDİ VE ÇIKARILDI:  ürettiği dosyayı AutoCAD
 """
 
 import io
+import logging
 import math
 import os
 import shutil
@@ -50,6 +51,9 @@ from pdfminer.high_level import extract_pages
 from pdfminer.layout import LTChar, LTCurve, LTLine, LTRect
 
 from temel import cad_yazisi
+from cizim import sorun
+
+log = logging.getLogger(__name__)
 
 #  PDF birimi punto, CAD birimi milimetre.
 PT_MM = 25.4 / 72.0
@@ -893,7 +897,9 @@ def _pdfler(dxf, pdf_islem):
     try:
         serit, sayfalar = pdf_islem(dxf)
         return serit, sayfalar, None
-    except Exception as e:  # noqa: BLE001 — PDF olmadan da paket teslim edilir
+    except Exception as e:  # PDF olmadan da paket teslim edilir
+        if not isinstance(e, sorun.BILINEN):  # programın ( ya da kurulumun ) hatası:  kayıtta ERROR
+            log.error("paftanın PDF'i üretilemedi", exc_info=e)
         return None, None, f"Paftanın PDF'i üretilemedi:  {e}"
 
 

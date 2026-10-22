@@ -4,6 +4,7 @@ döndürür;  sunucunun kaydında da izi kalmalı ( uclar/uc_ortak.hata_kaydi ).
 import logging
 import unittest
 
+from cizim import sorun
 from uclar import cizim_uclari
 from uclar import uygulama_istegi
 from uclar.uc_ortak import hata_kaydi
@@ -32,6 +33,17 @@ class HataKaydi(unittest.TestCase):
         self.assertEqual([r.levelno for r in k.records], [logging.ERROR])
         self.assertIsNotNone(k.records[0].exc_info)  # izi ( traceback ) var
         self.assertIn("KeyError", k.output[0])
+
+    def test_uca_cikan_cizim_kurulamaz_programin_hatasi(self):
+        """Bilinen sınırı yedek yollar sessizce karşılar ( sorun.BILINEN );  ucun
+        son savunmasına kadar çıktıysa denetim "uygun" deyip çizim kurulamamış
+        demektir — programın hatası, ERROR ( CizimKurulamaz ValueError değil )."""
+        with self.assertLogs(self.log, level="DEBUG") as k:
+            try:
+                sorun.durdu(["Kaide odaya sığmıyor."])["S"]
+            except sorun.CizimKurulamaz as e:
+                hata_kaydi(self.log, e)
+        self.assertEqual([r.levelno for r in k.records], [logging.ERROR])
 
 
 class UcunKaydi(unittest.TestCase):

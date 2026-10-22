@@ -85,7 +85,7 @@ def geometri(g, S, yon=None):
         if not (sayi_mi(v) and v > 0):
             hata.append(f"{ad}:  arkadaki ağırlıkla 2:1 askıda gerekli ( {v!r} ).")
     if hata:
-        return {"hata": hata}
+        return sorun.durdu(hata)
     G, D = k["genislik"], k["derinlik"]
     Rk, Rc, D1 = a["kasnak_capi"] / 2.0, ag["kasnak_capi"] / 2.0, mk["tahrik_kasnak_capi"]
 
@@ -102,12 +102,12 @@ def geometri(g, S, yon=None):
     H = (2.0 * cx - P[0], 2.0 * cy - P[1])  # kabin kasnağı → bağlantı
     L = izli.hypot(H[0] - P[0], H[1] - P[1])
     if L < 1e-6:
-        return {
-            "hata": [
+        return sorun.durdu(
+            [
                 "Arkadaki ağırlıkla 2:1:  tahrik kasnağının kabin inişi askı merkezinin "
                 "üstünde — kabin kasnaklarına yer yok."
             ]
-        }
+        )
     u = ((H[0] - P[0]) / L, (H[1] - P[1]) / L)  # P'den H'ye
     n = (-u[1], u[0])  # kasnak ekseni ( düzleme dik )
     arka = (P[0] + Rk * u[0], P[1] + Rk * u[1])

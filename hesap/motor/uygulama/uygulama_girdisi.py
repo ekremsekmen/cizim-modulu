@@ -40,6 +40,7 @@ from motor.ortak import ofis
 from cizim import geometri
 from cizim import kopru
 from cizim import olculer
+from cizim import sorun
 
 #  Tanınmayan makine tipinde geri düşülecek verim.  Gerçek verim makine
 #  tipinden ve projenin kendi ofis sabitlerinden gelir ( US.verim ).
@@ -180,7 +181,7 @@ def yerlesim_olculeri(g):
         #  pateni, 3 tampon, yana kaçık askı — köprünün iletileri ) hesap sürer.
         plan_hatalari = geometri.dogrula(gc) if gc is not None else []
         o = olculer.hesap_olculeri(gc) if gc is not None and not plan_hatalari else {}
-    except Exception:  # noqa: BLE001 — çizim kendi hatasını söyler
+    except sorun.BILINEN:  # çizim kendi hatasını söyler
         o = {}
     if evet_mi(g.get("mk_yok")):
         #  Makine dairesizde çizilen kiriş seçilen yük yoluna uymalı:  arkadaki

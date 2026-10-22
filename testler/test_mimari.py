@@ -75,6 +75,24 @@ class Mimari(unittest.TestCase):
     def test_uzun_fonksiyon_yok(self):
         self.assertEqual(mimari.uzun_fonksiyonlar(UZUN_FONKSIYON), [])
 
+    def test_genel_except_hatayi_yutmaz(self):
+        """Genel except ya hatayı ERROR yazar ( uc_ortak.hata_kaydi, log.error ),
+        ya yeniden fırlatır, ya da noqa ile sebebini söyler;  log.debug ile
+        yutmak yok — bilinen sınır kendi türüyle yakalanır ( sorun.BILINEN )."""
+        self.assertEqual(mimari.yutan_genel_exceptler(), [])
+
+    def test_yutan_except_kurali_yanilmaz(self):
+        kaynak = (
+            "try:\n    a()\nexcept Exception:\n    log.debug('x', exc_info=True)\n"  # 3 yutar
+            "try:\n    a()\nexcept Exception as e:\n    hata_kaydi(log, e)\n"  # 7 ERROR
+            "try:\n    a()\nexcept Exception:  # noqa: BLE001 — sebep\n    pass\n"  # 11 sebepli
+            "try:\n    a()\nexcept ValueError:\n    pass\n"  # 15 dar
+            "try:\n    a()\nexcept Exception:\n    log.error('x', exc_info=True)\n"  # 19 ERROR
+            "try:\n    a()\nexcept:\n    raise\n"  # 23 yeniden fırlatır
+            "try:\n    a()\nexcept (KeyError, Exception):\n    log.warning('x', exc_info=True)\n"  # 27 yutar
+        )
+        self.assertEqual(mimari.yutan_exceptler(kaynak), [3, 27])
+
 
 class Katmanlar(unittest.TestCase):
     """temel → tasarim ( şema ) → cizim → motor ( hesap ) → ciktilar → uclar:

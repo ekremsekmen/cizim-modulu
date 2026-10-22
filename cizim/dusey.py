@@ -169,7 +169,7 @@ def yerlesim(g, cizim_sabitleri=None):
     surdur = sorunlu.acik()
     kotlar, hata = _girdi_hatalari(g, S, dy)
     if hata and not surdur:
-        return {"hata": hata}
+        return sorun.durdu(hata)
     durdu = _cerceve_ve_sase(g, S, dy, hata)
     if durdu:
         if not surdur:
@@ -179,7 +179,7 @@ def yerlesim(g, cizim_sabitleri=None):
     if KD["hata"] or KU["hata"]:
         #  Kuyu dibinin geometrisi hiç kurulamadıysa ( "taban" yok ) kip de durur
         if not surdur or "taban" not in KD:
-            return {"hata": KD["hata"] + KU["hata"]}
+            return sorun.durdu(KD["hata"] + KU["hata"])
         hata += KD["hata"] + KU["hata"]
     dip = _kuyu_dibi_acikliklari(g, S, dy, KD, hata)
     #  ── KUYU ÜSTÜ:  kabin en üst konumunda ────────────────────────────
@@ -190,7 +190,7 @@ def yerlesim(g, cizim_sabitleri=None):
         #  Donanımın geometrisi hiç kurulamadıysa ( "raylar" yok — örneğin
         #  çizilemeyen askı düzeni ) kip de durur
         if not surdur or "raylar" not in M:
-            return {"hata": hata + M["hata"]}
+            return sorun.durdu(hata + M["hata"])
         hata += M["hata"]
     _regulator_acikligi(KD, KU, M, dip)
     ust = _kuyu_ustu_acikliklari(g, S, dy, KD, KU, M, H)
@@ -273,8 +273,8 @@ def _cerceve_ve_sase(g, S, dy, hata):
     R = (g["agirlik"].get("kasnak_capi") or 0) / 2.0
     cerceve = dy["agirlik_paten_arasi"] - S["paten_yukseklik"]
     if cerceve <= max(2 * S["agirlik_kiris"], S["agirlik_kasnak_ust"] + R):
-        return {
-            "hata": [
+        return sorun.durdu(
+            [
                 sorun.Sorun(
                     f"dusey.agirlik_paten_arasi:  patenlerin merkezleri arasıdır;  çerçeve "
                     f"ondan bir paten boyu kısa ( {cerceve:g} mm ) — kasnağına ve "
@@ -284,7 +284,7 @@ def _cerceve_ve_sase(g, S, dy, hata):
                     fark=cerceve - max(2 * S["agirlik_kiris"], S["agirlik_kasnak_ust"] + R),
                 )
             ]
-        }
+        )
     #  ŞASE ( kabin_kotlari:  patenler kirişlerin dışında ):  üst kiriş kabin
     #  tavanının, alt kiriş platformun dışında kalmalı.  Kabin iç yüksekliği
     #  paten arasına göre büyükse üst kiriş kabinin içinden geçer;  girilen
@@ -292,8 +292,8 @@ def _cerceve_ve_sase(g, S, dy, hata):
     kabin = kabin_kotlari(dy, S, 0.0)
     kiris_alti = kabin["ust_kiris_alt"]
     if kabin["alt_kiris_ust"] > kabin["taban_alti"] + 1e-6:
-        return {
-            "hata": [
+        return sorun.durdu(
+            [
                 sorun.Sorun(
                     f"Kabin alt şase kirişi kabin tabanına giriyor:  kirişin üstü "
                     f"{kabin['alt_kiris_ust']:g} mm, platformun altı {kabin['taban_alti']:g} mm "
@@ -303,7 +303,7 @@ def _cerceve_ve_sase(g, S, dy, hata):
                     fark=kabin["taban_alti"] - kabin["alt_kiris_ust"],
                 )
             ]
-        }
+        )
     if kiris_alti < kabin["tavan"] - 1e-6:
         gerekli = dy["kabin_paten_arasi"] + kabin["tavan"] - kiris_alti
         hata.append(
