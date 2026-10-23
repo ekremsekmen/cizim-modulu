@@ -236,16 +236,18 @@ def _cizimleri_ciz(c, d, cizimler):
         c.restoreState()
 
 
-def serit(dxf_baytlari, paftalar, cizimler=(), baslik="Asansör projesi") -> bytes:
+def serit(dxf_baytlari, paftalar, cizimler=(), baslik="Asansör projesi", elektrikler=()) -> bytes:
     """Paftanın PDF'i:  tek sayfa, paftanın boyunda ( 1:1, mm ).
 
     dxf_baytlari:  paketin DXF paftası ( çizimler eklenmiş ).  paftalar:  hesap
     paftalarının PDF'leri [ ( ad, bayt ) ] — DXF'e dizilenlerin AYNISI.
-    cizimler:  pafta.bloklar( g ) — DXF'teki bloklar."""
+    cizimler:  pafta.bloklar( g ) — DXF'teki bloklar.  elektrikler:  elektrik
+    projeleri ( cizim/elektrik.pafta_sayfalari — DXF'te alt satırın başında,
+    hesap sayfaları onlara göre dizilir )."""
     _yazi_tiplerini_kaydet()
     d = _oku(dxf_baytlari)
     sayfalar = sayfa_listesi(paftalar)
-    yerler, _uzatma, _tasti = dxf_cikti.sayfa_yerleri(sayfalar)
+    yerler, _uzatma, _tasti = dxf_cikti.sayfa_yerleri(sayfalar, len(elektrikler))
     #  Kâğıt:  çizilen her şeyin kutusu ( şablonun uzatılmış çerçevesi dahil )
     kutu = bbox.extents([e for e in d.modelspace() if _cizilecek(e)], fast=True)
     x0, y0 = kutu.extmin.x - KENAR, kutu.extmin.y - KENAR
@@ -262,7 +264,7 @@ def serit(dxf_baytlari, paftalar, cizimler=(), baslik="Asansör projesi") -> byt
     c.scale(mm, mm)
     c.translate(-x0, -y0)
     _sablonu_ciz(c, d)
-    _cizimleri_ciz(c, d, cizimler)
+    _cizimleri_ciz(c, d, list(cizimler) + list(elektrikler))
     c.restoreState()
     c.showPage()
     c.save()
@@ -279,14 +281,19 @@ def serit(dxf_baytlari, paftalar, cizimler=(), baslik="Asansör projesi") -> byt
     return cikti.getvalue()
 
 
-def paket_pdfleri(paftalar, gler=()):
+def paket_pdfleri(paftalar, gler=(), elektrikler=()):
     """ "Projeyi paketle"nin PDF işlemi ( dxf_cikti.proje_paketi ):  son DXF'ten
     ( paftanın şeridi , çizimlerin sayfaları — çizim yoksa None ).  gler:
-    asansörlerin çizim girdileri ( DXF'e eklenenlerle aynı — pafta.bloklar )."""
+    asansörlerin çizim girdileri ( DXF'e eklenenlerle aynı — pafta.bloklar );
+    elektrikler:  elektrik projeleri ( DXF'tekilerin aynısı ) — ayrı sayfalı
+    PDF'te çizimlerin ardından, kendi çerçeveleriyle ( antetsiz )."""
 
     def islem(dxf_baytlari):
         cizimler = pafta.bloklar(list(gler)) if gler else []
-        sayfalar = pdf.sayfalar(cizimler, kunyeler=pafta.kunyeler(list(gler))) if cizimler else None
-        return serit(dxf_baytlari, paftalar, cizimler), sayfalar
+        kunyeler = pafta.kunyeler(list(gler)) if gler else []
+        tum = cizimler + list(elektrikler)
+        kunyeler += [{"kendi_sayfasi": True} for _ in elektrikler]
+        sayfalar = pdf.sayfalar(tum, kunyeler=kunyeler) if tum else None
+        return serit(dxf_baytlari, paftalar, cizimler, elektrikler=elektrikler), sayfalar
 
     return islem

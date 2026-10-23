@@ -42,11 +42,12 @@ from ciktilar import pdf_cikti
 
 try:
     from ciktilar import dxf_cikti
+    from cizim import elektrik
 
     _DXF_HATA = None
 except Exception as _e:  # noqa: BLE001
     logging.getLogger(__name__).warning("CAD çıktısı kapalı:  %s", _e)
-    dxf_cikti, _DXF_HATA = None, _e
+    dxf_cikti, elektrik, _DXF_HATA = None, None, _e
 
 #  Paftanın PDF'i ( pypdf ister ):  yoksa paket PDF'siz iner, DXF etkilenmez
 try:
@@ -267,6 +268,11 @@ def _trafik_koprusu(ham):
     }
 
 
+def _asansor_adi(a):
+    """Avan asansörünün adı ( hesap sayfasının başlığı gibi:  "1 NOLU ASANSÖR  ·  İnsan" )."""
+    return "  ·  ".join(t for t in (a.get("baslik"), a.get("tanim")) if t)
+
+
 def _avan_sonuc(veri):
     """Avan hesabı  —  ( sonuç , hata_yanıtı ).
 
@@ -429,6 +435,7 @@ def indir_proje_dwg(veri: dict = Body(...)):
             paftalar.append(("Trafik", pdf_cikti.trafik_pdf(t)))
 
         avan_ham = ham.get("avan")
+        elektrikler = []
         if isinstance(avan_ham, dict):
             a, yanit = _avan_sonuc({"girdiler": avan_ham})
             if yanit is not None:
@@ -438,6 +445,10 @@ def indir_proje_dwg(veri: dict = Body(...)):
             if a.get("engelleyici"):
                 return JSONResponse({"hata": a["engelleyici"]}, status_code=200)
             paftalar.append(("Avan", pdf_cikti.avan_pdf(a)))
+            #  ELEKTRİK PROJESİ:  her asansörün hesabından ( paftada sol altta )
+            elektrikler = elektrik.pafta_sayfalari(
+                [(x.get("elektrik"), _asansor_adi(x)) for x in a.get("asansorler") or [] if x.get("aktif")]
+            )
 
         if not paftalar:
             return JSONResponse(
@@ -454,7 +465,11 @@ def indir_proje_dwg(veri: dict = Body(...)):
         kok = os.path.splitext(ad)[0]
         ekler = list(_paket_ekleri(veri, "avan"))
         paket, sebep, tasti = dxf_cikti.proje_paketi(
-            paftalar, kok, ekler, pdf_islem=pafta_pdf.paket_pdfleri(paftalar) if pafta_pdf else None
+            paftalar,
+            kok,
+            ekler,
+            pdf_islem=pafta_pdf.paket_pdfleri(paftalar, elektrikler=elektrikler) if pafta_pdf else None,
+            elektrikler=elektrikler,
         )
         yanit = _indir(paket, ad, "application/zip")
         #  Kullanıcının BİLMESİ GEREKENLER başlıkta taşınır:

@@ -102,6 +102,12 @@ KATMAN = {
     "SEVIYE": Kalem(0.13, None, SIYAH, 2),
     "SIGINMA": Kalem(0.13, "ALAN", SIYAH, 3),
     "YAZI": Kalem(0.13, None, SIYAH, 7),
+    #  ELEKTRİK PROJESİ ( cizim/elektrik ):  iletkenler, cihazlar ( sigorta,
+    #  röle, şalter, armatür, buton … ) ve topraklama ayrı katmanlarda —
+    #  ofisin elle çizdiği projede de cihazlar kırmızıydı ( 23 Eki ).
+    "ELK-HAT": Kalem(0.25, None, SIYAH, 7),
+    "ELK-CIHAZ": Kalem(0.35, None, SIYAH, 1),
+    "ELK-TOPRAK": Kalem(0.25, None, SIYAH, 3),
 }
 #  Parçanın "ince" ayrıntısı ( sac profil kıvrımı, oluk ) katmanından bağımsız
 INCE = 0.18

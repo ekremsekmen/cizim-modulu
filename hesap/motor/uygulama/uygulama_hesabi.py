@@ -171,6 +171,9 @@ def hesapla(veriler=None):
         "ozet": ozet,
         "uyarilar": uyarilar,
         "ara": muk.get("ara", {}),
+        #  Elektrik projesinin değerleri ( avan motoru — cizim/elektrik );
+        #  elektrik hesabı yapılamadıysa yok
+        "elektrik": asansor.get("elektrik") if elektrik else None,
     }
 
 
@@ -286,6 +289,19 @@ def _tesis_bolumleri(aktifler):
     return [numarala(b, n) for n, b in enumerate(bolumler, 1)]
 
 
+def _tablo_adi(s, no):
+    """Asansörün tablosu kendi numarasıyla ( TAS1, TAS2 … ):  avan motoru her
+    asansörü TEK asansörlük proje olarak hesaplar, hepsine "TAS1" yazıyordu —
+    dört asansörlük paftada dört kurulu güç cetveli de TAS1'di ( 23 Eki,
+    elektrik projesinin tek hat şeması gelince görüldü;  avan projesi zaten
+    asansörün sırasıyla yazar )."""
+    for b in s["bolumler"]:
+        if b.get("kimlik") == "kurulu_guc":
+            b["kaynak"] = avan_hesabi.tablo_adi_metni(no)
+    if s.get("elektrik"):
+        s["elektrik"] = dict(s["elektrik"], tablo=avan_hesabi.tas_adi(no))
+
+
 def hesapla_coklu(asansorler=None, ortak=None):
     """1 - ASANSOR_AZAMI arası asansörü aynı motorla koşturur.
 
@@ -336,6 +352,7 @@ def hesapla_coklu(asansorler=None, ortak=None):
                 numarala(b, n)
                 for n, b in enumerate([x for x in s["bolumler"] if not x.get("proje_geneli")], 1)
             ]
+            _tablo_adi(s, i)
         sonuclar.append(s)
 
     aktifler = [s for s in sonuclar if s.get("aktif")]

@@ -12,8 +12,9 @@
 PROGRAMIN KENDİ YOLUNDAN geçer:  girdi formun girdisidir ( hesap_girdi ), hesap
 ve çizim girdisi "Projeyi paketle" düğmesinin kullandığı fonksiyonlarla kurulur
 ( hesap/api/uygulama · hesap/api/cizim · cizim/kopru ).  Kapak ve hesap paftaları
-hesap programının dışa aktarımıyla TİP PROJE FORMATINA dizilir;  çizimler son
-hesap sayfasının sağına eklenir ( pafta.birlestir ).
+hesap programının dışa aktarımıyla TİP PROJE FORMATINA dizilir ( elektrik projesi
+alt satırın başında — cizim/elektrik );  çizimler son hesap sayfasının sağına
+eklenir ( pafta.birlestir ).
 
     .venv/bin/python ornekler/uret.py
 
@@ -46,6 +47,7 @@ from hesap_girdi import ASANSOR, ORTAK, ASANSOR_MD, ORTAK_MD, SABITLER
 from uclar import cizim_uclari
 from motor.uygulama import uygulama_hesabi
 from ciktilar import pdf_cikti, dxf_cikti, kapak_cikti, pafta_pdf
+from cizim import elektrik
 from cizim import pafta
 from cizim import kopru
 from uclar import uygulama_istegi
@@ -110,7 +112,13 @@ def uret(md):
     }
     kapak_pdf = kapak_cikti.pdf_baytlari(kapak)
     hesap_pdf = pdf_cikti.uygulama_pdf(s)
-    hesap_dxf = dxf_cikti.proje_dxf([("Kapak", kapak_pdf), ("Uygulama Projesi", hesap_pdf)])
+    #  Elektrik projesi:  hesabın değerleriyle, paftada alt satırın başında
+    elektrikler = elektrik.pafta_sayfalari(
+        [(x.get("elektrik"), x.get("tanim")) for x in s["asansorler"] if x.get("aktif")]
+    )
+    hesap_dxf = dxf_cikti.proje_dxf(
+        [("Kapak", kapak_pdf), ("Uygulama Projesi", hesap_pdf)], elektrikler=elektrikler
+    )
 
     #  ── ÇİZİM GİRDİSİ:  köprüden ( "Projeyi paketle" ile aynı ) ─────────
     #  Hesabın girdisi + çizim alanları;  binaya gelen yükler hesabın
@@ -146,7 +154,9 @@ def uret(md):
         if denetim is None:
             shutil.copy(dxf, yol + ".dxf")
         paftalar = [("Kapak", kapak_pdf), ("Uygulama Projesi", hesap_pdf)]
-        Path(yol + ".pdf").write_bytes(pafta_pdf.serit(Path(dxf).read_bytes(), paftalar, pafta.bloklar(g)))
+        Path(yol + ".pdf").write_bytes(
+            pafta_pdf.serit(Path(dxf).read_bytes(), paftalar, pafta.bloklar(g), elektrikler=elektrikler)
+        )
 
     print("   binaya gelen yükler ( N ):", {k: round(v) for k, v in g["kuyu_dibi"]["kuvvetler"].items()})
     print("   AutoCAD:", denetim or "yok — .dxf bırakıldı")

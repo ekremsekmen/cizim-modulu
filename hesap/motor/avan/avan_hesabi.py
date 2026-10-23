@@ -560,6 +560,30 @@ def hesapla_asansor(a: dict, ortak: dict, S: dict, no: int = 1) -> dict:
         "engelleyici": [f"⚠ {no} NOLU ASANSÖR: {x}" for x in engelleyici],
         "bolumler": bolumler,
         "ozet": _ozet(h),
+        "elektrik": _elektrik_projesi(h, S, no),
+    }
+
+
+def _elektrik_projesi(h, S, no):
+    """ELEKTRİK PROJESİNİN DEĞERLERİ  —  tek hat şeması ve kuyu tesisatı
+    ( cizim/elektrik ).  Çizim bunları basar, kendisi hesaplamaz:  armatür
+    adetleri ( bölüm 3 · 4 ), motor gücü ve sigortası ( bölüm 1 · 5 ), devre
+    sigortaları ( bölüm 5 — kurulu güç cetvelinin satırları ), kolon ve
+    makine besleme hattının kesitleri ( bölüm 6 ), kaçak akım rölesi ( ofis
+    standardı — topraklama hesabının IΔn'ı ).  Makine dairesinin olup
+    olmadığı proje genelidir:  hesapla() yazar."""
+    return {
+        "tablo": tas_adi(no),
+        "motor_kW": h["Nsc"],
+        "motor_sigorta_A": h["sigorta_A"],
+        "kuyu": {"adet": h["n_kuyu"], "W": S["kuyu_armatur_W"], "sigorta_A": SIGORTA_AYDINLATMA},
+        #  Kabin ve kabin üstü cetvelde TEK devredir ( 3. satır )
+        "kabin": {"adet": h["n_kabin"], "W": S["kabin_armatur_W"], "sigorta_A": SIGORTA_AYDINLATMA},
+        "kabin_ustu": {"adet": S["kabin_ustu_armatur"], "W": S["kabin_armatur_W"]},
+        "priz": {"adet": S["priz_adedi"], "W": S["priz_gucu"], "sigorta_A": SIGORTA_PRIZ},
+        "kolon": {"S": h["S1"], "SPE": h["SPE1"], "kablo": h["kablo_tipi"]},
+        "makine_besleme": {"S": h["S2"], "SPE": h["SPE2"]},
+        "kacak_akim_A": S["IDn"],
     }
 
 
@@ -1169,6 +1193,24 @@ def _kuyu_aydinlatma_bolumu(h, S):
 #
 #  Bir süre ikisi tek sayıydı:  akım doğru çıksın diye cetvele Pşeb
 #  yazılıyor, asansörün kurulu gücü de %18 büyük bildiriliyordu.
+#
+#  AYDINLATMA VE PRİZ DEVRELERİNİN SİGORTALARI ( A ) — cetvelin sigorta
+#  sütununda sabit yazan değerler.  Elektrik projesinin tek hat şeması da
+#  aynılarını basar ( _elektrik_projesi ):  cetvel ile şema ayrışmasın.
+SIGORTA_AYDINLATMA = 10
+SIGORTA_PRIZ = 16
+
+
+def tas_adi(no):
+    """Asansörün tablosunun adı ( kurulu güç cetveli ve tek hat şeması )."""
+    return f"TAS{no}"
+
+
+def tablo_adi_metni(no):
+    """Kurulu güç cetvelinin kaynak satırı."""
+    return f"tablo adı :  {tas_adi(no)}"
+
+
 def _kurulu_guc_bolumu(h, S, no):
     Nsc, n_kuyu, n_kabin, U_sebeke = h["Nsc"], h["n_kuyu"], h["n_kabin"], h["U_sebeke"]
     eta_m = S["motor_elektrik_verimi"]
@@ -1208,7 +1250,7 @@ def _kurulu_guc_bolumu(h, S, no):
         motor_sigorta=motor_sigorta,
     )
 
-    b5 = Bolum("5 -  KURULU GÜÇ CETVELİ", f"tablo adı :  TAS{no}", kimlik="kurulu_guc")
+    b5 = Bolum("5 -  KURULU GÜÇ CETVELİ", tablo_adi_metni(no), kimlik="kurulu_guc")
     b5["aciklamalar"] = [
         "Kurulu güç, tüketicilerin anma ( etiket ) güçlerinin toplamıdır "
         "( Elektrik İç Tesisleri Proje Hazırlama Yönetmeliği m.5-19 ).  Motorun "
@@ -1229,7 +1271,7 @@ def _kurulu_guc_bolumu(h, S, no):
             "sorti": f"KUYU AYDINLATMASI          ( {n_kuyu} X {trn(S['kuyu_armatur_W'], 0)} W )",
             "guc": g_kuyu,
             "birim": "W",
-            "sigorta": "10",
+            "sigorta": str(SIGORTA_AYDINLATMA),
         },
         {
             "lin": 3,
@@ -1239,14 +1281,14 @@ def _kurulu_guc_bolumu(h, S, no):
             ),
             "guc": g_kabin,
             "birim": "W",
-            "sigorta": "10",
+            "sigorta": str(SIGORTA_AYDINLATMA),
         },
         {
             "lin": 4,
             "sorti": f"TOPLAM PRİZ          ( {trn(S['priz_adedi'], 0)} X {trn(S['priz_gucu'], 0)} W )",
             "guc": g_priz,
             "birim": "W",
-            "sigorta": "16",
+            "sigorta": str(SIGORTA_PRIZ),
         },
     ]
     b5["sonuc"] = {"baslik": "ASANSÖRÜN KURULU GÜCÜ", "metin": f"{trn(P_kurulu, 0)} W", "uygun": True}
@@ -2125,6 +2167,13 @@ def hesapla(veriler: dict) -> dict:
         asansorler.append(hesapla_asansor(a, ortak, S, i))
 
     mk = hesapla_makine_dairesi(ortak, S)
+    #  Elektrik projesinin ana tablosunda makine dairesi aydınlatmasının devresi
+    #  yalnız makine dairesi varsa ( MRL'de oda yok ):  hesabı yapılmışsa ya da
+    #  oda var denmiş ama ölçüsü girilmemişse ( hesap eksik — mk_yok False )
+    oda = bool(mk.get("aktif")) or mk.get("mk_yok") is False
+    for a in asansorler:
+        if a.get("elektrik"):
+            a["elektrik"]["makine_dairesi"] = oda
     #  ANA POTANSİYEL DENGELEME "TESİSTEKİ EN BÜYÜK KORUMA İLETKENİ"NDEN
     #  türer ( m.9-j/1/i ) — tesis dört asansörlü olabilir, hepsine bakılır.
     _peler = [

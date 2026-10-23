@@ -14,6 +14,7 @@ import os
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
+from cizim import elektrik
 from cizim import istek_onbellegi
 from uclar import cizim_uclari
 from uclar import uygulama_istegi
@@ -160,6 +161,10 @@ def _uygulama_paketi(veri):
             )
         paftalar.append(("Uygulama Projesi", pdf_cikti.uygulama_pdf(s)))
         ad = _dosya_adi(_p, "Uygulama Projesi", "zip")
+        #  ELEKTRİK PROJESİ:  her asansörün hesabından ( paftada sol altta )
+        elektrikler = elektrik.pafta_sayfalari(
+            [(x.get("elektrik"), x.get("tanim")) for x in s["asansorler"] if x.get("aktif")]
+        )
         #  Pakete PROJE DOSYASI da girer:  teslim paketi ile geri dönüş
         #  noktası aynı arşivde dursun.
         paket, sebep, tasti = dxf_cikti.proje_paketi(
@@ -167,7 +172,10 @@ def _uygulama_paketi(veri):
             os.path.splitext(ad)[0],
             list(_paket_ekleri(veri, "uygulama")),
             son_islem=cizim_uclari.paftaya_ekle([g for g, _h in cizim]),
-            pdf_islem=pafta_pdf.paket_pdfleri(paftalar, [g for g, _h in cizim]) if pafta_pdf else None,
+            pdf_islem=(
+                pafta_pdf.paket_pdfleri(paftalar, [g for g, _h in cizim], elektrikler) if pafta_pdf else None
+            ),
+            elektrikler=elektrikler,
         )
         yanit = _indir(paket, ad, "application/zip")
         notlar = (["DXF"] if sebep else []) + (["TASMA"] if tasti else [])
