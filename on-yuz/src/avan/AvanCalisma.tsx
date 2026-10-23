@@ -31,7 +31,7 @@ import {
 } from "@/lib/avan";
 import { KAPAK_GRUPLARI } from "@/lib/kapak";
 import { cn, sayiYaz } from "@/lib/utils";
-import { AnaSayfaBaglantisi, BasvuruBaglantilari, UstSerit } from "@/components/Kabuk";
+import { AnaSayfaBaglantisi, BasvuruBaglantilari, SunucuBekleniyor, UstSerit } from "@/components/Kabuk";
 import { Anahtar, Dugme, Girdi, Ipucu, Rozet, Secim } from "@/components/ui";
 import { HesapBelgesi, HukumRozeti } from "@/components/HesapBelgesi";
 //  pdf.js büyüktür ( ~1 MB ):  yalnız kapak adımı açılınca iner
@@ -159,12 +159,7 @@ export function AvanCalisma() {
     setP(BOS_AVAN);
     git("/avan/trafik", { replace: true });
   };
-  if (!sec.data)
-    return (
-      <div className="flex h-dvh items-center justify-center gap-2 text-[13px] text-metin-3">
-        <Loader2 className="size-4 animate-spin" /> Yükleniyor
-      </div>
-    );
+  if (!sec.data) return <SunucuBekleniyor sorgu={sec} />;
 
   //  Dosya açılınca açık proje ezilir ( avan tek projedir, eski arayüz gibi ):
   //  önceki hâli "Geri al" için tutulur

@@ -35,6 +35,7 @@ import {
   asansorAdedi,
   asansorEkle,
   asansorKaldir,
+  ayniGirdi,
   kutuyaYaz,
   istekKur,
   ornekSifirla,
@@ -44,7 +45,7 @@ import {
   type UygulamaProjesi,
 } from "@/lib/proje";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
-import { AnaSayfaBaglantisi, BasvuruBaglantilari, UstSerit } from "@/components/Kabuk";
+import { AnaSayfaBaglantisi, BasvuruBaglantilari, SunucuBekleniyor, UstSerit } from "@/components/Kabuk";
 import { Bolumlu, Dugme, HukumNoktasi, Ipucu, Rozet } from "@/components/ui";
 import { HesapBelgesi } from "@/components/HesapBelgesi";
 import { GirdiPaneli } from "./GirdiPaneli";
@@ -57,20 +58,7 @@ import { useSunucu, type Sorun } from "./useSunucu";
 
 export function Calisma({ proje, bildirim }: { proje: UygulamaProjesi; bildirim?: string }) {
   const sema = useQuery({ queryKey: ["alanlar"], queryFn: api.alanlar, staleTime: Infinity });
-  if (sema.error)
-    return (
-      <div className="flex h-dvh flex-col items-center justify-center gap-2 text-[13px] text-metin-2">
-        <CircleAlert className="size-5 text-red" />
-        Sunucuya ulaşılamadı — program açık mı?
-        <Dugme onClick={() => sema.refetch()}>Yeniden dene</Dugme>
-      </div>
-    );
-  if (!sema.data)
-    return (
-      <div className="flex h-dvh items-center justify-center gap-2 text-[13px] text-metin-3">
-        <Loader2 className="size-4 animate-spin" /> Form şeması yükleniyor
-      </div>
-    );
+  if (!sema.data) return <SunucuBekleniyor sorgu={sema} metin="Form şeması yükleniyor" />;
   return <CalismaIc sema={sema.data} baslangic={proje} bildirim={bildirim} />;
 }
 
@@ -187,11 +175,22 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     mutationFn: (v: { istek: UygulamaIstegi; asansor: number; onceki: OncekiGirdi | null }) =>
       api.care(v.istek, v.asansor, v.onceki),
   });
-  const careBuGirdinin = care.variables?.istek === s.cizimIstegi && care.variables?.asansor === a;
+  //  GİRDİ DEĞİŞİNCE ( 24 Eki ):  yeni çizim gelene kadar ( 300 ms bekleme + kurulum )
+  //  ekrandaki çizim ve düzeltmeleri eski girdinindir — "Uygula" eski girdide
+  //  sınanmış değeri yeni girdinin üstüne yazıyordu;  bir düzeltme uygulanınca
+  //  öbürleri de onu görmeden sınanmış kalıyordu.  Düzeltmeler yalnız girdi
+  //  ekrandaki çizimin girdisiyken gösterilir ve aranır ( ölçü kutusunun kuralı ).
+  const cizimGirdisinde = useMemo(() => ayniGirdi(s.istek, s.cizimIstegi), [s.istek, s.cizimIstegi]);
+  const careBuGirdinin =
+    cizimGirdisinde && care.variables?.istek === s.cizimIstegi && care.variables?.asansor === a;
   const careler = careBuGirdinin ? care.data : undefined;
-  const careBul = s.cizimIstegi
-    ? () => care.mutate({ istek: s.cizimIstegi!, asansor: a, onceki: s.oncekiTemiz })
-    : undefined;
+  //  Yanıt gelmedi ( bağlantı, vekilin zaman aşımı ):  düğme sessizce eski hâline dönüyordu
+  const careHatasi =
+    careBuGirdinin && care.error ? `Düzeltme aranamadı — sunucuya ulaşılamadı ( ${care.error.message} ).` : undefined;
+  const careBul =
+    s.cizimIstegi && cizimGirdisinde
+      ? () => care.mutate({ istek: s.cizimIstegi!, asansor: a, onceki: s.oncekiTemiz })
+      : undefined;
   const careUygula = (o: CareOnerisi) => yaz(o.anahtar, typeof o.yeni === "number" ? kutuyaYaz(o.yeni) : o.yeni);
   const sorunuGoster = (m: CizimSorunu) => {
     if (gorunum !== "cizim") gorunumSec("cizim");
@@ -464,6 +463,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
               careBul={careBul}
               careYolda={care.isPending && careBuGirdinin}
               careler={careler}
+              careHatasi={careHatasi}
               careUygula={careUygula}
             />
           )}
@@ -540,6 +540,7 @@ function SorunKarti({
   careBul,
   careYolda,
   careler,
+  careHatasi,
   careUygula,
 }: {
   sorun: Sorun;
@@ -555,6 +556,8 @@ function SorunKarti({
   careBul?: () => void;
   careYolda: boolean;
   careler?: CareYanit;
+  /**  Arama isteği yanıtsız kaldı  */
+  careHatasi?: string;
   careUygula: (o: CareOnerisi) => void;
 }) {
   //  Çizim sorunlu da olsa ekrandaysa kart küçültülebilir ( çizime bakılsın )
@@ -644,6 +647,7 @@ function SorunKarti({
       {careler && !careler.aktif && !kucuk && (
         <p className="px-4 pb-2 pl-10 text-[12px] opacity-80">{careler.hata?.join(" ") || "Düzeltme aranamadı."}</p>
       )}
+      {careHatasi && !kucuk && <p className="px-4 pb-2 pl-10 text-[12px] opacity-80">{careHatasi}</p>}
       {/*  Kesilen arama söylenir ( eksik sonuç tamamlanmış gibi görünmesin ):  bütçe
            sayıdır, yeniden denemek aynı sonucu verir;  güvenlik süresi ( yüklü
            bilgisayar ) yeniden denemeyle geçebilir  */}

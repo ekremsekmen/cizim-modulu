@@ -10,13 +10,15 @@ gerçek sunucu ve gerçek tarayıcıyla:
   2  canlı hesap:  girdi değişince ekran taze hesabı gösterir, geride kalan
      yanıt öne geçmez;  beyan yükü değişince kabin kütlesi tablodan gelir
   3  proje dosyası:  .uygulama ve .avan kaydet → aç → aynı istek, aynı hesap;
-     iki asansör ayrı kalır
+     iki asansör ayrı kalır;  eski dosyanın onay kutusu sunucunun okuduğu seçenek
   4  ölçü kutusu:  ölçüye tıkla → kaynakları;  yeni değer → girdi değişir
   5  teslim:  onaysız paket kapalı;  onaylı ZIP iner, içinde PDF ve .uygulama;
      çizimde sorun varken paket kapalı, hesap PDF'i açık
   7  sorunlu çizim:  kural sağlanmasa da çizim ekranda, sorunlu parça kırmızı;
      karttaki soruna tıklanınca tuval onun yerine yakınlaşır;  "Düzeltme öner"
-     doğrulanmış düzeltmeleri getirir, "Uygula" kutuya yazar, sorun kalkar
+     doğrulanmış düzeltmeleri getirir, "Uygula" kutuya yazar, sorun kalkar;
+     girdi değişince eski çizimin düzeltmeleri uygulanamaz
+  8  sunucuya ulaşılamazsa:  ekran söyler, "Yeniden dene" sunucu dönünce açar
   6  adresler:  bilinmeyen proje açılışa döner;  /yeni köke yönlenir
   Hiçbir testte konsol hatası yok.
 
@@ -352,6 +354,37 @@ class OnYuzUctanUca(unittest.TestCase):
         sonra, hesap_sonra = self._hesap_istegi()
         self.assertEqual(sonra, once)
         self.assertEqual(hesap_sonra, hesap_once)
+
+    def test_eski_dosyanin_onay_kutusu_sunucunun_okudugu_secenek(self):
+        """24 Eki ( dış inceleme ):  makine yükünün yolu eskiden onay kutusuydu;
+        eski dosyanın işaretsizi ( false ) sunucuda "Bina yapısına" okunur
+        ( makine_yuk_yolu ).  Ön yüz tanımayıp varsayılana ( "Kılavuz raylara" )
+        döndürüyordu:  proje başka bir yük yoluyla hesaplanıyordu."""
+        eski = {
+            "__mod": "uygulama",
+            "__surum": 1,
+            "alanlar": {
+                "mk_proje_adi": "Eski",
+                "m_mk_yok": True,
+                "__muk_adet": 1,
+                "__muk_asansorler": [{"makine_raya_biniyor": False}],
+            },
+        }
+        self.sayfa.goto(self.url + "/")
+        with tempfile.TemporaryDirectory() as klasor:
+            dosya = os.path.join(klasor, "eski.uygulama")
+            with open(dosya, "w", encoding="utf-8") as f:
+                json.dump(eski, f)
+            with self.sayfa.expect_file_chooser() as secici:
+                self.sayfa.get_by_role("button", name="Dosya seç").click()
+            secici.value.set_files(dosya)
+            self.sayfa.wait_for_url(re.compile(r"/uygulama/[0-9a-z]{6,}$"))
+        istek, _hesap = self.iz.son("/api/uygulama/coklu")
+        self.assertEqual(istek["asansorler"][0].get("makine_raya_biniyor"), "Bina yapısına")
+        self.assertIn("Bina yapısına", self.alan_kutusu("makine_raya_biniyor").inner_text())
+        bildirim = self.sayfa.get_by_role("status").inner_text()
+        self.assertIn('"eski.uygulama" açıldı.', bildirim)
+        self.assertNotIn("varsayılana döndü", bildirim)
 
     def test_avan_dosyasi_gidis_donus(self):
         self.sayfa.goto(self.url + "/avan/trafik")
@@ -931,6 +964,47 @@ class OnYuzUctanUca(unittest.TestCase):
             [("2300", "4250"), ("2300", "4515")],
         )
 
+    def test_duzeltme_degisen_girdiyle_uygulanmaz(self):
+        """24 Eki ( dış inceleme ):  girdi değişince yeni çizim gelene kadar eski
+        çizimin düzeltmeleri kartta kalıyor, "Uygula" eski girdide sınanmış değeri
+        yeni girdinin üstüne yazıyordu.  Yeni çizim beklenirken ne düzeltmeler ne
+        arama düğmesi görünür;  girdi ekrandaki çizimin girdisine dönünce aynı
+        girdinin sınanmış düzeltmeleri geri gelir."""
+        self.ornek_projeyi_ac()
+        kuyu = self.alan_kutusu("kuyu_genisligi")
+        kuyu.fill("2300")
+        self.iz.sakin()
+        kart = self.sayfa.get_by_role("alert")
+        with self.sayfa.expect_response(lambda r: r.url.endswith("/api/uygulama/care"), timeout=30_000):
+            kart.get_by_role("button", name="Düzeltme öner").click()
+        liste = kart.get_by_role("list", name="Düzeltmeler")
+        liste.wait_for()
+        uygula = kart.get_by_role("button", name=re.compile(r" yap$"))
+        arama = kart.get_by_role("button", name=re.compile(r"^(Düzeltme öner|Yeniden ara)$"))
+        self.assertGreater(uygula.count(), 0)
+        tutulan = []
+        self.sayfa.route("**/api/uygulama/cizimler", lambda r: tutulan.append(r))
+        try:
+            #  Girdi değişir, yeni çizim yolda tutulur:  ekranda eski çizim ve sorunu
+            kuyu.fill("2310")
+            for _ in range(100):
+                if tutulan:
+                    break
+                self.sayfa.wait_for_timeout(100)
+            self.assertTrue(tutulan, "çizim isteği gitmedi")
+            self.assertIn("Korkuluk – kuyu tavanı", kart.inner_text())
+            self.assertEqual((liste.count(), uygula.count(), arama.count()), (0, 0, 0))
+            #  Ekrandaki çizimin girdisine dönüş:  onun düzeltmeleri yine geçerli
+            kuyu.fill("2300")
+            liste.wait_for()
+            self.assertGreater(uygula.count(), 0)
+        finally:
+            for r in tutulan:
+                r.continue_()
+            self.sayfa.unroute("**/api/uygulama/cizimler")
+        self.iz.sakin()
+        self.assertEqual(self.kayitli_asansorler()[0].get("kuyu_genisligi"), "2300")
+
     # ------------------------------------------------------------ 5 teslim
     def test_teslim_onaysiz_kapali_onayli_paket_iner(self):
         self.ornek_projeyi_ac()
@@ -1013,6 +1087,30 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.get_by_role("button", name="Teslim").click()
         teslim.get_by_text(re.compile(r"Çizimde 1 sorun var")).wait_for()
         self.assertTrue(teslim.get_by_role("button", name=re.compile("Paketi indir")).is_disabled())
+
+    # ------------------------------------------------------------ 8 sunucuya ulaşılamazsa
+    def test_baslangic_verisi_gelmezse_ekran_soyler_yeniden_dener(self):
+        """24 Eki ( dış inceleme ):  avan ekranı /api/secenekler düşünce hata
+        göstermeden "Yükleniyor"da kalıyordu;  ofis standardı ve tablolar da
+        ( /api/uygulama/alanlar ).  Ulaşılamadığı söylenir;  "Yeniden dene"
+        sunucu dönünce ekranı açar."""
+        for adres, uc, acilan in (
+            ("/avan/trafik", "**/api/secenekler", self.sayfa.get_by_role("navigation", name="Adımlar")),
+            ("/ofis-standardi", "**/api/uygulama/alanlar", self.sayfa.get_by_role("heading", name="Ofis standardı")),
+            ("/tablolar", "**/api/uygulama/alanlar", self.sayfa.get_by_role("heading", name="Tablolar")),
+        ):
+            self.sayfa.route(uc, lambda r: r.fulfill(status=503, body="kapalı"))
+            self.sayfa.goto(self.url + adres)
+            hata = self.sayfa.get_by_role("alert")
+            hata.get_by_role("button", name="Yeniden dene").wait_for(timeout=15_000)
+            self.assertIn("Sunucuya ulaşılamadı", hata.inner_text(), adres)
+            self.sayfa.unroute(uc)
+            hata.get_by_role("button", name="Yeniden dene").click()
+            acilan.wait_for()
+            self.assertEqual(hata.count(), 0, adres)
+            self.iz.sakin()
+        #  Tarayıcı düşen isteği konsola yazar ( beklenen )
+        self.iz.hatalar = [h for h in self.iz.hatalar if "503" not in h]
 
     # ------------------------------------------------------------ 6 adresler
     def test_bilinmeyen_proje_acilisa_doner(self):

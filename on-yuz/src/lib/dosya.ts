@@ -13,6 +13,7 @@
     testler/test_on_yuz_sozlesmesi.py ).                                   */
 import type { AlanSemasi, Deger } from "./api";
 import { avanDosyasiMi } from "./avan";
+import { eskiOnayIsaretli, evetMi } from "./denetim";
 import { sayiOku, type Ham, type UygulamaProjesi } from "./proje";
 
 /**  Eski arayüzün PROJE_SURUM'u — iki taraf aynı sürümü yazar.  */
@@ -130,10 +131,19 @@ export function dosyaOku(metin: string, sema: AlanSemasi, ofis: Ham): DosyaOkuma
     }
     let v = ice(ham);
     if (!a || v === null) return;
+    //  Onay kutusu sunucunun okuduğu gibi:  eski dosyada "EVET" / "HAYIR" de durur —
+    //  olduğu gibi kalsa ekran "HAYIR"ı işaretli, sunucu işaretsiz okurdu
+    if (a.tur === "onay") v = String(evetMi(v));
     if (a.secenekler) {
       //  Seçim listedeki yazımıyla saklanır:  eski dosyada "1,6" durur, seçenek "1.6"dır —
       //  olduğu gibi kalsa kutu boş görünürdü ( hesap yine 1,6 ile yapılırken )
-      const s = a.secenekler.find((x) => String(x) === v || sayiOku(v!) === x);
+      let s = a.secenekler.find((x) => String(x) === v || sayiOku(v!) === x);
+      //  ESKİDEN ONAY KUTUSU ( eski_onay:  [ işaretsiz , işaretli ] ):  true / false
+      //  sunucunun okuduğu seçeneğe çevrilir — 24 Eki:  varsayılana dönüyordu,
+      //  işaretsiz makine yükü yolu ( bina yapısına ) "Kılavuz raylara" oluyordu
+      const eski = sema.eski_onay[k];
+      if (s === undefined && eski && (typeof ham === "boolean" || typeof ham === "string"))
+        s = eski[eskiOnayIsaretli(v, eski[1]) ? 1 : 0];
       if (s === undefined) {
         taninmayan.push(`${a.etiket.split("(")[0].trim()} = ${v}`);
         return;

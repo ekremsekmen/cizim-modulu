@@ -54,6 +54,8 @@ export interface AlanSemasi {
   kurallar: Record<string, Kural>;
   /**  Boş metni "tablodan al" demek olan alanlar ( gönderilmeyen = varsayılan;  boş = tablo )  */
   bos_tablodan: string[];
+  /**  Eskiden onay kutusu olan seçimler:  [ işaretsiz , işaretli ] — eski dosyanın true / false'u  */
+  eski_onay: Record<string, [string, string]>;
   proje_geneli: string[];
   yerlesime_gore_gizli: { mrl: string[]; daireli: string[] };
   cizimden: string[];

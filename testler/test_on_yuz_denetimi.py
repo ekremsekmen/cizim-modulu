@@ -12,6 +12,9 @@ dışı değeri sunucuya göndermez.  Kurallar sunucudan gelir
      alanda sunucuya gitmeden reddedilir;  sınırın kendisi geçer.
   -  OKUNAMAYAN YAZIMIN KARARI SUNUCUNUNDUR:  "12abc", belirsiz "1.200", "1e3"
      ön yüzde reddedilmez, sebebiyle sunucu reddeder.
+  -  ESKİ DOSYANIN ONAY KUTUSU SUNUCUNUN OKUDUĞU GİBİ:  "EVET" / "HAYIR" ve
+     eskiden onay kutusu olan seçimin true / false'u ( eski_onay ) ön yüzde de
+     kapının okuduğu değerdir.
 
 Ön yüzün kendi kodu koşar:  Node TypeScript'i doğrudan çalıştırır ( 22+ ).
 """
@@ -37,8 +40,18 @@ const durumlar = JSON.parse(require('fs').readFileSync(0, 'utf8'));
 process.stdout.write(JSON.stringify(durumlar.map(([a, k, h]) => alanHatasi({ kurallar: { [a]: k } }, a, h))));
 """
 
+#  Eski dosyanın değerleri:  [ [ ham , işaretli seçenek ] ] → [ [ eskiOnayIsaretli , evetMi ] ] —
+#  mantıksal değer dosya okuyucusundaki gibi ( dosya.ts ice ) "true" / "false" yazımıyla
+_NODE_ESKI = r"""
+const { pathToFileURL } = require('url');
+const { eskiOnayIsaretli, evetMi } = await import(pathToFileURL(process.argv[1]).href);
+const durumlar = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+const m = (h) => (typeof h === 'boolean' ? String(h) : h);
+process.stdout.write(JSON.stringify(durumlar.map(([h, i]) => [eskiOnayIsaretli(m(h), i), evetMi(m(h))])));
+"""
 
-def on_yuz(durumlar):
+
+def on_yuz(durumlar, betik=_NODE):
     r = subprocess.run(
         [
             "node",
@@ -46,7 +59,7 @@ def on_yuz(durumlar):
             "--no-warnings",
             "--input-type=commonjs",
             "-e",
-            f"(async () => {{ {_NODE} }})()",
+            f"(async () => {{ {betik} }})()",
             PROJE_TS,
         ],
         input=json.dumps(durumlar),
@@ -145,6 +158,35 @@ class OnYuzDenetimi(unittest.TestCase):
         hamlar = ["12abc", "1.200", "1,200", "inf", "nan", "1.234,5", "1e3", " 7 ", "0,001"]
         iletiler = on_yuz([["x", k, h] for h in hamlar])
         self.assertEqual(iletiler, [None] * len(hamlar), list(zip(hamlar, iletiler)))
+
+    def _kapidan(self, anahtar, ham):
+        """Sunucunun kapısının ham değerden okuduğu ( asansor_girdileri )."""
+        asansorler, ortak = uygulama_istegi.asansor_girdileri(self._istek(anahtar, ham))
+        return (ortak if anahtar in self.pg else asansorler[0])[anahtar]
+
+    def test_eski_dosyanin_onay_kutusu_sunucu_gibi_okunur(self):
+        """24 Eki ( dış inceleme ):  makine yükünün yolu eskiden onay kutusuydu;
+        eski dosyanın işaretsizi ( false ) kapıda "Bina yapısına" okunurken ön yüz
+        tanımayıp varsayılana ( "Kılavuz raylara" ) döndürüyordu.  Ön yüzün
+        okuyuşu ( dosya.ts:  evetMi · eskiOnayIsaretli ) kapınınkiyle aynı olmalı."""
+        hamlar = [True, False, "EVET", "Evet", " evet ", "HAYIR", "Hayır", "e", "E", "var", "yes", "1", "0"]
+        hamlar += ["true", "false", "on", "x", "✓", "yok", "abc"]
+        onaylar = [a["anahtar"] for g in self.v["gruplar"] for a in g["alanlar"] if a["tur"] == "onay"]
+        self.assertTrue(onaylar and self.v["eski_onay"], "denenecek alan yok")
+        fark = []
+        for anahtar, (isaretsiz, isaretli) in self.v["eski_onay"].items():
+            secim_hamlari = hamlar + [f" {isaretli} ", isaretli.upper(), isaretsiz.lower()]
+            okunan = on_yuz([[h, isaretli] for h in secim_hamlari], _NODE_ESKI)
+            for h, (isaretli_mi, _evet) in zip(secim_hamlari, okunan):
+                on, kapi = (isaretli if isaretli_mi else isaretsiz), self._kapidan(anahtar, h)
+                if on != kapi:
+                    fark.append(f"{anahtar} = {h!r}:  ön yüz {on!r}, kapı {kapi!r}")
+        okunan = on_yuz([[h, ""] for h in hamlar], _NODE_ESKI)
+        for anahtar in onaylar:
+            for h, (_isaretli, evet) in zip(hamlar, okunan):
+                if evet is not self._kapidan(anahtar, h):
+                    fark.append(f"{anahtar} = {h!r}:  ön yüz {evet}, kapı {self._kapidan(anahtar, h)}")
+        self.assertEqual(fark, [], "\n".join(fark))
 
 
 if __name__ == "__main__":

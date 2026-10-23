@@ -40,7 +40,6 @@ export function useDosyaAc(sema: AlanSemasi | undefined, ofis: Ham, kip: DosyaKi
 
   const ac = async (f: File | undefined) => {
     if (!f) return;
-    if (!sema) return setHata("Sunucuya ulaşılamadı — form şeması olmadan dosya okunamaz.");
     if (f.size > 2 * 1024 * 1024) return setHata("Dosya çok büyük — bir proje dosyası değil.");
     const metin = await f.text();
     let d: unknown = null;
@@ -50,7 +49,15 @@ export function useDosyaAc(sema: AlanSemasi | undefined, ofis: Ham, kip: DosyaKi
       /*  dosyaOku söyler  */
     }
     if (kip === "acilis" && avanDosyasiMi(d)) return avanAc(metin, f.name);
-    const o = dosyaOku(metin, sema, ofis);
+    //  Şema açılışta gelmediyse ( sunucu kapalıydı ) şimdi yeniden istenir — 24 Eki:
+    //  sunucu açılsa da sayfa yenilenene kadar her dosya reddediliyordu
+    let s: AlanSemasi;
+    try {
+      s = sema ?? (await istemci.fetchQuery({ queryKey: ["alanlar"], queryFn: api.alanlar }));
+    } catch {
+      return setHata("Sunucuya ulaşılamadı — form şeması olmadan dosya okunamaz.");
+    }
+    const o = dosyaOku(metin, s, ofis);
     if (!o.tamam) return setHata(o.hata);
     setHata("");
     const p = yeniUygulama(false, o.icerik);

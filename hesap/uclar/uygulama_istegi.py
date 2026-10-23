@@ -69,10 +69,18 @@ def alanlar():
     #  dosyadaki boş kutu da tablo değerini verir.  Liste
     #  testler/test_on_yuz_sozlesmesi.py taramasıyla eşit tutulur.
     veri["bos_tablodan"] = list(BOS_TABLODAN)
+    veri["eski_onay"] = {k: list(v) for k, v in ESKI_ONAY.items()}
     return veri
 
 
 BOS_TABLODAN = ("kabin_agirligi",)
+
+#  ESKİDEN ONAY KUTUSU OLAN SEÇİMLER:  ( işaretsiz , işaretli ).  Eski .uygulama
+#  dosyası bu alanda true / false ( "EVET" ) taşır;  kapı onu seçime çevirir
+#  ( _secim_oku → makine_yuk_yolu ).  Ön yüz dosyayı açarken aynı seçeneği alır —
+#  24 Eki:  tanımayıp varsayılana döndürüyordu, işaretsiz kutu ( bina yapısına )
+#  sessizce "Kılavuz raylara" oluyordu.  Okuyuşun eşitliği:  test_on_yuz_denetimi.
+ESKI_ONAY = {"makine_raya_biniyor": mukavemet_tablolari.MAKINE_YUK_YOLU}
 
 
 class GecersizGirdi(ValueError):

@@ -8,12 +8,12 @@
     okunamayan sayıyı reddeder.                                              */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, RotateCcw, Search } from "lucide-react";
+import { RotateCcw, Search } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAvanOfisi } from "@/lib/avan";
 import { useOfisStandardi } from "@/lib/proje";
 import { cn, cumleDuzeni, sayiYaz } from "@/lib/utils";
-import { BasvuruSayfasi, GezintiOgesi } from "@/components/Kabuk";
+import { BasvuruSayfasi, GezintiOgesi, SunucuBekleniyor } from "@/components/Kabuk";
 import { Bolumlu, Dugme, Girdi, Rozet } from "@/components/ui";
 
 export function OfisStandardi() {
@@ -31,12 +31,7 @@ export function OfisStandardi() {
   const grupDegisen = (alanlar: string[]) => alanlar.filter((k) => ofis[k] !== undefined && ofis[k] !== "").length;
   const aranan = ara.trim().toLocaleLowerCase("tr-TR");
 
-  if (!s)
-    return (
-      <div className="flex h-dvh items-center justify-center gap-2 text-[13px] text-metin-3">
-        <Loader2 className="size-4 animate-spin" /> Yükleniyor
-      </div>
-    );
+  if (!s) return <SunucuBekleniyor sorgu={proje === "avan" ? sec : sema} />;
 
   const gruplar = aranan
     ? [

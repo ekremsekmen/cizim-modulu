@@ -3,10 +3,10 @@
     değere bakar, değiştirmez ( değişiklik ofis standardından ya da girdiden ).  */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { api } from "@/lib/api";
 import { sayiYaz } from "@/lib/utils";
-import { BasvuruSayfasi, GezintiOgesi } from "@/components/Kabuk";
+import { BasvuruSayfasi, GezintiOgesi, SunucuBekleniyor } from "@/components/Kabuk";
 import { Rozet } from "@/components/ui";
 
 export function Tablolar() {
@@ -22,12 +22,7 @@ export function Tablolar() {
     [t, aranan],
   );
 
-  if (!t)
-    return (
-      <div className="flex h-dvh items-center justify-center gap-2 text-[13px] text-metin-3">
-        <Loader2 className="size-4 animate-spin" /> Yükleniyor
-      </div>
-    );
+  if (!t) return <SunucuBekleniyor sorgu={sema} />;
 
   return (
     <BasvuruSayfasi

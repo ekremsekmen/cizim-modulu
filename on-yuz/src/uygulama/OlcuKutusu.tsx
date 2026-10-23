@@ -7,20 +7,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRight, Check, Loader2, X } from "lucide-react";
 import { api, type OlcuDegisikligi, type UygulamaIstegi } from "@/lib/api";
-import { kutuyaYaz } from "@/lib/proje";
+import { ayniGirdi, kutuyaYaz } from "@/lib/proje";
 import { cn, sayiYaz } from "@/lib/utils";
 import { Dugme, Girdi, Rozet } from "@/components/ui";
 import { KUTU_UST, kutuYeri, type OlcuKonumu, type OlcuSecimi } from "./Tuval";
 
 const YER: Record<string, string> = { asansor: "asansör", proje: "bina", ofis: "ofis standardı" };
-
-/**  İki istek aynı girdiyi mi taşıyor ( kapak / antet ölçüyü değiştirmez )  */
-function ayniGirdi(a: UygulamaIstegi | null, b: UygulamaIstegi | null) {
-  if (!a || !b) return false;
-  if (a === b) return true;
-  const g = (x: UygulamaIstegi) => JSON.stringify({ ...x, kapak: undefined });
-  return g(a) === g(b);
-}
 
 export function OlcuKutusu({
   istek,
@@ -148,10 +140,18 @@ export function OlcuKutusu({
         </Dugme>
       </div>
 
-      {sorgu.isLoading ? (
+      {!y && sorgu.isFetching ? (
         <p className="flex items-center gap-2 px-4 py-4 text-[12.5px] text-metin-3">
           <Loader2 className="size-3.5 animate-spin" /> Kaynağı bulunuyor
         </p>
+      ) : !y && sorgu.error ? (
+        //  Yanıt hiç gelmedi ( bağlantı ):  boş liste yerine sebebi ( 24 Eki )
+        <div className="space-y-2 px-4 py-3 text-[12.5px] text-red">
+          <p>Sunucuya ulaşılamadı ( {sorgu.error.message} ) — ölçünün kaynağı bulunamadı.</p>
+          <Dugme boy="kucuk" onClick={() => sorgu.refetch()}>
+            Yeniden dene
+          </Dugme>
+        </div>
       ) : y && !y.aktif ? (
         <p className="px-4 py-3 text-[12.5px] text-red">{y.hata?.join(" ")}</p>
       ) : (
@@ -243,6 +243,10 @@ export function OlcuKutusu({
               {girdiDegisti ? (
                 <p className="mt-2 text-[12px] text-uyari">
                   Girdiler kutu açıldıktan sonra değişti — güncel çizimle çalışmak için ölçüye yeniden tıklayın.
+                </p>
+              ) : degistir.error ? (
+                <p className="mt-2 text-[12px] text-red">
+                  Sunucuya ulaşılamadı ( {degistir.error.message} ) — yeniden deneyin.
                 </p>
               ) : sonuc &&
                 (soruluyor ? (

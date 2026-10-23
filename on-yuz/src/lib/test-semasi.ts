@@ -32,6 +32,13 @@ export const SEMA: AlanSemasi = {
           //  Sunucunun koşulu:  1:1 YALNIZ makine dairelide ( tasarim/alanlar.py )
           secenek_kosulu: { "1": { yerlesim: "daireli", sebep: "Makine dairesizde 1:1 askı kullanılmaz" } },
         }),
+        //  Eskiden onay kutusuydu ( şemanın eski_onay'ı )
+        alan({
+          anahtar: "makine_raya_biniyor",
+          tur: "secim",
+          secenekler: ["Bina yapısına", "Kılavuz raylara"],
+          varsayilan: "Kılavuz raylara",
+        }),
       ],
     },
     {
@@ -60,6 +67,7 @@ export const SEMA: AlanSemasi = {
     kabin_yana_kaciklik: { en_az: null, en_az_dahil: true, en_cok: 20000, tam_sayi: false },
   },
   bos_tablodan: ["kabin_agirligi"],
+  eski_onay: { makine_raya_biniyor: ["Bina yapısına", "Kılavuz raylara"] },
   proje_geneli: ["mk_yok", "mk_uzunluk"],
   yerlesime_gore_gizli: { mrl: ["mk_uzunluk"], daireli: [] },
   cizimden: [],
