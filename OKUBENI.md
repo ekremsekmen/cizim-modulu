@@ -405,17 +405,26 @@ paftasında her asansörün elektrik projesi kapağın yanında, alt satırın
 solundadır:  A3 yatay bir sayfa ( iki A4 hücresi ), hesap sayfaları alt satırda
 ondan sonra başlar, çerçeve gerektiği kadar sağa uzar ( `ciktilar/dxf_cikti`
 `_yerlesim` · `elektrik_yerleri` ).  Sayfada TAS'ın tek hat şeması ( sayaç,
-kolon hattı, kaçak akım rölesi, pako şalter, motor devresi, aydınlatma ve priz
-devreleri, topraklama barası ), kuyu tesisatı ( armatürler, kabin, prizler, stop
+kolon hattı, pako şalter, motor devresi:  kaçak akım rölesi → grup sigorta →
+kesici ( ana ) şalter → kontrol panosu → motor;  aydınlatma ve priz devreleri:
+30 mA kaçak akım rölesi → devre sigortaları;  topraklama barası ), kuyu tesisatı ( armatürler, kabin, prizler, stop
 butonları, vavien anahtarlar, gezici kablo ), topraklama tesisatı, ana tablo
 yerleşimi ve sembol listesi vardır ( `cizim/elektrik.py` ).  Değerler hesaptan
 gelir ( `avan_hesabi._elektrik_projesi` — sonuçta asansörün `elektrik`i ):  kuyuya
 hesabın bulduğu adette armatür çizilir ( sayfaya sığmayan aradakiler kırıkla,
-toplamı yazar ), kabinde hesaptaki adet, motor gücü ve sigortası, devre
+toplamı yazar ), kabinde hesaptaki adet, motor gücü, akımı ve sigortası, devre
 sigortaları kurulu güç cetvelinin aynısı, kolon hattı kesit / koruma iletkeni /
-kablo tipi, kaçak akım rölesinin IΔn'ı topraklama hesabınınki.  Hesabın vermediği
-değer ( şalterlerin anma akımı, kontrol panosunun içi, son devrelerin kabloları )
-yazılmaz.  Çok asansörlü uygulama projesinde her asansörün tablosu kendi
+kablo tipi, güç devresinin kaçak akım rölesinin IΔn'ı topraklama hesabınınki.
+Hesabın seçmediği cihazlar kuralla ( 23 Eki — Asansör Periyodik Kontrol
+Yönetmeliği EK-5 kontrol listesi ve uygulama;  kullanıcı onayı ):  kaçak akım iki
+yerde — güç devresininki topraklama direncine göre ( IΔn hesaptan ), aydınlatma
+ve priz devrelerininki 30 mA ( EK-5 1.33.11 · 12 · 14 );  şalterin ve kaçak akım
+rölesinin anma akımı birlikte çalıştığı sigortadan küçük olmaz, ilk standart
+kademe;  son devre kablosu sigortayı taşır ( EK-5 1.31.13 ), aydınlatma en az
+3x1,5, priz en az 3x2,5 mm², kolon hattının ailesinden.  Kuyu armatürü "Etanj"
+( EN 81-20 5.2.1.4.1:  mekanik hasara karşı korunur ).  Kontrol panosunun içi
+( termik aralığı, kumanda sigortası ) imalatçınındır, yazılmaz;  termiğin
+ayarlanacağı motor akımı yazılır ( EK-5 1.37 ).  Çok asansörlü uygulama projesinde her asansörün tablosu kendi
 numarasıyla ( TAS1, TAS2 … — eskiden hepsi TAS1'di ).  Paftanın PDF'inde aynı
 yerde, ayrı sayfalı PDF'te kendi sayfasında.
 

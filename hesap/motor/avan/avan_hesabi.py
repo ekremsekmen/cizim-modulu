@@ -576,6 +576,9 @@ def _elektrik_projesi(h, S, no):
         "tablo": tas_adi(no),
         "motor_kW": h["Nsc"],
         "motor_sigorta_A": h["sigorta_A"],
+        #  Motorun şebekeden çektiği akım ( bölüm 5 — sigortası bundan seçilir );
+        #  termiğin ayarı buna uygun olmalı ( Asansör Periyodik Kontrol EK-5 1.37 )
+        "motor_akimi_A": h["I_motor"],
         "kuyu": {"adet": h["n_kuyu"], "W": S["kuyu_armatur_W"], "sigorta_A": SIGORTA_AYDINLATMA},
         #  Kabin ve kabin üstü cetvelde TEK devredir ( 3. satır )
         "kabin": {"adet": h["n_kabin"], "W": S["kabin_armatur_W"], "sigorta_A": SIGORTA_AYDINLATMA},

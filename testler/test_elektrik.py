@@ -95,6 +95,7 @@ class HesabinDegerleri(unittest.TestCase):
         self.assertEqual(v["motor_sigorta_A"], o["sigorta_A"])
         self.assertEqual(v["kolon"], {"S": o["S1"], "SPE": o["SPE1"], "kablo": o["kablo_tipi"]})
         self.assertEqual(v["makine_besleme"], {"S": o["S2"], "SPE": o["SPE2"]})
+        self.assertEqual(v["motor_akimi_A"], o["I_motor"])
         #  Kurulu güç cetvelinin sigorta sütunu ile şemanın sigortaları aynı
         c = _cetvel(a)["cetvel"]
         self.assertEqual(
@@ -168,7 +169,7 @@ class Sema(unittest.TestCase):
             with self.subTest(n=n):
                 e = elektrik.ciz(_ornek(kuyu={"adet": n}))
                 self.assertEqual(_ornek_sayisi(e, "etanj_armatur"), n)
-                self.assertEqual(_yazilar(e).count("U-1x40 W"), n)
+                self.assertEqual(_yazilar(e).count("Etanj 1x40 W"), n)
                 self.assertFalse(any("toplam" in y for y in _yazilar(e)))
 
     def test_cok_armaturde_kirik_ve_toplam(self):
@@ -181,19 +182,32 @@ class Sema(unittest.TestCase):
                 self.assertIn(f"( toplam {n} adet )", _yazilar(e))
 
     def test_degerler_semada(self):
-        v = _ornek(motor_kW=11.3, motor_sigorta_A=32, kabin={"adet": 7, "W": 5.5}, kuyu={"adet": 9, "W": 36})
+        v = _ornek(
+            motor_kW=11.3,
+            motor_sigorta_A=32,
+            motor_akimi_A=24.6789,
+            kabin={"adet": 7, "W": 5.5},
+            kuyu={"adet": 9, "W": 36},
+        )
         y = _yazilar(elektrik.ciz(v, "ASANSÖR 2"))
         for metin in (
             "TAS1",
-            "11,3 kW",
+            "11,3 kW  ·  I = 24,68 A",
             "4x32A",
             "7x5,5W Led Spot",
             "1x5W Led Spot",
-            "U-1x36 W",
+            "Etanj 1x36 W",
             "4x6/6 NHXMH FE180",
             "IΔn 300 mA",
             "10 A",
             "16 A",
+            #  kuraldan:  güç K.A.R ≥ 32 → 40, kesici ≥ 32 → 32, aydınlatma K.A.R 25 / 30 mA,
+            #  pako ≥ 40;  kablolar 3x1,5 ( 10 A ) ve 3x2,5 ( 16 A ) mm², kolonun ailesinden
+            "4x40A",
+            "2x25A",
+            "30 mA",
+            "3x1,5 mm² NHXMH",
+            "3x2,5 mm² NHXMH",
             "TAS1  ·  ASANSÖR 2",
             "Kabin + kabin üstü aydınlatması  ( 7x5,5 W + 1x5 W )",
             "Kuyu aydınlatması  ( 9x36 W )",
@@ -207,6 +221,19 @@ class Sema(unittest.TestCase):
         y = _yazilar(elektrik.ciz(_ornek(motor_sigorta_A=None, kolon={"SPE": None})))
         self.assertFalse(any(m.startswith("4x") and m.endswith("A") and "/" not in m for m in y), y)
         self.assertIn("4x6 NHXMH FE180", y)
+
+    def test_iki_kacak_akim_rolesi(self):
+        #  Güç devresininki hesabın IΔn'ı ( topraklama direncine göre ), aydınlatma ve
+        #  prizinki 30 mA ( Asansör Periyodik Kontrol EK-5 1.33.11 · 12 · 14 )
+        e = elektrik.ciz(_ornek(kacak_akim_A=0.3))
+        tek_hat = [x for a, x in geometri.parca_ornekleri(e) if a == "kacak_akim_rolesi"]
+        sol = [
+            x for x in tek_hat if geometri.sinir(x)[2] < elektrik._KX0 * K and geometri.sinir(x)[1] > 200 * K
+        ]
+        self.assertEqual(len(sol), 2)
+        y = _yazilar(e)
+        self.assertIn("IΔn 300 mA", y)
+        self.assertGreaterEqual(y.count("30 mA"), 2)  # tek hat şeması ve ana tablo
 
     def test_makine_dairesi(self):
         y = _yazilar(elektrik.ciz(_ornek(makine_dairesi=True)))
@@ -325,6 +352,52 @@ def _sorunlar(e):
     if x0 < -1 or y0 < -1 or x1 > SAYFA[2] + 1 or y1 > SAYFA[3] + 1:
         out.append(f"sayfadan taşıyor:  {(x0, y0, x1, y1)}")
     return out
+
+
+class Kurallar(unittest.TestCase):
+    """Şalterlerin ve kaçak akım rölelerinin anma akımı birlikte çalıştığı
+    sigortadan küçük olmaz, sonra standart kademe;  son devrenin kesiti
+    sigortayı taşır ( EK-5 1.31.13 ) ve yönetmeliğin en küçüğünden az olmaz."""
+
+    def test_anma_akimlari(self):
+        for grup in (None, 6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 630):
+            with self.subTest(grup=grup):
+                a = elektrik.anma_akimlari(_ornek(motor_sigorta_A=grup))
+                self.assertEqual(a["ayd_kar"], 25)
+                if grup is None:
+                    self.assertIsNone(a["guc_kar"])
+                    self.assertIsNone(a["kesici"])
+                    self.assertIsNone(a["pako"])  # tablonun girişi motoru da taşır
+                    continue
+                #  en küçük uyan kademe:  kaçak akım rölesinin kademesi bitince ( 125 A
+                #  üstü ) röleli kesici — şalter kademesi
+                kar = [k for k in elektrik.KAR_KADEMELERI if k >= grup]
+                self.assertEqual(
+                    a["guc_kar"], kar[0] if kar else min(k for k in elektrik.SALTER_KADEMELERI if k >= grup)
+                )
+                self.assertEqual(a["kesici"], min(k for k in elektrik.SALTER_KADEMELERI if k >= grup))
+                self.assertGreaterEqual(a["guc_kar"], grup)
+                self.assertGreaterEqual(a["kesici"], grup)
+                self.assertGreaterEqual(a["pako"], max(a["guc_kar"], a["ayd_kar"]))
+        #  Referans paftanın sırası:  4x25A sigorta → kesici 25 ( ≥ 25 ), K.A.R 25
+        a = elektrik.anma_akimlari(_ornek(motor_sigorta_A=25))
+        self.assertEqual((a["kesici"], a["guc_kar"]), (25, 25))
+
+    def test_devre_kesiti(self):
+        for amper, en_az, kesit in (
+            (10, 1.5, 1.5),
+            (16, 2.5, 2.5),
+            (16, 1.5, 2.5),
+            (20, 1.5, 2.5),
+            (25, 1.5, 4.0),
+            (50, 1.5, 6.0),
+            (63, 1.5, None),
+            (6, 1.0, 1.0),
+        ):
+            with self.subTest(amper=amper, en_az=en_az):
+                self.assertEqual(elektrik.devre_kesiti(amper, en_az), kesit)
+        self.assertEqual(elektrik.devre_kablosu(_ornek(), 10, 1.5), "3x1,5 mm² NHXMH")
+        self.assertEqual(elektrik.devre_kablosu(_ornek(kolon={"kablo": ""}), 16, 2.5), "3x2,5 mm²")
 
 
 class Kalite(unittest.TestCase):
