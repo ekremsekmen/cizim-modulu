@@ -1096,7 +1096,11 @@ class OnYuzUctanUca(unittest.TestCase):
         sunucu dönünce ekranı açar."""
         for adres, uc, acilan in (
             ("/avan/trafik", "**/api/secenekler", self.sayfa.get_by_role("navigation", name="Adımlar")),
-            ("/ofis-standardi", "**/api/uygulama/alanlar", self.sayfa.get_by_role("heading", name="Ofis standardı")),
+            (
+                "/ofis-standardi",
+                "**/api/uygulama/alanlar",
+                self.sayfa.get_by_role("heading", name="Ofis standardı"),
+            ),
             ("/tablolar", "**/api/uygulama/alanlar", self.sayfa.get_by_role("heading", name="Tablolar")),
         ):
             self.sayfa.route(uc, lambda r: r.fulfill(status=503, body="kapalı"))
@@ -1197,7 +1201,9 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.unroute(uc)
 
         #  Ağ geçidinin HTML hatası:  sebebi ve "Yeniden dene"
-        self.sayfa.route(uc, lambda r: r.fulfill(status=502, content_type="text/html", body="<html>502</html>"))
+        self.sayfa.route(
+            uc, lambda r: r.fulfill(status=502, content_type="text/html", body="<html>502</html>")
+        )
         self.sayfa.get_by_label("Kapak başlığı").fill("Kapak deneme 2")
         hata = self.sayfa.get_by_role("alert").filter(has_text="Sunucu yanıt vermedi ( 502 )")
         hata.get_by_role("button", name="Yeniden dene").wait_for(timeout=15_000)
