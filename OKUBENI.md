@@ -399,6 +399,26 @@ sağına ekler ( çok asansörlüde şeritte asansörün adı ).  Bir asansörü
 kurulamıyorsa paket inmez, sebebi söylenir — eksik proje teslim edilmesin
 ( hesap PDF'i yine iner ).
 
+**Elektrik projesi** ( 23 Eki, kullanıcı isteği:  ofisin elle hazırladığı
+elektrik projesi — referans 4815-6 AVAN paftası ).  Avan ve uygulama paketinin
+paftasında her asansörün elektrik projesi kapağın yanında, alt satırın
+solundadır:  A3 yatay bir sayfa ( iki A4 hücresi ), hesap sayfaları alt satırda
+ondan sonra başlar, çerçeve gerektiği kadar sağa uzar ( `ciktilar/dxf_cikti`
+`_yerlesim` · `elektrik_yerleri` ).  Sayfada TAS'ın tek hat şeması ( sayaç,
+kolon hattı, kaçak akım rölesi, pako şalter, motor devresi, aydınlatma ve priz
+devreleri, topraklama barası ), kuyu tesisatı ( armatürler, kabin, prizler, stop
+butonları, vavien anahtarlar, gezici kablo ), topraklama tesisatı, ana tablo
+yerleşimi ve sembol listesi vardır ( `cizim/elektrik.py` ).  Değerler hesaptan
+gelir ( `avan_hesabi._elektrik_projesi` — sonuçta asansörün `elektrik`i ):  kuyuya
+hesabın bulduğu adette armatür çizilir ( sayfaya sığmayan aradakiler kırıkla,
+toplamı yazar ), kabinde hesaptaki adet, motor gücü ve sigortası, devre
+sigortaları kurulu güç cetvelinin aynısı, kolon hattı kesit / koruma iletkeni /
+kablo tipi, kaçak akım rölesinin IΔn'ı topraklama hesabınınki.  Hesabın vermediği
+değer ( şalterlerin anma akımı, kontrol panosunun içi, son devrelerin kabloları )
+yazılmaz.  Çok asansörlü uygulama projesinde her asansörün tablosu kendi
+numarasıyla ( TAS1, TAS2 … — eskiden hepsi TAS1'di ).  Paftanın PDF'inde aynı
+yerde, ayrı sayfalı PDF'te kendi sayfasında.
+
 **Kopyanın orijinalden farkları** ( `hesap/` ):  `uclar/cizim_uclari.py` ( yeni ),
 `uclar/uygulama_uclari.py` ( çizim alanları, paket ), `main.py` ( port 8780, çizim
 uçları ), `ciktilar/dxf_cikti.py` ( paketin son işlemi ), ön yüz `on-yuz/` ( Çizim |

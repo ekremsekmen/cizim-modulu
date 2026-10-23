@@ -536,6 +536,8 @@ class Uclar(unittest.TestCase):
                     "giris",
                     "kapi_kesiti",
                     "veriler",
+                    #  elektrik projesi:  alt satırın başında ( cizim/elektrik )
+                    "elektrik",
                 )
             },
         )
@@ -548,6 +550,8 @@ class Uclar(unittest.TestCase):
         bloklar = {b.name for b in d.blocks if b.name.startswith("CIZIM_")}
         self.assertIn("CIZIM_KUYU_PLANI_1", bloklar)
         self.assertIn("CIZIM_KUYU_PLANI_2", bloklar)
+        self.assertIn("CIZIM_ELEKTRIK_1", bloklar)
+        self.assertIn("CIZIM_ELEKTRIK_2", bloklar)
         #  Şeritte asansörün adı:  hangi kuyunun çizimi olduğu okunur
         yazilar = {
             t.plain_text()

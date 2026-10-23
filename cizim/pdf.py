@@ -279,6 +279,7 @@ A_SERISI = (
     ("A0", 841.0, 1189.0),
 )
 SAYFA_KENARI = 10.0  # mm
+KENDI_SAYFA_PAYI = 5.0  # kendi çerçeveli sayfanın kâğıt kenarına uzaklığı ( mm )
 
 
 def sayfa_boyu(g, y):
@@ -344,6 +345,14 @@ def sayfalar(cizimler_, baslik="Asansör çizimleri", kunyeler=()) -> bytes:
     for i, (ad, baslik_, olcek, e) in enumerate(cizimler_):
         x0, y0, x1, y1 = geometri.sinir(e)
         g, y = (x1 - x0) / olcek, (y1 - y0) / olcek
+        k = kunyeler[i] if i < len(kunyeler) else {}
+        if k.get("kendi_sayfasi"):
+            #  Kendi çerçevesi ve künye şeridi olan sayfa ( elektrik projesi ):
+            #  1:1, kenar payıyla, antetsiz
+            c.setPageSize(((g + 2 * KENDI_SAYFA_PAYI) * mm, (y + 2 * KENDI_SAYFA_PAYI) * mm))
+            yerlestir(c, e, olcek, (x0, y0), (KENDI_SAYFA_PAYI, KENDI_SAYFA_PAYI))
+            c.showPage()
+            continue
         alt = ANTET_SATIRI * ANTET_SATIR_ADEDI + ANTET_ARASI
         _a, en, boy = sayfa_boyu(max(g, ANTET_ENI), y + alt)
         c.setPageSize((en * mm, boy * mm))
@@ -354,7 +363,6 @@ def sayfalar(cizimler_, baslik="Asansör çizimleri", kunyeler=()) -> bytes:
             (x0, y0),
             ((en - g) / 2.0, SAYFA_KENARI + alt + (boy - 2 * SAYFA_KENARI - alt - y) / 2.0),
         )
-        k = kunyeler[i] if i < len(kunyeler) else {}
         a = antet(
             k.get("proje", ""),
             k.get("asansor", ""),

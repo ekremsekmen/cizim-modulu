@@ -17,6 +17,7 @@ sonucunun gerçekten değiştiği doğrulanır.
 import io
 import json
 import os
+import re
 import sys
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -1988,7 +1989,8 @@ def _sira_degismezligi(r):
             beklenen["Sapd"] in il.values(),
             f"→ {il} · beklenen Sapd {beklenen['Sapd']}",
         )
-        #  Asansörlerin kendi sonuçları da sıradan bağımsız ( no ve etiket hariç )
+        #  Asansörlerin kendi sonuçları da sıradan bağımsız ( no ve etiket hariç;
+        #  tablonun adı da numaradan:  TAS<no> — 23 Eki )
         ozu = {
             "proje_geneli": c["proje_geneli"],
             "asansorler": {a["tanim"]: {k: v for k, v in a.items() if k != "no"} for a in c["asansorler"]},
@@ -1996,7 +1998,7 @@ def _sira_degismezligi(r):
             "proje_geneli_uygun": c["ozet"]["proje_geneli_uygun"],
             "hata": sorted(c["hata"]),
         }
-        ozu = json.dumps(ozu, sort_keys=True, default=str, ensure_ascii=False)
+        ozu = re.sub(r"TAS\d+", "TAS", json.dumps(ozu, sort_keys=True, default=str, ensure_ascii=False))
         if taban is None:
             taban = ozu
         else:

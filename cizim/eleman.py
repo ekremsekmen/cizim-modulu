@@ -47,6 +47,9 @@ KATMANLAR = (
     "KESIT",
     "SEVIYE",
     "ACILIS",
+    "ELK-HAT",
+    "ELK-CIHAZ",
+    "ELK-TOPRAK",
 )
 
 

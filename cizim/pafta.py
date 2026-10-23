@@ -26,6 +26,7 @@ import os
 import tempfile
 
 import ezdxf
+from ezdxf import bbox
 from ezdxf import zoom
 
 from cizim import cizimler
@@ -272,11 +273,13 @@ def _copleri_sil(msp):
             msp.delete_entity(e)
 
 
-def _katmanlari_onar(d):
+def katmanlari_onar(d):
     """Şablonun kendi katmanlarından dördü ( ÇERÇ, YAZı, t-çap, YAZı1 ) dosyada
     olmayan malzeme ve çizim stili kayıtlarını gösteriyor;  AutoCAD'in AUDIT'i
     bunları 16 hata sayıyordu ( AcCoreConsole ile ölçüldü ).  Geçerli
-    kayıtlara ( "Global" malzeme, "Normal" çizim stili ) bağlanır."""
+    kayıtlara ( "Global" malzeme, "Normal" çizim stili ) bağlanır.  Avan
+    paketinin paftası da ( ciktilar/dxf_cikti — çizimsiz, birlestir'den
+    geçmez;  23 Eki'ye dek 16 hatayla iniyordu )."""
     db = d.entitydb
     malzeme = d.materials.get("Global").dxf.handle
     stil = d.rootdict.get("ACAD_PLOTSTYLENAME").get("Normal").dxf.handle
@@ -353,7 +356,7 @@ def belge(g):
     """Doldurulmuş pafta ( ezdxf belgesi ) ve yerleşim bilgisi."""
     d = ezdxf.readfile(SABLON)
     _sablon_dogrula(d)
-    _katmanlari_onar(d)
+    katmanlari_onar(d)
     _copleri_sil(d.modelspace())
     bilgi = _yerlestir(d, g)
     _antet(d, g, bilgi["olcekler"])
@@ -380,8 +383,13 @@ def birlestir(hesap_dxf, g):
     #  çerçeveleri 0 katmanına çizer ( orada şablonun kendi çizgileri de var ),
     #  bu yüzden çerçeve ŞEKLİYLE tanınır:  kapalı, dört köşeli, 210 × 297.
     sayfalar = [q[0] for e in msp.query("LWPOLYLINE") if _a4_mu(e) for q in _nokta(e)]
+    #  Hesap programının koyduğu çizim blokları da ( elektrik projesi — alt satırın
+    #  başında, cizim/elektrik ):  çizimler onların da sağından başlar
+    sayfalar += [
+        bbox.extents([e]).extmax.x for e in msp.query("INSERT") if e.dxf.name.startswith(blok_adi(""))
+    ]
     x0 = max(sayfalar) if sayfalar else SERBEST[0]
-    _katmanlari_onar(d)
+    katmanlari_onar(d)
     bilgi = _yerlestir(d, g, x0, sag_eski)
     bilgi["hesap_sagi"] = x0
     _kullanilmayanlari_sil(d)
