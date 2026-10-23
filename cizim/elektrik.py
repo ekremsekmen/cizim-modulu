@@ -5,8 +5,9 @@ tesisatı, ana tablo yerleşimi ve sembol listesi;  paftada kapağın yanında, 
 satırın solunda ( kullanıcı isteği 23 Eki — ofisin elle hazırladığı projenin
 düzeni:  referans 4815-6 AVAN paftası ).
 
-DEĞERLER HESAPTAN ( motor/avan/avan_hesabi._elektrik_projesi ):  kuyu ve kabin
-armatürlerinin adedi ve gücü ( kuyuya hesabın bulduğu kadar armatür çizilir ),
+DEĞERLER HESAPTAN ( motor/avan/avan_hesabi._elektrik_projesi ):  kuyu, kabin ve
+makine dairesi armatürlerinin adedi ve gücü ( kuyuya hesabın bulduğu kadar armatür
+çizilir;  makine dairesininki onu besleyen tabloda — ilk asansörün ),
 motor gücü, akımı ve sigortası, devre sigortaları ( kurulu güç cetveli ), kolon
 hattı ( kesit / koruma iletkeni / kablo tipi ), makine besleme hattının koruma
 iletkeni, güç devresinin kaçak akım rölesinin IΔn'ı ( topraklama hesabının ofis
@@ -300,7 +301,7 @@ def anma_akimlari(v):
     devresinin kaçak akım rölesi, kesici ( ana ) şalter, aydınlatma ve priz
     devrelerinin kaçak akım rölesi, tablonun pako şalteri."""
     grup = v.get("motor_sigorta_A")
-    devre = max(v[k]["sigorta_A"] for k in ("kabin", "priz", "kuyu"))
+    devre = max(d["sigorta_A"] for d in [v["kabin"], v["priz"], v["kuyu"]] + [_md_devresi(v) or v["kuyu"]])
     guc = _kademe(grup, KAR_KADEMELERI) or _kademe(grup, SALTER_KADEMELERI)
     ayd = _kademe(devre, KAR_KADEMELERI)
     return {
@@ -335,6 +336,10 @@ def _ma(akim_A):
 #  Bara ve devreler ( kâğıt mm )
 _BARA_X, _BARA_Y0, _BARA_Y1 = 40.0, 250.0, 282.0
 _MOTOR_Y, _KABIN_Y, _PRIZ_Y, _KUYU_Y = 280.0, 266.0, 256.0, 246.0
+#  Makine dairesi aydınlatması bu tablodansa kuyununkinin satırında, kuyunun
+#  devresi bir alt satırda ( ikisi de kuyu tesisatına soldan girer )
+_MD_Y, _SATIR_ARASI = 246.0, 10.0
+_TOPRAK_ARASI = 13.0  # topraklama barası en alttaki devrenin altında ( yazısının altı )
 _BESLEME_Y = 266.0
 _FAZ_X, _PE_X = 16.0, 26.0
 _PAKO_X = 28.0
@@ -345,7 +350,6 @@ _KESICI_X = 89.0
 _PANO = (101.0, 271.5, 36.0, 16.0)  # x, y, g, d
 _PANO_X = _PANO[0] + _PANO[2] / 2.0  # kontrol panosunun ortası
 _MOTOR_X = 149.0
-_TOPRAK_BARASI_Y = 233.0
 _MOTOR_PE_X = 198.0  # motorun koruma iletkeni devre yazılarının sağından iner
 _KUMANDA_Y = 293.5
 #  Sigortanın anma akımı sigortanın üstünde:  yazının maskesi ( PDF'te alt uzantılı
@@ -362,6 +366,23 @@ _DEVRE_YAZISI_X = 86.0
 
 def _devre_metni(ad, adet, w):
     return f"{ad}  ( {adet}x{_sayi(w)} W )"
+
+
+def _md_devresi(v):
+    """Makine dairesi aydınlatmasının devresi bu tablodaysa { adet , W , sigorta_A };
+    oda yoksa ya da aydınlatması başka bir asansörün tablosundansa None."""
+    md = v.get("makine_dairesi_ayd") or {}
+    return md if md.get("sigorta_A") else None
+
+
+def _kuyu_y(v):
+    """Kuyu aydınlatmasının satırı:  makine dairesininki bu tablodaysa onun altında."""
+    return _KUYU_Y - _SATIR_ARASI if _md_devresi(v) else _KUYU_Y
+
+
+def _toprak_y(v):
+    """Topraklama barasının yüksekliği:  en alttaki devrenin adının altında."""
+    return _kuyu_y(v) - _TOPRAK_ARASI
 
 
 def tek_hat(v):
@@ -413,15 +434,15 @@ def _besleme(v, anma):
     e.append(_yazi(fx + 13.0, 205.0, "Kolon hattı", N))
     e.append(_yazi(fx + 13.0, 200.3, kablo, N))
     # koruma iletkeni:  temel topraklaması → topraklama barası
-    px = _PE_X
+    px, ty = _PE_X, _toprak_y(v)
     e += topraklama(px, 118.0)
     e.append(_yazi(px + 5.0, 113.5, "TEMEL TOPRAKLAMASINA BAĞLANACAK", N))
     e.append(_cizgi(TOPRAK, px, 118.0, px, 172.0))
-    e.append(_cizgi(TOPRAK, px, 178.0, px, _TOPRAK_BARASI_Y + 0.8))
-    e.append(_cizgi(TOPRAK, px, _TOPRAK_BARASI_Y + 0.8, bx - 6.0, _TOPRAK_BARASI_Y + 0.8))
-    e += topraklama_barasi(bx - 6.0, _TOPRAK_BARASI_Y, 14.0)
+    e.append(_cizgi(TOPRAK, px, 178.0, px, ty + 0.8))
+    e.append(_cizgi(TOPRAK, px, ty + 0.8, bx - 6.0, ty + 0.8))
+    e += topraklama_barasi(bx - 6.0, ty, 14.0)
     #  Sola yaslı, baranın ucundan:  ortalanınca solundaki koruma iletkenine biniyordu
-    e.append(_yazi(bx - 6.0, _TOPRAK_BARASI_Y - 3.6, "Topraklama barası", N))
+    e.append(_yazi(bx - 6.0, ty - 3.6, "Topraklama barası", N))
     if k.get("SPE"):
         e.append(_yazi(px + 2.6, 148.0, f"PE {_sayi(k['SPE'])} mm² Cu", N, "orta", aci=90))
     return e
@@ -467,29 +488,29 @@ def _motor_devresi(v, anma):
     # motorun koruma iletkeni ( makine besleme hattı ):  devrelerin yazılarının
     # sağından topraklama barasına
     py = y - 8.0
-    px = _MOTOR_PE_X
+    px, ty = _MOTOR_PE_X, _toprak_y(v)
     e += [
         _cizgi(TOPRAK, mx, y - 6.0, mx, py),
         _cizgi(TOPRAK, mx, py, px, py),
-        _cizgi(TOPRAK, px, py, px, _TOPRAK_BARASI_Y + 0.8),
-        _cizgi(TOPRAK, px, _TOPRAK_BARASI_Y + 0.8, bx + 8.0, _TOPRAK_BARASI_Y + 0.8),
+        _cizgi(TOPRAK, px, py, px, ty + 0.8),
+        _cizgi(TOPRAK, px, ty + 0.8, bx + 8.0, ty + 0.8),
     ]
     spe = (v.get("makine_besleme") or {}).get("SPE")
     if spe:
-        e.append(_yazi(px - 2.0, _TOPRAK_BARASI_Y + 3.4, f"PE {_sayi(spe)} mm² Cu", N, "sag"))
+        e.append(_yazi(px - 2.0, ty + 3.4, f"PE {_sayi(spe)} mm² Cu", N, "sag"))
     return e
 
 
 def _aydinlatma_devreleri(v, anma):
-    """Bara → 30 mA kaçak akım rölesi → alt bara → kabin ( + kabin üstü ), priz ve
-    kuyu aydınlatması sigortaları;  her devrenin üstünde kablosu, altında adı ve
-    yükü ( kurulu güç cetvelinin satırı )."""
+    """Bara → 30 mA kaçak akım rölesi → alt bara → kabin ( + kabin üstü ), priz,
+    makine dairesi ( bu tablodansa ) ve kuyu aydınlatması sigortaları;  her
+    devrenin üstünde kablosu, altında adı ve yükü ( kurulu güç cetvelinin satırı )."""
     e = []
-    bx, ax, yk = _BARA_X, _ALT_BARA_X, _PRIZ_Y
+    bx, ax, yk, ky = _BARA_X, _ALT_BARA_X, _PRIZ_Y, _kuyu_y(v)
     e.append(_cizgi(HAT, bx + 1.2, yk, _KAR_X - 5.6, yk))
     e += kacak_akim_rolesi(_KAR_X, yk)
     e.append(_cizgi(HAT, _KAR_X + 5.8, yk, ax, yk))
-    e += [_cizgi(HAT, ax, _KUYU_Y, ax, _KABIN_Y), _nokta(ax, yk)]
+    e += [_cizgi(HAT, ax, ky, ax, _KABIN_Y), _nokta(ax, yk)]
     e += [
         _yazi(_KAR_X, yk - 5.6, "K.A.R", N, "orta"),
         _yazi(_KAR_X, yk - 9.6, f"{KAYNAK_KAR_MA} mA", N, "orta"),
@@ -497,7 +518,7 @@ def _aydinlatma_devreleri(v, anma):
     if anma["ayd_kar"]:
         e.append(_yazi(_KAR_X, yk - 13.6, f"2x{anma['ayd_kar']}A", N, "orta"))
     kb, ku, pr, kuyu = v["kabin"], v["kabin_ustu"], v["priz"], v["kuyu"]
-    devreler = (
+    devreler = [
         (
             _KABIN_Y,
             kb["sigorta_A"],
@@ -505,12 +526,20 @@ def _aydinlatma_devreleri(v, anma):
             f"Kabin + kabin üstü aydınlatması  ( {kb['adet']}x{_sayi(kb['W'])} W + {ku['adet']}x{_sayi(ku['W'])} W )",
         ),
         (_PRIZ_Y, pr["sigorta_A"], PRIZ_KESIT_EN_AZ, _devre_metni("Priz", pr["adet"], pr["W"])),
+    ]
+    md = _md_devresi(v)
+    if md:
+        #  Adedi makine dairesi aydınlatma hesabından ( oda ölçüsü yoksa yazılmaz )
+        ad = "Makine dairesi aydınlatması"
+        metin = _devre_metni(ad, md["adet"], md["W"]) if md.get("adet") else ad
+        devreler.append((_MD_Y, md["sigorta_A"], AYDINLATMA_KESIT_EN_AZ, metin))
+    devreler.append(
         (
-            _KUYU_Y,
+            ky,
             kuyu["sigorta_A"],
             AYDINLATMA_KESIT_EN_AZ,
             _devre_metni("Kuyu aydınlatması", kuyu["adet"], kuyu["W"]),
-        ),
+        )
     )
     for y, amper, en_az, metin in devreler:
         e.append(_cizgi(HAT, ax, y, _DEVRE_SIGORTA_X - 4.0, y))
@@ -533,6 +562,10 @@ def _aydinlatma_devreleri(v, anma):
 _KX0, _KX1, _KY0 = 206.0, 286.0, 22.0
 _DUVAR = 2.5
 _UST_Y0, _UST_Y1 = 213.0, 239.0  # makine kutusu ( dış )
+#  Makine dairesi aydınlatması bu tablodaysa oda yukarı uzar:  devresi ve kuyu
+#  aydınlatmasınınki odaya soldan girer ( _MD_Y, _kuyu_y ), üstünden kabin / priz geçer
+_MD_KUTU_PAYI = 13.5
+_MD_INIS_X, _MD_ARMATUR_Y = 224.0, 240.0  # odanın armatürü:  devrenin indiği yer
 _ISIK_X, _SAG_X = 214.0, 280.0
 _KABIN = (226.0, 150.0, 36.0, 42.0)  # iç:  x, y, g, d
 _BUAT_Y = 128.0
@@ -582,12 +615,17 @@ def kuyu_tesisati(v):
     devreleri üstten girer ( tek_hat )."""
     e = []
     x0, x1 = _KX0, _KX1
+    ust = _UST_Y1 + (_MD_KUTU_PAYI if _md_devresi(v) else 0.0)
     e += _cift_cizgi_kutu(x0, _KY0, x1, _UST_Y0, ust=False)
-    e += _cift_cizgi_kutu(x0, _UST_Y0 + _DUVAR, x1, _UST_Y1 - _DUVAR)
+    e += _cift_cizgi_kutu(x0, _UST_Y0 + _DUVAR, x1, ust - _DUVAR)
     ust_adi = "MAKİNE DAİRESİ" if v.get("makine_dairesi") else "KUYU ÜSTÜ"
-    e.append(_yazi(x0 + 9.0, _UST_Y1 - 5.5, ust_adi, N))
+    if _md_devresi(v):  # sol üstten aydınlatmanın devresi girer:  adı sağ üstte
+        e.append(_yazi(_SAG_X - 2.0, ust - _DUVAR - 3.0, ust_adi, N, "sag"))
+    else:
+        e.append(_yazi(x0 + 9.0, _UST_Y1 - 5.5, ust_adi, N))
     e.append(_yazi((x0 + x1) / 2.0, _KY0 - _DUVAR - 4.0, "KUYU", H, "orta"))
     e += _kuyu_aydinlatmasi(v)
+    e += _makine_dairesi_aydinlatmasi(v)
     e += _sag_hat(v)
     e += _kabin(v)
     # kuyu dibinde kabin tamponu
@@ -607,15 +645,15 @@ def _kuyu_aydinlatmasi(v):
     """TAS'tan gelen kuyu aydınlatması hattı, armatürler ve iki vavien anahtar
     ( makine kutusunda ve kuyu dibinde )."""
     e = []
-    ix = _ISIK_X
+    ix, ky = _ISIK_X, _kuyu_y(v)
     kuyu = v["kuyu"]
-    e.append(_cizgi(HAT, _DEVRE_SIGORTA_X + 4.0, _KUYU_Y, ix, _KUYU_Y))
+    e.append(_cizgi(HAT, _DEVRE_SIGORTA_X + 4.0, ky, ix, ky))
     kotlar, kirik_y = armatur_kotlari(kuyu["adet"])
     alt = min(kotlar + [_KY0 + 10.0])
     if kirik_y is None:
-        e.append(_cizgi(HAT, ix, _KUYU_Y, ix, alt))
+        e.append(_cizgi(HAT, ix, ky, ix, alt))
     else:
-        e.append(_cizgi(HAT, ix, _KUYU_Y, ix, kirik_y + 3.0))
+        e.append(_cizgi(HAT, ix, ky, ix, kirik_y + 3.0))
         e += kirik(ix, kirik_y)
         e.append(_cizgi(HAT, ix, kirik_y - 3.0, ix, alt))
         e.append(_yazi(ix + 12.0, kirik_y, f"( toplam {kuyu['adet']} adet )", N))
@@ -631,6 +669,32 @@ def _kuyu_aydinlatmasi(v):
         e.append(_nokta(ix, y))
         e.append(_cizgi(HAT, ix, y, ix - 2.0, y))
         e += anahtar(ix - 2.7, y, vavien=True, yon=-1)
+    return e
+
+
+def _makine_dairesi_aydinlatmasi(v):
+    """Makine dairesinin aydınlatması bu tablodaysa:  TAS'tan gelen devre odaya
+    soldan girer, girişin yakınındaki anahtardan geçip armatüre iner ( tek sembol,
+    hesabın adedi yazılır — kabinin LED spotu gibi ).  Başka bir asansörün
+    tablosundansa yalnız o tablonun adı yazılır."""
+    md = v.get("makine_dairesi_ayd") or {}
+    if not _md_devresi(v):
+        if md.get("besleyen"):
+            return [_yazi(_KX0 + 10.0, _UST_Y0 + 8.0, f"Aydınlatma devresi:  {md['besleyen']}", N)]
+        return []
+    x, y = _MD_INIS_X, _MD_ARMATUR_Y
+    ya = (_MD_Y + y) / 2.0  # anahtar:  iniş hattında
+    e = [_cizgi(HAT, _DEVRE_SIGORTA_X + 4.0, _MD_Y, x, _MD_Y), _cizgi(HAT, x, _MD_Y, x, y)]
+    e += [_nokta(x, ya), _cizgi(HAT, x, ya, x + 2.0, ya)]
+    e += anahtar(x + 2.7, ya, vavien=False, yon=1)
+    e += etanj_armatur(x, y)
+    tip, adet = f"Etanj 1x{_sayi(md['W'])} W", f"( {md['adet']} adet )" if md.get("adet") else ""
+    tek = f"{tip}  {adet}".rstrip()
+    if adet and x + 12.0 + _en(tek) > _SAG_X - 2.0:
+        #  Sağdaki hatta yetişen uzun yazı:  adedi altında ( üstte odanın adı )
+        e += [_yazi(x + 12.0, y, tip, N), _yazi(x + 12.0, y - 3.8, adet, N)]
+    else:
+        e.append(_yazi(x + 12.0, y, tek, N))
     return e
 
 
@@ -835,8 +899,9 @@ def ana_tablo(v):
         ("Kuyu aydınlatması", v["kuyu"]["sigorta_A"]),
         ("Priz", v["priz"]["sigorta_A"]),
     ]
-    if v.get("makine_dairesi"):
-        devreler.insert(2, ("Makine dairesi aydınlatması", None))
+    md = _md_devresi(v)
+    if md:
+        devreler.insert(2, ("Makine dairesi aydınlatması", md["sigorta_A"]))
     adim = 13.0 if len(devreler) <= 3 else 10.5
     xs = [x0 + 42.0 + i * adim for i in range(len(devreler))]
     kx = (xs[0] + xs[-1]) / 2.0
@@ -865,8 +930,8 @@ def _dikey_sigorta(x, y):
 
 
 #  Sembol listesi:  ( çizen , ad ) — çizimde kullanılanlar
-def _semboller():
-    return (
+def _semboller(v):
+    liste = [
         (lambda x, y: otomatik_sigorta(x, y), "Otomatik sigorta"),
         (lambda x, y: otomatik_sigorta(x, y, kutup=4), "Grup sigorta  ( 3F+N )"),
         (kacak_akim_rolesi, "Kaçak akım rölesi  ( K.A.R )"),
@@ -881,12 +946,16 @@ def _semboller():
         (buat, "Buat"),
         (lambda x, y: topraklama(x, y + 2.5), "Topraklama"),
         (lambda x, y: topraklama_barasi(x - 6.0, y - 0.8), "Topraklama barası"),
-    )
+    ]
+    if _md_devresi(v):
+        #  Makine dairesi aydınlatmasının anahtarı ( girişin yakınında, tek yerden )
+        liste.insert(7, (lambda x, y: anahtar(x - 1.5, y - 1.5, vavien=False), "Anahtar"))
+    return liste
 
 
-def sembol_listesi():
+def sembol_listesi(v):
     e = [_yazi(8.0, 96.0, "SEMBOL LİSTESİ", H)]
-    liste = _semboller()
+    liste = _semboller(v)
     satir = (len(liste) + 1) // 2
     for i, (ciz_, ad) in enumerate(liste):
         sutun, sira = divmod(i, satir)
@@ -913,7 +982,7 @@ def ciz(v, sag_yazi=""):
     e += kuyu_tesisati(v)
     e += topraklama_tesisati(v)
     e += ana_tablo(v)
-    e += sembol_listesi()
+    e += sembol_listesi(v)
     return e
 
 

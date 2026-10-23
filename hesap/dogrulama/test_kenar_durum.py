@@ -975,7 +975,7 @@ def calistir():
     r.kontrol("P1 10 N'a yuvarlanmış", a["P1"] % 10 == 0)
     r.kontrol(
         "kurulu güç = kalemler toplamı",
-        abs(a["P_kurulu"] - (a["g_motor"] + a["g_kuyu"] + a["g_kabin"] + a["g_priz"])) < 1e-9,
+        abs(a["P_kurulu"] - (a["g_motor"] + a["g_kuyu"] + a["g_kabin"] + a["g_md"] + a["g_priz"])) < 1e-9,
     )
     r.kontrol("ε = ε1 + ε2", abs(a["eps"] - (a["eps1"] + a["eps2"])) < 1e-9)
     r.kontrol("kuyu armatürü = MAX(n1, n2)", a["n_kuyu"] == max(a["n1_kuyu"], a["n2_kuyu"]))
@@ -2387,12 +2387,12 @@ def calistir():
     r.esit(
         "B5  kurulu güç = etiket güçlerinin toplamı",
         round(_s["P_kurulu"], 3),
-        round(_s["Nsc"] * 1000 + _s["g_kuyu"] + _s["g_kabin"] + _s["g_priz"], 3),
+        round(_s["Nsc"] * 1000 + _s["g_kuyu"] + _s["g_kabin"] + _s["g_md"] + _s["g_priz"], 3),
     )
     r.esit(
         "B5  kolon hattı gücü P1 = Nsç / ηm + aydınlatma + priz",
         round(_s["P_hat"], 3),
-        round(_s["Nsc"] * 1000 / _etam + _s["g_kuyu"] + _s["g_kabin"] + _s["g_priz"], 3),
+        round(_s["Nsc"] * 1000 / _etam + _s["g_kuyu"] + _s["g_kabin"] + _s["g_md"] + _s["g_priz"], 3),
     )
     r.esit(
         "B5  kolon hattı akımı I = P1 / (√3·U·cosφ)",

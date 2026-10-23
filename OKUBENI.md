@@ -425,7 +425,13 @@ kademe;  son devre kablosu sigortayı taşır ( EK-5 1.31.13 ), aydınlatma en a
 ( EN 81-20 5.2.1.4.1:  mekanik hasara karşı korunur ).  Kontrol panosunun içi
 ( termik aralığı, kumanda sigortası ) imalatçınındır, yazılmaz;  termiğin
 ayarlanacağı motor akımı yazılır ( EK-5 1.37 ).  Çok asansörlü uygulama projesinde her asansörün tablosu kendi
-numarasıyla ( TAS1, TAS2 … — eskiden hepsi TAS1'di ).  Paftanın PDF'inde aynı
+numarasıyla ( TAS1, TAS2 … — eskiden hepsi TAS1'di ).  Makine dairesi varsa
+aydınlatması ilk asansörün tablosundan ( TAS1 ) kendi devresiyle beslenir:  30 mA
+grubunda 10 A, 3x1,5 mm², armatür adedi makine dairesi aydınlatma hesabından;  yükü
+o tablonun kurulu güç cetveline ( "MAKİNE DAİRESİ AYD." ) ve kolon hattının gücüne
+girer ( TS EN 81-20 m.5.10.7.1:  aydınlatma makineyi besleyen devreden bağımsız,
+ana şalterin giriş tarafından ayrılır;  oda tek olduğu için tek tabloda — çizim
+kabulü ).  Öbür asansörlerin projesi onu besleyen tabloyu yazar.  Paftanın PDF'inde aynı
 yerde, ayrı sayfalı PDF'te kendi sayfasında.
 
 **Kopyanın orijinalden farkları** ( `hesap/` ):  `uclar/cizim_uclari.py` ( yeni ),

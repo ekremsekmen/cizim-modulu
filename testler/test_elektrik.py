@@ -66,16 +66,23 @@ def _ornek(**degisen):
     return v
 
 
+#  Makine dairesi aydınlatması bu tablodan ( avan_hesabi._elektrik_projesi )
+MD_DEVRESI = {"adet": 6, "W": 40, "sigorta_A": 10}
+
+
 def _yazilar(e):
     return [el["metin"] for el in e if el["tip"] == "yazi"]
 
 
 def _ornek_sayisi(e, ad):
-    """Kuyunun içindeki parça örnekleri ( sembol listesindeki örnek sayılmaz )."""
+    """Kuyunun içindeki parça örnekleri ( sembol listesindeki ve kuyunun üstündeki
+    odadaki sayılmaz )."""
     return sum(
         1
         for a, liste in geometri.parca_ornekleri(e)
-        if a == ad and geometri.sinir(liste)[0] > elektrik._KX0 * K
+        if a == ad
+        and geometri.sinir(liste)[0] > elektrik._KX0 * K
+        and geometri.sinir(liste)[3] < elektrik._UST_Y0 * K
     )
 
 
@@ -96,17 +103,24 @@ class HesabinDegerleri(unittest.TestCase):
         self.assertEqual(v["kolon"], {"S": o["S1"], "SPE": o["SPE1"], "kablo": o["kablo_tipi"]})
         self.assertEqual(v["makine_besleme"], {"S": o["S2"], "SPE": o["SPE2"]})
         self.assertEqual(v["motor_akimi_A"], o["I_motor"])
-        #  Kurulu güç cetvelinin sigorta sütunu ile şemanın sigortaları aynı
+        #  Kurulu güç cetvelinin satırları şemanın devreleri:  sigortaları ve
+        #  armatürlerin / prizin gücü aynı;  makine dairesi aydınlatması yalnız
+        #  onu besleyen tablonun cetvelinde ( adedi hesaplanmışsa )
         c = _cetvel(a)["cetvel"]
-        self.assertEqual(
-            [r["sigorta"] for r in c[1:]], [str(v[k]["sigorta_A"]) for k in ("kuyu", "kabin", "priz")]
-        )
+        md = v.get("makine_dairesi_ayd") or {}
+        devreler = [
+            (v["kuyu"], v["kuyu"]["adet"] * v["kuyu"]["W"]),
+            (v["kabin"], (v["kabin"]["adet"] + v["kabin_ustu"]["adet"]) * v["kabin"]["W"]),
+        ]
+        if md.get("adet"):
+            devreler.append((md, md["adet"] * md["W"]))
+        devreler.append((v["priz"], v["priz"]["adet"] * v["priz"]["W"]))
+        self.assertEqual([r["sigorta"] for r in c[1:]], [str(d["sigorta_A"]) for d, _g in devreler])
+        for r, (_d, guc) in zip(c[1:], devreler):
+            self.assertAlmostEqual(r["guc"], guc)
+        self.assertAlmostEqual(o["P_kurulu"], sum(r["guc"] for r in c))
         if v["motor_sigorta_A"]:
             self.assertEqual(c[0]["sigorta"], f"4 x {v['motor_sigorta_A']}")
-        #  Armatürlerin ve prizin gücü cetveldeki güçle tutar
-        self.assertAlmostEqual(c[1]["guc"], v["kuyu"]["adet"] * v["kuyu"]["W"])
-        self.assertAlmostEqual(c[2]["guc"], (v["kabin"]["adet"] + v["kabin_ustu"]["adet"]) * v["kabin"]["W"])
-        self.assertAlmostEqual(c[3]["guc"], v["priz"]["adet"] * v["priz"]["W"])
 
     def test_avan(self):
         n = 0
@@ -145,6 +159,43 @@ class HesabinDegerleri(unittest.TestCase):
                 }
                 s = uygulama_hesabi.hesapla_coklu(*uygulama_istegi.asansor_girdileri(veri))
                 self.assertEqual(s["asansorler"][0]["elektrik"]["makine_dairesi"], oda)
+
+    def test_makine_dairesi_aydinlatmasi_tek_tabloda(self):
+        #  Oda tektir:  aydınlatması ilk asansörün tablosundan beslenir ( devresi,
+        #  cetvel satırı, kolon hattının yükü ) — öbür tablolar onu yalnız anar
+        #  ( 23 Eki, kullanıcı:  "makine daireli ise makine dairesi aydınlatmasını
+        #  da koymamız gerekiyor" )
+        sayac = {"avan": 0, "uygulama": 0}
+        for g in avan_senaryolar():
+            s = avan_hesabi.hesapla(json.loads(json.dumps(g)))
+            mk = s.get("makine_dairesi") or {}
+            vs = [a["elektrik"] for a in s.get("asansorler") or [] if a.get("elektrik")]
+            if not vs or not vs[0]["makine_dairesi"]:
+                self.assertFalse(any("makine_dairesi_ayd" in v for v in vs))
+                continue
+            with self.subTest(senaryo=sayac["avan"]):
+                ilk, digerleri = vs[0], vs[1:]
+                self.assertEqual(ilk["makine_dairesi_ayd"]["adet"], mk.get("n"))
+                self.assertEqual(ilk["makine_dairesi_ayd"]["sigorta_A"], avan_hesabi.SIGORTA_AYDINLATMA)
+                for v in digerleri:
+                    self.assertEqual(v["makine_dairesi_ayd"], {"besleyen": ilk["tablo"]})
+                sayac["avan"] += 1
+        for _s, a in _uygulama_asansorleri():
+            v = a["elektrik"]
+            if not v["makine_dairesi"]:
+                continue
+            with self.subTest(no=a["no"], tanim=a["tanim"]):
+                md = v["makine_dairesi_ayd"]
+                satir = [r for r in _cetvel(a)["cetvel"] if r["sorti"].startswith("MAKİNE DAİRESİ")]
+                if a["no"] == 1:
+                    self.assertTrue(md.get("adet"))
+                    self.assertEqual([r["guc"] for r in satir], [md["adet"] * md["W"]])
+                else:
+                    self.assertEqual(md, {"besleyen": "TAS1"})
+                    self.assertEqual(satir, [])
+                sayac["uygulama"] += 1
+        self.assertGreater(sayac["avan"], 20)
+        self.assertGreater(sayac["uygulama"], 3)
 
     def test_uygulama_her_asansor_kendi_tablosu(self):
         #  Avan motoru her asansörü tek başına hesaplar:  çok asansörlü uygulama
@@ -236,12 +287,32 @@ class Sema(unittest.TestCase):
         self.assertGreaterEqual(y.count("30 mA"), 2)  # tek hat şeması ve ana tablo
 
     def test_makine_dairesi(self):
-        y = _yazilar(elektrik.ciz(_ornek(makine_dairesi=True)))
+        #  Aydınlatması bu tablodan:  tek hat şemasında kendi sigortası ve kablosu,
+        #  ana tabloda amperiyle ( 23 Eki öncesi ana tabloda amperi yazmıyordu, tek
+        #  hat şemasında hiç yoktu ), odada armatürü ( hesabın adedi ) ve anahtarı
+        e = elektrik.ciz(_ornek(makine_dairesi=True, makine_dairesi_ayd=MD_DEVRESI))
+        y = _yazilar(e)
         self.assertIn("MAKİNE DAİRESİ", y)
-        self.assertIn("Makine dairesi aydınlatması", y)
+        self.assertIn("Makine dairesi aydınlatması  ( 6x40 W )", y)  # tek hat şeması
+        self.assertIn("Makine dairesi aydınlatması", y)  # ana tablo
+        self.assertIn("Etanj 1x40 W  ( 6 adet )", y)
+        self.assertIn("Anahtar", y)
+        self.assertEqual(y.count("10 A"), 6)  # kabin, kuyu, makine dairesi:  şemada ve ana tabloda
+        self.assertEqual(y.count("3x1,5 mm² NHXMH"), 3)
+        anahtarlar = [x for a, x in geometri.parca_ornekleri(e) if a == "anahtar"]
+        self.assertEqual(len(anahtarlar), 2)  # odada ve sembol listesinde
+        #  Kuyunun armatürleri hesabın adedi kadar ( odanınki sayılmaz )
+        self.assertEqual(_ornek_sayisi(e, "etanj_armatur"), 6)
+        #  Aydınlatması başka bir asansörün tablosundan:  yalnız onu anar
+        y = _yazilar(elektrik.ciz(_ornek(makine_dairesi=True, makine_dairesi_ayd={"besleyen": "TAS1"})))
+        self.assertIn("MAKİNE DAİRESİ", y)
+        self.assertIn("Aydınlatma devresi:  TAS1", y)
+        self.assertFalse(any(m.startswith("Makine dairesi aydınlatması") for m in y), y)
+        self.assertEqual(y.count("10 A"), 4)
         y = _yazilar(elektrik.ciz(_ornek()))
         self.assertIn("KUYU ÜSTÜ", y)
-        self.assertNotIn("Makine dairesi aydınlatması", y)
+        self.assertFalse(any(m.startswith("Makine dairesi aydınlatması") for m in y), y)
+        self.assertNotIn("Anahtar", y)
 
 
 def _dondur(el, u0, u1, v0, v1):
@@ -439,6 +510,11 @@ class Kalite(unittest.TestCase):
             {"kacak_akim_A": 0.03},
             {"kacak_akim_A": None},
             {"makine_dairesi": True},
+            {"makine_dairesi": True, "makine_dairesi_ayd": MD_DEVRESI},
+            {"makine_dairesi": True, "makine_dairesi_ayd": dict(MD_DEVRESI, adet=None)},
+            {"makine_dairesi": True, "makine_dairesi_ayd": dict(MD_DEVRESI, adet=240, W=1000)},
+            {"makine_dairesi": True, "makine_dairesi_ayd": MD_DEVRESI, "kuyu": {"adet": 150}},
+            {"makine_dairesi": True, "makine_dairesi_ayd": {"besleyen": "TAS1"}},
         ):
             with self.subTest(degisen=degisen):
                 self.assertEqual(_sorunlar(elektrik.ciz(_ornek(**degisen), "ASANSÖR 4")), [])

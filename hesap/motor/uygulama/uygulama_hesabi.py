@@ -95,7 +95,7 @@ def _proje_geneli_bolumleri(av, g):
     return bolumler, eksik
 
 
-def hesapla(veriler=None):
+def hesapla(veriler=None, makine_dairesi_tablosu=None):
     """TEK ASANSÖRÜN hesabı  —  mukavemet + elektrik + topraklama.
 
     Bu bir PARÇADIR, proje girişi değildir:  projeyi ``hesapla_coklu``
@@ -103,6 +103,9 @@ def hesapla(veriler=None):
     yalnız birim denemeleri içindir — proje geneli bölümler ( topraklama ·
     makine dairesi ) burada asansörün bölüm listesinin İÇİNDE kalır, oysa
     projede ayrılıp en sona alınırlar.
+
+    makine_dairesi_tablosu:  makine dairesi aydınlatması başka bir asansörün
+    tablosundansa onun adı ( TAS1 ) — bu asansörün kurulu güç cetveline girmez.
     """
     g, durdu = _girdi(veriler)
     if durdu:
@@ -112,7 +115,10 @@ def hesapla(veriler=None):
         return {"aktif": False, "hata": muk.get("hata") or [], "girdi": g}
 
     eksik = list(muk.get("ozet", {}).get("eksik_hesap", []))  # yapılamayan ZORUNLU hesaplar
-    av = avan_hesabi.hesapla(uygulama_girdisi.avan_girdisi(g))
+    av_girdi = uygulama_girdisi.avan_girdisi(g)
+    if makine_dairesi_tablosu:
+        av_girdi["makine_dairesi_tablosu"] = makine_dairesi_tablosu
+    av = avan_hesabi.hesapla(av_girdi)
     asansor = (av.get("asansorler") or [{}])[0]
     uyarilar = list(muk.get("uyarilar") or [])
     elektrik = _elektrik_bolumleri(av, asansor, eksik, uyarilar)
@@ -335,7 +341,8 @@ def hesapla_coklu(asansorler=None, ortak=None):
     pg = {k: ortak[k] for k in uygulama_girdisi.PROJE_GENELI_ALANLAR if k in ortak}
     sonuclar = []
     for i, g in enumerate(ham, 1):
-        s = hesapla({**ortak, **g, **pg})
+        #  Makine dairesi aydınlatması ilk asansörün tablosundan ( avan_hesabi.hesapla )
+        s = hesapla({**ortak, **g, **pg}, None if i == 1 else avan_hesabi.tas_adi(1))
         s["no"] = i
         s["tanim"] = str(g.get("asansor_adi") or "").strip() or f"{i} nolu asansör"
         #  Kuyunun geometrisi asansöre özgüdür:  çok asansörlü projede hangisinin
