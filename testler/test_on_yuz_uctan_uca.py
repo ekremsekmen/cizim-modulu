@@ -936,8 +936,9 @@ class OnYuzUctanUca(unittest.TestCase):
         self.ornek_projeyi_ac()
         self.sayfa.get_by_role("button", name="Teslim").click()
         teslim = self.sayfa.get_by_role("dialog", name="Teslim")
-        #  Paketin içeriğinde elektrik projesi de yazar ( 23 Eki:  pakette vardı, listede yoktu )
-        teslim.get_by_text("Elektrik projesi").wait_for()
+        #  Paketin içeriğinde elektrik projesi de yazar ( 23 Eki:  pakette vardı, listede yoktu );
+        #  tam eşleşme:  çekmecenin açıklaması da "elektrik projesi" der
+        teslim.get_by_text("Elektrik projesi", exact=True).wait_for()
         self.assertIn("asansör başına bir A3 sayfa", teslim.inner_text())
         paket = teslim.get_by_role("button", name=re.compile("Paketi indir"))
         self.assertTrue(paket.is_disabled())
