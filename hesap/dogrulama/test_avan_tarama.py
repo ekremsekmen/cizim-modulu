@@ -939,6 +939,7 @@ AVAN_ANAHTARLAR = (
     "g_kuyu",
     "g_kabin",
     "g_priz",
+    "g_md",
     "P_kurulu",
     "eps1",
     "eps2",

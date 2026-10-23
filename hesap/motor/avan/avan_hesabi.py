@@ -513,11 +513,13 @@ def _ortak_degeri(ortak, S, anahtar):
 # =====================================================================
 #  TEK ASANSÖRÜN AVAN HESABI  —  "n NOLU ASANSÖR" sayfası
 # =====================================================================
-def hesapla_asansor(a: dict, ortak: dict, S: dict, no: int = 1) -> dict:
+def hesapla_asansor(a: dict, ortak: dict, S: dict, no: int = 1, md: dict | None = None) -> dict:
     """
     a     : asansör girdileri (GİRİŞ sayfası C..F kolonu)
     ortak : ortak girdiler (GİRİŞ sayfası 1. bölüm)
     S     : sabitler
+    md    : makine dairesi aydınlatması bu asansörün tablosundansa { adet , W }
+            ( hesapla() verir — adet hesaplanamamışsa None )
 
     Bölümler sırayla hesaplanır;  ara değerler ( h ) bir bölümden ötekine
     geçer ve sonunda özete girer.  Kullanılamayan girdi hesabı en başta
@@ -528,6 +530,7 @@ def hesapla_asansor(a: dict, ortak: dict, S: dict, no: int = 1) -> dict:
     if hata:
         return {"no": no, "aktif": False, "uyari": hata}
     h = _girdiler(a, ortak, S)
+    h["md_ayd"] = md
     hata = _yuk_ve_kutle(h, no) or _motor_gucu(h, a, S, no)
     if hata:
         return {"no": no, "aktif": False, "uyari": hata}
@@ -571,11 +574,16 @@ def _elektrik_projesi(h, S, no):
     sigortaları ( bölüm 5 — kurulu güç cetvelinin satırları ), kolon ve
     makine besleme hattının kesitleri ( bölüm 6 ), kaçak akım rölesi ( ofis
     standardı — topraklama hesabının IΔn'ı ).  Makine dairesinin olup
-    olmadığı proje genelidir:  hesapla() yazar."""
-    return {
+    olmadığı proje genelidir:  hesapla() yazar;  aydınlatması bu tablodansa
+    devresi burada ( kurulu güç cetvelinin satırı ), değilse hesapla() onu
+    besleyen tabloyu yazar."""
+    v = {
         "tablo": tas_adi(no),
         "motor_kW": h["Nsc"],
         "motor_sigorta_A": h["sigorta_A"],
+        #  Motorun şebekeden çektiği akım ( bölüm 5 — sigortası bundan seçilir );
+        #  termiğin ayarı buna uygun olmalı ( Asansör Periyodik Kontrol EK-5 1.37 )
+        "motor_akimi_A": h["I_motor"],
         "kuyu": {"adet": h["n_kuyu"], "W": S["kuyu_armatur_W"], "sigorta_A": SIGORTA_AYDINLATMA},
         #  Kabin ve kabin üstü cetvelde TEK devredir ( 3. satır )
         "kabin": {"adet": h["n_kabin"], "W": S["kabin_armatur_W"], "sigorta_A": SIGORTA_AYDINLATMA},
@@ -585,6 +593,10 @@ def _elektrik_projesi(h, S, no):
         "makine_besleme": {"S": h["S2"], "SPE": h["SPE2"]},
         "kacak_akim_A": S["IDn"],
     }
+    md = h["md_ayd"]
+    if md:
+        v["makine_dairesi_ayd"] = {"adet": md.get("adet"), "W": md["W"], "sigorta_A": SIGORTA_AYDINLATMA}
+    return v
 
 
 def _girdiler(a, ortak, S):
@@ -1219,7 +1231,12 @@ def _kurulu_guc_bolumu(h, S, no):
     g_kuyu = n_kuyu * S["kuyu_armatur_W"]
     g_kabin = (n_kabin + S["kabin_ustu_armatur"]) * S["kabin_armatur_W"]
     g_priz = S["priz_adedi"] * S["priz_gucu"]
-    P_kurulu = g_motor + g_kuyu + g_kabin + g_priz
+    #  Makine dairesi aydınlatması yalnız onu besleyen tablonun cetvelinde
+    #  ( bkz. hesapla );  armatür adedi makine dairesi aydınlatma hesabından
+    md = h["md_ayd"] or {}
+    n_md = md.get("adet")
+    g_md = n_md * md["W"] if sayi_mi(n_md) else 0
+    P_kurulu = g_motor + g_kuyu + g_kabin + g_md + g_priz
 
     #  MOTOR KORUMA CİHAZI  —  her güçte aynı sabit metin ( "4 x 25" ) değil,
     #  motor anma akımından seçilir:
@@ -1242,9 +1259,10 @@ def _kurulu_guc_bolumu(h, S, no):
         g_kuyu=g_kuyu,
         g_kabin=g_kabin,
         g_priz=g_priz,
+        g_md=g_md,
         P_kurulu=P_kurulu,
         #  Kolon hattı motoru, aydınlatmayı ve prizi birlikte besler.
-        P_hat=g_motor_seb + g_kuyu + g_kabin + g_priz,
+        P_hat=g_motor_seb + g_kuyu + g_kabin + g_md + g_priz,
         I_motor=I_motor,
         sigorta_A=sigorta_A,
         motor_sigorta=motor_sigorta,
@@ -1283,14 +1301,26 @@ def _kurulu_guc_bolumu(h, S, no):
             "birim": "W",
             "sigorta": str(SIGORTA_AYDINLATMA),
         },
+    ]
+    if sayi_mi(n_md):
+        b5["cetvel"].append(
+            {
+                "lin": 4,
+                "sorti": f"MAKİNE DAİRESİ AYD.          ( {n_md} X {trn(md['W'], 0)} W )",
+                "guc": g_md,
+                "birim": "W",
+                "sigorta": str(SIGORTA_AYDINLATMA),
+            }
+        )
+    b5["cetvel"].append(
         {
-            "lin": 4,
+            "lin": len(b5["cetvel"]) + 1,
             "sorti": f"TOPLAM PRİZ          ( {trn(S['priz_adedi'], 0)} X {trn(S['priz_gucu'], 0)} W )",
             "guc": g_priz,
             "birim": "W",
             "sigorta": str(SIGORTA_PRIZ),
-        },
-    ]
+        }
+    )
     b5["sonuc"] = {"baslik": "ASANSÖRÜN KURULU GÜCÜ", "metin": f"{trn(P_kurulu, 0)} W", "uygun": True}
     return b5
 
@@ -1436,7 +1466,7 @@ def _gerilim_dusumu_adimlari(h):
         ),
         hesap(
             "P1  =   Pşeb  +  aydınlatma  +  priz",
-            f"=   {trn(g_motor_seb, 0)}  +  {trn(h['g_kuyu'] + h['g_kabin'], 0)}  +  {trn(h['g_priz'], 0)}",
+            f"=   {trn(g_motor_seb, 0)}  +  {trn(h['g_kuyu'] + h['g_kabin'] + h['g_md'], 0)}  +  {trn(h['g_priz'], 0)}",
             P_hat,
             "W",
             "kolon hattından çekilen güç",
@@ -1648,7 +1678,7 @@ def _ozet(h):
         **{k: h[k] for k in ("eta_kabin", "T_kabin", "Z_kabin", "eta_kuyu", "T_kuyu", "Z_kuyu")},
         "n1_kuyu": h["n1_kuyu"],
         "n2_kuyu": h["n2_kuyu"],
-        **{k: h[k] for k in ("g_motor", "g_motor_seb", "eta_m", "g_kuyu", "g_kabin", "g_priz")},
+        **{k: h[k] for k in ("g_motor", "g_motor_seb", "eta_m", "g_kuyu", "g_kabin", "g_priz", "g_md")},
         "kabin_a": h["ka"],
         "kabin_b": h["kb"],
         "kuyu_a": h["qa"],
@@ -2160,20 +2190,37 @@ def hesapla(veriler: dict) -> dict:
             + "   ·   Değeri düzeltin ya da alanı boşaltın ( boş alan "
             "ofis varsayılanını kullanır )."
         }
+    mk = hesapla_makine_dairesi(ortak, S)
+    #  Makine dairesi aydınlatmasının devresi yalnız makine dairesi varsa ( MRL'de
+    #  oda yok ):  hesabı yapılmışsa ya da oda var denmiş ama ölçüsü girilmemişse
+    #  ( hesap eksik — mk_yok False )
+    oda = bool(mk.get("aktif")) or mk.get("mk_yok") is False
+    #  MAKİNE DAİRESİ AYDINLATMASI BİR TABLODAN BESLENİR.  Kabin, kuyu ve makine
+    #  dairesi aydınlatması makineyi besleyen devreden bağımsızdır:  ayrı bir
+    #  hatla ya da ana şalterin giriş tarafından ayrılan bir hatla beslenir
+    #  ( TS EN 81-20 m.5.10.7.1 ) — TAS'ın 30 mA'lik aydınlatma grubunda kendi
+    #  sigortasıyla ( Tavaslıoğlu, Asansör Tasarımı, ana tablo örneği:  "ayrı
+    #  bir hattan alınmadı ise makine dairesi aydınlatması" ).  Yükü o tablonun
+    #  kurulu güç cetveline ve kolon hattına girer.  Oda tektir:  ilk asansörün
+    #  tablosu besler ( ÇİZİM KABULÜ ), dört asansörlü binada dört kez yazılmaz.
+    #  Uygulama projesi asansörleri tek tek hesaplar;  2. asansörden sonra
+    #  besleyen tabloyu kendisi söyler ( makine_dairesi_tablosu ).
+    besleyen = veriler.get("makine_dairesi_tablosu") if oda else None
     asansorler = []
     for i, a in enumerate(veriler.get("asansorler") or [], 1):
         if not a:
             continue
-        asansorler.append(hesapla_asansor(a, ortak, S, i))
-
-    mk = hesapla_makine_dairesi(ortak, S)
-    #  Elektrik projesinin ana tablosunda makine dairesi aydınlatmasının devresi
-    #  yalnız makine dairesi varsa ( MRL'de oda yok ):  hesabı yapılmışsa ya da
-    #  oda var denmiş ama ölçüsü girilmemişse ( hesap eksik — mk_yok False )
-    oda = bool(mk.get("aktif")) or mk.get("mk_yok") is False
+        md = None
+        if oda and besleyen is None:
+            besleyen = tas_adi(i)
+            md = {"adet": mk.get("n"), "W": S["kuyu_armatur_W"]}
+        asansorler.append(hesapla_asansor(a, ortak, S, i, md))
     for a in asansorler:
-        if a.get("elektrik"):
-            a["elektrik"]["makine_dairesi"] = oda
+        e = a.get("elektrik")
+        if e:
+            e["makine_dairesi"] = oda
+            if oda and "makine_dairesi_ayd" not in e:
+                e["makine_dairesi_ayd"] = {"besleyen": besleyen}
     #  ANA POTANSİYEL DENGELEME "TESİSTEKİ EN BÜYÜK KORUMA İLETKENİ"NDEN
     #  türer ( m.9-j/1/i ) — tesis dört asansörlü olabilir, hepsine bakılır.
     _peler = [

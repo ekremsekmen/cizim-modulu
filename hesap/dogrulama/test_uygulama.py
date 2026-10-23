@@ -1975,7 +1975,10 @@ def _sira_degismezligi(r):
     )
     r.esit("tesisteki en büyük koruma iletkeni ( 95 mm² kolon → 50 )", beklenen["en_buyuk_pe"], _pe)
 
-    taban = None
+    def _metin(x):
+        return re.sub(r"TAS\d+", "TAS", json.dumps(x, sort_keys=True, default=str, ensure_ascii=False))
+
+    taban, asansor_tabani = None, {}
     for sira in itertools.permutations(asansorler):
         ad = " → ".join(a["asansor_adi"] for a in sira)
         c = uygulama_hesabi.hesapla_coklu([dict(a) for a in sira], ortak)
@@ -1990,19 +1993,34 @@ def _sira_degismezligi(r):
             f"→ {il} · beklenen Sapd {beklenen['Sapd']}",
         )
         #  Asansörlerin kendi sonuçları da sıradan bağımsız ( no ve etiket hariç;
-        #  tablonun adı da numaradan:  TAS<no> — 23 Eki )
-        ozu = {
-            "proje_geneli": c["proje_geneli"],
-            "asansorler": {a["tanim"]: {k: v for k, v in a.items() if k != "no"} for a in c["asansorler"]},
-            "tumu_uygun": c["ozet"]["tumu_uygun"],
-            "proje_geneli_uygun": c["ozet"]["proje_geneli_uygun"],
-            "hata": sorted(c["hata"]),
-        }
-        ozu = re.sub(r"TAS\d+", "TAS", json.dumps(ozu, sort_keys=True, default=str, ensure_ascii=False))
+        #  tablonun adı da numaradan:  TAS<no> — 23 Eki ).  Makine dairesinin
+        #  aydınlatması ilk asansörün tablosundan beslenir ( 23 Eki ):  asansörün
+        #  sonucu kendisine ve o devreyi taşıyıp taşımadığına bağlıdır, sıraya değil
+        ozu = _metin(
+            {
+                "proje_geneli": c["proje_geneli"],
+                "tumu_uygun": c["ozet"]["tumu_uygun"],
+                "proje_geneli_uygun": c["ozet"]["proje_geneli_uygun"],
+                "hata": sorted(c["hata"]),
+            }
+        )
         if taban is None:
             taban = ozu
         else:
-            r.kontrol(f"sıra {ad} · bütün sonuç ilk sıralamayla aynı", ozu == taban)
+            r.kontrol(f"sıra {ad} · proje geneli ilk sıralamayla aynı", ozu == taban)
+        for a in c["asansorler"]:
+            anahtar = (a["tanim"], a["no"] == 1)
+            ozu = _metin({k: v for k, v in a.items() if k != "no"})
+            if anahtar in asansor_tabani:
+                r.kontrol(
+                    f"sıra {ad} · {a['tanim']} ( makine dairesi aydınlatması "
+                    f"{'onun' if a['no'] == 1 else 'başka'} tablosunda ) aynı sonuç",
+                    ozu == asansor_tabani[anahtar],
+                )
+            else:
+                asansor_tabani[anahtar] = ozu
+    #  Her asansör hem ilk sırada ( devre onun tablosunda ) hem sonra denendi
+    r.esit("sıra · denenen asansör rolleri", len(asansor_tabani), 2 * len(asansorler))
 
 
 # =====================================================================
