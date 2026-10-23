@@ -421,12 +421,15 @@ yerde — güç devresininki topraklama direncine göre ( IΔn hesaptan ), aydı
 ve priz devrelerininki 30 mA ( EK-5 1.33.11 · 12 · 14 );  şalterin ve kaçak akım
 rölesinin anma akımı birlikte çalıştığı sigortadan küçük olmaz, ilk standart
 kademe;  son devre kablosu sigortayı taşır ( EK-5 1.31.13 ), aydınlatma en az
-3x1,5, priz en az 3x2,5 mm², kolon hattının ailesinden.  Kuyu armatürü "Etanj"
+3x1,5, priz en az 3x2,5 mm², kolon hattının ailesinden.  Aynı tablo ( `temel.KESIT_SIGORTA` )
+hesapta motorun grup sigortasını da sınırlar:  makine besleme kablosunun önündeki en büyük
+sigortayı aşarsa ( 6 mm² üstünde Iz ) bölüm 6 uygun değildir, engelleyici uyarı kesiti söyler.  Kuyu armatürü "Etanj"
 ( EN 81-20 5.2.1.4.1:  mekanik hasara karşı korunur ).  Kontrol panosunun içi
 ( termik aralığı, kumanda sigortası ) imalatçınındır, yazılmaz;  termiğin
 ayarlanacağı motor akımı yazılır ( EK-5 1.37 ).  Çok asansörlü uygulama projesinde her asansörün tablosu kendi
 numarasıyla ( TAS1, TAS2 … — eskiden hepsi TAS1'di ).  Makine dairesi varsa
-aydınlatması ilk asansörün tablosundan ( TAS1 ) kendi devresiyle beslenir:  30 mA
+aydınlatması elektriği hesaplanan ilk asansörün tablosundan ( çoğunlukla TAS1;  1. asansörün
+hesabı düşmüşse sıradakinin — onun tablosu çizilmez ) kendi devresiyle beslenir:  30 mA
 grubunda 10 A, 3x1,5 mm², armatür adedi makine dairesi aydınlatma hesabından;  yükü
 o tablonun kurulu güç cetveline ( "MAKİNE DAİRESİ AYD." ) ve kolon hattının gücüne
 girer ( TS EN 81-20 m.5.10.7.1:  aydınlatma makineyi besleyen devreden bağımsız,

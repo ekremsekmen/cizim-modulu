@@ -24,6 +24,7 @@ from ciktilar import pafta_pdf
 from ciktilar import pdf_cikti
 from dogrulama.altin_uret import avan_senaryolar, uygulama_senaryolar
 from motor.avan import avan_hesabi
+from motor.avan import tablolar
 from motor.uygulama import uygulama_hesabi
 
 K = elektrik.K
@@ -196,6 +197,38 @@ class HesabinDegerleri(unittest.TestCase):
                 sayac["uygulama"] += 1
         self.assertGreater(sayac["avan"], 20)
         self.assertGreater(sayac["uygulama"], 3)
+
+    def test_makine_dairesi_elektrigi_hesaplanan_ilk_tabloda(self):
+        #  Devre hep 1. asansörün tablosuna veriliyordu:  onun hesabı düşünce TAS1
+        #  çizilmiyor, öbürleri "Aydınlatma devresi:  TAS1" diyordu — devre ve yükü
+        #  pakette hiçbir tabloda yoktu ( 23 Eki bağımsız denetim )
+        def md_satiri(a):
+            return [r for r in _cetvel(a)["cetvel"] if r["sorti"].startswith("MAKİNE DAİRESİ")]
+
+        g = next(iter(avan_senaryolar()))
+        a = g["asansorler"][0]
+        s = avan_hesabi.hesapla(
+            json.loads(json.dumps(dict(g, asansorler=[dict(a, Nsc=0.01), dict(a), dict(a)])))
+        )
+        bir, iki, uc = s["asansorler"]
+        self.assertFalse(bir["aktif"])
+        md = iki["elektrik"]["makine_dairesi_ayd"]
+        self.assertEqual(
+            (md["adet"], md["sigorta_A"]), (s["makine_dairesi"]["n"], avan_hesabi.SIGORTA_AYDINLATMA)
+        )
+        self.assertEqual([r["guc"] for r in md_satiri(iki)], [md["adet"] * md["W"]])
+        self.assertEqual(uc["elektrik"]["makine_dairesi_ayd"], {"besleyen": "TAS2"})
+        self.assertEqual(md_satiri(uc), [])
+
+        oda = {"temel_a": 26.55, "temel_b": 16.4, "mk_yok": False, "mk_uzunluk": 4000, "mk_genislik": 3000}
+        s = uygulama_hesabi.hesapla_coklu([{"halat_adedi": 1}, {}, {}], oda)
+        bir, iki, uc = s["asansorler"]
+        self.assertFalse(bir["aktif"])
+        self.assertEqual(iki["elektrik"]["tablo"], "TAS2")
+        self.assertTrue(iki["elektrik"]["makine_dairesi_ayd"]["adet"])
+        self.assertEqual(len(md_satiri(iki)), 1)
+        self.assertEqual(uc["elektrik"]["makine_dairesi_ayd"], {"besleyen": "TAS2"})
+        self.assertEqual(md_satiri(uc), [])
 
     def test_uygulama_her_asansor_kendi_tablosu(self):
         #  Avan motoru her asansörü tek başına hesaplar:  çok asansörlü uygulama
@@ -469,6 +502,55 @@ class Kurallar(unittest.TestCase):
                 self.assertEqual(elektrik.devre_kesiti(amper, en_az), kesit)
         self.assertEqual(elektrik.devre_kablosu(_ornek(), 10, 1.5), "3x1,5 mm² NHXMH")
         self.assertEqual(elektrik.devre_kablosu(_ornek(kolon={"kablo": ""}), 16, 2.5), "3x2,5 mm²")
+
+    def test_grup_sigortasi_makine_besleme_kablosunu_korur(self):
+        #  Hesap motor akımını kabloyla karşılaştırıyordu ( I2 ≤ Iz2 ), seçtiği
+        #  sigortayı değil:  4 mm² kabloya 4 x 40 A "uygundu" ( 23 Eki bağımsız
+        #  denetim ).  Sınır son devrelerin kablosuyla aynı tablo ( EK-5 1.31.13 ),
+        #  6 mm² üstünde Iz;  kesitle birlikte artar
+        for kesit, sinir in ((1.5, 10), (2.5, 20), (3, 20), (4, 32), (6, 50), (8, 50), (10, 57), (16, 76)):
+            with self.subTest(kesit=kesit):
+                self.assertEqual(tablolar.sigorta_siniri(kesit)[0], sinir)
+        self.assertIsNone(tablolar.sigorta_siniri(0.5)[0])
+        sinirlar = [tablolar.sigorta_siniri(k)[0] for k in tablolar.STANDART_KESITLER]
+        self.assertEqual(sinirlar, sorted(sinirlar))
+
+        g = next(iter(avan_senaryolar()))
+        a = g["asansorler"][0]
+        sayi = {True: 0, False: 0}
+        for S2 in (2.5, 4, 6, 10):
+            for Nsc in (5.5, 9.2, 11, 13, 15, 18.5, 22):
+                with self.subTest(S2=S2, Nsc=Nsc):
+                    v = dict(g, asansorler=[dict(a, S2=S2, Nsc=Nsc)])
+                    x = avan_hesabi.hesapla(json.loads(json.dumps(v)))["asansorler"][0]
+                    sig, I2 = x["elektrik"]["motor_sigorta_A"], x["ozet"]["I2"]
+                    korunmuyor = sig > tablolar.sigorta_siniri(S2)[0]
+                    uyari = [u for u in x["engelleyici"] if "SİGORTAYLA KORUNMUYOR" in u]
+                    self.assertEqual(len(uyari), int(korunmuyor), uyari)
+                    b6 = next(b for b in x["bolumler"] if b.get("kimlik") == "gerilim_dusumu")
+                    self.assertIn(
+                        "In ≤  Inmax2:  " + ("UYGUN DEĞİL" if korunmuyor else "UYGUN"),
+                        "\n".join(b6["sonuc"]["alt"]),
+                    )
+                    if korunmuyor:
+                        self.assertFalse(b6["sonuc"]["uygun"])
+                        #  Önerilen kesit akımı da taşır, sigortayla da korunur;  bir küçüğü değil
+                        en_az = tablolar.gerekli_kesit(I2, sig)
+                        self.assertIn(f"en az {en_az:g} mm²".replace(".", ","), uyari[0])
+                        once = tablolar.STANDART_KESITLER[tablolar.STANDART_KESITLER.index(en_az) - 1]
+                        self.assertTrue(
+                            tablolar.kablo_iz_sinir(once)[0] < I2 or tablolar.sigorta_siniri(once)[0] < sig
+                        )
+                    sayi[korunmuyor] += 1
+        self.assertGreater(sayi[True], 5)
+        self.assertGreater(sayi[False], 5)
+        #  Uygulama projesi aynı motoru kullanır:  hükme ve engelleyiciye girer
+        from hesap_girdi import ASANSOR, ORTAK
+        from uclar import uygulama_istegi
+
+        veri = {"asansorler": [dict(ASANSOR, motor_gucu=15, makine_kesit=4)], "proje_geneli": dict(ORTAK)}
+        x = uygulama_hesabi.hesapla_coklu(*uygulama_istegi.asansor_girdileri(veri))["asansorler"][0]
+        self.assertTrue(any("SİGORTAYLA KORUNMUYOR" in u for u in x["ozet"]["engelleyici"]))
 
 
 class Kalite(unittest.TestCase):

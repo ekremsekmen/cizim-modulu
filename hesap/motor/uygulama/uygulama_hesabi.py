@@ -340,9 +340,13 @@ def hesapla_coklu(asansorler=None, ortak=None):
     #  bunları asansörün içinde taşır.
     pg = {k: ortak[k] for k in uygulama_girdisi.PROJE_GENELI_ALANLAR if k in ortak}
     sonuclar = []
+    #  Makine dairesi aydınlatması elektriği hesaplanan ilk asansörün tablosundan
+    #  ( avan_hesabi.hesapla ):  bulunana kadar her asansöre teklif edilir.  Hep
+    #  1. asansöre veriliyordu;  onun hesabı düşünce devre pakette hiçbir
+    #  tabloda kalmıyordu ( 23 Eki bağımsız denetim ).
+    besleyen = None
     for i, g in enumerate(ham, 1):
-        #  Makine dairesi aydınlatması ilk asansörün tablosundan ( avan_hesabi.hesapla )
-        s = hesapla({**ortak, **g, **pg}, None if i == 1 else avan_hesabi.tas_adi(1))
+        s = hesapla({**ortak, **g, **pg}, besleyen)
         s["no"] = i
         s["tanim"] = str(g.get("asansor_adi") or "").strip() or f"{i} nolu asansör"
         #  Kuyunun geometrisi asansöre özgüdür:  çok asansörlü projede hangisinin
@@ -360,6 +364,10 @@ def hesapla_coklu(asansorler=None, ortak=None):
                 for n, b in enumerate([x for x in s["bolumler"] if not x.get("proje_geneli")], 1)
             ]
             _tablo_adi(s, i)
+            if besleyen is None and ((s.get("elektrik") or {}).get("makine_dairesi_ayd") or {}).get(
+                "sigorta_A"
+            ):
+                besleyen = avan_hesabi.tas_adi(i)
         sonuclar.append(s)
 
     aktifler = [s for s in sonuclar if s.get("aktif")]

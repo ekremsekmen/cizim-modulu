@@ -7,7 +7,7 @@ düzeni:  referans 4815-6 AVAN paftası ).
 
 DEĞERLER HESAPTAN ( motor/avan/avan_hesabi._elektrik_projesi ):  kuyu, kabin ve
 makine dairesi armatürlerinin adedi ve gücü ( kuyuya hesabın bulduğu kadar armatür
-çizilir;  makine dairesininki onu besleyen tabloda — ilk asansörün ),
+çizilir;  makine dairesininki onu besleyen tabloda — elektriği hesaplanan ilk asansörün ),
 motor gücü, akımı ve sigortası, devre sigortaları ( kurulu güç cetveli ), kolon
 hattı ( kesit / koruma iletkeni / kablo tipi ), makine besleme hattının koruma
 iletkeni, güç devresinin kaçak akım rölesinin IΔn'ı ( topraklama hesabının ofis
@@ -25,6 +25,7 @@ yazı ve kalem boyları öbür çizimlerle aynı;  uslup ).  A3 yatay sayfa
 
 import math
 
+from temel import KESIT_SIGORTA
 from cizim import dxf
 from cizim import eleman
 from cizim import pafta
@@ -284,8 +285,8 @@ def kirik(x, y, yatay=False):
 SALTER_KADEMELERI = (16, 20, 25, 32, 40, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630)  # yük ayırıcı
 KAR_KADEMELERI = (25, 40, 63, 80, 100, 125)  # kaçak akım rölesi ( üstü röleli kesici:  şalter kademesi )
 KAYNAK_KAR_MA = 30  # aydınlatma ve priz devrelerinin kaçak akım rölesi ( EK-5 1.33.11 · 12 )
-#  EK-5 1.31.13:  ( kesit mm² , en büyük sigorta A )
-KESIT_SIGORTA = ((1.0, 6), (1.5, 10), (2.5, 20), (4.0, 32), (6.0, 50))
+#  Kesit → en büyük sigorta:  EK-5 1.31.13 ( temel.KESIT_SIGORTA — hesabın makine
+#  besleme denetimiyle aynı tablo )
 AYDINLATMA_KESIT_EN_AZ, PRIZ_KESIT_EN_AZ = 1.5, 2.5
 
 

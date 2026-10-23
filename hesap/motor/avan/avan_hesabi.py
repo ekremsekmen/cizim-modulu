@@ -1366,6 +1366,15 @@ def _gerilim_dusumu(h, S):
     #  ( bkz. aşağıda "MAKİNE BESLEME HATTI" ).
     Iz2, Iz2_kesin = tablolar.kablo_iz_sinir(S2)
     I2 = h["I_motor"]
+    #  GRUP SİGORTASI MAKİNE BESLEME KABLOSUNU KORUMALI.  I2 ≤ Iz2 kablonun
+    #  motor akımını taşıdığını söyler;  aşırı akımda kabloyu önündeki sigorta
+    #  korur ve sigorta kablonun sınırını aşamaz ( tablolar.sigorta_siniri:
+    #  EK-5 1.31.13, 6 mm² üstünde Iz ).  Kural son devrelerin kablosunda vardı
+    #  ( cizim/elektrik.devre_kesiti ), motor devresinde yoktu:  4 mm² kabloya
+    #  4 x 40 A, 2,5 mm²'ye 4 x 32 A sigorta "uygundur" çıkıyordu ( 23 Eki
+    #  bağımsız denetim ).
+    In_max2, In_max2_kaynak = tablolar.sigorta_siniri(S2)
+    sigorta2_kontrol = sayi_mi(h["sigorta_A"]) and sayi_mi(In_max2)
 
     #  ------------------------------------------------------------------
     #  KORUMA İLETKENİ ( PE ) KESİTİ
@@ -1399,6 +1408,10 @@ def _gerilim_dusumu(h, S):
         Iz2=Iz2,
         Iz2_kesin=Iz2_kesin,
         akim2_uygun=sayi_mi(I2) and sayi_mi(Iz2) and I2 <= Iz2,
+        In_max2=In_max2,
+        In_max2_kaynak=In_max2_kaynak,
+        sigorta2_kontrol=sigorta2_kontrol,
+        sigorta2_uygun=sigorta2_kontrol and h["sigorta_A"] <= In_max2 + 1e-9,
         SPE1=SPE1,
         SPE1_kaynak=_pe_kaynagi(S1, SPE1_ham, SPE1_yuv),
         SPE2=SPE2,
@@ -1522,6 +1535,29 @@ def _spe_satiri(ad, aciklama, spe, kaynak):
     )
 
 
+def _sigorta_satirlari(h):
+    """Bölüm 6:  grup sigortası ve makine besleme kablosunun önündeki en büyük sigorta."""
+    In, In_max2 = h["sigorta_A"], h["In_max2"]
+    return [
+        veri(
+            "In",
+            "Grup sigortası  ( motor koruma cihazı )",
+            In if sayi_mi(In) else "seçilemedi",
+            "A" if sayi_mi(In) else "",
+            "bölüm 5",
+            0,
+        ),
+        veri(
+            "Inmax2",
+            "Makine besleme kablosunun önündeki en büyük sigorta",
+            In_max2 if sayi_mi(In_max2) else "kontrol edilemedi — kesit tablonun altında",
+            "A" if sayi_mi(In_max2) else "",
+            h["In_max2_kaynak"],
+            0,
+        ),
+    ]
+
+
 def _akim_adimlari(h):
     """Bölüm 6:  iki hattın akımı, taşıma kapasiteleri, koruma iletkenleri."""
     U, cosfi, P_hat, P_motor_W = h["U_sebeke"], h["cosfi"], h["P_hat"], h["P_motor_W"]
@@ -1541,6 +1577,7 @@ def _akim_adimlari(h):
             "makine besleme akımı  —  şebekeden çekilen",
         ),
         _iz_satiri("Iz2", "Makine besleme kablosunun taşıma kapasitesi", h["Iz2"], h["Iz2_kesin"]),
+        *_sigorta_satirlari(h),
         _iz_satiri("Iz", "Kablonun akım taşıma kapasitesi", h["Iz"], h["Iz_kesin"]),
         metin("Koruma iletkeni ( PE ) kesitleri  —  Çizelge-8 :"),
         _spe_satiri("SPE1", "Kolon hattı koruma iletkeni  ( asgari )", h["SPE1"], h["SPE1_kaynak"]),
@@ -1554,7 +1591,8 @@ def _gerilim_dusumu_sonucu(h):
     kabloyla bölüm "uygundur" diyordu."""
     eps_uygun, akim_uygun, akim2_uygun = h["eps_uygun"], h["akim_uygun"], h["akim2_uygun"]
     s2_kontrol = sayi_mi(h["I2"])
-    tumu = eps_uygun and akim_uygun and (akim2_uygun or not s2_kontrol)
+    sigorta2_uygun = h["sigorta2_uygun"] or not h["sigorta2_kontrol"]
+    tumu = eps_uygun and akim_uygun and (akim2_uygun or not s2_kontrol) and sigorta2_uygun
     if akim_uygun:
         akim = "UYGUN"
     elif sayi_mi(h["Iz"]):
@@ -1565,8 +1603,14 @@ def _gerilim_dusumu_sonucu(h):
         akim2 = "UYGUN"
     else:
         akim2 = "UYGUN DEĞİL — makine besleme kesitini büyütün" if s2_kontrol else "KONTROL EDİLEMEDİ"
+    if not h["sigorta2_kontrol"]:
+        sigorta2 = "KONTROL EDİLEMEDİ"
+    elif h["sigorta2_uygun"]:
+        sigorta2 = "UYGUN"
+    else:
+        sigorta2 = "UYGUN DEĞİL — sigorta kabloyu korumuyor, makine besleme kesitini büyütün"
     return {
-        "baslik": "KONTROL      ε ≤ εmax    ·    I ≤ Iz    ·    I2 ≤ Iz2",
+        "baslik": "KONTROL      ε ≤ εmax    ·    I ≤ Iz    ·    I2 ≤ Iz2    ·    In ≤ Inmax2",
         "metin": (
             f"Seçilen kablo :   {tr(h['S1'])} mm²  {h['kablo_tipi']}   —   "
             + ("uygundur." if tumu else "UYGUN DEĞİLDİR.")
@@ -1576,6 +1620,7 @@ def _gerilim_dusumu_sonucu(h):
             "ε  ≤  εmax  :  " + ("UYGUN" if eps_uygun else "UYGUN DEĞİL — kesiti büyütün"),
             "I  ≤  Iz    :  " + akim,
             "I2 ≤  Iz2   :  " + akim2,
+            "In ≤  Inmax2:  " + sigorta2,
         ],
     }
 
@@ -1608,6 +1653,16 @@ def _ek_denetimler(h, ikaz, engelleyici):
             f"MAKİNE BESLEME KESİTİ AKIM BAKIMINDAN YETERSİZ : S2 = {tr(h['S2'])} mm² "
             f"kablo {(tr(Iz2) + ' A') if sayi_mi(Iz2) else 'tablo dışı'} taşır, "
             f"motor akımı I2 = {tr(I2)} A. Kesiti büyütün."
+        )
+    #  Grup sigortası kabloyu korumuyor ( bkz. _gerilim_dusumu ):  önerilen kesit
+    #  iki koşulu birlikte sağlar — akım uyarısıyla yan yana çıktığında da aynı sayı
+    if h["sigorta2_kontrol"] and not h["sigorta2_uygun"]:
+        en_az = tablolar.gerekli_kesit(I2, h["sigorta_A"])
+        engelleyici.append(
+            f"MAKİNE BESLEME KABLOSU SİGORTAYLA KORUNMUYOR : grup sigortası 4 x "
+            f"{trn(h['sigorta_A'], 0)} A, S2 = {trn(h['S2'], 1)} mm² kablonun önünde en çok "
+            f"{trn(h['In_max2'], 0)} A olabilir ( {h['In_max2_kaynak']} ). Kesiti büyütün"
+            + (f" — en az {trn(en_az, 1)} mm²." if en_az else ".")
         )
     #  Kabin kuyunun içine girer — genişlik karşılaştırması fizikseldir.
     #  Aradaki boşluk kapı tipine, karşı ağırlık ve ray konumuna göre değişir,
@@ -2201,20 +2256,23 @@ def hesapla(veriler: dict) -> dict:
     #  ( TS EN 81-20 m.5.10.7.1 ) — TAS'ın 30 mA'lik aydınlatma grubunda kendi
     #  sigortasıyla ( Tavaslıoğlu, Asansör Tasarımı, ana tablo örneği:  "ayrı
     #  bir hattan alınmadı ise makine dairesi aydınlatması" ).  Yükü o tablonun
-    #  kurulu güç cetveline ve kolon hattına girer.  Oda tektir:  ilk asansörün
-    #  tablosu besler ( ÇİZİM KABULÜ ), dört asansörlü binada dört kez yazılmaz.
-    #  Uygulama projesi asansörleri tek tek hesaplar;  2. asansörden sonra
-    #  besleyen tabloyu kendisi söyler ( makine_dairesi_tablosu ).
+    #  kurulu güç cetveline ve kolon hattına girer.  Oda tektir:  elektriği
+    #  hesaplanan ilk asansörün tablosu besler ( ÇİZİM KABULÜ ), dört asansörlü
+    #  binada dört kez yazılmaz.  Hesabı düşen asansörün tablosu çizilmez:  devre
+    #  ona verilince pakette hiçbir tabloda kalmıyor, öbürleri olmayan bir TAS'ı
+    #  gösteriyordu ( 23 Eki bağımsız denetim ) — sıradakine geçer.  Uygulama
+    #  projesi asansörleri tek tek hesaplar;  besleyen bulunduktan sonra onu
+    #  kendisi söyler ( makine_dairesi_tablosu ).
     besleyen = veriler.get("makine_dairesi_tablosu") if oda else None
     asansorler = []
     for i, a in enumerate(veriler.get("asansorler") or [], 1):
         if not a:
             continue
-        md = None
-        if oda and besleyen is None:
+        md = {"adet": mk.get("n"), "W": S["kuyu_armatur_W"]} if oda and besleyen is None else None
+        s = hesapla_asansor(a, ortak, S, i, md)
+        if md and s.get("elektrik"):
             besleyen = tas_adi(i)
-            md = {"adet": mk.get("n"), "W": S["kuyu_armatur_W"]}
-        asansorler.append(hesapla_asansor(a, ortak, S, i, md))
+        asansorler.append(s)
     for a in asansorler:
         e = a.get("elektrik")
         if e:
