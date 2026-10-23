@@ -26,6 +26,7 @@ from uclar.uc_ortak import (
     _proje_kimligi,
     _uretilemedi,
 )
+from motor.uygulama import uygulama_kapagi
 from motor.uygulama import uygulama_hesabi
 from ciktilar import kapak_cikti
 from ciktilar import pdf_cikti
@@ -48,6 +49,9 @@ _BASLATICI = "baslat.command" if os.name != "nt" else "baslat.bat"
 
 log = logging.getLogger(__name__)
 router = APIRouter()
+
+#  Uygulama paketinin kapağının büyük başlığı ( kapak_cikti'nin varsayılanı avanınkidir )
+BASLIK = "ASANSÖR UYGULAMA PROJESİ"
 
 
 @router.get("/api/uygulama/alanlar")
@@ -129,14 +133,6 @@ def _uygulama_paketi(veri):
         s, yanit = _coklu_sonuc(veri)
         if yanit is not None:
             return yanit
-        paftalar = []
-        #  KAPAK.  Uygulama projesinin kapağı MMO'nun ayrı kitabındadır;  ama
-        #  paket bir teslim dosyasıdır ve kapaksız gitmesi için sebep yok —
-        #  kapak alanları doldurulmuşsa pakete de girer.
-        kapak = veri.get("kapak_sayfasi")
-        if isinstance(kapak, dict) and any(str(x).strip() for x in kapak.values()):
-            paftalar.append(("Kapak", kapak_cikti.pdf_baytlari(kapak)))
-        paftalar.append(("Uygulama Projesi", pdf_cikti.uygulama_pdf(s)))
         #  ÇİZİMLER:  her asansörün kuyu kesitleri ve planları hesap
         #  sayfalarının sağına dizilir.  Bir asansörün çizimi kurulamıyorsa
         #  paket ÇİZİMSİZ inmez — eksik bir proje teslim edilmesin, sebep
@@ -148,6 +144,21 @@ def _uygulama_paketi(veri):
             return JSONResponse(
                 {"aktif": False, "hata": "ÇİZİMLER KURULAMADI:\n· " + "\n· ".join(eksik)}, status_code=200
             )
+        paftalar = []
+        #  KAPAK.  Uygulama projesinin kapağı MMO'nun ayrı kitabındadır;  ama
+        #  paket bir teslim dosyasıdır ve kapaksız gitmesi için sebep yok —
+        #  kapak alanları doldurulmuşsa pakete de girer.  Asansör tabloları
+        #  ( her asansöre bir tablo ) projeden dolar, yazılan değer ezer.
+        kapak = veri.get("kapak_sayfasi")
+        if isinstance(kapak, dict) and any(str(x).strip() for x in kapak.values()):
+            #  Büyük başlık belgenin adıdır ( avan kapağında ASANSÖR AVAN PROJESİ ):
+            #  projenin adı dosya adında ve çizimlerin antetinde kalır.
+            kapak = {**kapak, "project_title": BASLIK}
+            turetilen = uygulama_kapagi.uygulamadan(s, [g for g, _h in cizim])
+            paftalar.append(
+                ("Kapak", kapak_cikti.pdf_baytlari(kapak, uygulama_kapagi.kapak_tablolari(kapak, turetilen)))
+            )
+        paftalar.append(("Uygulama Projesi", pdf_cikti.uygulama_pdf(s)))
         ad = _dosya_adi(_p, "Uygulama Projesi", "zip")
         #  Pakete PROJE DOSYASI da girer:  teslim paketi ile geri dönüş
         #  noktası aynı arşivde dursun.

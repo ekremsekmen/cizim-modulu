@@ -211,7 +211,11 @@ export function Teslim({
             <Icerik
               simge={<ScrollText />}
               ad="Kapak"
-              ek={Object.keys(kapak).length ? `${Object.keys(kapak).length} alan dolu` : "kapak alanları boş — kapak girmez"}
+              ek={
+                Object.keys(kapak).length
+                  ? `${Object.keys(kapak).length} alan dolu · asansör tabloları projeden`
+                  : "kapak alanları boş — kapak girmez"
+              }
               soluk={!Object.keys(kapak).length}
             />
             <Icerik simge={<FileText />} ad="Uygulama projesi hesapları" ek={`PDF · ${hesap?.asansorler?.[0]?.bolumler?.length ?? "—"} bölüm × ${proje.asansorler.length} asansör`} />
