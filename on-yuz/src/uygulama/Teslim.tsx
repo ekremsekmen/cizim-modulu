@@ -1,11 +1,11 @@
 /*  TESLİM — paket ve hesap PDF'i.
-    Paket:  /api/indir/uygulama-dwg ( kapak + hesap PDF'i + çizimler DXF / PDF +
-    .uygulama proje dosyası, tek ZIP ).  Sunucu hükme bakmadan üretir;  biz
+    Paket:  /api/indir/uygulama-dwg ( kapak + hesap PDF'i + çizimler ve elektrik
+    projesi DXF / PDF + .uygulama proje dosyası, tek ZIP ).  Sunucu hükme bakmadan üretir;  biz
     önce iki şeyi gösteririz:  hükümler ve KULLANICININ GİRMEDİĞİ değerler.
     İkincisinin onayı sorumluluktur:  hesap o değerlerle yapıldı.            */
 import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Check, ChevronRight, FileArchive, FileCode, FileText, Loader2, DraftingCompass, ScrollText } from "lucide-react";
+import { Check, ChevronRight, FileArchive, FileCode, FileText, Loader2, DraftingCompass, ScrollText, Zap } from "lucide-react";
 import { indir, paketNotu, type Alan, type AlanSemasi, type CokluYanit, type Deger, type UygulamaIstegi } from "@/lib/api";
 import { alanOku, gizliAlanlar, type Ham, type UygulamaProjesi } from "@/lib/proje";
 import { dosyaGovdesi } from "@/lib/dosya";
@@ -89,12 +89,24 @@ export function Teslim({
 
   const kalan = (hesap?.asansorler ?? []).map((a) => (a.bolumler ?? []).filter((b) => b.sonuc?.uygun === false).length);
 
+  //  Elektrik projesi:  elektrik hesabı yapılan her asansöre bir A3 sayfa ( paftada
+  //  kapağın yanında, alt satırın solunda;  ayrı sayfalı PDF'te çizimlerden sonra )
+  const hesaplanan = (hesap?.asansorler ?? []).filter((a) => a.aktif);
+  const elektrikli = hesaplanan.filter((a) => a.elektrik).length;
+  const elektrikEki = !hesap
+    ? "DXF / DWG ve PDF · asansör başına bir A3 sayfa"
+    : elektrikli === 0
+      ? "elektrik hesabı yapılamadı — girmez"
+      : elektrikli < hesaplanan.length
+        ? `DXF / DWG ve PDF · ${elektrikli} asansörün A3 sayfası`
+        : "DXF / DWG ve PDF · asansör başına bir A3 sayfa";
+
   return (
     <Cekmece
       acik={acik}
       degisti={degisti}
       baslik="Teslim"
-      aciklama="Hesap PDF'i, çizimler ve proje dosyası tek pakette."
+      aciklama="Hesap PDF'i, çizimler, elektrik projesi ve proje dosyası tek pakette."
     >
       <div className="space-y-6 px-5 py-5">
         {/* 1 — hükümler */}
@@ -220,6 +232,7 @@ export function Teslim({
             />
             <Icerik simge={<FileText />} ad="Uygulama projesi hesapları" ek={`PDF · ${hesap?.asansorler?.[0]?.bolumler?.length ?? "—"} bölüm × ${proje.asansorler.length} asansör`} />
             <Icerik simge={<DraftingCompass />} ad="Çizimler" ek={`DXF / DWG ve PDF · asansör başına ${cizimSayisi || "—"} çizim`} />
+            <Icerik simge={<Zap />} ad="Elektrik projesi" ek={elektrikEki} soluk={!!hesap && elektrikli === 0} />
             <Icerik simge={<FileCode />} ad="Proje dosyası" ek=".uygulama — geri dönüş noktası" />
           </ul>
         </section>

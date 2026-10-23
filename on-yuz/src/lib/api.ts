@@ -113,6 +113,9 @@ export interface AsansorSonucu {
   bolumler?: Bolum[];
   uyarilar?: string[];
   ozet?: Record<string, unknown>;
+  /**  Elektrik projesinin değerleri ( avan_hesabi._elektrik_projesi );  elektrik
+       hesabı yapılamadıysa yok — pakette o asansörün elektrik projesi olmaz  */
+  elektrik?: Record<string, unknown> | null;
 }
 
 export interface CokluYanit {
