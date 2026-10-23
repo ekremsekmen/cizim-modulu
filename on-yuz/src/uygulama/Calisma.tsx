@@ -465,6 +465,8 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
               careler={careler}
               careHatasi={careHatasi}
               careUygula={careUygula}
+              yenidenDene={s.yenidenDene}
+              yenidenDeneniyor={s.yenidenDeneniyor}
             />
           )}
         </main>
@@ -542,6 +544,8 @@ function SorunKarti({
   careler,
   careHatasi,
   careUygula,
+  yenidenDene,
+  yenidenDeneniyor,
 }: {
   sorun: Sorun;
   koyu: boolean;
@@ -559,6 +563,9 @@ function SorunKarti({
   /**  Arama isteği yanıtsız kaldı  */
   careHatasi?: string;
   careUygula: (o: CareOnerisi) => void;
+  /**  Bağlantı sorununda düşen istekleri yeniden ister  */
+  yenidenDene: () => void;
+  yenidenDeneniyor: boolean;
 }) {
   //  Çizim sorunlu da olsa ekrandaysa kart küçültülebilir ( çizime bakılsın )
   const [kucuk, setKucuk] = useState(false);
@@ -630,6 +637,20 @@ function SorunKarti({
           >
             {careYolda ? <Loader2 className="size-3 animate-spin" /> : <Lightbulb className="size-3" />}
             {careYolda ? "Aranıyor…" : careAcik ? "Yeniden ara" : "Düzeltme öner"}
+          </button>
+        )}
+        {sorun.tur === "baglanti" && (
+          <button
+            type="button"
+            onClick={yenidenDene}
+            disabled={yenidenDeneniyor}
+            className={cn(
+              "inline-flex h-6 shrink-0 items-center gap-1 rounded-kucuk border px-2 text-[11.5px] font-medium",
+              koyu ? "border-white/15 text-white hover:bg-white/10" : "border-cizgi text-metin hover:bg-black/[0.04]",
+              yenidenDeneniyor && "opacity-70",
+            )}
+          >
+            {yenidenDeneniyor && <Loader2 className="size-3 animate-spin" />} Yeniden dene
           </button>
         )}
         {cizimGuncel && !orta && (

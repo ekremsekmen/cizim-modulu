@@ -137,9 +137,18 @@ export function AvanCalisma() {
   //  gönderir, avan kısmının kapasitesi ve hızı ise ekrandaki trafik sonucundan
   //  ( kopru ) — trafik yenilenirken basılınca trafik sayfası yeni, avan sayfası
   //  eski kapasiteyle çıkabiliyordu.  Yenilenme bitene kadar paket inmez.
-  const trafikGuncel = tg === trafikGirdi && !trafik.isFetching && !trafik.isPlaceholderData;
-  const avanGuncel = !kopru || (ag === avanGirdi && !avan.isFetching && !avan.isPlaceholderData);
+  //  İSTEK DÜŞTÜYSE de inmez ( 24 Eki ):  hata gelince sonuç silinir, köprü
+  //  kalmaz;  paket asansörsüz avan hesabıyla ( yalnız topraklama ) iniyordu.
+  const trafikGuncel = tg === trafikGirdi && trafik.isSuccess && !trafik.isFetching && !trafik.isPlaceholderData;
+  const avanGuncel = !kopru || (ag === avanGirdi && avan.isSuccess && !avan.isFetching && !avan.isPlaceholderData);
   const sonuclarGuncel = trafikGuncel && avanGuncel;
+  //  Sunucu geri gelince kendiliğinden istenmez ( tarayıcı çevrimiçi kalır ):  düğmeyle
+  const baglantiHatasi = !!(trafik.error || avan.error);
+  const yenidenDene = () => {
+    if (trafik.error) void trafik.refetch();
+    if (avan.error) void avan.refetch();
+  };
+  const deneniyor = trafik.isFetching || avan.isFetching;
 
   //  Pakete PROJE DOSYASI da girer ( geri dönüş noktası — uygulamanın
   //  Teslim'i gibi );  React'e geçişte düşmüştü ( 20 Eki )
@@ -235,9 +244,16 @@ export function AvanCalisma() {
               className="ml-1"
               onClick={() => paket.mutate()}
               disabled={paket.isPending || !sonuclarGuncel}
-              title={sonuclarGuncel ? undefined : "Hesap güncelleniyor — bitince indirilebilir"}
+              title={
+                sonuclarGuncel
+                  ? undefined
+                  : baglantiHatasi
+                    ? "Sunucuya ulaşılamadı — yeniden deneyin"
+                    : "Hesap güncelleniyor — bitince indirilebilir"
+              }
             >
-              {paket.isPending || !sonuclarGuncel ? <Loader2 className="animate-spin" /> : <FileArchive />} Projeyi indir
+              {paket.isPending || (!sonuclarGuncel && !baglantiHatasi) ? <Loader2 className="animate-spin" /> : <FileArchive />}{" "}
+              Projeyi indir
             </Dugme>
           </>
         }
@@ -273,9 +289,12 @@ export function AvanCalisma() {
           <CircleAlert className="size-3.5 shrink-0" /> {paket.data.notlar.map(paketNotu).join("  ·  ")}
         </div>
       )}
-      {(trafik.error || avan.error) && (
-        <div className="flex items-center justify-center gap-2 border-b border-red-cizgi bg-red-acik px-4 py-1.5 text-[12.5px] text-red">
-          <CircleAlert className="size-3.5 shrink-0" /> Sunucuya ulaşılamadı — ekrandaki sonuçlar güncel değil.
+      {baglantiHatasi && (
+        <div role="alert" className="flex items-center justify-center gap-2 border-b border-red-cizgi bg-red-acik px-4 py-1 text-[12.5px] text-red">
+          <CircleAlert className="size-3.5 shrink-0" /> Sunucuya ulaşılamadı — hesap yapılamadı, proje indirilemez.
+          <Dugme tur="hayalet" boy="kucuk" onClick={yenidenDene} disabled={deneniyor}>
+            {deneniyor && <Loader2 className="animate-spin" />} Yeniden dene
+          </Dugme>
         </div>
       )}
 
@@ -283,7 +302,18 @@ export function AvanCalisma() {
         <TrafikAdimi p={p} setP={setP} sec={sec.data} sonuc={trafik.data} yukleniyor={trafik.isFetching} govde={{ girdiler: trafikGirdi, kapak: kapakVerisi }} ileri={() => git("/avan/hesaplar")} />
       )}
       {adim === "hesaplar" && (
-        <HesaplarAdimi p={p} setP={setP} sec={sec.data} ofis={ofis} kopru={kopru} sonuc={avan.data} govde={{ girdiler: avanGirdi, kapak: kapakVerisi }} geri={() => git("/avan/trafik")} />
+        <HesaplarAdimi
+          p={p}
+          setP={setP}
+          sec={sec.data}
+          ofis={ofis}
+          kopru={kopru}
+          sonuc={avan.data}
+          yukleniyor={avan.isFetching}
+          trafikUlasilamadi={!!trafik.error}
+          govde={{ girdiler: avanGirdi, kapak: kapakVerisi }}
+          geri={() => git("/avan/trafik")}
+        />
       )}
       {adim === "kapak" && <KapakAdimi p={p} setP={setP} sec={sec.data} kapak={kapakVerisi} />}
     </div>
@@ -819,6 +849,8 @@ function HesaplarAdimi({
   ofis,
   kopru,
   sonuc,
+  yukleniyor,
+  trafikUlasilamadi,
   govde,
   geri,
 }: {
@@ -829,19 +861,30 @@ function HesaplarAdimi({
   ofis: Ham;
   kopru: AvanKoprusu | null;
   sonuc: AvanYaniti | undefined;
+  yukleniyor: boolean;
+  /**  Trafik isteği düştü:  köprü yok ama sebep eksik trafik girdisi değil  */
+  trafikUlasilamadi: boolean;
   geri: () => void;
 }) {
   const [secili, setSecili] = useState(0);
   const [farkliAcik, setFarkliAcik] = useState(false);
+  //  Trafik isteği düşünce de köprü yoktur:  "Önce trafik hesabı" demek yanıltıyordu
+  //  ( 24 Eki ) — sebep üstteki bağlantı şeridinde, "Yeniden dene" orada
   if (!kopru)
     return (
       <div className="flex flex-1 items-center justify-center">
         <div className="max-w-sm text-center">
-          <p className="text-[14px] font-semibold">Önce trafik hesabı</p>
-          <p className="mt-1 text-[13px] text-metin-2">Asansör adedi, kapasite ve hız trafik hesabından gelir.</p>
-          <Dugme className="mt-4" onClick={geri}>
-            Trafik hesabına dön
-          </Dugme>
+          <p className="text-[14px] font-semibold">{trafikUlasilamadi ? "Trafik hesabı alınamadı" : "Önce trafik hesabı"}</p>
+          <p className="mt-1 text-[13px] text-metin-2">
+            {trafikUlasilamadi
+              ? "Sunucuya ulaşılamadı;  asansör adedi, kapasite ve hız trafik hesabından gelir."
+              : "Asansör adedi, kapasite ve hız trafik hesabından gelir."}
+          </p>
+          {!trafikUlasilamadi && (
+            <Dugme className="mt-4" onClick={geri}>
+              Trafik hesabına dön
+            </Dugme>
+          )}
         </div>
       </div>
     );
@@ -951,7 +994,11 @@ function HesaplarAdimi({
               <p className="text-[12px] text-metin-3">{ad(i)}</p>
               <h1 className="text-[18px] font-semibold tracking-tight">Avan hesapları</h1>
             </div>
-            <IndirDugmesi uc="avan-pdf" govde={govde} kapali={!!sonuc?.hata || !!sonuc?.engelleyici?.length} />
+            <div className="flex items-center gap-2">
+              {/*  Yenilenirken ekrandaki sonuç önceki girdinindir ( trafik adımı gibi )  */}
+              {yukleniyor && <Loader2 className="size-4 animate-spin text-metin-3" />}
+              <IndirDugmesi uc="avan-pdf" govde={govde} kapali={!!sonuc?.hata || !!sonuc?.engelleyici?.length} />
+            </div>
           </div>
           {sonuc?.hata && <Iletiler iletiler={[sonuc.hata]} kirmizi />}
           <Iletiler iletiler={sonuc?.engelleyici ?? []} kirmizi />
@@ -1042,16 +1089,24 @@ function KapakAdimi({
     enabled: !!gecikmeli.project_title,
     placeholderData: keepPreviousData,
     queryFn: async () => {
-      const r = await fetch("/api/indir/kapak-pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kapak: gecikmeli }),
-      });
+      let r: Response;
+      try {
+        r = await fetch("/api/indir/kapak-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kapak: gecikmeli }),
+        });
+      } catch {
+        throw new Error("Sunucuya ulaşılamadı — önizleme alınamadı.");
+      }
       //  Sunucu reddederse JSON ileti gelir:  PDF diye çizilmesin, sebebi görünsün
       if ((r.headers.get("Content-Type") || "").includes("application/json")) {
         const j = await r.json();
         throw new Error(Array.isArray(j.hata) ? j.hata.join(" ") : String(j.hata ?? "Kapak üretilemedi"));
       }
+      //  JSON olmayan hata da ( ağ geçidi 502 / 504 ):  sayfası PDF diye çizilmeye
+      //  çalışılıyor, önizleme sonsuza dek dönüyordu ( 24 Eki )
+      if (!r.ok) throw new Error(`Sunucu yanıt vermedi ( ${r.status} ) — önizleme alınamadı.`);
       return r.arrayBuffer();
     },
   });
@@ -1088,8 +1143,14 @@ function KapakAdimi({
           </div>
           <div className="overflow-hidden rounded-buyuk border border-cizgi bg-yuzey shadow-panel">
             {onizleme.error ? (
-              <div className="flex h-[calc(100dvh-170px)] items-center justify-center px-8 text-center text-[13px] text-red">
+              <div
+                role="alert"
+                className="flex h-[calc(100dvh-170px)] flex-col items-center justify-center gap-3 px-8 text-center text-[13px] text-red"
+              >
                 {onizleme.error.message}
+                <Dugme onClick={() => onizleme.refetch()} disabled={onizleme.isFetching}>
+                  {onizleme.isFetching && <Loader2 className="animate-spin" />} Yeniden dene
+                </Dugme>
               </div>
             ) : kapak.project_title ? (
               <div className="h-[calc(100dvh-170px)]">

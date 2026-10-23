@@ -1112,6 +1112,103 @@ class OnYuzUctanUca(unittest.TestCase):
         #  Tarayıcı düşen isteği konsola yazar ( beklenen )
         self.iz.hatalar = [h for h in self.iz.hatalar if "503" not in h]
 
+    def _bekle(self, kosul, ileti, sure=15):
+        son = time.time() + sure
+        while not kosul():
+            self.assertLess(time.time(), son, ileti)
+            self.sayfa.wait_for_timeout(100)
+
+    def test_avan_trafik_dusunce_proje_inmez(self):
+        """24 Eki ( sınıf taraması ):  /api/trafik düşünce sonuç silinip köprü
+        kalmıyordu, "Projeyi indir" açıktı — paket asansörsüz avan hesabıyla
+        ( yalnız topraklama ) iniyordu;  avan adımı "Önce trafik hesabı" diyordu.
+        İndirme kapanır, sebep söylenir, "Yeniden dene" sunucu dönünce açar."""
+        self.sayfa.goto(self.url + "/avan/trafik")
+        self.sayfa.evaluate(
+            """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut', bina_yuksekligi: '30', yapi_yuksekligi: '31', N: '10', h: '3',
+                         hizli1: '20', hizli2: '2'},
+                ekNufus: [],
+                trafikAsansorleri: [{P: '8', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik'}],
+                ortak: {mk_yok: 'true', temel_a: '20', temel_b: '15'},
+                avanAsansorleri: [{tanim: 'A', Hk: '34', kuyu_genisligi: '1800', kabin_boyu: '1400',
+                                   kabin_genisligi: '1100'}, {}, {}, {}],
+                kapak: {project_title: 'Avan deneme'}}))"""
+        )
+        self.sayfa.goto(self.url + "/avan/trafik")
+        self.iz.son("/api/avan")
+        indir = self.sayfa.get_by_role("button", name="Projeyi indir")
+        self._bekle(indir.is_enabled, "örnek avan projesi indirilemiyor")
+
+        self.sayfa.route("**/api/trafik", lambda r: r.fulfill(status=503, body="kapalı"))
+        self.sayfa.get_by_label("③ Kat sayısı N").fill("11")
+        serit = self.sayfa.get_by_role("alert").filter(has_text="Sunucuya ulaşılamadı")
+        serit.get_by_role("button", name="Yeniden dene").wait_for(timeout=15_000)
+        self.assertTrue(indir.is_disabled())
+        self.sayfa.get_by_role("link", name=re.compile("Avan hesapları")).click()
+        self.sayfa.get_by_text("Trafik hesabı alınamadı").wait_for()
+        self.assertEqual(self.sayfa.get_by_text("Önce trafik hesabı").count(), 0)
+
+        self.sayfa.unroute("**/api/trafik")
+        serit.get_by_role("button", name="Yeniden dene").click()
+        serit.wait_for(state="detached")
+        self._bekle(indir.is_enabled, "sunucu dönünce indirme açılmadı")
+        istek, _avan = self.iz.son("/api/avan")
+        self.assertTrue(any(a.get("aktif") for a in istek["girdiler"]["asansorler"]), istek)
+        self.iz.hatalar = [h for h in self.iz.hatalar if "503" not in h]
+
+    def test_baglanti_kopunca_yeniden_dene_gunceller(self):
+        """24 Eki ( sınıf taraması ):  hesap / çizim isteği düşünce kart "bağlantı
+        gelince kendiliğinden güncellenir" diyordu;  istek yalnız tarayıcının
+        bağlantısı kopup gelince yeniden gider — sunucu yeniden başlayınca ekran
+        girdi değişene kadar takılı kalıyordu.  "Yeniden dene" ister."""
+        self.ornek_projeyi_ac()
+        for uc in ("**/api/uygulama/coklu", "**/api/uygulama/cizimler"):
+            self.sayfa.route(uc, lambda r: r.fulfill(status=503, body="kapalı"))
+        self.alan_kutusu("kuyu_genisligi").fill("2210")
+        kart = self.sayfa.get_by_role("alert").filter(has_text="Bağlantı yok")
+        kart.get_by_role("button", name="Yeniden dene").wait_for(timeout=15_000)
+        self.assertNotIn("kendiliğinden", kart.inner_text())
+
+        for uc in ("**/api/uygulama/coklu", "**/api/uygulama/cizimler"):
+            self.sayfa.unroute(uc)
+        kart.get_by_role("button", name="Yeniden dene").click()
+        kart.wait_for(state="detached")
+        istek, hesap = self.iz.son("/api/uygulama/coklu")
+        self.assertEqual(istek["asansorler"][0]["kuyu_genisligi"], "2210")
+        self.assertTrue(hesap["aktif"], hesap.get("hata"))
+        self.iz.hatalar = [h for h in self.iz.hatalar if "503" not in h]
+
+    def test_kapak_onizlemesi_hata_yanitini_soyler(self):
+        """24 Eki ( sınıf taraması ):  ağ geçidinin JSON olmayan hatası ( 502 )
+        PDF diye çizilmeye çalışılıyor, pdf.js'in reddi yutuluyor, önizleme
+        sonsuza dek dönüyordu.  Hata ve okunamayan PDF söylenir."""
+        self.sayfa.goto(self.url + "/avan/trafik")
+        self.sayfa.evaluate(
+            """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut'}, ekNufus: [], trafikAsansorleri: [{P: '8'}],
+                ortak: {}, avanAsansorleri: [{}, {}, {}, {}], kapak: {project_title: 'Kapak deneme'}}))"""
+        )
+        uc = "**/api/indir/kapak-pdf"
+        #  Yanıt başarılı ama PDF değil:  pdf.js okuyamaz
+        self.sayfa.route(uc, lambda r: r.fulfill(status=200, content_type="application/pdf", body="bozuk"))
+        self.sayfa.goto(self.url + "/avan/kapak")
+        self.sayfa.get_by_role("alert").filter(has_text="Önizleme açılamadı").wait_for(timeout=15_000)
+        self.sayfa.unroute(uc)
+
+        #  Ağ geçidinin HTML hatası:  sebebi ve "Yeniden dene"
+        self.sayfa.route(uc, lambda r: r.fulfill(status=502, content_type="text/html", body="<html>502</html>"))
+        self.sayfa.get_by_label("Kapak başlığı").fill("Kapak deneme 2")
+        hata = self.sayfa.get_by_role("alert").filter(has_text="Sunucu yanıt vermedi ( 502 )")
+        hata.get_by_role("button", name="Yeniden dene").wait_for(timeout=15_000)
+        self.sayfa.unroute(uc)
+        hata.get_by_role("button", name="Yeniden dene").click()
+        hata.wait_for(state="detached")
+        main = self.sayfa.get_by_role("main")
+        self._bekle(lambda: main.locator(".animate-spin").count() == 0, "önizleme çizilmedi")
+        self.assertEqual(self.sayfa.get_by_role("alert").count(), 0)
+        self.iz.hatalar = [h for h in self.iz.hatalar if "502" not in h]
+
     # ------------------------------------------------------------ 6 adresler
     def test_bilinmeyen_proje_acilisa_doner(self):
         self.sayfa.goto(self.url + "/uygulama/yokboyle1")
