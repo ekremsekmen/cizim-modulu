@@ -1,6 +1,55 @@
 /*  Testlerin küçük form şeması — sunucunun /api/uygulama/alanlar biçiminde,
-    yalnız testlerin dokunduğu alanlarla.                                    */
-import type { Alan, AlanSemasi } from "./api";
+    yalnız testlerin dokunduğu alanlarla.  Avanın seçenekleri ( SECENEKLER ) ve
+    tohumlu rastgele sayı da burada.                                          */
+import type { Alan, AlanSemasi, Secenekler } from "./api";
+
+/*  Seçenekler /api/secenekler'in testlerin kullandığı alt kümesidir;  listeler
+    sunucununkiyle aynı ( 18 Eki ), sabit şeması birkaç sabite kısaltıldı.  */
+export const SECENEKLER = {
+  bina_tipleri: ["Konut", "Kamu Binaları", "Katlı Otopark"],
+  hizlar: [0.63, 1, 1.6, 1.75, 2, 2.5, 3, 3.5, 5, 6],
+  kapasiteler: [6, 8, 10, 13, 15, 16, 20, 25, 30],
+  kapi_genislikleri: [700, 800, 900, 1000, 1100, 1200, 1300],
+  kapi_tipleri: ["Teleskopik Otomatik", "Merkezden Açılan Oto.", "Kabin İçi Oto. Kat K.Ç."],
+  makine_tipleri: { Dişlisiz: 0.85, Dişli: 0.5 },
+  aski_oranlari: { "1:1": 1, "2:1": 2 },
+  kesitler: [1.5, 2.5, 4, 6, 10, 16],
+  nufus_kalemleri: ["KONUT — İlk yatak odası", "KONUT — Diğer oda"],
+  ofis_varsayilan: { U: 380, S1: 6, kablo_tipi: "NHXMH FE180" },
+  sabit_b: { q_denge: 0.5 },
+  sabit_sema: {
+    gruplar: [{ baslik: "①", aciklama: "", alanlar: ["q_denge", "U", "S1", "kablo_tipi"] }],
+    etiket: {
+      q_denge: ["q — Denge faktörü", ""],
+      U: ["U — Şebeke gerilimi (V)", ""],
+      S1: ["S1 — Kolon hattı kesiti (mm²)", ""],
+      kablo_tipi: ["Kablo tipi", ""],
+    },
+    varsayilan: { q_denge: 0.5, U: 380, S1: 6, kablo_tipi: "NHXMH FE180" },
+    metin: ["kablo_tipi"],
+  },
+} as unknown as Secenekler;
+
+/**  Tohumlu rastgele sayı ( mulberry32 ):  kırılan durum tohumundan yeniden üretilir  */
+export function rastgele(tohum: number) {
+  let t = tohum >>> 0;
+  const r = () => {
+    t = (t + 0x6d2b79f5) >>> 0;
+    let x = Math.imul(t ^ (t >>> 15), 1 | t);
+    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+  return {
+    tam: (n: number) => Math.floor(r() * n),
+    sec: <T>(l: readonly T[]): T => l[Math.floor(r() * l.length)],
+    olasi: (p: number) => r() < p,
+  };
+}
+
+/**  Kaç tohum denenir:  RASTGELE_TOHUM ortam değişkeniyle büyütülür ( av sırasında )  */
+export const TOHUM_SAYISI = Number(
+  (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.RASTGELE_TOHUM ?? 300,
+);
 
 const alan = (a: Partial<Alan> & Pick<Alan, "anahtar" | "tur">): Alan => ({
   etiket: a.anahtar,

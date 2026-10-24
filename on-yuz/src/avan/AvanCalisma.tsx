@@ -23,6 +23,7 @@ import {
   TRAFIK_AZAMI,
   trafikFarki,
   trafikSutunuKaldir,
+  trafikSutununuYaz,
   yeniAvanAcilisi,
   useAvanOfisi,
   useAvanProjesi,
@@ -430,8 +431,8 @@ function TrafikAdimi({
 }) {
   const t = (k: string) => p.trafik[k] ?? "";
   const yaz = (k: string, d: string) => setP((q) => ({ ...q, trafik: { ...q.trafik, [k]: d } }));
-  const ay = (i: number, k: string, d: string) =>
-    setP((q) => ({ ...q, trafikAsansorleri: q.trafikAsansorleri.map((a, j) => (j === i ? { ...a, [k]: d } : a)) }));
+  //  Sütuna kapasite seçilince asansörünün avan kartı da yerini alır ( lib/avan )
+  const ay = (i: number, k: string, d: string) => setP((q) => trafikSutununuYaz(q, i, k, d));
   const hizli = sec.hizli_etiketleri[t("bina_tipi")] ?? sec.hizli_etiketleri[""];
   const manuelK = manuelKMetni(t("bina_tipi"), sec);
   //  Etiketi yalnız numaradan ibaretse ( "⑤" ) bu bina tipinde hızlı giriş yoktur

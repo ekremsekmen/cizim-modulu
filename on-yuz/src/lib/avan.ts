@@ -19,6 +19,7 @@
       dosyadaki uygulanmaz, farklıysa söylenir.                              */
 import { useCallback, useEffect, useState } from "react";
 import type { AvanKoprusu, Deger, Secenekler } from "./api";
+import { evetMi } from "./denetim";
 import { KAPAK_GRUPLARI } from "./kapak";
 import { sayiOku, type Ham } from "./proje";
 import { useSekmeEsitle } from "./sekme";
@@ -113,6 +114,10 @@ function virgullu(v: Deger): string {
   return v === null || v === undefined ? "" : String(v).replace(".", ",");
 }
 
+const kapasiteli = (a: Ham | undefined) => (a?.P ?? "").trim() !== "";
+/**  i. sütunun asansörünün avan kartındaki sırası:  önündeki kapasiteli sütun sayısı  */
+const kartSirasi = (p: AvanProjesi, i: number) => p.trafikAsansorleri.slice(0, i).filter(kapasiteli).length;
+
 /**  TRAFİK SÜTUNU KALDIRILINCA ASANSÖRÜNÜN AVAN KARTI DA GİDER ( 24 Eki ):  avan
      kartları trafiğin verdiği asansörlerin sırasıyladır ( köprü:  kapasitesi seçili
      her sütunun asansörü, sırayla;  tek sütunda gereken adet kadar ).  Kart yerinde
@@ -121,10 +126,30 @@ function virgullu(v: Deger): string {
 export function trafikSutunuKaldir(p: AvanProjesi, i: number): AvanProjesi {
   if (p.trafikAsansorleri.length <= 1 || i < 0 || i >= p.trafikAsansorleri.length) return p;
   const trafikAsansorleri = p.trafikAsansorleri.filter((_, j) => j !== i);
-  const kapasiteli = (a: Ham) => (a.P ?? "").trim() !== "";
   if (!kapasiteli(p.trafikAsansorleri[i])) return { ...p, trafikAsansorleri };
-  const k = p.trafikAsansorleri.slice(0, i).filter(kapasiteli).length;
+  const k = kartSirasi(p, i);
   return { ...p, trafikAsansorleri, avanAsansorleri: [...p.avanAsansorleri.filter((_, j) => j !== k), {}] };
+}
+
+/**  TRAFİK SÜTUNUNA YAZMA — kaldırmanın tersi:  kapasitesiz sütuna kapasite seçilince
+     sütunun asansörü köprüye girer;  sırasına boş kart açılır, sonrakiler bir kayar
+     ( kapasite boşalırsa kartı gider ).  24 Eki:  kartlar yerinde kalıyordu — yeni
+     projede 1. sütunun kapasitesi seçili gelmez;  2. sütununki seçilip kartı
+     doldurulduktan sonra 1. sütuna kapasite seçilince doldurulan kart 1. sütunun
+     asansörüne geçiyordu.  */
+export function trafikSutununuYaz(p: AvanProjesi, i: number, k: string, d: string): AvanProjesi {
+  const trafikAsansorleri = p.trafikAsansorleri.map((a, j) => (j === i ? { ...a, [k]: d } : a));
+  const girdi = kapasiteli(trafikAsansorleri[i]);
+  if (k !== "P" || girdi === kapasiteli(p.trafikAsansorleri[i])) return { ...p, trafikAsansorleri };
+  const s = kartSirasi(p, i);
+  const kartlar = p.avanAsansorleri;
+  return {
+    ...p,
+    trafikAsansorleri,
+    avanAsansorleri: girdi
+      ? [...kartlar.slice(0, s), {}, ...kartlar.slice(s)].slice(0, AVAN_AZAMI)
+      : [...kartlar.filter((_, j) => j !== s), {}],
+  };
 }
 
 /* ───────────────────────────── dosyanın alanları */
@@ -426,7 +451,11 @@ export function avanOku(metin: string, sec: Secenekler, ofis: Ham): AvanOkumasi 
 
   const ortak: Ham = {};
   for (const k of AVAN_ORTAK) doldur(ortak, k, al(`a_${k}`, k));
-  if (typeof govde.a_mk_yok === "boolean") ortak.mk_yok = String(govde.a_mk_yok);
+  //  Makine dairesi:  eski arayüz onay kutusunu true / false yazar;  elle yazılmış metin de
+  //  okunur — uygulamanın onay alanı ve sunucunun evet_mi'si gibi ( 24 Eki:  metin okunmuyor,
+  //  proje dairesiz varsayılana dönüyordu )
+  const mk = ice(govde.a_mk_yok);
+  if (mk !== null) ortak.mk_yok = String(evetMi(mk));
 
   const kapak: Ham = {};
   for (const g of KAPAK_GRUPLARI) for (const [k] of g.alanlar) doldur(kapak, k, al(`k_${k}`, k));

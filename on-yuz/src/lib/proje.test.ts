@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { alanHatasi, alanOku, alanYaz, asansorAdedi, asansorEkle, asansorKaldir, formHatalari, gizliAlanlar, istekKur, kutuyaYaz, projeOku, sayiOku, secenekKapali, type UygulamaProjesi } from "./proje";
+import { alanHatasi, alanOku, alanYaz, asansorAdedi, asansorEkle, asansorKaldir, formHatalari, gizliAlanlar, istekKur, kutuyaYaz, projeOku, sayiOku, secenekKapali, siraKaydir, type UygulamaProjesi } from "./proje";
 import { SEMA } from "./test-semasi";
 
 const proje = (p: Partial<UygulamaProjesi> = {}): UygulamaProjesi => ({
@@ -165,5 +165,33 @@ describe("asansöre özgü kapak değeri asansörüyle gider ( 24 Eki )", () => 
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe("sırayla tutulan veri ( son temiz girdi ) asansörüyle gider ( 24 Eki )", () => {
+  //  "Düzeltme öner" asansörün son temiz girdisini gönderir;  sırayla tutuluyordu
+  const p0 = proje({ asansorler: [{ asansor_adi: "A" }, { asansor_adi: "B" }, { asansor_adi: "C" }] });
+  const veri = { 0: "A'nın", 1: "B'nin", 2: "C'nin" };
+  const kaydir = (p: UygulamaProjesi, v: Record<number, string> = veri, once = p0) => siraKaydir(v, once.asansorler, p.asansorler);
+
+  it("kaldırılanınki gider, sonrakiler kayar ( 1. kaldırılınca 2.'ye 1.'ninki gidiyordu )", () => {
+    expect(kaydir(asansorKaldir(p0, 0))).toEqual({ 0: "B'nin", 1: "C'nin" });
+    expect(kaydir(asansorKaldir(p0, 1))).toEqual({ 0: "A'nın", 1: "C'nin" });
+    expect(kaydir(asansorAdedi(p0, 1, 4))).toEqual({ 0: "A'nın" });
+  });
+  it("girdisi yazılan asansör yerinde kalır;  eklenenin verisi yok", () => {
+    expect(kaydir(alanYaz(p0, SEMA, 1, "kuyu_genisligi", "2000"))).toEqual(veri);
+    expect(kaydir(asansorEkle(p0, 4))).toEqual(veri);
+    expect(kaydir(asansorEkle(asansorKaldir(p0, 2), 4), { 0: "A'nın", 1: "B'nin" }, asansorKaldir(p0, 2))).toEqual({ 0: "A'nın", 1: "B'nin" });
+  });
+  it("geri alınınca kalanlarınki yerine döner, geri gelenin verisi unutulur", () => {
+    const kaldirilmis = asansorKaldir(p0, 0);
+    const geri = { ...kaldirilmis, asansorler: p0.asansorler };
+    expect(kaydir(geri, kaydir(kaldirilmis), kaldirilmis)).toEqual({ 1: "B'nin", 2: "C'nin" });
+  });
+  it("başka sekmeden gelen liste:  boyu aynıysa yerinde, değiştiyse hepsi unutulur", () => {
+    const disaridan = (p: UygulamaProjesi) => JSON.parse(JSON.stringify(p)) as UygulamaProjesi;
+    expect(kaydir(disaridan(p0))).toEqual(veri);
+    expect(kaydir(disaridan(asansorKaldir(p0, 0)))).toEqual({});
   });
 });

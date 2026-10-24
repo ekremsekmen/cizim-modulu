@@ -1,33 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { AvanKoprusu, Secenekler } from "./api";
-import { avanDosyaGovdesi, avanDosyasiMi, avanOku, BOS_AVAN, manuelKMetni, trafikFarki, trafikSutunuKaldir, yeniAvanAcilisi, type AvanProjesi } from "./avan";
-
-/*  Seçenekler /api/secenekler'in bu testin kullandığı alt kümesidir;  listeler
-    sunucununkiyle aynı ( 18 Eki ), sabit şeması birkaç sabite kısaltıldı.  */
-const SEC = {
-  bina_tipleri: ["Konut", "Kamu Binaları", "Katlı Otopark"],
-  hizlar: [0.63, 1, 1.6, 1.75, 2, 2.5, 3, 3.5, 5, 6],
-  kapasiteler: [6, 8, 10, 13, 15, 16, 20, 25, 30],
-  kapi_genislikleri: [700, 800, 900, 1000, 1100, 1200, 1300],
-  kapi_tipleri: ["Teleskopik Otomatik", "Merkezden Açılan Oto.", "Kabin İçi Oto. Kat K.Ç."],
-  makine_tipleri: { Dişlisiz: 0.85, Dişli: 0.5 },
-  aski_oranlari: { "1:1": 1, "2:1": 2 },
-  kesitler: [1.5, 2.5, 4, 6, 10, 16],
-  nufus_kalemleri: ["KONUT — İlk yatak odası", "KONUT — Diğer oda"],
-  ofis_varsayilan: { U: 380, S1: 6, kablo_tipi: "NHXMH FE180" },
-  sabit_b: { q_denge: 0.5 },
-  sabit_sema: {
-    gruplar: [{ baslik: "①", aciklama: "", alanlar: ["q_denge", "U", "S1", "kablo_tipi"] }],
-    etiket: {
-      q_denge: ["q — Denge faktörü", ""],
-      U: ["U — Şebeke gerilimi (V)", ""],
-      S1: ["S1 — Kolon hattı kesiti (mm²)", ""],
-      kablo_tipi: ["Kablo tipi", ""],
-    },
-    varsayilan: { q_denge: 0.5, U: 380, S1: 6, kablo_tipi: "NHXMH FE180" },
-    metin: ["kablo_tipi"],
-  },
-} as unknown as Secenekler;
+import type { AvanKoprusu } from "./api";
+import { avanDosyaGovdesi, avanDosyasiMi, avanOku, BOS_AVAN, manuelKMetni, trafikFarki, trafikSutunuKaldir, trafikSutununuYaz, yeniAvanAcilisi, type AvanProjesi } from "./avan";
+import { SECENEKLER as SEC } from "./test-semasi";
 
 const KOPRU: AvanKoprusu = {
   tip: "Konut",
@@ -230,6 +204,26 @@ describe("trafik sütunu kaldırılınca asansörünün avan kartı da gider ( 2
   it("son sütun kaldırılmaz", () => {
     const tek = { ...p0, trafikAsansorleri: [{ P: "8" }] };
     expect(trafikSutunuKaldir(tek, 0)).toBe(tek);
+  });
+  it("kapasitesiz sütuna kapasite seçilince sırasına boş kart açılır ( doldurulan kart yerinde kalıyordu )", () => {
+    //  Yeni proje:  1. sütunun kapasitesi seçili değil;  2. sütunun asansörünün kartı doldurulmuş
+    const yeni: AvanProjesi = { ...BOS_AVAN, trafikAsansorleri: [{}, { P: "13" }], avanAsansorleri: [{ tanim: "B" }, {}, {}, {}] };
+    const p = trafikSutununuYaz(yeni, 0, "P", "8");
+    expect(p.trafikAsansorleri).toEqual([{ P: "8" }, { P: "13" }]);
+    expect(p.avanAsansorleri.map((a) => a.tanim)).toEqual([undefined, "B", undefined, undefined]);
+  });
+  it("kapasitesi değişen, başka alanı yazılan sütunda kartlar kaymaz;  boşalan sütunun kartı gider", () => {
+    expect(trafikSutununuYaz(p0, 1, "P", "16").avanAsansorleri).toBe(p0.avanAsansorleri);
+    expect(trafikSutununuYaz(p0, 1, "V", "1.6").avanAsansorleri).toBe(p0.avanAsansorleri);
+    expect(trafikSutununuYaz(p0, 1, "P", "").avanAsansorleri.map((a) => a.tanim)).toEqual(["A", "C", undefined, undefined]);
+  });
+});
+
+describe("avan dosyasının makine dairesi", () => {
+  it("eski arayüzün onay kutusu da elle yazılmış metin de okunur ( metin okunmuyor, dairesize dönüyordu )", () => {
+    const mk = (v: unknown) => oku({ alanlar: { ...ESKI.alanlar, a_mk_yok: v } }).proje.ortak.mk_yok;
+    expect([mk(true), mk(false), mk("true"), mk("false"), mk("EVET"), mk("HAYIR")]).toEqual(["true", "false", "true", "false", "true", "false"]);
+    expect(mk(undefined)).toBeUndefined();
   });
 });
 
