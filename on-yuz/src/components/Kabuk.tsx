@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Link, NavLink } from "react-router";
 import { BookOpen, CircleAlert, Loader2, SlidersHorizontal } from "lucide-react";
+import { useDepoYazilamiyor } from "@/lib/depo";
 import { cn } from "@/lib/utils";
 import { Dugme, Ipucu } from "./ui";
 
@@ -41,14 +42,33 @@ export function Isaret({ className }: { className?: string }) {
   );
 }
 
-/**  Üst şerit:  48 px, beyaz, alt çizgi.  Sol · orta · sağ.  */
+/**  Üst şerit:  48 px, beyaz, alt çizgi.  Sol · orta · sağ.  Altında, tarayıcı
+     kaydetmiyorsa uyarı ( her ekran üst şeritle açılır ).  */
 export function UstSerit({ sol, orta, sag }: { sol: React.ReactNode; orta?: React.ReactNode; sag?: React.ReactNode }) {
   return (
-    <header className="relative z-20 grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-cizgi bg-yuzey px-3">
-      <div className="flex min-w-0 items-center gap-2">{sol}</div>
-      <div className="flex items-center gap-2">{orta}</div>
-      <div className="flex items-center justify-end gap-1.5">{sag}</div>
-    </header>
+    <>
+      <header className="relative z-20 grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 border-b border-cizgi bg-yuzey px-3">
+        <div className="flex min-w-0 items-center gap-2">{sol}</div>
+        <div className="flex items-center gap-2">{orta}</div>
+        <div className="flex items-center justify-end gap-1.5">{sag}</div>
+      </header>
+      <DepoUyarisi />
+    </>
+  );
+}
+
+/**  Tarayıcı bu siteye veri kaydetmiyor ( lib/depo ):  çalışma yalnız bu sekmede durur  */
+function DepoUyarisi() {
+  if (!useDepoYazilamiyor()) return null;
+  return (
+    <div role="alert" className="flex shrink-0 items-start gap-2 border-b border-red-cizgi bg-red-acik px-4 py-1.5 text-[12.5px] text-red">
+      <CircleAlert className="mt-0.5 size-3.5 shrink-0" />
+      <span>
+        Tarayıcı bu siteye veri kaydetmiyor ( site verisi engelli ya da depo dolu ) — projeler yalnız bu sekmede duruyor,
+        sayfa kapanınca ya da yenilenince gider.  Çalışmanızı proje dosyası olarak kaydedin ( uygulamada Proje bilgileri
+        → Dosyaya kaydet, avanda üst şeritteki "Proje dosyası olarak kaydet" ).
+      </span>
+    </div>
   );
 }
 

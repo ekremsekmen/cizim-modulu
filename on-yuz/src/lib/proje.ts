@@ -1,11 +1,12 @@
 /*  PROJE DURUMU
-    Sunucu proje saklamaz:  proje tarayıcıda ( localStorage ) ve .uygulama /
-    .avan dosyasında yaşar.  Yalnız KULLANICININ YAZDIĞI değerler tutulur —
+    Sunucu proje saklamaz:  proje tarayıcıda ( localStorage — lib/depo;
+    yazılamazsa bu sekmenin belleğinde ) ve .uygulama / .avan dosyasında yaşar.  Yalnız KULLANICININ YAZDIĞI değerler tutulur —
     boş alan isteğe girmez, sunucu kendi varsayılanını ya da kuralını uygular.
     Ekran o değeri soluk gösterir ( "siz girmediniz" ).                       */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Alan, AlanSemasi, Deger, UygulamaIstegi } from "./api";
 import { alanHatasi } from "./denetim";
+import { depoOku, depoSil, depoYaz } from "./depo";
 import { kapakSirala } from "./kapak";
 import { useSekmeEsitle } from "./sekme";
 import { ORNEK_ASANSOR, ORNEK_SURUMU } from "./ornek";
@@ -42,18 +43,14 @@ const OFIS = "asansor:ofis";
 
 function oku<T>(anahtar: string, yedek: T): T {
   try {
-    const m = localStorage.getItem(anahtar);
+    const m = depoOku(anahtar);
     return m ? (JSON.parse(m) as T) : yedek;
   } catch {
     return yedek;
   }
 }
 function yaz(anahtar: string, deger: unknown) {
-  try {
-    localStorage.setItem(anahtar, JSON.stringify(deger));
-  } catch {
-    /*  özel pencere ya da dolu bellek:  proje dosyası yine kaydedilir  */
-  }
+  depoYaz(anahtar, JSON.stringify(deger));
 }
 
 export function projeListesi(): ProjeOzeti[] {
@@ -123,11 +120,7 @@ export function projeOku(id: string): UygulamaProjesi | null {
 }
 
 export function projeSil(id: string) {
-  try {
-    localStorage.removeItem(`asansor:proje:${id}`);
-  } catch {
-    /* özel pencere */
-  }
+  depoSil(`asansor:proje:${id}`);
   yaz(
     LISTE,
     oku<ProjeOzeti[]>(LISTE, []).filter((x) => x.id !== id),

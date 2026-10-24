@@ -26,6 +26,8 @@ gerçek sunucu ve gerçek tarayıcıyla:
      sayfa çökmez, arıza kalkınca düzelir ( PR'da iki tür;  ARIZA_HEPSI=1 beşi )
   10 kaynak sayacı:  aynı işlemler tekrarlanınca açık işçi, nesne adresi,
      dinleyici ve yoldaki istek büyümez
+  11 tarayıcı deposu:  engelliyken de proje açılır, dolunca değişiklik
+     sekmede kalır;  ikisinde de ekran uyarır
   6  adresler:  bilinmeyen proje açılışa döner;  /yeni köke yönlenir
   Hiçbir testte konsol hatası yok.
 
@@ -1920,6 +1922,68 @@ class OnYuzUctanUca(unittest.TestCase):
         }
         self.assertEqual(artan, {}, f"tekrarla büyüyen kaynaklar:  {artan}\nsayımlar:  {duz}")
         self.assertEqual((duz[3]["isci"], duz[3]["istek"], duz[3]["adres"]), (0, 0, 0), duz[3])
+
+    # ------------------------------------------------------------ 11 tarayıcı deposu
+    #  24 Eki ( genel denetim ):  depo yazılamayınca ( site verisi engelli, depo dolu )
+    #  yeni ve örnek proje kaydedilemeyip açılışa "bu tarayıcıda yok" diye geri
+    #  atılıyor, dolu depoda değişiklikler sessizce kayboluyordu ( lib/depo ).
+    DEPO_UYARISI = "Tarayıcı bu siteye veri kaydetmiyor"
+
+    def test_depo_engelliyken_proje_acilir_ve_uyarir(self):
+        self.sayfa.add_init_script(
+            """Object.defineProperty(window, 'localStorage', { configurable: true,
+                get() { throw new DOMException('Access is denied for this document.', 'SecurityError'); } });"""
+        )
+        uyari = self.sayfa.get_by_role("alert").filter(has_text=self.DEPO_UYARISI)
+        self.sayfa.goto(self.url + "/")
+        uyari.wait_for()
+        for yol in ("/uygulama/yeni", "/uygulama/ornek"):
+            self.sayfa.goto(self.url + yol)
+            self.sayfa.wait_for_url(re.compile(r"/uygulama/[0-9a-z]{6,}$"))
+            self.iz.sakin()
+            uyari.wait_for()
+            self.assertNotIn("bu tarayıcıda yok", self.sayfa.evaluate("document.body.innerText"), yol)
+        #  Örnek projede çalışılır:  girdi değişince hesap yenilenir
+        self.alan_kutusu("kuyu_derinligi").fill("2750")
+        istek, _hesap = self.iz.son("/api/uygulama/coklu")
+        self.assertEqual(istek["asansorler"][0].get("kuyu_derinligi"), "2750")
+        self.sayfa.goto(self.url + "/avan/trafik")
+        uyari.wait_for()
+
+    def test_depo_dolunca_degisiklik_sekmede_kalir_ve_uyarir(self):
+        self.ornek_projeyi_ac()
+        proje = "/" + self.sayfa.url.split("/", 3)[3]
+        uyari = self.sayfa.get_by_role("alert").filter(has_text=self.DEPO_UYARISI)
+        self.assertEqual(uyari.count(), 0)
+        self.sayfa.evaluate(
+            """() => {
+                const yaz = Storage.prototype.setItem;
+                window.__dolu = true;
+                Storage.prototype.setItem = function (k, v) {
+                    if (window.__dolu && k.startsWith('asansor:')) throw new DOMException('dolu', 'QuotaExceededError');
+                    return yaz.call(this, k, v);
+                };
+            }"""
+        )
+        self.alan_kutusu("kuyu_derinligi").fill("2750")
+        self.iz.sakin()
+        uyari.wait_for()
+        #  Sayfa içinde açılışa gidip dönünce değişiklik yerinde ( depoda eskisi duruyor )
+        self._git("/")
+        self._git(proje)
+        self.assertEqual(self.alan_kutusu("kuyu_derinligi").input_value(), "2750")
+        #  Yer açıldı:  sıradaki kayıt bekleyeni de depoya yazar, uyarı kalkar
+        self.sayfa.evaluate("window.__dolu = false")
+        self.alan_kutusu("kuyu_genisligi").fill("2210")
+        self.iz.sakin()
+        uyari.wait_for(state="detached")
+        kayit = self.sayfa.evaluate(
+            "id => JSON.parse(localStorage.getItem('asansor:proje:' + id))", proje.rsplit("/", 1)[1]
+        )
+        self.assertEqual(
+            (kayit["asansorler"][0].get("kuyu_derinligi"), kayit["asansorler"][0].get("kuyu_genisligi")),
+            ("2750", "2210"),
+        )
 
     # ------------------------------------------------------------ 6 adresler
     def test_bilinmeyen_proje_acilisa_doner(self):

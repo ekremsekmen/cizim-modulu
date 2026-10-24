@@ -20,6 +20,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AvanKoprusu, Deger, Secenekler } from "./api";
 import { evetMi } from "./denetim";
+import { depoOku, depoSil, depoYaz } from "./depo";
 import { KAPAK_GRUPLARI } from "./kapak";
 import { sayiOku, type Ham } from "./proje";
 import { useSekmeEsitle } from "./sekme";
@@ -60,17 +61,13 @@ const ACILIS = "asansor:avan-acilis";
 
 function oku<T extends object>(anahtar: string, yedek: T): T {
   try {
-    return { ...yedek, ...JSON.parse(localStorage.getItem(anahtar) || "{}") };
+    return { ...yedek, ...JSON.parse(depoOku(anahtar) || "{}") };
   } catch {
     return yedek;
   }
 }
 function yaz(anahtar: string, deger: unknown) {
-  try {
-    localStorage.setItem(anahtar, JSON.stringify(deger));
-  } catch {
-    /*  özel pencere:  proje dosyası yine kaydedilir  */
-  }
+  depoYaz(anahtar, JSON.stringify(deger));
 }
 
 export function avanProjesiniOku(): AvanProjesi {
@@ -505,19 +502,15 @@ export interface Acilis {
 /**  Açılış bildirimi ve önceki proje ( "Geri al" ) — sayfa yenilenince de durur  */
 export function acilisiOku(): Acilis | null {
   try {
-    const d = JSON.parse(localStorage.getItem(ACILIS) || "null");
+    const d = JSON.parse(depoOku(ACILIS) || "null");
     return d && typeof d === "object" && typeof d.bildirim === "string" ? (d as Acilis) : null;
   } catch {
     return null;
   }
 }
 export function acilisiYaz(a: Acilis | null) {
-  try {
-    if (a) localStorage.setItem(ACILIS, JSON.stringify(a));
-    else localStorage.removeItem(ACILIS);
-  } catch {
-    /*  özel pencere:  bildirim yalnız bu açılışta kalır  */
-  }
+  if (a) depoYaz(ACILIS, JSON.stringify(a));
+  else depoSil(ACILIS);
 }
 
 /**  Dosyayı okur;  hata ya da açılış  */

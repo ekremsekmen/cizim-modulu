@@ -7,20 +7,20 @@
     Döngü olmaz:  alınan değer aynen geri yazılır;  aynı değer yazılınca
     tarayıcı olay üretmez.                                                  */
 import { useEffect } from "react";
+import { depoDinle } from "./depo";
 
 /**  `anahtar` başka sekmede değişince `al` çağrılır:  yeni değer ya da silindiyse null.
      `al` kararlı olmalı ( useState ayarlayıcısı ya da useCallback ).  */
 export function useSekmeEsitle<T>(anahtar: string, al: (deger: T | null) => void) {
-  useEffect(() => {
-    const dinle = (e: StorageEvent) => {
-      if (e.key !== anahtar || e.storageArea !== localStorage) return;
-      try {
-        al(e.newValue === null ? null : (JSON.parse(e.newValue) as T));
-      } catch {
-        /*  okunamayan değer:  bu sekmeninki kalır  */
-      }
-    };
-    window.addEventListener("storage", dinle);
-    return () => window.removeEventListener("storage", dinle);
-  }, [anahtar, al]);
+  useEffect(
+    () =>
+      depoDinle(anahtar, (m) => {
+        try {
+          al(m === null ? null : (JSON.parse(m) as T));
+        } catch {
+          /*  okunamayan değer:  bu sekmeninki kalır  */
+        }
+      }),
+    [anahtar, al],
+  );
 }
