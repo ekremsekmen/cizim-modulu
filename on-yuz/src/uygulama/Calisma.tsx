@@ -94,8 +94,14 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   const [teslimAcik, setTeslimAcik] = useState(params.get("teslim") === "1");
   const [bilgilerAcik, setBilgilerAcik] = useState(false);
   const [duyuru, setDuyuru] = useState(bildirim ?? "");
-  //  Kaldırılan asansörler geri alınabilir ( onay sorulmaz, geri dönüş var )
-  const [geriAl, setGeriAl] = useState<{ metin: string; asansorler: Ham[]; aktif: number } | null>(null);
+  //  Kaldırılan asansörler geri alınabilir ( onay sorulmaz, geri dönüş var ).  Kapak da
+  //  döner:  asansöre özgü değerleri kaldırmayla kaydı ( lib/kapak kapakSirala )
+  const [geriAl, setGeriAl] = useState<{
+    metin: string;
+    asansorler: Ham[];
+    kapak: UygulamaProjesi["kapak"];
+    aktif: number;
+  } | null>(null);
   const a = Math.min(asansor, proje.asansorler.length - 1);
 
   //  Çizim, çizim görünümünde ve teslim açıkken istenir:  teslim son girdinin
@@ -142,6 +148,14 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
       setGeriAl(null);
     },
     [guncelle, sema, a],
+  );
+  //  Proje bilgilerinde yazılan da öyle:  geri almak kapağı kaldırmadan önceki hâline döndürür
+  const bilgileriGuncelle = useCallback(
+    (f: (p: UygulamaProjesi) => UygulamaProjesi) => {
+      guncelle(f);
+      setGeriAl(null);
+    },
+    [guncelle],
   );
 
   const sec = (b: Bolum) => {
@@ -208,7 +222,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   };
   /**  Asansör kaldırma ( sekmeden ya da adetten ):  önceki hâl "Geri al" için tutulur  */
   const kaldirildi = (metin: string, yeni: UygulamaProjesi) => {
-    setGeriAl({ metin, asansorler: proje.asansorler, aktif: a });
+    setGeriAl({ metin, asansorler: proje.asansorler, kapak: proje.kapak, aktif: a });
     guncelle(() => yeni);
     setOlcu(null);
   };
@@ -340,7 +354,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
             tur="hayalet"
             boy="kucuk"
             onClick={() => {
-              guncelle((p) => ({ ...p, asansorler: geriAl.asansorler }));
+              guncelle((p) => ({ ...p, asansorler: geriAl.asansorler, kapak: geriAl.kapak }));
               setAsansor(geriAl.aktif);
               setGeriAl(null);
               setKaymis(undefined);
@@ -521,7 +535,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
         acik={bilgilerAcik}
         degisti={setBilgilerAcik}
         proje={proje}
-        guncelle={guncelle}
+        guncelle={bilgileriGuncelle}
         adetDegisti={adetDegisti}
         sil={sil}
         sema={sema}

@@ -18,8 +18,19 @@ export function PdfOnizleme({ veri }: { veri: ArrayBuffer | undefined }) {
   useEffect(() => {
     if (!veri) return;
     let iptal = false;
+    //  BELGE İŞÇİSİYLE KAPATILIR ( 24 Eki ):  getDocument her çağrıda yeni bir pdf.js
+    //  işçisi ( Web Worker ) açar, onu yalnız destroy kapatır.  Kapatılmıyordu:  her
+    //  önizleme güncellemesi bir işçi bırakıyor, kapaktan çıkınca da kapanmıyordu.
+    //  Sayfa tuvale çizilince belge gerekmez;  yarıda kalan da ( yeni veri, çıkış ) kapanır.
+    const gorev = pdfjs.getDocument({ data: veri.slice(0) });
+    let kapandi = false;
+    const kapat = () => {
+      if (kapandi) return;
+      kapandi = true;
+      gorev.destroy().catch(() => {});
+    };
     (async () => {
-      const belge = await pdfjs.getDocument({ data: veri.slice(0) }).promise;
+      const belge = await gorev.promise;
       const sayfa = await belge.getPage(1);
       const el = tuval.current;
       const alan = kap.current;
@@ -37,11 +48,14 @@ export function PdfOnizleme({ veri }: { veri: ArrayBuffer | undefined }) {
         setHazir(true);
         setHata(false);
       }
-    })().catch(() => {
-      if (!iptal) setHata(true);
-    });
+    })()
+      .catch(() => {
+        if (!iptal) setHata(true);
+      })
+      .finally(kapat);
     return () => {
       iptal = true;
+      kapat();
     };
   }, [veri]);
 

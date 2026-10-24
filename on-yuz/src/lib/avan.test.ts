@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AvanKoprusu, Secenekler } from "./api";
-import { avanDosyaGovdesi, avanDosyasiMi, avanOku, BOS_AVAN, manuelKMetni, trafikFarki, yeniAvanAcilisi, type AvanProjesi } from "./avan";
+import { avanDosyaGovdesi, avanDosyasiMi, avanOku, BOS_AVAN, manuelKMetni, trafikFarki, trafikSutunuKaldir, yeniAvanAcilisi, type AvanProjesi } from "./avan";
 
 /*  Seçenekler /api/secenekler'in bu testin kullandığı alt kümesidir;  listeler
     sunucununkiyle aynı ( 18 Eki ), sabit şeması birkaç sabite kısaltıldı.  */
@@ -162,6 +162,15 @@ describe("avan dosyası — eski arayüzün biçimi", () => {
     expect(oku({ alanlar }).proje.trafikAsansorleri).toHaveLength(2);
   });
 
+  it("sütun adedi yazılmamışsa son dolu sütuna kadar:  aradaki boş sütun sonrakini düşürmez ( 24 Eki )", () => {
+    //  Dolu sütunlar sayılıyordu:  1. ve 3. doluyken adet 2, 3. sütun uyarısız kayboluyordu
+    const { __trafik_adet: _, ...alanlar } = { ...ESKI.alanlar, c_P2: "", c_P3: "13", c_kg3: "1100" };
+    const t = oku({ alanlar }).proje.trafikAsansorleri;
+    expect(t).toHaveLength(3);
+    expect(t[1].P).toBeUndefined();
+    expect(t[2]).toMatchObject({ P: "13", kapi_genisligi: "1100" });
+  });
+
   it("ondalık virgüllü seçim tanınır, listede olmayan alınmaz ve söylenir", () => {
     const o = oku({ alanlar: { ...ESKI.alanlar, c_V1: "1,6", c_kt1: "Kaldırılmış Kapı", a_S11: "7" } });
     expect(o.proje.trafikAsansorleri[0].V).toBe("1.6");
@@ -198,6 +207,29 @@ describe("avan dosyası — eski arayüzün biçimi", () => {
     expect(avanDosyasiMi({ c_N: "5" })).toBe(true);
     expect(avanDosyasiMi({ __mod: "uygulama", m_adet: "1" })).toBe(false);
     expect(avanDosyasiMi(BOS_AVAN)).toBe(false);
+  });
+});
+
+describe("trafik sütunu kaldırılınca asansörünün avan kartı da gider ( 24 Eki )", () => {
+  const p0: AvanProjesi = {
+    ...BOS_AVAN,
+    trafikAsansorleri: [{ P: "8" }, { P: "13" }, { P: "8", kapi_genisligi: "900" }],
+    avanAsansorleri: [{ tanim: "A" }, { tanim: "B" }, { tanim: "C" }, {}],
+  };
+  it("kapasiteli sütunun kartı kaldırılır, sonrakiler bir öne kayar", () => {
+    const p = trafikSutunuKaldir(p0, 1);
+    expect(p.trafikAsansorleri).toEqual([{ P: "8" }, { P: "8", kapi_genisligi: "900" }]);
+    expect(p.avanAsansorleri.map((a) => a.tanim)).toEqual(["A", "C", undefined, undefined]);
+  });
+  it("kapasitesiz sütunun asansörü yoktur:  kartlar kaymaz;  sonraki sütunun kartı sırasından", () => {
+    const bos: AvanProjesi = { ...p0, trafikAsansorleri: [{ P: "8" }, {}, { P: "13" }, { P: "16" }] };
+    expect(trafikSutunuKaldir(bos, 1).avanAsansorleri).toEqual(p0.avanAsansorleri);
+    //  4. sütun 3. asansördür ( 2. sütunun asansörü yok ):  C'nin kartı gider
+    expect(trafikSutunuKaldir(bos, 3).avanAsansorleri.map((a) => a.tanim)).toEqual(["A", "B", undefined, undefined]);
+  });
+  it("son sütun kaldırılmaz", () => {
+    const tek = { ...p0, trafikAsansorleri: [{ P: "8" }] };
+    expect(trafikSutunuKaldir(tek, 0)).toBe(tek);
   });
 });
 

@@ -113,6 +113,20 @@ function virgullu(v: Deger): string {
   return v === null || v === undefined ? "" : String(v).replace(".", ",");
 }
 
+/**  TRAFİK SÜTUNU KALDIRILINCA ASANSÖRÜNÜN AVAN KARTI DA GİDER ( 24 Eki ):  avan
+     kartları trafiğin verdiği asansörlerin sırasıyladır ( köprü:  kapasitesi seçili
+     her sütunun asansörü, sırayla;  tek sütunda gereken adet kadar ).  Kart yerinde
+     kalıyordu:  2. sütun kaldırılınca 3.'nün asansörü 2.'nin kabin ve kuyu
+     ölçüleriyle hesaplanıyordu.  Kapasitesiz sütunun asansörü yoktur, kartlar kaymaz.  */
+export function trafikSutunuKaldir(p: AvanProjesi, i: number): AvanProjesi {
+  if (p.trafikAsansorleri.length <= 1 || i < 0 || i >= p.trafikAsansorleri.length) return p;
+  const trafikAsansorleri = p.trafikAsansorleri.filter((_, j) => j !== i);
+  const kapasiteli = (a: Ham) => (a.P ?? "").trim() !== "";
+  if (!kapasiteli(p.trafikAsansorleri[i])) return { ...p, trafikAsansorleri };
+  const k = p.trafikAsansorleri.slice(0, i).filter(kapasiteli).length;
+  return { ...p, trafikAsansorleri, avanAsansorleri: [...p.avanAsansorleri.filter((_, j) => j !== k), {}] };
+}
+
 /* ───────────────────────────── dosyanın alanları */
 /**  Trafik bina alanları ( eski kutu c_<anahtar> );  taahhütname c_taahhut  */
 const TRAFIK_BINA = [
@@ -363,11 +377,14 @@ export function avanOku(metin: string, sec: Secenekler, ofis: Ham): AvanOkumasi 
   const taahhut = al("c_taahhut", "taahhutname");
   if (taahhut === "Var") trafik.taahhutname = taahhut;
 
-  //  Sütun adedi:  yazılıysa ondan, yoksa dolu kapasite sütunlarından ( eski dosyalar )
+  //  Sütun adedi:  yazılıysa ondan, yoksa SON DOLU kapasite sütununa kadar ( eski
+  //  arayüzün her sürümü yazar;  yazılmamış ya da bozuksa ).  24 Eki:  dolu sütunlar
+  //  sayılıyordu — 1. ve 3. doluyken adet 2, 3. sütun uyarısız kayboluyordu.  Aradaki
+  //  boş sütun boş kalır ( sunucu atar, sütunların numarası korunur ).
   let adet = parseInt(String(govde.__trafik_adet ?? ""), 10);
   if (!(adet >= 1 && adet <= TRAFIK_AZAMI)) {
-    const dolu = [1, 2, 3, 4].filter((i) => ice(govde[`c_P${i}`]) !== null).length;
-    adet = Math.max(1, dolu);
+    const dolu = [1, 2, 3, 4].filter((i) => ice(govde[`c_P${i}`]) !== null);
+    adet = Math.max(1, ...dolu);
   }
   const trafikAsansorleri: Ham[] = [];
   for (let i = 1; i <= adet; i++) {

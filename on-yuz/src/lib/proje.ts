@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Alan, AlanSemasi, Deger, UygulamaIstegi } from "./api";
 import { alanHatasi } from "./denetim";
+import { kapakSirala } from "./kapak";
 import { useSekmeEsitle } from "./sekme";
 import { ORNEK_ASANSOR, ORNEK_SURUMU } from "./ornek";
 
@@ -115,7 +116,10 @@ export function ornekSifirla(p: UygulamaProjesi): UygulamaProjesi {
 
 export function projeOku(id: string): UygulamaProjesi | null {
   const p = oku<UygulamaProjesi | null>(`asansor:proje:${id}`, null);
-  return p && Array.isArray(p.asansorler) && p.asansorler.length ? p : null;
+  if (!p || !Array.isArray(p.asansorler) || !p.asansorler.length) return null;
+  //  Olmayan asansörün kapak değeri atılır ( 24 Eki'den önce kaldırılanınki kalıyordu:
+  //  görünmeden "dolu alan" sayılıyor, yeni asansöre geçiyordu;  dosyadan da gelebilir )
+  return p.kapak ? { ...p, kapak: kapakSirala(p.kapak, (n) => (n > p.asansorler.length ? null : n)) } : p;
 }
 
 export function projeSil(id: string) {
@@ -195,26 +199,44 @@ export function alanYaz(p: UygulamaProjesi, sema: AlanSemasi, asansor: number, a
   return { ...p, asansorler: p.asansorler.map((h, i) => (i === asansor ? temizle(h) : h)) };
 }
 
-/* ───────────────────────────── asansör ekleme / kaldırma */
+/* ───────────────────────────── asansör ekleme / kaldırma
+    Kapağın asansöre özgü değerleri ( "capacity.2" ) asansörün sırasıyla gider
+    ( lib/kapak kapakSirala ):  sıra kayınca onlar da kayar.                 */
 /**  Yeni asansör 1 nolunun kopyasıdır ( aynı kuyu düzeni sık );  adı kopyalanmaz —
-     iki sekme aynı adla görünmesin.  */
+     iki sekme aynı adla görünmesin.  Kapağın asansöre özgü değeri kopyalanmaz,
+     kaldırılmış bir asansörden kalmışsa da alınmaz.  */
 export function asansorEkle(p: UygulamaProjesi, azami: number): UygulamaProjesi {
   if (p.asansorler.length >= azami) return p;
   const { asansor_adi: _ad, ...kopya } = p.asansorler[0] ?? {};
-  return { ...p, asansorler: [...p.asansorler, kopya] };
+  const no = p.asansorler.length + 1;
+  return {
+    ...p,
+    asansorler: [...p.asansorler, kopya],
+    kapak: p.kapak && kapakSirala(p.kapak, (n) => (n >= no ? null : n)),
+  };
 }
 
 /**  i. asansörü kaldırır;  son asansör kaldırılmaz ( proje en az bir asansördür ).  */
 export function asansorKaldir(p: UygulamaProjesi, i: number): UygulamaProjesi {
   if (p.asansorler.length <= 1 || i < 0 || i >= p.asansorler.length) return p;
-  return { ...p, asansorler: p.asansorler.filter((_, j) => j !== i) };
+  const no = i + 1;
+  return {
+    ...p,
+    asansorler: p.asansorler.filter((_, j) => j !== i),
+    kapak: p.kapak && kapakSirala(p.kapak, (n) => (n === no ? null : n > no ? n - 1 : n)),
+  };
 }
 
 /**  Adet:  artınca 1 nolunun kopyaları eklenir, azalınca sondakiler kaldırılır.  */
 export function asansorAdedi(p: UygulamaProjesi, n: number, azami: number): UygulamaProjesi {
   let q = p;
   while (q.asansorler.length < Math.min(n, azami)) q = asansorEkle(q, azami);
-  return n >= 1 && q.asansorler.length > n ? { ...q, asansorler: q.asansorler.slice(0, n) } : q;
+  if (!(n >= 1 && q.asansorler.length > n)) return q;
+  return {
+    ...q,
+    asansorler: q.asansorler.slice(0, n),
+    kapak: q.kapak && kapakSirala(q.kapak, (k) => (k > n ? null : k)),
+  };
 }
 
 /**  Makine dairesiz mi ( yazılmadıysa şemanın varsayılanı ).  */
