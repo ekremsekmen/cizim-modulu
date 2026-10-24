@@ -4,6 +4,7 @@
 import { useNavigate } from "react-router";
 import { ArrowUpRight } from "lucide-react";
 import { Isaret } from "@/components/Kabuk";
+import { depoYaz } from "@/lib/depo";
 import { yeniUygulama } from "@/lib/proje";
 
 type Ekran = {
@@ -18,7 +19,7 @@ function projeAc(degerler: Record<string, string> = {}, ornek = false) {
   const p = yeniUygulama(ornek);
   if (Object.keys(degerler).length) {
     p.asansorler = [degerler];
-    localStorage.setItem(`asansor:proje:${p.id}`, JSON.stringify(p));
+    depoYaz(`asansor:proje:${p.id}`, JSON.stringify(p));
   }
   return p.id;
 }
