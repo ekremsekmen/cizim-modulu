@@ -1,7 +1,8 @@
 /*  ÖN YÜZ DENETİMİ ( kurallar sunucudan ) — saf işlevler, bağımlılıksız.
     ÖN YÜZ SUNUCUDAN SIKI OLAMAZ:  yalnız tartışmasız okunan sayı denetlenir.
     "abc", "1 200", "1e3" ve belirsiz "1.200" sunucuya gider — kabul ya da
-    reddi, sebebiyle birlikte, sunucunundur.
+    reddi, sebebiyle birlikte, sunucunundur.  Eski dosyanın onay kutusu da
+    sunucunun okuduğu gibi okunur ( evetMi · eskiOnayIsaretli ).
     Bu dosya YALNIZ tür içe aktarır:  testler/test_on_yuz_denetimi.py onu Node
     ile ( TypeScript doğrudan ) koşar;  değer içe aktarması koşuyu bozar.      */
 import type { AlanSemasi } from "./api";
@@ -35,4 +36,22 @@ export function alanHatasi(sema: AlanSemasi, anahtar: string, ham: string | unde
 export function kutuyaYaz(n: number): string {
   const m = String(n).replace(".", ",");
   return BELIRSIZ.test(m) ? m + "0" : m;
+}
+
+/*  ESKİ DOSYANIN ONAY KUTUSU:  mantıksal "true" / "false" yazımıyla gelir ( dosya
+    okuyucusunun ice'si ).  Listeler sunucununkiyle birebir:  ayrılırlarsa aynı
+    dosya ekranda ve hesapta başka okunur.                                    */
+const EVET = ["evet", "e", "var", "true", "1", "yes"];
+
+/**  Onay alanı işaretli mi — sunucunun evet_mi'si ( motor/ortak/adimlar.py ):
+     eski dosyada "EVET" / "HAYIR" de durabilir  */
+export function evetMi(m: string): boolean {
+  return [...EVET, "on", "x", "✓"].includes(m.trim().toLowerCase());
+}
+
+/**  Eskiden onay kutusu olan seçim ( şemanın eski_onay'ı ) işaretli mi — sunucunun
+     makine_raya_mi'si ( motor/uygulama/mukavemet_tablolari.py ):  evet yazımları
+     ya da işaretli seçeneğin kendi adı  */
+export function eskiOnayIsaretli(m: string, isaretli: string): boolean {
+  return [...EVET, isaretli.toLowerCase()].includes(m.trim().toLowerCase());
 }

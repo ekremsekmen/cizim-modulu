@@ -5,7 +5,7 @@ kaynaklı tablolar.
 """
 
 from motor.ortak import ofis
-from temel import sayi_mi
+from temel import KESIT_SIGORTA, sayi_mi
 
 # ---------------------------------------------------------------- TABLO - 1
 # Binada sürekli bulunan insan sayısı katsayıları (MMO/697 s.13)
@@ -633,6 +633,39 @@ def kablo_iz_sinir(kesit):
     if not altlar:
         return None, False
     return KABLO_IZ[max(altlar)], False
+
+
+# --------------- Kabloyu koruyan sigortanın sınırı
+#  Sigorta kablonun önündedir ve aşırı akımda onu korur:  anma akımı kablonun
+#  sınırını aşamaz.  6 mm²'ye kadar Asansör Periyodik Kontrol Yönetmeliği EK-5
+#  1.31.13 tablosu ( temel.KESIT_SIGORTA — elektrik projesinin son devreleri de
+#  ondan ), üstünde kablonun taşıma kapasitesi Iz ( KABLO_IZ ).  İki tablo 6 mm²'de
+#  ayrışır ( EK-5 50 A, Iz 41 A ):  sınır kesitle birlikte artsın diye büyüğü
+#  alınır — 8 mm²'ye 6'nınki verilir, Iz'nin alt sınırı değil.
+def sigorta_siniri(kesit):
+    """Kablonun önündeki sigortanın en büyük anma akımı ( A ) ve kaynağı;
+    tablonun en küçük kesitinin altında ( None , "" ).  Tablo dışı kesitte bir
+    küçük satır alınır ( kablo_iz_sinir gibi güvenli alt sınır )."""
+    if not sayi_mi(kesit) or kesit <= 0:
+        return None, ""
+    ek5 = KESIT_SIGORTA[-1][0]
+    adaylar = [(a, s, "EK-5 1.31.13") for s, a in KESIT_SIGORTA if s <= kesit + 1e-9]
+    adaylar += [(iz, s, "Iz  ( IEC 60364-5-52 )") for s, iz in KABLO_IZ.items() if ek5 < s <= kesit + 1e-9]
+    if not adaylar:
+        return None, ""
+    akim, satir, kaynak = max(adaylar)
+    return akim, kaynak + ("" if abs(satir - kesit) < 1e-9 else "  ·  tablo dışı kesit — bir küçük satır")
+
+
+def gerekli_kesit(akim, sigorta):
+    """Akımı taşıyan ( Iz ≥ akim ) ve sigortayla korunan ( sigorta_siniri ≥
+    sigorta ) en küçük standart kesit ( mm² );  yoksa None."""
+    for s in STANDART_KESITLER:
+        iz, _kesin = kablo_iz_sinir(s)
+        sinir, _kaynak = sigorta_siniri(s)
+        if sayi_mi(iz) and sayi_mi(sinir) and iz >= akim and sinir >= sigorta:
+            return s
+    return None
 
 
 # --------------- ARMATÜR IŞIK AKILARI  ( ofis tablosu — MMO/697 DIŞI )

@@ -11,6 +11,9 @@ export function PdfOnizleme({ veri }: { veri: ArrayBuffer | undefined }) {
   const kap = useRef<HTMLDivElement>(null);
   const tuval = useRef<HTMLCanvasElement>(null);
   const [hazir, setHazir] = useState(false);
+  //  pdf.js okuyamazsa ( yanıt PDF değil, bozuk ) söylenir:  reddi yutuluyor,
+  //  önizleme sonsuza dek dönüyordu ( 24 Eki )
+  const [hata, setHata] = useState(false);
 
   useEffect(() => {
     if (!veri) return;
@@ -30,8 +33,13 @@ export function PdfOnizleme({ veri }: { veri: ArrayBuffer | undefined }) {
       el.style.width = `${v.width / dpr}px`;
       el.style.height = `${v.height / dpr}px`;
       await sayfa.render({ canvas: el, canvasContext: el.getContext("2d")!, viewport: v }).promise;
-      if (!iptal) setHazir(true);
-    })();
+      if (!iptal) {
+        setHazir(true);
+        setHata(false);
+      }
+    })().catch(() => {
+      if (!iptal) setHata(true);
+    });
     return () => {
       iptal = true;
     };
@@ -39,8 +47,14 @@ export function PdfOnizleme({ veri }: { veri: ArrayBuffer | undefined }) {
 
   return (
     <div ref={kap} className="relative flex h-full w-full items-center justify-center bg-black/[0.04]">
-      <canvas ref={tuval} className="bg-white shadow-kalkik" />
-      {!hazir && <Loader2 className="absolute size-5 animate-spin text-metin-3" />}
+      <canvas ref={tuval} hidden={hata} className="bg-white shadow-kalkik" />
+      {hata ? (
+        <p role="alert" className="absolute px-8 text-center text-[13px] text-red">
+          Önizleme açılamadı — sunucunun yanıtı okunabilir bir PDF değil.
+        </p>
+      ) : (
+        !hazir && <Loader2 className="absolute size-5 animate-spin text-metin-3" />
+      )}
     </div>
   );
 }

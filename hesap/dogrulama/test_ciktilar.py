@@ -1477,6 +1477,18 @@ def calistir():
             _ye.media_type != "application/zip" and "KUYUYA SIĞMIYOR" in str(_js.loads(_ye.body).get("hata")),
             f"→ {_ye.media_type}",
         )
+        #  Asansörsüz avan ( trafik isteği düşünce ekranın gönderdiği:  bütün
+        #  sütunlar pasif, köprü yok ) pakete girmez — 24 Eki yalnız topraklamalı
+        #  avan hesabıyla iniyordu
+        _avan_bos = dict(_avan_g, asansorler=[{"aktif": False}] * 4, trafik=None)
+        _yb = avan_uclari.indir_proje_dwg(
+            {"kapak": {"project_title": "Deneme"}, "girdiler": {"avan": _avan_bos, "trafik": _trf_g}}
+        )
+        r.kontrol(
+            "[avan paketi] asansörsüz avan hesabıyla paket inmez",
+            _yb.media_type != "application/zip" and "asansör yok" in str(_js.loads(_yb.body).get("hata")),
+            f"→ {_yb.media_type}",
+        )
 
     #  İndirme uçları
     _mg = {a[0]: a[5] for a in mukavemet_girdi.ALANLAR if a[3] != "hesap"}

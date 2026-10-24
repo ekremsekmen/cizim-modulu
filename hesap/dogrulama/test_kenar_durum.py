@@ -2516,12 +2516,25 @@ def calistir():
         any("MAKİNE BESLEME KESİTİ" in x for x in (_ince.get("uyarilar") or [])),
         f"→ {_ince.get('uyarilar')}",
     )
+    #  "Yeterli" = akımı taşır VE grup sigortası onu korur:  37 kW'ın sigortası
+    #  4 x 100 A, 25 mm² kablo 96 A taşır — akım yeter ( I2 = 73,5 A ) ama
+    #  sigorta kabloyu korumaz ( 23 Eki bağımsız denetim );  35 mm² ikisini de sağlar
     r.kontrol(
         "yeterli S2'de uyarı yok",
         not any(
             "MAKİNE BESLEME" in x
-            for x in (_av({"kapasite": 25, "V": 2.5, "S2": 25, "S1": 50}).get("uyarilar") or [])
+            for x in (_av({"kapasite": 25, "V": 2.5, "S2": 35, "S1": 50}).get("uyarilar") or [])
         ),
+    )
+    _korumasiz = _av({"kapasite": 25, "V": 2.5, "S2": 25, "S1": 50})
+    r.kontrol(
+        "akımı taşıyan ama sigortayla korunmayan S2 ENGELLEYİCİ listede ( en az 35 mm² )",
+        any(
+            "SİGORTAYLA KORUNMUYOR" in x and "en az 35 mm²" in x
+            for x in (_korumasiz.get("engelleyici") or [])
+        )
+        and _korumasiz["asansorler"][0]["ozet"]["akim2_uygun"] is True,
+        f"→ {_korumasiz.get('engelleyici')}",
     )
     #  S2 YETERSİZSE BÖLÜM DE UYGUN DEĞİLDİR.
     #  Bir süre yalnız ⚠ uyarı veriliyordu;  hatalı bir sonuç bırakılamaz.

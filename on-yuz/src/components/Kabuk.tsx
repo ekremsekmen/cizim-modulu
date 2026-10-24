@@ -1,8 +1,33 @@
 import * as React from "react";
 import { Link, NavLink } from "react-router";
-import { BookOpen, SlidersHorizontal } from "lucide-react";
+import { BookOpen, CircleAlert, Loader2, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Ipucu } from "./ui";
+import { Dugme, Ipucu } from "./ui";
+
+/**  Ekranın sunucudan başlangıç verisi ( form şeması, seçenekler ) gelmeden:  yükleniyor
+     ya da ulaşılamadı + yeniden dene.  24 Eki:  hata durumuna bakmayan ekranlar ( avan,
+     ofis standardı, tablolar ) istek düşünce sonsuza dek "Yükleniyor"da kalıyordu.  */
+export function SunucuBekleniyor({
+  sorgu,
+  metin = "Yükleniyor",
+}: {
+  sorgu: { error: Error | null; isFetching: boolean; refetch: () => unknown };
+  metin?: string;
+}) {
+  if (sorgu.error && !sorgu.isFetching)
+    return (
+      <div role="alert" className="flex h-dvh flex-col items-center justify-center gap-2 text-[13px] text-metin-2">
+        <CircleAlert className="size-5 text-red" />
+        Sunucuya ulaşılamadı — program açık mı?
+        <Dugme onClick={() => sorgu.refetch()}>Yeniden dene</Dugme>
+      </div>
+    );
+  return (
+    <div className="flex h-dvh items-center justify-center gap-2 text-[13px] text-metin-3">
+      <Loader2 className="size-4 animate-spin" /> {metin}
+    </div>
+  );
+}
 
 /**  Programın işareti:  kuyu, iki ray, kabin.  */
 export function Isaret({ className }: { className?: string }) {

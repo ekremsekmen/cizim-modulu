@@ -1,5 +1,6 @@
 """TEMEL YARDIMCILAR — programın her katmanının kullandığı küçük, bağımsız
-fonksiyonlar ( hiçbir proje modülünü import etmez ).
+fonksiyonlar ve iki katmanın birlikte okuduğu kural tabloları ( hiçbir proje
+modülünü import etmez ).
 
 Eskiden her modül kendi kopyasını tutuyordu:  "sayı mı" 13 yerde tanımlıydı
 ve üçü sonsuzu / NaN'ı reddederken öbürleri kabul ediyordu — aynı değer bir
@@ -61,3 +62,12 @@ def cumle_basi(metin):
 
 def kutu_merkezi(k):
     return ((k[0] + k[2]) / 2.0, (k[1] + k[3]) / 2.0)
+
+
+#  KABLO KESİTİ → ÖNÜNDEKİ SİGORTANIN EN BÜYÜK ANMA AKIMI  ( mm² , A ) —
+#  Asansör Periyodik Kontrol Yönetmeliği EK-5 1.31.13:  sigorta kablonun bu
+#  sınırını aşmaz.  Hesap ( makine besleme hattının grup sigortası — avan
+#  tablolar.sigorta_siniri ) ve elektrik projesi ( son devrelerin kablosu —
+#  cizim/elektrik.devre_kesiti ) aynı tablodan okur:  hesap çizim modülünü
+#  ( ezdxf ), çizim hesabı import edemez.
+KESIT_SIGORTA = ((1.0, 6), (1.5, 10), (2.5, 20), (4.0, 32), (6.0, 50))

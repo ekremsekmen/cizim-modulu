@@ -112,6 +112,14 @@ export function useSunucu(
   //  Girdi çizime hiç çevrilemedi ( eksik / geçersiz alan ) — sorunlu çizim değil
   const cizimKurulamadi = !!cizim.data && !cizim.data.aktif && !cizim.data.cizimler;
   const baglanti = hesap.error ?? cizim.error;
+  //  SUNUCU GERİ GELİNCE İSTEK KENDİLİĞİNDEN GİTMEZ:  yalnız tarayıcının kendi
+  //  bağlantısı kopup gelince ( refetchOnReconnect ).  Sunucu yeniden başlayınca
+  //  ya da ağ geçidi hata verince ekran, "kendiliğinden güncellenir" deyip girdi
+  //  değişene kadar takılı kalıyordu ( 24 Eki ).
+  const yenidenDene = () => {
+    if (hesap.error) void hesap.refetch();
+    if (cizim.error) void cizim.refetch();
+  };
   //  Ekrandaki çizim son girdinin değil ( kural dışı girdi gönderilmedi, çizim
   //  kurulamadı, bağlantı yok ya da başka asansörün çizimi )
   const cizimEski = !!hatalar.length || cizimKurulamadi || !!cizim.error || sonCizim?.asansor !== asansor;
@@ -131,7 +139,7 @@ export function useSunucu(
   let sorun: Sorun | null = null;
   if (hatalar.length) sorun = { tur: "kural", maddeler: hatalar };
   else if (baglanti)
-    sorun = { tur: "baglanti", ileti: `Sunucuya ulaşılamadı ( ${baglanti.message} ) — bağlantı gelince kendiliğinden güncellenir.` };
+    sorun = { tur: "baglanti", ileti: `Sunucuya ulaşılamadı ( ${baglanti.message} ) — sunucu açılınca "Yeniden dene" ile güncellenir.` };
   else if (hesapDurdu) {
     //  Hesabın durduğu sebep çoğu kez çizimin sorunuyla aynı metindir:  bir kez
     //  ( çizimdekinin parçalarıyla )
@@ -188,5 +196,8 @@ export function useSunucu(
     /**  Bu asansörün son temiz çiziminin girdisi ( yoksa null )  */
     oncekiTemiz: sonTemiz[asansor] ?? null,
     sorun,
+    /**  Düşen istekleri yeniden ister ( bağlantı sorunu )  */
+    yenidenDene,
+    yenidenDeneniyor: !!baglanti && (hesap.isFetching || cizim.isFetching),
   };
 }

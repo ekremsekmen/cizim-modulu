@@ -277,13 +277,23 @@ def _avan_sonuc(veri):
     """Avan hesabı  —  ( sonuç , hata_yanıtı ).
 
     Ekran, PDF ve CAD aynı yoldan geçer:  ekran neyi reddediyorsa çıktı da
-    reddeder.  İki ret kaynağı vardır — okunamayan yazım ( API ) ve
-    kullanılamayan değer ( motor, bkz. motor.avan.avan_hesabi.girdi_hatalari ).
+    reddeder.  Üç ret kaynağı vardır — okunamayan yazım ( API ), kullanılamayan
+    değer ( motor, bkz. motor.avan.avan_hesabi.girdi_hatalari ) ve hiç asansörü
+    olmayan hesap.
     """
     g = _avan_girdi(veri)
     hata = _belirsiz_hata()
     s = None if hata else avan_hesabi.hesapla(g)
     hata = hata or s.get("hata")
+    #  HİÇ ASANSÖR YOK:  asansörler trafik hesabından gelir ( avan_koprusu ).  24 Eki:
+    #  trafik isteği düşünce ekran asansörsüz avan gönderiyordu, paket 0 asansörlü
+    #  avan hesabıyla ( yalnız topraklama ) sessizce iniyordu.
+    if not hata and not s.get("asansorler"):
+        hata = (
+            "HESAP HATASI: Avan hesabında asansör yok — asansör adedi, kapasite ve "
+            "hız trafik hesabından gelir.  Trafik hesabı yapılmadan avan hesabı "
+            "hazırlanmaz."
+        )
     if hata:
         return None, JSONResponse({"hata": hata}, status_code=200)
     return s, None

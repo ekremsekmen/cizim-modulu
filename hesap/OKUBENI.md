@@ -116,6 +116,8 @@ programın kendisidir** — program Excel üretmez ve okumaz.
 | **"Q elle" girilmiş avan kartı bir hesap boyunca kayboluyordu** | Trafik bir kartın kapasitesini bir kez yazınca kart "otomatik" sayılıyordu;  kullanıcı o karta Q elle girmiş olsa bile trafik grubu küçülünce kart kapanıyor, kapasite / hız siliniyor, Q elle kalıyordu.  Bir sonraki eşitlemede kart yeniden açılıyor;  arada ekranda ve indirilen paftada o asansör hesap dışıydı.  Ağ gecikmesine bağlı, TEST 13'ün rastgele dizisi buldu | Q elle trafik tarafından hiç yazılmaz, o hâlde her zaman kullanıcı verisidir:  dolu kart sayımı ( `avanDoluUst` ) onu otomatik işaretten bağımsız sayar.  TEST 5'e gecikmeye bağlı olmayan deneme eklendi ( kart kapanmıyor · eşitleme ikinci kez çalışınca hiçbir şey değişmiyor );  eski kodda ikisi de düşüyor |
 | **Avan motor gücü kitaptan emniyetsiz yöne sapıyordu** | MMO/697 §2.4 *"palangalı sistemlerde verim %10 az alınacaktır"* der, çözümlü örneği ( §4.4, s.56 ) η = 0,5 − 0,1 = 0,4 ile 22 kW bulur.  Program bu düşüşü 2026-09-08'de avandan da kaldırmış, paftaya *"Δη = 0,10 palanga düşüşü artık uygulanmaz … cezalandırıyordu"* yazıyordu.  800 kg · 1,6 m/s · 2:1 · η 0,85'te 7,5 kW seçiyordu;  kitaba göre inceleyen 8,37 kW bulur ve motoru reddeder | Avanda palangalı ( 2:1 ve üstü ) sistemde `η′ = η − 0,10` paftada ayrı satır, kaynağı MMO/697 §2.4;  η etiketi *makine verimi ( askı kaybı hariç )*;  "artık uygulanmaz" notu kalktı.  η′ ≤ 0 ise ( η ≤ 0,10 · 2:1 ) asansör durur.  **Uygulama projesi değişmedi:**  orada η toplam sistem verimidir;  elektrik hesabını avan motorunda koştuğu için köprü `eta_toplam` bayrağı geçirir ( altın ve referans çıktıları birebir aynı ).  Avan altın çıktısında 74 palangalı asansörde η′ ve N, 27'sinde motor kademesi ve elektrik bölümleri değişti;  kuvvet ve aydınlatma bölümleri aynı.  Büyüyen motorun 6 mm² kabloyu aştığı 6 senaryoda ( 18,5 → 22 kW ) akım kontrolü artık doğru olarak UYGUN DEĞİL diyor.  TEST 2'ye kitabın örneği birebir eklendi ( N1 = 22 kW · N2 = 7,05 kW ) |
 | **Taahhütname ile tek asansör** | Öneri tablosu ve hesap notu "şartlı kabulle 1 adet yeterli olurdu ( taahhütname )" diyordu ama bu adedi seçmenin yolu yoktu:  tek asansör tanımında program adedi hep Standart / Yükseltilmiş sınırıyla buluyordu ( elle adet kutusu v2.0'da trafik gövdeleri birleşirken düşmüştü ) | Trafik formunda **Taahhütname:  Yok / Var** seçimi.  **Var** iken bekleme ölçütü MMO/697 Tablo-10 **şartlı kabul** sınırıdır ( konutta 120 sn ):  o sınırda yeten adet uygulanır, pafta "Şartlı Kabul ( taahhütname ile )" der ve Standart için gereken adedi de yazar;  avan sekmesi bu adedi alır.  Taşıma kapasitesi yine aranır.  Şartlı sınırı olmayan bina tipinde ( kamu, hastane ) **Var** hesabı durdurur;  gerekmiyorsa bilgi notu düşülür.  Yalnız tek asansör tanımında görünür — 2–4 asansörde adedi kullanıcı verir |
+| **Makine dairesi aydınlatmasının tablosu ( çok asansörlü proje )** | Devre her zaman 1. asansörün tablosuna ( TAS1 ) bağlanıyordu.  1. asansörün hesabı düşünce o tablo çizilmiyor, öbür asansörlerin şeması "Aydınlatma devresi:  TAS1" diyordu — devre ve yükü pakette hiçbir tabloda yoktu | Elektriği hesaplanan ilk asansörün tablosundan beslenir ( avan ve uygulama );  bütün asansörler hesaplanınca yine TAS1 |
+| **Grup sigortası ↔ makine besleme kablosu** | Yalnız motor akımı kabloyla karşılaştırılıyordu ( `I2 ≤ Iz2` );  seçilen sigortanın kabloyu koruyup korumadığına bakılmıyordu:  15 kW motor + S2 = 4 mm² → 4 x 40 A sigorta, 11 kW + 2,5 mm² → 4 x 32 A — bölüm 6 "uygundur" diyordu.  Aynı kural ( EK-5 1.31.13 ) son devrelerin kablosunda uygulanıyordu | Bölüm 6'da `In ≤ Inmax2`:  grup sigortası kablonun önündeki en büyük değeri aşamaz — 6 mm²'ye kadar Asansör Periyodik Kontrol Yönetmeliği EK-5 1.31.13 ( 1,5 → 10 · 2,5 → 20 · 4 → 32 · 6 → 50 A ), üstünde Iz.  Aşınca bölüm uygun değil ve engelleyici uyarı;  uyarı iki koşulu ( akım ve sigorta ) birlikte sağlayan en küçük kesiti söyler |
 
 **Canlı hesap artık kalıcı olarak denetleniyor ( TEST 13 ).**  Tarayıcıda iki proje
 modunun her girdisi tek tek değiştirilir ve tohumlu rastgele değişiklik dizileri
@@ -642,7 +644,7 @@ okundu:
 | `Nsç = 0` girilirse paftada iki motor gücü | **Yeniden üretilemedi.** Aralık dışı Nsç uyarı ile bildiriliyor, standart kademeden seçiliyor ve bölüm 1, kurulu güç cetveli ve ε2 **aynı** değeri kullanıyor. Yine de kalıcı bir kontrol eklendi |
 | Ölü ve yanıltıcı kod | `KANAL_ISLEME` gerçekten yanlış adlandırılmıştı — içindeki sayılar μ değil **f**'dir ( 0,1 / sin 19° = 0,30716 ). Başlık düzeltildi ve tablonun **çivili** olduğu ( γ = 38° · β = 90° ) açıkça yazıldı; motor onu hiç kullanmaz, ekrandaki tablo da artık f'yi ofis açılarından üretir |
 | `DURAK_AZAMI = 20` — trafik 30 katı destekliyor | Sınır kaynak kitabın **kendi düzeninden** gelir ( `Veri Girişi`!G12:G34 ). Kapsam farkı bilinçlidir ve arayüz bunu söyler; 20 duraktan fazlası uygulama projesinde hesaplanamaz |
-| Sigorta ↔ kablo koordinasyonu | `I2 ≤ Iz2` kontrolü ( ve artık `I ≤ Iz` de doğru güçle ) çoğu durumu yakalıyor. IEC 60364-4-43'ün `In ≤ Iz` şartı ayrıca denetlenmiyor — **bilinen sınırdır**, bkz. §7 |
+| Sigorta ↔ kablo koordinasyonu | `I2 ≤ Iz2` kontrolü ( ve artık `I ≤ Iz` de doğru güçle ) çoğu durumu yakalıyordu;  seçilen sigortanın kendisi denetlenmiyordu.  **Artık denetlenir** ( Sürüm 3.2, `In ≤ Inmax2` ):  grup sigortası makine besleme kablosunun sınırını aşamaz — EK-5 1.31.13, 6 mm² üstünde Iz;  bkz. §7 |
 
 #### Üçüncü denetim — sayısal fizik kontrolleri
 
@@ -1394,10 +1396,14 @@ Kapsam tablo sınırlarıyla aynıdır: **P = 6…34 kişi, N = 1…30 kat.**
   ( m.5.10.3 ) o aralıkta tanımlıdır; program aşan girdiyi **izin verilen en
   büyük konsol aralığını söyleyerek** reddeder. `λ < 20` burkulmanın belirleyici
   olmadığı bölgedir, tablonun ilk satırı kullanılır.
-- **Sigorta ↔ kablo koordinasyonu ayrıca denetlenmez.** `sigorta_sec` yalnız
-  `1,25 × In`'e bakar; IEC 60364-4-43'ün `In ≤ Iz` şartı doğrudan kontrol
-  edilmez. `I ≤ Iz` ve `I2 ≤ Iz2` kontrolleri çoğu durumu dolaylı yakalar,
-  ama seçilen kademe kablo kapasitesiyle ayrıca karşılaştırılmalıdır.
+- **Grup sigortası makine besleme kablosunu korumalıdır.** `sigorta_sec` kademeyi
+  `1,25 × In`'den seçer;  seçilen kademe kablonun önündeki en büyük sigortayı
+  aşamaz ( `In ≤ Inmax2` ):  6 mm²'ye kadar Asansör Periyodik Kontrol
+  Yönetmeliği EK-5 1.31.13 ( 1,5 → 10 · 2,5 → 20 · 4 → 32 · 6 → 50 A ), üstünde
+  kablonun taşıma kapasitesi Iz ( `tablolar.sigorta_siniri` ).  İki tablo 6 mm²'de
+  ayrışır ( 50 A · 41 A ):  EK-5 muayenenin ölçütüdür, IEC 60364-4-43'ün daha sıkı
+  `In ≤ Iz`'si 6 mm²'ye kadar uygulanmaz.  Kolon hattının önündeki sigorta binanın
+  ana panosundadır, program onu seçmez:  kolon hattında yalnız `I ≤ Iz` denetlenir.
 - **Regülatörün ikinci kuvvet sınırı imalatçı verisi ister.** TS EN 81-20
   m.5.6.2.2.1.1 d) *"güvenlik tertibatını devreye sokmak için gerekenin iki
   katı"* der; bu kuvvet fren bloğunun **tip inceleme belgesinden** gelir ve

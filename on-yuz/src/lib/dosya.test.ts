@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AVAN_DOSYASI_UYGULAMADA, dosyaGovdesi, dosyaOku } from "./dosya";
-import type { UygulamaProjesi } from "./proje";
+import type { Ham, UygulamaProjesi } from "./proje";
 import { SEMA } from "./test-semasi";
 
 const proje: UygulamaProjesi = {
@@ -76,6 +76,37 @@ describe("proje dosyası — eski arayüzün biçimi", () => {
     expect(b.tamam && b.icerik.asansorler).toEqual([{ kabin_agirligi: "" }]);
     const o = dosyaOku(JSON.stringify({ alanlar: { __muk_asansorler: [{ beyan_yuku: "999" }] } }), SEMA, {});
     expect(o.tamam && o.taninmayan).toEqual(["beyan_yuku = 999"]);
+  });
+
+  it("eskiden onay kutusu olan seçim sunucunun okuduğu seçeneği alır ( eski_onay )", () => {
+    const ac = (ham: unknown) =>
+      dosyaOku(JSON.stringify({ alanlar: { __muk_asansorler: [{ makine_raya_biniyor: ham }] } }), SEMA, {});
+    //  İşaretsiz:  bina yapısına ( varsayılana dönmez );  işaretli:  raylar ( varsayılan — yazılmaz )
+    const durumlar: [unknown, Ham][] = [
+      [false, { makine_raya_biniyor: "Bina yapısına" }],
+      ["HAYIR", { makine_raya_biniyor: "Bina yapısına" }],
+      [true, {}],
+      ["EVET", {}],
+      ["Bina yapısına", { makine_raya_biniyor: "Bina yapısına" }],
+    ];
+    for (const [ham, beklenen] of durumlar) {
+      const o = ac(ham);
+      expect(o.tamam && o.icerik.asansorler, String(ham)).toEqual([beklenen]);
+      expect(o.tamam && o.taninmayan, String(ham)).toEqual([]);
+    }
+    //  Sayı ne onay kutusu ne seçenek ( sunucu da reddeder ):  varsayılana döner, söylenir
+    const s = ac(3);
+    expect(s.tamam && s.taninmayan).toEqual(["makine_raya_biniyor = 3"]);
+  });
+
+  it("onay kutusu sunucunun okuduğu gibi:  eski dosyanın 'HAYIR'ı işaretsiz", () => {
+    const ac = (ham: unknown) =>
+      dosyaOku(JSON.stringify({ alanlar: { m_mk_yok: ham, __muk_asansorler: [{}] } }), SEMA, {});
+    const h = ac("HAYIR");
+    expect(h.tamam && h.icerik.proje_geneli).toEqual({ mk_yok: "false" });
+    //  "EVET" işaretli = varsayılan:  yazılmaz
+    const e = ac("EVET");
+    expect(e.tamam && e.icerik.proje_geneli).toEqual({});
   });
 
   it("ofis standardı farkı sayılır, uygulanmaz", () => {

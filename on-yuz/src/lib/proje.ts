@@ -263,6 +263,14 @@ export function istekKur(p: UygulamaProjesi, ofis: Ham): UygulamaIstegi {
   return { asansorler: p.asansorler, proje_geneli: p.proje_geneli, sabitler };
 }
 
+/**  İki istek aynı girdiyi mi taşıyor ( kapak / antet hesabı, ölçüyü ve düzeltmeyi değiştirmez )  */
+export function ayniGirdi(a: UygulamaIstegi | null, b: UygulamaIstegi | null) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const g = (x: UygulamaIstegi) => JSON.stringify({ ...x, kapak: undefined });
+  return g(a) === g(b);
+}
+
 /* ───────────────────────────── Ön yüz denetimi:  saf işlevler lib/denetim.ts'te
     ( bağımlılıksız — testler/test_on_yuz_denetimi.py onu Node ile doğrudan koşar ) */
 export { alanHatasi, kutuyaYaz, sayiOku } from "./denetim";
