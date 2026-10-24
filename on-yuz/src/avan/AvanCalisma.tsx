@@ -22,6 +22,7 @@ import {
   sabitDegeri,
   TRAFIK_AZAMI,
   trafikFarki,
+  trafikSutunuKaldir,
   yeniAvanAcilisi,
   useAvanOfisi,
   useAvanProjesi,
@@ -557,7 +558,7 @@ function TrafikAdimi({
                             <button
                               type="button"
                               aria-label={`${i + 1}. asansörü kaldır`}
-                              onClick={() => setP((q) => ({ ...q, trafikAsansorleri: q.trafikAsansorleri.filter((_, j) => j !== i) }))}
+                              onClick={() => setP((q) => trafikSutunuKaldir(q, i))}
                             >
                               <X className="size-3" />
                             </button>
@@ -1101,13 +1102,23 @@ function KapakAdimi({
       }
       //  Sunucu reddederse JSON ileti gelir:  PDF diye çizilmesin, sebebi görünsün
       if ((r.headers.get("Content-Type") || "").includes("application/json")) {
-        const j = await r.json();
+        let j: { hata?: unknown };
+        try {
+          j = await r.json();
+        } catch {
+          throw new Error(`Sunucunun yanıtı okunamadı ( ${r.status} ) — önizleme alınamadı.`);
+        }
         throw new Error(Array.isArray(j.hata) ? j.hata.join(" ") : String(j.hata ?? "Kapak üretilemedi"));
       }
       //  JSON olmayan hata da ( ağ geçidi 502 / 504 ):  sayfası PDF diye çizilmeye
       //  çalışılıyor, önizleme sonsuza dek dönüyordu ( 24 Eki )
       if (!r.ok) throw new Error(`Sunucu yanıt vermedi ( ${r.status} ) — önizleme alınamadı.`);
-      return r.arrayBuffer();
+      //  Yanıt inerken bağlantı koparsa tarayıcının iletisi ( "network error" ) değil
+      try {
+        return await r.arrayBuffer();
+      } catch {
+        throw new Error("Önizleme inerken bağlantı koptu — önizleme alınamadı.");
+      }
     },
   });
   return (

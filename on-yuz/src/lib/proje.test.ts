@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { alanHatasi, alanOku, alanYaz, asansorAdedi, asansorEkle, asansorKaldir, formHatalari, gizliAlanlar, istekKur, kutuyaYaz, sayiOku, secenekKapali, type UygulamaProjesi } from "./proje";
+import { describe, expect, it, vi } from "vitest";
+import { alanHatasi, alanOku, alanYaz, asansorAdedi, asansorEkle, asansorKaldir, formHatalari, gizliAlanlar, istekKur, kutuyaYaz, projeOku, sayiOku, secenekKapali, type UygulamaProjesi } from "./proje";
 import { SEMA } from "./test-semasi";
 
 const proje = (p: Partial<UygulamaProjesi> = {}): UygulamaProjesi => ({
@@ -133,5 +133,37 @@ describe("asansör ekleme / kaldırma", () => {
     expect(asansorAdedi(p0, 1, 4).asansorler).toEqual([{ asansor_adi: "A", kuyu_genisligi: "2400" }]);
     expect(asansorAdedi(p0, 4, 4).asansorler).toHaveLength(4);
     expect(asansorAdedi(p0, 9, 4).asansorler).toHaveLength(4);
+  });
+});
+
+describe("asansöre özgü kapak değeri asansörüyle gider ( 24 Eki )", () => {
+  //  "capacity.2" 2 nolu asansörün tablosudur:  sıra kayınca anahtar da kaymalı
+  const p0 = proje({
+    asansorler: [{ beyan_yuku: "630" }, { beyan_yuku: "1000" }, { beyan_yuku: "1600" }],
+    kapak: { "capacity.1": "630 kg", "capacity.2": "1000 kg", "speed.3": "2 m/s", capacity: "hepsi", owner: "İşveren" },
+  });
+  it("kaldırılanınki silinir, sonrakiler bir öne kayar ( kalan 1000 kg'lık asansöre 630 basılıyordu )", () => {
+    expect(asansorKaldir(p0, 0).kapak).toEqual({ "capacity.1": "1000 kg", "speed.2": "2 m/s", capacity: "hepsi", owner: "İşveren" });
+    expect(asansorKaldir(p0, 1).kapak).toEqual({ "capacity.1": "630 kg", "speed.2": "2 m/s", capacity: "hepsi", owner: "İşveren" });
+  });
+  it("adet azalınca kaldırılanlarınki silinir", () => {
+    expect(asansorAdedi(p0, 1, 4).kapak).toEqual({ "capacity.1": "630 kg", capacity: "hepsi", owner: "İşveren" });
+  });
+  it("yeni asansör kaldırılmış bir asansörün değerini almaz ( eski kayıtta kalmış olsa da )", () => {
+    const eski = proje({ asansorler: [{}], kapak: { "capacity.2": "eski 2. asansör", "speed.1": "1 m/s" } });
+    expect(asansorEkle(eski, 4).kapak).toEqual({ "speed.1": "1 m/s" });
+  });
+  it("asansöre ait olmayan ve sırası olmayan anahtara dokunulmaz", () => {
+    const p = proje({ asansorler: [{}, {}], kapak: { "owner.1": "x", "capacity.a": "y", "capacity.2": "z" } });
+    expect(asansorKaldir(p, 0).kapak).toEqual({ "owner.1": "x", "capacity.a": "y", "capacity.1": "z" });
+  });
+  it("kayıtlı projede olmayan asansörün değeri atılır ( eskiden kalmış:  görünmeden 'dolu alan' sayılıyordu )", () => {
+    const kayit = proje({ asansorler: [{}, {}], kapak: { "capacity.2": "iki", "capacity.3": "kalıntı", city: "Konya" } });
+    vi.stubGlobal("localStorage", { getItem: () => JSON.stringify(kayit) });
+    try {
+      expect(projeOku("t")?.kapak).toEqual({ "capacity.2": "iki", city: "Konya" });
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

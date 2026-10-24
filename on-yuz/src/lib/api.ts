@@ -367,7 +367,10 @@ export interface IndirmeSonucu {
   notlar?: string[];
 }
 
-/**  İndirme uçları dosya döndürür;  sunucu reddederse JSON hata gelir.  */
+/**  İndirme uçları dosya döndürür;  sunucu reddederse JSON hata gelir.
+     HİÇ FIRLATMAZ:  düğmeler yalnız dönen hatayı gösterir.  24 Eki:  dosya inerken
+     bağlantı kopunca ( blob reddi ) düğme sessizce eski hâline dönüyordu — dosya
+     yok, ileti yok.  */
 export async function indir(uc: string, govde: unknown): Promise<IndirmeSonucu> {
   let r: Response;
   try {
@@ -380,13 +383,24 @@ export async function indir(uc: string, govde: unknown): Promise<IndirmeSonucu> 
     return { hata: "Sunucuya ulaşılamadı — bağlantıyı denetleyip yeniden deneyin." };
   }
   if ((r.headers.get("Content-Type") || "").includes("application/json")) {
-    const j = await r.json();
+    let j: { hata?: unknown };
+    try {
+      j = await r.json();
+    } catch {
+      return { hata: `Sunucunun yanıtı okunamadı ( ${r.status} ) — yeniden deneyin.` };
+    }
     return { hata: Array.isArray(j.hata) ? j.hata.join("\n") : String(j.hata ?? "Üretilemedi") };
   }
   if (!r.ok) return { hata: `Sunucu yanıt vermedi ( ${r.status} )` };
+  let veri: Blob;
+  try {
+    veri = await r.blob();
+  } catch {
+    return { hata: "Dosya inerken bağlantı koptu — dosya inmedi;  yeniden deneyin." };
+  }
   const ad = /filename\*?=(?:UTF-8'')?"?([^";]+)/i.exec(r.headers.get("Content-Disposition") || "")?.[1];
-  const url = URL.createObjectURL(await r.blob());
-  const a = Object.assign(document.createElement("a"), { href: url, download: decodeURIComponent(ad || uc) });
+  const url = URL.createObjectURL(veri);
+  const a = Object.assign(document.createElement("a"), { href: url, download: indirilenAd(ad, uc) });
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -394,6 +408,15 @@ export async function indir(uc: string, govde: unknown): Promise<IndirmeSonucu> 
   setTimeout(() => URL.revokeObjectURL(url), 3000);
   const notlar = (r.headers.get("X-Avan-Not") || "").split(",").filter(Boolean);
   return notlar.length ? { notlar } : {};
+}
+
+/**  Content-Disposition'daki ad;  kodlaması bozuksa olduğu gibi ( decodeURIComponent fırlatır )  */
+function indirilenAd(ad: string | undefined, yedek: string): string {
+  try {
+    return decodeURIComponent(ad || yedek);
+  } catch {
+    return ad || yedek;
+  }
 }
 
 /**  Paket notlarının Türkçesi ( eski arayüzle aynı anlamlar ).  */

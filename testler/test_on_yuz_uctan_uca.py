@@ -10,7 +10,9 @@ gerçek sunucu ve gerçek tarayıcıyla:
   2  canlı hesap:  girdi değişince ekran taze hesabı gösterir, geride kalan
      yanıt öne geçmez;  beyan yükü değişince kabin kütlesi tablodan gelir
   3  proje dosyası:  .uygulama ve .avan kaydet → aç → aynı istek, aynı hesap;
-     iki asansör ayrı kalır;  eski dosyanın onay kutusu sunucunun okuduğu seçenek
+     iki asansör ayrı kalır;  eski dosyanın onay kutusu sunucunun okuduğu seçenek;
+     kaldırılan asansörün sonucu ve kapak değeri kalana geçmez ( avanda trafik
+     sütununun kartı da gider )
   4  ölçü kutusu:  ölçüye tıkla → kaynakları;  yeni değer → girdi değişir
   5  teslim:  onaysız paket kapalı;  onaylı ZIP iner, içinde PDF ve .uygulama;
      çizimde sorun varken paket kapalı, hesap PDF'i açık
@@ -18,7 +20,8 @@ gerçek sunucu ve gerçek tarayıcıyla:
      karttaki soruna tıklanınca tuval onun yerine yakınlaşır;  "Düzeltme öner"
      doğrulanmış düzeltmeleri getirir, "Uygula" kutuya yazar, sorun kalkar;
      girdi değişince eski çizimin düzeltmeleri uygulanamaz
-  8  sunucuya ulaşılamazsa:  ekran söyler, "Yeniden dene" sunucu dönünce açar
+  8  sunucuya ulaşılamazsa:  ekran söyler, "Yeniden dene" sunucu dönünce açar;
+     indirme yarıda kopunca da söyler;  kapak önizlemesi pdf.js işçisini kapatır
   6  adresler:  bilinmeyen proje açılışa döner;  /yeni köke yönlenir
   Hiçbir testte konsol hatası yok.
 
@@ -512,6 +515,52 @@ class OnYuzUctanUca(unittest.TestCase):
         for _ in range(2):
             self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).first.click()
         self.assertEqual(self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).count(), 0)
+
+    def kayitli_kapak(self):
+        self.iz.sakin()
+        kimlik = self.sayfa.url.rstrip("/").rsplit("/", 1)[-1].split("?")[0]
+        return self.sayfa.evaluate(f"JSON.parse(localStorage.getItem('asansor:proje:{kimlik}')).kapak")
+
+    def test_kaldirilan_asansorun_kapak_degeri_kalana_gecmez(self):
+        """24 Eki ( Codex ):  kapağın asansöre özgü değeri ( "capacity.1" ) asansörün
+        sırasına bağlıdır;  1. asansör kaldırılınca kalan 1000 kg'lık asansörün
+        tablosuna kaldırılanın değeri basılıyordu.  Kaldırılanınki silinir,
+        sonrakiler kayar;  "Geri al" kapağı da döndürür, kapağa yazılınca kapanır."""
+        self.ornek_projeyi_ac()
+        self.sayfa.get_by_role("button", name="Asansör ekle").click()
+        self.secim_yap("beyan_yuku", "1.000")
+        self.iz.sakin()
+        self.sayfa.get_by_role("button", name=re.compile("Örnek proje")).first.click()
+        bilgiler = self.sayfa.get_by_role("dialog", name="Proje bilgileri")
+        bilgiler.get_by_role("button", name="Kapak sayfası").click()
+        bilgiler.get_by_role("radio", name="1. asansör").click()
+        bilgiler.get_by_label("Kapasite", exact=True).fill("1275 kg / 17 kişi")
+        bilgiler.get_by_role("radio", name="2. asansör").click()
+        bilgiler.get_by_label("Hız", exact=True).fill("1 m/s")
+        self.sayfa.keyboard.press("Escape")
+        bilgiler.wait_for(state="detached")
+        once = {"capacity.1": "1275 kg / 17 kişi", "speed.2": "1 m/s"}
+        self.assertEqual(self.kayitli_kapak(), once)
+
+        self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).first.click()
+        self.assertEqual([a.get("beyan_yuku") for a in self.kayitli_asansorler()], ["1000"])
+        self.assertEqual(self.kayitli_kapak(), {"speed.1": "1 m/s"})
+        self.sayfa.get_by_role("status").get_by_role("button", name="Geri al").click()
+        self.assertEqual(self.kayitli_kapak(), once)
+
+        #  Kaldırmadan sonra kapağa yazılınca geri alma kapanır:  yazılanı ezerdi
+        self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).first.click()
+        geri_al = self.sayfa.get_by_role("status").get_by_role("button", name="Geri al")
+        self.assertEqual(geri_al.count(), 1)
+        self.sayfa.get_by_role("button", name=re.compile("Örnek proje")).first.click()
+        kapak = bilgiler.get_by_role("button", name="Kapak sayfası")
+        if kapak.get_attribute("aria-expanded") != "true":
+            kapak.click()
+        bilgiler.get_by_label("İl", exact=True).fill("Konya")
+        self.sayfa.keyboard.press("Escape")
+        bilgiler.wait_for(state="detached")
+        self.assertEqual(geri_al.count(), 0)
+        self.assertEqual(self.kayitli_kapak(), {"speed.1": "1 m/s", "city": "Konya"})
 
     def test_yeni_avan_projesi_oncekini_geri_alir(self):
         self.sayfa.goto(self.url + "/avan/trafik")
@@ -1214,6 +1263,115 @@ class OnYuzUctanUca(unittest.TestCase):
         self._bekle(lambda: main.locator(".animate-spin").count() == 0, "önizleme çizilmedi")
         self.assertEqual(self.sayfa.get_by_role("alert").count(), 0)
         self.iz.hatalar = [h for h in self.iz.hatalar if "502" not in h]
+
+    def _avan_kapagi(self, baslik="Kapak deneme"):
+        self.sayfa.goto(self.url + "/avan/trafik")
+        self.sayfa.evaluate(
+            """b => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut'}, ekNufus: [], trafikAsansorleri: [{P: '8'}],
+                ortak: {}, avanAsansorleri: [{}, {}, {}, {}], kapak: {project_title: b}}))""",
+            baslik,
+        )
+        self.sayfa.goto(self.url + "/avan/kapak")
+
+    def test_kapak_onizlemesi_iscisini_kapatir(self):
+        """24 Eki ( Codex ):  pdf.js her önizlemede yeni bir işçi ( Web Worker ) açıyor,
+        kapatmıyordu — altı güncellemeden sonra altısı da çalışıyordu, kapaktan
+        çıkınca da kapanmıyordu.  Sayfa çizilince belge işçisiyle kapanır."""
+        self.sayfa.add_init_script(
+            """(() => {
+                const W = window.Worker;
+                window.__isci = { acilan: 0, kapanan: 0 };
+                window.Worker = class extends W {
+                    constructor(...a) { super(...a); window.__isci.acilan++; }
+                    terminate() { window.__isci.kapanan++; return super.terminate(); }
+                };
+            })()"""
+        )
+        self._avan_kapagi()
+        isci = lambda: self.sayfa.evaluate("window.__isci")
+        for i in range(1, 4):
+            if i > 1:
+                self.sayfa.get_by_label("Kapak başlığı").fill(f"Kapak deneme {i}")
+            self._bekle(lambda n=i: isci()["acilan"] >= n, f"{i}. önizleme gelmedi")
+            self._bekle(
+                lambda: isci()["acilan"] == isci()["kapanan"], f"önizlemenin işçisi kapanmadı:  {isci()}"
+            )
+        self.assertEqual(self.sayfa.get_by_role("main").locator(".animate-spin").count(), 0)
+        self.assertEqual(self.sayfa.get_by_role("alert").count(), 0)
+        #  Kapaktan çıkınca açık işçi kalmaz
+        self.sayfa.get_by_role("link", name=re.compile("Trafik hesabı")).click()
+        self.sayfa.wait_for_url(re.compile(r"/avan/trafik$"))
+        s = isci()
+        self.assertEqual(s["acilan"], s["kapanan"], s)
+
+    def test_indirme_yarida_kopunca_soyler(self):
+        """24 Eki ( Codex ):  dosya inerken bağlantı kopunca ( gövde yarıda ) indirme
+        reddediliyor, düğme sessizce eski hâline dönüyordu — dosya yok, ileti yok.
+        Yanıtın ilk parçası gelip akış koparılır ( Playwright'ın route'u gövdeyi
+        yarıda kesemez )."""
+        self._avan_kapagi()
+        self._bekle(
+            lambda: self.sayfa.get_by_role("main").locator(".animate-spin").count() == 0, "önizleme çizilmedi"
+        )
+        self.sayfa.evaluate(
+            """() => {
+                const F = window.fetch.bind(window);
+                window.fetch = async (u, o) => {
+                    const r = await F(u, o);
+                    if (!String(u).endsWith('/api/indir/kapak-pdf')) return r;
+                    const okuyucu = r.body.getReader();
+                    const akim = new ReadableStream({ async start(c) {
+                        const { value } = await okuyucu.read();
+                        if (value) c.enqueue(value);
+                        c.error(new TypeError('network error'));
+                    } });
+                    return new Response(akim, { status: r.status, headers: r.headers });
+                };
+            }"""
+        )
+        inen = []
+        self.sayfa.on("download", lambda d: inen.append(d))
+        dugme = self.sayfa.get_by_role("button", name="PDF", exact=True)
+        dugme.click()
+        self.sayfa.get_by_text("Dosya inerken bağlantı koptu").wait_for(timeout=15_000)
+        self.assertTrue(dugme.is_enabled())
+        self.assertEqual(inen, [])
+
+    def test_avan_trafik_sutunu_kaldirilinca_karti_da_gider(self):
+        """24 Eki ( sınıf taraması ):  avan kartları trafiğin verdiği asansörlerin
+        sırasıyladır;  2. sütun kaldırılınca kartı yerinde kalıyor, 3. sütunun
+        asansörü 2.'nin kabin ve kuyu ölçüleriyle hesaplanıyordu."""
+        self.sayfa.goto(self.url + "/avan/trafik")
+        self.sayfa.evaluate(
+            """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut', bina_yuksekligi: '30', yapi_yuksekligi: '31', N: '10', h: '3',
+                         hizli1: '20', hizli2: '2'},
+                ekNufus: [],
+                trafikAsansorleri: [
+                    {P: '8', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik'},
+                    {P: '13', kapi_genisligi: '900', kapi_tipi: 'Teleskopik Otomatik'},
+                    {P: '10', kapi_genisligi: '900', kapi_tipi: 'Teleskopik Otomatik'}],
+                ortak: {mk_yok: 'true', temel_a: '20', temel_b: '15'},
+                avanAsansorleri: [
+                    {tanim: 'A', Hk: '34', kuyu_genisligi: '1600', kabin_boyu: '1250', kabin_genisligi: '1000'},
+                    {tanim: 'B', Hk: '34', kuyu_genisligi: '2000', kabin_boyu: '1500', kabin_genisligi: '1400'},
+                    {tanim: 'C', Hk: '34', kuyu_genisligi: '1800', kabin_boyu: '1400', kabin_genisligi: '1100'},
+                    {}],
+                kapak: {project_title: 'Sütun deneme'}}))"""
+        )
+        self.sayfa.goto(self.url + "/avan/trafik")
+        kart = lambda istek: [
+            (a["tanim"], a["kapasite"], a["kabin_genisligi"])
+            for a in istek["girdiler"]["asansorler"]
+            if a["aktif"]
+        ]
+        istek, _avan = self.iz.son("/api/avan")
+        self.assertEqual(kart(istek), [("A", "8", "1000"), ("B", "13", "1400"), ("C", "10", "1100")])
+        self.sayfa.get_by_role("button", name="2. asansörü kaldır").click()
+        istek, avan = self.iz.son("/api/avan")
+        self.assertEqual(kart(istek), [("A", "8", "1000"), ("C", "10", "1100")])
+        self.assertTrue(all(a["aktif"] for a in avan["asansorler"][:2]), avan)
 
     # ------------------------------------------------------------ 6 adresler
     def test_bilinmeyen_proje_acilisa_doner(self):

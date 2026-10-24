@@ -88,6 +88,25 @@ export const UYGULAMA_TURETILMEYEN = new Set(["block"]);
 /**  Asansöre özgü kapak anahtarı:  no 1'den başlar  */
 export const asansorAnahtari = (anahtar: string, no: number) => `${anahtar}.${no}`;
 
+/**  ASANSÖRE ÖZGÜ DEĞER ASANSÖRÜYLE GİDER ( 24 Eki ):  "capacity.2" asansörün
+     SIRASINA bağlıdır;  asansör kaldırılınca kaldırılanınki silinmeli, sonrakiler
+     bir öne kaymalı.  Kaymıyordu:  1. asansör kaldırılınca kalan 1000 kg'lık
+     asansörün tablosuna kaldırılanın 630 kg'ı basıldı.
+     yeniNo:  eski sıra → yeni sıra;  null → değer silinir.  Öbür anahtarlar aynı kalır.  */
+export function kapakSirala(kapak: Record<string, string>, yeniNo: (no: number) => number | null): Record<string, string> {
+  const y: Record<string, string> = {};
+  for (const [k, v] of Object.entries(kapak)) {
+    const m = /^(.+)\.(\d+)$/.exec(k);
+    if (!m || !KAPAK_ASANSOR_ALANLARI.includes(m[1])) {
+      y[k] = v;
+      continue;
+    }
+    const no = yeniNo(Number(m[2]));
+    if (no !== null) y[asansorAnahtari(m[1], no)] = v;
+  }
+  return y;
+}
+
 /**  Boş alanlar atılır:  sunucu kapak sayfasını yalnız dolu alan varsa koyar.  */
 export function kapakSayfasi(alanlar: Record<string, string | undefined>): Record<string, string> {
   return Object.fromEntries(
