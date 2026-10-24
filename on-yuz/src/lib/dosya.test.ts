@@ -131,4 +131,20 @@ describe("proje dosyası — eski arayüzün biçimi", () => {
     const o = dosyaOku(JSON.stringify({ alanlar: { __muk_adet: 9, __muk_asansorler: Array(9).fill({}) } }), SEMA, {});
     expect(o.tamam && o.icerik.asansorler.length).toBe(4);
   });
+
+  it("asansör adedi dizideki kadar:  dosyada olmayan asansör eklenmez ( eski arayüzün kuralı )", () => {
+    const adet = (alanlar: Record<string, unknown>) => {
+      const o = dosyaOku(JSON.stringify({ alanlar }), SEMA, {});
+      return o.tamam ? o.icerik.asansorler.length : -1;
+    };
+    expect(adet({ __muk_adet: 4, __muk_asansorler: [{}, {}] })).toBe(2);
+    expect(adet({ __muk_adet: 1, __muk_asansorler: [{}, {}, {}] })).toBe(1);
+    //  Dizisi olmayan dosya tek asansörlü eski biçimdir
+    expect(adet({ __muk_adet: 2, m_kuyu_genisligi: "2500" })).toBe(1);
+  });
+
+  it("kapakta elle yazılmış sayı da okunur ( atılıyordu )", () => {
+    const o = dosyaOku(JSON.stringify({ alanlar: { m_adet: "1", __yeni_kapak: { city: "Konya", area: 450, "capacity.1": "630 kg" } } }), SEMA, {});
+    expect(o.tamam && o.icerik.kapak).toEqual({ city: "Konya", area: "450", "capacity.1": "630 kg" });
+  });
 });

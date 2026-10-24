@@ -22,6 +22,10 @@ gerçek sunucu ve gerçek tarayıcıyla:
      girdi değişince eski çizimin düzeltmeleri uygulanamaz
   8  sunucuya ulaşılamazsa:  ekran söyler, "Yeniden dene" sunucu dönünce açar;
      indirme yarıda kopunca da söyler;  kapak önizlemesi pdf.js işçisini kapatır
+  9  arıza matrisi:  ekranın konuştuğu her uç × her arıza türü — ekran söyler,
+     sayfa çökmez, arıza kalkınca düzelir ( PR'da iki tür;  ARIZA_HEPSI=1 beşi )
+  10 kaynak sayacı:  aynı işlemler tekrarlanınca açık işçi, nesne adresi,
+     dinleyici ve yoldaki istek büyümez
   6  adresler:  bilinmeyen proje açılışa döner;  /yeni köke yönlenir
   Hiçbir testte konsol hatası yok.
 
@@ -194,6 +198,29 @@ class IzleyiciSayaci(unittest.TestCase):
         s.olay["request"](_SahteIstek(s, "http://x/api/avan"))
         s.olay["framenavigated"](s.main_frame)  # pushState:  belge isteği yok
         self.assertEqual(iz.yolda, 1)
+
+
+class ArizaMatrisiKapsami(unittest.TestCase):
+    """Tarayıcısız:  ön yüzün çağırdığı her uç arıza matrisinde — yeni uç matrise
+    girmeden bu test geçmez ( 24 Eki:  sessiz hata yolları uç uç bulunuyordu )."""
+
+    def test_on_yuzun_her_ucu_matriste(self):
+        import glob
+        import inspect
+
+        kaynak = "".join(
+            open(p, encoding="utf-8").read()
+            for p in glob.glob(os.path.join(KOK, "on-yuz", "src", "**", "*.ts*"), recursive=True)
+            if ".test." not in p
+        )
+        uclar = set(re.findall(r'"(/api/[a-z_/-]+)"', kaynak))
+        uclar |= {f"/api/indir/{u}" for u in re.findall(r'(?:indir\(|uc=)"([a-z-]+)"', kaynak)}
+        self.assertGreater(len(uclar), 10, uclar)
+        matris = "".join(
+            inspect.getsource(getattr(OnYuzUctanUca, ad))
+            for ad in ("test_ariza_matrisi_uygulama", "test_ariza_matrisi_avan", "test_ariza_matrisi_diger")
+        )
+        self.assertEqual(sorted(u for u in uclar if f'"{u}"' not in matris), [], "matriste olmayan uçlar")
 
 
 @unittest.skipIf(ATLA, ATLA)
@@ -1372,6 +1399,527 @@ class OnYuzUctanUca(unittest.TestCase):
         istek, avan = self.iz.son("/api/avan")
         self.assertEqual(kart(istek), [("A", "8", "1000"), ("C", "10", "1100")])
         self.assertTrue(all(a["aktif"] for a in avan["asansorler"][:2]), avan)
+
+    def test_avan_sonradan_secilen_kapasite_kartlari_kaydirmaz(self):
+        """Sınıf taraması ( rastgele işlem dizisi ):  yeni avan projesinde 1. sütunun
+        kapasitesi seçili gelmez.  2. sütunun kapasitesi seçilip 1. kart ( onun
+        asansörü ) doldurulduktan sonra 1. sütuna kapasite seçilince kart kime gider?"""
+        self.sayfa.goto(self.url + "/avan/trafik")
+        self.sayfa.evaluate(
+            """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut', bina_yuksekligi: '30', yapi_yuksekligi: '31', N: '10', h: '3',
+                         hizli1: '20', hizli2: '2'},
+                ekNufus: [],
+                trafikAsansorleri: [{kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik'},
+                                    {P: '13', kapi_genisligi: '900', kapi_tipi: 'Teleskopik Otomatik'}],
+                ortak: {mk_yok: 'true', temel_a: '20', temel_b: '15'},
+                avanAsansorleri: [{tanim: 'B', Hk: '34', kuyu_genisligi: '2000', kabin_boyu: '1500',
+                                   kabin_genisligi: '1400'}, {}, {}, {}],
+                kapak: {project_title: 'Kapasite deneme'}}))"""
+        )
+        self.sayfa.goto(self.url + "/avan/trafik")
+        istek, _avan = self.iz.son("/api/avan")
+        aktif = [a for a in istek["girdiler"]["asansorler"] if a["aktif"]]
+        self.assertEqual([(a.get("tanim"), a["kapasite"]) for a in aktif][:1], [("B", "13")])
+        self.sayfa.get_by_label("1. asansör ⑧ Kapasite").click()
+        self.sayfa.get_by_role("option", name="8 kişi", exact=True).click()
+        istek, _avan = self.iz.son("/api/avan")
+        aktif = {a["kapasite"]: a.get("tanim") for a in istek["girdiler"]["asansorler"] if a["aktif"]}
+        self.assertEqual(aktif.get("13"), "B", f"13 kişilik asansörün kartı kaydı:  {aktif}")
+
+    def test_duzeltmenin_son_temiz_girdisi_kendi_asansorunun(self):
+        """Düzeltme öner son değişikliği asansörün SON TEMİZ girdisine göre arar;
+        o girdi asansörün sırasıyla tutuluyor.  1. asansör kaldırılınca 2.'nin
+        isteğine 1.'nin girdisi gidiyor mu?"""
+        self.ornek_projeyi_ac()
+        self.sayfa.get_by_role("button", name="Asansör ekle").click()
+        self.alan_kutusu("kuyu_derinligi").fill("2750")
+        self.iz.sakin()
+        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.iz.sakin()
+        self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).first.click()
+        self.iz.sakin()
+        with self.sayfa.expect_request(
+            lambda r: r.url.endswith("/api/uygulama/care"), timeout=30_000
+        ) as istek:
+            self.sayfa.get_by_role("alert").get_by_role("button", name="Düzeltme öner").click()
+        onceki = (json.loads(istek.value.post_data) or {}).get("onceki") or {}
+        self.assertIn(
+            (onceki.get("asansor") or {}).get("kuyu_derinligi"),
+            ("2750", None),
+            "kaldırılan 1. asansörün son temiz girdisi gitti",
+        )
+
+    def test_asansor_sayisi_degisince_cizim_eski_listeyle_istenmez(self):
+        """Sınıf taraması ( sıra / bayat eşleşme ):  ekleme, kaldırma ve geri almadan
+        sonra seçili sıra yeni listenindir;  gecikmeli istek 300 ms eski listeyle
+        gidiyordu — eklemede sunucu sırayı kırpıp son asansörün çizimini, kaldırmada
+        kaldırılanınkini döndürüyordu ( yoldaki hesap yanıtı da eski sırayla gelip
+        kaldırılanın hükümlerini kalanın sekmesine koyabiliyordu )."""
+        self.ornek_projeyi_ac()
+        giden = []
+
+        def dinle(r):
+            if r.url.endswith("/api/uygulama/cizimler"):
+                g = json.loads(r.post_data)
+                giden.append((len(g["asansorler"]), g["asansor"]))
+
+        self.sayfa.on("request", dinle)
+
+        def dene(adim, dugme, sayi, gitmeli=None):
+            giden.clear()
+            dugme.click()
+            self.iz.sakin()
+            #  Aynı girdinin çizimi önbellekten gelir ( istek gitmeyebilir ):  eski listeyle giden olmamalı
+            self.assertEqual([g for g in giden if g[0] != sayi], [], f"{adim}:  çizim eski listeyle istendi")
+            if gitmeli:
+                self.assertIn(gitmeli, giden, f"{adim}:  yeni listenin çizimi istenmedi")
+
+        dene("ekleme", self.sayfa.get_by_role("button", name="Asansör ekle"), 2, (2, 1))
+        #  Kalan asansör 1.'nin kopyası olmasın:  kaldırmadan sonraki istek önbellekte olmaz
+        self.alan_kutusu("kuyu_derinligi").fill("2750")
+        self.iz.sakin()
+        kaldir = self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).first
+        dene("kaldırma", kaldir, 1, (1, 0))
+        dene("geri alma", self.sayfa.get_by_role("status").get_by_role("button", name="Geri al"), 2)
+
+    # ------------------------------------------------------------ 9 arıza matrisi
+    #  24 Eki ( sınıf taraması ):  sessiz hata yolları birer birer bulunuyordu.  Ekranın
+    #  konuştuğu her uç × her arıza:  ekran bir şey söyler ( sonsuza dek dönmez, sayfa
+    #  hatası yok ), arıza kalkınca düzelir.  Arıza fetch'in sarmalıyla ( Playwright'ın
+    #  route'u gövdeyi yarıda kesemez );  sessionStorage '__ariza' = { yol , tur }
+    #  sayfa yenilense de durur.  ret:  sunucunun gerçek reddinin biçimi ( main.py
+    #  IstekBoyutu, 413 ) — iletisi ekranda görünmeli.
+    ARIZA_BETIGI = """(() => {
+        const F = window.fetch.bind(window);
+        window.__ariza = 0;
+        window.fetch = async (girdi, secenek) => {
+            let a = null;
+            try { a = JSON.parse(sessionStorage.getItem('__ariza') || 'null'); } catch {}
+            const adres = typeof girdi === 'string' ? girdi : girdi.url;
+            if (!a || !adres.includes(a.yol)) return F(girdi, secenek);
+            window.__ariza++;
+            const yanit = (govde, durum, tur) =>
+                new Response(govde, { status: durum, headers: { 'Content-Type': tur } });
+            if (a.tur === 'baglanti') throw new TypeError('Failed to fetch');
+            if (a.tur === 'sayfa') return yanit('<html><body>502 Bad Gateway</body></html>', 502, 'text/html');
+            if (a.tur === 'ret')
+                return yanit(JSON.stringify({ aktif: false, hata: ['DENEME REDDİ'] }), 413, 'application/json');
+            if (a.tur === 'bozuk') return yanit('<html>bozuk</html>', 200, 'application/json');
+            const r = await F(girdi, secenek);
+            const okuyucu = r.body.getReader();
+            return new Response(new ReadableStream({ async start(c) {
+                const { value } = await okuyucu.read();
+                if (value) c.enqueue(value.slice(0, Math.max(1, value.length >> 1)));
+                c.error(new TypeError('network error'));
+            } }), { status: r.status, headers: r.headers });
+        };
+    })()"""
+    #  Beş türün matrisi ~6–7 dk:  PR'da gerçek hata bulan iki tür koşar ( sunucunun
+    #  reddi, yarıda kesilen yanıt );  beşi birden ARIZA_HEPSI=1 ile — Actions'ta elle
+    #  başlatılan Denetim de beşini koşar ( ön yüzün sunucuyla konuşması değişince ).
+    ARIZALAR = (
+        ("baglanti", "sayfa", "ret", "bozuk", "kesik")
+        if os.environ.get("ARIZA_HEPSI") == "1"
+        else ("ret", "kesik")
+    )
+    #  Ekranın arızayı söylediği sözler ( "DENEME REDDİ":  sunucunun ret iletisi )
+    ARIZA_SOZU = (
+        "ulaşılamadı",
+        "yanıt vermedi",
+        "okunamadı",
+        "koptu",
+        "alınamadı",
+        "açılamadı",
+        "Bağlantı yok",
+        "DENEME REDDİ",
+    )
+
+    def _ariza_kur(self, yol=None, tur=None):
+        if not self.sayfa.url.startswith(self.url):
+            return  # boş sayfada sessionStorage yok;  sayfa açılınca kurulur
+        self.sayfa.evaluate(
+            "a => a ? sessionStorage.setItem('__ariza', JSON.stringify(a)) : sessionStorage.removeItem('__ariza')",
+            {"yol": yol, "tur": tur} if yol else None,
+        )
+
+    def _sozler(self):
+        metin = self.sayfa.evaluate("document.body.innerText")
+        return {s for s in self.ARIZA_SOZU if s in metin}
+
+    def _arizalari_dene(self, ad, yol, hazirla, tetik, bulgular, duzelt=None, sure=15, get=False):
+        """Her arıza türünde:  hazırla ( arızasız ) → arıza → tetik → ekran söyler mi →
+        arıza kalkar → "Yeniden dene" ( yoksa duzelt, o da yoksa tetik ) → düzelir mi.
+        duzelt=False:  düzelme denenmez ( paket gibi uzun istekler );  sure:  yanıtın
+        en uzun süresi ( sn );  get:  gövdesiz istek — boyut reddi ( ret ) olmaz."""
+        for i, tur in enumerate(self.ARIZALAR):
+            if get and tur == "ret":
+                continue
+            on = f"{ad} · {tur}"
+            self._ariza_kur()
+            #  Önceki türde sayfa çöktüyse ( yönlendiricinin hata ekranı ) baştan açılır
+            if getattr(self, "_cokmus", False):
+                self.sayfa.reload()
+                self.iz.sakin()
+                self._cokmus = False
+            hazirla(i)
+            self.iz.sakin()
+            once = self._sozler()
+            h0 = len(self.iz.hatalar)
+            self.sayfa.evaluate("window.__ariza = 0")
+            self._ariza_kur(yol, tur)
+            try:
+                tetik(i)
+            except Exception as e:  # noqa: BLE001 — bulgu olarak yazılır
+                bulgular.append(f"{on}:  tetiklenemedi ( {str(e).splitlines()[0][:160]} )")
+                continue
+            yeni, son = set(), time.time() + sure
+            while time.time() < son:
+                yeni = self._sozler() - once
+                if yeni:
+                    break
+                self.sayfa.wait_for_timeout(200)
+            if not self.sayfa.evaluate("window.__ariza"):
+                bulgular.append(f"{on}:  istek gitmedi ( tetik yanlış )")
+            elif not yeni:
+                donuyor = self.sayfa.locator(".animate-spin").count()
+                bulgular.append(f"{on}:  ekran bir şey söylemedi{' — dönüp duruyor' if donuyor else ''}")
+            elif tur == "ret" and "DENEME REDDİ" not in yeni:
+                bulgular.append(
+                    f"{on}:  sunucunun ret iletisi görünmedi ( ekranda:  {', '.join(sorted(yeni))} )"
+                )
+            hatalar = self.iz.hatalar[h0:]
+            del self.iz.hatalar[h0:]
+            if hatalar:
+                bulgular.append(f"{on}:  sayfa / konsol hatası:  {[h[:200] for h in hatalar[:2]]}")
+                self._cokmus = True
+            self._ariza_kur()
+            if not yeni or duzelt is False:
+                continue
+            dene = self.sayfa.get_by_role("button", name="Yeniden dene")
+            try:
+                if dene.count() and dene.first.is_visible():
+                    dene.first.click()
+                else:
+                    (duzelt or tetik)(i)
+            except Exception as e:  # noqa: BLE001
+                bulgular.append(f"{on}:  düzeltilemedi ( {str(e).splitlines()[0][:160]} )")
+                continue
+            kalan, son = yeni, time.time() + max(20, sure)
+            while time.time() < son:
+                kalan = self._sozler() & yeni
+                if not kalan:
+                    break
+                self.sayfa.wait_for_timeout(250)
+            if kalan:
+                bulgular.append(f"{on}:  arıza kalkınca düzelmedi ( ekranda:  {', '.join(sorted(kalan))} )")
+            del self.iz.hatalar[h0:]
+
+    def test_ariza_matrisi_uygulama(self):
+        self.sayfa.add_init_script(self.ARIZA_BETIGI)
+        b = []
+        self.ornek_projeyi_ac()
+        adres = self.sayfa.url
+
+        def ac(i):
+            self.sayfa.keyboard.press("Escape")
+            if self.sayfa.url != adres or self._sozler():
+                self.sayfa.goto(adres)
+                self.iz.sakin()
+
+        def kuyu(deger):
+            return lambda i: self.alan_kutusu("kuyu_genisligi").fill(str(deger + 5 * i))
+
+        def olcu(kaydir):
+            def ac_(i):
+                o = self.sayfa.get_by_role("button", name=re.compile(r"^Ölçü ")).nth(3 + 7 * i + kaydir)
+                o.scroll_into_view_if_needed()
+                o.focus()
+                self.sayfa.keyboard.press("Enter")
+
+            return ac_
+
+        def olcu_kutusu(i):
+            ac(i)
+            #  Önceki türün değişikliğiyle çizim yenilenirken açılan kutu "ölçüye yeniden tıklayın" der
+            self.iz.sakin()
+            self._olcuyu_ac()
+
+        def uygula(i):
+            kutu = self.sayfa.get_by_role("dialog", name=re.compile(r"^Ölçü "))
+            olcu_ = self.sayfa.get_by_role("button", name=re.compile(r"^Ölçü KUYU DİBİ")).first
+            eski = int(re.search(r"\d+", olcu_.get_attribute("aria-label").replace(".", "")).group())
+            kutu.get_by_role("textbox").fill(str(eski + 10 * (i + 1)))
+            kutu.get_by_role("button", name="Uygula").click()
+
+        def teslim(paket):
+            def ac_(i):
+                ac(i)
+                self.alan_kutusu("kuyu_genisligi").fill("2200")
+                self.iz.sakin()
+                self.sayfa.get_by_role("button", name="Teslim").click()
+                if paket:
+                    self.sayfa.get_by_role("dialog", name="Teslim").get_by_role("checkbox").check()
+
+            return ac_
+
+        def sorunlu(i):
+            ac(i)
+            self.alan_kutusu("kuyu_genisligi").fill(str(2300 + i))
+            self.iz.sakin()
+
+        self._arizalari_dene(
+            "form şeması", "/api/uygulama/alanlar", ac, lambda i: self.sayfa.reload(), b, get=True
+        )
+        self._arizalari_dene("hesap", "/api/uygulama/coklu", ac, kuyu(2205), b, duzelt=kuyu(2180))
+        self._arizalari_dene("çizim", "/api/uygulama/cizimler", ac, kuyu(2207), b, duzelt=kuyu(2182))
+        self._arizalari_dene("ölçü kaynağı", "/api/uygulama/olcu", ac, olcu(0), b, duzelt=olcu(1))
+        self._arizalari_dene("ölçü değiştir", "/api/uygulama/olcu_degistir", olcu_kutusu, uygula, b)
+        pdf = lambda i: self.sayfa.get_by_role("button", name="Yalnız hesap PDF'i").click()
+        self._arizalari_dene("hesap PDF'i", "/api/indir/uygulama-pdf", teslim(False), pdf, b)
+        paket = lambda i: self.sayfa.get_by_role("button", name=re.compile("Paketi indir")).click()
+        self._arizalari_dene(
+            "teslim paketi", "/api/indir/uygulama-dwg", teslim(True), paket, b, duzelt=False, sure=180
+        )
+        oner = lambda i: self.sayfa.get_by_role("alert").get_by_role("button", name="Düzeltme öner").click()
+        self._arizalari_dene("düzeltme öner", "/api/uygulama/care", sorunlu, oner, b, sure=60)
+        self.assertEqual(b, [], "\n" + "\n".join(b))
+
+    def test_ariza_matrisi_avan(self):
+        self.sayfa.add_init_script(self.ARIZA_BETIGI)
+        b = []
+        self.sayfa.goto(self.url + "/avan/trafik")
+        self.sayfa.evaluate(
+            """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut', bina_yuksekligi: '30', yapi_yuksekligi: '31', N: '10', h: '3',
+                         hizli1: '20', hizli2: '2'},
+                ekNufus: [],
+                trafikAsansorleri: [{P: '8', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik'}],
+                ortak: {mk_yok: 'true', temel_a: '20', temel_b: '15'},
+                avanAsansorleri: [{tanim: 'A', Hk: '34', kuyu_genisligi: '1800', kabin_boyu: '1400',
+                                   kabin_genisligi: '1100'}, {}, {}, {}],
+                kapak: {project_title: 'Avan deneme'}}))"""
+        )
+
+        def adim(yol):
+            def h(i):
+                if not self.sayfa.url.endswith(yol) or self._sozler():
+                    self.sayfa.goto(self.url + yol)
+                    self.iz.sakin()
+                if yol.endswith("kapak"):
+                    main = self.sayfa.get_by_role("main")
+                    self._bekle(lambda: main.locator(".animate-spin").count() == 0, "önizleme çizilmedi", 30)
+
+            return h
+
+        def kutu(secici, deger):
+            return lambda i: self.sayfa.locator(secici).fill(str(deger + i))
+
+        pdf = lambda i: self.sayfa.get_by_role("button", name="PDF", exact=True).click()
+        baslik = lambda i: self.sayfa.get_by_label("Kapak başlığı").fill(f"Avan deneme {i}")
+        self._arizalari_dene(
+            "seçenekler", "/api/secenekler", adim("/avan/trafik"), lambda i: self.sayfa.reload(), b, get=True
+        )
+        n = self.sayfa.get_by_label("③ Kat sayısı N")
+        self._arizalari_dene(
+            "trafik",
+            "/api/trafik",
+            adim("/avan/trafik"),
+            lambda i: n.fill(str(11 + i)),
+            b,
+            duzelt=lambda i: n.fill(str(21 + i)),
+        )
+        self._arizalari_dene(
+            "avan hesabı",
+            "/api/avan",
+            adim("/avan/hesaplar"),
+            kutu("#a-kuyu_genisligi", 1810),
+            b,
+            duzelt=kutu("#a-kuyu_genisligi", 1830),
+        )
+        self._arizalari_dene("trafik PDF'i", "/api/indir/trafik-pdf", adim("/avan/trafik"), pdf, b)
+        self._arizalari_dene("avan PDF'i", "/api/indir/avan-pdf", adim("/avan/hesaplar"), pdf, b)
+        self._arizalari_dene(
+            "kapak önizlemesi",
+            "/api/indir/kapak-pdf",
+            adim("/avan/kapak"),
+            baslik,
+            b,
+            duzelt=lambda i: self.sayfa.get_by_label("Kapak başlığı").fill(f"Avan yeni {i}"),
+        )
+        self._arizalari_dene("kapak PDF'i", "/api/indir/kapak-pdf", adim("/avan/kapak"), pdf, b)
+        paket = lambda i: self.sayfa.get_by_role("button", name="Projeyi indir").click()
+        self._arizalari_dene(
+            "avan paketi", "/api/indir/proje-dwg", adim("/avan/trafik"), paket, b, duzelt=False, sure=180
+        )
+        self.assertEqual(b, [], "\n" + "\n".join(b))
+
+    def test_ariza_matrisi_diger(self):
+        self.sayfa.add_init_script(self.ARIZA_BETIGI)
+        self.sayfa.goto(self.url + "/")
+        b = []
+
+        def sayfa(yol):
+            def h(i):
+                self.sayfa.goto(self.url + yol)
+
+            return h
+
+        yenile = lambda i: self.sayfa.reload()
+
+        def avan_sekmesi(i):
+            #  Avanın seçenekleri yalnız Avan sekmesi seçilince istenir
+            self.sayfa.reload()
+            self.sayfa.get_by_role("radio", name="Avan").click()
+
+        for ad, uc, yol, tetik in (
+            ("ofis standardı ( uygulama )", "/api/uygulama/alanlar", "/ofis-standardi", yenile),
+            ("ofis standardı ( avan )", "/api/secenekler", "/ofis-standardi", avan_sekmesi),
+            ("tablolar", "/api/uygulama/alanlar", "/tablolar", yenile),
+        ):
+            self._arizalari_dene(ad, uc, sayfa(yol), tetik, b, get=True)
+        with tempfile.TemporaryDirectory() as klasor:
+            dosya = os.path.join(klasor, "deneme.uygulama")
+            with open(dosya, "w", encoding="utf-8") as f:
+                json.dump(
+                    {"__mod": "uygulama", "__surum": 1, "alanlar": {"m_adet": "1", "__muk_asansorler": [{}]}},
+                    f,
+                )
+
+            def sec(i):
+                with self.sayfa.expect_file_chooser() as secici:
+                    self.sayfa.get_by_role("button", name="Dosya seç").click()
+                secici.value.set_files(dosya)
+
+            def acilista_dusmus(i):
+                #  Açılış şemayı sayfa açılırken alır;  orada düştüyse dosya açılınca yeniden ister
+                self.sayfa.reload()
+                sec(i)
+
+            self._arizalari_dene(
+                "açılışta dosya açma",
+                "/api/uygulama/alanlar",
+                sayfa("/"),
+                acilista_dusmus,
+                b,
+                duzelt=sec,
+                get=True,
+            )
+        self.assertEqual(b, [], "\n" + "\n".join(b))
+
+    # ------------------------------------------------------------ 10 kaynak sayacı
+    #  Aynı işlemler sayfa içinde ( yenilemeden ) tekrar tekrar:  açık işçi, nesne
+    #  adresi, aralık, gözlemci, window / document dinleyicisi ve yoldaki istek başa
+    #  döner mi?  Tam yenileme her şeyi sıfırlar — gezinme pushState ile.
+    SAYAC_BETIGI = """(() => {
+        const s = window.__kaynak = { isci: 0, adres: 0, aralik: 0, gozlemci: 0, istek: 0, dinleyici: {} };
+        const W = window.Worker;
+        window.Worker = class extends W {
+            constructor(...a) { super(...a); s.isci++; }
+            terminate() { s.isci--; return super.terminate(); }
+        };
+        const adresler = new Set(), ac = URL.createObjectURL, kapa = URL.revokeObjectURL;
+        URL.createObjectURL = (o) => { const u = ac.call(URL, o); adresler.add(u); s.adres = adresler.size; return u; };
+        URL.revokeObjectURL = (u) => { adresler.delete(u); s.adres = adresler.size; return kapa.call(URL, u); };
+        const araliklar = new Set(), si = window.setInterval, ci = window.clearInterval;
+        window.setInterval = (...a) => { const k = si.apply(window, a); araliklar.add(k); s.aralik = araliklar.size; return k; };
+        window.clearInterval = (k) => { araliklar.delete(k); s.aralik = araliklar.size; return ci.call(window, k); };
+        for (const ad of ['ResizeObserver', 'MutationObserver', 'IntersectionObserver']) {
+            const G = window[ad];
+            if (!G) continue;
+            window[ad] = class extends G {
+                observe(...a) { if (!this.__izliyor) { this.__izliyor = true; s.gozlemci++; } return super.observe(...a); }
+                disconnect() { if (this.__izliyor) { this.__izliyor = false; s.gozlemci--; } return super.disconnect(); }
+            };
+        }
+        const kimlik = new WeakMap(), kayitli = new Set();
+        let n = 0;
+        const anahtar = (h, t, f, o) => {
+            if (!kimlik.has(f)) kimlik.set(f, ++n);
+            return h + '|' + t + '|' + kimlik.get(f) + '|' + (typeof o === 'boolean' ? o : !!(o && o.capture));
+        };
+        const say = () => {
+            const d = {};
+            for (const k of kayitli) { const t = k.split('|').slice(0, 2).join(':'); d[t] = (d[t] || 0) + 1; }
+            s.dinleyici = d;
+        };
+        const ekle = EventTarget.prototype.addEventListener, cikar = EventTarget.prototype.removeEventListener;
+        EventTarget.prototype.addEventListener = function (t, f, o) {
+            if ((this === window || this === document) && f && !(o && o.once)) {
+                const k = anahtar(this === window ? 'window' : 'document', t, f, o);
+                kayitli.add(k);
+                if (o && o.signal) o.signal.addEventListener('abort', () => { kayitli.delete(k); say(); });
+                say();
+            }
+            return ekle.call(this, t, f, o);
+        };
+        EventTarget.prototype.removeEventListener = function (t, f, o) {
+            if ((this === window || this === document) && f) { kayitli.delete(anahtar(this === window ? 'window' : 'document', t, f, o)); say(); }
+            return cikar.call(this, t, f, o);
+        };
+        const F = window.fetch.bind(window);
+        window.fetch = (...a) => { s.istek++; return F(...a).finally(() => { s.istek--; }); };
+    })()"""
+
+    def _git(self, yol):
+        """Sayfa içi gezinme ( yönlendirici popstate'i dinler ):  sayfa yenilenmez."""
+        self.sayfa.evaluate(
+            "y => { history.pushState({}, '', y); dispatchEvent(new PopStateEvent('popstate')); }", yol
+        )
+        self.iz.sakin()
+
+    def _kaynak_dongusu(self, proje):
+        self._git(proje)
+        ekle = self.sayfa.get_by_role("button", name="Asansör ekle")
+        ekle.click()
+        self.iz.sakin()
+        self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).last.click()
+        self.sayfa.get_by_role("status").get_by_role("button", name="Geri al").click()
+        self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).last.click()
+        self.iz.sakin()
+        self._olcuyu_ac()
+        self.sayfa.keyboard.press("Escape")
+        for dugme in ("Teslim", re.compile("Örnek proje")):
+            self.sayfa.get_by_role("button", name=dugme).first.click()
+            self.sayfa.get_by_role("dialog").first.wait_for()
+            self.sayfa.keyboard.press("Escape")
+            self.sayfa.get_by_role("dialog").first.wait_for(state="detached")
+        self._git(proje + "?gorunum=hesap")
+        self._git(proje)
+        for yol in ("/avan/trafik", "/avan/hesaplar", "/avan/kapak"):
+            self._git(yol)
+        main = self.sayfa.get_by_role("main")
+        self._bekle(lambda: main.locator(".animate-spin").count() == 0, "önizleme çizilmedi", 30)
+        with self.sayfa.expect_download():
+            self.sayfa.get_by_role("button", name="PDF", exact=True).click()
+        for yol in ("/avan/trafik", "/tablolar", "/ofis-standardi", "/"):
+            self._git(yol)
+        self.sayfa.wait_for_timeout(3500)  # indirmenin adresi 3 sn sonra bırakılır
+        return self.sayfa.evaluate("JSON.parse(JSON.stringify(window.__kaynak))")
+
+    def test_kaynak_sayaci_tekrarda_buyumez(self):
+        self.sayfa.add_init_script(self.SAYAC_BETIGI)
+        self.sayfa.goto(self.url + "/avan/trafik")
+        self.sayfa.evaluate(
+            """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut'}, ekNufus: [], trafikAsansorleri: [{P: '8'}],
+                ortak: {}, avanAsansorleri: [{}, {}, {}, {}], kapak: {project_title: 'Kaynak deneme'}}))"""
+        )
+        self.ornek_projeyi_ac()
+        proje = "/" + self.sayfa.url.split("/", 3)[3]
+        sayimlar = [self._kaynak_dongusu(proje) for _ in range(4)]
+        duz = [
+            {
+                **{k: v for k, v in s.items() if k != "dinleyici"},
+                **{f"dinleyici {t}": n for t, n in s["dinleyici"].items()},
+            }
+            for s in sayimlar
+        ]
+        artan = {
+            k: [d.get(k, 0) for d in duz] for k in set().union(*duz) if duz[3].get(k, 0) > duz[1].get(k, 0)
+        }
+        self.assertEqual(artan, {}, f"tekrarla büyüyen kaynaklar:  {artan}\nsayımlar:  {duz}")
+        self.assertEqual((duz[3]["isci"], duz[3]["istek"], duz[3]["adres"]), (0, 0, 0), duz[3])
 
     # ------------------------------------------------------------ 6 adresler
     def test_bilinmeyen_proje_acilisa_doner(self):

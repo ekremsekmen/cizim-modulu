@@ -24,7 +24,7 @@ import {
   type OncekiGirdi,
   type UygulamaIstegi,
 } from "@/lib/api";
-import { formHatalari, istekKur, useGecikmeli, type FormHatasi, type Ham, type UygulamaProjesi } from "@/lib/proje";
+import { formHatalari, istekKur, siraKaydir, useGecikmeli, type FormHatasi, type Ham, type UygulamaProjesi } from "@/lib/proje";
 
 /**  Büyük SVG yanıtları ( ~800 KB ) her tuşta önbellekte birikmesin  */
 const ONBELLEK_MS = 30_000;
@@ -52,8 +52,13 @@ export function useSunucu(
     () => (hatalar.length ? null : { ...istekKur(proje, ofis), kapak: proje.kimlik }),
     [hatalar.length, proje, ofis],
   );
-  //  Son geçerli istek, gecikmeli ( kural dışı girdi beklenmez:  bkz. useGecikmeli )
-  const gonderilen = useGecikmeli(istek, 300);
+  //  Son geçerli istek, gecikmeli ( kural dışı girdi beklenmez:  bkz. useGecikmeli ).
+  //  ASANSÖR SAYISI DEĞİŞİNCE BEKLENMEZ ( 24 Eki ):  ekleme, kaldırma ve geri almadan
+  //  sonra seçili sıra yeni listenindir;  300 ms eski listeyle giden çizim isteği
+  //  başka asansörün çizimini getiriyordu ( eklemede sunucu sırayı kırpar ), yoldaki
+  //  hesap yanıtı da eski sırayla gelip kaldırılanın hükümlerini kalanın sekmesine
+  //  koyabiliyordu.
+  const gonderilen = useGecikmeli(istek, 300, proje.asansorler.length);
   const hesapIstegi = useMemo(() => {
     if (!gonderilen) return null;
     const { kapak: _kimlik, ...h } = gonderilen;
@@ -89,14 +94,24 @@ export function useSunucu(
   //  çıkıp çıkmadığına buna bakar ( değişen kutuda sınır — uclar/care_uclari.py )
   //  Karşılaştırma nesnenin kendisiyle:  istekte o asansör yoksa ( asansör yeni
   //  eklendi, dosya açılıyor ) yazılmaz — her çizimde yeni boş nesne yazmak
-  //  sonsuz yeniden çizime ( React #301 ) yol açıyordu
-  const [sonTemiz, setSonTemiz] = useState<Record<number, OncekiGirdi>>({});
+  //  sonsuz yeniden çizime ( React #301 ) yol açıyordu.
+  //  SIRA DEĞİŞİNCE ASANSÖRÜYLE GİDER ( 24 Eki ):  girdiler asansörün sırasıyla
+  //  tutuluyordu — 1. asansör kaldırılınca kalanın "Düzeltme öner"i kaldırılanın
+  //  girdisine göre aranıyordu.  Liste değişince yeni sırasına taşınır ( lib/proje
+  //  siraKaydir );  asansör sayısı listeninkinden farklı istekten yazılmaz ( kural
+  //  dışı girdi varken istek gitmez, gönderilen eski listede kalır — seçili sıra yenisinin ).
+  const [sonTemiz, setSonTemiz] = useState(() => ({ liste: proje.asansorler, girdiler: {} as Record<number, OncekiGirdi> }));
+  let temiz = sonTemiz;
+  if (temiz.liste !== proje.asansorler)
+    temiz = { liste: proje.asansorler, girdiler: siraKaydir(temiz.girdiler, temiz.liste, proje.asansorler) };
   const temizGirdi = gonderilen?.asansorler[asansor];
-  if (cizim.data?.aktif && !cizim.isPlaceholderData && gonderilen && temizGirdi) {
-    const e = sonTemiz[asansor];
+  const ayniSira = gonderilen?.asansorler.length === proje.asansorler.length;
+  if (cizim.data?.aktif && !cizim.isPlaceholderData && gonderilen && temizGirdi && ayniSira) {
+    const e = temiz.girdiler[asansor];
     if (e?.asansor !== temizGirdi || e?.proje_geneli !== gonderilen.proje_geneli)
-      setSonTemiz({ ...sonTemiz, [asansor]: { asansor: temizGirdi, proje_geneli: gonderilen.proje_geneli } });
+      temiz = { ...temiz, girdiler: { ...temiz.girdiler, [asansor]: { asansor: temizGirdi, proje_geneli: gonderilen.proje_geneli } } };
   }
+  if (temiz !== sonTemiz) setSonTemiz(temiz);
 
   //  ÇOK ASANSÖRDE BİRİ REDDEDİLİRSE yanıt yine aktiftir:  reddedilenin yalnız
   //  hata'sı gelir, bölümleri gelmez ( 22 Eki:  ikinci asansöre dar kuyu girilince
@@ -194,7 +209,7 @@ export function useSunucu(
     /**  Ekrandaki ( güncel ) çizimin sorunlu parçaları ( data-ad ) — tuval kırmızı işaretler  */
     sorunluParcalar,
     /**  Bu asansörün son temiz çiziminin girdisi ( yoksa null )  */
-    oncekiTemiz: sonTemiz[asansor] ?? null,
+    oncekiTemiz: temiz.girdiler[asansor] ?? null,
     sorun,
     /**  Düşen istekleri yeniden ister ( bağlantı sorunu )  */
     yenidenDene,

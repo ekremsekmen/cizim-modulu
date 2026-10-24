@@ -227,6 +227,21 @@ export function asansorKaldir(p: UygulamaProjesi, i: number): UygulamaProjesi {
   };
 }
 
+/**  SIRAYLA TUTULAN ASANSÖR VERİSİ ASANSÖRÜYLE GİDER ( 24 Eki ):  asansör listesi
+     değişince eski sıradaki veri asansörün yeni sırasına taşınır.  Asansör
+     nesnesinden tanınır:  kaldırma, ekleme ve geri alma kalan nesnelere dokunmaz;
+     girdisi yazılan asansör yeni nesnedir ama liste boyu aynı kalır ( yerinde ).
+     Boyu değişmiş listede tanınmayan ( geri alınan, başka sekmeden gelen ) unutulur.  */
+export function siraKaydir<T>(veri: Record<number, T>, eski: Ham[], yeni: Ham[]): Record<number, T> {
+  const y: Record<number, T> = {};
+  yeni.forEach((h, i) => {
+    const k = eski.indexOf(h);
+    const j = k >= 0 ? k : eski.length === yeni.length ? i : -1;
+    if (j >= 0 && veri[j] !== undefined) y[i] = veri[j];
+  });
+  return y;
+}
+
 /**  Adet:  artınca 1 nolunun kopyaları eklenir, azalınca sondakiler kaldırılır.  */
 export function asansorAdedi(p: UygulamaProjesi, n: number, azami: number): UygulamaProjesi {
   let q = p;
@@ -323,9 +338,15 @@ export function formHatalari(sema: AlanSemasi, p: UygulamaProjesi): FormHatasi[]
 
 /**  Kısa gecikmeli değer — yazarken her tuşta istek gitmesin.
      null gelen değer beklenmez:  son geçerli değer kalır ( kural dışı girdi
-     sunucuya gitmez, ekran son geçerli girdinin sonucunu gösterir ).  */
-export function useGecikmeli<T>(deger: T, ms = 280): T {
+     sunucuya gitmez, ekran son geçerli girdinin sonucunu gösterir ).
+     hemen değişince beklenmez ( useSunucu:  asansör sayısı ).  */
+export function useGecikmeli<T>(deger: T, ms = 280, hemen?: unknown): T {
   const [g, setG] = useState(deger);
+  const [h, setH] = useState(hemen);
+  if (hemen !== h && deger !== null) {
+    setH(hemen);
+    setG(deger);
+  }
   useEffect(() => {
     if (deger === null) return;
     const t = setTimeout(() => setG(deger), ms);

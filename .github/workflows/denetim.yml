@@ -7,7 +7,8 @@
 #    PR ve elle başlatma ( Actions → Denetim → Run workflow ):
 #      tam      lint + biçim, hesap, bütün çizim testleri ( yavaş dahil ),
 #               ön yüz ( on-yuz/:  tip, lint, test, derleme ), açık programın
-#               uçları ve kök sayfası, ön yüz gerçek tarayıcıda ( uçtan uca )
+#               uçları ve kök sayfası, ön yüz gerçek tarayıcıda ( uçtan uca;
+#               arıza matrisinin beş türü yalnız elle başlatınca, PR'da ikisi )
 #      tarama   510 düzenin hükmü kayıtla ( testler/tarama_hukumleri.json ), yazı ve fiziksel tutarlılık
 #    main'e push:  yalnız hızlı denetim ( PR'da hepsi zaten koştu )
 #
@@ -69,6 +70,8 @@ jobs:
       - run: python kontrol.py tam
         env:
           KONTROL_IS: auto
+          #  Arıza matrisinin beş türü yalnız elle başlatınca ( PR'da ikisi — test_on_yuz_uctan_uca )
+          ARIZA_HEPSI: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
 
   tarama:
     if: github.event_name != 'push'

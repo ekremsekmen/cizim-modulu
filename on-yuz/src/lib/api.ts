@@ -322,30 +322,43 @@ async function al<T>(yol: string): Promise<T> {
   return r.json();
 }
 
+/**  RET İLETİSİNİN BİÇİMİ ucun biçimine eşitlenir:  uygulama uçları iletileri
+     listeyle ( {"aktif":false,"hata":[…]} ), avan uçları tek metinle verir;
+     boyut sınırı ( 413, main.py IstekBoyutu ) ve bilinmeyen adres ( 404 ) uçtan
+     habersizdir.  24 Eki:  avan isteği boyut sınırına takılınca liste gelen
+     iletiye .trim() çağrılıyor, avan ekranı çöküyordu;  uygulama ucunda metin
+     gelse .map() çökerdi.  Ekranlar ucun biçimine güvenir:  eşitleme ekranlarda
+     değil, burada ( indirme uçlarınınki indir'de ).  */
+const hataListe = (h: unknown) => (h == null ? h : (Array.isArray(h) ? h : [h]).map(String));
+const hataMetin = (h: unknown) => (h == null ? h : Array.isArray(h) ? h.map(String).join("\n") : String(h));
+
 /**  POST:  sunucu reddederken de çoğu zaman JSON döner ( 413 istek çok büyük:
      {"aktif":false,"hata":[…]} ) — o metin ekranda görünsün diye yanıt olarak
-     verilir.  JSON olmayan hata ( vekil, çökme ) ve bağlantı kopması fırlatır:
-     sorgu hata durumuna geçer, ekran "güncel değil" der.  */
-async function gonder<T>(yol: string, govde: unknown, sinyal?: AbortSignal): Promise<T> {
+     verilir ( hata'sı ucun biçiminde:  liste / metin ).  JSON olmayan hata
+     ( vekil, çökme ) ve bağlantı kopması fırlatır:  sorgu hata durumuna geçer,
+     ekran "güncel değil" der.  */
+async function gonder<T>(yol: string, govde: unknown, bicim: (h: unknown) => unknown, sinyal?: AbortSignal): Promise<T> {
   const r = await fetch(yol, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(govde),
     signal: sinyal,
   });
-  if (r.ok || (r.headers.get("Content-Type") || "").includes("application/json")) return r.json();
-  throw new Error(`Sunucu yanıt vermedi ( ${r.status} )`);
+  if (!r.ok && !(r.headers.get("Content-Type") || "").includes("application/json"))
+    throw new Error(`Sunucu yanıt vermedi ( ${r.status} )`);
+  const j = await r.json();
+  return j && typeof j === "object" && "hata" in j ? { ...j, hata: bicim(j.hata) } : j;
 }
 
 export const api = {
   alanlar: () => al<AlanSemasi>("/api/uygulama/alanlar"),
-  hesap: (i: UygulamaIstegi, s?: AbortSignal) => gonder<CokluYanit>("/api/uygulama/coklu", i, s),
+  hesap: (i: UygulamaIstegi, s?: AbortSignal) => gonder<CokluYanit>("/api/uygulama/coklu", i, hataListe, s),
   cizimler: (i: UygulamaIstegi, asansor: number, s?: AbortSignal) =>
-    gonder<CizimYanit>("/api/uygulama/cizimler", { ...i, asansor }, s),
+    gonder<CizimYanit>("/api/uygulama/cizimler", { ...i, asansor }, hataListe, s),
   care: (i: UygulamaIstegi, asansor: number, onceki: OncekiGirdi | null) =>
-    gonder<CareYanit>("/api/uygulama/care", { ...i, asansor, onceki }),
+    gonder<CareYanit>("/api/uygulama/care", { ...i, asansor, onceki }, hataListe),
   olcu: (i: UygulamaIstegi, asansor: number, cizim: string, olcu: number, metin: string) =>
-    gonder<OlcuYanit>("/api/uygulama/olcu", { ...i, asansor, cizim, olcu, metin }),
+    gonder<OlcuYanit>("/api/uygulama/olcu", { ...i, asansor, cizim, olcu, metin }, hataListe),
   olcuDegistir: (
     i: UygulamaIstegi,
     asansor: number,
@@ -354,10 +367,10 @@ export const api = {
     metin: string,
     anahtar: string,
     hedef: string,
-  ) => gonder<OlcuDegisikligi>("/api/uygulama/olcu_degistir", { ...i, asansor, cizim, olcu, metin, anahtar, hedef }),
+  ) => gonder<OlcuDegisikligi>("/api/uygulama/olcu_degistir", { ...i, asansor, cizim, olcu, metin, anahtar, hedef }, hataListe),
   secenekler: () => al<Secenekler>("/api/secenekler"),
-  trafik: (girdiler: unknown, s?: AbortSignal) => gonder<TrafikYaniti>("/api/trafik", { girdiler }, s),
-  avan: (girdiler: unknown, s?: AbortSignal) => gonder<AvanYaniti>("/api/avan", { girdiler }, s),
+  trafik: (girdiler: unknown, s?: AbortSignal) => gonder<TrafikYaniti>("/api/trafik", { girdiler }, hataMetin, s),
+  avan: (girdiler: unknown, s?: AbortSignal) => gonder<AvanYaniti>("/api/avan", { girdiler }, hataMetin, s),
 };
 
 export interface IndirmeSonucu {

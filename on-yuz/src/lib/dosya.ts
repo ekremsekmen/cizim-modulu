@@ -156,12 +156,16 @@ export function dosyaOku(metin: string, sema: AlanSemasi, ofis: Ham): DosyaOkuma
   const proje_geneli: Ham = {};
   for (const k of sema.proje_geneli) if (govde[`m_${k}`] !== undefined) oku(k, govde[`m_${k}`], proje_geneli);
 
-  const dizi = Array.isArray(govde.__muk_asansorler) ? (govde.__muk_asansorler as Record<string, unknown>[]) : [];
-  const adet = Math.min(Math.max(1, Number(govde.__muk_adet) || dizi.length || 1), sema.asansor_azami);
+  //  Asansör adedi eski arayüzün kuralıyla ( MUK_ADET ):  dizideki kadar, en çok yazılan
+  //  adet;  dizisi olmayan dosya tek asansörlü eski biçimdir.  24 Eki:  yazılan adet
+  //  dizinin boyunu aşınca dosyada olmayan boş asansörler ekleniyordu ( dizisizde de ).
+  //  Dizide nesne olmayan yer boş asansördür ( eski arayüz gibi ).
+  const dizi = Array.isArray(govde.__muk_asansorler) ? (govde.__muk_asansorler as unknown[]).slice(0, sema.asansor_azami) : [];
+  const adet = dizi.length ? Math.min(Math.max(1, Math.floor(Number(govde.__muk_adet)) || dizi.length), dizi.length) : 1;
   const asansorler: Ham[] = [];
   for (let i = 0; i < adet; i++) {
     const h: Ham = {};
-    const kaynak = dizi[i] && typeof dizi[i] === "object" ? dizi[i] : i === 0 ? null : {};
+    const kaynak = !dizi.length ? null : dizi[i] && typeof dizi[i] === "object" ? (dizi[i] as Record<string, unknown>) : {};
     if (kaynak) {
       for (const [k, v] of Object.entries(kaynak)) if (!sema.proje_geneli.includes(k)) oku(k, v, h);
     } else {
@@ -189,14 +193,14 @@ export function dosyaOku(metin: string, sema: AlanSemasi, ofis: Ham): DosyaOkuma
       kimlik: { project_title: metinAl("mk_proje_adi"), owner: metinAl("mk_isveren"), sheet_no: metinAl("mk_pafta_no") },
       asansorler,
       proje_geneli,
-      kapak:
-        govde.__yeni_kapak && typeof govde.__yeni_kapak === "object"
-          ? Object.fromEntries(
-              Object.entries(govde.__yeni_kapak as Record<string, unknown>).filter(
-                (e): e is [string, string] => typeof e[1] === "string",
-              ),
-            )
-          : {},
+      //  Kapak metindir;  elle yazılmış sayı da okunur ( 24 Eki:  atılıyordu )
+      kapak: Object.fromEntries(
+        Object.entries(
+          govde.__yeni_kapak && typeof govde.__yeni_kapak === "object" ? (govde.__yeni_kapak as Record<string, unknown>) : {},
+        )
+          .map(([k, v]) => [k, typeof v === "string" ? v : ice(v)] as const)
+          .filter((e): e is readonly [string, string] => e[1] !== null),
+      ),
     },
     ofisFarki,
     taninmayan,
