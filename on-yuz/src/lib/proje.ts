@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Alan, AlanSemasi, Deger, UygulamaIstegi } from "./api";
 import { alanHatasi } from "./denetim";
 import { depoOku, depoSil, depoYaz } from "./depo";
+import { durumSil, girdininDurumu, izi, type ProjeDurumu } from "./durum";
 import { kapakSirala } from "./kapak";
 import { useSekmeEsitle } from "./sekme";
 import { ORNEK_ASANSOR, ORNEK_SURUMU } from "./ornek";
@@ -24,18 +25,20 @@ export interface UygulamaProjesi {
   proje_geneli: Ham;
   /**  Kapak sayfasının öbür alanları ( kimliktekiler hariç;  bkz. lib/kapak )  */
   kapak?: Ham;
+  /**  Kullanıcının son değişikliği ( hesabın durumu değiştirmez — durum lib/durum'da ayrı )  */
   guncellendi: number;
-  /**  Son hesabın özeti — açılış listesinde gösterilir.  */
-  son?: { adet: number; uygunDegil: number; hata: boolean };
 }
 
+/**  Açılış listesinin satırı ( durumu lib/durum'dan, girdisine aitse )  */
 export interface ProjeOzeti {
   id: string;
   tur: "uygulama" | "avan";
   ad: string;
   ornek?: boolean;
+  /**  0:  bilinmiyor ( 24 Eki'den önce kaydedilmiş avan )  */
   guncellendi: number;
-  son?: UygulamaProjesi["son"];
+  /**  Asansör sayısı ( uygulama;  avanınki trafikten — durumda )  */
+  adet?: number;
 }
 
 const LISTE = "asansor:projeler";
@@ -107,7 +110,6 @@ export function ornekSifirla(p: UygulamaProjesi): UygulamaProjesi {
     asansorler: [{ ...ORNEK_ASANSOR }],
     proje_geneli: {},
     kapak: {},
-    son: undefined,
   };
 }
 
@@ -121,6 +123,7 @@ export function projeOku(id: string): UygulamaProjesi | null {
 
 export function projeSil(id: string) {
   depoSil(`asansor:proje:${id}`);
+  durumSil(id);
   yaz(
     LISTE,
     oku<ProjeOzeti[]>(LISTE, []).filter((x) => x.id !== id),
@@ -136,9 +139,21 @@ function kaydet(p: UygulamaProjesi) {
     ad: p.kimlik.project_title || "Adsız uygulama projesi",
     ornek: p.ornek,
     guncellendi: p.guncellendi,
-    son: p.son,
+    adet: p.asansorler.length,
   });
   yaz(LISTE, liste);
+}
+
+/**  Hesabın girdisinin izi ( lib/durum ):  asansörler, proje geneli ve ofis standardı —
+     hesap isteğinin kendisi ( kimlik ve kapak hesaba girmez )  */
+export function uygulamaIzi(p: UygulamaProjesi, ofis: Ham): string {
+  return izi(istekKur(p, ofis));
+}
+
+/**  Açılış listesindeki durum:  kayıttaki girdinin ve bugünkü ofis standardının hesabıysa  */
+export function uygulamaListeDurumu(id: string): ProjeDurumu | undefined {
+  const p = projeOku(id);
+  return p ? girdininDurumu(id, uygulamaIzi(p, oku<Ham>(OFIS, {}))) : undefined;
 }
 
 /**  Proje ve değiştiricileri.  Her değişiklik tarayıcıya hemen yazılır.
@@ -332,26 +347,32 @@ export function formHatalari(sema: AlanSemasi, p: UygulamaProjesi): FormHatasi[]
 /**  Kısa gecikmeli değer — yazarken her tuşta istek gitmesin.
      null gelen değer beklenmez:  son geçerli değer kalır ( kural dışı girdi
      sunucuya gitmez, ekran son geçerli girdinin sonucunu gösterir ).
-     hemen değişince beklenmez ( useSunucu:  asansör sayısı ).  */
+     hemen değişince beklenmez ( useSunucu:  asansör sayısı ):  o render'da güncel
+     değer döner — DURUMDAN TÜRETİLİR, render sırasında duruma yazılmaz.  25 Eki:
+     render sırasında yazılıyordu;  aynı duruma zamanlayıcının ( değer aynı olduğu
+     için atlanmış ) güncellemesi kuyrukta beklerken React render sırasındaki
+     güncellemeyi temel duruma işlemiyor, sonraki render eski değeri geri getiriyordu:
+     yeniden açılan projede asansör eklenince çizim eski listeyle isteniyordu.  */
 export function useGecikmeli<T>(deger: T, ms = 280, hemen?: unknown): T {
-  const [g, setG] = useState(deger);
-  const [h, setH] = useState(hemen);
-  if (hemen !== h && deger !== null) {
-    setH(hemen);
-    setG(deger);
-  }
+  const [g, setG] = useState({ deger, hemen });
+  const hemenDegisti = hemen !== g.hemen && deger !== null;
   useEffect(() => {
     if (deger === null) return;
-    const t = setTimeout(() => setG(deger), ms);
+    //  hemen değiştiyse render güncel değeri zaten döndürdü:  beklemeden saklanır
+    const t = setTimeout(
+      () => setG((o) => (o.deger === deger && o.hemen === hemen ? o : { deger, hemen })),
+      hemenDegisti ? 0 : ms,
+    );
     return () => clearTimeout(t);
-  }, [deger, ms]);
-  return g;
+  }, [deger, ms, hemen, hemenDegisti]);
+  return hemenDegisti ? deger : g.deger;
 }
 
 export function useGoreceZaman(t: number) {
   //  "Şimdi" ekran açıldığında bir kez alınır ( render saf kalsın )
   const [simdi] = useState(() => Date.now());
   return useMemo(() => {
+    if (!t) return "—";
     const s = Math.round((simdi - t) / 1000);
     if (s < 60) return "az önce";
     if (s < 3600) return `${Math.round(s / 60)} dk önce`;

@@ -51,7 +51,7 @@ export function UygunlukPaneli({
       <div className={cn("min-h-0 flex-1 space-y-2 overflow-y-auto p-3", durdu && "opacity-60")}>
         {kalan.map((b) => {
           const [no, ad] = bolumAdi(b.baslik);
-          const metin = b.sonuc.metin.replace(/^UYGUN DEĞİLDİR\s*[—:-]?\s*/i, "");
+          const metin = (b.sonuc?.metin ?? "").replace(/^UYGUN DEĞİLDİR\s*[—:-]?\s*/i, "");
           return (
             <button
               key={b.kimlik}
@@ -163,7 +163,8 @@ function SatirBolum({
           <span className="sayi mr-1 text-metin-3">{no}</span>
           {ad}
         </span>
-        {sonucuGoster && (
+        {/*  Hükümsüz bölümün çoğu kez sonucu da yoktur ( topraklayıcılar — sunucu null gönderir )  */}
+        {sonucuGoster && b.sonuc?.metin && (
           <span className="mt-0.5 line-clamp-2 block font-mono text-[11px] leading-snug text-metin-3">
             {b.sonuc.metin}
           </span>

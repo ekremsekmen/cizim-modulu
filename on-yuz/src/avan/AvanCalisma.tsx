@@ -14,7 +14,9 @@ import {
   AVAN_AZAMI,
   BOS_AVAN,
   AVAN_SECIM_VARSAYILANI,
+  AVAN_KIMLIGI,
   avanDosyaGovdesi,
+  avanIzi,
   manuelKMetni,
   avanDosyayaKaydet,
   avanDosyasiniAc,
@@ -31,6 +33,7 @@ import {
   type AvanProjesi,
   type EkNufus,
 } from "@/lib/avan";
+import { avanHukmu, durumYaz } from "@/lib/durum";
 import { KAPAK_GRUPLARI } from "@/lib/kapak";
 import { cn, sayiYaz } from "@/lib/utils";
 import { AnaSayfaBaglantisi, BasvuruBaglantilari, SunucuBekleniyor, UstSerit } from "@/components/Kabuk";
@@ -144,6 +147,12 @@ export function AvanCalisma() {
   const trafikGuncel = tg === trafikGirdi && trafik.isSuccess && !trafik.isFetching && !trafik.isPlaceholderData;
   const avanGuncel = !kopru || (ag === avanGirdi && avan.isSuccess && !avan.isFetching && !avan.isPlaceholderData);
   const sonuclarGuncel = trafikGuncel && avanGuncel;
+  //  Açılış listesindeki durum ( lib/durum ):  yalnız sonuçlar güncel girdininken —
+  //  yenilenirken ve bağlantı düşünce yazılmaz
+  useEffect(() => {
+    if (!sonuclarGuncel || !trafik.data) return;
+    durumYaz(AVAN_KIMLIGI, { iz: avanIzi(p, ofis), ...avanHukmu(trafik.data, kopru, avan.data) });
+  }, [sonuclarGuncel, trafik.data, kopru, avan.data, p, ofis]);
   //  Sunucu geri gelince kendiliğinden istenmez ( tarayıcı çevrimiçi kalır ):  düğmeyle
   const baglantiHatasi = !!(trafik.error || avan.error);
   const yenidenDene = () => {

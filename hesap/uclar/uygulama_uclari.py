@@ -86,6 +86,8 @@ def api_uygulama_coklu(veri: dict = Body(...)):
             return yanit
         for a in s.get("asansorler") or []:
             a.pop("ara", None)  # ara değerler testler içindir, arayüze gerekmez
+        #  Projenin genel hükmü ( açılış listesi ):  motor kurar, ekran basar
+        s["ozet"]["proje_hukmu"] = uygulama_hesabi.proje_hukmu(s)
         return JSONResponse(json.loads(json.dumps(s, default=str)))
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)

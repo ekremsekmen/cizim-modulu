@@ -21,8 +21,9 @@ import { useCallback, useEffect, useState } from "react";
 import type { AvanKoprusu, Deger, Secenekler } from "./api";
 import { evetMi } from "./denetim";
 import { depoOku, depoSil, depoYaz } from "./depo";
+import { girdininDurumu, izi, type ProjeDurumu } from "./durum";
 import { KAPAK_GRUPLARI } from "./kapak";
-import { sayiOku, type Ham } from "./proje";
+import { sayiOku, type Ham, type ProjeOzeti } from "./proje";
 import { useSekmeEsitle } from "./sekme";
 
 /**  Ek nüfus kalemi ( Tablo-1 ):  hızlı girişi olmayan bina tiplerinde nüfus buradan  */
@@ -58,6 +59,11 @@ export const BOS_AVAN: AvanProjesi = {
 const PROJE = "asansor:avan";
 const OFIS = "asansor:avan-ofis";
 const ACILIS = "asansor:avan-acilis";
+/**  Avanın son değiştiği an ( açılış listesi ):  yalnız içerik değişince yazılır —
+     ekranı açmak, başka sekmeden gelen hâli almak zamanı değiştirmez  */
+const ZAMAN = "asansor:avan-zaman";
+/**  Açılış listesinde ve durum anahtarında avanın kimliği ( avan tek projedir )  */
+export const AVAN_KIMLIGI = "avan";
 
 function oku<T extends object>(anahtar: string, yedek: T): T {
   try {
@@ -73,13 +79,43 @@ function yaz(anahtar: string, deger: unknown) {
 export function avanProjesiniOku(): AvanProjesi {
   return oku(PROJE, BOS_AVAN);
 }
+/**  Değiştiyse yazar ve zamanını tutar  */
 export function avanProjesiniYaz(p: AvanProjesi) {
-  yaz(PROJE, p);
+  const m = JSON.stringify(p);
+  if (depoOku(PROJE) === m) return;
+  depoYaz(PROJE, m);
+  depoYaz(ZAMAN, String(Date.now()));
+}
+
+/**  AÇILIŞ LİSTESİNDEKİ AVAN SATIRI ( 24 Eki:  avan kaydediliyor ama "Son projeler"e
+     hiç girmiyordu ).  Avan tek projedir;  hiçbir şey yazılmamışsa ( boş ) satır yok.  */
+export function avanOzeti(): ProjeOzeti | null {
+  if (depoOku(PROJE) === null) return null;
+  const p = avanProjesiniOku();
+  if (JSON.stringify(p) === JSON.stringify(BOS_AVAN)) return null;
+  return {
+    id: AVAN_KIMLIGI,
+    tur: "avan",
+    ad: p.kapak.project_title?.trim() || "Adsız avan projesi",
+    guncellendi: Number(depoOku(ZAMAN)) || 0,
+  };
+}
+
+/**  Hesabın girdisinin izi ( lib/durum ):  trafik ve avan girdileri, avan ofis standardı —
+     kapak hesaba girmez  */
+export function avanIzi(p: AvanProjesi, ofis: Ham): string {
+  const { kapak: _kapak, ...girdi } = p;
+  return izi({ ...girdi, sabitler: avanSabitleri(ofis) });
+}
+
+/**  Açılış listesindeki durum:  kayıttaki girdinin ve bugünkü ofis standardının hesabıysa  */
+export function avanListeDurumu(): ProjeDurumu | undefined {
+  return girdininDurumu(AVAN_KIMLIGI, avanIzi(avanProjesiniOku(), avanOfisiniOku()));
 }
 
 export function useAvanProjesi() {
   const [p, setP] = useState<AvanProjesi>(avanProjesiniOku);
-  useEffect(() => yaz(PROJE, p), [p]);
+  useEffect(() => avanProjesiniYaz(p), [p]);
   //  Başka sekmede değişti:  o hâl alınır ( silindiyse boş proje )
   useSekmeEsitle(PROJE, useCallback((d: Partial<AvanProjesi> | null) => setP({ ...BOS_AVAN, ...(d ?? {}) }), []));
   return [p, setP] as const;

@@ -94,7 +94,9 @@ export interface Bolum {
   baslik: string;
   kaynak: string;
   adimlar: Adim[];
-  sonuc: Sonuc;
+  /**  Hükümsüz bölümde YOK ( null:  topraklayıcılar, iletkenler — 25 Eki:  tip hep var
+       sayıyordu, temel ölçüleri girilince Uygunluk paneli çöküyordu )  */
+  sonuc: Sonuc | null;
   notlar: string[];
   aciklamalar: string[];
   kimlik: string;
@@ -120,6 +122,14 @@ export interface AsansorSonucu {
   elektrik?: Record<string, unknown> | null;
 }
 
+/**  Projenin genel hükmü — motor kurar ( uygulama_hesabi.proje_hukmu ), ekran basar  */
+export interface ProjeHukmu {
+  /**  durdu:  hesaplanamayan asansör var ( hüküm kurulmaz );  eksik:  yapılamayan zorunlu hesap  */
+  durum: "durdu" | "eksik" | "uygun_degil" | "uygun";
+  /**  "Uygun değil" bölüm sayısı ( proje geneli dahil )  */
+  uygun_degil: number;
+}
+
 export interface CokluYanit {
   aktif: boolean;
   hata?: string[];
@@ -128,7 +138,16 @@ export interface CokluYanit {
   ozet?: {
     adet: number;
     tumu_uygun: boolean;
-    asansorler: { no: number; tanim: string; tumu_uygun: boolean; genel_sonuc: string }[];
+    /**  Uç ekler ( uygulama_uclari )  */
+    proje_hukmu?: ProjeHukmu;
+    /**  Hesaplanamayan ( reddedilen ) asansörün hükmü ve genel sonucu null  */
+    asansorler: {
+      no: number;
+      tanim: string;
+      aktif: boolean;
+      tumu_uygun: boolean | null;
+      genel_sonuc: string | null;
+    }[];
   };
 }
 

@@ -44,6 +44,7 @@ import {
   type Ham,
   type UygulamaProjesi,
 } from "@/lib/proje";
+import { durumYaz } from "@/lib/durum";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
 import { AnaSayfaBaglantisi, BasvuruBaglantilari, SunucuBekleniyor, UstSerit } from "@/components/Kabuk";
 import { Bolumlu, Dugme, HukumNoktasi, Ipucu, Rozet } from "@/components/ui";
@@ -126,20 +127,11 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     return m;
   }, [bolumler, sema]);
 
-  //  Açılış listesindeki durum ( son başarılı hesabın özeti )
+  //  Açılış listesindeki durum ( lib/durum ):  proje kaydına değil ayrı anahtara —
+  //  başka sekmede silindiyse yazılmaz
   useEffect(() => {
-    const d = sonHesap;
-    if (!d) return;
-    const son = {
-      adet: proje.asansorler.length,
-      hata: s.hesapEski,
-      uygunDegil: (d.asansorler ?? []).reduce(
-        (t, x) => t + (x.bolumler ?? []).filter((b) => b.sonuc?.uygun === false).length,
-        0,
-      ),
-    };
-    if (JSON.stringify(son) !== JSON.stringify(proje.son)) guncelle((p) => ({ ...p, son }));
-  }, [sonHesap, s.hesapEski, proje.asansorler.length, proje.son, guncelle]);
+    if (s.durum && !baskaSekmedeSilindi) durumYaz(proje.id, s.durum);
+  }, [proje.id, s.durum, baskaSekmedeSilindi]);
 
   const yaz = useCallback(
     (anahtar: string, deger: string) => {
