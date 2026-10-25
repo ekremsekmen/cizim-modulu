@@ -1880,3 +1880,15 @@ def hesapla(g: dict) -> dict:
     s = hesapla_coklu(g if isinstance(g, dict) else {})
     s["yol"] = "coklu"
     return s
+
+
+def proje_hukmu(s):
+    """TRAFİK HESABININ HÜKMÜ ( hesapla'nın sonucundan ) — avan projesinin ilk adımı;
+    açılış listesi avanın hükmüyle birlikte basar ( avan_hesabi.proje_hukmu ).
+    durum:  durdu ( hesap yapılamadı ) · uygun_degil ( karar ölçütlerinden biri
+    sağlanmıyor ya da uygun olmayan bölüm ) · uygun."""
+    if s.get("hata"):
+        return {"durum": "durdu", "uygun_degil": 0}
+    kalan = sum(1 for b in s.get("bolumler") or [] if (b.get("sonuc") or {}).get("uygun") is False)
+    olcut = any(not k.get("uygun") for k in (s.get("ozet") or {}).get("karar_olcutleri") or [])
+    return {"durum": "uygun_degil" if kalan or olcut else "uygun", "uygun_degil": kalan}

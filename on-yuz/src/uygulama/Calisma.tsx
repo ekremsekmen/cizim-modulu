@@ -44,6 +44,7 @@ import {
   type Ham,
   type UygulamaProjesi,
 } from "@/lib/proje";
+import { durumYaz, izi } from "@/lib/durum";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
 import { AnaSayfaBaglantisi, BasvuruBaglantilari, SunucuBekleniyor, UstSerit } from "@/components/Kabuk";
 import { Bolumlu, Dugme, HukumNoktasi, Ipucu, Rozet } from "@/components/ui";
@@ -55,6 +56,9 @@ import { UygunlukPaneli } from "./UygunlukPaneli";
 import { Teslim } from "./Teslim";
 import { ProjeBilgileri } from "./ProjeBilgileri";
 import { useSunucu, type Sorun } from "./useSunucu";
+
+/**  "Geri al"ın yazdığı hâlin izi:  asansörler ve kapak  */
+const halIzi = (p: UygulamaProjesi) => izi({ asansorler: p.asansorler, kapak: p.kapak });
 
 export function Calisma({ proje, bildirim }: { proje: UygulamaProjesi; bildirim?: string }) {
   const sema = useQuery({ queryKey: ["alanlar"], queryFn: api.alanlar, staleTime: Infinity });
@@ -101,7 +105,17 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     asansorler: Ham[];
     kapak: UygulamaProjesi["kapak"];
     aktif: number;
+    /**  Kaldırmanın bıraktığı hâlin izi ( asansörler ve kapak )  */
+    sonra: string;
   } | null>(null);
+  //  GERİ AL YALNIZ KALDIRMANIN BIRAKTIĞI HÂLDE:  önceki listenin tamamını geri yazar.
+  //  Buradaki girdi şeridi kapatır;  25 Eki ( dış inceleme ):  başka sekmede yazılan
+  //  girdi kapatmıyordu, "Geri al" onu sessizce eziyordu.  Değişiklik nereden gelirse
+  //  gelsin asansörler ya da kapak artık o hâlde değilse geri alınmaz.
+  const geriAlinabilir = useMemo(
+    () => (geriAl && halIzi(proje) === geriAl.sonra ? geriAl : null),
+    [geriAl, proje],
+  );
   const a = Math.min(asansor, proje.asansorler.length - 1);
 
   //  Çizim, çizim görünümünde ve teslim açıkken istenir:  teslim son girdinin
@@ -126,20 +140,11 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     return m;
   }, [bolumler, sema]);
 
-  //  Açılış listesindeki durum ( son başarılı hesabın özeti )
+  //  Açılış listesindeki durum ( lib/durum ):  proje kaydına değil ayrı anahtara —
+  //  başka sekmede silindiyse yazılmaz
   useEffect(() => {
-    const d = sonHesap;
-    if (!d) return;
-    const son = {
-      adet: proje.asansorler.length,
-      hata: s.hesapEski,
-      uygunDegil: (d.asansorler ?? []).reduce(
-        (t, x) => t + (x.bolumler ?? []).filter((b) => b.sonuc?.uygun === false).length,
-        0,
-      ),
-    };
-    if (JSON.stringify(son) !== JSON.stringify(proje.son)) guncelle((p) => ({ ...p, son }));
-  }, [sonHesap, s.hesapEski, proje.asansorler.length, proje.son, guncelle]);
+    if (s.durum && !baskaSekmedeSilindi) durumYaz(proje.id, s.durum);
+  }, [proje.id, s.durum, baskaSekmedeSilindi]);
 
   const yaz = useCallback(
     (anahtar: string, deger: string) => {
@@ -222,7 +227,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   };
   /**  Asansör kaldırma ( sekmeden ya da adetten ):  önceki hâl "Geri al" için tutulur  */
   const kaldirildi = (metin: string, yeni: UygulamaProjesi) => {
-    setGeriAl({ metin, asansorler: proje.asansorler, kapak: proje.kapak, aktif: a });
+    setGeriAl({ metin, asansorler: proje.asansorler, kapak: proje.kapak, aktif: a, sonra: halIzi(yeni) });
     guncelle(() => yeni);
     setOlcu(null);
   };
@@ -347,15 +352,15 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
           ( proje bilgileri ).
         </div>
       )}
-      {geriAl && (
+      {geriAlinabilir && (
         <div role="status" className="flex shrink-0 items-center gap-2 border-b border-vurgu-cizgi bg-vurgu-acik px-4 py-1.5 text-[12.5px] text-vurgu-koyu">
-          <span className="flex-1">{geriAl.metin}</span>
+          <span className="flex-1">{geriAlinabilir.metin}</span>
           <Dugme
             tur="hayalet"
             boy="kucuk"
             onClick={() => {
-              guncelle((p) => ({ ...p, asansorler: geriAl.asansorler, kapak: geriAl.kapak }));
-              setAsansor(geriAl.aktif);
+              guncelle((p) => ({ ...p, asansorler: geriAlinabilir.asansorler, kapak: geriAlinabilir.kapak }));
+              setAsansor(geriAlinabilir.aktif);
               setGeriAl(null);
               setKaymis(undefined);
             }}

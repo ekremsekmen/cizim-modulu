@@ -28,6 +28,8 @@ gerçek sunucu ve gerçek tarayıcıyla:
      dinleyici ve yoldaki istek büyümez
   11 tarayıcı deposu:  engelliyken de proje açılır, dolunca değişiklik
      sekmede kalır;  ikisinde de ekran uyarır
+  12 açılış listesi:  durum bütün projenin ( seçili asansörün değil ) ve
+     kayıttaki girdinin hükmü;  iki sekme durumu yazışıp dönmez;  avan listede
   6  adresler:  bilinmeyen proje açılışa döner;  /yeni köke yönlenir
   Hiçbir testte konsol hatası yok.
 
@@ -694,6 +696,336 @@ class OnYuzUctanUca(unittest.TestCase):
         iz2.sakin()
         self.assertIsNone(ikinci.evaluate(f"localStorage.getItem('asansor:proje:{kimlik}')"))
         self.assertEqual(iz2.hatalar, [])
+
+    # ------------------------------------------------------------ 12 açılış listesi
+    #  Sayfanın tarayıcı deposuna yazdıkları ( anahtar → sayı )
+    YAZMA_SAYACI = """(() => {
+        const yaz = Storage.prototype.setItem;
+        window.__yazma = {};
+        Storage.prototype.setItem = function (k, v) {
+            if (this === window.localStorage) window.__yazma[k] = (window.__yazma[k] || 0) + 1;
+            return yaz.call(this, k, v);
+        };
+    })();"""
+
+    def liste_satiri(self, ad):
+        """Açılış listesinde projenin satırı ( sayfa yeniden yüklenir:  liste depodan okunur )."""
+        self.sayfa.goto(self.url + "/")
+        self.iz.sakin()
+        satir = self.sayfa.get_by_role("region", name="Son projeler").get_by_role(
+            "button", name=re.compile(ad)
+        )
+        return re.sub(r"\s+", " ", satir.inner_text()).strip()
+
+    def test_listedeki_durum_butun_projenin(self):
+        """24 Eki:  listedeki durum ekranda SEÇİLİ asansörün hükmüydü — ikinci asansör
+        hesaplanamazken birinciye geçilince proje "Uygun" görünüyordu.  Liste yalnız
+        asansörlerin "uygun değil" bölümlerini saydığından "hesap eksik" ( temel
+        genişliği yok ) ve proje geneli "uygun değil" ( topraklama ) de "Uygun"du."""
+        self.ornek_projeyi_ac()
+        proje = self.sayfa.url
+        self.assertRegex(self.liste_satiri("Örnek proje"), r"\bUygun$")
+        self.sayfa.goto(proje)
+        self.sayfa.get_by_role("button", name="Asansör ekle").click()
+        self.iz.sakin()
+        self.alan_kutusu("kuyu_genisligi").fill("1000")
+        _istek, hesap = self.iz.son("/api/uygulama/coklu")
+        self.assertEqual([a["aktif"] for a in hesap["asansorler"]], [True, False])
+        self.sekmeler().nth(0).click()
+        self.iz.sakin()
+        self.assertRegex(self.liste_satiri("Örnek proje"), r"Hesap durdu$")
+
+        #  Yapılamayan zorunlu hesap:  "Uygun" değil
+        self.sayfa.goto(proje)
+        self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).last.click()
+        self.alan_kutusu("temel_a").fill("20")
+        _istek, hesap = self.iz.son("/api/uygulama/coklu")
+        self.assertEqual(len(hesap["asansorler"]), 1)
+        self.assertTrue(hesap["ozet"]["asansorler"][0]["eksik_hesap"], hesap["ozet"])
+        self.assertRegex(self.liste_satiri("Örnek proje"), r"Hesap eksik$")
+
+        #  Proje geneli bölüm ( topraklama ) uygun değil:  sayılır
+        self.sayfa.evaluate("localStorage.setItem('asansor:ofis', JSON.stringify({beta: '5000'}))")
+        self.sayfa.goto(proje)
+        self.alan_kutusu("temel_a").fill("2")
+        self.alan_kutusu("temel_b").fill("2")
+        _istek, hesap = self.iz.son("/api/uygulama/coklu")
+        self.assertFalse(hesap["ozet"]["proje_geneli_uygun"], hesap["ozet"])
+        self.assertRegex(self.liste_satiri("Örnek proje"), r"1 bölüm uygun değil$")
+
+    def test_iki_sekme_farkli_asansorde_durum_yazisip_donmez(self):
+        """24 Eki:  durum sekmeler arası eşitlenen proje kaydına yazılıyordu;  aynı
+        proje iki sekmede farklı asansör seçili açıkken her sekme öbürünün yazdığını
+        görüp kendi hükmünü yeniden yazıyordu ( 4,5 sn'de sekme başına 1.100 kayıt ).
+        Sakin sekmeler hiçbir şey yazmaz;  ikisi aynı ( bütün projenin ) durumu bilir."""
+        self.baglam.add_init_script(self.YAZMA_SAYACI)
+        self.ornek_projeyi_ac()
+        adres = self.sayfa.url
+        kimlik = adres.rsplit("/", 1)[1]
+        self.sayfa.get_by_role("button", name="Asansör ekle").click()
+        self.iz.sakin()
+        self.alan_kutusu("kuyu_genisligi").fill("1000")
+        self.iz.sakin()
+        self.sekmeler().nth(0).click()
+        ikinci = self.baglam.new_page()
+        iz2 = Izleyici(ikinci)
+        ikinci.goto(adres)
+        iz2.sakin()
+        ikinci.get_by_role("navigation", name="Asansörler").get_by_role(
+            "button", name=re.compile(r"^(?!.*kaldır)")
+        ).nth(1).click()
+        iz2.sakin()
+        self.iz.sakin()
+        for s in (self.sayfa, ikinci):
+            s.evaluate("window.__yazma = {}")
+        self.sayfa.wait_for_timeout(3000)
+        self.assertEqual((self.sayfa.evaluate("window.__yazma"), ikinci.evaluate("window.__yazma")), ({}, {}))
+        for s in (self.sayfa, ikinci):
+            self.assertEqual(
+                s.evaluate(f"JSON.parse(localStorage.getItem('asansor:durum:{kimlik}')).hukum"), "durdu"
+            )
+        self.assertEqual(iz2.hatalar, [])
+
+    def test_listedeki_durum_kayittaki_girdinin(self):
+        """Durum hesaplandığı girdinindir:  girdi değişip sonuç gelmeden sekme
+        kapanınca ( burada:  kayıt dışarıdan değişir ) liste eski hükmü göstermez,
+        "Hesaplanmadı" der;  proje açılınca yeni girdiyle hesaplanır.  Ofis
+        standardı değişince de.  Hesabın durumu "Güncellendi"yi değiştirmez."""
+        self.ornek_projeyi_ac()
+        proje = self.sayfa.url
+        kimlik = proje.rsplit("/", 1)[1]
+        kayit = f"JSON.parse(localStorage.getItem('asansor:proje:{kimlik}'))"
+        zaman = self.sayfa.evaluate(kayit)["guncellendi"]
+        self.assertRegex(self.liste_satiri("Örnek proje"), r"\bUygun$")
+        self.sayfa.evaluate(
+            f"""(() => {{ const p = {kayit};  p.asansorler[0].kuyu_genisligi = '1000';
+                localStorage.setItem('asansor:proje:{kimlik}', JSON.stringify(p)); }})()"""
+        )
+        self.assertRegex(self.liste_satiri("Örnek proje"), r"Hesaplanmadı$")
+        self.sayfa.goto(proje)
+        self.iz.sakin()
+        self.assertRegex(self.liste_satiri("Örnek proje"), r"Hesap durdu$")
+        self.sayfa.evaluate("localStorage.setItem('asansor:ofis', JSON.stringify({beta: '5000'}))")
+        self.assertRegex(self.liste_satiri("Örnek proje"), r"Hesaplanmadı$")
+        self.assertEqual(self.sayfa.evaluate(kayit)["guncellendi"], zaman)
+
+    def test_avan_son_projelerde(self):
+        """24 Eki:  avan kaydediliyordu ama "Son projeler"e hiç girmiyordu.  Avan tek
+        projedir:  listede bir satır ( adı kapaktan ), durumu avanın hükmü;  satıra
+        tıklanınca avana dönülür.  Ekranı açmak "Güncellendi"yi değiştirmez."""
+        self.sayfa.goto(self.url + "/")
+        self.assertIn("Henüz proje yok", self.sayfa.get_by_role("region", name="Son projeler").inner_text())
+        self.sayfa.get_by_role("link", name=re.compile(r"^Avan proje")).click()
+        self.sayfa.wait_for_url(re.compile(r"/avan/trafik$"))
+        self.iz.sakin()
+        #  Boş avan listede yok
+        self.assertNotIn("avan projesi", self.liste_satiri_metni())
+        self.sayfa.goto(self.url + "/avan/trafik")
+        self.iz.sakin()
+        self.sayfa.get_by_label("③ Kat sayısı N").fill("10")
+        _istek, trafik = self.iz.son("/api/trafik")
+        self.assertTrue(trafik["hata"])
+        zaman = self.sayfa.evaluate("localStorage.getItem('asansor:avan-zaman')")
+        self.assertRegex(
+            self.liste_satiri("Adsız avan projesi"), r"^Adsız avan projesi Avan — az önce Hesap durdu$"
+        )
+        self.sayfa.get_by_role("region", name="Son projeler").get_by_role(
+            "button", name=re.compile("Adsız avan projesi")
+        ).click()
+        self.sayfa.wait_for_url(re.compile(r"/avan/trafik$"))
+        self.iz.sakin()
+        self.assertEqual(self.sayfa.get_by_label("③ Kat sayısı N").input_value(), "10")
+        self.assertEqual(self.sayfa.evaluate("localStorage.getItem('asansor:avan-zaman')"), zaman)
+
+        #  25 Eki ( dış inceleme ):  kartları dolu ama temel ölçüleri boş — topraklama
+        #  yapılamadı ( avan paftası yerine hata kutusu basar );  liste "Uygun" diyordu,
+        #  "Avan hesapları" adımı "tamam"dı
+        _trafik, avan, satir = self._hesaplanan_avan({"mk_yok": "true"})
+        self.assertTrue(all(a["aktif"] for a in avan["asansorler"]), avan["asansorler"])
+        self.assertFalse(avan["topraklama"]["aktif"])
+        self.assertTrue(satir.endswith("Hesap eksik"), satir)
+        self.sayfa.goto(self.url + "/avan/hesaplar")
+        self.iz.sakin()
+        adim = self.sayfa.get_by_role("navigation", name="Adımlar").get_by_role(
+            "link", name=re.compile("Avan hesapları")
+        )
+        self.assertIn("bg-uyari", adim.locator("span").first.get_attribute("class"))
+
+        #  Hesaplanan avan:  trafiğin verdiği asansörlerin kartları dolu, topraklama
+        #  hesaplandı — durum iki hesabın motor hükmünden ( avan hesabı gelince yazılır )
+        trafik, avan, satir = self._hesaplanan_avan({"mk_yok": "true", "temel_a": "20", "temel_b": "15"})
+        self.assertTrue(avan["topraklama"]["aktif"])
+        self.assertTrue(
+            satir.startswith(f"Avan deneme Avan {len(trafik['avan_koprusu']['asansorler'])} "), satir
+        )
+        self.assertTrue(satir.endswith(self._rozet(trafik["proje_hukmu"], avan["proje_hukmu"])), satir)
+
+    @staticmethod
+    def _rozet(*hukumler):
+        """Listenin rozeti:  hükümlerin ağırı ( lib/durum avanHukmu ), Acilis'in metniyle."""
+        sira = ["durdu", "uygun_degil", "eksik", "uygun"]
+        durum = min((h["durum"] for h in hukumler), key=sira.index)
+        sayi = sum(h["uygun_degil"] for h in hukumler)
+        return {
+            "durdu": "Hesap durdu",
+            "eksik": "Hesap eksik",
+            "uygun_degil": f"{sayi} bölüm uygun değil" if sayi else "Uygun değil",
+            "uygun": "Uygun",
+        }[durum]
+
+    def _avan_kaydi(self, ortak):
+        """Kartları dolu avan tarayıcıya yazılır ( 'ortak':  bina geneli;  trafik 8 kişi, iki asansör )."""
+        self.sayfa.evaluate(
+            """ortak => { const kart = {Hk: '34', kuyu_genisligi: '1800', kabin_boyu: '1400', kabin_genisligi: '1100'};
+                localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut', bina_yuksekligi: '30', yapi_yuksekligi: '31', N: '10', h: '3',
+                         hizli1: '20', hizli2: '2'},
+                ekNufus: [],
+                trafikAsansorleri: [{P: '8', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik'}],
+                ortak,
+                avanAsansorleri: [{tanim: 'A', ...kart}, {tanim: 'B', ...kart}, {tanim: 'C', ...kart}, {tanim: 'D', ...kart}],
+                kapak: {project_title: 'Avan deneme'}})); }""",
+            ortak,
+        )
+
+    def _hesaplanan_avan(self, ortak):
+        """Kartları dolu avan açılır;  ( trafik, avan, liste satırı )."""
+        self._avan_kaydi(ortak)
+        self.sayfa.goto(self.url + "/avan/hesaplar")
+        _istek, avan = self.iz.son("/api/avan")
+        _istek, trafik = self.iz.son("/api/trafik")
+        return trafik, avan, self.liste_satiri("Avan deneme")
+
+    def test_avan_belgeleri_guncel_sonucu_bekler(self):
+        """25 Eki ( dış inceleme ):  avan PDF'i kartların kapasite / hızını ekrandaki
+        trafik sonucundan, kapak hesaptan gelen alanlarını ekrandaki sonuçlardan alır.
+        Trafikte kapasite 8 → 13 yapılıp yanıt gecikirken avan PDF'i ve kapak 8 kişiyle
+        iniyordu, proje dosyası trafiği 13, kartları 8 kişi diye kaydediliyordu ( yalnız
+        "Projeyi indir" bekliyordu ).  Belgeler ve kayıt güncel sonucu bekler;  sunucuya
+        ulaşılamazsa kayıt beklemez, trafikten gelen değerleri yazmaz."""
+        self.sayfa.goto(self.url + "/")
+        self._avan_kaydi({"mk_yok": "true", "temel_a": "20", "temel_b": "15"})
+        self.sayfa.goto(self.url + "/avan/trafik")
+        self.iz.sakin()
+        adimlar = self.sayfa.get_by_role("navigation", name="Adımlar")
+        kaydet = self.sayfa.get_by_role("button", name="Proje dosyası olarak kaydet")
+        pdf = self.sayfa.get_by_role("button", name="PDF", exact=True)
+
+        def kapasite(deger):
+            self.sayfa.get_by_label("1. asansör ⑧ Kapasite").click()
+            self.sayfa.get_by_role("option", name=f"{deger} kişi", exact=True).click()
+
+        def indir(uc):
+            with self.sayfa.expect_request(lambda r: r.url.endswith(uc)) as istek:
+                with self.sayfa.expect_download():
+                    pdf.click()
+            return json.loads(istek.value.post_data)
+
+        def adima_git(adim):
+            """Adım bağlantısı;  yeni adım çizilene kadar beklenir ( öncekinin PDF'i sorulmasın )."""
+            adimlar.get_by_role("link", name=re.compile(adim)).click()
+            self.sayfa.get_by_role("heading", level=1, name=adim, exact=True).wait_for()
+
+        def kayit():
+            with self.sayfa.expect_download() as d:
+                kaydet.click()
+            with open(d.value.path(), encoding="utf-8") as f:
+                a = json.load(f)["alanlar"]
+            return a["c_P1"], a["a_kapasite1"]
+
+        tutulan = []
+        self.sayfa.route("**/api/trafik", lambda r: tutulan.append(r))
+        try:
+            kapasite(13)
+            self.sayfa.wait_for_timeout(800)  # girdi gecikmesi geçsin, trafik yanıtı tutulsun
+            self.assertTrue(tutulan, "trafik istenmedi")
+            self.assertTrue(kaydet.is_disabled(), "güncel olmayan sonuçla proje dosyası kaydedilir")
+            for adim in ("Avan hesapları", "Kapak"):
+                adima_git(adim)
+                self.assertTrue(pdf.is_disabled(), f"{adim}:  güncel olmayan sonuçla PDF iner")
+        finally:
+            for r in tutulan:
+                r.continue_()
+            self.sayfa.unroute("**/api/trafik")
+        self.iz.sakin()
+        self.assertEqual(indir("/api/indir/kapak-pdf")["kapak"]["capacity"], "13 kişi")
+        adima_git("Avan hesapları")
+        g = indir("/api/indir/avan-pdf")["girdiler"]
+        self.assertEqual([a["kapasite"] for a in g["asansorler"] if a["aktif"]], ["13", "13"])
+        self.assertEqual(kayit(), ("13", "13"))
+
+        #  Sunucuya ulaşılamıyor ( fetch sarmalı — route.abort konsola yazar ):  kayıt
+        #  beklemez ( iş kaybolmasın ), trafikten gelen değerler yazılmaz
+        self.sayfa.evaluate(self.ARIZA_BETIGI)
+        self.sayfa.evaluate(
+            "sessionStorage.setItem('__ariza', JSON.stringify({yol: '/api/trafik', tur: 'baglanti'}))"
+        )
+        adima_git("Trafik hesabı")
+        kapasite(10)  # önbellekte sonucu olmayan girdi:  istek gider, düşer
+        self.sayfa.get_by_role("alert").filter(has_text="Sunucuya ulaşılamadı").wait_for()
+        self.assertEqual(kayit(), ("10", ""))
+        self.sayfa.evaluate("sessionStorage.removeItem('__ariza')")
+
+    def test_geri_al_baska_sekmenin_degisikligini_ezmez(self):
+        """25 Eki ( dış inceleme ):  "Geri al" kaldırmadan önceki listenin tamamını geri
+        yazar;  başka sekmede yazılan girdi şeridi kapatmıyordu — bir sekmede asansör
+        kaldırılıp öbüründe kuyu genişliği 2210 yapılınca ilk sekmedeki "Geri al" onu
+        sessizce 2200'e döndürüyordu.  Proje kaldırmanın bıraktığı hâlde değilse geri
+        alınmaz ( değişiklik yoksa alınır:  test_asansor_eklenir_kaldirilir_geri_alinir )."""
+        self.ornek_projeyi_ac()
+        adres = self.sayfa.url
+        kimlik = adres.rsplit("/", 1)[1]
+        genislikler = f"JSON.parse(localStorage.getItem('asansor:proje:{kimlik}')).asansorler.map(a => a.kuyu_genisligi)"
+        self.sayfa.get_by_role("button", name="Asansör ekle").click()
+        self.iz.sakin()
+        self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).last.click()
+        geri_al = self.sayfa.get_by_role("status").get_by_role("button", name="Geri al")
+        geri_al.wait_for()
+        ikinci = self.baglam.new_page()
+        iz2 = Izleyici(ikinci)
+        ikinci.goto(adres)
+        iz2.sakin()
+        girdiler = ikinci.get_by_role("complementary", name="Girdiler")
+        girdiler.get_by_label("Alan ara").fill(self.ad("kuyu_genisligi"))
+        girdiler.get_by_label(self.ad("kuyu_genisligi"), exact=True).fill("2210")
+        iz2.sakin()
+        self.iz.sakin()
+        geri_al.wait_for(state="detached")
+        self.assertEqual(self.sayfa.evaluate(genislikler), ["2210"])
+        self.assertEqual(iz2.hatalar, [])
+
+    def test_hukumsuz_bolum_ekrani_cokertmez(self):
+        """25 Eki:  temel ölçülerinin ikisi de girilince topraklama hesaplanır;  yatay
+        ve dikey topraklayıcının ve iletkenlerin bölümü hükümsüzdür, sunucu sonucunu
+        null gönderir.  Uygunluk paneli hükümsüz bölümün metnini okuyup ekranı
+        çökertiyordu ( tip, sonucu hep var sayıyordu ).  Bölümler listede, ekran ayakta."""
+        self.ornek_projeyi_ac()
+        self.alan_kutusu("temel_a").fill("20")
+        self.alan_kutusu("temel_b").fill("15")
+        _istek, hesap = self.iz.son("/api/uygulama/coklu")
+
+        #  Ekran bölüm adını cümle düzeninde yazar ( "Yatay ( temel ) topraklayıcı" )
+        def kucuk(m):
+            return m.replace("I", "ı").replace("İ", "i").lower()
+
+        sonucsuz = [
+            kucuk(b["baslik"].split(" - ", 1)[1].strip()) for b in hesap["proje_geneli"] if b["sonuc"] is None
+        ]
+        self.assertTrue(sonucsuz, hesap["proje_geneli"])
+        panel = kucuk(self.sayfa.get_by_role("complementary", name="Uygunluk").inner_text())
+        for ad in sonucsuz:
+            self.assertIn(ad, panel)
+        #  Hesap belgesi de ( bölümler sonucuyla basılır )
+        self.sayfa.get_by_role("radio", name="Hesap").click()
+        self.iz.sakin()
+        belge = kucuk(self.sayfa.get_by_role("main").inner_text())
+        for ad in sonucsuz:
+            self.assertIn(ad, belge)
+
+    def liste_satiri_metni(self):
+        self.sayfa.goto(self.url + "/")
+        self.iz.sakin()
+        return self.sayfa.get_by_role("region", name="Son projeler").inner_text()
 
     def test_avan_geri_al_sayfa_yenilenince_durur(self):
         self.sayfa.goto(self.url + "/avan/trafik")
@@ -1457,8 +1789,14 @@ class OnYuzUctanUca(unittest.TestCase):
         sonra seçili sıra yeni listenindir;  gecikmeli istek 300 ms eski listeyle
         gidiyordu — eklemede sunucu sırayı kırpıp son asansörün çizimini, kaldırmada
         kaldırılanınkini döndürüyordu ( yoldaki hesap yanıtı da eski sırayla gelip
-        kaldırılanın hükümlerini kalanın sekmesine koyabiliyordu )."""
+        kaldırılanın hükümlerini kalanın sekmesine koyabiliyordu ).  25 Eki:  yalnız
+        YENİ açılan projede geçiyordu ( durum yazımı gecikmeli değeri tesadüfen
+        tazeliyordu );  yeniden açılan projede eski liste her seferinde gidiyordu —
+        gecikmeli değer render sırasında yazılınca React onu geri alabiliyordu
+        ( lib/proje useGecikmeli )."""
         self.ornek_projeyi_ac()
+        self.sayfa.reload()
+        self.iz.sakin()
         giden = []
 
         def dinle(r):

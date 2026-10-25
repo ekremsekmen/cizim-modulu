@@ -14,7 +14,9 @@ import {
   AVAN_AZAMI,
   BOS_AVAN,
   AVAN_SECIM_VARSAYILANI,
+  AVAN_KIMLIGI,
   avanDosyaGovdesi,
+  avanIzi,
   manuelKMetni,
   avanDosyayaKaydet,
   avanDosyasiniAc,
@@ -31,6 +33,7 @@ import {
   type AvanProjesi,
   type EkNufus,
 } from "@/lib/avan";
+import { avanHukmu, durumYaz } from "@/lib/durum";
 import { KAPAK_GRUPLARI } from "@/lib/kapak";
 import { cn, sayiYaz } from "@/lib/utils";
 import { AnaSayfaBaglantisi, BasvuruBaglantilari, SunucuBekleniyor, UstSerit } from "@/components/Kabuk";
@@ -126,8 +129,12 @@ export function AvanCalisma() {
   );
 
   const trafikDurum = !trafik.data ? null : trafik.data.hata ? "eksik" : "tamam";
+  //  Yapılamayan zorunlu hesap ( topraklama, makine dairesi varsa aydınlatması — motorun
+  //  hükmü ) da "eksik":  25 Eki'ye dek adım "tamam" görünüyordu, pafta ise hata kutusu basıyor
   const avanEksik =
-    (avan.data?.asansorler ?? []).filter((a) => !a.aktif && a.uyari).length + (avan.data?.engelleyici?.length ?? 0);
+    (avan.data?.asansorler ?? []).filter((a) => !a.aktif && a.uyari).length +
+    (avan.data?.engelleyici?.length ?? 0) +
+    (avan.data?.proje_hukmu?.durum === "eksik" ? 1 : 0);
   const avanDurum = !kopru ? null : !avan.data ? null : avan.data.hata || avanEksik ? "eksik" : "tamam";
   const durumlar: Record<string, string | null> = {
     trafik: trafikDurum,
@@ -144,6 +151,12 @@ export function AvanCalisma() {
   const trafikGuncel = tg === trafikGirdi && trafik.isSuccess && !trafik.isFetching && !trafik.isPlaceholderData;
   const avanGuncel = !kopru || (ag === avanGirdi && avan.isSuccess && !avan.isFetching && !avan.isPlaceholderData);
   const sonuclarGuncel = trafikGuncel && avanGuncel;
+  //  Açılış listesindeki durum ( lib/durum ):  yalnız sonuçlar güncel girdininken —
+  //  yenilenirken ve bağlantı düşünce yazılmaz
+  useEffect(() => {
+    const h = sonuclarGuncel && trafik.data ? avanHukmu(trafik.data, kopru, avan.data) : undefined;
+    if (h) durumYaz(AVAN_KIMLIGI, { iz: avanIzi(p, ofis), ...h });
+  }, [sonuclarGuncel, trafik.data, kopru, avan.data, p, ofis]);
   //  Sunucu geri gelince kendiliğinden istenmez ( tarayıcı çevrimiçi kalır ):  düğmeyle
   const baglantiHatasi = !!(trafik.error || avan.error);
   const yenidenDene = () => {
@@ -151,6 +164,21 @@ export function AvanCalisma() {
     if (avan.error) void avan.refetch();
   };
   const deneniyor = trafik.isFetching || avan.isFetching;
+  //  BELGE YALNIZ GÜNCEL SONUÇTAN ( 25 Eki — dış inceleme ):  avan PDF'i kartların kapasite /
+  //  hızını ekrandaki trafik sonucundan ( kopru ), kapak hesaptan gelen alanlarını ekrandaki
+  //  sonuçlardan alır.  Trafik yanıtı gecikirken projede 13 kişi yazarken 8 kişilik asansörlerin
+  //  avan PDF'i ve kapağı iniyordu — yalnız "Projeyi indir" bekliyordu.  Bütün belgeler sonuçlar
+  //  güncellenene kadar bekler;  trafik PDF'i beklemez:  sunucu onu güncel girdiden kurar.
+  const bekleme = sonuclarGuncel
+    ? undefined
+    : baglantiHatasi
+      ? "Sunucuya ulaşılamadı — yeniden deneyin"
+      : "Hesap güncelleniyor — bitince indirilebilir";
+  //  Proje dosyası kartların kapasite / hızını trafikten yazar ( eski arayüz okur ):  trafik
+  //  güncellenirken beklenir — trafiği 13, kartları 8 kişi diyen dosya kaydediliyordu.  Sunucuya
+  //  ulaşılamıyorsa beklemez, trafikten gelenler yazılmaz:  kullanıcının işi hep kaydedilir.
+  const kayitKoprusu = trafikGuncel ? kopru : null;
+  const kayitBekleme = trafikGuncel || baglantiHatasi ? undefined : "Hesap güncelleniyor — bitince kaydedilir";
 
   //  Pakete PROJE DOSYASI da girer ( geri dönüş noktası — uygulamanın
   //  Teslim'i gibi );  React'e geçişte düşmüştü ( 20 Eki )
@@ -239,20 +267,15 @@ export function AvanCalisma() {
               ofis={ofis}
               ac={dosyaAc}
               yeni={yeniAvan}
-              kaydet={() => avanDosyayaKaydet(p, sec.data!, ofis, kopru)}
+              kaydet={() => avanDosyayaKaydet(p, sec.data!, ofis, kayitKoprusu)}
+              kaydetBekleme={kayitBekleme}
             />
             <Dugme
               tur="birincil"
               className="ml-1"
               onClick={() => paket.mutate()}
-              disabled={paket.isPending || !sonuclarGuncel}
-              title={
-                sonuclarGuncel
-                  ? undefined
-                  : baglantiHatasi
-                    ? "Sunucuya ulaşılamadı — yeniden deneyin"
-                    : "Hesap güncelleniyor — bitince indirilebilir"
-              }
+              disabled={paket.isPending || !!bekleme}
+              title={bekleme}
             >
               {paket.isPending || (!sonuclarGuncel && !baglantiHatasi) ? <Loader2 className="animate-spin" /> : <FileArchive />}{" "}
               Projeyi indir
@@ -314,10 +337,11 @@ export function AvanCalisma() {
           yukleniyor={avan.isFetching}
           trafikUlasilamadi={!!trafik.error}
           govde={{ girdiler: avanGirdi, kapak: kapakVerisi }}
+          bekleme={bekleme}
           geri={() => git("/avan/trafik")}
         />
       )}
-      {adim === "kapak" && <KapakAdimi p={p} setP={setP} sec={sec.data} kapak={kapakVerisi} />}
+      {adim === "kapak" && <KapakAdimi p={p} setP={setP} sec={sec.data} kapak={kapakVerisi} bekleme={bekleme} />}
     </div>
   );
 }
@@ -328,12 +352,15 @@ function DosyaDugmeleri({
   ac,
   yeni,
   kaydet,
+  kaydetBekleme,
 }: {
   sec: Secenekler;
   ofis: Ham;
   ac: (o: Acilis) => void;
   yeni: () => void;
   kaydet: () => void;
+  /**  Kayıt bekliyorsa sebebi  */
+  kaydetBekleme?: string;
 }) {
   const girdi = useRef<HTMLInputElement>(null);
   const [hata, setHata] = useState("");
@@ -358,8 +385,15 @@ function DosyaDugmeleri({
           <FolderOpen />
         </Dugme>
       </Ipucu>
-      <Ipucu metin="Proje dosyası olarak kaydet ( .avan ) — eski arayüz de açar">
-        <Dugme tur="hayalet" boy="simge" aria-label="Proje dosyası olarak kaydet" onClick={kaydet}>
+      <Ipucu metin={kaydetBekleme ?? "Proje dosyası olarak kaydet ( .avan ) — eski arayüz de açar"}>
+        <Dugme
+          tur="hayalet"
+          boy="simge"
+          aria-label="Proje dosyası olarak kaydet"
+          onClick={kaydet}
+          disabled={!!kaydetBekleme}
+          title={kaydetBekleme}
+        >
           <Save />
         </Dugme>
       </Ipucu>
@@ -854,6 +888,7 @@ function HesaplarAdimi({
   yukleniyor,
   trafikUlasilamadi,
   govde,
+  bekleme,
   geri,
 }: {
   govde: unknown;
@@ -866,6 +901,8 @@ function HesaplarAdimi({
   yukleniyor: boolean;
   /**  Trafik isteği düştü:  köprü yok ama sebep eksik trafik girdisi değil  */
   trafikUlasilamadi: boolean;
+  /**  Sonuçlar güncel değilken PDF'in beklemesinin sebebi  */
+  bekleme?: string;
   geri: () => void;
 }) {
   const [secili, setSecili] = useState(0);
@@ -999,7 +1036,12 @@ function HesaplarAdimi({
             <div className="flex items-center gap-2">
               {/*  Yenilenirken ekrandaki sonuç önceki girdinindir ( trafik adımı gibi )  */}
               {yukleniyor && <Loader2 className="size-4 animate-spin text-metin-3" />}
-              <IndirDugmesi uc="avan-pdf" govde={govde} kapali={!!sonuc?.hata || !!sonuc?.engelleyici?.length} />
+              <IndirDugmesi
+                uc="avan-pdf"
+                govde={govde}
+                kapali={!!sonuc?.hata || !!sonuc?.engelleyici?.length}
+                bekleme={bekleme}
+              />
             </div>
           </div>
           {sonuc?.hata && <Iletiler iletiler={[sonuc.hata]} kirmizi />}
@@ -1078,11 +1120,14 @@ function KapakAdimi({
   setP,
   sec,
   kapak,
+  bekleme,
 }: {
   p: AvanProjesi;
   setP: React.Dispatch<React.SetStateAction<AvanProjesi>>;
   sec: Secenekler;
   kapak: Record<string, string>;
+  /**  Hesaptan gelen alanlar güncel değilken PDF'in beklemesinin sebebi  */
+  bekleme?: string;
 }) {
   const turetilen = new Set<string>(sec.kapak_turetilen);
   const gecikmeli = useGecikmeli(kapak, 600);
@@ -1151,7 +1196,7 @@ function KapakAdimi({
               <p className="text-[12px] text-metin-3">Sunucunun ürettiği PDF — paketteki kapağın aynısı</p>
               <h1 className="text-[18px] font-semibold tracking-tight">Kapak</h1>
             </div>
-            <IndirDugmesi uc="kapak-pdf" govde={{ kapak }} kapali={!kapak.project_title} />
+            <IndirDugmesi uc="kapak-pdf" govde={{ kapak }} kapali={!kapak.project_title} bekleme={bekleme} />
           </div>
           <div className="overflow-hidden rounded-buyuk border border-cizgi bg-yuzey shadow-panel">
             {onizleme.error ? (
@@ -1182,14 +1227,15 @@ function KapakAdimi({
   );
 }
 
-function IndirDugmesi({ uc, govde, kapali }: { uc: string; govde: unknown; kapali?: boolean }) {
+/**  bekleme:  belge ekrandaki sonuçlardan kuruluyor ve onlar güncel değil — sebebi ( düğme kapalı )  */
+function IndirDugmesi({ uc, govde, kapali, bekleme }: { uc: string; govde: unknown; kapali?: boolean; bekleme?: string }) {
   const m = useMutation({ mutationFn: () => indir(uc, govde) });
   //  Sunucunun reddi düğmenin yanında okunur ( yalnız ipucunda kalmasın )
   return (
     <span className="flex max-w-md items-center gap-2">
       {m.data?.hata && <span className="text-right text-[12px] leading-snug text-red">{m.data.hata}</span>}
-      <Ipucu metin="PDF olarak indir">
-        <Dugme onClick={() => m.mutate()} disabled={kapali || m.isPending}>
+      <Ipucu metin={bekleme ?? "PDF olarak indir"}>
+        <Dugme onClick={() => m.mutate()} disabled={kapali || !!bekleme || m.isPending} title={bekleme}>
           {m.isPending ? <Loader2 className="animate-spin" /> : <Download />} PDF
         </Dugme>
       </Ipucu>

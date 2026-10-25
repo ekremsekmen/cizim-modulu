@@ -94,7 +94,9 @@ export interface Bolum {
   baslik: string;
   kaynak: string;
   adimlar: Adim[];
-  sonuc: Sonuc;
+  /**  Hükümsüz bölümde YOK ( null:  topraklayıcılar, iletkenler — 25 Eki:  tip hep var
+       sayıyordu, temel ölçüleri girilince Uygunluk paneli çöküyordu )  */
+  sonuc: Sonuc | null;
   notlar: string[];
   aciklamalar: string[];
   kimlik: string;
@@ -120,15 +122,32 @@ export interface AsansorSonucu {
   elektrik?: Record<string, unknown> | null;
 }
 
+/**  Hesabın genel hükmü — motor kurar ( uygulama_hesabi · avan_hesabi · trafik
+     .proje_hukmu ), uç yanıta ekler, ekran basar  */
+export interface ProjeHukmu {
+  /**  durdu:  hesaplanamayan asansör / adım ( hüküm kurulmaz );  eksik:  yapılamayan zorunlu hesap  */
+  durum: "durdu" | "eksik" | "uygun_degil" | "uygun";
+  /**  "Uygun değil" bölüm sayısı ( proje geneli dahil )  */
+  uygun_degil: number;
+}
+
 export interface CokluYanit {
   aktif: boolean;
   hata?: string[];
   asansorler?: AsansorSonucu[];
   proje_geneli?: Bolum[];
+  proje_hukmu?: ProjeHukmu;
   ozet?: {
     adet: number;
     tumu_uygun: boolean;
-    asansorler: { no: number; tanim: string; tumu_uygun: boolean; genel_sonuc: string }[];
+    /**  Hesaplanamayan ( reddedilen ) asansörün hükmü ve genel sonucu null  */
+    asansorler: {
+      no: number;
+      tanim: string;
+      aktif: boolean;
+      tumu_uygun: boolean | null;
+      genel_sonuc: string | null;
+    }[];
   };
 }
 
@@ -295,6 +314,7 @@ export interface TrafikYaniti {
   oneriler?: { secenek: string; adet: number; Ieer: number; erisilebilir: boolean }[];
   avan_koprusu?: AvanKoprusu | null;
   kapak_bilgileri?: Record<string, string>;
+  proje_hukmu?: ProjeHukmu;
 }
 
 /**  Bina hesabı ( makine dairesi aydınlatması, topraklama ):  uygulanmıyorsa
@@ -313,6 +333,7 @@ export interface AvanYaniti {
   uyarilar?: string[];
   engelleyici?: string[];
   kapak_bilgileri?: Record<string, string>;
+  proje_hukmu?: ProjeHukmu;
 }
 
 /* ───────────────────────────── istekler */

@@ -24,7 +24,17 @@ import {
   type OncekiGirdi,
   type UygulamaIstegi,
 } from "@/lib/api";
-import { formHatalari, istekKur, siraKaydir, useGecikmeli, type FormHatasi, type Ham, type UygulamaProjesi } from "@/lib/proje";
+import { izi, uygulamaHukmu, type ProjeDurumu } from "@/lib/durum";
+import {
+  formHatalari,
+  istekKur,
+  siraKaydir,
+  uygulamaIzi,
+  useGecikmeli,
+  type FormHatasi,
+  type Ham,
+  type UygulamaProjesi,
+} from "@/lib/proje";
 
 /**  Büyük SVG yanıtları ( ~800 KB ) her tuşta önbellekte birikmesin  */
 const ONBELLEK_MS = 30_000;
@@ -172,6 +182,22 @@ export function useSunucu(
 
   //  Ekrandaki hükümler son girdinin mi?
   const hesapEski = !!hatalar.length || hesapDurdu || !!hesap.error;
+
+  //  PROJENİN DURUMU ( açılış listesi — lib/durum ):  BÜTÜN PROJENİN, motorun hükmü,
+  //  yalnız GÜNCEL girdinin hesabından.  Seçili asansöre ve bağlantıya bakmaz:  24 Eki'de
+  //  seçili asansörün "hesap durdu"su yazılıyordu — reddedilen ikinci asansörden
+  //  birinciye geçince proje "Uygun" görünüyor, iki sekme ( farklı asansör seçili )
+  //  birbirini durmadan eziyordu.  Hesap yolda / düştü / eski girdinin:  bilinmiyor
+  //  ( yazılmaz ).
+  const girdiIzi = useMemo(() => uygulamaIzi(proje, ofis), [proje, ofis]);
+  const hesapIzi = useMemo(() => (hesapIstegi ? izi(hesapIstegi) : null), [hesapIstegi]);
+  const adet = proje.asansorler.length;
+  const durum = useMemo<ProjeDurumu | undefined>(() => {
+    if (hatalar.length) return { iz: girdiIzi, hukum: "durdu", adet, uygunDegil: 0 };
+    if (!hesap.data || hesap.isPlaceholderData || hesapIzi !== girdiIzi) return undefined;
+    const h = uygulamaHukmu(hesap.data, adet);
+    return h && { iz: girdiIzi, ...h };
+  }, [hatalar.length, hesap.data, hesap.isPlaceholderData, hesapIzi, girdiIzi, adet]);
   //  EKRANDAKİ ÇİZİM SON GİRDİNİN Mİ?  Hesap görünümünde çizim istenmez:  son
   //  çizim yanıtı eski girdinindir.  Onun sorunları teslimi kapatıyordu — sorun
   //  hesap görünümünde düzeltilse de ( 22 Eki ).  Teslim açılınca çizim istenir
@@ -196,6 +222,8 @@ export function useSunucu(
     hatalar,
     sonHesap,
     hesapEski,
+    /**  Bütün projenin durumu ( güncel girdinin hesabı yoksa undefined )  */
+    durum,
     hesapYolda: hesap.isFetching,
     cizimler: sonCizim?.yanit.cizimler ?? [],
     cizimIstegi: sonCizim?.istek ?? null,

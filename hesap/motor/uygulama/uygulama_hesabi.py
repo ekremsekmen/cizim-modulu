@@ -413,3 +413,29 @@ def hesapla_coklu(asansorler=None, ortak=None):
             ],
         },
     }
+
+
+#  Projenin genel hükmünün kısa adı → durum
+_PROJE_DURUMU = {"UYGUN": "uygun", "UYGUN DEĞİL": "uygun_degil", "HESAP EKSİK": "eksik"}
+
+
+def proje_hukmu(s):
+    """PROJENİN GENEL HÜKMÜ ( hesapla_coklu'nun sonucundan ) — asansörlerinkiyle AYNI
+    kural ( mukavemet.genel_hukum ), bütün asansörlerin ve proje geneli bölümlerin
+    üstünde.  Açılış listesi bunu basar, kendisi kurmaz ( 24 Eki:  liste ekranda
+    seçili asansörün hükmünü yazıyordu;  "hesap eksik" ve proje geneli "uygun değil"
+    de "uygun" sayılıyordu ).
+
+    Döner:  { durum , uygun_degil }  —  durum:  uygun · uygun_degil · eksik ·
+    durdu ( hesaplanamayan asansör var:  hüküm kurulmaz );  uygun_degil:  "uygun
+    değil" bölüm sayısı ( hesabı eksik bölüm hariç — genel_hukum gibi )."""
+    asansorler = s.get("asansorler") or []
+    if not s.get("aktif") or not asansorler or not all(a.get("aktif") for a in asansorler):
+        return {"durum": "durdu", "uygun_degil": 0}
+    bolumler = [b for a in asansorler for b in a.get("bolumler") or []] + list(s.get("proje_geneli") or [])
+    eksik = [e for a in asansorler for e in (a.get("ozet") or {}).get("eksik_hesap") or []]
+    _uzun, kisa = mukavemet.genel_hukum(bolumler, (s.get("ozet") or {}).get("tumu_uygun"), eksik)
+    kalan = sum(
+        1 for b in bolumler if (b.get("sonuc") or {}).get("uygun") is False and not b.get("eksik_hesap")
+    )
+    return {"durum": _PROJE_DURUMU[kisa], "uygun_degil": kalan}

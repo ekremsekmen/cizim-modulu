@@ -5,8 +5,16 @@ import { ArrowRight, Building, FileUp, FlaskConical, ChartLine, Ruler } from "lu
 import { BasvuruBaglantilari, Isaret, UstSerit } from "@/components/Kabuk";
 import { Dugme, Rozet } from "@/components/ui";
 import { api } from "@/lib/api";
-import { acilisiYaz, avanProjesiniOku, avanProjesiniYaz, BOS_AVAN, yeniAvanAcilisi } from "@/lib/avan";
-import { projeListesi, useGoreceZaman, useOfisStandardi, type ProjeOzeti } from "@/lib/proje";
+import {
+  acilisiYaz,
+  avanListeDurumu,
+  avanOzeti,
+  avanProjesiniOku,
+  avanProjesiniYaz,
+  BOS_AVAN,
+  yeniAvanAcilisi,
+} from "@/lib/avan";
+import { projeListesi, uygulamaListeDurumu, useGoreceZaman, useOfisStandardi, type ProjeOzeti } from "@/lib/proje";
 import { useDosyaAc } from "./useDosyaAc";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +22,9 @@ import { cn } from "@/lib/utils";
     Üç iş:  yeni proje başlat ( uygulama · avan ), dosyadan aç, son projeye dön.
     Örnek proje ayrıdır ve öyle görünür — yeni kullanıcı onu kendi projesi sanmaz.  */
 export function Acilis() {
-  const projeler = projeListesi();
+  //  Uygulama projeleri ve avan ( tek proje, kendi kaydından — lib/avan avanOzeti )
+  const avan = avanOzeti();
+  const projeler = [...projeListesi(), ...(avan ? [avan] : [])].sort((a, b) => b.guncellendi - a.guncellendi);
   //  Bilinmeyen proje adresinden gelindiyse ( başka tarayıcının bağlantısı, silinmiş proje )
   const bulunamadi = (useLocation().state as { bulunamadi?: string } | null)?.bulunamadi;
   return (
@@ -255,15 +265,20 @@ function DosyaAc() {
 function SonProje({ p }: { p: ProjeOzeti }) {
   const zaman = useGoreceZaman(p.guncellendi);
   const git = useNavigate();
-  const durum = !p.son ? (
+  //  Bütün projenin son hesabı — yalnız kayıttaki girdinin ( lib/durum );  değilse "Hesaplanmadı"
+  const d = p.tur === "uygulama" ? uygulamaListeDurumu(p.id) : avanListeDurumu();
+  const durum = !d ? (
     <Rozet>Hesaplanmadı</Rozet>
-  ) : p.son.hata ? (
+  ) : d.hukum === "durdu" ? (
     <Rozet tur="uyari">Hesap durdu</Rozet>
-  ) : p.son.uygunDegil ? (
-    <Rozet tur="red">{p.son.uygunDegil} bölüm uygun değil</Rozet>
+  ) : d.hukum === "eksik" ? (
+    <Rozet tur="uyari">Hesap eksik</Rozet>
+  ) : d.hukum === "uygun_degil" ? (
+    <Rozet tur="red">{d.uygunDegil ? `${d.uygunDegil} bölüm uygun değil` : "Uygun değil"}</Rozet>
   ) : (
     <Rozet tur="uygun">Uygun</Rozet>
   );
+  const adet = p.adet ?? d?.adet;
   const tur = p.tur === "uygulama" ? "Uygulama" : "Avan";
   return (
     <li>
@@ -284,12 +299,12 @@ function SonProje({ p }: { p: ProjeOzeti }) {
             {/*  Tablo sığmayan genişlikte sütunlar yerine alt satır  */}
             <span className="block text-[12px] text-metin-3 xl:hidden">
               {tur}
-              {p.son ? ` · ${p.son.adet} asansör` : ""} · {zaman}
+              {adet ? ` · ${adet} asansör` : ""} · {zaman}
             </span>
           </span>
         </span>
         <span className="hidden text-[12.5px] text-metin-2 xl:block">{tur}</span>
-        <span className="sayi hidden text-right text-[12.5px] text-metin-2 xl:block">{p.son ? p.son.adet : "—"}</span>
+        <span className="sayi hidden text-right text-[12.5px] text-metin-2 xl:block">{adet || "—"}</span>
         <span className="hidden text-[12.5px] text-metin-2 xl:block">{zaman}</span>
         <span className="shrink-0">{durum}</span>
       </button>
