@@ -2,36 +2,28 @@
     gösteriyordu ( ikinci asansör hesaplanamazken "Uygun" ), hesabı eksik ve proje
     geneli "uygun değil" proje de "Uygun" sayılıyordu;  durum eşitlenen proje kaydına
     yazıldığından iki sekme birbirini durmadan eziyordu;  avan listeye hiç girmiyordu.
-    Uygulama projesinin hükmünü motor kurar ( kuralı testler/test_proje_hukmu.py
-    denetler );  burada ekranın onu olduğu gibi okuması, avanın hükmü ve durumun
-    girdisine ait olması denetlenir.                                             */
+    Hükmü motor kurar ( uygulama, avan ve trafik — kuralı testler/test_proje_hukmu.py
+    denetler );  burada ekranın onu olduğu gibi okuması, avanın iki hükmünün
+    birleşmesi ve durumun girdisine ait olması denetlenir.                       */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { AvanKoprusu, AvanYaniti, Bolum, CokluYanit, ProjeHukmu, TrafikYaniti } from "./api";
-import { avanHukmu, izi, uygulamaHukmu } from "./durum";
+import type { AvanKoprusu, AvanYaniti, CokluYanit, ProjeHukmu, TrafikYaniti } from "./api";
+import { avanHukmu, izi, uygulamaHukmu, type Hukum } from "./durum";
 
-/**  "sonucsuz":  hükümsüz bölümün sunucuda sonucu da yok ( null — topraklayıcılar )  */
-const bolum = (uygun: boolean | null | "sonucsuz"): Bolum => ({
-  baslik: "",
-  kaynak: "",
-  adimlar: [],
-  sonuc: uygun === "sonucsuz" ? null : { baslik: "", metin: "", uygun },
-  notlar: [],
-  aciklamalar: [],
-  kimlik: "b",
-  ad: "",
-  sira: 1,
-});
+/**  Ağırdan hafife ( motorun sırası:  mukavemet.genel_hukum )  */
+const HUKUMLER: Hukum[] = ["durdu", "uygun_degil", "eksik", "uygun"];
+const hukum = (durum: Hukum, uygun_degil = 0): ProjeHukmu => ({ durum, uygun_degil });
 
 const yanit = (proje_hukmu?: ProjeHukmu): CokluYanit => ({
   aktif: true,
   asansorler: [],
-  ozet: { adet: 2, tumu_uygun: proje_hukmu?.durum === "uygun", proje_hukmu, asansorler: [] },
+  proje_hukmu,
+  ozet: { adet: 2, tumu_uygun: proje_hukmu?.durum === "uygun", asansorler: [] },
 });
 
 describe("uygulama projesinin hükmü motorundur:  ekran okur, kurmaz", () => {
   it("motorun hükmü olduğu gibi", () => {
-    for (const durum of ["durdu", "eksik", "uygun_degil", "uygun"] as const)
-      expect(uygulamaHukmu(yanit({ durum, uygun_degil: 3 }), 2)).toEqual({ hukum: durum, adet: 2, uygunDegil: 3 });
+    for (const durum of HUKUMLER)
+      expect(uygulamaHukmu(yanit(hukum(durum, 3)), 2)).toEqual({ hukum: durum, adet: 2, uygunDegil: 3 });
   });
   it("istek bütünüyle reddedildiyse hesap durdu ( yanıtta asansör listesi yok )", () => {
     expect(uygulamaHukmu({ aktif: false, hata: ["ofis değeri"] }, 3)).toEqual({ hukum: "durdu", adet: 3, uygunDegil: 0 });
@@ -41,55 +33,30 @@ describe("uygulama projesinin hükmü motorundur:  ekran okur, kurmaz", () => {
   });
 });
 
-describe("avan projesinin hükmü", () => {
+describe("avan projesinin hükmü:  trafik ve avan hesaplarının motor hükümlerinden ağır olanı", () => {
   const KOPRU: AvanKoprusu = { tip: "tek", N: 10, bodrum: 0, h: 3, adet: 2, asansorler: [{ P: 8, V: 1.6, toplam_seyahat: 30 }, { P: 8, V: 1.6, toplam_seyahat: 30 }] };
-  const trafik = (o: Partial<TrafikYaniti> = {}): TrafikYaniti => ({
-    hata: null,
-    bolumler: [bolum(null)],
-    ozet: {
-      bina_tipi: "Konut",
-      standart: "",
-      B: 0,
-      TR: 0,
-      R: 0,
-      Ieer: 0,
-      Izul: 0,
-      adet: 2,
-      sonuc_cumlesi: "",
-      karar_olcutleri: [{ ad: "Taşıma", metin: "", uygun: true }],
-    },
-    avan_koprusu: KOPRU,
-    ...o,
-  });
-  const avan = (o: Partial<AvanYaniti> = {}): AvanYaniti => ({
-    asansorler: [
-      { no: 1, aktif: true, bolumler: [bolum(true)] },
-      { no: 2, aktif: true, bolumler: [bolum(true)] },
-    ],
-    topraklama: { aktif: true, bolumler: [bolum(true)] },
-    engelleyici: [],
-    ...o,
-  });
+  const trafik = (h?: ProjeHukmu, hata: string | null = null): TrafikYaniti => ({ hata, avan_koprusu: KOPRU, proje_hukmu: h });
+  const avan = (h?: ProjeHukmu): AvanYaniti => ({ proje_hukmu: h });
 
-  it("trafik hesabı yapılamadıysa hesap durdu", () => {
-    expect(avanHukmu(trafik({ hata: "Bina tipi listeden seçilmelidir." }), null)).toEqual({ hukum: "durdu", adet: 0, uygunDegil: 0 });
+  it("25 Eki ( dış inceleme ):  topraklaması yapılamayan avan 'Uygun' değil, hesap eksik", () => {
+    expect(avanHukmu(trafik(hukum("uygun")), KOPRU, avan(hukum("eksik")))).toEqual({ hukum: "eksik", adet: 2, uygunDegil: 0 });
   });
-  it("girdisi tamamlanmamış avan asansörü:  hesap durdu ( avan ekranı da 'eksik' der )", () => {
-    const a = avan({ asansorler: [{ no: 1, aktif: true, bolumler: [] }, { no: 2, aktif: false, uyari: "girdi tamamlanmadı" }] });
-    expect(avanHukmu(trafik(), KOPRU, a).hukum).toBe("durdu");
+  it("her ikili:  ağır olan kazanır ( hesaplanamayan > uygun değil > hesap eksik > uygun ), sayılar toplanır", () => {
+    for (const a of HUKUMLER)
+      for (const b of HUKUMLER) {
+        const h = avanHukmu(trafik(hukum(a, 1)), KOPRU, avan(hukum(b, 2)))!;
+        expect(HUKUMLER.indexOf(h.hukum), `${a} + ${b}`).toBe(Math.min(HUKUMLER.indexOf(a), HUKUMLER.indexOf(b)));
+        expect(h.uygunDegil).toBe(3);
+      }
   });
-  it("trafik ölçütü, bölüm ve engelleyici 'uygun değil'e girer", () => {
-    expect(avanHukmu(trafik(), KOPRU, avan({ topraklama: { aktif: true, bolumler: [bolum(false)] } }))).toEqual({
-      hukum: "uygun_degil",
-      adet: 2,
-      uygunDegil: 1,
-    });
-    const olcut = trafik({ ozet: { ...trafik().ozet!, karar_olcutleri: [{ ad: "Bekleme", metin: "", uygun: false }] } });
-    expect(avanHukmu(olcut, KOPRU, avan()).hukum).toBe("uygun_degil");
-    expect(avanHukmu(trafik(), KOPRU, avan({ engelleyici: ["kabin alanı"] })).hukum).toBe("uygun_degil");
+  it("trafik ya da avan isteği reddedildiyse hesap durdu", () => {
+    expect(avanHukmu(trafik(undefined, "Bina tipi listeden seçilmelidir."), null)).toEqual({ hukum: "durdu", adet: 0, uygunDegil: 0 });
+    expect(avanHukmu(trafik(hukum("uygun")), KOPRU, { hata: "HESAP HATASI" })?.hukum).toBe("durdu");
   });
-  it("hepsi uygunsa uygun;  asansör sayısı trafikten", () => {
-    expect(avanHukmu(trafik(), KOPRU, avan())).toEqual({ hukum: "uygun", adet: 2, uygunDegil: 0 });
+  it("hükmü gelmemiş adım:  bilinmiyor ( yazılmaz )", () => {
+    expect(avanHukmu(trafik(hukum("uygun")), KOPRU)).toBeUndefined();
+    expect(avanHukmu(trafik(hukum("uygun")), KOPRU, avan())).toBeUndefined();
+    expect(avanHukmu(trafik(), KOPRU, avan(hukum("uygun")))).toBeUndefined();
   });
 });
 

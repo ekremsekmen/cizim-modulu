@@ -837,27 +837,88 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(self.sayfa.get_by_label("③ Kat sayısı N").input_value(), "10")
         self.assertEqual(self.sayfa.evaluate("localStorage.getItem('asansor:avan-zaman')"), zaman)
 
-        #  Hesaplanan avan:  trafiğin verdiği asansörlerin kartları dolu — durum
-        #  sonuçlar gelince yazılır ( yalnız trafikle değil, avan hesabıyla da )
+        #  25 Eki ( dış inceleme ):  kartları dolu ama temel ölçüleri boş — topraklama
+        #  yapılamadı ( avan paftası yerine hata kutusu basar );  liste "Uygun" diyordu,
+        #  "Avan hesapları" adımı "tamam"dı
+        _trafik, avan, satir = self._hesaplanan_avan({"mk_yok": "true"})
+        self.assertTrue(all(a["aktif"] for a in avan["asansorler"]), avan["asansorler"])
+        self.assertFalse(avan["topraklama"]["aktif"])
+        self.assertTrue(satir.endswith("Hesap eksik"), satir)
+        self.sayfa.goto(self.url + "/avan/hesaplar")
+        self.iz.sakin()
+        adim = self.sayfa.get_by_role("navigation", name="Adımlar").get_by_role(
+            "link", name=re.compile("Avan hesapları")
+        )
+        self.assertIn("bg-uyari", adim.locator("span").first.get_attribute("class"))
+
+        #  Hesaplanan avan:  trafiğin verdiği asansörlerin kartları dolu, topraklama
+        #  hesaplandı — durum iki hesabın motor hükmünden ( avan hesabı gelince yazılır )
+        trafik, avan, satir = self._hesaplanan_avan({"mk_yok": "true", "temel_a": "20", "temel_b": "15"})
+        self.assertTrue(avan["topraklama"]["aktif"])
+        self.assertTrue(
+            satir.startswith(f"Avan deneme Avan {len(trafik['avan_koprusu']['asansorler'])} "), satir
+        )
+        self.assertTrue(satir.endswith(self._rozet(trafik["proje_hukmu"], avan["proje_hukmu"])), satir)
+
+    @staticmethod
+    def _rozet(*hukumler):
+        """Listenin rozeti:  hükümlerin ağırı ( lib/durum avanHukmu ), Acilis'in metniyle."""
+        sira = ["durdu", "uygun_degil", "eksik", "uygun"]
+        durum = min((h["durum"] for h in hukumler), key=sira.index)
+        sayi = sum(h["uygun_degil"] for h in hukumler)
+        return {
+            "durdu": "Hesap durdu",
+            "eksik": "Hesap eksik",
+            "uygun_degil": f"{sayi} bölüm uygun değil" if sayi else "Uygun değil",
+            "uygun": "Uygun",
+        }[durum]
+
+    def _hesaplanan_avan(self, ortak):
+        """Kartları dolu avan ( 'ortak':  bina geneli ) açılır;  ( trafik, avan, liste satırı )."""
         self.sayfa.evaluate(
-            """() => { const kart = {Hk: '34', kuyu_genisligi: '1800', kabin_boyu: '1400', kabin_genisligi: '1100'};
+            """ortak => { const kart = {Hk: '34', kuyu_genisligi: '1800', kabin_boyu: '1400', kabin_genisligi: '1100'};
                 localStorage.setItem('asansor:avan', JSON.stringify({
                 trafik: {bina_tipi: 'Konut', bina_yuksekligi: '30', yapi_yuksekligi: '31', N: '10', h: '3',
                          hizli1: '20', hizli2: '2'},
                 ekNufus: [],
                 trafikAsansorleri: [{P: '8', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik'}],
-                ortak: {mk_yok: 'true', temel_a: '20', temel_b: '15'},
+                ortak,
                 avanAsansorleri: [{tanim: 'A', ...kart}, {tanim: 'B', ...kart}, {tanim: 'C', ...kart}, {tanim: 'D', ...kart}],
-                kapak: {project_title: 'Avan deneme'}})); }"""
+                kapak: {project_title: 'Avan deneme'}})); }""",
+            ortak,
         )
         self.sayfa.goto(self.url + "/avan/hesaplar")
         _istek, avan = self.iz.son("/api/avan")
         _istek, trafik = self.iz.son("/api/trafik")
-        adet = len(trafik["avan_koprusu"]["asansorler"])
-        self.assertTrue(all(a["aktif"] for a in avan["asansorler"]), avan["asansorler"])
-        satir = self.liste_satiri("Avan deneme")
-        self.assertTrue(satir.startswith(f"Avan deneme Avan {adet} "), satir)
-        self.assertNotRegex(satir, r"(Hesaplanmadı|Hesap durdu)$")
+        return trafik, avan, self.liste_satiri("Avan deneme")
+
+    def test_geri_al_baska_sekmenin_degisikligini_ezmez(self):
+        """25 Eki ( dış inceleme ):  "Geri al" kaldırmadan önceki listenin tamamını geri
+        yazar;  başka sekmede yazılan girdi şeridi kapatmıyordu — bir sekmede asansör
+        kaldırılıp öbüründe kuyu genişliği 2210 yapılınca ilk sekmedeki "Geri al" onu
+        sessizce 2200'e döndürüyordu.  Proje kaldırmanın bıraktığı hâlde değilse geri
+        alınmaz ( değişiklik yoksa alınır:  test_asansor_eklenir_kaldirilir_geri_alinir )."""
+        self.ornek_projeyi_ac()
+        adres = self.sayfa.url
+        kimlik = adres.rsplit("/", 1)[1]
+        genislikler = f"JSON.parse(localStorage.getItem('asansor:proje:{kimlik}')).asansorler.map(a => a.kuyu_genisligi)"
+        self.sayfa.get_by_role("button", name="Asansör ekle").click()
+        self.iz.sakin()
+        self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).last.click()
+        geri_al = self.sayfa.get_by_role("status").get_by_role("button", name="Geri al")
+        geri_al.wait_for()
+        ikinci = self.baglam.new_page()
+        iz2 = Izleyici(ikinci)
+        ikinci.goto(adres)
+        iz2.sakin()
+        girdiler = ikinci.get_by_role("complementary", name="Girdiler")
+        girdiler.get_by_label("Alan ara").fill(self.ad("kuyu_genisligi"))
+        girdiler.get_by_label(self.ad("kuyu_genisligi"), exact=True).fill("2210")
+        iz2.sakin()
+        self.iz.sakin()
+        geri_al.wait_for(state="detached")
+        self.assertEqual(self.sayfa.evaluate(genislikler), ["2210"])
+        self.assertEqual(iz2.hatalar, [])
 
     def test_hukumsuz_bolum_ekrani_cokertmez(self):
         """25 Eki:  temel ölçülerinin ikisi de girilince topraklama hesaplanır;  yatay

@@ -353,6 +353,8 @@ def api_trafik(veri: dict = Body(...)):
         #  Kapağın boş bırakılan asansör alanları hesaptan dolar ( ekranda
         #  gri yer tutucu olarak görünür, çıktıya o basılır ).
         s["kapak_bilgileri"] = kapak.trafikten(s)
+        #  Hükmü motor kurar, ekran basar ( açılış listesi )
+        s["proje_hukmu"] = trafik.proje_hukmu(s)
         return JSONResponse(json.loads(json.dumps(s, default=str)))
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
@@ -366,6 +368,8 @@ def api_avan(veri: dict = Body(...)):
         if yanit is not None:
             return yanit
         s["kapak_bilgileri"] = kapak.avandan(s)
+        #  Hükmü motor kurar, ekran basar ( açılış listesi, adım şeridi )
+        s["proje_hukmu"] = avan_hesabi.proje_hukmu(s)
         return JSONResponse(json.loads(json.dumps(s, default=str)))
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)

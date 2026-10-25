@@ -122,9 +122,10 @@ export interface AsansorSonucu {
   elektrik?: Record<string, unknown> | null;
 }
 
-/**  Projenin genel hükmü — motor kurar ( uygulama_hesabi.proje_hukmu ), ekran basar  */
+/**  Hesabın genel hükmü — motor kurar ( uygulama_hesabi · avan_hesabi · trafik
+     .proje_hukmu ), uç yanıta ekler, ekran basar  */
 export interface ProjeHukmu {
-  /**  durdu:  hesaplanamayan asansör var ( hüküm kurulmaz );  eksik:  yapılamayan zorunlu hesap  */
+  /**  durdu:  hesaplanamayan asansör / adım ( hüküm kurulmaz );  eksik:  yapılamayan zorunlu hesap  */
   durum: "durdu" | "eksik" | "uygun_degil" | "uygun";
   /**  "Uygun değil" bölüm sayısı ( proje geneli dahil )  */
   uygun_degil: number;
@@ -135,11 +136,10 @@ export interface CokluYanit {
   hata?: string[];
   asansorler?: AsansorSonucu[];
   proje_geneli?: Bolum[];
+  proje_hukmu?: ProjeHukmu;
   ozet?: {
     adet: number;
     tumu_uygun: boolean;
-    /**  Uç ekler ( uygulama_uclari )  */
-    proje_hukmu?: ProjeHukmu;
     /**  Hesaplanamayan ( reddedilen ) asansörün hükmü ve genel sonucu null  */
     asansorler: {
       no: number;
@@ -314,6 +314,7 @@ export interface TrafikYaniti {
   oneriler?: { secenek: string; adet: number; Ieer: number; erisilebilir: boolean }[];
   avan_koprusu?: AvanKoprusu | null;
   kapak_bilgileri?: Record<string, string>;
+  proje_hukmu?: ProjeHukmu;
 }
 
 /**  Bina hesabı ( makine dairesi aydınlatması, topraklama ):  uygulanmıyorsa
@@ -332,6 +333,7 @@ export interface AvanYaniti {
   uyarilar?: string[];
   engelleyici?: string[];
   kapak_bilgileri?: Record<string, string>;
+  proje_hukmu?: ProjeHukmu;
 }
 
 /* ───────────────────────────── istekler */

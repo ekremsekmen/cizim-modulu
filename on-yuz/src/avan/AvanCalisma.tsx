@@ -129,8 +129,12 @@ export function AvanCalisma() {
   );
 
   const trafikDurum = !trafik.data ? null : trafik.data.hata ? "eksik" : "tamam";
+  //  Yapılamayan zorunlu hesap ( topraklama, makine dairesi varsa aydınlatması — motorun
+  //  hükmü ) da "eksik":  25 Eki'ye dek adım "tamam" görünüyordu, pafta ise hata kutusu basıyor
   const avanEksik =
-    (avan.data?.asansorler ?? []).filter((a) => !a.aktif && a.uyari).length + (avan.data?.engelleyici?.length ?? 0);
+    (avan.data?.asansorler ?? []).filter((a) => !a.aktif && a.uyari).length +
+    (avan.data?.engelleyici?.length ?? 0) +
+    (avan.data?.proje_hukmu?.durum === "eksik" ? 1 : 0);
   const avanDurum = !kopru ? null : !avan.data ? null : avan.data.hata || avanEksik ? "eksik" : "tamam";
   const durumlar: Record<string, string | null> = {
     trafik: trafikDurum,
@@ -150,8 +154,8 @@ export function AvanCalisma() {
   //  Açılış listesindeki durum ( lib/durum ):  yalnız sonuçlar güncel girdininken —
   //  yenilenirken ve bağlantı düşünce yazılmaz
   useEffect(() => {
-    if (!sonuclarGuncel || !trafik.data) return;
-    durumYaz(AVAN_KIMLIGI, { iz: avanIzi(p, ofis), ...avanHukmu(trafik.data, kopru, avan.data) });
+    const h = sonuclarGuncel && trafik.data ? avanHukmu(trafik.data, kopru, avan.data) : undefined;
+    if (h) durumYaz(AVAN_KIMLIGI, { iz: avanIzi(p, ofis), ...h });
   }, [sonuclarGuncel, trafik.data, kopru, avan.data, p, ofis]);
   //  Sunucu geri gelince kendiliğinden istenmez ( tarayıcı çevrimiçi kalır ):  düğmeyle
   const baglantiHatasi = !!(trafik.error || avan.error);

@@ -18,7 +18,7 @@
     kendi hükmünü yeniden yazıyordu ( 4,5 sn'de sekme başına 1.100 kayıt ).  Bu
     anahtarı dinleyen yoktur:  döngü kurulamaz;  aynı girdinin hükmü her sekmede
     aynıdır, aynı değer yeniden yazılmaz.                                      */
-import type { AvanKoprusu, AvanYaniti, Bolum, CokluYanit, ProjeHukmu, TrafikYaniti } from "./api";
+import type { AvanKoprusu, AvanYaniti, CokluYanit, ProjeHukmu, TrafikYaniti } from "./api";
 import { depoOku, depoSil, depoYaz } from "./depo";
 
 /**  Motorun durum adları ( uygulama_hesabi.proje_hukmu ):  durdu — kural dışı girdi
@@ -95,29 +95,32 @@ function kararliMetin(d: unknown): string {
      adet:  projenin asansör sayısı ( reddedilen yanıtta liste gelmez ).  */
 export function uygulamaHukmu(y: CokluYanit, adet: number): Omit<ProjeDurumu, "iz"> | undefined {
   if (!y.aktif) return { hukum: "durdu", adet, uygunDegil: 0 };
-  const h = y.ozet?.proje_hukmu;
+  const h = y.proje_hukmu;
   return h && { hukum: h.durum, adet, uygunDegil: h.uygun_degil };
 }
 
-/**  AVAN PROJESİ ( trafik + avan hesapları ) — motorun avan için bütün hükmü yok:
-     avan ekranının gösterdikleri birleşir.  Trafik ya da bir asansörün avan hesabı
-     yapılamadıysa hesap durdu ( ekranın "eksik" adımı );  sunucunun "uygun değil"
-     dediği bölüm, trafik ölçütü ya da engelleyici uyarı varsa uygun değil;  yoksa
-     uygun.  avan:  trafik avan asansörü verdiyse ( kopru ) onun hesabı.  */
-export function avanHukmu(t: TrafikYaniti, kopru: AvanKoprusu | null, avan?: AvanYaniti): Omit<ProjeDurumu, "iz"> {
+/**  Hükümlerin ağırlığı ( motorun sırası:  hesaplanamayan > uygun değil > hesap eksik > uygun )  */
+const AGIRLIK: Record<Hukum, number> = { durdu: 3, uygun_degil: 2, eksik: 1, uygun: 0 };
+
+/**  AVAN PROJESİ iki hesaptır:  trafik ve avan hesapları — ikisinin de hükmü
+     motordan ( trafik · avan_hesabi .proje_hukmu );  projeninki AĞIR OLANI.
+     25 Eki ( dış inceleme ):  burada kuruluyordu, yapılamayan topraklamayı
+     görmüyordu — temel ölçüleri boş avan "Uygun"du.  Trafik ya da avan isteği
+     reddedildiyse hesap durdu;  yanıt hükümsüzse bilinmiyor ( yazılmaz ).
+     avan:  trafik avan asansörü verdiyse ( kopru ) onun hesabı.  */
+export function avanHukmu(
+  t: TrafikYaniti,
+  kopru: AvanKoprusu | null,
+  avan?: AvanYaniti,
+): Omit<ProjeDurumu, "iz"> | undefined {
   const adet = kopru?.asansorler.length ?? 0;
-  const durdu = { hukum: "durdu" as const, adet, uygunDegil: 0 };
-  if (t.hata || !kopru || !avan || avan.hata) return durdu;
-  //  Avan ekranı da bunu "eksik" sayar:  girdisi tamamlanmamış asansörün hesabı yok
-  if ((avan.asansorler ?? []).some((a) => !a.aktif && a.uyari)) return durdu;
-  const bolumler: Bolum[] = [
-    ...(t.bolumler ?? []),
-    ...(avan.asansorler ?? []).flatMap((a) => a.bolumler ?? []),
-    ...(avan.makine_dairesi?.bolumler ?? []),
-    ...(avan.topraklama?.bolumler ?? []),
-  ];
-  const uygunDegil = bolumler.filter((b) => b.sonuc?.uygun === false).length;
-  const olcutKaldi = (t.ozet?.karar_olcutleri ?? []).some((k) => !k.uygun);
-  const hukum = uygunDegil || olcutKaldi || avan.engelleyici?.length ? "uygun_degil" : "uygun";
-  return { hukum, adet, uygunDegil };
+  if (t.hata || !kopru || avan?.hata) return { hukum: "durdu", adet, uygunDegil: 0 };
+  const a = t.proje_hukmu;
+  const b = avan?.proje_hukmu;
+  if (!a || !b) return undefined;
+  return {
+    hukum: AGIRLIK[a.durum] >= AGIRLIK[b.durum] ? a.durum : b.durum,
+    adet,
+    uygunDegil: a.uygun_degil + b.uygun_degil,
+  };
 }

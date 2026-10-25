@@ -2327,3 +2327,41 @@ def hesapla(veriler: dict) -> dict:
         "uyarilar": uyarilar,
         "engelleyici": engelleyiciler,
     }
+
+
+def proje_hukmu(s):
+    """AVAN HESAPLARININ GENEL HÜKMÜ ( hesapla'nın sonucundan ) — açılış listesi ve
+    adım şeridi basar, kendileri kurmaz.  Uygulamanınkiyle ( uygulama_hesabi.
+    proje_hukmu ) aynı sıra:  hesaplanamayan > uygun değil > hesap eksik > uygun.
+
+    ZORUNLU HESAPLAR avan paftasının bastıklarıdır:  TOPRAKLAMA her avanda
+    ( yapılamazsa pafta yerine hata kutusu basar ), makine dairesi AYDINLATMASI
+    makine dairesi varsa ( MRL'de uygulanmaz ).  25 Eki:  temel ölçüleri boş avan
+    listede "Uygun"du — hüküm ön yüzde kuruluyor, yapılamayan topraklamayı
+    görmüyordu.
+
+    Döner:  { durum , uygun_degil } — durum:  durdu ( girdisi tamamlanmamış
+    asansör ) · uygun_degil ( uygun olmayan bölüm ya da engelleyici ) · eksik ·
+    uygun;  uygun_degil:  uygun olmayan bölüm sayısı."""
+    asansorler = s.get("asansorler") or []
+    if (
+        s.get("hata")
+        or not any(a.get("aktif") for a in asansorler)
+        or any(not a.get("aktif") and a.get("uyari") for a in asansorler)
+    ):
+        return {"durum": "durdu", "uygun_degil": 0}
+    mk = s.get("makine_dairesi") or {}
+    tp = s.get("topraklama") or {}
+    bolumler = [b for a in asansorler if a.get("aktif") for b in a.get("bolumler") or []]
+    bolumler += ([mk["bolum"]] if mk.get("aktif") else []) + (
+        tp.get("bolumler") or [] if tp.get("aktif") else []
+    )
+    eksik = not tp.get("aktif") or (mk.get("mk_yok") is False and not mk.get("aktif"))
+    kalan = sum(1 for b in bolumler if (b.get("sonuc") or {}).get("uygun") is False)
+    if kalan:
+        durum = "uygun_degil"
+    elif eksik:
+        durum = "eksik"
+    else:
+        durum = "uygun_degil" if s.get("engelleyici") else "uygun"
+    return {"durum": durum, "uygun_degil": kalan}
