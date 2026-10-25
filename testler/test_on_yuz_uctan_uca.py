@@ -873,8 +873,8 @@ class OnYuzUctanUca(unittest.TestCase):
             "uygun": "Uygun",
         }[durum]
 
-    def _hesaplanan_avan(self, ortak):
-        """Kartları dolu avan ( 'ortak':  bina geneli ) açılır;  ( trafik, avan, liste satırı )."""
+    def _avan_kaydi(self, ortak):
+        """Kartları dolu avan tarayıcıya yazılır ( 'ortak':  bina geneli;  trafik 8 kişi, iki asansör )."""
         self.sayfa.evaluate(
             """ortak => { const kart = {Hk: '34', kuyu_genisligi: '1800', kabin_boyu: '1400', kabin_genisligi: '1100'};
                 localStorage.setItem('asansor:avan', JSON.stringify({
@@ -887,10 +887,84 @@ class OnYuzUctanUca(unittest.TestCase):
                 kapak: {project_title: 'Avan deneme'}})); }""",
             ortak,
         )
+
+    def _hesaplanan_avan(self, ortak):
+        """Kartları dolu avan açılır;  ( trafik, avan, liste satırı )."""
+        self._avan_kaydi(ortak)
         self.sayfa.goto(self.url + "/avan/hesaplar")
         _istek, avan = self.iz.son("/api/avan")
         _istek, trafik = self.iz.son("/api/trafik")
         return trafik, avan, self.liste_satiri("Avan deneme")
+
+    def test_avan_belgeleri_guncel_sonucu_bekler(self):
+        """25 Eki ( dış inceleme ):  avan PDF'i kartların kapasite / hızını ekrandaki
+        trafik sonucundan, kapak hesaptan gelen alanlarını ekrandaki sonuçlardan alır.
+        Trafikte kapasite 8 → 13 yapılıp yanıt gecikirken avan PDF'i ve kapak 8 kişiyle
+        iniyordu, proje dosyası trafiği 13, kartları 8 kişi diye kaydediliyordu ( yalnız
+        "Projeyi indir" bekliyordu ).  Belgeler ve kayıt güncel sonucu bekler;  sunucuya
+        ulaşılamazsa kayıt beklemez, trafikten gelen değerleri yazmaz."""
+        self.sayfa.goto(self.url + "/")
+        self._avan_kaydi({"mk_yok": "true", "temel_a": "20", "temel_b": "15"})
+        self.sayfa.goto(self.url + "/avan/trafik")
+        self.iz.sakin()
+        adimlar = self.sayfa.get_by_role("navigation", name="Adımlar")
+        kaydet = self.sayfa.get_by_role("button", name="Proje dosyası olarak kaydet")
+        pdf = self.sayfa.get_by_role("button", name="PDF", exact=True)
+
+        def kapasite(deger):
+            self.sayfa.get_by_label("1. asansör ⑧ Kapasite").click()
+            self.sayfa.get_by_role("option", name=f"{deger} kişi", exact=True).click()
+
+        def indir(uc):
+            with self.sayfa.expect_request(lambda r: r.url.endswith(uc)) as istek:
+                with self.sayfa.expect_download():
+                    pdf.click()
+            return json.loads(istek.value.post_data)
+
+        def adima_git(adim):
+            """Adım bağlantısı;  yeni adım çizilene kadar beklenir ( öncekinin PDF'i sorulmasın )."""
+            adimlar.get_by_role("link", name=re.compile(adim)).click()
+            self.sayfa.get_by_role("heading", level=1, name=adim, exact=True).wait_for()
+
+        def kayit():
+            with self.sayfa.expect_download() as d:
+                kaydet.click()
+            with open(d.value.path(), encoding="utf-8") as f:
+                a = json.load(f)["alanlar"]
+            return a["c_P1"], a["a_kapasite1"]
+
+        tutulan = []
+        self.sayfa.route("**/api/trafik", lambda r: tutulan.append(r))
+        try:
+            kapasite(13)
+            self.sayfa.wait_for_timeout(800)  # girdi gecikmesi geçsin, trafik yanıtı tutulsun
+            self.assertTrue(tutulan, "trafik istenmedi")
+            self.assertTrue(kaydet.is_disabled(), "güncel olmayan sonuçla proje dosyası kaydedilir")
+            for adim in ("Avan hesapları", "Kapak"):
+                adima_git(adim)
+                self.assertTrue(pdf.is_disabled(), f"{adim}:  güncel olmayan sonuçla PDF iner")
+        finally:
+            for r in tutulan:
+                r.continue_()
+            self.sayfa.unroute("**/api/trafik")
+        self.iz.sakin()
+        self.assertEqual(indir("/api/indir/kapak-pdf")["kapak"]["capacity"], "13 kişi")
+        adima_git("Avan hesapları")
+        g = indir("/api/indir/avan-pdf")["girdiler"]
+        self.assertEqual([a["kapasite"] for a in g["asansorler"] if a["aktif"]], ["13", "13"])
+        self.assertEqual(kayit(), ("13", "13"))
+
+        #  Sunucuya ulaşılamıyor ( fetch sarmalı — route.abort konsola yazar ):  kayıt
+        #  beklemez ( iş kaybolmasın ), trafikten gelen değerler yazılmaz
+        self.sayfa.evaluate(self.ARIZA_BETIGI)
+        self.sayfa.evaluate(
+            "sessionStorage.setItem('__ariza', JSON.stringify({yol: '/api/trafik', tur: 'baglanti'}))"
+        )
+        adima_git("Trafik hesabı")
+        kapasite(10)  # önbellekte sonucu olmayan girdi:  istek gider, düşer
+        self.sayfa.get_by_role("alert").filter(has_text="Sunucuya ulaşılamadı").wait_for()
+        self.assertEqual(kayit(), ("10", ""))
+        self.sayfa.evaluate("sessionStorage.removeItem('__ariza')")
 
     def test_geri_al_baska_sekmenin_degisikligini_ezmez(self):
         """25 Eki ( dış inceleme ):  "Geri al" kaldırmadan önceki listenin tamamını geri
