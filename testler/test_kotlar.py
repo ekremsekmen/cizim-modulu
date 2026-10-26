@@ -23,6 +23,7 @@ import re
 import unittest
 
 from cizim import dusey, izli, katlar, kopru, veri_tablosu
+from motor.uygulama import mukavemet
 from tasarim import alanlar, gorunum
 from testler import test_yerlesim_saglamligi
 from uclar import care_uclari, cizim_uclari, uygulama_istegi, uygulama_uclari
@@ -371,15 +372,27 @@ def _ic_kotlar(svg, ofset):
     return _KOT_YAZISI.sub(ic, svg)
 
 
+def _girisle(bolumler):
+    """Raporun kaynak sütununda kottan türeyen satır "GİRİŞ" sayılır:  ikizde
+    aynı satırı kullanıcı yazmıştır ( kaynağın kendisi ayrıca denetlenir —
+    RaporunKaynagi )."""
+    for b in bolumler:
+        for x in b.get("adimlar") or []:
+            if str(x.get("kaynak") or "").startswith(mukavemet.KOT + "  ·"):
+                x["kaynak"] = "GİRİŞ"
+    return bolumler
+
+
 def _yuz(v, ofset=0):
     """Karşılaştırılan yüz ( uçlardan — ekranın ve paftanın gördüğü ):  hesabın
-    bölümleri, özeti, uyarıları;  paftaların SVG'si, kot yazıları iç koordinatta
-    ( ofset:  en alt durağın kotu, mm );  veri tablosunun yazıları ayrı — kotla
-    girişin notu orada."""
+    bölümleri ( kaynak sütunu _girisle ), özeti, uyarıları;  paftaların SVG'si,
+    kot yazıları iç koordinatta ( ofset:  en alt durağın kotu, mm );  veri
+    tablosunun yazıları ayrı — kotla girişin notu orada."""
     h = json.loads(uygulama_uclari.api_uygulama_coklu(copy.deepcopy(v)).body)
     c = json.loads(cizim_uclari.api_cizimler(copy.deepcopy(v)).body)
     assert h.get("aktif") and c.get("aktif"), (h.get("hata"), c.get("hata"))
     a = h["asansorler"][0]
+    a["bolumler"] = _girisle(a["bolumler"])
     svg = {x["ad"]: _ic_kotlar(x["svg"], ofset) for x in c["cizimler"]}
     return {k: a[k] for k in ("bolumler", "ozet", "uyarilar")}, svg, _YAZI.findall(svg.pop("veriler"))
 
@@ -568,6 +581,38 @@ class OlcuKaynagi(unittest.TestCase):
         self.assertTrue(y["aktif"], y)
         self.assertEqual(
             [(d["anahtar"], d["deger"]) for d in y["degisiklikler"]], [("kuyu_dibi_kotu", -8.95)]
+        )
+
+
+class RaporunKaynagi(unittest.TestCase):
+    """Hesap raporu kottan türeyen değerin kaynağını formülüyle yazar ( KOTLAR.md
+    § 6.5:  "H = +57,60 − ( −7,00 ) = 64,60 m" );  ölçüyle girişte "GİRİŞ"."""
+
+    def _satirlar(self, v):
+        h = json.loads(uygulama_uclari.api_uygulama_coklu(copy.deepcopy(v)).body)
+        return {
+            x["aciklama"]: (x["deger"], x["kaynak"])
+            for b in h["asansorler"][0]["bolumler"]
+            for x in b.get("adimlar") or []
+            if x.get("aciklama") in ("Seyir mesafesi", "En üst durak ( son kat ) yüksekliği")
+        }
+
+    def test_kotla_giriste_kot_ve_formul(self):
+        self.assertEqual(
+            self._satirlar(_kotlu_63444()),
+            {
+                "Seyir mesafesi": (64.6, "KOT  ·  +57,60 − ( -7,00 )"),
+                "En üst durak ( son kat ) yüksekliği": (4600, "KOT  ·  +62,20 − ( +57,60 )"),
+            },
+        )
+
+    def test_olcuyle_giriste_giris(self):
+        self.assertEqual(
+            {
+                k: x[1]
+                for k, x in self._satirlar(test_yerlesim_saglamligi.standart_istek(1000, True, "Sağ")).items()
+            },
+            {"Seyir mesafesi": "GİRİŞ", "En üst durak ( son kat ) yüksekliği": "GİRİŞ"},
         )
 
 

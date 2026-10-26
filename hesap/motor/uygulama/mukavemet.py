@@ -151,11 +151,18 @@ def _pozitif(x):
 #  yaklaşığı kullanılır;  rapor hangisinin kullanıldığını yazar.
 CIZIMDEN = "ÇİZİMDEN"
 KURAL = "KURAL"
+#  KOTLA GİRİŞ ( mukavemet_girdi._kottan ):  ölçüden türeyen alan kotlardan —
+#  rapor formülünü yazar ( "KOT  ·  +57,60 − ( -7,00 )" )
+KOT = "KOT"
 
 
 def _kaynak(g, anahtar, girildi="GİRİŞ"):
-    """Rapordaki kaynak yazısı:  çizimden geldiyse ÇİZİMDEN ve kuralı, boş alan
-    kuralla dolduysa KURAL ve kuralı ( mukavemet_girdi._kural_isareti )."""
+    """Rapordaki kaynak yazısı:  kotlardan türediyse KOT ve formülü, çizimden
+    geldiyse ÇİZİMDEN ve kuralı, boş alan kuralla dolduysa KURAL ve kuralı
+    ( mukavemet_girdi._kural_isareti )."""
+    kot = ((g.get("_kot") or {}).get("kaynak") or {}).get(anahtar)
+    if kot:
+        return f"{KOT}  ·  {kot}"
     kural_ = (g.get("_kural") or {}).get(anahtar)
     if kural_:
         return f"{KURAL}  ·  {kural_}"
@@ -725,7 +732,7 @@ class _Motor:
                 "kg",
                 f"belirleyici :  {self.Gden_yon}",
             ),
-            veri("H", "Seyir mesafesi", H, "m", "GİRİŞ"),
+            veri("H", "Seyir mesafesi", H, "m", _kaynak(self.g, "seyir_mesafesi")),
             hesap(
                 "MSR = i × H × gh × ns" if r != 1 else "MSR = H × gh × ns",
                 (
@@ -4816,7 +4823,14 @@ class _Siginma:
         self.G, self.Y = G, Y
         dy = G["dusey"]
         self.ad += [
-            veri("", "En üst durak ( son kat ) yüksekliği", dy["son_kat"], "mm", "GİRİŞ", 0),
+            veri(
+                "",
+                "En üst durak ( son kat ) yüksekliği",
+                dy["son_kat"],
+                "mm",
+                _kaynak(self.g, "son_kat_yuksekligi"),
+                0,
+            ),
             hesap(
                 "Kabinin en üst konuma yükselmesi  =  ağırlık çarpma arası + tampon ezilmesi + 0,035 × v² × 1000",
                 f"{trn(dy['agirlik_carpma_arasi'], 0)} + {trn(dy['agirlik_tampon_ezilme'], 0)} + "
