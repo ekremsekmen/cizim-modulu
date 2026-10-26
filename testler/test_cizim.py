@@ -3080,6 +3080,44 @@ class OlcuYazisiOlcuCizgisineKonmaz(unittest.TestCase):
         self.assertTrue(1000 < o["yazi"]["x"] < 2000)
 
 
+class EtiketMaskesi(unittest.TestCase):
+    """Etiketin GERÇEK maskesi ( uslup.maske_kutusu — alt uzantılı harfin
+    yanında çıplak kutudan 0,19 em uzun ) bir parçanın kenarını ya da önce
+    çizilen bir ölçünün çizgisini silmez ( 26 Eki, kalite 3. adımı:  kumanda
+    panosunun adı panonun ön yüzünü siliyordu ).  Bloğun satırı kıpırdamaz."""
+
+    def _silinen(self, e, el):
+        kenarlar = geometri.KenarIzgarasi(geometri.parca_kenarlari(e))
+        m = geometri.maske_kutusu(el)
+        return sum(geometri.kutudaki_boy(s, m) for s in kenarlar.adaylar(m))
+
+    def _parca(self):
+        #  Üst kenarı yazının ortasının 46 mm altında:  çıplak kutunun ( payıyla )
+        #  altında, maskenin içinde
+        return eleman.dikdortgen("PANO", -500, -1000, 1000, 954)
+
+    def test_kenari_silen_etiket_az_kayar(self):
+        y = eleman.yazi(0, 0, "PANO")
+        e = [self._parca(), y]
+        self.assertGreater(self._silinen(e, y), geometri.MASKE_ESIGI * 20)
+        geometri.etiketleri_ayir(e)
+        self.assertLessEqual(self._silinen(e, y), geometri.MASKE_ESIGI * 20)
+        self.assertLessEqual(math.hypot(y["x"], y["y"]), 100.0)
+
+    def test_blogun_satiri_kipirdamaz(self):
+        adim = uslup.NORMAL + 2 * uslup.maske_payi(uslup.NORMAL)
+        ust, alt = eleman.yazi(0, adim, "YÜK"), eleman.yazi(0, 0, "PANO")
+        geometri.etiketleri_ayir([self._parca(), ust, alt])
+        self.assertEqual((alt["x"], alt["y"]), (0, 0))
+
+    def test_olcu_cizgisindeki_uzun_etiket_kendi_dogrultusunda_kayar(self):
+        o = eleman.olcu("yatay", (0, 0), (2000, 0), 0, yazi={"x": 1800, "y": 50, "h": uslup.NORMAL})
+        y = eleman.yazi(1000, 0, "PERDE", aci=90)
+        e = geometri.etiketleri_ayir([o, y])
+        self.assertEqual(y["x"], 1000)
+        self.assertEqual(geometri.OlcuIzgarasi(e).silinen(geometri.maske_kutusu(y)), (0.0, 0))
+
+
 class Pafta(unittest.TestCase):
     """Çizimlerin ofisin TİP PROJE FORMATINA yerleştirilmesi."""
 
