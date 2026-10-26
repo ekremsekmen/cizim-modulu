@@ -576,6 +576,7 @@ def ciz(g, cizim_sabitleri=None):
     e += _iceri_olculeri(Y)
     if sg:
         e += _siginma_olculeri(g, Y, e)
+    _iceri_yerleri(Y, [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)])
     #  KORKULUK YAZISI:  küpeşte boyunca, operatöre ve sığınma ölçüsüne
     #  denk gelmeyen en uzun boş parçanın ortasına.  Ölçü yazıları önce
     #  yerleşir:  yazının şeridine düşen ölçü yazısı da o parçayı doldurur.
@@ -685,6 +686,93 @@ def _iceri_olculeri(Y):
         while any(ortusur(geometri.yazi_kutusu(o), b, 10.0) for b in yanlar):
             o["yazi"]["x"] += 20.0
     return e
+
+
+#  Korkuluğun içeri alınma ölçüsünün kenar boyunca kayma adımı ( ÇİZİM KABULÜ ):
+#  yazının boyu + aralık — iki adımda yazı kendi eski yerinden tamamen çıkar
+_ICERI_ADIM = 80.0
+
+
+def _iceri_adaylari(o, tavan):
+    """Ölçünün ( yazısıyla ) denenecek yerleri:  ( kayma , yazı öbür yanda mı ) —
+    önce kenar boyunca az kayan, sonra yazı kısa ölçünün öbür yanında ( tavanın
+    dışında ).  Ölçü tavanın içinde kalır."""
+    i = 1 if o["yon"] == "yatay" else 0
+    alt, ust = tavan[i] + _ICERI_ADIM, tavan[i + 2] - _ICERI_ADIM
+    n = int((tavan[i + 2] - tavan[i]) / _ICERI_ADIM)
+    kaymalar = sorted({d * _ICERI_ADIM * s for d in range(n + 1) for s in (-1, 1)}, key=lambda d: (abs(d), d))
+    kaymalar = [d for d in kaymalar if alt <= o["kot"] + d <= ust]
+    return [(d, False) for d in kaymalar if d] + [(d, True) for d in kaymalar]
+
+
+def _iceri_yerleri(Y, e):
+    """Korkuluğun içeri alınma ölçüsünün ( _iceri_olculeri ) yazısının yeri
+    sabittir — yazilari_yerlestir onu kaydırmaz.  Harflerinden başka bir ölçünün
+    çizgisi geçiyorsa ( 26 Eki:  sığınma alanının yatay sırası yan kenarın
+    "15"inin üstünden, düşey sırası içinden geçiyordu — "±15" gibi okunuyordu )
+    ölçü, yazısıyla birlikte kenar boyunca kayar;  olmazsa yazı kısa ölçünün
+    öbür yanına ( tavanın dışına ) geçer.  Aday temiz olmalı ( yazıya çizgi
+    binmez, ölçünün çizgisi başka bir yazıya binmez, yazı başka bir yazıya,
+    tavandaki bir engele ya da parça kenarına binmez, yan kenarların ölçüleri
+    aynı sırada durmaz — _iceri_olculeri ) ve öbür ölçü yazıları onunla
+    DENENEREK yerleştirildiğinde hiçbir ölçüde kötüleşmemeli
+    ( geometri.olcu_yazisi_olcutleri:  tavanın dışındaki "15" sığınma sırasının
+    ucundaki "165"in yerini alıyor, onu iki kat dışarı itiyordu ).  Yoksa
+    yerinde kalır."""
+    tavan = Y["tavan"]
+    iceri = [o for o in e if o["tip"] == "olcu" and o.get("kural") == _ICERI]
+    kenarlar = geometri.KenarIzgarasi(geometri.parca_kenarlari(e))
+    parcalar = list(Y["engeller"]) + [
+        geometri.sinir([x])
+        for x in e
+        if x.get("katman") in geometri.PARCA_KATMANLARI + ("AGIRLIK",) and x["tip"] != "yazi"
+    ]
+
+    def deneme(o=None, aday=None):
+        kopya = [aday if x is o else (dict(x) if x["tip"] == "olcu" and "yazi" not in x else x) for x in e]
+        geometri.yazilari_yerlestir(kopya, kaydir=True)
+        return geometri.olcu_yazisi_olcutleri(kopya)
+
+    for o in iceri:
+        if not any(x is o for x, _q, _b in geometri.cizgiye_binen_yazilar(e)):
+            continue
+        diger = [x for x in e if x is not o]
+        yazilar = [
+            geometri.sinir([x]) if x["tip"] == "yazi" else geometri.yazi_kutusu(x)
+            for x in diger
+            if x["tip"] == "yazi" or (x["tip"] == "olcu" and x.get("yazi"))
+        ]
+        siralar = [x["kot"] for x in iceri if x is not o and x["yon"] == o["yon"]]
+        cizgi0, uzak0, silinen0 = deneme()
+        for d, ote in _iceri_adaylari(o, tavan):
+            aday = _kaydirilmis(o, d, ote)
+            k = geometri.yazi_kutusu(aday)
+            if (
+                any(abs(aday["kot"] - s) < _ICERI_ADIM for s in siralar)
+                or any(ortusur(k, b) for b in yazilar + parcalar)
+                or kenarlar.kesisir(k, 2.0)
+                or any(x is aday or q is aday for x, q, _b in geometri.cizgiye_binen_yazilar(diger + [aday]))
+            ):
+                continue
+            cizgi, uzak, silinen = deneme(o, aday)
+            if cizgi < cizgi0 and uzak <= uzak0 + 1e-6 and silinen <= silinen0 + 1e-6:
+                o.update(aday)
+                break
+
+
+def _kaydirilmis(o, d, ote):
+    """Ölçünün kenar boyunca d kaymış kopyası;  ote:  yazı kısa ölçünün öbür yanında."""
+    aday = dict(o, kot=o["kot"] + d, yazi=dict(o["yazi"]))
+    y = aday["yazi"]
+    if o["yon"] == "yatay":
+        y["y"] += d
+        if ote:
+            y["x"] = o["a"][0] + o["b"][0] - y["x"]
+    else:
+        y["x"] += d
+        if ote:
+            y["x"] = 2 * aday["kot"] - y["x"]
+    return aday
 
 
 def _siginma_olculeri(g, Y, e):

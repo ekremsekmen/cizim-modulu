@@ -3051,6 +3051,35 @@ class KaydirdaYaziKapidanKacar(unittest.TestCase):
         self.assertFalse(ortusur(yazi, kapi))
 
 
+class OlcuYazisiOlcuCizgisineKonmaz(unittest.TestCase):
+    """Ölçü yazısı başka bir ölçünün çizgisine ya da ucuna konmaz ( 26 Eki,
+    kalite 2. adımı:  kabin üstünde sığınma alanının düşey ölçüsü "215"in
+    içinden geçiyordu );  çizgiye binmeyen yazının yeri değişmez."""
+
+    def _yerlestir(self, kesen_x):
+        o = eleman.olcu("yatay", (1000, 0), (2000, 0), 0)
+        e = [o]
+        if kesen_x is not None:
+            yazi = {"x": kesen_x + 50, "y": -300, "aci": 90}
+            e.append(eleman.olcu("dusey", (0, -500), (0, 500), kesen_x, yazi=yazi))
+        geometri.yazilari_yerlestir(e)
+        return o, e
+
+    def test_cizgi_yokken_ortada(self):
+        o, _ = self._yerlestir(None)
+        self.assertEqual((o["yazi"]["x"], o["yazi"]["y"]), (1500.0, 50.0))
+
+    def test_uzaktaki_cizgi_yeri_degistirmez(self):
+        o, _ = self._yerlestir(1900)
+        self.assertEqual((o["yazi"]["x"], o["yazi"]["y"]), (1500.0, 50.0))
+
+    def test_cizgiye_binen_yazi_kendi_olcusu_boyunca_kayar(self):
+        o, e = self._yerlestir(1500)
+        self.assertEqual(geometri.cizgiye_binen_yazilar(e), [])
+        self.assertEqual(o["yazi"]["y"], 50.0)  # çizgisinin hemen dışında kalır
+        self.assertTrue(1000 < o["yazi"]["x"] < 2000)
+
+
 class Pafta(unittest.TestCase):
     """Çizimlerin ofisin TİP PROJE FORMATINA yerleştirilmesi."""
 
