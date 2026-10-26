@@ -2051,8 +2051,14 @@ def olcu_araligi(o):
 
 
 #  Rastlantısal küçük aralık ( gerçek mm ):  kimliksiz zincir ölçüsü bundan kısaysa
-#  komşusuyla birleşir ( kalite 4. adımı, 27 Eki ) — ÇİZİM KABULÜ
+#  komşusuyla birleşir ( kalite 4. adımı, 27 Eki ) — ÇİZİM KABULÜ.  CAKISIK'tan
+#  kısası çakışan iki noktadır, birleşmez:  ölçü kaynağı girdiyi 1 mm oynatır;
+#  çakışık nokta ayrılınca doğan 1 mm'lik parça komşusuna sessizce katılırsa
+#  kaynağın kırığı gizlenir, türev ile oynatma ayrışır ( kuyu üstünde "200" —
+#  test_olcu_turevi;  ayrılan parça ayrı ölçü olarak zincirin yapısını değiştirir,
+#  çakışma diye tanınır ).
 KUCUK_ARALIK = 20.0
+CAKISIK = 1.5
 
 
 def _kendi_yazisi(o):
@@ -2074,7 +2080,7 @@ def kucukleri_birlestir(e):
 
     at = set()
     for o in e:
-        if not (serbest(o) and 1e-6 < o["uzunluk"] < KUCUK_ARALIK) or id(o) in at:
+        if not (serbest(o) and CAKISIK < o["uzunluk"] < KUCUK_ARALIK) or id(o) in at:
             continue
         i = 0 if o["yon"] == "yatay" else 1
         bas, son = sorted((o["a"][i], o["b"][i]))
