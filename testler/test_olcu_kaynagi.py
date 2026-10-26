@@ -32,6 +32,7 @@ from tasarim import alanlar
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
 
 from testler import gercek_projeler
+from testler import test_yerlesim_saglamligi
 from uclar import uygulama_istegi
 
 
@@ -62,6 +63,11 @@ def _yeni_duzen(md, **ek):
 DUZENLER = {
     "örnek makine dairesiz": lambda: _veri(),
     "örnek makine daireli": lambda: _veri(True),
+    #  Kotla giriş ( KOT_PLANI ):  en alt durak bodrumda −3,50 — kaynaklar kot
+    #  kutularına ve durakların kotlarına gider, türeyen kutular aday değildir
+    "örnek makine daireli, kotla ( bodrumdan )": lambda: test_yerlesim_saglamligi.kotla(
+        _veri(True), kayma=-3500
+    ),
     #  xs −200:  çizimden gelen −250'de kasnaklar ve aralarındaki halat şasenin
     #  üst kirişinin önünden ayrı bant olarak geçer, tavanda çömelme alanına yer
     #  kalmaz ( test_kopru.test_kabin_ustu_kasnaklari_kirisin_onunde )

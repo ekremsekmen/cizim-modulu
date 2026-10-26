@@ -162,6 +162,12 @@ def kot_kipi(A):
     return True
 
 
+def kotlari_yaz(kotlar):
+    """Durak kotları ( mm ) → alanın metni ( alttan üste, noktalı virgülle ) —
+    ölçü kaynağı bir durağın kotunu oynatırken."""
+    return "; ".join(kot_metni(round(float(k))) for k in kotlar)
+
+
 def iletiler_metni(etiket, iletiler):
     """Bir alanın iletileri tek satırda:  ilk üçü, fazlası sayıyla — kapı ve
     türetme aynı cümleyi kurar."""
@@ -225,6 +231,10 @@ def kot_tablosu(A, doseme, daireli):
             mm[k] = izli.oturt(v * 1000.0) if isinstance(v, (int, float)) else float(okunan)
     if hata:
         return {}, {}, hata
+    #  İzlemede her durağın kotu kendi kimliğini taşır ( ( "kot" , sıra ) — ölçü
+    #  kaynağı:  kat yüksekliği iki durağın kotundan, seyir uçlarınkinden );  çare
+    #  onları önermez ( yalnız girdi kutuları — durak kotları mimariden gelir )
+    kotlar = [izli.girdi(k, ("kot", j)) for j, k in enumerate(kotlar)]
     alt, ust = kotlar[0], kotlar[-1]
     dip, tavan = mm["kuyu_dibi_kotu"], mm["kuyu_tavani_kotu"]
     if not dip < alt:
@@ -306,7 +316,7 @@ def araliklar(ham, durak, seyir):
         ):
             hata.append(f"{i + 1}. kat yüksekliği: sıfırdan büyük, sonlu bir sayı olmalı.")
         else:
-            sonuc.append(float(p))
+            sonuc.append(izli.sayi(p))  # kotla girişin listesi izli olabilir ( kot_tablosu )
     if hata:
         return None, hata
     toplam = izli.fsum(sonuc)

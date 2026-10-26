@@ -336,8 +336,16 @@ class Turetme(unittest.TestCase):
             d = izli.girdi(100.0, ("girdi", "tavan_dosemesi"))
             t, _k, hata = katlar.kot_tablosu(A, d, True)
             self.assertEqual(hata, [])
-            self.assertEqual(izli.turev(t["kuyu_dibi"]), {("girdi", "kuyu_dibi_kotu"): -1000.0})
-            self.assertEqual(izli.turev(t["son_kat_yuksekligi"]), {("girdi", "kuyu_tavani_kotu"): 1000.0})
+            #  KY iki kotun farkı:  kuyu dibi kotu ( mm / m ) ve en alt durağın kotu
+            #  ( ( "kot" , 0 ) — ölçü kaynağında yalnız gösterilir )
+            self.assertEqual(
+                izli.turev(t["kuyu_dibi"]), {("girdi", "kuyu_dibi_kotu"): -1000.0, ("kot", 0): 1.0}
+            )
+            self.assertEqual(
+                izli.turev(t["son_kat_yuksekligi"]),
+                {("girdi", "kuyu_tavani_kotu"): 1000.0, ("kot", 20): -1.0},
+            )
+            self.assertEqual(izli.turev(t["kat_yukseklikleri"][0]), {("kot", 0): -1.0, ("kot", 1): 1.0})
             #  Değer gürültüsüz:  −7.000 − ( −8.800 ) tam 1.800
             self.assertEqual(float(t["kuyu_dibi"]), 1800.0)
             #  Zemin = tavan + döşeme − tabliye ( çizimin kurduğu ):  yalnız kendi kotuna bağlı
@@ -501,6 +509,83 @@ class NeCiziliyorsaOHesaplanir(unittest.TestCase):
         """Bir yol hesabın tamamla'sını atlarsa çizim eski sayılarla sessizce kurulmaz."""
         with self.assertRaises(RuntimeError):
             kopru.cizim_girdisi({alanlar.DURAK_KOTLARI: "0; 3"})
+
+
+def _kotlu_63444():
+    v = _md_63444(test_yerlesim_saglamligi.standart_istek(1000, False, "Sağ"))
+    v["asansorler"][0]["kuyu_duvar_kalinligi"] = 250
+    return _kotla(v, KOT_63444)
+
+
+class OlcuKaynagi(unittest.TestCase):
+    """Ölçüye tıklanınca kaynak kotlardır:  kot kutusu değiştirilir, durağın kotu
+    yalnız gösterilir ( kot tablosunda değişir );  türeyen kutu kaynak değildir."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.v = _kotlu_63444()
+        cls.r = cizim_uclari._cozumleme(copy.deepcopy(cls.v), "kuyu_kesiti_yan")
+
+    def _kaynak(self, soz):
+        i = next(j for j, o in enumerate(self.r["taban"]) if o["metin"].startswith(soz))
+        return i, [
+            (k["anahtar"], k.get("durak"), round(k["egim"], 6), k["degistirilir"])
+            for k in cizim_uclari._kaynaklar(self.r, i)
+        ]
+
+    def test_kaynaklar_kotlar(self):
+        D = alanlar.DURAK_KOTLARI
+        for soz, beklenen in (
+            ("KUYU DİBİ", [("kuyu_dibi_kotu", None, -1000.0, True), (D, 0, 1.0, False)]),
+            ("3500", [(D, 0, -1.0, False), (D, 1, 1.0, False)]),
+            ("SEYİR", [(D, 0, -1.0, False), (D, 20, 1.0, False)]),
+            ("OH", [("kuyu_tavani_kotu", None, 1000.0, True), (D, 20, -1.0, False)]),
+        ):
+            with self.subTest(soz):
+                self.assertEqual(sorted(self._kaynak(soz)[1], key=str), sorted(beklenen, key=str))
+
+    def test_tureyen_kutu_kaynak_degil(self):
+        kaynaklar = {
+            k["anahtar"] for i in range(len(self.r["taban"])) for k in cizim_uclari._kaynaklar(self.r, i)
+        }
+        self.assertEqual(kaynaklar & gorunum.kip_disi(True), set())
+
+    def test_olcuden_degistirme_kota_yazar(self):
+        """KOTLAR.md § 6.7:  KUYU DİBİ 1.800 → 1.950 kuyu dibi kotunu −8,80'den −8,95'e indirir."""
+        i, _k = self._kaynak("KUYU DİBİ")
+        y = json.loads(
+            cizim_uclari.api_olcu_degistir(
+                dict(
+                    copy.deepcopy(self.v),
+                    cizim="kuyu_kesiti_yan",
+                    olcu=i,
+                    metin=self.r["taban"][i]["metin"],
+                    anahtar="kuyu_dibi_kotu",
+                    hedef=1950,
+                )
+            ).body
+        )
+        self.assertTrue(y["aktif"], y)
+        self.assertEqual(
+            [(d["anahtar"], d["deger"]) for d in y["degisiklikler"]], [("kuyu_dibi_kotu", -8.95)]
+        )
+
+
+class DuzeltmeOner(unittest.TestCase):
+    def test_sig_kuyuya_kuyu_dibi_kotu_onerilir(self):
+        """Kuyu dibi yetmeyince bina ölçüsü olarak kuyu dibi KOTU önerilir ( en sonda,
+        işaretli, mimarın diliyle );  türeyen kuyu dibi kutusu önerilmez."""
+        v = test_yerlesim_saglamligi.kotla(test_yerlesim_saglamligi.standart_istek(1000, True, "Sağ"))
+        v["asansorler"][0]["kuyu_dibi_kotu"] = "-1,05"  # KY 1.050
+        r = care_uclari.coz(copy.deepcopy(v), 0)
+        oneriler = [o for c in r["careler"] for o in c["oneriler"]]
+        kot = [o for o in oneriler if o["anahtar"] == "kuyu_dibi_kotu"]
+        self.assertTrue(kot, r)
+        for o in kot:
+            self.assertTrue(o["bina"])
+            self.assertLess(o["yeni"], o["eski"])
+            self.assertTrue(o["aciklama"].endswith("cm daha derin"), o["aciklama"])
+        self.assertEqual({o["anahtar"] for o in oneriler} & gorunum.kip_disi(True), set())
 
 
 if __name__ == "__main__":

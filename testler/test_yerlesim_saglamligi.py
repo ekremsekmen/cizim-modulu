@@ -74,9 +74,10 @@ def _kot(mm):
     return (f"{mm / 1000:+.3f}" if mm % 10 else f"{mm / 1000:+.2f}").replace(".", ",")
 
 
-def kotla(v, i=0):
+def kotla(v, i=0, kayma=0):
     """İsteğin katlarını KOTLA girer ( tasarim/alanlar KAT GİRİŞİ ):  aynı kuyu,
-    en alt durak ±0,00 — asansörün yazılı ölçüleri, yoksa formun varsayılanları.
+    en alt durak ±0,00 ( kayma mm:  bütün kotlar o kadar kayar — bodrumlu bina
+    −3.500 ) — asansörün yazılı ölçüleri, yoksa formun varsayılanları.
     Eşit katlar mm'ye yuvarlanır ( seyir aynı kalır );  ölçü kutuları istekten
     çıkar ( kotla girişte okunmaz ).  Sayılar burada elle kurulur:  programın
     türetmesi ( cizim/katlar ) kullanılmaz."""
@@ -84,15 +85,15 @@ def kotla(v, i=0):
     k = {**{x.anahtar: x.varsayilan for x in alanlar.ALANLAR}, **a, **pg}
     n, H = int(float(k["durak_adedi"])), round(float(str(k["seyir_mesafesi"]).replace(",", ".")) * 1000)
     ara = [float(x.replace(",", ".")) for x in str(k.get("kat_yukseklikleri") or "").split(";") if x.strip()]
-    kotlar = [0]
+    kotlar = [kayma]
     for j in range(1, n):
-        kotlar.append(kotlar[-1] + round(ara[j - 1]) if ara else round(j * H / (n - 1)))
+        kotlar.append(kotlar[-1] + round(ara[j - 1]) if ara else kayma + round(j * H / (n - 1)))
     tavan = kotlar[-1] + round(float(k["son_kat_yuksekligi"]))
     for x in alanlar.ALANLAR:
         if x.kip == alanlar.OLCU:
             a.pop(x.anahtar, None)
     a[alanlar.DURAK_KOTLARI] = "; ".join(_kot(z) for z in kotlar)
-    a["kuyu_dibi_kotu"] = _kot(-round(float(k["kuyu_dibi"])))
+    a["kuyu_dibi_kotu"] = _kot(kayma - round(float(k["kuyu_dibi"])))
     a["kuyu_tavani_kotu"] = _kot(tavan)
     if not k.get("mk_yok"):
         doseme = k.get("tavan_dosemesi") or k["kuyu_duvar_kalinligi"]

@@ -48,6 +48,7 @@ import time
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
+from temel import sayi_mi
 from cizim import istek_onbellegi
 from cizim import izli
 from cizim import sorun
@@ -464,6 +465,7 @@ def coz(veri, i=0, onceki=None, butce=None):
                         #  Düzeltmeden sonra görünür olacak ( bugün gizli ) sorunlar
                         "ortaya_cikan": c.get("ortaya", []),
                         "bina": c["anahtar"] in BINA,
+                        "aciklama": _kot_aciklamasi(c, degerler),
                         "yontem": c["yontem"],
                     }
                     for c in oneriler
@@ -477,6 +479,26 @@ def coz(veri, i=0, onceki=None, butce=None):
         "neden": butce.neden,
         "sure": round(time.monotonic() - t0, 2),
     }
+
+
+#  Kot kutusunun önerisi mimarın diliyle ( KOT_PLANI 1.2 — "kuyu dibi kotu −8,80 →
+#  −8,95:  15 cm daha derin" ):  ( artınca , azalınca )
+KOT_YONU = {
+    "kuyu_dibi_kotu": ("daha sığ", "daha derin"),
+    "kuyu_tavani_kotu": ("daha yüksek", "daha alçak"),
+    "md_zemini_kotu": ("daha yüksek", "daha alçak"),
+}
+
+
+def _kot_aciklamasi(c, degerler):
+    """Kot kutusunun önerisinde değişimin kendisi ( "15 cm daha derin" );  başka
+    kutuda None."""
+    yon = KOT_YONU.get(c["anahtar"])
+    eski = c["eski"] if "eski" in c else degerler.get(c["anahtar"])
+    if yon is None or not (sayi_mi(eski) and sayi_mi(c["yeni"])) or c["yeni"] == eski:
+        return None
+    fark = c["yeni"] - eski
+    return f"{round(abs(fark) * 100, 1):g} cm {yon[0] if fark > 0 else yon[1]}".replace(".", ",")
 
 
 def _sirala(liste, degerler):

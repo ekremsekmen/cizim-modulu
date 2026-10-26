@@ -226,6 +226,8 @@ export interface OlcuKaynagi {
   birim: string;
   yer: "asansor" | "proje" | "ofis" | string;
   degistirilir: boolean;
+  /**  Kotla girişte durağın kotu kaynaksa durağın sırası ( 0 = en alt ) — anahtar durak_kotlari  */
+  durak?: number;
 }
 
 export interface OlcuYanit {

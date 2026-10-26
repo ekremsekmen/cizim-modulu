@@ -164,7 +164,7 @@ export function OlcuKutusu({
             {y?.kaynaklar?.map((k) => {
               const sec = anahtar === k.anahtar;
               return (
-                <li key={k.anahtar}>
+                <li key={`${k.anahtar}:${k.durak ?? ""}`}>
                   <button
                     type="button"
                     role="radio"
