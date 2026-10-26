@@ -594,14 +594,16 @@ class RegulatorunYeri(unittest.TestCase):
         #  Üst zincir 1.000 · 5 · 995 ( kuyu ortası, kabin ekseni ).  995 → 1.005
         #  için kabin 5 → −5;  ölçü yolda "5 + 1.000" diye bölünür, izlenemez —
         #  kiriş yöntemi başka aralığı izleyip −15 veriyordu.  Doğrusal tahmin
-        #  döner:  yeni çizimde iki ardışık parçanın toplamı hedeftir.
+        #  döner:  yeni çizimde iki ardışık parçanın toplamı hedeftir.  27 Eki:
+        #  rastlantısal küçük zincir ölçüsü komşusuyla birleşir
+        #  ( geometri.kucukleri_birlestir ) — yeni çizimde "1005" tek ölçü,
+        #  değişiklik doğrulanır.
         i = _olcu(self.r, "995")
         y = _degistir(self.v, "kuyu_dibi", i, self.r, "kabin_yana_kaciklik", "1005")
         self.assertEqual(
             [(d["anahtar"], d["deger"]) for d in y["degisiklikler"]], [("kabin_yana_kaciklik", -5)]
         )
-        self.assertFalse(y["dogrulandi"])
-        self.assertTrue(y["bolundu"])
+        self.assertTrue(y["dogrulandi"])
 
 
 class Degistirilemeyen(unittest.TestCase):

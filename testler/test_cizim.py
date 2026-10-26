@@ -3080,6 +3080,36 @@ class OlcuYazisiOlcuCizgisineKonmaz(unittest.TestCase):
         self.assertTrue(1000 < o["yazi"]["x"] < 2000)
 
 
+class KopukVeKucukOlcu(unittest.TestCase):
+    """Kalite 4. adımı ( 27 Eki ):  dar aralıktaki ölçü yazısı kendi çizgisinden
+    kopmaz ( iç yan boşsa çizginin öbür yanına bitişik yazılır — kapı kesitinin
+    eşik zinciri );  rastlantısal küçük zincir ölçüsü komşusuyla birleşir."""
+
+    def test_dar_zincirin_yazilari_cizgisine_bitisik(self):
+        from araclar import karne
+
+        nok = [0, 150, 240, 300, 330, 420]
+        e = [eleman.olcu("yatay", (a, 0), (b, 0), -150) for a, b in zip(nok, nok[1:])]
+        geometri.yazilari_yerlestir(e)
+        self.assertEqual(karne.karne(e, 20)["yazi_cizgisinden_kopuk"], [])
+        self.assertEqual(karne.karne(e, 20)["olcu_yaziyi_kesiyor"], [])
+
+    def test_ic_yanda_sira_varsa_ic_yana_yazilmaz(self):
+        nok = [0, 150, 240, 300, 330, 420]
+        e = [eleman.olcu("yatay", (a, 0), (b, 0), -150) for a, b in zip(nok, nok[1:])]
+        e.append(eleman.olcu("yatay", (0, 0), (420, 0), -50, yazi={"x": 210, "y": 0}))
+        geometri.yazilari_yerlestir(e)
+        self.assertTrue(all(o["yazi"]["y"] < -150 for o in e[:-1]))
+
+    def test_kucuk_aralik_komsusuyla_birlesir(self):
+        uzun = eleman.olcu("yatay", (0, 0), (1000, 0), -150)
+        kucuk = eleman.olcu("yatay", (1000, 0), (1004, 0), -150)
+        kimlikli = eleman.olcu("yatay", (2000, 0), (2015, 0), -150, ad="kabin_duvari")
+        e = geometri.kucukleri_birlestir([uzun, kucuk, kimlikli])
+        self.assertEqual([o["metin"] for o in e], ["1004", "15"])
+        self.assertEqual(e[0]["b"][0], 1004)
+
+
 class EtiketMaskesi(unittest.TestCase):
     """Etiketin GERÇEK maskesi ( uslup.maske_kutusu — alt uzantılı harfin
     yanında çıplak kutudan 0,19 em uzun ) bir parçanın kenarını ya da önce
