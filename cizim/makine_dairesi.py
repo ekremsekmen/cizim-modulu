@@ -71,12 +71,14 @@ def tabliye(g):
     """Kuyunun üstündeki beton ( TABLİYE ):
 
     izi        planda kuyunun dış yüzleri ( duvarlarıyla )
-    doseme     betonun kalınlığı:  kuyu döşemesi ( kuyu dibi ile aynı;  yoksa ön duvar )
+    doseme     betonun kalınlığı:  tavan döşemesi ( kutusu boşsa kuyu duvarı —
+               kopru.tavan_dosemesi;  elle kurulan girdide yoksa kuyu döşemesi,
+               o da yoksa ön duvar )
     yukseklik  oda zemininden tabliyenin üstüne ( hesap programının "Tabliye
                beton yüksekliği";  LiftDesigner'ın makine dairesi kesitinde 1.200 )
     """
     k, md = g["kuyu"], g.get("makine_dairesi") or {}
-    dos = k.get("doseme") if sayi_mi(k.get("doseme")) else k["duvar_on"]
+    dos = next((k[a] for a in ("tavan_dosemesi", "doseme") if sayi_mi(k.get(a))), k["duvar_on"])
     t = md.get("tabliye_yuksekligi")
     return {
         "izi": (

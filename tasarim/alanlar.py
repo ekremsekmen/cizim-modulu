@@ -530,9 +530,8 @@ _GRUPLAR = (
                 sozlesme=CIZ,
                 gelismis=True,
                 bilgi=(
-                    "Kuyunun duvarları ( kalınlığı ayrıca girilmeyenler ), kuyu dibinin ve kuyu "
-                    "tavanının döşemesi ( makine dairelide makinenin oturduğu tabliye ) bu kalınlıkta "
-                    "çizilir ( referans proje:  150 )."
+                    "Kuyunun duvarları ve tavan döşemesi ( kalınlığı ayrıca girilmeyenler ) ile kuyu "
+                    "dibinin döşemesi bu kalınlıkta çizilir ( referans proje:  150 )."
                 ),
             ),
             #  DUVARLAR AYRI AYRI ( kullanıcı isteği 2 Eki ):  LiftDesigner projelerinde

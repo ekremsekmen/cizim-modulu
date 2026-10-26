@@ -21,6 +21,7 @@ from motor.ortak import ofis
 from motor.ortak.adimlar import evet_mi
 from motor.uygulama import mukavemet_tablolari
 from tasarim import alanlar, gorunum
+from cizim import katlar
 from cizim import kopru
 from cizim import sabitler
 from motor.uygulama import uygulama_sabitleri
@@ -358,11 +359,24 @@ def _kural_isareti(g, anahtar, kural):
     g["_kural"] = {**(g.get("_kural") or {}), anahtar: kural}
 
 
+def _kottan(g):
+    """KOTLA GİRİŞ ( cizim/katlar.kot_tablosu — tek türetme ):  ölçüden türeyen
+    altı alan kotlardan yazılır;  hesap da çizim de bu sayıları okur
+    ( KOT_PLANI § 1.2 ).  Tablo hatalıysa türeyenler boş kalır ( varsayılanla
+    hesaplanmasın ) ve hesap _kot_tablosu denetiminde durur.  Her tamamla'da
+    yeniden:  girdi değişince türeyen de değişir."""
+    if katlar.kot_kipi(g):
+        turetilen, kot, hata = katlar.kot_tablosu(g, kopru.tavan_dosemesi(g), not kopru.mrl_mi(g))
+        g.update(turetilen or dict.fromkeys(gorunum.kip_disi(True)))
+        g["_kot"] = {**kot, "hata": hata}
+
+
 def tamamla(g):
     """Girdilerden türetilen alanları doldurur.
 
     kabin ağırlığı  boşsa ofis tablosundan
     karşı ağırlık   = kabin ağırlığı + q × beyan yükü
+    kotla girişte   seyir, KY, son kat, kat yükseklikleri, tabliye kotlardan ( _kottan )
     kuyu boyu       = seyir × 1000 + son kat yüksekliği + kuyu dibi
     2. kablo tipi   kat kapısı tipinden
     """
@@ -399,6 +413,7 @@ def tamamla(g):
     q = uygulama_sabitleri.sabitler(g.get("_ofis"))["q_denge"]
     if sayi_mi(ka) and sayi_mi(by):
         g["karsi_agirlik"] = ka + q * by
+    _kottan(g)
     _tavan, kd = alt_duraktan_tavana(g), g.get("kuyu_dibi")
     if _tavan is not None and sayi_mi(kd):
         g["kuyu_boyu"] = _tavan + kd
@@ -509,13 +524,27 @@ def dogrula(g):
     Denetimler sırayla çalışır ( _DENETIMLER );  her biri ( g, atla ) alır —
     atla:  bu projede uygulanmayan alanlar."""
     #  Hesaba girmeyen, ekranda da görünmeyen bir alan projeyi durdurmamalı.
-    atla = uygulanmayan(g)
+    #  Kotla girişte ölçüden türeyenler de girdi değildir ( tamamla yazar;  tablo
+    #  hatalıysa boştur ve sebebi _kot_tablosu söyler ).
+    atla = uygulanmayan(g) | gorunum.kip_disi(katlar.kot_kipi(g))
     hata = []
     for denetim in _DENETIMLER:
         hata += denetim(g, atla)
     #  OFİS STANDARDI  ( Sabitler sekmesi ).  Aralık dışı değer varsayılanla
     #  değiştiriliyor ve bunu hiçbir yer söylemiyordu;  artık hesap durur.
     return hata + uygulama_sabitleri.ofis_hatalari(g.get("_ofis"))
+
+
+def _kot_tablosu(g, atla):
+    """KOTLA GİRİŞ:  kot tablosu hatalıysa hesap DURUR — seyir, KY, son kat
+    tanımsızdır.  İletiler tamamla'da kurulur ( cizim/katlar.kot_tablosu );
+    çizim aynısını söyler ( kopru._kot_girisi )."""
+    if not katlar.kot_kipi(g):
+        return []
+    kot = g.get("_kot")
+    if not isinstance(kot, dict):  # tamamla'dan geçmemiş girdi ( motor doğrudan )
+        kot = {"hata": katlar.kot_tablosu(g, kopru.tavan_dosemesi(g), not kopru.mrl_mi(g))[2]}
+    return list(kot["hata"])
 
 
 def _alan_turleri(g, atla):
@@ -1093,6 +1122,7 @@ def _halat_boyu(g, atla):
 
 #  dogrula'nın denetimleri — iletiler bu sırayla çıkar
 _DENETIMLER = (
+    _kot_tablosu,
     _alan_turleri,
     _bolenler,
     _tablo_butunlugu,

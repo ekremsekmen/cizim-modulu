@@ -175,6 +175,29 @@ def varsayilan_deger(A, anahtar):
     return _kural(ALAN[anahtar][5], anahtar) if v is None else v
 
 
+def tavan_dosemesi(A):
+    """Tavan döşemesinin kalınlığı ( mm ):  girilmişse o, boşsa kuyu duvarı
+    kalınlığı ( KURAL — izlemede kutunun kendisine de eğim ).  Çizim
+    ( g["kuyu"]["tavan_dosemesi"] ) ve kotla girişin tabliyesi
+    ( katlar.kot_tablosu ) aynı sayıyı kullanır:  makine dairesinin zemini
+    döşemenin kalınlığına bağlı kalmaz."""
+    v = _deger(A, "tavan_dosemesi")
+    return v if v is not None else _kural(varsayilan_deger(A, "kuyu_duvar_kalinligi"), "tavan_dosemesi")
+
+
+def _kot_girisi(A):
+    """Kotla girişin iletileri ( hatalı kot tablosu ) — yoksa [].  Ölçüden türeyen
+    alanlar hesabın tamamla'sında kotlardan yazılır ( katlar.kot_tablosu );  kot
+    kipindeki girdi türetilmeden geldiyse PROGRAMIN HATASIDIR:  bir yol tamamla'yı
+    atladı, çizim eski sayılarla sessizce kurulmasın ( KOT_PLANI § 1.2 madde 2 )."""
+    if not katlar.kot_kipi(A):
+        return []
+    kot = A.get("_kot")
+    if not isinstance(kot, dict):
+        raise RuntimeError("kotla giriş türetilmeden çizime geldi ( mukavemet_girdi.tamamla atlandı )")
+    return list(kot["hata"])
+
+
 def _kural(v, anahtar):
     """Boş kutunun kuralla ya da varsayılanla dolan değeri.  Ölçü kaynağı
     çözümlenirken ( izli.izleme ) kutunun kendisine eğimi 1 eklenir:  kutuya
@@ -264,6 +287,11 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
     sonuc:  hesabın o asansör için sonucu ( kuvvetler buradan );  None olabilir.
     Döner:  ( g , hatalar ) — hata varsa g None.  Alanlar bölüm bölüm okunur;
     bir bölümde hata varsa sonrakine geçilmez ( iletiler okuma sırasıyla )."""
+    #  Kot tablosu hatalıysa yalnız onun iletileri:  türeyen alanların kendi
+    #  iletileri ( boş seyir … ) sebebi değil, sonucudur.  Hesap aynısını söyler.
+    kot = _kot_girisi(A)
+    if kot:
+        return None, kot
     ozel = cizim_sabitleri(A)
     S = sabitler.sabitler(ozel)
     o = _Okuyucu(A)
@@ -549,7 +577,7 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
         #  Duvarlar ayrı ayrı ( boşsa ortak kalınlık );  kuyu dibinin ve tavanın
         #  döşemesi ortak kalınlıktadır ( eskiden ön duvarınkini kullanıyordu ).
         #  Tavan döşemesinin kendi kutusu var ( karar 3 — KOT_PLANI ):  boşsa ortak
-        #  kalınlık;  kesit ve makine dairesi onu 3. adımda okur.
+        #  kalınlık ( tavan_dosemesi );  kesitler ve makine dairesi onu okur.
         "kuyu": {
             "genislik": G,
             "derinlik": h["KD"],

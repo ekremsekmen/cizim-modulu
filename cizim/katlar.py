@@ -21,6 +21,7 @@ yazılır;  kesin artan olmalıdır.  Kipi belirleyen de bu alandır ( kot_kipi 
 
 import math
 
+from temel import sayi_mi
 from cizim import izli
 from cizim.dusey import ESIK_ARASI
 from tasarim import alanlar
@@ -159,6 +160,113 @@ def kot_kipi(A):
     if isinstance(v, (list, tuple)):
         return bool(v)
     return True
+
+
+def iletiler_metni(etiket, iletiler):
+    """Bir alanın iletileri tek satırda:  ilk üçü, fazlası sayıyla — kapı ve
+    türetme aynı cümleyi kurar."""
+    ek = f"  ( + {len(iletiler) - 3} )" if len(iletiler) > 3 else ""
+    return f"{etiket}:  " + "  ·  ".join(iletiler[:3]) + ek
+
+
+def _tam(v):
+    """Kapının okuduğu türde:  tam değerli düz sayı int ( "4600" → 4600 — uc_ortak
+    _sayi );  izli sayı izini korur ( ölçü kaynağı )."""
+    if isinstance(v, izli.Izli):
+        return v
+    return int(v) if float(v).is_integer() else v
+
+
+def _mm_metni(x):
+    return kot_metni(round(float(x)))
+
+
+#  Kotla girişte zorunlu kutular ( makine dairesinin zemini yalnız daireli )
+ZORUNLU = ("kuyu_dibi_kotu", "kuyu_tavani_kotu")
+
+
+def kot_tablosu(A, doseme, daireli):
+    """KOTLA GİRİŞİN TÜRETMESİ — tek yer ( KOT_PLANI § 1.2 ):  hesap
+    ( mukavemet_girdi.tamamla ) türetilenleri girdiye yazar, çizim onları okur.
+
+        A        girdi:  kot kutuları m ( izlemede izli ), durak kotları metin
+        doseme   tavan döşemesinin kalınlığı ( mm — kopru.tavan_dosemesi:  çizimin
+                 kullandığı sayının aynısı, türeviyle )
+        daireli  makine daireli mi:  tabliye yalnız orada türer
+
+    Döner ( türetilen , kot , hatalar ):
+        türetilen  durak_adedi · seyir_mesafesi ( m ) · kat_yukseklikleri ( mm
+                   listesi, alttan ) · kuyu_dibi · son_kat_yuksekligi ·
+                   tabliye_yuksekligi ( mm;  daireli )
+        kot        ofset:  en alt durağın kotu ( mm — yalnız yazılar;  iç koordinat
+                   0 = en alt durak ) · kaynak:  alan → "+57,60 − ( -7,00 )"
+        hatalar    [ ileti ] — doluysa türetilen boştur:  hesap da çizim de durur.
+    Kotla giriş değilse ( {} , {} , [] ).
+
+    Kotlar mm'de tam sayıdır ( kot_oku );  kutunun izli değeri mm'ye oturtulur,
+    türevi korunur ( izli.oturt ):  ∂KY / ∂kuyu_dibi_kotu = −1.000 mm / m."""
+    if not kot_kipi(A):
+        return {}, {}, []
+    et = {k: alanlar.ALAN[k].etiket for k in (alanlar.DURAK_KOTLARI, "md_zemini_kotu") + ZORUNLU}
+    hata = []
+    kotlar, iletiler = kotlari_oku(A.get(alanlar.DURAK_KOTLARI))
+    if iletiler:
+        hata.append(iletiler_metni(et[alanlar.DURAK_KOTLARI], iletiler))
+    mm = {}
+    for k in ZORUNLU + (("md_zemini_kotu",) if daireli else ()):
+        v = A.get(k)
+        if v is None or (isinstance(v, str) and not v.strip()):
+            hata.append(f"{et[k]}:  kotla girişte girilmeli.")
+            continue
+        okunan, ileti = kot_oku(v)
+        if ileti:
+            hata.append(f"{et[k]}:  {ileti}")
+        else:
+            mm[k] = izli.oturt(v * 1000.0) if isinstance(v, (int, float)) else float(okunan)
+    if hata:
+        return {}, {}, hata
+    alt, ust = kotlar[0], kotlar[-1]
+    dip, tavan = mm["kuyu_dibi_kotu"], mm["kuyu_tavani_kotu"]
+    if not dip < alt:
+        hata.append(
+            f"{et['kuyu_dibi_kotu']}:  en alt durağın altında olmalı ( kuyu dibi {_mm_metni(dip)}, "
+            f"en alt durak {kot_metni(alt)} )."
+        )
+    if not tavan > ust:
+        hata.append(
+            f"{et['kuyu_tavani_kotu']}:  en üst durağın üstünde olmalı ( kuyu tavanı {_mm_metni(tavan)}, "
+            f"en üst durak {kot_metni(ust)} )."
+        )
+    #  Tabliye:  makine dairesinin zemininden tabliyenin üstüne ( kuyu tavanı +
+    #  döşeme ).  Döşeme sayı değilse çizim onun iletisini verir;  tabliye türemez.
+    tabliye = daireli and sayi_mi(doseme) and doseme > 0
+    if tabliye and mm["md_zemini_kotu"] > tavan + doseme:
+        hata.append(
+            f"{et['md_zemini_kotu']}:  tabliyenin üstünden yukarıda olamaz ( zemin "
+            f"{_mm_metni(mm['md_zemini_kotu'])}, tabliyenin üstü {_mm_metni(tavan + doseme)} = kuyu "
+            f"tavanı + tavan döşemesi {float(doseme):g} mm )."
+        )
+    if hata:
+        return {}, {}, hata
+    turetilen = {
+        "durak_adedi": len(kotlar),
+        "seyir_mesafesi": _tam((ust - alt) / 1000.0),
+        "kat_yukseklikleri": [b - a for a, b in zip(kotlar, kotlar[1:])],
+        "kuyu_dibi": _tam(alt - dip),
+        "son_kat_yuksekligi": _tam(tavan - ust),
+    }
+    kaynak = {
+        "durak_adedi": f"{len(kotlar)} durak kotu",
+        "seyir_mesafesi": f"{kot_metni(ust)} − ( {kot_metni(alt)} )",
+        "kat_yukseklikleri": "ardışık durak kotlarının farkı",
+        "kuyu_dibi": f"{kot_metni(alt)} − ( {_mm_metni(dip)} )",
+        "son_kat_yuksekligi": f"{_mm_metni(tavan)} − ( {kot_metni(ust)} )",
+    }
+    if tabliye:
+        md = mm["md_zemini_kotu"]
+        turetilen["tabliye_yuksekligi"] = _tam(tavan + doseme - md)
+        kaynak["tabliye_yuksekligi"] = f"{_mm_metni(tavan)} + {float(doseme):g} mm − ( {_mm_metni(md)} )"
+    return turetilen, {"ofset": alt, "kaynak": kaynak}, []
 
 
 def araliklar(ham, durak, seyir):

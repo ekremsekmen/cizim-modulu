@@ -166,10 +166,7 @@ def _oku(a, ham):
         return (None, f"{a.etiket}:  {ileti}") if ileti else (mm / 1000.0, None)
     if a.anahtar == DURAK_KOTLARI:
         _kotlar, iletiler = katlar.kotlari_oku(ham)
-        if iletiler:
-            ek = f"  ( + {len(iletiler) - 3} )" if len(iletiler) > 3 else ""
-            return None, f"{a.etiket}:  " + "  ·  ".join(iletiler[:3]) + ek
-        return ham, None
+        return (None, katlar.iletiler_metni(a.etiket, iletiler)) if iletiler else (ham, None)
     if a.tur == "sayi":
         d = _sayi_oku(ham, a.etiket)
         return d, (None if d is None else mukavemet_girdi.alan_hatasi(a.anahtar, d))
