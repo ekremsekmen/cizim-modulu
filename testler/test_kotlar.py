@@ -19,6 +19,7 @@ boşsa ÖLÇÜYLE girilir ve kot kutuları okunmaz — bir sayının iki kaynağ
 
 import copy
 import json
+import os
 import re
 import unittest
 
@@ -28,6 +29,7 @@ from tasarim import alanlar, gorunum
 from testler import test_yerlesim_saglamligi
 from uclar import care_uclari, cizim_uclari, uygulama_istegi, uygulama_uclari
 
+KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 #  Kottan türeyen ( kotla girişte okunmayan ) alanlar — KOT_PLANI § 1.1
 TURETILEN = {
     "durak_adedi",
@@ -88,6 +90,18 @@ class KotYazimi(unittest.TestCase):
                 mm, ileti = katlar.kot_oku(ham)
                 self.assertIsNone(mm)
                 self.assertIn(sebep, ileti)
+
+    def test_on_yuzle_ayni_liste(self):
+        """Ön yüzün okuyucusu ( on-yuz/src/lib/kotlar.ts kotOku — vitest ) aynı listeyle
+        sınanır:  ön yüzün okumadığını sunucu da reddeder ( ön yüz sunucudan sıkı
+        olamaz ), okuduğunu aynı mm ile okur."""
+        yol = os.path.join(KOK, "on-yuz", "src", "lib", "kot-yazimlari.json")
+        with open(yol, encoding="utf-8") as f:
+            liste = json.load(f)["yazimlar"]
+        self.assertGreater(len(liste), 10)
+        for ham, mm in liste:
+            with self.subTest(ham=ham):
+                self.assertEqual(katlar.kot_oku(ham)[0], mm)
 
     def test_sinir_metre_alanlarinin_tavani(self):
         self.assertEqual(katlar.kot_oku("-5000"), (-5_000_000, None))
@@ -304,7 +318,6 @@ class Turetme(unittest.TestCase):
             ({"kuyu_tavani_kotu": "+57,00"}, "en üst durağın üstünde"),
             ({"md_zemini_kotu": "+62,40"}, "tabliyenin üstünden yukarıda"),
             ({"kuyu_tavani_kotu": None}, "kotla girişte girilmeli"),
-            ({"md_zemini_kotu": ""}, "kotla girişte girilmeli"),
             ({"kuyu_dibi_kotu": "x"}, "okunamadı"),
             ({alanlar.DURAK_KOTLARI: "0; 3; 2"}, "artan sırayla"),
         ):
@@ -315,6 +328,19 @@ class Turetme(unittest.TestCase):
         #  Makine dairesizde zeminin kotu sorulmaz
         A = {k: v for k, v in KOT_63444.items() if k != "md_zemini_kotu"}
         self.assertEqual(katlar.kot_tablosu(A, 100, False)[2], [])
+
+    def test_bos_zemin_kotu_tabliyenin_varsayilani(self):
+        """Makine dairesinin zemini KURAL:  boşsa tabliye 1.200 ( ölçüyle girişteki
+        varsayılan ) — zemin +62,30 − 1,20 = +61,10;  ekran kuralın kotunu soluk
+        gösterir ( türetilende md_zemini_kotu ).  Ölçü kaynağı kutunun kendisi."""
+        A = {**KOT_63444, "md_zemini_kotu": ""}
+        t, _k, hata = katlar.kot_tablosu(A, 100, True)
+        self.assertEqual(hata, [])
+        self.assertEqual((t["tabliye_yuksekligi"], t["md_zemini_kotu"]), (1200, 61.1))
+        with izli.izleme():
+            A = {**A, "kuyu_tavani_kotu": izli.girdi(62.2, ("girdi", "kuyu_tavani_kotu"))}
+            t, _k, _h = katlar.kot_tablosu(A, izli.girdi(100.0, ("girdi", "tavan_dosemesi")), True)
+            self.assertEqual(izli.turev(t["tabliye_yuksekligi"]), {("girdi", "md_zemini_kotu"): -1000.0})
 
     def test_olcuyle_giris_turetmez(self):
         self.assertEqual(katlar.kot_tablosu({"seyir_mesafesi": 21}, 150, True), ({}, {}, []))

@@ -285,6 +285,14 @@ export function gizliAlanlar(sema: AlanSemasi, p: UygulamaProjesi): Set<string> 
   return new Set(mrlMi(sema, p) ? sema.yerlesime_gore_gizli.mrl : sema.yerlesime_gore_gizli.daireli);
 }
 
+/**  KAT GİRİŞİNİN KİPİ ( asansör başına — sunucu:  cizim/katlar.kot_kipi ):  durak
+     kotları doluysa kotla.  Öbür kipin alanları ekranda gizli, sunucu okumaz, ön yüz de
+     denetlemez ( kotla girişte ölçüden türeyenler, ölçüyle girişte kotlar ).  */
+export function kipGizlileri(sema: AlanSemasi, h: Ham | undefined): Set<string> {
+  const kotla = (h?.[sema.kot_kipi.alan] ?? "").trim() !== "";
+  return new Set(kotla ? sema.kot_kipi.gizli.kotla : sema.kot_kipi.gizli.olcuyle);
+}
+
 /**  Kullanıcının yazdığı değer;  yazılmamışsa undefined.  Boş metin ( bos_tablodan:
      "tablodan" ) de yazılmamış sayılır — kutu sunucunun kullandığını soluk gösterir.  */
 export function alanOku(p: UygulamaProjesi, sema: AlanSemasi, asansor: number, anahtar: string): string | undefined {
@@ -331,12 +339,13 @@ export interface FormHatasi {
 export function formHatalari(sema: AlanSemasi, p: UygulamaProjesi): FormHatasi[] {
   const gizli = gizliAlanlar(sema, p);
   const l: FormHatasi[] = [];
-  p.asansorler.forEach((h, i) =>
+  p.asansorler.forEach((h, i) => {
+    const kip = kipGizlileri(sema, h);
     Object.entries(h).forEach(([k, v]) => {
-      const e = !gizli.has(k) && alanHatasi(sema, k, v);
+      const e = !gizli.has(k) && !kip.has(k) && alanHatasi(sema, k, v);
       if (e) l.push({ anahtar: k, hata: e, asansor: i });
-    }),
-  );
+    });
+  });
   Object.entries(p.proje_geneli).forEach(([k, v]) => {
     const e = !gizli.has(k) && alanHatasi(sema, k, v);
     if (e) l.push({ anahtar: k, hata: e, asansor: null });

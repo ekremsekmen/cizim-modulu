@@ -2337,7 +2337,7 @@ _GRUPLAR = (
                 "sayi",
                 None,
                 None,
-                kaynak=GIRDI,
+                kaynak=KURAL,
                 sozlesme=CIZ,
                 yerlesim="daireli",
                 isaretli=True,
@@ -2345,8 +2345,8 @@ _GRUPLAR = (
                 kip=KOT,
                 bilgi=(
                     "Makine dairesinin bitmiş zemin kotu. Tabliye beton yüksekliği bu kottan tabliyenin "
-                    "üstüne ( kuyu tavanı + tavan döşemesi kalınlığı ) ölçülür. Yalnız kotla girişte ve "
-                    "makine daireli projede sorulur."
+                    "üstüne ( kuyu tavanı + tavan döşemesi kalınlığı ) ölçülür; boşsa tabliye 1.200 "
+                    "alınır. Yalnız kotla girişte ve makine daireli projede sorulur."
                 ),
             ),
             A(

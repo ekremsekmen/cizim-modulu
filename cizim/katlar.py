@@ -187,8 +187,11 @@ def _mm_metni(x):
     return kot_metni(round(float(x)))
 
 
-#  Kotla girişte zorunlu kutular ( makine dairesinin zemini yalnız daireli )
+#  Kotla girişte zorunlu kutular.  Makine dairesinin zemini KURAL:  boşsa tabliye
+#  beton yüksekliğinin varsayılanı ( ölçüyle girişteki gibi — boş alan varsayılanı
+#  alır;  makine dairesize dönen kotlu proje takılmasın )
 ZORUNLU = ("kuyu_dibi_kotu", "kuyu_tavani_kotu")
+TABLIYE_KURALI = alanlar.ALAN["tabliye_yuksekligi"].varsayilan
 
 
 def kot_tablosu(A, doseme, daireli):
@@ -203,7 +206,8 @@ def kot_tablosu(A, doseme, daireli):
     Döner ( türetilen , kot , hatalar ):
         türetilen  durak_adedi · seyir_mesafesi ( m ) · kat_yukseklikleri ( mm
                    listesi, alttan ) · kuyu_dibi · son_kat_yuksekligi ·
-                   tabliye_yuksekligi ( mm;  daireli )
+                   tabliye_yuksekligi ( mm;  daireli ) — makine dairesinin zemini
+                   boşsa kuralın kotu da ( md_zemini_kotu, m )
         kot        ofset:  en alt durağın kotu ( mm — yalnız yazılar;  iç koordinat
                    0 = en alt durak ) · kaynak:  alan → "+57,60 − ( -7,00 )"
         hatalar    [ ileti ] — doluysa türetilen boştur:  hesap da çizim de durur.
@@ -222,7 +226,8 @@ def kot_tablosu(A, doseme, daireli):
     for k in ZORUNLU + (("md_zemini_kotu",) if daireli else ()):
         v = A.get(k)
         if v is None or (isinstance(v, str) and not v.strip()):
-            hata.append(f"{et[k]}:  kotla girişte girilmeli.")
+            if k in ZORUNLU:
+                hata.append(f"{et[k]}:  kotla girişte girilmeli.")
             continue
         okunan, ileti = kot_oku(v)
         if ileti:
@@ -250,6 +255,12 @@ def kot_tablosu(A, doseme, daireli):
     #  Tabliye:  makine dairesinin zemininden tabliyenin üstüne ( kuyu tavanı +
     #  döşeme ).  Döşeme sayı değilse çizim onun iletisini verir;  tabliye türemez.
     tabliye = daireli and sayi_mi(doseme) and doseme > 0
+    kuralla = tabliye and "md_zemini_kotu" not in mm
+    if kuralla:
+        #  Boş kutu:  zemin tabliyenin üstünden varsayılan kadar aşağıda;  izlemede
+        #  kutunun kendisine eğim ( kopru._kural gibi — ölçü kaynağı onu gösterir )
+        md_m = izli.oz((tavan + doseme - TABLIYE_KURALI) / 1000.0, ("girdi", "md_zemini_kotu"))
+        mm["md_zemini_kotu"] = izli.oturt(md_m * 1000.0)
     if tabliye and mm["md_zemini_kotu"] > tavan + doseme:
         hata.append(
             f"{et['md_zemini_kotu']}:  tabliyenin üstünden yukarıda olamaz ( zemin "
@@ -276,6 +287,8 @@ def kot_tablosu(A, doseme, daireli):
         md = mm["md_zemini_kotu"]
         turetilen["tabliye_yuksekligi"] = _tam(tavan + doseme - md)
         kaynak["tabliye_yuksekligi"] = f"{_mm_metni(tavan)} + {float(doseme):g} mm − ( {_mm_metni(md)} )"
+        if kuralla:  # ekranın soluk gösterdiği:  kuralın zemin kotu
+            turetilen["md_zemini_kotu"] = md_m
     return turetilen, {"ofset": alt, "kaynak": kaynak}, []
 
 
