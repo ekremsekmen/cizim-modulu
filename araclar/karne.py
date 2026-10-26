@@ -12,15 +12,19 @@ kırılır ( kötüleşme );  KÜÇÜKSE de kırılır ve kaydın yenilenmesini 
 
 Ölçüm çizildiği gibidir ( pdf.ciz · svg · dxf aynı sıra ):  önce parçalar, sonra
 ölçüler ÖĞE SIRASIYLA ( her biri çizgisi, uçları, maskesi ve yazısıyla ), en
-son etiketler;  her yazının önce maskesi ( uslup.maske_kutusu ).
+son etiketler;  her yazının önce maskesi ( uslup.maske_kutusu ).  Ölçünün
+yazısına binen ölçü çizgisi sıradan bağımsız sayılır ( geometri.
+cizgiye_binen_yazilar ):  sonra çizilen yazının üstünden geçer, önce çizileni
+yazının maskesi keser.
 
   maske_kenar_siliyor      yazının maskesi bir parça / duvar kenarını kâğıtta
                            MASKE_ESIGI'nden çok siliyor ( makine dairesinde
                            kumanda panosunun ön yüzü, kabin üstünde kabin duvarı )
-  olcu_yaziyi_kesiyor      SONRA çizilen başka bir ölçünün çizgisi / ucu bir ölçü
-                           yazısının harflerinden KESME_ESIGI'nden çok geçiyor —
-                           maske yalnız kendinden önce çizileni örter ( kabin
-                           üstünde "500"ün çizgisi kabin duvarının "15"inden )
+  olcu_yaziyi_kesiyor      başka bir ölçünün çizgisi / ucu bir ölçü yazısının
+                           harflerinden KESME_ESIGI'nden çok geçiyor ( kabin
+                           üstünde "500"ün çizgisi kabin duvarının "15"inden;
+                           kuyu dibinde "162,5" "615"in çizgisinde — maske onu
+                           kesiyordu )
   olcu_ucu_yaziya_degiyor  aynısı, KESME_ESIGI'ne kadar:  üst sıranın kısa uzatma
                            çizgisi alttaki ölçü yazısının harflerine değiyor
   ok_yaziyi_kesiyor        etiket oku başka bir yazının harflerinden geçiyor
@@ -43,7 +47,6 @@ import os
 import sys
 
 from cizim import geometri
-from cizim import uslup
 from testler import altin_cizim
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -62,8 +65,8 @@ GOVDE_PAYI = 0.1
 
 KURALLAR = {
     "maske_kenar_siliyor": "yazının maskesi parça / duvar kenarını siliyor",
-    "olcu_yaziyi_kesiyor": "sonraki ölçünün çizgisi ölçü yazısını kesiyor",
-    "olcu_ucu_yaziya_degiyor": "sonraki ölçünün ucu ölçü yazısına değiyor",
+    "olcu_yaziyi_kesiyor": "başka ölçünün çizgisi ölçü yazısını kesiyor",
+    "olcu_ucu_yaziya_degiyor": "başka ölçünün ucu ölçü yazısına değiyor",
     "ok_yaziyi_kesiyor": "etiket oku başka bir yazıyı kesiyor",
     "yazi_cizgisinden_kopuk": "ölçü yazısı kendi çizgisinden kopuk",
     "halat_betonda": "halat betonun içinden geçiyor",
@@ -77,20 +80,6 @@ def _yazilar(e):
         for x in e
         if (x["tip"] == "yazi" and x.get("katman") != "CERCEVE") or (x["tip"] == "olcu" and x.get("yazi"))
     ]
-
-
-def olcu_cizgileri(o, k=1.0):
-    """Ölçünün çizilen doğru parçaları:  ölçü çizgisi, iki uçta kısa uzatma
-    çizgisi ve eğik çizgi ( uslup.olcu_uclari — ekran ve PDF'in çizdiği )."""
-    if o["yon"] == "yatay":
-        bas, son, kot = o["a"][0], o["b"][0], o["kot"]
-        out = [(bas, kot, son, kot)]
-    else:
-        bas, son, kot = o["a"][1], o["b"][1], o["kot"]
-        out = [(kot, bas, kot, son)]
-    for (a, b), (c, d) in uslup.olcu_uclari(o["yon"], bas, son, kot, k):
-        out += [(*a, *b), (*c, *d)]
-    return out
 
 
 def _icerden(kutu, pay):
@@ -110,21 +99,12 @@ def _maskeler(e, yazilar, olcek):
 
 
 def _olcu_ustunde(e, olcek):
-    """Sonra çizilen ölçünün çizgisi ölçü yazısının harflerinde:  ( kesen ,
-    değen ) — [ ( yazı , sonraki ölçünün yazısı ) ]."""
-    k = olcek / 20.0
-    olculer = [x for x in e if x["tip"] == "olcu"]
-    cizgiler = [olcu_cizgileri(o, k) for o in olculer]
+    """Başka bir ölçünün çizgisi ölçü yazısının harflerinde ( geometri.
+    cizgiye_binen_yazilar — harf gövdesi GOVDE_PAYI içeriden ):  ( kesen ,
+    değen ) — [ ( yazı , çizginin ölçüsünün yazısı ) ]."""
     kesen, degen = [], []
-    for i, o in enumerate(olculer):
-        if not o.get("yazi"):
-            continue
-        g = _icerden(geometri.govde_kutusu(o), GOVDE_PAYI * olcek)
-        for j in range(i + 1, len(olculer)):
-            enb = max(geometri.kutudaki_boy(s, g) for s in cizgiler[j])
-            if enb > 0.0:
-                (kesen if enb > KESME_ESIGI * olcek else degen).append((o["metin"], olculer[j].get("metin")))
-                break
+    for o, q, boy in geometri.cizgiye_binen_yazilar(e, olcek / 20.0, -GOVDE_PAYI * olcek):
+        (kesen if boy > KESME_ESIGI * olcek else degen).append((o["metin"], q.get("metin")))
     return kesen, degen
 
 

@@ -126,21 +126,28 @@ def yazilari_yerlestir(elemanlar, h=eleman.OLCU_YAZI, kaydir=False):
     for (yon, kot), liste in siralar.items():
         i = 0 if yon == "yatay" else 1
         liste.sort(key=lambda q: min(q["a"][i], q["b"][i]))
-        dis = -1.0 if kot < 0 else 1.0
         yerlesen = []  # ( kat, bas, son )
         for n, q in enumerate(liste):
             bas, son = sorted((q["a"][i], q["b"][i]))
             w = eleman.yazi_eni(q["metin"], h)
+            Y.kendi = {id(s) for s in Y.cizgiler.get(id(q), ())}
             aday = Y.adaylar(yon, kot, liste, n, i, bas, son, w)
             kat, orta = Y.sec(yon, kot, aday, yerlesen, bas, son, w)
             yerlesen.append((kat, orta - w / 2.0, orta + w / 2.0))
             Y.dolu.append(Y.kutu(yon, kot, kat, orta, w))
-            capraz = kot + dis * (50.0 + eleman.KAT_ARALIGI * kat) * Y.k
+            capraz = Y.capraz(kot, kat)
             q["yazi"] = (
                 {"x": orta, "y": capraz, "aci": 0.0, "h": h}
                 if yon == "yatay"
                 else {"x": capraz, "y": orta, "aci": 90.0, "h": h}
             )
+
+
+#  Ölçü yazısının harfleriyle başka bir ölçünün çizgisi arasındaki en az pay
+#  ( 1/20'de çizim birimi — kâğıtta 0,1 mm;  ölçekle büyür ).  Dış sıranın ucu
+#  iç sıranın yazısının 0,22 mm üstünde biter ( uslup.SAPLAMA ):  pay bundan
+#  küçük kalmalı, yoksa iç sıranın her yazısı dış sıranın ucuna "biner".
+CIZGI_PAYI = 2.0
 
 
 def _sirada_biner(yerlesen, kat, orta, w, k):
@@ -153,7 +160,7 @@ def _sirada_biner(yerlesen, kat, orta, w, k):
 class _YaziYerleri:
     """yazilari_yerlestir'in ortak durumu:  yazı boyu ( h ) ve ölçeği ( k —
     1/50'de yazı ve aralıklar büyür ), kaydir, parça kutuları ve kenarları,
-    yazının kaçtığı engeller, dolu yazı kutuları."""
+    öbür ölçülerin çizgileri, yazının kaçtığı engeller, dolu yazı kutuları."""
 
     def __init__(self, elemanlar, h, kaydir):
         self.h = h
@@ -163,6 +170,26 @@ class _YaziYerleri:
         #  üstüne düşerse kenarı siler — kuyu planında kabin duvarının "75"i
         #  kabinin iki çizgisinin üstündeydi ( 5 Eki ).
         self.kenarlar = KenarIzgarasi(parca_kenarlari(elemanlar))
+        #  Ölçülerin çizgileri ve uçları ( olcu_cizgileri;  sıfır boylu ölçü
+        #  çizilmez ):  yazı başka bir ölçünün çizgisine konmaz — kendininkiler
+        #  ( kendi ) sayılmaz.  26 Eki:  sonra çizilen çizgi yazının üstünden
+        #  geçiyordu ( kabin üstünde sığınma alanının düşey ölçüsü "215"in
+        #  içinden ), önce çizileni yazının maskesi kesiyordu ( kuyu dibinde
+        #  "162,5" "615"in çizgisinde ) — araclar/karne:  olcu_yaziyi_kesiyor.
+        self.cizgiler = {
+            id(o): olcu_cizgileri(o, self.k)
+            for o in elemanlar
+            if o["tip"] == "olcu" and o.get("uzunluk", 1.0) >= 1e-6
+        }
+        self.olcu_izgarasi = KenarIzgarasi([s for c in self.cizgiler.values() for s in c])
+        self.kendi = set()
+        #  Duvarlar ( taramalı kesit ):  yazı çizgiden kaçarken içlerine girmez
+        self.duvarlar = [
+            sinir([x])
+            for x in elemanlar
+            if x["tip"] in ("tarama", "tarama_tugla")
+            or (x["tip"] == "dikdortgen" and x.get("katman") == "KUYU-DUVAR")
+        ]
         #  Ölçü yazısının üstüne düşmemesi gereken parçaların kutuları
         self.parca_kutulari = [
             sinir([x]) for x in elemanlar if x.get("katman") in PARCA_KATMANLARI and x["tip"] != "yazi"
@@ -177,13 +204,44 @@ class _YaziYerleri:
         )
         self.dolu = []
 
+    def capraz(self, kot, kat):
+        """Yazının ortasının ölçü çizgisine dik konumu:  çizginin dışında, kat kat."""
+        return kot + (-1.0 if kot < 0 else 1.0) * (50.0 + eleman.KAT_ARALIGI * kat) * self.k
+
     def kutu(self, yon, kot, kat, orta, w):
         h = self.h
-        c = kot + (-1.0 if kot < 0 else 1.0) * (50.0 + eleman.KAT_ARALIGI * kat) * self.k
+        c = self.capraz(kot, kat)
         return (
             (orta - w / 2.0, c - h / 2.0, orta + w / 2.0, c + h / 2.0)
             if yon == "yatay"
             else (c - h / 2.0, orta - w / 2.0, c + h / 2.0, orta + w / 2.0)
+        )
+
+    def _yazi_yeri(self, yon, kot, kat, orta, w):
+        """( x, y, en, h, aci ) — uslup kutularının girdisi."""
+        c = self.capraz(kot, kat)
+        return (orta, c, w, self.h, 0.0) if yon == "yatay" else (c, orta, w, self.h, 90.0)
+
+    def cizgiye_biner(self, yon, kot, kat, orta, w):
+        """Yazının harfleri ( gövdesi, CIZGI_PAYI büyütülerek ) başka bir
+        ölçünün çizgisine ya da ucuna biner mi."""
+        g = uslup.govde_kutusu(*self._yazi_yeri(yon, kot, kat, orta, w))
+        p = CIZGI_PAYI * self.k
+        g = (g[0] - p, g[1] - p, g[2] + p, g[3] + p)
+        return any(id(s) not in self.kendi and kenar_kesisir(s, g) for s in self.olcu_izgarasi.adaylar(g))
+
+    def silinen(self, yon, kot, kat, orta, w):
+        """Yazının maskesinin sildiği parça kenarı boyu ( uslup.maske_kutusu )."""
+        m = uslup.maske_kutusu(*self._yazi_yeri(yon, kot, kat, orta, w))
+        return sum(kutudaki_boy(s, m) for s in self.kenarlar.adaylar(m))
+
+    def duvarda(self, yon, kot, kat, orta, w):
+        """Yazı bir duvarın içine giriyor mu ( 2 mm kıl payıyla )."""
+        kb_ = self.kutu(yon, kot, kat, orta, w)
+        p = 2.0 * self.k
+        return any(
+            kb_[0] < d[2] - p and d[0] < kb_[2] - p and kb_[1] < d[3] - p and d[1] < kb_[3] - p
+            for d in self.duvarlar
         )
 
     def biner(self, yon, kot, kat, orta, w):
@@ -243,7 +301,8 @@ class _YaziYerleri:
         """Seçim:  sırasındaki yazılara binmeyen ( şart ), öbür yazılara
         binmeyen, parça kenarına binmeyen ilk aday;  hepsini sağlayan yoksa
         yazı kendi ölçüsü boyunca kayar ( _kaydir );  o da olmazsa ilk ikisini,
-        o da yoksa yalnız ilkini sağlayan.  ( kat, orta )"""
+        o da yoksa yalnız ilkini sağlayan.  Seçilen yerde yazıya başka bir
+        ölçünün çizgisi biniyorsa daha iyisi aranır ( _cizgisiz ).  ( kat, orta )"""
         ilk = yazisiz = temiz = None
         for kat, orta in aday:
             if _sirada_biner(yerlesen, kat, orta, w, self.k):
@@ -258,19 +317,47 @@ class _YaziYerleri:
                 break
         if temiz is None:
             temiz = self._kaydir(yon, kot, yerlesen, bas, son, w)
-        return temiz or yazisiz or ilk or aday[-1]
+        secilen = temiz or yazisiz or ilk or aday[-1]
+        return self._cizgisiz(yon, kot, aday, yerlesen, bas, son, w, secilen)
 
-    def _kaydir(self, yon, kot, yerlesen, bas, son, w):
-        """Adayların hepsi bir parçaya biniyor ( kuyunun içinden geçen sıralar ):
-        yazı kendi ölçüsü boyunca kayar — uçların hemen dışına kadar, önce az
-        kayan, sonra dış katlar.  Adım 20 mm;  bulamazsa 5 mm:  iki kenar arasındaki
-        boşluk yazıya ancak yetiyorsa kaba adım onu atlayabilir ( kabin üstünde
-        sığınma alanının arkadaki 70 mm'lik yerinin yazısı tavanın kenarı ile
-        konsol plakası arasındaki 5 mm'lik pencereyi kaçırıyordu — şase 240,
-        20 Eki;  300'de adım tesadüfen pencereye düşüyordu ).  ( kat, orta ) ya da None"""
+    def _cizgisiz(self, yon, kot, aday, yerlesen, bas, son, w, secilen):
+        """Seçilen yerde yazının harflerine başka bir ölçünün çizgisi ya da ucu
+        biniyorsa ( 26 Eki ) seçimin şartlarını sağlayan, çizgiye binmeyen ve
+        HİÇBİR ölçüde kötü olmayan ilk yer:  çizgisinden daha uzak değil ( kat
+        — araclar/karne:  kopuk ), maskesi daha çok kenar silmiyor, duvarın
+        içine girmiyor.  Önce kendi ölçüsünün içinde kalan kaymalar, sonra
+        adaylar sırasıyla ( sıranın ucunun dışı ), sonra öbür kaymalar;  yoksa
+        seçilen ( çizgiye binmeyen yazının yeri hiç değişmez ).  Yalnız çizgi
+        şartıyla aransaydı yazı kuyu dibinde duvarın içine, kabin üstünde iki
+        kat dışarı kaçıyordu."""
+        if not self.cizgiye_biner(yon, kot, *secilen, w):
+            return secilen
+        kat0 = secilen[0]
+        silinen0, duvarda0 = self.silinen(yon, kot, *secilen, w), self.duvarda(yon, kot, *secilen, w)
+        kaymalar = self._kaymalar(bas, son, w)
+        icinde = [a for a in kaymalar if bas <= a[1] - w / 2.0 and a[1] + w / 2.0 <= son]
+        for kat, orta in icinde + list(aday) + kaymalar:
+            if kat > kat0 or _sirada_biner(yerlesen, kat, orta, w, self.k):
+                continue
+            kb_ = self.kutu(yon, kot, kat, orta, w)
+            if (
+                self.yaziya_biner(kb_)
+                or self.kenara_biner(kb_)
+                or self.cizgiye_biner(yon, kot, kat, orta, w)
+                or self.silinen(yon, kot, kat, orta, w) > silinen0 + 1e-6
+                or (self.duvarda(yon, kot, kat, orta, w) and not duvarda0)
+            ):
+                continue
+            return (kat, orta)
+        return secilen
+
+    def _kaymalar(self, bas, son, w):
+        """Yazının kendi ölçüsü boyunca yerleri ( kat, orta ):  uçların hemen
+        dışına kadar, önce az kayan, sonra dış katlar;  önce 20 mm, sonra 5 mm adım."""
         k = self.k
         orta0 = (bas + son) / 2.0
         yari = (son - bas + w) / 2.0 + 30 * k
+        out = []
         for adim in (20 * k, 5 * k):
             kaymalar = sorted(
                 {
@@ -281,15 +368,25 @@ class _YaziYerleri:
                 },
                 key=lambda a: (abs(a[1]), a[0]),
             )
-            for kat_, kay in kaymalar:
-                orta = orta0 + kay
-                if _sirada_biner(yerlesen, kat_, orta, w, k):
-                    continue
-                kb_ = self.kutu(yon, kot, kat_, orta, w)
-                if self.yaziya_biner(kb_):
-                    continue
-                if not self.kenara_biner(kb_):
-                    return (kat_, orta)
+            out += [(kat_, orta0 + kay) for kat_, kay in kaymalar]
+        return out
+
+    def _kaydir(self, yon, kot, yerlesen, bas, son, w):
+        """Adayların hepsi bir parçaya biniyor ( kuyunun içinden geçen sıralar ):
+        yazı kendi ölçüsü boyunca kayar ( _kaymalar ).  Adım önce 20 mm, sonra
+        5 mm:  iki kenar arasındaki boşluk yazıya ancak yetiyorsa kaba adım onu
+        atlayabilir ( kabin üstünde sığınma alanının arkadaki 70 mm'lik yerinin
+        yazısı tavanın kenarı ile konsol plakası arasındaki 5 mm'lik pencereyi
+        kaçırıyordu — şase 240, 20 Eki;  300'de adım tesadüfen pencereye
+        düşüyordu ).  ( kat, orta ) ya da None"""
+        for kat_, orta in self._kaymalar(bas, son, w):
+            if _sirada_biner(yerlesen, kat_, orta, w, self.k):
+                continue
+            kb_ = self.kutu(yon, kot, kat_, orta, w)
+            if self.yaziya_biner(kb_):
+                continue
+            if not self.kenara_biner(kb_):
+                return (kat_, orta)
         return None
 
 
@@ -1632,6 +1729,68 @@ def govde_kutusu(el):
     """Yazının büyük harf gövdesinin kutusu ( uslup.govde_kutusu ) — maskesiz."""
     yer = _yazi_yeri(el)
     return None if yer is None else uslup.govde_kutusu(*yer)
+
+
+def olcu_cizgileri(o, k=1.0):
+    """Ölçünün çizilen doğru parçaları:  ölçü çizgisi, iki uçta kısa uzatma
+    çizgisi ve eğik çizgi ( uslup.olcu_uclari — ekran ve PDF'in çizdiği;
+    yazı yerleşimi ve kalite karnesi aynı parçalara bakar )."""
+    if o["yon"] == "yatay":
+        bas, son, kot = o["a"][0], o["b"][0], o["kot"]
+        out = [(bas, kot, son, kot)]
+    else:
+        bas, son, kot = o["a"][1], o["b"][1], o["kot"]
+        out = [(kot, bas, kot, son)]
+    for (a, b), (c, d) in uslup.olcu_uclari(o["yon"], bas, son, kot, k):
+        out += [(*a, *b), (*c, *d)]
+    return out
+
+
+def cizgiye_binen_yazilar(e, k=1.0, pay=None):
+    """Harflerinden ( gövdesi pay kadar büyütülmüş — verilmezse CIZGI_PAYI )
+    başka bir ölçünün çizgisi ya da ucu geçen ölçü yazıları:  [ ( yazının
+    ölçüsü , o yazıda en uzun parçası olan ölçü , boyu ) ].  Sonra çizilen
+    çizgi yazının üstünden geçer, önce çizileni yazının maskesi keser:  ikisi
+    de kusurdur ( yazilari_yerlestir kaçınır;  araclar/karne sayar )."""
+    p = CIZGI_PAYI * k if pay is None else pay
+    olculer = [o for o in e if o["tip"] == "olcu" and o.get("uzunluk", 1.0) >= 1e-6]
+    sahip = {}
+    for o in olculer:
+        for s in olcu_cizgileri(o, k):
+            sahip[id(s)] = (s, o)
+    izgara = KenarIzgarasi([s for s, _ in sahip.values()])
+    out = []
+    for o in olculer:
+        g = govde_kutusu(o)
+        if g is None:
+            continue
+        g = (g[0] - p, g[1] - p, g[2] + p, g[3] + p)
+        boy = {}
+        for s in izgara.adaylar(g):
+            q = sahip[id(s)][1]
+            if q is not o and (b := kutudaki_boy(s, g)) > 0.0:
+                boy[id(q)] = max(boy.get(id(q), 0.0), b)
+        if boy:
+            q = max(olculer, key=lambda q: boy.get(id(q), 0.0))
+            out.append((o, q, boy[id(q)]))
+    return out
+
+
+def olcu_yazisi_olcutleri(e, k=1.0):
+    """Ölçü yazılarının yerleşimini karşılaştırmak için:  ( harflerine başka
+    ölçünün çizgisi binen yazı sayısı , yazıların kendi çizgilerine dik
+    uzaklıkları toplamı , maskelerin sildiği parça kenarı boyu toplamı ) —
+    araclar/karne'nin ölçü yazısına bakan kuralları ( çizgi, kopuk, maske )."""
+    kenarlar = KenarIzgarasi(parca_kenarlari(e))
+    uzak = silinen = 0.0
+    for o in e:
+        y = o.get("yazi") if o["tip"] == "olcu" else None
+        if not y:
+            continue
+        uzak += abs(y["y"] - o["kot"]) if o["yon"] == "yatay" else abs(y["x"] - o["kot"])
+        m = maske_kutusu(o)
+        silinen += sum(kutudaki_boy(s, m) for s in kenarlar.adaylar(m))
+    return len(cizgiye_binen_yazilar(e, k)), uzak, silinen
 
 
 #  Yazının üstünden geçebilen çizgiler:  DXF'te ve SVG'de yazı MASKELİDİR

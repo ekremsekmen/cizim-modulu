@@ -141,10 +141,10 @@ class KaliteKarnesi(unittest.TestCase):
             #  maskesi kenarı siler:  kutusu kenardan 5 mm uzakta, maskesi 8,75 taşar
             eleman.dikdortgen("KABIN", 0, 0, 1000, 1000),
             eleman.yazi(1000 + w / 2 + 5, 500, "PANO"),
-            #  sonraki ölçünün çizgisi yazının ortasından geçer
+            #  başka bir ölçünün çizgisi yazının ortasından geçer
             _olcu("yatay", 2000, 3000, 0, (2500, 50)),
-            _olcu("dusey", -500, 500, 2500, (2450, 0)),
-            #  sonraki ölçünün kısa uzatma çizgisi yazının tepesine 3 mm iner
+            _olcu("dusey", -500, 500, 2500, (2550, 300)),
+            #  başka bir ölçünün kısa uzatma çizgisi yazının tepesine 3 mm iner
             _olcu("yatay", 4000, 5000, 0, (4500, 50)),
             _olcu("yatay", 4500, 6000, govde_ust - 3 + uslup.SAPLAMA * 20, (5250, govde_ust + 50)),
             #  ok yazının içinden geçer, ucu yazıdan uzak
@@ -160,6 +160,16 @@ class KaliteKarnesi(unittest.TestCase):
         for kural in karne.KURALLAR:
             with self.subTest(kural=kural):
                 self.assertEqual(len(b[kural]), 1, b[kural])
+
+    def test_yaziya_binen_cizgi_cizim_sirasindan_bagimsiz(self):
+        #  Önce çizilen çizgiyi yazının maskesi keser, sonra çizilen yazının
+        #  üstünden geçer:  ikisi de kusur ( kuyu dibinde "162,5" "615"in
+        #  çizgisindeydi — 26 Eki )
+        yazili = _olcu("yatay", 2000, 3000, 0, (2500, 50))
+        kesen = _olcu("dusey", -500, 500, 2500, (2550, 300))
+        for e in ([yazili, kesen], [kesen, yazili]):
+            with self.subTest(ilk=e[0]["yon"]):
+                self.assertEqual(karne.karne(e, 20)["olcu_yaziyi_kesiyor"], [("1000", "1000")])
 
     def test_temiz_cizimde_bulgu_yok(self):
         e = [
