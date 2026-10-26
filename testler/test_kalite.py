@@ -155,11 +155,26 @@ class KaliteKarnesi(unittest.TestCase):
             #  halat betonun içinden
             eleman.dikdortgen("TARAMA", 10000, 0, 1000, 150, tip="tarama"),
             eleman.cizgi("HALAT", 10500, -500, 10500, 500),
+            #  etiket ölçü çizgisinin üstünde:  maskesi çizgiyi siler
+            _olcu("yatay", 12000, 13000, 0, (12500, 50)),
+            eleman.yazi(12200, 0, "YAZI"),
         ]
         b = karne.karne(e, 20)
         for kural in karne.KURALLAR:
             with self.subTest(kural=kural):
                 self.assertEqual(len(b[kural]), 1, b[kural])
+
+    def test_maske_yalniz_once_cizilen_olcuyu_siler(self):
+        #  Ölçü yazısının maskesi kendinden önce çizilen ölçünün çizgisini
+        #  siler;  sonra çizilen onun üstünden geçer ( maske_olcu_siliyor
+        #  saymaz — harfe değiyorsa olcu_yaziyi_kesiyor sayar ).  Ucu ( ölçünün
+        #  sınırı ) maskenin altında kalan ölçü de sayılır.
+        yazili = _olcu("yatay", 2000, 3000, 0, (2500, 50))
+        alttaki = _olcu("yatay", 2400, 2800, 40, (2600, 300))
+        self.assertEqual(karne.karne([alttaki, yazili], 20)["maske_olcu_siliyor"][0][0], "1000")
+        self.assertEqual(karne.karne([yazili, alttaki], 20)["maske_olcu_siliyor"], [])
+        ucu = _olcu("dusey", 80, 600, 2550, (2600, 340))  # çizgisinin 0,2 mm'si maskede
+        self.assertEqual(karne.karne([ucu, yazili], 20)["maske_olcu_siliyor"], [("1000", 0.2, 1)])
 
     def test_yaziya_binen_cizgi_cizim_sirasindan_bagimsiz(self):
         #  Önce çizilen çizgiyi yazının maskesi keser, sonra çizilen yazının

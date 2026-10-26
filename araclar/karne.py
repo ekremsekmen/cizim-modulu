@@ -20,6 +20,11 @@ yazının maskesi keser.
   maske_kenar_siliyor      yazının maskesi bir parça / duvar kenarını kâğıtta
                            MASKE_ESIGI'nden çok siliyor ( makine dairesinde
                            kumanda panosunun ön yüzü, kabin üstünde kabin duvarı )
+  maske_olcu_siliyor       yazının maskesi kendinden ÖNCE çizilen bir ölçünün
+                           çizgisini MASKE_ESIGI'nden çok siliyor ya da ucunu
+                           ( ölçünün sınırı ) örtüyor ( geometri.OlcuIzgarasi;
+                           kabin üstünde HALAT 500 ile 650'nin arasındaki ucu,
+                           kuyu dibinde "270" "640"ın çizgisini siliyordu )
   olcu_yaziyi_kesiyor      başka bir ölçünün çizgisi / ucu bir ölçü yazısının
                            harflerinden KESME_ESIGI'nden çok geçiyor ( kabin
                            üstünde "500"ün çizgisi kabin duvarının "15"inden;
@@ -53,8 +58,9 @@ KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALTIN_KAYDI = os.path.join(KOK, "testler", "kalite_karnesi.json")
 TARAMA_KAYDI = os.path.join(KOK, "testler", "tarama_karnesi.json")
 
-#  Eşikler kâğıtta mm ( ölçekle çizim birimine çevrilir );  KOPUK yazı boyu
-MASKE_ESIGI = 0.3
+#  Eşikler kâğıtta mm ( ölçekle çizim birimine çevrilir );  KOPUK yazı boyu.
+#  Maskeninki yerleşimle aynı ( yazı ondan çok silen yerden kaçar ).
+MASKE_ESIGI = geometri.MASKE_ESIGI
 KESME_ESIGI = 0.5
 HALAT_ESIGI = 0.5
 KOPUK = 1.5
@@ -65,6 +71,7 @@ GOVDE_PAYI = 0.1
 
 KURALLAR = {
     "maske_kenar_siliyor": "yazının maskesi parça / duvar kenarını siliyor",
+    "maske_olcu_siliyor": "yazının maskesi önce çizilen ölçü çizgisini siliyor",
     "olcu_yaziyi_kesiyor": "başka ölçünün çizgisi ölçü yazısını kesiyor",
     "olcu_ucu_yaziya_degiyor": "başka ölçünün ucu ölçü yazısına değiyor",
     "ok_yaziyi_kesiyor": "etiket oku başka bir yazıyı kesiyor",
@@ -95,6 +102,17 @@ def _maskeler(e, yazilar, olcek):
         boy = sum(geometri.kutudaki_boy(s, m) for s in kenarlar.adaylar(m))
         if boy > MASKE_ESIGI * olcek:
             out.append((x["metin"], round(boy / olcek, 1)))
+    return out
+
+
+def _maske_olculer(e, yazilar, olcek):
+    """maske_olcu_siliyor:  [ ( metin , silinen çizgi boyu — mm , örtülen uç ) ]."""
+    olculer = geometri.OlcuIzgarasi(e)
+    out = []
+    for x in yazilar:
+        boy, uc = olculer.silinen(geometri.maske_kutusu(x), x)
+        if boy > MASKE_ESIGI * olcek or uc:
+            out.append((x["metin"], round(boy / olcek, 1), uc))
     return out
 
 
@@ -168,6 +186,7 @@ def karne(e, olcek=20):
     kesen, degen = _olcu_ustunde(e, olcek)
     return {
         "maske_kenar_siliyor": _maskeler(e, yazilar, olcek),
+        "maske_olcu_siliyor": _maske_olculer(e, yazilar, olcek),
         "olcu_yaziyi_kesiyor": kesen,
         "olcu_ucu_yaziya_degiyor": degen,
         "ok_yaziyi_kesiyor": _oklar(e, yazilar, olcek),
