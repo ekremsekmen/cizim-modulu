@@ -19,9 +19,10 @@ boşsa ÖLÇÜYLE girilir ve kot kutuları okunmaz — bir sayının iki kaynağ
 
 import copy
 import json
+import re
 import unittest
 
-from cizim import izli, katlar, kopru
+from cizim import dusey, izli, katlar, kopru, veri_tablosu
 from tasarim import alanlar, gorunum
 from testler import test_yerlesim_saglamligi
 from uclar import care_uclari, cizim_uclari, uygulama_istegi, uygulama_uclari
@@ -346,14 +347,33 @@ class Turetme(unittest.TestCase):
             self.assertEqual(izli.turev(zemin), {("girdi", "md_zemini_kotu"): 1000.0})
 
 
-def _yuz(v):
-    """Karşılaştırılan yüz:  hesabın bölümleri, özeti, uyarıları ve bütün paftaların
-    SVG'si ( uçlardan — ekranın ve paftanın gördüğü )."""
+_YAZI = re.compile(r">([^<>]*)</text>")
+_KOT_YAZISI = re.compile(r">([±+-])(\d+),(\d\d)</text>")
+
+
+def _ic_kotlar(svg, ofset):
+    """Kot yazıları iç koordinatta ( en alt durak ±0,00 ):  kot yalnız yazıya
+    eklenir ( KOT_PLANI § 1.2 madde 3 ) — geri çıkarılınca pafta ölçüyle
+    girişinkiyle aynı olmalı."""
+
+    def ic(m):
+        mm = (-1 if m[1] == "-" else 1) * (int(m[2]) * 1000 + int(m[3]) * 10) - ofset
+        return ">" + dusey.kot_yazisi(mm) + "</text>"
+
+    return _KOT_YAZISI.sub(ic, svg)
+
+
+def _yuz(v, ofset=0):
+    """Karşılaştırılan yüz ( uçlardan — ekranın ve paftanın gördüğü ):  hesabın
+    bölümleri, özeti, uyarıları;  paftaların SVG'si, kot yazıları iç koordinatta
+    ( ofset:  en alt durağın kotu, mm );  veri tablosunun yazıları ayrı — kotla
+    girişin notu orada."""
     h = json.loads(uygulama_uclari.api_uygulama_coklu(copy.deepcopy(v)).body)
     c = json.loads(cizim_uclari.api_cizimler(copy.deepcopy(v)).body)
     assert h.get("aktif") and c.get("aktif"), (h.get("hata"), c.get("hata"))
     a = h["asansorler"][0]
-    return {k: a[k] for k in ("bolumler", "ozet", "uyarilar")}, {x["ad"]: x["svg"] for x in c["cizimler"]}
+    svg = {x["ad"]: _ic_kotlar(x["svg"], ofset) for x in c["cizimler"]}
+    return {k: a[k] for k in ("bolumler", "ozet", "uyarilar")}, svg, _YAZI.findall(svg.pop("veriler"))
 
 
 def _md_63444(v):
@@ -376,6 +396,17 @@ def _kotla(v, kotlar, **ek):
 class NeCiziliyorsaOHesaplanir(unittest.TestCase):
     """Kotla giriş ↔ ölçüyle giriş:  türetme tek yerde, hesap ve çizim aynı sayıyı okur."""
 
+    def _ikiz(self, kot, olcu, ofset=0):
+        """Hesap ve paftalar aynı ( kot yazıları ofset kadar kayık );  veri tablosunda
+        kotla girişin notu fazladan ( "2." ve notun kendisi ), gerisi aynı."""
+        hk, sk, vk = _yuz(kot, ofset)
+        ho, so, vo = _yuz(olcu)
+        self.assertEqual(hk, ho)
+        self.assertEqual(sk, so)
+        self.assertNotIn(veri_tablosu.KOT_NOTU, vo)
+        i = vk.index(veri_tablosu.KOT_NOTU)
+        self.assertEqual(vk[: i - 1] + vk[i + 1 :], vo)
+
     def test_ikiz_ayni(self):
         for ad, mrl, Q, ek in (
             ("makine dairesiz", True, 1000, {}),
@@ -385,7 +416,7 @@ class NeCiziliyorsaOHesaplanir(unittest.TestCase):
             with self.subTest(ad):
                 v = test_yerlesim_saglamligi.standart_istek(Q, mrl, "Sağ")
                 v["asansorler"][0].update(ek)
-                self.assertEqual(_yuz(test_yerlesim_saglamligi.kotla(copy.deepcopy(v))), _yuz(v))
+                self._ikiz(test_yerlesim_saglamligi.kotla(copy.deepcopy(v)), v)
 
     def test_63444_2_ikizi(self):
         """Mimarın kotları ile LD'nin ölçüleri ( döşemenin 100'üyle ):  21 durak, iki
@@ -397,7 +428,7 @@ class NeCiziliyorsaOHesaplanir(unittest.TestCase):
             {k: ("; ".join(map(str, x)) if isinstance(x, list) else x) for k, x in OLCU_63444.items()}
         )
         kot = _kotla(copy.deepcopy(v), KOT_63444)
-        self.assertEqual(_yuz(kot), _yuz(olcu))
+        self._ikiz(kot, olcu, -7000)
         g = json.loads(uygulama_uclari.api_uygulama_coklu(kot).body)["asansorler"][0]["girdi"]
         self.assertEqual(
             {k: g[k] for k in OLCU_63444 if k != "kat_yukseklikleri"},
@@ -420,10 +451,17 @@ class NeCiziliyorsaOHesaplanir(unittest.TestCase):
                 "md_zemini_kotu": katlar.kot_metni(60800 + m),
             }
 
-        yuz = _yuz(_kotla(copy.deepcopy(v), kaydir(0)))
-        for m in (7000, -3250, 850_000):
+        yuz = _yuz(_kotla(copy.deepcopy(v), kaydir(0)), -7000)
+        for m in (7000, -3250):
             with self.subTest(kayma=m):
-                self.assertEqual(_yuz(_kotla(copy.deepcopy(v), kaydir(m))), yuz)
+                self.assertEqual(_yuz(_kotla(copy.deepcopy(v), kaydir(m)), -7000 + m), yuz)
+        #  Mutlak kot ( deniz seviyesinden:  +850 m ):  yazılar uzar ( "+843,00" ),
+        #  yazı yerleştirici onlara yer açar — hesap ve yazıların içeriği aynı, yerleri
+        #  serbest ( geometri yukarıdaki kaymalarda birebir )
+        h, s, veri = _yuz(_kotla(copy.deepcopy(v), kaydir(850_000)), -7000 + 850_000)
+        self.assertEqual((h, veri), (yuz[0], yuz[2]))
+        for ad in s:
+            self.assertEqual(sorted(_YAZI.findall(s[ad])), sorted(_YAZI.findall(yuz[1][ad])), ad)
 
     def test_hatali_tabloda_hesap_ve_cizim_ayni_iletiyle_durur(self):
         for degisiklik, sebep in (
@@ -443,6 +481,21 @@ class NeCiziliyorsaOHesaplanir(unittest.TestCase):
                 (ileti,) = c["hata"]
                 self.assertIn(sebep, ileti)
                 self.assertIn(ileti, h["hata"])
+
+    def test_paftadaki_kotlar_mimarinin(self):
+        """Kesitlerde duraklar, kuyu dibi, makine dairesinin zemini ve tabliyenin
+        üstü mimari paftadaki sayılarla yazılır ( 63444-2 ):  tabliyenin üstü
+        +62,30 — mimarın çatı arası planındaki kot, kuyu tavanı +62,20 + 100'den.
+        Giriş görünüşü ve kapı kesiti en alt durağın kapısıdır."""
+        v = _md_63444(test_yerlesim_saglamligi.standart_istek(1000, False, "Sağ"))
+        c = json.loads(cizim_uclari.api_cizimler(_kotla(v, KOT_63444)).body)
+        self.assertTrue(c["aktif"], c.get("hata"))
+        kot = {x["ad"]: [m[0][1:-7] for m in _KOT_YAZISI.finditer(x["svg"])] for x in c["cizimler"]}
+        duraklar = [katlar.kot_metni(k) for k in katlar.kotlari_oku(DURAKLAR_63444)[0]]
+        self.assertEqual(duraklar[:3] + duraklar[-1:], ["-7,00", "-3,50", "±0,00", "+57,60"])
+        for ad in ("kuyu_kesiti_yan", "kuyu_kesiti_on"):
+            self.assertEqual(kot[ad], duraklar + ["-8,80", "+60,80", "+62,30"], ad)
+        self.assertEqual((kot["giris"], kot["kapi_kesiti"]), (["-7,00"], ["-7,00"]))
 
     def test_turetilmeden_gelen_kot_koprude_durur(self):
         """Bir yol hesabın tamamla'sını atlarsa çizim eski sayılarla sessizce kurulmaz."""

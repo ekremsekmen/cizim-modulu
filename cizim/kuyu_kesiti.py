@@ -169,9 +169,10 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
     #  Kot işaretleri odanın dışında:  oda kuyudan genişse duvarının ötesinde
     #  ( eskiden kuyunun yanında, odanın duvarının üstüne düşüyordu )
     u_kot = min(u_kot, u0 - 200 * K)
-    kesit_parcalari.kot_isareti(e, u_kot, zd, dusey.kot_yazisi(zd), K, -1.0)
+    ofset = dusey.kot_ofseti(g)
+    kesit_parcalari.kot_isareti(e, u_kot, zd, dusey.kot_yazisi(zd, ofset), K, -1.0)
     if zt - zd >= 300.0:
-        kesit_parcalari.kot_isareti(e, u_kot, zt, dusey.kot_yazisi(zt), K, -1.0)
+        kesit_parcalari.kot_isareti(e, u_kot, zt, dusey.kot_yazisi(zt, ofset), K, -1.0)
     return u1
 
 
@@ -261,10 +262,12 @@ def _seviye_isaretleri(e, sev, K):
             e.append(eleman.ad(eleman.yazi(u, z + h + 70 * K, harf, uslup.HARF * K), "plan_harfi"))
 
 
-def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon):
-    """Kot işaretleri ve durak adları ( duvarın dışında )."""
+def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon, taban):
+    """Kot işaretleri ve durak adları ( duvarın dışında ), sonra kuyu dibinin
+    kotu aynı sütunda.  Kotla girişte yazılar mimarinin kotudur ( kot_ofseti )."""
+    ofset = dusey.kot_ofseti(g)
     for i, z in enumerate(kotlar):
-        kesit_parcalari.kot_isareti(e, u_duvar + yon * 200 * K, z, dusey.kot_yazisi(z), K, yon)
+        kesit_parcalari.kot_isareti(e, u_duvar + yon * 200 * K, z, dusey.kot_yazisi(z, ofset), K, yon)
         e.append(
             eleman.ad(
                 eleman.yazi(
@@ -277,6 +280,7 @@ def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon):
                 "durak_adi",
             )
         )
+    kesit_parcalari.kot_isareti(e, u_duvar + yon * 200 * K, taban, dusey.kot_yazisi(taban, ofset), K, yon)
 
 
 def _olculer_sol(e, Y, u0, K, kotlar, tavan, g):
@@ -570,8 +574,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     e.append(eleman.ad(eleman.cizgi("GIZLI", 0, Y["tavan_alti"] + H, D, Y["tavan_alti"] + H), "tavan_kirisi"))
     L = 240 * K
     _yan_katlar(e, S, P, kotlar, -don - L, L, kapi_h)
-    _kat_seviyeleri(e, g, S, kotlar, -don - L, K, -1.0)
-    kesit_parcalari.kot_isareti(e, -don - L + 200 * K * -1.0, taban, dusey.kot_yazisi(taban), K, -1.0)
+    _kat_seviyeleri(e, g, S, kotlar, -don - L, K, -1.0, taban)
     u_oda = None
     if oda:
         #  A-A kabin ekseninden karşı ağırlığa bakar:  ön ve arka duvar kesilir,
@@ -693,8 +696,7 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
                 0,
             )
         )
-    _kat_seviyeleri(e, g, S, kotlar, -dg, K, -1.0)
-    kesit_parcalari.kot_isareti(e, -dg - 200 * K, taban, dusey.kot_yazisi(taban), K, -1.0)
+    _kat_seviyeleri(e, g, S, kotlar, -dg, K, -1.0, taban)
     u_oda = None
     if oda:
         #  B-B arkadan kat kapılarına bakar:  yan duvarlar kesilir, ön duvar görünür

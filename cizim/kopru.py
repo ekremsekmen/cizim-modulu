@@ -644,6 +644,9 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
             "beyan_hizi": sayi("beyan_hizi", "Beyan hızı"),
             "durak_adedi": int(h["durak"]),
             "kat_yuksekligi": d["kat_yuksekligi"],
+            #  Kotla girişte en alt durağın kotu:  yalnız kot yazılarına eklenir
+            #  ( dusey.kot_yazisi );  ölçüyle girişte yok — eski girdi aynı kalır
+            **({"kot_ofseti": float(A["_kot"]["ofset"])} if katlar.kot_kipi(A) else {}),
             "kabin_tampon_baba": sayi("kabin_tampon_baba", "Kabin tamponu baba yüksekliği"),
             "kabin_tampon_boyu": sayi("kabin_tampon_boyu", "Kabin tamponu uzunluğu"),
             "kabin_carpma_arasi": sayi("kabin_carpma_arasi", "Kabin tamponu – çarpma plakası arası"),

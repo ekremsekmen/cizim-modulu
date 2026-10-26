@@ -125,7 +125,7 @@ def ciz(g, cizim_sabitleri=None):
     )
     #  Kapı ekseni ve döşemenin kotu
     e.append(eleman.ad(eleman.cizgi("EKSEN", xc, -300, xc, ust, tip="eksen"), "kapi_ekseni"))
-    kesit_parcalari.kot_isareti(e, xc + 150, 0.0, dusey.kot_yazisi(0.0), 1.0)
+    kesit_parcalari.kot_isareti(e, xc + 150, 0.0, dusey.kot_yazisi(0.0, dusey.kot_ofseti(g)), 1.0)
 
     #  Alt:  kuyunun iç yüzlerinden kaba boşluğa ( LiftDesigner 470 · 1.180 · 350 ),
     #  kapının net genişliği

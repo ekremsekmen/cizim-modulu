@@ -22,6 +22,8 @@ BASLIK = "VERİLER VE KISALTMALAR"
 
 #  Genel notlar:  yalnız çizimlerin kendisinden bilinenler
 NOTLAR = ("Ölçüler mm, kotlar m.",)
+#  Kotla girişte ( g["dusey"]["kot_ofseti"] ) kotlar mimarinindir:  ±0,00 onun datumu
+KOT_NOTU = "Kotlar bitmiş döşeme kotlarıdır."
 
 
 def dogrula(g):
@@ -106,6 +108,7 @@ def ciz(g):
         for k in kisaltmalar.projede(g, kisaltmalar.kullanilanlar(geometri.plan(g)))
     ]
     t2, alt = kisaltmalar.tablo(0.0, alt - 2 * kisaltmalar.SATIR, "KISALTMALAR", kodlar, "kisaltmalar")
-    notlar = [(f"{i}.", n) for i, n in enumerate(NOTLAR, 1)]
+    kotla = "kot_ofseti" in (g.get("dusey") or {})
+    notlar = [(f"{i}.", n) for i, n in enumerate(NOTLAR + ((KOT_NOTU,) if kotla else ()), 1)]
     t3, _ = kisaltmalar.tablo(0.0, alt - 2 * kisaltmalar.SATIR, "NOTLAR", notlar, "notlar", sutun=120.0)
     return t1 + t2 + t3
