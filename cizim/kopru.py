@@ -96,6 +96,7 @@ KURALLI = {
     "kuyu_duvar_arka": ("kuyu", "duvar_arka"),
     "kuyu_duvar_sol": ("kuyu", "duvar_sol"),
     "kuyu_duvar_sag": ("kuyu", "duvar_sag"),
+    "tavan_dosemesi": ("kuyu", "tavan_dosemesi"),
     "kabin_ray_arasi": ("kabin_ray", "arasi"),
     "agirlik_ray_arasi": ("agirlik", "ray_arasi"),
     "agirlik_ray_duvar": ("agirlik", "ray_duvar"),
@@ -547,10 +548,15 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
         },
         #  Duvarlar ayrı ayrı ( boşsa ortak kalınlık );  kuyu dibinin ve tavanın
         #  döşemesi ortak kalınlıktadır ( eskiden ön duvarınkini kullanıyordu ).
+        #  Tavan döşemesinin kendi kutusu var ( karar 3 — KOT_PLANI ):  boşsa ortak
+        #  kalınlık;  kesit ve makine dairesi onu 3. adımda okur.
         "kuyu": {
             "genislik": G,
             "derinlik": h["KD"],
             "doseme": duvar,
+            "tavan_dosemesi": (sayi("tavan_dosemesi", bos=True) or _kural(duvar, "tavan_dosemesi"))
+            if duvar
+            else None,
             **{
                 f"duvar_{y}": (sayi(f"kuyu_duvar_{y}", bos=True) or _kural(duvar, f"kuyu_duvar_{y}"))
                 if duvar

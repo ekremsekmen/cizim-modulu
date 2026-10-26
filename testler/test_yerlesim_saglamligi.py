@@ -20,6 +20,7 @@ from cizim import kopru
 from cizim import kuyu_dibi
 from cizim import kuyu_ustu
 from motor.uygulama import uygulama_girdisi
+from tasarim import alanlar
 
 #  ISO 4190 / TS EN 81-20 Çizelge 6'ya uygun kabinler, kuyu kabinden 950 geniş,
 #  450 derin ( formun varsayılanı gibi ), kapı yüke göre.
@@ -65,6 +66,38 @@ def standart_istek(Q, mrl=True, yer="Sağ", **ek):
     if not mrl:
         pg.update(mk_uzunluk=max(3800, kd + 2000), mk_genislik=max(2600, kg + 1200))
     return {"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}
+
+
+def _kot(mm):
+    if mm == 0:
+        return "±0,00"
+    return (f"{mm / 1000:+.3f}" if mm % 10 else f"{mm / 1000:+.2f}").replace(".", ",")
+
+
+def kotla(v, i=0):
+    """İsteğin katlarını KOTLA girer ( tasarim/alanlar KAT GİRİŞİ ):  aynı kuyu,
+    en alt durak ±0,00 — asansörün yazılı ölçüleri, yoksa formun varsayılanları.
+    Eşit katlar mm'ye yuvarlanır ( seyir aynı kalır );  ölçü kutuları istekten
+    çıkar ( kotla girişte okunmaz ).  Sayılar burada elle kurulur:  programın
+    türetmesi ( cizim/katlar ) kullanılmaz."""
+    a, pg = v["asansorler"][i], v["proje_geneli"]
+    k = {**{x.anahtar: x.varsayilan for x in alanlar.ALANLAR}, **a, **pg}
+    n, H = int(float(k["durak_adedi"])), round(float(str(k["seyir_mesafesi"]).replace(",", ".")) * 1000)
+    ara = [float(x.replace(",", ".")) for x in str(k.get("kat_yukseklikleri") or "").split(";") if x.strip()]
+    kotlar = [0]
+    for j in range(1, n):
+        kotlar.append(kotlar[-1] + round(ara[j - 1]) if ara else round(j * H / (n - 1)))
+    tavan = kotlar[-1] + round(float(k["son_kat_yuksekligi"]))
+    for x in alanlar.ALANLAR:
+        if x.kip == alanlar.OLCU:
+            a.pop(x.anahtar, None)
+    a[alanlar.DURAK_KOTLARI] = "; ".join(_kot(z) for z in kotlar)
+    a["kuyu_dibi_kotu"] = _kot(-round(float(k["kuyu_dibi"])))
+    a["kuyu_tavani_kotu"] = _kot(tavan)
+    if not k.get("mk_yok"):
+        doseme = k.get("tavan_dosemesi") or k["kuyu_duvar_kalinligi"]
+        a["md_zemini_kotu"] = _kot(tavan + round(float(doseme)) - round(float(k["tabliye_yuksekligi"])))
+    return v
 
 
 def gecerli_duzen(Q, yer="Sağ", mrl=True, **ek):

@@ -28,6 +28,7 @@ from cizim import olcu_kaynagi
 from cizim import pafta
 from cizim import sabitler
 from motor.uygulama import uygulama_hesabi
+from tasarim import alanlar
 from hesap_girdi import ASANSOR, ASANSOR_MD, ORTAK, ORTAK_MD, SABITLER
 
 from testler import gercek_projeler
@@ -769,9 +770,16 @@ class Parcalar(unittest.TestCase):
     def test_etiketler_ve_kurallar_tam(self):
         self.assertEqual(set(sabitler.ETIKET), set(sabitler.SABIT))
         #  Sayısal kutuların etkin değerleri ölçü çözümlemesinde bulunmalı;
-        #  isteğe bağlı kat listesi metindir ve bu sayısal haritaya girmez.
+        #  isteğe bağlı kat listesi metindir ve bu sayısal haritaya girmez.  Kot
+        #  kutularının kuralı yoktur:  kotla girişte yazılır ( alanlar KAT GİRİŞİ ).
         self.assertEqual(
-            sorted(k for k in kopru.ALAN if kopru.ALAN[k][3] == "sayi" and kopru.ALAN[k][5] is None),
+            sorted(
+                k
+                for k in kopru.ALAN
+                if kopru.ALAN[k][3] == "sayi"
+                and kopru.ALAN[k][5] is None
+                and alanlar.ALAN[k].kip != alanlar.KOT
+            ),
             sorted(kopru.KURALLI),
         )
         self.assertIn("kural", eleman.olcu("yatay", (0, 0), (1, 0), 0, kural="x"))

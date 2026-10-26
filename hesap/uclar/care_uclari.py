@@ -78,6 +78,12 @@ BINA = frozenset(
         "tabliye_yuksekligi",
         "seyir_mesafesi",
         "durak_adedi",
+        #  Kotla giriş:  kuyunun ve makine dairesinin kotları ve tavan döşemesi de
+        #  binanındır.  Durak kotları mimariden gelir, metin alanıdır — önerilmez.
+        "kuyu_dibi_kotu",
+        "kuyu_tavani_kotu",
+        "md_zemini_kotu",
+        "tavan_dosemesi",
     )
 )
 #  Çare sayılmayanlar:  ürünün özelliği ( tamponun stroku ) ya da geometriyle ilgisiz
