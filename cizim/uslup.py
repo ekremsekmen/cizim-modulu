@@ -13,6 +13,7 @@ Bütün boylar KÂĞITTA milimetredir;  çizim gerçek ölçüde ( mm ) kuruldu�
 için çizici ölçekle çarpar ( 1/20'de 1 mm kâğıt = 20 mm çizim ).
 """
 
+import math
 import os
 from typing import NamedTuple
 
@@ -183,11 +184,59 @@ YAZI_SINIFLARI = (NORMAL, HARF, BASLIK)
 #  bir parçanın kenarına değerse kâğıtta kenar kopuk çıkar ( 13 Eki:  delik
 #  planında "66 x 66" duvar çizgisini kesiyordu — kutusu duvara değmiyordu ).
 MASKE_PAYI = 1.25
+#  Yazının dikey ölçüleri ( em ):  geometri yazının ORTASINI verir, ekran ve
+#  PDF taban çizgisine yazar ( ortanın TABAN aşağısı );  alt uzantılı harfler
+#  ( Ç, Ş, g ) tabanın ALT_UZANTI altına iner, büyük harf BUYUK_HARF üstüne çıkar.
+TABAN = 0.35
+ALT_UZANTI = 0.21
 
 
 def maske_payi(h):
     """Etiket maskesinin yazının kutusundan taşması ( h:  yazı boyu, em )."""
     return (MASKE_PAYI - 1.0) / 2.0 * h
+
+
+def dayanak(en, hiza="orta"):
+    """Yazının başının dayanak noktasına uzaklığı ( yazı yönünde ):  ortada
+    −en / 2, solda 0, sağda −en."""
+    return {"sol": 0.0, "sag": -en}.get(hiza, -en / 2.0)
+
+
+def maske(en, h, hiza="orta"):
+    """Yazının MASKESİ kendi düzleminde:  ( u0, v0, u1, v1 ) — başlangıç taban
+    çizgisinde yazının dayanak noktası ( hiza ), u yazı yönünde.  PDF'in
+    zemin renginde çizdiği dikdörtgen budur ( pdf._metin );  denetimler aynı
+    kutuya bakar ( maske_kutusu ).  en:  yazının eni ( eleman.yazi_eni )."""
+    pay = maske_payi(h)
+    dx = dayanak(en, hiza)
+    return (dx - pay, -ALT_UZANTI * h - pay, dx + en + pay, BUYUK_HARF * h + pay)
+
+
+def _cizimde(x, y, h, aci, yerel):
+    """Yazının düzlemindeki kutunun ( yerel ) çizimdeki eksenlere hizalı kutusu:
+    ( x, y ) yazının ORTASI ( geometri ), taban ortanın TABAN·h aşağısında."""
+    a = math.radians(aci)
+    c, s = math.cos(a), math.sin(a)
+    bx, by = x + TABAN * h * s, y - TABAN * h * c
+    u0, v0, u1, v1 = yerel
+    xs = [bx + u * c - v * s for u in (u0, u1) for v in (v0, v1)]
+    ys = [by + u * s + v * c for u in (u0, u1) for v in (v0, v1)]
+    return (min(xs), min(ys), max(xs), max(ys))
+
+
+def maske_kutusu(x, y, en, h, aci=0.0, hiza="orta"):
+    """Yazının maskesinin çizimdeki kutusu ( x0, y0, x1, y1 ), aci derece.
+    26 Eki:  yerleşimin ve kalite kapısının baktığı ±h/2'lik kutu maskeden
+    dardı — maske alt uzantı yanında 0,19 em, her yanda 0,125 em taşıyor,
+    makine dairesinde kumanda panosunun ön yüzünü siliyordu."""
+    return _cizimde(x, y, h, aci, maske(en, h, hiza))
+
+
+def govde_kutusu(x, y, en, h, aci=0.0, hiza="orta"):
+    """Büyük harflerin gövdesi ( tabandan büyük harf boyuna, maskesiz ):  başka
+    bir çizginin üstünden geçtiği yazının okunmayan kısmı."""
+    dx = dayanak(en, hiza)
+    return _cizimde(x, y, h, aci, (dx, 0.0, dx + en, BUYUK_HARF * h))
 
 
 def kagitta(em, olcek):
@@ -204,3 +253,15 @@ TIK = 1.0  # eğik çizginin iki eksendeki yarı boyu ( mm )
 SAPLAMA = 1.5  # kısa uzatma çizgisinin ölçü çizgisinin iki yanındaki boyu ( mm )
 TIK_KALEM = 0.25
 OLCU_BOSLUGU = 0.75  # yazının maskesi yazıdan bu kadar taşar ( mm )
+
+
+def olcu_uclari(yon, bas, son, kot, k=1.0):
+    """Ölçünün iki ucu:  her biri ( kısa uzatma çizgisi , eğik çizgi ) — çizim
+    biriminde ( 1/20'de kâğıt mm × 20, başka ölçekte k ile ).  "yatay":  bas /
+    son x, kot y;  "dusey":  bas / son y, kot x ( uç ölçü çizgisiyle döner,
+    eğik çizgi öbür yöne yatar ).  Ekran, PDF ve kalite karnesi aynı uçları
+    kullanır ( DXF'te aynı biçim UC_BLOGU )."""
+    t, sp = TIK * 20 * k, SAPLAMA * 20 * k
+    if yon == "yatay":
+        return [(((x, kot - sp), (x, kot + sp)), ((x - t, kot - t), (x + t, kot + t))) for x in (bas, son)]
+    return [(((kot - sp, y), (kot + sp, y)), ((kot + t, y - t), (kot - t, y + t))) for y in (bas, son)]

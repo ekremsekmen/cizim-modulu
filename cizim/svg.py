@@ -114,29 +114,27 @@ def _olcu(el, renk, kalinlik, k=1.0, tutamak=False, r=KAGIT):
     KISA uzatma çizgisi — DXF'teki ucun bloğuyla aynı ( dxf.UC_BLOGU ).  Uzun
     uzatma çizgileri bütün planı boydan boya kesiyordu ( kullanıcı kararı ).
     """
-    t, sp = uslup.TIK * 20 * k, uslup.SAPLAMA * 20 * k
     tik = f"{uslup.TIK_KALEM * 20 * k:g}"
     if el["yon"] == "yatay":
         x1, x2, y = el["a"][0], el["b"][0], el["kot"]
         cizgi = f'<line x1="{x1:.1f}" y1="{y:.1f}" x2="{x2:.1f}" y2="{y:.1f}"'
-        uclar = [((x, y - sp), (x, y + sp), (x - t, y - t), (x + t, y + t)) for x in (x1, x2)]
+        uclar = uslup.olcu_uclari("yatay", x1, x2, y, k)
     else:
         y1, y2, x = el["a"][1], el["b"][1], el["kot"]
         cizgi = f'<line x1="{x:.1f}" y1="{y1:.1f}" x2="{x:.1f}" y2="{y2:.1f}"'
-        #  Uç ölçü çizgisiyle döner ( 90° ):  eğik çizgi öbür yöne yatar
-        uclar = [((x - sp, y), (x + sp, y), (x + t, y - t), (x - t, y + t)) for y in (y1, y2)]
+        uclar = uslup.olcu_uclari("dusey", y1, y2, x, k)
     uc = "".join(
         f'<line x1="{a[0]:.1f}" y1="{a[1]:.1f}" x2="{b[0]:.1f}" y2="{b[1]:.1f}" '
         f'stroke="{renk}" stroke-width="{kalinlik}"/>'
         f'<line x1="{c[0]:.1f}" y1="{c[1]:.1f}" x2="{d[0]:.1f}" y2="{d[1]:.1f}" '
         f'stroke="{renk}" stroke-width="{tik}"/>'
-        for a, b, c, d in uclar
+        for (a, b), (c, d) in uclar
     )
     yz = el["yazi"]
     #  Merkezden taban çizgisine:  yazının "yukarı" yönünün tersine 0,35·h
     a = math.radians(yz["aci"])
-    bx = yz["x"] + 0.35 * yz["h"] * math.sin(a)
-    by = yz["y"] - 0.35 * yz["h"] * math.cos(a)
+    bx = yz["x"] + uslup.TABAN * yz["h"] * math.sin(a)
+    by = yz["y"] - uslup.TABAN * yz["h"] * math.cos(a)
     tut = ""
     if tutamak:
         h, w = yz["h"], eleman.yazi_eni(el["metin"], yz["h"])
@@ -319,8 +317,8 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False, r=KAG
             a, h = math.radians(el.get("aci", 0)), el["yukseklik"]
             parcalar.append(
                 _metin(
-                    el["x"] + 0.35 * h * math.sin(a),
-                    el["y"] - 0.35 * h * math.cos(a),
+                    el["x"] + uslup.TABAN * h * math.sin(a),
+                    el["y"] - uslup.TABAN * h * math.cos(a),
                     el["metin"],
                     h,
                     renk,

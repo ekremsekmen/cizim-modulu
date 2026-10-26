@@ -8,11 +8,14 @@ birbirine, parçalara, parça kenarlarına binmiyor mu, NaN var mı, çizim fizi
 olarak tutarlı mı ( araclar/fiziksel.py ).  Hükümler
 ( çizildi / ret ve ret sebebi ) depodaki kayıtla ( testler/tarama_hukumleri.json )
 karşılaştırılır:  beklenmeyen bir hüküm değişikliği ya da sorunlu bir düzen
-taramayı BAŞARISIZ yapar.
+taramayı BAŞARISIZ yapar.  Çizilen her düzenin KALİTE KARNESİ de ( araclar/karne:
+maskenin sildiği kenar, ölçünün üstünden geçen ölçü, kopuk ölçü yazısı, betondan
+geçen halat — bugün sıfır değiller ) kayıtla ( testler/tarama_karnesi.json )
+karşılaştırılır:  sayı artarsa ya da azalırsa ( kayıt yenilenmeli ) BAŞARISIZ.
 
     .venv/bin/python -m araclar.tarama                 dört grup ( ana · kapi · diger · oda )
     .venv/bin/python -m araclar.tarama kapi            tek grup
-    .venv/bin/python -m araclar.tarama --yenile        hüküm kaydını yeniden yazar
+    .venv/bin/python -m araclar.tarama --yenile        hüküm ve karne kaydını yeniden yazar
 
 --yenile DAVRANIŞI DEĞİŞTİRME İZNİDİR ( altın çıktılar gibi ):  yalnız hüküm
 değişiklikleri tek tek incelenip onaylandıktan sonra.  Ayrıntılı sonuçlar
@@ -32,6 +35,7 @@ import yollar
 yollar.kur()
 
 from araclar import fiziksel
+from araclar import karne
 from araclar import kesisme
 from cizim import cizimler
 from cizim import geometri
@@ -67,8 +71,9 @@ def _binisir(a, b):
     return a[1] < b[3] - PAY and b[1] < a[3] - PAY and a[2] < b[4] - PAY and b[2] < a[4] - PAY
 
 
-def denetle(g):
-    """Paftanın bütün çizimlerinin sorunları:  [ ileti ]."""
+def denetle(g, karneler=None):
+    """Paftanın bütün çizimlerinin sorunları:  [ ileti ].  karneler verilirse
+    her çizimin kalite karnesi ( karne.sayilar — sıfırdan büyükse ) ona yazılır."""
     sorun = []
     md = g["makine"]["yeri"] == "Makine dairesi"
     for c in pafta.SIRA_MD if md else pafta.SIRA_MRL:
@@ -99,7 +104,10 @@ def denetle(g):
             ad = next((ad for ad, p in parcalar if _binisir(a, p)), None)
             if ad:
                 sorun.append(f"{c}: ölçü yazısı parçada '{a[0]}' / {ad}")
-        k = cizimler.OLCEKLER.get(c, 20) / 20.0
+        olcek = cizimler.OLCEKLER.get(c, 20)
+        k = olcek / 20.0
+        if karneler is not None and (sayi := karne.sayilar(e, olcek)):
+            karneler[c] = sayi
         for metin, tip, kat, ad in kesisme.kesismeler(e, k):
             if kat not in SERBEST:
                 sorun.append(f"{c}: yazı parça kenarında '{metin}' / {kat} {ad}")
@@ -116,7 +124,8 @@ def denetle(g):
 
 
 def duzen(ad, v):
-    """Bir düzenin sonucu:  { ad, durum ( çizildi · ret · çöktü ), hata | sorun }."""
+    """Bir düzenin sonucu:  { ad, durum ( çizildi · ret · çöktü ), hata | sorun,
+    karne ( çizim → kural → sayı ) }."""
     t = time.time()
     try:
         d = test_yerlesim_saglamligi.cizim_yaniti(v)
@@ -124,12 +133,13 @@ def duzen(ad, v):
         return {"ad": ad, "durum": "çöktü", "ayrinti": traceback.format_exc()[-600:]}
     if not d.get("aktif"):
         return {"ad": ad, "durum": "ret", "hata": d.get("hata")}
+    karneler = {}
     try:
         g, _A, _h = test_yerlesim_saglamligi.duzen_girdisi(v)
-        s = denetle(g)
+        s = denetle(g, karneler)
     except Exception:  # noqa: BLE001
         s = ["DENETİM ÇÖKTÜ " + traceback.format_exc()[-400:]]
-    return {"ad": ad, "durum": "çizildi", "sorun": s, "sure": round(time.time() - t, 1)}
+    return {"ad": ad, "durum": "çizildi", "sorun": s, "karne": karneler, "sure": round(time.time() - t, 1)}
 
 
 def duzenler(grup):
@@ -260,6 +270,33 @@ def karsilastir(grup, sonuc, kayit):
     return out
 
 
+def karneleri(sonuc):
+    """Grubun karnesi:  { düzen : { çizim : { kural : sayı } } } — çizilen ve
+    kusuru olan düzenler."""
+    return {r["ad"]: r["karne"] for r in sonuc if r.get("karne")}
+
+
+def karne_farklari(grup, sonuc, kayit):
+    """Karnenin kayıttan farkı:  [ ileti ] — kötüleşme de iyileşme de ( kayıt
+    yenilenmeli:  --yenile ) taramayı durdurur."""
+    kotu, iyi = karne.farklar(kayit.get(grup, {}), karneleri(sonuc))
+    return [f"KARNE KÖTÜLEŞTİ  {i}" for i in kotu] + [
+        f"KARNE İYİLEŞTİ  {i}  ( kaydı yenile:  --yenile )" for i in iyi
+    ]
+
+
+def _ozet(grup, sonuc, t):
+    sayi = collections.Counter(r["durum"] for r in sonuc)
+    sorunlu = sum(1 for r in sonuc if r.get("sorun"))
+    print(
+        f"{grup}:  {len(sonuc)} düzen  ·  {dict(sayi)}  ·  sorunlu {sorunlu}  ·  {time.time() - t:.0f} sn",
+        flush=True,
+    )
+    toplam = karne.toplamlar(karneleri(sonuc))
+    if toplam:
+        print("   karne:  " + "  ·  ".join(f"{karne.KURALLAR[k]} {n}" for k, (n, _d) in toplam.items()))
+
+
 def main(argv):
     yenile = "--yenile" in argv
     gruplar = [a for a in argv if not a.startswith("--")] or list(GRUPLAR)
@@ -267,21 +304,17 @@ def main(argv):
     if os.path.exists(HUKUMLER):
         with open(HUKUMLER, encoding="utf-8") as f:
             kayit = json.load(f)
+    karne_kaydi = karne.oku(karne.TARAMA_KAYDI)
     basarili = True
     for grup in gruplar:
         t = time.time()
         sonuc = tara(grup)
-        sayi = collections.Counter(r["durum"] for r in sonuc)
-        sorunlu = sum(1 for r in sonuc if r.get("sorun"))
-        print(
-            f"{grup}:  {len(sonuc)} düzen  ·  {dict(sayi)}  ·  sorunlu {sorunlu}  ·  "
-            f"{time.time() - t:.0f} sn",
-            flush=True,
-        )
+        _ozet(grup, sonuc, t)
         if yenile:
             kayit[grup] = {r["ad"]: hukum(r) for r in sonuc}
+            karne_kaydi[grup] = karneleri(sonuc)
             continue
-        farklar = karsilastir(grup, sonuc, kayit)
+        farklar = karsilastir(grup, sonuc, kayit) + karne_farklari(grup, sonuc, karne_kaydi)
         for f in farklar:
             print("   " + f)
         basarili = basarili and not farklar
@@ -289,7 +322,10 @@ def main(argv):
         with open(HUKUMLER, "w", encoding="utf-8") as f:
             json.dump(kayit, f, ensure_ascii=False, indent=1, sort_keys=True)
             f.write("\n")
-        print(f"hüküm kaydı yazıldı:  {os.path.relpath(HUKUMLER, KOK)}")
+        karne.yaz(karne.TARAMA_KAYDI, karne_kaydi)
+        print(
+            f"hüküm ve karne kaydı yazıldı:  {os.path.relpath(HUKUMLER, KOK)}, {os.path.relpath(karne.TARAMA_KAYDI, KOK)}"
+        )
     return 0 if basarili else 1
 
 

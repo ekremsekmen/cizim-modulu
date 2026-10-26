@@ -175,17 +175,17 @@ def _metin(c, x, y, metin, h, renk, aci=0.0, hiza="orta", k=1.0):
     0,125'i ) —, sonra yazı BİR KEZ:  hale yazıyı ikinci kez basınca PDF'ten
     kopyalanan metin çift çıkıyordu ( "SD1850SD1850" )."""
     a = math.radians(aci)
-    bx, by = x + 0.35 * h * math.sin(a), y - 0.35 * h * math.cos(a)
+    bx, by = x + uslup.TABAN * h * math.sin(a), y - uslup.TABAN * h * math.cos(a)
     w = pdfmetrics.stringWidth(metin, YAZI_TIPI, h)
-    dx = {"orta": -w / 2.0, "sol": 0.0, "sag": -w}.get(hiza, -w / 2.0)
-    pay = uslup.maske_payi(h)
     c.saveState()
     c.translate(bx, by)
     c.rotate(aci)
-    #  Kutunun altı alt uzantılı harflere ( Ç, Ş, g ), üstü büyük harfe
+    #  Kutunun altı alt uzantılı harflere ( Ç, Ş, g ), üstü büyük harfe —
+    #  denetimlerin baktığı kutu ( uslup.maske_kutusu ) bunun aynısı
+    u0, v0, u1, v1 = uslup.maske(w, h, hiza)
     c.setFillColor(white)
-    c.rect(dx - pay, -0.21 * h - pay, w + 2 * pay, (0.21 + uslup.BUYUK_HARF) * h + 2 * pay, stroke=0, fill=1)
-    t = c.beginText(dx, 0.0)
+    c.rect(u0, v0, u1 - u0, v1 - v0, stroke=0, fill=1)
+    t = c.beginText(uslup.dayanak(w, hiza), 0.0)
     t.setFont(YAZI_TIPI, h)
     c.setFillColor(renk)
     t.textOut(metin)
@@ -197,18 +197,17 @@ def _olcu(c, el, k):
     """Ölçü çizgisi, iki uçta 45° eğik çizgi + kısa uzatma çizgisi ( uslup ),
     yazı ( svg._olcu ile aynı çizgiler )."""
     renk = _renk("OLCU")
-    t, sp = uslup.TIK * 20 * k, uslup.SAPLAMA * 20 * k
     _kalem(c, "OLCU", k)
     c.setDash()
     if el["yon"] == "yatay":
         x1, x2, y = el["a"][0], el["b"][0], el["kot"]
         c.line(x1, y, x2, y)
-        uclar = [((x, y - sp), (x, y + sp), (x - t, y - t), (x + t, y + t)) for x in (x1, x2)]
+        uclar = uslup.olcu_uclari("yatay", x1, x2, y, k)
     else:
         y1, y2, x = el["a"][1], el["b"][1], el["kot"]
         c.line(x, y1, x, y2)
-        uclar = [((x - sp, y), (x + sp, y), (x + t, y - t), (x - t, y + t)) for y in (y1, y2)]
-    for a, b, p, q in uclar:
+        uclar = uslup.olcu_uclari("dusey", y1, y2, x, k)
+    for (a, b), (p, q) in uclar:
         c.setLineWidth(uslup.KATMAN["OLCU"].kalinlik * 20 * k)
         c.line(*a, *b)
         c.setLineWidth(uslup.TIK_KALEM * 20 * k)
