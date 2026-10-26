@@ -115,7 +115,7 @@ def _serbest(sira, adaylar, sinir_, engeller, eksenler=()):
         if any(abs(k - x) < 40 for x in eksenler):
             continue
         olculer = [dict(o) for o in sira(k) if o["uzunluk"] > 1e-6]
-        geometri.yazilari_yerlestir(olculer)
+        geometri.yazilari_yerlestir(olculer, kopuk=False)
         kutular = []
         for o in olculer:
             y_ = o["yazi"]
@@ -996,7 +996,9 @@ def ciz(g, cizim_sabitleri=None):
     if Y["siginma"]:
         e += _siginma_olculeri(Y["siginma"], G, D, e)
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
-    geometri.yazilari_yerlestir(e)
+    #  Yük kutuları ve perde yazısı ölçü yazılarına göre konur:  yazılar
+    #  kopukluk için kaydırılmaz ( geometri.yazilari_yerlestir )
+    geometri.yazilari_yerlestir(e, kopuk=False)
     if geometri.olcu_kipi():  # ölçü çözümlemesi:  ölçüler yukarıda bitti
         return e
     e += _yuk_etiketleri(e, noktalar, G, D)

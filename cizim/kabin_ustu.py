@@ -831,7 +831,7 @@ def _siginma_olculeri(g, Y, e):
             return 1e9
         yeni = olculer(kot_y, kot_x)
         dene = [dict(el) for el in e if el["tip"] == "olcu"] + yeni
-        geometri.yazilari_yerlestir([el for el in e if el["tip"] != "olcu"] + dene, kaydir=True)
+        geometri.yazilari_yerlestir([el for el in e if el["tip"] != "olcu"] + dene, kaydir=True, kopuk=False)
         diger = [_yazi_kutusu(el) for el in dene[: -len(yeni)]] + yazilar
         n = 0
         kutular_ = [_yazi_kutusu(el) for el in yeni if el["uzunluk"] >= 1e-6]
