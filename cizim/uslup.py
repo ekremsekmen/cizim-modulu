@@ -250,7 +250,12 @@ def kagitta(em, olcek):
 #  kullanıcı seçti ( 12 Eki ).  Eskiden ekranda yalnız dik çizgi, AutoCAD'de
 #  ezdxf'in stilinden kalın eğik tik vardı.
 TIK = 1.0  # eğik çizginin iki eksendeki yarı boyu ( mm )
-SAPLAMA = 1.5  # kısa uzatma çizgisinin ölçü çizgisinin iki yanındaki boyu ( mm )
+#  Kısa uzatma çizgisinin ölçü çizgisinin iki yanındaki boyu ( mm ).  26 Eki:
+#  1,5'ti — sıralar 5 mm aralıklı, ölçü yazısının büyük harf tepesi çizgiden
+#  3,78 mm yukarıda:  üst sıranın ucu alttaki yazıya 0,28 mm iniyordu ( altın
+#  düzenlerde 317 değme — araclar/karne ).  1,0'da uç eğik çizgiyle aynı boyda,
+#  yazının 0,22 mm üstünde biter ( kullanıcı kararı ).
+SAPLAMA = 1.0
 TIK_KALEM = 0.25
 OLCU_BOSLUGU = 0.75  # yazının maskesi yazıdan bu kadar taşar ( mm )
 
