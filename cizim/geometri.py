@@ -1606,6 +1606,34 @@ def yazi_kutusu(el):
     return sinir([el])
 
 
+def _yazi_yeri(el):
+    """( x , y , en , h , aci , hiza ) — yazının ya da ölçü yazısının;  ölçünün
+    yazısı yoksa None."""
+    if el["tip"] == "olcu":
+        y = el.get("yazi")
+        if not y:
+            return None
+        h = y.get("h", eleman.OLCU_YAZI)
+        return y["x"], y["y"], eleman.yazi_eni(el["metin"], h), h, y.get("aci") or 0.0, "orta"
+    h = el["yukseklik"]
+    return el["x"], el["y"], eleman.yazi_eni(el["metin"], h), h, el.get("aci") or 0.0, el.get("hiza", "orta")
+
+
+def maske_kutusu(el):
+    """Yazının ( ya da ölçü yazısının ) MASKESİNİN kutusu:  PDF'in zemin rengiyle
+    örttüğü dikdörtgen ( uslup.maske_kutusu ).  yazi_kutusu'ndan geniştir —
+    her yanda 0,125 em, alt uzantılı harflerin yanında 0,19 em daha;  maskenin
+    altında kalan parça kenarı kâğıtta kopuk çıkar."""
+    yer = _yazi_yeri(el)
+    return None if yer is None else uslup.maske_kutusu(*yer)
+
+
+def govde_kutusu(el):
+    """Yazının büyük harf gövdesinin kutusu ( uslup.govde_kutusu ) — maskesiz."""
+    yer = _yazi_yeri(el)
+    return None if yer is None else uslup.govde_kutusu(*yer)
+
+
 #  Yazının üstünden geçebilen çizgiler:  DXF'te ve SVG'de yazı MASKELİDİR
 #  ( dxf.MASKE_PAYI · svg.HALE ) — eksen, ölçü, gizli çizgi, alan sınırı,
 #  seviye, kesit işareti ve halat ( ince akış çizgisi:  B-B'de kapının önünden
@@ -1670,6 +1698,27 @@ def kenar_kesisir(s, kutu, pay=0.0):
     return True
 
 
+def kutudaki_boy(s, kutu):
+    """Doğru parçasının kutunun içinde kalan boyu ( maskenin sildiği çizgi )."""
+    x0, y0, x1, y1 = kutu
+    ax, ay, bx, by = s
+    dx, dy = bx - ax, by - ay
+    t0, t1 = 0.0, 1.0
+    for p, q in ((-dx, ax - x0), (dx, x1 - ax), (-dy, ay - y0), (dy, y1 - ay)):
+        if abs(p) < 1e-12:
+            if q < 0:
+                return 0.0
+        else:
+            r = q / p
+            if p < 0:
+                t0 = max(t0, r)
+            else:
+                t1 = min(t1, r)
+            if t0 > t1:
+                return 0.0
+    return (t1 - t0) * math.hypot(dx, dy)
+
+
 class KenarIzgarasi:
     """Parça kenarlarının ızgara dizini:  bir kutuya değebilecek kenarlar yalnız
     kutunun düştüğü hücrelerden denenir.  Hesap kuyu planını bir projede
@@ -1691,6 +1740,16 @@ class KenarIzgarasi:
                     if kenar_kesisir(s_, kutu, pay):
                         return True
         return False
+
+    def adaylar(self, kutu):
+        """Kutunun düştüğü hücrelerin kenarları, her biri bir kez."""
+        h, gorulen = self.h, set()
+        for i in range(int(kutu[0] // h), int(kutu[2] // h) + 1):
+            for j in range(int(kutu[1] // h), int(kutu[3] // h) + 1):
+                for s_ in self.d.get((i, j), ()):
+                    if id(s_) not in gorulen:
+                        gorulen.add(id(s_))
+                        yield s_
 
 
 #  Türkçe ondalık ayırıcı virgüldür:  yalnız tek noktalı sayılar ( "1022.5" ,

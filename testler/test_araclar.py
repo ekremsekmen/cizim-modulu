@@ -7,6 +7,7 @@ import unittest
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from araclar import fiziksel
+from araclar import karne
 from araclar import kesisme
 from araclar import tarama
 from cizim import cizimler
@@ -57,6 +58,33 @@ class Karsilastirma(unittest.TestCase):
             {g: len(v) for g, v in kayit.items()},
             {g: sum(1 for _ in tarama.duzenler(g)) for g in tarama.GRUPLAR},
         )
+
+    def test_karne_kotulesmesi_de_iyilesmesi_de_durdurur(self):
+        #  Cırcır ( araclar/karne ):  sayı artarsa kötüleşme, azalırsa kayıt
+        #  yenilenmeli — ikisi de taramayı başarısız yapar
+        kayit = {"ana": {"A": {"kuyu_plani": {"maske_kenar_siliyor": 2}}}}
+        sonuc = [
+            {"ad": "A", "durum": "çizildi", "sorun": [], "karne": {"kuyu_plani": {"maske_kenar_siliyor": 3}}},
+            {"ad": "B", "durum": "çizildi", "sorun": [], "karne": {}},
+        ]
+        f = tarama.karne_farklari("ana", sonuc, kayit)
+        self.assertEqual(len(f), 1)
+        self.assertTrue(f[0].startswith("KARNE KÖTÜLEŞTİ  A · kuyu_plani"), f)
+        sonuc[0]["karne"] = {"kuyu_plani": {"maske_kenar_siliyor": 1}}
+        f = tarama.karne_farklari("ana", sonuc, kayit)
+        self.assertTrue(f and f[0].startswith("KARNE İYİLEŞTİ  A · kuyu_plani"), f)
+        sonuc[0]["karne"] = {"kuyu_plani": {"maske_kenar_siliyor": 2}}
+        self.assertEqual(tarama.karne_farklari("ana", sonuc, kayit), [])
+
+    def test_karne_kaydi_taranan_duzenlerden(self):
+        kayit = karne.oku(karne.TARAMA_KAYDI)
+        self.assertEqual(sorted(kayit), sorted(tarama.GRUPLAR))
+        for g, duzenler in kayit.items():
+            with self.subTest(grup=g):
+                self.assertLessEqual(set(duzenler), {ad for ad, _ in tarama.duzenler(g)})
+                for cizimler_ in duzenler.values():
+                    for sayilar in cizimler_.values():
+                        self.assertLessEqual(set(sayilar), set(karne.KURALLAR))
 
 
 def _beton(x, y, g, d):

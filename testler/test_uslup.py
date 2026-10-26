@@ -192,8 +192,20 @@ class Olculer(unittest.TestCase):
         r = ET.fromstring(svg.yaz([el], (0, 0, 2100, 600), olcek=20))
         cizgiler = [{k: float(v) for k, v in c.attrib.items() if k[0] in "xy"} for c in r.iter(NS + "line")]
         #  sol uç ( x = 0 ):  dik ±SAPLAMA ve eğik ±TIK — 1/20'de kâğıt mm × 20
-        self.assertIn({"x1": 0, "y1": 500 - 30, "x2": 0, "y2": 500 + 30}, cizgiler)
-        self.assertIn({"x1": -20, "y1": 500 - 20, "x2": 20, "y2": 500 + 20}, cizgiler)
+        sp, t = uslup.SAPLAMA * 20, uslup.TIK * 20
+        self.assertIn({"x1": 0, "y1": 500 - sp, "x2": 0, "y2": 500 + sp}, cizgiler)
+        self.assertIn({"x1": -t, "y1": 500 - t, "x2": t, "y2": 500 + t}, cizgiler)
+
+    def test_ust_siranin_ucu_alttaki_yaziya_degmez(self):
+        #  26 Eki:  kısa uzatma çizgisi 1,5 mm'yken üst sıranın ucu ( sıra aralığı
+        #  5 mm ) alttaki ölçü yazısının büyük harf tepesine 0,28 mm iniyordu —
+        #  yazının yeri yerleştiricinin kendisinden
+        el = eleman.olcu("yatay", (0, 0), (2000, 0), 0, "2000")
+        geometri.yazilari_yerlestir([el])
+        yz = el["yazi"]
+        tepe = yz["y"] + (uslup.BUYUK_HARF - uslup.TABAN) * yz["h"]
+        for uc in (uslup.SAPLAMA, uslup.TIK):
+            self.assertGreater(geometri.SIRA_ARASI - uc * 20, tepe)
 
 
 class TemizDxf(unittest.TestCase):
