@@ -25,6 +25,7 @@ import unittest
 from araclar import karne
 from cizim import eleman
 from cizim import geometri
+from cizim import kesit_parcalari
 from cizim import uslup
 from testler import altin_cizim
 
@@ -137,6 +138,8 @@ class KaliteKarnesi(unittest.TestCase):
         h = uslup.NORMAL
         w = eleman.yazi_eni("PANO", h)
         govde_ust = 50 + (uslup.BUYUK_HARF - uslup.TABAN) * h  # ortası 50'deki yazının büyük harf tepesi
+        kot = []
+        kesit_parcalari.kot_isareti(kot, 15000, 0, "+1,00", 1.0)
         e = [
             #  maskesi kenarı siler:  kutusu kenardan 5 mm uzakta, maskesi 8,75 taşar
             eleman.dikdortgen("KABIN", 0, 0, 1000, 1000),
@@ -158,6 +161,9 @@ class KaliteKarnesi(unittest.TestCase):
             #  etiket ölçü çizgisinin üstünde:  maskesi çizgiyi siler
             _olcu("yatay", 12000, 13000, 0, (12500, 50)),
             eleman.yazi(12200, 0, "YAZI"),
+            #  ölçü çizgisi kot işaretinin üçgeninden geçer ( yazısından uzak )
+            *kot,
+            _olcu("dusey", -300, 400, 14980, (14900, -250)),
         ]
         b = karne.karne(e, 20)
         for kural in karne.KURALLAR:
@@ -187,7 +193,12 @@ class KaliteKarnesi(unittest.TestCase):
                 self.assertEqual(karne.karne(e, 20)["olcu_yaziyi_kesiyor"], [("1000", "1000")])
 
     def test_temiz_cizimde_bulgu_yok(self):
+        #  Kot işaretinin üçgeni ölçü çizgisinden kâğıtta 3 mm uzakta
+        kot = []
+        kesit_parcalari.kot_isareti(kot, 5000, 0, "+1,00", 1.0)
         e = [
+            *kot,
+            _olcu("dusey", -300, 400, 4900, (4830, 50)),
             eleman.dikdortgen("KABIN", 0, 0, 1000, 1000),
             eleman.yazi(500, 500, "KABİN"),
             _olcu("yatay", 0, 1000, -200, (500, -150)),

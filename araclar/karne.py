@@ -38,6 +38,11 @@ yazının maskesi keser.
                            yanında okunuyor )
   halat_betonda            halat çizgisi kesilen betonun ( tarama ) içinden
                            kâğıtta HALAT_ESIGI'nden çok geçiyor ( delik yok )
+  olcu_kot_isaretine_degiyor
+                           bir ölçünün çizgisi ( uçlarıyla ) kot işaretinin
+                           üçgenine DEGME_PAYI'ndan yakın ya da içinden geçiyor
+                           ( 27 Eki:  makine dairesi kuyudan çok taşınca A-A'da
+                           MD'nin kotu sol zincirlerin arasına düşüyordu )
 
     .venv/bin/python -m araclar.karne            altın düzenlerin karnesi ( özet )
     .venv/bin/python -m araclar.karne --yenile   altının kaydını yeniden yazar
@@ -48,10 +53,12 @@ iyileşme ( ya da onaylı bir değişiklik ) görüldükten sonra.
 
 import collections
 import json
+import math
 import os
 import sys
 
 from cizim import geometri
+from cizim import kesit_parcalari
 from testler import altin_cizim
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -66,6 +73,8 @@ HALAT_ESIGI = 0.5
 KOPUK = 1.5
 #  Okun ucu kendi yazısının bu kadar yakınındaysa o yazının okudur
 OK_PAYI = 3.0
+#  Ölçü çizgisi kot işaretinin üçgenine bu kadar yaklaşırsa değer
+DEGME_PAYI = 0.3
 #  Harf gövdesi bu kadar içeriden denenir:  kenarına sürtünme sayılmaz
 GOVDE_PAYI = 0.1
 
@@ -77,6 +86,7 @@ KURALLAR = {
     "ok_yaziyi_kesiyor": "etiket oku başka bir yazıyı kesiyor",
     "yazi_cizgisinden_kopuk": "ölçü yazısı kendi çizgisinden kopuk",
     "halat_betonda": "halat betonun içinden geçiyor",
+    "olcu_kot_isaretine_degiyor": "ölçü çizgisi kot işaretine değiyor",
 }
 
 
@@ -180,6 +190,98 @@ def _halatlar(e, olcek):
     return out
 
 
+def _kot_ucgenleri(e):
+    """kesit_parcalari.kot_isareti'nin üçgenleri ( üst kenarı yatay, iki kenarı
+    ucunda — döşemede — birleşir;  boyu / yarı eni KOT_UCGENI'nin oranı ):
+    [ ( sol üst , sağ üst , uç ) ]."""
+    oran = kesit_parcalari.KOT_UCGENI[1] / kesit_parcalari.KOT_UCGENI[0]
+    cizgiler = [
+        ((x["x1"], x["y1"]), (x["x2"], x["y2"]))
+        for x in e
+        if x["tip"] == "cizgi" and x.get("katman") == "KUYU-IC"
+    ]
+    bitisler = collections.defaultdict(list)  # başlangıç noktası → bitiş noktaları
+    for p, q in cizgiler:
+        bitisler[(round(p[0], 3), round(p[1], 3))].append(q)
+
+    def bitis(p, hedef):
+        return next(
+            (
+                q
+                for q in bitisler[(round(p[0], 3), round(p[1], 3))]
+                if abs(q[0] - hedef[0]) < 1e-3 and abs(q[1] - hedef[1]) < 1e-3
+            ),
+            None,
+        )
+
+    out = []
+    for a, b in cizgiler:
+        if abs(a[1] - b[1]) > 1e-6 or b[0] <= a[0]:
+            continue
+        w = (b[0] - a[0]) / 2.0
+        uc = bitis(a, (a[0] + w, a[1] - oran * w))
+        if uc is not None and bitis(uc, b) is not None:
+            out.append((a, b, uc))
+    return out
+
+
+def _yon(p, q, r):
+    return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+
+
+def _nokta_parca(p, a, b):
+    """Noktanın doğru parçasına ( a – b ) uzaklığı."""
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    t = 0.0 if dx == dy == 0 else ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy)
+    t = max(0.0, min(1.0, t))
+    return math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy)
+
+
+def _ucgen_uzakligi(s, ucgen):
+    """Doğru parçasının ( x1, y1, x2, y2 ) üçgene uzaklığı:  içinden geçiyorsa 0."""
+    p, q = (s[0], s[1]), (s[2], s[3])
+    kenarlar = [(ucgen[i - 1], ucgen[i]) for i in range(3)]
+
+    def icinde(r):
+        d = [_yon(a, b, r) for a, b in kenarlar]
+        return min(d) >= 0 or max(d) <= 0
+
+    if icinde(p) or icinde(q):
+        return 0.0
+    if any(_yon(p, q, a) * _yon(p, q, b) < 0 and _yon(a, b, p) * _yon(a, b, q) < 0 for a, b in kenarlar):
+        return 0.0
+    return min(
+        min(_nokta_parca(p, a, b), _nokta_parca(q, a, b), _nokta_parca(a, p, q), _nokta_parca(b, p, q))
+        for a, b in kenarlar
+    )
+
+
+def _olcu_kot_isaretinde(e, olcek):
+    """olcu_kot_isaretine_degiyor:  [ ( kot yazısı , ölçünün yazısı ) ] — işaret
+    başına bir bulgu;  ölçünün çizgisi uçlarıyla ( geometri.olcu_cizgileri )."""
+    ucgenler = _kot_ucgenleri(e)
+    if not ucgenler:
+        return []
+    sahip = {}
+    for o in e:
+        if o["tip"] == "olcu" and o.get("uzunluk", 1.0) >= 1e-6:
+            for s in geometri.olcu_cizgileri(o, olcek / 20.0):
+                sahip[id(s)] = (s, o)
+    izgara = geometri.KenarIzgarasi([s for s, _ in sahip.values()])
+    kotlar = [x for x in e if x["tip"] == "yazi" and x.get("ad") == "kot"]
+    pay = DEGME_PAYI * olcek
+    out = []
+    for ucgen in ucgenler:
+        (a, b, uc) = ucgen
+        kutu = (a[0] - pay, uc[1] - pay, b[0] + pay, a[1] + pay)
+        for s in izgara.adaylar(kutu):
+            if _ucgen_uzakligi(s, ucgen) <= pay:
+                yazi = min(kotlar, key=lambda x: (x["x"] - uc[0]) ** 2 + (x["y"] - a[1]) ** 2, default=None)
+                out.append((yazi["metin"] if yazi else "", sahip[id(s)][1].get("metin")))
+                break
+    return out
+
+
 def karne(e, olcek=20):
     """Çizimin ( elemanları e ) kusurları:  { kural : [ bulgu ] } — bütün kurallar."""
     yazilar = _yazilar(e)
@@ -192,6 +294,7 @@ def karne(e, olcek=20):
         "ok_yaziyi_kesiyor": _oklar(e, yazilar, olcek),
         "yazi_cizgisinden_kopuk": _kopuklar(e, olcek),
         "halat_betonda": _halatlar(e, olcek),
+        "olcu_kot_isaretine_degiyor": _olcu_kot_isaretinde(e, olcek),
     }
 
 
