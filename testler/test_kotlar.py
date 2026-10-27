@@ -24,7 +24,7 @@ import re
 import unittest
 
 from araclar import karne
-from cizim import cizimler, dusey, giris, izli, katlar, kopru, veri_tablosu
+from cizim import cizimler, dusey, geometri, giris, izli, katlar, kopru, veri_tablosu
 from motor.uygulama import mukavemet
 from tasarim import alanlar, gorunum
 from testler import test_yerlesim_saglamligi
@@ -565,7 +565,8 @@ class GirisKotu(unittest.TestCase):
     "+850,00" 143 düzende kasaya;  ölçüyle girişte 4 kanatlı kapıda "±0,00"
     kanadın kenarına ).  kesit_parcalari.kot_isareti:  yazı ucun 60 sağında,
     döşemeden 80 yukarıda.  Kanattan geniş yazı ( 450'nin 4 kanatlısında
-    "-10,50" ) kapının içinde temiz yer bulamaz — burada denenmez."""
+    "-10,50" ) kapının içinde temiz yer bulamaz:  eşiğin altına iner
+    ( test_kanattan_genis_yazi_esigin_altinda )."""
 
     def test_isaret_yerinde_yazi_temiz(self):
         for Q, ek, kaymalar in (
@@ -590,6 +591,39 @@ class GirisKotu(unittest.TestCase):
                     self.assertIn({(round(u, 3), 0.0), (round(u + 40.0, 3), 55.0)}, cizgiler, "işaret kaydı")
                     self.assertEqual((kot["x"], kot["y"]), (yerlesen["x"], yerlesen["y"]), "ayırıcı kaydırdı")
                     self.assertEqual(karne.karne(e, 20)["maske_kenar_siliyor"], [])
+
+    def test_kanattan_genis_yazi_esigin_altinda(self):
+        """27 Eki kotlu tarama:  kanattan geniş yazının kapının içinde maskesi
+        temiz yeri yoktur ( 450'nin 4 kanatlısında kanat 200, "-10,50"ın maskesi
+        216 ) — kanadın ve kasanın kenarını siliyordu.  Eşiğin altına iner
+        ( giris._esigin_altina ):  işaret yerinde, yazı işaretin hizasından en
+        çok 200 öte, maskesi kenar ve ölçü çizgisi silmez;  ölçüyle girişte
+        "±0,00" işaretin yanında kalır."""
+        for Q, tip, kayma in (
+            (450, "Otomatik Merkezi 4 Kanat", -10500),
+            (450, "Teleskopik 3 Kanat Sol", 850000),
+            (1600, "Otomatik Merkezi 4 Kanat", 850000),
+        ):
+            u = None
+            for k in (None, kayma):
+                v = test_yerlesim_saglamligi.standart_istek(Q, True, "Sağ", kat_kapisi_tipi=tip)
+                if k is not None:
+                    test_yerlesim_saglamligi.kotla(v, 0, k)
+                g, _A, _h = test_yerlesim_saglamligi.duzen_girdisi(v)
+                e = cizimler.CIZIMLER["giris"][1](g)
+                kot = next(x for x in e if x.get("ad") == "kot")
+                b = karne.karne(e, 20)
+                with self.subTest(Q=Q, tip=tip, kot=kot["metin"]):
+                    if u is None:
+                        u = kot["x"] - 60.0
+                        self.assertEqual(kot["y"], 80.0, "ölçüyle girişte yazı işaretin yanında")
+                    else:
+                        alt = giris.yerlesim(g)["esik"][1]
+                        self.assertLess(geometri.maske_kutusu(kot)[3], alt, "eşiğin altında")
+                        self.assertLessEqual(abs(kot["x"] - (u + 60.0)), 200.0, "işaretinden kopmaz")
+                    cizgiler = [_uclar(x) for x in e if x["tip"] == "cizgi"]
+                    self.assertIn({(round(u, 3), 0.0), (round(u + 40.0, 3), 55.0)}, cizgiler, "işaret kaydı")
+                    self.assertEqual((b["maske_kenar_siliyor"], b["maske_olcu_siliyor"]), ([], []))
 
 
 def _uclar(x):
