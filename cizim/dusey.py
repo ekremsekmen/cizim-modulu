@@ -692,6 +692,12 @@ def dogrula(g):
     return hata + yerlesim(g)["hata"]
 
 
+#  En uzun kot yazısı ( kot_yazisi'nin biçiminde mutlak kot:  dört haneli metre ) —
+#  kot yazısına yer ayıran bu boyu alır:  yer kota bağlı olmaz ( kotlar kayınca
+#  geometri aynı — KOT_PLANI B4 )
+EN_UZUN_KOT = "+8888,88"
+
+
 def kot_yazisi(z, ofset=0.0):
     """Kot yazısı ( m ):  Türkçe ondalık virgülle — "±0,00", "+3,40".  z iç
     koordinattır ( 0 = en alt durak );  ofset en alt durağın mimari kotudur

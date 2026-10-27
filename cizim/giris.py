@@ -34,6 +34,7 @@ from cizim import geometri
 from cizim import girdi
 from cizim import kesit_parcalari
 from cizim import sabitler
+from cizim import uslup
 
 
 def dogrula(g):
@@ -113,7 +114,8 @@ def _kot_yeri(e, u, metin, boy):
 def _yaziyi_sigdir(e, yazi):
     """Kotun yazısı ( uzun kot:  "-10,50", mutlak "+850,00" ) işaretin yanında
     bir kenarı siliyorsa maskesi temiz en yakın yere kayar ( 10 mm adımla,
-    200 mm'ye kadar;  aşağı inmez ) — işaret yerinde kalır."""
+    200 mm'ye kadar;  aşağı inmez — orada da yer yoksa _esigin_altina ) —
+    işaret yerinde kalır."""
     m = geometri.maske_kutusu(yazi)
     if m is None:
         return
@@ -136,6 +138,41 @@ def _temiz_kayma(e, m, adaylar):
         return not any(geometri.kutudaki_boy(s, k) > 0.0 for s in kenarlar.adaylar(k))
 
     return next((d for d in adaylar if temiz(*d)), (0, 0))
+
+
+def _esigin_altina(e, yazi, alt):
+    """Kotun yazısı işaretin yanında da bir kenarı siliyorsa eşiğin altına iner
+    ( alt:  eşiğin alt yüzü ):  maskesinin üstü eşikten bir maske payı ya da
+    daha aşağıda, işaretin hizasına en yakın yer — hiçbir parça kenarını, ölçü
+    çizgisini, ölçü ucunu ve yazıyı örtmez.  Ölçü yazıları yerleştikten sonra
+    bakılır;  işaret yerinde kalır.  Kanattan geniş yazının kapının içinde
+    temiz yeri yoktur ( 27 Eki kotlu tarama:  450'nin 4 kanatlısında kanat 200,
+    "-10,50"ın maskesi 216;  3 kanatlıda ve 1600'ün 4 kanatlısında "+850,00" ) —
+    maskesi kanadın ve kasanın kenarını siliyordu."""
+    m = geometri.maske_kutusu(yazi)
+    kenarlar = geometri.KenarIzgarasi(geometri.parca_kenarlari(e))
+
+    def kenar_siler(k):
+        return any(geometri.kutudaki_boy(s, k) > 0.0 for s in kenarlar.adaylar(k))
+
+    if m is None or not kenar_siler(m):
+        return
+    olculer = geometri.OlcuIzgarasi(e)
+    obur = [k for x in e if x is not yazi and x["tip"] in ("yazi", "olcu") and (k := geometri.yazi_kutusu(x))]
+    ust = alt - uslup.maske_payi(yazi["yukseklik"]) - m[3]
+    for dx, dy in sorted(
+        ((dx, ust - i) for dx in range(-200, 201, 10) for i in range(0, 201, 10)),
+        key=lambda d: (abs(d[0]), -d[1], d[0]),
+    ):
+        k = (m[0] + dx, m[1] + dy, m[2] + dx, m[3] + dy)
+        if (
+            not kenar_siler(k)
+            and olculer.silinen(k) == (0.0, 0)
+            and not any(k[0] < b[2] and b[0] < k[2] and k[1] < b[3] and b[1] < k[3] for b in obur)
+        ):
+            yazi["x"] += dx
+            yazi["y"] += dy
+            return
 
 
 def ciz(g, cizim_sabitleri=None):
@@ -174,7 +211,8 @@ def ciz(g, cizim_sabitleri=None):
     #  girmez, kotlar kayınca işaret yerinde kalır.  Uzun kotta yalnız yazı kayar.
     u = _kot_yeri(e, xc + 150, dusey.kot_yazisi(0.0), x1 - x0)
     kesit_parcalari.kot_isareti(e, u, 0.0, dusey.kot_yazisi(0.0, dusey.kot_ofseti(g)), 1.0)
-    _yaziyi_sigdir(e, e[-1])
+    kot = e[-1]
+    _yaziyi_sigdir(e, kot)
 
     #  Alt:  kuyunun iç yüzlerinden kaba boşluğa ( LiftDesigner 470 · 1.180 · 350 ),
     #  kapının net genişliği
@@ -215,7 +253,9 @@ def ciz(g, cizim_sabitleri=None):
     ust1 = bo[3] + 250
     e.append(eleman.olcu("yatay", (min(kapi_kenari, Y["bx"]), 0), (max(kapi_kenari, Y["bx"]), 0), ust1, None))
     e.append(eleman.olcu("yatay", (yu[0], 0), (yu[2], 0), ust1 + 220, None))
-    #  Ölçü yazıları ( SVG ve DXF aynı yeri kullanır )
+    #  Ölçü yazıları ( SVG ve DXF aynı yeri kullanır );  kanattan geniş kot yazısı
+    #  eşiğin altına
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     geometri.yazilari_yerlestir(e)
+    _esigin_altina(e, kot, es[1])
     return e

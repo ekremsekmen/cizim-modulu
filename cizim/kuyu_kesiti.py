@@ -101,7 +101,8 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
     boşluklu ), karşıdaki duvarda kapı görünüşü, tabliyedeki delikler
     ( kesik ), zeminin ve tabliyenin kotu ( merdiven notu planda —
     makine_dairesi.ciz ).  Eskiden kuyu tavanının üstüne
-    1.200 kalınlığında beton çiziliyordu ( kullanıcı 5 Eki )."""
+    1.200 kalınlığında beton çiziliyordu ( kullanıcı 5 Eki ).
+    Döner:  ( odanın dış yüzü — öbür yanda , kot işaretlerinin u'su )."""
     M, md = Y["M"], g["makine_dairesi"]
     MD = M["MD"]
     x0, y0, x1, y1 = MD["oda"]
@@ -173,7 +174,24 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
     kesit_parcalari.kot_isareti(e, u_kot, zd, dusey.kot_yazisi(zd, ofset), K, -1.0)
     if zt - zd >= 300.0:
         kesit_parcalari.kot_isareti(e, u_kot, zt, dusey.kot_yazisi(zt, ofset), K, -1.0)
-    return u1
+    return u1, u_kot
+
+
+def _sol_zincir(u0, isaretler, K):
+    """Sol zincirin ilk sırası:  duvardan 700K ( u0 ) ya da sol yandaki kot
+    işaretlerinin ( isaretler:  uçlarının u'su — duraklar ve kuyu dibi, makine
+    dairesi ) en uzun olası yazısının ( dusey.EN_UZUN_KOT ) maskesinin kâğıtta
+    MASKE_ESIGI ötesi, hangisi dışarıdaysa.  Yer kota bağlı değil:  kotlar
+    kayınca zincir yerinde kalır ( KOT_PLANI B4 ).  27 Eki:  oda kuyudan
+    taşınca makine dairesinin kotları odanın dışına çıkar ( _oda );  mutlak
+    kotun yazısı ( "+874,75" ) zincirin çizgisini siliyor, çok taşan odada
+    üçgen zincirlerin arasına düşüyordu ( ölçüyle girişte de )."""
+    uclar = []
+    for u in isaretler:
+        gecici = []
+        kesit_parcalari.kot_isareti(gecici, u, 0.0, dusey.EN_UZUN_KOT, K, -1.0)
+        uclar.append(geometri.maske_kutusu(gecici[-1])[0])
+    return min(u0, min(uclar) - geometri.MASKE_ESIGI * 20.0 * K)
 
 
 def _oda_olculeri(e, M, md, D1, kot_makine, kot_oda):
@@ -264,7 +282,8 @@ def _seviye_isaretleri(e, sev, K):
 
 def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon, taban):
     """Kot işaretleri ve durak adları ( duvarın dışında ), sonra kuyu dibinin
-    kotu aynı sütunda.  Kotla girişte yazılar mimarinin kotudur ( kot_ofseti )."""
+    kotu aynı sütunda.  Kotla girişte yazılar mimarinin kotudur ( kot_ofseti ).
+    Döner:  işaretlerin u'su."""
     ofset = dusey.kot_ofseti(g)
     for i, z in enumerate(kotlar):
         kesit_parcalari.kot_isareti(e, u_duvar + yon * 200 * K, z, dusey.kot_yazisi(z, ofset), K, yon)
@@ -281,6 +300,7 @@ def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon, taban):
             )
         )
     kesit_parcalari.kot_isareti(e, u_duvar + yon * 200 * K, taban, dusey.kot_yazisi(taban, ofset), K, yon)
+    return u_duvar + yon * 200 * K
 
 
 def _olculer_sol(e, Y, u0, K, kotlar, tavan, g):
@@ -574,12 +594,13 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     e.append(eleman.ad(eleman.cizgi("GIZLI", 0, Y["tavan_alti"] + H, D, Y["tavan_alti"] + H), "tavan_kirisi"))
     L = 240 * K
     _yan_katlar(e, S, P, kotlar, -don - L, L, kapi_h)
-    _kat_seviyeleri(e, g, S, kotlar, -don - L, K, -1.0, taban)
+    isaretler = [_kat_seviyeleri(e, g, S, kotlar, -don - L, K, -1.0, taban)]
     u_oda = None
     if oda:
         #  A-A kabin ekseninden karşı ağırlığa bakar:  ön ve arka duvar kesilir,
         #  karşı ağırlık tarafındaki duvar görünür
-        u_oda = _oda(e, B, g, Y, K, g["agirlik"]["yeri"], ("Ön", "Arka"), -don - L - 200 * K)
+        u_oda, u_kot = _oda(e, B, g, Y, K, g["agirlik"]["yeri"], ("Ön", "Arka"), isaretler[0])
+        isaretler.append(u_kot)
     AK, kt = kesit_parcalari.donanimi_ciz(
         e, B, g, Y, P, 0.0, M["agirlik"]["tampon_ustu"] + dy["agirlik_carpma_arasi"] + H, K
     )
@@ -602,7 +623,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     #  görünür ( referans projenin ve LiftDesigner'ın yan kesitleri gibi ).
     kesit_parcalari.kabin_arkasi(e, B, kb, kt["taban_alti"], kt["tavan"], onde={"kabin_rayi"})
     #  Ölçüler
-    _olculer_sol(e, Y, -don - L - 700 * K, K, kotlar, tavan, g)
+    _olculer_sol(e, Y, _sol_zincir(-don - L - 700 * K, isaretler, K), K, kotlar, tavan, g)
     #  Görünen raylar karşı ağırlık tarafındakiler:  konsol zinciri onların
     ag = min((r for r in M["raylar"] if r["tur"] == "agirlik"), key=lambda r: r["ust"])
     r0 = D + dar + 150 * K
@@ -696,11 +717,12 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
                 0,
             )
         )
-    _kat_seviyeleri(e, g, S, kotlar, -dg, K, -1.0, taban)
+    isaretler = [_kat_seviyeleri(e, g, S, kotlar, -dg, K, -1.0, taban)]
     u_oda = None
     if oda:
         #  B-B arkadan kat kapılarına bakar:  yan duvarlar kesilir, ön duvar görünür
-        u_oda = _oda(e, B, g, Y, K, "Ön", ("Sol", "Sağ"), -dg - 200 * K)
+        u_oda, u_kot = _oda(e, B, g, Y, K, "Ön", ("Sol", "Sağ"), isaretler[0])
+        isaretler.append(u_kot)
     AK, kt = kesit_parcalari.donanimi_ciz(
         e, B, g, Y, P, H, M["agirlik"]["tampon_ustu"] + dy["agirlik_carpma_arasi"], K
     )
@@ -721,7 +743,7 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
                     el["x"] = B.u((a + b) / 2.0, 0)
                     break
     #  Ölçüler
-    _olculer_sol(e, Y, -dg - 700 * K, K, kotlar, tavan, g)
+    _olculer_sol(e, Y, _sol_zincir(-dg - 700 * K, isaretler, K), K, kotlar, tavan, g)
     uzak = max((r for r in M["raylar"] if r["tur"] == "kabin"), key=lambda r: r["ust"])
     r0 = G + ds + 150 * K
     if oda:
