@@ -658,9 +658,6 @@
    }
   },
   "2000 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
-   "giris": {
-    "maske_kenar_siliyor": 1
-   },
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
    },
@@ -685,9 +682,6 @@
    }
   },
   "2000 Arka MD {'aski_orani': 1}": {
-   "giris": {
-    "maske_kenar_siliyor": 1
-   },
    "kasnak_duzeni": {
     "halat_betonda": 2
    },
@@ -920,9 +914,6 @@
    }
   },
   "2500 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
-   "giris": {
-    "maske_kenar_siliyor": 1
-   },
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
    },
@@ -943,9 +934,6 @@
    }
   },
   "2500 Arka MD {'aski_orani': 1}": {
-   "giris": {
-    "maske_kenar_siliyor": 1
-   },
    "kasnak_duzeni": {
     "halat_betonda": 2
    },
@@ -2581,9 +2569,6 @@
    }
   },
   "2500 Arka Otomatik Merkezi 4 Kanat": {
-   "giris": {
-    "maske_kenar_siliyor": 1
-   },
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
    },

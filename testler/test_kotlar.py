@@ -23,7 +23,8 @@ import os
 import re
 import unittest
 
-from cizim import dusey, izli, katlar, kopru, veri_tablosu
+from araclar import karne
+from cizim import cizimler, dusey, giris, izli, katlar, kopru, veri_tablosu
 from motor.uygulama import mukavemet
 from tasarim import alanlar, gorunum
 from testler import test_yerlesim_saglamligi
@@ -554,6 +555,45 @@ def _kotlu_63444():
     v = _md_63444(test_yerlesim_saglamligi.standart_istek(1000, False, "Sağ"))
     v["asansorler"][0]["kuyu_duvar_kalinligi"] = 250
     return _kotla(v, KOT_63444)
+
+
+class GirisKotu(unittest.TestCase):
+    """Giriş görünüşünde kot işareti yerinde kalır ( kot geometriye girmez ),
+    yazısının maskesi kenar silmez, ayırıcı yazıyı kaydırmaz.  Kenara binen
+    yazıyı ayırıcı tek başına kaydırıyordu:  yazı işaretinden kopuyor ya da kendi
+    üçgeninin üstüne düşüyordu ( 27 Eki kotlu tarama:  "-10,50" 78, mutlak
+    "+850,00" 143 düzende kasaya;  ölçüyle girişte 4 kanatlı kapıda "±0,00"
+    kanadın kenarına ).  kesit_parcalari.kot_isareti:  yazı ucun 60 sağında,
+    döşemeden 80 yukarıda.  Kanattan geniş yazı ( 450'nin 4 kanatlısında
+    "-10,50" ) kapının içinde temiz yer bulamaz — burada denenmez."""
+
+    def test_isaret_yerinde_yazi_temiz(self):
+        for Q, ek, kaymalar in (
+            (450, {}, (-10500, 850000)),
+            (1600, {"kat_kapisi_tipi": "Otomatik Merkezi 4 Kanat"}, (-10500,)),
+            (2500, {}, (-10500, 850000)),
+        ):
+            u = None
+            for kayma in (None, *kaymalar):
+                v = test_yerlesim_saglamligi.standart_istek(Q, True, "Sağ", **ek)
+                if kayma is not None:
+                    test_yerlesim_saglamligi.kotla(v, 0, kayma)
+                g, _A, _h = test_yerlesim_saglamligi.duzen_girdisi(v)
+                yerlesen = next(x for x in giris.ciz(g) if x.get("ad") == "kot")
+                e = cizimler.CIZIMLER["giris"][1](g)
+                kot = next(x for x in e if x.get("ad") == "kot")
+                if u is None:  # ölçüyle giriş:  yazı işaretin yanında
+                    u = kot["x"] - 60.0
+                    self.assertEqual(kot["y"], 80.0, Q)
+                cizgiler = [_uclar(x) for x in e if x["tip"] == "cizgi"]
+                with self.subTest(Q=Q, kot=kot["metin"]):
+                    self.assertIn({(round(u, 3), 0.0), (round(u + 40.0, 3), 55.0)}, cizgiler, "işaret kaydı")
+                    self.assertEqual((kot["x"], kot["y"]), (yerlesen["x"], yerlesen["y"]), "ayırıcı kaydırdı")
+                    self.assertEqual(karne.karne(e, 20)["maske_kenar_siliyor"], [])
+
+
+def _uclar(x):
+    return {(round(x["x1"], 3), round(x["y1"], 3)), (round(x["x2"], 3), round(x["y2"], 3))}
 
 
 class OlcuKaynagi(unittest.TestCase):
