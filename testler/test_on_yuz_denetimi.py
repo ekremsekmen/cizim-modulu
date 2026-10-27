@@ -102,10 +102,14 @@ class OnYuzDenetimi(unittest.TestCase):
         cls.pg = set(cls.v["proje_geneli"])
         gizli = cls.v["yerlesime_gore_gizli"]
         cls.mrl_gizli, cls.daireli_gizli = set(gizli["mrl"]), set(gizli["daireli"])
+        cls.olcuyle_gizli = set(cls.v["kot_kipi"]["gizli"]["olcuyle"])
 
     def _istek(self, anahtar, ham):
-        #  Alan hesaba girdiği yerleşimde denenir:  MRL'de gizliyse makine daireli
+        #  Alan hesaba girdiği yerleşimde denenir:  MRL'de gizliyse makine daireli;
+        #  kat girişinde de — ölçüyle girişte gizli kot kutusu kotla girişte
         v = test_yerlesim_saglamligi.standart_istek(1000, anahtar not in self.mrl_gizli, "Sağ")
+        if anahtar in self.olcuyle_gizli:
+            test_yerlesim_saglamligi.kotla(v)
         (v["proje_geneli"] if anahtar in self.pg else v["asansorler"][0])[anahtar] = ham
         return v
 

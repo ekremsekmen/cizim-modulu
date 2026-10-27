@@ -692,10 +692,18 @@ def dogrula(g):
     return hata + yerlesim(g)["hata"]
 
 
-def kot_yazisi(z):
-    """Kot yazısı ( m ):  Türkçe ondalık virgülle — "±0,00", "+3,40"."""
-    m = z / 1000.0
+def kot_yazisi(z, ofset=0.0):
+    """Kot yazısı ( m ):  Türkçe ondalık virgülle — "±0,00", "+3,40".  z iç
+    koordinattır ( 0 = en alt durak );  ofset en alt durağın mimari kotudur
+    ( kotla giriş:  g["dusey"]["kot_ofseti"] — ölçüyle girişte 0 ).  Yalnız
+    yazıya eklenir, geometriye girmez ( KOT_PLANI § 1.2 madde 3 )."""
+    m = (z + ofset) / 1000.0
     return "±0,00" if abs(m) < 5e-4 else f"{m:+.2f}".replace(".", ",")
+
+
+def kot_ofseti(g):
+    """Kot yazılarının ofseti ( mm ):  kotla girişte en alt durağın kotu, yoksa 0."""
+    return (g.get("dusey") or {}).get("kot_ofseti", 0.0)
 
 
 def kabin_kesiti(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89, esik_on=None):

@@ -5,7 +5,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, CircleQuestionMark, RotateCcw, Search, X } from "lucide-react";
 import type { Alan, AlanSemasi, Deger } from "@/lib/api";
-import { alanHatasi, alanOku, gizliAlanlar, mrlMi, sayiOku, secenekKapali, type UygulamaProjesi } from "@/lib/proje";
+import { alanHatasi, alanOku, gizliAlanlar, kipGizlileri, mrlMi, sayiOku, secenekKapali, type UygulamaProjesi } from "@/lib/proje";
+import { DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, MD_ZEMINI_KOTU } from "@/lib/kotlar";
+import { KatGirisi } from "./KotTablosu";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
 import { Anahtar, Bolumlu, Girdi, Ipucu, Rozet, Secim } from "@/components/ui";
 
@@ -38,9 +40,32 @@ export function GirdiPaneli({
   const [ara, setAra] = useState("");
   const oku = (a: string) => alanOku(proje, sema, asansor, a);
 
-  //  Makine yerleşimine göre hesaba girmeyen alanlar gizlenir ( sunucu da okumaz )
+  //  Makine yerleşimine göre hesaba girmeyen alanlar gizlenir ( sunucu da okumaz );
+  //  kat girişinin öbür kipininkiler de ( asansör başına ).  Kot kutuları düz kutu
+  //  olarak çizilmez:  kot tablosundadır ( KatGirisi ).
   const mrl = mrlMi(sema, proje);
-  const gizli = useMemo(() => gizliAlanlar(sema, proje), [sema, proje]);
+  const h = proje.asansorler[asansor];
+  const gizli = useMemo(
+    () =>
+      new Set([
+        ...gizliAlanlar(sema, proje),
+        ...kipGizlileri(sema, h),
+        ...[DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, MD_ZEMINI_KOTU],
+      ]),
+    [sema, proje, h],
+  );
+  //  Kot tablosu kipi belirleyen alanın grubunda ( "Kuyu ve katlar" )
+  const katGrubu = sema.gruplar.find((g) => g.alanlar.some((a) => a.anahtar === sema.kot_kipi.alan))?.ad;
+  //  Alanın etkin sayısı:  yazılmış, yoksa sunucunun kullandığı, yoksa şemanın varsayılanı
+  const etkin = (anahtar: string): number | undefined => {
+    const y = oku(anahtar);
+    const n = y === undefined ? null : sayiOku(y);
+    if (n !== null) return n;
+    const k = kullanilan?.[anahtar];
+    if (typeof k === "number") return k;
+    const v = sema.gruplar.flatMap((g) => g.alanlar).find((a) => a.anahtar === anahtar)?.varsayilan;
+    return typeof v === "number" ? v : undefined;
+  };
 
   const girilen = Object.keys(proje.asansorler[asansor] ?? {}).length + Object.keys(proje.proje_geneli).length;
   const aranan = ara.trim().toLocaleLowerCase("tr-TR");
@@ -130,6 +155,18 @@ export function GirdiPaneli({
               </button>
               {acikMi && (
                 <GrupAlanlari
+                  ust={
+                    g.ad === katGrubu && !aranan ? (
+                      <KatGirisi
+                        h={h ?? {}}
+                        kullanilan={kullanilan}
+                        daireli={!mrl}
+                        doseme={etkin("tavan_dosemesi") ?? etkin("kuyu_duvar_kalinligi") ?? 0}
+                        etkin={etkin}
+                        yaz={yaz}
+                      />
+                    ) : null
+                  }
                   vurguluAlanlar={vurguluAlanlar}
                   alanlar={g.alanlar}
                   sema={sema}
@@ -149,6 +186,7 @@ export function GirdiPaneli({
 }
 
 function GrupAlanlari({
+  ust,
   vurguluAlanlar,
   alanlar,
   sema,
@@ -158,6 +196,8 @@ function GrupAlanlari({
   mrl,
   aramada,
 }: {
+  /**  Grubun başında ( kat girişi )  */
+  ust?: React.ReactNode;
   alanlar: Alan[];
   sema: AlanSemasi;
   oku: (a: string) => string | undefined;
@@ -187,6 +227,7 @@ function GrupAlanlari({
   );
   return (
     <div className="space-y-px pt-0.5 pb-2 pl-2">
+      {ust}
       {temel.map(satir)}
       {ileri.length > 0 && (
         <>
@@ -280,7 +321,9 @@ function AlanSatiri({
         placeholder={yer}
         birim={a.birim}
         inputMode={a.tur === "sayi" ? "decimal" : "text"}
-        maxLength={a.tur === "metin" ? 120 : 32}
+        //  Birimli metin alanı sayı listesidir ( kat yükseklikleri:  100 durağa
+        //  kadar — 120 karakterde ~21 durağı aşan binanın listesi sığmıyordu )
+        maxLength={a.tur === "metin" ? (a.birim !== "—" ? 1000 : 120) : 32}
         yazi={a.tur === "metin"}
         durum={hata ? "hata" : undefined}
         aria-invalid={!!hata}

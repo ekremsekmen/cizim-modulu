@@ -389,6 +389,81 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(sonra, once)
         self.assertEqual(hesap_sonra, hesap_once)
 
+    # ------------------------------------------------------------ kotla giriş
+    def _pafta_kotlari(self):
+        """Ekrandaki paftaların kot yazıları ( "±0,00", "-7,00" … )."""
+        return self.sayfa.evaluate(
+            "[...document.querySelectorAll('svg text')].map(x => x.textContent.trim())"
+            ".filter(x => /^[±+-]\\d+,\\d\\d$/.test(x))"
+        )
+
+    def _katlar(self):
+        """Kuyu ve katlar grubu açık ( kat girişinin seçicisi görünür )."""
+        girdiler = self.sayfa.get_by_role("complementary", name="Girdiler")
+        if not girdiler.get_by_role("radio", name="Kotla").is_visible():
+            girdiler.get_by_role("button", name=re.compile("^Kuyu ve katlar")).click()
+        return girdiler
+
+    def test_kotla_giris_hesabi_degistirmez_dosyada_kalir(self):
+        """Kotla giriş ( KOT_PLANI 6. adım ):  geçiş hesabı değiştirmez — türetme sunucuda,
+        aynı sayılar;  kotlar kayınca paftanın kot yazıları kayar, hesap aynı;  dosyada
+        kotlar kalır;  ölçüyle girişe kayıpsız dönülür."""
+        self.ornek_projeyi_ac()
+        sayac = self.sayaclar()
+        girdiler = self._katlar()
+        girdiler.get_by_role("radio", name="Kotla").click()
+        self.iz.sakin()
+        istek, hesap = self._hesap_istegi()
+        a, g = istek["asansorler"][0], hesap["asansorler"][0]["girdi"]
+        self.assertEqual(a["durak_kotlari"].split("; ")[:2], ["±0,00", "+3,00"])
+        self.assertNotIn("seyir_mesafesi", a)
+        self.assertEqual(
+            (g["durak_adedi"], g["seyir_mesafesi"], g["kuyu_dibi"], g["son_kat_yuksekligi"]),
+            (15, 42, 1750, 4250),
+        )
+        self.assertEqual(self.sayaclar(), sayac)
+        #  Mimarın ±0,00'ına:  bütün kotlar −7,00 — hesap aynı, paftanın kotları kayık
+        girdiler.get_by_role("button", name="Kaydır").click()
+        girdiler.get_by_label("Bütün kotlar ne kadar kaysın ( m )").fill("-7,00")
+        girdiler.get_by_role("button", name="Uygula", exact=True).click()
+        self.iz.sakin()
+        once, hesap_once = self._hesap_istegi()
+        self.assertEqual(self.sayaclar(), sayac)
+        self.iz.son("/api/uygulama/cizimler")
+        kotlar = self._pafta_kotlari()
+        for k in ("-7,00", "+35,00", "-8,75"):
+            self.assertIn(k, kotlar)
+        self.assertNotIn("±0,00", kotlar[:1])
+        #  Dosyaya kaydet, boş bir tarayıcıda aç:  kotlar aynen
+        self.sayfa.get_by_role("button", name=re.compile("Örnek proje")).first.click()
+        with self.sayfa.expect_download() as indirme:
+            self.sayfa.get_by_role("button", name="Dosyaya kaydet").click()
+        with tempfile.TemporaryDirectory() as klasor:
+            dosya = os.path.join(klasor, "kotla.uygulama")
+            indirme.value.save_as(dosya)
+            self.sayfa.evaluate("localStorage.clear()")
+            self.sayfa.goto(self.url + "/")
+            for u in self.iz.ciftler.values():
+                u.clear()
+            with self.sayfa.expect_file_chooser() as secici:
+                self.sayfa.get_by_role("button", name="Dosya seç").click()
+            secici.value.set_files(dosya)
+            self.sayfa.wait_for_url(re.compile(r"/uygulama/[0-9a-z]{6,}$"))
+        sonra, hesap_sonra = self._hesap_istegi()
+        self.assertEqual(sonra, once)
+        self.assertEqual(hesap_sonra, hesap_once)
+        #  Ölçüyle girişe dönüş:  türetilenler kutulara, kotlar silinir
+        self._katlar().get_by_role("radio", name="Ölçüyle").click()
+        self.iz.sakin()
+        istek, _h = self._hesap_istegi()
+        a = istek["asansorler"][0]
+        self.assertNotIn("durak_kotlari", a)
+        self.assertEqual(
+            (a["durak_adedi"], a["seyir_mesafesi"], a["kuyu_dibi"], a["son_kat_yuksekligi"]),
+            ("15", "42", "1750", "4250"),
+        )
+        self.assertEqual(self.sayaclar(), sayac)
+
     def test_eski_dosyanin_onay_kutusu_sunucunun_okudugu_secenek(self):
         """24 Eki ( dış inceleme ):  makine yükünün yolu eskiden onay kutusuydu;
         eski dosyanın işaretsizi ( false ) sunucuda "Bina yapısına" okunur

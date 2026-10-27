@@ -31,6 +31,7 @@ from cizim import cizimler
 from cizim import geometri
 from cizim import istek_onbellegi
 from cizim import izli
+from cizim import katlar
 from cizim import kopru
 from cizim import olcu_kaynagi
 from cizim import pafta
@@ -43,6 +44,8 @@ from uclar import uygulama_istegi
 from motor.uygulama import uygulama_girdisi
 from motor.uygulama import uygulama_hesabi
 from motor.uygulama import uygulama_sabitleri
+from tasarim.alanlar import DURAK_KOTLARI
+from tasarim import gorunum
 from uclar.uc_ortak import _belirsiz_hata, _proje_kimligi
 from uclar.uc_ortak import _sayi_oku
 
@@ -266,9 +269,14 @@ def _kurucu(ham, ad, proje_adi, sira):
         h = dict(ham)
         if degisiklik:
             ofis = dict(h.get("_ofis") or {})
+            kotlar = {k: v for (yer, k), v in degisiklik.items() if yer == "kot"}
             for (yer, k), v in degisiklik.items():
-                {"girdi": h, "ofis": ofis}[yer][k] = v
+                if yer != "kot":
+                    {"girdi": h, "ofis": ofis}[yer][k] = v
             h["_ofis"] = ofis
+            if kotlar:  # bir durağın kotu ( mm ):  alanın metni yeniden yazılır
+                eski = katlar.kotlari_oku(h[DURAK_KOTLARI])[0]
+                h[DURAK_KOTLARI] = katlar.kotlari_yaz([kotlar.get(j, x) for j, x in enumerate(eski)])
         if "g" in taban and not any(k in secimler for (_y, k) in degisiklik or {}):
             _regulatoru_tut(h, taban["g"], degisiklik or {})
         if serbest:
@@ -338,9 +346,13 @@ def _regulatoru_tut(h, g, degisiklik):
 def _adaylar(ham, A, g, okunan):
     """Oynatılacak girdiler:  formun sayı ve seçim kutuları ( yerleşime göre
     gizliler hariç ) ve ofis standardının çizim sabitleri ( tek katalog —
-    yalnız çizimin okudukları:  okunan )."""
+    yalnız çizimin okudukları:  okunan ).  Kat girişinin öbür kipinin alanları
+    da aday değildir ( kotla girişte ölçüden türeyenler girdi değil );  kotla
+    girişte her durağın kotu ( "kot" , sıra ) yalnız gösterilen kaynaktır —
+    kat yüksekliği ve seyir onlardan çıkar ( katlar.kot_tablosu )."""
     alan, _pg, gizli = _sozlesme()
-    sakli = set(gizli["mrl" if kopru.mrl_mi(A) else "daireli"])
+    kot = katlar.kot_kipi(ham)
+    sakli = set(gizli["mrl" if kopru.mrl_mi(A) else "daireli"]) | gorunum.kip_disi(kot)
     ad = []
     for k, f in alan.items():
         if k in sakli or f["tur"] not in ("sayi", "secim"):
@@ -382,6 +394,9 @@ def _adaylar(ham, A, g, okunan):
     for o, c in kopru.OFIS_SABITLERI.items():
         if c in okunan:
             ad.append({"kimlik": ("ofis", o), "tur": "ofis", "adim": 1.0, "deger": float(S[c])})
+    kotlar = katlar.kotlari_oku(ham.get(DURAK_KOTLARI))[0] if kot else None
+    for j, mm in enumerate(kotlar or ()):
+        ad.append({"kimlik": ("kot", j), "tur": "kot", "adim": 1.0, "deger": float(mm)})
     return ad
 
 
@@ -457,7 +472,7 @@ def izli_sorunlar(veri, i):
     A0 = uygulama_girdisi.tamamla(dict(ham))
     g0, _h = kopru.cizim_girdisi(A0, None, proje, i + 1)
     alan, _pg, gizli = _sozlesme()
-    gizli = set(gizli["mrl" if kopru.mrl_mi(A0) else "daireli"])
+    gizli = set(gizli["mrl" if kopru.mrl_mi(A0) else "daireli"]) | gorunum.kip_disi(katlar.kot_kipi(ham))
     ad = _adaylar(ham, A0, g0 or {}, set())
     sayilar = [a["kimlik"][1] for a in ad if a["kimlik"][0] == "girdi" and a["tur"] == "sayi"]
     #  İz sürerken önbellek anahtarı türevi taşır ( istek_onbellegi );  makine
@@ -603,7 +618,19 @@ def _kaynaklar(r, i):
             "dogrusal": k["dogrusal"],
             "bagli": k["bagli"],
         }
-        if yer == "girdi":
+        if yer == "kot":
+            #  Durağın kotu ( kotla giriş ):  mimariden gelir, kot tablosunda
+            #  değişir — ölçüden değil ( 1. aşama ).  durak:  tablonun satırı
+            b.update(
+                anahtar=DURAK_KOTLARI,
+                durak=anahtar,
+                etiket=f"{anahtar + 1}. durağın kotu",
+                birim="m",
+                deger=aday["deger"] / 1000.0,
+                yer="asansor",
+                degistirilir=False,
+            )
+        elif yer == "girdi":
             f = alan[anahtar]
             b.update(etiket=f["etiket"], birim=f["birim"], yer="proje" if anahtar in pg else "asansor")
             if k["tur"] == "secim":

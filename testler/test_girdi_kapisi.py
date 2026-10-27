@@ -32,6 +32,9 @@ BOZUK = {
 
 def _istek(anahtar, deger, mrl=True):
     v = test_yerlesim_saglamligi.standart_istek(1000, mrl, "Sağ")
+    #  Kot kutusu yalnız kotla girişte okunur ( alanlar KAT GİRİŞİ ):  orada denenir
+    if alanlar.ALAN[anahtar].kip == alanlar.KOT:
+        test_yerlesim_saglamligi.kotla(v)
     pg = anahtar in uygulama_istegi.PROJE_GENELI_ALANLAR
     (v["proje_geneli"] if pg else v["asansorler"][0])[anahtar] = deger
     return v

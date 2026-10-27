@@ -33,6 +33,13 @@ gelen istekte böyle bir alan olsa da okunmaz ( eski proje dosyaları ).
 
 YERLEŞİM:  "mrl" ya da "daireli" yazan alan yalnız o makine yerleşiminde
 hesaba ve çizime girer;  öbüründe ekranda gizlenir ve okunmaz.
+
+KAT GİRİŞİ ( kip ):  durak kotları doluysa katlar KOTLA girilir — durak adedi,
+seyir, kat yükseklikleri, kuyu dibi, son kat ve tabliye kotlardan türer ( rapor
+kaynağını "KOT" yazar ) ve kutuları okunmaz.  Boşsa katlar ÖLÇÜYLE girilir,
+kot kutuları okunmaz.  Kip yerleşim gibidir:  öbür kipin alanı ekranda gizlenir
+( cizim/katlar.kot_kipi ).  KOT kipindeki sayı alanı kot yazımıyla okunur:
+metre, işaretli, mm'ye kadar, nokta da virgül de ondalık ( katlar.kot_oku ).
 """
 
 from dataclasses import dataclass, replace
@@ -62,6 +69,9 @@ AGIRLIK_GENISLIGI_YEDEK = 960.0
 KABIN_PATEN_PAYI = 660  # tam sayı:  2.000 + 660 = 2.660 ( eski varsayılanla aynı tip )
 KAYNAKLAR = (GIRDI, KURAL, KATALOG, CIZIM, HESAP)
 MUK, ELK, CIZ = "mukavemet", "elektrik", "cizim"
+#  KAT GİRİŞİNİN İKİ KİPİ ve kipi belirleyen alan ( modülün başındaki açıklama )
+KOT, OLCU = "kot", "olcu"
+DURAK_KOTLARI = "durak_kotlari"
 
 #  TS EN 81-50 m.5.11.2.2.2 — hesaba girecek en küçük acil frenleme yavaşlaması.
 ACIL_FRENLEME_ASGARI = 0.5
@@ -120,6 +130,7 @@ class Alan:
     formda: bool = True
     proje_geneli: bool = False  # binaya ait:  bütün asansörlerde tek değer
     yerlesim: str = None  # "mrl" · "daireli":  yalnız bu makine yerleşiminde
+    kip: str = None  # KOT · OLCU:  yalnız bu kat girişinde ( kotla / ölçüyle ) okunur
     isaretli: bool = False  # negatif olabilir ( ray ekseninden konum )
     tam_sayi: bool = False
     pozitif: bool = False  # sıfır olamaz
@@ -340,6 +351,7 @@ _GRUPLAR = (
                 #  duraklar arası 11 m kuralı ( m.5.2.3.1 ) onu durakla bağlar.
                 azami=100,
                 tam_sayi=True,
+                kip=OLCU,
                 bilgi=(
                     "Kat kapısı sayısı ( en çok 100 ). Kat yükseklikleri boşsa duraklar "
                     "seyir / ( durak − 1 ) aralığıyla dizilir."
@@ -354,6 +366,7 @@ _GRUPLAR = (
                 21,
                 kaynak=GIRDI,
                 sozlesme=MUK,
+                kip=OLCU,
                 bilgi=(
                     "En alt durak eşiği ile en üst durak eşiği arasındaki düşey mesafe. Kuyu boyu "
                     "değildir — dengesiz halat kütlesi bundan hesaplanır."
@@ -369,6 +382,7 @@ _GRUPLAR = (
                 kaynak=GIRDI,
                 sozlesme=CIZ,
                 opsiyonel=True,
+                kip=OLCU,
                 bilgi=(
                     "En alt duraktan başlayarak ardışık durak aralıklarını noktalı virgülle ayırın "
                     "( örnek: 3400; 3000; 3200 ). Durak adedinden bir eksik sayı girin; "
@@ -389,6 +403,7 @@ _GRUPLAR = (
                 kaynak=GIRDI,
                 sozlesme=MUK,
                 pozitif=True,
+                kip=OLCU,
                 bilgi=(
                     "En üst durak eşiğinden kuyu tavanına ( tabliye altına ) kadar olan düşey mesafe. "
                     "Kuyu üst boşluğu ve ray boyu buradan çıkar."
@@ -403,9 +418,73 @@ _GRUPLAR = (
                 1600,
                 kaynak=GIRDI,
                 sozlesme=MUK,
+                kip=OLCU,
                 bilgi=(
                     "KY — en alt durak eşiğinden kuyu tabanına inen DÜŞEY mesafe ( kuyu dibi derinliği )."
                     " Plandaki derinlik değildir. Kuyu dibi sığınma hacmini ve ray boyunu belirler."
+                ),
+            ),
+            #  KOTLA GİRİŞ ( KOTLAR.md, 26 Eki ):  mimari pafta konum ( kot ) verir,
+            #  mühendislik büyüklükleri iki konumun farkıdır.  Kotlar girilince durak
+            #  adedi, seyir, kat yükseklikleri, KY ve son kat bunlardan türer
+            #  ( cizim/katlar.py ) — hesap da çizim de türeyen sayıyı okur.  Sözleşmesi
+            #  CIZ:  mukavemetin girdisi türeyen sayılardır;  kot hesabın çıktısına
+            #  ( girdi listesi ) boş değerle girmesin.
+            A(
+                DURAK_KOTLARI,
+                "Durak kotları  ( kotla giriş )",
+                "m",
+                "metin",
+                None,
+                None,
+                kaynak=GIRDI,
+                sozlesme=CIZ,
+                opsiyonel=True,
+                bilgi=(
+                    "Durakların mimari kotları, en alt duraktan başlayarak noktalı virgülle "
+                    "( örnek: −7,00; −3,50; ±0,00; +3,20 ). Bitmiş döşeme kotlarıdır. Girilince durak "
+                    "adedi, seyir, kat yükseklikleri, kuyu dibi, son kat ve tabliye kotlardan türer; "
+                    "boşsa bunlar ölçü olarak girilir."
+                ),
+            ),
+            A(
+                "kuyu_dibi_kotu",
+                "Kuyu dibi kotu",
+                "m",
+                "sayi",
+                None,
+                None,
+                kaynak=GIRDI,
+                sozlesme=CIZ,
+                isaretli=True,
+                opsiyonel=True,
+                kip=KOT,
+                bilgi=(
+                    "Kuyu tabanının ( bitmiş taban ) kotu. Kuyu dibi yüksekliği ( KY ) en alt durağın "
+                    "kotu ile bu kotun farkıdır. Yalnız kotla girişte sorulur."
+                ),
+            ),
+            #  KUYU TAVANI DÖŞEMENİN ALTIDIR ( karar 2 ):  standardın kuyu tavanı ( EN 81-20
+            #  3.17 ) ve bugünkü son kat oraya ölçülür.  Mimari plandaki kot döşemenin
+            #  ÜSTÜDÜR;  altı yerine üstü yazılırsa kuyu üst boşluğu döşeme kalınlığı kadar
+            #  büyük çıkar — güvensiz yönde.
+            A(
+                "kuyu_tavani_kotu",
+                "Kuyu tavanı kotu  ( döşemenin altı )",
+                "m",
+                "sayi",
+                None,
+                None,
+                kaynak=GIRDI,
+                sozlesme=CIZ,
+                isaretli=True,
+                opsiyonel=True,
+                kip=KOT,
+                bilgi=(
+                    "Kuyu tavanının kotu: tavan döşemesinin ALTI, kabinin üstündeki en alçak nokta "
+                    "( kiriş varsa kirişin altı ). Mimari planda yazan döşemenin üstüdür: altı = üstü − "
+                    "döşeme kalınlığı. Son kat yüksekliği bu kot ile en üst durağın kotunun farkıdır. "
+                    "Yalnız kotla girişte sorulur."
                 ),
             ),
             #  SIĞINMA HACMİ TİPİ  ( TS EN 81-20 m.5.2.5.7.1 · m.5.2.5.8.1 ).
@@ -451,9 +530,8 @@ _GRUPLAR = (
                 sozlesme=CIZ,
                 gelismis=True,
                 bilgi=(
-                    "Kuyunun duvarları ( kalınlığı ayrıca girilmeyenler ), kuyu dibinin ve kuyu "
-                    "tavanının döşemesi ( makine dairelide makinenin oturduğu tabliye ) bu kalınlıkta "
-                    "çizilir ( referans proje:  150 )."
+                    "Kuyunun duvarları ve tavan döşemesi ( kalınlığı ayrıca girilmeyenler ) ile kuyu "
+                    "dibinin döşemesi bu kalınlıkta çizilir ( referans proje:  150 )."
                 ),
             ),
             #  DUVARLAR AYRI AYRI ( kullanıcı isteği 2 Eki ):  LiftDesigner projelerinde
@@ -507,6 +585,24 @@ _GRUPLAR = (
                 sozlesme=CIZ,
                 gelismis=True,
                 bilgi='Durakta kapıya bakarken sağdaki duvar.  Boşsa "Kuyu duvarı kalınlığı".',
+            ),
+            #  TAVAN DÖŞEMESİ AYRI ( karar 3 ):  63444-2'de duvar 250, kuyunun üstündeki
+            #  tabliye 100.  Kuyu tavanının kotu döşemenin altıdır;  tabliyenin üstü
+            #  ( makinenin oturduğu yer ) bu kalınlık kadar yukarıdadır.
+            A(
+                "tavan_dosemesi",
+                "Tavan döşemesi kalınlığı  ( boşsa kuyu duvarı kalınlığı )",
+                "mm",
+                "sayi",
+                None,
+                None,
+                kaynak=KURAL,
+                sozlesme=CIZ,
+                gelismis=True,
+                bilgi=(
+                    "Kuyunun tavanındaki döşeme ( makine dairelide makinenin oturduğu tabliye ). "
+                    'Boşsa "Kuyu duvarı kalınlığı".'
+                ),
             ),
             A(
                 "kuyu_boyu",
@@ -2222,11 +2318,35 @@ _GRUPLAR = (
                 kaynak=GIRDI,
                 sozlesme=MUK,
                 yerlesim="daireli",
+                kip=OLCU,
                 bilgi=(
                     "Makine dairesinin zemininden kuyunun üstündeki beton tabliyenin ( makinenin "
                     "oturduğu yerin ) üstüne yükseklik — kuyunun makine dairesine taşan kısmı. "
                     "Betonun kalınlığı değildir. Zemin tabliyeyle aynı hizadaysa 0. Yalnız makine "
                     "daireli projede sorulur."
+                ),
+            ),
+            #  Kotla girişte tabliye MD zemininin kotundan türer:  tabliyenin üstü
+            #  ( kuyu tavanı + tavan döşemesi kalınlığı ) − MD zemini.  Bir asansörün
+            #  alanıdır ( bugünkü tabliye gibi );  bina kat listesiyle binaya taşınır
+            #  ( KOT_PLANI 2.2 c ).
+            A(
+                "md_zemini_kotu",
+                "Makine dairesi zemini kotu",
+                "m",
+                "sayi",
+                None,
+                None,
+                kaynak=KURAL,
+                sozlesme=CIZ,
+                yerlesim="daireli",
+                isaretli=True,
+                opsiyonel=True,
+                kip=KOT,
+                bilgi=(
+                    "Makine dairesinin bitmiş zemin kotu. Tabliye beton yüksekliği bu kottan tabliyenin "
+                    "üstüne ( kuyu tavanı + tavan döşemesi kalınlığı ) ölçülür; boşsa tabliye 1.200 "
+                    "alınır. Yalnız kotla girişte ve makine daireli projede sorulur."
                 ),
             ),
             A(
@@ -2975,6 +3095,11 @@ def _denetle():
         assert a.kaynak in KAYNAKLAR, (a.anahtar, a.kaynak)
         assert a.sozlesme in (MUK, ELK, CIZ), (a.anahtar, a.sozlesme)
         assert a.yerlesim in (None, "mrl", "daireli"), (a.anahtar, a.yerlesim)
+        assert a.kip in (None, KOT, OLCU), (a.anahtar, a.kip)
+        #  Kot kutusu kot yazımıyla okunur ( metre, işaretli ) ve ölçüyle girişte
+        #  okunmadığı için boş kalabilir;  kipi belirleyen alanın kipi olamaz
+        assert a.kip != KOT or (a.birim == "m" and a.isaretli and a.opsiyonel), f"kot alanı: {a.anahtar}"
+        assert a.anahtar != DURAK_KOTLARI or a.kip is None, a.anahtar
         assert a.formda or a.kaynak in (CIZIM, HESAP), f"formda olmayan girdi: {a.anahtar}"
         assert a.formda or not a.gelismis, f"formda olmayan alan gelişmiş olamaz: {a.anahtar}"
         assert a.bilgi.strip() or not a.formda, f"açıklaması yok: {a.anahtar}"

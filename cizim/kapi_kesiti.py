@@ -112,7 +112,7 @@ def ciz(g, cizim_sabitleri=None):
     _duvar_ve_doseme(e, Y, don, z_alt)
     _kat_kapisi(e, Y, tan)
     _kabin(e, Y)
-    _yazilar(e, Y, don, tan)
+    _yazilar(e, Y, don, tan, dusey.kot_ofseti(g))
     _olculer(e, Y, don, z_alt)
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     geometri.yazilari_yerlestir(e)
@@ -220,7 +220,7 @@ def _adli(e, u, z, metin, ad, hedef):
     e.append(eleman.ad(eleman.ok("YAZI", u - 15.0, z, hedef[0], hedef[1]), "etiket_oku"))
 
 
-def _yazilar(e, Y, don, tan):
+def _yazilar(e, Y, don, tan, ofset):
     """KAT ve KABİN yazıları, parça adları, durağın kot işareti.  Parça adlarının
     okları kabinin ve kanatların üstünden geçmez — sac ve önlük döşemenin
     altında, üst kutu kabin panosunun üstünden."""
@@ -246,7 +246,7 @@ def _yazilar(e, Y, don, tan):
     _adli(e, on_u + 200.0, zo_, "ÖNLÜK", "onluk_yazisi", (on_u, zo_))
     ku = Y["ust_kutu"]
     _adli(e, on + 140.0, ku[3] + 220.0, "ÜST KUTU", "ust_kutu_yazisi", (KB["hat"], ku[3]))
-    kesit_parcalari.kot_isareti(e, -don - DOSEME_GOSTERIM + 150.0, 0.0, dusey.kot_yazisi(0.0), 1.0)
+    kesit_parcalari.kot_isareti(e, -don - DOSEME_GOSTERIM + 150.0, 0.0, dusey.kot_yazisi(0.0, ofset), 1.0)
 
 
 def _olculer(e, Y, don, z_alt):

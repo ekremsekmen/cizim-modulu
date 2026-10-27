@@ -58,6 +58,8 @@ export interface AlanSemasi {
   eski_onay: Record<string, [string, string]>;
   proje_geneli: string[];
   yerlesime_gore_gizli: { mrl: string[]; daireli: string[] };
+  /**  Kat girişinin kipi:  alan doluysa kotla;  her kipte öbürünün alanları gizli ( sunucu okumaz )  */
+  kot_kipi: { alan: string; gizli: { kotla: string[]; olcuyle: string[] } };
   cizimden: string[];
   ortak_kopru: { mukavemet: string; anahtar: string; avan: string }[];
   sabitler: {
@@ -226,6 +228,8 @@ export interface OlcuKaynagi {
   birim: string;
   yer: "asansor" | "proje" | "ofis" | string;
   degistirilir: boolean;
+  /**  Kotla girişte durağın kotu kaynaksa durağın sırası ( 0 = en alt ) — anahtar durak_kotlari  */
+  durak?: number;
 }
 
 export interface OlcuYanit {

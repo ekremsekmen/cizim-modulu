@@ -840,6 +840,7 @@ ORNEK = {
         "duvar_sol": 150,
         "duvar_sag": 150,
         "doseme": 150,
+        "tavan_dosemesi": 150,
     },
     #  KAPI BÖLGESİ ( referans proje kuyu planı vektörleri, iç yüzden ):  kat kapısı
     #  ünitesi duvarın İÇ YÜZÜNE monte — kasa 0 – 60, eşik 60 – 150, kapı hattı

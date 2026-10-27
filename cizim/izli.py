@@ -205,6 +205,15 @@ def sayi(x):
     return x if isinstance(x, Izli) else _float(x)
 
 
+def oturt(x, basamak=0):
+    """Değeri basamağa yuvarlanmış x, türevi aynen:  kayan nokta gürültüsünü
+    siler ( kottan türeyen mm — cizim/katlar:  −7,00 − ( −8,80 ) float'ta
+    1.800,0000000000007 ).  round() izi düşürürdü;  yuvarlamanın kendi
+    sıçraması türeve girmez — yalnız gürültü içindir."""
+    v = round(_float(x), basamak)
+    return Izli(v, dict(x.t)) if isinstance(x, Izli) and x.t else v
+
+
 def girdi(v, kimlik):
     """Girdinin değeri:  izleme açıksa kendi kimliğine eğimi 1 olan izli sayı."""
     if not izlemede() or isinstance(v, bool) or not isinstance(v, (int, _float)):

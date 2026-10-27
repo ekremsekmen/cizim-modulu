@@ -93,6 +93,51 @@ def _kutu(katman, k, ad, tip="dikdortgen"):
     return eleman.ad(eleman.dikdortgen(katman, k[0], k[1], k[2] - k[0], k[3] - k[1], tip=tip), ad)
 
 
+def _kot_yeri(e, u, metin, boy):
+    """Kot işaretinin ucu:  u;  metnin maskesi bir parça kenarını siliyorsa
+    maskesi temiz en yakın yer ( 10 mm adımla, boy kadar öteye ), yoksa yine u.
+    Kenara binen yazıyı ayırıcı ( geometri.etiketleri_ayir ) tek başına
+    kaydırıyordu:  yazı işaretinden kopuyor ya da kendi üçgeninin üstüne
+    düşüyordu — 4 kanatlı kapıda "±0,00" kanadın kenarına, uzun kot ( "-10,50",
+    mutlak "+850,00" ) kasaya binince ( 27 Eki, kotla girişin taraması )."""
+    yazi = []
+    kesit_parcalari.kot_isareti(yazi, u, 0.0, metin, 1.0)
+    m = geometri.maske_kutusu(yazi[-1])
+    if m is None:
+        return u
+    adaylar = [(0, 0)] + [(d, 0) for i in range(10, int(boy) + 1, 10) for d in (-i, i)]
+    dx, _dy = _temiz_kayma(e, m, adaylar)
+    return u + dx
+
+
+def _yaziyi_sigdir(e, yazi):
+    """Kotun yazısı ( uzun kot:  "-10,50", mutlak "+850,00" ) işaretin yanında
+    bir kenarı siliyorsa maskesi temiz en yakın yere kayar ( 10 mm adımla,
+    200 mm'ye kadar;  aşağı inmez ) — işaret yerinde kalır."""
+    m = geometri.maske_kutusu(yazi)
+    if m is None:
+        return
+    adaylar = sorted(
+        ((dx, dy) for dx in range(-200, 201, 10) for dy in range(0, 201, 10)),
+        key=lambda d: (d[0] ** 2 + d[1] ** 2, d[1], d[0]),
+    )
+    dx, dy = _temiz_kayma(e, m, adaylar)
+    yazi["x"] += dx
+    yazi["y"] += dy
+
+
+def _temiz_kayma(e, m, adaylar):
+    """Maske kutusu m'nin adaylardan hiçbir parça kenarını silmeyen ilk kayması;
+    yoksa ( 0 , 0 )."""
+    kenarlar = geometri.KenarIzgarasi(geometri.parca_kenarlari(e))
+
+    def temiz(dx, dy):
+        k = (m[0] + dx, m[1] + dy, m[2] + dx, m[3] + dy)
+        return not any(geometri.kutudaki_boy(s, k) > 0.0 for s in kenarlar.adaylar(k))
+
+    return next((d for d in adaylar if temiz(*d)), (0, 0))
+
+
 def ciz(g, cizim_sabitleri=None):
     """Giriş görünüşünün elemanları."""
     Y = yerlesim(g, cizim_sabitleri)
@@ -125,7 +170,11 @@ def ciz(g, cizim_sabitleri=None):
     )
     #  Kapı ekseni ve döşemenin kotu
     e.append(eleman.ad(eleman.cizgi("EKSEN", xc, -300, xc, ust, tip="eksen"), "kapi_ekseni"))
-    kesit_parcalari.kot_isareti(e, xc + 150, 0.0, dusey.kot_yazisi(0.0), 1.0)
+    #  İşaretin yeri ölçüyle girişin yazısına ( "±0,00" ) göre:  kot geometriye
+    #  girmez, kotlar kayınca işaret yerinde kalır.  Uzun kotta yalnız yazı kayar.
+    u = _kot_yeri(e, xc + 150, dusey.kot_yazisi(0.0), x1 - x0)
+    kesit_parcalari.kot_isareti(e, u, 0.0, dusey.kot_yazisi(0.0, dusey.kot_ofseti(g)), 1.0)
+    _yaziyi_sigdir(e, e[-1])
 
     #  Alt:  kuyunun iç yüzlerinden kaba boşluğa ( LiftDesigner 470 · 1.180 · 350 ),
     #  kapının net genişliği

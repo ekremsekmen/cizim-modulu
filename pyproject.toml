@@ -58,8 +58,9 @@ quote-style = "double"
 #  ─────────────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
 #  test_tsen_bagimsiz:  yayımlanmış çözümlü örneklere karşı bağımsız denetim
+#  test_kot_bagimsiz:  kotla girişin kara kutu denetimi ( kodu görmeyen el yazdı )
 #  ( unittest;  hesabın Rapor tabanlı paketine girmez — kontrol.py'de buradan koşar )
-testpaths = ["testler", "hesap/dogrulama/test_tsen_bagimsiz.py"]
+testpaths = ["testler", "hesap/dogrulama/test_tsen_bagimsiz.py", "hesap/dogrulama/test_kot_bagimsiz.py"]
 #  İki kök:  depo ( cizim, tasarim, araclar, testler ) ve hesap ( api, engine,
 #  exports ) — kütüphane modülleri sys.path'e dokunmaz.
 pythonpath = [".", "hesap", "ornekler"]

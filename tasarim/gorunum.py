@@ -6,7 +6,7 @@ Hiçbiri elle ikinci kez yazılmaz:  alanın etiketi, grubu, kaynağı, formdaki
 yeri ve doğrulama bayrakları yalnız tasarim/alanlar.py'de durur.
 """
 
-from tasarim.alanlar import ALANLAR, ALAN, GRUPLAR, CIZIM, HESAP
+from tasarim.alanlar import ALANLAR, ALAN, GRUPLAR, CIZIM, DURAK_KOTLARI, HESAP, KOT, OLCU
 
 
 def sozlesme(ad):
@@ -36,6 +36,13 @@ def uygulanmayan(mk_yok, sozlesme=None):
     """Makine yerleşimine göre hesaba ve çizime girmeyen ( ekranda gizli ) alanlar."""
     disi = "daireli" if mk_yok else "mrl"
     return {a.anahtar for a in ALANLAR if a.yerlesim == disi and (sozlesme is None or a.sozlesme == sozlesme)}
+
+
+def kip_disi(kot):
+    """Kat girişine göre okunmayan ( ekranda gizli ) alanlar:  kotla girişte
+    ölçüden türeyenler, ölçüyle girişte kot kutuları ( alanlar KAT GİRİŞİ )."""
+    disi = OLCU if kot else KOT
+    return {a.anahtar for a in ALANLAR if a.kip == disi}
 
 
 def cizimden():
@@ -87,6 +94,11 @@ def form():
         "gruplar": form_gruplari(),
         "proje_geneli": list(anahtarlar(proje_geneli=True, formda=True)),
         "yerlesime_gore_gizli": {"mrl": sorted(uygulanmayan(True)), "daireli": sorted(uygulanmayan(False))},
+        #  Kat girişinin kipi:  DURAK_KOTLARI doluysa kotla;  her kipte öbürünün alanları gizli
+        "kot_kipi": {
+            "alan": DURAK_KOTLARI,
+            "gizli": {"kotla": sorted(kip_disi(True)), "olcuyle": sorted(kip_disi(False))},
+        },
         "cizimden": list(cizimden()),
         "hesaplanan": list(anahtarlar(kaynak=HESAP)),
     }

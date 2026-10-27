@@ -13,6 +13,7 @@ GecersizGirdi'nin iletilerini döndürür, hesap da çizim de başlamaz.
 
 import math
 
+from cizim import katlar
 from cizim import kopru
 from motor.ortak.adimlar import evet_mi
 from motor.uygulama import mukavemet_girdi
@@ -21,7 +22,8 @@ from motor.uygulama import tablolar_gorunum
 from motor.uygulama import uygulama_girdisi
 from motor.uygulama import uygulama_hesabi
 from motor.uygulama import uygulama_sabitleri
-from tasarim.alanlar import ALANLAR, CIZ, ELK, MUK
+from tasarim import gorunum
+from tasarim.alanlar import ALANLAR, CIZ, DURAK_KOTLARI, ELK, KOT, MUK
 from uclar.uc_ortak import (
     _BELIRSIZ,
     _RED,
@@ -156,6 +158,15 @@ def _oku(a, ham):
         return None, f"{a.etiket}: işaretli ya da işaretsiz olmalı ( {_Kisa(ham)!r} girildi )."
     if _bos_mu(ham):
         return None, None
+    #  KOT YAZIMI ( cizim/katlar ):  metre, işaretli, mm'ye kadar, "−" ve "±";
+    #  okunamayanın sebebi alanın kendi iletisinde ( sayının toplu iletisi
+    #  "binlik ayracı mı" der, kotta nokta da virgül de ondalıktır )
+    if a.tur == "sayi" and a.kip == KOT:
+        mm, ileti = katlar.kot_oku(ham)
+        return (None, f"{a.etiket}:  {ileti}") if ileti else (mm / 1000.0, None)
+    if a.anahtar == DURAK_KOTLARI:
+        _kotlar, iletiler = katlar.kotlari_oku(ham)
+        return (None, katlar.iletiler_metni(a.etiket, iletiler)) if iletiler else (ham, None)
     if a.tur == "sayi":
         d = _sayi_oku(ham, a.etiket)
         return d, (None if d is None else mukavemet_girdi.alan_hatasi(a.anahtar, d))
@@ -182,13 +193,16 @@ def _girdi_coz(v, veri, atla=frozenset(), hatalar=None):
     ``atla``:  makine yerleşimine göre hesaba girmeyen ( ekranda gizli )
     alanlar.  OKUNMAZLAR — içlerinde kalmış "4.000" ya da "-3" projeyi
     durdurmaz, çünkü kullanıcı gizli alanı göremez ve düzeltemez.  Formda
-    kutusu olmayan alan da okunmaz ( eski proje dosyaları ).
+    kutusu olmayan alan da okunmaz ( eski proje dosyaları ).  Kat girişinin
+    öbür kipinin alanları da böyle okunmaz ( asansörün kendi kipi — kotla
+    girişte ölçüden türeyenler, ölçüyle girişte kotlar:  tek kaynak ).
 
     _BELIRSIZ / _RED KASITLI OLARAK TEMİZLENMEZ:  çoklu projede her asansör
     ayrı çağrılır ve belirsiz girdiler hepsinden TOPLANMALIDIR — temizlik
     çağıranın işidir ( bkz. asansor_girdileri ).
     """
     v = v if isinstance(v, dict) else {}
+    atla = set(atla) | gorunum.kip_disi(katlar.kot_kipi(v))
     g = {}
     for a in _OKUNAN:
         if a.anahtar not in v:

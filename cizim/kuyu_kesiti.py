@@ -169,9 +169,10 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
     #  Kot işaretleri odanın dışında:  oda kuyudan genişse duvarının ötesinde
     #  ( eskiden kuyunun yanında, odanın duvarının üstüne düşüyordu )
     u_kot = min(u_kot, u0 - 200 * K)
-    kesit_parcalari.kot_isareti(e, u_kot, zd, dusey.kot_yazisi(zd), K, -1.0)
+    ofset = dusey.kot_ofseti(g)
+    kesit_parcalari.kot_isareti(e, u_kot, zd, dusey.kot_yazisi(zd, ofset), K, -1.0)
     if zt - zd >= 300.0:
-        kesit_parcalari.kot_isareti(e, u_kot, zt, dusey.kot_yazisi(zt), K, -1.0)
+        kesit_parcalari.kot_isareti(e, u_kot, zt, dusey.kot_yazisi(zt, ofset), K, -1.0)
     return u1
 
 
@@ -261,10 +262,12 @@ def _seviye_isaretleri(e, sev, K):
             e.append(eleman.ad(eleman.yazi(u, z + h + 70 * K, harf, uslup.HARF * K), "plan_harfi"))
 
 
-def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon):
-    """Kot işaretleri ve durak adları ( duvarın dışında )."""
+def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon, taban):
+    """Kot işaretleri ve durak adları ( duvarın dışında ), sonra kuyu dibinin
+    kotu aynı sütunda.  Kotla girişte yazılar mimarinin kotudur ( kot_ofseti )."""
+    ofset = dusey.kot_ofseti(g)
     for i, z in enumerate(kotlar):
-        kesit_parcalari.kot_isareti(e, u_duvar + yon * 200 * K, z, dusey.kot_yazisi(z), K, yon)
+        kesit_parcalari.kot_isareti(e, u_duvar + yon * 200 * K, z, dusey.kot_yazisi(z, ofset), K, yon)
         e.append(
             eleman.ad(
                 eleman.yazi(
@@ -277,6 +280,7 @@ def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon):
                 "durak_adi",
             )
         )
+    kesit_parcalari.kot_isareti(e, u_duvar + yon * 200 * K, taban, dusey.kot_yazisi(taban, ofset), K, yon)
 
 
 def _olculer_sol(e, Y, u0, K, kotlar, tavan, g):
@@ -538,7 +542,8 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     S, M, KD, dy = Y["S"], Y["M"], Y["KD"], g["dusey"]
     k = g["kuyu"]
     D, don, dar = k["derinlik"], k["duvar_on"], k["duvar_arka"]
-    dos = k.get("doseme", don)  # kuyu dibi ve tavan döşemesi
+    dos = k.get("doseme", don)  # kuyu dibi döşemesi
+    dos_t = makine_dairesi.tabliye(g)["doseme"]  # tavan döşemesi ( makine dairelide tabliye )
     K = OLCEK / 20.0
     B = yan_bakis(g)
     P = kesit_parcalari.plan_parcalari(Y["KD"], g)
@@ -549,7 +554,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     kapi_h = g["kapi"]["yukseklik"]
     bosluk_h = girdi.kaba_bosluk(g, S)[2]
     oda = "MD" in M
-    ust = tavan + dos  # makine dairesinde tabliye ( aynı kalınlık )
+    ust = tavan + dos_t  # tavan döşemesinin üstü ( makine dairesinde tabliye )
     e = []
     #  Ön duvar kapı boşluklarıyla, arka duvar, kuyu dibi ve tavan döşemesi.
     #  Kapı ünitesi duvar boşluğundaysa boşluk eşiğin altından başlar ( kasa ve
@@ -562,15 +567,14 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     _duvar(e, -don, z, don, ust - z)
     _duvar(e, D, taban - dos, dar, ust - (taban - dos))
     _duvar(e, 0, taban - dos, D, dos)
-    _duvar(e, 0, tavan, D, dos, "tabliye" if oda else None)
+    _duvar(e, 0, tavan, D, dos_t, "tabliye" if oda else None)
     #  Kuyu tavanının en alt kısmı ( kiriş payı — hesap programının "kuyu tavanı
     #  payı" ):  bir KABULDÜR, beton değil;  kesik sınır çizgisi ( eskiden taralı
     #  150 mm bir katman gibi çiziliyor, tavan iki kat kalın görünüyordu ).
     e.append(eleman.ad(eleman.cizgi("GIZLI", 0, Y["tavan_alti"] + H, D, Y["tavan_alti"] + H), "tavan_kirisi"))
     L = 240 * K
     _yan_katlar(e, S, P, kotlar, -don - L, L, kapi_h)
-    _kat_seviyeleri(e, g, S, kotlar, -don - L, K, -1.0)
-    kesit_parcalari.kot_isareti(e, -don - L + 200 * K * -1.0, taban, dusey.kot_yazisi(taban), K, -1.0)
+    _kat_seviyeleri(e, g, S, kotlar, -don - L, K, -1.0, taban)
     u_oda = None
     if oda:
         #  A-A kabin ekseninden karşı ağırlığa bakar:  ön ve arka duvar kesilir,
@@ -644,7 +648,8 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     S, M, dy = Y["S"], Y["M"], g["dusey"]
     k = g["kuyu"]
     G, ds, dg, don = k["genislik"], k["duvar_sol"], k["duvar_sag"], k["duvar_on"]
-    dos = k.get("doseme", don)  # kuyu dibi ve tavan döşemesi
+    dos = k.get("doseme", don)  # kuyu dibi döşemesi
+    dos_t = makine_dairesi.tabliye(g)["doseme"]  # tavan döşemesi ( makine dairelide tabliye )
     K = OLCEK / 20.0
     B = kesit_parcalari.Bakis("on", G, ("y", geometri.kesit_duzlemleri(g)[1], -1.0))
     P = kesit_parcalari.plan_parcalari(Y["KD"], g)
@@ -654,13 +659,13 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     taban = Y["taban"]
     kapi_h = g["kapi"]["yukseklik"]
     oda = "MD" in M
-    ust = tavan + dos
+    ust = tavan + dos_t
     e = []
     #  Yan duvarlar ( görünüşte plandaki sağ duvar solda ), kuyu dibi, tavan
     _duvar(e, -dg, taban - dos, dg, ust - (taban - dos))
     _duvar(e, G, taban - dos, ds, ust - (taban - dos))
     _duvar(e, 0, taban - dos, G, dos)
-    _duvar(e, 0, tavan, G, dos, "tabliye" if oda else None)
+    _duvar(e, 0, tavan, G, dos_t, "tabliye" if oda else None)
     e.append(eleman.ad(eleman.cizgi("GIZLI", 0, Y["tavan_alti"] + H, G, Y["tavan_alti"] + H), "tavan_kirisi"))
     #  Kat kapıları ön duvarda ( görünüş ):  kasa, boşluk, kanat ayrımı, durak numarası
     kp = g["kapi"]
@@ -691,8 +696,7 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
                 0,
             )
         )
-    _kat_seviyeleri(e, g, S, kotlar, -dg, K, -1.0)
-    kesit_parcalari.kot_isareti(e, -dg - 200 * K, taban, dusey.kot_yazisi(taban), K, -1.0)
+    _kat_seviyeleri(e, g, S, kotlar, -dg, K, -1.0, taban)
     u_oda = None
     if oda:
         #  B-B arkadan kat kapılarına bakar:  yan duvarlar kesilir, ön duvar görünür

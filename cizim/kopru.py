@@ -96,6 +96,7 @@ KURALLI = {
     "kuyu_duvar_arka": ("kuyu", "duvar_arka"),
     "kuyu_duvar_sol": ("kuyu", "duvar_sol"),
     "kuyu_duvar_sag": ("kuyu", "duvar_sag"),
+    "tavan_dosemesi": ("kuyu", "tavan_dosemesi"),
     "kabin_ray_arasi": ("kabin_ray", "arasi"),
     "agirlik_ray_arasi": ("agirlik", "ray_arasi"),
     "agirlik_ray_duvar": ("agirlik", "ray_duvar"),
@@ -172,6 +173,29 @@ def _deger(A, anahtar):
 def varsayilan_deger(A, anahtar):
     v = _deger(A, anahtar)
     return _kural(ALAN[anahtar][5], anahtar) if v is None else v
+
+
+def tavan_dosemesi(A):
+    """Tavan döşemesinin kalınlığı ( mm ):  girilmişse o, boşsa kuyu duvarı
+    kalınlığı ( KURAL — izlemede kutunun kendisine de eğim ).  Çizim
+    ( g["kuyu"]["tavan_dosemesi"] ) ve kotla girişin tabliyesi
+    ( katlar.kot_tablosu ) aynı sayıyı kullanır:  makine dairesinin zemini
+    döşemenin kalınlığına bağlı kalmaz."""
+    v = _deger(A, "tavan_dosemesi")
+    return v if v is not None else _kural(varsayilan_deger(A, "kuyu_duvar_kalinligi"), "tavan_dosemesi")
+
+
+def _kot_girisi(A):
+    """Kotla girişin iletileri ( hatalı kot tablosu ) — yoksa [].  Ölçüden türeyen
+    alanlar hesabın tamamla'sında kotlardan yazılır ( katlar.kot_tablosu );  kot
+    kipindeki girdi türetilmeden geldiyse PROGRAMIN HATASIDIR:  bir yol tamamla'yı
+    atladı, çizim eski sayılarla sessizce kurulmasın ( KOT_PLANI § 1.2 madde 2 )."""
+    if not katlar.kot_kipi(A):
+        return []
+    kot = A.get("_kot")
+    if not isinstance(kot, dict):
+        raise RuntimeError("kotla giriş türetilmeden çizime geldi ( mukavemet_girdi.tamamla atlandı )")
+    return list(kot["hata"])
 
 
 def _kural(v, anahtar):
@@ -263,6 +287,11 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
     sonuc:  hesabın o asansör için sonucu ( kuvvetler buradan );  None olabilir.
     Döner:  ( g , hatalar ) — hata varsa g None.  Alanlar bölüm bölüm okunur;
     bir bölümde hata varsa sonrakine geçilmez ( iletiler okuma sırasıyla )."""
+    #  Kot tablosu hatalıysa yalnız onun iletileri:  türeyen alanların kendi
+    #  iletileri ( boş seyir … ) sebebi değil, sonucudur.  Hesap aynısını söyler.
+    kot = _kot_girisi(A)
+    if kot:
+        return None, kot
     ozel = cizim_sabitleri(A)
     S = sabitler.sabitler(ozel)
     o = _Okuyucu(A)
@@ -547,10 +576,15 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
         },
         #  Duvarlar ayrı ayrı ( boşsa ortak kalınlık );  kuyu dibinin ve tavanın
         #  döşemesi ortak kalınlıktadır ( eskiden ön duvarınkini kullanıyordu ).
+        #  Tavan döşemesinin kendi kutusu var ( karar 3 — KOT_PLANI ):  boşsa ortak
+        #  kalınlık ( tavan_dosemesi );  kesitler ve makine dairesi onu okur.
         "kuyu": {
             "genislik": G,
             "derinlik": h["KD"],
             "doseme": duvar,
+            "tavan_dosemesi": (sayi("tavan_dosemesi", bos=True) or _kural(duvar, "tavan_dosemesi"))
+            if duvar
+            else None,
             **{
                 f"duvar_{y}": (sayi(f"kuyu_duvar_{y}", bos=True) or _kural(duvar, f"kuyu_duvar_{y}"))
                 if duvar
@@ -610,6 +644,9 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
             "beyan_hizi": sayi("beyan_hizi", "Beyan hızı"),
             "durak_adedi": int(h["durak"]),
             "kat_yuksekligi": d["kat_yuksekligi"],
+            #  Kotla girişte en alt durağın kotu:  yalnız kot yazılarına eklenir
+            #  ( dusey.kot_yazisi );  ölçüyle girişte yok — eski girdi aynı kalır
+            **({"kot_ofseti": float(A["_kot"]["ofset"])} if katlar.kot_kipi(A) else {}),
             "kabin_tampon_baba": sayi("kabin_tampon_baba", "Kabin tamponu baba yüksekliği"),
             "kabin_tampon_boyu": sayi("kabin_tampon_boyu", "Kabin tamponu uzunluğu"),
             "kabin_carpma_arasi": sayi("kabin_carpma_arasi", "Kabin tamponu – çarpma plakası arası"),

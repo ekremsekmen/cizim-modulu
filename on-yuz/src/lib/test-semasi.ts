@@ -119,6 +119,14 @@ export const SEMA: AlanSemasi = {
   eski_onay: { makine_raya_biniyor: ["Bina yapısına", "Kılavuz raylara"] },
   proje_geneli: ["mk_yok", "mk_uzunluk"],
   yerlesime_gore_gizli: { mrl: ["mk_uzunluk"], daireli: [] },
+  //  Sunucunun kat girişi kipi ( tasarim/gorunum.form — kot_kipi )
+  kot_kipi: {
+    alan: "durak_kotlari",
+    gizli: {
+      kotla: ["durak_adedi", "kat_yukseklikleri", "kuyu_dibi", "seyir_mesafesi", "son_kat_yuksekligi", "tabliye_yuksekligi"],
+      olcuyle: ["kuyu_dibi_kotu", "kuyu_tavani_kotu", "md_zemini_kotu"],
+    },
+  },
   cizimden: [],
   ortak_kopru: [],
   sabitler: { varsayilan: { sigma_em: 130, kablo_tipi: "NHXMH FE180" }, metin: ["kablo_tipi"], gruplar: [], etiket: {} },

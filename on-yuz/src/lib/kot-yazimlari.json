@@ -1,0 +1,24 @@
+{
+  "aciklama": "Kot yazımları: [ yazım , ön yüzün okuduğu mm ya da null ]. Ön yüz (lib/kotlar.ts kotOku) ile sunucu (cizim/katlar.py kot_oku) aynı listeyle sınanır: null ise sunucu da reddeder; sayıysa sunucu aynı mm'yi okur (sınır dışını yalnız sunucu reddeder — ön yüz sunucudan sıkı olamaz).",
+  "yazimlar": [
+    ["−8,80", -8800],
+    ["-8.80", -8800],
+    ["–3,50", -3500],
+    ["+62,20", 62200],
+    ["±0,00", 0],
+    ["0", 0],
+    ["57", 57000],
+    ["8,805", 8805],
+    ["8,8050", 8805],
+    ["0.805", 805],
+    [" − 8 , 80 ", -8800],
+    ["1.200", null],
+    ["+60.800", null],
+    ["8,8051", null],
+    ["1.234,56", null],
+    ["8,80m", null],
+    ["abc", null],
+    ["±1,00", null],
+    ["", null]
+  ]
+}
