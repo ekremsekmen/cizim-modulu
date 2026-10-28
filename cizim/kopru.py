@@ -397,6 +397,7 @@ def _ana_alanlar(o):
     h["kacik"] = sayi("kabin_yana_kaciklik", isaretli=True)
     h["duvar"] = sayi("kuyu_duvar_kalinligi")
     h["montaj"] = secim("kapi_montaji")
+    h["kilit"] = secim("kabin_kapisi_kilidi")
     h["esik_arasi"] = sayi("esik_arasi")
     h["kapi_kacik"] = sayi("kapi_kaciklik", isaretli=True)
     h["ag_kacik"] = sayi("agirlik_eksen_kaciklik", isaretli=True)
@@ -608,6 +609,7 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
             "yukseklik": d["kapi_h"],
             "tip": A.get("kat_kapisi_tipi"),
             "montaj": h["montaj"],
+            "kilit": h["kilit"],
         },
         "kabin_ray": {
             "arasi": sayi("kabin_ray_arasi", bos=True) or _kural(kb_g + 200.0, "kabin_ray_arasi"),

@@ -734,6 +734,26 @@ _GRUPLAR = (
                     "kuyudaki yeri buna göre değişir."
                 ),
             ),
+            #  m.5.2.5.3.1 c ( 29 Eki ):  kuyu – kabin eşiği arasının 0,15 m sınırı mekanik
+            #  kilitli kabin kapısında kalkar;  seçenek yokken kapı duvar boşluğundaki büyük
+            #  kabinler ( 2000 kg, 165 mm ) çare söylenmeden reddediliyordu.
+            A(
+                "kabin_kapisi_kilidi",
+                "Kabin kapısı kilidi",
+                "—",
+                "secim",
+                tuple(girdi.KABIN_KAPISI_KILITLERI),
+                girdi.KABIN_KAPISI_KILITLERI[0],
+                kaynak=GIRDI,
+                sozlesme=CIZ,
+                gelismis=True,
+                bilgi=(
+                    "Mekanik kilitli kabin kapısı yalnız kat kapısının kilit açma bölgesinde açılır "
+                    "( TS EN 81-20 m.5.3.9.2 );  kilidi bir elektrik güvenlik tertibatı denetler "
+                    "( m.5.11.2 ).  O zaman kuyunun iç yüzü ile kabin eşiği arasının 0,15 m sınırı "
+                    "kalkar ( m.5.2.5.3.1 c )."
+                ),
+            ),
             A(
                 "esik_arasi",
                 "Kabin eşiği – kat eşiği arası",

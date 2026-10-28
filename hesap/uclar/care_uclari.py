@@ -153,6 +153,8 @@ SECIMLER = {
     "md_kapi_duvar": frozenset(("oda_kapisi",)),
     "acil_pano_yani": frozenset(("acil_pano",)),
     "kapi_montaji": frozenset(("kabin_esigi", "kat_esigi", "kapi_kasasi")),
+    #  Kuyu – kabin eşiği 0,15 m'yi aşınca:  mekanik kilitli kabin kapısı ( m.5.2.5.3.1 c )
+    "kabin_kapisi_kilidi": frozenset(("kabin_esigi",)),
 }
 #  Sayı seçenekli seçim ( kapı genişliği ):  yalnız komşu seçenekler
 KOMSU_SECIM = {"kapi_genisligi": SECIMLER["kat_kapisi_tipi"]}

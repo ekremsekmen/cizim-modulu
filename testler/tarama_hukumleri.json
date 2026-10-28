@@ -892,11 +892,11 @@
   },
   "2000 üst=Dik duruş dip=Dik duruş Duvar boşluğuna v=1.0": {
    "durum": "ret",
-   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir:  kat kapısını kuyu içine alın ya da kabin kapısını mekanik kilitli yapın ( m.5.2.5.3.1 c — Kabin kapısı kilidi )."
   },
   "2000 üst=Dik duruş dip=Dik duruş Duvar boşluğuna v=1.6": {
    "durum": "ret",
-   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir:  kat kapısını kuyu içine alın ya da kabin kapısını mekanik kilitli yapın ( m.5.2.5.3.1 c — Kabin kapısı kilidi )."
   },
   "2000 üst=Dik duruş dip=Dik duruş Kuyu içine v=1.0": {
    "durum": "ret",
@@ -908,11 +908,11 @@
   },
   "2000 üst=Dik duruş dip=Yatarak Duvar boşluğuna v=1.0": {
    "durum": "ret",
-   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir:  kat kapısını kuyu içine alın ya da kabin kapısını mekanik kilitli yapın ( m.5.2.5.3.1 c — Kabin kapısı kilidi )."
   },
   "2000 üst=Dik duruş dip=Yatarak Duvar boşluğuna v=1.6": {
    "durum": "ret",
-   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir:  kat kapısını kuyu içine alın ya da kabin kapısını mekanik kilitli yapın ( m.5.2.5.3.1 c — Kabin kapısı kilidi )."
   },
   "2000 üst=Dik duruş dip=Yatarak Kuyu içine v=1.0": {
    "durum": "ret",
@@ -924,11 +924,11 @@
   },
   "2000 üst=Dik duruş dip=Çömelme Duvar boşluğuna v=1.0": {
    "durum": "ret",
-   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir:  kat kapısını kuyu içine alın ya da kabin kapısını mekanik kilitli yapın ( m.5.2.5.3.1 c — Kabin kapısı kilidi )."
   },
   "2000 üst=Dik duruş dip=Çömelme Duvar boşluğuna v=1.6": {
    "durum": "ret",
-   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir:  kat kapısını kuyu içine alın ya da kabin kapısını mekanik kilitli yapın ( m.5.2.5.3.1 c — Kabin kapısı kilidi )."
   },
   "2000 üst=Dik duruş dip=Çömelme Kuyu içine v=1.0": {
    "durum": "ret",
@@ -940,11 +940,11 @@
   },
   "2000 üst=Çömelme dip=Dik duruş Duvar boşluğuna v=1.0": {
    "durum": "ret",
-   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir:  kat kapısını kuyu içine alın ya da kabin kapısını mekanik kilitli yapın ( m.5.2.5.3.1 c — Kabin kapısı kilidi )."
   },
   "2000 üst=Çömelme dip=Dik duruş Duvar boşluğuna v=1.6": {
    "durum": "ret",
-   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir:  kat kapısını kuyu içine alın ya da kabin kapısını mekanik kilitli yapın ( m.5.2.5.3.1 c — Kabin kapısı kilidi )."
   },
   "2000 üst=Çömelme dip=Dik duruş Kuyu içine v=1.0": {
    "durum": "ret",
@@ -956,11 +956,11 @@
   },
   "2000 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.0": {
    "durum": "ret",
-   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir:  kat kapısını kuyu içine alın ya da kabin kapısını mekanik kilitli yapın ( m.5.2.5.3.1 c — Kabin kapısı kilidi )."
   },
   "2000 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.6": {
    "durum": "ret",
-   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir:  kat kapısını kuyu içine alın ya da kabin kapısını mekanik kilitli yapın ( m.5.2.5.3.1 c — Kabin kapısı kilidi )."
   },
   "2000 üst=Çömelme dip=Yatarak Kuyu içine v=1.0": {
    "durum": "çizildi",
@@ -972,11 +972,11 @@
   },
   "2000 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.0": {
    "durum": "ret",
-   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir:  kat kapısını kuyu içine alın ya da kabin kapısını mekanik kilitli yapın ( m.5.2.5.3.1 c — Kabin kapısı kilidi )."
   },
   "2000 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.6": {
    "durum": "ret",
-   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir."
+   "sebep": "Kuyu iç yüzü ile kabin eşiği arası 165 mm — TS EN 81-20 m.5.2.5.3.1 en çok 150 mm verir:  kat kapısını kuyu içine alın ya da kabin kapısını mekanik kilitli yapın ( m.5.2.5.3.1 c — Kabin kapısı kilidi )."
   },
   "2000 üst=Çömelme dip=Çömelme Kuyu içine v=1.0": {
    "durum": "çizildi",
