@@ -537,10 +537,12 @@ def _kapi_ve_aski(o, S, h):
         }
     aski.update(halat_adedi=h["halat_n"], halat_capi=h["halat_d"])
 
-    #  Ağırlık arkadayken "karşı ağırlığın karşısı" bir yan söylemez:  önce sağ,
-    #  gergi orada sığmıyorsa sol ( _regulator_yeri ).
+    #  "Karşı ağırlığın karşısı" tercih edilen yandır, zorunlu değil:  gergi orada
+    #  sığmıyorsa öbür kabin rayı denenir ( _regulator_yeri ).  Ağırlık arkadayken
+    #  önce sağ.  28 Eki'ye dek yandaki ağırlıkta denenmiyordu:  küçük kuyuda
+    #  karşıdaki gergi ağırlığı kuyudan taşırıyor, öbür yanda sığdığı hâlde ret.
     reg_yan = h["reg_yan"]
-    reg_yan_serbest = reg_yan == "Karşı ağırlığın karşısı" and ag_yeri == "Arka"
+    reg_yan_serbest = reg_yan == "Karşı ağırlığın karşısı"
     if reg_yan == "Karşı ağırlığın karşısı":
         reg_yan = "Sol" if ag_yeri == "Sağ" else "Sağ"
     #  Regülatör ile kabin halat bağlantısı aynı rayın başındadır:  boşsa
@@ -767,7 +769,7 @@ def _regulator_yeri(g, kaciklik_serbest=True, yan_serbest=False):
     öbür yanında ) gergiyi bir raya, tampona ya da duvara çarptırıyorsa ( 320
     kg kabinlerde ağırlık arka duvarı aşar ) çarpmayan en yakın yer seçilir:  öbür yan,
     sonra 200 · 360 · 440 ( gerginin oluk aralığına kırpılır ).  yan_serbest
-    ( ağırlık arkada, "karşı ağırlığın karşısı" ):  ilk ray çarpıyorsa öbür kabin rayı da denenir
+    ( "karşı ağırlığın karşısı" — ağırlık arkada ya da yanda ):  ilk ray çarpıyorsa öbür kabin rayı da denenir
     ( 12495-18:  sağ ray duvara 50 mm, eski 160'lık gergi ağırlığı duvara 7,5
     kalıyordu;  82'lik ağırlıkla sağ rayın önüne, −280'e iner ).
     Hiçbiri çarpmaktan kurtulmuyorsa varsayılan kalır ( çizim hatayı söyler )."""
