@@ -483,6 +483,11 @@ BILEREK_DEGISEN_VARSAYILAN = {
         "sığınma açıklıkları çizimden:  3.750'de 3.300'lük şasenin "
         "üst pateni kuyu tavanına giriyor ( kullanıcı kararı )",
     ),
+    "kabin_tampon_boyu": (
+        None,
+        "boşsa tipten ve hızdan:  hidrolikte YH kataloğu, 100 mm'lik eski varsayılan 1,6 m/s'de "
+        "173 mm'lik stroka sığmıyordu ( kullanıcı kararı 28 Eki )",
+    ),
     "acil_frenleme_a": (
         mukavemet_girdi.ACIL_FRENLEME_ASGARI,
         "EN 81-50 m.5.11.2.2.2 tabanı — referans proje de 0,5 kullanıyor ( kullanıcı kararı )",

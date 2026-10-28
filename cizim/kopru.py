@@ -454,6 +454,13 @@ def _dusey_alanlar(o, S, durak):
     #  KUYU DİBİ ZİNCİRİ:  kabin en alt durakta dururken kaide + tampon +
     #  çarpma arası + kabinin şase altı kuyu dibine eşittir.  Hesap kaideyi
     #  boşsa buradan alır ( cizimden );  girilmişse zincir kapanmalı.
+    #  TAMPONUN KURULAMAYAN DÜZENİ ( boş boy kurulamadı, yaylı tampon hızına
+    #  izin verilmiyor ):  hesabın tamamla'sı iletiyi kurar ( mukavemet_girdi.
+    #  _tampon_iletisi ), çizim aynısını söyler;  kaide boydan türediği için
+    #  ayrıca "girilmemiş" denmez.
+    if o.A.get("_tampon_iletisi"):
+        o.hata.append(o.A["_tampon_iletisi"])
+        return None
     KY, baba = (
         sayi("kuyu_dibi", "Kuyu dibi yüksekliği ( KY )"),
         sayi("kabin_tampon_baba", "Kabin tamponu baba yüksekliği"),

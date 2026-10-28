@@ -2616,12 +2616,21 @@ _GRUPLAR = (
                 "mm",
                 "sayi",
                 None,
-                100,
+                #  BOŞSA TİPTEN VE HIZDAN ( 28 Eki ):  eskiden her tipte 100 mm —
+                #  1,6 m/s hidrolikte 173 mm'lik strok 100 mm'lik tampona sığmıyor,
+                #  asansör reddediliyordu ( mukavemet_tablolari.tampon_kural_boyu )
+                None,
                 kaynak=KATALOG,
                 sozlesme=MUK,
+                opsiyonel=True,  # boşsa tipten ve hızdan;  kurulamazsa tamamla'nın iletisi
                 pozitif=True,  # 0'da strok kuralı kurulamıyor, hesap çöküyordu ( 17 Eki )
                 gelismis=True,
-                bilgi="Tamponun kendi boyu ( ezilmemiş hâlde ).",
+                bilgi=(
+                    "Tamponun kendi boyu ( ezilmemiş hâlde ).  Boşsa:  hidrolikte gereken stroku "
+                    "karşılayan en küçük YH modelinin boyu ( 1,6 m/s → YH52/175, 540 mm ), "
+                    "poliüretanda 100 mm, yaylıda strok 100 mm'ye sığdıkça 100 mm.  Kullandığınız "
+                    "tamponun boyu farklıysa onu yazın."
+                ),
             ),
             #  STROK BOŞSA TİPTEN VE HIZDAN ( 16 Eki, kullanıcı kararı ):  eskiden
             #  hızdan bağımsız 90 mm varsayılandı — 1,6 m/s hidrolikte çizim kuyu

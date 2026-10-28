@@ -336,6 +336,9 @@ def varsayilanlar():
     for _k in g.get("_kural") or {}:
         g[_k] = None
     g["agirlik_genisligi"] = None
+    #  Tampon boyu tipten ve hızdan ( poliüretanın 100'ü işaretsiz dolar ):
+    #  varsayılan projeninki hidrolik 1,6 m/s'lik asansöre taşınmasın
+    g["kabin_tampon_boyu"] = None
     #  Kaynak işaretleri de gider:  kalsaydı kullanıcının girdiği α raporda
     #  "ÇİZİMDEN" yazardı ( işaret varsayılandan girdiye taşınırdı ).
     g.pop("_cizimden", None)
@@ -357,6 +360,68 @@ def _kural_isareti(g, anahtar, kural):
     sanılmasın — 13 Eki:  Gy ve h boşken raporda "GİRİŞ" yazıyordu ).  Çizimden
     gelenlerin işareti _cizimden gibi."""
     g["_kural"] = {**(g.get("_kural") or {}), anahtar: kural}
+
+
+def _tampon_kurallari(g):
+    """BOŞ TAMPON BOYU VE STROKU tipten ve beyan hızından.
+
+    Boy:  hidrolikte gereken stroku karşılayan en küçük YH modeli, poliüretanda
+    100 mm ( mukavemet_tablolari.tampon_kural_boyu );  kurulamazsa boş kalır.
+    Strok ( ezilme ):  hesabın denetlediği bağıntının kendisi
+    ( mukavemet_tablolari.tampon_kural_stroku );  lineer olmayanda kurulu boyun
+    %90'ı — bu yüzden boydan sonra.  Ağırlık tamponu aynı tiptir, boyu boşsa
+    kabin tamponununki.  Kural da kurulamazsa ( hız geçersiz ) alan boş kalır,
+    doğrulama "boş bırakılamaz" der.  Kurulamayan düzenin iletisi
+    _tampon_iletisi:  çizim aynısını söyler ( kopru )."""
+
+    def _deger(k):  # girilen ya da sözleşmenin varsayılanı ( motor eksik girdiyle de çağrılır )
+        return ALAN[k][5] if bos_mu(g.get(k)) else g.get(k)
+
+    tip, v = _deger("tampon_tipi"), _deger("beyan_hizi")
+    if bos_mu(g.get("kabin_tampon_boyu")):
+        boy, yazi = mukavemet_tablolari.tampon_kural_boyu(tip, v)
+        g["kabin_tampon_boyu"] = boy
+        if boy is not None and yazi:
+            _kural_isareti(g, "kabin_tampon_boyu", yazi)
+    kb = g.get("kabin_tampon_boyu")
+    ab = kb if bos_mu(g.get("agirlik_tampon_boyu")) else g.get("agirlik_tampon_boyu")
+    for anahtar, boy in (("kabin_tampon_ezilme", kb), ("agirlik_tampon_ezilme", ab)):
+        if bos_mu(g.get(anahtar)):
+            s, kural = mukavemet_tablolari.tampon_kural_stroku(tip, v, boy)
+            if s is not None:
+                g[anahtar] = s
+                _kural_isareti(g, anahtar, kural)
+    ileti = _tampon_iletisi(g)
+    if ileti:
+        g["_tampon_iletisi"] = ileti
+    else:
+        g.pop("_tampon_iletisi", None)
+
+
+def _tampon_iletisi(g):
+    """Tamponun kurulamayan düzeni — hesap ve çizim ( kopru ) bu tek iletiyi
+    söyler;  yoksa None.
+        boy boş         kural kuramadı ( yaylıda strok 100'e sığmıyor, hidrolikte
+                        katalog yetmiyor )
+        yaylı > 1 m/s   kuraldan gelen strok boyu aşıyor:  sebep tiptir
+                        ( m.5.8.1.5 ), "boyunu girin" yanlış çare olurdu"""
+    tip, v = g.get("tampon_tipi"), g.get("beyan_hizi")
+    if bos_mu(g.get("kabin_tampon_boyu")):
+        return mukavemet_tablolari.bos_tampon_boyu_iletisi(tip, v)
+    if not (
+        mukavemet_tablolari.tampon(tip)[1]
+        and sayi_mi(v)
+        and v > mukavemet_tablolari.TAMPON_BIRIKTIRMELI_AZAMI_HIZ
+    ):
+        return None
+    kural = g.get("_kural") or {}
+    kb = g.get("kabin_tampon_boyu")
+    ab = kb if bos_mu(g.get("agirlik_tampon_boyu")) else g.get("agirlik_tampon_boyu")
+    for anahtar, boy in (("kabin_tampon_ezilme", kb), ("agirlik_tampon_ezilme", ab)):
+        ez = g.get(anahtar)
+        if anahtar in kural and sayi_mi(ez) and sayi_mi(boy) and ez > boy:
+            return "Tampon tipi:  " + mukavemet_tablolari.biriktirmeli_hiz_iletisi(v)
+    return None
 
 
 def _kottan(g):
@@ -456,22 +521,7 @@ def tamamla(g):
             g["kabin_paten_arasi"] = kh + alanlar.KABIN_PATEN_PAYI
             _kural_isareti(g, "kabin_paten_arasi", f"kabin iç yüksekliği + {alanlar.KABIN_PATEN_PAYI:g}")
 
-    #  TAMPON STROKU ( ezilme ):  boşsa tipten ve beyan hızından — hesabın
-    #  denetlediği bağıntının kendisi ( mukavemet_tablolari.tampon_kural_stroku );
-    #  lineer olmayanda kurulu boyun %90'ı.  Ağırlık tamponu aynı tiptir, boyu
-    #  boşsa kabin tamponununki.  Kural da kurulamazsa ( hız geçersiz ) alan boş
-    #  kalır, doğrulama "boş bırakılamaz" der.
-    def _deger(k):  # girilen ya da sözleşmenin varsayılanı ( motor eksik girdiyle de çağrılır )
-        return ALAN[k][5] if bos_mu(g.get(k)) else g.get(k)
-
-    _tip, _v, _kb = _deger("tampon_tipi"), _deger("beyan_hizi"), _deger("kabin_tampon_boyu")
-    _ab = _kb if bos_mu(g.get("agirlik_tampon_boyu")) else g.get("agirlik_tampon_boyu")
-    for _anahtar, _boy in (("kabin_tampon_ezilme", _kb), ("agirlik_tampon_ezilme", _ab)):
-        if bos_mu(g.get(_anahtar)):
-            _s, _kural = mukavemet_tablolari.tampon_kural_stroku(_tip, _v, _boy)
-            if _s is not None:
-                g[_anahtar] = _s
-                _kural_isareti(g, _anahtar, _kural)
+    _tampon_kurallari(g)
     _cd = kopru.cizimden({**{a[0]: a[5] for a in EK_ALANLAR}, **g})
     g.update(_cd)
     #  KAYNAK İŞARETİ:  çizimden gelen değer raporda "ÇİZİMDEN" yazar ( girilmiş
@@ -555,6 +605,9 @@ def _alan_turleri(g, atla):
             continue
         d = g.get(anahtar)
         if d is None or d == "":
+            #  Kaide boydan türer ( çizimden ):  boy boşsa sebebi _tampon_boyu söyler
+            if anahtar == "kabin_tampon_baba" and bos_mu(g.get("kabin_tampon_boyu")):
+                continue
             if anahtar not in OPSIYONEL_ALANLAR:
                 hata.append(f"{alan_adi(anahtar)}: boş bırakılamaz.")
             continue
@@ -695,6 +748,8 @@ def _tampon_ezilmesi(g, atla):
     #  bunu söyler:  kullanıcı o sayıyı yazmadı;  eksik olan tamponun boyudur
     #  ( ör. 1,6 m/s hidrolikte 173 mm strok, varsayılan boy 100 ) — program
     #  boy uydurmaz, kataloğundaki boy girilir.
+    if _tampon_iletisi(g):  # sebebi tip ya da kurulamayan boy:  _tampon_boyu söyler
+        return []
     kural = g.get("_kural") or {}
     hata = []
     _tb = g.get("kabin_tampon_boyu")
@@ -730,6 +785,20 @@ def _tampon_ezilmesi(g, atla):
                 "tampon en çok kendi boyu kadar kısalabilir." + ek
             )
     return hata
+
+
+def _tampon_boyu(g, atla):
+    """TAMPONUN KURULAMAYAN DÜZENİ ( _tampon_iletisi ):  boş boy kurulamadı ya da
+    yaylı tampon hızına izin verilmiyor.  Program boy uydurmaz;  ileti sebebi
+    söyler."""
+    if "kabin_tampon_boyu" in atla:
+        return []
+    ileti = _tampon_iletisi(g)
+    if ileti:
+        return [ileti]
+    return (
+        [f"{alan_adi('kabin_tampon_boyu')}: boş bırakılamaz."] if bos_mu(g.get("kabin_tampon_boyu")) else []
+    )
 
 
 def _fiziksel_sinirlar(g, atla):
@@ -1124,6 +1193,7 @@ def _halat_boyu(g, atla):
 _DENETIMLER = (
     _kot_tablosu,
     _alan_turleri,
+    _tampon_boyu,
     _bolenler,
     _tablo_butunlugu,
     _acil_frenleme,

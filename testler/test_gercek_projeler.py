@@ -98,22 +98,24 @@ class GercekProjeler(unittest.TestCase):
         onun da 100 üstünde ( 8 Eki:  patenler kirişlerin dışında — üst paten
         açıklığı 50'den −50'ye düştü, rayın ucu da yetmiyor ).  16 Eki:  hidrolik
         tamponun stroku boş — kuraldan 0,0674·v² = 68 mm ( eskiden 90 ):  kabinin
-        en üst konumu 22 mm alçaldı, bütün açıklıklar 22 mm arttı, ret aynı."""
+        en üst konumu 22 mm alçaldı, bütün açıklıklar 22 mm arttı, ret aynı.  28 Eki:
+        tampon boyu boş — hidrolikte YH51/80 ( 315 mm, eskiden 100 ):  ağırlık
+        kaidesi 300'de kaldığı için karşı ağırlık 215 mm yükseldi, ret aynı."""
         cizim, _g, b11 = self.S["1250 KG"]
         self.assertFalse(cizim["aktif"])
         self.assertEqual(
             cizim["hata"],
             [
                 "Karşı ağırlık en üst konumunda tavana çarpıyor:  karşı ağırlığın üst pateni tepesi "
-                "2753 mm, üstündeki en alt tavan kısmı ( makine şasesi ) 2665 mm ( son kattan )  "
-                "( ayrıca karşı ağırlık kasnağı ).",
+                "2968 mm, üstündeki en alt tavan kısmı ( makine şasesi ) 2665 mm ( son kattan )  "
+                "( ayrıca karşı ağırlık çerçevesi, karşı ağırlık kasnağı ).",
                 "Sığınma yüksekliği:  937 mm < 1000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 ).",
                 #  21 Eki:  0,50 m yalnız bölüm 11'de denetleniyordu, çizim de söyler
                 "Revizyon kutusu – kuyu tavanı:  -43 mm < 500 mm  ( TS EN 81-20 m.5.2.5.7.2 a ).",
                 "Üst paten – kuyu tavanı:  -28 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 b ).",
                 "Üst paten – rayın üst ucu:  57 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 ).",
                 "Korkuluk – kuyu tavanı:  -348 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 c ).",
-                "Karşı ağırlık üst pateni – rayın üst ucu:  -3 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 ).",
+                "Karşı ağırlık üst pateni – rayın üst ucu:  -218 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 ).",
             ],
         )
         self.assertTrue(
@@ -125,7 +127,7 @@ class GercekProjeler(unittest.TestCase):
             "( -28 < 100 mm )",
             "( -348 < 100 mm )",
             "( 57 < 100 mm )",
-            "( -3 < 100 mm )",
+            "( -218 < 100 mm )",
             "( -43 < 500 mm )",
             "tavana çarpıyor",
         ):
