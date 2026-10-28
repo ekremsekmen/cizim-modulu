@@ -303,6 +303,26 @@ class Tutarlilik(unittest.TestCase):
         A = _tam(_veri(regulator_kaciklik=None))
         self.assertEqual(kopru.cizim_girdisi(A)[0]["kuyu_dibi"]["regulator_kaciklik"], 280.0)
 
+    def test_regulator_karsida_sigmazsa_obur_yanda(self):
+        """ "Karşı ağırlığın karşısı" tercihtir:  yandaki ağırlıkta da gergi karşıda
+        sığmıyorsa öbür kabin rayına geçer ( 28 Eki:  küçük kuyuda karşıdaki gergi
+        ağırlığı kuyudan taşırıyordu, öbür yanda sığdığı hâlde ret ).  Yan
+        seçilmişse yerinde kalır, çizim sorunu söyler."""
+        from cizim import kuyu_dibi
+        from testler.altin_cizim import _standart
+
+        for yer, obur in (("Sağ", "Sol"), ("Sol", "Sağ")):
+            with self.subTest(yer=yer):
+                A = _tam(_standart(320, yer))
+                g = kopru.cizim_girdisi(A)[0]
+                self.assertEqual(g["kuyu_dibi"]["regulator_yan"], yer)
+                self.assertEqual([h for h in kuyu_dibi.yerlesim(g)["hata"] if "egülatör" in h], [])
+                v = _standart(320, yer)
+                v["asansorler"][0]["regulator_yani"] = obur
+                g = kopru.cizim_girdisi(_tam(v))[0]
+                self.assertEqual(g["kuyu_dibi"]["regulator_yan"], obur)
+                self.assertTrue([h for h in kuyu_dibi.yerlesim(g)["hata"] if "egülatör" in h])
+
 
 class Bolum11CizimdenOlculur(unittest.TestCase):
     """Hesabın bölüm 11'i ( sığınma alanları ve açıklıklar ) açıklıkları kuyunun

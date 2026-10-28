@@ -2763,7 +2763,8 @@ _GRUPLAR = (
                 gelismis=True,
                 bilgi=(
                     "Hız regülatörü halatının ve gergi kasnağının hangi kabin rayının yanından indiği.  "
-                    'Karşı ağırlık arkadaysa "karşısı" sağ yan sayılır.'
+                    'Karşı ağırlık arkadaysa "karşısı" sağ yan sayılır.  "Karşısı" tercihtir:  gergi '
+                    "orada sığmıyorsa program öbür kabin rayını dener."
                 ),
             ),
             A(

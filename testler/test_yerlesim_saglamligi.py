@@ -307,9 +307,17 @@ class Regulator(unittest.TestCase):
         self.assertEqual(g["kuyu_dibi"]["regulator_kaciklik"], 212)
         self.assertEqual([h for h in kuyu_dibi.yerlesim(g)["hata"] if "egülatör" in h], [])
         self.assertEqual([h for h in kuyu_ustu.yerlesim(g)["hata"] if "egülatör" in h], [])
-        #  Ø300'de oluğun en kısası 267:  ağırlık duvara 3 mm — yer yok, çizim söyler
-        #  ( eskiden kol öne dönüp rayın üstüne biniyordu )
+        #  Ø300'de oluğun en kısası 267:  karşıdaki ( sol ) rayda ağırlık duvara 3 mm —
+        #  yer yok ( eskiden kol öne dönüp rayın üstüne biniyordu ).  28 Eki'den beri
+        #  "karşısı" tercihtir:  gergi ağırlığın yanındaki sağ raya, −360'a geçer.
         g, _A, _h = duzen_girdisi(standart_istek(320))
+        self.assertEqual(
+            (g["kuyu_dibi"]["regulator_yan"], g["kuyu_dibi"]["regulator_kaciklik"]), ("Sağ", -360)
+        )
+        self.assertEqual([h for h in kuyu_dibi.yerlesim(g)["hata"] if "egülatör" in h], [])
+        self.assertEqual([h for h in kuyu_ustu.yerlesim(g)["hata"] if "egülatör" in h], [])
+        #  Yan seçilmişse yerinde kalır:  çizim sorunu söyler
+        g, _A, _h = duzen_girdisi(standart_istek(320, regulator_yani="Sol"))
         self.assertTrue(any("gergisinin ağırlığı" in h for h in kuyu_dibi.yerlesim(g)["hata"]))
 
     def test_girilen_yer_degismez(self):
