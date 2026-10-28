@@ -836,6 +836,94 @@ def tampon_kural_stroku(ad, v, boy):
     return math.ceil(round(s, 6)), f"{str(katsayi).replace('.', ',')} × v²{alt} — {madde}"
 
 
+#  BOŞ BIRAKILAN TAMPON BOYU ( 28 Eki, kullanıcı kararı ):  eskiden tipten ve
+#  hızdan bağımsız 100 mm varsayılandı.  Hidrolikte 1,6 m/s'de strok 173 mm:
+#  100 mm'lik tampon olamaz, program "ezilme > boy" deyip asansörü
+#  reddediyordu ( KONTEST K408 sahada çalışıyor ).  Piyasa kataloglarında
+#  hidrolik tamponun boyu strokun 2,6 – 3,9 katı ( piston stroku kadar dışarıda,
+#  silindir en az o kadar ):  araştırma cikti/arastirma/TAMPON_KATALOGU.md.
+#  Boy, gereken stroku karşılayan en küçük YH modelinden alınır ( Delco Oil
+#  Buffers Product Line 2021 — YH serisi:  her beyan hızı basamağına bir model,
+#  boyları Oleo / ETN'ninkilerle aynı aralıkta ).
+#
+#      model ,   strok ,  serbest boy  ( mm )
+HIDROLIK_TAMPONLAR = (
+    ("YH51/80", 80, 315),
+    ("YH52/175", 175, 540),
+    ("YH53/220", 220, 640),
+    ("YH54/280", 280, 775),
+    ("YH55/435", 435, 1125),
+)
+#  Kataloğu olmayan tiplerin boyu ( poliüretan;  yaylıda gereken strok bu boya
+#  sığdıkça ) — eskiden her tipin varsayılanı.
+TAMPON_VARSAYILAN_BOY = 100.0
+
+
+def hidrolik_tampon(v):
+    """Gereken stroku karşılayan en küçük hidrolik tampon ( model , strok , boy )
+    — katalogdaki en uzun strok da yetmiyorsa ( v > 2,5 m/s ) ya da hız
+    geçersizse None."""
+    s = tampon_gereken_stroku(TAMPON_TIPLERI_ADLARI[2], v)
+    if s is None:
+        return None
+    return next((t for t in HIDROLIK_TAMPONLAR if t[1] >= s), None)
+
+
+def tampon_kural_boyu(ad, v):
+    """BOŞ BIRAKILAN TAMPON BOYU — ( mm , kuralın yazısı ) ya da ( None , ileti ).
+
+    enerji yutmalı ( hidrolik )   gereken stroku karşılayan en küçük YH
+                                  modelinin boyu ( 1,6 m/s → YH52/175 , 540 )
+    lineer olmayan ( poliüretan ) 100 mm ( yazı None:  eskisi gibi varsayılan )
+    lineer ( yaylı )              gereken strok 100 mm'ye sığdıkça 100;
+                                  sığmıyorsa boy girilmeli.  1 m/s üstünde
+                                  100:  tip uygun değil ( m.5.8.1.5 ), daha
+                                  uzun tampon çare değildir"""
+    _ad, biriktirmeli, katsayi = tampon(ad)
+    if katsayi is None:
+        return TAMPON_VARSAYILAN_BOY, None
+    s = tampon_gereken_stroku(ad, v)
+    if s is None:  # hız geçersiz:  doğrulama söyler
+        return TAMPON_VARSAYILAN_BOY, None
+    hiz = str(v).replace(".", ",")
+    if biriktirmeli:
+        #  Hızın üstünde tip zaten uygun değil ( m.5.8.1.5 ):  boy eskisi gibi;
+        #  sebebi strok denetimi ya da tamponların bölümü söyler
+        if s <= TAMPON_VARSAYILAN_BOY or v > TAMPON_BIRIKTIRMELI_AZAMI_HIZ:
+            return TAMPON_VARSAYILAN_BOY, None
+        return None, (
+            f"yaylı tamponda {hiz} m/s için strok en az {math.ceil(round(s, 6))} mm;  programın yaylı "
+            f"tampon kataloğu yok, {TAMPON_VARSAYILAN_BOY:g} mm'lik varsayılan yetmez — kullandığınız "
+            "tamponun boyunu ( kataloğundan ) girin."
+        )
+    t = hidrolik_tampon(v)
+    if t is None:
+        en = HIDROLIK_TAMPONLAR[-1]
+        return None, (
+            f"hidrolik tamponda {hiz} m/s için strok en az {math.ceil(round(s, 6))} mm;  programın "
+            f"kataloğundaki en uzun tampon ( {en[0]} , strok {en[1]} ) yetmez — kullandığınız tamponun "
+            "boyunu ( kataloğundan ) girin."
+        )
+    return float(t[2]), f"{t[0]} — strok {t[1]} mm, gereken {math.ceil(round(s, 6))} ( YH serisi kataloğu )"
+
+
+def bos_tampon_boyu_iletisi(ad, v):
+    """Boş kabin tamponu boyu kurulamıyorsa iletisi ( hesap da çizim de bunu
+    söyler ), kuruluyorsa None."""
+    boy, ileti = tampon_kural_boyu(ad, v)
+    return None if boy is not None or not ileti else "Kabin tamponu uzunluğu boş:  " + ileti
+
+
+def biriktirmeli_hiz_iletisi(v):
+    """Enerji biriktirmeli tampon beyan hızının üstünde:  tampon boyu / stroku
+    çare değildir, tip değişmeli."""
+    return (
+        f"enerji biriktirmeli ( yaylı / poliüretan ) tampon {str(v).replace('.', ',')} m/s'de "
+        f"kullanılamaz — en çok {TAMPON_BIRIKTIRMELI_AZAMI_HIZ:g} m/s ( TS EN 81-20 m.5.8.1.5 );  "
+        "hidrolik tampon seçin."
+    )
+
+
 # =====================================================================
 #  SIĞINMA HACMİ TİPLERİ   ( TS EN 81-20 m.5.2.5.7.1 · m.5.2.5.8.1 )
 # =====================================================================
