@@ -4,15 +4,6 @@
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 4
-   },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
    },
@@ -21,17 +12,8 @@
    }
   },
   "1000 Arka MD {'aski_orani': 1}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 3
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 4
    },
    "makine_dairesi": {
     "maske_kenar_siliyor": 1,
@@ -39,29 +21,11 @@
    }
   },
   "1000 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
-   },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1000 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
-   },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
@@ -69,15 +33,6 @@
   "1000 Sağ MD {'aski_orani': 1}": {
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
-   },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -119,32 +74,14 @@
    }
   },
   "1000 Sol MD {'aski_duzeni': 'Kabin altı'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1000 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
-   },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
@@ -152,15 +89,6 @@
   "1000 Sol MD {'aski_orani': 1}": {
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
-   },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -211,17 +139,8 @@
    "kabin_ustu": {
     "maske_kenar_siliyor": 2
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 4
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -231,49 +150,22 @@
    }
   },
   "1275 Arka MD {'aski_orani': 1}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 3
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 4
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
-   },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
@@ -282,17 +174,8 @@
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -340,32 +223,14 @@
    }
   },
   "1275 Sol MD {'aski_duzeni': 'Kabin altı'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1275 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
-   },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
@@ -374,17 +239,8 @@
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -436,17 +292,8 @@
     "maske_kenar_siliyor": 1,
     "maske_olcu_siliyor": 3
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 4
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -456,48 +303,21 @@
    }
   },
   "1600 Arka MD {'aski_orani': 1}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 3
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 4
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1600 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
-   },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1600 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
@@ -507,18 +327,9 @@
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1,
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -566,32 +377,14 @@
    }
   },
   "1600 Sol MD {'aski_duzeni': 'Kabin altı'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1600 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
-   },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
@@ -600,17 +393,8 @@
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -661,18 +445,9 @@
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1,
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 4
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -682,17 +457,8 @@
    }
   },
   "2000 Arka MD {'aski_orani': 1}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 3
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 4
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
@@ -702,15 +468,6 @@
    "kapi_kesiti": {
     "yazi_cizgisinden_kopuk": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
-   },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
@@ -719,17 +476,8 @@
    "kapi_kesiti": {
     "yazi_cizgisinden_kopuk": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
@@ -742,18 +490,9 @@
    "kapi_kesiti": {
     "yazi_cizgisinden_kopuk": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1,
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -816,15 +555,6 @@
    "kapi_kesiti": {
     "yazi_cizgisinden_kopuk": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
-   },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
@@ -832,15 +562,6 @@
   "2000 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
    "kapi_kesiti": {
     "yazi_cizgisinden_kopuk": 1
-   },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
@@ -852,15 +573,6 @@
    },
    "kapi_kesiti": {
     "yazi_cizgisinden_kopuk": 1
-   },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -917,15 +629,6 @@
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 4
-   },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
    },
@@ -934,17 +637,8 @@
    }
   },
   "2500 Arka MD {'aski_orani': 1}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 3
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 4
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
@@ -954,17 +648,8 @@
    "kapi_kesiti": {
     "yazi_cizgisinden_kopuk": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
@@ -973,15 +658,6 @@
   "2500 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
    "kapi_kesiti": {
     "yazi_cizgisinden_kopuk": 1
-   },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
@@ -994,17 +670,8 @@
    "kapi_kesiti": {
     "yazi_cizgisinden_kopuk": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -1067,17 +734,8 @@
    "kapi_kesiti": {
     "yazi_cizgisinden_kopuk": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
@@ -1086,15 +744,6 @@
   "2500 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
    "kapi_kesiti": {
     "yazi_cizgisinden_kopuk": 1
-   },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
@@ -1106,15 +755,6 @@
    },
    "kapi_kesiti": {
     "yazi_cizgisinden_kopuk": 1
-   },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -1174,52 +814,25 @@
    }
   },
   "450 Arka MD {'aski_orani': 1}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1,
     "maske_olcu_siliyor": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 3
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 4
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "450 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "yazi_cizgisinden_kopuk": 3
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "450 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
@@ -1229,17 +842,8 @@
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -1293,34 +897,16 @@
    }
   },
   "450 Sol MD {'aski_duzeni': 'Kabin altı'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "yazi_cizgisinden_kopuk": 3
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "450 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
@@ -1330,17 +916,8 @@
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -1394,18 +971,9 @@
    }
   },
   "630 Arka MD {'aski_orani': 1}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1,
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 3
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 4
    },
    "makine_dairesi": {
     "maske_kenar_siliyor": 1,
@@ -1413,32 +981,14 @@
    }
   },
   "630 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "630 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
-   },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
@@ -1446,15 +996,6 @@
   "630 Sağ MD {'aski_orani': 1}": {
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
-   },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -1502,32 +1043,14 @@
    }
   },
   "630 Sol MD {'aski_duzeni': 'Kabin altı'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "630 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
-   },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
@@ -1535,15 +1058,6 @@
   "630 Sol MD {'aski_orani': 1}": {
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
-   },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -1595,18 +1109,9 @@
     "maske_kenar_siliyor": 2,
     "maske_olcu_siliyor": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1,
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 4
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -1616,52 +1121,25 @@
    }
   },
   "800 Arka MD {'aski_orani': 1}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1,
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 3
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 4
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "800 Sağ MD {'aski_duzeni': 'Kabin altı'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "800 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
@@ -1671,18 +1149,9 @@
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1,
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 4
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -1736,36 +1205,22 @@
    }
   },
   "800 Sol MD {'aski_duzeni': 'Kabin altı'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
    },
    "kuyu_kesiti_on": {
-    "halat_betonda": 6,
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "800 Sol MD {'aski_duzeni': 'Kabin üstü'}": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
    },
    "kuyu_kesiti_on": {
-    "halat_betonda": 6,
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
@@ -1775,19 +1230,12 @@
    "kabin_ustu": {
     "maske_kenar_siliyor": 1
    },
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1,
     "maske_olcu_siliyor": 1
    },
    "kuyu_kesiti_on": {
-    "halat_betonda": 4,
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 2
    },
    "kuyu_plani": {
     "maske_kenar_siliyor": 1
@@ -1855,136 +1303,64 @@
  },
  "diger": {
   "1275 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.0": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.6": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 üst=Çömelme dip=Yatarak Kuyu içine v=1.0": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 üst=Çömelme dip=Yatarak Kuyu içine v=1.6": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.0": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.6": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 üst=Çömelme dip=Çömelme Kuyu içine v=1.0": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 üst=Çömelme dip=Çömelme Kuyu içine v=1.6": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
@@ -3106,1129 +2482,503 @@
  },
  "oda": {
   "1275 Sağ y=-1000 kapı=Arka pano=Sağ tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 Sağ y=-1000 kapı=Arka pano=Sağ tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 Sağ y=-1000 kapı=Ön pano=Sol tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "1275 Sağ y=-1000 kapı=Ön pano=Sol tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "1275 Sağ y=-2200 kapı=Arka pano=Sağ tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 Sağ y=-2200 kapı=Arka pano=Sağ tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 Sağ y=-2200 kapı=Sağ pano=Arka tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1275 Sağ y=-2200 kapı=Sağ pano=Arka tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1275 Sağ y=-2200 kapı=Sol pano=Ön tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "1275 Sağ y=-2200 kapı=Sol pano=Ön tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "1275 Sağ y=-2200 kapı=Ön pano=Sol tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "1275 Sağ y=-2200 kapı=Ön pano=Sol tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "1275 Sağ y=None kapı=Arka pano=Sağ tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 Sağ y=None kapı=Arka pano=Sağ tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "1275 Sağ y=None kapı=Sağ pano=Arka tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1275 Sağ y=None kapı=Sağ pano=Arka tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1275 Sağ y=None kapı=Sol pano=Ön tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "1275 Sağ y=None kapı=Sol pano=Ön tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "1275 Sağ y=None kapı=Ön pano=Sol tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "1275 Sağ y=None kapı=Ön pano=Sol tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "1275 Sol y=-1000 kapı=Arka pano=Sağ tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1275 Sol y=-1000 kapı=Arka pano=Sağ tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1275 Sol y=-1000 kapı=Ön pano=Sol tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "1275 Sol y=-1000 kapı=Ön pano=Sol tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "1275 Sol y=-2200 kapı=Arka pano=Sağ tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1275 Sol y=-2200 kapı=Arka pano=Sağ tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1275 Sol y=-2200 kapı=Sağ pano=Arka tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "1275 Sol y=-2200 kapı=Sağ pano=Arka tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "1275 Sol y=-2200 kapı=Sol pano=Ön tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "1275 Sol y=-2200 kapı=Sol pano=Ön tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "1275 Sol y=-2200 kapı=Ön pano=Sol tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "1275 Sol y=-2200 kapı=Ön pano=Sol tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "1275 Sol y=None kapı=Arka pano=Sağ tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1275 Sol y=None kapı=Arka pano=Sağ tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1275 Sol y=None kapı=Sağ pano=Arka tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1275 Sol y=None kapı=Sağ pano=Arka tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "1275 Sol y=None kapı=Sol pano=Ön tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "1275 Sol y=None kapı=Sol pano=Ön tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "1275 Sol y=None kapı=Ön pano=Sol tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "1275 Sol y=None kapı=Ön pano=Sol tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "630 Sağ y=-1000 kapı=Arka pano=Sağ tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "630 Sağ y=-1000 kapı=Arka pano=Sağ tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "630 Sağ y=-1000 kapı=Ön pano=Sol tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "630 Sağ y=-1000 kapı=Ön pano=Sol tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "630 Sağ y=-2200 kapı=Arka pano=Sağ tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "630 Sağ y=-2200 kapı=Arka pano=Sağ tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "630 Sağ y=-2200 kapı=Sol pano=Ön tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "630 Sağ y=-2200 kapı=Sol pano=Ön tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "630 Sağ y=-2200 kapı=Ön pano=Sol tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "630 Sağ y=-2200 kapı=Ön pano=Sol tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "630 Sağ y=None kapı=Arka pano=Sağ tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "630 Sağ y=None kapı=Arka pano=Sağ tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 3
    }
   },
   "630 Sağ y=None kapı=Ön pano=Sol tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
    },
    "kuyu_kesiti_on": {
-    "halat_betonda": 6,
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "630 Sağ y=None kapı=Ön pano=Sol tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
    },
    "kuyu_kesiti_on": {
-    "halat_betonda": 6,
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 1
    }
   },
   "630 Sol y=-1000 kapı=Arka pano=Sağ tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "630 Sol y=-1000 kapı=Arka pano=Sağ tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "630 Sol y=-1000 kapı=Ön pano=Sol tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "630 Sol y=-1000 kapı=Ön pano=Sol tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "630 Sol y=-2200 kapı=Arka pano=Sağ tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "630 Sol y=-2200 kapı=Arka pano=Sağ tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "630 Sol y=-2200 kapı=Sağ pano=Arka tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "630 Sol y=-2200 kapı=Sağ pano=Arka tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "630 Sol y=-2200 kapı=Sol pano=Ön tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "630 Sol y=-2200 kapı=Sol pano=Ön tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "630 Sol y=-2200 kapı=Ön pano=Sol tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "630 Sol y=-2200 kapı=Ön pano=Sol tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "630 Sol y=None kapı=Arka pano=Sağ tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "630 Sol y=None kapı=Arka pano=Sağ tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    },
    "makine_dairesi": {
     "maske_olcu_siliyor": 2
    }
   },
   "630 Sol y=None kapı=Ön pano=Sol tabliye=1500": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   },
   "630 Sol y=None kapı=Ön pano=Sol tabliye=600": {
-   "kasnak_duzeni": {
-    "halat_betonda": 2
-   },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_kesiti_on": {
-    "halat_betonda": 6
-   },
-   "kuyu_kesiti_yan": {
-    "halat_betonda": 3
    }
   }
  }

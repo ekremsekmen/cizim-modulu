@@ -17,6 +17,7 @@ kesitte daire ).
 
 from cizim import izli
 from cizim import eleman
+from cizim import geometri
 from cizim import uslup
 from cizim import arka_aski
 from cizim import makine
@@ -243,6 +244,47 @@ def kot_isareti(e, u, z, metin, K, yon=1.0):
 
 def kutu_(el):
     return (el["x"], el["y"], el["x"] + el["g"], el["y"] + el["d"])
+
+
+def betondaki_halati_gizle(e):
+    """Halatın kesilen betonun ( tarama ) içinde kalan parçası görünmez kenardır:
+    kesik çizgiyle ( GIZLI ) çizilir — ISO 128.  Halat döşemeyi düzlemin ardındaki
+    bir delikten geçer;  kesit yüzünün içinden düz çizgiyle geçiyordu ( kalite
+    denetimi 26 Eki, F5:  makine daireli 140 düzenin hepsinde ).  Parçalar adını
+    ve bakış derinliğini taşır.  Yerinde değiştirir."""
+    beton = [kutu_(x) for x in e if x["tip"] == "tarama"]
+    if not beton:
+        return
+    out = []
+    for x in e:
+        if not (x["tip"] == "cizgi" and x.get("katman") == "HALAT"):
+            out.append(x)
+            continue
+        s = (x["x1"], x["y1"], x["x2"], x["y2"])
+        icerde = sorted(a for a in (geometri.kutudaki_aralik(s, b) for b in beton) if a)
+        birlesik = []
+        for t0, t1 in icerde:
+            if birlesik and t0 <= birlesik[-1][1] + 1e-9:
+                birlesik[-1] = (birlesik[-1][0], max(birlesik[-1][1], t1))
+            else:
+                birlesik.append((t0, t1))
+        if not birlesik:
+            out.append(x)
+            continue
+        sinirlar, t = [], 0.0
+        for t0, t1 in birlesik:
+            sinirlar += [(t, t0, "HALAT"), (t0, t1, "GIZLI")]
+            t = t1
+        sinirlar.append((t, 1.0, "HALAT"))
+        for t0, t1, katman in sinirlar:
+            if t1 - t0 < 1e-9:
+                continue
+            p = dict(x)
+            p["katman"] = katman
+            p["x1"], p["y1"] = s[0] + (s[2] - s[0]) * t0, s[1] + (s[3] - s[1]) * t0
+            p["x2"], p["y2"] = s[0] + (s[2] - s[0]) * t1, s[1] + (s[3] - s[1]) * t1
+            out.append(p)
+    e[:] = out
 
 
 def plan_parcalari(KD, g):
