@@ -987,10 +987,14 @@ def _olculer(g, Y):
     t1, t2 = Y["ag_teget"][1], Y["ag_teget2"][1]
     ys = sorted({0.0, D, t1, t2, Y["ag_y"], Y["ry"]})
     #  Sağdaki zincirin ölçtüğü aralık solda yazılmaz ( ISO 129-1:  her ölçü bir
-    #  kez — 13 Eki;  iki yanda da ray ekseniyle duvar arası vardı )
-    sol = [
-        (a, b) for a, b in zip(ys, ys[1:]) if not any(abs(a - p) < 0.5 and abs(b - q) < 0.5 for p, q in sag)
-    ]
+    #  kez — 13 Eki;  iki yanda da ray ekseniyle duvar arası vardı ) — yalnız
+    #  zincirin UCUNDAYSA:  ortadaki aralık atılınca zincir kopuyordu ( 29 Eki
+    #  rastgele tarama:  0 · 490 · 690 · 740 | 890 · 2400 ).
+    sol = list(zip(ys, ys[1:]))
+    while sol and any(abs(sol[0][0] - p) < 0.5 and abs(sol[0][1] - q) < 0.5 for p, q in sag):
+        sol.pop(0)
+    while sol and any(abs(sol[-1][0] - p) < 0.5 and abs(sol[-1][1] - q) < 0.5 for p, q in sag):
+        sol.pop()
     e += [eleman.olcu("dusey", (0, a), (0, b), -ds - 120) for a, b in sol]
     #  Acil pano çalışma alanı  ( m.5.2.6.3.2.1 a )
     ca = Y["calisma"]

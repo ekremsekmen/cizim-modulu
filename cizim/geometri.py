@@ -15,6 +15,7 @@ başlıyor, sol rayın yüzü 405'te bitiyor → 1550 = DBG. )  Ray, bu yüzden
 DUVARA DOĞRU kendi yüksekliği ( h ) kadar uzanır.
 """
 
+import collections
 import contextlib
 import math
 import re
@@ -1129,8 +1130,16 @@ def _kabin_rayi_konsolu(P, yon, arka):
         e.append(kol)
     else:
         plaka["bicim"] = cift
-    #  TIRNAKLAR:  rayın tabanını ray konsolunun dik ayağına bastırır
-    return e + _tirnaklar(arka, ry, kr["b"], kr["h"], -yon, parcalar.konsol_tipi(kr["b"])[3], yatay=True)
+    #  TIRNAKLAR:  rayın tabanını ray konsolunun dik ayağına bastırır;  somun
+    #  sacın arkasında.  Boşluk somuna yetmiyorsa ( dar boşlukta tek sac —
+    #  eşik 0, 15 Eki ) cıvata sacın saplamasıdır, somun çizilmez:  29 Eki
+    #  rastgele taramada ray arkası duvardan 13 mm, somun duvara 5 mm giriyordu.
+    tirnak = _tirnaklar(arka, ry, kr["b"], kr["h"], -yon, parcalar.konsol_tipi(kr["b"])[3], yatay=True)
+    if tirnak and (
+        tirnak[0]["x"] < duvar_x - 1e-6 if yon < 0 else tirnak[0]["x"] + tirnak[0]["g"] > duvar_x + 1e-6
+    ):
+        tirnak = _tirnaklar(arka, ry, kr["b"], kr["h"], -yon, None, yatay=True)
+    return e + tirnak
 
 
 def _aski(P):
@@ -2125,16 +2134,27 @@ def tekrarlari_at(e):
     ( 13 Eki:  gerçek 800 KG kuyu planında üst iki sırada iki "400" ).  Kimlikli
     ölçü kalır:  ölçüye tıklama onu tanır;  iki ayrı parçanın ölçüsü rastlantıyla
     çakışabilir ( ray civatası ile askı kaçıklığı ).  Aynı aralıkta yalnız
-    kimliksizler varsa ilki kalır."""
-    gruplar = {}
+    kimliksizler varsa ilki kalır.  Kendi zincirinin ORTASINDAKİ ölçü atılmaz:
+    iki yanında aynı sıradan ölçü varken atılınca zincir kopuyordu ( 29 Eki
+    rastgele tarama — kuyu üstü:  0 · 490 · 690 · 740 | 890 · 2400 );  ucundaki
+    tekrar eskisi gibi atılır."""
+    gruplar, uclar = {}, collections.Counter()
     for el in e:
         if el["tip"] == "olcu":
             gruplar.setdefault(olcu_araligi(el), []).append(el)
+            yon, a, b = olcu_araligi(el)
+            for u in (a, b):
+                uclar[(yon, round(el["kot"], 3), u)] += 1
+
+    def ortada(o):
+        yon, a, b = olcu_araligi(o)
+        return all(uclar[(yon, round(o["kot"], 3), u)] >= 2 for u in (a, b))
+
     at = set()
     for liste in gruplar.values():
         kimlikli = [o for o in liste if o.get("ad")]
         kalan = kimlikli or liste[:1]
-        at |= {id(o) for o in liste if not o.get("ad") and all(o is not k for k in kalan)}
+        at |= {id(o) for o in liste if not o.get("ad") and all(o is not k for k in kalan) and not ortada(o)}
     return [el for el in e if id(el) not in at]
 
 
