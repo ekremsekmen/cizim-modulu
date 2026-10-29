@@ -84,6 +84,33 @@ def _duvar(e, u, z, w, h, ad=None):
     e.append(el)
 
 
+def _delikten_gecer(B, d):
+    """Kesit düzlemi plandaki deliği ( kutu ) kesiyor mu."""
+    eksen, c, _yon = B.kesit
+    lo, hi = (d[0], d[2]) if eksen == "x" else (d[1], d[3])
+    return lo < c < hi
+
+
+def _tabliye(e, B, M, u0, z, w, h, oda):
+    """Kuyu tavanı döşemesi ( makine dairelide tabliye ).  Kesit düzlemi bir
+    halat deliğinden geçiyorsa döşeme orada kesilmez:  delik boşluk olarak
+    görünür ( kenarları dolu ).  Öbür delikler düzlemin ardındadır — _oda kesik
+    çizer, içlerinden geçen halat da kesik ( betondaki_halati_gizle )."""
+    if not oda:
+        _duvar(e, u0, z, w, h)
+        return
+    acik = sorted(
+        (max(u0, a), min(u0 + w, b))
+        for a, b in (B.aralik(d) for _, d in M["MD"]["delikler"] if _delikten_gecer(B, d))
+        if min(u0 + w, b) > max(u0, a)
+    )
+    a = u0
+    for d0, d1 in acik + [(u0 + w, u0 + w)]:
+        if d0 - a > 1e-6:
+            _duvar(e, a, z, d0 - a, h, "tabliye")
+        a = max(a, d1)
+
+
 def _zincir(e, kot, noktalar, metinler=None):
     """Düşey zincir.  metinler:  { sıra:  yazı ya da ( yazı , kimlik ) }."""
     metinler = metinler or {}
@@ -162,7 +189,8 @@ def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
     if md["kapi_duvar"] == uzak_duvar:
         B.kutu_ardinda(e, "KAPI", kp, zemin(kp), zemin(kp) + kh, "oda_kapisi", TB["izi"], zt)
     for _, d in MD["delikler"]:
-        B.kutu(e, "GIZLI", d, tv, zt, "doseme_deligi")
+        if not _delikten_gecer(B, d):  # düzlemdeki delik tabliyede boşluk ( _tabliye )
+            B.kutu(e, "GIZLI", d, tv, zt, "doseme_deligi")
     u0, u1 = B.aralik(dis)
     e.append(
         eleman.ad(eleman.yazi((u0 + u1) / 2.0, ztv - 250 * K, "MAKİNE DAİRESİ", uslup.NORMAL * K), "oda_adi")
@@ -473,7 +501,9 @@ def _bitir(e, g, Y, kt, K, alt_ust, ust_alt, bosluk_h, duvarlar, azami):
     """Yazıları yerleştirir, plan seviyelerini ekler.  Çizim `azami`
     yüksekliğe ( çerçevesiyle, çizim birimi ) sığmıyorsa ara katları kırar:
     alttan ve üstten SIĞAN EN ÇOK durak kalır ( en az birer ).  Kırık
-    hareketli parçalara ( kabin, karşı ağırlık ) değmez."""
+    hareketli parçalara ( kabin, karşı ağırlık ) değmez.  Halatın betondaki
+    parçası önce kesik olur ( kesit_parcalari.betondaki_halati_gizle )."""
+    kesit_parcalari.betondaki_halati_gizle(e)
     sev = plan_seviyeleri(g, Y, kt)
 
     def son(e_, m=None, ic=None):
@@ -587,7 +617,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     _duvar(e, -don, z, don, ust - z)
     _duvar(e, D, taban - dos, dar, ust - (taban - dos))
     _duvar(e, 0, taban - dos, D, dos)
-    _duvar(e, 0, tavan, D, dos_t, "tabliye" if oda else None)
+    _tabliye(e, B, M, 0, tavan, D, dos_t, oda)
     #  Kuyu tavanının en alt kısmı ( kiriş payı — hesap programının "kuyu tavanı
     #  payı" ):  bir KABULDÜR, beton değil;  kesik sınır çizgisi ( eskiden taralı
     #  150 mm bir katman gibi çiziliyor, tavan iki kat kalın görünüyordu ).
@@ -686,7 +716,7 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     _duvar(e, -dg, taban - dos, dg, ust - (taban - dos))
     _duvar(e, G, taban - dos, ds, ust - (taban - dos))
     _duvar(e, 0, taban - dos, G, dos)
-    _duvar(e, 0, tavan, G, dos_t, "tabliye" if oda else None)
+    _tabliye(e, B, M, 0, tavan, G, dos_t, oda)
     e.append(eleman.ad(eleman.cizgi("GIZLI", 0, Y["tavan_alti"] + H, G, Y["tavan_alti"] + H), "tavan_kirisi"))
     #  Kat kapıları ön duvarda ( görünüş ):  kasa, boşluk, kanat ayrımı, durak numarası
     kp = g["kapi"]

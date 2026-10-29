@@ -230,3 +230,62 @@ class KaliteKarnesi(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HalatBetonda(unittest.TestCase):
+    """KALİTE PLANI 5. adım ( F5 ):  halat kesilen betonun içinden düz çizgiyle
+    geçmez.  Kuyu kesitlerinde betonun içindeki parçası kesik ( görünmeyen kenar —
+    ISO 128 ), kesit düzlemindeki delikte döşeme açılır;  kasnak düzenlemesinde
+    döşeme halatların deliklerinde kesilir.  Eskiden makine daireli bütün
+    düzenlerde 1.482 bulgu ( tarama ).  Halat bölünür ama kısalmaz."""
+
+    DUZENLER = (
+        (630, "Sağ", {}),
+        (630, "Sol", {"aski_duzeni": "Kabin üstü"}),
+        (1000, "Arka", {"aski_duzeni": "Kabin üstü"}),
+        (630, "Sağ", {"aski_orani": 1}),
+        (1275, "Sol", {}),
+    )
+
+    @staticmethod
+    def _boy(e, katmanlar):
+        return sum(
+            ((x["x2"] - x["x1"]) ** 2 + (x["y2"] - x["y1"]) ** 2) ** 0.5
+            for x in e
+            if x["tip"] == "cizgi" and x.get("katman") in katmanlar and x.get("ad") == "aski_halati"
+        )
+
+    def test_halat_betondan_gecmez_ve_kisalmaz(self):
+        from unittest import mock
+
+        from cizim import kasnak_duzeni, kuyu_kesiti
+        from testler.test_yerlesim_saglamligi import duzen_girdisi, standart_istek
+
+        for Q, yer, ek in self.DUZENLER:
+            g, _A, _h = duzen_girdisi(standart_istek(Q, False, yer, **ek))
+            for ad, ciz in (
+                ("A-A", kuyu_kesiti.yan_kesit),
+                ("B-B", kuyu_kesiti.on_kesit),
+                ("kasnak", kasnak_duzeni.ciz),
+            ):
+                with self.subTest(Q=Q, yer=yer, ek=ek, cizim=ad):
+                    e = ciz(g)
+                    self.assertEqual(karne._halatlar(e, 1.0), [])
+                    if ad == "kasnak":
+                        continue
+                    #  Bölünmeden önceki halat ( gizleme kapalı ) ile aynı boy
+                    with mock.patch.object(kesit_parcalari, "betondaki_halati_gizle", lambda e: None):
+                        eski = ciz(g)
+                    self.assertAlmostEqual(
+                        self._boy(e, ("HALAT", "GIZLI")), self._boy(eski, ("HALAT",)), places=3
+                    )
+
+    def test_bolme_cizginin_ucunu_ve_adini_korur(self):
+        e = [
+            eleman.dikdortgen("TARAMA", 0, 100, 500, 200, tip="tarama"),
+            eleman.ad(eleman.cizgi("HALAT", 250, 0, 250, 400), "aski_halati"),
+        ]
+        kesit_parcalari.betondaki_halati_gizle(e)
+        parcalar = [(x["katman"], x["y1"], x["y2"]) for x in e if x["tip"] == "cizgi"]
+        self.assertEqual(parcalar, [("HALAT", 0, 100), ("GIZLI", 100, 300), ("HALAT", 300, 400)])
+        self.assertTrue(all(x.get("ad") == "aski_halati" for x in e if x["tip"] == "cizgi"))

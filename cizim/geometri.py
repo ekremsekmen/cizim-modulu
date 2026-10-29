@@ -1985,8 +1985,9 @@ def kenar_kesisir(s, kutu, pay=0.0):
     return True
 
 
-def kutudaki_boy(s, kutu):
-    """Doğru parçasının kutunun içinde kalan boyu ( maskenin sildiği çizgi )."""
+def kutudaki_aralik(s, kutu):
+    """Doğru parçasının ( ax, ay, bx, by ) kutunun içinde kalan kısmı:  parametre
+    aralığı ( t0 , t1 ), 0 ≤ t0 < t1 ≤ 1 — kutuya girmiyorsa None."""
     x0, y0, x1, y1 = kutu
     ax, ay, bx, by = s
     dx, dy = bx - ax, by - ay
@@ -1994,7 +1995,7 @@ def kutudaki_boy(s, kutu):
     for p, q in ((-dx, ax - x0), (dx, x1 - ax), (-dy, ay - y0), (dy, y1 - ay)):
         if abs(p) < 1e-12:
             if q < 0:
-                return 0.0
+                return None
         else:
             r = q / p
             if p < 0:
@@ -2002,8 +2003,14 @@ def kutudaki_boy(s, kutu):
             else:
                 t1 = min(t1, r)
             if t0 > t1:
-                return 0.0
-    return (t1 - t0) * math.hypot(dx, dy)
+                return None
+    return (t0, t1) if t1 > t0 else None
+
+
+def kutudaki_boy(s, kutu):
+    """Doğru parçasının kutunun içinde kalan boyu ( maskenin sildiği çizgi )."""
+    a = kutudaki_aralik(s, kutu)
+    return 0.0 if a is None else (a[1] - a[0]) * math.hypot(s[2] - s[0], s[3] - s[1])
 
 
 class KenarIzgarasi:

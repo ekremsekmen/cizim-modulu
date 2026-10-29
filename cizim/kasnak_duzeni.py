@@ -88,6 +88,31 @@ def _sarim_yayi(e, uc, zt, R1, uk, teget):
         e.append(eleman.ad(eleman.cizgi("HALAT", p[0], p[1], q[0], q[1]), "sarim_yayi"))
 
 
+def _tabliye(e, B, md, halat, u0_, u1_, oda, t_ciz):
+    """Makine dairesinde döşeme ( tabliye ) — halatlar delikten geçer:  görünüş
+    halatların düzleminde, döşeme onların deliklerinde kesilir ( eskiden tek
+    taralı şeritti, halat betonun içinden geçiyordu — kalite denetimi F5 )."""
+    za = oda - t_ciz
+    inisler = [h[0] for h in halat if abs(h[0] - h[2]) < 1e-6]
+    acik = sorted(
+        (max(u0_, a), min(u1_, b))
+        for a, b in (B.aralik(d) for _, d in md.get("delikler") or ())
+        if any(a < u < b for u in inisler) and min(u1_, b) > max(u0_, a)
+    )
+    a = u0_
+    for d0, d1 in acik + [(u1_, u1_)]:
+        if d0 - a > 1e-6:
+            e.append(eleman.ad(eleman.dikdortgen("TARAMA", a, za, d0 - a, t_ciz, tip="tarama"), "tabliye"))
+            for p, q in (((a, za), (a, oda)), ((a, oda), (d0, oda)), ((d0, oda), (d0, za))):
+                e.append(eleman.ad(eleman.cizgi("KUYU-DUVAR", p[0], p[1], q[0], q[1]), "tabliye"))
+            #  Kırık çizgi ( döşeme aşağı devam eder ) — yalnız betonda, delikte yok
+            n = max(2, int((d0 - a) / 150))
+            kir = [(a + (d0 - a) * i / n, za + (35 if i % 2 else -35) * (0 < i < n)) for i in range(n + 1)]
+            for p, q in zip(kir, kir[1:]):
+                e.append(eleman.cizgi("KUYU-IC", p[0], p[1], q[0], q[1]))
+        a = max(a, d1)
+
+
 def ciz(g, cizim_sabitleri=None):
     """Kasnak düzenlemesinin elemanları."""
 
@@ -137,18 +162,9 @@ def ciz(g, cizim_sabitleri=None):
     for u0, z0, u1, z1 in halat:
         e.append(eleman.ad(eleman.cizgi("HALAT", u0, z0, u1, z1), "aski_halati"))
     _halat_adlari(e, uk, ua, z_alt)
-    #  Makine dairesinde döşeme ( tabliye ) — halatlar delikten geçer
     u0_, u1_ = min(p0, uk, ua) - 200, max(p1_, uk, ua) + 200
     if oda is not None:
-        za = oda - t_ciz
-        e.append(eleman.ad(eleman.dikdortgen("TARAMA", u0_, za, u1_ - u0_, t_ciz, tip="tarama"), "tabliye"))
-        for a, b in (((u0_, za), (u0_, oda)), ((u0_, oda), (u1_, oda)), ((u1_, oda), (u1_, za))):
-            e.append(eleman.ad(eleman.cizgi("KUYU-DUVAR", a[0], a[1], b[0], b[1]), "tabliye"))
-        #  Kırık çizgi ( döşeme aşağı devam eder )
-        n = max(2, int((u1_ - u0_) / 150))
-        kir = [(u0_ + (u1_ - u0_) * i / n, za + (35 if i % 2 else -35) * (0 < i < n)) for i in range(n + 1)]
-        for a, b in zip(kir, kir[1:]):
-            e.append(eleman.cizgi("KUYU-IC", a[0], a[1], b[0], b[1]))
+        _tabliye(e, B, md, halat, u0_, u1_, oda, t_ciz)
     else:
         #  Makine dairesiz:  kuyu tavanı ( şasenin üstünde )
         tavan = Y["kotlar"][-1] + g["dusey"]["son_kat"]
