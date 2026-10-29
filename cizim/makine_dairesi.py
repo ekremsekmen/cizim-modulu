@@ -367,6 +367,7 @@ def yerlesim(g, cizim_sabitleri=None):
     if bakim is None:
         hata.append(_BAKIM_ALANI_YOK)
     hata += _oda_hatalari(M, mk, oda, TB, kapi_onu)
+    hata += _duvar_tabliye_kenarinda(oda, md["duvar"], TB, g["kuyu"]["genislik"], g["kuyu"]["derinlik"])
 
     return {
         "M": M,
@@ -754,6 +755,39 @@ def _makine_plakasi(g, M, S, dz, kaide, cerceve, makine_izi, saptirma, uk, y_, n
             )
         ],
     )
+
+
+def _duvar_tabliye_kenarinda(oda, w, TB, G, D):
+    """ODA DUVARININ KALINLIĞI TABLİYENİN KENARINI BÖLEMEZ ( 29 Eki — rastgele
+    tarama ):  kot farkı varsa kuyunun üstündeki duvar tabliyede, dışındaki oda
+    zemininde başlar.  Boyu boyunca tabliyeden taşan duvar basamaklanır ( kesit
+    kendi dilimine bakar — kuyu_kesiti._oda );  ama KALINLIĞI tabliyenin
+    kenarından geçen ve kuyunun boşluğunun üstüne uzanan duvar ikisini birden
+    yapamaz:  kesitte oda zemininden iner, kuyu boşluğuna girerdi ( oda kuyudan
+    50 mm dar:  sol duvar −175 … 25, tabliye −150'den — kuyuya 25 mm )."""
+    if TB["yukseklik"] <= 1e-9:
+        return []
+    x0, y0, x1, y1 = oda
+    iz = TB["izi"]
+    duvarlar = {  # ad:  kutu , kalınlığın ekseni ( 0 x · 1 y )
+        "ön": ((x0 - w, y0 - w, x1 + w, y0), 1),
+        "arka": ((x0 - w, y1, x1 + w, y1 + w), 1),
+        "sol": ((x0 - w, y0 - w, x0, y1 + w), 0),
+        "sağ": ((x1, y0 - w, x1 + w, y1 + w), 0),
+    }
+    kuyu = (0.0, 0.0, G, D)
+    return [
+        sorun.Sorun(
+            f"Makine dairesinin {yan} duvarı tabliyenin ( kuyunun üstündeki betonun ) kenarına "
+            "basıyor:  duvarın kalınlığı tabliyenin kenarından geçiyor ve kuyunun boşluğunun "
+            "üstüne uzanıyor — makine dairesinin ölçülerini ya da yerini değiştirin ( duvar "
+            "kalınlığıyla ya tabliyenin üstünde ya da dışında olmalı ).",
+            ("oda_duvari", "tabliye_kenari"),
+            "makine_dairesi",
+        )
+        for yan, (k, e) in duvarlar.items()
+        if ortusur(k, kuyu) and any(k[e] + 1e-6 < kenar < k[e + 2] - 1e-6 for kenar in (iz[e], iz[e + 2]))
+    ]
 
 
 def _oda_hatalari(M, mk, oda, TB, kapi_onu):

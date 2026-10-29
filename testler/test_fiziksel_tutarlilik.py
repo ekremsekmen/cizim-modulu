@@ -9,6 +9,7 @@ from cizim import girdi, geometri, kuyu_dibi
 from cizim import kuyu_kesiti, kabin_ustu, kesit_parcalari
 from testler.test_cizim import _ornek, _sag_ayna
 from cizim import parca_kotlari
+from cizim import eleman, sabitler
 
 
 class FizikselTutarlilik(unittest.TestCase):
@@ -606,3 +607,93 @@ class FizikselTutarlilik(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RastgeleTarama29Eki(unittest.TestCase):
+    """29 Eki rastgele fizik taramasının ( tohum 29, 1.000 düzen ) üç bulgusu —
+    düzenler taramanın kendisi;  tarama.denetle hepsinde temiz olmalı."""
+
+    @staticmethod
+    def _istek(Q, mrl, yer, kuyu, **ek):
+        from testler.test_yerlesim_saglamligi import standart_istek
+
+        mk = ek.pop("_mk", None)
+        v = standart_istek(Q, mrl, yer, **ek)
+        v["asansorler"][0]["kuyu_genisligi"], v["asansorler"][0]["kuyu_derinligi"] = kuyu
+        if mk:
+            v["proje_geneli"].update(mk_uzunluk=mk[0], mk_genislik=mk[1])
+        return v
+
+    def _g(self, v):
+        from testler.test_yerlesim_saglamligi import duzen_girdisi
+
+        return duzen_girdisi(v)[0]
+
+    #  Dar kuyu, kabin 150 kaçık:  kabin rayının arkası duvardan 13 mm ( tek sac )
+    DAR = dict(
+        Q=1000,
+        mrl=False,
+        yer="Arka",
+        kuyu=(1750, 3000),
+        aski_orani=1,
+        kat_kapisi_tipi="Teleskopik Sağ",
+        kapi_montaji="Duvar boşluğuna",
+        kabin_yana_kaciklik=-150,
+        kabin_ray_arasi=1300,
+        _mk=(4100, 2600),
+    )
+
+    def test_tek_sacda_tirnak_somunu_duvara_girmez(self):
+        from araclar import tarama
+
+        g = self._g(self._istek(**dict(self.DAR)))
+        self.assertEqual(tarama.denetle(g, {}), [])
+        G = g["kuyu"]["genislik"]
+        e = geometri.plan(g, sabitler.sabitler(g.get("_cizim_sabitleri")))
+        tirnaklar = [x for x in e if x.get("ad") == "ray_tirnagi"]
+        self.assertTrue(tirnaklar)
+        for t in tirnaklar:
+            self.assertGreaterEqual(t["x"], -1e-6)
+            self.assertLessEqual(t["x"] + t["g"], G + 1e-6)
+
+    def test_bosluk_yetince_somun_cizilir(self):
+        #  Aynı kuyu, kaçıklık yok:  ray arkası duvardan uzak, somun sacın arkasında
+        v = self._istek(**dict(self.DAR, kabin_yana_kaciklik=0))
+        g = self._g(v)
+        e = geometri.plan(g, sabitler.sabitler(g.get("_cizim_sabitleri")))
+        kabin_tirnak = [x for x in e if x.get("ad") == "ray_tirnagi" and len(x.get("bicim") or []) == 6]
+        self.assertTrue(kabin_tirnak, "tırnak + baş + somun ( iki yanda ) biçimi bekleniyor")
+
+    def test_dar_makine_dairesinin_duvari_tabliye_kenarinda_ret(self):
+        from testler.test_yerlesim_saglamligi import cizim_yaniti
+
+        v = self._istek(
+            Q=800,
+            mrl=False,
+            yer="Arka",
+            kuyu=(2650, 2300),
+            aski_duzeni="Kabin üstü",
+            kat_kapisi_tipi="Otomatik Merkezi 4 Kanat",
+            kapi_kaciklik=100,
+            kabin_ray_arasi=1550,
+            _mk=(3800, 2600),
+        )
+        r = cizim_yaniti(v)
+        self.assertFalse(r.get("aktif"))
+        self.assertTrue(
+            any("tabliyenin ( kuyunun üstündeki betonun ) kenarına" in h for h in r["hata"]), r["hata"]
+        )
+        #  Oda kuyudan geniş:  duvar kuyunun dışında, kurulur
+        v["proje_geneli"]["mk_genislik"] = 3000
+        self.assertFalse(any("kenarına basıyor" in h for h in cizim_yaniti(v).get("hata") or []))
+
+    def test_zincirin_ortasindaki_tekrar_atilmaz(self):
+        o = lambda a, b, kot, ad=None: eleman.olcu("dusey", (0, a), (0, b), kot, ad=ad)
+        e = [o(0, 740, 2000), o(740, 890, 2000), o(890, 1020, 2000), o(1020, 2400, 2000)]  # sağ zincir
+        sol = [o(0, 490, -270), o(490, 740, -270), o(740, 890, -270), o(890, 2400, -270)]
+        uc = [o(0, 740, 5000)]  # tek başına, ucunda tekrar
+        kalan = geometri.tekrarlari_at(e + sol + uc)
+        self.assertIn(sol[2], kalan)  # ortadaki 150 kalır
+        self.assertNotIn(uc[0], kalan)  # tekrar eden tek ölçü atılır
+        sol_kot = [x for x in kalan if x["kot"] == -270]
+        self.assertEqual(sum(x["uzunluk"] for x in sol_kot), 2400)  # zincir kapanır
