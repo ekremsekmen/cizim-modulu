@@ -47,6 +47,12 @@ from cizim import sorun
 SIGINMA = {"Dik duruş": (400.0, 500.0), "Çömelme": (500.0, 700.0)}
 #  ve yüksekliği ( mm ) — dusey açıklığı bununla ölçer
 SIGINMA_YUKSEKLIK = {"Dik duruş": 2000.0, "Çömelme": 1000.0}
+#  TS EN 81-20 m.5.2.5.7.1 · Şekil 4:  çömelme ( tip 2 ) alanında tavana sabit
+#  parçalar için BİR yanda, alanın tavana değdiği alt kenarda 0,10 m eninde ve
+#  0,30 m yüksekliğinde girinti olabilir ( en × yükseklik, mm ).  Hareketli parça
+#  ( kasnaklar arasındaki halat ) ve yüksekliği bilinmeyen parça ( kapı
+#  operatörü ) girintiye giremez.
+GIRINTI = {"Çömelme": (100.0, 300.0)}
 
 _ICERI = (
     "Korkuluğun kenardan içeri alınması:  küpeşte kuyudaki parçalardan en az "
@@ -142,7 +148,8 @@ def yerlesim(g, cizim_sabitleri=None):
     """Kabin üstünün yerleşimi — çizim de doğrulama da bunu kullanır.
 
     Dönen:  { taban ( plan elemanları ), tavan, kenarlar, operator, engeller,
-              siginma ( kutu ya da None ), hata [ … ] }
+              siginma ( kutu ya da None ), girinti ( Şekil 4 girintisinin yanı
+              ya da None ), alcaklar ( girintiye girebilen engeller ), hata [ … ] }
     """
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     taban = geometri.plan(g, S, kapi_duzeyi=False, duvar_boslugu=kapi_gorunusu(g, S)["acik"])
@@ -160,9 +167,9 @@ def yerlesim(g, cizim_sabitleri=None):
         tavan[2] - kenarlar["Sağ"]["iceri"],
         tavan[3] - kenarlar["Arka"]["iceri"],
     )
-    operator, engeller = _tavan_engelleri(g, S, taban, tavan, parcalar, kenarlar, ic, hata)
+    operator, engeller, alcaklar = _tavan_engelleri(g, S, taban, tavan, parcalar, kenarlar, ic, hata)
     tip = (g.get("kabin_ustu") or {}).get("siginma_tipi")
-    siginma = _siginma_yeri(S, tip, tavan, ic, engeller, hata)
+    siginma, girinti = _siginma_yeri(S, tip, tavan, ic, engeller, hata, alcaklar)
     return {
         "taban": taban,
         "tavan": tavan,
@@ -172,6 +179,8 @@ def yerlesim(g, cizim_sabitleri=None):
         "engeller": engeller,
         "siginma": siginma,
         "siginma_tipi": tip,
+        "girinti": girinti,
+        "alcaklar": alcaklar,
         "halatlar": halatlar,
         "hata": hata,
         "S": S,
@@ -437,32 +446,79 @@ def _tavan_engelleri(g, S, taban, tavan, parcalar, kenarlar, ic, hata):
     tip = (g.get("kabin_ustu") or {}).get("siginma_tipi")
     kt = parca_kotlari.kabin_kotlari(g["dusey"], S, 0.0, g.get("aski"), arka_aski.arkada_iki_bir(g))
     sinir = kt["tavan"] + SIGINMA_YUKSEKLIK.get(tip, max(SIGINMA_YUKSEKLIK.values()))
-    engeller += [
-        k
+    parcalar_ = [
+        (ad, k, ust)
         for ad, k, alt, ust in hareketli.kabin_parcalari(g, S, taban, kt)
         if ad != hareketli.KABIN and ust > kt["tavan"] + 1e-9 and alt < sinir - 1e-9
     ]
-    return operator, engeller
+    engeller += [k for _ad, k, _ust in parcalar_]
+    #  Şekil 4 girintisine girebilenler:  sabit ve tepesi girintinin yüksekliğinde
+    #  ( şasenin üst kirişi, dikmeler ).  Aynı kutu yüksekliği bilinmeden de
+    #  sayılmışsa ( kabin üstü kasnakları ) giremez.
+    yukseklik = GIRINTI.get(tip, (0.0, 0.0))[1]
+    bilinmeyen = {tuple(k) for k in engeller[: len(engeller) - len(parcalar_)]}
+    alcaklar = {
+        tuple(k)
+        for ad, k, ust in parcalar_
+        if ad != hareketli.HALAT and ust - kt["tavan"] <= yukseklik + 1e-9 and tuple(k) not in bilinmeyen
+    }
+    return operator, engeller, alcaklar
 
 
-def _siginma_yeri(S, tip, tavan, ic, engeller, hata):
+def _girintili(engeller, alcaklar, yan, d):
+    """Şekil 4 girintisi `yan`da:  alanın o yanındaki d'lik şeridine yalnız alçak
+    sabit parçalar girebilir.  Alan kutusu A, şeridi çıkarılınca kalan A' olsun:
+    alçak parça A''ya değmemeli — parçanın A'nın o yanına bakan kenarını d kadar
+    öteye almak aynı koşuldur ( "Arka":  p1 < A'nın arkası = A'nın arkası − d ).
+    Kenar öbür kenarı geçerse kutu ters döner ama koşul cebirsel olarak aynı
+    kalır ( yer_adaylari'nın örtüşme denetimi ):  ters kutu ATILMAZ — 50'lik
+    kiriş alanın ortasındayken de A''ya değer."""
+    out = []
+    for p in engeller:
+        if tuple(p) in alcaklar:
+            x0, y0, x1, y1 = p
+            p = {
+                "Sol": (x0, y0, x1 - d, y1),
+                "Sağ": (x0 + d, y0, x1, y1),
+                "Ön": (x0, y0, x1, y1 - d),
+                "Arka": (x0, y0 + d, x1, y1),
+            }[yan]
+        out.append(p)
+    return out
+
+
+def _siginma_yeri(S, tip, tavan, ic, engeller, hata, alcaklar=frozenset()):
     """SIĞINMA ALANI  ( Çizelge 3 ):  kapıya en yakın, sonra kabin eksenine en
-    yakın boş yer aranır — bakımcı tavana kapıdan çıkar.  Kutu ya da None."""
+    yakın boş yer aranır — bakımcı tavana kapıdan çıkar.  Boş yer yoksa
+    çömelmede Şekil 4 girintisiyle ( bir yanda alçak sabit parça ) aranır:
+    girintisiz yer hep önce gelir, bulunan yerler değişmez.  ( kutu , girintinin
+    yanı ya da None ) — yer yoksa ( None , None )."""
     if tip not in SIGINMA:
         hata.append(f"kabin_ustu.siginma_tipi: {tuple(SIGINMA)} içinden olmalı ( {tip!r} ).")
-        return None
+        return None, None
     kx = (tavan[0] + tavan[2]) / 2.0
-    adaylar = []
-    for kenar in (False, True):
-        adaylar = [
+
+    def ara(engel, kenar):
+        return [
             (round(k[1], 3), abs((k[0] + k[2]) / 2.0 - kx), k)
             for w, h in {SIGINMA[tip], SIGINMA[tip][::-1]}
-            for k in geometri.yer_adaylari(ic, w, h, engeller, kenar)
+            for k in geometri.yer_adaylari(ic, w, h, engel, kenar)
+        ]
+
+    for kenar in (False, True):
+        adaylar = ara(engeller, kenar)
+        if adaylar:
+            return min(adaylar)[2], None
+    if tip in GIRINTI and alcaklar:
+        d = GIRINTI[tip][0]
+        adaylar = [
+            a + (yan,)
+            for yan in ("Ön", "Arka", "Sol", "Sağ")
+            for a in ara(_girintili(engeller, alcaklar, yan, d), True)
         ]
         if adaylar:
-            break
-    if adaylar:
-        return min(adaylar)[2]
+            en = min(adaylar, key=lambda a: a[:2])
+            return en[2], en[3]
     a, b = SIGINMA[tip]
     hata.append(
         sorun.Sorun(
@@ -475,7 +531,7 @@ def _siginma_yeri(S, tip, tavan, ic, engeller, hata):
             "kabin_ustu",
         )
     )
-    return None
+    return None, None
 
 
 def _yazi_kutusu(el):
@@ -569,7 +625,10 @@ def ciz(g, cizim_sabitleri=None):
             eleman.ad(eleman.dikdortgen("SIGINMA", sg[0], sg[1], sg[2] - sg[0], sg[3] - sg[1]), "siginma")
         )
         a, b = SIGINMA[Y["siginma_tipi"]]
-        e += geometri.alan_yazisi(sg, ["SIĞINMA ALANI", f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}"])
+        satirlar = ["SIĞINMA ALANI", f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}"]
+        if Y.get("girinti"):
+            satirlar.append(f"ŞEKİL 4 GİRİNTİSİ  {eleman.buyuk(Y['girinti'])}")
+        e += geometri.alan_yazisi(sg, satirlar)
     e += aski_el
 
     e += _ana_olculer(g, tavan)

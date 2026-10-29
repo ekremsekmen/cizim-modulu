@@ -11,14 +11,18 @@ Kalan retler gerçektir:  kabin üstü askı daha yüksek son kat ister, 900 ×
 import json
 import os
 import unittest
+from unittest import mock
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 from uclar import cizim_uclari
+from cizim import arka_aski
+from cizim import hareketli
 from cizim import kabin_ustu
 from cizim import kopru
 from cizim import kuyu_dibi
 from cizim import kuyu_ustu
+from cizim import parca_kotlari
 from motor.uygulama import uygulama_girdisi
 from tasarim import alanlar
 
@@ -239,6 +243,74 @@ class SiginmaAlani(unittest.TestCase):
             sg,
         )
         self.assertLess(sg[2], min(k[0] for k in KD["agirlik_raylari"]))  # ağırlık sağda
+
+
+class Sekil4Girintisi(unittest.TestCase):
+    """TS EN 81-20 m.5.2.5.7.1 · Şekil 4:  çömelme alanında bir yanda, alt kenarda
+    0,10 × 0,30 m girinti — yalnız tavana sabit, tepesi 0,30 m'yi aşmayan parça
+    ( şasenin üst kirişi, tavandan 280 ).  28 Eki'ye dek girinti yoktu:  50'lik
+    kiriş profili alanın kenarına 1 mm girse ret.  Ray – kapı arası 650 yerine
+    600 olan 320 kg kabinde alan ancak girintiyle sığar."""
+
+    VAKALAR = ((320, 600, "Ön"), (320, 800, "Arka"), (450, 800, "Arka"))
+
+    def _g(self, Q, rk=None, **ek):
+        if rk is not None:
+            ek["ray_kapi_arasi"] = rk
+        return duzen_girdisi(standart_istek(Q, **ek))[0]
+
+    def _yerlesim(self, Q, rk=None, **ek):
+        return kabin_ustu.yerlesim(self._g(Q, rk, **ek))
+
+    def test_alan_yalniz_girintiyle_sigar(self):
+        for Q, rk, yan in self.VAKALAR:
+            with self.subTest(Q=Q, rk=rk):
+                Y = self._yerlesim(Q, rk)
+                self.assertEqual(Y["girinti"], yan)
+                sg = Y["siginma"]
+                self.assertEqual(sorted((sg[2] - sg[0], sg[3] - sg[1])), [500.0, 700.0])
+                with mock.patch.dict(kabin_ustu.GIRINTI, clear=True):
+                    self.assertIsNone(self._yerlesim(Q, rk)["siginma"])
+
+    def test_alana_giren_yalniz_alcak_sabit_parca_ve_seritte(self):
+        d = kabin_ustu.GIRINTI["Çömelme"][0]
+        for Q, rk, yan in self.VAKALAR:
+            with self.subTest(Q=Q, rk=rk):
+                Y = self._yerlesim(Q, rk)
+                x0, y0, x1, y1 = sg = Y["siginma"]
+                serit = {
+                    "Sol": (x0, y0, x0 + d, y1),
+                    "Sağ": (x1 - d, y0, x1, y1),
+                    "Ön": (x0, y0, x1, y0 + d),
+                    "Arka": (x0, y1 - d, x1, y1),
+                }[yan]
+                girenler = [p for p in Y["engeller"] if _ortusur(sg, p)]
+                self.assertTrue(girenler)
+                for p in girenler:
+                    self.assertIn(tuple(p), Y["alcaklar"])
+                    kesisim = (max(p[0], x0), max(p[1], y0), min(p[2], x1), min(p[3], y1))
+                    self.assertTrue(
+                        serit[0] - 1e-6 <= kesisim[0]
+                        and kesisim[2] <= serit[2] + 1e-6
+                        and serit[1] - 1e-6 <= kesisim[1]
+                        and kesisim[3] <= serit[3] + 1e-6,
+                        (p, sg, yan),
+                    )
+
+    def test_halat_kasnak_ve_operator_girintiye_girmez(self):
+        #  Arkadaki ağırlıkla 2:1 kabin üstünde kasnaklar ( tavandan 320 ) ve
+        #  aralarındaki halat ( hareketli ):  hiçbiri girintiye sayılmaz
+        g = self._g(630, yer="Arka", aski_duzeni="Kabin üstü")
+        Y = kabin_ustu.yerlesim(g)
+        self.assertNotIn(tuple(Y["operator"]), Y["alcaklar"])
+        S = Y["S"]
+        kt = parca_kotlari.kabin_kotlari(g["dusey"], S, 0.0, g.get("aski"), arka_aski.arkada_iki_bir(g))
+        for ad, k, _alt, _ust in hareketli.kabin_parcalari(g, S, Y["taban"], kt):
+            if ad in (hareketli.HALAT, hareketli.KASNAK):
+                self.assertNotIn(tuple(k), Y["alcaklar"], ad)
+
+    def test_dik_durusta_girinti_yok(self):
+        self.assertNotIn("Dik duruş", kabin_ustu.GIRINTI)
 
 
 class Merdiven(unittest.TestCase):
