@@ -295,6 +295,91 @@ def _referans_proje(r):
             f"→ bizim {k('c22.d1.Fy'):.2f} · P = 979 kg ile {_fyP:.2f}",
         )
 
+    #  ── ASKI HALATI:  EŞDEĞER KASNAK SAYISI ( EN 81-50 m.5.12 ) ─────────
+    #  Rope Calculation:  Nequiv(t) 12 ( Çizelge 1 ), Kp = ( Dt / Dp )⁴ 0,44,
+    #  Nequiv(p) 0,89, Nequiv 12,89 — Sf'nin girdileri ( Sf yukarıda ).
+    for _ad, _h, _bek, _tol in (
+        ("Nequiv(t)", "aski.Nequiv_t", 12.0, 0.001),
+        ("Kp", "aski.Kp", 0.44, 1.0),
+        ("Nequiv(p)", "aski.Nequiv_p", 0.89, 1.0),
+        ("Nequiv", "aski.Nequiv", 12.89, 0.1),
+    ):
+        _v = h[_h]
+        r.kontrol(
+            f"referans proje · halat {_ad}  ( ≤ %{_tol} )",
+            abs(_v - _bek) / _bek * 100 <= _tol,
+            f"→ bizim {_v:.4f} · referans proje {_bek}  ( referans proje 2 haneye yuvarlıyor )",
+        )
+
+    #  ── REGÜLATÖR HALATI ( Speed Governor Calculation ) ─────────────────
+    #  6 mm · Sh 28 kN · 0,11 kg/m · Ø240 · α 180°.  Gergi:  m = 35 kg, kol
+    #  A = 300, B = 150 → F = gn·m·( A + B ) / B = 1.030,05 N;  eşdeğer gergi
+    #  ağırlığımız F / gn = 105 kg.  Halat:  referans proje bir yanda MSR = 4,01 kg
+    #  alır;  biz halatın İKİ YANINI ( boy ) sayıp yarısını yükleriz — aynı
+    #  kütle için boy = 2 · 4,01 / 0,11 m ( çizimden ölçülmüş gibi verilir ).
+    _reg_boy = 2 * 4.01 / 0.11
+    s_r = mukavemet.hesapla(
+        dict(
+            REFERANS_PROJE,
+            reg_halat_capi=6,
+            reg_kasnak_capi=240,
+            reg_halat_kopma_kN=28,
+            reg_halat_birim_kutle=0.11,
+            reg_gergi_agirligi=105,
+            reg_halat_boyu=_reg_boy,
+            _cizimden={"reg_halat_boyu": "referans projenin MSR'si"},
+        )
+    )
+    rg = lambda ad: s_r["ara"]["regulator." + ad]
+    for _ad, _v, _bek, _tol, _neden in (
+        ("T2 = gn·MSR + F/2", rg("Freg"), 554.38, 0.05, "statik — ara kabul yok"),
+        ("T1 = e^(fα)·T2", rg("Freg2"), 3481.28, 0.05, "e^(fα) 4. haneden"),
+        ("S = Sh / T1", rg("S"), 8.04, 0.2, "referans proje 2 haneye yuvarlıyor"),
+        ("f", rg("f"), 0.58, 1.0, "referans proje 2 haneye yuvarlıyor"),
+        ("D / dr", rg("oran"), 40.0, 0.001, "doğrudan girdi"),
+        ("T1 − T2 ( çekme )", rg("F_cekme"), 2926.9, 0.05, "statik — ara kabul yok"),
+    ):
+        r.kontrol(
+            f"referans proje · regülatör {_ad}  ( ≤ %{_tol} )",
+            abs(_v - _bek) / _bek * 100 <= _tol,
+            f"→ bizim {_v:.3f} · referans proje {_bek}  ( {_neden} )",
+        )
+
+    #  ── KUYU TABANI:  TAMPON KUVVETLERİ ( m.5.2.1.8.5 · m.5.2.1.8.6 ) ──
+    #  BİLİNEN FARK — P.  Standardın iki bağıntısı da P'ye gezici kablonun ve
+    #  denge zincirinin payını katar ( sembol listesi );  referans proje kabinde
+    #  P = 900, ağırlıkta Mcwt = 1.300 kullanır ( F5 66,71 · F6 51,01 kN ).  İki
+    #  sayı da referans projenin kendi kütleleriyle yeniden üretilir;  bizimki
+    #  standardın P'siyle ( tek gezici kablo 0,44 kg/m:  900 + 72,67 + 6,38 ).
+    _gn, _P_std = 9.81, 900 + 72.67 + 6.38
+    s_t = mukavemet.hesapla(dict(REFERANS_PROJE, kablo_birim_kutle=0.44))
+    for _ad, _ref_formul, _ref_bek, _bizim, _bizim_bek in (
+        (
+            "kabin tamponu F5",
+            4 * _gn * (900 + 800),
+            66708.0,
+            s_t["ara"]["kuyu.Fkt"],
+            4 * _gn * (_P_std + 800),
+        ),
+        (
+            "ağırlık tamponu F6",
+            4 * _gn * 1300,
+            51012.0,
+            s_t["ara"]["kuyu.Fat"],
+            4 * _gn * (_P_std + 0.5 * 800),
+        ),
+    ):
+        r.kontrol(
+            f"referans proje · {_ad}:  referans projenin kütlesiyle {_ref_bek:g} N",
+            abs(_ref_formul - _ref_bek) <= 1.0,
+            f"→ {_ref_formul:.1f}",
+        )
+        r.kontrol(
+            f"referans proje · {_ad}:  bizde standardın P'si ( kablo + zincir dahil )",
+            abs(_bizim - _bizim_bek) / _bizim_bek * 100 <= 0.1,
+            f"→ bizim {_bizim:.1f} · 4·gn·( P + … ) {_bizim_bek:.1f}",
+        )
+
     #  ── T1/T2 ETİKETİ:  AYNI SAYI, BAŞKA AD ───────────────────────────
     #  EN 81-50 m.5.11.2.1 T1 ve T2'yi "kasnağın İKİ YANINDAKİ kuvvetler"
     #  diye tanımlar, hangisinin T1 olduğunu söylemez.  Referans proje BÜYÜK olana
