@@ -80,9 +80,20 @@ AGIRLIK_YERLERI = ("Sağ", "Sol", "Arka")
 #  aynı üründür;  yalnız kuyu içindeki yeri değişir.
 KAPI_MONTAJLARI = ("Duvar boşluğuna", "Kuyu içine")
 
+
 #  TS EN 81-20 m.5.2.5.3.1:  kuyunun iç yüzü ile kabin eşiği / kapı kasası
-#  arası 0,15 m'yi aşamaz  ( kısa yükseklikte 0,20 m'ye çıkabilir ).
+#  arası 0,15 m'yi aşamaz  ( kısa yükseklikte 0,20 m'ye çıkabilir ).  Mekanik
+#  kilitli kabin kapısında ( m.5.3.9.2 ) sınır yoktur ( m.5.2.5.3.1 c ).
 KAPI_ARASI_AZAMI = 150.0
+KABIN_KAPISI_KILITLERI = ("Yok", "Mekanik kilitli")
+
+
+def kabin_kapisi_kilitli(g):
+    """Kabin kapısı mekanik kilitli mi ( m.5.3.9.2 ) — anahtar yoksa hayır
+    ( eski girdiler, deneme girdisi )."""
+    return g["kapi"].get("kilit") == KABIN_KAPISI_KILITLERI[1]
+
+
 #  TS EN 81-20 m.5.3.4.1:  kabin eşiği ile kat kapısı eşiği arası 35 mm.
 ESIK_ARASI_AZAMI = 35.0
 
@@ -813,11 +824,13 @@ def _kapi_acikliklari(g, S):
                 "giris",
             )
         )
-    if kabin_esigi - KB["yuzey"] > KAPI_ARASI_AZAMI:
+    if kabin_esigi - KB["yuzey"] > KAPI_ARASI_AZAMI and not kabin_kapisi_kilitli(g):
         hata.append(
             sorun.Sorun(
                 f"Kuyu iç yüzü ile kabin eşiği arası {kabin_esigi - KB['yuzey']:g} mm — "
-                f"TS EN 81-20 m.5.2.5.3.1 en çok {KAPI_ARASI_AZAMI:g} mm verir.",
+                f"TS EN 81-20 m.5.2.5.3.1 en çok {KAPI_ARASI_AZAMI:g} mm verir:  kat kapısını "
+                "kuyu içine alın ya da kabin kapısını mekanik kilitli yapın ( m.5.2.5.3.1 c — "
+                "Kabin kapısı kilidi ).",
                 ("kabin_esigi",),
                 "kapi_kesiti",
                 fark=KAPI_ARASI_AZAMI - (kabin_esigi - KB["yuzey"]),
@@ -855,6 +868,7 @@ ORNEK = {
         "yukseklik": 2100,
         "tip": "Teleskopik Sol",
         "montaj": "Kuyu içine",
+        "kilit": "Yok",
     },
     #  kapi_arasi:  ray ekseni kuyunun ön İÇ YÜZÜNDEN.  Referans projenin "1017"si
     #  KAPI HATTINDAN ölçülür ( zincir 150 + 1017 + 682 = 1850 ):  iç yüzden

@@ -17,6 +17,7 @@ import ezdxf
 from uclar import cizim_uclari
 from uclar import uygulama_uclari
 from cizim import girdi
+from tasarim import alanlar
 from cizim import kopru
 from cizim import sabitler
 from motor.uygulama import uygulama_girdisi
@@ -604,6 +605,58 @@ class Uclar(unittest.TestCase):
         d = json.loads(uygulama_uclari.indir_uygulama_dwg(_veri(paten_tipi="Makaralı")).body)
         self.assertIn("ÇİZİMLER KURULAMADI", d["hata"])
         self.assertIn("1. asansör", d["hata"])
+
+
+class KabinKapisiKilidi(unittest.TestCase):
+    """TS EN 81-20 m.5.2.5.3.1 c ( 29 Eki ):  mekanik kilitli kabin kapısında
+    ( m.5.3.9.2 ) kuyunun iç yüzü ile kabin eşiği arasının 0,15 m sınırı kalkar.
+    Seçenek yokken kapısı duvar boşluğundaki büyük kabinler ( 165 mm ) çare
+    söylenmeden reddediliyordu."""
+
+    @staticmethod
+    def _istek(Q, **ek):
+        from testler.test_yerlesim_saglamligi import standart_istek
+
+        return standart_istek(Q, kapi_montaji="Duvar boşluğuna", **ek)
+
+    def _yanit(self, Q, **ek):
+        from testler.test_yerlesim_saglamligi import cizim_yaniti
+
+        return cizim_yaniti(self._istek(Q, **ek))
+
+    def test_kilitsiz_ret_careyi_soyler_kilitli_cizilir(self):
+        for Q in (2000, 2500):
+            with self.subTest(Q=Q):
+                for kilit in (None, "Yok"):
+                    ek = {} if kilit is None else {"kabin_kapisi_kilidi": kilit}
+                    r = self._yanit(Q, **ek)
+                    self.assertFalse(r.get("aktif"))
+                    h = next(m for m in r["hata"] if m.startswith("Kuyu iç yüzü ile kabin eşiği"))
+                    self.assertIn("kuyu içine alın", h)
+                    self.assertIn("mekanik kilitli", h)
+                self.assertTrue(self._yanit(Q, kabin_kapisi_kilidi="Mekanik kilitli").get("aktif"))
+
+    def test_kilit_esik_arasini_serbest_birakmaz(self):
+        #  m.5.3.4.1'in 35 mm'si kilitten bağımsız
+        r = self._yanit(2000, kabin_kapisi_kilidi="Mekanik kilitli", esik_arasi=40)
+        self.assertFalse(r.get("aktif"))
+        self.assertTrue(any("m.5.3.4.1" in m for m in r["hata"]), r["hata"])
+
+    def test_varsayilan_kilitsiz(self):
+        a = alanlar.ALAN["kabin_kapisi_kilidi"]
+        self.assertEqual(a.varsayilan, "Yok")
+        self.assertEqual(tuple(a.secenekler), girdi.KABIN_KAPISI_KILITLERI)
+        #  Anahtarı olmayan eski girdi kilitsiz sayılır
+        self.assertFalse(girdi.kabin_kapisi_kilitli({"kapi": {"montaj": "Kuyu içine"}}))
+
+    def test_duzeltme_oner_kilidi_de_sunar(self):
+        from uclar import care_uclari
+
+        r = care_uclari.coz(self._istek(2000), 0, None)
+        c = next(c for c in r["careler"] if c["metin"].startswith("Kuyu iç yüzü ile kabin eşiği"))
+        oneriler = {o["anahtar"]: o["yeni"] for o in c["oneriler"]}
+        self.assertEqual(oneriler.get("kabin_kapisi_kilidi"), "Mekanik kilitli")
+        self.assertEqual(oneriler.get("kapi_montaji"), "Kuyu içine")
 
 
 if __name__ == "__main__":
