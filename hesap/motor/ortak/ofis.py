@@ -134,15 +134,3 @@ def bos_kabin_kutlesi(Q):
 def makine_verimi(makine_tipi):
     """Makine tipine göre η.  Tanınmayan tip için None."""
     return MAKINE_VERIMLERI.get(makine_tipi)
-
-
-def sistem_verimi(makine_tipi):
-    """η  —  makine tipine göre TOPLAM SİSTEM VERİMİ.
-
-    Uygulama projesi içindir:  askı ( palanga ) kaybı bu değerin İÇİNDEDİR,
-    askı oranına bağlı ayrı bir düzeltme uygulanmaz ( bkz. yukarıdaki
-    "PALANGA VERİM DÜŞÜŞÜ" notu;  avan kitaba göre 0,10 düşer ).
-    Tanınmayan makine tipinde VARSAYILAN_VERIM'e dönülür.
-    """
-    eta = makine_verimi(makine_tipi)
-    return VARSAYILAN_VERIM if eta is None else eta

@@ -681,14 +681,6 @@ def kablo_agirligi(tip):
     return _ara(BUKULGEN_KABLO, tip, KABLO_SUTUN["agirlik"])
 
 
-def kablo_en(tip):
-    return _ara(BUKULGEN_KABLO, tip, 1)
-
-
-def kablo_yukseklik(tip):
-    return _ara(BUKULGEN_KABLO, tip, 2)
-
-
 # =====================================================================
 #  KARŞI AĞIRLIK MALZEMESİ  ( derinlik · yükseklik mm )
 # =====================================================================

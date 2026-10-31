@@ -297,17 +297,6 @@ def _halat_verisi(g, cap="halat_capi", kutle="halat_birim_kutle", kopma="halat_k
     return gh, Tmin, gh_k, Tmin_k
 
 
-def _bosluk(v):
-    """0,10 m ilave kılavuzlu yol + 0,035·v² sıçrama payı  →  mm.
-
-    TS EN 81-20'de 0,035·v² açıklığın değil, kabinin en üst konumunun
-    tanımındadır ( Çizelge 2 );  0,10 m ise m.5.2.5.6.2'nin ilave kılavuzlu
-    yoludur.  Kuyu ölçüleri anma konumundan alındığı için ikisi burada
-    tek sınırda toplanır — eşitsizlik cebirsel olarak aynıdır.
-    """
-    return (0.1 + 0.035 * v * v) * 1000
-
-
 def _oran(a, b):
     return max(a / b, b / a) if (a and b) else None
 

@@ -20,6 +20,7 @@ import json
 import unittest
 from unittest import mock
 
+from testler import test_yerlesim_saglamligi
 from uclar import care_uclari
 from uclar import cizim_uclari
 from uclar import uygulama_istegi
@@ -72,6 +73,8 @@ VAKALAR = (
     ("mrl", "durak_adedi", "30"),
     ("md", "son_kat_yuksekligi", "3200"),
     ("ornek", "agirlik_yeri", "Arka"),
+    #  Makine dairesizde 1:1 çizilmez — çaresi askı oranı ( 1 Kas )
+    ("mrl", "aski_orani", "1"),
 )
 
 
@@ -165,6 +168,32 @@ class Care(unittest.TestCase):
         _veri, r = self.coz("ornek", "agirlik_yeri", "Arka")
         o = _oneriler(r, "Arkadaki karşı ağırlıkla")
         self.assertEqual(o["aski_duzeni"][:2], ("Kabin üstü", "seçim"))
+
+    def test_mrl_de_bir_bir_askinin_caresi_aski_orani(self):
+        """30 Eki taraması:  ileti "askı oranını 2 seçin" diyordu, öneri gelmiyordu
+        ( 27 çaresiz sorun )."""
+        _veri, r = self.coz("mrl", "aski_orani", "1")
+        o = _oneriler(r, "1:1 askı çizilmez")
+        self.assertEqual((str(o["aski_orani"][0]), o["aski_orani"][1]), ("2", "seçim"))
+
+    def test_hesapta_bolum_bozan_oneri_soylenir_sonda_gelir(self):
+        """30 Eki taraması:  "askı kabin altı → kabin üstü" sığınmayı düzeltip ağırlık
+        raylarını uygun değil yapıyordu ( sayı aynı:  kabul ediliyor, söylenmiyordu ).
+        Öneri kalır ( çizimi kurmanın yolu ), bozulan bölüm söylenir, temiz
+        öneriler önce gelir."""
+        v = test_yerlesim_saglamligi.standart_istek(1275, True, "Arka", aski_duzeni="Kabin altı")
+        v["asansorler"][0]["kuyu_derinligi"] = test_yerlesim_saglamligi.KABIN[1275][1] + 700
+        r = care_uclari.coz(v, 0)
+        once = care_uclari._durum(v, 0)
+        bozan = [o for c in r["careler"] for o in c["oneriler"] if o["hesapta_bozulan"]]
+        self.assertTrue(bozan)
+        for o in bozan:
+            sonra = care_uclari._durum(care_uclari._yaz(v, 0, o["anahtar"], o["yeni"]), 0)
+            self.assertEqual(sorted(sonra[3] - once[3]), o["hesapta_bozulan"])
+            self.assertLessEqual(len(sonra[3]), len(once[3]))
+        for c in r["careler"]:
+            sira = [bool(o["hesapta_bozulan"]) for o in c["oneriler"]]
+            self.assertEqual(sira, sorted(sira), c["metin"][:50])
 
     def test_bina_olcusu_en_sonda(self):
         for vaka in VAKALAR:

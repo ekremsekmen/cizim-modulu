@@ -626,22 +626,6 @@ def _karar_kutusu(metin, olcutler=None, verdikt=None, uygun=True):
     return [t]
 
 
-def _notlar(notlar):
-    if not notlar:
-        return []
-    #  Not satırları da bir bütündür: bir cümlenin ortasından sayfa
-    #  değişmesin diye hepsi tek blok hâlinde taşınır.
-    #  DİKKAT — burada KeepTogether KULLANILMAZ.  İç içe KeepTogether'da
-    #  dış blok, iç bloğun yüksekliğini "sonsuz" okur ( wrap 0xffffff döner )
-    #  ve sayfada yer olsa bile her seferinde sayfa atlar.  Notlar zaten
-    #  bölümün kuyruk bloğunun içinde, tek parça hâlinde taşınıyor.
-    #  ÇİFTE MADDE İMİ OLMAZ.  Bazı notlar metnin kendisinde "▪" ya da "⚠"
-    #  ile başlıyor;  önüne bir de burası "▪" koyunca "▪  ▪ …" çıkıyordu.
-    o = [_p(("" if str(n).lstrip()[:1] in ("▪", "⚠", "•") else "▪  ") + str(n), "not") for n in notlar]
-    o[0].spaceBefore = 1.2 * mm
-    return o
-
-
 # ------------------------------------------------------- sayfa bölme öbekleri
 def _birim_sinirlari(adimlar):
     """
@@ -983,51 +967,6 @@ def _coklu_tablo(asansorler):
     t.setStyle(
         TableStyle(
             [
-                ("GRID", (0, 0), (-1, -1), _c(0.4), CIZGI),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("TOPPADDING", (0, 0), (-1, -1), 2.6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 2.6),
-                ("LEFTPADDING", (0, 0), (-1, -1), 4),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-            ]
-        )
-    )
-    return t
-
-
-def _nufus_tablo(nufus, b):
-    veriler = [
-        [
-            _p("<b>Grup / açıklama</b>", "n"),
-            _p("<b>Miktar</b>", "n"),
-            _p("<b>Tablo-1 kalemi</b>", "n"),
-            _p("<b>Birim</b>", "n"),
-            _p("<b>Katsayı</b>", "n"),
-            _p("<b>c (kişi)</b>", "n"),
-        ]
-    ]
-    for s in nufus:
-        veriler.append(
-            [
-                _p(s["aciklama"], "n"),
-                _p(trn(s["miktar"], 2), "sag"),
-                _p(s["kalem"], "n"),
-                _p(s["birim"], "n"),
-                _p(trn(s["katsayi"], 4), "sag"),
-                _p(trn(s["c"], 2), "sag"),
-            ]
-        )
-    veriler.append([_p("<b>TOPLAM  b = Σc</b>", "n"), "", "", "", "", _p(trn(b, 2), "sag")])
-    t = Table(
-        veriler,
-        colWidths=[_w(58 * mm), _w(20 * mm), _w(48 * mm), _w(16 * mm), _w(18 * mm), _w(20 * mm)],
-        repeatRows=1,
-    )
-    n = len(veriler) - 1
-    t.setStyle(
-        TableStyle(
-            [
-                ("SPAN", (0, n), (4, n)),
                 ("GRID", (0, 0), (-1, -1), _c(0.4), CIZGI),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ("TOPPADDING", (0, 0), (-1, -1), 2.6),
