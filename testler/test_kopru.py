@@ -102,6 +102,8 @@ class OrnekProjeler(unittest.TestCase):
             for g_ in (g, beklenen):
                 g_["kuyu_dibi"].pop("kuvvetler", None)
                 g_["makine"].pop("saptirma_kasnak_capi", None)
+                #  Hesabın hükmü ( cizim/hesap_isareti.py ) — elle kurulan girdi hesapsız
+                g_["proje"].pop("hesap_uygun_degil", None)
             #  Hesabın Sabitler sekmesindeki kabin ölçüleri:  örnek referans
             #  projenin kabiniyle ( elle kurulan girdi de onu taşır )
             self.assertEqual(g.pop("_cizim_sabitleri"), beklenen.pop("_cizim_sabitleri"))

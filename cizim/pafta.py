@@ -34,6 +34,7 @@ from cizim import dxf
 from cizim import dusey
 from cizim import eleman
 from cizim import geometri
+from cizim import hesap_isareti
 import math
 
 SABLON = os.path.join(
@@ -219,6 +220,7 @@ def cizim_listesi(g, seritler=()):
                     olcek,
                     seritler=seritler,
                     olcekli=ad not in cizimler.OLCEKSIZ,
+                    uyari=hesap_isareti.not_satirlari(g["proje"].get("hesap_uygun_degil") or []),
                 ),
             )
         )

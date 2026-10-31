@@ -103,6 +103,9 @@ KATMAN = {
     "SEVIYE": Kalem(0.13, None, SIYAH, 2),
     "SIGINMA": Kalem(0.13, "ALAN", SIYAH, 3),
     "YAZI": Kalem(0.13, None, SIYAH, 7),
+    #  Hesabın uygun bulmadığı bölümlerin notu ( cizim/hesap_isareti.py ):
+    #  siyah-beyaz paftada da okunsun diye kalın kalem, ekranda ve kâğıtta kırmızı
+    "UYARI": Kalem(0.35, None, KIRMIZI, 1),
     #  ELEKTRİK PROJESİ ( cizim/elektrik ):  iletkenler, cihazlar ( sigorta,
     #  röle, şalter, armatür, buton … ) ve topraklama ayrı katmanlarda —
     #  ofisin elle çizdiği projede de cihazlar kırmızıydı ( 23 Eki ).

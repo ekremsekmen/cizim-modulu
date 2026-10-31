@@ -159,7 +159,7 @@ class SorunluCizim(unittest.TestCase):
         for md in (False, True):
             r = _ekran(_veri(md))
             self.assertTrue(r["aktif"])
-            self.assertEqual(set(r), {"aktif", "hesap", "cizimler"})
+            self.assertEqual(set(r), {"aktif", "hesap", "cizimler", "hesap_parcalari"})
 
     def test_paket_uygunsuz_cizimi_reddeder(self):
         veri = _veri(False, son_kat_yuksekligi=4400)

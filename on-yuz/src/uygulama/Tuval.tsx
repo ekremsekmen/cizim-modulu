@@ -170,10 +170,16 @@ export function Tuval({
   odak,
   sorunluParcalar = [],
   sorunOdak = null,
+  hesapParcalari = [],
+  hesapSecili = [],
   children,
 }: {
   /**  Sorunlu parçalar ( data-ad ) — kırmızı işaretlenir  */
   sorunluParcalar?: string[];
+  /**  Hesabın uygun bulmadığı bölümlerin parçaları ( data-ad ) — turuncu  */
+  hesapParcalari?: string[];
+  /**  Uygunluk panelinde seçilen bölümün parçaları — turuncu, yanıp söner  */
+  hesapSecili?: string[];
   /**  Kartta seçilen sorun:  parçaları öne çıkar, tuval onun çizimine gider
        ( n her seçimde artar — aynı soruna yeniden tıklamak da götürür )  */
   sorunOdak?: { sorun: CizimSorunu; n: number } | null;
@@ -389,17 +395,22 @@ export function Tuval({
     setKonum({ sol: b.left - r.left, sag: b.right - r.left, ust: b.top - r.top, alt: b.bottom - r.top, w: r.width, h: r.height });
   }, [secili, g, cizimler]);
 
-  //  Sorunlu parçalar ( sunucu:  cizim/sorun.py ) kırmızı;  seçilen sorununki öne çıkar
+  //  Sorunlu parçalar ( sunucu:  cizim/sorun.py ) kırmızı;  seçilen sorununki öne çıkar.
+  //  Hesabın uygun bulmadığı bölümlerin parçaları ( cizim/hesap_isareti.py ) turuncu;
+  //  Uygunluk panelinde seçilen bölümünkiler yanıp söner.  Kırmızı turuncunun önündedir.
   useLayoutEffect(() => {
     const el = kap.current;
     if (!el) return;
-    el.querySelectorAll(".parca-sorunlu, .parca-sorun-secili").forEach((x) =>
-      x.classList.remove("parca-sorunlu", "parca-sorun-secili"),
-    );
-    for (const ad of sorunluParcalar) el.querySelectorAll(adSecici(ad)).forEach((x) => x.classList.add("parca-sorunlu"));
-    for (const ad of sorunOdak?.sorun.parcalar ?? [])
-      el.querySelectorAll(adSecici(ad)).forEach((x) => x.classList.add("parca-sorun-secili"));
-  }, [sorunluParcalar, sorunOdak, cizimler]);
+    const siniflar = ["parca-sorunlu", "parca-sorun-secili", "parca-hesap", "parca-hesap-secili"];
+    el.querySelectorAll(siniflar.map((s) => "." + s).join(", ")).forEach((x) => x.classList.remove(...siniflar));
+    const isaretle = (adlar: string[], sinif: string) => {
+      for (const ad of adlar) el.querySelectorAll(adSecici(ad)).forEach((x) => x.classList.add(sinif));
+    };
+    isaretle(hesapParcalari, "parca-hesap");
+    isaretle(hesapSecili, "parca-hesap-secili");
+    isaretle(sorunluParcalar, "parca-sorunlu");
+    isaretle(sorunOdak?.sorun.parcalar ?? [], "parca-sorun-secili");
+  }, [sorunluParcalar, sorunOdak, hesapParcalari, hesapSecili, cizimler]);
 
   //  Seçilen sorunun yerine git:  sunucunun söylediği çizim ( parçası oradaysa ),
   //  yoksa parçanın göründüğü ilk çizim;  o çizimdeki parçaların kutusuna

@@ -121,6 +121,8 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   //  Çizim, çizim görünümünde ve teslim açıkken istenir:  teslim son girdinin
   //  çiziminin sorunlarına bakar ( hesap görünümünde eski çizime bakıyordu )
   const s = useSunucu(sema, proje, ofis, a, gorunum === "cizim" || teslimAcik);
+  //  Hesabın uygun bulmadığı bütün bölümlerin parçaları ( tuval turuncu işaretler )
+  const hesapParcalari = useMemo(() => [...new Set(Object.values(s.hesapParcalari).flat())], [s.hesapParcalari]);
   //  SIRAYI KAYDIRAN KALDIRMADAN SONRA ( 21 Eki ):  son hesap eski dizilişindir —
   //  sonuç asansöre sırasıyla eşlendiği için kaldırılan asansörün hükümleri
   //  ( ve sekme noktaları ) kalanınkinde görünüyordu.  Yeni hesap gelene kadar
@@ -428,6 +430,8 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
               odak={params.get("cizim")}
               sorunluParcalar={s.sorunluParcalar}
               sorunOdak={gecerliOdak}
+              hesapParcalari={hesapParcalari}
+              hesapSecili={secili ? (s.hesapParcalari[secili] ?? []) : []}
             >
               {(konum) =>
                 olcu &&

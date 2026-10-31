@@ -1514,6 +1514,48 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertTrue(any(a.endswith(".uygulama") for a in adlar), adlar)
         self.assertTrue(any(a.lower().endswith((".dxf", ".dwg")) for a in adlar), adlar)
 
+    def test_hesabin_uygun_bulmadigi_bolum_turuncu_teslim_ayrica_onaylanir(self):
+        """1 Kas:  motor küçültülünce hesap "motor gücü uygun değil" der, çizim
+        kurulur.  Makine ve tahrik kasnağı tuvalde turuncu;  panelde bölüme
+        tıklanınca vurgulanır;  paket iki onayla iner ( değerler + uygun
+        olmayan bölümler ) — girdi düzelince ikinci onay kalkar."""
+        self.ornek_projeyi_ac()
+        self.alan_kutusu("motor_gucu").fill("1")
+        self.iz.sakin()
+        _istek, cizim = self.iz.son("/api/uygulama/cizimler")
+        self.assertTrue(cizim["aktif"], cizim.get("hata"))
+        self.assertIn("motor_gucu", cizim["hesap_parcalari"])
+        turuncu = self.sayfa.locator(".parca-hesap")
+        self.assertGreater(turuncu.count(), 0)
+        adlar = {turuncu.nth(j).get_attribute("data-ad") for j in range(turuncu.count())}
+        self.assertLessEqual(adlar, {a for p in cizim["hesap_parcalari"].values() for a in p})
+        self.assertEqual(self.sayfa.locator(".parca-hesap-secili").count(), 0)
+        panel = self.sayfa.get_by_role("complementary", name="Uygunluk")
+        panel.get_by_role("button", name=re.compile("MOTOR GÜCÜ", re.I)).click()
+        secili = self.sayfa.locator(".parca-hesap-secili")
+        secili.first.wait_for(state="attached")
+        self.assertEqual(
+            {secili.nth(j).get_attribute("data-ad") for j in range(secili.count())},
+            set(cizim["hesap_parcalari"]["motor_gucu"]) & adlar,
+        )
+
+        self.sayfa.get_by_role("button", name="Teslim").click()
+        teslim = self.sayfa.get_by_role("dialog", name="Teslim")
+        paket = teslim.get_by_role("button", name=re.compile("Paketi indir"))
+        teslim.get_by_role("checkbox", name=re.compile("gözden geçirdim")).check()
+        ikinci = teslim.get_by_role("checkbox", name=re.compile("bilerek teslim"))
+        self.assertTrue(paket.is_disabled())
+        ikinci.check()
+        self.assertTrue(paket.is_enabled())
+        #  Girdi düzelince bölüm uygun:  ikinci onay kalkar, paket yine açık
+        self.sayfa.keyboard.press("Escape")
+        self.alan_kutusu("motor_gucu").fill("12,5")
+        self.iz.sakin()
+        self.assertEqual(self.sayfa.locator(".parca-hesap").count(), 0)
+        self.sayfa.get_by_role("button", name="Teslim").click()
+        teslim.get_by_role("checkbox", name=re.compile("gözden geçirdim")).wait_for()
+        self.assertEqual(teslim.get_by_role("checkbox", name=re.compile("bilerek teslim")).count(), 0)
+
     def test_teslim_sorunlu_cizimde_paket_kapali_hesap_pdf_acik(self):
         self.ornek_projeyi_ac()
         self.alan_kutusu("kuyu_genisligi").fill("2300")
