@@ -107,6 +107,9 @@ KURALLI = {
     #  Kuralı yok:  tek tamponda boştur ( etkin değeri de yok ),  ikisinde girilir
     "kabin_tampon_arasi": ("kuyu_dibi", "kabin_tampon_arasi"),
     "agirlik_tampon_arasi": ("kuyu_dibi", "agirlik_tampon_arasi"),
+    #  Kuralı yok:  boşsa asansör ayrı kuyudadır ( cizim/grup.py );  hiçbir ölçü
+    #  ondan türemez
+    "grup_sirasi": ("proje", "grup_sirasi"),
     "md_x": ("makine_dairesi", "x"),
     "md_y": ("makine_dairesi", "y"),
 }
@@ -197,6 +200,16 @@ def _kot_girisi(A):
     if not isinstance(kot, dict):
         raise RuntimeError("kotla giriş türetilmeden çizime geldi ( mukavemet_girdi.tamamla atlandı )")
     return list(kot["hata"])
+
+
+def _tam(v):
+    """Sıra gibi tam sayı ( izsiz:  hiçbir ölçü ondan türemez );  boşsa None."""
+    return None if v is None else int(v)
+
+
+def asansor_adi(A, sira):
+    """Asansörün paftadaki adı:  girilen ad, yoksa "ASANSÖR 2" ( sira 1'den )."""
+    return str(A.get("asansor_adi") or "").strip() or f"ASANSÖR {sira}"
 
 
 def _kural(v, anahtar):
@@ -582,12 +595,14 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
         "_cizim_sabitleri": ozel,
         "proje": {
             "ad": proje_adi or "",
-            "asansor": str(A.get("asansor_adi") or "").strip() or f"ASANSÖR {sira}",
+            "asansor": asansor_adi(A, sira),
             "olcek": 20,
             #  Hesabın uygun bulmadığı bölümler:  ekran parçalarını turuncu
             #  işaretler, pafta her çizimin künyesinin altına not yazar
             #  ( cizim/hesap_isareti.py — 1 Kas )
             "hesap_uygun_degil": hesap_isareti.uygun_olmayanlar(sonuc),
+            #  Kuyu grubundaki sırası ( soldan;  None:  ayrı kuyu — cizim/grup.py )
+            "grup_sirasi": _tam(sayi("grup_sirasi", bos=True)),
         },
         #  Duvarlar ayrı ayrı ( boşsa ortak kalınlık );  kuyu dibinin ve tavanın
         #  döşemesi ortak kalınlıktadır ( eskiden ön duvarınkini kullanıyordu ).

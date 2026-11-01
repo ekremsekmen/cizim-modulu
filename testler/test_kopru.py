@@ -54,7 +54,7 @@ class OrnekProjeler(unittest.TestCase):
 
     def _elle(self, md):
         g = copy.deepcopy(girdi.ORNEK)
-        g["proje"] = {"ad": "ÖRNEK PROJE", "asansor": "ASANSÖR 1", "olcek": 20}
+        g["proje"] = {"ad": "ÖRNEK PROJE", "asansor": "ASANSÖR 1", "olcek": 20, "grup_sirasi": None}
         g["dusey"].update(
             {
                 "kabin_paten_arasi": 3300,

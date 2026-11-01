@@ -29,6 +29,7 @@ from uclar.uc_ortak import hata_iletisi, hata_kaydi
 
 from cizim import cizimler
 from cizim import geometri
+from cizim import grup
 from cizim import hesap_isareti
 from cizim import istek_onbellegi
 from cizim import izli
@@ -160,12 +161,17 @@ def cizimler_yaniti(veri):
             i = 0
         i = min(max(i, 0), len(asansorler) - 1)
         s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
-        g, hata = asansor_girdisi(
-            asansorler, ortak, s if s.get("aktif") else None, _proje_kimligi(veri)["proje_adi"], i
-        )
+        sonuc, proje_adi = s if s.get("aktif") else None, _proje_kimligi(veri)["proje_adi"]
+        g, hata = asansor_girdisi(asansorler, ortak, sonuc, proje_adi, i)
         if g is None:
             return JSONResponse({"aktif": False, "hata": hata})
         cizimler_, kurulamayan = _ekran_cizimleri(g, hata)
+        #  KUYU GRUBU ( cizim/grup.py ):  grubun sorunları asansörün sorunlarına
+        #  eklenir ( paket inmez ), grubun planı çizimlerin önünde
+        grup_sorunlari, grup_cizimi = _grup(asansorler, ortak, sonuc, proje_adi, i, g, hata)
+        if grup_cizimi:
+            cizimler_.insert(0, grup_cizimi)
+        hata = hata + grup_sorunlari
         #  Hesabın uygun bulmadığı bölümlerin parçaları ( ekrandaki adlarıyla ):
         #  tuval turuncu işaretler, Uygunluk panelinde seçilen bölümünkini vurgular
         hesap_parcalari = {b["kimlik"]: b["parcalar"] for b in g["proje"]["hesap_uygun_degil"]}
@@ -222,6 +228,52 @@ def _ekran_cizimleri(g, hata):
                 log.error("çizim kurulamadı — programın hatası:  %s", ad, exc_info=True)
                 kurulamayan.append(cizimler.CIZIMLER[ad][2].partition("  (")[0])
     return liste, kurulamayan
+
+
+def grup_sorunlari(asansorler, gler):
+    """Projenin kuyu grubunun sorunları ( paket — pafta.bloklar grubu çizer ).
+    gler:  asansörlerin çizim girdileri sırayla ( kurulamayan None )."""
+    return grup.sorunlar(
+        [a.get("grup_sirasi") for a in asansorler],
+        [kopru.asansor_adi(a, j + 1) for j, a in enumerate(asansorler)],
+        gler,
+    )
+
+
+def _grup(asansorler, ortak, sonuc, proje_adi, i, g, hata):
+    """Aktif asansör bir kuyu grubundaysa grubun sorunları ve planı ( SVG — ekranda
+    tıklanmaz:  ölçüleri iki asansörün ):  ( sorunlar , çizim ya da None ).
+    Grubun öbür asansörlerinin çizim girdileri de kurulur — yalnız grupta;  ayrı
+    kuyulu proje bundan beklemez.  Öbür asansörün sorunu kendi ekranında
+    söylenir, burada yalnız grubun planının neden çizilmediği."""
+    siralar = [a.get("grup_sirasi") for a in asansorler]
+    uye = grup.uyeler(siralar)
+    if i not in uye:
+        return [], None
+    adlar = [kopru.asansor_adi(a, j + 1) for j, a in enumerate(asansorler)]
+    sorunlar = grup.sira_hatalari(siralar, adlar)
+    if sorunlar:
+        return sorunlar, None
+    gler, bozuk = [], []
+    for j in uye:
+        g_j, h_j = (g, hata) if j == i else asansor_girdisi(asansorler, ortak, sonuc, proje_adi, j)
+        gler.append(g_j)
+        if j != i and h_j:
+            bozuk.append(adlar[j])
+    if all(x is not None for x in gler):
+        sorunlar = grup.duzen_hatalari(gler)
+    sorunlar += [f"Kuyu grubunun planı çizilemedi:  {a} çiziminde sorun var." for a in bozuk]
+    if sorunlar or hata:
+        return sorunlar, None
+    seritler = (f"{proje_adi}  ·  {grup.adlari(gler)}" if proje_adi else grup.adlari(gler),)
+    baslik, e = grup.cerceveli(gler, seritler)
+    return [], {
+        "ad": grup.AD,
+        "baslik": baslik,
+        "olcek": grup.OLCEK,
+        "olceksiz": False,
+        "svg": svg.yaz(e, geometri.sinir(e, 120), "", grup.OLCEK, onek="cg-", r=svg.CAD),
+    }
 
 
 # ══════════════════════════════════════════════════════════════════════
