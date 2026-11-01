@@ -335,6 +335,28 @@ _GRUPLAR = (
                     "Kuyu genişliği ile birlikte kuyu planını kurar."
                 ),
             ),
+            #  KUYU GRUBU ( 1 Kas — cikti/devir/ORTAK_KUYU_PLANI.md, 1. adım ):
+            #  LiftDesigner'ın grubu gibi her asansör kendi kuyusundadır ( kendi
+            #  girdisi, kendi hesabı );  grup kuyuların yan yana dizilişidir
+            #  ( cizim/grup.py ).  Bugün iki asansör, aralarında duvar.
+            A(
+                "grup_sirasi",
+                "Kuyu grubundaki sırası  ( boşsa ayrı kuyu )",
+                "—",
+                "sayi",
+                None,
+                None,
+                kaynak=GIRDI,
+                sozlesme=CIZ,
+                tam_sayi=True,
+                azami=2,
+                bilgi=(
+                    "Ortak duvarlı, yan yana kuyulardaki asansörlerin soldan sırası ( durakta kapılara "
+                    "bakarken ):  1, 2;  boşsa ayrı kuyu.  Kuyu planı grupça da çizilir.  Aradaki duvar iki "
+                    "asansörde aynı girilir ( soldakinin sağ duvarı = sağdakinin sol duvarı );  derinlik, ön "
+                    "ve arka duvar, durak kotları aynı olmalı."
+                ),
+            ),
             A(
                 "durak_adedi",
                 "Durak adedi",

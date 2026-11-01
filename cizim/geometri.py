@@ -794,7 +794,7 @@ def _plan_olculeri(g, S):
     )
 
 
-def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
+def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None, komsu=None, cit=(), olcu_alti=None):
     """Kuyu planının elemanları  ( liste ).
 
     kapi_duzeyi:  plan kat kapısı hizasından kesilir ( C-C ) — ön duvar kapı
@@ -805,11 +805,19 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
     kapi_duzeyi ) — kabin üstü planı kesit kotu kaba boşluğun içinde kalırsa
     boşluklu ister ( kabin_ustu.kapi_gorunusu ).
 
+    KUYU GRUBU ( cizim/grup.py — grubun planında asansörün kendi parçası ):
+    komsu:  komşu kuyunun yanı ( "Sol" · "Sağ" ) — o yandaki ölçü sıraları
+    öbür yana geçer, kesit işaretleri yazılmaz ( grubun planında iki asansörün
+    A-A'sı olurdu ).  cit:  komşu kuyunun yerini kapatan elemanlar — yazılar
+    oraya kaçmasın diye en baştan listededir ( çağıran sonra atar ).
+    olcu_alti:  alttaki ölçü sıralarının en üstü ( grubun kuyuları aynı
+    sıralarda ölçülür — menteşeli kapının yayı birininkini aşağı iter ).
+
     Eleman SIRASI çizimin parçasıdır ( sonraki öncekinin üstüne çizilir;
     altın kayıtlar sırayı da tutar ):  bölümler aşağıdaki sırayla eklenir."""
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     P = _plan_olculeri(g, S)
-    e = _duvarlar(P, kapi_duzeyi if duvar_boslugu is None else duvar_boslugu)
+    e = list(cit) + _duvarlar(P, kapi_duzeyi if duvar_boslugu is None else duvar_boslugu)
     e += _kat_kapisi(P, kapi_duzeyi)
     e += _kabin(P)
     e += _kabin_raylari(P)
@@ -823,11 +831,12 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
     #  duvarda kaynağı belirsiz 400 × 90'lık bir "PANO" çiziliyordu:  kesitlerde
     #  karşılığı yoktu, makine dairelide makine dairesindekiyle çift oluyordu.
 
-    #  Alttaki ölçü sıraları menteşeli kapının açılma yayının da altında
-    alt = min([-P.don - S["bina_duvari"]] + [el["y"] for el in e if el.get("ad") == "kapi_acilisi"])
+    alt = _olcu_alti(P, e)
+    if olcu_alti is not None:
+        alt = min(alt, olcu_alti)
     e += _ust_olculer(P)
     e += _alt_olculer(P, alt)
-    e += _yan_olculer(P)
+    e += _yan_olculer(P, komsu)
     e += _kabin_ici_olculeri(P)
     e += _aski_olculeri(P)
     e += _kabin_kapisi(P)
@@ -837,8 +846,22 @@ def plan(g, cizim_sabitleri=None, kapi_duzeyi=True, duvar_boslugu=None):
     if adaylar:
         yazilari_coz(e, adaylar)
     parcadan_kaydir(e, ek_katman=("AGIRLIK",))
-    e += kesit_isaretleri(g, e)
+    if komsu is None:
+        e += kesit_isaretleri(g, e)
     return e
+
+
+def _olcu_alti(P, e):
+    """Alttaki ölçü sıralarının en üstü:  ön duvarın ( ve bina duvarının )
+    dışı, menteşeli kapıda açılma yayının da altı."""
+    return min([-P.don - P.S["bina_duvari"]] + [el["y"] for el in e if el.get("ad") == "kapi_acilisi"])
+
+
+def olcu_alti(g):
+    """Kuyu planının alttaki ölçü sıralarının en üstü ( plan() ile aynı ) —
+    grubun planı kuyuların sıralarını aynı yere koyar ( cizim/grup.py )."""
+    P = _plan_olculeri(g, sabitler.sabitler(g.get("_cizim_sabitleri")))
+    return _olcu_alti(P, _kat_kapisi(P, True))
 
 
 def _duvarlar(P, bosluklu):
@@ -1487,11 +1510,13 @@ def _alt_olculer(P, alt):
     return e
 
 
-def _yan_olculer(P):
+def _yan_olculer(P, komsu=None):
     """YANLAR — kuyu derinliği boyunca.  Sıra listesi duvardan dışarı
     doğrudur;  ağırlık yandaysa kendi zinciri O YANDA, duvara en yakın
     sırada durur  ( konsol kotları ağırlığın yanında okunur );  kabin rayı
-    konsolunun cıvata aralığı duvara dayanan konsolun yanında."""
+    konsolunun cıvata aralığı duvara dayanan konsolun yanında.
+    komsu:  kuyu grubunda komşu kuyunun yanı — o yanın sıraları öbür yanın
+    sıralarının dışına geçer ( LiftDesigner'ın grup planı gibi )."""
     if P.ag_yan == "Sol":
         sol, sag = [_agirlik_rayi_sirasi], [_civata_sirasi]
     elif P.ag_yan == "Sağ":
@@ -1500,6 +1525,10 @@ def _yan_olculer(P):
         sol, sag = [], [_civata_sirasi]
     sol += [_ray_ekseni_sirasi]
     sag += [_kabin_derinligi_sirasi, _esik_sirasi, _kapi_arasi_sirasi, _on_arka_duvar_sirasi]
+    if komsu == "Sağ":
+        sol, sag = sol + sag, []
+    elif komsu == "Sol":
+        sol, sag = [], sag + sol
     e = []
     for i, sira in enumerate(sol):
         e += sira(P, -P.ds - 120 - i * SIRA_ARASI)

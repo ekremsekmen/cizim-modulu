@@ -70,11 +70,16 @@ CIZIMLER = {
 #  Son adım:  rastlantısal küçük zincir ölçüsü komşusuyla birleşir
 #  ( geometri.kucukleri_birlestir ), aynı aralığın ikinci kimliksiz ölçüsü atılır
 #  ( geometri.tekrarlari_at ), birbirine binen etiketler ayrılır
-#  ( geometri.etiketleri_ayir ), ondalık ayırıcı virgül olur ( geometri.ondalik_virgul )
+#  ( geometri.etiketleri_ayir ), ondalık ayırıcı virgül olur ( geometri.ondalik_virgul ).
+#  Kuyu grubunun planı asansörlerin planlarını da bunlardan geçirir ( cizim/grup.py ).
+def bitir(e, olcek=20):
+    e = geometri.tekrarlari_at(geometri.kucukleri_birlestir(e))
+    return geometri.ondalik_virgul(geometri.etiketleri_ayir(e, olcek))
+
+
 def _ayir(ciz, olcek=20):
     def ayrilmis(*a, **k):
-        e = geometri.tekrarlari_at(geometri.kucukleri_birlestir(ciz(*a, **k)))
-        return geometri.ondalik_virgul(geometri.etiketleri_ayir(e, olcek))
+        return bitir(ciz(*a, **k), olcek)
 
     ayrilmis.__name__ = ciz.__name__
     return ayrilmis

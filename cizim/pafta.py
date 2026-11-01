@@ -34,6 +34,7 @@ from cizim import dxf
 from cizim import dusey
 from cizim import eleman
 from cizim import geometri
+from cizim import grup
 from cizim import hesap_isareti
 import math
 
@@ -302,10 +303,11 @@ def bloklar(g):
     """Paftanın çizimleri, sırasıyla:  [ ( ad, başlık, ölçek, elemanlar ) ] —
     blok adı "CIZIM_" + ad.upper().  g:  tek asansörün girdisi ya da çok
     asansörlü projede girdilerin listesi ( asansörler sırayla, her çizimin
-    şeridinde asansörün adı ).  DXF ( _yerlestir ) ve PDF ( ciktilar/pafta_pdf )
-    aynı listeyi kullanır."""
+    şeridinde asansörün adı;  kuyu grubu varsa önce grubun planı — "kuyu_grubu" ).
+    DXF ( _yerlestir ) ve PDF ( ciktilar/pafta_pdf ) aynı listeyi kullanır."""
     gler = g if isinstance(g, (list, tuple)) else [g]
-    liste = []
+    #  Kuyu grubunun planı önde ( asansörlerin kendi çizimleri ardından — cizim/grup.py )
+    liste = grup.pafta_cizimleri(gler)
     for i, g_ in enumerate(gler):
         coklu = len(gler) > 1
         for ad, baslik, olcek, e in cizim_listesi(g_, (g_["proje"]["asansor"],) if coklu else ()):
@@ -318,7 +320,7 @@ def kunyeler(g):
     """bloklar( g ) ile aynı sırada her çizimin projesi ve asansörü:
     [ { proje, asansor } ] — ayrı sayfalı PDF'in anteti ( pdf.sayfalar )."""
     gler = g if isinstance(g, (list, tuple)) else [g]
-    return [
+    return grup.kunyeler(gler) + [
         {"proje": g_["proje"]["ad"], "asansor": g_["proje"]["asansor"]} for g_ in gler for _ad in sira(g_)
     ]
 

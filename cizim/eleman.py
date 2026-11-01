@@ -171,3 +171,23 @@ def olcu(yon, a, b, kot, metin=None, yazi=None, kural=None, ad=None):
     if ad:
         el["ad"] = "olcu_" + ad
     return el
+
+
+def tasi(el, dx, dy=0.0):
+    """Elemanın ( dx, dy ) kaydırılmış KOPYASI ( asıl eleman değişmez ) — kuyu
+    grubunun planı asansörlerin planlarını kendi yerlerine koyar ( cizim/grup.py ).
+    Ölçünün kotu çizgisinin yeridir:  yatayda y, düşeyde x."""
+    y = dict(el)
+    if el["tip"] == "olcu":
+        y["a"] = (el["a"][0] + dx, el["a"][1] + dy)
+        y["b"] = (el["b"][0] + dx, el["b"][1] + dy)
+        y["kot"] = el["kot"] + (dy if el["yon"] == "yatay" else dx)
+        if "yazi" in el:
+            y["yazi"] = dict(el["yazi"], x=el["yazi"]["x"] + dx, y=el["yazi"]["y"] + dy)
+    elif "x1" in el:
+        y.update(x1=el["x1"] + dx, x2=el["x2"] + dx, y1=el["y1"] + dy, y2=el["y2"] + dy)
+    else:
+        y.update(x=el["x"] + dx, y=el["y"] + dy)
+    if "bicim" in el:
+        y["bicim"] = [dict(p, noktalar=[(px + dx, py + dy) for px, py in p["noktalar"]]) for p in el["bicim"]]
+    return y

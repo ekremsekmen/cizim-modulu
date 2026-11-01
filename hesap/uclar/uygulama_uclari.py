@@ -143,6 +143,7 @@ def _uygulama_paketi(veri):
         asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
         cizim = cizim_uclari.girdiler(veri, asansorler, ortak, s, _p["proje_adi"])
         eksik = [f"{i}. asansör — {h}" for i, (_g, hata) in enumerate(cizim, 1) for h in hata]
+        eksik += cizim_uclari.grup_sorunlari(asansorler, [g for g, _h in cizim])
         if eksik:
             return JSONResponse(
                 {"aktif": False, "hata": "ÇİZİMLER KURULAMADI:\n· " + "\n· ".join(eksik)}, status_code=200
