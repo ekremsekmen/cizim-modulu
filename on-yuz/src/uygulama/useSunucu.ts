@@ -160,6 +160,11 @@ export function useSunucu(
   }, [cizimEski, sonCizim]);
 
   const sorunluParcalar = useMemo(() => [...new Set(cizimSorunlari.flatMap((m) => m.parcalar))], [cizimSorunlari]);
+  //  Hesabın uygun bulmadığı bölümlerin parçaları — ekrandaki çizim bu girdininse
+  const hesapParcalari = useMemo<Record<string, string[]>>(
+    () => (cizimEski ? {} : (sonCizim?.yanit.hesap_parcalari ?? {})),
+    [cizimEski, sonCizim],
+  );
 
   let sorun: Sorun | null = null;
   if (hatalar.length) sorun = { tur: "kural", maddeler: hatalar };
@@ -236,6 +241,8 @@ export function useSunucu(
     reddedilen,
     /**  Ekrandaki ( güncel ) çizimin sorunlu parçaları ( data-ad ) — tuval kırmızı işaretler  */
     sorunluParcalar,
+    /**  Hesabın uygun bulmadığı bölümlerin parçaları ( bölüm kimliği → data-ad ) — tuval turuncu  */
+    hesapParcalari,
     /**  Bu asansörün son temiz çiziminin girdisi ( yoksa null )  */
     oncekiTemiz: temiz.girdiler[asansor] ?? null,
     sorun,

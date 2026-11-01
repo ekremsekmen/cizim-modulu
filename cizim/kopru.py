@@ -33,6 +33,7 @@ import math
 from temel import bos_mu, sayi_mi
 from cizim import sorun
 from cizim import girdi
+from cizim import hesap_isareti
 from cizim import izli
 from cizim import katlar
 from cizim import sabitler
@@ -583,6 +584,10 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
             "ad": proje_adi or "",
             "asansor": str(A.get("asansor_adi") or "").strip() or f"ASANSÖR {sira}",
             "olcek": 20,
+            #  Hesabın uygun bulmadığı bölümler:  ekran parçalarını turuncu
+            #  işaretler, pafta her çizimin künyesinin altına not yazar
+            #  ( cizim/hesap_isareti.py — 1 Kas )
+            "hesap_uygun_degil": hesap_isareti.uygun_olmayanlar(sonuc),
         },
         #  Duvarlar ayrı ayrı ( boşsa ortak kalınlık );  kuyu dibinin ve tavanın
         #  döşemesi ortak kalınlıktadır ( eskiden ön duvarınkini kullanıyordu ).

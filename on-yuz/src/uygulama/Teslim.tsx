@@ -88,6 +88,14 @@ export function Teslim({
   const notlar = paket.data?.notlar ?? [];
 
   const kalan = (hesap?.asansorler ?? []).map((a) => (a.bolumler ?? []).filter((b) => b.sonuc?.uygun === false).length);
+  //  Uygun olmayan bölümle teslim ayrıca onaylanır ( 1 Kas ):  onay o anki
+  //  bölümlere aittir — liste değişince ( başka bölüm de uygun değil olunca ) düşer
+  const uygunDegilImza = (hesap?.asansorler ?? [])
+    .map((a) => (a.bolumler ?? []).filter((b) => b.sonuc?.uygun === false).map((b) => b.kimlik).join(","))
+    .join("|");
+  const uygunDegilVar = !!hesap?.ozet && !hesap.ozet.tumu_uygun;
+  const [onaylananImza, setOnaylananImza] = useState<string | null>(null);
+  const uygunDegilOnay = !uygunDegilVar || onaylananImza === uygunDegilImza;
 
   //  Elektrik projesi:  elektrik hesabı yapılan her asansöre bir A3 sayfa ( paftada
   //  kapağın yanında, alt satırın solunda;  ayrı sayfalı PDF'te çizimlerden sonra )
@@ -135,11 +143,24 @@ export function Teslim({
               ))}
             </div>
           )}
-          {!engel?.ciddi && hesap?.ozet && !hesap.ozet.tumu_uygun && (
-            <p className="mt-2 text-[12.5px] leading-relaxed text-metin-2">
-              Paket indirilebilir;  uygun olmayan bölümler paftada <b className="font-semibold text-red">UYGUN DEĞİLDİR</b>{" "}
-              hükmüyle basılır.
-            </p>
+          {!engel?.ciddi && uygunDegilVar && (
+            <>
+              <p className="mt-2 text-[12.5px] leading-relaxed text-metin-2">
+                Paket indirilebilir;  uygun olmayan bölümler hesap raporunda <b className="font-semibold text-red">UYGUN DEĞİLDİR</b>{" "}
+                hükmüyle basılır, her çizim paftasının künyesinin altına da not düşülür.
+              </p>
+              <label className="mt-2 flex cursor-pointer items-start gap-2.5">
+                <input
+                  type="checkbox"
+                  checked={uygunDegilOnay}
+                  onChange={(e) => setOnaylananImza(e.target.checked ? uygunDegilImza : null)}
+                  className="mt-0.5 size-4 accent-[var(--color-vurgu)]"
+                />
+                <span className="text-[12.5px] leading-relaxed text-metin-2">
+                  Uygun olmayan bölümleri bilerek teslim ediyorum.
+                </span>
+              </label>
+            </>
           )}
         </section>
 
@@ -258,7 +279,7 @@ export function Teslim({
           {pdf.isPending ? <Loader2 className="animate-spin" /> : <FileText />}
           Yalnız hesap PDF'i
         </Dugme>
-        <Dugme tur="birincil" boy="buyuk" onClick={() => paket.mutate()} disabled={!!engel || !onay || paket.isPending}>
+        <Dugme tur="birincil" boy="buyuk" onClick={() => paket.mutate()} disabled={!!engel || !onay || !uygunDegilOnay || paket.isPending}>
           {paket.isPending ? <Loader2 className="animate-spin" /> : paket.isSuccess && !paket.data?.hata ? <Check /> : <FileArchive />}
           Paketi indir · ZIP
         </Dugme>
