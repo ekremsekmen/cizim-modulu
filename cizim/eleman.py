@@ -33,6 +33,7 @@ KATMANLAR = (
     "EKSEN",
     "YAZI",
     "CERCEVE",
+    "UYARI",
     "KORKULUK",
     "SIGINMA",
     "TAMPON",

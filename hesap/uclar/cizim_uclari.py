@@ -29,6 +29,7 @@ from uclar.uc_ortak import hata_iletisi, hata_kaydi
 
 from cizim import cizimler
 from cizim import geometri
+from cizim import hesap_isareti
 from cizim import istek_onbellegi
 from cizim import izli
 from cizim import katlar
@@ -99,7 +100,14 @@ def _elemanlar(g, ad):
     seritler = (
         f"{g['proje']['ad']}  ·  {g['proje']['asansor']}" if g["proje"]["ad"] else g["proje"]["asansor"],
     )
-    e = geometri.cerceveli(ciz(g), baslik, olcek, seritler=seritler, olcekli=ad not in cizimler.OLCEKSIZ)
+    e = geometri.cerceveli(
+        ciz(g),
+        baslik,
+        olcek,
+        seritler=seritler,
+        olcekli=ad not in cizimler.OLCEKSIZ,
+        uyari=hesap_isareti.not_satirlari(g["proje"].get("hesap_uygun_degil") or []),
+    )
     return e, baslik, olcek
 
 
@@ -158,11 +166,19 @@ def cizimler_yaniti(veri):
         if g is None:
             return JSONResponse({"aktif": False, "hata": hata})
         cizimler_, kurulamayan = _ekran_cizimleri(g, hata)
+        #  Hesabın uygun bulmadığı bölümlerin parçaları ( ekrandaki adlarıyla ):
+        #  tuval turuncu işaretler, Uygunluk panelinde seçilen bölümünkini vurgular
+        hesap_parcalari = {b["kimlik"]: b["parcalar"] for b in g["proje"]["hesap_uygun_degil"]}
         #  Projenin aktif olması en az bir hesabın yapıldığını söyler;
         #  bu çizimdeki kuvvetlerin durumu seçili asansöre aittir.
         if not hata:
             return JSONResponse(
-                {"aktif": True, "hesap": bool(s["asansorler"][i].get("aktif")), "cizimler": cizimler_}
+                {
+                    "aktif": True,
+                    "hesap": bool(s["asansorler"][i].get("aktif")),
+                    "cizimler": cizimler_,
+                    "hesap_parcalari": hesap_parcalari,
+                }
             )
         #  SORUNLU ÇİZİM:  "aktif" bugünkü anlamında kalır ( çizim uygun değil —
         #  testler ve ön yüzün denetimi reddi buradan okur );  ekran çizimleri
@@ -177,6 +193,7 @@ def cizimler_yaniti(veri):
                 "hesap": bool(s["asansorler"][i].get("aktif")),
                 "cizimler": cizimler_,
                 "kurulamayan": kurulamayan,
+                "hesap_parcalari": hesap_parcalari,
             }
         )
     except Exception as e:  # noqa: BLE001

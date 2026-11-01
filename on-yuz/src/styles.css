@@ -119,6 +119,22 @@
     parlak ve üç kez yanıp söner.  Üstüne gelinen parçanın vurgusu öndedir.   */
 /*  Kalınlık ekran pikselinde ( --mu:  piksel / çizim birimi — ekran kalemi gibi ):
     ince kalemli parça kırmızıyken de seçilsin  */
+/*  HESABIN UYGUN BULMADIĞI BÖLÜMÜN PARÇALARI ( sunucu:  cizim/hesap_isareti.py ):
+    turuncu;  Uygunluk panelinde seçilen bölümünkiler kalın ve üç kez yanıp söner.
+    Geometri sorununun kırmızısı ( aşağıda ) önce gelir.                       */
+.tuval-svg [data-parca].parca-hesap * {
+  stroke: #ff9f1a !important;
+  stroke-width: calc(1.5px / var(--mu)) !important;
+}
+.tuval-svg [data-parca].parca-hesap-secili * {
+  stroke: #ffb020 !important;
+  stroke-width: calc(2.5px / var(--mu)) !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tuval-svg [data-parca].parca-hesap-secili {
+    animation: sorun-yanip 0.9s ease-in-out 3;
+  }
+}
 .tuval-svg [data-parca].parca-sorunlu * {
   stroke: #f97066 !important;
   stroke-width: calc(1.5px / var(--mu)) !important;

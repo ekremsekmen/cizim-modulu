@@ -2711,12 +2711,38 @@ def zincirler(elemanlar):
     return cikti
 
 
-def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=(), olcekli=True):
+_UYARI_AYRAC = ("  —  ", "  ·  ")
+
+
+def _uyari_parcalari(metin):
+    """Notun bölünmez parçaları ( ayraçlar önceki parçada kalır )."""
+    parcalar_ = [metin]
+    for a in _UYARI_AYRAC:
+        parcalar_ = [
+            x + (a if i < len(p.split(a)) - 1 else "") for p in parcalar_ for i, x in enumerate(p.split(a))
+        ]
+    return parcalar_
+
+
+def _sar(metin, en, h):
+    """Satırı en'e sığan satırlara sarar ( ayraçlardan;  sondaki ayraç düşer )."""
+    satirlar, s = [], ""
+    for p in _uyari_parcalari(metin):
+        if s and eleman.yazi_eni((s + p).rstrip(" ·—"), h) > en:
+            satirlar.append(s.rstrip(" ·—"))
+            s = ""
+        s += p
+    return satirlar + [s.rstrip(" ·—")] if s else satirlar
+
+
+def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=(), olcekli=True, uyari=()):
     """Çizimi kendi çerçevesine alır ve altına başlık şeridi ekler.
 
     Referans projede de her çizim ayrı bir çerçevededir ve altında adı ile ölçeği
     yazar.  Çerçeve ölçüleri de kapsar;  yazılar dışarıda kalmaz.  olcekli:
-    başlıkta ölçek yazar mı ( tabloda yazmaz — cizimler.OLCEKSIZ ).
+    başlıkta ölçek yazar mı ( tabloda yazmaz — cizimler.OLCEKSIZ ).  uyari:
+    künye şeridinin altında, çerçevenin içinde ayrı bir bantta satırlar —
+    hesabın uygun bulmadığı bölümler ( cizim/hesap_isareti.py ).
     """
     k = olcek / 20.0  # yazılar paftada 1/20'deki boyda kalır
     etiket = f"{baslik}   1/{olcek:g}" if olcekli else baslik
@@ -2730,12 +2756,26 @@ def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=(), olcekli=True):
         + eleman.yazi_eni(etiket, uslup.BASLIK * k)
         + max([eleman.yazi_eni(m, uslup.HARF * k) for m in seritler] or [0])
     )
+    #  Not çerçeveyi genişletmez ( çizimlerin yerleşimi değişmesin ):  satırlar
+    #  "  ·  " ve "  —  " yerlerinden sarılır;  yalnız tek parçası sığmazsa genişler
+    parcalar_ = [p for m in uyari for p in _uyari_parcalari(m)]
+    gerek = max([gerek] + [240 * k + eleman.yazi_eni(p, uslup.HARF * k) for p in parcalar_])
     if x2 - x1 < gerek:
         fark = (gerek - (x2 - x1)) / 2.0
         x1, x2 = x1 - fark, x2 + fark
+    uyari = [s for m in uyari for s in _sar(m, x2 - x1 - 240 * k, uslup.HARF * k)]
+    satir = 150.0 * k
+    bant = (len(uyari) + 0.6) * satir if uyari else 0.0
     e = list(elemanlar)
-    e.append(eleman.dikdortgen("CERCEVE", x1, y1 - serit, x2 - x1, (y2 - y1) + serit))
+    e.append(eleman.dikdortgen("CERCEVE", x1, y1 - serit - bant, x2 - x1, (y2 - y1) + serit + bant))
     e.append(eleman.cizgi("CERCEVE", x1, y1, x2, y1))
+    if uyari:
+        ust = y1 - serit
+        e.append(eleman.cizgi("UYARI", x1, ust, x2, ust))
+        e += [
+            eleman.yazi(x1 + 120 * k, ust - (i + 0.8) * satir, m, uslup.HARF * k, hiza="sol", katman="UYARI")
+            for i, m in enumerate(uyari)
+        ]
     e.append(
         eleman.yazi(
             x1 + 120 * k,

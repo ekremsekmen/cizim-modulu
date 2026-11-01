@@ -217,6 +217,9 @@ export interface CizimYanit {
   kurulamayan?: string[];
   /**  hata'nın yapılı hâli ( sorunlu çizimde )  */
   sorunlar?: CizimSorunu[];
+  /**  Hesabın uygun bulmadığı bölümlerin parçaları ( bölüm kimliği → data-ad;
+       sunucu:  cizim/hesap_isareti.py ) — tuval turuncu işaretler  */
+  hesap_parcalari?: Record<string, string[]>;
 }
 
 export interface OlcuKaynagi {
