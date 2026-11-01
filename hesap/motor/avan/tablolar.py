@@ -497,10 +497,6 @@ KABLO_IZ = {
 }
 
 
-def kablo_iz(kesit):
-    return KABLO_IZ.get(kesit)
-
-
 # --------------- Koruma iletkeni ( PE ) kesiti
 #  Elektrik Tesislerinde Topraklamalar Yönetmeliği  m.9-e1/ii  ·  Çizelge-8
 #  ( harmonize karşılığı:  TS HD / IEC 60364-5-54  Tablo 54.2 )

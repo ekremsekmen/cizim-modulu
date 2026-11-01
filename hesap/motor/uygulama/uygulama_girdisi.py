@@ -155,6 +155,10 @@ YERLESIM_OLCULERI = (
     "yan_yatak_boyu",
     "agirlik_dolgu_yuksekligi",
 )
+#  Çizimden ölçülemezse kabulü OLMAYAN ölçüler:  hesap o denetimi yapamaz ve
+#  bölüm EKSİKTİR ( mukavemet ).  Öbürleri ( ray boyu, kabin merkezi … ) kabule
+#  düşer, raporda KABUL yazar.
+OLCULMEZSE_EKSIK = ("agirlik_dolgu_yuksekligi",)
 
 
 def yerlesim_olculeri(g):
@@ -203,6 +207,12 @@ def yerlesim_olculeri(g):
         d["_cizimden"] = {**(g.get("_cizimden") or {}), **isaret}
     if plan_hatalari:
         d["_geometri_hatasi"] = plan_hatalari
+    #  ÇİZİM KURULAMAYINCA DOLGU DENETİMİ SESSİZCE ATLANIYORDU:  bölüm "UYGUNDUR"
+    #  yazıyor, çizim kurulunca "uygun değil" çıkıyordu ( 1 Kas — arkadaki
+    #  ağırlıkla kabin altı askı ).  Programın yolunda ölçülemeyen işaretlenir.
+    olcmedi = [k for k in OLCULMEZSE_EKSIK if k not in d]
+    if olcmedi:
+        d["_cizim_olcmedi"] = olcmedi
     return d
 
 

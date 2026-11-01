@@ -171,23 +171,29 @@ def kimlik(metin):
 
 def _durum(veri, i):
     """Bir girdinin hükmü:  ( çizim sorunları { kimlik:  metin } , hesap
-    çalıştı mı , hesabın sorun kimlikleri , uygun olmayan bölüm sayısı )."""
+    çalıştı mı , hesabın sorun kimlikleri , uygun olmayan bölümlerin kimlikleri ,
+    hesap çizimin bütün ölçülerini aldı mı ).  Çizim kurulamayınca hesabın
+    bazı denetimleri eksik kalır ( uygulama_girdisi.yerlesim_olculeri ):  o
+    hâldeki "uygun değil" sayısı düzeltmeden sonrakiyle denk değildir."""
     try:
         asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
     except uygulama_istegi.GecersizGirdi as e:
         #  Aday kapıdan geçmiyor:  hesap durur, kapının iletileri yeni sorun
         hk = {kimlik(h): h for h in e.hatalar}
-        return hk, False, set(hk), 0
+        return hk, False, set(hk), frozenset(), False
     with istek_onbellegi.etkin():
         s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
         _g, hata = cizim_uclari.asansor_girdisi(asansorler, ortak, s if s.get("aktif") else None, "", i)
     a = s["asansorler"][i]
-    uygun_degil = sum(1 for b in a.get("bolumler") or [] if (b.get("sonuc") or {}).get("uygun") is False)
+    uygun_degil = frozenset(
+        b.get("kimlik") for b in a.get("bolumler") or [] if (b.get("sonuc") or {}).get("uygun") is False
+    )
     return (
         {kimlik(h): str(h) for h in hata},
         bool(a.get("aktif")),
         {kimlik(h) for h in a.get("hata") or []},
         uygun_degil,
+        bool(a.get("aktif")) and not (a.get("girdi") or {}).get("_cizim_olcmedi"),
     )
 
 
@@ -230,20 +236,33 @@ def _sonucu(once, sonra, ortulu=frozenset()):
     """Bir değişikliğin hükmü:  { gider ( kimlikler ) , yeni , ortaya ( gizliyken
     görünür olan — yeni sayılmaz ) , kotu }.  ortulu:  bugün de var olan ama
     denetim ilk hatada durduğu için görünmeyen sorunların kimlikleri
-    ( cizim_uclari.genis_sorunlar )."""
-    s0, h0, hk0, u0 = once
-    s1, h1, hk1, u1 = sonra
-    kotu = (h0 and not h1) or (not h0 and not h1 and not hk1 <= hk0 | ortulu) or (h0 and h1 and u1 > u0)
+    ( cizim_uclari.genis_sorunlar ).
+
+    HESAP:  düzeltmeden sonra uygun olmayan çıkacak bölümler ( bugün uygun
+    görünen ) SÖYLENİR ( hesapta ):  30 Eki taraması — "askı kabin altı → kabin
+    üstü" ağırlık raylarını "uygun değil" gösteriyordu, kullanıcıya
+    söylenmiyordu.  Çoğu kez düzeltme bozmaz, ORTAYA ÇIKARIR:  çizim
+    kurulamayınca hesabın bazı denetimleri eksik kalır ( dolgu — 1 Kas ).  Bu
+    yüzden uygun olmayan bölüm sayısının artması öneriyi ancak bugünkü hesap
+    çizimin bütün ölçülerini almışsa kötü yapar;  almamışsa öneri kalır,
+    çıkanlar söylenir ( atmak çizimi kurmanın tek yolunu saklardı )."""
+    s0, h0, hk0, u0, tam0 = once
+    s1, h1, hk1, u1, _tam1 = sonra
+    kotu = (
+        (h0 and not h1)
+        or (not h0 and not h1 and not hk1 <= hk0 | ortulu)
+        or (h0 and h1 and tam0 and len(u1) > len(u0))
+    )
     return {
         "gider": [k for k in s0 if k not in s1],
         "yeni": [s1[k] for k in s1 if k not in s0 and k not in ortulu],
         "ortaya": [s1[k] for k in s1 if k not in s0 and k in ortulu],
+        #  Yalnız bugün UYGUN GÖRÜNEN bölümler:  hesap bugün durmuşsa ( çizimin plan
+        #  denetimi ) uygun görünen bölüm yoktur — düzeltmeden sonra hesap ekranda
+        #  zaten görünür;  hepsini saymak her öneriye aynı uzun listeyi yazardı
+        "hesapta": sorted(u1 - u0) if h0 and h1 else [],
         "kotu": bool(kotu),
     }
-
-
-def _kabul(r, hedef):
-    return hedef in r["gider"] and not r["yeni"] and not r["kotu"]
 
 
 def _turev_adaylari(sorunlar, degerler, gizli, alan):
@@ -314,7 +333,14 @@ def _turevle(veri, i, once, sorunlar, degerler, gizli, alan, butce, ortulu):
             r = _sonucu(once, butce.durum(_yaz(veri, i, k, v), i), ortulu)
             if not r["yeni"] and not r["kotu"] and r["gider"]:
                 kabul.append(
-                    {"anahtar": k, "yeni": v, "gider": r["gider"], "ortaya": r["ortaya"], "yontem": "türev"}
+                    {
+                        "anahtar": k,
+                        "yeni": v,
+                        "gider": r["gider"],
+                        "ortaya": r["ortaya"],
+                        "hesapta": r["hesapta"],
+                        "yontem": "türev",
+                    }
                 )
             #  Hedeflerinden biri gittiyse büyütmek gerekmez
             if adaylar[(k, adim)] & set(r["gider"]) or r["yeni"] or r["kotu"]:
@@ -369,6 +395,7 @@ def _son_degisiklikle(veri, i, once, onceki, alan, gizli, butce, ortulu):
                     "yeni": iyi[0],
                     "gider": r["gider"],
                     "ortaya": r["ortaya"],
+                    "hesapta": r["hesapta"],
                     "yontem": "son değişiklik",
                 }
             )
@@ -382,6 +409,10 @@ def _secim_alanlari(s):
     if "siginma" in p or "sığınma" in str(s).lower():
         ust = getattr(s, "cizim", None) in ("kabin_ustu", "kuyu_kesiti_on")
         out.append("siginma_tipi_ust" if ust else "siginma_tipi_dip")
+    #  Makine dairesizde 1:1 çizilmez ( kuyu_ustu.dogrula ):  çaresi askı oranı.
+    #  İleti söylüyordu, öneri gelmiyordu ( 30 Eki taraması:  27 çaresiz sorun )
+    if "1:1 askı çizilmez" in str(s):
+        out.append("aski_orani")
     return out
 
 
@@ -425,6 +456,7 @@ def _secimle(veri, i, once, sorunlar, alan, gizli, girilen, butce, oncelikli, or
                         "yeni": v,
                         "gider": r["gider"],
                         "ortaya": r["ortaya"],
+                        "hesapta": r["hesapta"],
                         "yontem": "seçim",
                     }
                 )
@@ -466,6 +498,9 @@ def coz(veri, i=0, onceki=None, butce=None):
                         "gider": [once[0][x] for x in c["gider"]],
                         #  Düzeltmeden sonra görünür olacak ( bugün gizli ) sorunlar
                         "ortaya_cikan": c.get("ortaya", []),
+                        #  Düzeltmeden sonra hesapta uygun olmayan çıkacak bölümler ( bugün
+                        #  uygun görünen — kimlikler;  ekran adlarını hesabın bölümlerinden okur )
+                        "hesapta_ortaya_cikan": c.get("hesapta", []),
                         "bina": c["anahtar"] in BINA,
                         "aciklama": _kot_aciklamasi(c, degerler),
                         "yontem": c["yontem"],
@@ -504,15 +539,17 @@ def _kot_aciklamasi(c, degerler):
 
 
 def _sirala(liste, degerler):
-    """Son değişikliğin sınırı → sayı ( bina olmayan ) → seçim → bina ölçüsü;
-    sonra en çok sorunu gideren → en küçük değişiklik;  aynı kutudan tek
-    öneri ( en iyisi )."""
+    """Hesapta bölüm çıkarmayanlar önce ( 1 Kas );  sonra son değişikliğin sınırı →
+    sayı ( bina olmayan ) → seçim → bina ölçüsü;  sonra en çok sorunu gideren →
+    en küçük değişiklik;  aynı kutudan tek öneri ( en iyisi )."""
 
     def anahtar(c):
+        cikar = bool(c.get("hesapta"))
         if c["yontem"] == "seçim":
-            return (True, 1, -len(c["gider"]), 0.0)
+            return (cikar, True, 1, -len(c["gider"]), 0.0)
         eski = degerler.get(c["anahtar"]) or 0.0
         return (
+            cikar,
             c["yontem"] != "son değişiklik",
             2 if c["anahtar"] in BINA else 0,
             -len(c["gider"]),
