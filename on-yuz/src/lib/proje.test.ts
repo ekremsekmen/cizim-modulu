@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { alanHatasi, alanOku, alanYaz, asansorAdedi, asansorEkle, asansorKaldir, formHatalari, gizliAlanlar, istekKur, kutuyaYaz, projeOku, sayiOku, secenekKapali, siraKaydir, type UygulamaProjesi } from "./proje";
+import { alanHatasi, alanOku, alanYaz, asansorAdedi, asansorEkle, asansorKaldir, formHatalari, gizliAlanlar, istekKur, kutuyaYaz, kuyununOrtaklari, projeOku, sayiOku, secenekKapali, siraKaydir, tekKuyuMu, type UygulamaProjesi } from "./proje";
 import { SEMA } from "./test-semasi";
 
 const proje = (p: Partial<UygulamaProjesi> = {}): UygulamaProjesi => ({
@@ -193,5 +193,43 @@ describe("sırayla tutulan veri ( son temiz girdi ) asansörüyle gider ( 24 Eki
     const disaridan = (p: UygulamaProjesi) => JSON.parse(JSON.stringify(p)) as UygulamaProjesi;
     expect(kaydir(disaridan(p0))).toEqual(veri);
     expect(kaydir(disaridan(asansorKaldir(p0, 0)))).toEqual({});
+  });
+});
+
+describe("tek kuyuda iki asansör ( sunucu:  gorunum.tek_kuyu_mu, kapı 1.'nin ortaklarını öbürüne yazar )", () => {
+  const tek = { kuyu_duzeni: "Tek kuyu" };
+  it("yalnız iki asansörlü projede ve seçilince", () => {
+    expect(tekKuyuMu(SEMA, proje({ asansorler: [{}, {}], proje_geneli: tek }))).toBe(true);
+    expect(tekKuyuMu(SEMA, proje({ asansorler: [{}, {}], proje_geneli: { kuyu_duzeni: "Ayrı" } }))).toBe(false);
+    for (const n of [1, 3]) expect(tekKuyuMu(SEMA, proje({ asansorler: Array.from({ length: n }, () => ({})), proje_geneli: tek }))).toBe(false);
+  });
+  it("kuyu düzeni yalnız iki asansörde, tek kuyunun alanları yalnız tek kuyuda görünür", () => {
+    const g = (n: number, pg = {}) => gizliAlanlar(SEMA, proje({ asansorler: Array.from({ length: n }, () => ({})), proje_geneli: pg }));
+    expect(g(1).has("kuyu_duzeni")).toBe(true);
+    expect(g(2).has("kuyu_duzeni")).toBe(false);
+    expect(g(2).has("ayirma_kirisi")).toBe(true);
+    expect(g(2, tek).has("ayirma_kirisi")).toBe(false);
+    expect(g(2, tek).has("soldaki_asansor")).toBe(false);
+    expect(g(3, tek).has("ayirma_kirisi")).toBe(true);
+  });
+  it("tek kuyuya geçince 1.'nin ortak girdileri öbürüne yazılır, asansörünki kalır", () => {
+    const p0 = proje({ asansorler: [{ kuyu_derinligi: "2800", kuyu_genisligi: "2000" }, { kuyu_derinligi: "1234", kuyu_dibi: "1500", kuyu_genisligi: "1900" }] });
+    const p = alanYaz(p0, SEMA, 1, "kuyu_duzeni", "Tek kuyu");
+    expect(p.asansorler[1]).toEqual({ kuyu_derinligi: "2800", kuyu_genisligi: "1900" });
+    expect(p.asansorler[0]).toBe(p0.asansorler[0]);
+    //  Ayrı'ya dönünce değerler kalır ( ayrı ayrı değiştirilir )
+    expect(alanYaz(p, SEMA, 0, "kuyu_duzeni", "Ayrı").asansorler).toEqual(p.asansorler);
+  });
+  it("tek kuyuda ortak alan iki asansöre yazılır, 1.'den okunur, hatası bir kez", () => {
+    const p0 = proje({ asansorler: [{}, {}], proje_geneli: tek });
+    const p = alanYaz(p0, SEMA, 1, "durak_adedi", "250");
+    expect(p.asansorler.map((h) => h.durak_adedi)).toEqual(["250", "250"]);
+    expect(alanOku({ ...p, asansorler: [p.asansorler[0], {}] }, SEMA, 1, "durak_adedi")).toBe("250");
+    expect(formHatalari(SEMA, p).filter((h) => h.anahtar === "durak_adedi").map((h) => h.asansor)).toEqual([0]);
+    //  Asansörün kendi alanı yalnız ona;  ayrı kuyuda ortak alan da yalnız ona
+    expect(alanYaz(p0, SEMA, 1, "kuyu_genisligi", "1900").asansorler[0]).toEqual({});
+    const ayri = proje({ asansorler: [{}, {}] });
+    expect(alanYaz(ayri, SEMA, 1, "durak_adedi", "5").asansorler[0]).toEqual({});
+    expect(kuyununOrtaklari(SEMA, ayri).size).toBe(0);
   });
 });

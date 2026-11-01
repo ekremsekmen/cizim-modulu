@@ -59,7 +59,6 @@ class OrnekProjeler(unittest.TestCase):
             "asansor": "ASANSÖR 1",
             "olcek": 20,
             "grup_sirasi": None,
-            "grup_arasi": "Açık",
             "ayirma_kirisi": None,
         }
         g["dusey"].update(

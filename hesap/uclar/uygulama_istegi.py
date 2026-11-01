@@ -23,7 +23,7 @@ from motor.uygulama import uygulama_girdisi
 from motor.uygulama import uygulama_hesabi
 from motor.uygulama import uygulama_sabitleri
 from tasarim import gorunum
-from tasarim.alanlar import ALANLAR, CIZ, DURAK_KOTLARI, ELK, KOT, MUK
+from tasarim.alanlar import ALANLAR, CIZ, DURAK_KOTLARI, ELK, KOT, KUYU_ORTAK, MUK
 from uclar.uc_ortak import (
     _BELIRSIZ,
     _RED,
@@ -263,7 +263,14 @@ def asansor_girdileri(veri):
     else:
         pg_ham = {k: ham[0][k] for k in PROJE_GENELI_ALANLAR if k in ham[0]}
     #  Makine yerleşimi proje genelidir:  gizli alanlar bütün asansörlerde aynı.
-    atla = uygulanmayan(pg_ham)
+    #  KUYU DÜZENİ de ( tasarim/alanlar ):  tek kuyunun alanları yalnız iki asansörlü
+    #  tek kuyuda okunur.  Tek kuyuda kuyunun ortak girdileri iki asansörde aynıdır:
+    #  ön yüz ikisine birden yazar;  kapı da 1. asansörünkini öbürüne yazar ( eski
+    #  dosya, elle kurulan istek — iki asansör ayrı kuyu çizilmesin ).
+    atla = set(uygulanmayan(pg_ham)) | gorunum.tek_kuyu_disi(pg_ham, len(ham))
+    if gorunum.tek_kuyu_mu(pg_ham, len(ham)):
+        ortak_ham = {k: ham[0][k] for k in KUYU_ORTAK if k in ham[0]}
+        ham[1] = {**{k: v for k, v in ham[1].items() if k not in KUYU_ORTAK}, **ortak_ham}
     hatalar = []
     ortak = {
         k: v

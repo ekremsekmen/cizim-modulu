@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, CircleQuestionMark, RotateCcw, Search, X } from "lucide-react";
 import type { Alan, AlanSemasi, Deger } from "@/lib/api";
-import { alanHatasi, alanOku, gizliAlanlar, kipGizlileri, mrlMi, sayiOku, secenekKapali, type UygulamaProjesi } from "@/lib/proje";
+import { alanHatasi, alanOku, gizliAlanlar, kipGizlileri, kuyununOrtaklari, mrlMi, sayiOku, secenekKapali, type UygulamaProjesi } from "@/lib/proje";
 import { DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, MD_ZEMINI_KOTU } from "@/lib/kotlar";
 import { KatGirisi } from "./KotTablosu";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
@@ -44,6 +44,7 @@ export function GirdiPaneli({
   //  kat girişinin öbür kipininkiler de ( asansör başına ).  Kot kutuları düz kutu
   //  olarak çizilmez:  kot tablosundadır ( KatGirisi ).
   const mrl = mrlMi(sema, proje);
+  const kuyunun = kuyununOrtaklari(sema, proje);
   const h = proje.asansorler[asansor];
   const gizli = useMemo(
     () =>
@@ -174,6 +175,7 @@ export function GirdiPaneli({
                   yaz={yaz}
                   kullanilan={kullanilan}
                   mrl={mrl}
+                  kuyunun={kuyunun}
                   aramada={!!aranan}
                 />
               )}
@@ -194,6 +196,7 @@ function GrupAlanlari({
   yaz,
   kullanilan,
   mrl,
+  kuyunun,
   aramada,
 }: {
   /**  Grubun başında ( kat girişi )  */
@@ -204,6 +207,8 @@ function GrupAlanlari({
   yaz: (a: string, d: string) => void;
   kullanilan: Record<string, Deger> | undefined;
   mrl: boolean;
+  /**  Tek kuyuda iki asansörde aynı olan alanlar  */
+  kuyunun: Set<string>;
   aramada: boolean;
   vurguluAlanlar: string[];
 }) {
@@ -222,6 +227,7 @@ function GrupAlanlari({
       yaz={yaz}
       kullanilan={kullanilan?.[a.anahtar]}
       mrl={mrl}
+      kuyunun={kuyunun.has(a.anahtar)}
       vurgulu={vurguluAlanlar.includes(a.anahtar)}
     />
   );
@@ -261,9 +267,11 @@ function AlanSatiri({
   yaz,
   kullanilan,
   mrl,
+  kuyunun,
   vurgulu,
 }: {
   vurgulu?: boolean;
+  kuyunun: boolean;
   a: Alan;
   sema: AlanSemasi;
   ham: string | undefined;
@@ -366,6 +374,11 @@ function AlanSatiri({
           {geneli && (
             <Ipucu metin="Binaya ait — bütün asansörlerde aynı">
               <span className="shrink-0 rounded-[4px] bg-black/[0.05] px-1 text-[10.5px] font-medium text-metin-2">bina</span>
+            </Ipucu>
+          )}
+          {kuyunun && (
+            <Ipucu metin="Kuyuya ait — iki asansörde aynı">
+              <span className="shrink-0 rounded-[4px] bg-black/[0.05] px-1 text-[10.5px] font-medium text-metin-2">kuyu</span>
             </Ipucu>
           )}
           {girildi && a.tur !== "onay" && a.anahtar !== "mk_yok" && (

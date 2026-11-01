@@ -60,6 +60,10 @@ export interface AlanSemasi {
   yerlesime_gore_gizli: { mrl: string[]; daireli: string[] };
   /**  Kat girişinin kipi:  alan doluysa kotla;  her kipte öbürünün alanları gizli ( sunucu okumaz )  */
   kot_kipi: { alan: string; gizli: { kotla: string[]; olcuyle: string[] } };
+  /**  Kuyu düzeni:  alan "tek" iken ( yalnız iki asansörlü projede ) iki asansör tek
+       kuyudadır — ortak alanlar iki asansörde aynı ( sunucu 1. asansörünkini okur ),
+       gizli alanlar ( soldaki asansör, ayırma kirişi ) yalnız o zaman okunur.  */
+  kuyu_duzeni: { alan: string; tek: string; ortak: string[]; gizli: string[] };
   cizimden: string[];
   ortak_kopru: { mukavemet: string; anahtar: string; avan: string }[];
   sabitler: {

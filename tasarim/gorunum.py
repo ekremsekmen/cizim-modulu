@@ -99,9 +99,34 @@ def form():
             "alan": DURAK_KOTLARI,
             "gizli": {"kotla": sorted(kip_disi(True)), "olcuyle": sorted(kip_disi(False))},
         },
+        #  Kuyu düzeni ( iki asansörlü projede ):  tek kuyuda kuyunun ortak alanları iki
+        #  asansöre birden yazılır;  "tek" alanlar yalnız tek kuyuda görünür ve okunur
+        "kuyu_duzeni": {
+            "alan": "kuyu_duzeni",
+            "tek": TEK_KUYU,
+            "ortak": sorted(anahtarlar(kuyu="ortak")),
+            "gizli": sorted(anahtarlar(kuyu="tek")),
+        },
         "cizimden": list(cizimden()),
         "hesaplanan": list(anahtarlar(kaynak=HESAP)),
     }
+
+
+#  Kuyu düzeninin tek kuyu seçeneği ( tasarim/alanlar:  kuyu_duzeni )
+TEK_KUYU = "Tek kuyu"
+
+
+def tek_kuyu_mu(proje_geneli, asansor_adedi):
+    """Proje tek kuyu düzeninde mi:  iki asansör ve seçim "Tek kuyu" ( öbür
+    adette seçim okunmaz — ekranda da gizlidir )."""
+    return asansor_adedi == 2 and str((proje_geneli or {}).get("kuyu_duzeni") or "").strip() == TEK_KUYU
+
+
+def tek_kuyu_disi(proje_geneli, asansor_adedi):
+    """Kuyu düzenine göre okunmayan ( ekranda gizli ) alanlar:  tek kuyu değilse "tek"
+    alanlar;  iki asansör değilse seçimin kendisi de."""
+    gizli = set() if tek_kuyu_mu(proje_geneli, asansor_adedi) else set(anahtarlar(kuyu="tek"))
+    return gizli | ({"kuyu_duzeni"} if asansor_adedi != 2 else set())
 
 
 def grubu(anahtar):

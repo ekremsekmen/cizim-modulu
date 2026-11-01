@@ -107,9 +107,6 @@ KURALLI = {
     #  Kuralı yok:  tek tamponda boştur ( etkin değeri de yok ),  ikisinde girilir
     "kabin_tampon_arasi": ("kuyu_dibi", "kabin_tampon_arasi"),
     "agirlik_tampon_arasi": ("kuyu_dibi", "agirlik_tampon_arasi"),
-    #  Kuralı yok:  boşsa asansör ayrı kuyudadır ( cizim/grup.py );  hiçbir ölçü
-    #  ondan türemez
-    "grup_sirasi": ("proje", "grup_sirasi"),
     "md_x": ("makine_dairesi", "x"),
     "md_y": ("makine_dairesi", "y"),
 }
@@ -213,14 +210,14 @@ def asansor_adi(A, sira):
 
 
 def _acik_ara(g):
-    """KUYU GRUBUNUN AÇIK ARASI ( cizim/grup.py ):  asansörün komşu yanında duvar
+    """TEK KUYUNUN ARASI ( cizim/grup.py ):  asansörün komşu yanında duvar
     yoktur, ara ayırma kirişinin yüksekliğidir ( NPU, gövdesi yatay — raylar
     flanşlarına bağlanır;  kullanıcı kararı 1 Kas ).  O yanın duvar kutusu
     okunmaz.  İki asansörlük grupta soldakinin ( sıra 1 ) sağı, sağdakinin solu;
     kiriş seçilmemişse duvar kalır ( grubun sorunu söyler ).  kuyu.acik_yan:
     çizimler o yanda duvar yerine kirişi çizer."""
     p, k = g["proje"], g["kuyu"]
-    if p["grup_sirasi"] is None or p["grup_arasi"] != "Açık" or p["ayirma_kirisi"] is None:
+    if p["grup_sirasi"] is None or p["ayirma_kirisi"] is None:
         return
     yan = "sag" if p["grup_sirasi"] == 1 else "sol"
     k[f"duvar_{yan}"] = float(makine.npu(p["ayirma_kirisi"])["h"])
@@ -610,11 +607,23 @@ def _proje(o, sonuc, proje_adi, sira):
         #  işaretler, pafta her çizimin künyesinin altına not yazar
         #  ( cizim/hesap_isareti.py — 1 Kas )
         "hesap_uygun_degil": hesap_isareti.uygun_olmayanlar(sonuc),
-        #  Kuyu grubundaki sırası ( soldan;  None:  ayrı kuyu — cizim/grup.py ),
-        #  grubun arası ( Açık · Duvar ) ve açık aradaki ayırma kirişi ( NPU;  None:
-        #  seçilmedi )
-        "grup_sirasi": _tam(o.sayi("grup_sirasi", bos=True)),
-        "grup_arasi": o.secim("grup_arasi"),
+        #  Tek kuyuda ( tasarim/alanlar KUYU DÜZENİ ) asansörün kuyudaki yeri — 1 solda,
+        #  2 sağda;  None:  kendi kuyusunda ( cizim/grup.py ) — ve aradaki ayırma kirişi
+        #  ( NPU;  None:  seçilmedi )
+        **_kuyu_duzeni(o, sira),
+    }
+
+
+def _kuyu_duzeni(o, sira):
+    """Tek kuyuda asansörün yeri ( "Soldaki asansör" — numara konum değildir ) ve
+    aradaki ayırma kirişi;  kendi kuyusundaysa ikisi de None."""
+    if o.secim("kuyu_duzeni") != gorunum.TEK_KUYU:
+        return {"grup_sirasi": None, "ayirma_kirisi": None}
+    #  Hesap motoru çizimden ölçerken sırasız çağırır:  numara girdide
+    #  ( uygulama_hesabi.hesapla_coklu )
+    no = o.A.get("_asansor_no") or sira
+    return {
+        "grup_sirasi": 1 if no == o.secim("soldaki_asansor") else 2,
         "ayirma_kirisi": _deger(o.A, "ayirma_kirisi"),
     }
 

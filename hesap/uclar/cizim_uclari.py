@@ -230,39 +230,28 @@ def _ekran_cizimleri(g, hata):
     return liste, kurulamayan
 
 
-def grup_sorunlari(asansorler, gler):
-    """Projenin kuyu grubunun sorunları ( paket — pafta.bloklar grubu çizer ).
+def grup_sorunlari(gler):
+    """Projenin tek kuyusunun sorunları ( paket — pafta.bloklar kuyuyu çizer ).
     gler:  asansörlerin çizim girdileri sırayla ( kurulamayan None )."""
-    return grup.sorunlar(
-        [a.get("grup_sirasi") for a in asansorler],
-        [kopru.asansor_adi(a, j + 1) for j, a in enumerate(asansorler)],
-        gler,
-    )
+    return grup.sorunlar(gler)
 
 
 def _grup(asansorler, ortak, sonuc, proje_adi, i, g, hata):
-    """Aktif asansör bir kuyu grubundaysa grubun sorunları ve planı ( SVG — ekranda
-    tıklanmaz:  ölçüleri iki asansörün ):  ( sorunlar , çizim ya da None ).
-    Grubun öbür asansörlerinin çizim girdileri de kurulur — yalnız grupta;  ayrı
-    kuyulu proje bundan beklemez.  Öbür asansörün sorunu kendi ekranında
-    söylenir, burada yalnız grubun planının neden çizilmediği."""
-    siralar = [a.get("grup_sirasi") for a in asansorler]
-    uye = grup.uyeler(siralar)
-    if i not in uye:
+    """Proje tek kuyudaysa ( asansörün kuyudaki yeri — kopru._kuyu_duzeni ) kuyunun
+    sorunları ve planı ( SVG — ekranda tıklanmaz:  ölçüleri iki asansörün ):
+    ( sorunlar , çizim ya da None ).  Öbür asansörün çizim girdisi de kurulur —
+    yalnız tek kuyuda;  ayrı kuyulu proje bundan beklemez.  Öbür asansörün sorunu
+    kendi ekranında söylenir, burada yalnız kuyunun planının neden çizilmediği."""
+    if not g["proje"].get("grup_sirasi") or len(asansorler) != grup.AZAMI:
         return [], None
-    adlar = [kopru.asansor_adi(a, j + 1) for j, a in enumerate(asansorler)]
-    sorunlar = grup.sira_hatalari(siralar, adlar)
-    if sorunlar:
-        return sorunlar, None
-    gler, bozuk = [], []
-    for j in uye:
-        g_j, h_j = (g, hata) if j == i else asansor_girdisi(asansorler, ortak, sonuc, proje_adi, j)
-        gler.append(g_j)
-        if j != i and h_j:
-            bozuk.append(adlar[j])
-    if all(x is not None for x in gler):
-        sorunlar = grup.duzen_hatalari(gler)
-    sorunlar += [f"Kuyu grubunun planı çizilemedi:  {a} çiziminde sorun var." for a in bozuk]
+    j = 1 - i
+    g_j, h_j = asansor_girdisi(asansorler, ortak, sonuc, proje_adi, j)
+    if g_j is None or h_j:
+        ad = kopru.asansor_adi(asansorler[j], j + 1)
+        kiris = [] if grup.kirisi([g]) is not None else [grup.KIRIS_YOK]
+        return kiris + [f"Tek kuyunun planı çizilemedi:  {ad} çiziminde sorun var."], None
+    gler = grup.gruptakiler([g, g_j])
+    sorunlar = grup.duzen_hatalari(gler)
     if sorunlar or hata:
         return sorunlar, None
     seritler = (f"{proje_adi}  ·  {grup.adlari(gler)}" if proje_adi else grup.adlari(gler),)

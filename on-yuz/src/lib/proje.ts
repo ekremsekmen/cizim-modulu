@@ -192,6 +192,28 @@ export function useUygulamaProjesi(baslangic: UygulamaProjesi) {
      bos_tablodan alanlarında boş, BOŞ olarak kalır ve gönderilir:  sunucu
      tablonun değerini kullanır ( boş kabin kütlesi;  gönderilmezse varsayılan 700 olurdu ).  */
 export function alanYaz(p: UygulamaProjesi, sema: AlanSemasi, asansor: number, anahtar: string, deger: string) {
+  const q = alanYaz1(p, sema, asansor, anahtar, deger);
+  //  TEK KUYUYA GEÇİNCE kuyunun ortak girdileri 1. asansörünkidir:  öbürüne yazılır
+  //  ( sunucu da 1. asansörünkini okur;  ekran öbüründe eski değeri göstermesin )
+  if (anahtar === sema.kuyu_duzeni.alan && tekKuyuMu(sema, q) && !tekKuyuMu(sema, p)) {
+    const ilk = q.asansorler[0];
+    return {
+      ...q,
+      asansorler: q.asansorler.map((h, i) => {
+        if (i === 0) return h;
+        const y = { ...h };
+        for (const k of sema.kuyu_duzeni.ortak) {
+          if (k in ilk) y[k] = ilk[k];
+          else delete y[k];
+        }
+        return y;
+      }),
+    };
+  }
+  return q;
+}
+
+function alanYaz1(p: UygulamaProjesi, sema: AlanSemasi, asansor: number, anahtar: string, deger: string) {
   const geneli = sema.proje_geneli.includes(anahtar);
   const temizle = (h: Ham) => {
     const y = { ...h };
@@ -204,7 +226,20 @@ export function alanYaz(p: UygulamaProjesi, sema: AlanSemasi, asansor: number, a
     return y;
   };
   if (geneli) return { ...p, proje_geneli: temizle(p.proje_geneli) };
-  return { ...p, asansorler: p.asansorler.map((h, i) => (i === asansor ? temizle(h) : h)) };
+  //  Tek kuyuda kuyunun ortak girdisi iki asansöre birden yazılır
+  const ortak = kuyununOrtaklari(sema, p).has(anahtar);
+  return { ...p, asansorler: p.asansorler.map((h, i) => (i === asansor || ortak ? temizle(h) : h)) };
+}
+
+/**  İki asansör tek kuyuda mı ( sunucu:  tasarim/gorunum.tek_kuyu_mu — yalnız iki
+     asansörlü projede ).  */
+export function tekKuyuMu(sema: AlanSemasi, p: UygulamaProjesi): boolean {
+  return p.asansorler.length === 2 && p.proje_geneli[sema.kuyu_duzeni.alan] === sema.kuyu_duzeni.tek;
+}
+
+/**  Tek kuyuda iki asansörde aynı olan alanlar ( "kuyu" rozeti );  değilse boş.  */
+export function kuyununOrtaklari(sema: AlanSemasi, p: UygulamaProjesi): Set<string> {
+  return new Set(tekKuyuMu(sema, p) ? sema.kuyu_duzeni.ortak : []);
 }
 
 /* ───────────────────────────── asansör ekleme / kaldırma
@@ -282,7 +317,12 @@ export function secenekKapali(a: Alan, s: Deger, mrl: boolean): string | undefin
 /**  Makine yerleşimine göre hesaba girmeyen alanlar:  ekranda gizli, sunucu
      okumaz, ön yüz de DENETLEMEZ — kullanıcının göremediği alan projeyi durdurmasın.  */
 export function gizliAlanlar(sema: AlanSemasi, p: UygulamaProjesi): Set<string> {
-  return new Set(mrlMi(sema, p) ? sema.yerlesime_gore_gizli.mrl : sema.yerlesime_gore_gizli.daireli);
+  const g = new Set(mrlMi(sema, p) ? sema.yerlesime_gore_gizli.mrl : sema.yerlesime_gore_gizli.daireli);
+  //  Kuyu düzeni yalnız iki asansörlü projede seçilir;  tek kuyunun alanları tek kuyuda
+  //  ( sunucu:  gorunum.tek_kuyu_disi )
+  if (!tekKuyuMu(sema, p)) sema.kuyu_duzeni.gizli.forEach((k) => g.add(k));
+  if (p.asansorler.length !== 2) g.add(sema.kuyu_duzeni.alan);
+  return g;
 }
 
 /**  KAT GİRİŞİNİN KİPİ ( asansör başına — sunucu:  cizim/katlar.kot_kipi ):  durak
@@ -296,7 +336,9 @@ export function kipGizlileri(sema: AlanSemasi, h: Ham | undefined): Set<string> 
 /**  Kullanıcının yazdığı değer;  yazılmamışsa undefined.  Boş metin ( bos_tablodan:
      "tablodan" ) de yazılmamış sayılır — kutu sunucunun kullandığını soluk gösterir.  */
 export function alanOku(p: UygulamaProjesi, sema: AlanSemasi, asansor: number, anahtar: string): string | undefined {
-  const v = sema.proje_geneli.includes(anahtar) ? p.proje_geneli[anahtar] : p.asansorler[asansor]?.[anahtar];
+  //  Tek kuyuda ortak alan 1. asansörünkidir ( sunucu onu okur )
+  const no = kuyununOrtaklari(sema, p).has(anahtar) ? 0 : asansor;
+  const v = sema.proje_geneli.includes(anahtar) ? p.proje_geneli[anahtar] : p.asansorler[no]?.[anahtar];
   return v === "" ? undefined : v;
 }
 
@@ -338,11 +380,13 @@ export interface FormHatasi {
 /**  Projenin kural dışı girdileri — gizli alanlar hariç.  */
 export function formHatalari(sema: AlanSemasi, p: UygulamaProjesi): FormHatasi[] {
   const gizli = gizliAlanlar(sema, p);
+  const ortak = kuyununOrtaklari(sema, p);
   const l: FormHatasi[] = [];
   p.asansorler.forEach((h, i) => {
     const kip = kipGizlileri(sema, h);
     Object.entries(h).forEach(([k, v]) => {
-      const e = !gizli.has(k) && !kip.has(k) && alanHatasi(sema, k, v);
+      //  Tek kuyuda ortak alan bir kez ( 1. asansörde ) söylenir
+      const e = !gizli.has(k) && !kip.has(k) && !(i > 0 && ortak.has(k)) && alanHatasi(sema, k, v);
       if (e) l.push({ anahtar: k, hata: e, asansor: i });
     });
   });
