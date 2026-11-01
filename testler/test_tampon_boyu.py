@@ -46,7 +46,7 @@ def _tamamla(tip, v, **ek):
 def _iletiler(tip, v, **ek):
     """( çizimin iletileri , hesabın iletileri ) — tam metinler."""
     veri = _veri(tip, v, **ek)
-    cizim, _aktif, _k, _ud = care_uclari._durum(veri, 0)
+    cizim, _aktif, _k, _ud, _tam = care_uclari._durum(veri, 0)
     s = uygulama_hesabi.hesapla_coklu(*uygulama_istegi.asansor_girdileri(veri))
     return list(cizim.values()), [str(h) for h in s["asansorler"][0].get("hata") or []]
 

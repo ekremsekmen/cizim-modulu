@@ -176,24 +176,38 @@ class Care(unittest.TestCase):
         o = _oneriler(r, "1:1 askı çizilmez")
         self.assertEqual((str(o["aski_orani"][0]), o["aski_orani"][1]), ("2", "seçim"))
 
-    def test_hesapta_bolum_bozan_oneri_soylenir_sonda_gelir(self):
-        """30 Eki taraması:  "askı kabin altı → kabin üstü" sığınmayı düzeltip ağırlık
-        raylarını uygun değil yapıyordu ( sayı aynı:  kabul ediliyor, söylenmiyordu ).
-        Öneri kalır ( çizimi kurmanın yolu ), bozulan bölüm söylenir, temiz
-        öneriler önce gelir."""
+    def test_cizimsiz_hesapta_eksik_kalan_duzeltmeyle_bozulmus_sayilmaz(self):
+        """30 Eki taraması:  "askı kabin altı → kabin üstü" ağırlık raylarını uygun
+        değil gösteriyordu.  Askı rayı bozmaz:  çizim kurulamayınca dolgu ölçülemiyor,
+        bölüm denetlenmeden "UYGUNDUR" yazıyordu ( 1 Kas ).  Artık bölüm o hâlde
+        EKSİK;  öneri kalır ve hesapta "ortaya çıkan" bölüm yoktur."""
         v = test_yerlesim_saglamligi.standart_istek(1275, True, "Arka", aski_duzeni="Kabin altı")
         v["asansorler"][0]["kuyu_derinligi"] = test_yerlesim_saglamligi.KABIN[1275][1] + 700
-        r = care_uclari.coz(v, 0)
         once = care_uclari._durum(v, 0)
-        bozan = [o for c in r["careler"] for o in c["oneriler"] if o["hesapta_bozulan"]]
-        self.assertTrue(bozan)
-        for o in bozan:
-            sonra = care_uclari._durum(care_uclari._yaz(v, 0, o["anahtar"], o["yeni"]), 0)
-            self.assertEqual(sorted(sonra[3] - once[3]), o["hesapta_bozulan"])
-            self.assertLessEqual(len(sonra[3]), len(once[3]))
-        for c in r["careler"]:
-            sira = [bool(o["hesapta_bozulan"]) for o in c["oneriler"]]
-            self.assertEqual(sira, sorted(sira), c["metin"][:50])
+        self.assertIn("agirlik_raylari", once[3])
+        self.assertFalse(once[4])  # hesap çizimin bütün ölçülerini alamadı
+        r = care_uclari.coz(v, 0)
+        o = _oneriler(r, "Arkadaki karşı ağırlıkla")
+        self.assertEqual(o["aski_duzeni"][:2], ("Kabin üstü", "seçim"))
+        c = next(c for c in r["careler"] if "Arkadaki karşı ağırlıkla" in c["metin"])
+        self.assertEqual(
+            next(x for x in c["oneriler"] if x["anahtar"] == "aski_duzeni")["hesapta_ortaya_cikan"], []
+        )
+
+    def test_hesapta_ortaya_cikan_dogru_ve_sonda(self):
+        """Her önerinin "hesapta ortaya çıkan"ı uygulanınca gerçekten yeni uygun
+        olmayan bölümlerdir;  onları çıkaran öneriler temizlerden sonra gelir."""
+        for vaka in VAKALAR:
+            veri, r = self.coz(*vaka)
+            once = care_uclari._durum(veri, 0)
+            for c in r["careler"]:
+                sira = [bool(o["hesapta_ortaya_cikan"]) for o in c["oneriler"]]
+                self.assertEqual(sira, sorted(sira), (vaka, c["metin"][:50]))
+                for o in c["oneriler"]:
+                    sonra = care_uclari._durum(care_uclari._yaz(veri, 0, o["anahtar"], o["yeni"]), 0)
+                    #  Yalnız bugün uygun görünen bölümler ( hesap bugün durmuşsa yok )
+                    beklenen = sorted(sonra[3] - once[3]) if once[1] and sonra[1] else []
+                    self.assertEqual(beklenen, o["hesapta_ortaya_cikan"], (vaka, o["anahtar"]))
 
     def test_bina_olcusu_en_sonda(self):
         for vaka in VAKALAR:

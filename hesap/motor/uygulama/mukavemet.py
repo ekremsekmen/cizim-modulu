@@ -4065,6 +4065,9 @@ class _AgirlikRaylari:
         çağrılınca ( çizim yok ) bu kontrol yapılmaz:  motor asıl programdır."""
         g = self.g
         Hc = _cizim_olcusu(g, "agirlik_dolgu_yuksekligi")
+        #  Programın yolunda çizim kurulamadıysa denetim yapılamadı:  bölüm EKSİK
+        #  ( uygulama_girdisi.yerlesim_olculeri ) — "UYGUNDUR" yazılmaz.
+        self.dolgu_olcmedi = Hc is None and "agirlik_dolgu_yuksekligi" in (g.get("_cizim_olcmedi") or ())
         if Hc is None:
             return None
         pik = g["agirlik_malzemesi"] == "Pik Döküm"
@@ -4157,6 +4160,13 @@ class _AgirlikRaylari:
             "metin": "UYGUNDUR." if all(self.kontroller) else self._ret_metni(),
             "uygun": bool(all(self.kontroller)),
         }
+        if all(self.kontroller) and self.dolgu_olcmedi:
+            metin_ = (
+                "HESAP EKSİK — karşı ağırlık dolgusu denetlenemedi:  dolgunun çerçevedeki "
+                "yüksekliği kuyunun çiziminden ölçülür, çizim kurulamadı"
+            )
+            b["sonuc"].update(metin=metin_, uygun=False)
+            b["eksik_hesap"] = metin_
         _not8 = _ray_tutarsizlik_notu(self.prof)
         if _not8:
             b["notlar"] = [_not8]
@@ -4257,6 +4267,14 @@ class _AgirlikRaylari:
     def _dolgu_satirlari(self):
         dolgu, g = self.dolgu, self.g
         if dolgu is None:
+            if self.dolgu_olcmedi:
+                return [
+                    metin(
+                        "Dolgu yüksekliği kuyunun çiziminden ölçülür;  çizim kurulamadı — "
+                        "dolgunun çerçeveye sığması denetlenemedi.",
+                        vurgu=True,
+                    )
+                ]
             return []
         return [
             veri(
