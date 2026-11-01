@@ -25,6 +25,8 @@ ADLAR = {
     "agirlik_tamponu": "Karşı ağırlık tamponu",
     "alt_paten": "Alt paten",
     "ara_kiris": "Ara kiriş",
+    "ayirma_kirisi": "Ayırma kirişi",
+    "grup_perdesi": "Asansörler arası perde",
     "aski_nokta": "Askı noktası",
     "buton": "Buton",
     "delik": "Döşeme deliği",

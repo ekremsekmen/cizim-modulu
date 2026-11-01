@@ -58,6 +58,9 @@ GIRDI, KURAL, KATALOG, CIZIM, HESAP = "GİRDİ", "KURAL", "KATALOG", "ÇİZİM",
 #  kalıyordu — paten bunu köprüleyemez ( kullanıcı kararı 1 Eki ).
 AGIRLIK_PATEN_PAYI = 60.0
 AGIRLIK_GENISLIGI_YEDEK = 960.0
+#  KUYU GRUBUNUN AYIRMA KİRİŞİ:  DIN 1026-1 U profilleri ( NPU — hesabın tablosu;  hafif
+#  "30x15" gibi özel profiller değil ).  Yetmeyen ölçüyü kirişin hesabı söyler.
+AYIRMA_KIRISLERI = tuple(o for o in mukavemet_tablolari.NPU_OLCULERI if isinstance(o, int))
 #  KABİN PATEN ARASI kabin iç yüksekliğinden türer:  şase kabini sarar,
 #  yüksekliği kabinle birlikte değişir ( Wittur WCF06:  "yükseklik serbestçe
 #  seçilir";  Has Asansör kılavuzu:  toplam kabin yüksekliği + 200 – 400, o
@@ -355,6 +358,50 @@ _GRUPLAR = (
                     "bakarken ):  1, 2;  boşsa ayrı kuyu.  Kuyu planı grupça da çizilir.  Aradaki duvar iki "
                     "asansörde aynı girilir ( soldakinin sağ duvarı = sağdakinin sol duvarı );  derinlik, ön "
                     "ve arka duvar, durak kotları aynı olmalı."
+                ),
+            ),
+            #  KUYU GRUBUNUN ARASI ( 2. adım, kullanıcı kararları 1 Kas ):  açık arada iki
+            #  asansör tek kuyudadır;  ortaya bakan raylar her konsol seviyesindeki çelik
+            #  AYIRMA KİRİŞİNE bağlanır ( LiftDesigner "Separator Beam", KONE "trimmer
+            #  beams";  Türkiye'de U profil, gövdesi yatay — S. Tavaslıoğlu, Asansör Montajı
+            #  s.9 ).  Ara kirişin yüksekliği kadardır ( konsollar iki flanşa dayanır ).
+            #  Adı "ayırma":  yandaki ağırlığın "ara kiriş"iyle karışmasın.
+            A(
+                "grup_arasi",
+                "Kuyu grubunun arası",
+                "—",
+                "secim",
+                _s("Açık", "Duvar"),
+                "Açık",
+                kaynak=GIRDI,
+                sozlesme=CIZ,
+                gelismis=True,
+                proje_geneli=True,
+                secenek_metni={"Açık": "Açık ( çelik ayırma kirişi )", "Duvar": "Duvar"},
+                bilgi=(
+                    "Kuyu grubundaki iki asansörün arası.  Açık:  tek kuyu;  ortaya bakan raylar her konsol "
+                    "seviyesindeki ayırma kirişine bağlanır, ara kirişin yüksekliği kadardır.  Duvar:  iki "
+                    "kuyu, ortak duvar."
+                ),
+            ),
+            #  Profili DIN 1026-1 U ( NPU — hesabın tablosu, mukavemet_tablolari ).  Varsayılanı
+            #  yok:  ölçüyü hiçbir kaynak vermiyor, seçilmeden kiriş çizilmez ( kullanıcı kararı ).
+            A(
+                "ayirma_kirisi",
+                "Ayırma kirişi  ( açık arada — NPU )",
+                "—",
+                "secim",
+                AYIRMA_KIRISLERI,
+                None,
+                kaynak=GIRDI,
+                sozlesme=CIZ,
+                gelismis=True,
+                proje_geneli=True,
+                secenek_metni={o: f"NPU {o}" for o in AYIRMA_KIRISLERI},
+                bilgi=(
+                    "Açık arada iki asansörün arasındaki çelik kiriş:  U profil ( DIN 1026-1 ), gövdesi "
+                    "yatay, raylar flanşlarına bağlanır;  her konsol seviyesinde ön duvardan arka duvara.  "
+                    "Seçilmeden ara ve kiriş çizilmez."
                 ),
             ),
             A(

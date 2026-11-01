@@ -1,13 +1,17 @@
-"""KUYU GRUBU ( cizim/grup.py — 1 Kas;  plan cikti/devir/ORTAK_KUYU_PLANI.md, 1. adım ).
+"""KUYU GRUBU ( cizim/grup.py — 1 Kas;  plan cikti/devir/ORTAK_KUYU_PLANI.md, 1. ve 2. adım ).
 
 · girdi:  "Kuyu grubundaki sırası" köprüde g["proje"]["grup_sirasi"];  kapı tam sayı,
-  en çok 2 ister;  boşsa asansör ayrı kuyudadır
+  en çok 2 ister;  boşsa asansör ayrı kuyudadır.  Grubun arası ( Açık varsayılan ·
+  Duvar ) ve açık aradaki ayırma kirişi ( NPU ) proje geneli
 · denetim:  sıralar ( tek asansör, aynı sıra ) ve kuyuların uyumu ( derinlik, ön ve
-  arka duvar, ortak duvar, durak kotları ) iletileriyle
-· plan:  12744-3 düzeni ( ağırlıklar arkada, dış duvarlar 250, ara 100 ):  duvarlar bir
-  kez, en dışta 250 · SW · 100 · SW · 250 ve ayraçta toplam, yan ölçüler dış yanlarda,
-  kesit işareti yok, adlar en üstte;  her asansörün parçası ortak duvarın kendi
-  yarısında, grup yeni yazı çakışması getirmez, alt sıralar aynı hizada
+  arka duvar, durak kotları;  duvarlı arada ortak duvar, açık arada kiriş seçimi,
+  kuyu dibi, kuyu üstü, tavan döşemesi ) iletileriyle
+· duvarlı ara — 12744-3 düzeni ( ağırlıklar arkada, dış duvarlar 250, ara 100 ):
+  duvarlar bir kez, en dışta 250 · SW · 100 · SW · 250 ve ayraçta toplam, yan ölçüler
+  dış yanlarda, kesit işareti yok, adlar en üstte;  her asansörün parçası ortak duvarın
+  kendi yarısında, grup yeni yazı çakışması getirmez, alt sıralar aynı hizada
+· açık ara:  ara kirişin yüksekliği ( köprü asansörün o yanını ona çevirir ), ortada
+  duvar yok, tek kuyu, ayırma kirişi ön duvardan arka duvara, zincirde kirişin ölçüsü
 · ekran, pafta ve paket:  grubun planı önde ( ekranda tıklanmaz ), sorunları ekranda
   söylenir ve paketi durdurur;  gruptaki asansörün kendi çizimleri değişmez
 """
@@ -20,6 +24,8 @@ import unittest
 from cizim import cizimler
 from cizim import geometri
 from cizim import grup
+from cizim import kuyu_kesiti
+from cizim import makine
 from cizim import pafta
 from motor.uygulama import uygulama_hesabi
 from tasarim import alanlar
@@ -29,10 +35,11 @@ from uclar import uygulama_istegi
 from uclar import uygulama_uclari
 
 
-def ikili(Q1=1000, yer1="Arka", Q2=800, yer2="Arka", ara=100, **ek):
+def ikili(Q1=1000, yer1="Arka", Q2=800, yer2="Arka", ara=100, arasi="Duvar", kiris=None, **ek):
     """İki asansörlü, makine dairesiz grup isteği:  standart asansörler ( dış duvarlar
     250, aradaki duvar `ara`, kuyular aynı derinlikte;  arkadaki ağırlıkta askı kabin
     üstü, makine bina yapısında, son kat 5.000 — test_yerlesim_saglamligi.gecerli_duzen gibi ).
+    arasi:  grubun arası ( "Duvar" · "Açık" ), kiris:  ayırma kirişinin NPU'su ( açıkta ).
     ek:  birinci asansöre eklenecek girdiler."""
     a = []
     for Q, yer in ((Q1, yer1), (Q2, yer2)):
@@ -44,7 +51,8 @@ def ikili(Q1=1000, yer1="Arka", Q2=800, yer2="Arka", ara=100, **ek):
     D = max(KABIN[Q][1] + (700 if y == "Arka" else 450) for Q, y in ((Q1, yer1), (Q2, yer2)))
     a[0].update(kuyu_derinligi=D, kuyu_duvar_sag=ara, grup_sirasi=1, **ek)
     a[1].update(kuyu_derinligi=D, kuyu_duvar_sol=ara, grup_sirasi=2)
-    return {"asansorler": a, "proje_geneli": {"mk_yok": True}, "sabitler": {}, "asansor": 0}
+    pg = {"mk_yok": True, "grup_arasi": arasi, **({"ayirma_kirisi": kiris} if kiris else {})}
+    return {"asansorler": a, "proje_geneli": pg, "sabitler": {}, "asansor": 0}
 
 
 def girdiler(v):
@@ -81,6 +89,26 @@ def _yazi_kutulari(e):
         if k:
             out.append(k)
     return out
+
+
+def yarisindan_tasan(gler):
+    """Her asansörün grubun planındaki parçası ( kendi koordinatında ) ortak duvarın
+    ya da açık aradaki kirişin ortasını geçmemeli:  geçen elemanlar.  Üst ve alt
+    sıralar grupça yerleşir, sayılmaz."""
+    alt = min(geometri.olcu_alti(g) for g in gler)
+    tasan = []
+    for n, g in enumerate(gler):
+        komsu, komsu_g = ("Sağ", gler[1]) if n == 0 else ("Sol", gler[0])
+        k = g["kuyu"]
+        orta = k["genislik"] + k["duvar_sag"] / 2 if komsu == "Sağ" else -k["duvar_sol"] / 2
+        ust, alt_ = k["derinlik"] + k["duvar_arka"], -k["duvar_on"]
+        for x in grup._asansorun_plani(g, komsu, komsu_g, alt):
+            if x["tip"] == "olcu" and x["yon"] == "yatay" and not alt_ <= x["kot"] <= ust:
+                continue
+            b = geometri.sinir([x])
+            if (b[2] > orta + 1) if komsu == "Sağ" else (b[0] < orta - 1):
+                tasan.append((n + 1, x["tip"], x.get("ad"), x.get("metin"), [round(v) for v in b]))
+    return tasan
 
 
 def cakisan_yazilar(e, pay=2.0):
@@ -268,18 +296,7 @@ class Yerlesim(unittest.TestCase):
 
     def test_her_asansorun_parcasi_kendi_yarisinda(self):
         for gler in self.gruplar:
-            alt = min(geometri.olcu_alti(g) for g in gler)
-            for n, g in enumerate(gler):
-                komsu, komsu_g = ("Sağ", gler[1]) if n == 0 else ("Sol", gler[0])
-                k = g["kuyu"]
-                orta = k["genislik"] + k["duvar_sag"] / 2 if komsu == "Sağ" else -k["duvar_sol"] / 2
-                ust, alt_ = k["derinlik"] + k["duvar_arka"], -k["duvar_on"]
-                for x in grup._asansorun_plani(g, komsu, komsu_g, alt):
-                    if x["tip"] == "olcu" and x["yon"] == "yatay" and not alt_ <= x["kot"] <= ust:
-                        continue  # üst ve alt sıralar grupça yerleşir
-                    b = geometri.sinir([x])
-                    with self.subTest(n=n, tip=x["tip"], ad=x.get("ad"), metin=x.get("metin")):
-                        self.assertTrue(b[2] <= orta + 1 if komsu == "Sağ" else b[0] >= orta - 1, b)
+            self.assertEqual(yarisindan_tasan(gler), [])
 
     def test_grup_yeni_yazi_cakismasi_getirmez(self):
         for gler in self.gruplar:
@@ -306,6 +323,187 @@ class Yerlesim(unittest.TestCase):
         for ad in pafta.sira(g):
             ciz = cizimler.CIZIMLER[ad][1]
             self.assertEqual(json.dumps(ciz(g), sort_keys=True), json.dumps(ciz(tek), sort_keys=True), ad)
+
+
+class AcikAra(unittest.TestCase):
+    """2. adım:  açık ara — tek kuyu, ortaya bakan raylar ayırma kirişine ( NPU 140 )
+    bağlı, ara kirişin yüksekliği ( kullanıcı kararları 1 Kas )."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.v = ikili(arasi="Açık", kiris=140)
+        cls.gler = gecerli(cls.v)
+        cls.e = grup.plan(cls.gler)
+        k1, k2 = cls.gler[0]["kuyu"], cls.gler[1]["kuyu"]
+        cls.G1, cls.G2, cls.D = k1["genislik"], k2["genislik"], k1["derinlik"]
+        cls.X1 = cls.G1 + 140
+
+    def test_alanlar_proje_geneli_varsayilan_acik_kirissiz(self):
+        a, k = alanlar.ALAN["grup_arasi"], alanlar.ALAN["ayirma_kirisi"]
+        self.assertEqual((a.varsayilan, a.secenekler, a.proje_geneli), ("Açık", ("Açık", "Duvar"), True))
+        self.assertEqual((k.varsayilan, k.proje_geneli), (None, True))
+        self.assertEqual(k.secenekler, alanlar.AYIRMA_KIRISLERI)
+        self.assertTrue(set(k.secenekler) <= set(makine.NPU))
+
+    def test_kopru_komsu_yani_kirisin_yuksekligi(self):
+        k1, k2 = self.gler[0]["kuyu"], self.gler[1]["kuyu"]
+        self.assertEqual((k1["duvar_sag"], k1["acik_yan"]), (140.0, "Sağ"))
+        self.assertEqual((k2["duvar_sol"], k2["acik_yan"]), (140.0, "Sol"))
+        #  Dış yanlar değişmez;  duvarlı arada duvar kutusu ( 100 ) okunur
+        self.assertEqual((k1["duvar_sol"], k2["duvar_sag"]), (250.0, 250.0))
+        duvarli = gecerli(ikili())[0]["kuyu"]
+        self.assertEqual((duvarli["duvar_sag"], duvarli.get("acik_yan")), (100.0, None))
+
+    def test_denetim_kiris_dip_ust_tavan(self):
+        self.assertEqual(grup.duzen_hatalari(self.gler), [])
+        kirissiz = gecerli(ikili(arasi="Açık"))
+        self.assertIn("Açık arada ayırma kirişi seçilmeli", " ".join(grup.duzen_hatalari(kirissiz)))
+        for (b, a), ne in (
+            (("kuyu_dibi", "derinlik"), "kuyu dibi"),
+            (("dusey", "son_kat"), "kuyu üstü"),
+            (("kuyu", "tavan_dosemesi"), "tavan döşemesi"),
+        ):
+            gler = copy.deepcopy(self.gler)
+            gler[1][b][a] += 100
+            self.assertIn(f"Açık arada {ne} aynı olmalı", " ".join(grup.duzen_hatalari(gler)))
+        #  Açık arada ortak duvar kutuları okunmaz:  farklı girilse de sorun yok
+        v = copy.deepcopy(self.v)
+        v["asansorler"][0]["kuyu_duvar_sag"] = 250
+        self.assertEqual(grup.duzen_hatalari(gecerli(v)), [])
+
+    def test_plan_ortada_duvar_yok_tek_kuyu_kiris(self):
+        duvar = [x for x in self.e if x["katman"] == "KUYU-DUVAR"]
+        #  Ön duvar üç parça ( iki kapı boşluğu ), arka, sol, sağ — ortada yok
+        self.assertEqual(len(duvar), 6)
+        self.assertEqual([x for x in duvar if self.G1 - 1 < x["x"] < self.X1 + 1], [])
+        ic = [(x["x"], x["y"], x["g"], x["d"]) for x in self.e if x["katman"] == "KUYU-IC"]
+        self.assertEqual(ic, [(0, 0, self.X1 + self.G2, self.D)])
+        (kiris,) = [x for x in self.e if x.get("ad") == "ayirma_kirisi"]
+        self.assertEqual(
+            (kiris["katman"], kiris["x"], kiris["y"], kiris["g"], kiris["d"]),
+            ("KONSOL", self.G1, 0, 140, self.D),
+        )
+        self.assertTrue(any(x["tip"] == "yazi" and x["metin"] == "AYIRMA KİRİŞİ  NPU 140" for x in self.e))
+        (ara,) = olculer(self.e, "grup_ayirma_kirisi_1")
+        self.assertEqual(ara["metin"], "140")
+        (toplam,) = olculer(self.e, "grup_genisligi")
+        self.assertEqual(toplam["metin"], f"({250 + self.X1 + self.G2 + 250:g})")
+
+    def test_ortaya_bakan_konsollar_kirise_dayanir(self):
+        plaka = [geometri.sinir([x]) for x in self.e if x.get("ad") == "plaka"]
+        self.assertTrue(any(abs(b[2] - self.G1) < 0.5 for b in plaka))
+        self.assertTrue(any(abs(b[0] - self.X1) < 0.5 for b in plaka))
+
+    def test_her_asansorun_parcasi_kendi_yarisinda(self):
+        self.assertEqual(yarisindan_tasan(self.gler), [])
+        tek = sum(cakisan_yazilar(cizimler.CIZIMLER["kuyu_plani"][1](g)) for g in self.gler)
+        self.assertLessEqual(cakisan_yazilar(self.e), tek)
+
+    def test_kirissiz_plan_yok_ekranda_sorun(self):
+        with self.assertRaises(ValueError):
+            grup.plan(gecerli(ikili(arasi="Açık")))
+        d = yanit(ikili(arasi="Açık"))
+        self.assertFalse(d["aktif"])
+        self.assertIn("Açık arada ayırma kirişi seçilmeli", " ".join(d["hata"]))
+        self.assertNotIn(grup.AD, [x["ad"] for x in d["cizimler"]])
+        d = yanit(self.v)
+        self.assertTrue(d["aktif"], d.get("hata"))
+        self.assertEqual(d["cizimler"][0]["ad"], grup.AD)
+
+    def test_kuyu_boyunca_perde_gerekirse_soylenir(self):
+        #  m.5.2.5.5.2.2:  korkuluğun iç kenarı komşunun kabinine 0,50 m'den yakın
+        m = grup.korkuluk_mesafesi(self.gler)
+        self.assertGreaterEqual(m[0], 500)
+        dar = copy.deepcopy(self.gler)
+        dar[1]["kabin"]["kaciklik_y"] -= 650
+        m = grup.korkuluk_mesafesi(dar)
+        self.assertLess(m[0], 500)
+        self.assertIn("perde kuyu boyunca uzanmalı ( m.5.2.5.5.2.2 )", " ".join(grup.duzen_hatalari(dar)))
+
+
+class AcikAraCizimleri(unittest.TestCase):
+    """2. adım:  açık arada asansörün KENDİ çizimleri — o yanda duvar yok, ayırma kirişi
+    ( planlar, B-B'de kesiti, A-A'da görünüşü — ortaya bakan rayların konsol kotlarında );
+    iki kuyu dibinin arasında perde ( m.5.2.5.5.2.1 ).  Birinci asansör sağı, ikinci
+    asansör solu açık."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.gler = gecerli(ikili(arasi="Açık", kiris=140))
+        cls.npu = makine.npu(140)
+
+    def _ciz(self, n, ad):
+        return cizimler.CIZIMLER[ad][1](self.gler[n])
+
+    def _kiris_yeri(self, n):
+        k = self.gler[n]["kuyu"]
+        return k["genislik"] if n == 0 else -k["duvar_sol"]
+
+    def test_planlarda_acik_yanda_duvar_yok_kiris_var(self):
+        for n in (0, 1):
+            k, x = self.gler[n]["kuyu"], self._kiris_yeri(n)
+            e = self._ciz(n, "kuyu_plani")
+            yan = [el for el in e if el["katman"] == "KUYU-DUVAR" and abs(el["x"] - x) < 0.5 and el["y"] == 0]
+            self.assertEqual(yan, [])  # ön ve arka duvar kirişin ötesine uzanır, yan duvar yok
+            (kiris,) = [el for el in e if el.get("ad") == "ayirma_kirisi"]
+            self.assertEqual((kiris["x"], kiris["y"], kiris["g"], kiris["d"]), (x, 0, 140, k["derinlik"]))
+            self.assertTrue(any(el.get("ad") == "ayirma_kirisi_adi" for el in e))
+            for ad in ("kabin_ustu", "kuyu_dibi", "kuyu_ustu"):
+                self.assertEqual(sum(el.get("ad") == "ayirma_kirisi" for el in self._ciz(n, ad)), 1, (n, ad))
+
+    def test_kuyu_dibi_planinda_perde_aranin_ortasinda(self):
+        for n in (0, 1):
+            k = self.gler[n]["kuyu"]
+            (p,) = [el for el in self._ciz(n, "kuyu_dibi") if el.get("ad") == "grup_perdesi"]
+            xm = self._kiris_yeri(n) + 70
+            self.assertEqual((p["x1"], p["y1"], p["x2"], p["y2"]), (xm, 0, xm, k["derinlik"]))
+
+    def test_on_kesitte_kiris_kesitleri_ve_perde(self):
+        for n in (0, 1):
+            g = self.gler[n]
+            Y = kuyu_kesiti.yerlesim(g)
+            kotlar = kuyu_kesiti.ayirma_kirisi_kotlari(g, Y["M"])
+            self.assertTrue(kotlar)
+            e = self._ciz(n, "kuyu_kesiti_on")
+            G, dg = g["kuyu"]["genislik"], g["kuyu"]["duvar_sag"]
+            u0 = -dg if n == 0 else G  # B-B arkadan bakar:  plandaki sağ solda
+            kirisler = [el for el in e if el.get("ad") == "ayirma_kirisi"]
+            self.assertEqual(sorted(round(el["y"] + el["d"], 3) for el in kirisler), kotlar)
+            for el in kirisler:
+                self.assertEqual((el["x"], el["g"], el["d"]), (u0, 140, self.npu["b"]))
+                self.assertTrue(el["bicim"][0]["dolu"])
+            #  O yanda tam boy duvar yok;  kuyu dibi döşemesi aranın altından geçer
+            duvar = [el for el in e if el["katman"] == "KUYU-DUVAR"]
+            self.assertEqual([el for el in duvar if abs(el["x"] - u0) < 0.5 and el["d"] > 5000], [])
+            taban = Y["taban"]
+            self.assertTrue(
+                any(abs(el["y"] + el["d"] - taban) < 0.5 and el["g"] >= G + 140 - 0.5 for el in duvar)
+            )
+            (p,) = [el for el in e if el.get("ad") == "grup_perdesi"]
+            self.assertEqual((p["y1"], p["y2"]), (taban + 300, Y["kotlar"][0] + 2500))
+            self.assertEqual(p["x1"], u0 + 70)
+
+    def test_yan_kesitte_kirisler_yalniz_bakilan_yanda(self):
+        #  A-A kabin ekseninden sağa bakar ( ağırlıklar arkada ):  birincinin açık yanı
+        #  görünür, ikincininki bakanın arkasında
+        self.assertTrue(any(el.get("ad") == "ayirma_kirisi" for el in self._ciz(0, "kuyu_kesiti_yan")))
+        self.assertTrue(any(el.get("ad") == "grup_perdesi" for el in self._ciz(0, "kuyu_kesiti_yan")))
+        self.assertFalse(
+            any(el.get("ad") in ("ayirma_kirisi", "grup_perdesi") for el in self._ciz(1, "kuyu_kesiti_yan"))
+        )
+
+    def test_kiris_kotlari_ortaya_bakan_raylarin_konsollari(self):
+        g = self.gler[0]
+        M = kuyu_kesiti.yerlesim(g)["M"]
+        kx = g["kuyu"]["genislik"] / 2 + g["kabin"]["kaciklik_y"]
+        sag = [r for r in M["raylar"] if r["tur"] == "kabin" and (r["kutu"][0] + r["kutu"][2]) / 2 > kx]
+        self.assertEqual(len(sag), 1)
+        self.assertEqual(
+            kuyu_kesiti.ayirma_kirisi_kotlari(g, M), sorted(round(z, 3) for z in sag[0]["konsollar"])
+        )
+        #  Duvarlı arada kiriş yok
+        duvarli = gecerli(ikili())[0]
+        self.assertEqual(kuyu_kesiti.ayirma_kirisi_kotlari(duvarli, kuyu_kesiti.yerlesim(duvarli)["M"]), [])
 
 
 class EkranVePaket(unittest.TestCase):

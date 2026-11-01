@@ -212,6 +212,21 @@ def asansor_adi(A, sira):
     return str(A.get("asansor_adi") or "").strip() or f"ASANSÖR {sira}"
 
 
+def _acik_ara(g):
+    """KUYU GRUBUNUN AÇIK ARASI ( cizim/grup.py ):  asansörün komşu yanında duvar
+    yoktur, ara ayırma kirişinin yüksekliğidir ( NPU, gövdesi yatay — raylar
+    flanşlarına bağlanır;  kullanıcı kararı 1 Kas ).  O yanın duvar kutusu
+    okunmaz.  İki asansörlük grupta soldakinin ( sıra 1 ) sağı, sağdakinin solu;
+    kiriş seçilmemişse duvar kalır ( grubun sorunu söyler ).  kuyu.acik_yan:
+    çizimler o yanda duvar yerine kirişi çizer."""
+    p, k = g["proje"], g["kuyu"]
+    if p["grup_sirasi"] is None or p["grup_arasi"] != "Açık" or p["ayirma_kirisi"] is None:
+        return
+    yan = "sag" if p["grup_sirasi"] == 1 else "sol"
+    k[f"duvar_{yan}"] = float(makine.npu(p["ayirma_kirisi"])["h"])
+    k["acik_yan"] = "Sağ" if yan == "sag" else "Sol"
+
+
 def _kural(v, anahtar):
     """Boş kutunun kuralla ya da varsayılanla dolan değeri.  Ölçü kaynağı
     çözümlenirken ( izli.izleme ) kutunun kendisine eğimi 1 eklenir:  kutuya
@@ -320,6 +335,7 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
     if o.hata:
         return None, o.hata
     g = _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k)
+    _acik_ara(g)
     o.hata += konsol_araligi_hatalari(g["dusey"], S)
     if not h["mk_yok"]:
         _makine_dairesi_girdisi(o, g, h)
@@ -584,6 +600,25 @@ def _kapi_ve_aski(o, S, h):
     }
 
 
+def _proje(o, sonuc, proje_adi, sira):
+    """Çizim girdisinin "proje" bölümü:  adlar, ölçek, hesabın hükmü, kuyu grubu."""
+    return {
+        "ad": proje_adi or "",
+        "asansor": asansor_adi(o.A, sira),
+        "olcek": 20,
+        #  Hesabın uygun bulmadığı bölümler:  ekran parçalarını turuncu
+        #  işaretler, pafta her çizimin künyesinin altına not yazar
+        #  ( cizim/hesap_isareti.py — 1 Kas )
+        "hesap_uygun_degil": hesap_isareti.uygun_olmayanlar(sonuc),
+        #  Kuyu grubundaki sırası ( soldan;  None:  ayrı kuyu — cizim/grup.py ),
+        #  grubun arası ( Açık · Duvar ) ve açık aradaki ayırma kirişi ( NPU;  None:
+        #  seçilmedi )
+        "grup_sirasi": _tam(o.sayi("grup_sirasi", bos=True)),
+        "grup_arasi": o.secim("grup_arasi"),
+        "ayirma_kirisi": _deger(o.A, "ayirma_kirisi"),
+    }
+
+
 def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
     """Çizim girdisi ( g ) — makine dairesi hariç.  Değerler sözlüğün yazılış
     sırasıyla okunur ( hata iletilerinin sırası )."""
@@ -593,17 +628,7 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
     return {
         #  Hesabın Sabitler sekmesindeki kabin ölçüleri:  bütün çizimler okur
         "_cizim_sabitleri": ozel,
-        "proje": {
-            "ad": proje_adi or "",
-            "asansor": asansor_adi(A, sira),
-            "olcek": 20,
-            #  Hesabın uygun bulmadığı bölümler:  ekran parçalarını turuncu
-            #  işaretler, pafta her çizimin künyesinin altına not yazar
-            #  ( cizim/hesap_isareti.py — 1 Kas )
-            "hesap_uygun_degil": hesap_isareti.uygun_olmayanlar(sonuc),
-            #  Kuyu grubundaki sırası ( soldan;  None:  ayrı kuyu — cizim/grup.py )
-            "grup_sirasi": _tam(sayi("grup_sirasi", bos=True)),
-        },
+        "proje": _proje(o, sonuc, proje_adi, sira),
         #  Duvarlar ayrı ayrı ( boşsa ortak kalınlık );  kuyu dibinin ve tavanın
         #  döşemesi ortak kalınlıktadır ( eskiden ön duvarınkini kullanıyordu ).
         #  Tavan döşemesinin kendi kutusu var ( karar 3 — KOT_PLANI ):  boşsa ortak
