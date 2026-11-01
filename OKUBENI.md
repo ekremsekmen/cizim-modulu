@@ -535,7 +535,7 @@ ofis standardının adları da sunucudadır ( `motor/avan/avan_sabitleri.py` →
 `/api/secenekler` ).
 
 ```bash
-cd on-yuz && npm ci            # bir kez ( node 22 )
+cd on-yuz && npm ci            # bir kez ( node 24 — kökteki .nvmrc )
 npm run dev                    # geliştirme:  http://localhost:5174/  ( /api ve /yazi → 8790'daki program )
 npm run build                  # dist/  →  program kökte sunar
 npm run denetim                # tip + lint + birim testleri + derleme
