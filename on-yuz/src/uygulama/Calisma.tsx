@@ -41,6 +41,7 @@ import {
   ornekSifirla,
   useOfisStandardi,
   useUygulamaProjesi,
+  kotlayaCevir,
   type Ham,
   type UygulamaProjesi,
 } from "@/lib/proje";
@@ -67,7 +68,8 @@ export function Calisma({ proje, bildirim }: { proje: UygulamaProjesi; bildirim?
 }
 
 function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic: UygulamaProjesi; bildirim?: string }) {
-  const [proje, guncelle, sil, baskaSekmedeSilindi] = useUygulamaProjesi(baslangic);
+  //  Katlar yalnız kotla girilir:  kotsuz proje ( yeni, eski dosya ) açılırken kotlara çevrilir
+  const [proje, guncelle, sil, baskaSekmedeSilindi] = useUygulamaProjesi(kotlayaCevir(sema, baslangic));
   const [ofis] = useOfisStandardi();
   const [params, setParams] = useSearchParams();
   const gorunum = (params.get("gorunum") as "cizim" | "hesap") ?? "cizim";

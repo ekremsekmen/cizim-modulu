@@ -215,7 +215,7 @@ def cozumle(kur, adaylar):
     return taban, kaynak
 
 
-def coz(kur, taban, i, kimlik, deger, egim, hedef, serbest=False, dogrusal=False):
+def coz(kur, taban, i, kimlik, deger, egim, hedef, serbest=False, dogrusal=False, nicem=None):
     """i. ölçü hedef olsun diye girdinin ( kimlik ) yeni değeri.
 
     Girdi eğimden bulunan değere ADIM ADIM götürülür ve her adımda aynı ölçü
@@ -234,6 +234,10 @@ def coz(kur, taban, i, kimlik, deger, egim, hedef, serbest=False, dogrusal=False
     20 mm'de başka yere atlar ) değer yoktur — çağıran reddeder.  Kiriş yöntemi
     hedefi DOĞRULARSA o kullanılır ( 1250 KG'de kabin üstündeki 295 → 305 için
     kabin 1.240 → 1.300;  doğrusal tahmin 1.250'de ölçü 280 olur ).
+    nicem:  girdinin yazılabildiği en ince adım — ara adımlar ona yuvarlanır.  Kot
+    mm'den ince yazılamaz ( katlar.kot_oku ):  KUYU DİBİ 1.750 → 1.800'de ara adım
+    −1,7625 m'ydi, çizim kurulamıyor, ölçü değiştirilemiyordu ( 2 Kas;  1.800 → 1.950
+    15 mm'lik adımlara tam bölündüğü için testte görünmüyordu ).
     Döner:  { deger , olcu ( ulaşılan ) , dogrulandi , bolundu }."""
     u0 = taban[i]["uzunluk"]
     if abs(hedef - u0) <= DOGRULAMA:
@@ -245,6 +249,8 @@ def coz(kur, taban, i, kimlik, deger, egim, hedef, serbest=False, dogrusal=False
     liste, j, x = taban, i, deger
     for k in range(1, n + 1):
         x = deger + (x_hedef - deger) * k / n
+        if nicem and k < n:
+            x = deger + round((x - deger) / nicem) * nicem
         e = kur({kimlik: x}, serbest=serbest)
         j = eslestir(liste, e, KAYMA, sira_yedek=True)[j] if e is not None else None
         if j is None:

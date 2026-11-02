@@ -7,7 +7,8 @@ import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Check, ChevronRight, FileArchive, FileCode, FileText, Loader2, DraftingCompass, ScrollText, Zap } from "lucide-react";
 import { indir, paketNotu, type Alan, type AlanSemasi, type CokluYanit, type Deger, type UygulamaIstegi } from "@/lib/api";
-import { alanOku, gizliAlanlar, type Ham, type UygulamaProjesi } from "@/lib/proje";
+import { girilmeyenler, kotOzeti, type Ham, type UygulamaProjesi } from "@/lib/proje";
+import { DURAK_KOTLARI } from "@/lib/kotlar";
 import { dosyaGovdesi } from "@/lib/dosya";
 import { kapakSayfasi } from "@/lib/kapak";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
@@ -49,33 +50,26 @@ export function Teslim({
 
   //  Görünür ( gelişmiş olmayan ) alanlardan kullanıcının yazmadıkları:
   //  hesap şemanın varsayılanıyla ( örnek projenin değeriyle ) yapıldı.
-  const girilmeyen = useMemo(() => {
-    const gizli = gizliAlanlar(sema, proje);
-    return proje.asansorler.map((_, i) =>
-      sema.gruplar.flatMap((g) =>
-        g.alanlar
-          .filter(
-            (a) =>
-              !a.gelismis &&
-              !gizli.has(a.anahtar) &&
-              a.tur !== "metin" &&
-              alanOku(proje, sema, i, a.anahtar) === undefined &&
-              (a.varsayilan !== null || a.kaynak === "KATALOG"),
-          )
-          .map((a) => {
-            const d = hesap?.asansorler?.[i]?.girdi?.[a.anahtar] ?? a.varsayilan;
-            return {
-              grup: g.ad,
-              ad: a.anahtar === "mk_yok" ? "Makine dairesi" : etiketBol(a.etiket)[0],
-              deger: d === null || d === undefined ? null : degerYaz(a, d),
-              birim: typeof d === "number" && a.birim !== "—" ? a.birim : "",
-              sayi: typeof d === "number",
-              katalog: a.kaynak === "KATALOG",
-            };
-          }),
+  const girilmeyen = useMemo(
+    () =>
+      proje.asansorler.map((_, i) =>
+        girilmeyenler(sema, proje, i).map(({ grup, alan: a }) => {
+          //  Programın varsayılan kot tablosu ( yeni proje, hiç değiştirilmedi )
+          if (a.anahtar === DURAK_KOTLARI)
+            return { grup, ad: "Kat kotları", deger: kotOzeti(proje.asansorler[i]), birim: "", sayi: false, katalog: false };
+          const d = hesap?.asansorler?.[i]?.girdi?.[a.anahtar] ?? a.varsayilan;
+          return {
+            grup,
+            ad: a.anahtar === "mk_yok" ? "Makine dairesi" : etiketBol(a.etiket)[0],
+            deger: d === null || d === undefined ? null : degerYaz(a, d),
+            birim: typeof d === "number" && a.birim !== "—" ? a.birim : "",
+            sayi: typeof d === "number",
+            katalog: a.kaynak === "KATALOG",
+          };
+        }),
       ),
-    );
-  }, [sema, proje, hesap]);
+    [sema, proje, hesap],
+  );
   const toplam = girilmeyen.reduce((t, l) => t + l.length, 0);
 
   //  Paketin içindeki .uygulama eski arayüzün biçimindedir:  iki arayüzde de açılır

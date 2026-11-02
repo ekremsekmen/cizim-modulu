@@ -9,7 +9,6 @@ import {
   kotlaGecis,
   kotlaMi,
   kotlariOku,
-  olcuyleGecis,
   yapistir,
 } from "./kotlar";
 import { formHatalari, kipGizlileri, type UygulamaProjesi } from "./proje";
@@ -93,24 +92,6 @@ describe("kipler arasında kayıpsız geçiş", () => {
     const e = (k: string) => ({ ...varsayilan, durak_adedi: 12, seyir_mesafesi: 35.25 })[k];
     const kotlar = kotlariOku(kotlaGecis(e, undefined, false).durak_kotlari);
     expect(kotlar[kotlar.length - 1]).toBe(35250);
-  });
-  it("kotla → ölçüyle:  sunucunun türettikleri kutulara, kotlar silinir", () => {
-    const y = olcuyleGecis(
-      { durak_adedi: 21, seyir_mesafesi: 64.6, kat_yukseklikleri: [3500, 3500, 3200], kuyu_dibi: 1800, son_kat_yuksekligi: 4600, tabliye_yuksekligi: 1500 },
-      true,
-    );
-    expect(y).toMatchObject({
-      durak_adedi: "21",
-      seyir_mesafesi: "64,6",
-      kat_yukseklikleri: "3500; 3500; 3200",
-      kuyu_dibi: "1800",
-      son_kat_yuksekligi: "4600",
-      tabliye_yuksekligi: "1500",
-      durak_kotlari: "",
-      kuyu_dibi_kotu: "",
-    });
-    //  Makine dairesizde tabliyeye dokunulmaz
-    expect("tabliye_yuksekligi" in olcuyleGecis({ tabliye_yuksekligi: 1500 }, false)).toBe(false);
   });
 });
 

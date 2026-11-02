@@ -67,8 +67,10 @@ def _senaryolar():
     yield "topraklama uygun değil", _hesap([ORNEK], temel, {"beta": "5000"})
     yield "ikinci asansör dar kuyu", _hesap([ORNEK, {**ORNEK, "kuyu_genisligi": "1000"}])
     yield "birinci asansör dar kuyu", _hesap([{**ORNEK, "kuyu_genisligi": "1000"}, ORNEK])
-    yield "iki asansör, biri uygun değil", _hesap([ORNEK, {**ORNEK, "kuyu_dibi": "1400"}], temel)
-    for k, v in (("kuyu_dibi", "1200"), ("son_kat_yuksekligi", "3700"), ("kabin_derinligi", "2400")):
+    #  Örnek kotla girilir ( 2 Kas'tan beri yalnız kotla ):  kuyu dibi ve son kat kotlarla
+    #  değişir — ölçüyle anahtarı ( kuyu_dibi … ) kotla girişte okunmaz, senaryo örneğin aynısı olurdu
+    yield "iki asansör, biri uygun değil", _hesap([ORNEK, {**ORNEK, "kuyu_dibi_kotu": "-1,40"}], temel)
+    for k, v in (("kuyu_dibi_kotu", "-1,20"), ("kuyu_tavani_kotu", "+45,70"), ("kabin_derinligi", "2400")):
         yield f"{k} {v}", _hesap([{**ORNEK, k: v}])
 
 

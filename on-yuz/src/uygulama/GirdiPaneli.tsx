@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, CircleQuestionMark, RotateCcw, Search, X } from "lucide-react";
 import type { Alan, AlanSemasi, Deger } from "@/lib/api";
-import { alanHatasi, alanOku, gizliAlanlar, kipGizlileri, kuyununOrtaklari, mrlMi, sayiOku, secenekKapali, type UygulamaProjesi } from "@/lib/proje";
+import { alanHatasi, alanOku, gizliAlanlar, kipGizlileri, kuyununOrtaklari, mrlMi, varsayilanKotlarMi, sayiOku, secenekKapali, type UygulamaProjesi } from "@/lib/proje";
 import { DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, MD_ZEMINI_KOTU } from "@/lib/kotlar";
 import { KatGirisi } from "./KotTablosu";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
@@ -68,7 +68,12 @@ export function GirdiPaneli({
     return typeof v === "number" ? v : undefined;
   };
 
-  const girilen = Object.keys(proje.asansorler[asansor] ?? {}).length + Object.keys(proje.proje_geneli).length;
+  //  Programın varsayılan kot tablosu ( yeni proje ) girilmiş sayılmaz
+  const varsayilanKot = varsayilanKotlarMi(sema, proje, asansor)
+    ? [DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU].filter((a) => a in (h ?? {})).length
+    : 0;
+  const girilen =
+    Object.keys(proje.asansorler[asansor] ?? {}).length + Object.keys(proje.proje_geneli).length - varsayilanKot;
   const aranan = ara.trim().toLocaleLowerCase("tr-TR");
 
   const gruplar = useMemo(
