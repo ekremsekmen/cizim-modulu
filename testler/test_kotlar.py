@@ -683,6 +683,30 @@ class OlcuKaynagi(unittest.TestCase):
             [(d["anahtar"], d["deger"]) for d in y["degisiklikler"]], [("kuyu_dibi_kotu", -8.95)]
         )
 
+    def test_olcuden_degistirme_ara_adimlari_mm(self):
+        """2 Kas:  çözücü hedefe 15 mm'lik ara adımlarla gider;  1.800 → 1.850'de adım
+        12,5 mm, ara kot −8,8125 m — kot mm'den ince yazılamaz, çizim kurulamıyor, ölçü
+        değiştirilemiyordu ( örnek projede 36 kot ölçüsünün 24'ü ).  Ara adımlar mm'ye."""
+        i, _k = self._kaynak("KUYU DİBİ")
+        for hedef, kot in ((1850, -8.85), (1807, -8.807), (1777, -8.777)):
+            with self.subTest(hedef):
+                y = json.loads(
+                    cizim_uclari.api_olcu_degistir(
+                        dict(
+                            copy.deepcopy(self.v),
+                            cizim="kuyu_kesiti_yan",
+                            olcu=i,
+                            metin=self.r["taban"][i]["metin"],
+                            anahtar="kuyu_dibi_kotu",
+                            hedef=hedef,
+                        )
+                    ).body
+                )
+                self.assertTrue(y["aktif"], y)
+                self.assertEqual(
+                    [(d["anahtar"], d["deger"]) for d in y["degisiklikler"]], [("kuyu_dibi_kotu", kot)]
+                )
+
 
 class RaporunKaynagi(unittest.TestCase):
     """Hesap raporu kottan türeyen değerin kaynağını formülüyle yazar ( KOTLAR.md

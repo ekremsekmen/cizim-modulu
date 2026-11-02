@@ -398,21 +398,21 @@ class OnYuzUctanUca(unittest.TestCase):
         )
 
     def _katlar(self):
-        """Kuyu ve katlar grubu açık ( kat girişinin seçicisi görünür )."""
+        """Kuyu ve katlar grubu açık ( kot tablosu görünür )."""
         girdiler = self.sayfa.get_by_role("complementary", name="Girdiler")
-        if not girdiler.get_by_role("radio", name="Kotla").is_visible():
+        if not girdiler.get_by_label("1. durağın kotu").is_visible():
             girdiler.get_by_role("button", name=re.compile("^Kuyu ve katlar")).click()
         return girdiler
 
     def test_kotla_giris_hesabi_degistirmez_dosyada_kalir(self):
-        """Kotla giriş ( KOT_PLANI 6. adım ):  geçiş hesabı değiştirmez — türetme sunucuda,
+        """Kotla giriş ( KOT_PLANI 6. adım;  2 Kas'tan beri YALNIZ kotla — "Ölçüyle"
+        seçici yok ):  örnek proje kotla, türetme sunucuda — ölçüyle girilmiş hâliyle
         aynı sayılar;  kotlar kayınca paftanın kot yazıları kayar, hesap aynı;  dosyada
-        kotlar kalır;  ölçüyle girişe kayıpsız dönülür."""
+        kotlar kalır."""
         self.ornek_projeyi_ac()
         sayac = self.sayaclar()
         girdiler = self._katlar()
-        girdiler.get_by_role("radio", name="Kotla").click()
-        self.iz.sakin()
+        self.assertEqual(girdiler.get_by_role("radio", name="Ölçüyle").count(), 0)
         istek, hesap = self._hesap_istegi()
         a, g = istek["asansorler"][0], hesap["asansorler"][0]["girdi"]
         self.assertEqual(a["durak_kotlari"].split("; ")[:2], ["±0,00", "+3,00"])
@@ -452,17 +452,6 @@ class OnYuzUctanUca(unittest.TestCase):
         sonra, hesap_sonra = self._hesap_istegi()
         self.assertEqual(sonra, once)
         self.assertEqual(hesap_sonra, hesap_once)
-        #  Ölçüyle girişe dönüş:  türetilenler kutulara, kotlar silinir
-        self._katlar().get_by_role("radio", name="Ölçüyle").click()
-        self.iz.sakin()
-        istek, _h = self._hesap_istegi()
-        a = istek["asansorler"][0]
-        self.assertNotIn("durak_kotlari", a)
-        self.assertEqual(
-            (a["durak_adedi"], a["seyir_mesafesi"], a["kuyu_dibi"], a["son_kat_yuksekligi"]),
-            ("15", "42", "1750", "4250"),
-        )
-        self.assertEqual(self.sayaclar(), sayac)
 
     def test_eski_dosyanin_onay_kutusu_sunucunun_okudugu_secenek(self):
         """24 Eki ( dış inceleme ):  makine yükünün yolu eskiden onay kutusuydu;
@@ -1379,8 +1368,9 @@ class OnYuzUctanUca(unittest.TestCase):
     def test_duzeltme_oner_ve_uygula(self):
         """Kuyu 2200 → 2300 ( korkuluk tavana sığmaz ):  düzeltmeler gelir —
         kuyu genişliğinin sınırı 2230 ( son değişiklik:  ön yüz son temiz
-        girdiyi gönderir ) ve son kat 4515 ( türev );  "Uygula" kutuya yazar,
-        sorun kalkar ( uclar/care_uclari.py )."""
+        girdiyi gönderir ) ve kuyu tavanının kotu +46,52 ( türev;  örnek kotla —
+        ölçüyle girişte son kat 4515 idi, kot santime yukarı yuvarlanır );  "Uygula"
+        kutuya yazar, sorun kalkar ( uclar/care_uclari.py )."""
         self.ornek_projeyi_ac()
         self.alan_kutusu("kuyu_genisligi").fill("2300")
         self.iz.sakin()
@@ -1392,7 +1382,7 @@ class OnYuzUctanUca(unittest.TestCase):
         d = yanit.value.json()
         self.assertTrue(d["aktif"], d)
         oneriler = {o["anahtar"]: o["yeni"] for c in d["careler"] for o in c["oneriler"]}
-        self.assertEqual((oneriler["kuyu_genisligi"], oneriler["son_kat_yuksekligi"]), (2230, 4515))
+        self.assertEqual((oneriler["kuyu_genisligi"], oneriler["kuyu_tavani_kotu"]), (2230, 46.52))
         liste = kart.get_by_role("list", name="Düzeltmeler")
         liste.wait_for()
         self.assertIn("bina ölçüsü", liste.inner_text())
@@ -1409,7 +1399,8 @@ class OnYuzUctanUca(unittest.TestCase):
         istek bütün asansörleri taşır, sekme değişince aynı kalıyordu;  "Uygula"
         1. için bulunan değeri 2.'ye yazıyordu ( 20 Eki ).  2.'nin düzeltmeleri
         kendisinin:  hiç temiz çizimi olmadığından son değişikliğin sınırı
-        ( kuyu 2.230 ) yok, türevden son kat 4.515 var;  yalnız 2.'ye yazılır."""
+        ( kuyu 2.230 ) yok, türevden kuyu tavanının kotu +46,52 var ( örnek kotla );
+        yalnız 2.'ye yazılır."""
         self.ornek_projeyi_ac()
         self.alan_kutusu("kuyu_genisligi").fill("2300")
         self.iz.sakin()
@@ -1441,12 +1432,12 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(
             kart.get_by_role("button", name=re.compile(r"^Kuyu genişliği 2\.230 yap$")).count(), 0
         )
-        son_kat = re.escape(self.ad("son_kat_yuksekligi"))
-        kart.get_by_role("button", name=re.compile(rf"^{son_kat} 4\.515 yap$")).click()
+        tavan = re.escape(self.ad("kuyu_tavani_kotu"))
+        kart.get_by_role("button", name=re.compile(rf"^{tavan} 46,52 yap$")).click()
         self.sayfa.get_by_role("alert").wait_for(state="detached")
         self.assertEqual(
-            [(a.get("kuyu_genisligi"), a.get("son_kat_yuksekligi")) for a in self.kayitli_asansorler()],
-            [("2300", "4250"), ("2300", "4515")],
+            [(a.get("kuyu_genisligi"), a.get("kuyu_tavani_kotu")) for a in self.kayitli_asansorler()],
+            [("2300", "+46,25"), ("2300", "46,52")],
         )
 
     def test_duzeltme_degisen_girdiyle_uygulanmaz(self):

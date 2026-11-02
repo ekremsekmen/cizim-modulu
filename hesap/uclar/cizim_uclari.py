@@ -46,6 +46,7 @@ from uclar import uygulama_istegi
 from motor.uygulama import uygulama_girdisi
 from motor.uygulama import uygulama_hesabi
 from motor.uygulama import uygulama_sabitleri
+from tasarim import alanlar
 from tasarim.alanlar import DURAK_KOTLARI
 from tasarim import gorunum
 from uclar.uc_ortak import _belirsiz_hata, _proje_kimligi
@@ -292,6 +293,16 @@ def _grup(asansorler, ortak, sonuc, proje_adi, i, g, hata):
 #  Oynatma adımı:  1 mm'ye denk gelen değişim;  başka birimlerde değerin binde
 #  biri ( eski yolda kaynak bulmak, değiştirirken girdinin bağlılığını denemek ).
 _ADIM = {"mm": 1.0, "m": 0.001, "cm": 0.1, "°": 0.1, "adet": 1.0}
+#  Kotun yazılabildiği en ince adım ( m — mm:  katlar.kot_oku )
+_KOT_NICEMI = 0.001
+
+
+def _kot_alani(anahtar):
+    """Kotla girişin kot kutusu mu ( tasarim/alanlar KOT kipi )."""
+    a = alanlar.ALAN.get(anahtar)
+    return a is not None and a.kip == alanlar.KOT
+
+
 _ONBELLEK, _KILIT, _ONBELLEK_AZAMI = OrderedDict(), threading.Lock(), 8
 #  Süren çözümlemeler:  aynı çizimin çözümlemesi bitmeden ikinci istek gelirse
 #  ( tıklama ve hemen ardından değiştirme ) ikinci kez, paralel yapılmaz —
@@ -859,6 +870,8 @@ def api_olcu_degistir(veri: dict = Body(...)):
                 hedef,
                 serbest=serbest,
                 dogrusal=k["dogrusal"],
+                #  Kot mm'den ince yazılamaz:  ara adımlar mm'ye ( metre — 0,001 )
+                nicem=_KOT_NICEMI if _kot_alani(anahtar) else None,
             )
             if not s["dogrulandi"] and not s.get("bolundu"):
                 #  Hedef doğrulanamadı ve ölçü iki parçaya bölünmüş de değil:

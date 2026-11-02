@@ -5,7 +5,8 @@
     Ekran o değeri soluk gösterir ( "siz girmediniz" ).                       */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Alan, AlanSemasi, Deger, UygulamaIstegi } from "./api";
-import { alanHatasi } from "./denetim";
+import { alanHatasi, sayiOku } from "./denetim";
+import { DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, TURETILEN, kotlaGecis, kotlaMi, kotlariOku, kotYaz } from "./kotlar";
 import { depoOku, depoSil, depoYaz } from "./depo";
 import { durumSil, girdininDurumu, izi, type ProjeDurumu } from "./durum";
 import { kapakSirala } from "./kapak";
@@ -331,6 +332,68 @@ export function gizliAlanlar(sema: AlanSemasi, p: UygulamaProjesi): Set<string> 
 export function kipGizlileri(sema: AlanSemasi, h: Ham | undefined): Set<string> {
   const kotla = (h?.[sema.kot_kipi.alan] ?? "").trim() !== "";
   return new Set(kotla ? sema.kot_kipi.gizli.kotla : sema.kot_kipi.gizli.olcuyle);
+}
+
+/**  YALNIZ KOTLA GİRİŞ ( kullanıcı kararı 2 Kas:  "ölçüyle kısmı karışıklık yaratıyor,
+     gereksiz" ):  katlar her asansörde kot tablosuyla girilir — durak adedi, seyir,
+     kat yükseklikleri, kuyu dibi, son kat ve tabliye kotlardan türer ( sunucuda,
+     katlar.kot_tablosu ).  Kotla girilmemiş asansör ( yeni proje, eski dosya ) açılırken
+     kotlara çevrilir:  yazılı ölçüleri, yazılmamışsa şemanın varsayılanı;  en alt durak
+     ±0,00 ( kotlar.kotlaGecis — sunucu aynı sayıları türetir ).  Sunucu ölçüyle girişi
+     okumaya devam eder ( eski istekler ).  Kotla girilmiş proje aynen döner.  */
+export function kotlayaCevir(sema: AlanSemasi, p: UygulamaProjesi): UygulamaProjesi {
+  if (p.asansorler.every((h) => kotlaMi(h))) return p;
+  const daireli = !mrlMi(sema, p);
+  return { ...p, asansorler: p.asansorler.map((h) => (kotlaMi(h) ? h : kotlarla(sema, h, daireli))) };
+}
+
+function kotlarla(sema: AlanSemasi, h: Ham, daireli: boolean): Ham {
+  const varsayilan = (a: string) => {
+    const v = sema.gruplar.flatMap((g) => g.alanlar).find((x) => x.anahtar === a)?.varsayilan;
+    return typeof v === "number" ? v : undefined;
+  };
+  const y: Ham = { ...h, ...kotlaGecis((a) => sayiOku(h[a] ?? "") ?? varsayilan(a), h.kat_yukseklikleri, daireli) };
+  for (const a of TURETILEN) delete y[a];
+  return y;
+}
+
+/**  Asansörün kotları programın varsayılan tablosu mu ( yeni projenin;  kullanıcı hiç
+     değiştirmedi ):  Teslim onu "girmediğiniz değer" sayar, girilen sayısına katılmaz.  */
+export function varsayilanKotlarMi(sema: AlanSemasi, p: UygulamaProjesi, asansor: number): boolean {
+  const h = p.asansorler[asansor];
+  if (!h || !kotlaMi(h)) return false;
+  const v = kotlarla(sema, {}, !mrlMi(sema, p));
+  return [DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU].every((a) => h[a] === v[a]);
+}
+
+/**  Kot tablosunun kısa özeti:  "8 durak · ±0,00 … +21,00"  */
+export function kotOzeti(h: Ham | undefined): string {
+  const k = kotlariOku(h?.[DURAK_KOTLARI]).filter((x): x is number => x !== null);
+  return k.length ? `${k.length} durak · ${kotYaz(k[0])} … ${kotYaz(k[k.length - 1])}` : "";
+}
+
+/**  Asansörün görünür ( gelişmiş olmayan ) alanlarından kullanıcının YAZMADIKLARI —
+     hesap şemanın varsayılanıyla yapıldı, Teslim onaylatır.  Gizliler sayılmaz:
+     makine yerleşimine göre hesaba girmeyenler ve KAT GİRİŞİNİN öbür kipi.  Kotla
+     girişte durak adedi, seyir, kat yükseklikleri, kuyu dibi, son kat ve tabliye
+     kotlardan türer;  2 Kas'a kadar "girmediğiniz değer" sayılıp onaylatılıyordu
+     ( formun kendisi ve formHatalari kipe bakıyordu, Teslim bakmıyordu ).  */
+export function girilmeyenler(sema: AlanSemasi, p: UygulamaProjesi, asansor: number): { grup: string; alan: Alan }[] {
+  const gizli = new Set([...gizliAlanlar(sema, p), ...kipGizlileri(sema, p.asansorler[asansor])]);
+  const varsayilanKot = varsayilanKotlarMi(sema, p, asansor);
+  return sema.gruplar.flatMap((g) =>
+    g.alanlar
+      .filter(
+        (a) =>
+          (varsayilanKot && a.anahtar === DURAK_KOTLARI) ||
+          (!a.gelismis &&
+            !gizli.has(a.anahtar) &&
+            a.tur !== "metin" &&
+            alanOku(p, sema, asansor, a.anahtar) === undefined &&
+            (a.varsayilan !== null || a.kaynak === "KATALOG")),
+      )
+      .map((alan) => ({ grup: g.ad, alan })),
+  );
 }
 
 /**  Kullanıcının yazdığı değer;  yazılmamışsa undefined.  Boş metin ( bos_tablodan:

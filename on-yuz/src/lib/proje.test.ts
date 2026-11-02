@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { alanHatasi, alanOku, alanYaz, asansorAdedi, asansorEkle, asansorKaldir, formHatalari, gizliAlanlar, istekKur, kutuyaYaz, kuyununOrtaklari, projeOku, sayiOku, secenekKapali, siraKaydir, tekKuyuMu, type UygulamaProjesi } from "./proje";
+import { alanHatasi, alanOku, alanYaz, asansorAdedi, asansorEkle, asansorKaldir, formHatalari, gizliAlanlar, girilmeyenler, kotOzeti, kotlayaCevir, varsayilanKotlarMi, istekKur, kutuyaYaz, kuyununOrtaklari, projeOku, sayiOku, secenekKapali, siraKaydir, tekKuyuMu, type UygulamaProjesi } from "./proje";
 import { SEMA } from "./test-semasi";
 
 const proje = (p: Partial<UygulamaProjesi> = {}): UygulamaProjesi => ({
@@ -231,5 +231,57 @@ describe("tek kuyuda iki asansör ( sunucu:  gorunum.tek_kuyu_mu, kapı 1.'nin o
     const ayri = proje({ asansorler: [{}, {}] });
     expect(alanYaz(ayri, SEMA, 1, "durak_adedi", "5").asansorler[0]).toEqual({});
     expect(kuyununOrtaklari(SEMA, ayri).size).toBe(0);
+  });
+});
+
+describe("Teslim'in 'girmediğiniz değerler'i ( girilmeyenler ) kat girişinin kipine bakar", () => {
+  const adlar = (p: UygulamaProjesi) => girilmeyenler(SEMA, p, 0).map((x) => x.alan.anahtar);
+  it("ölçüyle girişte durak adedi yazılmadıysa varsayılandır", () => {
+    expect(adlar(proje())).toContain("durak_adedi");
+  });
+  it("kotla girişte durak adedi kotlardan türer:  girmediğiniz değer değildir ( 2 Kas )", () => {
+    const p = proje({ asansorler: [{ durak_kotlari: "0; 3; 6" }] });
+    expect(adlar(p)).not.toContain("durak_adedi");
+    //  Kipin dışındaki alanlar yine sayılır
+    expect(adlar(p)).toContain("kuyu_genisligi");
+  });
+  it("yazılan alan ve gizli alan sayılmaz", () => {
+    expect(adlar(proje({ asansorler: [{ kuyu_genisligi: "2200" }] }))).not.toContain("kuyu_genisligi");
+    expect(adlar(proje())).not.toContain("mk_uzunluk");
+  });
+});
+
+describe("yalnız kotla giriş ( 2 Kas ):  kotsuz proje açılırken kotlara çevrilir", () => {
+  it("eski dosyanın ölçüleri kotlara:  en alt durak ±0,00, türetilenler silinir", () => {
+    const p = kotlayaCevir(
+      SEMA,
+      proje({
+        asansorler: [{ durak_adedi: "3", seyir_mesafesi: "6", kuyu_dibi: "1500", son_kat_yuksekligi: "4000", kuyu_genisligi: "2200" }],
+      }),
+    );
+    expect(p.asansorler[0]).toEqual({
+      durak_kotlari: "±0,00; +3,00; +6,00",
+      kuyu_dibi_kotu: "-1,50",
+      kuyu_tavani_kotu: "+10,00",
+      kuyu_genisligi: "2200",
+    });
+    expect(kotOzeti(p.asansorler[0])).toBe("3 durak · ±0,00 … +6,00");
+  });
+  it("kat yükseklikleri yazılıysa onlarla", () => {
+    const h = kotlayaCevir(SEMA, proje({ asansorler: [{ durak_adedi: "3", seyir_mesafesi: "7", kat_yukseklikleri: "4000; 3000" }] }))
+      .asansorler[0];
+    expect(h.durak_kotlari).toBe("±0,00; +4,00; +7,00");
+  });
+  it("kotla girilmiş proje aynen döner ( aynı nesne )", () => {
+    const p = proje({ asansorler: [{ durak_kotlari: "-3,00; ±0,00", kuyu_dibi_kotu: "-4,50" }] });
+    expect(kotlayaCevir(SEMA, p)).toBe(p);
+  });
+  it("yeni projenin kotları programın varsayılanı:  Teslim 'girmediğiniz' sayar, değişince saymaz", () => {
+    const p = kotlayaCevir(SEMA, proje());
+    expect(varsayilanKotlarMi(SEMA, p, 0)).toBe(true);
+    const q = { ...p, asansorler: [{ ...p.asansorler[0], kuyu_dibi_kotu: "-1,70" }] };
+    expect(varsayilanKotlarMi(SEMA, q, 0)).toBe(false);
+    //  Kotlardan türeyenler hiçbir zaman "girmediğiniz" değildir
+    expect(girilmeyenler(SEMA, q, 0).map((x) => x.alan.anahtar)).not.toContain("durak_adedi");
   });
 });
