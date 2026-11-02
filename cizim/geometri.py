@@ -17,6 +17,7 @@ DUVARA DOĞRU kendi yüksekliği ( h ) kadar uzanır.
 
 import collections
 import contextlib
+import contextvars
 import math
 import re
 import threading
@@ -102,8 +103,10 @@ PARCA_KATMANLARI = (
 
 
 #  Yerinde sabit etiketler:  ayırıcı ( etiketleri_ayir ) kıpırdatmaz — kuyu grubunun
-#  ayırma kirişinin adı kirişin içindedir ( kiriş yazılara duvar sayılır — duvar_gibi )
-SABIT_ETIKETLER = frozenset(("ayirma_kirisi_adi",))
+#  ayırma kirişinin adı kirişin içindedir ( kiriş yazılara duvar sayılır — duvar_gibi );
+#  kuyu dibinin yük yazısı çerçevesinin içindedir ( kayınca çerçevesi boş kalıyordu:
+#  tek kuyunun kuyu dibinde, 2 Kas )
+SABIT_ETIKETLER = frozenset(("ayirma_kirisi_adi", "yuk"))
 
 
 def duvar_gibi(x):
@@ -896,6 +899,71 @@ def _duvarlar(P, bosluklu):
     if acik:
         e += ayirma_kirisi(P.g, -ds if acik == "Sol" else G, ds if acik == "Sol" else dg, D)
     return e
+
+
+#  TEK KUYUNUN ORTAK ÇİZİMİ ( cizim/grup.py ):  asansörün kuyu dibi, kabin üstü,
+#  kuyu üstü planı kuyunun ortak çizimine giriyorsa ( komsulu bloğunda ) komşu
+#  asansör bellidir:  yanı ( "Sol" · "Sağ" ), çizimde yer kaplayan elemanlarının
+#  kutuları ( asansörün koordinatında ) ve çitin başladığı x ( komşunun bölmesinin
+#  ortası ).  Çizim kurulurken bunlar engeldir ( cit ):  yük kutuları, etiketler
+#  komşunun parçasına, yazısına konmaz, onun öbür yarısına kaçmaz;  engeller
+#  çizimden en sonda atılır ( citsiz ).  Komşu yandaki ölçü sıraları öbür yana
+#  grupta geçer ( grup.yan_olculeri_tasi ).
+CIT = "CIT"
+_CIT_ENI = 20000.0
+_KOMSU = contextvars.ContextVar("komsu", default=None)
+
+
+@contextlib.contextmanager
+def komsulu(yan, cit_x, engel=(), siki=True):
+    """siki:  komşunun bölmesi ( kuyunun içi ve ön / arka duvarı, kirişin öbür
+    yüzünden ) de kapalı — asansörün yazısı komşunun bölmesine düşmesin;  yalnız
+    kuyunun önü ve arkası komşunun ortasına kadar açık."""
+    j = _KOMSU.set({"yan": yan, "cit_x": cit_x, "engel": tuple(engel), "siki": siki})
+    try:
+        yield
+    finally:
+        _KOMSU.reset(j)
+
+
+def komsu_yani(g=None):
+    """Asansörün çizimi kuyunun ortak çizimine giriyorsa komşunun yanı;  yoksa None."""
+    k = _KOMSU.get()
+    return k and k["yan"]
+
+
+def cit(g):
+    """Komşu asansörün yerini kapatan engeller ( komsulu ) — [ eleman ] ya da boş."""
+    k = _KOMSU.get()
+    if not k:
+        return []
+    ku = g["kuyu"]
+    x0 = k["cit_x"] if k["yan"] == "Sağ" else k["cit_x"] - _CIT_ENI
+    y0 = -ku["duvar_on"] - _CIT_ENI
+    e = [eleman.dikdortgen(CIT, x0, y0, _CIT_ENI, ku["derinlik"] + 2 * _CIT_ENI)]
+    if k["siki"]:
+        x0 = ku["genislik"] + ku["duvar_sag"] if k["yan"] == "Sağ" else -ku["duvar_sol"] - _CIT_ENI
+        e.append(
+            eleman.dikdortgen(
+                CIT, x0, -ku["duvar_on"], _CIT_ENI, ku["duvar_on"] + ku["derinlik"] + ku["duvar_arka"]
+            )
+        )
+    e += [eleman.dikdortgen(CIT, a, b, c - a, d - b) for a, b, c, d in k["engel"]]
+    return [eleman.ad(x, "cit") for x in e]
+
+
+def sag_sira(g, i):
+    """Kuyunun sağındaki i. düşey ölçü sırasının kotu ( duvardan dışarı );  tek
+    kuyunun ortak çiziminde sağ komşuysa sıra solda ( komşunun yerine düşmesin,
+    yük kutuları ve tablo yerini bilsin )."""
+    k = g["kuyu"]
+    if komsu_yani(g) == "Sağ":
+        return -k["duvar_sol"] - 120 - i * SIRA_ARASI
+    return k["genislik"] + k["duvar_sag"] + 120 + i * SIRA_ARASI
+
+
+def citsiz(e):
+    return [x for x in e if x.get("katman") != CIT]
 
 
 def grup_perdesi(g):

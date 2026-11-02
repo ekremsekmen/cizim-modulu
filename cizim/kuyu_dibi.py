@@ -128,18 +128,28 @@ def _serbest(sira, adaylar, sinir_, engeller, eksenler=()):
     return sira(uygun[0])
 
 
-def _kuvvet_tablosu(kv, x, y):
-    """RAY KONSOLUNA YATAY YÜKLER ve altında Fx / Fy yönlerini gösteren ray şeması."""
-    satirlar = [
+def _tablo_satirlari(kv, ad=None):
+    return ([(ad, uslup.NORMAL)] if ad else []) + [
         ("RAY KONSOLUNA YATAY YÜKLER", uslup.NORMAL),
         ("( yük durumlarının en büyüğü )", uslup.NORMAL),
         (f"Kabin rayı:  Fx = {_kn(kv['Fx_kabin'])} kN  ·  Fy = {_kn(kv['Fy_kabin'])} kN", uslup.NORMAL),
         (f"Ağırlık rayı:  Fx = {_kn(kv['Fx_agirlik'])} kN  ·  Fy = {_kn(kv['Fy_agirlik'])} kN", uslup.NORMAL),
     ]
+
+
+def _tablo_eni(kv, ad=None):
+    return max(eleman.yazi_eni(m, h) for m, h in _tablo_satirlari(kv, ad))
+
+
+def _kuvvet_tablosu(kv, x, y, ad=None):
+    """RAY KONSOLUNA YATAY YÜKLER ve altında Fx / Fy yönlerini gösteren ray şeması.
+    ad:  tek kuyunun ortak çiziminde asansörün adı ( tablonun başında )."""
+    satirlar = _tablo_satirlari(kv, ad)
+    bas = 3 if ad else 2
     e = []
     for i, (metin, h) in enumerate(satirlar):
         #  Başlıktan sonra yarım satır boşluk
-        yy = y - 90 * i - (55 if i >= 2 else 0)
+        yy = y - 90 * i - (55 if i >= bas else 0)
         e.append(eleman.ad(eleman.yazi(x, yy, metin, h, hiza="sol"), "kuvvet_tablosu"))
     #  Ray şeması ( planda, ölçeksiz ):  taban, ağız;  Fy ağzın doğrultusunda,
     #  Fx ağza yandan ( EN 81-50 m.5.10.5:  "Fx … by a guide shoe to the flange" )
@@ -961,6 +971,8 @@ def ciz(g, cizim_sabitleri=None):
     k = g["kuyu"]
     G, D, don = k["genislik"], k["derinlik"], k["duvar_on"]
     e = [el for el in Y["taban"] if el["katman"] in _PLANDAN_KATMAN and el["tip"] != "yazi"]
+    #  Tek kuyunun ortak çiziminde komşunun yeri kapalı ( geometri.cit )
+    e = geometri.cit(g) + e
 
     #  Kat kapısı:  yalnız yer göstermek için, kesik ( kabin bu kesitte yok )
     kp = g["kapi"]
@@ -1009,9 +1021,18 @@ def ciz(g, cizim_sabitleri=None):
     #  Ray konsoluna yatay yükler:  sağdaki ölçülerin ( ve kuyunun dışına konmuş
     #  yük kutularının ) dışında, kuyunun üst hizasından.  Yük kutularından
     #  SONRA:  dışarıdaki kutu tablonun yerine taşıyordu.
+    #  Tek kuyunun ortak çiziminde soldaki asansörün tablosu kuyunun solunda,
+    #  başında asansörün adıyla ( iki asansörün tablosu ayrı okunur )
     if kv:
+        komsu = geometri.komsu_yani(g)
+        ad = g["proje"]["asansor"] if komsu else None
         s1 = G + k["duvar_sag"] + 120 + geometri.SIRA_ARASI
-        e += _kuvvet_tablosu(kv, max(s1 + 250, geometri.sinir(e)[2] + 150), D - 20)
+        b = geometri.sinir(geometri.citsiz(e))
+        if komsu == "Sağ":
+            x = min(-k["duvar_sol"] - 120 - geometri.SIRA_ARASI - 250, b[0] - 150) - _tablo_eni(kv, ad)
+        else:
+            x = max(s1 + 250, b[2] + 150)
+        e += _kuvvet_tablosu(kv, x, D - 20, ad)
     #  Parçaya ( ara kiriş, gergi ... ) binen ölçü yazıları, yük kutuları
     #  konduktan sonra ölçüleri boyunca boş yere kayar ( girdi taraması, 4 Eki ).
     #  Önce kaydırılınca bir düzende yük kutusuna yer kalmıyordu.
@@ -1177,10 +1198,10 @@ def _olculer(g, Y):
     ekseni ve regülatör gergisi;  alt:  kat kapısı ve merdivenin kapıya
     uzaklığı."""
     k, kp = g["kuyu"], g["kapi"]
-    G, D, don, dg, dar = k["genislik"], k["derinlik"], k["duvar_on"], k["duvar_sag"], k["duvar_arka"]
+    G, D, don, dar = k["genislik"], k["derinlik"], k["duvar_on"], k["duvar_arka"]
     ry = g["kabin_ray"]["kapi_arasi"]
     u0, u1 = D + dar + 120, D + dar + 120 + geometri.SIRA_ARASI
-    s0, s1 = G + dg + 120, G + dg + 120 + geometri.SIRA_ARASI
+    s0, s1 = geometri.sag_sira(g, 0), geometri.sag_sira(g, 1)
     a0 = -don - 120
     xs = sorted({0.0, G} | {kutu_merkezi(t)[0] for t in Y["kabin_tamponlari"] + Y["agirlik_tamponlari"]})
     e = [eleman.olcu("yatay", (a, 0), (b, 0), u0) for a, b in zip(xs, xs[1:])]

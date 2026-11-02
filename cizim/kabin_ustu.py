@@ -586,7 +586,8 @@ def ciz(g, cizim_sabitleri=None):
         if duzen == "Doğrudan"
         else ()
     )
-    e = [
+    #  Tek kuyunun ortak çiziminde komşunun yeri kapalı ( geometri.cit )
+    e = geometri.cit(g) + [
         el
         for el in Y["taban"]
         if el.get("ad") in _PLANDAN_AD
@@ -684,10 +685,10 @@ def _kapi_elemanlari(g, S, Y):
 def _ana_olculer(g, tavan):
     """Kabin tavanı ve kuyu ölçüleri ( üstte ve sağda )."""
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
-    dg, dar = g["kuyu"]["duvar_sag"], g["kuyu"]["duvar_arka"]
+    dar = g["kuyu"]["duvar_arka"]
     tg = tavan[2] - tavan[0]
     u0, u1 = D + dar + 120, D + dar + 120 + geometri.SIRA_ARASI
-    s0, s1 = G + dg + 120, G + dg + 120 + geometri.SIRA_ARASI
+    s0, s1 = geometri.sag_sira(g, 0), geometri.sag_sira(g, 1)
     return [
         eleman.olcu("yatay", (0, 0), (tavan[0], 0), u0),
         eleman.olcu(

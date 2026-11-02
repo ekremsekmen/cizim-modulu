@@ -168,9 +168,8 @@ def cizimler_yaniti(veri):
         cizimler_, kurulamayan = _ekran_cizimleri(g, hata)
         #  KUYU GRUBU ( cizim/grup.py ):  grubun sorunları asansörün sorunlarına
         #  eklenir ( paket inmez ), grubun planı çizimlerin önünde
-        grup_sorunlari, grup_cizimi = _grup(asansorler, ortak, sonuc, proje_adi, i, g, hata)
-        if grup_cizimi:
-            cizimler_.insert(0, grup_cizimi)
+        grup_sorunlari, grup_cizimleri = _grup(asansorler, ortak, sonuc, proje_adi, i, g, hata)
+        cizimler_[:0] = grup_cizimleri
         hata = hata + grup_sorunlari
         #  Hesabın uygun bulmadığı bölümlerin parçaları ( ekrandaki adlarıyla ):
         #  tuval turuncu işaretler, Uygunluk panelinde seçilen bölümünkini vurgular
@@ -238,31 +237,47 @@ def grup_sorunlari(gler):
 
 def _grup(asansorler, ortak, sonuc, proje_adi, i, g, hata):
     """Proje tek kuyudaysa ( asansörün kuyudaki yeri — kopru._kuyu_duzeni ) kuyunun
-    sorunları ve planı ( SVG — ekranda tıklanmaz:  ölçüleri iki asansörün ):
-    ( sorunlar , çizim ya da None ).  Öbür asansörün çizim girdisi de kurulur —
+    sorunları ve ortak çizimleri ( grup.cizimleri — SVG, ekranda tıklanmaz:
+    ölçüleri iki asansörün ):  ( sorunlar , [ çizim ] ).  Öbür asansörün çizim girdisi de kurulur —
     yalnız tek kuyuda;  ayrı kuyulu proje bundan beklemez.  Öbür asansörün sorunu
     kendi ekranında söylenir, burada yalnız kuyunun planının neden çizilmediği."""
     if not g["proje"].get("grup_sirasi") or len(asansorler) != grup.AZAMI:
-        return [], None
+        return [], []
     j = 1 - i
     g_j, h_j = asansor_girdisi(asansorler, ortak, sonuc, proje_adi, j)
     if g_j is None or h_j:
         ad = kopru.asansor_adi(asansorler[j], j + 1)
         kiris = [] if grup.kirisi([g]) is not None else [grup.KIRIS_YOK]
-        return kiris + [f"Tek kuyunun planı çizilemedi:  {ad} çiziminde sorun var."], None
+        return kiris + [f"Tek kuyunun çizimleri kurulamadı:  {ad} çiziminde sorun var."], []
     gler = grup.gruptakiler([g, g_j])
     sorunlar = grup.duzen_hatalari(gler)
     if sorunlar or hata:
-        return sorunlar, None
+        return sorunlar, []
     seritler = (f"{proje_adi}  ·  {grup.adlari(gler)}" if proje_adi else grup.adlari(gler),)
-    baslik, e = grup.cerceveli(gler, seritler)
-    return [], {
-        "ad": grup.AD,
-        "baslik": baslik,
-        "olcek": grup.OLCEK,
-        "olceksiz": False,
-        "svg": svg.yaz(e, geometri.sinir(e, 120), "", grup.OLCEK, onek="cg-", r=svg.CAD),
-    }
+    out = []
+    for n, ad in enumerate(grup.cizimleri(gler)):
+        h = grup.kurulamayanlar(gler, ad)
+        if h:
+            sorunlar += h
+            continue
+        baslik, e = grup.cerceveli(gler, seritler, ad)
+        out.append(
+            {
+                "ad": grup.ADLAR[ad],
+                "baslik": baslik,
+                "olcek": grup.olcegi(ad),
+                "olceksiz": False,
+                "svg": svg.yaz(
+                    e,
+                    geometri.sinir(e, 120 * grup.olcegi(ad) / 20.0),
+                    "",
+                    grup.olcegi(ad),
+                    onek=f"cg{n}-",
+                    r=svg.CAD,
+                ),
+            }
+        )
+    return sorunlar, out
 
 
 # ══════════════════════════════════════════════════════════════════════
