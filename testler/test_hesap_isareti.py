@@ -13,7 +13,7 @@ import unittest
 
 from cizim import eleman, geometri, hesap_isareti, pafta, parca_adlari, uslup
 from motor.uygulama import uygulama_hesabi
-from testler import test_yerlesim_saglamligi
+from testler import test_grup, test_yerlesim_saglamligi
 from uclar import uygulama_istegi
 
 
@@ -32,6 +32,8 @@ class BolumParcalari(unittest.TestCase):
             b["kimlik"]
             for b in _hesap(test_yerlesim_saglamligi.standart_istek(800, False, "Sağ"))["bolumler"]
         }
+        #  Ayırma kirişi yalnız tek kuyuda ( iki asansör )
+        bolumler |= {b["kimlik"] for b in _hesap(test_grup.ikili())["bolumler"]}
         for kimlik, adlar in hesap_isareti.BOLUM_PARCALARI.items():
             self.assertIn(kimlik, bolumler)
             for a in adlar + hesap_isareti.DOLGU:

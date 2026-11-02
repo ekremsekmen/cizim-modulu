@@ -31,6 +31,7 @@ BOLUM_PARCALARI = {
     "tahrik_yetenegi": ("tahrik_kasnagi", "halat"),
     "kabin_raylari": ("kabin_rayi", "kabin_konsolu"),
     "agirlik_raylari": ("agirlik_rayi", "agirlik_konsolu"),
+    "ayirma_kirisi": ("ayirma_kirisi",),
     "kuyu_tabani": ("kabin_kaidesi", "agirlik_kaidesi"),
     "tamponlar": ("kabin_tamponu", "agirlik_tamponu"),
 }
@@ -49,6 +50,7 @@ KISA_AD = {
     "tahrik_yetenegi": "Tahrik yeteneği",
     "kabin_raylari": "Kabin rayları",
     "agirlik_raylari": "Karşı ağırlık rayları",
+    "ayirma_kirisi": "Ayırma kirişi",
     "kuyu_tabani": "Kuyu tabanı",
     "tamponlar": "Tamponlar",
     "siginma_alanlari": "Sığınma alanları",
