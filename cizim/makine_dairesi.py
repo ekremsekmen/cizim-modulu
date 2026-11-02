@@ -134,6 +134,15 @@ def _pano_yeri(oda, md, S, engeller, kapi, TB=None):
     pe, pd = S["kumanda_pano_en"], S["kumanda_pano_derinlik"]
     ce = max(CALISMA_EN_ASGARI, pe)
     duvar = md["pano_duvar"]
+    #  Tek kuyuda oda iki asansörün:  pano ve çalışma alanı asansörün kendi yarısında
+    #  ( kopru._makine_dairesi_girdisi — sınır ayırma kirişinin ortası )
+    if md.get("yari"):
+        yan, xm = md["yari"]
+        engeller = list(engeller) + [
+            (xm, oda[1] - 1e6, oda[2] + 1e6, oda[3] + 1e6)
+            if yan == "Sağ"
+            else (oda[0] - 1e6, oda[1] - 1e6, xm, oda[3] + 1e6)
+        ]
     uzunluk = md["genislik"] if duvar in ("Ön", "Arka") else md["derinlik"]
     kc = ((kapi[0] + kapi[2]) / 2.0, (kapi[1] + kapi[3]) / 2.0)
     kay = (ce - pe) / 2.0 if ce > pe else 0.0  # panonun adımdaki yeri
@@ -1132,7 +1141,7 @@ def _makine_ve_donanim(Y, md, G):
             eleman.yazi(
                 (pn[0] + pn[2]) / 2.0,
                 (pn[1] + pn[3]) / 2.0,
-                "KUMANDA PANOSU",
+                md.get("pano_adi") or "KUMANDA PANOSU",
                 uslup.NORMAL,
                 aci=90 if dik else 0,
             )
