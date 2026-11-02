@@ -191,8 +191,12 @@ def _antet(d, g, olcekler):
 
 
 def sira(g):
-    """Bu projenin paftasındaki çizimler, sırasıyla."""
-    return SIRA_MD if (g.get("makine") or {}).get("yeri") == "Makine dairesi" else SIRA_MRL
+    """Bu asansörün paftasındaki çizimler, sırasıyla;  tek kuyuda kuyunun ortak
+    çizimleri ( grup.BIRLESIK — kuyunun çizimi olarak bir kez ) yok."""
+    s = SIRA_MD if (g.get("makine") or {}).get("yeri") == "Makine dairesi" else SIRA_MRL
+    if (g.get("proje") or {}).get("grup_sirasi"):
+        s = tuple(a for a in s if a not in grup.BIRLESIK)
+    return s
 
 
 def cizim_listesi(g, seritler=()):
@@ -307,7 +311,7 @@ def bloklar(g):
     DXF ( _yerlestir ) ve PDF ( ciktilar/pafta_pdf ) aynı listeyi kullanır."""
     gler = g if isinstance(g, (list, tuple)) else [g]
     #  Kuyu grubunun planı önde ( asansörlerin kendi çizimleri ardından — cizim/grup.py )
-    liste = grup.pafta_cizimleri(gler)
+    liste = grup.pafta_cizimleri(gler, SERBEST[3] - SERBEST[1] - 2 * KENAR)
     for i, g_ in enumerate(gler):
         coklu = len(gler) > 1
         for ad, baslik, olcek, e in cizim_listesi(g_, (g_["proje"]["asansor"],) if coklu else ()):

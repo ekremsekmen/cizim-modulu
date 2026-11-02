@@ -854,7 +854,8 @@ def dogrula(g):
 def ciz(g, cizim_sabitleri=None):
     Y = yerlesim(g, cizim_sabitleri)
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
-    e = [el for el in Y["taban"] if el["katman"] in _PLANDAN_KATMAN and el["tip"] != "yazi"]
+    #  Tek kuyunun ortak çiziminde komşunun yeri kapalı ( geometri.cit )
+    e = geometri.cit(g) + [el for el in Y["taban"] if el["katman"] in _PLANDAN_KATMAN and el["tip"] != "yazi"]
     e += _parcalar(g, Y)
     e += _olculer(g, Y)
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
@@ -959,7 +960,7 @@ def _olculer(g, Y):
     ray ekseni, regülatör;  sol:  ağırlık kasnağının teğetleri ve ekseni;  acil
     pano çalışma alanı;  halat sapması ( varsa )."""
     k = g["kuyu"]
-    G, D, dg, dar, ds = k["genislik"], k["derinlik"], k["duvar_sag"], k["duvar_arka"], k["duvar_sol"]
+    G, D, dar, ds = k["genislik"], k["derinlik"], k["duvar_arka"], k["duvar_sol"]
     xl, xr = Y["halatlar"][0][0], Y["halatlar"][1][0]
     kx = (Y["kabin"][0] + Y["kabin"][2]) / 2.0
     u0, u1 = D + dar + 120, D + dar + 120 + geometri.SIRA_ARASI
@@ -979,11 +980,8 @@ def _olculer(g, Y):
         for a, b in zip(xs, xs[1:])
     ]
     e.append(eleman.olcu("yatay", (0, 0), (G, 0), u1, kisaltmalar.kodlu("SW", G), ad="kuyu_genisligi"))
-    s0, s1 = G + dg + 120, G + dg + 120 + geometri.SIRA_ARASI
     ys = sorted({0.0, D, Y["halatlar"][0][1], Y["ry"], (Y["reg_kasnak"][1] + Y["reg_kasnak"][3]) / 2.0})
     sag = list(zip(ys, ys[1:]))
-    e += [eleman.olcu("dusey", (0, a), (0, b), s0) for a, b in sag]
-    e.append(eleman.olcu("dusey", (0, 0), (0, D), s1, kisaltmalar.kodlu("SD", D), ad="kuyu_derinligi"))
     t1, t2 = Y["ag_teget"][1], Y["ag_teget2"][1]
     ys = sorted({0.0, D, t1, t2, Y["ag_y"], Y["ry"]})
     #  Sağdaki zincirin ölçtüğü aralık solda yazılmaz ( ISO 129-1:  her ölçü bir
@@ -995,7 +993,15 @@ def _olculer(g, Y):
         sol.pop(0)
     while sol and any(abs(sol[-1][0] - p) < 0.5 and abs(sol[-1][1] - q) < 0.5 for p, q in sag):
         sol.pop()
-    e += [eleman.olcu("dusey", (0, a), (0, b), -ds - 120) for a, b in sol]
+    #  Tek kuyunun ortak çiziminde iki yanın sıraları komşudan uzak yanda:  soldaki
+    #  asansörde sağınkiler soldakinin dışında, sağdakinde soldaki sağınkilerin dışında
+    komsu = geometri.komsu_yani(g)
+    i0 = 1 if komsu == "Sağ" and sol else 0
+    s0, s1 = geometri.sag_sira(g, i0), geometri.sag_sira(g, i0 + 1)
+    e += [eleman.olcu("dusey", (0, a), (0, b), s0) for a, b in sag]
+    e.append(eleman.olcu("dusey", (0, 0), (0, D), s1, kisaltmalar.kodlu("SD", D), ad="kuyu_derinligi"))
+    sol_kot = geometri.sag_sira(g, 2) if komsu == "Sol" else -ds - 120
+    e += [eleman.olcu("dusey", (0, a), (0, b), sol_kot) for a, b in sol]
     #  Acil pano çalışma alanı  ( m.5.2.6.3.2.1 a )
     ca = Y["calisma"]
     kural = (

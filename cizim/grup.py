@@ -33,6 +33,10 @@ from cizim import standart
 from cizim import uslup
 
 AD = "kuyu_grubu"
+#  Tek kuyunun ortak çizimleri ( asansörün kendi listesinde yoklar — pafta.sira ):
+#  kuyu planı ( plan ) ve öbür yatay kesitler ( birlesik );  ekrandaki ve paftadaki adları
+BIRLESIK = ("kuyu_plani", "kabin_ustu", "kuyu_dibi", "kuyu_ustu", "kuyu_kesiti_on")
+ADLAR = {"kuyu_plani": AD, **{a: f"{AD}_{a}" for a in BIRLESIK[1:]}}
 BASLIK = "KUYU GRUBU PLANI  ( kabin hizasından yatay kesit )"
 OLCEK = 20
 #  K1 ( kullanıcı kararı 1 Kas ):  tek kuyuda iki asansör yan yana
@@ -162,6 +166,83 @@ def _asansorun_plani(g, komsu, komsu_g, alt):
     cit = _cit(g, komsu, komsu_g)
     e = cizimler.bitir(geometri.plan(g, komsu=komsu, cit=cit, olcu_alti=alt), OLCEK)
     e = [x for x in e if all(x is not c for c in cit) and not _duvar_mi(x)]
+    return _eksenleri_kirp(g, komsu, e)
+
+
+def _engeller(e, dx=0.0):
+    """Çizimin yer kaplayan elemanlarının kutuları ( komşunun çizimi için engel —
+    geometri.komsulu ):  parçalar, yazılar, ölçü çizgileri ve yazıları;  duvarlar,
+    eksenler, kuyunun içi değil."""
+    out = []
+    for x in e:
+        if _duvar_mi(x) or x["tip"] in ("eksen", "tarama") or x["katman"] in ("EKSEN", "KUYU-IC"):
+            continue
+        if x["tip"] == "olcu":
+            a, b, k = x["a"], x["b"], x["kot"]
+            kutular = [
+                (min(a[0], b[0]), k - 15, max(a[0], b[0]), k + 15)
+                if x["yon"] == "yatay"
+                else (k - 15, min(a[1], b[1]), k + 15, max(a[1], b[1]))
+            ]
+            if x.get("yazi"):
+                kutular.append(geometri.yazi_kutusu(x))
+        else:
+            kutular = [geometri.sinir([x])]
+        out += [(k[0] + dx, k[1], k[2] + dx, k[3]) for k in kutular if k]
+    return out
+
+
+def _gevsekce(g, komsu, ad, cit_x, engel):
+    """Asansörün parçası önce komşunun bölmesi kapalıyken ( geometri.komsulu
+    siki );  yük kutusu yer bulamazsa komşunun yakın yarısı da açılır."""
+    try:
+        with geometri.komsulu(komsu, cit_x, engel):
+            return _asansorun_cizimi(g, komsu, ad)
+    except ValueError:
+        with geometri.komsulu(komsu, cit_x, engel, siki=False):
+            return _asansorun_cizimi(g, komsu, ad)
+
+
+def _asansorun_cizimi(g, komsu, ad):
+    """Asansörün kendi koordinatında, kuyunun ortak kuyu dibi / kabin üstü / kuyu
+    üstü çizimindeki parçası:  çizimi komşunun yeri kapalıyken ( geometri.cit )
+    kurulur;  kendi duvarları çıkar, komşu yandaki ölçü sıraları öbür yana geçer
+    ( yan_olculeri_tasi ), eksenler aranın ortasında biter."""
+    e = geometri.citsiz(cizimler.CIZIMLER[ad][1](g))
+    bosluklu = sum(x["katman"] == "KUYU-DUVAR" and x["y"] < 0 for x in e) > 1
+    e = [x for x in e if not _duvar_mi(x)]
+    yan_olculeri_tasi(g, komsu, e)
+    return _eksenleri_kirp(g, komsu, e), bosluklu
+
+
+def yan_olculeri_tasi(g, komsu, e, yanlar=None, k=1.0, engel=None):
+    """Komşu yandaki düşey ölçü sıraları öbür yanın sıralarının dışına geçer
+    ( duvardan uzaklıkları ve aralarındaki boşluk korunur — geometri._yan_olculer'in
+    komsu'su gibi );  yazıları yeniden yerleşir.  yanlar:  ( sol , sağ ) dış yüzler
+    ( verilmezse planınki — kesit arkadan bakar, yanları ters );  k:  ölçeğin
+    1/20'ye oranı ( kesitte sıra arası ve duvardan uzaklık büyür );  engel:  o yanda
+    sıraların da dışındaki elemanların en dış x'i ( kesitte seviye harfleri )."""
+    ku = g["kuyu"] if g else None
+    sol, sag = yanlar or (-ku["duvar_sol"], ku["genislik"] + ku["duvar_sag"])
+    ara, pay = geometri.SIRA_ARASI * k, 120.0 * k
+    dusey = [x for x in e if x["tip"] == "olcu" and x["yon"] == "dusey"]
+    if komsu == "Sağ":
+        tasan = [x for x in dusey if x["kot"] > sag]
+        kalan = [x["kot"] for x in dusey if x["kot"] < sol]
+        dis = min(kalan + [sol - pay + ara] + ([engel - pay + ara] if engel is not None else [])) - ara
+        for x in tasan:
+            x["kot"] = dis - (x["kot"] - sag - pay)
+            x.pop("yazi", None)
+    else:
+        tasan = [x for x in dusey if x["kot"] < sol]
+        kalan = [x["kot"] for x in dusey if x["kot"] > sag]
+        dis = max(kalan + [sag + pay - ara]) + ara
+        for x in tasan:
+            x["kot"] = dis + (sol - pay - x["kot"])
+            x.pop("yazi", None)
+
+
+def _eksenleri_kirp(g, komsu, e):
     k = g["kuyu"]
     orta = k["genislik"] + k["duvar_sag"] / 2.0 if komsu == "Sağ" else -k["duvar_sol"] / 2.0
     for x in e:
@@ -173,7 +254,7 @@ def _asansorun_plani(g, komsu, komsu_g, alt):
     return e
 
 
-def _duvarlar(gler, X):
+def _duvarlar(gler, X, bosluklu=(True, True)):
     """Kuyunun duvarları ( geometri._duvarlar'ın sırasıyla ):  ön duvar kapıların
     kaba boşlukları arasında parça parça ( kapıların arası dolu — KONE "trimmer
     beams" kuyusu ), arka duvar boydan boya, sol ve sağ duvar ( arada duvar yok:
@@ -183,7 +264,7 @@ def _duvarlar(gler, X):
     D, don, dar = ilk["derinlik"], ilk["duvar_on"], ilk["duvar_arka"]
     sol, sag = -ilk["duvar_sol"], X[-1] + son["genislik"] + son["duvar_sag"]
     S = [sabitler.sabitler(g.get("_cizim_sabitleri")) for g in gler]
-    bosluk = [u + x0 for x0, g, s in zip(X, gler, S) for u in girdi.kaba_bosluk(g, s)[:2]]
+    bosluk = [u + x0 for x0, g, s, b in zip(X, gler, S, bosluklu) if b for u in girdi.kaba_bosluk(g, s)[:2]]
     parca = [(a, -don, b - a, don) for a, b in zip([sol] + bosluk[1::2], bosluk[::2] + [sag])]
     parca += [(sol, D, sag - sol, dar), (sol, 0, ilk["duvar_sol"], D)]
     parca.append((X[-1] + son["genislik"], 0, son["duvar_sag"], D))
@@ -196,7 +277,7 @@ def _duvarlar(gler, X):
     e.append(eleman.dikdortgen("KUYU-IC", 0, 0, X[-1] + son["genislik"], D))
     #  Bina duvarı ofis standardıdır ( bütün asansörlerde aynı )
     bina = S[0]["bina_duvari"]
-    if bina > 0:
+    if bina > 0 and any(bosluklu):
         kapi = [
             x0 + g["kapi"]["sol_pay"] + u * g["kapi"]["genislik"] for x0, g in zip(X, gler) for u in (0, 1)
         ]
@@ -248,19 +329,20 @@ def _sira_yazilari(e, ilk):
     geometri.parcadan_kaydir(e, ek_katman=("AGIRLIK",))
 
 
-def _adlar(gler, X, e):
+def _adlar(gler, X, e, k=1.0):
     """Kuyuların üstünde asansörlerin adları ( 12744-3'te kabinin içinde;  bizde
     kabinin içi ölçülü, ad en üstte boşta ).  Kuyuya sığmayan ad küçülür,
-    komşusuna binen ad bir satır yukarı çıkar."""
-    ust = geometri.sinir(e)[3] + 60.0
+    komşusuna binen ad bir satır yukarı çıkar.  k:  ölçeğin 1/20'ye oranı
+    ( kesit 1/50 — yazı kağıtta aynı boyda )."""
+    ust = geometri.sinir(e)[3] + 60.0 * k
     out, sag_uc = [], None
     for x0, g in zip(X, gler):
         ad, G = g["proje"]["asansor"], g["kuyu"]["genislik"]
-        h = uslup.HARF if eleman.yazi_eni(ad, uslup.HARF) <= G else uslup.NORMAL
+        h = (uslup.HARF if eleman.yazi_eni(ad, uslup.HARF) * k <= G else uslup.NORMAL) * k
         w, cx = eleman.yazi_eni(ad, h), x0 + G / 2.0
         y = ust + h / 2.0
-        if sag_uc is not None and cx - w / 2.0 < sag_uc[0] + 60.0:
-            y = sag_uc[1] + uslup.HARF + 40.0
+        if sag_uc is not None and cx - w / 2.0 < sag_uc[0] + 60.0 * k:
+            y = sag_uc[1] + (uslup.HARF + 40.0) * k
         out.append(eleman.yazi(cx, y, ad, h))
         sag_uc = (cx + w / 2.0, y)
     return out
@@ -287,11 +369,114 @@ def plan(gler):
     return e + _adlar(gler, X, e)
 
 
-def baslik(gler):
+def birlesik(gler, ad):
+    """Tek kuyunun ortak kuyu dibi / kabin üstü / kuyu üstü çizimi ( BIRLESIK ) —
+    elemanlar, çerçevesiz:  asansörlerin çizimleri kendi yerlerinde, duvarlar ve
+    ayırma kirişi bir kez, iki kuyu dibinin perdesi bir kez, en dışta kuyunun
+    zinciri ( planınki gibi ), adlar en üstte."""
+    if len(gler) != AZAMI or kirisi(gler) is None:
+        raise ValueError("Tek kuyunun çizimi iki asansör ve ayırma kirişiyle çizilir.")
+    X = _x0lar(gler)
+    A, B = gler
+    X1, GA, GB = X[1], A["kuyu"]["genislik"], B["kuyu"]["genislik"]
+    #  Soldaki önce, sağdakinin PARÇALARI engelken ( yazılarını sağdaki sonra
+    #  soldakininkilerden kaçarak koyar );  çitler komşunun bölmesinin ortasında
+    #  Kuyunun en dıştaki zinciri ( _ust_zincir ) ve toplamı sonra eklenir:  yeri
+    #  baştan engeldir ( kuyunun dışına konan yük kutusu ona biniyordu )
+    ciz = cizimler.CIZIMLER[ad][1]
+    eB0 = ciz(B)
+    parca = [x for x in eB0 if x["katman"] in geometri.PARCA_KATMANLARI]
+    zincir = [x["kot"] for x in eB0 if x.get("ad") in _DUVAR_SIRASI]
+    serit = (
+        [(-_CIT_PAYI - X1, max(zincir) - 15, X1 + GB + _CIT_PAYI, max(zincir) + geometri.SIRA_ARASI + 150)]
+        if zincir
+        else []
+    )
+    eA, bA = _gevsekce(A, "Sağ", ad, X1 + GB / 2.0, _engeller(parca, X1) + serit)
+    serit = [(a - X1, b, c - X1, d) for a, b, c, d in serit]
+    eB, bB = _gevsekce(B, "Sol", ad, GA / 2.0 - X1, _engeller(eA, -X1) + serit)
+    parcalar, kotlar, bosluklu = [], [], [bA, bB]
+    for n, e in enumerate((eA, eB)):
+        #  Perde ve adı bir kez ( soldakininki — ikisi aynı yerde )
+        e = [x for x in e if n == 0 or x.get("ad") not in ("grup_perdesi", "grup_perdesi_adi")]
+        kotlar += [x["kot"] for x in e if x.get("ad") in _DUVAR_SIRASI]
+        parcalar += [eleman.tasi(x, X[n]) for x in e if x.get("ad") not in _DUVAR_SIRASI]
+    e = _duvarlar(gler, X, bosluklu) + _ayirma_kirisleri(gler, X) + parcalar
+    if kotlar:
+        e += _ust_zincir(gler, X, max(kotlar))
+    #  Yalnız yeri boşalan ( öbür yana geçen ) ölçülerin ve zincirin yazıları
+    geometri.yazilari_yerlestir(e)
+    e = geometri.ondalik_virgul(e)
+    return e + _adlar(gler, X, e)
+
+
+def on_kesit(gler, azami=None):
+    """Tek kuyunun B-B kesiti ( arkadan kat kapılarına bakış ) — iki asansörün
+    kesiti yan yana, elemanlar çerçevesiz.  Arkadan bakıldığı için planın sağındaki
+    asansör solda.  Katlar ve kotlar ortaktır ( KUYU_ORTAK ):  soldakinin sol
+    yanındaki kot zincirleri, durak adları, kotlar ikisinindir — sağdakininkiler
+    atılır;  soldakinin aradaki konsol ölçüleri onun dış yanına geçer
+    ( yan_olculeri_tasi );  döşemeler boydan boya bir kez;  ayırma kirişinin
+    kesitleri iki asansörün konsol kotlarında ( aynı kotta bir kez );  plan
+    seviyeleri ( C-C, D-D … — kabin yüksekliği asansörden asansöre değişir ) her
+    asansörün kendi yarısında, harfi dış yanında."""
+    if len(gler) != AZAMI or kirisi(gler) is None:
+        raise ValueError("Tek kuyunun kesiti iki asansör ve ayırma kirişiyle çizilir.")
+    R, L = gler  # planın solundaki kesitte sağda
+    ciz = cizimler.CIZIMLER["kuyu_kesiti_on"][1]
+    eL, eR = (ciz(g, azami=azami) if azami else ciz(g) for g in (L, R))
+    GL, h = L["kuyu"]["genislik"], L["kuyu"]["duvar_sol"]
+    X1, orta = GL + h, GL + h / 2.0
+    #  Soldaki:  aradaki konsol ölçüleri dışa, aradaki seviye harfleri gider
+    sol, sag = -L["kuyu"]["duvar_sag"], GL + h
+    k = olcegi("kuyu_kesiti_on") / 20.0
+    harf = [
+        _sinir(x)[0] for x in eL if x["tip"] != "olcu" and _sinir(x)[2] < sol and x["katman"] != "KUYU-IC"
+    ]
+    yan_olculeri_tasi(None, "Sağ", eL, (sol, sag), k, min(harf, default=None))
+    eL = [x for x in eL if not (x["tip"] != "olcu" and x.get("ad") != "grup_perdesi" and _sinir(x)[0] > orta)]
+    #  Sağdaki:  sol yanı ( ortak kotlar, aradaki perde ) gider
+    eR = [x for x in eR if x.get("ad") != "grup_perdesi" and not _sinir(x)[2] < -h / 2.0]
+    for x in eL:
+        if x["tip"] == "eksen":
+            x["x1"], x["x2"] = min(x["x1"], orta), min(x["x2"], orta)
+    for x in eR:
+        if x["tip"] == "eksen":
+            x["x1"], x["x2"] = max(x["x1"], -h / 2.0), max(x["x2"], -h / 2.0)
+    #  Döşemeler ( geniş duvar parçaları ) soldakinin, sağdakinin sağ ucuna kadar
+    doseme = {round(x["y"], 3): x for x in eR if _doseme_mi(x)}
+    for x in eL:
+        if _doseme_mi(x) and round(x["y"], 3) in doseme:
+            d = doseme[round(x["y"], 3)]
+            x["g"] = X1 + d["x"] + d["g"] - x["x"]
+    eR = [eleman.tasi(x, X1) for x in eR if not _doseme_mi(x)]
+    #  Ayırma kirişinin kesiti aynı kotta bir kez
+    kiris = {(round(x["x"], 1), round(x["y"], 1)) for x in eL if x.get("ad") == "ayirma_kirisi"}
+    eR = [
+        x
+        for x in eR
+        if not (x.get("ad") == "ayirma_kirisi" and (round(x["x"], 1), round(x["y"], 1)) in kiris)
+    ]
+    e = eL + eR
+    geometri.yazilari_yerlestir(e, h=eleman.OLCU_YAZI * k)
+    return e + _adlar([L, R], [0.0, X1], e, k)
+
+
+def _sinir(x):
+    return geometri.sinir([x]) or (0.0, 0.0, 0.0, 0.0)
+
+
+def _doseme_mi(x):
+    """Kesitte kuyu dibi ve tavan döşemesi:  enine uzun duvar parçası ( ve taraması )."""
+    return (x["katman"] == "KUYU-DUVAR" or x["tip"] == "tarama") and x.get("g", 0) > x.get("d", 0)
+
+
+def baslik(gler, ad="kuyu_plani"):
     """Başlık;  bütün asansörlerin düşey kesitleri çiziliyorsa seviye harfiyle
     ( "KUYU GRUBU PLANI  C-C" — asansörlerin kesitlerindeki C-C ile aynı seviye )."""
-    b = {cizimler.plan_basligi(g, "kuyu_plani", BASLIK) for g in gler}
-    return b.pop() if len(b) == 1 else BASLIK
+    ana = BASLIK if ad == "kuyu_plani" else cizimler.CIZIMLER[ad][2]
+    b = {cizimler.plan_basligi(g, ad, ana) for g in gler}
+    return b.pop() if len(b) == 1 else ana
 
 
 def uyari(gler):
@@ -309,27 +494,58 @@ def adlari(gler):
     return "  ·  ".join(g["proje"]["asansor"] for g in gler)
 
 
-def cerceveli(gler, seritler=()):
-    """Grubun planı çerçevesiyle ( ekran ve pafta ):  ( başlık , elemanlar )."""
-    b = baslik(gler)
-    return b, geometri.cerceveli(plan(gler), b, OLCEK, seritler=seritler, uyari=uyari(gler))
+def cizimleri(gler):
+    """Tek kuyunun ortak çizimleri sırayla:  kuyu üstü planı yalnız makine dairesizde
+    ( pafta.sira gibi — makine yeri proje genelidir, iki asansörde aynı )."""
+    oda = (gler[0].get("makine") or {}).get("yeri") == "Makine dairesi"
+    return [a for a in BIRLESIK if not (oda and a == "kuyu_ustu")]
 
 
-def pafta_cizimleri(gler):
-    """Paftanın tek kuyu çizimi:  [ ( ad , başlık , ölçek , elemanlar — çerçeveli ) ],
-    tek kuyu değilse boş;  kuyunun sorunu varsa ValueError ( pafta.cizim_listesi gibi )."""
+def kurulamayanlar(gler, ad):
+    """Asansörlerin o çizimdeki denetim hataları ( cizimler.CIZIMLER'in dogrula'sı )."""
+    if ad == "kuyu_plani":
+        return []
+    dogrula = cizimler.CIZIMLER[ad][0]
+    return [f"{g['proje']['asansor']} — {ad}: {h}" for g in gler for h in dogrula(g)]
+
+
+def cerceveli(gler, seritler=(), ad="kuyu_plani", yukseklik=None):
+    """Tek kuyunun çizimi çerçevesiyle ( ekran ve pafta ):  ( başlık , elemanlar ).
+    yukseklik:  paftanın serbest alanının yüksekliği ( kesit sığmazsa kırılır —
+    pafta.cizim_listesi gibi )."""
+    b = baslik(gler, ad)
+    if ad == "kuyu_plani":
+        e = plan(gler)
+    elif ad == "kuyu_kesiti_on":
+        e = on_kesit(gler, yukseklik * olcegi(ad) if yukseklik else None)
+    else:
+        e = birlesik(gler, ad)
+    return b, geometri.cerceveli(e, b, olcegi(ad), seritler=seritler, uyari=uyari(gler))
+
+
+def olcegi(ad):
+    return cizimler.OLCEKLER.get(ad, OLCEK)
+
+
+def pafta_cizimleri(gler, yukseklik=None):
+    """Paftanın tek kuyu çizimleri:  [ ( ad , başlık , ölçek , elemanlar — çerçeveli ) ],
+    tek kuyu değilse boş;  kuyunun ya da bir çizimin sorunu varsa ValueError
+    ( pafta.cizim_listesi gibi )."""
     gg = gruptakiler(gler)
     if not gg:
         return []
-    h = duzen_hatalari(gg)
+    h = duzen_hatalari(gg) + [x for ad in cizimleri(gg) for x in kurulamayanlar(gg, ad)]
     if h:
         raise ValueError("Pafta çizilemiyor:  " + " · ".join(h))
-    b, e = cerceveli(gg, (adlari(gg),))
-    return [(AD, b, OLCEK, e)]
+    out = []
+    for ad in cizimleri(gg):
+        b, e = cerceveli(gg, (adlari(gg),), ad, yukseklik)
+        out.append((ADLAR[ad], b, olcegi(ad), e))
+    return out
 
 
 def kunyeler(gler):
     """pafta_cizimleri ile aynı sırada çizimlerin projesi ve asansörleri
     ( ayrı sayfalı PDF'in anteti — pafta.kunyeler )."""
     gg = gruptakiler(gler)
-    return [{"proje": gg[0]["proje"]["ad"], "asansor": adlari(gg)}] if gg else []
+    return [{"proje": gg[0]["proje"]["ad"], "asansor": adlari(gg)} for _ad in cizimleri(gg)] if gg else []

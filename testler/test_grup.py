@@ -473,21 +473,131 @@ class AsansorunCizimleri(unittest.TestCase):
         self.assertEqual(kuyu_kesiti.ayirma_kirisi_kotlari(ayri, kuyu_kesiti.yerlesim(ayri)["M"]), [])
 
 
+class BirlesikCizimler(unittest.TestCase):
+    """Kuyu dibi, kabin üstü, kuyu üstü tek düzlemde ( grup.birlesik ):  asansörün
+    çizimi komşunun parçaları ve yazıları engelken kurulur ( geometri.komsulu ),
+    duvarlar, ayırma kirişi ve iki kuyu dibinin perdesi bir kez, komşu yandaki
+    ölçü sıraları dış yanda, yük kutuları ve yazılar birbirine binmez.  Tarama
+    2 Kas:  Yerlesim.DUZENLER + soldaki 2."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.gruplar = [kuyudakiler(ikili(**d)) for d in Yerlesim.DUZENLER + (dict(soldaki=2),)]
+        cls.cizimler = {
+            (n, ad): grup.birlesik(gler, ad)
+            for n, gler in enumerate(cls.gruplar)
+            for ad in ("kabin_ustu", "kuyu_dibi", "kuyu_ustu")
+        }
+
+    def test_yazi_cakismasi_yok(self):
+        for (n, ad), e in self.cizimler.items():
+            self.assertEqual(cakisan_yazilar(e), 0, (n, ad))
+
+    def test_duvarlar_kiris_perde_bir_kez(self):
+        for (n, ad), e in self.cizimler.items():
+            gler = self.gruplar[n]
+            G1 = gler[0]["kuyu"]["genislik"]
+            kiris = [x for x in e if x.get("ad") == "ayirma_kirisi"]
+            self.assertEqual(
+                [(x["x"], x["g"]) for x in kiris], [(G1, float(gler[0]["proje"]["ayirma_kirisi"]))]
+            )
+            self.assertEqual(sum(x["katman"] == "KUYU-IC" for x in e), 1, (n, ad))
+            self.assertEqual(sum(x.get("ad") == "grup_perdesi" for x in e), 1 if ad == "kuyu_dibi" else 0)
+            self.assertFalse([x for x in e if x.get("katman") == geometri.CIT], (n, ad))
+            #  Aradaki yan duvar yok
+            self.assertEqual(
+                [x for x in e if x["katman"] == "KUYU-DUVAR" and x["y"] == 0 and G1 - 1 < x["x"] < G1 + 200],
+                [],
+            )
+
+    def test_dusey_olculer_arada_degil(self):
+        for (n, ad), e in self.cizimler.items():
+            gler = self.gruplar[n]
+            G1, X1 = gler[0]["kuyu"]["genislik"], grup._x0lar(gler)[1]
+            arada = [
+                x["metin"] for x in e if x["tip"] == "olcu" and x["yon"] == "dusey" and G1 <= x["kot"] <= X1
+            ]
+            self.assertEqual(arada, [], (n, ad))
+
+    def test_kuyu_dibi_tablolari_ve_yuk_yazilari(self):
+        for n, gler in enumerate(self.gruplar):
+            e = self.cizimler[n, "kuyu_dibi"]
+            kutular = [geometri.sinir([x]) for x in e if x.get("ad") == "yuk_kutusu"]
+            yazilar = [x for x in e if x.get("ad") == "yuk"]
+            self.assertEqual(len(kutular), len(yazilar))
+            for y in yazilar:  # yazı çerçevesinin içinde ( kaymaz — SABIT_ETIKETLER )
+                self.assertTrue(
+                    any(k[0] < y["x"] < k[2] and k[1] < y["y"] < k[3] for k in kutular), y["metin"]
+                )
+            bas = [x for x in e if x.get("ad") == "kuvvet_tablosu" and x["metin"].startswith("ASANSÖR")]
+            self.assertEqual(sorted(x["metin"] for x in bas), sorted(g["proje"]["asansor"] for g in gler))
+            sol, sag = sorted(bas, key=lambda x: x["x"])
+            self.assertEqual(sol["metin"], gler[0]["proje"]["asansor"])
+            self.assertLess(sol["x"], -gler[0]["kuyu"]["duvar_sol"])
+            self.assertGreater(sag["x"], grup._x0lar(gler)[1] + gler[1]["kuyu"]["genislik"])
+
+    def test_on_kesit_yan_yana(self):
+        #  Arkadan bakış:  planın solundaki sağda;  döşemeler boydan boya bir kez,
+        #  ortak kotlar ( durak adları, kotlar ) bir kez, aradaki konsol ölçüleri dışta
+        for gler in self.gruplar:
+            e = grup.on_kesit(gler)
+            self.assertEqual(cakisan_yazilar(e), 0)
+            R, L = gler
+            GL, h = L["kuyu"]["genislik"], L["kuyu"]["duvar_sol"]
+            X1 = GL + h
+            adlar = sorted(
+                (x["x"], x["metin"]) for x in e if x["tip"] == "yazi" and x["metin"].startswith("ASANSÖR")
+            )
+            self.assertEqual([m for _x, m in adlar], [L["proje"]["asansor"], R["proje"]["asansor"]])
+            duraklar = [x for x in e if x.get("ad") == "durak_adi"]
+            tek = cizimler.CIZIMLER["kuyu_kesiti_on"][1](L)
+            self.assertEqual(len(duraklar), sum(x.get("ad") == "durak_adi" for x in tek))
+            self.assertTrue(all(x["x"] < 0 for x in duraklar))
+            doseme = [x for x in e if x["katman"] == "KUYU-DUVAR" and x["g"] > x["d"]]
+            sag = X1 + R["kuyu"]["genislik"]
+            self.assertTrue(doseme)
+            for x in doseme:
+                self.assertEqual((x["x"], x["x"] + x["g"]), (0.0, sag))
+            arada = [x for x in e if x["tip"] == "olcu" and x["yon"] == "dusey" and GL < x["kot"] < X1]
+            self.assertEqual(arada, [])
+            self.assertEqual(sum(x.get("ad") == "grup_perdesi" for x in e), 1)
+            kiris = [(x["x"], x["y"]) for x in e if x.get("ad") == "ayirma_kirisi"]
+            self.assertEqual(len(kiris), len(set(kiris)))
+            self.assertTrue(all(GL - 1 < x < X1 + 1 for x, _y in kiris))
+
+    def test_tek_asansorde_komsu_yok(self):
+        #  komsulu bloğunun dışında çit yok, sıralar sağda ( asansörün kendi çizimi değişmez )
+        g = self.gruplar[0][0]
+        self.assertEqual(geometri.cit(g), [])
+        self.assertEqual(geometri.sag_sira(g, 0), g["kuyu"]["genislik"] + g["kuyu"]["duvar_sag"] + 120)
+
+
 class EkranVePaket(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.v = ikili()
 
-    def test_ekranda_kuyunun_plani_once_tiklanmaz(self):
+    def test_ekranda_kuyunun_cizimleri_once_tiklanmaz(self):
+        #  Kuyunun ortak çizimleri önde, bir kez;  asansörün kendi listesinde yoklar
+        ortak = [grup.ADLAR[a] for a in grup.BIRLESIK]
         for i in (0, 1):
             d = yanit(self.v, i)
             self.assertTrue(d["aktif"], d.get("hata"))
+            adlar = [x["ad"] for x in d["cizimler"]]
+            self.assertEqual(adlar[:5], ortak)
+            self.assertFalse(set(grup.BIRLESIK) & set(adlar))
+            self.assertEqual(adlar[5:], list(pafta.sira(gecerli(self.v)[i])))
             c = d["cizimler"][0]
-            self.assertEqual((c["ad"], c["olcek"]), (grup.AD, 20))
+            self.assertEqual(c["olcek"], 20)
             self.assertIn("KUYU GRUBU PLANI  C-C", c["baslik"])
-            self.assertNotIn("data-olcu", c["svg"])
-            self.assertNotIn(grup.AD, [x["ad"] for x in d["cizimler"][1:]])
-        self.assertNotIn(grup.AD, [x["ad"] for x in yanit(ikili(duzen="Ayrı"))["cizimler"]])
+            self.assertIn("KUYU DİBİ PLANI  E-E", d["cizimler"][2]["baslik"])
+            self.assertIn("B-B KUYU DÜŞEY KESİTİ", d["cizimler"][4]["baslik"])
+            self.assertEqual(d["cizimler"][4]["olcek"], 50)
+            for c in d["cizimler"][:5]:
+                self.assertNotIn("data-olcu", c["svg"])
+        ayri = [x["ad"] for x in yanit(ikili(duzen="Ayrı"))["cizimler"]]
+        self.assertFalse(set(ortak) & set(ayri))
+        self.assertTrue(set(grup.BIRLESIK) <= set(ayri))
 
     def test_kuyunun_sorunu_ekranda_ve_paketi_durdurur(self):
         v = ikili(kiris=None)
@@ -503,16 +613,18 @@ class EkranVePaket(unittest.TestCase):
         #  630 kg, ağırlık arkada, makine dairesiz:  kabin üstüne çömelme sığınması sığmaz
         d = yanit(ikili(Q1=630, Q2=800), 1)
         self.assertFalse(d["aktif"])
-        self.assertIn("Tek kuyunun planı çizilemedi:  ASANSÖR 1 çiziminde sorun var.", d["hata"])
-        self.assertNotIn(grup.AD, [x["ad"] for x in d["cizimler"]])
+        self.assertIn("Tek kuyunun çizimleri kurulamadı:  ASANSÖR 1 çiziminde sorun var.", d["hata"])
+        self.assertFalse(set(grup.ADLAR.values()) & {x["ad"] for x in d["cizimler"]})
 
-    def test_paftada_kuyunun_plani_once_kunyeler_esit(self):
+    def test_paftada_kuyunun_cizimleri_once_kunyeler_esit(self):
         gler = gecerli(self.v)
         b, k = pafta.bloklar(gler), pafta.kunyeler(gler)
         self.assertEqual(len(b), len(k))
-        self.assertEqual(b[0][0], grup.AD)
-        self.assertEqual(k[0], {"proje": "DENEME", "asansor": "ASANSÖR 1  ·  ASANSÖR 2"})
-        self.assertEqual(b[1][0], "kuyu_kesiti_yan_1")
+        self.assertEqual([x[0] for x in b[:5]], [grup.ADLAR[a] for a in grup.BIRLESIK])
+        self.assertEqual(k[:5], [{"proje": "DENEME", "asansor": "ASANSÖR 1  ·  ASANSÖR 2"}] * 5)
+        self.assertEqual(b[4][2], 50)
+        self.assertEqual(b[5][0], "kuyu_kesiti_yan_1")
+        self.assertEqual(len(b), 5 + sum(len(pafta.sira(g)) for g in gler))
         gler[0]["proje"]["ayirma_kirisi"] = gler[1]["proje"]["ayirma_kirisi"] = None
         with self.assertRaises(ValueError):
             pafta.bloklar(gler)
