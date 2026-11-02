@@ -5,16 +5,28 @@
     ALTI ) · makine dairesinin zemini · duraklar · kuyu dibi.  Her satıra kot ya da
     fark yazılır;  saklanan hep kottur ( tek kaynak ).  Fark yazılınca üstteki
     satırlar birlikte kayar.  Türetilenler ( durak adedi, seyir, KY, son kat,
-    tabliye ) sunucudan gelir — ön yüz hesaplamaz, girişi kolaylaştırır.        */
+    tabliye ) sunucudan gelir — ön yüz hesaplamaz, girişi kolaylaştırır.
+    Durak satırında ad ve giriş katı ( KAT_ADLARI_PLANI 3. adım ):  boş ad kuraldan
+    ( soluk — giriş katı 0, altı −1, üstü 1 … ), kapı düğmesi giriş katını seçer
+    ( yeniden basılınca kurala döner:  ±0,00'a en yakın durak ).  Durak silinince
+    üstündekilerin adı bir aşağı kayar.                                          */
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { DoorOpen, Plus, X } from "lucide-react";
 import type { Deger } from "@/lib/api";
 import {
+  DURAK_ADLARI,
   DURAK_KOTLARI,
+  GIRIS_DURAGI,
   KUYU_DIBI_KOTU,
   KUYU_TAVANI_KOTU,
   MD_ZEMINI_KOTU,
+  adTablosu,
+  adlariOku,
+  adlariYaz,
   araligiYaz,
+  durakSayisi,
+  durakSil,
+  girisOku,
   hizliDoldur,
   kaydir,
   kotOku,
@@ -71,6 +83,28 @@ function YerelKutu({
   );
 }
 
+/**  Durağın adı:  yazarken yerel ( ad boşluk içerebilir — "ZEMİN KAT" ), Enter ya da
+     odaktan çıkınca yazılır;  boş bırakılırsa ad kurala döner ( yer:  kuraldan ad ).  */
+function AdKutusu({ deger, yer, uygula, etiket }: { deger: string; yer: string; uygula: (ad: string) => void; etiket: string }) {
+  const [yazi, setYazi] = useState<string | null>(null);
+  const bitir = () => {
+    if (yazi !== null && yazi.trim() !== deger) uygula(yazi);
+    setYazi(null);
+  };
+  return (
+    <Girdi
+      aria-label={etiket}
+      className="h-7 min-w-0 flex-1"
+      yazi
+      value={yazi ?? deger}
+      placeholder={yer}
+      onChange={(e) => setYazi(e.target.value)}
+      onBlur={bitir}
+      onKeyDown={(e) => e.key === "Enter" && (e.currentTarget as HTMLInputElement).blur()}
+    />
+  );
+}
+
 /**  Fark ( mm ):  iki kotun farkı;  yazılınca uygula( mm )  */
 function FarkKutusu({ deger, uygula, etiket }: { deger: number | null; uygula: (mm: number) => void; etiket: string }) {
   return (
@@ -85,15 +119,32 @@ function FarkKutusu({ deger, uygula, etiket }: { deger: number | null; uygula: (
   );
 }
 
-function Satir({ ad, kot, fark, sil }: { ad: React.ReactNode; kot: React.ReactNode; fark?: React.ReactNode; sil?: () => void }) {
+function Satir({
+  ad,
+  etiket,
+  kot,
+  fark,
+  sil,
+}: {
+  ad: React.ReactNode;
+  /**  Satırın adı ( silme düğmesinin etiketi ) — ad kutuysa  */
+  etiket?: string;
+  kot: React.ReactNode;
+  fark?: React.ReactNode;
+  sil?: () => void;
+}) {
   return (
     <div className="flex items-center gap-1.5 py-px">
-      <span className="min-w-0 flex-1 truncate text-[12px] text-metin-2">{ad}</span>
+      {typeof ad === "string" ? (
+        <span className="min-w-0 flex-1 truncate text-[12px] text-metin-2">{ad}</span>
+      ) : (
+        <div className="flex min-w-0 flex-1 items-center gap-1">{ad}</div>
+      )}
       <div className="w-[86px]">{kot}</div>
       <div className="w-[72px]">{fark}</div>
       <div className="w-5">
         {sil && (
-          <button type="button" aria-label={`${typeof ad === "string" ? ad : "durak"} — sil`} onClick={sil} className="text-metin-3 hover:text-red">
+          <button type="button" aria-label={`${etiket ?? (typeof ad === "string" ? ad : "durak")} — sil`} onClick={sil} className="text-metin-3 hover:text-red">
             <X className="size-3.5" />
           </button>
         )}
@@ -138,6 +189,17 @@ export function KatGirisi({
     y[j] = metin;
     yaz(DURAK_KOTLARI, y.filter((x) => x.trim() !== "").join("; "));
   };
+  //  Kat adları:  girilenler ( h ) ve sunucunun kuraldan adları ( yanıtın "_kot"u )
+  const adlar = adlariOku(h[DURAK_ADLARI]);
+  const kural = adTablosu(kullanilan);
+  const girilenGiris = girisOku(h[GIRIS_DURAGI]);
+  const giris = girilenGiris ?? kural.giris;
+  const adYaz = (j: number, ad: string) => {
+    const y = [...adlar];
+    while (y.length <= j) y.push("");
+    y[j] = ad;
+    yaz(DURAK_ADLARI, adlariYaz(y));
+  };
   const kotKutusu = (alan: string, etiket: string, yer?: string) => (
     <Girdi
       aria-label={etiket}
@@ -177,7 +239,7 @@ export function KatGirisi({
       {kot && (
         <div className="mt-2">
           <div className="flex items-center gap-1.5 pb-0.5 text-[11px] text-metin-3">
-            <span className="flex-1" />
+            <span className="flex-1 pl-6">ad</span>
             <span className="w-[86px] text-right">kot</span>
             <span className="w-[72px] text-right">fark ( mm )</span>
             <span className="w-5" />
@@ -230,10 +292,44 @@ export function KatGirisi({
             .map(({ metin, j }) => {
               const alt = j > 0 ? k[j - 1] : null;
               const bu = k[j];
+              const girisMi = giris === j + 1;
               return (
                 <Satir
                   key={j}
-                  ad={`${j + 1}. durak`}
+                  etiket={`${j + 1}. durak`}
+                  ad={
+                    <>
+                      <button
+                        type="button"
+                        aria-label={`${j + 1}. durak giriş katı`}
+                        aria-pressed={girisMi}
+                        title={
+                          girisMi
+                            ? girilenGiris === j + 1
+                              ? "Giriş katı ( girildi ) — kurala dönmek için basın"
+                              : "Giriş katı ( kuraldan:  kotu ±0,00'a en yakın durak )"
+                            : "Giriş katı yap"
+                        }
+                        onClick={() => yaz(GIRIS_DURAGI, girilenGiris === j + 1 ? "" : String(j + 1))}
+                        className={cn(
+                          "grid size-5 shrink-0 place-items-center rounded-kucuk",
+                          girisMi
+                            ? girilenGiris === j + 1
+                              ? "bg-vurgu text-white"
+                              : "bg-black/[0.06] text-metin-2"
+                            : "text-metin-3/40 hover:bg-black/[0.04] hover:text-metin-2",
+                        )}
+                      >
+                        <DoorOpen className="size-3.5" />
+                      </button>
+                      <AdKutusu
+                        etiket={`${j + 1}. durağın adı`}
+                        deger={adlar[j] ?? ""}
+                        yer={kural.adlar[j] ?? ""}
+                        uygula={(ad) => adYaz(j, ad)}
+                      />
+                    </>
+                  }
                   kot={
                     <Girdi
                       aria-label={`${j + 1}. durağın kotu`}
@@ -254,7 +350,7 @@ export function KatGirisi({
                       />
                     ) : undefined
                   }
-                  sil={ham.length > 2 ? () => yaz(DURAK_KOTLARI, ham.filter((_, i) => i !== j).join("; ")) : undefined}
+                  sil={ham.length > 2 ? () => uygula(durakSil(h, j)) : undefined}
                 />
               );
             })}
@@ -269,6 +365,9 @@ export function KatGirisi({
               />
             }
           />
+          {kural.hata.length > 0 && (
+            <p className="mt-1 px-0.5 text-[11.5px] font-medium text-red">Kat adları:  {kural.hata[0]}</p>
+          )}
           <div className="mt-1.5 flex flex-wrap gap-1">
             <button
               type="button"
@@ -347,10 +446,13 @@ function Arac({
         [DURAK_KOTLARI]: hizliDoldur(Math.round(n), alt, Math.round(hh)),
         ...(sonKat !== null && { [KUYU_TAVANI_KOTU]: kotYaz(ust + sonKat) }),
         ...(ky !== null && { [KUYU_DIBI_KOTU]: kotYaz(alt - ky) }),
+        //  Adlar yerinde kalır;  fazlası ve durakları aşan giriş katı düşer
+        ...durakSayisi(h, Math.round(n)),
       });
     } else if (arac === "yapistir") {
       if (!a.trim()) return;
-      uygula({ [DURAK_KOTLARI]: yapistir(a) });
+      const kotlar = yapistir(a);
+      uygula({ [DURAK_KOTLARI]: kotlar, ...durakSayisi(h, kotlariOku(kotlar).length) });
     } else {
       const m = kotOku(a);
       if (m === null) return;

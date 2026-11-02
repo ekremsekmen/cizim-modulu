@@ -4,7 +4,9 @@
    sayılır ( 0, altı −1, −2, üstü 1, 2 — LiftDesigner ve ofisin LD paftaları );  elle
    yazılan ad onun yerine geçer, boş parça kuraldan
 ·  ofisin 12 LD paftasının "0" katı kuraldan bulunur ( KOTLAR.md § 2.1 )
-·  yanlış girdi:  fazla ad, aynı ad, uzun ad, aralık dışı giriş — çizim durur, iletiyle
+·  yanlış girdi:  fazla ad, aynı ad, uzun ad, aralık dışı giriş — pafta durur ( kesitin
+   sorunu ), ekran kuraldan adlarla çizer;  hesap DURMAZ ( adlar yalnız yazı — 2 Kas
+   tarayıcıda:  köprü durunca hesabın 4 bölümü "HESAP EKSİK" oluyordu )
 ·  köprü:  g["dusey"]["durak_adlari"] · ["giris_duragi"] ( 1'den );  tek kuyuda iki asansörde aynı ( kuyunun
    ortak girdisi );  hesaba girmez
 ·  çizim:  kesitlerde durağın adı ( eskiden "1. DURAK" );  giriş görünüşü ve kapı kesiti giriş
@@ -90,11 +92,21 @@ class Kopru(unittest.TestCase):
             (g["dusey"]["durak_adlari"], g["dusey"]["giris_duragi"]), (["OTOPARK", "-1", "0", "1"], 3)
         )
 
-    def test_yanlis_ad_cizimi_durdurur_hesabi_degil(self):
+    def test_yanlis_ad_paftayi_durdurur_hesabi_degil(self):
         g, h, s = cizim(**KOTLU, durak_adlari="A; A")
         self.assertIsNone(g)
         self.assertEqual(h, ["Kat adları:  iki durağın adı aynı olamaz ( 'A' )."])
-        self.assertTrue(s["asansorler"][0]["aktif"])
+        self.assertEqual(h[0].cizim, "kuyu_kesiti_yan")
+        #  Hesap adsız girdininkiyle aynı:  çizimden ölçtükleri eksik kalmadı
+        _g, _h, s0 = cizim(**KOTLU)
+        a, a0 = s["asansorler"][0], s0["asansorler"][0]
+        self.assertEqual([b.get("sonuc") for b in a["bolumler"]], [b.get("sonuc") for b in a0["bolumler"]])
+        #  Ekran ( sorunlu çizim ):  girdi kurulur, adlar kuraldan
+        v = {"asansorler": [dict(ORNEK, **KOTLU, durak_adlari="A; A")], "proje_geneli": {}, "sabitler": {}}
+        A, o = uygulama_istegi.asansor_girdileri(copy.deepcopy(v))
+        ge, he = cizim_uclari.asansor_girdisi(A, o, uygulama_hesabi.hesapla_coklu(A, o), "DENEME", 0)
+        self.assertEqual(he, h)
+        self.assertEqual(ge["dusey"]["durak_adlari"], ["-1", "0", "1", "2"])
 
     def test_hesaba_girmez(self):
         _g, _h, s0 = cizim(**KOTLU)

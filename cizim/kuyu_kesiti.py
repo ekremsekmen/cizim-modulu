@@ -76,7 +76,8 @@ def dogrula(g):
     #  kalan sorunları da görür ( uclar/care_uclari.py ).  Kip kapalıyken aynı.
     if hata and not sorunlu.acik():
         return hata
-    return hata + yerlesim(g)["hata"]
+    #  Kat adlarının sorunları kesitindir ( katlar.ad_sorunlari — hesabı durdurmaz )
+    return hata + yerlesim(g)["hata"] + katlar.ad_sorunlari(g)
 
 
 def _duvar(e, u, z, w, h, ad=None):

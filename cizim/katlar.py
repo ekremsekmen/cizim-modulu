@@ -24,6 +24,7 @@ import math
 from temel import sayi_mi
 from cizim import izli
 from cizim import dusey
+from cizim import sorun
 from cizim.dusey import ESIK_ARASI
 from tasarim import alanlar
 import re
@@ -172,6 +173,7 @@ def durak_adlari(ham, giris, kotlar):
     — iletide adlar ve giriş yine kuraldan ( çizim yazısız kalmasın )."""
     n = len(kotlar)
     hata = []
+    giris = None if giris is None else int(giris)  # sıra:  izsiz ( izlemede izli gelir )
     if giris is not None and not (1 <= giris <= n):
         hata.append(f"giriş katı {giris}. durak olamaz — {n} durak var ( 1 … {n} ).")
         giris = None
@@ -200,6 +202,18 @@ def durak_adlari(ham, giris, kotlar):
     return adlar, g, hata
 
 
+def ad_tablosu(A):
+    """Kot tablosunun ad sütunu ( mukavemet_girdi._kottan → yanıtın girdisinin "_kot"u:
+    ön yüz kuraldan adı soluk gösterir, kendisi hesaplamaz ):  { "adlar" : [ ad ]
+    ( alttan;  boş olan kuraldan ) , "giris" : giriş katı ( 1'den ) , "ad_hatasi" :
+    [ ileti ] }.  Kotlar okunamıyorsa {} ( sebebini kot tablosu söyler )."""
+    kotlar, iletiler = kotlari_oku(A.get(alanlar.DURAK_KOTLARI))
+    if iletiler or not kotlar:
+        return {}
+    adlar, giris, hata = durak_adlari(A.get(alanlar.DURAK_ADLARI), A.get(alanlar.GIRIS_DURAGI), kotlar)
+    return {"adlar": adlar, "giris": giris + 1, "ad_hatasi": hata}
+
+
 def adlar_ve_giris(g):
     """Çizimin durak adları ve giriş katının sırası ( 0'dan ):  köprünün yazdığı
     ( g["dusey"]["durak_adlari"] · ["giris_duragi"] — kopru._durak_adlari ), yoksa
@@ -215,6 +229,16 @@ def adlar_ve_giris(g):
     ofset = dusey.kot_ofseti(g)
     adlar, giris, _hata = durak_adlari(None, None, [round(ofset + z) for z in kotlar])
     return adlar, giris
+
+
+def ad_sorunlari(g):
+    """Kat adlarının sorunları ( kopru._durak_adlari — fazla / aynı / uzun ad, aralık
+    dışı giriş ) — kesitlerin doğrulaması ( kuyu_kesiti.dogrula ):  pafta ve teslim
+    durur, ekran kesiti kuraldan adlarla çizer;  hesap durmaz ( adlar yalnız yazı )."""
+    return [
+        sorun.Sorun(f"Kat adları:  {h}", ("durak_adi",), "kuyu_kesiti_yan")
+        for h in (g.get("dusey") or {}).get("ad_hatasi") or []
+    ]
 
 
 def giris_kotu(g):

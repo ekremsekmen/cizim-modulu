@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, CircleQuestionMark, RotateCcw, Search, X } from "lucide-react";
 import type { Alan, AlanSemasi, Deger } from "@/lib/api";
 import { alanHatasi, alanOku, gizliAlanlar, kipGizlileri, kuyununOrtaklari, mrlMi, varsayilanKotlarMi, sayiOku, secenekKapali, type UygulamaProjesi } from "@/lib/proje";
-import { DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, MD_ZEMINI_KOTU } from "@/lib/kotlar";
+import { DURAK_ADLARI, DURAK_KOTLARI, GIRIS_DURAGI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, MD_ZEMINI_KOTU } from "@/lib/kotlar";
 import { KatGirisi } from "./KotTablosu";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
 import { Anahtar, Bolumlu, Girdi, Ipucu, Rozet, Secim } from "@/components/ui";
@@ -41,8 +41,8 @@ export function GirdiPaneli({
   const oku = (a: string) => alanOku(proje, sema, asansor, a);
 
   //  Makine yerleşimine göre hesaba girmeyen alanlar gizlenir ( sunucu da okumaz );
-  //  kat girişinin öbür kipininkiler de ( asansör başına ).  Kot kutuları düz kutu
-  //  olarak çizilmez:  kot tablosundadır ( KatGirisi ).
+  //  kat girişinin öbür kipininkiler de ( asansör başına ).  Kot kutuları, durak adları
+  //  ve giriş katı düz kutu olarak çizilmez:  kot tablosundadır ( KatGirisi ).
   const mrl = mrlMi(sema, proje);
   const kuyunun = kuyununOrtaklari(sema, proje);
   const h = proje.asansorler[asansor];
@@ -51,7 +51,7 @@ export function GirdiPaneli({
       new Set([
         ...gizliAlanlar(sema, proje),
         ...kipGizlileri(sema, h),
-        ...[DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, MD_ZEMINI_KOTU],
+        ...[DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, MD_ZEMINI_KOTU, DURAK_ADLARI, GIRIS_DURAGI],
       ]),
     [sema, proje, h],
   );

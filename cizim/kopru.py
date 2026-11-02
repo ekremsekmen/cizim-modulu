@@ -205,18 +205,21 @@ def _kot_girisi(A):
 
 def _durak_adlari(A, g):
     """Durakların adları ve giriş katı ( katlar.durak_adlari — KAT_ADLARI_PLANI ) →
-    g["dusey"]["durak_adlari"] · ["giris_duragi"] ( 1'den — alanın kendisi gibi );  yanlış ad listesinin iletileri
-    ( çizim durur:  kesit hangi adı yazacağını bilmez ).  Kotlar mimari:  kotla
-    girişte ofsetli ( kotu ±0,00 olan durak giriştir ), ölçüyle girişte en alt 0."""
+    g["dusey"]["durak_adlari"] · ["giris_duragi"] ( 1'den — alanın kendisi gibi ).
+    Yanlış ad listesinde adlar kuraldan, iletiler g["dusey"]["ad_hatasi"]'nda:
+    köprü DURMAZ ( adlar yalnız yazı — hesap ölçülerini bu girdiden alır, ad
+    yüzünden eksik kalmasın );  kesitin doğrulaması söyler ( katlar.ad_sorunlari:
+    pafta durur ).  Kotlar mimari:  kotla girişte ofsetli, ölçüyle girişte en alt 0."""
     kotlar, _h = dusey.durak_kotlari(g)
     if not kotlar:
-        return []
+        return
     ofset = dusey.kot_ofseti(g)
     adlar, giris, hata = katlar.durak_adlari(
         A.get(alanlar.DURAK_ADLARI), A.get(alanlar.GIRIS_DURAGI), [round(ofset + z) for z in kotlar]
     )
     g["dusey"]["durak_adlari"], g["dusey"]["giris_duragi"] = adlar, giris + 1
-    return [f"Kat adları:  {h}" for h in hata]
+    if hata:
+        g["dusey"]["ad_hatasi"] = hata
 
 
 def _tam(v):
@@ -352,7 +355,7 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
     if o.hata:
         return None, o.hata
     g = _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k)
-    o.hata += _durak_adlari(o.A, g)
+    _durak_adlari(o.A, g)
     _acik_ara(g)
     o.hata += konsol_araligi_hatalari(g["dusey"], S)
     if not h["mk_yok"]:
