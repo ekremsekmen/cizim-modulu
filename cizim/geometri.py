@@ -721,6 +721,14 @@ class _Plan:
     capraz: dict | None  # arkadaki ağırlıkla 2:1 çapraz askı ( arka_aski )
 
 
+def agirlik_rayi_eksenleri(g, S=None):
+    """Yandaki karşı ağırlığın iki rayının eksenleri ( y — ön duvardan ):  ayırma
+    kirişinin hesabı ( hesap/motor/uygulama/ayirma_kirisi ) kuvvetin yerini okur."""
+    P = _plan_olculeri(g, S or sabitler.sabitler(g.get("_cizim_sabitleri")))
+    h = g["agirlik"]["h"]
+    return P.ag_alt + h / 2.0, P.ag_ust - h / 2.0
+
+
 def _plan_olculeri(g, S):
     k, kb, kp = g["kuyu"], g["kabin"], g["kapi"]
     kr, ag = g["kabin_ray"], g["agirlik"]
