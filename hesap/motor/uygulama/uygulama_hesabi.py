@@ -23,8 +23,11 @@ AVANIN 1. VE 2. BÖLÜMÜ ALINMAZ:
     m.5.2.1.8'e göre, ray kuvvetlerini de bölüm 7-8'de ayrıntılı verir.
 """
 
+import copy
+
 from motor.avan import avan_hesabi
 from motor.ortak.adimlar import numarala
+from motor.uygulama import ayirma_kirisi
 from motor.uygulama import mukavemet
 from motor.avan import tablolar
 from motor.uygulama import uygulama_girdisi
@@ -348,8 +351,11 @@ def hesapla_coklu(asansorler=None, ortak=None):
     besleyen = None
     #  TEK KUYUDA ( tasarim/alanlar KUYU DÜZENİ ) asansörün kuyudaki yeri numarasına
     #  bağlıdır ( "Soldaki asansör" ):  hesabın çizimden ölçtüğü geometri
-    #  ( cizim/kopru._kuyu_duzeni ) hangi asansör olduğunu bilsin
-    tek = gorunum.tek_kuyu_mu(pg, len(ham))
+    #  ( cizim/kopru._kuyu_duzeni ) hangi asansör olduğunu bilsin.  Kuyu düzeni
+    #  çizimin proje geneli alanıdır ( kopru.PROJE_GENELI — pg yalnız hesabın
+    #  alanlarını taşır ):  ortaktan okunur.  2 Kas'a kadar pg'den okunuyordu;
+    #  hesap tek kuyuyu hiç tanımıyor, iki asansörü de soldaki gibi ölçüyordu.
+    tek = gorunum.tek_kuyu_mu(ortak, len(ham))
     for i, g in enumerate(ham, 1):
         s = hesapla({**ortak, **g, **pg, **({"_asansor_no": i} if tek else {})}, besleyen)
         s["no"] = i
@@ -375,6 +381,8 @@ def hesapla_coklu(asansorler=None, ortak=None):
                 besleyen = avan_hesabi.tas_adi(i)
         sonuclar.append(s)
 
+    if tek and len(sonuclar) == 2 and all(s.get("aktif") for s in sonuclar) and ortak.get("ayirma_kirisi"):
+        _ayirma_kirisi(sonuclar, ortak["ayirma_kirisi"])
     aktifler = [s for s in sonuclar if s.get("aktif")]
     proje_geneli = _tesis_bolumleri(aktifler)
     #  PROJE GENELİ HESAP DA "HEPSİ UYGUN"A GİRER.  Bölümler asansörlerden
@@ -418,6 +426,30 @@ def hesapla_coklu(asansorler=None, ortak=None):
             ],
         },
     }
+
+
+def _ayirma_kirisi(sonuclar, npu):
+    """TEK KUYUNUN AYIRMA KİRİŞİ ( motor/uygulama/ayirma_kirisi ):  iki asansörün
+    kuvvetleriyle bir kez hesaplanır, iki asansörün raporuna karşı ağırlık
+    raylarından sonra aynı bölüm olarak girer;  asansörün özeti ve hükmü yenilenir."""
+    b = ayirma_kirisi.bolum(sonuclar, npu)
+    if b is None:
+        return
+    for s in sonuclar:
+        bolumler = list(s["bolumler"])
+        i = next(
+            (n + 1 for n, x in enumerate(bolumler) if x.get("kimlik") == "agirlik_raylari"), len(bolumler)
+        )
+        bolumler.insert(i, copy.deepcopy(b))
+        s["bolumler"] = [numarala(x, n) for n, x in enumerate(bolumler, 1)]
+        s["mukavemet_bolum_sayisi"] = s.get("mukavemet_bolum_sayisi", 0) + 1
+        ozet = s["ozet"]
+        if b.get("eksik_hesap"):
+            ozet["eksik_hesap"] = list(ozet.get("eksik_hesap") or []) + [b["sonuc"]["metin"]]
+        ozet["tumu_uygun"] = bool(ozet.get("tumu_uygun")) and b["sonuc"]["uygun"] is not False
+        ozet["genel_sonuc"], ozet["genel_sonuc_kisa"] = mukavemet.genel_hukum(
+            s["bolumler"], ozet["tumu_uygun"], ozet.get("eksik_hesap") or []
+        )
 
 
 #  Projenin genel hükmünün kısa adı → durum

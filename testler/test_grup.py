@@ -21,6 +21,7 @@ import copy
 import itertools
 import json
 import unittest
+from unittest import mock
 
 from cizim import cizimler
 from cizim import geometri
@@ -200,6 +201,23 @@ class Girdi(unittest.TestCase):
         for g in gecerli(ikili(duzen="Ayrı")):
             self.assertEqual((g["proje"]["grup_sirasi"], g["proje"]["ayirma_kirisi"]), (None, None))
             self.assertNotIn("acik_yan", g["kuyu"])
+
+    def test_hesap_asansorun_yerini_bilir(self):
+        #  hesapla_coklu her asansörün numarasını köprüye verir:  sağdaki asansörün
+        #  geometrisi sağdaki gibi ölçülür ( 2 Kas'a kadar ikisi de soldakiydi )
+        gorulen = set()
+        asil = kopru.cizim_girdisi
+
+        def izle(A, *a, **k):
+            g, h = asil(A, *a, **k)
+            if g is not None and A.get("kuyu_duzeni"):  # varsayılan girdinin kuruluşu değil
+                gorulen.add((A.get("beyan_yuku"), g["proje"]["grup_sirasi"], g["kuyu"].get("acik_yan")))
+            return g, h
+
+        a, o = uygulama_istegi.asansor_girdileri(ikili(soldaki=2))
+        with mock.patch.object(kopru, "cizim_girdisi", izle):
+            uygulama_hesabi.hesapla_coklu(a, o)
+        self.assertEqual(gorulen, {(1000, 2, "Sol"), (800, 1, "Sağ")})
 
     def test_hesap_motoru_numarayi_girdiden_alir(self):
         #  Hesap çizimden ölçerken köprüyü sırasız çağırır ( sira = 1 ):  numara girdide
