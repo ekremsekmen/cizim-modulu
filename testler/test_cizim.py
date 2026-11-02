@@ -2549,10 +2549,11 @@ class KirikKesit(unittest.TestCase):
                 #  Kabin ve karşı ağırlık bölünmez ( çerçeve 2.920, kabin 2.310 + 120 )
                 self.assertEqual([x["d"] for x in e if x.get("ad") == "agirlik"], [2920])
                 self.assertEqual([x["d"] for x in e if x.get("ad") == "kabin"], [2430])
-                #  Durak adları:  ara duraklar düşer, ilk ve son kalır
+                #  Durak adları ( giriş katı en alt:  0 … 7 ):  ara duraklar düşer, ilk ve
+                #  son kalır
                 adlar = {x["metin"] for x in e if x.get("ad") == "durak_adi"}
-                self.assertIn("1. DURAK", adlar)
-                self.assertIn("8. DURAK", adlar)
+                self.assertIn("0", adlar)
+                self.assertIn("7", adlar)
                 self.assertLess(len(adlar), 8)
                 k = OlcuYazilari._kutular(None, e)
                 for a, b in itertools.combinations(k, 2):

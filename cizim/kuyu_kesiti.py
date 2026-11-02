@@ -35,6 +35,7 @@ from cizim import uslup
 from cizim import arka_aski
 from cizim import donanim
 from cizim import dusey
+from cizim import katlar
 from cizim import geometri
 from cizim import girdi
 from cizim import kesit_parcalari
@@ -405,6 +406,9 @@ def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon, taban):
     kotu aynı sütunda.  Kotla girişte yazılar mimarinin kotudur ( kot_ofseti ).
     Döner:  işaretlerin u'su."""
     ofset = dusey.kot_ofseti(g)
+    #  Durağın adı ( katlar.adlar_ve_giris — giriş katı 0, altı −1, üstü 1 … ya da elle
+    #  yazılan;  KAT_ADLARI_PLANI 2 Kas — eskiden alttan "1. DURAK" )
+    adlar, _giris = katlar.adlar_ve_giris(g)
     for i, z in enumerate(kotlar):
         kesit_parcalari.kot_isareti(e, u_duvar + yon * 200 * K, z, dusey.kot_yazisi(z, ofset), K, yon)
         e.append(
@@ -412,7 +416,7 @@ def _kat_seviyeleri(e, g, S, kotlar, u_duvar, K, yon, taban):
                 eleman.yazi(
                     u_duvar + yon * 120 * K,
                     z + 1100,
-                    f"{i + 1}. DURAK",
+                    adlar[i],
                     uslup.NORMAL * K,
                     hiza="sol" if yon > 0 else "sag",
                 ),

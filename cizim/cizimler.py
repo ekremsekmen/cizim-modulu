@@ -55,12 +55,12 @@ CIZIMLER = {
         kasnak_duzeni.ciz,
         "KASNAK DÜZENLEMESİ  ( tahrik kasnağının ekseninden — halatlar ve sarım açısı )",
     ),
-    "giris": (giris.dogrula, giris.ciz, "GİRİŞ GÖRÜNÜŞÜ  ( en alt durağın kapısı, durak tarafından )"),
+    "giris": (giris.dogrula, giris.ciz, "GİRİŞ GÖRÜNÜŞÜ  ( giriş katının kapısı, durak tarafından )"),
     #  LiftDesigner'ın "Front Entrance Side View"ü gibi ( 7 Eki )
     "kapi_kesiti": (
         kapi_kesiti.dogrula,
         kapi_kesiti.ciz,
-        "KAPI YAN KESİTİ  ( en alt durağın kapısı, ortasından — kat tarafı solda )",
+        "KAPI YAN KESİTİ  ( giriş katının kapısı, ortasından — kat tarafı solda )",
     ),
     #  Asansörün veri tablosu, kısaltmalar ve notlar ( 13 Eki — eskiden kuyu planında )
     "veriler": (veri_tablosu.dogrula, veri_tablosu.ciz, veri_tablosu.BASLIK),

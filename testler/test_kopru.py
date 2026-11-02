@@ -79,6 +79,10 @@ class OrnekProjeler(unittest.TestCase):
                 "agirlik_tampon_ezilme": 203,
                 "kabin_konsol_arasi": 1500,
                 "agirlik_konsol_arasi": 1500,
+                #  Kat adları ( kopru._durak_adlari ):  ölçüyle girişte en alt durak
+                #  ±0,00 — giriş katı, adlar 0 … 10
+                "durak_adlari": [str(i) for i in range(11)],
+                "giris_duragi": 1,
             }
         )
         g["kuyu_dibi"].update(
