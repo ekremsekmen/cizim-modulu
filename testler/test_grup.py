@@ -579,7 +579,7 @@ class EkranVePaket(unittest.TestCase):
 
     def test_ekranda_kuyunun_cizimleri_once_tiklanmaz(self):
         #  Kuyunun ortak çizimleri önde, bir kez;  asansörün kendi listesinde yoklar
-        ortak = [grup.ADLAR[a] for a in grup.BIRLESIK]
+        ortak = [grup.ADLAR[a] for a in grup.cizimleri(gecerli(self.v))]
         for i in (0, 1):
             d = yanit(self.v, i)
             self.assertTrue(d["aktif"], d.get("hata"))
@@ -597,7 +597,7 @@ class EkranVePaket(unittest.TestCase):
                 self.assertNotIn("data-olcu", c["svg"])
         ayri = [x["ad"] for x in yanit(ikili(duzen="Ayrı"))["cizimler"]]
         self.assertFalse(set(ortak) & set(ayri))
-        self.assertTrue(set(grup.BIRLESIK) <= set(ayri))
+        self.assertTrue(set(grup.cizimleri(gecerli(self.v))) <= set(ayri))
 
     def test_kuyunun_sorunu_ekranda_ve_paketi_durdurur(self):
         v = ikili(kiris=None)
@@ -620,7 +620,7 @@ class EkranVePaket(unittest.TestCase):
         gler = gecerli(self.v)
         b, k = pafta.bloklar(gler), pafta.kunyeler(gler)
         self.assertEqual(len(b), len(k))
-        self.assertEqual([x[0] for x in b[:5]], [grup.ADLAR[a] for a in grup.BIRLESIK])
+        self.assertEqual([x[0] for x in b[:5]], [grup.ADLAR[a] for a in grup.cizimleri(gler)])
         self.assertEqual(k[:5], [{"proje": "DENEME", "asansor": "ASANSÖR 1  ·  ASANSÖR 2"}] * 5)
         self.assertEqual(b[4][2], 50)
         self.assertEqual(b[5][0], "kuyu_kesiti_yan_1")

@@ -778,6 +778,23 @@ def _makine_dairesi_girdisi(o, g, h):
     mx, my = sayi("md_x", bos=True, isaretli=True), sayi("md_y", bos=True, isaretli=True)
     if genislik is None:
         return
+    x = (
+        mx
+        if mx is not None
+        else _kural(-ku["duvar_sol"] - (genislik - (G + ku["duvar_sol"] + ku["duvar_sag"])) / 2.0, "md_x")
+    )
+    #  TEK KUYUDA oda iki asansörün:  yeri kuyunun sol iç köşesine göre ( soldaki
+    #  asansörün koordinatı ), boşsa bütün kuyuya ortalı;  sağdaki asansör odayı
+    #  soldaki bölme + kiriş kadar solda görür ( uygulama_istegi._tek_kuyu_bolmeleri )
+    bolme = o.A.get("_kuyu_bolmeleri")
+    if g["proje"]["grup_sirasi"] and g["kuyu"].get("acik_yan") and bolme:
+        Gs, Gr = bolme
+        ara = g["kuyu"]["duvar_sag" if g["proje"]["grup_sirasi"] == 1 else "duvar_sol"]
+        t = ku["duvar_sol"] if g["proje"]["grup_sirasi"] == 1 else ku["duvar_sag"]
+        if mx is None:
+            x = _kural(-t - (genislik - (Gs + ara + Gr + 2 * t)) / 2.0, "md_x")
+        if g["proje"]["grup_sirasi"] == 2:
+            x = x - (Gs + ara)
     g["makine_dairesi"] = {
         "genislik": genislik,
         "derinlik": derinlik,
@@ -786,11 +803,7 @@ def _makine_dairesi_girdisi(o, g, h):
         #  duvarının dış yüzüyle hizalı ( çizim örneğinin düzeni ).  Duvarlar
         #  KENDİ kalınlıklarıyla:  ortak kalınlıkla kurulunca sol / ön duvarı
         #  farklı kuyuda oda sessizce kayıyordu ( 20 Eki ).
-        "x": (
-            mx
-            if mx is not None
-            else _kural(-ku["duvar_sol"] - (genislik - (G + ku["duvar_sol"] + ku["duvar_sag"])) / 2.0, "md_x")
-        ),
+        "x": x,
         "y": my if my is not None else _kural(-ku["duvar_on"], "md_y"),
         "kapi_duvar": secim("md_kapi_duvar"),
         "kapi_konum": sayi("md_kapi_konum"),
@@ -802,6 +815,25 @@ def _makine_dairesi_girdisi(o, g, h):
         "sase_yuksekligi": sayi("sase_yuksekligi", "Şase yüksekliği"),
         "dikine_kiris": secim("dikine_kiris", "E  ( dikine kiriş ölçüsü )", makine.NPU),
     }
+    _tek_kuyu_odasi(g)
+
+
+def _tek_kuyu_odasi(g):
+    """TEK KUYUDA makine dairesi iki asansörün:  her asansörün panosu ve çalışma
+    alanı odanın KENDİ yarısında ( sınır ayırma kirişinin ortası — makine_dairesi.
+    _pano_yeri );  pano duvarı yan duvarsa ( Sol · Sağ ) her asansör kendi dış yan
+    duvarını kullanır ( iki pano aynı köşeye düşmesin — kullanıcı kararı 2 Kas:
+    "her biri kendi asansörünün tarafında" )."""
+    yan = g["kuyu"].get("acik_yan")
+    if not g["proje"]["grup_sirasi"] or not yan:
+        return
+    md, k = g["makine_dairesi"], g["kuyu"]
+    xm = k["genislik"] + k["duvar_sag"] / 2.0 if yan == "Sağ" else -k["duvar_sol"] / 2.0
+    md["yari"] = (yan, xm)
+    #  Ana şalteri ve panosu asansörün adıyla ( m.5.10.5.2 )
+    md["pano_adi"] = f"{g['proje']['asansor']} PANOSU"
+    if md["pano_duvar"] in ("Sol", "Sağ"):
+        md["pano_duvar"] = "Sol" if yan == "Sağ" else "Sağ"
 
 
 def _kasnak_arasi_sec(g, eski_kural):

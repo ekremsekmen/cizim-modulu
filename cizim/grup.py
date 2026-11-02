@@ -35,7 +35,15 @@ from cizim import uslup
 AD = "kuyu_grubu"
 #  Tek kuyunun ortak çizimleri ( asansörün kendi listesinde yoklar — pafta.sira ):
 #  kuyu planı ( plan ) ve öbür yatay kesitler ( birlesik );  ekrandaki ve paftadaki adları
-BIRLESIK = ("kuyu_plani", "kabin_ustu", "kuyu_dibi", "kuyu_ustu", "kuyu_kesiti_on")
+BIRLESIK = (
+    "kuyu_plani",
+    "kabin_ustu",
+    "kuyu_dibi",
+    "kuyu_ustu",
+    "makine_dairesi",
+    "delik_plani",
+    "kuyu_kesiti_on",
+)
 ADLAR = {"kuyu_plani": AD, **{a: f"{AD}_{a}" for a in BIRLESIK[1:]}}
 BASLIK = "KUYU GRUBU PLANI  ( kabin hizasından yatay kesit )"
 OLCEK = 20
@@ -462,6 +470,79 @@ def on_kesit(gler, azami=None):
     return e + _adlar([L, R], [0.0, X1], e, k)
 
 
+def makine_dairesi(gler):
+    """Tek kuyunun makine dairesi planı:  oda iki asansörün ( kopru._tek_kuyu_odasi —
+    yeri kuyunun sol iç köşesine göre, panolar kendi yarısında ).  Soldakinin çizimi
+    odasıyla ( duvarlar, kapı, oda ölçüleri ) aynen;  sağdakinden yalnız kendi
+    parçaları — oda bir kez.  Tabliye kirişin üstünden kesintisiz:  aradaki
+    kenarları gider.  Kuyu zinciri:  odanın iç yüzünden soldaki bölme · kiriş ·
+    sağdaki bölme · odanın iç yüzü;  aynı ölçü ( kuyu derinliği, oda derinliği ) bir kez."""
+    if len(gler) != AZAMI or kirisi(gler) is None:
+        raise ValueError("Tek kuyunun makine dairesi iki asansör ve ayırma kirişiyle çizilir.")
+    A, B = gler
+    X1 = _x0lar(gler)[1]
+    GA = A["kuyu"]["genislik"]
+    ciz = cizimler.CIZIMLER["makine_dairesi"][1]
+    eA, eB = ciz(A), [eleman.tasi(x, X1) for x in ciz(B)]
+    zincir = next((x["kot"] for x in eA if x.get("ad") == "olcu_kuyu_genisligi"), None)
+
+    def oda_mi(x):
+        return (
+            x["katman"] in ("KUYU-DUVAR", "KUYU-IC")
+            or x["tip"] == "tarama"
+            or x.get("ad")
+            in (
+                "oda_kapisi",
+                "olcu_oda_genisligi",
+                "olcu_oda_derinligi",
+                "merdiven_notu",
+                "tabliye_yazi",
+            )
+        )
+
+    def ara_kenari(x):
+        return x.get("ad") == "tabliye_kenari" and all(GA - 1 < x[k] < X1 + 1 for k in ("x1", "x2"))
+
+    def zincirde(x):
+        return (
+            x["tip"] == "olcu"
+            and x["yon"] == "yatay"
+            and zincir is not None
+            and abs(x["kot"] - zincir) < 1e-6
+        )
+
+    eA = [
+        x for x in eA if not ara_kenari(x) and not (zincirde(x) and x["a"][0] > GA - 1 and x["b"][0] > GA + 1)
+    ]
+    eB = [
+        x
+        for x in eB
+        if not (oda_mi(x) and x.get("ad") != "tabliye_kenari")
+        and not ara_kenari(x)
+        and not (zincirde(x) and min(x["a"][0], x["b"][0]) < X1 - 1)
+    ]
+    yazilar = {(x["metin"], round(x["x"], 1), round(x["y"], 1)) for x in eA if x["tip"] == "yazi"}
+    eB = [
+        x
+        for x in eB
+        if not (x["tip"] == "yazi" and (x["metin"], round(x["x"], 1), round(x["y"], 1)) in yazilar)
+    ]
+    olculen = {(x["yon"], round(x["kot"], 1), geometri.olcu_araligi(x)) for x in eA if x["tip"] == "olcu"}
+    eB = [
+        x
+        for x in eB
+        if not (x["tip"] == "olcu" and (x["yon"], round(x["kot"], 1), geometri.olcu_araligi(x)) in olculen)
+    ]
+    e = eA + eB
+    if zincir is not None:
+        e.append(eleman.olcu("yatay", (GA, 0), (X1, 0), zincir, ad="grup_ayirma_kirisi_1"))
+    for x in e:
+        if zincirde(x):
+            x.pop("yazi", None)
+    geometri.yazilari_yerlestir(e)
+    return e + _adlar(gler, [0.0, X1], e)
+
+
 def _sinir(x):
     return geometri.sinir([x]) or (0.0, 0.0, 0.0, 0.0)
 
@@ -498,7 +579,8 @@ def cizimleri(gler):
     """Tek kuyunun ortak çizimleri sırayla:  kuyu üstü planı yalnız makine dairesizde
     ( pafta.sira gibi — makine yeri proje genelidir, iki asansörde aynı )."""
     oda = (gler[0].get("makine") or {}).get("yeri") == "Makine dairesi"
-    return [a for a in BIRLESIK if not (oda and a == "kuyu_ustu")]
+    odali = ("makine_dairesi", "delik_plani")
+    return [a for a in BIRLESIK if (a in odali) == oda or a not in odali + ("kuyu_ustu",)]
 
 
 def kurulamayanlar(gler, ad):
@@ -516,6 +598,8 @@ def cerceveli(gler, seritler=(), ad="kuyu_plani", yukseklik=None):
     b = baslik(gler, ad)
     if ad == "kuyu_plani":
         e = plan(gler)
+    elif ad == "makine_dairesi":
+        e = makine_dairesi(gler)
     elif ad == "kuyu_kesiti_on":
         e = on_kesit(gler, yukseklik * olcegi(ad) if yukseklik else None)
     else:

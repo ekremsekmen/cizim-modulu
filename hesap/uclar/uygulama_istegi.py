@@ -290,4 +290,19 @@ def asansor_girdileri(veri):
     belirsiz = _belirsiz_hata()
     if belirsiz or hatalar:
         raise GecersizGirdi(([belirsiz] if belirsiz else []) + list(dict.fromkeys(hatalar)))
+    _tek_kuyu_bolmeleri(asansorler, ortak)
     return asansorler, ortak
+
+
+def _tek_kuyu_bolmeleri(asansorler, ortak):
+    """TEK KUYUDA iki asansör kuyunun iki bölmesinin genişliğini bilir ( soldan
+    sağa — "Soldaki asansör" ):  makine dairesinin yeri kuyunun sol iç köşesine
+    göredir, köprü sağdaki asansörde soldaki bölme + kiriş kadar kaydırır
+    ( kopru._makine_dairesi_girdisi ).  Bölmelerden biri girilmemişse yazılmaz."""
+    if not gorunum.tek_kuyu_mu(ortak, len(asansorler)):
+        return
+    sol = 0 if ortak.get("soldaki_asansor") in (None, 1) else 1
+    G = [asansorler[sol].get("kuyu_genisligi"), asansorler[1 - sol].get("kuyu_genisligi")]
+    if all(isinstance(v, (int, float)) for v in G):
+        for a in asansorler:
+            a["_kuyu_bolmeleri"] = G
