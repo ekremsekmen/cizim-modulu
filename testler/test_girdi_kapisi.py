@@ -11,13 +11,14 @@ belleği bitirdi, True / liste / sözlük çökertti;  2,5 halat çiziliyor,
      ile kapı aynı değerde aynı kararı verir.
   -  Alanlar arası ve mühendislik kuralları motorda kalır."""
 
+import copy
 import json
 import unittest
 from unittest import mock
 
 from cizim import kopru
 from motor.uygulama import mukavemet_girdi, uygulama_hesabi
-from tasarim import alanlar
+from tasarim import alanlar, gorunum
 from testler import test_on_yuz_denetimi, test_yerlesim_saglamligi
 from uclar import care_uclari, cizim_uclari, uygulama_istegi, uygulama_uclari
 
@@ -35,6 +36,11 @@ def _istek(anahtar, deger, mrl=True):
     #  Kot kutusu yalnız kotla girişte okunur ( alanlar KAT GİRİŞİ ):  orada denenir
     if alanlar.ALAN[anahtar].kip == alanlar.KOT:
         test_yerlesim_saglamligi.kotla(v)
+    #  Kuyu düzeni yalnız iki asansörlü projede, tek kuyunun alanları tek kuyuda okunur
+    #  ( gorunum.tek_kuyu_disi ):  orada denenir
+    if anahtar == "kuyu_duzeni" or alanlar.ALAN[anahtar].kuyu == "tek":
+        v["asansorler"].append(copy.deepcopy(v["asansorler"][0]))
+        v["proje_geneli"]["kuyu_duzeni"] = gorunum.TEK_KUYU
     pg = anahtar in uygulama_istegi.PROJE_GENELI_ALANLAR
     (v["proje_geneli"] if pg else v["asansorler"][0])[anahtar] = deger
     return v

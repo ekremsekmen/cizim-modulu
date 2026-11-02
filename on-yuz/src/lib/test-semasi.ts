@@ -117,7 +117,7 @@ export const SEMA: AlanSemasi = {
   },
   bos_tablodan: ["kabin_agirligi"],
   eski_onay: { makine_raya_biniyor: ["Bina yapısına", "Kılavuz raylara"] },
-  proje_geneli: ["mk_yok", "mk_uzunluk"],
+  proje_geneli: ["mk_yok", "mk_uzunluk", "kuyu_duzeni", "soldaki_asansor", "ayirma_kirisi"],
   yerlesime_gore_gizli: { mrl: ["mk_uzunluk"], daireli: [] },
   //  Sunucunun kat girişi kipi ( tasarim/gorunum.form — kot_kipi )
   kot_kipi: {
@@ -126,6 +126,13 @@ export const SEMA: AlanSemasi = {
       kotla: ["durak_adedi", "kat_yukseklikleri", "kuyu_dibi", "seyir_mesafesi", "son_kat_yuksekligi", "tabliye_yuksekligi"],
       olcuyle: ["kuyu_dibi_kotu", "kuyu_tavani_kotu", "md_zemini_kotu"],
     },
+  },
+  //  Sunucunun kuyu düzeni ( tasarim/gorunum.form — kuyu_duzeni ), alt kümesi
+  kuyu_duzeni: {
+    alan: "kuyu_duzeni",
+    tek: "Tek kuyu",
+    ortak: ["durak_adedi", "kuyu_derinligi", "kuyu_dibi"],
+    gizli: ["ayirma_kirisi", "soldaki_asansor"],
   },
   cizimden: [],
   ortak_kopru: [],

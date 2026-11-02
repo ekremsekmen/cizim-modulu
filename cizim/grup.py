@@ -1,139 +1,122 @@
 # -*- coding: utf-8 -*-
 """
-KUYU GRUBU  —  yan yana, ortak duvarlı kuyulardaki asansörler ( 1 Kas )
+TEK KUYUDA İKİ ASANSÖR  —  kuyunun ortak çizimi ve denetimleri ( 1 Kas )
 
-LiftDesigner'ın grup modeli ( araştırma ve plan:  cikti/devir/ORTAK_KUYU_PLANI.md ):
-her asansör kendi kuyusundadır — kendi girdisi, kendi hesabı, kendi
-paftaları;  grup kuyuların yan yana dizilişidir.  Asansörün "Kuyu grubundaki
-sırası" ( soldan, durakta kapılara bakarken ) onu gruba koyar.
+Kuyu düzeni projenin seçimidir ( tasarim/alanlar:  kuyu_duzeni — iki asansörlü
+projede "İki asansör tek kuyuda" ):  kuyunun girdileri ( derinlik, duvarlar,
+katlar, kuyu dibi, son kat … — KUYU_ORTAK ) iki asansörde aynıdır;  araları
+açıktır — ortaya bakan raylar her konsol seviyesindeki çelik ayırma kirişine
+bağlanır, ara kirişin yüksekliğidir ( cizim/kopru._acik_ara ).  Her asansörün
+kendi girdisi, hesabı ve çizimleri vardır ( LiftDesigner'ın grup modeli —
+cikti/devir/ORTAK_KUYU_PLANI.md );  kuyudaki yeri g["proje"]["grup_sirasi"]
+( 1 solda, 2 sağda — "Soldaki asansör" ).
 
-1. ADIM:  aradaki duvar kalkmaz ( iki ayrı kuyu, ortak duvar — LiftDesigner'da
-silinen grup açıklığı ) ve grubun ortak kuyu planı çizilir ( C-C ):  her
-asansörün planı kendi yerinde, komşu yandaki ölçüleri öbür yanında
-( LiftDesigner 12744-3 gibi );  duvarlar grubun duvarları ( arka ve ön duvar
-boydan boya, aradaki duvar bir kez );  en dışta duvarlar ve kuyular zinciri
-ile toplam;  kuyuların üstünde asansörlerin adları.  Grubun kuyuları aynı
-derinlikte, ön ve arka duvarları aynı kalınlıkta, durakları aynı kotlardadır;
-aradaki duvar iki asansörde aynı girilir ( soldakinin sağ duvarı =
-sağdakinin sol duvarı ).
+KUYUNUN PLANI ( C-C ) tek düzlemde:  her asansörün planı kendi yerinde, komşu
+yandaki ölçüleri öbür yanında ( LiftDesigner 12744-3 gibi ), yazıları komşunun
+yerine kaçmaz;  duvarlar bir kez ( arka ve ön duvar boydan boya, kapıların arası
+dolu — KONE );  ortada ayırma kirişi;  en dışta duvarlar, bölmeler ve kiriş
+zinciri ile toplam;  bölmelerin üstünde asansörlerin adları.
 """
 
-import collections
+import math
 
 from cizim import cizimler
-from cizim import dusey
 from cizim import eleman
 from cizim import geometri
 from cizim import girdi
 from cizim import hesap_isareti
+from cizim import kabin_ustu
 from cizim import kisaltmalar
 from cizim import sabitler
+from cizim import sorun
+from cizim import standart
 from cizim import uslup
 
 AD = "kuyu_grubu"
 BASLIK = "KUYU GRUBU PLANI  ( kabin hizasından yatay kesit )"
 OLCEK = 20
-#  K1 ( kullanıcı kararı 1 Kas ):  iki asansör yan yana
+#  K1 ( kullanıcı kararı 1 Kas ):  tek kuyuda iki asansör yan yana
 AZAMI = 2
 #  Komşu kuyunun yerini kapatan çitin payı ( mm ):  etiket 900 mm'ye kadar kaçar
 #  ( geometri.etiketleri_ayir ), ölçü sıraları kuyudan ~600 mm dışarı uzanır
 _CIT_PAYI = 3000.0
-#  Asansörün planının en dış üst sırası ( geometri._ust_olculer ):  grubun
+#  Asansörün planının en dış üst sırası ( geometri._ust_olculer ):  kuyunun
 #  zinciri yerine geçer
 _DUVAR_SIRASI = frozenset(("olcu_duvar_sol", "olcu_kuyu_genisligi", "olcu_duvar_sag"))
+KIRIS_YOK = (
+    "Tek kuyuda ayırma kirişi seçilmeli ( Kuyu ve katlar → Ayırma kirişi ):  seçilmeden ara ve kiriş "
+    "çizilmez."
+)
+#  Hareketli parçaların iletideki adı ( korkuluk_mesafesi )
+PARCA_ADI = {"kabin_dis": "kabini", "agirlik_blok": "karşı ağırlığı"}
 
 
-def uyeler(siralar):
-    """Gruptaki asansörlerin projedeki sıraları ( 0'dan ), soldan sağa.
-    siralar:  her asansörün "Kuyu grubundaki sırası" ( None:  ayrı kuyu )."""
-    return [i for _s, i in sorted((s, i) for i, s in enumerate(siralar) if s is not None)]
-
-
-def sira_hatalari(siralar, adlar):
-    """Grubun sıralarının sorunları — girdiden, çizim kurulmadan da."""
-    uye = uyeler(siralar)
-    if not uye:
+def gruptakiler(gler):
+    """Projenin ( çizim girdileri ) tek kuyudaki asansörleri soldan sağa;  tek kuyu
+    değilse ( ya da asansörlerden biri kurulamadıysa — None ) boş."""
+    if any(g is None for g in gler):
         return []
-    if len(uye) == 1:
-        return [
-            f"Kuyu grubunda tek asansör var ( {adlar[uye[0]]} ):  grup en az iki asansörle kurulur — "
-            "öbür asansörün sırasını girin ya da bunu silin ( Kuyu grubundaki sırası )."
-        ]
-    hata = []
-    adet = collections.Counter(siralar[i] for i in uye)
-    for s in sorted(adet):
-        if adet[s] > 1:
-            hata.append(
-                f"Kuyu grubunda {adet[s]} asansörün sırası aynı ( {s:g} ):  "
-                + " · ".join(adlar[i] for i in uye if siralar[i] == s)
-                + "."
-            )
-    if len(uye) > AZAMI:
-        hata.append(
-            f"Kuyu grubunda en çok {AZAMI} asansör olabilir ( {len(uye)} asansörün sırası girilmiş )."
-        )
-    if not hata and sorted(adet) != list(range(1, len(uye) + 1)):
-        hata.append(
-            "Kuyu grubundaki sıralar 1'den başlayıp birer artmalı ( "
-            + " · ".join(f"{s:g}" for s in sorted(adet))
-            + " girilmiş )."
-        )
-    return hata
+    gg = sorted((g for g in gler if g["proje"].get("grup_sirasi")), key=lambda g: g["proje"]["grup_sirasi"])
+    return gg if len(gg) == AZAMI else []
+
+
+def kirisi(gler):
+    """Tek kuyunun ayırma kirişinin NPU ölçüsü;  seçilmemişse None."""
+    return gler[0]["proje"].get("ayirma_kirisi")
+
+
+def korkuluk_mesafesi(gler):
+    """m.5.2.5.5.2.2:  bir asansörün kabin üstü korkuluğunun iç kenarı
+    ( kabin_ustu.korkuluklar ) ile komşu asansörün hareketli parçası ( kabin,
+    karşı ağırlık — planda ) arasındaki en kısa yatay uzaklık:  ( mm, korkuluğun
+    asansörü, parçanın asansörü, parça ) ;  korkuluk yoksa None.  Kabin üstü
+    kurulamayan asansörde denetlenmez ( None )."""
+    X = _x0lar(gler)
+    korkuluklar, parcalar = [], []
+    try:
+        for x0, g in zip(X, gler):
+            ad = g["proje"]["asansor"]
+            for (a, b, c, d), _h in kabin_ustu.korkuluklar(kabin_ustu.yerlesim(g)):
+                korkuluklar.append(((a + x0, b, c + x0, d), ad))
+            for el in geometri.plan(g):
+                if el.get("ad") in ("kabin_dis", "agirlik_blok"):
+                    k = geometri.sinir([el])
+                    parcalar.append(((k[0] + x0, k[1], k[2] + x0, k[3]), ad, PARCA_ADI[el["ad"]]))
+    except sorun.BILINEN:
+        return None
+
+    def uzaklik(s, k):
+        dx = max(0.0, k[0] - max(s[0], s[2]), min(s[0], s[2]) - k[2])
+        dy = max(0.0, k[1] - max(s[1], s[3]), min(s[1], s[3]) - k[3])
+        return math.hypot(dx, dy)
+
+    adaylar = [(uzaklik(s, k), a, b, p) for s, a in korkuluklar for k, b, p in parcalar if a != b]
+    return min(adaylar) if adaylar else None
 
 
 def duzen_hatalari(gler):
-    """Gruptaki kuyuların ( çizim girdileri, soldan sağa ) birbirine uyumu:  aynı
-    derinlik, aynı ön ( kapıların duvarı bir hizada ) ve arka duvar, aradaki
-    duvar tek duvar, duraklar aynı kotlarda ( mimari kot — kotla girişte en alt
-    durağın kotu eklenir )."""
-    ad = [g["proje"]["asansor"] for g in gler]
-    hata = []
-    for ne, anahtar, alan in (
-        ("aynı derinlikte", "derinlik", "Kuyu derinliği"),
-        ("ön duvarı ( kapıların duvarı ) aynı kalınlıkta", "duvar_on", "Ön duvar kalınlığı"),
-        ("arka duvarı aynı kalınlıkta", "duvar_arka", "Arka duvar kalınlığı"),
-    ):
-        d = [g["kuyu"][anahtar] for g in gler]
-        if any(abs(x - d[0]) > 1e-6 for x in d):
-            hata.append(
-                f"Gruptaki kuyuların {ne} olmalı:  "
-                + " · ".join(f"{a} {x:g}" for a, x in zip(ad, d))
-                + f" ( {alan} )."
-            )
-    for n in range(len(gler) - 1):
-        sag, sol = gler[n]["kuyu"]["duvar_sag"], gler[n + 1]["kuyu"]["duvar_sol"]
-        if abs(sag - sol) > 1e-6:
-            hata.append(
-                f"Aradaki duvar iki asansörde aynı girilmeli:  {ad[n]} sağ duvarı {sag:g} · "
-                f"{ad[n + 1]} sol duvarı {sol:g} ( Sağ / Sol duvar kalınlığı )."
-            )
-    kot = [[z + dusey.kot_ofseti(g) for z in dusey.durak_kotlari(g)[0]] for g in gler]
-    if any(len(k) != len(kot[0]) for k in kot):
-        hata.append(
-            "Gruptaki asansörlerin durakları aynı olmalı:  "
-            + " · ".join(f"{a} {len(k)} durak" for a, k in zip(ad, kot))
-            + "."
-        )
-    else:
-        j = next((j for j in range(len(kot[0])) if any(abs(k[j] - kot[0][j]) > 0.5 for k in kot)), None)
-        if j is not None:
-            hata.append(
-                f"Gruptaki asansörlerin durakları aynı kotlarda olmalı:  {j + 1}. durak "
-                + " · ".join(f"{a} {dusey.kot_yazisi(k[j])}" for a, k in zip(ad, kot))
-                + "."
-            )
-    return hata
+    """Tek kuyunun sorunları ( gruptaki asansörlerin çizim girdileri, soldan sağa ):
+    ayırma kirişi seçilmeli;  bir asansörün korkuluğu komşunun hareketli parçasına
+    0,50 m'den yakınsa perde kuyu boyunca uzanmalı ( m.5.2.5.5.2.2 — program yalnız
+    kuyu dibi perdesini çizer:  söylenir ).  Kuyunun öbür değerleri iki asansörde
+    zaten aynıdır ( tek girdi — tasarim/alanlar KUYU_ORTAK )."""
+    if kirisi(gler) is None:
+        return [KIRIS_YOK]
+    m = korkuluk_mesafesi(gler)
+    if m and m[0] < standart.PERDE_KORKULUK_ASGARI:
+        return [
+            f"Tek kuyuda {m[1]} kabin üstü korkuluğu ile {m[2]} {m[3]} arası {m[0]:.0f} mm < "
+            f"{standart.PERDE_KORKULUK_ASGARI:g}:  perde kuyu boyunca uzanmalı ( m.5.2.5.5.2.2 ) — "
+            "program yalnız kuyu dibi perdesini çizer;  ayırma kirişi ya da yerleşim değişmeli."
+        ]
+    return []
 
 
-def sorunlar(siralar, adlar, gler):
-    """Projenin kuyu grubunun sorunları ( paket ):  sıralar, ardından kuyuların
-    uyumu.  siralar · adlar · gler:  projenin bütün asansörleri sırayla ( gler'de
-    çizim girdisi kurulamayan None — onunla uyum denetlenmez )."""
-    hata = sira_hatalari(siralar, adlar)
-    uye = uyeler(siralar)
-    if hata or not uye or any(gler[i] is None for i in uye):
-        return hata
-    return duzen_hatalari([gler[i] for i in uye])
+def sorunlar(gler):
+    """Projenin tek kuyusunun sorunları ( paket ):  gler — projenin bütün
+    asansörlerinin çizim girdileri sırayla ( kurulamayan None:  denetlenmez )."""
+    gg = gruptakiler(gler)
+    return duzen_hatalari(gg) if gg else []
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -161,10 +144,13 @@ def _cit(g, komsu, komsu_g):
 
 
 def _duvar_mi(el):
-    """Asansörün kendi kuyusunun duvarları ( geometri._duvarlar ) ve bina duvarı:
-    grubun duvarları yerlerine çizilir."""
-    return el["katman"] in ("KUYU-DUVAR", "KUYU-IC", "BINA") or (
-        el["katman"] == "TARAMA" and el["tip"] == "tarama"
+    """Asansörün kendi kuyusunun duvarları ve açık aradaki ayırma kirişi
+    ( geometri._duvarlar ), bina duvarı:  grubun duvarları ve kirişi yerlerine
+    bir kez çizilir."""
+    return (
+        el["katman"] in ("KUYU-DUVAR", "KUYU-IC", "BINA")
+        or (el["katman"] == "TARAMA" and el["tip"] == "tarama")
+        or el.get("ad") in ("ayirma_kirisi", "ayirma_kirisi_adi")
     )
 
 
@@ -188,10 +174,11 @@ def _asansorun_plani(g, komsu, komsu_g, alt):
 
 
 def _duvarlar(gler, X):
-    """Grubun duvarları ( geometri._duvarlar'ın sırasıyla ):  ön duvar kapıların
-    kaba boşlukları arasında parça parça, arka duvar boydan boya, sol duvar,
-    aradaki duvar ( bir kez ) ve sağ duvar;  her kuyunun içi.  Bina duvarı
-    ( Sabitler'de bina_duvari > 0 ) kapıların arasında."""
+    """Kuyunun duvarları ( geometri._duvarlar'ın sırasıyla ):  ön duvar kapıların
+    kaba boşlukları arasında parça parça ( kapıların arası dolu — KONE "trimmer
+    beams" kuyusu ), arka duvar boydan boya, sol ve sağ duvar ( arada duvar yok:
+    ayırma kirişi );  tek kuyunun içi.  Bina duvarı ( Sabitler'de bina_duvari > 0 )
+    kapıların arasında."""
     ilk, son = gler[0]["kuyu"], gler[-1]["kuyu"]
     D, don, dar = ilk["derinlik"], ilk["duvar_on"], ilk["duvar_arka"]
     sol, sag = -ilk["duvar_sol"], X[-1] + son["genislik"] + son["duvar_sag"]
@@ -199,14 +186,14 @@ def _duvarlar(gler, X):
     bosluk = [u + x0 for x0, g, s in zip(X, gler, S) for u in girdi.kaba_bosluk(g, s)[:2]]
     parca = [(a, -don, b - a, don) for a, b in zip([sol] + bosluk[1::2], bosluk[::2] + [sag])]
     parca += [(sol, D, sag - sol, dar), (sol, 0, ilk["duvar_sol"], D)]
-    parca += [(x0 + g["kuyu"]["genislik"], 0, g["kuyu"]["duvar_sag"], D) for x0, g in zip(X, gler)]
+    parca.append((X[-1] + son["genislik"], 0, son["duvar_sag"], D))
     e = []
     for x, y, g_, d_ in parca:
         if g_ <= 1e-6:
             continue
         e.append(eleman.dikdortgen("TARAMA", x, y, g_, d_, tip="tarama"))
         e.append(eleman.dikdortgen("KUYU-DUVAR", x, y, g_, d_))
-    e += [eleman.dikdortgen("KUYU-IC", x0, 0, g["kuyu"]["genislik"], D) for x0, g in zip(X, gler)]
+    e.append(eleman.dikdortgen("KUYU-IC", 0, 0, X[-1] + son["genislik"], D))
     #  Bina duvarı ofis standardıdır ( bütün asansörlerde aynı )
     bina = S[0]["bina_duvari"]
     if bina > 0:
@@ -219,16 +206,26 @@ def _duvarlar(gler, X):
     return e
 
 
+def _ayirma_kirisleri(gler, X):
+    """Aradaki ayırma kirişi ( geometri.ayirma_kirisi ) — bir kez."""
+    D = gler[0]["kuyu"]["derinlik"]
+    return [
+        el
+        for x0, g in zip(X[:-1], gler[:-1])
+        for el in geometri.ayirma_kirisi(g, x0 + g["kuyu"]["genislik"], g["kuyu"]["duvar_sag"], D)
+    ]
+
+
 def _ust_zincir(gler, X, kot):
-    """En dış üst sıra:  duvarlar ve kuyular ( LiftDesigner 12744-3:  250 · SW2100
-    · 100 · SW1800 · 250 );  bir dışında grubun toplamı — zincir kapalı olduğu
-    için yardımcı ölçü, ayraç içinde ( ISO 129-1 )."""
+    """En dış üst sıra:  duvarlar, bölmeler ve ortadaki ayırma kirişi ( LiftDesigner
+    12744-3:  250 · SW2100 · 100 · SW1800 · 250 );  bir dışında kuyunun toplamı —
+    zincir kapalı olduğu için yardımcı ölçü, ayraç içinde ( ISO 129-1 )."""
     ilk, son = gler[0]["kuyu"], gler[-1]["kuyu"]
     sol, sag = -ilk["duvar_sol"], X[-1] + son["genislik"] + son["duvar_sag"]
     e = [eleman.olcu("yatay", (sol, 0), (0, 0), kot, ad="grup_duvar_sol")]
     for n, (x0, g) in enumerate(zip(X, gler), 1):
         G, dg = g["kuyu"]["genislik"], g["kuyu"]["duvar_sag"]
-        sag_ad = "grup_duvar_sag" if n == len(gler) else f"grup_ara_duvar_{n}"
+        sag_ad = "grup_duvar_sag" if n == len(gler) else f"grup_ayirma_kirisi_{n}"
         e.append(
             eleman.olcu("yatay", (x0, 0), (x0 + G, 0), kot, kisaltmalar.kodlu("SW", G), ad=f"grup_kuyu_{n}")
         )
@@ -270,10 +267,12 @@ def _adlar(gler, X, e):
 
 
 def plan(gler):
-    """Grubun kuyu planı ( C-C ) — elemanlar, çerçevesiz.  gler:  gruptaki
+    """Tek kuyunun planı ( C-C ) — elemanlar, çerçevesiz.  gler:  kuyudaki
     asansörlerin çizim girdileri, soldan sağa ( duzen_hatalari temiz )."""
     if len(gler) != AZAMI:
-        raise ValueError(f"Kuyu grubunun planı {AZAMI} asansörle çizilir ( {len(gler)} ).")
+        raise ValueError(f"Tek kuyunun planı {AZAMI} asansörle çizilir ( {len(gler)} ).")
+    if kirisi(gler) is None:
+        raise ValueError("Tek kuyuda ayırma kirişi seçilmeden kuyunun planı çizilmez.")
     X = _x0lar(gler)
     alt = min(geometri.olcu_alti(g) for g in gler)
     parcalar, kotlar = [], []
@@ -282,7 +281,7 @@ def plan(gler):
         e = _asansorun_plani(g, komsu, komsu_g, alt)
         kotlar += [x["kot"] for x in e if x.get("ad") in _DUVAR_SIRASI]
         parcalar += [eleman.tasi(x, X[n]) for x in e if x.get("ad") not in _DUVAR_SIRASI]
-    e = _duvarlar(gler, X) + parcalar + _ust_zincir(gler, X, max(kotlar))
+    e = _duvarlar(gler, X) + _ayirma_kirisleri(gler, X) + parcalar + _ust_zincir(gler, X, max(kotlar))
     _sira_yazilari(e, gler[0]["kuyu"])
     e = geometri.ondalik_virgul(e)
     return e + _adlar(gler, X, e)
@@ -316,18 +315,13 @@ def cerceveli(gler, seritler=()):
     return b, geometri.cerceveli(plan(gler), b, OLCEK, seritler=seritler, uyari=uyari(gler))
 
 
-def _gruptakiler(gler):
-    """Projenin ( çizim girdileri ) grubundakiler soldan sağa;  grup yoksa []."""
-    return [gler[i] for i in uyeler([g["proje"].get("grup_sirasi") for g in gler])]
-
-
 def pafta_cizimleri(gler):
-    """Paftanın grup çizimi:  [ ( ad , başlık , ölçek , elemanlar — çerçeveli ) ],
-    grup yoksa boş;  grubun sorunu varsa ValueError ( pafta.cizim_listesi gibi )."""
-    gg = _gruptakiler(gler)
+    """Paftanın tek kuyu çizimi:  [ ( ad , başlık , ölçek , elemanlar — çerçeveli ) ],
+    tek kuyu değilse boş;  kuyunun sorunu varsa ValueError ( pafta.cizim_listesi gibi )."""
+    gg = gruptakiler(gler)
     if not gg:
         return []
-    h = sorunlar([g["proje"].get("grup_sirasi") for g in gler], [g["proje"]["asansor"] for g in gler], gler)
+    h = duzen_hatalari(gg)
     if h:
         raise ValueError("Pafta çizilemiyor:  " + " · ".join(h))
     b, e = cerceveli(gg, (adlari(gg),))
@@ -337,5 +331,5 @@ def pafta_cizimleri(gler):
 def kunyeler(gler):
     """pafta_cizimleri ile aynı sırada çizimlerin projesi ve asansörleri
     ( ayrı sayfalı PDF'in anteti — pafta.kunyeler )."""
-    gg = _gruptakiler(gler)
+    gg = gruptakiler(gler)
     return [{"proje": gg[0]["proje"]["ad"], "asansor": adlari(gg)}] if gg else []

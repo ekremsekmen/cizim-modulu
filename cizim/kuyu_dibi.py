@@ -966,6 +966,8 @@ def ciz(g, cizim_sabitleri=None):
     kp = g["kapi"]
     e.append(eleman.ad(eleman.dikdortgen("GIZLI", kp["sol_pay"], -don, kp["genislik"], don), "kapi_izi"))
     e += _donanim(Y, G, _engeller(e)[0], parcalar.tampon_tipi((g.get("veri") or {}).get("tampon")))
+    #  Kuyu grubunun açık arasında iki kuyu dibi arasındaki perde ( m.5.2.5.5.2.1 )
+    e += geometri.grup_perdesi(g)
 
     #  ── YAZILAR ──────────────────────────────────────────────────────
     #  Kuyu tabanına yük aktaran noktalar ( kutuları en sonda, ölçülerden sonra
@@ -1003,6 +1005,7 @@ def ciz(g, cizim_sabitleri=None):
         return e
     e += _yuk_etiketleri(e, noktalar, G, D)
     e.append(_perde_yazisi(e, perde_yazisi, p))
+    e += geometri.grup_perdesi_adi(e)
     #  Ray konsoluna yatay yükler:  sağdaki ölçülerin ( ve kuyunun dışına konmuş
     #  yük kutularının ) dışında, kuyunun üst hizasından.  Yük kutularından
     #  SONRA:  dışarıdaki kutu tablonun yerine taşıyordu.

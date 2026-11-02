@@ -38,8 +38,10 @@ from cizim import dusey
 from cizim import geometri
 from cizim import girdi
 from cizim import kesit_parcalari
+from cizim import makine
 from cizim import makine_dairesi
 from cizim import parca_kotlari
+from cizim import standart
 
 OLCEK = 50
 
@@ -89,6 +91,96 @@ def _delikten_gecer(B, d):
     eksen, c, _yon = B.kesit
     lo, hi = (d[0], d[2]) if eksen == "x" else (d[1], d[3])
     return lo < c < hi
+
+
+def ayirma_kirisi_kotlari(g, M):
+    """Kuyu grubunun açık arasındaki ayırma kirişlerinin ÜST kotları:  ortaya
+    bakan rayların bütün konsol seviyeleri ( kullanıcı kararı 1 Kas ) — o yandaki
+    kabin rayı, karşı ağırlık o yandaysa rayları da ( arkadaki ağırlığın rayları
+    arka duvara bağlıdır ).  Açık ara yoksa boş."""
+    yan = g["kuyu"].get("acik_yan")
+    if not yan:
+        return []
+    kx = g["kuyu"]["genislik"] / 2.0 + g["kabin"]["kaciklik_y"]
+    kotlar = set()
+    for r in M["raylar"]:
+        x = (r["kutu"][0] + r["kutu"][2]) / 2.0
+        ortada = (x > kx if yan == "Sağ" else x < kx) if r["tur"] == "kabin" else g["agirlik"]["yeri"] == yan
+        if ortada:
+            kotlar.update(round(z, 3) for z in r["konsollar"])
+    return sorted(kotlar)
+
+
+def _ayirma_kirisi_kesiti(e, g, u0, kotlar):
+    """B-B'de ayırma kirişlerinin kesiti:  NPU gövdesi yatay, üstte ( ağzı aşağı —
+    S. Tavaslıoğlu, ara bölmeler yatay konur ), gövde aranın tamamı ( u0'dan h ),
+    üstü konsolun üst kotunda;  kesilen çelik dolu ( DIN 1026-1:  h, b, s, t )."""
+    P = makine.npu(g["proje"]["ayirma_kirisi"])
+    h, b, s, t = P["h"], P["b"], P["s"], P["t"]
+    for zt in kotlar:
+        a, c = u0, u0 + h
+        el = eleman.dikdortgen("KONSOL", a, zt - b, h, b, ad="ayirma_kirisi")
+        el["bicim"] = [
+            {
+                "noktalar": [
+                    (a, zt),
+                    (c, zt),
+                    (c, zt - b),
+                    (c - t, zt - b),
+                    (c - t, zt - s),
+                    (a + t, zt - s),
+                    (a + t, zt - b),
+                    (a, zt - b),
+                ],
+                "kapali": True,
+                "dolu": True,
+            }
+        ]
+        e.append(el)
+
+
+def _acik_ara_yanda(e, B, g, M, taban, alt_durak):
+    """A-A:  kuyu grubunun açık arası bakılan yandaysa ayırma kirişleri görünüşte —
+    konsol seviyelerinde ön duvardan arka duvara, flanşın dış yüzü — ve iki kuyu
+    dibinin arasındaki perde ( m.5.2.5.5.2.1 );  kabinin ardında kalanı kabin örter
+    ( _derin )."""
+    k = g["kuyu"]
+    if not k.get("acik_yan"):
+        return
+    D = k["derinlik"]
+    x0 = -k["duvar_sol"] if k["acik_yan"] == "Sol" else k["genislik"]
+    kutu = (x0, 0.0, x0 + (k["duvar_sol"] if k["acik_yan"] == "Sol" else k["duvar_sag"]), D)
+    if not B.gorunur(kutu):
+        return
+    b = makine.npu(g["proje"]["ayirma_kirisi"])["b"]
+    for zt in ayirma_kirisi_kotlari(g, M):
+        e.append(B.derin_kutu(eleman.dikdortgen("KONSOL", 0, zt - b, D, b, ad="ayirma_kirisi"), kutu))
+    z0, z1 = taban + standart.PERDE_TABANDAN, alt_durak + standart.PERDE_DURAK_USTU
+    e.append(B.derin_kutu(eleman.ad(eleman.dikdortgen("PERDE", 0, z0, D, z1 - z0), "grup_perdesi"), kutu))
+
+
+def _on_duvarlar(e, B, g, M, z, dos_t, oda, alt_durak):
+    """B-B:  yan duvarlar ( görünüşte plandaki sağ duvar solda ), kuyu dibi döşemesi ve
+    tavan.  z:  ( döşemenin altı , kuyu tabanı , tavan , tavan döşemesinin üstü ).
+    Kuyu grubunun açık arasında o yanda duvar yok:  konsol seviyelerinde ayırma
+    kirişlerinin kesiti, aranın ortasında kesilen perde ( m.5.2.5.5.2.1:  kuyu
+    tabanının en çok 0,30 m üstünden en alt durağın 2,50 m üstüne );  kuyu dibi ve
+    tavan aranın üstünden geçer ( tek kuyu )."""
+    k = g["kuyu"]
+    G, ds, dg, acik = k["genislik"], k["duvar_sol"], k["duvar_sag"], k.get("acik_yan")
+    alt, taban, tavan, ust = z
+    if acik != "Sağ":
+        _duvar(e, -dg, alt, dg, ust - alt)
+    if acik != "Sol":
+        _duvar(e, G, alt, ds, ust - alt)
+    a0, a1 = (-dg if acik == "Sağ" else 0.0), (G + ds if acik == "Sol" else G)
+    _duvar(e, a0, alt, a1 - a0, taban - alt)
+    _tabliye(e, B, M, a0, tavan, a1 - a0, dos_t, oda)
+    if acik:
+        _ayirma_kirisi_kesiti(e, g, -dg if acik == "Sağ" else G, ayirma_kirisi_kotlari(g, M))
+        um = -dg / 2.0 if acik == "Sağ" else G + ds / 2.0
+        z0, z1 = taban + standart.PERDE_TABANDAN, alt_durak + standart.PERDE_DURAK_USTU
+        e.append(eleman.ad(eleman.cizgi("PERDE", um, z0, um, z1), "grup_perdesi"))
 
 
 def _tabliye(e, B, M, u0, z, w, h, oda):
@@ -618,6 +710,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     _duvar(e, D, taban - dos, dar, ust - (taban - dos))
     _duvar(e, 0, taban - dos, D, dos)
     _tabliye(e, B, M, 0, tavan, D, dos_t, oda)
+    _acik_ara_yanda(e, B, g, M, taban, kotlar[0])
     #  Kuyu tavanının en alt kısmı ( kiriş payı — hesap programının "kuyu tavanı
     #  payı" ):  bir KABULDÜR, beton değil;  kesik sınır çizgisi ( eskiden taralı
     #  150 mm bir katman gibi çiziliyor, tavan iki kat kalın görünüyordu ).
@@ -713,10 +806,7 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     ust = tavan + dos_t
     e = []
     #  Yan duvarlar ( görünüşte plandaki sağ duvar solda ), kuyu dibi, tavan
-    _duvar(e, -dg, taban - dos, dg, ust - (taban - dos))
-    _duvar(e, G, taban - dos, ds, ust - (taban - dos))
-    _duvar(e, 0, taban - dos, G, dos)
-    _tabliye(e, B, M, 0, tavan, G, dos_t, oda)
+    _on_duvarlar(e, B, g, M, (taban - dos, taban, tavan, ust), dos_t, oda, kotlar[0])
     e.append(eleman.ad(eleman.cizgi("GIZLI", 0, Y["tavan_alti"] + H, G, Y["tavan_alti"] + H), "tavan_kirisi"))
     #  Kat kapıları ön duvarda ( görünüş ):  kasa, boşluk, kanat ayrımı, durak numarası
     kp = g["kapi"]

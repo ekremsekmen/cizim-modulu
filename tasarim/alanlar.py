@@ -58,6 +58,9 @@ GIRDI, KURAL, KATALOG, CIZIM, HESAP = "GİRDİ", "KURAL", "KATALOG", "ÇİZİM",
 #  kalıyordu — paten bunu köprüleyemez ( kullanıcı kararı 1 Eki ).
 AGIRLIK_PATEN_PAYI = 60.0
 AGIRLIK_GENISLIGI_YEDEK = 960.0
+#  KUYU GRUBUNUN AYIRMA KİRİŞİ:  DIN 1026-1 U profilleri ( NPU — hesabın tablosu;  hafif
+#  "30x15" gibi özel profiller değil ).  Yetmeyen ölçüyü kirişin hesabı söyler.
+AYIRMA_KIRISLERI = tuple(o for o in mukavemet_tablolari.NPU_OLCULERI if isinstance(o, int))
 #  KABİN PATEN ARASI kabin iç yüksekliğinden türer:  şase kabini sarar,
 #  yüksekliği kabinle birlikte değişir ( Wittur WCF06:  "yükseklik serbestçe
 #  seçilir";  Has Asansör kılavuzu:  toplam kabin yüksekliği + 200 – 400, o
@@ -141,6 +144,9 @@ class Alan:
     secenek_metni: dict = None  # açılır listede değerin yerine görünen yazı
     secenek_kosulu: dict = None  # { seçenek : ( yerleşim , sebep ) } — yalnız o yerleşimde
     cizimden: str = ""  # boşsa çizimden gelen değerin kuralı ( ⓘ metnine eklenir )
+    #  KUYU DÜZENİ:  "ortak" — tek kuyuda kuyunun girdisi, iki asansörde aynı ( KUYU_ORTAK );
+    #  "tek" — yalnız tek kuyuda okunur ( öbür düzende ekranda gizli )
+    kuyu: str = None
     bilgi: str = ""  # formdaki ⓘ metni
     grup: str = ""
 
@@ -307,6 +313,68 @@ _GRUPLAR = (
     (
         "Kuyu ve katlar",
         (
+            #  KUYU DÜZENİ ( 1 Kas, kullanıcı kararı — cikti/devir/ORTAK_KUYU_PLANI.md § 8 ):
+            #  iki asansörlü projede iki asansör tek kuyuda yan yana olabilir.  Kuyunun
+            #  girdileri ( KUYU_ORTAK ) o zaman bir kez girilir — iki asansörde aynıdır
+            #  ( ön yüz ikisine birden yazar, kapı da eşitler:  uclar/uygulama_istegi );
+            #  kuyunun çizimleri birlikte çizilir ( cizim/grup.py ).  Aralarında duvar yok:
+            #  ortaya bakan raylar her konsol seviyesindeki çelik AYIRMA KİRİŞİNE bağlanır
+            #  ( LiftDesigner "Separator Beam", KONE "trimmer beams";  Türkiye'de U profil,
+            #  gövdesi yatay — S. Tavaslıoğlu, Asansör Montajı s.9 ).
+            A(
+                "kuyu_duzeni",
+                "Kuyu düzeni",
+                "—",
+                "secim",
+                _s("Ayrı", "Tek kuyu"),
+                "Ayrı",
+                kaynak=GIRDI,
+                sozlesme=CIZ,
+                proje_geneli=True,
+                secenek_metni={"Ayrı": "Her asansör kendi kuyusunda", "Tek kuyu": "İki asansör tek kuyuda"},
+                bilgi=(
+                    "İki asansörlü projede:  her asansör kendi kuyusunda ya da ikisi tek kuyuda yan yana.  "
+                    "Tek kuyuda kuyunun değerleri ( derinlik, duvarlar, katlar, kuyu dibi, son kat ) iki "
+                    "asansörde aynıdır;  araya ayırma kirişi gelir, kuyu birlikte çizilir."
+                ),
+            ),
+            #  Numara konum değildir:  12744-3'te soldaki asansör 2 numara
+            A(
+                "soldaki_asansor",
+                "Soldaki asansör",
+                "—",
+                "secim",
+                _s(1, 2),
+                1,
+                kaynak=GIRDI,
+                sozlesme=CIZ,
+                proje_geneli=True,
+                kuyu="tek",
+                secenek_metni={1: "Asansör 1", 2: "Asansör 2"},
+                bilgi="Tek kuyuda, durakta kapılara bakarken solda duran asansör;  öbürü sağdadır.",
+            ),
+            #  Profili DIN 1026-1 U ( NPU — hesabın tablosu, mukavemet_tablolari ).  Varsayılanı
+            #  yok:  ölçüyü hiçbir kaynak vermiyor, seçilmeden kiriş çizilmez ( kullanıcı kararı ).
+            #  Ara kirişin yüksekliği kadardır ( konsollar iki flanşa dayanır );  adı "ayırma":
+            #  yandaki ağırlığın "ara kiriş"iyle karışmasın.
+            A(
+                "ayirma_kirisi",
+                "Ayırma kirişi  ( NPU )",
+                "—",
+                "secim",
+                AYIRMA_KIRISLERI,
+                None,
+                kaynak=GIRDI,
+                sozlesme=CIZ,
+                proje_geneli=True,
+                kuyu="tek",
+                secenek_metni={o: f"NPU {o}" for o in AYIRMA_KIRISLERI},
+                bilgi=(
+                    "Tek kuyuda iki asansörün arasındaki çelik kiriş:  U profil ( DIN 1026-1 ), gövdesi "
+                    "yatay, raylar flanşlarına bağlanır;  her konsol seviyesinde ön duvardan arka duvara.  "
+                    "Ara kirişin yüksekliği kadardır.  Seçilmeden ara ve kiriş çizilmez."
+                ),
+            ),
             A(
                 "kuyu_genisligi",
                 "Kuyu genişliği  ( KG )",
@@ -317,8 +385,8 @@ _GRUPLAR = (
                 kaynak=GIRDI,
                 sozlesme=ELK,
                 bilgi=(
-                    "KG — kuyunun plandaki genişliği. Yalnız kuyu aydınlatmasının bölge indeksine girer; "
-                    "mukavemet hesabına girmez."
+                    "KG — kuyunun plandaki genişliği ( tek kuyuda asansörün bölmesi:  dış duvardan ayırma "
+                    "kirişine ). Yalnız kuyu aydınlatmasının bölge indeksine girer; mukavemet hesabına girmez."
                 ),
             ),
             A(
@@ -333,28 +401,6 @@ _GRUPLAR = (
                 bilgi=(
                     "Kuyunun plandaki iç derinliği:  kapı duvarının iç yüzünden arka duvarın iç yüzüne.  "
                     "Kuyu genişliği ile birlikte kuyu planını kurar."
-                ),
-            ),
-            #  KUYU GRUBU ( 1 Kas — cikti/devir/ORTAK_KUYU_PLANI.md, 1. adım ):
-            #  LiftDesigner'ın grubu gibi her asansör kendi kuyusundadır ( kendi
-            #  girdisi, kendi hesabı );  grup kuyuların yan yana dizilişidir
-            #  ( cizim/grup.py ).  Bugün iki asansör, aralarında duvar.
-            A(
-                "grup_sirasi",
-                "Kuyu grubundaki sırası  ( boşsa ayrı kuyu )",
-                "—",
-                "sayi",
-                None,
-                None,
-                kaynak=GIRDI,
-                sozlesme=CIZ,
-                tam_sayi=True,
-                azami=2,
-                bilgi=(
-                    "Ortak duvarlı, yan yana kuyulardaki asansörlerin soldan sırası ( durakta kapılara "
-                    "bakarken ):  1, 2;  boşsa ayrı kuyu.  Kuyu planı grupça da çizilir.  Aradaki duvar iki "
-                    "asansörde aynı girilir ( soldakinin sağ duvarı = sağdakinin sol duvarı );  derinlik, ön "
-                    "ve arka duvar, durak kotları aynı olmalı."
                 ),
             ),
             A(
@@ -3112,7 +3158,36 @@ _GRUPLAR = (
 )
 
 GRUPLAR = tuple(ad for ad, _a in _GRUPLAR)
-ALANLAR = tuple(replace(a, grup=ad) for ad, al in _GRUPLAR for a in al)
+#  TEK KUYUNUN GİRDİLERİ ( kuyu="ortak" ):  kuyu iki asansöre ortaktır — derinliği,
+#  duvarları ( içteki yan duvar yerine ayırma kirişi:  cizim/kopru._acik_ara ), katları
+#  ve kotları, kuyu dibi, son kat, tavan döşemesi;  makine dairesi de ortak ( zemini,
+#  tabliyesi ).  Asansörün kendi bölme genişliği ( kuyu_genisligi ) ortak değildir.
+KUYU_ORTAK = frozenset(
+    (
+        "kuyu_derinligi",
+        "durak_adedi",
+        "seyir_mesafesi",
+        "kat_yukseklikleri",
+        "son_kat_yuksekligi",
+        "kuyu_dibi",
+        DURAK_KOTLARI,
+        "kuyu_dibi_kotu",
+        "kuyu_tavani_kotu",
+        "kuyu_duvar_kalinligi",
+        "kuyu_duvar_on",
+        "kuyu_duvar_arka",
+        "kuyu_duvar_sol",
+        "kuyu_duvar_sag",
+        "tavan_dosemesi",
+        "md_zemini_kotu",
+        "tabliye_yuksekligi",
+    )
+)
+ALANLAR = tuple(
+    replace(a, grup=ad, kuyu=a.kuyu or ("ortak" if a.anahtar in KUYU_ORTAK else None))
+    for ad, al in _GRUPLAR
+    for a in al
+)
 ALAN = {a.anahtar: a for a in ALANLAR}
 
 
@@ -3148,6 +3223,11 @@ def _denetle():
         assert a.sozlesme in (MUK, ELK, CIZ), (a.anahtar, a.sozlesme)
         assert a.yerlesim in (None, "mrl", "daireli"), (a.anahtar, a.yerlesim)
         assert a.kip in (None, KOT, OLCU), (a.anahtar, a.kip)
+        #  Kuyunun ortak girdisi asansörde durur ( iki asansöre yazılır ), tek kuyunun
+        #  seçimleri projede
+        assert a.kuyu in (None, "ortak", "tek"), (a.anahtar, a.kuyu)
+        assert a.kuyu != "ortak" or (not a.proje_geneli and a.formda), f"kuyunun girdisi: {a.anahtar}"
+        assert a.kuyu != "tek" or a.proje_geneli, f"tek kuyu alanı projede: {a.anahtar}"
         #  Kot kutusu kot yazımıyla okunur ( metre, işaretli ) ve ölçüyle girişte
         #  okunmadığı için boş kalabilir;  kipi belirleyen alanın kipi olamaz
         assert a.kip != KOT or (a.birim == "m" and a.isaretli and a.opsiyonel), f"kot alanı: {a.anahtar}"

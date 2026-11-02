@@ -101,6 +101,20 @@ PARCA_KATMANLARI = (
 )
 
 
+#  Yerinde sabit etiketler:  ayırıcı ( etiketleri_ayir ) kıpırdatmaz — kuyu grubunun
+#  ayırma kirişinin adı kirişin içindedir ( kiriş yazılara duvar sayılır — duvar_gibi )
+SABIT_ETIKETLER = frozenset(("ayirma_kirisi_adi",))
+
+
+def duvar_gibi(x):
+    """Yazının içine giremediği kesit:  duvar ( tarama, KUYU-DUVAR ) ve kuyu grubunun
+    açık arasındaki ayırma kirişi — duvarın yerindedir;  yazılar oraya, komşu kuyunun
+    yerine kaçmasın ( cizim/grup.py )."""
+    return x["tip"] in ("tarama", "tarama_tugla") or (
+        x["tip"] == "dikdortgen" and (x.get("katman") == "KUYU-DUVAR" or x.get("ad") == "ayirma_kirisi")
+    )
+
+
 def yazilari_yerlestir(elemanlar, h=eleman.OLCU_YAZI, kaydir=False, kopuk=True):
     """Yeri verilmemiş ölçü yazılarını yerleştirir — SVG ve DXF AYNI yeri kullanır.
 
@@ -198,12 +212,7 @@ class _YaziYerleri:
         self.simdiki = None
         self.esik = MASKE_ESIGI * 20.0 * self.k
         #  Duvarlar ( taramalı kesit ):  yazı çizgiden kaçarken içlerine girmez
-        self.duvarlar = [
-            sinir([x])
-            for x in elemanlar
-            if x["tip"] in ("tarama", "tarama_tugla")
-            or (x["tip"] == "dikdortgen" and x.get("katman") == "KUYU-DUVAR")
-        ]
+        self.duvarlar = [sinir([x]) for x in elemanlar if duvar_gibi(x)]
         #  Ölçü yazısının üstüne düşmemesi gereken parçaların kutuları
         self.parca_kutulari = [
             sinir([x]) for x in elemanlar if x.get("katman") in PARCA_KATMANLARI and x["tip"] != "yazi"
@@ -867,20 +876,75 @@ def olcu_alti(g):
 def _duvarlar(P, bosluklu):
     """Duvarlar ( tarama yalnız duvar kesitinde ).  Boşluklu ön duvar kat
     kapısının kaba boşluğunun iki yanındadır ( girdi.kaba_bosluk — giriş
-    görünüşüyle aynı;  duvar boşluğuna monte kapıda kasa da boşluktadır )."""
+    görünüşüyle aynı;  duvar boşluğuna monte kapıda kasa da boşluktadır ).
+    Kuyu grubunun açık arasında ( kuyu.acik_yan — kopru._acik_ara ) o yanda
+    duvar yoktur:  yerinde ayırma kirişi."""
     G, D, ds, dg, don, dar = P.G, P.D, P.ds, P.dg, P.don, P.dar
+    acik = P.g["kuyu"].get("acik_yan")
     if bosluklu:
         on = [(-ds, -don, P.b0 + ds, don), (P.b1, -don, G + dg - P.b1, don)]
     else:
         on = [(-ds, -don, G + ds + dg, don)]
+    yanlar = [y for y, ad in (((-ds, 0, ds, D), "Sol"), ((G, 0, dg, D), "Sağ")) if ad != acik]
     e = []
-    for x, y, g_, d_ in on + [(-ds, D, G + ds + dg, dar), (-ds, 0, ds, D), (G, 0, dg, D)]:
+    for x, y, g_, d_ in on + [(-ds, D, G + ds + dg, dar)] + yanlar:
         if g_ <= 1e-6:
             continue
         e.append(eleman.dikdortgen("TARAMA", x, y, g_, d_, tip="tarama"))
         e.append(eleman.dikdortgen("KUYU-DUVAR", x, y, g_, d_))
     e.append(eleman.dikdortgen("KUYU-IC", 0, 0, G, D))
+    if acik:
+        e += ayirma_kirisi(P.g, -ds if acik == "Sol" else G, ds if acik == "Sol" else dg, D)
     return e
+
+
+def grup_perdesi(g):
+    """Kuyu grubunun açık arasında iki kuyu dibinin arasındaki perde
+    ( m.5.2.5.5.2.1 ) planda:  aranın ortasında, ön duvardan arka duvara — bir
+    kuyu dibinden ötekine geçilemesin;  adı perdenin boyunca.  Açık ara yoksa boş."""
+    k = g["kuyu"]
+    yan = k.get("acik_yan")
+    if not yan:
+        return []
+    x = -k["duvar_sol"] / 2.0 if yan == "Sol" else k["genislik"] + k["duvar_sag"] / 2.0
+    return [eleman.ad(eleman.cizgi("PERDE", x, 0, x, k["derinlik"]), "grup_perdesi")]
+
+
+def grup_perdesi_adi(e, h=uslup.NORMAL):
+    """Perdenin ( grup_perdesi ) adı boyunca, öbür yazılar ( etiket, ölçü yazısı,
+    yük kutusu ) ve oklar yerleştikten sonra ( kuyu dibinde yük kutuları en sonda —
+    ad önce konunca kutulara yer kalmıyordu ):  ortaya en yakın boş yer;  uzun ad
+    sığmazsa kısası, o da sığmazsa ad yazılmaz.  [ yazı ] ya da boş."""
+    perde = next((p for p in e if p.get("ad") == "grup_perdesi"), None)
+    if perde is None:
+        return []
+    x, y0, y1 = perde["x1"], min(perde["y1"], perde["y2"]), max(perde["y1"], perde["y2"])
+    dolu = [sinir([o]) for o in e if o["tip"] == "yazi" or o.get("ad") in ("yuk_oku", "yuk_kutusu", "yuk")]
+    dolu += [yazi_kutusu(o) for o in e if o["tip"] == "olcu" and o.get("yazi")]
+    for metin in ("ASANSÖRLER ARASI PERDE", "PERDE"):
+        L = eleman.yazi_eni(metin, h)
+        orta = (y0 + y1) / 2.0
+        for c in sorted(range(int(y0 + L / 2.0), int(y1 - L / 2.0) + 1, 20), key=lambda c: abs(c - orta)):
+            k = (x - h / 2.0 - 10, c - L / 2.0 - 10, x + h / 2.0 + 10, c + L / 2.0 + 10)
+            if not any(k[0] < d[2] and d[0] < k[2] and k[1] < d[3] and d[1] < k[3] for d in dolu if d):
+                return [eleman.ad(eleman.yazi(x, c, metin, h, aci=90), "grup_perdesi_adi")]
+    return []
+
+
+def ayirma_kirisi(g, x, h, D):
+    """Kuyu grubunun açık arasındaki AYIRMA KİRİŞİ planda ( cizim/grup.py ):  NPU
+    gövdesi yatay — üstten görünen gövdesi ara boyunca ( h:  kirişin yüksekliği ),
+    ön duvardan arka duvara;  adı ve ölçüsü kiriş boyunca ( sığmazsa yalnız
+    ölçüsü ).  Konsollar gibi kesitin altındadır, görünür çizilir."""
+    npu = g["proje"]["ayirma_kirisi"]
+    metin = next(
+        (m for m in (f"AYIRMA KİRİŞİ  NPU {npu}", f"NPU {npu}") if eleman.yazi_eni(m) <= D - 200),
+        f"NPU {npu}",
+    )
+    return [
+        eleman.dikdortgen("KONSOL", x, 0, h, D, ad="ayirma_kirisi"),
+        eleman.ad(eleman.yazi(x + h / 2.0, D / 2.0, metin, aci=90), "ayirma_kirisi_adi"),
+    ]
 
 
 def _kat_kapisi(P, kapi_duzeyi):
@@ -2339,12 +2403,7 @@ def etiketleri_ayir(e, olcek=20):
         if (x["tip"] == "dikdortgen" and x.get("katman") not in MASKELI_KATMANLAR)
         or x["tip"] in ("tarama", "tarama_tugla")
     ]
-    duvarlar = [
-        sinir([x])
-        for x in e
-        if x["tip"] in ("tarama", "tarama_tugla")
-        or (x["tip"] == "dikdortgen" and x.get("katman") == "KUYU-DUVAR")
-    ]
+    duvarlar = [sinir([x]) for x in e if duvar_gibi(x)]
     kenarlar = KenarIzgarasi(parca_kenarlari(e))
     yazilar = [
         x
@@ -2360,7 +2419,7 @@ def etiketleri_ayir(e, olcek=20):
     )
     oklar, oklu = [], set()
     for el in yazilar:
-        if el["tip"] != "yazi":
+        if el["tip"] != "yazi" or el.get("ad") in SABIT_ETIKETLER:
             continue
         kb = kutular[id(el)]
         obur = [kutular[id(x)] for x in yazilar if x is not el and kutular[id(x)]]
@@ -2491,7 +2550,7 @@ def _maskeden_kacir(E, itme):
         if (
             el["tip"] != "yazi"
             or id(el) in E.oklu
-            or el.get("ad") in ("alan_adi", "kot")
+            or el.get("ad") in ("alan_adi", "kot", *SABIT_ETIKETLER)
             or _satirli(el, E.yazilar)
         ):
             continue

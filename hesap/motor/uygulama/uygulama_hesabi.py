@@ -29,6 +29,7 @@ from motor.uygulama import mukavemet
 from motor.avan import tablolar
 from motor.uygulama import uygulama_girdisi
 from motor.uygulama import mukavemet_girdi
+from tasarim import gorunum
 
 #  Avanın uygulama projesine giren bölümleri  ( 0-tabanlı sıra )
 ELEKTRIK_BOLUMLERI = (2, 3, 4, 5)  # kabin ayd. · kuyu ayd. · TAS · ε
@@ -345,8 +346,12 @@ def hesapla_coklu(asansorler=None, ortak=None):
     #  1. asansöre veriliyordu;  onun hesabı düşünce devre pakette hiçbir
     #  tabloda kalmıyordu ( 23 Eki bağımsız denetim ).
     besleyen = None
+    #  TEK KUYUDA ( tasarim/alanlar KUYU DÜZENİ ) asansörün kuyudaki yeri numarasına
+    #  bağlıdır ( "Soldaki asansör" ):  hesabın çizimden ölçtüğü geometri
+    #  ( cizim/kopru._kuyu_duzeni ) hangi asansör olduğunu bilsin
+    tek = gorunum.tek_kuyu_mu(pg, len(ham))
     for i, g in enumerate(ham, 1):
-        s = hesapla({**ortak, **g, **pg}, besleyen)
+        s = hesapla({**ortak, **g, **pg, **({"_asansor_no": i} if tek else {})}, besleyen)
         s["no"] = i
         s["tanim"] = str(g.get("asansor_adi") or "").strip() or f"{i} nolu asansör"
         #  Kuyunun geometrisi asansöre özgüdür:  çok asansörlü projede hangisinin
