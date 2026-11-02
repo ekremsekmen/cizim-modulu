@@ -1,5 +1,6 @@
-/*  KAT GİRİŞİ — "Ölçüyle | Kotla" ve kot tablosu ( KOT_PLANI 6. adım )
-    Kotla girişte satırlar yukarıdan aşağı, kesit gibi:  tavan döşemesinin üstü
+/*  KAT GİRİŞİ — kot tablosu ( KOT_PLANI 6. adım;  2 Kas'tan beri YALNIZ kotla —
+    "Ölçüyle" seçici kalktı, kotsuz proje açılırken kotlara çevrilir:  proje.kotlayaCevir ).
+    Satırlar yukarıdan aşağı, kesit gibi:  tavan döşemesinin üstü
     ( türetilen — mimarın plan kotuyla karşılaştırılır ) · kuyu tavanı ( döşemenin
     ALTI ) · makine dairesinin zemini · duraklar · kuyu dibi.  Her satıra kot ya da
     fark yazılır;  saklanan hep kottur ( tek kaynak ).  Fark yazılınca üstteki
@@ -21,13 +22,12 @@ import {
   kotlaGecis,
   kotlaMi,
   kotlariOku,
-  olcuyleGecis,
   yapistir,
   type Degisiklik,
 } from "@/lib/kotlar";
 import { sayiOku } from "@/lib/denetim";
 import { cn, sayiYaz } from "@/lib/utils";
-import { Bolumlu, Girdi } from "@/components/ui";
+import { Dugme, Girdi } from "@/components/ui";
 
 type Ham = Record<string, string>;
 
@@ -155,21 +155,24 @@ export function KatGirisi({
     <div className="mb-1.5 rounded-orta border border-cizgi bg-black/[0.015] px-2 py-2">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[12.5px] font-medium">Katlar</span>
-        <Bolumlu
-          etiket="Kat girişi"
-          deger={kot ? "kot" : "olcu"}
-          degisti={(d) =>
-            uygula(
-              d === "kot"
-                ? kotlaGecis(etkin, h.kat_yukseklikleri ?? (typeof kullanilan?.kat_yukseklikleri === "string" ? kullanilan.kat_yukseklikleri : undefined), daireli)
-                : olcuyleGecis(kullanilan, daireli),
-            )
-          }
-          secenekler={[
-            { deger: "olcu", ad: "Ölçüyle" },
-            { deger: "kot", ad: "Kotla" },
-          ]}
-        />
+        {/*  Kotsuz asansör açılırken kotlara çevrilir ( proje.kotlayaCevir );  yine de
+             kotsuz kaldıysa ( başka sekmeden gelen eski hâl ) çeviri elle  */}
+        {!kot && (
+          <Dugme
+            boy="kucuk"
+            onClick={() =>
+              uygula(
+                kotlaGecis(
+                  etkin,
+                  h.kat_yukseklikleri ?? (typeof kullanilan?.kat_yukseklikleri === "string" ? kullanilan.kat_yukseklikleri : undefined),
+                  daireli,
+                ),
+              )
+            }
+          >
+            Kotlarla gir
+          </Dugme>
+        )}
       </div>
       {kot && (
         <div className="mt-2">

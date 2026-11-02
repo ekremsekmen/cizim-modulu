@@ -3,12 +3,12 @@
     yükseklikleri, kuyu dibi, son kat ve tabliye kotlardan TÜRER — sunucuda, tek
     yerde ( katlar.kot_tablosu ).  Bu dosya yalnız GİRİŞİ kolaylaştırır:  kotu okur
     ve yazar, farkı kota çevirir ( kat-kat arası:  üstündekiler birlikte kayar ),
-    kipler arasında kayıpsız geçer.  Türetilenin kendisini sunucunun kullandığı
+    ölçüleri kotlara çevirir ( kotsuz proje açılırken — proje.kotlayaCevir;  2 Kas'tan
+    beri ekranda yalnız kotla giriş var ).  Türetilenin kendisini sunucunun kullandığı
     değerden alır ( yanıtın girdisi ).  Ön yüz sunucudan SIKI OLAMAZ:  okunamayan
     yazım olduğu gibi gider, sebebini sunucu söyler — burada okunamayan kot yalnız
     hesaplanmaz ( null ).                                                      */
 import type { Deger } from "./api";
-import { kutuyaYaz } from "./denetim";
 
 type Ham = Record<string, string>;
 
@@ -152,25 +152,6 @@ export function kotlaGecis(
     y[MD_ZEMINI_KOTU] = kotYaz(tavan + Math.round(doseme) - Math.round(d("tabliye_yuksekligi") ?? 0));
   }
   for (const a of TURETILEN) y[a] = "";
-  return y;
-}
-
-/**  Kotla → Ölçüyle:  türetilenler ( sunucunun kullandığı — kullanilan ) kutulara
-     yazılır, kotlar silinir.  Sunucu türetemediyse ( hatalı tablo ) o kutu boş kalır:
-     varsayılanı alır.  */
-export function olcuyleGecis(kullanilan: Record<string, unknown> | undefined, daireli: boolean): Degisiklik {
-  const y: Degisiklik = { [DURAK_KOTLARI]: "", [KUYU_DIBI_KOTU]: "", [KUYU_TAVANI_KOTU]: "", [MD_ZEMINI_KOTU]: "" };
-  for (const a of TURETILEN) {
-    if (a === "tabliye_yuksekligi" && !daireli) continue;
-    const v = kullanilan?.[a];
-    y[a] = Array.isArray(v)
-      ? v.map((x) => String(Math.round(Number(x)))).join("; ")
-      : typeof v === "number" && Number.isFinite(v)
-        ? kutuyaYaz(v)
-        : typeof v === "string"
-          ? v
-          : "";
-  }
   return y;
 }
 

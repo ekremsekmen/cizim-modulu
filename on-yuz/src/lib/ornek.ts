@@ -7,10 +7,12 @@
     hükümsüz );  çizimler kurulur ( testler/test_on_yuz_uctan_uca.py ).
     Yazılmayan alan varsayılandır ( Teleskopik Sol kapı, 2:1, kabin altı … );
     boş kabin kütlesi tablodan ( bos_tablodan:  "" gönderilir ).
-    Değerler değişirse ORNEK_SURUMU artar:  tarayıcıdaki eski örnek yenilenir.  */
+    Değerler değişirse ORNEK_SURUMU artar:  tarayıcıdaki eski örnek yenilenir.
+    Katlar kotla ( 2 Kas'tan beri yalnız kotla giriş — 3. sürüm ):  15 durak, 3.000'er,
+    en alt durak ±0,00;  kuyu dibi 1.750, son kat 4.250 ( eskiden ölçüyle girilenler ).  */
 import type { Ham } from "./proje";
 
-export const ORNEK_SURUMU = 2;
+export const ORNEK_SURUMU = 3;
 
 export const ORNEK_ASANSOR: Ham = {
   beyan_yuku: "1275",
@@ -18,10 +20,9 @@ export const ORNEK_ASANSOR: Ham = {
   agirlik_yeri: "Sol",
   kuyu_genisligi: "2200",
   kuyu_derinligi: "2700",
-  durak_adedi: "15",
-  seyir_mesafesi: "42",
-  son_kat_yuksekligi: "4250",
-  kuyu_dibi: "1750",
+  durak_kotlari: "±0,00; +3,00; +6,00; +9,00; +12,00; +15,00; +18,00; +21,00; +24,00; +27,00; +30,00; +33,00; +36,00; +39,00; +42,00",
+  kuyu_dibi_kotu: "-1,75",
+  kuyu_tavani_kotu: "+46,25",
   kabin_genisligi: "1260",
   kabin_derinligi: "2100",
   kapi_genisligi: "1100",
