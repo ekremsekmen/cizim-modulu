@@ -597,7 +597,9 @@ def _yukseklik(e, K):
 def _bitir(e, g, Y, kt, K, alt_ust, ust_alt, bosluk_h, duvarlar, azami):
     """Yazıları yerleştirir, plan seviyelerini ekler.  Çizim `azami`
     yüksekliğe ( çerçevesiyle, çizim birimi ) sığmıyorsa ara katları kırar:
-    alttan ve üstten SIĞAN EN ÇOK durak kalır ( en az birer ).  Kırık
+    alttan ve üstten SIĞAN EN ÇOK durak kalır ( en az birer ).  Giriş katı
+    ( katlar.adlar_ve_giris ) kırığa düşerse o da kalır:  iki kırık, arada giriş
+    katı ( KAT_ADLARI_PLANI — 2 Kas:  63444-2'de paftada "0" yoktu ).  Kırık
     hareketli parçalara ( kabin, karşı ağırlık ) değmez.  Halatın betondaki
     parçası önce kesik olur ( kesit_parcalari.betondaki_halati_gizle )."""
     kesit_parcalari.betondaki_halati_gizle(e)
@@ -615,17 +617,42 @@ def _bitir(e, g, Y, kt, K, alt_ust, ust_alt, bosluk_h, duvarlar, azami):
         return tam
     kotlar = Y["kotlar"]
     doseme = Y["S"]["kat_doseme_kalinlik"]
+    _adlar, giris = katlar.adlar_ve_giris(g)
     for i in range(len(kotlar) // 2 - 1, -1, -1):
         za = max(alt_ust, kotlar[i] + bosluk_h) + KIRIK_PAY
         zu = min(ust_alt, kotlar[-1 - i] - doseme) - KIRIK_PAY
         if zu - za <= KIRIK_BOSLUK:
             continue
-        k, m, ic = _kir(e, za, zu, KIRIK_BOSLUK)
-        _kirik_cizgileri(k, za, KIRIK_BOSLUK, duvarlar[0], duvarlar[1], K)
-        k = son(k, m, ic)
-        if _yukseklik(k, K) <= azami or i == 0:
+        araliklar = [(za, zu)]
+        if i < giris < len(kotlar) - 1 - i:
+            araliklar = [
+                (za, kotlar[giris] - doseme - KIRIK_PAY),
+                (kotlar[giris] + bosluk_h + KIRIK_PAY, zu),
+            ]
+        k = _kirik(e, [(a, b) for a, b in araliklar if b - a > KIRIK_BOSLUK], duvarlar, K, son)
+        if k is not None and (_yukseklik(k, K) <= azami or i == 0):
             return k
     return tam
+
+
+def _kirik(e, araliklar, duvarlar, K, son):
+    """Aralıkları ( alttan üste, ayrık ) çizimden çıkarır:  üstteki önce ( alttakinin
+    kotları kaymasın ), kot eşlemesi bileşik.  Aralık yoksa None."""
+    if not araliklar:
+        return None
+    eslemeler, icler = [], []
+    for za, zu in reversed(araliklar):
+        e, m, ic = _kir(e, za, zu, KIRIK_BOSLUK)
+        _kirik_cizgileri(e, za, KIRIK_BOSLUK, duvarlar[0], duvarlar[1], K)
+        eslemeler.append(m)
+        icler.append(ic)
+
+    def m(z):
+        for f in eslemeler:
+            z = f(z)
+        return z
+
+    return son(e, m, lambda z: any(f(z) for f in icler))
 
 
 def yan_bakis(g):

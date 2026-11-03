@@ -59,6 +59,8 @@ cikti/devir/KAT_ADLARI_PLANI.md ):
      kaymada giriş katı GİRİLİR ( 63444-2:  ±0,00'ın durağı, 3. );  o zaman adlar
      aynı kalır.  Veri tablosunun "Giriş katı" satırının değeri "ad  ·  kot":
      kot kısmı kot yazısıdır ( ikizde ve kaymada öteki kot yazıları gibi kayar ).
+  -  Kırık kesit giriş katını da tutar ( iki kırık olabilir );  kırığı aşan ölçü
+     eşit katlardansa "17 × 3200" yazar — kırığın boyu ondan da okunur.
 
 B6 ( dosya gidiş-dönüşü ):  paketin ZIP'inde proje dosyası varsa kotlar orada
 yazıldığı gibi ( "−7,00" ) kalmalı;  yoksa kapsam dışı ( ön yüzün dosyası —
@@ -552,15 +554,19 @@ def olcek(b, etiket, mm):
 def kiriklar(b, s):
     """Kesitin kırıkları — kot yazılarından BAĞIMSIZ:  [( alt y, üst y, boy )].
     Boy ( çizim birimi ):  kırığı aşan kat ölçüsünün yazdığı gerçek mesafe
-    ( yazısı yalnız sayı:  "57900" ) × ölçek − çizilen boyu.  Yer:  o ölçünün
+    ( yazısı yalnız sayı:  "57900", ya da eşit katlar:  "17 × 3200" — 2 Kas
+    düzeltmesi:  giriş katı kırıkta kalınca aşan aralık eşit katlardır ) × ölçek −
+    çizilen boyu.  Yer:  o ölçünün
     aralığında kuyu duvarının ( KUYU-DUVAR ) kesildiği boşluk ( yoksa ölçünün
     aralığı )."""
     olcu = []
     for e in b.query("DIMENSION"):
         t = (e.dxf.get("text") or "").strip()
-        if t.isdigit() and int(t) * s - e.get_measurement() > 0.5:
+        m = re.fullmatch(r"(?:(\d+) × )?(\d+)", t)
+        gercek = int(m.group(1) or 1) * int(m.group(2)) if m else None
+        if gercek is not None and gercek * s - e.get_measurement() > 0.5:
             a, u = sorted((e.dxf.defpoint2.y, e.dxf.defpoint3.y))
-            olcu.append((a, u, int(t) * s - e.get_measurement()))
+            olcu.append((a, u, gercek * s - e.get_measurement()))
     ortu = sorted(
         (k.extmin.y, k.extmax.y)
         for e in disassemble.recursive_decompose(b)
@@ -571,11 +577,13 @@ def kiriklar(b, s):
         if ust is not None and y0 > ust + 0.5:
             bosluk.append((ust, y0))
         ust = y1 if ust is None else max(ust, y1)
-    cikti = []
+    cikti = {}
     for a, u, boy in olcu:
         ic = [(p, q) for p, q in bosluk if a - 0.5 <= p and q <= u + 0.5]
-        cikti.append((*ic[0], boy) if len(ic) == 1 else (a, u, boy))
-    return cikti
+        k = (*ic[0], boy) if len(ic) == 1 else (a, u, boy)
+        #  Aynı kırığı birden çok ölçü aşar ( kat zinciri, konsol zinciri ):  bir kez
+        cikti.setdefault((round(k[0]), round(k[1])), k)
+    return sorted(cikti.values())
 
 
 def acici(kirik):

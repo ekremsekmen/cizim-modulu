@@ -16,7 +16,7 @@
 import copy
 import unittest
 
-from cizim import giris, kapi_kesiti, katlar, kuyu_kesiti, veri_tablosu
+from cizim import geometri, giris, kapi_kesiti, katlar, kuyu_kesiti, pafta, veri_tablosu
 from motor.uygulama import uygulama_hesabi
 from tasarim import alanlar
 from testler.test_grup import ikili
@@ -129,7 +129,7 @@ def yazilar(e):
     return [el["metin"] for el in e if el["tip"] == "yazi"]
 
 
-def geometri(e):
+def yazisiz(e):
     return [{k: v for k, v in el.items() if k != "metin"} for el in e]
 
 
@@ -153,7 +153,7 @@ class Cizim(unittest.TestCase):
                 self.assertIn("+3,00", yazilar(e3))
                 self.assertNotIn("-3,00", yazilar(e0))
                 #  kapı her katta aynı:  yalnız yazı değişir
-                self.assertEqual(geometri(e0), geometri(e3))
+                self.assertEqual(yazisiz(e0), yazisiz(e3))
 
     def test_veri_tablosunda_giris_kati(self):
         g, _h, _s = cizim(**KOTLU)
@@ -171,6 +171,38 @@ class Cizim(unittest.TestCase):
         g["dusey"]["durak_adedi"] = 1
         self.assertEqual(katlar.adlar_ve_giris(g), ([], 0))
         self.assertEqual(katlar.giris_kotu(g), 0.0)
+
+
+class KirikKesit(unittest.TestCase):
+    """Kırık kesitte giriş katı kalır ( 2 Kas:  63444-2'nin A-A / B-B'sinde ara katlar
+    kesilince "0" yoktu ):  kırığa düşerse iki kırık, arada giriş katı;  kırığı
+    aşan zincirler kapanır."""
+
+    def _kesitler(self, **ek):
+        from testler.test_kotlar import KOT_63444, _kotla, _md_63444
+        from testler.test_yerlesim_saglamligi import standart_istek
+
+        v = _kotla(_md_63444(standart_istek(1000, False, "Sağ")), KOT_63444, **ek)
+        a, o = uygulama_istegi.asansor_girdileri(copy.deepcopy(v))
+        s = uygulama_hesabi.hesapla_coklu(a, o)
+        ((g, h),) = cizim_uclari.girdiler(v, a, o, s, "DENEME")
+        self.assertEqual(h, [])
+        return {ad: e for ad, _b, _o, e in pafta.cizim_listesi(g) if ad.startswith("kuyu_kesiti")}
+
+    def test_giris_kati_kirikta_kalir(self):
+        for ek, beklenen, kirik in (
+            ({}, "0", 1),
+            ({"giris_duragi": "12"}, "0", 2),
+            ({"giris_duragi": "1"}, "0", 1),
+        ):
+            for ad, e in self._kesitler(**ek).items():
+                with self.subTest(ek=ek, cizim=ad):
+                    adlar = {x["metin"] for x in e if x.get("ad") == "durak_adi"}
+                    self.assertIn(beklenen, adlar)
+                    self.assertLess(len(adlar), 21)  # kırık:  ara katlar düştü
+                    self.assertEqual(sum(x.get("ad") == "kirik_cizgisi" for x in e), 10 * kirik)
+                    for z in geometri.zincirler(e):
+                        self.assertAlmostEqual(z["toplam"], z["son"] - z["bas"])
 
 
 if __name__ == "__main__":
