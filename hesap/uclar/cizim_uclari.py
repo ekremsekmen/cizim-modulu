@@ -238,8 +238,8 @@ def grup_sorunlari(gler):
 
 def _grup(asansorler, ortak, sonuc, proje_adi, i, g, hata):
     """Proje tek kuyudaysa ( asansörün kuyudaki yeri — kopru._kuyu_duzeni ) kuyunun
-    sorunları ve ortak çizimleri ( grup.cizimleri — SVG, ekranda tıklanmaz:
-    ölçüleri iki asansörün ):  ( sorunlar , [ çizim ] ).  Öbür asansörün çizim girdisi de kurulur —
+    sorunları ve ortak çizimleri ( grup.cizimleri — SVG;  ölçüsü tıklanır:  hangi
+    asansörünse onun girdisi — _asansorun_olcusu ):  ( sorunlar , [ çizim ] ).  Öbür asansörün çizim girdisi de kurulur —
     yalnız tek kuyuda;  ayrı kuyulu proje bundan beklemez.  Öbür asansörün sorunu
     kendi ekranında söylenir, burada yalnız kuyunun planının neden çizilmediği."""
     if not g["proje"].get("grup_sirasi") or len(asansorler) != grup.AZAMI:
@@ -274,6 +274,7 @@ def _grup(asansorler, ortak, sonuc, proje_adi, i, g, hata):
                     "",
                     grup.olcegi(ad),
                     onek=f"cg{n}-",
+                    etkilesimli=True,
                     r=svg.CAD,
                 ),
             }
@@ -381,7 +382,7 @@ def _kurucu(ham, ad, proje_adi, sira):
             #  hatası ( şasesiz makinede TypeError ) yutuluyordu.
             if (
                 g is None
-                or ad not in pafta.sira(g)
+                or not pafta.cizilir(g, ad)
                 or (("g" not in taban or denetle) and cizimler.CIZIMLER[ad][0](g))
             ):
                 return None
@@ -764,10 +765,55 @@ def _olcu_bul(veri, r):
     return i, None
 
 
+#  Tek kuyunun birleşik çizimleri ( ekrandaki adı → çizimin adı — grup.ADLAR )
+_BIRLESIK = {v: k for k, v in grup.ADLAR.items()}
+
+
+def _asansorun_olcusu(veri):
+    """Tek kuyunun birleşik çiziminde ( grup — iki asansörün parçaları ) tıklanan ölçü
+    hangi asansörünse ONUN kendi çizimindeki eşine çevrilir ( olcu_kaynagi.asansorun_esi ):
+    ( { asansor, cizim, olcu, metin } , None ) ya da ( None , ileti ).  Kaynağı ve
+    değiştirmesi o asansörün bugünkü yolundan ( _cozumleme ).  Kuyunun kendi ölçüsü
+    ( dış zincir, kiriş ) bir asansörün değildir."""
+    ad = _BIRLESIK[veri["cizim"]]
+    asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
+    gs = [asansor_girdisi(asansorler, ortak, None, "", i)[0] for i in range(len(asansorler))]
+    gler = grup.gruptakiler(gs)
+    if not gler:
+        return None, "Tek kuyunun çizimi kurulamadı — yeniden tıklayın."
+    #  Ekrandakinin aynısı ( _grup — parçalar da:  yazıların yeri onlardan kaçar )
+    e = olcu_kaynagi.olculer(grup.cerceveli(gler, (), ad)[1])
+    try:
+        i = int(veri.get("olcu"))
+    except (TypeError, ValueError):
+        return None, "Ölçü belirtilmedi."
+    if not 0 <= i < len(e) or (veri.get("metin") is not None and veri["metin"] != e[i]["metin"]):
+        return None, "Çizim değişmiş — yeniden tıklayın."
+    n = e[i].get("asansor")
+    if n is None:
+        return None, (
+            "Bu ölçü kuyunun:  duvarlar, bölmeler ve ayırma kirişi Kuyu ve katlar grubunda "
+            "( bölme genişliği her asansörün kendi kuyu genişliğidir )."
+        )
+    j = next(k for k, g in enumerate(gs) if g is gler[n])
+    r = _cozumleme({**veri, "asansor": j, "cizim": ad}, ad)
+    k = None if r is None else olcu_kaynagi.asansorun_esi(e, i, r["taban"])
+    if k is None:
+        return None, "Ölçünün asansördeki eşi bulunamadı — asansörün kendi çiziminden deneyin."
+    return {"asansor": j, "cizim": ad, "olcu": k, "metin": r["taban"][k]["metin"]}, None
+
+
 @router.post("/api/uygulama/olcu")
 def api_olcu(veri: dict = Body(...)):
-    """Tıklanan ölçünün kaynakları."""
+    """Tıklanan ölçünün kaynakları.  Birleşik çizimde ölçünün asansörü ve onun
+    çizimindeki yeri de ( "kendi" — değiştirme o asansörün ölçüsüyle istenir )."""
     try:
+        kendi = None
+        if isinstance(veri.get("cizim"), str) and veri["cizim"] in _BIRLESIK:
+            kendi, hata = _asansorun_olcusu(veri)
+            if hata:
+                return JSONResponse({"aktif": False, "hata": [hata]})
+            veri = {**veri, **kendi}
         ad = veri.get("cizim")
         if not isinstance(ad, str) or ad not in cizimler.CIZIMLER:
             return JSONResponse({"aktif": False, "hata": ["Bilinmeyen çizim."]})
@@ -785,6 +831,7 @@ def api_olcu(veri: dict = Body(...)):
                 "deger": o["uzunluk"],
                 "kural": o.get("kural"),
                 "kaynaklar": _kaynaklar(r, i),
+                **({"kendi": kendi} if kendi else {}),
             }
         )
     except Exception as e:  # noqa: BLE001

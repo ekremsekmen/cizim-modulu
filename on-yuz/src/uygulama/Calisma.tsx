@@ -448,9 +448,9 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
                     konum={konum}
                     kapat={() => setOlcu(null)}
                     kaynaklarGeldi={olcuKaynaklari}
-                    yaz={(d) => {
+                    yaz={(d, n) => {
                       const degistir = (p: UygulamaProjesi) =>
-                        d.reduce((q, x) => alanYaz(q, sema, a, x.anahtar, kutuyaYaz(x.deger)), p);
+                        d.reduce((q, x) => alanYaz(q, sema, n, x.anahtar, kutuyaYaz(x.deger)), p);
                       guncelle(degistir);
                       setGeriAl(null);
                       return istekKur(degistir(proje), ofis);

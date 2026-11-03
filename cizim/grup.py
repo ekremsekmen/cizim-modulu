@@ -63,6 +63,16 @@ KIRIS_YOK = (
 PARCA_ADI = {"kabin_dis": "kabini", "agirlik_blok": "karşı ağırlığı"}
 
 
+def _isaretle(e, n):
+    """Asansörün ölçüleri kimin ( "asansor":  gruptaki sırası, 0 soldaki — ekranda
+    tıklanınca o asansörün girdisi:  olcu_kaynagi.asansorun_esi ) ;  kuyunun kendi
+    ölçüleri ( dış zincir, kiriş ) işaretsiz."""
+    for x in e:
+        if x["tip"] == "olcu":
+            x["asansor"] = n
+    return e
+
+
 def gruptakiler(gler):
     """Projenin ( çizim girdileri ) tek kuyudaki asansörleri soldan sağa;  tek kuyu
     değilse ( ya da asansörlerden biri kurulamadıysa — None ) boş."""
@@ -368,7 +378,7 @@ def plan(gler):
     parcalar, kotlar = [], []
     for n, g in enumerate(gler):
         komsu, komsu_g = ("Sağ", gler[n + 1]) if n == 0 else ("Sol", gler[n - 1])
-        e = _asansorun_plani(g, komsu, komsu_g, alt)
+        e = _isaretle(_asansorun_plani(g, komsu, komsu_g, alt), n)
         kotlar += [x["kot"] for x in e if x.get("ad") in _DUVAR_SIRASI]
         parcalar += [eleman.tasi(x, X[n]) for x in e if x.get("ad") not in _DUVAR_SIRASI]
     e = _duvarlar(gler, X) + _ayirma_kirisleri(gler, X) + parcalar + _ust_zincir(gler, X, max(kotlar))
@@ -403,6 +413,8 @@ def birlesik(gler, ad):
     eA, bA = _gevsekce(A, "Sağ", ad, X1 + GB / 2.0, _engeller(parca, X1) + serit)
     serit = [(a - X1, b, c - X1, d) for a, b, c, d in serit]
     eB, bB = _gevsekce(B, "Sol", ad, GA / 2.0 - X1, _engeller(eA, -X1) + serit)
+    _isaretle(eA, 0)
+    _isaretle(eB, 1)
     parcalar, kotlar, bosluklu = [], [], [bA, bB]
     for n, e in enumerate((eA, eB)):
         #  Perde ve adı bir kez ( soldakininki — ikisi aynı yerde )
@@ -433,6 +445,8 @@ def on_kesit(gler, azami=None):
     R, L = gler  # planın solundaki kesitte sağda
     ciz = cizimler.CIZIMLER["kuyu_kesiti_on"][1]
     eL, eR = (ciz(g, azami=azami) if azami else ciz(g) for g in (L, R))
+    _isaretle(eL, 1)
+    _isaretle(eR, 0)
     GL, h = L["kuyu"]["genislik"], L["kuyu"]["duvar_sol"]
     X1, orta = GL + h, GL + h / 2.0
     #  Soldaki:  aradaki konsol ölçüleri dışa, aradaki seviye harfleri gider
@@ -483,7 +497,7 @@ def makine_dairesi(gler):
     X1 = _x0lar(gler)[1]
     GA = A["kuyu"]["genislik"]
     ciz = cizimler.CIZIMLER["makine_dairesi"][1]
-    eA, eB = ciz(A), [eleman.tasi(x, X1) for x in ciz(B)]
+    eA, eB = _isaretle(ciz(A), 0), [eleman.tasi(x, X1) for x in _isaretle(ciz(B), 1)]
     zincir = next((x["kot"] for x in eA if x.get("ad") == "olcu_kuyu_genisligi"), None)
 
     def oda_mi(x):

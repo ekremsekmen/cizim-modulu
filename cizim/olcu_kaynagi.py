@@ -81,6 +81,23 @@ def _sira_ile(o, i, taban, yeni):
     return ayni[m] if m < len(ayni) else None
 
 
+def asansorun_esi(birlesik, i, kendi):
+    """Tek kuyunun birleşik çizimindeki i. ölçünün ( asansörü işaretli — grup._isaretle )
+    o asansörün KENDİ çizimindeki eşi:  aynı sözlü ve aynı yazılı ölçüler arasındaki
+    sırasıyla ( birleşik çizim asansörün ölçülerini sırasıyla alır, yerlerini
+    değiştirir — kendi yanına, komşudan kaçarak ).  Ondalık virgül birleşikte
+    yazılır ( grup — geometri.ondalik_virgul ).  Eşi yoksa None."""
+    o, n = birlesik[i], birlesik[i].get("asansor")
+
+    def anahtar(p):
+        return _imza(p), (p.get("metin") or "").replace(",", ".")
+
+    k = anahtar(o)
+    m = sum(1 for p in birlesik[:i] if p.get("asansor") == n and anahtar(p) == k)
+    ayni = [j for j, q in enumerate(kendi) if anahtar(q) == k]
+    return ayni[m] if m < len(ayni) else None
+
+
 def eslestir(taban, yeni, tolerans=None, sira_yedek=False):
     """Taban ölçülerinin yeni listedeki karşılıkları ( indeks ya da None ).
 

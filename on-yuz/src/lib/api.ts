@@ -245,6 +245,9 @@ export interface OlcuYanit {
   deger?: number;
   kural?: string | null;
   kaynaklar?: OlcuKaynagi[];
+  /**  Tek kuyunun birleşik çiziminde ölçünün asansörü ve onun çizimindeki yeri:
+       değiştirme bununla istenir, değişiklik o asansöre yazılır  */
+  kendi?: { asansor: number; cizim: string; olcu: number; metin: string };
   hata?: string[];
 }
 
