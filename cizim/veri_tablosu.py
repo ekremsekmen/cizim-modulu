@@ -14,6 +14,7 @@ from cizim import arka_aski
 from cizim import dusey
 from cizim import eleman
 from cizim import geometri
+from cizim import katlar
 from cizim import kisaltmalar
 from cizim import sabitler
 from cizim import uslup
@@ -68,6 +69,10 @@ def satirlar(g):
     ekle("Beyan hızı", f"{dy['beyan_hizi']:.2f} m/s")
     kotlar, _hata = dusey.durak_kotlari(g)
     ekle("Durak  ·  seyir", f"{dy['durak_adedi']} durak", f"{kotlar[-1]:g} mm" if kotlar else None)
+    #  Binanın giriş katı ( KAT_ADLARI_PLANI ):  adı ve kotu
+    if kotlar:
+        adlar, giris = katlar.adlar_ve_giris(g)
+        ekle("Giriş katı", adlar[giris], dusey.kot_yazisi(kotlar[giris], dusey.kot_ofseti(g)))
     ekle("Askı", _aski(g))
     ekle("Tahrik", mk.get("tip"), mk.get("yeri"), birimli(v.get("motor_gucu"), "kW"))
     ekle("Tahrik kasnağı", f"ø{mk['tahrik_kasnak_capi']:g}" if mk.get("tahrik_kasnak_capi") else None)

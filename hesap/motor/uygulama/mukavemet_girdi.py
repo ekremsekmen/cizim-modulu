@@ -429,11 +429,12 @@ def _kottan(g):
     altı alan kotlardan yazılır;  hesap da çizim de bu sayıları okur
     ( KOT_PLANI § 1.2 ).  Tablo hatalıysa türeyenler boş kalır ( varsayılanla
     hesaplanmasın ) ve hesap _kot_tablosu denetiminde durur.  Her tamamla'da
-    yeniden:  girdi değişince türeyen de değişir."""
+    yeniden:  girdi değişince türeyen de değişir.  "_kot"ta kat adları da var
+    ( katlar.ad_tablosu — ön yüzün kot tablosu;  hesaba girmez )."""
     if katlar.kot_kipi(g):
         turetilen, kot, hata = katlar.kot_tablosu(g, kopru.tavan_dosemesi(g), not kopru.mrl_mi(g))
         g.update(turetilen or dict.fromkeys(gorunum.kip_disi(True)))
-        g["_kot"] = {**kot, "hata": hata}
+        g["_kot"] = {**kot, "hata": hata, **katlar.ad_tablosu(g)}
 
 
 def tamamla(g):

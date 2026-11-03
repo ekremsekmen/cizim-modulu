@@ -23,6 +23,8 @@ import math
 
 from temel import sayi_mi
 from cizim import izli
+from cizim import dusey
+from cizim import sorun
 from cizim.dusey import ESIK_ARASI
 from tasarim import alanlar
 import re
@@ -146,6 +148,105 @@ def kotlari_oku(ham):
                 f"{i}. kottan ( {kot_metni(a)} ) aşağıda."
             ]
     return kotlar, []
+
+
+#  Durağın adı en çok bu kadar karakter:  kesitte kot işaretinin üstüne sığar
+#  ( "OTOPARK -2", "ZEMİN KAT" )
+AD_AZAMI = 12
+
+
+def durak_adlari(ham, giris, kotlar):
+    """KAT ADLARI VE GİRİŞ KATI — tek yer ( KAT_ADLARI_PLANI.md ):  durakların adları
+    ve giriş katının sırası.
+
+        ham      durak_adlari:  metin ( noktalı virgülle, alttan üste ) ya da liste;  boş
+                 parça kuraldandır ( None:  hepsi kuraldan )
+        giris    giris_duragi:  kaçıncı durak ( 1'den ) ya da None
+        kotlar   durakların MİMARİ kotları ( mm, alttan üste — kotla girişte ofsetli;
+                 ölçüyle girişte en alt durak 0 )
+
+    Giriş katı:  verilmişse o;  yoksa kotu ±0,00'a EN YAKIN durak ( eşitse üstteki ) —
+    ofisin 12 LD paftasının 12'sinde LD'nin "0" katı ( 1275:  bodrum −2,50, zemin +0,50 →
+    zemin;  4815-6:  en alt durak +0,18 → o ).  Kotu ±0,00 olan durak varsa odur.
+    Kuraldan ad:  giriş katı "0", altındakiler "-1", "-2" …, üstündekiler "1", "2" …
+    ( LiftDesigner ve ofisin LD paftaları ).  Döner:  ( adlar , giriş sırası 0'dan , [ ileti ] )
+    — iletide adlar ve giriş yine kuraldan ( çizim yazısız kalmasın )."""
+    n = len(kotlar)
+    hata = []
+    giris = None if giris is None else int(giris)  # sıra:  izsiz ( izlemede izli gelir )
+    if giris is not None and not (1 <= giris <= n):
+        hata.append(f"giriş katı {giris}. durak olamaz — {n} durak var ( 1 … {n} ).")
+        giris = None
+    g = giris - 1 if giris is not None else min(range(n), key=lambda i: (abs(kotlar[i]), -i))
+    if ham is None:
+        parca = []
+    elif isinstance(ham, (list, tuple)):
+        parca = ["" if p is None else str(p) for p in ham]
+    else:
+        parca = re.split(r"[;\n]", str(ham))
+        while parca and not parca[-1].strip():
+            parca.pop()
+    parca = [p.strip() for p in parca]
+    if len(parca) > n:
+        hata.append(f"{len(parca)} ad yazılmış, {n} durak var — fazla adları silin.")
+        parca = parca[:n]
+    adlar = [p or str(i - g) for i, p in enumerate(parca + [""] * (n - len(parca)))]
+    uzun = [a for a in adlar if len(a) > AD_AZAMI]
+    if uzun:
+        hata.append(f"durak adı en çok {AD_AZAMI} karakter olur ( {uzun[0]!r} ).")
+    tekrar = sorted({a for a in adlar if adlar.count(a) > 1})
+    if tekrar:
+        hata.append(f"iki durağın adı aynı olamaz ( {', '.join(repr(a) for a in tekrar)} ).")
+    if hata:
+        adlar = [str(i - g) for i in range(n)]
+    return adlar, g, hata
+
+
+def ad_tablosu(A):
+    """Kot tablosunun ad sütunu ( mukavemet_girdi._kottan → yanıtın girdisinin "_kot"u:
+    ön yüz kuraldan adı soluk gösterir, kendisi hesaplamaz ):  { "adlar" : [ ad ]
+    ( alttan;  boş olan kuraldan ) , "giris" : giriş katı ( 1'den ) , "ad_hatasi" :
+    [ ileti ] }.  Kotlar okunamıyorsa {} ( sebebini kot tablosu söyler )."""
+    kotlar, iletiler = kotlari_oku(A.get(alanlar.DURAK_KOTLARI))
+    if iletiler or not kotlar:
+        return {}
+    adlar, giris, hata = durak_adlari(A.get(alanlar.DURAK_ADLARI), A.get(alanlar.GIRIS_DURAGI), kotlar)
+    return {"adlar": adlar, "giris": giris + 1, "ad_hatasi": hata}
+
+
+def adlar_ve_giris(g):
+    """Çizimin durak adları ve giriş katının sırası ( 0'dan ):  köprünün yazdığı
+    ( g["dusey"]["durak_adlari"] · ["giris_duragi"] — kopru._durak_adlari ), yoksa
+    kuraldan ( elle kurulmuş çizim girdisi:  testlerin örnekleri;  köprüden sonra
+    durak sayısı değişmiş girdi ).  Durak yoksa ( [] , 0 )."""
+    kotlar, _h = dusey.durak_kotlari(g)
+    if not kotlar:
+        return [], 0
+    dy = g["dusey"]
+    adlar = dy.get("durak_adlari")
+    if adlar and len(adlar) == len(kotlar):
+        return adlar, dy["giris_duragi"] - 1
+    ofset = dusey.kot_ofseti(g)
+    adlar, giris, _hata = durak_adlari(None, None, [round(ofset + z) for z in kotlar])
+    return adlar, giris
+
+
+def ad_sorunlari(g):
+    """Kat adlarının sorunları ( kopru._durak_adlari — fazla / aynı / uzun ad, aralık
+    dışı giriş ) — kesitlerin doğrulaması ( kuyu_kesiti.dogrula ):  pafta ve teslim
+    durur, ekran kesiti kuraldan adlarla çizer;  hesap durmaz ( adlar yalnız yazı )."""
+    return [
+        sorun.Sorun(f"Kat adları:  {h}", ("durak_adi",), "kuyu_kesiti_yan")
+        for h in (g.get("dusey") or {}).get("ad_hatasi") or []
+    ]
+
+
+def giris_kotu(g):
+    """Giriş katının durağının iç kotu ( mm, en alt durak 0 ) — giriş görünüşünün ve
+    kapı kesitinin kot yazısı:  kapı her katta aynıdır, yazı giriş katınındır."""
+    kotlar, _h = dusey.durak_kotlari(g)
+    _adlar, giris = adlar_ve_giris(g)
+    return kotlar[giris] if kotlar else 0.0
 
 
 def kot_kipi(A):

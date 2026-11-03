@@ -117,8 +117,14 @@ def durak_kotlari(g, cizim_sabitleri=None):
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     esik = S["esik_kalinlik"] if kp.get("montaj") == "Duvar boşluğuna" else 0.0
     bosluk_h = kapi_h + S["kapi_ust_payi"] + esik
+    #  Katların adı ( kopru._durak_adlari — KAT_ADLARI_PLANI );  köprüsüz girdide sırası
+    adlar = dy.get("durak_adlari")
     for i, h in enumerate(araliklar):
-        ad = f"{i + 1}. – {i + 2}. durak arası {h:g} mm"
+        ad = (
+            f"{adlar[i]} ile {adlar[i + 1]} katları arası {h:g} mm"
+            if adlar and len(adlar) == n
+            else f"{i + 1}. – {i + 2}. durak arası {h:g} mm"
+        )
         if h <= kapi_h:
             hata.append(
                 sorun.Sorun(

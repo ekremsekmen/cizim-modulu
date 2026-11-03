@@ -2,7 +2,9 @@
 """
 GİRİŞ GÖRÜNÜŞÜ  —  kat kapısı durak tarafından ( LiftDesigner "Giriş" gibi )
 
-En alt durağın kapısı, kuyunun ön duvarına durak tarafından bakılarak:  duvardaki
+Giriş katının kapısı ( 2 Kas'a kadar en alt durağın — KAT_ADLARI_PLANI;  kapı her
+katta aynı, kot yazısı giriş katının:  katlar.giris_kotu ), kuyunun ön duvarına
+durak tarafından bakılarak:  duvardaki
 kaba boşluk, kasa, kanatlar, eşik, kat göstergesi, kat butonu ve yuvası, kapı
 ekseni, döşemenin kotu.  Ölçüler kuyunun iç yüzlerine bağlanır ( iç yüzler kesik
 çizgiyle gösterilir — görünüşte duvarın gerisindedir ).
@@ -30,6 +32,7 @@ from cizim import istek_onbellegi
 from cizim import eleman
 from cizim import kisaltmalar
 from cizim import dusey
+from cizim import katlar
 from cizim import geometri
 from cizim import girdi
 from cizim import kesit_parcalari
@@ -209,8 +212,10 @@ def ciz(g, cizim_sabitleri=None):
     e.append(eleman.ad(eleman.cizgi("EKSEN", xc, -300, xc, ust, tip="eksen"), "kapi_ekseni"))
     #  İşaretin yeri ölçüyle girişin yazısına ( "±0,00" ) göre:  kot geometriye
     #  girmez, kotlar kayınca işaret yerinde kalır.  Uzun kotta yalnız yazı kayar.
+    #  Görünüş GİRİŞ KATININ kapısıdır ( katlar.adlar_ve_giris — KAT_ADLARI_PLANI ):
+    #  kapı her katta aynı, yazı o katın kotu
     u = _kot_yeri(e, xc + 150, dusey.kot_yazisi(0.0), x1 - x0)
-    kesit_parcalari.kot_isareti(e, u, 0.0, dusey.kot_yazisi(0.0, dusey.kot_ofseti(g)), 1.0)
+    kesit_parcalari.kot_isareti(e, u, 0.0, dusey.kot_yazisi(katlar.giris_kotu(g), dusey.kot_ofseti(g)), 1.0)
     kot = e[-1]
     _yaziyi_sigdir(e, kot)
 

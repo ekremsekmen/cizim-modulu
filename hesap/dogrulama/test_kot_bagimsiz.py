@@ -48,6 +48,18 @@ sözleşmenin eksiğiydi ):
      not farklı olabilir ( not bir satır ekler:  tablo o satır kadar büyür, yeri
      kayar ).
 
+SÖZLEŞMENİN DÜZELTMESİ ( 2 Kas, kullanıcı kararı — kat adları ve giriş katı,
+cikti/devir/KAT_ADLARI_PLANI.md ):
+  -  B2:  giriş görünüşü ve kapı kesiti GİRİŞ KATININ kapısıdır ( eskiden en alt
+     durağın ):  giriş katı girilmişse ( giris_duragi:  kaçıncı durak, 1'den ) o,
+     girilmemişse kotu ±0,00'a en yakın durak ( eşitse üstteki );  kot yazısı o
+     durağın kotu.
+  -  B4:  kesitlerin durak adları giriş katından sayılır ( 0, altı −1, üstü 1 … ) —
+     kuraldan giriş katı kotların mutlak değerine bağlı olduğu için ikizde ve
+     kaymada giriş katı GİRİLİR ( 63444-2:  ±0,00'ın durağı, 3. );  o zaman adlar
+     aynı kalır.  Veri tablosunun "Giriş katı" satırının değeri "ad  ·  kot":
+     kot kısmı kot yazısıdır ( ikizde ve kaymada öteki kot yazıları gibi kayar ).
+
 B6 ( dosya gidiş-dönüşü ):  paketin ZIP'inde proje dosyası varsa kotlar orada
 yazıldığı gibi ( "−7,00" ) kalmalı;  yoksa kapsam dışı ( ön yüzün dosyası —
 uçtan uca testi ), bulgu sayılmaz.
@@ -178,6 +190,22 @@ def yazi_kotu(metin):
         return None
     mm = int(m.group(2)) * 1000 + int(m.group(3)) * 10
     return -mm if m.group(1) == "-" else mm
+
+
+#  2 Kas düzeltmesi ( B4 ):  veri tablosunun "Giriş katı" satırı "ad  ·  kot"
+_AD_VE_KOT = re.compile(r"(.+?)\s+·\s+(\S+)")
+
+
+def kot_parcasi(metin):
+    """( kot dışı kısım , kot metni ) — yazının tamamı kotsa ( None , kot ), "ad  ·  kot"
+    ise ( "ad  ·" , kot ), kot yoksa ( yazı , None )."""
+    metin = metin.strip()
+    if yazi_kotu(metin) is not None:
+        return None, metin
+    m = _AD_VE_KOT.fullmatch(metin)
+    if m and yazi_kotu(m.group(2)) is not None:
+        return m.group(1) + "  ·", m.group(2)
+    return metin, None
 
 
 def ara_duraklar(alt, ust, aralik=3000, azami=11000):
@@ -506,9 +534,9 @@ def kot_yazilari(b):
     cikti = []
     for e in disassemble.recursive_decompose(b):
         if e.dxftype() in METIN:
-            metin = yazi(e).strip()
-            if (k := yazi_kotu(metin)) is not None:
-                cikti.append((k, e.dxf.insert.x, e.dxf.insert.y, metin))
+            _disi, metin = kot_parcasi(yazi(e))
+            if metin is not None:
+                cikti.append((yazi_kotu(metin), e.dxf.insert.x, e.dxf.insert.y, metin))
     return cikti
 
 
@@ -685,9 +713,9 @@ def geometri_farki(d1, d2, haric=frozenset(), azami=5):
 
 def kot_disi_yazilar(b):
     return Counter(
-        yazi(e).strip()
+        disi
         for e in disassemble.recursive_decompose(b)
-        if e.dxftype() in METIN and yazi_kotu(yazi(e)) is None
+        if e.dxftype() in METIN and (disi := kot_parcasi(yazi(e))[0]) is not None
     )
 
 
@@ -728,8 +756,12 @@ def veri_tablosu_farki(d_kot, d_olcu):
         return y + h if y < ny - 0.5 else y
 
     cikti = []
-    kalan = Counter((m, _r(x), _r(ty(y))) for m, x, y in y1 if (m, x, y) not in (notlar[0], numara[0]))
-    olcu = Counter((m, _r(x), _r(y)) for m, x, y in y2)
+    #  Kot yazıları ikizde farklı olabilir ( B4 ):  "Giriş katı" satırının kot kısmı
+    #  test_ikizin_kot_yazilari_en_alt_durak_sifir'de denetlenir
+    kalan = Counter(
+        (kot_parcasi(m)[0], _r(x), _r(ty(y))) for m, x, y in y1 if (m, x, y) not in (notlar[0], numara[0])
+    )
+    olcu = Counter((kot_parcasi(m)[0], _r(x), _r(y)) for m, x, y in y2)
     if kalan != olcu:
         cikti.append(
             f"yazılar ( not çıkarılınca ):  yalnız kotta {sorted((kalan - olcu).elements())[:5]} · "
@@ -988,12 +1020,17 @@ class B2CizimTablo(_Ortak):
             with self.subTest(kesit, denetim="biçim:  iki ondalık · ±0,00 · +3,20 · -7,00"):
                 self.assertEqual([m for k, *_, m in kotlar if m != pafta_kotu(k)], [])
 
-    def test_kapi_gorunusleri_en_alt_durak(self):
-        for ad in KAPI_GORUNUSLERI:
-            b = blok(self.doc, ad)
-            with self.subTest(ad):
-                self.assertIsNotNone(b)
-                self.assertEqual(sorted({m for *_, m in kot_yazilari(b)}), [pafta_kotu(A_DURAKLAR[0])])
+    def test_kapi_gorunusleri_giris_kati(self):
+        """2 Kas düzeltmesi:  giriş katının kapısı — girilmemişse kotu ±0,00'a en yakın
+        durak ( 63444-2:  ±0,00 ), girilmişse o ( 1. durak:  −7,00 )."""
+        kural = min(A_DURAKLAR, key=lambda k: (abs(k), -k))
+        for doc, beklenen in ((self.doc, kural), (dxf(a_kotla(giris_duragi="1")), A_DURAKLAR[0])):
+            self.assertNotIsInstance(doc, dict, paket_iletisi(doc))
+            for ad in KAPI_GORUNUSLERI:
+                b = blok(doc, ad)
+                with self.subTest(ad, giris=pafta_kotu(beklenen)):
+                    self.assertIsNotNone(b)
+                    self.assertEqual(sorted({m for *_, m in kot_yazilari(b)}), [pafta_kotu(beklenen)])
 
     def test_kot_yazilari_dogru_yukseklikte(self):
         """Kırığı açılmış yükseklik ( mm ) − ( kot − en alt durak ) bütün kot
@@ -1128,9 +1165,12 @@ class B4IkizVeKaymaHesap(_Ortak):
 class B4IkizVeKaymaCizim(_Ortak):
     @classmethod
     def setUpClass(cls):
-        cls.taban = dxf(a_kotla())
-        cls.ikiz = dxf(a_olcuyle())
-        cls.kayik = {k: dxf(a_kotla(k)) for k in KAYMALAR}
+        #  2 Kas düzeltmesi:  giriş katı girilir ( 63444-2'nin ±0,00 durağı, 3. ) —
+        #  kuraldan giriş katı kotların mutlak değerine bağlıdır
+        giris = {"giris_duragi": str(1 + A_DURAKLAR.index(0))}
+        cls.taban = dxf(a_kotla(**giris))
+        cls.ikiz = dxf(a_olcuyle(**giris))
+        cls.kayik = {k: dxf(a_kotla(k, **giris)) for k in KAYMALAR}
 
     def setUp(self):
         for d in (self.taban, self.ikiz, *self.kayik.values()):

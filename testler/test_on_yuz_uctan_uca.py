@@ -453,6 +453,86 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(sonra, once)
         self.assertEqual(hesap_sonra, hesap_once)
 
+    def _pafta_yazilari(self):
+        return self.sayfa.evaluate(
+            "[...document.querySelectorAll('svg text')].map(x => x.textContent.trim())"
+        )
+
+    def test_kat_adlari_ve_giris_kati(self):
+        """KAT_ADLARI_PLANI 3. adım:  kot tablosunda ad yazılır ( boşu kuraldan, soluk —
+        sunucunun "_kot"undan ), kapı düğmesi giriş katını seçer;  pafta adları ve giriş
+        katının kotunu yazar;  durak silinince adlar ve giriş kayar;  dosyada kalır.
+        Aynı ad paftayı durdurur, hesabı durdurmaz."""
+        self.ornek_projeyi_ac()
+        girdiler = self._katlar()
+        self.assertEqual(
+            girdiler.get_by_label("1. durağın adı", exact=True).get_attribute("placeholder"), "0"
+        )
+        ad = girdiler.get_by_label("1. durağın adı", exact=True)
+        ad.fill("OTOPARK")
+        ad.press("Enter")
+        girdiler.get_by_role("button", name="3. durak giriş katı", exact=True).click()
+        self.iz.sakin()
+        istek, _h = self._hesap_istegi()
+        a = istek["asansorler"][0]
+        self.assertEqual((a["durak_adlari"], a["giris_duragi"]), ("OTOPARK", "3"))
+        self.assertEqual(
+            girdiler.get_by_label("2. durağın adı", exact=True).get_attribute("placeholder"), "-1"
+        )
+        self.assertEqual(
+            girdiler.get_by_role("button", name="3. durak giriş katı", exact=True).get_attribute(
+                "aria-pressed"
+            ),
+            "true",
+        )
+        self.iz.son("/api/uygulama/cizimler")
+        y = self._pafta_yazilari()
+        self.assertIn("OTOPARK", y)
+        self.assertIn("0  ·  +6,00", y)  # veri tablosu:  giriş katı
+        #  Giriş katı silinir:  adı olan 1. durak gider, giriş 3 → 2
+        girdiler.get_by_role("button", name="1. durak — sil", exact=True).click()
+        self.iz.sakin()
+        istek, _h = self._hesap_istegi()
+        a = istek["asansorler"][0]
+        self.assertNotIn("durak_adlari", a)
+        self.assertEqual(a["giris_duragi"], "2")
+        #  Aynı ad:  pafta durur, hesap eksiksiz
+        _i, temiz = self._hesap_istegi()
+        ad = girdiler.get_by_label("1. durağın adı", exact=True)
+        ad.fill("1")
+        ad.press("Enter")
+        self.iz.sakin()
+        _i, hesap = self._hesap_istegi()
+        self.assertTrue(
+            girdiler.get_by_text(re.compile("Kat adları:  iki durağın adı aynı olamaz")).is_visible()
+        )
+        self.assertEqual(
+            [b.get("sonuc") for b in hesap["asansorler"][0]["bolumler"]],
+            [b.get("sonuc") for b in temiz["asansorler"][0]["bolumler"]],
+        )
+        ad.fill("ZEMİN KAT")
+        ad.press("Enter")
+        self.iz.sakin()
+        once, _h = self._hesap_istegi()
+        self.assertEqual(once["asansorler"][0]["durak_adlari"], "ZEMİN KAT")
+        #  Dosyaya kaydet, boş bir tarayıcıda aç:  adlar ve giriş aynen
+        self.sayfa.get_by_role("button", name=re.compile("Örnek proje")).first.click()
+        with self.sayfa.expect_download() as indirme:
+            self.sayfa.get_by_role("button", name="Dosyaya kaydet").click()
+        with tempfile.TemporaryDirectory() as klasor:
+            dosya = os.path.join(klasor, "adli.uygulama")
+            indirme.value.save_as(dosya)
+            self.sayfa.evaluate("localStorage.clear()")
+            self.sayfa.goto(self.url + "/")
+            for u in self.iz.ciftler.values():
+                u.clear()
+            with self.sayfa.expect_file_chooser() as secici:
+                self.sayfa.get_by_role("button", name="Dosya seç").click()
+            secici.value.set_files(dosya)
+            self.sayfa.wait_for_url(re.compile(r"/uygulama/[0-9a-z]{6,}$"))
+        sonra, _h = self._hesap_istegi()
+        self.assertEqual(sonra, once)
+
     def test_eski_dosyanin_onay_kutusu_sunucunun_okudugu_secenek(self):
         """24 Eki ( dış inceleme ):  makine yükünün yolu eskiden onay kutusuydu;
         eski dosyanın işaretsizi ( false ) sunucuda "Bina yapısına" okunur

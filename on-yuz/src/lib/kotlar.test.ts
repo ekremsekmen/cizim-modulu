@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import yazimlar from "./kot-yazimlari.json";
 import {
+  adTablosu,
+  adlariOku,
+  adlariYaz,
   araligiYaz,
+  durakSayisi,
+  durakSil,
+  girisOku,
   hizliDoldur,
   kaydir,
   kotOku,
@@ -108,5 +114,40 @@ describe("ön yüzün denetimi öbür kipin alanına bakmaz", () => {
     expect(kipGizlileri(SEMA, { durak_kotlari: "0; 3" }).has("durak_adedi")).toBe(true);
     expect(formHatalari(SEMA, proje({ durak_kotlari: "0; 3", durak_adedi: "250" }))).toEqual([]);
     expect(formHatalari(SEMA, proje({ durak_adedi: "250" }))).toHaveLength(1);
+  });
+});
+
+describe("kat adları ve giriş katı ( KAT_ADLARI_PLANI — sunucu:  katlar.durak_adlari )", () => {
+  it("adlar sırasıyla okunur:  boş ad kuraldan, sondaki boşlar atılır", () => {
+    expect(adlariOku("OTOPARK; ; ZEMİN; ;")).toEqual(["OTOPARK", "", "ZEMİN"]);
+    expect(adlariOku(undefined)).toEqual([]);
+    expect(adlariYaz(["", "ZEMİN KAT", "", ""])).toBe("; ZEMİN KAT");
+    expect(adlariYaz(["", ""])).toBe("");
+    //  Noktalı virgül adı bölmesin ( adların yeri kayardı )
+    expect(adlariYaz(["A;B", "C"])).toBe("A B; C");
+  });
+
+  it("giriş katı:  1'den tam sayı, yoksa null", () => {
+    expect([girisOku("3"), girisOku(""), girisOku(undefined), girisOku("0"), girisOku("2,5")]).toEqual([3, null, null, null, null]);
+  });
+
+  it("durak silinince üstündekilerin adı bir aşağı kayar, giriş katı ona göre", () => {
+    const h = { durak_kotlari: "-3,00; ±0,00; +3,00; +6,00", durak_adlari: "B1; ZEMİN; ; ÇATI", giris_duragi: "3" };
+    expect(durakSil(h, 1)).toEqual({ durak_kotlari: "-3,00; +3,00; +6,00", durak_adlari: "B1; ; ÇATI", giris_duragi: "2" });
+    //  Giriş katı silinirse kurala döner;  adı olmayan üst durak silinince adlar yerinde
+    expect(durakSil(h, 2)).toEqual({ durak_kotlari: "-3,00; ±0,00; +6,00", durak_adlari: "B1; ZEMİN; ÇATI", giris_duragi: "" });
+    expect(durakSil({ ...h, durak_adlari: "B1" }, 3)).toEqual({ durak_kotlari: "-3,00; ±0,00; +3,00" });
+  });
+
+  it("durak sayısı azalınca fazla adlar ve aşan giriş katı düşer", () => {
+    const h = { durak_adlari: "B1; ZEMİN; ; ÇATI", giris_duragi: "4" };
+    expect(durakSayisi(h, 3)).toEqual({ durak_adlari: "B1; ZEMİN", giris_duragi: "" });
+    expect(durakSayisi(h, 8)).toEqual({});
+  });
+
+  it("kuraldan adlar sunucudan ( yanıtın girdisinin _kot'u )", () => {
+    expect(adTablosu({ _kot: { adlar: ["-1", "0", "1"], giris: 2, ad_hatasi: [] } })).toEqual({ adlar: ["-1", "0", "1"], giris: 2, hata: [] });
+    expect(adTablosu(undefined)).toEqual({ adlar: [], giris: null, hata: [] });
+    expect(adTablosu({ _kot: null })).toEqual({ adlar: [], giris: null, hata: [] });
   });
 });

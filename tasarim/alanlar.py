@@ -75,6 +75,9 @@ MUK, ELK, CIZ = "mukavemet", "elektrik", "cizim"
 #  KAT GİRİŞİNİN İKİ KİPİ ve kipi belirleyen alan ( modülün başındaki açıklama )
 KOT, OLCU = "kot", "olcu"
 DURAK_KOTLARI = "durak_kotlari"
+#  KAT ADLARI VE GİRİŞ KATI ( cikti/devir/KAT_ADLARI_PLANI.md, 2 Kas ):  durakların
+#  paftadaki adları ve binanın giriş katı — yalnız yazı ( cizim/katlar.durak_adlari )
+DURAK_ADLARI, GIRIS_DURAGI = "durak_adlari", "giris_duragi"
 
 #  TS EN 81-50 m.5.11.2.2.2 — hesaba girecek en küçük acil frenleme yavaşlaması.
 ACIL_FRENLEME_ASGARI = 0.5
@@ -513,6 +516,43 @@ _GRUPLAR = (
                     "( örnek: −7,00; −3,50; ±0,00; +3,20 ). Bitmiş döşeme kotlarıdır. Girilince durak "
                     "adedi, seyir, kat yükseklikleri, kuyu dibi, son kat ve tabliye kotlardan türer; "
                     "boşsa bunlar ölçü olarak girilir."
+                ),
+            ),
+            #  KAT ADLARI ( KAT_ADLARI_PLANI 2 Kas ):  LiftDesigner ve ofisin LD paftaları
+            #  gibi giriş katı 0, altı −1, −2, üstü 1, 2 …;  elle yazılan ad onun yerine
+            #  geçer.  Yalnız yazı:  hesaba ve geometriye girmez ( sözleşmesi CIZ ).
+            A(
+                DURAK_ADLARI,
+                "Durak adları",
+                "—",
+                "metin",
+                None,
+                None,
+                kaynak=GIRDI,
+                sozlesme=CIZ,
+                opsiyonel=True,
+                bilgi=(
+                    "Durakların paftadaki adları, en alt duraktan başlayarak noktalı virgülle "
+                    "( örnek: -1; ZEMİN; 1; 2 ). Boş bırakılan ad giriş katından sayılır: giriş katı 0, "
+                    "altındakiler -1, -2 …, üstündekiler 1, 2 … Ad en çok 12 karakterdir."
+                ),
+            ),
+            A(
+                GIRIS_DURAGI,
+                "Giriş katı  ( kaçıncı durak )",
+                "adet",
+                "sayi",
+                None,
+                None,
+                kaynak=GIRDI,
+                sozlesme=CIZ,
+                opsiyonel=True,
+                tam_sayi=True,
+                pozitif=True,
+                bilgi=(
+                    "Binanın giriş katı olan durağın sırası ( en alt durak 1 ). Boşsa kotu ±0,00'a en "
+                    "yakın durak. Durak adları bu kattan sayılır; giriş görünüşü ve kapı kesiti bu katın "
+                    "kapısını gösterir."
                 ),
             ),
             A(
@@ -3171,6 +3211,8 @@ KUYU_ORTAK = frozenset(
         "son_kat_yuksekligi",
         "kuyu_dibi",
         DURAK_KOTLARI,
+        DURAK_ADLARI,
+        GIRIS_DURAGI,
         "kuyu_dibi_kotu",
         "kuyu_tavani_kotu",
         "kuyu_duvar_kalinligi",

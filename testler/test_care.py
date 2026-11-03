@@ -257,6 +257,11 @@ class Care(unittest.TestCase):
             care_uclari.kimlik("1. – 2. durak arası 1000 mm:  kat kapısı"),
             care_uclari.kimlik("3. – 4. durak arası 900 mm:  kat kapısı"),
         )
+        #  Durak adlarıyla ( KAT_ADLARI_PLANI ):  sayı adları da atılır
+        self.assertEqual(
+            care_uclari.kimlik("-1 ile 0 katları arası 1000 mm:  kat kapısı"),
+            care_uclari.kimlik("2 ile 3 katları arası 900 mm:  kat kapısı"),
+        )
 
 
 if __name__ == "__main__":

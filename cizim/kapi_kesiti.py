@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-KAPI YAN KESİTİ  —  en alt durağın kapısı, ortasından düşey kesit ( 1/20 )
+KAPI YAN KESİTİ  —  giriş katının kapısı, ortasından düşey kesit ( 1/20 )
+( 2 Kas'a kadar en alt durağın;  kapı her katta aynı, yazı giriş katının kotu —
+katlar.giris_kotu, KAT_ADLARI_PLANI )
 
 LiftDesigner'ın "Front Entrance Side View"ü ve Wittur'un kat kapısı montaj
 kesiti ( SB.2.007539 s.17 ) gibi:  kat tarafındaki duvar ve döşeme, kasa, üst
@@ -21,6 +23,7 @@ from cizim import eleman
 from cizim import kisaltmalar
 from cizim import uslup
 from cizim import dusey
+from cizim import katlar
 from cizim import geometri
 from cizim import girdi
 from cizim import kesit_parcalari
@@ -112,7 +115,7 @@ def ciz(g, cizim_sabitleri=None):
     _duvar_ve_doseme(e, Y, don, z_alt)
     _kat_kapisi(e, Y, tan)
     _kabin(e, Y)
-    _yazilar(e, Y, don, tan, dusey.kot_ofseti(g))
+    _yazilar(e, Y, don, tan, dusey.kot_ofseti(g), katlar.giris_kotu(g))
     _olculer(e, Y, don, z_alt)
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     geometri.yazilari_yerlestir(e)
@@ -220,7 +223,7 @@ def _adli(e, u, z, metin, ad, hedef):
     e.append(eleman.ad(eleman.ok("YAZI", u - 15.0, z, hedef[0], hedef[1]), "etiket_oku"))
 
 
-def _yazilar(e, Y, don, tan, ofset):
+def _yazilar(e, Y, don, tan, ofset, giris_kotu):
     """KAT ve KABİN yazıları, parça adları, durağın kot işareti.  Parça adlarının
     okları kabinin ve kanatların üstünden geçmez — sac ve önlük döşemenin
     altında, üst kutu kabin panosunun üstünden."""
@@ -246,7 +249,9 @@ def _yazilar(e, Y, don, tan, ofset):
     _adli(e, on_u + 200.0, zo_, "ÖNLÜK", "onluk_yazisi", (on_u, zo_))
     ku = Y["ust_kutu"]
     _adli(e, on + 140.0, ku[3] + 220.0, "ÜST KUTU", "ust_kutu_yazisi", (KB["hat"], ku[3]))
-    kesit_parcalari.kot_isareti(e, -don - DOSEME_GOSTERIM + 150.0, 0.0, dusey.kot_yazisi(0.0, ofset), 1.0)
+    kesit_parcalari.kot_isareti(
+        e, -don - DOSEME_GOSTERIM + 150.0, 0.0, dusey.kot_yazisi(giris_kotu, ofset), 1.0
+    )
 
 
 def _olculer(e, Y, don, z_alt):

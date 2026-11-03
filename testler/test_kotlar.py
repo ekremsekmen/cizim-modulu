@@ -384,7 +384,9 @@ class Turetme(unittest.TestCase):
 
 
 _YAZI = re.compile(r">([^<>]*)</text>")
-_KOT_YAZISI = re.compile(r">([±+-])(\d+),(\d\d)</text>")
+#  Kot yazısı:  bütün yazı ( kot işareti ) ya da veri tablosunun "Giriş katı" satırında
+#  adın arkasında ( "0  ·  ±0,00" — KAT_ADLARI_PLANI )
+_KOT_YAZISI = re.compile(r"(?P<on>>|·\s+)(?P<kot>(?P<i>[±+-])(?P<t>\d+),(?P<o>\d\d))</text>")
 
 
 def _ic_kotlar(svg, ofset):
@@ -393,8 +395,8 @@ def _ic_kotlar(svg, ofset):
     girişinkiyle aynı olmalı."""
 
     def ic(m):
-        mm = (-1 if m[1] == "-" else 1) * (int(m[2]) * 1000 + int(m[3]) * 10) - ofset
-        return ">" + dusey.kot_yazisi(mm) + "</text>"
+        mm = (-1 if m["i"] == "-" else 1) * (int(m["t"]) * 1000 + int(m["o"]) * 10) - ofset
+        return m["on"] + dusey.kot_yazisi(mm) + "</text>"
 
     return _KOT_YAZISI.sub(ic, svg)
 
@@ -468,9 +470,13 @@ class NeCiziliyorsaOHesaplanir(unittest.TestCase):
 
     def test_63444_2_ikizi(self):
         """Mimarın kotları ile LD'nin ölçüleri ( döşemenin 100'üyle ):  21 durak, iki
-        bodrum, makine dairesi — hesabın gördüğü sayılar ve paftalar aynı."""
+        bodrum, makine dairesi — hesabın gördüğü sayılar ve paftalar aynı.  Giriş katı
+        ikisinde de girilir ( ±0,00'ın durağı, 3. ):  kuraldan giriş katı kotu ±0,00'a en
+        yakın durak — ölçüyle ikizde en alt durak olurdu, adlar ondan sayılırdı
+        ( KAT_ADLARI_PLANI )."""
         v = _md_63444(test_yerlesim_saglamligi.standart_istek(1000, False, "Sağ"))
         v["asansorler"][0]["kuyu_duvar_kalinligi"] = 250
+        v["asansorler"][0][alanlar.GIRIS_DURAGI] = 3
         olcu = copy.deepcopy(v)
         olcu["asansorler"][0].update(
             {k: ("; ".join(map(str, x)) if isinstance(x, list) else x) for k, x in OLCU_63444.items()}
@@ -486,8 +492,12 @@ class NeCiziliyorsaOHesaplanir(unittest.TestCase):
         self.assertEqual(g["kuyu_boyu"], 71000)
 
     def test_butun_kotlar_kayinca_hesap_ve_cizim_degismez(self):
-        """±0,00'ın yeri ( mimarın datumu ) geometriye girmez:  iç koordinat 0 = en alt durak."""
+        """±0,00'ın yeri ( mimarın datumu ) geometriye girmez:  iç koordinat 0 = en alt durak.
+        Giriş katı girilir ( 3. durak ):  kuraldan giriş katı ±0,00'a en yakın durak —
+        kotlar kayınca o da değişir, adlar ondan sayılır ( KAT_ADLARI_PLANI;
+        testler/test_kat_adlari )."""
         v = _md_63444(test_yerlesim_saglamligi.standart_istek(1000, False, "Sağ"))
+        v["asansorler"][0][alanlar.GIRIS_DURAGI] = 3
 
         def kaydir(m):
             return {
@@ -534,16 +544,17 @@ class NeCiziliyorsaOHesaplanir(unittest.TestCase):
         """Kesitlerde duraklar, kuyu dibi, makine dairesinin zemini ve tabliyenin
         üstü mimari paftadaki sayılarla yazılır ( 63444-2 ):  tabliyenin üstü
         +62,30 — mimarın çatı arası planındaki kot, kuyu tavanı +62,20 + 100'den.
-        Giriş görünüşü ve kapı kesiti en alt durağın kapısıdır."""
+        Giriş görünüşü ve kapı kesiti giriş katının kapısıdır:  kotu ±0,00 olan durak
+        ( KAT_ADLARI_PLANI — 2 Kas'a kadar en alt durağın, -7,00 )."""
         v = _md_63444(test_yerlesim_saglamligi.standart_istek(1000, False, "Sağ"))
         c = json.loads(cizim_uclari.api_cizimler(_kotla(v, KOT_63444)).body)
         self.assertTrue(c["aktif"], c.get("hata"))
-        kot = {x["ad"]: [m[0][1:-7] for m in _KOT_YAZISI.finditer(x["svg"])] for x in c["cizimler"]}
+        kot = {x["ad"]: [m["kot"] for m in _KOT_YAZISI.finditer(x["svg"])] for x in c["cizimler"]}
         duraklar = [katlar.kot_metni(k) for k in katlar.kotlari_oku(DURAKLAR_63444)[0]]
         self.assertEqual(duraklar[:3] + duraklar[-1:], ["-7,00", "-3,50", "±0,00", "+57,60"])
         for ad in ("kuyu_kesiti_yan", "kuyu_kesiti_on"):
             self.assertEqual(kot[ad], duraklar + ["-8,80", "+60,80", "+62,30"], ad)
-        self.assertEqual((kot["giris"], kot["kapi_kesiti"]), (["-7,00"], ["-7,00"]))
+        self.assertEqual((kot["giris"], kot["kapi_kesiti"]), (["±0,00"], ["±0,00"]))
 
     def test_turetilmeden_gelen_kot_koprude_durur(self):
         """Bir yol hesabın tamamla'sını atlarsa çizim eski sayılarla sessizce kurulmaz."""
@@ -579,6 +590,9 @@ class GirisKotu(unittest.TestCase):
                 v = test_yerlesim_saglamligi.standart_istek(Q, True, "Sağ", **ek)
                 if kayma is not None:
                     test_yerlesim_saglamligi.kotla(v, 0, kayma)
+                    #  Giriş en alt durak:  yazı en geniş kot ( kuraldan −10.500 kaymada
+                    #  ±0,00'a en yakın durak +1,50 olurdu — KAT_ADLARI_PLANI )
+                    v["asansorler"][0][alanlar.GIRIS_DURAGI] = 1
                 g, _A, _h = test_yerlesim_saglamligi.duzen_girdisi(v)
                 yerlesen = next(x for x in giris.ciz(g) if x.get("ad") == "kot")
                 e = cizimler.CIZIMLER["giris"][1](g)
@@ -609,6 +623,7 @@ class GirisKotu(unittest.TestCase):
                 v = test_yerlesim_saglamligi.standart_istek(Q, True, "Sağ", kat_kapisi_tipi=tip)
                 if k is not None:
                     test_yerlesim_saglamligi.kotla(v, 0, k)
+                    v["asansorler"][0][alanlar.GIRIS_DURAGI] = 1  # en geniş kot ( yukarıda )
                 g, _A, _h = test_yerlesim_saglamligi.duzen_girdisi(v)
                 e = cizimler.CIZIMLER["giris"][1](g)
                 kot = next(x for x in e if x.get("ad") == "kot")

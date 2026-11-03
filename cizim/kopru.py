@@ -35,6 +35,7 @@ from cizim import sorun
 from cizim import girdi
 from cizim import hesap_isareti
 from cizim import izli
+from cizim import dusey
 from cizim import katlar
 from cizim import sabitler
 from tasarim import alanlar, gorunum
@@ -109,6 +110,9 @@ KURALLI = {
     "agirlik_tampon_arasi": ("kuyu_dibi", "agirlik_tampon_arasi"),
     "md_x": ("makine_dairesi", "x"),
     "md_y": ("makine_dairesi", "y"),
+    #  Boşsa ±0,00'a en yakın durak ( katlar.durak_adlari );  yalnız yazı — hiçbir ölçü
+    #  ondan türemez
+    alanlar.GIRIS_DURAGI: ("dusey", "giris_duragi"),
 }
 
 
@@ -197,6 +201,25 @@ def _kot_girisi(A):
     if not isinstance(kot, dict):
         raise RuntimeError("kotla giriş türetilmeden çizime geldi ( mukavemet_girdi.tamamla atlandı )")
     return list(kot["hata"])
+
+
+def _durak_adlari(A, g):
+    """Durakların adları ve giriş katı ( katlar.durak_adlari — KAT_ADLARI_PLANI ) →
+    g["dusey"]["durak_adlari"] · ["giris_duragi"] ( 1'den — alanın kendisi gibi ).
+    Yanlış ad listesinde adlar kuraldan, iletiler g["dusey"]["ad_hatasi"]'nda:
+    köprü DURMAZ ( adlar yalnız yazı — hesap ölçülerini bu girdiden alır, ad
+    yüzünden eksik kalmasın );  kesitin doğrulaması söyler ( katlar.ad_sorunlari:
+    pafta durur ).  Kotlar mimari:  kotla girişte ofsetli, ölçüyle girişte en alt 0."""
+    kotlar, _h = dusey.durak_kotlari(g)
+    if not kotlar:
+        return
+    ofset = dusey.kot_ofseti(g)
+    adlar, giris, hata = katlar.durak_adlari(
+        A.get(alanlar.DURAK_ADLARI), A.get(alanlar.GIRIS_DURAGI), [round(ofset + z) for z in kotlar]
+    )
+    g["dusey"]["durak_adlari"], g["dusey"]["giris_duragi"] = adlar, giris + 1
+    if hata:
+        g["dusey"]["ad_hatasi"] = hata
 
 
 def _tam(v):
@@ -332,6 +355,7 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
     if o.hata:
         return None, o.hata
     g = _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k)
+    _durak_adlari(o.A, g)
     _acik_ara(g)
     o.hata += konsol_araligi_hatalari(g["dusey"], S)
     if not h["mk_yok"]:
