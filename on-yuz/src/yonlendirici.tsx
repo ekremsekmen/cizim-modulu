@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate, useLocation, useNavigate, useParams, use
 import { CircleAlert, Loader2 } from "lucide-react";
 import { Acilis } from "@/ekranlar/Acilis";
 import { ornekProjesi, projeOku, yeniUygulama } from "@/lib/proje";
+import { taslaktanProje } from "@/lib/taslak";
 
 /*  ADRESLER  ( programın kökünde — FastAPI derlenmiş dosyaları sunar;  eski /yeni buraya yönlenir )
     /                     açılış
@@ -39,6 +40,17 @@ function YeniUygulama({ ornek }: { ornek?: boolean }) {
   useEffect(() => {
     git(`/uygulama/${(ornek ? ornekProjesi() : yeniUygulama()).id}`, { replace: true });
   }, [git, ornek]);
+  return null;
+}
+
+/**  Taslaktan yeni proje ( lib/taslak );  bilinmeyen taslak açılışa döner.  */
+function TaslakAc() {
+  const { kimlik = "" } = useParams();
+  const git = useNavigate();
+  useEffect(() => {
+    const p = taslaktanProje(kimlik);
+    git(p ? `/uygulama/${p.id}` : "/", { replace: true });
+  }, [git, kimlik]);
   return null;
 }
 
@@ -81,6 +93,7 @@ export const yonlendirici = createBrowserRouter(
         { path: "/", element: <Acilis /> },
         { path: "/uygulama/yeni", element: <YeniUygulama /> },
         { path: "/uygulama/ornek", element: <YeniUygulama ornek /> },
+        { path: "/uygulama/taslak/:kimlik", element: <TaslakAc /> },
         { path: "/uygulama/:id", element: <Bekle><UygulamaRota /></Bekle> },
         { path: "/avan", element: <Navigate to="/avan/trafik" replace /> },
         { path: "/avan/:adim", element: <Bekle><AvanCalisma /></Bekle> },
