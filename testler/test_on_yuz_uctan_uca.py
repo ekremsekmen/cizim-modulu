@@ -538,9 +538,11 @@ class OnYuzUctanUca(unittest.TestCase):
         proje açılır, taslağın değerleriyle;  hesabın hiçbir bölümü uygun değil değil,
         çizim kurulur;  son projelerde görünür, taslak kartı yerinde kalır."""
         self.sayfa.goto(self.url + "/")
-        kart = self.sayfa.get_by_role("link", name="1000 kg · 13 kişi taslağıyla yeni proje")
+        kart = self.sayfa.get_by_role("link", name="1000 kg · 13 kişi · Makine daireli taslağıyla yeni proje")
         kart.wait_for()
-        self.assertEqual(self.sayfa.get_by_role("link", name=re.compile("taslağıyla yeni proje$")).count(), 5)
+        self.assertEqual(
+            self.sayfa.get_by_role("link", name=re.compile("taslağıyla yeni proje$")).count(), 10
+        )
         kart.click()
         self.sayfa.wait_for_url(re.compile(r"/uygulama/[0-9a-z]{6,}$"))
         self.iz.sakin()
@@ -549,13 +551,16 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(
             (a["beyan_yuku"], a["kabin_genisligi"], a["kabin_derinligi"]), ("1000", "1100", "2100")
         )
+        self.assertEqual(istek["proje_geneli"]["mk_yok"], "false")
         b = hesap["asansorler"][0]["bolumler"]
         self.assertEqual([x["baslik"] for x in b if (x.get("sonuc") or {}).get("uygun") is False], [])
         _i, cizim = self.iz.son("/api/uygulama/cizimler")
         self.assertTrue(cizim["aktif"], cizim.get("hata"))
         self.assertFalse(cizim.get("hata"))
         self.sayfa.goto(self.url + "/")
-        self.assertTrue(self.sayfa.get_by_text("1000 kg · 13 kişi ( taslak )").first.is_visible())
+        self.assertTrue(
+            self.sayfa.get_by_text("1000 kg · 13 kişi · makine daireli ( taslak )").first.is_visible()
+        )
         self.assertTrue(kart.is_visible())
 
     def _dosyadan_ac(self, alanlar):

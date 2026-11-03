@@ -1,5 +1,5 @@
 """TASLAK PROJELER ( on-yuz/src/lib/taslaklar.json — açılışın sağında;  3 Kas, kullanıcı:
-"her şeyi uygun tertemiz projeler taslak halinde olsun" ).  Ön yüzün göndereceği
+"her şeyi uygun tertemiz projeler taslak halinde olsun";  her yük makine dairesiz ve daireli ).  Ön yüzün göndereceği
 metinlerle:  hesabın hiçbir bölümü uygun değil ya da eksik değil ( 9. bölüm hükümsüz
 bilgidir ), uyarı yok, çizim temiz,
 paftanın bütün çizimlerinde kalite kapısı 0 ( test_kalite.kapi_bulgulari ).  Taslak
@@ -32,13 +32,21 @@ def istek(t):
 
 class Taslaklar(unittest.TestCase):
     def test_liste(self):
-        self.assertEqual([t["kimlik"] for t in TASLAKLAR], ["630", "800", "1000", "1250", "1275"])
+        yukler = ["630", "800", "1000", "1250", "1275"]
+        self.assertEqual([t["kimlik"] for t in TASLAKLAR], yukler + [f"{q}-md" for q in yukler])
         for t in TASLAKLAR:
             with self.subTest(t["kimlik"]):
                 a = t["asansor"]
-                self.assertEqual(a["beyan_yuku"], t["kimlik"])
+                self.assertEqual(a["beyan_yuku"], t["kimlik"].removesuffix("-md"))
                 self.assertTrue(all(isinstance(v, str) for v in (*a.values(), *t["proje_geneli"].values())))
-                self.assertEqual(t["proje_geneli"].get("mk_yok"), "true")
+                #  Her yük makine dairesiz ve makine daireli ( 3 Kas )
+                md = t["kimlik"].endswith("-md")
+                self.assertEqual(t["duzen"], "Makine daireli" if md else "Makine dairesiz")
+                self.assertEqual(t["proje_geneli"].get("mk_yok"), "false" if md else "true")
+                #  Özetteki askı ve makine taslağın kendisi ( 3 Kas:  makine dairelide 1:1 dişli
+                #  yaygın — 1250 ve 1275 2:1, taslak_secici )
+                aski = f"{a.get('aski_orani', '2')}:1 {a.get('makine_tipi', 'Dişlisiz').lower()}"
+                self.assertTrue(t["ozet"].endswith(aski), (t["ozet"], aski))
                 self.assertEqual(float(a["beyan_hizi"]), 1.0)
                 self.assertEqual(len(a["durak_kotlari"].split(";")), 6)
                 #  Kişi sayısı ( TS EN 81-20 m.5.4.2.3:  Q / 75, aşağı )
