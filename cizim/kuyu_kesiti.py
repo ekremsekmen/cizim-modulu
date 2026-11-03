@@ -461,6 +461,10 @@ def _konsol_zinciri(e, kot, r, tavan, ad, aralik):
 
 KIRIK_BOSLUK = 1200.0  # kırık gösterimde atlanan katların yerine kalan yükseklik
 KIRIK_PAY = 300.0  # kırık çizgisi ile en yakın parça arası
+#  Kırık çizgisi ile üstte kalan durağın eşik altı sacının ucu arası:  sac ince
+#  bir parça, döşemenin payı gerekmez ( 300 verilince 63444-2'de bir ara kat daha
+#  kırığa düşüyordu ) — ÇİZİM KABULÜ
+KIRIK_SAC_PAYI = 100.0
 
 
 def _sayisal(m):
@@ -474,6 +478,29 @@ def _birlesik_metin(parcalar, uzunluk):
     if all(_sayisal(m) for m in metinler) and len(set(metinler)) == 1 and len(metinler) > 1:
         return f"{len(metinler)} × {metinler[0]}"
     return f"{uzunluk:g}"
+
+
+def _bantta(noktalar, a, b):
+    """Açık çizginin a ≤ z ≤ b bandında kalan parçaları ( nokta listeleri )."""
+    out, son = [], None
+    for (x0, z0), (x1, z1) in zip(noktalar, noktalar[1:]):
+        dz = z1 - z0
+        if abs(dz) < 1e-12:
+            t0, t1 = (0.0, 1.0) if a - 1e-9 <= z0 <= b + 1e-9 else (1.0, 0.0)
+        else:
+            ta, tb = (a - z0) / dz, (b - z0) / dz
+            t0, t1 = max(0.0, min(ta, tb)), min(1.0, max(ta, tb))
+        if t1 - t0 < 1e-12:
+            son = None
+            continue
+        p = (x0 + (x1 - x0) * t0, z0 + dz * t0)
+        q = (x0 + (x1 - x0) * t1, z0 + dz * t1)
+        if son is not None and abs(son[-1][0] - p[0]) < 1e-9 and abs(son[-1][1] - p[1]) < 1e-9:
+            son.append(q)
+        else:
+            son = [p, q]
+            out.append(son)
+    return out
 
 
 def _kir(e, za, zu, bosluk):
@@ -519,12 +546,20 @@ def _kir(e, za, zu, bosluk):
                     #  GERÇEK BİÇİM DE KAYAR ( regülatör, kasnak … ):  eskiden yalnız
                     #  zarf kayıyor, biçim kırılmamış kotunda — paftanın 300 mm
                     #  dışında — çiziliyordu ( 20 Eki ).  Kırığa giren parçanın
-                    #  biçimi kesilemez:  zarfı çizilir.
+                    #  kapalı biçimi kesilemez:  zarfı çizilir;  açık çizgi biçimi
+                    #  ( eşik altı sacı ) çizgi gibi kesilir ( 3 Kas ).
                     if len(kalan) == 1 and b - a >= el["d"] - 1e-6:
                         dy = n["y"] - el["y"]
                         n["bicim"] = [
                             dict(p, noktalar=[(x, y + dy) for x, y in p["noktalar"]]) for p in el["bicim"]
                         ]
+                    elif not any(p.get("kapali", True) for p in el["bicim"]):
+                        kesik = [(p, q) for p in el["bicim"] for q in _bantta(p["noktalar"], a, b)]
+                        if not kesik:
+                            continue
+                        n["bicim"] = [dict(p, noktalar=[(x, m(z)) for x, z in q]) for p, q in kesik]
+                        xs = [x for _, q in kesik for x, _z in q]
+                        n["x"], n["g"] = min(xs), max(xs) - min(xs)
                     else:
                         del n["bicim"]
                 out.append(n)
@@ -594,6 +629,40 @@ def _yukseklik(e, K):
     return (y1 - y0) + 2 * 300 * K + 220 * K
 
 
+def _hareketli_sinirlari(g, Y):
+    """Kırığın değmeyeceği hareketli parçaların sınırları — İKİ KESİTTE ORTAK:
+    altta kalanların üstü ( A-A'da en alt duraktaki kabin, B-B'de tamponundaki
+    karşı ağırlık ) ve üstte kalanların altı ( A-A'da yukarıdaki karşı ağırlık,
+    B-B'de en üst duraktaki kabin ).  Kesitler kırığı ayrı ayrı seçiyordu:  en
+    sıkı kırıkta kendi parçasına göre, aynı kot iki kesitte ayrı yükseklikte
+    kalıyordu ( 3 Kas — 63444-2, eşik altı sacının payıyla ortaya çıktı )."""
+    S, M, dy = Y["S"], Y["M"], g["dusey"]
+    H = Y["kotlar"][-1]
+    ag = M["agirlik"]["tampon_ustu"] + dy["agirlik_carpma_arasi"]
+    alt_k, ust_k = (
+        parca_kotlari.kabin_kotlari(dy, S, z, g.get("aski"), arka_aski.arkada_iki_bir(g)) for z in (0.0, H)
+    )
+    alt_a, ust_a = (parca_kotlari.agirlik_kotlari(M, z) for z in (ag, ag + H))
+    r = (g["agirlik"].get("kasnak_capi") or 0) / 2.0
+    return (
+        max(
+            alt_k["ust_paten"],
+            alt_k["tavan"] + Y["korkuluk"],
+            alt_a["ust"],
+            alt_a["ust_paten"],
+            alt_a["kasnak_merkez"] + r,
+        ),
+        min(
+            ust_a["alt"],
+            ust_a["alt_paten"],
+            ust_k["etek_alti"],
+            ust_k["sase_alt"],
+            ust_k["alt_paten"],
+            ust_k["fren_alti"],
+        ),
+    )
+
+
 def _bitir(e, g, Y, kt, K, alt_ust, ust_alt, bosluk_h, duvarlar, azami):
     """Yazıları yerleştirir, plan seviyelerini ekler.  Çizim `azami`
     yüksekliğe ( çerçevesiyle, çizim birimi ) sığmıyorsa ara katları kırar:
@@ -616,18 +685,29 @@ def _bitir(e, g, Y, kt, K, alt_ust, ust_alt, bosluk_h, duvarlar, azami):
     if azami is None or _yukseklik(tam, K) <= azami:
         return tam
     kotlar = Y["kotlar"]
-    doseme = Y["S"]["kat_doseme_kalinlik"]
+    #  Kırık eşik altı saclarını kesmez:  üstte kalan durağın döşemesi ve sacı
+    #  kırığın üstünde kalır;  kırığa düşen ilk durağın sacı bütün düşer
+    sac = -girdi.esik_alti_saci(g, Y["S"])["alt"]
+    ust_pay = max(Y["S"]["kat_doseme_kalinlik"] + KIRIK_PAY, sac + KIRIK_SAC_PAYI)
     _adlar, giris = katlar.adlar_ve_giris(g)
+
+    def alt_cizgi(z0, j):
+        """Kırığın alt çizgisi:  altta kalanların üstünün ( z0 ) KIRIK_PAY üstü;
+        j. durağın ( kırığa düşen ilk durak ) eşik altı sacının ucu o paya
+        giriyorsa sacın ucu — sacın bir parçası kırığın altında kalmaz."""
+        uc = kotlar[j] - sac
+        return min(z0 + KIRIK_PAY, uc) if z0 < uc else z0 + KIRIK_PAY
+
     for i in range(len(kotlar) // 2 - 1, -1, -1):
-        za = max(alt_ust, kotlar[i] + bosluk_h) + KIRIK_PAY
-        zu = min(ust_alt, kotlar[-1 - i] - doseme) - KIRIK_PAY
+        za = alt_cizgi(max(alt_ust, kotlar[i] + bosluk_h), i + 1)
+        zu = min(ust_alt - KIRIK_PAY, kotlar[-1 - i] - ust_pay)
         if zu - za <= KIRIK_BOSLUK:
             continue
         araliklar = [(za, zu)]
         if i < giris < len(kotlar) - 1 - i:
             araliklar = [
-                (za, kotlar[giris] - doseme - KIRIK_PAY),
-                (kotlar[giris] + bosluk_h + KIRIK_PAY, zu),
+                (za, kotlar[giris] - ust_pay),
+                (alt_cizgi(kotlar[giris] + bosluk_h, giris + 1), zu),
             ]
         k = _kirik(e, [(a, b) for a, b in araliklar if b - a > KIRIK_BOSLUK], duvarlar, K, son)
         if k is not None and (_yukseklik(k, K) <= azami or i == 0):
@@ -664,9 +744,13 @@ def yan_bakis(g):
     )
 
 
-def _yan_katlar(e, S, P, kotlar, u0, L, kapi_h):
-    """A-A'da katlar:  döşeme ( u0'dan L boyunca ), kat kapısı ( kasa, eşik, kanatlar )."""
-    for zk in kotlar:
+def _yan_katlar(e, g, S, P, kotlar, u0, L, kapi_h):
+    """A-A'da katlar:  döşeme ( u0'dan L boyunca ), kat kapısı ( kasa, üst kutu,
+    eşik, kanatlar, eşik altı sacı — kapı yan kesitindeki gibi, aynı kaynaktan:
+    girdi.kapi_bolgesi · girdi.esik_alti_saci ).  Kısa katta sac alttaki kapının
+    üst kutusuna bağlanır ( m.5.2.5.3.2 d 1 )."""
+    KB = girdi.kapi_bolgesi(g, S)
+    for i, zk in enumerate(kotlar):
         _duvar(e, u0, zk - S["kat_doseme_kalinlik"], L, S["kat_doseme_kalinlik"], "kat_dosemesi")
         for kk in P["kasa"]:
             e.append(
@@ -692,6 +776,11 @@ def _yan_katlar(e, S, P, kotlar, u0, L, kapi_h):
             )
         for kk in P["kanat"]:
             e.append(eleman.ad(eleman.dikdortgen("KAPI", kk[1], zk, kk[3] - kk[1], kapi_h), "kat_kapisi"))
+        ku = (KB["kasa"][1], zk + kapi_h, KB["hat"] - KB["kasa"][1], S["kasa_ust"])
+        e.append(eleman.ad(eleman.dikdortgen("KAPI", *ku), "kapi_ust_kutusu"))
+        s = girdi.esik_alti_saci(g, S, zk - kotlar[i - 1] if i else None)
+        if s["dik_alt"] < s["ust"] - 1e-6:
+            e.append(kesit_parcalari.esik_alti_saci_kesiti(s, zk))
 
 
 def _yan_kabin_kapisi(e, S, P, doseme, kapi_h):
@@ -748,7 +837,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     #  150 mm bir katman gibi çiziliyor, tavan iki kat kalın görünüyordu ).
     e.append(eleman.ad(eleman.cizgi("GIZLI", 0, Y["tavan_alti"] + H, D, Y["tavan_alti"] + H), "tavan_kirisi"))
     L = 240 * K
-    _yan_katlar(e, S, P, kotlar, -don - L, L, kapi_h)
+    _yan_katlar(e, g, S, P, kotlar, -don - L, L, kapi_h)
     isaretler = [_kat_seviyeleri(e, g, S, kotlar, -don - L, K, -1.0, taban)]
     u_oda = None
     if oda:
@@ -803,19 +892,63 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     dh, sd = kisaltmalar.kodlu("DH", kapi_h), kisaltmalar.kodlu("SD", D)
     e.append(eleman.olcu("dusey", (0, 0.0), (0, kapi_h), -don - 120 * K, dh, ad="kapi_yuksekligi"))
     e.append(eleman.olcu("yatay", (0, taban), (D, taban), taban - dos - 250 * K, sd, ad="kuyu_derinligi"))
-    #  Kırık:  altta kabin ( ve paten ), üstte karşı ağırlık kalmalı
+    #  Kırık:  hareketli parçalara değmez ( iki kesitte ortak — _hareketli_sinirlari )
     return _bitir(
         e,
         g,
         Y,
         kt,
         K,
-        max(kt["ust_paten"], kt["tavan"] + Y["korkuluk"]),
-        min(AK["alt"], AK["alt_paten"]),
+        *_hareketli_sinirlari(g, Y),
         bosluk_h,
         (-don, D + dar),
         azami,
     )
+
+
+def _on_katlar(e, B, g, S, P, kotlar, kapi_h, K):
+    """B-B'de kat kapıları ön duvarda ( görünüş ):  kasa, boşluk, eşik ve altında
+    eşik altı sacı ( m.5.2.5.3.2 — kısa katta alttaki kapının kasasına bağlanır,
+    d 1 ), kanat ayrımı, durak numarası.  Dönen:  kanatların sınırları ve kapının
+    ortası ( durak numarasının yeri — on_kesit )."""
+    kp = g["kapi"]
+    bos = (kp["sol_pay"], -1, kp["sol_pay"] + kp["genislik"], 0)
+    kasa_x0 = min(kk[0] for kk in P["kasa"])
+    kasa_x1 = max(kk[2] for kk in P["kasa"])
+    #  Kanatların ayrımları ( kapı tipinin kanat sayısında — 2 · 3 · 4 )
+    ayrimlar = sorted({round(kk[2], 6) for kk in P["kanat"]})[:-1]
+    #  Durak numarası ortaya en yakın KANADIN ortasında:  kapının ortası iki
+    #  kanatlı kapıda kanat ayrımıdır, numara ( maskeli ) ayrım çizgisini
+    #  siliyordu ( 5 Eki ).
+    xs = [bos[0]] + [a for a in ayrimlar if bos[0] < a < bos[2]] + [bos[2]]
+    orta = (bos[0] + bos[2]) / 2.0
+    k0, k1 = min(zip(xs, xs[1:]), key=lambda p: (abs((p[0] + p[1]) / 2.0 - orta), -(p[1] - p[0])))
+    #  Eşik kanat ceplerinin altından da sürer ( planda cep ayrı parça )
+    esik = P["esik"] + P["cep"]
+    esik = [tuple(f(k[i] for k in esik) for i, f in enumerate((min, min, max, max)))] if esik else []
+    for i, zk in enumerate(kotlar):
+        B.kutu(e, "KAPI", (kasa_x0, -1, kasa_x1, 0), zk, zk + kapi_h + S["kasa_ust"], "kapi_kasasi")
+        B.kutu(e, "KAPI", bos, zk, zk + kapi_h, "kat_kapisi")
+        #  Eşiğin kuyuya bakan yüzü ve altında eşik altı sacı ( m.5.2.5.3.2 —
+        #  kısa katta alttaki kapının kasasına bağlanır, d 1 )
+        for kk in esik:
+            B.kutu(e, "KAPI", kk, zk - S["esik_kalinlik"], zk, "kat_esigi")
+        s = girdi.esik_alti_saci(g, S, zk - kotlar[i - 1] if i else None)
+        kesit_parcalari.esik_alti_saci_gorunusu(e, B, s, zk)
+        for ayrim in ayrimlar:
+            u = B.u(ayrim, 0)
+            e.append(B.derin(eleman.cizgi("KAPI", u, zk, u, zk + kapi_h), -1, 0))
+        e.append(
+            B.derin(
+                eleman.ad(
+                    eleman.yazi(B.u((k0 + k1) / 2.0, 0), zk + kapi_h * 0.6, f"{i + 1}", uslup.HARF * K),
+                    "durak_no",
+                ),
+                -1,
+                0,
+            )
+        )
+    return xs, orta
 
 
 def on_kesit(g, cizim_sabitleri=None, azami=None):
@@ -840,35 +973,8 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     #  Yan duvarlar ( görünüşte plandaki sağ duvar solda ), kuyu dibi, tavan
     _on_duvarlar(e, B, g, M, (taban - dos, taban, tavan, ust), dos_t, oda, kotlar[0])
     e.append(eleman.ad(eleman.cizgi("GIZLI", 0, Y["tavan_alti"] + H, G, Y["tavan_alti"] + H), "tavan_kirisi"))
-    #  Kat kapıları ön duvarda ( görünüş ):  kasa, boşluk, kanat ayrımı, durak numarası
-    kp = g["kapi"]
-    bos = (kp["sol_pay"], -1, kp["sol_pay"] + kp["genislik"], 0)
-    kasa_x0 = min(kk[0] for kk in P["kasa"])
-    kasa_x1 = max(kk[2] for kk in P["kasa"])
-    #  Kanatların ayrımları ( kapı tipinin kanat sayısında — 2 · 3 · 4 )
-    ayrimlar = sorted({round(kk[2], 6) for kk in P["kanat"]})[:-1]
-    #  Durak numarası ortaya en yakın KANADIN ortasında:  kapının ortası iki
-    #  kanatlı kapıda kanat ayrımıdır, numara ( maskeli ) ayrım çizgisini
-    #  siliyordu ( 5 Eki ).
-    xs = [bos[0]] + [a for a in ayrimlar if bos[0] < a < bos[2]] + [bos[2]]
-    orta = (bos[0] + bos[2]) / 2.0
-    k0, k1 = min(zip(xs, xs[1:]), key=lambda p: (abs((p[0] + p[1]) / 2.0 - orta), -(p[1] - p[0])))
-    for i, zk in enumerate(kotlar):
-        B.kutu(e, "KAPI", (kasa_x0, -1, kasa_x1, 0), zk, zk + kapi_h + S["kasa_ust"], "kapi_kasasi")
-        B.kutu(e, "KAPI", bos, zk, zk + kapi_h, "kat_kapisi")
-        for ayrim in ayrimlar:
-            u = B.u(ayrim, 0)
-            e.append(B.derin(eleman.cizgi("KAPI", u, zk, u, zk + kapi_h), -1, 0))
-        e.append(
-            B.derin(
-                eleman.ad(
-                    eleman.yazi(B.u((k0 + k1) / 2.0, 0), zk + kapi_h * 0.6, f"{i + 1}", uslup.HARF * K),
-                    "durak_no",
-                ),
-                -1,
-                0,
-            )
-        )
+    #  Kat kapıları ön duvarda ( görünüş )
+    xs, orta = _on_katlar(e, B, g, S, P, kotlar, kapi_h, K)
     isaretler = [_kat_seviyeleri(e, g, S, kotlar, -dg, K, -1.0, taban)]
     u_oda = None
     if oda:
@@ -878,10 +984,11 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     AK, kt = kesit_parcalari.donanimi_ciz(
         e, B, g, Y, P, H, M["agirlik"]["tampon_ustu"] + dy["agirlik_carpma_arasi"], K
     )
-    kesit_parcalari.kabin_on(e, B, g, Y, P, kt)
+    ortuler = kesit_parcalari.kabin_on(e, B, g, Y, P, kt)
     kesit_parcalari.korkuluk(e, B, Y, kt)
-    #  Kabin opak:  arkasında kalan kat kapısı ( en üst durak ) kabinin içinden görünmez
-    kesit_parcalari.kabin_arkasi(e, B, Y["KD"]["kabin"], kt["taban_alti"], kt["tavan"])
+    #  Kabin opak:  arkasında kalan kat kapısı ( en üst durak ) kabinin içinden,
+    #  eşik altı sacı kabinin altına sarkan önlüğün içinden görünmez
+    kesit_parcalari.kabin_arkasi(e, B, Y["KD"]["kabin"], kt["taban_alti"], kt["tavan"], ortuler=ortuler)
     #  Durak numarası halatın ( kapının önünden geçer ) ya da başka bir parçanın
     #  çizgisine binmesin:  ortaya en yakın, çizgisiz kanat ( 2500 kg arka
     #  ağırlıkta askı halatı kanadın ortasından geçiyordu — 5 Eki )
@@ -922,15 +1029,14 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
             ad="kuyu_genisligi",
         )
     )
-    #  Kırık:  altta karşı ağırlık, üstte kabin ( etek, fren bloğu, paten ) kalmalı
+    #  Kırık:  hareketli parçalara değmez ( iki kesitte ortak — _hareketli_sinirlari )
     return _bitir(
         e,
         g,
         Y,
         kt,
         K,
-        max(AK["ust"], AK["ust_paten"], AK["kasnak_merkez"] + (g["agirlik"].get("kasnak_capi") or 0) / 2.0),
-        min(kt["etek_alti"], kt["sase_alt"], kt["alt_paten"], kt["fren_alti"]),
+        *_hareketli_sinirlari(g, Y),
         kapi_h + S["kapi_ust_payi"],
         (-dg, G + ds),
         azami,

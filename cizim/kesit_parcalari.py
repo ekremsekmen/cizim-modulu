@@ -223,6 +223,31 @@ def tamponlar(e, B, kutular, taban, baba, boy, ezilme, S, ad, tip="poliuretan", 
 KOT_UCGENI = (40.0, 55.0)
 
 
+def esik_alti_saci_kesiti(s, z0=0.0):
+    """Eşik altı sacı kesitte ( kapı yan kesiti, A-A ) — s:  girdi.esik_alti_saci,
+    z0:  durağın döşemesi;  zarfı biçiminin kutusu."""
+    b = parcalar.esik_alti_saci_bicimi(s, z0)
+    us, zs = [p[0] for p in b[0]["noktalar"]], [p[1] for p in b[0]["noktalar"]]
+    el = eleman.dikdortgen(
+        "KAPI", min(us), min(zs), max(us) - min(us), max(zs) - min(zs), ad="esik_alti_saci"
+    )
+    el["bicim"] = b
+    return el
+
+
+def esik_alti_saci_gorunusu(e, B, s, z0):
+    """Eşik altı sacı kuyunun içinden bakışta ( B-B ):  dik kısmı ve altında
+    pahı — duvara doğru, bakandan uzaklaşır:  şerit görünür ( LiftDesigner'ın
+    düşey görünüşü gibi )."""
+    if s["dik_alt"] >= s["ust"] - 1e-6:
+        return
+    du = s["pah"][0] if s["pah"] else 0.0
+    k = (s["x"][0], s["u"] - du, s["x"][1], s["u"])
+    B.kutu(e, "KAPI", k, z0 + s["dik_alt"], z0 + s["ust"], "esik_alti_saci")
+    if s["pah"]:
+        B.kutu(e, "KAPI", k, z0 + s["alt"], z0 + s["dik_alt"], "esik_alti_saci")
+
+
 def kot_isareti(e, u, z, metin, K, yon=1.0):
     """▽ kot işareti:  ucu döşemede, yazı yanında  ( referans proje / LiftDesigner )."""
     w, h = KOT_UCGENI[0] * K, KOT_UCGENI[1] * K
@@ -309,6 +334,7 @@ def plan_parcalari(KD, g):
     return {
         "kasa": ad("kapi_kasasi"),
         "esik": ad("kat_esigi"),
+        "cep": ad("kanat_cebi"),
         "kanat": ad("kat_kanadi"),
         "bosluk": ad("kapi_boslugu"),
         "kabin_esik": ad("kabin_esigi"),
@@ -749,8 +775,14 @@ def _halatlar_1_1(e, B, g, M, KU, kt, AK, zt):
             B.halat_cizgisi(e, (x0_, y0_, z0), (x1_, y1_, z1), "aski_halati")
 
 
+#  Kabinin altına sarkan saclar:  önlük ve ardındaki kat kapısının eşik altı sacı
+ASILI_SACLAR = frozenset(("etek", "esik_alti_saci"))
+
+
 def kabin_on(e, B, g, Y, P, kt):
-    """Kabin ön görünüşte ( arkasından ):  gövde, iç, şase, patenler, fren blokları, kasnaklar."""
+    """Kabin ön görünüşte ( arkasından ):  gövde, iç, önlük, şase, patenler, fren
+    blokları, kasnaklar.  Dönen:  kabin_arkasi'nın örtüleri — önlük ardındakini,
+    şasenin alt kirişi ardındaki asılı sacları örter."""
     S, KD = Y["S"], Y["KD"]
     kb = KD["kabin"]
     B.kutu(e, "KABIN", kb, kt["taban_alti"], kt["tavan"], "kabin")
@@ -766,6 +798,14 @@ def kabin_on(e, B, g, Y, P, kt):
         kt["doseme"] + kp["yukseklik"],
         "kabin_kapisi",
     )
+    #  Önlük ( m.5.4.5 ):  kabin eşiğinin kat tarafındaki kenarından iner, kat
+    #  girişinin eninde ( A-A'da kesiti — dusey.kabin_kesiti );  arkadan bakışta
+    #  kabinin altında, pahı kabine doğru:  şerit görünür
+    on = min((k[1] for k in P["kabin_esik"]), default=kb[1])
+    onluk = (kp["sol_pay"], on, kp["sol_pay"] + kp["genislik"], on + parcalar.PAH)
+    ust = kt["doseme"] - S["esik_kalinlik"]
+    B.kutu(e, "KABIN", onluk, kt["etek_dik_alti"], ust, "etek")
+    B.kutu(e, "KABIN", onluk, kt["etek_alti"], kt["etek_dik_alti"], "etek")
     #  Dikmeler alt kirişin altından üst kirişin üstüne;  kirişler gerçek
     #  yükseklikleriyle iki dikmenin sırtı arasında ( plandaki gibi ), patenler
     #  kirişlerin dışında ( kabin_kotlari — LiftDesigner ve referans proje )
@@ -783,6 +823,10 @@ def kabin_on(e, B, g, Y, P, kt):
         B.kutu(e, "SASE", p, kt["fren_alti"], kt["fren_alti"] + S["fren_blogu_yukseklik"], "fren")
     for k in P["kabin_kasnak"]:
         kasnak(e, B, k, kt["kasnak_merkez"], g["aski"]["kasnak_capi"], "x", "kabin_kasnagi")
+    return [
+        (onluk, kt["etek_alti"], ust, None),
+        ((sx0, sy0, sx1, sy1), kt["alt_kiris_alt"], kt["alt_kiris_ust"], ASILI_SACLAR),
+    ]
 
 
 def korkuluk(e, B, Y, kt):
@@ -840,10 +884,30 @@ def _cizgi_farki(el, S):
     return cikti
 
 
-def kabin_arkasi(e, B, kabin, z0, z1, onde=()):
+def _gizle(el, S):
+    """Elemanın S ( u0, z0, u1, z1 ) dikdörtgeninin dışında kalan parçaları."""
+    t = el["tip"]
+    if t in ("dikdortgen", "tarama"):
+        return _kutu_farki(el, S)
+    if t in ("cizgi", "eksen"):
+        return _cizgi_farki(el, S)
+    if t == "daire":
+        r = el["r"]
+        icinde = S[0] <= el["x"] - r and el["x"] + r <= S[2] and S[1] <= el["y"] - r and el["y"] + r <= S[3]
+        return [] if icinde else [el]
+    if t == "yazi":
+        return [] if S[0] < el["x"] < S[2] and S[1] < el["y"] < S[3] else [el]
+    return [el]
+
+
+def kabin_arkasi(e, B, kabin, z0, z1, onde=(), ortuler=()):
     """Düşey kesitte kabin OPAKTIR:  bakış ekseninde kabinin uzak yüzünün
     ötesinde kalan parçalar ( işareti _derin ) kabinin görünüşünün ( u: kabinin
-    izi, z: taban altı – tavan ) içinde çizilmez.  onde:  kabinin üstünden
+    izi, z: taban altı – tavan ) içinde çizilmez.  ortuler:  kabinin gövdesi
+    dışındaki opak parçalar [ ( plan kutusu, z0, z1, adlar ) ] — adlar verilirse
+    yalnız o adlı parçaları örter:  B-B'de kabinin altına sarkan önlük ardındaki
+    eşik altı sacını ( en üst durak ), şasenin alt kirişi ikisini örter ( 3 Kas ).
+    onde:  kabinin üstünden
     görünen parçaların adları ( A-A'da kabin rayı — referans projenin ve
     LiftDesigner'ın yan kesitlerinde ray ve şase kabinin üstündedir ):  kabinin
     hizasındaki parçaları çizim sırasında kabin gövdesinin hemen arkasına
@@ -853,37 +917,33 @@ def kabin_arkasi(e, B, kabin, z0, z1, onde=()):
     elemanlardan kaldırılır."""
     eks = 0 if B.tur == "yan" else 1
     yon = B.kesit[2]
-    uzak = kabin[eks] if yon < 0 else kabin[eks + 2]
+
+    def arkasinda(d, k):
+        uzak = k[eks] if yon < 0 else k[eks + 2]
+        return d is not None and (d[1] <= uzak + 1e-6 if yon < 0 else d[0] >= uzak - 1e-6)
+
     u0, u1 = B.aralik(kabin)
     S = (u0, z0, u1, z1)
     kalan, ustte = [], []
     for el in e:
         d = el.pop("_derin", None)
         ray = el.pop("_ray", None)
-        arkada = d is not None and (d[1] <= uzak + 1e-6 if yon < 0 else d[0] >= uzak - 1e-6)
-        if not arkada:
-            kalan.append(el)
-        elif (el.get("ad") in onde or ray in onde) and el["tip"] == "dikdortgen":
-            kalan += _kutu_farki(el, S)
-            x0, y0 = max(el["x"], S[0]), max(el["y"], S[1])
-            x1, y1 = min(el["x"] + el["g"], S[2]), min(el["y"] + el["d"], S[3])
-            if x1 - x0 > 1e-6 and y1 - y0 > 1e-6:
-                ustte.append(dict(el, x=x0, y=y0, g=x1 - x0, d=y1 - y0))
-        elif el["tip"] in ("dikdortgen", "tarama"):
-            kalan += _kutu_farki(el, S)
-        elif el["tip"] in ("cizgi", "eksen"):
-            kalan += _cizgi_farki(el, S)
-        elif el["tip"] == "daire":
-            r = el["r"]
-            if not (
-                S[0] <= el["x"] - r and el["x"] + r <= S[2] and S[1] <= el["y"] - r and el["y"] + r <= S[3]
-            ):
-                kalan.append(el)
-        elif el["tip"] == "yazi":
-            if not (S[0] < el["x"] < S[2] and S[1] < el["y"] < S[3]):
-                kalan.append(el)
-        else:
-            kalan.append(el)
+        gorunen = [el]
+        for k, za, zb, adlar in ortuler:
+            if arkasinda(d, k) and (adlar is None or el.get("ad") in adlar):
+                a, b = B.aralik(k)
+                gorunen = [q for p in gorunen for q in _gizle(p, (a, za, b, zb))]
+        for p in gorunen:
+            if not arkasinda(d, kabin):
+                kalan.append(p)
+            elif (p.get("ad") in onde or ray in onde) and p["tip"] == "dikdortgen":
+                kalan += _kutu_farki(p, S)
+                x0, y0 = max(p["x"], S[0]), max(p["y"], S[1])
+                x1, y1 = min(p["x"] + p["g"], S[2]), min(p["y"] + p["d"], S[3])
+                if x1 - x0 > 1e-6 and y1 - y0 > 1e-6:
+                    ustte.append(dict(p, x=x0, y=y0, g=x1 - x0, d=y1 - y0))
+            else:
+                kalan += _gizle(p, S)
     #  Kabin gövdesinin ( ve iç yüzünün ) hemen arkası
     i = next((n for n, el in enumerate(kalan) if el.get("ad") == "kabin"), len(kalan) - 1)
     i += 2 if i + 1 < len(kalan) and kalan[i + 1]["katman"] == "KABIN-IC" else 1

@@ -481,10 +481,11 @@ def tirnak_bicimi(arka, eksen, b1, g, k, yon, J=None, yatay=True):
 #  kesiti:  eşik taşıyıcısı ve L konsolu, üst kutu ve tavana bağlantısı;
 #  standart konsol 205 / 300 yüksek, 80 geniş ) · LiftDesigner K111 "Front
 #  Entrance Side View" ( üst kutu kasanın üstüne — 2.220 —, eşik altı sacı
-#  pahla duvara döner ) · TS EN 81-20:
+#  kısa bir pahla duvara doğru biter ) · TS EN 81-20:
 #      m.5.2.5.3.2  eşiğin altında eşiğe bağlı düz yüzey:  en az kilit
-#                   bölgesinin yarısı + 50 mm;  sonra yatayla en az 60°, yatay
-#                   izdüşümü en az 20 mm pah ( d 2 ) ya da alttaki kapının lentosu ( d 1 )
+#                   bölgesinin yarısı + 50 mm, kabin girişinin açıklığı + iki
+#                   yanda 25 mm ( a );  sonra yatayla en az 60°, yatay izdüşümü
+#                   en az 20 mm pah ( d 2 ) ya da alttaki kapının lentosu ( d 1 )
 #      m.5.3.8.1    kilit bölgesi en çok ±0,20 m;  kabin ve kat kapısı birlikte
 #                   mekanik açılıyorsa ( otomatik kapı ) ±0,35 m'ye kadar
 #      m.5.4.5      kabin eşiğinin önlüğü:  dik kısmı en az 0,75 m, altında
@@ -493,13 +494,19 @@ def tirnak_bicimi(arka, eksen, b1, g, k, yon, J=None, yatay=True):
 #  izin verdiği en büyüğü alınır ( emniyetli yön ):  otomatikte bölgenin yarısı
 #  0,35 + 0,05 = 0,40 m;  elle açılanda 0,20 + 0,05 = 0,25 m.
 ESIK_ALTI_SACI = {"otomatik": 400.0, "manuel": 250.0}
-PAH_ACISI = 60.0
+ESIK_ALTI_YAN_PAYI = 25.0
 ONLUK_DIK = 750.0
-#  Önlüğün pahı yatayda 20, düşeyde 35:  açısı atan( 35 / 20 ) = 60,3° ≥ 60°.
-#  Tam 60° düşeyde 34,64 verirdi;  pahın ucu önlüğün en alt noktasıdır ve kuyu
-#  dibi açıklığına ( m.5.2.5.8.2 a 1 — hesabın bölüm 11'i ) girer.
-ONLUK_PAH = 20.0
-ONLUK_PAH_DUSEY = 35.0
+#  PAH ( eşik altı sacında m.5.2.5.3.2 d 2, önlükte m.5.4.5.1 — aynı kural ):
+#  yatayda 20, düşeyde 35:  açısı atan( 35 / 20 ) = 60,3° ≥ 60°.  Tam 60° düşeyde
+#  34,64 verirdi;  pahın ucu parçanın en alt noktasıdır ve önlükte kuyu dibi
+#  açıklığına ( m.5.2.5.8.2 a 1 — hesabın bölüm 11'i ) girer.  Önlüğün pahı
+#  kabine, eşik altı sacınınki duvara doğrudur ama duvara kadar dönmez:
+#  LiftDesigner ( K111 kapı yan görünüşü, K431 düşey kesiti:  30 × 49 ) ve
+#  referans proje ( ~22 × 54 ) sacı kısa bir pahla bitirir.  ( 7 Eki – 3 Kas pah
+#  duvara dönüyordu:  kuyu içine montajda 260 mm iniyor, 3.000 mm'lik katta
+#  alttaki kapının üst kutusuna giriyordu. )
+PAH = 20.0
+PAH_DUSEY = 35.0
 #  Wittur standart konsolu 205 yüksek;  sac kalınlığı broşürde yok — ÇİZİM KABULÜ.
 ESIK_KONSOLU_BOY = 205.0
 KAPI_KONSOL_SACI = 5.0
@@ -539,14 +546,22 @@ def l_konsol(duvar, uc, z_kose, dik_boy, yukari=False, t=KAPI_KONSOL_SACI):
     return [{"noktalar": nok}]
 
 
-def pahli_sac(u, z_ust, dik_boy, u_pah, aci=PAH_ACISI, dz=None):
+def pahli_sac(u, z_ust, dik_boy, u_pah, dz):
     """Dik sac + altında pah ( açık çizgi ):  u'da z_ust'ten dik_boy iner, sonra
-    yatayla `aci` yaparak ( ya da dz kadar inerek ) u_pah'a döner."""
-
-    if dz is None:
-        dz = abs(u_pah - u) * math.tan(math.radians(aci))
+    dz inerek u_pah'a döner."""
     z1 = z_ust - dik_boy
     return [{"noktalar": [(u, z_ust), (u, z1), (u_pah, z1 - dz)], "kapali": False}]
+
+
+def esik_alti_saci_bicimi(s, z0=0.0):
+    """Eşik altı sacının yandan biçimi ( açık çizgi ) — s:  girdi.esik_alti_saci,
+    z0:  durağın döşemesi.  Pahı duvara doğru;  alttaki kapının lentosuna bağlanan
+    sac ( d 1 ) düz iner."""
+    u, ust, alt = s["u"], z0 + s["ust"], z0 + s["dik_alt"]
+    if s["pah"] is None:
+        return [{"noktalar": [(u, ust), (u, alt)], "kapali": False}]
+    du, dz = s["pah"]
+    return pahli_sac(u, ust, ust - alt, u - du, dz)
 
 
 def alan(noktalar):

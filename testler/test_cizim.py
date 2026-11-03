@@ -2563,6 +2563,143 @@ class KirikKesit(unittest.TestCase):
                     )
 
 
+class EsikAltiSaci(unittest.TestCase):
+    """Kat kapısının eşik altı sacı ( TS EN 81-20 m.5.2.5.3.2 ) düşey kesitlerde
+    her durakta — kapı yan kesitiyle aynı kaynaktan ( girdi.esik_alti_saci ),
+    LiftDesigner'ın ve referans projenin düşey kesitleri gibi ( 3 Kas ).
+    Kısa katta pah yerine alttaki kapının üst kutusuna bağlanır ( d 1 )."""
+
+    S = sabitler.sabitler(None)
+
+    @staticmethod
+    def _adli(e, ad):
+        return [x for x in e if x.get("ad") == ad]
+
+    def _yandan(self, g):
+        e = kuyu_kesiti.yan_kesit(g)
+        return {
+            round(x["bicim"][0]["noktalar"][0][1] + self.S["esik_kalinlik"]): x
+            for x in self._adli(e, "esik_alti_saci")
+        }, e
+
+    def test_her_durakta_kapi_yan_kesitindeki_gibi(self):
+        from cizim import kapi_kesiti
+
+        for g in (_ornek(), _duvar_boslugu(), _ornek(kapi={"tip": "Manuel Sol"})):
+            with self.subTest(montaj=g["kapi"]["montaj"], tip=g["kapi"]["tip"]):
+                kotlar = dusey.yerlesim(g)["kotlar"]
+                saclar, e = self._yandan(g)
+                self.assertEqual(sorted(saclar), [round(z) for z in kotlar])
+                kk = kapi_kesiti.ciz(g)
+                (bir,) = self._adli(kk, "esik_alti_saci")
+                (ku,) = self._adli(kk, "kapi_ust_kutusu")
+                kutular = sorted(
+                    (round(x["y"]), x["x"], x["g"], x["d"]) for x in self._adli(e, "kapi_ust_kutusu")
+                )
+                self.assertEqual(len(kutular), len(kotlar))
+                for z, (kz, x, gen, d) in zip(kotlar, kutular):
+                    self.assertEqual((kz - round(z), x, gen, d), (round(ku["y"]), ku["x"], ku["g"], ku["d"]))
+                #  3.000'lik katta sac pahıyla biter:  biçimi kapı yan kesitindekinin kotu kaymışı
+                for z in kotlar:
+                    nok = saclar[round(z)]["bicim"][0]["noktalar"]
+                    self.assertEqual(nok, [(u, v + z) for u, v in bir["bicim"][0]["noktalar"]])
+
+    def test_pah_ve_boy_standarttan(self):
+        """Dik kısmı eşiğin altından 400 ( otomatik ) / 250 ( elle ), pah duvara
+        doğru ≥ 60° ve ≥ 20 mm ama duvara kadar dönmez;  eni kabin girişi + iki yanda 25."""
+        for g, dik in ((_ornek(), 400.0), (_ornek(kapi={"tip": "Manuel Sol"}), 250.0)):
+            s = girdi.esik_alti_saci(g, self.S)
+            (u0, z0), (u1, z1), (u2, z2) = self._yandan(g)[0][0]["bicim"][0]["noktalar"]  # en alt durak
+            with self.subTest(tip=g["kapi"]["tip"]):
+                self.assertEqual((u0, z0), (girdi.kapi_bolgesi(g, self.S)["hat"], -self.S["esik_kalinlik"]))
+                self.assertEqual((u1, z0 - z1), (u0, dik))
+                self.assertGreaterEqual(math.degrees(math.atan2(z1 - z2, u1 - u2)), 60.0)
+                self.assertGreaterEqual(u1 - u2, 20.0)
+                self.assertGreater(u2, 0.0)
+                kp = g["kapi"]
+                self.assertEqual(s["x"], (kp["sol_pay"] - 25, kp["sol_pay"] + kp["genislik"] + 25))
+
+    def test_kisa_katta_alttaki_kapinin_lentosuna_baglanir(self):
+        HH, ust = 2100, self.S["kasa_ust"]
+        for h in (2805, 2804, 2700, 2400):
+            g = _ornek(dusey={"kat_yuksekligi": h})
+            saclar, e = self._yandan(g)
+            kotlar = dusey.yerlesim(g)["kotlar"]
+            for i, z in enumerate(kotlar):
+                nok = saclar[round(z)]["bicim"][0]["noktalar"]
+                with self.subTest(h=h, durak=i):
+                    if i == 0 or h >= 2805:
+                        #  pahla biter;  ucu alttaki kapının üst kutusunun üstünde
+                        self.assertEqual(len(nok), 3)
+                        if i:
+                            self.assertGreaterEqual(nok[-1][1], kotlar[i - 1] + HH + ust - 1e-6)
+                    else:
+                        self.assertEqual(nok, [(150.0, z - 50.0), (150.0, kotlar[i - 1] + HH + ust)])
+
+    def test_arkadan_bakista_kabinin_onlugu_ortulur(self):
+        """B-B:  her durakta eşik ve altında sac ( kapı + iki yanda 25 ) — pahı
+        şerit;  kabinin durduğu en üst durakta önlük ( kapı eninde ) sacın
+        ortasını örter, iki yanda 25'er mm kalır;  şase alt kirişi ikisinin önünde."""
+        g = _ornek()
+        e = kuyu_kesiti.on_kesit(g)
+        Y = dusey.yerlesim(g)
+        kotlar, G, kp = Y["kotlar"], g["kuyu"]["genislik"], g["kapi"]
+        x0, x1 = kp["sol_pay"], kp["sol_pay"] + kp["genislik"]
+        H = kotlar[-1]
+        for z in kotlar:
+            parca = [x for x in self._adli(e, "esik_alti_saci") if z - 500 < x["y"] < z]
+            with self.subTest(durak=z):
+                if z < H:
+                    self.assertEqual(
+                        sorted((round(x["y"] - z), round(x["d"]), x["x"], x["g"]) for x in parca),
+                        [(-485, 35, G - x1 - 25, x1 - x0 + 50), (-450, 400, G - x1 - 25, x1 - x0 + 50)],
+                    )
+                    self.assertTrue(
+                        [x for x in self._adli(e, "kat_esigi") if abs(x["y"] + x["d"] - z) < 1e-6]
+                    )
+                else:
+                    self.assertTrue(parca)
+                    self.assertEqual({round(x["g"]) for x in parca}, {25})
+        onluk = self._adli(e, "etek")
+        self.assertTrue(onluk)
+        self.assertEqual({(x["x"], x["x"] + x["g"]) for x in onluk}, {(G - x1, G - x0)})
+        kiris = [x for x in self._adli(e, "sase_kirisi") if x["y"] < H]
+        (k,) = kiris
+        for x in onluk + [p for p in self._adli(e, "esik_alti_saci") if p["y"] > H - 500]:
+            self.assertFalse(x["y"] < k["y"] + k["d"] - 1e-6 and k["y"] < x["y"] + x["d"] - 1e-6, x)
+
+    def test_kirik_saci_kesmez(self):
+        g = _ornek()
+        for ciz in (kuyu_kesiti.yan_kesit, kuyu_kesiti.on_kesit):
+            for azami in (560 * 50, 420 * 50, 1):
+                e = ciz(g, azami=azami)
+                with self.subTest(cizim=ciz.__name__, azami=azami):
+                    self.assertTrue(self._adli(e, "kirik_cizgisi"))
+                    for x in self._adli(e, "esik_alti_saci"):
+                        if "bicim" in x:  # A-A:  kesit — dik 400 ve pah
+                            nok = x["bicim"][0]["noktalar"]
+                            self.assertEqual((len(nok), nok[0][1] - nok[1][1]), (3, 400.0))
+                        elif round(x["g"]) != 25:  # B-B:  önlüğün yanında kalan şeritler dışında
+                            self.assertIn(round(x["d"]), (400, 35))
+
+    def test_kuyu_dibinde_siginma_alani_saca_girmez(self):
+        """En alt durağın sacı kuyuya sarkar:  ucu sığınma yüksekliğinin altındaysa
+        alan onun izine konmaz ( kabinin izinin dışındaki yer — m.5.2.5.8.1 )."""
+        for derinlik, girer in ((1200, True), (1600, False)):
+            g = _ornek(kuyu_dibi={"derinlik": derinlik, "siginma_tipi": "Çömelme"})
+            S = sabitler.sabitler(None)
+            Y = kuyu_dibi.yerlesim(g)
+            s = girdi.esik_alti_saci(g, S)
+            sac = (s["x"][0], s["u"] - s["pah"][0], s["x"][1], s["u"])
+            G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
+            alan = kuyu_dibi._siginma_yeri(
+                g, S, Y["taban"], "Çömelme", (0.0, 0.0, G, D), Y["perde"], Y["ag_yan"], [], []
+            )
+            with self.subTest(derinlik=derinlik):
+                self.assertIsNotNone(alan)
+                self.assertEqual(ortusur(alan, sac), not girer)
+
+
 from cizim import pafta
 from cizim import makine
 
