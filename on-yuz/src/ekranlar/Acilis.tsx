@@ -15,11 +15,13 @@ import {
   yeniAvanAcilisi,
 } from "@/lib/avan";
 import { projeListesi, uygulamaListeDurumu, useGoreceZaman, useOfisStandardi, type ProjeOzeti } from "@/lib/proje";
+import { TASLAKLAR, TASLAK_DUZENI } from "@/lib/taslak";
 import { useDosyaAc } from "./useDosyaAc";
 import { cn } from "@/lib/utils";
 
 /*  AÇILIŞ
-    Üç iş:  yeni proje başlat ( uygulama · avan ), dosyadan aç, son projeye dön.
+    Dört iş:  yeni proje başlat ( uygulama · avan ), dosyadan aç, taslaktan başla ( lib/taslak ),
+    son projeye dön.
     Örnek proje ayrıdır ve öyle görünür — yeni kullanıcı onu kendi projesi sanmaz.  */
 export function Acilis() {
   //  Uygulama projeleri ve avan ( tek proje, kendi kaydından — lib/avan avanOzeti )
@@ -93,6 +95,40 @@ export function Acilis() {
         </section>
 
         <div className="flex min-w-0 flex-col gap-10">
+          {/*  Taslak projeler ( lib/taslak ):  hepsi uygun — tıklanınca yeni proje  */}
+          <section aria-labelledby="taslak">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 id="taslak" className="text-[13px] font-semibold">
+                Taslak projeler
+              </h2>
+              <span className="text-[12px] text-metin-3">{TASLAK_DUZENI}</span>
+            </div>
+            <ul className="mt-3 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+              {TASLAKLAR.map((t) => (
+                <li key={t.kimlik}>
+                  <Link
+                    to={`/uygulama/taslak/${t.kimlik}`}
+                    aria-label={`${t.ad} taslağıyla yeni proje`}
+                    className="group flex h-full flex-col rounded-buyuk border border-cizgi bg-yuzey p-4 shadow-panel transition-[border-color,box-shadow] hover:border-cizgi-2 hover:shadow-kalkik"
+                  >
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="text-[14px] font-semibold">{t.ad}</span>
+                      <Rozet tur="uygun">Uygun</Rozet>
+                    </span>
+                    <span className="mt-1 text-[12.5px] text-metin-2">{t.ozet}</span>
+                    <span className="mt-2 text-[11.5px] text-metin-3">{t.kaynak}</span>
+                    <span className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-vurgu">
+                      Bu taslakla başla <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-[12px] leading-relaxed text-metin-3">
+              Taslak yeni bir proje olarak açılır;  değerlerini değiştirebilirsiniz, taslağın kendisi değişmez.
+            </p>
+          </section>
+
           <section aria-labelledby="son">
             <div className="flex items-baseline justify-between">
               <h2 id="son" className="text-[13px] font-semibold">
