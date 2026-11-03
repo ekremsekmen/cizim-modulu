@@ -206,6 +206,44 @@ def kapi_bolgesi(g, S):
     }
 
 
+def esik_alti_saci(g, S, alt_kat=None):
+    """Kat kapısının EŞİK ALTI SACI ( TS EN 81-20 m.5.2.5.3.2 ) — kapı yan kesiti
+    ve iki düşey kesit buradan çizer ( u planın y'si, kotlar durağın döşemesinden ):
+
+      u        sacın düzlemi:  kat eşiğinin kuyu kenarı ( kapı hattı — eşiğe bağlı, a )
+      ust      üstü:  eşiğin altı
+      dik_alt  dik kısmın altı:  eşiğin altından kilit bölgesinin yarısı + 50 mm
+               ( a — parcalar.ESIK_ALTI_SACI )
+      pah      ( yatay , düşey ) duvara doğru ( d 2 );  lentoya bağlanınca None
+      alt      sacın en alt noktası
+      x        ( x0 , x1 ):  kabin girişinin açıklığı + iki yanda 25 mm ( a ),
+               kuyunun iç yüzlerine kadar
+
+    alt_kat:  alttaki durağın bu durağa uzaklığı ( kat yüksekliği ).  Sac pahıyla
+    alttaki kapının lentosuna ( üst kutusunun üstüne — kapı yan kesitindeki gibi
+    kapıdan kasa_ust yukarıda ) ulaşıyorsa pah yerine oraya kadar iner ( d 1 —
+    kısa kat ).  Verilmezse ( en alt durak, kapı yan kesiti ) pahla biter."""
+    kp = g["kapi"]
+    ust = -S["esik_kalinlik"]
+    tur = "manuel" if kapi_tipi(kp.get("tip"))["tur"] == "manuel" else "otomatik"
+    dik_alt, pah = ust - parcalar.ESIK_ALTI_SACI[tur], (parcalar.PAH, parcalar.PAH_DUSEY)
+    lento = None if alt_kat is None else kp["yukseklik"] + S["kasa_ust"] - alt_kat
+    if lento is not None and lento > dik_alt - pah[1] + 1e-6:
+        dik_alt, pah = min(lento, ust), None
+    yan = parcalar.ESIK_ALTI_YAN_PAYI
+    return {
+        "u": kapi_bolgesi(g, S)["hat"],
+        "ust": ust,
+        "dik_alt": dik_alt,
+        "pah": pah,
+        "alt": dik_alt - (pah[1] if pah else 0.0),
+        "x": (
+            max(0.0, kp["sol_pay"] - yan),
+            min(g["kuyu"]["genislik"], kp["sol_pay"] + kp["genislik"] + yan),
+        ),
+    }
+
+
 def kanat_cepleri(g, S, pay=True):
     """Otomatik kapının kanat cepleri ( x0 , x1 ):  kanatlar açılınca kapı
     boşluğunun yanında üst üste durur;  kat ve kabin kapısı ünitesi o yanda

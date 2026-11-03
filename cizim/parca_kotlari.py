@@ -13,11 +13,11 @@ from cizim import parcalar
 from temel import sayi_mi
 
 #  Kabin önlüğü ( etek ) — m.5.4.5:  dik kısmı en az 0,75 m ( m.5.4.5.2 ), altında
-#  pah ( m.5.4.5.1;  parcalar.ONLUK_PAH × ONLUK_PAH_DUSEY ).  Önlüğün EN ALT
+#  pah ( m.5.4.5.1;  parcalar.PAH × PAH_DUSEY ).  Önlüğün EN ALT
 #  noktası pahın ucudur:  kuyu dibi açıklığı ( m.5.2.5.8.2 a 1 ) oradan ölçülür
 #  ( 7 Eki;  eskiden pah yoktu, dik kısmın altından ölçülüyordu — 35 mm iyimser ).
 ETEK_BOYU = parcalar.ONLUK_DIK
-ETEK_PAH_DUSEY = parcalar.ONLUK_PAH_DUSEY
+ETEK_PAH_DUSEY = parcalar.PAH_DUSEY
 
 
 def kabin_kotlari(dy, S, z, aski=None, tavanda=False):

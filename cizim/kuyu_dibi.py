@@ -903,8 +903,9 @@ def _siginma_yeri(g, S, taban, tip, kabin, perde, ag_yan, engel, hata):
     eksenine en yakın yere.  Kutu ya da None.
 
     Kabin altı askıda kasnaklar ve aralarındaki halat kabinin tabanından
-    aşağıdadır;  alt şase kirişi, patenler, fren bloğu da alanın yüksekliğine
-    inebilir ( sarkan_parcalar ):  alan önce onların altına düşmeyen yerde
+    aşağıdadır;  alt şase kirişi, patenler, fren bloğu, en alt durağın eşik
+    altı sacı da alanın yüksekliğine inebilir ( sarkan_parcalar ):  alan önce
+    onların altına düşmeyen yerde
     aranır ( yoksa onların altında — yüksekliği düşey kesit denetler ).  Eskiden kasnak
     planda hiç engel sayılmıyordu:  alan kapıya yakın diye kasnağın köşesine
     giriyor, kasnaktan birkaç santim ötede tam yükseklik varken proje
@@ -918,6 +919,10 @@ def _siginma_yeri(g, S, taban, tip, kabin, perde, ag_yan, engel, hata):
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
     kx = (kabin[0] + kabin[2]) / 2.0
     alcak = kabin_alti_askisi(g, S, taban) + sarkan_parcalar(g, S, taban, SIGINMA_YUKSEKLIK[tip])
+    #  En alt durağın eşik altı sacı da kuyuya sarkar ( sabit;  m.5.2.5.3.2 )
+    sac = girdi.esik_alti_saci(g, S)
+    if g["kuyu_dibi"]["derinlik"] + sac["alt"] < SIGINMA_YUKSEKLIK[tip]:
+        alcak.append((sac["x"][0], sac["u"] - sac["pah"][0], sac["x"][1], sac["u"]))
     bolge = (max(0.0, kabin[0]), max(0.0, kabin[1]), min(G, kabin[2]), min(D, kabin[3]))
     if ag_yan == "Sağ":
         agirlik_seridi = (perde[0], 0.0, G, D)

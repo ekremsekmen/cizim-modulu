@@ -188,10 +188,12 @@ class KapiKesiti(unittest.TestCase):
                 self.assertGreaterEqual(dik, 250.0 if tip.startswith("Manuel") else 400.0)
                 self.assertGreaterEqual(round(aci, 6), 60.0)
                 self.assertGreaterEqual(izd, 20.0)
-                #  eşiğin kuyu kenarından iner ( eşiğe bağlı ), pahla duvara döner
+                #  eşiğin kuyu kenarından iner ( eşiğe bağlı );  pahı duvara doğru ama
+                #  duvara kadar dönmez ( LiftDesigner, referans proje — 3 Kas )
                 KB = girdi.kapi_bolgesi(g, sabitler.sabitler(None))
                 self.assertEqual(s[0][0], KB["hat"])
-                self.assertEqual(s[2][0], 0.0)
+                self.assertLess(s[2][0], s[1][0])
+                self.assertGreater(s[2][0], 0.0)
 
     def test_onluk_m_5_4_5(self):
         """Dik kısmı döşemeden en az 0,75 m;  pah kabine doğru ≥ 60°, ≥ 20 mm;

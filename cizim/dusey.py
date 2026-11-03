@@ -735,10 +735,10 @@ def kabin_kesiti(e, kt, kabin_y, ry, S, kasnaklar_y=None, kasnak_capi=0, kr_b=89
     u = y0 if esik_on is None else esik_on
     ust = kt["doseme"] - S["esik_kalinlik"]
     et = eleman.ad(
-        eleman.dikdortgen("KABIN", u, kt["etek_alti"], parcalar.ONLUK_PAH, ust - kt["etek_alti"]), "etek"
+        eleman.dikdortgen("KABIN", u, kt["etek_alti"], parcalar.PAH, ust - kt["etek_alti"]), "etek"
     )
     et["bicim"] = parcalar.pahli_sac(
-        u, ust, ust - kt["etek_dik_alti"], u + parcalar.ONLUK_PAH, dz=parcalar.ONLUK_PAH_DUSEY
+        u, ust, ust - kt["etek_dik_alti"], u + parcalar.PAH, dz=parcalar.PAH_DUSEY
     )
     e.append(et)
     #  Şase:  ray ekseninde dikme, alt ve üst kiriş ( kabin_kotlari )
