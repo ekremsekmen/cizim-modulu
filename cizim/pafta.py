@@ -199,6 +199,13 @@ def sira(g):
     return s
 
 
+def cizilir(g, ad):
+    """Çizim bu asansör için kurulur mu:  paftasında ya da tek kuyuda kuyunun ortak
+    çiziminde ( grup.cizimleri — ekranda tıklanan ölçünün kaynağı o asansörün
+    kendi çiziminden çözülür )."""
+    return ad in sira(g) or (bool((g.get("proje") or {}).get("grup_sirasi")) and ad in grup.cizimleri([g]))
+
+
 def cizim_listesi(g, seritler=()):
     """( ad, başlık, ölçek, elemanlar — çerçeveli ) ;  hata varsa ValueError.
     seritler:  çizimlerin künye şeridine yazılacaklar ( çok asansörlü

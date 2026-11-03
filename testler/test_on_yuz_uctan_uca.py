@@ -533,6 +533,74 @@ class OnYuzUctanUca(unittest.TestCase):
         sonra, _h = self._hesap_istegi()
         self.assertEqual(sonra, once)
 
+    def _dosyadan_ac(self, alanlar):
+        """Eski biçimli proje dosyasını ( alanlar ) boş tarayıcıda açar."""
+        govde = {"__mod": "uygulama", "__surum": 1, "alanlar": alanlar}
+        with tempfile.TemporaryDirectory() as klasor:
+            dosya = os.path.join(klasor, "proje.uygulama")
+            with open(dosya, "w", encoding="utf-8") as f:
+                json.dump(govde, f, ensure_ascii=False)
+            self.sayfa.goto(self.url + "/")
+            with self.sayfa.expect_file_chooser() as secici:
+                self.sayfa.get_by_role("button", name="Dosya seç").click()
+            secici.value.set_files(dosya)
+            self.sayfa.wait_for_url(re.compile(r"/uygulama/[0-9a-z]{6,}$"))
+        self.iz.sakin()
+
+    def test_birlesik_cizimde_olcu_kendi_asansorunun(self):
+        """Ortak kuyu planının son maddesi ( ORTAK_KUYU_PLANI § 8 madde 4 ):  tek kuyunun
+        birleşik çiziminde ölçüye tıklanır, ölçü hangi asansörünse onun girdisi;
+        değiştirilince değişiklik O asansöre yazılır ( açık sekme 1. asansörken )."""
+        from testler.test_grup import ikili
+
+        v = ikili()
+        alanlar = {f"m_{k}": str(x) for k, x in v["proje_geneli"].items()}
+        alanlar.update(
+            mk_proje_adi="TEK KUYU",
+            __muk_adet=2,
+            __muk_aktif=0,
+            __muk_asansorler=[{k: str(x) for k, x in a.items()} for a in v["asansorler"]],
+        )
+        self._dosyadan_ac(alanlar)
+        cizim = self.sayfa.locator('[data-cizim="kuyu_grubu_kuyu_dibi"]')
+        olculer = cizim.get_by_role("button", name=re.compile(r"^Ölçü "))
+        self.assertGreater(olculer.count(), 10)
+        bulundu = None
+        for n in range(olculer.count() - 1, -1, -1):
+            o = olculer.nth(n)
+            o.scroll_into_view_if_needed()
+            with self.sayfa.expect_response(lambda r: r.url.endswith("/api/uygulama/olcu")) as yanit:
+                o.focus()
+                self.sayfa.keyboard.press("Enter")
+            y = yanit.value.json()
+            degisen = [k for k in y.get("kaynaklar") or [] if k["degistirilir"] and k["yer"] == "asansor"]
+            if y["aktif"] and y["kendi"]["asansor"] == 1 and degisen:
+                bulundu = (o, y, degisen[0]["anahtar"])
+                break
+            self.sayfa.keyboard.press("Escape")
+        self.assertIsNotNone(bulundu, "öbür asansörün değiştirilebilen ölçüsü yok")
+        o, y, anahtar = bulundu
+        kutu = self.sayfa.get_by_role("dialog", name=re.compile(r"^Ölçü "))
+        kutu.get_by_text(re.compile("Öbür asansörün ölçüsü")).wait_for()
+        once, _h = self._hesap_istegi()
+        kutu.get_by_role("textbox").fill(str(round(y["deger"]) + 20))
+        with self.sayfa.expect_response(lambda r: r.url.endswith("/api/uygulama/olcu_degistir")) as yanit:
+            kutu.get_by_role("button", name="Uygula").click()
+        d = yanit.value.json()
+        self.assertTrue(d["aktif"], d)
+        self.iz.sakin()
+        sonra, _h = self._hesap_istegi()
+        degisen = {x["anahtar"] for x in d["degisiklikler"]}
+        self.assertIn(anahtar, degisen)
+        ortak = set(
+            json.loads(urllib.request.urlopen(self.url + "/api/uygulama/alanlar").read())["kuyu_duzeni"][
+                "ortak"
+            ]
+        )
+        for k in degisen - ortak:
+            self.assertNotEqual(sonra["asansorler"][1].get(k), once["asansorler"][1].get(k), k)
+            self.assertEqual(sonra["asansorler"][0].get(k), once["asansorler"][0].get(k), k)
+
     def test_eski_dosyanin_onay_kutusu_sunucunun_okudugu_secenek(self):
         """24 Eki ( dış inceleme ):  makine yükünün yolu eskiden onay kutusuydu;
         eski dosyanın işaretsizi ( false ) sunucuda "Bina yapısına" okunur

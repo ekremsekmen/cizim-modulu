@@ -34,7 +34,8 @@ export function OlcuKutusu({
   /**  Kaynak girdiler gelince:  solda gruplarını aç, alanları vurgula  */
   kaynaklarGeldi?: (anahtarlar: string[]) => void;
   kapat: () => void;
-  yaz: (degisiklikler: { anahtar: string; deger: number }[]) => UygulamaIstegi;
+  /**  Değişiklikleri yazar:  asansör — ölçünün asansörü ( birleşik çizimde öbürü olabilir )  */
+  yaz: (degisiklikler: { anahtar: string; deger: number }[], asansor: number) => UygulamaIstegi;
 }) {
   //  Kutu açıldığı andaki girdilerle konuşur:  değişiklik uygulanınca çizim
   //  yenilenir ama kutu kendi ölçüsünün sonucunu göstermeye devam eder
@@ -44,6 +45,10 @@ export function OlcuKutusu({
     queryFn: () => api.olcu(sabit, asansor, olcu.cizim, olcu.index, olcu.metin),
   });
   const y = sorgu.data;
+  //  Birleşik çizimde ( tek kuyu ) ölçü öbür asansörün olabilir:  değiştirme onun
+  //  ölçüsüyle istenir, değişiklik ona yazılır ( sunucu:  _asansorun_olcusu )
+  const kendi = y?.kendi ?? { asansor, cizim: olcu.cizim, olcu: olcu.index, metin: olcu.metin };
+  const obur = kendi.asansor !== asansor;
   const degisebilen = (y?.kaynaklar ?? []).filter((k) => k.degistirilir);
   //  Kullanıcı seçmedikçe ilk değiştirilebilen girdi;  yazmadıkça ölçünün kendisi
   //  ( binlik ayırıcısız:  "1.600" sunucuda belirsizdir, reddedilir )
@@ -79,10 +84,15 @@ export function OlcuKutusu({
   const cizimDogrulandi = uygulandi && ayniGirdi(istek, uygulanan);
   const uygula = (r: OlcuDegisikligi) => {
     if (!acik.current || !ayniGirdi(guncelRef.current, sabit)) return;
-    setUygulanan(yaz((r.degisiklikler ?? []).map((d) => ({ anahtar: d.anahtar, deger: d.deger }))));
+    setUygulanan(
+      yaz(
+        (r.degisiklikler ?? []).map((d) => ({ anahtar: d.anahtar, deger: d.deger })),
+        kendi.asansor,
+      ),
+    );
   };
   const degistir = useMutation({
-    mutationFn: () => api.olcuDegistir(sabit, asansor, olcu.cizim, olcu.index, olcu.metin, anahtar!, hedef),
+    mutationFn: () => api.olcuDegistir(sabit, kendi.asansor, kendi.cizim, kendi.olcu, kendi.metin, anahtar!, hedef),
     onSuccess: (r) => {
       if (r.aktif && r.degisiklikler && !r.uyarilar?.length) uygula(r);
     },
@@ -98,7 +108,8 @@ export function OlcuKutusu({
 
   //  Kutu ölçünün sağında;  tuvalin kenarına taşmaz
   useEffect(() => {
-    if (y?.kaynaklar) kaynaklarGeldi?.(y.kaynaklar.filter((k) => k.yer !== "ofis").map((k) => k.anahtar));
+    //  Öbür asansörün girdileri bu sekmenin formunda değil:  vurgulanmaz
+    if (y?.kaynaklar && !obur) kaynaklarGeldi?.(y.kaynaklar.filter((k) => k.yer !== "ofis").map((k) => k.anahtar));
   }, [y]); // eslint-disable-line react-hooks/exhaustive-deps
 
   //  KUTU TUVALE SIĞAR ( 20 Eki — kaynak listesi uzayınca alttan kesiliyordu ):
@@ -158,6 +169,7 @@ export function OlcuKutusu({
         <>
           <div className="shrink-0 px-4 pt-3 pb-1">
             <p className="text-[11.5px] font-medium tracking-wide text-metin-3 uppercase">Bu ölçüyü belirleyen</p>
+            {obur && <p className="mt-1 text-[12px] font-medium text-vurgu">Öbür asansörün ölçüsü ( Asansör {kendi.asansor + 1} ) — değişiklik o asansöre yazılır</p>}
             {y?.kural && <p className="mt-1 text-[12px] text-metin-2">{y.kural}</p>}
           </div>
           <ul className="min-h-0 flex-1 overflow-y-auto px-2 pb-2" role="radiogroup" aria-label="Değiştirilecek girdi">

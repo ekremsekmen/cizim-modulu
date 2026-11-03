@@ -590,12 +590,45 @@ class BirlesikCizimler(unittest.TestCase):
         self.assertEqual(geometri.sag_sira(g, 0), g["kuyu"]["genislik"] + g["kuyu"]["duvar_sag"] + 120)
 
 
+class BirlesikTiklama(unittest.TestCase):
+    """Birleşik çizimde ölçüye tıklanır ( ORTAK_KUYU_PLANI § 8 madde 4 ):  asansörün
+    ölçüsü onun kendi çizimindeki eşine çevrilir ( cizim_uclari._asansorun_olcusu —
+    olcu_kaynagi.asansorun_esi ), yazısı aynı;  kuyunun kendi ölçüsü iletiyle.  SVG
+    tıklanır ( data-olcu ).  Örneklem:  her çizimde her 7. ölçü ( hız )."""
+
+    def test_olcu_asansorunun_esine_cevrilir(self):
+        v = ikili()
+        r = json.loads(cizim_uclari.api_cizimler({**copy.deepcopy(v), "asansor": 0}).body)
+        birlesik = [c for c in r["cizimler"] if c["ad"].startswith(grup.AD)]
+        self.assertGreaterEqual(len(birlesik), 4)
+        asansorler = set()
+        for c in birlesik:
+            n = c["svg"].count('data-olcu="')
+            self.assertGreater(n, 10, c["ad"])
+            for i in range(0, n, 7):
+                with self.subTest(cizim=c["ad"], olcu=i):
+                    y = json.loads(
+                        cizim_uclari.api_olcu(
+                            {**copy.deepcopy(v), "asansor": 0, "cizim": c["ad"], "olcu": i}
+                        ).body
+                    )
+                    if not y["aktif"]:
+                        self.assertIn("Bu ölçü kuyunun", y["hata"][0])
+                        continue
+                    k = y["kendi"]
+                    asansorler.add(k["asansor"])
+                    self.assertEqual(k["metin"].replace(",", "."), y["metin"].replace(",", "."))
+                    #  Kaynağı girdi ya da kural ( sığınmanın yeri gibi )
+                    self.assertTrue(y["kaynaklar"] or y["kural"], y)
+        self.assertEqual(asansorler, {0, 1})
+
+
 class EkranVePaket(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.v = ikili()
 
-    def test_ekranda_kuyunun_cizimleri_once_tiklanmaz(self):
+    def test_ekranda_kuyunun_cizimleri_once_tiklanir(self):
         #  Kuyunun ortak çizimleri önde, bir kez;  asansörün kendi listesinde yoklar
         ortak = [grup.ADLAR[a] for a in grup.cizimleri(gecerli(self.v))]
         for i in (0, 1):
@@ -611,8 +644,9 @@ class EkranVePaket(unittest.TestCase):
             self.assertIn("KUYU DİBİ PLANI  E-E", d["cizimler"][2]["baslik"])
             self.assertIn("B-B KUYU DÜŞEY KESİTİ", d["cizimler"][4]["baslik"])
             self.assertEqual(d["cizimler"][4]["olcek"], 50)
+            #  3 Kas'tan beri tıklanır ( BirlesikTiklama )
             for c in d["cizimler"][:5]:
-                self.assertNotIn("data-olcu", c["svg"])
+                self.assertIn("data-olcu", c["svg"])
         ayri = [x["ad"] for x in yanit(ikili(duzen="Ayrı"))["cizimler"]]
         self.assertFalse(set(ortak) & set(ayri))
         self.assertTrue(set(grup.cizimleri(gecerli(self.v))) <= set(ayri))
