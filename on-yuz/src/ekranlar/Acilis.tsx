@@ -15,7 +15,7 @@ import {
   yeniAvanAcilisi,
 } from "@/lib/avan";
 import { projeListesi, uygulamaListeDurumu, useGoreceZaman, useOfisStandardi, type ProjeOzeti } from "@/lib/proje";
-import { TASLAKLAR, TASLAK_DUZENI } from "@/lib/taslak";
+import { TASLAK_DUZENI, taslakKumeleri } from "@/lib/taslak";
 import { useDosyaAc } from "./useDosyaAc";
 import { cn } from "@/lib/utils";
 
@@ -103,27 +103,32 @@ export function Acilis() {
               </h2>
               <span className="text-[12px] text-metin-3">{TASLAK_DUZENI}</span>
             </div>
-            <ul className="mt-3 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-              {TASLAKLAR.map((t) => (
-                <li key={t.kimlik}>
-                  <Link
-                    to={`/uygulama/taslak/${t.kimlik}`}
-                    aria-label={`${t.ad} taslağıyla yeni proje`}
-                    className="group flex h-full flex-col rounded-buyuk border border-cizgi bg-yuzey p-4 shadow-panel transition-[border-color,box-shadow] hover:border-cizgi-2 hover:shadow-kalkik"
-                  >
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="text-[14px] font-semibold">{t.ad}</span>
-                      <Rozet tur="uygun">Uygun</Rozet>
-                    </span>
-                    <span className="mt-1 text-[12.5px] text-metin-2">{t.ozet}</span>
-                    <span className="mt-2 text-[11.5px] text-metin-3">{t.kaynak}</span>
-                    <span className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-vurgu">
-                      Bu taslakla başla <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            {taslakKumeleri().map(([duzen, liste]) => (
+              <div key={duzen} className="mt-3">
+                <h3 className="text-[12px] font-medium text-metin-2">{duzen}</h3>
+                <ul className="mt-2 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+                  {liste.map((t) => (
+                    <li key={t.kimlik}>
+                      <Link
+                        to={`/uygulama/taslak/${t.kimlik}`}
+                        aria-label={`${t.ad} · ${t.duzen} taslağıyla yeni proje`}
+                        className="group flex h-full flex-col rounded-buyuk border border-cizgi bg-yuzey p-4 shadow-panel transition-[border-color,box-shadow] hover:border-cizgi-2 hover:shadow-kalkik"
+                      >
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="text-[14px] font-semibold">{t.ad}</span>
+                          <Rozet tur="uygun">Uygun</Rozet>
+                        </span>
+                        <span className="mt-1 text-[12.5px] text-metin-2">{t.ozet}</span>
+                        <span className="mt-2 text-[11.5px] text-metin-3">{t.kaynak}</span>
+                        <span className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-vurgu">
+                          Bu taslakla başla <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
             <p className="mt-3 text-[12px] leading-relaxed text-metin-3">
               Taslak yeni bir proje olarak açılır;  değerlerini değiştirebilirsiniz, taslağın kendisi değişmez.
             </p>

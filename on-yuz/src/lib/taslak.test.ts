@@ -15,10 +15,15 @@ async function modul() {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("taslak projeler ( açılış — uygunluğu testler/test_taslaklar.py )", () => {
-  it("beş taslak, sırayla", async () => {
-    const { TASLAKLAR } = await modul();
-    expect(TASLAKLAR.map((t) => t.kimlik)).toEqual(["630", "800", "1000", "1250", "1275"]);
+  it("her yük makine dairesiz ve daireli:  iki küme, sırayla", async () => {
+    const { TASLAKLAR, taslakKumeleri } = await modul();
+    const yukler = ["630", "800", "1000", "1250", "1275"];
+    expect(TASLAKLAR.map((t) => t.kimlik)).toEqual([...yukler, ...yukler.map((q) => `${q}-md`)]);
     expect(TASLAKLAR).toHaveLength(liste.length);
+    expect(taslakKumeleri().map(([d, l]) => [d, l.length])).toEqual([
+      ["Makine dairesiz", 5],
+      ["Makine daireli", 5],
+    ]);
   });
 
   it("taslak YENİ proje olarak açılır:  değerleri aynen, ikinci açılış ayrı proje, taslak değişmez", async () => {
