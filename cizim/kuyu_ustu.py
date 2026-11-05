@@ -26,7 +26,7 @@ arkada 2:1 kabin üstünde ( çapraz kasnaklar — _arka );  makine dairesinde 1
 kirişte ( LiftDesigner 1250 KG ).  Öteki düzenleri doğrulama açıkça reddeder.
 """
 
-from temel import cumle_basi, eleman_kutusu, ortusur, sayi_mi
+from temel import cumle_basi, eleman_kutusu, kucuk, ortusur, sayi_mi
 from cizim import sorunlu
 from cizim import sorun
 from cizim import istek_onbellegi
@@ -534,6 +534,21 @@ def _yandaki_kiris_sasesi(g, mk, kutular, reg_kasnak, hata):
     halatlarını ( payıyla ) içine alır;  kuyunun derinliğine sığmalı."""
     k = g["kuyu"]
     sase = _yandaki_duvar_kirisleri(mk, k["genislik"], *kutular, _reg_halat_kutusu(g, reg_kasnak))
+    #  Tek kuyuda komşu asansörün yanında duvar yok ( kuyu.acik_yan — ayırma kirişi
+    #  yalnız konsol seviyelerinde, hesabı makine yükünü taşımaz:  hesap/motor/
+    #  uygulama/ayirma_kirisi ):  kirişin o ucu mesnetsiz kalır.  ( 5 Kas:  çiziliyor,
+    #  hesap uygun diyordu.  Arkadaki ağırlıkta kirişler ön – arka duvarlarda. )
+    if k.get("acik_yan"):
+        hata.append(
+            sorun.Sorun(
+                f"Tek kuyuda makinenin duvardan duvara kirişlerinin {kucuk(k['acik_yan'])} ucu "
+                "komşu asansörün yanında — orada duvar yok, ayırma kirişi makine yükünü taşımaz:  "
+                "makineyi kılavuz raylara bindirin ( 'Makine yükünün yolu' ) ya da kirişin mesnedini "
+                "tasarlayın.",
+                _KIRISLER,
+                "kuyu_ustu",
+            )
+        )
     if sase[1] < 0.0 or sase[3] > k["derinlik"]:
         hata.append(
             sorun.Sorun(
