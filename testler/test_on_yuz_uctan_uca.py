@@ -919,7 +919,8 @@ class OnYuzUctanUca(unittest.TestCase):
         ikinci.get_by_role("complementary", name="Girdiler").get_by_label("Alan ara").fill(
             self.ad("beyan_yuku")
         )
-        self.assertEqual(beyan(ikinci).inner_text().strip(), "1.000")
+        #  Seçim kutusu birimi de gösterir ( 5 Kas, arayüz Ö2:  "800" yerine "800 kg" )
+        self.assertEqual(beyan(ikinci).inner_text().strip(), "1.000 kg")
         #  İkincide eklenen asansör birinciye geçer;  birincinin değişikliği ezilmez
         ikinci.get_by_role("button", name="Asansör ekle").click()
         iz2.sakin()

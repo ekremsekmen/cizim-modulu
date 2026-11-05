@@ -334,6 +334,18 @@ export function kipGizlileri(sema: AlanSemasi, h: Ham | undefined): Set<string> 
   return new Set(kotla ? sema.kot_kipi.gizli.kotla : sema.kot_kipi.gizli.olcuyle);
 }
 
+/**  YALNIZ YANDAKİ AĞIRLIKTA OKUNAN ALANLAR ( sunucu:  şemanın agirlik_yeri — tasarim/alanlar
+     agirlik="yan" ):  karşı ağırlık yanda değilse gizli.  Ağırlığın yeri yazılmış, yoksa
+     sunucunun kullandığı, yoksa şemanın varsayılanı.  Sunucu o alanı zaten okumaz;  gizlemek
+     yalnız "değiştirince bir şey olur" sanılmasın diye ( 5 Kas yok sayılan girdi taraması ).  */
+export function agirligaGoreGizli(sema: AlanSemasi, h: Ham | undefined, kullanilan?: Record<string, Deger>): string[] {
+  const ay = sema.agirlik_yeri;
+  if (!ay) return [];
+  const varsayilan = sema.gruplar.flatMap((g) => g.alanlar).find((a) => a.anahtar === ay.alan)?.varsayilan;
+  const yer = String(h?.[ay.alan] ?? kullanilan?.[ay.alan] ?? varsayilan ?? "");
+  return yer && !ay.yan.includes(yer) ? ay.yalniz_yan : [];
+}
+
 /**  YALNIZ KOTLA GİRİŞ ( kullanıcı kararı 2 Kas:  "ölçüyle kısmı karışıklık yaratıyor,
      gereksiz" ):  katlar her asansörde kot tablosuyla girilir — durak adedi, seyir,
      kat yükseklikleri, kuyu dibi, son kat ve tabliye kotlardan türer ( sunucuda,

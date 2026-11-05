@@ -107,6 +107,12 @@ def form():
             "ortak": sorted(anahtarlar(kuyu="ortak")),
             "gizli": sorted(anahtarlar(kuyu="tek")),
         },
+        #  Yalnız yandaki ağırlıkta okunan alanlar:  ağırlık arkadayken formda gizli
+        "agirlik_yeri": {
+            "alan": "agirlik_yeri",
+            "yan": ["Sağ", "Sol"],
+            "yalniz_yan": sorted(anahtarlar(agirlik="yan")),
+        },
         "cizimden": list(cizimden()),
         "hesaplanan": list(anahtarlar(kaynak=HESAP)),
     }

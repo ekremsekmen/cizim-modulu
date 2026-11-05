@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link, NavLink } from "react-router";
+import { Link, useLocation } from "react-router";
 import { BookOpen, CircleAlert, Loader2, SlidersHorizontal } from "lucide-react";
 import { useDepoYazilamiyor } from "@/lib/depo";
 import { cn } from "@/lib/utils";
@@ -84,22 +84,31 @@ export function AnaSayfaBaglantisi() {
 
 /**  Başvuru sayfaları ( her projede aynı ):  ofis standardı · tablolar.  */
 export function BasvuruBaglantilari() {
-  const sinif = ({ isActive }: { isActive: boolean }) =>
+  //  Sınıf DÜZ METİN:  açıklama balonu ( Radix Tooltip asChild ) çocuğun className'ini
+  //  kendininkiyle birleştirirken NavLink'in className FONKSİYONUNU metne çeviriyordu
+  //  ( 5 Kas:  bağlantıya hiçbir sınıf gitmiyordu — seçili sayfa vurgusu hiç çalışmadı ).
+  //  Seçili olduğu konumdan.
+  const { pathname } = useLocation();
+  const sinif = (yol: string) =>
     cn(
-      "inline-flex size-8 items-center justify-center rounded-orta text-metin-2 hover:bg-black/[0.04] hover:text-metin [&_svg]:size-4",
-      isActive && "bg-black/[0.05] text-metin",
+      //  Geniş ekranda simgenin yanında kısa adı ( yalnız simge ne olduğunu söylemiyordu );
+      //  erişilebilir ad aria-label'dan, değişmez
+      "inline-flex h-8 min-w-8 items-center justify-center gap-1.5 rounded-orta text-metin-2 hover:bg-black/[0.04] hover:text-metin xl:px-2.5 [&_svg]:size-4",
+      pathname.startsWith(yol) && "bg-black/[0.05] text-metin",
     );
   return (
     <>
       <Ipucu metin="Ofis standardı" yan="bottom">
-        <NavLink to="/ofis-standardi" aria-label="Ofis standardı" className={sinif}>
+        <Link to="/ofis-standardi" aria-label="Ofis standardı" className={sinif("/ofis-standardi")}>
           <SlidersHorizontal />
-        </NavLink>
+          <span className="hidden text-[13px] whitespace-nowrap xl:inline">Ofis standardı</span>
+        </Link>
       </Ipucu>
       <Ipucu metin="Tablolar" yan="bottom">
-        <NavLink to="/tablolar" aria-label="Tablolar" className={sinif}>
+        <Link to="/tablolar" aria-label="Tablolar" className={sinif("/tablolar")}>
           <BookOpen />
-        </NavLink>
+          <span className="hidden text-[13px] whitespace-nowrap xl:inline">Tablolar</span>
+        </Link>
       </Ipucu>
     </>
   );

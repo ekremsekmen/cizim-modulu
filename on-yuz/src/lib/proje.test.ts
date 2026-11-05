@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { alanHatasi, alanOku, alanYaz, asansorAdedi, asansorEkle, asansorKaldir, formHatalari, gizliAlanlar, girilmeyenler, kotOzeti, kotlayaCevir, varsayilanKotlarMi, istekKur, kutuyaYaz, kuyununOrtaklari, projeOku, sayiOku, secenekKapali, siraKaydir, tekKuyuMu, type UygulamaProjesi } from "./proje";
+import { agirligaGoreGizli, alanHatasi, alanOku, alanYaz, asansorAdedi, asansorEkle, asansorKaldir, formHatalari, gizliAlanlar, girilmeyenler, kotOzeti, kotlayaCevir, varsayilanKotlarMi, istekKur, kutuyaYaz, kuyununOrtaklari, projeOku, sayiOku, secenekKapali, siraKaydir, tekKuyuMu, type UygulamaProjesi } from "./proje";
 import { SEMA } from "./test-semasi";
 
 const proje = (p: Partial<UygulamaProjesi> = {}): UygulamaProjesi => ({
@@ -283,5 +283,18 @@ describe("yalnız kotla giriş ( 2 Kas ):  kotsuz proje açılırken kotlara çe
     expect(varsayilanKotlarMi(SEMA, q, 0)).toBe(false);
     //  Kotlardan türeyenler hiçbir zaman "girmediğiniz" değildir
     expect(girilmeyenler(SEMA, q, 0).map((x) => x.alan.anahtar)).not.toContain("durak_adedi");
+  });
+});
+
+describe("yalnız yandaki ağırlıkta okunan alanlar", () => {
+  const S = { ...SEMA, agirlik_yeri: { alan: "agirlik_yeri", yan: ["Sağ", "Sol"], yalniz_yan: ["agirlik_eksen_kaciklik"] } };
+  it("ağırlık arkadayken gizli, yandayken görünür", () => {
+    expect(agirligaGoreGizli(S, { agirlik_yeri: "Arka" })).toEqual(["agirlik_eksen_kaciklik"]);
+    expect(agirligaGoreGizli(S, { agirlik_yeri: "Sağ" })).toEqual([]);
+    //  yazılmamışsa sunucunun kullandığı
+    expect(agirligaGoreGizli(S, {}, { agirlik_yeri: "Arka" })).toEqual(["agirlik_eksen_kaciklik"]);
+  });
+  it("şemada yoksa hiçbir şey gizlemez ( eski sunucu )", () => {
+    expect(agirligaGoreGizli(SEMA, { agirlik_yeri: "Arka" })).toEqual([]);
   });
 });

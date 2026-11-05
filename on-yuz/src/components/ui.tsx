@@ -81,6 +81,7 @@ export function Secim({
   varsayilanMi,
   className,
   id,
+  birim,
 }: {
   deger: string;
   degisti: (d: string) => void;
@@ -89,6 +90,8 @@ export function Secim({
   varsayilanMi?: boolean;
   className?: string;
   id?: string;
+  /**  Seçili değerin yanında soluk birim ( metin kutusundaki gibi:  "800 kg" )  */
+  birim?: string;
 }) {
   return (
     <Select.Root value={deger} onValueChange={degisti}>
@@ -103,6 +106,7 @@ export function Secim({
       >
         <span className="truncate">
           <Select.Value />
+          {birim && <span className="ml-1 text-[12px] text-metin-3">{` ${birim}`}</span>}
         </span>
         <Select.Icon>
           <ChevronDown className="size-3.5 text-metin-3" />
