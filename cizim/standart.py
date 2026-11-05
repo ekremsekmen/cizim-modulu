@@ -19,6 +19,9 @@ KORKULUK_PARCA_ASGARI = 100.0
 #  yükseklik en az 0,70 m, aşarsa en az 1,10 m.
 KORKULUK_YUKSEKLIK_SINIRI = 500.0
 KORKULUK_ALCAK, KORKULUK_YUKSEK = 700.0, 1100.0
+#  m.5.2.5.5.1 b:  karşı ağırlık perdesi kuyu tabanından en az 2,0 m yükseğe uzanır
+#  ( alt ucu tabandan en çok 0,30 m — c;  kuyu dibi planı, kuyu_dibi._perdeyi_uzat ).
+AGIRLIK_PERDESI_YUKSEKLIGI = 2000.0
 #  m.5.2.5.5.2:  kuyuda birden çok asansör varsa hareketli parçaları arasında perde.
 #  .1  kuyu tabanının en çok 0,30 m üstünden en alt durak döşemesinin 2,50 m üstüne;
 #      eni bir kuyu dibinden ötekine geçilemeyecek kadar ( kuyu grubu, cizim/grup.py ).
