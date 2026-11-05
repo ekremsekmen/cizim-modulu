@@ -222,9 +222,18 @@ def _korkuluk_kenarlari(g, tavan, parcalar, hata):
                 for p in parcalar
                 if p[3] <= tavan[1] + 1e-9 and p[0] < tavan[2] and tavan[0] < p[2]
             ]
+        #  Tek kuyuda komşu asansörün yanı ( kuyu.acik_yan ):  orada duvar yok,
+        #  ayırma kirişi yalnız konsol seviyelerinde — aralarda komşunun boşluğu
+        #  açık.  Serbest uzaklık kuyu duvarına ( komşu kuyunun öbür yanına ) ölçülür
+        #  ( m.5.4.7.2 b ):  0,30 m'yi de 0,50 m'yi de aşar — korkuluk her zaman
+        #  gerekir, 1,10 m ( m.5.4.7.4 b 2 ).  Kiriş korkuluğun yerini tutmaz:  kabinin
+        #  yolu boyunca kesintisiz değil ( m.5.4.7.3 c ).  ( 5 Kas:  boşluk kirişe
+        #  ölçülüyordu — 460 mm, korkuluk 0,70 m;  300'ün altında hiç konmazdı. )
+        acik = yan == g["kuyu"].get("acik_yan")
         k = {
             "bos": bos,
-            "gerekli": bos > standart.KORKULUK_BOSLUK,
+            "acik": acik,
+            "gerekli": acik or bos > standart.KORKULUK_BOSLUK,
             "iceri": 0.0,
             "parca": min(yakin) if yakin else None,
             "yukseklik": None,
@@ -244,7 +253,7 @@ def _korkuluk_kenarlari(g, tavan, parcalar, hata):
                 )
             k["yukseklik"] = (
                 standart.KORKULUK_ALCAK
-                if bos + k["iceri"] <= standart.KORKULUK_YUKSEKLIK_SINIRI
+                if not acik and bos + k["iceri"] <= standart.KORKULUK_YUKSEKLIK_SINIRI
                 else standart.KORKULUK_YUKSEK
             )
         kenarlar[yan] = k

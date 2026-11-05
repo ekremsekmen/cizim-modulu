@@ -26,10 +26,12 @@ from unittest import mock
 from cizim import cizimler
 from cizim import geometri
 from cizim import grup
+from cizim import kabin_ustu
 from cizim import kopru
 from cizim import kuyu_kesiti
 from cizim import makine
 from cizim import pafta
+from cizim import standart
 from motor.uygulama import uygulama_girdisi
 from motor.uygulama import uygulama_hesabi
 from tasarim import alanlar
@@ -243,6 +245,36 @@ class Denetim(unittest.TestCase):
         dar[1]["kabin"]["kaciklik_y"] -= 650
         self.assertLess(grup.korkuluk_mesafesi(dar)[0], 500)
         self.assertIn("perde kuyu boyunca uzanmalı ( m.5.2.5.5.2.2 )", " ".join(grup.duzen_hatalari(dar)))
+
+    def test_acik_yanda_korkuluk_hep_gerekli_1_10(self):
+        """m.5.4.7.2 b / 5.4.7.4 b:  komşu asansörün yanında duvar yok, ayırma kirişi
+        yalnız konsol seviyelerinde — serbest uzaklık kuyu duvarına ölçülür, 0,50 m'yi
+        aşar:  korkuluk her zaman gerekli ve 1,10 m ( eskiden boşluk kirişe ölçülüyor,
+        460 mm'de 0,70 m çıkıyordu;  300'ün altında hiç konmazdı )."""
+        for g in self.gler:
+            ken = kabin_ustu.yerlesim(g)["kenarlar"]
+            acik = g["kuyu"]["acik_yan"]
+            with self.subTest(asansor=g["proje"]["asansor"]):
+                self.assertTrue(ken[acik]["acik"])
+                self.assertTrue(ken[acik]["gerekli"])
+                self.assertEqual(ken[acik]["yukseklik"], standart.KORKULUK_YUKSEK)
+                #  dış duvarlı yanlar eskisi gibi boşluğa göre
+                for yan, k in ken.items():
+                    if yan != acik:
+                        self.assertFalse(k["acik"])
+                        self.assertEqual(k["gerekli"], k["bos"] > standart.KORKULUK_BOSLUK)
+
+    def test_acik_yanda_dar_bosluk_da_korkuluk(self):
+        """Kabin kirişe 300 mm'den yakınsa da açık yanda korkuluk konur;  aynı boşluk
+        duvarlı yanda korkuluk istemez."""
+        tavan = (300.0, 300.0, 1800.0, 1700.0)  # sağda 200, solda 300
+        for acik, beklenen in (("Sağ", (True, False)), (None, (False, False))):
+            g = {"kuyu": {"genislik": 2000.0, "derinlik": 2000.0, "acik_yan": acik}}
+            ken = kabin_ustu._korkuluk_kenarlari(g, tavan, [], [])
+            with self.subTest(acik_yan=acik):
+                self.assertEqual((ken["Sağ"]["gerekli"], ken["Sol"]["gerekli"]), beklenen)
+                if acik:
+                    self.assertEqual(ken["Sağ"]["yukseklik"], standart.KORKULUK_YUKSEK)
 
     def test_projenin_sorunlari(self):
         self.assertEqual(grup.sorunlar([None, self.gler[1]]), [])
