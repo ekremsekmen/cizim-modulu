@@ -713,7 +713,8 @@ function SorunKarti({
                 onClick={m.git}
                 title={m.cizimde ? "Çizimde göster" : undefined}
                 className={cn(
-                  "text-left underline-offset-2 hover:underline",
+                  //  block:  satır içi düğmede madde işareti son satıra hizalanıyordu
+                  "block text-left underline-offset-2 hover:underline",
                   m.cizimde && seciliSorun === m.metin && (koyu ? "text-white" : "font-medium"),
                 )}
               >

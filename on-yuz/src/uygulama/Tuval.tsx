@@ -526,11 +526,13 @@ export function Tuval({
       {uzak && yerler.map((y) => (
         <div
           key={y.c.ad}
-          className="pointer-events-none absolute flex items-baseline gap-2 truncate text-[11.5px] font-medium tracking-wide text-tuval-metin-2"
-          style={{ left: g.x + y.x * g.k, top: g.y + y.y * g.k - 22, maxWidth: Math.max(80, (y.w + ARALIK * 0.6) * g.k) }}
+          //  Ad sığmazsa kesilmez, iki satıra iner ( "A-A KUYU DÜŞEY …" okunmuyordu );
+          //  alt kenarı çizimin 6 px üstünde, yukarı doğru büyür
+          className="pointer-events-none absolute line-clamp-2 -translate-y-full text-[11.5px] leading-tight font-medium tracking-wide text-tuval-metin-2"
+          style={{ left: g.x + y.x * g.k, top: g.y + y.y * g.k - 6, maxWidth: Math.max(80, (y.w + ARALIK * 0.6) * g.k) }}
         >
-          <span className="truncate">{kisaAd(y.c.baslik)}</span>
-          {!y.c.olceksiz && <span className="sayi shrink-0 text-tuval-metin-2/70">1:{y.c.olcek}</span>}
+          {kisaAd(y.c.baslik)}
+          {!y.c.olceksiz && <span className="sayi ml-2 whitespace-nowrap text-tuval-metin-2/70">1:{y.c.olcek}</span>}
         </div>
       ))}
 

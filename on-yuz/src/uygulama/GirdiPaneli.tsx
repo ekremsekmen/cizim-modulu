@@ -358,7 +358,8 @@ function AlanSatiri({
       <div className={cn("grid items-center gap-x-2", genis ? "grid-cols-1 gap-y-1" : "grid-cols-[1fr_128px]")}>
         <div className="flex min-w-0 items-center gap-1">
           {girildi && <span aria-label="girildi" className="size-1.5 shrink-0 rounded-full bg-vurgu" />}
-          <label htmlFor={id} className="min-w-0 truncate text-[12.5px] text-metin-2" title={a.etiket}>
+          {/*  Uzun ad kesilmez, iki satıra iner ( "Kabinin kuyu ortasından sa…" )  */}
+          <label htmlFor={id} className="line-clamp-2 min-w-0 text-[12.5px] leading-tight text-metin-2" title={a.etiket}>
             {a.anahtar === "mk_yok" ? "Makine dairesi" : ad}
           </label>
           {(a.bilgi || ack) && (
