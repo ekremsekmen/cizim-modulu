@@ -1485,6 +1485,192 @@ class KuyuDibiYerlesim(unittest.TestCase):
         self.assertTrue(m[2] <= x0 or m[0] >= x1, m)  # kapı boşluğunun dışında
         self.assertLessEqual(max(x0 - m[2], m[0] - x1), kuyu_dibi.MERDIVEN_KAPI_AZAMI)
 
+    def test_merdiven_kapi_unitesine_ve_kabinin_yoluna_binmez(self):
+        """Ek F.2.3:  merdiven en alt durağın eşiğinin 1,10 m üstüne uzanır — planda en
+        alt kat kapısının ünitesine ( kasa, eşik, kanatlar, kanat cebi ) ve eşik altı
+        sacına binmez;  kabinden ve kabinle kuyu tabanına inen kabin kapısından ( eşik,
+        kanatlar, cep ) en az KABIN_YOLU_ACIKLIGI uzakta durur ( Tavaslıoğlu 1.2.4.1 g ).
+        Eskiden 223 çizilen standart düzenin 60'ında kapının ünitesine, 4'ünde eşik altı
+        sacına, 48'inde kabin kapısının cebine giriyordu.  Bütün kapı tipleri, üç
+        ağırlık yeri, iki montaj — denetim kuyu planının ( C-C ) parçalarıyla."""
+        from motor.uygulama import mukavemet_tablolari
+        from testler import test_yerlesim_saglamligi
+
+        kapi_unitesi = ("kapi_kasasi", "kat_esigi", "kat_kanadi", "kanat_cebi", "kanat_durdurucu")
+        kabin = ("kabin_dis", "kabin_esigi", "kabin_kanadi", "kabin_kanat_cebi")
+        a = kuyu_dibi.KABIN_YOLU_ACIKLIGI
+        md = sabitler.sabitler()["merdiven_derinlik"]
+        sayi, yakin = 0, 0
+        for Q in (450, 1000, 1600):
+            for yer in ("Sağ", "Sol", "Arka"):
+                for tip in mukavemet_tablolari.KAPI_TIPLERI:
+                    for montaj in ("Kuyu içine", "Duvar boşluğuna"):
+                        ek = (
+                            {
+                                "aski_duzeni": "Kabin üstü",
+                                "son_kat_yuksekligi": 5000,
+                                "makine_raya_biniyor": "Bina yapısına",
+                            }
+                            if yer == "Arka"
+                            else {}
+                        )
+                        v = test_yerlesim_saglamligi.standart_istek(
+                            Q, True, yer, kat_kapisi_tipi=tip, kapi_montaji=montaj, **ek
+                        )
+                        if yer == "Arka":
+                            v["asansorler"][0]["kuyu_derinligi"] = test_yerlesim_saglamligi.KABIN[Q][1] + 700
+                        g, _A, hata = test_yerlesim_saglamligi.duzen_girdisi(v)
+                        if hata or kuyu_dibi.dogrula(g):
+                            continue
+                        m = kuyu_dibi.yerlesim(g)["merdiven"]
+                        if m is None:
+                            continue
+                        sayi += 1
+                        plan = [el for el in geometri.plan(g) if el["tip"] == "dikdortgen"]
+                        sac = girdi.esik_alti_saci(g, sabitler.sabitler(g.get("_cizim_sabitleri")))
+                        with self.subTest(Q=Q, yer=yer, tip=tip, montaj=montaj, merdiven=m):
+                            for el in plan:
+                                k = (el["x"], el["y"], el["x"] + el["g"], el["y"] + el["d"])
+                                if el.get("ad") in kapi_unitesi:
+                                    self.assertFalse(ortusur(m, k), el["ad"])
+                                if el.get("ad") in kabin:
+                                    self.assertFalse(ortusur(m, k, a), el["ad"])
+                            self.assertFalse(
+                                ortusur(m, (sac["x"][0], sac["u"] - sac["pah"][0], sac["x"][1], sac["u"])),
+                                "eşik altı sacı",
+                            )
+                        #  Kanat cebi yan duvardaki merdivenin yerine ( duvardan md + a )
+                        #  uzanıyor mu — eskiden merdivenin girdiği düzenler
+                        G = g["kuyu"]["genislik"]
+                        yakin += any(
+                            el.get("ad") in ("kanat_cebi", "kabin_kanat_cebi")
+                            and (el["x"] < md + a or el["x"] + el["g"] > G - md - a)
+                            for el in plan
+                        )
+        self.assertGreater(sayi, 60)
+        self.assertGreater(yakin, 20)
+
+    def test_merkezi_kapida_merdivene_yer_yoksa_ret(self):
+        """Arkada ağırlık, 1000 kg, merkezi kapı:  iki kanat cebi de yan duvarlara 95 mm
+        kalıyor;  merdiven yan duvarda kabin kapısının cebinin 50 mm arkasıyla ray
+        konsolunun plakası arasına sığmıyor ( 330 mm yer, merdiven 350 ) — kapıdan 800
+        mm'den uzağa da konamaz:  proje sebebiyle reddedilir ( 4 Kas, kullanıcı 50 mm
+        açıklığı seçti;  eskiden merdiven iki cebin de içinden geçiyordu )."""
+        from testler import test_yerlesim_saglamligi
+
+        v = test_yerlesim_saglamligi.standart_istek(
+            1000,
+            True,
+            "Arka",
+            kat_kapisi_tipi="Otomatik Merkezi",
+            aski_duzeni="Kabin üstü",
+            son_kat_yuksekligi=5000,
+            makine_raya_biniyor="Bina yapısına",
+        )
+        v["asansorler"][0]["kuyu_derinligi"] = test_yerlesim_saglamligi.KABIN[1000][1] + 700
+        g, _A, hata = test_yerlesim_saglamligi.duzen_girdisi(v)
+        self.assertFalse(hata, hata)
+        self.assertEqual(geometri.dogrula(g), [])
+        Y = kuyu_dibi.yerlesim(g)
+        self.assertIsNone(Y["merdiven"])
+        ileti = [h for h in Y["hata"] if "Ek F.5 b" in h]
+        self.assertEqual(len(ileti), 1, Y["hata"])
+        self.assertIn("Ek F.2.3", ileti[0])
+        self.assertIn("kabin kapısının cebi", ileti[0])
+        self.assertEqual(ileti[0].parcalar, ("merdiven",))
+
+    def test_perde_kabinin_yolundan_gecmez(self):
+        """m.5.2.5.5.1 b:  perde kuyu tabanından en az 2,0 m yükseğe çıkar — kabin en
+        alttayken kabin kapısı o yüksekliğin içine iner:  perdenin uzayan ucu kabin
+        kapısından ( eşik, kanatlar, cep ) KABIN_YOLU_ACIKLIGI önce biter.  Eskiden kat
+        kapısının ünitesine dek uzuyor, örnek projelerde kabin kapısının cebinin
+        içinden geçiyordu ( x 252 · cep 250 – 730 )."""
+        a = kuyu_dibi.KABIN_YOLU_ACIKLIGI
+        for ad, g in _dip_projeler():
+            Y = kuyu_dibi.yerlesim(g)
+            p = Y["perde"]
+            for el in Y["taban"]:
+                if el["tip"] != "dikdortgen" or el.get("ad") not in kuyu_dibi.KABIN_KAPISI:
+                    continue
+                k = (el["x"] - a, el["y"] - a, el["x"] + el["g"] + a, el["y"] + el["d"] + a)
+                for c in [p] + Y["perde_donusu"]:  # perde ve duvara dönen kolu
+                    with self.subTest(proje=ad, parca=el["ad"], cizgi=c):
+                        if c[0] == c[2]:
+                            lo, hi = sorted((c[1], c[3]))
+                            self.assertFalse(k[0] < c[0] < k[2] and lo < k[3] and k[1] < hi, (c, k))
+                        else:
+                            lo, hi = sorted((c[0], c[2]))
+                            self.assertFalse(k[1] < c[1] < k[3] and lo < k[2] and k[0] < hi, (c, k))
+
+    def test_perde_kabinin_yolunda_bitince_duvara_doner(self):
+        """m.5.2.5.5.1 e:  ray – duvar arası 0,30 m'yi aşıyorsa korunur.  Perde kabinin
+        yolunda ( kabin kapısının cebinden KABIN_YOLU_ACIKLIGI önce ) bitince ucu ile ön
+        duvar arası 320 mm kalıyordu ( örnek projeler ) — perde oradan ağırlığın yan
+        duvarına döner, ağırlığın bölgesi önden kapanır.  Kat kapısının ünitesi boşluğu
+        kapatmaz:  durak döşemesindedir, perdenin 0,30 – 2,0 m bandının altı açıktır."""
+        a = kuyu_dibi.KABIN_YOLU_ACIKLIGI
+        for ad, g in _dip_projeler():
+            Y = kuyu_dibi.yerlesim(g)
+            p, G = Y["perde"], g["kuyu"]["genislik"]
+            if Y["ag_yan"] not in ("Sol", "Sağ"):
+                continue
+            cep = next(
+                el
+                for el in Y["taban"]
+                if el.get("ad") == "kabin_kanat_cebi" and el["x"] < p[0] < el["x"] + el["g"]
+            )
+            duvar = G if Y["ag_yan"] == "Sağ" else 0.0
+            with self.subTest(proje=ad):
+                #  perde cebin 50 mm önünde biter, dönüş aynı hizadan ağırlığın duvarına
+                self.assertAlmostEqual(p[1], cep["y"] + cep["d"] + a)
+                self.assertEqual(Y["perde_donusu"], [(p[0], p[1], duvar, p[1])])
+                #  ağırlığın parçaları dönüşün arkasında
+                self.assertLess(p[1], Y["blok"][1])
+                self.assertTrue(all(r[1] > p[1] for r in Y["agirlik_raylari"]))
+                #  çizimde de var:  iki PERDE çizgisi
+                e = kuyu_dibi.ciz(g)
+                self.assertEqual(sum(1 for el in e if el.get("ad") == "perde"), 2)
+
+    def test_perde_donusu_standart_duzenlerde_yok(self):
+        """Dönüş yalnız boşluk kalınca:  standart düzenlerde perde ucu ile duvar arası
+        zaten 300'ü aşmaz ( test_perde_ucunda_300_den_buyuk_bosluk_kalmaz )."""
+        from testler import test_yerlesim_saglamligi
+
+        for Q in test_yerlesim_saglamligi.KABIN:
+            for yer in ("Sağ", "Sol", "Arka"):
+                g, hata = test_yerlesim_saglamligi.gecerli_duzen(Q, yer)
+                if hata:
+                    continue
+                with self.subTest(Q=Q, yer=yer):
+                    self.assertEqual(kuyu_dibi.yerlesim(g)["perde_donusu"], [])
+
+    def test_perdeyi_uzat_kapanmayan_engel(self):
+        """_perdeyi_uzat:  durduran ama kapatmayan parçada ( yol ) biten perde, ötesinde
+        300'den büyük boşluk varsa duvara döner;  sabit parçada biterse dönmez."""
+        perde = (250.0, 700.0, 250.0, 1500.0)
+        yol = [(200.0, 100.0, 700.0, 320.0)]
+        p, korunan, donus = kuyu_dibi._perdeyi_uzat(perde, "Sol", 2000.0, 1700.0, [], yol)
+        self.assertEqual(p, (250.0, 320.0, 250.0, 1500.0))
+        self.assertEqual(korunan, [(0.0, 320.0, 250.0, 700.0)])
+        self.assertEqual(donus, [(250.0, 320.0, 0.0, 320.0)])
+        #  aynı kutu sabitse:  perde orada biter, dönmez
+        p, _, donus = kuyu_dibi._perdeyi_uzat(perde, "Sol", 2000.0, 1700.0, yol, [])
+        self.assertEqual((p, donus), ((250.0, 320.0, 250.0, 1500.0), []))
+        #  yolun ötesinde boşluk 300'ü aşmıyorsa dönmez
+        p, _, donus = kuyu_dibi._perdeyi_uzat(perde, "Sol", 2000.0, 1700.0, [(0, 0, 300, 100)], yol)
+        self.assertEqual(donus, [])
+        #  sağdaki ağırlık:  sağ duvara;  dönüş yolu bir sabit parça keserse onda biter
+        perde = (1750.0, 700.0, 1750.0, 1500.0)
+        yol = [(1300.0, 100.0, 1800.0, 320.0)]
+        _, _, donus = kuyu_dibi._perdeyi_uzat(perde, "Sağ", 2000.0, 2000.0, [(1900, 300, 2000, 400)], yol)
+        self.assertEqual(donus, [(1750.0, 320.0, 1900, 320.0)])
+        #  arkadaki ağırlık:  arka duvara
+        perde = (700.0, 1500.0, 1300.0, 1500.0)
+        yol = [(300.0, 1400.0, 500.0, 1800.0)]
+        p, _, donus = kuyu_dibi._perdeyi_uzat(perde, None, 2000.0, 2000.0, [], yol)
+        self.assertEqual(p, (500.0, 1500.0, 2000.0, 1500.0))
+        self.assertEqual(donus, [(500.0, 1500.0, 500.0, 2000.0)])
+
     def test_standart_tablolari(self):
         """Ölçüler standardın kendi sayılarıyla sabitlenir ( tablo kendisiyle
         kıyaslanırsa yanlış bir sayı testten geçerdi )."""
@@ -1496,6 +1682,16 @@ class KuyuDibiYerlesim(unittest.TestCase):
             kabin_ustu.SIGINMA, {"Dik duruş": (400.0, 500.0), "Çömelme": (500.0, 700.0)}
         )  # Çizelge 3
         self.assertEqual((kuyu_dibi.MERDIVEN_AZAMI_DERINLIK, kuyu_dibi.MERDIVEN_KAPI_AZAMI), (2500.0, 800.0))
+        #  Ek F.2.3 ( eşiğin 1,10 m üstü ) · Tavaslıoğlu 1.2.4.1 g ( merdiven – kabin 50 mm )
+        #  · m.5.2.5.5.1 b ( perde kuyu tabanından 2,0 m )
+        self.assertEqual(
+            (
+                kuyu_dibi.MERDIVEN_ESIK_USTU,
+                kuyu_dibi.KABIN_YOLU_ACIKLIGI,
+                standart.AGIRLIK_PERDESI_YUKSEKLIGI,
+            ),
+            (1100.0, 50.0, 2000.0),
+        )
         self.assertEqual(
             (
                 standart.KORKULUK_BOSLUK,

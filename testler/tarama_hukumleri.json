@@ -478,7 +478,7 @@
   },
   "320 Sağ MRL bina yapısına Kabin altı": {
    "durum": "ret",
-   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 Sağ MRL bina yapısına Kabin üstü": {
    "durum": "ret",
@@ -486,7 +486,7 @@
   },
   "320 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
    "durum": "ret",
-   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
    "durum": "ret",
@@ -510,7 +510,7 @@
   },
   "320 Sol MRL bina yapısına Kabin altı": {
    "durum": "ret",
-   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 Sol MRL bina yapısına Kabin üstü": {
    "durum": "ret",
@@ -518,7 +518,7 @@
   },
   "320 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
    "durum": "ret",
-   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
    "durum": "ret",
@@ -996,11 +996,11 @@
   },
   "320 üst=Dik duruş dip=Dik duruş Kuyu içine v=1.0": {
    "durum": "ret",
-   "sebep": "Kabin tavanında dik duruş tipi sığınma alanına ( 400 × 500 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 üst=Dik duruş dip=Dik duruş Kuyu içine v=1.6": {
    "durum": "ret",
-   "sebep": "Kabin tavanında dik duruş tipi sığınma alanına ( 400 × 500 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 üst=Dik duruş dip=Yatarak Duvar boşluğuna v=1.0": {
    "durum": "ret",
@@ -1012,11 +1012,11 @@
   },
   "320 üst=Dik duruş dip=Yatarak Kuyu içine v=1.0": {
    "durum": "ret",
-   "sebep": "Kuyu dibinde yatarak tipi sığınma alanına ( 700 × 1000 mm, TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı ağırlığın şeridi dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 üst=Dik duruş dip=Yatarak Kuyu içine v=1.6": {
    "durum": "ret",
-   "sebep": "Kuyu dibinde yatarak tipi sığınma alanına ( 700 × 1000 mm, TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı ağırlığın şeridi dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 üst=Dik duruş dip=Çömelme Duvar boşluğuna v=1.0": {
    "durum": "ret",
@@ -1028,11 +1028,11 @@
   },
   "320 üst=Dik duruş dip=Çömelme Kuyu içine v=1.0": {
    "durum": "ret",
-   "sebep": "Kabin tavanında dik duruş tipi sığınma alanına ( 400 × 500 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 üst=Dik duruş dip=Çömelme Kuyu içine v=1.6": {
    "durum": "ret",
-   "sebep": "Kabin tavanında dik duruş tipi sığınma alanına ( 400 × 500 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 üst=Çömelme dip=Dik duruş Duvar boşluğuna v=1.0": {
    "durum": "ret",
@@ -1044,11 +1044,11 @@
   },
   "320 üst=Çömelme dip=Dik duruş Kuyu içine v=1.0": {
    "durum": "ret",
-   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 üst=Çömelme dip=Dik duruş Kuyu içine v=1.6": {
    "durum": "ret",
-   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.0": {
    "durum": "ret",
@@ -1060,11 +1060,11 @@
   },
   "320 üst=Çömelme dip=Yatarak Kuyu içine v=1.0": {
    "durum": "ret",
-   "sebep": "Kuyu dibinde yatarak tipi sığınma alanına ( 700 × 1000 mm, TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı ağırlığın şeridi dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 üst=Çömelme dip=Yatarak Kuyu içine v=1.6": {
    "durum": "ret",
-   "sebep": "Kuyu dibinde yatarak tipi sığınma alanına ( 700 × 1000 mm, TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı ağırlığın şeridi dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.0": {
    "durum": "ret",
@@ -1076,11 +1076,11 @@
   },
   "320 üst=Çömelme dip=Çömelme Kuyu içine v=1.0": {
    "durum": "ret",
-   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "320 üst=Çömelme dip=Çömelme Kuyu içine v=1.6": {
    "durum": "ret",
-   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "630 üst=Dik duruş dip=Dik duruş Duvar boşluğuna v=1.0": {
    "durum": "ret",
@@ -1189,8 +1189,8 @@
    "sebep": ""
   },
   "1000 Arka Otomatik Merkezi": {
-   "durum": "çizildi",
-   "sebep": ""
+   "durum": "ret",
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "1000 Arka Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1285,8 +1285,8 @@
    "sebep": ""
   },
   "1600 Arka Otomatik Merkezi": {
-   "durum": "çizildi",
-   "sebep": ""
+   "durum": "ret",
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "1600 Arka Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1478,7 +1478,7 @@
   },
   "450 Arka Otomatik Merkezi": {
    "durum": "ret",
-   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+   "sebep": "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin 1,10 m üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  kabinden en az 50 mm ) var."
   },
   "450 Arka Otomatik Merkezi 4 Kanat": {
    "durum": "ret",
