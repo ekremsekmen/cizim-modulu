@@ -174,10 +174,15 @@ def tarama_olcegi(tur, olcek):
 #  2,5 mm.  Başka ölçekte çizim k = ölçek / 20 ile çarpar.  ( 12 Eki:  13 ayrı
 #  boy vardı — 1,45 … 4,34 mm;  üçü ISO'nun en küçüğü 1,8'in altında. )
 BUYUK_HARF = 0.716
+#  Parçanın İÇİNE yazılan kısa etiket ( kuyu dibi merdiveni:  2,5 mm'de MERDİVEN
+#  369 mm, 350 × 100'lük merdivene sığmıyordu;  dışına yazılınca ölçü sıralarıyla
+#  yarışıyordu — 4 Kas, kullanıcı ISO 3098'in en küçük boyunu seçti ) — 1,8 mm.
+#  Başka yazıda kullanılmaz.
+KUCUK = 50.3
 NORMAL = 70.0  # ölçü yazısı, etiket, not — 2,5 mm
 HARF = 98.0  # kesit / görünüş harfi, durak numarası — 3,5 mm
 BASLIK = 140.0  # çizimin başlığı — 5 mm
-YAZI_SINIFLARI = (NORMAL, HARF, BASLIK)
+YAZI_SINIFLARI = (KUCUK, NORMAL, HARF, BASLIK)
 
 
 #  YAZI MASKESİ:  etiketin arkasındaki örtü yazının kutusundan her yanda

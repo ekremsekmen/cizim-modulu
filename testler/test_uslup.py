@@ -110,7 +110,8 @@ class Yazilar(unittest.TestCase):
 
     def test_butun_yazilar_iso_boyunda_ve_birbirine_binmez(self):
         boylar = {round(uslup.kagitta(h, 20), 2) for h in uslup.YAZI_SINIFLARI}
-        self.assertEqual(boylar, {2.51, 3.51, 5.01})
+        #  1,8:  yalnız parçanın içine yazılan kısa etiket ( kuyu dibi merdiveni )
+        self.assertEqual(boylar, {1.8, 2.51, 3.51, 5.01})
         for ad_d, ad, olcek, e in _duzenlerin_cizimleri():
             with self.subTest(duzen=ad_d, cizim=ad):
                 kutular = []
