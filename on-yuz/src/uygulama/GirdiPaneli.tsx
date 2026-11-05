@@ -3,9 +3,9 @@
     bağlı kalan bölüm sayısıdır ( bolum_grubu ).  Yazılmamış alan sunucunun
     kullandığı değeri SOLUK gösterir:  hesap onunla yapıldı, ama siz girmediniz.  */
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, CircleQuestionMark, RotateCcw, Search, X } from "lucide-react";
+import { ChevronRight, CircleAlert, CircleQuestionMark, RotateCcw, Search, X } from "lucide-react";
 import type { Alan, AlanSemasi, Deger } from "@/lib/api";
-import { alanHatasi, alanOku, gizliAlanlar, kipGizlileri, kuyununOrtaklari, mrlMi, varsayilanKotlarMi, sayiOku, secenekKapali, type UygulamaProjesi } from "@/lib/proje";
+import { agirligaGoreGizli, alanHatasi, alanOku, gizliAlanlar, kipGizlileri, kuyununOrtaklari, mrlMi, varsayilanKotlarMi, sayiOku, secenekKapali, type UygulamaProjesi } from "@/lib/proje";
 import { DURAK_ADLARI, DURAK_KOTLARI, GIRIS_DURAGI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, MD_ZEMINI_KOTU } from "@/lib/kotlar";
 import { KatGirisi } from "./KotTablosu";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
@@ -52,8 +52,9 @@ export function GirdiPaneli({
         ...gizliAlanlar(sema, proje),
         ...kipGizlileri(sema, h),
         ...[DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, MD_ZEMINI_KOTU, DURAK_ADLARI, GIRIS_DURAGI],
+        ...agirligaGoreGizli(sema, h, kullanilan),
       ]),
-    [sema, proje, h],
+    [sema, proje, h, kullanilan],
   );
   //  Kot tablosu kipi belirleyen alanın grubunda ( "Kuyu ve katlar" )
   const katGrubu = sema.gruplar.find((g) => g.alanlar.some((a) => a.anahtar === sema.kot_kipi.alan))?.ad;
@@ -150,10 +151,19 @@ export function GirdiPaneli({
               >
                 <ChevronRight className={cn("size-3.5 text-metin-3 transition-transform", acikMi && "rotate-90")} />
                 <span className="flex-1 text-[13px] font-medium">{g.ad}</span>
-                {girildi > 0 && <span className="text-[11.5px] text-metin-3">{girildi} girildi</span>}
+                {/*  İki sayı iki ayrı şey:  mavi nokta alanın yanındaki "girildi" noktasıyla
+                     aynı;  kırmızı rozetin uyarı işareti uygun olmayan bölümleri sayar
+                     ( eskiden yan yana iki çıplak sayıydı )  */}
+                {girildi > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[11.5px] text-metin-3">
+                    <span aria-hidden className="size-1.5 rounded-full bg-vurgu" />
+                    {girildi} girildi
+                  </span>
+                )}
                 {hata > 0 && (
                   <Ipucu metin={`${hata} bölüm bu grubun girdilerine bağlı ve uygun değil`}>
-                    <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red px-1 text-[11px] font-semibold text-white">
+                    <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center gap-0.5 rounded-full bg-red px-1.5 text-[11px] font-semibold text-white">
+                      <CircleAlert aria-hidden className="size-3" />
                       {hata}
                     </span>
                   </Ipucu>
@@ -318,6 +328,7 @@ function AlanSatiri({
         etiket={ad}
         deger={secimDegeri(a.secenekler, ham ?? String(etkin ?? ""))}
         varsayilanMi={!girildi}
+        birim={a.birim && a.birim !== "—" ? a.birim : undefined}
         degisti={(d) => yaz(a.anahtar, d)}
         secenekler={a.secenekler.map((s) => ({
           deger: String(s),

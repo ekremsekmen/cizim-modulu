@@ -64,6 +64,8 @@ export interface AlanSemasi {
        kuyudadır — ortak alanlar iki asansörde aynı ( sunucu 1. asansörünkini okur ),
        gizli alanlar ( soldaki asansör, ayırma kirişi ) yalnız o zaman okunur.  */
   kuyu_duzeni: { alan: string; tek: string; ortak: string[]; gizli: string[] };
+  /**  Yalnız yandaki ağırlıkta ( yan ) okunan alanlar ( yalniz_yan ):  ağırlık arkadayken gizli  */
+  agirlik_yeri?: { alan: string; yan: string[]; yalniz_yan: string[] };
   cizimden: string[];
   ortak_kopru: { mukavemet: string; anahtar: string; avan: string }[];
   sabitler: {

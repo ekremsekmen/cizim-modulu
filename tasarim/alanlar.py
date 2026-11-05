@@ -150,6 +150,9 @@ class Alan:
     #  KUYU DÜZENİ:  "ortak" — tek kuyuda kuyunun girdisi, iki asansörde aynı ( KUYU_ORTAK );
     #  "tek" — yalnız tek kuyuda okunur ( öbür düzende ekranda gizli )
     kuyu: str = None
+    #  "yan":  yalnız karşı ağırlık yandayken ( Sağ / Sol ) okunur — arkadaki ağırlıkta
+    #  formda gizli ( tasarim/gorunum:  agirlik_yeri;  5 Kas yok sayılan girdi taraması )
+    agirlik: str = None
     bilgi: str = ""  # formdaki ⓘ metni
     grup: str = ""
 
@@ -1563,6 +1566,7 @@ _GRUPLAR = (
                 sozlesme=CIZ,
                 isaretli=True,  # konum kayması:  iki yöne de ( köprü öyle okur )
                 gelismis=True,
+                agirlik="yan",
                 bilgi=(
                     "Yandaki karşı ağırlığın ekseni kabin ray ekseninin önünde ( − ) ya da arkasında ( + "
                     ") olabilir ( referans proje:  50 mm önde, −50 )."

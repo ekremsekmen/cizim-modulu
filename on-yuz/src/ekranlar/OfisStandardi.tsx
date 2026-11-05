@@ -118,15 +118,28 @@ export function OfisStandardi() {
               const birim = /\(([^()]+)\)\s*$/.exec(ad)?.[1];
               const deger = ofis[k] ?? "";
               const metin = s.metin.includes(k);
+              //  Varsayılandan FARKLI ofis değeri vurgulanır ( eskiden yazılan her değer —
+              //  varsayılanın aynısı da — boyanıyordu;  hangisinin değiştiği seçilmiyordu )
+              const v0 = s.varsayilan[k];
+              const sayi = Number(deger.trim().replace(/\./g, "").replace(",", "."));
+              const farkli =
+                deger.trim() !== "" &&
+                (metin || typeof v0 !== "number" || !Number.isFinite(sayi) ? deger.trim() !== String(v0 ?? "") : sayi !== v0);
               return (
-                <tr key={k} className={cn("align-top", deger !== "" && "bg-vurgu-acik/40")}>
+                <tr key={k} className={cn("align-top", farkli && "bg-vurgu-acik/40")}>
                   <td className="px-5 py-2.5">
-                    <label htmlFor={`of-${k}`} className="block font-medium">
-                      {birim ? ad.replace(/\s*\([^()]+\)\s*$/, "") : ad}
-                    </label>
+                    {/*  Rozet etiketin dışında:  kutunun erişilebilir adı değişmesin  */}
+                    <div className="flex items-center gap-2">
+                      <label htmlFor={`of-${k}`} className="block font-medium">
+                        {birim ? ad.replace(/\s*\([^()]+\)\s*$/, "") : ad}
+                      </label>
+                      {farkli && <Rozet tur="vurgu">değiştirildi</Rozet>}
+                    </div>
                     {ack && <p className="mt-0.5 text-[12px] leading-snug text-metin-3">{ack}</p>}
                   </td>
-                  <td className="sayi px-2 py-2.5 text-right text-metin-3">{sayiYaz(s.varsayilan[k])}</td>
+                  <td className={cn("sayi px-2 py-2.5 text-right text-metin-3", farkli && "line-through decoration-metin-3/60")}>
+                    {sayiYaz(s.varsayilan[k])}
+                  </td>
                   <td className="px-5 py-2">
                     <Girdi
                       id={`of-${k}`}

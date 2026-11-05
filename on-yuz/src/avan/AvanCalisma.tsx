@@ -376,25 +376,29 @@ function DosyaDugmeleri({
     <span className="flex items-center gap-1">
       {hata && <span className="max-w-72 text-right text-[12px] leading-snug text-red">{hata}</span>}
       <Ipucu metin="Yeni avan projesi ( önceki geri alınabilir )">
-        <Dugme tur="hayalet" boy="simge" aria-label="Yeni avan projesi" onClick={yeni}>
+        <Dugme tur="hayalet" boy="simge" className="xl:w-auto xl:px-2.5" aria-label="Yeni avan projesi" onClick={yeni}>
           <FilePlus />
+          <span className="hidden xl:inline">Yeni</span>
         </Dugme>
       </Ipucu>
       <Ipucu metin="Proje dosyasını aç ( .avan )">
-        <Dugme tur="hayalet" boy="simge" aria-label="Proje dosyasını aç" onClick={() => girdi.current?.click()}>
+        <Dugme tur="hayalet" boy="simge" className="xl:w-auto xl:px-2.5" aria-label="Proje dosyasını aç" onClick={() => girdi.current?.click()}>
           <FolderOpen />
+          <span className="hidden xl:inline">Aç</span>
         </Dugme>
       </Ipucu>
       <Ipucu metin={kaydetBekleme ?? "Proje dosyası olarak kaydet ( .avan ) — eski arayüz de açar"}>
         <Dugme
           tur="hayalet"
           boy="simge"
+          className="xl:w-auto xl:px-2.5"
           aria-label="Proje dosyası olarak kaydet"
           onClick={kaydet}
           disabled={!!kaydetBekleme}
           title={kaydetBekleme}
         >
           <Save />
+          <span className="hidden xl:inline">Kaydet</span>
         </Dugme>
       </Ipucu>
       <input
@@ -433,11 +437,31 @@ function Kume({ baslik, alt, children }: { baslik: string; alt?: string; childre
   );
 }
 
+/**  "③ Kat sayısı N":  MMO/697 formunun alan numarası tek boy bir dairede ( ①…⑪
+     karakterleri yazı tipinden yazı tipine farklı boyda çıkıyordu ).  Erişilebilir ad
+     aynı kalır:  karakter ekran okuyucuya gizli metinle gider ( testler etiketle bulur )  */
+function NumaraliEtiket({ metin }: { metin: string }) {
+  const m = /^([\u2460-\u2473])\s*(.*)$/.exec(metin);
+  if (!m) return <>{metin}</>;
+  return (
+    <>
+      <span
+        aria-hidden
+        className="mr-1.5 inline-flex size-[18px] items-center justify-center rounded-full border border-cizgi-2 align-[1px] text-[10.5px] font-semibold text-metin-3 tabular-nums"
+      >
+        {m[1].codePointAt(0)! - 0x2460 + 1}
+      </span>
+      <span className="sr-only">{m[1]} </span>
+      {m[2]}
+    </>
+  );
+}
+
 function Satir({ etiket, id, children, ipucu }: { etiket: string; id: string; children: React.ReactNode; ipucu?: string }) {
   return (
     <div className="grid grid-cols-[1fr_168px] items-center gap-2">
       <label htmlFor={id} className="text-[12.5px] text-metin-2">
-        {etiket}
+        <NumaraliEtiket metin={etiket} />
         {ipucu && <span className="ml-1 text-metin-3">· {ipucu}</span>}
       </label>
       {children}
@@ -615,7 +639,9 @@ function TrafikAdimi({
                     { k: "kapi_tipi", e: "Kapı tipi", s: sec.kapi_tipleri.map((x) => ({ deger: x, ad: x })) },
                   ].map(({ k, e, s }) => (
                     <tr key={k}>
-                      <td className="px-2 py-1 text-metin-2">{e}</td>
+                      <td className="px-2 py-1 text-metin-2">
+                        <NumaraliEtiket metin={e} />
+                      </td>
                       {p.trafikAsansorleri.map((a, i) => (
                         <td key={i} className="px-1 py-1">
                           <Secim

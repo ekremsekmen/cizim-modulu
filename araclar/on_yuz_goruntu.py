@@ -95,7 +95,8 @@ def hesap_durdu(s):
 
 def kural_disi(s):
     proje(s, {"asansor_adi": "A Blok"})
-    alana_yaz(s, "Kuyu ve katlar", "durak_adedi", "250")
+    #  durak adedi kotlarla kalktı ( 2 Kas ):  kural dışı değer kabin genişliğinde
+    alana_yaz(s, "Kabin ve kapı", "kabin_genisligi", "-100")
 
 
 def teslim(s):

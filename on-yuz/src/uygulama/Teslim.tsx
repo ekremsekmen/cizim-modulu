@@ -273,6 +273,17 @@ export function Teslim({
           {pdf.isPending ? <Loader2 className="animate-spin" /> : <FileText />}
           Yalnız hesap PDF'i
         </Dugme>
+        {/*  Paket düğmesi pasifken nedeni yanında ( soluk düğme neden basılmadığını
+             söylemiyordu );  engel varsa nedeni yukarıda yazılıdır  */}
+        {!engel && (!onay || !uygunDegilOnay) && (
+          <span className="flex-1 text-right text-[12px] leading-snug text-metin-3">
+            {!onay && !uygunDegilOnay
+              ? "1. ve 2. adımdaki onayları işaretleyin"
+              : !uygunDegilOnay
+                ? "1. adımdaki onayı işaretleyin"
+                : "2. adımdaki onayı işaretleyin"}
+          </span>
+        )}
         <Dugme tur="birincil" boy="buyuk" onClick={() => paket.mutate()} disabled={!!engel || !onay || !uygunDegilOnay || paket.isPending}>
           {paket.isPending ? <Loader2 className="animate-spin" /> : paket.isSuccess && !paket.data?.hata ? <Check /> : <FileArchive />}
           Paketi indir · ZIP

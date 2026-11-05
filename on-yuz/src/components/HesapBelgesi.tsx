@@ -64,9 +64,15 @@ function BolumKarti({ b, secili }: { b: Bolum; secili: boolean }) {
           <col className="w-[132px]" />
         </colgroup>
         <tbody>
-          {b.adimlar.map((a, i) => (
-            <AdimSatiri key={i} a={a} />
-          ))}
+          {b.adimlar.map((a, i) => {
+            //  Ara hüküm ( "UYGUN" / "UYGUN DEĞİL" ) değerin satırındaki rozettir:  eskiden
+            //  altında ayrı satırdaydı.  Önceki adım değer satırı değilse ( başlık ) ayrı kalır.
+            const once = b.adimlar[i - 1];
+            if (araHukumMu(a) && once && once.tip !== "metin") return null;
+            const sonra = b.adimlar[i + 1];
+            const hukum = a.tip !== "metin" && sonra && araHukumMu(sonra) ? !/DEĞİL/i.test(sonra.metin) : undefined;
+            return <AdimSatiri key={i} a={a} hukum={hukum} />;
+          })}
         </tbody>
       </table>
 
@@ -164,9 +170,13 @@ function BolumKarti({ b, secili }: { b: Bolum; secili: boolean }) {
 
 const ARA_HUKUM = /^UYGUN( DEĞİL)?(DUR|DİR)?\.?$/;
 
-function AdimSatiri({ a }: { a: Adim }) {
+function araHukumMu(a: Adim) {
+  return a.tip === "metin" && ARA_HUKUM.test(a.metin.trim());
+}
+
+function AdimSatiri({ a, hukum }: { a: Adim; hukum?: boolean }) {
   //  Bölüm içindeki ara hüküm ( "UYGUN" / "UYGUN DEĞİL" ) başlık değil, rozettir
-  if (a.tip === "metin" && ARA_HUKUM.test(a.metin.trim())) {
+  if (araHukumMu(a)) {
     return (
       <tr>
         <td />
@@ -197,6 +207,11 @@ function AdimSatiri({ a }: { a: Adim }) {
           </>
         ) : (
           <span className="text-metin-2">{a.aciklama}</span>
+        )}
+        {hukum !== undefined && (
+          <span className="ml-2 inline-block align-[1px]">
+            <HukumRozeti uygun={hukum} />
+          </span>
         )}
       </td>
       <td
