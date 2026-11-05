@@ -165,7 +165,7 @@ function SatirBolum({
         </span>
         {/*  Hükümsüz bölümün çoğu kez sonucu da yoktur ( topraklayıcılar — sunucu null gönderir )  */}
         {sonucuGoster && b.sonuc?.metin && (
-          //  "FKR = 33.335,13 N / ray · FAR = …":  her değer kendi parçası, satır bir
+          //  Sunucunun sonuç metni " · " ile ayrılmış değerler:  her değer kendi parçası, satır bir
           //  değerin ortasından ( "N / ray" ) kırılmaz
           <span className="mt-0.5 flex flex-wrap gap-x-2.5 font-mono text-[11px] leading-snug text-metin-3">
             {b.sonuc.metin.split(/\s+·\s+/).map((p, i) => (
