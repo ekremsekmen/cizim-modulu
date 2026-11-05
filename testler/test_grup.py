@@ -29,6 +29,7 @@ from cizim import grup
 from cizim import kabin_ustu
 from cizim import kopru
 from cizim import kuyu_kesiti
+from cizim import kuyu_ustu
 from cizim import makine
 from cizim import pafta
 from cizim import standart
@@ -245,6 +246,27 @@ class Denetim(unittest.TestCase):
         dar[1]["kabin"]["kaciklik_y"] -= 650
         self.assertLess(grup.korkuluk_mesafesi(dar)[0], 500)
         self.assertIn("perde kuyu boyunca uzanmalı ( m.5.2.5.5.2.2 )", " ".join(grup.duzen_hatalari(dar)))
+
+    def test_yandaki_agirlikta_duvar_kirisi_acik_yana_oturmaz(self):
+        """Yandaki ağırlıkta "Bina yapısına" makine kirişleri kuyunun genişliğince,
+        uçları yan duvarlarda — tek kuyuda bir ucu komşu asansörün yanında, orada duvar
+        yok:  sorun ( eskiden çiziliyor, hesap uygun diyordu ).  Arkadaki ağırlıkta
+        kirişler ön – arka duvarlarda:  sorun yok;  ayrı kuyuda da yok."""
+        ileti = "kirişlerinin sağ ucu komşu asansörün yanında"
+        for yer, duzen, beklenen in (
+            ("Sağ", "Tek kuyu", True),
+            ("Arka", "Tek kuyu", False),
+            ("Sağ", "Ayrı", False),
+        ):
+            v = ikili(
+                Q1=1000, Q2=1000, yer1=yer, yer2="Sol", duzen=duzen, makine_raya_biniyor="Bina yapısına"
+            )
+            g, hata = girdiler(v)[0]
+            metin = " ".join(str(h) for h in (hata if g is None else kuyu_ustu.yerlesim(g)["hata"]))
+            with self.subTest(yer=yer, duzen=duzen):
+                self.assertEqual(ileti in metin, beklenen, metin)
+                if beklenen:
+                    self.assertIn("'Makine yükünün yolu'", metin)
 
     def test_acik_yanda_korkuluk_hep_gerekli_1_10(self):
         """m.5.4.7.2 b / 5.4.7.4 b:  komşu asansörün yanında duvar yok, ayırma kirişi
