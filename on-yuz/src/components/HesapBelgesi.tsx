@@ -61,7 +61,7 @@ function BolumKarti({ b, secili }: { b: Bolum; secili: boolean }) {
           <col />
           <col className="w-[120px]" />
           <col className="w-[64px]" />
-          <col className="w-[92px]" />
+          <col className="w-[132px]" />
         </colgroup>
         <tbody>
           {b.adimlar.map((a, i) => (
@@ -213,7 +213,8 @@ function AdimSatiri({ a }: { a: Adim }) {
         {a.kaynak && (
           <span
             className={cn(
-              "inline-block max-w-full truncate rounded-[4px] px-1 text-[10.5px] font-medium",
+              //  Kaynak kesilmez ( "EN 81-50 Çi…" okunmuyordu ):  sığmazsa alt satıra
+              "inline-block max-w-full rounded-[4px] px-1 py-px text-[10.5px] leading-tight font-medium break-words",
               a.kaynak === "GİRİŞ" ? "bg-vurgu-acik text-vurgu-koyu" : "bg-black/[0.05] text-metin-2",
             )}
             title={a.kaynak}
