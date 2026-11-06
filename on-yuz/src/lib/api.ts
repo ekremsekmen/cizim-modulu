@@ -437,8 +437,9 @@ export const api = {
     anahtar: string,
     hedef: string,
   ) => gonder<OlcuDegisikligi>("/api/uygulama/olcu_degistir", { ...i, asansor, cizim, olcu, metin, anahtar, hedef }, hataListe),
-  parca: (i: UygulamaIstegi, asansor: number, cizim: string, parca: string) =>
-    gonder<ParcaYanit>("/api/uygulama/parca", { ...i, asansor, cizim, parca }, hataListe),
+  /**  secimler:  seçim kutularının etkisi de ( sunucu her birini dener — saniyeler )  */
+  parca: (i: UygulamaIstegi, asansor: number, cizim: string, parca: string, secimler = false) =>
+    gonder<ParcaYanit>("/api/uygulama/parca", { ...i, asansor, cizim, parca, secimler }, hataListe),
   secenekler: () => al<Secenekler>("/api/secenekler"),
   trafik: (girdiler: unknown, s?: AbortSignal) => gonder<TrafikYaniti>("/api/trafik", { girdiler }, hataMetin, s),
   avan: (girdiler: unknown, s?: AbortSignal) => gonder<AvanYaniti>("/api/avan", { girdiler }, hataMetin, s),

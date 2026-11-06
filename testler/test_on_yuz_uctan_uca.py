@@ -1562,6 +1562,10 @@ class OnYuzUctanUca(unittest.TestCase):
         kutu = self.sayfa.get_by_role("dialog", name=re.compile(r"^Parça "))
         kutu.get_by_role("list", name="Değiştirilebilen girdiler").wait_for()
         kutu.get_by_role("list", name="Burada değişmeyen girdiler").wait_for()
+        #  Seçimler istenince:  ray profili de ( sunucu her seçimi dener )
+        with self.sayfa.expect_response(lambda r: r.url.endswith("/api/uygulama/parca")):
+            kutu.get_by_role("button", name="Seçimleri de bul").click()
+        kutu.get_by_text("Kabin rayı profili").wait_for()
         girdi = kutu.locator("#parca-kuyu_genisligi")
         girdi.fill("2250")
         girdi.press("Enter")

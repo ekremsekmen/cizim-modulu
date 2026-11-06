@@ -451,8 +451,10 @@ def uret(tamlar=None):
 
 
 def _yazilar(b):
-    """Bölümde basılı bütün yazılar — hüküm metni ve adım satırları."""
-    y = [str((b.get("sonuc") or {}).get("metin") or "")]
+    """Bölümde basılı bütün yazılar — hüküm metni, alt satırları ve adım satırları."""
+    y = [str((b.get("sonuc") or {}).get("metin") or "")] + [
+        str(x) for x in (b.get("sonuc") or {}).get("alt") or []
+    ]
     for a in b.get("adimlar") or []:
         y += [str(a.get(k) or "") for k in ("aciklama", "formul", "islem", "kaynak", "metin")]
     return "\n".join(y)

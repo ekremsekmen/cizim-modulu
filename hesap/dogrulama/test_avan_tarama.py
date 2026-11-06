@@ -1067,7 +1067,21 @@ def calistir():
         )
         return r
     karsilastir(r, DOSYA, uret(), "avan")
+    _elektrik_maddeleri(r)
     return r
+
+
+def _elektrik_maddeleri(r):
+    """Elektrik bölümlerinin ( motor, gerilim düşümü, topraklama ) düşen hükmü de
+    maddeli, öğüdü bölümde yazılı ( TEST 10'un kuralı — ekranın uygunluk kartı )."""
+    from dogrulama.altin_uret import avan_senaryolar
+    from dogrulama.test_mukavemet_tarama import hukum_maddeleri
+
+    tamlar = []
+    for i, g in enumerate(avan_senaryolar()):
+        s = avan_hesabi.hesapla(json.loads(json.dumps(g)))
+        tamlar += [(f"avan {i} · asansör {j + 1}", a) for j, a in enumerate(s.get("asansorler") or [])]
+    hukum_maddeleri(r, tamlar)
 
 
 if __name__ == "__main__":
