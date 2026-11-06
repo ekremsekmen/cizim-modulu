@@ -5,6 +5,7 @@
       POST /api/uygulama/cizimler     seçili asansörün çizimleri ( sunucu SVG'si )
       POST /api/uygulama/olcu         tıklanan ölçünün kaynak girdileri
       POST /api/uygulama/olcu_degistir ölçüyü hedefe getiren girdi değişikliği
+      POST /api/uygulama/parca        tıklanan parçayı belirleyen girdiler
       POST /api/indir/uygulama-pdf | uygulama-dwg   teslim
       GET  /api/secenekler · POST /api/trafik · /api/avan · /api/indir/…   avan      */
 
@@ -96,6 +97,11 @@ export interface Sonuc {
   metin: string;
   uygun: boolean | null;
   alt?: string[];
+  /**  Uygun değilse düşen sınırlar:  neden ( değerleriyle ) ve öneri ( bölümde yazılıysa ) —
+       metnin yapılı okuması;  yoksa ( elektrik bölümleri ) ekran metni gösterir  */
+  maddeler?: { neden: string; oneri: string | null }[];
+  /**  Hükümsüz bölümün sayıları ( kuyu tabanı yükleri ):  ad, anlamı, değeri, birimi sunucudan  */
+  degerler?: { ad: string; aciklama: string; deger: number; metin: string; birim: string }[];
 }
 
 export interface Bolum {
@@ -253,6 +259,32 @@ export interface OlcuYanit {
   hata?: string[];
 }
 
+/**  Parçayı belirleyen bir girdi — ölçü kaynağının biçimi;  etki:  parçanın ölçüsünü mü
+     yalnız yerini mi değiştirir.  Seçim ( uzunluk seçimi ) seçenekleriyle gelir.  */
+export interface ParcaGirdisi {
+  anahtar: string;
+  etiket: string;
+  birim: string;
+  deger: number | string;
+  egim: number;
+  yer: "asansor" | "proje" | "ofis" | string;
+  degistirilir: boolean;
+  etki: "boyut" | "yer";
+  secenekler?: (string | number)[];
+  /**  Kotla girişte durağın kotu ( anahtar durak_kotlari )  */
+  durak?: number;
+}
+
+export interface ParcaYanit {
+  aktif: boolean;
+  parca?: string;
+  ad?: string;
+  girdiler?: ParcaGirdisi[];
+  /**  Listenin sınırı ( sunucunun cümlesi )  */
+  not?: string;
+  hata?: string[];
+}
+
 export interface OlcuDegisikligi {
   aktif: boolean;
   degisiklikler?: { anahtar: string; etiket: string; eski: number; deger: number }[];
@@ -405,6 +437,8 @@ export const api = {
     anahtar: string,
     hedef: string,
   ) => gonder<OlcuDegisikligi>("/api/uygulama/olcu_degistir", { ...i, asansor, cizim, olcu, metin, anahtar, hedef }, hataListe),
+  parca: (i: UygulamaIstegi, asansor: number, cizim: string, parca: string) =>
+    gonder<ParcaYanit>("/api/uygulama/parca", { ...i, asansor, cizim, parca }, hataListe),
   secenekler: () => al<Secenekler>("/api/secenekler"),
   trafik: (girdiler: unknown, s?: AbortSignal) => gonder<TrafikYaniti>("/api/trafik", { girdiler }, hataMetin, s),
   avan: (girdiler: unknown, s?: AbortSignal) => gonder<AvanYaniti>("/api/avan", { girdiler }, hataMetin, s),

@@ -156,6 +156,11 @@
 .tuval-svg [data-parca].parca-ustunde * {
   stroke: #7cc4ff !important;
 }
+/*  Tıklanan parça ( kutusu açık )  */
+.tuval-svg [data-parca].parca-secili * {
+  stroke: #7cc4ff !important;
+  stroke-width: calc(2px / var(--mu)) !important;
+}
 /*  Ekran kalemi:  piksel kalınlık / ( piksel / çizim birimi )  */
 .tuval-svg [data-k="070"] { stroke-width: calc(var(--k070) / var(--mu)); }
 .tuval-svg [data-k="050"] { stroke-width: calc(var(--k050) / var(--mu)); }

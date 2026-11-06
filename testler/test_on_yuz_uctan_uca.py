@@ -295,6 +295,12 @@ class OnYuzUctanUca(unittest.TestCase):
         e = self.etiket[anahtar]
         return e[: e.index("(")].strip() if "(" in e else e.strip()
 
+    def cizimi_ac(self, ad):
+        """Tuvalde çizimi açar ( alttaki şerit — tuvalde bir çizim görünür ):  ad başlığın başı."""
+        self.sayfa.get_by_role("navigation", name="Çizimler").get_by_role(
+            "button", name=re.compile("^" + re.escape(ad))
+        ).click()
+
     def alan_kutusu(self, anahtar):
         """Alan aramayla öne getirilir ( kapalı grup ya da Gelişmiş'te olsa da )."""
         ara = self.sayfa.get_by_role("complementary", name="Girdiler").get_by_label("Alan ara")
@@ -329,7 +335,8 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertTrue(cizim["aktif"], cizim.get("hata"))
         #  Her çizim tuvalde, sunucunun SVG'siyle ( ölçüleri tıklanır )
         self.assertEqual(self.sayfa.locator("[data-cizim]").count(), len(cizim["cizimler"]))
-        self.assertGreater(self.sayfa.get_by_role("button", name=re.compile(r"^Ölçü ")).count(), 50)
+        #  Bütün çizimlerin ölçüleri sayfada ( tuvalde biri görünür — şerit seçer )
+        self.assertGreater(self.sayfa.locator("figure[data-cizim] .olcu").count(), 50)
         #  Çizim yazı tipi yüklü ( SVG'nin "CizimYazi"sı;  yoksa Arial'a düşer )
         self.assertTrue(self.sayfa.evaluate("document.fonts.load('12px CizimYazi').then(f => f.length > 0)"))
 
@@ -398,11 +405,18 @@ class OnYuzUctanUca(unittest.TestCase):
         )
 
     def _katlar(self):
-        """Kuyu ve katlar grubu açık ( kot tablosu görünür )."""
-        girdiler = self.sayfa.get_by_role("complementary", name="Girdiler")
-        if not girdiler.get_by_label("1. durağın kotu").is_visible():
-            girdiler.get_by_role("button", name=re.compile("^Kuyu ve katlar")).click()
-        return girdiler
+        """Kot tablosu açık ( Ö3 · K5:  panelin yanındaki çekmecede — panelde özet ve
+        "Kotları düzenle";  açıkken tuval düşey kesitte )."""
+        tablo = self.sayfa.get_by_role("region", name="Kat tablosu")
+        if not tablo.count():
+            girdiler = self.sayfa.get_by_role("complementary", name="Girdiler")
+            girdiler.get_by_label("Alan ara").fill("")  # aramada gruplar süzülür, özet gizlenir
+            duzenle = girdiler.get_by_role("button", name="Kotları düzenle")
+            if not duzenle.is_visible():
+                girdiler.get_by_role("button", name=re.compile("^Kuyu ve katlar")).click()
+            duzenle.click()
+        tablo.get_by_label("1. durağın kotu", exact=True).wait_for()
+        return tablo
 
     def test_kotla_giris_hesabi_degistirmez_dosyada_kalir(self):
         """Kotla giriş ( KOT_PLANI 6. adım;  2 Kas'tan beri YALNIZ kotla — "Ölçüyle"
@@ -593,6 +607,9 @@ class OnYuzUctanUca(unittest.TestCase):
         )
         self._dosyadan_ac(alanlar)
         cizim = self.sayfa.locator('[data-cizim="kuyu_grubu_kuyu_dibi"]')
+        self.sayfa.get_by_role("navigation", name="Çizimler").locator(
+            f'button[title="{cizim.get_attribute("aria-label")}"]'
+        ).click()
         olculer = cizim.get_by_role("button", name=re.compile(r"^Ölçü "))
         self.assertGreater(olculer.count(), 10)
         bulundu = None
@@ -1314,6 +1331,7 @@ class OnYuzUctanUca(unittest.TestCase):
     # ------------------------------------------------------------ 4 ölçü kutusu
     def test_olcu_kutusu_girdiyi_degistirir(self):
         self.ornek_projeyi_ac()
+        self.cizimi_ac("A-A")  # kuyu dibi derinliği kesitin ölçüsü
         olcu = self.sayfa.get_by_role("button", name=re.compile(r"^Ölçü KUYU DİBİ")).first
         olcu.scroll_into_view_if_needed()
         olcu.focus()
@@ -1340,7 +1358,9 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertTrue(kutu.get_by_role("button", name="Uygula").is_disabled())
         self.assertTrue(kutu.get_by_text("ölçüye yeniden tıklayın").is_visible())
 
-    def _olcuyu_ac(self, desen=r"^Ölçü KUYU DİBİ"):
+    def _olcuyu_ac(self, desen=r"^Ölçü KUYU DİBİ", cizim="A-A"):
+        if cizim:
+            self.cizimi_ac(cizim)
         olcu = self.sayfa.get_by_role("button", name=re.compile(desen)).first
         olcu.scroll_into_view_if_needed()
         olcu.focus()
@@ -1494,6 +1514,81 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.mouse.move(1, 1)
         ipucu.wait_for(state="hidden")
         self.assertEqual(vurgulu.count(), 0)
+
+    def test_cizim_seridi_tumu_ve_son_bakilan(self):
+        """Ö3 ( K1 · K2 · K4 ):  tuvalde tek çizim — açılışta kuyu planı;  alttaki
+        şerit çizimler arasında geçer;  Tümü bütün çizimleri kartlarda gösterir,
+        karta tıklamak onu açar;  proje yeniden açılınca son bakılan çizim gelir.
+        Çizimlerin hepsi sayfada kalır ( sorun ve parça aramaları ), biri görünür."""
+        self.ornek_projeyi_ac()
+        gorunen = lambda: [
+            f.get_attribute("data-cizim")
+            for f in self.sayfa.locator("figure[data-cizim]").all()
+            if f.is_visible()
+        ]
+        self.assertEqual(gorunen(), ["kuyu_plani"])
+        serit = self.sayfa.get_by_role("navigation", name="Çizimler")
+        serit.get_by_role("button", name=re.compile(r"^B-B")).click()
+        self.assertEqual(gorunen(), ["kuyu_kesiti_on"])
+        self.assertEqual(serit.locator("[aria-pressed=true]").inner_text(), "B-B KUYU DÜŞEY KESİTİ")
+        serit.get_by_role("button", name="Tümü").click()
+        self.assertEqual(len(gorunen()), self.sayfa.locator("figure[data-cizim]").count())
+        kart = self.sayfa.locator('figure[data-cizim="kuyu_dibi"]').bounding_box()
+        self.sayfa.mouse.click(kart["x"] + kart["width"] / 2, kart["y"] + kart["height"] / 2)
+        self.assertEqual(gorunen(), ["kuyu_dibi"])
+        self.sayfa.reload()
+        self.iz.sakin()
+        self.assertEqual(gorunen(), ["kuyu_dibi"])
+
+    def test_parcaya_tiklayinca_girdileri_ve_kutudan_yazma(self):
+        """Ö3 ( K6 ):  parçaya tıklayınca onu belirleyen girdiler ( /api/uygulama/parca );
+        kutudaki değer formun alanına yazılır, hesap ve çizim kendi akışıyla gelir;
+        ofis standardı salt;  Escape kapatır."""
+        self.ornek_projeyi_ac()
+        ray = self.sayfa.locator('figure[data-cizim="kuyu_plani"] [data-parca^="kabin_ray-"]').first
+        k = ray.bounding_box()
+        with self.sayfa.expect_response(lambda r: r.url.endswith("/api/uygulama/parca")):
+            self.sayfa.mouse.click(k["x"] + k["width"] / 2, k["y"] + k["height"] / 2)
+        kutu = self.sayfa.get_by_role("dialog", name=re.compile(r"^Parça "))
+        kutu.get_by_role("list", name="Değiştirilebilen girdiler").wait_for()
+        kutu.get_by_role("list", name="Burada değişmeyen girdiler").wait_for()
+        girdi = kutu.locator("#parca-kuyu_genisligi")
+        girdi.fill("2250")
+        girdi.press("Enter")
+        istek, _c = self.iz.son("/api/uygulama/cizimler")
+        self.assertEqual(istek["asansorler"][0]["kuyu_genisligi"], "2250")
+        self.assertEqual(self.alan_kutusu("kuyu_genisligi").input_value(), "2250")
+        self.sayfa.keyboard.press("Escape")
+        kutu.wait_for(state="detached")
+
+    def test_uygunluk_karti_yukler_ve_kat_cekmecesi(self):
+        """Ö3:  uygun değil kartı nedeni ve öneriyi sunucunun maddelerinden yazar;
+        "Çizimde göster" bölümün parçalarının göründüğü çizime geçer;  kuyu tabanı
+        yükleri tablo ( adları sunucudan );  kat tablosu açılınca tuval B-B'de,
+        kapanınca önceki çizimde ( K5 )."""
+        self.ornek_projeyi_ac()
+        panel = self.sayfa.get_by_role("complementary", name="Uygunluk")
+        _istek, hesap = self.iz.son("/api/uygulama/coklu")
+        kt = next(b for b in hesap["asansorler"][0]["bolumler"] if b["kimlik"] == "kuyu_tabani")
+        for d in kt["sonuc"]["degerler"]:
+            self.assertIn(d["aciklama"], panel.inner_text())
+        self.alan_kutusu("motor_gucu").fill("2")
+        _istek, hesap = self.iz.son("/api/uygulama/coklu")
+        motor = next(b for b in hesap["asansorler"][0]["bolumler"] if b["kimlik"] == "motor_gucu")
+        (madde,) = motor["sonuc"]["maddeler"]
+        kart = panel.locator("article").filter(has_text=madde["neden"])
+        self.assertIn(madde["oneri"], kart.inner_text())
+        kart.get_by_role("button", name="Çizimde göster").click()
+        gorunen = self.sayfa.locator("figure[data-cizim]:visible")
+        self.assertEqual(gorunen.count(), 1)
+        self.assertGreater(gorunen.locator(".parca-hesap-secili").count(), 0)
+        once = gorunen.get_attribute("data-cizim")
+        tablo = self._katlar()
+        self.assertEqual(
+            self.sayfa.locator("figure[data-cizim]:visible").get_attribute("data-cizim"), "kuyu_kesiti_on"
+        )
+        tablo.get_by_role("button", name="Kat tablosunu kapat").click()
+        self.assertEqual(self.sayfa.locator("figure[data-cizim]:visible").get_attribute("data-cizim"), once)
 
     # ------------------------------------------------------------ 7 sorunlu çizim
     def test_sorunlu_cizim_ekranda_parcasi_kirmizi(self):
@@ -2259,6 +2354,7 @@ class OnYuzUctanUca(unittest.TestCase):
 
         def olcu(kaydir):
             def ac_(i):
+                self.cizimi_ac("KUYU PLANI")
                 o = self.sayfa.get_by_role("button", name=re.compile(r"^Ölçü ")).nth(3 + 7 * i + kaydir)
                 o.scroll_into_view_if_needed()
                 o.focus()
@@ -2271,6 +2367,20 @@ class OnYuzUctanUca(unittest.TestCase):
             #  Önceki türün değişikliğiyle çizim yenilenirken açılan kutu "ölçüye yeniden tıklayın" der
             self.iz.sakin()
             self._olcuyu_ac()
+
+        def parca(i):
+            #  Kuyu planında bir kabin rayı ( tıklanan noktada en küçük parça )
+            self.cizimi_ac("KUYU PLANI")
+            #  Her türde başka bir örnek ( aynı parçanın yanıtı önbellekte:  istek gitmez )
+            kimlikler = self.sayfa.evaluate(
+                "[...new Set([...document.querySelectorAll("
+                '\'figure[data-cizim="kuyu_plani"] [data-parca^="kabin_ray-"]\')].map(e => e.dataset.parca))]'
+            )
+            p = self.sayfa.locator(
+                f'figure[data-cizim="kuyu_plani"] [data-parca="{kimlikler[i % len(kimlikler)]}"]'
+            ).first
+            k = p.bounding_box()
+            self.sayfa.mouse.click(k["x"] + k["width"] / 2, k["y"] + k["height"] / 2)
 
         def uygula(i):
             kutu = self.sayfa.get_by_role("dialog", name=re.compile(r"^Ölçü "))
@@ -2302,6 +2412,7 @@ class OnYuzUctanUca(unittest.TestCase):
         self._arizalari_dene("çizim", "/api/uygulama/cizimler", ac, kuyu(2207), b, duzelt=kuyu(2182))
         self._arizalari_dene("ölçü kaynağı", "/api/uygulama/olcu", ac, olcu(0), b, duzelt=olcu(1))
         self._arizalari_dene("ölçü değiştir", "/api/uygulama/olcu_degistir", olcu_kutusu, uygula, b)
+        self._arizalari_dene("parça girdileri", "/api/uygulama/parca", ac, parca, b)
         pdf = lambda i: self.sayfa.get_by_role("button", name="Yalnız hesap PDF'i").click()
         self._arizalari_dene("hesap PDF'i", "/api/indir/uygulama-pdf", teslim(False), pdf, b)
         paket = lambda i: self.sayfa.get_by_role("button", name=re.compile("Paketi indir")).click()

@@ -1,8 +1,13 @@
 /*  UYGUNLUK — bölümlerin hükmü, kalanlar başta.
     Bir bölüme tıklamak:  bağlı girdi gruplarını solda açar ( bolum_grubu ),
-    hesap görünümündeyse bölüme gider.  Hüküm metni sunucunundur — çare de.  */
+    hesap görünümündeyse bölüme gider.  Hüküm metni sunucunundur — çare de.
+    Ö3:  uygun değil kartı nedeni ve öneriyi ayrı satırlarda okur ( sonucun
+    maddeleri;  yoksa metni ), konum simgesi bölümün parçalarını çizimde
+    gösterir, "İlgili girdiler" grubu solda açar.  Hesap ya da çizim durunca
+    sorunlar panelin başındadır ( sorunlar ).  Kuyu tabanı yükleri tablo —
+    adları, anlamları ve birimleri sunucunun satırlarından.                    */
 import { useState } from "react";
-import { AlertTriangle, ChevronRight, CircleAlert } from "lucide-react";
+import { AlertTriangle, ChevronRight, CircleAlert, LocateFixed } from "lucide-react";
 import type { Bolum } from "@/lib/api";
 import { bolumAdi, cn } from "@/lib/utils";
 import { HukumNoktasi } from "@/components/ui";
@@ -14,13 +19,25 @@ export function UygunlukPaneli({
   secili,
   sec,
   durdu,
+  cizimdeGoster,
+  grupAc,
+  sorunlar,
+  parcali = {},
 }: {
+  /**  Bölümlerin çizimdeki parçaları ( "Çizimde göster" yalnız parçası olanda )  */
+  parcali?: Record<string, string[]>;
   bolumler: Bolum[];
   uyarilar: string[];
   bolumGrubu: Record<string, string[]>;
   secili: string | null;
   sec: (b: Bolum) => void;
   durdu: boolean;
+  /**  Bölümün parçaları çizimdeyse:  onları gösteren çizime gider  */
+  cizimdeGoster?: (b: Bolum) => void;
+  /**  "İlgili girdiler" çipi:  grubu solda açar  */
+  grupAc?: (grup: string) => void;
+  /**  Hesap / çizim durduysa sorunlar ( panelin başında — K3 )  */
+  sorunlar?: React.ReactNode;
 }) {
   const [uygunlarAcik, setUygunlarAcik] = useState(false);
   const kalan = bolumler.filter((b) => b.sonuc?.uygun === false);
@@ -49,44 +66,19 @@ export function UygunlukPaneli({
       </div>
 
       <div className={cn("min-h-0 flex-1 space-y-2 overflow-y-auto p-3", durdu && "opacity-60")}>
-        {kalan.map((b) => {
-          const [no, ad] = bolumAdi(b.baslik);
-          const metin = (b.sonuc?.metin ?? "").replace(/^UYGUN DEĞİLDİR\s*[—:-]?\s*/i, "");
-          return (
-            <button
-              key={b.kimlik}
-              type="button"
-              onClick={() => sec(b)}
-              aria-pressed={secili === b.kimlik}
-              className={cn(
-                "w-full rounded-buyuk border p-3 text-left transition-colors",
-                secili === b.kimlik
-                  ? "border-vurgu bg-vurgu-acik/40 ring-3 ring-vurgu/10"
-                  : "border-red-cizgi bg-yuzey hover:border-red/50",
-              )}
-            >
-              <span className="flex items-start gap-2">
-                <HukumNoktasi uygun={false} className="mt-[5px]" />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[13px] font-medium">
-                    <span className="sayi mr-1 text-metin-3">{no}</span>
-                    {ad}
-                  </span>
-                  <span className="mt-1 line-clamp-4 block text-[12.5px] leading-snug text-metin-2">
-                    {metin || "Uygun değil"}
-                  </span>
-                  <span className="mt-2 flex flex-wrap gap-1">
-                    {(bolumGrubu[b.kimlik] ?? []).map((g) => (
-                      <span key={g} className="rounded-[4px] bg-black/[0.05] px-1.5 py-px text-[11px] text-metin-2">
-                        {g}
-                      </span>
-                    ))}
-                  </span>
-                </span>
-              </span>
-            </button>
-          );
-        })}
+        {sorunlar}
+
+        {kalan.map((b) => (
+          <UygunDegilKarti
+            key={b.kimlik}
+            b={b}
+            secili={secili === b.kimlik}
+            sec={sec}
+            gruplar={bolumGrubu[b.kimlik] ?? []}
+            cizimdeGoster={parcali[b.kimlik]?.length ? cizimdeGoster : undefined}
+            grupAc={grupAc}
+          />
+        ))}
 
         {!bolumler.length && (
           <p className="px-2 py-6 text-center text-[12.5px] leading-relaxed text-metin-3">
@@ -101,9 +93,13 @@ export function UygunlukPaneli({
         {bilgi.length > 0 && (
           <ListeBasligi>Hükümsüz bölümler</ListeBasligi>
         )}
-        {bilgi.map((b) => (
-          <SatirBolum key={b.kimlik} b={b} secili={secili === b.kimlik} sec={sec} sonucuGoster />
-        ))}
+        {bilgi.map((b) =>
+          b.sonuc?.degerler?.length ? (
+            <DegerTablosu key={b.kimlik} b={b} secili={secili === b.kimlik} sec={sec} />
+          ) : (
+            <SatirBolum key={b.kimlik} b={b} secili={secili === b.kimlik} sec={sec} sonucuGoster />
+          ),
+        )}
 
         {uygun.length > 0 && (
           <button
@@ -119,6 +115,141 @@ export function UygunlukPaneli({
         {uygunlarAcik && uygun.map((b) => <SatirBolum key={b.kimlik} b={b} secili={secili === b.kimlik} sec={sec} />)}
       </div>
     </aside>
+  );
+}
+
+function UygunDegilKarti({
+  b,
+  secili,
+  sec,
+  gruplar,
+  cizimdeGoster,
+  grupAc,
+}: {
+  b: Bolum;
+  secili: boolean;
+  sec: (b: Bolum) => void;
+  gruplar: string[];
+  cizimdeGoster?: (b: Bolum) => void;
+  grupAc?: (grup: string) => void;
+}) {
+  const [no, ad] = bolumAdi(b.baslik);
+  const maddeler = b.sonuc?.maddeler ?? [];
+  const metin = (b.sonuc?.metin ?? "").replace(/^UYGUN DEĞİLDİR\s*[—:-]?\s*/i, "");
+  return (
+    <article
+      className={cn(
+        "rounded-buyuk border bg-yuzey transition-colors",
+        secili ? "border-vurgu bg-vurgu-acik/40 ring-3 ring-vurgu/10" : "border-red-cizgi",
+      )}
+    >
+      <div className="flex items-start gap-1 pt-2.5 pr-1.5 pl-3">
+        <button
+          type="button"
+          onClick={() => sec(b)}
+          aria-pressed={secili}
+          className="flex min-w-0 flex-1 items-start gap-2 text-left text-[13px] font-medium hover:underline"
+        >
+          <HukumNoktasi uygun={false} className="mt-[5px]" />
+          <span className="min-w-0">
+            <span className="sayi mr-1 text-metin-3">{no}</span>
+            {ad}
+          </span>
+        </button>
+        {cizimdeGoster && (
+          <button
+            type="button"
+            aria-label="Çizimde göster"
+            title="Bölümün parçalarını çizimde göster"
+            onClick={() => cizimdeGoster(b)}
+            className="inline-flex size-6 shrink-0 items-center justify-center rounded-kucuk text-metin-3 hover:bg-black/[0.05] hover:text-metin"
+          >
+            <LocateFixed className="size-3.5" />
+          </button>
+        )}
+      </div>
+      <div className="px-3 pt-1.5 pb-3 pl-[30px]">
+        {maddeler.length ? (
+          <dl className="space-y-2 text-[12.5px] leading-snug">
+            {maddeler.map((m, i) => (
+              <div key={i} className="space-y-0.5">
+                <dt className="sr-only">Neden</dt>
+                <dd className="text-metin tabular-nums">{m.neden}</dd>
+                {m.oneri && (
+                  <>
+                    <dt className="sr-only">Öneri</dt>
+                    <dd className="flex gap-1 text-metin-2">
+                      <span aria-hidden className="text-metin-3">→</span>
+                      {m.oneri}
+                    </dd>
+                  </>
+                )}
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p className="text-[12.5px] leading-snug text-metin-2">{metin || "Uygun değil"}</p>
+        )}
+        {gruplar.length > 0 && (
+          <div className="mt-2.5 flex flex-wrap items-center gap-1">
+            <span className="mr-0.5 text-[11px] text-metin-3">İlgili girdiler</span>
+            {gruplar.map((g) =>
+              grupAc ? (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => grupAc(g)}
+                  className="inline-flex items-center gap-0.5 rounded-[4px] bg-black/[0.05] px-1.5 py-px text-[11px] text-metin-2 hover:bg-vurgu-acik hover:text-vurgu-koyu"
+                >
+                  {g}
+                  <ChevronRight className="size-3" />
+                </button>
+              ) : (
+                <span key={g} className="rounded-[4px] bg-black/[0.05] px-1.5 py-px text-[11px] text-metin-2">
+                  {g}
+                </span>
+              ),
+            )}
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+/**  Hükümsüz bölümün sayıları tablo ( kuyu tabanı yükleri ):  her satır sunucunun  */
+function DegerTablosu({ b, secili, sec }: { b: Bolum; secili: boolean; sec: (b: Bolum) => void }) {
+  const [no, ad] = bolumAdi(b.baslik);
+  return (
+    <div className={cn("rounded-orta px-2 py-1.5", secili && "bg-vurgu-acik")}>
+      <button
+        type="button"
+        onClick={() => sec(b)}
+        aria-pressed={secili}
+        className="flex w-full items-start gap-2 text-left hover:underline"
+      >
+        <HukumNoktasi uygun={null} className="mt-[5px]" />
+        <span className="min-w-0 flex-1 text-[12.5px]">
+          <span className="sayi mr-1 text-metin-3">{no}</span>
+          {ad}
+        </span>
+      </button>
+      <table className="mt-1 ml-4 w-[calc(100%-16px)] text-[12px]">
+        <tbody className="divide-y divide-cizgi">
+          {b.sonuc!.degerler!.map((d) => (
+            <tr key={d.ad} className="align-top">
+              <th scope="row" className="py-1 pr-2 text-left font-mono text-[11.5px] font-semibold whitespace-nowrap">
+                {d.ad}
+              </th>
+              <td className="py-1 pr-2 leading-snug text-metin-2">{d.aciklama}</td>
+              <td className="sayi py-1 text-right whitespace-nowrap">
+                {d.metin} <span className="text-metin-3">{d.birim}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

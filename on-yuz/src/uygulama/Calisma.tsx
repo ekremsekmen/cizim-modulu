@@ -51,8 +51,9 @@ import { AnaSayfaBaglantisi, BasvuruBaglantilari, SunucuBekleniyor, UstSerit } f
 import { Bolumlu, Dugme, HukumNoktasi, Ipucu, Rozet } from "@/components/ui";
 import { HesapBelgesi } from "@/components/HesapBelgesi";
 import { GirdiPaneli } from "./GirdiPaneli";
-import { Tuval, type OlcuSecimi } from "./Tuval";
+import { Tuval, type OlcuSecimi, type Parca } from "./Tuval";
 import { OlcuKutusu } from "./OlcuKutusu";
+import { ParcaKutusu } from "./ParcaKutusu";
 import { UygunlukPaneli } from "./UygunlukPaneli";
 import { Teslim } from "./Teslim";
 import { ProjeBilgileri } from "./ProjeBilgileri";
@@ -82,10 +83,15 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   //  çalışır, "ölçüye yeniden tıklayın" güncel girdiyle yeniden açar
   const [olcuOturumu, setOlcuOturumu] = useState(0);
   const [olcuAlanlari, setOlcuAlanlari] = useState<string[]>([]);
+  //  Tıklanan parça ( kutusu açık ) — ölçü kutusuyla birlikte açılmaz
+  const [parca, setParca] = useState<Parca | null>(null);
   const setOlcu = (o: OlcuSecimi | null) => {
     setOlcuHam(o);
     if (o) setOlcuOturumu((n) => n + 1);
-    if (!o) setOlcuAlanlari([]);
+    if (!o) {
+      setOlcuAlanlari([]);
+      setParca(null);
+    }
   };
   const olcuKaynaklari = useCallback(
     (anahtarlar: string[]) => {
@@ -255,6 +261,50 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     return k;
   };
   const eskiSonucYok = gorunum === "cizim" ? !s.cizimler.length : !bolumler.length;
+  //  Kat tablosu çekmecesi ( K5 ):  açıkken tuval düşey kesitte ( B-B )
+  const [katlarAcik, setKatlarAcik] = useState(false);
+  //  Uygunluk kartının "Çizimde göster"i:  tuval bölümün parçalarını en çok gösteren çizime geçer
+  const [hesapOdak, setHesapOdak] = useState<{ parcalar: string[]; n: number } | null>(null);
+  const cizimdeGoster = (b: Bolum) => {
+    setSecili(b.kimlik);
+    if (gorunum !== "cizim") gorunumSec("cizim");
+    setHesapOdak((o) => ({ parcalar: s.hesapParcalari[b.kimlik] ?? [], n: (o?.n ?? 0) + 1 }));
+  };
+  //  "İlgili girdiler" çipi:  grup solda açılır ve görünür
+  const grupAc = (g: string) => {
+    setAcik((e) => new Set([...e, g]));
+    requestAnimationFrame(() =>
+      document.querySelector(`[data-grup="${CSS.escape(g)}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
+  };
+  //  SORUNLAR PANELİN BAŞINDA ( Ö3 · K3 ):  tuvali örtmez;  gösterecek eski sonuç yoksa
+  //  ( ilk açılış kurulamadı ) kart eskisi gibi ortada.  Tuvaldeki hap oraya götürür.
+  const sorunSayisi = s.sorun && (s.sorun.tur === "hesap" || s.sorun.tur === "cizim") ? s.sorun.maddeler.length : 0;
+  const sorunlaraGit = () => {
+    const k = document.getElementById("sorunlar");
+    k?.scrollIntoView({ behavior: "smooth", block: "start" });
+    k?.focus({ preventScroll: true });
+  };
+  const sorunKarti = (panel: boolean) =>
+    s.sorun && (
+      <SorunKarti
+        sorun={s.sorun}
+        koyu={!panel && gorunum === "cizim"}
+        orta={eskiSonucYok}
+        panel={panel}
+        etiket={(k) => etiket(k)}
+        cokAsansor={proje.asansorler.length > 1}
+        sorunuGoster={sorunuGoster}
+        seciliSorun={gecerliOdak?.sorun.metin ?? null}
+        careBul={careBul}
+        careYolda={care.isPending && careBuGirdinin}
+        careler={careler}
+        careHatasi={careHatasi}
+        careUygula={careUygula}
+        yenidenDene={s.yenidenDene}
+        yenidenDeneniyor={s.yenidenDeneniyor}
+      />
+    );
 
   return (
     <div className="flex h-dvh flex-col">
@@ -420,6 +470,11 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
           vurguluAlanlar={olcuAlanlari}
           grupHatasi={grupHatasi}
           kullanilan={sonuc?.girdi}
+          katlarAcik={katlarAcik}
+          katlarDegisti={(k) => {
+            setKatlarAcik(k);
+            if (k && gorunum !== "cizim") gorunumSec("cizim");
+          }}
         />
 
         <main className="relative min-w-0 flex-1 overflow-hidden">
@@ -430,6 +485,31 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
               secili={olcu}
               olcuSec={(o) => setOlcu(o)}
               odak={params.get("cizim")}
+              hatirla={`tuval-cizim:${proje.id}`}
+              seciliParca={parca}
+              parcaSec={(p) => {
+                setParca(p);
+                if (!p) setOlcuAlanlari([]);
+              }}
+              parcaKutusu={(konum) =>
+                parca &&
+                s.cizimIstegi && (
+                  <ParcaKutusu
+                    key={`${parca.cizim}:${parca.id}`}
+                    istek={s.cizimIstegi}
+                    asansor={a}
+                    parca={parca}
+                    konum={konum}
+                    kapat={() => setOlcu(null)}
+                    yaz={yaz}
+                    girdilerGeldi={olcuKaynaklari}
+                  />
+                )
+              }
+              hesapOdak={hesapOdak}
+              geciciCizim={katlarAcik ? "kuyu_kesiti_on" : null}
+              sorunSayisi={sorunSayisi}
+              sorunlaraGit={sorunlaraGit}
               sorunluParcalar={s.sorunluParcalar}
               sorunOdak={gecerliOdak}
               hesapParcalari={hesapParcalari}
@@ -476,24 +556,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
             </div>
           )}
 
-          {s.sorun && (
-            <SorunKarti
-              sorun={s.sorun}
-              koyu={gorunum === "cizim"}
-              orta={eskiSonucYok}
-              etiket={(k) => etiket(k)}
-              cokAsansor={proje.asansorler.length > 1}
-              sorunuGoster={sorunuGoster}
-              seciliSorun={gecerliOdak?.sorun.metin ?? null}
-              careBul={careBul}
-              careYolda={care.isPending && careBuGirdinin}
-              careler={careler}
-              careHatasi={careHatasi}
-              careUygula={careUygula}
-              yenidenDene={s.yenidenDene}
-              yenidenDeneniyor={s.yenidenDeneniyor}
-            />
-          )}
+          {eskiSonucYok && sorunKarti(false)}
         </main>
 
         <UygunlukPaneli
@@ -503,6 +566,10 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
           secili={secili}
           sec={sec}
           durdu={s.hesapEski}
+          parcali={s.hesapParcalari}
+          cizimdeGoster={cizimdeGoster}
+          grupAc={grupAc}
+          sorunlar={!eskiSonucYok && sorunKarti(true)}
         />
       </div>
 
@@ -560,6 +627,7 @@ function SorunKarti({
   sorun,
   koyu,
   orta,
+  panel = false,
   etiket,
   cokAsansor,
   sorunuGoster,
@@ -576,6 +644,8 @@ function SorunKarti({
   koyu: boolean;
   /**  Gösterilecek eski sonuç yoksa kart ortada durur  */
   orta: boolean;
+  /**  Uygunluk panelinin başında ( akışta;  tuvalde değil )  */
+  panel?: boolean;
   etiket: (anahtar: string) => string;
   cokAsansor: boolean;
   /**  Parçası olan sorun tıklanınca:  tuval onu çizimde gösterir  */
@@ -632,17 +702,21 @@ function SorunKarti({
   return (
     <div
       role="alert"
+      id={panel ? "sorunlar" : undefined}
+      tabIndex={panel ? -1 : undefined}
       className={cn(
-        "absolute z-20 overflow-hidden rounded-buyuk border shadow-kalkik",
-        orta
-          ? "top-1/2 left-1/2 w-[520px] max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2"
-          : "bottom-10 left-3 w-[440px] max-w-[calc(100%-24px)]",
+        "overflow-hidden rounded-buyuk border",
+        panel
+          ? "scroll-mt-3 outline-none focus-visible:ring-3 focus-visible:ring-red/20"
+          : orta
+            ? "absolute top-1/2 left-1/2 z-20 w-[520px] max-w-[calc(100%-48px)] -translate-x-1/2 -translate-y-1/2 shadow-kalkik"
+            : "absolute bottom-16 left-3 z-20 w-[440px] max-w-[calc(100%-24px)] shadow-kalkik",
         koyu ? "border-red/40 bg-[#2b1d1f] text-[#fecdca]" : "border-red-cizgi bg-yuzey text-metin",
       )}
     >
-      <div className={cn("flex items-start gap-2 px-4 pt-3", kucuk ? "pb-3" : "pb-2")}>
+      <div className={cn("flex items-start gap-2 px-4 pt-3", kucuk ? "pb-3" : "pb-2", panel && "flex-wrap px-3")}>
         <CircleAlert className={cn("mt-0.5 size-4 shrink-0", koyu ? "text-[#f97066]" : "text-red")} />
-        <div className="min-w-0 flex-1">
+        <div className={cn("min-w-0 flex-1", panel && "basis-[calc(100%-56px)]")}>
           <p className={cn("text-[13px] font-semibold", koyu ? "text-white" : "text-red")}>
             {baslik} <span className="sayi font-normal opacity-70">· {maddeler.length}</span>
           </p>
