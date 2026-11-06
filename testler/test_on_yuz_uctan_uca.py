@@ -1530,7 +1530,17 @@ class OnYuzUctanUca(unittest.TestCase):
         serit = self.sayfa.get_by_role("navigation", name="Çizimler")
         serit.get_by_role("button", name=re.compile(r"^B-B")).click()
         self.assertEqual(gorunen(), ["kuyu_kesiti_on"])
-        self.assertEqual(serit.locator("[aria-pressed=true]").inner_text(), "B-B KUYU DÜŞEY KESİTİ")
+        self.assertEqual(
+            serit.locator("[aria-pressed=true]").get_attribute("aria-label"), "B-B KUYU DÜŞEY KESİTİ"
+        )
+        #  Bütün çizimler şeritte görünür ve tıklanır ( 6 Kas:  sağdakiler taşıp görünmüyordu )
+        s = serit.bounding_box()
+        for d in serit.get_by_role("button").all():
+            k = d.bounding_box()
+            self.assertTrue(
+                k["x"] >= s["x"] and k["x"] + k["width"] <= s["x"] + s["width"] + 0.5,
+                d.get_attribute("aria-label"),
+            )
         serit.get_by_role("button", name="Tümü").click()
         self.assertEqual(len(gorunen()), self.sayfa.locator("figure[data-cizim]").count())
         kart = self.sayfa.locator('figure[data-cizim="kuyu_dibi"]').bounding_box()
