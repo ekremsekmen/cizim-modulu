@@ -111,12 +111,21 @@ class Girdiler(unittest.TestCase):
         self.assertTrue(kot, r["girdiler"])
         self.assertTrue(all(not x["degistirilir"] and isinstance(x["durak"], int) for x in kot), kot)
 
-    def test_secim_kategorisi_listede_yok_ve_soylenir(self):
-        #  Ray profili türevle bulunmaz:  liste söylemez, yanıtın notu söyler
+    def test_secim_kategorisi_istenince(self):
+        #  Ray profili türevle bulunmaz:  liste söylemez, yanıtın notu söyler;  istenince
+        #  ( "Seçimleri de bul" ) her seçim denenir ve bulunur — düzenlenebilir, seçenekleriyle
         v = _veri()
-        r = _parca(v, "kuyu_plani", _ilk(v, "kuyu_plani", "kabin_ray"))
+        pid = _ilk(v, "kuyu_plani", "kabin_ray")
+        r = _parca(v, "kuyu_plani", pid)
         self.assertNotIn("kabin_ray_profili", [x["anahtar"] for x in r["girdiler"]])
         self.assertEqual(r["not"], parca_uclari.NOT)
+        y = json.loads(parca_uclari.api_parca(dict(v, cizim="kuyu_plani", parca=pid, secimler=True)).body)
+        g = {x["anahtar"]: x for x in y["girdiler"]}
+        self.assertTrue(g["kabin_ray_profili"]["degistirilir"])
+        self.assertIn(g["kabin_ray_profili"]["deger"], g["kabin_ray_profili"]["secenekler"])
+        self.assertEqual(y["not"], parca_uclari.NOT_SECIMLI)
+        #  Türevle bulunanlar yine listede
+        self.assertTrue({x["anahtar"] for x in r["girdiler"]} <= set(g))
 
     def test_sorunlu_cizimde_de(self):
         #  Ekran sorunlu çizimi de kurar;  kırmızı parçanın girdisi asıl aranandır

@@ -41,13 +41,18 @@ export function ParcaKutusu({
   /**  Girdiler gelince:  solda gruplarını aç, alanları vurgula  */
   girdilerGeldi?: (anahtarlar: string[]) => void;
 }) {
+  //  "Seçimleri de bul":  seçim kutularının etkisi istenince ( sunucu her birini dener —
+  //  birkaç saniye;  çizim başına bir kez, sonra önbellekte ).  Seçildikten sonra kutu
+  //  açık kaldıkça seçimli liste
+  const [secimler, setSecimler] = useState(false);
   const sorgu = useQuery({
-    queryKey: ["parca", istek, asansor, parca.cizim, parca.id],
-    queryFn: () => api.parca(istek, asansor, parca.cizim, parca.id),
+    queryKey: ["parca", istek, asansor, parca.cizim, parca.id, secimler],
+    queryFn: () => api.parca(istek, asansor, parca.cizim, parca.id, secimler),
     //  Değer yazılınca çizim yenilenir:  yeni yanıta kadar eski liste durur ( kutu sıçramasın )
     placeholderData: keepPreviousData,
   });
   const y = sorgu.data;
+  const secimAraniyor = secimler && sorgu.isFetching;
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && kapat();
@@ -136,7 +141,19 @@ export function ParcaKutusu({
           {y?.girdiler && !y.girdiler.length && (
             <p className="px-4 py-3 text-[12.5px] text-metin-3">Bu parçanın yeri ve ölçüsü girdilere bağlı değil.</p>
           )}
-          {y?.not && <p className="px-4 pt-2 pb-2 text-[11.5px] leading-snug text-metin-3">{y.not}</p>}
+          {y?.not && <p className="px-4 pt-2 pb-1 text-[11.5px] leading-snug text-metin-3">{y.not}</p>}
+          {!secimler && (
+            <div className="px-4 pt-1 pb-2">
+              <Dugme boy="kucuk" onClick={() => setSecimler(true)}>
+                Seçimleri de bul
+              </Dugme>
+            </div>
+          )}
+          {secimAraniyor && (
+            <p className="flex items-center gap-2 px-4 pb-2 text-[12px] text-metin-3">
+              <Loader2 className="size-3.5 animate-spin" /> Seçimler deneniyor — birkaç saniye
+            </p>
+          )}
         </div>
       )}
     </div>

@@ -24,6 +24,7 @@ from motor.ortak.adimlar import (
     tavana_yuvarla,
     evet_mi,
     aralik_disi,
+    madde,
 )
 
 
@@ -857,6 +858,10 @@ def _motor_bolumu(h, ikaz):
         "metin": "UYGUN" if h["motor_uygun"] else "UYGUN DEĞİL — motoru büyütün",
         "uygun": bool(h["motor_uygun"]),
     }
+    if not h["motor_uygun"]:
+        b1["sonuc"]["maddeler"] = [
+            madde(f"Nsç = {tr(h['Nsc'])} kW < N = {tr(h['N_hes'])} kW", "motoru büyütün")
+        ]
     return b1
 
 
@@ -1609,7 +1614,29 @@ def _gerilim_dusumu_sonucu(h):
         sigorta2 = "UYGUN"
     else:
         sigorta2 = "UYGUN DEĞİL — sigorta kabloyu korumuyor, makine besleme kesitini büyütün"
+    #  Maddeler:  düşen her kontrol, satırındaki değerlerle;  öğüt "alt" satırının kendisi
+    maddeler = []
+    if not eps_uygun:
+        maddeler.append(madde(f"ε = {tr(h['eps'], 3)} % > εmax = {tr(h['eps_max'], 1)} %", "kesiti büyütün"))
+    if not akim_uygun:
+        maddeler.append(
+            madde(f"I = {tr(h['I_hat'])} A > Iz = {tr(h['Iz'])} A", "kesiti büyütün")
+            if sayi_mi(h["Iz"])
+            else madde("kolon hattının akımı kontrol edilemedi — kesit akım tablosunun dışında")
+        )
+    if s2_kontrol and not akim2_uygun:
+        maddeler.append(
+            madde(f"I2 = {tr(h['I2'])} A > Iz2 = {tr(h['Iz2'])} A", "makine besleme kesitini büyütün")
+        )
+    if h["sigorta2_kontrol"] and not h["sigorta2_uygun"]:
+        maddeler.append(
+            madde(
+                f"In = {trn(h['sigorta_A'], 0)} A > Inmax2 = {trn(h['In_max2'], 0)} A — sigorta kabloyu korumuyor",
+                "makine besleme kesitini büyütün",
+            )
+        )
     return {
+        **({"maddeler": maddeler} if not tumu else {}),
         "baslik": "KONTROL      ε ≤ εmax    ·    I ≤ Iz    ·    I2 ≤ Iz2    ·    In ≤ Inmax2",
         "metin": (
             f"Seçilen kablo :   {tr(h['S1'])} mm²  {h['kablo_tipi']}   —   "
@@ -2042,6 +2069,10 @@ def _topraklama_direnci_bolumu(t, S):
         ),
         "uygun": bool(t["uygun"]),
     }
+    if not t["uygun"]:
+        b3["sonuc"]["maddeler"] = [
+            madde(f"Re = {tr(Re)} Ω > Re max = {tr(Re_max)} Ω", "ek topraklayıcı gereklidir")
+        ]
     #  BU NOTLAR PAFTAYA VE CAD ÇIKTISINA BASILMAZ  ( "ekran_notlari" ).
     #  Gerekçe:  söyledikleri değerler zaten hesap satırlarında yazılı
     #  ( UL, IΔn, β — kaynak kolonuyla birlikte ) ve dört satırlık blok,

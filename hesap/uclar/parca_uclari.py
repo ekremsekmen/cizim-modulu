@@ -48,6 +48,8 @@ router = APIRouter()
 NOT = (
     "Seçim kutularının ( ray profili, askı oranı … ) etkisi bu listede yok — yalnız sayıyla değişen girdiler."
 )
+#  İstenince ( "Seçimleri de bul" ) seçimler de aranır:  yanıtın notu bunu söyler
+NOT_SECIMLI = "Seçim kutuları da arandı:  her biri bir komşu seçenekle denendi, çizim yeniden kuruldu."
 
 #  Aynı girdiyle ikinci tıklama önbellekten ( çizimin bütün parçaları bir kurulumda çözülür )
 _ONBELLEK, _KILIT, _ONBELLEK_AZAMI = OrderedDict(), threading.Lock(), 8
@@ -98,7 +100,74 @@ def _cozumle(ham, i, proje, ad):
                                 o["egim"] = max(o["egim"], abs(eg))
                                 o["boyut"] = o["boyut"] or olcu
                 ornekler.append((pad, kaynak))
-    return {"ornekler": ornekler, "adaylar": aday}
+    return {
+        "ornekler": ornekler,
+        "adaylar": aday,
+        "kur": (ham, proje, sira, ad),
+        "secim": None,
+        "kilit": threading.Lock(),
+    }
+
+
+_ALANLAR = {"dikdortgen": ("x", "y", "g", "d"), "cizgi": ("x1", "y1", "x2", "y2"), "daire": ("x", "y", "r")}
+
+
+def _imzalar(elemanlar):
+    """Parça örneklerinin geometrisi  { ( ad , aynı adlıların sırası ) : imza } — seçim
+    değişince örneklerin sırası kayabilir, adıyla eşlenir."""
+    imza, sayac = {}, {}
+    for pad, liste in geometri.parca_ornekleri(elemanlar):
+        k = sayac[pad] = sayac.get(pad, -1) + 1
+        imza[(pad, k)] = tuple(
+            sorted(tuple(round(float(el[a]), 1) for a in _ALANLAR.get(el["tip"], ())) for el in liste)
+        )
+    return imza
+
+
+def _secim_kaynaklari(r):
+    """SEÇİMLERİN ETKİSİ ( istenince — tıklamada saniyeler sürer ):  her seçim / tam sayı
+    kutusu bir komşu değerle denenir, çizim yeniden kurulur;  geometrisi değişen parça
+    örneği o kutuya bağlıdır.  Çizim başına bir kez ( bütün parçalar ), sonra önbellekte:
+    { ( ad , sıra ) : [ kimlik ] }."""
+    with r["kilit"]:
+        if r["secim"] is not None:
+            return r["secim"]
+        ham, proje, sira, ad = r["kur"]
+
+        def kur(h):
+            A = uygulama_girdisi.tamamla(h)
+            g, _hata = kopru.cizim_girdisi(A, None, proje, sira)
+            if g is None or not pafta.cizilir(g, ad):
+                return None
+            return _imzalar(cizimler.CIZIMLER[ad][1](g))
+
+        bagli = {}
+        with sorunlu.kip(True):
+            taban = kur(dict(ham))
+            for kimlik, a in r["adaylar"].items():
+                if kimlik[0] != "girdi" or a["tur"] not in ("secim", "tam"):
+                    continue
+                if a["tur"] == "tam":
+                    alternatif = a["deger"] + 1
+                else:
+                    sec = list(a.get("secenekler") or [])
+                    j = sec.index(a["deger"]) if a["deger"] in sec else -1
+                    yakin = [sec[x] for x in (j + 1, j - 1) if 0 <= x < len(sec)] if j >= 0 else sec[:1]
+                    if not yakin:
+                        continue
+                    alternatif = yakin[0]
+                try:
+                    yeni = kur({**ham, kimlik[1]: alternatif})
+                except sorun.BILINEN:
+                    log.debug("seçim denenemedi ( %s = %r )", kimlik[1], alternatif, exc_info=True)
+                    continue
+                if yeni is None:
+                    continue
+                for anahtar, imza in (taban or {}).items():
+                    if yeni.get(anahtar) != imza:
+                        bagli.setdefault(anahtar, []).append(kimlik)
+        r["secim"] = bagli
+        return bagli
 
 
 def _cozumleme(veri, ad):
@@ -135,7 +204,7 @@ def _cozumleme(veri, ad):
                 _SURENLER.pop(anahtar, None)
 
 
-def girdiler(r, n):
+def girdiler(r, n, secimler=False):
     """n. parça örneğinin girdileri — ölçü kutusunun kaynak satırlarıyla aynı biçim
     ( cizim_uclari._kaynaklar ):  anahtar, etiket, birim, değer, yer ( asansör ·
     proje · ofis ), değiştirilip değiştirilemeyeceği;  ayrıca etki ( boyut · yer ).
@@ -143,7 +212,13 @@ def girdiler(r, n):
     ofisten önce, büyük eğim önce."""
     alan, pg, _gizli = cizim_uclari.sozlesme()
     liste = []
-    for kimlik, o in r["ornekler"][n][1].items():
+    kaynak = dict(r["ornekler"][n][1])
+    if secimler:
+        pad = r["ornekler"][n][0]
+        sira_ = sum(1 for a, _k in r["ornekler"][:n] if a == pad)
+        for kimlik in _secim_kaynaklari(r).get((pad, sira_), []):
+            kaynak.setdefault(kimlik, {"egim": 0.0, "boyut": True})
+    for kimlik, o in kaynak.items():
         yer, anahtar = kimlik
         a = r["adaylar"][kimlik]
         b = {
@@ -209,7 +284,8 @@ def _hata(ileti):
 @router.post("/api/uygulama/parca")
 def api_parca(veri: dict = Body(...)):
     """Tıklanan parçayı belirleyen girdiler.  İstek:  projenin girdisi, asansor,
-    cizim ve parca ( ekrandaki örnek — data-parca "ad-n" ).  Yanıt:
+    cizim ve parca ( ekrandaki örnek — data-parca "ad-n" );  secimler:  true ise
+    seçim kutularının etkisi de ( saniyeler — _secim_kaynaklari ).  Yanıt:
     { aktif , parca , ad ( ekranda okunan ) , girdiler , not }."""
     try:
         ad = veri.get("cizim")
@@ -236,8 +312,8 @@ def api_parca(veri: dict = Body(...)):
                 "aktif": True,
                 "parca": veri["parca"],
                 "ad": parca_adlari.ad(pad),
-                "girdiler": girdiler(r, n),
-                "not": NOT,
+                "girdiler": girdiler(r, n, secimler=veri.get("secimler") is True),
+                "not": NOT_SECIMLI if veri.get("secimler") is True else NOT,
             }
         )
     except uygulama_istegi.GecersizGirdi as e:
