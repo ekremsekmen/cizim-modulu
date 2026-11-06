@@ -2,7 +2,7 @@
     Grup sırası tasarım sırasıdır;  başlıktaki kırmızı sayı, o grubun girdilerine
     bağlı kalan bölüm sayısıdır ( bolum_grubu ).  Yazılmamış alan sunucunun
     kullandığı değeri SOLUK gösterir:  hesap onunla yapıldı, ama siz girmediniz.  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, CircleAlert, CircleQuestionMark, RotateCcw, Search, X } from "lucide-react";
 import type { Alan, AlanSemasi, Deger } from "@/lib/api";
 import { agirligaGoreGizli, alanHatasi, alanOku, gizliAlanlar, kipGizlileri, kuyununOrtaklari, mrlMi, varsayilanKotlarMi, sayiOku, secenekKapali, type Ham, type UygulamaProjesi } from "@/lib/proje";
@@ -27,8 +27,8 @@ export function GirdiPaneli({
   katlarAcik = false,
   katlarDegisti,
 }: {
-  /**  KAT TABLOSU ÇEKMECESİ ( Ö3 · K5 ):  tablo panelin yanında açılan sütunda —
-       panelde özet ve "Kotları düzenle";  açıkken tuval düşey kesitte  */
+  /**  KAT TABLOSU ÇEKMECESİ ( Ö3 · K5 ):  tablo panelin yerinde açılan sütunda ( açıkken
+       panel gizli ) — panelde özet ve "Kotları düzenle";  açıkken tuval düşey kesitte  */
   katlarAcik?: boolean;
   katlarDegisti?: (a: boolean) => void;
   vurguluAlanlar?: string[];
@@ -121,9 +121,24 @@ export function GirdiPaneli({
       yaz={yaz}
     />
   );
+  //  ÇEKMECE AÇIKKEN PANEL GİZLİ, çekmece onun yerinde ( 6 Kas — kullanıcının seçimi ):
+  //  ikisi yan yana tuvali 1280 px ekranda 88, 1440'ta 248 px'e indiriyordu;  Uygunluk
+  //  paneli kot değişirken hesabın sonucunu göstermek için görünür kalır.  Panel
+  //  yerinde kalır ( açık gruplar, arama ):  yalnız gizlenir.  Odak çekmeceye geçer,
+  //  kapanınca — odak kaybolduysa ( kapat düğmesi gitti ) — özetin düğmesine döner;  başka
+  //  bir eylem kapattıysa ( "İlgili girdiler", kural maddesi ) odak onundur.
+  const cekmeceAcik = katlarAcik && !!katlarDegisti;
+  const oncekiCekmece = useRef(cekmeceAcik);
+  useEffect(() => {
+    if (oncekiCekmece.current === cekmeceAcik) return;
+    oncekiCekmece.current = cekmeceAcik;
+    const odaksiz = !document.activeElement || document.activeElement === document.body;
+    if (cekmeceAcik) document.getElementById("kat-tablosu")?.focus();
+    else if (odaksiz) document.getElementById("kat-ozeti-dugmesi")?.focus();
+  }, [cekmeceAcik]);
   return (
     <>
-    <aside aria-label="Girdiler" className="flex w-[348px] shrink-0 flex-col border-r border-cizgi bg-yuzey">
+    <aside aria-label="Girdiler" className={cn("flex w-[348px] shrink-0 flex-col border-r border-cizgi bg-yuzey", cekmeceAcik && "hidden")}>
       <div className="space-y-2.5 border-b border-cizgi px-3 pt-3 pb-3">
         <div className="flex items-baseline justify-between px-0.5">
           <h2 className="text-[13px] font-semibold">Girdiler</h2>
@@ -214,13 +229,20 @@ export function GirdiPaneli({
         })}
       </div>
     </aside>
-    {katlarAcik && katlarDegisti && (
-      //  Akışta ( örtmez ):  tuval daralır, düşey kesit görünür kalır
-      <section aria-label="Kat tablosu" className="flex w-[520px] shrink-0 flex-col border-r border-cizgi bg-yuzey">
+    {cekmeceAcik && katlarDegisti && (
+      //  Akışta ( örtmez ):  panelin yerinde;  tuval daralır, düşey kesit görünür kalır
+      <section
+        id="kat-tablosu"
+        tabIndex={-1}
+        aria-label="Kat tablosu"
+        className="flex w-[520px] shrink-0 flex-col border-r border-cizgi bg-yuzey outline-none"
+      >
         <div className="flex items-start justify-between gap-3 border-b border-cizgi px-4 py-3">
           <div>
             <h2 className="text-[13px] font-semibold">Katlar ve kotlar</h2>
-            <p className="mt-0.5 text-[12px] text-metin-3">Tuval düşey kesitte;  kapatınca önceki çizime döner.</p>
+            <p className="mt-0.5 text-[12px] text-metin-3">
+              Tuval düşey kesitte;  kapatınca Girdiler ve önceki çizim geri gelir.
+            </p>
           </div>
           <Dugme tur="hayalet" boy="simge-kucuk" aria-label="Kat tablosunu kapat" onClick={() => katlarDegisti(false)}>
             <X />
@@ -246,7 +268,7 @@ function KatOzeti({ h, acik, ac }: { h: Ham; acik: boolean; ac: () => void }) {
           </p>
         )}
       </div>
-      <Dugme boy="kucuk" aria-expanded={acik} onClick={ac}>
+      <Dugme id="kat-ozeti-dugmesi" boy="kucuk" aria-expanded={acik} onClick={ac}>
         {acik ? "Tabloyu kapat" : "Kotları düzenle"}
       </Dugme>
     </div>

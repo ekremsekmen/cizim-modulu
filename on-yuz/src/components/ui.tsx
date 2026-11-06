@@ -6,6 +6,25 @@ import { Dialog, Popover, Select, Switch, Tooltip, ToggleGroup } from "radix-ui"
 import { Check, ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/* ───────────────────────────── Açılır öğelerin yeri
+   Radix açılır öğeleri ( seçim listesi, ipucu, açılır kutu, pencere ) body'ye taşır
+   ( portal ).  Bir öğe TAM EKRANDAYKEN ( tuvalin "Tam ekran"ı ) yalnız onun içi
+   görünür:  body'deki öğe arkada kalır — Katmanlar menüsü, ipuçları, parça
+   kutusunun seçim listesi tam ekranda görünmüyordu ( 6 Kas ).  Açılır öğe tam
+   ekran öğesinin içine taşınır.  data-acilir:  tuval, içine taşınan öğedeki
+   basışı ve tıklamayı kendisininki saymaz ( Tuval.disarida ).  */
+function tamEkranDinle(f: () => void) {
+  document.addEventListener("fullscreenchange", f);
+  return () => document.removeEventListener("fullscreenchange", f);
+}
+function useAcilirYeri() {
+  return React.useSyncExternalStore(
+    tamEkranDinle,
+    () => document.fullscreenElement,
+    () => null,
+  );
+}
+
 /* ───────────────────────────── Düğme */
 const dugmeTuru = cva(
   "inline-flex items-center justify-center gap-1.5 whitespace-nowrap font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
@@ -93,6 +112,7 @@ export function Secim({
   /**  Seçili değerin yanında soluk birim ( metin kutusundaki gibi:  "800 kg" )  */
   birim?: string;
 }) {
+  const yer = useAcilirYeri();
   return (
     <Select.Root value={deger} onValueChange={degisti}>
       <Select.Trigger
@@ -112,8 +132,9 @@ export function Secim({
           <ChevronDown className="size-3.5 text-metin-3" />
         </Select.Icon>
       </Select.Trigger>
-      <Select.Portal>
+      <Select.Portal container={yer}>
         <Select.Content
+          data-acilir=""
           position="popper"
           sideOffset={4}
           className="z-50 max-h-80 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-orta border border-cizgi bg-yuzey shadow-kalkik"
@@ -201,11 +222,13 @@ export function HukumNoktasi({ uygun, className }: { uygun: boolean | null | und
 
 /* ───────────────────────────── İpucu */
 export function Ipucu({ metin, children, yan = "top" }: { metin: React.ReactNode; children: React.ReactNode; yan?: "top" | "right" | "bottom" | "left" }) {
+  const yer = useAcilirYeri();
   return (
     <Tooltip.Root delayDuration={250}>
       <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
-      <Tooltip.Portal>
+      <Tooltip.Portal container={yer}>
         <Tooltip.Content
+          data-acilir=""
           side={yan}
           sideOffset={6}
           className="z-50 max-w-72 rounded-kucuk bg-metin px-2.5 py-1.5 text-[12px] leading-relaxed text-white shadow-kalkik"
@@ -263,9 +286,11 @@ export const Acilir = Popover.Root;
 export const AcilirTetik = Popover.Trigger;
 export const AcilirCapa = Popover.Anchor;
 export function AcilirIcerik({ className, ...p }: React.ComponentProps<typeof Popover.Content>) {
+  const yer = useAcilirYeri();
   return (
-    <Popover.Portal>
+    <Popover.Portal container={yer}>
       <Popover.Content
+        data-acilir=""
         sideOffset={6}
         collisionPadding={12}
         className={cn("z-50 rounded-buyuk border border-cizgi bg-yuzey shadow-kalkik outline-none", className)}
@@ -291,11 +316,13 @@ export function Cekmece({
   children: React.ReactNode;
   genislik?: string;
 }) {
+  const yer = useAcilirYeri();
   return (
     <Dialog.Root open={acik} onOpenChange={degisti}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-metin/25" />
+      <Dialog.Portal container={yer}>
+        <Dialog.Overlay data-acilir="" className="fixed inset-0 z-40 bg-metin/25" />
         <Dialog.Content
+          data-acilir=""
           className={cn(
             "fixed inset-y-2 right-2 z-50 flex max-w-[calc(100vw-16px)] flex-col overflow-hidden rounded-buyuk border border-cizgi bg-yuzey shadow-kalkik outline-none",
             genislik,
