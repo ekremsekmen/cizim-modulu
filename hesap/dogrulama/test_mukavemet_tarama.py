@@ -416,8 +416,12 @@ def _kopya(g):
     return json.loads(json.dumps(g))
 
 
-def mukavemet_sonucu(g):
+def mukavemet_sonucu(g, tamlar=None, ad=None):
+    """Referansa giren kısım.  tamlar verilirse senaryonun TAM sonucu da oraya
+    ( ad , sonuç ) — referansa girmeyen denetimler aynı hesabı kullansın."""
     s = mukavemet.hesapla(_kopya(g))
+    if tamlar is not None:
+        tamlar.append((ad, s))
     if not s.get("aktif"):
         return {"aktif": False, "hata": s.get("hata")}
     return {
@@ -435,12 +439,56 @@ AILELER = (
 )
 
 
-def uret():
+def uret(tamlar=None):
     """Referans kaydı  —  { aile : [ { ad, girdi, sonuc } ] }."""
     return {
-        aile: [{"ad": ad, "girdi": _kopya(g), "sonuc": _kopya(mukavemet_sonucu(g))} for ad, g in senaryo()]
+        aile: [
+            {"ad": ad, "girdi": _kopya(g), "sonuc": _kopya(mukavemet_sonucu(g, tamlar, f"{aile} · {ad}"))}
+            for ad, g in senaryo()
+        ]
         for aile, senaryo in AILELER
     }
+
+
+def _yazilar(b):
+    """Bölümde basılı bütün yazılar — hüküm metni ve adım satırları."""
+    y = [str((b.get("sonuc") or {}).get("metin") or "")]
+    for a in b.get("adimlar") or []:
+        y += [str(a.get(k) or "") for k in ("aciklama", "formul", "islem", "kaynak", "metin")]
+    return "\n".join(y)
+
+
+def hukum_maddeleri(r, tamlar):
+    """DÜŞEN HER HÜKMÜN MADDESİ VAR ( ekranın uygunluk kartı neden / öneri
+    okur ) ve madde bölüme SADIKTIR:  öğüt bölümde yazılı olandır ( hüküm
+    metni ya da kontrol satırı ), uydurulmaz.  Uygun ve bilgi bölümünde
+    madde yoktur.  Ekran metni bölmediği için bu kural tek kalkandır."""
+    sorun, say = [], 0
+    for ad, s in tamlar:
+        for b in s.get("bolumler") or []:
+            so, yer = b.get("sonuc") or {}, f"{ad} · {b.get('kimlik')}"
+            m = so.get("maddeler")
+            if so.get("uygun") is not False:
+                if m is not None:
+                    sorun.append(f"{yer}:  uygun / bilgi bölümünde madde var")
+                continue
+            say += 1
+            if not m:
+                sorun.append(f"{yer}:  madde yok — {so.get('metin')!r}")
+                continue
+            yazi = _yazilar(b)
+            for x in m:
+                if set(x) != {"neden", "oneri"} or not str(x.get("neden") or "").strip():
+                    sorun.append(f"{yer}:  bozuk madde {x!r}")
+                o = x.get("oneri")
+                #  Öğüdün ilk harfi büyütülür ( madde ):  gövdesi bölümde aynen geçmeli
+                if o is not None and (not o.endswith(".") or o[1:].rstrip(".") not in yazi):
+                    sorun.append(f"{yer}:  öğüt bölümde yazılı değil — {o!r}")
+    r.kontrol(
+        f"düşen her hükmün maddesi var, öğüdü bölümde yazılı ( {say} hüküm )",
+        say > 0 and not sorun,
+        "→ " + " | ".join(sorun[:4]) + (f"  … + {len(sorun) - 4}" if len(sorun) > 4 else ""),
+    )
 
 
 def calistir():
@@ -456,8 +504,10 @@ def calistir():
             f"→ {os.path.basename(DOSYA)} yok — python3 dogrulama/tarama_uret.py",
         )
         return r
-    simdi = uret()
+    tamlar = []
+    simdi = uret(tamlar)
     karsilastir(r, DOSYA, simdi, "mukavemet")
+    hukum_maddeleri(r, tamlar)
     #  Geçersiz girdiler gerçekten reddediliyor, geçerliler hesaplanıyor
     for aile, liste in simdi.items():
         for k in liste:
