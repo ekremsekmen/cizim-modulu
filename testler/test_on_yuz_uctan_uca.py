@@ -1578,6 +1578,123 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.keyboard.press("Escape")
         kutu.wait_for(state="detached")
 
+    def _ustte(self, yer):
+        """Öğe ekranda en üstte mi:  ortasındaki nokta ona düşer.  is_visible yalnız biçime
+        bakar — tam ekranın arkasında kalan öğe görünür sayılırdı."""
+        return yer.evaluate(
+            "e => { const r = e.getBoundingClientRect();"
+            "  const u = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);"
+            "  return !!u && e.contains(u) }"
+        )
+
+    def _parca_kutusu(self, parca):
+        """Kuyu planında parçanın ilk örneğinin ortasına fareyle tıklanır:  parça kutusu."""
+        k = self.sayfa.locator(
+            f'figure[data-cizim="kuyu_plani"] [data-parca^="{parca}-"]'
+        ).first.bounding_box()
+        with self.sayfa.expect_response(lambda r: r.url.endswith("/api/uygulama/parca")):
+            self.sayfa.mouse.click(k["x"] + k["width"] / 2, k["y"] + k["height"] / 2)
+        return self.sayfa.get_by_role("dialog", name=re.compile(r"^Parça "))
+
+    def _kapi_genisligini_sec(self, kutu):
+        """Parça kutusundaki kapı genişliği seçimi FAREYLE ( gerçek basış ve bırakış ) açılır,
+        şimdikinden başka bir seçenek seçilir:  seçilen değer.  Liste en üstte görünür,
+        kutu açıkken aynı parçanın kalır."""
+        secim = kutu.locator("#parca-kapi_genisligi")
+        ad = kutu.get_attribute("aria-label")
+        s = secim.bounding_box()
+        self.sayfa.mouse.click(s["x"] + s["width"] / 2, s["y"] + s["height"] / 2)
+        liste = self.sayfa.get_by_role("listbox")
+        liste.wait_for()
+        self.assertTrue(self._ustte(liste))
+        #  Liste açıkken sayfanın geri kalanı aria-hidden ( Radix ):  kutu rolüyle bulunmaz
+        acik = self.sayfa.locator("[data-olcu-kutu][role=dialog]")
+        self.assertEqual(acik.count(), 1)
+        self.assertEqual(acik.get_attribute("aria-label"), ad)
+        secenek = liste.locator('[role=option]:not([data-state="checked"]):not([data-disabled])').first
+        deger = secenek.inner_text().strip()
+        secenek.click()
+        liste.wait_for(state="detached")
+        return deger
+
+    def test_parca_kutusundaki_secim_fareyle_acilir(self):
+        """6 Kas:  parça kutusundaki seçim ( kapı genişliği ) fareyle açılamıyordu — liste
+        basışta açılıp sayfayı ( kutuyu da ) fareye kapatıyor, parçalar açık kalıyordu
+        ( pointer-events: all ):  bırakış kutunun altındaki parçaya düşüyor, kutu o
+        parçaya geçiyordu ( altında parça yoksa kapanıyordu ).  Liste açılır, kutu yerinde
+        kalır, seçilen değer formun alanına yazılır."""
+        self.ornek_projeyi_ac()
+        kutu = self._parca_kutusu("kat_esigi")
+        deger = self._kapi_genisligini_sec(kutu)
+        istek, _c = self.iz.son("/api/uygulama/cizimler")
+        self.assertEqual(istek["asansorler"][0]["kapi_genisligi"], deger)
+        self.assertTrue(kutu.is_visible())
+
+    def test_tuvalin_tam_ekraninda_acilir_ogeler(self):
+        """6 Kas:  tuval tam ekrandayken Katmanlar menüsü, yardım, ipuçları ve parça
+        kutusunun seçim listesi görünmüyordu ( body'ye çiziliyorlardı;  tam ekranda yalnız
+        tuvalin içi görünür ).  Tam ekrana girince çizim yeni boya sığdırılır ( sol üstte
+        kalıyordu );  tam ekrandaki menüye basmak tuvale tıklama sayılmaz."""
+        self.ornek_projeyi_ac()
+        self.sayfa.get_by_role("button", name="Tam ekran").click()
+        self.sayfa.wait_for_function("!!document.fullscreenElement")
+        self.sayfa.wait_for_timeout(400)
+        f = self.sayfa.locator("figure[data-cizim]:visible").bounding_box()
+        en, boy = self.sayfa.viewport_size["width"], self.sayfa.viewport_size["height"]
+        self.assertLess(abs(f["x"] + f["width"] / 2 - en / 2), en * 0.05, f)
+        self.assertGreater(f["height"], boy * 0.6, f)
+        katmanlar = self.sayfa.get_by_role("button", name="Katmanlar")
+        katmanlar.click()
+        eksen = self.sayfa.get_by_role("menuitemcheckbox", name="EKSEN")
+        self.assertTrue(self._ustte(eksen))
+        eksen.click()
+        self.assertIn("1 gizli", katmanlar.inner_text())
+        katmanlar.click()
+        self.sayfa.get_by_role("button", name="Sığdır").hover()
+        ipucu = self.sayfa.locator("[data-acilir]", has_text="Sığdır").first
+        ipucu.wait_for()
+        self.assertTrue(self._ustte(ipucu))
+        kutu = self._parca_kutusu("kat_esigi")
+        deger = self._kapi_genisligini_sec(kutu)
+        istek, _c = self.iz.son("/api/uygulama/cizimler")
+        self.assertEqual(istek["asansorler"][0]["kapi_genisligi"], deger)
+        self.assertTrue(self.sayfa.evaluate("!!document.fullscreenElement"))
+        self.sayfa.evaluate("document.exitFullscreen()")
+        self.sayfa.wait_for_function("!document.fullscreenElement")
+
+    def test_kat_cekmecesi_tuvale_yer_birakir(self):
+        """6 Kas:  çekmece Girdiler panelinin YANINDA açılınca tuval 1280 px ekranda 88,
+        1440'ta 248 px'e iniyordu — araç şeridi kesiliyor, durum hapı Katmanlar'ın
+        üstüne biniyor, şerit düğmeleri 14 px.  Çekmece Girdiler'in yerinde açılır
+        ( panel gizli, Uygunluk görünür — kullanıcının seçimi ), şerit yok ( tuval düşey
+        kesitte kalır ), sığmayan durum hapı araç şeridinin altına iner;  odak çekmeceye
+        geçer, kapanınca özetin düğmesine döner."""
+        self.sayfa.set_viewport_size({"width": 1280, "height": 800})
+        self.ornek_projeyi_ac()
+        #  Uzun hap:  çizim uygun değil ( kuyu 2300 — test_sorunlu_cizim_ekranda_parcasi_kirmizi )
+        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.iz.son("/api/uygulama/cizimler")
+        tablo = self._katlar()
+        olc = self.sayfa.evaluate(
+            "() => { const kap = document.querySelector('figure[data-cizim]').parentElement.parentElement;"
+            "  const k = kap.getBoundingClientRect();"
+            "  const [a, h] = [...kap.querySelectorAll('[data-tuval-arac]')].map((e) => e.getBoundingClientRect());"
+            "  return { tuval: k.width, tasma: a.right - k.right, hap: h.width,"
+            "    biner: h.left < a.right && h.right > a.left && h.top < a.bottom && h.bottom > a.top } }"
+        )
+        self.assertGreaterEqual(olc["tuval"], 400, olc)
+        self.assertLessEqual(olc["tasma"], 0, olc)
+        self.assertGreater(olc["hap"], 100, olc)  # "Uygun değil · 1 sorun"
+        self.assertFalse(olc["biner"], olc)
+        self.assertEqual(self.sayfa.get_by_role("complementary", name="Girdiler").count(), 0)
+        self.assertTrue(self.sayfa.get_by_role("complementary", name="Uygunluk").is_visible())
+        self.assertEqual(self.sayfa.get_by_role("navigation", name="Çizimler").count(), 0)
+        self.assertEqual(self.sayfa.evaluate("document.activeElement.id"), "kat-tablosu")
+        tablo.get_by_role("button", name="Kat tablosunu kapat").click()
+        self.assertTrue(self.sayfa.get_by_role("complementary", name="Girdiler").is_visible())
+        self.assertTrue(self.sayfa.get_by_role("navigation", name="Çizimler").is_visible())
+        self.assertEqual(self.sayfa.evaluate("document.activeElement.id"), "kat-ozeti-dugmesi")
+
     def test_uygunluk_karti_yukler_ve_kat_cekmecesi(self):
         """Ö3:  uygun değil kartı nedeni ve öneriyi sunucunun maddelerinden yazar;
         "Çizimde göster" bölümün parçalarının göründüğü çizime geçer;  kuyu tabanı
@@ -1610,6 +1727,14 @@ class OnYuzUctanUca(unittest.TestCase):
         )
         tablo.get_by_role("button", name="Kat tablosunu kapat").click()
         self.assertEqual(self.sayfa.locator("figure[data-cizim]:visible").get_attribute("data-cizim"), once)
+        #  Çekmece açıkken Girdiler gizli ( 6 Kas ):  "İlgili girdiler" çipi çekmeceyi kapatır,
+        #  grubu Girdiler panelinde gösterir — açık kalsa çip hiçbir şey göstermezdi
+        grup = self.sema["bolum_grubu"]["motor_gucu"][0]
+        self._katlar()
+        kart.get_by_role("button", name=grup, exact=True).click()
+        self.assertEqual(self.sayfa.get_by_role("region", name="Kat tablosu").count(), 0)
+        self.assertTrue(self.sayfa.get_by_role("complementary", name="Girdiler").is_visible())
+        self.assertTrue(self.sayfa.locator(f'[data-grup="{grup}"]').is_visible())
 
     # ------------------------------------------------------------ 7 sorunlu çizim
     def test_sorunlu_cizim_ekranda_parcasi_kirmizi(self):

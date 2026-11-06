@@ -270,12 +270,19 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     if (gorunum !== "cizim") gorunumSec("cizim");
     setHesapOdak((o) => ({ parcalar: s.hesapParcalari[b.kimlik] ?? [], n: (o?.n ?? 0) + 1 }));
   };
-  //  "İlgili girdiler" çipi:  grup solda açılır ve görünür
+  //  "İlgili girdiler" çipi:  grup solda açılır ve görünür.  Girdiler paneline götüren
+  //  eylemler kat tablosunu kapatır:  çekmece açıkken panel gizlidir ( GirdiPaneli —
+  //  6 Kas );  açık kalsa çip ve kural maddesi hiçbir şey göstermezdi.
   const grupAc = (g: string) => {
+    setKatlarAcik(false);
     setAcik((e) => new Set([...e, g]));
     requestAnimationFrame(() =>
       document.querySelector(`[data-grup="${CSS.escape(g)}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }),
     );
+  };
+  const alanaGit = (anahtar: string) => {
+    setKatlarAcik(false);
+    requestAnimationFrame(() => document.getElementById(`alan-${anahtar}`)?.focus());
   };
   //  SORUNLAR PANELİN BAŞINDA ( Ö3 · K3 ):  tuvali örtmez;  gösterecek eski sonuç yoksa
   //  ( ilk açılış kurulamadı ) kart eskisi gibi ortada.  Tuvaldeki hap oraya götürür.
@@ -295,6 +302,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
         etiket={(k) => etiket(k)}
         cokAsansor={proje.asansorler.length > 1}
         sorunuGoster={sorunuGoster}
+        alanaGit={alanaGit}
         seciliSorun={gecerliOdak?.sorun.metin ?? null}
         careBul={careBul}
         careYolda={care.isPending && careBuGirdinin}
@@ -631,6 +639,7 @@ function SorunKarti({
   etiket,
   cokAsansor,
   sorunuGoster,
+  alanaGit,
   seciliSorun,
   careBul,
   careYolda,
@@ -650,6 +659,8 @@ function SorunKarti({
   cokAsansor: boolean;
   /**  Parçası olan sorun tıklanınca:  tuval onu çizimde gösterir  */
   sorunuGoster: (m: CizimSorunu) => void;
+  /**  Kural dışı girdinin maddesi:  Girdiler panelindeki kutusuna ( panel gizliyse açılır )  */
+  alanaGit: (anahtar: string) => void;
   seciliSorun: string | null;
   /**  Çareleri iste ( ekrandaki çizimin girdisiyle );  yoksa düğme yok  */
   careBul?: () => void;
@@ -687,7 +698,7 @@ function SorunKarti({
     sorun.tur === "kural"
       ? sorun.maddeler.map((h) => ({
           metin: `${h.asansor !== null && cokAsansor ? `Asansör ${h.asansor + 1} · ` : ""}${etiket(h.anahtar)}:  ${h.hata}`,
-          git: () => document.getElementById(`alan-${h.anahtar}`)?.focus(),
+          git: () => alanaGit(h.anahtar),
         }))
       : sorun.tur === "baglanti"
         ? [{ metin: sorun.ileti }]

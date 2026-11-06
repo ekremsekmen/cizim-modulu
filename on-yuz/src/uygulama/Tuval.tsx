@@ -122,6 +122,13 @@ function kalemleriIsaretle(fig: HTMLElement, olcek: number) {
      içindeki tampon kabin değil tampon;  eski arayüzle aynı kural ).  Ölçünün,
      araç şeridinin ya da bir kutunun üstündeyse yok.  */
 function parcaBul(x: number, y: number, kap: HTMLElement | null): Parca | null {
+  //  Kutu ve araç şeridi kutusuyla da aranır:  elementsFromPoint fareye kapalı öğeyi
+  //  atlar — kutudaki seçim listesi açıkken sayfa ( kutu da ) fareye kapalıdır ( Radix ),
+  //  parçalar ise açık kalır ( pointer-events: all ):  kutunun altındaki parça bulunurdu
+  for (const k of kap?.querySelectorAll("[data-olcu-kutu], [data-tuval-arac]") ?? []) {
+    const r = k.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return null;
+  }
   let en: Element | null = null;
   let alan = Infinity;
   for (const s of document.elementsFromPoint(x, y)) {
@@ -252,6 +259,9 @@ export function Tuval({
     : cizimler.some((c) => c.ad === aktifSecimi)
       ? aktifSecimi!
       : (cizimler.find((c) => c.ad === ACILIS) ?? cizimler[0])?.ad ?? null;
+  //  Geçici çizimde şerit yok:  çizim seçmek o sürece işlemezdi ( tuval düşey kesitte kalır,
+  //  basılan çizim tablo kapanınca açılırdı — 6 Kas )
+  const serit = gecici ? 0 : SERIT;
   const [boyut, setBoyut] = useState<{ en: number; boy: number } | null>(null);
   useLayoutEffect(() => {
     const el = kap.current;
@@ -289,11 +299,11 @@ export function Tuval({
     const x1 = Math.max(...gorunen.map((y) => y.x + y.w * y.s));
     const y1 = Math.max(...gorunen.map((y) => y.y + y.h * y.s));
     const W = el.clientWidth;
-    const Hh = el.clientHeight - SERIT;
+    const Hh = el.clientHeight - serit;
     const ust = 64;
     const k = Math.min((W - 64) / (x1 - x0), (Hh - ust - 40) / (y1 - y0));
     setG({ k, x: (W - (x1 - x0) * k) / 2 - x0 * k, y: ust + (Hh - ust - 40 - (y1 - y0) * k) / 2 - y0 * k });
-  }, [gorunen]);
+  }, [gorunen, serit]);
 
   //  Levhadaki bir kutuya ( 1 px = 1 mm kâğıt ) yakınlaş:  çevresiyle ( kutunun
   //  yarısı kadar, en az 30 ), en çok 5× ( parça okunur, yanındakiler de görünür ).
@@ -306,14 +316,14 @@ export function Tuval({
       const pay = Math.max(30, Math.max(x1 - x0, y1 - y0) / 2);
       const [a0, b0, a1, b1] = [x0 - pay, y0 - pay, x1 + pay, y1 + pay];
       const W = el.clientWidth;
-      const Hh = el.clientHeight - SERIT;
+      const Hh = el.clientHeight - serit;
       const ust = 64;
       const k = Math.min(5, (W - 64) / (a1 - a0), (Hh - ust - 40) / (b1 - b0));
       const cizimin = Math.min((W - 64) / yer.w, (Hh - ust - 40) / yer.h);
       if (k <= cizimin) return sigdir();
       setG({ k, x: (W - (a1 - a0) * k) / 2 - a0 * k, y: ust + (Hh - ust - 40 - (b1 - b0) * k) / 2 - b0 * k });
     },
-    [yerler, sigdir],
+    [yerler, sigdir, serit],
   );
 
   /**  Çizime geç ( şerit, Tümü'nün kartı, sorun ):  tek kip, son bakılan saklanır  */
@@ -339,14 +349,27 @@ export function Tuval({
     const son = hatirla ? depoOku(hatirla) : null;
     setAktif(var_(odak) ? odak! : var_(sorunun) ? sorunun! : var_(son) ? son! : null);
   }, [cizimler, odak, hatirla, sorunluParcalar, adlar]);
-  //  Görünüm değişince ( çizim, kip ) sığdırılır;  aynı çizimin yeni yanıtında yerinde kalır
+  //  Görünüm değişince ( çizim, kip, geçici çizim ) sığdırılır;  aynı çizimin yeni yanıtında
+  //  yerinde kalır.  Kat tablosu açılınca tuvalin eni değişir:  B-B zaten açıksa da sığdırılır.
+  //  Tam ekrana girip çıkınca da:  tuval büyür / küçülür, çizim sol üstte kalıyordu ( 6 Kas ).
+  //  Olay boy değişmeden önce gelir;  sığdırma yeni boyla ( boyut değişince ) yapılır.
   const sigdirilan = useRef<string | null>(null);
+  const tamEkranDegisti = useRef(false);
+  useEffect(() => {
+    const f = () => {
+      tamEkranDegisti.current = true;
+    };
+    document.addEventListener("fullscreenchange", f);
+    return () => document.removeEventListener("fullscreenchange", f);
+  }, []);
   useLayoutEffect(() => {
-    const hedef = kip === "tumu" ? "tumu" : aktif;
-    if (!hedef || !gorunen.length || !boyut || hedef === sigdirilan.current) return;
+    const hedef = kip === "tumu" ? "tumu" : aktif && (gecici ? `${aktif}:gecici` : aktif);
+    if (!hedef || !gorunen.length || !boyut) return;
+    if (hedef === sigdirilan.current && !tamEkranDegisti.current) return;
     sigdirilan.current = hedef;
+    tamEkranDegisti.current = false;
     sigdir();
-  }, [kip, aktif, gorunen, boyut, sigdir]);
+  }, [kip, aktif, gecici, gorunen, boyut, sigdir]);
 
   //  Tekerlek:  imlecin altındaki nokta yerinde kalır
   useEffect(() => {
@@ -372,9 +395,18 @@ export function Tuval({
   const [surukluyor, setSurukluyor] = useState(false);
   //  Portaldaki öğelerin olayları da React ağacından tuvale yayılır ( ölçü kutusundaki
   //  seçim listesi body'de çizilir ):  tuval onları yok sayar — yoksa seçeneğe
-  //  basmak sürüklemeyi başlatıp fareyi tuvale bağlıyor, seçim hiç olmuyordu
-  const disarida = (e: React.SyntheticEvent) => !kap.current?.contains(e.target as Node);
+  //  basmak sürüklemeyi başlatıp fareyi tuvale bağlıyor, seçim hiç olmuyordu.  Tam
+  //  ekranda portal tuvalin İÇİNDEDİR ( ui.useAcilirYeri ):  data-acilir'den tanınır.
+  const disarida = (e: React.SyntheticEvent) =>
+    !kap.current?.contains(e.target as Node) || !!(e.target as Element).closest?.("[data-acilir]");
+  //  Basış bir kutuda ( ölçü / parça kutusu ) ya da araç şeridinde başladıysa ardından
+  //  gelen tıklama tuvalin değildir:  kutudaki seçim listesi BASIŞTA açılır ve sayfayı
+  //  ( kutuyu da ) fareye kapatır ( Radix ), parçalar açık kalır — bırakış kutunun
+  //  altındaki parçaya düşer, tıklama tuvale gelir.  Kutu o parçaya geçiyor ( altında
+  //  parça yoksa kapanıyordu ), seçim listesi fareyle hiç açılamıyordu ( 6 Kas ).
+  const kutudaBasildi = useRef(false);
   const basildi = (e: React.PointerEvent) => {
+    kutudaBasildi.current = disarida(e) || !!(e.target as Element).closest("[data-tuval-arac], [data-olcu-kutu]");
     if (disarida(e) || e.button !== 0 || (e.target as Element).closest(".olcu, [data-tuval-arac], [data-olcu-kutu]")) return;
     surukle.current = { x: e.clientX, y: e.clientY, gx: g.x, gy: g.y };
     kaydi.current = false;
@@ -436,7 +468,7 @@ export function Tuval({
   const tiklandi = (e: React.MouseEvent) => {
     if (disarida(e)) return;
     const hedef = e.target as Element;
-    if (hedef.closest("[data-tuval-arac], [data-olcu-kutu]")) return;
+    if (hedef.closest("[data-tuval-arac], [data-olcu-kutu]") || kutudaBasildi.current) return;
     if (kaydi.current) return; //  kaydırma bırakılışı tıklama değil
     //  Tümü'de karta tıklamak çizimi açar.  Hedef noktadan bulunur:  sürükleme için
     //  işaretçi tuvale bağlı ( setPointerCapture ), tıklamanın hedefi tuvalin kendisi olur
@@ -588,8 +620,17 @@ export function Tuval({
     const y0 = Math.min(...gorunen.map((y) => y.y));
     const x1 = Math.max(...gorunen.map((y) => y.x + y.w * y.s));
     const y1 = Math.max(...gorunen.map((y) => y.y + y.h * y.s));
-    return Math.min((boyut.en - 64) / (x1 - x0), (boyut.boy - SERIT - 104) / (y1 - y0));
-  }, [gorunen, boyut]);
+    return Math.min((boyut.en - 64) / (x1 - x0), (boyut.boy - serit - 104) / (y1 - y0));
+  }, [gorunen, boyut, serit]);
+
+  //  Sorunlar Uygunluk panelindedir:  tam ekrandan önce çıkılır ( panel tam ekranın dışında )
+  const sorunlaraGec = () => {
+    if (!document.fullscreenElement) return sorunlaraGit?.();
+    document.exitFullscreen().then(
+      () => sorunlaraGit?.(),
+      () => sorunlaraGit?.(),
+    );
+  };
 
   const uzak = kip === "tumu" || 2.5 * g.k * dpr < 5;
   const katmanStili = [...gizli].map((k) => `.tuval-svg [data-katman="${k}"]{display:none}`).join("");
@@ -650,10 +691,13 @@ export function Tuval({
           </div>
         ))}
 
-      {/*  Araç şeridi  */}
+      {/*  Araç şeridi ( solda ) ve çizimin durumu ( sağda ):  tuval darsa durum araç şeridinin
+           altına iner — kat tablosu açıkken üstüne biniyor, Katmanlar'ı örtüyordu ( 6 Kas ).
+           Aradaki boşluk tuvalindir ( tıklama, sürükleme geçer ).  */}
+      <div className="pointer-events-none absolute inset-x-3 top-3 flex flex-wrap items-start justify-between gap-2">
       <div
         data-tuval-arac
-        className="absolute top-3 left-3 flex items-center gap-1 rounded-buyuk border border-white/[0.08] bg-tuval-2/95 p-1 shadow-tuval backdrop-blur"
+        className="pointer-events-auto flex items-center gap-1 rounded-buyuk border border-white/[0.08] bg-tuval-2/95 p-1 shadow-tuval backdrop-blur"
       >
         <Ipucu metin="Uzaklaştır">
           <Dugme tur="tuval" boy="simge-kucuk" aria-label="Uzaklaştır" onClick={() => setG((o) => yakinlik(o, 1 / 1.25, kap.current))}>
@@ -720,7 +764,12 @@ export function Tuval({
             tur="tuval"
             boy="simge-kucuk"
             aria-label="Tam ekran"
-            onClick={() => (document.fullscreenElement ? document.exitFullscreen() : kap.current?.requestFullscreen())}
+            //  Tarayıcı izin vermezse ( gömülü görünüm ) söz reddedilir:  tuval olduğu gibi kalır
+            onClick={() =>
+              (document.fullscreenElement ? document.exitFullscreen() : kap.current?.requestFullscreen())?.catch(
+                () => {},
+              )
+            }
           >
             <Maximize />
           </Dugme>
@@ -744,7 +793,7 @@ export function Tuval({
       </div>
 
       {/*  Çizimin durumu:  güncel mi, yolda mı, eski mi, uygun değil mi  */}
-      <div data-tuval-arac className="absolute top-3 right-3">
+      <div data-tuval-arac className="pointer-events-auto ml-auto">
         {durum === "yukleniyor" ? (
           <DurumHapi>
             <Loader2 className="size-3 animate-spin" /> Çiziliyor
@@ -753,7 +802,7 @@ export function Tuval({
           <DurumHapi uyari>Çizim güncel değil</DurumHapi>
         ) : durum === "sorunlu" || sorunSayisi > 0 ? (
           //  Sorunlar Uygunluk panelinde ( K3 ):  hap oraya götürür
-          <button type="button" onClick={sorunlaraGit} aria-label={`Sorunlara git — ${sorunSayisi} sorun`}>
+          <button type="button" onClick={sorunlaraGec} aria-label={`Sorunlara git — ${sorunSayisi} sorun`}>
             <DurumHapi tehlike>
               <span className="size-1.5 rounded-full bg-[#f97066]" /> {durum === "sorunlu" ? "Uygun değil" : "Hesap durdu"}
               {sorunSayisi > 0 && <span className="sayi opacity-80">· {sorunSayisi} sorun</span>}
@@ -764,6 +813,7 @@ export function Tuval({
             <span className="size-1.5 rounded-full bg-[#4ade80]" /> Güncel
           </DurumHapi>
         )}
+      </div>
       </div>
 
       {/*  Parçanın adı ( fareyi izler )  */}
@@ -777,8 +827,8 @@ export function Tuval({
       </div>
 
       {/*  ÇİZİM ŞERİDİ ( K2 ):  tuvalin altında;  rozet çizimde sorunlu ( kırmızı ) ya da
-           hesabın uygun bulmadığı ( turuncu ) parça olduğunu söyler  */}
-      {cizimler.length > 0 && (
+           hesabın uygun bulmadığı ( turuncu ) parça olduğunu söyler.  Geçici çizimde yok.  */}
+      {cizimler.length > 0 && !gecici && (
         <nav
           data-tuval-arac
           aria-label="Çizimler"
