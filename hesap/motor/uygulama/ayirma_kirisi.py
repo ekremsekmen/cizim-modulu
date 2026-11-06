@@ -28,7 +28,7 @@ MODEL ( kullanıcı kararı 2 Kas — önerilenler ):
 """
 
 from temel import sayi_mi
-from motor.ortak.adimlar import Bolum, hesap, kontrol, metin, tr, trn, veri
+from motor.ortak.adimlar import Bolum, hesap, kontrol, madde, metin, tr, trn, veri
 from motor.uygulama import mukavemet
 from motor.uygulama import mukavemet_tablolari
 from motor.uygulama import uygulama_sabitleri
@@ -124,6 +124,7 @@ def bolum(sonuclar, npu):
             "baslik": "KONTROL      σ ≤ σem   ·   δray + δkiriş ≤ δperm",
             "metin": "HESAP EKSİK — kirişe bağlanan rayların hesabı yapılamadı",
             "uygun": False,
+            "maddeler": [madde("kirişe bağlanan rayların hesabı yapılamadı:  " + " · ".join(eksik))],
         }
         b["eksik_hesap"] = True
         return b
@@ -208,4 +209,6 @@ def bolum(sonuclar, npu):
         ),
         "uygun": not neden,
     }
+    if neden:
+        b["sonuc"]["maddeler"] = [madde(f"{' ve '.join(neden)} aşılıyor", "NPU profilini büyütün")]
     return b

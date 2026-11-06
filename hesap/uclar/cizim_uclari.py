@@ -1131,3 +1131,11 @@ def paftaya_ekle(gler):
                 return f.read()
 
     return islem
+
+
+#  Parça ucu ( uclar/parca_uclari.py ) ölçü kutusuyla AYNI isteği, sözleşmeyi,
+#  adayları ve birleşik çizim adlarını okur:  iki uç ayrışmasın diye tek yerden.
+istek = _istek
+sozlesme = _sozlesme
+adaylar = _adaylar
+BIRLESIK = _BIRLESIK

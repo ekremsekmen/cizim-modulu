@@ -147,6 +147,7 @@ BELIRSIZ_SAYI = re.compile(r"^[+-]?[1-9]\d{0,2}[.,]\d{3}$")
 from uclar import avan_uclari
 from uclar import care_uclari
 from uclar import cizim_uclari
+from uclar import parca_uclari
 from uclar import uygulama_uclari
 from uclar.uc_ortak import _BELIRSIZ, _RED, _sayi, belirsiz_sayi_mi  # noqa: F401
 
@@ -155,6 +156,7 @@ from uclar.uc_ortak import _BELIRSIZ, _RED, _sayi, belirsiz_sayi_mi  # noqa: F40
 app.include_router(avan_uclari.router)
 app.include_router(uygulama_uclari.router)
 app.include_router(cizim_uclari.router)
+app.include_router(parca_uclari.router)
 app.include_router(care_uclari.router)
 
 

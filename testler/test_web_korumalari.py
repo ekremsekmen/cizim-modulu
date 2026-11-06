@@ -21,6 +21,7 @@ from cizim import kopru
 from tasarim import alanlar
 from testler import test_yerlesim_saglamligi
 from uclar import cizim_uclari
+from uclar import parca_uclari
 from uclar import uygulama_uclari
 from uclar import uygulama_istegi
 from uclar.uc_ortak import GENEL_HATA, hata_iletisi
@@ -224,7 +225,7 @@ class BozukGovde(unittest.TestCase):
     ile uçta beklenmeyen hata kaydı düşüyordu ).  Uç taraması, 20 Eki."""
 
     def test_cizim_adi_metin_degilse_bilinmeyen_cizim(self):
-        for uc in (cizim_uclari.api_olcu, cizim_uclari.api_olcu_degistir):
+        for uc in (cizim_uclari.api_olcu, cizim_uclari.api_olcu_degistir, parca_uclari.api_parca):
             for ad in ([], {}, ["kuyu_plani"]):
                 with self.subTest(uc=uc.__name__, ad=ad):
                     yanit = json.loads(uc({"cizim": ad, "asansorler": [{}]}).body)

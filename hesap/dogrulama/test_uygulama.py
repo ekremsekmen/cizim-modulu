@@ -1842,6 +1842,18 @@ def _muhendis_okumasi(r):
         _kt["sonuc"]["metin"].count("N / ray") == 2,
         f"→ {_kt['sonuc']['metin']}",
     )
+    #  Ekranın yükler tablosu sonucun satırlarından:  adı, anlamı, değeri, birimi
+    #  sunucudan gelir — ekran kuvvet adı yazmaz ( aşağıdaki kural ).
+    _dg = _kt["sonuc"].get("degerler") or []
+    r.kontrol(
+        "① bölüm 9 sonucunun satırları:  dört yük, özetle aynı değer, metinle aynı yazı",
+        [d["ad"] for d in _dg] == ["FKR", "FAR", "Fkt", "Fat"]
+        and all(d["deger"] == _s["ozet"][d["ad"]] for d in _dg)
+        and "  ·  ".join(f"{d['ad']} = {d['metin']} {d['birim']}" for d in _dg) == _kt["sonuc"]["metin"]
+        and [d["aciklama"] for d in _dg[:2]]
+        == ["Bir kabin rayına gelen kuvvet", "Bir ağırlık rayına gelen kuvvet"],
+        f"→ {_dg}",
+    )
     _pdf = open(os.path.join(KOK, "ciktilar", "pdf_cikti.py"), encoding="utf-8").read()
     _js = _on_yuz_kaynagi()
     r.kontrol(

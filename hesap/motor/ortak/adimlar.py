@@ -11,6 +11,7 @@ Paftanın "işlem satırı":
 """
 
 import math
+import re
 from temel import sayi_mi
 from decimal import ROUND_HALF_UP, Decimal, localcontext
 
@@ -185,6 +186,39 @@ def metin(icerik, vurgu=False):
     return Step(deger=icerik, tip="metin", vurgu=vurgu)
 
 
+#  Sembolle başlayan metin ( "dh = 6,5 mm", "σe = 213" ) büyük harfle başlamaz:
+#  "Dh" başka bir semboldür.
+_SEMBOLLE_BASLAR = re.compile(r"^\S+\s*[=<>≤≥]")
+
+
+def bas_harf(m):
+    """Türkçe ilk harf büyük, gerisi OLDUĞU GİBİ — temel.cumle_basi gerisini
+    küçültür ( "NPU", "Dreg", "σem" bozulurdu ).  Sembolle başlayana dokunmaz."""
+    m = str(m).strip()
+    if not m or _SEMBOLLE_BASLAR.match(m):
+        return m
+    return m[:1].replace("i", "İ").replace("ı", "I").upper() + m[1:]
+
+
+def madde(neden, oneri=None):
+    """UYGUN DEĞİL ( ya da EKSİK ) hükmünün bir maddesi — bölüm sonucunun
+    ``maddeler`` listesine girer:
+
+        neden   düşen sınır, değerleriyle ( "Nsç = 4,90 kW < N = 5,28 kW" )
+        oneri   ne yapılacağı — YALNIZ bölümde yazılıysa ( hüküm metni ya da
+                kontrol satırı );  yazılı öğüt yoksa madde de uydurmaz ( None )
+
+    Ekran hükmü bu maddelerden okur:  sonuç metnini BÖLMEZ, kuvvet ve sınır
+    adlarını kendisi KURMAZ ( hesap testi:  ekranın kaynağında kuvvet adı
+    yok ).  Madde, metni kuran AYNI PARÇALARDAN kurulur — ikisi ayrışmasın.
+    Metin ( pafta, PDF ) değişmez;  madde onun yapılı okumasıdır."""
+    oneri = bas_harf(oneri) if oneri else None
+    return {
+        "neden": bas_harf(neden),
+        "oneri": (oneri if oneri.endswith(".") else oneri + ".") if oneri else None,
+    }
+
+
 #  Bölüm başlığının biçimi:  "4 - ASKI HALATLARININ HESAPLANMASI".
 #  Tek yerde durur ki numaralayan taraf ile okuyan taraf ayrışmasın.
 BASLIK_BICIMI = "{sira} - {ad}"
@@ -239,6 +273,14 @@ class Bolum(dict):
                    formülündeki ray kütlesi terimi gibi.  Ekranda başlığın
                    yanındaki ⓘ simgesinde toplanır (üzerine gelince açılır),
                    paftada ise aynen basılır — çıktı hiçbir şey kaybetmez.
+
+    Sonuç ( ``sonuc`` ):  baslik · metin · uygun paftanın KONTROL kutusudur.
+    Ekran için iki yapılı alan daha olabilir — metni değiştirmezler:
+
+      maddeler     uygun DEĞİLSE düşen sınırlar  [ { neden , oneri } ]
+                   ( bkz. madde ) — metnin yapılı okuması
+      degerler     hükümsüz bölümün sayıları ( kuyu tabanı yükleri )
+                   [ { ad , aciklama , deger , metin , birim } ]
     """
 
     def __init__(

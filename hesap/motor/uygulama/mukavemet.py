@@ -29,7 +29,7 @@ from motor.uygulama import mukavemet_girdi
 from motor.uygulama import uygulama_sabitleri
 from motor.uygulama import mukavemet_tablolari
 from motor.ortak.adimlar import Bolum, hesap, kontrol, numarala, veri
-from motor.ortak.adimlar import bagla, metin, tr, trn, evet_mi
+from motor.ortak.adimlar import bagla, bas_harf, madde, metin, tr, trn, evet_mi
 from cizim import donanim
 from cizim import dusey
 from cizim import kopru
@@ -605,15 +605,28 @@ class _Motor:
             "ağırlığı aynı yerden okur, böylece q değiştiğinde bölümler "
             "ayrışmaz.",
         ]
-        _ne = []
+        _ne, _maddeler = [], []
         if self.hesaplanabilir and not (N is not None and N > 0 and g["motor_gucu"] >= N):
             _ne.append("motoru büyütün")
+            _maddeler.append(
+                madde(
+                    f"Nsç = {tr(g['motor_gucu'])} kW < N = {tr(N)} kW" if N > 0 else f"N = {tr(N)} kW",
+                    "motoru büyütün",
+                )
+            )
         if self.tst_uygun is False:
             _ne.append("kasnak statik yükü aşıldı — makineyi büyütün")
+            _maddeler.append(
+                madde(
+                    f"kasnak statik yükü aşıldı:  Tst-h = {trn(self.Tst_h, 0)} kg > Tst = {trn(self.Tst, 0)} kg",
+                    "makineyi büyütün",
+                )
+            )
         if self.uygun:
             sonuc = "UYGUNDUR."
         elif not self.hesaplanabilir:
             sonuc = "HESAP YAPILAMADI — sistem verimi ya da halat boyu fiziksel değil"
+            _maddeler = [madde("sistem verimi ya da halat boyu fiziksel değil")]
         else:
             sonuc = "UYGUN DEĞİLDİR — " + " ve ".join(_ne)
         b["sonuc"] = {
@@ -621,6 +634,8 @@ class _Motor:
             "metin": sonuc,
             "uygun": bool(self.uygun),
         }
+        if not self.uygun:
+            b["sonuc"]["maddeler"] = _maddeler
         if not self.hesaplanabilir:
             b["eksik_hesap"] = b["sonuc"]["metin"]
         return b
@@ -843,21 +858,22 @@ def _makine_eksik(g, b):
     _mrl = evet_mi(g.get("mk_yok"))
     _raya = mukavemet_tablolari.makine_raya_mi(g.get("makine_raya_biniyor"))
     _arka = g.get("agirlik_yeri") == "Arka"
+    oneri = None
     if _mrl and _raya and _arka:
-        neden = (
-            "karşı ağırlık arkadayken makine duvardan duvara kirişlere oturur — "
-            "'Makine yükünün yolu' 'Bina yapısına' olmalı"
-        )
+        neden = "karşı ağırlık arkadayken makine duvardan duvara kirişlere oturur"
+        oneri = "'Makine yükünün yolu' 'Bina yapısına' olmalı"
     elif not _mrl:
         neden = "makine kaidesi çizilemedi"
     else:
         neden = "makine kirişleri çizilemedi"
+    _madde = madde("makine kirişinin açıklığı ( L ) çizimden gelmedi:  " + neden, oneri)
+    neden += f" — {oneri}" if oneri else ""
     metin_ = "HESAP EKSİK — makine kirişinin açıklığı ( L ) çizimden gelmedi:  " + neden
     b["adimlar"] = [
         metin("Kirişin açıklığı ve makinenin kirişteki yeri çizimden ölçülür :", vurgu=True),
         metin("·  " + neden),
     ]
-    b["sonuc"] = {"baslik": "KONTROL      σe ≤ σem", "metin": metin_, "uygun": False}
+    b["sonuc"] = {"baslik": "KONTROL      σe ≤ σem", "metin": metin_, "uygun": False, "maddeler": [_madde]}
     b["eksik_hesap"] = metin_
     return b
 
@@ -996,6 +1012,8 @@ class _Makine:
             "metin": self._sonuc_metni(),
             "uygun": bool(self.egilme_uygun and self.burkulma_uygun),
         }
+        if not b["sonuc"]["uygun"]:
+            b["sonuc"]["maddeler"] = [madde(d) for d in self._dusenler()]
         b["aciklamalar"] = self._aciklamalar()
         return b
 
@@ -1116,9 +1134,13 @@ class _Makine:
         """HANGİ KİRİŞİN DÜŞTÜĞÜ YAZILIR.  "Kiriş kesitini büyütün" iki ayrı
         eleman için aynı cümleydi:  yan yatak eğilmeden ( σe ), dikine kiriş
         burkulmadan ( σb ) düşer ve büyütülecek profil farklıdır."""
-        g, O = self.g, self.O
         if self.egilme_uygun and self.burkulma_uygun:
             return "UYGUNDUR."
+        return "UYGUN DEĞİLDİR — " + "  ·  ".join(self._dusenler())
+
+    def _dusenler(self):
+        """Düşen kirişler — her biri adı, profili ve değeriyle ( hüküm metni de maddeler de bundan )."""
+        g, O = self.g, self.O
         dusen = []
         if not self.egilme_uygun:
             dusen.append(
@@ -1139,7 +1161,7 @@ class _Makine:
                     f"{mukavemet_tablolari.OMEGA_LAMBDA_MAX} arasını kapsar"
                 )
             dusen.append(f"dikine kiriş ( NPU {g['dikine_kiris']} ) " + neden)
-        return "UYGUN DEĞİLDİR — " + "  ·  ".join(dusen)
+        return dusen
 
     def _aciklamalar(self):
         aciklamalar = [
@@ -1278,6 +1300,17 @@ def _kabin_alani(g, o):
         ),
         "uygun": bool(ust_uygun and yolcu_var),
     }
+    if not ust_uygun:
+        b["sonuc"]["maddeler"] = [
+            madde(
+                "kabin alanı beyan yüküne göre büyük"
+                + (f":  {tr(alan)} m² > {tr(azami)} m²  ( Çizelge 6 )" if azami is not None else "")
+            )
+        ]
+    elif not yolcu_var:
+        b["sonuc"]["maddeler"] = [
+            madde(f"kabin tek kişilik en küçük alanın ( 0,28 m² ) altında:  {tr(alan)} m²")
+        ]
     return b
 
 
@@ -1415,6 +1448,11 @@ class _AskiHalatlari:
         standarda nasıl uyulur, ya da belge.  Eskiden her sınır kendi
         cümlesini kuruyor ve 240 mm kasnakta 6,5 mm halata "halat çapını
         küçültün" diyordu — standardın öbür şartını çiğneten bir öğüt."""
+        m = self._belgeli_sinirlar()
+        return m and m[0] + ":  " + m[1]
+
+    def _belgeli_sinirlar(self):
+        """( neden , öğüt ) — düşen belgeli sınırlar yoksa None."""
         S, dh, Dt, Ds, kasnak_var = SABIT, self.dh, self.Dt, self.Ds, self.kasnak_var
         sorun = (
             ([f"dh = {trn(dh, 1)} mm < {self.cap_esik}"] if not self.cap_uygun else [])
@@ -1448,12 +1486,11 @@ class _AskiHalatlari:
         d_ince = D_kucuk / S["Dt_dh_asgari"]
         incelt = self.cap_std and d_ince >= S["halat_capi_asgari"] and d_ince < dh
         return (
-            " · ".join(sorun)
-            + ":  "
-            + " ve ".join(parca)
+            " · ".join(sorun),
+            " ve ".join(parca)
             + " kullanın"
             + (f", halatı en çok {trn(d_ince, 1)} mm'ye inceltin" if incelt else "")
-            + " ya da onaylanmış kuruluş belgesini beyan edin"
+            + " ya da onaylanmış kuruluş belgesini beyan edin",
         )
 
     def bolum(self):
@@ -1652,7 +1689,7 @@ class _AskiHalatlari:
                 + (["en az iki bağımsız askı halatı kullanın"] if not self.nh_uygun else [])
                 + (["halat çapını / adedini artırın"] if not self.s_uygun else [])
             )
-        return {
+        b = {
             "baslik": (
                 f"KONTROL      {_belgeli}"
                 + ("  ( ya da belge )" if self.belge else "")
@@ -1661,6 +1698,32 @@ class _AskiHalatlari:
             "metin": sonuc,
             "uygun": bool(_uygun),
         }
+        if not _uygun:
+            nh = self.nh
+            b["maddeler"] = (
+                [madde(*m) for m in [self._belgeli_sinirlar()] if m]
+                + (
+                    [
+                        madde(
+                            f"nh = {trn(nh)} < 2" if nh < 2 else f"nh = {trn(nh)} tam sayı değil",
+                            "en az iki bağımsız askı halatı kullanın",
+                        )
+                    ]
+                    if not self.nh_uygun
+                    else []
+                )
+                + (
+                    [
+                        madde(
+                            f"S = {tr(self.Sger)} < max( Sf ; Smin ) = {tr(self.sinir)}",
+                            "halat çapını / adedini artırın",
+                        )
+                    ]
+                    if not self.s_uygun
+                    else []
+                )
+            )
+        return b
 
     def _aciklamalar(self):
         iki_cap = []
@@ -1724,15 +1787,52 @@ def _reg_metni(
     """
     if tip_uygun and hiz_uygun and oran_uygun and kuvvet_uygun and kat_uygun:
         return "UYGUNDUR."
+    n = _reg_maddeleri(
+        tip_uygun,
+        hiz_uygun,
+        oran_uygun,
+        kuvvet_uygun,
+        kat_uygun,
+        tertibat,
+        S,
+        oran,
+        Fcekme,
+        sinir_metni,
+        kat,
+        Dreg,
+        dreg,
+    )
+    return "UYGUN DEĞİLDİR — " + "  ·  ".join(neden + (f" — {oneri}" if oneri else "") for neden, oneri in n)
+
+
+def _reg_maddeleri(
+    tip_uygun,
+    hiz_uygun,
+    oran_uygun,
+    kuvvet_uygun,
+    kat_uygun,
+    tertibat,
+    S,
+    oran,
+    Fcekme,
+    sinir_metni,
+    kat,
+    Dreg,
+    dreg,
+):
+    """Düşen kontroller  [ ( neden , öğüt ) ] — hüküm metni de maddeler de bundan."""
     n = []
     if not tip_uygun:
         n.append(
-            f"{tertibat} tertibat en çok "
-            f"{tr(S['ani_tertibat_azami_v'])} m/s'de kullanılır "
-            f"( m.5.6.2.1.2.1 b) )"
+            (
+                f"{tertibat} tertibat en çok "
+                f"{tr(S['ani_tertibat_azami_v'])} m/s'de kullanılır "
+                f"( m.5.6.2.1.2.1 b) )",
+                None,
+            )
         )
     if not hiz_uygun:
-        n.append("regülatör devreye girme hızı izin verilen sınırların dışındadır")
+        n.append(("regülatör devreye girme hızı izin verilen sınırların dışındadır", None))
     if not oran_uygun:
         #  Halatı inceltmek ancak listede oranı tutturan daha ince bir halat
         #  varsa önerilir;  en ince halattayken "küçültün" demek boş öğüttü.
@@ -1740,20 +1840,26 @@ def _reg_metni(
             d < dreg and Dreg / d >= S["Dreg_dreg_asgari"] for d in mukavemet_girdi.ALAN["reg_halat_capi"][4]
         )
         n.append(
-            f"Dreg / dreg = {tr(oran)} < {S['Dreg_dreg_asgari']} — "
-            "regülatör kasnağını büyütün" + (" ya da halat çapını küçültün" if incelt else "")
+            (
+                f"Dreg / dreg = {tr(oran)} < {S['Dreg_dreg_asgari']}",
+                "regülatör kasnağını büyütün" + (" ya da halat çapını küçültün" if incelt else ""),
+            )
         )
     if not kuvvet_uygun:
         n.append(
-            f"Fçekme = {tr(Fcekme)} N, {sinir_metni} değerinin altında — "
-            "gergi ağırlığını ya da kanal sürtünmesini artırın"
+            (
+                f"Fçekme = {tr(Fcekme)} N, {sinir_metni} değerinin altında",
+                "gergi ağırlığını ya da kanal sürtünmesini artırın",
+            )
         )
     if not kat_uygun:
         n.append(
-            f"T'min / F'reg = {tr(kat)} < {S['reg_kat_asgari']} — "
-            "regülatör halatını güçlendirin ya da gergi ağırlığını azaltın"
+            (
+                f"T'min / F'reg = {tr(kat)} < {S['reg_kat_asgari']}",
+                "regülatör halatını güçlendirin ya da gergi ağırlığını azaltın",
+            )
         )
-    return "UYGUN DEĞİLDİR — " + "  ·  ".join(n)
+    return n
 
 
 def _regulator(g, o):
@@ -1929,6 +2035,21 @@ class _RegulatorHalati:
             ),
             "uygun": bool(all(uygunlar)),
         }
+        if not all(uygunlar):
+            b["sonuc"]["maddeler"] = [
+                madde(*m)
+                for m in _reg_maddeleri(
+                    *uygunlar,
+                    self.tertibat,
+                    S,
+                    self.oran,
+                    self.Fcekme,
+                    self.sinir_metni,
+                    self.kat,
+                    self.Dreg,
+                    self.dreg,
+                )
+            ]
         b["aciklamalar"] = [
             "TS EN 81-20 m.5.6.2.2.1.1 d):  'the tensile force in the overspeed "
             "governor rope produced by the governor, when tripped, shall be at "
@@ -2361,6 +2482,7 @@ ISLEM = {"yukleme": +1, "fren_alt": +1, "fren_ust": -1, "bloke": +1}
 #  hesaplanır ve paftada durur — mühendis açıyı girince eksik yalnız sınır
 #  satırlarıdır.
 ALFA_YOK = "HESAP EKSİK — sarılma açısı α girilmedi"
+_ALFA_GIR = "gerçek sarılma açısı proje yerleşiminden belirlenip girilmelidir"
 
 #  AÇI KANALIN SARIM SAYISINA GÖRE FİZİKSEL DEĞİLSE HÜKÜM YOKTUR.
 #  Tek sarımda α en çok 180°, çift sarımda 180°'den büyüktür.  Bu, GİRDİ
@@ -2393,6 +2515,14 @@ KALAN_ADI = {
     "fren_ust": "acil frenleme ( boş kabin üstte )",
     "bloke": "karşı ağırlığın asılı kalması",
 }
+#  KALAN DURUMUN ÖĞÜDÜ — hüküm metni ve maddeler aynı cümleleri kullanır.
+_TAHRIK_ARTIR = "sarılma açısını ya da kanal sürtünmesini artırın ( denge zinciri de oranı düşürür )"
+_BLOKE_NEDEN = "halat kaymıyor — kabin tavana çekilebilir"
+_BLOKE_ONERI = (
+    "TS EN 81-20 m.5.5.3 c) 2 uyarınca makineyi durduran "
+    "elektrikli güvenlik tertibatı kullanılıyorsa "
+    '"Yukarı kaçmaya karşı koruma" alanından beyan edin'
+)
 
 
 class _Tahrik:
@@ -2501,6 +2631,7 @@ class _Tahrik:
         b["adimlar"] = self._girdi_satirlari() + self._atalet_satirlari() + self._kuyu_surtunmesi_satirlari()
         self.tumu_uygun = self.alfa_uygun
         self.gevsek_var = False
+        self.gevsek_durumlar = []
         #  m.5.5.3 c) 2 BEYAN EDİLDİYSE "bloke" SATIRI HÜKÜM VERMEZ.
         #  Satır yine hesaplanır ve paftada durur — T1 · T2 · oran gerçek bilgidir
         #  ve m.6.3.3 saha deneyinde karşılaştırılır;  yalnız bölümün kararını
@@ -2512,7 +2643,7 @@ class _Tahrik:
         #  HANGİ YÜK DURUMUNUN KALDIĞI SÖYLENİR.  Bölüm yalnız "UYGUN DEĞİLDİR"
         #  diyordu;  dört durumdan hangisinin kaldığı ve ne yapılacağı yazmıyordu.
         #  Öteki bütün bölümler uygulanabilir bir öğüt veriyor.
-        self.kalan = []
+        self.kalan, self.kalan_deger = [], {}
         for durum, baslik in YUK_DURUMLARI:
             b["adimlar"] += self._yuk_durumu(durum, baslik)
         b["sonuc"] = {
@@ -2520,12 +2651,18 @@ class _Tahrik:
             "metin": self._sonuc_metni(),
             "uygun": bool(self.tumu_uygun),
         }
+        if not self.tumu_uygun:
+            b["sonuc"]["maddeler"] = self._sonuc_maddeleri()
         if not self.alfa_var and self.gevsek_var:
             #  Kesin başarısızlık eksikten güçlüdür:  bölüm "uygun değil" kalır,
             #  açının eksikliği ayrıca söylenir ( proje uyarısı da çıkar ).
             b["sonuc"]["metin"] = "UYGUN DEĞİLDİR — halat gevşiyor  ( ayrıca sarılma açısı α girilmedi )"
+            b["sonuc"]["maddeler"] = self._gevsek_maddeleri() + [
+                madde("sarılma açısı α girilmedi", _ALFA_GIR)
+            ]
         elif not self.alfa_var:
             b["sonuc"]["metin"] = ALFA_YOK
+            b["sonuc"]["maddeler"] = [madde("sarılma açısı α girilmedi", _ALFA_GIR)]
             b["eksik_hesap"] = ALFA_YOK
         return b
 
@@ -2539,11 +2676,7 @@ class _Tahrik:
                 self.alfa_uygun,
             )
         else:
-            alfa_kontrolu = kontrol(
-                "α girilmedi  —  gerçek sarılma açısı proje yerleşiminden belirlenip girilmelidir",
-                False,
-                "HESAP EKSİK",
-            )
+            alfa_kontrolu = kontrol(f"α girilmedi  —  {_ALFA_GIR}", False, "HESAP EKSİK")
         return [
             veri("R1", "Tahrik kasnağı yarıçapı", self.R1, "mm"),
             veri(
@@ -2751,6 +2884,7 @@ class _Tahrik:
             #  girilmemiş olsa bile "eksik" ile örtülmez — genel hükümde
             #  "uygun değil"in "hesap eksik"ten önce gelmesinin sebebi budur.
             self.gevsek_var = True
+            self.gevsek_durumlar.append(durum)
             uygun, metni, kont_mesaj = False, GEVSEK, ""
         elif not alfa_var:
             #  Açı yoksa sınır yok;  hüküm verilmez, sebep satırda yazar.
@@ -2778,6 +2912,7 @@ class _Tahrik:
             alfa_var and self.alfa_uygun and not self.kanal_standart_disi and not self.gevsek_var
         ):
             self.kalan.append(durum)
+            self.kalan_deger[durum] = (oran, sinir)
         self.tumu_uygun = self.tumu_uygun and uygun
         #  Sınır yalnız açı varken kaydedilir.
         _kay(o, f"tahrik.{durum}", T1=T1, T2=T2, oran=oran)
@@ -2867,20 +3002,49 @@ class _Tahrik:
             _oteki = [KALAN_ADI[k] for k in self.kalan if k != "bloke"]
             _parca = []
             if _oteki:
-                _parca.append(
-                    "sarılma açısını ya da kanal sürtünmesini artırın ( denge zinciri de oranı düşürür )"
-                )
+                _parca.append(_TAHRIK_ARTIR)
             if _bloke_kaldi:
-                _parca.append(
-                    "halat kaymıyor — kabin tavana çekilebilir;  "
-                    "TS EN 81-20 m.5.5.3 c) 2 uyarınca makineyi durduran "
-                    "elektrikli güvenlik tertibatı kullanılıyorsa "
-                    '"Yukarı kaçmaya karşı koruma" alanından beyan edin'
-                )
+                _parca.append(f"{_BLOKE_NEDEN};  {_BLOKE_ONERI}")
             _ogut = (
                 "  —  kalan:  " + " · ".join(KALAN_ADI[k] for k in self.kalan) + "  →  " + ";  ".join(_parca)
             )
         return "UYGUN DEĞİLDİR" + _ogut
+
+    def _sonuc_maddeleri(self):
+        """Hükmün maddeleri — _sonuc_metni'nin dalları ve parçaları;  kalan
+        durumun oranı ve sınırı satırındaki değerlerle."""
+        if self.alfa_var and not self.alfa_uygun:
+            return [madde(ALFA_ARALIK_DISI)]
+        if self.kanal_standart_disi:
+            return [madde(KANAL_STANDART_DISI)]
+        m = []
+        _oteki = [k for k in self.kalan if k != "bloke"]
+        if _oteki:
+            m.append(
+                madde(
+                    "  ·  ".join(
+                        bas_harf(KALAN_ADI[k])
+                        + f":  T1/T2 = {tr(self.kalan_deger[k][0])} > e^(f·α) = {tr(self.kalan_deger[k][1])}"
+                        for k in _oteki
+                    ),
+                    _TAHRIK_ARTIR,
+                )
+            )
+        if "bloke" in self.kalan:
+            oran, sinir = self.kalan_deger["bloke"]
+            m.append(
+                madde(
+                    f"{KALAN_ADI['bloke']}:  T1/T2 = {tr(oran)} < e^(f·α) = {tr(sinir)};  {_BLOKE_NEDEN}",
+                    _BLOKE_ONERI,
+                )
+            )
+        return m + self._gevsek_maddeleri()
+
+    def _gevsek_maddeleri(self):
+        return [
+            madde(f"{KALAN_ADI[d]}:  halat gevşiyor — T1 ya da T2 sıfırın altına iniyor")
+            for d in self.gevsek_durumlar
+        ]
 
 
 # =====================================================================
@@ -3004,9 +3168,17 @@ def _ray_metni(uygunlar, turler, ad_ray="ray", care=None):
     büyütün ya da konsol aralığını küçültün" diyorsa cümle üç kez
     tekrarlanmaz, adlar toplanır ve çözüm bir kere söylenir.
     """
+    gruplar = _ray_maddeleri(uygunlar, turler, ad_ray, care)
+    if not gruplar:
+        return "UYGUN DEĞİLDİR."
+    return "UYGUN DEĞİLDİR — " + "  ;  ".join(f"{neden}  →  {oneri}" for neden, oneri in gruplar)
+
+
+def _ray_maddeleri(uygunlar, turler, ad_ray="ray", care=None):
+    """Düşen kontrol türleri, çareye göre gruplanmış  [ ( adlar , çare ) ] — sıra korunur."""
     dusen = {t for t, u in zip(turler, uygunlar) if not u}
     ozel = care or {}
-    gruplar = []  # [ ( çare , [ ad … ] ) ]  —  sıra korunur
+    gruplar = []  # [ ( çare , [ ad … ] ) ]
     for anahtar, ad, care in RAY_CARE:
         if anahtar not in dusen:
             continue
@@ -3017,12 +3189,9 @@ def _ray_metni(uygunlar, turler, ad_ray="ray", care=None):
                 break
         else:
             gruplar.append((care, [ad]))
-    if not gruplar:
-        return "UYGUN DEĞİLDİR."
-    return "UYGUN DEĞİLDİR — " + "  ;  ".join(
-        "  ·  ".join(adlar) + "  →  " + care.replace("ray profilini", ad_ray + " profilini")
-        for care, adlar in gruplar
-    )
+    return [
+        ("  ·  ".join(adlar), care.replace("ray profilini", ad_ray + " profilini")) for care, adlar in gruplar
+    ]
 
 
 def _burkulma_mesaji(lam, deger, sperm):
@@ -3423,6 +3592,8 @@ class _KabinRaylari:
             "metin": ("UYGUNDUR." if hepsi else _ray_metni(self.uygunlar, self.turler)),
             "uygun": bool(hepsi),
         }
+        if not hepsi:
+            b["sonuc"]["maddeler"] = [madde(*m) for m in _ray_maddeleri(self.uygunlar, self.turler)]
         _not = _ray_tutarsizlik_notu(self.prof)
         if _not:
             b["notlar"] = [_not]
@@ -4160,12 +4331,15 @@ class _AgirlikRaylari:
             "metin": "UYGUNDUR." if all(self.kontroller) else self._ret_metni(),
             "uygun": bool(all(self.kontroller)),
         }
+        if not all(self.kontroller):
+            b["sonuc"]["maddeler"] = [madde(*m) for m in self._ret_maddeleri()]
         if all(self.kontroller) and self.dolgu_olcmedi:
-            metin_ = (
-                "HESAP EKSİK — karşı ağırlık dolgusu denetlenemedi:  dolgunun çerçevedeki "
+            _neden = (
+                "karşı ağırlık dolgusu denetlenemedi:  dolgunun çerçevedeki "
                 "yüksekliği kuyunun çiziminden ölçülür, çizim kurulamadı"
             )
-            b["sonuc"].update(metin=metin_, uygun=False)
+            metin_ = "HESAP EKSİK — " + _neden
+            b["sonuc"].update(metin=metin_, uygun=False, maddeler=[madde(_neden)])
             b["eksik_hesap"] = metin_
         _not8 = _ray_tutarsizlik_notu(self.prof)
         if _not8:
@@ -4189,22 +4363,38 @@ class _AgirlikRaylari:
         return b
 
     def _ret_metni(self):
-        kg, dolgu = self.kg, self.dolgu
+        kg = self.kg
+        if not self.gt_tip_uygun or (kg and kg.get("omega") is None):
+            ((neden, oneri),) = self._ret_maddeleri()
+            return "UYGUN DEĞİLDİR — " + neden + (f".  {oneri}" if oneri else "")
+        return _ray_metni(self.kontroller, self.turler, "ağırlık rayı", care=self._dolgu_caresi())
+
+    def _ret_maddeleri(self):
+        """Hükmün maddeleri  [ ( neden , öğüt ) ] — _ret_metni bunlardan kurulur."""
+        kg = self.kg
         if not self.gt_tip_uygun:
-            return (
-                "UYGUN DEĞİLDİR — karşı ağırlık güvenlik tertibatı v > 1,0 m/s "
-                "için kaymalı tip olmalıdır ( TS EN 81-20 m.5.6.2.1.2.3 )"
-            )
+            return [
+                (
+                    "karşı ağırlık güvenlik tertibatı v > 1,0 m/s "
+                    "için kaymalı tip olmalıdır ( TS EN 81-20 m.5.6.2.1.2.3 )",
+                    None,
+                )
+            ]
         #  ω yoksa RET'in sebebi gerilmenin sınırı aşması değil, hesabın
         #  YAPILAMAMASIDIR;  ikisi farklı şeylerdir ve çözümleri de farklıdır.
         if kg and kg.get("omega") is None:
-            return (
-                f"UYGUN DEĞİLDİR — burkulma denetlenemedi:  λ = "
-                f"{trn(kg['lam'], 0)} , ω çizelgesi en çok "
-                f"{mukavemet_tablolari.OMEGA_LAMBDA_MAX}'ye kadar tanımlı.  Ağırlık "
-                "rayı profilini büyütün ya da konsol aralığını "
-                "küçültün"
-            )
+            return [
+                (
+                    f"burkulma denetlenemedi:  λ = "
+                    f"{trn(kg['lam'], 0)} , ω çizelgesi en çok "
+                    f"{mukavemet_tablolari.OMEGA_LAMBDA_MAX}'ye kadar tanımlı",
+                    "Ağırlık rayı profilini büyütün ya da konsol aralığını küçültün",
+                )
+            ]
+        return _ray_maddeleri(self.kontroller, self.turler, "ağırlık rayı", care=self._dolgu_caresi())
+
+    def _dolgu_caresi(self):
+        dolgu = self.dolgu
         care = None
         if dolgu is not None:
             care = {
@@ -4214,7 +4404,7 @@ class _AgirlikRaylari:
                     "daha yoğun dolgu seçilir )"
                 )
             }
-        return _ray_metni(self.kontroller, self.turler, "ağırlık rayı", care=care)
+        return care
 
     def _girdi_satirlari(self):
         g, o, gt = self.g, self.o, self.gt
@@ -4518,12 +4708,27 @@ def _kuyu_tabani(g, o):
     FKR, FAR, Fkt, Fat = y["FKR"], y["FAR"], y["Fkt"], y["Fat"]
     b["sonuc"] = {
         "baslik": "KUYU TABANI YÜKLERİ",
-        "metin": f"FKR = {tr(FKR)} N / ray  ·  FAR = {tr(FAR)} N / ray  ·  Fkt = {tr(Fkt)} N  ·  Fat = {tr(Fat)} N",
+        "metin": "  ·  ".join(f"{ad} = {tr(y[ad])} {birim}" for ad, _, birim in KUYU_TABANI_YUKLERI),
         "uygun": None,
+        #  Ekran yükleri bu satırlardan çizer:  kuvvet adlarını kendisi yazmaz.
+        "degerler": [
+            {"ad": ad, "aciklama": aciklama, "deger": y[ad], "metin": tr(y[ad]), "birim": birim}
+            for ad, aciklama, birim in KUYU_TABANI_YUKLERI
+        ],
     }
     _kay(o, "kuyu", LR=y["LR"], FKR=FKR, FAR=FAR, Fkt=Fkt, Fat=Fat)
     o.update(FKR=FKR, FAR=FAR, Fkt=Fkt, Fat=Fat)
     return b
+
+
+#  Kuyu tabanı yüklerinin adı, anlamı ve birimi.  PDF özeti ( ciktilar/pdf_cikti ) aynı
+#  adları kendisi yazar — biri değişirse öbürü de ( test_uygulama ① denetler ).
+KUYU_TABANI_YUKLERI = (
+    ("FKR", "Bir kabin rayına gelen kuvvet", "N / ray"),
+    ("FAR", "Bir ağırlık rayına gelen kuvvet", "N / ray"),
+    ("Fkt", "Kabin tamponlarına gelen kuvvet", "N"),
+    ("Fat", "Ağırlık tamponlarına gelen kuvvet", "N"),
+)
 
 
 def _kuyu_tabani_yukleri(g, o):
@@ -4823,7 +5028,12 @@ class _Siginma:
             b["adimlar"] = [
                 metin("Açıklıklar kuyunun çiziminden ölçülür;  çizim kurulamadı :", vurgu=True)
             ] + [metin("·  " + h) for h in Y["hata"]]
-            b["sonuc"] = {"baslik": "KONTROL      bütün sığınma ölçüleri", "metin": metin_, "uygun": False}
+            b["sonuc"] = {
+                "baslik": "KONTROL      bütün sığınma ölçüleri",
+                "metin": metin_,
+                "uygun": False,
+                "maddeler": [madde(h) for h in Y["hata"]],
+            }
             b["eksik_hesap"] = metin_
             return b
 
@@ -4862,6 +5072,8 @@ class _Siginma:
             "metin": ("UYGUNDUR." if all(self.uygunlar) else "UYGUN DEĞİLDİR — " + "  ·  ".join(self.dusen)),
             "uygun": bool(all(self.uygunlar)),
         }
+        if not all(self.uygunlar):
+            b["sonuc"]["maddeler"] = [madde(d) for d in self.dusen]
         return b
 
     def satir(self, etiket, deger, asgari, madde, ara):
@@ -5081,13 +5293,22 @@ def _tamponlar(g, o):
         #  asıl engel m.5.8.1.5'ti — enerji biriktirmeli tampon 1 m/s
         #  üstünde HİÇBİR strokla kullanılamaz.  Mühendis paftadaki
         #  gerekçeye bakıp daha uzun yay arar, aynı yere çıkardı.
-        _neden = []
+        _neden, _maddeler = [], []
         if not hiz_uygun:
             _neden.append("tampon tipi bu hıza uygun değil")
+            _maddeler.append(
+                madde(
+                    f"tampon tipi bu hıza uygun değil:  enerji biriktirmeli tampon v = {tr(v)} m/s > "
+                    f"{tr(mukavemet_tablolari.TAMPON_BIRIKTIRMELI_AZAMI_HIZ)} m/s  ( m.5.8.1.5 )"
+                )
+            )
         if gereken is not None and not all(uygunlar[1:]):
             _neden.append(f"en az {trn(gereken, 0)} mm strok gerekir")
+            _maddeler.append(madde(f"en az {trn(gereken, 0)} mm strok gerekir"))
         metni = "UYGUN DEĞİLDİR — " + "  ·  ".join(_neden) + "."
     b["sonuc"] = {"baslik": "KONTROL TİP · HIZ · STROK", "metin": metni, "uygun": tumu}
+    if not tumu:
+        b["sonuc"]["maddeler"] = _maddeler
     o.update(tampon_gereken_strok=gereken, tampon_biriktirmeli=biriktirmeli)
     return b
 
