@@ -1272,7 +1272,10 @@ class OnYuzUctanUca(unittest.TestCase):
             kucuk(b["baslik"].split(" - ", 1)[1].strip()) for b in hesap["proje_geneli"] if b["sonuc"] is None
         ]
         self.assertTrue(sonucsuz, hesap["proje_geneli"])
-        panel = kucuk(self.sayfa.get_by_role("complementary", name="Uygunluk").inner_text())
+        #  Uygun ve bilgi bölümleri kapalı listede ( 6 Kas )
+        uygunluk = self.sayfa.get_by_role("complementary", name="Uygunluk")
+        uygunluk.get_by_role("button", name=re.compile(r"^Uygun bölümler")).click()
+        panel = kucuk(uygunluk.inner_text())
         for ad in sonucsuz:
             self.assertIn(ad, panel)
         #  Hesap belgesi de ( bölümler sonucuyla basılır )
@@ -1578,14 +1581,18 @@ class OnYuzUctanUca(unittest.TestCase):
     def test_uygunluk_karti_yukler_ve_kat_cekmecesi(self):
         """Ö3:  uygun değil kartı nedeni ve öneriyi sunucunun maddelerinden yazar;
         "Çizimde göster" bölümün parçalarının göründüğü çizime geçer;  kuyu tabanı
-        yükleri tablo ( adları sunucudan );  kat tablosu açılınca tuval B-B'de,
+        yükleri kapalı listede ( tablosu hesap belgesinde );  kat tablosu açılınca tuval B-B'de,
         kapanınca önceki çizimde ( K5 )."""
         self.ornek_projeyi_ac()
         panel = self.sayfa.get_by_role("complementary", name="Uygunluk")
         _istek, hesap = self.iz.son("/api/uygulama/coklu")
+        #  Kuyu tabanı yükleri panelde tablo değil ( 6 Kas:  sayılar hesap belgesinde ):  bölüm
+        #  kapalı listede, gri noktayla
         kt = next(b for b in hesap["asansorler"][0]["bolumler"] if b["kimlik"] == "kuyu_tabani")
-        for d in kt["sonuc"]["degerler"]:
-            self.assertIn(d["aciklama"], panel.inner_text())
+        self.assertNotIn(kt["sonuc"]["degerler"][0]["aciklama"], panel.inner_text())
+        panel.get_by_role("button", name=re.compile(r"^Uygun bölümler")).click()
+        kucuk = lambda m: m.replace("I", "ı").replace("İ", "i").lower()
+        self.assertIn(kucuk(kt["ad"])[:20], kucuk(panel.inner_text()))
         self.alan_kutusu("motor_gucu").fill("2")
         _istek, hesap = self.iz.son("/api/uygulama/coklu")
         motor = next(b for b in hesap["asansorler"][0]["bolumler"] if b["kimlik"] == "motor_gucu")
