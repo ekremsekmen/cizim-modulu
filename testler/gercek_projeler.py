@@ -28,6 +28,9 @@ hükmü ( çizilir mi, bölüm 11 ).  Program projeden farklı hükmediyorsa seb
 testin yanında yazılıdır.
 """
 
+import os
+import re
+
 #  Ortak:  LiftDesigner projelerinde tampon hidrolik, kabin 2.000
 _LD = {
     "beyan_hizi": 1.0,
@@ -275,3 +278,20 @@ PROJELER = {
         "md_yukseklik": 3420,
     },
 }
+
+
+def ornek_proje():
+    """BAR 2515 — ofisin ölçü formundan çıkarılmış gerçek proje ( MRL dişlisiz,
+    1275 kg, 1,6 m/s, 15 durak, kotla ):  ön yüzün örnek projesi.  Tek kaynağı
+    on-yuz/src/lib/ornek.ts ( test_proje_hukmu da oradan okur );  formun alanları
+    metin olarak, ön yüzün gönderdiği gibi.  Örnek değişirse altın da değişir —
+    fark incelenir ( 6 Kas çizim denetimi:  kuyunun dışına düşen "ø 400" yalnız
+    bu projede görülüyordu )."""
+    yol = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "on-yuz", "src", "lib", "ornek.ts"
+    )
+    with open(yol, encoding="utf-8") as f:
+        metin = f.read()
+    d = dict(re.findall(r'^\s+(\w+):\s*"([^"]*)",', metin.split("export const ORNEK_ASANSOR", 1)[1], re.M))
+    assert len(d) > 20, d
+    return d

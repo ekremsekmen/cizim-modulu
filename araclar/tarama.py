@@ -5,7 +5,8 @@ yolundan geçer.
 Her düzen formun isteği gibi api_cizimler'e gider;  çizilirse paftanın bütün
 çizimleri kurulur ve denetlenir:  ölçü zincirleri kapanıyor mu, yazılar
 birbirine, parçalara, parça kenarlarına binmiyor mu, NaN var mı, çizim fiziksel
-olarak tutarlı mı ( araclar/fiziksel.py ).  Hükümler
+olarak tutarlı mı ( araclar/fiziksel.py ), aynı parça bütün görünüşlerde aynı
+yerde mi ( araclar/gorunus.py ).  Hükümler
 ( çizildi / ret ve ret sebebi ) depodaki kayıtla ( testler/tarama_hukumleri.json )
 karşılaştırılır:  beklenmeyen bir hüküm değişikliği ya da sorunlu bir düzen
 taramayı BAŞARISIZ yapar.  Çizilen her düzenin KALİTE KARNESİ de ( araclar/karne:
@@ -35,6 +36,7 @@ import yollar
 yollar.kur()
 
 from araclar import fiziksel
+from araclar import gorunus
 from araclar import karne
 from araclar import kesisme
 from cizim import cizimler
@@ -76,6 +78,7 @@ def denetle(g, karneler=None):
     her çizimin kalite karnesi ( karne.sayilar — sıfırdan büyükse ) ona yazılır."""
     sorun = []
     md = g["makine"]["yeri"] == "Makine dairesi"
+    cizilenler = {}
     for c in pafta.SIRA_MD if md else pafta.SIRA_MRL:
         dogrula, ciz, _ = cizimler.CIZIMLER[c]
         try:
@@ -87,6 +90,7 @@ def denetle(g, karneler=None):
         except Exception as x:  # noqa: BLE001 — çöküş de bir bulgu
             sorun.append(f"{c}: ÇÖKTÜ {type(x).__name__}: {x}")
             continue
+        cizilenler[c] = e
         for z in geometri.zincirler(e):
             if abs(z["toplam"] - (z["son"] - z["bas"])) > 0.5:
                 sorun.append(f"{c}: zincir kapanmıyor {z['toplam']} vs {z['son'] - z['bas']}")
@@ -106,7 +110,7 @@ def denetle(g, karneler=None):
                 sorun.append(f"{c}: ölçü yazısı parçada '{a[0]}' / {ad}")
         olcek = cizimler.OLCEKLER.get(c, 20)
         k = olcek / 20.0
-        if karneler is not None and (sayi := karne.sayilar(e, olcek)):
+        if karneler is not None and (sayi := karne.sayilar(e, olcek, c)):
             karneler[c] = sayi
         for metin, tip, kat, ad in kesisme.kesismeler(e, k):
             if kat not in SERBEST:
@@ -120,6 +124,8 @@ def denetle(g, karneler=None):
             ):
                 sorun.append(f"{c}: NaN {el.get('ad')}")
         sorun += fiziksel.sorunlar(g, c, e)
+    #  Aynı parça planlarda, A-A'da ve B-B'de aynı yerde ( araclar/gorunus )
+    sorun += [f"görünüşler: {m}" for m in gorunus.sorunlar(cizilenler, g["kuyu"]["genislik"])]
     return sorun
 
 

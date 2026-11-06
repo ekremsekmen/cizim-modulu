@@ -2099,6 +2099,65 @@ def olcu_yazisi_olcutleri(e, k=1.0):
     return len(cizgiye_binen_yazilar(e, k)), uzak, silinen
 
 
+#  ÖLÇÜ YAZISININ HANGİ ARALIĞA AİT OLDUĞU ( 6 Kas çizim denetimi — araclar/karne:
+#  yazi_yanlis_aralikta, yazi_bitisik;  cikti/devir/CIZIM_DENETIMI_PLANI.md ).
+#  Aynı zincirin ( aynı yön ve kot ) başka bir aralığının hizasındaki yazı okuyana
+#  o aralığın ölçüsü gibi görünür:  kuyu planının ön duvar zincirinde "30" 90'ın
+#  yanındaydı, A-A'nın tepesinde "MAKİNE 345" 250'nin.  Kendi aralığına sığmayan
+#  yazı ucun ötesine ya da çizginin öbür yanına konur ( ISO 129-1 ).  Pay kâğıtta mm.
+ARALIK_PAYI = 0.3
+#  Aynı doğrultudaki iki ölçü yazısı arası bundan azsa ( kâğıtta mm ) tek söz gibi
+#  okunur:  "ŞASE 140 MAKİNE 345", "60 EŞİK ARASI 30" ( 2,5 mm yazıda sözcük arası
+#  0,7, harf eni 1,5 mm ).
+BITISIK_ESIGI = 2.0
+
+
+def _yazili_olculer(e):
+    return [o for o in e if o["tip"] == "olcu" and o.get("yazi") and o.get("uzunluk", 1.0) >= 1e-6]
+
+
+def yanlis_aralikta(e, olcek=20.0):
+    """Yazısı kendi aralığının dışında, aynı zincirin başka bir aralığının
+    hizasında olan ölçüler:  [ ( ölçü , hizasındaki ölçü ) ]."""
+    hatlar = collections.defaultdict(list)
+    for o in e:
+        if o["tip"] == "olcu" and o.get("uzunluk", 1.0) >= 1e-6:
+            hatlar[(o["yon"], round(o["kot"], 1))].append(o)
+    pay = ARALIK_PAYI * olcek
+    out = []
+    for o in _yazili_olculer(e):
+        j = 0 if o["yon"] == "yatay" else 1
+        c = o["yazi"]["x" if j == 0 else "y"]
+        if min(o["a"][j], o["b"][j]) - 1e-6 <= c <= max(o["a"][j], o["b"][j]) + 1e-6:
+            continue
+        for p in hatlar[(o["yon"], round(o["kot"], 1))]:
+            if p is not o and min(p["a"][j], p["b"][j]) + pay < c < max(p["a"][j], p["b"][j]) - pay:
+                out.append((o, p))
+                break
+    return out
+
+
+def bitisik_yazilar(e, olcek=20.0):
+    """Aynı doğrultuda ( yön, açı, dik konum ) arası BITISIK_ESIGI'nden az iki
+    ölçü yazısı:  [ ( ölçü , ölçü , boşluk — kâğıtta mm ) ].  Üst üste binenler
+    ( yazı yazıya — kalite kapısı ) sayılmaz."""
+    kutular = [(o, yazi_kutusu(o)) for o in _yazili_olculer(e)]
+    out = []
+    for i, (o, a) in enumerate(kutular):
+        j = 0 if o["yon"] == "yatay" else 1
+        d = 1 - j
+        for p, b in kutular[i + 1 :]:
+            if p["yon"] != o["yon"] or abs(o["yazi"]["aci"] - p["yazi"]["aci"]) > 1e-6:
+                continue
+            h = min(o["yazi"]["h"], p["yazi"]["h"])
+            if abs((a[d] + a[d + 2]) - (b[d] + b[d + 2])) / 2.0 > 0.25 * h:
+                continue
+            bosluk = max(b[j] - a[j + 2], a[j] - b[j + 2])
+            if -0.5 * h < bosluk < BITISIK_ESIGI * olcek:
+                out.append((o, p, bosluk / olcek))
+    return out
+
+
 #  Yazının üstünden geçebilen çizgiler:  DXF'te ve SVG'de yazı MASKELİDİR
 #  ( dxf.MASKE_PAYI · svg.HALE ) — eksen, ölçü, gizli çizgi, alan sınırı,
 #  seviye, kesit işareti ve halat ( ince akış çizgisi:  B-B'de kapının önünden
