@@ -1,14 +1,19 @@
 /*  TUVAL — sunucunun çizimleri, gerçek boyutlarıyla ( SVG width / height mm ).
-    Kesitler solda yan yana, planlar sağda sütun sütun:  paftadaki düzen.
+    TEK ÇİZİM ( Ö3 · K1 ):  tuvalde bir çizim;  alttaki şerit çizimler arasında
+    geçer ( K2 ), "Tümü" bütün çizimleri eşit kartlarda gösterir ( K4 ) — karta
+    tıklamak onu açar.  Açılışta son bakılan çizim ( ilk açılışta kuyu planı;
+    çizimde sorun varsa sorunun çizimi ).  Bütün çizimler sayfada kalır, yalnız
+    seçili olan görünür:  sorun ve parça aramaları hepsinde yapılır.
     Tekerlek yakınlaştırır ( imleç çevresinde ), sürükleme kaydırır, ölçüye
-    tıklamak kaynağını açar.  Parçanın üstüne gelince adı yazar ve parça
-    vurgulanır.  Uzak görünümde çizim yazıları gizlenir, çizimin
-    adı tuvalin üstünde okunur ( ayrıntı kademesi ).                        */
+    tıklamak kaynağını, parçaya tıklamak onu belirleyen girdileri açar.
+    Parçanın üstüne gelince adı yazar ve parça vurgulanır.  Uzak görünümde
+    çizim yazıları gizlenir ( ayrıntı kademesi ).                           */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Check, Layers, Loader2, Maximize, Minus, Plus, Scan } from "lucide-react";
+import { Check, CircleHelp, LayoutGrid, Layers, Loader2, Maximize, Minus, Plus, Scan } from "lucide-react";
 import type { Cizim, CizimSorunu } from "@/lib/api";
+import { depoOku, depoYaz } from "@/lib/depo";
 import { cn } from "@/lib/utils";
-import { Acilir, AcilirIcerik, AcilirTetik, Dugme, Ipucu, Secim } from "@/components/ui";
+import { Acilir, AcilirIcerik, AcilirTetik, Dugme, Ipucu } from "@/components/ui";
 
 export interface OlcuSecimi {
   cizim: string;
@@ -17,8 +22,8 @@ export interface OlcuSecimi {
   aciklama: string;
 }
 
-/**  Fare altındaki parça:  çizimi, ekrandaki kimliği ( "ad-n" ) ve görünen adı.  */
-interface Parca {
+/**  Fare altındaki ( ya da tıklanan ) parça:  çizimi, ekrandaki kimliği ( "ad-n" ) ve görünen adı.  */
+export interface Parca {
   cizim: string;
   id: string;
   adi: string;
@@ -40,10 +45,20 @@ interface Yer {
   y: number;
   w: number;
   h: number;
+  /**  Levhadaki ölçeği:  tek çizimde 1, Tümü'de kartına sığacak kadar  */
+  s: number;
+  /**  Tümü'de kartın sol üst köşesi ( çizim kartına ortalanır;  adı kartın enince )  */
+  kx?: number;
+  ky?: number;
 }
 
-const ARALIK = 90;
-const KESITLER = new Set(["kuyu_kesiti_yan", "kuyu_kesiti_on"]);
+/**  Tümü'nün kartı ( levha birimi = kâğıt mm ) ve aralığı  */
+const KART_EN = 1200;
+const KART_BOY = 900;
+const KART_ARA = 160;
+/**  Alttaki çizim şeridinin tuvalde kapladığı yer ( piksel )  */
+const SERIT = 52;
+const ACILIS = "kuyu_plani";
 
 function boyut(svg: string) {
   const w = /width="([\d.]+)mm"/.exec(svg)?.[1];
@@ -51,43 +66,36 @@ function boyut(svg: string) {
   return { w: Number(w) || 300, h: Number(h) || 300 };
 }
 
-/**  Kesitler yan yana, planlar sütun sütun.  Sütun yüksekliği tuvalin en-boy
-     oranına göre seçilir:  bütün çizimler en büyük ölçekle sığsın.          */
-function yerlestir(cizimler: Cizim[], en: number, boy: number): Yer[] {
-  const kesit = cizimler.filter((c) => KESITLER.has(c.ad)).map((c) => ({ c, ...boyut(c.svg) }));
-  const plan = cizimler.filter((c) => !KESITLER.has(c.ad)).map((c) => ({ c, ...boyut(c.svg) }));
-  const dene = (H: number) => {
-    const yerler: Yer[] = [];
-    let x = 0;
-    for (const k of kesit) {
-      yerler.push({ ...k, x, y: 0 });
-      x += k.w + ARALIK;
-    }
-    let y = 0;
-    let sw = 0;
-    for (const p of plan) {
-      if (y > 0 && y + p.h > H) {
-        x += sw + ARALIK;
-        y = 0;
-        sw = 0;
-      }
-      yerler.push({ ...p, x, y });
-      y += p.h + ARALIK;
-      sw = Math.max(sw, p.w);
-    }
-    const bw = Math.max(...yerler.map((q) => q.x + q.w));
-    const bh = Math.max(...yerler.map((q) => q.y + q.h));
-    return { yerler, k: Math.min(en / bw, boy / bh) };
-  };
-  const enAz = Math.max(600, ...kesit.map((k) => k.h), ...plan.map((p) => p.h));
-  const toplam = plan.reduce((t, p) => t + p.h + ARALIK, 0);
-  let en_iyi = dene(enAz);
-  for (let H = enAz; H <= Math.max(enAz, toplam); H += 60) {
-    const d = dene(H);
-    if (d.k > en_iyi.k * 1.001) en_iyi = d;
-  }
-  return en_iyi.yerler;
+/**  Tek çizim:  her çizim levhanın başında, kendi boyunda ( yalnız seçili görünür ).  */
+function tekYerler(cizimler: Cizim[]): Yer[] {
+  return cizimler.map((c) => ({ c, x: 0, y: 0, s: 1, ...boyut(c.svg) }));
 }
+
+/**  Tümü ( K4 ):  eşit kartlar, satır satır;  sütun sayısı tuvalin en-boy oranından —
+     kartlar en büyük boyla sığsın.  Her çizim kartına ortalanır.  */
+function kartYerleri(cizimler: Cizim[], en: number, boy: number): Yer[] {
+  const n = cizimler.length;
+  if (!n) return [];
+  let iyi = { sutun: 1, k: 0 };
+  for (let sutun = 1; sutun <= n; sutun++) {
+    const satir = Math.ceil(n / sutun);
+    const k = Math.min(en / (sutun * (KART_EN + KART_ARA)), boy / (satir * (KART_BOY + KART_ARA)));
+    if (k > iyi.k) iyi = { sutun, k };
+  }
+  return cizimler.map((c, i) => {
+    const b = boyut(c.svg);
+    const s = Math.min(KART_EN / b.w, KART_BOY / b.h);
+    const kx = (i % iyi.sutun) * (KART_EN + KART_ARA);
+    const ky = Math.floor(i / iyi.sutun) * (KART_BOY + KART_ARA);
+    return { c, x: kx + (KART_EN - b.w * s) / 2, y: ky + (KART_BOY - b.h * s) / 2, s, kx, ky, ...b };
+  });
+}
+
+/**  Çizimin içinde geçen parça adları ( data-ad ) — şeridin rozetleri için  */
+function parcaAdlari(svg: string) {
+  return new Set([...svg.matchAll(/data-ad="([^"]+)"/g)].map((m) => m[1].replace(/&amp;/g, "&").replace(/&quot;/g, '"')));
+}
+
 
 /*  EKRAN KALEMİ ( mevcut programdan ):  her çizgi kâğıttaki kalemine göre
     işaretlenir ( data-k="050" ), ekranda en az kalınlığı korunur — uzaktan
@@ -168,12 +176,29 @@ export function Tuval({
   secili,
   olcuSec,
   odak,
+  hatirla,
   sorunluParcalar = [],
   sorunOdak = null,
   hesapParcalari = [],
   hesapSecili = [],
+  seciliParca = null,
+  parcaSec,
+  parcaKutusu,
+  hesapOdak = null,
+  geciciCizim = null,
+  sorunSayisi = 0,
+  sorunlaraGit,
   children,
 }: {
+  /**  Uygunluk kartının "Çizimde göster"i:  bu parçaları en çok gösteren çizime geçer
+       ( n her istekte artar )  */
+  hesapOdak?: { parcalar: string[]; n: number } | null;
+  /**  Verildikçe tuval bu çizimde ( kat tablosu açıkken düşey kesit — K5 );  kalkınca
+       önceki görünüme döner.  Son bakılan çizim olarak saklanmaz.  */
+  geciciCizim?: string | null;
+  /**  Hesap / çizim durunca sorunların sayısı ( sorunlar Uygunluk panelinde — K3 )  */
+  sorunSayisi?: number;
+  sorunlaraGit?: () => void;
   /**  Sorunlu parçalar ( data-ad ) — kırmızı işaretlenir  */
   sorunluParcalar?: string[];
   /**  Hesabın uygun bulmadığı bölümlerin parçaları ( data-ad ) — turuncu  */
@@ -183,13 +208,21 @@ export function Tuval({
   /**  Kartta seçilen sorun:  parçaları öne çıkar, tuval onun çizimine gider
        ( n her seçimde artar — aynı soruna yeniden tıklamak da götürür )  */
   sorunOdak?: { sorun: CizimSorunu; n: number } | null;
-  /**  İlk açılışta yakınlaşılacak çizim ( adres:  ?cizim=kuyu_plani )  */
+  /**  Açılışta gösterilecek çizim ( adres:  ?cizim=kuyu_plani ) — son bakılanın önünde  */
   odak?: string | null;
+  /**  Son bakılan çizimin saklandığı anahtar ( projeye göre;  yoksa saklanmaz )  */
+  hatirla?: string;
   cizimler: Cizim[];
   /**  sorunlu:  çizim güncel ama kuralları sağlamıyor ( sorunlar kartta )  */
   durum: "guncel" | "yukleniyor" | "eski" | "sorunlu";
   secili: OlcuSecimi | null;
   olcuSec: (o: OlcuSecimi | null, kutu?: DOMRect) => void;
+  /**  Tıklanan parça ( kutusu açık ) — vurgulu  */
+  seciliParca?: Parca | null;
+  /**  Parçaya tıklanınca ( boşluğa tıklayınca null );  verilmezse parça seçilmez  */
+  parcaSec?: (p: Parca | null) => void;
+  /**  Seçili parçanın kutusu ( konumu tuvale göre )  */
+  parcaKutusu?: (konum: OlcuKonumu) => React.ReactNode;
   children?: (konum: OlcuKonumu | null) => React.ReactNode;
 }) {
   const kap = useRef<HTMLDivElement>(null);
@@ -207,52 +240,60 @@ export function Tuval({
     return () => clearTimeout(t);
   }, [g.k, kNet]);
   const [gizli, setGizli] = useState<Set<string>>(new Set());
-  const [sigdirilan, setSigdirilan] = useState<string>("tumu");
-  //  Tuvalin ölçüsü ( ResizeObserver ).  Yerleşim İLK ölçüyle kurulur:  pencere
-  //  değişince çizimler yer değiştirmez, yalnız yakınlık oranı güncellenir.
+  //  Görünüm:  tek çizim ( aktif ) ya da Tümü
+  const [kipSecimi, setKip] = useState<"tek" | "tumu">("tek");
+  const [aktifSecimi, setAktif] = useState<string | null>(null);
+  //  Geçici çizim ( kat tablosu açıkken ) seçimin önündedir;  kalkınca seçim olduğu gibi döner
+  const gecici = !!geciciCizim && cizimler.some((c) => c.ad === geciciCizim);
+  const kip = gecici ? "tek" : kipSecimi;
+  //  Seçilen çizim yeni yanıtta yoksa ( düzen değişti ) kuyu planı, o da yoksa ilki
+  const aktif = gecici
+    ? geciciCizim!
+    : cizimler.some((c) => c.ad === aktifSecimi)
+      ? aktifSecimi!
+      : (cizimler.find((c) => c.ad === ACILIS) ?? cizimler[0])?.ad ?? null;
   const [boyut, setBoyut] = useState<{ en: number; boy: number } | null>(null);
-  const [ilkBoyut, setIlkBoyut] = useState<{ en: number; boy: number } | null>(null);
   useLayoutEffect(() => {
     const el = kap.current;
     if (!el) return;
     const olc = () => {
       const b = { en: el.clientWidth, boy: el.clientHeight };
-      if (!b.en || !b.boy) return;
-      setBoyut(b);
-      setIlkBoyut((o) => o ?? b);
+      if (b.en && b.boy) setBoyut(b);
     };
+    //  İlk ölçü hemen ( gözlemcinin ilk bildirimi sayfa çizilene kadar gecikebilir )
+    olc();
     const ro = new ResizeObserver(olc);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
   const yerler = useMemo(
-    () => (ilkBoyut ? yerlestir(cizimler, ilkBoyut.en - 64, ilkBoyut.boy - 104) : []),
-    [cizimler, ilkBoyut],
+    () => (kip === "tumu" && boyut ? kartYerleri(cizimler, boyut.en - 64, boyut.boy - 104 - SERIT) : tekYerler(cizimler)),
+    [cizimler, kip, boyut],
   );
   const katmanlar = useMemo(() => {
     const s = new Set<string>();
     for (const c of cizimler) for (const m of c.svg.matchAll(/data-katman="([^"]+)"/g)) s.add(m[1]);
     return [...s].sort();
   }, [cizimler]);
+  //  Şeridin rozetleri:  çizimde sorunlu ( kırmızı ) ya da hesabın uygun bulmadığı ( turuncu ) parça var mı
+  const adlar = useMemo(() => new Map(cizimler.map((c) => [c.ad, parcaAdlari(c.svg)])), [cizimler]);
+  const iceren = (ad: string, parcalar: string[]) => parcalar.some((p) => adlar.get(ad)?.has(p));
 
-  const sigdir = useCallback(
-    (hedef: string) => {
-      const el = kap.current;
-      if (!el || !yerler.length) return;
-      const secilen = hedef === "tumu" ? yerler : yerler.filter((y) => y.c.ad === hedef);
-      const x0 = Math.min(...secilen.map((y) => y.x));
-      const y0 = Math.min(...secilen.map((y) => y.y));
-      const x1 = Math.max(...secilen.map((y) => y.x + y.w));
-      const y1 = Math.max(...secilen.map((y) => y.y + y.h));
-      const W = el.clientWidth;
-      const Hh = el.clientHeight;
-      const ust = 64;
-      const k = Math.min((W - 64) / (x1 - x0), (Hh - ust - 40) / (y1 - y0));
-      setG({ k, x: (W - (x1 - x0) * k) / 2 - x0 * k, y: ust + (Hh - ust - 40 - (y1 - y0) * k) / 2 - y0 * k });
-      setSigdirilan(hedef);
-    },
-    [yerler],
-  );
+  //  Görünen çizimler ( tek kipte yalnız aktif )
+  const gorunen = useMemo(() => (kip === "tumu" ? yerler : yerler.filter((y) => y.c.ad === aktif)), [kip, yerler, aktif]);
+  const sigdir = useCallback(() => {
+    const el = kap.current;
+    if (!el || !gorunen.length) return;
+    const x0 = Math.min(...gorunen.map((y) => y.x));
+    const y0 = Math.min(...gorunen.map((y) => y.y));
+    const x1 = Math.max(...gorunen.map((y) => y.x + y.w * y.s));
+    const y1 = Math.max(...gorunen.map((y) => y.y + y.h * y.s));
+    const W = el.clientWidth;
+    const Hh = el.clientHeight - SERIT;
+    const ust = 64;
+    const k = Math.min((W - 64) / (x1 - x0), (Hh - ust - 40) / (y1 - y0));
+    setG({ k, x: (W - (x1 - x0) * k) / 2 - x0 * k, y: ust + (Hh - ust - 40 - (y1 - y0) * k) / 2 - y0 * k });
+  }, [gorunen]);
 
   //  Levhadaki bir kutuya ( 1 px = 1 mm kâğıt ) yakınlaş:  çevresiyle ( kutunun
   //  yarısı kadar, en az 30 ), en çok 5× ( parça okunur, yanındakiler de görünür ).
@@ -265,24 +306,47 @@ export function Tuval({
       const pay = Math.max(30, Math.max(x1 - x0, y1 - y0) / 2);
       const [a0, b0, a1, b1] = [x0 - pay, y0 - pay, x1 + pay, y1 + pay];
       const W = el.clientWidth;
-      const Hh = el.clientHeight;
+      const Hh = el.clientHeight - SERIT;
       const ust = 64;
       const k = Math.min(5, (W - 64) / (a1 - a0), (Hh - ust - 40) / (b1 - b0));
       const cizimin = Math.min((W - 64) / yer.w, (Hh - ust - 40) / yer.h);
-      if (k <= cizimin) return sigdir(hedef);
+      if (k <= cizimin) return sigdir();
       setG({ k, x: (W - (a1 - a0) * k) / 2 - a0 * k, y: ust + (Hh - ust - 40 - (b1 - b0) * k) / 2 - b0 * k });
     },
     [yerler, sigdir],
   );
 
-  //  İlk çizim gelince sığdır;  sonraki yanıtlarda görünüm yerinde kalır
+  /**  Çizime geç ( şerit, Tümü'nün kartı, sorun ):  tek kip, son bakılan saklanır  */
+  const goster = useCallback(
+    (ad: string) => {
+      setKip("tek");
+      setAktif(ad);
+      if (hatirla) depoYaz(hatirla, ad);
+    },
+    [hatirla],
+  );
+
+  //  AÇILIŞ ( K1 ):  adresteki çizim;  sorunlu çizimde sorunun çizimi;  son bakılan;  kuyu planı
   const ilk = useRef(true);
   useLayoutEffect(() => {
-    if (ilk.current && yerler.length) {
-      ilk.current = false;
-      sigdir(odak && yerler.some((y) => y.c.ad === odak) ? odak : "tumu");
-    }
-  }, [yerler, sigdir, odak]);
+    const el = kap.current;
+    if (!ilk.current || !cizimler.length || !el) return;
+    ilk.current = false;
+    const var_ = (ad: string | null | undefined) => !!ad && cizimler.some((c) => c.ad === ad);
+    const sorunun = sorunluParcalar.length
+      ? cizimler.find((c) => sorunluParcalar.some((p) => adlar.get(c.ad)?.has(p)))?.ad
+      : undefined;
+    const son = hatirla ? depoOku(hatirla) : null;
+    setAktif(var_(odak) ? odak! : var_(sorunun) ? sorunun! : var_(son) ? son! : null);
+  }, [cizimler, odak, hatirla, sorunluParcalar, adlar]);
+  //  Görünüm değişince ( çizim, kip ) sığdırılır;  aynı çizimin yeni yanıtında yerinde kalır
+  const sigdirilan = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    const hedef = kip === "tumu" ? "tumu" : aktif;
+    if (!hedef || !gorunen.length || !boyut || hedef === sigdirilan.current) return;
+    sigdirilan.current = hedef;
+    sigdir();
+  }, [kip, aktif, gorunen, boyut, sigdir]);
 
   //  Tekerlek:  imlecin altındaki nokta yerinde kalır
   useEffect(() => {
@@ -333,7 +397,7 @@ export function Tuval({
     if (disarida(e)) return;
     const s = surukle.current;
     if (!s || !kaydi.current) {
-      const p = parcaBul(e.clientX, e.clientY, kap.current);
+      const p = kip === "tek" ? parcaBul(e.clientX, e.clientY, kap.current) : null;
       if (p?.id !== ustunde?.id || p?.cizim !== ustunde?.cizim) setUstunde(p);
       if (p) ipucunuKoy(e.clientX, e.clientY);
     }
@@ -351,6 +415,7 @@ export function Tuval({
 
   const olcuyuSec = (o: Element) => {
     const fig = o.closest("[data-cizim]") as HTMLElement;
+    parcaSec?.(null);
     olcuSec({
       cizim: fig.dataset.cizim!,
       index: Number((o as SVGGElement).dataset.olcu),
@@ -372,16 +437,26 @@ export function Tuval({
     if (disarida(e)) return;
     const hedef = e.target as Element;
     if (hedef.closest("[data-tuval-arac], [data-olcu-kutu]")) return;
-    const o = hedef.closest(".olcu") as SVGGElement | null;
-    if (!o) {
-      //  Boşluğa tıklamak kutuyu kapatır;  kaydırma bırakılışı kapatmaz
-      if (!kaydi.current) olcuSec(null);
+    if (kaydi.current) return; //  kaydırma bırakılışı tıklama değil
+    //  Tümü'de karta tıklamak çizimi açar.  Hedef noktadan bulunur:  sürükleme için
+    //  işaretçi tuvale bağlı ( setPointerCapture ), tıklamanın hedefi tuvalin kendisi olur
+    if (kip === "tumu") {
+      const fig = document
+        .elementsFromPoint(e.clientX, e.clientY)
+        .map((x) => x.closest("figure[data-cizim]"))
+        .find(Boolean) as HTMLElement | undefined;
+      if (fig?.dataset.cizim) goster(fig.dataset.cizim);
       return;
     }
-    olcuyuSec(o);
+    const o = hedef.closest(".olcu") as SVGGElement | null;
+    if (o) return olcuyuSec(o);
+    //  Parçaya tıklamak onu belirleyen girdileri açar;  boşluğa tıklamak kutuları kapatır
+    const p = parcaSec ? parcaBul(e.clientX, e.clientY, kap.current) : null;
+    olcuSec(null);
+    parcaSec?.(p);
   };
 
-  //  Seçili ölçünün vurgusu ve kutunun yeri ( tuvale göre )
+  //  Seçili ölçünün ( ya da parçanın ) vurgusu ve kutunun yeri ( tuvale göre )
   const [konum, setKonum] = useState<OlcuKonumu | null>(null);
   useLayoutEffect(() => {
     const el = kap.current;
@@ -393,7 +468,28 @@ export function Tuval({
     const r = el.getBoundingClientRect();
     const b = o.getBoundingClientRect();
     setKonum({ sol: b.left - r.left, sag: b.right - r.left, ust: b.top - r.top, alt: b.bottom - r.top, w: r.width, h: r.height });
-  }, [secili, g, cizimler]);
+  }, [secili, g, cizimler, aktif, kip]);
+  const [parcaKonumu, setParcaKonumu] = useState<OlcuKonumu | null>(null);
+  useLayoutEffect(() => {
+    const el = kap.current;
+    el?.querySelectorAll(".parca-secili").forEach((x) => x.classList.remove("parca-secili"));
+    if (!el || !seciliParca) return setParcaKonumu(null);
+    const ogeler = [
+      ...el.querySelectorAll(`[data-cizim="${seciliParca.cizim}"] [data-parca="${CSS.escape(seciliParca.id)}"]`),
+    ];
+    ogeler.forEach((x) => x.classList.add("parca-secili"));
+    const kutular = ogeler.map((o) => o.getBoundingClientRect()).filter((b) => b.width > 0 || b.height > 0);
+    if (!kutular.length) return setParcaKonumu(null);
+    const r = el.getBoundingClientRect();
+    setParcaKonumu({
+      sol: Math.min(...kutular.map((b) => b.left)) - r.left,
+      sag: Math.max(...kutular.map((b) => b.right)) - r.left,
+      ust: Math.min(...kutular.map((b) => b.top)) - r.top,
+      alt: Math.max(...kutular.map((b) => b.bottom)) - r.top,
+      w: r.width,
+      h: r.height,
+    });
+  }, [seciliParca, g, cizimler, aktif, kip]);
 
   //  Sorunlu parçalar ( sunucu:  cizim/sorun.py ) kırmızı;  seçilen sorununki öne çıkar.
   //  Hesabın uygun bulmadığı bölümlerin parçaları ( cizim/hesap_isareti.py ) turuncu;
@@ -413,9 +509,9 @@ export function Tuval({
   }, [sorunluParcalar, sorunOdak, hesapParcalari, hesapSecili, cizimler]);
 
   //  Seçilen sorunun yerine git:  sunucunun söylediği çizim ( parçası oradaysa ),
-  //  yoksa parçanın göründüğü ilk çizim;  o çizimdeki parçaların kutusuna
-  //  yakınlaşılır ( bütün kesit sığınca tepedeki parça okunmuyordu ).  Her
-  //  seçim bir kez götürür.
+  //  yoksa parçanın göründüğü ilk çizim;  önce o çizime geçilir, görününce
+  //  parçaların kutusuna yakınlaşılır ( bütün kesit sığınca tepedeki parça
+  //  okunmuyordu ).  Her seçim bir kez götürür.
   const gidilenSorun = useRef(0);
   useLayoutEffect(() => {
     const el = kap.current;
@@ -425,17 +521,18 @@ export function Tuval({
       parcalar.flatMap((p) => [...el.querySelectorAll(`[data-cizim="${ad}"] ${adSecici(p)}`)]);
     const hedef = cizim && ogeler(cizim).length ? cizim : yerler.find((y) => ogeler(y.c.ad).length)?.c.ad;
     const yer = yerler.find((y) => y.c.ad === hedef);
+    if (!hedef || !yer) return;
+    if (kip !== "tek" || aktif !== hedef) return goster(hedef);
     const fig = el.querySelector(`figure[data-cizim="${hedef}"]`);
-    if (!hedef || !yer || !fig) return;
+    if (!fig) return;
     gidilenSorun.current = sorunOdak.n;
-    setSigdirilan(hedef);
     //  Ekrandaki kutular levhaya:  figürün içindeki oranı × figürün levhadaki boyu
     const f = fig.getBoundingClientRect();
     //  Boyutsuz öğe ( gizli, boş ) ( 0, 0 ) noktasında döner:  kutuyu ekranın köşesine uzatırdı
     const kutular = ogeler(hedef)
       .map((o) => o.getBoundingClientRect())
       .filter((r) => r.width > 0 || r.height > 0);
-    if (!f.width || !f.height || !kutular.length) return sigdir(hedef);
+    if (!f.width || !f.height || !kutular.length) return sigdir();
     const lx = (x: number) => yer.x + ((x - f.left) / f.width) * yer.w;
     const ly = (y: number) => yer.y + ((y - f.top) / f.height) * yer.h;
     kutuyaGit(
@@ -445,7 +542,21 @@ export function Tuval({
       lx(Math.max(...kutular.map((r) => r.right))),
       ly(Math.max(...kutular.map((r) => r.bottom))),
     );
-  }, [sorunOdak, yerler, sigdir, kutuyaGit]);
+  }, [sorunOdak, yerler, sigdir, kutuyaGit, kip, aktif, goster]);
+
+  //  "Çizimde göster" ( hesabın bölümü ):  parçalarının en çok göründüğü çizim
+  const gidilenHesap = useRef(0);
+  useLayoutEffect(() => {
+    const el = kap.current;
+    if (!el || !hesapOdak || hesapOdak.n === gidilenHesap.current) return;
+    gidilenHesap.current = hesapOdak.n;
+    const say = (ad: string) =>
+      hesapOdak.parcalar.reduce((t, p) => t + el.querySelectorAll(`[data-cizim="${ad}"] ${adSecici(p)}`).length, 0);
+    const [en] = yerler.map((y) => ({ ad: y.c.ad, n: say(y.c.ad) })).sort((a, b) => b.n - a.n);
+    if (!en?.n) return;
+    if (kip !== "tek" || aktif !== en.ad) goster(en.ad);
+    else sigdir();
+  }, [hesapOdak, yerler, kip, aktif, goster, sigdir]);
 
   //  Parça vurgusu:  fare altındaki parçanın bütün öğeleri
   useLayoutEffect(() => {
@@ -470,15 +581,17 @@ export function Tuval({
     KALEMLER.map(([mm, enaz]) => [`--k${kalemAdi(mm)}`, `${Math.max(enaz / dpr, mm * g.k).toFixed(3)}px`]),
   ) as React.CSSProperties;
 
-  //  Yakınlık yüzdesi "hepsi sığdı" görünümüne göre
+  //  Yakınlık yüzdesi "sığdı" görünümüne göre ( görünen çizimler )
   const sigdirmaOrani = useMemo(() => {
-    if (!boyut || !yerler.length) return 1;
-    const x1 = Math.max(...yerler.map((y) => y.x + y.w));
-    const y1 = Math.max(...yerler.map((y) => y.y + y.h));
-    return Math.min((boyut.en - 64) / x1, (boyut.boy - 104) / y1);
-  }, [yerler, boyut]);
+    if (!boyut || !gorunen.length) return 1;
+    const x0 = Math.min(...gorunen.map((y) => y.x));
+    const y0 = Math.min(...gorunen.map((y) => y.y));
+    const x1 = Math.max(...gorunen.map((y) => y.x + y.w * y.s));
+    const y1 = Math.max(...gorunen.map((y) => y.y + y.h * y.s));
+    return Math.min((boyut.en - 64) / (x1 - x0), (boyut.boy - SERIT - 104) / (y1 - y0));
+  }, [gorunen, boyut]);
 
-  const uzak = 2.5 * g.k * dpr < 5;
+  const uzak = kip === "tumu" || 2.5 * g.k * dpr < 5;
   const katmanStili = [...gizli].map((k) => `.tuval-svg [data-katman="${k}"]{display:none}`).join("");
 
   return (
@@ -496,7 +609,7 @@ export function Tuval({
         e.currentTarget.scrollTop = 0;
         e.currentTarget.scrollLeft = 0;
       }}
-      style={{ cursor: surukluyor ? "grabbing" : "default" }}
+      style={{ cursor: surukluyor ? "grabbing" : kip === "tumu" ? "pointer" : "default" }}
     >
       <style>{katmanStili}</style>
       {/*  Çizim levhası:  1 px = 1 mm, bütün levha ölçeklenir  */}
@@ -509,49 +622,39 @@ export function Tuval({
             key={y.c.ad}
             data-cizim={y.c.ad}
             aria-label={y.c.baslik}
-            className="tuval-svg absolute m-0"
+            hidden={kip === "tek" && y.c.ad !== aktif}
+            className={cn("tuval-svg absolute m-0", kip === "tumu" && "rounded-sm ring-1 ring-white/10 hover:ring-olcu/60")}
             style={{
               left: y.x * kNet,
               top: y.y * kNet,
-              width: y.w * kNet,
-              height: y.h * kNet,
-              ["--mu" as string]: (g.k / (y.c.olcek || 20)).toPrecision(6),
+              width: y.w * y.s * kNet,
+              height: y.h * y.s * kNet,
+              ["--mu" as string]: ((g.k * y.s) / (y.c.olcek || 20)).toPrecision(6),
             }}
             dangerouslySetInnerHTML={{ __html: y.c.svg }}
           />
         ))}
       </div>
 
-      {/*  Çizim adları — uzak görünümde, ekran pikselinde ( yakında çizimin kendi anteti okunur )  */}
-      {uzak && yerler.map((y) => (
-        <div
-          key={y.c.ad}
-          //  Ad sığmazsa kesilmez, iki satıra iner ( "A-A KUYU DÜŞEY …" okunmuyordu );
-          //  alt kenarı çizimin 6 px üstünde, yukarı doğru büyür
-          className="pointer-events-none absolute line-clamp-2 -translate-y-full text-[11.5px] leading-tight font-medium tracking-wide text-tuval-metin-2"
-          style={{ left: g.x + y.x * g.k, top: g.y + y.y * g.k - 6, maxWidth: Math.max(80, (y.w + ARALIK * 0.6) * g.k) }}
-        >
-          {kisaAd(y.c.baslik)}
-          {!y.c.olceksiz && <span className="sayi ml-2 whitespace-nowrap text-tuval-metin-2/70">1:{y.c.olcek}</span>}
-        </div>
-      ))}
+      {/*  Çizim adları — Tümü'nün kartlarında ( tek çizimin adı şeritte )  */}
+      {kip === "tumu" &&
+        yerler.map((y) => (
+          <div
+            key={y.c.ad}
+            //  Ad sığmazsa kesilmez, iki satıra iner;  alt kenarı kartın 6 px üstünde
+            className="pointer-events-none absolute line-clamp-2 -translate-y-full text-[11.5px] leading-tight font-medium tracking-wide text-tuval-metin-2"
+            style={{ left: g.x + (y.kx ?? y.x) * g.k, top: g.y + (y.ky ?? y.y) * g.k - 6, maxWidth: Math.max(80, KART_EN * g.k) }}
+          >
+            {kisaAd(y.c.baslik)}
+            {!y.c.olceksiz && <span className="sayi ml-2 whitespace-nowrap text-tuval-metin-2/70">1:{y.c.olcek}</span>}
+          </div>
+        ))}
 
       {/*  Araç şeridi  */}
       <div
         data-tuval-arac
         className="absolute top-3 left-3 flex items-center gap-1 rounded-buyuk border border-white/[0.08] bg-tuval-2/95 p-1 shadow-tuval backdrop-blur"
       >
-        <Secim
-          etiket="Görünüm"
-          deger={sigdirilan}
-          degisti={sigdir}
-          className="h-7 w-48 border-transparent bg-transparent text-tuval-metin hover:border-white/10 focus:border-white/20 focus:ring-0 [&_svg]:text-tuval-metin-2"
-          secenekler={[
-            { deger: "tumu", ad: "Bütün çizimler" },
-            ...yerler.map((y) => ({ deger: y.c.ad, ad: kisaAd(y.c.baslik) })),
-          ]}
-        />
-        <span className="mx-0.5 h-4 w-px bg-white/10" />
         <Ipucu metin="Uzaklaştır">
           <Dugme tur="tuval" boy="simge-kucuk" aria-label="Uzaklaştır" onClick={() => setG((o) => yakinlik(o, 1 / 1.25, kap.current))}>
             <Minus />
@@ -566,7 +669,7 @@ export function Tuval({
           </Dugme>
         </Ipucu>
         <Ipucu metin="Sığdır">
-          <Dugme tur="tuval" boy="simge-kucuk" aria-label="Sığdır" onClick={() => sigdir(sigdirilan)}>
+          <Dugme tur="tuval" boy="simge-kucuk" aria-label="Sığdır" onClick={sigdir}>
             <Scan />
           </Dugme>
         </Ipucu>
@@ -622,6 +725,22 @@ export function Tuval({
             <Maximize />
           </Dugme>
         </Ipucu>
+        {/*  Yardım ( eskiden tuvalin altındaki ipucu satırı — çizimin üstüne biniyordu )  */}
+        <Acilir>
+          <AcilirTetik asChild>
+            <Dugme tur="tuval" boy="simge-kucuk" aria-label="Tuval yardımı">
+              <CircleHelp />
+            </Dugme>
+          </AcilirTetik>
+          <AcilirIcerik align="start" className="w-72 p-3 text-[12.5px] leading-relaxed" data-tuval-arac>
+            <ul className="space-y-1.5">
+              <li>Tekerlek yakınlaştırır, sürüklemek kaydırır.</li>
+              <li>Ölçüye tıklayın:  kaynağı ve ölçüden değiştirme.</li>
+              <li>Parçaya tıklayın:  onu belirleyen girdiler.</li>
+              <li>Alttaki şeritten çizim seçin;  Tümü bütün çizimleri gösterir, karta tıklamak açar.</li>
+            </ul>
+          </AcilirIcerik>
+        </Acilir>
       </div>
 
       {/*  Çizimin durumu:  güncel mi, yolda mı, eski mi, uygun değil mi  */}
@@ -632,10 +751,14 @@ export function Tuval({
           </DurumHapi>
         ) : durum === "eski" ? (
           <DurumHapi uyari>Çizim güncel değil</DurumHapi>
-        ) : durum === "sorunlu" ? (
-          <DurumHapi tehlike>
-            <span className="size-1.5 rounded-full bg-[#f97066]" /> Uygun değil
-          </DurumHapi>
+        ) : durum === "sorunlu" || sorunSayisi > 0 ? (
+          //  Sorunlar Uygunluk panelinde ( K3 ):  hap oraya götürür
+          <button type="button" onClick={sorunlaraGit} aria-label={`Sorunlara git — ${sorunSayisi} sorun`}>
+            <DurumHapi tehlike>
+              <span className="size-1.5 rounded-full bg-[#f97066]" /> {durum === "sorunlu" ? "Uygun değil" : "Hesap durdu"}
+              {sorunSayisi > 0 && <span className="sayi opacity-80">· {sorunSayisi} sorun</span>}
+            </DurumHapi>
+          </button>
         ) : (
           <DurumHapi>
             <span className="size-1.5 rounded-full bg-[#4ade80]" /> Güncel
@@ -653,12 +776,62 @@ export function Tuval({
         {ustunde?.adi}
       </div>
 
-      <p className="pointer-events-none absolute bottom-3 left-3 text-[11.5px] text-tuval-metin-2/80">
-        Tekerlek yakınlaştırır · sürükleyin · ölçüye tıklayın:  kaynağı ve değiştirme
-      </p>
+      {/*  ÇİZİM ŞERİDİ ( K2 ):  tuvalin altında;  rozet çizimde sorunlu ( kırmızı ) ya da
+           hesabın uygun bulmadığı ( turuncu ) parça olduğunu söyler  */}
+      {cizimler.length > 0 && (
+        <nav
+          data-tuval-arac
+          aria-label="Çizimler"
+          className="absolute inset-x-0 bottom-0 flex items-center gap-1 overflow-x-auto border-t border-white/[0.08] bg-tuval-2/95 px-3 backdrop-blur"
+          style={{ height: SERIT }}
+        >
+          <SeritDugmesi secili={kip === "tumu"} onClick={() => setKip("tumu")}>
+            <LayoutGrid className="size-3.5" /> Tümü
+          </SeritDugmesi>
+          <span className="mx-1 h-5 w-px shrink-0 bg-white/10" />
+          {cizimler.map((c) => (
+            <SeritDugmesi key={c.ad} secili={kip === "tek" && c.ad === aktif} onClick={() => goster(c.ad)} baslik={c.baslik}>
+              {iceren(c.ad, sorunluParcalar) ? (
+                <span aria-hidden title="Sorunlu parça var" className="size-1.5 shrink-0 rounded-full bg-[#f97066]" />
+              ) : iceren(c.ad, hesapParcalari) ? (
+                <span aria-hidden title="Hesabın uygun bulmadığı parça var" className="size-1.5 shrink-0 rounded-full bg-[#ff9f1a]" />
+              ) : null}
+              {kisaAd(c.baslik)}
+            </SeritDugmesi>
+          ))}
+        </nav>
+      )}
 
       {children?.(konum)}
+      {seciliParca && parcaKonumu && parcaKutusu?.(parcaKonumu)}
     </div>
+  );
+}
+
+function SeritDugmesi({
+  secili,
+  onClick,
+  baslik,
+  children,
+}: {
+  secili: boolean;
+  onClick: () => void;
+  baslik?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={secili}
+      title={baslik}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-orta px-2.5 text-[12px] font-medium whitespace-nowrap",
+        secili ? "bg-white/[0.12] text-white" : "text-tuval-metin-2 hover:bg-white/[0.06] hover:text-tuval-metin",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 

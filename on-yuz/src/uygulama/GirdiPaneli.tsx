@@ -5,11 +5,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, CircleAlert, CircleQuestionMark, RotateCcw, Search, X } from "lucide-react";
 import type { Alan, AlanSemasi, Deger } from "@/lib/api";
-import { agirligaGoreGizli, alanHatasi, alanOku, gizliAlanlar, kipGizlileri, kuyununOrtaklari, mrlMi, varsayilanKotlarMi, sayiOku, secenekKapali, type UygulamaProjesi } from "@/lib/proje";
-import { DURAK_ADLARI, DURAK_KOTLARI, GIRIS_DURAGI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, MD_ZEMINI_KOTU } from "@/lib/kotlar";
+import { agirligaGoreGizli, alanHatasi, alanOku, gizliAlanlar, kipGizlileri, kuyununOrtaklari, mrlMi, varsayilanKotlarMi, sayiOku, secenekKapali, type Ham, type UygulamaProjesi } from "@/lib/proje";
+import { DURAK_ADLARI, DURAK_KOTLARI, GIRIS_DURAGI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, MD_ZEMINI_KOTU, kotYaz, kotlariOku } from "@/lib/kotlar";
 import { KatGirisi } from "./KotTablosu";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
-import { Anahtar, Bolumlu, Girdi, Ipucu, Rozet, Secim } from "@/components/ui";
+import { Anahtar, Bolumlu, Dugme, Girdi, Ipucu, Rozet, Secim } from "@/components/ui";
 
 const KAYNAK_YAZISI: Record<string, string> = { KURAL: "kuraldan", ÇİZİM: "çizimden", KATALOG: "katalog" };
 
@@ -24,7 +24,13 @@ export function GirdiPaneli({
   vurguluAlanlar = [],
   grupHatasi,
   kullanilan,
+  katlarAcik = false,
+  katlarDegisti,
 }: {
+  /**  KAT TABLOSU ÇEKMECESİ ( Ö3 · K5 ):  tablo panelin yanında açılan sütunda —
+       panelde özet ve "Kotları düzenle";  açıkken tuval düşey kesitte  */
+  katlarAcik?: boolean;
+  katlarDegisti?: (a: boolean) => void;
   vurguluAlanlar?: string[];
   sema: AlanSemasi;
   proje: UygulamaProjesi;
@@ -105,7 +111,18 @@ export function GirdiPaneli({
     setAcik(y);
   };
 
+  const katTablosu = (
+    <KatGirisi
+      h={h ?? {}}
+      kullanilan={kullanilan}
+      daireli={!mrl}
+      doseme={etkin("tavan_dosemesi") ?? etkin("kuyu_duvar_kalinligi") ?? 0}
+      etkin={etkin}
+      yaz={yaz}
+    />
+  );
   return (
+    <>
     <aside aria-label="Girdiler" className="flex w-[348px] shrink-0 flex-col border-r border-cizgi bg-yuzey">
       <div className="space-y-2.5 border-b border-cizgi px-3 pt-3 pb-3">
         <div className="flex items-baseline justify-between px-0.5">
@@ -138,6 +155,7 @@ export function GirdiPaneli({
           return (
             <section
               key={g.ad}
+              data-grup={g.ad}
               className={cn(
                 "mb-1 rounded-orta transition-colors",
                 vurgulu.includes(g.ad) && "bg-vurgu-acik/60 ring-1 ring-vurgu-cizgi",
@@ -173,14 +191,11 @@ export function GirdiPaneli({
                 <GrupAlanlari
                   ust={
                     g.ad === katGrubu && !aranan ? (
-                      <KatGirisi
-                        h={h ?? {}}
-                        kullanilan={kullanilan}
-                        daireli={!mrl}
-                        doseme={etkin("tavan_dosemesi") ?? etkin("kuyu_duvar_kalinligi") ?? 0}
-                        etkin={etkin}
-                        yaz={yaz}
-                      />
+                      katlarDegisti ? (
+                        <KatOzeti h={h ?? {}} acik={katlarAcik} ac={() => katlarDegisti(!katlarAcik)} />
+                      ) : (
+                        katTablosu
+                      )
                     ) : null
                   }
                   vurguluAlanlar={vurguluAlanlar}
@@ -199,6 +214,42 @@ export function GirdiPaneli({
         })}
       </div>
     </aside>
+    {katlarAcik && katlarDegisti && (
+      //  Akışta ( örtmez ):  tuval daralır, düşey kesit görünür kalır
+      <section aria-label="Kat tablosu" className="flex w-[520px] shrink-0 flex-col border-r border-cizgi bg-yuzey">
+        <div className="flex items-start justify-between gap-3 border-b border-cizgi px-4 py-3">
+          <div>
+            <h2 className="text-[13px] font-semibold">Katlar ve kotlar</h2>
+            <p className="mt-0.5 text-[12px] text-metin-3">Tuval düşey kesitte;  kapatınca önceki çizime döner.</p>
+          </div>
+          <Dugme tur="hayalet" boy="simge-kucuk" aria-label="Kat tablosunu kapat" onClick={() => katlarDegisti(false)}>
+            <X />
+          </Dugme>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">{katTablosu}</div>
+      </section>
+    )}
+    </>
+  );
+}
+
+/**  Paneldeki kat özeti:  durak sayısı, en alt ve en üst kot;  tablo çekmecede  */
+function KatOzeti({ h, acik, ac }: { h: Ham; acik: boolean; ac: () => void }) {
+  const k = kotlariOku(h[DURAK_KOTLARI] as string | undefined).filter((x): x is number => x !== null);
+  return (
+    <div className="mb-2 flex items-center gap-2 rounded-orta border border-cizgi bg-yuzey-2 px-3 py-2">
+      <div className="min-w-0 flex-1 text-[12.5px]">
+        <p className="font-medium">{k.length ? `${k.length} durak` : "Durak kotu yok"}</p>
+        {k.length > 0 && (
+          <p className="sayi text-[11.5px] text-metin-3">
+            {kotYaz(k[0])} … {kotYaz(k[k.length - 1])}
+          </p>
+        )}
+      </div>
+      <Dugme boy="kucuk" aria-expanded={acik} onClick={ac}>
+        {acik ? "Tabloyu kapat" : "Kotları düzenle"}
+      </Dugme>
+    </div>
   );
 }
 
