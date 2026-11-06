@@ -4,8 +4,8 @@
     Ö3:  uygun değil kartı nedeni ve öneriyi ayrı satırlarda okur ( sonucun
     maddeleri;  yoksa metni ), konum simgesi bölümün parçalarını çizimde
     gösterir, "İlgili girdiler" grubu solda açar.  Hesap ya da çizim durunca
-    sorunlar panelin başındadır ( sorunlar ).  Kuyu tabanı yükleri tablo —
-    adları, anlamları ve birimleri sunucunun satırlarından.                    */
+    sorunlar panelin başındadır ( sorunlar ).  Uygun ve bilgi bölümleri ( kuyu
+    tabanı yükleri — sayıları hesap belgesinde ) kapalı listede.                */
 import { useState } from "react";
 import { AlertTriangle, ChevronRight, CircleAlert, LocateFixed } from "lucide-react";
 import type { Bolum } from "@/lib/api";
@@ -90,29 +90,16 @@ export function UygunlukPaneli({
           <Uyari key={u} metin={u.replace(/^[⚠ℹ]\s*/, "")} />
         ))}
 
-        {bilgi.length > 0 && (
-          <ListeBasligi>Hükümsüz bölümler</ListeBasligi>
-        )}
-        {bilgi.map((b) =>
-          b.sonuc?.degerler?.length ? (
-            <DegerTablosu key={b.kimlik} b={b} secili={secili === b.kimlik} sec={sec} />
-          ) : (
-            <SatirBolum key={b.kimlik} b={b} secili={secili === b.kimlik} sec={sec} sonucuGoster />
-          ),
-        )}
-
-        {uygun.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setUygunlarAcik(!uygunlarAcik)}
-            aria-expanded={uygunlarAcik}
-            className="mt-1 flex w-full items-center gap-1 px-1 py-1 text-[12px] font-medium text-metin-2 hover:text-metin"
-          >
-            <ChevronRight className={cn("size-3 transition-transform", uygunlarAcik && "rotate-90")} />
+        {uygun.length + bilgi.length > 0 && (
+          <AcilirBaslik acik={uygunlarAcik} degisti={setUygunlarAcik}>
             Uygun bölümler · {uygun.length}
-          </button>
+            {bilgi.length > 0 && <span className="font-normal text-metin-3">  ·  bilgi {bilgi.length}</span>}
+          </AcilirBaslik>
         )}
-        {uygunlarAcik && uygun.map((b) => <SatirBolum key={b.kimlik} b={b} secili={secili === b.kimlik} sec={sec} />)}
+        {/*  Hükümsüz bölümler ( kuyu tabanı yükleri ) ayrı bölüm değil:  kapalı listenin sonunda
+             gri noktayla ( 6 Kas — kullanıcı:  görüntü kirliliği;  sayıları hesap belgesinde )  */}
+        {uygunlarAcik &&
+          [...uygun, ...bilgi].map((b) => <SatirBolum key={b.kimlik} b={b} secili={secili === b.kimlik} sec={sec} />)}
       </div>
     </aside>
   );
@@ -217,42 +204,6 @@ function UygunDegilKarti({
   );
 }
 
-/**  Hükümsüz bölümün sayıları tablo ( kuyu tabanı yükleri ):  her satır sunucunun  */
-function DegerTablosu({ b, secili, sec }: { b: Bolum; secili: boolean; sec: (b: Bolum) => void }) {
-  const [no, ad] = bolumAdi(b.baslik);
-  return (
-    <div className={cn("rounded-orta px-2 py-1.5", secili && "bg-vurgu-acik")}>
-      <button
-        type="button"
-        onClick={() => sec(b)}
-        aria-pressed={secili}
-        className="flex w-full items-start gap-2 text-left hover:underline"
-      >
-        <HukumNoktasi uygun={null} className="mt-[5px]" />
-        <span className="min-w-0 flex-1 text-[12.5px]">
-          <span className="sayi mr-1 text-metin-3">{no}</span>
-          {ad}
-        </span>
-      </button>
-      <table className="mt-1 ml-4 w-[calc(100%-16px)] text-[12px]">
-        <tbody className="divide-y divide-cizgi">
-          {b.sonuc!.degerler!.map((d) => (
-            <tr key={d.ad} className="align-top">
-              <th scope="row" className="py-1 pr-2 text-left font-mono text-[11.5px] font-semibold whitespace-nowrap">
-                {d.ad}
-              </th>
-              <td className="py-1 pr-2 leading-snug text-metin-2">{d.aciklama}</td>
-              <td className="sayi py-1 text-right whitespace-nowrap">
-                {d.metin} <span className="text-metin-3">{d.birim}</span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 function Sayac({ sayi, ad, renk, ayrac }: { sayi: number; ad: string; renk: string; ayrac?: boolean }) {
   return (
     <div className={cn("py-2", ayrac && "border-l border-cizgi")}>
@@ -262,20 +213,37 @@ function Sayac({ sayi, ad, renk, ayrac }: { sayi: number; ad: string; renk: stri
   );
 }
 
-function ListeBasligi({ children }: { children: React.ReactNode }) {
-  return <p className="px-1 pt-2 text-[11.5px] font-medium tracking-wide text-metin-3 uppercase">{children}</p>;
+/**  Kapalı başlayan liste başlığı ( hükümsüz ve uygun bölümler )  */
+function AcilirBaslik({
+  acik,
+  degisti,
+  children,
+}: {
+  acik: boolean;
+  degisti: (a: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => degisti(!acik)}
+      aria-expanded={acik}
+      className="mt-1 flex w-full items-center gap-1 px-1 py-1 text-[12px] font-medium text-metin-2 hover:text-metin"
+    >
+      <ChevronRight className={cn("size-3 transition-transform", acik && "rotate-90")} />
+      {children}
+    </button>
+  );
 }
 
 function SatirBolum({
   b,
   secili,
   sec,
-  sonucuGoster,
 }: {
   b: Bolum;
   secili: boolean;
   sec: (b: Bolum) => void;
-  sonucuGoster?: boolean;
 }) {
   const [no, ad] = bolumAdi(b.baslik);
   return (
@@ -294,18 +262,6 @@ function SatirBolum({
           <span className="sayi mr-1 text-metin-3">{no}</span>
           {ad}
         </span>
-        {/*  Hükümsüz bölümün çoğu kez sonucu da yoktur ( topraklayıcılar — sunucu null gönderir )  */}
-        {sonucuGoster && b.sonuc?.metin && (
-          //  Sunucunun sonuç metni " · " ile ayrılmış değerler:  her değer kendi parçası, satır bir
-          //  değerin ortasından ( "N / ray" ) kırılmaz
-          <span className="mt-0.5 flex flex-wrap gap-x-2.5 font-mono text-[11px] leading-snug text-metin-3">
-            {b.sonuc.metin.split(/\s+·\s+/).map((p, i) => (
-              <span key={i} className="whitespace-nowrap">
-                {p}
-              </span>
-            ))}
-          </span>
-        )}
       </span>
     </button>
   );
