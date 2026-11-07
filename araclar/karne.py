@@ -111,12 +111,11 @@ UZAK_CIZIMLER = ("giris", "kapi_kesiti")
 CIZIME_BAGLI = {"uzak_olcu": UZAK_CIZIMLER}
 #  Kuyunun içindeki parçaların etiketleri:  kuyunun dışına düşmez
 PARCA_ETIKETLERI = ("agirlik_yazi", "agirlik_kasnak_yazi", "kabin_kasnak_yazi")
-#  Çizimin sınırına ( yazının taşması ) sayılmayan katmanlar:  yazılar, ölçüler,
-#  eksen, kesit işareti, çerçeve, seviye, uyarı, yük, açılış yayı
-PARCA_DISI = frozenset(("OLCU", "YAZI", "EKSEN", "KESIT", "CERCEVE", "SEVIYE", "UYARI", "YUK", "ACILIS"))
+#  Çizimin sınırına ( yazının taşması ) sayılmayan katmanlar — yerleştiriciyle aynı
+PARCA_DISI = geometri.CIZIM_DISI_KATMANLAR
 #  Ölçünün ucunun özelliği:  yazı / ölçü / çerçeve / kesit işareti dışında her çizgi
 OZELLIK_DISI = frozenset(("OLCU", "YAZI", "CERCEVE", "KESIT"))
-_ACIKLAMA = re.compile(r"[^\W\d_]{2}")
+_ACIKLAMA = geometri.ACIKLAMALI
 _ISARET = re.compile(r"Ø|\d\s*x\s*\d")
 #  B-B'de kat adı durağın 1.100 üstünde, kapının yazısı kapı yüksekliğinin 0,6'sında
 #  ( kuyu_kesiti._kat_seviyeleri · _on_katlar ):  kapının yazısının altındaki en
