@@ -909,23 +909,28 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
 def _on_katlar(e, B, g, S, P, kotlar, kapi_h, K):
     """B-B'de kat kapıları ön duvarda ( görünüş ):  kasa, boşluk, eşik ve altında
     eşik altı sacı ( m.5.2.5.3.2 — kısa katta alttaki kapının kasasına bağlanır,
-    d 1 ), kanat ayrımı, durak numarası.  Dönen:  kanatların sınırları ve kapının
-    ortası ( durak numarasının yeri — on_kesit )."""
+    d 1 ), kanat ayrımı, katın adı ( "durak_no" ).  Dönen:  kanatların sınırları
+    ve kapının ortası ( adın yeri — _kapidaki_adlar ).
+
+    Kapıdaki ad soldaki kot işaretinin yanındaki adın aynısıdır ( katlar.
+    adlar_ve_giris — giriş katı 0, altı −1, üstü 1 … ya da elle yazılan ).  6 Kas'a
+    dek kapıya durak sırası ( 1 … n ) yazılıyordu:  giriş katının kapısında "1",
+    solda "0" ( KAT_ADLARI_PLANI'nın kaçan yeri — çizim denetimi M1 )."""
     kp = g["kapi"]
     bos = (kp["sol_pay"], -1, kp["sol_pay"] + kp["genislik"], 0)
     kasa_x0 = min(kk[0] for kk in P["kasa"])
     kasa_x1 = max(kk[2] for kk in P["kasa"])
     #  Kanatların ayrımları ( kapı tipinin kanat sayısında — 2 · 3 · 4 )
     ayrimlar = sorted({round(kk[2], 6) for kk in P["kanat"]})[:-1]
-    #  Durak numarası ortaya en yakın KANADIN ortasında:  kapının ortası iki
-    #  kanatlı kapıda kanat ayrımıdır, numara ( maskeli ) ayrım çizgisini
-    #  siliyordu ( 5 Eki ).
+    #  Katın adı ortaya en yakın KANADIN ortasında:  kapının ortası iki kanatlı
+    #  kapıda kanat ayrımıdır, ad ( maskeli ) ayrım çizgisini siliyordu ( 5 Eki ).
     xs = [bos[0]] + [a for a in ayrimlar if bos[0] < a < bos[2]] + [bos[2]]
     orta = (bos[0] + bos[2]) / 2.0
     k0, k1 = min(zip(xs, xs[1:]), key=lambda p: (abs((p[0] + p[1]) / 2.0 - orta), -(p[1] - p[0])))
     #  Eşik kanat ceplerinin altından da sürer ( planda cep ayrı parça )
     esik = P["esik"] + P["cep"]
     esik = [tuple(f(k[i] for k in esik) for i, f in enumerate((min, min, max, max)))] if esik else []
+    adlar, _giris = katlar.adlar_ve_giris(g)
     for i, zk in enumerate(kotlar):
         B.kutu(e, "KAPI", (kasa_x0, -1, kasa_x1, 0), zk, zk + kapi_h + S["kasa_ust"], "kapi_kasasi")
         B.kutu(e, "KAPI", bos, zk, zk + kapi_h, "kat_kapisi")
@@ -941,7 +946,7 @@ def _on_katlar(e, B, g, S, P, kotlar, kapi_h, K):
         e.append(
             B.derin(
                 eleman.ad(
-                    eleman.yazi(B.u((k0 + k1) / 2.0, 0), zk + kapi_h * 0.6, f"{i + 1}", uslup.HARF * K),
+                    eleman.yazi(B.u((k0 + k1) / 2.0, 0), zk + kapi_h * 0.6, adlar[i], uslup.HARF * K),
                     "durak_no",
                 ),
                 -1,
@@ -949,6 +954,45 @@ def _on_katlar(e, B, g, S, P, kotlar, kapi_h, K):
             )
         )
     return xs, orta
+
+
+def _kapidaki_adlar(e, B, xs, orta, kapi_h, kasa_ust, K):
+    """B-B'de kapıdaki kat adı ( "durak_no" — _on_katlar ) halatın ( kapının
+    önünden geçer ) ya da başka bir parçanın çizgisine binmesin:  ortaya en yakın,
+    çizgisiz kanat ( 2500 kg arka ağırlıkta askı halatı kanadın ortasından
+    geçiyordu — 5 Eki ).  Hiçbir kanada sığmayan ad ( elle yazılmış uzun ad —
+    katlar.AD_AZAMI ) kapının ortasında kasanın üstüne;  orada da yer yoksa
+    yazılmaz:  ad solda kot işaretinin yanında zaten var ( 6 Kas çizim denetimi,
+    karar D1 )."""
+    kanatlar = sorted(zip(xs, xs[1:]), key=lambda p: (abs((p[0] + p[1]) / 2.0 - orta), -(p[1] - p[0])))
+    kenarlar = geometri.parca_kenarlari([el for el in e if el.get("ad") != "durak_no"])
+
+    def serbest(el, x, y):
+        #  Çizgi ne harfe ne yazının MASKESİNE değer:  maske altındaki kenarı siler
+        #  ( araclar/karne maske_kenar_siliyor )
+        kutu = geometri.sinir([dict(el, x=x, y=y)])
+        maske = geometri.maske_kutusu(dict(el, x=x, y=y))
+        return not any(
+            geometri.kenar_kesisir(s_, kutu, 2.0 * K) or geometri.kutudaki_boy(s_, maske) > 0.0
+            for s_ in kenarlar
+        )
+
+    sigmayan = []
+    for el in e:
+        if el.get("ad") != "durak_no":
+            continue
+        #  Kasanın üstünde:  maskenin altı ( taban + alt uzantı + pay ) kasanın
+        #  çizgisinden 2K yukarıda
+        m = geometri.maske_kutusu(el)
+        ust = el["y"] - kapi_h * 0.6 + kapi_h + kasa_ust + (el["y"] - m[1]) + 2.0 * K
+        yerler = [(B.u((a + b) / 2.0, 0), el["y"]) for a, b in kanatlar] + [(B.u(orta, 0), ust)]
+        yer = next(((x, y) for x, y in yerler if serbest(el, x, y)), None)
+        if yer is None:
+            sigmayan.append(el)
+        else:
+            el["x"], el["y"] = yer
+    if sigmayan:
+        e[:] = [el for el in e if not any(el is x for x in sigmayan)]
 
 
 def on_kesit(g, cizim_sabitleri=None, azami=None):
@@ -989,18 +1033,7 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     #  Kabin opak:  arkasında kalan kat kapısı ( en üst durak ) kabinin içinden,
     #  eşik altı sacı kabinin altına sarkan önlüğün içinden görünmez
     kesit_parcalari.kabin_arkasi(e, B, Y["KD"]["kabin"], kt["taban_alti"], kt["tavan"], ortuler=ortuler)
-    #  Durak numarası halatın ( kapının önünden geçer ) ya da başka bir parçanın
-    #  çizgisine binmesin:  ortaya en yakın, çizgisiz kanat ( 2500 kg arka
-    #  ağırlıkta askı halatı kanadın ortasından geçiyordu — 5 Eki )
-    kanatlar = sorted(zip(xs, xs[1:]), key=lambda p: (abs((p[0] + p[1]) / 2.0 - orta), -(p[1] - p[0])))
-    kenarlar = geometri.parca_kenarlari([el for el in e if el.get("ad") != "durak_no"])
-    for el in e:
-        if el.get("ad") == "durak_no":
-            for a, b in kanatlar:
-                kutu = geometri.sinir([dict(el, x=B.u((a + b) / 2.0, 0))])
-                if not any(geometri.kenar_kesisir(s_, kutu, 2.0 * K) for s_ in kenarlar):
-                    el["x"] = B.u((a + b) / 2.0, 0)
-                    break
+    _kapidaki_adlar(e, B, xs, orta, kapi_h, S["kasa_ust"], K)
     #  Ölçüler
     _olculer_sol(e, Y, _sol_zincir(-dg - 700 * K, isaretler, K), K, kotlar, tavan, g)
     uzak = max((r for r in M["raylar"] if r["tur"] == "kabin"), key=lambda r: r["ust"])

@@ -17,11 +17,15 @@ değişiklik altın yenilenince burada kırılır.
 
 Bugün sıfır olmayan kusurlar ( maskenin sildiği kenar, ölçünün üstünden geçen
 ölçü, kopuk ölçü yazısı, betondan geçen halat — araclar/karne ) CIRCIRLA
-tutulur:  sayıları kayıttan artamaz ( KaliteKarnesi;  26 Eki kalite denetimi )."""
+tutulur:  sayıları kayıttan artamaz ( KaliteKarnesi;  26 Eki kalite denetimi ).
+6 Kas çizim denetiminin kuralları da ( yanlış aralıktaki / bitişik / taşan ölçü
+yazısı, uzak ölçü, kuyunun dışındaki etiket, B-B'de kapının yazısı, işaret
+birliği ) karnede;  görünüşler arası tutarlılık kesin kural ( GorunuslerArasi )."""
 
 import collections
 import unittest
 
+from araclar import gorunus
 from araclar import karne
 from cizim import eleman
 from cizim import geometri
@@ -164,11 +168,78 @@ class KaliteKarnesi(unittest.TestCase):
             #  ölçü çizgisi kot işaretinin üçgeninden geçer ( yazısından uzak )
             *kot,
             _olcu("dusey", -300, 400, 14980, (14900, -250)),
+            *self._alti_kasim_ornekleri(),
         ]
         b = karne.karne(e, 20)
         for kural in karne.KURALLAR:
+            if kural in karne.CIZIME_BAGLI:
+                continue  # test_uzak_olcu_yalniz_giris_ve_kapi_kesitinde
             with self.subTest(kural=kural):
                 self.assertEqual(len(b[kural]), 1, b[kural])
+
+    @staticmethod
+    def _alti_kasim_ornekleri():
+        """6 Kas kurallarının ( çizim denetimi ) birer örneği, öbür örneklerden uzakta."""
+        w = eleman.yazi_eni("1000", 70.0)
+        uzun = eleman.olcu(
+            "dusey",
+            (0, 900),
+            (0, 1000),
+            30000,
+            "İLK KONSOL 100",
+            yazi={"x": 30060, "y": 1300, "aci": 90, "h": 70.0},
+        )
+        return [
+            #  "100"ün yazısı 1000'in aralığında ( aynı zincir )
+            _olcu("yatay", 22000, 23000, 0, (22800, 50)),
+            _olcu("yatay", 23000, 23100, 0, (22200, 50)),
+            #  iki ölçü yazısı arası 1 mm:  "1000 1000" tek söz gibi
+            _olcu("yatay", 26000, 27000, 0, (27000 - 10 - w / 2, 60)),
+            _olcu("yatay", 27000, 28000, 0, (27000 + 10 + w / 2, 60)),
+            #  açıklamalı yazı çizimin parçalarının ( en üstü 1.000 ) üstüne taşar
+            uzun,
+            #  kuyu ( SW ) 40.000 … 41.000;  karşı ağırlığın etiketi dışında, oksuz
+            eleman.dikdortgen("KUYU-DUVAR", 40000, 0, 1000, 1000),
+            eleman.olcu(
+                "yatay", (40000, 0), (41000, 0), -200, "SW1000", yazi={"x": 40500, "y": -150, "h": 70.0}
+            ),
+            eleman.ad(eleman.yazi(42000, 500, "KARŞI AĞIRLIK"), "agirlik_yazi"),
+            #  B-B:  katın adı "0", kapısında "1"
+            eleman.ad(eleman.yazi(50000, 1100, "0"), "durak_adi"),
+            eleman.ad(eleman.yazi(50500, 1200, "1"), "durak_no"),
+            #  çap Ø ile
+            eleman.yazi(55000, 0, "Ø 320"),
+        ]
+
+    def test_uzak_olcu_yalniz_giris_ve_kapi_kesitinde(self):
+        #  Giriş görünüşünde ve kapı yan kesitinde ölçü ölçtüğü özelliğin yanında
+        #  olmalı:  "160" / "240" buton yuvasının 70 mm üstünde havadaydı ( 6 Kas );
+        #  planda ve kesitte dış sıralar bilerek uzaktır — sayılmaz
+        e = [
+            eleman.dikdortgen("KAPI", 0, 0, 1000, 2000),
+            _olcu("yatay", 0, 1000, -200, (500, -150)),  # 10 mm:  yakın
+            _olcu("yatay", 0, 1000, 3000, (500, 3050)),  # 50 mm:  uzak
+            _olcu("yatay", 200, 700, -400, (450, -350)),  # 200 / 700'de özellik yok
+        ]
+        for cizim in karne.UZAK_CIZIMLER:
+            with self.subTest(cizim=cizim):
+                self.assertEqual(karne.karne(e, 20, cizim)["uzak_olcu"], [("1000", 50.0), ("500", None)])
+        self.assertEqual(karne.karne(e, 20, "kuyu_plani")["uzak_olcu"], [])
+        self.assertEqual(karne.karne(e, 20)["uzak_olcu"], [])
+
+    def test_kapi_yazisi_kat_adiyla_ayni_temiz(self):
+        #  Kapının yazısı altındaki en yakın kat adıyla aynıysa bulgu yok;  kabinin
+        #  arkasında kalan ( yazısız ) kapı sayılmaz
+        e = [
+            eleman.ad(eleman.yazi(0, 1100, "-1"), "durak_adi"),
+            eleman.ad(eleman.yazi(500, 1200, "-1"), "durak_no"),
+            eleman.ad(eleman.yazi(0, 4100, "0"), "durak_adi"),
+            eleman.ad(eleman.yazi(500, 4200, "0"), "durak_no"),
+            eleman.ad(eleman.yazi(0, 7100, "1"), "durak_adi"),
+        ]
+        self.assertEqual(karne.karne(e, 20)["kapi_no_kat_adi"], [])
+        e[3] = eleman.ad(eleman.yazi(500, 4200, "2"), "durak_no")
+        self.assertEqual(karne.karne(e, 20)["kapi_no_kat_adi"], [("0", "2")])
 
     def test_maske_yalniz_once_cizilen_olcuyu_siler(self):
         #  Ölçü yazısının maskesi kendinden önce çizilen ölçünün çizgisini
@@ -289,3 +360,47 @@ class HalatBetonda(unittest.TestCase):
         parcalar = [(x["katman"], x["y1"], x["y2"]) for x in e if x["tip"] == "cizgi"]
         self.assertEqual(parcalar, [("HALAT", 0, 100), ("GIZLI", 100, 300), ("HALAT", 300, 400)])
         self.assertTrue(all(x.get("ad") == "aski_halati" for x in e if x["tip"] == "cizgi"))
+
+
+class GorunuslerArasi(unittest.TestCase):
+    """Aynı parça planlarda, A-A'da ve B-B'de aynı yerde ( araclar/gorunus — 6 Kas
+    çizim denetimi;  26 Eki'de yalnız ağırlık ve tamponlar 96 / 96 bakılmıştı ).
+    Taramada da sorun olarak ( araclar/tarama )."""
+
+    def test_altin_duzenlerde_ayni_yerde(self):
+        adlar = set()
+        for duzen, kayit in altin_cizim.oku().items():
+            if "cizimler" not in kayit:
+                continue
+            cz = {ad: c["elemanlar"] for ad, c in kayit["cizimler"].items()}
+            with self.subTest(duzen=duzen):
+                self.assertIsNotNone(gorunus.kuyu_genisligi(cz))
+                self.assertEqual(gorunus.sorunlar(cz), [])
+            for k in gorunus.KESITLER:
+                adlar |= set(gorunus.parcalar(cz.get(k, ())))
+        #  Karşılaştırma boş geçmesin:  raylar, tamponlar, kabin, ağırlık, kapılar …
+        self.assertGreater(len(adlar), 30)
+
+    def test_bozuk_gorunusu_yakalar(self):
+        G = 2000.0
+
+        def ray(katman, x0, y0, x1, y1, ad):
+            return eleman.ad(eleman.dikdortgen(katman, x0, y0, x1 - x0, y1 - y0), ad)
+
+        cz = {
+            "kuyu_plani": [ray("RAY", 0, 500, 100, 600, "kabin_ray")],
+            #  A-A:  u = y ( 500 … 600 );  B-B:  u = G − x ( 1.900 … 2.000 )
+            "kuyu_kesiti_yan": [ray("RAY", 500, 0, 600, 3000, "kabin_rayi")],
+            "kuyu_kesiti_on": [ray("RAY", 1900, 0, 2000, 3000, "kabin_rayi")],
+        }
+        self.assertEqual(gorunus.sorunlar(cz, G), [])
+        #  B-B'de ray 50 kaymış;  A-A'da ray kısa ( sabit parçanın kotu )
+        cz["kuyu_kesiti_on"] = [ray("RAY", 1850, 0, 1950, 3000, "kabin_rayi")]
+        cz["kuyu_kesiti_yan"] = [
+            ray("RAY", 500, 0, 600, 3000, "kabin_rayi"),
+            ray("RAY", 500, 3000, 600, 3500, "kabin_rayi"),
+        ]
+        s = gorunus.sorunlar(cz, G)
+        self.assertEqual(len(s), 2, s)
+        self.assertTrue(s[0].startswith("kuyu_kesiti_on: Kabin rayı"), s)
+        self.assertTrue(s[1].startswith("A-A ↔ B-B: Kabin rayı"), s)

@@ -111,6 +111,13 @@ def duzenler():
     d = {"örnek makine dairesiz": _ornek(False), "örnek makine daireli": _ornek(True)}
     for ad in gercek_projeler.PROJELER:
         d[f"gerçek {ad}"] = _gercek(ad)
+    #  Ön yüzün örnek projesi:  ofisin gerçek BAR 2515'i ( kotla girilmiş )
+    d["gerçek BAR 2515"] = {
+        "asansorler": [gercek_projeler.ornek_proje()],
+        "proje_geneli": {},
+        "sabitler": {},
+        "asansor": 0,
+    }
     for Q in (450, 1000, 1600):
         for yer in ("Sağ", "Sol"):
             for mrl in (True, False):

@@ -173,6 +173,64 @@ class Cizim(unittest.TestCase):
         self.assertEqual(katlar.giris_kotu(g), 0.0)
 
 
+def kapidaki_adlar(e):
+    """B-B'de her kapının yazısı ve altındaki en yakın kat adı ( katın adı kot
+    işaretinin 1.100 üstünde, kapının yazısı kapının 0,6'sında ):  [ ( ad , yazı ) ]."""
+    adlar = sorted((x["y"], x["metin"]) for x in e if x.get("ad") == "durak_adi")
+    out = []
+    for x in e:
+        if x.get("ad") == "durak_no":
+            alt = [m for y, m in adlar if y <= x["y"] + 300.0]
+            out.append((alt[-1] if alt else None, x["metin"]))
+    return out
+
+
+class KapidakiAd(unittest.TestCase):
+    """B-B'de kat kapısının yazısı soldaki kat adıyla aynı ( 6 Kas çizim denetimi M1:
+    kapıya durak sırası yazılıyordu — giriş katının kapısında "1", solda "0" ).
+    Hiçbir kanada sığmayan uzun ad kasanın üstüne, orada da yer yoksa yazılmaz
+    ( karar D1 — ad solda zaten var )."""
+
+    def test_kapinin_yazisi_soldaki_ad(self):
+        for ek, beklenen in (
+            ({}, None),
+            (KOTLU, ["-1", "0", "1"]),
+            (dict(KOTLU, giris_duragi=3), ["-2", "-1", "0"]),
+        ):
+            g, _h, _s = cizim(**ek)
+            with self.subTest(ek=ek):
+                ciftler = kapidaki_adlar(kuyu_kesiti.on_kesit(g))
+                self.assertTrue(ciftler)
+                self.assertEqual([a for a, y in ciftler], [y for a, y in ciftler])
+                if beklenen:
+                    #  en üst durağın kapısı kabinin arkasında ( yazısız )
+                    self.assertEqual([y for _a, y in ciftler], beklenen)
+
+    def test_kanada_sigmayan_ad_kasanin_ustunde_ya_da_yok(self):
+        #  "ZEMİN" kanada sığmaz, kasanın üstüne konur;  "OTOPARK KATI" orada da
+        #  sığmaz, kapıya yazılmaz.  Konan yazının ne harfi ne maskesi bir parça
+        #  çizgisine değer ( kasanın çizgisini maske siliyordu )
+        K = kuyu_kesiti.OLCEK / 20.0
+        for ad, kapida in (("ZEMİN", True), ("OTOPARK KATI", False)):
+            g, _h, _s = cizim(**KOTLU, durak_adlari=ad)
+            e = kuyu_kesiti.on_kesit(g)
+            ciftler = kapidaki_adlar(e)
+            with self.subTest(ad=ad):
+                self.assertEqual([a for a, y in ciftler], [y for a, y in ciftler])
+                self.assertEqual([y for _a, y in ciftler], [ad, "0", "1"] if kapida else ["0", "1"])
+            kenarlar = geometri.parca_kenarlari([x for x in e if x.get("ad") != "durak_no"])
+            kasa = [geometri.sinir([k]) for k in e if k.get("ad") == "kapi_kasasi"]
+            for x in e:
+                if x.get("ad") != "durak_no":
+                    continue
+                kutu, maske = geometri.sinir([x]), geometri.maske_kutusu(x)
+                with self.subTest(ad=ad, kapi=x["metin"]):
+                    self.assertFalse(any(geometri.kenar_kesisir(s_, kutu, 2.0 * K) for s_ in kenarlar))
+                    self.assertFalse(any(geometri.kutudaki_boy(s_, maske) > 0.0 for s_ in kenarlar))
+                    if x["metin"] == ad:
+                        self.assertTrue(any(maske[1] >= k[3] for k in kasa))
+
+
 class KirikKesit(unittest.TestCase):
     """Kırık kesitte giriş katı kalır ( 2 Kas:  63444-2'nin A-A / B-B'sinde ara katlar
     kesilince "0" yoktu ):  kırığa düşerse iki kırık, arada giriş katı;  kırığı

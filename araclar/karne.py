@@ -44,6 +44,29 @@ yazının maskesi keser.
                            ( 27 Eki:  makine dairesi kuyudan çok taşınca A-A'da
                            MD'nin kotu sol zincirlerin arasına düşüyordu )
 
+6 Kas çizim denetimi ( cikti/devir/CIZIM_DENETIMI_PLANI.md ):
+
+  yazi_yanlis_aralikta     ölçü yazısı kendi aralığının dışında, aynı zincirin
+                           başka bir aralığının hizasında ( geometri.
+                           yanlis_aralikta — kuyu planında "30" 90'ın yanında )
+  yazi_bitisik             aynı doğrultudaki iki ölçü yazısı arası BITISIK_ESIGI
+                           mm'den az:  tek söz gibi okunur ( "ŞASE 140 MAKİNE 345" )
+  yazi_cizimden_tasiyor    açıklamalı ölçü yazısı ( iki harf yan yana — yalnız
+                           sayı uçta dışarı yazılabilir, ISO 129-1 ) çizimin
+                           parçalarından kendi doğrultusunda TASMA mm'den çok
+                           dışarı taşıyor ( "İLK KONSOL 500" kuyu dibinin altında )
+  uzak_olcu                giriş görünüşünde ve kapı yan kesitinde ölçünün bir
+                           ucu ölçtüğü özellikten ( aynı koordinattaki parça
+                           kenarı / köşesi ) UZAK_OLCU mm'den uzak ya da o
+                           koordinatta çizili özellik yok ( buton "240" havada ) —
+                           planlarda ve kesitlerde dış sıralar bilerek uzaktır
+  etiket_kuyu_disinda      kuyunun içindeki parçanın oksuz etiketi ( karşı ağırlık,
+                           kasnaklar ) kuyunun iç yüzlerinin ( SW / SD ölçüsü )
+                           dışında ( BAR 2515'te "ø 400", B-B'de "KARŞI AĞIRLIK" )
+  kapi_no_kat_adi          B-B'de kat kapısının yazısı o katın adından farklı
+                           ( kapıda durak sırası "1", solda kat adı "0" )
+  isaret_birligi           çap "Ø" ya da çarpı "x" ( çizimlerin işareti ø ve × )
+
     .venv/bin/python -m araclar.karne            altın düzenlerin karnesi ( özet )
     .venv/bin/python -m araclar.karne --yenile   altının kaydını yeniden yazar
 
@@ -55,6 +78,7 @@ import collections
 import json
 import math
 import os
+import re
 import sys
 
 from cizim import geometri
@@ -77,6 +101,27 @@ OK_PAYI = 3.0
 DEGME_PAYI = 0.3
 #  Harf gövdesi bu kadar içeriden denenir:  kenarına sürtünme sayılmaz
 GOVDE_PAYI = 0.1
+#  Açıklamalı ölçü yazısı çizimin parçalarından bu kadar taşarsa ( kâğıtta mm )
+TASMA = 3.0
+#  Ölçünün ucu ölçtüğü özellikten bu kadar uzaksa ( kâğıtta mm ) havada kalır;
+#  yalnız bu çizimlerde ( planda ve kesitte dış sıralar bilerek uzaktır )
+UZAK_OLCU = 30.0
+UZAK_CIZIMLER = ("giris", "kapi_kesiti")
+#  Çizime bağlı kurallar:  karne( e , olcek , cizim ) çizimin adıyla sayar
+CIZIME_BAGLI = {"uzak_olcu": UZAK_CIZIMLER}
+#  Kuyunun içindeki parçaların etiketleri:  kuyunun dışına düşmez
+PARCA_ETIKETLERI = ("agirlik_yazi", "agirlik_kasnak_yazi", "kabin_kasnak_yazi")
+#  Çizimin sınırına ( yazının taşması ) sayılmayan katmanlar:  yazılar, ölçüler,
+#  eksen, kesit işareti, çerçeve, seviye, uyarı, yük, açılış yayı
+PARCA_DISI = frozenset(("OLCU", "YAZI", "EKSEN", "KESIT", "CERCEVE", "SEVIYE", "UYARI", "YUK", "ACILIS"))
+#  Ölçünün ucunun özelliği:  yazı / ölçü / çerçeve / kesit işareti dışında her çizgi
+OZELLIK_DISI = frozenset(("OLCU", "YAZI", "CERCEVE", "KESIT"))
+_ACIKLAMA = re.compile(r"[^\W\d_]{2}")
+_ISARET = re.compile(r"Ø|\d\s*x\s*\d")
+#  B-B'de kat adı durağın 1.100 üstünde, kapının yazısı kapı yüksekliğinin 0,6'sında
+#  ( kuyu_kesiti._kat_seviyeleri · _on_katlar ):  kapının yazısının altındaki en
+#  yakın ad o katındır ( kısa kapıya pay )
+KAT_ADI_PAYI = 300.0
 
 KURALLAR = {
     "maske_kenar_siliyor": "yazının maskesi parça / duvar kenarını siliyor",
@@ -87,6 +132,13 @@ KURALLAR = {
     "yazi_cizgisinden_kopuk": "ölçü yazısı kendi çizgisinden kopuk",
     "halat_betonda": "halat betonun içinden geçiyor",
     "olcu_kot_isaretine_degiyor": "ölçü çizgisi kot işaretine değiyor",
+    "yazi_yanlis_aralikta": "ölçü yazısı zincirin başka aralığının hizasında",
+    "yazi_bitisik": "iki ölçü yazısı bitişik ( tek söz gibi )",
+    "yazi_cizimden_tasiyor": "açıklamalı ölçü yazısı çizimin dışına taşıyor",
+    "uzak_olcu": "ölçü ölçtüğü özellikten uzak ( giriş, kapı kesiti )",
+    "etiket_kuyu_disinda": "parçanın etiketi kuyunun dışında",
+    "kapi_no_kat_adi": "B-B'de kapının yazısı kat adından farklı",
+    "isaret_birligi": "çap Ø / çarpı x ( ø ve × yerine )",
 }
 
 
@@ -282,8 +334,147 @@ def _olcu_kot_isaretinde(e, olcek):
     return out
 
 
-def karne(e, olcek=20):
-    """Çizimin ( elemanları e ) kusurları:  { kural : [ bulgu ] } — bütün kurallar."""
+def _tasanlar(e, olcek):
+    """yazi_cizimden_tasiyor:  [ ( metin , taşma — kâğıtta mm ) ]."""
+    parcalar = [x for x in e if x["tip"] not in ("olcu", "yazi", "ok") and x.get("katman") not in PARCA_DISI]
+    if not parcalar:
+        return []
+    P = geometri.sinir(parcalar)
+    out = []
+    for o in e:
+        if o["tip"] != "olcu" or not o.get("yazi") or not _ACIKLAMA.search(o["metin"]):
+            continue
+        j = 0 if o["yon"] == "yatay" else 1
+        k = geometri.yazi_kutusu(o)
+        tasma = max(P[j] - k[j], k[j + 2] - P[j + 2], 0.0)
+        if tasma > TASMA * olcek:
+            out.append((o["metin"], round(tasma / olcek, 1)))
+    return out
+
+
+def _ozellik_kenarlari(e):
+    """Ölçünün ölçebileceği çizgiler:  [ ( x1, y1, x2, y2 ) ] — dairenin iki çapı
+    ( merkezi ölçülür )."""
+    out = []
+    for el in e:
+        t = el["tip"]
+        if el.get("katman") in OZELLIK_DISI or t in ("yazi", "olcu"):
+            continue
+        if t in ("dikdortgen", "tarama", "tarama_tugla"):
+            x, y, g, d = el["x"], el["y"], el["g"], el["d"]
+            out += [(x, y, x + g, y), (x + g, y, x + g, y + d), (x, y + d, x + g, y + d), (x, y, x, y + d)]
+            for p in el.get("bicim") or ():
+                n = p["noktalar"]
+                out += [(n[i][0], n[i][1], n[i - 1][0], n[i - 1][1]) for i in range(1, len(n))]
+        elif "x1" in el:
+            out.append((el["x1"], el["y1"], el["x2"], el["y2"]))
+        elif t == "daire":
+            x, y, r = el["x"], el["y"], el["r"]
+            out += [(x - r, y, x + r, y), (x, y - r, x, y + r)]
+    return out
+
+
+def _uc_uzakliklari(o, kenarlar, olcek, tol=GOVDE_PAYI * 3):
+    """Ölçünün iki ucunun aynı koordinattaki özelliğe ( dik kenar ya da köşe ) dik
+    uzaklığı — kâğıtta mm;  o koordinatta özellik yoksa sonsuz."""
+    i = 0 if o["yon"] == "yatay" else 1
+    t = tol * olcek
+    out = []
+    for p in (o["a"], o["b"]):
+        v, en = p[i], math.inf
+        for s in kenarlar:
+            a, b = (s[0], s[1]), (s[2], s[3])
+            if abs(a[i] - v) < t and abs(b[i] - v) < t:
+                lo, hi = sorted((a[1 - i], b[1 - i]))
+                en = min(en, 0.0 if lo <= o["kot"] <= hi else min(abs(lo - o["kot"]), abs(hi - o["kot"])))
+            else:
+                en = min([en] + [abs(q[1 - i] - o["kot"]) for q in (a, b) if abs(q[i] - v) < t])
+        out.append(en / olcek)
+    return out
+
+
+def _uzaklar(e, olcek):
+    """uzak_olcu:  [ ( metin , uzaklık — kâğıtta mm;  özellik yoksa None ) ]."""
+    kenarlar = _ozellik_kenarlari(e)
+    out = []
+    for o in e:
+        if o["tip"] != "olcu" or o.get("uzunluk", 0.0) < 1e-6:
+            continue
+        en = max(_uc_uzakliklari(o, kenarlar, olcek))
+        if en > UZAK_OLCU:
+            out.append((o["metin"], None if en == math.inf else round(en, 1)))
+    return out
+
+
+def _kuyu_ici(e):
+    """Kuyunun iç yüzleri SW / SD ölçülerinden:  ( yatay aralık , düşey aralık ) —
+    kesitte yalnız yatay ( A-A'da SD, B-B'de SW );  ölçü yoksa None."""
+    ar = [None, None]
+    for o in e:
+        if o["tip"] == "olcu" and str(o.get("metin", "")).startswith(("SW", "SD")):
+            j = 0 if o["yon"] == "yatay" else 1
+            lo, hi = sorted((o["a"][j], o["b"][j]))
+            ar[j] = (lo, hi) if ar[j] is None else (min(ar[j][0], lo), max(ar[j][1], hi))
+    return ar
+
+
+def _disaridakiler(e, olcek):
+    """etiket_kuyu_disinda:  [ metin ] — oklu etiket ( okun ucu yazının yanında ) sayılmaz."""
+    x, y = _kuyu_ici(e)
+    if x is None:
+        return []
+    pay = OK_PAYI * olcek
+    uclar = [
+        (s["x1"], s["y1"], s["x2"], s["y2"])
+        for s in e
+        if s["tip"] in ("ok", "cizgi") and s.get("katman") == "YAZI"
+    ]
+    out = []
+    for el in e:
+        if el["tip"] != "yazi" or el.get("ad") not in PARCA_ETIKETLERI:
+            continue
+        k = geometri.sinir([el])
+        cx, cy = (k[0] + k[2]) / 2.0, (k[1] + k[3]) / 2.0
+        if x[0] <= cx <= x[1] and (y is None or y[0] <= cy <= y[1]):
+            continue
+        oklu = any(
+            k[0] - pay <= px <= k[2] + pay and k[1] - pay <= py <= k[3] + pay
+            for s in uclar
+            for px, py in ((s[0], s[1]), (s[2], s[3]))
+        )
+        if not oklu:
+            out.append(el["metin"])
+    return out
+
+
+def _kapi_numaralari(e):
+    """kapi_no_kat_adi:  [ ( katın adı , kapının yazısı ) ]."""
+    adlar = sorted((x["y"], x["metin"]) for x in e if x["tip"] == "yazi" and x.get("ad") == "durak_adi")
+    out = []
+    for x in e:
+        if x["tip"] == "yazi" and x.get("ad") == "durak_no":
+            alt = [m for y, m in adlar if y <= x["y"] + KAT_ADI_PAYI]
+            ad = alt[-1] if alt else None
+            if ad != x["metin"]:
+                out.append((ad, x["metin"]))
+    return out
+
+
+def _isaretler(e):
+    """isaret_birligi:  [ metin ]."""
+    return [
+        x["metin"]
+        for x in e
+        if x["tip"] in ("yazi", "olcu")
+        and x.get("katman") != "CERCEVE"
+        and _ISARET.search(str(x.get("metin", "")))
+    ]
+
+
+def karne(e, olcek=20, cizim=None):
+    """Çizimin ( elemanları e ) kusurları:  { kural : [ bulgu ] } — bütün kurallar.
+    cizim:  çizimin adı ( cizimler.CIZIMLER ) — çizime bağlı kurallar ( CIZIME_BAGLI )
+    yalnız onunla sayılır."""
     yazilar = _yazilar(e)
     kesen, degen = _olcu_ustunde(e, olcek)
     return {
@@ -295,12 +486,21 @@ def karne(e, olcek=20):
         "yazi_cizgisinden_kopuk": _kopuklar(e, olcek),
         "halat_betonda": _halatlar(e, olcek),
         "olcu_kot_isaretine_degiyor": _olcu_kot_isaretinde(e, olcek),
+        "yazi_yanlis_aralikta": [(o["metin"], p["metin"]) for o, p in geometri.yanlis_aralikta(e, olcek)],
+        "yazi_bitisik": [
+            (o["metin"], p["metin"], round(b, 2)) for o, p, b in geometri.bitisik_yazilar(e, olcek)
+        ],
+        "yazi_cizimden_tasiyor": _tasanlar(e, olcek),
+        "uzak_olcu": _uzaklar(e, olcek) if cizim in UZAK_CIZIMLER else [],
+        "etiket_kuyu_disinda": _disaridakiler(e, olcek),
+        "kapi_no_kat_adi": _kapi_numaralari(e),
+        "isaret_birligi": _isaretler(e),
     }
 
 
-def sayilar(e, olcek=20):
+def sayilar(e, olcek=20, cizim=None):
     """{ kural : sayı } — yalnız sıfırdan büyükler."""
-    return {k: len(v) for k, v in karne(e, olcek).items() if v}
+    return {k: len(v) for k, v in karne(e, olcek, cizim).items() if v}
 
 
 def altin_karnesi():
@@ -312,7 +512,7 @@ def altin_karnesi():
         c = {
             ad: s
             for ad, cizim in sorted((kayit.get("cizimler") or {}).items())
-            if (s := sayilar(cizim["elemanlar"], cizim["olcek"]))
+            if (s := sayilar(cizim["elemanlar"], cizim["olcek"], ad))
         }
         if c:
             out[duzen] = c
