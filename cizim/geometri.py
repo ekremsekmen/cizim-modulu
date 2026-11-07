@@ -141,6 +141,7 @@ def yazilari_yerlestir(elemanlar, h=eleman.OLCU_YAZI, kaydir=False, kopuk=True):
     #  yöndeki sıranın yazısına biniyordu ( kuyu planının sağ üst köşesinde iki
     #  "DUVAR 150" — yazılar büyüyünce, 5 Eki ).
     Y.dolu = [yazi_kutusu(el) for el in elemanlar if el["tip"] == "olcu" and "yazi" in el]
+    Y.dolu_yon = [el["yon"] for el in elemanlar if el["tip"] == "olcu" and "yazi" in el]
     for (yon, kot), liste in siralar.items():
         i = 0 if yon == "yatay" else 1
         liste.sort(key=lambda q: min(q["a"][i], q["b"][i]))
@@ -154,6 +155,7 @@ def yazilari_yerlestir(elemanlar, h=eleman.OLCU_YAZI, kaydir=False, kopuk=True):
             kat, orta = Y.sec(yon, kot, aday, yerlesen, bas, son, w)
             yerlesen.append((kat, orta - w / 2.0, orta + w / 2.0))
             Y.dolu.append(Y.kutu(yon, kot, kat, orta, w))
+            Y.dolu_yon.append(yon)
             capraz = Y.capraz(kot, kat)
             q["yazi"] = (
                 {"x": orta, "y": capraz, "aci": 0.0, "h": h}
@@ -229,6 +231,23 @@ class _YaziYerleri:
             else []
         )
         self.dolu = []
+        self.dolu_yon = []
+        #  Çizimin parçalarının sınırı:  açıklamalı yazı onun dışına taşmasın
+        #  ( yazi_cizimden_tasiyor — _yumusak_iyilestir yazıyı daha çok taşırmaz )
+        cizim_parcalari = [
+            x
+            for x in elemanlar
+            if x["tip"] not in ("olcu", "yazi", "ok") and x.get("katman") not in CIZIM_DISI_KATMANLAR
+        ]
+        self.cizim_siniri = sinir(cizim_parcalari) if cizim_parcalari else None
+        #  Zincirler ( aynı yön ve kot ):  yazının ortası başka bir aralığın
+        #  hizasına düşmesin ( yanlis_aralikta — 6 Kas çizim denetimi )
+        self.hatlar = collections.defaultdict(list)
+        for o in self.tum_olculer:
+            j = 0 if o["yon"] == "yatay" else 1
+            self.hatlar[(o["yon"], round(o["kot"], 1))].append(
+                (min(o["a"][j], o["b"][j]), max(o["a"][j], o["b"][j]), id(o))
+            )
 
     def capraz(self, kot, kat):
         """Yazının ortasının ölçü çizgisine dik konumu:  çizginin dışında, kat
@@ -238,13 +257,16 @@ class _YaziYerleri:
             return kot - dis * 50.0 * self.k
         return kot + dis * (50.0 + eleman.KAT_ARALIGI * kat) * self.k
 
-    def _ters_serbest(self, yon, kot, bas, son):
+    def _ters_serbest(self, yon, kot, bas, son, pay=100.0):
         """Çizginin iç yanı yazıya açık mı:  o yanda aynı yönde başka bir ölçü
         sırası yok ( iç yandaki yazı öbür sıranın yazılarının şeridine düşer,
-        okuyan onu o sıranın ölçüsü sanar — 5 Eki )."""
+        okuyan onu o sıranın ölçüsü sanar — 5 Eki ).  bas – son:  ölçünün
+        aralığı ya da ( yanlış aralık / bitişik yazıda ) yalnız yazının kendisi:
+        iç sıra o hizada yoksa yazı onun ölçüsü sanılmaz ( kuyu planının eşik
+        zincirinde "30" — iç yandaki CD sırası 90'ın üstünden başlıyor )."""
         dis = -1.0 if kot < 0 else 1.0
         i = 0 if yon == "yatay" else 1
-        pay = 100.0 * self.k
+        pay = pay * self.k
         return not any(
             o is not self.simdiki
             and o["yon"] == yon
@@ -370,27 +392,73 @@ class _YaziYerleri:
         secilen = temiz or yazisiz or ilk or aday[-1]
         return self._iyilestir(yon, kot, aday, yerlesen, bas, son, w, secilen)
 
+    def yanlis_aralik(self, yon, kot, orta):
+        """Yazının ortası kendi aralığının dışında, aynı zincirin başka bir
+        aralığının hizasında mı ( yanlis_aralikta — araclar/karne:  okuyan onu
+        o aralığın ölçüsü sanar )."""
+        j = 0 if yon == "yatay" else 1
+        o = self.simdiki
+        if min(o["a"][j], o["b"][j]) - 1e-6 <= orta <= max(o["a"][j], o["b"][j]) + 1e-6:
+            return False
+        pay = ARALIK_PAYI * 20.0 * self.k
+        return any(
+            kim != id(o) and lo + pay < orta < hi - pay for lo, hi, kim in self.hatlar[(yon, round(kot, 1))]
+        )
+
+    def bitisik(self, yon, kot, kat, orta, w):
+        """Aynı doğrultudaki bir ölçü yazısına BITISIK_ESIGI'nden yakın mı
+        ( bitisik_yazilar — araclar/karne:  iki yazı tek söz gibi okunur )."""
+        kb_ = self.kutu(yon, kot, kat, orta, w)
+        i = 0 if yon == "yatay" else 1
+        d = 1 - i
+        c = (kb_[d] + kb_[d + 2]) / 2.0
+        esik = BITISIK_ESIGI * 20.0 * self.k
+        for y, b in zip(self.dolu_yon, self.dolu):
+            if y != yon or abs((b[d] + b[d + 2]) / 2.0 - c) > 0.25 * self.h:
+                continue
+            if -0.5 * self.h < max(b[i] - kb_[i + 2], kb_[i] - b[i + 2]) < esik:
+                return True
+        return False
+
     def kusurlar(self, yon, kot, kat, orta, w):
         """Yerin kusurları ( araclar/karne'nin ölçü yazısına bakan kuralları ):
         ( harflerine başka ölçünün çizgisi biniyor , maskesinin sildiği parça
-        kenarı , maskesinin sildiği önceki ölçü çizgisi , örttüğü uç )."""
+        kenarı , maskesinin sildiği önceki ölçü çizgisi , örttüğü uç , başka
+        aralığın hizasında , bitişik )."""
         m = uslup.maske_kutusu(*self._yazi_yeri(yon, kot, kat, orta, w))
         boy, uc = self.olculer.silinen(m, self.simdiki)
-        return self.cizgiye_biner(yon, kot, kat, orta, w), self.silinen(yon, kot, kat, orta, w), boy, uc
+        return (
+            self.cizgiye_biner(yon, kot, kat, orta, w),
+            self.silinen(yon, kot, kat, orta, w),
+            boy,
+            uc,
+            self.yanlis_aralik(yon, kot, orta),
+            self.bitisik(yon, kot, kat, orta, w),
+        )
 
     def _kusurlu(self, d, kat):
         """Giderilecek kusurlar ( karnenin eşiğini aşan ):  ( çizgi , kenar ,
         ölçü , kopuk — yazı bir kat ya da daha dışarıda:  araclar/karne
-        yazi_cizgisinden_kopuk ).  Maskeninkiler yalnız kaydir'da:  öbür çizimlerde yazıların yeri
+        yazi_cizgisinden_kopuk , yanlış aralık , bitişik — 6 Kas ).  Maskeninkiler yalnız kaydir'da:  öbür çizimlerde yazıların yeri
         başka yerleşimlerin dayanağıdır — kuyu dibinde yük kutuları ölçü
         yazılarına göre konur, maskesi için kayan "565" onları kuyunun dışına
         itiyordu ( 26 Eki )."""
-        cizgi, kenar, boy, uc = d
+        cizgi, kenar, boy, uc, aralik, bitisik = d
         if not self.kaydir:
-            return (cizgi, False, False, self.kopuk and kat >= 1)
-        return (cizgi, kenar > self.esik, boy > self.esik or uc > 0, self.kopuk and kat >= 1)
+            return (cizgi, False, False, self.kopuk and kat >= 1, aralik, bitisik)
+        return (cizgi, kenar > self.esik, boy > self.esik or uc > 0, self.kopuk and kat >= 1, aralik, bitisik)
 
     def _iyilestir(self, yon, kot, aday, yerlesen, bas, son, w, secilen):
+        """Seçilen yerin kusurları giderilir:  önce SERT kusurlar ( çizgi, maske,
+        kopuk — _sert_iyilestir, 26 – 27 Eki ), sonra yazının hangi aralığa ait
+        olduğu ( yanlış aralık, bitişik — _yumusak_iyilestir, 6 Kas ).  İkinci
+        aşama birincinin giderdiği hiçbir kusuru geri getirmez:  komşu aralığa
+        kaymış bir yazı ( kabin üstünde "70", kuyu dibinde "162,5" ) maskesinden
+        kaçmak için oradaysa yerinde kalır."""
+        secilen = self._sert_iyilestir(yon, kot, aday, yerlesen, bas, son, w, secilen)
+        return self._yumusak_iyilestir(yon, kot, aday, yerlesen, bas, son, w, secilen)
+
+    def _sert_iyilestir(self, yon, kot, aday, yerlesen, bas, son, w, secilen):
         """Seçilen yerin kusuru varsa ( 26 Eki:  harflerine başka ölçünün
         çizgisi biniyor, maskesi parça kenarını ya da önce çizilen ölçünün
         çizgisini siliyor ) seçimin şartlarını sağlayan ve HİÇBİR ölçüde kötü
@@ -401,9 +469,9 @@ class _YaziYerleri:
         adaylar sırasıyla ( sıranın ucunun dışı ), sonra öbür kaymalar.  Yoksa
         seçilen ( kusursuz yazının yeri hiç değişmez ).  Yalnız çizgi şartıyla
         aransaydı yazı kuyu dibinde duvarın içine, kabin üstünde iki kat
-        dışarı kaçıyordu."""
+        dışarı kaçıyordu.  Yalnız SERT kusurlar ( _kusurlu'nun ilk dördü )."""
         d0 = self.kusurlar(yon, kot, *secilen, w)
-        k0 = self._kusurlu(d0, secilen[0])
+        k0 = self._kusurlu(d0, secilen[0])[:4]
         if not any(k0):
             return secilen
         kat0, duvarda0 = secilen[0], self.duvarda(yon, kot, *secilen, w)
@@ -443,8 +511,8 @@ class _YaziYerleri:
             if not k0[1] and kenar > d0[1] + 1e-6:
                 continue
             m = uslup.maske_kutusu(*self._yazi_yeri(yon, kot, kat, orta, w))
-            d = (cizgi, kenar) + self.olculer.silinen(m, self.simdiki)
-            k = self._kusurlu(d, kat)
+            d = (cizgi, kenar) + self.olculer.silinen(m, self.simdiki) + (False, False)
+            k = self._kusurlu(d, kat)[:4]
             if any(a > b for a, b in zip(k, k0)) or sum(k) >= sum(k0):
                 continue
             if not _maske_kotulesmez(d0[1:], d[1:], k0[1:3], k[1:3], self.esik):
@@ -453,6 +521,76 @@ class _YaziYerleri:
                 return (kat, orta)
             uygun.append((kat, orta))
         return uygun[0] if uygun else secilen
+
+    def tasma(self, yon, kot, kat, orta, w):
+        """Yazının çizimin parçalarından ( CIZIM_DISI_KATMANLAR dışındakiler ) kendi
+        doğrultusunda dışarı taşan boyu ( araclar/karne:  yazi_cizimden_tasiyor )."""
+        P = self.cizim_siniri
+        if P is None:
+            return 0.0
+        k = self.kutu(yon, kot, kat, orta, w)
+        j = 0 if yon == "yatay" else 1
+        return max(P[j] - k[j], k[j + 2] - P[j + 2], 0.0)
+
+    def _yumusak_iyilestir(self, yon, kot, aday, yerlesen, bas, son, w, secilen):
+        """YANLIŞ ARALIK / BİTİŞİK ( 6 Kas ):  sığmayan ara ölçünün yazısı komşu
+        aralığın hizasındaydı ( kuyu planının eşik zincirinde "30" 90'ın yanında,
+        "150"ye bitişik ).  Daha az yanlış aralık / bitişik kusurlu yer:  önce
+        kendi aralığının ortası — iç yan yazının hizasında açıksa çizginin iç
+        yanı ( kat −1;  iç sıra yalnız yazının hizasında aranır ), sonra çizginin
+        dışı —, sonra kendi aralığı boyunca, sonra adaylar ve öbür kaymalar.  Yeni
+        yer hiçbir SERT kusuru ( çizgi, maske, kopuk ) artırmaz, maskesinin
+        sildikleri kötüleşmez, çizimden daha çok taşmaz, duvara / engele girmez;
+        yoksa yazı yerinde kalır."""
+        #  Yalnız sayı yazıları:  açıklamalı uzun yazılar ( "İLK KONSOL 500", "MAKİNE
+        #  345" ) 3. adımda yeniden yazılır — burada kaydırılınca B-B'de karşı
+        #  ağırlığın etiketi yerinden oluyordu
+        if ACIKLAMALI.search(self.simdiki.get("metin", "")):
+            return secilen
+        d0 = self.kusurlar(yon, kot, *secilen, w)
+        k0 = self._kusurlu(d0, secilen[0])
+        if not any(k0[4:]):
+            return secilen
+        kat0, duvarda0 = secilen[0], self.duvarda(yon, kot, *secilen, w)
+        engelde0 = self.engelde(self.kutu(yon, kot, *secilen, w))
+        tasma0 = self.tasma(yon, kot, *secilen, w)
+        #  Yanlış aralıktan çıkmak:  yazının ortası kendi aralığında ya da zincirin
+        #  bütün aralıklarının dışında ( sınırın payını kıl payı aşmak sayılmaz —
+        #  A-A'da "MAKİNE 345" 0,26 mm kayıp kuralın payının altına düşüyordu )
+        pay = ARALIK_PAYI * 20.0 * self.k
+        hat = [(lo, hi) for lo, hi, kim in self.hatlar[(yon, round(kot, 1))] if kim != id(self.simdiki)]
+
+        def aralikta(orta):
+            return bas - 1e-6 <= orta <= son + 1e-6 or not any(lo - pay < orta < hi + pay for lo, hi in hat)
+
+        orta0 = (bas + son) / 2.0
+        ters = self._ters_serbest(yon, kot, orta0 - w / 2.0, orta0 + w / 2.0, pay=25.0)
+        kaymalar = self._kaymalar(bas, son, w, (20.0, 5.0))
+        kendi = [(kat, orta0) for kat in ((-1, 0) if ters else (0,))] + [
+            (kat_, o) for kat_, o in kaymalar if kat_ == 0 and bas - 1e-6 <= o <= son + 1e-6
+        ]
+        for kat, orta in kendi + list(aday) + kaymalar:
+            if kat > kat0 or _sirada_biner(yerlesen, kat, orta, w, self.k):
+                continue
+            kb_ = self.kutu(yon, kot, kat, orta, w)
+            if (
+                self.yaziya_biner(kb_)
+                or self.kenara_biner(kb_)
+                or (self.duvarda(yon, kot, kat, orta, w) and not duvarda0)
+                or (self.engelde(kb_) and not engelde0)
+                or self.tasma(yon, kot, kat, orta, w) > tasma0 + 1e-6
+            ):
+                continue
+            if k0[4] and not aralikta(orta):
+                continue
+            d = self.kusurlar(yon, kot, kat, orta, w)
+            k = self._kusurlu(d, kat)
+            if any(a > b for a, b in zip(k[:4], k0[:4])) or sum(k[4:]) >= sum(k0[4:]):
+                continue
+            if not _maske_kotulesmez(d0[1:], d[1:], k0[1:3], k[1:3], self.esik):
+                continue
+            return (kat, orta)
+        return secilen
 
     def _kaymalar(self, bas, son, w, adimlar=(20.0, 5.0)):
         """Yazının kendi ölçüsü boyunca yerleri ( kat, orta ):  uçların hemen
@@ -2106,6 +2244,14 @@ def olcu_yazisi_olcutleri(e, k=1.0):
 #  yanındaydı, A-A'nın tepesinde "MAKİNE 345" 250'nin.  Kendi aralığına sığmayan
 #  yazı ucun ötesine ya da çizginin öbür yanına konur ( ISO 129-1 ).  Pay kâğıtta mm.
 ARALIK_PAYI = 0.3
+#  Açıklamalı yazı:  iki harf yan yana ( "İLK KONSOL 500", "SW2200" — yalnız sayı
+#  değil );  araclar/karne'nin taşma kuralı da bunu kullanır
+ACIKLAMALI = re.compile(r"[^\W\d_]{2}")
+#  Çizimin sınırına ( yazının taşması ) sayılmayan katmanlar:  yazılar, ölçüler,
+#  eksen, kesit işareti, çerçeve, seviye, uyarı, yük, açılış yayı
+CIZIM_DISI_KATMANLAR = frozenset(
+    ("OLCU", "YAZI", "EKSEN", "KESIT", "CERCEVE", "SEVIYE", "UYARI", "YUK", "ACILIS")
+)
 #  Aynı doğrultudaki iki ölçü yazısı arası bundan azsa ( kâğıtta mm ) tek söz gibi
 #  okunur:  "ŞASE 140 MAKİNE 345", "60 EŞİK ARASI 30" ( 2,5 mm yazıda sözcük arası
 #  0,7, harf eni 1,5 mm ).
