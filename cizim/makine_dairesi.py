@@ -944,6 +944,7 @@ def ciz(g, cizim_sabitleri=None):
     _delik_elemanlari(e, Y)
     e += _makine_ve_donanim(Y, md, G)
     e += _olculer(Y, md, G, D)
+    _alanlar(e, Y)
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     geometri.yazilari_yerlestir(e)
     return e
@@ -1133,24 +1134,57 @@ def _makine_ve_donanim(Y, md, G):
     for hx, hy in M["halatlar"] + [Y["agirlik_dusus"]] + ([M["ag_teget2"]] if M.get("ag_teget2") else []):
         e.append(eleman.ad(eleman.daire("KASNAK", hx, hy, 20), "halat"))
     if Y["pano"]:
-        pn, ca = Y["pano"], Y["calisma"]
+        pn = Y["pano"]
         e.append(_kutu("PANO", pn, "kumanda_panosu"))
-        e.append(_kutu("SIGINMA", ca, "calisma_alani"))
-        dik = (pn[2] - pn[0]) < (pn[3] - pn[1])
-        e.append(
-            eleman.yazi(
-                (pn[0] + pn[2]) / 2.0,
-                (pn[1] + pn[3]) / 2.0,
-                md.get("pano_adi") or "KUMANDA PANOSU",
-                uslup.NORMAL,
-                aci=90 if dik else 0,
-            )
-        )
-        e.append(eleman.yazi(*_alan_yazi_yeri(ca), "ÇALIŞMA ALANI", uslup.NORMAL, aci=90 if dik else 0))
+        e.append(_kutu("SIGINMA", Y["calisma"], "calisma_alani"))
+        e += _pano_adi(pn, md.get("pano_adi") or "KUMANDA PANOSU")
     if Y["bakim"]:
         e.append(_kutu("SIGINMA", Y["bakim"], "bakim_alani"))
-        e.append(eleman.yazi(*_alan_yazi_yeri(Y["bakim"]), "BAKIM ALANI", uslup.NORMAL))
     return e
+
+
+def _dik(kutu):
+    """Kutu düşey mi ( eni boyundan küçük ):  yazısı 90°."""
+    return (kutu[2] - kutu[0]) < (kutu[3] - kutu[1])
+
+
+#  Satırların arası ( merkezden merkeze, em ) — kot farkı notuyla aynı
+SATIR_ARASI = 1.6
+
+
+def _pano_adi(pn, metin):
+    """Kumanda panosunun adı panonun İÇİNDE, uzun kenarı boyunca:  tek satıra
+    sığmazsa sözler iki satıra bölünür — önce son sözden önce ( "KUMANDA" /
+    "PANOSU", "ASANSÖR 1" / "PANOSU" ), sonra daha önceden;  hiçbiri sığmazsa
+    tek satır, panonun ortasında ( etiket ayırıcı yanına taşır ).  7 Kas çizim
+    denetimi 4. adımı:  665'lik "KUMANDA PANOSU" 600'lük panoya sığmıyordu,
+    ayırıcı onu çalışma alanının ölçü çizgisinin üstüne ya da oklu uzağa
+    koyuyordu ( altın 16 düzenin 15'inde )."""
+    h, dik = uslup.NORMAL, _dik(pn)
+    cx, cy = (pn[0] + pn[2]) / 2.0, (pn[1] + pn[3]) / 2.0
+    uzun, kisa = (pn[3] - pn[1], pn[2] - pn[0]) if dik else (pn[2] - pn[0], pn[3] - pn[1])
+    sozler = metin.split()
+    secenekler = [[metin]] + [
+        [" ".join(sozler[:i]), " ".join(sozler[i:])] for i in range(len(sozler) - 1, 0, -1)
+    ]
+    #  Maske her yanda yazıdan büyük ( uslup.maske ):  enine ve boyuna payı
+    bas = []
+    for satirlar in secenekler:
+        n = len(satirlar)
+        en = max(eleman.yazi_eni(m, h) for m in satirlar) + 0.5 * h
+        kalinlik = SATIR_ARASI * h * (n - 1) + 1.6 * h
+        if en <= uzun and kalinlik <= kisa:
+            bas = satirlar
+            break
+    if not bas:
+        return [eleman.ad(eleman.yazi(cx, cy, metin, h, aci=90 if dik else 0), "pano_adi")]
+    out = []
+    for i, m in enumerate(bas):
+        kayma = SATIR_ARASI * h * (i - (len(bas) - 1) / 2.0)
+        #  90°'de yazının üstü −x yanında:  ilk satır solda;  0°'de üstte
+        x, y = (cx + kayma, cy) if dik else (cx, cy - kayma)
+        out.append(eleman.ad(eleman.yazi(x, y, m, h, aci=90 if dik else 0), "pano_adi"))
+    return out
 
 
 def _oda_kuyu_zinciri(yon, kuyu, oda, ic, dis, kuyu_kodu, oda_kodu):
@@ -1182,8 +1216,8 @@ def _oda_kuyu_zinciri(yon, kuyu, oda, ic, dis, kuyu_kodu, oda_kodu):
 
 
 def _olculer(Y, md, G, D):
-    """Oda ve odanın kuyuya göre yeri;  çalışma ve bakım alanlarının ölçüleri
-    ( standardın sayıları )."""
+    """Oda ve odanın kuyuya göre yeri ( çalışma ve bakım alanlarının ölçüleri
+    _alanlar'da )."""
     oda, t = Y["oda"], md["duvar"]
     u0, u1 = oda[3] + t + 120, oda[3] + t + 120 + geometri.SIRA_ARASI
     s0, s1 = oda[2] + t + 120, oda[2] + t + 120 + geometri.SIRA_ARASI
@@ -1193,44 +1227,131 @@ def _olculer(Y, md, G, D):
     e += _oda_kuyu_zinciri(
         "dusey", D, (oda[1], oda[3]), s0, s1, ("SD", "kuyu_derinligi"), ("MRD", "oda_derinligi")
     )
-    for alan, kural in (
-        (
-            Y["calisma"],
-            "Kumanda panosu önündeki çalışma alanı:  derinliği 0,70 m, eni "
-            "panonun eni ya da en az 0,50 m ( TS EN 81-20 m.5.2.6.3.2.1 a ).  "
-            "Yerini program kapıya en yakın uygun yere koyar.",
-        ),
-        (
-            Y["bakim"],
-            "Makinenin başındaki bakım alanı:  0,50 × 0,60 m ( TS EN 81-20 "
-            "m.5.2.6.3.2.1 b ).  Yerini program makineye en yakın boş yere koyar.",
-        ),
-    ):
+    return e
+
+
+#  Çalışma / bakım alanının ölçüleri alanın DIŞINDA:  ölçü çizgisi alanın kenarından
+#  ALAN_OLCU_ARASI ötede, yazısı çizginin dışında;  alanın adı ortasında.  7 Kas
+#  çizim denetimi 4. adımı:  ölçüler alanın içindeydi ( kenardan 60 ), adı alana
+#  sığmayınca ölçü çizgisini siliyordu — altın 16 düzenin 16'sında ÇALIŞMA ALANI,
+#  6'sında BAKIM ALANI;  taramada ( pano adıyla ) 251
+ALAN_OLCU_ARASI = 100.0
+_ALAN_KURALLARI = {
+    "calisma": "Kumanda panosu önündeki çalışma alanı:  derinliği 0,70 m, eni "
+    "panonun eni ya da en az 0,50 m ( TS EN 81-20 m.5.2.6.3.2.1 a ).  "
+    "Yerini program kapıya en yakın uygun yere koyar.",
+    "bakim": "Makinenin başındaki bakım alanı:  0,50 × 0,60 m ( TS EN 81-20 "
+    "m.5.2.6.3.2.1 b ).  Yerini program makineye en yakın boş yere koyar.",
+}
+
+
+def _alan_olcusu(alan, yon, taraf, kural):
+    """Alanın bir ölçüsü:  yon "yatay" ( eni ) ya da "dusey" ( boyu );  taraf −1
+    ( alt / sol ) ya da +1 ( üst / sağ ) — alanın dışında, yazı çizginin dışında;
+    taraf 0:  eski yer ( alanın içinde, kenardan 60;  dışarıda yer yoksa )."""
+    x0, y0, x1, y1 = alan
+    h = uslup.NORMAL
+    if yon == "yatay":
+        kot = y0 + 60 if taraf == 0 else (y0 - ALAN_OLCU_ARASI if taraf < 0 else y1 + ALAN_OLCU_ARASI)
+        yazi = {"x": (x0 + x1) / 2.0, "y": kot + (50.0 if taraf >= 0 else -50.0), "h": h}
+        return eleman.olcu("yatay", (x0, 0), (x1, 0), kot, f"{x1 - x0:g}", kural=kural, yazi=yazi)
+    kot = x0 + 60 if taraf == 0 else (x0 - ALAN_OLCU_ARASI if taraf < 0 else x1 + ALAN_OLCU_ARASI)
+    yazi = {"x": kot + (50.0 if taraf >= 0 else -50.0), "y": (y0 + y1) / 2.0, "aci": 90, "h": h}
+    return eleman.olcu("dusey", (0, y0), (0, y1), kot, f"{y1 - y0:g}", kural=kural, yazi=yazi)
+
+
+class _Engeller:
+    """Çizimdeki parça kenarları, ölçü çizgileri ve yazı maskeleri:  yeni bir
+    ölçünün ya da yazının yeri boş mu ( odanın içinde, maskesi hiçbir kenarı,
+    ölçü çizgisini, yazıyı silmez;  çizgileri hiçbir yazının üstünden geçmez )."""
+
+    def __init__(self, e, oda):
+        self.oda = oda
+        self.kenarlar = geometri.KenarIzgarasi(geometri.parca_kenarlari(e))
+        self.cizgiler = [s for o in e if o["tip"] == "olcu" for s in geometri.olcu_cizgileri(o)]
+        self.maskeler = [
+            geometri.maske_kutusu(x)
+            for x in e
+            if (x["tip"] == "yazi" and x.get("katman") != "CERCEVE") or (x["tip"] == "olcu" and x.get("yazi"))
+        ]
+
+    def icinde(self, k):
+        o = self.oda
+        return o[0] <= k[0] and o[1] <= k[1] and k[2] <= o[2] and k[3] <= o[3]
+
+    def bos(self, el):
+        m = geometri.maske_kutusu(el)
+        cizgiler = geometri.olcu_cizgileri(el) if el["tip"] == "olcu" else []
+        #  Odanın içinde:  yazı ve ölçü çizgisi ( uçtaki eğik çizgi duvara dayanan
+        #  ölçüde duvarın yüzünü 1 mm geçer — her ölçüde öyle )
+        kutular = [m] + [
+            (min(s[0], s[2]), min(s[1], s[3]), max(s[0], s[2]), max(s[1], s[3])) for s in cizgiler[:1]
+        ]
+        if not all(self.icinde(k) for k in kutular):
+            return False
+        if any(geometri.kenar_kesisir(s, m) for s in self.kenarlar.adaylar(m)):
+            return False
+        if any(geometri.kenar_kesisir(s, m) for s in self.cizgiler):
+            return False
+        if any(ortusur(m, b) for b in self.maskeler if b):
+            return False
+        return not any(b and geometri.kenar_kesisir(s, b) for s in cizgiler for b in self.maskeler)
+
+    def ekle(self, el):
+        if el["tip"] == "olcu":
+            self.cizgiler += geometri.olcu_cizgileri(el)
+        self.maskeler.append(geometri.maske_kutusu(el))
+
+
+def _alanlar(e, Y):
+    """Çalışma ve bakım alanının ölçüleri ve adı ( e'ye eklenir ):  her ölçü
+    alanın dışında, önce odanın ortasına bakan yanda, boş değilse öbür yanda,
+    ikisi de doluysa eski yerinde ( alanın içinde — "1600 Arka 2:1 MD"de kot
+    farkı notu çalışma alanının hemen altında );  ad alanın içinde, hiçbir şeye
+    binmeyen ilk yerde ( _alan_adi_yeri )."""
+    oda = Y["oda"]
+    ox, oy = (oda[0] + oda[2]) / 2.0, (oda[1] + oda[3]) / 2.0
+    E = _Engeller(e, oda)
+    for ad, metin in (("calisma", "ÇALIŞMA ALANI"), ("bakim", "BAKIM ALANI")):
+        alan = Y.get(ad)
         if not alan:
             continue
-        e.append(
-            eleman.olcu(
-                "yatay",
-                (alan[0], 0),
-                (alan[2], 0),
-                alan[1] + 60,
-                f"{alan[2] - alan[0]:g}",
-                kural=kural,
-                yazi={"x": (alan[0] + alan[2]) / 2.0, "y": alan[1] + 110, "h": uslup.NORMAL},
+        cx, cy = (alan[0] + alan[2]) / 2.0, (alan[1] + alan[3]) / 2.0
+        disarida = True
+        for yon, merkez, oda_merkezi in (("yatay", cy, oy), ("dusey", cx, ox)):
+            yanlar = (-1, 1) if merkez > oda_merkezi else (1, -1)
+            olcu = next(
+                (o for o in (_alan_olcusu(alan, yon, t, _ALAN_KURALLARI[ad]) for t in yanlar) if E.bos(o)),
+                None,
             )
-        )
-        e.append(
-            eleman.olcu(
-                "dusey",
-                (0, alan[1]),
-                (0, alan[3]),
-                alan[0] + 60,
-                f"{alan[3] - alan[1]:g}",
-                kural=kural,
-                yazi={"x": alan[0] + 110, "y": (alan[1] + alan[3]) / 2.0, "aci": 90, "h": uslup.NORMAL},
-            )
-        )
-    return e
+            if olcu is None:
+                olcu, disarida = _alan_olcusu(alan, yon, 0, _ALAN_KURALLARI[ad]), False
+            e.append(olcu)
+            E.ekle(olcu)
+        #  Adı:  çalışma alanında önce panonun doğrultusunda ( pano düşeyse 90° )
+        dik = bool(ad == "calisma" and Y.get("pano") and _dik(Y["pano"]))
+        yazi = _alan_adi_yeri(alan, metin, dik, disarida, E)
+        e.append(yazi)
+        E.ekle(yazi)
+
+
+def _alan_adi_yeri(alan, metin, dik, disarida, E):
+    """Alanın adı:  alanın içinde kalan ve boş ( E.bos ) ilk aday — ölçüler
+    dışarıdaysa ortası, değilse içerideki ölçülerin dışında kalan parçanın ortası
+    ( _alan_yazi_yeri );  önce istenen doğrultuda ( dik:  90° ), sonra öbüründe.
+    Hiçbiri olmazsa ilk aday ( etiket ayırıcı kaydırır )."""
+    orta = (alan[0] + alan[2]) / 2.0, (alan[1] + alan[3]) / 2.0
+    yerler = [orta] if disarida else [_alan_yazi_yeri(alan), orta]
+    adaylar = [
+        eleman.yazi(*yer, metin, uslup.NORMAL, aci=aci)
+        for aci in ((90, 0) if dik else (0, 90))
+        for yer in yerler
+    ]
+    for y in adaylar:
+        m = geometri.maske_kutusu(y)
+        if alan[0] <= m[0] and alan[1] <= m[1] and m[2] <= alan[2] and m[3] <= alan[3] and E.bos(y):
+            return y
+    return adaylar[0]
 
 
 def delik_plani(g, cizim_sabitleri=None):

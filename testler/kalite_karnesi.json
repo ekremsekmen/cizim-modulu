@@ -21,9 +21,6 @@
   },
   "kuyu_kesiti_on": {
    "etiket_kuyu_disinda": 1
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 3
   }
  },
  "1000 Sağ MRL": {
@@ -167,9 +164,6 @@
   },
   "kuyu_kesiti_on": {
    "etiket_kuyu_disinda": 1
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 2
   }
  },
  "1000 Sol MRL": {
@@ -220,9 +214,6 @@
   },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 2
   }
  },
  "1275 Arka 2:1 MRL": {
@@ -275,9 +266,6 @@
   },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 2
   }
  },
  "1600 Arka 2:1 MD Otomatik Merkezi 4 Kanat": {
@@ -304,9 +292,6 @@
   },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 1
   }
  },
  "1600 Sağ MD": {
@@ -331,9 +316,6 @@
   },
   "kuyu_kesiti_on": {
    "etiket_kuyu_disinda": 1
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 3
   }
  },
  "1600 Sağ MRL": {
@@ -382,9 +364,6 @@
   },
   "kuyu_kesiti_on": {
    "etiket_kuyu_disinda": 1
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 2
   }
  },
  "1600 Sol MRL": {
@@ -460,9 +439,6 @@
   },
   "kuyu_kesiti_on": {
    "etiket_kuyu_disinda": 1
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 3
   }
  },
  "450 Sağ MRL": {
@@ -516,9 +492,6 @@
   },
   "kuyu_kesiti_on": {
    "etiket_kuyu_disinda": 1
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 2
   }
  },
  "450 Sol MRL": {
@@ -574,9 +547,6 @@
   },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 2
   }
  },
  "800 Arka 2:1 MD": {
@@ -603,9 +573,6 @@
   },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 2
   }
  },
  "800 Arka 2:1 MRL": {
@@ -653,9 +620,6 @@
   },
   "kuyu_kesiti_on": {
    "etiket_kuyu_disinda": 1
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 3
   }
  },
  "800 Sağ kabin üstü MRL": {
@@ -702,9 +666,6 @@
   "kuyu_dibi": {
    "isaret_birligi": 1,
    "maske_olcu_siliyor": 2
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 2
   }
  },
  "gerçek 1275": {
@@ -727,9 +688,6 @@
   "kuyu_dibi": {
    "isaret_birligi": 1,
    "maske_olcu_siliyor": 2
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 3
   }
  },
  "gerçek 4815-6": {
@@ -778,9 +736,6 @@
   "kuyu_dibi": {
    "isaret_birligi": 1,
    "maske_olcu_siliyor": 1
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 3
   }
  },
  "gerçek BAR 2515": {
@@ -840,9 +795,6 @@
   },
   "kuyu_plani": {
    "maske_kenar_siliyor": 2
-  },
-  "makine_dairesi": {
-   "maske_olcu_siliyor": 2
   }
  },
  "örnek makine dairesiz": {
