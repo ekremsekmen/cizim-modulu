@@ -208,6 +208,17 @@ def ciz(g, cizim_sabitleri=None):
     e.append(
         _kutu("PANO", (Y["bx"] - d / 2.0, Y["bz"] - d / 2.0, Y["bx"] + d / 2.0, Y["bz"] + d / 2.0), "buton")
     )
+    #  Butonun ve göstergenin merkez işareti ( eksen çizgisi, kutudan 30 taşar ):
+    #  BUTON 1200, gösterge "100" ve kapıdan butona ölçü bunlara dayanır ( 7 Kas
+    #  çizim denetimi 6. adımı:  ortası ölçülen kutunun ortasında çizgi yoktu,
+    #  ölçünün ucu boşluğa düşüyordu )
+    #  Butonun düşey ekseni kapıdan butona ölçünün çizgisine dek uzar ( ISO 129:  eksen
+    #  çizgisi uzatma çizgisi olur — ölçü kasanın üstünde, yazısı kanada binmez )
+    ust_olcu = bo[3] + 250
+    for k, ad, tepe in ((bu, "buton_merkezi", ust_olcu - 20), (go, "gosterge_merkezi", None)):
+        cx_, cy_ = (k[0] + k[2]) / 2.0, (k[1] + k[3]) / 2.0
+        e.append(eleman.ad(eleman.cizgi("EKSEN", k[0] - 30, cy_, k[2] + 30, cy_, tip="eksen"), ad))
+        e.append(eleman.ad(eleman.cizgi("EKSEN", cx_, k[1] - 30, cx_, tepe or k[3] + 30, tip="eksen"), ad))
     #  Kapı ekseni ve döşemenin kotu
     e.append(eleman.ad(eleman.cizgi("EKSEN", xc, -300, xc, ust, tip="eksen"), "kapi_ekseni"))
     #  İşaretin yeri ölçüyle girişin yazısına ( "±0,00" ) göre:  kot geometriye
@@ -241,23 +252,33 @@ def ciz(g, cizim_sabitleri=None):
         eleman.olcu("dusey", (0, a), (0, b), bk, m) for a, b, m in ((0.0, yu[1], None), (yu[1], yu[3], None))
     ]
     e.append(eleman.olcu("dusey", (0, 0.0), (0, Y["bz"]), bk2, f"BUTON {Y['bz']:g}"))
-    s_sol = min(bo[0], bk2 if Y["buton_sol"] else bo[0]) - 250
-    s_sag = max(bo[2], bk2 if not Y["buton_sol"] else bo[2]) + 250
-    e.append(eleman.olcu("dusey", (0, 0.0), (0, bo[3]), s_sol, f"KAPI BOŞLUĞU {bo[3]:g}"))
+    #  Kapının zinciri ( eşik · DH · kasa başlığı ) ve kaba boşluk BUTONSUZ yanda,
+    #  boşluğun yanında:  eskiden zincir öbür yandaydı ve buton o yandaysa butonun
+    #  ölçülerinin dışına itiliyordu — kapıdan 5 cm uzakta ( 7 Kas çizim denetimi
+    #  6. adımı, karar D3:  ölçü ölçtüğü özelliğin yanında )
+    yan = 1.0 if Y["buton_sol"] else -1.0
+    kenar = bo[2] if Y["buton_sol"] else bo[0]
+    s_ic, s_dis = kenar + yan * 250, kenar + yan * 450
+    e.append(eleman.olcu("dusey", (0, 0.0), (0, bo[3]), s_dis, f"KAPI BOŞLUĞU {bo[3]:g}"))
     e += [
-        eleman.olcu("dusey", (0, a), (0, b), s_sag, m, ad=ad)
+        eleman.olcu("dusey", (0, a), (0, b), s_ic, m, ad=ad)
         for a, b, m, ad in (
             (es[1], 0.0, None, None),
             (0.0, HH, kisaltmalar.kodlu("DH", HH), "kapi_yuksekligi"),
             (HH, ka[3], None, None),
         )
     ]
-    #  Gösterge:  kapının üstünden ortasına ( kasanın dışında, boşluğun yanında )
-    e.append(eleman.olcu("dusey", (0, HH), (0, (go[1] + go[3]) / 2.0), bo[0] - 110, None))
+    #  Gösterge:  kapının üstünden ortasına ( kasanın dışında, boşluğun yanında —
+    #  butonsuz yanda, kapının zincirinin içinde )
+    e.append(eleman.olcu("dusey", (0, HH), (0, (go[1] + go[3]) / 2.0), kenar + yan * 110, None))
+    #  Yuvanın eni yuvanın hemen üstünde ( eskiden kaba boşluğun üstündeydi — yuvadan
+    #  1,3 m yukarıda );  kapının kenarından butonun eksenine kaba boşluğun üstünde
+    #  ( yuvanın hizasında yazısı kasaya, oradan kanada düşüyordu ), eksen ona dek
     kapi_kenari = x0 if Y["buton_sol"] else x1
-    ust1 = bo[3] + 250
-    e.append(eleman.olcu("yatay", (min(kapi_kenari, Y["bx"]), 0), (max(kapi_kenari, Y["bx"]), 0), ust1, None))
-    e.append(eleman.olcu("yatay", (yu[0], 0), (yu[2], 0), ust1 + 220, None))
+    e.append(eleman.olcu("yatay", (yu[0], 0), (yu[2], 0), yu[3] + 120, None))
+    e.append(
+        eleman.olcu("yatay", (min(kapi_kenari, Y["bx"]), 0), (max(kapi_kenari, Y["bx"]), 0), ust_olcu, None)
+    )
     #  Ölçü yazıları ( SVG ve DXF aynı yeri kullanır );  kanattan geniş kot yazısı
     #  eşiğin altına
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
