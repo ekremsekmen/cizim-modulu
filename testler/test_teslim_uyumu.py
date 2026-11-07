@@ -112,6 +112,14 @@ class TeslimUyumu(unittest.TestCase):
                     ),
                     cift["Kabin"],
                 )
+            #  Makine dairesinin açıklıkları ve uygunluğu tabloda — kesitte yalnız ölçü
+            #  ( 6 Kas çizim denetimi, karar D2 )
+            with self.subTest(ad, alan="Makine dairesi"):
+                if "Makine dairesi" in cift["Tahrik"]:
+                    self.assertRegex(cift.get("Makine dairesi", ""), r"^yükseklik \d+(,\d+)? ≥ 2100")
+                    self.assertRegex(cift.get("Tahrik kasnağı üstü", ""), r"^\d+(,\d+)? ≥ 300$")
+                else:
+                    self.assertNotIn("Makine dairesi", cift)
 
     def test_kuyu_plani_ana_olculer(self):
         for ad, (a, doc, h) in self.S.items():
@@ -130,15 +138,18 @@ class TeslimUyumu(unittest.TestCase):
             #  profilleri hesabınkiyle aynı
             ver = _yazilar(self._blok(doc, "CIZIM_VERILER"))
             cift = dict(zip(ver[1::2], ver[2::2]))
-            for satir, profil, ara in (
-                ("Kabin rayı", "kabin_ray_profili", "DBG"),
-                ("Ağırlık rayı", "agirlik_ray_profili", "DBGW"),
+            for satir, profil, ara, konsol in (
+                ("Kabin rayı", "kabin_ray_profili", "DBG", "kabin_konsol_arasi"),
+                ("Ağırlık rayı", "agirlik_ray_profili", "DBGW", "agirlik_konsol_arasi"),
             ):
-                m = re.fullmatch(rf"(.+?)  ·  {ara}(\d+)", cift[satir])
+                m = re.fullmatch(rf"(.+?)  ·  {ara}(\d+)  ·  konsol arası (\d+)", cift[satir])
                 with self.subTest(ad, alan=ara):
                     self.assertIsNotNone(m, cift[satir])
                     self.assertEqual(m.group(1).replace(" × ", " x "), g[profil])
                     self.assertIn(float(m.group(2)), po)
+                    #  Konsol arası formun girdisi ( kesitte zincirin aralıklarında yalnız
+                    #  sayı — 6 Kas çizim denetimi )
+                    self.assertEqual(float(m.group(3)), _sayi(a[konsol]))
 
     def test_dusey_kesitler(self):
         for ad, (a, doc, _h) in self.S.items():

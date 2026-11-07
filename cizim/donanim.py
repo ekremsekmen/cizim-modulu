@@ -449,6 +449,23 @@ def _kaide_ve_saptirma(MD, md, S, d, zd, zs, zk):
     return kaide_parcalari, sarim, yol, dusus_z
 
 
+def oda_acikliklari(g, M):
+    """Makine dairesinin açıklıkları ( TS EN 81-20 m.5.2.6.3.2 ):  [ ( ad , değer ,
+    en az ) ] — odanın temiz yüksekliği, tabliyenin üstünde ( makinenin başı ) temiz
+    yükseklik ( oda zemini tabliyeyle aynı hizadaysa yok — yükseklikle aynı ), tahrik
+    kasnağının üstü.  Kesitin ölçüleri ( kuyu_kesiti._oda_olculeri ) ve veri tablosu
+    aynı sayıyı okur;  denetim ( _oda_yukseklikleri ) aynı formülle.  6 Kas çizim
+    denetimi:  uygunluk ( ≥ ) ölçü yazısındaydı, yazı 41 mm'ye uzayıp çizimin
+    üstüne taşıyordu — artık veri tablosunda."""
+    zt, zd, ztv = M["tabliye_ustu"], M["oda_doseme"], M["oda_tavan"]
+    ku = M["kasnak"][4] + g["makine"]["tahrik_kasnak_capi"] / 2.0
+    out = [("yükseklik", g["makine_dairesi"]["yukseklik"], ODA_YUKSEKLIK)]
+    if zt - zd > 1e-6:
+        out.append(("tabliye üstü", ztv - zt, ODA_YUKSEKLIK))
+    out.append(("kasnak üstü", ztv - ku, DONEN_PARCA_USTU))
+    return out
+
+
 def _oda_yukseklikleri(md, TB, zd, ztv, kasnak_ustu, zkapi):
     """Makine dairesinin temiz yüksekliği, tabliyenin ve tahrik kasnağının
     üstündeki boşluk, kapısının yüksekliği ( TS EN 81-20 m.5.2.6.3.2 · m.5.2.3.2 )

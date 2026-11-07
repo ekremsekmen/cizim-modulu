@@ -197,7 +197,15 @@ def ciz(g, cizim_sabitleri=None):
     capli = [(uc - R1, uc + R1)] + ([(us - R2, us + R2)] if sp else [])
     if not any(abs(min(uk, ua) - a) < 0.5 and abs(max(uk, ua) - b) < 0.5 for a, b in capli):
         e.append(
-            eleman.olcu("yatay", (min(uk, ua), 0), (max(uk, ua), 0), k1, f"HALAT ARASI {abs(ua - uk):.0f}")
+            eleman.olcu(
+                "yatay",
+                (min(uk, ua), 0),
+                (max(uk, ua), 0),
+                k1,
+                #  Ad aralığa sığmazsa yalnız değer ( 6 Kas çizim denetimi 3. adımı:
+                #  "HALAT ARASI 420" çizimin dışına taşıyordu )
+                geometri.adli_olcu_metni(("HALAT ARASI",), round(abs(ua - uk)), abs(ua - uk)),
+            )
         )
     #  Sağ:  merkezlerin döşemeden ( makine dairesizde kuyu tavanına ) yüksekliği
     s = u1_ + 150

@@ -2067,6 +2067,7 @@ class MakineDairesi(unittest.TestCase):
 from cizim import donanim
 from cizim import dusey
 from cizim import kuyu_kesiti
+from cizim import veri_tablosu
 
 
 class DuseyKesitler(unittest.TestCase):
@@ -2499,16 +2500,36 @@ class KuyuKesitleri(unittest.TestCase):
         self.assertEqual((M["tabliye_ustu"], M["oda_doseme"], M["oda_tavan"]), (26150, 24950, 28450))
         self.assertEqual(M["kasnak"][4] + 120, 27519)
         self.assertEqual(M["parcalar"], [])  # kuyuda tavan parçası yok
+        #  Açıklıklar ve uygunlukları ( m.5.2.6.3.2 ) veri tablosunda;  kesit aynı
+        #  sayıları ölçer ( donanim.oda_acikliklari — 6 Kas çizim denetimi, karar D2 )
+        acik = donanim.oda_acikliklari(g, M)
+        self.assertEqual(
+            [(ad, d, en) for ad, d, en in acik],
+            [("yükseklik", 3500, 2100), ("tabliye üstü", 2300, 2100), ("kasnak üstü", 931, 300)],
+        )
+        satir = dict(veri_tablosu.satirlar(g))
+        self.assertEqual(satir["Makine dairesi"], "yükseklik 3500 ≥ 2100  ·  tabliye üstü 2300 ≥ 2100")
+        self.assertEqual(satir["Tahrik kasnağı üstü"], "931 ≥ 300")
+        #  Oda zemini tabliyeyle aynı hizada:  tabliyenin üstü odanın yüksekliğidir
+        g0 = _ornek(
+            makine={"yeri": "Makine dairesi"}, makine_dairesi={"tabliye_yuksekligi": 0, "yukseklik": 2500}
+        )
+        self.assertEqual(dict(veri_tablosu.satirlar(g0))["Makine dairesi"], "yükseklik 2500 ≥ 2100")
         for ciz in (kuyu_kesiti.yan_kesit, kuyu_kesiti.on_kesit):
             e = ciz(g)
             metinler = {x["metin"] for x in e if x["tip"] == "olcu"}
             with self.subTest(cizim=ciz.__name__):
-                self.assertIn("KASNAK ÜSTÜ 931 ≥ 300", metinler)
-                self.assertIn("MAKİNE DAİRESİ 3500 ≥ 2100", metinler)
+                #  Ölçüde uygunluk yok ( eskiden "KASNAK ÜSTÜ 931 ≥ 300" 1/50'de 41 mm,
+                #  makine dairesinin çatısının üstüne taşıyordu );  adı aralığına
+                #  sığmayan yalnız değer:  "KASNAK ÜSTÜ 931" 31,5 mm, aralığı 17,6 mm
+                #  ( yazı payıyla );  "TABLİYE 1200" 23,2 mm, aralığı 23,0 mm
+                self.assertFalse([m for m in metinler if "≥" in m], metinler)
+                self.assertIn("931", metinler)
+                self.assertIn("MAKİNE DAİRESİ 3500", metinler)
                 #  Tabliyenin üstünde temiz yükseklik ( makinenin başı ) 3.500 − 1.200
-                self.assertIn("2300 ≥ 2100", metinler)
+                self.assertIn("2300", metinler)
                 #  Tabliye oda zemininden, çatı 150;  kaide hesabın şase yüksekliği
-                self.assertTrue({"TABLİYE 1200", "150", "ŞASE 1100"} <= metinler, metinler)
+                self.assertTrue({"1200", "150", "ŞASE 1100"} <= metinler, metinler)
                 #  Tabliyenin ve oda zemininin betonu kuyu döşemesi kalınlığında
                 self.assertEqual({x["d"] for x in self._elemanlar(e, "oda_dosemesi")}, {150})
                 self.assertEqual({x["d"] for x in self._elemanlar(e, "tabliye")}, {150})
@@ -2757,6 +2778,87 @@ class KirikKesit(unittest.TestCase):
                         a[1] < b[3] and b[1] < a[3] and a[2] < b[4] and b[2] < a[4],
                         (a[0]["metin"], b[0]["metin"]),
                     )
+
+
+class KonsolZinciri(unittest.TestCase):
+    """Konsol zincirinde aralıklarda yalnız sayı;  zincirin adı bir kez, zincirin
+    dış yanında, hiçbir yazıya, ölçü çizgisine ve parçaya binmeden — kırık varsa
+    kesilen katların hizasında ( 6 Kas çizim denetimi, karar D4 ).  Eskiden ad
+    ikinci aralıktaydı:  "KABİN RAYI KONSOL ARASI 1500" 1/50'de 30 mm'lik aralıktan
+    taşıyor, "İLK KONSOL 500" çizimin altına sarkıyordu."""
+
+    def _ad(self, e):
+        adlar = [x for x in e if x.get("ad") == "zincir_adi"]
+        self.assertEqual(len(adlar), 1, [x["metin"] for x in adlar])
+        return adlar[0]
+
+    def test_ad_bir_kez_zincirin_yaninda_bos_yerde(self):
+        g = _ornek()
+        K = kuyu_kesiti.OLCEK / 20.0
+        for ciz, metin in (
+            (kuyu_kesiti.yan_kesit, "AĞIRLIK RAYI KONSOLLARI"),
+            (kuyu_kesiti.on_kesit, "KABİN RAYI KONSOLLARI"),
+        ):
+            for azami in (None, 420 * 50):
+                e = ciz(g, azami=azami)
+                with self.subTest(cizim=ciz.__name__, azami=azami):
+                    ad = self._ad(e)
+                    self.assertEqual((ad["metin"], ad["aci"]), (metin, 90))
+                    self.assertFalse([x["metin"] for x in e if x["tip"] == "olcu" and "KONSOL" in x["metin"]])
+                    #  Bir ölçü sırasının dış yanında, yazılarının iki sıra ötesinde
+                    sutunlar = {x["kot"] for x in e if x["tip"] == "olcu" and x["yon"] == "dusey"}
+                    pay = (50.0 + 2 * eleman.KAT_ARALIGI) * K
+                    self.assertTrue(any(abs(ad["x"] - (k + pay)) < 1e-6 for k in sutunlar), ad["x"])
+                    #  Binmez:  başka yazının maskesine, ölçü çizgisine, parça kenarına
+                    m = geometri.maske_kutusu(ad)
+                    for x in e:
+                        if x is ad or not (x["tip"] == "yazi" or (x["tip"] == "olcu" and x.get("yazi"))):
+                            continue
+                        b = geometri.maske_kutusu(x)
+                        self.assertFalse(
+                            m[0] < b[2] and b[0] < m[2] and m[1] < b[3] and b[1] < m[3], x["metin"]
+                        )
+                    cizgiler = geometri.parca_kenarlari(e) + [
+                        s for o in e if o["tip"] == "olcu" for s in geometri.olcu_cizgileri(o, K)
+                    ]
+                    self.assertFalse([s for s in cizgiler if geometri.kenar_kesisir(s, m)])
+                    kirik = [y for x in e if x.get("ad") == "kirik_cizgisi" for y in (x["y1"], x["y2"])]
+                    if azami:
+                        #  Kesilen katların hizasında ( kırığın iki çizgisinin arası )
+                        self.assertTrue(kirik)
+                        self.assertLess(min(kirik), ad["y"])
+                        self.assertLess(ad["y"], max(kirik))
+                    else:
+                        self.assertFalse(kirik)
+
+    def test_aralikta_yalniz_sayi(self):
+        #  Zincir:  ray altı → ilk konsol 500, konsol arası 1500 … ( ağırlık rayı:
+        #  A-A;  kabin rayı:  B-B ) — sayılar girdinin değeri
+        g = _ornek()
+        for ciz in (kuyu_kesiti.yan_kesit, kuyu_kesiti.on_kesit):
+            metinler = [x["metin"] for x in ciz(g) if x["tip"] == "olcu"]
+            with self.subTest(cizim=ciz.__name__):
+                self.assertIn("500", metinler)
+                self.assertGreaterEqual(metinler.count("1500"), 10)
+
+
+class AdliOlcuMetni(unittest.TestCase):
+    """Ölçünün adı aralığına sığıyorsa adıyla, sığmıyorsa sıradaki ( kısa ) adla,
+    hiçbiri sığmıyorsa yalnız değer ( geometri.adli_olcu_metni — yerleştiricinin
+    ölçütü:  yazı eni ≤ aralık − 20k )."""
+
+    def test_sigarsa_adiyla_sigmazsa_yalniz_deger(self):
+        w = eleman.yazi_eni("ŞASE 1100", eleman.OLCU_YAZI)
+        self.assertEqual(geometri.adli_olcu_metni(("ŞASE",), 1100, w + 20.0), "ŞASE 1100")
+        self.assertEqual(geometri.adli_olcu_metni(("ŞASE",), 1100, w + 19.0), "1100")
+        #  Ölçekte ( 1/50:  k 2,5 ) yazı ve pay büyür
+        self.assertEqual(geometri.adli_olcu_metni(("ŞASE",), 1100, w + 20.0, 2.5), "1100")
+        self.assertEqual(geometri.adli_olcu_metni(("ŞASE",), 1100, 2.5 * (w + 20.0), 2.5), "ŞASE 1100")
+        #  Sırayla:  uzun ad sığmazsa kısası
+        k = eleman.yazi_eni("KISA 5", eleman.OLCU_YAZI) + 20.0
+        self.assertEqual(geometri.adli_olcu_metni(("ÇOK UZUN BİR AD", "KISA"), 5, k), "KISA 5")
+        self.assertEqual(geometri.adli_olcu_metni(("ÇOK UZUN BİR AD", "KISA"), 5, k - 1.0), "5")
+        self.assertEqual(geometri.adli_olcu_metni(("A",), 1022.5, 10_000.0), "A 1022.5")
 
 
 class EsikAltiSaci(unittest.TestCase):

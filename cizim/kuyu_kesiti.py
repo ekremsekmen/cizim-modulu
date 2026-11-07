@@ -33,7 +33,6 @@ from cizim import eleman
 from cizim import kisaltmalar
 from cizim import uslup
 from cizim import arka_aski
-from cizim import donanim
 from cizim import dusey
 from cizim import katlar
 from cizim import geometri
@@ -316,24 +315,34 @@ def _sol_zincir(u0, isaretler, K):
     return min(u0, min(uclar) - geometri.MASKE_ESIGI * 20.0 * K)
 
 
-def _oda_olculeri(e, M, md, D1, kot_makine, kot_oda):
+def _adli(adlar, deger, boy):
+    """Kesitte ölçünün yazısı:  adı kendi aralığına sığıyorsa adıyla, sığmıyorsa
+    yalnız değer ( geometri.adli_olcu_metni — 1/50 )."""
+    return geometri.adli_olcu_metni(adlar, deger, boy, OLCEK / 20.0)
+
+
+def _oda_olculeri(e, g, M, kot_makine, kot_oda):
     """Makine dairesinde:  şase · kasnak · kasnak üstü ( m.5.2.6.3.2.3 );  oda
     zemininden tabliye · tabliyenin üstünde temiz yükseklik ( m.5.2.6.3.2.1 ) ·
-    çatı;  dışta odanın temiz yüksekliği."""
+    çatı;  dışta odanın temiz yüksekliği.  Uygunluk ( ≥ ) ölçüde değil, veri
+    tablosunun "Makine dairesi" ve "Tahrik kasnağı üstü" satırlarında
+    ( donanim.oda_acikliklari — aynı sayılar;  6 Kas çizim denetimi, karar D2:
+    "KASNAK ÜSTÜ 931 ≥ 300" 1/50'de 41 mm, odanın çatısına taşıyordu );  ad
+    aralığına sığmazsa yalnız değer."""
     zt, zd, ztv, c = M["tabliye_ustu"], M["oda_doseme"], M["oda_tavan"], M["cati"]
     sa = M["sase"]
-    ku = M["kasnak"][4] + D1 / 2.0
+    ku = M["kasnak"][4] + g["makine"]["tahrik_kasnak_capi"] / 2.0
     _zincir(
         e,
         kot_makine,
         [zt, sa[5], ku, ztv],
-        {0: f"ŞASE {sa[5] - zt:g}", 2: f"KASNAK ÜSTÜ {ztv - ku:g} ≥ {donanim.DONEN_PARCA_USTU:g}"},
+        {0: _adli(("ŞASE",), sa[5] - zt, sa[5] - zt), 2: _adli(("KASNAK ÜSTÜ",), ztv - ku, ztv - ku)},
     )
     _zincir(
         e,
         kot_oda,
         [zd, zt, ztv, ztv + c],
-        {0: f"TABLİYE {zt - zd:g}", 1: f"{ztv - zt:g} ≥ {donanim.ODA_YUKSEKLIK:g}", 2: f"{c:g}"},
+        {0: _adli(("TABLİYE",), zt - zd, zt - zd), 1: f"{ztv - zt:g}", 2: f"{c:g}"},
     )
     if zt - zd > 1e-6:
         e.append(
@@ -342,7 +351,7 @@ def _oda_olculeri(e, M, md, D1, kot_makine, kot_oda):
                 (0, zd),
                 (0, ztv),
                 kot_oda + (kot_oda - kot_makine),
-                f"MAKİNE DAİRESİ {md['yukseklik']:g} ≥ {donanim.ODA_YUKSEKLIK:g}",
+                _adli(("MAKİNE DAİRESİ",), g["makine_dairesi"]["yukseklik"], ztv - zd),
             )
         )
 
@@ -448,15 +457,81 @@ def _olculer_sol(e, Y, u0, K, kotlar, tavan, g):
     e.append(eleman.olcu("dusey", (0, Y["taban"]), (0, tavan), s2, f"KUYU YÜKSEKLİĞİ {tavan - Y['taban']:g}"))
 
 
-def _konsol_zinciri(e, kot, r, tavan, ad, aralik):
+def _konsol_zinciri(e, kot, r, tavan, ad):
+    """Rayın konsolları:  ilk konsol rayın altından, konsol araları, rayın üstü,
+    tavan — aralıklarda yalnız sayı.  Zincirin adı ( "KABİN RAYI KONSOLLARI" ) bir
+    kez, kırıktan sonra zincirin yanında boş yerde ( _zincir_adi ).  6 Kas çizim
+    denetimi, karar D4:  ad aralıklara yazılıyordu — "AĞIRLIK RAYI KONSOL ARASI 1500"
+    1/50'de 59 mm, aralığı 30 mm;  "İLK KONSOL 500" 28 mm, aralığı 10 mm:  yazılar
+    aralıklarından taşıp çizimin altına sarkıyordu.  Rayın konsol arası veri
+    tablosunda da.  Dönen:  ( kot , alt , üst , ad ) — _bitir'in zincir_adlari'na."""
     noktalar = [r["alt"]] + r["konsollar"] + [r["ust"], tavan]
-    #  Etiket ikinci aralıkta:  kırık gösterimde de görünür kalır
-    _zincir(
-        e,
-        kot,
-        noktalar,
-        {0: f"İLK KONSOL {r['konsollar'][0] - r['alt']:g}", 1: f"{ad} KONSOL ARASI {aralik:g}"},
+    _zincir(e, kot, noktalar)
+    return kot, noktalar[0], noktalar[-1], f"{ad} KONSOLLARI"
+
+
+def _zincir_adi(e, kot, z0, z1, metin, K, bantlar=()):
+    """Düşey zincirin adı:  zincirin dış yanında, ölçü yazılarının iki sıra
+    ötesinde ( yoksa üç ), düşey;  zincirin boyunda ( z0 – z1 ) kırığın bandına
+    ( bantlar — boş:  kesilen katların yeri ), kırık yoksa zincirin ortasına en
+    yakın, hiçbir yazının maskesine, ölçü çizgisine ve parça kenarına binmeyen
+    yer.  Orada da yoksa iç yanda ( çizgiye bitişik ).  Hiçbirinde yer yoksa
+    yazılmaz.  Bir sıra öte olmaz:  maskesi sayılarınkine değer ( KAT_ARALIGI
+    yazıdan 10 büyük, maske yazıdan büyük ), arada 0,5 mm kalır, sayılarla tek
+    yazı gibi okunur."""
+    h = eleman.OLCU_YAZI * K
+    w = eleman.yazi_eni(metin, h)
+    if z1 - z0 < w:
+        return False
+    dis = 1.0 if kot >= 0 else -1.0
+    sutunlar = [kot + dis * (50.0 + eleman.KAT_ARALIGI * kat) * K for kat in (2, 3)] + [kot - dis * 50.0 * K]
+    #  Yalnız adın sütunlarının şeridindekiler ( süre:  kesit kırık denenirken birkaç kez kurulur )
+    x0, x1 = min(sutunlar) - h, max(sutunlar) + h
+
+    def seritte(k):
+        return k is not None and k[0] < x1 and x0 < k[2]
+
+    maskeler = [
+        k
+        for x in e
+        if (x["tip"] == "yazi" and x.get("katman") != "CERCEVE") or (x["tip"] == "olcu" and x.get("yazi"))
+        for k in (geometri.maske_kutusu(x),)
+        if seritte(k)
+    ]
+    parcalar_ = [x for x in e if x["tip"] not in ("yazi", "olcu") and seritte(geometri.sinir([x]))]
+    cizgiler = [
+        s
+        for s in geometri.parca_kenarlari(parcalar_)
+        + [
+            s
+            for o in e
+            if o["tip"] == "olcu" and o.get("uzunluk", 1.0) >= 1e-6
+            for s in geometri.olcu_cizgileri(o, K)
+        ]
+        if min(s[0], s[2]) < x1 and x0 < max(s[0], s[2])
+    ]
+    orta = (z0 + z1) / 2.0
+    tercih = min(
+        ((a + b) / 2.0 for a, b in bantlar if z0 < (a + b) / 2.0 < z1),
+        key=lambda z: abs(z - orta),
+        default=orta,
     )
+    adim = 25.0 * K
+    n = int((z1 - z0) / adim) + 1
+    yerler = sorted(
+        {min(max(tercih + i * adim, z0 + w / 2.0), z1 - w / 2.0) for i in range(-n, n + 1)},
+        key=lambda y: (abs(y - tercih), y),
+    )
+    for c in sutunlar:
+        for y in yerler:
+            m = uslup.maske_kutusu(c, y, w, h, 90.0)
+            if any(m[0] < b[2] and b[0] < m[2] and m[1] < b[3] and b[1] < m[3] for b in maskeler):
+                continue
+            if any(geometri.kenar_kesisir(s, m) for s in cizgiler):
+                continue
+            e.append(eleman.ad(eleman.yazi(c, y, metin, h, katman="OLCU", aci=90), "zincir_adi"))
+            return True
+    return False
 
 
 KIRIK_BOSLUK = 1200.0  # kırık gösterimde atlanan katların yerine kalan yükseklik
@@ -663,22 +738,26 @@ def _hareketli_sinirlari(g, Y):
     )
 
 
-def _bitir(e, g, Y, kt, K, alt_ust, ust_alt, bosluk_h, duvarlar, azami):
+def _bitir(e, g, Y, kt, K, alt_ust, ust_alt, bosluk_h, duvarlar, azami, zincir_adlari=()):
     """Yazıları yerleştirir, plan seviyelerini ekler.  Çizim `azami`
     yüksekliğe ( çerçevesiyle, çizim birimi ) sığmıyorsa ara katları kırar:
     alttan ve üstten SIĞAN EN ÇOK durak kalır ( en az birer ).  Giriş katı
     ( katlar.adlar_ve_giris ) kırığa düşerse o da kalır:  iki kırık, arada giriş
     katı ( KAT_ADLARI_PLANI — 2 Kas:  63444-2'de paftada "0" yoktu ).  Kırık
     hareketli parçalara ( kabin, karşı ağırlık ) değmez.  Halatın betondaki
-    parçası önce kesik olur ( kesit_parcalari.betondaki_halati_gizle )."""
+    parçası önce kesik olur ( kesit_parcalari.betondaki_halati_gizle ).
+    zincir_adlari:  [ ( kot , alt , üst , ad ) ] — kırıktan sonra zincirin yanına
+    ( _zincir_adi;  kırık varsa onun bandına en yakın )."""
     kesit_parcalari.betondaki_halati_gizle(e)
     sev = plan_seviyeleri(g, Y, kt)
 
-    def son(e_, m=None, ic=None):
+    def son(e_, m=None, ic=None, bantlar=()):
         e_ = [dict(x) for x in e_]
         geometri.yazilari_yerlestir(e_, eleman.OLCU_YAZI * K)
         s_ = [(h, m(z) if m else z, ad) for h, z, ad in sev if not (ic and ic(z))]
         _seviye_isaretleri(e_, s_, K)
+        for kot, z0, z1, ad in zincir_adlari:
+            _zincir_adi(e_, kot, m(z0) if m else z0, m(z1) if m else z1, ad, K, bantlar)
         return e_
 
     tam = son(e)
@@ -732,7 +811,9 @@ def _kirik(e, araliklar, duvarlar, K, son):
             z = f(z)
         return z
 
-    return son(e, m, lambda z: any(f(z) for f in icler))
+    #  Kesilen katların yeri ( çizimde ):  kırığın alt çizgisi ve KIRIK_BOSLUK
+    bantlar = [(m(za), m(za) + KIRIK_BOSLUK) for za, _zu in araliklar]
+    return son(e, m, lambda z: any(f(z) for f in icler), bantlar)
 
 
 def yan_bakis(g):
@@ -875,19 +956,20 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
         #  Oda zemini kuyu tavanının altında ( tabliye ):  oda kuyunun yanına
         #  taşıyorsa zincir onun dış duvarının ötesinde — odanın içinden geçmez
         r0 = max(r0, u_oda + 150 * K)
-    _konsol_zinciri(e, r0, ag, tavan, "AĞIRLIK RAYI", dy["agirlik_konsol_arasi"])
+    zincir = _konsol_zinciri(e, r0, ag, tavan, "AĞIRLIK RAYI")
     sa = M["sase"]
     if oda:
         r1 = r0 + geometri.SIRA_ARASI * K
-        _oda_olculeri(
-            e, M, g["makine_dairesi"], g["makine"]["tahrik_kasnak_capi"], r1, r1 + geometri.SIRA_ARASI * K
-        )
+        _oda_olculeri(e, g, M, r1, r1 + geometri.SIRA_ARASI * K)
     else:
         _zincir(
             e,
             r0 + geometri.SIRA_ARASI * K,
             [sa[4], sa[5], M["kapak"][5], tavan],
-            {0: f"ŞASE {sa[5] - sa[4]:g}", 1: f"MAKİNE {M['kapak'][5] - sa[5]:g}"},
+            {
+                0: _adli(("ŞASE",), sa[5] - sa[4], sa[5] - sa[4]),
+                1: _adli(("MAKİNE",), M["kapak"][5] - sa[5], M["kapak"][5] - sa[5]),
+            },
         )
     dh, sd = kisaltmalar.kodlu("DH", kapi_h), kisaltmalar.kodlu("SD", D)
     e.append(eleman.olcu("dusey", (0, 0.0), (0, kapi_h), -don - 120 * K, dh, ad="kapi_yuksekligi"))
@@ -903,6 +985,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
         bosluk_h,
         (-don, D + dar),
         azami,
+        [zincir],
     )
 
 
@@ -1040,18 +1123,19 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
     r0 = G + ds + 150 * K
     if oda:
         r0 = max(r0, u_oda + 150 * K)  # oda kuyunun yanına taşıyorsa ötesinde
-    _konsol_zinciri(e, r0, uzak, tavan, "KABİN RAYI", dy["kabin_konsol_arasi"])
+    zincir = _konsol_zinciri(e, r0, uzak, tavan, "KABİN RAYI")
     _zincir(
         e,
         r0 + 250 * K,
         [M["agirlik"]["tampon_ustu"], AK["alt"], AK["ust"]],
-        {0: f"ÇARPMA ARASI {dy['agirlik_carpma_arasi']:g}", 1: f"KARŞI AĞIRLIK {AK['ust'] - AK['alt']:g}"},
+        {
+            0: _adli(("ÇARPMA ARASI",), dy["agirlik_carpma_arasi"], AK["alt"] - M["agirlik"]["tampon_ustu"]),
+            1: _adli(("KARŞI AĞIRLIK",), AK["ust"] - AK["alt"], AK["ust"] - AK["alt"]),
+        },
     )
     if oda:
         r1 = r0 + 2 * geometri.SIRA_ARASI * K
-        _oda_olculeri(
-            e, M, g["makine_dairesi"], g["makine"]["tahrik_kasnak_capi"], r1, r1 + geometri.SIRA_ARASI * K
-        )
+        _oda_olculeri(e, g, M, r1, r1 + geometri.SIRA_ARASI * K)
     e.append(
         eleman.olcu(
             "yatay",
@@ -1073,4 +1157,5 @@ def on_kesit(g, cizim_sabitleri=None, azami=None):
         kapi_h + S["kapi_ust_payi"],
         (-dg, G + ds),
         azami,
+        [zincir],
     )
