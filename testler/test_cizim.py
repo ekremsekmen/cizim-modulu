@@ -3695,6 +3695,65 @@ class EtiketMaskesi(unittest.TestCase):
         self.assertEqual(geometri.OlcuIzgarasi(e).silinen(geometri.maske_kutusu(y)), (0.0, 0))
 
 
+class KuyuIciEtiketi(unittest.TestCase):
+    """Kuyunun içindeki parçanın etiketi ( geometri.KUYU_ICI_ETIKETLERI ):  ayırıcı onu
+    kuyunun dışına düşürürse OKU parçasını gösterir;  maskesi kayınca da kenar silerse
+    kuyunun içinde kısa oklu temiz yere taşınır ( 7 Kas çizim denetimi 5. adımı:  B-B'de
+    dar ağırlığın "KARŞI AĞIRLIK"ı duvarın ötesinde, kot yazılarının yanında oksuzdu —
+    taramada 210 / 283 kesit;  "ø 400"ün maskesi ( 82 ) 80'lik kasnağın kenarlarını
+    siliyordu ).  Sahne 1/20:  60'lık duvarlar, SW 1000, solda dar ağırlık, sağı
+    40'ta bir çizgili ( boş yer yok )."""
+
+    def _sahne(self, ad, metin, kutu):
+        e = [
+            eleman.dikdortgen("TARAMA", -60, -500, 60, 3500, tip="tarama"),
+            eleman.dikdortgen("TARAMA", 1000, -500, 60, 3500, tip="tarama"),
+            eleman.olcu("yatay", (0, 0), (1000, 0), -300, "SW1000"),
+            eleman.dikdortgen("AGIRLIK", kutu[0], 0, kutu[1] - kutu[0], 2000),
+        ]
+        e += [eleman.cizgi("KAPI", x, -500, x, 3000) for x in range(self.CIZGI, 1001, self.ADIM)]
+        y = eleman.ad(eleman.yazi(60, 1000, metin, uslup.NORMAL, aci=90), ad)
+        return e + [y], y
+
+    CIZGI, ADIM = 120, 40
+
+    def _oklar(self, e):
+        return [(o["x1"], o["y1"], o["x2"], o["y2"]) for o in e if o.get("ad") == "etiket_oku"]
+
+    def test_disari_dusen_etiketin_oku_parcasini_gosterir(self):
+        from araclar import karne
+
+        #  60'lık ağırlığa 70'lik dik yazı sığmaz, sağ dolu:  ayırıcı duvarın dışına koyar
+        e, y = self._sahne("agirlik_yazi", "KARŞI AĞIRLIK", (30, 90))
+        e = geometri.etiketleri_ayir(e)
+        self.assertLess(y["x"], -60)
+        ((x1, y1, x2, y2),) = self._oklar(e)
+        self.assertTrue(30 < x2 < 90 and 900 < y2 < 1100, (x2, y2))  # ağırlığın içi
+        self.assertEqual(karne.karne(e, 20)["etiket_kuyu_disinda"], [])
+        #  Başka etiket aynı yere oksuz gider ( kural yalnız kuyu içi etiketlerinde )
+        e, y = self._sahne("baska", "KARŞI AĞIRLIK", (30, 90))
+        e = geometri.etiketleri_ayir(e)
+        self.assertLess(y["x"], -60)
+        self.assertEqual(self._oklar(e), [])
+
+    def test_kenari_silen_etiket_kuyunun_icinde_kisa_okla(self):
+        from araclar import karne
+
+        #  80'lik kasnakta "ø 400"ün maskesi kenarları siler;  100 mm içinde ( az kayma )
+        #  çizgi var, 220'den sonrası boş:  kuyunun içinde kısa okla
+        self.CIZGI, self.ADIM = 130, 20
+        e, y = self._sahne("agirlik_kasnak_yazi", "ø 400", (20, 100))
+        e += [eleman.cizgi("KAPI", x, -500, x, 3000) for x in (140, 160, 180, 200, 220)]
+        e = [x for x in e if not (x.get("katman") == "KAPI" and x["x1"] > 220)]
+        self.assertTrue(karne.karne(e, 20)["maske_kenar_siliyor"])
+        e = geometri.etiketleri_ayir(e)
+        self.assertEqual(karne.karne(e, 20)["maske_kenar_siliyor"], [])
+        self.assertTrue(220 < y["x"] < 60 + 300)  # kuyunun içinde, 300 mm'den yakın
+        ((x1, y1, x2, y2),) = self._oklar(e)
+        #  Ok kasnağın içine ( etiketin eski yerinin ortasına ) gider
+        self.assertTrue(20 < x2 < 100 and 900 < y2 < 1100, (x2, y2))
+
+
 class Pafta(unittest.TestCase):
     """Çizimlerin ofisin TİP PROJE FORMATINA yerleştirilmesi."""
 

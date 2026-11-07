@@ -18,9 +18,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   }
  },
  "1000 Sağ MRL": {
@@ -39,9 +36,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -64,9 +58,6 @@
   "kuyu_dibi": {
    "isaret_birligi": 1
   },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
-  },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
   }
@@ -86,9 +77,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -111,9 +99,6 @@
   "kuyu_dibi": {
    "isaret_birligi": 1
   },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
-  },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
   }
@@ -134,9 +119,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -161,9 +143,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   }
  },
  "1000 Sol MRL": {
@@ -182,9 +161,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -261,9 +237,6 @@
    "isaret_birligi": 1,
    "maske_olcu_siliyor": 1
   },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
-  },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
   }
@@ -277,7 +250,6 @@
   },
   "kabin_ustu": {
    "isaret_birligi": 1,
-   "maske_kenar_siliyor": 1,
    "maske_olcu_siliyor": 3
   },
   "kapi_kesiti": {
@@ -313,9 +285,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   }
  },
  "1600 Sağ MRL": {
@@ -334,9 +303,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -361,9 +327,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   }
  },
  "1600 Sol MRL": {
@@ -382,9 +345,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -406,9 +366,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -436,9 +393,6 @@
    "maske_olcu_siliyor": 1,
    "yazi_cizgisinden_kopuk": 3,
    "yazi_yanlis_aralikta": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   }
  },
  "450 Sağ MRL": {
@@ -460,9 +414,6 @@
    "maske_olcu_siliyor": 1,
    "yazi_cizgisinden_kopuk": 3,
    "yazi_yanlis_aralikta": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -489,9 +440,6 @@
    "isaret_birligi": 1,
    "yazi_cizgisinden_kopuk": 3,
    "yazi_yanlis_aralikta": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   }
  },
  "450 Sol MRL": {
@@ -512,9 +460,6 @@
    "isaret_birligi": 1,
    "yazi_cizgisinden_kopuk": 3,
    "yazi_yanlis_aralikta": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -541,9 +486,6 @@
   "kuyu_dibi": {
    "isaret_birligi": 1,
    "maske_olcu_siliyor": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
@@ -617,9 +559,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   }
  },
  "800 Sağ kabin üstü MRL": {
@@ -638,9 +577,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -743,7 +679,6 @@
    "uzak_olcu": 7
   },
   "kabin_ustu": {
-   "etiket_kuyu_disinda": 1,
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
@@ -755,12 +690,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1
-  },
-  "kuyu_plani": {
-   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_kenar_siliyor": 1,
