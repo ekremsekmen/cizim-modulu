@@ -11,6 +11,7 @@ yazmıyordu.  Değerlerin hepsi girdiden ( g ) ya da hesabın özetinden
 """
 
 from cizim import arka_aski
+from cizim import donanim
 from cizim import dusey
 from cizim import eleman
 from cizim import geometri
@@ -85,13 +86,39 @@ def satirlar(g):
     ekle("Kuyu", f"SW × SD  {ku['genislik']:g} × {ku['derinlik']:g}")
     dip, oh = kd.get("derinlik"), dy.get("son_kat")
     ekle("Kuyu dibi  ·  üst boşluk", f"{dip:g}" if dip else None, kisaltmalar.kodlu("OH", oh) if oh else None)
-    ekle("Kabin rayı", profil(v.get("kabin_rayi")), kisaltmalar.kodlu("DBG", kr["arasi"]))
-    ekle("Ağırlık rayı", profil(v.get("agirlik_rayi")), kisaltmalar.kodlu("DBGW", ag["ray_arasi"]))
+
+    #  Konsol arası:  kesitte zincirin adı aralığa sığmayınca yalnız değer yazılır
+    #  ( 6 Kas çizim denetimi, karar D4 ) — hangi rayın olduğu burada
+    def konsol(ad):
+        return f"konsol arası {dy[ad]:g}" if dy.get(ad) else None
+
+    ekle(
+        "Kabin rayı",
+        profil(v.get("kabin_rayi")),
+        kisaltmalar.kodlu("DBG", kr["arasi"]),
+        konsol("kabin_konsol_arasi"),
+    )
+    ekle(
+        "Ağırlık rayı",
+        profil(v.get("agirlik_rayi")),
+        kisaltmalar.kodlu("DBGW", ag["ray_arasi"]),
+        konsol("agirlik_konsol_arasi"),
+    )
     ekle("Karşı ağırlık", f"{ag['genislik']:g} × {ag['derinlik']:g}", ag.get("yeri"))
     if kd.get("kabin_tampon_adedi"):
         adet = f"kabin {kd['kabin_tampon_adedi']}  ·  ağırlık {kd.get('agirlik_tampon_adedi') or 0}"
         ekle("Tamponlar", v.get("tampon"), adet)
     ekle("Güvenlik tertibatı", v.get("guvenlik"))
+    #  Makine dairesinin açıklıkları ve uygunluğu ( m.5.2.6.3.2 ):  kesitin ölçüleri
+    #  yalnız değer, "≥" burada ( 6 Kas çizim denetimi, karar D2 — aynı sayılar:
+    #  donanim.oda_acikliklari ).  İki satır:  tek satırda tablo 149 mm'den 189 mm'ye
+    #  genişliyordu
+    if mk.get("yeri") == "Makine dairesi":
+        Y = dusey.yerlesim(g)
+        if isinstance(Y, dict) and Y.get("M") and Y["M"].get("oda_tavan") is not None:
+            acik = donanim.oda_acikliklari(g, Y["M"])
+            ekle("Makine dairesi", *(f"{ad} {d:g} ≥ {en:g}" for ad, d, en in acik if ad != "kasnak üstü"))
+            ekle("Tahrik kasnağı üstü", *(f"{d:g} ≥ {en:g}" for ad, d, en in acik if ad == "kasnak üstü"))
     if kd.get("regulator_kasnak_capi"):
         ekle(
             "Regülatör",

@@ -20,11 +20,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
+   "etiket_kuyu_disinda": 1
   },
   "makine_dairesi": {
    "maske_olcu_siliyor": 3
@@ -48,14 +44,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 1,
-   "yazi_yanlis_aralikta": 1
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -79,14 +68,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 1,
-   "yazi_yanlis_aralikta": 1
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -109,14 +91,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 1,
-   "yazi_yanlis_aralikta": 1
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -140,14 +115,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 1,
-   "yazi_yanlis_aralikta": 1
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -171,14 +139,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 2,
-   "yazi_yanlis_aralikta": 1
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -205,11 +166,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
+   "etiket_kuyu_disinda": 1
   },
   "makine_dairesi": {
    "maske_olcu_siliyor": 2
@@ -233,14 +190,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 1,
-   "yazi_yanlis_aralikta": 1
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -268,12 +218,6 @@
   "kuyu_dibi": {
    "isaret_birligi": 1
   },
-  "kuyu_kesiti_on": {
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
-  },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
   },
@@ -299,15 +243,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 2,
-   "yazi_yanlis_aralikta": 1
   },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
@@ -336,11 +271,7 @@
    "maske_olcu_siliyor": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
@@ -371,12 +302,6 @@
   "kuyu_dibi": {
    "isaret_birligi": 1
   },
-  "kuyu_kesiti_on": {
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
-  },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
   },
@@ -405,11 +330,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
+   "etiket_kuyu_disinda": 1
   },
   "makine_dairesi": {
    "maske_olcu_siliyor": 3
@@ -433,14 +354,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 1,
-   "yazi_yanlis_aralikta": 1
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -467,11 +381,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
+   "etiket_kuyu_disinda": 1
   },
   "makine_dairesi": {
    "maske_olcu_siliyor": 2
@@ -495,14 +405,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 1,
-   "yazi_yanlis_aralikta": 1
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -526,14 +429,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 2,
-   "yazi_yanlis_aralikta": 1
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -563,11 +459,7 @@
    "yazi_yanlis_aralikta": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
+   "etiket_kuyu_disinda": 1
   },
   "makine_dairesi": {
    "maske_olcu_siliyor": 3
@@ -594,14 +486,7 @@
    "yazi_yanlis_aralikta": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 1,
-   "yazi_yanlis_aralikta": 1
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -630,11 +515,7 @@
    "yazi_yanlis_aralikta": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
+   "etiket_kuyu_disinda": 1
   },
   "makine_dairesi": {
    "maske_olcu_siliyor": 2
@@ -660,14 +541,7 @@
    "yazi_yanlis_aralikta": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 1,
-   "yazi_yanlis_aralikta": 1
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -696,11 +570,7 @@
    "maske_olcu_siliyor": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
@@ -731,12 +601,6 @@
   "kuyu_dibi": {
    "isaret_birligi": 1
   },
-  "kuyu_kesiti_on": {
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
-  },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
   },
@@ -763,15 +627,6 @@
   "kuyu_dibi": {
    "isaret_birligi": 1
   },
-  "kuyu_kesiti_on": {
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 2,
-   "yazi_yanlis_aralikta": 1
-  },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
   }
@@ -791,18 +646,13 @@
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
-   "isaret_birligi": 2,
-   "yazi_cizimden_tasiyor": 1
+   "isaret_birligi": 2
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
+   "etiket_kuyu_disinda": 1
   },
   "makine_dairesi": {
    "maske_olcu_siliyor": 3
@@ -826,14 +676,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 1,
-   "yazi_yanlis_aralikta": 1
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_ustu": {
    "maske_olcu_siliyor": 1
@@ -860,12 +703,6 @@
    "isaret_birligi": 1,
    "maske_olcu_siliyor": 2
   },
-  "kuyu_kesiti_on": {
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
-  },
   "makine_dairesi": {
    "maske_olcu_siliyor": 2
   }
@@ -891,12 +728,6 @@
    "isaret_birligi": 1,
    "maske_olcu_siliyor": 2
   },
-  "kuyu_kesiti_on": {
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
-  },
   "makine_dairesi": {
    "maske_olcu_siliyor": 3
   }
@@ -918,15 +749,6 @@
   },
   "kuyu_dibi": {
    "isaret_birligi": 1
-  },
-  "kuyu_kesiti_on": {
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 1,
-   "yazi_yanlis_aralikta": 1
   },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
@@ -957,12 +779,6 @@
    "isaret_birligi": 1,
    "maske_olcu_siliyor": 1
   },
-  "kuyu_kesiti_on": {
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
-  },
   "makine_dairesi": {
    "maske_olcu_siliyor": 3
   }
@@ -986,15 +802,7 @@
    "isaret_birligi": 1
   },
   "kuyu_kesiti_on": {
-   "etiket_kuyu_disinda": 1,
-   "yazi_bitisik": 1,
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 1,
-   "yazi_yanlis_aralikta": 1
+   "etiket_kuyu_disinda": 1
   },
   "kuyu_plani": {
    "etiket_kuyu_disinda": 1
@@ -1028,12 +836,7 @@
    "maske_olcu_siliyor": 1
   },
   "kuyu_kesiti_on": {
-   "maske_kenar_siliyor": 1,
-   "yazi_bitisik": 1,
-   "yazi_cizimden_tasiyor": 3
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_cizimden_tasiyor": 2
+   "maske_kenar_siliyor": 1
   },
   "kuyu_plani": {
    "maske_kenar_siliyor": 2
@@ -1063,14 +866,7 @@
    "maske_olcu_siliyor": 1
   },
   "kuyu_kesiti_on": {
-   "maske_kenar_siliyor": 1,
-   "yazi_bitisik": 1,
-   "yazi_cizimden_tasiyor": 2
-  },
-  "kuyu_kesiti_yan": {
-   "yazi_bitisik": 1,
-   "yazi_cizgisinden_kopuk": 1,
-   "yazi_cizimden_tasiyor": 1
+   "maske_kenar_siliyor": 1
   },
   "kuyu_plani": {
    "maske_kenar_siliyor": 2

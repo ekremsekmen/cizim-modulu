@@ -2258,6 +2258,19 @@ CIZIM_DISI_KATMANLAR = frozenset(
 BITISIK_ESIGI = 2.0
 
 
+def adli_olcu_metni(adlar, deger, boy, k=1.0):
+    """Ölçünün yazısı:  adıyla ( "ŞASE 1100" ) — ad kendi aralığına sığıyorsa
+    ( yerleştiricinin ölçütü:  yazı eni ≤ aralık − 20k;  k = ölçek / 20 ), sığmıyorsa
+    yalnız değer ( 6 Kas çizim denetimi 3. adımı:  28 mm'lik "İLK KONSOL 500" 10 mm'lik
+    aralığından taşıp çizimin altına sarkıyordu, "ŞASE 140 MAKİNE 345" tek söz gibiydi ).
+    adlar:  sırayla denenir ( uzundan kısaya ).  deger:  sayı ( :g )."""
+    for ad in adlar:
+        metin = f"{ad} {deger:g}"
+        if eleman.yazi_eni(metin, eleman.OLCU_YAZI * k) <= boy - 20.0 * k:
+            return metin
+    return f"{deger:g}"
+
+
 def _yazili_olculer(e):
     return [o for o in e if o["tip"] == "olcu" and o.get("yazi") and o.get("uzunluk", 1.0) >= 1e-6]
 

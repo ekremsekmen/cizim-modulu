@@ -53,8 +53,9 @@ jobs:
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
     #  Sınır takılan işe karşıdır, bütçe değil:  iş 26 Eki'de 41–43 dk sürüyordu,
-    #  kotla giriş testleriyle ( PR #70 ) 45'i aştı ve uçtan ucada kesildi.
-    timeout-minutes: 60
+    #  kotla giriş testleriyle ( PR #70 ) 45'i aştı ve uçtan ucada kesildi;  7 Kas
+    #  PR #106'da 59:31 sürdü ( 60'a kıl payı ) — 75
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
