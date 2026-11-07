@@ -221,7 +221,9 @@ def _yazilar(e, Y, don, ofset, giris_kotu):
     on_u, on_z, on_boy = Y["onluk"]
     on = KB["kabin_esik"][1]
     h = uslup.NORMAL
-    e.append(eleman.yazi(-don - DOSEME_GOSTERIM / 2.0, 120.0, "KAT", h))
+    #  Kat yanının adı kot işaretinin üstünde ( döşemenin ucunda ):  kapının ve kaba
+    #  boşluğun ölçüleri duvarın yanında, eski yerinin içinden geçiyor
+    e.append(eleman.yazi(-don - DOSEME_GOSTERIM + 120.0, 200.0, "KAT", h))
     e.append(eleman.yazi(on + KABIN_GOSTERIM / 2.0, 120.0, "KABİN", h))
     #  Sacın yazısı önlüğün ve sacın altında, duvarın yanından başlar:  ok duvar
     #  ile önlük arasından yukarı, pahın ortasına ( önlük sacın önünde daha
@@ -236,22 +238,68 @@ def _yazilar(e, Y, don, ofset, giris_kotu):
         "sac_yazisi",
         (sac["u"] - du / 2.0, sac["dik_alt"] - dz / 2.0),
     )
-    zo_ = on_z - on_boy * 0.6
-    _adli(e, on_u + 200.0, zo_, "ÖNLÜK", "onluk_yazisi", (on_u, zo_))
+    #  Önlüğün adı sacın ve önlüğün ölçülerinin ötesinde;  ok sacın alt ucunun
+    #  hizasından:  sacın ölçü yazısı ister ortasında ister ucunun altında dursun
+    #  üstünden geçmez ( ölçüler önlüğün yanında — _olculer )
+    zo_ = _onluk_oku_z(Y)
+    _adli(e, _sac_olcusu_u(Y) + 230.0 + 150.0, zo_, "ÖNLÜK", "onluk_yazisi", (on_u, zo_))
     ku = Y["ust_kutu"]
     _adli(e, on + 140.0, ku[3] + 220.0, "ÜST KUTU", "ust_kutu_yazisi", (KB["hat"], ku[3]))
+    #  Kot işareti döşemenin ucunda ( yazısı sağında — solda olsaydı çizimin sınırı
+    #  kotun uzunluğuyla oynardı ):  kaba boşluğun ölçüsü duvarın yanında
     kesit_parcalari.kot_isareti(
-        e, -don - DOSEME_GOSTERIM + 150.0, 0.0, dusey.kot_yazisi(giris_kotu, ofset), 1.0
+        e, -don - DOSEME_GOSTERIM + 60.0, 0.0, dusey.kot_yazisi(giris_kotu, ofset), 1.0
     )
+
+
+def _sac_ve_onluk(Y):
+    """Sacın ve önlüğün dik kısımlarının ölçüleri:  [ ( alt , üst , sıra , yazı , kural ) ]."""
+    _on_u, on_z, on_boy = Y["onluk"]
+    sac, et, u2 = Y["sac"], Y["et"], _sac_olcusu_u(Y)
+    return (
+        (sac["dik_alt"], sac["ust"], u2, f"SAC {sac['ust'] - sac['dik_alt']:g}", _SAC_KURALI),
+        (on_z - on_boy, 0.0, u2 + 230.0, f"ÖNLÜK {on_boy + et:g}", _ONLUK_KURALI),
+    )
+
+
+def _ol_yazi_z(Y, a, b, metin):
+    """Sacın / önlüğün ölçü yazısının ortası:  ölçünün ortası;  kabin tabanının
+    ( 150 öteye dek gösterilir ) altına sığmıyorsa tabanın 30 altından başlar
+    ( maskesi tabanın kenarını siliyordu )."""
+    w = eleman.yazi_eni(metin, uslup.NORMAL) / 2.0
+    tavan = -Y["S"]["kabin_taban_kalinlik"] - 30.0 - uslup.maske_payi(uslup.NORMAL)
+    return min((a + b) / 2.0, tavan - w)
+
+
+def _onluk_oku_z(Y):
+    """Önlüğün adının okunun yüksekliği:  sacın ve önlüğün ölçü yazılarının
+    ( _ol_yazi_z ) altında, önlüğün alt ucunun üstünde."""
+    _on_u, on_z, on_boy = Y["onluk"]
+    alt = min(
+        _ol_yazi_z(Y, a, b, m) - eleman.yazi_eni(m, uslup.NORMAL) / 2.0
+        for a, b, _u, m, _k in _sac_ve_onluk(Y)
+    )
+    return max(alt - 60.0 - uslup.maske_payi(uslup.NORMAL), on_z - on_boy + 30.0)
+
+
+def _sac_olcusu_u(Y):
+    """Sacın ölçüsünün sırası:  kabin eşiğinin ve önlüğün 150 ötesi ( önlüğün
+    ölçüsü onun 230 ötesinde, önlüğün adı onun da ötesinde )."""
+    on_u = Y["onluk"][0]
+    return max(on_u + parcalar.PAH, Y["KB"]["kabin_esik"][1]) + 150.0
 
 
 def _olculer(e, Y, don, z_alt):
     """Altta:  duvar · kasa · eşik · eşik arası · kabin eşiği ( kuyunun ön iç
     yüzünden );  kat tarafında kapı, üst kutu, kaba boşluk;  kuyu tarafında eşik
     altı sacının ve önlüğün dik kısımları."""
-    S, KB, HH, et, bh, sac = Y["S"], Y["KB"], Y["HH"], Y["et"], Y["bosluk_h"], Y["sac"]
-    _, on_z, on_boy = Y["onluk"]
-    on = KB["kabin_esik"][1]
+    S, KB, HH, bh = Y["S"], Y["KB"], Y["HH"], Y["bosluk_h"]
+    #  Ölçüler ölçtükleri özelliğin yanında ( 7 Kas çizim denetimi 6. adımı, karar
+    #  D3 ):  kapı ve kaba boşluk duvarın kat yüzünün yanında ( eskiden kat
+    #  döşemesinin gösterilen ucunun ötesindeydi );  sac ve önlük önlüğün yanında
+    #  ( eskiden kabin eşiğinin gösterilen ucunun ötesinde ).  Alttaki zincir yerinde:
+    #  eşiklerin altına alınınca 60 · 90 · 30'un yazıları duvarın, sacın ve önlüğün
+    #  çizgilerine sıkışıyordu
     zo = z_alt - 150.0
     nok = sorted(
         {-don, 0.0, KB["kasa"][0], KB["kasa"][1], KB["esik"][1], KB["kabin_esik"][0], KB["kabin_esik"][1]}
@@ -260,24 +308,13 @@ def _olculer(e, Y, don, z_alt):
     for a, b in zip(nok, nok[1:]):
         if b - a > 1e-6:
             e.append(eleman.olcu("yatay", (a, 0), (b, 0), zo, metin.get((a, b))))
-    u1 = -don - DOSEME_GOSTERIM - 150.0
+    u1 = -don - 120.0
     e.append(eleman.olcu("dusey", (0, 0.0), (0, HH), u1, kisaltmalar.kodlu("DH", HH), ad="kapi_yuksekligi"))
     e.append(eleman.olcu("dusey", (0, HH), (0, HH + S["kasa_ust"]), u1, None))
-    e.append(eleman.olcu("dusey", (0, 0.0), (0, bh), u1 - 230.0, f"KAPI BOŞLUĞU {bh:g}"))
+    e.append(eleman.olcu("dusey", (0, 0.0), (0, bh), u1 - 200.0, f"KAPI BOŞLUĞU {bh:g}"))
     #  Eşik altı sacı eşiğin altından, önlük döşemeden ( m.5.4.5.2 )
-    u2 = on + KABIN_GOSTERIM + 150.0
-    e.append(
-        eleman.olcu(
-            "dusey",
-            (0, sac["dik_alt"]),
-            (0, sac["ust"]),
-            u2,
-            f"SAC {sac['ust'] - sac['dik_alt']:g}",
-            kural=_SAC_KURALI,
-        )
-    )
-    e.append(
-        eleman.olcu(
-            "dusey", (0, on_z - on_boy), (0, 0.0), u2 + 230.0, f"ÖNLÜK {on_boy + et:g}", kural=_ONLUK_KURALI
-        )
-    )
+    #  Yazıları sabit ( _ol_yazi_z — kabin tabanının altında ):  önlüğün adının oku
+    #  ikisinin de altından geçer ( _onluk_oku_z )
+    for a, b, u, metin, kural in _sac_ve_onluk(Y):
+        yazi = {"x": u + 50.0, "y": _ol_yazi_z(Y, a, b, metin), "aci": 90, "h": uslup.NORMAL}
+        e.append(eleman.olcu("dusey", (0, a), (0, b), u, metin, kural=kural, yazi=yazi))

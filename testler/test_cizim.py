@@ -3754,6 +3754,49 @@ class KuyuIciEtiketi(unittest.TestCase):
         self.assertTrue(20 < x2 < 100 and 900 < y2 < 1100, (x2, y2))
 
 
+class OlcuOzelligininYaninda(unittest.TestCase):
+    """Giriş görünüşünde ve kapı yan kesitinde ölçü ölçtüğü özelliğin yanında
+    ( araclar/karne uzak_olcu:  uçlarının özelliğe uzaklığı kâğıtta 30 mm'den az —
+    7 Kas çizim denetimi 6. adımı, karar D3 ):  butonun / göstergenin ortası merkez
+    işaretine dayanır, kapının zinciri butonsuz yanda, sac ve önlük önlüğün yanında.
+    Kapı kesitinin alttaki eşik zinciri ( 60 · 90 ) bilerek yerinde:  eşiklerin
+    altında yazıları duvara, saca ve önlüğe sıkışıyordu."""
+
+    def test_uzak_olcu_yok(self):
+        from araclar import karne
+        from cizim import giris, kapi_kesiti
+
+        for ad, g in (
+            ("buton sağda", _ornek()),
+            ("buton solda", _ornek(kapi={"tip": "Teleskopik Sağ"})),
+            ("makine dairesi", _ornek(makine={"yeri": "Makine dairesi"})),
+        ):
+            with self.subTest(ad):
+                e = cizimler.bitir(giris.ciz(g), 20)
+                self.assertEqual(karne.karne(e, 20, "giris")["uzak_olcu"], [])
+                self.assertTrue([x for x in e if x.get("ad") == "buton_merkezi"])
+                e = cizimler.bitir(kapi_kesiti.ciz(g), 20)
+                uzak = {m for m, _d in karne.karne(e, 20, "kapi_kesiti")["uzak_olcu"]}
+                self.assertLessEqual(uzak, {"60", "90"})
+
+    def test_kapinin_zinciri_butonsuz_yanda(self):
+        from cizim import giris
+
+        for g in (_ornek(), _ornek(kapi={"tip": "Teleskopik Sağ"})):
+            Y = giris.yerlesim(g)
+            dh = next(
+                o
+                for o in giris.ciz(g)
+                if o.get("ad") == "olcu_kapi_yuksekligi" or o.get("ad") == "kapi_yuksekligi"
+            )
+            bo = Y["bosluk"]
+            with self.subTest(buton_sol=Y["buton_sol"]):
+                if Y["buton_sol"]:
+                    self.assertGreater(dh["kot"], bo[2])
+                else:
+                    self.assertLess(dh["kot"], bo[0])
+
+
 class Pafta(unittest.TestCase):
     """Çizimlerin ofisin TİP PROJE FORMATINA yerleştirilmesi."""
 

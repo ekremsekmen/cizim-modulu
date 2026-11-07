@@ -3,14 +3,11 @@
   "delik_plani": {
    "isaret_birligi": 6
   },
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -21,14 +18,11 @@
   }
  },
  "1000 Sağ MRL": {
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -42,14 +36,11 @@
   }
  },
  "1000 Sağ MRL Manuel Sağ": {
-  "giris": {
-   "uzak_olcu": 5
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 9,
+   "uzak_olcu": 4,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -63,14 +54,11 @@
   }
  },
  "1000 Sağ MRL Teleskopik 3 Kanat Sol": {
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8
+   "uzak_olcu": 3
   },
   "kasnak_duzeni": {
    "isaret_birligi": 1
@@ -83,14 +71,11 @@
   }
  },
  "1000 Sağ MRL duvar boşluğunda kapı": {
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -104,14 +89,11 @@
   }
  },
  "1000 Sağ MRL duvardan duvara kiriş": {
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -128,14 +110,11 @@
   "delik_plani": {
    "isaret_birligi": 6
   },
-  "giris": {
-   "uzak_olcu": 5
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -146,14 +125,11 @@
   }
  },
  "1000 Sol MRL": {
-  "giris": {
-   "uzak_olcu": 5
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -170,16 +146,13 @@
   "delik_plani": {
    "isaret_birligi": 6
   },
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1,
    "maske_kenar_siliyor": 2,
    "yazi_yanlis_aralikta": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -193,16 +166,13 @@
   }
  },
  "1275 Arka 2:1 MRL": {
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1,
    "maske_kenar_siliyor": 2,
    "yazi_yanlis_aralikta": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -219,15 +189,12 @@
   "delik_plani": {
    "isaret_birligi": 4
   },
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1,
    "maske_kenar_siliyor": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -245,15 +212,12 @@
   "delik_plani": {
    "isaret_birligi": 6
   },
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1,
    "maske_olcu_siliyor": 3
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -270,14 +234,11 @@
   "delik_plani": {
    "isaret_birligi": 6
   },
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -288,14 +249,11 @@
   }
  },
  "1600 Sağ MRL": {
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -312,14 +270,11 @@
   "delik_plani": {
    "isaret_birligi": 6
   },
-  "giris": {
-   "uzak_olcu": 5
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -330,14 +285,11 @@
   }
  },
  "1600 Sol MRL": {
-  "giris": {
-   "uzak_olcu": 5
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -351,14 +303,11 @@
   }
  },
  "1600 Sol MRL duvardan duvara kiriş": {
-  "giris": {
-   "uzak_olcu": 5
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -375,14 +324,11 @@
   "delik_plani": {
    "isaret_birligi": 6
   },
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -396,14 +342,11 @@
   }
  },
  "450 Sağ MRL": {
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -423,14 +366,11 @@
   "delik_plani": {
    "isaret_birligi": 6
   },
-  "giris": {
-   "uzak_olcu": 5
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -443,14 +383,11 @@
   }
  },
  "450 Sol MRL": {
-  "giris": {
-   "uzak_olcu": 5
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -469,15 +406,12 @@
   "delik_plani": {
    "isaret_birligi": 4
   },
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1,
    "maske_kenar_siliyor": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -495,16 +429,13 @@
   "delik_plani": {
    "isaret_birligi": 6
   },
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1,
    "maske_kenar_siliyor": 2,
    "maske_olcu_siliyor": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -518,16 +449,13 @@
   }
  },
  "800 Arka 2:1 MRL": {
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1,
    "maske_kenar_siliyor": 2,
    "maske_olcu_siliyor": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -544,14 +472,11 @@
   "delik_plani": {
    "isaret_birligi": 6
   },
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -562,14 +487,11 @@
   }
  },
  "800 Sağ kabin üstü MRL": {
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -586,14 +508,11 @@
   "delik_plani": {
    "isaret_birligi": 4
   },
-  "giris": {
-   "uzak_olcu": 5
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -608,14 +527,11 @@
   "delik_plani": {
    "isaret_birligi": 6
   },
-  "giris": {
-   "uzak_olcu": 5
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -627,15 +543,12 @@
   }
  },
  "gerçek 4815-6": {
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1,
    "maske_kenar_siliyor": 2
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -655,14 +568,11 @@
   "delik_plani": {
    "isaret_birligi": 4
   },
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -675,14 +585,11 @@
   }
  },
  "gerçek BAR 2515": {
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -700,15 +607,12 @@
   "delik_plani": {
    "isaret_birligi": 6
   },
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1,
    "maske_kenar_siliyor": 2
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
@@ -727,15 +631,12 @@
   }
  },
  "örnek makine dairesiz": {
-  "giris": {
-   "uzak_olcu": 7
-  },
   "kabin_ustu": {
    "isaret_birligi": 1,
    "maske_kenar_siliyor": 2
   },
   "kapi_kesiti": {
-   "uzak_olcu": 8,
+   "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kasnak_duzeni": {
