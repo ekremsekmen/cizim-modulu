@@ -65,8 +65,18 @@ class Oda(unittest.TestCase):
             self.assertEqual(len(pano), 4)
             self.assertEqual(sum(k[2] <= orta + 1e-6 for k in pano), 2, duvar)
             self.assertEqual(sum(k[0] >= orta - 1e-6 for k in pano), 2, duvar)
-            adlar = sorted(x["metin"] for x in e if x["tip"] == "yazi" and x["metin"].endswith("PANOSU"))
-            self.assertEqual(adlar, ["ASANSÖR 1 PANOSU", "ASANSÖR 2 PANOSU"])
+            #  Pano adı panonun içinde;  tek satıra sığmazsa iki satır ( makine_dairesi._pano_adi —
+            #  7 Kas çizim denetimi ):  satırlar okuma sırasıyla birleşir
+            adlar = []
+            for k in (geometri.sinir([x]) for x in e if x.get("ad") == "kumanda_panosu"):
+                satirlar = [
+                    x
+                    for x in e
+                    if x.get("ad") == "pano_adi" and k[0] < x["x"] < k[2] and k[1] < x["y"] < k[3]
+                ]
+                satirlar.sort(key=lambda x: x["x"] if x.get("aci") else -x["y"])
+                adlar.append(" ".join(x["metin"] for x in satirlar))
+            self.assertEqual(sorted(adlar), ["ASANSÖR 1 PANOSU", "ASANSÖR 2 PANOSU"])
             self.assertTrue(X1 > orta)
 
 

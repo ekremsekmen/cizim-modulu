@@ -2060,6 +2060,69 @@ class MakineDairesi(unittest.TestCase):
                 au.run()
                 self.assertEqual(list(au.errors), [])
 
+    def test_alan_olculeri_disarida_adlar_icinde(self):
+        """Çalışma ve bakım alanının ölçüleri alanın DIŞINDA ( yer varsa ), adı alanın
+        içinde;  hiçbir ad bir ölçü çizgisini silmez ( 7 Kas çizim denetimi 4. adımı:
+        ölçüler alanın içindeydi, 529'luk "ÇALIŞMA ALANI" 600'lük alanda ölçü
+        çizgisini siliyordu — taramada pano adıyla 251 ).  Ön duvardaki panoda bakım
+        alanının 500'ü içeride:  alanın yanında yer yok ( eski yeri )."""
+        icerde = {"Pano ön duvarda": {("bakim", "dusey")}}
+        for ad, g in _md_projeler():
+            e, Y = makine_dairesi.ciz(g), makine_dairesi.yerlesim(g)
+            olculer = geometri.OlcuIzgarasi(e)
+            for alan, metin in (("calisma", "ÇALIŞMA ALANI"), ("bakim", "BAKIM ALANI")):
+                a = Y[alan]
+                with self.subTest(proje=ad, alan=alan):
+                    os_ = [
+                        o
+                        for o in e
+                        if o["tip"] == "olcu" and o.get("kural") == makine_dairesi._ALAN_KURALLARI[alan]
+                    ]
+                    self.assertEqual(sorted(o["yon"] for o in os_), ["dusey", "yatay"])
+                    for o in os_:
+                        ic = a[0] < o["kot"] < a[2] if o["yon"] == "dusey" else a[1] < o["kot"] < a[3]
+                        self.assertEqual(ic, (alan, o["yon"]) in icerde.get(ad, ()), o["yon"])
+                    y = next(x for x in e if x["tip"] == "yazi" and x["metin"] == metin)
+                    m = geometri.maske_kutusu(y)
+                    self.assertTrue(a[0] <= m[0] and a[1] <= m[1] and m[2] <= a[2] and m[3] <= a[3], metin)
+                    self.assertEqual(olculer.silinen(m, y), (0.0, 0))
+
+    def test_pano_adi_panonun_icinde(self):
+        """Pano adı panonun içinde, uzun kenarı boyunca;  tek satıra sığmazsa son sözden
+        önce iki satır ( 665'lik "KUMANDA PANOSU" 600'lük panoya sığmıyordu, etiket
+        ayırıcı onu ölçünün üstüne ya da oklu uzağa koyuyordu — altın 16 düzenin 15'i )."""
+
+        def satirlar(pn, metin):
+            return [
+                (x["metin"], x["x"], x["y"], x.get("aci", 0)) for x in makine_dairesi._pano_adi(pn, metin)
+            ]
+
+        #  90°:  ilk satır solda ( yazının üstü −x yanında );  0°:  üstte
+        self.assertEqual(
+            satirlar((0, 0, 400, 600), "KUMANDA PANOSU"),
+            [("KUMANDA", 144.0, 300.0, 90), ("PANOSU", 256.0, 300.0, 90)],
+        )
+        self.assertEqual(
+            satirlar((0, 0, 600, 400), "KUMANDA PANOSU"),
+            [("KUMANDA", 300.0, 256.0, 0), ("PANOSU", 300.0, 144.0, 0)],
+        )
+        self.assertEqual(
+            [s_[0] for s_ in satirlar((0, 0, 400, 600), "ASANSÖR 1 PANOSU")], ["ASANSÖR 1", "PANOSU"]
+        )
+        #  Sığarsa tek satır;  iki satır da sığmazsa tek satır ortada ( ayırıcı taşır )
+        self.assertEqual(
+            satirlar((0, 0, 400, 1000), "KUMANDA PANOSU"), [("KUMANDA PANOSU", 200.0, 500.0, 90)]
+        )
+        self.assertEqual(satirlar((0, 0, 100, 200), "KUMANDA PANOSU"), [("KUMANDA PANOSU", 50.0, 100.0, 90)])
+        for ad, g in _md_projeler():
+            e, p = makine_dairesi.ciz(g), makine_dairesi.yerlesim(g)["pano"]
+            with self.subTest(proje=ad):
+                ys = [x for x in e if x.get("ad") == "pano_adi"]
+                self.assertEqual(sorted(x["metin"] for x in ys), ["KUMANDA", "PANOSU"])
+                for x in ys:
+                    m = geometri.maske_kutusu(x)
+                    self.assertTrue(p[0] <= m[0] and p[1] <= m[1] and m[2] <= p[2] and m[3] <= p[3], m)
+
 
 #  ─────────────────────────────────────────────────────────────────────
 #  DÜŞEY KESİTLER
