@@ -1372,7 +1372,7 @@ def delik_plani(g, cizim_sabitleri=None):
             eleman.yazi(
                 (d[0] + d[2]) / 2.0 + (0 if dik else 0),
                 (d[1] + d[3]) / 2.0,
-                f"{round(w):g} x {round(h):g}",
+                f"{round(w):g} × {round(h):g}",
                 uslup.NORMAL,
                 aci=90 if dik else 0,
             )

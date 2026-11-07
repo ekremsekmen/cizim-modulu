@@ -106,8 +106,8 @@ class KasnakDuzeni(unittest.TestCase):
         alfa = kopru.sarim_acisi(g)
         self.assertAlmostEqual(alfa, 151, delta=1.5)
         self.assertIn(f"SARIM AÇISI {alfa:.0f}°", [x["metin"] for x in e if x["tip"] == "yazi"])
-        self.assertIn("Ø 500", o)
-        self.assertIn("Ø 400", o)
+        self.assertIn("ø 500", o)
+        self.assertIn("ø 400", o)
         d = {
             t: (k[1] + k[3]) / 2.0
             for t, k in makine_dairesi.yerlesim(g)["delikler"]
@@ -127,7 +127,7 @@ class KasnakDuzeni(unittest.TestCase):
             with self.subTest(ad):
                 self.assertIn("SARIM AÇISI 180°", [x["metin"] for x in e if x["tip"] == "yazi"])
                 olculer = _olculer(e)
-                self.assertIn(f"Ø {g['makine']['tahrik_kasnak_capi']:g}", olculer)
+                self.assertIn(f"ø {g['makine']['tahrik_kasnak_capi']:g}", olculer)
                 self.assertFalse([m for m in olculer if m.startswith("HALAT ARASI")], olculer)
 
     def test_her_duzende_cizilir(self):

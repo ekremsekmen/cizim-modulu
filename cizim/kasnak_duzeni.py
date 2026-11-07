@@ -185,9 +185,9 @@ def ciz(g, cizim_sabitleri=None):
     e.append(eleman.ad(eleman.yazi(uc, max(q1, zt + R1) + 420, metin, uslup.NORMAL), "sarim_acisi"))
 
     #  Çaplar ( LiftDesigner:  kasnağın üstünde )
-    e.append(eleman.olcu("yatay", (uc - R1, 0), (uc + R1, 0), zt + R1 + 150, f"Ø {D1:g}"))
+    e.append(eleman.olcu("yatay", (uc - R1, 0), (uc + R1, 0), zt + R1 + 150, f"ø {D1:g}"))
     if sp:
-        e.append(eleman.olcu("yatay", (us - R2, 0), (us + R2, 0), zs - R2 - 150, f"Ø {2 * R2:g}"))
+        e.append(eleman.olcu("yatay", (us - R2, 0), (us + R2, 0), zs - R2 - 150, f"ø {2 * R2:g}"))
     #  Alt:  merkezler arası ( yatay ) ve iki halat inişinin arası
     k1 = z_alt + 150
     if sp and abs(us - uc) > 1e-6:

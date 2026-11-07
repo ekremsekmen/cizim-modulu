@@ -635,7 +635,7 @@ def ciz(g, cizim_sabitleri=None):
             eleman.ad(eleman.dikdortgen("SIGINMA", sg[0], sg[1], sg[2] - sg[0], sg[3] - sg[1]), "siginma")
         )
         a, b = SIGINMA[Y["siginma_tipi"]]
-        satirlar = ["SIĞINMA ALANI", f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}"]
+        satirlar = ["SIĞINMA ALANI", f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} × {b:g}"]
         if Y.get("girinti"):
             satirlar.append(f"ŞEKİL 4 GİRİNTİSİ  {eleman.buyuk(Y['girinti'])}")
         e += geometri.alan_yazisi(sg, satirlar)

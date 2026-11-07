@@ -1388,7 +1388,7 @@ def _donanim(Y, tampon_tipi="poliuretan"):
             eleman.ad(eleman.dikdortgen("SIGINMA", sg[0], sg[1], sg[2] - sg[0], sg[3] - sg[1]), "siginma")
         )
         a, b = SIGINMA[Y["siginma_tipi"]]
-        e += geometri.alan_yazisi(sg, ["SIĞINMA ALANI", f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} x {b:g}"])
+        e += geometri.alan_yazisi(sg, ["SIĞINMA ALANI", f"{eleman.buyuk(Y['siginma_tipi'])}  {a:g} × {b:g}"])
     return e
 
 
