@@ -3444,6 +3444,54 @@ class KopukVeKucukOlcu(unittest.TestCase):
         self.assertEqual(e[0]["b"][0], 1004)
 
 
+class YaziKendiAraliginda(unittest.TestCase):
+    """Çizim denetimi 2. adımı ( 6 – 7 Kas ):  sığmayan ara ölçünün yazısı aynı
+    zincirin başka aralığının hizasına ( yanlış aralık ) ya da komşu yazıya 2 mm'den
+    yakın ( bitişik ) konmaz.  Kuyu planının eşik zinciri ( 150 · 30 · 90 ):  "30"
+    90'ın yanındaydı, "150"ye bitişikti;  iç yandaki CD sırası 270'ten başladığı
+    için "30" çizginin iç yanına, kendi aralığına yazılır."""
+
+    @staticmethod
+    def _zincirler(cd_bas):
+        nok = [0, 150, 180, 270]
+        e = [eleman.olcu("dusey", (0, a), (0, b), 2520) for a, b in zip(nok, nok[1:])]
+        e.append(eleman.olcu("dusey", (0, cd_bas), (0, 2370), 2420, "CD2100"))
+        e += [eleman.olcu("dusey", (0, a), (0, b), 2620) for a, b in ((0, 270), (270, 2390))]
+        return e
+
+    def test_kucuk_ara_olcu_kendi_araliginda(self):
+        from araclar import karne
+
+        e = self._zincirler(270)
+        geometri.yazilari_yerlestir(e, kaydir=True)
+        otuz = next(o for o in e if o["metin"] == "30")
+        self.assertTrue(150 <= otuz["yazi"]["y"] <= 180, otuz["yazi"])
+        self.assertLess(otuz["yazi"]["x"], 2520)  # çizginin iç yanı
+        b = karne.karne(e, 20)
+        self.assertEqual(b["yazi_yanlis_aralikta"], [])
+        self.assertEqual(b["yazi_bitisik"], [])
+        self.assertEqual(b["yazi_cizgisinden_kopuk"], [])
+
+    def test_ic_sira_yazinin_hizasindaysa_ic_yana_yazilmaz(self):
+        #  CD sırası eşik zincirinin hizasından başlıyorsa iç yandaki yazı onun
+        #  ölçüsü sanılır ( 5 Eki ):  "30" iç yana geçmez
+        e = self._zincirler(100)
+        geometri.yazilari_yerlestir(e, kaydir=True)
+        otuz = next(o for o in e if o["metin"] == "30")
+        self.assertGreater(otuz["yazi"]["x"], 2520)
+
+    def test_aciklamali_yazi_yerinde_kalir(self):
+        #  Açıklamalı uzun yazılar ( "MAKİNE 345" ) 3. adımda yeniden yazılır:
+        #  ikinci aşama yalnız sayı yazılarını kaydırır
+        e = self._zincirler(270)
+        e[1]["metin"] = "EŞİK 30"
+        once = [dict(o) for o in e]
+        geometri.yazilari_yerlestir([dict(o) for o in once], kaydir=True)
+        geometri.yazilari_yerlestir(e, kaydir=True)
+        esik = next(o for o in e if o["metin"] == "EŞİK 30")
+        self.assertFalse(150 <= esik["yazi"]["y"] <= 180 and esik["yazi"]["x"] < 2520)
+
+
 class EtiketMaskesi(unittest.TestCase):
     """Etiketin GERÇEK maskesi ( uslup.maske_kutusu — alt uzantılı harfin
     yanında çıplak kutudan 0,19 em uzun ) bir parçanın kenarını ya da önce
