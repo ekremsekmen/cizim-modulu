@@ -109,8 +109,8 @@ UZAK_OLCU = 30.0
 UZAK_CIZIMLER = ("giris", "kapi_kesiti")
 #  Çizime bağlı kurallar:  karne( e , olcek , cizim ) çizimin adıyla sayar
 CIZIME_BAGLI = {"uzak_olcu": UZAK_CIZIMLER}
-#  Kuyunun içindeki parçaların etiketleri:  kuyunun dışına düşmez
-PARCA_ETIKETLERI = ("agirlik_yazi", "agirlik_kasnak_yazi", "kabin_kasnak_yazi")
+#  Kuyunun içindeki parçaların etiketleri:  kuyunun dışına düşmez ( ayırıcıyla aynı küme )
+PARCA_ETIKETLERI = geometri.KUYU_ICI_ETIKETLERI
 #  Çizimin sınırına ( yazının taşması ) sayılmayan katmanlar — yerleştiriciyle aynı
 PARCA_DISI = geometri.CIZIM_DISI_KATMANLAR
 #  Ölçünün ucunun özelliği:  yazı / ölçü / çerçeve / kesit işareti dışında her çizgi
@@ -405,23 +405,12 @@ def _uzaklar(e, olcek):
     return out
 
 
-def _kuyu_ici(e):
-    """Kuyunun iç yüzleri SW / SD ölçülerinden:  ( yatay aralık , düşey aralık ) —
-    kesitte yalnız yatay ( A-A'da SD, B-B'de SW );  ölçü yoksa None."""
-    ar = [None, None]
-    for o in e:
-        if o["tip"] == "olcu" and str(o.get("metin", "")).startswith(("SW", "SD")):
-            j = 0 if o["yon"] == "yatay" else 1
-            lo, hi = sorted((o["a"][j], o["b"][j]))
-            ar[j] = (lo, hi) if ar[j] is None else (min(ar[j][0], lo), max(ar[j][1], hi))
-    return ar
-
-
 def _disaridakiler(e, olcek):
     """etiket_kuyu_disinda:  [ metin ] — oklu etiket ( okun ucu yazının yanında ) sayılmaz."""
-    x, y = _kuyu_ici(e)
-    if x is None:
+    kuyu = geometri.kuyunun_ici(e)
+    if kuyu is None or kuyu[0] is None:
         return []
+    x, y = kuyu
     pay = OK_PAYI * olcek
     uclar = [
         (s["x1"], s["y1"], s["x2"], s["y2"])

@@ -108,6 +108,36 @@ PARCA_KATMANLARI = (
 #  tek kuyunun kuyu dibinde, 2 Kas )
 SABIT_ETIKETLER = frozenset(("ayirma_kirisi_adi", "yuk"))
 
+#  Kuyunun İÇİNDE kalması gereken etiketler:  karşı ağırlığın ve kasnakların yazısı.
+#  Ayırıcı ( etiketleri_ayir ) bunları kuyunun dışına taşımaz;  dar ağırlığa
+#  maskesiz sığmazlarsa kuyunun içinde en yakın boş yere kısa okla taşır.  7 Kas
+#  çizim denetimi 5. adımı:  B-B'de dar ağırlığın "KARŞI AĞIRLIK"ı duvarın ötesine
+#  ( kot yazılarının yanına ) itiliyordu — taramada 210 / 283 kesit;  BAR 2515
+#  planında "ø 400" duvarın dışındaydı.  araclar/karne de bunları sayar
+#  ( etiket_kuyu_disinda ).
+KUYU_ICI_ETIKETLERI = frozenset(("agirlik_yazi", "agirlik_kasnak_yazi", "kabin_kasnak_yazi"))
+
+
+def kuyunun_ici(e):
+    """Kuyunun iç yüzleri SW / SD ölçülerinden:  ( yatay aralık , düşey aralık ) —
+    kesitte yalnız yatay ( A-A'da SD, B-B'de SW );  ölçü yoksa None."""
+    ar = [None, None]
+    for o in e:
+        if o["tip"] == "olcu" and str(o.get("metin", "")).startswith(("SW", "SD")):
+            j = 0 if o["yon"] == "yatay" else 1
+            lo, hi = sorted((o["a"][j], o["b"][j]))
+            ar[j] = (lo, hi) if ar[j] is None else (min(ar[j][0], lo), max(ar[j][1], hi))
+    return None if ar == [None, None] else tuple(ar)
+
+
+def kuyuda(kutu, kuyu):
+    """Kutunun ortası kuyunun içinde mi ( kuyunun_ici;  None:  bilinmiyor — evet )."""
+    if kuyu is None:
+        return True
+    cx, cy = (kutu[0] + kutu[2]) / 2.0, (kutu[1] + kutu[3]) / 2.0
+    x, y = kuyu
+    return (x is None or x[0] <= cx <= x[1]) and (y is None or y[0] <= cy <= y[1])
+
 
 def duvar_gibi(x):
     """Yazının içine giremediği kesit:  duvar ( tarama, KUYU-DUVAR ) ve kuyu grubunun
@@ -2712,6 +2742,7 @@ def etiketleri_ayir(e, olcek=20):
         _kayma_adimlari(int(900 * k), max(int(40 * k), 1), int(300 * k)),
     )
     oklar, oklu = [], set()
+    kuyu = kuyunun_ici(e)
     for el in yazilar:
         if el["tip"] != "yazi" or el.get("ad") in SABIT_ETIKETLER:
             continue
@@ -2734,6 +2765,11 @@ def etiketleri_ayir(e, olcek=20):
             continue
         dx, dy, ok = yer
         k2 = (kb[0] + dx, kb[1] + dy, kb[2] + dx, kb[3] + dy)
+        #  Kuyunun içindeki parçanın etiketi kuyunun dışına düştüyse oku parçasını
+        #  gösterir ( 7 Kas çizim denetimi 5. adımı:  B-B'de dar ağırlığın "KARŞI
+        #  AĞIRLIK"ı duvarın ötesinde, kot yazılarının yanında oksuz kalıyordu —
+        #  duvarın ya da katın adı gibi okunuyordu;  ağırlığın yanında boş yer yok )
+        ok = ok or (el.get("ad") in KUYU_ICI_ETIKETLERI and not kuyuda(k2, kuyu))
         if ok:
             #  Ok:  etiketin parçaya en yakın noktasından eski yerinin ortasına
             ax, ay = (kb[0] + kb[2]) / 2.0, (kb[1] + kb[3]) / 2.0
@@ -2743,7 +2779,9 @@ def etiketleri_ayir(e, olcek=20):
         el["x"] += dx
         el["y"] += dy
         kutular[id(el)] = k2
-    _maskeden_kacir(_Etiketler(e, yazilar, kutular, oklu, duvarlar, parca_kutulari, kenarlar, k), adimlar[0])
+    oklar += _maskeden_kacir(
+        _Etiketler(e, yazilar, kutular, oklu, duvarlar, parca_kutulari, kenarlar, k, kuyu), adimlar
+    )
     return e + oklar
 
 
@@ -2780,6 +2818,7 @@ class _Etiketler:
     parca_kutulari: list
     kenarlar: KenarIzgarasi
     k: float
+    kuyu: tuple = None
 
 
 def _satirli(el, yazilar):
@@ -2816,12 +2855,12 @@ def _boyunca(el, k):
     return out
 
 
-def _maskeden_kacir(E, itme):
+def _maskeden_kacir(E, adimlar):
     """MASKE ( 26 Eki, kalite 3. adımı ):  etiketin GERÇEK maskesi
     ( uslup.maske_kutusu — ayırıcının denetimi çıplak kutuya bakıyordu ) bir
     parçanın kenarını ya da önce çizilen bir ölçünün çizgisini / ucunu
     siliyorsa ( MASKE_ESIGI;  araclar/karne:  maske_kenar_siliyor,
-    maske_olcu_siliyor ) etiket en az kayarak ( itme — 1/20'de 100 mm;  kendi
+    maske_olcu_siliyor ) etiket en az kayarak ( 1/20'de 100 mm;  kendi
     doğrultusunda 300 mm'ye kadar — _boyunca ) HİÇBİR ölçüde kötüleşmediği,
     kusuru azaldığı yere taşınır:  başka yazıya
     binmez, duvara girmez, eskisinden çok parçanın içine girmez, maskesi
@@ -2829,7 +2868,13 @@ def _maskeden_kacir(E, itme):
     adı panonun ön yüzünü, kabin üstünde HALAT kabin duvarını, "KARŞI AĞIRLIK"
     çerçevenin üst kenarını siliyordu.  Oklu ( uzağa taşınmış ) etiket, alan
     adı ( alanının içinde, satırlı ), kot ( işaretinin yanında ) ve bloğun
-    satırı ( _satirli ) kıpırdamaz."""
+    satırı ( _satirli ) kıpırdamaz.
+
+    Kuyunun içindeki etiket ( KUYU_ICI_ETIKETLERI ) kuyunun dışına kaymaz;
+    yakında kusursuz yer yoksa kuyunun içinde, hiçbir parçanın üstünde olmayan
+    en yakın kusursuz yere KISA OKLA taşınır ( _oklu_yer — 7 Kas çizim denetimi
+    5. adımı:  dar karşı ağırlığın "ø 400"ü çerçeveyi siliyordu ).  Dönen:  oklar."""
+    itme = adimlar[0]
     esik = MASKE_ESIGI * 20.0 * E.k
     olculer = OlcuIzgarasi(E.e)
 
@@ -2840,6 +2885,7 @@ def _maskeden_kacir(E, itme):
     def kusurlu(d):
         return (d[0] > esik, d[1] > esik or d[2] > 0)
 
+    oklar = []
     for el in E.yazilar:
         if (
             el["tip"] != "yazi"
@@ -2851,36 +2897,99 @@ def _maskeden_kacir(E, itme):
         m0 = maske_kutusu(el)
         d0 = olcut(m0)
         k0 = kusurlu(d0)
-        if not any(k0):
-            continue
         kb = E.kutular[id(el)]
         obur = [E.kutular[id(x)] for x in E.yazilar if x is not el and E.kutular[id(x)]]
-        parca0 = sum(1 for q in E.parca_kutulari if _ust(kb, q, 0.0))
-        secilen = None
-        for dx, dy in itme + _boyunca(el, E.k):
-            kt = (kb[0] + dx, kb[1] + dy, kb[2] + dx, kb[3] + dy)
-            if (
-                any(_ust(kt, b) for b in obur)
-                or any(_ust(kt, d, -2.0 * E.k) for d in E.duvarlar)
-                or E.kenarlar.kesisir(kt, 2.0 * E.k)
-                or sum(1 for q in E.parca_kutulari if _ust(kt, q, 0.0)) > parca0
-            ):
-                continue
-            d = olcut((m0[0] + dx, m0[1] + dy, m0[2] + dx, m0[3] + dy))
-            kk = kusurlu(d)
-            if any(a > b for a, b in zip(kk, k0)) or sum(kk) >= sum(k0):
-                continue
-            if not _maske_kotulesmez(d0, d, k0, kk, esik):
-                continue
-            secilen = secilen or (dx, dy)
-            if not any(kk):
-                secilen = (dx, dy)
-                break
+        if not any(k0):
+            continue
+        ok = None
+        secilen = _maskesiz_kayma(E, el, kb, m0, obur, itme, olcut, kusurlu, d0, k0, esik)
+        kalan = (
+            k0 if secilen is None else kusurlu(olcut(tuple(v + (secilen[i % 2]) for i, v in enumerate(m0))))
+        )
+        if el.get("ad") in KUYU_ICI_ETIKETLERI and any(kalan):
+            yer = _kuyudaki_yer(E, kb, m0, obur, adimlar, lambda m: any(kusurlu(olcut(m))))
+            if yer:
+                secilen, ok = yer
         if secilen:
             dx, dy = secilen
             el["x"] += dx
             el["y"] += dy
             E.kutular[id(el)] = (kb[0] + dx, kb[1] + dy, kb[2] + dx, kb[3] + dy)
+        if ok:
+            oklar.append(ok)
+            E.oklu.add(id(el))
+    return oklar
+
+
+def _maskesiz_kayma(E, el, kb, m0, obur, itme, olcut, kusurlu, d0, k0, esik):
+    """_maskeden_kacir'ın kayması ( kuyunun içindekiler dışındaki etiketler ):
+    ( dx , dy ) ya da None — önce kusursuz, yoksa kusuru azalan ilk yer."""
+    parca0 = sum(1 for q in E.parca_kutulari if _ust(kb, q, 0.0))
+    secilen = None
+    for dx, dy in itme + _boyunca(el, E.k):
+        kt = (kb[0] + dx, kb[1] + dy, kb[2] + dx, kb[3] + dy)
+        if (
+            any(_ust(kt, b) for b in obur)
+            or any(_ust(kt, d, -2.0 * E.k) for d in E.duvarlar)
+            or E.kenarlar.kesisir(kt, 2.0 * E.k)
+            or sum(1 for q in E.parca_kutulari if _ust(kt, q, 0.0)) > parca0
+        ):
+            continue
+        d = olcut((m0[0] + dx, m0[1] + dy, m0[2] + dx, m0[3] + dy))
+        kk = kusurlu(d)
+        if any(a > b for a, b in zip(kk, k0)) or sum(kk) >= sum(k0):
+            continue
+        if not _maske_kotulesmez(d0, d, k0, kk, esik):
+            continue
+        secilen = secilen or (dx, dy)
+        if not any(kk):
+            return (dx, dy)
+    return secilen
+
+
+def _kuyudaki_yer(E, kb, m0, obur, adimlar, kusurlu_mu):
+    """Maskesi kayınca da parçanın kenarını ya da ölçüyü silen kuyu içi etiketinin
+    ( KUYU_ICI_ETIKETLERI — dar karşı ağırlığın "ø 400"ü çerçevenin içinde ) oklu
+    yeri:  ( ( dx , dy ) , ok ) ya da None ( yerinde kalır ) — kuyunun içinde kısa
+    okla ( 1/20'de 300 mm ), maskesi kusursuz yer ( _oklu_yer ).  Dışarı taşınmaz:
+    örnek düzende "KARŞI AĞIRLIK" ile "ø 400" duvarın dışında alt alta tek yazı
+    gibi okunuyor, ölçü yazısının dibine düşüyordu."""
+    return _oklu_yer(E, kb, m0, obur, adimlar[1], kusurlu_mu, True)
+
+
+def _oklu_yer(E, kb, m0, obur, kaymalar, kusurlu_mu, icerde):
+    """Kuyunun içindeki etiketin oklu yeri:  ( ( dx , dy ) , ok ) ya da None —
+    kaymalar sırasıyla ( yakından uzağa ), icerde:  kuyunun içinde, değilse dışında;
+    hiçbir parçanın ( kuyunun kendisi hariç ) ve yazının üstünde olmayan, duvara
+    girmeyen, kenara değmeyen, maskesi kusursuz ilk yer;  ok etiketin eski yerine
+    ( adlandırdığı parçaya ) gider ve hiçbir yazının üstünden geçmez.  İçeride
+    uzak yer seçilmez:  B-B'de kapı görünüşünü boydan kesen uzun ok gerekiyordu."""
+    x, y = E.kuyu if E.kuyu else (None, None)
+
+    def kuyunun_kendisi(q):
+        return (x is None or (q[0] <= x[0] + 1.0 and q[2] >= x[1] - 1.0)) and (
+            y is None or (q[1] <= y[0] + 1.0 and q[3] >= y[1] - 1.0)
+        )
+
+    parcalar_ = [q for q in E.parca_kutulari if not kuyunun_kendisi(q)]
+    ax, ay = (kb[0] + kb[2]) / 2.0, (kb[1] + kb[3]) / 2.0
+    for dx, dy in kaymalar:
+        kt = (kb[0] + dx, kb[1] + dy, kb[2] + dx, kb[3] + dy)
+        if (
+            kuyuda(kt, E.kuyu) != icerde
+            or any(_ust(kt, b) for b in obur)
+            or any(_ust(kt, d, -2.0 * E.k) for d in E.duvarlar)
+            or any(_ust(kt, q, 0.0) for q in parcalar_)
+            or E.kenarlar.kesisir(kt, -2.0 * E.k)
+            or kusurlu_mu((m0[0] + dx, m0[1] + dy, m0[2] + dx, m0[3] + dy))
+        ):
+            continue
+        px, py = min(max(ax, kt[0]), kt[2]), min(max(ay, kt[1]), kt[3])
+        cizgi = (px, py, ax, ay)
+        if any(kenar_kesisir(cizgi, b) for b in obur):
+            continue
+        return (dx, dy), eleman.ad(eleman.ok("YAZI", px, py, ax, ay), "etiket_oku")
+    return None
 
 
 def yazilari_coz(e, tasinir, ek_katman=()):
