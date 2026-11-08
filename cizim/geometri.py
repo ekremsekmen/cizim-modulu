@@ -121,7 +121,7 @@ KUYU_ICI_ETIKETLERI = frozenset(("agirlik_yazi", "agirlik_kasnak_yazi", "kabin_k
 #  kuyunun dışına, ölçü zincirlerinin üstüne ya da ön duvarın altına atılıyordu ( oku
 #  duvarı ve makineyi boydan kesiyordu;  arkadaki ağırlıkta duvarın ötesine oksuz );
 #  kuyunun dışına düşecekse önce içeride oklu yer, yoksa eskisi gibi dışarıda
-ICERDE_OKLU_ETIKETLER = frozenset(("halat_baglanti_yazi",))
+ICERDE_OKLU_ETIKETLER = frozenset(("halat_baglanti_yazi", "perde_yazi"))
 
 
 def kuyunun_ici(e):
