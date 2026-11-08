@@ -943,7 +943,12 @@ def _parcalar(g, Y):
     if g["makine"]["yeri"] == "Kuyu üstü":
         e += makine.plan(Y["halat_konsolu"], eleman.dikdortgen, eleman.daire, eleman.cizgi)
     for p in (Y["agirlik_baglanti"], Y["kabin_baglanti"]):
-        e.append(eleman.yazi((p[0] + p[2]) / 2.0, p[3] + 40, "HALAT BAĞLANTISI", uslup.NORMAL))
+        e.append(
+            eleman.ad(
+                eleman.yazi((p[0] + p[2]) / 2.0, p[3] + 40, "HALAT BAĞLANTISI", uslup.NORMAL),
+                "halat_baglanti_yazi",
+            )
+        )
     for hx, hy in Y["halatlar"] + [Y["ag_dusus"], Y["ag_teget2"]]:
         e.append(eleman.ad(eleman.daire("KASNAK", hx, hy, 20), "halat"))
 

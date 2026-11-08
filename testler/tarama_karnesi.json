@@ -49,36 +49,24 @@
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sağ MRL bina yapısına Kabin üstü": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sol MD {'aski_duzeni': 'Kabin altı'}": {
@@ -109,36 +97,24 @@
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sol MRL bina yapısına Kabin üstü": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1275 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
@@ -194,36 +170,24 @@
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1275 Sağ MRL bina yapısına Kabin üstü": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1275 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1275 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1275 Sol MD {'aski_duzeni': 'Kabin altı'}": {
@@ -263,18 +227,12 @@
    },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1275 Sol MRL bina yapısına Kabin üstü": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1275 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
@@ -284,18 +242,12 @@
    },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1275 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
@@ -354,9 +306,6 @@
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sağ MRL bina yapısına Kabin üstü": {
@@ -366,18 +315,12 @@
    },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
@@ -387,9 +330,6 @@
    },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sol MD {'aski_duzeni': 'Kabin altı'}": {
@@ -423,36 +363,24 @@
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sol MRL bina yapısına Kabin üstü": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2000 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
@@ -518,9 +446,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2000 Sağ MRL bina yapısına Kabin üstü": {
@@ -529,9 +454,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2000 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
@@ -540,9 +462,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2000 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
@@ -551,9 +470,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2000 Sol MD {'aski_duzeni': 'Kabin altı'}": {
@@ -592,9 +508,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2000 Sol MRL bina yapısına Kabin üstü": {
@@ -603,9 +516,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2000 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
@@ -614,9 +524,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2000 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
@@ -625,9 +532,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2500 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
@@ -693,9 +597,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sağ MRL bina yapısına Kabin üstü": {
@@ -704,9 +605,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
@@ -715,9 +613,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
@@ -726,9 +621,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sol MD {'aski_duzeni': 'Kabin altı'}": {
@@ -776,9 +668,6 @@
    },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sol MRL bina yapısına Kabin üstü": {
@@ -787,9 +676,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
@@ -801,9 +687,6 @@
    },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
@@ -812,9 +695,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Arka MD {'aski_orani': 1}": {
@@ -872,9 +752,6 @@
    "kuyu_dibi": {
     "yazi_cizgisinden_kopuk": 3,
     "yazi_yanlis_aralikta": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sağ MRL bina yapısına Kabin üstü": {
@@ -887,9 +764,6 @@
    },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
@@ -900,9 +774,6 @@
    "kuyu_dibi": {
     "yazi_cizgisinden_kopuk": 3,
     "yazi_yanlis_aralikta": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
@@ -914,9 +785,6 @@
     "yazi_bitisik": 1
    },
    "kuyu_dibi": {
-    "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
     "maske_olcu_siliyor": 1
    }
   },
@@ -965,9 +833,6 @@
    "kuyu_dibi": {
     "yazi_cizgisinden_kopuk": 3,
     "yazi_yanlis_aralikta": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sol MRL bina yapısına Kabin üstü": {
@@ -980,9 +845,6 @@
    },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
@@ -993,9 +855,6 @@
    "kuyu_dibi": {
     "yazi_cizgisinden_kopuk": 3,
     "yazi_yanlis_aralikta": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
@@ -1007,9 +866,6 @@
     "yazi_bitisik": 1
    },
    "kuyu_dibi": {
-    "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
     "maske_olcu_siliyor": 1
    }
   },
@@ -1059,18 +915,12 @@
    },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 Sağ MRL bina yapısına Kabin üstü": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
@@ -1080,18 +930,12 @@
    },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 Sol MD {'aski_duzeni': 'Kabin altı'}": {
@@ -1128,18 +972,12 @@
    },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 Sol MRL bina yapısına Kabin üstü": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
@@ -1149,18 +987,12 @@
    },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Arka MD {'aski_duzeni': 'Kabin üstü'}": {
@@ -1220,18 +1052,12 @@
    },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sağ MRL bina yapısına Kabin üstü": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sağ MRL {'aski_duzeni': 'Kabin altı'}": {
@@ -1241,18 +1067,12 @@
    },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sol MD {'aski_duzeni': 'Kabin altı'}": {
@@ -1304,9 +1124,6 @@
    },
    "kuyu_kesiti_on": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sol MRL bina yapısına Kabin üstü": {
@@ -1316,9 +1133,6 @@
    },
    "kuyu_kesiti_on": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sol MRL {'aski_duzeni': 'Kabin altı'}": {
@@ -1331,9 +1145,6 @@
    },
    "kuyu_kesiti_on": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sol MRL {'aski_duzeni': 'Kabin üstü'}": {
@@ -1343,9 +1154,6 @@
    },
    "kuyu_kesiti_on": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   }
  },
@@ -1416,9 +1224,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2000 üst=Çömelme dip=Yatarak Kuyu içine v=1.6": {
@@ -1427,9 +1232,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2000 üst=Çömelme dip=Çömelme Kuyu içine v=1.0": {
@@ -1438,9 +1240,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2000 üst=Çömelme dip=Çömelme Kuyu içine v=1.6": {
@@ -1449,9 +1248,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.0": {
@@ -1461,9 +1257,6 @@
    },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 üst=Çömelme dip=Yatarak Duvar boşluğuna v=1.6": {
@@ -1473,9 +1266,6 @@
    },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 üst=Çömelme dip=Yatarak Kuyu içine v=1.0": {
@@ -1485,9 +1275,6 @@
    },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 üst=Çömelme dip=Yatarak Kuyu içine v=1.6": {
@@ -1497,27 +1284,18 @@
    },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.0": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 üst=Çömelme dip=Çömelme Duvar boşluğuna v=1.6": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 üst=Çömelme dip=Çömelme Kuyu içine v=1.0": {
@@ -1527,9 +1305,6 @@
    },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "630 üst=Çömelme dip=Çömelme Kuyu içine v=1.6": {
@@ -1538,9 +1313,6 @@
     "yazi_bitisik": 1
    },
    "kuyu_dibi": {
-    "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
     "maske_olcu_siliyor": 1
    }
   }
@@ -1636,88 +1408,58 @@
    "kapi_kesiti": {
     "uzak_olcu": 4,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sağ Manuel Sol": {
    "kapi_kesiti": {
     "uzak_olcu": 4,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sağ Otomatik Merkezi 4 Kanat": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sağ Teleskopik 3 Kanat Sol": {
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sağ Teleskopik Sol": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sol Manuel Sağ": {
    "kapi_kesiti": {
     "uzak_olcu": 4,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sol Manuel Sol": {
    "kapi_kesiti": {
     "uzak_olcu": 4,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sol Otomatik Merkezi 4 Kanat": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sol Teleskopik 3 Kanat Sağ": {
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sol Teleskopik Sağ": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Arka Manuel Sağ": {
@@ -1816,88 +1558,58 @@
    "kapi_kesiti": {
     "uzak_olcu": 4,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sağ Manuel Sol": {
    "kapi_kesiti": {
     "uzak_olcu": 4,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sağ Otomatik Merkezi 4 Kanat": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sağ Teleskopik 3 Kanat Sol": {
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sağ Teleskopik Sol": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sol Manuel Sağ": {
    "kapi_kesiti": {
     "uzak_olcu": 4,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sol Manuel Sol": {
    "kapi_kesiti": {
     "uzak_olcu": 4,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sol Otomatik Merkezi 4 Kanat": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sol Teleskopik 3 Kanat Sağ": {
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sol Teleskopik Sağ": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2500 Arka Manuel Sağ": {
@@ -1979,9 +1691,6 @@
    "kapi_kesiti": {
     "uzak_olcu": 4,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sağ Manuel Sol": {
@@ -1991,9 +1700,6 @@
    "kapi_kesiti": {
     "uzak_olcu": 4,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sağ Teleskopik 3 Kanat Sol": {
@@ -2002,9 +1708,6 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sol Manuel Sağ": {
@@ -2014,9 +1717,6 @@
    "kapi_kesiti": {
     "uzak_olcu": 4,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sol Manuel Sol": {
@@ -2026,9 +1726,6 @@
    "kapi_kesiti": {
     "uzak_olcu": 4,
     "yazi_bitisik": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sol Teleskopik 3 Kanat Sağ": {
@@ -2040,9 +1737,6 @@
    },
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sağ Manuel Sağ": {
@@ -2053,9 +1747,6 @@
    "kuyu_dibi": {
     "yazi_cizgisinden_kopuk": 3,
     "yazi_yanlis_aralikta": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sağ Manuel Sol": {
@@ -2066,9 +1757,6 @@
    "kuyu_dibi": {
     "yazi_cizgisinden_kopuk": 3,
     "yazi_yanlis_aralikta": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sağ Otomatik Merkezi 4 Kanat": {
@@ -2079,9 +1767,6 @@
    "kuyu_dibi": {
     "yazi_cizgisinden_kopuk": 3,
     "yazi_yanlis_aralikta": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sağ Teleskopik 3 Kanat Sol": {
@@ -2091,9 +1776,6 @@
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1,
     "yazi_cizgisinden_kopuk": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sağ Teleskopik Sol": {
@@ -2104,9 +1786,6 @@
    "kuyu_dibi": {
     "yazi_cizgisinden_kopuk": 3,
     "yazi_yanlis_aralikta": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sol Manuel Sağ": {
@@ -2117,9 +1796,6 @@
    "kuyu_dibi": {
     "yazi_cizgisinden_kopuk": 3,
     "yazi_yanlis_aralikta": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sol Manuel Sol": {
@@ -2130,9 +1806,6 @@
    "kuyu_dibi": {
     "yazi_cizgisinden_kopuk": 3,
     "yazi_yanlis_aralikta": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sol Otomatik Merkezi 4 Kanat": {
@@ -2143,9 +1816,6 @@
    "kuyu_dibi": {
     "yazi_cizgisinden_kopuk": 3,
     "yazi_yanlis_aralikta": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sol Teleskopik 3 Kanat Sağ": {
@@ -2155,9 +1825,6 @@
    "kuyu_dibi": {
     "maske_kenar_siliyor": 1,
     "yazi_cizgisinden_kopuk": 3
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "450 Sol Teleskopik Sağ": {
@@ -2168,9 +1835,6 @@
    "kuyu_dibi": {
     "yazi_cizgisinden_kopuk": 3,
     "yazi_yanlis_aralikta": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Arka Manuel Sağ": {
@@ -2290,9 +1954,6 @@
    },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sağ Manuel Sol": {
@@ -2301,9 +1962,6 @@
     "yazi_bitisik": 1
    },
    "kuyu_dibi": {
-    "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
     "maske_olcu_siliyor": 1
    }
   },
@@ -2314,9 +1972,6 @@
    },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sağ Teleskopik 3 Kanat Sağ": {
@@ -2324,9 +1979,6 @@
     "uzak_olcu": 3
    },
    "kuyu_dibi": {
-    "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
     "maske_olcu_siliyor": 1
    }
   },
@@ -2336,9 +1988,6 @@
    },
    "kuyu_dibi": {
     "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sağ Teleskopik Sol": {
@@ -2347,9 +1996,6 @@
     "yazi_bitisik": 1
    },
    "kuyu_dibi": {
-    "maske_olcu_siliyor": 1
-   },
-   "kuyu_ustu": {
     "maske_olcu_siliyor": 1
    }
   },
@@ -2363,9 +2009,6 @@
    },
    "kuyu_kesiti_on": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sol Manuel Sol": {
@@ -2378,9 +2021,6 @@
    },
    "kuyu_kesiti_on": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sol Otomatik Merkezi 4 Kanat": {
@@ -2393,9 +2033,6 @@
    },
    "kuyu_kesiti_on": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sol Teleskopik 3 Kanat Sağ": {
@@ -2407,9 +2044,6 @@
    },
    "kuyu_kesiti_on": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sol Teleskopik 3 Kanat Sol": {
@@ -2421,9 +2055,6 @@
    },
    "kuyu_kesiti_on": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   },
   "800 Sol Teleskopik Sağ": {
@@ -2436,9 +2067,6 @@
    },
    "kuyu_kesiti_on": {
     "maske_kenar_siliyor": 1
-   },
-   "kuyu_ustu": {
-    "maske_olcu_siliyor": 1
    }
   }
  },

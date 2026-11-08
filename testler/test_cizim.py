@@ -3754,6 +3754,33 @@ class KuyuIciEtiketi(unittest.TestCase):
         self.assertTrue(20 < x2 < 100 and 900 < y2 < 1100, (x2, y2))
 
 
+class KuyuUstuHalatBaglantisi(unittest.TestCase):
+    """Kuyu üstünde makinenin yanındaki HALAT BAĞLANTISI ( geometri.ICERDE_OKLU_ETIKETLER ):
+    yanında yer yoksa kuyunun İÇİNDE oklu;  maskesi ölçü çizgisini ve parça kenarını
+    silmez ( 8 Kas çizim denetimi 8. adımı:  ayırıcı onu kuyunun dışına, sağdaki ölçü
+    zincirlerinin üstüne ya da ön duvarın altına atıyordu — taramada 124 bulgu )."""
+
+    def test_kuyunun_icinde_maskesi_temiz(self):
+        from araclar import karne
+        from testler import test_yerlesim_saglamligi
+
+        for Q, yer in ((1000, "Sağ"), (1000, "Sol"), (1275, "Arka")):
+            with self.subTest(Q=Q, yer=yer):
+                ek = {"aski_orani": 2, "aski_duzeni": "Kabin üstü"} if yer == "Arka" else {}
+                v = test_yerlesim_saglamligi.standart_istek(Q, True, yer, **ek)
+                g, _A, hata = test_yerlesim_saglamligi.duzen_girdisi(v)
+                self.assertEqual(hata, [])
+                e = cizimler.CIZIMLER["kuyu_ustu"][1](g)
+                k = karne.karne(e, 20, "kuyu_ustu")
+                self.assertFalse([b for b in k["maske_olcu_siliyor"] if b[0] == "HALAT BAĞLANTISI"], k)
+                self.assertFalse([b for b in k["maske_kenar_siliyor"] if b[0] == "HALAT BAĞLANTISI"], k)
+                kuyu = geometri.kuyunun_ici(e)
+                yazilar = [x for x in e if x["tip"] == "yazi" and x["metin"] == "HALAT BAĞLANTISI"]
+                self.assertTrue(yazilar)
+                for x in yazilar:
+                    self.assertTrue(geometri.kuyuda(geometri.yazi_kutusu(x), kuyu), x)
+
+
 class OlcuOzelligininYaninda(unittest.TestCase):
     """Giriş görünüşünde ve kapı yan kesitinde ölçü ölçtüğü özelliğin yanında
     ( araclar/karne uzak_olcu:  uçlarının özelliğe uzaklığı kâğıtta 30 mm'den az —

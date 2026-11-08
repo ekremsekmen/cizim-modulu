@@ -9,44 +9,29 @@
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_ustu": {
-   "maske_olcu_siliyor": 1
   }
  },
  "1000 Sağ MRL Manuel Sağ": {
   "kapi_kesiti": {
    "uzak_olcu": 4,
    "yazi_bitisik": 1
-  },
-  "kuyu_ustu": {
-   "maske_olcu_siliyor": 1
   }
  },
  "1000 Sağ MRL Teleskopik 3 Kanat Sol": {
   "kapi_kesiti": {
    "uzak_olcu": 3
-  },
-  "kuyu_ustu": {
-   "maske_olcu_siliyor": 1
   }
  },
  "1000 Sağ MRL duvar boşluğunda kapı": {
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_ustu": {
-   "maske_olcu_siliyor": 1
   }
  },
  "1000 Sağ MRL duvardan duvara kiriş": {
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_ustu": {
-   "maske_olcu_siliyor": 1
   }
  },
  "1000 Sol MD": {
@@ -59,9 +44,6 @@
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_ustu": {
-   "maske_olcu_siliyor": 1
   }
  },
  "1275 Arka 2:1 MD": {
@@ -127,9 +109,6 @@
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_ustu": {
-   "maske_olcu_siliyor": 1
   }
  },
  "1600 Sol MD": {
@@ -142,18 +121,12 @@
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_ustu": {
-   "maske_olcu_siliyor": 1
   }
  },
  "1600 Sol MRL duvardan duvara kiriş": {
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_ustu": {
-   "maske_olcu_siliyor": 1
   }
  },
  "450 Sağ MD": {
@@ -176,9 +149,6 @@
    "maske_olcu_siliyor": 1,
    "yazi_cizgisinden_kopuk": 3,
    "yazi_yanlis_aralikta": 1
-  },
-  "kuyu_ustu": {
-   "maske_olcu_siliyor": 1
   }
  },
  "450 Sol MD": {
@@ -199,9 +169,6 @@
   "kuyu_dibi": {
    "yazi_cizgisinden_kopuk": 3,
    "yazi_yanlis_aralikta": 1
-  },
-  "kuyu_ustu": {
-   "maske_olcu_siliyor": 1
   }
  },
  "630 Sağ MD 1:1": {
@@ -255,9 +222,6 @@
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_ustu": {
-   "maske_olcu_siliyor": 1
   }
  },
  "gerçek 1022": {
@@ -288,9 +252,6 @@
   },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
-  },
-  "kuyu_ustu": {
-   "maske_olcu_siliyor": 1
   }
  },
  "gerçek 800 KG": {
@@ -309,10 +270,6 @@
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_ustu": {
-   "maske_kenar_siliyor": 1,
-   "maske_olcu_siliyor": 1
   }
  },
  "örnek makine daireli": {
