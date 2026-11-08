@@ -3828,6 +3828,26 @@ class PerdeYazisiKuyuda(unittest.TestCase):
                 self.assertTrue(geometri.kuyuda(geometri.yazi_kutusu(perde[0]), kuyu), perde[0])
 
 
+class KabinUstuAlanAdi(unittest.TestCase):
+    """Kabin üstünde sığınma ölçüsünün çizgisi alanın içinden geçiyorsa alanın adı çizginin
+    geniş yanına kayar, maskesi çizgiyi silmez ( 9 Kas çizim denetimi 8. adımı )."""
+
+    def test_ad_cizgiyi_silmez(self):
+        from cizim import kabin_ustu
+
+        sg = (0.0, 0.0, 500.0, 700.0)
+        adlar = geometri.alan_yazisi(sg, ["SIĞINMA ALANI", "ÇÖMELME  500 × 700"])
+        o = eleman.olcu("dusey", (0, 0), (0, 700), 390.0)
+        once = [el["x"] for el in adlar]
+        self.assertGreater(geometri.OlcuIzgarasi([o]).silinen(geometri.maske_kutusu(adlar[0]))[0], 0)
+        kabin_ustu._alan_adini_cizgiden_kacir(adlar, sg, [o])
+        izgara = geometri.OlcuIzgarasi([o])
+        self.assertLess(adlar[0]["x"], once[0])
+        for el in adlar:
+            self.assertEqual(izgara.silinen(geometri.maske_kutusu(el)), (0.0, 0))
+            self.assertGreaterEqual(geometri.maske_kutusu(el)[0], sg[0])
+
+
 class OlcuOzelligininYaninda(unittest.TestCase):
     """Giriş görünüşünde ve kapı yan kesitinde ölçü ölçtüğü özelliğin yanında
     ( araclar/karne uzak_olcu:  uçlarının özelliğe uzaklığı kâğıtta 30 mm'den az —

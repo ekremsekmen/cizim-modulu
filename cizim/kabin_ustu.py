@@ -644,7 +644,9 @@ def ciz(g, cizim_sabitleri=None):
     e += _ana_olculer(g, tavan)
     e += _iceri_olculeri(Y)
     if sg:
-        e += _siginma_olculeri(g, Y, e)
+        siginma_sirasi = _siginma_olculeri(g, Y, e)
+        _alan_adini_cizgiden_kacir(e, sg, siginma_sirasi)
+        e += siginma_sirasi
     _iceri_yerleri(Y, [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)])
     #  KORKULUK YAZISI:  küpeşte boyunca, operatöre ve sığınma ölçüsüne
     #  denk gelmeyen en uzun boş parçanın ortasına.  Ölçü yazıları önce
@@ -915,6 +917,33 @@ def _siginma_olculeri(g, Y, e):
     ]
     kot_y, kot_x = min(adaylar, key=lambda a: (puan(*a), adaylar.index(a)))
     return olculer(kot_y, kot_x)
+
+
+def _alan_adini_cizgiden_kacir(e, sg, sira):
+    """Sığınma ölçüsünün çizgisi alanın içinden geçiyor ve alanın adının maskesi onu
+    siliyorsa ad, alanın içinde çizginin kendisine sığdığı geniş yanına kayar ( 9 Kas çizim
+    denetimi 8. adımı:  dar kabinde sıra alanın içine geçince çizgi "SIĞINMA ALANI"nın
+    arkasında kesiliyordu ).  Hiçbir yana sığmıyorsa yerinde kalır."""
+    adlar = [el for el in e if el["tip"] == "yazi" and el.get("ad") == "alan_adi"]
+    if not adlar:
+        return
+    maskeler = [geometri.maske_kutusu(el) for el in adlar]
+    for yon, i, anahtar in (("dusey", 0, "x"), ("yatay", 1, "y")):
+        kot = next((o["kot"] for o in sira if o["yon"] == yon), None)
+        if kot is None or not sg[i] < kot < sg[2 + i]:
+            continue
+        bas, son = min(m[i] for m in maskeler), max(m[2 + i] for m in maskeler)
+        if not bas < kot < son:
+            continue
+        boy = son - bas
+        yanlar = sorted(((kot - sg[i], sg[i], kot), (sg[2 + i] - kot, kot, sg[2 + i])), reverse=True)
+        genislik, a, b = yanlar[0]
+        if boy > genislik:
+            continue
+        kayma = (a + b) / 2.0 - (bas + son) / 2.0
+        for el in adlar:
+            el[anahtar] += kayma
+        maskeler = [geometri.maske_kutusu(el) for el in adlar]
 
 
 def _korkuluk_yazilari(Y, e):
