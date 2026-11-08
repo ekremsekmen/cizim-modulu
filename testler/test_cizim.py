@@ -3781,6 +3781,53 @@ class KuyuUstuHalatBaglantisi(unittest.TestCase):
                     self.assertTrue(geometri.kuyuda(geometri.yazi_kutusu(x), kuyu), x)
 
 
+class SiginmaOlculeri(unittest.TestCase):
+    """Kuyu dibinde sığınma alanının yatay ve düşey ölçü sırası birlikte seçilir;  yazısı
+    duvara kaçmaz, öbür sıranın çizgisini silmez ( 8 Kas çizim denetimi 8. adımı:  "305",
+    "635 / 700 / 615" );  aralığın ortasında parça varsa yazı aralığın içinde kayar ( "690" )."""
+
+    def _karne(self, Q, yer, **ek):
+        from araclar import karne
+        from testler import test_yerlesim_saglamligi
+
+        g, _A, hata = test_yerlesim_saglamligi.duzen_girdisi(
+            test_yerlesim_saglamligi.standart_istek(Q, True, yer, **ek)
+        )
+        self.assertEqual(hata, [])
+        return karne.karne(cizimler.CIZIMLER["kuyu_dibi"][1](g), 20, "kuyu_dibi")
+
+    def test_siralar_birbirini_silmez(self):
+        for Q, yer, duzen in (
+            (450, "Sağ", "Kabin üstü"),
+            (450, "Sağ", "Kabin altı"),
+            (1275, "Sol", "Kabin altı"),
+        ):
+            with self.subTest(Q=Q, yer=yer, duzen=duzen):
+                k = self._karne(Q, yer, aski_duzeni=duzen)
+                self.assertEqual(k["maske_olcu_siliyor"], [])
+                self.assertEqual(k["maske_kenar_siliyor"], [])
+                self.assertEqual(k["yazi_cizgisinden_kopuk"], [])
+
+
+class PerdeYazisiKuyuda(unittest.TestCase):
+    """Karşı ağırlık perdesinin yazısı kuyunun dışına düşmez, içeride oklu yer arar
+    ( geometri.ICERDE_OKLU_ETIKETLER — 8 Kas:  taramada 121 / 291 düzende dışarıdaydı )."""
+
+    def test_perde_yazisi_kuyunun_icinde(self):
+        from testler import test_yerlesim_saglamligi
+
+        for Q, yer in ((450, "Sağ"), (450, "Sol"), (1000, "Sağ")):
+            with self.subTest(Q=Q, yer=yer):
+                v = test_yerlesim_saglamligi.standart_istek(Q, True, yer)
+                g, _A, hata = test_yerlesim_saglamligi.duzen_girdisi(v)
+                self.assertEqual(hata, [])
+                e = cizimler.CIZIMLER["kuyu_dibi"][1](g)
+                kuyu = geometri.kuyunun_ici(e)
+                perde = [x for x in e if x.get("ad") == "perde_yazi"]
+                self.assertEqual(len(perde), 1)
+                self.assertTrue(geometri.kuyuda(geometri.yazi_kutusu(perde[0]), kuyu), perde[0])
+
+
 class OlcuOzelligininYaninda(unittest.TestCase):
     """Giriş görünüşünde ve kapı yan kesitinde ölçü ölçtüğü özelliğin yanında
     ( araclar/karne uzak_olcu:  uçlarının özelliğe uzaklığı kâğıtta 30 mm'den az —

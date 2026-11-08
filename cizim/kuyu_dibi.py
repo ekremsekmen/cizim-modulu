@@ -120,8 +120,8 @@ def raylari_topla(taban, ad):
 
 
 def _serbest(sira, adaylar, sinir_, engeller, eksenler=(), maskeler=()):
-    """Adaylardan yazıları hiçbir engele binmeyen ilk ölçü sırası ( kuyunun
-    içinde kalanlardan );  hepsi biniyorsa ilki.  Ölçü çizgisi bir eksen
+    """Tercih sırasıyla ölçü sırasının kotları:  yazıları hiçbir engele binmeyen
+    adaylar ( kuyunun içinde kalanlardan );  hepsi biniyorsa yalnız ilki.  Ölçü çizgisi bir eksen
     çizgisiyle çakışan ( 40 mm'den yakın ) aday seçilmez:  ISO 129-1 — eksen
     ölçü çizgisi olmaz ( 13 Eki:  sığınma yazısı daralınca düşey sıra kabin
     ekseninin üstüne geçiyordu ).
@@ -133,7 +133,7 @@ def _serbest(sira, adaylar, sinir_, engeller, eksenler=(), maskeler=()):
     890" tek yazı gibi okunuyordu.  Çizgi şartı yazı şartının önüne geçince
     yazısı temiz sıra atılıyor, yazısı duvara kaçan sıra seçiliyordu )."""
     uygun = [k for k in adaylar if 0 < k < sinir_] or list(adaylar[:1])
-    yazisi_temiz = None
+    temiz, cizgisi_kesik = [], []
     for k in uygun:
         if any(abs(k - x) < 40 for x in eksenler):
             continue
@@ -148,17 +148,15 @@ def _serbest(sira, adaylar, sinir_, engeller, eksenler=(), maskeler=()):
             kutular.append((y_["x"] - w, y_["y"] - h, y_["x"] + w, y_["y"] + h))
         if any(ortusur(a, b) for a in kutular for b in engeller):
             continue
-        if not any(
+        kesik = any(
             _kesisir((min(o["a"][0], o["b"][0]), k), (max(o["a"][0], o["b"][0]), k), m)
             if o["yon"] == "yatay"
             else _kesisir((k, min(o["a"][1], o["b"][1])), (k, max(o["a"][1], o["b"][1])), m)
             for o in olculer
             for m in maskeler
-        ):
-            return sira(k)
-        if yazisi_temiz is None:
-            yazisi_temiz = k
-    return sira(uygun[0] if yazisi_temiz is None else yazisi_temiz)
+        )
+        (cizgisi_kesik if kesik else temiz).append(k)
+    return (temiz + cizgisi_kesik) or uygun[:1]
 
 
 def _tablo_satirlari(kv, ad=None):
@@ -1165,18 +1163,19 @@ def ciz(g, cizim_sabitleri=None):
         perde_yazisi = ((tamp[2] + p[2]) / 2.0, (p[1] + bl[1]) / 2.0, 0)
 
     e += _olculer(g, Y)
-    if Y["siginma"]:
-        e += _siginma_olculeri(Y["siginma"], G, D, e)
+    siginma_olculeri = _siginma_olculeri(Y["siginma"], G, D, e) if Y["siginma"] else []
+    e += siginma_olculeri
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     #  Yük kutuları, merdiven ve perde yazısı ölçü yazılarına göre konur:  yazılar
     #  kopukluk için kaydırılmaz ( geometri.yazilari_yerlestir )
     geometri.yazilari_yerlestir(e, kopuk=False)
+    _yaziyi_araliga_al(e, [o for o in siginma_olculeri if o["uzunluk"] >= 1e-6])
     if geometri.olcu_kipi():  # ölçü çözümlemesi:  ölçüler yukarıda bitti
         return e
     if Y["merdiven"]:
         e.append(_merdiven_yazisi(Y["merdiven"], G, e))
     e += _yuk_etiketleri(e, noktalar, G, D)
-    e.append(_perde_yazisi(e, perde_yazisi, p))
+    e.append(eleman.ad(_perde_yazisi(e, perde_yazisi, p), "perde_yazi"))
     e += geometri.grup_perdesi_adi(e)
     #  Ray konsoluna yatay yükler:  sağdaki ölçülerin ( ve kuyunun dışına konmuş
     #  yük kutularının ) dışında, kuyunun üst hizasından.  Yük kutularından
@@ -1203,6 +1202,43 @@ def ciz(g, cizim_sabitleri=None):
 #  Maskenin sildiği çizginin sayılmayan boyu:  kalite karnesinin eşiği ( geometri.
 #  MASKE_ESIGI kâğıtta mm ) — kuyu dibi 1/20'de çizilir
 _MASKE_ESIGI = geometri.MASKE_ESIGI * 20.0
+
+
+def _yaziyi_araliga_al(e, siradakiler):
+    """Sığınma ölçüsünün yazısının maskesi bir parçanın / duvarın kenarını siliyorsa yazı
+    kendi aralığının içinde, ortaya en yakın temiz yere kayar:  aralığın ortasında parça
+    ( regülatör gergisi ) var diye yazı duvarın üstüne, ucun dışına çıkıyordu ( "690" — 8 Kas
+    çizim denetimi 8. adımı ).  Temiz yer yoksa yerinde kalır."""
+    kenarlar = geometri.KenarIzgarasi(geometri.parca_kenarlari(e))
+    olculer = geometri.OlcuIzgarasi(e)
+
+    def kenar_siler(m):
+        return sum(geometri.kutudaki_boy(s, m) for s in kenarlar.adaylar(m)) > _MASKE_ESIGI
+
+    for o in siradakiler:
+        m0 = geometri.maske_kutusu(o)
+        if not kenar_siler(m0):
+            continue
+        y_ = o["yazi"]
+        i, anahtar = (0, "x") if o["yon"] == "yatay" else (1, "y")
+        bas, son = sorted((o["a"][i], o["b"][i]))
+        yari = (m0[2 + i] - m0[i]) / 2.0
+        orta0 = (m0[2 + i] + m0[i]) / 2.0
+        kaydirma = y_[anahtar] - orta0
+        obur = [geometri.yazi_kutusu(x) for x in e if x is not o and x["tip"] == "olcu" and x.get("yazi")]
+        obur += [geometri.sinir([x]) for x in e if x["tip"] == "yazi"]
+        adaylar = sorted(
+            (bas + yari + 10 * n for n in range(int(max(0.0, son - bas - 2 * yari) / 10) + 1)),
+            key=lambda u: abs(u - (bas + son) / 2.0),
+        )
+        for u in adaylar:
+            d = u - orta0
+            m = (m0[0] + d, m0[1], m0[2] + d, m0[3]) if i == 0 else (m0[0], m0[1] + d, m0[2], m0[3] + d)
+            boy, uc = olculer.silinen(m, o)
+            if kenar_siler(m) or boy > _MASKE_ESIGI or uc or any(ortusur(m, b) for b in obur):
+                continue
+            y_[anahtar] = u + kaydirma
+            break
 
 
 def _cizgi_silmez(olculer, el):
@@ -1473,13 +1509,56 @@ def _siginma_olculeri(sg, G, D, e):
     #  biniyorsa bir sonraki.  Eskiden yalnız ikisi vardı:  kapının yanında ön
     #  duvara geçen merdiven sağdakini, kabin ekseni soldakini kapatınca sıra
     #  merdivenin kenarından iniyor, "270" ön duvarın taramasına kaçıyordu ( 4 Kas ).
+    #  60 en sonda:  sığınmayla duvar arası darsa 90'ın yazısı duvara kaçıyordu.
     def adaylar(ust, alt):
-        return tuple(k for d in (90.0, 160.0, 230.0) for k in (ust + d, alt - d))
+        return tuple(k for d in (90.0, 160.0, 230.0, 60.0) for k in (ust + d, alt - d))
 
     maskeler = [m for el in e if el["tip"] == "yazi" and (m := geometri.maske_kutusu(el))]
-    return _serbest(yatay, adaylar(sg[3], sg[1]), D, engel, yatay_eksen, maskeler) + _serbest(
-        dusey, adaylar(sg[2], sg[0]), G, engel, dusey_eksen, maskeler
-    )
+    yataylar = _serbest(yatay, adaylar(sg[3], sg[1]), D, engel, yatay_eksen, maskeler)
+    duseyler = _serbest(dusey, adaylar(sg[2], sg[0]), G, engel, dusey_eksen, maskeler)
+    #  İki sıra birbirini keser:  ayrı ayrı seçilince birinin yazısı öbürünün çizgisini
+    #  siliyor ( "305" ), duvara kaçıyor ( "635" ) ya da komşu aralığa düşüyordu
+    #  ( "162,5" — 8 Kas çizim denetimi 8. adımı ).  En az kusurlu çift, eşitse
+    #  tercih sırasıyla ilki.
+    enaz, secilen = None, None
+    for ky in yataylar:
+        for kd in duseyler:
+            n = _sira_kusuru(e, yatay(ky) + dusey(kd))
+            if enaz is None or n < enaz:
+                enaz, secilen = n, yatay(ky) + dusey(kd)
+            if n == 0:
+                return secilen
+    return secilen
+
+
+#  Yazının çizgisinden kopuk sayıldığı uzaklık, yazı boyunun katı ( araclar/karne )
+_KOPUK = 1.5
+
+
+def _sira_kusuru(e, yeni):
+    """Yeni ölçülerin ( yeni ) yazıları, çizimin öbür ölçüleriyle birlikte yerleşince
+    kusur sayısı:  çizgisinden kopuk, maskesi bir ölçü çizgisini / parça kenarını
+    siliyor ya da zincirin başka aralığının hizasında ( araclar/karne )."""
+    d = [
+        {a: b for a, b in el.items() if a != "yazi"} if el["tip"] == "olcu" else el
+        for el in e
+        if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)
+    ]
+    sira = [dict(o) for o in yeni if o["uzunluk"] > 1e-6]
+    d += sira
+    geometri.yazilari_yerlestir(d, kopuk=False)
+    olculer = geometri.OlcuIzgarasi(d)
+    kenarlar = geometri.KenarIzgarasi(geometri.parca_kenarlari(d))
+    n = 0
+    for o in sira:
+        y_ = o["yazi"]
+        n += abs(y_["y"] - o["kot"] if o["yon"] == "yatay" else y_["x"] - o["kot"]) > _KOPUK * y_["h"]
+        m = geometri.maske_kutusu(o)
+        boy, uc = olculer.silinen(m, o)
+        n += boy > _MASKE_ESIGI or uc > 0
+        n += sum(geometri.kutudaki_boy(s, m) for s in kenarlar.adaylar(m)) > _MASKE_ESIGI
+    kimlik = {id(o) for o in sira}
+    return n + sum(id(o) in kimlik for o, _p in geometri.yanlis_aralikta(d, 20.0))
 
 
 def _perde_yazisi(e, yer, p):

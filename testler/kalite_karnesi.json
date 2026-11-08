@@ -80,9 +80,6 @@
    "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
-  "kuyu_dibi": {
-   "maske_olcu_siliyor": 1
-  },
   "kuyu_plani": {
    "maske_kenar_siliyor": 1
   }
@@ -135,8 +132,6 @@
    "yazi_bitisik": 1
   },
   "kuyu_dibi": {
-   "maske_olcu_siliyor": 1,
-   "yazi_cizgisinden_kopuk": 3,
    "yazi_yanlis_aralikta": 1
   }
  },
@@ -146,8 +141,6 @@
    "yazi_bitisik": 1
   },
   "kuyu_dibi": {
-   "maske_olcu_siliyor": 1,
-   "yazi_cizgisinden_kopuk": 3,
    "yazi_yanlis_aralikta": 1
   }
  },
@@ -157,7 +150,6 @@
    "yazi_bitisik": 1
   },
   "kuyu_dibi": {
-   "yazi_cizgisinden_kopuk": 3,
    "yazi_yanlis_aralikta": 1
   }
  },
@@ -167,7 +159,6 @@
    "yazi_bitisik": 1
   },
   "kuyu_dibi": {
-   "yazi_cizgisinden_kopuk": 3,
    "yazi_yanlis_aralikta": 1
   }
  },
@@ -230,7 +221,7 @@
    "yazi_bitisik": 1
   },
   "kuyu_dibi": {
-   "maske_olcu_siliyor": 2
+   "maske_olcu_siliyor": 1
   }
  },
  "gerçek 1275": {
@@ -239,7 +230,7 @@
    "yazi_bitisik": 1
   },
   "kuyu_dibi": {
-   "maske_olcu_siliyor": 2
+   "maske_olcu_siliyor": 1
   }
  },
  "gerçek 4815-6": {
