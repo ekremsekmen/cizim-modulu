@@ -39,7 +39,10 @@ def _sayi(x):
     if x is None or isinstance(x, bool):
         return None
     if isinstance(x, (int, float)):
-        return x if math.isfinite(x) else None
+        try:
+            return x if math.isfinite(x) else None
+        except OverflowError:  # JSON'da 400 basamaklı tam sayı:  float'a sığmaz
+            return None
     if not isinstance(x, str):
         return None
     s = x.strip().replace(" ", "").replace("\u00a0", "")
@@ -250,6 +253,12 @@ GENEL_HATA = (
 )
 
 
+def _girdi_reddi_mi(e: Exception) -> bool:
+    """Girdiden doğan ret ( ValueError ) mi?  Metin kodlama hatası ( UnicodeError —
+    yarım vekil karakterli ad — o da bir ValueError ) Python'un cümlesidir, ret değildir."""
+    return isinstance(e, ValueError) and not isinstance(e, UnicodeError)
+
+
 def hata_iletisi(onek: str, e: Exception, ayrac: str = ": ") -> str:
     """Uçların genel except'inde kullanıcıya dönen ileti.  Girdiden doğan ret
     ( ValueError ) her zaman kendi metniyle;  programın kendi hatası web
@@ -257,7 +266,7 @@ def hata_iletisi(onek: str, e: Exception, ayrac: str = ": ") -> str:
     Python'un metni ( "KeyError: 'x'" ) kullanıcıya bir şey söylemez, iç yapıyı
     gösterir.  Ayrıntı kayıtta ( hata_kaydi ).  Kendi bilgisayarında çalışırken
     metin eskisi gibi görünür ( 17 Eki )."""
-    if isinstance(e, ValueError) or os.environ.get("AVAN_SUNUCU") != "1":
+    if _girdi_reddi_mi(e) or os.environ.get("AVAN_SUNUCU") != "1":
         return f"{onek}{ayrac}{e}"
     return f"{onek}{ayrac}{GENEL_HATA}"
 
@@ -267,7 +276,7 @@ def hata_kaydi(log: logging.Logger, e: Exception):
     "pafta çizilemiyor" ) bilgi düzeyinde, öbürü ( programlama hatası ) izle
     birlikte hata düzeyinde.  Kullanıcı yine iletiyi görür;  kayıt sunucuda
     sorunun nerede çıktığını söyler ( eskiden hiçbir yere yazılmıyordu )."""
-    if isinstance(e, ValueError):
+    if _girdi_reddi_mi(e):
         log.info("uç girdiyi reddetti:  %s", e)
     else:
         log.error("uçta beklenmeyen hata — kullanıcıya ileti döndü", exc_info=e)

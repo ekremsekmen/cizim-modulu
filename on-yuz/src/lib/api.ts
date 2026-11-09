@@ -195,6 +195,8 @@ export interface CareOnerisi {
   /**  Bu değişiklikten sonra görünür olacak sorunlar:  bugün de var ama denetim
        ilk hatada durduğu için gizli ( yeni sorun DEĞİL )  */
   ortaya_cikan: string[];
+  /**  Bu değişiklikten sonra hesapta uygun olmayan çıkacak bölümler ( bugün uygun görünen — kimlikleri )  */
+  hesapta_ortaya_cikan: string[];
   bina: boolean;
   yontem: "türev" | "son değişiklik" | "seçim";
 }

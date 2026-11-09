@@ -218,6 +218,13 @@ class BeklenmeyenHata(unittest.TestCase):
         self.assertEqual(yanit, {"aktif": False, "hata": [f"ÇİZİM HATASI: {GENEL_HATA}"]})
         self.assertNotIn("ic_alan", yanit["hata"][0])
 
+    def test_metin_kodlama_hatasi_girdi_reddi_sayilmaz(self):
+        """UnicodeError bir ValueError'dur ama iletisi Python'un cümlesidir ( yarım vekil
+        karakterli ad — 9 Kas:  "'utf-8' codec can't encode …" kullanıcıya gidiyordu )."""
+        e = UnicodeEncodeError("utf-8", "\ud800", 0, 1, "surrogates not allowed")
+        with mock.patch.dict("os.environ", {"AVAN_SUNUCU": "1"}):
+            self.assertEqual(hata_iletisi("HESAP HATASI", e), f"HESAP HATASI: {GENEL_HATA}")
+
 
 class BozukGovde(unittest.TestCase):
     """Bozuk gövde programın hatası sayılmaz:  kendi iletisiyle reddedilir
@@ -258,6 +265,21 @@ class BozukGovde(unittest.TestCase):
                 self.assertTrue(any("geçersiz seçim" in h for h in hesap["hata"]), hesap["hata"])
                 self.assertFalse(cizim.get("kurulamayan"), cizim.get("kurulamayan"))
 
+    def test_cok_buyuk_tam_sayi_kendi_iletisiyle_reddedilir(self):
+        """JSON'da 400 basamaklı tam sayı float'a sığmaz:  math.isfinite OverflowError
+        atıyor, uçta beklenmeyen hata kaydı düşüyordu ( 9 Kas — ön yüz göndermez ).
+        Sayı, metin ve kot alanı aynı kapıdan."""
+        dev = 10**400
+        for alan in ("kabin_genisligi", "asansor_adi", "kuyu_dibi_kotu"):
+            v = test_yerlesim_saglamligi.standart_istek(1000, True, "Sağ")
+            v["asansorler"][0][alan] = dev
+            if alan == "kuyu_dibi_kotu":
+                v["asansorler"][0]["durak_kotlari"] = "0; 3,00"
+            with self.subTest(alan=alan), self.assertNoLogs("uclar", level="ERROR"):
+                yanit = json.loads(uygulama_uclari.api_uygulama_coklu(v).body)
+                self.assertFalse(yanit["aktif"])
+                self.assertNotIn("beklenmeyen", " ".join(yanit["hata"]))
+
     def test_sozluk_olmayan_kapak_bos_kapak(self):
         from ciktilar import kapak_cikti
 
@@ -278,6 +300,15 @@ class BozukGovde(unittest.TestCase):
                 yanit = uygulama_uclari.indir_uygulama_pdf(v)
                 self.assertEqual(yanit.headers.get("content-type"), "application/pdf")
                 self.assertIn(ad, pdf_cikti._p(f"ASANSÖR {pdf_cikti._duz(ad)}").getPlainText())
+
+    def test_asansor_adindaki_denetim_karakteri_pdfi_kirmaz(self):
+        """Yapıştırılan görünmez karakter ( \\x01 ) PDF'in biçim işaretiyle çakışıyor,
+        üretim "paragraph text … caused exception" ile duruyordu ( 9 Kas )."""
+        v = test_yerlesim_saglamligi.standart_istek(1000, True, "Sağ")
+        v["asansorler"].append(dict(v["asansorler"][0], asansor_adi="İkinci"))
+        v["asansorler"][0]["asansor_adi"] = "A\x01 B"
+        yanit = uygulama_uclari.indir_uygulama_pdf(v)
+        self.assertEqual(yanit.headers.get("content-type"), "application/pdf")
 
 
 if __name__ == "__main__":

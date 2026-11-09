@@ -4481,9 +4481,9 @@ class _AgirlikRaylari:
                 0,
             ),
             hesap(
-                "Hd = Mcwt / ( ρ × Gx × Gy )        ( Gx · Gy m )",
+                "Hd = Ga / ( ρ × Gx × Gy )        ( Gx · Gy m )",
                 f"{trn(g['karsi_agirlik'], 0)} / ( {trn(dolgu['rho'], 0)} × "
-                f"{tr(self.derinlik / 1000.0)} × {tr(self.genislik / 1000.0)} ) × 1.000",
+                f"{tr(self.derinlik / 1000.0, 3)} × {tr(self.genislik / 1000.0, 3)} ) × 1.000",
                 dolgu["Hd"],
                 "mm",
                 "gereken dolgu yüksekliği  ·  çerçevenin ve kasnağın kütlesi yok sayılır",

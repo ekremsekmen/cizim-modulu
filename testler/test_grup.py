@@ -676,6 +676,22 @@ class BirlesikTiklama(unittest.TestCase):
                     self.assertTrue(y["kaynaklar"] or y["kural"], y)
         self.assertEqual(asansorler, {0, 1})
 
+    def test_olcu_kutusunun_uyarisi_asansorun_kendi_yerinden(self):
+        """Ölçü değişince sorulan "Yine de uygula"nın sebepleri asansörün kuyudaki yerinden
+        kurulur:  9 Kas'a kadar sırasız kuruluyordu, sağdaki asansör soldaki sanılıyor,
+        korkuluğun sınırı ( 100 / 300 mm ) ve açıklığı öbür yanınkini söylüyordu."""
+        for soldaki in (1, 2):
+            v = ikili(1000, "Sağ", 800, "Sol", soldaki=soldaki)
+            v["asansor"] = 1
+            r = cizim_uclari._cozumleme(copy.deepcopy(v), "kuyu_plani")
+            degisiklik = [{"anahtar": "son_kat_yuksekligi", "etiket": "Son kat", "eski": 5000, "deger": 3900}]
+            w = copy.deepcopy(v)
+            w["asansorler"][0]["son_kat_yuksekligi"] = 3900
+            asansorler, ortak = uygulama_istegi.asansor_girdileri(w)
+            _g, gercek = cizim_uclari.asansor_girdisi(asansorler, ortak, None, "", 1)
+            self.assertTrue(gercek)
+            self.assertEqual(sorted(cizim_uclari._yeni_hatalar(r, degisiklik)), sorted(gercek), soldaki)
+
 
 class EkranVePaket(unittest.TestCase):
     @classmethod

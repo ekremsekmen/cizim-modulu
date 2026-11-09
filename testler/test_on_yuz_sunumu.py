@@ -18,8 +18,8 @@ from unittest import mock
 import main
 
 
-def _al(yol, sorgu=""):
-    """Uygulamaya doğrudan ASGI GET isteği:  ( durum, başlıklar, gövde )."""
+def _al(yol, sorgu="", yontem="GET"):
+    """Uygulamaya doğrudan ASGI isteği:  ( durum, başlıklar, gövde )."""
     giden = []
 
     async def al():
@@ -32,7 +32,7 @@ def _al(yol, sorgu=""):
         "type": "http",
         "asgi": {"version": "3.0"},
         "http_version": "1.1",
-        "method": "GET",
+        "method": yontem,
         "scheme": "http",
         "path": yol,
         "raw_path": yol.encode(),
@@ -99,6 +99,30 @@ class Derlenmis(unittest.TestCase):
         #  sorgu da taşınır ( paylaşılmış çizim adresi )
         durum, b, _g = _al("/yeni/uygulama/abc", "cizim=kuyu_plani")
         self.assertEqual((durum, b["location"]), (301, "/uygulama/abc?cizim=kuyu_plani"))
+
+    def test_eski_adres_baska_siteye_yonlendirmez(self):
+        """9 Kas:  "/yeni//site" Location:  //site döndürüyordu — tarayıcı onu başka bir site
+        sayar ( açık yönlendirme:  bu sitenin adresiyle başkasına götüren bağlantı )."""
+        for yol, hedef in (
+            ("/yeni//evil.example", "/evil.example"),
+            ("/yeni///evil.example", "/evil.example"),
+            ("/yeni/\\evil.example", "/evil.example"),
+            ("/yeni//\\/evil.example", "/evil.example"),
+        ):
+            durum, b, _g = _al(yol)
+            self.assertEqual((durum, b["location"]), (301, hedef), yol)
+
+    def test_head_saglik_ve_sayfa(self):
+        """Uptime izleyicileri HEAD yollar:  405 alırlarsa programı kapalı sayarlar ( 9 Kas )."""
+        for yol in ("/api/saglik", "/", "/uygulama/abc"):
+            durum, _b, govde = _al(yol, yontem="HEAD")
+            self.assertEqual(durum, 200, yol)
+
+    def test_uclarin_semasi_kapali(self):
+        """Belge sayfaları kapalıyken şema açık kalmıştı ( /openapi.json — 9 Kas )."""
+        durum, _b, govde = _al("/openapi.json")
+        self.assertEqual(durum, 404)
+        self.assertNotIn(b"openapi", govde)
 
     def test_api_golgelenmez(self):
         durum, _b, govde = _al("/api/saglik")

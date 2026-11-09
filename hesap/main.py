@@ -57,7 +57,9 @@ logging.basicConfig(
     format="%(asctime)s  %(levelname)-7s  %(name)s:  %(message)s",
 )
 
-app = FastAPI(title="Asansör Proje Programı", version=SURUM, docs_url=None, redoc_url=None)
+#  Belge sayfaları ve uçların şeması kapalı ( docs · redoc · openapi.json ):  web'de
+#  programın iç yapısını kimseye anlatmaları gerekmez.
+app = FastAPI(title="Asansör Proje Programı", version=SURUM, docs_url=None, redoc_url=None, openapi_url=None)
 #  YANIT SIKIŞTIRMA:  çizim yanıtı ( 11 SVG ) 834 KB, gzip'le 53 KB — her ölçü
 #  değişikliğinde iner;  yavaş bağlantıda saniyeler.  Düzey 6:  4,5 ms ( 9'da
 #  11 ms, 2 KB küçük ).  PDF zaten sıkışık ( ZIP Starlette'in dışladıkları
@@ -160,7 +162,9 @@ app.include_router(parca_uclari.router)
 app.include_router(care_uclari.router)
 
 
-@app.get("/api/saglik")
+#  HEAD da:  uptime izleyicilerinin çoğu sağlık denetimini HEAD ile yapar ( GET'e düşmez,
+#  405 alıp programı "kapalı" sayarlar )
+@app.api_route("/api/saglik", methods=["GET", "HEAD"])
 def saglik():
     return {"durum": "calisiyor", "surum": SURUM}
 
@@ -185,12 +189,14 @@ _OZETLI = "public, max-age=31536000, immutable"
 @app.get("/yeni", include_in_schema=False)
 @app.get("/yeni/{yol:path}", include_in_schema=False)
 def eski_yeni_adresi(istek: Request, yol: str = ""):
-    """Geçiş dönemi adresi ( /yeni ):  yer imleri kırılmasın ( sorgusuyla:  ?cizim=… )."""
+    """Geçiş dönemi adresi ( /yeni ):  yer imleri kırılmasın ( sorgusuyla:  ?cizim=… ).
+    Hedef hep bu sitenin içindedir:  "/yeni//site" "//site"e, yani başka bir siteye
+    yönlendiriyordu ( baştaki / ve \\ atılır — 9 Kas )."""
     sorgu = istek.url.query
-    return RedirectResponse("/" + yol + (f"?{sorgu}" if sorgu else ""), status_code=301)
+    return RedirectResponse("/" + yol.lstrip("/\\") + (f"?{sorgu}" if sorgu else ""), status_code=301)
 
 
-@app.get("/{yol:path}", include_in_schema=False)
+@app.api_route("/{yol:path}", methods=["GET", "HEAD"], include_in_schema=False)
 def on_yuz(yol: str = ""):
     #  Bilinmeyen bir API adresi sayfa değil 404'tür ( yanlış yazılmış uç
     #  HTML döndürüp istemciyi "JSON değil" hatasına sokmasın )

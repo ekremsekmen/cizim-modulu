@@ -1813,6 +1813,25 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(istek["asansorler"][0]["kuyu_genisligi"], "2230")
         self.assertTrue(cizim["aktif"], cizim.get("hata"))
 
+    def test_duzeltmenin_hesapta_cikaracagi_bolum_soylenir(self):
+        """Düzeltmeden sonra hesapta uygun olmayan çıkacak bölüm önerinin yanında söylenir
+        ( sunucu hesapta_ortaya_cikan — 1 Kas;  ekran göstermiyordu, 9 Kas )."""
+        self.ornek_projeyi_ac()
+        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.iz.sakin()
+
+        def yama(route):
+            yanit = route.fetch()
+            d = yanit.json()
+            d["careler"][0]["oneriler"][0]["hesapta_ortaya_cikan"] = ["motor_gucu"]
+            route.fulfill(response=yanit, json=d)
+
+        self.sayfa.route("**/api/uygulama/care", yama)
+        kart = self.sayfa.get_by_role("alert")
+        kart.get_by_role("button", name="Düzeltme öner").click()
+        kart.get_by_role("list", name="Düzeltmeler").first.wait_for()
+        self.assertIn("hesapta 1 bölüm uygun değil çıkar", kart.inner_text())
+
     def test_duzeltme_asansorune_yazilir(self):
         """İkiz asansörler ( eklenen asansör 1. asansörün kopyası ):  sorunun
         metni ikisinde aynı.  1.'nin düzeltmeleri 2.'nin kartında görünmez —

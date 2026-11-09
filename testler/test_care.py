@@ -20,6 +20,7 @@ import json
 import unittest
 from unittest import mock
 
+from testler import test_grup
 from testler import test_yerlesim_saglamligi
 from uclar import care_uclari
 from uclar import cizim_uclari
@@ -208,6 +209,22 @@ class Care(unittest.TestCase):
                     #  Yalnız bugün uygun görünen bölümler ( hesap bugün durmuşsa yok )
                     beklenen = sorted(sonra[3] - once[3]) if once[1] and sonra[1] else []
                     self.assertEqual(beklenen, o["hesapta_ortaya_cikan"], (vaka, o["anahtar"]))
+
+    def test_tek_kuyuda_ikinci_asansorde_kuyunun_ortak_girdisi_onerilir(self):
+        """Kuyunun ortak girdisi 1. asansörden okunur ( kapı ):  aday yalnız seçili asansöre
+        yazılınca 2. asansörde hiç etki etmiyor, "düzeltme bulunamadı" deniyordu ( 9 Kas ).
+        Öneri uygulanınca ( ön yüz ikisine birden yazar ) sorun gider."""
+        v = test_grup.ikili(1000, "Sağ", 800, "Sol", son_kat_yuksekligi=3900)
+        v.setdefault("sabitler", {})
+        v["asansor"] = 1
+        r = care_uclari.coz(json.loads(json.dumps(v)), 1)
+        oneriler = [o for c in r["careler"] for o in c["oneriler"] if o["anahtar"] == "son_kat_yuksekligi"]
+        self.assertTrue(oneriler, r["careler"])
+        y = json.loads(json.dumps(v))
+        y["asansorler"][0]["son_kat_yuksekligi"] = oneriler[0]["yeni"]
+        once = {h for h in json.loads(cizim_uclari.api_cizimler(json.loads(json.dumps(v))).body)["hata"]}
+        sonra = set(json.loads(cizim_uclari.api_cizimler(y).body).get("hata") or [])
+        self.assertTrue(set(oneriler[0]["gider"]) <= once - sonra, (oneriler[0], once, sonra))
 
     def test_bina_olcusu_en_sonda(self):
         for vaka in VAKALAR:

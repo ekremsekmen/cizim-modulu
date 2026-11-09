@@ -309,6 +309,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
         careler={careler}
         careHatasi={careHatasi}
         careUygula={careUygula}
+        bolumAdi={(k) => bolumler.find((b) => b.kimlik === k)?.ad ?? k}
         yenidenDene={s.yenidenDene}
         yenidenDeneniyor={s.yenidenDeneniyor}
       />
@@ -646,6 +647,7 @@ function SorunKarti({
   careler,
   careHatasi,
   careUygula,
+  bolumAdi,
   yenidenDene,
   yenidenDeneniyor,
 }: {
@@ -669,6 +671,8 @@ function SorunKarti({
   /**  Arama isteği yanıtsız kaldı  */
   careHatasi?: string;
   careUygula: (o: CareOnerisi) => void;
+  /**  Hesap bölümünün adı ( kimliğinden ):  düzeltmenin uygun değil yapacağı bölümler  */
+  bolumAdi: (kimlik: string) => string;
   /**  Bağlantı sorununda düşen istekleri yeniden ister  */
   yenidenDene: () => void;
   yenidenDeneniyor: boolean;
@@ -809,7 +813,7 @@ function SorunKarti({
             ) : (
               m.metin
             )}
-            {careAcik && m.cozum && <CareListesi c={careSorunu(m.metin)} koyu={koyu} uygula={careUygula} />}
+            {careAcik && m.cozum && <CareListesi c={careSorunu(m.metin)} koyu={koyu} uygula={careUygula} bolumAdi={bolumAdi} />}
           </li>
         ))}
       </ul>
@@ -829,10 +833,12 @@ function CareListesi({
   c,
   koyu,
   uygula,
+  bolumAdi,
 }: {
   c: { metin: string; oneriler: CareOnerisi[] } | undefined;
   koyu: boolean;
   uygula: (o: CareOnerisi) => void;
+  bolumAdi: (kimlik: string) => string;
 }) {
   if (!c?.oneriler.length)
     return <p className="mt-1 text-[11.5px] opacity-70">Doğrulanmış düzeltme bulunamadı — girdileri elle gözden geçirin.</p>;
@@ -856,6 +862,11 @@ function CareListesi({
             {o.ortaya_cikan.length > 0 && (
               <span className="opacity-70" title={o.ortaya_cikan.join("\n")}>
                 {"  ·  "}sonra {o.ortaya_cikan.length} gizli sorun görünür
+              </span>
+            )}
+            {o.hesapta_ortaya_cikan.length > 0 && (
+              <span className="opacity-70" title={o.hesapta_ortaya_cikan.map(bolumAdi).join("\n")}>
+                {"  ·  "}hesapta {o.hesapta_ortaya_cikan.length} bölüm uygun değil çıkar
               </span>
             )}
             {o.bina && (

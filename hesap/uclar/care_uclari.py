@@ -53,6 +53,8 @@ from cizim import istek_onbellegi
 from cizim import izli
 from cizim import sorun
 from motor.uygulama import uygulama_hesabi
+from tasarim import gorunum
+from tasarim.alanlar import KUYU_ORTAK
 from uclar import cizim_uclari
 from uclar import uygulama_istegi
 from uclar.uc_ortak import _sayi, hata_iletisi, hata_kaydi
@@ -221,14 +223,19 @@ class _Butce:
 
 
 def _yaz(veri, i, anahtar, deger):
-    """Girdinin bir kutusu değişmiş kopyası ( proje geneli alan proje genelinde )."""
+    """Girdinin bir kutusu değişmiş kopyası ( proje geneli alan proje genelinde;
+    tek kuyuda kuyunun ortak girdisi iki asansörde — ön yüzün "Uygula"sı gibi ).
+    9 Kas:  ortak girdi seçili asansöre yazılıyordu;  kapı onu 1. asansörden okuduğu
+    için 2. asansörde aday hiç etki etmiyor, "düzeltme bulunamadı" deniyordu."""
     y = copy.deepcopy(veri)
-    yer = (
-        y.setdefault("proje_geneli", {})
-        if anahtar in uygulama_istegi.PROJE_GENELI_ALANLAR
-        else y["asansorler"][i]
-    )
-    yer[anahtar] = deger if isinstance(deger, str) else f"{deger:g}"
+    metin = deger if isinstance(deger, str) else f"{deger:g}"
+    if anahtar in uygulama_istegi.PROJE_GENELI_ALANLAR:
+        y.setdefault("proje_geneli", {})[anahtar] = metin
+    elif anahtar in KUYU_ORTAK and gorunum.tek_kuyu_mu(y.get("proje_geneli"), len(y["asansorler"])):
+        for a in y["asansorler"]:
+            a[anahtar] = metin
+    else:
+        y["asansorler"][i][anahtar] = metin
     return y
 
 
