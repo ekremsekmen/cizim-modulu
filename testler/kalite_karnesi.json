@@ -85,9 +85,6 @@
   }
  },
  "1600 Arka 2:1 MD Otomatik Merkezi 4 Kanat": {
-  "kabin_ustu": {
-   "maske_olcu_siliyor": 3
-  },
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
