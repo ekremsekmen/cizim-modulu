@@ -48,49 +48,34 @@
  },
  "1275 Arka 2:1 MD": {
   "kabin_ustu": {
-   "maske_kenar_siliyor": 2,
+   "maske_kenar_siliyor": 1,
    "yazi_yanlis_aralikta": 1
   },
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_plani": {
-   "maske_kenar_siliyor": 1
   }
  },
  "1275 Arka 2:1 MRL": {
   "kabin_ustu": {
-   "maske_kenar_siliyor": 2,
+   "maske_kenar_siliyor": 1,
    "yazi_yanlis_aralikta": 1
   },
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_plani": {
-   "maske_kenar_siliyor": 1
   }
  },
  "1275 Sağ MD 1:1": {
-  "kabin_ustu": {
-   "maske_kenar_siliyor": 1
-  },
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_plani": {
-   "maske_kenar_siliyor": 1
   }
  },
  "1600 Arka 2:1 MD Otomatik Merkezi 4 Kanat": {
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_plani": {
-   "maske_kenar_siliyor": 1
   }
  },
  "1600 Sağ MD": {
@@ -160,44 +145,32 @@
   }
  },
  "630 Sağ MD 1:1": {
-  "kabin_ustu": {
-   "maske_kenar_siliyor": 1
-  },
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
   },
   "kuyu_dibi": {
    "maske_olcu_siliyor": 1
-  },
-  "kuyu_plani": {
-   "maske_kenar_siliyor": 1
   }
  },
  "800 Arka 2:1 MD": {
   "kabin_ustu": {
-   "maske_kenar_siliyor": 2,
+   "maske_kenar_siliyor": 1,
    "maske_olcu_siliyor": 1
   },
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_plani": {
-   "maske_kenar_siliyor": 1
   }
  },
  "800 Arka 2:1 MRL": {
   "kabin_ustu": {
-   "maske_kenar_siliyor": 2,
+   "maske_kenar_siliyor": 1,
    "maske_olcu_siliyor": 1
   },
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
-  },
-  "kuyu_plani": {
-   "maske_kenar_siliyor": 1
   }
  },
  "800 Sağ kabin üstü MD": {
@@ -261,9 +234,6 @@
   }
  },
  "örnek makine daireli": {
-  "kabin_ustu": {
-   "maske_kenar_siliyor": 2
-  },
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
@@ -274,15 +244,9 @@
   },
   "kuyu_kesiti_on": {
    "maske_kenar_siliyor": 1
-  },
-  "kuyu_plani": {
-   "maske_kenar_siliyor": 2
   }
  },
  "örnek makine dairesiz": {
-  "kabin_ustu": {
-   "maske_kenar_siliyor": 2
-  },
   "kapi_kesiti": {
    "uzak_olcu": 3,
    "yazi_bitisik": 1
@@ -293,9 +257,6 @@
   },
   "kuyu_kesiti_on": {
    "maske_kenar_siliyor": 1
-  },
-  "kuyu_plani": {
-   "maske_kenar_siliyor": 2
   }
  }
 }
