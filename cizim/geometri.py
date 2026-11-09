@@ -116,6 +116,8 @@ SABIT_ETIKETLER = frozenset(("ayirma_kirisi_adi", "yuk"))
 #  planında "ø 400" duvarın dışındaydı.  araclar/karne de bunları sayar
 #  ( etiket_kuyu_disinda ).
 KUYU_ICI_ETIKETLERI = frozenset(("agirlik_yazi", "agirlik_kasnak_yazi", "kabin_kasnak_yazi"))
+#  Parçasına sığmayınca küçük boyda yazılan karşı ağırlık etiketleri ( _dar_agirlik_yazilari )
+DAR_AGIRLIK_ETIKETLERI = frozenset(("agirlik_yazi", "agirlik_kasnak_yazi"))
 #  Uzağa oklu taşınacaksa önce kuyunun İÇİNDE oklu yer arayan etiketler ( etiketleri_ayir —
 #  8 Kas çizim denetimi 8. adımı ):  kuyu üstünde makinenin yanındaki HALAT BAĞLANTISI
 #  kuyunun dışına, ölçü zincirlerinin üstüne ya da ön duvarın altına atılıyordu ( oku
@@ -2718,6 +2720,31 @@ def _etiket_yeri(kb, maske, k, cakisir, parca_kutulari, adimlar, olcu_siler=lamb
     return None if yer is None else yer + (True,)
 
 
+def _dar_agirlik_yazilari(e, k):
+    """Karşı ağırlığın kısa etiketleri ( DAR_AGIRLIK_ETIKETLERI ) normal boyda maskesi parçanın
+    kenarını siliyor, küçük boyda ( uslup.KUCUK — 1,8 mm ) silmiyorsa küçük yazılır;  küçük boyda
+    da siliyorsa normal kalır, ayırıcı taşır ( hepsini birlikte küçültünce "KARŞI AĞIRLIK"
+    tavanın kenarında kalıyordu ) — 9 Kas çizim denetimi 8. adımı, kullanıcı
+    kararı:  dik yazının maskesi 82, kasnak 75–80, "KARŞI AĞIRLIK"ın yeri 60–86 mm."""
+    yazilar = [x for x in e if x["tip"] == "yazi" and x.get("ad") in DAR_AGIRLIK_ETIKETLERI]
+    if not yazilar:
+        return
+    kenarlar = KenarIzgarasi(parca_kenarlari(e))
+    esik = MASKE_ESIGI * 20.0 * k
+    oran = uslup.KUCUK / uslup.NORMAL
+
+    def siler(x):
+        m = maske_kutusu(x)
+        return sum(kutudaki_boy(s, m) for s in kenarlar.adaylar(m)) > esik
+
+    def kucuk_temiz(x):
+        y = dict(x, yukseklik=x["yukseklik"] * oran)
+        return not siler(y)
+
+    for x in [x for x in yazilar if siler(x) and kucuk_temiz(x)]:
+        x["yukseklik"] *= oran
+
+
 def etiketleri_ayir(e, olcek=20):
     """SON ADIM ( bütün çizimler — cizimler.CIZIMLER ):  başka bir yazıya ( etiket
     ya da ölçü yazısı ) ya da bir PARÇANIN KENARINA ( parca_kenarlari ) binen ya
@@ -2734,6 +2761,7 @@ def etiketleri_ayir(e, olcek=20):
     şasesinin, kabin üstünde HALAT şase kirişinin, dar karşı ağırlığın içinde
     KARŞI AĞIRLIK  ø 400 kasnağın üstünde )."""
     k = olcek / 20.0
+    _dar_agirlik_yazilari(e, k)
     #  Parçalar ( etiket içlerine yeniden girmez ) ve duvarlar ( içinde durmaz )
     parca_kutulari = [
         sinir([x])

@@ -3742,7 +3742,8 @@ class KuyuIciEtiketi(unittest.TestCase):
         #  80'lik kasnakta "ø 400"ün maskesi kenarları siler;  100 mm içinde ( az kayma )
         #  çizgi var, 220'den sonrası boş:  kuyunun içinde kısa okla
         self.CIZGI, self.ADIM = 130, 20
-        e, y = self._sahne("agirlik_kasnak_yazi", "ø 400", (20, 100))
+        #  ( kabin kasnağının adı:  karşı ağırlığınkiler önce küçülür — DarAgirlikYazisi )
+        e, y = self._sahne("kabin_kasnak_yazi", "ø 400", (20, 100))
         e += [eleman.cizgi("KAPI", x, -500, x, 3000) for x in (140, 160, 180, 200, 220)]
         e = [x for x in e if not (x.get("katman") == "KAPI" and x["x1"] > 220)]
         self.assertTrue(karne.karne(e, 20)["maske_kenar_siliyor"])
@@ -3846,6 +3847,30 @@ class KabinUstuAlanAdi(unittest.TestCase):
         for el in adlar:
             self.assertEqual(izgara.silinen(geometri.maske_kutusu(el)), (0.0, 0))
             self.assertGreaterEqual(geometri.maske_kutusu(el)[0], sg[0])
+
+
+class DarAgirlikYazisi(unittest.TestCase):
+    """Karşı ağırlığın kısa etiketi normal boyda parçanın kenarını siliyor, küçük boyda
+    silmiyorsa küçük yazılır;  küçükte de siliyorsa normal kalır ( 9 Kas, kullanıcı kararı )."""
+
+    def _sahne(self, en):
+        y = eleman.ad(eleman.yazi(40, 500, "ø 400", uslup.NORMAL, aci=90), "agirlik_kasnak_yazi")
+        return [eleman.dikdortgen("KASNAK", 40 - en / 2.0, 0, en, 1000), y], y
+
+    def test_sigmayan_kucuk(self):
+        e, y = self._sahne(70)
+        geometri._dar_agirlik_yazilari(e, 1.0)
+        self.assertEqual(y["yukseklik"], uslup.KUCUK)
+
+    def test_sigan_normal_kalir(self):
+        e, y = self._sahne(200)
+        geometri._dar_agirlik_yazilari(e, 1.0)
+        self.assertEqual(y["yukseklik"], uslup.NORMAL)
+
+    def test_kucukte_de_silen_normal_kalir(self):
+        e, y = self._sahne(30)
+        geometri._dar_agirlik_yazilari(e, 1.0)
+        self.assertEqual(y["yukseklik"], uslup.NORMAL)
 
 
 class OlcuOzelligininYaninda(unittest.TestCase):
