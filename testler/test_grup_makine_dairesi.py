@@ -15,6 +15,7 @@ cikti/devir/ORTAK_KUYU_PLANI.md § 9 ).
 import unittest
 
 from cizim import cizimler, geometri, grup
+from tasarim.alanlar import ALAN
 from testler.test_grup import cakisan_yazilar, girdiler, ikili
 from testler.test_yerlesim_saglamligi import standart_istek
 
@@ -78,6 +79,23 @@ class Oda(unittest.TestCase):
                 adlar.append(" ".join(x["metin"] for x in satirlar))
             self.assertEqual(sorted(adlar), ["ASANSÖR 1 PANOSU", "ASANSÖR 2 PANOSU"])
             self.assertTrue(X1 > orta)
+
+
+class BosBolme(unittest.TestCase):
+    def test_bos_kuyu_genisligi_varsayilanla_ayni_odayi_kurar(self):
+        """Programın kuralı:  boş kutu = varsayılanı yazılmış kutu.  9 Kas:  bölme genişliği
+        boşken kapı onu yazmıyordu;  oda bütün kuyuya ortalanmıyor, sağdaki asansör odayı
+        kaymış görüyordu ( x:  −1.820 yerine −495 )."""
+        varsayilan = ALAN["kuyu_genisligi"].varsayilan
+        yazili, bos = md_ikili(Q1=800, Q2=800), md_ikili(Q1=800, Q2=800)
+        for v, deger in ((yazili, varsayilan), (bos, None)):
+            for a in v["asansorler"]:
+                a.pop("kuyu_genisligi", None)
+                if deger is not None:
+                    a["kuyu_genisligi"] = deger
+        for (g1, h1), (g2, h2) in zip(girdiler(yazili), girdiler(bos)):
+            self.assertEqual(h1, h2)
+            self.assertEqual(g1["makine_dairesi"], g2["makine_dairesi"])
 
 
 class Cizimler(unittest.TestCase):

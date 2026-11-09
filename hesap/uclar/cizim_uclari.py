@@ -655,6 +655,8 @@ def _cozumle(ham, i, proje, ad):
         "adaylar": {a["kimlik"]: a for a in adaylar},
         "kategori": kategori,
         "kilit": threading.Lock(),
+        "proje": proje,
+        "sira": i + 1,
     }
 
 
@@ -1035,13 +1037,15 @@ def _bagli_degerler(r, anahtar, x, serbest):
 def _yeni_hatalar(r, degisiklik):
     """Yeni değerlerle çizim kurulamayacaksa sebepleri — ekran uygulamadan
     önce sorar ( "Yine de uygula" ):  kuyu genişleyince korkuluk gerekir,
-    korkuluk tavana sığmaz …"""
+    korkuluk tavana sığmaz …  Asansörün sırasıyla kurulur:  tek kuyuda sıra
+    asansörün yeridir ( 9 Kas:  2. asansör 1. sanılıyor, uyarı öbür yanın
+    sorununu söylüyordu )."""
 
     h = dict(r["ham"])
     h.update({d["anahtar"]: d["deger"] for d in degisiklik})
     try:
         A = uygulama_girdisi.tamamla(h)
-        g, hata = kopru.cizim_girdisi(A)
+        g, hata = kopru.cizim_girdisi(A, None, r["proje"], r["sira"])
         return hata if g is None else _cizim_hatalari(g, A)
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
@@ -1059,7 +1063,7 @@ def _tutarlilik_duzeltmeleri(r, degisiklik):
     h.update({d["anahtar"]: d["deger"] for d in degisiklik})
     try:
         A = uygulama_girdisi.tamamla(h)
-        g, _hata = kopru.cizim_girdisi(A)
+        g, _hata = kopru.cizim_girdisi(A, None, r["proje"], r["sira"])
         duz = kopru.tutarlilik_duzeltmeleri(g, A) if g is not None else {}
     except sorun.BILINEN:
         log.debug("yedek değer kullanılıyor ( çizim kendi hatasını söyler )", exc_info=True)

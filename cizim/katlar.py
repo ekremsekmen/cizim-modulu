@@ -71,8 +71,12 @@ def kot_oku(ham):
         if m["isaret"] in ("-", "−", "–"):
             mm = -mm
     else:
-        if not math.isfinite(ham):
-            return None, f"kot olmalı ( {ham!r} girildi ) — {_ORNEK}."
+        try:
+            sonlu = math.isfinite(ham)
+        except OverflowError:  # JSON'da 400 basamaklı tam sayı:  float'a sığmaz
+            sonlu = False
+        if not sonlu:
+            return None, f"kot olmalı ( {str(ham)[:40]!r} girildi ) — {_ORNEK}."
         r = round(ham * 1000.0)
         if abs(ham * 1000.0 - r) > 1e-6:
             return None, f"mm'den ince ( {ham!r} girildi ) — kot en çok üç ondalıkla ( mm ) yazılır."

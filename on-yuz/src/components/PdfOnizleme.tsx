@@ -1,8 +1,11 @@
 /*  PDF ÖNİZLEMESİ — sunucunun ürettiği PDF'in ilk sayfası, pdf.js ile tuvale.
-    Tarayıcının PDF eklentisine bağlı değil:  araç çubuğu yok, her yerde aynı.  */
+    Tarayıcının PDF eklentisine bağlı değil:  araç çubuğu yok, her yerde aynı.
+    pdf.js'in LEGACY derlemesi ( 9 Kas ):  standart derlemesi çok yeni tarayıcı özelliklerine
+    dayanır ( Promise.try, URL.parse, Map.getOrInsertComputed … ) — onlarsız önizleme sonsuza
+    dek dönüyordu.  */
 import { useEffect, useRef, useState } from "react";
-import * as pdfjs from "pdfjs-dist";
-import isci from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
+import isci from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 import { Loader2 } from "lucide-react";
 
 pdfjs.GlobalWorkerOptions.workerSrc = isci;
@@ -22,14 +25,16 @@ export function PdfOnizleme({ veri }: { veri: ArrayBuffer | undefined }) {
     //  işçisi ( Web Worker ) açar, onu yalnız destroy kapatır.  Kapatılmıyordu:  her
     //  önizleme güncellemesi bir işçi bırakıyor, kapaktan çıkınca da kapanmıyordu.
     //  Sayfa tuvale çizilince belge gerekmez;  yarıda kalan da ( yeni veri, çıkış ) kapanır.
-    const gorev = pdfjs.getDocument({ data: veri.slice(0) });
+    let gorev: ReturnType<typeof pdfjs.getDocument> | undefined;
     let kapandi = false;
     const kapat = () => {
       if (kapandi) return;
       kapandi = true;
-      gorev.destroy().catch(() => {});
+      gorev?.destroy().catch(() => {});
     };
     (async () => {
+      //  Açış da bu blokta:  çok eski tarayıcıda hemen fırlatır — ekran değil önizleme düşsün
+      gorev = pdfjs.getDocument({ data: veri.slice(0) });
       const belge = await gorev.promise;
       const sayfa = await belge.getPage(1);
       const el = tuval.current;
@@ -64,7 +69,7 @@ export function PdfOnizleme({ veri }: { veri: ArrayBuffer | undefined }) {
       <canvas ref={tuval} hidden={hata} className="bg-white shadow-kalkik" />
       {hata ? (
         <p role="alert" className="absolute px-8 text-center text-[13px] text-red">
-          Önizleme açılamadı — sunucunun yanıtı okunabilir bir PDF değil.
+          Önizleme açılamadı — PDF'i üstteki düğmeyle indirmeyi deneyin.
         </p>
       ) : (
         !hazir && <Loader2 className="absolute size-5 animate-spin text-metin-3" />

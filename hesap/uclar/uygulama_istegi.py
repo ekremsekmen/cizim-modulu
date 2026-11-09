@@ -11,8 +11,6 @@ tür, okunuş, seçenek, tam sayı, alt sınır, tavan.  Geçersiz girdide uç
 GecersizGirdi'nin iletilerini döndürür, hesap da çizim de başlamaz.
 """
 
-import math
-
 from cizim import katlar
 from cizim import kopru
 from motor.ortak.adimlar import evet_mi
@@ -23,7 +21,7 @@ from motor.uygulama import uygulama_girdisi
 from motor.uygulama import uygulama_hesabi
 from motor.uygulama import uygulama_sabitleri
 from tasarim import gorunum
-from tasarim.alanlar import ALANLAR, CIZ, DURAK_KOTLARI, ELK, KOT, KUYU_ORTAK, MUK
+from tasarim.alanlar import ALAN, ALANLAR, CIZ, DURAK_KOTLARI, ELK, KOT, KUYU_ORTAK, MUK
 from uclar.uc_ortak import (
     _BELIRSIZ,
     _RED,
@@ -173,7 +171,7 @@ def _oku(a, ham):
     if a.tur == "secim":
         return _secim_oku(a, ham)
     #  metin
-    if isinstance(ham, str) or (_sayi_turu(ham) and math.isfinite(ham)):
+    if isinstance(ham, str) or (_sayi_turu(ham) and _sayi(ham) is not None):
         return str(ham), None
     return None, f"{a.etiket}: yazı olmalı ( {_Kisa(ham)!r} girildi )."
 
@@ -298,11 +296,16 @@ def _tek_kuyu_bolmeleri(asansorler, ortak):
     """TEK KUYUDA iki asansör kuyunun iki bölmesinin genişliğini bilir ( soldan
     sağa — "Soldaki asansör" ):  makine dairesinin yeri kuyunun sol iç köşesine
     göredir, köprü sağdaki asansörde soldaki bölme + kiriş kadar kaydırır
-    ( kopru._makine_dairesi_girdisi ).  Bölmelerden biri girilmemişse yazılmaz."""
+    ( kopru._makine_dairesi_girdisi ).  Boş bölme varsayılan genişliğindedir ( 9 Kas:
+    boşken yazılmıyordu, makine dairesi — "boş = varsayılan" kuralına aykırı — başka
+    yere kuruluyordu )."""
     if not gorunum.tek_kuyu_mu(ortak, len(asansorler)):
         return
     sol = 0 if ortak.get("soldaki_asansor") in (None, 1) else 1
-    G = [asansorler[sol].get("kuyu_genisligi"), asansorler[1 - sol].get("kuyu_genisligi")]
-    if all(isinstance(v, (int, float)) for v in G):
-        for a in asansorler:
-            a["_kuyu_bolmeleri"] = G
+    varsayilan = ALAN["kuyu_genisligi"].varsayilan
+    G = [
+        varsayilan if a.get("kuyu_genisligi") is None else a["kuyu_genisligi"]
+        for a in (asansorler[sol], asansorler[1 - sol])
+    ]
+    for a in asansorler:
+        a["_kuyu_bolmeleri"] = G

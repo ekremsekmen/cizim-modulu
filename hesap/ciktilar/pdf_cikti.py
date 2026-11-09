@@ -7,6 +7,7 @@ satırları → denklem → sayıların yerine konmuş hâli → sonuç → kont
 """
 
 import io
+import re
 import threading
 import os
 
@@ -154,6 +155,7 @@ S = {
 
 _IZINLI = (("<b>", "\x01"), ("</b>", "\x02"), ("<br/>", "\x03"), ("<i>", "\x04"), ("</i>", "\x05"))
 _DUZ_KUCUKTUR = "\x06"  # _duz'un işaretlediği "<":  _p etiket saymaz
+_DENETIM = re.compile(r"[\x00-\x1f\x7f]")
 
 
 def _p(metin, stil="n"):
@@ -173,8 +175,9 @@ def _duz(metin):
     """KULLANICININ YAZDIĞI METİN ( asansör tanımı ) _p'ye böyle verilir:
     içindeki "<b>" biçim etiketi sayılmaz, yazıldığı gibi basılır.  İzinli
     etiketler programın kendi metni içindir;  tanımdaki tek bir "<b>" ya da
-    "</i>" ayrıştırıcıyı kırıyor, PDF hiç üretilemiyordu.  Uç taraması, 20 Eki."""
-    return str(metin or "").replace("<", _DUZ_KUCUKTUR)
+    "</i>" ayrıştırıcıyı kırıyor, PDF hiç üretilemiyordu.  Uç taraması, 20 Eki.
+    Denetim karakterleri de atılır:  _p'nin işaretleriyle çakışıyorlardı ( 9 Kas )."""
+    return _DENETIM.sub(" ", str(metin or "")).replace("<", _DUZ_KUCUKTUR)
 
 
 def _kisalt(metin, font, boy, en):

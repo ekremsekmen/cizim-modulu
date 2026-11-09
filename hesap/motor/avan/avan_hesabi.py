@@ -1278,7 +1278,7 @@ def _kurulu_guc_bolumu(h, S, no):
         "Kurulu güç, tüketicilerin anma ( etiket ) güçlerinin toplamıdır "
         "( Elektrik İç Tesisleri Proje Hazırlama Yönetmeliği m.5-19 ).  Motorun "
         "anma gücü mil gücüdür ( TS EN 60034-1 m.5.5.3 ).  Kolon hattının akımı "
-        "ve gerilim düşümü motorun şebekeden çektiği güçle hesaplanır ( bölüm 6 ).",
+        "ve gerilim düşümü motorun şebekeden çektiği güçle hesaplanır ( gerilim düşümü bölümü ).",
         tablolar.SIGORTA_NOTU,
     ]
     b5["cetvel"] = [
@@ -1442,7 +1442,7 @@ def _gerilim_dusumu_bolumu(h, S):
         "hattı yalnız motoru besler.",
         "Her iki hatta da motorun ŞEBEKEDEN ÇEKTİĞİ güç ( Pşeb = Pm / ηm ) akar; "
         "Nsç motorun mil gücüdür ve hattı o değil, ondan büyük olan Pşeb yükler.  "
-        "Bu yüzden P1 kurulu güçten ( bölüm 5 ) büyüktür — kurulu güç tanım gereği "
+        "Bu yüzden P1 kurulu güçten ( kurulu güç cetveli ) büyüktür — kurulu güç tanım gereği "
         "etiket güçlerinin toplamıdır.",
         "SPE  —  koruma iletkeni, besleme kablosunun bakır damarı kabul edilmiştir "
         "( Çizelge-8 ancak PE ile ana iletken aynı malzemedense geçerlidir ). "
@@ -1549,7 +1549,7 @@ def _sigorta_satirlari(h):
             "Grup sigortası  ( motor koruma cihazı )",
             In if sayi_mi(In) else "seçilemedi",
             "A" if sayi_mi(In) else "",
-            "bölüm 5",
+            "kurulu güç cetveli",
             0,
         ),
         veri(
@@ -2133,7 +2133,7 @@ def _iletken_bolumu(en_buyuk_pe, Sapd, apd_ham, apd_sinir, Stopr, topr_dayanak):
                 "Tesisteki en büyük koruma iletkeni kesiti",
                 en_buyuk_pe,
                 "mm²",
-                "asansör paftaları bölüm 6",
+                "asansör paftaları  ·  gerilim düşümü",
                 1,
             ),
             hesap(

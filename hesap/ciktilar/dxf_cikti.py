@@ -830,7 +830,7 @@ def dwg_uret(dxf_baytlari, surum="ACAD2018"):
     arac = donusturucu()
     if not arac:
         return None, (
-            "Bu bilgisayarda ODA File Converter kurulu olmadığı için "
+            "ODA File Converter kurulu olmadığı için "
             "DWG üretilmedi — çizim DXF olarak verildi.  AutoCAD DXF'i "
             "birebir açar;  DWG istiyorsanız dosyayı açıp "
             "'Farklı Kaydet → AutoCAD Çizimi (*.dwg)' demeniz yeterli."
