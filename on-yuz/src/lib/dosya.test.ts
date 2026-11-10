@@ -44,6 +44,30 @@ describe("proje dosyası — eski arayüzün biçimi", () => {
     expect(o.ofisFarki).toEqual([]);
   });
 
+  it("bu arayüzün dosyası:  varsayılana eşit yazılan değer de yazılmış olarak geri gelir ( __girilen )", () => {
+    //  800 · 2:1 · makine dairesiz şemanın varsayılanları:  kullanıcı bilerek seçti
+    const p: UygulamaProjesi = {
+      ...proje,
+      asansorler: [{ beyan_yuku: "800", aski_orani: "2", kuyu_genisligi: "2500" }, {}],
+      proje_geneli: { mk_yok: "true" },
+    };
+    const govde = dosyaGovdesi(p, SEMA, {});
+    expect(govde.__girilen).toBe(true);
+    const o = dosyaOku(JSON.stringify(govde), SEMA, {});
+    expect(o.tamam).toBe(true);
+    if (!o.tamam) return;
+    expect(o.icerik.asansorler).toEqual(p.asansorler);
+    expect(o.icerik.proje_geneli).toEqual(p.proje_geneli);
+    //  İşaret silinince ( eski arayüzün dosyası ) aynı değerler atılır
+    const { __girilen: _i, ...eski } = govde;
+    const e = dosyaOku(JSON.stringify(eski), SEMA, {});
+    expect(e.tamam && e.icerik.asansorler).toEqual([{ kuyu_genisligi: "2500" }, {}]);
+    expect(e.tamam && e.icerik.proje_geneli).toEqual({});
+    //  Başlıksız düz sözlükte işaret geçmez ( gövdenin içindeki işaret sayılmaz )
+    const duz = dosyaOku(JSON.stringify({ ...govde.alanlar, __girilen: true }), SEMA, {});
+    expect(duz.tamam && duz.icerik.proje_geneli).toEqual({});
+  });
+
   it("eski arayüzün dosyası:  varsayılana eşit değerler yazılmamış sayılır", () => {
     //  Eski arayüz her kutuyu doldurur ( varsayılanlar dahil, metin olarak )
     const eski = {
