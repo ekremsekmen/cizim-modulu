@@ -2,7 +2,7 @@
     Biçim değişmedi:  eski arayüzde kaydedilmiş bütün dosyalar açılır;  yenide
     kaydedilen dosya ( ve paketin içindeki .uygulama ) aynı biçimdedir:
 
-      { __mod, __surum, __program, __tarih,
+      { __mod, __surum, __program, __tarih, __girilen,
         alanlar: { mk_proje_adi, mk_isveren, mk_pafta_no, m_adet,
                    m_<anahtar>    binaya ait alanlar ( onay:  true / false ),
                    uof_<anahtar>  ofis standardı ( eski arayüz projeyle saklar ),
@@ -10,7 +10,13 @@
 
     Asansör haritasında OLMAYAN alan iki arayüzde de varsayılandır ( sunucu
     sözleşmesi:  gönderilmeyen alan = varsayılanı gönderilmiş alan;
-    testler/test_on_yuz_sozlesmesi.py ).                                   */
+    testler/test_on_yuz_sozlesmesi.py ).
+
+    __girilen ( 10 Kas ):  bu arayüzün yazdığı dosyanın işareti — dosyada YALNIZ
+    kullanıcının yazdığı değerler durur.  İşaretli dosyada varsayılana eşit
+    değer de "yazılmış" olarak geri gelir ( girildi sayısı, Teslim'in
+    "girmediğiniz değerler" onayı ve ileride değişen varsayılan onu etkilemez );
+    işaretsiz dosya eski arayüzündür, orada varsayılana eşit değer atılır.  */
 import type { AlanSemasi, Deger } from "./api";
 import { avanDosyasiMi } from "./avan";
 import { eskiOnayIsaretli, evetMi } from "./denetim";
@@ -18,6 +24,8 @@ import { sayiOku, type Ham, type UygulamaProjesi } from "./proje";
 
 /**  Eski arayüzün PROJE_SURUM'u — iki taraf aynı sürümü yazar.  */
 const SURUM = 1;
+/**  Bu arayüzün dosyası:  yalnız kullanıcının yazdığı değerler ( eski arayüz "__" ile başlayanı okumaz )  */
+const GIRILEN = "__girilen";
 
 function onayAlanlari(sema: AlanSemasi): Set<string> {
   return new Set(sema.gruplar.flatMap((g) => g.alanlar).filter((a) => a.tur === "onay").map((a) => a.anahtar));
@@ -52,6 +60,7 @@ export function dosyaGovdesi(p: UygulamaProjesi, sema: AlanSemasi, ofis: Ham) {
     __mod: "uygulama",
     __surum: SURUM,
     __program: "Asansör Proje Programı",
+    [GIRILEN]: true,
     __tarih: new Date().toISOString().slice(0, 10),
     alanlar,
   };
@@ -84,9 +93,10 @@ export type DosyaOkumasi =
     }
   | { tamam: false; hata: string };
 
-/**  Dosyadaki değer şemanın varsayılanıyla aynıysa YAZILMAMIŞ sayılır:  eski
-     arayüz kutuyu varsayılanla doldurduğu için kullanıcının girdiğini ayırt
-     edemez;  aynı değer hesapta da aynıdır ( sözleşme ).  */
+/**  ESKİ ARAYÜZÜN DOSYASINDA değer şemanın varsayılanıyla aynıysa YAZILMAMIŞ sayılır:
+     eski arayüz kutuyu varsayılanla doldurduğu için kullanıcının girdiğini ayırt
+     edemez;  aynı değer hesapta da aynıdır ( sözleşme ).  Bu arayüzün dosyasında
+     ( __girilen ) atılmaz.  */
 function ayniDeger(a: string, v: Deger): boolean {
   if (v === null || v === undefined) return a === "";
   if (typeof v === "boolean") return (a === "true") === v;
@@ -120,6 +130,8 @@ export function dosyaOku(metin: string, sema: AlanSemasi, ofis: Ham): DosyaOkuma
   if (avanDosyasiMi(d)) return { tamam: false, hata: AVAN_DOSYASI_UYGULAMADA };
   if (mod && mod !== "uygulama") return { tamam: false, hata: "Tanınmayan proje dosyası." };
 
+  //  Yalnız başlıktaki işaret:  eski arayüz gövdeyi ( alanlar ) kendi kutularıyla yeniden yazardı
+  const girilen = d[GIRILEN] === true && govde !== d;
   const alanlar = new Map(sema.gruplar.flatMap((g) => g.alanlar).map((a) => [a.anahtar, a]));
   const taninmayan: string[] = [];
   const oku = (k: string, ham: unknown, hedef: Ham) => {
@@ -150,7 +162,7 @@ export function dosyaOku(metin: string, sema: AlanSemasi, ofis: Ham): DosyaOkuma
       }
       v = String(s);
     }
-    if (!ayniDeger(v, a.varsayilan)) hedef[k] = v;
+    if (girilen || !ayniDeger(v, a.varsayilan)) hedef[k] = v;
   };
 
   const proje_geneli: Ham = {};

@@ -37,7 +37,7 @@ function kayittan(p: UygulamaProjesi): UygulamaProjesi {
 afterEach(() => vi.unstubAllGlobals());
 
 /* ───────────────────────────── uygulama:  asansörler ve kapak */
-//  Kuyu genişliği varsayılandan ( 2400 ) farklı:  dosya varsayılana eşit değeri yazılmamış sayar
+//  Kuyu genişliği varsayılandan ( 2400 ) farklı ( eski arayüzün dosyası varsayılana eşit değeri yazılmamış sayar )
 const KUYU = ["1800", "2000", "2200"];
 const OZGU = ["capacity", "speed", "stops", "cabin_width"];
 
