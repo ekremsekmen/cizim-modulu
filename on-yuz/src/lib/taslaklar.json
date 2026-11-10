@@ -139,7 +139,7 @@
   {
     "kimlik": "1275",
     "duzen": "Makine dairesiz",
-    "ad": "1275 kg · 17 kişi",
+    "ad": "1275 kg · 16 kişi",
     "ozet": "Kabin 1260 × 2100 · kapı 1100 · kuyu 2200 × 2700 · 2:1 dişlisiz",
     "kaynak": "Örnek projenin gerçek asansörü ( BAR 2515 ) — 1,0 m/s, 6 durak",
     "asansor": {
@@ -352,7 +352,7 @@
   {
     "kimlik": "1275-md",
     "duzen": "Makine daireli",
-    "ad": "1275 kg · 17 kişi",
+    "ad": "1275 kg · 16 kişi",
     "ozet": "Kabin 1260 × 2100 · kapı 1100 · kuyu 2200 × 2700 · makine dairesi 4100 × 2600 · 2:1 dişli",
     "kaynak": "Örnek projenin gerçek asansörü ( BAR 2515 ) — 1,0 m/s, 6 durak",
     "asansor": {

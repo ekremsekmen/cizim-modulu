@@ -49,8 +49,6 @@ class Taslaklar(unittest.TestCase):
                 self.assertTrue(t["ozet"].endswith(aski), (t["ozet"], aski))
                 self.assertEqual(float(a["beyan_hizi"]), 1.0)
                 self.assertEqual(len(a["durak_kotlari"].split(";")), 6)
-                #  Kişi sayısı ( TS EN 81-20 m.5.4.2.3:  Q / 75, aşağı )
-                self.assertIn(f"{int(a['beyan_yuku']) // 75} kişi", t["ad"])
 
     def test_hesap_her_bolumu_uygun(self):
         for t in TASLAKLAR:
@@ -67,6 +65,9 @@ class Taslaklar(unittest.TestCase):
                 ]
                 self.assertEqual(kotu, [])
                 self.assertEqual(a["uyarilar"], [])
+                #  Karttaki kişi sayısı hesabınki ( TS EN 81-20 m.5.4.2.3.1:  Q / 75 ile Çizelge 8'in
+                #  küçüğü — 1275 kg'da kabin alanı 16 kişiye yeter, kart 17 yazıyordu;  10 Kas )
+                self.assertIn(f"· {a['ozet']['kabin_kisi']} kişi", t["ad"])
                 self.assertEqual(
                     [
                         b["baslik"]
