@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { createBrowserRouter, Navigate, useLocation, useNavigate, useParams, useRouteError } from "react-router";
 import { CircleAlert, Loader2 } from "lucide-react";
 import { Acilis } from "@/ekranlar/Acilis";
+import { birKez } from "@/lib/depo";
 import { ornekProjesi, projeOku, yeniUygulama } from "@/lib/proje";
 import { taslaktanProje } from "@/lib/taslak";
 
@@ -63,11 +64,40 @@ function UygulamaRota() {
   return <Calisma key={id} proje={proje} bildirim={bildirim} />;
 }
 
+/*  YENİ SÜRÜM YAYINLANINCA açık sayfanın bildiği parça adları ( Tablolar-<özet>.js ) sunucuda kalmaz;
+    o parçayı ilk kez isteyen ekran ( Tablolar, Ofis standardı, Avan … ) "Failed to fetch dynamically
+    imported module" ile düşer ( Safari:  "Importing a module script failed", Firefox:  "error loading
+    dynamically imported module" ).  Çaresi sayfayı yenilemek:  index.html yeni adları taşır, proje
+    tarayıcıda kayıtlıdır.  Kendiliğinden BİR kez yenilenir;  az önce yenilenmişse ( parça gerçekten
+    yok — bağlantı, sunucu ) döngüye girmez, düğmeyi gösterir.  10 Kas.  */
+const PARCA_HATASI = /dynamically imported module|importing a module script failed/i;
+const YENILEME_ANAHTARI = "parca_yenileme";
+
 /**  Beklenmedik hata:  geliştirici sayfası yerine ne olduğu ve nereye dönüleceği.
      Proje tarayıcıda kayıtlıdır;  açılışa dönmek veriyi silmez.  */
 function HataEkrani() {
   const hata = useRouteError();
   const metin = hata instanceof Error ? hata.message : String(hata ?? "");
+  const eskiSurum = PARCA_HATASI.test(metin);
+  useEffect(() => {
+    //  Depo kapalıysa "az önce yenilendi" bilinemez ( birKez false ):  kendiliğinden yenileme yok
+    if (eskiSurum && birKez(YENILEME_ANAHTARI, 30_000)) window.location.reload();
+  }, [eskiSurum]);
+  if (eskiSurum)
+    return (
+      <div className="flex h-dvh items-center justify-center px-6">
+        <div className="max-w-md text-center">
+          <Loader2 className="mx-auto size-5 animate-spin text-metin-3" />
+          <p className="mt-3 text-[15px] font-semibold">Program güncellendi — sayfa yenileniyor</p>
+          <p className="mt-1 text-[13px] text-metin-2">
+            Projeniz tarayıcıda kayıtlı, kaybolmadı.  Sayfa kendiliğinden yenilenmezse aşağıdaki bağlantıyı kullanın.
+          </p>
+          <a href={window.location.href} className="mt-4 inline-block text-[13px] font-medium text-vurgu hover:underline">
+            Sayfayı yenile
+          </a>
+        </div>
+      </div>
+    );
   return (
     <div className="flex h-dvh items-center justify-center px-6">
       <div className="max-w-md text-center">

@@ -66,6 +66,21 @@ export function depoSil(anahtar: string) {
   if (vardi || bellek.size) bosalt();
 }
 
+/**  Sayfa YENİLENİNCE de hatırlanan kısa süreli işaret ( sessionStorage — yalnız bu sekme ):
+     son `sure` ms içinde konmamışsa koyar ve true döner.  Depo kapalıysa false:  çağıran
+     "bir kez" yapacağı işi ( eski sürüm parçasında kendiliğinden yenileme — yonlendirici )
+     hiç yapmaz, yenileme döngüsüne girmez.  */
+export function birKez(anahtar: string, sure: number): boolean {
+  try {
+    const son = Number(sessionStorage.getItem(anahtar) || 0);
+    if (Date.now() - son < sure) return false;
+    sessionStorage.setItem(anahtar, String(Date.now()));
+    return sessionStorage.getItem(anahtar) !== null;
+  } catch {
+    return false;
+  }
+}
+
 /**  `anahtar` başka sekmede değişince ( storage olayı ) f yeni metinle ya da silindiyse
      null'la çağrılır;  bellekteki kopya düşer ( depodaki en yenisidir ).  Bırakan döner.  */
 export function depoDinle(anahtar: string, f: (metin: string | null) => void) {
