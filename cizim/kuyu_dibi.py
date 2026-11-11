@@ -203,6 +203,9 @@ def _kn(v):
 #  Yük kutusunun yazısı ve kutunun yazı çevresindeki payı ( mm, 1/20'de )
 YUK_YAZI = uslup.NORMAL
 YUK_PAY = 30.0
+#  Normal boyla hiçbir yere sığmayan kutuların boyu ( _yuk_etiketleri )
+YUK_YAZI_KUCUK = uslup.KUCUK
+YUK_UZAK = 2000.0
 _YUK_DISI = ("EKSEN", "CERCEVE", "TARAMA", "KUYU-DUVAR", "KUYU-IC", "GIZLI")
 
 
@@ -267,7 +270,10 @@ def _yuk_etiketleri(e, noktalar, G, D):
     En az seçeneği olan nokta ( duvar dibindeki tampon, ray ) önce yerleşir;
     ortadaki nokta sona kalır, onun yeri boldur.  Yer yoksa önce sığınma
     alanının yüzeyine ( yazısına değil ), sonra ölçü çizgisine ( yazısına
-    değil ) binmesine izin verilir."""
+    değil ) binmesine izin verilir.  Bunların hiçbirinde yer çıkmazsa kutular
+    KÜÇÜK yazıyla yeniden denenir ( 10 Kas — kutu bizim koyduğumuz bir
+    gösterimdir, fiziksel sınır değil:  tek kuyuda iki küçük asansörde komşunun
+    bölmesi kapalı olduğundan yer kalmıyor, bütün çizim duruyordu )."""
     #  Sıra:  hiçbir şeye binmeden içeride, sonra kuyunun DIŞINDA ( duvarın
     #  ötesinde;  ok duvarın üstünden noktayı gösterir ) · sığınma alanının
     #  yüzeyine binerek içeride / dışarıda · ölçü çizgisine binerek içeride /
@@ -286,24 +292,48 @@ def _yuk_etiketleri(e, noktalar, G, D):
         else None
     )
     hata = None
-    for kademe, disari in (
-        ({}, False),
-        ({}, True),
-        ({"siginma": False}, False),
-        ({"siginma": False}, True),
-        ({"siginma": False, "olcu_cizgisi": False}, False),
-        ({"siginma": False, "olcu_cizgisi": False}, True),
-    ):
-        if disari and dis is None:
-            continue
-        try:
-            return _yuk_yerlesimi(e, noktalar, G, D, *_engeller(e, **kademe), dis=dis if disari else None)
-        except ValueError as h:
-            hata = h
+    #  Son çare ( uzak ):  kutu kuyudan 2 m'ye kadar uzağa, uzun okla
+    for boy, uzak in ((YUK_YAZI, False), (YUK_YAZI_KUCUK, False), (YUK_YAZI, True), (YUK_YAZI_KUCUK, True)):
+        for kademe, disari in (
+            ({}, False),
+            ({}, True),
+            ({"siginma": False}, False),
+            ({"siginma": False}, True),
+            ({"siginma": False, "olcu_cizgisi": False}, False),
+            ({"siginma": False, "olcu_cizgisi": False}, True),
+        ):
+            if (disari and dis is None) or (uzak and not disari):
+                continue
+            try:
+                return _yuk_yerlesimi(
+                    e,
+                    noktalar,
+                    G,
+                    D,
+                    *_engeller(e, **kademe),
+                    dis=dis if disari else None,
+                    boy=boy,
+                    uzak=uzak,
+                )
+            except ValueError as h:
+                hata = hata or h
     raise hata
 
 
-def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar, dis=None):
+def _disarida(k, dis, bant):
+    """Kutu kuyunun ( duvarlarıyla — dis ) dışında ve ona bant'tan yakın mı."""
+    return (
+        (k[2] <= dis[0] - 20 or k[0] >= dis[2] + 20 or k[3] <= dis[1] - 20 or k[1] >= dis[3] + 20)
+        and dis[0] - bant <= k[0]
+        and k[2] <= dis[2] + bant
+        and dis[1] - bant <= k[1]
+        and k[3] <= dis[3] + bant
+    )
+
+
+def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar, dis=None, boy=None, uzak=False):
+    boy = boy or YUK_YAZI
+    ic_pay = YUK_PAY * boy / YUK_YAZI
     #  24 yön:  eksenler, köşegenler ve aralarındaki ( 1 : 2 ve 1 : 3 ) doğrultular;
     #  ok boyları 75'er artar ( 16 yön ve 150'lik adımla sağ aynalı düzende
     #  ağırlık tamponunun kutusu ölçü çizgisine biniyordu )
@@ -336,7 +366,7 @@ def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar, dis=None):
 
     def adaylar(p, metin):
         px, py = p
-        w, h = eleman.yazi_eni(metin, YUK_YAZI) + 2 * YUK_PAY, YUK_YAZI + 2 * YUK_PAY
+        w, h = eleman.yazi_eni(metin, boy) + 2 * ic_pay, boy + 2 * ic_pay
         ox, oy = G / 2.0 - px, D / 2.0 - py
         #  Okun başladığı nokta bir yazının payının içindeyse ( yazı noktaya
         #  bitişik ) o yazı paysız sayılır:  yoksa noktadan çıkan her ok onu
@@ -353,8 +383,10 @@ def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar, dis=None):
             for b in yazilar
         ]
         sira = sorted(yonler, key=lambda u: -(u[0] * ox + u[1] * oy) / (u[0] ** 2 + u[1] ** 2) ** 0.5)
-        for L in (220, 285, 350, 425, 500, 575, 650, 725, 800, 900, 1000, 1100, 1200, 1400) + (
-            (1600, 1800, 2000, 2300) if dis else ()
+        for L in (
+            (220, 285, 350, 425, 500, 575, 650, 725, 800, 900, 1000, 1100, 1200, 1400)
+            + ((1600, 1800, 2000, 2300) if dis else ())
+            + ((2600, 2900, 3200, 3600) if uzak else ())
         ):
             for ux, uy in sira:
                 n = (ux * ux + uy * uy) ** 0.5
@@ -363,19 +395,7 @@ def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar, dis=None):
                 y0 = (q[1] - h / 2.0) if ux else (q[1] if uy > 0 else q[1] - h)
                 k = (x0, y0, x0 + w, y0 + h)
                 if not (20 <= k[0] and k[2] <= G - 20 and 20 <= k[1] and k[3] <= D - 20):
-                    #  dis:  kuyunun ( duvarlarıyla ) dışında, ona 900'den yakın
-                    if dis is None or not (
-                        (
-                            k[2] <= dis[0] - 20
-                            or k[0] >= dis[2] + 20
-                            or k[3] <= dis[1] - 20
-                            or k[1] >= dis[3] + 20
-                        )
-                        and dis[0] - 900 <= k[0]
-                        and k[2] <= dis[2] + 900
-                        and dis[1] - 900 <= k[1]
-                        and k[3] <= dis[3] + 900
-                    ):
+                    if dis is None or not _disarida(k, dis, YUK_UZAK if uzak else 900.0):
                         continue
                 if any(ortusur(k, b, 20) for b in kutular + yazilar) or any(
                     pay is not None and _kesisir(p, q, b, pay) for b, pay in zip(yazilar, okp)
@@ -417,9 +437,7 @@ def _yuk_yerlesimi(e, noktalar, G, D, kutular, yazilar, dis=None):
         metin = noktalar[i][1]
         yeni.append(eleman.ad(eleman.dikdortgen("YUK", k[0], k[1], k[2] - k[0], k[3] - k[1]), "yuk_kutusu"))
         yeni.append(
-            eleman.ad(
-                eleman.yazi((k[0] + k[2]) / 2.0, (k[1] + k[3]) / 2.0, metin, YUK_YAZI, katman="YUK"), "yuk"
-            )
+            eleman.ad(eleman.yazi((k[0] + k[2]) / 2.0, (k[1] + k[3]) / 2.0, metin, boy, katman="YUK"), "yuk")
         )
         yeni.append(eleman.ad(eleman.ok("YUK", q[0], q[1], p[0], p[1]), "yuk_oku"))
     return yeni

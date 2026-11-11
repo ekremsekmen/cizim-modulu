@@ -217,6 +217,16 @@ def _kuyu_ustundeki_makine(g, S, tavan, M, kabin_raylari, agirlik_raylari):
     gx0, gy0, gx1, gy1 = KU["govde"]
     mx, my = (kx0 + kx1) / 2.0, (gy0 + gy1) / 2.0
     zk = zs + S["makine_en"] / 2.0  # kasnak merkezi
+    #  Regülatör kasnağının merkezi:  tavandan regulator_kasnak_merkez ( referans
+    #  proje — regülatör makinenin karşısındaki rayda ).  Makinenin yanındaki
+    #  rayda gövdesi planda şasenin üstüne düşer:  şasenin üst yüzüne oturur
+    #  ( 11 Kas — sabit kotla gövdenin altı şasenin içine 35 mm giriyordu ).
+    rgeo = KU["reg_cizim"]["geo"]
+    zr = tavan - S["regulator_kasnak_merkez"]
+    #  Duvardan duvara kirişte "şase" kuyuyu boydan boya kaplar, regülatör
+    #  kirişlerin arasında / altındadır:  kotu değişmez.
+    if not KU.get("duvardan_duvara") and ortusur(KU["reg_govde"], sase[:4]):
+        zr = max(zr, zs + rgeo["eksen"])
     #  Kapak ( klemens kutusu ) gövdenin üstünde:  kasnağın düzlem boyundaki
     #  ortası, gövdenin düzleme dik ortası ( makine dairesindeki gibi kanonik ).
     #  21 Eki:  x / y sabitti — arkadaki ağırlıkta kasnak ekseni x olunca kapak
@@ -244,14 +254,10 @@ def _kuyu_ustundeki_makine(g, S, tavan, M, kabin_raylari, agirlik_raylari):
             "agirlik_baglanti": KU["agirlik_baglanti"] + (zs, zs + S["agirlik_baglanti_yukseklik"]),
             "kabin_baglanti": KU["kabin_baglanti"]
             + (tavan - S["kabin_baglanti_alt"], tavan - S["kabin_baglanti_ust"]),
-            #  Regülatör ayağının ( konsol ) üstünde:  kasnak tavandan
-            #  regulator_kasnak_merkez, gövde onun eksen altında / tepe üstünde
-            "regulator": KU["reg_govde"]
-            + (
-                tavan - S["regulator_kasnak_merkez"] - KU["reg_cizim"]["geo"]["eksen"],
-                tavan - S["regulator_kasnak_merkez"] + KU["reg_cizim"]["geo"]["tepe"],
-            ),
-            "regulator_kasnak": KU["reg_kasnak"] + (tavan - S["regulator_kasnak_merkez"],),
+            #  Regülatör ayağının ( konsol ) üstünde:  kasnak merkezi zr,
+            #  gövde onun eksen altında / tepe üstünde
+            "regulator": KU["reg_govde"] + (zr - rgeo["eksen"], zr + rgeo["tepe"]),
+            "regulator_kasnak": KU["reg_kasnak"] + (zr,),
         }
     )
     M["halat_konsolu"] = makine.kaydir(
