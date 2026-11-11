@@ -393,9 +393,52 @@ def yerlesim(g, cizim_sabitleri=None, acil_pano=True):
     ag, mk = g["agirlik"], g.get("makine") or {}
     if (g.get("aski") or {}).get("duzen") == "Doğrudan":
         return _dogrudan(g, S, mk, ag)
-    if ag.get("yeri") == "Arka":
-        return _arka(g, S, mk, ag, acil_pano)
-    return _yandaki_agirlik(g, S, mk, ag, acil_pano)
+    Y = (
+        _arka(g, S, mk, ag, acil_pano)
+        if ag.get("yeri") == "Arka"
+        else _yandaki_agirlik(g, S, mk, ag, acil_pano)
+    )
+    if mk.get("yeri") == "Kuyu üstü":
+        Y["hata"] = list(Y.get("hata") or []) + _regulator_cakismalari(g, Y)
+    return Y
+
+
+def _regulator_cakismalari(g, Y):
+    """MAKİNE DAİRESİZDE REGÜLATÖR MAKİNENİN YANINDAYSA ( 10 Kas ):  regülatör kuyu
+    tepesinde halat bağlantılarıyla aynı kottadır.  _cakismalar yalnız gövdesine
+    bakıyordu;  kasnağı ( gövdeden taşar ), halatı ve duvara giden ayağı
+    denetlenmiyordu — regülatör makinenin yanındaki raya gelince kasnak ve halat
+    ağırlık halat bağlantısının içine çiziliyordu.  İletiler "regülatör" der:
+    kopru._regulator_yeri boş kaçıklıkta çarpmayan yeri arar.
+    Gövdenin şasenin yan yatağıyla plandaki bindirmesi denetlenmez:  o rayda
+    regülatör şasenin üst yüzüne oturur ( donanim — 11 Kas;  320 kg'da program
+    regülatörü oraya kendisi koyar, 28 Eki )."""
+    gerekli = ("reg_kasnak", "reg_govde", "reg_ayak", "agirlik_baglanti", "kabin_baglanti")
+    if any(Y.get(a) is None for a in gerekli):
+        return []
+    hata = []
+    care = "regülatör yanını ya da kaçıklığını değiştirin"
+    kasnak = _reg_halat_kutusu(g, Y["reg_kasnak"])
+    for ad, parca in (
+        ("ağırlık halat bağlantısı", "agirlik_baglanti"),
+        ("kabin halat bağlantısı", "kabin_baglanti"),
+    ):
+        b = Y[parca]
+        #  Gövde ile bağlantıyı _cakismalar söyler;  burada gövdeden taşanlar
+        if ortusur(Y["reg_govde"], b):
+            continue
+        for ne, kutu in (("kasnağı ve halatı", kasnak), ("duvara giden ayağı", Y["reg_ayak"])):
+            if ortusur(kutu, b):
+                hata.append(
+                    sorun.Sorun(
+                        f"Kuyu üstünde regülatörün {ne} {ad} ile üst üste biniyor — {care}.",
+                        _PARCA["regülatör"] + ("regulator_ayak", parca),
+                        "kuyu_ustu",
+                        fark=sorun.ayrik(kutu, b),
+                    )
+                )
+                break
+    return hata
 
 
 def _yandaki_agirlik(g, S, mk, ag, acil_pano):
