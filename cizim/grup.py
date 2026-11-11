@@ -79,7 +79,10 @@ def gruptakiler(gler):
     if any(g is None for g in gler):
         return []
     gg = sorted((g for g in gler if g["proje"].get("grup_sirasi")), key=lambda g: g["proje"]["grup_sirasi"])
-    return gg if len(gg) == AZAMI else []
+    if len(gg) != AZAMI:
+        return []
+    perdeyi_isle(gg)
+    return gg
 
 
 def kirisi(gler):
@@ -87,12 +90,11 @@ def kirisi(gler):
     return gler[0]["proje"].get("ayirma_kirisi")
 
 
-def korkuluk_mesafesi(gler):
-    """m.5.2.5.5.2.2:  bir asansörün kabin üstü korkuluğunun iç kenarı
-    ( kabin_ustu.korkuluklar ) ile komşu asansörün hareketli parçası ( kabin,
-    karşı ağırlık — planda ) arasındaki en kısa yatay uzaklık:  ( mm, korkuluğun
-    asansörü, parçanın asansörü, parça ) ;  korkuluk yoksa None.  Kabin üstü
-    kurulamayan asansörde denetlenmez ( None )."""
+def _korkuluk_parca_araliklari(gler):
+    """Her korkuluk kenarı ( kabin_ustu.korkuluklar ) ile komşu asansörün her
+    hareketli parçası ( kabin, karşı ağırlık — planda ) arasındaki yatay uzaklıklar:
+    [ ( mm, korkuluğun asansörü, parçanın asansörü, parça, parçanın kutusu ) ];
+    kabin üstü kurulamayan asansörde None."""
     X = _x0lar(gler)
     korkuluklar, parcalar = [], []
     try:
@@ -112,25 +114,60 @@ def korkuluk_mesafesi(gler):
         dy = max(0.0, k[1] - max(s[1], s[3]), min(s[1], s[3]) - k[3])
         return math.hypot(dx, dy)
 
-    adaylar = [(uzaklik(s, k), a, b, p) for s, a in korkuluklar for k, b, p in parcalar if a != b]
-    return min(adaylar) if adaylar else None
+    return [(uzaklik(s, k), a, b, p, k) for s, a in korkuluklar for k, b, p in parcalar if a != b]
+
+
+def korkuluk_mesafesi(gler):
+    """m.5.2.5.5.2.2:  bir asansörün kabin üstü korkuluğunun iç kenarı ile komşu
+    asansörün hareketli parçası arasındaki en kısa yatay uzaklık:  ( mm, korkuluğun
+    asansörü, parçanın asansörü, parça ) ;  korkuluk yoksa ya da kabin üstü
+    kurulamıyorsa None."""
+    adaylar = _korkuluk_parca_araliklari(gler)
+    return min(adaylar)[:4] if adaylar else None
+
+
+def tam_boy_perde(gler):
+    """m.5.2.5.5.2.2:  bir korkuluğun iç kenarı komşunun hareketli parçasına
+    0,50 m'den yakınsa asansörler arası perde KUYU BOYUNCA uzanır;  eni parçanın eni
+    ve iki yanda 0,10 m ( kullanıcı kararı 11 Kas:  kendiliğinden, standardın en az
+    eni, tavana kadar;  kuyu dibi perdesi aynı kalır ).  →  perdenin kuyu derinliği
+    boyunca aralığı ( y0 , y1 ) — kuyunun içine kırpılmış;  gerekmiyorsa None."""
+    if len(gler) != AZAMI or kirisi(gler) is None:
+        return None
+    yakin = [
+        k for d, _a, _b, _p, k in _korkuluk_parca_araliklari(gler) or [] if d < standart.PERDE_KORKULUK_ASGARI
+    ]
+    if not yakin:
+        return None
+    D = gler[0]["kuyu"]["derinlik"]
+    return (
+        max(0.0, min(k[1] for k in yakin) - standart.PERDE_YAN_PAYI),
+        min(D, max(k[3] for k in yakin) + standart.PERDE_YAN_PAYI),
+    )
+
+
+def perdeyi_isle(gler):
+    """Tam boy perdenin aralığını grubun iki asansörünün girdisine yazar
+    ( kuyu.tam_boy_perde — kesitler oradan okur:  A-A asansörün kendi çizimidir,
+    komşuyu bilmez ).  Gerekmiyorsa anahtar None.  Yinelenebilir."""
+    gg = sorted(
+        (g for g in gler if g and g["proje"].get("grup_sirasi")), key=lambda g: g["proje"]["grup_sirasi"]
+    )
+    if len(gg) != AZAMI:
+        return
+    p = tam_boy_perde(gg)
+    for g in gg:
+        g["kuyu"]["tam_boy_perde"] = list(p) if p else None
 
 
 def duzen_hatalari(gler):
     """Tek kuyunun sorunları ( gruptaki asansörlerin çizim girdileri, soldan sağa ):
-    ayırma kirişi seçilmeli;  bir asansörün korkuluğu komşunun hareketli parçasına
-    0,50 m'den yakınsa perde kuyu boyunca uzanmalı ( m.5.2.5.5.2.2 — program yalnız
-    kuyu dibi perdesini çizer:  söylenir ).  Kuyunun öbür değerleri iki asansörde
-    zaten aynıdır ( tek girdi — tasarim/alanlar KUYU_ORTAK )."""
+    ayırma kirişi seçilmeli.  Bir asansörün korkuluğu komşunun hareketli parçasına
+    0,50 m'den yakınsa perde kuyu boyunca uzanır ( m.5.2.5.5.2.2 ):  11 Kas'a kadar
+    ret sebebiydi, artık çizilir ( tam_boy_perde ).  Kuyunun öbür değerleri iki
+    asansörde zaten aynıdır ( tek girdi — tasarim/alanlar KUYU_ORTAK )."""
     if kirisi(gler) is None:
         return [KIRIS_YOK]
-    m = korkuluk_mesafesi(gler)
-    if m and m[0] < standart.PERDE_KORKULUK_ASGARI:
-        return [
-            f"Tek kuyuda {m[1]} kabin üstü korkuluğu ile {m[2]} {m[3]} arası {m[0]:.0f} mm < "
-            f"{standart.PERDE_KORKULUK_ASGARI:g}:  perde kuyu boyunca uzanmalı ( m.5.2.5.5.2.2 ) — "
-            "program yalnız kuyu dibi perdesini çizer;  ayırma kirişi ya da yerleşim değişmeli."
-        ]
     return []
 
 
@@ -315,6 +352,18 @@ def _ayirma_kirisleri(gler, X):
     ]
 
 
+TAM_BOY_PERDE_ADI = ("TAM BOY PERDE", "PERDE")
+
+
+def _tam_boy_perdesi(gler, X):
+    """Tam boy perde ( tam_boy_perde ) planda:  aranın ortasında, eni kadar — bir kez."""
+    p = tam_boy_perde(gler)
+    if p is None:
+        return []
+    x = X[1] - gler[0]["kuyu"]["duvar_sag"] / 2.0
+    return [eleman.ad(eleman.cizgi("PERDE", x, p[0], x, p[1]), "grup_perdesi")]
+
+
 def _ust_zincir(gler, X, kot):
     """En dış üst sıra:  duvarlar, bölmeler ve ortadaki ayırma kirişi ( LiftDesigner
     12744-3:  250 · SW2100 · 100 · SW1800 · 250 );  bir dışında kuyunun toplamı —
@@ -382,8 +431,10 @@ def plan(gler):
         kotlar += [x["kot"] for x in e if x.get("ad") in _DUVAR_SIRASI]
         parcalar += [eleman.tasi(x, X[n]) for x in e if x.get("ad") not in _DUVAR_SIRASI]
     e = _duvarlar(gler, X) + _ayirma_kirisleri(gler, X) + parcalar + _ust_zincir(gler, X, max(kotlar))
+    e += _tam_boy_perdesi(gler, X)
     _sira_yazilari(e, gler[0]["kuyu"])
     e = geometri.ondalik_virgul(e)
+    e += geometri.grup_perdesi_adi(e, metinler=TAM_BOY_PERDE_ADI)
     return e + _adlar(gler, X, e)
 
 
@@ -427,6 +478,10 @@ def birlesik(gler, ad):
     #  Yalnız yeri boşalan ( öbür yana geçen ) ölçülerin ve zincirin yazıları
     geometri.yazilari_yerlestir(e)
     e = geometri.ondalik_virgul(e)
+    #  Kuyu dibinde perde zaten boydan boya ( m.5.2.5.5.2.1 );  öbür planlarda tam boy perde
+    if ad != "kuyu_dibi":
+        e += _tam_boy_perdesi(gler, X)
+        e += geometri.grup_perdesi_adi(e, metinler=TAM_BOY_PERDE_ADI)
     return e + _adlar(gler, X, e)
 
 

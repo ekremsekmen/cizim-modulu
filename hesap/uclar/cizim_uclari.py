@@ -80,8 +80,24 @@ def asansor_girdisi(asansorler, ortak, sonuc, proje_adi, i):
     s = sonuc["asansorler"][i] if sonuc and i < len(sonuc.get("asansorler") or []) else None
     g, hata = kopru.cizim_girdisi(A, s, proje_adi, i + 1)
     if g is not None:
+        _tam_boy_perde(g, asansorler, ortak, sonuc, proje_adi, i)
         hata = _cizim_hatalari(g, A)
     return g, hata
+
+
+def _tam_boy_perde(g, asansorler, ortak, sonuc, proje_adi, i):
+    """Tek kuyuda tam boy perde ( m.5.2.5.5.2.2 — grup.tam_boy_perde ) asansörün
+    girdisine yazılır:  A-A asansörün kendi çizimidir ve grubun çizimlerinden ÖNCE
+    kurulur ( cizimler_yaniti );  perdeyi komşusuyla birlikte ancak burada bilir."""
+    if not g["proje"].get("grup_sirasi") or len(asansorler) != grup.AZAMI:
+        return
+    j = 1 - i
+    pg = {k: ortak[k] for k in ortak if k != "_ofis"}
+    A = uygulama_girdisi.tamamla({**uygulama_girdisi.varsayilanlar(), **ortak, **asansorler[j], **pg})
+    s = sonuc["asansorler"][j] if sonuc and j < len(sonuc.get("asansorler") or []) else None
+    g_j = kopru.cizim_girdisi(A, s, proje_adi, j + 1)[0]
+    if g_j is not None:
+        grup.perdeyi_isle([g, g_j])
 
 
 def _cizim_hatalari(g, A):
