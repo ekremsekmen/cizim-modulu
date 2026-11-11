@@ -2059,5 +2059,810 @@
     "yazi_bitisik": 1
    }
   }
+ },
+ "tek_kuyu": {
+  "1000 Arka + 800 Arka": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1,
+    "maske_olcu_siliyor": 1
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 3
+   }
+  },
+  "1000 Arka + 800 Sağ": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "yazi_cizgisinden_kopuk": 1
+   },
+   "kuyu_grubu_kuyu_kesiti_on": {
+    "maske_kenar_siliyor": 1
+   }
+  },
+  "1000 Arka + 800 Sol": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1,
+    "yazi_parca_kenarinda": 3
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_kesiti_on": {
+    "maske_kenar_siliyor": 1
+   }
+  },
+  "1000 Sağ + 800 Arka": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 2,
+    "maske_olcu_siliyor": 1,
+    "yazi_parca_kenarinda": 3
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 3
+   }
+  },
+  "1000 Sağ + 800 Sağ": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1,
+    "yazi_parca_kenarinda": 3
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "yazi_cizgisinden_kopuk": 1
+   },
+   "kuyu_grubu_kuyu_kesiti_on": {
+    "maske_kenar_siliyor": 1
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  },
+  "1000 Sağ + 800 Sol": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 2,
+    "yazi_parca_kenarinda": 6
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "yazi_cizgisinden_kopuk": 1
+   },
+   "kuyu_grubu_kuyu_kesiti_on": {
+    "maske_kenar_siliyor": 1
+   }
+  },
+  "1000 Sol + 800 Arka": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 2,
+    "maske_olcu_siliyor": 1
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 3
+   }
+  },
+  "1000 Sol + 800 Sağ": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_kesiti_on": {
+    "maske_kenar_siliyor": 1
+   }
+  },
+  "1000 Sol + 800 Sol": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 2,
+    "yazi_parca_kenarinda": 3
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_kesiti_on": {
+    "maske_kenar_siliyor": 1
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  },
+  "630 Sağ + 630 Sağ": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1,
+    "yazi_parca_kenarinda": 2
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1,
+    "ok_yaziyi_kesiyor": 1,
+    "yazi_parca_kenarinda": 3
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  },
+  "630 Sağ + 630 Sol": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 2,
+    "yazi_parca_kenarinda": 4
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 2,
+    "ok_yaziyi_kesiyor": 2,
+    "yazi_parca_kenarinda": 5
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "ok_yaziyi_kesiyor": 1,
+    "yazi_cizgisinden_kopuk": 1
+   }
+  },
+  "630 Sol + 630 Sağ": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "yazi_cizgisinden_kopuk": 1
+   }
+  },
+  "630 Sol + 630 Sol": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 2,
+    "yazi_parca_kenarinda": 2
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 2,
+    "ok_yaziyi_kesiyor": 1,
+    "yazi_parca_kenarinda": 3
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  },
+  "taslak 1000 + 1000": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1,
+    "yazi_parca_kenarinda": 33
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  },
+  "taslak 1000 + 1000 soldaki 2": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1,
+    "yazi_parca_kenarinda": 33
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  },
+  "taslak 1000 + 1250": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 2,
+    "maske_olcu_siliyor": 1,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 4
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 5,
+    "maske_olcu_siliyor": 1,
+    "ok_yaziyi_kesiyor": 1,
+    "yazi_cizgisinden_kopuk": 1,
+    "yazi_parca_kenarinda": 1
+   },
+   "kuyu_grubu_kuyu_kesiti_on": {
+    "maske_kenar_siliyor": 1
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "maske_kenar_siliyor": 2,
+    "yazi_bitisik": 1
+   }
+  },
+  "taslak 1000 + 1275": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 2,
+    "yazi_parca_kenarinda": 7
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "yazi_cizgisinden_kopuk": 1
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_parca_kenarinda": 1
+   }
+  },
+  "taslak 1000 + 630": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1,
+    "yazi_parca_kenarinda": 3
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "yazi_cizgisinden_kopuk": 1
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  },
+  "taslak 1000 + 800": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1,
+    "yazi_parca_kenarinda": 3
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "yazi_cizgisinden_kopuk": 1
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  },
+  "taslak 1250 + 1000": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1,
+    "maske_olcu_siliyor": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "maske_olcu_siliyor": 1
+   }
+  },
+  "taslak 1250 + 1250": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 3,
+    "maske_olcu_siliyor": 2,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 4
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "maske_olcu_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_kesiti_on": {
+    "maske_kenar_siliyor": 1
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "maske_kenar_siliyor": 2
+   }
+  },
+  "taslak 1250 + 1250 soldaki 2": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 3,
+    "maske_olcu_siliyor": 2,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 4
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "maske_olcu_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_kesiti_on": {
+    "maske_kenar_siliyor": 1
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "maske_kenar_siliyor": 2
+   }
+  },
+  "taslak 1250 + 1275": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1,
+    "maske_olcu_siliyor": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 3,
+    "yazi_parca_kenarinda": 2
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "maske_olcu_siliyor": 1,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  },
+  "taslak 1250 + 630": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1,
+    "maske_olcu_siliyor": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "maske_olcu_siliyor": 1
+   }
+  },
+  "taslak 1250 + 800": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1,
+    "maske_olcu_siliyor": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "maske_olcu_siliyor": 1
+   }
+  },
+  "taslak 1275 + 1000": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   }
+  },
+  "taslak 1275 + 1250": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_olcu_siliyor": 1,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 4,
+    "maske_olcu_siliyor": 1,
+    "ok_yaziyi_kesiyor": 2,
+    "yazi_cizgisinden_kopuk": 1,
+    "yazi_parca_kenarinda": 2
+   },
+   "kuyu_grubu_kuyu_kesiti_on": {
+    "maske_kenar_siliyor": 1
+   }
+  },
+  "taslak 1275 + 1275": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   }
+  },
+  "taslak 1275 + 1275 soldaki 2": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   }
+  },
+  "taslak 1275 + 630": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "yazi_cizgisinden_kopuk": 1
+   }
+  },
+  "taslak 1275 + 800": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2,
+    "yazi_cizgisinden_kopuk": 1
+   }
+  },
+  "taslak 630 + 630": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1,
+    "yazi_parca_kenarinda": 2
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1,
+    "ok_yaziyi_kesiyor": 1,
+    "yazi_parca_kenarinda": 3
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  },
+  "taslak 630 + 630 soldaki 2": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1,
+    "yazi_parca_kenarinda": 2
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1,
+    "ok_yaziyi_kesiyor": 1,
+    "yazi_parca_kenarinda": 3
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  },
+  "taslak 630 + 800": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1,
+    "yazi_parca_kenarinda": 2
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1,
+    "ok_yaziyi_kesiyor": 1,
+    "yazi_parca_kenarinda": 3
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  },
+  "taslak 800 + 630": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1,
+    "yazi_parca_kenarinda": 2
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1,
+    "ok_yaziyi_kesiyor": 1,
+    "yazi_parca_kenarinda": 3
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  },
+  "taslak 800 + 800": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1,
+    "yazi_parca_kenarinda": 2
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1,
+    "ok_yaziyi_kesiyor": 1,
+    "yazi_parca_kenarinda": 3
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  },
+  "taslak 800 + 800 soldaki 2": {
+   "1/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "2/kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_grubu": {
+    "maske_kenar_siliyor": 1,
+    "yazi_parca_kenarinda": 2
+   },
+   "kuyu_grubu_kabin_ustu": {
+    "maske_kenar_siliyor": 1,
+    "ok_yaziyi_kesiyor": 1,
+    "yazi_parca_kenarinda": 3
+   },
+   "kuyu_grubu_kuyu_dibi": {
+    "maske_kenar_siliyor": 2
+   },
+   "kuyu_grubu_kuyu_ustu": {
+    "yazi_bitisik": 1
+   }
+  }
  }
 }

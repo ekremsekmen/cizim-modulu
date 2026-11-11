@@ -139,6 +139,12 @@ KURALLAR = {
     "kapi_no_kat_adi": "B-B'de kapının yazısı kat adından farklı",
     "isaret_birligi": "çap Ø / çarpı x ( ø ve × yerine )",
 }
+#  Karnenin kendisinin saymadığı, yalnız girdi taramasının yazdığı sayılar
+#  ( araclar/tarama.denetle_tek_kuyu ):  tek asansörlü çizimlerde bu bulgu taramayı
+#  durduran bir sorundur;  tek kuyunun ortak çizimlerinde kayıtla karşılaştırılır.
+TARAMA_KURALLARI = {
+    "yazi_parca_kenarinda": "tek kuyunun ortak çiziminde yazı parçaya, duvara ya da başka yazıya biniyor",
+}
 
 
 def _yazilar(e):
@@ -531,7 +537,8 @@ def farklar(eski, yeni):
             for kural in sorted(set(ec) | set(yc)):
                 a, b = ec.get(kural, 0), yc.get(kural, 0)
                 if a != b:
-                    ileti = f"{duzen} · {ad} · {KURALLAR.get(kural, kural)}:  {a} → {b}"
+                    adi = KURALLAR.get(kural) or TARAMA_KURALLARI.get(kural, kural)
+                    ileti = f"{duzen} · {ad} · {adi}:  {a} → {b}"
                     (kotu if b > a else iyi).append(ileti)
     return kotu, iyi
 
@@ -547,7 +554,7 @@ def toplamlar(kayit):
                 gorulen.add(kural)
         for kural in gorulen:
             duzen[kural] += 1
-    return {k: (bulgu[k], duzen[k]) for k in KURALLAR if bulgu[k]}
+    return {k: (bulgu[k], duzen[k]) for k in (*KURALLAR, *TARAMA_KURALLARI) if bulgu[k]}
 
 
 def main(argv):
@@ -562,7 +569,7 @@ def main(argv):
         for i in iyi:
             print("İYİLEŞTİ   " + i)
     for kural, (n, d) in toplamlar(yeni).items():
-        print(f"{KURALLAR[kural]:48s} {n:5d} bulgu  ·  {d} düzen")
+        print(f"{(KURALLAR.get(kural) or TARAMA_KURALLARI[kural]):48s} {n:5d} bulgu  ·  {d} düzen")
     return 0
 
 

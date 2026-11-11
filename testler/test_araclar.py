@@ -27,6 +27,37 @@ class Karsilastirma(unittest.TestCase):
         ]
         self.assertEqual(tarama.karsilastir("ana", sonuc, KAYIT), [])
 
+    def test_tek_kuyuda_zincirler_asansor_asansor(self):
+        """Tek kuyunun ortak çiziminde iki asansörün aynı kottaki sıraları ayrı zincirdir
+        ( ölçünün "asansor" işareti );  işaretsiz çizimde geometri.zincirler ile aynı."""
+
+        def olcu(a, b, n=None):
+            el = {"tip": "olcu", "yon": "yatay", "kot": 100.0, "a": (a, 0), "b": (b, 0), "uzunluk": b - a}
+            return el if n is None else dict(el, asansor=n)
+
+        kapanir = lambda e: all(abs(z["toplam"] - (z["son"] - z["bas"])) < 0.5 for z in tarama._zincirler(e))
+        #  İki asansörün sıraları arasında ayırma kirişi kadar boşluk:  ikisi de kapanır
+        self.assertTrue(
+            kapanir([olcu(0, 1000, 0), olcu(1000, 2000, 0), olcu(2140, 3000, 1), olcu(3000, 4100, 1)])
+        )
+        #  Aynı asansörün zincirinde eksik aralık yakalanır
+        self.assertFalse(kapanir([olcu(0, 1000, 0), olcu(1500, 2000, 0), olcu(2140, 4100, 1)]))
+        #  İşaretsiz ( tek asansörlü ) çizimde eskisi gibi tek zincir
+        self.assertFalse(kapanir([olcu(0, 1000), olcu(2140, 3000)]))
+
+    def test_tek_kuyu_grubu_tam_boy_perdeli_duzeni_tarar(self):
+        """Tek kuyu grubu ağırlığı ortada kalan ( tam boy perdeli — m.5.2.5.5.2.2 ) düzenleri
+        de tarar ve kayıtta çizilmiş görünürler:  11 Kas'a kadar ret sebebiydi."""
+        import json
+
+        adlar = {ad for ad, _v in tarama.duzenler("tek_kuyu")}
+        with open(tarama.HUKUMLER, encoding="utf-8") as f:
+            kayit = json.load(f)["tek_kuyu"]
+        for ad in ("taslak 1000 + 1250", "taslak 1275 + 1250"):
+            self.assertIn(ad, adlar)
+            self.assertEqual(kayit[ad]["durum"], "çizildi", ad)
+        self.assertGreaterEqual(sum(v["durum"] == "çizildi" for v in kayit.values()), 30)
+
     def test_hukum_ve_sebep_degisimi(self):
         sonuc = [
             {"ad": "A", "durum": "ret", "hata": ["Z yok"]},
@@ -84,7 +115,7 @@ class Karsilastirma(unittest.TestCase):
                 self.assertLessEqual(set(duzenler), {ad for ad, _ in tarama.duzenler(g)})
                 for cizimler_ in duzenler.values():
                     for sayilar in cizimler_.values():
-                        self.assertLessEqual(set(sayilar), set(karne.KURALLAR))
+                        self.assertLessEqual(set(sayilar), set(karne.KURALLAR) | set(karne.TARAMA_KURALLARI))
 
 
 def _beton(x, y, g, d):

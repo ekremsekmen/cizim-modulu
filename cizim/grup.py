@@ -353,6 +353,8 @@ def _ayirma_kirisleri(gler, X):
 
 
 TAM_BOY_PERDE_ADI = ("TAM BOY PERDE", "PERDE")
+#  Perdenin adı ile aynı hizadaki ayırma kirişi adı arasında en az açıklık ( mm )
+_PERDE_ADI_BOSLUGU = 150.0
 
 
 def _tam_boy_perdesi(gler, X):
@@ -362,6 +364,31 @@ def _tam_boy_perdesi(gler, X):
         return []
     x = X[1] - gler[0]["kuyu"]["duvar_sag"] / 2.0
     return [eleman.ad(eleman.cizgi("PERDE", x, p[0], x, p[1]), "grup_perdesi")]
+
+
+def _tam_boy_perde_adi(gler, e):
+    """Tam boy perdenin adı:  aranın boyunca herhangi bir yerde ( perdenin kendi
+    boyu kısa olabilir ), ayırma kirişinin adından ayrık."""
+    return geometri.grup_perdesi_adi(
+        e,
+        metinler=TAM_BOY_PERDE_ADI,
+        aralik=(0.0, gler[0]["kuyu"]["derinlik"]),
+        bosluk=_PERDE_ADI_BOSLUGU,
+        parcadan_kac=True,
+    )
+
+
+def perde_notu(gler):
+    """Tam boy perdenin sebebi — kuyunun planının altındaki not ( paftada ve ekranda ):
+    hangi korkuluk hangi parçaya ne kadar yakın, hangi madde.  Perde gerekmiyorsa boş."""
+    if tam_boy_perde(gler) is None:
+        return []
+    d, korkuluk, parca_asansoru, parca = korkuluk_mesafesi(gler)
+    return [
+        f"ASANSÖRLER ARASI PERDE KUYU BOYUNCA  —  {korkuluk} kabin üstü korkuluğu ile "
+        f"{parca_asansoru} {parca} arası {d:.0f} mm < {standart.PERDE_KORKULUK_ASGARI:g} mm"
+        "  ·  TS EN 81-20 m.5.2.5.5.2.2"
+    ]
 
 
 def _ust_zincir(gler, X, kot):
@@ -434,7 +461,7 @@ def plan(gler):
     e += _tam_boy_perdesi(gler, X)
     _sira_yazilari(e, gler[0]["kuyu"])
     e = geometri.ondalik_virgul(e)
-    e += geometri.grup_perdesi_adi(e, metinler=TAM_BOY_PERDE_ADI)
+    e += _tam_boy_perde_adi(gler, e)
     return e + _adlar(gler, X, e)
 
 
@@ -481,7 +508,12 @@ def birlesik(gler, ad):
     #  Kuyu dibinde perde zaten boydan boya ( m.5.2.5.5.2.1 );  öbür planlarda tam boy perde
     if ad != "kuyu_dibi":
         e += _tam_boy_perdesi(gler, X)
-        e += geometri.grup_perdesi_adi(e, metinler=TAM_BOY_PERDE_ADI)
+        e += _tam_boy_perde_adi(gler, e)
+    else:
+        #  Perdenin adı iki asansör birleştikten sonra:  soldakinin çizimi sağdakinin
+        #  araya uzanan konsol kollarını bilmez, ad kolların üstüne düşüyordu
+        e = [x for x in e if x.get("ad") != "grup_perdesi_adi"]
+        e += geometri.grup_perdesi_adi(e, bosluk=_PERDE_ADI_BOSLUGU, parcadan_kac=True)
     return e + _adlar(gler, X, e)
 
 
@@ -660,20 +692,26 @@ def kurulamayanlar(gler, ad):
     return [f"{g['proje']['asansor']} — {ad}: {h}" for g in gler for h in dogrula(g)]
 
 
+def elemanlari(gler, ad, yukseklik=None):
+    """Tek kuyunun ad'lı ortak çizimi — elemanlar, çerçevesiz ( cerceveli ve girdi
+    taraması — araclar/tarama )."""
+    if ad == "kuyu_plani":
+        return plan(gler)
+    if ad == "makine_dairesi":
+        return makine_dairesi(gler)
+    if ad == "kuyu_kesiti_on":
+        return on_kesit(gler, yukseklik * olcegi(ad) if yukseklik else None)
+    return birlesik(gler, ad)
+
+
 def cerceveli(gler, seritler=(), ad="kuyu_plani", yukseklik=None):
     """Tek kuyunun çizimi çerçevesiyle ( ekran ve pafta ):  ( başlık , elemanlar ).
     yukseklik:  paftanın serbest alanının yüksekliği ( kesit sığmazsa kırılır —
     pafta.cizim_listesi gibi )."""
     b = baslik(gler, ad)
-    if ad == "kuyu_plani":
-        e = plan(gler)
-    elif ad == "makine_dairesi":
-        e = makine_dairesi(gler)
-    elif ad == "kuyu_kesiti_on":
-        e = on_kesit(gler, yukseklik * olcegi(ad) if yukseklik else None)
-    else:
-        e = birlesik(gler, ad)
-    return b, geometri.cerceveli(e, b, olcegi(ad), seritler=seritler, uyari=uyari(gler))
+    e = elemanlari(gler, ad, yukseklik)
+    bilgi = perde_notu(gler) if ad == "kuyu_plani" else []
+    return b, geometri.cerceveli(e, b, olcegi(ad), seritler=seritler, uyari=uyari(gler), bilgi=bilgi)
 
 
 def olcegi(ad):

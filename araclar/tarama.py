@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""GİRDİ TARAMASI — 414 standart düzen ve 96 makine dairesi yerleşimi programın
-yolundan geçer.
+"""GİRDİ TARAMASI — 414 standart düzen, 96 makine dairesi yerleşimi ve 48 tek kuyu
+( iki asansör ) düzeni programın yolundan geçer.
 
 Her düzen formun isteği gibi api_cizimler'e gider;  çizilirse paftanın bütün
 çizimleri kurulur ve denetlenir:  ölçü zincirleri kapanıyor mu, yazılar
@@ -14,7 +14,7 @@ maskenin sildiği kenar, ölçünün üstünden geçen ölçü, kopuk ölçü ya
 geçen halat — bugün sıfır değiller ) kayıtla ( testler/tarama_karnesi.json )
 karşılaştırılır:  sayı artarsa ya da azalırsa ( kayıt yenilenmeli ) BAŞARISIZ.
 
-    .venv/bin/python -m araclar.tarama                 dört grup ( ana · kapi · diger · oda )
+    .venv/bin/python -m araclar.tarama                 beş grup ( ana · kapi · diger · oda · tek_kuyu )
     .venv/bin/python -m araclar.tarama kapi            tek grup
     .venv/bin/python -m araclar.tarama --yenile        hüküm ve karne kaydını yeniden yazar
 
@@ -41,13 +41,18 @@ from araclar import karne
 from araclar import kesisme
 from cizim import cizimler
 from cizim import geometri
+import cizim.grup
 from cizim import pafta
 from testler import test_yerlesim_saglamligi
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CIKTI = os.path.join(KOK, "cikti", "tarama")
 HUKUMLER = os.path.join(KOK, "testler", "tarama_hukumleri.json")
-GRUPLAR = ("ana", "kapi", "diger", "oda")
+GRUPLAR = ("ana", "kapi", "diger", "oda", "tek_kuyu")
+#  Tek kuyu grubunun taslakları ( makine dairesiz — on-yuz/src/lib/taslaklar.json ) ve
+#  standart ikilileri ( testler/test_grup.ikili )
+TEK_KUYU_TASLAKLARI = ("630", "800", "1000", "1250", "1275")
+TEK_KUYU_IKILILERI = ((1000, 800), (630, 630))
 
 PARCA = set(geometri.PARCA_KATMANLARI) | {"KAPI", "AGIRLIK", "KASNAK"}
 #  Yazının üstünden geçebilecek ( maskeyle kesilecek ) çizgiler:  eksen, ölçü
@@ -73,13 +78,82 @@ def _binisir(a, b):
     return a[1] < b[3] - PAY and b[1] < a[3] - PAY and a[2] < b[4] - PAY and b[2] < a[4] - PAY
 
 
-def denetle(g, karneler=None):
+def _zincirler(e):
+    """geometri.zincirler, asansör asansör:  tek kuyunun ortak çiziminde iki asansörün
+    aynı kottaki sıraları ayrı zincirlerdir ( ölçünün "asansor" işareti — grup._isaretle;
+    tek asansörlü çizimde işaret yoktur, sonuç geometri.zincirler ile aynıdır )."""
+    gruplar = collections.defaultdict(list)
+    for el in e:
+        if el["tip"] == "olcu":
+            gruplar[el.get("asansor")].append(el)
+    return [z for liste in gruplar.values() for z in geometri.zincirler(liste)]
+
+
+def _cizim_sorunlari(c, e, olcek, karneler=None, karne_adi=None, ortak=False):
+    """Bir çizimin ( elemanları e ) sorunları:  zincir, yazı çakışması, parçadaki ölçü
+    yazısı, parça kenarındaki yazı, NaN;  karneler verilirse kalite karnesi.
+    ortak:  tek kuyunun ortak çizimi — yazının parça kenarına, duvara ya da başka
+    yazıya binmesi sorun değil karnede sayıdır ( iki asansörün etiketleri dar arada
+    bugün parçalara değiyor;  11 Kas'ta 48 düzenin 3'ünde ayrıca iki ölçü yazısı üst
+    üste, bir etiket duvarda:  kayıtla karşılaştırılır, artarsa da azalırsa da tarama
+    durur );  perdenin ve ayırma kirişinin adı perde çizgisinin üstündedir ( bilerek )."""
+    sorun = []
+    for z in _zincirler(e):
+        if abs(z["toplam"] - (z["son"] - z["bas"])) > 0.5:
+            sorun.append(f"{c}: zincir kapanmıyor {z['toplam']} vs {z['son'] - z['bas']}")
+    olcu = _olcu_yazilari(e)
+    yazi = [(el["metin"],) + tuple(geometri.sinir([el])) for el in e if el["tip"] == "yazi"]
+    kenarda = 0
+    for a, b in itertools.combinations(olcu + yazi, 2):
+        if _binisir(a, b):
+            if ortak:
+                kenarda += 1
+            else:
+                sorun.append(f"{c}: yazı çakışması '{a[0]}' / '{b[0]}'")
+    parcalar = [
+        (el.get("ad") or el["katman"], ("",) + tuple(geometri.sinir([el])))
+        for el in e
+        if el["tip"] == "dikdortgen" and el["katman"] in PARCA
+    ]
+    for a in olcu:
+        ad = next((ad for ad, p in parcalar if _binisir(a, p)), None)
+        if ad:
+            sorun.append(f"{c}: ölçü yazısı parçada '{a[0]}' / {ad}")
+    k = olcek / 20.0
+    sayi = karne.sayilar(e, olcek, c) if karneler is not None else {}
+    for metin, tip, kat, ad in kesisme.kesismeler(e, k):
+        if kat not in SERBEST:
+            if not ortak:
+                sorun.append(f"{c}: yazı parça kenarında '{metin}' / {kat} {ad}")
+            elif (kat, ad) != ("PERDE", "grup_perdesi"):
+                kenarda += 1
+        elif kat == "TARAMA-İÇİ" and tip == "yazi":
+            if ortak:
+                kenarda += 1
+            else:
+                sorun.append(f"{c}: etiket duvarın içinde '{metin}'")
+    if kenarda:
+        sayi = dict(sayi, yazi_parca_kenarinda=kenarda)
+    if karneler is not None and sayi:
+        karneler[karne_adi or c] = sayi
+    for el in e:
+        if any(
+            isinstance(el.get(a), float) and el[a] != el[a]
+            for a in ("x", "y", "g", "d", "x1", "y1", "x2", "y2", "r")
+        ):
+            sorun.append(f"{c}: NaN {el.get('ad')}")
+    return sorun
+
+
+def denetle(g, karneler=None, sira=None, onek=""):
     """Paftanın bütün çizimlerinin sorunları:  [ ileti ].  karneler verilirse
-    her çizimin kalite karnesi ( karne.sayilar — sıfırdan büyükse ) ona yazılır."""
+    her çizimin kalite karnesi ( karne.sayilar — sıfırdan büyükse ) ona yazılır.
+    sira:  denetlenecek çizimler ( verilmezse paftanın sırası );  onek:  karne
+    anahtarının öneki ( tek kuyuda asansörün sırası )."""
     sorun = []
     md = g["makine"]["yeri"] == "Makine dairesi"
     cizilenler = {}
-    for c in pafta.SIRA_MD if md else pafta.SIRA_MRL:
+    for c in sira or (pafta.SIRA_MD if md else pafta.SIRA_MRL):
         dogrula, ciz, _ = cizimler.CIZIMLER[c]
         try:
             h = dogrula(g)
@@ -91,41 +165,41 @@ def denetle(g, karneler=None):
             sorun.append(f"{c}: ÇÖKTÜ {type(x).__name__}: {x}")
             continue
         cizilenler[c] = e
-        for z in geometri.zincirler(e):
-            if abs(z["toplam"] - (z["son"] - z["bas"])) > 0.5:
-                sorun.append(f"{c}: zincir kapanmıyor {z['toplam']} vs {z['son'] - z['bas']}")
-        olcu = _olcu_yazilari(e)
-        yazi = [(el["metin"],) + tuple(geometri.sinir([el])) for el in e if el["tip"] == "yazi"]
-        for a, b in itertools.combinations(olcu + yazi, 2):
-            if _binisir(a, b):
-                sorun.append(f"{c}: yazı çakışması '{a[0]}' / '{b[0]}'")
-        parcalar = [
-            (el.get("ad") or el["katman"], ("",) + tuple(geometri.sinir([el])))
-            for el in e
-            if el["tip"] == "dikdortgen" and el["katman"] in PARCA
-        ]
-        for a in olcu:
-            ad = next((ad for ad, p in parcalar if _binisir(a, p)), None)
-            if ad:
-                sorun.append(f"{c}: ölçü yazısı parçada '{a[0]}' / {ad}")
-        olcek = cizimler.OLCEKLER.get(c, 20)
-        k = olcek / 20.0
-        if karneler is not None and (sayi := karne.sayilar(e, olcek, c)):
-            karneler[c] = sayi
-        for metin, tip, kat, ad in kesisme.kesismeler(e, k):
-            if kat not in SERBEST:
-                sorun.append(f"{c}: yazı parça kenarında '{metin}' / {kat} {ad}")
-            elif kat == "TARAMA-İÇİ" and tip == "yazi":
-                sorun.append(f"{c}: etiket duvarın içinde '{metin}'")
-        for el in e:
-            if any(
-                isinstance(el.get(a), float) and el[a] != el[a]
-                for a in ("x", "y", "g", "d", "x1", "y1", "x2", "y2", "r")
-            ):
-                sorun.append(f"{c}: NaN {el.get('ad')}")
+        sorun += _cizim_sorunlari(c, e, cizimler.OLCEKLER.get(c, 20), karneler, onek + c)
         sorun += fiziksel.sorunlar(g, c, e)
     #  Aynı parça planlarda, A-A'da ve B-B'de aynı yerde ( araclar/gorunus )
     sorun += [f"görünüşler: {m}" for m in gorunus.sorunlar(cizilenler, g["kuyu"]["genislik"])]
+    return sorun
+
+
+def tek_kuyu_mu(v):
+    return v["proje_geneli"].get("kuyu_duzeni") == "Tek kuyu" and len(v["asansorler"]) == cizim.grup.AZAMI
+
+
+def denetle_tek_kuyu(v, karneler=None):
+    """Tek kuyunun ( iki asansör ) sorunları:  her asansörün kendi çizimleri
+    ( pafta.sira — kuyunun ortak çizimleri onda yok ) ve kuyunun ortak çizimleri
+    ( cizim/grup — plan, kabin üstü, kuyu dibi, kuyu üstü / makine dairesi, B-B )."""
+    from uclar import cizim_uclari, uygulama_istegi
+
+    asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
+    gl = [g for g, _h in cizim_uclari.girdiler(v, asansorler, ortak, None, "TARAMA")]
+    sorun = []
+    for n, g in enumerate(gl, 1):
+        sorun += [f"[{n}] {x}" for x in denetle(g, karneler, pafta.sira(g), f"{n}/")]
+    gler = cizim.grup.gruptakiler(gl)
+    for ad in cizim.grup.cizimleri(gler):
+        c = cizim.grup.ADLAR[ad]
+        try:
+            h = cizim.grup.kurulamayanlar(gler, ad)
+            if h:
+                sorun.append(f"{c}: doğrulama reddediyor ama uç çizdi:  {h[0][:90]}")
+                continue
+            e = cizim.grup.elemanlari(gler, ad)
+        except Exception as x:  # noqa: BLE001 — çöküş de bir bulgu
+            sorun.append(f"{c}: ÇÖKTÜ {type(x).__name__}: {x}")
+            continue
+        sorun += _cizim_sorunlari(c, e, cizim.grup.olcegi(ad), karneler, ortak=True)
     return sorun
 
 
@@ -141,8 +215,11 @@ def duzen(ad, v):
         return {"ad": ad, "durum": "ret", "hata": d.get("hata")}
     karneler = {}
     try:
-        g, _A, _h = test_yerlesim_saglamligi.duzen_girdisi(v)
-        s = denetle(g, karneler)
+        if tek_kuyu_mu(v):
+            s = denetle_tek_kuyu(v, karneler)
+        else:
+            g, _A, _h = test_yerlesim_saglamligi.duzen_girdisi(v)
+            s = denetle(g, karneler)
     except Exception:  # noqa: BLE001
         s = ["DENETİM ÇÖKTÜ " + traceback.format_exc()[-400:]]
     return {"ad": ad, "durum": "çizildi", "sorun": s, "karne": karneler, "sure": round(time.time() - t, 1)}
@@ -230,8 +307,38 @@ def duzenler(grup):
                             if y is not None:
                                 pg["md_y"] = y
                             yield f"{Q} {yer} y={y} kapı={kapi} pano={pano} tabliye={tabliye}", v
+    elif grup == "tek_kuyu":
+        yield from _tek_kuyu_duzenleri()
     else:
         raise ValueError(f"bilinmeyen grup:  {grup!r} — {GRUPLAR}")
+
+
+def _tek_kuyu_duzenleri():
+    """TEK KUYUDA İKİ ASANSÖR ( 11 Kas ):  taslakların makine dairesiz ikilileri
+    ( her sıra;  aynı taslakta numaralar da ters ) ve standart ikililer ( ağırlıklar
+    sağda · solda · arkada ).  Açık yanda korkuluk 1,10 m olduğundan taslakların
+    kuyu tavanı 0,50 m yukarıda.  Ağırlığı ortada kalan düzenlerde asansörler arası
+    perde kuyu boyunca uzanır ( m.5.2.5.5.2.2 — grup.tam_boy_perde )."""
+    from testler import test_grup
+    from testler.test_taslaklar import TASLAKLAR, istek
+
+    T = {t["kimlik"]: t for t in TASLAKLAR}
+
+    def taslaklardan(a, b, soldaki):
+        v = istek(T[a])
+        v["asansorler"][0]["kuyu_tavani_kotu"] = "+19,70"
+        v["asansorler"].append(dict(T[b]["asansor"]))
+        v["proje_geneli"].update(kuyu_duzeni="Tek kuyu", soldaki_asansor=soldaki, ayirma_kirisi="140")
+        return v
+
+    for a in TEK_KUYU_TASLAKLARI:
+        for b in TEK_KUYU_TASLAKLARI:
+            yield f"taslak {a} + {b}", taslaklardan(a, b, "1")
+        yield f"taslak {a} + {a} soldaki 2", taslaklardan(a, a, "2")
+    for Q1, Q2 in TEK_KUYU_IKILILERI:
+        for yer1 in ("Sağ", "Sol", "Arka"):
+            for yer2 in ("Sağ", "Sol", "Arka"):
+                yield f"{Q1} {yer1} + {Q2} {yer2}", test_grup.ikili(Q1, yer1, Q2, yer2)
 
 
 def hukum(r):
@@ -300,7 +407,8 @@ def _ozet(grup, sonuc, t):
     )
     toplam = karne.toplamlar(karneleri(sonuc))
     if toplam:
-        print("   karne:  " + "  ·  ".join(f"{karne.KURALLAR[k]} {n}" for k, (n, _d) in toplam.items()))
+        adlar = {**karne.KURALLAR, **karne.TARAMA_KURALLARI}
+        print("   karne:  " + "  ·  ".join(f"{adlar[k]} {n}" for k, (n, _d) in toplam.items()))
 
 
 def main(argv):

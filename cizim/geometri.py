@@ -1162,22 +1162,45 @@ def grup_perdesi(g):
     return [eleman.ad(eleman.cizgi("PERDE", x, 0, x, k["derinlik"]), "grup_perdesi")]
 
 
-def grup_perdesi_adi(e, h=uslup.NORMAL, metinler=("ASANSÖRLER ARASI PERDE", "PERDE")):
+def grup_perdesi_adi(
+    e,
+    h=uslup.NORMAL,
+    metinler=("ASANSÖRLER ARASI PERDE", "PERDE"),
+    aralik=None,
+    bosluk=10.0,
+    parcadan_kac=False,
+):
     """Perdenin ( grup_perdesi ) adı boyunca, öbür yazılar ( etiket, ölçü yazısı,
     yük kutusu ) ve oklar yerleştikten sonra ( kuyu dibinde yük kutuları en sonda —
     ad önce konunca kutulara yer kalmıyordu ):  ortaya en yakın boş yer;  uzun ad
-    sığmazsa kısası, o da sığmazsa ad yazılmaz.  [ yazı ] ya da boş."""
+    sığmazsa kısası, o da sığmazsa ad yazılmaz.  [ yazı ] ya da boş.
+    aralik:  adın konabileceği ( y0 , y1 ) — verilmezse perdenin boyu;  bosluk:  ad ile
+    aynı hizadaki öbür yazı arasında en az açıklık ( tam boy perdenin adı ayırma
+    kirişinin adıyla aynı hizadadır:  bitişik durunca tek söz gibi okunuyordu ).
+    parcadan_kac:  ad parçaların ( ayırma kirişinin kendisi hariç ) üstüne de konmaz —
+    kuyunun ortak çiziminde iki asansörün aranın içine uzanan konsol kolları
+    ( 11 Kas:  kuyu dibinde ad kolların üstündeydi )."""
     perde = next((p for p in e if p.get("ad") == "grup_perdesi"), None)
     if perde is None:
         return []
     x, y0, y1 = perde["x1"], min(perde["y1"], perde["y2"]), max(perde["y1"], perde["y2"])
+    if aralik:
+        y0, y1 = aralik
     dolu = [sinir([o]) for o in e if o["tip"] == "yazi" or o.get("ad") in ("yuk_oku", "yuk_kutusu", "yuk")]
     dolu += [yazi_kutusu(o) for o in e if o["tip"] == "olcu" and o.get("yazi")]
+    if parcadan_kac:
+        dolu += [
+            sinir([o])
+            for o in e
+            if o["tip"] == "dikdortgen"
+            and o.get("katman") in PARCA_KATMANLARI
+            and o.get("ad") not in ("ayirma_kirisi", "grup_perdesi")
+        ]
     for metin in metinler:
         L = eleman.yazi_eni(metin, h)
         orta = (y0 + y1) / 2.0
         for c in sorted(range(int(y0 + L / 2.0), int(y1 - L / 2.0) + 1, 20), key=lambda c: abs(c - orta)):
-            k = (x - h / 2.0 - 10, c - L / 2.0 - 10, x + h / 2.0 + 10, c + L / 2.0 + 10)
+            k = (x - h / 2.0 - 10, c - L / 2.0 - bosluk, x + h / 2.0 + 10, c + L / 2.0 + bosluk)
             if not any(k[0] < d[2] and d[0] < k[2] and k[1] < d[3] and d[1] < k[3] for d in dolu if d):
                 return [eleman.ad(eleman.yazi(x, c, metin, h, aci=90), "grup_perdesi_adi")]
     return []
@@ -3298,14 +3321,16 @@ def _sar(metin, en, h):
     return satirlar + [s.rstrip(" ·—")] if s else satirlar
 
 
-def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=(), olcekli=True, uyari=()):
+def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=(), olcekli=True, uyari=(), bilgi=()):
     """Çizimi kendi çerçevesine alır ve altına başlık şeridi ekler.
 
     Referans projede de her çizim ayrı bir çerçevededir ve altında adı ile ölçeği
     yazar.  Çerçeve ölçüleri de kapsar;  yazılar dışarıda kalmaz.  olcekli:
     başlıkta ölçek yazar mı ( tabloda yazmaz — cizimler.OLCEKSIZ ).  uyari:
     künye şeridinin altında, çerçevenin içinde ayrı bir bantta satırlar —
-    hesabın uygun bulmadığı bölümler ( cizim/hesap_isareti.py ).
+    hesabın uygun bulmadığı bölümler ( cizim/hesap_isareti.py ).  bilgi:  aynı
+    bantta, uyarıların ardından, çerçevenin renginde satırlar — sorun olmayan
+    açıklama ( tek kuyuda tam boy perdenin sebebi — grup.perde_notu ).
     """
     k = olcek / 20.0  # yazılar paftada 1/20'deki boyda kalır
     etiket = f"{baslik}   1/{olcek:g}" if olcekli else baslik
@@ -3321,12 +3346,13 @@ def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=(), olcekli=True, u
     )
     #  Not çerçeveyi genişletmez ( çizimlerin yerleşimi değişmesin ):  satırlar
     #  "  ·  " ve "  —  " yerlerinden sarılır;  yalnız tek parçası sığmazsa genişler
-    parcalar_ = [p for m in uyari for p in _uyari_parcalari(m)]
+    parcalar_ = [p for m in tuple(uyari) + tuple(bilgi) for p in _uyari_parcalari(m)]
     gerek = max([gerek] + [240 * k + eleman.yazi_eni(p, uslup.HARF * k) for p in parcalar_])
     if x2 - x1 < gerek:
         fark = (gerek - (x2 - x1)) / 2.0
         x1, x2 = x1 - fark, x2 + fark
-    uyari = [s for m in uyari for s in _sar(m, x2 - x1 - 240 * k, uslup.HARF * k)]
+    uyari = [(s, "UYARI") for m in uyari for s in _sar(m, x2 - x1 - 240 * k, uslup.HARF * k)]
+    uyari += [(s, "CERCEVE") for m in bilgi for s in _sar(m, x2 - x1 - 240 * k, uslup.HARF * k)]
     satir = 150.0 * k
     bant = (len(uyari) + 0.6) * satir if uyari else 0.0
     e = list(elemanlar)
@@ -3334,10 +3360,10 @@ def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=(), olcekli=True, u
     e.append(eleman.cizgi("CERCEVE", x1, y1, x2, y1))
     if uyari:
         ust = y1 - serit
-        e.append(eleman.cizgi("UYARI", x1, ust, x2, ust))
+        e.append(eleman.cizgi(uyari[0][1], x1, ust, x2, ust))
         e += [
-            eleman.yazi(x1 + 120 * k, ust - (i + 0.8) * satir, m, uslup.HARF * k, hiza="sol", katman="UYARI")
-            for i, m in enumerate(uyari)
+            eleman.yazi(x1 + 120 * k, ust - (i + 0.8) * satir, m, uslup.HARF * k, hiza="sol", katman=katman)
+            for i, (m, katman) in enumerate(uyari)
         ]
     e.append(
         eleman.yazi(
