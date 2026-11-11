@@ -2046,5 +2046,199 @@
    "durum": "çizildi",
    "sebep": ""
   }
+ },
+ "tek_kuyu": {
+  "1000 Arka + 800 Arka": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Arka + 800 Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Arka + 800 Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sağ + 800 Arka": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sağ + 800 Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sağ + 800 Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol + 800 Arka": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol + 800 Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "1000 Sol + 800 Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Arka + 630 Arka": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "630 Arka + 630 Sağ": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "630 Arka + 630 Sol": {
+   "durum": "ret",
+   "sebep": "Kabin tavanında çömelme tipi sığınma alanına ( 500 × 700 mm, TS EN 81-20 Çizelge 3 ) yer yok — korkulukların içinde;  kapı operatörü, şasenin üst kirişi ( ray ekseninde 240 mm — Sabitler:  kabin şasesi dikmesinin kesitteki eni ), kasnaklar ve aralarındaki halat dışında kalmalı."
+  },
+  "630 Sağ + 630 Arka": {
+   "durum": "ret",
+   "sebep": "Tek kuyunun çizimleri kurulamadı:  ASANSÖR 2 çiziminde sorun var."
+  },
+  "630 Sağ + 630 Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sağ + 630 Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol + 630 Arka": {
+   "durum": "ret",
+   "sebep": "Tek kuyunun çizimleri kurulamadı:  ASANSÖR 2 çiziminde sorun var."
+  },
+  "630 Sol + 630 Sağ": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "630 Sol + 630 Sol": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1000 + 1000": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1000 + 1000 soldaki 2": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1000 + 1250": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1000 + 1275": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1000 + 630": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1000 + 800": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1250 + 1000": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1250 + 1250": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1250 + 1250 soldaki 2": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1250 + 1275": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1250 + 630": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1250 + 800": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1275 + 1000": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1275 + 1250": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1275 + 1275": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1275 + 1275 soldaki 2": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1275 + 630": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 1275 + 800": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 630 + 1000": {
+   "durum": "ret",
+   "sebep": "Tek kuyunun çizimleri kurulamadı:  ASANSÖR 2 çiziminde sorun var."
+  },
+  "taslak 630 + 1250": {
+   "durum": "ret",
+   "sebep": "Tek kuyunun çizimleri kurulamadı:  ASANSÖR 2 çiziminde sorun var."
+  },
+  "taslak 630 + 1275": {
+   "durum": "ret",
+   "sebep": "Tek kuyunun çizimleri kurulamadı:  ASANSÖR 2 çiziminde sorun var."
+  },
+  "taslak 630 + 630": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 630 + 630 soldaki 2": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 630 + 800": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 800 + 1000": {
+   "durum": "ret",
+   "sebep": "Tek kuyunun çizimleri kurulamadı:  ASANSÖR 2 çiziminde sorun var."
+  },
+  "taslak 800 + 1250": {
+   "durum": "ret",
+   "sebep": "Tek kuyunun çizimleri kurulamadı:  ASANSÖR 2 çiziminde sorun var."
+  },
+  "taslak 800 + 1275": {
+   "durum": "ret",
+   "sebep": "Tek kuyunun çizimleri kurulamadı:  ASANSÖR 2 çiziminde sorun var."
+  },
+  "taslak 800 + 630": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 800 + 800": {
+   "durum": "çizildi",
+   "sebep": ""
+  },
+  "taslak 800 + 800 soldaki 2": {
+   "durum": "çizildi",
+   "sebep": ""
+  }
  }
 }

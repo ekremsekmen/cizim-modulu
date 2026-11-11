@@ -10,7 +10,7 @@
                                            sayfayı dener ( TEST 3 ), kapatır ( ~1 dk )
     .venv/bin/python kontrol.py uctan_uca  ön yüz gerçek tarayıcıda:  örnek proje, canlı
                                            hesap, proje dosyası, ölçü, teslim ( ~1 dk )
-    .venv/bin/python kontrol.py tarama     girdi taraması ( 510 düzen;  ~5 dk )
+    .venv/bin/python kontrol.py tarama     girdi taraması ( 558 düzen;  ~8 dk )
     .venv/bin/python kontrol.py bicim      ruff format + ruff check --fix ( düzeltir )
 
 Çizim testleri pytest ile paralel koşar:  KONTROL_IS işçi ( varsayılan 4 —

@@ -5,7 +5,7 @@ altın kayıtlardan GENİŞ bir girdi kümesinde gösterir.
 İki kısım:
 
   cizim   Altın kayıt ( testler/altin_cizim.py ) 38 düzeni tam kilitler;  girdi
-          taraması ( araclar.tarama ) 510 düzenin yalnız hükmünü tutar.  İkisinin
+          taraması ( araclar.tarama ) 558 düzenin yalnız hükmünü tutar.  İkisinin
           bütün düzenlerinin paftası kurulur, her çizimin parmak izi ( elemanlar
           + SVG ) karşılaştırılır.
   hesap   Hesabın altın senaryoları ( dogrulama/altin_uret.py:  trafik · avan ·

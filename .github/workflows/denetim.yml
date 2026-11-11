@@ -9,7 +9,7 @@
 #               ön yüz ( on-yuz/:  tip, lint, test, derleme ), açık programın
 #               uçları ve kök sayfası, ön yüz gerçek tarayıcıda ( uçtan uca;
 #               arıza matrisinin beş türü yalnız elle başlatınca, PR'da ikisi )
-#      tarama   510 düzenin hükmü kayıtla ( testler/tarama_hukumleri.json ), yazı ve fiziksel tutarlılık
+#      tarama   558 düzenin hükmü kayıtla ( testler/tarama_hukumleri.json ), yazı ve fiziksel tutarlılık
 #    main'e push:  yalnız hızlı denetim ( PR'da hepsi zaten koştu )
 #
 #  Dakika tasarrufu ( özel depoda Actions dakikası sınırlı ):  aynı PR'a yeni
