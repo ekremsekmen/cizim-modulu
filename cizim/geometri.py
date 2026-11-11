@@ -1162,7 +1162,7 @@ def grup_perdesi(g):
     return [eleman.ad(eleman.cizgi("PERDE", x, 0, x, k["derinlik"]), "grup_perdesi")]
 
 
-def grup_perdesi_adi(e, h=uslup.NORMAL):
+def grup_perdesi_adi(e, h=uslup.NORMAL, metinler=("ASANSÖRLER ARASI PERDE", "PERDE")):
     """Perdenin ( grup_perdesi ) adı boyunca, öbür yazılar ( etiket, ölçü yazısı,
     yük kutusu ) ve oklar yerleştikten sonra ( kuyu dibinde yük kutuları en sonda —
     ad önce konunca kutulara yer kalmıyordu ):  ortaya en yakın boş yer;  uzun ad
@@ -1173,7 +1173,7 @@ def grup_perdesi_adi(e, h=uslup.NORMAL):
     x, y0, y1 = perde["x1"], min(perde["y1"], perde["y2"]), max(perde["y1"], perde["y2"])
     dolu = [sinir([o]) for o in e if o["tip"] == "yazi" or o.get("ad") in ("yuk_oku", "yuk_kutusu", "yuk")]
     dolu += [yazi_kutusu(o) for o in e if o["tip"] == "olcu" and o.get("yazi")]
-    for metin in ("ASANSÖRLER ARASI PERDE", "PERDE"):
+    for metin in metinler:
         L = eleman.yazi_eni(metin, h)
         orta = (y0 + y1) / 2.0
         for c in sorted(range(int(y0 + L / 2.0), int(y1 - L / 2.0) + 1, 20), key=lambda c: abs(c - orta)):

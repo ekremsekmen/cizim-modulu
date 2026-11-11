@@ -239,13 +239,32 @@ class Denetim(unittest.TestCase):
         self.assertEqual(grup.duzen_hatalari(self.gler), [])
         self.assertEqual(grup.duzen_hatalari(kuyudakiler(ikili(kiris=None))), [grup.KIRIS_YOK])
 
-    def test_kuyu_boyunca_perde_gerekirse_soylenir(self):
-        #  m.5.2.5.5.2.2:  korkuluğun iç kenarı komşunun kabinine 0,50 m'den yakın
+    def test_kuyu_boyunca_perde_gerekirse_cizilir(self):
+        """m.5.2.5.5.2.2:  korkuluğun iç kenarı komşunun hareketli parçasına 0,50 m'den
+        yakınsa perde kuyu boyunca uzanır.  11 Kas'a kadar ret sebebiydi ( program yalnız
+        kuyu dibi perdesini çiziyordu );  artık perde çizilir:  eni yakındaki parçanın
+        eni + iki yanda 0,10 m, kuyunun içine kırpılmış."""
         self.assertGreaterEqual(grup.korkuluk_mesafesi(self.gler)[0], 500)
+        self.assertIsNone(grup.tam_boy_perde(self.gler))
         dar = copy.deepcopy(self.gler)
         dar[1]["kabin"]["kaciklik_y"] -= 650
-        self.assertLess(grup.korkuluk_mesafesi(dar)[0], 500)
-        self.assertIn("perde kuyu boyunca uzanmalı ( m.5.2.5.5.2.2 )", " ".join(grup.duzen_hatalari(dar)))
+        m = grup.korkuluk_mesafesi(dar)
+        self.assertLess(m[0], 500)
+        self.assertEqual(grup.duzen_hatalari(dar), [])
+        y0, y1 = grup.tam_boy_perde(dar)
+        D = dar[0]["kuyu"]["derinlik"]
+        self.assertTrue(0 <= y0 < y1 <= D, (y0, y1, D))
+        #  Yakındaki her parça perdenin ardında, iki yanda 0,10 m payla ( kuyunun içinde )
+        for d, _a, _b, _p, k in grup._korkuluk_parca_araliklari(dar):
+            if d < standart.PERDE_KORKULUK_ASGARI:
+                self.assertLessEqual(y0, max(0.0, k[1] - standart.PERDE_YAN_PAYI))
+                self.assertGreaterEqual(y1, min(D, k[3] + standart.PERDE_YAN_PAYI))
+        #  Girdilere işlenir ( kesitler oradan okur );  gerekmeyen kuyuda None
+        grup.perdeyi_isle(dar)
+        self.assertEqual([g["kuyu"]["tam_boy_perde"] for g in dar], [[y0, y1]] * 2)
+        temiz = copy.deepcopy(self.gler)
+        grup.perdeyi_isle(temiz)
+        self.assertEqual([g["kuyu"]["tam_boy_perde"] for g in temiz], [None, None])
 
     def test_yandaki_agirlikta_duvar_kirisi_acik_yana_oturmaz(self):
         """Yandaki ağırlıkta "Bina yapısına" makine kirişleri kuyunun genişliğince,

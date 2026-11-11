@@ -140,7 +140,7 @@ def _ayirma_kirisi_kesiti(e, g, u0, kotlar):
         e.append(el)
 
 
-def _acik_ara_yanda(e, B, g, M, taban, alt_durak):
+def _acik_ara_yanda(e, B, g, M, taban, alt_durak, tavan):
     """A-A:  kuyu grubunun açık arası bakılan yandaysa ayırma kirişleri görünüşte —
     konsol seviyelerinde ön duvardan arka duvara, flanşın dış yüzü — ve iki kuyu
     dibinin arasındaki perde ( m.5.2.5.5.2.1 );  kabinin ardında kalanı kabin örter
@@ -158,6 +158,18 @@ def _acik_ara_yanda(e, B, g, M, taban, alt_durak):
         e.append(B.derin_kutu(eleman.dikdortgen("KONSOL", 0, zt - b, D, b, ad="ayirma_kirisi"), kutu))
     z0, z1 = taban + standart.PERDE_TABANDAN, alt_durak + standart.PERDE_DURAK_USTU
     e.append(B.derin_kutu(eleman.ad(eleman.dikdortgen("PERDE", 0, z0, D, z1 - z0), "grup_perdesi"), kutu))
+    #  Tam boy perde ( m.5.2.5.5.2.2 — grup.tam_boy_perde ):  kuyu dibi perdesinin
+    #  üstünden tavana, eni kadar
+    tam = k.get("tam_boy_perde")
+    if tam and tavan > z1:
+        e.append(
+            B.derin_kutu(
+                eleman.ad(
+                    eleman.dikdortgen("PERDE", tam[0], z1, tam[1] - tam[0], tavan - z1), "grup_perdesi"
+                ),
+                kutu,
+            )
+        )
 
 
 def _on_duvarlar(e, B, g, M, z, dos_t, oda, alt_durak):
@@ -181,6 +193,8 @@ def _on_duvarlar(e, B, g, M, z, dos_t, oda, alt_durak):
         _ayirma_kirisi_kesiti(e, g, -dg if acik == "Sağ" else G, ayirma_kirisi_kotlari(g, M))
         um = -dg / 2.0 if acik == "Sağ" else G + ds / 2.0
         z0, z1 = taban + standart.PERDE_TABANDAN, alt_durak + standart.PERDE_DURAK_USTU
+        if k.get("tam_boy_perde"):
+            z1 = max(z1, tavan)  # m.5.2.5.5.2.2:  kuyu boyunca
         e.append(eleman.ad(eleman.cizgi("PERDE", um, z0, um, z1), "grup_perdesi"))
 
 
@@ -912,7 +926,7 @@ def yan_kesit(g, cizim_sabitleri=None, azami=None):
     _duvar(e, D, taban - dos, dar, ust - (taban - dos))
     _duvar(e, 0, taban - dos, D, dos)
     _tabliye(e, B, M, 0, tavan, D, dos_t, oda)
-    _acik_ara_yanda(e, B, g, M, taban, kotlar[0])
+    _acik_ara_yanda(e, B, g, M, taban, kotlar[0], tavan)
     #  Kuyu tavanının en alt kısmı ( kiriş payı — hesap programının "kuyu tavanı
     #  payı" ):  bir KABULDÜR, beton değil;  kesik sınır çizgisi ( eskiden taralı
     #  150 mm bir katman gibi çiziliyor, tavan iki kat kalın görünüyordu ).
