@@ -255,6 +255,13 @@ def _kural(v, anahtar):
     return izli.oz(v, ("girdi", anahtar))
 
 
+def _agirlik_ray_duvari(Gx, ar):
+    """Ağırlık rayı ekseninin duvara uzaklığının varsayılanı:  bloğun yarısı + 50;
+    rayın tırnağı duvara girmesin diye en az tırnağın uzanımı ( parcalar.tirnak_uzanimi —
+    12 Kas:  100 mm'lik ağırlıkta 125 / 127'lik rayın tırnağı duvara 4 – 5 mm giriyordu )."""
+    return max(Gx / 2.0 + 50.0, parcalar.tirnak_uzanimi(*ar) if ar else 0.0)
+
+
 def _dusey_kasnak_arasi(kx, kb_g, Dk, D1, G, ray_duvar, yer, S):
     """Kabin altı 2:1, ağırlık yanda, kasnaklar arası boş:  halat karşı ağırlık
     kasnağına DÜŞEY insin.  Tahrik kasnağının bir teğeti kabinin ağırlık
@@ -578,7 +585,7 @@ def _kapi_ve_aski(o, S, h):
         eski_kural = kb_g + 30.0 if duzen == "Kabin altı" else kb_g - 2 * 200.0 - (Dk or 0)
         if not aralik and duzen == "Kabin altı" and ag_yeri in ("Sağ", "Sol") and Dk:
             ray_duvar = sayi("agirlik_ray_duvar", bos=True) or _kural(
-                h["Gx"] / 2.0 + 50.0, "agirlik_ray_duvar"
+                _agirlik_ray_duvari(h["Gx"], h["ar"]), "agirlik_ray_duvar"
             )
             dusey_ara = _dusey_kasnak_arasi(kx, kb_g, Dk, D1_, h["G"], ray_duvar, ag_yeri, S)
         aski = {
@@ -701,7 +708,8 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
             "derinlik": Gx,
             "ray_arasi": sayi("agirlik_ray_arasi", bos=True)
             or _kural(Gy + alanlar.AGIRLIK_PATEN_PAYI, "agirlik_ray_arasi"),
-            "ray_duvar": sayi("agirlik_ray_duvar", bos=True) or _kural(Gx / 2.0 + 50.0, "agirlik_ray_duvar"),
+            "ray_duvar": sayi("agirlik_ray_duvar", bos=True)
+            or _kural(_agirlik_ray_duvari(Gx, ar), "agirlik_ray_duvar"),
             "eksen_kaciklik": h["ag_kacik"],
             "b": ar[0],
             "h": ar[1],

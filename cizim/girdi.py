@@ -607,6 +607,22 @@ def _kabin_ve_agirlik(g, K):
                 fark=sorun.icinde(ag_kutu, k["genislik"], k["derinlik"]),
             )
         )
+    #  AĞIRLIK RAYININ TIRNAĞI DUVARA GİREMEZ ( 12 Kas — fiziksel tarama:  100 mm'lik
+    #  ağırlıkta 125 / 127'lik ray ):  tırnak ray tabanının iki yanında, duvara doğru
+    #  ray ekseninden parcalar.tirnak_uzanimi kadar uzanır.  Eşik 0 ( kabin rayı gibi ).
+    ag = g["agirlik"]
+    uzanim = parcalar.tirnak_uzanimi(ag["b"], ag["h"])
+    if ag["ray_duvar"] < uzanim - 1e-6:
+        hata.append(
+            sorun.Sorun(
+                f"Ağırlık rayının tırnağı duvara {uzanim - ag['ray_duvar']:g} mm giriyor ( ray ekseni – "
+                f"duvar {ag['ray_duvar']:g}, tırnak eksenden {uzanim:g} uzanır ):  ağırlık rayı – duvar "
+                f"ölçüsünü en az {uzanim:g} yapın ya da daha dar tabanlı ağırlık rayı seçin.",
+                P_AGIRLIK_RAYI,
+                "kuyu_plani",
+                fark=ag["ray_duvar"] - uzanim,
+            )
+        )
     return hata
 
 
