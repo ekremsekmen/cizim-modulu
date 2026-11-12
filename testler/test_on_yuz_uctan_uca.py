@@ -80,7 +80,13 @@ class Izleyici:
     """Sayfanın istekleri:  hesap ve çizim istek / yanıt çiftleri, yoldaki
     istek sayısı ( sakinleşmeyi beklemek için ) ve konsol hataları."""
 
-    UCLAR = ("/api/uygulama/coklu", "/api/uygulama/cizimler", "/api/avan", "/api/trafik")
+    UCLAR = (
+        "/api/uygulama/coklu",
+        "/api/uygulama/cizimler",
+        "/api/avan",
+        "/api/avan/cizimler",
+        "/api/trafik",
+    )
 
     def __init__(self, sayfa):
         self.sayfa = sayfa
@@ -1155,6 +1161,54 @@ class OnYuzUctanUca(unittest.TestCase):
         _istek, avan = self.iz.son("/api/avan")
         _istek, trafik = self.iz.son("/api/trafik")
         return trafik, avan, self.liste_satiri("Avan deneme")
+
+    def test_avan_cizimleri(self):
+        """12 Kas:  avan projesinde çizim ( "Çizimler" adımı ).  Mimari eksikken hangi
+        alanların eksik olduğu söylenir;  dolunca seçicinin bulduğu asansörün çizimleri
+        gelir ( ürün yazısı yok );  kuyu üstü yetmeyen kuyuda çizim yoktur, mimardan
+        istenecek kot gösterilir.  Girilenler sayfa yenilenince durur."""
+        self.sayfa.goto(self.url + "/")
+        self._avan_kaydi({"mk_yok": "true"})
+        self.sayfa.goto(self.url + "/avan/cizimler")
+        _istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(yanit["durum"], "eksik", yanit)
+        ana = self.sayfa.locator("main")
+        self.assertIn("Mimari ölçüler eksik", ana.inner_text())
+        self.assertIn("Kuyu derinliği", ana.inner_text())
+        self.assertNotIn("Kuyu genişliği", ana.inner_text())
+
+        self.sayfa.get_by_label("Kuyu genişliği").fill("2050")
+        self.sayfa.get_by_label("Kuyu derinliği").fill("1850")
+        #  Trafiğin kat düzeni:  N = 10 kat + ana giriş, kat yüksekliği 3 m
+        self.sayfa.get_by_role("button", name=re.compile("Trafikten doldur · 11 durak")).click()
+        kotlar = self.sayfa.get_by_label("Durak kotları").input_value()
+        self.assertTrue(kotlar.startswith("±0,00; +3,00") and kotlar.endswith("+30,00"), kotlar)
+        #  Trafik 1,6 m/s veriyor:  kuyu dibi 1,80, kuyu üstü 4,60 m
+        self.sayfa.get_by_label("Kuyu dibi kotu").fill("-1,80")
+        self.sayfa.get_by_label("Kuyu tavanı kotu").fill("+34,60")
+        istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(yanit["durum"], "uygun", yanit.get("nedenler") or yanit.get("gereken"))
+        self.assertEqual(istek["girdiler"]["asansorler"][0]["kuyu_derinligi"], "1850")
+        self.sayfa.wait_for_selector("main svg", state="attached")
+        metin = ana.inner_text()
+        self.assertIn("KUYU PLANI", metin)
+        self.assertNotIn("KASNAK DÜZENLEMESİ", metin)
+
+        #  Kuyu üstü yetmiyor ( 3,40 m ):  çizim yok, mimardan istenecek kot
+        self.sayfa.get_by_label("Kuyu tavanı kotu").fill("+33,40")
+        _istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(yanit["durum"], "gereken")
+        self.assertNotIn("cizim", yanit)
+        self.sayfa.wait_for_selector("text=mimardan istenecek")
+        self.assertIn("Kuyu tavanı kotu", ana.inner_text())
+        self.assertIn(yanit["gereken"][0]["yeni"], ana.inner_text())
+        self.assertEqual(ana.locator("svg[data-cizim], figure svg").count(), 0)
+
+        #  Kayıt:  sayfa yenilenince girilenler yerinde
+        self.sayfa.reload()
+        self.iz.sakin()
+        self.assertEqual(self.sayfa.get_by_label("Kuyu genişliği").input_value(), "2050")
+        self.assertEqual(self.sayfa.get_by_label("Kuyu tavanı kotu").input_value(), "+33,40")
 
     def test_avan_belgeleri_guncel_sonucu_bekler(self):
         """25 Eki ( dış inceleme ):  avan PDF'i kartların kapasite / hızını ekrandaki
@@ -2639,6 +2693,14 @@ class OnYuzUctanUca(unittest.TestCase):
             kutu("#a-kuyu_genisligi", 1810),
             b,
             duzelt=kutu("#a-kuyu_genisligi", 1830),
+        )
+        self._arizalari_dene(
+            "avan çizimleri",
+            "/api/avan/cizimler",
+            adim("/avan/cizimler"),
+            kutu("#c-kuyu_derinligi", 1810),
+            b,
+            duzelt=kutu("#c-kuyu_derinligi", 1830),
         )
         self._arizalari_dene("trafik PDF'i", "/api/indir/trafik-pdf", adim("/avan/trafik"), pdf, b)
         self._arizalari_dene("avan PDF'i", "/api/indir/avan-pdf", adim("/avan/hesaplar"), pdf, b)

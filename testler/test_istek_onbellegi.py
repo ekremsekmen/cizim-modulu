@@ -217,7 +217,7 @@ class Denetim(unittest.TestCase):
                 self.assertTrue(json.loads(cizim_uclari.api_cizimler(v).body)["aktif"])
             for vaka in (("md", "son_kat_yuksekligi", "3200"), ("ornek", "kuyu_dibi", "1300")):
                 veri, _onceki = test_care._vaka(*vaka)
-                care_uclari._durum(veri, 0)
+                care_uclari.girdi_durumu(veri, 0)
 
 
 class CizimYaniti(unittest.TestCase):

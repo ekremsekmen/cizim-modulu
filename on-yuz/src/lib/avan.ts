@@ -240,6 +240,12 @@ const AVAN_ASANSORU = [
   "L2",
   "kablo_tipi",
   "zincir_birim_kutle",
+  //  Çizimler adımının mimarisi ( 12 Kas ):  eski dosyalarda yok — boş açılır
+  "kuyu_derinligi",
+  "durak_kotlari",
+  "kuyu_dibi_kotu",
+  "kuyu_tavani_kotu",
+  "md_zemini_kotu",
 ] as const;
 
 const AVAN_ORTAK = ["temel_a", "temel_b", "mk_uzunluk", "mk_genislik"] as const;

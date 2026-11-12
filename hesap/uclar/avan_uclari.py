@@ -38,6 +38,8 @@ from motor.avan import kapak
 from motor.avan import tablolar
 from motor.avan import trafik
 from ciktilar import kapak_cikti
+from uclar import avan_cizimi
+from uclar import cizim_uclari
 from ciktilar import pdf_cikti
 
 try:
@@ -114,6 +116,8 @@ AVAN_AS_SAYISAL = (
     "eta",
     "Hk",
     "kuyu_genisligi",
+    #  avan çizimi ( uclar/avan_cizim_uclari.py ):  hesaba girmez, seçiciye gider
+    "kuyu_derinligi",
     "kabin_boyu",
     "kabin_genisligi",
     "Gk_elle",
@@ -133,6 +137,7 @@ AVAN_AS_SAYISAL = (
 #  birkaç ortak alanın adı burada yazılıdır.
 AVAN_AS_ETIKET = {
     "kapasite": "Kapasite",
+    "kuyu_derinligi": "Kuyu derinliği",
     **{k: ad for k, ad, _poz in avan_hesabi.ZORUNLU_ALANLAR},
     **{k: ad for k, ad, _aralik, _birim in avan_hesabi.ASANSOR_SINIRLARI},
 }
@@ -242,6 +247,14 @@ def _avan_girdi(veri: dict):
         "sabitler": sb,
         "trafik": _trafik_koprusu(v.get("trafik")),
     }
+
+
+def avan_girdisi(veri):
+    """Avan isteğinin okunmuş girdisi ve okuma hatası ( belirsiz / okunamayan yazım ):
+    ( girdi , hata ya da None ) — avan çizimleri de aynı kapıdan okur
+    ( uclar/avan_cizim_uclari.py )."""
+    g = _avan_girdi(veri)
+    return g, _belirsiz_hata() or None
 
 
 def _trafik_koprusu(ham):
@@ -450,6 +463,9 @@ def indir_proje_dwg(veri: dict = Body(...)):
 
         avan_ham = ham.get("avan")
         elektrikler = []
+        #  ÇİZİMLER ( 12 Kas — uclar/avan_cizimi.py ):  mimarisi girilen asansörlerin
+        #  çizimleri hesap sayfalarının sağına;  çizilemeyenlerin adı nota
+        gler, cizimsiz = [], []
         if isinstance(avan_ham, dict):
             a, yanit = _avan_sonuc({"girdiler": avan_ham})
             if yanit is not None:
@@ -463,6 +479,13 @@ def indir_proje_dwg(veri: dict = Body(...)):
             elektrikler = elektrik.pafta_sayfalari(
                 [(x.get("elektrik"), _asansor_adi(x)) for x in a.get("asansorler") or [] if x.get("aktif")]
             )
+            okunan, _hata = avan_girdisi({"girdiler": avan_ham})
+            #  Paftadaki ad hesap sayfasının başlığı gibi:  "1 NOLU ASANSÖR  ·  İnsan"
+            adlar = [
+                "  ·  ".join(t for t in (f"{i} NOLU ASANSÖR", str((k or {}).get("tanim") or "").strip()) if t)
+                for i, k in enumerate(okunan["asansorler"], 1)
+            ]
+            gler, cizimsiz = avan_cizimi.paket_cizimleri(okunan, _proje_kimligi(veri)["proje_adi"], adlar)
 
         if not paftalar:
             return JSONResponse(
@@ -482,14 +505,16 @@ def indir_proje_dwg(veri: dict = Body(...)):
             paftalar,
             kok,
             ekler,
-            pdf_islem=pafta_pdf.paket_pdfleri(paftalar, elektrikler=elektrikler) if pafta_pdf else None,
+            son_islem=cizim_uclari.paftaya_ekle(gler) if gler else None,
+            pdf_islem=pafta_pdf.paket_pdfleri(paftalar, gler, elektrikler) if pafta_pdf else None,
             elektrikler=elektrikler,
         )
         yanit = _indir(paket, ad, "application/zip")
         #  Kullanıcının BİLMESİ GEREKENLER başlıkta taşınır:
         #    DXF   → DWG üretilemedi, pakette yalnız DXF var ( sebebi OKUBENI'de )
         #    TASMA → paftalar formatın çerçevesine sığmadı, taşan sayfalar var
-        notlar = (["DXF"] if sebep else []) + (["TASMA"] if tasti else [])
+        #    CIZIM → mimarisi girilen asansörlerden çizimi kurulamayan var ( pakette yok )
+        notlar = (["DXF"] if sebep else []) + (["TASMA"] if tasti else []) + (["CIZIM"] if cizimsiz else [])
         if notlar:
             yanit.headers["X-Avan-Not"] = ",".join(notlar)
         return yanit

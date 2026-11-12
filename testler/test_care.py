@@ -116,7 +116,7 @@ class Care(unittest.TestCase):
     def test_her_care_bagimsiz_sinanir(self):
         for vaka in VAKALAR:
             veri, r = self.coz(*vaka)
-            once = care_uclari._durum(veri, 0)
+            once = care_uclari.girdi_durumu(veri, 0)
             ortulu = {care_uclari.kimlik(h) for h in cizim_uclari.genis_sorunlar(veri, 0)} - set(once[0])
             self.assertTrue(r["careler"], vaka)
             #  Vakaların hepsi bütçenin içinde biter ( kesilmiş arama değil )
@@ -125,7 +125,9 @@ class Care(unittest.TestCase):
             for c in r["careler"]:
                 for o in c["oneriler"]:
                     with self.subTest(vaka=vaka, sorun=c["metin"][:50], care=(o["anahtar"], o["yeni"])):
-                        sonra = care_uclari._durum(care_uclari._yaz(veri, 0, o["anahtar"], o["yeni"]), 0)
+                        sonra = care_uclari.girdi_durumu(
+                            care_uclari.girdi_yaz(veri, 0, o["anahtar"], o["yeni"]), 0
+                        )
                         s = care_uclari._sonucu(once, sonra, ortulu)
                         self.assertIn(care_uclari.kimlik(c["metin"]), s["gider"])
                         self.assertEqual(s["yeni"], [])
@@ -184,7 +186,7 @@ class Care(unittest.TestCase):
         EKSİK;  öneri kalır ve hesapta "ortaya çıkan" bölüm yoktur."""
         v = test_yerlesim_saglamligi.standart_istek(1275, True, "Arka", aski_duzeni="Kabin altı")
         v["asansorler"][0]["kuyu_derinligi"] = test_yerlesim_saglamligi.KABIN[1275][1] + 700
-        once = care_uclari._durum(v, 0)
+        once = care_uclari.girdi_durumu(v, 0)
         self.assertIn("agirlik_raylari", once[3])
         self.assertFalse(once[4])  # hesap çizimin bütün ölçülerini alamadı
         r = care_uclari.coz(v, 0)
@@ -200,12 +202,14 @@ class Care(unittest.TestCase):
         olmayan bölümlerdir;  onları çıkaran öneriler temizlerden sonra gelir."""
         for vaka in VAKALAR:
             veri, r = self.coz(*vaka)
-            once = care_uclari._durum(veri, 0)
+            once = care_uclari.girdi_durumu(veri, 0)
             for c in r["careler"]:
                 sira = [bool(o["hesapta_ortaya_cikan"]) for o in c["oneriler"]]
                 self.assertEqual(sira, sorted(sira), (vaka, c["metin"][:50]))
                 for o in c["oneriler"]:
-                    sonra = care_uclari._durum(care_uclari._yaz(veri, 0, o["anahtar"], o["yeni"]), 0)
+                    sonra = care_uclari.girdi_durumu(
+                        care_uclari.girdi_yaz(veri, 0, o["anahtar"], o["yeni"]), 0
+                    )
                     #  Yalnız bugün uygun görünen bölümler ( hesap bugün durmuşsa yok )
                     beklenen = sorted(sonra[3] - once[3]) if once[1] and sonra[1] else []
                     self.assertEqual(beklenen, o["hesapta_ortaya_cikan"], (vaka, o["anahtar"]))
@@ -240,14 +244,17 @@ class Care(unittest.TestCase):
         çaresi düşüyordu ( ölçüldü 20 Eki )."""
         vaka = ("ornek", "kuyu_dibi", "1300")
         veri, r = self.coz(*vaka)
-        asil, saat = care_uclari._durum, [0.0]
+        asil, saat = care_uclari.girdi_durumu, [0.0]
 
         def yavas(v, i):
             saat[0] += 1.0
             return asil(v, i)
 
         sahte = mock.Mock(time=lambda: saat[0], monotonic=lambda: saat[0])
-        with mock.patch.object(care_uclari, "_durum", yavas), mock.patch.object(care_uclari, "time", sahte):
+        with (
+            mock.patch.object(care_uclari, "girdi_durumu", yavas),
+            mock.patch.object(care_uclari, "time", sahte),
+        ):
             y = care_uclari.coz(veri, 0, _vaka(*vaka)[1])
         self.assertEqual(y["careler"], r["careler"])
         self.assertEqual((y["sinama"], y["tamamlandi"]), (r["sinama"], True))

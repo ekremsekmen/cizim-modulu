@@ -236,6 +236,23 @@ export interface CizimYanit {
   hesap_parcalari?: Record<string, string[]>;
 }
 
+/**  Avan asansörünün çizimleri ( sunucu:  uclar/avan_cizim_uclari.py ).  Seçici mimarın
+     kuyusuna asansörü bulduysa ( uygun ) çizimler;  bulamadıysa çizim yoktur:
+     gereken — mimardan istenecek ölçüler, sigmaz — sebepler, eksik — girilmemiş
+     mimari alanlar, paket_yok — bu yük için hazır asansör yok, hata — girdi okunamadı.  */
+export interface AvanCizimYaniti {
+  durum: "uygun" | "gereken" | "sigmaz" | "eksik" | "paket_yok" | "hata";
+  hata?: string;
+  eksik?: string[];
+  gereken?: { anahtar: string; etiket: string; eski: string | null; yeni: string; sebep: string }[];
+  nedenler?: string[];
+  /**  Geçirilemeyen ürün bölümleri ( avanı bağlamaz — uygulama projesinde çözülür )  */
+  acik_bolumler?: string[];
+  acik_bolum_adlari?: string[];
+  cizim?: CizimYanit;
+  sure?: number;
+}
+
 export interface OlcuKaynagi {
   anahtar: string;
   tur: string;
@@ -445,6 +462,8 @@ export const api = {
   secenekler: () => al<Secenekler>("/api/secenekler"),
   trafik: (girdiler: unknown, s?: AbortSignal) => gonder<TrafikYaniti>("/api/trafik", { girdiler }, hataMetin, s),
   avan: (girdiler: unknown, s?: AbortSignal) => gonder<AvanYaniti>("/api/avan", { girdiler }, hataMetin, s),
+  avanCizimleri: (girdiler: unknown, asansor: number, s?: AbortSignal) =>
+    gonder<AvanCizimYaniti>("/api/avan/cizimler", { girdiler, asansor }, hataMetin, s),
 };
 
 export interface IndirmeSonucu {
@@ -511,5 +530,7 @@ export function paketNotu(not: string): string {
   //  DXF bir eksiklik değildir:  çizim yalnız çizgi ve yazıdır, AutoCAD DXF'i birebir açar
   if (not === "DXF") return "ZIP'te çizim DXF olarak var;  AutoCAD birebir açar ( DWG isterseniz açıp Farklı Kaydet ).";
   if (not === "TASMA") return "Pafta sayısı proje formatının çerçevesine sığmadı, alta taşan sayfalar var — baskıdan önce bakın.";
+  if (not === "CIZIM")
+    return "Bazı asansörlerin çizimi pakette yok — Çizimler adımında eksik ölçüye ya da mimardan istenecek ölçüye bakın.";
   return not;
 }
