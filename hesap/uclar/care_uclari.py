@@ -108,7 +108,7 @@ ADIM = {"mm": 1.0, "m": 0.01, "adet": 1.0}
 #  Bir istekte en çok sınanan türev adayı
 AZAMI_ADAY = 16
 #  BİR İSTEĞİN BÜTÇESİ — SINAMA SAYISI ( her sınama hesap ve çizimin yeniden
-#  kurulmasıdır, _durum ).  Eskiden 6 sn'lik duvar saatiydi:  arama makinenin o
+#  kurulmasıdır, girdi_durumu ).  Eskiden 6 sn'lik duvar saatiydi:  arama makinenin o
 #  anki yüküne göre farklı yerde kesiliyor, aynı proje farklı çareler alıyordu
 #  ( ölçüldü 20 Eki:  makine daireli örnekte 6 sn'de sınır 4.310 ve tek çare —
 #  kesilmeden 4.303 ve dört çare;  yük altında test_care ara sıra düşüyordu ).
@@ -171,7 +171,7 @@ def kimlik(metin):
     return re.sub(r"-?\d+(?:[.,]\d+)?", "#", str(metin).split(":", 1)[0]).strip()
 
 
-def _durum(veri, i):
+def girdi_durumu(veri, i):
     """Bir girdinin hükmü:  ( çizim sorunları { kimlik:  metin } , hesap
     çalıştı mı , hesabın sorun kimlikleri , uygun olmayan bölümlerin kimlikleri ,
     hesap çizimin bütün ölçülerini aldı mı ).  Çizim kurulamayınca hesabın
@@ -217,12 +217,12 @@ class _Butce:
         return self.neden is None
 
     def durum(self, veri, i):
-        """_durum — bütçeden bir sınama düşerek."""
+        """girdi_durumu — bütçeden bir sınama düşerek."""
         self.kalan -= 1
-        return _durum(veri, i)
+        return girdi_durumu(veri, i)
 
 
-def _yaz(veri, i, anahtar, deger):
+def girdi_yaz(veri, i, anahtar, deger):
     """Girdinin bir kutusu değişmiş kopyası ( proje geneli alan proje genelinde;
     tek kuyuda kuyunun ortak girdisi iki asansörde — ön yüzün "Uygula"sı gibi ).
     9 Kas:  ortak girdi seçili asansöre yazılıyordu;  kapı onu 1. asansörden okuduğu
@@ -337,7 +337,7 @@ def _turevle(veri, i, once, sorunlar, degerler, gizli, alan, butce, ortulu):
             if not butce.var():
                 return kabul
             denenen.add((k, v))
-            r = _sonucu(once, butce.durum(_yaz(veri, i, k, v), i), ortulu)
+            r = _sonucu(once, butce.durum(girdi_yaz(veri, i, k, v), i), ortulu)
             if not r["yeni"] and not r["kotu"] and r["gider"]:
                 kabul.append(
                     {
@@ -380,7 +380,7 @@ def _son_degisiklikle(veri, i, once, onceki, alan, gizli, butce, ortulu):
     for k, v0, v1 in _degisenler(veri, i, onceki, alan, gizli):
         if not butce.var():
             break
-        eski = butce.durum(_yaz(veri, i, k, v0), i)
+        eski = butce.durum(girdi_yaz(veri, i, k, v0), i)
         if not [x for x in once[0] if x not in eski[0]]:
             continue
         iyi, kotu_ = (v0, eski), v1
@@ -389,7 +389,7 @@ def _son_degisiklikle(veri, i, once, onceki, alan, gizli, butce, ortulu):
             orta = round(round((iyi[0] + kotu_) / 2.0 / a) * a, 6)
             if orta in (iyi[0], kotu_) or not butce.var():
                 break
-            d = butce.durum(_yaz(veri, i, k, orta), i)
+            d = butce.durum(girdi_yaz(veri, i, k, orta), i)
             if any(x not in eski[0] for x in d[0]):
                 kotu_ = orta
             else:
@@ -454,7 +454,7 @@ def _secimle(veri, i, once, sorunlar, alan, gizli, girilen, butce, oncelikli, or
             if sayac >= AZAMI_SECIM or not butce.var():
                 return kabul
             sayac += 1
-            r = _sonucu(once, butce.durum(_yaz(veri, i, k, v), i), ortulu)
+            r = _sonucu(once, butce.durum(girdi_yaz(veri, i, k, v), i), ortulu)
             if r["gider"] and not r["yeni"] and not r["kotu"]:
                 kabul.append(
                     {
@@ -478,7 +478,7 @@ def coz(veri, i=0, onceki=None, butce=None):
     t0 = time.monotonic()
     butce = butce or _Butce()
     ilk = butce.kalan
-    once = _durum(veri, i)
+    once = girdi_durumu(veri, i)
     sorunlar, degerler, gizli = cizim_uclari.izli_sorunlar(veri, i)
     alan = {a["anahtar"]: a for gr in uygulama_istegi.alanlar()["gruplar"] for a in gr["alanlar"]}
     #  Denetim ilk hatada durduğu için bugün görünmeyen ( ama var olan ) sorunlar

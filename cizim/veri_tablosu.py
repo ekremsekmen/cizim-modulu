@@ -11,6 +11,7 @@ yazmıyordu.  Değerlerin hepsi girdiden ( g ) ya da hesabın özetinden
 """
 
 from cizim import arka_aski
+from cizim import avan_kipi
 from cizim import donanim
 from cizim import dusey
 from cizim import eleman
@@ -50,6 +51,8 @@ def satirlar(g):
     kr, ag, ak, mk = g["kabin_ray"], g["agirlik"], g.get("aski") or {}, g.get("makine") or {}
     kd = g.get("kuyu_dibi") or {}
     r = []
+    #  Avanda ürün seçilmemiştir ( cizim/avan_kipi.py ):  ürün değerleri yazılmaz
+    urun = not g["proje"].get("avan")
 
     def ekle(ad, *degerler):
         #  str:  geçersiz bir seçim sayı olarak gelebilir ( kat kapısı tipi −1 — API;
@@ -75,9 +78,10 @@ def satirlar(g):
         adlar, giris = katlar.adlar_ve_giris(g)
         ekle("Giriş katı", adlar[giris], dusey.kot_yazisi(kotlar[giris], dusey.kot_ofseti(g)))
     ekle("Askı", _aski(g))
-    ekle("Tahrik", mk.get("tip"), mk.get("yeri"), birimli(v.get("motor_gucu"), "kW"))
-    ekle("Tahrik kasnağı", f"ø{mk['tahrik_kasnak_capi']:g}" if mk.get("tahrik_kasnak_capi") else None)
-    if ak.get("halat_adedi") and ak.get("halat_capi"):
+    ekle("Tahrik", mk.get("tip"), mk.get("yeri"), birimli(v.get("motor_gucu"), "kW") if urun else None)
+    if urun:
+        ekle("Tahrik kasnağı", f"ø{mk['tahrik_kasnak_capi']:g}" if mk.get("tahrik_kasnak_capi") else None)
+    if urun and ak.get("halat_adedi") and ak.get("halat_capi"):
         ekle("Halat", f"{ak['halat_adedi']:g} × ø{ak['halat_capi']:g}")
     ch = dy.get("kabin_ic_yukseklik")
     ekle("Kabin", f"CW × CD  {kb['genislik']:g} × {kb['derinlik']:g}", f"iç yükseklik {ch:g}" if ch else None)
@@ -90,17 +94,17 @@ def satirlar(g):
     #  Konsol arası:  kesitte zincirin adı aralığa sığmayınca yalnız değer yazılır
     #  ( 6 Kas çizim denetimi, karar D4 ) — hangi rayın olduğu burada
     def konsol(ad):
-        return f"konsol arası {dy[ad]:g}" if dy.get(ad) else None
+        return f"konsol arası {dy[ad]:g}" if urun and dy.get(ad) else None
 
     ekle(
         "Kabin rayı",
-        profil(v.get("kabin_rayi")),
+        profil(v.get("kabin_rayi")) if urun else None,
         kisaltmalar.kodlu("DBG", kr["arasi"]),
         konsol("kabin_konsol_arasi"),
     )
     ekle(
         "Ağırlık rayı",
-        profil(v.get("agirlik_rayi")),
+        profil(v.get("agirlik_rayi")) if urun else None,
         kisaltmalar.kodlu("DBGW", ag["ray_arasi"]),
         konsol("agirlik_konsol_arasi"),
     )
@@ -119,7 +123,7 @@ def satirlar(g):
             acik = donanim.oda_acikliklari(g, Y["M"])
             ekle("Makine dairesi", *(f"{ad} {d:g} ≥ {en:g}" for ad, d, en in acik if ad != "kasnak üstü"))
             ekle("Tahrik kasnağı üstü", *(f"{d:g} ≥ {en:g}" for ad, d, en in acik if ad == "kasnak üstü"))
-    if kd.get("regulator_kasnak_capi"):
+    if urun and kd.get("regulator_kasnak_capi"):
         ekle(
             "Regülatör",
             kd.get("regulator_yan"),
@@ -141,6 +145,7 @@ def ciz(g):
     ]
     t2, alt = kisaltmalar.tablo(0.0, alt - 2 * kisaltmalar.SATIR, "KISALTMALAR", kodlar, "kisaltmalar")
     kotla = "kot_ofseti" in (g.get("dusey") or {})
-    notlar = [(f"{i}.", n) for i, n in enumerate(NOTLAR + ((KOT_NOTU,) if kotla else ()), 1)]
+    ek = ((KOT_NOTU,) if kotla else ()) + ((avan_kipi.NOT,) if g["proje"].get("avan") else ())
+    notlar = [(f"{i}.", n) for i, n in enumerate(NOTLAR + ek, 1)]
     t3, _ = kisaltmalar.tablo(0.0, alt - 2 * kisaltmalar.SATIR, "NOTLAR", notlar, "notlar", sutun=120.0)
     return t1 + t2 + t3

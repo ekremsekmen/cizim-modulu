@@ -147,7 +147,7 @@ def _kaydirma(taslak, m):
 
 
 class _Sinayici:
-    """Hesap + çizim sınaması, sayarak ( care_uclari._durum )."""
+    """Hesap + çizim sınaması, sayarak ( care_uclari.girdi_durumu )."""
 
     def __init__(self):
         self.kalan = AZAMI_SINAMA
@@ -156,7 +156,7 @@ class _Sinayici:
     def __call__(self, v):
         self.kalan -= 1
         self.sayi += 1
-        cizim, aktif, hesap, uygun_degil, olctu = care_uclari._durum(v, 0)
+        cizim, aktif, hesap, uygun_degil, olctu = care_uclari.girdi_durumu(v, 0)
         bolum = sorted(x for x in uygun_degil if x)
         engel = [b for b in bolum if b in AVAN_BOLUMLERI]
         return {
@@ -250,7 +250,7 @@ def _uyarla(v, d, sina, bitis):
         oneri = _oneri_sec(v)
         if oneri is None:
             break
-        v = care_uclari._yaz(v, 0, oneri["anahtar"], oneri["yeni"])
+        v = care_uclari.girdi_yaz(v, 0, oneri["anahtar"], oneri["yeni"])
         if oneri["bina"]:
             gereken[oneri["anahtar"]] = {
                 "anahtar": oneri["anahtar"],

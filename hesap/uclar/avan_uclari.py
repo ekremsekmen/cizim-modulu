@@ -247,6 +247,14 @@ def _avan_girdi(veri: dict):
     }
 
 
+def avan_girdisi(veri):
+    """Avan isteğinin okunmuş girdisi ve okuma hatası ( belirsiz / okunamayan yazım ):
+    ( girdi , hata ya da None ) — avan çizimleri de aynı kapıdan okur
+    ( uclar/avan_cizim_uclari.py )."""
+    g = _avan_girdi(veri)
+    return g, _belirsiz_hata() or None
+
+
 def _trafik_koprusu(ham):
     """
     Avan tarafına gönderilen trafik özeti — dışarıdan gelen veriye güvenmeden

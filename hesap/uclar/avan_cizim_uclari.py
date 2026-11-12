@@ -22,7 +22,7 @@ import logging
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
-from cizim import istek_onbellegi
+from cizim import avan_kipi, istek_onbellegi
 from motor.avan import tablolar
 from motor.ortak.adimlar import evet_mi
 from temel import sayi_mi
@@ -49,8 +49,7 @@ def mimari(a, ortak):
 def secim(veri):
     """İsteğin asansörü için seçicinin sonucu ( avan_secici.sec ) ya da
     { durum:  "hata" , hata } — avan girdisi okunamadıysa / asansör yoksa."""
-    g = avan_uclari._avan_girdi(veri)
-    hata = avan_uclari._belirsiz_hata()
+    g, hata = avan_uclari.avan_girdisi(veri)
     if hata:
         return {"durum": "hata", "hata": hata}
     try:
@@ -72,15 +71,13 @@ def api_avan_cizimler(veri: dict = Body(...)):
     gereken · sigmaz · paket_yok · eksik · hata );  "uygun"da ayrıca cizim —
     uygulamanın çizim yanıtı ( cizimler:  SVG listesi )."""
     try:
-        #  Seçicinin her sınaması kendi önbelleğiyle koşar ( care_uclari._durum );  dışına
+        #  Seçicinin her sınaması kendi önbelleğiyle koşar ( care_uclari.girdi_durumu );  dışına
         #  ortak bir önbellek sarılmaz — adaylar ayrı girdilerdir.
         r = secim(veri)
         if r["durum"] == "uygun":
-            with istek_onbellegi.etkin():
-                c = json.loads(cizim_uclari.cizimler_yaniti(r["istek"]).body)
-            #  Ürün bölümleri avanın işi değil:  ekranda "hesapta uygun değil" işareti yok
-            c.pop("hesap_parcalari", None)
-            r["cizim"] = c
+            #  Avan kipi ( cizim/avan_kipi.py ):  ürün yazıları ve hesap işareti yok
+            with avan_kipi.etkin(), istek_onbellegi.etkin():
+                r["cizim"] = json.loads(cizim_uclari.cizimler_yaniti(r["istek"]).body)
         #  "gereken"in isteği mimarın bugünkü ölçüleriyle değildir:  ekrana gitmez
         if r["durum"] != "uygun":
             r.pop("istek", None)

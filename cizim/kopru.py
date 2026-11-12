@@ -33,6 +33,7 @@ import math
 from temel import bos_mu, sayi_mi
 from cizim import sorun
 from cizim import girdi
+from cizim import avan_kipi
 from cizim import hesap_isareti
 from cizim import izli
 from cizim import dusey
@@ -637,7 +638,9 @@ def _proje(o, sonuc, proje_adi, sira):
         #  Hesabın uygun bulmadığı bölümler:  ekran parçalarını turuncu
         #  işaretler, pafta her çizimin künyesinin altına not yazar
         #  ( cizim/hesap_isareti.py — 1 Kas )
-        "hesap_uygun_degil": hesap_isareti.uygun_olmayanlar(sonuc),
+        #  Avanda ürün bölümleri hüküm değildir ( cizim/avan_kipi.py ):  işaret / not yok
+        "hesap_uygun_degil": [] if avan_kipi.acik() else hesap_isareti.uygun_olmayanlar(sonuc),
+        "avan": avan_kipi.acik(),
         #  Tek kuyuda ( tasarim/alanlar KUYU DÜZENİ ) asansörün kuyudaki yeri — 1 solda,
         #  2 sağda;  None:  kendi kuyusunda ( cizim/grup.py ) — ve aradaki ayırma kirişi
         #  ( NPU;  None:  seçilmedi )

@@ -84,6 +84,8 @@ SIRA_MRL = (
     "kapi_kesiti",
     "veriler",
 )
+#  Avan paftasında olmayan çizimler ( sira )
+AVAN_DISI = ("kasnak_duzeni",)
 SIRA_MD = (
     "kuyu_kesiti_yan",
     "kuyu_kesiti_on",
@@ -175,7 +177,8 @@ def antet_degerleri(g, olcekler):
         "aski": "1:1" if (g.get("aski") or {}).get("duzen") == "Doğrudan" else "2:1",
         "adet": "1",
         "tahrik": "Elektrikli",
-        "ray": f"{kr['b']:g}*{kr['h']:g}",
+        #  Avanda ray seçilmemiştir ( cizim/avan_kipi.py ):  hücre boş
+        "ray": "" if g["proje"].get("avan") else f"{kr['b']:g}*{kr['h']:g}",
         "olcek": olcek_yazisi(olcekler),
     }
 
@@ -194,6 +197,10 @@ def sira(g):
     """Bu asansörün paftasındaki çizimler, sırasıyla;  tek kuyuda kuyunun ortak
     çizimleri ( grup.BIRLESIK — kuyunun çizimi olarak bir kez ) yok."""
     s = SIRA_MD if (g.get("makine") or {}).get("yeri") == "Makine dairesi" else SIRA_MRL
+    #  Avanda kasnak düzenlemesi yok ( cizim/avan_kipi.py ):  tahrikin çizimidir — kasnak
+    #  çapları ve sarım açısı ürün seçimidir
+    if (g.get("proje") or {}).get("avan"):
+        s = tuple(a for a in s if a not in AVAN_DISI)
     if (g.get("proje") or {}).get("grup_sirasi"):
         s = tuple(a for a in s if a not in grup.BIRLESIK)
     return s
