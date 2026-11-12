@@ -263,3 +263,50 @@ class TamBoyPerde(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OrtadakiAgirliginAdi(unittest.TestCase):
+    """12 Kas:  dar karşı ağırlığın adı içine sığmaz;  tek asansörde duvarın ötesine
+    okla taşınır.  Tek kuyuda ağırlığı ORTADA kalan asansörde orası komşu asansördür:
+    ad kuyu planında kasnağın üstünde kalıyor, kabin üstünde komşunun kapı parçalarına
+    ( iki düzende ön duvarın içine ) düşüyordu — 48 tarama düzeninde 148 bindirme.
+    Artık kendi bölmesinde boş yere ( yatay, gerekirse küçük ya da dik ) okla bağlanır."""
+
+    @classmethod
+    def setUpClass(cls):
+        v = tek_kuyu("800", "800")
+        asansorler, ortak = uygulama_istegi.asansor_girdileri(copy.deepcopy(v))
+        gl = cizim_uclari.girdiler(v, asansorler, ortak, None, "DENEME")
+        cls.gler = grup.gruptakiler([g for g, _h in gl])
+
+    def _adlar(self, e):
+        return sorted(
+            (x for x in e if x["tip"] == "yazi" and x.get("ad") == "agirlik_yazi"), key=lambda x: x["x"]
+        )
+
+    def test_ortadaki_agirligin_adi_kendi_bolmesinde_ve_temiz(self):
+        A = self.gler[0]["kuyu"]
+        for ad in ("kuyu_plani", "kabin_ustu"):
+            with self.subTest(ad):
+                e = grup.elemanlari(self.gler, ad)
+                soldaki, sagdaki = self._adlar(e)
+                kb = geometri.sinir([soldaki])
+                #  Kendi bölmesinin içinde ( komşuya ve kirişe taşmaz )
+                self.assertGreaterEqual(kb[0], 0.0)
+                self.assertLessEqual(kb[2], A["genislik"])
+                self.assertTrue(0.0 <= kb[1] and kb[3] <= A["derinlik"], kb)
+                #  Parçasına okla bağlı;  hiçbir parçanın kenarına, yazıya değmez
+                self.assertIsNotNone(geometri._etiketin_oku(e, kb))
+                obur = [x for x in e if x is not soldaki]
+                E = geometri._etiket_durumu(obur, 1.0)
+                self.assertFalse(E.kenarlar.kesisir(kb, 2.0))
+                self.assertFalse([b for b in E.kutular.values() if b and geometri._ust(kb, b)])
+                #  Dış duvarın yanındaki ağırlığın adı tek asansördeki gibi kalır ( dik, duvarın ötesinde )
+                self.assertEqual(sagdaki.get("aci"), 90)
+                self.assertGreater(geometri.sinir([sagdaki])[0], grup._x0lar(self.gler)[1] + A["genislik"])
+
+    def test_yeri_iyi_olan_etikete_dokunulmaz(self):
+        e = grup.elemanlari(self.gler, "kuyu_plani")
+        once = copy.deepcopy(e)
+        grup._agirlik_etiketleri(self.gler, grup._x0lar(self.gler), e)
+        self.assertEqual(e, once)

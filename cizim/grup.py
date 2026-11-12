@@ -378,6 +378,17 @@ def _tam_boy_perde_adi(gler, e):
     )
 
 
+def _agirlik_etiketleri(gler, X, e, olcek=OLCEK):
+    """Dar karşı ağırlığın dik adı ortak çizimde yer bulamadıysa ( ağırlık ortada:
+    tek asansörde gittiği yer komşu asansör ) yatay yazılıp kendi bölmesinde okla
+    bağlanır ( geometri.etiketi_yatay_yerlestir ) — asansörler birleştikten sonra:
+    asansörün kendi çizimi komşunun parçalarını bilmez."""
+    D = gler[0]["kuyu"]["derinlik"]
+    alanlar = [(x0, 0.0, x0 + g["kuyu"]["genislik"], D) for x0, g in zip(X, gler)]
+    for el in [x for x in e if x["tip"] == "yazi" and x.get("ad") in geometri.DAR_AGIRLIK_ETIKETLERI]:
+        geometri.etiketi_yatay_yerlestir(e, el, alanlar, olcek)
+
+
 def perde_notu(gler):
     """Tam boy perdenin sebebi — kuyunun planının altındaki not ( paftada ve ekranda ):
     hangi korkuluk hangi parçaya ne kadar yakın, hangi madde.  Perde gerekmiyorsa boş."""
@@ -461,6 +472,7 @@ def plan(gler):
     e += _tam_boy_perdesi(gler, X)
     _sira_yazilari(e, gler[0]["kuyu"])
     e = geometri.ondalik_virgul(e)
+    _agirlik_etiketleri(gler, X, e)
     e += _tam_boy_perde_adi(gler, e)
     return e + _adlar(gler, X, e)
 
@@ -505,6 +517,7 @@ def birlesik(gler, ad):
     #  Yalnız yeri boşalan ( öbür yana geçen ) ölçülerin ve zincirin yazıları
     geometri.yazilari_yerlestir(e)
     e = geometri.ondalik_virgul(e)
+    _agirlik_etiketleri(gler, X, e)
     #  Kuyu dibinde perde zaten boydan boya ( m.5.2.5.5.2.1 );  öbür planlarda tam boy perde
     if ad != "kuyu_dibi":
         e += _tam_boy_perdesi(gler, X)
