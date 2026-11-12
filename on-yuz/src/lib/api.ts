@@ -254,6 +254,8 @@ export interface AvanCizimYaniti {
   acik_bolumler?: string[];
   acik_bolum_adlari?: string[];
   cizim?: CizimYanit;
+  /**  "uygun"da seçicinin kurduğu uygulama isteği — tıklanan ölçünün kaynağı bununla sorulur  */
+  istek?: UygulamaIstegi;
   sure?: number;
 }
 
@@ -396,8 +398,25 @@ export interface AvanBinaHesabi {
   bolumler?: Bolum[];
 }
 
+/**  Avan kartının kotlarından türeyenler ( sunucu:  avan_cizimi.kot_bilgisi ) — ekran
+     hesaplamaz.  Uzunluklar m;  doseme mm.  Kot girilmemişse yalnız hata / adlar / doseme.  */
+export interface AvanKotBilgisi {
+  Hk?: number | null;
+  seyir?: number | null;
+  durak?: number | null;
+  kuyu_dibi?: number | null;
+  ust_bosluk?: number | null;
+  hata: string[];
+  adlar: Record<string, unknown>;
+  /**  Tavan döşemesinin kalınlığı:  kartta girilen, boşsa kuraldan ( doseme_kural )  */
+  doseme: number;
+  doseme_kural: number;
+}
+
 export interface AvanYaniti {
   hata?: string;
+  /**  Asansör sırasıyla ( kartı olmayan null )  */
+  kotlar?: (AvanKotBilgisi | null)[];
   asansorler?: { no: number; aktif: boolean; tanim?: string; uyari?: string; bolumler?: Bolum[] }[];
   makine_dairesi?: AvanBinaHesabi;
   topraklama?: AvanBinaHesabi;

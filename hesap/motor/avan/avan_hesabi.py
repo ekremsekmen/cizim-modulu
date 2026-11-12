@@ -10,6 +10,7 @@ ASANSÖR AVAN PROJE HESAPLARI
 """
 
 import math
+from cizim import katlar
 from motor.avan import tablolar
 from temel import sayi_mi
 from motor.ortak.adimlar import (
@@ -514,6 +515,85 @@ def _ortak_degeri(ortak, S, anahtar):
 # =====================================================================
 #  TEK ASANSÖRÜN AVAN HESABI  —  "n NOLU ASANSÖR" sayfası
 # =====================================================================
+# =====================================================================
+#  KOTLAR  →  KUYU YÜKSEKLİĞİ VE SEYİR      ( 13 Kas — kullanıcı kararı )
+# =====================================================================
+#  Avan kartında kat kotları vardır ( uygulama projesinin kot tablosuyla aynı
+#  alanlar — avan çizimi de onları okur ).  Kuyu yüksekliği ( Hk ) ve seyir elle
+#  yazılmaz, KOTLARDAN türer:  hesap sayfası ile pafta aynı kuyuyu gösterir.
+#      Hk     =  kuyu tavanı kotu ( döşemenin altı )  −  kuyu dibi kotu
+#      seyir  =  en üst durak kotu  −  en alt durak kotu
+#  Kartta hiç kot yoksa ( 13 Kas öncesinin projeleri ) elle yazılmış Hk geçerlidir.
+KOT_ALANLARI = ("durak_kotlari", "kuyu_dibi_kotu", "kuyu_tavani_kotu")
+_KOT_ADI = {"kuyu_dibi_kotu": "Kuyu dibi kotu", "kuyu_tavani_kotu": "Kuyu tavanı kotu"}
+
+
+def kot_turetilenleri(a):
+    """Kartın kotlarından türeyenler  —  ( sözlük ya da None , [ hata metni ] ).
+
+    None:  kartta hiç kot yok ( elle Hk geçerli ).  Sözlük:  Hk ( m — kuyu dibi ya
+    da tavanı girilmemişse None ), seyir ( m ), durak ( adet ), kuyu_dibi ve
+    ust_bosluk ( m — en alt durağın altı, en üst durağın üstü ), kaynak ( paftaya )."""
+    #  Yalnız boşluk yazılmış kutu boştur ( ön yüzün kotlaMi'si gibi )
+    a = {k: v for k, v in (a or {}).items() if k in KOT_ALANLARI and str(v if v is not None else "").strip()}
+    if not a:
+        return None, []
+    hatalar, kot = [], {}
+    for k, ad in _KOT_ADI.items():
+        if _girildi_mi(a.get(k)):
+            kot[k], hata = katlar.kot_oku(a.get(k))
+            if hata:
+                hatalar.append(f"{ad}:  {hata}")
+    duraklar = None
+    if _girildi_mi(a.get("durak_kotlari")):
+        duraklar, hata = katlar.kotlari_oku(a.get("durak_kotlari"))
+        if hata:
+            hatalar.append(katlar.iletiler_metni("Durak kotları", hata))
+    if hatalar:
+        return None, hatalar
+    dip, tavan = kot.get("kuyu_dibi_kotu"), kot.get("kuyu_tavani_kotu")
+    alt, ust = (duraklar[0], duraklar[-1]) if duraklar else (None, None)
+    if dip is not None and tavan is not None and tavan <= dip:
+        hatalar.append(
+            f"Kuyu tavanı kotu ( {katlar.kot_metni(tavan)} ) kuyu dibi kotundan "
+            f"( {katlar.kot_metni(dip)} ) yüksek olmalı"
+        )
+    if dip is not None and alt is not None and alt <= dip:
+        hatalar.append(
+            f"Kuyu dibi kotu ( {katlar.kot_metni(dip)} ) en alt durağın kotundan "
+            f"( {katlar.kot_metni(alt)} ) aşağıda olmalı"
+        )
+    if tavan is not None and ust is not None and tavan <= ust:
+        hatalar.append(
+            f"Kuyu tavanı kotu ( {katlar.kot_metni(tavan)} ) en üst durağın kotundan "
+            f"( {katlar.kot_metni(ust)} ) yukarıda olmalı"
+        )
+    if hatalar:
+        return None, hatalar
+    tam = dip is not None and tavan is not None
+    return {
+        "Hk": (tavan - dip) / 1000.0 if tam else None,
+        "kaynak": (f"KOTLARDAN  ·  {katlar.kot_metni(tavan)} − ( {katlar.kot_metni(dip)} )" if tam else None),
+        "seyir": (ust - alt) / 1000.0 if duraklar else None,
+        "durak": len(duraklar) if duraklar else None,
+        "kuyu_dibi": (alt - dip) / 1000.0 if dip is not None and alt is not None else None,
+        "ust_bosluk": (tavan - ust) / 1000.0 if tavan is not None and ust is not None else None,
+    }, []
+
+
+def kotlu(a):
+    """Kart, kuyu yüksekliği kotlardan yazılmış hâliyle ( kot yoksa aynen ).  Türetilenler
+    "_kot"ta, kullanılamayan kot "_kot_hatasi"nda — hesapla_asansor okur."""
+    if not isinstance(a, dict) or "_kot" in a or "_kot_hatasi" in a:
+        return a
+    t, hatalar = kot_turetilenleri(a)
+    if hatalar:
+        return {**a, "_kot_hatasi": hatalar}
+    if t is None:
+        return a
+    return {**a, "Hk": t["Hk"], "_kot": t}
+
+
 def hesapla_asansor(a: dict, ortak: dict, S: dict, no: int = 1, md: dict | None = None) -> dict:
     """
     a     : asansör girdileri (GİRİŞ sayfası C..F kolonu)
@@ -526,6 +606,28 @@ def hesapla_asansor(a: dict, ortak: dict, S: dict, no: int = 1, md: dict | None 
     geçer ve sonunda özete girer.  Kullanılamayan girdi hesabı en başta
     durdurur:  { no, aktif: False, uyari }.
     """
+    # ---------- kuyu yüksekliği kotlardan  ( kullanılamayan kot hesabı durdurur )
+    a = kotlu(a)
+    if a.get("_kot_hatasi"):
+        return {
+            "no": no,
+            "aktif": False,
+            "uyari": f"!!!   {no} NOLU ASANSÖR — kotlar kullanılamıyor   ·   "
+            + "   ·   ".join(a["_kot_hatasi"])
+            + "   !!!",
+        }
+    #  Kot girilmiş ama kuyu dibi ya da tavanı eksik:  elle Hk'ya dönülmez, eksik kot söylenir
+    if a.get("_kot") and a.get("Hk") is None:
+        eksik = [
+            ad for k, ad in _KOT_ADI.items() if not str(a.get(k) if a.get(k) is not None else "").strip()
+        ]
+        return {
+            "no": no,
+            "aktif": False,
+            "uyari": f"!!!   {no} NOLU ASANSÖR — girdi tamamlanmadı   ·   eksik : "
+            + ", ".join(eksik)
+            + "  ( kuyu yüksekliği kotlardan hesaplanır )   !!!",
+        }
     # ---------- elle girilen değerlerin sınırları  ( önce — hepsi birden )
     hata = _asansor_hatasi(no, a)
     if hata:
@@ -610,6 +712,8 @@ def _girdiler(a, ortak, S):
         "V": a.get("V"),
         "eta": a.get("eta"),
         "Hk": a.get("Hk"),
+        #  Kuyu yüksekliğinin kaynağı ( kot_turetilenleri — paftaya )
+        "Hk_kaynak": (a.get("_kot") or {}).get("kaynak") or "GİRİŞ",
         "kuyu_b": a.get("kuyu_genisligi"),
         "kabin_a": a.get("kabin_boyu"),
         "kabin_b": a.get("kabin_genisligi"),
@@ -1166,7 +1270,7 @@ def _kuyu_aydinlatma_bolumu(h, S):
 
     b4 = Bolum("4 -  KUYU AYDINLATMA HESABI", "TS EN 81-20", kimlik="kuyu_aydinlatma")
     b4["adimlar"] = [
-        veri("a", "Kuyu yüksekliği ( kuyu boyu )", qa, "m", "GİRİŞ"),
+        veri("a", "Kuyu yüksekliği ( kuyu boyu )", qa, "m", h["Hk_kaynak"]),
         veri("b", "Kuyu genişliği", qb, "m", "GİRİŞ"),
         *_aydinlatma_adimlari(
             qa, qb, E, OL, k, eta, T, Z, S, _armatur_kaynagi(S, "kuyu_armatur_W", "kuyu_armatur_lm")
@@ -2235,7 +2339,24 @@ def _trafik_tutarlilik(trafik, asansorler_girdi):
                 "Bilerek yapıldıysa gerekçesi paftaya yazılmalıdır; değilse "
                 "'Trafikten güncelle' düğmesi eşitler."
             )
-        Hk, seyahat = a.get("Hk"), t.get("toplam_seyahat")
+        #  KOTLAR ( 13 Kas ):  kuyu yüksekliği ve seyir kartın kotlarından.  Trafik
+        #  hesabının kat düzeni ( N kat + ana giriş + bodrum durakları ) ile kartın
+        #  durak sayısı tutmuyorsa söylenir;  pay kotların kendi seyrinden.
+        a = kotlu(a)
+        kot = a.get("_kot") or {}
+        if a.get("_kot_hatasi"):
+            continue
+        N, bodrum = trafik.get("N"), trafik.get("bodrum")
+        if kot.get("durak") and sayi_mi(N):
+            t_durak = int(N) + 1 + (int(bodrum) if sayi_mi(bodrum) else 0)
+            if t_durak != kot["durak"]:
+                u.append(
+                    f"⚠ {i} NOLU ASANSÖR: kartın kotlarında {kot['durak']} durak var, trafik "
+                    f"hesabının kat düzeni {t_durak} durak veriyor ( {trn(N, 0)} kat + ana giriş"
+                    + (f" + {trn(bodrum, 0)} bodrum" if sayi_mi(bodrum) and bodrum else "")
+                    + " ) — durak kotları ya da trafik hesabı güncel olmayabilir."
+                )
+        Hk, seyahat = a.get("Hk"), kot.get("seyir") if kot.get("seyir") else t.get("toplam_seyahat")
         if sayi_mi(Hk) and sayi_mi(seyahat) and seyahat > 0:
             pay = Hk - seyahat
             if pay <= 0:

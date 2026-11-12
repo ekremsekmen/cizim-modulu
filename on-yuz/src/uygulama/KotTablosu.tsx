@@ -160,6 +160,7 @@ export function KatGirisi({
   doseme,
   etkin,
   yaz,
+  bos,
 }: {
   /**  Aktif asansörün yazılmış değerleri  */
   h: Ham;
@@ -171,6 +172,9 @@ export function KatGirisi({
   /**  Alanın etkin sayısı:  yazılmış, yoksa sunucunun kullandığı, yoksa varsayılan  */
   etkin: (anahtar: string) => number | undefined;
   yaz: (anahtar: string, deger: string) => void;
+  /**  Kot yokken "Kotlarla gir" yerine gösterilecek ( avan:  ölçüden çevrilecek bir şey
+       yoktur — duraklar trafikten doldurulur )  */
+  bos?: React.ReactNode;
 }) {
   const [arac, setArac] = useState<null | "doldur" | "yapistir" | "kaydir">(null);
   const kot = kotlaMi(h);
@@ -219,7 +223,8 @@ export function KatGirisi({
         <span className="text-[12.5px] font-medium">Katlar</span>
         {/*  Kotsuz asansör açılırken kotlara çevrilir ( proje.kotlayaCevir );  yine de
              kotsuz kaldıysa ( başka sekmeden gelen eski hâl ) çeviri elle  */}
-        {!kot && (
+        {!kot && bos}
+        {!kot && !bos && (
           <Dugme
             boy="kucuk"
             onClick={() =>

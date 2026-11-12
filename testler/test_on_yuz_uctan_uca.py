@@ -1181,8 +1181,13 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.get_by_label("Kuyu derinliği").fill("1850")
         #  Trafiğin kat düzeni:  N = 10 kat + ana giriş, kat yüksekliği 3 m
         self.sayfa.get_by_role("button", name=re.compile("Trafikten doldur · 11 durak")).click()
-        kotlar = self.sayfa.get_by_label("Durak kotları").input_value()
+        #  13 Kas:  uygulamanın kot tablosu ( durak satırları ) — karta aynı metin yazılır
+        self.sayfa.get_by_label("11. durağın kotu").wait_for()
+        kotlar = self.sayfa.evaluate(
+            "() => JSON.parse(localStorage.getItem('asansor:avan')).avanAsansorleri[0].durak_kotlari"
+        )
         self.assertTrue(kotlar.startswith("±0,00; +3,00") and kotlar.endswith("+30,00"), kotlar)
+        self.assertEqual(self.sayfa.get_by_label("1. durağın kotu", exact=True).input_value(), "±0,00")
         #  Trafik 1,6 m/s veriyor:  kuyu dibi 1,80, kuyu üstü 4,60 m
         self.sayfa.get_by_label("Kuyu dibi kotu").fill("-1,80")
         self.sayfa.get_by_label("Kuyu tavanı kotu").fill("+34,60")
@@ -1193,6 +1198,53 @@ class OnYuzUctanUca(unittest.TestCase):
         metin = ana.inner_text()
         self.assertIn("KUYU PLANI", metin)
         self.assertNotIn("KASNAK DÜZENLEMESİ", metin)
+
+        #  KUYU YÜKSEKLİĞİ KOTLARDAN ( 13 Kas ):  kartta elle yazılmış Hk ( 34 ) artık okunmaz —
+        #  +34,60 − ( −1,80 ) = 36,4 m;  Hesaplar adımında aynı kot tablosu ve türetilen Hk
+        _istek, avan = self.iz.son("/api/avan")
+        self.assertEqual(avan["ozet"]["asansorler"][0]["Hk"], 36.4)
+        self.assertEqual(avan["kotlar"][0]["seyir"], 30)
+        yan = self.sayfa.locator("aside")
+        self.assertIn("Kotlardan: 11 durak · seyir 30 m", " ".join(yan.inner_text().split()))
+        self.assertIn("36,4 m", yan.inner_text())
+        self.sayfa.goto(self.url + "/avan/hesaplar")
+        self.sayfa.get_by_label("Kuyu tavanı kotu").wait_for()
+        self.assertEqual(self.sayfa.get_by_label("Kuyu tavanı kotu").input_value(), "+34,60")
+        self.assertEqual(self.sayfa.get_by_label("Hk — Kuyu yüksekliği").count(), 1)
+        self.assertIn("36,4 m", self.sayfa.locator("#a-Hk").inner_text())
+        self.sayfa.goto(self.url + "/avan/cizimler")
+        self.sayfa.get_by_label("Kuyu tavanı kotu").wait_for()
+
+        #  ÖLÇÜYE TIKLAMA ( 13 Kas ):  mimariden gelen ölçü ( SW ) soldaki kutusunu odaklar;
+        #  seçicinin ölçüsü ( DBG — ray arası ) avanda değişmez, öyle söylenir
+        self.sayfa.wait_for_selector("main svg", state="attached")
+        self.sayfa.get_by_role("button", name=re.compile("KUYU PLANI")).click()
+        plan = self.sayfa.locator('main [data-cizim="kuyu_plani"]')
+        plan.locator(".olcu", has_text="SW2050").first.click()
+        durum = self.sayfa.locator("main [role=status]")
+        durum.filter(has_text="SW2050").wait_for()
+        self.assertIn("mimariden", durum.inner_text())
+        self.assertEqual(self.sayfa.evaluate("() => document.activeElement.id"), "c-kuyu_genisligi")
+        plan.locator(".olcu", has_text="DBG").first.click()
+        durum.filter(has_text="DBG").wait_for()
+        self.assertIn("bu ölçüyü program seçer", durum.inner_text())
+
+        #  TAVAN DÖŞEMESİ KALINLIĞI:  kartta girilir ( boşsa kuraldan 150 ), çizime geçer;
+        #  "döşemenin üstü" = kuyu tavanı + kalınlık
+        doseme = self.sayfa.get_by_label("Tavan döşemesi kalınlığı")
+        self.assertEqual(doseme.get_attribute("placeholder"), "150")
+        ustu = self.sayfa.get_by_label("Tavan döşemesinin üstü")
+        self.assertEqual(ustu.input_value(), "+34,75")
+        doseme.fill("200")
+        istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(istek["girdiler"]["asansorler"][0]["tavan_dosemesi"], "200")
+        self.assertEqual(yanit["durum"], "uygun", yanit)
+        self.assertEqual(yanit["istek"]["asansorler"][0]["tavan_dosemesi"], "200")
+        self.sayfa.wait_for_function(
+            """() => document.querySelector('[aria-label^="Tavan döşemesinin üstü"]')?.value === '+34,80'"""
+        )
+        doseme.fill("")
+        self.iz.son("/api/avan/cizimler")
 
         #  Kuyu üstü yetmiyor ( 3,40 m ):  çizim yok, mimardan istenecek kot
         self.sayfa.get_by_label("Kuyu tavanı kotu").fill("+33,40")
