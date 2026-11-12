@@ -54,7 +54,7 @@ def api_avan_cizimler(veri: dict = Body(...)):
         r = secim(veri)
         if r["durum"] == "uygun":
             #  Avan kipi ( cizim/avan_kipi.py ):  ürün yazıları ve hesap işareti yok
-            with avan_kipi.etkin(), istek_onbellegi.etkin():
+            with avan_kipi.etkin(r.get("avan")), istek_onbellegi.etkin():
                 r["cizim"] = json.loads(cizim_uclari.cizimler_yaniti(r["istek"]).body)
         #  Bölümlerin ekrandaki adları ( kimlik değil )
         ad = hesap_isareti.KISA_AD

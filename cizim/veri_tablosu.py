@@ -78,7 +78,9 @@ def satirlar(g):
         adlar, giris = katlar.adlar_ve_giris(g)
         ekle("Giriş katı", adlar[giris], dusey.kot_yazisi(kotlar[giris], dusey.kot_ofseti(g)))
     ekle("Askı", _aski(g))
-    ekle("Tahrik", mk.get("tip"), mk.get("yeri"), birimli(v.get("motor_gucu"), "kW") if urun else None)
+    #  Motor gücü:  avanda avan hesabının seçtiği ( Nsç ), seçicinin motoru değil
+    motor = v.get("motor_gucu") if urun else g["proje"].get("avan_motor_gucu")
+    ekle("Tahrik", mk.get("tip"), mk.get("yeri"), birimli(motor, "kW"))
     if urun:
         ekle("Tahrik kasnağı", f"ø{mk['tahrik_kasnak_capi']:g}" if mk.get("tahrik_kasnak_capi") else None)
     if urun and ak.get("halat_adedi") and ak.get("halat_capi"):

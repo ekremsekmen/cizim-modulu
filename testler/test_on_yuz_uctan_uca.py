@@ -1210,6 +1210,31 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(self.sayfa.get_by_label("Kuyu genişliği").input_value(), "2050")
         self.assertEqual(self.sayfa.get_by_label("Kuyu tavanı kotu").input_value(), "+33,40")
 
+        #  KARTIN ASKISI ( 12 Kas ):  çizim avan hesabının askı oranını kullanır.  Makine
+        #  dairesizde 1:1 kurulamaz:  çizim çıkmaz ( hesap sayfasıyla çelişen pafta yerine ),
+        #  kartta seçilecek değer gösterilir;  "Avan kartına uygula" kartı düzeltir.
+        self.sayfa.get_by_label("Kuyu tavanı kotu").fill("+34,60")
+        _istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(yanit["durum"], "uygun", yanit)
+        self.sayfa.evaluate(
+            """() => { const p = JSON.parse(localStorage.getItem('asansor:avan'));
+                p.avanAsansorleri[0].i_palanga = '1';
+                localStorage.setItem('asansor:avan', JSON.stringify(p)); }"""
+        )
+        self.sayfa.reload()
+        istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(istek["girdiler"]["asansorler"][0]["i_palanga"], "1")
+        self.assertEqual(yanit["durum"], "beyan", yanit)
+        self.assertNotIn("cizim", yanit)
+        self.sayfa.wait_for_selector("text=Avan kartına uygula")
+        self.assertIn("Askı oranı: 1:1 → 2:1", " ".join(ana.inner_text().split()))
+        self.assertEqual(ana.locator("svg[data-cizim], figure svg").count(), 0)
+        self.sayfa.get_by_role("button", name="Avan kartına uygula").click()
+        istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(istek["girdiler"]["asansorler"][0]["i_palanga"], "2")
+        self.assertEqual(yanit["durum"], "uygun", yanit)
+        self.sayfa.wait_for_selector("main svg", state="attached")
+
     def test_avan_belgeleri_guncel_sonucu_bekler(self):
         """25 Eki ( dış inceleme ):  avan PDF'i kartların kapasite / hızını ekrandaki
         trafik sonucundan, kapak hesaptan gelen alanlarını ekrandaki sonuçlardan alır.

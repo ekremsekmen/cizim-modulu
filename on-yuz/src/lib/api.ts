@@ -239,9 +239,13 @@ export interface CizimYanit {
 /**  Avan asansörünün çizimleri ( sunucu:  uclar/avan_cizim_uclari.py ).  Seçici mimarın
      kuyusuna asansörü bulduysa ( uygun ) çizimler;  bulamadıysa çizim yoktur:
      gereken — mimardan istenecek ölçüler, sigmaz — sebepler, eksik — girilmemiş
-     mimari alanlar, paket_yok — bu yük için hazır asansör yok, hata — girdi okunamadı.  */
+     mimari alanlar, paket_yok — bu yük için hazır asansör yok, hata — girdi okunamadı,
+     beyan — avan kartının askı oranı / makine tipiyle asansör kurulamadı ( çizim hesap
+     sayfasıyla çelişmesin diye kartınkini kullanır );  kartta seçilecek değerler.  */
 export interface AvanCizimYaniti {
-  durum: "uygun" | "gereken" | "sigmaz" | "eksik" | "paket_yok" | "hata";
+  durum: "uygun" | "gereken" | "sigmaz" | "eksik" | "paket_yok" | "beyan" | "hata";
+  /**  kart:  avan kartının alanı;  yeni:  karta yazılacak değer;  *_yazi:  ekrandaki yazımı  */
+  beyan?: { kart: string; etiket: string; yeni: string; eski_yazi: string; yeni_yazi: string }[];
   hata?: string;
   eksik?: string[];
   gereken?: { anahtar: string; etiket: string; eski: string | null; yeni: string; sebep: string }[];

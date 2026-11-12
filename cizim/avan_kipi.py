@@ -7,8 +7,9 @@ avan_cizim_uclari.py ):  geometri aynıdır.  Fark YAZIDADIR — avanda ürün
 seçilmemiştir;  makineyi, halatı, rayı seçici ( uclar/avan_secici.py ) çizimi
 kurabilmek için seçti, mimarın ya da avanın beyanı değildir:
 
-  · veri tablosunda ürün satırları yazılmaz ( motor gücü, tahrik kasnağı, halat,
-    ray profili, konsol arası, regülatör ) — cizim/veri_tablosu.py
+  · veri tablosunda ürün satırları yazılmaz ( tahrik kasnağı, halat, ray profili,
+    konsol arası, regülatör ) — cizim/veri_tablosu.py;  motor gücü seçicinin
+    motorununki değil AVANIN KENDİ hesabınınkidir ( Nsç — etkin( veri ) ile gelir )
   · antette ray hücresi boş kalır, kasnak düzenlemesi çizilmez ( tahrikin çizimi ) —
     cizim/pafta.py
   · hesabın ürün bölümleri için "uygun değil" işareti ve notu yoktur
@@ -23,20 +24,26 @@ bloğunda iki kip karışmaz:  blok kipin İÇİNDE açılır.
 import contextlib
 import contextvars
 
-_ACIK = contextvars.ContextVar("avan_kipi", default=False)
+#  None:  kip kapalı;  sözlük:  kip açık, avanın kendi değerleri ( motor_gucu — Nsç, kW )
+_VERI = contextvars.ContextVar("avan_kipi", default=None)
 
 #  Notlar tablosuna eklenen satır ( veri_tablosu )
 NOT = "Avan projesi:  makine, halat ve ray seçimi uygulama projesinde kesinleşir."
 
 
 def acik():
-    return _ACIK.get()
+    return _VERI.get() is not None
+
+
+def veri():
+    """Avanın kendi değerleri ( kip kapalıysa boş )."""
+    return _VERI.get() or {}
 
 
 @contextlib.contextmanager
-def etkin():
-    belirtec = _ACIK.set(True)
+def etkin(veri=None):
+    belirtec = _VERI.set(dict(veri or {}))
     try:
         yield
     finally:
-        _ACIK.reset(belirtec)
+        _VERI.reset(belirtec)

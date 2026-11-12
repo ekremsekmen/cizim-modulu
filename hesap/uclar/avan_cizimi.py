@@ -15,7 +15,7 @@ Seçici ( uclar/avan_secici.py ) bu kuyuya doğrulanmış asansörü bulur.
 import copy
 
 from cizim import avan_kipi, istek_onbellegi
-from motor.avan import tablolar
+from motor.avan import avan_hesabi, tablolar
 from motor.ortak.adimlar import evet_mi
 from motor.uygulama import uygulama_hesabi
 from temel import sayi_mi
@@ -28,13 +28,48 @@ KART = ("kuyu_genisligi", "kuyu_derinligi", *avan_secici.KOTLAR)
 ISTEK = tuple(k for k in KART if k != "kuyu_genisligi")
 
 
-def mimari(a, ortak):
-    """Avan asansörü ( okunmuş kart ) + ortak panel → seçicinin girdisi."""
+#  AVANIN BEYANI ( 12 Kas ):  avan motor hesabının askı oranı ve makine tipi çizimde aynen
+#  durur — hesap sayfası "1:1 dişli" derken pafta "2:1 dişlisiz" çizmez.  Seçicinin
+#  girdisi ( uygulamanın alanı ) → kartın alanı ve ekrandaki adı
+BEYAN = {"aski_orani": ("i_palanga", "Askı oranı"), "makine_tipi": ("makine_tipi", "Makine tipi")}
+
+
+def avan_ozeti(g, i):
+    """i. asansörün avan hesabının özeti ( motor.avan.avan_hesabi — seçilen motor gücü
+    Nsç … ) ya da None:  avan hesabı reddedildi / asansör hesaplanamadı."""
+    s = avan_hesabi.hesapla(g)
+    return next((x for x in (s.get("ozet") or {}).get("asansorler") or [] if x.get("no") == i + 1), None)
+
+
+def _beyan(a, sabitler):
+    """Kartın beyanı, avan motor hesabının okuduğu gibi:  askı oranı kartta boşsa ofis
+    standardı ( avan_hesabi.sabitler ), makine tipi kartta seçilmişse.  Avan hesabı
+    tamamlanmamış olsa da aynıdır ( çizim hesap bitince değişmez ).  Uygulamanın seçeneği
+    olmayan değer ( 4:1 askı ) beyan edilmez — seçici paketinkini kullanır."""
+    i = a.get("i_palanga")
+    if not sayi_mi(i):
+        i = avan_hesabi.sabitler(sabitler).get("i_palanga")
+    tip = a.get("makine_tipi")
+    b = {}
+    if i in tablolar.ASKI_ORANLARI.values():
+        b["aski_orani"] = int(i)
+    if tip in tablolar.MAKINE_TIPLERI:
+        b["makine_tipi"] = tip
+    return b
+
+
+def _yazi(anahtar, deger):
+    return tablolar.aski_orani_metni(int(deger)) if anahtar == "aski_orani" else deger
+
+
+def mimari(a, ortak, sabitler=None):
+    """Avan asansörü ( okunmuş kart ) + ortak panel ( + ofis standardı ) → seçicinin girdisi."""
     yuk = a.get("Q_elle") if sayi_mi(a.get("Q_elle")) else tablolar.tablo7_yuk(a.get("kapasite"))
     m = {"beyan_yuku": yuk, "beyan_hizi": a.get("V"), "mk_yok": evet_mi(ortak.get("mk_yok"))}
     m.update({k: a.get(k) for k in KART})
     if not m["mk_yok"]:
         m.update({k: ortak.get(k) for k in avan_secici.MIMARI_GENEL})
+    m.update(_beyan(a, sabitler))
     return m
 
 
@@ -47,7 +82,20 @@ def secim(g, i):
             "durum": "hata",
             "hata": "Avan hesabında bu asansör yok — kapasite ve hız trafik hesabından gelir.",
         }
-    return avan_secici.sec(mimari(asansorler[i], g["ortak"]))
+    r = avan_secici.sec(mimari(asansorler[i], g["ortak"], g.get("sabitler")))
+    ozet = avan_ozeti(g, i)
+    #  Avanın kendi motor gücü ( Nsç ):  paftanın bilgi tablosuna ( cizim/avan_kipi.py )
+    r["avan"] = {"motor_gucu": (ozet or {}).get("Nsc")}
+    #  Beyan çelişkisi kartın diliyle:  kartın alanı, ekrandaki adı, "2:1" yazımı
+    for b in r.get("beyan") or []:
+        kart, ad = BEYAN[b["anahtar"]]
+        b.update(
+            kart=kart,
+            etiket=ad,
+            eski_yazi=_yazi(b["anahtar"], b["eski"]),
+            yeni_yazi=_yazi(b["anahtar"], b["yeni"]),
+        )
+    return r
 
 
 def istendi(a):
@@ -73,7 +121,7 @@ def paket_cizimleri(g, proje_adi, adlar):
             v = copy.deepcopy(r["istek"])
             v["asansorler"][0]["asansor_adi"] = adlar[i]
             #  Avan kipi ( cizim/avan_kipi.py ):  ürün yazıları ve hesap işareti yok
-            with avan_kipi.etkin(), istek_onbellegi.etkin():
+            with avan_kipi.etkin(r["avan"]), istek_onbellegi.etkin():
                 A, o = uygulama_istegi.asansor_girdileri(copy.deepcopy(v))
                 s = uygulama_hesabi.hesapla_coklu(A, o)
                 ((cg, hata),) = cizim_uclari.girdiler(v, A, o, s, proje_adi)

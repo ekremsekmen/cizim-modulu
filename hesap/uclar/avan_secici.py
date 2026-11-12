@@ -22,6 +22,10 @@ SÖZLEŞME ( kullanıcı, 12 Kas ):
     ki, avan projesi bu" ) — avanın kendi motor / kuvvet / elektrik hesabı vardır.
     Seçici onları da geçirmeye çalışır ( en küçük motor, en hafif ray );
     geçiremediği asansörü engellemez, "acik_bolumler"de söylenir.
+  · Avanın BEYANI ( kartın askı oranı ve makine tipi — avan motor hesabının
+    girdileri ) çizimde AYNEN durur:  hesap sayfası ile pafta çelişmez ( 12 Kas ).
+    Beyanla asansör kurulamıyor, paketin kendi askısıyla kurulabiliyorsa çizim
+    çıkmaz;  kartta neyin seçileceği döner ( "beyan" ).
   · Sayı uydurulmaz:  denenen değerler formun seçenekleri, IEC 60072 motor
     kademeleri ( avan/tablolar ) ve paketin kendi değerleridir.
 
@@ -50,6 +54,9 @@ with open(os.path.join(KOK, "on-yuz", "src", "lib", "taslaklar.json"), encoding=
 KOTLAR = (alanlar.DURAK_KOTLARI, "kuyu_dibi_kotu", "kuyu_tavani_kotu", "md_zemini_kotu")
 MIMARI = ("kuyu_genisligi", "kuyu_derinligi", *KOTLAR)
 MIMARI_GENEL = ("mk_uzunluk", "mk_genislik")
+#  Avanın BEYANI ( kartın askı oranı ve makine tipi — avan motor hesabının girdileri ):
+#  verilmişse paketinkinin yerine geçer, seçici değiştirmez
+BEYAN = ("aski_orani", "makine_tipi")
 ZORUNLU = ("beyan_yuku", "beyan_hizi", "kuyu_genisligi", "kuyu_derinligi", *KOTLAR[:3])
 
 #  Avan projesini bağlayan bölümler:  kuyunun ölçülerine ( kuyu üstü, kuyu dibi ) ve
@@ -61,10 +68,13 @@ AZAMI_SINAMA = 120
 #  Uyarlamada ( yerleşim çaresi, mimardan istenecek ölçü ) en çok bu kadar adım ve süre ( sn )
 AZAMI_ADIM = 6
 AZAMI_SURE = 12.0
+#  Beyan çelişkisinde "yalnız şunu değiştirin" denemelerinin süresi ( sn )
+TEK_SURE = 4.0
 #  Seçicinin değiştirmediği:  trafik hesabının kapasitesi ( kabin ), kapı, yük, hız
 SABIT = frozenset(
     ("beyan_yuku", "beyan_hizi", "kabin_genisligi", "kabin_derinligi", "kabin_ic_yuksekligi")
     + ("kapi_genisligi", "kapi_yuksekligi", "durak_adedi", "seyir_mesafesi")
+    + BEYAN
 )
 
 #  ÜRÜN ARAMASI — düşen bölüm → sırayla denenecek ( girdi , değerler ).  Değerler
@@ -121,7 +131,7 @@ def _istek(taslak, m, ek=None):
     """Paket + mimarın kuyusu ( + denenen değerler ) → uygulamanın isteği."""
     a = {k: v for k, v in taslak["asansor"].items() if k not in MIMARI}
     pg = {k: v for k, v in taslak["proje_geneli"].items() if k not in MIMARI_GENEL}
-    for k in ("beyan_hizi", *MIMARI):
+    for k in ("beyan_hizi", *MIMARI, *BEYAN):
         if m.get(k) not in (None, ""):
             a[k] = _metin(m[k])
     for k in MIMARI_GENEL:
@@ -282,7 +292,8 @@ def sec(m):
 
     m:  beyan_yuku ( kg ), beyan_hizi, kuyu_genisligi, kuyu_derinligi, durak_kotlari,
         kuyu_dibi_kotu, kuyu_tavani_kotu, mk_yok;  makine dairesi varsa md_zemini_kotu,
-        isteğe bağlı mk_uzunluk / mk_genislik.
+        isteğe bağlı mk_uzunluk / mk_genislik;  isteğe bağlı avanın beyanı ( BEYAN:
+        aski_orani, makine_tipi ) — verilmişse istekte aynen durur.
 
     Döner { durum , … }:
       "uygun"      istek ( uygulamanın isteği — çizimi ve avanı bağlayan bölümleri temiz ),
@@ -292,7 +303,49 @@ def sec(m):
       "sigmaz"     nedenler [ metin ] — mimardan istenecek ölçü de bulunamadı
       "paket_yok"  bu yük / düzen için paket yok
       "eksik"      eksik [ anahtar ] — mimari girdi eksik
+      "beyan"      beyan [ { anahtar , etiket , eski , yeni } ] — avanın beyanıyla asansör
+                   kurulamadı;  kartta bunlar seçilirse kurulur ( doğrulanmış, en az değişiklik )
     Hepsinde sinama ( sayı ) ve sure ( sn )."""
+    t0 = time.monotonic()
+    r = _sec(m)
+    beyan = {k: _metin(m[k]) for k in BEYAN if m.get(k) not in (None, "")}
+    if r["durum"] != "sigmaz" or not beyan:
+        return r
+    taslak = paketler()[(int(_sayi(m["beyan_yuku"])), m.get("mk_yok") in (True, "true"))]
+    kendi = {k: taslak["asansor"].get(k) or _metin(alanlar.ALAN[k].varsayilan) for k in beyan}
+    farkli = [k for k in beyan if kendi[k] != beyan[k]]
+    if not farkli:
+        return r
+    #  Paketin kendi askısı ( hızlı — çoğunlukla tek sınama ):  o da kurulamıyorsa sebep beyan değil
+    denemeler = [farkli] + ([[k] for k in farkli] if len(farkli) > 1 else [])
+    bulunan, sinama = None, r["sinama"]
+    for i, degisen in enumerate(denemeler):
+        #  Tek değişiklik denemeleri kısa sürelidir:  bulunamazsa hepsini değiştiren öneri kalır
+        r2 = _sec({**m, **{k: kendi[k] for k in degisen}}, AZAMI_SURE if i == 0 else TEK_SURE)
+        sinama += r2["sinama"]
+        if r2["durum"] in ("uygun", "gereken"):
+            bulunan = degisen
+            if i > 0:
+                break
+        elif i == 0:
+            break
+    r["sinama"], r["sure"] = sinama, round(time.monotonic() - t0, 2)
+    if bulunan is None:
+        return r
+    return {
+        "durum": "beyan",
+        "beyan": [
+            {"anahtar": k, "etiket": alanlar.ALAN[k].etiket, "eski": beyan[k], "yeni": kendi[k]}
+            for k in bulunan
+        ],
+        "paket": taslak["kimlik"],
+        "sinama": sinama,
+        "sure": r["sure"],
+    }
+
+
+def _sec(m, azami_sure=AZAMI_SURE):
+    """sec'in bir denemesi:  m'nin beyanı ( varsa ) değiştirilmeden."""
     t0 = time.monotonic()
     sina = _Sinayici()
 
@@ -327,7 +380,7 @@ def sec(m):
         kalan.append((v, d, secilen))
 
     #  Hiçbiri olduğu gibi temiz değil:  adaylar sırayla uyarlanır
-    bitis = t0 + AZAMI_SURE
+    bitis = t0 + azami_sure
     for v, d, secilen in kalan:
         v2, d2, s, gereken = _uyarla(v, d, sina, bitis)
         if d2["temiz"]:

@@ -156,6 +156,30 @@ class AvanSecici(unittest.TestCase):
         self.assertEqual(r["acik_bolumler"], ["tahrik_yetenegi"])
         self.temiz(r)
 
+    def test_beyan_aynen_durur(self):
+        """Avanın beyanı ( askı oranı, makine tipi ) verilmişse istekte aynen durur;  paketin
+        ürünü ona göre aranır.  Beyanla kurulamayan, paketin askısıyla kurulabilen kuyuda
+        asansör DÖNMEZ:  kartta değişecek değerler döner ( en az değişiklik, doğrulanmış )."""
+        t = PAKETLER[(1275, False)]
+        r = avan_secici.sec(mimari(t, aski_orani=1, makine_tipi="Dişlisiz"))
+        self.assertEqual(r["durum"], "uygun", r)
+        a = r["istek"]["asansorler"][0]
+        self.assertEqual((a["aski_orani"], a["makine_tipi"]), ("1", "Dişlisiz"))
+        self.temiz(r)
+        #  Makine daireli 630:  2:1 kurulamıyor;  makine tipi beyanı ( dişlisiz ) kalabilir
+        t = PAKETLER[(630, False)]
+        m = mimari(t, aski_orani=2, makine_tipi="Dişlisiz")
+        r = avan_secici.sec(m)
+        self.assertEqual(r["durum"], "beyan", r)
+        self.assertNotIn("istek", r)
+        self.assertEqual(
+            [(b["anahtar"], b["eski"], b["yeni"]) for b in r["beyan"]], [("aski_orani", "2", "1")]
+        )
+        r = avan_secici.sec({**m, **{b["anahtar"]: b["yeni"] for b in r["beyan"]}})
+        self.assertEqual(r["durum"], "uygun", r)
+        self.assertEqual(r["istek"]["asansorler"][0]["makine_tipi"], "Dişlisiz")
+        self.temiz(r)
+
     def test_sigmayan_kuyu(self):
         """Kabinden dar kuyu:  asansör dönmez."""
         t = PAKETLER[(630, True)]
