@@ -21,7 +21,9 @@ from cizim import geometri
 from cizim import grup
 from cizim import kuyu_dibi
 from cizim import kuyu_ustu
+from cizim import parcalar
 from cizim import sabitler
+from araclar import fiziksel
 from temel import ortusur
 from testler.test_taslaklar import TASLAKLAR, istek
 from uclar import cizim_uclari
@@ -310,3 +312,38 @@ class OrtadakiAgirliginAdi(unittest.TestCase):
         once = copy.deepcopy(e)
         grup._agirlik_etiketleri(self.gler, grup._x0lar(self.gler), e)
         self.assertEqual(e, once)
+
+
+class AgirlikRayininTirnagi(unittest.TestCase):
+    """12 Kas:  ağırlık rayı ekseninin duvara uzaklığının varsayılanı bloğun yarısı + 50'ydi;
+    100 mm'lik ağırlıkta ( 1275 taslağı ) 125 / 127'lik rayın tırnağı eksenden 104 / 105 mm
+    uzanır — duvara 4 – 5 mm giriyordu ( fiziksel taramanın R1'i ).  Varsayılan artık en az
+    tırnağın uzanımı;  elle daha küçük girilirse çizim gerekçesiyle durur."""
+
+    def _istek(self, profil, **ek):
+        v = istek(T["1275"])
+        v["asansorler"][0].update(agirlik_ray_profili=profil, **ek)
+        return v
+
+    def test_varsayilan_tirnagi_duvardan_cikarir(self):
+        for profil in ("125 x 82 x 16", "127 x 89 x 16"):
+            with self.subTest(profil):
+                v = self._istek(profil)
+                asansorler, ortak = uygulama_istegi.asansor_girdileri(copy.deepcopy(v))
+                ((g, hata),) = cizim_uclari.girdiler(v, asansorler, ortak, None, "DENEME")
+                self.assertEqual(hata, [])
+                ag = g["agirlik"]
+                self.assertGreaterEqual(ag["ray_duvar"], parcalar.tirnak_uzanimi(ag["b"], ag["h"]))
+                e = cizimler.CIZIMLER["kuyu_plani"][1](g)
+                self.assertEqual([x for x in fiziksel.sorunlar(g, "kuyu_plani", e) if "R1" in x], [])
+
+    def test_dar_tabanli_rayda_varsayilan_ayni(self):
+        v = self._istek("50 x 50 x 5")
+        asansorler, ortak = uygulama_istegi.asansor_girdileri(copy.deepcopy(v))
+        ((g, _hata),) = cizim_uclari.girdiler(v, asansorler, ortak, None, "DENEME")
+        self.assertEqual(g["agirlik"]["ray_duvar"], g["agirlik"]["derinlik"] / 2.0 + 50.0)
+
+    def test_elle_kucuk_girilen_reddedilir(self):
+        r = yanit(self._istek("127 x 89 x 16", agirlik_ray_duvar="100"))
+        self.assertFalse(r["aktif"])
+        self.assertIn("tırnağı duvara 5 mm giriyor", " ".join(r["hata"]))
