@@ -3087,6 +3087,111 @@ def _oklu_yer(E, kb, m0, obur, kaymalar, kusurlu_mu, icerde):
     return None
 
 
+def _etiket_durumu(e, k):
+    """Çizimin etiket yerleşimi durumu ( _Etiketler ):  yazılar ve kutuları, duvarlar,
+    parça kutuları ve kenarları, kuyunun içi — etiketleri_ayir'ın ölçütleriyle."""
+    parca_kutulari = [
+        sinir([x])
+        for x in e
+        if (x["tip"] == "dikdortgen" and x.get("katman") not in MASKELI_KATMANLAR)
+        or x["tip"] in ("tarama", "tarama_tugla")
+    ]
+    yazilar = [
+        x
+        for x in e
+        if (x["tip"] == "yazi" and x.get("katman") not in ("CERCEVE",))
+        or (x["tip"] == "olcu" and x.get("yazi"))
+    ]
+    return _Etiketler(
+        e,
+        yazilar,
+        {id(x): yazi_kutusu(x) for x in yazilar},
+        set(),
+        [sinir([x]) for x in e if duvar_gibi(x)],
+        parca_kutulari,
+        KenarIzgarasi(parca_kenarlari(e)),
+        k,
+        kuyunun_ici(e),
+    )
+
+
+def _etiketin_oku(e, kb):
+    """Etiketin ( kutusu kb ) parçasına giden oku ( etiket_oku — ucu kutunun kenarında );  yoksa None."""
+    return next(
+        (
+            x
+            for x in e
+            if x.get("ad") == "etiket_oku"
+            and kb[0] - 1.0 <= x["x1"] <= kb[2] + 1.0
+            and kb[1] - 1.0 <= x["y1"] <= kb[3] + 1.0
+        ),
+        None,
+    )
+
+
+def etiketi_yatay_yerlestir(e, el, alanlar, olcek=20):
+    """Tek kuyunun ortak çiziminde yer bulamayan DİK etiket ( dar karşı ağırlığın adı:
+    tek asansörde duvarın ötesine oklu taşınır, tek kuyuda orası komşu asansördür —
+    etiket kasnağın üstünde kalıyor ya da komşunun kapı parçalarına düşüyordu, 12 Kas )
+    YATAY yazılıp kendi bölmesinin ( alanlar — kutular;  parçasının durduğu ) içinde,
+    parçasına en yakın boş yere okla bağlanır ( _oklu_yer:  hiçbir parçanın ve yazının
+    üstünde değil, duvara girmez, kenara değmez, maskesi kusursuz ).  Bugünkü yeri
+    iyiyse ( kendi bölmesinde;  yazıya, duvara, kenara değmiyor ) dokunulmaz.  e yerinde
+    değişir ( eski ok çıkar, yenisi eklenir );  yer yoksa hiçbir şey değişmez.
+    →  taşındı mı."""
+    k = olcek / 20.0
+    kb = sinir([el])
+    eski_ok = _etiketin_oku(e, kb)
+    cx, cy = (kb[0] + kb[2]) / 2.0, (kb[1] + kb[3]) / 2.0
+    #  Ok parçasını gösterir:  eski okun ucu, yoksa etiketin bugünkü ortası
+    ax, ay = (eski_ok["x2"], eski_ok["y2"]) if eski_ok else (cx, cy)
+    alan = next((a for a in alanlar if a[0] <= ax <= a[2] and a[1] <= ay <= a[3]), None)
+    if alan is None:
+        return False
+    E = _etiket_durumu([x for x in e if x is not el and x is not eski_ok], k)
+    obur = [b for b in E.kutular.values() if b]
+    #  Komşunun bölmesinde ya da aradaki kirişin üstünde ( kuyunun dışı serbest:  dış
+    #  duvarın yanındaki ağırlığın adı tek asansördeki gibi duvarın ötesinde durur )
+    komsuda = (
+        min(a[0] for a in alanlar) <= cx <= max(a[2] for a in alanlar)
+        and alan[1] <= cy <= alan[3]
+        and not alan[0] <= cx <= alan[2]
+    )
+    if (
+        not komsuda
+        and not any(_ust(kb, b) for b in obur)
+        and not any(_ust(kb, d, -2.0 * k) for d in E.duvarlar)
+        and not E.kenarlar.kesisir(kb, 2.0 * k)
+    ):
+        return False
+    olculer = OlcuIzgarasi(E.e)
+    adim = max(int(20 * k), 1)
+    #  Normal boyda yer yoksa küçük boyda ( uslup.KUCUK — dar ağırlığın etiketi gibi )
+    #  ve dik ( kabin bölmeyi doldurunca yatay yazıya en yoktur:  kabin ile ağırlık arası )
+    kucuk = min(el["yukseklik"], uslup.KUCUK * k)
+    for aci, h in dict.fromkeys(((0, el["yukseklik"]), (0, kucuk), (90, el["yukseklik"]), (90, kucuk))):
+        yatay = dict(el, aci=aci, x=ax, y=ay, yukseklik=h)
+        kutu, m0 = sinir([yatay]), maske_kutusu(yatay)
+        kaymalar = sorted(
+            (
+                (dx, dy)
+                for dx in range(int(alan[0] - kutu[0]) // adim * adim, int(alan[2] - kutu[2]) + 1, adim)
+                for dy in range(int(alan[1] - kutu[1]) // adim * adim, int(alan[3] - kutu[3]) + 1, adim)
+                if kutu[0] + dx >= alan[0] and kutu[1] + dy >= alan[1]
+            ),
+            key=lambda t: math.hypot(*t),
+        )
+        yer = _oklu_yer(E, kutu, m0, obur, kaymalar, lambda m: _maske_kusurlu(E, olculer, m), True)
+        if yer is not None:
+            (dx, dy), ok_ = yer
+            el.update(aci=aci, x=ax + dx, y=ay + dy, yukseklik=h)
+            if eski_ok is not None:
+                e.remove(eski_ok)
+            e.append(ok_)
+            return True
+    return False
+
+
 def yazilari_coz(e, tasinir, ek_katman=()):
     """tasinir:  [ ( eleman , [ ( x , y ) adayları — ilki şimdiki yer ] ) ].
     Her yazı öbür bütün yazılara ( ölçü yazıları dahil ) binmeyen ilk adaya
