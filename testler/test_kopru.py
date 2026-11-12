@@ -116,6 +116,7 @@ class OrnekProjeler(unittest.TestCase):
                 g_["proje"].pop("hesap_uygun_degil", None)
                 #  Avan kipi ( cizim/avan_kipi.py ) — elle kurulan girdi kipsiz
                 g_["proje"].pop("avan", None)
+                g_["proje"].pop("avan_motor_gucu", None)
             #  Hesabın Sabitler sekmesindeki kabin ölçüleri:  örnek referans
             #  projenin kabiniyle ( elle kurulan girdi de onu taşır )
             self.assertEqual(g.pop("_cizim_sabitleri"), beklenen.pop("_cizim_sabitleri"))

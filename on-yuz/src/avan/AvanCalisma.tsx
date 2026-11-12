@@ -1322,7 +1322,18 @@ function CizimlerAdimi({
             </div>
           </>
         ) : (
-          <CizimSonucu r={r} donuyor={!guncel} />
+          <CizimSonucu
+            r={r}
+            donuyor={!guncel}
+            kartaUygula={() =>
+              setP((q) => ({
+                ...q,
+                avanAsansorleri: q.avanAsansorleri.map((a, j) =>
+                  j === i ? { ...a, ...Object.fromEntries((r.beyan ?? []).map((b) => [b.kart, b.yeni])) } : a,
+                ),
+              }))
+            }
+          />
         )}
       </main>
     </div>
@@ -1358,7 +1369,28 @@ function CizimIletisi({
 }
 
 /**  Çizim çıkmayan sonuçlar:  eksik mimari, mimardan istenecek ölçüler, sığmayan kuyu  */
-function CizimSonucu({ r, donuyor }: { r: AvanCizimYaniti; donuyor: boolean }) {
+function CizimSonucu({ r, donuyor, kartaUygula }: { r: AvanCizimYaniti; donuyor: boolean; kartaUygula: () => void }) {
+  if (r.durum === "beyan")
+    return (
+      <CizimIletisi
+        baslik="Avan hesabının askısıyla bu kuyuya asansör kurulamadı"
+        alt="Çizim, avan hesabındaki askı oranını ve makine tipini kullanır;  hesap sayfası ile pafta aynı asansörü gösterir.  Avan kartında aşağıdaki seçilirse çizim çıkar ( motor gücü hesabı da buna göre yenilenir )."
+        donuyor={donuyor}
+      >
+        <div className="mt-4 overflow-hidden rounded-orta border border-uyari-cizgi">
+          {(r.beyan ?? []).map((b) => (
+            <div key={b.kart} className="border-b border-uyari-cizgi bg-uyari-acik px-4 py-3 last:border-b-0">
+              <p className="text-[13px] font-semibold text-uyari">
+                {b.etiket}:  <span className="sayi">{b.eski_yazi}</span> → <span className="sayi">{b.yeni_yazi}</span>
+              </p>
+            </div>
+          ))}
+        </div>
+        <Dugme className="mt-3" onClick={kartaUygula} disabled={donuyor}>
+          Avan kartına uygula
+        </Dugme>
+      </CizimIletisi>
+    );
   if (r.durum === "eksik")
     return (
       <CizimIletisi baslik="Mimari ölçüler eksik" alt="Çizim için soldaki alanlar doldurulmalı:" donuyor={donuyor}>
