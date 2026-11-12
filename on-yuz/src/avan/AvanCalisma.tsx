@@ -1,4 +1,4 @@
-/*  AVAN PROJE — üç adım, sırayla:  trafik → avan hesapları → kapak.
+/*  AVAN PROJE — dört adım, sırayla:  trafik → avan hesapları → çizimler → kapak.
     Adımlar birbirini besler:  trafik asansör adedini, kapasiteyi ve hızı
     verir ( avan_koprusu );  ikisi kapağın asansör satırlarını doldurur
     ( kapak_bilgileri ).  Her adımın sonucu sunucudan, aynı hesap belgesiyle.  */
@@ -6,7 +6,8 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router";
 import { Check, ChevronRight, CircleAlert, Download, FileArchive, FilePlus, FolderOpen, Info, Loader2, Plus, Save, Undo2, X } from "lucide-react";
-import { api, indir, paketNotu, type AvanKoprusu, type AvanYaniti, type Secenekler, type TrafikYaniti } from "@/lib/api";
+import { api, indir, paketNotu, type AvanCizimYaniti, type AvanKoprusu, type AvanYaniti, type Secenekler, type TrafikYaniti } from "@/lib/api";
+import { hizliDoldur } from "@/lib/kotlar";
 import { useGecikmeli, type Ham } from "@/lib/proje";
 import {
   acilisiOku,
@@ -42,9 +43,13 @@ import { HesapBelgesi, HukumRozeti } from "@/components/HesapBelgesi";
 //  pdf.js büyüktür ( ~1 MB ):  yalnız kapak adımı açılınca iner
 const PdfOnizleme = lazy(() => import("@/components/PdfOnizleme").then((m) => ({ default: m.PdfOnizleme })));
 
+//  Tuval büyüktür:  yalnız çizimler adımı açılınca iner
+const Tuval = lazy(() => import("@/uygulama/Tuval").then((m) => ({ default: m.Tuval })));
+
 const ADIMLAR = [
   { yol: "trafik", ad: "Trafik hesabı" },
   { yol: "hesaplar", ad: "Avan hesapları" },
+  { yol: "cizimler", ad: "Çizimler" },
   { yol: "kapak", ad: "Kapak" },
 ] as const;
 
@@ -340,6 +345,9 @@ export function AvanCalisma() {
           bekleme={bekleme}
           geri={() => git("/avan/trafik")}
         />
+      )}
+      {adim === "cizimler" && (
+        <CizimlerAdimi p={p} setP={setP} kopru={kopru} girdi={avanGirdi} trafikUlasilamadi={!!trafik.error} geri={() => git("/avan/trafik")} />
       )}
       {adim === "kapak" && <KapakAdimi p={p} setP={setP} sec={sec.data} kapak={kapakVerisi} bekleme={bekleme} />}
     </div>
@@ -1140,7 +1148,268 @@ function Iletiler({ iletiler, kirmizi }: { iletiler: string[]; kirmizi?: boolean
   );
 }
 
-/* ───────────────────────────── 3 · KAPAK */
+/* ───────────────────────────── 3 · ÇİZİMLER */
+/*  Avanda elde yalnız MİMARİ vardır:  kuyunun ölçüleri ve kotlar.  Sunucunun seçicisi
+    ( uclar/avan_secici.py ) trafik hesabının kapasitesi ve hızıyla bu kuyuya doğrulanmış
+    asansörü bulur;  çizimler uygulamanınkilerdir ( ürün yazıları olmadan ).  Asansör
+    bulunamazsa çizim yoktur:  mimardan istenecek ölçüler ya da sebep gösterilir.  */
+const MIMARI_ETIKET: Record<string, string> = {
+  beyan_yuku: "Kapasite",
+  beyan_hizi: "Hız",
+  kuyu_genisligi: "Kuyu genişliği",
+  kuyu_derinligi: "Kuyu derinliği",
+  durak_kotlari: "Durak kotları",
+  kuyu_dibi_kotu: "Kuyu dibi kotu",
+  kuyu_tavani_kotu: "Kuyu tavanı kotu",
+  md_zemini_kotu: "Makine dairesi zemini kotu",
+};
+
+function CizimlerAdimi({
+  p,
+  setP,
+  kopru,
+  girdi,
+  trafikUlasilamadi,
+  geri,
+}: {
+  p: AvanProjesi;
+  setP: React.Dispatch<React.SetStateAction<AvanProjesi>>;
+  kopru: AvanKoprusu | null;
+  /**  Avan hesabının isteği ( kartlar + ortak ) — seçici aynı girdiyi okur  */
+  girdi: unknown;
+  trafikUlasilamadi: boolean;
+  geri: () => void;
+}) {
+  const [secili, setSecili] = useState(0);
+  const asansorler = (kopru?.asansorler ?? []).slice(0, AVAN_AZAMI);
+  const i = Math.max(0, Math.min(secili, asansorler.length - 1));
+  //  Seçici saniyeler sürebilir:  yazarken her tuşta istenmez
+  const g = useGecikmeli(girdi, 500);
+  const cizim = useQuery({
+    queryKey: ["avan-cizim", g, i],
+    queryFn: ({ signal }) => api.avanCizimleri(g, i, signal),
+    placeholderData: keepPreviousData,
+    //  Yalnız oturmuş girdiyle:  trafik gelince ( köprü ) geciken değer bir süre eski
+    //  ( asansörsüz ) girdidir — onunla istenirse "bu asansör yok" dönerdi
+    enabled: !!kopru && g === girdi,
+  });
+  if (!kopru)
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <div className="max-w-sm text-center">
+          <p className="text-[14px] font-semibold">{trafikUlasilamadi ? "Trafik hesabı alınamadı" : "Önce trafik hesabı"}</p>
+          <p className="mt-1 text-[13px] text-metin-2">Asansör adedi, kapasite ve hız trafik hesabından gelir.</p>
+          {!trafikUlasilamadi && (
+            <Dugme className="mt-4" onClick={geri}>
+              Trafik hesabına dön
+            </Dugme>
+          )}
+        </div>
+      </div>
+    );
+  const h = p.avanAsansorleri[i] ?? {};
+  const ad = (j: number) => p.avanAsansorleri[j]?.tanim?.trim() || `Asansör ${j + 1}`;
+  const ay = (k: string, d: string) =>
+    setP((q) => ({ ...q, avanAsansorleri: q.avanAsansorleri.map((a, j) => (j === i ? { ...a, [k]: d } : a)) }));
+  const oy = (k: string, d: string) => setP((q) => ({ ...q, ortak: { ...q.ortak, [k]: d } }));
+  const mrl = (p.ortak.mk_yok ?? "true") === "true";
+  const guncel = g === girdi && cizim.isSuccess && !cizim.isFetching && !cizim.isPlaceholderData;
+  const r = cizim.data;
+  //  Trafiğin kat düzeni:  ana giriş ±0,00, altında bodrum durakları, üstünde N kat
+  const duraklar = kopru.N + 1 + (kopru.bodrum || 0);
+  const trafiktenDoldur = () =>
+    ay("durak_kotlari", hizliDoldur(duraklar, -(kopru.bodrum || 0) * kopru.h * 1000, kopru.h * 1000));
+
+  return (
+    <div className="flex min-h-0 flex-1">
+      <aside className="w-[420px] shrink-0 overflow-y-auto border-r border-cizgi bg-yuzey">
+        <div className="flex flex-wrap items-center gap-1 border-b border-cizgi px-4 py-3">
+          {asansorler.map((a, j) => (
+            <button
+              key={j}
+              type="button"
+              onClick={() => setSecili(j)}
+              aria-current={j === i ? "true" : undefined}
+              className={cn(
+                "rounded-orta px-2.5 py-1.5 text-left text-[12.5px] hover:bg-black/[0.04]",
+                j === i && "bg-vurgu-acik text-vurgu-koyu hover:bg-vurgu-acik",
+              )}
+            >
+              <span className="block max-w-28 truncate font-medium">{ad(j)}</span>
+              <span className="sayi text-[11px] text-metin-3">
+                {a.P} kişi · {sayiYaz(a.V)} m/s
+              </span>
+            </button>
+          ))}
+        </div>
+        <Kume baslik={`${ad(i)} · mimari`} alt="Mimari projeden okunan ölçüler;  asansörü program seçer">
+          {[
+            ["kuyu_genisligi", "Kuyu genişliği", "mm"],
+            ["kuyu_derinligi", "Kuyu derinliği", "mm"],
+          ].map(([k, e, b]) => (
+            <Satir key={k} etiket={e} id={`c-${k}`}>
+              <Girdi id={`c-${k}`} value={h[k] ?? ""} birim={b} onChange={(ev) => ay(k, ev.target.value)} />
+            </Satir>
+          ))}
+          <div>
+            <div className="flex items-baseline justify-between">
+              <label htmlFor="c-durak_kotlari" className="text-[12.5px] text-metin-2">
+                Durak kotları
+              </label>
+              <button type="button" onClick={trafiktenDoldur} className="text-[12px] font-medium text-vurgu-koyu hover:underline">
+                Trafikten doldur · {duraklar} durak
+              </button>
+            </div>
+            <Girdi
+              id="c-durak_kotlari"
+              className="mt-1"
+              yazi
+              maxLength={600}
+              value={h.durak_kotlari ?? ""}
+              placeholder="±0,00; +3,00; +6,00"
+              onChange={(ev) => ay("durak_kotlari", ev.target.value)}
+            />
+            <p className="mt-1 text-[11.5px] text-metin-3">Alttan üste, noktalı virgülle;  bitmiş döşeme kotları ( m ).</p>
+          </div>
+          {[
+            ["kuyu_dibi_kotu", "Kuyu dibi kotu", "-1,60"],
+            ["kuyu_tavani_kotu", "Kuyu tavanı kotu", "+19,20"],
+            ...(!mrl ? [["md_zemini_kotu", "Makine dairesi zemini kotu", "+18,15"]] : []),
+          ].map(([k, e, yer]) => (
+            <Satir key={k} etiket={e} id={`c-${k}`}>
+              <Girdi id={`c-${k}`} yazi maxLength={32} value={h[k] ?? ""} birim="m" placeholder={yer} onChange={(ev) => ay(k, ev.target.value)} />
+            </Satir>
+          ))}
+        </Kume>
+        <Kume baslik="Bina" alt="Bütün asansörler için bir kez">
+          <Satir etiket="Makine dairesi yok ( MRL )" id="c-mrl">
+            <div className="flex justify-end">
+              <Anahtar id="c-mrl" acik={mrl} degisti={(d) => oy("mk_yok", String(d))} etiket="Makine dairesi yok" />
+            </div>
+          </Satir>
+          {!mrl &&
+            [
+              ["mk_uzunluk", "Makine dairesi uzunluğu A", "mm"],
+              ["mk_genislik", "Makine dairesi genişliği B", "mm"],
+            ].map(([k, e, b]) => (
+              <Satir key={k} etiket={e} id={`c-${k}`}>
+                <Girdi id={`c-${k}`} value={p.ortak[k] ?? ""} birim={b} onChange={(ev) => oy(k, ev.target.value)} />
+              </Satir>
+            ))}
+        </Kume>
+      </aside>
+      <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        {cizim.error ? (
+          <CizimIletisi baslik="Sunucuya ulaşılamadı" kirmizi>
+            <Dugme className="mt-3" onClick={() => void cizim.refetch()} disabled={cizim.isFetching}>
+              {cizim.isFetching && <Loader2 className="animate-spin" />} Yeniden dene
+            </Dugme>
+          </CizimIletisi>
+        ) : !r ? (
+          <CizimIletisi baslik="Asansör seçiliyor…" alt="Kuyuya uyan asansör aranıyor;  birkaç saniye sürebilir." donuyor />
+        ) : r.durum === "uygun" && r.cizim?.cizimler?.length ? (
+          <>
+            {!!r.acik_bolum_adlari?.length && (
+              <p className="border-b border-cizgi bg-yuzey px-4 py-1.5 text-[12px] text-metin-2">
+                <Info className="mr-1 inline size-3.5 align-[-2px]" />
+                Uygulama projesinde çözülecek:  {r.acik_bolum_adlari.join(" · ")} ( ürün seçimi — avan çizimini etkilemez ).
+              </p>
+            )}
+            <div className="relative min-h-0 flex-1 overflow-hidden">
+              <Suspense fallback={null}>
+                <Tuval cizimler={r.cizim.cizimler} durum={guncel ? "guncel" : "yukleniyor"} secili={null} olcuSec={() => {}} />
+              </Suspense>
+            </div>
+          </>
+        ) : (
+          <CizimSonucu r={r} donuyor={!guncel} />
+        )}
+      </main>
+    </div>
+  );
+}
+
+/**  Çizim alanının ortasındaki ileti ( bekleme, hata, çizim çıkmayan sonuçlar )  */
+function CizimIletisi({
+  baslik,
+  alt,
+  kirmizi,
+  donuyor,
+  children,
+}: {
+  baslik: string;
+  alt?: string;
+  kirmizi?: boolean;
+  donuyor?: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-1 items-center justify-center overflow-y-auto p-8">
+      <div className="w-full max-w-xl">
+        <p className={cn("flex items-center gap-2 text-[15px] font-semibold", kirmizi && "text-red")}>
+          {donuyor && <Loader2 className="size-4 animate-spin text-metin-3" />}
+          {baslik}
+        </p>
+        {alt && <p className="mt-1 text-[13px] text-metin-2">{alt}</p>}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**  Çizim çıkmayan sonuçlar:  eksik mimari, mimardan istenecek ölçüler, sığmayan kuyu  */
+function CizimSonucu({ r, donuyor }: { r: AvanCizimYaniti; donuyor: boolean }) {
+  if (r.durum === "eksik")
+    return (
+      <CizimIletisi baslik="Mimari ölçüler eksik" alt="Çizim için soldaki alanlar doldurulmalı:" donuyor={donuyor}>
+        <ul className="mt-3 list-disc space-y-1 pl-5 text-[13px] text-metin-2">
+          {(r.eksik ?? []).map((k) => (
+            <li key={k}>{MIMARI_ETIKET[k] ?? k}</li>
+          ))}
+        </ul>
+      </CizimIletisi>
+    );
+  if (r.durum === "gereken")
+    return (
+      <CizimIletisi
+        baslik="Kuyu ölçüsü yetmiyor — mimardan istenecek"
+        alt="Çizim, kuyu aşağıdaki ölçülere getirilince çıkar.  Asansör trafik hesabının kapasitesindedir;  kabin küçültülmez."
+        donuyor={donuyor}
+      >
+        <div className="mt-4 overflow-hidden rounded-orta border border-uyari-cizgi">
+          {(r.gereken ?? []).map((g) => (
+            <div key={g.anahtar} className="border-b border-uyari-cizgi bg-uyari-acik px-4 py-3 last:border-b-0">
+              <p className="text-[13px] font-semibold text-uyari">
+                {g.etiket}:  <span className="sayi">{g.eski ?? "—"}</span> → <span className="sayi">{g.yeni}</span>
+              </p>
+              {g.sebep && <p className="mt-1 text-[12.5px] text-metin-2">{g.sebep}</p>}
+            </div>
+          ))}
+        </div>
+      </CizimIletisi>
+    );
+  if (r.durum === "sigmaz")
+    return (
+      <CizimIletisi baslik="Bu kuyuya asansör sığmıyor" alt="Mimardan istenecek ölçü de bulunamadı.  Sebepler:" kirmizi donuyor={donuyor}>
+        <ul className="mt-3 list-disc space-y-1 pl-5 text-[13px] text-metin-2">
+          {(r.nedenler ?? []).map((n) => (
+            <li key={n}>{n}</li>
+          ))}
+        </ul>
+      </CizimIletisi>
+    );
+  if (r.durum === "paket_yok")
+    return (
+      <CizimIletisi
+        baslik="Bu kapasite için hazır asansör yok"
+        alt="Avan çizimi şimdilik 8, 10, 13 ve 16 kişilik asansörlerde çıkar ( 630 · 800 · 1000 · 1275 kg )."
+        donuyor={donuyor}
+      />
+    );
+  return <CizimIletisi baslik="Çizim kurulamadı" alt={r.hata ?? ""} kirmizi donuyor={donuyor} />;
+}
+
+/* ───────────────────────────── 4 · KAPAK */
 function KapakAdimi({
   p,
   setP,

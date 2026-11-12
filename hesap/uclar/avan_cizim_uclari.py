@@ -22,7 +22,7 @@ import logging
 from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
-from cizim import avan_kipi, istek_onbellegi
+from cizim import avan_kipi, hesap_isareti, istek_onbellegi
 from motor.avan import tablolar
 from motor.ortak.adimlar import evet_mi
 from temel import sayi_mi
@@ -78,6 +78,14 @@ def api_avan_cizimler(veri: dict = Body(...)):
             #  Avan kipi ( cizim/avan_kipi.py ):  ürün yazıları ve hesap işareti yok
             with avan_kipi.etkin(), istek_onbellegi.etkin():
                 r["cizim"] = json.loads(cizim_uclari.cizimler_yaniti(r["istek"]).body)
+        #  Bölümlerin ekrandaki adları ( kimlik değil )
+        ad = hesap_isareti.KISA_AD
+        r["acik_bolum_adlari"] = [ad.get(b, b) for b in r.get("acik_bolumler") or []]
+        if r.get("nedenler"):
+            r["nedenler"] = [
+                f"{ad.get(n[6:], n[6:])}:  hesabı uygun değil" if n.startswith("bölüm:") else n
+                for n in r["nedenler"]
+            ]
         #  "gereken"in isteği mimarın bugünkü ölçüleriyle değildir:  ekrana gitmez
         if r["durum"] != "uygun":
             r.pop("istek", None)
