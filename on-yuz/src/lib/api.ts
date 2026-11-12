@@ -530,5 +530,7 @@ export function paketNotu(not: string): string {
   //  DXF bir eksiklik değildir:  çizim yalnız çizgi ve yazıdır, AutoCAD DXF'i birebir açar
   if (not === "DXF") return "ZIP'te çizim DXF olarak var;  AutoCAD birebir açar ( DWG isterseniz açıp Farklı Kaydet ).";
   if (not === "TASMA") return "Pafta sayısı proje formatının çerçevesine sığmadı, alta taşan sayfalar var — baskıdan önce bakın.";
+  if (not === "CIZIM")
+    return "Bazı asansörlerin çizimi pakette yok — Çizimler adımında eksik ölçüye ya da mimardan istenecek ölçüye bakın.";
   return not;
 }

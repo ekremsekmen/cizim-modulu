@@ -2,13 +2,17 @@
 Gövde avan hesabınınki ( /api/avan );  asansörün mimarisi kartta.  Yanıt seçicinin
 sonucu;  "uygun"da uygulamanın çizim yanıtı.  Çizim bulunamadıysa çizim YOKTUR."""
 
+import io
 import json
 import re
 import unittest
+import zipfile
+
+import ezdxf
 
 from cizim import avan_kipi, katlar, pafta
 from motor.uygulama import uygulama_hesabi
-from uclar import avan_cizim_uclari, avan_secici, cizim_uclari, uygulama_istegi
+from uclar import avan_cizim_uclari, avan_cizimi, avan_secici, avan_uclari, cizim_uclari, uygulama_istegi
 
 T630 = avan_secici.paketler()[(630, True)]["asansor"]
 T800MD = avan_secici.paketler()[(800, False)]
@@ -24,7 +28,7 @@ def govde(kart, ortak=None, asansor=0):
 def kart(t, **degisen):
     """Avan kartı:  kapasite kişi ( Tablo-7 ), ölçüler ekranda yazıldığı gibi metin."""
     kisi = {"630": "8", "800": "10"}[t["beyan_yuku"]]
-    k = {"kapasite": kisi, "V": "1", **{a: t[a] for a in avan_cizim_uclari.KART if a in t}}
+    k = {"kapasite": kisi, "V": "1", **{a: t[a] for a in avan_cizimi.KART if a in t}}
     k.update(degisen)
     return k
 
@@ -80,7 +84,7 @@ class AvanCizimUcu(unittest.TestCase):
         çiziminde hesap notu da turuncu işaret de yok."""
         t = avan_secici.paketler()[(1250, True)]["asansor"]
         n, h = 10, 2900
-        k = {a: t[a] for a in avan_cizim_uclari.KART if a in t}
+        k = {a: t[a] for a in avan_cizimi.KART if a in t}
         k.update(
             Q_elle="1250",
             kapasite="16",
@@ -154,6 +158,79 @@ class AvanCizimUcu(unittest.TestCase):
 
     def test_paketi_olmayan_kapasite(self):
         self.assertEqual(yanit(govde(kart(T630, kapasite="6")))["durum"], "paket_yok")
+
+
+class AvanPaketi(unittest.TestCase):
+    """ "Projeyi indir" ( /api/indir/proje-dwg ):  mimarisi girilen asansörlerin çizimleri
+    avan hesap sayfalarının sağında.  Mimari girilmemişse paket eskisi gibidir;  girilip de
+    çizilemeyen asansör pakete çizimsiz girer ve not ( X-Avan-Not:  CIZIM ) söyler."""
+
+    #  Avan hesabının kendi kart alanları ( çizimden bağımsız )
+    HESAP = {"Hk": "20,8", "kabin_boyu": "1400", "kabin_genisligi": "1100"}
+
+    def paket(self, *kartlar):
+        yanit = avan_uclari.indir_proje_dwg(
+            {
+                "kapak": {"project_title": "Avan deneme"},
+                "girdiler": {
+                    "avan": {
+                        "ortak": {"mk_yok": True, "temel_a": "20", "temel_b": "15"},
+                        "asansorler": [{**self.HESAP, **k} for k in kartlar],
+                        "sabitler": {},
+                    }
+                },
+            }
+        )
+        self.assertEqual(yanit.media_type, "application/zip", getattr(yanit, "body", b"")[:400])
+        z = zipfile.ZipFile(io.BytesIO(yanit.body))
+        ad = next(n for n in z.namelist() if n.endswith(".dxf"))
+        d = ezdxf.read(io.StringIO(z.read(ad).decode("utf-8", "ignore")))
+        bloklar = {b.name for b in d.blocks if b.name.startswith("CIZIM_") and "ELEKTRIK" not in b.name}
+        return d, bloklar, (yanit.headers.get("X-Avan-Not") or "").split(",")
+
+    def test_cizimler_pakette(self):
+        d, bloklar, notlar = self.paket(kart(T630))
+        self.assertNotIn("CIZIM", notlar)
+        beklenen = ("kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu", "kuyu_dibi", "kuyu_ustu")
+        self.assertEqual(
+            bloklar, {"CIZIM_" + a.upper() for a in (*beklenen, "giris", "kapi_kesiti", "veriler")}
+        )
+        #  Avan kipi paftada da:  veri tablosunda ürün satırı yok, not var
+        veriler = " ".join(t.plain_text() for t in d.blocks.get("CIZIM_VERILER").query("MTEXT TEXT"))
+        self.assertIn("uygulama projesinde kesinleşir", veriler)
+        self.assertNotIn("kW", veriler)
+        self.assertNotIn("konsol arası", veriler)
+
+    def test_iki_asansor_adlariyla(self):
+        d, bloklar, notlar = self.paket(kart(T630, tanim="İnsan"), kart(T630, tanim="Yük"))
+        self.assertNotIn("CIZIM", notlar)
+        self.assertTrue({"CIZIM_KUYU_PLANI_1", "CIZIM_KUYU_PLANI_2"} <= bloklar, bloklar)
+        yazilar = {
+            t.plain_text()
+            for b in d.blocks
+            if b.name.startswith("CIZIM_KUYU_PLANI_")
+            for t in b.query("MTEXT")
+        }
+        self.assertTrue(any("İnsan" in y for y in yazilar) and any("Yük" in y for y in yazilar), yazilar)
+
+    def test_mimarisiz_paket_eskisi_gibi(self):
+        """Kuyu genişliği avan hesabının da girdisidir:  tek başına çizim isteği değildir."""
+        _d, bloklar, notlar = self.paket({"kapasite": "8", "V": "1", "kuyu_genisligi": "2050"})
+        self.assertEqual(bloklar, set())
+        self.assertNotIn("CIZIM", notlar)
+
+    def test_cizilemeyen_asansor_soylenir(self):
+        """Mimarisi girilmiş ama çizilemeyen ( eksik kot;  kuyu üstü yetmeyen ) asansör:  paket
+        iner, çizimi yoktur, not söyler.  Çizilen asansörün çizimi yine pakettedir."""
+        eksik = kart(T630)
+        del eksik["kuyu_tavani_kotu"]
+        _d, bloklar, notlar = self.paket(eksik)
+        self.assertEqual(bloklar, set())
+        self.assertIn("CIZIM", notlar)
+        _d, bloklar, notlar = self.paket(kart(T630), kart(T630, kuyu_genisligi="2350"))
+        self.assertIn("CIZIM_KUYU_PLANI", bloklar)
+        self.assertFalse(any(b.endswith("_2") for b in bloklar), bloklar)
+        self.assertIn("CIZIM", notlar)
 
 
 if __name__ == "__main__":

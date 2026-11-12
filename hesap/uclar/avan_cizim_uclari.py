@@ -23,31 +23,15 @@ from fastapi import APIRouter, Body
 from fastapi.responses import JSONResponse
 
 from cizim import avan_kipi, hesap_isareti, istek_onbellegi
-from motor.avan import tablolar
-from motor.ortak.adimlar import evet_mi
-from temel import sayi_mi
-from uclar import avan_secici, avan_uclari, cizim_uclari
+from uclar import avan_cizimi, avan_uclari, cizim_uclari
 from uclar.uc_ortak import hata_iletisi, hata_kaydi
 
 log = logging.getLogger(__name__)
 router = APIRouter()
 
-#  Avan kartındaki mimari alanlar ( kotlar metindir — uygulamanın kot kutuları gibi okunur )
-KART = ("kuyu_genisligi", "kuyu_derinligi", *avan_secici.KOTLAR)
-
-
-def mimari(a, ortak):
-    """Avan asansörü ( okunmuş kart ) + ortak panel → seçicinin girdisi."""
-    yuk = a.get("Q_elle") if sayi_mi(a.get("Q_elle")) else tablolar.tablo7_yuk(a.get("kapasite"))
-    m = {"beyan_yuku": yuk, "beyan_hizi": a.get("V"), "mk_yok": evet_mi(ortak.get("mk_yok"))}
-    m.update({k: a.get(k) for k in KART})
-    if not m["mk_yok"]:
-        m.update({k: ortak.get(k) for k in avan_secici.MIMARI_GENEL})
-    return m
-
 
 def secim(veri):
-    """İsteğin asansörü için seçicinin sonucu ( avan_secici.sec ) ya da
+    """İsteğin asansörü için seçicinin sonucu ( avan_cizimi.secim ) ya da
     { durum:  "hata" , hata } — avan girdisi okunamadıysa / asansör yoksa."""
     g, hata = avan_uclari.avan_girdisi(veri)
     if hata:
@@ -56,13 +40,7 @@ def secim(veri):
         i = int((veri if isinstance(veri, dict) else {}).get("asansor") or 0)
     except (TypeError, ValueError):
         i = 0
-    asansorler = g["asansorler"]
-    if not 0 <= i < len(asansorler) or asansorler[i] is None:
-        return {
-            "durum": "hata",
-            "hata": "Avan hesabında bu asansör yok — kapasite ve hız trafik hesabından gelir.",
-        }
-    return avan_secici.sec(mimari(asansorler[i], g["ortak"]))
+    return avan_cizimi.secim(g, i)
 
 
 @router.post("/api/avan/cizimler")
