@@ -114,6 +114,8 @@ AVAN_AS_SAYISAL = (
     "eta",
     "Hk",
     "kuyu_genisligi",
+    #  avan çizimi ( uclar/avan_cizim_uclari.py ):  hesaba girmez, seçiciye gider
+    "kuyu_derinligi",
     "kabin_boyu",
     "kabin_genisligi",
     "Gk_elle",
@@ -133,6 +135,7 @@ AVAN_AS_SAYISAL = (
 #  birkaç ortak alanın adı burada yazılıdır.
 AVAN_AS_ETIKET = {
     "kapasite": "Kapasite",
+    "kuyu_derinligi": "Kuyu derinliği",
     **{k: ad for k, ad, _poz in avan_hesabi.ZORUNLU_ALANLAR},
     **{k: ad for k, ad, _aralik, _birim in avan_hesabi.ASANSOR_SINIRLARI},
 }
