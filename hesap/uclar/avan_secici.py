@@ -13,9 +13,15 @@ yükün paketini alır, mimarın kuyusuna UYARLAR, her adayı uygulamanın hesab
 SÖZLEŞME ( kullanıcı, 12 Kas ):
   · Kabin trafik hesabının kapasitesinde kalır:  paketin kabini değişmez, kuyu
     büyükse fazlası boşluktur.
-  · Dönen asansör DOĞRULANMIŞTIR ( hesabın bölümleri uygun, çizim sorunsuz ).
+  · Dönen asansör DOĞRULANMIŞTIR:  çizim sorunsuz, hesabın MİMARİYİ ilgilendiren
+    bölümleri ( AVAN_BOLUMLERI — sığınma alanları, kabin alanı, tamponlar ) uygun.
     Mimarın kuyusuna sığan yoksa asansör dönmez;  mimardan istenecek ölçüler
     döner ( "gereken" ) — yanlış çizim hiç kurulmaz.
+  · ÜRÜN bölümleri ( tahrik, motor, halat, ray, makine taşıyıcısı, elektrik ) avan
+    projesinin işi değildir ( kullanıcı, 12 Kas:  "tahrikle alakalı bir işimiz yok
+    ki, avan projesi bu" ) — avanın kendi motor / kuvvet / elektrik hesabı vardır.
+    Seçici onları da geçirmeye çalışır ( en küçük motor, en hafif ray );
+    geçiremediği asansörü engellemez, "acik_bolumler"de söylenir.
   · Sayı uydurulmaz:  denenen değerler formun seçenekleri, IEC 60072 motor
     kademeleri ( avan/tablolar ) ve paketin kendi değerleridir.
 
@@ -45,6 +51,10 @@ KOTLAR = (alanlar.DURAK_KOTLARI, "kuyu_dibi_kotu", "kuyu_tavani_kotu", "md_zemin
 MIMARI = ("kuyu_genisligi", "kuyu_derinligi", *KOTLAR)
 MIMARI_GENEL = ("mk_uzunluk", "mk_genislik")
 ZORUNLU = ("beyan_yuku", "beyan_hizi", "kuyu_genisligi", "kuyu_derinligi", *KOTLAR[:3])
+
+#  Avan projesini bağlayan bölümler:  kuyunun ölçülerine ( kuyu üstü, kuyu dibi ) ve
+#  kabine bakanlar.  Kalanı ürün hesabıdır — uygulama projesinde çözülür.
+AVAN_BOLUMLERI = frozenset(("siginma_alanlari", "kabin_alani", "tamponlar"))
 
 #  Bir seçimde en çok bu kadar hesap + çizim sınaması ( biri ~0,1 sn )
 AZAMI_SINAMA = 120
@@ -147,11 +157,15 @@ class _Sinayici:
         self.kalan -= 1
         self.sayi += 1
         cizim, aktif, hesap, uygun_degil, olctu = care_uclari._durum(v, 0)
+        bolum = sorted(x for x in uygun_degil if x)
+        engel = [b for b in bolum if b in AVAN_BOLUMLERI]
         return {
             "cizim": cizim,
             "hesap": sorted(hesap),
-            "bolum": sorted(x for x in uygun_degil if x),
-            "temiz": not cizim and aktif and not hesap and not uygun_degil and olctu,
+            "bolum": bolum,
+            #  avanı bağlayanlar ( AVAN_BOLUMLERI ) — "temiz" bunlara bakar
+            "engel": engel,
+            "temiz": not cizim and aktif and not hesap and not engel and olctu,
         }
 
     def var(self):
@@ -163,12 +177,13 @@ def _urun_ara(v, d, sina, gevsek=False):
     başka bir seçimle düşebilir ( ağır ray → motor ):  üç tur.  Döner ( istek ,
     durum , seçilenler ).
 
-    gevsek:  seçim yeni bir çizim sorunu ya da düşen bölüm çıkarabilir ( hidrolik tampon
-    uzundur:  kuyu üstü yetmez ) — uyarlamada;  sonuç yine baştan sona sınanır."""
+    gevsek:  yalnız avanı bağlayan bölümler aranır ve seçim yeni bir çizim sorunu ya da
+    düşen bölüm çıkarabilir ( hidrolik tampon uzundur:  kuyu üstü yetmez ) — uyarlamada;
+    sonuç yine baştan sona sınanır."""
     secilen = {}
     for _tur in range(3):
         degisti = False
-        for bolum in [b for b in d["bolum"] if b in URUN]:
+        for bolum in [b for b in (d["engel"] if gevsek else d["bolum"]) if b in URUN]:
             for anahtar, degerler in URUN[bolum]:
                 if bolum not in d["bolum"]:
                     break
@@ -202,7 +217,7 @@ def _urun_ara(v, d, sina, gevsek=False):
                         v, d, degisti = y, dy, True
                         secilen.update({k: _metin(x) for k in anahtarlar})
                         break
-        if not degisti or d["temiz"]:
+        if not degisti or not d["bolum"]:
             break
     return v, d, secilen
 
@@ -227,7 +242,7 @@ def _uyarla(v, d, sina, bitis):
     Döner ( istek , durum , seçilenler , gereken listesi )."""
     secilen, gereken, ilk = {}, {}, v
     for _adim in range(AZAMI_ADIM):
-        if not d["temiz"] and d["bolum"]:
+        if not d["temiz"] and d["engel"]:
             v, d, s = _urun_ara(v, d, sina, gevsek=True)
             secilen.update(s)
         if d["temiz"] or not d["cizim"] or not sina.var() or time.monotonic() > bitis:
@@ -246,7 +261,7 @@ def _uyarla(v, d, sina, bitis):
         else:
             secilen[oneri["anahtar"]] = v["asansorler"][0].get(oneri["anahtar"])
         d = sina(v)
-    if not d["temiz"] and d["bolum"]:
+    if not d["temiz"] and d["engel"]:
         v, d, s = _urun_ara(v, d, sina, gevsek=True)
         secilen.update(s)
     a = {**ilk.get("proje_geneli", {}), **ilk["asansorler"][0]}
@@ -270,7 +285,8 @@ def sec(m):
         isteğe bağlı mk_uzunluk / mk_genislik.
 
     Döner { durum , … }:
-      "uygun"      istek ( uygulamanın isteği — hesabı ve çizimi temiz ), secimler
+      "uygun"      istek ( uygulamanın isteği — çizimi ve avanı bağlayan bölümleri temiz ),
+                   secimler, acik_bolumler ( geçirilemeyen ürün bölümleri — çoğunlukla boş )
       "gereken"    gereken [ { anahtar , etiket , eski , yeni , sebep } ] — mimarın
                    ölçüleri böyle olursa temiz;  istek o ölçülerle
       "sigmaz"     nedenler [ metin ] — mimardan istenecek ölçü de bulunamadı
@@ -303,11 +319,11 @@ def sec(m):
         v = _istek(taslak, m, ek)
         d = sina(v)
         secilen = dict(ek)
-        if not d["temiz"] and d["bolum"]:
+        if d["bolum"]:
             v, d, s = _urun_ara(v, d, sina)
             secilen.update(s)
         if d["temiz"]:
-            return son("uygun", istek=v, secimler=secilen, paket=taslak["kimlik"])
+            return son("uygun", istek=v, secimler=secilen, acik_bolumler=d["bolum"], paket=taslak["kimlik"])
         kalan.append((v, d, secilen))
 
     #  Hiçbiri olduğu gibi temiz değil:  adaylar sırayla uyarlanır
@@ -316,9 +332,12 @@ def sec(m):
         v2, d2, s, gereken = _uyarla(v, d, sina, bitis)
         if d2["temiz"]:
             secilen.update(s)
-            if gereken:
-                return son("gereken", gereken=gereken, istek=v2, secimler=secilen, paket=taslak["kimlik"])
-            return son("uygun", istek=v2, secimler=secilen, paket=taslak["kimlik"])
+            #  Uyarlama yerleşimi değiştirdi:  ürün bölümleri bir kez daha aranır ( sıkı )
+            if d2["bolum"]:
+                v2, d2, s = _urun_ara(v2, d2, sina)
+                secilen.update(s)
+            ortak = dict(istek=v2, secimler=secilen, acik_bolumler=d2["bolum"], paket=taslak["kimlik"])
+            return son("gereken", gereken=gereken, **ortak) if gereken else son("uygun", **ortak)
     _v, d, _s = kalan[0]
-    nedenler = list(d["cizim"].values()) + d["hesap"] + [f"bölüm:{b}" for b in d["bolum"]]
+    nedenler = list(d["cizim"].values()) + d["hesap"] + [f"bölüm:{b}" for b in d["engel"]]
     return son("sigmaz", nedenler=nedenler, paket=taslak["kimlik"])

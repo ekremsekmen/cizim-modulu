@@ -1,9 +1,9 @@
 """AVAN SEÇİCİSİ ( uclar/avan_secici — 12 Kas, kullanıcı:  "avan projesine de çizim;  elde
 yalnız mimari var, buraya en doğru asansör" ).  Sözleşmesi:
 
-  · "uygun" dönen istek uygulamanın kendi uçlarından TEMİZ çıkar ( hesabın hiçbir bölümü
-    uygun değil ya da eksik değil, çizim sorunsuz ) — seçicinin kendi sınamasına güvenilmez,
-    burada ayrı yoldan sorulur.
+  · "uygun" dönen istek uygulamanın kendi uçlarından TEMİZ çıkar ( çizim sorunsuz;  hesabın
+    düşen bölümü varsa yalnız seçicinin "acik_bolumler"de söylediği ÜRÜN bölümleri — avanı
+    bağlayan bölümler hep uygun ) — seçicinin kendi sınamasına güvenilmez, ayrı yoldan sorulur.
   · Mimarın verdikleri ( kuyu, kotlar, yük, hız ) istekte AYNEN durur;  kabin paketinkidir.
   · Sığmayan kuyuda asansör dönmez:  ya mimardan istenecek ölçü ( o ölçüyle temiz ) ya da sebep.
 """
@@ -36,11 +36,21 @@ def kot(metin, ek_mm):
 
 
 class AvanSecici(unittest.TestCase):
-    def temiz(self, v):
-        """Uygulamanın uçlarından:  hesap uygun, çizim sorunsuz."""
+    def temiz(self, r):
+        """Uygulamanın uçlarından:  çizim sorunsuz;  hesabın düşen bölümleri seçicinin
+        söyledikleri ( acik_bolumler ), onlar da avanı bağlamayan ürün bölümleri."""
+        v = r["istek"]
         h = json.loads(uygulama_uclari.api_uygulama_coklu(copy.deepcopy(v)).body)
         self.assertTrue(h["aktif"], h.get("hata"))
-        self.assertEqual(h["proje_hukmu"]["durum"], "uygun", h["proje_hukmu"])
+        dusen = sorted(
+            b["kimlik"]
+            for b in h["asansorler"][0]["bolumler"]
+            if (b.get("sonuc") or {}).get("uygun") is False
+        )
+        self.assertEqual(dusen, r["acik_bolumler"])
+        self.assertFalse(set(dusen) & avan_secici.AVAN_BOLUMLERI)
+        if not dusen:
+            self.assertEqual(h["proje_hukmu"]["durum"], "uygun", h["proje_hukmu"])
         c = json.loads(cizim_uclari.api_cizimler(copy.deepcopy(v)).body)
         self.assertTrue(c["aktif"], c.get("hata"))
         self.assertFalse(c.get("hata"))
@@ -60,6 +70,7 @@ class AvanSecici(unittest.TestCase):
                 r = avan_secici.sec(m)
                 self.assertEqual(r["durum"], "uygun", r)
                 self.assertEqual(r["paket"], t["kimlik"])
+                self.assertEqual(r["acik_bolumler"], [])
                 self.mimari_aynen(m, r["istek"])
                 a = r["istek"]["asansorler"][0]
                 self.assertEqual({k: a[k] for k in KABIN}, {k: t["asansor"][k] for k in KABIN})
@@ -85,7 +96,7 @@ class AvanSecici(unittest.TestCase):
                 self.mimari_aynen(m, r["istek"])
                 a = r["istek"]["asansorler"][0]
                 self.assertEqual({k: a[k] for k in KABIN}, {k: t["asansor"][k] for k in KABIN})
-                self.temiz(r["istek"])
+                self.temiz(r)
 
     def test_kuyu_ustu_yetmiyorsa_mimardan_istenir(self):
         """Geniş kuyuda korkuluk gerekir, taslağın kuyu üstü yetmez:  asansör "uygun" dönmez;
@@ -105,7 +116,7 @@ class AvanSecici(unittest.TestCase):
         #  İstenen kotla seçici "uygun" der
         r2 = avan_secici.sec({**m, "kuyu_tavani_kotu": g["yeni"]})
         self.assertEqual(r2["durum"], "uygun", r2)
-        self.temiz(r2["istek"])
+        self.temiz(r2)
 
     def test_hiz_degisince_urun_degisir(self):
         """1,6 m/s, 10 durak:  enerji biriktirmeli tampon olmaz ( m.5.8.1.5 ), motor büyür."""
@@ -123,7 +134,27 @@ class AvanSecici(unittest.TestCase):
         self.assertEqual(r["durum"], "uygun", r)
         self.assertIn("Hidrolik", r["secimler"]["tampon_tipi"])
         self.assertGreater(float(r["secimler"]["motor_gucu"]), float(t["asansor"]["motor_gucu"]))
-        self.temiz(r["istek"])
+        self.assertEqual(r["acik_bolumler"], [])
+        self.temiz(r)
+
+    def test_urun_bolumu_avani_engellemez(self):
+        """Kullanıcı ( 12 Kas ):  "tahrikle alakalı bir işimiz yok ki, avan projesi bu".
+        1250 kg 1,6 m/s'de tahrik yeteneği hiçbir seçimle geçmiyor ( acil frenleme );  asansör
+        yine çizilir, geçmeyen bölüm söylenir.  Avanı bağlayan bölüm ise hep engeldir."""
+        t = PAKETLER[(1250, True)]
+        n, h = 10, 2900
+        son = (n - 1) * h
+        m = mimari(
+            t,
+            beyan_hizi=1.6,
+            durak_kotlari="; ".join(katlar.kot_metni(j * h) for j in range(n)),
+            kuyu_dibi_kotu=katlar.kot_metni(-1800),
+            kuyu_tavani_kotu=katlar.kot_metni(son + 4600),
+        )
+        r = avan_secici.sec(m)
+        self.assertEqual(r["durum"], "uygun", r)
+        self.assertEqual(r["acik_bolumler"], ["tahrik_yetenegi"])
+        self.temiz(r)
 
     def test_sigmayan_kuyu(self):
         """Kabinden dar kuyu:  asansör dönmez."""
