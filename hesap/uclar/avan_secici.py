@@ -327,7 +327,9 @@ def _uyarla(v, d, sina, bitis, kapi_kilidi=False, bina_once=False, yalniz_yerles
                 "sebep": oneri["gider"][0] if oneri["gider"] else "",
             }
         else:
-            secilen[oneri["anahtar"]] = v["asansorler"][0].get(oneri["anahtar"])
+            secilen[oneri["anahtar"]] = {**v.get("proje_geneli", {}), **v["asansorler"][0]}.get(
+                oneri["anahtar"]
+            )
         d = sina(v)
     if not d["temiz"] and d["engel"]:
         v, d, s = _urun_ara(v, d, sina, gevsek=True)
@@ -371,7 +373,7 @@ def _paket_olcusunde(taslak, m, ek, sina):
     return v, d, secilen, gereken
 
 
-def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False):
+def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False, anahtarlar=KUCULEN):
     """Mimardan istenecek kuyu ölçülerini ( KUCULEN ) temiz kalan en küçük değere indirir.
     Döner ( istek , durum , gereken ).  Genişlik denenirken kabin de ağırlığın yanına yeniden
     kaydırılır ( _kaydirma — uyarlamanın başındaki kaydırma mimarın ilk genişliği içindi ).
@@ -406,7 +408,7 @@ def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False):
 
     #  Önce derinlik, sonra genişlik
     for g in sorted(
-        (g for g in gereken if g["anahtar"] in KUCULEN and _sayili(g["eski"])),
+        (g for g in gereken if g["anahtar"] in anahtarlar and _sayili(g["eski"])),
         key=lambda g: g["anahtar"] != "kuyu_derinligi",
     ):
         alt, ust = _sayi(g["eski"]), _sayi(g["yeni"])
@@ -439,7 +441,7 @@ def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False):
     return (
         v,
         d,
-        [g for g in gereken if not (g["anahtar"] in KUCULEN and _sayi(g["yeni"]) <= _sayi(g["eski"]))],
+        [g for g in gereken if not (g["anahtar"] in anahtarlar and _sayi(g["yeni"]) <= _sayi(g["eski"]))],
     )
 
 
@@ -525,6 +527,9 @@ def _sec(m, azami_sure=AZAMI_SURE):
     taslak = paketler().get((int(_sayi(m["beyan_yuku"])), mk_yok))
     if taslak is None:
         return son("paket_yok")
+    kucuk = _kucuk_oda(taslak, m)
+    if kucuk:
+        return _kucuk_odada(taslak, m, kucuk, azami_sure)
 
     def yerlesim(adaylar, sure=azami_sure):
         """Adayları sırayla dener:  olduğu gibi temiz olan → uyarlananlar.  Döner
@@ -612,6 +617,67 @@ def _sec(m, azami_sure=AZAMI_SURE):
         if durum_2 == "uygun" or (durum_2 == "gereken" and durum == "sigmaz"):
             durum, alanlar_ = durum_2, alanlar_2
     return son(durum, paket=taslak["kimlik"], **alanlar_)
+
+
+def _kucuk_oda(taslak, m):
+    """Mimarın makine dairesinin hazır asansörünkinden küçük ölçüleri → { alan:  hazır asansörünki }."""
+    pg = taslak["proje_geneli"]
+    if m.get("mk_yok") in (True, "true"):
+        return {}
+    return {
+        k: pg[k]
+        for k in MIMARI_GENEL
+        if m.get(k) not in (None, "") and k in pg and _sayi(m[k]) < _sayi(pg[k])
+    }
+
+
+def _kucuk_odada(taslak, m, kucuk, azami_sure):
+    """MAKİNE DAİRESİ ( 13 Kas ):  mimarın odası hazır asansörünkinden küçük.  Çare bulucu oda
+    ölçüsü önermez;  küçük odada asansör "sığmaz" çıkıyor, sebep olarak da kuyu gösteriliyordu.
+    Asansör önce hazır asansörün odasıyla seçilir ( o ölçüde doğrulanmıştır ), sonra mimarın
+    odasına konur:  olduğu gibi ya da bir – iki yerleşim adımıyla ( pano / kapı duvarı ) temizse
+    oda yetiyordur;  değilse odanın ölçüsü de mimardan istenir, en küçüğe indirilerek
+    ( _kucult — yalnız sınama ).  Döner _sec'in sonucu."""
+    t0 = time.monotonic()
+    r = _sec({**m, **kucuk}, azami_sure)
+    if r["durum"] not in ("uygun", "gereken"):
+        return r
+    sina = _Sinayici()
+    buyuk = r["istek"]
+    v = buyuk
+    for k in kucuk:
+        v = care_uclari.girdi_yaz(v, 0, k, _metin(m[k]))
+    d = sina(v)
+    secilen = {}
+    if not d["temiz"] and d["cizim"]:
+        bitis = time.monotonic() + YERLESIM_SURESI
+        v, d, secilen, _g = _uyarla(v, d, sina, bitis, yalniz_yerlesim=True, adim=2)
+    gereken = []
+    if not d["temiz"]:
+        d = sina(buyuk)
+        gereken = [
+            {
+                "anahtar": k,
+                "etiket": alanlar.ALAN[k].etiket,
+                "eski": _metin(m[k]),
+                "yeni": _sayi(x),
+                "sebep": "Makine ve kumanda panosu daha küçük makine dairesine sığmıyor.",
+            }
+            for k, x in kucuk.items()
+        ]
+        v, d, gereken = _kucult(buyuk, d, gereken, sina, taslak, anahtarlar=MIMARI_GENEL)
+        secilen = {}
+    gereken = r.get("gereken", []) + gereken
+    return {
+        **r,
+        "durum": "gereken" if gereken else "uygun",
+        **({"gereken": gereken} if gereken else {}),
+        "istek": v,
+        "secimler": {**r["secimler"], **secilen},
+        "acik_bolumler": d["bolum"],
+        "sinama": r["sinama"] + sina.sayi,
+        "sure": round(time.monotonic() - t0, 2),
+    }
 
 
 def _etkin_aski(taslak, m):

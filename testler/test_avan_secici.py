@@ -321,6 +321,34 @@ class AvanSecici(unittest.TestCase):
         self.assertEqual(r["istek"]["asansorler"][0]["kabin_tampon_ezilme"], "")
         self.temiz(r)
 
+    def test_kucuk_makine_dairesi(self):
+        """Mimarın makine dairesi hazır asansörünkinden küçük ( 13 Kas ):  yetiyorsa asansör
+        aynen kurulur;  yetmiyorsa "sığmaz" denmez — odanın ölçüsü mimardan istenir, o ölçüyle
+        seçici "uygun" der.  İstenen oda hazır asansörünkinden büyük olamaz."""
+        t = PAKETLER[(630, False)]
+        pg = t["proje_geneli"]
+        #  Biraz küçük oda yetiyor
+        m = mimari(t, mk_uzunluk=3000, mk_genislik=2500)
+        r = avan_secici.sec(m)
+        self.assertEqual(r["durum"], "uygun", r)
+        self.mimari_aynen(m, r["istek"])
+        self.temiz(r)
+        #  Kuyudan küçük oda yetmiyor
+        m = mimari(t, mk_uzunluk=1000, mk_genislik=1000)
+        r = avan_secici.sec(m)
+        self.assertEqual(r["durum"], "gereken", r)
+        yeni = {g["anahtar"]: g for g in r["gereken"]}
+        self.assertEqual(sorted(yeni), ["mk_genislik", "mk_uzunluk"])
+        for k, g in yeni.items():
+            self.assertEqual(g["eski"], "1000")
+            self.assertGreater(g["yeni"], 1000)
+            self.assertLessEqual(g["yeni"], int(pg[k]))
+            self.assertTrue(g["sebep"])
+        self.temiz(r)
+        r2 = avan_secici.sec({**m, **{k: int(g["yeni"]) for k, g in yeni.items()}})
+        self.assertEqual(r2["durum"], "uygun", r2)
+        self.temiz(r2)
+
     def test_eksik_ve_paketsiz(self):
         t = PAKETLER[(630, True)]
         m = mimari(t)
