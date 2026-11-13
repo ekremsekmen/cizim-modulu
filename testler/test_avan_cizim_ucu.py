@@ -176,6 +176,31 @@ class AvanCizimUcu(unittest.TestCase):
             {b["kart"]: b["yeni"] for b in r["beyan"]}, {"i_palanga": "2", "makine_tipi": "Dişlisiz"}
         )
 
+    def test_kartin_kabini_cizimin_kabini(self):
+        """13 Kas:  çizimin kabini hazır asansörünkidir ( kapasitenin kabini — büyümez );  avan
+        hesabı kabini karttan okur.  Kartınki farklıysa çizim ÇIKMAZ ( hesap sayfası ile pafta
+        ayrı kabin göstermesin ), karta yazılacak ölçü döner;  uygulanınca çizim çıkar.  Kartta
+        kabin yoksa ( hesap henüz eksik ) çelişki yoktur."""
+        g = govde({**kart(T630), **AvanPaketi.HESAP, "kabin_boyu": "1500"})
+        r = yanit(g)
+        self.assertEqual((r["durum"], r["beyan_turu"], r["sinama"]), ("beyan", "kabin", 0), r)
+        self.assertNotIn("cizim", r)
+        self.assertEqual(
+            [(b["kart"], b["etiket"], b["eski_yazi"], b["yeni_yazi"], b["yeni"]) for b in r["beyan"]],
+            [("kabin_boyu", "Kabin boyu a", "1500 mm", "1400 mm", "1400")],
+        )
+        duzeltilmis = g["girdiler"]["asansorler"][0] | {b["kart"]: b["yeni"] for b in r["beyan"]}
+        r = yanit(govde(duzeltilmis))
+        self.assertEqual(r["durum"], "uygun", r)
+        a = r["istek"]["asansorler"][0]
+        self.assertEqual((a["kabin_derinligi"], a["kabin_genisligi"]), ("1400", "1100"))
+        #  Ekranın kabin kutularına:  avan yanıtında çizimin kabini
+        kot = json.loads(avan_uclari.api_avan(g).body)["kotlar"][0]
+        self.assertEqual(kot["kabin"], {"kabin_boyu": 1400, "kabin_genisligi": 1100})
+        self.assertEqual(yanit(govde(kart(T630)))["durum"], "uygun")
+        #  Hazır asansörü olmayan kapasite:  kabin bilinmez, sonuç eskisi gibi
+        self.assertEqual(yanit(govde(kart(T630, kapasite="6", kabin_boyu="1500")))["durum"], "paket_yok")
+
     def test_avanin_motor_gucu_tabloda(self):
         """Bilgi tablosunda motor gücü AVANIN KENDİ hesabınınkidir ( Nsç ), seçicinin motoru
         değil.  Avan hesabı tamamlanmamışsa ( kart eksik ) güç yazmaz."""

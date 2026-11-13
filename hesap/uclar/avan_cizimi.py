@@ -34,6 +34,46 @@ ISTEK = ("kuyu_derinligi", *avan_secici.KOTLAR)
 BEYAN = {"aski_orani": ("i_palanga", "Askı oranı"), "makine_tipi": ("makine_tipi", "Makine tipi")}
 
 
+#  KABİN ( 13 Kas ):  çizimin kabini trafik hesabının kapasitesinin kabinidir ( hazır asansörünki —
+#  kullanıcı kararı 12 Kas:  kabin büyümez ).  Avan hesabı kabini karttan okur ( aydınlatma,
+#  alan denetimi ):  kartınki farklıysa hesap sayfası ile pafta ayrı kabin gösterir.
+#  Kartın alanı → ( hazır asansörün alanı , ekrandaki adı ).  Boy a = derinlik, genişlik b = genişlik.
+KABIN = {
+    "kabin_boyu": ("kabin_derinligi", "Kabin boyu a"),
+    "kabin_genisligi": ("kabin_genisligi", "Kabin genişliği b"),
+}
+
+
+def paket_kabini(a, ortak):
+    """Bu asansörün çizimde kullanılacak kabini ( mm ) — { kabin_boyu , kabin_genisligi } ya da
+    None:  bu yük / düzen için hazır asansör yok."""
+    yuk = a.get("Q_elle") if sayi_mi(a.get("Q_elle")) else tablolar.tablo7_yuk(a.get("kapasite"))
+    if not sayi_mi(yuk):
+        return None
+    t = avan_secici.paketler().get((int(yuk), evet_mi(ortak.get("mk_yok"))))
+    return t and {k: float(t["asansor"][p]) for k, (p, _ad) in KABIN.items()}
+
+
+def _kabin_celiskisi(a, ortak):
+    """Kartın kabini hazır asansörünkinden farklıysa karta yazılacaklar ( beyan biçiminde )."""
+    kabin = paket_kabini(a, ortak)
+    if not kabin:
+        return []
+    return [
+        {
+            "anahtar": k,
+            "kart": k,
+            "etiket": ad,
+            "eski": f"{a[k]:g}",
+            "yeni": f"{kabin[k]:g}",
+            "eski_yazi": f"{a[k]:g} mm",
+            "yeni_yazi": f"{kabin[k]:g} mm",
+        }
+        for k, (_p, ad) in KABIN.items()
+        if sayi_mi(a.get(k)) and a[k] != kabin[k]
+    ]
+
+
 def avan_ozeti(g, i):
     """i. asansörün avan hesabının özeti ( motor.avan.avan_hesabi — seçilen motor gücü
     Nsç … ) ya da None:  avan hesabı reddedildi / asansör hesaplanamadı."""
@@ -96,6 +136,8 @@ def kot_bilgisi(g):
                 "adlar": katlar.ad_tablosu(a),
                 "doseme": doseme,
                 "doseme_kural": kural,
+                #  Çizimin kabini ( hazır asansörünki ) — kartın kabin kutularına
+                "kabin": paket_kabini(a, g["ortak"]),
             }
         )
     return liste
@@ -110,6 +152,10 @@ def secim(g, i):
             "durum": "hata",
             "hata": "Avan hesabında bu asansör yok — kapasite ve hız trafik hesabından gelir.",
         }
+    #  Kartın kabini çizimin kabini değilse çizim çıkmaz ( seçici koşmadan ):  karta yazılacak
+    kabin = _kabin_celiskisi(asansorler[i], g["ortak"])
+    if kabin:
+        return {"durum": "beyan", "beyan_turu": "kabin", "beyan": kabin, "sinama": 0, "sure": 0.0}
     r = avan_secici.sec(mimari(asansorler[i], g["ortak"], g.get("sabitler")))
     ozet = avan_ozeti(g, i)
     #  Avanın kendi motor gücü ( Nsç ):  paftanın bilgi tablosuna ( cizim/avan_kipi.py )

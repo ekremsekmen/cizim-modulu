@@ -3,7 +3,7 @@
     verir ( avan_koprusu );  ikisi kapağın asansör satırlarını doldurur
     ( kapak_bilgileri ).  Her adımın sonucu sunucudan, aynı hesap belgesiyle.  */
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router";
 import { Check, ChevronRight, CircleAlert, Download, FileArchive, FilePlus, FolderOpen, Info, Loader2, Plus, Save, Undo2, X } from "lucide-react";
 import {
@@ -66,6 +66,10 @@ const ADIMLAR = [
   { yol: "cizimler", ad: "Çizimler" },
   { yol: "kapak", ad: "Kapak" },
 ] as const;
+
+/**  Kartta çizim İSTENDİ sayılan alanlar ( sunucu:  avan_cizimi.ISTEK ) — kuyu genişliği avan
+     hesabının da girdisidir, tek başına çizim isteği değildir  */
+const CIZIM_ISTEGI = ["kuyu_derinligi", "durak_kotlari", "kuyu_dibi_kotu", "kuyu_tavani_kotu", "md_zemini_kotu"];
 
 export function AvanCalisma() {
   const { adim = "trafik" } = useParams();
@@ -155,9 +159,33 @@ export function AvanCalisma() {
     (avan.data?.engelleyici?.length ?? 0) +
     (avan.data?.proje_hukmu?.durum === "eksik" ? 1 : 0);
   const avanDurum = !kopru ? null : !avan.data ? null : avan.data.hata || avanEksik ? "eksik" : "tamam";
+  //  ÇİZİMLER ADIMININ İŞARETİ ( 13 Kas ):  mimarisi girilen asansörlerin seçici sonuçlarından —
+  //  yalnız ÖNBELLEKTEKİLERDEN ( Çizimler adımı güncel girdiyle sormuşsa ).  İşaret için ayrıca
+  //  sorulmaz:  seçici asansör başına saniyeler sürebilir, her tuşta bütün asansörlere koşmasın.
+  //  Hepsi "uygun" → tamam;  biri çizilemiyor ( eksik, mimardan istenecek, sığmıyor, kart
+  //  çelişiyor ) → eksik;  henüz bilinmiyorsa işaret yok.
+  const cizimIstenen = (kopru?.asansorler ?? [])
+    .slice(0, AVAN_AZAMI)
+    .map((_, i) => i)
+    .filter((i) => CIZIM_ISTEGI.some((k) => (p.avanAsansorleri[i]?.[k] ?? "").trim() !== ""));
+  const cizimSonuclari = useQueries({
+    queries: cizimIstenen.map((i) => ({
+      queryKey: ["avan-cizim", avanGirdi, i],
+      queryFn: ({ signal }: { signal: AbortSignal }) => api.avanCizimleri(avanGirdi, i, signal),
+      enabled: false,
+    })),
+  });
+  const cizimDurum = !cizimIstenen.length
+    ? null
+    : cizimSonuclari.some((q) => q.data && q.data.durum !== "uygun")
+      ? "eksik"
+      : cizimSonuclari.every((q) => q.data?.durum === "uygun")
+        ? "tamam"
+        : null;
   const durumlar: Record<string, string | null> = {
     trafik: trafikDurum,
     hesaplar: avanDurum,
+    cizimler: cizimDurum,
     kapak: p.kapak.project_title ? "tamam" : null,
   };
 
@@ -1012,6 +1040,40 @@ function AvanKatlar({
   );
 }
 
+/**  Çizimin kabini ( hazır asansörünki ) karttakinden farklıysa ya da kart boşsa:  tek tıkla karta.
+     Avan çizimi kartın kabini bununla aynı değilken çıkmaz ( sunucu:  avan_cizimi._kabin_celiskisi ).  */
+function KabinDoldur({
+  h,
+  yaz,
+  kabin,
+}: {
+  h: Ham;
+  yaz: (k: string, d: string) => void;
+  kabin: { kabin_boyu: number; kabin_genisligi: number } | null | undefined;
+}) {
+  if (!kabin) return null;
+  const ayni = (["kabin_boyu", "kabin_genisligi"] as const).every((k) => sayiOkuYerel(h[k]) === kabin[k]);
+  if (ayni) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        yaz("kabin_boyu", String(kabin.kabin_boyu));
+        yaz("kabin_genisligi", String(kabin.kabin_genisligi));
+      }}
+      className="mt-1 block w-full text-right text-[12px] font-medium text-vurgu-koyu hover:underline"
+    >
+      Çizimin kabini · {kabin.kabin_boyu} × {kabin.kabin_genisligi} mm
+    </button>
+  );
+}
+
+/**  Kutudaki sayı ( virgül de ondalık );  boş / okunamayan null  */
+function sayiOkuYerel(v: string | undefined): number | null {
+  const s = (v ?? "").trim().replace(",", ".");
+  return s !== "" && Number.isFinite(Number(s)) ? Number(s) : null;
+}
+
 function HesaplarAdimi({
   p,
   setP,
@@ -1118,6 +1180,11 @@ function HesaplarAdimi({
             {AVAN_TEMEL.map((a) =>
               a.k === "Hk" ? (
                 <AvanKatlar key={a.k} on="a" h={h} yaz={ay} mrl={mrl} kot={sonuc?.kotlar?.[i]} kopru={kopru} />
+              ) : a.k === "kabin_genisligi" ? (
+                <div key={a.k}>
+                  <AvanAlanSatiri a={a} sec={sec} ofis={ofis} h={h} yaz={ay} />
+                  <KabinDoldur h={h} yaz={ay} kabin={sonuc?.kotlar?.[i]?.kabin} />
+                </div>
               ) : (
                 <AvanAlanSatiri key={a.k} a={a} sec={sec} ofis={ofis} h={h} yaz={ay} />
               ),
@@ -1513,8 +1580,16 @@ function CizimSonucu({ r, donuyor, kartaUygula }: { r: AvanCizimYaniti; donuyor:
   if (r.durum === "beyan")
     return (
       <CizimIletisi
-        baslik="Avan hesabının askısıyla bu kuyuya asansör kurulamadı"
-        alt="Çizim, avan hesabındaki askı oranını ve makine tipini kullanır;  hesap sayfası ile pafta aynı asansörü gösterir.  Avan kartında aşağıdaki seçilirse çizim çıkar ( motor gücü hesabı da buna göre yenilenir )."
+        baslik={
+          r.beyan_turu === "kabin"
+            ? "Avan kartındaki kabin, çizimin kabini değil"
+            : "Avan hesabının askısıyla bu kuyuya asansör kurulamadı"
+        }
+        alt={
+          r.beyan_turu === "kabin"
+            ? "Çizim, trafik hesabının kapasitesinin kabinini kullanır ( hazır asansörün kabini — büyütülmez ).  Avan hesabı kabini karttan okur;  hesap sayfası ile pafta aynı kabini göstersin diye kart aşağıdaki ölçülere getirilince çizim çıkar ( kabin aydınlatması hesabı da buna göre yenilenir )."
+            : "Çizim, avan hesabındaki askı oranını ve makine tipini kullanır;  hesap sayfası ile pafta aynı asansörü gösterir.  Avan kartında aşağıdaki seçilirse çizim çıkar ( motor gücü hesabı da buna göre yenilenir )."
+        }
         donuyor={donuyor}
       >
         <div className="mt-4 overflow-hidden rounded-orta border border-uyari-cizgi">

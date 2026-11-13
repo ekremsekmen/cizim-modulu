@@ -246,6 +246,8 @@ export interface AvanCizimYaniti {
   durum: "uygun" | "gereken" | "sigmaz" | "eksik" | "paket_yok" | "beyan" | "hata";
   /**  kart:  avan kartının alanı;  yeni:  karta yazılacak değer;  *_yazi:  ekrandaki yazımı  */
   beyan?: { kart: string; etiket: string; yeni: string; eski_yazi: string; yeni_yazi: string }[];
+  /**  "kabin":  kartın kabini çizimin kabininden farklı ( yoksa askı / makine tipi )  */
+  beyan_turu?: "kabin";
   hata?: string;
   eksik?: string[];
   gereken?: { anahtar: string; etiket: string; eski: string | null; yeni: string; sebep: string }[];
@@ -411,6 +413,8 @@ export interface AvanKotBilgisi {
   /**  Tavan döşemesinin kalınlığı:  kartta girilen, boşsa kuraldan ( doseme_kural )  */
   doseme: number;
   doseme_kural: number;
+  /**  Çizimin kabini ( hazır asansörünki, mm ) — bu yük için hazır asansör yoksa null  */
+  kabin: { kabin_boyu: number; kabin_genisligi: number } | null;
 }
 
 export interface AvanYaniti {

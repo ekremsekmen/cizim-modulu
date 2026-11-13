@@ -1198,6 +1198,9 @@ class OnYuzUctanUca(unittest.TestCase):
         metin = ana.inner_text()
         self.assertIn("KUYU PLANI", metin)
         self.assertNotIn("KASNAK DÜZENLEMESİ", metin)
+        #  Adım şeridi ( 13 Kas ):  çizim çıkınca Çizimler adımı "tamam" işaretli
+        isaret = self.sayfa.locator('nav[aria-label="Adımlar"] a[href="/avan/cizimler"] span').first
+        self.assertIn("bg-uygun", isaret.get_attribute("class"))
 
         #  KUYU YÜKSEKLİĞİ KOTLARDAN ( 13 Kas ):  kartta elle yazılmış Hk ( 34 ) artık okunmaz —
         #  +34,60 − ( −1,80 ) = 36,4 m;  Hesaplar adımında aynı kot tablosu ve türetilen Hk
@@ -1252,6 +1255,7 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(yanit["durum"], "gereken")
         self.assertNotIn("cizim", yanit)
         self.sayfa.wait_for_selector("text=mimardan istenecek")
+        self.assertIn("bg-uyari", isaret.get_attribute("class"))
         self.assertIn("Kuyu tavanı kotu", ana.inner_text())
         self.assertIn(yanit["gereken"][0]["yeni"], ana.inner_text())
         self.assertEqual(ana.locator("svg[data-cizim], figure svg").count(), 0)
@@ -1286,6 +1290,26 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(istek["girdiler"]["asansorler"][0]["i_palanga"], "2")
         self.assertEqual(yanit["durum"], "uygun", yanit)
         self.sayfa.wait_for_selector("main svg", state="attached")
+
+        #  KARTIN KABİNİ ( 13 Kas ):  çizimin kabini hazır asansörünkidir ( 630 kg:  1400 × 1100 );
+        #  kartta başka kabin varsa çizim çıkmaz, "Avan kartına uygula" kartı düzeltir.  Hesaplar
+        #  adımındaki "Çizimin kabini" düğmesi de aynı ölçüleri yazar.
+        self.sayfa.evaluate(
+            """() => { const p = JSON.parse(localStorage.getItem('asansor:avan'));
+                p.avanAsansorleri[0].kabin_boyu = '1500';
+                localStorage.setItem('asansor:avan', JSON.stringify(p)); }"""
+        )
+        self.sayfa.reload()
+        _istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual((yanit["durum"], yanit.get("beyan_turu")), ("beyan", "kabin"), yanit)
+        self.sayfa.wait_for_selector("text=Avan kartındaki kabin, çizimin kabini değil")
+        self.assertIn("Kabin boyu a: 1500 mm → 1400 mm", " ".join(ana.inner_text().split()))
+        self.sayfa.goto(self.url + "/avan/hesaplar")
+        self.sayfa.get_by_role("button", name=re.compile("Çizimin kabini · 1400 × 1100 mm")).click()
+        self.assertEqual(self.sayfa.get_by_label("Kabin boyu a").input_value(), "1400")
+        self.sayfa.goto(self.url + "/avan/cizimler")
+        _istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(yanit["durum"], "uygun", yanit)
 
     def test_avan_belgeleri_guncel_sonucu_bekler(self):
         """25 Eki ( dış inceleme ):  avan PDF'i kartların kapasite / hızını ekrandaki
