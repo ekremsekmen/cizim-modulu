@@ -119,6 +119,8 @@ AVAN_AS_SAYISAL = (
     #  avan çizimi ( uclar/avan_cizim_uclari.py ):  hesaba girmez, seçiciye gider
     "kuyu_derinligi",
     "tavan_dosemesi",
+    #  trafik hesabının kapısı ( ekran köprüden koyar ):  avan çiziminin beyanı
+    "kapi_genisligi",
     "kabin_boyu",
     "kabin_genisligi",
     "Gk_elle",
@@ -140,6 +142,7 @@ AVAN_AS_ETIKET = {
     "kapasite": "Kapasite",
     "kuyu_derinligi": "Kuyu derinliği",
     "tavan_dosemesi": "Tavan döşemesi kalınlığı",
+    "kapi_genisligi": "Kapı genişliği",
     **{k: ad for k, ad, _poz in avan_hesabi.ZORUNLU_ALANLAR},
     **{k: ad for k, ad, _aralik, _birim in avan_hesabi.ASANSOR_SINIRLARI},
 }
@@ -283,6 +286,25 @@ def _trafik_koprusu(ham):
     }
 
 
+def _kopruye_kapi(kopru, s):
+    """Köprünün asansörlerine trafik hesabının KAPISI ( genişlik, tip ) ve trafik sütunu:
+    avan çizimi kapıyı buradan alır ( kullanıcı kararı 14 Kas ), kapı önerisi o sütuna yazılır.
+    Tek tipte bütün asansörler aynı kapıdır ( sutun None:  hepsi )."""
+    o = s.get("ozet") or {}
+    for j, a in enumerate(kopru.get("asansorler") or []):
+        if kopru.get("tip") == "tek":
+            a.update(kapi_genisligi=o.get("kapi_genisligi"), kapi_tipi=o.get("kapi_tipi"), sutun=None)
+        else:
+            t = (s.get("asansorler") or [])[j]
+            no = t.get("no")
+            a.update(
+                kapi_genisligi=t.get("kapi_genisligi"),
+                kapi_tipi=t.get("kapi_tipi"),
+                sutun=no - 1 if isinstance(no, int) else None,
+            )
+    return kopru
+
+
 def _asansor_adi(a):
     """Avan asansörünün adı ( hesap sayfasının başlığı gibi:  "1 NOLU ASANSÖR  ·  İnsan" )."""
     return "  ·  ".join(t for t in (a.get("baslik"), a.get("tanim")) if t)
@@ -366,7 +388,7 @@ def api_trafik(veri: dict = Body(...)):
         s = trafik.hesapla(g)
         #  Avan sekmesi bu özeti geri gönderir; kapasite / hız / kuyu yüksekliği
         #  tutarsızlığı orada uyarı olarak görünür.
-        s["avan_koprusu"] = trafik.trafik_ozeti(s)
+        s["avan_koprusu"] = _kopruye_kapi(trafik.trafik_ozeti(s), s)
         #  Kapağın boş bırakılan asansör alanları hesaptan dolar ( ekranda
         #  gri yer tutucu olarak görünür, çıktıya o basılır ).
         s["kapak_bilgileri"] = kapak.trafikten(s)

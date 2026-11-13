@@ -18,6 +18,7 @@ from cizim import avan_kipi, istek_onbellegi, katlar, kopru
 from motor.avan import avan_hesabi, tablolar
 from motor.ortak.adimlar import evet_mi
 from motor.uygulama import uygulama_hesabi
+from tasarim import alanlar
 from temel import sayi_mi
 from uclar import avan_secici, cizim_uclari, uygulama_istegi
 
@@ -31,7 +32,38 @@ ISTEK = ("kuyu_derinligi", *avan_secici.KOTLAR)
 #  AVANIN BEYANI ( 12 Kas ):  avan motor hesabının askı oranı ve makine tipi çizimde aynen
 #  durur — hesap sayfası "1:1 dişli" derken pafta "2:1 dişlisiz" çizmez.  Seçicinin
 #  girdisi ( uygulamanın alanı ) → kartın alanı ve ekrandaki adı
-BEYAN = {"aski_orani": ("i_palanga", "Askı oranı"), "makine_tipi": ("makine_tipi", "Makine tipi")}
+BEYAN = {
+    "aski_orani": ("i_palanga", "Askı oranı"),
+    "makine_tipi": ("makine_tipi", "Makine tipi"),
+    #  Kapı trafik hesabındadır ( kullanıcı kararı 14 Kas ):  öneri trafiğin sütununa yazılır
+    "kapi_genisligi": ("kapi_genisligi", "Kapı genişliği"),
+    "kat_kapisi_tipi": ("kapi_tipi", "Kapı tipi"),
+}
+TRAFIKTE = ("kapi_genisligi", "kat_kapisi_tipi")
+#  Trafik hesabının kapı tipi ( MMO/697 Tablo-4 ) → kat kapısının ailesi ( avan_secici.kapi_ailesi ).
+#  Trafik yalnız aileyi seçer;  kanat sayısı ve açılış yönü hazır asansörden / seçiciden.
+KAPI_AILESI = {
+    "Teleskopik Otomatik": "Teleskopik",
+    "Merkezden Açılan Oto.": "Otomatik Merkezi",
+    "Kabin İçi Oto. Kat K.Ç.": "Manuel",
+}
+
+
+def _kapi_beyani(a, taslak):
+    """Trafik hesabının kapısı ( kartta kapi_genisligi / kapi_tipi — ekran trafikten koyar ) →
+    seçicinin beyanı.  Tip hazır asansörünkiyle aynı ailedense hazır asansörün tipi aynen
+    ( yönü ve kanat sayısıyla );  değilse o ailenin tipi, hazır asansörün açılış yönüyle."""
+    b = {}
+    if sayi_mi(a.get("kapi_genisligi")) and a["kapi_genisligi"] > 0:
+        b["kapi_genisligi"] = a["kapi_genisligi"]
+    aile = KAPI_AILESI.get(a.get("kapi_tipi"))
+    if aile and taslak:
+        tip = taslak["asansor"].get("kat_kapisi_tipi") or alanlar.ALAN["kat_kapisi_tipi"].varsayilan
+        if avan_secici.kapi_ailesi(tip) != aile:
+            yon = "Sağ" if tip.endswith("Sağ") else "Sol"
+            tip = aile if aile == "Otomatik Merkezi" else f"{aile} {yon}"
+        b["kat_kapisi_tipi"] = tip
+    return b
 
 
 #  KABİN ( 13 Kas ):  çizimin kabini trafik hesabının kapasitesinin kabinidir ( hazır asansörünki —
@@ -99,6 +131,8 @@ def _beyan(a, sabitler):
 
 
 def _yazi(anahtar, deger):
+    if anahtar == "kapi_genisligi":
+        return f"{deger} mm"
     return tablolar.aski_orani_metni(int(deger)) if anahtar == "aski_orani" else deger
 
 
@@ -110,6 +144,7 @@ def mimari(a, ortak, sabitler=None):
     if not m["mk_yok"]:
         m.update({k: ortak.get(k) for k in avan_secici.MIMARI_GENEL})
     m.update(_beyan(a, sabitler))
+    m.update(_kapi_beyani(a, sayi_mi(yuk) and avan_secici.paketler().get((int(yuk), m["mk_yok"]))))
     return m
 
 
@@ -169,6 +204,15 @@ def secim(g, i):
             eski_yazi=_yazi(b["anahtar"], b["eski"]),
             yeni_yazi=_yazi(b["anahtar"], b["yeni"]),
         )
+        #  Kapı trafik hesabının girdisidir:  öneri trafiğin diliyle ( tip adı ), trafiğe yazılır
+        if b["anahtar"] in TRAFIKTE:
+            b["yer"] = "trafik"
+            if b["anahtar"] == "kat_kapisi_tipi":
+                aile = avan_secici.kapi_ailesi(b["yeni"])
+                b["yeni"] = b["yeni_yazi"] = next(t for t, x in KAPI_AILESI.items() if x == aile)
+                b["eski_yazi"] = asansorler[i].get("kapi_tipi") or b["eski"]
+    if any(b.get("yer") == "trafik" for b in r.get("beyan") or []):
+        r["beyan_turu"] = "kapi"
     return r
 
 

@@ -152,28 +152,36 @@ class AvanCizimUcu(unittest.TestCase):
     def test_kartin_askisiyla_kurulamayan(self):
         """Kartın askısıyla asansör kurulamıyorsa çizim ÇIKMAZ ( paketin askısıyla çizip hesap
         sayfasıyla çelişmek yerine );  kartta seçilecek değer döner, uygulanınca çizim çıkar.
-        Makine daireli 800 kg paketi 1:1;  avanın ofis standardı 2:1."""
-        a, pg = T800MD["asansor"], T800MD["proje_geneli"]
-        ortak = {"mk_yok": False, "mk_uzunluk": pg["mk_uzunluk"], "mk_genislik": pg["mk_genislik"]}
-        k = kart(a, makine_tipi="Dişlisiz")
-        r = yanit(govde(k, ortak))
+        Makine dairesizde 1:1 askı ve dişli makine çizilmez ( programın kuralı )."""
+        k = kart(T630, i_palanga="1")
+        r = yanit(govde(k))
         self.assertEqual(r["durum"], "beyan", r)
         self.assertNotIn("cizim", r)
         self.assertNotIn("istek", r)
-        #  Yalnız gereken değişiklik:  makine tipi ( paket dişli ) kartınki kalır
         self.assertEqual(
             [(b["kart"], b["etiket"], b["eski_yazi"], b["yeni_yazi"], b["yeni"]) for b in r["beyan"]],
-            [("i_palanga", "Askı oranı", "2:1", "1:1", "1")],
+            [("i_palanga", "Askı oranı", "1:1", "2:1", "2")],
         )
-        r = yanit(govde({**k, **{b["kart"]: b["yeni"] for b in r["beyan"]}}, ortak))
+        r = yanit(govde({**k, **{b["kart"]: b["yeni"] for b in r["beyan"]}}))
         self.assertEqual(r["durum"], "uygun", r)
-        i = r["istek"]["asansorler"][0]
-        self.assertEqual((i["aski_orani"], i["makine_tipi"]), ("1", "Dişlisiz"))
-        #  Makine dairesizde 1:1 dişli:  ikisi de değişmeli
+        self.assertEqual(r["istek"]["asansorler"][0]["aski_orani"], "2")
+        #  1:1 dişli:  ikisi de değişmeli
         r = yanit(govde(kart(T630, i_palanga="1", makine_tipi="Dişli")))
         self.assertEqual(r["durum"], "beyan", r)
         self.assertEqual(
             {b["kart"]: b["yeni"] for b in r["beyan"]}, {"i_palanga": "2", "makine_tipi": "Dişlisiz"}
+        )
+
+    def test_makine_dairelide_iki_bir_aski(self):
+        """Makine daireli 800 kg paketi 1:1;  avanın ofis standardı 2:1.  14 Kas'tan beri 2:1 de
+        kurulur ( askı kasnakları kabin üstünde ):  kartın askısı çizimde aynen durur."""
+        a, pg = T800MD["asansor"], T800MD["proje_geneli"]
+        ortak = {"mk_yok": False, "mk_uzunluk": pg["mk_uzunluk"], "mk_genislik": pg["mk_genislik"]}
+        r = yanit(govde(kart(a, makine_tipi="Dişlisiz"), ortak))
+        self.assertEqual(r["durum"], "uygun", r)
+        i = r["istek"]["asansorler"][0]
+        self.assertEqual(
+            (i["aski_orani"], i["makine_tipi"], i["aski_duzeni"]), ("2", "Dişlisiz", "Kabin üstü")
         )
 
     def test_kartin_kabini_cizimin_kabini(self):
@@ -200,6 +208,40 @@ class AvanCizimUcu(unittest.TestCase):
         self.assertEqual(yanit(govde(kart(T630)))["durum"], "uygun")
         #  Hazır asansörü olmayan kapasite:  kabin bilinmez, sonuç eskisi gibi
         self.assertEqual(yanit(govde(kart(T630, kapasite="6", kabin_boyu="1500")))["durum"], "paket_yok")
+
+    def test_kapi_trafik_hesabindan(self):
+        """Kullanıcı kararı ( 14 Kas ):  çizimin kapısı trafik hesabınınkidir.  Ekran köprüdeki
+        kapıyı karta koyar ( kapi_genisligi, kapi_tipi — trafiğin adlarıyla );  aynı ailede
+        hazır asansörün tipi kalır ( yönüyle ), başka ailede o ailenin tipi çizilir."""
+        r = yanit(govde(kart(T630, kapi_genisligi="800", kapi_tipi="Teleskopik Otomatik")))
+        a = r["istek"]["asansorler"][0]
+        self.assertEqual(
+            (r["durum"], a["kapi_genisligi"], a["kat_kapisi_tipi"]), ("uygun", "800", "Teleskopik Sol")
+        )
+        r = yanit(govde(kart(T630, kapi_genisligi="900", kapi_tipi="Merkezden Açılan Oto.")))
+        self.assertEqual(r["durum"], "uygun", r)
+        a = r["istek"]["asansorler"][0]
+        self.assertEqual((a["kapi_genisligi"], a["kat_kapisi_tipi"]), ("900", "Otomatik Merkezi"))
+        self.assertTrue(any("Otomatik Merkezi" in y for y in yazilar(r["cizim"])))
+        #  Köprü:  trafiğin kapısı ve sütunu asansörlere ( tek tipte bütün sütunlar )
+        k = avan_uclari._kopruye_kapi(
+            {"tip": "tek", "asansorler": [{"P": 8}, {"P": 8}]},
+            {"ozet": {"kapi_genisligi": 900, "kapi_tipi": "Teleskopik Otomatik"}},
+        )
+        self.assertEqual(
+            k["asansorler"][1],
+            {"P": 8, "kapi_genisligi": 900, "kapi_tipi": "Teleskopik Otomatik", "sutun": None},
+        )
+        k = avan_uclari._kopruye_kapi(
+            {"tip": "coklu", "asansorler": [{"P": 8}, {"P": 13}]},
+            {
+                "asansorler": [
+                    {"no": 1, "kapi_genisligi": 800, "kapi_tipi": "x"},
+                    {"no": 3, "kapi_genisligi": 900, "kapi_tipi": "y"},
+                ]
+            },
+        )
+        self.assertEqual([(a["kapi_genisligi"], a["sutun"]) for a in k["asansorler"]], [(800, 0), (900, 2)])
 
     def test_avanin_motor_gucu_tabloda(self):
         """Bilgi tablosunda motor gücü AVANIN KENDİ hesabınınkidir ( Nsç ), seçicinin motoru
