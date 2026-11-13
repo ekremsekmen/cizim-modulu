@@ -6,8 +6,19 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { NavLink, useLocation, useNavigate, useParams } from "react-router";
 import { Check, ChevronRight, CircleAlert, Download, FileArchive, FilePlus, FolderOpen, Info, Loader2, Plus, Save, Undo2, X } from "lucide-react";
-import { api, indir, paketNotu, type AvanCizimYaniti, type AvanKoprusu, type AvanYaniti, type Secenekler, type TrafikYaniti } from "@/lib/api";
-import { hizliDoldur } from "@/lib/kotlar";
+import {
+  api,
+  indir,
+  paketNotu,
+  type AvanCizimYaniti,
+  type AvanKotBilgisi,
+  type AvanKoprusu,
+  type AvanYaniti,
+  type Deger,
+  type OlcuKaynagi,
+  type Secenekler,
+  type TrafikYaniti,
+} from "@/lib/api";
 import { useGecikmeli, type Ham } from "@/lib/proje";
 import {
   acilisiOku,
@@ -35,6 +46,8 @@ import {
   type EkNufus,
 } from "@/lib/avan";
 import { avanHukmu, durumYaz } from "@/lib/durum";
+import { DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, hizliDoldur } from "@/lib/kotlar";
+import { KatGirisi } from "@/uygulama/KotTablosu";
 import { KAPAK_GRUPLARI } from "@/lib/kapak";
 import { cn, sayiYaz } from "@/lib/utils";
 import { AnaSayfaBaglantisi, BasvuruBaglantilari, SunucuBekleniyor, UstSerit } from "@/components/Kabuk";
@@ -45,6 +58,7 @@ const PdfOnizleme = lazy(() => import("@/components/PdfOnizleme").then((m) => ({
 
 //  Tuval büyüktür:  yalnız çizimler adımı açılınca iner
 const Tuval = lazy(() => import("@/uygulama/Tuval").then((m) => ({ default: m.Tuval })));
+import type { OlcuSecimi } from "@/uygulama/Tuval";
 
 const ADIMLAR = [
   { yol: "trafik", ad: "Trafik hesabı" },
@@ -347,7 +361,7 @@ export function AvanCalisma() {
         />
       )}
       {adim === "cizimler" && (
-        <CizimlerAdimi p={p} setP={setP} kopru={kopru} girdi={avanGirdi} trafikUlasilamadi={!!trafik.error} geri={() => git("/avan/trafik")} />
+        <CizimlerAdimi p={p} setP={setP} kopru={kopru} girdi={avanGirdi} sonuc={avan.data} trafikUlasilamadi={!!trafik.error} geri={() => git("/avan/trafik")} />
       )}
       {adim === "kapak" && <KapakAdimi p={p} setP={setP} sec={sec.data} kapak={kapakVerisi} bekleme={bekleme} />}
     </div>
@@ -912,6 +926,92 @@ function AvanAlanSatiri({
   );
 }
 
+/**  KATLAR ( 13 Kas — kullanıcı:  "Hk kotlardan hesaplanmalı;  uygulama projesindeki kot
+     tablosunun aynısı avanda da" ):  uygulamanın kot tablosu avan kartına yazar.  Kuyu
+     yüksekliği ve seyir sunucuda kotlardan türer ( kot ) — ekran hesaplamaz.  Hesaplar ve
+     Çizimler adımı aynı tabloyu gösterir ( aynı kart ).  Kartta hiç kot yoksa ve eski
+     projeden elle yazılmış Hk varsa o geçerlidir;  kutusu yalnız o zaman görünür.  */
+function AvanKatlar({
+  on,
+  h,
+  yaz,
+  mrl,
+  kot,
+  kopru,
+}: {
+  /**  Kutu kimliklerinin ön eki ( adım başına )  */
+  on: string;
+  h: Ham;
+  yaz: (k: string, d: string) => void;
+  mrl: boolean;
+  kot: AvanKotBilgisi | null | undefined;
+  kopru: AvanKoprusu;
+}) {
+  const kotVar = [DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU].some((k) => (h[k] ?? "").trim() !== "");
+  const mm = (x: number | null | undefined) => (typeof x === "number" ? Math.round(x * 1000) : undefined);
+  //  Kot tablosunun özeti uygulamanın adlarıyla ( durak, seyir m, KY ve son kat mm )
+  const kullanilan = kot
+    ? ({
+        durak_adedi: kot.durak ?? undefined,
+        seyir_mesafesi: kot.seyir ?? undefined,
+        kuyu_dibi: mm(kot.kuyu_dibi),
+        son_kat_yuksekligi: mm(kot.ust_bosluk),
+        _kot: kot.adlar,
+      } as unknown as Record<string, Deger>)
+    : undefined;
+  //  Trafiğin kat düzeni:  ana giriş ±0,00, altında bodrum durakları, üstünde N kat
+  const duraklar = kopru.N + 1 + (kopru.bodrum || 0);
+  return (
+    <div>
+      <KatGirisi
+        h={h}
+        kullanilan={kullanilan}
+        daireli={!mrl}
+        doseme={kot?.doseme ?? 0}
+        etkin={() => undefined}
+        yaz={yaz}
+        bos={
+          <Dugme
+            boy="kucuk"
+            onClick={() => yaz(DURAK_KOTLARI, hizliDoldur(duraklar, -(kopru.bodrum || 0) * kopru.h * 1000, kopru.h * 1000))}
+          >
+            Trafikten doldur · {duraklar} durak
+          </Dugme>
+        }
+      />
+      {kotVar && (
+        <Satir etiket="Tavan döşemesi kalınlığı" id={`${on}-tavan_dosemesi`}>
+          <Girdi
+            id={`${on}-tavan_dosemesi`}
+            value={h.tavan_dosemesi ?? ""}
+            birim="mm"
+            placeholder={kot?.doseme_kural ? String(kot.doseme_kural) : undefined}
+            onChange={(ev) => yaz("tavan_dosemesi", ev.target.value)}
+          />
+        </Satir>
+      )}
+      {(kot?.hata ?? []).map((x) => (
+        <p key={x} className="mb-1 text-[12px] font-medium text-red">
+          {x}
+        </p>
+      ))}
+      {kotVar ? (
+        <Satir etiket="Hk — Kuyu yüksekliği" id={`${on}-Hk`} ipucu="kotlardan">
+          <output id={`${on}-Hk`} className="sayi block text-right text-[13px] text-metin-2">
+            {typeof kot?.Hk === "number" ? `${sayiYaz(kot.Hk)} m` : "kuyu dibi ve kuyu tavanı kotu girilince"}
+          </output>
+        </Satir>
+      ) : (
+        (h.Hk ?? "").trim() !== "" && (
+          <Satir etiket="Hk — Kuyu yüksekliği" id={`${on}-Hk`} ipucu="elle — kotlar girilince kotlardan">
+            <Girdi id={`${on}-Hk`} value={h.Hk ?? ""} birim="m" onChange={(ev) => yaz("Hk", ev.target.value)} />
+          </Satir>
+        )
+      )}
+    </div>
+  );
+}
+
 function HesaplarAdimi({
   p,
   setP,
@@ -1015,9 +1115,13 @@ function HesaplarAdimi({
                 secenekler={Object.keys(sec.makine_tipleri).map((x) => ({ deger: x, ad: x }))}
               />
             </Satir>
-            {AVAN_TEMEL.map((a) => (
-              <AvanAlanSatiri key={a.k} a={a} sec={sec} ofis={ofis} h={h} yaz={ay} />
-            ))}
+            {AVAN_TEMEL.map((a) =>
+              a.k === "Hk" ? (
+                <AvanKatlar key={a.k} on="a" h={h} yaz={ay} mrl={mrl} kot={sonuc?.kotlar?.[i]} kopru={kopru} />
+              ) : (
+                <AvanAlanSatiri key={a.k} a={a} sec={sec} ofis={ofis} h={h} yaz={ay} />
+              ),
+            )}
             <button
               type="button"
               onClick={() => setFarkliAcik(!farkliAcik)}
@@ -1169,6 +1273,7 @@ function CizimlerAdimi({
   setP,
   kopru,
   girdi,
+  sonuc,
   trafikUlasilamadi,
   geri,
 }: {
@@ -1177,6 +1282,8 @@ function CizimlerAdimi({
   kopru: AvanKoprusu | null;
   /**  Avan hesabının isteği ( kartlar + ortak ) — seçici aynı girdiyi okur  */
   girdi: unknown;
+  /**  Avan hesabının yanıtı:  kot tablosunun türetilenleri ( kotlar )  */
+  sonuc: AvanYaniti | undefined;
   trafikUlasilamadi: boolean;
   geri: () => void;
 }) {
@@ -1193,6 +1300,30 @@ function CizimlerAdimi({
     //  ( asansörsüz ) girdidir — onunla istenirse "bu asansör yok" dönerdi
     enabled: !!kopru && g === girdi,
   });
+  //  ÖLÇÜYE TIKLAMA ( 13 Kas ):  avanda çizim seçicinindir;  yalnız MİMARİDEN gelen ölçüler
+  //  ( kuyu genişliği / derinliği, kotlar, tavan döşemesi, makine dairesi ) değişir — tıklanınca
+  //  soldaki kutusu odaklanır.  Kaynağı uygulamanın ölçü ucu söyler ( seçicinin isteğiyle ).
+  //  Seçim, yapıldığı girdi ve asansörle tutulur:  girdi değişince ( yeni çizim ) düşer —
+  //  ölçünün sırası değişmiş olabilir
+  const [secim, setSecim] = useState<{ o: OlcuSecimi; girdi: unknown; asansor: number } | null>(null);
+  const olcu = secim && secim.girdi === girdi && secim.asansor === secili ? secim.o : null;
+  const setOlcu = (o: OlcuSecimi | null) => setSecim(o && { o, girdi, asansor: secili });
+  const istek = cizim.data?.durum === "uygun" ? cizim.data.istek : undefined;
+  const kaynak = useQuery({
+    queryKey: ["avan-olcu", istek, olcu?.cizim, olcu?.index, olcu?.metin],
+    queryFn: () => api.olcu(istek!, 0, olcu!.cizim, olcu!.index, olcu!.metin),
+    enabled: !!olcu && !!istek,
+  });
+  const yan = useRef<HTMLElement>(null);
+  const mimari = olcu && kaynak.data?.aktif ? mimariKaynagi(kaynak.data.kaynaklar ?? []) : null;
+  const hedef = mimari ? kutuSecicisi(mimari) : null;
+  useEffect(() => {
+    if (!hedef) return;
+    const kutu = yan.current?.querySelector<HTMLInputElement>(hedef);
+    kutu?.focus();
+    kutu?.select();
+    kutu?.scrollIntoView({ block: "nearest" });
+  }, [hedef, olcu]);
   if (!kopru)
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -1215,14 +1346,11 @@ function CizimlerAdimi({
   const mrl = (p.ortak.mk_yok ?? "true") === "true";
   const guncel = g === girdi && cizim.isSuccess && !cizim.isFetching && !cizim.isPlaceholderData;
   const r = cizim.data;
-  //  Trafiğin kat düzeni:  ana giriş ±0,00, altında bodrum durakları, üstünde N kat
-  const duraklar = kopru.N + 1 + (kopru.bodrum || 0);
-  const trafiktenDoldur = () =>
-    ay("durak_kotlari", hizliDoldur(duraklar, -(kopru.bodrum || 0) * kopru.h * 1000, kopru.h * 1000));
+
 
   return (
     <div className="flex min-h-0 flex-1">
-      <aside className="w-[420px] shrink-0 overflow-y-auto border-r border-cizgi bg-yuzey">
+      <aside ref={yan} className="w-[420px] shrink-0 overflow-y-auto border-r border-cizgi bg-yuzey">
         <div className="flex flex-wrap items-center gap-1 border-b border-cizgi px-4 py-3">
           {asansorler.map((a, j) => (
             <button
@@ -1251,35 +1379,7 @@ function CizimlerAdimi({
               <Girdi id={`c-${k}`} value={h[k] ?? ""} birim={b} onChange={(ev) => ay(k, ev.target.value)} />
             </Satir>
           ))}
-          <div>
-            <div className="flex items-baseline justify-between">
-              <label htmlFor="c-durak_kotlari" className="text-[12.5px] text-metin-2">
-                Durak kotları
-              </label>
-              <button type="button" onClick={trafiktenDoldur} className="text-[12px] font-medium text-vurgu-koyu hover:underline">
-                Trafikten doldur · {duraklar} durak
-              </button>
-            </div>
-            <Girdi
-              id="c-durak_kotlari"
-              className="mt-1"
-              yazi
-              maxLength={600}
-              value={h.durak_kotlari ?? ""}
-              placeholder="±0,00; +3,00; +6,00"
-              onChange={(ev) => ay("durak_kotlari", ev.target.value)}
-            />
-            <p className="mt-1 text-[11.5px] text-metin-3">Alttan üste, noktalı virgülle;  bitmiş döşeme kotları ( m ).</p>
-          </div>
-          {[
-            ["kuyu_dibi_kotu", "Kuyu dibi kotu", "-1,60"],
-            ["kuyu_tavani_kotu", "Kuyu tavanı kotu", "+19,20"],
-            ...(!mrl ? [["md_zemini_kotu", "Makine dairesi zemini kotu", "+18,15"]] : []),
-          ].map(([k, e, yer]) => (
-            <Satir key={k} etiket={e} id={`c-${k}`}>
-              <Girdi id={`c-${k}`} yazi maxLength={32} value={h[k] ?? ""} birim="m" placeholder={yer} onChange={(ev) => ay(k, ev.target.value)} />
-            </Satir>
-          ))}
+          <AvanKatlar on="c" h={h} yaz={ay} mrl={mrl} kot={sonuc?.kotlar?.[i]} kopru={kopru} />
         </Kume>
         <Kume baslik="Bina" alt="Bütün asansörler için bir kez">
           <Satir etiket="Makine dairesi yok ( MRL )" id="c-mrl">
@@ -1315,9 +1415,18 @@ function CizimlerAdimi({
                 Uygulama projesinde çözülecek:  {r.acik_bolum_adlari.join(" · ")} ( ürün seçimi — avan çizimini etkilemez ).
               </p>
             )}
+            {olcu && kaynak.data && (
+              <p role="status" className="border-b border-cizgi bg-yuzey px-4 py-1.5 text-[12px] text-metin-2">
+                <Info className="mr-1 inline size-3.5 align-[-2px]" />
+                <span className="sayi font-medium text-metin">{olcu.metin}</span>
+                {mimari
+                  ? ` — mimariden:  ${[...new Set((kaynak.data.kaynaklar ?? []).map((k) => k.etiket))].join(" · ")}.  Soldaki kutudan değiştirin.`
+                  : " — bu ölçüyü program seçer;  avan projesinde değiştirilmez ( uygulama projesinde kesinleşir )."}
+              </p>
+            )}
             <div className="relative min-h-0 flex-1 overflow-hidden">
               <Suspense fallback={null}>
-                <Tuval cizimler={r.cizim.cizimler} durum={guncel ? "guncel" : "yukleniyor"} secili={null} olcuSec={() => {}} />
+                <Tuval cizimler={r.cizim.cizimler} durum={guncel ? "guncel" : "yukleniyor"} secili={olcu} olcuSec={(o) => setOlcu(o)} />
               </Suspense>
             </div>
           </>
@@ -1338,6 +1447,37 @@ function CizimlerAdimi({
       </main>
     </div>
   );
+}
+
+/**  Avanda mimariden gelen girdiler ( kart + bina ) — çizimde yalnız bunların ölçüsü değişir  */
+const MIMARI_GIRDILERI = new Set([
+  "kuyu_genisligi",
+  "kuyu_derinligi",
+  "durak_kotlari",
+  "kuyu_dibi_kotu",
+  "kuyu_tavani_kotu",
+  "md_zemini_kotu",
+  "tavan_dosemesi",
+  "mk_uzunluk",
+  "mk_genislik",
+]);
+
+/**  Ölçünün odaklanacak kaynağı:  ölçüyü belirleyen girdilerin HEPSİ mimaridense ( ofis
+     standardı sayılmaz ) değiştirilebilen ilki, yoksa sonuncusu ( kat arasında üstteki
+     durak );  bir tanesi bile seçicininse null — ölçü avanda değişmez.  */
+function mimariKaynagi(kaynaklar: OlcuKaynagi[]): OlcuKaynagi | null {
+  const girdiler = kaynaklar.filter((k) => k.yer !== "ofis");
+  if (!girdiler.length || !girdiler.every((k) => MIMARI_GIRDILERI.has(k.anahtar))) return null;
+  return girdiler.find((k) => k.degistirilir) ?? girdiler[girdiler.length - 1];
+}
+
+/**  Kaynağın soldaki kutusu ( Çizimler adımı:  kimlikler "c-…", kot tablosunun etiketleri )  */
+function kutuSecicisi(k: OlcuKaynagi): string {
+  if (k.anahtar === "durak_kotlari") return `[aria-label="${(k.durak ?? 0) + 1}. durağın kotu"]`;
+  if (k.anahtar === "kuyu_dibi_kotu") return '[aria-label="Kuyu dibi kotu"]';
+  if (k.anahtar === "kuyu_tavani_kotu") return '[aria-label^="Kuyu tavanı kotu"]';
+  if (k.anahtar === "md_zemini_kotu") return '[aria-label="Makine dairesi zemini kotu"]';
+  return `#c-${k.anahtar}`;
 }
 
 /**  Çizim alanının ortasındaki ileti ( bekleme, hata, çizim çıkmayan sonuçlar )  */

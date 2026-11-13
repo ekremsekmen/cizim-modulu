@@ -246,6 +246,10 @@ const AVAN_ASANSORU = [
   "kuyu_dibi_kotu",
   "kuyu_tavani_kotu",
   "md_zemini_kotu",
+  //  Kot tablosunun kat adları ve giriş katı ( 13 Kas )
+  "durak_adlari",
+  "giris_duragi",
+  "tavan_dosemesi",
 ] as const;
 
 const AVAN_ORTAK = ["temel_a", "temel_b", "mk_uzunluk", "mk_genislik"] as const;

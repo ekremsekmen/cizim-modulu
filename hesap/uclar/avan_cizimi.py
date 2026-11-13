@@ -14,7 +14,7 @@ Seçici ( uclar/avan_secici.py ) bu kuyuya doğrulanmış asansörü bulur.
 
 import copy
 
-from cizim import avan_kipi, istek_onbellegi
+from cizim import avan_kipi, istek_onbellegi, katlar, kopru
 from motor.avan import avan_hesabi, tablolar
 from motor.ortak.adimlar import evet_mi
 from motor.uygulama import uygulama_hesabi
@@ -22,10 +22,10 @@ from temel import sayi_mi
 from uclar import avan_secici, cizim_uclari, uygulama_istegi
 
 #  Avan kartındaki mimari alanlar ( kotlar metindir — uygulamanın kot kutuları gibi okunur )
-KART = ("kuyu_genisligi", "kuyu_derinligi", *avan_secici.KOTLAR)
+KART = ("kuyu_genisligi", "kuyu_derinligi", *avan_secici.KOTLAR, *avan_secici.ADLAR, "tavan_dosemesi")
 #  Çizim İSTENDİ sayılan alanlar:  kuyu genişliği avan hesabının da girdisidir, tek başına
 #  çizim isteği değildir ( eski projelerde de doludur )
-ISTEK = tuple(k for k in KART if k != "kuyu_genisligi")
+ISTEK = ("kuyu_derinligi", *avan_secici.KOTLAR)
 
 
 #  AVANIN BEYANI ( 12 Kas ):  avan motor hesabının askı oranı ve makine tipi çizimde aynen
@@ -71,6 +71,34 @@ def mimari(a, ortak, sabitler=None):
         m.update({k: ortak.get(k) for k in avan_secici.MIMARI_GENEL})
     m.update(_beyan(a, sabitler))
     return m
+
+
+def kot_bilgisi(g):
+    """Kot tablosunun sunucudan beklediği ( ekran hesaplamaz ) — asansör sırasıyla, kartı
+    olmayan için None:  hesabın kotlardan türettikleri ( avan_hesabi.kot_turetilenleri —
+    Hk, seyir, durak, kuyu_dibi, ust_bosluk;  m ), "hata" ( kullanılamayan kot ), "adlar"
+    ( katlar.ad_tablosu — kuraldan kat adları, giriş katı ) ve "doseme" ( tavan döşemesinin
+    çizimdeki kalınlığı, mm — kartta girilmişse o, boşsa kuraldan:  "doseme_kural" )."""
+    kural = kopru.tavan_dosemesi({})
+    liste = []
+    for a in g["asansorler"]:
+        if a is None:
+            liste.append(None)
+            continue
+        t, hata = avan_hesabi.kot_turetilenleri(a)
+        #  Kartta girilmişse o ( aralığını uygulamanın kapısı denetler — seçici söyler )
+        d = a.get("tavan_dosemesi")
+        doseme = d if sayi_mi(d) and d > 0 else kural
+        liste.append(
+            {
+                **(t or {}),
+                "hata": hata,
+                "adlar": katlar.ad_tablosu(a),
+                "doseme": doseme,
+                "doseme_kural": kural,
+            }
+        )
+    return liste
 
 
 def secim(g, i):

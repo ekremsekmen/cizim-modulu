@@ -52,7 +52,10 @@ with open(os.path.join(KOK, "on-yuz", "src", "lib", "taslaklar.json"), encoding=
 
 #  Mimarın verdikleri:  pakette ne yazarsa yazsın bunlar mimardan gelir
 KOTLAR = (alanlar.DURAK_KOTLARI, "kuyu_dibi_kotu", "kuyu_tavani_kotu", "md_zemini_kotu")
-MIMARI = ("kuyu_genisligi", "kuyu_derinligi", *KOTLAR)
+#  Kat adları ve giriş katı ( kot tablosu — 13 Kas ):  kotlarla birlikte mimardan
+ADLAR = (alanlar.DURAK_ADLARI, alanlar.GIRIS_DURAGI)
+#  Tavan döşemesinin kalınlığı ( mimarın kesitinden — boşsa uygulamanın kuralı )
+MIMARI = ("kuyu_genisligi", "kuyu_derinligi", *KOTLAR, *ADLAR, "tavan_dosemesi")
 MIMARI_GENEL = ("mk_uzunluk", "mk_genislik")
 #  Avanın BEYANI ( kartın askı oranı ve makine tipi — avan motor hesabının girdileri ):
 #  verilmişse paketinkinin yerine geçer, seçici değiştirmez

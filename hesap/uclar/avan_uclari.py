@@ -118,6 +118,7 @@ AVAN_AS_SAYISAL = (
     "kuyu_genisligi",
     #  avan çizimi ( uclar/avan_cizim_uclari.py ):  hesaba girmez, seçiciye gider
     "kuyu_derinligi",
+    "tavan_dosemesi",
     "kabin_boyu",
     "kabin_genisligi",
     "Gk_elle",
@@ -138,6 +139,7 @@ AVAN_AS_SAYISAL = (
 AVAN_AS_ETIKET = {
     "kapasite": "Kapasite",
     "kuyu_derinligi": "Kuyu derinliği",
+    "tavan_dosemesi": "Tavan döşemesi kalınlığı",
     **{k: ad for k, ad, _poz in avan_hesabi.ZORUNLU_ALANLAR},
     **{k: ad for k, ad, _aralik, _birim in avan_hesabi.ASANSOR_SINIRLARI},
 }
@@ -309,6 +311,8 @@ def _avan_sonuc(veri):
         )
     if hata:
         return None, JSONResponse({"hata": hata}, status_code=200)
+    #  Kot tablosunun türetilenleri ( ekran:  kuyu yüksekliği, seyir, kat adları )
+    s["kotlar"] = avan_cizimi.kot_bilgisi(g)
     return s, None
 
 
