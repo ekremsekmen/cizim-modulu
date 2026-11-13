@@ -91,6 +91,17 @@ KUCULTME_ADIMI = 10
 KUCULTME_YERLESIM = 3
 #  Paketinkinden küçük kuyuda, ölçü istemeden önce yalnız yerleşimle sığdırma denemesinin süresi ( sn )
 YERLESIM_SURESI = 4.0
+#  SAATSİZ KİP ( araclar/avan_tarama ):  süre sınırları uygulanmaz — sonuç makinenin hızına
+#  bağlı kalmaz ( yalnız AZAMI_SINAMA / AZAMI_ADIM sınırlar ), tarama kaydı her makinede aynı
+#  çıkar.  Program hep saatli çalışır:  yavaş makinede süre dolarsa "sığmaz" diyebilir.
+SAATSIZ = False
+
+
+def _sure(sn):
+    """Süre sınırı ( sn ) — saatsiz kipte sınırsız."""
+    return float("inf") if SAATSIZ else sn
+
+
 #  Seçicinin değiştirmediği:  trafik hesabının kapasitesi ( kabin ), kapı, yük, hız
 SABIT = frozenset(
     ("beyan_yuku", "beyan_hizi", "kabin_genisligi", "kabin_derinligi", "kabin_ic_yuksekligi")
@@ -484,7 +495,7 @@ def sec(m):
     bulunan, sinama = None, r["sinama"]
     for i, degisen in enumerate(denemeler):
         #  Dört beyan da farklıysa tek tek denemek uzar:  toplam süre dolunca kalınır
-        if i > 0 and time.monotonic() - t0 > 2 * AZAMI_SURE:
+        if i > 0 and time.monotonic() - t0 > _sure(2 * AZAMI_SURE):
             break
         #  Tek değişiklik denemeleri kısa sürelidir:  bulunamazsa hepsini değiştiren öneri kalır
         r2 = _sec({**m, **{k: kendi[k] for k in degisen}}, AZAMI_SURE if i == 0 else TEK_SURE)
@@ -513,6 +524,7 @@ def sec(m):
 def _sec(m, azami_sure=AZAMI_SURE):
     """sec'in bir denemesi:  m'nin beyanı ( varsa ) değiştirilmeden."""
     t0 = time.monotonic()
+    azami_sure = _sure(azami_sure)
     sina = _Sinayici()
 
     def son(durum, **ek):
@@ -568,7 +580,7 @@ def _sec(m, azami_sure=AZAMI_SURE):
                             v,
                             d,
                             sina,
-                            min(bitis, time.monotonic() + YERLESIM_SURESI),
+                            min(bitis, time.monotonic() + _sure(YERLESIM_SURESI)),
                             kilit,
                             yalniz_yerlesim=True,
                         )
@@ -650,7 +662,7 @@ def _kucuk_odada(taslak, m, kucuk, azami_sure):
     d = sina(v)
     secilen = {}
     if not d["temiz"] and d["cizim"]:
-        bitis = time.monotonic() + YERLESIM_SURESI
+        bitis = time.monotonic() + _sure(YERLESIM_SURESI)
         v, d, secilen, _g = _uyarla(v, d, sina, bitis, yalniz_yerlesim=True, adim=2)
     gereken = []
     if not d["temiz"]:

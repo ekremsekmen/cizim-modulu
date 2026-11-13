@@ -11,6 +11,7 @@
     .venv/bin/python kontrol.py uctan_uca  ön yüz gerçek tarayıcıda:  örnek proje, canlı
                                            hesap, proje dosyası, ölçü, teslim ( ~1 dk )
     .venv/bin/python kontrol.py tarama     girdi taraması ( 558 düzen;  ~8 dk )
+    .venv/bin/python kontrol.py avan_tarama  avan seçicisi taraması ( 455 kuyu;  ağır — CI'da )
     .venv/bin/python kontrol.py bicim      ruff format + ruff check --fix ( düzeltir )
 
 Çizim testleri pytest ile paralel koşar:  KONTROL_IS işçi ( varsayılan 4 —
@@ -166,6 +167,11 @@ def tarama():
     return _kos("girdi taraması", [PY, "-m", "araclar.tarama"])
 
 
+def avan_tarama():
+    """Avan seçicisi mimarın kuyularında ( araclar/avan_tarama.py ):  değişmezler ve hükümler."""
+    return _kos("avan seçicisi taraması", [PY, "-m", "araclar.avan_tarama"])
+
+
 def main(argv):
     kip = argv[0] if argv else "hizli"
     adimlar = {
@@ -184,6 +190,7 @@ def main(argv):
         "sunucu": lambda: [sunucu()],
         "uctan_uca": lambda: [uctan_uca(on_yuz())],
         "tarama": lambda: [tarama()],
+        "avan_tarama": lambda: [avan_tarama()],
     }
     if kip not in adimlar:
         print(__doc__)
