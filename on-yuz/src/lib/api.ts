@@ -245,9 +245,11 @@ export interface CizimYanit {
 export interface AvanCizimYaniti {
   durum: "uygun" | "gereken" | "sigmaz" | "eksik" | "paket_yok" | "beyan" | "hata";
   /**  kart:  avan kartının alanı;  yeni:  karta yazılacak değer;  *_yazi:  ekrandaki yazımı  */
-  beyan?: { kart: string; etiket: string; yeni: string; eski_yazi: string; yeni_yazi: string }[];
-  /**  "kabin":  kartın kabini çizimin kabininden farklı ( yoksa askı / makine tipi )  */
-  beyan_turu?: "kabin";
+  /**  yer "trafik":  öneri avan kartına değil trafik hesabının sütununa yazılır ( kapı )  */
+  beyan?: { kart: string; etiket: string; yeni: string; eski_yazi: string; yeni_yazi: string; yer?: "trafik" }[];
+  /**  "kabin":  kartın kabini çizimin kabininden farklı;  "kapi":  trafik hesabının kapısıyla
+       kurulamadı ( yoksa askı / makine tipi )  */
+  beyan_turu?: "kabin" | "kapi";
   hata?: string;
   eksik?: string[];
   gereken?: { anahtar: string; etiket: string; eski: string | null; yeni: string; sebep: string }[];
@@ -367,7 +369,16 @@ export interface AvanKoprusu {
   bodrum: number;
   h: number;
   adet: number;
-  asansorler: { P: number; V: number; toplam_seyahat: number }[];
+  /**  kapi_*:  trafik hesabının kapısı ( avan çizimi onu kullanır );  sutun:  trafik sütunu
+       ( 0'dan — tek tipte null:  bütün sütunlar aynı kapıdır )  */
+  asansorler: {
+    P: number;
+    V: number;
+    toplam_seyahat: number;
+    kapi_genisligi?: number | null;
+    kapi_tipi?: string | null;
+    sutun?: number | null;
+  }[];
 }
 
 export interface TrafikYaniti {

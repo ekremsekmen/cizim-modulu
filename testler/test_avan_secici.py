@@ -166,19 +166,75 @@ class AvanSecici(unittest.TestCase):
         a = r["istek"]["asansorler"][0]
         self.assertEqual((a["aski_orani"], a["makine_tipi"]), ("1", "Dişlisiz"))
         self.temiz(r)
-        #  Makine daireli 630:  2:1 kurulamıyor;  makine tipi beyanı ( dişlisiz ) kalabilir
+        #  Makine daireli 630 ( paket 1:1 dişli ):  2:1 dişlisiz beyanı da kurulur — ikinci
+        #  yerleşim adayı askı kasnaklarını kabin üstüne alır ( 14 Kas;  13 Kas'ta kurulamıyordu )
         t = PAKETLER[(630, False)]
-        m = mimari(t, aski_orani=2, makine_tipi="Dişlisiz")
+        r = avan_secici.sec(mimari(t, aski_orani=2, makine_tipi="Dişlisiz"))
+        self.assertEqual(r["durum"], "uygun", r)
+        a = r["istek"]["asansorler"][0]
+        self.assertEqual(
+            (a["aski_orani"], a["makine_tipi"], a["aski_duzeni"]), ("2", "Dişlisiz", "Kabin üstü")
+        )
+        self.temiz(r)
+        #  Makine dairesizde 1:1 çizilmez ( programın kuralı ):  asansör DÖNMEZ, karta 2:1
+        t = PAKETLER[(630, True)]
+        m = mimari(t, aski_orani=1)
         r = avan_secici.sec(m)
         self.assertEqual(r["durum"], "beyan", r)
         self.assertNotIn("istek", r)
         self.assertEqual(
-            [(b["anahtar"], b["eski"], b["yeni"]) for b in r["beyan"]], [("aski_orani", "2", "1")]
+            [(b["anahtar"], b["eski"], b["yeni"]) for b in r["beyan"]], [("aski_orani", "1", "2")]
         )
         r = avan_secici.sec({**m, **{b["anahtar"]: b["yeni"] for b in r["beyan"]}})
         self.assertEqual(r["durum"], "uygun", r)
-        self.assertEqual(r["istek"]["asansorler"][0]["makine_tipi"], "Dişlisiz")
         self.temiz(r)
+
+    def test_agirlik_sigmazsa_arkaya(self):
+        """Kullanıcı ( 14 Kas ):  "önce yan, sığmazsa arka".  Paketin kuyusunda ağırlık yanda
+        kalır ( test_paketin_kendi_kuyusu );  dar ve derin kuyuda yan yerleşim mimarın
+        ölçüleriyle kurulamaz — ağırlık arkaya alınır, programın arka kurallarıyla ( 2:1 askı
+        kabin üstünde, makine dairesizde makine bina yapısına oturur ).  Sonuç yine doğrulanmış."""
+        t = PAKETLER[(630, True)]
+        self.assertEqual(t["asansor"]["agirlik_yeri"], "Sağ")
+        m = mimari(t, kuyu_genisligi=1650, kuyu_derinligi=2300)
+        r = avan_secici.sec(m)
+        self.assertEqual(r["durum"], "uygun", r)
+        a = r["istek"]["asansorler"][0]
+        self.assertEqual(
+            (a["agirlik_yeri"], a["aski_duzeni"], a["makine_raya_biniyor"]),
+            ("Arka", "Kabin üstü", "Bina yapısına"),
+        )
+        self.mimari_aynen(m, r["istek"])
+        self.assertEqual({k: a[k] for k in KABIN}, {k: t["asansor"][k] for k in KABIN})
+        self.temiz(r)
+        #  Makine daireli 1:1:  askı kasnağı da makine kirişi de yok — yalnız ağırlığın yeri
+        t = PAKETLER[(630, False)]
+        r = avan_secici.sec(mimari(t, kuyu_genisligi=1700, kuyu_derinligi=2400))
+        self.assertEqual(r["durum"], "uygun", r)
+        a = r["istek"]["asansorler"][0]
+        self.assertEqual(a["agirlik_yeri"], "Arka")
+        self.assertNotIn("aski_duzeni", a)
+        self.temiz(r)
+
+    def test_kapi_beyani(self):
+        """Trafik hesabının kapısı ( genişlik, tip ) beyandır:  istekte aynen durur;  çare
+        kapının ailesini değiştirmez."""
+        t = PAKETLER[(630, True)]
+        self.assertEqual(
+            (t["asansor"]["kapi_genisligi"], t["asansor"]["kat_kapisi_tipi"]), ("800", "Teleskopik Sol")
+        )
+        r = avan_secici.sec(mimari(t, kapi_genisligi=900, kat_kapisi_tipi="Otomatik Merkezi"))
+        self.assertEqual(r["durum"], "uygun", r)
+        a = r["istek"]["asansorler"][0]
+        self.assertEqual((a["kapi_genisligi"], a["kat_kapisi_tipi"]), ("900", "Otomatik Merkezi"))
+        self.temiz(r)
+        self.assertEqual(
+            [
+                avan_secici.kapi_ailesi(x)
+                for x in ("Teleskopik 3 Kanat Sağ", "Otomatik Merkezi 4 Kanat", "Manuel Sol")
+            ],
+            ["Teleskopik", "Otomatik Merkezi", "Manuel"],
+        )
 
     def test_sigmayan_kuyu(self):
         """Kabinden dar kuyu:  asansör dönmez."""

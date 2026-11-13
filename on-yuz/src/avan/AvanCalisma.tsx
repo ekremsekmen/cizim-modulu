@@ -124,6 +124,9 @@ export function AvanCalisma() {
           aktif: true,
           kapasite: String(ka[i].P),
           V: String(ka[i].V),
+          //  Trafik hesabının kapısı:  avan çizimi onu kullanır ( 14 Kas )
+          kapi_genisligi: ka[i].kapi_genisligi == null ? "" : String(ka[i].kapi_genisligi),
+          kapi_tipi: ka[i].kapi_tipi ?? "",
           eta: h.eta || String(verim[secimler.makine_tipi] ?? ""),
         };
       }),
@@ -1501,14 +1504,19 @@ function CizimlerAdimi({
           <CizimSonucu
             r={r}
             donuyor={!guncel}
-            kartaUygula={() =>
+            kartaUygula={() => {
+              //  Kapı önerisi trafik hesabının sütununa ( tek tipte bütün sütunlara ), kalanı avan kartına
+              const karta = Object.fromEntries((r.beyan ?? []).filter((b) => b.yer !== "trafik").map((b) => [b.kart, b.yeni]));
+              const trafige = Object.fromEntries((r.beyan ?? []).filter((b) => b.yer === "trafik").map((b) => [b.kart, b.yeni]));
+              const sutun = asansorler[i]?.sutun ?? null;
               setP((q) => ({
                 ...q,
-                avanAsansorleri: q.avanAsansorleri.map((a, j) =>
-                  j === i ? { ...a, ...Object.fromEntries((r.beyan ?? []).map((b) => [b.kart, b.yeni])) } : a,
-                ),
-              }))
-            }
+                avanAsansorleri: q.avanAsansorleri.map((a, j) => (j === i ? { ...a, ...karta } : a)),
+                trafikAsansorleri: Object.keys(trafige).length
+                  ? q.trafikAsansorleri.map((t, j) => (sutun === null || j === sutun ? { ...t, ...trafige } : t))
+                  : q.trafikAsansorleri,
+              }));
+            }}
           />
         )}
       </main>
@@ -1583,10 +1591,14 @@ function CizimSonucu({ r, donuyor, kartaUygula }: { r: AvanCizimYaniti; donuyor:
         baslik={
           r.beyan_turu === "kabin"
             ? "Avan kartındaki kabin, çizimin kabini değil"
-            : "Avan hesabının askısıyla bu kuyuya asansör kurulamadı"
+            : r.beyan_turu === "kapi"
+              ? "Trafik hesabının kapısıyla bu kuyuya asansör kurulamadı"
+              : "Avan hesabının askısıyla bu kuyuya asansör kurulamadı"
         }
         alt={
-          r.beyan_turu === "kabin"
+          r.beyan_turu === "kapi"
+            ? "Çizim, trafik hesabında seçilen kapı genişliğini ve tipini kullanır;  trafik sayfası ile pafta aynı kapıyı gösterir.  Trafik hesabında aşağıdaki seçilirse çizim çıkar ( trafik hesabı da buna göre yenilenir — kapı süreleri değişir )."
+            : r.beyan_turu === "kabin"
             ? "Çizim, trafik hesabının kapasitesinin kabinini kullanır ( hazır asansörün kabini — büyütülmez ).  Avan hesabı kabini karttan okur;  hesap sayfası ile pafta aynı kabini göstersin diye kart aşağıdaki ölçülere getirilince çizim çıkar ( kabin aydınlatması hesabı da buna göre yenilenir )."
             : "Çizim, avan hesabındaki askı oranını ve makine tipini kullanır;  hesap sayfası ile pafta aynı asansörü gösterir.  Avan kartında aşağıdaki seçilirse çizim çıkar ( motor gücü hesabı da buna göre yenilenir )."
         }
@@ -1602,7 +1614,7 @@ function CizimSonucu({ r, donuyor, kartaUygula }: { r: AvanCizimYaniti; donuyor:
           ))}
         </div>
         <Dugme className="mt-3" onClick={kartaUygula} disabled={donuyor}>
-          Avan kartına uygula
+          {r.beyan_turu === "kapi" ? "Trafik hesabına uygula" : "Avan kartına uygula"}
         </Dugme>
       </CizimIletisi>
     );

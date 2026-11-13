@@ -26,6 +26,8 @@ SÖZLEŞME ( kullanıcı, 12 Kas ):
     girdileri ) çizimde AYNEN durur:  hesap sayfası ile pafta çelişmez ( 12 Kas ).
     Beyanla asansör kurulamıyor, paketin kendi askısıyla kurulabiliyorsa çizim
     çıkmaz;  kartta neyin seçileceği döner ( "beyan" ).
+  · Karşı ağırlık önce paketteki yerinde ( yanda ) denenir;  mimarın kuyusuna öyle
+    sığmıyorsa arkaya alınır ( kullanıcı, 14 Kas:  "önce yan, sığmazsa arka" ).
   · Sayı uydurulmaz:  denenen değerler formun seçenekleri, IEC 60072 motor
     kademeleri ( avan/tablolar ) ve paketin kendi değerleridir.
 
@@ -59,7 +61,8 @@ MIMARI = ("kuyu_genisligi", "kuyu_derinligi", *KOTLAR, *ADLAR, "tavan_dosemesi")
 MIMARI_GENEL = ("mk_uzunluk", "mk_genislik")
 #  Avanın BEYANI ( kartın askı oranı ve makine tipi — avan motor hesabının girdileri ):
 #  verilmişse paketinkinin yerine geçer, seçici değiştirmez
-BEYAN = ("aski_orani", "makine_tipi")
+#  ( 14 Kas ) kapı genişliği ve tipi de:  trafik hesabının kapısı ( kullanıcı kararı )
+BEYAN = ("aski_orani", "makine_tipi", "kapi_genisligi", "kat_kapisi_tipi")
 ZORUNLU = ("beyan_yuku", "beyan_hizi", "kuyu_genisligi", "kuyu_derinligi", *KOTLAR[:3])
 
 #  Avan projesini bağlayan bölümler:  kuyunun ölçülerine ( kuyu üstü, kuyu dibi ) ve
@@ -71,13 +74,16 @@ AZAMI_SINAMA = 120
 #  Uyarlamada ( yerleşim çaresi, mimardan istenecek ölçü ) en çok bu kadar adım ve süre ( sn )
 AZAMI_ADIM = 6
 AZAMI_SURE = 12.0
+#  Arka yerleşim denemesinin uyarlama süresi:  asıl sürenin bu kadarı ( ölçülen arka
+#  uyarlamaları 1 – 3 sn;  yan zaten "mimardan istenecek" bulduysa uzun beklenmez )
+ARKA_SURE_PAYI = 0.5
 #  Beyan çelişkisinde "yalnız şunu değiştirin" denemelerinin süresi ( sn )
 TEK_SURE = 4.0
 #  Seçicinin değiştirmediği:  trafik hesabının kapasitesi ( kabin ), kapı, yük, hız
 SABIT = frozenset(
     ("beyan_yuku", "beyan_hizi", "kabin_genisligi", "kabin_derinligi", "kabin_ic_yuksekligi")
     + ("kapi_genisligi", "kapi_yuksekligi", "durak_adedi", "seyir_mesafesi")
-    + BEYAN
+    + ("aski_orani", "makine_tipi")
 )
 
 #  ÜRÜN ARAMASI — düşen bölüm → sırayla denenecek ( girdi , değerler ).  Değerler
@@ -235,7 +241,13 @@ def _urun_ara(v, d, sina, gevsek=False):
     return v, d, secilen
 
 
-def _oneri_sec(v):
+def kapi_ailesi(tip):
+    """Kat kapısı tipinin ailesi:  "Teleskopik" · "Otomatik Merkezi" · "Manuel" ( kanat sayısı
+    ve açılış yönü aile içi ayrıntıdır — trafik hesabı yalnız aileyi seçer )."""
+    return next((a for a in ("Teleskopik", "Otomatik Merkezi", "Manuel") if str(tip).startswith(a)), None)
+
+
+def _oneri_sec(v, kapi_kilidi=False):
     """Çare bulucunun ( care_uclari.coz ) önerilerinden sıradaki adım:  önce YERLEŞİM
     ( kaçıklıklar, kapı tipi — seçicinin kendi kararı ), sonra BİNA ( mimardan istenir );
     ikisinde de başka sorun açmayan önce.  Kabin, kapı genişliği, yük, hız değişmez;
@@ -244,13 +256,23 @@ def _oneri_sec(v):
         o
         for c in care_uclari.coz(v, 0)["careler"]
         for o in c["oneriler"]
-        if o["anahtar"] not in SABIT and not str(o["yeni"]).startswith("Manuel")
+        if o["anahtar"] not in SABIT
+        and not str(o["yeni"]).startswith("Manuel")
+        #  Trafik hesabının kapısı ( beyan ):  çare kapının ailesini değiştirmez ( 3 kanat olur )
+        and not (
+            kapi_kilidi
+            and o["anahtar"] == "kat_kapisi_tipi"
+            and kapi_ailesi(o["yeni"])
+            != kapi_ailesi(
+                v["asansorler"][0].get("kat_kapisi_tipi") or alanlar.ALAN["kat_kapisi_tipi"].varsayilan
+            )
+        )
     ]
     oneriler.sort(key=lambda o: (bool(o["ortaya_cikan"] or o["hesapta_ortaya_cikan"]), o["bina"]))
     return oneriler[0] if oneriler else None
 
 
-def _uyarla(v, d, sina, bitis):
+def _uyarla(v, d, sina, bitis, kapi_kilidi=False):
     """Sorunlu adayı adım adım temize çeker:  ürün ( gevşek ) → çare bulucunun önerisi.
     Döner ( istek , durum , seçilenler , gereken listesi )."""
     secilen, gereken, ilk = {}, {}, v
@@ -260,7 +282,7 @@ def _uyarla(v, d, sina, bitis):
             secilen.update(s)
         if d["temiz"] or not d["cizim"] or not sina.var() or time.monotonic() > bitis:
             break
-        oneri = _oneri_sec(v)
+        oneri = _oneri_sec(v, kapi_kilidi)
         if oneri is None:
             break
         v = care_uclari.girdi_yaz(v, 0, oneri["anahtar"], oneri["yeni"])
@@ -323,6 +345,9 @@ def sec(m):
     denemeler = [farkli] + ([[k] for k in farkli] if len(farkli) > 1 else [])
     bulunan, sinama = None, r["sinama"]
     for i, degisen in enumerate(denemeler):
+        #  Dört beyan da farklıysa tek tek denemek uzar:  toplam süre dolunca kalınır
+        if i > 0 and time.monotonic() - t0 > 2 * AZAMI_SURE:
+            break
         #  Tek değişiklik denemeleri kısa sürelidir:  bulunamazsa hepsini değiştiren öneri kalır
         r2 = _sec({**m, **{k: kendi[k] for k in degisen}}, AZAMI_SURE if i == 0 else TEK_SURE)
         sinama += r2["sinama"]
@@ -365,35 +390,67 @@ def _sec(m, azami_sure=AZAMI_SURE):
     if taslak is None:
         return son("paket_yok")
 
+    def yerlesim(adaylar, sure=azami_sure):
+        """Adayları sırayla dener:  olduğu gibi temiz olan → uyarlananlar.  Döner
+        ( "uygun" | "gereken" | "sigmaz" , sonucun alanları )."""
+        kalan = []
+        for ek in adaylar:
+            if not sina.var():
+                break
+            v = _istek(taslak, m, ek)
+            d = sina(v)
+            secilen = dict(ek)
+            if d["bolum"]:
+                v, d, s = _urun_ara(v, d, sina)
+                secilen.update(s)
+            if d["temiz"]:
+                return "uygun", dict(istek=v, secimler=secilen, acik_bolumler=d["bolum"])
+            kalan.append((v, d, secilen))
+        #  Hiçbiri olduğu gibi temiz değil:  adaylar sırayla uyarlanır
+        bitis = time.monotonic() + sure
+        for v, d, secilen in kalan:
+            v2, d2, s, gereken = _uyarla(v, d, sina, bitis, m.get("kat_kapisi_tipi") not in (None, ""))
+            if d2["temiz"]:
+                secilen.update(s)
+                #  Uyarlama yerleşimi değiştirdi:  ürün bölümleri bir kez daha aranır ( sıkı )
+                if d2["bolum"]:
+                    v2, d2, s = _urun_ara(v2, d2, sina)
+                    secilen.update(s)
+                ortak = dict(istek=v2, secimler=secilen, acik_bolumler=d2["bolum"])
+                return ("gereken", dict(gereken=gereken, **ortak)) if gereken else ("uygun", ortak)
+        _v, d, _s = kalan[0]
+        nedenler = list(d["cizim"].values()) + d["hesap"] + [f"bölüm:{b}" for b in d["engel"]]
+        return "sigmaz", dict(nedenler=nedenler)
+
     #  YERLEŞİM ADAYLARI:  kabin ağırlığın yanında ( ölçülen çare ), sonra pakette olduğu gibi
     kay = _kaydirma(taslak, m)
-    adaylar = ([{"kabin_yana_kaciklik": round(kay)}] if kay is not None else []) + [{}]
-    kalan = []
-    for ek in adaylar:
-        if not sina.var():
-            break
-        v = _istek(taslak, m, ek)
-        d = sina(v)
-        secilen = dict(ek)
-        if d["bolum"]:
-            v, d, s = _urun_ara(v, d, sina)
-            secilen.update(s)
-        if d["temiz"]:
-            return son("uygun", istek=v, secimler=secilen, acik_bolumler=d["bolum"], paket=taslak["kimlik"])
-        kalan.append((v, d, secilen))
+    durum, alanlar_ = yerlesim(([{"kabin_yana_kaciklik": round(kay)}] if kay is not None else []) + [{}])
+    #  KARŞI AĞIRLIK ARKADA ( kullanıcı kararı 14 Kas:  "önce yan, sığmazsa arka" ):  paketin
+    #  yerleşimi ( ağırlık yanda ) mimarın ölçüleriyle kurulamıyorsa ağırlık arkaya alınır — dar
+    #  ve derin kuyu.  Sıra:  yan uygun → arka uygun → yan ( mimardan istenecek ) → arka
+    #  ( mimardan istenecek ) → sığmaz;  mimarın bugünkü kuyusuna sığan yerleşim, mimardan
+    #  ölçü istemekten önce gelir ( benim yorumum ).
+    arka = _arka_adayi(taslak, m)
+    if durum != "uygun" and arka is not None:
+        sina.kalan = AZAMI_SINAMA
+        durum_a, alanlar_a = yerlesim([arka], azami_sure * ARKA_SURE_PAYI)
+        if durum_a == "uygun" or (durum_a == "gereken" and durum == "sigmaz"):
+            durum, alanlar_ = durum_a, alanlar_a
+    return son(durum, paket=taslak["kimlik"], **alanlar_)
 
-    #  Hiçbiri olduğu gibi temiz değil:  adaylar sırayla uyarlanır
-    bitis = t0 + azami_sure
-    for v, d, secilen in kalan:
-        v2, d2, s, gereken = _uyarla(v, d, sina, bitis)
-        if d2["temiz"]:
-            secilen.update(s)
-            #  Uyarlama yerleşimi değiştirdi:  ürün bölümleri bir kez daha aranır ( sıkı )
-            if d2["bolum"]:
-                v2, d2, s = _urun_ara(v2, d2, sina)
-                secilen.update(s)
-            ortak = dict(istek=v2, secimler=secilen, acik_bolumler=d2["bolum"], paket=taslak["kimlik"])
-            return son("gereken", gereken=gereken, **ortak) if gereken else son("uygun", **ortak)
-    _v, d, _s = kalan[0]
-    nedenler = list(d["cizim"].values()) + d["hesap"] + [f"bölüm:{b}" for b in d["engel"]]
-    return son("sigmaz", nedenler=nedenler, paket=taslak["kimlik"])
+
+def _arka_adayi(taslak, m):
+    """Paketin yandaki karşı ağırlığını arkaya alan aday ( ek girdiler ) ya da None:  paketin
+    ağırlığı zaten arkada.  Programın arka yerleşim kuralları ( cizim/kopru ):  2:1 askıda
+    kasnaklar kabin üstünde ( çapraz ), makine dairesizde makine duvardan duvara kirişe oturur
+    ( yük bina yapısına ).  Kabin ortalanır;  kalanı uyarlama bulur ( kapı kaçıklığı … )."""
+    a = taslak["asansor"]
+    if a.get("agirlik_yeri", alanlar.ALAN["agirlik_yeri"].varsayilan) == "Arka":
+        return None
+    ek = {"agirlik_yeri": "Arka", "kabin_yana_kaciklik": 0}
+    aski = m.get("aski_orani") if m.get("aski_orani") not in (None, "") else a.get("aski_orani")
+    if _metin(aski if aski not in (None, "") else alanlar.ALAN["aski_orani"].varsayilan) == "2":
+        ek["aski_duzeni"] = "Kabin üstü"
+    if m.get("mk_yok") in (True, "true"):
+        ek["makine_raya_biniyor"] = "Bina yapısına"
+    return ek
