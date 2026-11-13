@@ -74,8 +74,13 @@ class AvanSecici(unittest.TestCase):
                 self.mimari_aynen(m, r["istek"])
                 a = r["istek"]["asansorler"][0]
                 self.assertEqual({k: a[k] for k in KABIN}, {k: t["asansor"][k] for k in KABIN})
-                #  Kendi kuyusunda ürün araması yok:  tek sınamada bulunur
-                self.assertEqual(r["sinama"], 1)
+                #  Kendi kuyusunda ağırlık paketin yerinde ( yanda ):  arka sığmaz
+                self.assertEqual(a["agirlik_yeri"], t["asansor"]["agirlik_yeri"])
+                #  Kendi kuyusunda ürün araması yok:  tek sınamada bulunur — makine daireli 1:1'de
+                #  önce arka denenir ( 13 Kas ), o da bir sınama
+                once_arka = avan_secici._once_arka(t, m)
+                self.assertEqual(once_arka, t["kimlik"] in ("630-md", "800-md", "1000-md"))
+                self.assertEqual(r["sinama"], 2 if once_arka else 1)
 
     def test_genis_kuyu(self):
         """12 Kas ölçümü:  paket 100 mm geniş kuyuda bile düşüyordu ( makine dairesizde halat
@@ -216,6 +221,32 @@ class AvanSecici(unittest.TestCase):
         self.assertNotIn("aski_duzeni", a)
         self.temiz(r)
 
+    def test_agirlik_yerinin_sirasi(self):
+        """Kullanıcı ( 13 Kas ):  "makine dairesiz 2:1 askılı asansörde ilk denenecek yanda ağırlık,
+        makine daireli 1:1 askıda ilk denenecek arkada ağırlık".  İkisinin de sığdığı kuyuda
+        ( paketinkinden 550 mm derin ) ilk denenen seçilir;  ikisi de doğrulanmıştır."""
+        for anahtar, beklenen in (
+            ((630, False), "Arka"),
+            ((800, False), "Arka"),
+            ((1000, False), "Arka"),
+            ((630, True), "Sağ"),
+            ((800, True), "Sağ"),
+        ):
+            t = PAKETLER[anahtar]
+            with self.subTest(t["kimlik"]):
+                m = mimari(t, kuyu_derinligi=int(t["asansor"]["kuyu_derinligi"]) + 550)
+                r = avan_secici.sec(m)
+                self.assertEqual(r["durum"], "uygun", r)
+                self.assertEqual(r["istek"]["asansorler"][0]["agirlik_yeri"], beklenen)
+                self.temiz(r)
+        #  Makine daireli 2:1 ( 1250 / 1275 paketleri ) ve makine dairesiz 1:1:  önce yan
+        self.assertFalse(avan_secici._once_arka(PAKETLER[(1250, False)], mimari(PAKETLER[(1250, False)])))
+        t = PAKETLER[(630, True)]
+        self.assertFalse(avan_secici._once_arka(t, mimari(t, aski_orani=1)))
+        #  Makine daireli pakete avanın 2:1 beyanı:  önce yan
+        t = PAKETLER[(630, False)]
+        self.assertFalse(avan_secici._once_arka(t, mimari(t, aski_orani=2)))
+
     def test_kapi_beyani(self):
         """Trafik hesabının kapısı ( genişlik, tip ) beyandır:  istekte aynen durur;  çare
         kapının ailesini değiştirmez."""
@@ -246,6 +277,49 @@ class AvanSecici(unittest.TestCase):
             self.assertIn("kuyu_genisligi", [g["anahtar"] for g in r["gereken"]])
         else:
             self.assertTrue(r["nedenler"])
+
+    def test_istenen_olcu_en_kucuk(self):
+        """13 Kas denetimi:  630 kg 1600 × 1600 kuyuda genişlik 2110 isteniyordu;  asansör 1800'e
+        sığıyor.  İstenen ölçü paketin kuyusundan büyük olamaz ve o ölçüyle seçici "uygun" der.
+        ( Kanıtlı en küçük değildir:  eşik aralığı gibi başka yerleşim ayarları birkaç cm daha
+        kazandırabilir — o kuyu girilirse seçici yine "uygun" der. )"""
+        t = PAKETLER[(630, True)]
+        m = mimari(t, kuyu_genisligi=1600, kuyu_derinligi=1600)
+        r = avan_secici.sec(m)
+        self.assertEqual(r["durum"], "gereken", r)
+        yeni = {g["anahtar"]: g for g in r["gereken"]}
+        self.assertEqual(sorted(yeni), ["kuyu_derinligi", "kuyu_genisligi"])
+        for k, g in yeni.items():
+            self.assertEqual(g["eski"], "1600")
+            self.assertGreater(g["yeni"], 1600)
+            self.assertLessEqual(g["yeni"], int(t["asansor"][k]))
+            self.assertTrue(g["sebep"])
+        #  Çare bulucunun topladığı 2110'un çok altında:  kabin 1100 + ağırlık yanda
+        self.assertLessEqual(yeni["kuyu_genisligi"]["yeni"], 1800)
+        self.temiz(r)
+        m2 = {**m, **{k: int(g["yeni"]) for k, g in yeni.items()}}
+        r2 = avan_secici.sec(m2)
+        self.assertEqual(r2["durum"], "uygun", r2)
+        self.temiz(r2)
+
+    def test_dar_kuyuda_once_yerlesim(self):
+        """Paketinkinden dar kuyu kaçıklıklarla ( kabin, kapı ) sığıyorsa mimardan ölçü istenmez."""
+        t = PAKETLER[(630, True)]
+        m = mimari(t, kuyu_genisligi=1800, kuyu_derinligi=1690)
+        r = avan_secici.sec(m)
+        self.assertEqual(r["durum"], "uygun", r)
+        self.mimari_aynen(m, r["istek"])
+        self.temiz(r)
+
+    def test_paketin_tamponu_hiza_yetmezse(self):
+        """1275 kg paketinin tampon stroku ( 180 mm ) 1,0 m/s içindir;  2 m/s'de "sığmaz"
+        deniyordu.  Tampon programın kuralına bırakılır ( hıza göre ) — asansör kurulur."""
+        t = PAKETLER[(1275, True)]
+        self.assertEqual(t["asansor"]["kabin_tampon_ezilme"], "180")
+        r = avan_secici.sec(mimari(t, beyan_hizi=2))
+        self.assertIn(r["durum"], ("uygun", "gereken"), r)
+        self.assertEqual(r["istek"]["asansorler"][0]["kabin_tampon_ezilme"], "")
+        self.temiz(r)
 
     def test_eksik_ve_paketsiz(self):
         t = PAKETLER[(630, True)]
