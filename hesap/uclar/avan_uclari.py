@@ -139,6 +139,7 @@ AVAN_AS_SAYISAL = (
 AVAN_AS_ETIKET = {
     "kapasite": "Kapasite",
     "kuyu_derinligi": "Kuyu derinliği",
+    "tavan_dosemesi": "Tavan döşemesi kalınlığı",
     **{k: ad for k, ad, _poz in avan_hesabi.ZORUNLU_ALANLAR},
     **{k: ad for k, ad, _aralik, _birim in avan_hesabi.ASANSOR_SINIRLARI},
 }
