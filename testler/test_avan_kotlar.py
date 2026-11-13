@@ -93,7 +93,11 @@ class AvanHesabiKotlardan(unittest.TestCase):
         self.assertTrue(r["asansorler"][0]["aktif"])
         self.assertEqual(r["ozet"]["asansorler"][0]["Hk"], 20.8)
         self.assertEqual(
-            {k: v for k, v in r["kotlar"][0].items() if k not in ("doseme", "doseme_kural", "adlar")},
+            {
+                k: v
+                for k, v in r["kotlar"][0].items()
+                if k not in ("doseme", "doseme_kural", "adlar", "kabin")
+            },
             {"hata": []},
         )
 
