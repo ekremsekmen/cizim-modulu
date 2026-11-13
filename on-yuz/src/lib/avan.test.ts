@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AvanKoprusu } from "./api";
-import { avanDosyaGovdesi, avanDosyasiMi, avanOku, BOS_AVAN, manuelKMetni, trafikFarki, trafikSutunuKaldir, trafikSutununuYaz, yeniAvanAcilisi, type AvanProjesi } from "./avan";
+import { avanDosyaGovdesi, avanDosyasiMi, avanOku, avanSecimVarsayilani, BOS_AVAN, manuelKMetni, trafikFarki, trafikSutunuKaldir, trafikSutununuYaz, yeniAvanAcilisi, type AvanProjesi } from "./avan";
 import { SECENEKLER as SEC } from "./test-semasi";
 
 const KOPRU: AvanKoprusu = {
@@ -100,7 +100,8 @@ describe("avan dosyası — eski arayüzün biçimi", () => {
       a_eta1: "0,85",
       a_makine_tipi2: "Dişli",
       a_eta2: "0,5",
-      a_i_palanga1: "2",
+      //  askının etkin varsayılanı makine dairesine bağlıdır ( 14 Kas ):  makine dairelide 1:1
+      a_i_palanga1: "1",
       a_S12: "10",
       a_mk_yok: false,
       a_mk_uzunluk: "4000",
@@ -224,6 +225,30 @@ describe("avan dosyasının makine dairesi", () => {
     const mk = (v: unknown) => oku({ alanlar: { ...ESKI.alanlar, a_mk_yok: v } }).proje.ortak.mk_yok;
     expect([mk(true), mk(false), mk("true"), mk("false"), mk("EVET"), mk("HAYIR")]).toEqual(["true", "false", "true", "false", "true", "false"]);
     expect(mk(undefined)).toBeUndefined();
+  });
+});
+
+describe("askı oranının varsayılanı makine dairesine bağlıdır ( 14 Kas )", () => {
+  const oku = (alanlar: Record<string, unknown>) =>
+    avanOku(JSON.stringify({ ...ESKI, alanlar: { ...ESKI.alanlar, ...alanlar } }), SEC, {});
+
+  it("makine dairelide 1:1, makine dairesizde 2:1", () => {
+    expect(avanSecimVarsayilani("i_palanga", true)).toBe("2");
+    expect(avanSecimVarsayilani("i_palanga", false)).toBe("1");
+    expect(avanSecimVarsayilani("makine_tipi", false)).toBe("Dişlisiz");
+  });
+
+  it("eski dosyada varsayılana eşit askı yazılmamış sayılır, farklısı korunur", () => {
+    const askisi = (alanlar: Record<string, unknown>) => {
+      const o = oku(alanlar);
+      return o.tamam ? o.proje.avanAsansorleri[0].i_palanga : "okunamadı";
+    };
+    //  makine dairesiz:  2:1 varsayılan, 1:1 seçim
+    expect(askisi({ a_mk_yok: true, a_i_palanga1: "2" })).toBeUndefined();
+    expect(askisi({ a_mk_yok: true, a_i_palanga1: "1" })).toBe("1");
+    //  makine daireli:  1:1 varsayılan;  dosyada yazan 2:1 kullanıcının seçimidir — kaybolmaz
+    expect(askisi({ a_mk_yok: false, a_i_palanga1: "1" })).toBeUndefined();
+    expect(askisi({ a_mk_yok: false, a_i_palanga1: "2" })).toBe("2");
   });
 });
 

@@ -328,7 +328,10 @@ def bloklar(g):
     liste = grup.pafta_cizimleri(gler, SERBEST[3] - SERBEST[1] - 2 * KENAR)
     for i, g_ in enumerate(gler):
         coklu = len(gler) > 1
-        for ad, baslik, olcek, e in cizim_listesi(g_, (g_["proje"]["asansor"],) if coklu else ()):
+        #  Çok asansörlü projeden yalnız biri çizilebildiyse ( avan paketi — uclar/avan_cizimi )
+        #  şeritte adı yine yazar:  hangi asansörün çizimi olduğu belli olsun
+        adli = coklu or g_["proje"].get("cok_asansorlu")
+        for ad, baslik, olcek, e in cizim_listesi(g_, (g_["proje"]["asansor"],) if adli else ()):
             #  Blok adı asansörle birlikte:  iki kuyunun kesiti aynı bloğu ezmesin
             liste.append((f"{ad}_{i + 1}" if coklu else ad, baslik, olcek, e))
     return liste

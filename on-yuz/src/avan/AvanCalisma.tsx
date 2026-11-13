@@ -26,6 +26,7 @@ import {
   AVAN_AZAMI,
   BOS_AVAN,
   AVAN_SECIM_VARSAYILANI,
+  avanSecimVarsayilani,
   AVAN_KIMLIGI,
   avanDosyaGovdesi,
   avanIzi,
@@ -117,7 +118,11 @@ export function AvanCalisma() {
         if (!ka[i]) return { aktif: false };
         //  Seçimler eski formdaki gibi hep gider:  kutudaki değer kullanıcının
         //  seçimidir, pafta kaynağını GİRİŞ yazar ( gönderilmezse KABUL )
-        const secimler = Object.fromEntries(Object.entries(AVAN_SECIM_VARSAYILANI).map(([k, d]) => [k, h[k] || d]));
+        //  ( askının varsayılanı makine dairesine bağlıdır — avanSecimVarsayilani )
+        const mrl = (p.ortak.mk_yok ?? "true") === "true";
+        const secimler = Object.fromEntries(
+          Object.keys(AVAN_SECIM_VARSAYILANI).map((k) => [k, h[k] || avanSecimVarsayilani(k, mrl)]),
+        );
         return {
           ...h,
           ...secimler,
@@ -921,12 +926,15 @@ function AvanAlanSatiri({
   ofis,
   h,
   yaz,
+  mrl = true,
 }: {
   a: AvanAlani;
   sec: Secenekler;
   ofis: Ham;
   h: Ham;
   yaz: (k: string, d: string) => void;
+  /**  Makine dairesi yok mu:  askı oranının boş kutudaki değeri buna bağlıdır  */
+  mrl?: boolean;
 }) {
   const id = `a-${a.k}`;
   return (
@@ -935,7 +943,7 @@ function AvanAlanSatiri({
         <Secim
           id={id}
           etiket={a.e}
-          deger={h[a.k] || AVAN_SECIM_VARSAYILANI[a.k] || (a.bosOlur ? "_" : "")}
+          deger={h[a.k] || avanSecimVarsayilani(a.k, mrl) || (a.bosOlur ? "_" : "")}
           degisti={(d) => yaz(a.k, d === "_" ? "" : d)}
           secenekler={[
             ...(a.bosOlur ? [{ deger: "_", ad: `ofis standardı ( ${a.yer?.(sec, h, ofis) ?? ""} mm² )` }] : []),
@@ -1185,11 +1193,11 @@ function HesaplarAdimi({
                 <AvanKatlar key={a.k} on="a" h={h} yaz={ay} mrl={mrl} kot={sonuc?.kotlar?.[i]} kopru={kopru} />
               ) : a.k === "kabin_genisligi" ? (
                 <div key={a.k}>
-                  <AvanAlanSatiri a={a} sec={sec} ofis={ofis} h={h} yaz={ay} />
+                  <AvanAlanSatiri a={a} sec={sec} ofis={ofis} h={h} yaz={ay} mrl={mrl} />
                   <KabinDoldur h={h} yaz={ay} kabin={sonuc?.kotlar?.[i]?.kabin} />
                 </div>
               ) : (
-                <AvanAlanSatiri key={a.k} a={a} sec={sec} ofis={ofis} h={h} yaz={ay} />
+                <AvanAlanSatiri key={a.k} a={a} sec={sec} ofis={ofis} h={h} yaz={ay} mrl={mrl} />
               ),
             )}
             <button
@@ -1206,7 +1214,7 @@ function HesaplarAdimi({
               <div className="space-y-2 border-l border-cizgi pl-3">
                 <p className="text-[12px] text-metin-3">Boş bırakılan ofis standardıdır;  yalnız bu asansörde farklıysa doldurun.</p>
                 {AVAN_OFISTEN_FARKLI.map((a) => (
-                  <AvanAlanSatiri key={a.k} a={a} sec={sec} ofis={ofis} h={h} yaz={ay} />
+                  <AvanAlanSatiri key={a.k} a={a} sec={sec} ofis={ofis} h={h} yaz={ay} mrl={mrl} />
                 ))}
               </div>
             )}
@@ -1631,8 +1639,8 @@ function CizimSonucu({ r, donuyor, kartaUygula }: { r: AvanCizimYaniti; donuyor:
   if (r.durum === "gereken")
     return (
       <CizimIletisi
-        baslik="Kuyu ölçüsü yetmiyor — mimardan istenecek"
-        alt="Çizim, kuyu aşağıdaki ölçülere getirilince çıkar.  Asansör trafik hesabının kapasitesindedir;  kabin küçültülmez."
+        baslik="Mimari ölçü yetmiyor — mimardan istenecek"
+        alt="Çizim, kuyu ve makine dairesi aşağıdaki ölçülere getirilince çıkar.  Asansör trafik hesabının kapasitesindedir;  kabin küçültülmez."
         donuyor={donuyor}
       >
         <div className="mt-4 overflow-hidden rounded-orta border border-uyari-cizgi">

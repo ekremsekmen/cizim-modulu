@@ -245,6 +245,9 @@ def paket_cizimleri(g, proje_adi, adlar):
                 ((cg, hata),) = cizim_uclari.girdiler(v, A, o, s, proje_adi)
             if hata:
                 cg = None
+            elif sum(1 for x in g["asansorler"] if x is not None) > 1:
+                #  Öbür asansörler çizilemese de paftada bu asansörün adı yazar ( cizim/pafta.bloklar )
+                cg["proje"]["cok_asansorlu"] = True
         if cg is None:
             eksik.append(adlar[i])
         else:
