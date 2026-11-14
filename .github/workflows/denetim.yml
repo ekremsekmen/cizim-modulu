@@ -10,6 +10,9 @@
 #               uçları ve kök sayfası, ön yüz gerçek tarayıcıda ( uçtan uca;
 #               arıza matrisinin beş türü yalnız elle başlatınca, PR'da ikisi )
 #      tarama   558 düzenin hükmü kayıtla ( testler/tarama_hukumleri.json ), yazı ve fiziksel tutarlılık
+#      avan_tarama  avan seçicisi 455 kuyuda ( araclar/avan_tarama.py ):  dönen her asansör
+#               uygulamanın uçlarından temiz mi, hükümler kayıtla aynı mı
+#               ( testler/avan_tarama_hukumleri.json );  sonuç iş çıktısı olarak saklanır
 #    main'e push:  yalnız hızlı denetim ( PR'da hepsi zaten koştu )
 #
 #  Dakika tasarrufu ( özel depoda Actions dakikası sınırlı ):  aynı PR'a yeni
@@ -89,3 +92,28 @@ jobs:
           cache-dependency-path: requirements-*.txt
       - run: python -m pip install -r requirements-kilit.txt -r requirements-gelistirme.txt
       - run: python kontrol.py tarama
+
+  avan_tarama:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    #  Öbür işlerle yan yana koşar ( tam işini uzatmaz ).  Seçici saatsiz kiptedir;  ilk
+    #  ölçüm yerelde 16 senaryo 1,5 dk işlemci → 455 senaryo ~45 dk işlemci
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-*.txt
+      - run: python -m pip install -r requirements-kilit.txt -r requirements-gelistirme.txt
+      - run: python kontrol.py avan_tarama
+        env:
+          KONTROL_IS: auto
+      #  Hükümler değiştiyse ( ya da kayıt henüz yoksa ) yeni kayıt buradan alınır
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: avan-tarama
+          path: cikti/avan_tarama/
+          retention-days: 14

@@ -43,6 +43,7 @@ ignore = [
 "ornekler/uret.py" = ["E402"]
 "calistir.py" = ["E402"]
 "araclar/tarama.py" = ["E402"]
+"araclar/avan_tarama.py" = ["E402"]
 "araclar/esdegerlik.py" = ["E402"]
 #  Testler:  yol ayarından sonra import, dosyayı tek satırda okumak ve
 #  lambda yardımcılar kabul
