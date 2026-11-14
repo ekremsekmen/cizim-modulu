@@ -458,10 +458,10 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    2020.0
+    2030.0
    ]
   ],
-  "yeniden": "gereken"
+  "yeniden": "uygun"
  },
  "kapi|1250-md|Teleskopik Sol|1000": {
   "agirlik": "Sağ",
@@ -469,10 +469,10 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    2020.0
+    2040.0
    ]
   ],
-  "yeniden": "gereken"
+  "yeniden": "uygun"
  },
  "kapi|1250-md|Teleskopik Sol|1100": {
   "agirlik": "Sol",
@@ -488,10 +488,10 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    2020.0
+    2030.0
    ]
   ],
-  "yeniden": "gereken"
+  "yeniden": "uygun"
  },
  "kapi|1250|Otomatik Merkezi|1000": {
   "agirlik": "Arka",
@@ -892,22 +892,28 @@
   "durum": "uygun"
  },
  "kuyu|1000-md|g+600|d+0|k0": {
-  "durum": "sigmaz"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|1000-md|g+600|d+0|k1": {
-  "durum": "sigmaz"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|1000-md|g+600|d+300|k0": {
-  "durum": "sigmaz"
+  "agirlik": "Arka",
+  "durum": "uygun"
  },
  "kuyu|1000-md|g+600|d+300|k1": {
-  "durum": "sigmaz"
+  "agirlik": "Arka",
+  "durum": "uygun"
  },
  "kuyu|1000-md|g+600|d-100|k0": {
-  "durum": "sigmaz"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|1000-md|g+600|d-100|k1": {
-  "durum": "sigmaz"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|1000-md|g-200|d+0|k0": {
   "agirlik": "Arka",
@@ -1709,51 +1715,51 @@
   "durum": "uygun"
  },
  "kuyu|1275-md|g+300|d+0|k0": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "uygun"
  },
  "kuyu|1275-md|g+300|d+0|k1": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "uygun"
  },
  "kuyu|1275-md|g+300|d+300|k0": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "uygun"
  },
  "kuyu|1275-md|g+300|d+300|k1": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "uygun"
  },
  "kuyu|1275-md|g+300|d-100|k0": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "uygun"
  },
  "kuyu|1275-md|g+300|d-100|k1": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "uygun"
  },
  "kuyu|1275-md|g+600|d+0|k0": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "uygun"
  },
  "kuyu|1275-md|g+600|d+0|k1": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "uygun"
  },
  "kuyu|1275-md|g+600|d+300|k0": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "uygun"
  },
  "kuyu|1275-md|g+600|d+300|k1": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "uygun"
  },
  "kuyu|1275-md|g+600|d-100|k0": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "uygun"
  },
  "kuyu|1275-md|g+600|d-100|k1": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "uygun"
  },
  "kuyu|1275-md|g-200|d+0|k0": {
@@ -2050,22 +2056,28 @@
   "durum": "uygun"
  },
  "kuyu|630-md|g+600|d+0|k0": {
-  "durum": "sigmaz"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|630-md|g+600|d+0|k1": {
-  "durum": "sigmaz"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|630-md|g+600|d+300|k0": {
-  "durum": "sigmaz"
+  "agirlik": "Arka",
+  "durum": "uygun"
  },
  "kuyu|630-md|g+600|d+300|k1": {
-  "durum": "sigmaz"
+  "agirlik": "Arka",
+  "durum": "uygun"
  },
  "kuyu|630-md|g+600|d-100|k0": {
-  "durum": "sigmaz"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|630-md|g+600|d-100|k1": {
-  "durum": "sigmaz"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|630-md|g-200|d+0|k0": {
   "agirlik": "Sağ",
@@ -2347,26 +2359,12 @@
   "durum": "uygun"
  },
  "kuyu|800-md|g+600|d+0|k0": {
-  "agirlik": "Arka",
-  "durum": "gereken",
-  "gereken": [
-   [
-    "kuyu_derinligi",
-    1945.0
-   ]
-  ],
-  "yeniden": "uygun"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|800-md|g+600|d+0|k1": {
-  "agirlik": "Arka",
-  "durum": "gereken",
-  "gereken": [
-   [
-    "kuyu_derinligi",
-    1945.0
-   ]
-  ],
-  "yeniden": "uygun"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|800-md|g+600|d+300|k0": {
   "agirlik": "Arka",
@@ -2377,26 +2375,12 @@
   "durum": "uygun"
  },
  "kuyu|800-md|g+600|d-100|k0": {
-  "agirlik": "Arka",
-  "durum": "gereken",
-  "gereken": [
-   [
-    "kuyu_derinligi",
-    1945.0
-   ]
-  ],
-  "yeniden": "uygun"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|800-md|g+600|d-100|k1": {
-  "agirlik": "Arka",
-  "durum": "gereken",
-  "gereken": [
-   [
-    "kuyu_derinligi",
-    1945.0
-   ]
-  ],
-  "yeniden": "uygun"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|800-md|g-200|d+0|k0": {
   "agirlik": "Sağ",
