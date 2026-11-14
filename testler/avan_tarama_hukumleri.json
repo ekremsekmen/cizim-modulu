@@ -69,6 +69,95 @@
   "agirlik": "Sol",
   "durum": "uygun"
  },
+ "aski|1600-md|1": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "aski|1600-md|2": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "aski|1600|1": {
+  "beyan": [
+   [
+    "aski_orani",
+    "2"
+   ]
+  ],
+  "durum": "beyan"
+ },
+ "aski|1600|2": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "aski|2000-md|1": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "aski|2000-md|2": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "aski|2000|1": {
+  "beyan": [
+   [
+    "aski_orani",
+    "2"
+   ]
+  ],
+  "durum": "beyan"
+ },
+ "aski|2000|2": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "aski|2500-md|1": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "aski|2500-md|2": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "aski|2500|1": {
+  "beyan": [
+   [
+    "aski_orani",
+    "2"
+   ]
+  ],
+  "durum": "beyan"
+ },
+ "aski|2500|2": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "aski|450-md|1": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "aski|450-md|2": {
+  "beyan": [
+   [
+    "aski_orani",
+    "1"
+   ]
+  ],
+  "durum": "beyan"
+ },
+ "aski|450|1": {
+  "beyan": [
+   [
+    "aski_orani",
+    "2"
+   ]
+  ],
+  "durum": "beyan"
+ },
+ "aski|450|2": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
  "aski|630-md|1": {
   "agirlik": "Sağ",
   "durum": "uygun"
@@ -232,6 +321,70 @@
    ]
   ],
   "yeniden": "uygun"
+ },
+ "hiz|1600-md|0.63": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|1600-md|1.6": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|1600|0.63": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|1600|1.6": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|2000-md|0.63": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|2000-md|1.6": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|2000|0.63": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|2000|1.6": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|2500-md|0.63": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|2500-md|1.6": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|2500|0.63": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|2500|1.6": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|450-md|0.63": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|450-md|1.6": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|450|0.63": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "hiz|450|1.6": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "hiz|630-md|0.63": {
   "agirlik": "Sağ",
@@ -646,6 +799,82 @@
  "kapi|1275|Teleskopik Sol|900": {
   "agirlik": "Sol",
   "durum": "uygun"
+ },
+ "kapi|1600-md|Otomatik Merkezi|900": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kapi|1600-md|Teleskopik Sol|1000": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kapi|1600|Otomatik Merkezi|900": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kapi|1600|Teleskopik Sol|1000": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kapi|2000-md|Otomatik Merkezi|900": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kapi|2000-md|Teleskopik Sol|1000": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kapi|2000|Otomatik Merkezi|900": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kapi|2000|Teleskopik Sol|1000": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kapi|2500-md|Otomatik Merkezi|900": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kapi|2500-md|Teleskopik Sol|1000": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kapi|2500|Otomatik Merkezi|900": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kapi|2500|Teleskopik Sol|1000": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kapi|450-md|Otomatik Merkezi|900": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kapi|450-md|Teleskopik Sol|1000": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_genisligi",
+    2000.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kapi|450|Otomatik Merkezi|900": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kapi|450|Teleskopik Sol|1000": {
+  "beyan": [
+   [
+    "kapi_genisligi",
+    "800"
+   ]
+  ],
+  "durum": "beyan"
  },
  "kapi|630-md|Otomatik Merkezi|1000": {
   "agirlik": "Sağ",
@@ -1983,6 +2212,354 @@
   "agirlik": "Sol",
   "durum": "uygun"
  },
+ "kuyu|1600-md|g+0|d+300|k0": {
+  "agirlik": "Arka",
+  "durum": "uygun"
+ },
+ "kuyu|1600-md|g+0|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kuyu|1600-md|g+300|d+300|k0": {
+  "agirlik": "Arka",
+  "durum": "uygun"
+ },
+ "kuyu|1600-md|g+300|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kuyu|1600-md|g-200|d+300|k0": {
+  "agirlik": "Arka",
+  "durum": "uygun"
+ },
+ "kuyu|1600-md|g-200|d-100|k0": {
+  "agirlik": "Arka",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_derinligi",
+    2945.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|1600|g+0|d+300|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kuyu|1600|g+0|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kuyu|1600|g+300|d+300|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_tavani_kotu",
+    "+19,38"
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|1600|g+300|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_tavani_kotu",
+    "+19,38"
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|1600|g-200|d+300|k0": {
+  "agirlik": "Arka",
+  "durum": "uygun"
+ },
+ "kuyu|1600|g-200|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_genisligi",
+    2170.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|2000-md|g+0|d+300|k0": {
+  "agirlik": "Arka",
+  "durum": "uygun"
+ },
+ "kuyu|2000-md|g+0|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_derinligi",
+    3080.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|2000-md|g+300|d+300|k0": {
+  "agirlik": "Arka",
+  "durum": "uygun"
+ },
+ "kuyu|2000-md|g+300|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_derinligi",
+    3080.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|2000-md|g-200|d+300|k0": {
+  "agirlik": "Arka",
+  "durum": "uygun"
+ },
+ "kuyu|2000-md|g-200|d-100|k0": {
+  "agirlik": "Arka",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_derinligi",
+    3335.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|2000|g+0|d+300|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kuyu|2000|g+0|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_derinligi",
+    3080.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|2000|g+300|d+300|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_tavani_kotu",
+    "+19,38"
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|2000|g+300|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_derinligi",
+    3080.0
+   ],
+   [
+    "kuyu_tavani_kotu",
+    "+19,38"
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|2000|g-200|d+300|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kuyu|2000|g-200|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_genisligi",
+    2260.0
+   ],
+   [
+    "kuyu_derinligi",
+    3080.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|2500-md|g+0|d+300|k0": {
+  "agirlik": "Arka",
+  "durum": "uygun"
+ },
+ "kuyu|2500-md|g+0|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_derinligi",
+    3080.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|2500-md|g+300|d+300|k0": {
+  "agirlik": "Arka",
+  "durum": "uygun"
+ },
+ "kuyu|2500-md|g+300|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_derinligi",
+    3080.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|2500-md|g-200|d+300|k0": {
+  "agirlik": "Arka",
+  "durum": "uygun"
+ },
+ "kuyu|2500-md|g-200|d-100|k0": {
+  "agirlik": "Arka",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_derinligi",
+    3335.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|2500|g+0|d+300|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kuyu|2500|g+0|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_derinligi",
+    3080.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|2500|g+300|d+300|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_tavani_kotu",
+    "+19,38"
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|2500|g+300|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_derinligi",
+    3080.0
+   ],
+   [
+    "kuyu_tavani_kotu",
+    "+19,38"
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|2500|g-200|d+300|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kuyu|2500|g-200|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_genisligi",
+    2560.0
+   ],
+   [
+    "kuyu_derinligi",
+    3080.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|450-md|g+0|d+300|k0": {
+  "agirlik": "Arka",
+  "durum": "uygun"
+ },
+ "kuyu|450-md|g+0|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kuyu|450-md|g+300|d+300|k0": {
+  "agirlik": "Arka",
+  "durum": "uygun"
+ },
+ "kuyu|450-md|g+300|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kuyu|450-md|g-200|d+300|k0": {
+  "agirlik": "Arka",
+  "durum": "uygun"
+ },
+ "kuyu|450-md|g-200|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kuyu|450|g+0|d+300|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kuyu|450|g+0|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kuyu|450|g+300|d+300|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_tavani_kotu",
+    "+19,38"
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|450|g+300|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "kuyu_tavani_kotu",
+    "+19,38"
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "kuyu|450|g-200|d+300|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kuyu|450|g-200|d-100|k0": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
  "kuyu|630-md|g+0|d+0|k0": {
   "agirlik": "Sağ",
   "durum": "uygun"
@@ -2681,6 +3258,137 @@
  },
  "oda|1275-md|3000x2500": {
   "agirlik": "Sol",
+  "durum": "uygun"
+ },
+ "oda|1600-md|1000x1000": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "mk_uzunluk",
+    2330.0
+   ],
+   [
+    "mk_genislik",
+    2350.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "oda|1600-md|2200x2200": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "mk_uzunluk",
+    3850.0
+   ],
+   [
+    "mk_genislik",
+    2350.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "oda|1600-md|3000x2500": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "oda|2000-md|1000x1000": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "mk_uzunluk",
+    1950.0
+   ],
+   [
+    "mk_genislik",
+    2700.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "oda|2000-md|2200x2200": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "mk_genislik",
+    2700.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "oda|2000-md|3000x2500": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "oda|2500-md|1000x1000": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "mk_uzunluk",
+    1550.0
+   ],
+   [
+    "mk_genislik",
+    2750.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "oda|2500-md|2200x2200": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "mk_genislik",
+    2750.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "oda|2500-md|3000x2500": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "mk_genislik",
+    2750.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "oda|450-md|1000x1000": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "mk_uzunluk",
+    2700.0
+   ],
+   [
+    "mk_genislik",
+    2200.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "oda|450-md|2200x2200": {
+  "agirlik": "Sağ",
+  "durum": "gereken",
+  "gereken": [
+   [
+    "mk_uzunluk",
+    2700.0
+   ]
+  ],
+  "yeniden": "uygun"
+ },
+ "oda|450-md|3000x2500": {
+  "agirlik": "Sağ",
   "durum": "uygun"
  },
  "oda|630-md|1000x1000": {

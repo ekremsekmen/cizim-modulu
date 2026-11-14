@@ -5,7 +5,8 @@ Seçici avan projesine "bu kuyuya en uygun asansör"ü bulur;  testleri ( testle
 test_avan_secici ) birkaç kuyuya bakar.  Tarama eksenleri geniş tutar:
 
     kuyu   her hazır asansör × kuyu genişliği / derinliği ( paketinkinden küçük ve
-           büyük ) × kat düzeni ( durak, hız, kuyu dibi, kuyu üstü )
+           büyük ) × kat düzeni ( durak, hız, kuyu dibi, kuyu üstü );  yalnız avanın hazır
+           asansörleri ( 450 · 1600 · 2000 · 2500 kg ) seyrek taranır ( SEYREK_* )
     kapi   trafik hesabının kapısı ( aile × genişlik )
     hiz    avanın hızları ( paketin kendi kuyusu )
     aski   kartın askı oranı ( 1:1 · 2:1 )
@@ -73,6 +74,14 @@ ASKILAR = (1, 2)
 #  Makine dairesi ( uzunluk , genişlik ):  yeten, yetmeyen, kuyudan küçük
 ODALAR = ((3000, 2500), (2200, 2200), (1000, 1000))
 KABIN = ("beyan_yuku", "kabin_genisligi", "kabin_derinligi")
+#  YALNIZ AVANIN HAZIR ASANSÖRLERİ ( uclar/avan_paketleri.json — 450 · 1600 · 2000 · 2500 kg )
+#  seyrek taranır:  hepsi tam eksenle 819 senaryo CI'da 80 dk sürdü ( 14 Kas, PR #134 — büyük
+#  asansörlerin senaryoları yavaş ).  Küçük / geniş kuyu, iki kapı, iki hız;  askı ve oda tam.
+SEYREK_GENISLIK = (-200, 0, 300)
+SEYREK_DERINLIK = (-100, 300)
+SEYREK_KATLAR = KATLAR[:1]
+SEYREK_KAPILAR = (("Otomatik Merkezi", 900), ("Teleskopik Sol", 1000))
+SEYREK_HIZLAR = (0.63, 1.6)
 
 
 def _paket_mimarisi(t, **degisen):
@@ -111,14 +120,15 @@ def senaryolar():
     liste = []
     for anahtar, t in avan_secici.paketler().items():
         ad = t["kimlik"]
-        for dg in GENISLIK:
-            for dd in DERINLIK:
-                for i, kat in enumerate(KATLAR):
+        seyrek = "acik_bolumler" in t
+        for dg in SEYREK_GENISLIK if seyrek else GENISLIK:
+            for dd in SEYREK_DERINLIK if seyrek else DERINLIK:
+                for i, kat in enumerate(SEYREK_KATLAR if seyrek else KATLAR):
                     liste.append((f"kuyu|{ad}|g{dg:+d}|d{dd:+d}|k{i}", anahtar, _katli(t, dg, dd, kat)))
-        for tip, gen in KAPILAR:
+        for tip, gen in SEYREK_KAPILAR if seyrek else KAPILAR:
             m = _paket_mimarisi(t, kat_kapisi_tipi=tip, kapi_genisligi=gen)
             liste.append((f"kapi|{ad}|{tip}|{gen}", anahtar, m))
-        for hiz in HIZLAR:
+        for hiz in SEYREK_HIZLAR if seyrek else HIZLAR:
             liste.append((f"hiz|{ad}|{hiz:g}", anahtar, _paket_mimarisi(t, beyan_hizi=hiz)))
         for aski in ASKILAR:
             liste.append((f"aski|{ad}|{aski}", anahtar, _paket_mimarisi(t, aski_orani=aski)))

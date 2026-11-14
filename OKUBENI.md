@@ -569,7 +569,7 @@ iznidir**:  yalnız kasıtlı bir değişiklikten sonra, farklar incelenince.
 |---|---|---|
 | `testler/altin_cizim.json.gz` | 35 düzenin tam paftası ( her çizimin elemanları + SVG ) | `.venv/bin/python -m testler.altin_cizim` |
 | `testler/tarama_hukumleri.json` | 510 düzenin hükmü ( çizildi / ret ve sebebi ) | `.venv/bin/python -m araclar.tarama --yenile` |
-| `testler/avan_tarama_hukumleri.json` | avan seçicisinin 819 kuyudaki hükmü ( durum, ağırlık yeri, mimardan istenen ölçü ) | `.venv/bin/python -m araclar.avan_tarama --yenile` ( ağır — sonuç PR'ın CI çıktısından da alınır ) |
+| `testler/avan_tarama_hukumleri.json` | avan seçicisinin 563 kuyudaki hükmü ( durum, ağırlık yeri, mimardan istenen ölçü ) | `.venv/bin/python -m araclar.avan_tarama --yenile` ( ağır — sonuç PR'ın CI çıktısından da alınır ) |
 | `hesap/dogrulama/altin_*.json.gz` | hesabın tam çıktısı ( trafik, avan, uygulama ) | `cd hesap && ../.venv/bin/python dogrulama/altin_uret.py` |
 | `hesap/dogrulama/referans_*.json.gz` | hesabın ara değerleri ve hükümleri | `cd hesap && ../.venv/bin/python dogrulama/tarama_uret.py` |
 
