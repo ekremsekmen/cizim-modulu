@@ -256,6 +256,8 @@ export interface AvanCizimYaniti {
        hizlar:  çizimin çıktığı hızlar ( m/s )  */
   hiz?: boolean;
   hizlar?: number[];
+  /**  Çizimde elle ayarlanan ölçüler ( kartın cizim_ayarlari'sı ), ekrandaki adlarıyla  */
+  ayarlar?: { anahtar: string; etiket: string; deger: string; birim: string }[];
   gereken?: { anahtar: string; etiket: string; eski: string | null; yeni: string; sebep: string }[];
   nedenler?: string[];
   /**  Geçirilemeyen ürün bölümleri ( avanı bağlamaz — uygulama projesinde çözülür )  */
