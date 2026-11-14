@@ -216,6 +216,40 @@ def secim(g, i):
     return r
 
 
+def _sayi_yazi(x):
+    """Ölçü, okunduğu gibi:  2030.0 → "2030";  kot metni aynen."""
+    return x if isinstance(x, str) else f"{x:g}"
+
+
+def cizimsiz_sebebi(r):
+    """Çizimi çıkmayan asansörün sebebi, tek satır ( paketteki nota — 14 Kas:  not hangi
+    asansörün neden çizilmediğini söylemiyordu ).  r:  secim( g , i ) sonucu."""
+    durum = r["durum"]
+    if durum == "eksik":
+        adlar = [alanlar.ALAN[k].etiket if k in alanlar.ALAN else k for k in r.get("eksik") or []]
+        return "mimari ölçü eksik:  " + ", ".join(adlar)
+    if durum == "gereken":
+        return "mimardan istenecek:  " + ";  ".join(
+            f"{g['etiket']} {_sayi_yazi(g['eski']) if g.get('eski') not in (None, '') else '—'} → {_sayi_yazi(g['yeni'])}"
+            for g in r["gereken"]
+        )
+    if durum == "beyan":
+        yer = "trafik hesabında" if r.get("beyan_turu") == "kapi" else "avan kartında"
+        return f"{yer} seçilecek:  " + ";  ".join(
+            f"{b['etiket']} {b.get('eski_yazi', b['eski'])} → {b.get('yeni_yazi', b['yeni'])}"
+            for b in r["beyan"]
+        )
+    if durum == "sigmaz":
+        return "bu kuyuya asansör sığmıyor:  " + (str((r.get("nedenler") or ["sebep bulunamadı"])[0]))
+    if durum == "paket_yok":
+        if r.get("hiz"):
+            return "bu hızda avan çizimi çıkmaz ( uygulama projesinin hız listesinde yok )"
+        return "bu kapasite için hazır asansör yok"
+    if durum == "uygun":
+        return "çizim kurulamadı"
+    return str(r.get("hata") or "çizim kurulamadı")
+
+
 def istendi(a):
     """Bu kartta çizim için bir şey girilmiş mi ( ISTEK )."""
     return any(a.get(k) not in (None, "") for k in ISTEK)
@@ -223,7 +257,7 @@ def istendi(a):
 
 def paket_cizimleri(g, proje_adi, adlar):
     """Paketin çizimleri:  ( [ çizim girdisi — avan kipinde ] , [ çizimi olmayan
-    asansörlerin adları ] ).  adlar:  asansörlerin paftadaki adları ( sırayla ).
+    asansörler:  ( ad , sebep ) ] ).  adlar:  asansörlerin paftadaki adları ( sırayla ).
 
     Yalnız çizimi İSTENEN asansörler ( mimarisi girilmiş kartlar ):  hiçbir kartta
     mimari yoksa paket bugünkü gibidir ( çizimsiz, notsuz ).  İstenip de çizilemeyen
@@ -249,7 +283,7 @@ def paket_cizimleri(g, proje_adi, adlar):
                 #  Öbür asansörler çizilemese de paftada bu asansörün adı yazar ( cizim/pafta.bloklar )
                 cg["proje"]["cok_asansorlu"] = True
         if cg is None:
-            eksik.append(adlar[i])
+            eksik.append((adlar[i], cizimsiz_sebebi(r)))
         else:
             gler.append(cg)
     return gler, eksik

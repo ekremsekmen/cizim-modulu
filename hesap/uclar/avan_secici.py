@@ -53,6 +53,15 @@ from yollar import KOK
 
 with open(os.path.join(KOK, "on-yuz", "src", "lib", "taslaklar.json"), encoding="utf-8") as _f:
     _TASLAKLAR = json.load(_f)
+#  YALNIZ AVANIN HAZIR ASANSÖRLERİ ( 14 Kas — 450 · 1600 · 2000 · 2500 kg;  açılışın taslağı
+#  değiller ):  aynı biçim.  Kabin ve kapı ISO 4190 / TS EN 81-20 Çizelge 6, kuyu formun kuralı;
+#  çizimleri temiz, avanı bağlayan bölümleri uygun ( testler/test_avan_paketleri ).  450 kg'ın
+#  her bölümü uygun;  1600 kg ve üstünde ÜRÜN bölümleri ( tahrik, halat … — "acik_bolumler" )
+#  açık kalır:  avanı engellemez ( kullanıcı, 14 Kas:  "çıksın" ), uygulama projesinde çözülür.
+with open(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "avan_paketleri.json"), encoding="utf-8"
+) as _f:
+    _AVAN_PAKETLERI = json.load(_f)
 
 #  Mimarın verdikleri:  pakette ne yazarsa yazsın bunlar mimardan gelir
 KOTLAR = (alanlar.DURAK_KOTLARI, "kuyu_dibi_kotu", "kuyu_tavani_kotu", "md_zemini_kotu")
@@ -142,7 +151,8 @@ URUN = {
 def paketler():
     """{ ( yük kg , makine dairesiz mi ):  taslak }"""
     return {
-        (int(t["asansor"]["beyan_yuku"]), t["proje_geneli"].get("mk_yok") == "true"): t for t in _TASLAKLAR
+        (int(t["asansor"]["beyan_yuku"]), t["proje_geneli"].get("mk_yok") == "true"): t
+        for t in (*_TASLAKLAR, *_AVAN_PAKETLERI)
     }
 
 
@@ -503,7 +513,8 @@ def sec(m):
       "gereken"    gereken [ { anahtar , etiket , eski , yeni , sebep } ] — mimarın
                    ölçüleri böyle olursa temiz;  istek o ölçülerle
       "sigmaz"     nedenler [ metin ] — mimardan istenecek ölçü de bulunamadı
-      "paket_yok"  bu yük / düzen için paket yok
+      "paket_yok"  bu yük / düzen için paket yok;  hiz ( True ) + hizlar:  bu hızda çizim
+                   çıkmaz ( uygulamanın hız listesinde yok — 1,75 · 3,5 m/s )
       "eksik"      eksik [ anahtar ] — mimari girdi eksik
       "beyan"      beyan [ { anahtar , etiket , eski , yeni } ] — avanın beyanıyla asansör
                    kurulamadı;  kartta bunlar seçilirse kurulur ( doğrulanmış, en az değişiklik )
@@ -596,6 +607,11 @@ def _sec(m, azami_sure=AZAMI_SURE):
         eksik.append("md_zemini_kotu")
     if eksik:
         return son("eksik", eksik=eksik)
+    #  Avanın hız listesinde olup uygulamanın listesinde olmayan hızlar ( 1,75 · 3,5 m/s ):
+    #  çizim çıkmaz ( kullanıcı kararı, 14 Kas ) — eskiden "geçersiz seçim" hatası görünüyordu
+    hizlar = alanlar.ALAN["beyan_hizi"].secenekler
+    if not any(_sayili(x) and _sayi(x) == _sayi(m["beyan_hizi"]) for x in hizlar):
+        return son("paket_yok", hiz=True, hizlar=[x for x in hizlar if _sayili(x)])
     taslak = paketler().get((int(_sayi(m["beyan_yuku"])), mk_yok))
     if taslak is None:
         return son("paket_yok")
