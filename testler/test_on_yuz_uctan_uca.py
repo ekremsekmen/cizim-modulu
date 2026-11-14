@@ -1221,7 +1221,7 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.get_by_label("Kuyu tavanı kotu").wait_for()
 
         #  ÖLÇÜYE TIKLAMA ( 13 Kas ):  mimariden gelen ölçü ( SW ) soldaki kutusunu odaklar;
-        #  seçicinin ölçüsü ( DBG — ray arası ) avanda değişmez, öyle söylenir
+        #  seçicinin ölçüsü ölçü kutusuyla değişir ( aşağıda )
         self.sayfa.wait_for_selector("main svg", state="attached")
         self.sayfa.get_by_role("button", name=re.compile("KUYU PLANI")).click()
         plan = self.sayfa.locator('main [data-cizim="kuyu_plani"]')
@@ -1230,9 +1230,34 @@ class OnYuzUctanUca(unittest.TestCase):
         durum.filter(has_text="SW2050").wait_for()
         self.assertIn("mimariden", durum.inner_text())
         self.assertEqual(self.sayfa.evaluate("() => document.activeElement.id"), "c-kuyu_genisligi")
+        #  ( 14 Kas ) SEÇİCİNİN ÖLÇÜSÜ DE DEĞİŞİR:  uygulamanın ölçü kutusu açılır ( DBG — ray arası )
+        kutu = self.sayfa.locator("[data-olcu-kutu][role=dialog]")
         plan.locator(".olcu", has_text="DBG").first.click()
-        durum.filter(has_text="DBG").wait_for()
-        self.assertIn("bu ölçüyü program seçer", durum.inner_text())
+        #  ( kaynaklar sunucudan gelir — beklenir )
+        kutu.filter(has_text=re.compile("ray", re.I)).wait_for()
+        kutu.get_by_label("Kapat").click()
+        kutu.wait_for(state="detached")
+        #  Ray – kapı ölçüsü ( 800 = RK 650 + kasa 60 + eşik 90 ) 850 yapılır:  değer karta ELLE AYAR
+        #  olarak yazılır, seçici aynen kullanır, solda listelenir
+        plan.locator(".olcu").filter(has_text=re.compile(r"^\s*800\s*$")).first.click()
+        kutu.filter(has_text="Ray - kapı arası").wait_for()
+        kutu.get_by_label("Yeni ölçü").fill("850")
+        kutu.get_by_role("button", name="Uygula").click()
+        istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(istek["girdiler"]["asansorler"][0]["cizim_ayarlari"], "ray_kapi_arasi=700")
+        self.assertEqual(yanit["durum"], "uygun", yanit.get("nedenler") or yanit.get("gereken"))
+        self.assertEqual(yanit["istek"]["asansorler"][0]["ray_kapi_arasi"], "700")
+        self.assertEqual([x["anahtar"] for x in yanit["ayarlar"]], ["ray_kapi_arasi"])
+        yan = self.sayfa.locator("aside")
+        self.assertIn("Elle ayarlanan ölçüler", yan.inner_text())
+        #  Ayar kaldırılır:  ölçüyü yine program seçer
+        if kutu.count():
+            kutu.get_by_label("Kapat").click()
+        yan.get_by_role("button", name=re.compile("ayarını kaldır")).click()
+        istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(istek["girdiler"]["asansorler"][0].get("cizim_ayarlari", ""), "")
+        self.assertEqual(yanit["ayarlar"], [])
+        self.assertNotIn("Elle ayarlanan ölçüler", yan.inner_text())
 
         #  TAVAN DÖŞEMESİ KALINLIĞI:  kartta girilir ( boşsa kuraldan 150 ), çizime geçer;
         #  "döşemenin üstü" = kuyu tavanı + kalınlık
