@@ -11,7 +11,7 @@
     .venv/bin/python kontrol.py uctan_uca  ön yüz gerçek tarayıcıda:  örnek proje, canlı
                                            hesap, proje dosyası, ölçü, teslim ( ~1 dk )
     .venv/bin/python kontrol.py tarama     girdi taraması ( 558 düzen;  ~8 dk )
-    .venv/bin/python kontrol.py avan_tarama  avan seçicisi taraması ( 455 kuyu;  ağır — CI'da )
+    .venv/bin/python kontrol.py avan_tarama  avan seçicisi taraması ( 563 kuyu;  ağır — CI'da )
     .venv/bin/python kontrol.py bicim      ruff format + ruff check --fix ( düzeltir )
 
 Çizim testleri pytest ile paralel koşar:  KONTROL_IS işçi ( varsayılan 4 —

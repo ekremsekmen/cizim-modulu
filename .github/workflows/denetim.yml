@@ -10,7 +10,7 @@
 #               uçları ve kök sayfası, ön yüz gerçek tarayıcıda ( uçtan uca;
 #               arıza matrisinin beş türü yalnız elle başlatınca, PR'da ikisi )
 #      tarama   558 düzenin hükmü kayıtla ( testler/tarama_hukumleri.json ), yazı ve fiziksel tutarlılık
-#      avan_tarama  avan seçicisi 455 kuyuda ( araclar/avan_tarama.py ):  dönen her asansör
+#      avan_tarama  avan seçicisi 563 kuyuda ( araclar/avan_tarama.py ):  dönen her asansör
 #               uygulamanın uçlarından temiz mi, hükümler kayıtla aynı mı
 #               ( testler/avan_tarama_hukumleri.json );  sonuç iş çıktısı olarak saklanır
 #    main'e push:  yalnız hızlı denetim ( PR'da hepsi zaten koştu )
@@ -97,8 +97,8 @@ jobs:
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
     #  Öbür işlerle yan yana koşar ( tam işini uzatmaz ).  Seçici saatsiz kiptedir;  ilk
-    #  ölçüm yerelde 16 senaryo 1,5 dk işlemci → 455 senaryo ~45 dk işlemci
-    timeout-minutes: 60
+    #  ölçüm:  455 senaryo CI'da 20 dk ( 4 işçi, 79 dk işlemci );  14 Kas 18 hazır asansörle 563 senaryo ( yenileri seyrek — 819 tam eksen 80 dk sürdü )
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

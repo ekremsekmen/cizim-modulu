@@ -1665,11 +1665,19 @@ function CizimSonucu({ r, donuyor, kartaUygula }: { r: AvanCizimYaniti; donuyor:
         </ul>
       </CizimIletisi>
     );
+  if (r.durum === "paket_yok" && r.hiz)
+    return (
+      <CizimIletisi
+        baslik="Bu hızda avan çizimi çıkmaz"
+        alt={`Avan çizimi ${(r.hizlar ?? []).map((v) => String(v).replace(".", ",")).join(" · ")} m/s hızlarda çıkar;  bu hız uygulama projesinin hız listesinde yok.  Avan hesabı etkilenmez.`}
+        donuyor={donuyor}
+      />
+    );
   if (r.durum === "paket_yok")
     return (
       <CizimIletisi
         baslik="Bu kapasite için hazır asansör yok"
-        alt="Avan çizimi şimdilik 8, 10, 13 ve 16 kişilik asansörlerde çıkar ( 630 · 800 · 1000 · 1275 kg )."
+        alt="Avan çizimi 6, 8, 10, 13, 16, 20, 25 ve 30 kişilik asansörlerde çıkar ( 450 · 630 · 800 · 1000 · 1275 · 1600 · 2000 · 2500 kg )."
         donuyor={donuyor}
       />
     );

@@ -527,6 +527,19 @@ def indir_proje_dwg(veri: dict = Body(...)):
         #  noktası aynı arşivde dursun.
         kok = os.path.splitext(ad)[0]
         ekler = list(_paket_ekleri(veri, "avan"))
+        #  Çizimi çıkmayan asansörler ve sebepleri pakette de yazar ( 14 Kas ):  paketi alan,
+        #  ekrandaki notu görmemiş olabilir
+        if cizimsiz:
+            satirlar = [
+                "ÇİZİMİ OLMAYAN ASANSÖRLER",
+                "",
+                "Bu pakette aşağıdaki asansörlerin çizimi yoktur.  Sebebi giderilince",
+                "( programın Çizimler adımı ) paket yeniden indirilir.",
+                "",
+                *(f"  {ad}:  {sebep}" for ad, sebep in cizimsiz),
+                "",
+            ]
+            ekler.append(("ÇİZİMİ OLMAYAN ASANSÖRLER.txt", "\r\n".join(satirlar).encode("utf-8-sig")))
         paket, sebep, tasti = dxf_cikti.proje_paketi(
             paftalar,
             kok,

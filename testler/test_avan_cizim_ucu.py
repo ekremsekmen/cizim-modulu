@@ -207,7 +207,7 @@ class AvanCizimUcu(unittest.TestCase):
         self.assertEqual(kot["kabin"], {"kabin_boyu": 1400, "kabin_genisligi": 1100})
         self.assertEqual(yanit(govde(kart(T630)))["durum"], "uygun")
         #  Hazır asansörü olmayan kapasite:  kabin bilinmez, sonuç eskisi gibi
-        self.assertEqual(yanit(govde(kart(T630, kapasite="6", kabin_boyu="1500")))["durum"], "paket_yok")
+        self.assertEqual(yanit(govde(kart(T630, kapasite="15", kabin_boyu="1500")))["durum"], "paket_yok")
 
     def test_kapi_trafik_hesabindan(self):
         """Kullanıcı kararı ( 14 Kas ):  çizimin kapısı trafik hesabınınkidir.  Ekran köprüdeki
@@ -284,7 +284,33 @@ class AvanCizimUcu(unittest.TestCase):
         self.assertEqual(yanit(govde(kart(T630), asansor=3))["durum"], "hata")
 
     def test_paketi_olmayan_kapasite(self):
-        self.assertEqual(yanit(govde(kart(T630, kapasite="6")))["durum"], "paket_yok")
+        #  15 kişi ( 1125 kg ) MMO/697 Tablo-7'de basılı değildir:  kabini standartta yok
+        r = yanit(govde(kart(T630, kapasite="15")))
+        self.assertEqual(r["durum"], "paket_yok")
+        self.assertNotIn("hiz", r)
+
+    def test_uygulamada_olmayan_hiz(self):
+        """Avanın 1,75 ve 3,5 m/s hızları uygulamanın hız listesinde yoktur:  çizim çıkmaz
+        ( kullanıcı kararı, 14 Kas ) — "geçersiz seçim" hatası değil, açık ileti."""
+        for hiz in ("1,75", "3,5"):
+            r = yanit(govde(kart(T630, V=hiz)))
+            self.assertEqual(r["durum"], "paket_yok", r)
+            self.assertTrue(r["hiz"])
+            self.assertIn(1.6, r["hizlar"])
+            self.assertNotIn(1.75, r["hizlar"])
+
+    def test_yeni_kapasiteler(self):
+        """14 Kas:  6 · 20 · 25 · 30 kişi ( 450 · 1600 · 2000 · 2500 kg ) avan çizimi verir —
+        yalnız avanın hazır asansörleri ( uclar/avan_paketleri.json ).  1600 kg ve üstünde
+        ürün bölümleri açık kalabilir;  çizimi engellemez."""
+        for kisi, yuk in (("6", 450), ("20", 1600)):
+            a = avan_secici.paketler()[(yuk, True)]["asansor"]
+            k = {"kapasite": kisi, "V": "1", **{x: a[x] for x in avan_cizimi.KART if x in a}}
+            r = yanit(govde(k))
+            self.assertEqual(r["durum"], "uygun", r.get("nedenler") or r.get("gereken"))
+            self.assertEqual(r["istek"]["asansorler"][0]["beyan_yuku"], str(yuk))
+            self.assertEqual(len(r["cizim"]["cizimler"]), 9)
+            self.assertEqual(bool(r["acik_bolumler"]), yuk >= 1600)
 
 
 class AvanPaketi(unittest.TestCase):
@@ -310,7 +336,7 @@ class AvanPaketi(unittest.TestCase):
             }
         )
         self.assertEqual(yanit.media_type, "application/zip", getattr(yanit, "body", b"")[:400])
-        z = zipfile.ZipFile(io.BytesIO(yanit.body))
+        z = self.zip = zipfile.ZipFile(io.BytesIO(yanit.body))
         ad = next(n for n in z.namelist() if n.endswith(".dxf"))
         d = ezdxf.read(io.StringIO(z.read(ad).decode("utf-8", "ignore")))
         bloklar = {b.name for b in d.blocks if b.name.startswith("CIZIM_") and "ELEKTRIK" not in b.name}
@@ -360,6 +386,11 @@ class AvanPaketi(unittest.TestCase):
         self.assertIn("CIZIM_KUYU_PLANI", bloklar)
         self.assertFalse(any(b.endswith("_2") for b in bloklar), bloklar)
         self.assertIn("CIZIM", notlar)
+        #  Paketin içinde de yazar ( 14 Kas ):  hangi asansör, neden
+        (ad,) = [n for n in self.zip.namelist() if n.endswith("ÇİZİMİ OLMAYAN ASANSÖRLER.txt")]
+        metin = self.zip.read(ad).decode("utf-8-sig")
+        self.assertIn("1 NOLU ASANSÖR:  mimardan istenecek:", metin)
+        self.assertNotIn("2 NOLU ASANSÖR", metin)
         #  Çizilebilen tek asansörün adı paftada yazar ( 14 Kas:  hangi asansör olduğu belli değildi )
         yazilar = {t.plain_text() for t in d.blocks.get("CIZIM_KUYU_PLANI").query("MTEXT")}
         self.assertTrue(any("2 NOLU ASANSÖR" in y and "Yük" in y for y in yazilar), yazilar)

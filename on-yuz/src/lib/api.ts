@@ -252,6 +252,10 @@ export interface AvanCizimYaniti {
   beyan_turu?: "kabin" | "kapi";
   hata?: string;
   eksik?: string[];
+  /**  paket_yok + hiz:  bu hızda avan çizimi çıkmaz ( uygulamanın hız listesinde yok );
+       hizlar:  çizimin çıktığı hızlar ( m/s )  */
+  hiz?: boolean;
+  hizlar?: number[];
   gereken?: { anahtar: string; etiket: string; eski: string | null; yeni: string; sebep: string }[];
   nedenler?: string[];
   /**  Geçirilemeyen ürün bölümleri ( avanı bağlamaz — uygulama projesinde çözülür )  */
@@ -569,6 +573,6 @@ export function paketNotu(not: string): string {
   if (not === "DXF") return "ZIP'te çizim DXF olarak var;  AutoCAD birebir açar ( DWG isterseniz açıp Farklı Kaydet ).";
   if (not === "TASMA") return "Pafta sayısı proje formatının çerçevesine sığmadı, alta taşan sayfalar var — baskıdan önce bakın.";
   if (not === "CIZIM")
-    return "Bazı asansörlerin çizimi pakette yok — Çizimler adımında eksik ölçüye ya da mimardan istenecek ölçüye bakın.";
+    return "Bazı asansörlerin çizimi pakette yok — hangileri ve neden, ZIP'teki “ÇİZİMİ OLMAYAN ASANSÖRLER.txt” dosyasında ve Çizimler adımında yazıyor.";
   return not;
 }

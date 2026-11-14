@@ -63,8 +63,10 @@ class AvanSecici(unittest.TestCase):
 
     def test_paketin_kendi_kuyusu(self):
         """Her yük, makine dairesiz ve daireli:  taslağın kuyusunda taslağın kendisi."""
-        self.assertEqual(len(PAKETLER), 10)
-        for t in PAKETLER.values():
+        #  Açılışın taslakları ( yalnız avanın hazır asansörleri:  testler/test_avan_paketleri )
+        taslaklar = [t for t in PAKETLER.values() if "acik_bolumler" not in t]
+        self.assertEqual(len(taslaklar), 10)
+        for t in taslaklar:
             with self.subTest(t["kimlik"]):
                 m = mimari(t)
                 r = avan_secici.sec(m)
@@ -398,8 +400,8 @@ class AvanSecici(unittest.TestCase):
         m = mimari(PAKETLER[(630, False)])
         del m["md_zemini_kotu"]
         self.assertEqual(avan_secici.sec(m)["eksik"], ["md_zemini_kotu"])
-        #  Taslağı olmayan yük ( 450 kg — 6 kişi )
-        self.assertEqual(avan_secici.sec(mimari(t, beyan_yuku=450))["durum"], "paket_yok")
+        #  Hazır asansörü olmayan yük ( 1125 kg — 15 kişi;  Tablo-7'de basılı değil )
+        self.assertEqual(avan_secici.sec(mimari(t, beyan_yuku=1125))["durum"], "paket_yok")
 
 
 if __name__ == "__main__":

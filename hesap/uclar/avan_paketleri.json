@@ -1,0 +1,303 @@
+[
+  {
+    "kimlik": "450",
+    "duzen": "Makine dairesiz",
+    "ad": "450 kg · 6 kişi",
+    "kaynak": "Kabin ve kapı ISO 4190 / TS EN 81-20 Çizelge 6;  kuyu formun kuralı",
+    "acik_bolumler": [],
+    "asansor": {
+      "beyan_yuku": "450",
+      "kabin_genisligi": "1000",
+      "kabin_derinligi": "1250",
+      "kapi_genisligi": "800",
+      "kuyu_genisligi": "1950",
+      "kuyu_derinligi": "1700",
+      "agirlik_yeri": "Sağ",
+      "kat_kapisi_tipi": "Teleskopik Sol",
+      "beyan_hizi": "1",
+      "kasnak_belgesi": "Var",
+      "kabin_konsol_arasi": "1800",
+      "agirlik_konsol_arasi": "1800",
+      "motor_gucu": "4",
+      "kabin_ray_profili": "70 x 65 x 9",
+      "agirlik_ray_profili": "50 x 50 x 5",
+      "durak_kotlari": "±0,00; +3,00; +6,00; +9,00; +12,00; +15,00",
+      "kuyu_dibi_kotu": "-1,60",
+      "kuyu_tavani_kotu": "+19,20"
+    },
+    "proje_geneli": {
+      "mk_yok": "true"
+    }
+  },
+  {
+    "kimlik": "1600",
+    "duzen": "Makine dairesiz",
+    "ad": "1600 kg · 20 kişi",
+    "kaynak": "Kabin ve kapı ISO 4190 / TS EN 81-20 Çizelge 6;  kuyu formun kuralı",
+    "acik_bolumler": [
+      "aski_halatlari",
+      "tahrik_yetenegi"
+    ],
+    "asansor": {
+      "beyan_yuku": "1600",
+      "kabin_genisligi": "1400",
+      "kabin_derinligi": "2400",
+      "kapi_genisligi": "1100",
+      "kuyu_genisligi": "2350",
+      "kuyu_derinligi": "2850",
+      "agirlik_yeri": "Sağ",
+      "kat_kapisi_tipi": "Teleskopik Sol",
+      "beyan_hizi": "1",
+      "kasnak_belgesi": "Var",
+      "kabin_konsol_arasi": "1800",
+      "agirlik_konsol_arasi": "1800",
+      "motor_gucu": "11",
+      "kabin_ray_profili": "125 x 82 x 16",
+      "kanal_isleme": "Sertleştirilmiş",
+      "denge_zinciri": "Var",
+      "durak_kotlari": "±0,00; +3,00; +6,00; +9,00; +12,00; +15,00",
+      "kuyu_dibi_kotu": "-1,60",
+      "kuyu_tavani_kotu": "+19,20",
+      "agirlik_malzemesi": "Pik Döküm"
+    },
+    "proje_geneli": {
+      "mk_yok": "true"
+    }
+  },
+  {
+    "kimlik": "2000",
+    "duzen": "Makine dairesiz",
+    "ad": "2000 kg · 25 kişi",
+    "kaynak": "Kabin ve kapı ISO 4190 / TS EN 81-20 Çizelge 6;  kuyu formun kuralı",
+    "acik_bolumler": [
+      "aski_halatlari",
+      "tahrik_yetenegi"
+    ],
+    "asansor": {
+      "beyan_yuku": "2000",
+      "kabin_genisligi": "1500",
+      "kabin_derinligi": "2700",
+      "kapi_genisligi": "1300",
+      "kuyu_genisligi": "2450",
+      "kuyu_derinligi": "3150",
+      "agirlik_yeri": "Sağ",
+      "kat_kapisi_tipi": "Teleskopik 3 Kanat Sol",
+      "beyan_hizi": "1",
+      "kasnak_belgesi": "Var",
+      "kabin_konsol_arasi": "1800",
+      "agirlik_konsol_arasi": "1800",
+      "motor_gucu": "15",
+      "kabin_ray_profili": "125 x 82 x 16",
+      "kanal_isleme": "Sertleştirilmiş",
+      "denge_zinciri": "Var",
+      "durak_kotlari": "±0,00; +3,00; +6,00; +9,00; +12,00; +15,00",
+      "kuyu_dibi_kotu": "-1,60",
+      "kuyu_tavani_kotu": "+19,20",
+      "agirlik_malzemesi": "Pik Döküm"
+    },
+    "proje_geneli": {
+      "mk_yok": "true"
+    }
+  },
+  {
+    "kimlik": "2500",
+    "duzen": "Makine dairesiz",
+    "ad": "2500 kg · 30 kişi",
+    "kaynak": "Kabin ve kapı ISO 4190 / TS EN 81-20 Çizelge 6;  kuyu formun kuralı",
+    "acik_bolumler": [
+      "aski_halatlari",
+      "makine_konstruksiyonu",
+      "tahrik_yetenegi"
+    ],
+    "asansor": {
+      "beyan_yuku": "2500",
+      "kabin_genisligi": "1800",
+      "kabin_derinligi": "2700",
+      "kapi_genisligi": "1400",
+      "kuyu_genisligi": "2750",
+      "kuyu_derinligi": "3150",
+      "agirlik_yeri": "Sağ",
+      "kat_kapisi_tipi": "Teleskopik 3 Kanat Sol",
+      "beyan_hizi": "1",
+      "kasnak_belgesi": "Var",
+      "kabin_konsol_arasi": "1800",
+      "agirlik_konsol_arasi": "1800",
+      "motor_gucu": "15",
+      "kabin_ray_profili": "127 x 89 x 16",
+      "kanal_isleme": "Sertleştirilmiş",
+      "denge_zinciri": "Var",
+      "durak_kotlari": "±0,00; +3,00; +6,00; +9,00; +12,00; +15,00",
+      "kuyu_dibi_kotu": "-1,60",
+      "kuyu_tavani_kotu": "+19,20",
+      "agirlik_malzemesi": "Pik Döküm"
+    },
+    "proje_geneli": {
+      "mk_yok": "true"
+    }
+  },
+  {
+    "kimlik": "450-md",
+    "duzen": "Makine daireli",
+    "ad": "450 kg · 6 kişi",
+    "kaynak": "Kabin ve kapı ISO 4190 / TS EN 81-20 Çizelge 6;  kuyu formun kuralı",
+    "acik_bolumler": [],
+    "asansor": {
+      "beyan_yuku": "450",
+      "kabin_genisligi": "1000",
+      "kabin_derinligi": "1250",
+      "kapi_genisligi": "800",
+      "kuyu_genisligi": "1950",
+      "kuyu_derinligi": "1700",
+      "agirlik_yeri": "Sağ",
+      "kat_kapisi_tipi": "Teleskopik Sol",
+      "beyan_hizi": "1",
+      "halat_capi": "8",
+      "aski_orani": "1",
+      "makine_tipi": "Dişli",
+      "kabin_konsol_arasi": "1800",
+      "agirlik_konsol_arasi": "1800",
+      "tahrik_kasnak_capi": "320",
+      "motor_gucu": "5.5",
+      "kabin_ray_profili": "70 x 65 x 9",
+      "agirlik_ray_profili": "50 x 50 x 5",
+      "yan_yatak": "140",
+      "halat_adedi": "6",
+      "durak_kotlari": "±0,00; +3,00; +6,00; +9,00; +12,00; +15,00",
+      "kuyu_dibi_kotu": "-1,60",
+      "kuyu_tavani_kotu": "+19,20",
+      "md_zemini_kotu": "+18,15"
+    },
+    "proje_geneli": {
+      "mk_yok": "false",
+      "mk_uzunluk": "3800",
+      "mk_genislik": "2600"
+    }
+  },
+  {
+    "kimlik": "1600-md",
+    "duzen": "Makine daireli",
+    "ad": "1600 kg · 20 kişi",
+    "kaynak": "Kabin ve kapı ISO 4190 / TS EN 81-20 Çizelge 6;  kuyu formun kuralı",
+    "acik_bolumler": [
+      "tahrik_yetenegi"
+    ],
+    "asansor": {
+      "beyan_yuku": "1600",
+      "kabin_genisligi": "1400",
+      "kabin_derinligi": "2400",
+      "kapi_genisligi": "1100",
+      "kuyu_genisligi": "2350",
+      "kuyu_derinligi": "2850",
+      "agirlik_yeri": "Sağ",
+      "kat_kapisi_tipi": "Teleskopik Sol",
+      "beyan_hizi": "1",
+      "halat_capi": "8",
+      "aski_orani": "1",
+      "makine_tipi": "Dişli",
+      "kabin_konsol_arasi": "1800",
+      "agirlik_konsol_arasi": "1800",
+      "tahrik_kasnak_capi": "500",
+      "motor_gucu": "18.5",
+      "kabin_ray_profili": "125 x 82 x 16",
+      "yan_yatak": "180",
+      "halat_adedi": "9",
+      "kanal_isleme": "Sertleştirilmiş",
+      "denge_zinciri": "Var",
+      "durak_kotlari": "±0,00; +3,00; +6,00; +9,00; +12,00; +15,00",
+      "kuyu_dibi_kotu": "-1,60",
+      "kuyu_tavani_kotu": "+19,20",
+      "md_zemini_kotu": "+18,15",
+      "agirlik_malzemesi": "Pik Döküm"
+    },
+    "proje_geneli": {
+      "mk_yok": "false",
+      "mk_uzunluk": "4400",
+      "mk_genislik": "2600"
+    }
+  },
+  {
+    "kimlik": "2000-md",
+    "duzen": "Makine daireli",
+    "ad": "2000 kg · 25 kişi",
+    "kaynak": "Kabin ve kapı ISO 4190 / TS EN 81-20 Çizelge 6;  kuyu formun kuralı",
+    "acik_bolumler": [
+      "gerilim_dusumu",
+      "tahrik_yetenegi"
+    ],
+    "asansor": {
+      "beyan_yuku": "2000",
+      "kabin_genisligi": "1500",
+      "kabin_derinligi": "2700",
+      "kapi_genisligi": "1300",
+      "kuyu_genisligi": "2450",
+      "kuyu_derinligi": "3150",
+      "agirlik_yeri": "Sağ",
+      "kat_kapisi_tipi": "Teleskopik 3 Kanat Sol",
+      "beyan_hizi": "1",
+      "halat_capi": "8",
+      "aski_orani": "1",
+      "makine_tipi": "Dişli",
+      "kabin_konsol_arasi": "1800",
+      "agirlik_konsol_arasi": "1800",
+      "tahrik_kasnak_capi": "500",
+      "motor_gucu": "22",
+      "kabin_ray_profili": "125 x 82 x 16",
+      "yan_yatak": "200",
+      "halat_adedi": "11",
+      "kanal_isleme": "Sertleştirilmiş",
+      "denge_zinciri": "Var",
+      "durak_kotlari": "±0,00; +3,00; +6,00; +9,00; +12,00; +15,00",
+      "kuyu_dibi_kotu": "-1,60",
+      "kuyu_tavani_kotu": "+19,20",
+      "md_zemini_kotu": "+18,15",
+      "agirlik_malzemesi": "Pik Döküm"
+    },
+    "proje_geneli": {
+      "mk_yok": "false",
+      "mk_uzunluk": "4700",
+      "mk_genislik": "2700"
+    }
+  },
+  {
+    "kimlik": "2500-md",
+    "duzen": "Makine daireli",
+    "ad": "2500 kg · 30 kişi",
+    "kaynak": "Kabin ve kapı ISO 4190 / TS EN 81-20 Çizelge 6;  kuyu formun kuralı",
+    "acik_bolumler": [
+      "aski_halatlari",
+      "motor_gucu",
+      "tahrik_yetenegi"
+    ],
+    "asansor": {
+      "beyan_yuku": "2500",
+      "kabin_genisligi": "1800",
+      "kabin_derinligi": "2700",
+      "kapi_genisligi": "1400",
+      "kuyu_genisligi": "2750",
+      "kuyu_derinligi": "3150",
+      "agirlik_yeri": "Sağ",
+      "kat_kapisi_tipi": "Teleskopik 3 Kanat Sol",
+      "beyan_hizi": "1",
+      "halat_capi": "8",
+      "aski_orani": "1",
+      "makine_tipi": "Dişli",
+      "kabin_konsol_arasi": "1800",
+      "agirlik_konsol_arasi": "1800",
+      "tahrik_kasnak_capi": "500",
+      "kabin_ray_profili": "127 x 89 x 16",
+      "yan_yatak": "240",
+      "kanal_isleme": "Sertleştirilmiş",
+      "denge_zinciri": "Var",
+      "durak_kotlari": "±0,00; +3,00; +6,00; +9,00; +12,00; +15,00",
+      "kuyu_dibi_kotu": "-1,60",
+      "kuyu_tavani_kotu": "+19,20",
+      "md_zemini_kotu": "+18,15",
+      "agirlik_malzemesi": "Pik Döküm"
+    },
+    "proje_geneli": {
+      "mk_yok": "false",
+      "mk_uzunluk": "4700",
+      "mk_genislik": "3000"
+    }
+  }
+]
