@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AvanKoprusu } from "./api";
-import { avanDosyaGovdesi, avanDosyasiMi, avanOku, avanSecimVarsayilani, BOS_AVAN, manuelKMetni, trafikFarki, trafikSutunuKaldir, trafikSutununuYaz, yeniAvanAcilisi, type AvanProjesi } from "./avan";
+import { avanAyarlari, avanAyarlariYaz, avanDosyaGovdesi, avanDosyasiMi, avanOku, avanSecimVarsayilani, BOS_AVAN, manuelKMetni, trafikFarki, trafikSutunuKaldir, trafikSutununuYaz, yeniAvanAcilisi, type AvanProjesi } from "./avan";
 import { SECENEKLER as SEC } from "./test-semasi";
 
 const KOPRU: AvanKoprusu = {
@@ -249,6 +249,20 @@ describe("askı oranının varsayılanı makine dairesine bağlıdır ( 14 Kas )
     //  makine daireli:  1:1 varsayılan;  dosyada yazan 2:1 kullanıcının seçimidir — kaybolmaz
     expect(askisi({ a_mk_yok: false, a_i_palanga1: "1" })).toBeUndefined();
     expect(askisi({ a_mk_yok: false, a_i_palanga1: "2" })).toBe("2");
+  });
+});
+
+describe("çizimde elle ayarlanan ölçüler ( 14 Kas )", () => {
+  it("kartta 'girdi=değer;girdi=değer' olarak durur;  boş değer ayarı kaldırır", () => {
+    expect(avanAyarlari({})).toEqual({});
+    expect(avanAyarlari({ cizim_ayarlari: "ray_kapi_arasi=700; kabin_yana_kaciklik=-40;bozuk;=5;x=" })).toEqual({
+      ray_kapi_arasi: "700",
+      kabin_yana_kaciklik: "-40",
+    });
+    const yazi = avanAyarlariYaz({ ray_kapi_arasi: "700", kapi_kaciklik: " 15 ", bos: "" });
+    expect(yazi).toBe("ray_kapi_arasi=700;kapi_kaciklik=15");
+    expect(avanAyarlari({ cizim_ayarlari: yazi })).toEqual({ ray_kapi_arasi: "700", kapi_kaciklik: "15" });
+    expect(avanAyarlariYaz({})).toBe("");
   });
 });
 

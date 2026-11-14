@@ -6,7 +6,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowRight, Check, Loader2, X } from "lucide-react";
-import { api, type OlcuDegisikligi, type UygulamaIstegi } from "@/lib/api";
+import { api, type OlcuDegisikligi, type OlcuKaynagi, type UygulamaIstegi } from "@/lib/api";
 import { ayniGirdi, kutuyaYaz } from "@/lib/proje";
 import { cn, sayiYaz } from "@/lib/utils";
 import { Dugme, Girdi, Rozet } from "@/components/ui";
@@ -23,6 +23,8 @@ export function OlcuKutusu({
   kapat,
   yaz,
   kaynaklarGeldi,
+  kilitli,
+  kilitNotu,
 }: {
   istek: UygulamaIstegi;
   /**  Formun ŞU ANKİ girdisi ( kural dışıysa null ) — kutu açıldıktan sonra
@@ -31,6 +33,10 @@ export function OlcuKutusu({
   asansor: number;
   olcu: OlcuSecimi;
   konum: OlcuKonumu;
+  /**  Bu kutuda DEĞİŞTİRİLEMEYEN kaynaklar ( avan çizimi:  kabin, kapı, kotlar — kendi kutuları
+       vardır ) ve altına yazılacak açıklama  */
+  kilitli?: (k: OlcuKaynagi) => boolean;
+  kilitNotu?: string;
   /**  Kaynak girdiler gelince:  solda gruplarını aç, alanları vurgula  */
   kaynaklarGeldi?: (anahtarlar: string[]) => void;
   kapat: () => void;
@@ -49,7 +55,8 @@ export function OlcuKutusu({
   //  ölçüsüyle istenir, değişiklik ona yazılır ( sunucu:  _asansorun_olcusu )
   const kendi = y?.kendi ?? { asansor, cizim: olcu.cizim, olcu: olcu.index, metin: olcu.metin };
   const obur = kendi.asansor !== asansor;
-  const degisebilen = (y?.kaynaklar ?? []).filter((k) => k.degistirilir);
+  const degisir = (k: OlcuKaynagi) => k.degistirilir && !kilitli?.(k);
+  const degisebilen = (y?.kaynaklar ?? []).filter(degisir);
   //  Kullanıcı seçmedikçe ilk değiştirilebilen girdi;  yazmadıkça ölçünün kendisi
   //  ( binlik ayırıcısız:  "1.600" sunucuda belirsizdir, reddedilir )
   const [anahtarSecimi, setAnahtar] = useState<string | null>(null);
@@ -181,21 +188,21 @@ export function OlcuKutusu({
                     type="button"
                     role="radio"
                     aria-checked={sec}
-                    disabled={!k.degistirilir || degistir.isPending || uygulandi || girdiDegisti}
+                    disabled={!degisir(k) || degistir.isPending || uygulandi || girdiDegisti}
                     onClick={() => {
                       setAnahtar(k.anahtar);
                       degistir.reset();
                     }}
                     className={cn(
                       "flex w-full items-center gap-2.5 rounded-orta px-2 py-2 text-left",
-                      k.degistirilir ? "hover:bg-black/[0.035]" : "cursor-default",
+                      degisir(k) ? "hover:bg-black/[0.035]" : "cursor-default",
                       sec && "bg-vurgu-acik hover:bg-vurgu-acik",
                     )}
                   >
                     <span
                       className={cn(
                         "flex size-3.5 shrink-0 items-center justify-center rounded-full border",
-                        !k.degistirilir ? "border-dashed border-cizgi-2" : sec ? "border-vurgu" : "border-cizgi-2",
+                        !degisir(k) ? "border-dashed border-cizgi-2" : sec ? "border-vurgu" : "border-cizgi-2",
                       )}
                     >
                       {sec && <span className="size-1.5 rounded-full bg-vurgu" />}
@@ -216,6 +223,9 @@ export function OlcuKutusu({
             })}
           </ul>
 
+          {kilitNotu && (y?.kaynaklar ?? []).some((k) => k.degistirilir && kilitli?.(k)) && (
+            <p className="shrink-0 border-t border-cizgi px-4 py-2 text-[11.5px] text-metin-3">{kilitNotu}</p>
+          )}
           {degisebilen.length > 0 && (
             <form
               className="shrink-0 border-t border-cizgi bg-yuzey-2 px-4 py-3"
