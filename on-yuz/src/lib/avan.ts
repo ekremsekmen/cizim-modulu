@@ -262,6 +262,14 @@ export const AVAN_SECIM_VARSAYILANI: Record<string, string> = {
   agirlik_guvenlik_tertibati: "Yok",
 };
 
+/**  Seçimin ETKİN varsayılanı ( boş kutu bunu demektir ).  Askı oranı makine dairesine bağlıdır
+     ( 14 Kas, kullanıcı ):  makine dairelide 1:1, makine dairesizde 2:1 — makine daireli 630 kg
+     2:1 askıyla kurulmuyor, kart ilk açılışta çizim vermiyordu.  Kutu, istek ve eski biçim
+     hep bunu kullanır:  avan hesabı ile çizim aynı askıyı görür.  */
+export function avanSecimVarsayilani(k: string, mrl: boolean): string {
+  return k === "i_palanga" && !mrl ? "1" : AVAN_SECIM_VARSAYILANI[k];
+}
+
 const VAR_YOK = ["Yok", "Var"];
 
 /**  Seçim alanlarının geçerli değerleri ( dosyadan gelen değer bunlardan biri olmalı )  */
@@ -325,7 +333,8 @@ export function avanDosyaGovdesi(p: AvanProjesi, sec: Secenekler, ofis: Ham, kop
     a[`a_V${n}`] = ka[i] ? String(ka[i].V) : "";
     for (const k of AVAN_ASANSORU) a[`a_${k}${n}`] = h[k] ?? "";
     //  Seçimler eski formda hep doludur:  etkin değer yazılır
-    for (const [k, d] of Object.entries(AVAN_SECIM_VARSAYILANI)) a[`a_${k}${n}`] = h[k] || d;
+    for (const k of Object.keys(AVAN_SECIM_VARSAYILANI))
+      a[`a_${k}${n}`] = h[k] || avanSecimVarsayilani(k, (p.ortak.mk_yok ?? "true") === "true");
     if (ka[i]) {
       a[`a_eta${n}`] = h.eta || virgullu(sec.makine_tipleri[(a[`a_makine_tipi${n}`] as string)] ?? "");
       trf[n] = { P: ka[i].P, V: ka[i].V };
@@ -477,6 +486,12 @@ export function avanOku(metin: string, sec: Secenekler, ofis: Ham): AvanOkumasi 
     ekNufus.push({ kalem, miktar, aciklama: typeof y.aciklama === "string" ? y.aciklama : "" });
   }
 
+  //  Makine dairesi:  eski arayüz onay kutusunu true / false yazar;  elle yazılmış metin de
+  //  okunur — uygulamanın onay alanı ve sunucunun evet_mi'si gibi ( 24 Eki:  metin okunmuyor,
+  //  proje dairesiz varsayılana dönüyordu )
+  const mk = ice(govde.a_mk_yok);
+  const mrl = mk === null ? true : evetMi(mk);
+
   //  Avan asansörleri ( yalnız açık kartlar anlamlıdır;  ötekiler de korunur )
   const avanAsansorleri: Ham[] = [];
   const dosyaAvani: { P: string; V: string }[] = [];
@@ -485,7 +500,7 @@ export function avanOku(metin: string, sec: Secenekler, ofis: Ham): AvanOkumasi 
     const ek = ` ( ${i}. avan asansörü )`;
     for (const k of AVAN_ASANSORU) doldur(h, k, al(`a_${k}${i}`, k, ek));
     //  Eski form seçimleri ve verimi hep dolu yazar:  varsayılanla aynıysa yazılmamış sayılır
-    for (const [k, v] of Object.entries(AVAN_SECIM_VARSAYILANI)) if (h[k] === v) delete h[k];
+    for (const k of Object.keys(AVAN_SECIM_VARSAYILANI)) if (h[k] === avanSecimVarsayilani(k, mrl)) delete h[k];
     const verim = sec.makine_tipleri[h.makine_tipi || AVAN_SECIM_VARSAYILANI.makine_tipi];
     if (h.eta !== undefined && sayiOku(h.eta) === verim) delete h.eta;
     avanAsansorleri.push(h);
@@ -494,10 +509,6 @@ export function avanOku(metin: string, sec: Secenekler, ofis: Ham): AvanOkumasi 
 
   const ortak: Ham = {};
   for (const k of AVAN_ORTAK) doldur(ortak, k, al(`a_${k}`, k));
-  //  Makine dairesi:  eski arayüz onay kutusunu true / false yazar;  elle yazılmış metin de
-  //  okunur — uygulamanın onay alanı ve sunucunun evet_mi'si gibi ( 24 Eki:  metin okunmuyor,
-  //  proje dairesiz varsayılana dönüyordu )
-  const mk = ice(govde.a_mk_yok);
   if (mk !== null) ortak.mk_yok = String(evetMi(mk));
 
   const kapak: Ham = {};

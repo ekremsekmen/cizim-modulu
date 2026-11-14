@@ -356,10 +356,13 @@ class AvanPaketi(unittest.TestCase):
         _d, bloklar, notlar = self.paket(eksik)
         self.assertEqual(bloklar, set())
         self.assertIn("CIZIM", notlar)
-        _d, bloklar, notlar = self.paket(kart(T630), kart(T630, kuyu_genisligi="2350"))
+        d, bloklar, notlar = self.paket(kart(T630, kuyu_genisligi="2350"), kart(T630, tanim="Yük"))
         self.assertIn("CIZIM_KUYU_PLANI", bloklar)
         self.assertFalse(any(b.endswith("_2") for b in bloklar), bloklar)
         self.assertIn("CIZIM", notlar)
+        #  Çizilebilen tek asansörün adı paftada yazar ( 14 Kas:  hangi asansör olduğu belli değildi )
+        yazilar = {t.plain_text() for t in d.blocks.get("CIZIM_KUYU_PLANI").query("MTEXT")}
+        self.assertTrue(any("2 NOLU ASANSÖR" in y and "Yük" in y for y in yazilar), yazilar)
 
 
 if __name__ == "__main__":

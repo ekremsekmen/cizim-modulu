@@ -9,7 +9,7 @@
       ·  okunan proje yeniden yazılıp okununca aynıdır
     Eski arayüzün yazdığı biçim:  lib/avan.ts ve lib/dosya.ts'in başı.          */
 import { describe, expect, it } from "vitest";
-import { avanDosyaGovdesi, avanOku, AVAN_SECIM_VARSAYILANI } from "./avan";
+import { avanDosyaGovdesi, avanOku, AVAN_SECIM_VARSAYILANI, avanSecimVarsayilani } from "./avan";
 import { dosyaGovdesi, dosyaOku } from "./dosya";
 import { eskiOnayIsaretli, evetMi } from "./denetim";
 import { sayiOku } from "./proje";
@@ -190,7 +190,8 @@ function avanDenetle(R: Uretici) {
         k === "eta"
           ? (v: string) => sayiOku(v) === SEC.makine_tipleri[tip]
           : AVAN_SECIM_VARSAYILANI[k]
-            ? (v: string) => v === AVAN_SECIM_VARSAYILANI[k]
+            ? //  askının varsayılanı dosyanın makine dairesine bağlıdır ( avanSecimVarsayilani )
+              (v: string) => v === avanSecimVarsayilani(k, (p.ortak.mk_yok ?? "true") === "true")
             : undefined;
       bak(`a_${k}${i}`, g[`a_${k}${i}`], h[k], liste, varsayilan);
     }

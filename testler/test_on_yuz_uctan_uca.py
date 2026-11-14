@@ -1214,7 +1214,9 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.get_by_label("Kuyu tavanı kotu").wait_for()
         self.assertEqual(self.sayfa.get_by_label("Kuyu tavanı kotu").input_value(), "+34,60")
         self.assertEqual(self.sayfa.get_by_label("Hk — Kuyu yüksekliği").count(), 1)
-        self.assertIn("36,4 m", self.sayfa.locator("#a-Hk").inner_text())
+        #  Sayfa yeniden yüklendi:  türetilen Hk avan yanıtıyla gelir ( trafik → avan ) — beklenir
+        #  ( 14 Kas:  beklenmeden okunuyordu, yavaş koşuda kutu henüz "… kotu girilince" diyordu )
+        self.sayfa.locator("#a-Hk").filter(has_text="36,4 m").wait_for()
         self.sayfa.goto(self.url + "/avan/cizimler")
         self.sayfa.get_by_label("Kuyu tavanı kotu").wait_for()
 
