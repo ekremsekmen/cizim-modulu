@@ -50,7 +50,7 @@ import {
   type EkNufus,
 } from "@/lib/avan";
 import { avanHukmu, durumYaz } from "@/lib/durum";
-import { DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, hizliDoldur } from "@/lib/kotlar";
+import { DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, hizliDoldur, kotOku } from "@/lib/kotlar";
 import { KatGirisi } from "@/uygulama/KotTablosu";
 import { KAPAK_GRUPLARI } from "@/lib/kapak";
 import { cn, sayiYaz } from "@/lib/utils";
@@ -1002,8 +1002,12 @@ function AvanKatlar({
         _kot: kot.adlar,
       } as unknown as Record<string, Deger>)
     : undefined;
-  //  Trafiğin kat düzeni:  ana giriş ±0,00, altında bodrum durakları, üstünde N kat
+  //  Trafiğin kat düzeni:  ana giriş, altında bodrum durakları, üstünde N kat.  Ana girişin
+  //  kotu ±0,00 olmak zorunda değildir ( 14 Kas, kullanıcı:  "zemin kat kotu her zaman 0
+  //  olmayabiliyor" ) — doldurmadan önce yazılır;  boşsa ±0,00
   const duraklar = kopru.N + 1 + (kopru.bodrum || 0);
+  const [girisKotu, setGirisKotu] = useState("");
+  const giris = girisKotu.trim() === "" ? 0 : kotOku(girisKotu);
   return (
     <div>
       <KatGirisi
@@ -1014,12 +1018,27 @@ function AvanKatlar({
         etkin={() => undefined}
         yaz={yaz}
         bos={
-          <Dugme
-            boy="kucuk"
-            onClick={() => yaz(DURAK_KOTLARI, hizliDoldur(duraklar, -(kopru.bodrum || 0) * kopru.h * 1000, kopru.h * 1000))}
-          >
-            Trafikten doldur · {duraklar} durak
-          </Dugme>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Girdi
+              id={`${on}-giris-kotu`}
+              aria-label="Giriş katının kotu"
+              title="Giriş ( zemin ) katının kotu — mimari projedeki değer;  boşsa ±0,00"
+              placeholder="giriş ±0,00"
+              value={girisKotu}
+              birim="m"
+              className="h-7 w-32"
+              onChange={(ev) => setGirisKotu(ev.target.value)}
+            />
+            <Dugme
+              boy="kucuk"
+              disabled={giris === null}
+              onClick={() =>
+                yaz(DURAK_KOTLARI, hizliDoldur(duraklar, (giris ?? 0) - (kopru.bodrum || 0) * kopru.h * 1000, kopru.h * 1000))
+              }
+            >
+              Trafikten doldur · {duraklar} durak
+            </Dugme>
+          </div>
         }
       />
       {kotVar && (
