@@ -7,7 +7,8 @@
     asansörü ( BAR 2515 ).  Kuyu ve öbür girdiler formun kuralı;  motor IEC 60072 güçlerinin
     hesabı karşılayan en küçüğü, raylar hesabı geçen en hafif profil.  MRL makinesinin ince
     halatı onaylanmış kuruluş belgesiyle ( 1275:  8 mm, 320 kasnak — belgesiz ).  Makine dairelide
-    ( kullanıcı:  "genelde 1:1 askı, dişli motor" ) 630 · 800 · 1000 1:1 dişli ( 8 mm, 320 );  1275
+    ( kullanıcı:  "genelde 1:1 askı, dişli motor" ) 630 · 800 · 1000 1:1 dişli ( 8 mm, 500 — sarım açısı
+    en az 150°:  ofisin makine daireli 1:1 paftalarında ø 480 – 540, 150 – 157°;  15 Kas );  1275
     2:1 dişli ( 1:1'de kuyusu büyük kasnağa izin vermiyor );  1250 2:1 dişlisiz ( dişli hiçbir
     kasnakla geçmiyor ).  Seçici:  cikti/araclar/taslak_secici.py ( git dışı ).
     UYGUNLUK GÜVENCESİ:  testler/test_taslaklar.py — hesabın her bölümü uygun, çizim

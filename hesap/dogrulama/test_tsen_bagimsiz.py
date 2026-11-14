@@ -825,6 +825,23 @@ class PveMRLDenetimi(unittest.TestCase):
         )
         self.assertFalse(any("YOK SAYILDI" in x for x in u), f"→ {u}")
 
+    def test_kucuk_sarilma_acisi_bildirilir(self):
+        """Uygulama kuralı ( 15 Kas ):  tek sarımda α < 150° sessiz kalmaz —
+        ret değil uyarı ( standart alt sınır vermez, çekişin hükmü 6. bölümde ).
+        Sınırın kendisi ( 150 ) ve 180 uyarı almaz;  çift sarım bu kuralın dışında."""
+
+        def u(alfa, **ek):
+            g = mukavemet_girdi.tamamla({"mk_yok": False, "sarilma_acisi": alfa, **ek})
+            return [x for x in mukavemet_girdi.uyarilar(g) if "SARILMA AÇISI KÜÇÜK" in x]
+
+        self.assertEqual(len(u(149.9)), 1)
+        self.assertIn("149.9°", u(149.9)[0])
+        self.assertEqual(u(150.0), [])
+        self.assertEqual(u(180.0), [])
+        self.assertEqual(u(None), [])
+        cift = next(a for a, _t, gecis in mukavemet_tablolari.KANAL_SEKLI if (gecis or 1) > 1)
+        self.assertEqual(u(140.0, kanal_sekli=cift), [])
+
     def test_bina_yapisina_giden_yuk_bildirilir(self):
         """m.5.2.1.8.1 · Ek E:  yapı makinenin yükünü taşıyacak;  hesabı
         inşaat projesindedir ama SAYIYI pafta vermelidir."""
