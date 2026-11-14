@@ -349,6 +349,44 @@ class AvanSecici(unittest.TestCase):
         self.assertEqual(r2["durum"], "uygun", r2)
         self.temiz(r2)
 
+    def test_verilmeyen_makine_dairesi_kuyuyla_buyur(self):
+        """Tarama ( 14 Kas ):  630 ve 1000 kg makine dairelide paketinkinden 600 mm geniş kuyu
+        "sığmaz" çıkıyordu — mimarın vermediği makine dairesi hazır asansörünkinde kalıyor,
+        duvarı geniş kuyunun boşluğuna basıyordu.  Oda kuyuyla birlikte büyür."""
+        for yuk in (630, 1000):
+            t = PAKETLER[(yuk, False)]
+            with self.subTest(t["kimlik"]):
+                m = mimari(t, kuyu_genisligi=int(t["asansor"]["kuyu_genisligi"]) + 600)
+                del m["mk_genislik"], m["mk_uzunluk"]
+                r = avan_secici.sec(m)
+                self.assertEqual(r["durum"], "uygun", r)
+                pg = r["istek"]["proje_geneli"]
+                self.assertEqual(int(pg["mk_genislik"]), int(t["proje_geneli"]["mk_genislik"]) + 600)
+                self.assertEqual(pg["mk_uzunluk"], t["proje_geneli"]["mk_uzunluk"])
+                self.temiz(r)
+        #  Mimarın verdiği oda aynen kullanılır ( büyütülmez )
+        t = PAKETLER[(630, False)]
+        m = mimari(t, mk_genislik=3400, kuyu_genisligi=int(t["asansor"]["kuyu_genisligi"]) + 600)
+        r = avan_secici.sec(m)
+        self.assertEqual(r["durum"], "uygun", r)
+        self.assertEqual(r["istek"]["proje_geneli"]["mk_genislik"], "3400")
+
+    def test_istenen_olcu_tek_seferde_yeter(self):
+        """Tarama ( 14 Kas ):  1250 kg makine dairelide trafiğin 900 mm kapısıyla "kuyu genişliği
+        2020" isteniyor, 2020 girilince bu kez 2030 isteniyordu.  Mimara söylenen ölçüyle seçici
+        "uygun" der."""
+        t = PAKETLER[(1250, False)]
+        m = mimari(t, kat_kapisi_tipi="Teleskopik Sol", kapi_genisligi=900)
+        r = avan_secici.sec(m)
+        self.assertEqual(r["durum"], "gereken", r)
+        self.assertEqual([g["anahtar"] for g in r["gereken"]], ["kuyu_genisligi"])
+        (g,) = r["gereken"]
+        self.assertEqual(g["eski"], m["kuyu_genisligi"])
+        self.temiz(r)
+        r2 = avan_secici.sec({**m, "kuyu_genisligi": int(g["yeni"])})
+        self.assertEqual(r2["durum"], "uygun", r2)
+        self.temiz(r2)
+
     def test_eksik_ve_paketsiz(self):
         t = PAKETLER[(630, True)]
         m = mimari(t)

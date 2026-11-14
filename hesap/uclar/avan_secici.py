@@ -199,10 +199,16 @@ class _Sinayici:
     def __init__(self):
         self.kalan = AZAMI_SINAMA
         self.sayi = 0
+        #  Mimarın vermediği makine dairesi ölçüleri ( _oda_kurali ):  kuyuyla birlikte büyür
+        self.oda = {}
 
     def __call__(self, v):
         self.kalan -= 1
         self.sayi += 1
+        #  İsteğin kendisine yazılır ( kopya değil ):  dönen istek sınananla aynıdır
+        for k, (kuyu, oda, paket) in self.oda.items():
+            fark = max(0.0, _sayi(v["asansorler"][0][kuyu]) - paket)
+            v["proje_geneli"][k] = _metin(oda + fark)
         cizim, aktif, hesap, uygun_degil, olctu = care_uclari.girdi_durumu(v, 0)
         bolum = sorted(x for x in uygun_degil if x)
         engel = [b for b in bolum if b in AVAN_BOLUMLERI]
@@ -217,6 +223,28 @@ class _Sinayici:
 
     def var(self):
         return self.kalan > 0
+
+
+#  Makine dairesinin ölçüsü → kuyunun aynı yöndeki ölçüsü ( formun kuralı:  uzunluk kabin
+#  derinliğinden, genişlik kabin genişliğinden türer )
+ODA_KUYU = {"mk_uzunluk": "kuyu_derinligi", "mk_genislik": "kuyu_genisligi"}
+
+
+def _oda_kurali(taslak, m):
+    """MİMARIN VERMEDİĞİ MAKİNE DAİRESİ ( 14 Kas — tarama:  630 ve 1000 kg makine dairelide
+    paketinkinden 600 mm geniş kuyu "sığmaz" çıkıyordu ).  Oda verilmediyse hazır asansörünki
+    kullanılır;  kuyu hazır asansörünkinden büyükse oda da o kadar büyür ( makine dairesi kuyunun
+    üstüne kurulur — sabit kalan odanın duvarı geniş kuyunun boşluğuna basıyordu ).
+    Döner { oda alanı:  ( kuyu alanı , paketin odası , paketin kuyusu ) } — mimarın verdiği
+    ölçü için kayıt yoktur ( o aynen kullanılır )."""
+    pg = taslak["proje_geneli"]
+    if m.get("mk_yok") in (True, "true"):
+        return {}
+    return {
+        k: (kuyu, _sayi(pg[k]), _sayi(taslak["asansor"][kuyu]))
+        for k, kuyu in ODA_KUYU.items()
+        if m.get(k) in (None, "") and k in pg
+    }
 
 
 def _urun_ara(v, d, sina, gevsek=False):
@@ -482,6 +510,8 @@ def sec(m):
     Hepsinde sinama ( sayı ) ve sure ( sn )."""
     t0 = time.monotonic()
     r = _sec(m)
+    if r["durum"] == "gereken":
+        r = _tek_seferde(m, r, t0)
     beyan = {k: _metin(m[k]) for k in BEYAN if m.get(k) not in (None, "")}
     if r["durum"] != "sigmaz" or not beyan:
         return r
@@ -521,6 +551,36 @@ def sec(m):
     }
 
 
+#  İstenen ölçüyle yeniden seçim en çok bu kadar kez ( _tek_seferde )
+AZAMI_YENIDEN = 2
+
+
+def _tek_seferde(m, r, t0):
+    """MİMARA SÖYLENEN ÖLÇÜ TEK SEFERDE YETER ( 14 Kas — tarama:  1250 kg makine dairelide
+    "kuyu genişliği 2020" isteniyor, 2020 girilince bu kez 2030 isteniyordu ).  Küçültme
+    ( _kucult ) temiz bir yerleşim bulur;  ama mimar o ölçüyü girince seçim baştan yapılır ve
+    aynı yerleşime varmayabilir.  İstenen ölçülerle seçim burada bir kez daha yapılır:  yine
+    ölçü isteniyorsa o ölçü de listeye girer ( mimarın ilk değerinden ), en çok AZAMI_YENIDEN
+    kez.  Yeniden seçim "sığmaz" derse ilk sonuç kalır."""
+    ilk = {g["anahtar"]: g["eski"] for g in r["gereken"]}
+    for _tur in range(AZAMI_YENIDEN):
+        m2 = dict(m)
+        for g in r["gereken"]:
+            m2[g["anahtar"]] = g["yeni"] if isinstance(g["yeni"], str) else int(round(g["yeni"]))
+        r2 = _sec(m2, AZAMI_SURE * IKINCI_SURE_PAYI)
+        r["sinama"] += r2["sinama"]
+        if r2["durum"] != "gereken":
+            break
+        #  Yine ölçü isteniyor:  önceki istekler geçerli kalır, yenileri eklenir / büyür
+        yeni = {g["anahtar"]: g for g in r["gereken"]}
+        for g in r2["gereken"]:
+            ilk.setdefault(g["anahtar"], g["eski"])
+            yeni[g["anahtar"]] = {**g, "eski": ilk[g["anahtar"]]}
+        r = {**r2, "gereken": list(yeni.values()), "sinama": r["sinama"]}
+    r["sure"] = round(time.monotonic() - t0, 2)
+    return r
+
+
 def _sec(m, azami_sure=AZAMI_SURE):
     """sec'in bir denemesi:  m'nin beyanı ( varsa ) değiştirilmeden."""
     t0 = time.monotonic()
@@ -542,6 +602,7 @@ def _sec(m, azami_sure=AZAMI_SURE):
     kucuk = _kucuk_oda(taslak, m)
     if kucuk:
         return _kucuk_odada(taslak, m, kucuk, azami_sure)
+    sina.oda = _oda_kurali(taslak, m)
 
     def yerlesim(adaylar, sure=azami_sure):
         """Adayları sırayla dener:  olduğu gibi temiz olan → uyarlananlar.  Döner
