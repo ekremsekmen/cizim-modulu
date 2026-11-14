@@ -389,6 +389,31 @@ class AvanSecici(unittest.TestCase):
         self.assertEqual(r2["durum"], "uygun", r2)
         self.temiz(r2)
 
+    def test_elle_ayarlanan_olcu(self):
+        """Kullanıcı ( 14 Kas ):  "ölçüye tıklayınca değiştirebilmem lazım — ray – kapı, karşı
+        ağırlık – duvar".  Elle ayar ( m["ayar"] ) istekte AYNEN durur, sonuç yine doğrulanır;
+        mimarinin, trafiğin ve kartın ölçüleri ayarla değişmez."""
+        t = PAKETLER[(630, True)]
+        m = mimari(t)
+        r = avan_secici.sec({**m, "ayar": {"ray_kapi_arasi": 700}})
+        self.assertEqual(r["durum"], "uygun", r)
+        self.assertEqual(r["istek"]["asansorler"][0]["ray_kapi_arasi"], "700")
+        self.mimari_aynen(m, r["istek"])
+        self.temiz(r)
+        #  Seçicinin kendi seçtiği kaçıklık da ayarlanır:  uyarlama onu değiştirmez
+        r = avan_secici.sec({**m, "ayar": {"kabin_yana_kaciklik": "40"}})
+        self.assertIn(r["durum"], ("uygun", "gereken"), r)
+        self.assertEqual(r["istek"]["asansorler"][0]["kabin_yana_kaciklik"], "40")
+        self.temiz(r)
+        #  İzinsiz ve tanınmayan alanlar atılır
+        ayar = {"kuyu_genisligi": 9999, "kabin_genisligi": 900, "beyan_hizi": 2, "aski_orani": 1, "yok": 1}
+        self.assertEqual(avan_secici.ayarlar({"ayar": ayar}), {})
+        r = avan_secici.sec({**m, "ayar": ayar})
+        self.assertEqual(r["durum"], "uygun", r)
+        self.mimari_aynen(m, r["istek"])
+        a = r["istek"]["asansorler"][0]
+        self.assertEqual({k: a[k] for k in KABIN}, {k: t["asansor"][k] for k in KABIN})
+
     def test_eksik_ve_paketsiz(self):
         t = PAKETLER[(630, True)]
         m = mimari(t)

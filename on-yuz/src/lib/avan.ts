@@ -250,7 +250,31 @@ const AVAN_ASANSORU = [
   "durak_adlari",
   "giris_duragi",
   "tavan_dosemesi",
+  //  Çizimde elle ayarlanan ölçüler ( 14 Kas ) — "girdi=değer;girdi=değer" ( avanAyarlari )
+  "cizim_ayarlari",
 ] as const;
+
+/**  Kartın çizimde ELLE AYARLANAN ölçüleri:  { uygulamanın girdisi:  değer }.  Kullanıcı çizimde
+     bir ölçüye tıklayıp değiştirince buraya yazılır;  seçici o değeri aynen kullanır, kalanını
+     yine kendi seçer ( hesap/uclar/avan_secici.ayarlar ).  */
+export function avanAyarlari(h: Record<string, string | undefined>): Record<string, string> {
+  const d: Record<string, string> = {};
+  for (const parca of (h.cizim_ayarlari ?? "").split(";")) {
+    const i = parca.indexOf("=");
+    const k = i < 0 ? "" : parca.slice(0, i).trim();
+    const v = i < 0 ? "" : parca.slice(i + 1).trim();
+    if (k && v) d[k] = v;
+  }
+  return d;
+}
+
+/**  avanAyarlari'nın tersi ( boş değer ayarı kaldırır )  */
+export function avanAyarlariYaz(d: Record<string, string>): string {
+  return Object.entries(d)
+    .filter(([k, v]) => k && v.trim())
+    .map(([k, v]) => `${k}=${v.trim()}`)
+    .join(";");
+}
 
 const AVAN_ORTAK = ["temel_a", "temel_b", "mk_uzunluk", "mk_genislik"] as const;
 

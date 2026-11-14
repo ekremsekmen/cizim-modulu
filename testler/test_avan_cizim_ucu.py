@@ -289,6 +289,21 @@ class AvanCizimUcu(unittest.TestCase):
         self.assertEqual(r["durum"], "paket_yok")
         self.assertNotIn("hiz", r)
 
+    def test_kartin_elle_ayari(self):
+        """Çizimde tıklanıp değiştirilen ölçü kartta durur ( cizim_ayarlari:  "girdi=değer;…" );
+        seçici aynen kullanır, yanıt ayarları ekrandaki adlarıyla verir."""
+        r = yanit(govde(kart(T630, cizim_ayarlari="ray_kapi_arasi=700; kuyu_genisligi=9999;bozuk")))
+        self.assertEqual(r["durum"], "uygun", r.get("nedenler") or r.get("gereken"))
+        a = r["istek"]["asansorler"][0]
+        self.assertEqual(a["ray_kapi_arasi"], "700")
+        self.assertEqual(a["kuyu_genisligi"], T630["kuyu_genisligi"])
+        self.assertEqual(
+            [(x["anahtar"], x["deger"], x["birim"]) for x in r["ayarlar"]], [("ray_kapi_arasi", "700", "mm")]
+        )
+        self.assertIn("Ray", r["ayarlar"][0]["etiket"])
+        #  Ayar yoksa liste boş
+        self.assertEqual(yanit(govde(kart(T630)))["ayarlar"], [])
+
     def test_uygulamada_olmayan_hiz(self):
         """Avanın 1,75 ve 3,5 m/s hızları uygulamanın hız listesinde yoktur:  çizim çıkmaz
         ( kullanıcı kararı, 14 Kas ) — "geçersiz seçim" hatası değil, açık ileti."""

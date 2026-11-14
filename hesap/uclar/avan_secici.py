@@ -48,7 +48,7 @@ import time
 from cizim import katlar
 from motor.avan import tablolar
 from tasarim import alanlar
-from uclar import care_uclari
+from uclar import care_uclari, uygulama_istegi
 from yollar import KOK
 
 with open(os.path.join(KOK, "on-yuz", "src", "lib", "taslaklar.json"), encoding="utf-8") as _f:
@@ -117,6 +117,10 @@ SABIT = frozenset(
     + ("kapi_genisligi", "kapi_yuksekligi", "durak_adedi", "seyir_mesafesi")
     + ("aski_orani", "makine_tipi")
 )
+
+#  Elle ayarlanamayanlar ( ayarlar ):  mimari, kartın beyanı, trafiğin kabini / kapısı / hızı
+AYAR_DISI = frozenset((*MIMARI, *MIMARI_GENEL, *BEYAN)) | SABIT
+PROJE_GENELI = frozenset(uygulama_istegi.PROJE_GENELI_ALANLAR)
 
 #  ÜRÜN ARAMASI — düşen bölüm → sırayla denenecek ( girdi , değerler ).  Değerler
 #  küçükten büyüğe:  bölümü geçiren İLK değer alınır ( en küçük motor, en hafif ray ).
@@ -192,6 +196,22 @@ def _istek(taslak, m, ek=None):
     return {"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}
 
 
+def ayarlar(m):
+    """ELLE AYARLANAN ÖLÇÜLER ( 14 Kas, kullanıcı:  "ölçüye tıklayınca değiştirebilmem lazım —
+    ray – kapı, karşı ağırlık – duvar … hesaplamayla ilgisi yok" ).  m["ayar"]:  { uygulamanın
+    asansör girdisi:  değer } — çizimde tıklanan ölçünün kaynağı.  Seçici bunları AYNEN kullanır
+    ( her adayda, uyarlamada, küçültmede — _Sinayici );  kalanını yine kendi seçer ve sonucu
+    yine doğrular:  ayarla asansör kurulamıyorsa çizim çıkmaz.  Mimarinin, trafiğin ve kartın
+    ölçüleri ( kuyu, kotlar, kabin, kapı genişliği, yük, hız, askı ) burada değişmez — onların
+    kendi kutuları vardır.  Döner { alan:  metin } ( tanınmayan / izinsiz alanlar atılır )."""
+    ham = m.get("ayar") or {}
+    return {
+        k: _metin(v)
+        for k, v in ham.items()
+        if k in alanlar.ALAN and k not in AYAR_DISI and v not in (None, "") and k not in PROJE_GENELI
+    }
+
+
 def _kaydirma(taslak, m):
     """Kabinin yana kaçıklığı:  kabin – karşı ağırlık duvarı aralığı paketteki
     gibi kalsın.  Ağırlık arkadaysa kabin ortada kalır ( None:  dokunma )."""
@@ -211,11 +231,14 @@ class _Sinayici:
         self.sayi = 0
         #  Mimarın vermediği makine dairesi ölçüleri ( _oda_kurali ):  kuyuyla birlikte büyür
         self.oda = {}
+        #  Kullanıcının çizimde elle ayarladığı ölçüler ( ayarlar ):  her adayda aynen durur
+        self.ayar = {}
 
     def __call__(self, v):
         self.kalan -= 1
         self.sayi += 1
         #  İsteğin kendisine yazılır ( kopya değil ):  dönen istek sınananla aynıdır
+        v["asansorler"][0].update(self.ayar)
         for k, (kuyu, oda, paket) in self.oda.items():
             fark = max(0.0, _sayi(v["asansorler"][0][kuyu]) - paket)
             v["proje_geneli"][k] = _metin(oda + fark)
@@ -321,7 +344,7 @@ def kapi_ailesi(tip):
     return next((a for a in ("Teleskopik", "Otomatik Merkezi", "Manuel") if str(tip).startswith(a)), None)
 
 
-def _oneri_sec(v, kapi_kilidi=False, bina_once=False, yalniz_yerlesim=False):
+def _oneri_sec(v, kapi_kilidi=False, bina_once=False, yalniz_yerlesim=False, kilit=frozenset()):
     """Çare bulucunun ( care_uclari.coz ) önerilerinden sıradaki adım:  önce YERLEŞİM
     ( kaçıklıklar, kapı tipi — seçicinin kendi kararı ), sonra BİNA ( mimardan istenir );
     ikisinde de başka sorun açmayan önce.  Kabin, kapı genişliği, yük, hız değişmez;
@@ -335,6 +358,8 @@ def _oneri_sec(v, kapi_kilidi=False, bina_once=False, yalniz_yerlesim=False):
         for c in care_uclari.coz(v, 0)["careler"]
         for o in c["oneriler"]
         if o["anahtar"] not in SABIT
+        #  Kullanıcının elle ayarladığı ölçü ( ayarlar ):  çare onu değiştirmez
+        and o["anahtar"] not in kilit
         #  yalniz_yerlesim:  mimardan ölçü istenmez ( dar kuyuda önce kaçıklıklarla sığdırma )
         and not (yalniz_yerlesim and o["bina"])
         and not str(o["yeni"]).startswith("Manuel")
@@ -364,7 +389,7 @@ def _uyarla(v, d, sina, bitis, kapi_kilidi=False, bina_once=False, yalniz_yerles
             secilen.update(s)
         if d["temiz"] or not d["cizim"] or not sina.var() or time.monotonic() > bitis:
             break
-        oneri = _oneri_sec(v, kapi_kilidi, bina_once, yalniz_yerlesim)
+        oneri = _oneri_sec(v, kapi_kilidi, bina_once, yalniz_yerlesim, frozenset(sina.ayar))
         if oneri is None:
             break
         v = care_uclari.girdi_yaz(v, 0, oneri["anahtar"], oneri["yeni"])
@@ -505,7 +530,8 @@ def sec(m):
     m:  beyan_yuku ( kg ), beyan_hizi, kuyu_genisligi, kuyu_derinligi, durak_kotlari,
         kuyu_dibi_kotu, kuyu_tavani_kotu, mk_yok;  makine dairesi varsa md_zemini_kotu,
         isteğe bağlı mk_uzunluk / mk_genislik;  isteğe bağlı avanın beyanı ( BEYAN:
-        aski_orani, makine_tipi ) — verilmişse istekte aynen durur.
+        aski_orani, makine_tipi ) — verilmişse istekte aynen durur;  isteğe bağlı ayar
+        ( { girdi:  değer } — çizimde elle ayarlanan ölçüler, ayarlar ).
 
     Döner { durum , … }:
       "uygun"      istek ( uygulamanın isteği — çizimi ve avanı bağlayan bölümleri temiz ),
@@ -619,6 +645,7 @@ def _sec(m, azami_sure=AZAMI_SURE):
     if kucuk:
         return _kucuk_odada(taslak, m, kucuk, azami_sure)
     sina.oda = _oda_kurali(taslak, m)
+    sina.ayar = ayarlar(m)
 
     def yerlesim(adaylar, sure=azami_sure):
         """Adayları sırayla dener:  olduğu gibi temiz olan → uyarlananlar.  Döner
@@ -732,6 +759,7 @@ def _kucuk_odada(taslak, m, kucuk, azami_sure):
     if r["durum"] not in ("uygun", "gereken"):
         return r
     sina = _Sinayici()
+    sina.ayar = ayarlar(m)
     buyuk = r["istek"]
     v = buyuk
     for k in kucuk:

@@ -144,8 +144,24 @@ def mimari(a, ortak, sabitler=None):
     if not m["mk_yok"]:
         m.update({k: ortak.get(k) for k in avan_secici.MIMARI_GENEL})
     m.update(_beyan(a, sabitler))
+    m["ayar"] = kart_ayarlari(a)
     m.update(_kapi_beyani(a, sayi_mi(yuk) and avan_secici.paketler().get((int(yuk), m["mk_yok"]))))
     return m
+
+
+#  Kartta çizimin elle ayarlanan ölçüleri ( ekran yazar — "girdi=değer;girdi=değer" ):  çizimde
+#  tıklanan ölçünün kaynağı olan uygulama girdileri ( avan_secici.ayarlar )
+AYAR_ALANI = "cizim_ayarlari"
+
+
+def kart_ayarlari(a):
+    """Kartın elle ayarlanan ölçüleri → { uygulamanın girdisi:  değer metni }."""
+    d = {}
+    for parca in str(a.get(AYAR_ALANI) or "").split(";"):
+        k, _es, v = parca.partition("=")
+        if k.strip() and v.strip():
+            d[k.strip()] = v.strip()
+    return d
 
 
 def kot_bilgisi(g):
@@ -191,7 +207,13 @@ def secim(g, i):
     kabin = _kabin_celiskisi(asansorler[i], g["ortak"])
     if kabin:
         return {"durum": "beyan", "beyan_turu": "kabin", "beyan": kabin, "sinama": 0, "sure": 0.0}
-    r = avan_secici.sec(mimari(asansorler[i], g["ortak"], g.get("sabitler")))
+    m = mimari(asansorler[i], g["ortak"], g.get("sabitler"))
+    r = avan_secici.sec(m)
+    #  Elle ayarlanan ölçüler, ekrandaki adlarıyla ( soldaki liste — kaldırılabilir )
+    r["ayarlar"] = [
+        {"anahtar": k, "etiket": alanlar.ALAN[k].etiket, "deger": v, "birim": alanlar.ALAN[k].birim or ""}
+        for k, v in avan_secici.ayarlar(m).items()
+    ]
     ozet = avan_ozeti(g, i)
     #  Avanın kendi motor gücü ( Nsç ):  paftanın bilgi tablosuna ( cizim/avan_kipi.py )
     r["avan"] = {"motor_gucu": (ozet or {}).get("Nsc")}
