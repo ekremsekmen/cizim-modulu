@@ -1268,7 +1268,35 @@ def uyarilar(g):
             "bağlıysa 'Makine yükünün yolu' alanından 'Kılavuz raylara' "
             "seçilmelidir — m.5.7.2.3.7 o durumda ek yük durumları ister."
         )
-    return uyari + _narinlik_uyarilari(g) + _tampon_ezilmesi_uyarisi(g)
+    return uyari + _kucuk_sarilma_acisi_uyarisi(g) + _narinlik_uyarilari(g) + _tampon_ezilmesi_uyarisi(g)
+
+
+#  Tek sarımda sarılma açısının uygulamadaki alt sınırı ( ° ).
+ALFA_EN_AZ = 150.0
+
+
+def _kucuk_sarilma_acisi_uyarisi(g):
+    """TEK SARIMDA SARILMA AÇISI 150°'NİN ALTINA DÜŞMEMELİ ( 15 Kas, kullanıcı ).
+
+    Standart bir alt sınır vermez:  TS EN 81-50 m.5.11 çekişi T1 / T2 ≤ e^( f·α )
+    ile denetler ve o hüküm 6. bölümde verilir.  150° UYGULAMA kuralıdır —
+    ofisin makine daireli 1:1 paftalarında açı 150 – 157° ( hiçbiri altında
+    değil ), ders notu en az 160° ister.  Küçük açıda çekiş kanalın
+    sürtünmesine yaslanır ( alt kesme büyür, özgül basınç ve aşınma artar ).
+    Bu yüzden RET DEĞİL UYARI:  hesap yapılır, hükümler verilir, açı sessiz
+    kalmaz.  Çift sarımda açı zaten 180°'nin üstündedir ( _sarilma_acisi )."""
+    a = g.get("sarilma_acisi")
+    if not (sayi_mi(a) and 0 < a < ALFA_EN_AZ):
+        return []
+    if (mukavemet_tablolari.kanal_gecis_sayisi(g.get("kanal_sekli")) or 1) > 1:
+        return []
+    return [
+        f"SARILMA AÇISI KÜÇÜK:  α = {a:g}°  <  {ALFA_EN_AZ:g}°. Tek sarımlı tahrik "
+        f"kasnağında sarılma açısı uygulamada {ALFA_EN_AZ:g}°'nin altına "
+        "düşürülmez ( standart alt sınır vermez;  tahrik yeteneğinin hükmü "
+        "6. bölümdedir ). Açıyı büyütmek için tahrik kasnağı çapını büyütün "
+        "ya da karşı ağırlığı kabine yaklaştırın ( askı noktaları arası kısalır )."
+    ]
 
 
 def _narinlik_uyarilari(g):
