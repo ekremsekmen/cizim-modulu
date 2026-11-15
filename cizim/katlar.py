@@ -206,6 +206,55 @@ def durak_adlari(ham, giris, kotlar):
     return adlar, g, hata
 
 
+def kat_duzeni(kotlar_ham, giris_ham=None):
+    """TRAFİK HESABININ KAT DÜZENİ KOT TABLOSUNDAN ( cikti/devir/KOT_TABLOSU_PLANI.md,
+    16 Kas — kullanıcı:  "trafik hesabı ortalama kat yüksekliğini buradan hesaplasa …
+    çizimlerle hesaplar birebir uyumlu olur" ).
+
+    Trafik ( MMO/697 ) üç sayı ister:  N ( ana giriş ÜSTÜNDE hizmet verilen kat ), bodrum
+    ( ana giriş ALTINDAKİ durak ) ve h ( ortalama kat yüksekliği, m ).  Elle girilince avanın
+    ve çizimin kotlarıyla çelişebiliyordu ( trafikte 10 × 3 m, kotlarda seyir 31,2 m ).
+    Kotlardan:
+
+        N      = durak − giriş sırası          ( giriş üstündeki duraklar )
+        bodrum = giriş sırası − 1
+        h      = ( en üst − en alt ) / ( durak − 1 )   →   ( N + bodrum ) · h = SEYİR
+
+    yani trafiğin toplam seyahati kotların seyriyle ( avan_hesabi.kot_turetilenleri )
+    BİREBİR aynıdır.  Giriş katı çizimin kuralıyla ( durak_adlari ):  verilmişse o, yoksa
+    kotu ±0,00'a en yakın durak.
+
+    Döner:  ( { N, bodrum, h, durak, seyir, giris } , [] )  ya da  ( None , [ ileti ] ).
+    h ve seyir metre;  giris 1'den."""
+    kotlar, iletiler = kotlari_oku(kotlar_ham)
+    if iletiler:
+        return None, [iletiler_metni("Durak kotları", iletiler)]
+    giris = None
+    if giris_ham is not None and str(giris_ham).strip() != "":
+        try:
+            giris = int(str(giris_ham).strip())
+        except ValueError:
+            return None, [f"Giriş katı:  durağın sırası yazılır ( {str(giris_ham).strip()[:20]!r} girildi )."]
+    _adlar, g, hata = durak_adlari(None, giris, kotlar)
+    if hata:
+        return None, [f"Giriş katı:  {hata[0]}"]
+    n = len(kotlar)
+    if g == n - 1:
+        return None, [
+            f"Giriş katı en üst durak ( {kot_metni(kotlar[g])} ):  üstünde hizmet verilen kat yok — "
+            "trafik hesabı ana girişin üstündeki katlar için yapılır."
+        ]
+    seyir = (kotlar[-1] - kotlar[0]) / 1000.0
+    return {
+        "N": n - 1 - g,
+        "bodrum": g,
+        "h": seyir / (n - 1),
+        "durak": n,
+        "seyir": seyir,
+        "giris": g + 1,
+    }, []
+
+
 def ad_tablosu(A):
     """Kot tablosunun ad sütunu ( mukavemet_girdi._kottan → yanıtın girdisinin "_kot"u:
     ön yüz kuraldan adı soluk gösterir, kendisi hesaplamaz ):  { "adlar" : [ ad ]

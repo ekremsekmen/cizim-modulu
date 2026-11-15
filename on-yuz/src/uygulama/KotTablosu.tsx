@@ -10,7 +10,7 @@
     ( soluk — giriş katı 0, altı −1, üstü 1 … ), kapı düğmesi giriş katını seçer
     ( yeniden basılınca kurala döner:  ±0,00'a en yakın durak ).  Durak silinince
     üstündekilerin adı bir aşağı kayar.                                          */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { DoorOpen, Plus, X } from "lucide-react";
 import type { Deger } from "@/lib/api";
 import {
@@ -161,6 +161,9 @@ export function KatGirisi({
   etkin,
   yaz,
   bos,
+  kapsam,
+  hepsine,
+  bosAcik,
 }: {
   /**  Aktif asansörün yazılmış değerleri  */
   h: Ham;
@@ -175,10 +178,36 @@ export function KatGirisi({
   /**  Kot yokken "Kotlarla gir" yerine gösterilecek ( avan:  ölçüden çevrilecek bir şey
        yoktur — duraklar trafikten doldurulur )  */
   bos?: React.ReactNode;
+  /**  "duraklar":  yalnız durak satırları ve araçları ( binanın kot tablosu — avanın Trafik
+       adımı );  kuyu tavanı / dibi / makine dairesi satırları ve özet yoktur  */
+  kapsam?: "duraklar";
+  /**  Araçların değişikliği ( durak ekle · hızlı doldur · kaydır · aralık · sil ) kuyu tavanını /
+       dibini de kaydırır:  avanda kot tablosu binanındır, her kart kendi kuyusuyla hesaplanır
+       ( lib/avan.kartlaraUygula ).  Verilmezse değişiklik h'den hesaplanıp yaz ile yazılır.  */
+  hepsine?: (f: (h: Ham) => Degisiklik | null) => void;
+  /**  Tablo kot yokken de AÇIK durur ( avan:  ölçüden çevrilecek bir şey yoktur ):  boş tablo
+       hızlı doldurulur ya da yapıştırılır.  Satırlar arasında Enter / ↑ üstteki, ↓ alttaki durak  */
+  bosAcik?: boolean;
 }) {
   const [arac, setArac] = useState<null | "doldur" | "yapistir" | "kaydir">(null);
   const kot = kotlaMi(h);
-  const uygula = (d: Degisiklik | null) => d && Object.entries(d).forEach(([k, v]) => yaz(k, v));
+  const yalnizDurak = kapsam === "duraklar";
+  const yazHepsi = (d: Degisiklik | null) => d && Object.entries(d).forEach(([k, v]) => yaz(k, v));
+  //  Değişikliği kartın değerlerinden üreten işlev:  avanda her kart için ayrı koşar
+  const uygulaF = (f: (x: Ham) => Degisiklik | null) => (hepsine ? hepsine(f) : yazHepsi(f(h)));
+  const uygula = (d: Degisiklik | null) => yazHepsi(d);
+  //  Kotlar alttan üste yazılır ama satırlar üstten alta dizilidir ( Tab aşağı gider ):
+  //  Enter / ↑ üstteki durağın kotuna, ↓ alttakine geçer ( yalnız avanın tablosunda )
+  const tablo = useRef<HTMLDivElement>(null);
+  const gec = (j: number) => (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const hedef = e.key === "Enter" || e.key === "ArrowUp" ? j + 1 : e.key === "ArrowDown" ? j - 1 : null;
+    if (hedef === null || !bosAcik) return;
+    const kutu = tablo.current?.querySelector<HTMLInputElement>(`input[aria-label="${hedef + 1}. durağın kotu"]`);
+    if (!kutu) return;
+    e.preventDefault();
+    kutu.focus();
+    kutu.select();
+  };
   const k = kotlariOku(h[DURAK_KOTLARI]);
   const ham = parcalar(h[DURAK_KOTLARI]);
   const enAlt = k[0] ?? null;
@@ -221,10 +250,11 @@ export function KatGirisi({
     <div className="mb-1.5 rounded-orta border border-cizgi bg-black/[0.015] px-2 py-2">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[12.5px] font-medium">Katlar</span>
+        {bosAcik && !kot && <span className="text-[11.5px] text-metin-3">durak kotlarını hızlı doldurun ya da yapıştırın</span>}
         {/*  Kotsuz asansör açılırken kotlara çevrilir ( proje.kotlayaCevir );  yine de
              kotsuz kaldıysa ( başka sekmeden gelen eski hâl ) çeviri elle  */}
-        {!kot && bos}
-        {!kot && !bos && (
+        {!kot && !bosAcik && bos}
+        {!kot && !bosAcik && !bos && (
           <Dugme
             boy="kucuk"
             onClick={() =>
@@ -241,8 +271,8 @@ export function KatGirisi({
           </Dugme>
         )}
       </div>
-      {kot && (
-        <div className="mt-2">
+      {(kot || bosAcik) && (
+        <div className="mt-2" ref={tablo}>
           <div className="flex items-center gap-1.5 pb-0.5 text-[11px] text-metin-3">
             <span className="flex-1 pl-6">ad</span>
             <span className="w-[86px] text-right">kot</span>
@@ -252,6 +282,8 @@ export function KatGirisi({
           {/*  Mimarın planındaki kot döşemenin ÜSTÜDÜR:  buraya yazılırsa kuyu tavanı
                ( altı ) döşeme kalınlığı çıkarılarak bulunur — altı yerine üstü yazmak
                kuyu üst boşluğunu kalınlık kadar büyük gösterirdi ( güvensiz yön )  */}
+          {!yalnizDurak && (
+          <>
           <Satir
             ad="Döşemenin üstü"
             kot={
@@ -290,6 +322,8 @@ export function KatGirisi({
                 />
               }
             />
+          )}
+          </>
           )}
           {ham
             .map((metin, j) => ({ metin, j }))
@@ -343,6 +377,7 @@ export function KatGirisi({
                       birim="m"
                       value={metin}
                       durum={bu === null ? "hata" : undefined}
+                      onKeyDown={bosAcik ? gec(j) : undefined}
                       onChange={(e) => durakYaz(j, e.target.value)}
                     />
                   }
@@ -351,45 +386,54 @@ export function KatGirisi({
                       <FarkKutusu
                         etiket={`${j}. – ${j + 1}. durak arası`}
                         deger={alt !== null && bu !== null ? bu - alt : null}
-                        uygula={(mm) => uygula(araligiYaz(h, j, mm))}
+                        uygula={(mm) => uygulaF((x) => araligiYaz(x, j, mm))}
                       />
                     ) : undefined
                   }
-                  sil={ham.length > 2 ? () => uygula(durakSil(h, j)) : undefined}
+                  sil={ham.length > 2 ? () => uygulaF((x) => durakSil(x, j)) : undefined}
                 />
               );
             })}
-          <Satir
-            ad="Kuyu dibi"
-            kot={kotKutusu(KUYU_DIBI_KOTU, "Kuyu dibi kotu")}
-            fark={
-              <FarkKutusu
-                etiket="Kuyu dibi yüksekliği ( KY )"
-                deger={dip !== null && enAlt !== null ? enAlt - dip : null}
-                uygula={(mm) => enAlt !== null && yaz(KUYU_DIBI_KOTU, kotYaz(enAlt - mm))}
-              />
-            }
-          />
+          {!yalnizDurak && (
+            <Satir
+              ad="Kuyu dibi"
+              kot={kotKutusu(KUYU_DIBI_KOTU, "Kuyu dibi kotu")}
+              fark={
+                <FarkKutusu
+                  etiket="Kuyu dibi yüksekliği ( KY )"
+                  deger={dip !== null && enAlt !== null ? enAlt - dip : null}
+                  uygula={(mm) => enAlt !== null && yaz(KUYU_DIBI_KOTU, kotYaz(enAlt - mm))}
+                />
+              }
+            />
+          )}
           {kural.hata.length > 0 && (
             <p className="mt-1 px-0.5 text-[11.5px] font-medium text-red">Kat adları:  {kural.hata[0]}</p>
           )}
           <div className="mt-1.5 flex flex-wrap gap-1">
-            <button
-              type="button"
-              className="inline-flex h-7 items-center gap-1 rounded-kucuk px-1.5 text-[12px] font-medium text-metin-2 hover:bg-black/[0.04] hover:text-metin"
-              onClick={() => {
-                if (enUst === null) return;
-                const h1 = k.length > 1 && k[k.length - 2] !== null ? enUst - (k[k.length - 2] as number) : 3000;
-                uygula({
-                  [DURAK_KOTLARI]: [...ham, kotYaz(enUst + h1)].join("; "),
-                  ...(tavan !== null && { [KUYU_TAVANI_KOTU]: kotYaz(tavan + h1) }),
-                  ...(kotOku(h[MD_ZEMINI_KOTU]) !== null && { [MD_ZEMINI_KOTU]: kotYaz((kotOku(h[MD_ZEMINI_KOTU]) as number) + h1) }),
-                });
-              }}
-            >
-              <Plus className="size-3.5" /> Durak ekle
-            </button>
-            {(["doldur", "yapistir", "kaydir"] as const).map((a) => (
+            {kot && (
+              <button
+                type="button"
+                className="inline-flex h-7 items-center gap-1 rounded-kucuk px-1.5 text-[12px] font-medium text-metin-2 hover:bg-black/[0.04] hover:text-metin"
+                onClick={() => {
+                  if (enUst === null) return;
+                  const h1 = k.length > 1 && k[k.length - 2] !== null ? enUst - (k[k.length - 2] as number) : 3000;
+                  //  Kuyu tavanı ve makine dairesi zemini kartın kendisinden ( x ):  durakla yükselir
+                  uygulaF((x) => {
+                    const t = kotOku(x[KUYU_TAVANI_KOTU]);
+                    const m = kotOku(x[MD_ZEMINI_KOTU]);
+                    return {
+                      [DURAK_KOTLARI]: [...ham, kotYaz(enUst + h1)].join("; "),
+                      ...(t !== null && { [KUYU_TAVANI_KOTU]: kotYaz(t + h1) }),
+                      ...(m !== null && { [MD_ZEMINI_KOTU]: kotYaz(m + h1) }),
+                    };
+                  });
+                }}
+              >
+                <Plus className="size-3.5" /> Durak ekle
+              </button>
+            )}
+            {(kot ? (["doldur", "yapistir", "kaydir"] as const) : (["doldur", "yapistir"] as const)).map((a) => (
               <button
                 key={a}
                 type="button"
@@ -405,16 +449,9 @@ export function KatGirisi({
             ))}
           </div>
           {arac && (
-            <Arac
-              arac={arac}
-              kapat={() => setArac(null)}
-              h={h}
-              uygula={uygula}
-              sonKat={tavan !== null && enUst !== null ? tavan - enUst : null}
-              ky={dip !== null && enAlt !== null ? enAlt - dip : null}
-            />
+            <Arac arac={arac} kapat={() => setArac(null)} uygulaF={uygulaF} />
           )}
-          <Ozet kullanilan={kullanilan} daireli={daireli} />
+          {!yalnizDurak && <Ozet kullanilan={kullanilan} daireli={daireli} />}
         </div>
       )}
     </div>
@@ -425,17 +462,13 @@ export function KatGirisi({
 function Arac({
   arac,
   kapat,
-  h,
-  uygula,
-  sonKat,
-  ky,
+  uygulaF,
 }: {
   arac: "doldur" | "yapistir" | "kaydir";
   kapat: () => void;
-  h: Ham;
-  uygula: (d: Degisiklik | null) => void;
-  sonKat: number | null;
-  ky: number | null;
+  /**  Değişiklik kartın değerlerinden ( x ) üretilir:  son kat yüksekliği ve kuyu dibi
+       derinliği o kartın kendi kuyusundan korunur ( avanda her kart için ayrı )  */
+  uygulaF: (f: (x: Ham) => Degisiklik | null) => void;
 }) {
   const [a, setA] = useState("");
   const [b, setB] = useState("");
@@ -447,21 +480,28 @@ function Arac({
       const alt = kotOku(c || "±0,00");
       if (n === null || hh === null || alt === null || n < 2 || hh <= 0) return;
       const ust = alt + (Math.round(n) - 1) * Math.round(hh);
-      uygula({
-        [DURAK_KOTLARI]: hizliDoldur(Math.round(n), alt, Math.round(hh)),
-        ...(sonKat !== null && { [KUYU_TAVANI_KOTU]: kotYaz(ust + sonKat) }),
-        ...(ky !== null && { [KUYU_DIBI_KOTU]: kotYaz(alt - ky) }),
-        //  Adlar yerinde kalır;  fazlası ve durakları aşan giriş katı düşer
-        ...durakSayisi(h, Math.round(n)),
+      uygulaF((x) => {
+        const eski = kotlariOku(x[DURAK_KOTLARI]);
+        const enAlt = eski[0] ?? null;
+        const enUst = eski.length ? eski[eski.length - 1] : null;
+        const tavan = kotOku(x[KUYU_TAVANI_KOTU]);
+        const dip = kotOku(x[KUYU_DIBI_KOTU]);
+        return {
+          [DURAK_KOTLARI]: hizliDoldur(Math.round(n), alt, Math.round(hh)),
+          ...(tavan !== null && enUst !== null && { [KUYU_TAVANI_KOTU]: kotYaz(ust + (tavan - enUst)) }),
+          ...(dip !== null && enAlt !== null && { [KUYU_DIBI_KOTU]: kotYaz(alt - (enAlt - dip)) }),
+          //  Adlar yerinde kalır;  fazlası ve durakları aşan giriş katı düşer
+          ...durakSayisi(x, Math.round(n)),
+        };
       });
     } else if (arac === "yapistir") {
       if (!a.trim()) return;
       const kotlar = yapistir(a);
-      uygula({ [DURAK_KOTLARI]: kotlar, ...durakSayisi(h, kotlariOku(kotlar).length) });
+      uygulaF((x) => ({ [DURAK_KOTLARI]: kotlar, ...durakSayisi(x, kotlariOku(kotlar).length) }));
     } else {
       const m = kotOku(a);
       if (m === null) return;
-      uygula(kaydir(h, m));
+      uygulaF((x) => kaydir(x, m));
     }
     kapat();
   };

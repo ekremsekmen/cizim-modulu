@@ -389,6 +389,9 @@ export interface AvanKoprusu {
 
 export interface TrafikYaniti {
   hata: string | null;
+  /**  Kat düzeni kot tablosundan türediyse ( binanın durak kotları — avan_uclari._kat_duzeni ):
+       N, bodrum durağı, ortalama kat yüksekliği h ( m ), durak sayısı, seyir ( m ), giriş katının sırası  */
+  kat_duzeni?: { N: number; bodrum: number; h: number; durak: number; seyir: number; giris: number };
   uyarilar?: string[];
   bolumler?: Bolum[];
   ozet?: {
