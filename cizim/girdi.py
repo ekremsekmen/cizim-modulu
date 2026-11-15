@@ -104,6 +104,11 @@ ASGARI_ACIKLIK = 20.0
 #  TS EN 81-20 m.5.2.5.5.1 h:  kabin ve ona bağlı parçalar karşı ağırlıktan
 #  ve ona bağlı parçalardan en az 50 mm uzakta olmalıdır.
 KABIN_AGIRLIK_ACIKLIGI = 50.0
+#  ARKADAKİ AĞIRLIĞIN KABİNE UZAKLIĞI ( makine daireli 1:1, ağırlık rayı – duvar
+#  boşken — kopru._arka_agirlik_kabine_gore;  15 Kas ):  ofisin makine daireli
+#  projelerinde 125 · 135 · 145 mm.  Alt sınır yukarıdaki 50;  arada perde varken
+#  ders notu 50 + perde + 50 ister — 130 ikisini de karşılar.
+KABIN_AGIRLIK_ARALIGI = 130.0
 #  HALAT PAYI:  halatın kuyudaki ve kabindeki parçalardan uzaklığı ( kullanıcı
 #  kararı 15 Eki — standartta sayı yok );  kabin_ustu ve kuyu_ustu kullanır.
 HALAT_PAYI = 20.0
