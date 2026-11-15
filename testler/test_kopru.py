@@ -526,7 +526,7 @@ class YeniDuzenler(unittest.TestCase):
         def olc(**ek):
             g, hata, _ = self._kur(True, aski_orani=1, agirlik_yeri="Arka", kabin_yana_kaciklik=0, **ek)
             self.assertEqual(hata, [])
-            K = girdi._kabin_ve_agirlik_kutulari(g, sabitler.sabitler(g.get("_cizim_sabitleri")))
+            K = girdi.kabin_ve_agirlik_kutulari(g, sabitler.sabitler(g.get("_cizim_sabitleri")))
             return K["agirlik"][1] - K["kabin"][3], g["agirlik"]["ray_duvar"], kopru.sarim_acisi(g)
 
         a1, rd1, alfa1 = olc(kuyu_derinligi=2250)

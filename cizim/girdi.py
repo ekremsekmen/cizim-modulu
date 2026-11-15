@@ -334,7 +334,7 @@ def dogrula(g):
     S = sabitler.sabitler(g.get("_cizim_sabitleri"))
     hata += _yukseklikler(g)
     hata += _ana_olculer(g)
-    K = _kabin_ve_agirlik_kutulari(g, S)
+    K = kabin_ve_agirlik_kutulari(g, S)
     hata += _kabin_ve_agirlik(g, K)
     hata += _kanat_cebi_hatalari(g, S)
     hata += _agirlik_raylari(g, S, K)
@@ -513,7 +513,7 @@ def kabin_rayi_duvar_bosluklari(g):
     }
 
 
-def _kabin_ve_agirlik_kutulari(g, S):
+def kabin_ve_agirlik_kutulari(g, S):
     """Kabinin ( pano ve şasenin dış zarfı ) ve karşı ağırlığın ( patenleriyle )
     plan kutuları ve eksenleri:  { kx, kabin, agirlik, ex | ey, ag_y }."""
     k, kb, ag = g["kuyu"], g["kabin"], g["agirlik"]

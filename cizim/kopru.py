@@ -274,7 +274,7 @@ def _arka_agirlik_kabine_gore(g, S):
     Ağırlık hiçbir zaman eski kuraldan ( _agirlik_ray_duvari ) duvara yakın
     olmaz:  sığ kuyuda aralık zaten küçükse eski yer kalır.  2:1'de benzeri
     arka_aski.agirlik_ray_duvari."""
-    K = girdi._kabin_ve_agirlik_kutulari(g, S)
+    K = girdi.kabin_ve_agirlik_kutulari(g, S)
     fazla = (K["agirlik"][1] - K["kabin"][3]) - girdi.KABIN_AGIRLIK_ARALIGI
     return round(g["agirlik"]["ray_duvar"] + max(0.0, fazla), 1)
 
