@@ -25,8 +25,10 @@ from uclar import avan_secici, cizim_uclari, uygulama_istegi
 #  Avan kartındaki mimari alanlar ( kotlar metindir — uygulamanın kot kutuları gibi okunur )
 KART = ("kuyu_genisligi", "kuyu_derinligi", *avan_secici.KOTLAR, *avan_secici.ADLAR, "tavan_dosemesi")
 #  Çizim İSTENDİ sayılan alanlar:  kuyu genişliği avan hesabının da girdisidir, tek başına
-#  çizim isteği değildir ( eski projelerde de doludur )
-ISTEK = ("kuyu_derinligi", *avan_secici.KOTLAR)
+#  çizim isteği değildir ( eski projelerde de doludur ).  Durak kotları da değildir ( 16 Kas ):
+#  kot tablosu binanındır, bütün kartlarda aynı durur — kuyusu hiç girilmemiş asansör
+#  "çizimi istendi, çizilemedi" sayılmaz.  İstek KUYUNUN ölçüleridir.
+ISTEK = ("kuyu_derinligi", *(k for k in avan_secici.KOTLAR if k != alanlar.DURAK_KOTLARI))
 
 
 #  AVANIN BEYANI ( 12 Kas ):  avan motor hesabının askı oranı ve makine tipi çizimde aynen

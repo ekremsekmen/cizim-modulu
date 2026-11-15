@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AvanKoprusu } from "./api";
-import { avanAyarlari, avanAyarlariYaz, avanDosyaGovdesi, avanDosyasiMi, avanOku, avanSecimVarsayilani, BOS_AVAN, manuelKMetni, trafikFarki, trafikSutunuKaldir, trafikSutununuYaz, yeniAvanAcilisi, type AvanProjesi } from "./avan";
+import { avanAyarlari, avanAyarlariYaz, avanDosyaGovdesi, avanDosyasiMi, avanOku, avanSecimVarsayilani, BOS_AVAN, manuelKMetni, trafikFarki, trafikSutunuKaldir, trafikSutununuYaz, yeniAvanAcilisi, type AvanProjesi, binaKatlari, katlariEsitle, katlarFarkli, kartaYaz, kartlaraUygula } from "./avan";
 import { SECENEKLER as SEC } from "./test-semasi";
 
 const KOPRU: AvanKoprusu = {
@@ -263,6 +263,51 @@ describe("çizimde elle ayarlanan ölçüler ( 14 Kas )", () => {
     expect(yazi).toBe("ray_kapi_arasi=700;kapi_kaciklik=15");
     expect(avanAyarlari({ cizim_ayarlari: yazi })).toEqual({ ray_kapi_arasi: "700", kapi_kaciklik: "15" });
     expect(avanAyarlariYaz({})).toBe("");
+  });
+});
+
+describe("binanın kot tablosu ( 16 Kas ):  durak kotları bütün kartlarda aynı", () => {
+  const proje = (kartlar: Record<string, string>[]): AvanProjesi => ({ ...BOS_AVAN, avanAsansorleri: kartlar });
+
+  it("kotu yazılmış ilk kart kaynaktır;  kartlar eşitlenir, kuyuya özgü alanlar kalır", () => {
+    const p = proje([{ tanim: "A" }, { durak_kotlari: "±0,00; +3,00", giris_duragi: "1", kuyu_dibi_kotu: "-1,60" }, { durak_kotlari: "±0,00; +4,00" }, {}]);
+    expect(katlarFarkli(p)).toBe(true);
+    expect(binaKatlari(p)).toEqual({ durak_kotlari: "±0,00; +3,00", giris_duragi: "1" });
+    const e = katlariEsitle(p);
+    expect(e.avanAsansorleri.map((a) => a.durak_kotlari)).toEqual(Array(4).fill("±0,00; +3,00"));
+    expect(e.avanAsansorleri.map((a) => a.giris_duragi)).toEqual(Array(4).fill("1"));
+    expect(e.avanAsansorleri[0].tanim).toBe("A");
+    expect(e.avanAsansorleri[1].kuyu_dibi_kotu).toBe("-1,60");
+    expect(e.avanAsansorleri[2].kuyu_dibi_kotu).toBeUndefined();
+    //  Eşit proje aynen döner ( gereksiz yazma yok );  kotsuz proje de
+    expect(katlariEsitle(e)).toBe(e);
+    expect(katlarFarkli(e)).toBe(false);
+    const bos = proje([{}, {}, {}, {}]);
+    expect(katlariEsitle(bos)).toBe(bos);
+    expect(binaKatlari(bos)).toEqual({});
+  });
+
+  it("karta yazma:  kat alanı bütün kartlara, kalanı yalnız o karta", () => {
+    const p = proje([{}, {}, {}, {}]);
+    const y = kartaYaz(kartaYaz(p, 1, "durak_kotlari", "±0,00; +3,00"), 1, "kuyu_dibi_kotu", "-1,50");
+    expect(y.avanAsansorleri.map((a) => a.durak_kotlari)).toEqual(Array(4).fill("±0,00; +3,00"));
+    expect(y.avanAsansorleri.map((a) => a.kuyu_dibi_kotu)).toEqual([undefined, "-1,50", undefined, undefined]);
+  });
+
+  it("araçların değişikliği her kartta kendi kuyusuyla hesaplanır", () => {
+    const p = proje([
+      { durak_kotlari: "±0,00; +3,00", kuyu_tavani_kotu: "+7,00" },
+      { durak_kotlari: "±0,00; +3,00", kuyu_tavani_kotu: "+8,00" },
+      { durak_kotlari: "±0,00; +3,00" },
+      { durak_kotlari: "±0,00; +3,00" },
+    ]);
+    //  Bir durak eklenir ( +3 m ):  her kartın kuyu tavanı kendi değerinden yükselir
+    const y = kartlaraUygula(p, (h) => ({
+      durak_kotlari: "±0,00; +3,00; +6,00",
+      ...(h.kuyu_tavani_kotu && { kuyu_tavani_kotu: h.kuyu_tavani_kotu === "+7,00" ? "+10,00" : "+11,00" }),
+    }));
+    expect(y.avanAsansorleri.map((a) => a.durak_kotlari)).toEqual(Array(4).fill("±0,00; +3,00; +6,00"));
+    expect(y.avanAsansorleri.map((a) => a.kuyu_tavani_kotu)).toEqual(["+10,00", "+11,00", undefined, undefined]);
   });
 });
 

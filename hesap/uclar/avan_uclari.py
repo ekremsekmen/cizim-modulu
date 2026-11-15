@@ -32,6 +32,8 @@ from uclar.uc_ortak import (
     _uretilemedi,
     belirsiz_sayi_mi,
 )
+from cizim import katlar
+from tasarim import alanlar
 from motor.avan import avan_hesabi
 from motor.avan import avan_sabitleri
 from motor.avan import kapak
@@ -201,6 +203,10 @@ def _trafik_girdi(veri: dict):
     veri = veri if isinstance(veri, dict) else {}
     ham = veri.get("girdiler")
     ham = ham if isinstance(ham, dict) else {}
+    #  Kot tablosu doluysa kat düzeni ondan ( _kat_duzeni ):  elle yazılmış N / bodrum / h
+    #  okunmaz — okunamayan eski bir yazım hesabı durdurmasın
+    if not _bos_mu(ham.get(alanlar.DURAK_KOTLARI)):
+        ham = {k: v for k, v in ham.items() if k not in KAT_DUZENI_ALANLARI}
     #  Red metni kutunun EKRANDAKİ adını söyler ( "hizli1" değil "⑤ Daire sayısı" ).
     g = _temiz(ham, TRAFIK_SAYISAL, etiket=trafik.girdi_etiketleri(ham.get("bina_tipi")))
     g["ek_nufus"] = _ek_nufus_oku(ham.get("ek_nufus"))
@@ -209,8 +215,19 @@ def _trafik_girdi(veri: dict):
     #  eksik hesaplanıyordu.  Artık okunamayan P, sebebiyle reddedilir.
     #  SÜTUNUN EKRANDAKİ NUMARASI ( sira ) taşınır ( 21 Eki ):  boş sütun atılınca
     #  hesabın iletileri "ASANSÖR-1" derken ekranda 2. sütundu.
+    #  Kot tablosu doluyken BÜTÜN asansörler tablonun tamamını kullanır ( kullanıcı kararı
+    #  16 Kas ):  sütunun kendi durak sayısı / kat yüksekliği / bodrumu okunmaz
+    tablo = not _bos_mu(ham.get(alanlar.DURAK_KOTLARI))
     liste = [
-        dict(_temiz(a, ASANSOR_SAYISAL, f"ASANSÖR-{i}: ", etiket=trafik.ASANSOR_ETIKET), sira=i)
+        dict(
+            _temiz(
+                {k: v for k, v in a.items() if not (tablo and k in ASANSOR_KAT_ALANLARI)},
+                ASANSOR_SAYISAL,
+                f"ASANSÖR-{i}: ",
+                etiket=trafik.ASANSOR_ETIKET,
+            ),
+            sira=i,
+        )
         for i, a in enumerate(_sozluk_listesi(ham.get("asansorler")), 1)
         if not _bos_mu(a.get("P"))
     ][:4]
@@ -221,7 +238,31 @@ def _trafik_girdi(veri: dict):
         bir["kapi_tipi"] = ham.get("kapi_tipi")
         liste = [bir]
     g["asansorler"] = liste
+    _kat_duzeni(g, ham)
     return g
+
+
+#  Trafiğin kot tablosundan türeyen girdileri ( katlar.kat_duzeni )
+KAT_DUZENI_ALANLARI = ("N", "bodrum", "h")
+#  Trafik sütununun ( asansörün ) kendi kat düzeni:  tablo doluyken okunmaz
+ASANSOR_KAT_ALANLARI = ("durak", "h", "bodrum")
+
+
+def _kat_duzeni(g, ham):
+    """BİNANIN KOT TABLOSU DOLUYSA trafiğin kat düzeni ONDAN ( katlar.kat_duzeni ):  N,
+    bodrum ve h tablodan türer ve elle yazılanın YERİNE geçer — avan hesabı ve çizim aynı
+    kotları kullanır, üçü aynı binayı hesaplar.  Tablo boşsa elle girilenler geçerlidir
+    ( kotsuz hızlı tahmin ).  Motor değişmez:  aynı üç sayıyı alır.  Türetilenler
+    g["kat_duzeni"]'nde de durur ( yanıt:  ekran kutuları "kotlardan" diye gösterir )."""
+    kotlar = ham.get(alanlar.DURAK_KOTLARI)
+    if _bos_mu(kotlar):
+        return
+    duzen, iletiler = katlar.kat_duzeni(kotlar, ham.get(alanlar.GIRIS_DURAGI))
+    if iletiler:
+        _RED.append(iletiler[0])
+        return
+    g.update({k: duzen[k] for k in KAT_DUZENI_ALANLARI})
+    g["kat_duzeni"] = duzen
 
 
 def _avan_girdi(veri: dict):
@@ -389,6 +430,10 @@ def api_trafik(veri: dict = Body(...)):
         #  Avan sekmesi bu özeti geri gönderir; kapasite / hız / kuyu yüksekliği
         #  tutarsızlığı orada uyarı olarak görünür.
         s["avan_koprusu"] = _kopruye_kapi(trafik.trafik_ozeti(s), s)
+        #  Kat düzeni kot tablosundansa ( _kat_duzeni ):  ekran N / bodrum / h kutularını
+        #  "kotlardan" diye gösterir
+        if g.get("kat_duzeni"):
+            s["kat_duzeni"] = g["kat_duzeni"]
         #  Kapağın boş bırakılan asansör alanları hesaptan dolar ( ekranda
         #  gri yer tutucu olarak görünür, çıktıya o basılır ).
         s["kapak_bilgileri"] = kapak.trafikten(s)

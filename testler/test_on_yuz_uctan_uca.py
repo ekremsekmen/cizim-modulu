@@ -1179,14 +1179,26 @@ class OnYuzUctanUca(unittest.TestCase):
 
         self.sayfa.get_by_label("Kuyu genişliği").fill("2050")
         self.sayfa.get_by_label("Kuyu derinliği").fill("1850")
-        #  Trafiğin kat düzeni:  N = 10 kat + ana giriş, kat yüksekliği 3 m
-        self.sayfa.get_by_role("button", name=re.compile("Trafikten doldur · 11 durak")).click()
-        #  13 Kas:  uygulamanın kot tablosu ( durak satırları ) — karta aynı metin yazılır
+        #  KOT TABLOSU BİNANINDIR ( 16 Kas ):  kot yokken de açıktır;  hızlı doldur 11 durağı
+        #  ( 10 kat + ana giriş, 3 m ) yazar — BÜTÜN kartlara aynı metin
+        self.sayfa.get_by_role("button", name="Hızlı doldur").click()
+        self.sayfa.get_by_label("Durak sayısı").fill("11")
+        self.sayfa.get_by_label("Kat yüksekliği ( mm )").fill("3000")
+        self.sayfa.get_by_role("button", name="Uygula").click()
         self.sayfa.get_by_label("11. durağın kotu").wait_for()
-        kotlar = self.sayfa.evaluate(
-            "() => JSON.parse(localStorage.getItem('asansor:avan')).avanAsansorleri[0].durak_kotlari"
+        kartlar = self.sayfa.evaluate(
+            "() => JSON.parse(localStorage.getItem('asansor:avan')).avanAsansorleri.map(a => a.durak_kotlari)"
         )
+        kotlar = kartlar[0]
         self.assertTrue(kotlar.startswith("±0,00; +3,00") and kotlar.endswith("+30,00"), kotlar)
+        self.assertEqual(set(kartlar), {kotlar})
+        #  Trafik hesabı kat düzenini aynı tablodan alır:  istek kotları taşır, yanıt türetileni verir
+        istek, yanit = self.iz.son("/api/trafik")
+        self.assertEqual(istek["girdiler"]["durak_kotlari"], kotlar)
+        self.assertEqual(
+            {k: yanit["kat_duzeni"][k] for k in ("N", "bodrum", "h", "durak", "seyir")},
+            {"N": 10, "bodrum": 0, "h": 3, "durak": 11, "seyir": 30},
+        )
         self.assertEqual(self.sayfa.get_by_label("1. durağın kotu", exact=True).input_value(), "±0,00")
         #  Trafik 1,6 m/s veriyor:  kuyu dibi 1,80, kuyu üstü 4,60 m
         self.sayfa.get_by_label("Kuyu dibi kotu").fill("-1,80")

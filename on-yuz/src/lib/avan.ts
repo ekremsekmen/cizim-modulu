@@ -56,6 +56,63 @@ export const BOS_AVAN: AvanProjesi = {
   kapak: {},
 };
 
+/*  BİNANIN KOT TABLOSU ( 16 Kas — cikti/devir/KOT_TABLOSU_PLANI.md ).  Kullanıcı:  "kot tablosu
+    en başta olsa, trafik hesabı ortalama kat yüksekliğini buradan hesaplasa … bütün asansörler
+    bina tablosunun tamamını kullansın".  Durak kotları, kat adları ve giriş katı BİNANINDIR:
+    her kartta AYNI değer durur ( dosya biçimi, avan isteği ve çizim isteği değişmez — onlar
+    kartı okur ) ve trafik hesabı kat düzenini aynı tablodan alır ( sunucu:  avan_uclari.
+    _kat_duzeni ).  Kuyu dibi / kuyu tavanı / makine dairesi zemini kuyuya özgüdür, kartta kalır.  */
+export const BINA_KATLARI = ["durak_kotlari", "durak_adlari", "giris_duragi"] as const;
+const kotlu = (a: Ham | undefined) => (a?.durak_kotlari ?? "").trim() !== "";
+
+/**  Binanın kot tablosu:  kotu yazılmış ilk karttan ( kartlar eşittir — katlariEsitle )  */
+export function binaKatlari(p: Pick<AvanProjesi, "avanAsansorleri">): Ham {
+  const kaynak = p.avanAsansorleri.find(kotlu) ?? {};
+  return Object.fromEntries(BINA_KATLARI.filter((k) => kaynak[k] !== undefined).map((k) => [k, kaynak[k] as string]));
+}
+
+/**  Kartların kat alanları eşit değilse eşitler ( kaynak:  kotu yazılmış ilk kart );  eşitse p'nin
+     KENDİSİ döner.  Eski kayıt / eski dosya ( kartlarda ayrı kot ), yeni açılan boş kart ( trafik
+     sütunu eklendi ) ve başka sekmeden gelen hâl buradan geçer.  */
+export function katlariEsitle(p: AvanProjesi): AvanProjesi {
+  const kaynak = p.avanAsansorleri.find(kotlu);
+  if (!kaynak) return p;
+  const esit = (a: Ham) => BINA_KATLARI.every((k) => (a[k] ?? "") === (kaynak[k] ?? ""));
+  const kartlar = Array.from({ length: Math.max(AVAN_AZAMI, p.avanAsansorleri.length) }, (_, i) => p.avanAsansorleri[i] ?? {});
+  if (kartlar.length === p.avanAsansorleri.length && kartlar.every(esit)) return p;
+  return {
+    ...p,
+    avanAsansorleri: kartlar.map((a) => {
+      if (esit(a)) return a;
+      const y = { ...a };
+      for (const k of BINA_KATLARI) {
+        if (kaynak[k] === undefined) delete y[k];
+        else y[k] = kaynak[k];
+      }
+      return y;
+    }),
+  };
+}
+
+/**  Kartlarında birbirinden FARKLI durak kotu var mı ( eski dosya:  açılışta söylenir )  */
+export function katlarFarkli(p: Pick<AvanProjesi, "avanAsansorleri">): boolean {
+  return new Set(p.avanAsansorleri.filter(kotlu).map((a) => a.durak_kotlari!.trim())).size > 1;
+}
+
+/**  Karta yazma:  binanın kat alanı ( BINA_KATLARI ) BÜTÜN kartlara, kalanı yalnız i. karta  */
+export function kartaYaz(p: AvanProjesi, i: number, k: string, d: string): AvanProjesi {
+  const bina = (BINA_KATLARI as readonly string[]).includes(k);
+  const kartlar = Array.from({ length: Math.max(AVAN_AZAMI, p.avanAsansorleri.length) }, (_, j) => p.avanAsansorleri[j] ?? {});
+  return { ...p, avanAsansorleri: kartlar.map((a, j) => (bina || j === i ? { ...a, [k]: d } : a)) };
+}
+
+/**  Kot tablosunun araçları ( durak ekle · hızlı doldur · kaydır · aralık · sil ) durak kotlarıyla
+     birlikte kuyu tavanını / dibini de kaydırır:  değişiklik HER KARTTA kendi kuyusuyla hesaplanır
+     ( f:  kartın değerleri → değişiklik ).  Durak alanları kartlarda eşit olduğundan aynı çıkar.  */
+export function kartlaraUygula(p: AvanProjesi, f: (h: Ham) => Record<string, string> | null): AvanProjesi {
+  return katlariEsitle({ ...p, avanAsansorleri: p.avanAsansorleri.map((a) => ({ ...a, ...(f(a) ?? {}) })) });
+}
+
 const PROJE = "asansor:avan";
 const OFIS = "asansor:avan-ofis";
 const ACILIS = "asansor:avan-acilis";
@@ -77,7 +134,7 @@ function yaz(anahtar: string, deger: unknown) {
 }
 
 export function avanProjesiniOku(): AvanProjesi {
-  return oku(PROJE, BOS_AVAN);
+  return katlariEsitle(oku(PROJE, BOS_AVAN));
 }
 /**  Değiştiyse yazar ve zamanını tutar  */
 export function avanProjesiniYaz(p: AvanProjesi) {
@@ -114,10 +171,15 @@ export function avanListeDurumu(): ProjeDurumu | undefined {
 }
 
 export function useAvanProjesi() {
-  const [p, setP] = useState<AvanProjesi>(avanProjesiniOku);
+  const [p, ham] = useState<AvanProjesi>(avanProjesiniOku);
+  //  Her yazışta kartların kat alanları eşitlenir ( katlariEsitle ):  binanın kot tablosu tektir
+  const setP = useCallback<React.Dispatch<React.SetStateAction<AvanProjesi>>>(
+    (u) => ham((q) => katlariEsitle(typeof u === "function" ? u(q) : u)),
+    [],
+  );
   useEffect(() => avanProjesiniYaz(p), [p]);
   //  Başka sekmede değişti:  o hâl alınır ( silindiyse boş proje )
-  useSekmeEsitle(PROJE, useCallback((d: Partial<AvanProjesi> | null) => setP({ ...BOS_AVAN, ...(d ?? {}) }), []));
+  useSekmeEsitle(PROJE, useCallback((d: Partial<AvanProjesi> | null) => setP({ ...BOS_AVAN, ...(d ?? {}) }), [setP]));
   return [p, setP] as const;
 }
 
@@ -411,6 +473,9 @@ export type AvanOkumasi =
       /**  Dosyadaki ofis standardının bu tarayıcınınkinden farklı değerleri ( etiketleriyle )  */
       ofisFarki: string[];
       taninmayan: string[];
+      /**  Dosyanın kartlarında birbirinden farklı durak kotu vardı ( eski sürüm ):  ilk
+           asansörünküler binanın kot tablosu oldu  */
+      katFarki: boolean;
     }
   | { tamam: false; hata: string };
 
@@ -551,12 +616,14 @@ export function avanOku(metin: string, sec: Secenekler, ofis: Ham): AvanOkumasi 
     })
     .map((k) => sema.etiket[k]?.[0] ?? k);
 
+  const proje = { trafik, ekNufus, trafikAsansorleri, ortak, avanAsansorleri, kapak };
   return {
     tamam: true,
-    proje: { trafik, ekNufus, trafikAsansorleri, ortak, avanAsansorleri, kapak },
+    proje: katlariEsitle(proje),
     dosyaAvani,
     ofisFarki,
     taninmayan,
+    katFarki: katlarFarkli(proje),
   };
 }
 
@@ -566,6 +633,10 @@ export function acilisBildirimi(ad: string, o: Extract<AvanOkumasi, { tamam: tru
   if (o.ofisFarki.length)
     satirlar.push(
       `Dosyadaki ofis standardı bu tarayıcınınkinden ${o.ofisFarki.length} değerde farklı — hesap bu tarayıcınınkiyle yapılıyor ( Ofis standardı → Avan ):  ${o.ofisFarki.join(" · ")}`,
+    );
+  if (o.katFarki)
+    satirlar.push(
+      "Dosyadaki asansörlerin durak kotları birbirinden farklıydı — kot tablosu artık binanındır:  ilk asansörün kotları bütün asansörlere uygulandı ( Trafik hesabı → Katlar ).",
     );
   if (o.taninmayan.length)
     satirlar.push(`Bu sürümde olmayan ${o.taninmayan.length} seçim alınmadı:  ${o.taninmayan.join(" · ")}`);
