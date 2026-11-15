@@ -517,6 +517,30 @@ class YeniDuzenler(unittest.TestCase):
         self.assertTrue([el for el in e if el.get("ad") == "sarim_acisi"])
         self.assertIsNone(self._bolum11(s).get("eksik_hesap"))
 
+    def test_makine_dairesinde_1_1_arka_agirlik_kabine_gore_konur(self):
+        """15 Kas:  ağırlık rayı – duvar boşsa arkadaki ağırlık duvara değil kabine
+        göre konur ( girdi.KABIN_AGIRLIK_ARALIGI ) — sarım açısı kuyu derinliğinden
+        bağımsız kalır.  Girilen ölçüye dokunulmaz;  sığ kuyuda ( aralık zaten
+        küçük ) ağırlık eski kuraldan duvara yakın olmaz."""
+
+        def olc(**ek):
+            g, hata, _ = self._kur(True, aski_orani=1, agirlik_yeri="Arka", kabin_yana_kaciklik=0, **ek)
+            self.assertEqual(hata, [])
+            K = girdi.kabin_ve_agirlik_kutulari(g, sabitler.sabitler(g.get("_cizim_sabitleri")))
+            return K["agirlik"][1] - K["kabin"][3], g["agirlik"]["ray_duvar"], kopru.sarim_acisi(g)
+
+        a1, rd1, alfa1 = olc(kuyu_derinligi=2250)
+        a2, rd2, alfa2 = olc(kuyu_derinligi=2450)
+        self.assertAlmostEqual(a1, girdi.KABIN_AGIRLIK_ARALIGI, places=1)
+        self.assertAlmostEqual(a2, girdi.KABIN_AGIRLIK_ARALIGI, places=1)
+        self.assertAlmostEqual(rd2 - rd1, 200.0, places=1)  # kuyu derinleşir, ağırlık kabinle kalır
+        self.assertAlmostEqual(alfa1, alfa2, places=1)
+        #  Girilen ölçü aynen ( ağırlık duvarda, kabinden uzak )
+        a3, rd3, alfa3 = olc(kuyu_derinligi=2450, agirlik_ray_duvar=rd1 - 50)
+        self.assertEqual(rd3, rd1 - 50)
+        self.assertGreater(a3, girdi.KABIN_AGIRLIK_ARALIGI)
+        self.assertLess(alfa3, alfa2)
+
     def test_tahrik_kasnagi_kuyu_arasindan_kucukse_saptirma_gerekmez(self):
         #  Yan ağırlıkta aralık kasnaktan küçükse saptırma kasnağıyla çözülmez
         g, hata, s = self._kur(True, aski_orani=1, tahrik_kasnak_capi=1400)

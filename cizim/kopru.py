@@ -263,6 +263,22 @@ def _agirlik_ray_duvari(Gx, ar):
     return max(Gx / 2.0 + 50.0, parcalar.tirnak_uzanimi(*ar) if ar else 0.0)
 
 
+def _arka_agirlik_kabine_gore(g, S):
+    """MAKİNE DAİRELİ 1:1, AĞIRLIK ARKADA:  ağırlık rayı – duvar boşsa ağırlık
+    duvara değil KABİNE göre konur — kabinle arası girdi.KABIN_AGIRLIK_ARALIGI.
+
+    Duvara dayalı ağırlık kuyu derinleştikçe kabinden uzaklaşır, askı noktaları
+    arası açılır ve SARIM AÇISI düşer ( 630 kg, ø 500:  derinlik 2050 → 2400'de
+    145,6 → 133,3° );  kabine göre konunca açı kuyu derinliğinden bağımsızdır
+    ( 146,7° ).  Ofisin makine daireli projelerinde de ağırlık duvara dayanmaz.
+    Ağırlık hiçbir zaman eski kuraldan ( _agirlik_ray_duvari ) duvara yakın
+    olmaz:  sığ kuyuda aralık zaten küçükse eski yer kalır.  2:1'de benzeri
+    arka_aski.agirlik_ray_duvari."""
+    K = girdi.kabin_ve_agirlik_kutulari(g, S)
+    fazla = (K["agirlik"][1] - K["kabin"][3]) - girdi.KABIN_AGIRLIK_ARALIGI
+    return round(g["agirlik"]["ray_duvar"] + max(0.0, fazla), 1)
+
+
 def _dusey_kasnak_arasi(kx, kb_g, Dk, D1, G, ray_duvar, yer, S):
     """Kabin altı 2:1, ağırlık yanda, kasnaklar arası boş:  halat karşı ağırlık
     kasnağına DÜŞEY insin.  Tahrik kasnağının bir teğeti kabinin ağırlık
@@ -367,6 +383,8 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
     _acik_ara(g)
     o.hata += konsol_araligi_hatalari(g["dusey"], S)
     if not h["mk_yok"]:
+        if h["oran"] == 1 and g["agirlik"]["yeri"] == "Arka" and bos_mu(A.get("agirlik_ray_duvar")):
+            g["agirlik"]["ray_duvar"] = _kural(_arka_agirlik_kabine_gore(g, S), "agirlik_ray_duvar")
         _makine_dairesi_girdisi(o, g, h)
     if o.hata:
         return None, o.hata

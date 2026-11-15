@@ -28,6 +28,8 @@ olanlar gelir:
     konsola gelir, tablo ve ray şemasıyla ( referans proje "Building Forces" gibi )
 """
 
+import copy
+
 from temel import cumle_basi, eleman_kutusu, kutu_merkezi, ortusur, sayi_mi
 from cizim import sorunlu
 from cizim import sorun
@@ -1214,7 +1216,36 @@ def ciz(g, cizim_sabitleri=None):
     #  konduktan sonra ölçüleri boyunca boş yere kayar ( girdi taraması, 4 Eki ).
     #  Önce kaydırılınca bir düzende yük kutusuna yer kalmıyordu.
     geometri.parcadan_kaydir(e, ek_katman=("YUK",))
+    if not perde_yazisi[2]:
+        _perde_yazisini_kurtar(e, perde_yazisi, p)
     return e
+
+
+def _perde_yazisini_kurtar(e, yer, p):
+    """ARKADAKİ AĞIRLIK KABİNE YAKINKEN ( makine daireli 1:1'de kabine göre konur —
+    kopru._arka_agirlik_kabine_gore:  perde bloğun 65 mm önünde ) perde yazısı perde
+    ile ağırlık arasına sığmaz, maskesi parçanın kenarını siler.  Çoğu düzende bunu
+    çizimlerin son adımı düzeltir ( geometri.etiketleri_ayir:  yazıyı en az kaydırarak
+    kenardan uzaklaştırır ) — ama yazıyı KISALTAMAZ:  perdenin kuyu yanında sığınmanın
+    ölçü sırası varken tam ad hiçbir yere sığmaz ve kenar silinmiş kalır ( girdi
+    taraması, 15 Kas:  450 / 1600 Arka MD ).  Yalnız o durumda yazı burada, perdenin
+    KUYU YANINA, gerekirse kısaltılarak konur ( _perde_yazisi ).  Son adımın
+    temizlediği yazıya dokunulmaz;  yeni yer de kenar siliyorsa eski yer kalır."""
+
+    def ayir(liste):
+        i = next((n for n, el in enumerate(liste) if el.get("ad") == "perde_yazi"), None)
+        return i, (None if i is None else liste[:i] + liste[i + 1 :])
+
+    i, kalan = ayir(e)
+    if i is None or not _kenar_siler(kalan, e[i]):
+        return
+    son = geometri.etiketleri_ayir(copy.deepcopy(e))
+    j, son_kalan = ayir(son)
+    if j is not None and not _kenar_siler(son_kalan, son[j]):
+        return
+    yedek = _perde_yazisi(kalan, (yer[0], p[1] - (uslup.NORMAL + 30.0) / 2.0, 0), p)
+    if not _kenar_siler(kalan, yedek):
+        e[i] = eleman.ad(yedek, "perde_yazi")
 
 
 #  Maskenin sildiği çizginin sayılmayan boyu:  kalite karnesinin eşiği ( geometri.
@@ -1265,6 +1296,14 @@ def _cizgi_silmez(olculer, el):
     çizgisini siliyor" kuralı ( olculer:  geometri.OlcuIzgarasi )."""
     boy, uc = olculer.silinen(geometri.maske_kutusu(el), el)
     return boy <= _MASKE_ESIGI and not uc
+
+
+def _kenar_siler(e, el):
+    """Yazının maskesi bir parça kenarından eşikten fazlasını siliyor mu — kalite
+    karnesinin "maske parça / duvar kenarını siliyor" kuralı ( araclar/karne._maskeler )."""
+    m = geometri.maske_kutusu(el)
+    kenarlar = geometri.KenarIzgarasi(geometri.parca_kenarlari(e))
+    return sum(geometri.kutudaki_boy(s, m) for s in kenarlar.adaylar(m)) > _MASKE_ESIGI
 
 
 def _merdiven_yazisi(m, G, e):
