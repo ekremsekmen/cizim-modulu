@@ -451,6 +451,33 @@ TEST 10'un dondurulmuş referansları farklar incelenerek yeniden üretildi
 ( fark:  bölüm 11, xs'in ray hesabı, D2'nin halat ve tahrik hesabı;  α'nın çizimden geldiği senaryolarda tahrik sınırları — düşey inişli 180°, makine daireli 1:1'de 134,3° — ve α uyarısının metni ).  Motor doğrudan çağrılınca da ( testler ) türetme uygulama alanlarının varsayılanlarıyla yapılır — program ile motor aynı α'yı, aynı D2'yi bulur.
 Eski arayüzün testleri ( TEST 5;  19 Eki eski arayüzle kaldırıldı ) birleşik formun sözleşmesine göre:  tasarım sırasıyla 11 grup, hesaptan kaldırılan KD · ağırlık ray arası · ray–duvar kendi tasarım grubunda bir kez ( aynı anlam, hesaba girmez ), D2 formda yok, son kat 4.200;  çizimlerde tuval ( açılışta hepsi sığar, tekerlek imlecin altında yakınlaştırır, sürükleme kaydırır ve ölçü açmaz, Sığdır, değişiklikten sonra görünüm yerinde ) ve ölçüye tıklama ( kutu, önce sorma, uygulama, Formda göster ).  Testlerin varsayılan adresi 8780.
 
+### Avanda binanın kot tablosu ( 16 Kas )
+
+Avan projesinde durak kotları, kat adları ve giriş katı **binanındır**:  tek tablo, Trafik
+adımının başında ( "Katlar" );  bütün asansörler tablonun tamamını kullanır.  Üç hesap aynı
+tablodan beslenir:
+
+| Kim | Ne alır | Nerede |
+|---|---|---|
+| Trafik hesabı | kat sayısı N ( giriş üstü ), bodrum durağı, ortalama kat yüksekliği h | `cizim/katlar.kat_duzeni` → `uclar/avan_uclari._kat_duzeni` ( uç katmanı;  motor aynı üç sayıyı alır ) |
+| Avan hesabı | seyir, durak sayısı, kuyu yüksekliği ( + kartın kuyu dibi / tavanı ) | `motor/avan/avan_hesabi.kot_turetilenleri` |
+| Çizim | düşey kesitlerin durak kotları, kat adları, giriş katı | `cizim/kopru` ( uygulamadaki gibi ) |
+
+Kural:  N = durak − giriş sırası, bodrum = giriş sırası − 1, h = ( en üst − en alt ) / ( durak − 1 )
+→ trafiğin toplam seyahati ( N + bodrum ) · h kotların seyriyle **birebir** aynıdır.  Giriş katı
+çizimin kuralıyla ( girilmişse o, yoksa kotu ±0,00'a en yakın durak ).  Tablo doluyken elle
+yazılmış N / h / bodrum ve trafik sütununun kendi durak / h / bodrum değeri **okunmaz** ( ekranda
+kutular "kotlardan" diye kilitlidir );  tablo boşken bugünkü gibi elle girilir ( kotsuz hızlı
+tahmin ).  Kuyu dibi, kuyu tavanı ve makine dairesi zemini kuyuya özgüdür:  kartta kalır.
+
+Ön yüzde tablo her kartta **aynı değer** olarak durur ( `lib/avan.ts`:  `katlariEsitle`,
+`kartaYaz`, `kartlaraUygula` ) — dosya biçimi, avan isteği ve çizim isteği değişmedi.  Kartlarında
+ayrı kot olan eski dosya açılınca ilk asansörün kotları binanın tablosu olur;  kartlar birbirinden
+farklıysa açılışta söylenir.  Güvence:  `testler/test_kat_duzeni.py` ( kural ve sınır durumları;
+300 rastgele tabloda trafiğin seyahati = kotların seyri;  60 tabloda trafik → avan aynı durak,
+seyir ve kuyu yüksekliği;  üç tabloda ve iki asansörlü pakette düşey kesitlerin kotları = tablo ),
+`on-yuz/src/lib/eski-dosya.test.ts` ( kartlarında ayrı kot olan eski dosyalar ).
+
 ## Kurulum ve çalıştırma
 
 `baslat.command` ( Windows:  `baslat.bat` ) çift tıklanır:  ilk açılışta
