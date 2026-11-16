@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AvanKoprusu } from "./api";
-import { avanAyarlari, avanAyarlariYaz, avanDosyaGovdesi, avanDosyasiMi, avanOku, avanSecimVarsayilani, BOS_AVAN, manuelKMetni, trafikFarki, trafikSutunuKaldir, trafikSutununuYaz, yeniAvanAcilisi, type AvanProjesi, binaKatlari, katlariEsitle, katlarFarkli, kartaYaz, kartlaraUygula } from "./avan";
+import { avanAyarlari, avanAyarlariYaz, avanDosyaGovdesi, avanDosyasiMi, avanOku, avanSecimVarsayilani, BOS_AVAN, manuelKMetni, trafikFarki, trafikSutunuKaldir, trafikSutununuYaz, yeniAvanAcilisi, type AvanProjesi, binaKatlari, katlariEsitle, katlarFarkli, araliklariUyarla, kartaYaz, kartlaraUygula } from "./avan";
 import { SECENEKLER as SEC } from "./test-semasi";
 
 const KOPRU: AvanKoprusu = {
@@ -308,6 +308,53 @@ describe("binanın kot tablosu ( 16 Kas ):  durak kotları bütün kartlarda ayn
     }));
     expect(y.avanAsansorleri.map((a) => a.durak_kotlari)).toEqual(Array(4).fill("±0,00; +3,00; +6,00"));
     expect(y.avanAsansorleri.map((a) => a.kuyu_tavani_kotu)).toEqual(["+10,00", "+11,00", undefined, undefined]);
+  });
+
+  it("hizmet aralığı:  tablonun ucuna hizmet etmeyen asansörün kuyusu o uçla kaymaz ( 17 Kas )", () => {
+    const p = proje([
+      { durak_kotlari: "-3,00; ±0,00; +3,00", kuyu_dibi_kotu: "-4,60", kuyu_tavani_kotu: "+7,00" },
+      { durak_kotlari: "-3,00; ±0,00; +3,00", kuyu_dibi_kotu: "-1,60", kuyu_tavani_kotu: "+7,00" },
+      {},
+      {},
+    ]);
+    //  Bütün tablo 1 m yükselir;  2. asansör bodruma inmez ( alt:  false )
+    const y = kartlaraUygula(
+      p,
+      () => ({ durak_kotlari: "-2,00; +1,00; +4,00", kuyu_dibi_kotu: "x", kuyu_tavani_kotu: "y" }),
+      (i) => ({ ust: true, alt: i !== 1 }),
+    );
+    expect(y.avanAsansorleri.map((a) => a.durak_kotlari)).toEqual(Array(4).fill("-2,00; +1,00; +4,00"));
+    expect(y.avanAsansorleri.map((a) => a.kuyu_dibi_kotu)).toEqual(["x", "-1,60", "x", "x"]);
+    expect(y.avanAsansorleri.map((a) => a.kuyu_tavani_kotu)).toEqual(["y", "y", "y", "y"]);
+  });
+
+  it("hizmet aralığı tablo değişince:  silinen durak sıraları kaydırır, baştan yazılan tablo aralıkları siler", () => {
+    const p: AvanProjesi = {
+      ...BOS_AVAN,
+      trafikAsansorleri: [
+        { P: "8", alt_durak: "2", ust_durak: "5" },
+        { P: "8", alt_durak: "", ust_durak: "3" },
+        { P: "8" },
+      ],
+    };
+    //  2. durak ( j = 1 ) silindi:  en alt 2 → 2 ( artık eski 3. durak ), en üst 5 → 4, 3 → 2
+    const sil = araliklariUyarla(p, { tur: "sil", j: 1 });
+    expect(sil.trafikAsansorleri.map((a) => [a.alt_durak ?? "", a.ust_durak ?? ""])).toEqual([
+      ["2", "4"],
+      ["", "2"],
+      ["", ""],
+    ]);
+    //  En alttaki ( 1. ) durak silindi:  en alt 2 → 1
+    expect(araliklariUyarla(p, { tur: "sil", j: 0 }).trafikAsansorleri[0]).toMatchObject({ alt_durak: "1", ust_durak: "4" });
+    const yeni = araliklariUyarla(p, { tur: "yeni" });
+    expect(yeni.trafikAsansorleri.map((a) => [a.alt_durak, a.ust_durak])).toEqual([
+      ["", ""],
+      ["", ""],
+      ["", ""],
+    ]);
+    //  Aralığı olmayan proje aynen döner
+    const bos: AvanProjesi = { ...BOS_AVAN, trafikAsansorleri: [{ P: "8" }] };
+    expect(araliklariUyarla(bos, { tur: "yeni" })).toBe(bos);
   });
 });
 

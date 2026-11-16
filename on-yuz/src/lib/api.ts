@@ -384,14 +384,35 @@ export interface AvanKoprusu {
     kapi_genisligi?: number | null;
     kapi_tipi?: string | null;
     sutun?: number | null;
+    /**  Asansörün kendi kat düzeni ( çoklu trafikte ):  giriş üstü kat ve bodrum durağı  */
+    N?: number | null;
+    bodrum?: number | null;
+    /**  HİZMET ARALIĞI ( kot tablosu doluyken ):  binanın tablosundaki en alt / en üst durağın
+         ve giriş katının sırası ( 1'den ), durak sayısı, seyir ( m ) — kartın kotları bu dilimdir  */
+    kat?: KatDuzeni;
   }[];
+}
+
+/**  Kot tablosundan türeyen kat düzeni ( sunucu:  cizim/katlar.kat_duzeni )  */
+export interface KatDuzeni {
+  N: number;
+  bodrum: number;
+  durak: number;
+  seyir: number;
+  giris: number;
+  alt: number;
+  ust: number;
 }
 
 export interface TrafikYaniti {
   hata: string | null;
   /**  Kat düzeni kot tablosundan türediyse ( binanın durak kotları — avan_uclari._kat_duzeni ):
        N, bodrum durağı, ortalama kat yüksekliği h ( m ), durak sayısı, seyir ( m ), giriş katının sırası  */
-  kat_duzeni?: { N: number; bodrum: number; h: number; durak: number; seyir: number; giris: number };
+  kat_duzeni?: KatDuzeni & {
+    h: number;
+    /**  Sütun sırasıyla ( sira:  ekrandaki numara ) her asansörün kendi düzeni — hizmet aralığı  */
+    asansorler?: (KatDuzeni & { h: number; sira: number })[];
+  };
   uyarilar?: string[];
   bolumler?: Bolum[];
   ozet?: {

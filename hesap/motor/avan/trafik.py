@@ -1757,8 +1757,16 @@ def trafik_ozeti(sonuc: dict) -> dict:
             "bodrum": o.get("bodrum"),
             "h": o.get("h"),
             "adet": o.get("adet"),
+            #  N · bodrum:  asansörün KENDİ kat düzeni ( hizmet aralığı — bodruma inmeyen
+            #  asansör;  17 Kas ) — avan kartın durak sayısını onunla karşılaştırır
             "asansorler": [
-                {"P": a.get("P"), "V": a.get("V"), "toplam_seyahat": a.get("toplam_seyahat")}
+                {
+                    "P": a.get("P"),
+                    "V": a.get("V"),
+                    "toplam_seyahat": a.get("toplam_seyahat"),
+                    "N": a.get("N"),
+                    "bodrum": a.get("bodrum"),
+                }
                 for a in (sonuc.get("asansorler") or [])
             ],
         }

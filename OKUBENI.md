@@ -470,12 +470,23 @@ yazılmış N / h / bodrum ve trafik sütununun kendi durak / h / bodrum değeri
 kutular "kotlardan" diye kilitlidir );  tablo boşken bugünkü gibi elle girilir ( kotsuz hızlı
 tahmin ).  Kuyu dibi, kuyu tavanı ve makine dairesi zemini kuyuya özgüdür:  kartta kalır.
 
+**Hizmet aralığı ( 17 Kas ):**  her trafik sütunu ( asansör tipi ) tablonun hangi duraklarına hizmet
+ettiğini seçer — "En alt durak" · "En üst durak" ( boş:  tablonun ucu;  bodruma inmeyen asansör ).
+Aralık kesintisizdir ve giriş katını içerir ( kör kat yok ).  Asansörün bodrumu, durak sayısı, kat
+yüksekliği ve seyahati kendi aralığından türer;  ortak kat düzeni aralıkların zarfıdır ( en yükseğe
+çıkan ).  Avan kartına tablonun o **dilimi** gider ( `lib/kotlar.katDilimi` — köprünün asansörlerinin
+`kat`ı ):  avan hesabı, çizim ve paket yalnız hizmet ettiği durakları görür.  Kartta durak satırı
+yoktur ( "Hizmet ettiği duraklar" salt okunur );  durak kotları yalnız Trafik adımındaki tablodan
+değişir, kartta kuyu tavanı / dibi / makine dairesi zemini girilir.
+
 Ön yüzde tablo her kartta **aynı değer** olarak durur ( `lib/avan.ts`:  `katlariEsitle`,
 `kartaYaz`, `kartlaraUygula` ) — dosya biçimi, avan isteği ve çizim isteği değişmedi.  Kartlarında
 ayrı kot olan eski dosya açılınca ilk asansörün kotları binanın tablosu olur;  kartlar birbirinden
 farklıysa açılışta söylenir.  Güvence:  `testler/test_kat_duzeni.py` ( kural ve sınır durumları;
 300 rastgele tabloda trafiğin seyahati = kotların seyri;  60 tabloda trafik → avan aynı durak,
-seyir ve kuyu yüksekliği;  üç tabloda ve iki asansörlü pakette düşey kesitlerin kotları = tablo ),
+seyir ve kuyu yüksekliği;  üç tabloda ve iki asansörlü pakette düşey kesitlerin kotları = tablo;  hizmet
+aralığı:  150 tablo × iki asansörde her asansörün seyahati kendi aralığının seyri, 40 tabloda trafik → avan
+kendi dilimiyle, bodruma inmeyen asansörün kesitinde bodrum kotu yok ),
 `on-yuz/src/lib/eski-dosya.test.ts` ( kartlarında ayrı kot olan eski dosyalar ).
 
 ## Kurulum ve çalıştırma

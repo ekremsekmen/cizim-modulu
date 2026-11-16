@@ -9,6 +9,7 @@ import {
   durakSil,
   girisOku,
   hizliDoldur,
+  katDilimi,
   kaydir,
   kotOku,
   kotYaz,
@@ -149,5 +150,23 @@ describe("kat adları ve giriş katı ( KAT_ADLARI_PLANI — sunucu:  katlar.dur
     expect(adTablosu({ _kot: { adlar: ["-1", "0", "1"], giris: 2, ad_hatasi: [] } })).toEqual({ adlar: ["-1", "0", "1"], giris: 2, hata: [] });
     expect(adTablosu(undefined)).toEqual({ adlar: [], giris: null, hata: [] });
     expect(adTablosu({ _kot: null })).toEqual({ adlar: [], giris: null, hata: [] });
+  });
+});
+
+describe("hizmet aralığının dilimi ( 17 Kas ):  kartın kotları binanın tablosunun bir parçası", () => {
+  const h = { durak_kotlari: "-6,00; -3,00; ±0,00; +3,00; +6,00", durak_adlari: "O2; O1; Z; 1; 2", giris_duragi: "3" };
+  it("kotlar ve adlar dilimlenir, giriş katı dilimin içindeki sırasına kayar", () => {
+    expect(katDilimi(h, { alt: 2, ust: 4, giris: 3 })).toEqual({
+      durak_kotlari: "-3,00; ±0,00; +3,00",
+      durak_adlari: "O1; Z; 1",
+      giris_duragi: "2",
+    });
+    //  Tablonun tamamı:  aynı tablo ( giriş sunucunun kuralından )
+    expect(katDilimi(h, { alt: 1, ust: 5, giris: 3 })).toEqual(h);
+  });
+  it("adlar yazılmamışsa boş kalır ( kuraldan ), sondaki boşlar atılır", () => {
+    const d = katDilimi({ durak_kotlari: h.durak_kotlari, durak_adlari: "; ; Z" }, { alt: 3, ust: 5, giris: 3 });
+    expect(d).toEqual({ durak_kotlari: "±0,00; +3,00; +6,00", durak_adlari: "Z", giris_duragi: "1" });
+    expect(katDilimi({ durak_kotlari: h.durak_kotlari }, { alt: 1, ust: 3, giris: 3 }).durak_adlari).toBe("");
   });
 });

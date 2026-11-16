@@ -87,6 +87,23 @@ export function yapistir(metin: string): string {
   return (azalan ? [...parcalar].reverse() : parcalar).join("; ");
 }
 
+/**  ASANSÖRÜN HİZMET ARALIĞI ( 17 Kas — "biri −1'e iniyor biri inmiyor" ):  binanın kot
+     tablosunun [ alt … ust ] dilimi ( sıralar 1'den;  sunucunun türettiği — köprünün "kat"ı ).
+     Kartın avan hesabına ve çizimine yalnız hizmet ettiği duraklar gider:  kotlar ve adlar
+     dilimlenir, giriş katı dilimin içindeki sırasına kayar.  Sunucudaki eşi:  testler/
+     test_kat_duzeni.dilim.  */
+export function katDilimi(h: Ham, kat: { alt: number; ust: number; giris: number }): Degisiklik {
+  const parca = (metin: string | undefined) => (metin ?? "").split(/[;\n]/).map((x) => x.trim());
+  const kotlar = parca(h[DURAK_KOTLARI]).filter((x) => x !== "");
+  const adlar = parca(h[DURAK_ADLARI]).slice(kat.alt - 1, kat.ust);
+  while (adlar.length && adlar[adlar.length - 1] === "") adlar.pop();
+  return {
+    [DURAK_KOTLARI]: kotlar.slice(kat.alt - 1, kat.ust).join("; "),
+    [DURAK_ADLARI]: adlar.join("; "),
+    [GIRIS_DURAGI]: String(kat.giris - kat.alt + 1),
+  };
+}
+
 /**  Hızlı doldur:  n durak, en alt durak alt ( mm ), aralar h ( mm ).  */
 export function hizliDoldur(n: number, alt: number, h: number): string {
   return kotlariYaz(Array.from({ length: Math.max(n, 0) }, (_, i) => alt + i * h));
