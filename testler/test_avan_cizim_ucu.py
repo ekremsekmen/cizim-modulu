@@ -333,6 +333,21 @@ class AvanCizimUcu(unittest.TestCase):
         #  Makine dairesiz projede kapı bilgisi yok
         self.assertEqual(kapilar(yanit(govde(kart(T630)))), {})
 
+    def test_kot_tablosunun_dosemesi_cizimin_dosemesi(self):
+        """16 Kas ( kullanıcının A BLOK 800 KG projesi ):  duvar kalınlığı elle 250'ye ayarlı
+        kartta makine dairesi zemini kot tablosunun "döşemenin üstü"ne eşit girilince çizimde
+        kot farkı OLMAMALI.  Eskiden tablo döşemeyi 150, çizim 250 alıyordu:  planda
+        "TABLİYE +100"."""
+        a, pg = T800MD["asansor"], T800MD["proje_geneli"]
+        ortak = {"mk_yok": False, "mk_uzunluk": pg["mk_uzunluk"], "mk_genislik": pg["mk_genislik"]}
+        k = kart(a, i_palanga="1", cizim_ayarlari="kuyu_duvar_kalinligi=250")
+        doseme = avan_cizimi.doseme_kurali(k)
+        self.assertEqual(doseme, 250)
+        tavan, _hata = katlar.kot_oku(k["kuyu_tavani_kotu"])
+        r = yanit(govde({**k, "md_zemini_kotu": katlar.kot_metni(tavan + doseme)}, ortak))
+        self.assertEqual(r["durum"], "uygun", r)
+        self.assertNotIn("TABLİYE", " ".join(yazilar(r["cizim"])))
+
     def test_kartin_elle_ayari(self):
         """Çizimde tıklanıp değiştirilen ölçü kartta durur ( cizim_ayarlari:  "girdi=değer;…" );
         seçici aynen kullanır, yanıt ayarları ekrandaki adlarıyla verir."""
