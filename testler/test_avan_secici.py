@@ -11,6 +11,7 @@ yalnız mimari var, buraya en doğru asansör" ).  Sözleşmesi:
 import copy
 import json
 import unittest
+from unittest import mock
 
 from cizim import katlar
 from uclar import avan_secici, cizim_uclari, uygulama_uclari
@@ -204,7 +205,11 @@ class AvanSecici(unittest.TestCase):
         t = PAKETLER[(630, True)]
         self.assertEqual(t["asansor"]["agirlik_yeri"], "Sağ")
         m = mimari(t, kuyu_genisligi=1650, kuyu_derinligi=2300)
-        r = avan_secici.sec(m)
+        #  SAATSİZ ( 17 Kas ):  bu arama 28 sınama, hızlı makinede ~22 sn — süre sınırının
+        #  ( 2 × AZAMI_SURE = 24 sn ) kıyısında.  Yüklü CI makinesinde süre 6. sınamada doldu,
+        #  "sığmaz" çıktı ( PR #141 );  hüküm makinenin hızına bağlı kalmasın ( avan_tarama gibi )
+        with mock.patch.object(avan_secici, "SAATSIZ", True):
+            r = avan_secici.sec(m)
         self.assertEqual(r["durum"], "uygun", r)
         a = r["istek"]["asansorler"][0]
         self.assertEqual(
