@@ -113,6 +113,38 @@ def _tabliye(e, B, md, halat, u0_, u1_, oda, t_ciz):
         a = max(a, d1)
 
 
+#  Avan paftasında kasnak düzenlemesinin altındaki not ( iki satır ):  çaplar seçicinin hazır
+#  asansörünündür ( uclar/avan_secici ), mimarın ya da avanın beyanı değildir
+AVAN_NOTU = (
+    "Avan:  kasnak çapları programın seçtiği hazır asansörün;",
+    "uygulama projesinde kesinleşir.",
+)
+
+
+def _cap_olcusu(makine_elemanlari, uc, zt, R1, D1):
+    """Tahrik kasnağının çapı ( Ø D1 ):  kasnağın ve ÜSTÜNDEKİ makine parçalarının üstünde
+    ( 17 Kas:  dişli makinede ø 500 kasnağın üstüne dişli kutusu yükselir — ölçü yazısı kutunun
+    kenarını siliyordu;  karne ).  Yalnız gerekince yükselir:  çizgi parçanın 70 üstünde kalır
+    ( yazı çizginin üstündedir );  parça kasnaktan ≤ 80 yüksekse eski yer ( 150 )."""
+    ust = max(
+        [zt + R1]
+        + [
+            b[3]
+            for b in (geometri.sinir([el]) for el in makine_elemanlari)
+            if b[0] < uc + R1 + 100 and b[2] > uc - R1 - 100
+        ]
+    )
+    return eleman.olcu("yatay", (uc - R1, 0), (uc + R1, 0), max(zt + R1 + 150, ust + 70), f"ø {D1:g}")
+
+
+def _avan_notu(orta, z_alt):
+    """Avan paftasında AVAN_NOTU:  halatların ucunun altında, görünüşün ortasında ( iki satır )."""
+    return [
+        eleman.ad(eleman.yazi(orta, z_alt - 260 - i * 110, satir, uslup.NORMAL), "avan_notu")
+        for i, satir in enumerate(AVAN_NOTU)
+    ]
+
+
 def ciz(g, cizim_sabitleri=None):
     """Kasnak düzenlemesinin elemanları."""
 
@@ -140,6 +172,7 @@ def ciz(g, cizim_sabitleri=None):
     kab, ag = _inisler(KU)
     uk = B.u(*kab)
     p0, q0, p1_, q1 = geometri.sinir(e)  # makine ve kaide ( ya da şase )
+    makine_elemanlari = list(e)
     #  Makinenin oturduğu tabliye ( kuyunun üstündeki beton ) yalnız üstünden
     #  DOSEME_GOSTERIM kadar, kırık çizgiyle gösterilir.
     oda = M.get("tabliye_ustu")
@@ -185,7 +218,7 @@ def ciz(g, cizim_sabitleri=None):
     e.append(eleman.ad(eleman.yazi(uc, max(q1, zt + R1) + 420, metin, uslup.NORMAL), "sarim_acisi"))
 
     #  Çaplar ( LiftDesigner:  kasnağın üstünde )
-    e.append(eleman.olcu("yatay", (uc - R1, 0), (uc + R1, 0), zt + R1 + 150, f"ø {D1:g}"))
+    e.append(_cap_olcusu(makine_elemanlari, uc, zt, R1, D1))
     if sp:
         e.append(eleman.olcu("yatay", (us - R2, 0), (us + R2, 0), zs - R2 - 150, f"ø {2 * R2:g}"))
     #  Alt:  merkezler arası ( yatay ) ve iki halat inişinin arası
@@ -215,6 +248,8 @@ def ciz(g, cizim_sabitleri=None):
             e.append(eleman.olcu("dusey", (0, a), (0, b), s, None))
     else:
         e.append(eleman.olcu("dusey", (0, zt), (0, tavan), s, None))
+    if (g.get("proje") or {}).get("avan"):
+        e += _avan_notu((u0_ + u1_) / 2.0, z_alt)
     e = [el for el in e if not (el["tip"] == "olcu" and el["uzunluk"] < 1e-6)]
     geometri.yazilari_yerlestir(e)
     return e

@@ -10,8 +10,9 @@ kurabilmek için seçti, mimarın ya da avanın beyanı değildir:
   · veri tablosunda ürün satırları yazılmaz ( tahrik kasnağı, halat, ray profili,
     konsol arası, regülatör ) — cizim/veri_tablosu.py;  motor gücü seçicinin
     motorununki değil AVANIN KENDİ hesabınınkidir ( Nsç — etkin( veri ) ile gelir )
-  · antette ray hücresi boş kalır, kasnak düzenlemesi çizilmez ( tahrikin çizimi ) —
-    cizim/pafta.py
+  · antette ray hücresi boş kalır — cizim/pafta.py;  kasnak düzenlemesi çizilir ( 17 Kas:
+    sarım açısı avanda da hesaplanır ve uyarılır ), altında kasnak çaplarının hazır
+    asansörün olduğu yazar — cizim/kasnak_duzeni.AVAN_NOTU
   · hesabın ürün bölümleri için "uygun değil" işareti ve notu yoktur
     ( cizim/kopru.py · _proje )
   · notlara ürünün uygulama projesinde kesinleşeceği yazılır
@@ -28,7 +29,7 @@ import contextvars
 _VERI = contextvars.ContextVar("avan_kipi", default=None)
 
 #  Notlar tablosuna eklenen satır ( veri_tablosu )
-NOT = "Avan projesi:  makine, halat ve ray seçimi uygulama projesinde kesinleşir."
+NOT = "Avan projesi:  makine, tahrik kasnağı, halat ve ray seçimi uygulama projesinde kesinleşir."
 
 
 def acik():

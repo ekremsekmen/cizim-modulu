@@ -84,8 +84,6 @@ SIRA_MRL = (
     "kapi_kesiti",
     "veriler",
 )
-#  Avan paftasında olmayan çizimler ( sira )
-AVAN_DISI = ("kasnak_duzeni",)
 SIRA_MD = (
     "kuyu_kesiti_yan",
     "kuyu_kesiti_on",
@@ -197,10 +195,10 @@ def sira(g):
     """Bu asansörün paftasındaki çizimler, sırasıyla;  tek kuyuda kuyunun ortak
     çizimleri ( grup.BIRLESIK — kuyunun çizimi olarak bir kez ) yok."""
     s = SIRA_MD if (g.get("makine") or {}).get("yeri") == "Makine dairesi" else SIRA_MRL
-    #  Avanda kasnak düzenlemesi yok ( cizim/avan_kipi.py ):  tahrikin çizimidir — kasnak
-    #  çapları ve sarım açısı ürün seçimidir
-    if (g.get("proje") or {}).get("avan"):
-        s = tuple(a for a in s if a not in AVAN_DISI)
+    #  Avanda kasnak düzenlemesi DE vardır ( 17 Kas, kullanıcı:  "makine daireli dairesiz fark
+    #  etmez, kasnak düzenlemesini geri açalım" ):  sarım açısı avanda da hesaplanır ve
+    #  150°'nin altında uyarılır — açının çizimi paftada olmalı.  Kasnak çaplarının hazır
+    #  asansörün olduğu çizimin kendisinde yazar ( kasnak_duzeni.AVAN_NOTU )
     if (g.get("proje") or {}).get("grup_sirasi"):
         s = tuple(a for a in s if a not in grup.BIRLESIK)
     return s

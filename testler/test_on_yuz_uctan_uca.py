@@ -1270,7 +1270,9 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.wait_for_selector("main svg", state="attached")
         metin = ana.inner_text()
         self.assertIn("KUYU PLANI", metin)
-        self.assertNotIn("KASNAK DÜZENLEMESİ", metin)
+        #  Kasnak düzenlemesi avanda da ( 17 Kas ):  çizim şeridinde düğmesi ( ad cümle düzeninde
+        #  yazar, erişilebilir adı başlıktır )
+        self.assertEqual(self.sayfa.get_by_role("button", name=re.compile("^KASNAK DÜZENLEMESİ")).count(), 1)
         #  Adım şeridi ( 13 Kas ):  çizim çıkınca Çizimler adımı "tamam" işaretli
         isaret = self.sayfa.locator('nav[aria-label="Adımlar"] a[href="/avan/cizimler"] span').first
         self.assertIn("bg-uygun", isaret.get_attribute("class"))

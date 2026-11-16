@@ -10,7 +10,7 @@ import zipfile
 
 import ezdxf
 
-from cizim import avan_kipi, katlar, pafta
+from cizim import avan_kipi, kasnak_duzeni, katlar, pafta
 from motor.uygulama import uygulama_hesabi
 from uclar import avan_cizim_uclari, avan_cizimi, avan_secici, avan_uclari, cizim_uclari, uygulama_istegi
 
@@ -63,20 +63,30 @@ class AvanCizimUcu(unittest.TestCase):
 
     def test_urun_yazilari_avanda_yok(self):
         """Kullanıcı kararı ( 12 Kas ):  paftanın bilgi tablosunda seçicinin iç seçimleri
-        ( motor, halat, ray profili ) yazmaz;  tahrikin çizimi ( kasnak düzenlemesi ) yok.
-        Aynı istek uygulamadan sorulunca hepsi yerindedir ( avan kipi sızmaz )."""
+        ( motor, halat, ray profili ) yazmaz.  Kasnak düzenlemesi avanda DA vardır ( 17 Kas,
+        kullanıcı:  "makine daireli dairesiz fark etmez, geri açalım" ) — altında kasnak
+        çaplarının hazır asansörün olduğu yazar.  Aynı istek uygulamadan sorulunca hepsi
+        yerindedir ( avan kipi sızmaz )."""
         r = yanit(govde(kart(T630)))
         avan = yazilar(r["cizim"])
         uygulama = yazilar(json.loads(cizim_uclari.api_cizimler(r["istek"]).body))
-        urun = re.compile(
-            r"kW|konsol arası|kasnak ø|halat ø|\d × ø|KASNAK DÜZENLEMESİ|70 × 65 × 9|50 × 50 × 5"
-        )
+        urun = re.compile(r"kW|konsol arası|kasnak ø|halat ø|\d × ø|70 × 65 × 9|50 × 50 × 5")
         self.assertEqual(sorted(t for t in avan if urun.search(t)), [])
         self.assertGreaterEqual(len({t for t in uygulama if urun.search(t)}), 5)
         self.assertIn(avan_kipi.NOT, avan)
         self.assertNotIn(avan_kipi.NOT, uygulama)
         #  Kalan satırlar aynı:  avan yalnız eksiltir ( + notu ve onun sıra numarası )
-        self.assertEqual({t for t in avan - uygulama if "Dişlisiz" not in t}, {avan_kipi.NOT, "3."})
+        self.assertEqual(
+            {t for t in avan - uygulama if "Dişlisiz" not in t},
+            {avan_kipi.NOT, "3.", *kasnak_duzeni.AVAN_NOTU},
+        )
+        #  Kasnak düzenlemesi ikisinde de;  açısı aynı ( geometri aynı )
+        for c in (r["cizim"], json.loads(cizim_uclari.api_cizimler(r["istek"]).body)):
+            self.assertIn("kasnak_duzeni", [x["ad"] for x in c["cizimler"]])
+        self.assertEqual(
+            {t for t in avan if t.startswith("SARIM AÇISI")},
+            {t for t in uygulama if t.startswith("SARIM AÇISI")},
+        )
         self.assertFalse(avan_kipi.acik())
 
     def test_acik_urun_bolumu_isaretlenmez(self):
@@ -102,8 +112,8 @@ class AvanCizimUcu(unittest.TestCase):
         self.assertTrue([t for t in yazilar(u) if t.startswith("HESAP:")])
 
     def test_pafta_avan_kipinde(self):
-        """Paftanın girdisi avan kipinde kurulunca:  kasnak düzenlemesi sırada yok, antette
-        ray boş, hesap notu yok;  kip kapanınca aynı istek uygulamanın paftasıdır."""
+        """Paftanın girdisi avan kipinde kurulunca:  antette ray boş, hesap notu yok, kasnak
+        düzenlemesi sırada ( 17 Kas );  kip kapanınca aynı istek uygulamanın paftasıdır."""
         v = yanit(govde(kart(T630)))["istek"]
 
         def girdi():
@@ -116,7 +126,7 @@ class AvanCizimUcu(unittest.TestCase):
         with avan_kipi.etkin():
             g = girdi()
         self.assertTrue(g["proje"]["avan"])
-        self.assertNotIn("kasnak_duzeni", pafta.sira(g))
+        self.assertIn("kasnak_duzeni", pafta.sira(g))
         self.assertEqual(pafta.antet_degerleri(g, [20])["ray"], "")
         self.assertEqual([ad for ad, *_ in pafta.cizim_listesi(g)], list(pafta.sira(g)))
         u = girdi()
@@ -324,7 +334,8 @@ class AvanCizimUcu(unittest.TestCase):
             r = yanit(govde(k))
             self.assertEqual(r["durum"], "uygun", r.get("nedenler") or r.get("gereken"))
             self.assertEqual(r["istek"]["asansorler"][0]["beyan_yuku"], str(yuk))
-            self.assertEqual(len(r["cizim"]["cizimler"]), 9)
+            #  Makine dairesizin bütün paftası ( kasnak düzenlemesi dahil — 17 Kas )
+            self.assertEqual([c["ad"] for c in r["cizim"]["cizimler"]], list(pafta.SIRA_MRL))
             self.assertEqual(bool(r["acik_bolumler"]), yuk >= 1600)
 
 
@@ -360,7 +371,15 @@ class AvanPaketi(unittest.TestCase):
     def test_cizimler_pakette(self):
         d, bloklar, notlar = self.paket(kart(T630))
         self.assertNotIn("CIZIM", notlar)
-        beklenen = ("kuyu_kesiti_yan", "kuyu_kesiti_on", "kuyu_plani", "kabin_ustu", "kuyu_dibi", "kuyu_ustu")
+        beklenen = (
+            "kuyu_kesiti_yan",
+            "kuyu_kesiti_on",
+            "kuyu_plani",
+            "kabin_ustu",
+            "kuyu_dibi",
+            "kuyu_ustu",
+            "kasnak_duzeni",
+        )
         self.assertEqual(
             bloklar, {"CIZIM_" + a.upper() for a in (*beklenen, "giris", "kapi_kesiti", "veriler")}
         )

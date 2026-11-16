@@ -1405,9 +1405,13 @@ ekranın sonunda.
   şasesi ), saptırma kasnağı, makine dairesinde döşeme ( üstünden 300, altı
   kırık çizgi ), halatların inişleri ( KABİNE · AĞIRLIĞA ), tahrik kasnağında
   halatın sardığı yay ve SARIM AÇISI ( hesabın kullandığı — `kopru.sarim_acisi` ).
-  Ölçüler:  Ø D1, Ø Ds, merkezler arası ( yatay, düşey ), HALAT ARASI ( iki
+  Ölçüler:  Ø D1 ( kasnağın üstündeki makine parçalarının — dişli kutusu — üstünde;
+  17 Kas ), Ø Ds, merkezler arası ( yatay, düşey ), HALAT ARASI ( iki
   iniş — LiftDesigner RDA / RDB;  makine dairesinde döşeme deliklerinin arasıyla
   aynı ), merkezlerin döşemeden ( makine dairesizde kuyu tavanına ) yüksekliği.
+  Avan paftasında da çizilir ( 17 Kas — sarım açısı avanda da hesaplanır ve uyarılır );
+  altında kasnak çaplarının programın seçtiği hazır asansörün olduğu, uygulama
+  projesinde kesinleşeceği yazar ( `kasnak_duzeni.AVAN_NOTU` ).
   Düşey kesitlerin yerleşiminden çizilir.  LiftDesigner'la:  800 KG ( Ø500 /
   Ø400 ) 152,1° / 151°, 1022 ( Ø480 / Ø400 ) 153,0° / 152°;  merkezler arası
   530 / 520, halat arası 980 / 970 ( 10 mm:  kapı bölgesi farkı ).  Makine
