@@ -40,9 +40,13 @@ makine dairelide kaide deliklere basar.  Kabin karşı ağırlığın yanına ka
 ( kabin – ağırlık duvarı aralığı paketteki gibi kalır );  boşluk öbür yanda kalır.
 """
 
+import collections
+import contextlib
+import contextvars
 import copy
 import json
 import os
+import threading
 import time
 
 from cizim import katlar
@@ -82,15 +86,8 @@ AVAN_BOLUMLERI = frozenset(("siginma_alanlari", "kabin_alani", "tamponlar"))
 
 #  Bir seçimde en çok bu kadar hesap + çizim sınaması ( biri ~0,1 sn )
 AZAMI_SINAMA = 120
-#  Uyarlamada ( yerleşim çaresi, mimardan istenecek ölçü ) en çok bu kadar adım ve süre ( sn )
+#  Uyarlamada ( yerleşim çaresi, mimardan istenecek ölçü ) en çok bu kadar adım
 AZAMI_ADIM = 6
-AZAMI_SURE = 12.0
-#  İkinci yerleşim denemesinin ( önce yan denendiyse arka, önce arka denendiyse yan )
-#  uyarlama süresi:  asıl sürenin bu kadarı ( ölçülen arka uyarlamaları 1 – 3 sn;  ilki zaten
-#  "mimardan istenecek" bulduysa uzun beklenmez )
-IKINCI_SURE_PAYI = 0.5
-#  Beyan çelişkisinde "yalnız şunu değiştirin" denemelerinin süresi ( sn )
-TEK_SURE = 4.0
 #  MİMARDAN İSTENECEK ÖLÇÜNÜN KÜÇÜLTÜLMESİ ( 13 Kas ):  çare bulucunun adım adım topladığı
 #  kuyu ölçüsü gereğinden büyük çıkabiliyordu ( 630 kg 1800 genişliğe sığarken 2110 isteniyordu ).
 #  Bulunan ölçü ile mimarınki arasında, bu adımın katlarında ( mm ) ikili arama;  her deneme
@@ -98,17 +95,55 @@ TEK_SURE = 4.0
 KUCULEN = ("kuyu_genisligi", "kuyu_derinligi")
 KUCULTME_ADIMI = 10
 KUCULTME_YERLESIM = 3
-#  Paketinkinden küçük kuyuda, ölçü istemeden önce yalnız yerleşimle sığdırma denemesinin süresi ( sn )
-YERLESIM_SURESI = 4.0
-#  SAATSİZ KİP ( araclar/avan_tarama ):  süre sınırları uygulanmaz — sonuç makinenin hızına
-#  bağlı kalmaz ( yalnız AZAMI_SINAMA / AZAMI_ADIM sınırlar ), tarama kaydı her makinede aynı
-#  çıkar.  Program hep saatli çalışır:  yavaş makinede süre dolarsa "sığmaz" diyebilir.
+#  BÜTÇE SINAMA SAYISIDIR, SAAT DEĞİL ( 16 Kas — uygulamanın "düzeltme öner"i gibi, care_uclari ):
+#  arama yalnız AZAMI_SINAMA / AZAMI_ADIM / AZAMI_YENIDEN ile sınırlıdır;  aynı girdi her makinede
+#  aynı sonucu verir ( araclar/avan_tarama kaydıyla birebir ).  Eskiden yerel saat sınırları vardı
+#  ( 4 · 12 · 24 sn ):  yavaş ya da yüklü makinede süre dolunca arama yarıda kalıyor, yanıt
+#  "sığmaz" diyordu ( 630 kg 1650 × 2300:  hızlı makinede 22 sn'de uygun, CI'da sığmaz ).
+#
+#  GÜVENLİK SÜRESİ ( sn ):  yalnız bir isteğin sunucuyu kilitlememesi için;  normal istekte
+#  ulaşılmaz ( saatsiz taramada en uzun 125 sn — CI, 4 işçi aynı anda ).  Ulaşılırsa yanıt
+#  "tamamlanmadi" der — sığmaz DEMEZ ( sonuç bilinmiyor ).
+GUVENLIK_SURESI = 240.0
+#  SAATSİZ KİP ( araclar/avan_tarama, testler ):  güvenlik süresi de uygulanmaz.
 SAATSIZ = False
 
 
-def _sure(sn):
-    """Süre sınırı ( sn ) — saatsiz kipte sınırsız."""
-    return float("inf") if SAATSIZ else sn
+class Kesildi(Exception):
+    """Arama yarıda kesildi:  neden "sure" ( güvenlik süresi ) ya da "iptal" ( istek bırakıldı )."""
+
+    def __init__(self, neden):
+        super().__init__(neden)
+        self.neden = neden
+
+
+class _CareButcesi(care_uclari._Butce):
+    """Seçicinin içindeki çare bulucunun bütçesi:  sınama sayısı aynı ( care_uclari.AZAMI_SINAMA ),
+    saati yok — güvenlik süresi ve iptal seçicinin ( _koruma_bak ).  Eskiden çare bulucu kendi
+    60 sn'lik saatiyle koşuyordu ( seçicinin sonucu yine makinenin hızına bağlı kalabilirdi ) ve
+    iptal ona ulaşmıyordu:  bırakılan arama çare bulucuda 20 – 30 sınama daha sürüyordu."""
+
+    def __init__(self):
+        super().__init__(sure=float("inf"))
+
+    def var(self):
+        _koruma_bak()
+        return super().var()
+
+
+#  Bu aramanın koruması ( _korumali_sec kurar;  her sınamadan önce bakılır — _koruma_bak )
+_KORUMA = contextvars.ContextVar("avan_secici_koruma", default=None)
+
+
+def _koruma_bak():
+    k = _KORUMA.get()
+    if k is None:
+        return
+    bitis, iptal = k
+    if iptal is not None and iptal():
+        raise Kesildi("iptal")
+    if time.monotonic() > bitis:
+        raise Kesildi("sure")
 
 
 #  Seçicinin değiştirmediği:  trafik hesabının kapasitesi ( kabin ), kapı, yük, hız
@@ -242,6 +277,7 @@ class _Sinayici:
         self.ayar = {}
 
     def __call__(self, v):
+        _koruma_bak()
         self.kalan -= 1
         self.sayi += 1
         #  İsteğin kendisine yazılır ( kopya değil ):  dönen istek sınananla aynıdır
@@ -363,7 +399,7 @@ def _oneri_sec(v, kapi_kilidi=False, bina_once=False, yalniz_yerlesim=False, kil
     aday bu sırayla bir kez daha denenir ( _sec.yerlesim )."""
     oneriler = [
         o
-        for c in care_uclari.coz(v, 0)["careler"]
+        for c in care_uclari.coz(v, 0, None, _CareButcesi())["careler"]
         for o in c["oneriler"]
         if o["anahtar"] not in SABIT
         #  Kullanıcının elle ayarladığı ölçü ( ayarlar ):  çare onu değiştirmez
@@ -387,7 +423,7 @@ def _oneri_sec(v, kapi_kilidi=False, bina_once=False, yalniz_yerlesim=False, kil
     return oneriler[0] if oneriler else None
 
 
-def _uyarla(v, d, sina, bitis, kapi_kilidi=False, bina_once=False, yalniz_yerlesim=False, adim=AZAMI_ADIM):
+def _uyarla(v, d, sina, kapi_kilidi=False, bina_once=False, yalniz_yerlesim=False, adim=AZAMI_ADIM):
     """Sorunlu adayı adım adım temize çeker:  ürün ( gevşek ) → çare bulucunun önerisi.
     Döner ( istek , durum , seçilenler , gereken listesi )."""
     secilen, gereken, ilk = {}, {}, v
@@ -395,7 +431,7 @@ def _uyarla(v, d, sina, bitis, kapi_kilidi=False, bina_once=False, yalniz_yerles
         if not d["temiz"] and d["engel"]:
             v, d, s = _urun_ara(v, d, sina, gevsek=True)
             secilen.update(s)
-        if d["temiz"] or not d["cizim"] or not sina.var() or time.monotonic() > bitis:
+        if d["temiz"] or not d["cizim"] or not sina.var():
             break
         oneri = _oneri_sec(v, kapi_kilidi, bina_once, yalniz_yerlesim, frozenset(sina.ayar))
         if oneri is None:
@@ -468,7 +504,6 @@ def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False, anahtarlar=KUCULEN):
     yanda = v["asansorler"][0].get("agirlik_yeri", taslak["asansor"].get("agirlik_yeri")) == taslak[
         "asansor"
     ].get("agirlik_yeri")
-    sonsuz = float("inf")
 
     def dene(anahtar, x, yerlesim):
         y = care_uclari.girdi_yaz(v, 0, anahtar, x)
@@ -482,7 +517,7 @@ def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False, anahtarlar=KUCULEN):
                 return None
             dy = sina(y)
             if yerlesim and i == 0 and not dy["temiz"] and dy["cizim"] and not dy["engel"]:
-                y, dy, _s, _g = _uyarla(y, dy, sina, sonsuz, kapi_kilidi, yalniz_yerlesim=True, adim=1)
+                y, dy, _s, _g = _uyarla(y, dy, sina, kapi_kilidi, yalniz_yerlesim=True, adim=1)
             #  Temiz ve yeni bir ürün bölümü de düşürmüyor
             if dy["temiz"] and set(dy["bolum"]) <= set(d["bolum"]):
                 return y, dy
@@ -557,13 +592,87 @@ def sec(m):
     MAKİNE DAİRESİ KAPISI ( AYAR_GENEL — ekranda sürüklenir ):  asansörün seçimini etkilemez;
     seçim kapısız yapılır, kapı bulunan isteğe SONRA taşınır ( _kapiyi_tasi ).  Eskiden kapı da
     aramaya giriyordu:  uygun olmayan yerde seçici saniyelerce arayıp ilgisiz bir gerekçeyle
-    "sığmaz" diyor, çizim kayboluyordu."""
+    "sığmaz" diyor, çizim kayboluyordu.
+
+    SUNUCUDA ( korumali bağlamı — avan çizim ucu, paket ):  güvenlik süresi, iptal ve önbellek
+    ( _korumali_sec );  yarıda kalırsa "tamamlanmadi" ( neden , hata ).  Bağlam yoksa ( testler,
+    tarama ) ham arama."""
+    iptal = _SUNUCU.get()
+    if iptal is not None:
+        return _korumali_sec(m, iptal)
+    return _sec_ham(m)
+
+
+def _sec_ham(m):
+    """sec — koruma ve önbellek olmadan."""
     ayar = m.get("ayar") or {}
     kapi = {k: v for k, v in ayarlar(m).items() if k in AYAR_GENEL}
     if not kapi:
         return _sec_kapisiz(m)
     r = _sec_kapisiz({**m, "ayar": {k: v for k, v in ayar.items() if k not in AYAR_GENEL}})
     return _kapiyi_tasi(r, kapi)
+
+
+#  Sunucu bağlamı ( korumali ):  None değilse seçici korumalı çalışır;  değer iptal sorgusu
+_SUNUCU = contextvars.ContextVar("avan_secici_sunucu", default=None)
+
+
+@contextlib.contextmanager
+def korumali(iptal=None):
+    """Bu bağlamdaki seçimler korumalı ve önbellekli ( sunucu uçları ).  iptal:  çağrılınca True
+    dönerse arama durur ( ekran isteği bıraktı ) — yoksa yalnız güvenlik süresi."""
+    token = _SUNUCU.set(iptal or (lambda: False))
+    try:
+        yield
+    finally:
+        _SUNUCU.reset(token)
+
+
+def _korumali_sec(m, iptal):
+    """SUNUCUNUN SEÇİCİSİ:  arama + güvenlik süresi + iptal + önbellek.
+
+      · Güvenlik süresi ( GUVENLIK_SURESI ) ya da iptal ( iptal() True — ekran isteği bıraktı )
+        aramayı keser:  yanıt { durum:  "tamamlanmadi" , neden , hata } — sığmaz demez.
+      · ÖNBELLEK:  bütçe saat değil sınama sayısı olduğu için aynı girdinin sonucu hep aynıdır;
+        son ONBELLEK_BOYU sonuç saklanır ( geri al, aynı kuyuya dönüş, paketi indirme anında ).
+        Yarıda kalan sonuç saklanmaz.  Dönen sonuç kopyadır ( çağıran değiştirebilir ).
+
+    Saatsiz kipte ( SAATSIZ ) güvenlik süresi yok;  iptal ve önbellek yine çalışır."""
+    anahtar = json.dumps(m, sort_keys=True, ensure_ascii=False, default=str)
+    with _ONBELLEK_KILIDI:
+        r = _ONBELLEK.get(anahtar)
+        if r is not None:
+            _ONBELLEK.move_to_end(anahtar)
+            return copy.deepcopy(r)
+    t0 = time.monotonic()
+    token = _KORUMA.set((float("inf") if SAATSIZ else t0 + GUVENLIK_SURESI, iptal))
+    try:
+        r = _sec_ham(m)
+    except Kesildi as e:
+        return {
+            "durum": "tamamlanmadi",
+            "neden": e.neden,
+            "hata": TAMAMLANMADI[e.neden],
+            "sinama": 0,
+            "sure": round(time.monotonic() - t0, 2),
+        }
+    finally:
+        _KORUMA.reset(token)
+    with _ONBELLEK_KILIDI:
+        _ONBELLEK[anahtar] = copy.deepcopy(r)
+        while len(_ONBELLEK) > ONBELLEK_BOYU:
+            _ONBELLEK.popitem(last=False)
+    return r
+
+
+#  Yarıda kalan aramanın ekrandaki / paketteki sebebi
+TAMAMLANMADI = {
+    "sure": "asansör araması güvenlik süresinde bitmedi ( sunucu yoğun olabilir ) — yeniden deneyin",
+    "iptal": "asansör araması bırakıldı ( girdi değişti )",
+}
+ONBELLEK_BOYU = 64
+_ONBELLEK = collections.OrderedDict()
+_ONBELLEK_KILIDI = threading.Lock()
 
 
 def _kapiyi_tasi(r, kapi):
@@ -601,11 +710,8 @@ def _sec_kapisiz(m):
     denemeler = [farkli] + ([[k] for k in farkli] if len(farkli) > 1 else [])
     bulunan, sinama = None, r["sinama"]
     for i, degisen in enumerate(denemeler):
-        #  Dört beyan da farklıysa tek tek denemek uzar:  toplam süre dolunca kalınır
-        if i > 0 and time.monotonic() - t0 > _sure(2 * AZAMI_SURE):
-            break
-        #  Tek değişiklik denemeleri kısa sürelidir:  bulunamazsa hepsini değiştiren öneri kalır
-        r2 = _sec({**m, **{k: kendi[k] for k in degisen}}, AZAMI_SURE if i == 0 else TEK_SURE)
+        #  Tek değişiklik denemeleri:  bulunamazsa hepsini değiştiren öneri kalır
+        r2 = _sec({**m, **{k: kendi[k] for k in degisen}})
         sinama += r2["sinama"]
         if r2["durum"] in ("uygun", "gereken"):
             bulunan = degisen
@@ -644,7 +750,7 @@ def _tek_seferde(m, r, t0):
         m2 = dict(m)
         for g in r["gereken"]:
             m2[g["anahtar"]] = g["yeni"] if isinstance(g["yeni"], str) else int(round(g["yeni"]))
-        r2 = _sec(m2, AZAMI_SURE * IKINCI_SURE_PAYI)
+        r2 = _sec(m2)
         r["sinama"] += r2["sinama"]
         if r2["durum"] != "gereken":
             break
@@ -658,10 +764,9 @@ def _tek_seferde(m, r, t0):
     return r
 
 
-def _sec(m, azami_sure=AZAMI_SURE):
+def _sec(m):
     """sec'in bir denemesi:  m'nin beyanı ( varsa ) değiştirilmeden."""
     t0 = time.monotonic()
-    azami_sure = _sure(azami_sure)
     sina = _Sinayici()
 
     def son(durum, **ek):
@@ -683,11 +788,11 @@ def _sec(m, azami_sure=AZAMI_SURE):
         return son("paket_yok")
     kucuk = _kucuk_oda(taslak, m)
     if kucuk:
-        return _kucuk_odada(taslak, m, kucuk, azami_sure)
+        return _kucuk_odada(taslak, m, kucuk)
     sina.oda = _oda_kurali(taslak, m)
     sina.ayar = ayarlar(m)
 
-    def yerlesim(adaylar, sure=azami_sure):
+    def yerlesim(adaylar):
         """Adayları sırayla dener:  olduğu gibi temiz olan → uyarlananlar.  Döner
         ( "uygun" | "gereken" | "sigmaz" , sonucun alanları )."""
         kalan = []
@@ -704,14 +809,11 @@ def _sec(m, azami_sure=AZAMI_SURE):
                 return "uygun", dict(istek=v, secimler=secilen, acik_bolumler=d["bolum"])
             kalan.append((v, d, secilen, ek))
         #  Hiçbiri olduğu gibi temiz değil:  adaylar sırayla uyarlanır
-        bitis = time.monotonic() + sure
         kilit = m.get("kat_kapisi_tipi") not in (None, "")
         buyutuldu = []
         #  Önce yerleşim adımları, olmadıysa aynı aday önce mimardan istenecek ölçüyle ( _oneri_sec )
         for bina_once in (False, True):
             for v, d, secilen, ek in kalan:
-                if bina_once and time.monotonic() > bitis:
-                    break
                 #  Kuyu paketinkinden küçükse çare aranmaz:  paketin ölçüsünden başlanır ( o ölçüde
                 #  doğrulanmıştır ), aşağıda en küçüğe indirilir.  Bir kez:  ilk yan adayında
                 once = []
@@ -720,19 +822,12 @@ def _sec(m, azami_sure=AZAMI_SURE):
                     buyuk = _paket_olcusunde(taslak, m, ek, sina)
                     if buyuk:
                         #  Önce mimarın kuyusunda, yalnız yerleşimle ( kaçıklıklar ):  sığıyorsa ölçü istenmez
-                        v1, d1, s1, _g = _uyarla(
-                            v,
-                            d,
-                            sina,
-                            min(bitis, time.monotonic() + _sure(YERLESIM_SURESI)),
-                            kilit,
-                            yalniz_yerlesim=True,
-                        )
+                        v1, d1, s1, _g = _uyarla(v, d, sina, kilit, yalniz_yerlesim=True)
                         if d1["temiz"]:
                             v, d, secilen = v1, d1, {**secilen, **s1}
                         else:
                             v, d, secilen, once = buyuk
-                v2, d2, s, gereken = _uyarla(v, d, sina, bitis, kilit, bina_once)
+                v2, d2, s, gereken = _uyarla(v, d, sina, kilit, bina_once)
                 #  Uyarlama aynı ölçüyü bir daha büyüttüyse tek satır:  mimarın değeri → son değer
                 for g in gereken:
                     ilk = next((x for x in once if x["anahtar"] == g["anahtar"]), None)
@@ -769,7 +864,7 @@ def _sec(m, azami_sure=AZAMI_SURE):
     durum, alanlar_ = yerlesim(sira[0])
     if durum != "uygun" and len(sira) > 1:
         sina.kalan = AZAMI_SINAMA
-        durum_2, alanlar_2 = yerlesim(sira[1], azami_sure * IKINCI_SURE_PAYI)
+        durum_2, alanlar_2 = yerlesim(sira[1])
         if durum_2 == "uygun" or (durum_2 == "gereken" and durum == "sigmaz"):
             durum, alanlar_ = durum_2, alanlar_2
     return son(durum, paket=taslak["kimlik"], **alanlar_)
@@ -787,7 +882,7 @@ def _kucuk_oda(taslak, m):
     }
 
 
-def _kucuk_odada(taslak, m, kucuk, azami_sure):
+def _kucuk_odada(taslak, m, kucuk):
     """MAKİNE DAİRESİ ( 13 Kas ):  mimarın odası hazır asansörünkinden küçük.  Çare bulucu oda
     ölçüsü önermez;  küçük odada asansör "sığmaz" çıkıyor, sebep olarak da kuyu gösteriliyordu.
     Asansör önce hazır asansörün odasıyla seçilir ( o ölçüde doğrulanmıştır ), sonra mimarın
@@ -795,7 +890,7 @@ def _kucuk_odada(taslak, m, kucuk, azami_sure):
     oda yetiyordur;  değilse odanın ölçüsü de mimardan istenir, en küçüğe indirilerek
     ( _kucult — yalnız sınama ).  Döner _sec'in sonucu."""
     t0 = time.monotonic()
-    r = _sec({**m, **kucuk}, azami_sure)
+    r = _sec({**m, **kucuk})
     if r["durum"] not in ("uygun", "gereken"):
         return r
     sina = _Sinayici()
@@ -807,8 +902,7 @@ def _kucuk_odada(taslak, m, kucuk, azami_sure):
     d = sina(v)
     secilen = {}
     if not d["temiz"] and d["cizim"]:
-        bitis = time.monotonic() + _sure(YERLESIM_SURESI)
-        v, d, secilen, _g = _uyarla(v, d, sina, bitis, yalniz_yerlesim=True, adim=2)
+        v, d, secilen, _g = _uyarla(v, d, sina, yalniz_yerlesim=True, adim=2)
     gereken = []
     if not d["temiz"]:
         d = sina(buyuk)

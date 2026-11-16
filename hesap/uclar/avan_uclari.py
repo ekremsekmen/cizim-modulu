@@ -41,6 +41,7 @@ from motor.avan import tablolar
 from motor.avan import trafik
 from ciktilar import kapak_cikti
 from uclar import avan_cizimi
+from uclar import avan_secici
 from uclar import cizim_uclari
 from ciktilar import pdf_cikti
 
@@ -631,7 +632,10 @@ def indir_proje_dwg(veri: dict = Body(...)):
                 "  ·  ".join(t for t in (f"{i} NOLU ASANSÖR", str((k or {}).get("tanim") or "").strip()) if t)
                 for i, k in enumerate(okunan["asansorler"], 1)
             ]
-            gler, cizimsiz = avan_cizimi.paket_cizimleri(okunan, _proje_kimligi(veri)["proje_adi"], adlar)
+            #  Seçici korumalı ve önbellekli ( avan_secici.korumali ):  ekranda bulunan asansör
+            #  yeniden aranmaz;  güvenlik süresinde bitmeyen arama "çizimi yok" notuna sebebiyle girer
+            with avan_secici.korumali():
+                gler, cizimsiz = avan_cizimi.paket_cizimleri(okunan, _proje_kimligi(veri)["proje_adi"], adlar)
 
         if not paftalar:
             return JSONResponse(

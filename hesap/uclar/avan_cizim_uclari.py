@@ -16,14 +16,17 @@ aynı çizimi çizer.  Asansör bulunamadıysa çizim yoktur:  mimardan istenece
 ölçüler ya da sebep döner.
 """
 
+import asyncio
 import json
 import logging
+import threading
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Request
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from cizim import avan_kipi, hesap_isareti, istek_onbellegi
-from uclar import avan_cizimi, avan_uclari, cizim_uclari
+from uclar import avan_cizimi, avan_secici, avan_uclari, cizim_uclari
 from uclar.uc_ortak import hata_iletisi, hata_kaydi
 
 log = logging.getLogger(__name__)
@@ -44,10 +47,42 @@ def secim(veri):
 
 
 @router.post("/api/avan/cizimler")
-def api_avan_cizimler(veri: dict = Body(...)):
+async def api_avan_cizimler_ucu(istek: Request, veri: dict = Body(...)):
+    """/api/avan/cizimler ( 16 Kas ):  seçici korumalı ve önbellekli çalışır ( avan_secici.korumali );
+    EKRAN İSTEĞİ BIRAKINCA ( girdi değişti — tarayıcı isteği iptal eder, bağlantı kapanır ) arama
+    durur.  Eskiden bırakılan istek sunucuda sonuna kadar hesaplanıyordu:  süre sınırı kalkınca
+    ( bütçe sınama sayısıdır ) yazarken biriken aramalar sunucuyu kilitleyebilirdi.  Arama iş
+    parçacığında koşar;  bağlantı burada izlenir."""
+    birakildi = threading.Event()
+
+    async def izle():
+        while not birakildi.is_set():
+            if await istek.is_disconnected():
+                birakildi.set()
+                return
+            await asyncio.sleep(BAGLANTI_ARALIGI)
+
+    def ara():
+        with avan_secici.korumali(birakildi.is_set):
+            return api_avan_cizimler(veri)
+
+    izleyici = asyncio.create_task(izle())
+    try:
+        return await run_in_threadpool(ara)
+    finally:
+        birakildi.set()
+        izleyici.cancel()
+
+
+#  Bağlantının kapanıp kapanmadığına bakma aralığı ( sn;  bir sınama ~0,1 – 1 sn )
+BAGLANTI_ARALIGI = 0.25
+
+
+def api_avan_cizimler(veri):
     """Avan asansörünün çizimleri.  Yanıt seçicinin sonucudur ( durum:  uygun ·
-    gereken · sigmaz · paket_yok · eksik · hata );  "uygun"da ayrıca cizim —
-    uygulamanın çizim yanıtı ( cizimler:  SVG listesi )."""
+    gereken · sigmaz · paket_yok · eksik · hata · tamamlanmadi );  "uygun"da ayrıca cizim —
+    uygulamanın çizim yanıtı ( cizimler:  SVG listesi ).  tamamlanmadi:  korumalı aramada
+    ( api_avan_cizimler_ucu ) güvenlik süresi doldu ya da istek bırakıldı — sonuç bilinmiyor."""
     try:
         #  Seçicinin her sınaması kendi önbelleğiyle koşar ( care_uclari.girdi_durumu );  dışına
         #  ortak bir önbellek sarılmaz — adaylar ayrı girdilerdir.
