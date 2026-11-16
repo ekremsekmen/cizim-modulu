@@ -101,10 +101,15 @@ class Uc(unittest.TestCase):
         elle = trafik(N="10", h="3", bodrum="0")
         kot = trafik(durak_kotlari=metin([i * 3000 for i in range(11)]))
         self.assertIsNone(elle.get("hata"))
-        duzen = {"N": 10, "bodrum": 0, "h": 3.0, "durak": 11, "seyir": 30.0, "giris": 1}
-        self.assertEqual(kot.pop("kat_duzeni"), duzen)
+        duzen = {"N": 10, "bodrum": 0, "h": 3.0, "durak": 11, "seyir": 30.0, "giris": 1, "alt": 1, "ust": 11}
+        kd = kot.pop("kat_duzeni")
+        self.assertEqual(kd.pop("asansorler"), [{"sira": 1, **duzen}])
+        self.assertEqual(kd, duzen)
+        #  Köprünün asansörleri hizmet aralığını da taşır ( "kat" ) — elle girişte yoktur
+        for a in kot["avan_koprusu"]["asansorler"]:
+            self.assertEqual((a.pop("kat")["alt"], a["toplam_seyahat"]), (1, 30.0))
         ge, gk = elle.pop("girdiler"), kot.pop("girdiler")
-        self.assertEqual(gk.pop("kat_duzeni"), duzen)
+        self.assertEqual(gk.pop("kat_duzeni")["N"], 10)
         self.assertEqual(gk.pop("durak_kotlari"), metin([i * 3000 for i in range(11)]))
         self.assertEqual(sayilar(gk), sayilar(ge))
         self.assertEqual(sayilar(kot), sayilar(elle))
@@ -304,6 +309,170 @@ class CizimAyniTablo(unittest.TestCase):
                 self.assertIsNotNone(blok, [b.name for b in d.blocks if b.name.startswith("CIZIM_KUYU")])
                 yazilan = {t.plain_text().strip() for t in blok.query("MTEXT TEXT")}
                 self.assertTrue(beklenen <= yazilan, (i, kesit, beklenen - yazilan))
+
+
+def dilim(kotlar, giris, alt, ust):
+    """Asansörün kartına giden kotlar — tablonun [ alt … ust ] aralığı ( sıralar 1'den;
+    giriş aralığın içindeki sırasına kayar ).  Ön yüzün dilimi ( lib/kotlar ) bunun eşidir."""
+    return {"durak_kotlari": metin(kotlar[alt - 1 : ust]), "giris_duragi": str(giris - alt + 1)}
+
+
+class HizmetAraligi(unittest.TestCase):
+    """HER ASANSÖR TABLONUN BİR ARALIĞINA HİZMET EDER ( 17 Kas — kullanıcı:  "biri −1'e iniyor
+    biri inmiyor senaryosunu da yapabilmemiz lazım" ).  Aralık trafik sütunundadır ( alt_durak ·
+    ust_durak — tablodaki sıra );  asansörün bodrumu, durak sayısı, kat yüksekliği ve seyahati
+    aralığından, kartına da tablonun o dilimi gider."""
+
+    KOT = "-3,20; ±0,00; +4,50; +7,60; +10,70; +13,80"
+
+    def iki(self, **ikinci):
+        g = {**BINA, "asansorler": [dict(ASANSOR), dict(ASANSOR, **ikinci)], "durak_kotlari": self.KOT}
+        return json.loads(avan_uclari.api_trafik({"girdiler": g}).body)
+
+    def test_kural(self):
+        d, ileti = katlar.kat_duzeni(self.KOT, None, 2, None)
+        self.assertEqual(ileti, [])
+        self.assertEqual(
+            (d["N"], d["bodrum"], d["durak"], d["giris"], d["alt"], d["ust"]), (4, 0, 5, 2, 2, 6)
+        )
+        self.assertAlmostEqual(d["seyir"], 13.8, places=12)
+        self.assertAlmostEqual((d["N"] + d["bodrum"]) * d["h"], d["seyir"], places=12)
+        d, _ = katlar.kat_duzeni(self.KOT, None, None, 4)
+        self.assertEqual((d["N"], d["bodrum"], d["durak"]), (2, 1, 4))
+        self.assertAlmostEqual(d["seyir"], 10.8, places=12)
+        for alt, ust, beklenen in (
+            (3, None, "asansör ana girişe hizmet etmelidir"),
+            (None, 2, "Giriş katı en üst durak"),
+            (0, None, "en alt durak 0. durak olamaz"),
+            (None, 7, "en üst durak 7. durak olamaz"),
+        ):
+            with self.subTest(alt=alt, ust=ust):
+                d, ileti = katlar.kat_duzeni(self.KOT, None, alt, ust)
+                self.assertIsNone(d)
+                self.assertIn(beklenen, ileti[0])
+
+    def test_biri_bodruma_inmez(self):
+        r = self.iki(alt_durak="2")
+        self.assertIsNone(r.get("hata"), r.get("hata"))
+        #  Ortak düzen aralıkların zarfı ( tablonun tamamı );  asansörler kendi aralığıyla
+        self.assertEqual((r["ozet"]["N"], r["ozet"]["bodrum"]), (4, 1))
+        a, b = r["avan_koprusu"]["asansorler"]
+        self.assertEqual((a["N"], a["bodrum"], a["kat"]["alt"], a["kat"]["durak"]), (4, 1, 1, 6))
+        self.assertEqual((b["N"], b["bodrum"], b["kat"]["alt"], b["kat"]["durak"]), (4, 0, 2, 5))
+        self.assertAlmostEqual(a["toplam_seyahat"], 17.0, places=9)
+        self.assertAlmostEqual(b["toplam_seyahat"], 13.8, places=9)
+
+    def test_alcak_blok(self):
+        """Üst sınır:  ikinci asansör 4. durağa kadar ( 2 kat + ana giriş + bodrum )."""
+        r = self.iki(ust_durak="4")
+        self.assertIsNone(r.get("hata"), r.get("hata"))
+        b = r["avan_koprusu"]["asansorler"][1]
+        self.assertEqual((b["N"], b["bodrum"], b["kat"]["ust"]), (2, 1, 4))
+        self.assertAlmostEqual(b["toplam_seyahat"], 10.8, places=9)
+
+    def test_tek_tipte_ortak_duzen_araliktan(self):
+        """Tek sütun:  ortak N / bodrum / h o asansörün aralığından ( tek yol sütunun kendi
+        durak sayısını N + 1 ister );  gereken adet kadar asansörün hepsi aynı aralıkta."""
+        g = {**BINA, "asansorler": [dict(ASANSOR, alt_durak="2")], "durak_kotlari": self.KOT}
+        r = json.loads(avan_uclari.api_trafik({"girdiler": g}).body)
+        self.assertIsNone(r.get("hata"), r.get("hata"))
+        self.assertEqual((r["ozet"]["N"], r["ozet"]["bodrum"], r["ozet"]["durak"]), (4, 0, 5))
+        for a in r["avan_koprusu"]["asansorler"]:
+            self.assertEqual((a["kat"]["alt"], a["kat"]["ust"]), (2, 6))
+            self.assertAlmostEqual(a["toplam_seyahat"], 13.8, places=9)
+
+    def test_aralik_tablosuz_okunmaz_bozuksa_soylenir(self):
+        g = {**BINA, "N": "5", "h": "3", "asansorler": [dict(ASANSOR, alt_durak="2", ust_durak="4")]}
+        r = json.loads(avan_uclari.api_trafik({"girdiler": g}).body)
+        self.assertIsNone(r.get("hata"), r.get("hata"))
+        self.assertEqual(r["ozet"]["N"], 5)
+        self.assertIn("asansör ana girişe hizmet etmelidir", self.iki(alt_durak="3")["hata"])
+        self.assertIn("durağın sırası yazılır", self.iki(alt_durak="iki")["hata"])
+
+    def araliklar(self, adet, tohum):
+        """( kotlar , giriş sırası 1'den , [ ( alt , ust ) ] ) — iki asansör;  en az biri en üste çıkar."""
+        r = random.Random(tohum)
+        for kotlar, g0 in Degismez().tablolar(adet, tohum=tohum):
+            n, g = len(kotlar), g0 + 1
+            tam = (1, n)
+            kisa = (r.randint(1, g), r.randint(g + 1, n))
+            yield kotlar, g, r.choice(([tam, kisa], [kisa, tam], [tam, tam]))
+
+    def test_her_asansorun_seyahati_araliginin_seyri(self):
+        """150 tablo × iki asansör:  her asansörün trafikteki seyahati ve durak sayısı kendi
+        aralığınınki;  ortak kat sayısı en yükseğe çıkanınki."""
+        for kotlar, g, ar in self.araliklar(150, 20261117):
+            with self.subTest(kotlar=metin(kotlar), giris=g, araliklar=ar):
+                asl = [dict(ASANSOR, alt_durak=str(a), ust_durak=str(u)) for a, u in ar]
+                gi = {**BINA, "asansorler": asl, "durak_kotlari": metin(kotlar), "giris_duragi": str(g)}
+                r = json.loads(avan_uclari.api_trafik({"girdiler": gi}).body)
+                self.assertIsNone(r.get("hata"), r.get("hata"))
+                self.assertEqual(r["ozet"]["N"], max(u for _a, u in ar) - g)
+                kopru = r["avan_koprusu"]["asansorler"]
+                if r["tip"] == "coklu":
+                    self.assertEqual(len(kopru), 2)
+                for t in kopru:
+                    a, u = t["kat"]["alt"], t["kat"]["ust"]
+                    self.assertIn((a, u), ar)
+                    self.assertAlmostEqual(
+                        t["toplam_seyahat"], (kotlar[u - 1] - kotlar[a - 1]) / 1000.0, places=9
+                    )
+                    self.assertEqual(t["kat"]["durak"], u - a + 1)
+                    if r["tip"] == "coklu":
+                        self.assertEqual((t["N"], t["bodrum"]), (u - g, g - a))
+
+    def test_avan_her_asansoru_kendi_dilimiyle(self):
+        """40 tablo, trafik → avan:  kartlara tablonun dilimi gider;  avanın durak sayısı ve seyri
+        her asansörde trafiğinkiyle aynı, "kat düzeni tutmuyor" uyarısı yok."""
+        for kotlar, g, ar in self.araliklar(40, 11):
+            with self.subTest(kotlar=metin(kotlar), giris=g, araliklar=ar):
+                asl = [dict(ASANSOR, alt_durak=str(a), ust_durak=str(u)) for a, u in ar]
+                gi = {**BINA, "asansorler": asl, "durak_kotlari": metin(kotlar), "giris_duragi": str(g)}
+                t = json.loads(avan_uclari.api_trafik({"girdiler": gi}).body)
+                self.assertIsNone(t.get("hata"), t.get("hata"))
+                kopru = t["avan_koprusu"]
+                kartlar = []
+                for k in kopru["asansorler"]:
+                    a, u = k["kat"]["alt"], k["kat"]["ust"]
+                    kartlar.append(
+                        {
+                            **KART,
+                            "kapasite": str(k["P"]),
+                            "V": str(k["V"]),
+                            **dilim(kotlar, g, a, u),
+                            "kuyu_dibi_kotu": katlar.kot_metni(kotlar[a - 1] - 1800),
+                            "kuyu_tavani_kotu": katlar.kot_metni(kotlar[u - 1] + 4600),
+                        }
+                    )
+                gv = {"ortak": {"mk_yok": True}, "asansorler": kartlar, "sabitler": {}, "trafik": kopru}
+                av = json.loads(avan_uclari.api_avan({"girdiler": gv}).body)
+                self.assertIsNone(av.get("hata"), av.get("hata"))
+                for i, k in enumerate(kopru["asansorler"]):
+                    kot = av["kotlar"][i]
+                    self.assertFalse(kot.get("hata"), kot.get("hata"))
+                    self.assertEqual(kot["durak"], k["kat"]["durak"])
+                    self.assertAlmostEqual(kot["seyir"], k["toplam_seyahat"], places=9)
+                self.assertEqual([u for u in av["uyarilar"] if "kat düzeni" in u], [])
+
+    def test_bodruma_inmeyen_asansorun_kesiti(self):
+        """Çizim:  bodruma inen asansörün kesitinde bodrum kotu var, inmeyeninkinde yok —
+        her biri kendi diliminin kotlarını ve kendi kuyu dibini yazar."""
+        kotlar = [-3100, 0, 3200, 6100, 9400, 12300]
+        ciz = CizimAyniTablo()
+        kartlar = []
+        for alt in (1, 2):
+            d = dilim(kotlar, 2, alt, 6)
+            kuyu = {
+                "kuyu_dibi_kotu": katlar.kot_metni(kotlar[alt - 1] - 1600),
+                "kuyu_tavani_kotu": katlar.kot_metni(kotlar[-1] + 4200),
+            }
+            kartlar.append(cizim_karti(T630, **d, **kuyu, eta="0,85"))
+        for i, alt in enumerate((1, 2)):
+            beklenen = {katlar.kot_metni(k) for k in kotlar[alt - 1 :]} | {
+                katlar.kot_metni(kotlar[alt - 1] - 1600)
+            }
+            for ad, yazilan in ciz.kesit_kotlari(kartlar, i).items():
+                self.assertEqual(yazilan, beklenen, (i, ad))
 
 
 if __name__ == "__main__":

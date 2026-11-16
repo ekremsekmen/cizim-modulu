@@ -162,6 +162,8 @@ export function KatGirisi({
   yaz,
   bos,
   kapsam,
+  duraklar,
+  olay,
   hepsine,
   bosAcik,
 }: {
@@ -180,7 +182,13 @@ export function KatGirisi({
   bos?: React.ReactNode;
   /**  "duraklar":  yalnız durak satırları ve araçları ( binanın kot tablosu — avanın Trafik
        adımı );  kuyu tavanı / dibi / makine dairesi satırları ve özet yoktur  */
-  kapsam?: "duraklar";
+  /**  Tablonun durak SIRALARINI değiştiren işlem oldu ( avan:  asansörlerin hizmet aralığı sırayla
+       tutulur — lib/avan.araliklariUyarla ):  j. durak silindi ya da tablo baştan yazıldı  */
+  olay?: (o: { tur: "sil"; j: number } | { tur: "yeni" }) => void;
+  kapsam?: "duraklar" | "kuyu";
+  /**  kapsam "kuyu":  durak satırlarının yerine gösterilen satır ( asansörün hizmet ettiği
+       duraklar — salt okunur )  */
+  duraklar?: React.ReactNode;
   /**  Araçların değişikliği ( durak ekle · hızlı doldur · kaydır · aralık · sil ) kuyu tavanını /
        dibini de kaydırır:  avanda kot tablosu binanındır, her kart kendi kuyusuyla hesaplanır
        ( lib/avan.kartlaraUygula ).  Verilmezse değişiklik h'den hesaplanıp yaz ile yazılır.  */
@@ -192,6 +200,10 @@ export function KatGirisi({
   const [arac, setArac] = useState<null | "doldur" | "yapistir" | "kaydir">(null);
   const kot = kotlaMi(h);
   const yalnizDurak = kapsam === "duraklar";
+  //  "kuyu":  asansörün kartı ( avan ) — durak kotları binanın tablosundadır ( Trafik adımı );
+  //  kartta yalnız kuyuya özgü kotlar ( tavan, dip, makine dairesi zemini ) girilir.  h'nin durak
+  //  kotları asansörün hizmet ettiği dilimdir:  farklar onun en alt / en üst durağından
+  const yalnizKuyu = kapsam === "kuyu";
   const yazHepsi = (d: Degisiklik | null) => d && Object.entries(d).forEach(([k, v]) => yaz(k, v));
   //  Değişikliği kartın değerlerinden üreten işlev:  avanda her kart için ayrı koşar
   const uygulaF = (f: (x: Ham) => Degisiklik | null) => (hepsine ? hepsine(f) : yazHepsi(f(h)));
@@ -249,8 +261,11 @@ export function KatGirisi({
   return (
     <div className="mb-1.5 rounded-orta border border-cizgi bg-black/[0.015] px-2 py-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[12.5px] font-medium">Katlar</span>
-        {bosAcik && !kot && <span className="text-[11.5px] text-metin-3">durak kotlarını hızlı doldurun ya da yapıştırın</span>}
+        <span className="text-[12.5px] font-medium">{yalnizKuyu ? "Kuyu kotları" : "Katlar"}</span>
+        {yalnizKuyu && !kot && (
+          <span className="text-[11.5px] text-metin-3">önce binanın kot tablosu ( Trafik hesabı → Katlar )</span>
+        )}
+        {bosAcik && !yalnizKuyu && !kot && <span className="text-[11.5px] text-metin-3">durak kotlarını hızlı doldurun ya da yapıştırın</span>}
         {/*  Kotsuz asansör açılırken kotlara çevrilir ( proje.kotlayaCevir );  yine de
              kotsuz kaldıysa ( başka sekmeden gelen eski hâl ) çeviri elle  */}
         {!kot && !bosAcik && bos}
@@ -271,7 +286,7 @@ export function KatGirisi({
           </Dugme>
         )}
       </div>
-      {(kot || bosAcik) && (
+      {(kot || (bosAcik && !yalnizKuyu)) && (
         <div className="mt-2" ref={tablo}>
           <div className="flex items-center gap-1.5 pb-0.5 text-[11px] text-metin-3">
             <span className="flex-1 pl-6">ad</span>
@@ -325,7 +340,8 @@ export function KatGirisi({
           )}
           </>
           )}
-          {ham
+          {yalnizKuyu && duraklar}
+          {(yalnizKuyu ? [] : ham)
             .map((metin, j) => ({ metin, j }))
             .reverse()
             .map(({ metin, j }) => {
@@ -390,7 +406,14 @@ export function KatGirisi({
                       />
                     ) : undefined
                   }
-                  sil={ham.length > 2 ? () => uygulaF((x) => durakSil(x, j)) : undefined}
+                  sil={
+                    ham.length > 2
+                      ? () => {
+                          uygulaF((x) => durakSil(x, j));
+                          olay?.({ tur: "sil", j });
+                        }
+                      : undefined
+                  }
                 />
               );
             })}
@@ -407,9 +430,10 @@ export function KatGirisi({
               }
             />
           )}
-          {kural.hata.length > 0 && (
+          {!yalnizKuyu && kural.hata.length > 0 && (
             <p className="mt-1 px-0.5 text-[11.5px] font-medium text-red">Kat adları:  {kural.hata[0]}</p>
           )}
+          {!yalnizKuyu && (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {kot && (
               <button
@@ -448,8 +472,9 @@ export function KatGirisi({
               </button>
             ))}
           </div>
-          {arac && (
-            <Arac arac={arac} kapat={() => setArac(null)} uygulaF={uygulaF} />
+          )}
+          {!yalnizKuyu && arac && (
+            <Arac arac={arac} kapat={() => setArac(null)} uygulaF={uygulaF} yeni={() => olay?.({ tur: "yeni" })} />
           )}
           {!yalnizDurak && <Ozet kullanilan={kullanilan} daireli={daireli} />}
         </div>
@@ -463,9 +488,12 @@ function Arac({
   arac,
   kapat,
   uygulaF,
+  yeni,
 }: {
   arac: "doldur" | "yapistir" | "kaydir";
   kapat: () => void;
+  /**  Tablo baştan yazıldı ( hızlı doldur, yapıştır )  */
+  yeni: () => void;
   /**  Değişiklik kartın değerlerinden ( x ) üretilir:  son kat yüksekliği ve kuyu dibi
        derinliği o kartın kendi kuyusundan korunur ( avanda her kart için ayrı )  */
   uygulaF: (f: (x: Ham) => Degisiklik | null) => void;
@@ -494,10 +522,12 @@ function Arac({
           ...durakSayisi(x, Math.round(n)),
         };
       });
+      yeni();
     } else if (arac === "yapistir") {
       if (!a.trim()) return;
       const kotlar = yapistir(a);
       uygulaF((x) => ({ [DURAK_KOTLARI]: kotlar, ...durakSayisi(x, kotlariOku(kotlar).length) }));
+      yeni();
     } else {
       const m = kotOku(a);
       if (m === null) return;

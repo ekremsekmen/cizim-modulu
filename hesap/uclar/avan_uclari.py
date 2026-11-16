@@ -248,21 +248,73 @@ KAT_DUZENI_ALANLARI = ("N", "bodrum", "h")
 ASANSOR_KAT_ALANLARI = ("durak", "h", "bodrum")
 
 
+#  Trafik sütununun ( asansörün ) hizmet aralığı:  tablodaki en alt / en üst durağın sırası
+HIZMET_ARALIGI = ("alt_durak", "ust_durak")
+
+
+def _sira_oku(ham, ad):
+    """Durak sırası ( 1'den ):  boş → None;  okunamayan → None + _RED."""
+    if _bos_mu(ham):
+        return None
+    try:
+        return int(str(ham).strip())
+    except ValueError:
+        _RED.append(f"{ad}:  durağın sırası yazılır ( {str(ham).strip()[:20]!r} girildi )")
+        return None
+
+
 def _kat_duzeni(g, ham):
     """BİNANIN KOT TABLOSU DOLUYSA trafiğin kat düzeni ONDAN ( katlar.kat_duzeni ):  N,
     bodrum ve h tablodan türer ve elle yazılanın YERİNE geçer — avan hesabı ve çizim aynı
     kotları kullanır, üçü aynı binayı hesaplar.  Tablo boşsa elle girilenler geçerlidir
-    ( kotsuz hızlı tahmin ).  Motor değişmez:  aynı üç sayıyı alır.  Türetilenler
-    g["kat_duzeni"]'nde de durur ( yanıt:  ekran kutuları "kotlardan" diye gösterir )."""
+    ( kotsuz hızlı tahmin ).  Motor değişmez:  aynı sayıları alır.
+
+    HİZMET ARALIĞI ( 17 Kas ):  her sütun ( asansör ) tablonun hangi duraklarına hizmet
+    ettiğini söyler ( alt_durak · ust_durak;  boş:  tablonun ucu ) — bodruma inmeyen
+    asansör.  Ortak düzen aralıkların ZARFINDAN ( en alttaki alt, en üstteki üst:  motor
+    ortak N'yi "en yüksek durağa çıkan asansör"e göre ister );  aralığı zarftan farklı
+    sütuna kendi durak sayısı, bodrumu ve kat yüksekliği verilir ( motorun sütun alanları ).
+
+    Türetilenler g["kat_duzeni"]'nde de durur ( yanıt:  ekran kutuları "kotlardan" diye
+    gösterir;  "asansorler":  sütun sırasıyla her asansörün düzeni )."""
     kotlar = ham.get(alanlar.DURAK_KOTLARI)
+    araliklar = []
+    for a in g["asansorler"]:
+        alt, ust = (a.pop(k, None) for k in HIZMET_ARALIGI)
+        ad = f"ASANSÖR-{a.get('sira', len(araliklar) + 1)}: hizmet aralığı"
+        araliklar.append((_sira_oku(alt, ad), _sira_oku(ust, ad)))
     if _bos_mu(kotlar):
         return
-    duzen, iletiler = katlar.kat_duzeni(kotlar, ham.get(alanlar.GIRIS_DURAGI))
+    giris = ham.get(alanlar.GIRIS_DURAGI)
+    duzenler = []
+    for a, (alt, ust) in zip(g["asansorler"], araliklar):
+        d, iletiler = katlar.kat_duzeni(kotlar, giris, alt, ust)
+        if iletiler:
+            _RED.append((f"ASANSÖR-{a['sira']}: " if "sira" in a and (alt or ust) else "") + iletiler[0])
+            return
+        duzenler.append(d)
+    if duzenler:
+        zarf, iletiler = katlar.kat_duzeni(
+            kotlar, giris, min(d["alt"] for d in duzenler), max(d["ust"] for d in duzenler)
+        )
+    else:
+        zarf, iletiler = katlar.kat_duzeni(kotlar, giris)
     if iletiler:
         _RED.append(iletiler[0])
         return
-    g.update({k: duzen[k] for k in KAT_DUZENI_ALANLARI})
-    g["kat_duzeni"] = duzen
+    g.update({k: zarf[k] for k in KAT_DUZENI_ALANLARI})
+    #  Sütunun kendi düzeni:  yalnız zarftan farklıysa ve birden çok sütun varsa ( tek tipte
+    #  ortak düzen zaten o asansörünküdür;  motor tek yolda sütunun durak sayısını N + 1 ister )
+    if len(duzenler) > 1:
+        for a, d in zip(g["asansorler"], duzenler):
+            if (d["alt"], d["ust"]) != (zarf["alt"], zarf["ust"]):
+                a.update(durak=d["N"] + 1, bodrum=d["bodrum"], h=d["h"])
+    g["kat_duzeni"] = {
+        **zarf,
+        "asansorler": [
+            {"sira": a.get("sira", i), **d} for i, (a, d) in enumerate(zip(g["asansorler"], duzenler), 1)
+        ],
+    }
 
 
 def _avan_girdi(veri: dict):
@@ -312,9 +364,17 @@ def _trafik_koprusu(ham):
         return {}
     liste = []
     for a in _sozluk_listesi(ham.get("asansorler"))[:4]:
-        liste.append(
-            {"P": _sayi(a.get("P")), "V": _sayi(a.get("V")), "toplam_seyahat": _sayi(a.get("toplam_seyahat"))}
-        )
+        bir = {
+            "P": _sayi(a.get("P")),
+            "V": _sayi(a.get("V")),
+            "toplam_seyahat": _sayi(a.get("toplam_seyahat")),
+        }
+        #  Asansörün kendi kat düzeni ( hizmet aralığı — çoklu trafikte;  17 Kas ):  avan kartın
+        #  durak sayısını binanın ortak düzeniyle değil BUNUNLA karşılaştırır
+        for k in ("N", "bodrum"):
+            if not _bos_mu(a.get(k)):
+                bir[k] = _sayi(a.get(k))
+        liste.append(bir)
     if not liste:
         return {}
     return {
@@ -343,6 +403,20 @@ def _kopruye_kapi(kopru, s):
                 kapi_tipi=t.get("kapi_tipi"),
                 sutun=no - 1 if isinstance(no, int) else None,
             )
+    return kopru
+
+
+def _kopruye_kat(kopru, duzen):
+    """Köprünün asansörlerine HİZMET ARALIĞI ( "kat":  o asansörün kat düzeni — alt, ust,
+    durak, seyir … ):  ekran asansörün kartına binanın kot tablosunun o aralığını verir
+    ( avan hesabı ve çizim yalnız hizmet ettiği durakları görür ).  Tek tipte bütün
+    asansörler aynı aralıktadır;  çokluda sütunundan ( sıra = sutun + 1 )."""
+    sutunlar = {d["sira"]: d for d in duzen.get("asansorler") or []}
+    ilk = next(iter(sutunlar.values()), None)
+    for a in kopru.get("asansorler") or []:
+        d = ilk if a.get("sutun") is None else sutunlar.get(a["sutun"] + 1)
+        if d:
+            a["kat"] = {k: d[k] for k in ("alt", "ust", "durak", "seyir", "giris", "N", "bodrum")}
     return kopru
 
 
@@ -434,6 +508,7 @@ def api_trafik(veri: dict = Body(...)):
         #  "kotlardan" diye gösterir
         if g.get("kat_duzeni"):
             s["kat_duzeni"] = g["kat_duzeni"]
+            _kopruye_kat(s["avan_koprusu"], g["kat_duzeni"])
         #  Kapağın boş bırakılan asansör alanları hesaptan dolar ( ekranda
         #  gri yer tutucu olarak görünür, çıktıya o basılır ).
         s["kapak_bilgileri"] = kapak.trafikten(s)

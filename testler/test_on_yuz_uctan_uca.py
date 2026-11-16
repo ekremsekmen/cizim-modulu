@@ -1162,6 +1162,58 @@ class OnYuzUctanUca(unittest.TestCase):
         _istek, trafik = self.iz.son("/api/trafik")
         return trafik, avan, self.liste_satiri("Avan deneme")
 
+    def test_avan_hizmet_araligi(self):
+        """17 Kas ( kullanıcı:  "biri −1'e iniyor biri inmiyor senaryosunu da yapabilmemiz lazım" ):
+        bodrumlu binada iki asansör tipi;  2. sütun bodruma inmez ( en alt durak:  giriş ).
+        Trafik her asansörü kendi aralığıyla hesaplar;  avan kartına tablonun o dilimi gider
+        ( durak sayısı, seyir ), kartta hizmet ettiği duraklar yazar."""
+        self.sayfa.goto(self.url + "/")
+        kart = {"Hk": "", "kuyu_genisligi": "1800", "kabin_boyu": "1400", "kabin_genisligi": "1100"}
+        kot = "-3,00; ±0,00; +3,00; +6,00; +9,00"
+        self.sayfa.evaluate(
+            """([kart, kot]) => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut', bina_yuksekligi: '12', yapi_yuksekligi: '13', hizli1: '8', hizli2: '2'},
+                ekNufus: [],
+                trafikAsansorleri: [
+                    {P: '8', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik'},
+                    {P: '6', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik', alt_durak: '2'}],
+                ortak: {mk_yok: 'true'},
+                avanAsansorleri: [
+                    {tanim: 'A', ...kart, durak_kotlari: kot, kuyu_dibi_kotu: '-4,60', kuyu_tavani_kotu: '+13,20'},
+                    {tanim: 'B', ...kart, durak_kotlari: kot, kuyu_dibi_kotu: '-1,60', kuyu_tavani_kotu: '+13,20'},
+                    {}, {}],
+                kapak: {project_title: 'Hizmet aralığı'}}))""",
+            [kart, kot],
+        )
+        self.sayfa.goto(self.url + "/avan/trafik")
+        #  Sütunun aralığı seçim kutusunda ( tablonun durakları )
+        secim = self.sayfa.get_by_label("2. asansör En alt durak")
+        secim.wait_for()
+        self.assertIn("2. durak", secim.inner_text())
+        _istek, t = self.iz.son("/api/trafik")
+        self.assertIsNone(t.get("hata"), t.get("hata"))
+        a, b = t["avan_koprusu"]["asansorler"][:2]
+        self.assertEqual((a["kat"]["alt"], a["kat"]["durak"], a["bodrum"]), (1, 5, 1))
+        self.assertEqual((b["kat"]["alt"], b["kat"]["durak"], b["bodrum"]), (2, 4, 0))
+        self.assertAlmostEqual(a["toplam_seyahat"], 12.0, places=9)
+        self.assertAlmostEqual(b["toplam_seyahat"], 9.0, places=9)
+        #  Sütunun kilitli kat kutuları asansörün kendi düzenini yazar
+        self.assertEqual(self.sayfa.get_by_label("2. asansör Durak").input_value(), "4")
+
+        self.sayfa.goto(self.url + "/avan/hesaplar")
+        istek, avan = self.iz.son("/api/avan")
+        asl = istek["girdiler"]["asansorler"]
+        self.assertEqual(asl[0]["durak_kotlari"], kot)
+        self.assertEqual(asl[1]["durak_kotlari"], "±0,00; +3,00; +6,00; +9,00")
+        self.assertEqual(asl[1]["giris_duragi"], "1")
+        self.assertEqual([avan["kotlar"][i]["durak"] for i in (0, 1)], [5, 4])
+        self.assertEqual([u for u in avan["uyarilar"] if "kat düzeni" in u], [])
+        #  B'nin kartı:  hizmet ettiği duraklar ±0,00 … +9,00
+        self.sayfa.get_by_role("button", name=re.compile("^B")).first.click()
+        hizmet = self.sayfa.locator("[data-hizmet-araligi]")
+        hizmet.filter(has_text="4 durak").wait_for()
+        self.assertIn("±0,00 … +9,00", hizmet.inner_text())
+
     def test_avan_cizimleri(self):
         """12 Kas:  avan projesinde çizim ( "Çizimler" adımı ).  Mimari eksikken hangi
         alanların eksik olduğu söylenir;  dolunca seçicinin bulduğu asansörün çizimleri
@@ -1179,8 +1231,11 @@ class OnYuzUctanUca(unittest.TestCase):
 
         self.sayfa.get_by_label("Kuyu genişliği").fill("2050")
         self.sayfa.get_by_label("Kuyu derinliği").fill("1850")
-        #  KOT TABLOSU BİNANINDIR ( 16 Kas ):  kot yokken de açıktır;  hızlı doldur 11 durağı
+        #  KOT TABLOSU BİNANINDIR ( 16 Kas ):  Trafik adımının başında, kot yokken de açık;  kartta
+        #  durak satırı yoktur ( 17 Kas ) — yalnız kuyuya özgü kotlar.  Hızlı doldur 11 durağı
         #  ( 10 kat + ana giriş, 3 m ) yazar — BÜTÜN kartlara aynı metin
+        self.assertEqual(self.sayfa.get_by_label("1. durağın kotu", exact=True).count(), 0)
+        self.sayfa.goto(self.url + "/avan/trafik")
         self.sayfa.get_by_role("button", name="Hızlı doldur").click()
         self.sayfa.get_by_label("Durak sayısı").fill("11")
         self.sayfa.get_by_label("Kat yüksekliği ( mm )").fill("3000")
@@ -1200,6 +1255,12 @@ class OnYuzUctanUca(unittest.TestCase):
             {"N": 10, "bodrum": 0, "h": 3, "durak": 11, "seyir": 30},
         )
         self.assertEqual(self.sayfa.get_by_label("1. durağın kotu", exact=True).input_value(), "±0,00")
+        #  Kartta asansörün hizmet ettiği duraklar salt okunur ( tablonun tamamı )
+        self.sayfa.goto(self.url + "/avan/cizimler")
+        hizmet = self.sayfa.locator("[data-hizmet-araligi]")
+        hizmet.filter(has_text="11 durak").wait_for()
+        self.assertIn("±0,00 … +30,00", hizmet.inner_text())
+        self.assertEqual(self.sayfa.get_by_label("1. durağın kotu", exact=True).count(), 0)
         #  Trafik 1,6 m/s veriyor:  kuyu dibi 1,80, kuyu üstü 4,60 m
         self.sayfa.get_by_label("Kuyu dibi kotu").fill("-1,80")
         self.sayfa.get_by_label("Kuyu tavanı kotu").fill("+34,60")

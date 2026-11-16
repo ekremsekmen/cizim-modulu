@@ -206,7 +206,7 @@ def durak_adlari(ham, giris, kotlar):
     return adlar, g, hata
 
 
-def kat_duzeni(kotlar_ham, giris_ham=None):
+def kat_duzeni(kotlar_ham, giris_ham=None, alt=None, ust=None):
     """TRAFİK HESABININ KAT DÜZENİ KOT TABLOSUNDAN ( cikti/devir/KOT_TABLOSU_PLANI.md,
     16 Kas — kullanıcı:  "trafik hesabı ortalama kat yüksekliğini buradan hesaplasa …
     çizimlerle hesaplar birebir uyumlu olur" ).
@@ -224,8 +224,14 @@ def kat_duzeni(kotlar_ham, giris_ham=None):
     BİREBİR aynıdır.  Giriş katı çizimin kuralıyla ( durak_adlari ):  verilmişse o, yoksa
     kotu ±0,00'a en yakın durak.
 
-    Döner:  ( { N, bodrum, h, durak, seyir, giris } , [] )  ya da  ( None , [ ileti ] ).
-    h ve seyir metre;  giris 1'den."""
+    HİZMET ARALIĞI ( 17 Kas — kullanıcı:  "biri −1'e iniyor biri inmiyor senaryosunu da
+    yapabilmemiz lazım" ):  alt / ust asansörün hizmet ettiği en alt ve en üst durağın
+    tablodaki sırası ( 1'den;  None:  tablonun ucu ).  Kat düzeni o ARALIKTAN türer —
+    bodrum ve durak sayısı asansörünküdür, h aralığın ortalaması, seyahat aralığın seyri.
+    Aralık kesintisizdir ve giriş katını içerir ( trafik ana girişten yapılır ).
+
+    Döner:  ( { N, bodrum, h, durak, seyir, giris, alt, ust } , [] )  ya da
+    ( None , [ ileti ] ).  h ve seyir metre;  giris, alt, ust TABLODAKİ sıra ( 1'den )."""
     kotlar, iletiler = kotlari_oku(kotlar_ham)
     if iletiler:
         return None, [iletiler_metni("Durak kotları", iletiler)]
@@ -239,19 +245,32 @@ def kat_duzeni(kotlar_ham, giris_ham=None):
     if hata:
         return None, [f"Giriş katı:  {hata[0]}"]
     n = len(kotlar)
-    if g == n - 1:
+    for ad, v in (("en alt", alt), ("en üst", ust)):
+        if v is not None and not (isinstance(v, int) and 1 <= v <= n):
+            return None, [
+                f"Hizmet aralığı:  {ad} durak {v}. durak olamaz — tabloda {n} durak var ( 1 … {n} )."
+            ]
+    a, u = (alt or 1) - 1, (ust or n) - 1  # sıra ( 0'dan )
+    if a > g:
+        return None, [
+            f"Hizmet aralığı:  en alt durak ( {kot_metni(kotlar[a])} ) giriş katının ( {kot_metni(kotlar[g])} ) "
+            "üstünde — asansör ana girişe hizmet etmelidir."
+        ]
+    if u <= g:
         return None, [
             f"Giriş katı en üst durak ( {kot_metni(kotlar[g])} ):  üstünde hizmet verilen kat yok — "
             "trafik hesabı ana girişin üstündeki katlar için yapılır."
         ]
-    seyir = (kotlar[-1] - kotlar[0]) / 1000.0
+    seyir = (kotlar[u] - kotlar[a]) / 1000.0
     return {
-        "N": n - 1 - g,
-        "bodrum": g,
-        "h": seyir / (n - 1),
-        "durak": n,
+        "N": u - g,
+        "bodrum": g - a,
+        "h": seyir / (u - a),
+        "durak": u - a + 1,
         "seyir": seyir,
         "giris": g + 1,
+        "alt": a + 1,
+        "ust": u + 1,
     }, []
 
 

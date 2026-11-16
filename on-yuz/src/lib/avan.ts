@@ -109,8 +109,48 @@ export function kartaYaz(p: AvanProjesi, i: number, k: string, d: string): AvanP
 /**  Kot tablosunun araçları ( durak ekle · hızlı doldur · kaydır · aralık · sil ) durak kotlarıyla
      birlikte kuyu tavanını / dibini de kaydırır:  değişiklik HER KARTTA kendi kuyusuyla hesaplanır
      ( f:  kartın değerleri → değişiklik ).  Durak alanları kartlarda eşit olduğundan aynı çıkar.  */
-export function kartlaraUygula(p: AvanProjesi, f: (h: Ham) => Record<string, string> | null): AvanProjesi {
-  return katlariEsitle({ ...p, avanAsansorleri: p.avanAsansorleri.map((a) => ({ ...a, ...(f(a) ?? {}) })) });
+export function kartlaraUygula(
+  p: AvanProjesi,
+  f: (h: Ham) => Record<string, string> | null,
+  /**  i. kartın asansörü tablonun en ÜST / en ALT durağına hizmet ediyor mu ( hizmet aralığı ):
+       etmiyorsa kuyu tavanı / dibi tablonun ucuyla birlikte kaymaz.  Verilmezse hepsi eder.  */
+  uclar?: (i: number) => { ust: boolean; alt: boolean },
+): AvanProjesi {
+  return katlariEsitle({
+    ...p,
+    avanAsansorleri: p.avanAsansorleri.map((a, i) => {
+      const d = { ...(f(a) ?? {}) };
+      const u = uclar?.(i);
+      if (u && !u.ust) {
+        delete d.kuyu_tavani_kotu;
+        delete d.md_zemini_kotu;
+      }
+      if (u && !u.alt) delete d.kuyu_dibi_kotu;
+      return { ...a, ...d };
+    }),
+  });
+}
+
+/**  HİZMET ARALIĞI ( trafik sütununun alt_durak · ust_durak'ı — tablodaki sıra, 1'den ) tablo
+     değişince:  bir durak silinince üstündeki sıralar bir iner ( aralık aynı katları gösterir );
+     tablo baştan yazılınca ( hızlı doldur, yapıştır ) aralıklar silinir — eski sıralar yeni
+     tablonun başka katlarını gösterirdi.  */
+export function araliklariUyarla(p: AvanProjesi, olay: { tur: "sil"; j: number } | { tur: "yeni" }): AvanProjesi {
+  const dolu = p.trafikAsansorleri.some((a) => (a.alt_durak ?? "").trim() || (a.ust_durak ?? "").trim());
+  if (!dolu) return p;
+  const kaydir = (v: string | undefined, sinir: number) => {
+    const n = parseInt((v ?? "").trim(), 10);
+    if (olay.tur !== "sil" || !Number.isFinite(n)) return "";
+    return String(n > sinir ? n - 1 : n);
+  };
+  return {
+    ...p,
+    trafikAsansorleri: p.trafikAsansorleri.map((a) => {
+      if (olay.tur === "yeni") return { ...a, alt_durak: "", ust_durak: "" };
+      //  silinen durağın sırası j + 1:  en alt, silinenin ÜSTÜNDEYSE iner;  en üst, silinen ya da üstüyse
+      return { ...a, alt_durak: kaydir(a.alt_durak, olay.j + 1), ust_durak: kaydir(a.ust_durak, olay.j) };
+    }),
+  };
 }
 
 const PROJE = "asansor:avan";
@@ -271,6 +311,9 @@ const TRAFIK_SUTUNU: Record<string, string> = {
   durak: "durak",
   h: "h",
   bodrum: "bodrum",
+  //  Hizmet aralığı ( 17 Kas ):  binanın kot tablosundaki en alt / en üst durağın sırası
+  alt_durak: "alt",
+  ust_durak: "ust",
   manuel_ta: "mta",
   manuel_tk: "mtk",
   manuel_tg: "mtg",

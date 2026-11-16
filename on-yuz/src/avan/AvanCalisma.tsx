@@ -15,6 +15,7 @@ import {
   type AvanKoprusu,
   type AvanYaniti,
   type Deger,
+  type KatDuzeni,
   type OlcuKaynagi,
   type Secenekler,
   type TrafikYaniti,
@@ -30,6 +31,7 @@ import {
   avanAyarlari,
   avanAyarlariYaz,
   avanSecimVarsayilani,
+  araliklariUyarla,
   binaKatlari,
   kartaYaz,
   kartlaraUygula,
@@ -53,7 +55,7 @@ import {
   type EkNufus,
 } from "@/lib/avan";
 import { avanHukmu, durumYaz } from "@/lib/durum";
-import { DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU } from "@/lib/kotlar";
+import { DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, katDilimi, kotlariOku, kotYaz } from "@/lib/kotlar";
 import { KatGirisi } from "@/uygulama/KotTablosu";
 import { KAPAK_GRUPLARI } from "@/lib/kapak";
 import { cn, sayiYaz } from "@/lib/utils";
@@ -137,6 +139,9 @@ export function AvanCalisma() {
         );
         return {
           ...h,
+          //  HİZMET ARALIĞI ( 17 Kas ):  karta binanın kot tablosunun asansörün hizmet ettiği dilimi
+          //  gider — avan hesabı, çizim ve paket yalnız o durakları görür ( köprünün "kat"ı )
+          ...(ka[i].kat && (h.durak_kotlari ?? "").trim() !== "" ? katDilimi(h, ka[i].kat) : {}),
           ...secimler,
           aktif: true,
           kapasite: String(ka[i].P),
@@ -391,7 +396,7 @@ export function AvanCalisma() {
       )}
 
       {adim === "trafik" && (
-        <TrafikAdimi p={p} setP={setP} sec={sec.data} sonuc={trafik.data} kot={avan.data?.kotlar?.find((x) => !!x)} yukleniyor={trafik.isFetching} govde={{ girdiler: trafikGirdi, kapak: kapakVerisi }} ileri={() => git("/avan/hesaplar")} />
+        <TrafikAdimi p={p} setP={setP} sec={sec.data} sonuc={trafik.data} kotlar={avan.data?.kotlar} yukleniyor={trafik.isFetching} govde={{ girdiler: trafikGirdi, kapak: kapakVerisi }} ileri={() => git("/avan/hesaplar")} />
       )}
       {adim === "hesaplar" && (
         <HesaplarAdimi
@@ -542,6 +547,12 @@ function Satir({ etiket, id, children, ipucu }: { etiket: string; id: string; ch
 /* ───────────────────────────── 1 · TRAFİK */
 /**  Trafik sütununun kendi kat düzeni:  kot tablosu doluyken okunmaz ( sunucu:  ASANSOR_KAT_ALANLARI )  */
 const SUTUN_KAT = ["durak", "h", "bodrum"];
+/**  Kot tablosu doluyken sütunun kilitli kat kutularında yazan:  asansörün hizmet aralığından
+     türeyen durak sayısı ( giriş üstü + ana giriş ), kat yüksekliği ve bodrum durağı  */
+function sutunYazi(d: (KatDuzeni & { h: number }) | undefined, k: string): string {
+  if (!d) return "";
+  return k === "durak" ? String(d.N + 1) : k === "bodrum" ? String(d.bodrum) : sayiYaz(Math.round(d.h * 1000) / 1000);
+}
 
 function TrafikAdimi({
   p,
@@ -551,11 +562,12 @@ function TrafikAdimi({
   yukleniyor,
   govde,
   ileri,
-  kot,
+  kotlar,
 }: {
   govde: unknown;
   /**  Avan yanıtından kat adları ( kuraldan adlar — tablonun soluk yer tutucuları )  */
-  kot: AvanKotBilgisi | null | undefined;
+  /**  Avan hesabının kot bilgileri ( asansör sırasıyla ):  kat adları buradan  */
+  kotlar: (AvanKotBilgisi | null)[] | undefined;
   p: AvanProjesi;
   setP: React.Dispatch<React.SetStateAction<AvanProjesi>>;
   sec: Secenekler;
@@ -578,6 +590,27 @@ function TrafikAdimi({
   const bina = binaKatlari(p);
   const tabloDolu = (bina.durak_kotlari ?? "").trim() !== "";
   const duzen = sonuc?.kat_duzeni;
+  //  Hizmet aralığının seçenekleri:  tablonun durakları ( sıra · ad · kot )
+  const binaKotlari = kotlariOku(bina.durak_kotlari);
+  const durakSayisi = binaKotlari.length;
+  //  Kat adları ( sunucunun kuraldan adları ) EN GENİŞ aralıklı asansörün kartından:  kartı
+  //  tablonun bir dilimiyse ( hizmet aralığı ) adlar o dilimin sırasıyladır — tablodaki sıraya
+  //  kaydırılır ( dilimin dışındaki durağın adı kuraldan gösterilemez:  boş kalır )
+  const kopruAsansorleri = sonuc?.avan_koprusu?.asansorler ?? [];
+  const genis = kopruAsansorleri.reduce(
+    (en, a, i) => ((a.kat ? a.kat.ust - a.kat.alt : -1) > (kopruAsansorleri[en]?.kat ? kopruAsansorleri[en].kat!.ust - kopruAsansorleri[en].kat!.alt : -1) ? i : en),
+    0,
+  );
+  const kot = kotlar?.[genis] ?? kotlar?.find((x) => !!x);
+  const adListesi = Array.isArray(kot?.adlar?.adlar) ? (kot.adlar.adlar as unknown[]) : [];
+  const adKaymasi = (kopruAsansorleri[genis]?.kat?.alt ?? 1) - 1;
+  const durakAdi = (j: number) => (typeof adListesi[j - adKaymasi] === "string" ? (adListesi[j - adKaymasi] as string) : "");
+  const durakSecenekleri = binaKotlari.map((k, j) => ({
+    deger: String(j + 1),
+    ad: `${j + 1}. durak${durakAdi(j) ? ` · ${durakAdi(j)}` : ""}${k === null ? "" : ` · ${kotYaz(k)}`}`,
+  }));
+  //  Sütunun ( asansörün ) kendi düzeni:  sunucunun türettiği ( sira = sütunun numarası )
+  const sutunDuzeni = (i: number) => duzen?.asansorler?.find((d) => d.sira === i + 1);
   const duzenYazi: Record<string, string> = duzen
     ? { N: String(duzen.N), h: sayiYaz(Math.round(duzen.h * 1000) / 1000), bodrum: String(duzen.bodrum) }
     : {};
@@ -594,12 +627,27 @@ function TrafikAdimi({
           <Kume baslik="Katlar" alt="Binanın durak kotları — trafik, avan hesabı ve çizim aynı tablodan">
             <KatGirisi
               h={bina}
-              kullanilan={kot ? ({ _kot: kot.adlar } as unknown as Record<string, Deger>) : undefined}
+              kullanilan={
+                kot
+                  ? ({
+                      _kot: { ...kot.adlar, adlar: binaKotlari.map((_, j) => durakAdi(j)), giris: duzen?.giris ?? null },
+                    } as unknown as Record<string, Deger>)
+                  : undefined
+              }
               daireli={false}
               doseme={0}
               etkin={() => undefined}
               yaz={(k, d) => setP((q) => kartaYaz(q, 0, k, d))}
-              hepsine={(f) => setP((q) => kartlaraUygula(q, f))}
+              hepsine={(f) =>
+                setP((q) =>
+                  kartlaraUygula(q, f, (i) => {
+                    //  Kuyu tavanı / dibi yalnız tablonun o ucuna hizmet eden asansörde kayar
+                    const kat = sonuc?.avan_koprusu?.asansorler?.[i]?.kat;
+                    return { ust: !kat || kat.ust === durakSayisi, alt: !kat || kat.alt === 1 };
+                  }),
+                )
+              }
+              olay={(o) => setP((q) => araliklariUyarla(q, o))}
               kapsam="duraklar"
               bosAcik
             />
@@ -767,6 +815,28 @@ function TrafikAdimi({
                       ))}
                     </tr>
                   ))}
+                  {tabloDolu &&
+                    (
+                      [
+                        ["alt_durak", "En alt durak", "en alt"],
+                        ["ust_durak", "En üst durak", "en üst"],
+                      ] as const
+                    ).map(([k, e, tumu]) => (
+                      <tr key={k}>
+                        <td className="px-2 py-1 text-metin-2">{e}</td>
+                        {p.trafikAsansorleri.map((a, i) => (
+                          <td key={i} className="px-1 py-1">
+                            {/*  Hizmet aralığı:  asansörün indiği / çıktığı son durak ( boş:  tablonun ucu )  */}
+                            <Secim
+                              etiket={`${i + 1}. asansör ${e}`}
+                              deger={a[k] || "_"}
+                              degisti={(d) => ay(i, k, d === "_" ? "" : d)}
+                              secenekler={[{ deger: "_", ad: `${tumu} ( tablonun ucu )` }, ...durakSecenekleri]}
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
                   {[
                     ["durak", "Durak", "N+1"],
                     ...(ayrinti
@@ -787,7 +857,7 @@ function TrafikAdimi({
                           {/*  Kot tablosu doluyken bütün asansörler tablonun tamamını kullanır  */}
                           <Girdi
                             aria-label={`${i + 1}. asansör ${e}`}
-                            value={tabloDolu && SUTUN_KAT.includes(k) ? "" : (a[k] ?? "")}
+                            value={tabloDolu && SUTUN_KAT.includes(k) ? sutunYazi(sutunDuzeni(i), k) : (a[k] ?? "")}
                             placeholder={tabloDolu && SUTUN_KAT.includes(k) ? "kotlardan" : yer}
                             disabled={tabloDolu && SUTUN_KAT.includes(k)}
                             onChange={(ev) => ay(i, k, ev.target.value)}
@@ -1038,7 +1108,7 @@ function AvanKatlar({
   yaz,
   mrl,
   kot,
-  hepsine,
+  kat,
 }: {
   /**  Kutu kimliklerinin ön eki ( adım başına )  */
   on: string;
@@ -1046,11 +1116,13 @@ function AvanKatlar({
   yaz: (k: string, d: string) => void;
   mrl: boolean;
   kot: AvanKotBilgisi | null | undefined;
-  /**  Tablonun araçları ( durak ekle, hızlı doldur, kaydır … ) bütün kartlara — durak kotları
-       binanındır ( lib/avan.kartlaraUygula )  */
-  hepsine: (f: (h: Ham) => Record<string, string> | null) => void;
+  /**  Asansörün hizmet aralığı ( köprüden ):  kartın kotları binanın tablosunun bu dilimidir  */
+  kat: KatDuzeni | undefined;
 }) {
   const kotVar = [DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU].some((k) => (h[k] ?? "").trim() !== "");
+  //  Kartın gördüğü kotlar:  binanın tablosunun asansörün hizmet ettiği dilimi
+  const dilim: Ham = kat && (h[DURAK_KOTLARI] ?? "").trim() !== "" ? { ...h, ...katDilimi(h, kat) } : h;
+  const dilimKotlari = kotlariOku(dilim[DURAK_KOTLARI]).filter((x): x is number => x !== null);
   const mm = (x: number | null | undefined) => (typeof x === "number" ? Math.round(x * 1000) : undefined);
   //  Kot tablosunun özeti uygulamanın adlarıyla ( durak, seyir m, KY ve son kat mm )
   const kullanilan = kot
@@ -1064,15 +1136,27 @@ function AvanKatlar({
     : undefined;
   return (
     <div>
+      {/*  Durak kotları binanın tablosundadır ( Trafik hesabı → Katlar ):  kartta asansörün hizmet
+           ettiği duraklar salt okunur, yalnız kuyuya özgü kotlar girilir ( 17 Kas )  */}
       <KatGirisi
-        h={h}
+        h={dilim}
         kullanilan={kullanilan}
         daireli={!mrl}
         doseme={kot?.doseme ?? 0}
         etkin={() => undefined}
         yaz={yaz}
-        hepsine={hepsine}
-        bosAcik
+        kapsam="kuyu"
+        duraklar={
+          <div className="flex items-center gap-1.5 py-px" data-hizmet-araligi>
+            <span className="min-w-0 flex-1 truncate text-[12px] text-metin-2">Hizmet ettiği duraklar</span>
+            <span className="sayi text-right text-[12px] text-metin-2">
+              {dilimKotlari.length
+                ? `${kotYaz(dilimKotlari[0])} … ${kotYaz(dilimKotlari[dilimKotlari.length - 1])} · ${dilimKotlari.length} durak`
+                : "—"}
+            </span>
+            <span className="w-5" />
+          </div>
+        }
       />
       {kotVar && (
         <Satir etiket="Tavan döşemesi kalınlığı" id={`${on}-tavan_dosemesi`}>
@@ -1246,7 +1330,7 @@ function HesaplarAdimi({
             </Satir>
             {AVAN_TEMEL.map((a) =>
               a.k === "Hk" ? (
-                <AvanKatlar key={a.k} on="a" h={h} yaz={ay} mrl={mrl} kot={sonuc?.kotlar?.[i]} hepsine={(f) => setP((q) => kartlaraUygula(q, f))} />
+                <AvanKatlar key={a.k} on="a" h={h} yaz={ay} mrl={mrl} kot={sonuc?.kotlar?.[i]} kat={kopru.asansorler[i]?.kat} />
               ) : a.k === "kabin_genisligi" ? (
                 <div key={a.k}>
                   <AvanAlanSatiri a={a} sec={sec} ofis={ofis} h={h} yaz={ay} mrl={mrl} />
@@ -1551,7 +1635,7 @@ function CizimlerAdimi({
               <Girdi id={`c-${k}`} value={h[k] ?? ""} birim={b} onChange={(ev) => ay(k, ev.target.value)} />
             </Satir>
           ))}
-          <AvanKatlar on="c" h={h} yaz={ay} mrl={mrl} kot={sonuc?.kotlar?.[i]} hepsine={(f) => setP((q) => kartlaraUygula(q, f))} />
+          <AvanKatlar on="c" h={h} yaz={ay} mrl={mrl} kot={sonuc?.kotlar?.[i]} kat={kopru.asansorler[i]?.kat} />
         </Kume>
         {Object.keys(ayarlar).length > 0 && (
           <Kume baslik="Elle ayarlanan ölçüler" alt="Çizimde tıklayıp değiştirdikleriniz;  kalanını program seçer">
@@ -1619,7 +1703,9 @@ function CizimlerAdimi({
               <p role="status" className="border-b border-cizgi bg-yuzey px-4 py-1.5 text-[12px] text-metin-2">
                 <Info className="mr-1 inline size-3.5 align-[-2px]" />
                 <span className="sayi font-medium text-metin">{olcu.metin}</span>
-                {` — mimariden:  ${[...new Set((kaynak.data.kaynaklar ?? []).map((k) => k.etiket))].join(" · ")}.  Soldaki kutudan değiştirin.`}
+                {` — mimariden:  ${[...new Set((kaynak.data.kaynaklar ?? []).map((k) => k.etiket))].join(" · ")}.  `}
+                {/*  Durak kotları binanın tablosundadır ( 17 Kas ):  kartta kutusu yoktur  */}
+                {mimari.anahtar === "durak_kotlari" ? "Trafik hesabı → Katlar tablosundan değiştirin." : "Soldaki kutudan değiştirin."}
               </p>
             )}
             <div className="relative min-h-0 flex-1 overflow-hidden">
@@ -1642,7 +1728,7 @@ function CizimlerAdimi({
                         kapat={() => setOlcu(null)}
                         yaz={(d) => kutudanYaz(d)}
                         kilitli={(k) => AVAN_KILITLI.has(k.anahtar) || (k.yer === "proje" && !BINA_OLCULERI.has(k.anahtar))}
-                        kilitNotu="Kabin, kapı ve hız trafik hesabından;  kotlar soldaki tablodan değişir."
+                        kilitNotu="Kabin, kapı ve hız trafik hesabından;  durak kotları Trafik hesabındaki Katlar tablosundan, kuyu kotları soldan değişir."
                       />
                     )
                   }

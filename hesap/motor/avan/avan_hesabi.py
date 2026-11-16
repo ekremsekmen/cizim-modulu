@@ -2346,7 +2346,9 @@ def _trafik_tutarlilik(trafik, asansorler_girdi):
         kot = a.get("_kot") or {}
         if a.get("_kot_hatasi"):
             continue
-        N, bodrum = trafik.get("N"), trafik.get("bodrum")
+        #  Asansörün kendi kat düzeni varsa ( hizmet aralığı — köprünün asansöründe ) o
+        N = t["N"] if sayi_mi(t.get("N")) else trafik.get("N")
+        bodrum = t["bodrum"] if sayi_mi(t.get("bodrum")) else trafik.get("bodrum")
         if kot.get("durak") and sayi_mi(N):
             t_durak = int(N) + 1 + (int(bodrum) if sayi_mi(bodrum) else 0)
             if t_durak != kot["durak"]:
