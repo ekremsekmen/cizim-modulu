@@ -583,6 +583,56 @@ class OnYuzUctanUca(unittest.TestCase):
         )
         self.assertTrue(kart.is_visible())
 
+    def test_makine_dairesi_kapisi_suruklenir(self):
+        """17 Kas ( kullanıcı:  "makine dairesindeki kapının yerini o duvar boyunca sürükleyerek
+        değiştirebilmek istiyorum" ):  makine dairesi planında kapı fareyle duvarı boyunca
+        sürüklenir, kayma "köşeden uzaklık" girdisine yazılır ( 10 mm adımla ), çizim yeniden
+        kurulur.  Duvarın ucunda durur ( 630-md:  arka duvar 2.600, kapı 800 → en çok 1.800 ).
+        Sürüklemeden tıklamak parçanın kutusunu açar ( bugünkü gibi )."""
+        self.sayfa.goto(self.url + "/")
+        self.sayfa.get_by_role("link", name="630 kg · 8 kişi · Makine daireli taslağıyla yeni proje").click()
+        self.sayfa.wait_for_url(re.compile(r"/uygulama/[0-9a-z]{6,}$"))
+        self.sayfa.goto(self.sayfa.url + "?cizim=makine_dairesi")
+        kapi = self.sayfa.locator('[data-cizim="makine_dairesi"] [data-parca^="oda_kapisi-"]').first
+        kapi.wait_for(state="attached")
+        self.iz.sakin()
+
+        def surukle(dx):
+            b = kapi.bounding_box()
+            x, y = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+            self.sayfa.mouse.move(x, y)
+            self.sayfa.mouse.down()
+            for i in range(1, 9):
+                self.sayfa.mouse.move(x + dx * i / 8, y)
+            self.sayfa.mouse.up()
+            self.iz.sakin()
+
+        def konum():
+            istek, cizim = self.iz.son("/api/uygulama/cizimler")
+            return istek["proje_geneli"].get("md_kapi_konum"), cizim
+
+        x0 = kapi.bounding_box()["x"]
+        surukle(80)
+        k, cizim = konum()
+        self.assertTrue(cizim["aktif"], cizim.get("hata"))
+        self.assertGreater(int(k), 300)
+        self.assertEqual(int(k) % 10, 0)
+        self.assertGreater(kapi.bounding_box()["x"], x0 + 40)
+        #  Duvarın ucunda durur:  istek duvarın içinde kalır, çizim kurulur
+        surukle(600)
+        k, cizim = konum()
+        self.assertEqual(k, "1800")
+        self.assertTrue(cizim["aktif"], cizim.get("hata"))
+        self.assertEqual(cizim.get("sorunlar") or [], [])
+        #  Sürüklemeden tıklamak:  parçanın kutusu ( konumu girdisiyle ) — kapının üstünde "KAPI 800"
+        #  yazısı var:  tuval noktanın altındaki parçayı bulur ( parcaBul ), tıklama noktaya yapılır
+        b = kapi.bounding_box()
+        self.sayfa.mouse.click(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2)
+        kutu = self.sayfa.get_by_role("dialog").filter(has_text="Makine dairesi kapısı")
+        kutu.wait_for()
+        #  Girdileri sunucudan gelir ( "Girdileri bulunuyor" ):  metin beklenerek okunur
+        kutu.get_by_text("köşeden uzaklığı").first.wait_for()
+
     def _dosyadan_ac(self, alanlar):
         """Eski biçimli proje dosyasını ( alanlar ) boş tarayıcıda açar."""
         govde = {"__mod": "uygulama", "__surum": 1, "alanlar": alanlar}

@@ -31,6 +31,7 @@ import {
   type UygulamaIstegi,
 } from "@/lib/api";
 import {
+  alanOku,
   alanYaz,
   asansorAdedi,
   asansorEkle,
@@ -42,6 +43,7 @@ import {
   useOfisStandardi,
   useUygulamaProjesi,
   kotlayaCevir,
+  sayiOku,
   type Ham,
   type UygulamaProjesi,
 } from "@/lib/proje";
@@ -164,6 +166,31 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     },
     [guncelle, sema, a],
   );
+  //  MAKİNE DAİRESİ KAPISI SÜRÜKLENİR ( 17 Kas — kullanıcı:  "kapının yerini o duvar boyunca
+  //  sürükleyerek değiştirebilmek istiyorum" ):  kapının duvarı boyunca kayma "köşeden uzaklık"
+  //  girdisine eklenir ( duvarın sol / ön iç köşesinden — makine_dairesi._duvar_seridi:  ön ve
+  //  arka duvarda x, yanlarda y boyunca ).  Duvarın dışına taşarsa sunucu söyler.
+  const kapiTasinir = useMemo(() => {
+    const kullanilan = sonuc?.girdi;
+    const duvar = alanOku(proje, sema, a, "md_kapi_duvar") ?? (typeof kullanilan?.md_kapi_duvar === "string" ? kullanilan.md_kapi_duvar : "Arka");
+    const sayi = (k: string, yedek?: number) => {
+      const y = sayiOku(alanOku(proje, sema, a, k) ?? "");
+      return y ?? (typeof kullanilan?.[k] === "number" ? (kullanilan[k] as number) : yedek);
+    };
+    const konum = sayi("md_kapi_konum", 300) as number;
+    //  Kapı duvarın iki ucunda durur:  ön / arka duvarın boyu odanın genişliği, yanlarınki uzunluğu
+    //  ( kopru:  mk_genislik → x, mk_uzunluk → y );  bilinmiyorsa sınırı sunucu söyler
+    const ony = duvar === "Ön" || duvar === "Arka";
+    const boy = sayi(ony ? "mk_genislik" : "mk_uzunluk");
+    const en = sayi("md_kapi_genislik", 800);
+    return {
+      cizimler: ["makine_dairesi", "delik_plani"],
+      ad: "oda_kapisi",
+      eksen: ony ? ("x" as const) : ("y" as const),
+      aralik: [-konum, boy !== undefined && en !== undefined ? Math.max(boy - en - konum, -konum) : Infinity] as [number, number],
+      birakti: (mm: number) => yaz("md_kapi_konum", String(Math.max(0, Math.round(konum + mm)))),
+    };
+  }, [proje, sema, a, sonuc, yaz]);
   //  Proje bilgilerinde yazılan da öyle:  geri almak kapağı kaldırmadan önceki hâline döndürür
   const bilgileriGuncelle = useCallback(
     (f: (p: UygulamaProjesi) => UygulamaProjesi) => {
@@ -495,6 +522,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
               olcuSec={(o) => setOlcu(o)}
               odak={params.get("cizim")}
               hatirla={`tuval-cizim:${proje.id}`}
+              tasinir={kapiTasinir}
               seciliParca={parca}
               parcaSec={(p) => {
                 setParca(p);

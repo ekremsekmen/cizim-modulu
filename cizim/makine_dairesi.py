@@ -281,6 +281,27 @@ def _kapi_sorunu(md):
     )
 
 
+def _kapi_duvarda(md):
+    """KAPI DUVARIN İÇİNDE ( 17 Kas — kapı sürüklenerek taşınır ):  kapı boşluğu duvarın sol ( ön )
+    iç köşesinden konum kadar ötede, duvarın iç boyunu aşamaz.  Eskiden 3,80 m'lik duvarda 5,00 m
+    sessizce kabul ediliyor, kapı odanın dışında çiziliyordu."""
+    boy = md["genislik"] if md["kapi_duvar"] in ("Ön", "Arka") else md["derinlik"]
+    asim = md["kapi_konum"] + md["kapi_genislik"] - boy
+    if asim <= 1e-6:
+        return []
+    return [
+        sorun.Sorun(
+            f"Makine dairesi kapısı {md['kapi_duvar'].lower()} duvarın dışına taşıyor:  köşeden "
+            f"{md['kapi_konum']:g} + kapı {md['kapi_genislik']:g} mm, duvarın iç boyu {boy:g} mm — "
+            f"kapının köşeden uzaklığı en çok {max(boy - md['kapi_genislik'], 0):g} mm olabilir.",
+            ("oda_kapisi",),
+            "makine_dairesi",
+            #  ≥ 0 iken uygun ( sorun.icinde gibi ):  çare bulucu kapıyı bu kadar kaydırır
+            fark=-asim,
+        )
+    ]
+
+
 def _pano_sorunu(md):
     """Pano yerleşemeyince çizilmez:  duvarı dolduran parçalar işaretlenir."""
     return sorun.Sorun(
@@ -335,6 +356,7 @@ def yerlesim(g, cizim_sabitleri=None):
     hata += _delik_hatalari(delikler, g["kuyu"]["genislik"], g["kuyu"]["derinlik"])
 
     kapi, kyon = _duvar_seridi(oda, md["kapi_duvar"], md["kapi_genislik"], 0.0, md["kapi_konum"])
+    hata += _kapi_duvarda(md)
     kapi_onu = _onunde(kapi, kyon, CALISMA_DERINLIK, md["kapi_genislik"])
     sabit0 = _sabit_parcalar(M, delikler, saptirma)
     kx, ky = dz.p(uk)

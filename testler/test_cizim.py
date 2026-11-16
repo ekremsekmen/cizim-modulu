@@ -1981,6 +1981,27 @@ class MakineDairesi(unittest.TestCase):
             with self.subTest(kapi=en):
                 self.assertEqual(not any("m.5.2.3.2 a" in x for x in h), uygun)
 
+    def test_kapi_duvarin_disina_tasmaz(self):
+        """17 Kas ( kapı sürüklenerek taşınır ):  köşeden uzaklık + kapı duvarın iç boyunu aşamaz —
+        eskiden 3,80 m'lik duvarda 5,00 m sessizce kabul ediliyor, kapı odanın dışında çiziliyordu.
+        Ön / arka duvarın boyu odanın genişliği, yanlarınki derinliği;  sınırın kendisi uygundur."""
+        md = _ornek()["makine_dairesi"]
+        for duvar, boy in (
+            ("Arka", md["genislik"]),
+            ("Ön", md["genislik"]),
+            ("Sol", md["derinlik"]),
+            ("Sağ", md["derinlik"]),
+        ):
+            for konum, uygun in ((boy - md["kapi_genislik"], True), (boy - md["kapi_genislik"] + 1, False)):
+                h = makine_dairesi._kapi_duvarda(dict(md, kapi_duvar=duvar, kapi_konum=konum))
+                with self.subTest(duvar=duvar, konum=konum):
+                    self.assertEqual(h == [], uygun, h)
+                    if not uygun:
+                        self.assertIn("duvarın dışına taşıyor", h[0])
+                        self.assertEqual(h[0].parcalar, ("oda_kapisi",))
+        h = makine_dairesi.dogrula(_ornek(makine_dairesi={"kapi_konum": md["genislik"]}))
+        self.assertTrue(any("duvarın dışına taşıyor" in x for x in h), h)
+
     def test_pano_calisma_alani_ve_bakim_alani(self):
         for ad, g in _md_projeler():
             Y = makine_dairesi.yerlesim(g)

@@ -29,6 +29,33 @@ export interface Parca {
   adi: string;
 }
 
+/**  SÜRÜKLENEREK TAŞINAN PARÇA ( 17 Kas — kullanıcı:  "makine dairesindeki kapının yerini o duvar
+     boyunca sürükleyerek değiştirebilmek istiyorum" ):  bu çizimlerdeki bu adlı parça bir eksen
+     boyunca sürüklenir;  bırakılınca kaydığı mesafe ( çizimin mm'si, adım ADIM_MM ) bildirilir —
+     girdiyi sunucu doğrular, çizimi yeniden kurar.  Sürüklerken parça önizleme olarak kayar.  */
+export interface Tasinir {
+  cizimler: string[];
+  /**  Parçanın adı ( data-parca'nın "ad-n"inden ad )  */
+  ad: string;
+  eksen: "x" | "y";
+  /**  Kaymanın sınırları ( mm;  kapı duvarın iki ucunda durur ) — yoksa sınırsız  */
+  aralik?: [number, number];
+  birakti: (mm: number) => void;
+}
+/**  Taşımanın adımı ( mm ) ve sürükleme sayılan en küçük kayma ( ekran pikseli )  */
+const ADIM_MM = 10;
+const TASIMA_ESIGI = 4;
+
+/**  İşaretçinin, parçanın çizim düzlemindeki yeri ( mm;  çizimin y'si yukarı — svg.yaz
+     scale( 1, −1 ) grubunun içi ).  Ekranın dönüşümleri ( levhanın ölçeği, yakınlık ) dahil.  */
+function cizimNoktasi(el: SVGGraphicsElement, x: number, y: number): { x: number; y: number } | null {
+  const ust = el.parentNode as SVGGraphicsElement | null;
+  const m = ust?.getScreenCTM?.();
+  if (!m) return null;
+  const p = new DOMPoint(x, y).matrixTransform(m.inverse());
+  return { x: p.x, y: p.y };
+}
+
 /**  Seçili ölçünün tuvaldeki kutusu ve tuvalin boyu ( piksel ).  */
 export interface OlcuKonumu {
   sol: number;
@@ -195,8 +222,11 @@ export function Tuval({
   geciciCizim = null,
   sorunSayisi = 0,
   sorunlaraGit,
+  tasinir = null,
   children,
 }: {
+  /**  Sürüklenerek taşınan parça ( makine dairesi kapısı ) — yoksa parçalar sürüklenmez  */
+  tasinir?: Tasinir | null;
   /**  Uygunluk kartının "Çizimde göster"i:  bu parçaları en çok gösteren çizime geçer
        ( n her istekte artar )  */
   hesapOdak?: { parcalar: string[]; n: number } | null;
@@ -405,9 +435,30 @@ export function Tuval({
   //  altındaki parçaya düşer, tıklama tuvale gelir.  Kutu o parçaya geçiyor ( altında
   //  parça yoksa kapanıyordu ), seçim listesi fareyle hiç açılamıyordu ( 6 Kas ).
   const kutudaBasildi = useRef(false);
+  //  Taşınan parça:  ekrandaki örnekleri ( aynı data-parca ), başladığı çizim noktası ve kayma
+  const tasima = useRef<{ els: SVGGraphicsElement[]; x0: number; y0: number; px: number; py: number; mm: number } | null>(null);
+  const tasimaBasla = (e: React.PointerEvent) => {
+    if (!tasinir || kip !== "tek" || !aktif || !tasinir.cizimler.includes(aktif)) return false;
+    const p = parcaBul(e.clientX, e.clientY, kap.current);
+    if (!p || p.cizim !== aktif || p.id.slice(0, p.id.lastIndexOf("-")) !== tasinir.ad) return false;
+    const els = [
+      ...(kap.current?.querySelectorAll<SVGGraphicsElement>(`[data-cizim="${p.cizim}"] [data-parca="${CSS.escape(p.id)}"]`) ?? []),
+    ];
+    const n = els[0] && cizimNoktasi(els[0], e.clientX, e.clientY);
+    if (!n) return false;
+    tasima.current = { els, x0: n.x, y0: n.y, px: e.clientX, py: e.clientY, mm: 0 };
+    return true;
+  };
   const basildi = (e: React.PointerEvent) => {
     kutudaBasildi.current = disarida(e) || !!(e.target as Element).closest("[data-tuval-arac], [data-olcu-kutu]");
     if (disarida(e) || e.button !== 0 || (e.target as Element).closest(".olcu, [data-tuval-arac], [data-olcu-kutu]")) return;
+    kaydi.current = false;
+    //  Taşınır parçanın üstünde basıldı:  tuval kaymaz, parça eksen boyunca kayar
+    if (tasimaBasla(e)) {
+      setSurukluyor(true);
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      return;
+    }
     surukle.current = { x: e.clientX, y: e.clientY, gx: g.x, gy: g.y };
     kaydi.current = false;
     setSurukluyor(true);
@@ -427,6 +478,20 @@ export function Tuval({
   };
   const oynadi = (e: React.PointerEvent) => {
     if (disarida(e)) return;
+    const t = tasima.current;
+    if (t && tasinir) {
+      if (Math.abs(e.clientX - t.px) + Math.abs(e.clientY - t.py) > TASIMA_ESIGI) kaydi.current = true;
+      if (!kaydi.current) return;
+      const n = cizimNoktasi(t.els[0], e.clientX, e.clientY);
+      if (!n) return;
+      const d = tasinir.eksen === "x" ? n.x - t.x0 : n.y - t.y0;
+      const [en, eb] = tasinir.aralik ?? [-Infinity, Infinity];
+      t.mm = Math.min(Math.max(Math.round(d / ADIM_MM) * ADIM_MM, en), eb);
+      const [dx, dy] = tasinir.eksen === "x" ? [t.mm, 0] : [0, t.mm];
+      t.els.forEach((el) => el.setAttribute("transform", `translate(${dx} ${dy})`));
+      setUstunde(null);
+      return;
+    }
     const s = surukle.current;
     if (!s || !kaydi.current) {
       const p = kip === "tek" ? parcaBul(e.clientX, e.clientY, kap.current) : null;
@@ -441,9 +506,23 @@ export function Tuval({
     setG((o) => ({ ...o, x: s.gx + e.clientX - s.x, y: s.gy + e.clientY - s.y }));
   };
   const birakti = () => {
+    const t = tasima.current;
+    tasima.current = null;
     surukle.current = null;
     setSurukluyor(false);
+    //  Bırakıldı:  önizleme yeni çizim gelene kadar yerinde kalır ( aşağıdaki etki kaldırır );
+    //  kaymadıysa tıklamadır ( parça kutusu açılır )
+    if (t && kaydi.current) {
+      if (t.mm !== 0) tasinir?.birakti(t.mm);
+      else t.els.forEach((el) => el.removeAttribute("transform"));
+    }
   };
+  //  Yeni çizim ( ya da hata — çizim değişmeden durum değişir ):  taşıma önizlemesi kalkar.
+  //  İstek sürerken kalır:  kapı geri sıçrayıp sonra yeni yerinde belirmesin
+  useEffect(() => {
+    if (durum === "yukleniyor") return;
+    kap.current?.querySelectorAll("[data-parca][transform]").forEach((el) => el.removeAttribute("transform"));
+  }, [cizimler, durum]);
 
   const olcuyuSec = (o: Element) => {
     const fig = o.closest("[data-cizim]") as HTMLElement;
@@ -650,7 +729,15 @@ export function Tuval({
         e.currentTarget.scrollTop = 0;
         e.currentTarget.scrollLeft = 0;
       }}
-      style={{ cursor: surukluyor ? "grabbing" : kip === "tumu" ? "pointer" : "default" }}
+      style={{
+        cursor: surukluyor
+          ? "grabbing"
+          : kip === "tumu"
+            ? "pointer"
+            : tasinir && ustunde && tasinir.cizimler.includes(ustunde.cizim) && ustunde.id.startsWith(`${tasinir.ad}-`)
+              ? "grab"
+              : "default",
+      }}
     >
       <style>{katmanStili}</style>
       {/*  Çizim levhası:  1 px = 1 mm, bütün levha ölçeklenir  */}
