@@ -5,14 +5,22 @@ hesaplasa … çizimlerle hesaplar birebir uyumlu olur".  Binanın kot tablosu d
 ucu N / bodrum / h'yi ondan türetir ( katlar.kat_duzeni, avan_uclari._kat_duzeni );  motor
 değişmez.  Burada:  kural, sınır durumları, uç ve DEĞİŞMEZ — rastgele kot tablolarında
 trafiğin toplam seyahati avanın kotlardan türettiği seyirle, durak sayıları birbiriyle
-aynıdır ve avan "kat düzeni tutmuyor" demez."""
+aynıdır ve avan "kat düzeni tutmuyor" demez.  Son halka ÇİZİM ( planın 4. adımı ):  her
+asansörün düşey kesitlerinde yazan durak kotları tablonunkilerdir — ekranda ve pakette."""
 
+import io
 import json
 import random
+import re
 import unittest
+import zipfile
+
+import ezdxf
 
 from cizim import katlar
-from uclar import avan_uclari
+from testler.test_avan_cizim_ucu import T630
+from testler.test_avan_cizim_ucu import kart as cizim_karti
+from uclar import avan_cizim_uclari, avan_uclari
 
 BINA = {"bina_tipi": "Konut", "bina_yuksekligi": "30", "yapi_yuksekligi": "31", "hizli1": "20", "hizli2": "2"}
 ASANSOR = {"P": "8", "kapi_genisligi": "800", "kapi_tipi": "Teleskopik Otomatik"}
@@ -201,6 +209,101 @@ class Degismez(unittest.TestCase):
                 self.assertAlmostEqual(k["seyir"], t["ozet"]["toplam_seyahat"], places=9)
                 self.assertAlmostEqual(a["ozet"]["asansorler"][0]["Hk"], (tavan - dip) / 1000.0, places=9)
                 self.assertEqual([u for u in a["uyarilar"] if "kat düzeni" in u or "trafik hesabı" in u], [])
+
+
+_KOT = re.compile(r"^[+\-−±]\d+,\d\d$")
+
+
+class CizimAyniTablo(unittest.TestCase):
+    """TABLO → TRAFİK → AVAN → ÇİZİM:  aynı kotlar.  Hazır 630 kg asansörünün kuyusu ( kuyu dibi
+    1,60 · son kat 4,20 ) tablonun altına ve üstüne eklenir;  katlar eşitsiz, giriş katı en
+    alt durak olmayabilir."""
+
+    TABLOLAR = (
+        ([0, 3200, 6100, 9400, 12300, 15000], None),
+        ([-3100, 0, 3200, 6100, 9400, 12300], None),  # bodrumlu:  giriş ±0,00 ( kuraldan 2. durak )
+        ([500, 3400, 6500, 9300, 12600, 15500, 18400], "1"),  # giriş katı +0,50 ( girildi )
+    )
+
+    def kartlar(self, kotlar, giris, adet=1):
+        kot = {"durak_kotlari": metin(kotlar)}
+        if giris:
+            kot["giris_duragi"] = giris
+        kuyu = {
+            "kuyu_dibi_kotu": katlar.kot_metni(kotlar[0] - 1600),
+            "kuyu_tavani_kotu": katlar.kot_metni(kotlar[-1] + 4200),
+        }
+        return kot, [cizim_karti(T630, **kot, **kuyu, eta="0,85") for _ in range(adet)]
+
+    def kesit_kotlari(self, kartlar, i):
+        """i. asansörün iki düşey kesitinde yazan kotlar:  { çizim : { kot yazısı } }."""
+        g = {"girdiler": {"ortak": {"mk_yok": True}, "asansorler": kartlar, "sabitler": {}}, "asansor": i}
+        r = json.loads(avan_cizim_uclari.api_avan_cizimler(g).body)
+        self.assertEqual(r["durum"], "uygun", r)
+        out = {}
+        for c in r["cizim"]["cizimler"]:
+            if c["ad"] in ("kuyu_kesiti_yan", "kuyu_kesiti_on"):
+                yazilar = (
+                    re.sub(r"<[^>]+>", "", t).strip()
+                    for t in re.findall(r"<text[^>]*>(.*?)</text>", c["svg"], flags=re.S)
+                )
+                out[c["ad"]] = {y for y in yazilar if _KOT.match(y)}
+        self.assertEqual(set(out), {"kuyu_kesiti_yan", "kuyu_kesiti_on"})
+        return out
+
+    def test_kesitlerin_durak_kotlari_tablonun(self):
+        """Üç tablo:  trafiğin seyahati = avanın seyri = tablonun en üst − en alt kotu ve iki düşey
+        kesitte yazan kotlar tam olarak tablonun kotları ( + kuyu dibi )."""
+        for kotlar, giris in self.TABLOLAR:
+            with self.subTest(kotlar=metin(kotlar), giris=giris):
+                kot, kartlar = self.kartlar(kotlar, giris)
+                seyir = (kotlar[-1] - kotlar[0]) / 1000.0
+                t = trafik(**kot)
+                self.assertIsNone(t.get("hata"), t.get("hata"))
+                self.assertAlmostEqual(t["ozet"]["toplam_seyahat"], seyir, places=9)
+                a = avan(kartlar[0], t["avan_koprusu"])
+                self.assertIsNone(a.get("hata"), a.get("hata"))
+                self.assertAlmostEqual(a["kotlar"][0]["seyir"], seyir, places=9)
+                self.assertEqual(a["kotlar"][0]["durak"], t["ozet"]["durak"])
+                beklenen = {katlar.kot_metni(k) for k in kotlar} | {katlar.kot_metni(kotlar[0] - 1600)}
+                for ad, yazilan in self.kesit_kotlari(kartlar, 0).items():
+                    self.assertEqual(yazilan, beklenen, ad)
+
+    def test_butun_asansorlerin_kesitleri_ayni_tablo(self):
+        """İki asansör ( kartlarında aynı tablo ):  ekranda her birinin kesitleri ve PAKETTEKİ
+        ( "Projeyi indir" ) düşey kesitleri tablonun kotlarını yazar."""
+        kotlar, giris = self.TABLOLAR[1]
+        _kot, kartlar = self.kartlar(kotlar, giris, adet=2)
+        beklenen = {katlar.kot_metni(k) for k in kotlar}
+        for i in (0, 1):
+            for ad, yazilan in self.kesit_kotlari(kartlar, i).items():
+                self.assertTrue(beklenen <= yazilan, (i, ad, beklenen - yazilan))
+        yanit = avan_uclari.indir_proje_dwg(
+            {
+                "kapak": {"project_title": "Kot tablosu"},
+                "girdiler": {
+                    "avan": {
+                        "ortak": {"mk_yok": True, "temel_a": "20", "temel_b": "15"},
+                        "asansorler": [
+                            {"kabin_boyu": "1400", "kabin_genisligi": "1100", **k} for k in kartlar
+                        ],
+                        "sabitler": {},
+                    }
+                },
+            }
+        )
+        self.assertEqual(yanit.media_type, "application/zip", getattr(yanit, "body", b"")[:400])
+        self.assertNotIn("CIZIM", (yanit.headers.get("X-Avan-Not") or "").split(","))
+        z = zipfile.ZipFile(io.BytesIO(yanit.body))
+        d = ezdxf.read(
+            io.StringIO(z.read(next(n for n in z.namelist() if n.endswith(".dxf"))).decode("utf-8", "ignore"))
+        )
+        for i in (1, 2):
+            for kesit in ("YAN", "ON"):
+                blok = d.blocks.get(f"CIZIM_KUYU_KESITI_{kesit}_{i}")
+                self.assertIsNotNone(blok, [b.name for b in d.blocks if b.name.startswith("CIZIM_KUYU")])
+                yazilan = {t.plain_text().strip() for t in blok.query("MTEXT TEXT")}
+                self.assertTrue(beklenen <= yazilan, (i, kesit, beklenen - yazilan))
 
 
 if __name__ == "__main__":

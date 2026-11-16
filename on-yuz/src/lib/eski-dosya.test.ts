@@ -91,6 +91,11 @@ const KART: [string, (string | number)[] | null][] = [
   ["S1", SEC.kesitler],
   ["L1", null],
 ];
+//  Kot tablosu ( 13 Kas'tan ):  eski dosyada her kartta AYRI durur;  16 Kas'tan binanındır —
+//  okununca kotu yazılmış ilk kartınki bütün kartlara geçer ( lib/avan.katlariEsitle ),
+//  kartlar farklıydıysa söylenir ( katFarki ).  Kuyu dibi / tavanı kartta kalır.
+const KATLAR = ["durak_kotlari", "durak_adlari", "giris_duragi"];
+const KUYU_KOTLARI = ["kuyu_dibi_kotu", "kuyu_tavani_kotu", "md_zemini_kotu"];
 const ORTAK = ["temel_a", "temel_b", "mk_uzunluk", "mk_genislik"];
 const KAPAK = ["project_title", "owner", "city", "capacity", "speed"];
 
@@ -132,6 +137,13 @@ function avanUret(R: Uretici) {
       else if (liste) a[`a_${k}${i}`] = R.sec([...liste, ...(AVAN_SECIM_VARSAYILANI[k] ? [AVAN_SECIM_VARSAYILANI[k]] : []), "Eski", "7"]);
       else if (R.olasi(0.4)) a[`a_${k}${i}`] = sayiYaDa(R, ["İnsan", "1800"]);
     }
+    //  Kartın kendi kot tablosu ( eski sürüm ):  kimi kartta yok, kimi kartta başka
+    if (R.olasi(0.4)) {
+      a[`a_durak_kotlari${i}`] = R.sec(["±0,00; +3,00; +6,00", "-3,00; ±0,00; +3,20; +6,40", "0; 3", "", " ±0,00; +3,00; +6,00 "]);
+      if (R.olasi(0.5)) a[`a_durak_adlari${i}`] = R.sec(["B; Z; 1", "Z; 1; 2", ""]);
+      if (R.olasi(0.5)) a[`a_giris_duragi${i}`] = R.sec(["1", "2", 2, ""]);
+    }
+    for (const k of KUYU_KOTLARI) if (R.olasi(0.3)) a[`a_${k}${i}`] = R.sec(["-1,60", "+19,20", "", "abc"]);
   }
   for (const k of ORTAK) if (R.olasi(0.5)) a[`a_${k}`] = sayiYaDa(R, ["26,55", 4000]);
   a.a_mk_yok = R.sec([true, false, undefined, "true", "false"]);
@@ -196,6 +208,20 @@ function avanDenetle(R: Uretici) {
       bak(`a_${k}${i}`, g[`a_${k}${i}`], h[k], liste, varsayilan);
     }
   }
+  //  KOT TABLOSU BİNANIN:  kotu yazılmış ilk kartın kat alanları bütün kartlarda;  kartların
+  //  kotları birbirinden farklıydıysa ( başka kartınki uygulanmadı ) açılışta söylenir
+  const kaynak = [1, 2, 3, 4].find((i) => ice(g[`a_durak_kotlari${i}`]) !== null);
+  for (let i = 1; i <= 4; i++) {
+    const h = p.avanAsansorleri[i - 1] ?? {};
+    for (const k of KUYU_KOTLARI) bak(`a_${k}${i}`, g[`a_${k}${i}`], h[k], null);
+    for (const k of KATLAR) {
+      const beklenen = kaynak === undefined ? ice(g[`a_${k}${i}`]) : ice(g[`a_${k}${kaynak}`]);
+      if ((h[k] ?? null) !== beklenen)
+        kayip.push(`a_${k}${i}:  bina tablosu ${JSON.stringify(beklenen)} bekleniyordu → ${JSON.stringify(h[k])}`);
+    }
+  }
+  const farkli = new Set([1, 2, 3, 4].map((i) => ice(g[`a_durak_kotlari${i}`])).filter((v) => v !== null)).size > 1;
+  if (o.katFarki !== farkli) kayip.push(`katFarki ${o.katFarki}, kartların kotları ${farkli ? "farklıydı" : "aynıydı"}`);
   for (const k of ORTAK) bak(`a_${k}`, g[`a_${k}`], p.ortak[k], null);
   bak("a_mk_yok", g.a_mk_yok, p.ortak.mk_yok, ["true", "false"]);
   for (const k of KAPAK) bak(`k_${k}`, g[`k_${k}`], p.kapak[k], null);
@@ -221,9 +247,25 @@ function avanDenetle(R: Uretici) {
     : null;
   const ikinci = avanOku(JSON.stringify(avanDosyaGovdesi(p, SEC, {}, kopru)), SEC, {});
   //  Makine dairesi yazılmamışsa dosyaya varsayılanı ( dairesiz ) yazılır:  aynı anlam
-  const sade = (q: typeof p) => JSON.stringify({ ...q, ortak: { ...q.ortak, mk_yok: q.ortak.mk_yok ?? "true" } });
-  if (!ikinci.tamam || sade(ikinci.proje) !== sade(p))
-    kayip.push(`yeniden yazılınca değişti:  ${JSON.stringify(ikinci.tamam ? ikinci.proje : ikinci.hata)}`);
+  //  Kartın alan SIRASI anlam taşımaz ( kat alanları eşitlenince sona eklenir — katlariEsitle;
+  //  girdinin izi de sırasızdır:  lib/durum.izi ):  karşılaştırma sıralı anahtarlarla
+  const sirali = (h: Record<string, string | undefined>) => Object.fromEntries(Object.entries(h).sort(([a], [b]) => a.localeCompare(b)));
+  const sade = (q: typeof p) =>
+    JSON.stringify({ ...q, ortak: { ...q.ortak, mk_yok: q.ortak.mk_yok ?? "true" }, avanAsansorleri: q.avanAsansorleri.map(sirali) });
+  if (!ikinci.tamam || sade(ikinci.proje) !== sade(p)) {
+    //  İlk farkı söyle ( bütün proje yerine ):  kart · alan · önce → sonra
+    const fark = ikinci.tamam
+      ? p.avanAsansorleri
+          .flatMap((a, i) =>
+            [...new Set([...Object.keys(a), ...Object.keys(ikinci.proje.avanAsansorleri[i] ?? {})])]
+              .filter((k) => a[k] !== ikinci.proje.avanAsansorleri[i]?.[k])
+              .map((k) => `kart ${i + 1} ${k}: ${JSON.stringify(a[k])} → ${JSON.stringify(ikinci.proje.avanAsansorleri[i]?.[k])}`),
+          )
+          .slice(0, 3)
+          .join(" | ")
+      : "";
+    kayip.push(`yeniden yazılınca değişti:  ${fark || JSON.stringify(ikinci.tamam ? ikinci.proje : ikinci.hata)}`);
+  }
   return { dosya, kayip };
 }
 
