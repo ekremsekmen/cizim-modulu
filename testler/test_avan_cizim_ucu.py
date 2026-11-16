@@ -299,6 +299,40 @@ class AvanCizimUcu(unittest.TestCase):
         self.assertEqual(r["durum"], "paket_yok")
         self.assertNotIn("hiz", r)
 
+    def test_makine_dairesi_kapisi_suruklenir(self):
+        """17 Kas:  makine dairesi kapısı ekranda dört duvar arasında sürüklenir.  Kapının
+        çizildiği planlar kapının duvarını, yerini, enini ve odanın iç ölçülerini taşır
+        ( "kapi" — ekran gölgeyi bundan çizer );  kartın ayarı ( md_kapi_duvar / md_kapi_konum )
+        çizime yansır;  uygun olmayan yerde çizim eski kapısıyla gelir, sebep kapi_reddi'nde."""
+        a, pg = T800MD["asansor"], T800MD["proje_geneli"]
+        ortak = {"mk_yok": False, "mk_uzunluk": pg["mk_uzunluk"], "mk_genislik": pg["mk_genislik"]}
+
+        def kapilar(r):
+            return {c["ad"]: c["kapi"] for c in r["cizim"]["cizimler"] if "kapi" in c}
+
+        r = yanit(govde(kart(a, i_palanga="1"), ortak))
+        self.assertEqual(r["durum"], "uygun", r)
+        ilk = kapilar(r)
+        self.assertEqual(set(ilk), {"makine_dairesi", "delik_plani"})
+        k = ilk["makine_dairesi"]
+        self.assertEqual(k, ilk["delik_plani"])
+        self.assertEqual((k["duvar"], k["konum"], k["en"]), ("Arka", 300, 800))
+        self.assertEqual((k["genislik"], k["derinlik"]), (float(pg["mk_genislik"]), float(pg["mk_uzunluk"])))
+        #  Aynı duvarda kaydırma:  çizim yeni yerle
+        r = yanit(govde(kart(a, i_palanga="1", cizim_ayarlari="md_kapi_konum=700"), ortak))
+        self.assertEqual(r["durum"], "uygun", r)
+        self.assertNotIn("kapi_reddi", r)
+        self.assertEqual(kapilar(r)["makine_dairesi"], {**k, "konum": 700})
+        self.assertEqual([(x["anahtar"], x["deger"]) for x in r["ayarlar"]], [("md_kapi_konum", "700")])
+        #  Duvarın dışı:  çizim kaybolmaz, kapı eski yerinde, sebep söylenir
+        r = yanit(govde(kart(a, i_palanga="1", cizim_ayarlari="md_kapi_duvar=Ön;md_kapi_konum=9000"), ortak))
+        self.assertEqual(r["durum"], "uygun", r)
+        self.assertTrue(r["cizim"]["aktif"])
+        self.assertEqual(kapilar(r), ilk)
+        self.assertIn("duvarın dışına taşıyor", " ".join(r["kapi_reddi"]))
+        #  Makine dairesiz projede kapı bilgisi yok
+        self.assertEqual(kapilar(yanit(govde(kart(T630)))), {})
+
     def test_kartin_elle_ayari(self):
         """Çizimde tıklanıp değiştirilen ölçü kartta durur ( cizim_ayarlari:  "girdi=değer;…" );
         seçici aynen kullanır, yanıt ayarları ekrandaki adlarıyla verir."""

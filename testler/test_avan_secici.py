@@ -405,6 +405,39 @@ class AvanSecici(unittest.TestCase):
         self.assertIn(r["durum"], ("uygun", "gereken"), r)
         self.assertEqual(r["istek"]["asansorler"][0]["kabin_yana_kaciklik"], "40")
         self.temiz(r)
+        #  MAKİNE DAİRESİ KAPISI ( 17 Kas — avanda da sürüklenir, dört duvar arasında ):  proje geneli
+        #  girdidir, isteğin proje_geneli'sine yazılır;  kalan proje geneli girdiler ayarlanamaz
+        md = mimari(PAKETLER[(630, False)])
+        kapisiz = avan_secici.sec(md)
+        r = avan_secici.sec({**md, "ayar": {"md_kapi_konum": 900, "md_pano_duvar": "Sol"}})
+        self.assertEqual(r["durum"], "uygun", r)
+        self.assertEqual(r["istek"]["proje_geneli"]["md_kapi_konum"], "900")
+        self.assertNotIn("md_kapi_konum", r["istek"]["asansorler"][0])
+        self.assertNotEqual(r["istek"]["proje_geneli"].get("md_pano_duvar"), "Sol")
+        self.assertNotIn("kapi_reddi", r)
+        self.temiz(r)
+        #  Başka duvara:  630-md odasında ( 2600 × 3800 ) yan duvarın arka ucu uygun
+        r = avan_secici.sec({**md, "ayar": {"md_kapi_duvar": "Sağ", "md_kapi_konum": 2400}})
+        self.assertEqual(r["durum"], "uygun", r)
+        pg = r["istek"]["proje_geneli"]
+        self.assertEqual((pg["md_kapi_duvar"], pg["md_kapi_konum"]), ("Sağ", "2400"))
+        self.temiz(r)
+        #  Kapı seçimi ETKİLEMEZ:  asansör kapısız seçilenle aynı ( yalnız kapının girdileri farklı )
+        ayni = lambda x: {k: v for k, v in x.items() if not k.startswith("md_kapi_")}
+        self.assertEqual(ayni(pg), ayni(kapisiz["istek"]["proje_geneli"]))
+        self.assertEqual(r["istek"]["asansorler"], kapisiz["istek"]["asansorler"])
+        #  UYGUN OLMAYAN YER:  çizim kaybolmaz — istek eski kapısıyla, sebep kapi_reddi'nde.
+        #  Eskiden kapı aramaya giriyordu:  6 – 12 sn sonra ilgisiz gerekçeyle "sığmaz"
+        for ayar, sebep in (
+            ({"md_kapi_duvar": "Sağ", "md_kapi_konum": 900}, "tabliyenin kenarına denk geliyor"),
+            ({"md_kapi_konum": 2400}, "duvarın dışına taşıyor"),
+        ):
+            with self.subTest(ayar=ayar):
+                r = avan_secici.sec({**md, "ayar": ayar})
+                self.assertEqual(r["durum"], "uygun", r)
+                self.assertEqual(r["istek"], kapisiz["istek"])
+                self.assertTrue(any(sebep in x for x in r["kapi_reddi"]), r["kapi_reddi"])
+                self.assertLess(r["sure"], 5)
         #  İzinsiz ve tanınmayan alanlar atılır
         ayar = {"kuyu_genisligi": 9999, "kabin_genisligi": 900, "beyan_hizi": 2, "aski_orani": 1, "yok": 1}
         self.assertEqual(avan_secici.ayarlar({"ayar": ayar}), {})

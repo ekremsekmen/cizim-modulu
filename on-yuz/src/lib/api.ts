@@ -165,12 +165,16 @@ export interface CokluYanit {
   };
 }
 
+import type { KapiBilgisi } from "@/lib/kapiTasima";
+
 export interface Cizim {
   ad: string;
   baslik: string;
   olcek: number;
   olceksiz: boolean;
   svg: string;
+  /**  Makine dairesi kapısının yeri ( kapının çizildiği planlarda ) — sürüklemek için  */
+  kapi?: KapiBilgisi;
 }
 
 /**  Çizimin bir sorunu ( sunucu:  cizim/sorun.py ) — parçalar çizimdeki adlarıyla
@@ -263,6 +267,9 @@ export interface AvanCizimYaniti {
   /**  Geçirilemeyen ürün bölümleri ( avanı bağlamaz — uygulama projesinde çözülür )  */
   acik_bolumler?: string[];
   acik_bolum_adlari?: string[];
+  /**  Sürüklenen makine dairesi kapısı bırakıldığı yere konamadı ( sebepleri ):  çizim eski
+       kapısıyla — ekran söyler, kartın ayarını kaldırır  */
+  kapi_reddi?: string[];
   cizim?: CizimYanit;
   /**  "uygun"da seçicinin kurduğu uygulama isteği — tıklanan ölçünün kaynağı bununla sorulur  */
   istek?: UygulamaIstegi;
