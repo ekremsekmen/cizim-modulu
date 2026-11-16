@@ -34,6 +34,7 @@ from cizim import hesap_isareti
 from cizim import istek_onbellegi
 from cizim import izli
 from cizim import katlar
+from cizim import makine_dairesi
 from cizim import kopru
 from cizim import olcu_kaynagi
 from cizim import pafta
@@ -129,12 +130,37 @@ def _elemanlar(g, ad):
     return e, baslik, olcek
 
 
+#  Makine dairesi kapısının çizildiği planlar ( makine_dairesi._oda_ve_kapi )
+KAPILI_CIZIMLER = ("makine_dairesi", "delik_plani")
+
+
+def _kapi_bilgisi(g, ad, onek):
+    """MAKİNE DAİRESİ KAPISI SÜRÜKLENİR ( 17 Kas ):  ekran kapıyı dört duvar arasında taşır;
+    bunun için kapının duvarı, köşeden uzaklığı, eni ve odanın iç ölçüleri ( mm ) çizimle
+    birlikte gider — { "kapi":  … }.  Yalnız ekran çiziminde ( onek ) ve kapının çizildiği
+    planlarda;  çizimin kullandığı değerlerdir ( girdi boşsa varsayılanı ).  Tek kuyuda oda iki
+    asansörün ortak planında çizilir ( _grup ) — orada sürükleme yok."""
+    md = g.get("makine_dairesi") or {}
+    if not onek or ad not in KAPILI_CIZIMLER or md.get("kapi_duvar") not in makine_dairesi.DUVARLAR:
+        return {}
+    return {
+        "kapi": {
+            "duvar": md["kapi_duvar"],
+            "konum": md["kapi_konum"],
+            "en": md["kapi_genislik"],
+            "genislik": md["genislik"],
+            "derinlik": md["derinlik"],
+        }
+    }
+
+
 def _svg(g, ad, onek=""):
     """onek verilirse SVG ekran içindir:  ölçüler tıklanır, desen kimlikleri
     önekli ( sayfadaki öteki çizimlerle çakışmasın ), renkler DXF'inki —
     AutoCAD'in koyu model alanı gibi ( svg.CAD;  kullanıcı kararı 13 Eki )."""
     e, baslik, olcek = _elemanlar(g, ad)
     return {
+        **_kapi_bilgisi(g, ad, onek),
         "ad": ad,
         "baslik": baslik,
         "olcek": olcek,

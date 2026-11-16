@@ -164,6 +164,17 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     },
     [guncelle, sema, a],
   );
+  //  MAKİNE DAİRESİ KAPISI SÜRÜKLENİR ( 17 Kas — kullanıcı:  "kapının yerini sürükleyerek
+  //  değiştirebilmek istiyorum … sağdaki soldaki karşıdaki duvara da geçmesi lazım" ):  tuval
+  //  kapının bırakıldığı duvarı ve köşeden uzaklığı verir, ikisi birlikte yazılır ( tek adım ).
+  //  Uygun olmayan yeri sunucu söyler ( kapı işaretlenir ).
+  const kapiTasi = useCallback(
+    (duvar: string, konum: number) => {
+      guncelle((p) => alanYaz(alanYaz(p, sema, a, "md_kapi_duvar", duvar), sema, a, "md_kapi_konum", String(konum)));
+      setGeriAl(null);
+    },
+    [guncelle, sema, a],
+  );
   //  Proje bilgilerinde yazılan da öyle:  geri almak kapağı kaldırmadan önceki hâline döndürür
   const bilgileriGuncelle = useCallback(
     (f: (p: UygulamaProjesi) => UygulamaProjesi) => {
@@ -495,6 +506,7 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
               olcuSec={(o) => setOlcu(o)}
               odak={params.get("cizim")}
               hatirla={`tuval-cizim:${proje.id}`}
+              kapiTasi={kapiTasi}
               seciliParca={parca}
               parcaSec={(p) => {
                 setParca(p);

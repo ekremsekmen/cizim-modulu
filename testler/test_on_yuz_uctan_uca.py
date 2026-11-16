@@ -583,6 +583,140 @@ class OnYuzUctanUca(unittest.TestCase):
         )
         self.assertTrue(kart.is_visible())
 
+    def _odanin_ekrani(self, kapi, bilgi):
+        """Makine dairesinin EKRANDAKİ yeri ( piksel ), kapının kutusundan ve çizimle gelen kapı
+        bilgisinden:  { s:  piksel / mm , sol , sag , on } — sol / sağ duvarın iç yüzünün x'i, ön
+        duvarın iç yüzünün y'si ( ekranda altta;  arka = on − derinlik · s )."""
+        b = kapi.bounding_box()
+        yatay = bilgi["duvar"] in ("Ön", "Arka")
+        s = (b["width"] if yatay else b["height"]) / bilgi["en"]
+        if yatay:
+            sol = b["x"] - bilgi["konum"] * s
+            on = b["y"] if bilgi["duvar"] == "Ön" else b["y"] + b["height"] + bilgi["derinlik"] * s
+        else:
+            sol = b["x"] + b["width"] if bilgi["duvar"] == "Sol" else b["x"] - bilgi["genislik"] * s
+            on = b["y"] + b["height"] + bilgi["konum"] * s
+        return {"s": s, "sol": sol, "sag": sol + bilgi["genislik"] * s, "on": on}
+
+    def _kapiyi_surukle(self, kapi, x1, y1, ara=None):
+        """Makine dairesi kapısını ortasından tutup ( x1 , y1 ) ekran noktasına sürükler;
+        ara:  bırakmadan önce çağrılır ( gölgenin denetimi )."""
+        b = kapi.bounding_box()
+        x, y = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+        self.sayfa.mouse.move(x, y)
+        self.sayfa.mouse.down()
+        for i in range(1, 9):
+            self.sayfa.mouse.move(x + (x1 - x) * i / 8, y + (y1 - y) * i / 8)
+        if ara:
+            ara()
+        self.sayfa.mouse.up()
+        self.iz.sakin()
+
+    def test_makine_dairesi_kapisi_suruklenir(self):
+        """17 Kas ( kullanıcı:  "makine dairesindeki kapının yerini sürükleyerek değiştirebilmek
+        istiyorum … sağdaki soldaki karşıdaki duvara da geçmesi lazım" ):  makine dairesi planında
+        kapı fareyle sürüklenir — kendi duvarı boyunca kayar ( 10 mm adım, ucunda durur ), işaretçi
+        başka duvara yaklaşınca o duvara geçer;  bırakılınca duvarı ve "köşeden uzaklık" girdisi
+        birlikte yazılır, çizim yeniden kurulur.  Sürüklerken yeni yeri gölgeyle gösterilir.
+        Sürüklemeden tıklamak parçanın kutusunu açar ( bugünkü gibi ).
+        630-md:  oda 2.600 × 3.800, kapı 800 arka duvarda, köşeden 300."""
+        self.sayfa.goto(self.url + "/")
+        self.sayfa.get_by_role("link", name="630 kg · 8 kişi · Makine daireli taslağıyla yeni proje").click()
+        self.sayfa.wait_for_url(re.compile(r"/uygulama/[0-9a-z]{6,}$"))
+        self.sayfa.goto(self.sayfa.url + "?cizim=makine_dairesi")
+        kapi = self.sayfa.locator('[data-cizim="makine_dairesi"] [data-parca^="oda_kapisi-"]').first
+        kapi.wait_for(state="attached")
+        self.iz.sakin()
+        golge = self.sayfa.locator('[data-cizim="makine_dairesi"] [data-kapi-golge]')
+
+        def son():
+            istek, cizim = self.iz.son("/api/uygulama/cizimler")
+            pg = istek["proje_geneli"]
+            return pg.get("md_kapi_duvar"), pg.get("md_kapi_konum"), cizim
+
+        def orta(b):
+            return b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+
+        #  Çizimle gelen kapı bilgisi ( ekran odayı bundan bulur )
+        def kapi_bilgisi(cizim):
+            return next(c["kapi"] for c in cizim["cizimler"] if c["ad"] == "makine_dairesi")
+
+        _istek, cizim = self.iz.son("/api/uygulama/cizimler")
+        self.assertEqual(
+            kapi_bilgisi(cizim),
+            {"duvar": "Arka", "konum": 300, "en": 800, "genislik": 2600, "derinlik": 3800},
+        )
+
+        #  1 )  Kendi duvarında:  sağa 80 px
+        b0 = kapi.bounding_box()
+        x, y = orta(b0)
+        self._kapiyi_surukle(kapi, x + 80, y)
+        duvar, k, cizim = son()
+        self.assertTrue(cizim["aktif"], cizim.get("hata"))
+        self.assertIn(duvar, (None, "Arka"))
+        self.assertGreater(int(k), 300)
+        self.assertEqual(int(k) % 10, 0)
+        self.assertGreater(kapi.bounding_box()["x"], b0["x"] + 40)
+        self.assertEqual(golge.count(), 0)
+        #  2 )  Duvarın ucunda durur ( işaretçi köşeyi yatayda aşsa da arka duvarda kalır )
+        x, y = orta(kapi.bounding_box())
+        self._kapiyi_surukle(kapi, x + 600, y)
+        duvar, k, cizim = son()
+        self.assertEqual((duvar, k), ("Arka", "1800"))
+        self.assertTrue(cizim["aktif"], cizim.get("hata"))
+        self.assertEqual(cizim.get("sorunlar") or [], [])
+        #  3 )  SAĞ DUVARA.  Arka duvar ekranda üstte;  yan duvarda köşeden uzaklık ön ( alt )
+        #  köşeden ölçülür.  Odanın ekrandaki yeri her adımda yeniden bulunur ( _odanin_ekrani ):
+        #  çizim yeniden kurulunca levhadaki ölçeği ve yeri değişebilir
+        o = self._odanin_ekrani(kapi, kapi_bilgisi(cizim))
+        #  Kapının ortası ön köşeden 3.000 → konum 2.600
+
+        def golgede():
+            self.assertEqual(golge.count(), 1)
+            self.assertEqual(golge.get_attribute("data-duvar"), "Sağ")
+            g = golge.bounding_box()
+            self.assertGreater(g["height"], g["width"] * 2)  # düşey duvarda:  boyu eninden uzun
+            self.assertAlmostEqual(g["x"], o["sag"], delta=3)
+
+        self._kapiyi_surukle(kapi, o["sag"] + 6, o["on"] - 3000 * o["s"], ara=golgede)
+        duvar, k, cizim = son()
+        self.assertEqual(duvar, "Sağ")
+        self.assertAlmostEqual(int(k), 2600, delta=30)
+        #  Yeni yer başka bir kuralı bozabilir ( burada pano aynı duvara sığmaz ):  çizim yine
+        #  gelir ( sorunlu çizim — kapı işaretli, sebebi yazılı ), kapı yeniden sürüklenebilir
+        self.assertEqual(kapi_bilgisi(cizim)["duvar"], "Sağ")
+        self.assertEqual(golge.count(), 0)
+        b = kapi.bounding_box()
+        self.assertGreater(b["height"], b["width"] * 2)
+        #  4 )  KARŞI ( ön ) ve SOL duvar:  yazılan duvar çizimin kullandığı duvardır
+        for ad in ("Ön", "Sol"):
+            with self.subTest(duvar=ad):
+                o = self._odanin_ekrani(kapi, kapi_bilgisi(cizim))
+                nokta = (
+                    (o["sol"] + 900 * o["s"], o["on"] + 6)
+                    if ad == "Ön"
+                    else (o["sol"] - 6, o["on"] - 3300 * o["s"])
+                )
+                self._kapiyi_surukle(kapi, *nokta)
+                duvar, k, cizim = son()
+                self.assertEqual(duvar, ad)
+                bilgi = kapi_bilgisi(cizim)
+                self.assertEqual((bilgi["duvar"], bilgi["konum"]), (ad, int(k)))
+        #  5 )  Arka duvara geri:  çizim yine sorunsuz
+        o = self._odanin_ekrani(kapi, kapi_bilgisi(cizim))
+        self._kapiyi_surukle(kapi, o["sol"] + 1200 * o["s"], o["on"] - 3800 * o["s"] - 6)
+        duvar, k, cizim = son()
+        self.assertEqual(duvar, "Arka")
+        self.assertTrue(cizim["aktif"], cizim.get("hata"))
+        self.assertEqual(cizim.get("sorunlar") or [], [])
+        #  Sürüklemeden tıklamak:  parçanın kutusu ( konumu girdisiyle ) — kapının üstünde "KAPI 800"
+        #  yazısı var:  tuval noktanın altındaki parçayı bulur ( parcaBul ), tıklama noktaya yapılır
+        self.sayfa.mouse.click(*orta(kapi.bounding_box()))
+        kutu = self.sayfa.get_by_role("dialog").filter(has_text="Makine dairesi kapısı")
+        kutu.wait_for()
+        #  Girdileri sunucudan gelir ( "Girdileri bulunuyor" ):  metin beklenerek okunur
+        kutu.get_by_text("köşeden uzaklığı").first.wait_for()
+
     def _dosyadan_ac(self, alanlar):
         """Eski biçimli proje dosyasını ( alanlar ) boş tarayıcıda açar."""
         govde = {"__mod": "uygulama", "__surum": 1, "alanlar": alanlar}
@@ -1154,6 +1288,61 @@ class OnYuzUctanUca(unittest.TestCase):
             ortak,
         )
 
+    def test_avan_makine_dairesi_kapisi_suruklenir(self):
+        """17 Kas ( kullanıcı, avanda:  "kapıyı tutunca tuval kayıyor … sağdaki soldaki karşıdaki
+        duvara da geçmesi lazım" ):  makine dairesi kapısı avan çiziminde de sürüklenir — duvarı
+        ve yeri kartın elle ayarına yazılır ( cizim_ayarlari:  md_kapi_duvar, md_kapi_konum ),
+        seçici isteğin proje_geneli'sinde aynen kullanır, soldaki "elle ayarlanan" listesinde
+        görünür.  ( Uygun olmayan yerin reddi:  test_avan_cizim_ucu, test_avan_secici. )"""
+        self.sayfa.goto(self.url + "/")
+        self._avan_kaydi({"mk_yok": "false"})
+        self.sayfa.evaluate(
+            """() => { const p = JSON.parse(localStorage.getItem('asansor:avan'));
+                const kotlar = Array.from({length: 11}, (_, i) => i ? `+${i * 3},00` : '±0,00').join('; ');
+                p.avanAsansorleri = p.avanAsansorleri.map(a => ({...a, kuyu_genisligi: '2050', kuyu_derinligi: '1850', durak_kotlari: kotlar,
+                    kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+33,80', md_zemini_kotu: '+33,95'}));
+                localStorage.setItem('asansor:avan', JSON.stringify(p)); }"""
+        )
+        self.sayfa.goto(self.url + "/avan/cizimler")
+        _istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(yanit["durum"], "uygun", {k: v for k, v in yanit.items() if k != "cizim"})
+        kapi = self.sayfa.locator('[data-cizim="makine_dairesi"] [data-parca^="oda_kapisi-"]').first
+        #  Çizim şeridinden makine dairesi planına geçilir
+        self.sayfa.get_by_role("button", name=re.compile("MAKİNE DAİRESİ PLANI", re.I)).first.click()
+        kapi.wait_for(state="visible")
+        self.iz.sakin()
+        ilk = int(yanit["istek"]["proje_geneli"].get("md_kapi_konum") or 300)
+        b = kapi.bounding_box()
+        x, y = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+        self._kapiyi_surukle(kapi, x + 60, y)
+        _istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(yanit["durum"], "uygun", {k: v for k, v in yanit.items() if k != "cizim"})
+        yeni = int(yanit["istek"]["proje_geneli"]["md_kapi_konum"])
+        self.assertGreater(yeni, ilk)
+        self.assertEqual(yeni % 10, 0)
+        self.assertGreater(kapi.bounding_box()["x"], b["x"] + 20)
+        self.assertIn("Makine dairesi kapısının köşeden uzaklığı", self.sayfa.inner_text("body"))
+
+        def ayar():
+            return self.sayfa.evaluate(
+                "() => JSON.parse(localStorage.getItem('asansor:avan')).avanAsansorleri[0].cizim_ayarlari"
+            )
+
+        self.assertEqual(ayar(), f"md_kapi_duvar=Arka;md_kapi_konum={yeni}")
+        #  BAŞKA DUVARA ( sol ):  odanın ölçüleri çizimle gelen kapı bilgisinden
+        bilgi = next(c["kapi"] for c in yanit["cizim"]["cizimler"] if c["ad"] == "makine_dairesi")
+        o = self._odanin_ekrani(kapi, bilgi)
+        self._kapiyi_surukle(kapi, o["sol"] - 6, o["on"] - (bilgi["derinlik"] - 500) * o["s"])
+        _istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(yanit["durum"], "uygun", {k: v for k, v in yanit.items() if k != "cizim"})
+        self.assertNotIn("kapi_reddi", yanit)
+        pg = yanit["istek"]["proje_geneli"]
+        self.assertEqual(pg["md_kapi_duvar"], "Sol")
+        self.assertEqual(ayar(), f"md_kapi_duvar=Sol;md_kapi_konum={pg['md_kapi_konum']}")
+        b = kapi.bounding_box()
+        self.assertGreater(b["height"], b["width"] * 2)
+        self.assertEqual(self.sayfa.locator("[data-kapi-reddi]").count(), 0)
+
     def _hesaplanan_avan(self, ortak):
         """Kartları dolu avan açılır;  ( trafik, avan, liste satırı )."""
         self._avan_kaydi(ortak)
@@ -1270,7 +1459,9 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.wait_for_selector("main svg", state="attached")
         metin = ana.inner_text()
         self.assertIn("KUYU PLANI", metin)
-        self.assertNotIn("KASNAK DÜZENLEMESİ", metin)
+        #  Kasnak düzenlemesi avanda da ( 17 Kas ):  çizim şeridinde düğmesi ( ad cümle düzeninde
+        #  yazar, erişilebilir adı başlıktır )
+        self.assertEqual(self.sayfa.get_by_role("button", name=re.compile("^KASNAK DÜZENLEMESİ")).count(), 1)
         #  Adım şeridi ( 13 Kas ):  çizim çıkınca Çizimler adımı "tamam" işaretli
         isaret = self.sayfa.locator('nav[aria-label="Adımlar"] a[href="/avan/cizimler"] span').first
         self.assertIn("bg-uygun", isaret.get_attribute("class"))

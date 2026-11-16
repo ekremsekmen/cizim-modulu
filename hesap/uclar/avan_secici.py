@@ -121,6 +121,9 @@ SABIT = frozenset(
 #  Elle ayarlanamayanlar ( ayarlar ):  mimari, kartın beyanı, trafiğin kabini / kapısı / hızı
 AYAR_DISI = frozenset((*MIMARI, *MIMARI_GENEL, *BEYAN)) | SABIT
 PROJE_GENELI = frozenset(uygulama_istegi.PROJE_GENELI_ALANLAR)
+#  Proje geneli girdilerden elle ayarlanabilenler ( 17 Kas — makine dairesi kapısı avanda da
+#  sürüklenir, dört duvar arasında ):  yalnız çizimin kozmetiği;  isteğin proje_geneli'sine yazılır ( _Sinayici )
+AYAR_GENEL = frozenset(("md_kapi_duvar", "md_kapi_konum"))
 
 #  ÜRÜN ARAMASI — düşen bölüm → sırayla denenecek ( girdi , değerler ).  Değerler
 #  küçükten büyüğe:  bölümü geçiren İLK değer alınır ( en küçük motor, en hafif ray ).
@@ -199,7 +202,8 @@ def _istek(taslak, m, ek=None):
 def ayarlar(m):
     """ELLE AYARLANAN ÖLÇÜLER ( 14 Kas, kullanıcı:  "ölçüye tıklayınca değiştirebilmem lazım —
     ray – kapı, karşı ağırlık – duvar … hesaplamayla ilgisi yok" ).  m["ayar"]:  { uygulamanın
-    asansör girdisi:  değer } — çizimde tıklanan ölçünün kaynağı.  Seçici bunları AYNEN kullanır
+    asansör girdisi:  değer } — çizimde tıklanan ölçünün kaynağı ( + AYAR_GENEL:  sürüklenen
+    makine dairesi kapısının yeri ).  Seçici bunları AYNEN kullanır
     ( her adayda, uyarlamada, küçültmede — _Sinayici );  kalanını yine kendi seçer ve sonucu
     yine doğrular:  ayarla asansör kurulamıyorsa çizim çıkmaz.  Mimarinin, trafiğin ve kartın
     ölçüleri ( kuyu, kotlar, kabin, kapı genişliği, yük, hız, askı ) burada değişmez — onların
@@ -208,7 +212,10 @@ def ayarlar(m):
     return {
         k: _metin(v)
         for k, v in ham.items()
-        if k in alanlar.ALAN and k not in AYAR_DISI and v not in (None, "") and k not in PROJE_GENELI
+        if k in alanlar.ALAN
+        and k not in AYAR_DISI
+        and v not in (None, "")
+        and (k not in PROJE_GENELI or k in AYAR_GENEL)
     }
 
 
@@ -238,7 +245,8 @@ class _Sinayici:
         self.kalan -= 1
         self.sayi += 1
         #  İsteğin kendisine yazılır ( kopya değil ):  dönen istek sınananla aynıdır
-        v["asansorler"][0].update(self.ayar)
+        for k, d in self.ayar.items():
+            (v["proje_geneli"] if k in AYAR_GENEL else v["asansorler"][0])[k] = d
         for k, (kuyu, oda, paket) in self.oda.items():
             fark = max(0.0, _sayi(v["asansorler"][0][kuyu]) - paket)
             v["proje_geneli"][k] = _metin(oda + fark)
@@ -544,7 +552,39 @@ def sec(m):
       "eksik"      eksik [ anahtar ] — mimari girdi eksik
       "beyan"      beyan [ { anahtar , etiket , eski , yeni } ] — avanın beyanıyla asansör
                    kurulamadı;  kartta bunlar seçilirse kurulur ( doğrulanmış, en az değişiklik )
-    Hepsinde sinama ( sayı ) ve sure ( sn )."""
+    Hepsinde sinama ( sayı ) ve sure ( sn ).
+
+    MAKİNE DAİRESİ KAPISI ( AYAR_GENEL — ekranda sürüklenir ):  asansörün seçimini etkilemez;
+    seçim kapısız yapılır, kapı bulunan isteğe SONRA taşınır ( _kapiyi_tasi ).  Eskiden kapı da
+    aramaya giriyordu:  uygun olmayan yerde seçici saniyelerce arayıp ilgisiz bir gerekçeyle
+    "sığmaz" diyor, çizim kayboluyordu."""
+    ayar = m.get("ayar") or {}
+    kapi = {k: v for k, v in ayarlar(m).items() if k in AYAR_GENEL}
+    if not kapi:
+        return _sec_kapisiz(m)
+    r = _sec_kapisiz({**m, "ayar": {k: v for k, v in ayar.items() if k not in AYAR_GENEL}})
+    return _kapiyi_tasi(r, kapi)
+
+
+def _kapiyi_tasi(r, kapi):
+    """Seçilen asansörün makine dairesi kapısı kullanıcının bıraktığı yere ( kapi:  { md_kapi_duvar ,
+    md_kapi_konum } ).  Çizim orada da temizse istek o kapıyla döner;  değilse istek ( ve çizim )
+    eski kapısıyla kalır, sebep "kapi_reddi"nde ( [ metin ] ) — ekran söyler, ayarı kaldırır."""
+    if r.get("durum") != "uygun":
+        return r
+    v = copy.deepcopy(r["istek"])
+    v["proje_geneli"].update(kapi)
+    cizim, aktif, _hesap, _uygun_degil, _olctu = care_uclari.girdi_durumu(v, 0)
+    r["sinama"] = r.get("sinama", 0) + 1
+    if aktif and not cizim:
+        r["istek"] = v
+    else:
+        r["kapi_reddi"] = list(cizim.values()) or ["Makine dairesi kapısı oraya konamıyor."]
+    return r
+
+
+def _sec_kapisiz(m):
+    """sec — makine dairesi kapısının elle ayarı dışında."""
     t0 = time.monotonic()
     r = _sec(m)
     if r["durum"] == "gereken":

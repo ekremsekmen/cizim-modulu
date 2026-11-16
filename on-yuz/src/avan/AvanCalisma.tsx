@@ -1541,6 +1541,23 @@ function CizimlerAdimi({
     queryFn: () => api.olcu(istek!, 0, olcu!.cizim, olcu!.index, olcu!.metin),
     enabled: !!olcu && !!istek,
   });
+  //  KAPI BIRAKILDIĞI YERE KONAMADI ( seçici:  kapi_reddi ):  çizim eski kapısıyla gelir;  sebep
+  //  söylenir, kartın kapı ayarı kaldırılır ( yoksa oda değişince kapı kendiliğinden sıçrardı )
+  const [kapiReddi, setKapiReddi] = useState<string[] | null>(null);
+  const red = cizim.data?.kapi_reddi;
+  //  Yeni ret yanıtı:  ileti durumu yanıt değişince ( işleme sırasında ) güncellenir
+  const [gorulenRed, setGorulenRed] = useState(red);
+  if (red !== gorulenRed) {
+    setGorulenRed(red);
+    if (red?.length) setKapiReddi(red);
+  }
+  useEffect(() => {
+    if (!red?.length) return;
+    setP((q) => {
+      const { md_kapi_duvar: _d, md_kapi_konum: _k, ...kalan } = avanAyarlari(q.avanAsansorleri[i] ?? {});
+      return kartaYaz(q, i, "cizim_ayarlari", avanAyarlariYaz(kalan));
+    });
+  }, [red, i, setP]);
   const yan = useRef<HTMLElement>(null);
   const mimari = olcu && kaynak.data?.aktif ? mimariKaynagi(kaynak.data.kaynaklar ?? []) : null;
   const hedef = mimari ? kutuSecicisi(mimari) : null;
@@ -1575,6 +1592,12 @@ function CizimlerAdimi({
   const r = cizim.data;
   const ayarlar = avanAyarlari(h);
   const ayarYaz = (d: Record<string, string>) => ay("cizim_ayarlari", avanAyarlariYaz(d));
+  //  MAKİNE DAİRESİ KAPISI SÜRÜKLENİR ( 17 Kas — uygulamadaki gibi, dört duvar arasında ):  duvarı
+  //  ve köşeden uzaklığı kartın elle ayarına yazılır ( avan_secici.AYAR_GENEL )
+  const kapiTasi = (duvar: string, konum: number) => {
+    setKapiReddi(null);
+    ayarYaz({ ...ayarlar, md_kapi_duvar: duvar, md_kapi_konum: String(konum) });
+  };
   //  Kutunun değişikliği:  mimari ölçü kendi kutusuna ( kart / bina ), kalanı elle ayara
   const kutudanYaz = (d: { anahtar: string; deger: number }[]): UygulamaIstegi => {
     const karta: Record<string, string> = {};
@@ -1708,9 +1731,26 @@ function CizimlerAdimi({
                 {mimari.anahtar === "durak_kotlari" ? "Trafik hesabı → Katlar tablosundan değiştirin." : "Soldaki kutudan değiştirin."}
               </p>
             )}
+            {kapiReddi && (
+              <p role="alert" data-kapi-reddi className="flex items-start gap-2 border-b border-cizgi bg-yuzey px-4 py-1.5 text-[12px] text-metin-2">
+                <CircleAlert className="mt-px size-3.5 shrink-0 text-[#f79009]" />
+                <span className="flex-1">
+                  <span className="font-medium text-metin">Kapı oraya konamıyor, eski yerinde bırakıldı.</span> {kapiReddi.join("  ")}
+                </span>
+                <button type="button" aria-label="Kapat" className="shrink-0 text-metin-2 hover:text-metin" onClick={() => setKapiReddi(null)}>
+                  <X className="size-3.5" />
+                </button>
+              </p>
+            )}
             <div className="relative min-h-0 flex-1 overflow-hidden">
               <Suspense fallback={null}>
-                <Tuval cizimler={r.cizim.cizimler} durum={guncel ? "guncel" : "yukleniyor"} secili={olcu} olcuSec={(o) => setOlcu(o)}>
+                <Tuval
+                  cizimler={r.cizim.cizimler}
+                  durum={guncel ? "guncel" : "yukleniyor"}
+                  secili={olcu}
+                  olcuSec={(o) => setOlcu(o)}
+                  kapiTasi={mrl ? null : kapiTasi}
+                >
                   {(konum) =>
                     //  Mimariden gelen ölçü soldaki kutusundan;  kalanı ölçü kutusundan ( elle ayar )
                     olcu &&

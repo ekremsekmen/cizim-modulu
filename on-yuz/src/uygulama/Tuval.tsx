@@ -12,6 +12,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Check, CircleHelp, LayoutGrid, Layers, Loader2, Maximize, Minus, Plus, Scan } from "lucide-react";
 import type { Cizim, CizimSorunu } from "@/lib/api";
 import { depoOku, depoYaz } from "@/lib/depo";
+import { kapiKutusu, kapiYeri, odayiBul, type Duvar, type KapiBilgisi, type KapiYeri, type Oda } from "@/lib/kapiTasima";
 import { cn } from "@/lib/utils";
 import { Acilir, AcilirIcerik, AcilirTetik, Dugme, Ipucu } from "@/components/ui";
 
@@ -27,6 +28,28 @@ export interface Parca {
   cizim: string;
   id: string;
   adi: string;
+}
+
+/**  MAKİNE DAİRESİ KAPISI SÜRÜKLENİR ( 17 Kas — kullanıcı:  "kapının yerini sürükleyerek
+     değiştirebilmek istiyorum … sağdaki soldaki karşıdaki duvara da geçmesi lazım" ):  kapı
+     işaretçiye en yakın duvara oturur, o duvar boyunca kayar ( lib/kapiTasima );  bırakılınca
+     duvarı ve köşeden uzaklığı bildirilir — girdiyi sunucu doğrular, çizimi yeniden kurar.
+     Sürüklerken kapının yeni yeri gölge olarak çizilir.  Kapının bilgisi çizimle gelir
+     ( Cizim.kapi ).  */
+export type KapiTasi = (duvar: Duvar, konum: number) => void;
+const KAPI_ADI = "oda_kapisi";
+/**  Sürükleme sayılan en küçük kayma ( ekran pikseli )  */
+const TASIMA_ESIGI = 4;
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/**  İşaretçinin, parçanın çizim düzlemindeki yeri ( mm;  çizimin y'si yukarı — svg.yaz
+     scale( 1, −1 ) grubunun içi ).  Ekranın dönüşümleri ( levhanın ölçeği, yakınlık ) dahil.  */
+function cizimNoktasi(el: SVGGraphicsElement, x: number, y: number): { x: number; y: number } | null {
+  const ust = el.parentNode as SVGGraphicsElement | null;
+  const m = ust?.getScreenCTM?.();
+  if (!m) return null;
+  const p = new DOMPoint(x, y).matrixTransform(m.inverse());
+  return { x: p.x, y: p.y };
 }
 
 /**  Seçili ölçünün tuvaldeki kutusu ve tuvalin boyu ( piksel ).  */
@@ -195,8 +218,11 @@ export function Tuval({
   geciciCizim = null,
   sorunSayisi = 0,
   sorunlaraGit,
+  kapiTasi = null,
   children,
 }: {
+  /**  Makine dairesi kapısı sürüklenince ( yoksa kapı sürüklenmez )  */
+  kapiTasi?: KapiTasi | null;
   /**  Uygunluk kartının "Çizimde göster"i:  bu parçaları en çok gösteren çizime geçer
        ( n her istekte artar )  */
   hesapOdak?: { parcalar: string[]; n: number } | null;
@@ -405,9 +431,59 @@ export function Tuval({
   //  altındaki parçaya düşer, tıklama tuvale gelir.  Kutu o parçaya geçiyor ( altında
   //  parça yoksa kapanıyordu ), seçim listesi fareyle hiç açılamıyordu ( 6 Kas ).
   const kutudaBasildi = useRef(false);
+  //  Taşınan kapı:  çizimdeki öğesi, odanın çizimdeki yeri, tutuş noktası, gölgesi ve hedefi
+  const tasima = useRef<{
+    el: SVGGraphicsElement;
+    kapi: KapiBilgisi;
+    oda: Oda;
+    tutus: number;
+    px: number;
+    py: number;
+    golge: SVGRectElement | null;
+    hedef: KapiYeri;
+  } | null>(null);
+  const kapiBilgisi = (cizim: string | null) => (kapiTasi && kip === "tek" && cizim ? cizimler.find((c) => c.ad === cizim)?.kapi : undefined);
+  const tasimaBasla = (e: React.PointerEvent) => {
+    const kapi = kapiBilgisi(aktif);
+    if (!kapi) return false;
+    const p = parcaBul(e.clientX, e.clientY, kap.current);
+    if (!p || p.cizim !== aktif || p.id.slice(0, p.id.lastIndexOf("-")) !== KAPI_ADI) return false;
+    const el = kap.current?.querySelector<SVGGraphicsElement>(`[data-cizim="${p.cizim}"] [data-parca="${CSS.escape(p.id)}"]`);
+    const n = el && cizimNoktasi(el, e.clientX, e.clientY);
+    if (!el || !n) return false;
+    const b = el.getBBox();
+    const kutu = { x: b.x, y: b.y, w: b.width, h: b.height };
+    const yatay = kapi.duvar === "Ön" || kapi.duvar === "Arka";
+    tasima.current = {
+      el,
+      kapi,
+      oda: odayiBul(kapi, kutu),
+      tutus: Math.min(Math.max(yatay ? n.x - kutu.x : n.y - kutu.y, 0), kapi.en),
+      px: e.clientX,
+      py: e.clientY,
+      golge: null,
+      hedef: { duvar: kapi.duvar, konum: kapi.konum },
+    };
+    return true;
+  };
+  //  Taşıma önizlemesini kaldırır ( gölge + soluk kapı )
+  const tasimayiTemizle = () => {
+    kap.current?.querySelectorAll("[data-kapi-golge]").forEach((el) => el.remove());
+    kap.current?.querySelectorAll<SVGElement>("[data-kapi-tasiniyor]").forEach((el) => {
+      el.style.opacity = "";
+      el.removeAttribute("data-kapi-tasiniyor");
+    });
+  };
   const basildi = (e: React.PointerEvent) => {
     kutudaBasildi.current = disarida(e) || !!(e.target as Element).closest("[data-tuval-arac], [data-olcu-kutu]");
     if (disarida(e) || e.button !== 0 || (e.target as Element).closest(".olcu, [data-tuval-arac], [data-olcu-kutu]")) return;
+    kaydi.current = false;
+    //  Kapının üstünde basıldı:  tuval kaymaz, kapı duvarlar boyunca kayar
+    if (tasimaBasla(e)) {
+      setSurukluyor(true);
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      return;
+    }
     surukle.current = { x: e.clientX, y: e.clientY, gx: g.x, gy: g.y };
     kaydi.current = false;
     setSurukluyor(true);
@@ -427,6 +503,38 @@ export function Tuval({
   };
   const oynadi = (e: React.PointerEvent) => {
     if (disarida(e)) return;
+    const t = tasima.current;
+    if (t) {
+      if (Math.abs(e.clientX - t.px) + Math.abs(e.clientY - t.py) > TASIMA_ESIGI) kaydi.current = true;
+      if (!kaydi.current) return;
+      const n = cizimNoktasi(t.el, e.clientX, e.clientY);
+      if (!n) return;
+      t.hedef = kapiYeri(t.oda, t.kapi, n, t.tutus, t.hedef.duvar);
+      if (!t.golge) {
+        tasimayiTemizle();
+        const r = document.createElementNS(SVG_NS, "rect");
+        r.setAttribute("data-kapi-golge", "");
+        r.setAttribute("fill", "#f79009");
+        r.setAttribute("fill-opacity", "0.45");
+        r.setAttribute("stroke", "#f79009");
+        r.setAttribute("stroke-width", "2");
+        r.setAttribute("vector-effect", "non-scaling-stroke");
+        r.setAttribute("pointer-events", "none");
+        t.el.parentNode?.appendChild(r);
+        t.el.setAttribute("data-kapi-tasiniyor", "");
+        t.el.style.opacity = "0.3";
+        t.golge = r;
+      }
+      const k = kapiKutusu(t.oda, t.hedef, t.kapi.en);
+      t.golge.setAttribute("x", String(k.x));
+      t.golge.setAttribute("y", String(k.y));
+      t.golge.setAttribute("width", String(k.w));
+      t.golge.setAttribute("height", String(k.h));
+      t.golge.setAttribute("data-duvar", t.hedef.duvar);
+      t.golge.setAttribute("data-konum", String(t.hedef.konum));
+      setUstunde(null);
+      return;
+    }
     const s = surukle.current;
     if (!s || !kaydi.current) {
       const p = kip === "tek" ? parcaBul(e.clientX, e.clientY, kap.current) : null;
@@ -441,9 +549,27 @@ export function Tuval({
     setG((o) => ({ ...o, x: s.gx + e.clientX - s.x, y: s.gy + e.clientY - s.y }));
   };
   const birakti = () => {
+    const t = tasima.current;
+    tasima.current = null;
     surukle.current = null;
     setSurukluyor(false);
+    //  Bırakıldı:  gölge yeni çizim gelene kadar yerinde kalır ( aşağıdaki etki kaldırır );
+    //  kaymadıysa tıklamadır ( parça kutusu açılır ), yeri değişmediyse bir şey yazılmaz
+    if (t && kaydi.current) {
+      if (t.hedef.duvar !== t.kapi.duvar || t.hedef.konum !== t.kapi.konum) kapiTasi?.(t.hedef.duvar, t.hedef.konum);
+      else tasimayiTemizle();
+    }
   };
+  //  Yeni çizim ( ya da ret — çizim değişmeden durum değişir ):  taşıma önizlemesi kalkar.
+  //  İstek sürerken kalır:  kapı geri sıçrayıp sonra yeni yerinde belirmesin
+  useEffect(() => {
+    if (durum === "yukleniyor" || tasima.current) return;
+    kap.current?.querySelectorAll("[data-kapi-golge]").forEach((el) => el.remove());
+    kap.current?.querySelectorAll<SVGElement>("[data-kapi-tasiniyor]").forEach((el) => {
+      el.style.opacity = "";
+      el.removeAttribute("data-kapi-tasiniyor");
+    });
+  }, [cizimler, durum]);
 
   const olcuyuSec = (o: Element) => {
     const fig = o.closest("[data-cizim]") as HTMLElement;
@@ -650,7 +776,15 @@ export function Tuval({
         e.currentTarget.scrollTop = 0;
         e.currentTarget.scrollLeft = 0;
       }}
-      style={{ cursor: surukluyor ? "grabbing" : kip === "tumu" ? "pointer" : "default" }}
+      style={{
+        cursor: surukluyor
+          ? "grabbing"
+          : kip === "tumu"
+            ? "pointer"
+            : ustunde && ustunde.id.startsWith(`${KAPI_ADI}-`) && kapiBilgisi(ustunde.cizim)
+              ? "grab"
+              : "default",
+      }}
     >
       <style>{katmanStili}</style>
       {/*  Çizim levhası:  1 px = 1 mm, bütün levha ölçeklenir  */}
