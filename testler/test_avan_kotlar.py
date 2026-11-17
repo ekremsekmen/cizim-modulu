@@ -124,6 +124,24 @@ class AvanHesabiKotlardan(unittest.TestCase):
         self.assertEqual((b["Hk"], b["seyir"], b["durak"], b["doseme"]), (23.8, 6.0, 3, 150))
         self.assertEqual(b["adlar"], {"adlar": ["-1", "0", "1"], "giris": 2, "ad_hatasi": []})
 
+    def test_doseme_kurali_elle_ayarli_duvardan(self):
+        """16 Kas:  tavan döşemesi boşken kural kuyu duvarı kalınlığıdır — çizimde elle 250'ye
+        ayarlandıysa tablo da 250 alır ( çizim gibi );  eskiden tablo 150 diyordu, çizim 250.
+        Kartta döşeme girilmişse o;  seçicinin kabul etmediği ayar kuralı değiştirmez."""
+        for ayar, doseme, kural in (
+            ("", 150, 150),
+            ("ray_kapi_arasi=780;kuyu_duvar_kalinligi=250", 250, 250),
+            ("kuyu_duvar_kalinligi=200,5", 200.5, 200.5),
+            ("kuyu_genisligi=9999", 150, 150),
+        ):
+            with self.subTest(ayar=ayar):
+                b = avan({**KOTLAR, "cizim_ayarlari": ayar})["kotlar"][0]
+                self.assertEqual((b["doseme"], b["doseme_kural"]), (doseme, kural))
+        b = avan({**KOTLAR, "cizim_ayarlari": "kuyu_duvar_kalinligi=250", "tavan_dosemesi": "150"})["kotlar"][
+            0
+        ]
+        self.assertEqual((b["doseme"], b["doseme_kural"]), (150, 250))
+
     def test_trafikle_durak_sayisi(self):
         """Trafiğin kat düzeni ( N kat + ana giriş + bodrum ) ile kartın durak sayısı
         tutmuyorsa uyarı ( engel değil );  tutuyorsa yok.  Pay kotların kendi seyrinden."""

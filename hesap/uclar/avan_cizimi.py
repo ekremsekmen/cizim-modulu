@@ -166,18 +166,29 @@ def kart_ayarlari(a):
     return d
 
 
+def doseme_kurali(a):
+    """Kartın tavan döşemesi boşken çizimin kullandığı kalınlık ( mm ):  kuyu duvarı kalınlığı
+    ( kopru.tavan_dosemesi ) — çizimde elle ayarlandıysa o ( kartın cizim_ayarlari'sı, seçicinin
+    kabul ettiği gibi:  avan_secici.ayarlar ).  16 Kas:  kot tablosu ayarı görmüyordu — duvar
+    250'ye ayarlı kartta tablo döşemeyi 150 ( döşemenin üstü +11,20 ), çizim 250 ( tabliye
+    +11,30 ) alıyordu;  makine dairesi zemini tabloya göre girilince planda "TABLİYE +100" çıktı."""
+    duvar = avan_secici.ayarlar({"ayar": kart_ayarlari(a)}).get("kuyu_duvar_kalinligi")
+    A = {"kuyu_duvar_kalinligi": float(str(duvar).replace(",", "."))} if duvar is not None else {}
+    return kopru.tavan_dosemesi(A)
+
+
 def kot_bilgisi(g):
     """Kot tablosunun sunucudan beklediği ( ekran hesaplamaz ) — asansör sırasıyla, kartı
     olmayan için None:  hesabın kotlardan türettikleri ( avan_hesabi.kot_turetilenleri —
     Hk, seyir, durak, kuyu_dibi, ust_bosluk;  m ), "hata" ( kullanılamayan kot ), "adlar"
     ( katlar.ad_tablosu — kuraldan kat adları, giriş katı ) ve "doseme" ( tavan döşemesinin
     çizimdeki kalınlığı, mm — kartta girilmişse o, boşsa kuraldan:  "doseme_kural" )."""
-    kural = kopru.tavan_dosemesi({})
     liste = []
     for a in g["asansorler"]:
         if a is None:
             liste.append(None)
             continue
+        kural = doseme_kurali(a)
         t, hata = avan_hesabi.kot_turetilenleri(a)
         #  Kartta girilmişse o ( aralığını uygulamanın kapısı denetler — seçici söyler )
         d = a.get("tavan_dosemesi")
