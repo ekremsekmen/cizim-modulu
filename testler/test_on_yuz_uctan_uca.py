@@ -233,12 +233,12 @@ class ArizaMatrisiKapsami(unittest.TestCase):
         self.assertEqual(sorted(u for u in uclar if f'"{u}"' not in matris), [], "matriste olmayan uçlar")
 
 
-@unittest.skipIf(ATLA, ATLA)
 def katlar_metni(metin):
     """Kot tablosunun metni → durakların yazıldığı gibi kotları ( alttan üste )."""
     return [x.strip() for x in (metin or "").split(";") if x.strip()]
 
 
+@unittest.skipIf(ATLA, ATLA)
 class OnYuzUctanUca(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
