@@ -68,7 +68,8 @@ app.add_middleware(
     GZipMiddleware,
     minimum_size=1000,
     compresslevel=6,
-    exclude_content_types=DEFAULT_EXCLUDED_CONTENT_TYPES + ("application/pdf",),
+    #  Akışlı yanıt ( avan çizimi:  application/x-ndjson ) kendi sıkıştırır, satır satır
+    exclude_content_types=DEFAULT_EXCLUDED_CONTENT_TYPES + ("application/pdf", "application/x-ndjson"),
 )
 
 #  İSTEK BOYUTU SINIRI:  formun en büyük isteği ( paket:  dört asansör, kapak,

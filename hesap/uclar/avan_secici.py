@@ -137,6 +137,110 @@ class _CareButcesi(care_uclari.Butce):
 _KORUMA = contextvars.ContextVar("avan_secici_koruma", default=None)
 
 
+#  ARAMANIN AŞAMALARI ( 17 Kas — kullanıcı:  "beklerken ne yapıldığını görelim" ):  ekran uzun
+#  aramada aramanın GERÇEKTEN hangi adımda olduğunu gösterir;  süreye göre değişen hazır yazı ya
+#  da yüzde yoktur ( bütçe sınama sayısıdır, arama çoğunlukla çok önce biter ).  kod:  ( sürerken ,
+#  bitince ).  Aşama seçimi ETKİLEMEZ:  yalnız bildirilir ( ilerleme bağlamı yoksa hiçbir şey ).
+ASAMALAR = {
+    "paket": ("Hazır asansör seçiliyor", "Hazır asansör seçildi"),
+    "yerlesim": ("Kuyuya yerleşim deneniyor", "Kuyuya yerleşim denendi"),
+    "uyarlama": ("Yerleşim kuyuya uyarlanıyor", "Yerleşim kuyuya uyarlandı"),
+    "olcu": ("Kuyu ölçüsü değiştirilerek yerleşim aranıyor", "Kuyu ölçüsü değiştirilerek yerleşim arandı"),
+    "kucultme": ("Mimardan istenecek en küçük ölçü aranıyor", "Mimardan istenecek en küçük ölçü bulundu"),
+    "dogrulama": ("İstenen ölçü yeniden doğrulanıyor", "İstenen ölçü yeniden doğrulandı"),
+    "aski": ("Hazır asansörün askısı deneniyor", "Hazır asansörün askısı denendi"),
+    "oda": ("Makine dairesine yerleşim deneniyor", "Makine dairesine yerleşim denendi"),
+    "kapi": ("Makine dairesi kapısı yerleştiriliyor", "Makine dairesi kapısı yerleştirildi"),
+    "cizim": ("Paftalar çiziliyor", "Paftalar çizildi"),
+}
+
+
+class Ilerleme:
+    """Bir aramanın aşamaları ve sınama sayısı.  Arama iş parçacığında yazar, sunucu ucu başka
+    yerden okur ( durum ) — kilitli.  Alt arama ( doğrulama, askı ) kendi aşamasını bildirir;
+    içindeki yeniden seçimin aşamaları ( yerleşim … ) listeye eklenmez ( bastir ), sınamaları
+    sayılır."""
+
+    def __init__(self):
+        self._kilit = threading.Lock()
+        self._t0 = time.monotonic()
+        self.asamalar = []
+        self.sinama = 0
+        self.bastir = 0
+        self.surum = 0
+
+    def asama(self, kod, ayrinti=""):
+        with self._kilit:
+            if self.bastir:
+                return
+            son = self.asamalar[-1] if self.asamalar else None
+            if son and son["kod"] == kod:
+                son["ayrinti"] = ayrinti
+            else:
+                surer, bitti = ASAMALAR[kod]
+                self.asamalar.append(
+                    {
+                        "kod": kod,
+                        "surer": surer,
+                        "bitti": bitti,
+                        "ayrinti": ayrinti,
+                        "t": round(time.monotonic() - self._t0, 2),
+                    }
+                )
+            self.surum += 1
+
+    def say(self):
+        with self._kilit:
+            self.sinama += 1
+            self.surum += 1
+
+    def durum(self):
+        """( sürüm , { asamalar , sinama , gecen } ) — sürüm değişmediyse yeni bir şey yok."""
+        with self._kilit:
+            return self.surum, {
+                "asamalar": [dict(a) for a in self.asamalar],
+                "sinama": self.sinama,
+                "gecen": round(time.monotonic() - self._t0, 2),
+            }
+
+
+_ILERLEME = contextvars.ContextVar("avan_secici_ilerleme", default=None)
+
+
+@contextlib.contextmanager
+def ilerleme(i):
+    """Bu bağlamdaki aramanın aşamaları i'ye ( Ilerleme ) bildirilir."""
+    token = _ILERLEME.set(i)
+    try:
+        yield i
+    finally:
+        _ILERLEME.reset(token)
+
+
+def asama(kod, ayrinti=""):
+    """Aramanın aşaması ( ASAMALAR ) — ilerleme bağlamı yoksa hiçbir şey yapmaz."""
+    i = _ILERLEME.get()
+    if i is not None:
+        i.asama(kod, ayrinti)
+
+
+@contextlib.contextmanager
+def _alt_arama(kod):
+    """Alt aramanın aşaması:  içindeki yeniden seçimin aşamaları listeye girmez."""
+    asama(kod)
+    i = _ILERLEME.get()
+    if i is None:
+        yield
+        return
+    with i._kilit:
+        i.bastir += 1
+    try:
+        yield
+    finally:
+        with i._kilit:
+            i.bastir -= 1
+
+
 def _koruma_bak():
     k = _KORUMA.get()
     if k is None:
@@ -282,6 +386,9 @@ class _Sinayici:
         _koruma_bak()
         self.kalan -= 1
         self.sayi += 1
+        i = _ILERLEME.get()
+        if i is not None:
+            i.say()
         #  İsteğin kendisine yazılır ( kopya değil ):  dönen istek sınananla aynıdır
         for k, d in self.ayar.items():
             (v["proje_geneli"] if k in AYAR_GENEL else v["asansorler"][0])[k] = d
@@ -685,6 +792,7 @@ def _kapiyi_tasi(r, kapi):
         return r
     v = copy.deepcopy(r["istek"])
     v["proje_geneli"].update(kapi)
+    asama("kapi")
     cizim, aktif, _hesap, _uygun_degil, _olctu = care_uclari.girdi_durumu(v, 0)
     r["sinama"] = r.get("sinama", 0) + 1
     if aktif and not cizim:
@@ -713,7 +821,8 @@ def _sec_kapisiz(m):
     bulunan, sinama = None, r["sinama"]
     for i, degisen in enumerate(denemeler):
         #  Tek değişiklik denemeleri:  bulunamazsa hepsini değiştiren öneri kalır
-        r2 = _sec({**m, **{k: kendi[k] for k in degisen}})
+        with _alt_arama("aski"):
+            r2 = _sec({**m, **{k: kendi[k] for k in degisen}})
         sinama += r2["sinama"]
         if r2["durum"] in ("uygun", "gereken"):
             bulunan = degisen
@@ -752,7 +861,8 @@ def _tek_seferde(m, r, t0):
         m2 = dict(m)
         for g in r["gereken"]:
             m2[g["anahtar"]] = g["yeni"] if isinstance(g["yeni"], str) else int(round(g["yeni"]))
-        r2 = _sec(m2)
+        with _alt_arama("dogrulama"):
+            r2 = _sec(m2)
         r["sinama"] += r2["sinama"]
         if r2["durum"] != "gereken":
             break
@@ -788,6 +898,11 @@ def _sec(m):
     taslak = paketler().get((int(_sayi(m["beyan_yuku"])), mk_yok))
     if taslak is None:
         return son("paket_yok")
+    asama(
+        "paket",
+        f"{int(_sayi(m['beyan_yuku']))} kg · {'makine dairesiz' if mk_yok else 'makine daireli'} · "
+        f"{_etkin_aski(taslak, m)}:1",
+    )
     kucuk = _kucuk_oda(taslak, m)
     if kucuk:
         return _kucuk_odada(taslak, m, kucuk)
@@ -815,6 +930,7 @@ def _sec(m):
         buyutuldu = []
         #  Önce yerleşim adımları, olmadıysa aynı aday önce mimardan istenecek ölçüyle ( _oneri_sec )
         for bina_once in (False, True):
+            asama("olcu" if bina_once else "uyarlama")
             for v, d, secilen, ek in kalan:
                 #  Kuyu paketinkinden küçükse çare aranmaz:  paketin ölçüsünden başlanır ( o ölçüde
                 #  doğrulanmıştır ), aşağıda en küçüğe indirilir.  Bir kez:  ilk yan adayında
@@ -839,6 +955,7 @@ def _sec(m):
                 if d2["temiz"]:
                     secilen = {**secilen, **s}
                     if gereken:
+                        asama("kucultme")
                         v2, d2, gereken = _kucult(v2, d2, gereken, sina, taslak, kilit)
                         secilen = {
                             k: x if v2["asansorler"][0].get(k) is None else v2["asansorler"][0][k]
@@ -863,9 +980,15 @@ def _sec(m):
     yan = ([{"kabin_yana_kaciklik": round(kay)}] if kay is not None else []) + [{}]
     arka = _arka_adayi(taslak, m)
     sira = [yan] if arka is None else ([[arka], yan] if _once_arka(taslak, m) else [yan, [arka]])
+
+    def yer(adaylar):
+        return "ağırlık arkada" if adaylar[0] is arka else "ağırlık yanda"
+
+    asama("yerlesim", yer(sira[0]))
     durum, alanlar_ = yerlesim(sira[0])
     if durum != "uygun" and len(sira) > 1:
         sina.kalan = AZAMI_SINAMA
+        asama("yerlesim", yer(sira[1]))
         durum_2, alanlar_2 = yerlesim(sira[1])
         if durum_2 == "uygun" or (durum_2 == "gereken" and durum == "sigmaz"):
             durum, alanlar_ = durum_2, alanlar_2
@@ -893,6 +1016,7 @@ def _kucuk_odada(taslak, m, kucuk):
     r = _sec({**m, **kucuk})
     if r["durum"] not in ("uygun", "gereken"):
         return r
+    asama("oda")
     sina = _Sinayici()
     sina.ayar = ayarlar(m)
     buyuk = r["istek"]

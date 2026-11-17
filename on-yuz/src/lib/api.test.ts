@@ -66,3 +66,89 @@ describe("ret iletisi ucun biçiminde gelir ( 24 Eki )", () => {
     await expect(api.cizimler({ asansorler: [{}], proje_geneli: {}, sabitler: {} }, 0)).resolves.toEqual({ aktif: true, cizimler: [] });
   });
 });
+
+/**  Sahte XMLHttpRequest:  gövde parça parça gelir ( her parçada ilerleme olayı ), sonra yükleme
+     biter ya da bağlantı kopar  */
+function sahteXhr(metin: string, parca: number, secenek: { tur?: string; durum?: number; kopar?: boolean } = {}) {
+  const tur = secenek.tur ?? "application/x-ndjson";
+  return class {
+    responseText = "";
+    status = 0;
+    onprogress: (() => void) | null = null;
+    onload: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    onabort: (() => void) | null = null;
+    basliklar: Record<string, string> = {};
+    iptal = false;
+    open() {}
+    setRequestHeader(k: string, v: string) {
+      this.basliklar[k] = v;
+    }
+    getResponseHeader(k: string) {
+      return k.toLowerCase() === "content-type" ? tur : null;
+    }
+    abort() {
+      this.iptal = true;
+      this.onabort?.();
+    }
+    send() {
+      this.status = secenek.durum ?? 200;
+      void (async () => {
+        for (let k = 0; k < metin.length; k += parca) {
+          await Promise.resolve();
+          if (this.iptal) return;
+          this.responseText += metin.slice(k, k + parca);
+          this.onprogress?.();
+        }
+        if (secenek.kopar) this.onerror?.();
+        else this.onload?.();
+      })();
+    }
+  };
+}
+
+describe("avan çiziminin akışlı yanıtı ( 17 Kas — aramanın aşamaları )", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const ilerleme = (kod: string, sinama: number) => ({
+    ilerleme: { asamalar: [{ kod, surer: kod, bitti: kod, ayrinti: "", t: 0 }], sinama, gecen: 0.2 },
+  });
+  const satirla = (s: unknown[]) => s.map((x) => JSON.stringify(x)).join("\n") + "\n";
+
+  it("aşamalar geldikçe ( satır ortasından bölünse de ) bildirilir, sonuç son satırdan", async () => {
+    const metin = satirla([ilerleme("paket", 0), ilerleme("yerlesim", 3), { sonuc: { durum: "uygun", sure: 1.2 } }]);
+    vi.stubGlobal("XMLHttpRequest", sahteXhr(metin, 7));
+    const gelen: number[] = [];
+    await expect(api.avanCizimleri({}, 0, undefined, (d) => gelen.push(d.sinama))).resolves.toEqual({ durum: "uygun", sure: 1.2 });
+    expect(gelen).toEqual([0, 3]);
+  });
+
+  it("son satırın sonunda satır sonu olmasa da okunur;  hata metni ucun biçiminde", async () => {
+    vi.stubGlobal("XMLHttpRequest", sahteXhr(JSON.stringify({ sonuc: { durum: "hata", hata: "ÇİZİM HATASI: x" } }), 5));
+    await expect(api.avanCizimleri({}, 0)).resolves.toMatchObject({ durum: "hata" });
+  });
+
+  it("sonuç gelmeden akış koparsa ya da biterse hata ( yarıda kalan aramayı sonuç sanmaz )", async () => {
+    vi.stubGlobal("XMLHttpRequest", sahteXhr(satirla([ilerleme("paket", 0)]), 9, { kopar: true }));
+    await expect(api.avanCizimleri({}, 0)).rejects.toThrow();
+    vi.stubGlobal("XMLHttpRequest", sahteXhr(satirla([ilerleme("paket", 0)]), 9));
+    await expect(api.avanCizimleri({}, 0)).rejects.toThrow(/yarıda/);
+  });
+
+  it("istek bırakılınca ( girdi değişti ) iptal hatası:  sonuç beklenmez", async () => {
+    vi.stubGlobal("XMLHttpRequest", sahteXhr(satirla([ilerleme("paket", 0), { sonuc: { durum: "uygun" } }]), 3));
+    const k = new AbortController();
+    const s = api.avanCizimleri({}, 0, k.signal);
+    k.abort();
+    await expect(s).rejects.toMatchObject({ name: "AbortError" });
+  });
+
+  it("akış vermeyen yanıt ( sunucunun ret iletisi ) tek JSON okunur", async () => {
+    vi.stubGlobal(
+      "XMLHttpRequest",
+      sahteXhr(JSON.stringify({ hata: ["İstek çok büyük"] }), 1000, { tur: "application/json", durum: 413 }),
+    );
+    await expect(api.avanCizimleri({}, 0)).resolves.toEqual({ hata: "İstek çok büyük" });
+    vi.stubGlobal("XMLHttpRequest", sahteXhr("kapalı", 1000, { tur: "text/plain", durum: 503 }));
+    await expect(api.avanCizimleri({}, 0)).rejects.toThrow(/yanıt vermedi/);
+  });
+});

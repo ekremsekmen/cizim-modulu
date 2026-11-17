@@ -516,6 +516,98 @@ async function gonder<T>(yol: string, govde: unknown, bicim: (h: unknown) => unk
   return j && typeof j === "object" && "hata" in j ? { ...j, hata: bicim(j.hata) } : j;
 }
 
+/**  Avan seçicisinin aşamaları ( sunucu:  avan_secici.Ilerleme — 17 Kas ):  arama sürerken
+     gerçekten hangi adımda olduğu.  t:  aşamanın başladığı an ( sn, isteğin başından )  */
+export interface AramaIlerlemesi {
+  asamalar: { kod: string; surer: string; bitti: string; ayrinti: string; t: number }[];
+  sinama: number;
+  gecen: number;
+}
+
+/**  Akışlı yanıtın tamponundan tamamlanmış satırlar ve kalan ( yarım satır )  */
+export function satirlariAyir(tampon: string): [string[], string] {
+  const parcalar = tampon.split("\n");
+  const kalan = parcalar.pop() ?? "";
+  return [parcalar.map((s) => s.trim()).filter(Boolean), kalan];
+}
+
+/**  AKIŞLI İSTEK ( 17 Kas — /api/avan/cizimler ):  sunucu satır satır yazar — aramanın aşamaları
+     ( { ilerleme } ), en sonda sonuç ( { sonuc } ).  Sunucu akış vermezse ( hata yanıtı ) tek JSON
+     okunur, gonder gibi.  Sonuç gelmeden akış biterse hata ( yarıda kesildi ).
+
+     XMLHttpRequest ile ( fetch'in gövde okuyucusuyla değil ):  Chromium adım adım okunan uzun
+     akışı veri tam gelse de "kesildi" ( ERR_ABORTED ) sayıyordu — uçtan uca testin izleyicisi
+     sonucu görmüyordu.  XHR'nin ilerleme olayında yanıt metni geldikçe büyür, istek olağan biter.  */
+function akisla<T>(
+  yol: string,
+  govde: unknown,
+  bicim: (h: unknown) => unknown,
+  sinyal?: AbortSignal,
+  ilerle?: (d: AramaIlerlemesi) => void,
+): Promise<T> {
+  const bicimle = (j: unknown) =>
+    (j && typeof j === "object" && "hata" in j ? { ...j, hata: bicim((j as { hata: unknown }).hata) } : j) as T;
+  return new Promise<T>((coz, reddet) => {
+    if (sinyal?.aborted) return reddet(sinyal.reason ?? new DOMException("Aborted", "AbortError"));
+    const x = new XMLHttpRequest();
+    let okunan = 0;
+    let sonuc: unknown;
+    let geldi = false;
+    const akisMi = () => (x.getResponseHeader("Content-Type") || "").includes("application/x-ndjson");
+    //  Tamamlanmış satırlar ( okunan:  işlenen metnin sonu );  son:  yarım satır da okunur
+    const isle = (son: boolean) => {
+      const metin = x.responseText.slice(okunan);
+      const [satirlar, kalan] = satirlariAyir(son ? metin + "\n" : metin);
+      okunan = x.responseText.length - kalan.length;
+      for (const s of satirlar) {
+        const d = JSON.parse(s) as { sonuc?: unknown; ilerleme?: AramaIlerlemesi };
+        if ("sonuc" in d) {
+          sonuc = d.sonuc;
+          geldi = true;
+        } else if (d.ilerleme) ilerle?.(d.ilerleme);
+      }
+    };
+    const birak = () => x.abort();
+    sinyal?.addEventListener("abort", birak, { once: true });
+    const bitir = () => sinyal?.removeEventListener("abort", birak);
+    x.open("POST", yol);
+    x.setRequestHeader("Content-Type", "application/json");
+    x.setRequestHeader("Accept", "application/x-ndjson");
+    x.onprogress = () => {
+      if (!akisMi()) return;
+      try {
+        isle(false);
+      } catch {
+        /*  bozuk satır:  yükleme bitince hata olarak döner  */
+      }
+    };
+    x.onload = () => {
+      bitir();
+      try {
+        if (!akisMi()) {
+          const tur = x.getResponseHeader("Content-Type") || "";
+          if (x.status >= 400 && !tur.includes("application/json")) throw new Error(`Sunucu yanıt vermedi ( ${x.status} )`);
+          return coz(bicimle(JSON.parse(x.responseText)));
+        }
+        isle(true);
+        if (!geldi) throw new Error("Sunucunun yanıtı yarıda kesildi");
+        coz(bicimle(sonuc));
+      } catch (e) {
+        reddet(e);
+      }
+    };
+    x.onerror = () => {
+      bitir();
+      reddet(new TypeError("Failed to fetch"));
+    };
+    x.onabort = () => {
+      bitir();
+      reddet(sinyal?.reason ?? new DOMException("Aborted", "AbortError"));
+    };
+    x.send(JSON.stringify(govde));
+  });
+}
+
 export const api = {
   alanlar: () => al<AlanSemasi>("/api/uygulama/alanlar"),
   hesap: (i: UygulamaIstegi, s?: AbortSignal) => gonder<CokluYanit>("/api/uygulama/coklu", i, hataListe, s),
@@ -540,8 +632,9 @@ export const api = {
   secenekler: () => al<Secenekler>("/api/secenekler"),
   trafik: (girdiler: unknown, s?: AbortSignal) => gonder<TrafikYaniti>("/api/trafik", { girdiler }, hataMetin, s),
   avan: (girdiler: unknown, s?: AbortSignal) => gonder<AvanYaniti>("/api/avan", { girdiler }, hataMetin, s),
-  avanCizimleri: (girdiler: unknown, asansor: number, s?: AbortSignal) =>
-    gonder<AvanCizimYaniti>("/api/avan/cizimler", { girdiler, asansor }, hataMetin, s),
+  /**  ilerle:  seçicinin aşamaları geldikçe ( akışlı yanıt )  */
+  avanCizimleri: (girdiler: unknown, asansor: number, s?: AbortSignal, ilerle?: (d: AramaIlerlemesi) => void) =>
+    akisla<AvanCizimYaniti>("/api/avan/cizimler", { girdiler, asansor }, hataMetin, s, ilerle),
 };
 
 export interface IndirmeSonucu {
