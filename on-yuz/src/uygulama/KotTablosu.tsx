@@ -10,7 +10,7 @@
     ( soluk — giriş katı 0, altı −1, üstü 1 … ), kapı düğmesi giriş katını seçer
     ( yeniden basılınca kurala döner:  ±0,00'a en yakın durak ).  Durak silinince
     üstündekilerin adı bir aşağı kayar.                                          */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DoorOpen, Plus, X } from "lucide-react";
 import type { Deger } from "@/lib/api";
 import {
@@ -211,24 +211,65 @@ export function KatGirisi({
   //  Kotlar alttan üste yazılır ama satırlar üstten alta dizilidir ( Tab aşağı gider ):
   //  Enter / ↑ üstteki durağın kotuna, ↓ alttakine geçer ( yalnız avanın tablosunda )
   const tablo = useRef<HTMLDivElement>(null);
+  //  Eklenen durağa geçiş:  satır bir sonraki çizimde doğar ( durağın sırası )
+  const [odak, setOdak] = useState<number | null>(null);
   const gec = (j: number) => (e: React.KeyboardEvent<HTMLInputElement>) => {
     const hedef = e.key === "Enter" || e.key === "ArrowUp" ? j + 1 : e.key === "ArrowDown" ? j - 1 : null;
     if (hedef === null || !bosAcik) return;
     const kutu = tablo.current?.querySelector<HTMLInputElement>(`input[aria-label="${hedef + 1}. durağın kotu"]`);
-    if (!kutu) return;
-    e.preventDefault();
-    kutu.focus();
-    kutu.select();
+    if (kutu) {
+      e.preventDefault();
+      kutu.focus();
+      kutu.select();
+      return;
+    }
+    //  ( 17 Kas ) En üst durakta Enter / ↑:  bir kat yukarıya yeni durak ( kotlar klavyeden art arda
+    //  girilir ) — yalnız bu durağın kotu okunuyorsa
+    if (hedef === ham.length && k[j] !== null && k[j] !== undefined) {
+      e.preventDefault();
+      durakEkle();
+    }
   };
   const k = kotlariOku(h[DURAK_KOTLARI]);
   const ham = parcalar(h[DURAK_KOTLARI]);
   const enAlt = k[0] ?? null;
   const enUst = k.length ? k[k.length - 1] : null;
+  useEffect(() => {
+    if (odak === null) return;
+    const kutu = tablo.current?.querySelector<HTMLInputElement>(`input[aria-label="${odak + 1}. durağın kotu"]`);
+    if (!kutu) return;
+    kutu.focus();
+    kutu.select();
+    setOdak(null);
+    //  Satır sayısı:  eklenen durak bu çizimde yoksa satırlar değişince yeniden denenir
+  }, [odak, ham.length]);
   const tavan = kotOku(h[KUYU_TAVANI_KOTU]);
   const dip = kotOku(h[KUYU_DIBI_KOTU]);
   //  Makine dairesinin zemini boşsa sunucunun kuralıyla ( tabliye 1.200 ):  soluk
   const mdKullanilan = typeof kullanilan?.[MD_ZEMINI_KOTU] === "number" ? (kullanilan[MD_ZEMINI_KOTU] as number) : null;
   const md = kotOku(h[MD_ZEMINI_KOTU]) ?? (mdKullanilan === null ? null : Math.round(mdKullanilan * 1000));
+  //  DURAK EKLE:  bir kat yukarıya ( son iki durağın arası, tek duraksa 3,00 m );  kuyu tavanı ve
+  //  makine dairesi zemini kartın kendisinden ( x ) durakla yükselir.  ( 17 Kas ) Tablo boşken ilk
+  //  durak ±0,00:  avanın yeni projesinde kot yazılacak satır yoktu ( yalnız hızlı doldur / yapıştır )
+  const durakEkle = () => {
+    if (enUst === null) {
+      if (ham.length) return;
+      uygulaF(() => ({ [DURAK_KOTLARI]: kotYaz(0) }));
+      setOdak(0);
+      return;
+    }
+    const h1 = k.length > 1 && k[k.length - 2] !== null ? enUst - (k[k.length - 2] as number) : 3000;
+    uygulaF((x) => {
+      const t = kotOku(x[KUYU_TAVANI_KOTU]);
+      const m = kotOku(x[MD_ZEMINI_KOTU]);
+      return {
+        [DURAK_KOTLARI]: [...ham, kotYaz(enUst + h1)].join("; "),
+        ...(t !== null && { [KUYU_TAVANI_KOTU]: kotYaz(t + h1) }),
+        ...(m !== null && { [MD_ZEMINI_KOTU]: kotYaz(m + h1) }),
+      };
+    });
+    setOdak(ham.length);
+  };
   const durakYaz = (j: number, metin: string) => {
     const y = [...ham];
     y[j] = metin;
@@ -265,7 +306,9 @@ export function KatGirisi({
         {yalnizKuyu && !kot && (
           <span className="text-[11.5px] text-metin-3">önce binanın kot tablosu ( Trafik hesabı → Katlar )</span>
         )}
-        {bosAcik && !yalnizKuyu && !kot && <span className="text-[11.5px] text-metin-3">durak kotlarını hızlı doldurun ya da yapıştırın</span>}
+        {bosAcik && !yalnizKuyu && (
+          <span className="text-[11.5px] text-metin-3">{kot ? "Enter:  üstteki durak" : "en alt duraktan başlayın · Enter:  üstteki durak"}</span>
+        )}
         {/*  Kotsuz asansör açılırken kotlara çevrilir ( proje.kotlayaCevir );  yine de
              kotsuz kaldıysa ( başka sekmeden gelen eski hâl ) çeviri elle  */}
         {!kot && !bosAcik && bos}
@@ -341,7 +384,7 @@ export function KatGirisi({
           </>
           )}
           {yalnizKuyu && duraklar}
-          {(yalnizKuyu ? [] : ham)
+          {(yalnizKuyu ? [] : bosAcik && !ham.length ? [""] : ham)
             .map((metin, j) => ({ metin, j }))
             .reverse()
             .map(({ metin, j }) => {
@@ -392,6 +435,7 @@ export function KatGirisi({
                       inputMode="decimal"
                       birim="m"
                       value={metin}
+                      placeholder={!ham.length ? kotYaz(0) : undefined}
                       durum={bu === null ? "hata" : undefined}
                       onKeyDown={bosAcik ? gec(j) : undefined}
                       onChange={(e) => durakYaz(j, e.target.value)}
@@ -435,24 +479,11 @@ export function KatGirisi({
           )}
           {!yalnizKuyu && (
           <div className="mt-1.5 flex flex-wrap gap-1">
-            {kot && (
+            {(kot || bosAcik) && (
               <button
                 type="button"
                 className="inline-flex h-7 items-center gap-1 rounded-kucuk px-1.5 text-[12px] font-medium text-metin-2 hover:bg-black/[0.04] hover:text-metin"
-                onClick={() => {
-                  if (enUst === null) return;
-                  const h1 = k.length > 1 && k[k.length - 2] !== null ? enUst - (k[k.length - 2] as number) : 3000;
-                  //  Kuyu tavanı ve makine dairesi zemini kartın kendisinden ( x ):  durakla yükselir
-                  uygulaF((x) => {
-                    const t = kotOku(x[KUYU_TAVANI_KOTU]);
-                    const m = kotOku(x[MD_ZEMINI_KOTU]);
-                    return {
-                      [DURAK_KOTLARI]: [...ham, kotYaz(enUst + h1)].join("; "),
-                      ...(t !== null && { [KUYU_TAVANI_KOTU]: kotYaz(t + h1) }),
-                      ...(m !== null && { [MD_ZEMINI_KOTU]: kotYaz(m + h1) }),
-                    };
-                  });
-                }}
+                onClick={durakEkle}
               >
                 <Plus className="size-3.5" /> Durak ekle
               </button>
