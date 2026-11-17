@@ -233,6 +233,11 @@ class ArizaMatrisiKapsami(unittest.TestCase):
         self.assertEqual(sorted(u for u in uclar if f'"{u}"' not in matris), [], "matriste olmayan uçlar")
 
 
+def katlar_metni(metin):
+    """Kot tablosunun metni → durakların yazıldığı gibi kotları ( alttan üste )."""
+    return [x.strip() for x in (metin or "").split(";") if x.strip()]
+
+
 @unittest.skipIf(ATLA, ATLA)
 class OnYuzUctanUca(unittest.TestCase):
     @classmethod
@@ -1350,6 +1355,53 @@ class OnYuzUctanUca(unittest.TestCase):
         _istek, avan = self.iz.son("/api/avan")
         _istek, trafik = self.iz.son("/api/trafik")
         return trafik, avan, self.liste_satiri("Avan deneme")
+
+    def test_avan_kotlari_klavyeden(self):
+        """17 Kas ( kullanıcı:  "kotları girmeye çalıştığımda ilk başta açılan trafik hesabında
+        giremiyorum" ):  yeni avan projesinde Katlar tablosunda yazılacak satır yoktu, "Durak ekle"
+        de yalnız kot varken çıkıyordu.  Şimdi boş tabloda en alt durağın kutusu var;  Enter bir
+        kat yukarıya durak ekler ( son aralık kadar, ilkinde 3,00 m ) ve ona geçer — kotlar
+        klavyeden art arda yazılır.  "Durak ekle" hep görünür;  ↓ alttaki durağa döner."""
+        self.sayfa.goto(self.url + "/")
+        self.sayfa.get_by_role("link", name=re.compile("Avan proje")).click()
+        self.sayfa.wait_for_url(re.compile(r"/avan/trafik$"))
+        ilk = self.sayfa.get_by_label("1. durağın kotu", exact=True)
+        ilk.wait_for()
+        self.assertEqual((ilk.input_value(), ilk.get_attribute("placeholder")), ("", "±0,00"))
+        self.assertEqual(self.sayfa.get_by_label("2. durağın kotu", exact=True).count(), 0)
+        self.assertTrue(self.sayfa.get_by_role("button", name="Durak ekle").is_visible())
+
+        def odakta():
+            return self.sayfa.evaluate("document.activeElement?.getAttribute('aria-label')")
+
+        ilk.fill("0,00")
+        ilk.press("Enter")
+        ikinci = self.sayfa.get_by_label("2. durağın kotu", exact=True)
+        ikinci.wait_for()
+        self.assertEqual(odakta(), "2. durağın kotu")
+        self.assertEqual(ikinci.input_value(), "+3,00")
+        #  Önerilen kot seçili:  yazılan onun yerine geçer
+        self.sayfa.keyboard.type("3,20")
+        self.sayfa.keyboard.press("Enter")
+        ucuncu = self.sayfa.get_by_label("3. durağın kotu", exact=True)
+        ucuncu.wait_for()
+        self.assertEqual((odakta(), ucuncu.input_value()), ("3. durağın kotu", "+6,40"))
+        self.sayfa.keyboard.type("6,20")
+        #  ↓ alttaki durak;  "Durak ekle" en üste ( son aralık:  3.000 )
+        self.sayfa.keyboard.press("ArrowDown")
+        self.assertEqual(odakta(), "2. durağın kotu")
+        self.sayfa.get_by_role("button", name="Durak ekle").click()
+        dorduncu = self.sayfa.get_by_label("4. durağın kotu", exact=True)
+        dorduncu.wait_for()
+        self.assertEqual((odakta(), dorduncu.input_value()), ("4. durağın kotu", "+9,20"))
+        #  Yazılanlar projede ve trafik hesabında
+        self.iz.sakin()
+        kot = self.sayfa.evaluate(
+            "JSON.parse(localStorage.getItem('asansor:avan')).avanAsansorleri[0].durak_kotlari"
+        )
+        self.assertEqual(katlar_metni(kot), ["0,00", "3,20", "6,20", "+9,20"])
+        istek, _yanit = self.iz.son("/api/trafik")
+        self.assertEqual(katlar_metni(istek["girdiler"]["durak_kotlari"]), ["0,00", "3,20", "6,20", "+9,20"])
 
     def test_avan_hizmet_araligi(self):
         """17 Kas ( kullanıcı:  "biri −1'e iniyor biri inmiyor senaryosunu da yapabilmemiz lazım" ):
