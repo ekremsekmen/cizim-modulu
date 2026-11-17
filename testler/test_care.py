@@ -237,6 +237,24 @@ class Care(unittest.TestCase):
                 turev = [o["bina"] for o in c["oneriler"] if o["yontem"] == "türev"]
                 self.assertEqual(turev, sorted(turev), (vaka, c["metin"][:50]))
 
+    def test_alcak_makine_dairesinin_caresi_yukseklik(self):
+        """16 Kas:  makine dairesinin yükseklik sorunları ne kadar eksik olduğunu söyler ( fark ) —
+        çare bulucu odanın yüksekliğini önerir.  Eskiden düz metindi:  çare çıkmıyor, avan
+        seçicisi "sığmıyor" diyordu."""
+        taban = _taban("md")
+        veri = json.loads(json.dumps(taban))
+        veri["proje_geneli"]["md_yukseklik"] = "2000"
+        #  Tabliye oda zemininde ( kot farkı yok ):  yoksa oda 2100'e çıkınca tabliyenin üstündeki
+        #  yükseklik sorunu ortaya çıkar ( önceden "temiz yükseklik" sorununun arkasında ) — tek
+        #  değişiklikli çare olmaz, öneri doğru olarak reddedilir
+        veri["asansorler"][0]["tabliye_yuksekligi"] = "0"
+        r = care_uclari.coz(
+            veri, 0, {"asansor": taban["asansorler"][0], "proje_geneli": taban["proje_geneli"]}
+        )
+        o = _oneriler(r, "Makine dairesinin temiz yüksekliği 2000 mm < 2100 mm")
+        self.assertIn("md_yukseklik", o)
+        self.assertGreaterEqual(float(o["md_yukseklik"][0]), 2100)
+
     def test_yavas_bilgisayarda_ayni_careler(self):
         """BÜTÇE SINAMA SAYISIDIR, SAAT DEĞİL:  her sınama saati 1 sn
         ilerletince ( yavaş, yüklü bilgisayar ) çareler aynı kalır.  6 sn'lik

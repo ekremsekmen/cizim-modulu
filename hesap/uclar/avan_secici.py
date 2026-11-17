@@ -73,7 +73,9 @@ KOTLAR = (alanlar.DURAK_KOTLARI, "kuyu_dibi_kotu", "kuyu_tavani_kotu", "md_zemin
 ADLAR = (alanlar.DURAK_ADLARI, alanlar.GIRIS_DURAGI)
 #  Tavan döşemesinin kalınlığı ( mimarın kesitinden — boşsa uygulamanın kuralı )
 MIMARI = ("kuyu_genisligi", "kuyu_derinligi", *KOTLAR, *ADLAR, "tavan_dosemesi")
-MIMARI_GENEL = ("mk_uzunluk", "mk_genislik")
+#  16 Kas:  makine dairesinin iç yüksekliği de mimarın ( boşsa uygulamanın varsayılanı 3500 —
+#  paketlerde yok );  plan ölçüsü değildir:  küçük oda kuralı ( _kucuk_oda ) ona bakmaz
+MIMARI_GENEL = ("mk_uzunluk", "mk_genislik", "md_yukseklik")
 #  Avanın BEYANI ( kartın askı oranı ve makine tipi — avan motor hesabının girdileri ):
 #  verilmişse paketinkinin yerine geçer, seçici değiştirmez
 #  ( 14 Kas ) kapı genişliği ve tipi de:  trafik hesabının kapısı ( kullanıcı kararı )
@@ -572,7 +574,7 @@ def sec(m):
 
     m:  beyan_yuku ( kg ), beyan_hizi, kuyu_genisligi, kuyu_derinligi, durak_kotlari,
         kuyu_dibi_kotu, kuyu_tavani_kotu, mk_yok;  makine dairesi varsa md_zemini_kotu,
-        isteğe bağlı mk_uzunluk / mk_genislik;  isteğe bağlı avanın beyanı ( BEYAN:
+        isteğe bağlı mk_uzunluk / mk_genislik / md_yukseklik;  isteğe bağlı avanın beyanı ( BEYAN:
         aski_orani, makine_tipi ) — verilmişse istekte aynen durur;  isteğe bağlı ayar
         ( { girdi:  değer } — çizimde elle ayarlanan ölçüler, ayarlar ).
 
@@ -876,9 +878,7 @@ def _kucuk_oda(taslak, m):
     if m.get("mk_yok") in (True, "true"):
         return {}
     return {
-        k: pg[k]
-        for k in MIMARI_GENEL
-        if m.get(k) not in (None, "") and k in pg and _sayi(m[k]) < _sayi(pg[k])
+        k: pg[k] for k in ODA_KUYU if m.get(k) not in (None, "") and k in pg and _sayi(m[k]) < _sayi(pg[k])
     }
 
 
@@ -916,7 +916,7 @@ def _kucuk_odada(taslak, m, kucuk):
             }
             for k, x in kucuk.items()
         ]
-        v, d, gereken = _kucult(buyuk, d, gereken, sina, taslak, anahtarlar=MIMARI_GENEL)
+        v, d, gereken = _kucult(buyuk, d, gereken, sina, taslak, anahtarlar=tuple(ODA_KUYU))
         secilen = {}
     gereken = r.get("gereken", []) + gereken
     return {

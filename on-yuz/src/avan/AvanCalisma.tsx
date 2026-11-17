@@ -1372,6 +1372,7 @@ function HesaplarAdimi({
                 ? [
                     ["mk_uzunluk", "Makine dairesi uzunluğu A", "mm"],
                     ["mk_genislik", "Makine dairesi genişliği B", "mm"],
+                    ["md_yukseklik", "Makine dairesi iç yüksekliği", "mm"],
                   ]
                 : []),
             ].map(([k, e, b]) => (
@@ -1698,9 +1699,17 @@ function CizimlerAdimi({
             [
               ["mk_uzunluk", "Makine dairesi uzunluğu A", "mm"],
               ["mk_genislik", "Makine dairesi genişliği B", "mm"],
+              //  16 Kas:  mimarın makine dairesi yüksekliği ( boşsa uygulamanın varsayılanı 3500 )
+              ["md_yukseklik", "Makine dairesi iç yüksekliği", "mm"],
             ].map(([k, e, b]) => (
               <Satir key={k} etiket={e} id={`c-${k}`}>
-                <Girdi id={`c-${k}`} value={p.ortak[k] ?? ""} birim={b} onChange={(ev) => oy(k, ev.target.value)} />
+                <Girdi
+                  id={`c-${k}`}
+                  value={p.ortak[k] ?? ""}
+                  birim={b}
+                  placeholder={k === "md_yukseklik" ? "3500" : undefined}
+                  onChange={(ev) => oy(k, ev.target.value)}
+                />
               </Satir>
             ))}
         </Kume>
@@ -1823,12 +1832,13 @@ const MIMARI_GIRDILERI = new Set([
   "tavan_dosemesi",
   "mk_uzunluk",
   "mk_genislik",
+  "md_yukseklik",
 ]);
 
 /**  Ölçü kutusunun değişikliği nereye yazılır:  kartın mimari kutuları · binanın kutuları ·
      ( kalanı ) kartın elle ayarları  */
 const KART_OLCULERI = new Set(["kuyu_genisligi", "kuyu_derinligi", "tavan_dosemesi"]);
-const BINA_OLCULERI = new Set(["mk_uzunluk", "mk_genislik"]);
+const BINA_OLCULERI = new Set(["mk_uzunluk", "mk_genislik", "md_yukseklik"]);
 /**  Avan çiziminde ölçü kutusundan DEĞİŞMEYEN kaynaklar:  trafik hesabının kabini / kapısı / hızı,
      kartın askısı ve makine tipi, kot tablosu  */
 const AVAN_KILITLI = new Set([

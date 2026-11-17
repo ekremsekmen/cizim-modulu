@@ -108,6 +108,7 @@ AVAN_ORTAK_SAYISAL = (
     "cubuk_sayisi",
     "mk_uzunluk",
     "mk_genislik",
+    "md_yukseklik",
 )
 
 AVAN_AS_SAYISAL = (
@@ -156,6 +157,7 @@ AVAN_ORTAK_ETIKET = {
     "serit_L": "L — topraklama şeridi boyu",
     "mk_uzunluk": "Makine dairesi uzunluğu",
     "mk_genislik": "Makine dairesi genişliği",
+    "md_yukseklik": "Makine dairesi iç yüksekliği",
 }
 
 #  Ofis standardında METİN olan sabitler ( kablo tipi … ) — sayıya çevrilmez.
