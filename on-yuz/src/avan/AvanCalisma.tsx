@@ -256,6 +256,9 @@ export function AvanCalisma() {
 
   //  Pakete PROJE DOSYASI da girer ( geri dönüş noktası — uygulamanın
   //  Teslim'i gibi );  React'e geçişte düşmüştü ( 20 Eki )
+  //  ÇİFT BASIŞ ( 17 Kas — ön yüz denetimi ):  düğme ancak yeniden çizilince kapanır;  aynı anda iki
+  //  basış iki paket başlatabiliyordu.  Paket ( ya da paketten önceki soru ) sürerken yeni basış yok sayılır.
+  const indirmeSuruyor = useRef(false);
   const paket = useMutation({
     mutationFn: () =>
       indir("proje-dwg", {
@@ -263,6 +266,9 @@ export function AvanCalisma() {
         girdiler: { trafik: trafikGirdi, avan: avanGirdi },
         proje_dosyasi: avanDosyaGovdesi(p, sec.data!, ofis, kopru),
       }),
+    onSettled: () => {
+      indirmeSuruyor.current = false;
+    },
   });
 
   //  PAKETİN ARAMASI ( 17 Kas — yayın öncesi denetim ):  paket çizimi istenen her asansörün
@@ -273,7 +279,9 @@ export function AvanCalisma() {
   //  bilmediği asansör SUNUCUYA sorulur ( api.avanAranacaklar — arama yapmaz ):  sayfa yenilenince
   //  ekranın sonuçları gider, sunucunun ( işçiler arası ) önbelleğindekiler kalır.  Soru düşerse
   //  pencere sebebini söyler ( "Yeniden dene" · yine de indir ) — bilinmeyen asansör "bilinmiyor".
-  const [paketSor, setPaketSor] = useState<{ aranacaklar: number[]; hata?: string } | null>(null);
+  //  girdi:  sorunun sorulduğu avan girdisi — girdi değişince ( başka sekme ) soru eskidir, pencere kapalı sayılır
+  const [paketSoru, setPaketSor] = useState<{ aranacaklar: number[]; hata?: string; girdi: unknown } | null>(null);
+  const paketSor = paketSoru && paketSoru.girdi === avanGirdi ? paketSoru : null;
   //  Ekranın bu girdiyle sonucunu bildiği asansörler ( aranmış:  bulundu ya da çizilemiyor )
   const ekranBiliyor = cizimIstenen.map((_, j) => {
     const d = cizimSonuclari[j]?.data;
@@ -294,17 +302,34 @@ export function AvanCalisma() {
     return { i, ad: p.avanAsansorleri[i]?.tanim?.trim() || `Asansör ${i + 1}`, hal };
   });
   const [soruluyor, setSoruluyor] = useState(false);
+  //  YARIŞ ( 17 Kas — ön yüz denetimi ):  pencere açıkken girdi değişirse ( başka sekme, eşitleme )
+  //  sonuçlar yenilenir;  ana düğme kapanır ( bekleme ) ama pencerenin "Yine de indir"i açık
+  //  kalıyordu — paket eski trafik sonucuyla ( 21 Eki'de kapatılan hata ) gidiyordu.  Girdi
+  //  değişince pencere kapanır ( soru eskidir — paketSor );  sorunun yanıtı gelince de bekleme yeniden okunur.
+  const beklemeRef = useRef(bekleme);
+  useEffect(() => {
+    beklemeRef.current = bekleme;
+  }, [bekleme]);
+  const paketiIndir = () => {
+    if (indirmeSuruyor.current) return;
+    indirmeSuruyor.current = true;
+    paket.mutate();
+  };
   const projeyiIndir = async () => {
-    if (ekranBiliyor.every(Boolean)) return paket.mutate();
+    if (indirmeSuruyor.current) return;
+    if (ekranBiliyor.every(Boolean)) return paketiIndir();
+    indirmeSuruyor.current = true;
+    let indirilecek = false;
     setSoruluyor(true);
     try {
       const r = await api.avanAranacaklar(avanGirdi);
       const hata = (r as { hata?: unknown }).hata;
       if (hata || !Array.isArray(r.aranacaklar)) throw new Error(String(hata || "Sunucunun yanıtı okunamadı"));
-      if (r.aranacaklar.length) setPaketSor({ aranacaklar: r.aranacaklar });
+      if (r.aranacaklar.length) setPaketSor({ aranacaklar: r.aranacaklar, girdi: avanGirdi });
       else {
         setPaketSor(null);
-        paket.mutate();
+        //  Soru sürerken sonuçlar yenilendiyse inmez:  düğme yeniden açılınca basılır
+        indirilecek = !beklemeRef.current;
       }
     } catch (e) {
       const hata =
@@ -315,10 +340,12 @@ export function AvanCalisma() {
             : e instanceof Error
               ? e.message
               : String(e);
-      setPaketSor({ aranacaklar: cizimIstenen, hata });
+      setPaketSor({ aranacaklar: cizimIstenen, hata, girdi: avanGirdi });
     } finally {
       setSoruluyor(false);
+      indirmeSuruyor.current = false;
     }
+    if (indirilecek) paketiIndir();
   };
 
   //  Avan tek projedir:  yenisi öncekinin yerine geçer, önceki "Geri al" ile döner
@@ -455,9 +482,11 @@ export function AvanCalisma() {
                 Çizimlere git
               </Dugme>
               <Dugme
+                disabled={!!bekleme}
+                title={bekleme}
                 onClick={() => {
                   setPaketSor(null);
-                  paket.mutate();
+                  paketiIndir();
                 }}
               >
                 Yine de indir

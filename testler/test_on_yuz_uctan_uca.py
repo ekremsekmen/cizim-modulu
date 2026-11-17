@@ -267,6 +267,9 @@ class OnYuzUctanUca(unittest.TestCase):
                 "warning",
             ],
             cwd=os.path.join(KOK, "hesap"),
+            #  Seçicinin disk önbelleği bu sunucuya özel, boş ( avan_secici._Onbellek ):  aynı süreçteki
+            #  birim testlerinin aramaları "arama aşamaları görünür" diyen testi bozmasın
+            env={**os.environ, "AVAN_SECICI_ONBELLEK": tempfile.mkdtemp(prefix="secici-uctan-uca-")},
         )
         for _ in range(120):
             try:
@@ -1544,6 +1547,7 @@ class OnYuzUctanUca(unittest.TestCase):
         Çizimler adımında bulunmamışsa ( dar kuyuda dakikalar ) önce sorulur:  Çizimlere git ·
         Yine de indir · Vazgeç.  Aranmışsa ( bulundu ya da çizilemiyor ) sormadan iner."""
         self.sayfa.goto(self.url + "/")
+        #  Kuyu bu teste özgü ( tavan +19,10 ):  başka testin araması sunucunun önbelleğinde olurdu
         self.sayfa.evaluate(
             """() => localStorage.setItem('asansor:avan', JSON.stringify({
                 trafik: {bina_tipi: 'Konut', bina_yuksekligi: '16', yapi_yuksekligi: '17', hizli1: '8', hizli2: '2'},
@@ -1553,7 +1557,7 @@ class OnYuzUctanUca(unittest.TestCase):
                 avanAsansorleri: [
                     {tanim: 'A', kuyu_genisligi: '2350', kuyu_derinligi: '1850',
                      durak_kotlari: '±0,00; +3,00; +6,00; +9,00; +12,00; +15,00',
-                     kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+19,20'},
+                     kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+19,10'},
                     {}, {}, {}],
                 kapak: {project_title: 'Paket'}}))"""
         )
@@ -1572,15 +1576,30 @@ class OnYuzUctanUca(unittest.TestCase):
         pencere.get_by_role("button", name="Vazgeç").click()
         pencere.wait_for(state="detached")
         self.assertEqual(paket_istekleri, [])
+        #  YARIŞ ( 17 Kas — ön yüz denetimi ):  pencere açıkken girdi başka sekmede değişir
+        #  ( eşitleme ) — sonuçlar yenilenir;  pencere kapanır, eski sonuçla paket gitmez
+        indir.click()
+        pencere.filter(has_text="henüz aranmadı").wait_for()
+        self.sayfa.evaluate(
+            """() => { const p = JSON.parse(localStorage.getItem('asansor:avan'));
+                p.ortak.temel_a = '21';  const m = JSON.stringify(p);
+                localStorage.setItem('asansor:avan', m);
+                window.dispatchEvent(new StorageEvent('storage',
+                    {key: 'asansor:avan', newValue: m, storageArea: localStorage})); }"""
+        )
+        pencere.wait_for(state="detached")
+        self.iz.sakin()
+        self.assertEqual(paket_istekleri, [])
         #  Çizimlere git:  arama orada yapılır ( kuyu üstü yetmiyor — mimardan istenecek )
         indir.click()
         pencere.get_by_role("button", name="Çizimlere git").click()
         self.sayfa.wait_for_url("**/avan/cizimler")
         _istek, yanit = self.iz.son("/api/avan/cizimler")
         self.assertEqual(yanit["durum"], "gereken", yanit)
-        #  Aranmış ( çizilemiyor ):  sormadan iner, notu başlıkta
+        #  Aranmış ( çizilemiyor ):  sormadan iner, notu başlıkta.  ÇİFT BASIŞ ( 17 Kas ):  tek paket
         with self.sayfa.expect_download(timeout=ZAMAN) as d:
-            indir.click()
+            #  Üç basış aynı anda ( ekran arada yeniden çizilmez — korumasız sürümde üç paket gidiyordu )
+            indir.evaluate("b => { b.click(); b.click(); b.click(); }")
         self.assertEqual(self.sayfa.get_by_role("dialog").count(), 0)
         self.assertTrue(d.value.suggested_filename.endswith(".zip"))
         self.assertEqual(len(paket_istekleri), 1)
