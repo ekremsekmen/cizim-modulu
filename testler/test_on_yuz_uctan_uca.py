@@ -1481,6 +1481,8 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertAlmostEqual(b["toplam_seyahat"], 9.0, places=9)
         #  Sütunun kilitli kat kutuları asansörün kendi düzenini yazar
         self.assertEqual(self.sayfa.get_by_label("2. asansör Durak").input_value(), "4")
+        #  Bodrumlu sütunda durak toplamı bodrum dahil, bodrum açıkça yazılır ( tablodaki 5 durak )
+        self.assertEqual(self.sayfa.get_by_label("1. asansör Durak").input_value(), "5 ( 1 bodrum )")
 
         self.sayfa.goto(self.url + "/avan/hesaplar")
         istek, avan = self.iz.son("/api/avan")

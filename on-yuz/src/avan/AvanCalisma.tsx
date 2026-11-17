@@ -554,10 +554,13 @@ function Satir({ etiket, id, children, ipucu }: { etiket: string; id: string; ch
 /**  Trafik sütununun kendi kat düzeni:  kot tablosu doluyken okunmaz ( sunucu:  ASANSOR_KAT_ALANLARI )  */
 const SUTUN_KAT = ["durak", "h", "bodrum"];
 /**  Kot tablosu doluyken sütunun kilitli kat kutularında yazan:  asansörün hizmet aralığından
-     türeyen durak sayısı ( giriş üstü + ana giriş ), kat yüksekliği ve bodrum durağı  */
+     türeyen durak sayısı ( bodrum dahil toplam ), kat yüksekliği ve bodrum durağı  */
 function sutunYazi(d: (KatDuzeni & { h: number }) | undefined, k: string): string {
   if (!d) return "";
-  return k === "durak" ? String(d.N + 1) : k === "bodrum" ? String(d.bodrum) : sayiYaz(Math.round(d.h * 1000) / 1000);
+  //  ( 17 Kas ) Durak:  bodrum dahil toplam, bodrum ayrıca yazılır — eskiden N + 1 ( 8 ) yazıyordu,
+  //  kat tablosunda 9 durak varken kafa karıştırıyordu ( hesap 9 durakla yapılıyordu )
+  if (k === "durak") return d.bodrum ? `${d.N + 1 + d.bodrum} ( ${d.bodrum} bodrum )` : String(d.N + 1);
+  return k === "bodrum" ? String(d.bodrum) : sayiYaz(Math.round(d.h * 1000) / 1000);
 }
 
 function TrafikAdimi({
@@ -928,7 +931,16 @@ function TrafikAdimi({
               <IndirDugmesi uc="trafik-pdf" govde={govde} kapali={!!sonuc?.hata} />
             </div>
           </div>
-          {sonuc?.hata ? (
+          {sonuc?.hata && !t("bina_tipi").trim() ? (
+            //  ( 17 Kas ) Yeni proje:  hata değil, başlangıç — eskiden boş projede turuncu "yapılamadı"
+            <div className="rounded-buyuk border border-cizgi bg-yuzey px-5 py-4">
+              <p className="text-[13px] font-semibold">Trafik hesabına başlayın</p>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-metin-2">
+                Soldan sırayla:  binanın durak kotları ( Katlar ), bina tipi ve yükseklikleri, nüfus, asansörün kapasitesi ve
+                kapısı.  Hesap girdikçe kendiliğinden yapılır.
+              </p>
+            </div>
+          ) : sonuc?.hata ? (
             <div className="rounded-buyuk border border-uyari-cizgi bg-uyari-acik px-5 py-4">
               <p className="text-[13px] font-semibold text-uyari">Trafik hesabı yapılamadı</p>
               <p className="mt-1 text-[12.5px] text-metin-2">{String(sonuc.hata).replace(/^HESAP HATASI:\s*/, "")}</p>
@@ -1480,6 +1492,8 @@ function HesaplarAdimi({
                 {String(asonuc.uyari ?? "")
                   .replace(/!+/g, "")
                   .replace(/^\s*\d+ NOLU ASANSÖR —\s*/i, "")
+                  //  ( 17 Kas ) Başlık zaten "Girdi tamamlanmadı":  sunucunun metnindeki aynı söz atılır
+                  .replace(/^\s*girdi tamamlanmad[ıi]\s*[·:—-]?\s*/i, "")
                   .trim()}
               </p>
             </div>
