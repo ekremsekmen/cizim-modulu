@@ -70,6 +70,7 @@ const Tuval = lazy(() => import("@/uygulama/Tuval").then((m) => ({ default: m.Tu
 import type { OlcuSecimi } from "@/uygulama/Tuval";
 import { OlcuKutusu } from "@/uygulama/OlcuKutusu";
 import { useAvanDegisimi } from "@/avan/AvanDegisimOnayi";
+import { AramaAsamalari, GORUNME_ESIGI, useGecenSure, type AramaDurumu } from "@/avan/AramaAsamalari";
 
 const ADIMLAR = [
   { yol: "trafik", ad: "Trafik hesabı" },
@@ -1597,14 +1598,25 @@ function CizimlerAdimi({
   //  Alanların adları ( elle ayar listesi ):  seçici yanıt vermeden de okunur ad ( 17 Kas )
   const sema = useQuery({ queryKey: ["alanlar"], queryFn: api.alanlar, staleTime: Infinity });
   const alanBilgisi = (k: string) => sema.data?.gruplar.flatMap((gr) => gr.alanlar).find((a) => a.anahtar === k);
+  //  ARAMANIN AŞAMALARI ( 17 Kas ):  sunucu aramanın gerçek aşamalarını akıtır ( AramaAsamalari );
+  //  hangi girdinin, hangi asansörün araması olduğu da tutulur — eski aramanın aşaması görünmez
+  const [arama, setArama] = useState<(AramaDurumu & { g: unknown; i: number }) | null>(null);
   const cizim = useQuery({
     queryKey: ["avan-cizim", g, i],
-    queryFn: ({ signal }) => api.avanCizimleri(g, i, signal),
+    queryFn: ({ signal }) => {
+      const bas = performance.now();
+      setArama({ g, i, bas, d: null });
+      return api.avanCizimleri(g, i, signal, (d) => setArama((x) => (x && x.bas === bas ? { ...x, d } : x)));
+    },
     placeholderData: keepPreviousData,
     //  Yalnız oturmuş girdiyle:  trafik gelince ( köprü ) geciken değer bir süre eski
     //  ( asansörsüz ) girdidir — onunla istenirse "bu asansör yok" dönerdi
     enabled: !!kopru && g === girdi,
   });
+  //  Süren arama ( bu girdinin, bu asansörün ):  GORUNME_ESIGI'nden uzun sürünce görünür
+  const sureN = cizim.isFetching && arama && arama.g === g && arama.i === i ? arama : null;
+  const gecen = useGecenSure(sureN);
+  const asamalar = sureN && gecen >= GORUNME_ESIGI ? sureN : null;
   //  ÖLÇÜYE TIKLAMA ( 13 Kas ):  avanda çizim seçicinindir;  yalnız MİMARİDEN gelen ölçüler
   //  ( kuyu genişliği / derinliği, kotlar, tavan döşemesi, makine dairesi ) değişir — tıklanınca
   //  soldaki kutusu odaklanır.  Kaynağı uygulamanın ölçü ucu söyler ( seçicinin isteğiyle ).
@@ -1782,6 +1794,10 @@ function CizimlerAdimi({
               {cizim.isFetching && <Loader2 className="animate-spin" />} Yeniden dene
             </Dugme>
           </CizimIletisi>
+        ) : !r && asamalar ? (
+          <div className="flex flex-1 items-center justify-center overflow-y-auto p-8">
+            <AramaAsamalari durum={asamalar} gecen={gecen} />
+          </div>
         ) : !r ? (
           <CizimIletisi
             baslik="Asansör seçiliyor…"
@@ -1868,6 +1884,12 @@ function CizimlerAdimi({
               }));
             }}
           />
+        )}
+        {/*  Eski sonuç görünürken yenisi aranıyor:  aşamalar köşede  */}
+        {r && asamalar && (
+          <div className="pointer-events-none absolute top-14 right-3 z-20">
+            <AramaAsamalari durum={asamalar} gecen={gecen} kucuk />
+          </div>
         )}
       </main>
     </div>

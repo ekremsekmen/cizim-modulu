@@ -583,6 +583,8 @@ class KorumaliSecici(unittest.TestCase):
         g = govde(kart(t, kuyu_genisligi="1650", kuyu_derinligi="2300"))
 
         class Kapandi:
+            headers = {}
+
             async def is_disconnected(self):
                 return True
 
