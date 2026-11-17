@@ -2,11 +2,14 @@
 Gövde avan hesabınınki ( /api/avan );  asansörün mimarisi kartta.  Yanıt seçicinin
 sonucu;  "uygun"da uygulamanın çizim yanıtı.  Çizim bulunamadıysa çizim YOKTUR."""
 
+import asyncio
 import io
 import json
 import re
+import time
 import unittest
 import zipfile
+import zlib
 
 import ezdxf
 
@@ -493,3 +496,147 @@ class AvanPaketi(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def akisli_istek(g, kodlama="gzip", kes=None):
+    """/api/avan/cizimler'e akışlı istek, bütün uygulama üzerinden ( main.app — sıkıştırma ara
+    katmanı dahil ).  Döner ( başlıklar , [ gövde parçaları ] ).  kes:  bu kadar parça gelince
+    bağlantı kapanır ( ekran isteği bıraktı )."""
+    import main
+
+    govde = json.dumps(g).encode()
+    kapsam = {
+        "type": "http",
+        "asgi": {"version": "3.0", "spec_version": "2.3"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/api/avan/cizimler",
+        "raw_path": b"/api/avan/cizimler",
+        "query_string": b"",
+        "root_path": "",
+        "headers": [
+            (b"content-type", b"application/json"),
+            (b"accept", avan_cizim_uclari.AKIS_TURU.encode()),
+            (b"accept-encoding", kodlama.encode()),
+            (b"content-length", str(len(govde)).encode()),
+        ],
+        "client": ("test", 1),
+        "server": ("test", 80),
+    }
+    basliklar, parcalar = {}, []
+
+    async def calistir():
+        bitti = asyncio.Event()
+        okundu = False
+
+        async def al():
+            nonlocal okundu
+            if not okundu:
+                okundu = True
+                return {"type": "http.request", "body": govde, "more_body": False}
+            await bitti.wait()
+            return {"type": "http.disconnect"}
+
+        async def gonder(m):
+            if m["type"] == "http.response.start":
+                basliklar.update({k.decode(): v.decode() for k, v in m["headers"]})
+            elif m["type"] == "http.response.body":
+                if m.get("body"):
+                    parcalar.append(m["body"])
+                if not m.get("more_body") or (kes and len(parcalar) >= kes):
+                    bitti.set()
+
+        await main.app(kapsam, al, gonder)
+
+    asyncio.run(calistir())
+    return basliklar, parcalar
+
+
+class AvanCizimAkisi(unittest.TestCase):
+    """AKIŞLI YANIT ( 17 Kas — kullanıcı:  "beklerken ne yapıldığını görelim" ):  ekran aramanın
+    gerçek aşamalarını gösterir ( avan_secici.Ilerleme ).  Sonuç tek JSON'la AYNI;  aşamalar
+    geldikleri anda açılır ( sıkıştırma biriktirmez );  aşama bildirimi seçimi etkilemez."""
+
+    #  Kuyu üstü yetmeyen geniş kuyu:  ~4 sn, birkaç aşama ( yerleşim → uyarlama → küçültme → doğrulama )
+    GENIS = {"kuyu_genisligi": "2350"}
+
+    def setUp(self):
+        avan_secici._ONBELLEK.clear()
+
+    def satirlar(self, basliklar, parcalar):
+        """Her parça GELDİĞİ ANDA açılır:  tam satırlar çıkmalı ( yarım satır biriktirilmez )."""
+        coz = zlib.decompressobj(31) if basliklar.get("content-encoding") == "gzip" else None
+        sonuc = []
+        for p in parcalar:
+            metin = (coz.decompress(p) if coz else p).decode("utf-8")
+            self.assertTrue(metin.endswith("\n"), "parça satır ortasında bitti:  sıkıştırma biriktiriyor")
+            sonuc += [json.loads(s) for s in metin.splitlines() if s.strip()]
+        return sonuc
+
+    def test_sonuc_tek_jsonla_ayni_asamalar_aninda(self):
+        g = govde(kart(T630, **self.GENIS))
+        basliklar, parcalar = akisli_istek(g)
+        self.assertEqual(basliklar["content-type"], avan_cizim_uclari.AKIS_TURU)
+        self.assertEqual(basliklar.get("content-encoding"), "gzip")
+        satirlar = self.satirlar(basliklar, parcalar)
+        self.assertIn("sonuc", satirlar[-1])
+        ilerleme = [s["ilerleme"] for s in satirlar[:-1]]
+        self.assertGreater(len(ilerleme), 1, "aşamalar sonuçtan önce gelmeli")
+        kodlar = [a["kod"] for a in ilerleme[-1]["asamalar"]]
+        self.assertEqual(kodlar[:2], ["paket", "yerlesim"])
+        self.assertTrue(set(kodlar) <= set(avan_secici.ASAMALAR))
+        #  Sınama sayısı azalmaz
+        sayilar = [i["sinama"] for i in ilerleme]
+        self.assertEqual(sayilar, sorted(sayilar))
+        avan_secici._ONBELLEK.clear()
+        akisli, tek = satirlar[-1]["sonuc"], yanit(g)
+        for r in (akisli, tek):
+            r.pop("sure")
+        self.assertEqual(akisli, tek)
+
+    def test_cizimli_yanit_sikisik_iner(self):
+        """Uygun kuyuda çizimler ( ~800 KB ):  akışlı yanıt da sıkışık — ara katmanınki kadar."""
+        g = govde(kart(T630))
+        basliklar, parcalar = akisli_istek(g)
+        satirlar = self.satirlar(basliklar, parcalar)
+        sonuc = satirlar[-1]["sonuc"]
+        self.assertEqual(sonuc["durum"], "uygun", sonuc)
+        ham = len(json.dumps(sonuc, ensure_ascii=False).encode())
+        self.assertGreater(ham, 300_000)
+        self.assertLess(sum(map(len, parcalar)), ham / 8)
+        #  Çizim aşaması da bildirildi ( önbellekten gelmediyse )
+        if len(satirlar) > 1:
+            self.assertIn("cizim", [a["kod"] for a in satirlar[-2]["ilerleme"]["asamalar"]])
+
+    def test_sikistirma_istenmezse_duz(self):
+        basliklar, parcalar = akisli_istek(govde(kart(T630)), kodlama="identity")
+        self.assertNotIn("content-encoding", basliklar)
+        self.assertEqual(self.satirlar(basliklar, parcalar)[-1]["sonuc"]["durum"], "uygun")
+
+    def test_baglanti_kapaninca_arama_durur(self):
+        """Ekran isteği bıraktı ( girdi değişti ):  arama sonuna kadar sürmez, sonuç saklanmaz."""
+        t0 = time.monotonic()
+        akisli_istek(govde(kart(T630, kuyu_genisligi="1500")), kes=1)
+        self.assertLess(time.monotonic() - t0, 10)
+        self.assertEqual(len(avan_secici._ONBELLEK), 0)
+
+    def test_asama_bildirimi_secimi_etkilemez(self):
+        m = avan_cizimi.secim(avan_uclari.avan_girdisi(govde(kart(T630, **self.GENIS)))[0], 0)
+        i = avan_secici.Ilerleme()
+        with avan_secici.ilerleme(i):
+            m2 = avan_cizimi.secim(avan_uclari.avan_girdisi(govde(kart(T630, **self.GENIS)))[0], 0)
+        for r in (m, m2):
+            r.pop("sure", None)
+        self.assertEqual(m, m2)
+        durum = i.durum()[1]
+        self.assertEqual(durum["sinama"], m["sinama"])
+        #  Bütün aşamalar:  doğrulamanın içindeki yeniden seçim listeye girmez ( paket bir kez )
+        kodlar = [a["kod"] for a in durum["asamalar"]]
+        self.assertEqual(kodlar[0], "paket")
+        self.assertEqual(kodlar[-1], "dogrulama")
+        self.assertNotIn("paket", kodlar[1:])
+        self.assertEqual(
+            [a["ayrinti"] for a in durum["asamalar"] if a["kod"] == "yerlesim"],
+            ["ağırlık yanda", "ağırlık arkada"],
+        )

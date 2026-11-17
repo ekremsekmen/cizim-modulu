@@ -76,6 +76,15 @@ def _bos_port():
         return s.getsockname()[1]
 
 
+def yanit_govdesi(yanit):
+    """Yanıtın JSON'u.  Akışlı yanıtta ( avan çizimi, application/x-ndjson — 17 Kas ) son satırın
+    sonucu;  aşama satırları ( ilerleme ) atlanır."""
+    if "application/x-ndjson" not in (yanit.headers.get("content-type") or ""):
+        return yanit.json()
+    satirlar = [json.loads(s) for s in yanit.text().splitlines() if s.strip()]
+    return next(s["sonuc"] for s in reversed(satirlar) if "sonuc" in s)
+
+
 class Izleyici:
     """Sayfanın istekleri:  hesap ve çizim istek / yanıt çiftleri, yoldaki
     istek sayısı ( sakinleşmeyi beklemek için ) ve konsol hataları."""
@@ -136,7 +145,7 @@ class Izleyici:
         uc = next((u for u in self.UCLAR if r.url.endswith(u)), None)
         yanit = r.response() if r.failure is None else None
         if uc and yanit is not None and yanit.ok:
-            self.ciftler[uc].append((json.loads(r.post_data or "{}"), yanit.json()))
+            self.ciftler[uc].append((json.loads(r.post_data or "{}"), yanit_govdesi(yanit)))
 
     def sakin(self, sure=900):
         """Yolda istek kalmayıp `sure` ms öyle durana kadar bekler ( ön yüz girdiyi
@@ -1497,6 +1506,38 @@ class OnYuzUctanUca(unittest.TestCase):
         hizmet = self.sayfa.locator("[data-hizmet-araligi]")
         hizmet.filter(has_text="4 durak").wait_for()
         self.assertIn("±0,00 … +9,00", hizmet.inner_text())
+
+    def test_avan_arama_asamalari(self):
+        """17 Kas ( kullanıcı:  "beklerken geri bildirim verelim … doğru yapmamız gerekiyor" ):
+        uzun aramada Çizimler adımı aramanın GERÇEK aşamalarını gösterir ( sunucu akıtır —
+        avan_secici.Ilerleme ).  Liste sonuç gelince kaybolur;  akışlı istek olağan biter
+        ( izleyici yalnız biten isteğin yanıtını kaydeder — Chromium okuyucuyla okunan uzun
+        akışı "kesildi" sayıyordu, ön yüz XHR'ye geçti )."""
+        self.sayfa.goto(self.url + "/")
+        self.sayfa.evaluate(
+            """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut', bina_yuksekligi: '16', yapi_yuksekligi: '17', hizli1: '8', hizli2: '2'},
+                ekNufus: [],
+                trafikAsansorleri: [{P: '8', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik'}],
+                ortak: {mk_yok: 'true'},
+                avanAsansorleri: [
+                    {tanim: 'A', kuyu_genisligi: '2350', kuyu_derinligi: '1850',
+                     durak_kotlari: '±0,00; +3,00; +6,00; +9,00; +12,00; +15,00',
+                     kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+19,20'},
+                    {}, {}, {}],
+                kapak: {project_title: 'Aşamalar'}}))"""
+        )
+        self.sayfa.goto(self.url + "/avan/cizimler")
+        #  Geniş kuyuda kuyu üstü yetmez:  arama birkaç saniye sürer ( yerleşim → küçültme → doğrulama )
+        liste = self.sayfa.locator("[data-arama-asamalari]")
+        liste.filter(has_text="Hazır asansör seçildi").wait_for()
+        self.assertIn("Asansör seçiliyor", liste.inner_text())
+        self.assertGreaterEqual(liste.locator("[data-asama]").count(), 2)
+        _istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(yanit["durum"], "gereken", yanit)
+        self.sayfa.wait_for_selector("text=mimardan istenecek")
+        self.assertEqual(liste.count(), 0)
+        self.assertEqual(self.iz.hatalar, [])
 
     def test_avan_cizimleri(self):
         """12 Kas:  avan projesinde çizim ( "Çizimler" adımı ).  Mimari eksikken hangi
@@ -3023,6 +3064,50 @@ class OnYuzUctanUca(unittest.TestCase):
                 if (value) c.enqueue(value.slice(0, Math.max(1, value.length >> 1)));
                 c.error(new TypeError('network error'));
             } }), { status: r.status, headers: r.headers });
+        };
+        //  XMLHttpRequest DE ( 17 Kas — avan çizimi akışlı yanıtı XHR ile okur:  lib/api.akisla ):
+        //  aynı beş arıza, ekranın dinlediği olaylarla ( onprogress · onload · onerror ).
+        //  Eskiden yalnız fetch yakalanıyordu:  avan çizimi isteği arızasız gidiyordu
+        //  ( "istek gitmedi" ).
+        const X = window.XMLHttpRequest;
+        window.XMLHttpRequest = class extends X {
+            open(yontem, adres, ...kalan) {
+                this.__adres = String(adres);
+                this.__yontem = yontem;
+                this.__basliklar = {};
+                return super.open(yontem, adres, ...kalan);
+            }
+            setRequestHeader(k, v) {
+                this.__basliklar[k] = v;
+                return super.setRequestHeader(k, v);
+            }
+            send(govde) {
+                let a = null;
+                try { a = JSON.parse(sessionStorage.getItem('__ariza') || 'null'); } catch {}
+                if (!a || !this.__adres.includes(a.yol)) return super.send(govde);
+                window.__ariza++;
+                //  Sahte yanıt:  durum, tür, metin;  olaylar sırayla ( önce ilerleme )
+                const sahte = (metin, durum, tur, son) => {
+                    Object.defineProperty(this, 'status', { value: durum, configurable: true });
+                    Object.defineProperty(this, 'responseText', { value: metin, configurable: true });
+                    this.getResponseHeader = (k) => (k.toLowerCase() === 'content-type' ? tur : null);
+                    setTimeout(() => {
+                        this.onprogress?.();
+                        (son === 'hata' ? this.onerror : this.onload)?.();
+                    }, 0);
+                };
+                if (a.tur === 'baglanti') return void setTimeout(() => this.onerror?.(), 0);
+                if (a.tur === 'sayfa') return sahte('<html><body>502 Bad Gateway</body></html>', 502, 'text/html');
+                if (a.tur === 'ret')
+                    return sahte(JSON.stringify({ aktif: false, hata: ['DENEME REDDİ'] }), 413, 'application/json');
+                if (a.tur === 'bozuk') return sahte('<html>bozuk</html>', 200, 'application/json');
+                //  Yarıda kesilen yanıt:  gerçek yanıtın ilk parçasının yarısı, sonra bağlantı kopar
+                F(this.__adres, { method: this.__yontem, headers: this.__basliklar, body: govde }).then(async (r) => {
+                    const { value } = await r.body.getReader().read();
+                    const yarim = value ? new TextDecoder().decode(value.slice(0, Math.max(1, value.length >> 1))) : '';
+                    sahte(yarim, r.status, r.headers.get('Content-Type') || '', 'hata');
+                }, () => setTimeout(() => this.onerror?.(), 0));
+            }
         };
     })()"""
     #  Beş türün matrisi ~6–7 dk:  PR'da gerçek hata bulan iki tür koşar ( sunucunun
