@@ -314,6 +314,21 @@ def cizimsiz_sebebi(r):
     return str(r.get("hata") or "çizim kurulamadı")
 
 
+def aranacaklar(g):
+    """Paketin ŞİMDİ arama yapacağı asansörler ( sıra, 0'dan ):  çizimi istenen, kartı çizimle
+    çelişmeyen ve seçicinin sonucu sunucuda hazır olmayanlar ( avan_secici.aranacak_mi — arama
+    yapmaz ).  Ekran paketten önce sorar:  sayfa yenilenince ekranın kendi bildiği sonuçlar
+    gider, sunucunun ( işçiler arası ) önbelleğindekiler kalır ( 17 Kas )."""
+    return [
+        i
+        for i, a in enumerate(g["asansorler"])
+        if a is not None
+        and istendi(a)
+        and not _kabin_celiskisi(a, g["ortak"])
+        and avan_secici.aranacak_mi(mimari(a, g["ortak"], g.get("sabitler")))
+    ]
+
+
 def istendi(a):
     """Bu kartta çizim için bir şey girilmiş mi ( ISTEK )."""
     return any(a.get(k) not in (None, "") for k in ISTEK)

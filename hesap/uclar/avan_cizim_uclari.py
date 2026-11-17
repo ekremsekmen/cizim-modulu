@@ -28,7 +28,7 @@ from starlette.concurrency import run_in_threadpool
 
 from cizim import avan_kipi, hesap_isareti, istek_onbellegi
 from uclar import avan_cizimi, avan_secici, avan_uclari, cizim_uclari
-from uclar.uc_ortak import hata_iletisi, hata_kaydi
+from uclar.uc_ortak import baglantiyi_izle, hata_iletisi, hata_kaydi
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -61,18 +61,11 @@ async def api_avan_cizimler_ucu(istek: Request, veri: dict = Body(...)):
         return _akis(istek, veri)
     birakildi = threading.Event()
 
-    async def izle():
-        while not birakildi.is_set():
-            if await istek.is_disconnected():
-                birakildi.set()
-                return
-            await asyncio.sleep(BAGLANTI_ARALIGI)
-
     def ara():
         with avan_secici.korumali(birakildi.is_set):
             return api_avan_cizimler(veri)
 
-    izleyici = asyncio.create_task(izle())
+    izleyici = asyncio.create_task(baglantiyi_izle(istek, birakildi))
     try:
         return await run_in_threadpool(ara)
     finally:
@@ -80,8 +73,17 @@ async def api_avan_cizimler_ucu(istek: Request, veri: dict = Body(...)):
         izleyici.cancel()
 
 
-#  Bağlantının kapanıp kapanmadığına bakma aralığı ( sn;  bir sınama ~0,1 – 1 sn )
-BAGLANTI_ARALIGI = 0.25
+@router.post("/api/avan/aranacaklar")
+def api_avan_aranacaklar(veri: dict = Body(...)):
+    """Paketin şimdi arama yapacağı asansörler ( avan_cizimi.aranacaklar — arama yapmaz, anında ):
+    { aranacaklar:  [ sıra ] }.  Avan girdisi okunamıyorsa boş ( paket kendi hatasını söyler )."""
+    try:
+        g, hata = avan_uclari.avan_girdisi(veri)
+        return {"aranacaklar": [] if hata else avan_cizimi.aranacaklar(g)}
+    except Exception as e:  # noqa: BLE001
+        hata_kaydi(log, e)
+        return {"aranacaklar": []}
+
 
 #  AKIŞLI YANIT:  her satır bir JSON — { ilerleme:  { asamalar , sinama , gecen } } … , sonda
 #  { sonuc:  /api/avan/cizimler'in yanıtı }.  Satırlar en çok ILERLEME_ARALIGI'nda bir, yalnız

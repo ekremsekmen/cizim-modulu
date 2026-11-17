@@ -8,6 +8,7 @@ yazım denetimi, proje kimliği, dosya adı ve indirme yanıtı.
 Buradaki hiçbir şey hesap YAPMAZ;  hesap motorları engine/ altındadır.
 """
 
+import asyncio
 import json
 import logging
 import math
@@ -17,6 +18,22 @@ import threading
 
 from fastapi.responses import JSONResponse, Response
 from urllib.parse import quote
+
+#  Bağlantının kapanıp kapanmadığına bakma aralığı ( sn;  bir sınama ~0,1 – 1 sn )
+BAGLANTI_ARALIGI = 0.25
+
+
+async def baglantiyi_izle(istek, birakildi):
+    """İstemci bağlantıyı kapatınca ( ekran isteği bıraktı ) birakildi ( threading.Event ) kurulur:
+    iş parçacığındaki uzun iş ( seçici — avan_secici.korumali ) ona bakıp durur.  Görev olarak
+    koşar;  iş bitince çağıran olayı kurar ve görevi iptal eder.  AKIŞLI YANITTA KULLANILMAZ
+    ( orada Starlette kopmayı kendisi dinler — avan_cizim_uclari._akis )."""
+    while not birakildi.is_set():
+        if await istek.is_disconnected():
+            birakildi.set()
+            return
+        await asyncio.sleep(BAGLANTI_ARALIGI)
+
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

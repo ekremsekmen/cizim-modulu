@@ -632,6 +632,9 @@ export const api = {
   secenekler: () => al<Secenekler>("/api/secenekler"),
   trafik: (girdiler: unknown, s?: AbortSignal) => gonder<TrafikYaniti>("/api/trafik", { girdiler }, hataMetin, s),
   avan: (girdiler: unknown, s?: AbortSignal) => gonder<AvanYaniti>("/api/avan", { girdiler }, hataMetin, s),
+  /**  Paketin şimdi arama yapacağı asansörler ( sunucu arama yapmaz — anında;  17 Kas )  */
+  avanAranacaklar: (girdiler: unknown) =>
+    gonder<{ aranacaklar: number[] }>("/api/avan/aranacaklar", { girdiler }, hataMetin),
   /**  ilerle:  seçicinin aşamaları geldikçe ( akışlı yanıt )  */
   avanCizimleri: (girdiler: unknown, asansor: number, s?: AbortSignal, ilerle?: (d: AramaIlerlemesi) => void) =>
     akisla<AvanCizimYaniti>("/api/avan/cizimler", { girdiler, asansor }, hataMetin, s, ilerle),
