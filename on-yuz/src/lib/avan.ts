@@ -381,7 +381,7 @@ export function avanAyarlariYaz(d: Record<string, string>): string {
     .join(";");
 }
 
-const AVAN_ORTAK = ["temel_a", "temel_b", "mk_uzunluk", "mk_genislik"] as const;
+const AVAN_ORTAK = ["temel_a", "temel_b", "mk_uzunluk", "mk_genislik", "md_yukseklik"] as const;
 
 /**  Seçimlerin varsayılanı ( eski formun açılış değeri ):  boş istek de bunu demektir  */
 export const AVAN_SECIM_VARSAYILANI: Record<string, string> = {

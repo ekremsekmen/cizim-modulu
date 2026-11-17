@@ -16,7 +16,7 @@ import time
 import unittest
 from unittest import mock
 
-from cizim import katlar
+from cizim import katlar, kopru
 from uclar import avan_cizim_uclari, avan_secici, care_uclari, cizim_uclari, uygulama_uclari
 
 PAKETLER = avan_secici.paketler()
@@ -483,6 +483,42 @@ class AvanSecici(unittest.TestCase):
         self.assertEqual(avan_secici.sec(m)["eksik"], ["md_zemini_kotu"])
         #  Hazır asansörü olmayan yük ( 1125 kg — 15 kişi;  Tablo-7'de basılı değil )
         self.assertEqual(avan_secici.sec(mimari(t, beyan_yuku=1125))["durum"], "paket_yok")
+
+
+class MakineDairesiYuksekligi(unittest.TestCase):
+    """16 Kas ( kullanıcının A BLOK 800 KG projesi:  kesitte bakım kulesi 2,40 m, paftada 3500
+    yazıyordu ):  avanda makine dairesinin iç yüksekliği de mimarın ( bina ölçüsü ).  Boşsa
+    uygulamanın varsayılanı;  verilirse istekte aynen;  yetmiyorsa mimardan istenir.  Oda
+    zemini tabliyenin üstünde ( kot farkı yok — kullanıcının projesi gibi )."""
+
+    def setUp(self):
+        self.t = PAKETLER[(630, False)]
+        a = {**self.t["proje_geneli"], **self.t["asansor"]}
+        doseme = kopru.tavan_dosemesi({k: float(v) for k, v in a.items() if k == "kuyu_duvar_kalinligi"})
+        self.zemin = kot(self.t["asansor"]["kuyu_tavani_kotu"], doseme)
+
+    def m(self, **ek):
+        return mimari(self.t, md_zemini_kotu=self.zemin, **ek)
+
+    def test_bossa_varsayilan_verilirse_aynen(self):
+        r = avan_secici.sec(self.m())
+        self.assertEqual(r["durum"], "uygun", r)
+        self.assertNotIn("md_yukseklik", r["istek"]["proje_geneli"])
+        r = avan_secici.sec(self.m(md_yukseklik=2400))
+        self.assertEqual(r["durum"], "uygun", r)
+        self.assertEqual(r["istek"]["proje_geneli"]["md_yukseklik"], "2400")
+        AvanSecici.temiz(self, r)
+
+    def test_alcak_oda_mimardan_istenir(self):
+        """2000 mm oda:  "sığmaz" değil, yükseklik mimardan istenir;  küçük oda kuralı
+        ( plan ölçüleri ) yüksekliğe bakmaz."""
+        self.assertEqual(avan_secici._kucuk_oda(self.t, self.m(md_yukseklik=2000)), {})
+        r = avan_secici.sec(self.m(md_yukseklik=2000))
+        self.assertEqual(r["durum"], "gereken", r)
+        g = {x["anahtar"]: x for x in r["gereken"]}
+        self.assertEqual(set(g), {"md_yukseklik"})
+        self.assertGreaterEqual(float(g["md_yukseklik"]["yeni"]), 2100)
+        self.assertIn("temiz yüksekliği", g["md_yukseklik"]["sebep"])
 
 
 class KorumaliSecici(unittest.TestCase):

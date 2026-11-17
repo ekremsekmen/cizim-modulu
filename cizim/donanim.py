@@ -476,22 +476,40 @@ def _oda_yukseklikleri(md, TB, zd, ztv, kasnak_ustu, zkapi):
     """Makine dairesinin temiz yüksekliği, tabliyenin ve tahrik kasnağının
     üstündeki boşluk, kapısının yüksekliği ( TS EN 81-20 m.5.2.6.3.2 · m.5.2.3.2 )
     ve kapının zemininden ( zkapi ) tavana sığması."""
+    #  16 Kas:  yükseklik sorunları ne kadar eksik olduğunu söyler ( fark ) — çare bulucu
+    #  makine dairesi yüksekliğini önerebilsin ( uygulamanın "Düzeltme öner"i, avan seçicisinin
+    #  "mimardan istenecek" ölçüsü );  eskiden düz metindi, avan "sığmıyor" diyordu
     hata = []
     if md["yukseklik"] < ODA_YUKSEKLIK - 1e-9:
         hata.append(
-            f"Makine dairesinin temiz yüksekliği {md['yukseklik']:g} mm < {ODA_YUKSEKLIK:g} mm ( TS EN 81-20 m.5.2.6.3.2.1 )."
+            sorun.Sorun(
+                f"Makine dairesinin temiz yüksekliği {md['yukseklik']:g} mm < {ODA_YUKSEKLIK:g} mm ( TS EN 81-20 m.5.2.6.3.2.1 ).",
+                ("oda_catisi", "oda_duvari"),
+                "kuyu_kesiti_yan",
+                fark=md["yukseklik"] - ODA_YUKSEKLIK,
+            )
         )
     elif ztv - zd < ODA_YUKSEKLIK - 1e-9:
         #  Makinenin başındaki çalışma alanı tabliyenin üstündedir
         hata.append(
-            f"Tabliyenin üstünde temiz yükseklik {ztv - zd:g} mm < {ODA_YUKSEKLIK:g} mm:  "
-            f"makinenin başındaki çalışma alanı tabliyededir ( TS EN 81-20 m.5.2.6.3.2.1 ) — "
-            f"makine dairesi yüksekliği en az {ODA_YUKSEKLIK + TB['yukseklik']:g} olmalı ya da "
-            f"tabliye alçalmalı."
+            sorun.Sorun(
+                f"Tabliyenin üstünde temiz yükseklik {ztv - zd:g} mm < {ODA_YUKSEKLIK:g} mm:  "
+                f"makinenin başındaki çalışma alanı tabliyededir ( TS EN 81-20 m.5.2.6.3.2.1 ) — "
+                f"makine dairesi yüksekliği en az {ODA_YUKSEKLIK + TB['yukseklik']:g} olmalı ya da "
+                f"tabliye alçalmalı.",
+                ("oda_catisi", "tabliye"),
+                "kuyu_kesiti_yan",
+                fark=(ztv - zd) - ODA_YUKSEKLIK,
+            )
         )
     if ztv - kasnak_ustu < DONEN_PARCA_USTU - 1e-9:
         hata.append(
-            f"Tahrik kasnağının üstünde {ztv - kasnak_ustu:g} mm boşluk < {DONEN_PARCA_USTU:g} mm ( TS EN 81-20 m.5.2.6.3.2.3 )."
+            sorun.Sorun(
+                f"Tahrik kasnağının üstünde {ztv - kasnak_ustu:g} mm boşluk < {DONEN_PARCA_USTU:g} mm ( TS EN 81-20 m.5.2.6.3.2.3 ).",
+                ("oda_catisi", "tahrik_kasnagi"),
+                "kuyu_kesiti_yan",
+                fark=(ztv - kasnak_ustu) - DONEN_PARCA_USTU,
+            )
         )
     if md["kapi_yukseklik"] < ODA_KAPI_YUKSEKLIK - 1e-9:
         hata.append(
