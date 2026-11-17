@@ -1008,6 +1008,10 @@ class OnYuzUctanUca(unittest.TestCase):
         self.iz.sakin()
         kayit = "JSON.parse(localStorage.getItem('asansor:avan'))"
         self.sayfa.get_by_role("button", name="Yeni avan projesi").click()
+        #  ( 17 Kas ) Açık avan doluyken önce sorulur
+        pencere = self.sayfa.get_by_role("dialog", name="Açık avan projesi kapanacak")
+        self.assertIn("Eski avan", pencere.inner_text())
+        pencere.get_by_role("button", name="Kaydetmeden devam et").click()
         istek, _y = self.iz.son("/api/trafik")
         self.assertNotIn("bina_tipi", istek["girdiler"])
         #  Yeni projenin tek, boş sütunu:  sütunlar olduğu gibi gider, kapasitesizi
@@ -1797,6 +1801,7 @@ class OnYuzUctanUca(unittest.TestCase):
         )
         self.sayfa.reload()
         self.sayfa.get_by_role("button", name="Yeni avan projesi").click()
+        self.sayfa.get_by_role("button", name="Kaydetmeden devam et").click()
         self.iz.sakin()
         self.sayfa.reload()
         self.sayfa.get_by_role("button", name="Geri al").click()
@@ -1808,10 +1813,66 @@ class OnYuzUctanUca(unittest.TestCase):
         self.iz.sakin()
         self.assertEqual(self.sayfa.get_by_role("button", name="Geri al").count(), 0)
 
-    def test_acilistaki_avan_karti_yeni_proje_baslatir(self):
-        """Açılıştaki "Avan proje" kartı açık projeyi açıyordu ( 21 Eki ):  yeni
-        proje başlatır, önceki "Geri al" ile döner;  "Son projeler" satırı açık
-        projeye dönmeye devam eder."""
+    def test_acilistaki_avan_karti_acik_avana_devam_eder(self):
+        """17 Kas ( kullanıcı:  "avan projede yaptığımda programı kapattığımda gidiyor" ):  açılıştaki
+        "Avan proje" kartı açık avanın üzerine SORMADAN boş proje yazıyordu ( 21 Eki kararı ).  Açık
+        avan varken kart adını gösterir ve ona DEVAM eder;  yenisi "Yeni avan başlat"tan, önce
+        sorularak:  vazgeç ( dokunulmaz ) · kaydetmeden ( "Geri al" yine döner ) · dosyaya kaydet
+        ( .avan iner, sonra yeni )."""
+        kayit = "JSON.parse(localStorage.getItem('asansor:avan'))"
+        eski = """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut'}, ekNufus: [], trafikAsansorleri: [{P: '8'}],
+                ortak: {}, avanAsansorleri: [{}, {}, {}, {}], kapak: {project_title: 'Eski avan'}}))"""
+        self.sayfa.goto(self.url + "/")
+        self.sayfa.evaluate(eski)
+        self.sayfa.reload()
+        kart = self.sayfa.get_by_role("link", name=re.compile(r"^Avan proje"))
+        self.assertIn("Eski avan", kart.inner_text())
+        self.assertIn("Devam et", kart.inner_text())
+        kart.click()
+        self.sayfa.wait_for_url(re.compile(r"/avan/trafik$"))
+        self.iz.sakin()
+        self.assertEqual(self.sayfa.evaluate(kayit)["kapak"], {"project_title": "Eski avan"})
+        self.assertEqual(self.sayfa.get_by_role("button", name="Geri al").count(), 0)
+
+        #  Yeni avan başlat:  önce sorulur — Vazgeç hiçbir şeye dokunmaz
+        self.sayfa.goto(self.url + "/")
+        self.sayfa.get_by_role("button", name="Yeni avan başlat").click()
+        pencere = self.sayfa.get_by_role("dialog", name="Açık avan projesi kapanacak")
+        self.assertIn("Eski avan", pencere.inner_text())
+        pencere.get_by_role("button", name="Vazgeç").click()
+        self.assertEqual(self.sayfa.url, self.url + "/")
+        self.assertEqual(self.sayfa.evaluate(kayit)["kapak"], {"project_title": "Eski avan"})
+
+        #  Kaydetmeden devam:  yeni ( boş ) avan, önceki "Geri al" ile döner
+        self.sayfa.get_by_role("button", name="Yeni avan başlat").click()
+        self.sayfa.get_by_role("button", name="Kaydetmeden devam et").click()
+        self.sayfa.wait_for_url(re.compile(r"/avan/trafik$"))
+        self.sayfa.get_by_role("button", name="Geri al").wait_for()
+        self.iz.sakin()
+        self.assertEqual(self.sayfa.evaluate(kayit)["kapak"], {})
+        self.sayfa.get_by_role("button", name="Geri al").click()
+        self.iz.sakin()
+        self.assertEqual(self.sayfa.evaluate(kayit)["kapak"], {"project_title": "Eski avan"})
+
+        #  Dosyaya kaydet ve devam:  açık avanın dosyası iner, sonra yeni avan
+        self.sayfa.goto(self.url + "/")
+        self.sayfa.get_by_role("button", name="Yeni avan başlat").click()
+        with self.sayfa.expect_download() as indirme:
+            self.sayfa.get_by_role("button", name="Dosyaya kaydet ve devam et").click()
+        with tempfile.TemporaryDirectory() as klasor:
+            dosya = os.path.join(klasor, indirme.value.suggested_filename)
+            indirme.value.save_as(dosya)
+            with open(dosya, encoding="utf-8") as f:
+                self.assertEqual(json.load(f)["alanlar"]["k_project_title"], "Eski avan")
+        self.sayfa.wait_for_url(re.compile(r"/avan/trafik$"))
+        self.iz.sakin()
+        self.assertEqual(self.sayfa.evaluate(kayit)["kapak"], {})
+
+    def test_acilista_avan_dosyasi_once_sorar(self):
+        """Açılışta .avan dosyası açmak açık avanın yerine geçer:  dolu avan varken önce sorulur;
+        Vazgeç açık avana dokunmaz, "Kaydetmeden devam et" dosyayı açar."""
+        kayit = "JSON.parse(localStorage.getItem('asansor:avan'))"
         self.sayfa.goto(self.url + "/")
         self.sayfa.evaluate(
             """() => localStorage.setItem('asansor:avan', JSON.stringify({
@@ -1819,15 +1880,40 @@ class OnYuzUctanUca(unittest.TestCase):
                 ortak: {}, avanAsansorleri: [{}, {}, {}, {}], kapak: {project_title: 'Eski avan'}}))"""
         )
         self.sayfa.reload()
-        self.sayfa.get_by_role("link", name=re.compile(r"^Avan proje")).click()
-        self.sayfa.get_by_role("button", name="Geri al").wait_for()
+        govde = {
+            "__mod": "avan",
+            "__surum": 1,
+            "alanlar": {"__mod": "avan", "c_bina_tipi": "Konut", "k_project_title": "Dosyadaki avan"},
+        }
+        with tempfile.TemporaryDirectory() as klasor:
+            dosya = os.path.join(klasor, "yeni.avan")
+            with open(dosya, "w", encoding="utf-8") as f:
+                json.dump(govde, f, ensure_ascii=False)
+            for secim, beklenen in (("Vazgeç", "Eski avan"), ("Kaydetmeden devam et", "Dosyadaki avan")):
+                with self.subTest(secim=secim):
+                    self.sayfa.goto(self.url + "/")
+                    with self.sayfa.expect_file_chooser() as secici:
+                        self.sayfa.get_by_role("button", name="Dosya seç").click()
+                    secici.value.set_files(dosya)
+                    pencere = self.sayfa.get_by_role("dialog", name="Açık avan projesi kapanacak")
+                    self.assertIn("Eski avan", pencere.inner_text())
+                    pencere.get_by_role("button", name=secim).click()
+                    self.iz.sakin()
+                    self.assertEqual(self.sayfa.evaluate(kayit)["kapak"].get("project_title"), beklenen)
+
+    def test_bos_avanda_yeni_sormaz(self):
+        """Avan boşken ( kaybedilecek bir şey yok ) "Yeni avan projesi" sormadan çalışır;  açılışta
+        kart "Yeni avan proje" der, "Yeni avan başlat" bağlantısı yoktur."""
+        self.sayfa.goto(self.url + "/")
+        self.assertIn(
+            "Yeni avan proje", self.sayfa.get_by_role("link", name=re.compile(r"^Avan proje")).inner_text()
+        )
+        self.assertEqual(self.sayfa.get_by_role("button", name="Yeni avan başlat").count(), 0)
+        self.sayfa.goto(self.url + "/avan/trafik")
         self.iz.sakin()
-        kayit = self.sayfa.evaluate("JSON.parse(localStorage.getItem('asansor:avan'))")
-        self.assertEqual(kayit["kapak"], {})
-        self.sayfa.get_by_role("button", name="Geri al").click()
+        self.sayfa.get_by_role("button", name="Yeni avan projesi").click()
         self.iz.sakin()
-        kayit = self.sayfa.evaluate("JSON.parse(localStorage.getItem('asansor:avan'))")
-        self.assertEqual(kayit["kapak"], {"project_title": "Eski avan"})
+        self.assertEqual(self.sayfa.get_by_role("dialog").count(), 0)
 
     # ------------------------------------------------------------ 4 ölçü kutusu
     def test_olcu_kutusu_girdiyi_degistirir(self):

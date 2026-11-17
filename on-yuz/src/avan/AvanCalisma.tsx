@@ -69,6 +69,7 @@ const PdfOnizleme = lazy(() => import("@/components/PdfOnizleme").then((m) => ({
 const Tuval = lazy(() => import("@/uygulama/Tuval").then((m) => ({ default: m.Tuval })));
 import type { OlcuSecimi } from "@/uygulama/Tuval";
 import { OlcuKutusu } from "@/uygulama/OlcuKutusu";
+import { useAvanDegisimi } from "@/avan/AvanDegisimOnayi";
 
 const ADIMLAR = [
   { yol: "trafik", ad: "Trafik hesabı" },
@@ -264,7 +265,11 @@ export function AvanCalisma() {
   });
 
   //  Avan tek projedir:  yenisi öncekinin yerine geçer, önceki "Geri al" ile döner
-  //  ( açılıştaki kart da aynı yoldan — yeniAvanAcilisi )
+  //  ( açılıştaki kart da aynı yoldan — yeniAvanAcilisi ).  ( 17 Kas ) Açık avan doluysa önce
+  //  sorulur ( AvanDegisimOnayi ):  dosyaya kaydet · kaydetmeden · vazgeç
+  const degisim = useAvanDegisimi(() => {
+    if (sec.data) avanDosyayaKaydet(p, sec.data, ofis, kayitKoprusu);
+  });
   const yeniAvan = () => {
     setAcilis(yeniAvanAcilisi(p));
     setP(BOS_AVAN);
@@ -337,11 +342,12 @@ export function AvanCalisma() {
             <DosyaDugmeleri
               sec={sec.data}
               ofis={ofis}
-              ac={dosyaAc}
-              yeni={yeniAvan}
+              ac={(o) => degisim.sor(() => dosyaAc(o), o.proje)}
+              yeni={() => degisim.sor(yeniAvan)}
               kaydet={() => avanDosyayaKaydet(p, sec.data!, ofis, kayitKoprusu)}
               kaydetBekleme={kayitBekleme}
             />
+            {degisim.pencere}
             <Dugme
               tur="birincil"
               className="ml-1"
@@ -450,7 +456,7 @@ function DosyaDugmeleri({
   return (
     <span className="flex items-center gap-1">
       {hata && <span className="max-w-72 text-right text-[12px] leading-snug text-red">{hata}</span>}
-      <Ipucu metin="Yeni avan projesi ( önceki geri alınabilir )">
+      <Ipucu metin="Yeni avan projesi ( açık avan doluysa önce sorulur )">
         <Dugme tur="hayalet" boy="simge" className="xl:w-auto xl:px-2.5" aria-label="Yeni avan projesi" onClick={yeni}>
           <FilePlus />
           <span className="hidden xl:inline">Yeni</span>

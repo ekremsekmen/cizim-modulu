@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router";
-import { ArrowRight, Building, FileUp, FlaskConical, ChartLine, Ruler } from "lucide-react";
+import { ArrowRight, Building, FileUp, FlaskConical, ChartLine, Plus, Ruler } from "lucide-react";
 import { BasvuruBaglantilari, Isaret, UstSerit } from "@/components/Kabuk";
 import { Dugme, Rozet } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -17,6 +17,7 @@ import {
 import { projeListesi, uygulamaListeDurumu, useGoreceZaman, useOfisStandardi, type ProjeOzeti } from "@/lib/proje";
 import { TASLAK_DUZENI, taslakKumeleri } from "@/lib/taslak";
 import { useDosyaAc } from "./useDosyaAc";
+import { acikAvaniKaydet, useAvanDegisimi } from "@/avan/AvanDegisimOnayi";
 import { cn } from "@/lib/utils";
 
 /*  AÇILIŞ
@@ -26,6 +27,17 @@ import { cn } from "@/lib/utils";
 export function Acilis() {
   //  Uygulama projeleri ve avan ( tek proje, kendi kaydından — lib/avan avanOzeti )
   const avan = avanOzeti();
+  const avanZamani = useGoreceZaman(avan?.guncellendi ?? 0);
+  const git = useNavigate();
+  const istemci = useQueryClient();
+  //  ( 17 Kas ) Açık avan varken kart ona DEVAM eder;  yenisi ayrı bağlantıdan, önce sorularak
+  //  ( AvanDegisimOnayi ) — eskiden kart açık avanın üzerine sormadan boş proje yazıyordu
+  const degisim = useAvanDegisimi(() => acikAvaniKaydet(istemci));
+  const yeniAvan = () => {
+    //  Yeni proje:  açık olan "Geri al" için tutulur ( avan ekranı okur )
+    acilisiYaz(yeniAvanAcilisi(avanProjesiniOku()));
+    avanProjesiniYaz(BOS_AVAN);
+  };
   const projeler = [...projeListesi(), ...(avan ? [avan] : [])].sort((a, b) => b.guncellendi - a.guncellendi);
   //  Bilinmeyen proje adresinden gelindiyse ( başka tarayıcının bağlantısı, silinmiş proje )
   const bulunamadi = (useLocation().state as { bulunamadi?: string } | null)?.bulunamadi;
@@ -65,19 +77,33 @@ export function Acilis() {
               kaynak="TS EN 81-20 · TS EN 81-50 · MMO 208"
               birincil
             />
-            <BaslatKarti
-              to="/avan/trafik"
-              tikla={() => {
-                //  Yeni proje:  açık olan "Geri al" için tutulur ( avan ekranı okur )
-                acilisiYaz(yeniAvanAcilisi(avanProjesiniOku()));
-                avanProjesiniYaz(BOS_AVAN);
-              }}
-              simge={<ChartLine />}
-              baslik="Avan proje"
-              metin="Trafik hesabı, avan hesapları ve proje kapağı."
-              ciktilar={["Trafik paftası", "Avan PDF'i", "Kapak"]}
-              kaynak="MMO/697 · ISO 8100-32 · IEEE 80"
-            />
+            <div className="flex flex-col">
+              <BaslatKarti
+                to="/avan/trafik"
+                tikla={avan ? undefined : yeniAvan}
+                devam={avan ? { ad: avan.ad, zaman: avanZamani } : undefined}
+                simge={<ChartLine />}
+                baslik="Avan proje"
+                metin="Trafik hesabı, avan hesapları ve proje kapağı."
+                ciktilar={["Trafik paftası", "Avan PDF'i", "Kapak"]}
+                kaynak="MMO/697 · ISO 8100-32 · IEEE 80"
+              />
+              {avan && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    degisim.sor(() => {
+                      yeniAvan();
+                      git("/avan/trafik");
+                    })
+                  }
+                  className="mt-1.5 inline-flex items-center gap-1 self-start rounded-kucuk px-1.5 py-1 text-[12.5px] font-medium text-metin-2 hover:bg-black/[0.04] hover:text-metin"
+                >
+                  <Plus className="size-3.5" /> Yeni avan başlat
+                </button>
+              )}
+              {degisim.pencere}
+            </div>
           </div>
 
           <DosyaAc />
@@ -211,7 +237,10 @@ function BaslatKarti({
   ciktilar,
   kaynak,
   birincil,
+  devam,
 }: {
+  /**  Açık proje varsa ( avan ):  kart ona devam eder — adı ve son değiştiği zaman  */
+  devam?: { ad: string; zaman: string };
   to: string;
   /**  Gitmeden önce ( avan:  yeni projeyi kur )  */
   tikla?: () => void;
@@ -243,6 +272,12 @@ function BaslatKarti({
         <span className="text-[15px] font-semibold">{baslik}</span>
         <span className="mt-0.5 text-[11.5px] text-metin-3">{kaynak}</span>
         <span className="mt-2 text-[12.5px] leading-relaxed text-metin-2">{metin}</span>
+        {devam && (
+          <span className="mt-3 flex flex-col rounded-orta bg-black/[0.035] px-2.5 py-1.5">
+            <span className="truncate text-[12.5px] font-medium text-metin">{devam.ad}</span>
+            <span className="text-[11.5px] text-metin-3">açık avan projesi · {devam.zaman}</span>
+          </span>
+        )}
         <span className="mt-3 flex flex-wrap gap-1.5">
           {ciktilar.map((c) => (
             <Rozet key={c}>{c}</Rozet>
@@ -254,7 +289,7 @@ function BaslatKarti({
             birincil ? "text-vurgu" : "text-metin",
           )}
         >
-          Yeni {baslik.toLocaleLowerCase("tr-TR")} <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+          {devam ? "Devam et" : `Yeni ${baslik.toLocaleLowerCase("tr-TR")}`} <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
         </span>
       </span>
     </Link>
