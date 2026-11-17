@@ -69,6 +69,7 @@ const PdfOnizleme = lazy(() => import("@/components/PdfOnizleme").then((m) => ({
 const Tuval = lazy(() => import("@/uygulama/Tuval").then((m) => ({ default: m.Tuval })));
 import type { OlcuSecimi } from "@/uygulama/Tuval";
 import { OlcuKutusu } from "@/uygulama/OlcuKutusu";
+import { useAvanDegisimi } from "@/avan/AvanDegisimOnayi";
 
 const ADIMLAR = [
   { yol: "trafik", ad: "Trafik hesabı" },
@@ -264,7 +265,11 @@ export function AvanCalisma() {
   });
 
   //  Avan tek projedir:  yenisi öncekinin yerine geçer, önceki "Geri al" ile döner
-  //  ( açılıştaki kart da aynı yoldan — yeniAvanAcilisi )
+  //  ( açılıştaki kart da aynı yoldan — yeniAvanAcilisi ).  ( 17 Kas ) Açık avan doluysa önce
+  //  sorulur ( AvanDegisimOnayi ):  dosyaya kaydet · kaydetmeden · vazgeç
+  const degisim = useAvanDegisimi(() => {
+    if (sec.data) avanDosyayaKaydet(p, sec.data, ofis, kayitKoprusu);
+  });
   const yeniAvan = () => {
     setAcilis(yeniAvanAcilisi(p));
     setP(BOS_AVAN);
@@ -337,11 +342,12 @@ export function AvanCalisma() {
             <DosyaDugmeleri
               sec={sec.data}
               ofis={ofis}
-              ac={dosyaAc}
-              yeni={yeniAvan}
+              ac={(o) => degisim.sor(() => dosyaAc(o), o.proje)}
+              yeni={() => degisim.sor(yeniAvan)}
               kaydet={() => avanDosyayaKaydet(p, sec.data!, ofis, kayitKoprusu)}
               kaydetBekleme={kayitBekleme}
             />
+            {degisim.pencere}
             <Dugme
               tur="birincil"
               className="ml-1"
@@ -450,7 +456,7 @@ function DosyaDugmeleri({
   return (
     <span className="flex items-center gap-1">
       {hata && <span className="max-w-72 text-right text-[12px] leading-snug text-red">{hata}</span>}
-      <Ipucu metin="Yeni avan projesi ( önceki geri alınabilir )">
+      <Ipucu metin="Yeni avan projesi ( açık avan doluysa önce sorulur )">
         <Dugme tur="hayalet" boy="simge" className="xl:w-auto xl:px-2.5" aria-label="Yeni avan projesi" onClick={yeni}>
           <FilePlus />
           <span className="hidden xl:inline">Yeni</span>
@@ -548,10 +554,13 @@ function Satir({ etiket, id, children, ipucu }: { etiket: string; id: string; ch
 /**  Trafik sütununun kendi kat düzeni:  kot tablosu doluyken okunmaz ( sunucu:  ASANSOR_KAT_ALANLARI )  */
 const SUTUN_KAT = ["durak", "h", "bodrum"];
 /**  Kot tablosu doluyken sütunun kilitli kat kutularında yazan:  asansörün hizmet aralığından
-     türeyen durak sayısı ( giriş üstü + ana giriş ), kat yüksekliği ve bodrum durağı  */
+     türeyen durak sayısı ( bodrum dahil toplam ), kat yüksekliği ve bodrum durağı  */
 function sutunYazi(d: (KatDuzeni & { h: number }) | undefined, k: string): string {
   if (!d) return "";
-  return k === "durak" ? String(d.N + 1) : k === "bodrum" ? String(d.bodrum) : sayiYaz(Math.round(d.h * 1000) / 1000);
+  //  ( 17 Kas ) Durak:  bodrum dahil toplam, bodrum ayrıca yazılır — eskiden N + 1 ( 8 ) yazıyordu,
+  //  kat tablosunda 9 durak varken kafa karıştırıyordu ( hesap 9 durakla yapılıyordu )
+  if (k === "durak") return d.bodrum ? `${d.N + 1 + d.bodrum} ( ${d.bodrum} bodrum )` : String(d.N + 1);
+  return k === "bodrum" ? String(d.bodrum) : sayiYaz(Math.round(d.h * 1000) / 1000);
 }
 
 function TrafikAdimi({
@@ -922,7 +931,16 @@ function TrafikAdimi({
               <IndirDugmesi uc="trafik-pdf" govde={govde} kapali={!!sonuc?.hata} />
             </div>
           </div>
-          {sonuc?.hata ? (
+          {sonuc?.hata && !t("bina_tipi").trim() ? (
+            //  ( 17 Kas ) Yeni proje:  hata değil, başlangıç — eskiden boş projede turuncu "yapılamadı"
+            <div className="rounded-buyuk border border-cizgi bg-yuzey px-5 py-4">
+              <p className="text-[13px] font-semibold">Trafik hesabına başlayın</p>
+              <p className="mt-1 text-[12.5px] leading-relaxed text-metin-2">
+                Soldan sırayla:  binanın durak kotları ( Katlar ), bina tipi ve yükseklikleri, nüfus, asansörün kapasitesi ve
+                kapısı.  Hesap girdikçe kendiliğinden yapılır.
+              </p>
+            </div>
+          ) : sonuc?.hata ? (
             <div className="rounded-buyuk border border-uyari-cizgi bg-uyari-acik px-5 py-4">
               <p className="text-[13px] font-semibold text-uyari">Trafik hesabı yapılamadı</p>
               <p className="mt-1 text-[12.5px] text-metin-2">{String(sonuc.hata).replace(/^HESAP HATASI:\s*/, "")}</p>
@@ -1191,6 +1209,81 @@ function AvanKatlar({
   );
 }
 
+/*  ( 17 Kas — kullanıcı:  "kuyu genişliği avan hesapları kısmında, kuyu derinliği çizimler kısmında" )
+    MİMARİ ve BİNA blokları Avan hesapları ile Çizimler adımında AYNI bileşen:  aynı kutular, aynı
+    sıra.  Eskiden iki adımın sol paneli ayrı yazılmıştı:  kuyu derinliği yalnız Çizimler'de, kuyu
+    genişliği hesapta asansörün alanları arasındaydı.  on:  kutuların kimlik öneki ( a · c — ölçüye
+    tıklayınca odaklanan kutu c-… )  */
+const MIMARI_KUTULARI = new Set(["Hk", "kuyu_genisligi"]);
+
+function MimariKume({
+  on,
+  ad,
+  h,
+  yaz,
+  mrl,
+  kot,
+  kat,
+}: {
+  on: string;
+  ad: string;
+  h: Ham;
+  yaz: (k: string, d: string) => void;
+  mrl: boolean;
+  kot: React.ComponentProps<typeof AvanKatlar>["kot"];
+  kat: React.ComponentProps<typeof AvanKatlar>["kat"];
+}) {
+  return (
+    <Kume baslik={`${ad} · mimari`} alt="Mimari projeden okunan ölçüler;  asansörü program seçer">
+      {[
+        ["kuyu_genisligi", "Kuyu genişliği", "mm"],
+        ["kuyu_derinligi", "Kuyu derinliği", "mm"],
+      ].map(([k, e, b]) => (
+        <Satir key={k} etiket={e} id={`${on}-${k}`}>
+          <Girdi id={`${on}-${k}`} value={h[k] ?? ""} birim={b} onChange={(ev) => yaz(k, ev.target.value)} />
+        </Satir>
+      ))}
+      <AvanKatlar on={on} h={h} yaz={yaz} mrl={mrl} kot={kot} kat={kat} />
+    </Kume>
+  );
+}
+
+function BinaKume({ on, ortak, yaz, mrl }: { on: string; ortak: Ham; yaz: (k: string, d: string) => void; mrl: boolean }) {
+  return (
+    <Kume baslik="Bina" alt="Bütün asansörler için bir kez">
+      <Satir etiket="Makine dairesi yok ( MRL )" id={`${on}-mrl`}>
+        <div className="flex justify-end">
+          <Anahtar id={`${on}-mrl`} acik={mrl} degisti={(d) => yaz("mk_yok", String(d))} etiket="Makine dairesi yok" />
+        </div>
+      </Satir>
+      {!mrl &&
+        [
+          ["mk_uzunluk", "Makine dairesi uzunluğu A", "mm"],
+          ["mk_genislik", "Makine dairesi genişliği B", "mm"],
+          //  16 Kas:  mimarın makine dairesi yüksekliği ( boşsa uygulamanın varsayılanı 3500 )
+          ["md_yukseklik", "Makine dairesi iç yüksekliği", "mm"],
+        ].map(([k, e, b]) => (
+          <Satir key={k} etiket={e} id={`${on}-${k}`}>
+            <Girdi
+              id={`${on}-${k}`}
+              value={ortak[k] ?? ""}
+              birim={b}
+              placeholder={k === "md_yukseklik" ? "3500" : undefined}
+              onChange={(ev) => yaz(k, ev.target.value)}
+            />
+          </Satir>
+        ))}
+    </Kume>
+  );
+}
+
+/**  Sunucunun adı gelmediyse ( bağlantı yok ) anahtarın okunur hâli:  "kuyu_duvar_kalinligi" →
+     "Kuyu duvar kalinligi"  */
+function okunurAd(k: string): string {
+  const s = k.replace(/_/g, " ");
+  return s.charAt(0).toLocaleUpperCase("tr-TR") + s.slice(1);
+}
+
 /**  Çizimin kabini ( hazır asansörünki ) karttakinden farklıysa ya da kart boşsa:  tek tıkla karta.
      Avan çizimi kartın kabini bununla aynı değilken çıkmaz ( sunucu:  avan_cizimi._kabin_celiskisi ).  */
 function KabinDoldur({
@@ -1313,7 +1406,7 @@ function HesaplarAdimi({
               Trafik {kopru.asansorler.length} asansör veriyor;  avan en çok {AVAN_AZAMI} asansör hesaplar.
             </p>
           )}
-          <Kume baslik={ad(i)} alt="Kapasite ve hız trafikten;  değiştirmek için trafiğe dönün">
+          <Kume baslik={`${ad(i)} · asansör`} alt="Kapasite ve hız trafikten;  değiştirmek için trafiğe dönün">
             <Satir etiket="Kapasite · hız" id="a-kh" ipucu="trafikten">
               <span className="sayi text-right text-[13px] text-metin-2">
                 {asansorler[i].P} kişi · {sayiYaz(asansorler[i].V)} m/s
@@ -1328,10 +1421,8 @@ function HesaplarAdimi({
                 secenekler={Object.keys(sec.makine_tipleri).map((x) => ({ deger: x, ad: x }))}
               />
             </Satir>
-            {AVAN_TEMEL.map((a) =>
-              a.k === "Hk" ? (
-                <AvanKatlar key={a.k} on="a" h={h} yaz={ay} mrl={mrl} kot={sonuc?.kotlar?.[i]} kat={kopru.asansorler[i]?.kat} />
-              ) : a.k === "kabin_genisligi" ? (
+            {AVAN_TEMEL.filter((a) => !MIMARI_KUTULARI.has(a.k)).map((a) =>
+              a.k === "kabin_genisligi" ? (
                 <div key={a.k}>
                   <AvanAlanSatiri a={a} sec={sec} ofis={ofis} h={h} yaz={ay} mrl={mrl} />
                   <KabinDoldur h={h} yaz={ay} kabin={sonuc?.kotlar?.[i]?.kabin} />
@@ -1359,22 +1450,12 @@ function HesaplarAdimi({
               </div>
             )}
           </Kume>
-          <Kume baslik="Bina" alt="Bütün asansörler için bir kez">
-            <Satir etiket="Makine dairesi yok ( MRL )" id="a-mrl">
-              <div className="flex justify-end">
-                <Anahtar id="a-mrl" acik={mrl} degisti={(d) => oy("mk_yok", String(d))} etiket="Makine dairesi yok" />
-              </div>
-            </Satir>
+          <MimariKume on="a" ad={ad(i)} h={h} yaz={ay} mrl={mrl} kot={sonuc?.kotlar?.[i]} kat={kopru.asansorler[i]?.kat} />
+          <BinaKume on="a" ortak={p.ortak} yaz={oy} mrl={mrl} />
+          <Kume baslik="Topraklama" alt="Temel topraklama hesabı için">
             {[
               ["temel_a", "Temel uzunluğu a", "m"],
               ["temel_b", "Temel genişliği b", "m"],
-              ...(!mrl
-                ? [
-                    ["mk_uzunluk", "Makine dairesi uzunluğu A", "mm"],
-                    ["mk_genislik", "Makine dairesi genişliği B", "mm"],
-                    ["md_yukseklik", "Makine dairesi iç yüksekliği", "mm"],
-                  ]
-                : []),
             ].map(([k, e, b]) => (
               <Satir key={k} etiket={e} id={`a-${k}`}>
                 <Girdi id={`a-${k}`} value={p.ortak[k] ?? ""} birim={b} onChange={(ev) => oy(k, ev.target.value)} />
@@ -1411,6 +1492,8 @@ function HesaplarAdimi({
                 {String(asonuc.uyari ?? "")
                   .replace(/!+/g, "")
                   .replace(/^\s*\d+ NOLU ASANSÖR —\s*/i, "")
+                  //  ( 17 Kas ) Başlık zaten "Girdi tamamlanmadı":  sunucunun metnindeki aynı söz atılır
+                  .replace(/^\s*girdi tamamlanmad[ıi]\s*[·:—-]?\s*/i, "")
                   .trim()}
               </p>
             </div>
@@ -1511,6 +1594,9 @@ function CizimlerAdimi({
   const i = Math.max(0, Math.min(secili, asansorler.length - 1));
   //  Seçici saniyeler sürebilir:  yazarken her tuşta istenmez
   const g = useGecikmeli(girdi, 500);
+  //  Alanların adları ( elle ayar listesi ):  seçici yanıt vermeden de okunur ad ( 17 Kas )
+  const sema = useQuery({ queryKey: ["alanlar"], queryFn: api.alanlar, staleTime: Infinity });
+  const alanBilgisi = (k: string) => sema.data?.gruplar.flatMap((gr) => gr.alanlar).find((a) => a.anahtar === k);
   const cizim = useQuery({
     queryKey: ["avan-cizim", g, i],
     queryFn: ({ signal }) => api.avanCizimleri(g, i, signal),
@@ -1650,25 +1736,15 @@ function CizimlerAdimi({
             </button>
           ))}
         </div>
-        <Kume baslik={`${ad(i)} · mimari`} alt="Mimari projeden okunan ölçüler;  asansörü program seçer">
-          {[
-            ["kuyu_genisligi", "Kuyu genişliği", "mm"],
-            ["kuyu_derinligi", "Kuyu derinliği", "mm"],
-          ].map(([k, e, b]) => (
-            <Satir key={k} etiket={e} id={`c-${k}`}>
-              <Girdi id={`c-${k}`} value={h[k] ?? ""} birim={b} onChange={(ev) => ay(k, ev.target.value)} />
-            </Satir>
-          ))}
-          <AvanKatlar on="c" h={h} yaz={ay} mrl={mrl} kot={sonuc?.kotlar?.[i]} kat={kopru.asansorler[i]?.kat} />
-        </Kume>
+        <MimariKume on="c" ad={ad(i)} h={h} yaz={ay} mrl={mrl} kot={sonuc?.kotlar?.[i]} kat={kopru.asansorler[i]?.kat} />
         {Object.keys(ayarlar).length > 0 && (
           <Kume baslik="Elle ayarlanan ölçüler" alt="Çizimde tıklayıp değiştirdikleriniz;  kalanını program seçer">
             <ul className="space-y-1">
               {Object.entries(ayarlar).map(([k, v]) => {
-                const bilgi = r?.ayarlar?.find((x) => x.anahtar === k);
+                const bilgi = r?.ayarlar?.find((x) => x.anahtar === k) ?? alanBilgisi(k);
                 return (
                   <li key={k} className="flex items-center gap-2 text-[12.5px]">
-                    <span className="min-w-0 flex-1 truncate">{(bilgi?.etiket ?? k).replace(/\s*\(mm\)$/, "")}</span>
+                    <span className="min-w-0 flex-1 truncate">{(bilgi?.etiket ?? okunurAd(k)).replace(/\s*\(mm\)$/, "")}</span>
                     <span className="sayi">
                       {v} <span className="text-metin-3">{bilgi?.birim ?? ""}</span>
                     </span>
@@ -1689,30 +1765,7 @@ function CizimlerAdimi({
             </Dugme>
           </Kume>
         )}
-        <Kume baslik="Bina" alt="Bütün asansörler için bir kez">
-          <Satir etiket="Makine dairesi yok ( MRL )" id="c-mrl">
-            <div className="flex justify-end">
-              <Anahtar id="c-mrl" acik={mrl} degisti={(d) => oy("mk_yok", String(d))} etiket="Makine dairesi yok" />
-            </div>
-          </Satir>
-          {!mrl &&
-            [
-              ["mk_uzunluk", "Makine dairesi uzunluğu A", "mm"],
-              ["mk_genislik", "Makine dairesi genişliği B", "mm"],
-              //  16 Kas:  mimarın makine dairesi yüksekliği ( boşsa uygulamanın varsayılanı 3500 )
-              ["md_yukseklik", "Makine dairesi iç yüksekliği", "mm"],
-            ].map(([k, e, b]) => (
-              <Satir key={k} etiket={e} id={`c-${k}`}>
-                <Girdi
-                  id={`c-${k}`}
-                  value={p.ortak[k] ?? ""}
-                  birim={b}
-                  placeholder={k === "md_yukseklik" ? "3500" : undefined}
-                  onChange={(ev) => oy(k, ev.target.value)}
-                />
-              </Satir>
-            ))}
-        </Kume>
+        <BinaKume on="c" ortak={p.ortak} yaz={oy} mrl={mrl} />
       </aside>
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         {cizim.error ? (

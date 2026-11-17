@@ -207,6 +207,15 @@ def kot_bilgisi(g):
     return liste
 
 
+def ayar_adlari(a):
+    """Kartın elle ayarları ( seçicinin kabul ettikleri — avan_secici.ayarlar ), ekrandaki adlarıyla:
+    [ { anahtar , etiket , deger , birim } ]."""
+    return [
+        {"anahtar": k, "etiket": alanlar.ALAN[k].etiket, "deger": v, "birim": alanlar.ALAN[k].birim or ""}
+        for k, v in avan_secici.ayarlar({"ayar": kart_ayarlari(a)}).items()
+    ]
+
+
 def secim(g, i):
     """Okunmuş avan girdisinin ( avan_uclari.avan_girdisi ) i. asansörü için seçicinin
     sonucu ( avan_secici.sec ) ya da { durum:  "hata" , hata } — asansör yoksa."""
@@ -217,16 +226,22 @@ def secim(g, i):
             "hata": "Avan hesabında bu asansör yok — kapasite ve hız trafik hesabından gelir.",
         }
     #  Kartın kabini çizimin kabini değilse çizim çıkmaz ( seçici koşmadan ):  karta yazılacak
+    #  Elle ayarlanan ölçüler, ekrandaki adlarıyla ( soldaki liste — kaldırılabilir ).  17 Kas:  çizim
+    #  çıkmasa da ( kabin çelişkisi ) gönderilir — ekranda ad yerine "kuyu_duvar_kalinligi" yazıyordu
+    ayar_listesi = ayar_adlari(asansorler[i])
     kabin = _kabin_celiskisi(asansorler[i], g["ortak"])
     if kabin:
-        return {"durum": "beyan", "beyan_turu": "kabin", "beyan": kabin, "sinama": 0, "sure": 0.0}
+        return {
+            "durum": "beyan",
+            "beyan_turu": "kabin",
+            "beyan": kabin,
+            "sinama": 0,
+            "sure": 0.0,
+            "ayarlar": ayar_listesi,
+        }
     m = mimari(asansorler[i], g["ortak"], g.get("sabitler"))
     r = avan_secici.sec(m)
-    #  Elle ayarlanan ölçüler, ekrandaki adlarıyla ( soldaki liste — kaldırılabilir )
-    r["ayarlar"] = [
-        {"anahtar": k, "etiket": alanlar.ALAN[k].etiket, "deger": v, "birim": alanlar.ALAN[k].birim or ""}
-        for k, v in avan_secici.ayarlar(m).items()
-    ]
+    r["ayarlar"] = ayar_listesi
     ozet = avan_ozeti(g, i)
     #  Avanın kendi motor gücü ( Nsç ):  paftanın bilgi tablosuna ( cizim/avan_kipi.py )
     r["avan"] = {"motor_gucu": (ozet or {}).get("Nsc")}

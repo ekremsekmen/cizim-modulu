@@ -346,6 +346,39 @@ export function Cekmece({
   );
 }
 
+/* ───────────────────────────── Onay penceresi ( ortada ) — bir işten önce sorulan kısa soru  */
+export function Pencere({
+  acik,
+  degisti,
+  baslik,
+  aciklama,
+  children,
+}: {
+  acik: boolean;
+  degisti: (a: boolean) => void;
+  baslik: React.ReactNode;
+  aciklama?: React.ReactNode;
+  /**  Düğmeler  */
+  children: React.ReactNode;
+}) {
+  const yer = useAcilirYeri();
+  return (
+    <Dialog.Root open={acik} onOpenChange={degisti}>
+      <Dialog.Portal container={yer}>
+        <Dialog.Overlay data-acilir="" className="fixed inset-0 z-40 bg-metin/25" />
+        <Dialog.Content
+          data-acilir=""
+          className="fixed top-1/2 left-1/2 z-50 w-[420px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 rounded-buyuk border border-cizgi bg-yuzey p-5 shadow-kalkik outline-none"
+        >
+          <Dialog.Title className="text-[15px] font-semibold">{baslik}</Dialog.Title>
+          {aciklama && <Dialog.Description className="mt-1.5 text-[13px] leading-relaxed text-metin-2">{aciklama}</Dialog.Description>}
+          <div className="mt-4 flex flex-col gap-2">{children}</div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
 /* ───────────────────────────── Klavye tuşu */
 export function Tus({ children }: { children: React.ReactNode }) {
   return (

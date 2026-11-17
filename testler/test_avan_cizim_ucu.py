@@ -362,6 +362,14 @@ class AvanCizimUcu(unittest.TestCase):
         self.assertIn("Ray", r["ayarlar"][0]["etiket"])
         #  Ayar yoksa liste boş
         self.assertEqual(yanit(govde(kart(T630)))["ayarlar"], [])
+        #  17 Kas:  çizim çıkmasa da ( kartın kabini çizimin kabini değil ) adlarıyla — ekranda ad
+        #  yerine "kuyu_duvar_kalinligi" yazıyordu
+        r = yanit(govde(kart(T630, kabin_boyu="1700", cizim_ayarlari="kuyu_duvar_kalinligi=250")))
+        self.assertEqual((r["durum"], r["beyan_turu"]), ("beyan", "kabin"), r)
+        self.assertEqual(
+            [(x["anahtar"], x["deger"]) for x in r["ayarlar"]], [("kuyu_duvar_kalinligi", "250")]
+        )
+        self.assertNotIn("_", r["ayarlar"][0]["etiket"])
 
     def test_uygulamada_olmayan_hiz(self):
         """Avanın 1,75 ve 3,5 m/s hızları uygulamanın hız listesinde yoktur:  çizim çıkmaz

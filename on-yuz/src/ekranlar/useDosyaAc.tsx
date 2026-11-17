@@ -3,7 +3,8 @@
     açık proje ezilmez.  Dosyadaki ofis standardı uygulanmaz ( yeni arayüzde
     ofis standardı bütün projelerde geçerlidir ) — farklıysa söylenir.
     Avan dosyası ( .avan ) yalnız açılışta alınır ve avan ekranında açılır:
-    avan tek projedir, önceki hâli orada "Geri al" ile döner.  Uygulama
+    avan tek projedir, önceki hâli orada "Geri al" ile döner;  ( 17 Kas ) açık avan
+    doluysa önce sorulur ( AvanDegisimOnayi ).  Uygulama
     kısmı ( kip "uygulama" ) yalnız .uygulama alır;  avan dosyası açık hatayla
     reddedilir — kullanıcı sessizce avan ekranına atılmaz.                   */
 import { useRef, useState } from "react";
@@ -13,6 +14,7 @@ import { api, type AlanSemasi } from "@/lib/api";
 import { avanDosyasiMi, avanDosyasiniAc, avanOfisiniOku, avanProjesiniOku, avanProjesiniYaz } from "@/lib/avan";
 import { dosyaOku } from "@/lib/dosya";
 import { yeniUygulama, type Ham } from "@/lib/proje";
+import { acikAvaniKaydet, useAvanDegisimi } from "@/avan/AvanDegisimOnayi";
 
 /**  açılış:  iki tür, her biri kendi kısmında;  uygulama:  yalnız .uygulama  */
 export type DosyaKipi = "acilis" | "uygulama";
@@ -22,6 +24,7 @@ export function useDosyaAc(sema: AlanSemasi | undefined, ofis: Ham, kip: DosyaKi
   const git = useNavigate();
   const istemci = useQueryClient();
   const [hata, setHata] = useState("");
+  const degisim = useAvanDegisimi(() => acikAvaniKaydet(istemci));
 
   const avanAc = async (metin: string, ad: string) => {
     let sec;
@@ -33,9 +36,11 @@ export function useDosyaAc(sema: AlanSemasi | undefined, ofis: Ham, kip: DosyaKi
     const o = avanDosyasiniAc(metin, ad, sec, avanOfisiniOku());
     if (typeof o === "string") return setHata(o);
     setHata("");
-    const onceki = avanProjesiniOku();
-    avanProjesiniYaz(o.proje);
-    git("/avan/trafik", { state: { acilis: { ...o, onceki } } });
+    degisim.sor(() => {
+      const onceki = avanProjesiniOku();
+      avanProjesiniYaz(o.proje);
+      git("/avan/trafik", { state: { acilis: { ...o, onceki } } });
+    }, o.proje);
   };
 
   const ac = async (f: File | undefined) => {
@@ -76,6 +81,8 @@ export function useDosyaAc(sema: AlanSemasi | undefined, ofis: Ham, kip: DosyaKi
     ac,
     sec: () => girdiRef.current?.click(),
     girdi: (
+      <>
+      {degisim.pencere}
       <input
         ref={girdiRef}
         type="file"
@@ -86,6 +93,7 @@ export function useDosyaAc(sema: AlanSemasi | undefined, ofis: Ham, kip: DosyaKi
           e.target.value = "";
         }}
       />
+      </>
     ),
   };
 }
