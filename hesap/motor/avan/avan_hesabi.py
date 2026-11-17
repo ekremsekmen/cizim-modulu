@@ -702,11 +702,23 @@ def _elektrik_projesi(h, S, no):
     return v
 
 
+def makine_dairesiz_mi(ortak):
+    """Makine dairesiz ( MRL ) mı — hesapla_makine_dairesi'nin kuralı:  "Makine dairesi yok"
+    kutusu gönderilmişse o;  gönderilmemişse ( eski proje dosyaları ) ölçü yoksa MRL."""
+    ortak = ortak or {}
+    if "mk_yok" in ortak:
+        return evet_mi(ortak.get("mk_yok"))
+    A, B = ortak.get("mk_uzunluk"), ortak.get("mk_genislik")
+    return not (sayi_mi(A) and sayi_mi(B) and A > 0 and B > 0)
+
+
 def _girdiler(a, ortak, S):
     """Asansör kartının ve ortak panelin değerleri;  boş alan ofis / ortak
     varsayılanını alır ( kaynağıyla )."""
     h = {
         "tanim": a.get("tanim") or "",
+        #  Makine dairesizde makine ve kabin halat bağlantısı raylara biner ( _kuvvetler )
+        "mrl": makine_dairesiz_mi(ortak),
         "P_kap": a.get("kapasite"),
         "Q_elle": a.get("Q_elle"),
         "V": a.get("V"),
@@ -977,6 +989,11 @@ def _motor_bolumu(h, ikaz):
 #  olmazsa paftayı yeniden hesaplayan okur sonucu bulamaz.
 _ON_N = "10 N'a yukarı yuvarlanır"
 
+#  Yardımcı donanım darbe katsayısı ( TS EN 81-20 m.5.7.4.3 ):  "ofis sabitidir" — uygulama
+#  projesinin değeriyle AYNI ( uygulama_sabitleri.k3_yardimci;  test_avan_ray_yuku denetler —
+#  oradan okunmaz:  uygulama_sabitleri avan hesabını içe aktarır )
+K3_YARDIMCI = 2
+
 #  Fp — MMO/697 s.20 tanımı:  "bir kılavuz rayda bulunan tüm konsolların
 #  kuvvetiyle itme ( betonun çekilmesinin veya binanın normal oturması
 #  nedeniyle )".  Halat ya da kompanzasyon kuvveti DEĞİLDİR — not eskiden
@@ -1019,6 +1036,25 @@ def _kuvvetler(h, a, S):
     #  Eskiden tertibat HER ZAMAN varmış gibi k1 kullanılıyordu ( 10 kata varan
     #  fazla kuvvet ).  Tertibat yoksa rayın kendi ağırlığı kalır.
     k1_ag = k1 if h["ag_tertibat_var"] else 0
+    #  RAYA BİNEN YÜK ( 17 Kas — avan çizimiyle karşılaştırma ):  TS EN 81-20 m.5.2.1.8.4 ray
+    #  tabanının kuvvetine "raya bağlı ya da bağlantılı donanımın yükü"nü de katar;  makine
+    #  raylardaysa acil durdurmada geri tepme payı m.5.7.4.3'ün k3'üyle ( "load on traction
+    #  sheave due to rebound when machine on rails" ).  MMO/697'nin formülünde bu terim yok:
+    #  makine dairesiz asansörde ağırlık rayına 3,6 kN yazılıyordu, uygulama projesinin
+    #  hesabı ( mukavemet._ray_askilari ) aynı rayda 22 – 28 kN buluyordu.  Kalemler
+    #  uygulamanınkiyle aynı ( m.5.7.2.3.7 ):
+    #    kabin rayı    2:1 ve üstünde kabin halat bağlantısı rayın başında:  ( P + Q + Gh ) / i
+    #    ağırlık rayı  makine + sehpası + karşı ağırlığın askısı ( Ga / i, 2:1 ve üstünde )
+    #  Avanda ürün ve kiriş yoktur:  makine raylarda sayılır ve ağırlık rayının yükü TEK bir
+    #  rayın üstüne konur ( kirişin mesnet payı bilinmez — üst sınır, güvenli yan ).  Halat
+    #  kütlesi ( Gh ) zincir kabulünden:  "zincir = halat ağırlığı" ( mz · Hk ).
+    i_pal = h["i_pal"] if sayi_mi(h["i_pal"]) and h["i_pal"] >= 1 else 1
+    MY_k = MY_a = Gh = 0.0
+    if h["mrl"]:
+        Gh = mz * Hk
+        MY_k = gn * (P_kut + Q + Gh) / i_pal if i_pal >= 2 else 0.0
+        MY_a = gn * (h["Fmk"] + h["Fsh"] + (Ga / i_pal if i_pal >= 2 else 0.0))
+    k3 = K3_YARDIMCI
     h.update(
         gn=gn,
         Gf=Gf,
@@ -1033,8 +1069,13 @@ def _kuvvetler(h, a, S):
         Mg=Mg,
         P1=tavana_yuvarla(S["tampon_katsayi"] * gn * (P_kut + Q), 10),
         P2=tavana_yuvarla(S["tampon_katsayi"] * gn * Ga, 10),
-        PR=tavana_yuvarla(k1 * gn * (P_kut + Q) / n_ray + Mg * gn, 10),
-        PK=tavana_yuvarla(k1_ag * gn * Ga / n_ray + Mg * gn, 10),
+        i_ray=i_pal,
+        Gh=Gh,
+        MY_k=MY_k,
+        MY_a=MY_a,
+        k3=k3,
+        PR=tavana_yuvarla(k1 * gn * (P_kut + Q) / n_ray + Mg * gn + k3 * MY_k, 10),
+        PK=tavana_yuvarla(k1_ag * gn * Ga / n_ray + Mg * gn + k3 * MY_a, 10),
         Fs=tavana_yuvarla(gn * (h["Fmk"] + h["Fsh"] + S["Fmt"] + P_kut + Q + Ga), 10),
     )
 
@@ -1128,16 +1169,63 @@ def _kutle_adimlari(h, S):
         veri("gr", "1 m kılavuz rayın kütlesi", gr, "kg/m", h["gr_kaynak"]),
         veri("Lr", "Kılavuz ray uzunluğu ( Hk − 0,20 )", Lr, "m", "KABUL  ·  ray payı"),
         hesap("Mg  =   Lr · gr", f"=   {tr(Lr)}  ·  {tr(gr)}", h["Mg"], "kg", "bir ray hattının kütlesi"),
+        *_ray_askisi_adimlari(h),
     ]
+
+
+def _ray_askisi_adimlari(h):
+    """Makine dairesizde raya binen yük ( _kuvvetler ):  kabin halat bağlantısı ve makine."""
+    if not h["mrl"]:
+        return []
+    gn, P_kut, Q, Ga, i = h["gn"], h["P_kut"], h["Q"], h["Ga"], h["i_ray"]
+    satirlar = [
+        #  Başlıkta "makine dairesi" geçmez:  makine dairesiz projenin belgesinde o bölüm yoktur
+        #  ( dogrulama/test_ciktilar arar )
+        metin("RAYLARA BİNEN YÜK  ( makine raylarda  ·  TS EN 81-20 m.5.2.1.8.4 · m.5.7.2.3.7 )"),
+        veri("k3", "Yardımcı donanım darbe katsayısı ( geri tepme )", h["k3"], "—", "KABUL  ·  m.5.7.4.3", 0),
+    ]
+    if i >= 2:
+        satirlar += [
+            hesap(
+                "Gh  =   mz · Hk",
+                f"=   {tr(h['mz'])}  ·  {tr(h['Hk'])}",
+                h["Gh"],
+                "kg",
+                "halat kütlesi  ·  KABUL:  zincir = halat ağırlığı",
+            ),
+            hesap(
+                "MYk =   gn · ( P  +  Q  +  Gh ) / i",
+                f"=   {tr(gn)}  ·  ( {tr(P_kut)}  +  {trn(Q, 0)}  +  {tr(h['Gh'])} ) / {trn(i, 0)}",
+                h["MY_k"],
+                "N",
+                "kabin halat bağlantısı kabin rayının başında",
+            ),
+        ]
+    satirlar.append(
+        hesap(
+            "MYa =   gn · ( Fmk  +  Fsh" + ("  +  Ga / i )" if i >= 2 else " )"),
+            f"=   {tr(gn)}  ·  ( {trn(h['Fmk'], 0)}  +  {trn(h['Fsh'], 0)}"
+            + (f"  +  {tr(Ga)} / {trn(i, 0)} )" if i >= 2 else " )"),
+            h["MY_a"],
+            "N",
+            "makine raylarda  ·  avanda kiriş yok:  tamamı bir ağırlık rayına ( üst sınır )",
+        )
+    )
+    return satirlar
 
 
 def _kuvvet_adimlari(h, S):
     """Bölüm 2'nin A - E kuvvet satırları."""
     gn, P_kut, Q, Ga, k1, n_ray, Mg = h["gn"], h["P_kut"], h["Q"], h["Ga"], h["k1"], h["n_ray"], h["Mg"]
+    #  Makine dairesizde raya binen yük ( _ray_askisi_adimlari ):  formüle k3 · MY terimi
+    k3 = h["k3"]
+    rk = h["mrl"] and h["MY_k"] > 0
+    ek_k = ("   +   k3 · MYk", f"   +   {trn(k3, 0)} · {tr(h['MY_k'])}") if rk else ("", "")
+    ek_a = ("   +   k3 · MYa", f"   +   {trn(k3, 0)} · {tr(h['MY_a'])}") if h["mrl"] else ("", "")
     if h["ag_tertibat_var"]:
         pk = hesap(
-            "PK  =   k1 · gn · Ga / n   +   Mg · gn",
-            f"=   {trn(k1, 0)} · {tr(gn)} · {tr(Ga)} / {trn(n_ray, 0)}   +   {tr(Mg)} · {tr(gn)}",
+            "PK  =   k1 · gn · Ga / n   +   Mg · gn" + ek_a[0],
+            f"=   {trn(k1, 0)} · {tr(gn)} · {tr(Ga)} / {trn(n_ray, 0)}   +   {tr(Mg)} · {tr(gn)}" + ek_a[1],
             h["PK"],
             "N",
             _ON_N,
@@ -1145,8 +1233,8 @@ def _kuvvet_adimlari(h, S):
         )
     else:
         pk = hesap(
-            "PK  =   Mg · gn        ( k1 = 0 )",
-            f"=   {tr(Mg)} · {tr(gn)}",
+            "PK  =   Mg · gn" + ek_a[0] + "        ( k1 = 0 )",
+            f"=   {tr(Mg)} · {tr(gn)}" + ek_a[1],
             h["PK"],
             "N",
             "güvenlik tertibatı etki etmiyor  ·  MMO/697 s.20  ·  " + _ON_N,
@@ -1173,9 +1261,9 @@ def _kuvvet_adimlari(h, S):
         ),
         metin("C -  KABİN KILAVUZ RAYLARINA GELEN DÜŞEY KUVVET"),
         hesap(
-            "PR  =   k1 · gn · ( P  +  Q ) / n   +   Mg · gn",
+            "PR  =   k1 · gn · ( P  +  Q ) / n   +   Mg · gn" + ek_k[0],
             f"=   {trn(k1, 0)} · {tr(gn)} · ( {tr(P_kut)} + {trn(Q, 0)} ) / {trn(n_ray, 0)}"
-            f"   +   {tr(Mg)} · {tr(gn)}",
+            f"   +   {tr(Mg)} · {tr(gn)}" + ek_k[1],
             h["PR"],
             "N",
             _ON_N,
@@ -1861,6 +1949,8 @@ def _ozet(h):
         "Nsc": h["Nsc"],
         "motor_uygun": h["motor_uygun"],
         **{k: h[k] for k in ("P1", "P2", "PR", "PK", "Fs", "n_kabin", "n_kuyu", "k_kabin", "k_kuyu")},
+        #  Makine dairesizde raylara binen yük ( N;  makine dairelide 0 )
+        **{k: h[k] for k in ("MY_k", "MY_a", "k3")},
         **{k: h[k] for k in ("eta_kabin", "T_kabin", "Z_kabin", "eta_kuyu", "T_kuyu", "Z_kuyu")},
         "n1_kuyu": h["n1_kuyu"],
         "n2_kuyu": h["n2_kuyu"],

@@ -10,6 +10,9 @@ kurabilmek için seçti, mimarın ya da avanın beyanı değildir:
   · veri tablosunda ürün satırları yazılmaz ( tahrik kasnağı, halat, ray profili,
     konsol arası, regülatör ) — cizim/veri_tablosu.py;  motor gücü seçicinin
     motorununki değil AVANIN KENDİ hesabınınkidir ( Nsç — etkin( veri ) ile gelir )
+  · kuyu tabanının kuvvetleri ( FKR · FAR · Fkt · Fat ) de avanın hesabından ( "kuvvetler" —
+    hesap belgesindeki PR · PK · P1 · P2 );  ray konsoluna yatay yükler ( Fx / Fy — ray
+    profiline bağlı ) yazılmaz — cizim/kopru.py · kuyu_dibi.py ( 17 Kas )
   · antette ray hücresi boş kalır — cizim/pafta.py;  kasnak düzenlemesi çizilir ( 17 Kas:
     sarım açısı avanda da hesaplanır ve uyarılır ), altında kasnak çaplarının hazır
     asansörün olduğu yazar — cizim/kasnak_duzeni.AVAN_NOTU
@@ -25,7 +28,8 @@ bloğunda iki kip karışmaz:  blok kipin İÇİNDE açılır.
 import contextlib
 import contextvars
 
-#  None:  kip kapalı;  sözlük:  kip açık, avanın kendi değerleri ( motor_gucu — Nsç, kW )
+#  None:  kip kapalı;  sözlük:  kip açık, avanın kendi değerleri ( motor_gucu — Nsç, kW;
+#  kuvvetler — { FKR , FAR , Fkt , Fat } N ya da None )
 _VERI = contextvars.ContextVar("avan_kipi", default=None)
 
 #  Notlar tablosuna eklenen satır ( veri_tablosu )

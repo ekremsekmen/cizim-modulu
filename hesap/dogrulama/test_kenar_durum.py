@@ -2857,16 +2857,22 @@ def calistir():
 
     _y, _v = _oz(), _oz(agirlik_guvenlik_tertibati="Var")
     _gn = avan_hesabi.SABIT_A["gn"]
+    #  Makine dairesiz ( _O:  mk_yok ):  makine raylarda — raya binen yük k3 · MYa ( 17 Kas,
+    #  TS EN 81-20 m.5.2.1.8.4;  ayrıntısı testler/test_avan_ray_yuku )
+    r.kontrol("PK · makine dairesiz:  raya binen yük var", _y["MY_a"] > 0 and _y["k3"] == 2)
     r.esit(
-        "PK · tertibat YOK ( varsayılan ):  yalnız rayın ağırlığı ( k1 = 0 )",
+        "PK · tertibat YOK ( varsayılan ):  rayın ağırlığı + raya binen yük ( k1 = 0 )",
         _y["PK"],
-        tavana_yuvarla(_y["Mg"] * _gn, 10),
+        tavana_yuvarla(_y["Mg"] * _gn + _y["k3"] * _y["MY_a"], 10),
     )
     r.esit(
-        "PK · tertibat VAR:  k1 · gn · Ga / n + Mg · gn",
+        "PK · tertibat VAR:  k1 · gn · Ga / n + Mg · gn + k3 · MYa",
         _v["PK"],
         tavana_yuvarla(
-            _v["k1"] * _gn * _v["Ga"] / avan_hesabi.SABIT_B_VARSAYILAN["n_ray"] + _v["Mg"] * _gn, 10
+            _v["k1"] * _gn * _v["Ga"] / avan_hesabi.SABIT_B_VARSAYILAN["n_ray"]
+            + _v["Mg"] * _gn
+            + _v["k3"] * _v["MY_a"],
+            10,
         ),
     )
     r.kontrol(

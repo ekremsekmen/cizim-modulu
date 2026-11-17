@@ -115,6 +115,19 @@ def avan_ozeti(g, i):
     return next((x for x in (s.get("ozet") or {}).get("asansorler") or [] if x.get("no") == i + 1), None)
 
 
+#  Kuyu tabanının kuvvetleri:  çizimin adı ( cizim/kuyu_dibi.KUVVETLER ) ← avan hesabının özeti
+AVAN_KUVVETLERI = {"FKR": "PR", "FAR": "PK", "Fkt": "P1", "Fat": "P2"}
+
+
+def avan_kuvvetleri(ozet):
+    """Avan hesabının kuyu tabanı kuvvetleri ( N ), çizimin adlarıyla — biri yoksa None ( paftada
+    yalnız adlar yazar ).  Avan paftası bunları yazar, seçicinin hazır asansörününkini değil:
+    hesap belgesindeki sayıyla aynı ( 17 Kas — eskiden pafta uygulama hesabından yazıyordu;
+    makine dairesizde ağırlık rayında belge 3,6 kN, pafta 24 kN diyordu )."""
+    d = {ad: (ozet or {}).get(k) for ad, k in AVAN_KUVVETLERI.items()}
+    return d if all(sayi_mi(v) and v > 0 for v in d.values()) else None
+
+
 def _beyan(a, sabitler):
     """Kartın beyanı, avan motor hesabının okuduğu gibi:  askı oranı kartta boşsa ofis
     standardı ( avan_hesabi.sabitler ), makine tipi kartta seçilmişse.  Avan hesabı
@@ -243,8 +256,9 @@ def secim(g, i):
     r = avan_secici.sec(m)
     r["ayarlar"] = ayar_listesi
     ozet = avan_ozeti(g, i)
-    #  Avanın kendi motor gücü ( Nsç ):  paftanın bilgi tablosuna ( cizim/avan_kipi.py )
-    r["avan"] = {"motor_gucu": (ozet or {}).get("Nsc")}
+    #  Avanın kendi motor gücü ( Nsç ):  paftanın bilgi tablosuna ( cizim/avan_kipi.py );  kuyu
+    #  tabanının kuvvetleri de avanın hesabından ( 17 Kas — hesap belgesiyle aynı sayı )
+    r["avan"] = {"motor_gucu": (ozet or {}).get("Nsc"), "kuvvetler": avan_kuvvetleri(ozet)}
     #  Beyan çelişkisi kartın diliyle:  kartın alanı, ekrandaki adı, "2:1" yazımı
     for b in r.get("beyan") or []:
         kart, ad = BEYAN[b["anahtar"]]
