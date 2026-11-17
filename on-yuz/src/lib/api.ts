@@ -245,9 +245,12 @@ export interface CizimYanit {
      gereken — mimardan istenecek ölçüler, sigmaz — sebepler, eksik — girilmemiş
      mimari alanlar, paket_yok — bu yük için hazır asansör yok, hata — girdi okunamadı,
      beyan — avan kartının askı oranı / makine tipiyle asansör kurulamadı ( çizim hesap
-     sayfasıyla çelişmesin diye kartınkini kullanır );  kartta seçilecek değerler.  */
+     sayfasıyla çelişmesin diye kartınkini kullanır );  kartta seçilecek değerler.
+     tamamlanmadi — arama güvenlik süresinde bitmedi ( neden "sure" ) ya da istek bırakıldı
+     ( "iptal" ):  sonuç bilinmiyor, "sığmaz" değildir;  hata'da sebebi ( 16 Kas ).  */
 export interface AvanCizimYaniti {
-  durum: "uygun" | "gereken" | "sigmaz" | "eksik" | "paket_yok" | "beyan" | "hata";
+  durum: "uygun" | "gereken" | "sigmaz" | "eksik" | "paket_yok" | "beyan" | "hata" | "tamamlanmadi";
+  neden?: "sure" | "iptal";
   /**  kart:  avan kartının alanı;  yeni:  karta yazılacak değer;  *_yazi:  ekrandaki yazımı  */
   /**  yer "trafik":  öneri avan kartına değil trafik hesabının sütununa yazılır ( kapı )  */
   beyan?: { kart: string; etiket: string; yeni: string; eski_yazi: string; yeni_yazi: string; yer?: "trafik" }[];

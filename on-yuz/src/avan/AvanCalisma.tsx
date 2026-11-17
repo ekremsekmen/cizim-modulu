@@ -1712,8 +1712,20 @@ function CizimlerAdimi({
               {cizim.isFetching && <Loader2 className="animate-spin" />} Yeniden dene
             </Dugme>
           </CizimIletisi>
+        ) : r?.durum === "tamamlanmadi" ? (
+          //  Arama güvenlik süresinde bitmedi ( 16 Kas — bütçe sınama sayısıdır, saat değil:  süre
+          //  yalnız sunucuyu korur ) — "sığmıyor" denmez, sonuç bilinmiyor;  yeniden denenir
+          <CizimIletisi baslik="Asansör araması tamamlanamadı" alt={r.hata ?? ""} kirmizi>
+            <Dugme className="mt-3" onClick={() => void cizim.refetch()} disabled={cizim.isFetching}>
+              {cizim.isFetching && <Loader2 className="animate-spin" />} Yeniden dene
+            </Dugme>
+          </CizimIletisi>
         ) : !r ? (
-          <CizimIletisi baslik="Asansör seçiliyor…" alt="Kuyuya uyan asansör aranıyor;  birkaç saniye sürebilir." donuyor />
+          <CizimIletisi
+            baslik="Asansör seçiliyor…"
+            alt="Kuyuya uyan asansör aranıyor;  çoğunlukla birkaç saniye, dar kuyuda mimardan istenecek ölçü aranırken bir – iki dakika sürebilir."
+            donuyor
+          />
         ) : r.durum === "uygun" && r.cizim?.cizimler?.length ? (
           <>
             {!!r.acik_bolum_adlari?.length && (

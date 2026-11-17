@@ -34,7 +34,7 @@ dibi, duvarlar, makine dairesi ) en sonda ve işaretli.  Ürünün özelliği ol
 ya da geometriyle ilgisi olmayan alanlar ( tampon ezilmesi, yapı sehimi … )
 çare sayılmaz.
 
-BÜTÇE SINAMA SAYISIDIR, SAAT DEĞİL ( _Butce;  20 Eki ):  aynı proje her
+BÜTÇE SINAMA SAYISIDIR, SAAT DEĞİL ( Butce;  20 Eki ):  aynı proje her
 bilgisayarda, her seferinde aynı çareleri alır.  Saat yalnız güvenlik
 sınırıdır;  ona ya da sayıya takılan arama yanıtta "tamamlandi: false" der.
 """
@@ -199,7 +199,7 @@ def girdi_durumu(veri, i):
     )
 
 
-class _Butce:
+class Butce:
     """Bir isteğin sınama bütçesi ( AZAMI_SINAMA ) ve güvenlik süresi.  Biten
     bütçe sebebini tutar:  "sinama" ( belirlenimli ) ya da "sure" ( güvenlik )."""
 
@@ -476,7 +476,7 @@ def coz(veri, i=0, onceki=None, butce=None):
     tamamlandi:  arama bütçeye ( neden "sinama" ) ya da güvenlik süresine
     ( "sure" ) takılmadan bitti mi — takıldıysa çareler eksik olabilir."""
     t0 = time.monotonic()
-    butce = butce or _Butce()
+    butce = butce or Butce()
     ilk = butce.kalan
     once = girdi_durumu(veri, i)
     sorunlar, degerler, gizli = cizim_uclari.izli_sorunlar(veri, i)

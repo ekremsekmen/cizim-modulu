@@ -8,13 +8,16 @@ yalnız mimari var, buraya en doğru asansör" ).  Sözleşmesi:
   · Sığmayan kuyuda asansör dönmez:  ya mimardan istenecek ölçü ( o ölçüyle temiz ) ya da sebep.
 """
 
+import asyncio
+import contextlib
 import copy
 import json
+import time
 import unittest
 from unittest import mock
 
 from cizim import katlar
-from uclar import avan_secici, cizim_uclari, uygulama_uclari
+from uclar import avan_cizim_uclari, avan_secici, care_uclari, cizim_uclari, uygulama_uclari
 
 PAKETLER = avan_secici.paketler()
 KABIN = ("beyan_yuku", "kabin_genisligi", "kabin_derinligi", "kapi_genisligi")
@@ -34,6 +37,21 @@ def kot(metin, ek_mm):
     mm, hata = katlar.kot_oku(metin)
     assert hata is None, hata
     return katlar.kot_metni(mm + ek_mm)
+
+
+@contextlib.contextmanager
+def yavas_saat(adim=30.0):
+    """Yavaş, yüklü bilgisayar:  seçicinin her sınaması saati adim sn ilerletir."""
+    saat = [0.0]
+    asil = care_uclari.girdi_durumu
+
+    def yavas(v, i):
+        saat[0] += adim
+        return asil(v, i)
+
+    sahte = mock.Mock(time=lambda: saat[0], monotonic=lambda: saat[0])
+    with mock.patch.object(care_uclari, "girdi_durumu", yavas), mock.patch.object(avan_secici, "time", sahte):
+        yield saat
 
 
 class AvanSecici(unittest.TestCase):
@@ -205,10 +223,10 @@ class AvanSecici(unittest.TestCase):
         t = PAKETLER[(630, True)]
         self.assertEqual(t["asansor"]["agirlik_yeri"], "Sağ")
         m = mimari(t, kuyu_genisligi=1650, kuyu_derinligi=2300)
-        #  SAATSİZ ( 17 Kas ):  bu arama 28 sınama, hızlı makinede ~22 sn — süre sınırının
-        #  ( 2 × AZAMI_SURE = 24 sn ) kıyısında.  Yüklü CI makinesinde süre 6. sınamada doldu,
-        #  "sığmaz" çıktı ( PR #141 );  hüküm makinenin hızına bağlı kalmasın ( avan_tarama gibi )
-        with mock.patch.object(avan_secici, "SAATSIZ", True):
+        #  YAVAŞ BİLGİSAYARDA AYNI SONUÇ ( 16 Kas — bütçe sınama sayısıdır, saat değil ):  bu arama
+        #  28 sınama, hızlı makinede ~22 sn.  Eski saat sınırında ( 24 sn ) yüklü CI makinesi 6.
+        #  sınamada kesiyor, "sığmaz" diyordu ( PR #141 ).  Burada her sınama saati 30 sn ilerletir
+        with yavas_saat():
             r = avan_secici.sec(m)
         self.assertEqual(r["durum"], "uygun", r)
         a = r["istek"]["asansorler"][0]
@@ -465,6 +483,77 @@ class AvanSecici(unittest.TestCase):
         self.assertEqual(avan_secici.sec(m)["eksik"], ["md_zemini_kotu"])
         #  Hazır asansörü olmayan yük ( 1125 kg — 15 kişi;  Tablo-7'de basılı değil )
         self.assertEqual(avan_secici.sec(mimari(t, beyan_yuku=1125))["durum"], "paket_yok")
+
+
+class KorumaliSecici(unittest.TestCase):
+    """16 Kas ( kullanıcı:  "süre sınırı koymasak daha doğru olmaz mı" — uygulamanın "düzeltme
+    öner"i gibi ):  sunucuda ( avan_secici.korumali ) seçici güvenlik süresi, iptal ve önbellekle
+    çalışır.  Süre ya da iptal aramayı keserse yanıt "tamamlanmadi" — "sığmaz" DEĞİL."""
+
+    def setUp(self):
+        avan_secici._ONBELLEK.clear()
+        self.m = mimari(PAKETLER[(630, True)])
+
+    def test_guvenlik_suresi_sigmaz_demez(self):
+        with mock.patch.object(avan_secici, "GUVENLIK_SURESI", -1.0), avan_secici.korumali():
+            r = avan_secici.sec(self.m)
+        self.assertEqual((r["durum"], r["neden"]), ("tamamlanmadi", "sure"), r)
+        self.assertIn("güvenlik süresinde bitmedi", r["hata"])
+        #  Yarıda kalan saklanmaz:  sonraki istek aramayı yapar
+        with avan_secici.korumali():
+            self.assertEqual(avan_secici.sec(self.m)["durum"], "uygun")
+
+    def test_birakilan_istek_durur(self):
+        """İptal sorgusu True dönünce arama durur — çare bulucunun içinde de ( _CareButcesi )."""
+        sayi = [0]
+        asil = care_uclari.girdi_durumu
+
+        def say(v, i):
+            sayi[0] += 1
+            return asil(v, i)
+
+        m = mimari(PAKETLER[(630, True)], kuyu_genisligi=1650, kuyu_derinligi=2300)  #  28 sınamalık
+        with mock.patch.object(care_uclari, "girdi_durumu", say), avan_secici.korumali(lambda: sayi[0] >= 3):
+            r = avan_secici.sec(m)
+        self.assertEqual((r["durum"], r["neden"]), ("tamamlanmadi", "iptal"), r)
+        #  En çok bir sınama geç:  çare bulucunun ilk ölçümü bütçeye bakmaz ( care_uclari.coz ).
+        #  Eskiden çare bulucu iptali hiç görmüyordu:  27 sınama sürüyordu
+        self.assertLessEqual(sayi[0], 4)
+
+    def test_onbellek(self):
+        """Bütçe deterministik:  aynı girdinin sonucu saklanır, ikinci istek sınamasız döner;
+        dönen kopyadır ( değiştirmek saklananı bozmaz ).  Bağlam dışında ( testler, tarama )
+        önbellek kullanılmaz."""
+        with avan_secici.korumali():
+            r1 = avan_secici.sec(self.m)
+        self.assertEqual(r1["durum"], "uygun")
+        r1["istek"]["asansorler"][0]["kuyu_genisligi"] = "bozuldu"
+        with (
+            mock.patch.object(care_uclari, "girdi_durumu", side_effect=AssertionError("sınama yapıldı")),
+            avan_secici.korumali(),
+        ):
+            r2 = avan_secici.sec(self.m)
+        self.assertEqual(r2["istek"]["asansorler"][0]["kuyu_genisligi"], self.m["kuyu_genisligi"])
+        with mock.patch.object(care_uclari, "girdi_durumu", side_effect=AssertionError("sınama yapıldı")):
+            with self.assertRaises(AssertionError):
+                avan_secici.sec(self.m)
+
+    def test_uc_baglanti_kapaninca_durur(self):
+        """/api/avan/cizimler:  ekran isteği bırakınca ( bağlantı kapandı ) arama durur — eskiden
+        sunucu bırakılan aramayı sonuna kadar sürdürüyordu ( 28 sınamalık kuyu ~20 sn )."""
+        from testler.test_avan_cizim_ucu import govde, kart
+
+        t = PAKETLER[(630, True)]["asansor"]
+        g = govde(kart(t, kuyu_genisligi="1650", kuyu_derinligi="2300"))
+
+        class Kapandi:
+            async def is_disconnected(self):
+                return True
+
+        t0 = time.monotonic()
+        r = json.loads(asyncio.run(avan_cizim_uclari.api_avan_cizimler_ucu(Kapandi(), g)).body)
+        self.assertEqual((r["durum"], r.get("neden")), ("tamamlanmadi", "iptal"), r)
+        self.assertLess(time.monotonic() - t0, 5)
 
 
 if __name__ == "__main__":

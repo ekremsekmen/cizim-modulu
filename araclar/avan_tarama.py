@@ -27,8 +27,10 @@ Her senaryoda iki tür denetim:
     istenen ölçülerle yeniden seçimin durumu.  Kayıt yoksa karşılaştırma atlanır,
     sonuç cikti/avan_tarama/hukumler.json'a yazılır ( ilk kayıt oradan alınır ).
 
-Seçici SAATSİZ kipte koşar ( avan_secici.SAATSIZ ):  süre sınırı uygulanmaz, hüküm
-makinenin hızına bağlı kalmaz.
+Seçicinin bütçesi sınama sayısıdır, saat değil ( 16 Kas ):  hüküm makinenin hızına bağlı
+kalmaz, program da aynı hükmü verir.  Tarama seçiciyi korumasız çağırır ( avan_secici.sec —
+güvenlik süresi, iptal ve önbellek yalnız sunucunun korumali bağlamında );  SAATSIZ ayrıca
+güvenlik süresini kapatır.
 
     .venv/bin/python -m araclar.avan_tarama              hepsi ( KONTROL_IS işçi, varsayılan 2 )
     .venv/bin/python -m araclar.avan_tarama --dilim 40   her 40 senaryodan biri ( deneme )
