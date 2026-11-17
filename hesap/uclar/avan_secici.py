@@ -45,10 +45,12 @@ import contextlib
 import contextvars
 import copy
 import hashlib
+import importlib.metadata
 import json
 import logging
 import os
 import shutil
+import sys
 import tempfile
 import threading
 import time
@@ -903,26 +905,59 @@ class _Onbellek:
                 os.remove(e.path)
 
 
-#  Kod imzasının kapsadığı klasörler ( KOK'a göre ) ve dosya türleri
+#  İMZANIN KAPSADIĞI:  kod ve veri dosyaları ( KOK'a göre klasörler, türler ) — YAZI TİPLERİ DE:
+#  çizimdeki yazının eni yazı tipinden ölçülür ( cizim/pdf — stringWidth );  yazıların yerleşimi ve
+#  seçicinin "çizim temiz" kararı ona bağlıdır.  Yazının ölçüsünü ve çizimi kuran kütüphanelerin
+#  sürümü de ( _IMZA_KUTUPHANELERI ).
 _IMZA_KLASORLERI = ("cizim", "hesap", "tasarim")
-_IMZA_TURLERI = (".py", ".json")
+_IMZA_TURLERI = (".py", ".json", ".ttf", ".otf")
+_IMZA_KUTUPHANELERI = ("reportlab", "ezdxf")
 
 
-def _kod_imzasi():
-    """Programın seçiciyi etkileyen kodunun ve verisinin özeti:  dosya adları ve içerikleri
-    ( dogrulama / __pycache__ hariç ) + temel.py.  Aynı program her işçide aynı imzayı verir."""
+def _imza_hesapla(kok=KOK, veri=None):
+    """Programın seçiciyi etkileyen her şeyinin özeti:
+      · kod ve veri dosyalarının adları ve içerikleri ( _IMZA_KLASORLERI, _IMZA_TURLERI —
+        dogrulama / __pycache__ hariç ) + temel.py;
+      · seçicinin YÜKLEDİĞİ hazır asansörler ( veri;  boşsa bu sürecinkiler — _TASLAKLAR,
+        _AVAN_PAKETLERI ):  taslakların dosyası kod klasörlerinin DIŞINDA ( on-yuz/src/lib/
+        taslaklar.json ) — dosyanın kendisi değil, bu sürecin kullandığı veri özetlenir;
+      · kütüphane sürümleri ( _IMZA_KUTUPHANELERI ) ve Python'un ana sürümü.
+    Aynı program her işçide aynı imzayı verir.  YENİ BİR VERİ KAYNAĞI ( dosyadan okunan, kod
+    klasörlerinin dışında ya da başka türde ) seçiciyi etkiliyorsa buraya eklenmelidir."""
     h = hashlib.sha256()
-    yollar_ = [os.path.join(KOK, "temel.py")]
+    yollar_ = [os.path.join(kok, "temel.py")]
     for kl in _IMZA_KLASORLERI:
-        for kok, dizinler, dosyalar in os.walk(os.path.join(KOK, kl)):
+        for k, dizinler, dosyalar in os.walk(os.path.join(kok, kl)):
             dizinler[:] = sorted(x for x in dizinler if x not in ("__pycache__", "dogrulama"))
-            yollar_ += [os.path.join(kok, x) for x in sorted(dosyalar) if x.endswith(_IMZA_TURLERI)]
+            yollar_ += [os.path.join(k, x) for x in sorted(dosyalar) if x.endswith(_IMZA_TURLERI)]
     for yol in yollar_:
-        h.update(os.path.relpath(yol, KOK).encode("utf-8") + b"\0")
+        h.update(os.path.relpath(yol, kok).encode("utf-8") + b"\0")
         with open(yol, "rb") as f:
             h.update(f.read())
         h.update(b"\0")
+    veri = [_TASLAKLAR, _AVAN_PAKETLERI] if veri is None else veri
+    h.update(json.dumps(veri, sort_keys=True, ensure_ascii=False).encode("utf-8") + b"\0")
+    for ad in _IMZA_KUTUPHANELERI:
+        try:
+            surum = importlib.metadata.version(ad)
+        except importlib.metadata.PackageNotFoundError:
+            surum = "-"
+        h.update(f"{ad}={surum}\0".encode())
+    h.update(f"python={sys.version_info[0]}.{sys.version_info[1]}".encode())
     return h.hexdigest()[:20]
+
+
+#  İŞÇİ AÇILIRKEN hesaplanır ( modül yüklenince:  kod ve veri o an yüklenmiştir ).  17 Kas denetimi:
+#  eskiden ilk disk kullanımında hesaplanıyor ve taslak verisini, yazı tiplerini, kütüphane
+#  sürümlerini KAPSAMIYORDU — yalnız taslaklar.json değişen bir güncellemeden sonra eski hazır
+#  asansörle bulunmuş sonuç kullanılırdı ( yanlış pafta, hatasız );  güncelleme dosyaları yerinde
+#  değiştirirken eski bir işçi de eski koduyla bulduğu sonucu YENİ imzayla yazabilirdi.
+_KOD_IMZASI = _imza_hesapla()
+
+
+def _kod_imzasi():
+    """Bu sürecin kod imzası ( _KOD_IMZASI )."""
+    return _KOD_IMZASI
 
 
 def _disk_klasoru():

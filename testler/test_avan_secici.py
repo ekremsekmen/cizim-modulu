@@ -720,6 +720,70 @@ class DiskOnbellegi(unittest.TestCase):
         self.assertIsNone(self.onbellek().al("demet"))
 
 
+class KodImzasi(unittest.TestCase):
+    """17 Kas denetimi:  disk önbelleğinin "program değişti mi" imzası taslak verisini ( kod
+    klasörlerinin dışında — on-yuz/src/lib/taslaklar.json ), yazı tiplerini ve kütüphane
+    sürümlerini kapsamıyordu;  ilk kullanımda hesaplanıyordu.  Yalnız taslak değişen bir
+    güncellemeden sonra eski hazır asansörle bulunmuş sonuç kullanılırdı."""
+
+    def agac(self):
+        """Küçük bir program ağacı:  kod, yazı tipi ( imza klasörlerinde ), temel.py."""
+        kok = tempfile.mkdtemp(prefix="imza-")
+        self.addCleanup(shutil.rmtree, kok, True)
+        for yol, icerik in (
+            ("temel.py", b"x = 1"),
+            ("cizim/kod.py", b"y = 2"),
+            ("cizim/yazi/Yazi.ttf", b"yazi tipi 1"),
+            ("cizim/yazi/OKU.txt", b"lisans"),
+        ):
+            os.makedirs(os.path.dirname(os.path.join(kok, yol)) or kok, exist_ok=True)
+            with open(os.path.join(kok, yol), "wb") as f:
+                f.write(icerik)
+        return kok
+
+    def test_taslak_verisi_imzada(self):
+        """Taslakların dosyası kod klasörlerinin dışında:  bu sürecin yüklediği veri imzaya girer."""
+        taslaklar = copy.deepcopy(avan_secici._TASLAKLAR)
+        taslaklar[0]["asansor"]["kuyu_genisligi"] = "9999"
+        self.assertNotEqual(
+            avan_secici._imza_hesapla(),
+            avan_secici._imza_hesapla(veri=[taslaklar, avan_secici._AVAN_PAKETLERI]),
+        )
+        self.assertNotIn(
+            os.path.relpath(os.path.join(KOK, "on-yuz"), KOK).split(os.sep)[0], avan_secici._IMZA_KLASORLERI
+        )
+
+    def test_yazi_tipi_ve_kutuphane_imzada(self):
+        kok = self.agac()
+        ilk = avan_secici._imza_hesapla(kok=kok, veri=[])
+        self.assertEqual(ilk, avan_secici._imza_hesapla(kok=kok, veri=[]))
+        #  İmzanın türü olmayan dosya ( lisans metni ) imzayı değiştirmez
+        with open(os.path.join(kok, "cizim", "yazi", "OKU.txt"), "wb") as f:
+            f.write(b"lisans 2")
+        self.assertEqual(ilk, avan_secici._imza_hesapla(kok=kok, veri=[]))
+        with open(os.path.join(kok, "cizim", "yazi", "Yazi.ttf"), "wb") as f:
+            f.write(b"yazi tipi 2")
+        ikinci = avan_secici._imza_hesapla(kok=kok, veri=[])
+        self.assertNotEqual(ilk, ikinci)
+        with mock.patch("importlib.metadata.version", return_value="999.0"):
+            self.assertNotEqual(ikinci, avan_secici._imza_hesapla(kok=kok, veri=[]))
+
+    def test_programin_yazi_tipi_kapsanir(self):
+        """Çizimin yazı ölçüsünün yazı tipi ( cizim/pdf — uslup.YAZI_DOSYASI ) imza klasörlerinde ve
+        türlerinde:  taşınırsa ya da türü değişirse bu test kırılır."""
+        from cizim import uslup
+
+        yol = os.path.relpath(uslup.YAZI_DOSYASI, KOK)
+        self.assertIn(yol.split(os.sep)[0], avan_secici._IMZA_KLASORLERI, yol)
+        self.assertTrue(yol.endswith(avan_secici._IMZA_TURLERI), yol)
+
+    def test_imza_acilista_hesaplanir(self):
+        """İmza modül yüklenirken hesaplanır:  sonradan dosya okumaz ( güncelleme dosyaları yerinde
+        değiştirirken eski işçi eski koduyla bulduğu sonucu yeni imzayla yazamasın )."""
+        with mock.patch("builtins.open", side_effect=AssertionError("dosya okundu")):
+            self.assertEqual(avan_secici._kod_imzasi(), avan_secici._KOD_IMZASI)
+
+
 class PaketinAramasi(unittest.TestCase):
     """17 Kas:  "Projeyi indir" bırakılınca ( bağlantı kapandı ) paketin asansör araması durur."""
 
