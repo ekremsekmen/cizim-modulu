@@ -60,7 +60,7 @@ import { KatGirisi } from "@/uygulama/KotTablosu";
 import { KAPAK_GRUPLARI } from "@/lib/kapak";
 import { cn, sayiYaz } from "@/lib/utils";
 import { AnaSayfaBaglantisi, BasvuruBaglantilari, SunucuBekleniyor, UstSerit } from "@/components/Kabuk";
-import { Anahtar, Dugme, Girdi, Ipucu, Rozet, Secim } from "@/components/ui";
+import { Anahtar, Dugme, Girdi, Ipucu, Pencere, Rozet, Secim } from "@/components/ui";
 import { HesapBelgesi, HukumRozeti } from "@/components/HesapBelgesi";
 //  pdf.js büyüktür ( ~1 MB ):  yalnız kapak adımı açılınca iner
 const PdfOnizleme = lazy(() => import("@/components/PdfOnizleme").then((m) => ({ default: m.PdfOnizleme })));
@@ -265,6 +265,62 @@ export function AvanCalisma() {
       }),
   });
 
+  //  PAKETİN ARAMASI ( 17 Kas — yayın öncesi denetim ):  paket çizimi istenen her asansörün
+  //  seçicisini koşar;  Çizimler adımında bulunmuş olan önbellekten gelir ( sunucu:  işçiler arası
+  //  disk önbelleği ), BULUNMAMIŞ olan şimdi aranır — dar kuyuda asansör başına dakikalar.  Böyle
+  //  bir asansör varsa önce sorulur:  Çizimlere git ( aşamalarıyla izlenir ) · yine de indir · vazgeç.
+  //  Durum ekranın bu girdiyle aldığı sonuçtan ( cizimSonuclari — işaretle aynı kaynak );  ekranın
+  //  bilmediği asansör SUNUCUYA sorulur ( api.avanAranacaklar — arama yapmaz ):  sayfa yenilenince
+  //  ekranın sonuçları gider, sunucunun ( işçiler arası ) önbelleğindekiler kalır.  Soru düşerse
+  //  pencere sebebini söyler ( "Yeniden dene" · yine de indir ) — bilinmeyen asansör "bilinmiyor".
+  const [paketSor, setPaketSor] = useState<{ aranacaklar: number[]; hata?: string } | null>(null);
+  //  Ekranın bu girdiyle sonucunu bildiği asansörler ( aranmış:  bulundu ya da çizilemiyor )
+  const ekranBiliyor = cizimIstenen.map((_, j) => {
+    const d = cizimSonuclari[j]?.data;
+    return !!d && d.durum !== "tamamlanmadi";
+  });
+  const paketAsansorleri = cizimIstenen.map((i, j) => {
+    const d = cizimSonuclari[j]?.data;
+    const hal =
+      d && ekranBiliyor[j]
+        ? d.durum === "uygun"
+          ? "bulundu"
+          : "cizilemiyor"
+        : paketSor?.hata
+          ? "bilinmiyor"
+          : paketSor && !paketSor.aranacaklar.includes(i)
+            ? "hazir"
+            : "aranmadi";
+    return { i, ad: p.avanAsansorleri[i]?.tanim?.trim() || `Asansör ${i + 1}`, hal };
+  });
+  const [soruluyor, setSoruluyor] = useState(false);
+  const projeyiIndir = async () => {
+    if (ekranBiliyor.every(Boolean)) return paket.mutate();
+    setSoruluyor(true);
+    try {
+      const r = await api.avanAranacaklar(avanGirdi);
+      const hata = (r as { hata?: unknown }).hata;
+      if (hata || !Array.isArray(r.aranacaklar)) throw new Error(String(hata || "Sunucunun yanıtı okunamadı"));
+      if (r.aranacaklar.length) setPaketSor({ aranacaklar: r.aranacaklar });
+      else {
+        setPaketSor(null);
+        paket.mutate();
+      }
+    } catch (e) {
+      const hata =
+        e instanceof TypeError
+          ? "Sunucuya ulaşılamadı"
+          : e instanceof SyntaxError
+            ? "Sunucunun yanıtı okunamadı"
+            : e instanceof Error
+              ? e.message
+              : String(e);
+      setPaketSor({ aranacaklar: cizimIstenen, hata });
+    } finally {
+      setSoruluyor(false);
+    }
+  };
+
   //  Avan tek projedir:  yenisi öncekinin yerine geçer, önceki "Geri al" ile döner
   //  ( açılıştaki kart da aynı yoldan — yeniAvanAcilisi ).  ( 17 Kas ) Açık avan doluysa önce
   //  sorulur ( AvanDegisimOnayi ):  dosyaya kaydet · kaydetmeden · vazgeç
@@ -349,14 +405,75 @@ export function AvanCalisma() {
               kaydetBekleme={kayitBekleme}
             />
             {degisim.pencere}
+            <Pencere
+              acik={!!paketSor}
+              degisti={(a) => !a && setPaketSor(null)}
+              baslik={paketSor?.hata ? "Paketin araması sorulamadı" : "Bazı asansörlerin çizimi henüz aranmadı"}
+              aciklama={
+                paketSor?.hata
+                  ? `${paketSor.hata}.  Hangi asansörün aranacağı bilinmiyor;  paket aramayı gerekirse kendisi yapar ( dar kuyuda asansör başına bir – iki dakika ).`
+                  : "Paket bu asansörler için en uygun yerleşimi şimdi arayacak.  Dar kuyuda asansör başına bir – iki dakika sürebilir."
+              }
+            >
+              <ul data-paket-asansorleri className="mb-1 divide-y divide-cizgi rounded-orta border border-cizgi text-[13px]">
+                {paketAsansorleri.map((a) => (
+                  <li key={a.i} className="flex items-center justify-between px-3 py-2">
+                    <span>{a.ad}</span>
+                    {a.hal === "bulundu" ? (
+                      <span className="flex items-center gap-1 text-[#12b76a]">
+                        <Check className="size-3.5" /> bulundu
+                      </span>
+                    ) : a.hal === "hazir" ? (
+                      <span className="flex items-center gap-1 text-[#12b76a]">
+                        <Check className="size-3.5" /> aranmış
+                      </span>
+                    ) : a.hal === "cizilemiyor" ? (
+                      <span className="text-metin-3">çizilemiyor ( pakette notu )</span>
+                    ) : a.hal === "bilinmiyor" ? (
+                      <span className="text-metin-3">bilinmiyor</span>
+                    ) : (
+                      <span className="text-uyari">aranmadı</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="mb-1 text-[12px] text-metin-3">
+                Önce Çizimler adımında açarsanız aramayı aşamalarıyla izlersiniz;  paket sonra hemen iner.
+              </p>
+              {paketSor?.hata && (
+                <Dugme tur="birincil" onClick={() => void projeyiIndir()} disabled={soruluyor}>
+                  {soruluyor && <Loader2 className="animate-spin" />} Yeniden dene
+                </Dugme>
+              )}
+              <Dugme
+                tur={paketSor?.hata ? "ikincil" : "birincil"}
+                onClick={() => {
+                  setPaketSor(null);
+                  git("/avan/cizimler");
+                }}
+              >
+                Çizimlere git
+              </Dugme>
+              <Dugme
+                onClick={() => {
+                  setPaketSor(null);
+                  paket.mutate();
+                }}
+              >
+                Yine de indir
+              </Dugme>
+              <Dugme tur="hayalet" onClick={() => setPaketSor(null)}>
+                Vazgeç
+              </Dugme>
+            </Pencere>
             <Dugme
               tur="birincil"
               className="ml-1"
-              onClick={() => paket.mutate()}
-              disabled={paket.isPending || !!bekleme}
+              onClick={() => void projeyiIndir()}
+              disabled={paket.isPending || soruluyor || !!bekleme}
               title={bekleme}
             >
-              {paket.isPending || (!sonuclarGuncel && !baglantiHatasi) ? <Loader2 className="animate-spin" /> : <FileArchive />}{" "}
+              {paket.isPending || soruluyor || (!sonuclarGuncel && !baglantiHatasi) ? <Loader2 className="animate-spin" /> : <FileArchive />}{" "}
               Projeyi indir
             </Dugme>
           </>

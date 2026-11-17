@@ -44,8 +44,12 @@ import collections
 import contextlib
 import contextvars
 import copy
+import hashlib
 import json
+import logging
 import os
+import shutil
+import tempfile
 import threading
 import time
 
@@ -54,6 +58,8 @@ from motor.avan import tablolar
 from tasarim import alanlar
 from uclar import care_uclari, uygulama_istegi
 from yollar import KOK
+
+log = logging.getLogger(__name__)
 
 with open(os.path.join(KOK, "on-yuz", "src", "lib", "taslaklar.json"), encoding="utf-8") as _f:
     _TASLAKLAR = json.load(_f)
@@ -744,15 +750,14 @@ def _korumali_sec(m, iptal):
         aramayı keser:  yanıt { durum:  "tamamlanmadi" , neden , hata } — sığmaz demez.
       · ÖNBELLEK:  bütçe saat değil sınama sayısı olduğu için aynı girdinin sonucu hep aynıdır;
         son ONBELLEK_BOYU sonuç saklanır ( geri al, aynı kuyuya dönüş, paketi indirme anında ).
-        Yarıda kalan sonuç saklanmaz.  Dönen sonuç kopyadır ( çağıran değiştirebilir ).
+        Yarıda kalan sonuç saklanmaz.  Dönen sonuç kopyadır ( çağıran değiştirebilir ).  Bellekte
+        yoksa İŞÇİLER ARASI disk önbelleğine bakılır ( _Onbellek ).
 
     Saatsiz kipte ( SAATSIZ ) güvenlik süresi yok;  iptal ve önbellek yine çalışır."""
     anahtar = json.dumps(m, sort_keys=True, ensure_ascii=False, default=str)
-    with _ONBELLEK_KILIDI:
-        r = _ONBELLEK.get(anahtar)
-        if r is not None:
-            _ONBELLEK.move_to_end(anahtar)
-            return copy.deepcopy(r)
+    r = _ONBELLEK.al(anahtar)
+    if r is not None:
+        return r
     t0 = time.monotonic()
     token = _KORUMA.set((float("inf") if SAATSIZ else t0 + GUVENLIK_SURESI, iptal))
     try:
@@ -767,10 +772,7 @@ def _korumali_sec(m, iptal):
         }
     finally:
         _KORUMA.reset(token)
-    with _ONBELLEK_KILIDI:
-        _ONBELLEK[anahtar] = copy.deepcopy(r)
-        while len(_ONBELLEK) > ONBELLEK_BOYU:
-            _ONBELLEK.popitem(last=False)
+    _ONBELLEK.koy(anahtar, r)
     return r
 
 
@@ -780,8 +782,179 @@ TAMAMLANMADI = {
     "iptal": "asansör araması bırakıldı ( girdi değişti )",
 }
 ONBELLEK_BOYU = 64
-_ONBELLEK = collections.OrderedDict()
-_ONBELLEK_KILIDI = threading.Lock()
+#  Disk önbelleğinde en çok bu kadar sonuç ( eskiler silinir;  bir sonuç ~10 – 60 KB )
+DISK_ONBELLEK_AZAMI = 2000
+
+
+class _Onbellek:
+    """SEÇİCİNİN ÖNBELLEĞİ:  bellek ( işçinin kendi, son ONBELLEK_BOYU ) + DİSK ( İŞÇİLER ARASI ).
+
+    17 Kas ( yayın öncesi denetim ):  sunucu dört işçiyle çalışır, bellek önbelleği işçi
+    başınadır.  "Projeyi indir" Çizimler adımında bulunan asansörü başka bir işçide
+    bulamayınca aramayı baştan yapıyordu — kullanıcının 2 asansörlü projesinde paket 48 sn
+    ( 23,7 + 24,1 ), dar kuyuda asansör başına dakikalar;  vekil sunucunun zaman aşımı ( 30 –
+    60 sn ) indirmeyi düşürürdü.  Sonuç diske de yazılır, öbür işçiler oradan okur.
+
+      · Klasör:  AVAN_SECICI_ONBELLEK ( "kapali":  disk yok ) ya da geçici klasörde
+        kullanıcıya özel bir klasör ( yalnız sahibi okur / yazar — 0700 ).
+      · PROGRAM DEĞİŞİNCE geçersiz:  alt klasörün adı programın kod imzasıdır ( _kod_imzasi —
+        hesap / çizim / tasarım kodu ve hazır asansörler );  eski imzaların klasörleri silinir.
+        Aynı imzada sonuç aynıdır ( bütçe deterministik ).
+      · Yalnız JSON'a birebir dönüşen sonuç yazılır ( okunan bellektekiyle aynı olsun );  yazım
+        atomiktir ( geçici dosya + yeniden adlandırma:  yarım dosya okunmaz );  okunamayan dosya
+        yok sayılır ( arama yapılır ).  Disk hatası aramayı durdurmaz:  önbelleksiz devam."""
+
+    def __init__(self):
+        self._bellek = collections.OrderedDict()
+        self._kilit = threading.Lock()
+        self._klasor = None  # None:  henüz kurulmadı;  False:  disk kapalı / kurulamadı
+
+    def __len__(self):
+        return len(self._bellek)
+
+    def clear(self):
+        """Bellek ve disk ( testler:  yeni arama yapılsın )."""
+        with self._kilit:
+            self._bellek.clear()
+            k = self._disk()
+        if k:
+            with contextlib.suppress(OSError):
+                for ad in os.listdir(k):
+                    with contextlib.suppress(OSError):
+                        os.remove(os.path.join(k, ad))
+
+    def al(self, anahtar):
+        """Saklanan sonucun kopyası ya da None."""
+        with self._kilit:
+            r = self._bellek.get(anahtar)
+            if r is not None:
+                self._bellek.move_to_end(anahtar)
+                return copy.deepcopy(r)
+        r = self._diskten(anahtar)
+        if r is not None:
+            self._bellege(anahtar, r)
+            return copy.deepcopy(r)
+        return None
+
+    def koy(self, anahtar, r):
+        self._bellege(anahtar, copy.deepcopy(r))
+        self._diske(anahtar, r)
+
+    def _bellege(self, anahtar, r):
+        with self._kilit:
+            self._bellek[anahtar] = r
+            while len(self._bellek) > ONBELLEK_BOYU:
+                self._bellek.popitem(last=False)
+
+    def _disk(self):
+        """Disk klasörü ya da False ( kapalı / kurulamadı ) — ilk kullanımda kurulur.  Klasör
+        sonradan silinmişse ( geçici klasör temizliği ) yeniden kurulur:  yoksa işçi yeniden
+        başlayana kadar önbelleksiz kalırdı."""
+        if self._klasor is None or (self._klasor and not os.path.isdir(self._klasor)):
+            self._klasor = _disk_klasoru()
+        return self._klasor
+
+    def _yol(self, anahtar):
+        k = self._disk()
+        return k and os.path.join(k, hashlib.sha256(anahtar.encode("utf-8")).hexdigest() + ".json")
+
+    def _diskten(self, anahtar):
+        yol = self._yol(anahtar)
+        if not yol:
+            return None
+        try:
+            with open(yol, encoding="utf-8") as f:
+                kayit = json.load(f)
+        except (OSError, ValueError):
+            return None
+        #  Özet çakışmasına karşı:  kayıt kendi anahtarını taşır
+        if not isinstance(kayit, dict) or kayit.get("anahtar") != anahtar:
+            return None
+        return kayit.get("sonuc")
+
+    def _diske(self, anahtar, r):
+        yol = self._yol(anahtar)
+        if not yol:
+            return
+        try:
+            metin = json.dumps({"anahtar": anahtar, "sonuc": r}, ensure_ascii=False)
+            if json.loads(metin)["sonuc"] != r:
+                return  # JSON'a birebir dönmüyor:  diskten okunan farklı olurdu
+            gecici = f"{yol}.{os.getpid()}.{threading.get_ident()}.tmp"
+            with open(gecici, "w", encoding="utf-8") as f:
+                f.write(metin)
+            os.replace(gecici, yol)
+            self._buda(os.path.dirname(yol))
+        except (OSError, TypeError, ValueError):
+            log.warning("seçicinin disk önbelleğine yazılamadı", exc_info=True)
+            with contextlib.suppress(OSError, UnboundLocalError):
+                os.remove(gecici)
+
+    @staticmethod
+    def _buda(k):
+        """En çok DISK_ONBELLEK_AZAMI sonuç:  fazlası, en eskiden başlayarak silinir."""
+        with os.scandir(k) as it:
+            dosyalar = [e for e in it if e.name.endswith(".json")]
+        if len(dosyalar) <= DISK_ONBELLEK_AZAMI:
+            return
+        dosyalar.sort(key=lambda e: e.stat().st_mtime)
+        for e in dosyalar[: len(dosyalar) - DISK_ONBELLEK_AZAMI]:
+            with contextlib.suppress(OSError):
+                os.remove(e.path)
+
+
+#  Kod imzasının kapsadığı klasörler ( KOK'a göre ) ve dosya türleri
+_IMZA_KLASORLERI = ("cizim", "hesap", "tasarim")
+_IMZA_TURLERI = (".py", ".json")
+
+
+def _kod_imzasi():
+    """Programın seçiciyi etkileyen kodunun ve verisinin özeti:  dosya adları ve içerikleri
+    ( dogrulama / __pycache__ hariç ) + temel.py.  Aynı program her işçide aynı imzayı verir."""
+    h = hashlib.sha256()
+    yollar_ = [os.path.join(KOK, "temel.py")]
+    for kl in _IMZA_KLASORLERI:
+        for kok, dizinler, dosyalar in os.walk(os.path.join(KOK, kl)):
+            dizinler[:] = sorted(x for x in dizinler if x not in ("__pycache__", "dogrulama"))
+            yollar_ += [os.path.join(kok, x) for x in sorted(dosyalar) if x.endswith(_IMZA_TURLERI)]
+    for yol in yollar_:
+        h.update(os.path.relpath(yol, KOK).encode("utf-8") + b"\0")
+        with open(yol, "rb") as f:
+            h.update(f.read())
+        h.update(b"\0")
+    return h.hexdigest()[:20]
+
+
+def _disk_klasoru():
+    """Disk önbelleğinin bu programa ait klasörü ( kurulur ) ya da False."""
+    ayar = os.environ.get("AVAN_SECICI_ONBELLEK", "")
+    if ayar.strip().lower() == "kapali":
+        return False
+    kok = ayar or os.path.join(tempfile.gettempdir(), f"asansor-secici-onbellegi-{_kullanici()}")
+    try:
+        imza = _kod_imzasi()
+        os.makedirs(kok, mode=0o700, exist_ok=True)
+        #  Başkasının klasörü ya da herkese açık:  güvenilmez ( içine sonuç konabilir )
+        st = os.stat(kok)
+        if hasattr(os, "getuid") and (st.st_uid != os.getuid() or st.st_mode & 0o077):
+            log.warning("seçicinin disk önbelleği kullanılmıyor:  %s güvenli değil", kok)
+            return False
+        k = os.path.join(kok, imza)
+        os.makedirs(k, mode=0o700, exist_ok=True)
+        for ad in os.listdir(kok):
+            if ad != imza:
+                shutil.rmtree(os.path.join(kok, ad), ignore_errors=True)
+        return k
+    except OSError:
+        log.warning("seçicinin disk önbelleği kurulamadı", exc_info=True)
+        return False
+
+
+def _kullanici():
+    return os.getuid() if hasattr(os, "getuid") else (os.environ.get("USERNAME") or "x")
+
+
+_ONBELLEK = _Onbellek()
 
 
 def _kapiyi_tasi(r, kapi):
@@ -876,6 +1049,34 @@ def _tek_seferde(m, r, t0):
     return r
 
 
+def _on_denetim(m):
+    """Aramasız sonuç:  ( durum , alanlar ) — mimari eksik, bu hızda / yükte hazır asansör yok —
+    ya da None ( seçici arar ).  _sec ve aranacak_mi aynı kuralı kullanır."""
+    eksik = [k for k in ZORUNLU if m.get(k) in (None, "")]
+    mk_yok = m.get("mk_yok") in (True, "true")
+    if not mk_yok and m.get("md_zemini_kotu") in (None, ""):
+        eksik.append("md_zemini_kotu")
+    if eksik:
+        return "eksik", {"eksik": eksik}
+    #  Avanın hız listesinde olup uygulamanın listesinde olmayan hızlar ( 1,75 · 3,5 m/s ):
+    #  çizim çıkmaz ( kullanıcı kararı, 14 Kas ) — eskiden "geçersiz seçim" hatası görünüyordu
+    hizlar = alanlar.ALAN["beyan_hizi"].secenekler
+    if not any(_sayili(x) and _sayi(x) == _sayi(m["beyan_hizi"]) for x in hizlar):
+        return "paket_yok", {"hiz": True, "hizlar": [x for x in hizlar if _sayili(x)]}
+    if (int(_sayi(m["beyan_yuku"])), mk_yok) not in paketler():
+        return "paket_yok", {}
+    return None
+
+
+def aranacak_mi(m):
+    """Sunucunun seçicisi ( korumali ) bu girdi için ŞİMDİ arama yapacak mı:  önbellekte ( bellek
+    ya da disk ) sonucu yok ve aramasız bir sonucu da yok ( _on_denetim ).  Arama yapmaz — paketin
+    "henüz aranmadı" sorusu için ( 17 Kas )."""
+    if _on_denetim(m) is not None:
+        return False
+    return _ONBELLEK.al(json.dumps(m, sort_keys=True, ensure_ascii=False, default=str)) is None
+
+
 def _sec(m):
     """sec'in bir denemesi:  m'nin beyanı ( varsa ) değiştirilmeden."""
     t0 = time.monotonic()
@@ -884,20 +1085,12 @@ def _sec(m):
     def son(durum, **ek):
         return {"durum": durum, "sinama": sina.sayi, "sure": round(time.monotonic() - t0, 2), **ek}
 
-    eksik = [k for k in ZORUNLU if m.get(k) in (None, "")]
+    on = _on_denetim(m)
+    if on is not None:
+        durum, ek = on
+        return son(durum, **ek)
     mk_yok = m.get("mk_yok") in (True, "true")
-    if not mk_yok and m.get("md_zemini_kotu") in (None, ""):
-        eksik.append("md_zemini_kotu")
-    if eksik:
-        return son("eksik", eksik=eksik)
-    #  Avanın hız listesinde olup uygulamanın listesinde olmayan hızlar ( 1,75 · 3,5 m/s ):
-    #  çizim çıkmaz ( kullanıcı kararı, 14 Kas ) — eskiden "geçersiz seçim" hatası görünüyordu
-    hizlar = alanlar.ALAN["beyan_hizi"].secenekler
-    if not any(_sayili(x) and _sayi(x) == _sayi(m["beyan_hizi"]) for x in hizlar):
-        return son("paket_yok", hiz=True, hizlar=[x for x in hizlar if _sayili(x)])
-    taslak = paketler().get((int(_sayi(m["beyan_yuku"])), mk_yok))
-    if taslak is None:
-        return son("paket_yok")
+    taslak = paketler()[(int(_sayi(m["beyan_yuku"])), mk_yok)]
     asama(
         "paket",
         f"{int(_sayi(m['beyan_yuku']))} kg · {'makine dairesiz' if mk_yok else 'makine daireli'} · "

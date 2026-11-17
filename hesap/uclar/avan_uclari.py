@@ -6,13 +6,16 @@ Trafik hesabı, avan hesapları, proje kapağı ve bunların PDF / CAD
 çıktıları.  Uygulama projesinden bağımsızdır.
 """
 
+import asyncio
 import json
 import logging
 import os
+import threading
 from datetime import date
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Request
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from uclar.uc_ortak import (
     hata_iletisi,
@@ -31,6 +34,7 @@ from uclar.uc_ortak import (
     _temiz,
     _uretilemedi,
     belirsiz_sayi_mi,
+    baglantiyi_izle,
 )
 from cizim import katlar
 from tasarim import alanlar
@@ -568,9 +572,24 @@ def indir_avan_pdf(veri: dict = Body(...)):
 
 
 @router.post("/api/indir/proje-dwg")
-def indir_proje_dwg(veri: dict = Body(...)):
+async def indir_proje_dwg_ucu(istek: Request, veri: dict = Body(...)):
+    """/api/indir/proje-dwg ( 17 Kas — yayın öncesi denetim ):  paket çizimi istenen her asansörün
+    seçicisini koşar ( önbellekte yoksa — avan_secici._Onbellek );  KULLANICI VAZGEÇİNCE ( bağlantı
+    kapandı ) arama durur.  Eskiden paketin araması iptalsizdi:  indirme bırakılsa ya da vekil
+    sunucu zaman aşımıyla kesse de sunucu asansör başına dakikalarca aramayı sürdürüyordu.
+    Paket iş parçacığında kurulur;  bağlantı burada izlenir ( avan_cizim_uclari gibi )."""
+    birakildi = threading.Event()
+    izleyici = asyncio.create_task(baglantiyi_izle(istek, birakildi))
+    try:
+        return await run_in_threadpool(indir_proje_dwg, veri, birakildi.is_set)
+    finally:
+        birakildi.set()
+        izleyici.cancel()
+
+
+def indir_proje_dwg(veri: dict, iptal=None):
     """
-    BÜTÜN PROJE  —  tek CAD dosyası.
+    BÜTÜN PROJE  —  tek CAD dosyası.  iptal:  True dönünce asansör araması durur, paket kurulmaz.
 
     Kapak, ofis TİP PROJE FORMATININ antet hücresine; trafik paftası ve avan
     hesapları formatın büyük çerçevesine A4 boyutunda dizilir ( şablon yoksa
@@ -636,8 +655,10 @@ def indir_proje_dwg(veri: dict = Body(...)):
             ]
             #  Seçici korumalı ve önbellekli ( avan_secici.korumali ):  ekranda bulunan asansör
             #  yeniden aranmaz;  güvenlik süresinde bitmeyen arama "çizimi yok" notuna sebebiyle girer
-            with avan_secici.korumali():
+            with avan_secici.korumali(iptal):
                 gler, cizimsiz = avan_cizimi.paket_cizimleri(okunan, _proje_kimligi(veri)["proje_adi"], adlar)
+            if iptal is not None and iptal():  # bırakılan indirme:  kimseye gitmez
+                return JSONResponse({"hata": "HESAP HATASI: İndirme bırakıldı."}, status_code=200)
 
         if not paftalar:
             return JSONResponse(

@@ -12,12 +12,18 @@ import asyncio
 import contextlib
 import copy
 import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
 import time
 import unittest
 from unittest import mock
 
 from cizim import katlar, kopru
-from uclar import avan_cizim_uclari, avan_secici, care_uclari, cizim_uclari, uygulama_uclari
+from uclar import avan_cizim_uclari, avan_secici, avan_uclari, care_uclari, cizim_uclari, uygulama_uclari
+from yollar import KOK
 
 PAKETLER = avan_secici.paketler()
 KABIN = ("beyan_yuku", "kabin_genisligi", "kabin_derinligi", "kapi_genisligi")
@@ -592,6 +598,171 @@ class KorumaliSecici(unittest.TestCase):
         r = json.loads(asyncio.run(avan_cizim_uclari.api_avan_cizimler_ucu(Kapandi(), g)).body)
         self.assertEqual((r["durum"], r.get("neden")), ("tamamlanmadi", "iptal"), r)
         self.assertLess(time.monotonic() - t0, 5)
+
+
+class DiskOnbellegi(unittest.TestCase):
+    """17 Kas ( yayın öncesi denetim ):  sunucunun dört işçisi seçicinin sonucunu diskten paylaşır
+    ( avan_secici._Onbellek ).  "Projeyi indir" Çizimler adımında bulunan asansörü başka işçide
+    bulamayınca baştan arıyordu — kullanıcının 2 asansörlü projesinde 48 sn."""
+
+    def setUp(self):
+        self.kok = tempfile.mkdtemp(prefix="secici-disk-")
+        self.ortam = mock.patch.dict(os.environ, {"AVAN_SECICI_ONBELLEK": self.kok})
+        self.ortam.start()
+        self.addCleanup(self.ortam.stop)
+        self.addCleanup(shutil.rmtree, self.kok, True)
+        self.m = mimari(PAKETLER[(630, True)])
+
+    def onbellek(self):
+        """Yeni bir işçinin önbelleği:  belleği boş, disk aynı."""
+        return avan_secici._Onbellek()
+
+    def sec(self, onbellek):
+        with mock.patch.object(avan_secici, "_ONBELLEK", onbellek), avan_secici.korumali():
+            return avan_secici.sec(copy.deepcopy(self.m))
+
+    def test_baska_surec_diskten_okur(self):
+        """Başka bir süreç ( işçi ) arar ve yazar;  bu süreç sınama yapmadan aynı sonucu alır."""
+        betik = (
+            "import sys, json\n"
+            "sys.path[:0] = ['hesap', '.']\n"
+            "from uclar import avan_secici\n"
+            "m = json.loads(sys.argv[1])\n"
+            "with avan_secici.korumali():\n"
+            "    print(json.dumps(avan_secici.sec(m)['durum']))\n"
+        )
+        cikti = subprocess.run(
+            [sys.executable, "-c", betik, json.dumps(self.m)],
+            check=False,
+            cwd=KOK,
+            capture_output=True,
+            text=True,
+            timeout=600,
+            env={**os.environ, "AVAN_SECICI_ONBELLEK": self.kok},
+        )
+        self.assertEqual(cikti.stdout.strip(), '"uygun"', cikti.stderr[-2000:])
+        with mock.patch.object(care_uclari, "girdi_durumu", side_effect=AssertionError("sınama yapıldı")):
+            r = self.sec(self.onbellek())
+        self.assertEqual(r["durum"], "uygun")
+        #  Diskten okunan, aramanın kendisiyle birebir ( önbelleksiz yeni arama )
+        with mock.patch.dict(os.environ, {"AVAN_SECICI_ONBELLEK": "kapali"}):
+            yeni = self.sec(self.onbellek())
+        r.pop("sure"), yeni.pop("sure")
+        self.assertEqual(r, yeni)
+
+    def test_klasor_silinince_yeniden_kurulur(self):
+        o = self.onbellek()
+        self.sec(o)
+        shutil.rmtree(self.kok)
+        o.clear()  # hata vermez
+        self.sec(o)
+        self.assertTrue([x for x in os.listdir(o._disk()) if x.endswith(".json")])
+
+    def test_program_degisince_eskisi_silinir(self):
+        o = self.onbellek()
+        with mock.patch.object(avan_secici, "_kod_imzasi", return_value="eski"):
+            self.sec(o)
+        self.assertTrue(os.listdir(os.path.join(self.kok, "eski")))
+        with mock.patch.object(avan_secici, "_kod_imzasi", return_value="yeni"):
+            yeni = self.onbellek()
+            with mock.patch.object(care_uclari, "girdi_durumu", wraps=care_uclari.girdi_durumu) as s:
+                self.assertEqual(self.sec(yeni)["durum"], "uygun")
+            self.assertGreater(s.call_count, 0)  # eski programın sonucu kullanılmadı
+        self.assertEqual(os.listdir(self.kok), ["yeni"])
+
+    def test_bozuk_ve_yarim_dosya_yok_sayilir(self):
+        o = self.onbellek()
+        self.sec(o)
+        k = o._disk()
+        (ad,) = [x for x in os.listdir(k) if x.endswith(".json")]
+        with open(os.path.join(k, ad), "w", encoding="utf-8") as f:
+            f.write('{"anahtar": "yarım')
+        with mock.patch.object(care_uclari, "girdi_durumu", wraps=care_uclari.girdi_durumu) as s:
+            self.assertEqual(self.sec(self.onbellek())["durum"], "uygun")
+        self.assertGreater(s.call_count, 0)
+        #  Geçici dosya kalmaz ( atomik yazım )
+        self.assertEqual([x for x in os.listdir(k) if x.endswith(".tmp")], [])
+
+    def test_yarida_kalan_yazilmaz(self):
+        o = self.onbellek()
+        with mock.patch.object(avan_secici, "GUVENLIK_SURESI", -1.0):
+            self.assertEqual(self.sec(o)["durum"], "tamamlanmadi")
+        self.assertEqual([x for x in os.listdir(o._disk()) if x.endswith(".json")], [])
+
+    def test_kapali_ve_guvensiz_klasor(self):
+        with mock.patch.dict(os.environ, {"AVAN_SECICI_ONBELLEK": "kapali"}):
+            o = self.onbellek()
+            self.assertEqual(self.sec(o)["durum"], "uygun")
+            self.assertIs(o._disk(), False)
+        #  Herkesin yazabildiği klasör:  içine başkası sonuç koyabilir — kullanılmaz
+        acik = tempfile.mkdtemp(prefix="secici-acik-")
+        self.addCleanup(shutil.rmtree, acik, True)
+        os.chmod(acik, 0o777)
+        with (
+            mock.patch.dict(os.environ, {"AVAN_SECICI_ONBELLEK": acik}),
+            self.assertLogs(avan_secici.log, "WARNING"),
+        ):
+            self.assertIs(avan_secici._disk_klasoru(), False)
+
+    def test_sinir(self):
+        o = self.onbellek()
+        with mock.patch.object(avan_secici, "DISK_ONBELLEK_AZAMI", 2):
+            for i in range(4):
+                o.koy(f"anahtar {i}", {"durum": "uygun", "i": i})
+                time.sleep(0.01)
+        dosyalar = [x for x in os.listdir(o._disk()) if x.endswith(".json")]
+        self.assertEqual(len(dosyalar), 2)
+        yeni = self.onbellek()
+        self.assertEqual(yeni.al("anahtar 3"), {"durum": "uygun", "i": 3})
+        self.assertIsNone(yeni.al("anahtar 0"))
+        #  JSON'a birebir dönmeyen sonuç diske yazılmaz ( okunan farklı olurdu )
+        o.koy("demet", {"durum": "uygun", "x": (1, 2)})
+        self.assertIsNone(self.onbellek().al("demet"))
+
+
+class PaketinAramasi(unittest.TestCase):
+    """17 Kas:  "Projeyi indir" bırakılınca ( bağlantı kapandı ) paketin asansör araması durur."""
+
+    def test_aranacaklar_arama_yapmaz(self):
+        """Paketin "henüz aranmadı" sorusu ( /api/avan/aranacaklar ):  arama yapmadan, önbellekte
+        sonucu olmayan asansörleri söyler;  mimarisi eksik olan aranmaz ( anında "eksik" )."""
+        from testler.test_avan_cizim_ucu import govde, kart
+
+        avan_secici._ONBELLEK.clear()
+        t = PAKETLER[(630, True)]["asansor"]
+        eksik = kart(t)
+        del eksik["kuyu_dibi_kotu"]
+        g = govde(kart(t))
+        g["girdiler"]["asansorler"] = [kart(t), eksik]
+        with mock.patch.object(care_uclari, "girdi_durumu", side_effect=AssertionError("arama yapıldı")):
+            self.assertEqual(avan_cizim_uclari.api_avan_aranacaklar(g), {"aranacaklar": [0]})
+        with avan_secici.korumali():
+            from uclar import avan_cizimi
+
+            okunan, _h = avan_uclari.avan_girdisi(g)
+            self.assertEqual(avan_cizimi.secim(okunan, 0)["durum"], "uygun")
+        with mock.patch.object(care_uclari, "girdi_durumu", side_effect=AssertionError("arama yapıldı")):
+            self.assertEqual(avan_cizim_uclari.api_avan_aranacaklar(g), {"aranacaklar": []})
+
+    def test_birakilan_paket_durur(self):
+        from testler.test_avan_cizim_ucu import govde, kart
+
+        avan_secici._ONBELLEK.clear()
+        t = PAKETLER[(630, True)]["asansor"]
+        g = govde(kart(t, kuyu_genisligi="1650", kuyu_derinligi="2300"))  #  ~28 sınamalık
+        veri = {"girdiler": {"avan": g["girdiler"]}, "kapak": {"project_title": "Bırakılan"}}
+
+        class Kapandi:
+            headers = {}
+
+            async def is_disconnected(self):
+                return True
+
+        t0 = time.monotonic()
+        r = asyncio.run(avan_uclari.indir_proje_dwg_ucu(Kapandi(), veri))
+        self.assertLess(time.monotonic() - t0, 15)
+        self.assertIn("bırakıldı", json.loads(r.body)["hata"])
+        self.assertEqual(len(avan_secici._ONBELLEK), 0)
 
 
 if __name__ == "__main__":

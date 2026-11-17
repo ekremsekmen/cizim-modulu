@@ -10,8 +10,16 @@ ERROR bekleyen test onu assertLogs ile yakalar ( yakalanan kayıt buraya
 düşmez )."""
 
 import logging
+import os
+import tempfile
 
 import pytest
+
+#  SEÇİCİNİN DİSK ÖNBELLEĞİ ( uclar/avan_secici._Onbellek — işçiler arası ):  her test sürecine
+#  kendi boş klasörü.  Paylaşılsaydı bir testin araması öbür süreçte / sonraki koşuda önbellekten
+#  gelir, "arama yapıldı mı / durdu mu" diyen testler başka sonuç görürdü.  Uçtan uca testin
+#  sunucusu ortamı devralır ( aynı klasör ).
+os.environ.setdefault("AVAN_SECICI_ONBELLEK", tempfile.mkdtemp(prefix="secici-onbellek-"))
 
 #  Programın kaydedicileri:  logging.getLogger(__name__) — paket adları
 PROGRAM = frozenset(("temel", "tasarim", "cizim", "motor", "ciktilar", "uclar", "main"))

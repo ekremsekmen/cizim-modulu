@@ -1539,6 +1539,52 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(liste.count(), 0)
         self.assertEqual(self.iz.hatalar, [])
 
+    def test_avan_paketi_aranmamis_asansoru_sorar(self):
+        """17 Kas ( yayın öncesi denetim ):  paket çizimi istenen asansörün seçicisini koşar;
+        Çizimler adımında bulunmamışsa ( dar kuyuda dakikalar ) önce sorulur:  Çizimlere git ·
+        Yine de indir · Vazgeç.  Aranmışsa ( bulundu ya da çizilemiyor ) sormadan iner."""
+        self.sayfa.goto(self.url + "/")
+        self.sayfa.evaluate(
+            """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut', bina_yuksekligi: '16', yapi_yuksekligi: '17', hizli1: '8', hizli2: '2'},
+                ekNufus: [],
+                trafikAsansorleri: [{P: '8', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik'}],
+                ortak: {mk_yok: 'true', temel_a: '20', temel_b: '15'},
+                avanAsansorleri: [
+                    {tanim: 'A', kuyu_genisligi: '2350', kuyu_derinligi: '1850',
+                     durak_kotlari: '±0,00; +3,00; +6,00; +9,00; +12,00; +15,00',
+                     kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+19,20'},
+                    {}, {}, {}],
+                kapak: {project_title: 'Paket'}}))"""
+        )
+        self.sayfa.goto(self.url + "/avan/trafik")
+        self.iz.son("/api/avan")
+        indir = self.sayfa.get_by_role("button", name="Projeyi indir")
+        self._bekle(indir.is_enabled, "avan paketi indirilemiyor")
+        paket_istekleri = []
+        self.sayfa.on("request", lambda r: "/api/indir/proje-dwg" in r.url and paket_istekleri.append(r))
+        indir.click()
+        pencere = self.sayfa.get_by_role("dialog")
+        pencere.filter(has_text="henüz aranmadı").wait_for()
+        satir = pencere.locator("[data-paket-asansorleri] li")
+        self.assertEqual(satir.count(), 1)
+        self.assertIn("aranmadı", satir.first.inner_text())
+        pencere.get_by_role("button", name="Vazgeç").click()
+        pencere.wait_for(state="detached")
+        self.assertEqual(paket_istekleri, [])
+        #  Çizimlere git:  arama orada yapılır ( kuyu üstü yetmiyor — mimardan istenecek )
+        indir.click()
+        pencere.get_by_role("button", name="Çizimlere git").click()
+        self.sayfa.wait_for_url("**/avan/cizimler")
+        _istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(yanit["durum"], "gereken", yanit)
+        #  Aranmış ( çizilemiyor ):  sormadan iner, notu başlıkta
+        with self.sayfa.expect_download(timeout=ZAMAN) as d:
+            indir.click()
+        self.assertEqual(self.sayfa.get_by_role("dialog").count(), 0)
+        self.assertTrue(d.value.suggested_filename.endswith(".zip"))
+        self.assertEqual(len(paket_istekleri), 1)
+
     def test_avan_cizimleri(self):
         """12 Kas:  avan projesinde çizim ( "Çizimler" adımı ).  Mimari eksikken hangi
         alanların eksik olduğu söylenir;  dolunca seçicinin bulduğu asansörün çizimleri
@@ -3368,6 +3414,14 @@ class OnYuzUctanUca(unittest.TestCase):
         )
         self._arizalari_dene("kapak PDF'i", "/api/indir/kapak-pdf", adim("/avan/kapak"), pdf, b)
         paket = lambda i: self.sayfa.get_by_role("button", name="Projeyi indir").click()
+
+        def yenilenmis(i):
+            #  Sayfa yenilenince ekranın çizim sonuçları gider:  paket önce sunucuya sorar
+            #  ( /api/avan/aranacaklar — 17 Kas );  soru düşerse pencere sebebini söyler
+            self.sayfa.goto(self.url + "/avan/trafik")
+            self.iz.sakin()
+
+        self._arizalari_dene("paketin araması", "/api/avan/aranacaklar", yenilenmis, paket, b)
         self._arizalari_dene(
             "avan paketi", "/api/indir/proje-dwg", adim("/avan/trafik"), paket, b, duzelt=False, sure=180
         )
