@@ -117,7 +117,7 @@ class Kesildi(Exception):
         self.neden = neden
 
 
-class _CareButcesi(care_uclari._Butce):
+class _CareButcesi(care_uclari.Butce):
     """Seçicinin içindeki çare bulucunun bütçesi:  sınama sayısı aynı ( care_uclari.AZAMI_SINAMA ),
     saati yok — güvenlik süresi ve iptal seçicinin ( _koruma_bak ).  Eskiden çare bulucu kendi
     60 sn'lik saatiyle koşuyordu ( seçicinin sonucu yine makinenin hızına bağlı kalabilirdi ) ve

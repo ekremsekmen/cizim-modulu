@@ -263,9 +263,9 @@ class Care(unittest.TestCase):
         """Bütçeye ya da güvenlik süresine takılan arama "tamamlandı" demez;
         bulduğu çareler yine sınanmıştır."""
         veri, onceki = _vaka("ornek", "kuyu_genisligi", "2300")
-        r = care_uclari.coz(veri, 0, onceki, care_uclari._Butce(sinama=3))
+        r = care_uclari.coz(veri, 0, onceki, care_uclari.Butce(sinama=3))
         self.assertEqual((r["tamamlandi"], r["neden"], r["sinama"]), (False, "sinama", 3))
-        r = care_uclari.coz(veri, 0, onceki, care_uclari._Butce(sure=-1.0))
+        r = care_uclari.coz(veri, 0, onceki, care_uclari.Butce(sure=-1.0))
         self.assertEqual((r["tamamlandi"], r["neden"], r["sinama"]), (False, "sure", 0))
 
     def test_kimlik_sayilardan_ve_sonundan_bagimsiz(self):
