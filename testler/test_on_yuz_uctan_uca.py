@@ -1360,6 +1360,43 @@ class OnYuzUctanUca(unittest.TestCase):
         _istek, trafik = self.iz.son("/api/trafik")
         return trafik, avan, self.liste_satiri("Avan deneme")
 
+    def test_avan_mimari_iki_adimda_ayni(self):
+        """17 Kas ( kullanıcı:  "kuyu genişliği avan hesapları kısmında, kuyu derinliği çizimler
+        kısmında" ):  mimari ve bina blokları Avan hesapları ile Çizimler'de aynı kutularla, aynı
+        sırayla;  birinde yazılan ötekinde görünür.  Temel ölçüleri yalnız hesapta ( Topraklama )."""
+        self.sayfa.goto(self.url + "/")
+        self._avan_kaydi({"mk_yok": "false"})
+
+        def kutular(adim):
+            self.sayfa.goto(self.url + f"/avan/{adim}")
+            yan = self.sayfa.locator("aside")
+            yan.get_by_label("Kuyu derinliği").wait_for()
+            return yan.evaluate(
+                """y => [...y.querySelectorAll('section, div')].filter(b => /· mimari|^Bina/.test(b.querySelector('h2, h3, p, span')?.innerText ?? ''))
+                       .length && [...y.querySelectorAll('input, button[role=switch]')]
+                       .map(e => e.getAttribute('aria-label') || document.querySelector(`label[for="${e.id}"]`)?.innerText || '')
+                       .filter(s => /Kuyu|kot|Döşeme|döşeme|Makine dairesi|yükseklik|Son kat|KY/.test(s))"""
+            )
+
+        hesap, cizim = kutular("hesaplar"), kutular("cizimler")
+        self.assertEqual(hesap, cizim)
+        for ad in (
+            "Kuyu genişliği",
+            "Kuyu derinliği",
+            "Makine dairesi iç yüksekliği",
+        ):
+            self.assertIn(ad, hesap)
+        #  Hesapta yazılan derinlik çizimde
+        self.sayfa.goto(self.url + "/avan/hesaplar")
+        self.sayfa.locator("aside").get_by_label("Kuyu derinliği").fill("2350")
+        self.iz.sakin()
+        self.sayfa.goto(self.url + "/avan/cizimler")
+        self.assertEqual(self.sayfa.locator("aside").get_by_label("Kuyu derinliği").input_value(), "2350")
+        #  Temel yalnız hesapta
+        self.assertEqual(self.sayfa.get_by_label("Temel uzunluğu a").count(), 0)
+        self.sayfa.goto(self.url + "/avan/hesaplar")
+        self.sayfa.get_by_label("Temel uzunluğu a").wait_for()
+
     def test_avan_kotlari_klavyeden(self):
         """17 Kas ( kullanıcı:  "kotları girmeye çalıştığımda ilk başta açılan trafik hesabında
         giremiyorum" ):  yeni avan projesinde Katlar tablosunda yazılacak satır yoktu, "Durak ekle"
