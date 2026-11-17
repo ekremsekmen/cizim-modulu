@@ -1091,7 +1091,8 @@ class KuyuDibiSozlesme(unittest.TestCase):
             ({"agirlik_tampon_adedi": 2, "agirlik_tampon_arasi": 900}, "karşı ağırlığın altına"),
             ({"regulator_yan": "Orta"}, "regulator_yan"),
             ({"kuvvetler": {"FKR": 1, "FAR": 1, "Fkt": 1}}, "kuyu_dibi.kuvvetler"),
-            ({"kuvvetler": {"FKR": 1, "FAR": 1, "Fkt": 1, "Fat": 1}}, "kuyu_dibi.kuvvetler"),
+            #  Ray konsolu yükleri ya dördü birden ya hiç ( avanda hiç — kuyu_dibi.TABAN_KUVVETLERI )
+            ({"kuvvetler": {"FKR": 1, "FAR": 1, "Fkt": 1, "Fat": 1, "Fx_kabin": 1}}, "kuyu_dibi.kuvvetler"),
             ({"kuvvetler": dict.fromkeys(kuyu_dibi.KUVVETLER, 1) | {"Fat": 0}}, "kuvvetler.Fat"),
             ({"kuvvetler": dict.fromkeys(kuyu_dibi.KUVVETLER, 1) | {"FKR": "22 kN"}}, "kuvvetler.FKR"),
             ({"kuvvetler": dict.fromkeys(kuyu_dibi.KUVVETLER, 1) | {"Fx_kabin": -5}}, "kuvvetler.Fx_kabin"),
@@ -1160,6 +1161,16 @@ class KuyuDibiYerlesim(unittest.TestCase):
                 if x.get("ad") == "yuk" and x["metin"][1] != "K" and x["metin"][1] != "A"
             ),
             sorted(["Fkt1 = 34,91 kN"] * 2 + ["Fat1 = 27,06 kN"] * 2),
+        )
+        #  AVAN ( 17 Kas ):  yalnız kuyu tabanının kuvvetleri — ray konsolu tablosu çizilmez ( ray
+        #  profiline bağlı, avanda seçilmedi ), tabandaki yük kutuları aynı
+        taban = {k: self.KV[k] for k in kuyu_dibi.TABAN_KUVVETLERI}
+        self.assertEqual(kuyu_dibi.dogrula(_ornek(kuyu_dibi={"kuvvetler": taban})), [])
+        e = kuyu_dibi.ciz(_ornek(kuyu_dibi={"kuvvetler": taban}))
+        self.assertEqual(self._tablo(e), [])
+        self.assertEqual(
+            sorted(x["metin"] for x in e if x.get("ad") == "yuk"),
+            sorted(["FKR = 30,68 kN"] * 2 + ["FAR = 11,55 kN"] * 2 + ["Fkt = 69,81 kN", "Fat = 54,11 kN"]),
         )
         #  Ray kuvveti sıfır olabilir ( yük ekseni ray ekseninde ), kuyu tabanı yükü olamaz
         self.assertEqual(kuyu_dibi.dogrula(_ornek(kuyu_dibi={"kuvvetler": dict(self.KV, Fy_agirlik=0)})), [])

@@ -78,9 +78,13 @@ class AvanCizimUcu(unittest.TestCase):
         self.assertGreaterEqual(len({t for t in uygulama if urun.search(t)}), 5)
         self.assertIn(avan_kipi.NOT, avan)
         self.assertNotIn(avan_kipi.NOT, uygulama)
-        #  Kalan satırlar aynı:  avan yalnız eksiltir ( + notu ve onun sıra numarası )
+        #  Kalan satırlar aynı:  avan yalnız eksiltir ( + notu ve onun sıra numarası ).  Kuyu tabanının
+        #  kuvvetleri avanın hesabından ( 17 Kas — test_avan_ray_yuku ):  bu kartta avan hesabı yok
+        #  ( kabin, verim girilmedi ) — yalnız adları;  yük kutuları kısalınca perde yazısının
+        #  kısa / uzun biçimi başka seçilebilir
+        fark = {t for t in avan - uygulama if "Dişlisiz" not in t} - {"FKR", "FAR", "Fkt", "Fat"}
         self.assertEqual(
-            {t for t in avan - uygulama if "Dişlisiz" not in t},
+            {t for t in fark if not t.endswith("PERDESİ")},
             {avan_kipi.NOT, "3.", *kasnak_duzeni.AVAN_NOTU},
         )
         #  Kasnak düzenlemesi ikisinde de;  açısı aynı ( geometri aynı )

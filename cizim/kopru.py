@@ -753,8 +753,10 @@ def _girdi_sozlugu(o, sonuc, proje_adi, sira, ozel, h, d, k):
             "regulator_kaciklik": k["reg_kacik"],
             "regulator_halat_capi": sayi("reg_halat_capi", "Regülatör halatı çapı"),
             "regulator_kasnak_capi": sayi("reg_kasnak_capi", "Regülatör kasnak çapı"),
-            #  Hesap yapılamadıysa yok ( kutularda yalnız ad yazar )
-            "kuvvetler": kuvvetler(sonuc) or None,
+            #  Hesap yapılamadıysa yok ( kutularda yalnız ad yazar ).  Avanda avanın kendi
+            #  hesabından, ray konsolu yükleri olmadan ( avan_kipi )
+            "kuvvetler": (avan_kipi.veri().get("kuvvetler") if avan_kipi.acik() else kuvvetler(sonuc))
+            or None,
         },
         "dusey": {
             "kabin_ic_yukseklik": d["kabin_h"],

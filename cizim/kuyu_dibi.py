@@ -93,6 +93,9 @@ GERGI_PARCA = {
 TAMPON_ADETLERI = (1, 2)
 #  Hesap programının 9. bölümündeki adlar ( ozet:  FKR · FAR · Fkt · Fat, N )
 KUVVETLER = ("FKR", "FAR", "Fkt", "Fat", "Fx_kabin", "Fy_kabin", "Fx_agirlik", "Fy_agirlik")
+#  Kuyu tabanının kuvvetleri her zaman;  ray konsolunun yatay yükleri ( Fx / Fy ) avanda yok
+#  ( ray profiline bağlı — avan_kipi ):  dördü birlikte ya hep var ya hiç
+TABAN_KUVVETLERI = KUVVETLER[:4]
 YANLAR = ("Sağ", "Sol")
 
 _PLANDAN_KATMAN = ("TARAMA", "KUYU-DUVAR", "KUYU-IC", "RAY", "KONSOL", "CIVATA", "EKSEN")
@@ -688,10 +691,10 @@ def _girdi_hatalari(kd):
             hata.append(f"kuyu_dibi.{alan}: sayı olmalı ( {v!r} ).")
     kuvvet = kd.get("kuvvetler")
     if kuvvet is not None:
-        if not isinstance(kuvvet, dict) or set(kuvvet) != set(KUVVETLER):
+        if not isinstance(kuvvet, dict) or set(kuvvet) not in (set(KUVVETLER), set(TABAN_KUVVETLERI)):
             hata.append(f"kuyu_dibi.kuvvetler: {KUVVETLER} girilmeli ( {kuvvet!r} ).")
         else:
-            for ad in KUVVETLER:
+            for ad in kuvvet:
                 v = kuvvet[ad]
                 #  Ray kuvveti sıfır olabilir ( ör. yük ekseni ray ekseninde );
                 #  kuyu tabanı yükü olamaz
@@ -1202,7 +1205,7 @@ def ciz(g, cizim_sabitleri=None):
     #  SONRA:  dışarıdaki kutu tablonun yerine taşıyordu.
     #  Tek kuyunun ortak çiziminde soldaki asansörün tablosu kuyunun solunda,
     #  başında asansörün adıyla ( iki asansörün tablosu ayrı okunur )
-    if kv:
+    if kv and "Fx_kabin" in kv:
         komsu = geometri.komsu_yani(g)
         ad = g["proje"]["asansor"] if komsu else None
         s1 = G + k["duvar_sag"] + 120 + geometri.SIRA_ARASI
