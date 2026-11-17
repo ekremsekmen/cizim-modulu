@@ -3065,6 +3065,50 @@ class OnYuzUctanUca(unittest.TestCase):
                 c.error(new TypeError('network error'));
             } }), { status: r.status, headers: r.headers });
         };
+        //  XMLHttpRequest DE ( 17 Kas — avan çizimi akışlı yanıtı XHR ile okur:  lib/api.akisla ):
+        //  aynı beş arıza, ekranın dinlediği olaylarla ( onprogress · onload · onerror ).
+        //  Eskiden yalnız fetch yakalanıyordu:  avan çizimi isteği arızasız gidiyordu
+        //  ( "istek gitmedi" ).
+        const X = window.XMLHttpRequest;
+        window.XMLHttpRequest = class extends X {
+            open(yontem, adres, ...kalan) {
+                this.__adres = String(adres);
+                this.__yontem = yontem;
+                this.__basliklar = {};
+                return super.open(yontem, adres, ...kalan);
+            }
+            setRequestHeader(k, v) {
+                this.__basliklar[k] = v;
+                return super.setRequestHeader(k, v);
+            }
+            send(govde) {
+                let a = null;
+                try { a = JSON.parse(sessionStorage.getItem('__ariza') || 'null'); } catch {}
+                if (!a || !this.__adres.includes(a.yol)) return super.send(govde);
+                window.__ariza++;
+                //  Sahte yanıt:  durum, tür, metin;  olaylar sırayla ( önce ilerleme )
+                const sahte = (metin, durum, tur, son) => {
+                    Object.defineProperty(this, 'status', { value: durum, configurable: true });
+                    Object.defineProperty(this, 'responseText', { value: metin, configurable: true });
+                    this.getResponseHeader = (k) => (k.toLowerCase() === 'content-type' ? tur : null);
+                    setTimeout(() => {
+                        this.onprogress?.();
+                        (son === 'hata' ? this.onerror : this.onload)?.();
+                    }, 0);
+                };
+                if (a.tur === 'baglanti') return void setTimeout(() => this.onerror?.(), 0);
+                if (a.tur === 'sayfa') return sahte('<html><body>502 Bad Gateway</body></html>', 502, 'text/html');
+                if (a.tur === 'ret')
+                    return sahte(JSON.stringify({ aktif: false, hata: ['DENEME REDDİ'] }), 413, 'application/json');
+                if (a.tur === 'bozuk') return sahte('<html>bozuk</html>', 200, 'application/json');
+                //  Yarıda kesilen yanıt:  gerçek yanıtın ilk parçasının yarısı, sonra bağlantı kopar
+                F(this.__adres, { method: this.__yontem, headers: this.__basliklar, body: govde }).then(async (r) => {
+                    const { value } = await r.body.getReader().read();
+                    const yarim = value ? new TextDecoder().decode(value.slice(0, Math.max(1, value.length >> 1))) : '';
+                    sahte(yarim, r.status, r.headers.get('Content-Type') || '', 'hata');
+                }, () => setTimeout(() => this.onerror?.(), 0));
+            }
+        };
     })()"""
     #  Beş türün matrisi ~6–7 dk:  PR'da gerçek hata bulan iki tür koşar ( sunucunun
     #  reddi, yarıda kesilen yanıt );  beşi birden ARIZA_HEPSI=1 ile — Actions'ta elle
