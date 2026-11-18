@@ -361,6 +361,10 @@ class HizmetAraligi(unittest.TestCase):
         self.assertEqual((b["N"], b["bodrum"], b["kat"]["alt"], b["kat"]["durak"]), (4, 0, 2, 5))
         self.assertAlmostEqual(a["toplam_seyahat"], 17.0, places=9)
         self.assertAlmostEqual(b["toplam_seyahat"], 13.8, places=9)
+        #  Kapak her asansörün durağını bodrum dahil yazar ( 18 Kas:  "5" yazıyordu — sütunun
+        #  "durak"ı ana giriş ve üstü;  seyahat doğruydu )
+        self.assertEqual(r["kapak_bilgileri"]["stops"], "6 / 5")
+        self.assertEqual(r["kapak_bilgileri"]["travel"], "17,00 / 13,80 m")
 
     def test_alcak_blok(self):
         """Üst sınır:  ikinci asansör 4. durağa kadar ( 2 kat + ana giriş + bodrum )."""

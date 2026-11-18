@@ -88,6 +88,14 @@ def sade(x):
     return tr(x, 2).rstrip("0").rstrip(",") if "," in tr(x, 2) else tr(x, 2)
 
 
+def _durak(a):
+    """Asansörün durak sayısı, BODRUM DAHİL.  Çoklu trafikte sütunun "durak"ı ana giriş ve
+    üstüdür ( N + 1 ), toplam "durak_toplam"da;  tek tipte özetin "durak"ı zaten toplamdır.
+    18 Kas:  çoklu trafikte bodrumlu projede kapak bodrum durağını saymıyordu ( 6 duraklı
+    asansöre 5 ) — farklı kapasiteli iki asansör ya da bodruma inmeyen asansör ( hizmet aralığı )."""
+    return a.get("durak_toplam") if sayi_mi(a.get("durak_toplam")) else a.get("durak")
+
+
 def trafikten(sonuc) -> dict:
     """Trafik hesabından kapak alanları.  Hesap hatalıysa boş sözlük."""
     if not isinstance(sonuc, dict) or sonuc.get("hata"):
@@ -101,7 +109,7 @@ def trafikten(sonuc) -> dict:
         k: v
         for k, v in {
             "usage": o.get("bina_tipi") or "",
-            "stops": _birlestir(tam(a.get("durak")) for a in liste if sayi_mi(a.get("durak"))),
+            "stops": _birlestir(tam(_durak(a)) for a in liste if sayi_mi(_durak(a))),
             "travel": _birlestir(
                 (tr(a.get("toplam_seyahat")) for a in liste if sayi_mi(a.get("toplam_seyahat"))), "m"
             ),

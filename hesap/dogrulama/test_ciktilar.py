@@ -443,6 +443,13 @@ def calistir():
         kapak.trafikten(trafik.hesapla_coklu(GC)),
         {"usage": "Konut", "stops": "12", "travel": "33,00 m"},
     )
+    #  18 Kas:  çoklu trafikte sütunun "durak"ı ana giriş ve üstüdür ( N + 1 );  kapak bodrumu
+    #  saymıyordu ( 14 duraklı asansörlere 12 ) — toplam "durak_toplam"dan
+    r.esit(
+        "kapak · çoklu trafikte bodrum durağı da sayılır  ( 11 + 1 + 2 )",
+        kapak.trafikten(trafik.hesapla_coklu(dict(GC, bodrum=2))),
+        {"usage": "Konut", "stops": "14", "travel": "39,00 m"},
+    )
     r.esit(
         "kapak · hatalı trafik hesabından değer türetilmez",
         kapak.trafikten(trafik.hesapla_tek({"bina_tipi": "Konut"})),
