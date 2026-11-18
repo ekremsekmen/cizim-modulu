@@ -146,6 +146,35 @@ class Uc(unittest.TestCase):
         e = [a["toplam_seyahat"] for a in elle["avan_koprusu"]["asansorler"]]
         self.assertNotEqual(e[0], e[1])
 
+    def test_avan_kartinin_ham_giris_kati_ve_ayari(self):
+        """18 Kas ( yayın öncesi denetim ):  avan kartı giriş katını ve çizimin elle ayarını ham metin
+        taşır.  Boş giriş katı ( kot tablosu kurala dönünce "" ) ve sayı olmayan duvar ayarı ( elle
+        düzenlenmiş dosya ) Python'un int() / float() hatasıyla avan hesabının TAMAMINI durduruyordu.
+        Boş kuraldandır;  okunamayan giriş katı kot tablosunda iletiyle söylenir, ayar kuraldan."""
+        kot = "±0,00; +3,00; +6,00; +9,00"
+        t = trafik(durak_kotlari=kot)
+        self.assertIsNone(t.get("hata"), t.get("hata"))
+        kural = avan({"durak_kotlari": kot}, t["avan_koprusu"])
+        self.assertIsNone(kural.get("hata"), kural.get("hata"))
+        for kart, ileti in (
+            ({"giris_duragi": ""}, None),
+            ({"giris_duragi": " "}, None),
+            ({"giris_duragi": "abc"}, "durağın sırasıyla yazılır"),
+            ({"cizim_ayarlari": "kuyu_duvar_kalinligi=abc"}, None),
+        ):
+            with self.subTest(kart=kart):
+                a = avan({"durak_kotlari": kot, **kart}, t["avan_koprusu"])
+                self.assertIsNone(a.get("hata"), a.get("hata"))
+                k, beklenen = a["kotlar"][0], kural["kotlar"][0]
+                self.assertEqual(
+                    (k["adlar"]["adlar"], k["doseme"]), (beklenen["adlar"]["adlar"], beklenen["doseme"])
+                )
+                hata = k["adlar"]["ad_hatasi"]
+                if ileti is None:
+                    self.assertEqual(hata, [])
+                else:
+                    self.assertTrue(any(ileti in h for h in hata), hata)
+
     def test_okunamayan_tablo_hesabi_durdurur(self):
         r = trafik(durak_kotlari="±0,00; +3,00; +2,00", N="10", h="3")
         self.assertIn("Durak kotları", r["hata"])

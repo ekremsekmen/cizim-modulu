@@ -580,6 +580,47 @@ class KorumaliSecici(unittest.TestCase):
             with self.assertRaises(AssertionError):
                 avan_secici.sec(self.m)
 
+    def test_kapi_aramayi_yinelemez(self):
+        """18 Kas ( yayın öncesi denetim ):  makine dairesi kapısı seçimi etkilemez ( _sec_ham ) —
+        sunucuda kapısız seçim önbellekten gelir, kapı ona taşınır:  TEK sınama.  Eskiden önbellek
+        yalnız kapılı anahtara bakıyordu, kapı her sürüklenişte arama baştan yapılıyordu ( 800 kg
+        makine daireli örnek:  kapısız önbellekten 0,26 sn, her kapı yeri 9,7 sn ).  Sonuç korumasız
+        seçiminkiyle aynıdır:  kapı taşınır ya da gerekçesiyle reddedilir."""
+        md = mimari(PAKETLER[(630, False)])
+        with avan_secici.korumali():
+            self.assertEqual(avan_secici.sec(md)["durum"], "uygun")
+        sayi = [0]
+        asil = care_uclari.girdi_durumu
+
+        def say(v, i):
+            sayi[0] += 1
+            return asil(v, i)
+
+        hicbiri = mock.patch.object(care_uclari, "girdi_durumu", side_effect=AssertionError("sınama yapıldı"))
+        #  Uygun yer ve tabliyenin kenarı ( kapi_reddi — test_elle_ayarlanan_olcu )
+        for ayar in ({"md_kapi_konum": 900}, {"md_kapi_duvar": "Sağ", "md_kapi_konum": 900}):
+            with self.subTest(ayar=ayar):
+                m = {**md, "ayar": ayar}
+                #  Paketin "henüz aranmadı" sorusu:  kapısız seçim hazırsa kapılı asansör aranmaz
+                self.assertFalse(avan_secici.aranacak_mi(m))
+                sayi[0] = 0
+                with mock.patch.object(care_uclari, "girdi_durumu", say), avan_secici.korumali():
+                    r = avan_secici.sec(m)
+                self.assertEqual(sayi[0], 1)
+                ham = avan_secici.sec(m)
+                alanlar_ = ("durum", "istek", "kapi_reddi", "sinama")
+                self.assertEqual({k: r.get(k) for k in alanlar_}, {k: ham.get(k) for k in alanlar_})
+                #  Kapılı sonuç da saklanır:  aynı yer sınamasız
+                with hicbiri, avan_secici.korumali():
+                    self.assertEqual(avan_secici.sec(m)["istek"], r["istek"])
+        #  Kapısız seçim yoksa paket arar;  yarıda kalan arama kapılı da saklanmaz
+        avan_secici._ONBELLEK.clear()
+        m = {**md, "ayar": {"md_kapi_konum": 950}}
+        self.assertTrue(avan_secici.aranacak_mi(m))
+        with mock.patch.object(avan_secici, "GUVENLIK_SURESI", -1.0), avan_secici.korumali():
+            self.assertEqual(avan_secici.sec(m)["durum"], "tamamlanmadi")
+        self.assertEqual(len(avan_secici._ONBELLEK), 0)
+
     def test_uc_baglanti_kapaninca_durur(self):
         """/api/avan/cizimler:  ekran isteği bırakınca ( bağlantı kapandı ) arama durur — eskiden
         sunucu bırakılan aramayı sonuna kadar sürdürüyordu ( 28 sınamalık kuyu ~20 sn )."""

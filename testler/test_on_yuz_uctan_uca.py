@@ -1038,6 +1038,43 @@ class OnYuzUctanUca(unittest.TestCase):
             ({"bina_tipi": "Konut", "N": "10"}, {"project_title": "Eski avan"}),
         )
 
+    def test_avan_degisim_penceresi_tek_seferlik(self):
+        """18 Kas ( yayın öncesi denetim ):  açılıştaki "Yeni avan başlat" sorusunda "Dosyaya kaydet ve
+        devam et" seçenekleri sunucudan bekler.  Sunucuya ulaşılamazsa sebebi söylenir ( pencere eskiden
+        sessizce açık kalıyordu );  çift basış TEK dosya indirir, önceki proje "Geri al"da kalır
+        ( eskiden devam iki kez koşuyor, ikinci "yeni avan" boş projeyi önceki sayıp kaydı siliyordu )."""
+        self.sayfa.goto(self.url + "/")
+        self.sayfa.evaluate(
+            """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut', N: '10'}, ekNufus: [], trafikAsansorleri: [{P: '8'}],
+                ortak: {}, avanAsansorleri: [{}, {}, {}, {}], kapak: {project_title: 'Eski avan'}}))"""
+        )
+        self.sayfa.reload()
+        indirmeler = []
+        self.sayfa.on("download", lambda d: indirmeler.append(d))
+        pencere = self.sayfa.get_by_role("dialog", name="Açık avan projesi kapanacak")
+        kaydet = pencere.get_by_role("button", name="Dosyaya kaydet ve devam et")
+        self.sayfa.route("**/api/secenekler", lambda r: r.fulfill(status=503, body="kapalı"))
+        self.sayfa.get_by_role("button", name="Yeni avan başlat").click()
+        kaydet.click()
+        pencere.get_by_role("alert").filter(has_text="Dosyaya kaydedilemedi").wait_for()
+        self.assertIn("Sunucu yanıt vermedi", pencere.inner_text())
+        self.assertEqual(indirmeler, [])
+        self.sayfa.unroute("**/api/secenekler")
+        #  Çift basış ( ekran arada yeniden çizilmez )
+        kaydet.evaluate("b => { b.click(); b.click(); }")
+        self.sayfa.wait_for_url("**/avan/trafik")
+        self._bekle(lambda: len(indirmeler) >= 1, "avan dosyası inmedi")
+        self.iz.sakin()
+        self.assertEqual(len(indirmeler), 1)
+        self.assertTrue(indirmeler[0].suggested_filename.endswith(".avan"), indirmeler[0].suggested_filename)
+        self.sayfa.get_by_role("button", name="Geri al").click()
+        self.iz.sakin()
+        kayit = self.sayfa.evaluate("JSON.parse(localStorage.getItem('asansor:avan'))")
+        self.assertEqual(kayit["kapak"], {"project_title": "Eski avan"})
+        #  Tarayıcı düşen isteği konsola yazar ( beklenen )
+        self.iz.hatalar = [h for h in self.iz.hatalar if "503" not in h]
+
     def test_ornek_proje_gercek_ve_her_bolumu_uygun(self):
         """Örnek gerçekte var olan bir asansör ( on-yuz/src/lib/ornek.ts ):  hiçbir
         bölüm "uygun değil" değil, çizimler kurulur;  tarayıcıda kalmış ESKİ
@@ -1603,6 +1640,53 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(self.sayfa.get_by_role("dialog").count(), 0)
         self.assertTrue(d.value.suggested_filename.endswith(".zip"))
         self.assertEqual(len(paket_istekleri), 1)
+
+    def test_avan_sekmesinde_obur_asansorun_cizimi_kalmaz(self):
+        """18 Kas ( yayın öncesi denetim ):  sekme değişince yeni asansör aranırken ekranda önceki
+        asansörün çizimi kalıyordu ( keepPreviousData ) — B sekmesinde A'nın çizimi "yükleniyor" diye
+        duruyor, üstünde değiştirilen ölçü A'nın isteğinden B'nin kartına yazılıyordu.  Artık B
+        aranırken çizim yok, arama görünür;  sonra B'nin kendi çizimi;  A'ya dönünce A'nınki."""
+        self.sayfa.goto(self.url + "/")
+        #  B'nin kuyusu bu teste özgü ( 2350 genişlik, tavan +19,25 ):  arama önbellekten gelmesin
+        self.sayfa.evaluate(
+            """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut', bina_yuksekligi: '16', yapi_yuksekligi: '17', hizli1: '8', hizli2: '2'},
+                ekNufus: [],
+                trafikAsansorleri: [{P: '8', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik'},
+                                    {P: '8', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik'}],
+                ortak: {mk_yok: 'true'},
+                avanAsansorleri: [
+                    {tanim: 'A', kuyu_genisligi: '2050', kuyu_derinligi: '1850',
+                     durak_kotlari: '±0,00; +3,00; +6,00; +9,00; +12,00; +15,00',
+                     kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+19,40'},
+                    {tanim: 'B', kuyu_genisligi: '2350', kuyu_derinligi: '1850',
+                     durak_kotlari: '±0,00; +3,00; +6,00; +9,00; +12,00; +15,00',
+                     kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+19,25'},
+                    {}, {}],
+                kapak: {project_title: 'Sekmeler'}}))"""
+        )
+        self.sayfa.goto(self.url + "/avan/cizimler")
+        _istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(yanit["durum"], "uygun", yanit)
+        ana = self.sayfa.locator("main")
+        plan = ana.locator('[data-cizim="kuyu_plani"]')
+        plan.wait_for(state="attached")
+        self.assertEqual(plan.locator(".olcu", has_text="SW2050").count(), 1)
+        sekme = self.sayfa.locator("aside").get_by_role("button", name=re.compile(r"^B\s*8 kişi"))
+        sekme.click()
+        #  Aynı anda ( yanıt beklenmeden ):  A'nın çizimi yok, B'nin araması görünür
+        self.assertEqual(ana.locator("[data-cizim]").count(), 0)
+        self.assertIn("Asansör seçiliyor", ana.inner_text())
+        istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(istek["asansor"], 1)
+        self.assertEqual(yanit["durum"], "uygun", yanit.get("nedenler") or yanit.get("gereken"))
+        plan.locator(".olcu", has_text="SW2350").wait_for(state="attached")
+        self.assertEqual(plan.locator(".olcu", has_text="SW2050").count(), 0)
+        kartlar = self.sayfa.evaluate("JSON.parse(localStorage.getItem('asansor:avan')).avanAsansorleri")
+        self.assertFalse(kartlar[1].get("cizim_ayarlari"))
+        #  A'ya dönüş:  A'nın çizimi ( önbellekten )
+        self.sayfa.locator("aside").get_by_role("button", name=re.compile(r"^A\s*8 kişi")).click()
+        plan.locator(".olcu", has_text="SW2050").wait_for(state="attached")
 
     def test_avan_cizimleri(self):
         """12 Kas:  avan projesinde çizim ( "Çizimler" adımı ).  Mimari eksikken hangi

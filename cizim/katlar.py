@@ -159,6 +159,19 @@ def kotlari_oku(ham):
 AD_AZAMI = 12
 
 
+def _giris_sirasi(giris):
+    """Giriş katının sırası ( 1'den ) ya da None:  ( sıra , ileti ).  Sayı izsiz okunur ( izlemede
+    izli gelir );  avan kartı ham metin taşır:  boş metin kuraldandır, tam sayı olmayan yazım
+    iletiyle kurala döner.  18 Kas ( yayın öncesi denetim ):  boş metin int() hatasıyla avan
+    hesabının tamamını durduruyordu ( "invalid literal for int() …" )."""
+    if giris is None or (isinstance(giris, str) and not giris.strip()):
+        return None, None
+    try:
+        return (int(giris.strip()) if isinstance(giris, str) else int(giris)), None
+    except (TypeError, ValueError, OverflowError):
+        return None, f"giriş katı durağın sırasıyla yazılır ( {str(giris).strip()[:20]!r} girildi )."
+
+
 def durak_adlari(ham, giris, kotlar):
     """KAT ADLARI VE GİRİŞ KATI — tek yer ( KAT_ADLARI_PLANI.md ):  durakların adları
     ve giriş katının sırası.
@@ -177,7 +190,9 @@ def durak_adlari(ham, giris, kotlar):
     — iletide adlar ve giriş yine kuraldan ( çizim yazısız kalmasın )."""
     n = len(kotlar)
     hata = []
-    giris = None if giris is None else int(giris)  # sıra:  izsiz ( izlemede izli gelir )
+    giris, ileti = _giris_sirasi(giris)
+    if ileti:
+        hata.append(ileti)
     if giris is not None and not (1 <= giris <= n):
         hata.append(f"giriş katı {giris}. durak olamaz — {n} durak var ( 1 … {n} ).")
         giris = None
