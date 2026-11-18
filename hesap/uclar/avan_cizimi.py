@@ -21,6 +21,7 @@ from motor.uygulama import uygulama_hesabi
 from tasarim import alanlar
 from temel import sayi_mi
 from uclar import avan_secici, cizim_uclari, uygulama_istegi
+from uclar.uc_ortak import _sayi
 
 #  Avan kartındaki mimari alanlar ( kotlar metindir — uygulamanın kot kutuları gibi okunur )
 KART = ("kuyu_genisligi", "kuyu_derinligi", *avan_secici.KOTLAR, *avan_secici.ADLAR, "tavan_dosemesi")
@@ -184,9 +185,11 @@ def doseme_kurali(a):
     ( kopru.tavan_dosemesi ) — çizimde elle ayarlandıysa o ( kartın cizim_ayarlari'sı, seçicinin
     kabul ettiği gibi:  avan_secici.ayarlar ).  16 Kas:  kot tablosu ayarı görmüyordu — duvar
     250'ye ayarlı kartta tablo döşemeyi 150 ( döşemenin üstü +11,20 ), çizim 250 ( tabliye
-    +11,30 ) alıyordu;  makine dairesi zemini tabloya göre girilince planda "TABLİYE +100" çıktı."""
-    duvar = avan_secici.ayarlar({"ayar": kart_ayarlari(a)}).get("kuyu_duvar_kalinligi")
-    A = {"kuyu_duvar_kalinligi": float(str(duvar).replace(",", "."))} if duvar is not None else {}
+    +11,30 ) alıyordu;  makine dairesi zemini tabloya göre girilince planda "TABLİYE +100" çıktı.
+    Okunamayan ayar ( elle düzenlenmiş dosya ) kuraldandır — seçici onu uygulamanın kapısında zaten
+    reddeder;  18 Kas:  float() hatası avan hesabının tamamını durduruyordu."""
+    duvar = _sayi(avan_secici.ayarlar({"ayar": kart_ayarlari(a)}).get("kuyu_duvar_kalinligi"))
+    A = {"kuyu_duvar_kalinligi": float(duvar)} if duvar is not None else {}
     return kopru.tavan_dosemesi(A)
 
 

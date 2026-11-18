@@ -1759,6 +1759,15 @@ function CizimlerAdimi({
     //  ( asansörsüz ) girdidir — onunla istenirse "bu asansör yok" dönerdi
     enabled: !!kopru && g === girdi,
   });
+  //  ÇİZİM SEÇİLİ ASANSÖRÜN ( 18 Kas — yayın öncesi denetim ):  sekme değişince yeni asansör aranırken
+  //  önceki yanıt ( keepPreviousData ) ÖBÜR asansörünkiydi — B sekmesinde A'nın çizimi "yükleniyor" diye
+  //  duruyor, üstünde değiştirilen ölçü ( ölçü kutusu ) ya da sürüklenen kapı A'nın isteğinden B'nin
+  //  kartına yazılıyordu ( dar kuyuda arama dakikalar sürer ).  Önceki yanıt yalnız AYNI asansörünse
+  //  gösterilir:  girdi değişirken çizim yerinde kalır, sekme değişince yeni asansörün araması görünür.
+  const [yanitAsansoru, setYanitAsansoru] = useState<{ d: AvanCizimYaniti; i: number } | null>(null);
+  if (cizim.data && !cizim.isPlaceholderData && (yanitAsansoru?.d !== cizim.data || yanitAsansoru.i !== i))
+    setYanitAsansoru({ d: cizim.data, i });
+  const r = cizim.isPlaceholderData && yanitAsansoru?.i !== i ? undefined : cizim.data;
   //  Süren arama ( bu girdinin, bu asansörün ):  GORUNME_ESIGI'nden uzun sürünce görünür
   const sureN = cizim.isFetching && arama && arama.g === g && arama.i === i ? arama : null;
   const gecen = useGecenSure(sureN);
@@ -1780,7 +1789,7 @@ function CizimlerAdimi({
   };
   //  Kutunun yazdığı değişiklikten sonra beklenen istek ( kutu "girdi değişti" sanmasın )
   const [beklenen, setBeklenen] = useState<UygulamaIstegi | null>(null);
-  const istek = cizim.data?.durum === "uygun" ? cizim.data.istek : undefined;
+  const istek = r?.durum === "uygun" ? r.istek : undefined;
   const kaynak = useQuery({
     queryKey: ["avan-olcu", istek, olcu?.cizim, olcu?.index, olcu?.metin],
     queryFn: () => api.olcu(istek!, 0, olcu!.cizim, olcu!.index, olcu!.metin),
@@ -1788,13 +1797,16 @@ function CizimlerAdimi({
   });
   //  KAPI BIRAKILDIĞI YERE KONAMADI ( seçici:  kapi_reddi ):  çizim eski kapısıyla gelir;  sebep
   //  söylenir, kartın kapı ayarı kaldırılır ( yoksa oda değişince kapı kendiliğinden sıçrardı )
-  const [kapiReddi, setKapiReddi] = useState<string[] | null>(null);
-  const red = cizim.data?.kapi_reddi;
+  //  Ret yalnız bu asansörün kendi yanıtından ( 18 Kas ):  önceki yanıt ( keepPreviousData ) sekme
+  //  değişince öbür asansörünkiydi — A'nın reddi B'nin kartındaki kapı ayarını siliyordu.  İleti de
+  //  reddedilen asansörün sekmesinde görünür.
+  const [kapiReddi, setKapiReddi] = useState<{ i: number; metin: string[] } | null>(null);
+  const red = cizim.isPlaceholderData ? undefined : cizim.data?.kapi_reddi;
   //  Yeni ret yanıtı:  ileti durumu yanıt değişince ( işleme sırasında ) güncellenir
   const [gorulenRed, setGorulenRed] = useState(red);
   if (red !== gorulenRed) {
     setGorulenRed(red);
-    if (red?.length) setKapiReddi(red);
+    if (red?.length) setKapiReddi({ i, metin: red });
   }
   useEffect(() => {
     if (!red?.length) return;
@@ -1834,7 +1846,6 @@ function CizimlerAdimi({
   const oy = (k: string, d: string) => setP((q) => ({ ...q, ortak: { ...q.ortak, [k]: d } }));
   const mrl = (p.ortak.mk_yok ?? "true") === "true";
   const guncel = g === girdi && cizim.isSuccess && !cizim.isFetching && !cizim.isPlaceholderData;
-  const r = cizim.data;
   const ayarlar = avanAyarlari(h);
   const ayarYaz = (d: Record<string, string>) => ay("cizim_ayarlari", avanAyarlariYaz(d));
   //  MAKİNE DAİRESİ KAPISI SÜRÜKLENİR ( 17 Kas — uygulamadaki gibi, dört duvar arasında ):  duvarı
@@ -1967,11 +1978,11 @@ function CizimlerAdimi({
                 {mimari.anahtar === "durak_kotlari" ? "Trafik hesabı → Katlar tablosundan değiştirin." : "Soldaki kutudan değiştirin."}
               </p>
             )}
-            {kapiReddi && (
+            {kapiReddi?.i === i && (
               <p role="alert" data-kapi-reddi className="flex items-start gap-2 border-b border-cizgi bg-yuzey px-4 py-1.5 text-[12px] text-metin-2">
                 <CircleAlert className="mt-px size-3.5 shrink-0 text-[#f79009]" />
                 <span className="flex-1">
-                  <span className="font-medium text-metin">Kapı oraya konamıyor, eski yerinde bırakıldı.</span> {kapiReddi.join("  ")}
+                  <span className="font-medium text-metin">Kapı oraya konamıyor, eski yerinde bırakıldı.</span> {kapiReddi.metin.join("  ")}
                 </span>
                 <button type="button" aria-label="Kapat" className="shrink-0 text-metin-2 hover:text-metin" onClick={() => setKapiReddi(null)}>
                   <X className="size-3.5" />
@@ -1997,7 +2008,9 @@ function CizimlerAdimi({
                       <OlcuKutusu
                         key={`${olcu.cizim}:${olcu.index}:${olcu.metin}`}
                         istek={istek}
-                        guncel={beklenen ?? istek}
+                        //  Ekrandaki çizim eski girdininse ( yenisi aranıyor ) kutu yazmaz:  "ölçüye
+                        //  yeniden tıklayın" der — uygulamanın ölçü kutusuyla aynı kural ( 18 Kas )
+                        guncel={beklenen ?? (guncel ? istek : null)}
                         asansor={0}
                         olcu={olcu}
                         konum={konum}

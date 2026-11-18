@@ -81,6 +81,22 @@ class Kural(unittest.TestCase):
                 self.assertTrue(any(parca in h for h in hata), hata)
                 self.assertEqual(len(adlar), 3)
 
+    def test_giris_kati_metni(self):
+        """18 Kas ( yayın öncesi denetim ):  avan kartı giriş katını ham metin taşır ( kot tablosu
+        kurala dönünce "" yazar ) — boş metin int() hatasıyla avan hesabını durduruyordu.  Boş
+        kuraldandır;  tam sayı olmayan yazım iletiyle kurala döner ( çökmez )."""
+        k = [-3000, 0, 3000]
+        kural = katlar.durak_adlari(None, None, k)
+        for ham in ("", "  "):
+            with self.subTest(ham=ham):
+                self.assertEqual(katlar.durak_adlari(None, ham, k), kural)
+        self.assertEqual(katlar.durak_adlari(None, " 1 ", k), katlar.durak_adlari(None, 1, k))
+        for ham in ("abc", "2,5", [], float("inf")):
+            with self.subTest(ham=ham):
+                adlar, g, hata = katlar.durak_adlari(None, ham, k)
+                self.assertEqual((adlar, g), kural[:2])
+                self.assertTrue(any("durağın sırasıyla yazılır" in h for h in hata), hata)
+
 
 class Kopru(unittest.TestCase):
     def test_kotla_giris_ve_adlar(self):

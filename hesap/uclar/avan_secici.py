@@ -722,12 +722,26 @@ def sec(m):
 
 def _sec_ham(m):
     """sec — koruma ve önbellek olmadan."""
-    ayar = m.get("ayar") or {}
+    kapisiz, kapi = _kapisi_ayri(m)
+    r = _sec_kapisiz(kapisiz)
+    return _kapiyi_tasi(r, kapi) if kapi else r
+
+
+def _kapisi_ayri(m):
+    """( kapısız girdi , kapı ) — makine dairesi kapısının elle ayarı ( AYAR_GENEL ) seçimden
+    ayrılır:  kapı asansörün seçimini etkilemez, bulunan isteğe sonra taşınır ( _kapiyi_tasi ).
+    Kapı ayarı yoksa ( m , {} )."""
     kapi = {k: v for k, v in ayarlar(m).items() if k in AYAR_GENEL}
     if not kapi:
-        return _sec_kapisiz(m)
-    r = _sec_kapisiz({**m, "ayar": {k: v for k, v in ayar.items() if k not in AYAR_GENEL}})
-    return _kapiyi_tasi(r, kapi)
+        return m, {}
+    ayar = m.get("ayar") or {}
+    return {**m, "ayar": {k: v for k, v in ayar.items() if k not in AYAR_GENEL}}, kapi
+
+
+def _anahtar(m):
+    """Seçicinin önbellek anahtarı:  girdinin kendisi ( sıralı JSON );  ayarsız girdi boş ayarla aynı
+    ( ayarlar ikisini de boş okur — kapısı ayrılan girdi boş ayarla kalır, _kapisi_ayri )."""
+    return json.dumps({**m, "ayar": m.get("ayar") or {}}, sort_keys=True, ensure_ascii=False, default=str)
 
 
 #  Sunucu bağlamı ( korumali ):  None değilse seçici korumalı çalışır;  değer iptal sorgusu
@@ -754,11 +768,24 @@ def _korumali_sec(m, iptal):
         son ONBELLEK_BOYU sonuç saklanır ( geri al, aynı kuyuya dönüş, paketi indirme anında ).
         Yarıda kalan sonuç saklanmaz.  Dönen sonuç kopyadır ( çağıran değiştirebilir ).  Bellekte
         yoksa İŞÇİLER ARASI disk önbelleğine bakılır ( _Onbellek ).
+      · MAKİNE DAİRESİ KAPISI ( AYAR_GENEL ) seçimi etkilemez:  kapısız seçim önbellekten alınır
+        ( yoksa aranır, kapısız anahtarla saklanır ), kapı ona taşınır — tek sınama.  18 Kas ( yayın
+        öncesi denetim ):  önbellek yalnız kapılı anahtara bakıyordu, kapı her sürüklenişte bütün
+        arama baştan yapılıyordu ( 800 kg makine daireli örnek:  kapısız önbellekten 0,26 sn, her
+        kapı yeri 9,7 sn;  dar kuyuda dakikalar ).
 
     Saatsiz kipte ( SAATSIZ ) güvenlik süresi yok;  iptal ve önbellek yine çalışır."""
-    anahtar = json.dumps(m, sort_keys=True, ensure_ascii=False, default=str)
+    anahtar = _anahtar(m)
     r = _ONBELLEK.al(anahtar)
     if r is not None:
+        return r
+    kapisiz, kapi = _kapisi_ayri(m)
+    if kapi:
+        r = _korumali_sec(kapisiz, iptal)
+        if r["durum"] == "tamamlanmadi":
+            return r
+        r = _kapiyi_tasi(r, kapi)
+        _ONBELLEK.koy(anahtar, r)
         return r
     t0 = time.monotonic()
     token = _KORUMA.set((float("inf") if SAATSIZ else t0 + GUVENLIK_SURESI, iptal))
@@ -1107,9 +1134,11 @@ def aranacak_mi(m):
     """Sunucunun seçicisi ( korumali ) bu girdi için ŞİMDİ arama yapacak mı:  önbellekte ( bellek
     ya da disk ) sonucu yok ve aramasız bir sonucu da yok ( _on_denetim ).  Arama yapmaz — paketin
     "henüz aranmadı" sorusu için ( 17 Kas )."""
-    if _on_denetim(m) is not None:
+    if _on_denetim(m) is not None or _ONBELLEK.al(_anahtar(m)) is not None:
         return False
-    return _ONBELLEK.al(json.dumps(m, sort_keys=True, ensure_ascii=False, default=str)) is None
+    #  Kapısız seçimi hazırsa kapı yalnız taşınır ( tek sınama — _korumali_sec ):  arama değildir
+    kapisiz, kapi = _kapisi_ayri(m)
+    return not kapi or _ONBELLEK.al(_anahtar(kapisiz)) is None
 
 
 def _sec(m):
