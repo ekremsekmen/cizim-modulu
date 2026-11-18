@@ -939,7 +939,7 @@ def api_olcu_degistir(veri: dict = Body(...)):
         if hedef < 0:
             return JSONResponse({"aktif": False, "hata": ["Yeni ölçü sıfırdan küçük olamaz."]})
         if k["tur"] == "secim":
-            return JSONResponse(_secimle(r, i, anahtar, hedef, bilgi))
+            return JSONResponse(_secimle(r, i, k, hedef, bilgi))
         #  Türev girdinin tek başına değişip değişemeyeceğini söylemez:  çizim
         #  kurulamıyorsa ( kaide girilmişken kuyu dibi — zincir ) bırakılması
         #  gereken türetilen alan aranır
@@ -1118,40 +1118,72 @@ def _tutarlilik_duzeltmeleri(r, degisiklik):
     ]
 
 
-def _secimle(r, i, anahtar, hedef, bilgi):
-    """Sayılı seçim kutusu ( halat çapı, kasnak çapı … ):  seçenek seçilir,
-    çizim yeniden kurularak ölçü okunur."""
-    sec = bilgi.get("secenekler") or []
-    v = next(
-        (
-            x
-            for x in sec
-            if str(x) == str(hedef)
-            or (sayi_mi(x) and sayi_mi(_sayiya(hedef)) and abs(x - _sayiya(hedef)) < 1e-9)
-        ),
-        None,
-    )
+def _secimle(r, i, k, hedef, bilgi):
+    """Sayılı seçim kutusu ( kapı genişliği ):  "Yeni ölçü" ÖLÇÜNÜN hedefidir — sayı
+    kutularındaki gibi.  Gereken değer eğimden bulunur ve seçeneklerden biri olmalıdır.
+    Ölçü kutunun kendisiyse ( DW 900 ) değer hedefin kendisidir, çizimde yeniden
+    aranmaz ( sayı kutusunun doğrudan ölçüsü gibi );  kutuya bağlı başka bir ölçü
+    ( kasa – duvar arası:  kapı 100 mm genişleyince 50 mm daralır ) çizim adım adım
+    yeniden kurularak doğrulanır ( olcu_kaynagi.secenekle — zincirin uçları yer
+    değiştirse de ).  Gereken değer seçeneklerde yoksa en yakın seçeneklerle ölçünün ne
+    olacağı söylenir ( _secenek_yok ).  18 Kas:  hedef seçenek sanılıyordu — 505'lik
+    kasa – duvar arasına 455 yazınca "Seçeneklerden biri seçilmeli" deniyor, 700 yazınca
+    kapı 800 → 700 yapılıp ölçü 555 oluyor, ekran bunu kendiliğinden uyguluyordu."""
+    sec = sorted(s for s in bilgi.get("secenekler") or [] if sayi_mi(s))
+    eski = r["adaylar"][k["kimlik"]]["deger"]
+    v0, u0 = _sayiya(eski), r["taban"][i]["uzunluk"]
+    x = hedef if bilgi["dogrudan"] else v0 + (hedef - u0) / k["egim"]
+    v = next((s for s in sec if abs((s - x) * k["egim"]) <= olcu_kaynagi.DOGRULAMA), None)
     if v is None:
-        return {"aktif": False, "hata": ["Seçeneklerden biri seçilmeli."]}
-    e = r["kur"]({("girdi", anahtar): v}, denetle=True)
-    j = olcu_kaynagi.eslestir(r["taban"], e)[i] if e is not None else None
-    degisiklik = [
-        {
-            "anahtar": anahtar,
-            "etiket": bilgi["etiket"],
-            "eski": r["adaylar"][("girdi", anahtar)]["deger"],
-            "deger": v,
-        }
-    ]
+        return {"aktif": False, "hata": [_secenek_yok(r, i, k, bilgi, sec, x, hedef)]}
+    if bilgi["dogrudan"]:
+        s = {"olcu": v, "dogrulandi": True, "bolundu": False}
+    else:
+        s = olcu_kaynagi.secenekle(r["kur"], r["taban"], i, k["kimlik"], v0, v, k["egim"], hedef)
+        if not s["dogrulandi"] and not s["bolundu"]:
+            #  Seçenekte ölçü izlenemedi ve iki parçaya bölünmüş de değil:  zincir o
+            #  kapıyla başka parçalardan kuruluyor ( kuyu dibi ) — doğrulanmamış değer yazılmaz
+            return {
+                "aktif": False,
+                "hata": [
+                    f"«{bilgi['etiket']}» {_tr_sayi(v)} olunca bu ölçü çizimde {_tr_sayi(_yuvarla(hedef))} mm "
+                    "görünmüyor ( ölçü zinciri o seçenekte başka parçalardan kurulur ).  Başka bir "
+                    "girdiyle deneyin ya da girdiyi formdan değiştirin."
+                ],
+            }
+    degisiklik = [{"anahtar": k["kimlik"][1], "etiket": bilgi["etiket"], "eski": eski, "deger": v}]
     degisiklik += _tutarlilik_duzeltmeleri(r, degisiklik)
     return {
         "aktif": True,
-        "hedef": v,
-        "olcu": e[j]["uzunluk"] if j is not None else None,
-        "dogrulandi": j is not None,
+        "hedef": hedef,
+        "olcu": s["olcu"],
+        "dogrulandi": s["dogrulandi"],
+        "bolundu": s["bolundu"],
         "degisiklikler": degisiklik,
         "uyarilar": _yeni_hatalar(r, degisiklik),
     }
+
+
+def _secenek_yok(r, i, k, bilgi, sec, x, hedef):
+    """Hedefe götüren değer seçeneklerde yok — ileti.  Ölçü kutunun kendisiyse
+    seçenekler;  değilse gereken değer ve en yakın iki seçenekle ölçünün ne olacağı —
+    çizim kurularak doğrulanan ( olcu_kaynagi.secenekte;  zincirin başka parçalardan
+    kurulduğu seçenek söylenmez )."""
+    birim = bilgi.get("birim") or ""
+    liste = " · ".join(_tr_sayi(s) for s in sec)
+    if bilgi["dogrudan"]:
+        return f"«{bilgi['etiket']}» seçeneklerinden biri yazılmalı:  {liste} {birim}."
+    v0, u0 = _sayiya(r["adaylar"][k["kimlik"]]["deger"]), r["taban"][i]["uzunluk"]
+    olur = []
+    for s in [y for y in sec if y < x][-1:] + [y for y in sec if y > x][:1]:
+        u = u0 if s == v0 else olcu_kaynagi.secenekte(r["kur"], r["taban"], i, k["kimlik"], v0, s, k["egim"])
+        if u is not None:
+            olur.append(f"{_tr_sayi(s)} → {_tr_sayi(_yuvarla(u))} mm")
+    ileti = (
+        f"«{bilgi['etiket']}» bir seçim kutusu ( {liste} {birim} ):  ölçünün {_tr_sayi(_yuvarla(hedef))} mm "
+        f"olması için {_tr_sayi(_yuvarla(x))} {birim} gerekirdi, seçeneklerde yok."
+    )
+    return ileti + (f"  Seçeneklerle bu ölçü:  {' · '.join(olur)}." if olur else "")
 
 
 def _sayiya(x):

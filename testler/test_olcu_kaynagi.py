@@ -137,6 +137,29 @@ def _uygula(v, y):
     return v
 
 
+def _kapiya_bagli(r):
+    """Kapı genişliğine bağlı, kapının kendisi olmayan ilk ölçü ( kasa – duvar arası ) ve
+    kaynağı ( ekrandaki biçimiyle )."""
+    for j, ks in enumerate(r["kaynak"]):
+        if any(x["kimlik"] == ("girdi", "kapi_genisligi") for x in ks):
+            b = next(b for b in cizim_uclari._kaynaklar(r, j) if b["anahtar"] == "kapi_genisligi")
+            if b["degistirilir"] and not b["dogrudan"]:
+                return j, b
+    raise AssertionError("kapıya bağlı ölçü yok")
+
+
+def _taslak(kimlik):
+    """Açılışın taslağı ( on-yuz/src/lib/taslaklar.json — test_taslaklar'daki istek )."""
+    with open(os.path.join(KOK, "on-yuz", "src", "lib", "taslaklar.json"), encoding="utf-8") as f:
+        t = next(t for t in json.load(f) if t["kimlik"] == kimlik)
+    return {
+        "asansorler": [dict(t["asansor"])],
+        "proje_geneli": dict(t["proje_geneli"]),
+        "sabitler": {},
+        "asansor": 0,
+    }
+
+
 class Eksiksiz(unittest.TestCase):
     """Her düzenin her çiziminin her ölçüsü ya bir girdiye ( form, ofis
     standardı, ürün ölçüsü ) bağlıdır ya da dayandığı kuralı söyler — tıklanan
@@ -520,6 +543,90 @@ class Degistirme(unittest.TestCase):
                     for x in cizim_uclari._kaynaklar(r, i)
                 )
             )
+
+    def test_secimli_kaynakta_yeni_olcu_olcunun_hedefidir(self):
+        #  Kasa – duvar arası kapı 100 mm genişleyince 50 mm daralır ( eğim −0,5 ).  "Yeni
+        #  ölçü" ölçünün hedefidir, seçenek değil ( 18 Kas:  seçenek sanılıyordu — seçenek
+        #  olmayan ölçüye "Seçeneklerden biri seçilmeli" deniyor;  seçeneğe denk gelen sayı
+        #  yazılınca kapı o değere çekiliyor, ölçü başka bir değer oluyor, ekran bunu
+        #  kendiliğinden uyguluyordu ).
+        v = DUZENLER["formun varsayılanı"]()
+        r = cizim_uclari._cozumleme(v, "kuyu_plani")
+        i, k = _kapiya_bagli(r)
+        u0, kapi = r["taban"][i]["uzunluk"], r["adaylar"][("girdi", "kapi_genisligi")]["deger"]
+        self.assertEqual(k["egim"], -0.5)
+        soz = r["taban"][i]["metin"]
+        n = sum(1 for o in r["taban"][:i] if o["metin"].startswith(soz))
+        self._dene(
+            v, "kuyu_plani", soz, "kapi_genisligi", u0 - 50, n=n, beklenen={"kapi_genisligi": kapi + 100}
+        )
+        #  Hangi sayı yazılırsa yazılsın değişiklik ya reddedilir ya ölçüyü O sayıya getirir
+        for hedef in k["secenekler"]:
+            with self.subTest(hedef=hedef):
+                y = _degistir(v, "kuyu_plani", i, r, "kapi_genisligi", hedef)
+                if y["aktif"]:
+                    self.assertTrue(y["dogrulandi"], y)
+                    self.assertAlmostEqual(y["olcu"], hedef, delta=0.05)
+                else:
+                    self.assertNotIn("degisiklikler", y)
+
+    def test_secimde_ulasilamayan_olcu_seceneklerle_soylenir(self):
+        v = DUZENLER["formun varsayılanı"]()
+        r = cizim_uclari._cozumleme(v, "kuyu_plani")
+        i, _k = _kapiya_bagli(r)
+        u0, kapi = r["taban"][i]["uzunluk"], r["adaylar"][("girdi", "kapi_genisligi")]["deger"]
+        y = _degistir(v, "kuyu_plani", i, r, "kapi_genisligi", u0 - 20)  # kapı +40:  seçenek yok
+        self.assertFalse(y["aktif"], y)
+        tr = cizim_uclari._tr_sayi
+        self.assertIn(f"{tr(kapi)} → {tr(u0)} mm · {tr(kapi + 100)} → {tr(u0 - 50)} mm", y["hata"][0])
+        #  Ölçü kutunun kendisiyse ( DW ) seçenekler söylenir
+        j = _olcu(r, "olcu_kapi_genisligi")
+        y = _degistir(v, "kuyu_plani", j, r, "kapi_genisligi", kapi + 50)
+        self.assertFalse(y["aktif"], y)
+        self.assertIn("seçeneklerinden biri", y["hata"][0])
+
+    def test_secimde_zincir_degisse_de_olcu_dogrulanir(self):
+        #  Seçenekler arasında ölçü zinciri başka parçalardan kurulabilir:  ölçü adım adım
+        #  izlenir, tutmazsa seçeneğe tek adımda bakılır;  doğrulanamayan değer yazılmaz.
+        #  1275 kuyu planı:  kapı 1.100 → 1.000'e giderken 1.050'de sağdaki boşluk kaybolur,
+        #  400 → 450 yine de doğrulanır.  630 kuyu dibi:  kapı 900'de kasa – duvar arası
+        #  ( 525 ) başka parçalardan kurulur — 475 doğrulanamaz.  1000 makine daireli kuyu
+        #  dibi:  kapı 800'de 575 → 625 iki parçaya ( 100 + 525 ) bölünür.
+        for kimlik, ad, metin, hedef, nasil in (
+            ("1275", "kuyu_plani", "400", 450, "dogrulandi"),
+            ("630", "kuyu_dibi", "525", 575, "dogrulandi"),
+            ("630", "kuyu_dibi", "525", 475, None),
+            ("1000-md", "kuyu_dibi", "575", 625, "bolundu"),
+        ):
+            with self.subTest(kimlik=kimlik, metin=metin, hedef=hedef):
+                v = _taslak(kimlik)
+                r = cizim_uclari._cozumleme(v, ad)
+                i = next(j for j, o in enumerate(r["taban"]) if o["metin"] == metin)
+                y = _degistir(v, ad, i, r, "kapi_genisligi", hedef)
+                if nasil is None:
+                    self.assertFalse(y["aktif"], y)
+                    self.assertNotIn("degisiklikler", y)
+                    continue
+                self.assertTrue(y["aktif"] and y[nasil], y)
+                #  Bağımsız:  değişiklik isteğe yazılıp çizim programın yolundan kurulur;  aynı
+                #  kottaki zincirde ölçü ya da uç uca iki parçası hedeftir
+                g, hata = _g(_uygula(v, y))
+                self.assertIsNotNone(g, hata)
+                o = r["taban"][i]
+                zincir = sorted(
+                    (
+                        q
+                        for q in olcu_kaynagi.olculer(cizim_uclari._elemanlar(g, ad)[0])
+                        if q["yon"] == o["yon"] and abs(q["kot"] - o["kot"]) < 1
+                    ),
+                    key=lambda q: min(q["a"][0], q["b"][0]),
+                )
+                u = [q["uzunluk"] for q in zincir]
+                self.assertTrue(
+                    any(abs(x - hedef) < 0.05 for x in u)
+                    or any(abs(a + b - hedef) < 0.05 for a, b in zip(u, u[1:])),
+                    u,
+                )
 
     def test_cizim_degistiyse_yanlis_olcu_degismez(self):
         v = _veri()

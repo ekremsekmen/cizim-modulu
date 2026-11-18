@@ -263,16 +263,10 @@ def coz(kur, taban, i, kimlik, deger, egim, hedef, serbest=False, dogrusal=False
         return {"deger": deger, "olcu": u0, "dogrulandi": False, "bolundu": False}
     x_hedef = deger + (hedef - u0) / egim
     n = max(1, min(400, math.ceil(abs(hedef - u0) / ADIM_OLCU)))
-    liste, j, x = taban, i, deger
-    for k in range(1, n + 1):
-        x = deger + (x_hedef - deger) * k / n
-        if nicem and k < n:
-            x = deger + round((x - deger) / nicem) * nicem
-        e = kur({kimlik: x}, serbest=serbest)
-        j = eslestir(liste, e, KAYMA, sira_yedek=True)[j] if e is not None else None
-        if j is None:
-            return _bolunmus(kur, taban[i], kimlik, x_hedef, hedef, serbest, dogrusal)
-        liste = e
+    yol = _yuru(kur, taban, i, kimlik, deger, x_hedef, n, serbest, nicem)
+    if yol is None:
+        return _bolunmus(kur, taban[i], kimlik, x_hedef, hedef, serbest, dogrusal)
+    liste, j, x = yol
     u, xp, up = liste[j]["uzunluk"], deger, u0
     for _ in range(12):
         if abs(u - hedef) <= 1e-7 or abs(u - up) < 1e-12:
@@ -287,6 +281,59 @@ def coz(kur, taban, i, kimlik, deger, egim, hedef, serbest=False, dogrusal=False
     if abs(u - hedef) > DOGRULAMA and dogrusal:
         return _bolunmus(kur, taban[i], kimlik, x_hedef, hedef, serbest, dogrusal)
     return {"deger": x, "olcu": u, "dogrulandi": abs(u - hedef) <= DOGRULAMA, "bolundu": False}
+
+
+def _yuru(kur, taban, i, kimlik, deger, x_hedef, n, serbest=False, nicem=None):
+    """Girdi ( kimlik ) deger'den x_hedef'e n ADIMDA götürülür;  her adımda çizim
+    yeniden kurulur ve aynı ölçü bulunur ( zincirde uçlar yer değiştirebilir — küçük
+    adımda eşleme güvenilir ).  nicem:  ara adımların yuvarlandığı en ince adım.
+    Döner:  ( son ölçüler , ölçünün oradaki sırası , son x ) — ölçü yolda kaybolursa None."""
+    liste, j, x = taban, i, deger
+    for k in range(1, n + 1):
+        x = deger + (x_hedef - deger) * k / n
+        if nicem and k < n:
+            x = deger + round((x - deger) / nicem) * nicem
+        e = kur({kimlik: x}, serbest=serbest)
+        j = eslestir(liste, e, KAYMA, sira_yedek=True)[j] if e is not None else None
+        if j is None:
+            return None
+        liste = e
+    return liste, j, x
+
+
+def _secenekte_tutar(kur, taban, i, kimlik, deger, x, egim, beklenen, serbest=False):
+    """Girdi ( kimlik ) kesikli bir seçimin ( kapı genişliği ) seçeneğine ( x ) getirilince
+    i. ölçü beklenen uzunlukta mı.  Önce ara değerlerden ADIM ADIM geçilerek izlenir ( coz
+    gibi:  seçenekler arasında zincirin uçları yer değiştirebilir — kuyu dibinde kapı
+    800 → 900:  kasa – duvar arası başka parçalardan kurulur );  tutmazsa seçeneğe tek
+    adımda bakılır:  ara adımda zincir bir an bozulabilir ( 1275 kuyu planında kapı
+    1.050'de sağdaki boşluk kaybolur, eşleme komşu ölçüye kayar;  1.000'de yine vardır ).
+    Döner:  ölçülen uzunluk ( beklenene eşit ) ya da None."""
+    n = max(1, min(400, math.ceil(abs(egim * (x - deger)) / ADIM_OLCU)))
+    for adim in dict.fromkeys((n, 1)):
+        yol = _yuru(kur, taban, i, kimlik, deger, x, adim, serbest)
+        if yol is not None and abs(yol[0][yol[1]]["uzunluk"] - beklenen) <= DOGRULAMA:
+            return yol[0][yol[1]]["uzunluk"]
+    return None
+
+
+def secenekte(kur, taban, i, kimlik, deger, x, egim, serbest=False):
+    """i. ölçünün seçenekteki ( x ) uzunluğu:  eğimin söylediği ( u0 + eğim · Δ ) çizim
+    kurularak doğrulanırsa o, değilse None ( ölçü o seçenekte başka parçalardan kurulur
+    ya da eğimle gitmez ) — seçeneklerle ulaşılabilecek ölçüleri söylemek için."""
+    beklenen = taban[i]["uzunluk"] + egim * (x - deger)
+    return _secenekte_tutar(kur, taban, i, kimlik, deger, x, egim, beklenen, serbest)
+
+
+def secenekle(kur, taban, i, kimlik, deger, x, egim, hedef, serbest=False):
+    """Seçenek ( x ) i. ölçüyü hedefe getiriyor mu — coz'un kesikli karşılığı ( kiriş
+    yöntemi yok:  seçenek değişmez ).  Ölçü x'te hedefteyse doğrulanmıştır;  değilse
+    x'te iki ardışık parçaya bölünmüş, toplamları hedef mi ( _bolunmus ).
+    Döner:  { deger ( x ) , olcu , dogrulandi , bolundu }."""
+    u = _secenekte_tutar(kur, taban, i, kimlik, deger, x, egim, hedef, serbest)
+    if u is not None:
+        return {"deger": x, "olcu": u, "dogrulandi": True, "bolundu": False}
+    return _bolunmus(kur, taban[i], kimlik, x, hedef, serbest, True)
 
 
 def _bolunmus(kur, o, kimlik, x, hedef, serbest, dogrusal):
