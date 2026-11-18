@@ -536,6 +536,9 @@ def api_avan(veri: dict = Body(...)):
         s["kapak_bilgileri"] = kapak.avandan(s)
         #  Hükmü motor kurar, ekran basar ( açılış listesi, adım şeridi )
         s["proje_hukmu"] = avan_hesabi.proje_hukmu(s)
+        #  Paketi durduran eksik hesaplar ( 18 Kas ):  ekran "Projeyi indir"i bununla kapatır,
+        #  paket ucu aynı listeyle reddeder
+        s["teslim_eksikleri"] = avan_hesabi.teslim_eksikleri(s)
         return JSONResponse(json.loads(json.dumps(s, default=str)))
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
@@ -587,6 +590,34 @@ async def indir_proje_dwg_ucu(istek: Request, veri: dict = Body(...)):
         izleyici.cancel()
 
 
+def _avan_reddi(a):
+    """Avan hesabıyla paket inmiyorsa sebebi ( JSON yanıt ) ya da None.  Engelleyici uyarılı tasarım
+    ( kabin kuyuya sığmıyor … — ekran avan PDF'ini de kapatır, 20 Eki ) ve EKSİK HESAP ( 18 Kas —
+    avan_hesabi.teslim_eksikleri:  çizim, hesap sayfası ve elektrik projesi birbiriyle çelişirdi );
+    seçici koşmadan — aranacak bir şey yok."""
+    if a.get("engelleyici"):
+        return JSONResponse({"hata": a["engelleyici"]}, status_code=200)
+    eksik = avan_hesabi.teslim_eksikleri(a)
+    if eksik:
+        ileti = "HESAP HATASI: Avan hesapları tamamlanmadı, proje paketi inmez  —  " + "  ·  ".join(eksik)
+        return JSONResponse({"hata": ileti}, status_code=200)
+    return None
+
+
+def _paket_cizimleri(veri, avan_ham, iptal):
+    """Paketin avan çizimleri ( avan_cizimi.paket_cizimleri ):  ( gler , cizimsiz ).  Seçici korumalı
+    ve önbellekli ( avan_secici.korumali ):  ekranda bulunan asansör yeniden aranmaz;  güvenlik
+    süresinde bitmeyen arama "çizimi yok" notuna sebebiyle girer."""
+    okunan, _hata = avan_girdisi({"girdiler": avan_ham})
+    #  Paftadaki ad hesap sayfasının başlığı gibi:  "1 NOLU ASANSÖR  ·  İnsan"
+    adlar = [
+        "  ·  ".join(t for t in (f"{i} NOLU ASANSÖR", str((k or {}).get("tanim") or "").strip()) if t)
+        for i, k in enumerate(okunan["asansorler"], 1)
+    ]
+    with avan_secici.korumali(iptal):
+        return avan_cizimi.paket_cizimleri(okunan, _proje_kimligi(veri)["proje_adi"], adlar)
+
+
 def indir_proje_dwg(veri: dict, iptal=None):
     """
     BÜTÜN PROJE  —  tek CAD dosyası.  iptal:  True dönünce asansör araması durur, paket kurulmaz.
@@ -636,27 +667,16 @@ def indir_proje_dwg(veri: dict, iptal=None):
         gler, cizimsiz = [], []
         if isinstance(avan_ham, dict):
             a, yanit = _avan_sonuc({"girdiler": avan_ham})
+            if yanit is None:
+                yanit = _avan_reddi(a)
             if yanit is not None:
                 return yanit
-            #  Engelleyici uyarılı tasarım da ( kabin kuyuya sığmıyor … ):  ekran
-            #  avan PDF'ini bu durumda kapatıyor, paket de vermez ( 20 Eki )
-            if a.get("engelleyici"):
-                return JSONResponse({"hata": a["engelleyici"]}, status_code=200)
             paftalar.append(("Avan", pdf_cikti.avan_pdf(a)))
             #  ELEKTRİK PROJESİ:  her asansörün hesabından ( paftada sol altta )
             elektrikler = elektrik.pafta_sayfalari(
                 [(x.get("elektrik"), _asansor_adi(x)) for x in a.get("asansorler") or [] if x.get("aktif")]
             )
-            okunan, _hata = avan_girdisi({"girdiler": avan_ham})
-            #  Paftadaki ad hesap sayfasının başlığı gibi:  "1 NOLU ASANSÖR  ·  İnsan"
-            adlar = [
-                "  ·  ".join(t for t in (f"{i} NOLU ASANSÖR", str((k or {}).get("tanim") or "").strip()) if t)
-                for i, k in enumerate(okunan["asansorler"], 1)
-            ]
-            #  Seçici korumalı ve önbellekli ( avan_secici.korumali ):  ekranda bulunan asansör
-            #  yeniden aranmaz;  güvenlik süresinde bitmeyen arama "çizimi yok" notuna sebebiyle girer
-            with avan_secici.korumali(iptal):
-                gler, cizimsiz = avan_cizimi.paket_cizimleri(okunan, _proje_kimligi(veri)["proje_adi"], adlar)
+            gler, cizimsiz = _paket_cizimleri(veri, avan_ham, iptal)
             if iptal is not None and iptal():  # bırakılan indirme:  kimseye gitmez
                 return JSONResponse({"hata": "HESAP HATASI: İndirme bırakıldı."}, status_code=200)
 

@@ -391,7 +391,9 @@ class AvanCizimUcu(unittest.TestCase):
     def test_yeni_kapasiteler(self):
         """14 Kas:  6 · 20 · 25 · 30 kişi ( 450 · 1600 · 2000 · 2500 kg ) avan çizimi verir —
         yalnız avanın hazır asansörleri ( uclar/avan_paketleri.json ).  1600 kg ve üstünde
-        ürün bölümleri açık kalabilir;  çizimi engellemez."""
+        ürün bölümleri açık kalabilir;  çizimi engellemez.  KİŞİ avanınkidir ( 18 Kas — yayın öncesi
+        denetim ):  trafik, hesap belgesi ve kapak 1600 kg'a 20 kişi ( MMO/697 Tablo-7 ) derken pafta
+        hazır asansörün kabininden ( TS EN 81-20 ) 21 yazıyordu."""
         for kisi, yuk in (("6", 450), ("20", 1600)):
             a = avan_secici.paketler()[(yuk, True)]["asansor"]
             k = {"kapasite": kisi, "V": "1", **{x: a[x] for x in avan_cizimi.KART if x in a}}
@@ -401,6 +403,9 @@ class AvanCizimUcu(unittest.TestCase):
             #  Makine dairesizin bütün paftası ( kasnak düzenlemesi dahil — 17 Kas )
             self.assertEqual([c["ad"] for c in r["cizim"]["cizimler"]], list(pafta.SIRA_MRL))
             self.assertEqual(bool(r["acik_bolumler"]), yuk >= 1600)
+            self.assertIn(f"{yuk} kg  ·  {kisi} kişi", yazilar(r["cizim"]))
+        #  Uygulamada ( avan kipi kapalı ) aynı istek kabinin kişisini yazar:  1600 kg'ın kabini 21 kişi
+        self.assertIn("1600 kg  ·  21 kişi", yazilar(json.loads(cizim_uclari.api_cizimler(r["istek"]).body)))
 
 
 class AvanPaketi(unittest.TestCase):
@@ -412,19 +417,56 @@ class AvanPaketi(unittest.TestCase):
     #  ( η ekrandan hep gelir:  makine tipinin verimi — eksikse asansör hesaplanmaz )
     HESAP = {"Hk": "20,8", "kabin_boyu": "1400", "kabin_genisligi": "1100", "eta": "0,85"}
 
-    def paket(self, *kartlar):
-        yanit = avan_uclari.indir_proje_dwg(
+    def girdi(self, *kartlar, ortak=None):
+        return {
+            "ortak": {"mk_yok": True, "temel_a": "20", "temel_b": "15", **(ortak or {})},
+            "asansorler": [{**self.HESAP, **k} for k in kartlar],
+            "sabitler": {},
+        }
+
+    def ham_paket(self, *kartlar, ortak=None):
+        return avan_uclari.indir_proje_dwg(
             {
                 "kapak": {"project_title": "Avan deneme"},
-                "girdiler": {
-                    "avan": {
-                        "ortak": {"mk_yok": True, "temel_a": "20", "temel_b": "15"},
-                        "asansorler": [{**self.HESAP, **k} for k in kartlar],
-                        "sabitler": {},
-                    }
-                },
+                "girdiler": {"avan": self.girdi(*kartlar, ortak=ortak)},
             }
         )
+
+    def test_eksik_avanla_paket_inmez(self):
+        """18 Kas ( yayın öncesi denetim ):  avan hesabı eksikken paket inmez, sebebi söylenir — çizim,
+        hesap sayfası ve elektrik projesi çelişiyordu ( makine dairesi ölçüsüz projede çizim hazır
+        asansörün odasını çiziyor, hesap "ölçüler girilmedi" diyor, elektrik projesinde oda devresi
+        adetsizdi;  kabini girilmemiş asansörün çizimi tam, hesabı yoktu ).  Aynı liste /api/avan
+        yanıtında ( avan_hesabi.teslim_eksikleri — ekran "Projeyi indir"i kapatır).  Uygun olmayan
+        bölüm paketi durdurmaz:  o paftanın kendi hükmüdür."""
+        md = {k: T800MD["asansor"][k] for k in avan_cizimi.KART if k in T800MD["asansor"]}
+        for ad, kart_, ortak, ileti in (
+            ("kabin", kart(T630, kabin_boyu=""), {}, "Kabin boyu"),
+            ("topraklama", kart(T630), {"temel_a": ""}, "Temel ölçüleri"),
+            (
+                "makine dairesi",
+                {**md, "kapasite": "10", "V": "1"},
+                {"mk_yok": False},
+                "MAKİNE DAİRESİ ÖLÇÜLERİ",
+            ),
+        ):
+            with self.subTest(ad):
+                yanit = self.ham_paket(kart_, ortak=ortak)
+                self.assertNotEqual(yanit.media_type, "application/zip")
+                hata = json.loads(yanit.body)["hata"]
+                self.assertIn("proje paketi inmez", hata)
+                self.assertIn(ileti, hata)
+                s = json.loads(avan_uclari.api_avan({"girdiler": self.girdi(kart_, ortak=ortak)}).body)
+                self.assertTrue(any(ileti in x for x in s["teslim_eksikleri"]), s["teslim_eksikleri"])
+        #  Eksiksiz:  liste boş;  uygun olmayan bölüm ( elle seçilen küçük motor ) durdurmaz
+        for k in (kart(T630), kart(T630, Nsc="1,1")):
+            s = json.loads(avan_uclari.api_avan({"girdiler": self.girdi(k)}).body)
+            self.assertEqual(s["teslim_eksikleri"], [])
+            self.assertEqual(self.ham_paket(k).media_type, "application/zip")
+        self.assertEqual(s["proje_hukmu"]["durum"], "uygun_degil")
+
+    def paket(self, *kartlar):
+        yanit = self.ham_paket(*kartlar)
         self.assertEqual(yanit.media_type, "application/zip", getattr(yanit, "body", b"")[:400])
         z = self.zip = zipfile.ZipFile(io.BytesIO(yanit.body))
         ad = next(n for n in z.namelist() if n.endswith(".dxf"))
@@ -473,13 +515,15 @@ class AvanPaketi(unittest.TestCase):
         self.assertNotIn("CIZIM", notlar)
 
     def test_cizilemeyen_asansor_soylenir(self):
-        """Mimarisi girilmiş ama çizilemeyen ( eksik kot;  kuyu üstü yetmeyen ) asansör:  paket
-        iner, çizimi yoktur, not söyler.  Çizilen asansörün çizimi yine pakettedir."""
+        """Mimarisi girilmiş ama çizilemeyen ( kuyu üstü yetmeyen ) asansör:  paket iner, çizimi
+        yoktur, not söyler.  Çizilen asansörün çizimi yine pakettedir.  ( 18 Kas ) Kotu eksik kart
+        avan hesabını da tamamlamaz ( kuyu yüksekliği kotlardan ):  paket inmez, sebebi söylenir —
+        test_eksik_avanla_paket_inmez."""
         eksik = kart(T630)
         del eksik["kuyu_tavani_kotu"]
-        _d, bloklar, notlar = self.paket(eksik)
-        self.assertEqual(bloklar, set())
-        self.assertIn("CIZIM", notlar)
+        yanit = self.ham_paket(eksik)
+        self.assertNotEqual(yanit.media_type, "application/zip")
+        self.assertIn("Kuyu tavanı kotu", json.loads(yanit.body)["hata"])
         d, bloklar, notlar = self.paket(kart(T630, kuyu_genisligi="2350"), kart(T630, tanim="Yük"))
         self.assertIn("CIZIM_KUYU_PLANI", bloklar)
         self.assertFalse(any(b.endswith("_2") for b in bloklar), bloklar)

@@ -10,6 +10,8 @@ kurabilmek için seçti, mimarın ya da avanın beyanı değildir:
   · veri tablosunda ürün satırları yazılmaz ( tahrik kasnağı, halat, ray profili,
     konsol arası, regülatör ) — cizim/veri_tablosu.py;  motor gücü seçicinin
     motorununki değil AVANIN KENDİ hesabınınkidir ( Nsç — etkin( veri ) ile gelir )
+  · kişi sayısı da avanınki ( "kisi" — trafiğin kapasitesi, MMO/697 Tablo-7;  18 Kas:  hazır
+    asansörün kabininden TS EN 81-20 ile hesaplanan 1600 kg'da 21, belge ve kapak 20 diyordu )
   · kuyu tabanının kuvvetleri ( FKR · FAR · Fkt · Fat ) de avanın hesabından ( "kuvvetler" —
     hesap belgesindeki PR · PK · P1 · P2 );  ray konsoluna yatay yükler ( Fx / Fy — ray
     profiline bağlı ) yazılmaz — cizim/kopru.py · kuyu_dibi.py ( 17 Kas )
@@ -29,7 +31,7 @@ import contextlib
 import contextvars
 
 #  None:  kip kapalı;  sözlük:  kip açık, avanın kendi değerleri ( motor_gucu — Nsç, kW;
-#  kuvvetler — { FKR , FAR , Fkt , Fat } N ya da None )
+#  kuvvetler — { FKR , FAR , Fkt , Fat } N ya da None;  kisi — kartın kapasitesi )
 _VERI = contextvars.ContextVar("avan_kipi", default=None)
 
 #  Notlar tablosuna eklenen satır ( veri_tablosu )
