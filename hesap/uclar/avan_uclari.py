@@ -618,6 +618,18 @@ def _paket_cizimleri(veri, avan_ham, iptal):
         return avan_cizimi.paket_cizimleri(okunan, _proje_kimligi(veri)["proje_adi"], adlar)
 
 
+def _kapak_verisi(gelen, t, a):
+    """Paketin kapağı:  ekranın gönderdiği ( hesaptan türeyen alanlarla — kapak_bilgileri );
+    gönderilmemişse ya da boşsa trafik ve avan hesabından ( kapak.trafikten / avandan — ekranın
+    kullandığının aynısı ).  Ne kapak ne hesap varsa boş.  18 Kas ( yayın öncesi denetim — uygulama
+    paketiyle aynı sınıf ):  kapaksız pakette ofis şablonunun antet hücreleri kendi örnek
+    değerleriyle ( "300 KG (4 KİŞİ)", "0,1/2 DURAK", "2,67 KW" … ) kalıyordu."""
+    gelen = gelen if isinstance(gelen, dict) else {}
+    if any(str(x).strip() for x in gelen.values()):
+        return gelen
+    return {**(kapak.trafikten(t) if t else {}), **(kapak.avandan(a) if a else {})}
+
+
 def indir_proje_dwg(veri: dict, iptal=None):
     """
     BÜTÜN PROJE  —  tek CAD dosyası.  iptal:  True dönünce asansör araması durur, paket kurulmaz.
@@ -639,9 +651,7 @@ def indir_proje_dwg(veri: dict, iptal=None):
         )
     try:
         paftalar = []
-        kapak_verisi = veri.get("kapak") if isinstance(veri.get("kapak"), dict) else None
-        if kapak_verisi:
-            paftalar.append(("Kapak", kapak_cikti.pdf_baytlari(kapak_verisi)))
+        t = a = None
 
         #  Trafik ve avan girdileri ayrı ayrı temizlenir; ikisi de belirsiz
         #  sayı denetiminden geçer — ekran neyi reddediyorsa CAD çıktısı da
@@ -680,6 +690,9 @@ def indir_proje_dwg(veri: dict, iptal=None):
             if iptal is not None and iptal():  # bırakılan indirme:  kimseye gitmez
                 return JSONResponse({"hata": "HESAP HATASI: İndirme bırakıldı."}, status_code=200)
 
+        kapak_verisi = _kapak_verisi(veri.get("kapak"), t, a)
+        if kapak_verisi:
+            paftalar.insert(0, ("Kapak", kapak_cikti.pdf_baytlari(kapak_verisi)))
         if not paftalar:
             return JSONResponse(
                 {

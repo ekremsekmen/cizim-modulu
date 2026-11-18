@@ -12,6 +12,7 @@ import zipfile
 import zlib
 
 import ezdxf
+from pypdf import PdfReader
 
 from cizim import avan_kipi, kasnak_duzeni, katlar, pafta
 from motor.uygulama import uygulama_hesabi
@@ -431,6 +432,31 @@ class AvanPaketi(unittest.TestCase):
                 "girdiler": {"avan": self.girdi(*kartlar, ortak=ortak)},
             }
         )
+
+    def test_kapak_her_pakette(self):
+        """18 Kas ( yayın öncesi denetim — uygulama paketiyle aynı sınıf ):  istekte kapak yoksa ya
+        da boşsa kapak hesaptan türetilir ( kapak.trafikten / avandan — ekranın kullandığı );
+        kapaksız pakette ofis şablonunun antet hücreleri kendi örnek değerleriyle kalıyordu."""
+        for kapak in (None, {}, {"project_title": ""}):
+            with self.subTest(kapak=kapak):
+                veri = {"girdiler": {"avan": self.girdi(kart(T630))}}
+                if kapak is not None:
+                    veri["kapak"] = kapak
+                yanit = avan_uclari.indir_proje_dwg(veri)
+                self.assertEqual(yanit.media_type, "application/zip", yanit.body[:300])
+                z = zipfile.ZipFile(io.BytesIO(yanit.body))
+                ad = next((n for n in z.namelist() if n.endswith("Kapak.pdf")), None)
+                self.assertIsNotNone(ad, z.namelist())
+                dxf = z.read(next(n for n in z.namelist() if n.endswith(".dxf"))).decode("utf-8")
+                for ornek in ("300 KG (4 KİŞİ)", "0,1/2 DURAK", "2,67 KW"):
+                    self.assertNotIn(ornek, dxf)
+                #  Kapağın asansör satırları avan hesabından:  kartın kapasitesi, hızı
+                metin = PdfReader(io.BytesIO(z.read(ad))).pages[0].extract_text()
+                self.assertIn("8 kişi", metin)
+                self.assertIn("1,00 m/s", metin)
+        #  Ne kapak ne hesap:  paket yok ( eskisi gibi )
+        bos = json.loads(avan_uclari.indir_proje_dwg({"girdiler": {}}).body)
+        self.assertIn("hiç sayfa yok", bos["hata"])
 
     def test_eksik_avanla_paket_inmez(self):
         """18 Kas ( yayın öncesi denetim ):  avan hesabı eksikken paket inmez, sebebi söylenir — çizim,
