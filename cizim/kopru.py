@@ -659,8 +659,10 @@ def _proje(o, sonuc, proje_adi, sira):
         #  Avanda ürün bölümleri hüküm değildir ( cizim/avan_kipi.py ):  işaret / not yok
         "hesap_uygun_degil": [] if avan_kipi.acik() else hesap_isareti.uygun_olmayanlar(sonuc),
         "avan": avan_kipi.acik(),
-        #  Avanın kendi motor gücü ( Nsç, kW ) — veri tablosuna
+        #  Avanın kendi motor gücü ( Nsç, kW ) ve kişi sayısı ( trafik hesabının kapasitesi ) —
+        #  veri tablosuna
         "avan_motor_gucu": avan_kipi.veri().get("motor_gucu"),
+        "avan_kisi": avan_kipi.veri().get("kisi"),
         #  Tek kuyuda ( tasarim/alanlar KUYU DÜZENİ ) asansörün kuyudaki yeri — 1 solda,
         #  2 sağda;  None:  kendi kuyusunda ( cizim/grup.py ) — ve aradaki ayırma kirişi
         #  ( NPU;  None:  seçilmedi )

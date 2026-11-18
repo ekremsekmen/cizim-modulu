@@ -2609,3 +2609,28 @@ def proje_hukmu(s):
     else:
         durum = "uygun_degil" if s.get("engelleyici") else "uygun"
     return {"durum": durum, "uygun_degil": kalan}
+
+
+def teslim_eksikleri(s):
+    """PROJE PAKETİNİ ( "Projeyi indir" ) DURDURAN EKSİK HESAPLAR — [ ileti ]:  girdisi tamamlanmamış
+    asansör, yapılamayan topraklama, makine dairesi varken yapılamayan aydınlatması ( proje_hukmu'nun
+    "durdu"su ve "eksik"i ).  Uygun olmayan bölüm durdurmaz:  o paftanın kendi hükmüdür ( engelleyici
+    ayrıca durdurur ).  Sunucu paketi bununla durdurur, ekran düğmeyi bununla kapatır ( tek kaynak ).
+
+    18 Kas ( yayın öncesi denetim ):  eksik avanla paket iniyordu ve belgeler çelişiyordu — makine
+    dairesi ölçüsüz projede çizim hazır asansörün odasını ( 2600 × 3800 ) çiziyor, hesap sayfası
+    "ölçüler girilmedi" diyor, elektrik projesinde oda devresi adetsiz kalıyordu;  kabini girilmemiş
+    asansörün çizimi tam, hesabı ve elektrik projesi yoktu."""
+    out = [_ileti(a["uyari"]) for a in s.get("asansorler") or [] if not a.get("aktif") and a.get("uyari")]
+    tp = s.get("topraklama") or {}
+    if not tp.get("aktif"):
+        out.append(_ileti(tp.get("uyari") or "Topraklama hesabı yapılamadı"))
+    mk = s.get("makine_dairesi") or {}
+    if mk.get("mk_yok") is False and not mk.get("aktif"):
+        out.append(_ileti(mk.get("uyari") or "Makine dairesi aydınlatma hesabı yapılamadı"))
+    return out
+
+
+def _ileti(m):
+    """Uyarının düz metni ( pafta biçimi "!!!   …   !!!" atılır, boşluklar teke iner )."""
+    return " ".join(str(m).replace("!", " ").split())

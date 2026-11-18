@@ -11,6 +11,7 @@ değer yandaki hücrenin yazısına biner ).
 """
 
 import io
+import json
 import unittest
 import zipfile
 from unittest import mock
@@ -275,6 +276,30 @@ class Paket(unittest.TestCase):
         self.assertEqual(metin.count("9,99 m/s"), 2)  # yazılan hız ikisini de ezer
         self.assertNotIn("ÖRNEK KONUTLARI", metin)
         self.assertNotIn("1,60 m/s", metin)
+
+    def test_kapak_her_pakette(self):
+        """18 Kas ( yayın öncesi denetim ):  başlığı ve kapak alanları boş projede de kapak pakete
+        girer — eskiden yalnız bir alan doluysa giriyordu;  kapaksız pakette ofis şablonunun antet
+        hücreleri kendi örnek değerleriyle ( "300 KG (4 KİŞİ)", "0,1/2 DURAK", "2,67 KW" ) DXF'te ve
+        PDF şeridinde kalıyordu.  Asansör tablosu projeden dolar."""
+        from uclar import uygulama_uclari
+
+        for ad, v in (
+            ("boş kapak", _veri(1, {})),
+            ("kapaksız istek", {k: x for k, x in _veri(1).items() if k != "kapak_sayfasi"}),
+        ):
+            with self.subTest(ad):
+                z = zipfile.ZipFile(io.BytesIO(uygulama_uclari.indir_uygulama_dwg(v).body))
+                kapak = next((n for n in z.namelist() if n.endswith("Kapak.pdf")), None)
+                self.assertIsNotNone(kapak, z.namelist())
+                metin = PdfReader(io.BytesIO(z.read(kapak))).pages[0].extract_text()
+                self.assertIn("ASANSÖR UYGULAMA PROJESİ", metin)
+                #  Tek asansörde tablo numarasız ( form değişmez );  satırları projeden
+                h = json.loads(uygulama_uclari.api_uygulama_coklu(v).body)["asansorler"][0]
+                self.assertIn(f"{h['girdi']['beyan_yuku']:g} kg / {h['ozet']['kabin_kisi']} kişi", metin)
+                dxf = z.read(next(n for n in z.namelist() if n.endswith(".dxf"))).decode("utf-8")
+                for ornek in ("300 KG (4 KİŞİ)", "0,1/2 DURAK", "2,67 KW"):
+                    self.assertNotIn(ornek, dxf)
 
 
 if __name__ == "__main__":

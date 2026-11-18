@@ -69,7 +69,10 @@ def satirlar(g):
         return f"{x:g} {birim}" if x else None
 
     ekle("Asansör", v.get("tip"))
-    ekle("Beyan yükü", birimli(v.get("yuk"), "kg"), birimli(v.get("kisi"), "kişi"))
+    #  Kişi:  avanda avan hesabınınki ( trafiğin kapasitesi — MMO/697 Tablo-7 ), hazır asansörün
+    #  kabininden hesaplanan değil ( 18 Kas:  1600 kg'da kapak ve hesap 20, pafta 21 kişi diyordu )
+    kisi = v.get("kisi") if urun else g["proje"].get("avan_kisi")
+    ekle("Beyan yükü", birimli(v.get("yuk"), "kg"), birimli(kisi, "kişi"))
     ekle("Beyan hızı", f"{dy['beyan_hizi']:.2f} m/s")
     kotlar, _hata = dusey.durak_kotlari(g)
     ekle("Durak  ·  seyir", f"{dy['durak_adedi']} durak", f"{kotlar[-1]:g} mm" if kotlar else None)

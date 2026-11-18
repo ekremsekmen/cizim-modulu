@@ -253,6 +253,13 @@ export function AvanCalisma() {
   //  ulaşılamıyorsa beklemez, trafikten gelenler yazılmaz:  kullanıcının işi hep kaydedilir.
   const kayitKoprusu = trafikGuncel ? kopru : null;
   const kayitBekleme = trafikGuncel || baglantiHatasi ? undefined : "Hesap güncelleniyor — bitince kaydedilir";
+  //  PAKET EKSİK AVANLA İNMEZ ( 18 Kas — yayın öncesi denetim ):  çizim, hesap sayfası ve elektrik
+  //  projesi çelişirdi ( makine dairesi ölçüsüz projede çizim hazır asansörün odasını çiziyordu ).
+  //  Liste sunucunun ( avan_hesabi.teslim_eksikleri — paket ucu aynısıyla reddeder );  avan PDF'i
+  //  ve kapak etkilenmez ( ara çıktı olarak inebilir )
+  const paketEksikleri = (kopru && avan.data?.teslim_eksikleri) || [];
+  const paketBekleme =
+    bekleme ?? (paketEksikleri.length ? `Avan hesapları tamamlanmadı:  ${paketEksikleri.join("  ·  ")}` : undefined);
 
   //  Pakete PROJE DOSYASI da girer ( geri dönüş noktası — uygulamanın
   //  Teslim'i gibi );  React'e geçişte düşmüştü ( 20 Eki )
@@ -306,10 +313,10 @@ export function AvanCalisma() {
   //  sonuçlar yenilenir;  ana düğme kapanır ( bekleme ) ama pencerenin "Yine de indir"i açık
   //  kalıyordu — paket eski trafik sonucuyla ( 21 Eki'de kapatılan hata ) gidiyordu.  Girdi
   //  değişince pencere kapanır ( soru eskidir — paketSor );  sorunun yanıtı gelince de bekleme yeniden okunur.
-  const beklemeRef = useRef(bekleme);
+  const beklemeRef = useRef(paketBekleme);
   useEffect(() => {
-    beklemeRef.current = bekleme;
-  }, [bekleme]);
+    beklemeRef.current = paketBekleme;
+  }, [paketBekleme]);
   const paketiIndir = () => {
     if (indirmeSuruyor.current) return;
     indirmeSuruyor.current = true;
@@ -482,8 +489,8 @@ export function AvanCalisma() {
                 Çizimlere git
               </Dugme>
               <Dugme
-                disabled={!!bekleme}
-                title={bekleme}
+                disabled={!!paketBekleme}
+                title={paketBekleme}
                 onClick={() => {
                   setPaketSor(null);
                   paketiIndir();
@@ -499,8 +506,8 @@ export function AvanCalisma() {
               tur="birincil"
               className="ml-1"
               onClick={() => void projeyiIndir()}
-              disabled={paket.isPending || soruluyor || !!bekleme}
-              title={bekleme}
+              disabled={paket.isPending || soruluyor || !!paketBekleme}
+              title={paketBekleme}
             >
               {paket.isPending || soruluyor || (!sonuclarGuncel && !baglantiHatasi) ? <Loader2 className="animate-spin" /> : <FileArchive />}{" "}
               Projeyi indir

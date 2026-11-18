@@ -479,6 +479,9 @@ export interface AvanYaniti {
   engelleyici?: string[];
   kapak_bilgileri?: Record<string, string>;
   proje_hukmu?: ProjeHukmu;
+  /**  Proje paketini durduran eksik hesaplar ( sunucu:  avan_hesabi.teslim_eksikleri — 18 Kas ):
+       girdisi tamamlanmamış asansör, yapılamayan topraklama, makine dairesi varken aydınlatması  */
+  teslim_eksikleri?: string[];
 }
 
 /* ───────────────────────────── istekler */

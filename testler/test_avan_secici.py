@@ -854,7 +854,18 @@ class PaketinAramasi(unittest.TestCase):
 
         avan_secici._ONBELLEK.clear()
         t = PAKETLER[(630, True)]["asansor"]
-        g = govde(kart(t, kuyu_genisligi="1650", kuyu_derinligi="2300"))  #  ~28 sınamalık
+        #  ~28 sınamalık kuyu;  avan hesabı eksiksiz ( eksik avanla paket seçici koşmadan reddedilir )
+        g = govde(
+            kart(
+                t,
+                kuyu_genisligi="1650",
+                kuyu_derinligi="2300",
+                kabin_boyu="1400",
+                kabin_genisligi="1100",
+                eta="0,85",
+            )
+        )
+        g["girdiler"]["ortak"].update(temel_a="20", temel_b="15")
         veri = {"girdiler": {"avan": g["girdiler"]}, "kapak": {"project_title": "Bırakılan"}}
 
         class Kapandi:

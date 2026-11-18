@@ -1584,7 +1584,8 @@ class OnYuzUctanUca(unittest.TestCase):
         Çizimler adımında bulunmamışsa ( dar kuyuda dakikalar ) önce sorulur:  Çizimlere git ·
         Yine de indir · Vazgeç.  Aranmışsa ( bulundu ya da çizilemiyor ) sormadan iner."""
         self.sayfa.goto(self.url + "/")
-        #  Kuyu bu teste özgü ( tavan +19,10 ):  başka testin araması sunucunun önbelleğinde olurdu
+        #  Kuyu bu teste özgü ( tavan +19,10 ):  başka testin araması sunucunun önbelleğinde olurdu.
+        #  Avan hesabı eksiksiz ( kabin ):  eksik avanla paket kapalıdır ( test_eksik_avanda_paket_kapali )
         self.sayfa.evaluate(
             """() => localStorage.setItem('asansor:avan', JSON.stringify({
                 trafik: {bina_tipi: 'Konut', bina_yuksekligi: '16', yapi_yuksekligi: '17', hizli1: '8', hizli2: '2'},
@@ -1594,7 +1595,8 @@ class OnYuzUctanUca(unittest.TestCase):
                 avanAsansorleri: [
                     {tanim: 'A', kuyu_genisligi: '2350', kuyu_derinligi: '1850',
                      durak_kotlari: '±0,00; +3,00; +6,00; +9,00; +12,00; +15,00',
-                     kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+19,10'},
+                     kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+19,10',
+                     kabin_boyu: '1400', kabin_genisligi: '1100'},
                     {}, {}, {}],
                 kapak: {project_title: 'Paket'}}))"""
         )
@@ -1640,6 +1642,37 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(self.sayfa.get_by_role("dialog").count(), 0)
         self.assertTrue(d.value.suggested_filename.endswith(".zip"))
         self.assertEqual(len(paket_istekleri), 1)
+
+    def test_eksik_avanda_paket_kapali(self):
+        """18 Kas ( yayın öncesi denetim ):  avan hesabı eksikken "Projeyi indir" kapalı, sebebi
+        üstünde yazar ( sunucunun listesi — avan_hesabi.teslim_eksikleri;  paket ucu da aynısıyla
+        reddeder ).  Eksik avanla iniyordu:  çizim tam görünürken hesap sayfası ve elektrik projesi
+        eksikti.  Kabin "Çizimin kabini" ile doldurulunca açılır."""
+        self.sayfa.goto(self.url + "/")
+        self.sayfa.evaluate(
+            """() => localStorage.setItem('asansor:avan', JSON.stringify({
+                trafik: {bina_tipi: 'Konut', bina_yuksekligi: '30', yapi_yuksekligi: '31', N: '10', h: '3',
+                         hizli1: '20', hizli2: '2'},
+                ekNufus: [],
+                trafikAsansorleri: [{P: '8', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik'}],
+                ortak: {mk_yok: 'true', temel_a: '20', temel_b: '15'},
+                avanAsansorleri: [{tanim: 'A', Hk: '34', kuyu_genisligi: '1800'},
+                                  {tanim: 'B', Hk: '34', kuyu_genisligi: '1800', kabin_boyu: '1400',
+                                   kabin_genisligi: '1100'}, {}, {}],
+                kapak: {project_title: 'Eksik avan'}}))"""
+        )
+        self.sayfa.goto(self.url + "/avan/hesaplar")
+        _istek, avan = self.iz.son("/api/avan")
+        self.assertTrue(
+            any("Kabin boyu" in x for x in avan["teslim_eksikleri"]), avan.get("teslim_eksikleri")
+        )
+        indir = self.sayfa.get_by_role("button", name="Projeyi indir")
+        self.assertTrue(indir.is_disabled())
+        self.assertIn("Kabin boyu", indir.get_attribute("title") or "")
+        self.sayfa.get_by_role("button", name=re.compile("Çizimin kabini")).click()
+        self._bekle(indir.is_enabled, "eksik giderilince paket açılmadı")
+        _istek, avan = self.iz.son("/api/avan")
+        self.assertEqual(avan["teslim_eksikleri"], [])
 
     def test_avan_sekmesinde_obur_asansorun_cizimi_kalmaz(self):
         """18 Kas ( yayın öncesi denetim ):  sekme değişince yeni asansör aranırken ekranda önceki
@@ -2906,7 +2939,9 @@ class OnYuzUctanUca(unittest.TestCase):
                 trafikAsansorleri: [{P: '8', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik'}],
                 ortak: {mk_yok: 'true', temel_a: '20', temel_b: '15'},
                 avanAsansorleri: [{tanim: 'A', Hk: '34', kuyu_genisligi: '1800', kabin_boyu: '1400',
-                                   kabin_genisligi: '1100'}, {}, {}, {}],
+                                   kabin_genisligi: '1100'},
+                                  {tanim: 'B', Hk: '34', kuyu_genisligi: '1800', kabin_boyu: '1400',
+                                   kabin_genisligi: '1100'}, {}, {}],
                 kapak: {project_title: 'Avan deneme'}}))"""
         )
         self.sayfa.goto(self.url + "/avan/trafik")
@@ -3457,7 +3492,9 @@ class OnYuzUctanUca(unittest.TestCase):
                 trafikAsansorleri: [{P: '8', kapi_genisligi: '800', kapi_tipi: 'Teleskopik Otomatik'}],
                 ortak: {mk_yok: 'true', temel_a: '20', temel_b: '15'},
                 avanAsansorleri: [{tanim: 'A', Hk: '34', kuyu_genisligi: '1800', kabin_boyu: '1400',
-                                   kabin_genisligi: '1100'}, {}, {}, {}],
+                                   kabin_genisligi: '1100'},
+                                  {tanim: 'B', Hk: '34', kuyu_genisligi: '1800', kabin_boyu: '1400',
+                                   kabin_genisligi: '1100'}, {}, {}],
                 kapak: {project_title: 'Avan deneme'}}))"""
         )
 

@@ -150,18 +150,21 @@ def _uygulama_paketi(veri):
             )
         paftalar = []
         #  KAPAK.  Uygulama projesinin kapağı MMO'nun ayrı kitabındadır;  ama
-        #  paket bir teslim dosyasıdır ve kapaksız gitmesi için sebep yok —
-        #  kapak alanları doldurulmuşsa pakete de girer.  Asansör tabloları
-        #  ( her asansöre bir tablo ) projeden dolar, yazılan değer ezer.
-        kapak = veri.get("kapak_sayfasi")
-        if isinstance(kapak, dict) and any(str(x).strip() for x in kapak.values()):
-            #  Büyük başlık belgenin adıdır ( avan kapağında ASANSÖR AVAN PROJESİ ):
-            #  projenin adı dosya adında ve çizimlerin antetinde kalır.
-            kapak = {**kapak, "project_title": BASLIK}
-            turetilen = uygulama_kapagi.uygulamadan(s, [g for g, _h in cizim])
-            paftalar.append(
-                ("Kapak", kapak_cikti.pdf_baytlari(kapak, uygulama_kapagi.kapak_tablolari(kapak, turetilen)))
-            )
+        #  paket bir teslim dosyasıdır ve kapaksız gitmesi için sebep yok.
+        #  Asansör tabloları ( her asansöre bir tablo ) projeden dolar, yazılan
+        #  değer ezer;  yazılmayan kişisel alanlar boş kalır.  HER PAKETTE ( 18 Kas —
+        #  yayın öncesi denetim ):  eskiden yalnız bir kapak alanı doluysa giriyordu;
+        #  başlığı ve kapağı boş projede paket kapaksız iniyor, ofis şablonunun antet
+        #  hücreleri kendi örnek değerleriyle ( "300 KG (4 KİŞİ)", "0,1/2 DURAK",
+        #  "2,67 KW" … ) DXF'te ve PDF şeridinde kalıyordu.
+        kapak = veri.get("kapak_sayfasi") if isinstance(veri.get("kapak_sayfasi"), dict) else {}
+        #  Büyük başlık belgenin adıdır ( avan kapağında ASANSÖR AVAN PROJESİ ):
+        #  projenin adı dosya adında ve çizimlerin antetinde kalır.
+        kapak = {**kapak, "project_title": BASLIK}
+        turetilen = uygulama_kapagi.uygulamadan(s, [g for g, _h in cizim])
+        paftalar.append(
+            ("Kapak", kapak_cikti.pdf_baytlari(kapak, uygulama_kapagi.kapak_tablolari(kapak, turetilen)))
+        )
         paftalar.append(("Uygulama Projesi", pdf_cikti.uygulama_pdf(s)))
         ad = _dosya_adi(_p, "Uygulama Projesi", "zip")
         #  ELEKTRİK PROJESİ:  her asansörün hesabından ( paftada sol altta )

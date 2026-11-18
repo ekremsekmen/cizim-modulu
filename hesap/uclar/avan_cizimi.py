@@ -260,8 +260,14 @@ def secim(g, i):
     r["ayarlar"] = ayar_listesi
     ozet = avan_ozeti(g, i)
     #  Avanın kendi motor gücü ( Nsç ):  paftanın bilgi tablosuna ( cizim/avan_kipi.py );  kuyu
-    #  tabanının kuvvetleri de avanın hesabından ( 17 Kas — hesap belgesiyle aynı sayı )
-    r["avan"] = {"motor_gucu": (ozet or {}).get("Nsc"), "kuvvetler": avan_kuvvetleri(ozet)}
+    #  tabanının kuvvetleri de avanın hesabından ( 17 Kas — hesap belgesiyle aynı sayı ).  Kişi
+    #  kartın kapasitesi ( trafikten — hesap belgesi ve kapak da onu yazar;  18 Kas:  pafta hazır
+    #  asansörün kabininden TS EN 81-20 ile 1600 kg'da 21 kişi diyordu, belge 20 )
+    r["avan"] = {
+        "motor_gucu": (ozet or {}).get("Nsc"),
+        "kuvvetler": avan_kuvvetleri(ozet),
+        "kisi": asansorler[i].get("kapasite"),
+    }
     #  Beyan çelişkisi kartın diliyle:  kartın alanı, ekrandaki adı, "2:1" yazımı
     for b in r.get("beyan") or []:
         kart, ad = BEYAN[b["anahtar"]]
