@@ -2274,9 +2274,8 @@ def _pafta_zinciri(r):
         f"fazla {len([x for x in var_y if x not in bek_y])}",
     )
 
-    #  ÇERÇEVE SAĞA UZADI:  sağ kenar çizgileri yeni kenarda, her A4 içeride
-    uzatma = dxf_cikti._uzatma(len(sayfalar))
-    sag = dxf_cikti.BANT[2] + uzatma
+    #  ÇERÇEVE SAĞA UZADI:  sağ kenar çizgileri yeni kenarda ( ızgaranın SOL_PAY sağı ), her A4 içeride
+    sag = dxf_cikti.sayfa_yerleri(sayfalar)[1]
     r.kontrol("[pafta zinciri] sayfalar aşağı taşmadı", not tasti)
     kenar = [
         e
@@ -2285,10 +2284,10 @@ def _pafta_zinciri(r):
     ]
     r.kontrol(
         "[pafta zinciri] dış çerçevenin dört kenar çizgisi yeni sağ kenara uzadı",
-        uzatma > 0
+        sag > dxf_cikti.BANT[2] + 0.5
         and len(kenar) == 4
         and all(abs(max(e.dxf.start.x, e.dxf.end.x) - sag) < 0.5 for e in kenar),
-        f"→ uzatma {uzatma} · {len(kenar)} çizgi",
+        f"→ sağ {sag} · {len(kenar)} çizgi",
     )
     a4 = dxf_cikti.a4_cerceveleri(m)
     r.kontrol(
@@ -2302,11 +2301,24 @@ def _pafta_zinciri(r):
             for b in a4
         ),
     )
-    r.esit("[pafta zinciri] sığan projede format hiç uzamaz  ( 28 A4 )", dxf_cikti._uzatma(28), 0.0)
+    #  KÂĞIT ENİ ( 19 Kas ):  ızgara en az sütundur — çerçeve içerik kadar kısalır / uzar
+    _sol = dxf_cikti.SERBEST[0] + dxf_cikti.SOL_PAY
+    r.esit(
+        "[pafta zinciri] 28 A4 iki satırda 14 sütun", dxf_cikti.izgara_sagi(28), _sol + 14 * dxf_cikti.A4_G
+    )
     r.esit(
         "[pafta zinciri] 29. sayfa bir sütun ekler",
-        dxf_cikti._uzatma(29),
+        dxf_cikti.izgara_sagi(29) - dxf_cikti.izgara_sagi(28),
         dxf_cikti.A4_G + dxf_cikti.SUTUN_ARA,
+    )
+    r.kontrol(
+        "[pafta zinciri] kısa projede çerçeve şablondan kısa ( 6 A4 → 3 sütun )",
+        dxf_cikti.sayfa_yerleri([{"ad": "Hesap"}] * 6)[1] < dxf_cikti.BANT[2] - 1000,
+    )
+    r.esit(
+        "[pafta zinciri] 90 cm'de üç satır:  28 A4 10 sütun",
+        dxf_cikti.izgara_sagi(28, 0, 900),
+        _sol + 10 * dxf_cikti.A4_G,
     )
 
 

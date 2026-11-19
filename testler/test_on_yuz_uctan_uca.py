@@ -54,6 +54,10 @@ import unittest
 import urllib.request
 import zipfile
 
+import ezdxf
+
+from cizim import pafta
+
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIST = os.path.join(KOK, "on-yuz", "dist", "index.html")
 ZAMAN = 60_000  # ms — çizim ve paket isteği için
@@ -1642,6 +1646,8 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(self.sayfa.get_by_role("dialog").count(), 0)
         self.assertTrue(d.value.suggested_filename.endswith(".zip"))
         self.assertEqual(len(paket_istekleri), 1)
+        #  Kâğıt eni ( 19 Kas ):  seçilmedikçe ofisin şablonu — 60 cm
+        self.assertEqual(json.loads(paket_istekleri[0].post_data)["kagit"], 600)
 
     def test_eksik_avanda_paket_kapali(self):
         """18 Kas ( yayın öncesi denetim ):  avan hesabı eksikken "Projeyi indir" kapalı, sebebi
@@ -2768,6 +2774,8 @@ class OnYuzUctanUca(unittest.TestCase):
 
     # ------------------------------------------------------------ 5 teslim
     def test_teslim_onaysiz_kapali_onayli_paket_iner(self):
+        """KÂĞIT ENİ ( 19 Kas ):  ilk açılışta 60 cm;  90 cm seçilince paket 90 cm'lik ruloya dizilir
+        ( OKUBENI, DXF'in çerçevesi 900 mm ) ve seçim bu tarayıcıda hatırlanır."""
         self.ornek_projeyi_ac()
         self.sayfa.get_by_role("button", name="Teslim").click()
         teslim = self.sayfa.get_by_role("dialog", name="Teslim")
@@ -2775,6 +2783,9 @@ class OnYuzUctanUca(unittest.TestCase):
         #  tam eşleşme:  çekmecenin açıklaması da "elektrik projesi" der
         teslim.get_by_text("Elektrik projesi", exact=True).wait_for()
         self.assertIn("asansör başına bir A3 sayfa", teslim.inner_text())
+        kagit = teslim.get_by_role("radiogroup", name="Kâğıt eni")
+        self.assertEqual(kagit.get_by_role("radio", name="60 cm").get_attribute("aria-checked"), "true")
+        kagit.get_by_role("radio", name="90 cm").click()
         paket = teslim.get_by_role("button", name=re.compile("Paketi indir"))
         self.assertTrue(paket.is_disabled())
         teslim.get_by_role("checkbox").check()
@@ -2785,10 +2796,27 @@ class OnYuzUctanUca(unittest.TestCase):
             yol = os.path.join(klasor, "paket.zip")
             indirme.value.save_as(yol)
             with open(yol, "rb") as f:
-                adlar = zipfile.ZipFile(io.BytesIO(f.read())).namelist()
+                z = zipfile.ZipFile(io.BytesIO(f.read()))
+            adlar = z.namelist()
+            okubeni = z.read("OKUBENI.txt").decode("utf-8")
+            dxf = z.read(next(a for a in adlar if a.endswith(".dxf"))).decode("utf-8")
         self.assertTrue(any(a.endswith(".pdf") for a in adlar), adlar)
         self.assertTrue(any(a.endswith(".uygulama") for a in adlar), adlar)
         self.assertTrue(any(a.lower().endswith((".dxf", ".dwg")) for a in adlar), adlar)
+        self.assertIn("90 cm enindeki rulo", okubeni)
+        sol = [
+            e
+            for e in ezdxf.read(io.StringIO(dxf)).modelspace().query("LINE")
+            if abs(e.dxf.start.x - pafta.BANT[0]) < 0.5 and abs(e.dxf.end.x - pafta.BANT[0]) < 0.5
+        ]
+        self.assertEqual([round(abs(e.dxf.end.y - e.dxf.start.y)) for e in sol], [900])
+        #  Seçim hatırlanır
+        self.sayfa.keyboard.press("Escape")
+        self.sayfa.reload()
+        self.iz.sakin()
+        self.sayfa.get_by_role("button", name="Teslim").click()
+        kagit = self.sayfa.get_by_role("dialog", name="Teslim").get_by_role("radiogroup", name="Kâğıt eni")
+        self.assertEqual(kagit.get_by_role("radio", name="90 cm").get_attribute("aria-checked"), "true")
 
     def test_hesabin_uygun_bulmadigi_bolum_turuncu_teslim_ayrica_onaylanir(self):
         """1 Kas:  motor küçültülünce hesap "motor gücü uygun değil" der, çizim

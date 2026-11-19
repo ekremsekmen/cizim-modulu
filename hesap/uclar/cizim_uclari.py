@@ -1287,14 +1287,15 @@ def _sayiya(x):
 
 def paftaya_ekle(gler):
     """Pakete girecek DXF'e çizimleri ekleyen son işlem ( dxf_export ).
-    Hesap sayfalarının sağından başlayarak asansörler sırayla dizilir."""
+    Hesap sayfalarının sağından başlayarak asansörler sırayla dizilir;  kagit:  paketin
+    kâğıt eni ( dxf_cikti.proje_paketi verir — hesap sayfaları da ona dizildi )."""
 
-    def islem(dxf):
+    def islem(dxf, kagit=pafta.KAGIT):
         with tempfile.TemporaryDirectory() as t:
             yol = os.path.join(t, "hesap.dxf")
             with open(yol, "wb") as f:
                 f.write(dxf)
-            d, _bilgi = pafta.birlestir(yol, gler)
+            d, _bilgi = pafta.birlestir(yol, gler, kagit)
             cikti = os.path.join(t, "pafta.dxf")
             d.saveas(cikti)
             with open(cikti, "rb") as f:

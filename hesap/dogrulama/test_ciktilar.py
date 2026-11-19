@@ -896,9 +896,16 @@ def calistir():
             return False
 
         _b4 = dxf_cikti.BANT
+        #  Çerçevenin sağı içeriğin sağıdır ( 19 Kas — kâğıt eni:  kısa projede şablondan kısa )
+        _sag = dxf_cikti.sayfa_yerleri(_sayfalar)[1]
         r.kontrol(
-            "CAD: formatın dış çerçevesi korundu",
-            _cizgi_var(_b4[0], _b4[1], _b4[2], _b4[1]) and _cizgi_var(_b4[0], _b4[3], _b4[2], _b4[3]),
+            "CAD: formatın dış çerçevesi korundu ( sağı ızgaranın sağında )",
+            _cizgi_var(_b4[0], _b4[1], _sag, _b4[1]) and _cizgi_var(_b4[0], _b4[3], _sag, _b4[3]),
+        )
+        r.kontrol(
+            "CAD: kısa projede çerçeve şablondan kısa ( kâğıt boşa gitmez )",
+            _sag < _b4[2] - 0.5 and not any(max(a[0], b[0]) > _sag + 0.5 for a, b in _cizgi_tum),
+            f"→ sağ {_sag}",
         )
         r.kontrol(
             "CAD: kapak hücresinin çerçevesi korundu",
@@ -1277,7 +1284,7 @@ def calistir():
         _pd = ezdxf.readfile(_pyol)
         _pm = _pd.modelspace()
         try:
-            dxf_cikti._sablon_dogrula(_pd)
+            dxf_cikti._sablon_dogrula(_pd, sag=dxf_cikti.sayfa_yerleri(_sayfalar)[1])
             _fmt = True
         except Exception:  # noqa: BLE001
             _fmt = False

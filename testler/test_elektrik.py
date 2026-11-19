@@ -604,37 +604,45 @@ class Kalite(unittest.TestCase):
 
 class Pafta(unittest.TestCase):
     """Paftada kapağın yanında, alt satırın solunda;  hesap sayfaları yanından
-    akar, çerçeve gerektiği kadar uzar ( dxf_cikti._yerlesim )."""
+    akar, ızgara en az sütunla sağa büyür ( dxf_cikti._yerlesim — 60 / 90 cm )."""
 
     def test_izgara(self):
         a4_g, a4_y = dxf_cikti.A4_G, dxf_cikti.A4_Y
         sol = dxf_cikti.SERBEST[0] + dxf_cikti.SOL_PAY
-        for elektrik_adedi in range(5):
-            for adet in range(0, 70, 3):
-                with self.subTest(adet=adet, elektrik=elektrik_adedi):
-                    ayrilan = elektrik.HUCRE * elektrik_adedi
-                    yerler, tasti = dxf_cikti._yerlesim(adet, ayrilan)
-                    self.assertFalse(tasti)
-                    ey = dxf_cikti.elektrik_yerleri(adet, elektrik_adedi)
-                    sag = dxf_cikti.BANT[2] + dxf_cikti._uzatma(adet, ayrilan)
-                    kutular = [(x, y, x + a4_g, y + a4_y) for x, y in yerler]
-                    kutular += [(x, y, x + elektrik.EN, y + elektrik.BOY) for x, y in ey]
-                    for i, k in enumerate(kutular):
-                        self.assertTrue(sol - 0.5 <= k[0] and k[2] <= sag + 0.5, k)
-                        self.assertTrue(
-                            dxf_cikti.BANT[1] - 0.5 <= k[1] and k[3] <= dxf_cikti.BANT[3] + 0.5, k
-                        )
-                        for j in range(i + 1, len(kutular)):
-                            self.assertFalse(_ortusur(k, kutular[j], 0.5), (k, kutular[j]))
-                    if ey:
-                        #  Alt satırın başında, kapağın yanında;  ilk sayfa sol üstte
-                        alt = min(y for _x, y in yerler + ey)
-                        self.assertEqual(ey[0], (sol, alt))
-                        if yerler:
-                            self.assertEqual(yerler[0][0], sol)
-                            self.assertGreater(yerler[0][1], alt)
-                    else:
-                        self.assertEqual(yerler, dxf_cikti._yerlesim(adet)[0])
+        for kagit in pafta.KAGIT_ENLERI:
+            for elektrik_adedi in range(5):
+                for adet in range(0, 70, 3):
+                    with self.subTest(kagit=kagit, adet=adet, elektrik=elektrik_adedi):
+                        ayrilan = elektrik.HUCRE * elektrik_adedi
+                        yerler, tasti = dxf_cikti._yerlesim(adet, ayrilan, kagit)
+                        self.assertFalse(tasti)
+                        ey = dxf_cikti.elektrik_yerleri(adet, elektrik_adedi, kagit)
+                        sag = dxf_cikti.izgara_sagi(adet, ayrilan, kagit)
+                        kutular = [(x, y, x + a4_g, y + a4_y) for x, y in yerler]
+                        kutular += [(x, y, x + elektrik.EN, y + elektrik.BOY) for x, y in ey]
+                        for i, k in enumerate(kutular):
+                            self.assertTrue(sol - 0.5 <= k[0] and k[2] <= sag + 0.5, k)
+                            self.assertTrue(
+                                dxf_cikti.BANT[1] - 0.5 <= k[1] and k[3] <= pafta.ust_kenar(kagit) + 0.5, k
+                            )
+                            for j in range(i + 1, len(kutular)):
+                                self.assertFalse(_ortusur(k, kutular[j], 0.5), (k, kutular[j]))
+                        #  Izgara en dar:  bir sütun eksik olsa sayfalar ve elektrik sığmazdı
+                        hucre = adet + ayrilan
+                        if hucre:
+                            sutun = round((sag - sol) / a4_g)
+                            satir = dxf_cikti._satir_azami(kagit)
+                            self.assertEqual(sutun, max(-(-hucre // satir), ayrilan))
+                            self.assertTrue(sutun == ayrilan or (sutun - 1) * satir < hucre)
+                        if ey:
+                            #  Alt satırın başında, kapağın yanında;  ilk sayfa sol üstte
+                            alt = min(y for _x, y in yerler + ey)
+                            self.assertEqual(ey[0], (sol, alt))
+                            if yerler:
+                                self.assertEqual(yerler[0][0], sol)
+                                self.assertGreater(yerler[0][1], alt)
+                        else:
+                            self.assertEqual(yerler, dxf_cikti._yerlesim(adet, 0, kagit)[0])
 
     def test_avan_paftasi(self):
         g = next(iter(avan_senaryolar()))

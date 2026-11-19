@@ -4062,20 +4062,139 @@ class Pafta(unittest.TestCase):
         for ornek in ("300 KG (4 KİŞİ)", "Sınıf I", "2,67 KW", "0,1/2 DURAK", "70*70*9"):
             self.assertNotIn(ornek, yazilar)
 
-    def test_yerlesim_ve_cerceve_uzatma(self):
-        #  Sığan yerleşim çerçeveyi uzatmaz;  sığmayan sağa uzatır ( aşağı taşmaz )
+    def test_yerlesim_ve_cerceve(self):
+        #  Çerçeve içerik kadar ( 19 Kas — kâğıt eni ):  kısa yerleşimde KISALIR, uzunda
+        #  sağa uzar;  aşağı taşmaz
         yerler, sag = pafta.yerlesim([(200, 400)] * 3)
-        self.assertEqual(sag, pafta.SERBEST[2])
+        self.assertAlmostEqual(sag, pafta.SERBEST[0] + 2 * pafta.KENAR + 3 * 200 + 2 * pafta.ARA)
         yerler, sag = pafta.yerlesim([(400, 400)] * 9)
         self.assertGreater(sag, pafta.SERBEST[2])
         self.assertTrue(all(y >= pafta.SERBEST[1] + pafta.KENAR - 1e-6 for _, y in yerler))
         import ezdxf
 
-        d = ezdxf.readfile(pafta.SABLON)
-        pafta._cerceveyi_uzat(d, sag)
-        xs = {round(p.x, 1) for e in d.modelspace().query("LINE") for p in (e.dxf.start, e.dxf.end)}
-        self.assertIn(round(sag, 1), xs)
-        self.assertNotIn(round(pafta.BANT[2], 1), xs)
+        for yeni in (sag, pafta.SERBEST[0] + 600.0):
+            with self.subTest(sag=yeni):
+                d = ezdxf.readfile(pafta.SABLON)
+                pafta.cerceveyi_tasi(d, yeni)
+                cizgiler = list(d.modelspace().query("LINE"))
+                xs = {round(p.x, 1) for e in cizgiler for p in (e.dxf.start, e.dxf.end)}
+                self.assertIn(round(yeni, 1), xs)
+                self.assertNotIn(round(pafta.BANT[2], 1), xs)
+                #  Kısalınca şablonun üst kenarının sağdaki parçası da kesilir:  çerçevenin
+                #  dışında çizgi kalmaz;  alt ve üst kenar yeni sağa dek tam boy
+                self.assertLessEqual(max(xs), round(yeni, 1))
+                for y in (pafta.BANT[1], pafta.BANT[3]):
+                    kenar = [
+                        e for e in cizgiler if abs(e.dxf.start.y - y) < 0.5 and abs(e.dxf.end.y - y) < 0.5
+                    ]
+                    self.assertTrue(
+                        any(
+                            min(e.dxf.start.x, e.dxf.end.x) <= pafta.BANT[0] + 0.5
+                            and max(e.dxf.start.x, e.dxf.end.x) >= yeni - 0.5
+                            for e in kenar
+                        ),
+                        y,
+                    )
+
+    def test_doksan_cm(self):
+        """90 cm'lik rulo ( 19 Kas ):  çerçeve 900 mm — sol, sağ kenar ve notların sınırı uzar,
+        notlar üstte, kapak hücresi ve antet sol altta yerinde;  çizimler 880 mm'lik sütunlarda,
+        üst üste binmez;  kesit 580 mm'yi aşabilir ( kırılmaz ), 880'i aşmaz."""
+        import itertools
+
+        d, bilgi = pafta.belge(_ornek(), 900)
+        msp = d.modelspace()
+        ust = pafta.ust_kenar(900)
+        self.assertEqual(ust, pafta.BANT[1] + 900)
+        kenarlar = [
+            e
+            for e in msp.query("LINE")
+            if abs(e.dxf.start.x - e.dxf.end.x) < 0.01 and abs(abs(e.dxf.end.y - e.dxf.start.y) - 900) < 0.01
+        ]
+        xs = sorted(round(e.dxf.start.x, 1) for e in kenarlar)
+        self.assertEqual(xs, sorted([round(pafta.BANT[0], 1), round(bilgi["sag"], 1)]))
+        notlar_siniri = [
+            e
+            for e in msp.query("LINE")
+            if abs(e.dxf.start.x - pafta.SERBEST[0]) < 0.6 and abs(e.dxf.end.x - pafta.SERBEST[0]) < 0.6
+        ]
+        #  ( şablonun kenarı 1.759,433:  BANT bir haneye yuvarlı — program 0,5 mm'yle arar )
+        self.assertTrue(any(abs(max(e.dxf.start.y, e.dxf.end.y) - ust) < 0.5 for e in notlar_siniri))
+        (notlar,) = [e for e in msp.query("MTEXT") if "ASANSÖR MONTAJINDAN" in e.plain_text()]
+        self.assertAlmostEqual(notlar.dxf.insert.y, 1753.9 + 300, delta=0.2)
+        #  Antet yerinde ve dolu ( pafta.ANTET — sol alttaki kapak hücresi )
+        self.assertIsNotNone(pafta._antet_yazisi(d, pafta.ANTET["hiz"][1], "1,00 m/sn"))
+        kutular = [c["kutu"] for c in bilgi["cizimler"]]
+        for k in kutular:
+            self.assertGreaterEqual(k[1], pafta.BANT[1] + pafta.KENAR - 1e-6)
+            self.assertLessEqual(k[3], ust - pafta.KENAR + 1e-6)
+            self.assertLessEqual(k[2], bilgi["sag"] - pafta.KENAR + 1e-6)
+        for a, b in itertools.combinations(kutular, 2):
+            self.assertFalse(
+                a[0] < b[2] + pafta.ARA - 1e-6
+                and b[0] < a[2] + pafta.ARA - 1e-6
+                and a[1] < b[3] + pafta.ARA - 1e-6
+                and b[1] < a[3] + pafta.ARA - 1e-6,
+                (a, b),
+            )
+        kesit = next(c for c in bilgi["cizimler"] if c["ad"] == "kuyu_kesiti_yan")["kutu"]
+        self.assertGreater(kesit[3] - kesit[1], pafta.cizim_yuksekligi(600))
+        #  Aynı çizimler, ölçekleri değişmeden ( 1/50 · 1/20 ):  yalnız dizilişi ve kesitin kırığı
+        self.assertEqual([c["ad"] for c in bilgi["cizimler"]], [c["ad"] for c in self.bilgi["cizimler"]])
+        self.assertEqual(
+            [c["olcek"] for c in bilgi["cizimler"]], [c["olcek"] for c in self.bilgi["cizimler"]]
+        )
+        #  90 cm'de şerit daha kısa
+        self.assertLess(bilgi["sag"], self.bilgi["sag"])
+
+    def test_kagit_eni(self):
+        for deger, beklenen in ((None, 600), ("", 600), (600, 600), ("900", 900), (900.0, 900)):
+            self.assertEqual(pafta.kagit_eni(deger), beklenen, deger)
+        for deger in (750, "60", 90, True, "doksan", float("nan"), [900]):
+            with self.assertRaises(ValueError, msg=repr(deger)):
+                pafta.kagit_eni(deger)
+
+    def test_sutunlar(self):
+        """Çizimler sütunlara ( 19 Kas ):  sığar, sırası bozulmayan bölme sıradakini sığmayınca
+        yeni sütun açan eski bölmeden hiç uzun değil, iki grubun çizimi aynı sütuna girmez;
+        boşluğu dolduran bölme ancak kısaltırsa seçilir."""
+        import random
+
+        def eski(boyutlar, h):
+            s, y = [], h + 1
+            for i, (_g, b) in enumerate(boyutlar):
+                if s and y + pafta.ARA + b <= h + 1e-6:
+                    s[-1].append(i)
+                    y += pafta.ARA + b
+                else:
+                    s.append([i])
+                    y = b
+            return s
+
+        r = random.Random(19)
+        for _ in range(300):
+            n = r.randint(1, 24)
+            h = r.choice((580.0, 880.0))
+            boyutlar = [(r.uniform(120, 320), r.uniform(100, 640)) for _ in range(n)]
+            gruplar = sorted(r.randint(0, 3) for _ in range(n))
+            s = pafta._sutunlar(boyutlar, h, gruplar)
+            self.assertEqual(sorted(i for c in s for i in c), list(range(n)))
+            for c in s:
+                self.assertEqual(len({gruplar[i] for i in c}), 1, (c, gruplar))
+                if len(c) > 1:
+                    self.assertLessEqual(sum(boyutlar[i][1] for i in c) + pafta.ARA * (len(c) - 1), h + 1e-6)
+            sira = pafta._sira_bolmesi(boyutlar, h, gruplar)
+            self.assertEqual([i for c in sira for i in c], list(range(n)))
+            self.assertLessEqual(pafta.sutunlar_boyu(boyutlar, s), pafta.sutunlar_boyu(boyutlar, sira) + 1e-6)
+            if len(set(gruplar)) == 1:
+                self.assertLessEqual(
+                    pafta.sutunlar_boyu(boyutlar, sira),
+                    pafta.sutunlar_boyu(boyutlar, eski(boyutlar, h)) + 1e-6,
+                )
+            if s != sira:
+                self.assertLess(pafta.sutunlar_boyu(boyutlar, s), pafta.sutunlar_boyu(boyutlar, sira) - 1.0)
+        #  Sütuna tek başına sığmayan ( kırılamayan kesit ) kendi sütununda
+        self.assertEqual(pafta._sutunlar([(200, 700), (200, 100), (200, 100)], 580.0), [[0], [1, 2]])
 
     def test_sablon_degisirse_durur(self):
         import ezdxf
