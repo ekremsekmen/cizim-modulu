@@ -589,22 +589,31 @@ class Degistirme(unittest.TestCase):
         #  Seçenekler arasında ölçü zinciri başka parçalardan kurulabilir:  ölçü adım adım
         #  izlenir, tutmazsa seçeneğe tek adımda bakılır;  doğrulanamayan değer yazılmaz.
         #  1275 kuyu planı:  kapı 1.100 → 1.000'e giderken 1.050'de sağdaki boşluk kaybolur,
-        #  400 → 450 yine de doğrulanır.  630 kuyu dibi:  kapı 900'de kasa – duvar arası
-        #  ( 525 ) başka parçalardan kurulur — 475 doğrulanamaz.  1000 makine daireli kuyu
-        #  dibi:  kapı 800'de 575 → 625 iki parçaya ( 100 + 525 ) bölünür.
-        for kimlik, ad, metin, hedef, nasil in (
-            ("1275", "kuyu_plani", "400", 450, "dogrulandi"),
-            ("630", "kuyu_dibi", "525", 575, "dogrulandi"),
-            ("630", "kuyu_dibi", "525", 475, None),
-            ("1000-md", "kuyu_dibi", "575", 625, "bolundu"),
+        #  400 → 450 yine de doğrulanır.  1250 kuyu planı:  kapı 1.300'de 185'lik aralık
+        #  başka parçalardan kurulur — 85 doğrulanamaz.  1000 makine daireli kuyu dibi:
+        #  kapı 800'de 575 → 625;  350'lik merdivenle ( 19 Kas'a dek ofis sabiti ) merdiven
+        #  ön duvarda durur, aralık iki parçaya ( 100 + 525 ) bölünür.
+        for kimlik, ad, metin, hedef, nasil, sabit in (
+            ("1275", "kuyu_plani", "400", 450, "dogrulandi", {}),
+            ("630", "kuyu_dibi", "525", 575, "dogrulandi", {}),
+            ("1250", "kuyu_plani", "185", 85, None, {}),
+            ("1000-md", "kuyu_dibi", "575", 625, "dogrulandi", {}),
+            ("1000-md", "kuyu_dibi", "575", 625, "bolundu", {"merdiven_eni": 350}),
         ):
-            with self.subTest(kimlik=kimlik, metin=metin, hedef=hedef):
+            with self.subTest(kimlik=kimlik, metin=metin, hedef=hedef, sabit=sabit):
                 v = _taslak(kimlik)
+                v["sabitler"].update({sabitler.ofis_adi(k): x for k, x in sabit.items()})
                 r = cizim_uclari._cozumleme(v, ad)
-                i = next(j for j, o in enumerate(r["taban"]) if o["metin"] == metin)
+                i = next(
+                    j
+                    for j, o in enumerate(r["taban"])
+                    if o["metin"] == metin
+                    and any(x["kimlik"] == ("girdi", "kapi_genisligi") for x in r["kaynak"][j])
+                )
                 y = _degistir(v, ad, i, r, "kapi_genisligi", hedef)
                 if nasil is None:
                     self.assertFalse(y["aktif"], y)
+                    self.assertIn("görünmüyor", y["hata"][0])
                     self.assertNotIn("degisiklikler", y)
                     continue
                 self.assertTrue(y["aktif"] and y[nasil], y)
