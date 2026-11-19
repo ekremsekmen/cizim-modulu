@@ -219,13 +219,14 @@ def _tabliye(e, B, M, u0, z, w, h, oda):
 
 
 def _zincir(e, kot, noktalar, metinler=None):
-    """Düşey zincir.  metinler:  { sıra:  yazı ya da ( yazı , kimlik ) }."""
+    """Düşey zincir.  metinler:  { sıra:  yazı ya da ( yazı , kimlik [ , adı ] ) } —
+    adı:  yazıya ancak sığınca giren ad ( _adli;  eleman.olcu adi )."""
     metinler = metinler or {}
     for i, (a, b) in enumerate(zip(noktalar, noktalar[1:])):
         if b - a > 1e-6:
             m = metinler.get(i)
-            metin, ad = m if isinstance(m, tuple) else (m, None)
-            e.append(eleman.olcu("dusey", (0, a), (0, b), kot, metin, ad=ad))
+            metin, ad, adi = (*m, None)[:3] if isinstance(m, tuple) else (m, None, None)
+            e.append(eleman.olcu("dusey", (0, a), (0, b), kot, metin, ad=ad, adi=adi))
 
 
 def _oda(e, B, g, Y, K, uzak_duvar, kesilen, u_kot):
@@ -331,8 +332,9 @@ def _sol_zincir(u0, isaretler, K):
 
 def _adli(adlar, deger, boy):
     """Kesitte ölçünün yazısı:  adı kendi aralığına sığıyorsa adıyla, sığmıyorsa
-    yalnız değer ( geometri.adli_olcu_metni — 1/50 )."""
-    return geometri.adli_olcu_metni(adlar, deger, boy, OLCEK / 20.0)
+    yalnız değer ( geometri.adli_olcu_metni — 1/50 ).  Döner:  ( yazı , kimlik yok ,
+    adı ) — _zincir'in biçimi;  ad yazıya sığmasa da ölçünün adıdır ( eleman.olcu adi )."""
+    return geometri.adli_olcu_metni(adlar, deger, boy, OLCEK / 20.0), None, adlar[0]
 
 
 def _oda_olculeri(e, g, M, kot_makine, kot_oda):
@@ -359,15 +361,8 @@ def _oda_olculeri(e, g, M, kot_makine, kot_oda):
         {0: _adli(("TABLİYE",), zt - zd, zt - zd), 1: f"{ztv - zt:g}", 2: f"{c:g}"},
     )
     if zt - zd > 1e-6:
-        e.append(
-            eleman.olcu(
-                "dusey",
-                (0, zd),
-                (0, ztv),
-                kot_oda + (kot_oda - kot_makine),
-                _adli(("MAKİNE DAİRESİ",), g["makine_dairesi"]["yukseklik"], ztv - zd),
-            )
-        )
+        metin, _kimlik, adi = _adli(("MAKİNE DAİRESİ",), g["makine_dairesi"]["yukseklik"], ztv - zd)
+        e.append(eleman.olcu("dusey", (0, zd), (0, ztv), kot_oda + (kot_oda - kot_makine), metin, adi=adi))
 
 
 def kuyu_dibi_seviyesi(g, Y):

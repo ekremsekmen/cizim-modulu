@@ -48,9 +48,15 @@ def olculer(elemanlar):
 def _imza(o):
     """Ölçünün kimliğinin sayıdan bağımsız kısmı:  yönü ve KİMLİĞİ ( ad —
     kuyu planının ölçüleri, 13 Eki:  yazıları koda ya da yalnız sayıya indi,
-    "#"ler birbirinden ayrılmıyordu ) ya da yazısının sözü ( "KUYU GENİŞLİĞİ
-    2100" → "KUYU GENİŞLİĞİ #" )."""
-    return o["yon"], o.get("ad") or _SAYI.sub("#", o.get("metin") or "")
+    "#"ler birbirinden ayrılmıyordu ), yazıya ancak sığınca giren ADI ( adi —
+    "ŞASE 140" ya da "140";  19 Kas:  tabliye 1.200 → 1.225'te yazı "TABLİYE 1225"
+    oluyor, ölçü izlenemiyor, değişiklik reddediliyordu ) ya da yazısının sözü
+    ( "KUYU GENİŞLİĞİ 2100" → "KUYU GENİŞLİĞİ #" )."""
+    if o.get("ad"):
+        return o["yon"], o["ad"]
+    if o.get("adi"):
+        return o["yon"], o["adi"] + " #"
+    return o["yon"], _SAYI.sub("#", o.get("metin") or "")
 
 
 def _uzaklik(p, q):

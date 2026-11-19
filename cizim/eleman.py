@@ -139,7 +139,7 @@ def yazi(x, y, metin, yukseklik=uslup.NORMAL, hiza="orta", katman="YAZI", aci=0)
     }
 
 
-def olcu(yon, a, b, kot, metin=None, yazi=None, kural=None, ad=None):
+def olcu(yon, a, b, kot, metin=None, yazi=None, kural=None, ad=None, adi=None):
     """Ölçü.  `yazi` verilmezse yazının yeri geometri.yazilari_yerlestir'de bulunur;
     verilirse { x, y ( yazının MERKEZİ ), aci, h } olduğu gibi kullanılır.
     `kural`:  ölçü bir girdiden değil standarttan ya da programın yerleşiminden
@@ -147,7 +147,12 @@ def olcu(yon, a, b, kot, metin=None, yazi=None, kural=None, ad=None):
     ( olcu_kaynagi;  girdiye bağlı ölçülerin kaynağı ölçülerek bulunur ).
     `ad`:  ölçünün yazıdan bağımsız KİMLİĞİ ( "olcu_" önekiyle saklanır ) —
     yazısı koda ya da yalnız sayıya inen ölçüyü ölçüye tıklama ve testler
-    onunla tanır ( olcu_kaynagi._imza;  13 Eki )."""
+    onunla tanır ( olcu_kaynagi._imza;  13 Eki ).
+    `adi`:  yazıya ancak SIĞINCA giren adı ( "ŞASE", "TABLİYE" — geometri.adli_olcu_metni ):
+    yazı adla adsız arasında değişse de ölçüye tıklama ölçüyü onunla izler ( 19 Kas:
+    tabliye 1.200 → 1.225'te yazı "TABLİYE 1225" oluyor, iz kayboluyordu ).  Kimlik
+    ( `ad` ) DEĞİLDİR:  tekrar ayıklama ve küçükleri birleştirme ölçüyü kimliksiz sayar —
+    çizim değişmez."""
     uzunluk = abs(b[0] - a[0]) if yon == "yatay" else abs(b[1] - a[1])
     el = {
         "tip": "olcu",
@@ -170,6 +175,8 @@ def olcu(yon, a, b, kot, metin=None, yazi=None, kural=None, ad=None):
         el["kural"] = kural
     if ad:
         el["ad"] = "olcu_" + ad
+    if adi:
+        el["adi"] = adi
     return el
 
 

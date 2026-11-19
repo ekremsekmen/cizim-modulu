@@ -628,6 +628,72 @@ class Degistirme(unittest.TestCase):
                     u,
                 )
 
+    def test_regulator_kuralla_kayarsa_dogrulanmis_sayilmaz(self):
+        #  Makine daireli delik planı ( 800 kg taslağı ):  «130» askı noktası kaçıklığı
+        #  ( xs ) 0 → 25 ile 105 olurdu — ama regülatörün kutuları boş, kural xs'in işaretine
+        #  göre onu öbür yana atar ( 280 → −280 ):  formun kurduğu çizimde zincir 370 · 300 ·
+        #  155 · 1.025.  19 Kas'a kadar doğrulama regülatörü yerinde tutup "ölçü 105 mm"
+        #  diyor, değişiklik uyarısız uygulanıyordu.  Reddedilir, sebebi söylenir;  yeri
+        #  formdan girilince ( iletinin önerdiği ) aynı değişiklik tutar.
+        v = _taslak("800-md")
+        r = cizim_uclari._cozumleme(v, "delik_plani")
+        i = _olcu(r, "130")
+        y = _degistir(v, "delik_plani", i, r, "aski_kaciklik_x", 105)
+        self.assertFalse(y["aktif"], y)
+        self.assertIn("regülatörün yeri kuralla değişiyor", y["hata"][0])
+        self.assertIn("280 → -280", y["hata"][0])
+        v["asansorler"][0]["regulator_kaciklik"] = "280"
+        y = self._dene(v, "delik_plani", "130", "aski_kaciklik_x", 105, beklenen={"aski_kaciklik_x": 25})
+        self.assertEqual(y["notlar"], [])
+
+    def test_regulator_kayarsa_not_dusulur(self):
+        #  Kuyu planında «180» ( 800 kg makine daireli ) xs ile tutar — regülatör bu ölçüde
+        #  yok — ama regülatör yine kuralla öbür yana geçer:  değişiklik doğrulanır,
+        #  kullanıcıya not düşülür ( dokunmadığı parça:  delik planında deliği kayar ).
+        v = _taslak("800-md")
+        r = cizim_uclari._cozumleme(v, "kuyu_plani")
+        i = next(
+            j
+            for j, o in enumerate(r["taban"])
+            if o["metin"] == "180"
+            and any(b["anahtar"] == "aski_kaciklik_x" for b in cizim_uclari._kaynaklar(r, j))
+        )
+        y = _degistir(v, "kuyu_plani", i, r, "aski_kaciklik_x", 155)
+        self.assertTrue(y["aktif"] and y["dogrulandi"], y)
+        self.assertEqual(len(y["notlar"]), 1, y)
+        self.assertIn("280 → -280", y["notlar"][0])
+
+    def test_adi_siginca_gorunen_olcu_izlenir(self):
+        #  Makine dairesinde tabliye ( 630 kg taslağı, yan kesit ):  1.200'de adı aralığa
+        #  sığmıyor ( "1200" ), 1.225'te sığıyor ( "TABLİYE 1225" ) — yazının sözü değişince
+        #  ölçü izlenemiyor, değişiklik "düzgün değişmiyor" diye reddediliyordu ( 19 Kas ).
+        #  Ölçünün adı ( eleman.olcu adi ) yazıdan bağımsızdır;  çizim değişmez.
+        a = eleman.olcu("dusey", (0, 0), (0, 1200), 0, "1200", adi="TABLİYE")
+        b = eleman.olcu("dusey", (0, 0), (0, 1225), 0, "TABLİYE 1225", adi="TABLİYE")
+        self.assertEqual(olcu_kaynagi._imza(a), olcu_kaynagi._imza(b))
+        v = _taslak("630-md")
+        r = cizim_uclari._cozumleme(v, "kuyu_kesiti_yan")
+        i = next(j for j, o in enumerate(r["taban"]) if o.get("adi") == "TABLİYE")
+        self.assertEqual(r["taban"][i]["metin"], "1200")
+        y = _degistir(v, "kuyu_kesiti_yan", i, r, "md_zemini_kotu", 1225)
+        self.assertTrue(y["aktif"] and y["dogrulandi"], y)
+        g, hata = _g(_uygula(v, y))
+        self.assertIsNotNone(g, hata)
+        olculer = olcu_kaynagi.olculer(cizim_uclari._elemanlar(g, "kuyu_kesiti_yan")[0])
+        self.assertIn("TABLİYE 1225", [o["metin"] for o in olculer])
+
+    def test_kurulamayan_degerde_cizimin_sebebi_soylenir(self):
+        #  1275 kg makine daireli yan kesitte «845»:  D1 320 → 370 gerekir, o çapla çizim
+        #  kurulamıyor ( halat aralığı kasnak çapından küçük ) — ileti bunu söyler ( eskiden
+        #  yalnız "düzgün değişmiyor" ).
+        v = _taslak("1275-md")
+        r = cizim_uclari._cozumleme(v, "kuyu_kesiti_yan")
+        i = next(j for j, o in enumerate(r["taban"]) if o["metin"] == "845")
+        y = _degistir(v, "kuyu_kesiti_yan", i, r, "tahrik_kasnak_capi", 820)
+        self.assertFalse(y["aktif"], y)
+        self.assertIn("370 olunca çizim kurulamıyor", y["hata"][0])
+        self.assertIn("kasnak çapından", y["hata"][0])
+
     def test_cizim_degistiyse_yanlis_olcu_degismez(self):
         v = _veri()
         r = cizim_uclari._cozumleme(v, "kuyu_plani")
