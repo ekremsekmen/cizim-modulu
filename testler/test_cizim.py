@@ -1561,12 +1561,14 @@ class KuyuDibiYerlesim(unittest.TestCase):
         self.assertGreater(sayi, 60)
         self.assertGreater(yakin, 20)
 
-    def test_merkezi_kapida_merdivene_yer_yoksa_ret(self):
+    def test_merkezi_kapida_merdiven_cep_ile_konsol_arasina(self):
         """Arkada ağırlık, 1000 kg, merkezi kapı:  iki kanat cebi de yan duvarlara 95 mm
         kalıyor;  merdiven yan duvarda kabin kapısının cebinin 50 mm arkasıyla ray
-        konsolunun plakası arasına sığmıyor ( 330 mm yer, merdiven 350 ) — kapıdan 800
-        mm'den uzağa da konamaz:  proje sebebiyle reddedilir ( 4 Kas, kullanıcı 50 mm
-        açıklığı seçti;  eskiden merdiven iki cebin de içinden geçiyordu )."""
+        konsolunun plakası arasına sığar ( 330 mm yer, merdiven 330:  basamak 280 + 25'lik
+        iki dikme — Ek F.3;  19 Kas'a dek 350'ydi, proje reddediliyordu ).  Daha geniş
+        merdivende ( 350 ) yer yoksa kapıdan 800 mm'den uzağa da konamaz:  proje sebebiyle
+        reddedilir ( 4 Kas, kullanıcı 50 mm açıklığı seçti;  eskiden merdiven iki cebin de
+        içinden geçiyordu )."""
         from testler import test_yerlesim_saglamligi
 
         v = test_yerlesim_saglamligi.standart_istek(
@@ -1582,6 +1584,14 @@ class KuyuDibiYerlesim(unittest.TestCase):
         g, _A, hata = test_yerlesim_saglamligi.duzen_girdisi(v)
         self.assertFalse(hata, hata)
         self.assertEqual(geometri.dogrula(g), [])
+        Y = kuyu_dibi.yerlesim(g)
+        self.assertIsNotNone(Y["merdiven"], Y["hata"])
+        self.assertFalse([h for h in Y["hata"] if "Ek F.5 b" in h], Y["hata"])
+        m = Y["merdiven"]
+        self.assertEqual(max(m[2] - m[0], m[3] - m[1]), 330)  # yan duvarda eni y boyunca
+        v["sabitler"][sabitler.ofis_adi("merdiven_eni")] = 350
+        g, _A, hata = test_yerlesim_saglamligi.duzen_girdisi(v)
+        self.assertFalse(hata, hata)
         Y = kuyu_dibi.yerlesim(g)
         self.assertIsNone(Y["merdiven"])
         ileti = [h for h in Y["hata"] if "Ek F.5 b" in h]

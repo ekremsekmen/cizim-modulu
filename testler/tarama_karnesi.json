@@ -227,9 +227,6 @@
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
-   },
-   "kuyu_dibi": {
-    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sağ MRL bina yapısına Kabin altı": {
@@ -455,6 +452,9 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
+   },
+   "kuyu_dibi": {
+    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sağ MD {'aski_duzeni': 'Kabin üstü'}": {
@@ -482,6 +482,9 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
+   },
+   "kuyu_dibi": {
+    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sağ MRL bina yapısına Kabin üstü": {
@@ -498,6 +501,9 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
+   },
+   "kuyu_dibi": {
+    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sağ MRL {'aski_duzeni': 'Kabin üstü'}": {
@@ -1051,6 +1057,12 @@
     "yazi_bitisik": 1
    }
   },
+  "1000 Arka Otomatik Merkezi": {
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   }
+  },
   "1000 Arka Otomatik Merkezi 4 Kanat": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
@@ -1162,6 +1174,12 @@
   "1600 Arka Manuel Sol": {
    "kapi_kesiti": {
     "uzak_olcu": 4,
+    "yazi_bitisik": 1
+   }
+  },
+  "1600 Arka Otomatik Merkezi": {
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
     "yazi_bitisik": 1
    }
   },
@@ -1340,6 +1358,9 @@
    },
    "kapi_kesiti": {
     "uzak_olcu": 3
+   },
+   "kuyu_dibi": {
+    "maske_olcu_siliyor": 1
    }
   },
   "2500 Sol Manuel Sağ": {
@@ -2135,8 +2156,7 @@
     "yazi_bitisik": 1
    },
    "kuyu_grubu_kuyu_dibi": {
-    "maske_kenar_siliyor": 2,
-    "yazi_cizgisinden_kopuk": 1
+    "maske_kenar_siliyor": 2
    },
    "kuyu_grubu_kuyu_kesiti_on": {
     "maske_kenar_siliyor": 1
@@ -2198,7 +2218,8 @@
     "maske_kenar_siliyor": 1
    },
    "kuyu_grubu_kuyu_dibi": {
-    "maske_kenar_siliyor": 2
+    "maske_kenar_siliyor": 2,
+    "yazi_cizgisinden_kopuk": 1
    },
    "kuyu_grubu_kuyu_kesiti_on": {
     "maske_kenar_siliyor": 1
@@ -2352,11 +2373,8 @@
     "maske_kenar_siliyor": 3
    },
    "kuyu_grubu_kuyu_dibi": {
-    "maske_kenar_siliyor": 5,
-    "maske_olcu_siliyor": 1,
-    "ok_yaziyi_kesiyor": 1,
-    "yazi_cizgisinden_kopuk": 1,
-    "yazi_parca_kenarinda": 1
+    "maske_kenar_siliyor": 3,
+    "maske_olcu_siliyor": 1
    },
    "kuyu_grubu_kuyu_kesiti_on": {
     "maske_kenar_siliyor": 1
@@ -2393,8 +2411,7 @@
     "yazi_bitisik": 1
    },
    "kuyu_grubu_kuyu_dibi": {
-    "maske_kenar_siliyor": 2,
-    "yazi_cizgisinden_kopuk": 1
+    "maske_kenar_siliyor": 2
    },
    "kuyu_grubu_kuyu_ustu": {
     "yazi_bitisik": 1
@@ -2410,8 +2427,7 @@
     "yazi_bitisik": 1
    },
    "kuyu_grubu_kuyu_dibi": {
-    "maske_kenar_siliyor": 2,
-    "yazi_cizgisinden_kopuk": 1
+    "maske_kenar_siliyor": 2
    },
    "kuyu_grubu_kuyu_ustu": {
     "yazi_bitisik": 1
@@ -2571,7 +2587,8 @@
     "yazi_bitisik": 1
    },
    "kuyu_grubu_kuyu_dibi": {
-    "maske_kenar_siliyor": 2
+    "maske_kenar_siliyor": 2,
+    "yazi_cizgisinden_kopuk": 1
    }
   },
   "taslak 1275 + 1250": {

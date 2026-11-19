@@ -83,9 +83,13 @@ SABIT = {
     #  sembolü ).
     "gergi_kasnak_eni": 45,
     #  Kuyu dibi merdiveni  ( TS EN 81-20 Ek F ):  basamak net eni en az
-    #  280 mm ( F.3.2 a ) + iki dikme en çok 35'er mm ( F.3.1 a ) = 350;
-    #  dikme derinliği en çok 100 mm ( F.3.1 a ).  Duvara yaslı saklanır.
-    "merdiven_eni": 350,
+    #  280 mm ( F.3.2 a ) + iki dikme 25'er mm = 330 — F.3.1 a dikmenin enine
+    #  yalnız üst sınır koyar ( en çok 35 );  dikme derinliği en çok 100 mm.
+    #  Duvara yaslı saklanır.  19 Kas'a dek 350'ydi ( dikmenin en genişi ):
+    #  arkada ağırlıklı, merkezi kapılı 1000 / 1600 kg'da merdiven yan duvarda
+    #  kabin kapısının cebinin 50 mm arkasıyla ray konsolunun plakası arasına
+    #  sığmıyordu ( 330 mm yer ) — proje reddediliyordu.
+    "merdiven_eni": 330,
     "merdiven_derinlik": 100,
     #  ── KUYU ÜSTÜ  ( makine dairesiz ) ───────────────────────────────
     #  referans projenin MRL paftasındaki "Machine Room" çiziminin vektör
