@@ -14,6 +14,16 @@ import { KUTU_UST, kutuYeri, type OlcuKonumu, type OlcuSecimi } from "./Tuval";
 
 const YER: Record<string, string> = { asansor: "asansör", proje: "bina", ofis: "ofis standardı" };
 
+/*  Değişikliğin dokunmadığı ama kuralla yer değiştiren parça ( boş kutulu regülatör —
+    sunucu:  _regulator_notu ):  doğrulama doğru, kullanıcı yine de bilsin ( 19 Kas )  */
+function Notlar({ notlar }: { notlar?: string[] }) {
+  return notlar?.map((n) => (
+    <p key={n} className="text-[11.5px] text-uyari">
+      {n}
+    </p>
+  ));
+}
+
 export function OlcuKutusu({
   istek,
   guncel,
@@ -279,6 +289,7 @@ export function OlcuKutusu({
                         {u}
                       </p>
                     ))}
+                    <Notlar notlar={sonuc.notlar} />
                     <Dugme boy="kucuk" onClick={() => uygula(sonuc)}>
                       Yine de uygula
                     </Dugme>
@@ -294,6 +305,7 @@ export function OlcuKutusu({
                         </span>
                       </p>
                     ))}
+                    <Notlar notlar={sonuc.notlar} />
                     {sonuc.dogrulandi && cizimDogrulandi && (
                       <Rozet tur="uygun">Çizim yeniden kuruldu — ölçü {sayiYaz(sonuc.olcu)} mm</Rozet>
                     )}

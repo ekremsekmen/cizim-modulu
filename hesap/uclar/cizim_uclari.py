@@ -387,12 +387,17 @@ def _kurucu(ham, ad, proje_adi, sira):
     serbest:  True ya da anahtar kümesi — girilmiş türetilen alanlar ( kaide,
     askı kaçıklığı … ) bırakılır, çizimden yeniden türetilir.  Çizimin girdisi
     değişmediyse tabanın listesi döner ( çözümleme o girdiyi atlar ).  Hesabın
-    sonucu verilmez:  ölçüler ona bağlı değildir ( yalnız yük kutuları )."""
+    sonucu verilmez:  ölçüler ona bağlı değildir ( yalnız yük kutuları ).
+    tut:  boş bırakılmış regülatör tabandaki yerinde tutulur ( _regulatoru_tut —
+    ÇÖZÜMLEMEDE ).  DEĞİŞTİRMEDE tutulmaz ( False ):  form da tutmaz, regülatörü
+    kural yeniden yerleştirir;  doğrulama formun kuracağı çizimle yapılmalı ( 19 Kas:
+    makine daireli delik planında xs 0 → 25 regülatörü kuralla öbür yana atıyordu,
+    tutulu doğrulama "ölçü 105 mm" diyordu, çizim 370 · 300 · 155 · 1.025 )."""
 
     taban = {}
     secimler = {k for k, f in _sozlesme()[0].items() if f["tur"] == "secim"}
 
-    def kur(degisiklik, serbest=False, denetle=False):
+    def kur(degisiklik, serbest=False, denetle=False, tut=True):
         h = dict(ham)
         if degisiklik:
             ofis = dict(h.get("_ofis") or {})
@@ -404,7 +409,7 @@ def _kurucu(ham, ad, proje_adi, sira):
             if kotlar:  # bir durağın kotu ( mm ):  alanın metni yeniden yazılır
                 eski = katlar.kotlari_oku(h[DURAK_KOTLARI])[0]
                 h[DURAK_KOTLARI] = katlar.kotlari_yaz([kotlar.get(j, x) for j, x in enumerate(eski)])
-        if "g" in taban and not any(k in secimler for (_y, k) in degisiklik or {}):
+        if tut and "g" in taban and not any(k in secimler for (_y, k) in degisiklik or {}):
             _regulatoru_tut(h, taban["g"], degisiklik or {})
         if serbest:
             birak = kopru.CIZIMDEN if serbest is True else serbest
@@ -942,8 +947,10 @@ def api_olcu_degistir(veri: dict = Body(...)):
             return JSONResponse(_secimle(r, i, k, hedef, bilgi))
         #  Türev girdinin tek başına değişip değişemeyeceğini söylemez:  çizim
         #  kurulamıyorsa ( kaide girilmişken kuyu dibi — zincir ) bırakılması
-        #  gereken türetilen alan aranır
-        bagli = k["bagli"] or r["kur"]({k["kimlik"]: aday["deger"] + aday["adim"]}) is None
+        #  gereken türetilen alan aranır.  Değiştirmede çizim FORMUN kuracağı gibi
+        #  kurulur:  boş regülatör tutulmaz, kural yerleştirir ( _kurucu — tut ).
+        kur = functools.partial(r["kur"], tut=False)
+        bagli = k["bagli"] or kur({k["kimlik"]: aday["deger"] + aday["adim"]}) is None
         serbest = _en_az_serbest(r, k, aday) if bagli else False
         if bilgi["dogrudan"] and not serbest:
             #  Ölçü girdinin kendisi ( değeri eşit, eğimi 1 ):  yeni değer hedeftir.
@@ -951,36 +958,14 @@ def api_olcu_degistir(veri: dict = Body(...)):
             #  değişince başka parçalara bölünür, ölçü artık ayrı görünmez.
             s = {"deger": hedef, "olcu": hedef, "dogrulandi": True}
         else:
-            s = olcu_kaynagi.coz(
-                r["kur"],
-                r["taban"],
-                i,
-                k["kimlik"],
-                aday["deger"],
-                k["egim"],
-                hedef,
-                serbest=serbest,
-                dogrusal=k["dogrusal"],
-                #  Kot mm'den ince yazılamaz:  ara adımlar mm'ye ( metre — 0,001 )
-                nicem=_KOT_NICEMI if _kot_alani(anahtar) else None,
-            )
+            s = _coz(kur, r, i, k, hedef, serbest)
             if not s["dogrulandi"] and not s.get("bolundu"):
                 #  Hedef doğrulanamadı ve ölçü iki parçaya bölünmüş de değil:
                 #  bulunan değer ölçüyü hedefe getirmiyor ( çoğu zaman ölçü hiç
                 #  değişmiyordu:  bir eşikte sıçrıyor, yalnız bir yönde değişiyor
                 #  ya da sığınma alanı gibi adımla kayıyor ) — kutuya yazılmaz
                 #  ( eskiden kabin genişliği 1.360 → 1.359,9995 ya da 58.430 ).
-                return JSONResponse(
-                    {
-                        "aktif": False,
-                        "hata": [
-                            f"Bu ölçü «{bilgi['etiket']}» değiştirilerek {_yuvarla(hedef)} mm "
-                            "yapılamıyor:  ölçü bu girdiyle düzgün değişmiyor ( bir eşikte "
-                            "sıçrıyor ya da bu yönde değişmiyor ).  Başka bir girdiyle deneyin "
-                            "ya da girdiyi formdan değiştirin."
-                        ],
-                    }
-                )
+                return JSONResponse({"aktif": False, "hata": [_degismiyor(r, i, k, bilgi, hedef, serbest)]})
         x = _yuvarla(s["deger"])
         degisiklik = [{"anahtar": anahtar, "etiket": bilgi["etiket"], "eski": aday["deger"], "deger": x}]
         if serbest:
@@ -1003,11 +988,114 @@ def api_olcu_degistir(veri: dict = Body(...)):
                 "dogrulandi": s["dogrulandi"],
                 "bolundu": bool(s.get("bolundu")),
                 "uyarilar": _yeni_hatalar(r, degisiklik),
+                "notlar": _regulator_notu(r, degisiklik),
             }
         )
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
         return JSONResponse({"aktif": False, "hata": [hata_iletisi("ÖLÇÜ HATASI", e, ": ")]})
+
+
+#  Regülatörün yerini söyleyen kutular ( boşsa kural yerleştirir — kopru._regulator_yeri )
+_REGULATOR_KUTULARI = ("regulator_kaciklik", "regulator_yani")
+
+
+def _regulator_yeri(r, degisiklik):
+    """Değişikliklerle FORMUN kuracağı çizimde regülatörün yeri:  ( kaçıklık , yan ) —
+    kutuları boşsa kural koyar ( kopru._regulator_yeri:  xs'in işaretine göre ±280,
+    çarpışırsa başka yer ).  Çizim girdisi kurulamazsa None."""
+    h = dict(r["ham"])
+    h.update({d["anahtar"]: d["deger"] for d in degisiklik})
+    try:
+        g, _hata = kopru.cizim_girdisi(uygulama_girdisi.tamamla(h), None, r["proje"], r["sira"])
+    except sorun.BILINEN:
+        log.debug("regülatörün yeri bulunamadı ( çizim kurulamıyor )", exc_info=True)
+        return None
+    if g is None:
+        return None
+    kd = g.get("kuyu_dibi") or {}
+    return kd.get("regulator_kaciklik"), kd.get("regulator_yan")
+
+
+def _regulator_kaydi(r, degisiklik):
+    """Değişiklik regülatörün kutularına dokunmadan onun yerini değiştiriyorsa ( boş
+    kutuda kural yeniden yerleştirir ):  ( ne değiştiği — "Regülatör halatı – kabin
+    ray ekseni arası 280 → −280" , değişen kutuların adları — "«…»" ) ;  değiştirmiyorsa
+    ya da bilinmiyorsa None."""
+    if any(d["anahtar"] in _REGULATOR_KUTULARI for d in degisiklik):
+        return None  # yeri kullanıcı değiştiriyor
+    once, sonra = _regulator_yeri(r, []), _regulator_yeri(r, degisiklik)
+    if once is None or sonra is None:
+        return None
+    alan = _sozlesme()[0]
+    kac, yan = alan["regulator_kaciklik"]["etiket"], alan["regulator_yani"]["etiket"]
+    parcalar, kutular = [], []
+    if sayi_mi(once[0]) and sayi_mi(sonra[0]) and abs(once[0] - sonra[0]) > 1e-6:
+        parcalar.append(f"{kac} {_tr_sayi(_yuvarla(once[0]))} → {_tr_sayi(_yuvarla(sonra[0]))}")
+        kutular.append(f"«{kac}»")
+    if once[1] != sonra[1]:
+        parcalar.append(f"{yan} {once[1]} → {sonra[1]}")
+        kutular.append(f"«{yan}»")
+    return (" · ".join(parcalar), " ve ".join(kutular)) if parcalar else None
+
+
+def _regulator_notu(r, degisiklik):
+    """Değişiklik doğrulandı ama regülatör de kuralla yer değiştiriyor:  kullanıcı
+    bilsin ( dokunmadığı parça — delik planında deliği, kuyu dibinde gergisi kayar )."""
+    kayit = _regulator_kaydi(r, degisiklik)
+    if not kayit:
+        return []
+    return [
+        f"Regülatörün yeri de kuralla değişiyor ( {kayit[0]} ):  kutuları boş, yerini program seçiyor.  "
+        f"Sabit kalsın isterseniz formdan girin ( {kayit[1]} )."
+    ]
+
+
+def _coz(kur, r, i, k, hedef, serbest):
+    """i. ölçüyü hedefe getiren girdi değeri ( olcu_kaynagi.coz ) — kur:  çizimi kuran
+    ( değiştirmede regülatörü tutmayan;  sebep ararken tutan )."""
+    return olcu_kaynagi.coz(
+        kur,
+        r["taban"],
+        i,
+        k["kimlik"],
+        r["adaylar"][k["kimlik"]]["deger"],
+        k["egim"],
+        hedef,
+        serbest=serbest,
+        dogrusal=k["dogrusal"],
+        #  Kot mm'den ince yazılamaz:  ara adımlar mm'ye ( metre — 0,001 )
+        nicem=_KOT_NICEMI if _kot_alani(k["kimlik"][1]) else None,
+    )
+
+
+def _degismiyor(r, i, k, bilgi, hedef, serbest):
+    """Ölçü bu girdiyle hedefe getirilemedi — sebebi.  Doğrusal tahminde ( x )
+    regülatör kuralla yer değiştiriyor ve regülatör yerinde kalsa ölçü hedefe
+    gidiyorsa ( tutulu çözüm — eski doğrulama ) sebep odur ( kutuları boş — 19 Kas );
+    tahminde çizim kurulamıyorsa çizimin kendi sebebi ( eskiden yalnız "düzgün
+    değişmiyor" deniyordu:  D1 320 → 370'te "halat aralığı kasnak çapından küçük" );
+    değilse ölçü bu girdiyle düzgün değişmiyor."""
+    anahtar = k["kimlik"][1]
+    x = _yuvarla(r["adaylar"][k["kimlik"]]["deger"] + (hedef - r["taban"][i]["uzunluk"]) / k["egim"])
+    bas = f"Bu ölçü «{bilgi['etiket']}» değiştirilerek {_tr_sayi(_yuvarla(hedef))} mm yapılamıyor:  "
+    tahmin = [{"anahtar": anahtar, "deger": x}]
+    kayit = _regulator_kaydi(r, tahmin)
+    tutulu = _coz(r["kur"], r, i, k, hedef, serbest) if kayit else None
+    if tutulu and (tutulu["dogrulandi"] or tutulu.get("bolundu")):
+        return (
+            f"{bas}regülatörün yeri kuralla değişiyor ( {kayit[0]} ) — kutuları boş, yerini program "
+            f"seçiyor.  Yerini formdan girerseniz ( {kayit[1]} ) sabit kalır;  ya da başka bir "
+            "girdiyle deneyin."
+        )
+    if r["kur"]({k["kimlik"]: x}, serbest=serbest, tut=False) is None:
+        sebep = _yeni_hatalar(r, tahmin)
+        if sebep:
+            return f"{bas}«{bilgi['etiket']}» {_tr_sayi(x)} olunca çizim kurulamıyor — {sebep[0]}"
+    return (
+        f"{bas}ölçü bu girdiyle düzgün değişmiyor ( bir eşikte sıçrıyor ya da bu yönde "
+        "değişmiyor ).  Başka bir girdiyle deneyin ya da girdiyi formdan değiştirin."
+    )
 
 
 @functools.lru_cache(maxsize=1)
@@ -1053,7 +1141,7 @@ def _en_az_serbest(r, k, aday):
     girilmis = [c for c in kopru.CIZIMDEN if r["ham"].get(c) is not None and c != k["kimlik"][1]]
     x = aday["deger"] + aday["adim"]
     for c in girilmis:
-        if r["kur"]({k["kimlik"]: x}, serbest={c}) is not None:
+        if r["kur"]({k["kimlik"]: x}, serbest={c}, tut=False) is not None:
             return {c}
     return set(girilmis) or True
 
@@ -1139,7 +1227,9 @@ def _secimle(r, i, k, hedef, bilgi):
     if bilgi["dogrudan"]:
         s = {"olcu": v, "dogrulandi": True, "bolundu": False}
     else:
-        s = olcu_kaynagi.secenekle(r["kur"], r["taban"], i, k["kimlik"], v0, v, k["egim"], hedef)
+        s = olcu_kaynagi.secenekle(
+            functools.partial(r["kur"], tut=False), r["taban"], i, k["kimlik"], v0, v, k["egim"], hedef
+        )
         if not s["dogrulandi"] and not s["bolundu"]:
             #  Seçenekte ölçü izlenemedi ve iki parçaya bölünmüş de değil:  zincir o
             #  kapıyla başka parçalardan kuruluyor ( kuyu dibi ) — doğrulanmamış değer yazılmaz
@@ -1161,6 +1251,7 @@ def _secimle(r, i, k, hedef, bilgi):
         "bolundu": s["bolundu"],
         "degisiklikler": degisiklik,
         "uyarilar": _yeni_hatalar(r, degisiklik),
+        "notlar": _regulator_notu(r, degisiklik),
     }
 
 
@@ -1174,9 +1265,10 @@ def _secenek_yok(r, i, k, bilgi, sec, x, hedef):
     if bilgi["dogrudan"]:
         return f"«{bilgi['etiket']}» seçeneklerinden biri yazılmalı:  {liste} {birim}."
     v0, u0 = _sayiya(r["adaylar"][k["kimlik"]]["deger"]), r["taban"][i]["uzunluk"]
+    kur = functools.partial(r["kur"], tut=False)  # formun kuracağı gibi ( _kurucu )
     olur = []
     for s in [y for y in sec if y < x][-1:] + [y for y in sec if y > x][:1]:
-        u = u0 if s == v0 else olcu_kaynagi.secenekte(r["kur"], r["taban"], i, k["kimlik"], v0, s, k["egim"])
+        u = u0 if s == v0 else olcu_kaynagi.secenekte(kur, r["taban"], i, k["kimlik"], v0, s, k["egim"])
         if u is not None:
             olur.append(f"{_tr_sayi(s)} → {_tr_sayi(_yuvarla(u))} mm")
     ileti = (

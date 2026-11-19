@@ -238,6 +238,8 @@ def ciz(g, cizim_sabitleri=None):
                 #  Ad aralığa sığmazsa yalnız değer ( 6 Kas çizim denetimi 3. adımı:
                 #  "HALAT ARASI 420" çizimin dışına taşıyordu )
                 geometri.adli_olcu_metni(("HALAT ARASI",), round(abs(ua - uk)), abs(ua - uk)),
+                #  Ad yazıya sığmasa da ölçünün adı:  ölçüye tıklama onunla izler
+                adi="HALAT ARASI",
             )
         )
     #  Sağ:  merkezlerin döşemeden ( makine dairesizde kuyu tavanına ) yüksekliği

@@ -336,6 +336,8 @@ export interface OlcuDegisikligi {
   olcu?: number;
   dogrulandi?: boolean;
   uyarilar?: string[];
+  /**  Değişikliğin dokunmadığı ama kuralla yer değiştiren parça ( boş kutulu regülatör )  */
+  notlar?: string[];
   hata?: string[];
 }
 
