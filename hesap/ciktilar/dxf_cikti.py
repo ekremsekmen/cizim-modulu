@@ -470,14 +470,19 @@ def _kutuda(noktalar, kutu, pay=0.0):
     )
 
 
-def _sablon_dogrula(d):
+def _sablon_dogrula(d, sag=None, kagit=pafta.KAGIT):
     """
     Şablon, programın beklediği format mı?
 
     Ofis çizimi değişirse paftalar yanlış yere düşer ve bu EKRANDA GÖRÜNMEZ —
     hata yalnız teslim edilen çizimde ortaya çıkar.  Bu yüzden dış çerçeve ile
     kapak hücresinin yerleri ölçülür; tutmazsa dosya ÜRETİLMEZ.
+
+    sag, kagit:  dizilmiş paftada çerçevenin sağı ve rulonun eni ( çerçeve içerik kadar
+    kısalır / uzar, 90 cm'de yukarı uzar ) — şablonun kendisinde BANT'ın köşeleri.
     """
+    sag = BANT[2] if sag is None else sag
+    ust = pafta.ust_kenar(kagit)
     hata = []
     msp = d.modelspace()
     kutular = []
@@ -494,7 +499,7 @@ def _sablon_dogrula(d):
         hata.append(f"kapak hücresi {KAPAK_HUCRESI} bulunamadı")
     #  Dış çerçeve LINE'lardan oluşur — köşelerini ara.
     kose = {(round(p[0], 1), round(p[1], 1)) for e in msp.query("LINE") for p in _nokta(e)}
-    for x, y in ((BANT[0], BANT[1]), (BANT[2], BANT[1]), (BANT[0], BANT[3]), (BANT[2], BANT[3])):
+    for x, y in ((BANT[0], BANT[1]), (sag, BANT[1]), (BANT[0], ust), (sag, ust)):
         if not any(abs(kx - x) <= 0.5 and abs(ky - y) <= 0.5 for kx, ky in kose):
             hata.append(f"dış çerçeve köşesi ({x}, {y}) bulunamadı")
     if hata:
@@ -534,49 +539,38 @@ def _kapak_hucresini_bosalt(d):
     return silinen
 
 
-def _sutun_sayisi(genislik):
-    """`genislik` mm'lik alana soldaki pay düşüldükten sonra kaç sütun sığar."""
-    return max(1, int((genislik - SOL_PAY + SUTUN_ARA) // (A4_G + SUTUN_ARA)))
+def _satir_azami(kagit=pafta.KAGIT):
+    """Kâğıdın enine ( formatın yüksekliğine ) sığan A4 satırı:  60 cm'de 2, 90 cm'de 3."""
+    return max(1, int((kagit + SATIR_ARA) // (A4_Y + SATIR_ARA)))
 
 
-def _satir_azami():
-    """Formatın yüksekliğine sığan A4 satırı ( ofis formatında 2 )."""
-    _sol, alt, _sag, ust = SERBEST
-    return max(1, int((ust - alt + SATIR_ARA) // (A4_Y + SATIR_ARA)))
+def _izgara(adet, ayrilan=0, kagit=pafta.KAGIT):
+    """Serbest alanın A4 ızgarası:  ( ilk sütunun solu , üst satırın üstü , sütun ,
+    satır , yükseklik ).
 
+    SÜTUN EN AZ ( 19 Kas — kâğıt eni:  "kağıttan da tasarruf edelim" ):  satırlar kâğıdın
+    enine sığdığı kadardır, sütun sayısı hücreleri o satırlara dizen en az sayı.  19 Kas'a
+    dek ızgara şablonun serbest alanının 14 sütunuydu:  22 sayfalı projede alt satırın
+    sağında 4 A4 boş kalıyor, çizimler onların da sağından başlıyordu.  Satırlar yine soldan
+    sağa okunur;  boş hücre ( en çok satır − 1 ) alt satırın sağındadır.
 
-def _uzatma(adet, ayrilan=0):
-    """Sayfalar sığsın diye formatın SAĞA uzatılacağı miktar  ( mm ).
-
-    Ofis formatının serbest alanı iki satırda 14 bitişik A4 alır ( 28 sayfa ).  Uygulama
-    projesi asansör başına ~21 sayfadır;  iki asansörlü bir proje 45 sayfa
-    eder ve sayfalar çerçevenin ALTINA taşıyordu — çizimde duruyor ama baskıya
-    giden çerçevenin dışındaydı.  Artık satır sayısı sabit kalır ( formatın
-    yüksekliği ) ve çerçeve gerektiği kadar SÜTUN kadar sağa uzar.  Sığan
-    projede uzatma sıfırdır, format olduğu gibi kalır.
-
-    ayrilan:  alt satırın başında elektrik projelerine ayrılan A4 hücresi
-    ( bkz. _yerlesim ) — o hücrelere sayfa girmez.
-    """
-    sol, _alt, sag, _ust = SERBEST
-    sutun = _sutun_sayisi(sag - sol)
-    satir_azami = _satir_azami()
-    if adet + ayrilan <= sutun * satir_azami and ayrilan <= sutun:
-        return 0.0
-    return (max(-(-(adet + ayrilan) // satir_azami), ayrilan) - sutun) * (A4_G + SUTUN_ARA)
-
-
-def _izgara(adet, ayrilan=0):
-    """Serbest alanın A4 ızgarası:  ( ilk sütunun solu , üst satırın üstü ,
-    sütun , satır , yükseklik ) — formatın gerekirse uzatılmış hâlinde."""
-    sol, alt, sag, ust = SERBEST
-    sag += _uzatma(adet, ayrilan)
-    gen, yuk = sag - sol, ust - alt
-    sutun = _sutun_sayisi(gen)
-    #  Elektrik projesi alt satırda durur:  ayrılan hücre varsa bütün satırlar kullanılır
-    satir = _satir_azami() if ayrilan else max(1, -(-adet // sutun))
+    ayrilan:  alt satırın başında elektrik projelerine ayrılan A4 hücresi ( _yerlesim ) —
+    sütun ondan az olamaz.  Dikeyde ızgara alanın ortasına oturur."""
+    satir_azami = _satir_azami(kagit)
+    sutun = max(1, -(-(adet + ayrilan) // satir_azami), ayrilan)
+    satir = max(1, -(-(adet + ayrilan) // sutun))
     kullanilan_y = satir * A4_Y + (satir - 1) * SATIR_ARA
-    return sol + SOL_PAY, ust - max(0.0, (yuk - kullanilan_y) / 2), sutun, satir, yuk
+    ust = pafta.ust_kenar(kagit)
+    return SERBEST[0] + SOL_PAY, ust - max(0.0, (kagit - kullanilan_y) / 2), sutun, satir, kagit
+
+
+def izgara_sagi(adet, ayrilan=0, kagit=pafta.KAGIT):
+    """Hesap sayfalarının ( ve elektrik projelerinin ) ızgarasının sağ kenarı;  hücre yoksa
+    serbest alanın solu."""
+    if not adet + ayrilan:
+        return SERBEST[0]
+    x0, _y, sutun, _s, _k = _izgara(adet, ayrilan, kagit)
+    return x0 + sutun * (A4_G + SUTUN_ARA) - SUTUN_ARA
 
 
 def _hucre(x0, y_ust, r, c):
@@ -584,7 +578,7 @@ def _hucre(x0, y_ust, r, c):
     return x0 + c * (A4_G + SUTUN_ARA), y_ust - (r + 1) * A4_Y - r * SATIR_ARA
 
 
-def _yerlesim(adet, ayrilan=0):
+def _yerlesim(adet, ayrilan=0, kagit=pafta.KAGIT):
     """
     Serbest alanda `adet` A4 sayfanın sol-alt köşelerini verir.
 
@@ -597,46 +591,25 @@ def _yerlesim(adet, ayrilan=0):
     ilk `ayrilan` hücresi onundur ( elektrik_yerleri );  alt satırın sayfaları
     ondan sonra başlar.
 
-    Sayfalar formatın yüksekliğine sığmıyorsa aşağı taşmaz:  alan SAĞA
-    uzatılır ( bkz. _uzatma ) — dönen `tasti` bu yüzden şablonlu çizimde
-    hep yanlıştır.
+    Satırlar kâğıdın enine sığdığı kadardır, ızgara sağa büyür ( _izgara ):
+    sayfalar aşağı taşmaz — dönen `tasti` bu yüzden şablonlu çizimde hep yanlıştır.
     """
-    x0, y_ust, sutun, satir, yuk = _izgara(adet, ayrilan)
+    x0, y_ust, sutun, satir, yuk = _izgara(adet, ayrilan, kagit)
     hucreler = [
         (r, c) for r in range(satir) for c in range(sutun) if not (ayrilan and r == satir - 1 and c < ayrilan)
     ]
-    #  Izgara her zaman yeter:  _uzatma formatı sayfalar ve ayrılan hücreler kadar uzatır
+    #  Izgara her zaman yeter:  sütun, sayfalar ve ayrılan hücreler kadardır
     yerler = [_hucre(x0, y_ust, *hucreler[i]) for i in range(adet)]
     kullanilan_y = satir * A4_Y + (satir - 1) * SATIR_ARA
     return yerler, (kullanilan_y > yuk + 0.5)
 
 
-def elektrik_yerleri(adet, elektrik_adedi):
+def elektrik_yerleri(adet, elektrik_adedi, kagit=pafta.KAGIT):
     """Elektrik projelerinin ( her biri elektrik.HUCRE A4 eninde, bir A4 boyunda )
     sol-alt köşeleri:  alt satırın başından, yan yana — `adet` hesap sayfasıyla
     aynı ızgarada ( _yerlesim )."""
-    x0, y_ust, _sutun, satir, _yuk = _izgara(adet, elektrik.HUCRE * elektrik_adedi)
+    x0, y_ust, _sutun, satir, _yuk = _izgara(adet, elektrik.HUCRE * elektrik_adedi, kagit)
     return [_hucre(x0, y_ust, satir - 1, i * elektrik.HUCRE) for i in range(elektrik_adedi)]
-
-
-def _cerceveyi_uzat(d, uzatma):
-    """Formatın dış çerçevesini `uzatma` mm sağa uzatır.
-
-    Şablonda sağ kenara dayanan yalnız ÇERÇEVE ÇİZGİLERİ vardır:  sağ dikey
-    kenar ile ona bağlanan üst / alt yatay kenarlar ( antet ve kapak hücresi
-    solda durur ).  Ucu sağ kenarda olan her LINE ucu kaydırılır:  dikey kenar
-    bütünüyle sağa geçer, yatay kenarlar uzar.  Başka hiçbir varlığa dokunulmaz.
-    """
-    if uzatma <= 0:
-        return 0
-    kayan = 0
-    for e in d.modelspace().query("LINE"):
-        for uc in ("start", "end"):
-            p = e.dxf.get(uc)
-            if abs(p.x - BANT[2]) <= 0.5:
-                e.dxf.set(uc, (p.x + uzatma, p.y, p.z))
-                kayan += 1
-    return kayan
 
 
 def _gorunumu_ayarla(d, kutu):
@@ -712,12 +685,13 @@ def _copleri_sil(msp):
             msp.delete_entity(e)
 
 
-def sayfa_yerleri(sayfalar, elektrik_adedi=0):
+def sayfa_yerleri(sayfalar, elektrik_adedi=0, kagit=pafta.KAGIT):
     """Sayfaların ( sırayla ) sol-alt köşeleri — pafta mm'si:  [ ( x, y, kapak_mı ) ].
     DXF ( _formata_yerlestir ) ve PDF ( ciktilar/pafta_pdf ) aynı yerleşimi
     buradan alır.  İlk "Kapak" sayfası şablonun A4 hücresinin ortasına, öbürleri
     serbest alana ( _yerlesim );  elektrik_adedi:  alt satırın başındaki
-    elektrik projeleri ( elektrik_yerleri ).  Dönen:  ( yerler, uzatma, tasti )."""
+    elektrik projeleri ( elektrik_yerleri ).  Dönen:  ( yerler, sag, tasti ) —
+    sag:  çerçevenin sağ kenarı ( ızgaranın SOL_PAY sağı:  çerçeve içerik kadar )."""
     kapak = next((i for i, s in enumerate(sayfalar) if s.get("ad") == "Kapak"), None)
     digerleri = [i for i in range(len(sayfalar)) if i != kapak]
     yerler = [None] * len(sayfalar)
@@ -726,13 +700,13 @@ def sayfa_yerleri(sayfalar, elektrik_adedi=0):
         oy = KAPAK_HUCRESI[1] - (A4_Y - (KAPAK_HUCRESI[3] - KAPAK_HUCRESI[1])) / 2
         yerler[kapak] = (ox, oy, True)
     ayrilan = elektrik.HUCRE * elektrik_adedi
-    serbest, tasti = _yerlesim(len(digerleri), ayrilan)
+    serbest, tasti = _yerlesim(len(digerleri), ayrilan, kagit)
     for i, (ox, oy) in zip(digerleri, serbest):
         yerler[i] = (ox, oy, False)
-    return yerler, _uzatma(len(digerleri), ayrilan), tasti
+    return yerler, izgara_sagi(len(digerleri), ayrilan, kagit) + SOL_PAY, tasti
 
 
-def _formata_yerlestir(sayfalar, elektrikler=()):
+def _formata_yerlestir(sayfalar, elektrikler=(), kagit=pafta.KAGIT):
     """
     Sayfaları OFİSİN TİP PROJE FORMATININ içine yerleştirir.
 
@@ -741,7 +715,8 @@ def _formata_yerlestir(sayfalar, elektrikler=()):
       başlayarak dizilir.
     · Elektrik projeleri ( cizim/elektrik.pafta_sayfalari ) alt satırın
       başında, kapağın yanında;  alt satırın sayfaları onlardan sonra.
-    · Soldaki sabit blok ve dış çerçeve OLDUĞU GİBİ KALIR.
+    · Soldaki sabit blok yerinde kalır;  dış çerçeve kâğıdın enine uzar
+      ( pafta.sablonu_uzat — 90 cm ) ve sağı ızgaranın sağına gelir.
     """
     d = ezdxf.readfile(_sablon_yolu())
     _sablon_dogrula(d)
@@ -749,11 +724,13 @@ def _formata_yerlestir(sayfalar, elektrikler=()):
     pafta.katmanlari_onar(d)
     msp = d.modelspace()
     _copleri_sil(msp)
+    pafta.sablonu_uzat(d, kagit)
 
-    yerler, uzatma, tasti = sayfa_yerleri(sayfalar, len(elektrikler))
+    yerler, sag, tasti = sayfa_yerleri(sayfalar, len(elektrikler), kagit)
     if any(s.get("ad") == "Kapak" for s in sayfalar):
         _kapak_hucresini_bosalt(d)
-    _cerceveyi_uzat(d, uzatma)
+    #  Sayfalar çizilmeden önce:  çerçeveden başka çizgiye dokunulmasın
+    pafta.cerceveyi_tasi(d, sag, BANT[2], kagit)
     for sayfa, (ox, oy, kapak) in zip(sayfalar, yerler):
         #  Kapak şablonun A4 hücresine 1:1 oturur;  ofisin çerçeveleri yerinde
         #  kaldığı için kapağa ayrıca çerçeve çizilmez.
@@ -762,41 +739,43 @@ def _formata_yerlestir(sayfalar, elektrikler=()):
         _sayfayi_ciz(msp, sayfa, ox, oy)
     yerler = [(ox, oy) for ox, oy, kapak in yerler if not kapak]
     if elektrikler:
-        e_yerleri = elektrik_yerleri(len(yerler), len(elektrikler))
+        e_yerleri = elektrik_yerleri(len(yerler), len(elektrikler), kagit)
         elektrik.paftaya_yerlestir(d, elektrikler, e_yerleri)
         yerler += e_yerleri
 
     _gorunumu_ayarla(
-        d, (BANT[0] - 10, min([BANT[1]] + [y for _x, y in yerler]) - 10, BANT[2] + uzatma + 10, BANT[3] + 10)
+        d,
+        (BANT[0] - 10, min([BANT[1]] + [y for _x, y in yerler]) - 10, sag + 10, pafta.ust_kenar(kagit) + 10),
     )
     return _kaydet(d), tasti
 
 
-def _proje_cizimi(sayfalar, surum=None, elektrikler=()):
+def _proje_cizimi(sayfalar, surum=None, elektrikler=(), kagit=pafta.KAGIT):
     """
     ÇİZİMİ ÜRETEN TEK YER.  Dönen:  ( dxf_baytlari, sablon_kullanildi, tasti )
 
     Hem "Projeyi DWG al" düğmesi ( proje_paketi ) hem de proje_dxf buradan
     geçer;  böylece düğmenin verdiği dosya ile testlerin ölçtüğü dosya
-    BİRBİRİNDEN AYRILAMAZ.
+    BİRBİRİNDEN AYRILAMAZ.  kagit:  rulonun eni ( mm;  pafta.KAGIT_ENLERI ).
     """
     if surum is None and os.path.exists(_sablon_yolu()):
-        dxf, tasti = _formata_yerlestir(sayfalar, elektrikler)
+        dxf, tasti = _formata_yerlestir(sayfalar, elektrikler, kagit)
         return dxf, True, tasti
     return _dxf_yaz(sayfalar, surum, elektrikler), False, False
 
 
-def proje_dxf(paftalar, surum=None, elektrikler=()) -> bytes:
+def proje_dxf(paftalar, surum=None, elektrikler=(), kagit=pafta.KAGIT) -> bytes:
     """
     paftalar : [( ad, pdf_baytlari ), …]   sırayla dizilir.
     elektrikler : elektrik projeleri ( cizim/elektrik.pafta_sayfalari ) —
                   alt satırın başında
+    kagit    : rulonun eni ( mm ) — formatın yüksekliği
     Dönen    : DXF dosyası ( bayt )
 
     Şablon varsa paftalar ofisin TİP PROJE FORMATININ içine dizilir; yoksa
     yan yana serbest bir şerit olarak verilir ( program yine de çalışır ).
     """
-    return _proje_cizimi(sayfalari_topla(paftalar), surum, elektrikler)[0]
+    return _proje_cizimi(sayfalari_topla(paftalar), surum, elektrikler, kagit)[0]
 
 
 # =====================================================================
@@ -866,6 +845,7 @@ def _okubeni(
     cizim_sayfalari=False,
     pdf_sebebi=None,
     elektrik_adedi=0,
+    kagit=pafta.KAGIT,
 ):
     satir = [f"{dosya_adi}   —   Asansör Proje Programı", "", "PAKETİN İÇİNDEKİLER", ""]
     if dwg_var:
@@ -891,7 +871,7 @@ def _okubeni(
         "  LINE, yazılar TEXT oldu.  Ayrıca PDFIMPORT çalıştırmanız gerekmez.",
         (
             "  Sayfalar OFİSİN TİP PROJE FORMATININ içine A4 boyutunda dizildi:"
-            "\n  kapak sol üstteki antet hücresinde, hesaplar sağdaki büyük alanda."
+            "\n  kapak sol alttaki antet hücresinde, hesaplar sağdaki büyük alanda."
             if sablonlu
             else "  Şablon bulunamadığı için sayfalar yan yana serbest dizildi."
         ),
@@ -911,6 +891,15 @@ def _okubeni(
         "  Çizimde bir tuhaflık görürseniz 'pafta pdf' klasöründeki dosyaları",
         "  AutoCAD'de PDFATTACH ile ekleyip PDFIMPORT ile gömebilirsiniz.",
     ]
+    if sablonlu:
+        satir += [
+            "",
+            "KÂĞIT",
+            f"  Pafta {kagit / 10:g} cm enindeki rulo için dizildi:  çerçeve {kagit:g} mm yüksek,",
+            f"  PDF'in sayfası {(kagit + 10) / 10:g} cm ( çevresinde 5 mm pay ).  Şerit rulo boyunca",
+            "  uzar;  çizimler ölçeğindedir ( 1/50, 1/20 ).  PDF'i %100 ( gerçek boyut )",
+            "  basın — sayfaya sığdırma ölçeği bozar.",
+        ]
     if pdf_sebebi:
         satir += ["", "PDF", f"  {pdf_sebebi}  ( DXF / DWG etkilenmez )"]
     if tasti:
@@ -936,7 +925,13 @@ def _okubeni(
 
 
 def proje_paketi(
-    paftalar, dosya_adi="Avan Projesi", ekler=None, son_islem=None, pdf_islem=None, elektrikler=()
+    paftalar,
+    dosya_adi="Avan Projesi",
+    ekler=None,
+    son_islem=None,
+    pdf_islem=None,
+    elektrikler=(),
+    kagit=pafta.KAGIT,
 ):
     """`ekler`:  pakete konacak ek dosyalar  —  [ ( ad, bayt ) ].
     `pdf_islem`:  son DXF'ten ( paftanın PDF'i , çizimlerin sayfaları ) —
@@ -952,17 +947,21 @@ def proje_paketi(
 
     `elektrikler`:  asansörlerin elektrik projeleri ( cizim/elektrik.
     pafta_sayfalari ) — paftada alt satırın başında, kapağın yanında.
+
+    `kagit`:  rulonun eni ( mm — pafta.KAGIT_ENLERI ).  TEK KAYNAK:  son_islem ve
+    pdf_islem onu buradan alır ( islem( dxf, kagit ) ) — DXF'in hesap sayfaları, çizimleri
+    ve PDF şeridi aynı kâğıda dizilir.
     """
-    return _proje_paketi(paftalar, dosya_adi, ekler, son_islem, pdf_islem, elektrikler)
+    return _proje_paketi(paftalar, dosya_adi, ekler, son_islem, pdf_islem, elektrikler, kagit)
 
 
-def _pdfler(dxf, pdf_islem):
+def _pdfler(dxf, pdf_islem, kagit=pafta.KAGIT):
     """( paftanın PDF'i , çizimlerin sayfaları , sebep ) — PDF kurulamazsa paket
     yine iner ( DXF / DWG ), sebebi OKUBENI'ye yazılır."""
     if pdf_islem is None:
         return None, None, None
     try:
-        serit, sayfalar = pdf_islem(dxf)
+        serit, sayfalar = pdf_islem(dxf, kagit)
         return serit, sayfalar, None
     except Exception as e:  # PDF olmadan da paket teslim edilir
         if not isinstance(e, sorun.BILINEN):  # programın ( ya da kurulumun ) hatası:  kayıtta ERROR
@@ -971,7 +970,13 @@ def _pdfler(dxf, pdf_islem):
 
 
 def _proje_paketi(
-    paftalar, dosya_adi="Avan Projesi", ekler=None, son_islem=None, pdf_islem=None, elektrikler=()
+    paftalar,
+    dosya_adi="Avan Projesi",
+    ekler=None,
+    son_islem=None,
+    pdf_islem=None,
+    elektrikler=(),
+    kagit=pafta.KAGIT,
 ):
     """
     Butonun indirdiği ZIP:  içinde DXF ( her zaman ) ve DWG ( üretilebildiyse ).
@@ -981,11 +986,11 @@ def _proje_paketi(
     alta taşan sayfalar vardır.  Bu, yalnız OKUBENI'de kalmamalı — çağıran
     kullanıcıya SÖYLEMELİDİR; taşmış bir pafta baskıya gidebilir.
     """
-    dxf, sablonlu, tasti = _proje_cizimi(sayfalari_topla(paftalar), elektrikler=elektrikler)
+    dxf, sablonlu, tasti = _proje_cizimi(sayfalari_topla(paftalar), elektrikler=elektrikler, kagit=kagit)
     if son_islem is not None:
-        dxf = son_islem(dxf)
+        dxf = son_islem(dxf, kagit)
     dwg, sebep = dwg_uret(dxf)
-    pdf, cizim_sayfalari, pdf_sebebi = _pdfler(dxf, pdf_islem)
+    pdf, cizim_sayfalari, pdf_sebebi = _pdfler(dxf, pdf_islem, kagit)
     tampon = io.BytesIO()
     with zipfile.ZipFile(tampon, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr(f"{dosya_adi}.dxf", dxf)
@@ -1017,6 +1022,7 @@ def _proje_paketi(
                 cizim_sayfalari=bool(cizim_sayfalari),
                 pdf_sebebi=pdf_sebebi,
                 elektrik_adedi=len(elektrikler),
+                kagit=kagit,
             ),
         )
     tampon.seek(0)

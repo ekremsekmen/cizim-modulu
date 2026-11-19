@@ -37,6 +37,7 @@ from uclar.uc_ortak import (
     baglantiyi_izle,
 )
 from cizim import katlar
+from cizim import pafta
 from tasarim import alanlar
 from motor.avan import avan_hesabi
 from motor.avan import avan_sabitleri
@@ -650,6 +651,12 @@ def indir_proje_dwg(veri: dict, iptal=None):
             status_code=200,
         )
     try:
+        #  KÂĞIT ENİ ( 19 Kas ):  paftanın dizileceği rulo — 600 / 900 mm, boşsa 600;  başka
+        #  değer reddedilir ( asansör aramasından önce:  boşuna beklenmesin )
+        try:
+            kagit = pafta.kagit_eni(veri.get("kagit"))
+        except ValueError as e:
+            return JSONResponse({"hata": f"KÂĞIT ENİ:  {e}"}, status_code=200)
         paftalar = []
         t = a = None
 
@@ -727,6 +734,7 @@ def indir_proje_dwg(veri: dict, iptal=None):
             son_islem=cizim_uclari.paftaya_ekle(gler) if gler else None,
             pdf_islem=pafta_pdf.paket_pdfleri(paftalar, gler, elektrikler) if pafta_pdf else None,
             elektrikler=elektrikler,
+            kagit=kagit,
         )
         yanit = _indir(paket, ad, "application/zip")
         #  Kullanıcının BİLMESİ GEREKENLER başlıkta taşınır:

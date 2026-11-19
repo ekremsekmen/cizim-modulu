@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 
 from cizim import elektrik
 from cizim import istek_onbellegi
+from cizim import pafta
 from uclar import cizim_uclari
 from uclar import uygulama_istegi
 from uclar.uc_ortak import (
@@ -132,6 +133,12 @@ def indir_uygulama_dwg(veri: dict = Body(...)):
 
 def _uygulama_paketi(veri):
     try:
+        #  KÂĞIT ENİ ( 19 Kas ):  paftanın dizileceği rulo — 600 / 900 mm, boşsa 600;  başka
+        #  değer reddedilir ( hesaptan önce:  boşuna beklenmesin )
+        try:
+            kagit = pafta.kagit_eni(veri.get("kagit"))
+        except ValueError as e:
+            return JSONResponse({"aktif": False, "hata": f"KÂĞIT ENİ:  {e}"}, status_code=200)
         _p = _proje_kimligi(veri)
         s, yanit = _coklu_sonuc(veri)
         if yanit is not None:
@@ -182,6 +189,7 @@ def _uygulama_paketi(veri):
                 pafta_pdf.paket_pdfleri(paftalar, [g for g, _h in cizim], elektrikler) if pafta_pdf else None
             ),
             elektrikler=elektrikler,
+            kagit=kagit,
         )
         yanit = _indir(paket, ad, "application/zip")
         notlar = (["DXF"] if sebep else []) + (["TASMA"] if tasti else [])

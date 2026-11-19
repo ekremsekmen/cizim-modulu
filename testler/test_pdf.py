@@ -126,17 +126,51 @@ class Serit(unittest.TestCase):
             ("Uygulama Projesi", pdf_cikti.uygulama_pdf(s)),
         ]
         ((g, _h),) = cizim_uclari.girdiler(veri, asansorler, ortak, s, "DENEME")
+        cls.g = g
         dxf, _s, _t = dxf_cikti._proje_cizimi(dxf_cikti.sayfalari_topla(cls.paftalar))
         cls.dxf = cizim_uclari.paftaya_ekle([g])(dxf)
         cls.pdf = pafta_pdf.serit(cls.dxf, cls.paftalar, pafta.bloklar([g]))
+        #  90 cm'lik rulo ( 19 Kas ):  hesap sayfaları, çizimler ve PDF aynı kâğıda
+        dxf9, _s, _t = dxf_cikti._proje_cizimi(dxf_cikti.sayfalari_topla(cls.paftalar), kagit=900)
+        cls.dxf9 = cizim_uclari.paftaya_ekle([g])(dxf9, 900)
+        cls.pdf9 = pafta_pdf.serit(cls.dxf9, cls.paftalar, pafta.bloklar([g], 900), kagit=900)
+
+    def _cerceve_boyu(self, dxf, kagit):
+        d = ezdxf.read(io.StringIO(dxf.decode("utf-8")))
+        ust = pafta.ust_kenar(kagit)
+        xs = [
+            p.x
+            for e in d.modelspace().query("LINE")
+            for p in (e.dxf.start, e.dxf.end)
+            if abs(p.y - ust) < 0.5
+        ]
+        return max(xs) - min(xs)
 
     def test_tek_sayfa_paftanin_boyunda(self):
-        r = PdfReader(io.BytesIO(self.pdf))
-        self.assertEqual(len(r.pages), 1)
-        en, boy = float(r.pages[0].mediabox.width) / MM, float(r.pages[0].mediabox.height) / MM
-        #  Şablonun bandı 600 mm yüksek;  hesap sayfaları ve çizimler sağa uzatır
-        self.assertAlmostEqual(boy, 600 + 2 * 5.0 + 4.0, delta=6.0)
-        self.assertGreater(en, 3242.0)
+        #  Sayfa çerçeve ve 5 mm payı:  60 cm'lik rulonun eninde ( 610 mm — 19 Kas'a dek
+        #  kapağın A4'ü yüzünden 614 mm'ydi ), 90 cm'de 910;  boyu şeridin boyu
+        for pdf_, dxf, kagit in ((self.pdf, self.dxf, 600), (self.pdf9, self.dxf9, 900)):
+            with self.subTest(kagit=kagit):
+                r = PdfReader(io.BytesIO(pdf_))
+                self.assertEqual(len(r.pages), 1)
+                en, boy = float(r.pages[0].mediabox.width) / MM, float(r.pages[0].mediabox.height) / MM
+                self.assertAlmostEqual(boy, kagit + 2 * 5.0, delta=0.05)
+                self.assertAlmostEqual(en, self._cerceve_boyu(dxf, kagit) + 2 * 5.0, delta=0.05)
+        #  90 cm'de üç A4 satırı:  şerit 60 cm'dekinden kısa
+        self.assertLess(self._cerceve_boyu(self.dxf9, 900), self._cerceve_boyu(self.dxf, 600))
+
+    def test_baska_kagida_dizilmis_dxf(self):
+        """Şeridin PDF'i DXF'in kâğıdıyla kurulur:  ayrışırsa ( 90 cm'lik DXF'e 60 cm'lik
+        yerleşim ) PDF üretilmez — sayfalar çizimlerin üstüne binerdi;  çizimler 60 cm'lik
+        hesap DXF'ine 90 cm'le eklenmez ( çerçeve bulunamaz )."""
+        from ciktilar import pafta_pdf
+        from uclar import cizim_uclari
+
+        with self.assertRaisesRegex(ValueError, "ayrıştı"):
+            pafta_pdf.serit(self.dxf9, self.paftalar, pafta.bloklar([self.g], 900), kagit=600)
+        dxf, _s, _t = dxf_cikti._proje_cizimi(dxf_cikti.sayfalari_topla(self.paftalar))
+        with self.assertRaisesRegex(ValueError, "çerçevesi bulunamadı"):
+            cizim_uclari.paftaya_ekle([self.g])(dxf, 900)
 
     def test_hesap_sayfalari_ve_cizimler_yazi_olarak(self):
         m = _metin(self.pdf)
@@ -176,6 +210,42 @@ class Paket(unittest.TestCase):
         self.assertTrue(any(a.endswith("Uygulama Projesi.pdf") for a in adlar), adlar)
         self.assertTrue(any(a.endswith("çizimler.pdf") for a in adlar), adlar)
         self.assertIn("Paftanın PDF'i", z.read("OKUBENI.txt").decode())
+        self.assertIn("60 cm enindeki rulo", z.read("OKUBENI.txt").decode())
+
+    def test_kagit_eni(self):
+        """İstekteki kâğıt eni ( 19 Kas ):  900 → çerçeve 900 mm, şeridin PDF'i 910 mm ve
+        OKUBENI söyler;  600 / 900 dışı değer hesaptan önce reddedilir ( paket inmez )."""
+        import json
+
+        from hesap_girdi import ASANSOR, ORTAK, SABITLER
+        from uclar import uygulama_uclari
+
+        veri = {
+            "asansorler": [dict(ASANSOR, siginma_tipi_dip="Yatarak")],
+            "proje_geneli": dict(ORTAK),
+            "sabitler": dict(SABITLER),
+            "asansor": 0,
+        }
+        for yanlis in (750, "60", True):
+            with self.subTest(kagit=yanlis):
+                yanit = uygulama_uclari.indir_uygulama_dwg(dict(veri, kagit=yanlis))
+                self.assertIn("KÂĞIT ENİ", json.loads(yanit.body)["hata"])
+        z = zipfile.ZipFile(io.BytesIO(uygulama_uclari.indir_uygulama_dwg(dict(veri, kagit=900)).body))
+        self.assertIn("90 cm enindeki rulo", z.read("OKUBENI.txt").decode())
+        d = ezdxf.read(
+            io.StringIO(z.read(next(a for a in z.namelist() if a.endswith(".dxf"))).decode("utf-8"))
+        )
+        sol = [
+            e
+            for e in d.modelspace().query("LINE")
+            if abs(e.dxf.start.x - pafta.BANT[0]) < 0.5 and abs(e.dxf.end.x - pafta.BANT[0]) < 0.5
+        ]
+        self.assertEqual([round(abs(e.dxf.end.y - e.dxf.start.y)) for e in sol], [900])
+        #  Hesap sayfaları üç satırda, çizimler çerçevenin içinde
+        self.assertEqual(len({round(b[1], 1) for b in dxf_cikti.a4_cerceveleri(d.modelspace())}), 3)
+        serit = next(a for a in z.namelist() if a.endswith("Uygulama Projesi.pdf") and "/" not in a)
+        kagit = PdfReader(io.BytesIO(z.read(serit))).pages[0].mediabox
+        self.assertAlmostEqual(float(kagit.height) / MM, 910.0, delta=0.05)
 
 
 if __name__ == "__main__":

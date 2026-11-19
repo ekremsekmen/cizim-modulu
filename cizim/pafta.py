@@ -11,10 +11,18 @@ CAD'de blok açılınca ölçüler gerçek boyundadır.
 
 YERLEŞİM ( ofisin 477-8 uygulama projesindeki düzen ):  önce düşey
 kesitler ( 1/50 ), sonra planlar ( 1/20 ) konu sırasıyla
-sütunlara dizilir;  çizim sütuna sığmazsa yeni sütun açılır.  Düşey
-kesitler paftanın yüksekliğine sığmazsa ara katlar kırılır ( referans proje ve
-LiftDesigner gibi ).  Serbest alan yetmezse çerçeve SAĞA uzatılır — hesap
-programının yaptığı gibi;  aşağı taşmaz.
+sütunlara dizilir;  sıra bozulmaz, sütunlara bölme kâğıdı en kısa tutanıdır
+( _sutunlar ).  Düşey kesitler paftanın yüksekliğine sığmazsa ara katlar
+kırılır ( referans proje ve LiftDesigner gibi ).  Çerçevenin sağı içeriğin
+sağıdır:  içerik uzunsa SAĞA uzar, kısaysa kısalır — aşağı taşmaz.
+
+KÂĞIT ENİ ( 19 Kas, kullanıcı:  "projeyi indirirken 60 cm ya da 90 cm
+seçebilmeliyim … kağıttan da tasarruf edelim ama hiç bir şey bozulmasın" ):
+çizicinin rulosunun ENİ paftanın YÜKSEKLİĞİDİR — şerit rulo boyunca uzar,
+kâğıdın masrafı şeridin boyudur.  Ofisin şablonu 60 cm'lik rulonundur ( 600
+mm );  90 cm'de çerçeve yukarı uzar ( sablonu_uzat ), hesap sayfaları üç
+satır olur, kesitler 880 mm'ye dek kırılmaz.  Çizimlerin ölçeği iki kâğıtta
+da aynıdır ( 1/50, 1/20 ):  kâğıda sığdırmak için küçültülmez.
 
 ANTET:  bilinen değerler çizim girdisinden yazılır;  çizimin bilmediği
 değerler ( taşıma kapasitesi, asansör sınıfı, motor gücü ) BOŞ bırakılır —
@@ -47,7 +55,13 @@ BANT = (-4215.8, 1159.4, -973.8, 1759.4)
 KAPAK_HUCRESI = (-4215.8, 1159.4, -4012.5, 1448.3)
 SERBEST = (-4012.5, 1159.4, -973.8, 1759.4)
 KENAR = 10.0  # serbest alanın kenarından ilk çizime
-ARA = 12.0  # çizimler arası
+#  Çizimler arası ( her çizimin kendi çerçevesi var ):  19 Kas'a dek 12 mm — kullanıcı
+#  "birbirlerine yakın olsun" dedi;  6 mm'de çerçeveler yine ayrı okunur ( ÇİZİM KABULÜ )
+ARA = 6.0
+
+#  Rulonun eni ( mm ) = çerçevenin yüksekliği.  Şablon 600 mm'dir ( BANT );  KAGIT varsayılan
+KAGIT_ENLERI = (600, 900)
+KAGIT = 600
 
 #  Antetteki DEĞER hücreleri:  ( şablondaki örnek yazı, yeri ) — örnek yazı
 #  yerinde değilse şablon değişmiş demektir, pafta üretilmez.
@@ -148,6 +162,77 @@ def _antet_yazisi(d, yer, ornek=None):
     return None
 
 
+def kagit_eni(deger=None):
+    """İstekteki kâğıt eni ( mm ):  boşsa ofisin şablonununki ( KAGIT );  600 ya da 900
+    değilse ValueError ( girilen değer ya kullanılır ya iş durur )."""
+    if deger is None or deger == "":
+        return KAGIT
+    try:
+        k = float(str(deger).replace(",", "."))
+    except ValueError:
+        k = None
+    if isinstance(deger, bool) or k not in KAGIT_ENLERI:
+        raise ValueError(f"Kâğıt eni 60 ya da 90 cm olabilir ( gelen:  {deger!r} ).")
+    return int(k)
+
+
+def ust_kenar(kagit=KAGIT):
+    """Çerçevenin üst kenarının y'si ( pafta mm ):  alt kenar yerinde, kâğıt eni kadar yukarısı."""
+    return BANT[1] + kagit
+
+
+def cizim_yuksekligi(kagit=KAGIT):
+    """Çizimlerin sütununun yüksekliği:  çerçeve, üstte ve altta KENAR payıyla ( 60 cm'de 580 mm ) —
+    düşey kesit bundan uzunsa ara katları kırılır ( cizim_listesi )."""
+    return kagit - 2 * KENAR
+
+
+def sablonu_uzat(d, kagit=KAGIT):
+    """Şablonu kâğıdın enine uzatır ( 600 mm'de dokunmaz ):  çerçevenin üst kenarı ve notlar
+    YUKARI kayar, sol / sağ kenar ve notların sınır çizgisi uzar;  kapak hücresi ve antet
+    ( sol altta ) yerinde kalır.  Kayan:  ucu üst kenarda olan çizgi uçları ve notlar
+    bölgesinin ( kapak hücresinin üstü, soldaki blok ) içinde duran yazılar.  Şablon önce
+    doğrulanır ( _sablon_dogrula — 600 mm'lik hâliyle )."""
+    fark = kagit - (BANT[3] - BANT[1])
+    if abs(fark) < 1e-6:
+        return
+    msp = d.modelspace()
+    for e in msp.query("LINE"):
+        for uc in ("start", "end"):
+            p = e.dxf.get(uc)
+            if abs(p.y - BANT[3]) <= 0.5 and BANT[0] - 0.5 <= p.x <= BANT[2] + 0.5:
+                e.dxf.set(uc, (p.x, p.y + fark, p.z))
+    for e in msp.query("TEXT MTEXT"):
+        p = e.dxf.insert
+        if BANT[0] - 0.5 <= p.x < SERBEST[0] and KAPAK_HUCRESI[3] + 0.5 < p.y < BANT[3] + 0.5:
+            e.translate(0, fark, 0)
+
+
+def cerceveyi_tasi(d, sag, eski=None, kagit=KAGIT):
+    """Çerçevenin sağ kenarı `eski`den `sag`a kayar — içerik çerçeveden uzunsa çerçeve UZAR,
+    kısaysa KISALIR ( kâğıt boşa gitmez;  19 Kas ).  Sağ kenar çizgisi bütünüyle kayar;  alt
+    ve üst kenarın çizgileri ( şablonun üst kenarı iki parça ) yeni sağa uzar ya da orada
+    kesilir, bütünüyle dışta kalan silinir.  Başka varlığa dokunulmaz.  eski:  çerçevenin
+    şimdiki sağı ( hesap programı taşımış olabilir )."""
+    eski = BANT[2] if eski is None else eski
+    alt, ust = BANT[1], ust_kenar(kagit)
+    msp = d.modelspace()
+    for e in list(msp.query("LINE")):
+        a, b = e.dxf.start, e.dxf.end
+        if abs(a.x - eski) <= 0.5 and abs(b.x - eski) <= 0.5:
+            if min(a.y, b.y) >= alt - 0.5 and max(a.y, b.y) <= ust + 0.5:
+                e.dxf.start, e.dxf.end = (sag, a.y, a.z), (sag, b.y, b.z)
+            continue
+        if abs(a.y - b.y) > 0.01 or not (abs(a.y - alt) <= 0.5 or abs(a.y - ust) <= 0.5):
+            continue
+        xa = sag if abs(a.x - eski) <= 0.5 else min(a.x, sag)
+        xb = sag if abs(b.x - eski) <= 0.5 else min(b.x, sag)
+        if abs(xb - xa) < 0.01:
+            msp.delete_entity(e)
+        else:
+            e.dxf.start, e.dxf.end = (xa, a.y, a.z), (xb, b.y, b.z)
+
+
 def cizim_olcegi(ad):
     """Çizimin paftadaki ölçeği ( 1/olcek ) — başlıkta yazmasa da ( OLCEKSIZ )."""
     return cizimler.OLCEKLER.get(ad, 20)
@@ -211,13 +296,14 @@ def cizilir(g, ad):
     return ad in sira(g) or (bool((g.get("proje") or {}).get("grup_sirasi")) and ad in grup.cizimleri([g]))
 
 
-def cizim_listesi(g, seritler=()):
+def cizim_listesi(g, seritler=(), kagit=KAGIT):
     """( ad, başlık, ölçek, elemanlar — çerçeveli ) ;  hata varsa ValueError.
     seritler:  çizimlerin künye şeridine yazılacaklar ( çok asansörlü
-    projede asansörün adı — hangi kuyunun çizimi olduğu okunsun )."""
+    projede asansörün adı — hangi kuyunun çizimi olduğu okunsun ).
+    kagit:  rulonun eni ( mm ) — düşey kesit sütuna ( cizim_yuksekligi ) sığmazsa kırılır."""
     cikti, hata = [], []
     #  Serbest alanın yüksekliği ( kenarlar düşülünce ), çizim biriminde
-    yukseklik = SERBEST[3] - SERBEST[1] - 2 * KENAR
+    yukseklik = cizim_yuksekligi(kagit)
     for ad in sira(g):
         dogrula, ciz, baslik = cizimler.CIZIMLER[ad]
         h = dogrula(g)
@@ -246,39 +332,99 @@ def cizim_listesi(g, seritler=()):
     return cikti
 
 
-def yerlesim(boyutlar, x0=None, sag=None):
-    """Pafta mm'sinde çizim boyutlarından ( g, y ) sol-alt köşeler ve
-    gereken sağ kenar:  sütun sütun, üstten aşağı, soldan sağa.  x0:  ilk
-    sütunun solu ( hesap sayfalarından sonra ), sag:  çerçevenin şimdiki sağı."""
-    _, alt, x1, ust = SERBEST
+def _sira_bolmesi(boyutlar, yukseklik, gruplar):
+    """SIRA BOZULMADAN sütunlara bölme:  sütun ardışık çizimlerdir;  bölme, sütun enlerinin
+    ( ve aralıklarının ) toplamını EN KÜÇÜK yapandır ( dinamik programlama;  çizim sayısının
+    karesi kadar adım ).  Eşit boyda bölmelerden son sütunu en kısa olan seçilir:  öndeki
+    sütunlar dolu kalır."""
+    n = len(boyutlar)
+    en_iyi, once = [0.0] + [math.inf] * n, [0] * (n + 1)
+    for j in range(1, n + 1):
+        y = en = 0.0
+        for i in range(j - 1, -1, -1):
+            if gruplar[i] != gruplar[j - 1]:
+                break
+            y += boyutlar[i][1] + (ARA if i < j - 1 else 0.0)
+            if i < j - 1 and y > yukseklik + 1e-6:
+                break
+            en = max(en, boyutlar[i][0])
+            aday = en_iyi[i] + en + (ARA if i else 0.0)
+            if aday < en_iyi[j] - 1e-6:
+                en_iyi[j], once[j] = aday, i
+    sutunlar, j = [], n
+    while j:
+        sutunlar.insert(0, list(range(once[j], j)))
+        j = once[j]
+    return sutunlar
+
+
+def _bosluk_bolmesi(boyutlar, yukseklik, gruplar):
+    """BOŞLUĞU DOLDURAN bölme:  çizimler sırayla, kendi grubunun altında yer kalan
+    sütunlarından EN AZ GENİŞLEYENİNE girer ( eşitse soldakine ) — genişleme yeni bir
+    sütundan ( eni + ARA ) pahalıysa yeni sütun açılır.  90 cm'de kesitlerin altında
+    kalan ~250 mm'yi sıradaki plan değil, oraya sığan çizim doldurur."""
+    sutunlar = []
+    for k, (en, boy) in enumerate(boyutlar):
+        aday = None
+        for s in sutunlar:
+            if s["grup"] != gruplar[k] or s["boy"] + ARA + boy > yukseklik + 1e-6:
+                continue
+            artis = max(0.0, en - s["en"])
+            if aday is None or artis < aday[0] - 1e-6:
+                aday = (artis, s)
+        if aday is not None and aday[0] < en + ARA - 1e-6:
+            s = aday[1]
+            s["en"], s["boy"] = max(s["en"], en), s["boy"] + ARA + boy
+            s["sira"].append(k)
+        else:
+            sutunlar.append({"grup": gruplar[k], "en": en, "boy": boy, "sira": [k]})
+    return [s["sira"] for s in sutunlar]
+
+
+def sutunlar_boyu(boyutlar, sutunlar):
+    """Sütunların kapladığı boy ( mm ):  enlerinin toplamı ve aralıkları."""
+    return sum(max(boyutlar[i][0] for i in s) for s in sutunlar) + ARA * max(0, len(sutunlar) - 1)
+
+
+def _sutunlar(boyutlar, yukseklik, gruplar=None):
+    """Çizimleri sütunlara böler:  [ [ sıra no, … ], … ] — sütunun çizimleri üstten aşağı,
+    aralarında ARA, `yukseklik`e sığar;  eni en geniş çiziminin eni.  İki bölmeden şeridi
+    ( kâğıdı ) kısa tutanı:  sırayı bozmayan ( _sira_bolmesi ) — boşluğu dolduran
+    ( _bosluk_bolmesi ) ancak 1 mm'den çok kısaltırsa seçilir.  gruplar:  her çizimin grubu
+    ( kuyu grubunun ortak çizimleri, her asansörün kendi çizimleri ) — bir sütunda iki
+    grubun çizimi olmaz, grupların sütunları sırayla.  Sütuna tek başına sığmayan çizim
+    ( kırılamayan kesit ) kendi sütununa girer.  19 Kas'a dek sıradaki çizim sığmayınca yeni
+    sütun açılıyordu ( geniş bir planın yanına dar bir tablo düşünce sütun boşuna genişliyor,
+    90 cm'de kesitin altı boş kalıyordu )."""
+    gruplar = list(gruplar) if gruplar is not None else [0] * len(boyutlar)
+    sira = _sira_bolmesi(boyutlar, yukseklik, gruplar)
+    bosluk = _bosluk_bolmesi(boyutlar, yukseklik, gruplar)
+    return bosluk if sutunlar_boyu(boyutlar, bosluk) < sutunlar_boyu(boyutlar, sira) - 1.0 else sira
+
+
+def yerlesim(boyutlar, x0=None, kagit=KAGIT, gruplar=None):
+    """Pafta mm'sinde çizim boyutlarından ( g, y ) sol-alt köşeler ve çerçevenin
+    gereken sağ kenarı:  sütun sütun ( _sutunlar ), üstten aşağı, soldan sağa;  sütunun
+    çizimleri sola yaslı.  x0:  ilk sütundan önceki içeriğin sağı ( hesap sayfaları;  yoksa
+    serbest alanın solu ).  Sağ kenar son sütunun KENAR sağıdır:  çerçeve içerik kadar.
+    gruplar:  çizimlerin grubu ( _sutunlar ).
+
+    Sütuna sığmayan tek çizim ( en kısa kırık hâli bile uzun kesit — gerçek 800 KG:  10 durak,
+    giriş katı arada kalır, 60 cm'de 583,9 mm ) çerçevenin dikey ORTASINA konur:  üstte ve
+    altta eşit pay ( ~8 mm ).  19 Kas'a dek üstten diziliyordu, alt payın 4 mm'sine giriyordu."""
     x0 = SERBEST[0] if x0 is None else x0
-    x1 = x1 if sag is None else sag
+    ust = ust_kenar(kagit) - KENAR
     x = x0 + KENAR
-    y = ust - KENAR
-    sutun_eni = 0.0
-    yerler = []
-    for g_, y_ in boyutlar:
-        if yerler and y - y_ < alt + KENAR - 1e-6:
-            x += sutun_eni + ARA
-            y, sutun_eni = ust - KENAR, 0.0
-        yerler.append((x, y - y_))
-        y -= y_ + ARA
-        sutun_eni = max(sutun_eni, g_)
-    return yerler, max(x1, x + sutun_eni + KENAR)
-
-
-def _cerceveyi_uzat(d, sag, eski=None):
-    """Serbest alan yetmezse çerçevenin sağ kenarı `sag`a kayar ( üst ve alt
-    kenar uzar ) — hesap programının dxf_export._cerceveyi_uzat'ı gibi.
-    eski:  çerçevenin şimdiki sağı ( hesap programı uzatmış olabilir )."""
-    eski = BANT[2] if eski is None else eski
-    if sag <= eski + 1e-6:
-        return
-    for e in d.modelspace().query("LINE"):
-        for uc in ("start", "end"):
-            p = e.dxf.get(uc)
-            if abs(p.x - eski) <= 0.5:
-                e.dxf.set(uc, (sag, p.y, p.z))
+    yerler = [None] * len(boyutlar)
+    for sutun in _sutunlar(boyutlar, cizim_yuksekligi(kagit), gruplar):
+        y = ust
+        if len(sutun) == 1 and boyutlar[sutun[0]][1] > cizim_yuksekligi(kagit):
+            y = BANT[1] + (kagit + boyutlar[sutun[0]][1]) / 2
+        for i in sutun:
+            yerler[i] = (x, y - boyutlar[i][1])
+            y -= boyutlar[i][1] + ARA
+        x += max(boyutlar[i][0] for i in sutun) + ARA
+    return yerler, (x - ARA if boyutlar else x) + KENAR
 
 
 def _copleri_sil(msp):
@@ -315,23 +461,30 @@ def katmanlari_onar(d):
             k.dxf.plotstyle_handle = stil
 
 
-def bloklar(g):
+def bloklar(g, kagit=KAGIT):
     """Paftanın çizimleri, sırasıyla:  [ ( ad, başlık, ölçek, elemanlar ) ] —
     blok adı "CIZIM_" + ad.upper().  g:  tek asansörün girdisi ya da çok
     asansörlü projede girdilerin listesi ( asansörler sırayla, her çizimin
     şeridinde asansörün adı;  kuyu grubu varsa önce grubun planı — "kuyu_grubu" ).
-    DXF ( _yerlestir ) ve PDF ( ciktilar/pafta_pdf ) aynı listeyi kullanır."""
+    DXF ( _yerlestir ) ve PDF ( ciktilar/pafta_pdf ) aynı listeyi AYNI kâğıt eniyle
+    kullanır ( kesitin kırığı kâğıda bağlı )."""
+    return [c for _grup, c in _gruplu_bloklar(g, kagit)]
+
+
+def _gruplu_bloklar(g, kagit=KAGIT):
+    """bloklar ve her çizimin grubu:  [ ( grup, çizim ) ] — 0 kuyu grubunun ortak çizimleri,
+    i. asansörün çizimleri i ( yerleşimde bir sütuna iki grubun çizimi girmez )."""
     gler = g if isinstance(g, (list, tuple)) else [g]
     #  Kuyu grubunun planı önde ( asansörlerin kendi çizimleri ardından — cizim/grup.py )
-    liste = grup.pafta_cizimleri(gler, SERBEST[3] - SERBEST[1] - 2 * KENAR)
+    liste = [(0, c) for c in grup.pafta_cizimleri(gler, cizim_yuksekligi(kagit))]
     for i, g_ in enumerate(gler):
         coklu = len(gler) > 1
         #  Çok asansörlü projeden yalnız biri çizilebildiyse ( avan paketi — uclar/avan_cizimi )
         #  şeritte adı yine yazar:  hangi asansörün çizimi olduğu belli olsun
         adli = coklu or g_["proje"].get("cok_asansorlu")
-        for ad, baslik, olcek, e in cizim_listesi(g_, (g_["proje"]["asansor"],) if adli else ()):
+        for ad, baslik, olcek, e in cizim_listesi(g_, (g_["proje"]["asansor"],) if adli else (), kagit):
             #  Blok adı asansörle birlikte:  iki kuyunun kesiti aynı bloğu ezmesin
-            liste.append((f"{ad}_{i + 1}" if coklu else ad, baslik, olcek, e))
+            liste.append((i + 1, (f"{ad}_{i + 1}" if coklu else ad, baslik, olcek, e)))
     return liste
 
 
@@ -348,17 +501,18 @@ def blok_adi(ad):
     return f"CIZIM_{ad.upper()}"
 
 
-def _yerlestir(d, g, x0=None, sag_eski=None):
-    """Çizimleri belgeye blok olarak yerleştirir;  gerekirse çerçeveyi uzatır."""
-    liste = bloklar(g)
+def _yerlestir(d, g, x0=None, sag_eski=None, kagit=KAGIT):
+    """Çizimleri belgeye blok olarak yerleştirir;  çerçevenin sağı son sütuna gelir."""
+    gruplu = _gruplu_bloklar(g, kagit)
+    liste = [c for _grup, c in gruplu]
     dxf.hazirla(d)
     boyutlar, kutular = [], []
     for _ad, _baslik, olcek, e in liste:
         bx0, by0, bx1, by1 = geometri.sinir(e)
         kutular.append((bx0, by0))
         boyutlar.append(((bx1 - bx0) / olcek, (by1 - by0) / olcek))
-    yerler, sag = yerlesim(boyutlar, x0, sag_eski)
-    _cerceveyi_uzat(d, sag, sag_eski)
+    yerler, sag = yerlesim(boyutlar, x0, kagit, [grup_ for grup_, _c in gruplu])
+    cerceveyi_tasi(d, sag, sag_eski, kagit)
     msp = d.modelspace()
     yerlesen = []
     for (ad, baslik, olcek, e), (bx, by), (px, py), (w, h) in zip(liste, kutular, yerler, boyutlar):
@@ -368,39 +522,43 @@ def _yerlestir(d, g, x0=None, sag_eski=None):
             blok.name, (px, py), dxfattribs={"xscale": 1.0 / olcek, "yscale": 1.0 / olcek, "layer": "0"}
         )
         yerlesen.append({"ad": ad, "baslik": baslik, "olcek": olcek, "kutu": (px, py, px + w, py + h)})
-    x0_, y0_, x1_, y1_ = BANT[0], BANT[1], sag, BANT[3]
+    x0_, y0_, x1_, y1_ = BANT[0], BANT[1], sag, ust_kenar(kagit)
     msp.dxf.extmin, msp.dxf.extmax = (x0_, y0_, 0), (x1_, y1_, 0)
     msp.dxf.limmin, msp.dxf.limmax = (x0_, y0_), (x1_, y1_)
     zoom.window(msp, (x0_ - 10, y0_ - 10), (x1_ + 10, y1_ + 10))
     return {"cizimler": yerlesen, "sag": sag, "olcekler": [c[2] for c in liste]}
 
 
-def belge(g):
-    """Doldurulmuş pafta ( ezdxf belgesi ) ve yerleşim bilgisi."""
+def belge(g, kagit=KAGIT):
+    """Doldurulmuş pafta ( ezdxf belgesi ) ve yerleşim bilgisi;  kagit:  rulonun eni ( mm )."""
     d = ezdxf.readfile(SABLON)
     _sablon_dogrula(d)
     katmanlari_onar(d)
     _copleri_sil(d.modelspace())
-    bilgi = _yerlestir(d, g)
+    sablonu_uzat(d, kagit)
+    bilgi = _yerlestir(d, g, kagit=kagit)
     _antet(d, g, bilgi["olcekler"])
     _kullanilmayanlari_sil(d)
     return d, bilgi
 
 
-def birlestir(hesap_dxf, g):
+def birlestir(hesap_dxf, g, kagit=KAGIT):
     """TAM PROJE:  hesap programının TİP PROJE FORMATINA dizdiği DXF'e
     ( kapak + hesap sayfaları ) çizimleri ekler — son hesap sayfasının
-    sağından başlayarak;  çerçeve gerekirse sağa uzar.  Antete dokunulmaz:
-    hesap programının kapağı onun yerindedir.
+    sağından başlayarak;  çerçevenin sağı son çizim sütununa gelir.  Antete
+    dokunulmaz:  hesap programının kapağı onun yerindedir.
 
     hesap_dxf:  dosya yolu.  g:  tek girdi ya da asansörlerin girdileri
-    ( listede sırayla dizilir ).  Dönen:  ( belge, bilgi )."""
+    ( listede sırayla dizilir ).  kagit:  rulonun eni ( mm ) — hesap DXF'i aynı
+    kâğıda dizilmiş olmalı ( çerçevenin üst kenarı orada aranır ).  Dönen:  ( belge, bilgi )."""
     d = ezdxf.readfile(hesap_dxf)
     msp = d.modelspace()
     #  Çerçevenin şimdiki sağ kenarı:  üst kenar çizgisinin en sağ ucu
-    ust = [p.x for e in msp.query("LINE") for p in (e.dxf.start, e.dxf.end) if abs(p.y - BANT[3]) <= 0.5]
+    ust = [
+        p.x for e in msp.query("LINE") for p in (e.dxf.start, e.dxf.end) if abs(p.y - ust_kenar(kagit)) <= 0.5
+    ]
     if not ust or min(ust) > BANT[0] + 0.5:
-        raise ValueError("Hesap DXF'inde TİP PROJE FORMATI çerçevesi bulunamadı.")
+        raise ValueError(f"Hesap DXF'inde {kagit / 10:g} cm'lik TİP PROJE FORMATI çerçevesi bulunamadı.")
     sag_eski = max(ust)
     #  Hesap sayfalarının sağı:  A4 çerçevelerinin en sağ ucu.  Hesap programı
     #  çerçeveleri 0 katmanına çizer ( orada şablonun kendi çizgileri de var ),
@@ -413,7 +571,7 @@ def birlestir(hesap_dxf, g):
     ]
     x0 = max(sayfalar) if sayfalar else SERBEST[0]
     katmanlari_onar(d)
-    bilgi = _yerlestir(d, g, x0, sag_eski)
+    bilgi = _yerlestir(d, g, x0, sag_eski, kagit)
     bilgi["hesap_sagi"] = x0
     _kullanilmayanlari_sil(d)
     return d, bilgi
@@ -463,8 +621,8 @@ def _kullanilmayanlari_sil(d):
             d.styles.remove(s.dxf.name)
 
 
-def yaz(g) -> bytes:
-    d, _ = belge(g)
+def yaz(g, kagit=KAGIT) -> bytes:
+    d, _ = belge(g, kagit)
     with tempfile.TemporaryDirectory() as klasor:
         yol = os.path.join(klasor, "pafta.dxf")
         d.saveas(yol)

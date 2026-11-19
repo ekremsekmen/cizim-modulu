@@ -5,15 +5,17 @@
     İkincisinin onayı sorumluluktur:  hesap o değerlerle yapıldı.            */
 import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Check, ChevronRight, FileArchive, FileCode, FileText, Loader2, DraftingCompass, ScrollText, Zap } from "lucide-react";
+import { Check, ChevronRight, FileArchive, FileCode, FileText, Loader2, DraftingCompass, Ruler, ScrollText, Zap } from "lucide-react";
 import { indir, paketNotu, type Alan, type AlanSemasi, type CokluYanit, type Deger, type UygulamaIstegi } from "@/lib/api";
 import { girilmeyenler, kotOzeti, type Ham, type UygulamaProjesi } from "@/lib/proje";
 import { DURAK_KOTLARI } from "@/lib/kotlar";
 import { dosyaGovdesi } from "@/lib/dosya";
 import { kapakSayfasi } from "@/lib/kapak";
+import { useKagitEni } from "@/lib/kagit";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
 import { Cekmece, Dugme, Rozet } from "@/components/ui";
 import { HukumRozeti } from "@/components/HesapBelgesi";
+import { KagitSecici } from "@/components/KagitSecici";
 
 export function Teslim({
   acik,
@@ -76,7 +78,9 @@ export function Teslim({
   //  Kapak sayfası:  dolu alan varsa sunucu paketin başına koyar ( eski arayüz gibi )
   const kapak = kapakSayfasi({ ...proje.kapak, ...proje.kimlik });
   const govde = () => ({ ...istek, kapak_sayfasi: kapak, proje_dosyasi: dosyaGovdesi(proje, sema, ofis) });
-  const paket = useMutation({ mutationFn: () => indir("uygulama-dwg", govde()) });
+  //  Paftanın dizileceği rulo ( 60 / 90 cm ):  yalnız paket ( DXF / DWG ve şeridin PDF'i ) kâğıda dizilir
+  const [kagit, setKagit] = useKagitEni();
+  const paket = useMutation({ mutationFn: () => indir("uygulama-dwg", { ...govde(), kagit }) });
   const pdf = useMutation({ mutationFn: () => indir("uygulama-pdf", govde()) });
   const hata = paket.data?.hata || pdf.data?.hata;
   const notlar = paket.data?.notlar ?? [];
@@ -250,6 +254,18 @@ export function Teslim({
             <Icerik simge={<Zap />} ad="Elektrik projesi" ek={elektrikEki} soluk={!!hesap && elektrikli === 0} />
             <Icerik simge={<FileCode />} ad="Proje dosyası" ek=".uygulama — geri dönüş noktası" />
           </ul>
+          <div className="mt-2 flex items-center gap-3 rounded-orta border border-cizgi px-3.5 py-2.5">
+            <span className="text-metin-2 [&_svg]:size-4">
+              <Ruler />
+            </span>
+            <span className="flex-1">
+              <span className="block text-[13px] font-medium">Kâğıt eni</span>
+              <span className="block text-[12px] leading-snug text-metin-3">
+                Pafta bu rulo enine dizilir;  çizimler ölçeğinde ( 1/50 · 1/20 )
+              </span>
+            </span>
+            <KagitSecici deger={kagit} degisti={setKagit} />
+          </div>
         </section>
 
         {notlar.length > 0 && (

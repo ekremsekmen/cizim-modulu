@@ -58,10 +58,12 @@ import { avanHukmu, durumYaz } from "@/lib/durum";
 import { DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, katDilimi, kotlariOku, kotYaz } from "@/lib/kotlar";
 import { KatGirisi } from "@/uygulama/KotTablosu";
 import { KAPAK_GRUPLARI } from "@/lib/kapak";
+import { useKagitEni } from "@/lib/kagit";
 import { cn, sayiYaz } from "@/lib/utils";
 import { AnaSayfaBaglantisi, BasvuruBaglantilari, SunucuBekleniyor, UstSerit } from "@/components/Kabuk";
 import { Anahtar, Dugme, Girdi, Ipucu, Pencere, Rozet, Secim } from "@/components/ui";
 import { HesapBelgesi, HukumRozeti } from "@/components/HesapBelgesi";
+import { KagitSecici } from "@/components/KagitSecici";
 //  pdf.js büyüktür ( ~1 MB ):  yalnız kapak adımı açılınca iner
 const PdfOnizleme = lazy(() => import("@/components/PdfOnizleme").then((m) => ({ default: m.PdfOnizleme })));
 
@@ -266,12 +268,15 @@ export function AvanCalisma() {
   //  ÇİFT BASIŞ ( 17 Kas — ön yüz denetimi ):  düğme ancak yeniden çizilince kapanır;  aynı anda iki
   //  basış iki paket başlatabiliyordu.  Paket ( ya da paketten önceki soru ) sürerken yeni basış yok sayılır.
   const indirmeSuruyor = useRef(false);
+  //  Paftanın dizileceği rulo ( 60 / 90 cm — lib/kagit;  Teslim'le aynı seçim )
+  const [kagit, setKagit] = useKagitEni();
   const paket = useMutation({
     mutationFn: () =>
       indir("proje-dwg", {
         kapak: kapakVerisi,
         girdiler: { trafik: trafikGirdi, avan: avanGirdi },
         proje_dosyasi: avanDosyaGovdesi(p, sec.data!, ofis, kopru),
+        kagit,
       }),
     onSettled: () => {
       indirmeSuruyor.current = false;
@@ -502,6 +507,11 @@ export function AvanCalisma() {
                 Vazgeç
               </Dugme>
             </Pencere>
+            <Ipucu metin="Kâğıt eni ( cm ):  paket bu rulo enine dizilir">
+              <span className="ml-1 shrink-0 whitespace-nowrap">
+                <KagitSecici deger={kagit} degisti={setKagit} kisa />
+              </span>
+            </Ipucu>
             <Dugme
               tur="birincil"
               className="ml-1"
@@ -611,29 +621,29 @@ function DosyaDugmeleri({
     <span className="flex items-center gap-1">
       {hata && <span className="max-w-72 text-right text-[12px] leading-snug text-red">{hata}</span>}
       <Ipucu metin="Yeni avan projesi ( açık avan doluysa önce sorulur )">
-        <Dugme tur="hayalet" boy="simge" className="xl:w-auto xl:px-2.5" aria-label="Yeni avan projesi" onClick={yeni}>
+        <Dugme tur="hayalet" boy="simge" className="min-[1440px]:w-auto min-[1440px]:px-2.5" aria-label="Yeni avan projesi" onClick={yeni}>
           <FilePlus />
-          <span className="hidden xl:inline">Yeni</span>
+          <span className="hidden min-[1440px]:inline">Yeni</span>
         </Dugme>
       </Ipucu>
       <Ipucu metin="Proje dosyasını aç ( .avan )">
-        <Dugme tur="hayalet" boy="simge" className="xl:w-auto xl:px-2.5" aria-label="Proje dosyasını aç" onClick={() => girdi.current?.click()}>
+        <Dugme tur="hayalet" boy="simge" className="min-[1440px]:w-auto min-[1440px]:px-2.5" aria-label="Proje dosyasını aç" onClick={() => girdi.current?.click()}>
           <FolderOpen />
-          <span className="hidden xl:inline">Aç</span>
+          <span className="hidden min-[1440px]:inline">Aç</span>
         </Dugme>
       </Ipucu>
       <Ipucu metin={kaydetBekleme ?? "Proje dosyası olarak kaydet ( .avan ) — eski arayüz de açar"}>
         <Dugme
           tur="hayalet"
           boy="simge"
-          className="xl:w-auto xl:px-2.5"
+          className="min-[1440px]:w-auto min-[1440px]:px-2.5"
           aria-label="Proje dosyası olarak kaydet"
           onClick={kaydet}
           disabled={!!kaydetBekleme}
           title={kaydetBekleme}
         >
           <Save />
-          <span className="hidden xl:inline">Kaydet</span>
+          <span className="hidden min-[1440px]:inline">Kaydet</span>
         </Dugme>
       </Ipucu>
       <input

@@ -433,6 +433,28 @@ class AvanPaketi(unittest.TestCase):
             }
         )
 
+    def test_kagit_eni(self):
+        """ "Projeyi indir"in kâğıt eni ( 19 Kas ):  900 → çerçeve 900 mm, çizimler onun içinde;
+        600 / 900 dışı değer asansör aranmadan reddedilir."""
+        veri = {"kapak": {"project_title": "Avan deneme"}, "girdiler": {"avan": self.girdi(kart(T630))}}
+        self.assertIn("KÂĞIT ENİ", json.loads(avan_uclari.indir_proje_dwg(dict(veri, kagit=75)).body)["hata"])
+        yanit = avan_uclari.indir_proje_dwg(dict(veri, kagit=900))
+        self.assertEqual(yanit.media_type, "application/zip", yanit.body[:300])
+        z = zipfile.ZipFile(io.BytesIO(yanit.body))
+        d = ezdxf.read(
+            io.StringIO(z.read(next(n for n in z.namelist() if n.endswith(".dxf"))).decode("utf-8"))
+        )
+        msp = d.modelspace()
+        ust = pafta.ust_kenar(900)
+        ustler = [p.x for e in msp.query("LINE") for p in (e.dxf.start, e.dxf.end) if abs(p.y - ust) < 0.5]
+        self.assertTrue(ustler)
+        cizimler = [e for e in msp.query("INSERT") if e.dxf.name.startswith("CIZIM_")]
+        self.assertTrue(any(e.dxf.name == "CIZIM_KUYU_KESITI_YAN" for e in cizimler))
+        for e in cizimler:
+            with self.subTest(blok=e.dxf.name):
+                self.assertGreaterEqual(e.dxf.insert.y, pafta.BANT[1] - 0.5)
+                self.assertLess(e.dxf.insert.x, max(ustler))
+
     def test_kapak_her_pakette(self):
         """18 Kas ( yayın öncesi denetim — uygulama paketiyle aynı sınıf ):  istekte kapak yoksa ya
         da boşsa kapak hesaptan türetilir ( kapak.trafikten / avandan — ekranın kullandığı );
