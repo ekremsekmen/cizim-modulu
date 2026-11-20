@@ -237,7 +237,8 @@ class ArizaMatrisiKapsami(unittest.TestCase):
             if ".test." not in p
         )
         uclar = set(re.findall(r'"(/api/[a-z_/-]+)"', kaynak))
-        uclar |= {f"/api/indir/{u}" for u in re.findall(r'(?:indir\(|uc=)"([a-z-]+)"', kaynak)}
+        #  Paketler akışlı indirilir ( 20 Kas — indirAkisli, adı alt satırda olabilir )
+        uclar |= {f"/api/indir/{u}" for u in re.findall(r'(?:indir(?:Akisli)?\(\s*|uc=)"([a-z-]+)"', kaynak)}
         self.assertGreater(len(uclar), 10, uclar)
         matris = "".join(
             inspect.getsource(getattr(OnYuzUctanUca, ad))
@@ -322,11 +323,25 @@ class OnYuzUctanUca(unittest.TestCase):
         e = self.etiket[anahtar]
         return e[: e.index("(")].strip() if "(" in e else e.strip()
 
+    def serit_dugmesi(self, ad=None, baslik=None):
+        """Şeritteki çizim düğmesi ( ad:  başlığın başı;  baslik:  tam başlık ).  Şeride sığmayıp
+        "Diğer"e indiyse ( 20 Kas — B7 ) kutu açılır, oradaki düğme."""
+        serit = self.sayfa.get_by_role("navigation", name="Çizimler")
+        serit.wait_for()
+
+        def bul(yer):
+            if baslik is not None:
+                return yer.locator(f'button[title="{baslik}"]')
+            return yer.get_by_role("button", name=re.compile("^" + re.escape(ad)))
+
+        if bul(serit).count():
+            return bul(serit)
+        serit.get_by_role("button", name=re.compile(r"^Diğer çizimler")).click()
+        return bul(self.sayfa.get_by_role("dialog", name="Öteki çizimler"))
+
     def cizimi_ac(self, ad):
         """Tuvalde çizimi açar ( alttaki şerit — tuvalde bir çizim görünür ):  ad başlığın başı."""
-        self.sayfa.get_by_role("navigation", name="Çizimler").get_by_role(
-            "button", name=re.compile("^" + re.escape(ad))
-        ).click()
+        self.serit_dugmesi(ad).click()
 
     def alan_kutusu(self, anahtar):
         """Alan aramayla öne getirilir ( kapalı grup ya da Gelişmiş'te olsa da )."""
@@ -768,9 +783,7 @@ class OnYuzUctanUca(unittest.TestCase):
         )
         self._dosyadan_ac(alanlar)
         cizim = self.sayfa.locator('[data-cizim="kuyu_grubu_kuyu_dibi"]')
-        self.sayfa.get_by_role("navigation", name="Çizimler").locator(
-            f'button[title="{cizim.get_attribute("aria-label")}"]'
-        ).click()
+        self.serit_dugmesi(baslik=cizim.get_attribute("aria-label")).click()
         olculer = cizim.get_by_role("button", name=re.compile(r"^Ölçü "))
         self.assertGreater(olculer.count(), 10)
         bulundu = None
@@ -2389,7 +2402,8 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(
             serit.locator("[aria-pressed=true]").get_attribute("aria-label"), "B-B KUYU DÜŞEY KESİTİ"
         )
-        #  Bütün çizimler şeritte görünür ve tıklanır ( 6 Kas:  sağdakiler taşıp görünmüyordu )
+        #  Şeritteki düğmeler şeridin içinde ( 6 Kas:  sağdakiler taşıp görünmüyordu );  20 Kas'tan
+        #  ( B7 ) düğme adı kadar geniş, adı kesilmez — sığmayanlar sırayla "Diğer"de, eksik çizim yok
         s = serit.bounding_box()
         for d in serit.get_by_role("button").all():
             k = d.bounding_box()
@@ -2397,6 +2411,25 @@ class OnYuzUctanUca(unittest.TestCase):
                 k["x"] >= s["x"] and k["x"] + k["width"] <= s["x"] + s["width"] + 0.5,
                 d.get_attribute("aria-label"),
             )
+            self.assertTrue(
+                d.evaluate(
+                    "e => [...e.querySelectorAll('.truncate')].every(x => x.scrollWidth <= x.clientWidth)"
+                ),
+                d.get_attribute("aria-label"),
+            )
+        seritte = serit.locator("button[title]").count()
+        diger = serit.get_by_role("button", name=re.compile(r"^Diğer çizimler"))
+        inen = 0
+        if diger.count():
+            diger.click()
+            kutu = self.sayfa.get_by_role("dialog", name="Öteki çizimler")
+            inen = kutu.get_by_role("button").count()
+            #  Diğer'den açılan çizim şeride çıkar, basılı ( açık çizim hep şeritte )
+            ad = kutu.get_by_role("button").last.get_attribute("aria-label")
+            kutu.get_by_role("button").last.click()
+            self.assertEqual(serit.locator("[aria-pressed=true]").get_attribute("aria-label"), ad)
+        self.assertGreater(seritte, 2)
+        self.assertEqual(seritte + inen, self.sayfa.locator("figure[data-cizim]").count())
         serit.get_by_role("button", name="Tümü").click()
         self.assertEqual(len(gorunen()), self.sayfa.locator("figure[data-cizim]").count())
         kart = self.sayfa.locator('figure[data-cizim="kuyu_dibi"]').bounding_box()

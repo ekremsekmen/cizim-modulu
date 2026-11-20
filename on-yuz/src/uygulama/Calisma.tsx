@@ -10,11 +10,13 @@ import {
   ChevronDown,
   CircleAlert,
   DraftingCompass,
+  FolderOpen,
   Lightbulb,
   Loader2,
   LocateFixed,
   Package,
   Plus,
+  Save,
   TriangleAlert,
   Undo2,
   X,
@@ -46,6 +48,8 @@ import {
   type UygulamaProjesi,
 } from "@/lib/proje";
 import { durumYaz, izi } from "@/lib/durum";
+import { dosyayaKaydet } from "@/lib/dosya";
+import { useDosyaAc } from "@/ekranlar/useDosyaAc";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
 import { AnaSayfaBaglantisi, BasvuruBaglantilari, SunucuBekleniyor, UstSerit } from "@/components/Kabuk";
 import { Bolumlu, Dugme, HukumNoktasi, Ipucu, Rozet } from "@/components/ui";
@@ -73,6 +77,9 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   //  Katlar yalnız kotla girilir:  kotsuz proje ( yeni, eski dosya ) açılırken kotlara çevrilir
   const [proje, guncelle, sil, baskaSekmedeSilindi] = useUygulamaProjesi(kotlayaCevir(sema, baslangic));
   const [ofis] = useOfisStandardi();
+  //  Üst şeritteki dosya düğmeleri ( 20 Kas — arayüz taslağı B9:  avanda üst şeritte, uygulamada proje
+  //  bilgileri çekmecesinin dibindeydi;  proje tarayıcıda durur, dosyaya kaydetmek görünür olmalı )
+  const dosya = useDosyaAc(sema, ofis, "uygulama");
   const [params, setParams] = useSearchParams();
   const gorunum = (params.get("gorunum") as "cizim" | "hesap") ?? "cizim";
   const [asansor, setAsansor] = useState(0);
@@ -421,6 +428,34 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
             />
             <span className="mx-1 h-5 w-px bg-cizgi" />
             <BasvuruBaglantilari />
+            <span className="flex items-center gap-1">
+              {dosya.hata && <span className="max-w-72 text-right text-[12px] leading-snug text-red">{dosya.hata}</span>}
+              <Ipucu metin="Proje dosyasını aç ( .uygulama ) — yeni proje olarak açılır">
+                <Dugme
+                  tur="hayalet"
+                  boy="simge"
+                  className="min-[1440px]:w-auto min-[1440px]:px-2.5"
+                  aria-label="Proje dosyasını aç"
+                  onClick={dosya.sec}
+                >
+                  <FolderOpen />
+                  <span className="hidden min-[1440px]:inline">Aç</span>
+                </Dugme>
+              </Ipucu>
+              <Ipucu metin="Proje dosyası olarak kaydet ( .uygulama ) — başka bilgisayarda da açılır">
+                <Dugme
+                  tur="hayalet"
+                  boy="simge"
+                  className="min-[1440px]:w-auto min-[1440px]:px-2.5"
+                  aria-label="Proje dosyası olarak kaydet"
+                  onClick={() => dosyayaKaydet(proje, sema, ofis)}
+                >
+                  <Save />
+                  <span className="hidden min-[1440px]:inline">Kaydet</span>
+                </Dugme>
+              </Ipucu>
+              {dosya.girdi}
+            </span>
             <Dugme tur="birincil" className="ml-1" onClick={() => setTeslimAcik(true)}>
               <Package /> Teslim
             </Dugme>
@@ -889,50 +924,64 @@ function CareListesi({
     return <p className="mt-1 text-[11.5px] opacity-70">Doğrulanmış düzeltme bulunamadı — girdileri elle gözden geçirin.</p>;
   return (
     <ul aria-label="Düzeltmeler" className="mt-1 mb-1.5 space-y-1">
-      {c.oneriler.map((o) => (
-        <li
-          key={o.anahtar}
-          className={cn(
-            "flex items-center gap-2 rounded-kucuk px-2 py-1 text-[12px]",
-            koyu ? "bg-white/[0.06]" : "bg-black/[0.03]",
-          )}
-        >
-          <span className="min-w-0 flex-1">
-            <span className="font-medium">{etiketBol(o.etiket)[0]}</span>{" "}
-            <span className={cn("whitespace-nowrap", typeof o.yeni === "number" && "sayi")}>
-              {o.girilmis ? degerYaz(o.eski) : `boş ( ${degerYaz(o.eski)} )`} → <b>{degerYaz(o.yeni)}</b>
-            </span>
-            {o.gider.length > 1 && <span className="opacity-70">  ·  {o.gider.length} sorun birden gider</span>}
-            {o.yontem === "son değişiklik" && <span className="opacity-70">  ·  son değişikliğin sınırı</span>}
-            {o.ortaya_cikan.length > 0 && (
-              <span className="opacity-70" title={o.ortaya_cikan.join("\n")}>
-                {"  ·  "}sonra {o.ortaya_cikan.length} gizli sorun görünür
-              </span>
-            )}
-            {o.hesapta_ortaya_cikan.length > 0 && (
-              <span className="opacity-70" title={o.hesapta_ortaya_cikan.map(bolumAdi).join("\n")}>
-                {"  ·  "}hesapta {o.hesapta_ortaya_cikan.length} bölüm uygun değil çıkar
-              </span>
-            )}
-            {o.bina && (
-              <span className={cn("ml-1.5 rounded-full px-1.5 text-[10.5px]", koyu ? "bg-[#3a2c12] text-[#fbbf24]" : "bg-uyari-acik text-uyari")}>
-                bina ölçüsü
-              </span>
-            )}
-          </span>
-          <button
-            type="button"
-            onClick={() => uygula(o)}
-            aria-label={`${etiketBol(o.etiket)[0]} ${degerYaz(o.yeni)} yap`}
+      {c.oneriler.map((o) => {
+        //  ÜÇ SATIR ( 20 Kas — arayüz taslağı B6:  "boş ( Teleskopik Sol ) → Manuel Sağ" 324 px'lik panelde
+        //  "Uygula"nın altına giriyordu ):  alanın adı, eski → yeni, notlar;  "Uygula" sağda sabit
+        const notlar = [
+          o.gider.length > 1 && `${o.gider.length} sorun birden gider`,
+          o.yontem === "son değişiklik" && "son değişikliğin sınırı",
+        ].filter(Boolean);
+        return (
+          <li
+            key={o.anahtar}
             className={cn(
-              "shrink-0 rounded-kucuk border px-2 py-0.5 text-[11.5px] font-medium",
-              koyu ? "border-white/20 text-white hover:bg-white/10" : "border-cizgi hover:bg-black/[0.04]",
+              "flex items-center gap-2 rounded-kucuk px-2 py-1.5 text-[12px]",
+              koyu ? "bg-white/[0.06]" : "bg-black/[0.03]",
             )}
           >
-            Uygula
-          </button>
-        </li>
-      ))}
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">
+                {etiketBol(o.etiket)[0]}
+                {o.bina && (
+                  <span className={cn("ml-1.5 rounded-full px-1.5 text-[10.5px] font-normal", koyu ? "bg-[#3a2c12] text-[#fbbf24]" : "bg-uyari-acik text-uyari")}>
+                    bina ölçüsü
+                  </span>
+                )}
+              </span>
+              <span className={cn("block [overflow-wrap:anywhere]", typeof o.yeni === "number" && "sayi")}>
+                {o.girilmis ? degerYaz(o.eski) : `boş ( ${degerYaz(o.eski)} )`} → <b>{degerYaz(o.yeni)}</b>
+              </span>
+              {(notlar.length > 0 || o.ortaya_cikan.length > 0 || o.hesapta_ortaya_cikan.length > 0) && (
+                <span className="block text-[11.5px] opacity-70">
+                  {notlar.join("  ·  ")}
+                  {o.ortaya_cikan.length > 0 && (
+                    <span title={o.ortaya_cikan.join("\n")}>
+                      {notlar.length > 0 && "  ·  "}sonra {o.ortaya_cikan.length} gizli sorun görünür
+                    </span>
+                  )}
+                  {o.hesapta_ortaya_cikan.length > 0 && (
+                    <span title={o.hesapta_ortaya_cikan.map(bolumAdi).join("\n")}>
+                      {(notlar.length > 0 || o.ortaya_cikan.length > 0) && "  ·  "}hesapta {o.hesapta_ortaya_cikan.length} bölüm uygun
+                      değil çıkar
+                    </span>
+                  )}
+                </span>
+              )}
+            </span>
+            <button
+              type="button"
+              onClick={() => uygula(o)}
+              aria-label={`${etiketBol(o.etiket)[0]} ${degerYaz(o.yeni)} yap`}
+              className={cn(
+                "shrink-0 rounded-kucuk border px-2 py-0.5 text-[11.5px] font-medium",
+                koyu ? "border-white/20 text-white hover:bg-white/10" : "border-cizgi hover:bg-black/[0.04]",
+              )}
+            >
+              Uygula
+            </button>
+          </li>
+        );
+      })}
     </ul>
   );
 }

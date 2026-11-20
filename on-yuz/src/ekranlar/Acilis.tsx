@@ -41,6 +41,43 @@ export function Acilis() {
   const projeler = [...projeListesi(), ...(avan ? [avan] : [])].sort((a, b) => b.guncellendi - a.guncellendi);
   //  Bilinmeyen proje adresinden gelindiyse ( başka tarayıcının bağlantısı, silinmiş proje )
   const bulunamadi = (useLocation().state as { bulunamadi?: string } | null)?.bulunamadi;
+  const sonProjeler = (
+    <section aria-labelledby="son">
+      <div className="flex items-baseline justify-between">
+        <h2 id="son" className="text-[13px] font-semibold">
+          Son projeler
+        </h2>
+        <span className="text-[12px] text-metin-3">bu tarayıcıda</span>
+      </div>
+      <div className="mt-3 overflow-hidden rounded-buyuk border border-cizgi bg-yuzey shadow-panel">
+        {projeler.length === 0 ? (
+          <div className="px-5 py-14 text-center">
+            <Ruler className="mx-auto size-5 text-metin-3" />
+            <p className="mt-2 text-[13px] font-medium">Henüz proje yok</p>
+            <p className="mt-1 text-[12.5px] text-metin-3">Başlattığınız projeler burada listelenir.</p>
+          </div>
+        ) : (
+          <>
+            <div aria-hidden className={cn(SUTUNLAR, "hidden border-b border-cizgi bg-yuzey-2 px-4 py-2 text-[11.5px] font-medium text-metin-3 xl:grid")}>
+              <span className="pl-11">Proje</span>
+              <span>Tür</span>
+              <span className="text-right">Asansör</span>
+              <span>Güncellendi</span>
+              <span>Durum</span>
+            </div>
+            <ul className="divide-y divide-cizgi">
+              {projeler.slice(0, 12).map((p) => (
+                <SonProje key={p.id} p={p} />
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+      <p className="mt-3 text-[12px] leading-relaxed text-metin-3">
+        Başka bilgisayarda açmak için projeyi dosya olarak kaydedin ( projenin üst şeridinde Kaydet ).
+      </p>
+    </section>
+  );
   return (
     <div className="flex min-h-dvh flex-col">
       <UstSerit
@@ -121,80 +158,20 @@ export function Acilis() {
         </section>
 
         <div className="flex min-w-0 flex-col gap-10">
-          {/*  Taslak projeler ( lib/taslak ):  hepsi uygun — tıklanınca yeni proje  */}
-          <section aria-labelledby="taslak">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 id="taslak" className="text-[13px] font-semibold">
-                Taslak projeler
-              </h2>
-              <span className="text-[12px] text-metin-3">{TASLAK_DUZENI}</span>
-            </div>
-            {taslakKumeleri().map(([duzen, liste]) => (
-              <div key={duzen} className="mt-3">
-                <h3 className="text-[12px] font-medium text-metin-2">{duzen}</h3>
-                <ul className="mt-2 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-                  {liste.map((t) => (
-                    <li key={t.kimlik}>
-                      <Link
-                        to={`/uygulama/taslak/${t.kimlik}`}
-                        aria-label={`${t.ad} · ${t.duzen} taslağıyla yeni proje`}
-                        className="group flex h-full flex-col rounded-buyuk border border-cizgi bg-yuzey p-4 shadow-panel transition-[border-color,box-shadow] hover:border-cizgi-2 hover:shadow-kalkik"
-                      >
-                        <span className="flex items-center justify-between gap-2">
-                          <span className="text-[14px] font-semibold">{t.ad}</span>
-                          <Rozet tur="uygun">Uygun</Rozet>
-                        </span>
-                        <span className="mt-1 text-[12.5px] text-metin-2">{t.ozet}</span>
-                        <span className="mt-2 text-[11.5px] text-metin-3">{t.kaynak}</span>
-                        <span className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-vurgu">
-                          Bu taslakla başla <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-            <p className="mt-3 text-[12px] leading-relaxed text-metin-3">
-              Taslak yeni bir proje olarak açılır;  değerlerini değiştirebilirsiniz, taslağın kendisi değişmez.
-            </p>
-          </section>
-
-          <section aria-labelledby="son">
-            <div className="flex items-baseline justify-between">
-              <h2 id="son" className="text-[13px] font-semibold">
-                Son projeler
-              </h2>
-              <span className="text-[12px] text-metin-3">bu tarayıcıda</span>
-            </div>
-            <div className="mt-3 overflow-hidden rounded-buyuk border border-cizgi bg-yuzey shadow-panel">
-              {projeler.length === 0 ? (
-                <div className="px-5 py-14 text-center">
-                  <Ruler className="mx-auto size-5 text-metin-3" />
-                  <p className="mt-2 text-[13px] font-medium">Henüz proje yok</p>
-                  <p className="mt-1 text-[12.5px] text-metin-3">Başlattığınız projeler burada listelenir.</p>
-                </div>
-              ) : (
-                <>
-                  <div aria-hidden className={cn(SUTUNLAR, "hidden border-b border-cizgi bg-yuzey-2 px-4 py-2 text-[11.5px] font-medium text-metin-3 xl:grid")}>
-                    <span className="pl-11">Proje</span>
-                    <span>Tür</span>
-                    <span className="text-right">Asansör</span>
-                    <span>Güncellendi</span>
-                    <span>Durum</span>
-                  </div>
-                  <ul className="divide-y divide-cizgi">
-                    {projeler.slice(0, 12).map((p) => (
-                      <SonProje key={p.id} p={p} />
-                    ))}
-                  </ul>
-                </>
-              )}
-            </div>
-            <p className="mt-3 text-[12px] leading-relaxed text-metin-3">
-              Başka bilgisayarda açmak için projeyi dosya olarak kaydedin ( Proje › Dosyaya kaydet ).
-            </p>
-          </section>
+          {/*  SIRA ( 20 Kas — arayüz taslağı B8:  1440 × 900 ekranda ilk görünen 10 taslak kartıydı, "Son
+               projeler" 1.093 px aşağıdaydı ):  kayıtlı proje varsa önce son projeler, taslaklar altında kısa
+               liste;  hiç proje yoksa taslak kartları önde  */}
+          {projeler.length > 0 ? (
+            <>
+              {sonProjeler}
+              <TaslakListesi kompakt />
+            </>
+          ) : (
+            <>
+              <TaslakListesi />
+              {sonProjeler}
+            </>
+          )}
 
           {/*  İş akışı:  yeni kullanıcı ne olacağını baştan görür  */}
           <section aria-labelledby="akis">
@@ -385,5 +362,69 @@ function SonProje({ p }: { p: ProjeOzeti }) {
         <span className="shrink-0">{durum}</span>
       </button>
     </li>
+  );
+}
+
+/**  Taslak projeler ( lib/taslak ):  hepsi uygun — tıklanınca yeni proje.  kompakt:  kayıtlı proje varken
+     son projelerin altında kısa liste ( kartın özeti ve kaynağı üstüne gelince );  bağlantıların adları
+     iki biçimde de aynı  */
+function TaslakListesi({ kompakt = false }: { kompakt?: boolean }) {
+  return (
+    <section aria-labelledby="taslak">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="taslak" className="text-[13px] font-semibold">
+          Taslak projeler
+        </h2>
+        <span className="text-[12px] text-metin-3">{TASLAK_DUZENI}</span>
+      </div>
+      {taslakKumeleri().map(([duzen, liste]) =>
+        kompakt ? (
+          <div key={duzen} className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+            <h3 className="w-full text-[12px] font-medium text-metin-2 sm:w-32">{duzen}</h3>
+            {liste.map((t) => (
+              <Link
+                key={t.kimlik}
+                to={`/uygulama/taslak/${t.kimlik}`}
+                aria-label={`${t.ad} · ${t.duzen} taslağıyla yeni proje`}
+                title={`${t.ozet}  —  ${t.kaynak}`}
+                className="inline-flex items-center gap-1.5 rounded-orta border border-cizgi bg-yuzey px-2.5 py-1 text-[12.5px] font-medium shadow-panel hover:border-cizgi-2 hover:text-vurgu"
+              >
+                <span aria-hidden className="size-1.5 rounded-full bg-uygun" />
+                {t.ad}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div key={duzen} className="mt-3">
+            <h3 className="text-[12px] font-medium text-metin-2">{duzen}</h3>
+            <ul className="mt-2 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+              {liste.map((t) => (
+                <li key={t.kimlik}>
+                  <Link
+                    to={`/uygulama/taslak/${t.kimlik}`}
+                    aria-label={`${t.ad} · ${t.duzen} taslağıyla yeni proje`}
+                    className="group flex h-full flex-col rounded-buyuk border border-cizgi bg-yuzey p-4 shadow-panel transition-[border-color,box-shadow] hover:border-cizgi-2 hover:shadow-kalkik"
+                  >
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="text-[14px] font-semibold">{t.ad}</span>
+                      <Rozet tur="uygun">Uygun</Rozet>
+                    </span>
+                    <span className="mt-1 text-[12.5px] text-metin-2">{t.ozet}</span>
+                    <span className="mt-2 text-[11.5px] text-metin-3">{t.kaynak}</span>
+                    <span className="mt-3 inline-flex items-center gap-1 text-[12.5px] font-medium text-vurgu">
+                      Bu taslakla başla <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ),
+      )}
+      <p className="mt-3 text-[12px] leading-relaxed text-metin-3">
+        Taslak yeni bir proje olarak açılır;  değerlerini değiştirebilirsiniz, taslağın kendisi değişmez.
+        {kompakt && "  Taslağın özeti üstüne gelince görünür."}
+      </p>
+    </section>
   );
 }

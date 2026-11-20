@@ -22,9 +22,11 @@ import logging
 import threading
 from collections import OrderedDict
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Request
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
+from cizim import asamalar
 from cizim import cizimler
 from cizim import geometri
 from cizim import izli
@@ -39,6 +41,7 @@ from motor.uygulama import uygulama_girdisi
 from motor.uygulama import uygulama_sabitleri
 from tasarim.alanlar import DURAK_KOTLARI
 from uclar import cizim_uclari
+from uclar import uc_ortak
 from uclar import uygulama_istegi
 from uclar.uc_ortak import hata_iletisi, hata_kaydi
 
@@ -50,6 +53,9 @@ NOT = (
 )
 #  İstenince ( "Seçimleri de bul" ) seçimler de aranır:  yanıtın notu bunu söyler
 NOT_SECIMLI = "Seçim kutuları da arandı:  her biri bir komşu seçenekle denendi, çizim yeniden kuruldu."
+#  "Seçimleri de bul"un aşaması ( 20 Kas — arayüz taslağı B10:  42 kutu tek tek denenir, 2,3 – 3,2 sn;  ekranda
+#  "birkaç saniye" yazıyordu ):  ayrıntıda denenen kutunun adı ve sırası
+ASAMALAR = {"secim": ("Seçimler deneniyor", "Seçimler denendi")}
 
 #  Aynı girdiyle ikinci tıklama önbellekten ( çizimin bütün parçaları bir kurulumda çözülür )
 _ONBELLEK, _KILIT, _ONBELLEK_AZAMI = OrderedDict(), threading.Lock(), 8
@@ -142,11 +148,18 @@ def _secim_kaynaklari(r):
             return _imzalar(cizimler.CIZIMLER[ad][1](g))
 
         bagli = {}
+        denenecek = [
+            (k, a) for k, a in r["adaylar"].items() if k[0] == "girdi" and a["tur"] in ("secim", "tam")
+        ]
+        etiket = {
+            a["anahtar"]: a["etiket"] for g in uygulama_istegi.alanlar()["gruplar"] for a in g["alanlar"]
+        }
         with sorunlu.kip(True):
             taban = kur(dict(ham))
-            for kimlik, a in r["adaylar"].items():
-                if kimlik[0] != "girdi" or a["tur"] not in ("secim", "tam"):
-                    continue
+            for n, (kimlik, a) in enumerate(denenecek, 1):
+                #  ( "ad" değil:  kur'un çizim adı — 20 Kas'ta ezilip aramayı boşa çıkarmıştı )
+                kutu = str(etiket.get(kimlik[1], kimlik[1])).split("  (")[0]
+                asamalar.asama("secim", f"{kutu} · {n} / {len(denenecek)}")
                 if a["tur"] == "tam":
                     alternatif = a["deger"] + 1
                 else:
@@ -282,7 +295,18 @@ def _hata(ileti):
 
 
 @router.post("/api/uygulama/parca")
-def api_parca(veri: dict = Body(...)):
+async def api_parca_ucu(istek: Request, veri: dict = Body(...)):
+    """Tıklanan parçayı belirleyen girdiler ( api_parca ).  AKIŞ ( 20 Kas — arayüz taslağı B10 ):
+    "Seçimleri de bul" ( secimler ) istek uc_ortak.AKIS_TURU'nü isterse denenen kutu satır satır,
+    sonda bugünkü yanıt;  bağlantı kapanınca arama bir sonraki kutuda durur."""
+    if not (veri.get("secimler") is True and uc_ortak.akis_isteniyor(istek)):
+        return await run_in_threadpool(api_parca, veri)
+    birakildi = threading.Event()
+    ilerleme = asamalar.Ilerleme(ASAMALAR, iptal=birakildi.is_set)
+    return uc_ortak.akisli_yanit(istek, lambda: json.loads(api_parca(veri).body), ilerleme, birakildi)
+
+
+def api_parca(veri):
     """Tıklanan parçayı belirleyen girdiler.  İstek:  projenin girdisi, asansor,
     cizim ve parca ( ekrandaki örnek — data-parca "ad-n" );  secimler:  true ise
     seçim kutularının etkisi de ( saniyeler — _secim_kaynaklari ).  Yanıt:

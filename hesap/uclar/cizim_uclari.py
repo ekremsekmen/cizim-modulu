@@ -163,6 +163,8 @@ def _svg(g, ad, onek=""):
         **_kapi_bilgisi(g, ad, onek),
         "ad": ad,
         "baslik": baslik,
+        #  Şeritteki adı ( cizimler.KISA_ADLAR — başlıktan türetilmez )
+        "kisa": cizimler.KISA_ADLAR.get(ad),
         "olcek": olcek,
         #  Tablo ( veri tablosu ):  başlığında ve ekranın listesinde ölçek yazmaz
         "olceksiz": ad in cizimler.OLCEKSIZ,
@@ -308,6 +310,7 @@ def _grup(asansorler, ortak, sonuc, proje_adi, i, g, hata):
             {
                 "ad": grup.ADLAR[ad],
                 "baslik": baslik,
+                "kisa": grup.KISA if ad == "kuyu_plani" else cizimler.KISA_ADLAR.get(ad),
                 "olcek": grup.olcegi(ad),
                 "olceksiz": False,
                 "svg": svg.yaz(

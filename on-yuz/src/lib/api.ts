@@ -170,6 +170,8 @@ import type { KapiBilgisi } from "@/lib/kapiTasima";
 export interface Cizim {
   ad: string;
   baslik: string;
+  /**  Çizim şeridindeki adı ( sunucu:  cizimler.KISA_ADLAR — 20 Kas, B7 );  yoksa başlıktan  */
+  kisa?: string | null;
   olcek: number;
   olceksiz: boolean;
   svg: string;
@@ -639,9 +641,20 @@ export const api = {
     anahtar: string,
     hedef: string,
   ) => gonder<OlcuDegisikligi>("/api/uygulama/olcu_degistir", { ...i, asansor, cizim, olcu, metin, anahtar, hedef }, hataListe),
-  /**  secimler:  seçim kutularının etkisi de ( sunucu her birini dener — saniyeler )  */
-  parca: (i: UygulamaIstegi, asansor: number, cizim: string, parca: string, secimler = false) =>
-    gonder<ParcaYanit>("/api/uygulama/parca", { ...i, asansor, cizim, parca, secimler }, hataListe),
+  /**  secimler:  seçim kutularının etkisi de ( sunucu her birini dener — saniyeler ).  O arama akışlı
+       ( 20 Kas — arayüz taslağı B10 ):  denenen kutu ilerle'ye gelir;  sinyal isteği bırakır  */
+  parca: (
+    i: UygulamaIstegi,
+    asansor: number,
+    cizim: string,
+    parca: string,
+    secimler = false,
+    s?: AbortSignal,
+    ilerle?: (d: AramaIlerlemesi) => void,
+  ) =>
+    secimler
+      ? akisla<ParcaYanit>("/api/uygulama/parca", { ...i, asansor, cizim, parca, secimler }, hataListe, s, ilerle)
+      : gonder<ParcaYanit>("/api/uygulama/parca", { ...i, asansor, cizim, parca, secimler }, hataListe, s),
   secenekler: () => al<Secenekler>("/api/secenekler"),
   trafik: (girdiler: unknown, s?: AbortSignal) => gonder<TrafikYaniti>("/api/trafik", { girdiler }, hataMetin, s),
   avan: (girdiler: unknown, s?: AbortSignal) => gonder<AvanYaniti>("/api/avan", { girdiler }, hataMetin, s),

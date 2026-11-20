@@ -46,6 +46,8 @@ BIRLESIK = (
 )
 ADLAR = {"kuyu_plani": AD, **{a: f"{AD}_{a}" for a in BIRLESIK[1:]}}
 BASLIK = "KUYU GRUBU PLANI  ( kabin hizasından yatay kesit )"
+#  Ekranın çizim şeridindeki adı ( cizimler.KISA_ADLAR;  öbür ortak çizimler asansörünkinin adıyla )
+KISA = "Kuyu grubu"
 OLCEK = 20
 #  K1 ( kullanıcı kararı 1 Kas ):  tek kuyuda iki asansör yan yana
 AZAMI = 2

@@ -1,8 +1,8 @@
-"""UZUN İŞİN AŞAMALARI VE AKIŞLI UÇLAR ( 20 Kas — yayın öncesi arayüz taslağı B1 · B2 · B5 ).
+"""UZUN İŞİN AŞAMALARI VE AKIŞLI UÇLAR ( 20 Kas — yayın öncesi arayüz taslağı B1 · B2 · B5 · B10 ).
 
 Ölçüm:  uygulama paketi 1 asansörde 2,7, 4 asansörde 10,4 sn;  avan paketi aranmamış asansörü
 paketin içinde arar ( 6,8 sn — 17 Kas'ta 48 sn );  düzeltme önerisi 1,5 – 3,7 sn.  Ekranda yalnız
-dönen işaret vardı.  Artık bu uçlar avan aramasının sözleşmesiyle ( uc_ortak.akisli_yanit ) işin
+dönen işaret vardı;  "Seçimleri de bul" 42 kutuyu 2,3 – 3,2 sn dener, ekranda "birkaç saniye".  Artık bu uçlar avan aramasının sözleşmesiyle ( uc_ortak.akisli_yanit ) işin
 GERÇEK aşamalarını akıtır;  istemeyen istemci eskisi gibi tek yanıt alır.  Aşama bildirimi işin
 sonucunu etkilemez;  bırakılan istek bir sonraki aşamada durur ( asamalar.Birakildi ).
 """
@@ -13,6 +13,7 @@ import copy
 import io
 import json
 import os
+import re
 import unittest
 import zipfile
 import zlib
@@ -20,7 +21,9 @@ import zlib
 from fastapi.responses import JSONResponse
 
 from cizim import asamalar
-from uclar import avan_cizimi, avan_secici, avan_uclari, care_uclari, uc_ortak, uygulama_uclari
+from testler.test_olcu_kaynagi import _veri
+from uclar import avan_cizimi, avan_secici, avan_uclari, care_uclari, cizim_uclari, parca_uclari, uc_ortak
+from uclar import uygulama_uclari
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(os.path.join(KOK, "on-yuz", "src", "lib", "taslaklar.json"), encoding="utf-8") as _d:
@@ -323,6 +326,59 @@ class Duzeltme(unittest.TestCase):
         sayilar = [x["ilerleme"]["sinama"] for x in s[:-1]]
         self.assertEqual(sayilar, sorted(sayilar))
         self.assertTrue(all(n <= tek["sinama"] for n in sayilar))
+
+
+class SecimAramasi(unittest.TestCase):
+    """B10:  "Seçimleri de bul" ( /api/uygulama/parca, secimler ) — denenen kutunun adı ve sırası;
+    bırakılan arama önbelleğe yarım sonuç yazmaz;  akışın sonucu akışsızla aynı."""
+
+    AYRINTI = r"^[^(]+ · (\d+) / (\d+)$"
+
+    def cozumleme(self, **ek):
+        """Önbelleksiz çözümleme ( arama baştan ) ve kuyu planındaki ilk kabin rayının kimliği."""
+        v = _veri(**ek)
+        ham, i, proje = cizim_uclari.istek(v)
+        r = parca_uclari._cozumle(ham, i, proje, "kuyu_plani")
+        return v, r, f"kabin_ray-{[a for a, _k in r['ornekler']].index('kabin_ray')}"
+
+    def test_kutu_kutu_ve_sirasi(self):
+        _v, r, _pid = self.cozumleme()
+        i = asamalar.Ilerleme(parca_uclari.ASAMALAR)
+        with asamalar.bagla(i):
+            bagli = parca_uclari._secim_kaynaklari(r)
+        d = i.durum()[1]
+        self.assertEqual(kodlar(d), ["secim"])
+        m = re.match(self.AYRINTI, d["asamalar"][0]["ayrinti"])
+        self.assertTrue(m, d)
+        #  Son bildirim son kutu:  "… · 42 / 42"
+        self.assertEqual(m.group(1), m.group(2))
+        self.assertGreater(int(m.group(2)), 10)
+        self.assertTrue(bagli)
+
+    def test_birakilan_arama_onbellege_yazmaz(self):
+        _v, r, _pid = self.cozumleme()
+        with asamalar.bagla(asamalar.Ilerleme(parca_uclari.ASAMALAR, iptal=lambda: True)):
+            with self.assertRaises(asamalar.Birakildi):
+                parca_uclari._secim_kaynaklari(r)
+        self.assertIsNone(r["secim"])
+        self.assertTrue(parca_uclari._secim_kaynaklari(r))
+
+    def test_akisli_sonuc_akissizla_ayni(self):
+        v, _r, pid = self.cozumleme(kuyu_genisligi=2160)
+        govde = {**v, "cizim": "kuyu_plani", "parca": pid, "secimler": True}
+        b, g = akisli_istek("/api/uygulama/parca", govde)
+        self.assertEqual(b["content-type"], uc_ortak.AKIS_TURU)
+        s = satirlar(b, g)
+        self.assertGreater(len(s), 1, s)
+        _b, tek = akisli_istek("/api/uygulama/parca", govde, akis=False, kodlama="identity")
+        self.assertEqual(s[-1]["sonuc"], json.loads(tek))
+        self.assertIn("kabin_ray_profili", [x["anahtar"] for x in s[-1]["sonuc"]["girdiler"]])
+        for x in s[:-1]:
+            self.assertRegex(x["ilerleme"]["asamalar"][0]["ayrinti"], self.AYRINTI)
+        #  Seçimsiz istek akış istese de tek JSON ( anında — aranacak bir şey yok )
+        b, g = akisli_istek("/api/uygulama/parca", {**govde, "secimler": False}, kodlama="identity")
+        self.assertTrue(b["content-type"].startswith("application/json"))
+        self.assertTrue(json.loads(g)["aktif"])
 
 
 if __name__ == "__main__":

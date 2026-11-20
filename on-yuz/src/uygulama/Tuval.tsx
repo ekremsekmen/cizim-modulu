@@ -9,12 +9,14 @@
     Parçanın üstüne gelince adı yazar ve parça vurgulanır.  Uzak görünümde
     çizim yazıları gizlenir ( ayrıntı kademesi ).                           */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Check, CircleHelp, LayoutGrid, Layers, Loader2, Maximize, Minus, Plus, Scan } from "lucide-react";
+import { Check, CircleHelp, Layers, Loader2, Maximize, Minus, Plus, Scan } from "lucide-react";
 import type { Cizim, CizimSorunu } from "@/lib/api";
 import { depoOku, depoYaz } from "@/lib/depo";
 import { kapiKutusu, kapiYeri, odayiBul, type Duvar, type KapiBilgisi, type KapiYeri, type Oda } from "@/lib/kapiTasima";
 import { cn } from "@/lib/utils";
+import { baslikAdi } from "@/lib/serit";
 import { Acilir, AcilirIcerik, AcilirTetik, Dugme, Ipucu } from "@/components/ui";
+import { CizimSeridi } from "./CizimSeridi";
 
 export interface OlcuSecimi {
   cizim: string;
@@ -194,10 +196,6 @@ export function kutuYeri(konum: OlcuKonumu, istenenEn: number, boy: number) {
   else ust = konum.alt + ARA + boy < konum.h ? konum.alt + ARA : konum.ust - ARA - boy;
   ust = Math.max(UST, Math.min(ust, konum.h - boy - KENAR));
   return { sol, ust, en };
-}
-
-function kisaAd(baslik: string) {
-  return baslik.split("(")[0].trim();
 }
 
 export function Tuval({
@@ -820,7 +818,7 @@ export function Tuval({
             className="pointer-events-none absolute line-clamp-2 -translate-y-full text-[11.5px] leading-tight font-medium tracking-wide text-tuval-metin-2"
             style={{ left: g.x + (y.kx ?? y.x) * g.k, top: g.y + (y.ky ?? y.y) * g.k - 6, maxWidth: Math.max(80, KART_EN * g.k) }}
           >
-            {kisaAd(y.c.baslik)}
+            {baslikAdi(y.c.baslik)}
             {!y.c.olceksiz && <span className="sayi ml-2 whitespace-nowrap text-tuval-metin-2/70">1:{y.c.olcek}</span>}
           </div>
         ))}
@@ -960,95 +958,22 @@ export function Tuval({
         {ustunde?.adi}
       </div>
 
-      {/*  ÇİZİM ŞERİDİ ( K2 ):  tuvalin altında;  rozet çizimde sorunlu ( kırmızı ) ya da
-           hesabın uygun bulmadığı ( turuncu ) parça olduğunu söyler.  Geçici çizimde yok.  */}
+      {/*  ÇİZİM ŞERİDİ ( K2 · B7 — CizimSeridi ):  geçici çizimde yok  */}
       {cizimler.length > 0 && !gecici && (
-        <nav
-          data-tuval-arac
-          aria-label="Çizimler"
-          //  Hepsi sığar ( 6 Kas — kullanıcı:  sağdakiler görünmüyor, tıklanamıyordu ):  düğmeler
-          //  şeridi eşit paylaşır, ad cümle düzeninde, sığmayan ad kesilir — tam adı üstüne gelince
-          className="absolute inset-x-0 bottom-0 flex items-center gap-0.5 border-t border-white/[0.08] bg-tuval-2/95 px-2 backdrop-blur"
-          style={{ height: SERIT }}
-        >
-          <SeritDugmesi secili={kip === "tumu"} onClick={() => setKip("tumu")} sabit>
-            <LayoutGrid className="size-3.5" /> Tümü
-          </SeritDugmesi>
-          <span className="mx-1 h-5 w-px shrink-0 bg-white/10" />
-          {cizimler.map((c) => (
-            <SeritDugmesi
-              key={c.ad}
-              secili={kip === "tek" && c.ad === aktif}
-              onClick={() => goster(c.ad)}
-              baslik={c.baslik}
-              ad={kisaAd(c.baslik)}
-            >
-              {iceren(c.ad, sorunluParcalar) ? (
-                <span aria-hidden title="Sorunlu parça var" className="size-1.5 shrink-0 rounded-full bg-[#f97066]" />
-              ) : iceren(c.ad, hesapParcalari) ? (
-                <span aria-hidden title="Hesabın uygun bulmadığı parça var" className="size-1.5 shrink-0 rounded-full bg-[#ff9f1a]" />
-              ) : null}
-              <span className="truncate">{seritAdi(kisaAd(c.baslik))}</span>
-            </SeritDugmesi>
-          ))}
-        </nav>
+        <CizimSeridi
+          cizimler={cizimler}
+          tumu={kip === "tumu"}
+          aktif={aktif}
+          tumuSec={() => setKip("tumu")}
+          goster={goster}
+          rozet={(ad) => (iceren(ad, sorunluParcalar) ? "sorunlu" : iceren(ad, hesapParcalari) ? "hesap" : null)}
+          boy={SERIT}
+        />
       )}
 
       {children?.(konum)}
       {seciliParca && parcaKonumu && parcaKutusu?.(parcaKonumu)}
     </div>
-  );
-}
-
-/**  Şeritteki kısa ad ( tam başlık üstüne gelince ):  kesit harfi önde, "düşey" / "planı"
-     atılır, kuyu kesiti "kesit" olur ( "KUYU ÜSTÜ PLANI F-F" → "F-F kuyu üstü",
-     "A-A KUYU DÜŞEY KESİTİ" → "A-A kesit" );  harfsiz çizimde ilk söz ( "Kasnak" ).
-     Erişilebilir ad başlığın kendisidir.  */
-function seritAdi(ad: string) {
-  const kucuk = (x: string) => x.replace(/I/g, "ı").replace(/İ/g, "i").toLowerCase();
-  const sozler = ad.split(/\s+/).filter(Boolean);
-  const harf = sozler.find((x) => /^[A-ZÇĞİÖŞÜ]-[A-ZÇĞİÖŞÜ]$/.test(x));
-  if (!harf) {
-    const k = kucuk(sozler[0] ?? ad);
-    return k.charAt(0).replace("i", "İ").replace("ı", "I").toUpperCase() + k.slice(1);
-  }
-  const kalan = sozler.filter((x) => x !== harf && x !== "DÜŞEY" && x !== "PLANI");
-  const govde = kalan.at(-1) === "KESİTİ" ? "kesit" : kucuk(kalan.join(" "));
-  return `${harf} ${govde}`;
-}
-
-function SeritDugmesi({
-  secili,
-  onClick,
-  baslik,
-  ad,
-  sabit,
-  children,
-}: {
-  secili: boolean;
-  onClick: () => void;
-  baslik?: string;
-  /**  Erişilebilir ad ( görünen kısaltılmış olabilir )  */
-  ad?: string;
-  /**  Daralmaz ( Tümü )  */
-  sabit?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={secili}
-      aria-label={ad}
-      title={baslik}
-      onClick={onClick}
-      className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-orta px-2 text-[12px] font-medium whitespace-nowrap",
-        sabit ? "shrink-0" : "max-w-[220px] min-w-0 flex-1 basis-auto justify-center",
-        secili ? "bg-white/[0.12] text-white" : "text-tuval-metin-2 hover:bg-white/[0.06] hover:text-tuval-metin",
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
