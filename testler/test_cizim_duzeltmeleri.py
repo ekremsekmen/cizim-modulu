@@ -2,6 +2,7 @@
 
 import copy
 import json
+import math
 import unittest
 import xml.etree.ElementTree as ET
 
@@ -148,17 +149,25 @@ class Tamponlar(unittest.TestCase):
 
 class KesikCizgiler(unittest.TestCase):
     def test_cizgi_daire_ve_dikdortgen_katman_desenini_kullanir(self):
+        """Kenara oturan desende ( çizimin çerçevesi — 20 Kas, uslup.Desen.oturur ) çizgi ve
+        dikdörtgenin kenarları ( ayrı çizgiler ) kendi boylarına oturtulmuş deseni kullanır."""
         ns = "{http://www.w3.org/2000/svg}"
         for kat, desen in ((k, v.desen) for k, v in uslup.KATMAN.items() if v.desen):
             for olcek in (20, 50):
+                k = olcek / 20
                 e = [
-                    eleman.cizgi(kat, 0, 0, 100, 0),
-                    eleman.daire(kat, 0, 0, 50),
-                    eleman.dikdortgen(kat, 0, 0, 100, 100),
+                    eleman.cizgi(kat, 0, 0, 1000, 0),
+                    eleman.daire(kat, 0, 0, 500),
+                    eleman.dikdortgen(kat, 0, 0, 1000, 1000),
                 ]
                 r = ET.fromstring(svg.yaz(e, geometri.sinir(e), olcek=olcek))
                 for p in list(r.find(ns + "g")):
-                    self.assertEqual(p.attrib["stroke-dasharray"], svg.kesik(desen, olcek / 20))
+                    beklenen = svg.kesik(desen, k)
+                    if uslup.DESENLER[desen].oturur and p.tag == ns + "line":
+                        a = {n: float(p.attrib[n]) for n in ("x1", "y1", "x2", "y2")}
+                        boy = math.hypot(a["x2"] - a["x1"], a["y2"] - a["y1"])
+                        beklenen = svg.kesik(desen, k * uslup.oturan_olcek(desen, boy, k))
+                    self.assertEqual(p.attrib["stroke-dasharray"], beklenen, (kat, olcek, p.tag))
 
     def test_gercek_kesit_tavan_payi_svg_ve_dxfte_kesiklidir(self):
         g = copy.deepcopy(girdi.ORNEK)

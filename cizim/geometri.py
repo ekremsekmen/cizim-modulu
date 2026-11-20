@@ -3426,11 +3426,51 @@ def _sar(metin, en, h):
     return satirlar + [s.rstrip(" ·—")] if s else satirlar
 
 
-def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=(), olcekli=True, uyari=(), bilgi=()):
+#  ÇİZİMİN ÇERÇEVESİ ( 1/20 birimi;  başka ölçekte k ile ):  çizimin kapsayanından PAY dışarıda,
+#  altında künye şeridi.  Pay 20 Kas'a dek 300'dü ( kâğıtta 15 mm ) — kullanıcı:  "fazla büyük
+#  çerçeveye ihtiyaç yok … minimum dikdörtgen";  5 mm'de en dıştaki ölçü yazısı ile kesik
+#  çizgi ayrı okunur ( ÇİZİM KABULÜ ).  Çizgisi kesik:  uslup.KATMAN["CERCEVE"].
+CERCEVE_PAYI = 100.0
+KUNYE_SERIDI = 220.0  # tek satırlık künye:  5 mm başlık ( uslup.BASLIK ), üstünde ve altında 3 mm
+#  İKİ SATIRLI KÜNYE ( 20 Kas, kullanıcı:  "evet, iki satır" ):  tek satırlık başlık çizimden
+#  genişse açıklaması ( "  ( … )" ) ikinci satıra iner, 3,5 mm ( uslup.HARF — şeridin sağındaki
+#  yazı ve notlar gibi ) — çerçeve başlığa göre değil çizime göre genişler ( 1000 MRL'de B-B'nin
+#  çerçevesi 280 mm'den 159'a ).  İkinci satır başlığın 3 mm altında, altında yine 3 mm:  şerit
+#  130 uzar ( ÇİZİM KABULÜ ).
+ACIKLAMA_SATIRI = 130.0
+
+
+def _kunye_satirlari(baslik, olcek, olcekli, seritler, en):
+    """Künye şeridinin satırları ( başlık , açıklama — tek satırda "" ) ve gereken eni:  tek
+    satırlık başlık `en`e ( çizimin ve notların eni ) sığmıyorsa ve iki satır daha dar tutuyorsa
+    açıklama ikinci satıra iner.  Başlığın solu ve sağdaki yazıların ( seritler — başlığın
+    satırında ) sağı çerçeveden 6 mm içeride, ikisinin arası 10 mm;  sağda yazı yoksa ara da yok."""
+    k = olcek / 20.0
+    sag = max([eleman.yazi_eni(m, uslup.HARF * k) for m in seritler] or [0.0])
+    ara = 200 * k if seritler else 0.0
+    olcegi = f"   1/{olcek:g}" if olcekli else ""
+
+    def gerek(ust, alt):
+        #  Başlık kâğıtta 5 mm ( LiftDesigner ):  104 → 140 em · 0,716 / 20
+        ilk = 240 * k + eleman.yazi_eni(ust, uslup.BASLIK * k) + ara + sag
+        return max(ilk, 240 * k + eleman.yazi_eni(alt, uslup.HARF * k)) if alt else ilk
+
+    tek = (baslik + olcegi, "")
+    ad, ayrac, ek = baslik.partition("  (")
+    iki = (ad + olcegi, "(" + ek) if ayrac else None
+    if iki and gerek(*tek) > en + 1e-6 and gerek(*iki) < gerek(*tek):
+        return iki, gerek(*iki)
+    return tek, gerek(*tek)
+
+
+def cerceveli(elemanlar, baslik, olcek=20, pay=CERCEVE_PAYI, seritler=(), olcekli=True, uyari=(), bilgi=()):
     """Çizimi kendi çerçevesine alır ve altına başlık şeridi ekler.
 
     Referans projede de her çizim ayrı bir çerçevededir ve altında adı ile ölçeği
-    yazar.  Çerçeve ölçüleri de kapsar;  yazılar dışarıda kalmaz.  olcekli:
+    yazar.  Çerçeve ölçüleri de kapsar;  yazılar dışarıda kalmaz — en küçük
+    dikdörtgen:  çizimin kapsayanı, her yanda pay ( CERCEVE_PAYI );  başlık
+    şeride sığmazsa açıklaması ikinci satıra iner ( ACIKLAMA_SATIRI ), yine
+    sığmazsa çerçeve iki yana genişler.  olcekli:
     başlıkta ölçek yazar mı ( tabloda yazmaz — cizimler.OLCEKSIZ ).  uyari:
     künye şeridinin altında, çerçevenin içinde ayrı bir bantta satırlar —
     hesabın uygun bulmadığı bölümler ( cizim/hesap_isareti.py ).  bilgi:  aynı
@@ -3438,21 +3478,16 @@ def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=(), olcekli=True, u
     açıklama ( tek kuyuda tam boy perdenin sebebi — grup.perde_notu ).
     """
     k = olcek / 20.0  # yazılar paftada 1/20'deki boyda kalır
-    etiket = f"{baslik}   1/{olcek:g}" if olcekli else baslik
     x1, y1, x2, y2 = sinir(elemanlar, pay * k)
-    serit = 220.0 * k
-    #  Künye şeridi başlığı ve sağdaki yazıları taşımalı:  sığmıyorsa
-    #  çerçeve iki yana eşit genişler  ( başlık proje adının üstüne biniyordu ).
-    #  Başlık kâğıtta 5 mm ( LiftDesigner ):  104 → 140 em · 0,716 / 20
-    gerek = (
-        (120 + 200 + 120) * k
-        + eleman.yazi_eni(etiket, uslup.BASLIK * k)
-        + max([eleman.yazi_eni(m, uslup.HARF * k) for m in seritler] or [0])
-    )
     #  Not çerçeveyi genişletmez ( çizimlerin yerleşimi değişmesin ):  satırlar
     #  "  ·  " ve "  —  " yerlerinden sarılır;  yalnız tek parçası sığmazsa genişler
     parcalar_ = [p for m in tuple(uyari) + tuple(bilgi) for p in _uyari_parcalari(m)]
-    gerek = max([gerek] + [240 * k + eleman.yazi_eni(p, uslup.HARF * k) for p in parcalar_])
+    en = max([x2 - x1] + [240 * k + eleman.yazi_eni(p, uslup.HARF * k) for p in parcalar_])
+    #  Künye şeridi başlığı ve sağdaki yazıları taşımalı:  sığmıyorsa açıklaması ikinci satıra
+    #  iner, yine sığmıyorsa çerçeve iki yana eşit genişler  ( başlık proje adının üstüne biniyordu ).
+    (etiket, aciklama), gerek = _kunye_satirlari(baslik, olcek, olcekli, seritler, en)
+    gerek = max(gerek, en)
+    serit = (KUNYE_SERIDI + (ACIKLAMA_SATIRI if aciklama else 0.0)) * k
     if x2 - x1 < gerek:
         fark = (gerek - (x2 - x1)) / 2.0
         x1, x2 = x1 - fark, x2 + fark
@@ -3470,21 +3505,22 @@ def cerceveli(elemanlar, baslik, olcek=20, pay=300, seritler=(), olcekli=True, u
             eleman.yazi(x1 + 120 * k, ust - (i + 0.8) * satir, m, uslup.HARF * k, hiza="sol", katman=katman)
             for i, (m, katman) in enumerate(uyari)
         ]
-    e.append(
-        eleman.yazi(
-            x1 + 120 * k,
-            y1 - serit / 2.0,
-            etiket,
-            uslup.BASLIK * k,
-            hiza="sol",
-            katman="CERCEVE",
+    #  Başlık ve sağdaki yazılar şeridin ilk satırında ( tek satırlık şeridin ortası )
+    ilk = y1 - KUNYE_SERIDI * k / 2.0
+    e.append(eleman.yazi(x1 + 120 * k, ilk, etiket, uslup.BASLIK * k, hiza="sol", katman="CERCEVE"))
+    if aciklama:
+        #  Büyük harfinin altı şeridin altından, başlığınkinin üstü şeridin üstünden aynı uzaklıkta
+        alt = (KUNYE_SERIDI - uslup.BASLIK * uslup.BUYUK_HARF + uslup.HARF * uslup.BUYUK_HARF) / 2.0
+        e.append(
+            eleman.yazi(
+                x1 + 120 * k, y1 - serit + alt * k, aciklama, uslup.HARF * k, hiza="sol", katman="CERCEVE"
+            )
         )
-    )
     for i, metin in enumerate(seritler):
         e.append(
             eleman.yazi(
                 x2 - 120 * k,
-                y1 - serit / 2.0 - i * 120 * k,
+                ilk - i * 120 * k,
                 metin,
                 uslup.HARF * k,
                 hiza="sag",

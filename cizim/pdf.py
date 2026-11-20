@@ -50,14 +50,21 @@ def _kalem(c, katman, k, kalinlik=None):
     c.setLineWidth(kal * 20 * k)
 
 
-def _desen(c, el, k):
-    """Kesik çizgi:  uslup.DESENLER ( svg.kesik ile aynı sayılar )."""
+def _desen(c, el, k, boy=None):
+    """Kesik çizgi:  uslup.DESENLER ( svg.kesik ile aynı sayılar );  kenara oturan desende
+    ( uslup.Desen.oturur ) `boy` uzunluğundaki parçaya oturtulmuş ( svg._kesik_ozniteligi )."""
     ad = "EKSEN" if el["tip"] == "eksen" else uslup.KATMAN[el["katman"]].desen
     if not ad:
         c.setDash()
         return
     d = uslup.DESENLER[ad]
-    c.setDash([(abs(v) * d.olcek or uslup.NOKTA) * 20 * k for v in d.tanim])
+    f = 1.0
+    if d.oturur and boy is not None:
+        f = uslup.oturan_olcek(ad, boy, k)
+        if f is None:
+            c.setDash()
+            return
+    c.setDash([(abs(v) * d.olcek or uslup.NOKTA) * 20 * k * f for v in d.tanim])
 
 
 def _cokgen(c, noktalar, kapali, dolgu, cizgi=True):
@@ -72,6 +79,14 @@ def _cokgen(c, noktalar, kapali, dolgu, cizgi=True):
 
 def _dikdortgen(c, el, k):
     _kalem(c, el["katman"], k)
+    desen = uslup.KATMAN[el["katman"]].desen
+    if desen and uslup.DESENLER[desen].oturur:
+        #  Kenara oturan desen ( çizimin çerçevesi ):  her kenar köşeden köşeye tam çizgiyle
+        yari = uslup.KATMAN[el["katman"]].kalinlik * 20 * k / 2.0
+        for a, b, p, q in uslup.kutu_kenarlari(el["x"], el["y"], el["g"], el["d"], yari):
+            _desen(c, el, k, math.hypot(p - a, q - b))
+            c.line(a, b, p, q)
+        return
     _desen(c, el, k)
     dolgu = el["katman"] in _DOLGU
     if dolgu:
@@ -233,7 +248,7 @@ def ciz(c, elemanlar, olcek=20):
             (_bicim if "bicim" in el else _dikdortgen)(c, el, k)
         elif tur in ("cizgi", "eksen"):
             _kalem(c, el["katman"], k)
-            _desen(c, el, k)
+            _desen(c, el, k, math.hypot(el["x2"] - el["x1"], el["y2"] - el["y1"]))
             c.line(el["x1"], el["y1"], el["x2"], el["y2"])
         elif tur == "daire":
             _kalem(c, el["katman"], k)
@@ -308,8 +323,9 @@ def antet(proje, asansor, cizim, olcek_yazisi, sayfa):
     ( "  ( … )" ) düşer."""
     W, H, S = ANTET_ENI * 20, ANTET_SATIRI * 20, ANTET_SAG * 20
     x_sag, pay = W - S, 2.0 * 20
+    #  Antetin kutusu sürekli ( SAYFA );  çizimin kendi çerçevesi kesik ( CERCEVE )
     e = [
-        eleman.dikdortgen("CERCEVE", 0, 0, W, 2 * H),
+        eleman.dikdortgen("SAYFA", 0, 0, W, 2 * H),
         eleman.cizgi("YAZI", 0, H, W, H),
         eleman.cizgi("YAZI", x_sag, 0, x_sag, 2 * H),
     ]
@@ -317,7 +333,7 @@ def antet(proje, asansor, cizim, olcek_yazisi, sayfa):
         cizim = cizim.split("  (")[0]
 
     def hucre(x, satir, metin, h=uslup.NORMAL, hiza="sol"):
-        e.append(eleman.yazi(x, H * (satir + 0.5), metin, h, hiza=hiza, katman="CERCEVE"))
+        e.append(eleman.yazi(x, H * (satir + 0.5), metin, h, hiza=hiza, katman="SAYFA"))
 
     hucre(pay, 1, proje, uslup.HARF)
     hucre(x_sag - pay, 1, asansor, hiza="sag")

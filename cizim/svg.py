@@ -61,6 +61,14 @@ def _dikdortgen(el, renk, kalinlik, k=1.0, r=KAGIT):
     #  aynı alanı kaplayan kutuya çevrilir.
     x, g = (el["x"] + el["g"], -el["g"]) if el["g"] < 0 else (el["x"], el["g"])
     y, d = (el["y"] + el["d"], -el["d"]) if el["d"] < 0 else (el["y"], el["d"])
+    desen = _desen_adi(el)
+    if desen and uslup.DESENLER[desen].oturur:
+        #  Kenara oturan desen ( çizimin çerçevesi ):  her kenar köşeden köşeye tam çizgiyle
+        return "".join(
+            f'<line x1="{a:.1f}" y1="{b:.1f}" x2="{p:.1f}" y2="{q:.1f}" stroke="{renk}" '
+            f'stroke-width="{kalinlik}"{_kesik_ozniteligi(el, k, math.hypot(p - a, q - b))}/>'
+            for a, b, p, q in uslup.kutu_kenarlari(x, y, g, d, float(kalinlik) / 2.0)
+        )
     return (
         f'<rect x="{x:.1f}" y="{y:.1f}" width="{g:.1f}" '
         f'height="{d:.1f}" fill="{dolgu}" stroke="{renk}" '
@@ -186,9 +194,21 @@ def kesik(desen, k=1.0):
     return " ".join(f"{(abs(v) * d.olcek or uslup.NOKTA) * 20 * k:g}" for v in d.tanim)
 
 
-def _kesik_ozniteligi(el, k):
-    desen = "EKSEN" if el["tip"] == "eksen" else uslup.KATMAN[el["katman"]].desen
-    return f' stroke-dasharray="{kesik(desen, k)}"' if desen else ""
+def _desen_adi(el):
+    """Elemanın çizgi deseni ( uslup.DESENLER'in anahtarı ) ya da None ( sürekli )."""
+    return "EKSEN" if el["tip"] == "eksen" else uslup.KATMAN[el["katman"]].desen
+
+
+def _kesik_ozniteligi(el, k, boy=None):
+    """stroke-dasharray:  katmanın deseni;  kenara oturan desende ( uslup.Desen.oturur )
+    `boy` uzunluğundaki parçaya oturtulmuş — iki ucunda tam çizgi, çok kısa parça sürekli."""
+    desen = _desen_adi(el)
+    if not desen:
+        return ""
+    if uslup.DESENLER[desen].oturur and boy is not None:
+        f = uslup.oturan_olcek(desen, boy, k)
+        return f' stroke-dasharray="{kesik(desen, k * f)}"' if f else ""
+    return f' stroke-dasharray="{kesik(desen, k)}"'
 
 
 def _taramalar(onek, k, r=KAGIT):
@@ -265,7 +285,7 @@ def yaz(elemanlar, sinir, baslik="", olcek=20, onek="", etkilesimli=False, r=KAG
                 _bicim(el, renk, kal, k, r) if "bicim" in el else _dikdortgen(el, renk, kal, k, r)
             )
         elif el["tip"] in ("cizgi", "eksen"):
-            kesik = _kesik_ozniteligi(el, k)
+            kesik = _kesik_ozniteligi(el, k, math.hypot(el["x2"] - el["x1"], el["y2"] - el["y1"]))
             parcalar.append(
                 f'<line x1="{el["x1"]:.1f}" y1="{el["y1"]:.1f}" x2="{el["x2"]:.1f}" '
                 f'y2="{el["y2"]:.1f}" stroke="{renk}" stroke-width="{kal}"{kesik}/>'

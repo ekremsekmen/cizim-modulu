@@ -43,6 +43,12 @@ class Desen(NamedTuple):
     dxf: str
     tanim: tuple
     olcek: float
+    #  KENARA OTURUR:  her doğru parçası ( dikdörtgenin her kenarı ) iki ucunda TAM ÇİZGİYLE
+    #  başlar ve biter — desen parçanın boyuna göre azıcık ölçeklenir ( oturan_olcek ).
+    #  AutoCAD polilini köşelerinde böyle çizer ( PLINEGEN 0 );  PDF ve ekran deseni çevre
+    #  boyunca akıtıyordu, köşe boşluğa düşünce açık kalıyordu ( 20 Kas:  168 köşenin 26'sı ).
+    #  Yalnız çizgi – boşluk deseninde.
+    oturur: bool = False
 
 
 SUREKLI = None
@@ -53,8 +59,37 @@ DESENLER = {
     "GIZLI": Desen("ACAD_ISO02W100", (12.0, -3.0), 0.25),
     #  alan sınırı ( sığınma — parça değil, alan ):  seyrek kesik;  3 · 4,5
     "ALAN": Desen("ACAD_ISO03W100", (12.0, -18.0), 0.25),
+    #  çizimin çerçevesi:  ISO kesik, 0,50 kalemin boyunda ( ISO 128:  çizgi 12 d, boşluk 3 d );
+    #  kâğıtta 6 · 1,5
+    "CERCEVE": Desen("ACAD_ISO02W100", (12.0, -3.0), 0.5, oturur=True),
 }
 NOKTA = 0.25  # ekranda noktanın boyu ( mm )
+
+
+def oturan_olcek(desen, boy, k=1.0):
+    """Kenara oturan desenin ( Desen.oturur ) çarpanı:  `boy` uzunluğundaki parça ( çizim
+    birimi — 1/20'de k = 1 ) n tam çizgi ve n − 1 boşlukla dolar;  desen bu çarpanla
+    ölçeklenir ( 1'e yakın:  n desenin kendi boyuna en yakın sayı ).  İki çizgi sığmıyorsa
+    None:  parça sürekli çizilir."""
+    d = DESENLER[desen]
+    cizgi, bosluk = (abs(v) * d.olcek * 20 * k for v in d.tanim)
+    n = round((boy + bosluk) / (cizgi + bosluk))
+    if n < 2:
+        return None
+    return boy / (n * cizgi + (n - 1) * bosluk)
+
+
+def kutu_kenarlari(x, y, g, d, pay=0.0):
+    """Dikdörtgenin dört kenarı ( x1, y1, x2, y2 ), uçları `pay` kadar uzamış:  kenara oturan
+    desenli kutu ( PDF, ekran ) kenarlarını ayrı çizer, pay yarım kalemdir — köşenin dış
+    karesi dolu kalır ( dikdörtgenin sivri birleşimi gibi )."""
+    x2, y2 = x + g, y + d
+    return (
+        (x - pay, y, x2 + pay, y),
+        (x2, y - pay, x2, y2 + pay),
+        (x2 + pay, y2, x - pay, y2),
+        (x, y2 + pay, x, y - pay),
+    )
 
 
 class Kalem(NamedTuple):
@@ -71,7 +106,12 @@ KIRMIZI = "#a51d1d"  # eksen
 KATMAN = {
     "KUYU-DUVAR": Kalem(0.50, None, SIYAH, 7),
     "KESIT": Kalem(0.50, None, SIYAH, 7),
-    "CERCEVE": Kalem(0.50, None, SIYAH, 7),
+    #  Çizimin kendi çerçevesi ve künye şeridi ( geometri.cerceveli ):  KESİK ( 20 Kas, kullanıcı:
+    #  "kesitlerin etrafındaki dümdüz çizgiyi kesik çizgili yapalım" )
+    "CERCEVE": Kalem(0.50, "CERCEVE", SIYAH, 7),
+    #  Sayfanın çerçevesi ve anteti ( elektrik projesinin A3 sayfası, ayrı sayfalı PDF'in
+    #  anteti ):  sürekli — hesap sayfalarının A4 çerçeveleri gibi
+    "SAYFA": Kalem(0.50, None, SIYAH, 7),
     "KUYU-IC": Kalem(0.35, None, SIYAH, 7),
     "KABIN": Kalem(0.35, None, SIYAH, 7),
     "KAPI": Kalem(0.35, None, SIYAH, 30),
