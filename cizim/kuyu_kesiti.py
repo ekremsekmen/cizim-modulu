@@ -708,9 +708,15 @@ def _kirik_cizgileri(e, za, bosluk, u0, u1, K):
 
 
 def _yukseklik(e, K):
-    """Çerçeveli çizimin yüksekliği ( cerceveli:  2 · pay + künye şeridi )."""
+    """Çerçeveli kesitin yüksekliği:  çizim, üstte ve altta geometri.CERCEVE_PAYI, İKİ SATIRLI künye
+    şeridi ( kesitin başlığı çizimden geniştir — geometri.cerceveli ).  Kesit buna göre sığmıyorsa
+    kırılır ( 19 Kas, kullanıcı:  "sığıyorsa zaten kırılmasına gerek yok" ).  20 Kas'ta çerçeve
+    daralınca karar bir süre eski 15 mm'lik payla verildi;  kullanıcının onayıyla çerçeveye
+    bağlandı — o günün projelerinde hiçbir kesit değişmedi.  Hesabın notu ( uyarı bandı ) eskisi
+    gibi sayılmaz."""
     _, y0, _, y1 = geometri.sinir(e)
-    return (y1 - y0) + 2 * 300 * K + 220 * K
+    serit = geometri.KUNYE_SERIDI + geometri.ACIKLAMA_SATIRI
+    return (y1 - y0) + (2 * geometri.CERCEVE_PAYI + serit) * K
 
 
 def _hareketli_sinirlari(g, Y):

@@ -974,11 +974,13 @@ def ciz(v, sag_yazi=""):
     """Elektrik projesinin sayfası:  sol alt köşe ( 0 , 0 ), A3 yatay, 1/20
     biriminde.  v:  hesabın elektrik verisi ( avan_hesabi._elektrik_projesi );
     sag_yazi:  künye şeridinin sağı ( asansörün adı )."""
-    e = [_kutu("CERCEVE", 0.0, 0.0, EN, BOY), _cizgi("CERCEVE", 0.0, SERIT, EN, SERIT)]
-    e.append(_yazi(6.0, SERIT / 2.0, BASLIK, B, kat="CERCEVE"))
+    #  Sayfanın çerçevesi sürekli ( SAYFA ):  hesap sayfalarının arasında bir A3 sayfa;  çizimlerin
+    #  kendi çerçevesi ( CERCEVE ) 20 Kas'tan beri kesik
+    e = [_kutu("SAYFA", 0.0, 0.0, EN, BOY), _cizgi("SAYFA", 0.0, SERIT, EN, SERIT)]
+    e.append(_yazi(6.0, SERIT / 2.0, BASLIK, B, kat="SAYFA"))
     yazi = "  ·  ".join(x for x in (v.get("tablo"), sag_yazi) if x)
     if yazi:
-        e.append(_yazi(EN - 6.0, SERIT / 2.0, yazi, H, "sag", kat="CERCEVE"))
+        e.append(_yazi(EN - 6.0, SERIT / 2.0, yazi, H, "sag", kat="SAYFA"))
     e += tek_hat(v)
     e += kuyu_tesisati(v)
     e += topraklama_tesisati(v)
