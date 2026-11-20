@@ -42,12 +42,25 @@ def yanit(g):
 
 
 def yazilar(c):
-    """Çizim yanıtının bütün SVG'lerindeki yazılar."""
-    return {
-        re.sub(r"<[^>]+>", "", t).strip()
-        for x in c["cizimler"]
-        for t in re.findall(r"<text[^>]*>(.*?)</text>", x["svg"], flags=re.S)
-    }
+    """Çizim yanıtının bütün SVG'lerindeki yazılar.  İki satıra bölünmüş çizim başlığı ( 20 Kas —
+    geometri.cerceveli:  "AD   1/20" + "( açıklama )" ) tek satırlık hâliyle tek yazıdır:  avanın ve
+    uygulamanın aynı çizimi farklı enlerde, başlık birinde bölünüp öbüründe bölünmeyebilir."""
+    out = set()
+    for x in c["cizimler"]:
+        t = [
+            re.sub(r"<[^>]+>", "", m).strip()
+            for m in re.findall(r"<text[^>]*>(.*?)</text>", x["svg"], flags=re.S)
+        ]
+        i = 0
+        while i < len(t):
+            m = re.fullmatch(r"(.*\S)(   1/\d+)", t[i])
+            if m and i + 1 < len(t) and t[i + 1].startswith("( ") and t[i + 1].endswith(" )"):
+                out.add(f"{m.group(1)}  {t[i + 1]}{m.group(2)}")
+                i += 2
+            else:
+                out.add(t[i])
+                i += 1
+    return out
 
 
 class AvanCizimUcu(unittest.TestCase):
