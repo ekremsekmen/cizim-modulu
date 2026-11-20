@@ -3115,6 +3115,7 @@ class OnYuzUctanUca(unittest.TestCase):
                     const okuyucu = r.body.getReader();
                     const akim = new ReadableStream({ async start(c) {
                         const { value } = await okuyucu.read();
+                        okuyucu.cancel().catch(() => {});  // bağlantı gerçekten kopar ( ARIZA_BETIGI )
                         if (value) c.enqueue(value);
                         c.error(new TypeError('network error'));
                     } });
@@ -3277,10 +3278,15 @@ class OnYuzUctanUca(unittest.TestCase):
             if (a.tur === 'ret')
                 return yanit(JSON.stringify({ aktif: false, hata: ['DENEME REDDİ'] }), 413, 'application/json');
             if (a.tur === 'bozuk') return yanit('<html>bozuk</html>', 200, 'application/json');
+            //  Yarıda kesilen yanıt:  ilk parçanın yarısı, sonra bağlantı GERÇEKTEN kopar ( 21 Kas — #159'un
+            //  CI'ı:  okuyucu kapatılmadan bırakılınca gerçek istek açık kalıyordu;  akışlı paketin son
+            //  satırı ( base64 ZIP, ~1 MB ) okunmayınca tarayıcının tamponu doluyor, istek bitmiyor,
+            //  matrisin sonraki aşaması "sayfa sakinleşmedi" diye düşüyordu )
             const r = await F(girdi, secenek);
             const okuyucu = r.body.getReader();
             return new Response(new ReadableStream({ async start(c) {
                 const { value } = await okuyucu.read();
+                okuyucu.cancel().catch(() => {});
                 if (value) c.enqueue(value.slice(0, Math.max(1, value.length >> 1)));
                 c.error(new TypeError('network error'));
             } }), { status: r.status, headers: r.headers });
@@ -3322,8 +3328,11 @@ class OnYuzUctanUca(unittest.TestCase):
                     return sahte(JSON.stringify({ aktif: false, hata: ['DENEME REDDİ'] }), 413, 'application/json');
                 if (a.tur === 'bozuk') return sahte('<html>bozuk</html>', 200, 'application/json');
                 //  Yarıda kesilen yanıt:  gerçek yanıtın ilk parçasının yarısı, sonra bağlantı kopar
+                //  ( gerçekten:  okuyucu kapatılır — fetch yolundaki not )
                 F(this.__adres, { method: this.__yontem, headers: this.__basliklar, body: govde }).then(async (r) => {
-                    const { value } = await r.body.getReader().read();
+                    const okuyucu = r.body.getReader();
+                    const { value } = await okuyucu.read();
+                    okuyucu.cancel().catch(() => {});
                     const yarim = value ? new TextDecoder().decode(value.slice(0, Math.max(1, value.length >> 1))) : '';
                     sahte(yarim, r.status, r.headers.get('Content-Type') || '', 'hata');
                 }, () => setTimeout(() => this.onerror?.(), 0));
