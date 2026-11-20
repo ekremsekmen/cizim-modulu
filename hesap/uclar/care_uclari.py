@@ -40,15 +40,19 @@ sınırıdır;  ona ya da sayıya takılan arama yanıtta "tamamlandi: false" de
 """
 
 import copy
+import json
 import logging
 import math
 import re
+import threading
 import time
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Request
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from temel import sayi_mi
+from cizim import asamalar
 from cizim import istek_onbellegi
 from cizim import izli
 from cizim import sorun
@@ -56,6 +60,7 @@ from motor.uygulama import uygulama_hesabi
 from tasarim import gorunum
 from tasarim.alanlar import KUYU_ORTAK
 from uclar import cizim_uclari
+from uclar import uc_ortak
 from uclar import uygulama_istegi
 from uclar.uc_ortak import _sayi, hata_iletisi, hata_kaydi
 
@@ -158,10 +163,24 @@ SECIMLER = {
     #  Kuyu – kabin eşiği 0,15 m'yi aşınca:  mekanik kilitli kabin kapısı ( m.5.2.5.3.1 c )
     "kabin_kapisi_kilidi": frozenset(("kabin_esigi",)),
 }
+#  ARAMANIN AŞAMALARI ( 20 Kas — arayüz taslağı B5:  arama 1,5 – 3,7 sn, en uzun vaka 13,5 sn;  ekranda
+#  yalnız küçük "Aranıyor…" vardı ):  coz'un adımları — ölçüldü 1275 MD kuyu 2100:  sınır 0,39,
+#  türev 0,37, seçim 0,92 sn;  her sınama ( hesap + çizim ) sayılır ( Butce.durum )
+ASAMALAR = {
+    "okuma": ("Sorunlar okunuyor", "Sorunlar okundu"),
+    "sinir": ("Son değişikliğin sınırı aranıyor", "Son değişikliğin sınırı arandı"),
+    "turev": ("Türevin önerdiği değerler sınanıyor", "Türevin önerdiği değerler sınandı"),
+    "secim": ("Seçimler deneniyor", "Seçimler denendi"),
+}
 #  Sayı seçenekli seçim ( kapı genişliği ):  yalnız komşu seçenekler
 KOMSU_SECIM = {"kapi_genisligi": SECIMLER["kat_kapisi_tipi"]}
 #  Bir istekte en çok sınanan seçim
 AZAMI_SECIM = 12
+
+
+def _kisa_etiket(a):
+    """Alanın ekrandaki adı, kısaltması olmadan ( "Kuyu genişliği  ( KG )" → "Kuyu genişliği" )."""
+    return str(a.get("etiket") or a.get("anahtar") or "").split("  (")[0]
 
 
 def kimlik(metin):
@@ -217,8 +236,9 @@ class Butce:
         return self.neden is None
 
     def durum(self, veri, i):
-        """girdi_durumu — bütçeden bir sınama düşerek."""
+        """girdi_durumu — bütçeden bir sınama düşerek ( akışlı istekte ekranda sayılır )."""
         self.kalan -= 1
+        asamalar.say()
         return girdi_durumu(veri, i)
 
 
@@ -328,6 +348,8 @@ def _turevle(veri, i, once, sorunlar, degerler, gizli, alan, butce, ortulu):
         return (k in BINA, -len(adaylar[ka]), abs(adim) / max(abs(degerler[k]), 100.0))
 
     secilen = sorted(adaylar, key=sira)[:AZAMI_ADAY]
+    if secilen:
+        asamalar.asama("turev")
     kabul, denenen = [], set()
     for k, adim in secilen:
         for carpan in (1.0,) + YENIDEN:
@@ -377,7 +399,10 @@ def _son_degisiklikle(veri, i, once, onceki, alan, gizli, butce, ortulu):
     listesi kısadır;  kaideyi düzelten değer kesitin sorunlarını ortaya
     çıkarabilir — sınır onları da geçen değerdir ( kuyu dibi 1000 → 1415 )."""
     kabul = []
-    for k, v0, v1 in _degisenler(veri, i, onceki, alan, gizli):
+    degisenler = _degisenler(veri, i, onceki, alan, gizli)
+    if degisenler:
+        asamalar.asama("sinir", "  ·  ".join(_kisa_etiket(alan[k]) for k, _v0, _v1 in degisenler))
+    for k, v0, v1 in degisenler:
         if not butce.var():
             break
         eski = butce.durum(girdi_yaz(veri, i, k, v0), i)
@@ -448,6 +473,7 @@ def _secimle(veri, i, once, sorunlar, alan, gizli, girilen, butce, oncelikli, or
                 alanlar.append(k)
     kabul, sayac = [], 0
     for k in alanlar:
+        asamalar.asama("secim", _kisa_etiket(alan[k]))
         simdi = girilen.get(k)
         simdi = alan[k]["varsayilan"] if simdi in (None, "") else simdi
         for v in _secenekler(k, alan[k], simdi):
@@ -478,6 +504,7 @@ def coz(veri, i=0, onceki=None, butce=None):
     t0 = time.monotonic()
     butce = butce or Butce()
     ilk = butce.kalan
+    asamalar.asama("okuma")
     once = girdi_durumu(veri, i)
     sorunlar, degerler, gizli = cizim_uclari.izli_sorunlar(veri, i)
     alan = {a["anahtar"]: a for gr in uygulama_istegi.alanlar()["gruplar"] for a in gr["alanlar"]}
@@ -573,7 +600,18 @@ def _sirala(liste, degerler):
 
 
 @router.post("/api/uygulama/care")
-def api_care(veri: dict = Body(...)):
+async def api_care_ucu(istek: Request, veri: dict = Body(...)):
+    """Aktif asansörün sorunlarının çareleri ( api_care ).  AKIŞ ( 20 Kas — arayüz taslağı B5 ):
+    istek uc_ortak.AKIS_TURU'nü isterse aramanın aşamaları ( ASAMALAR ) ve sınama sayısı satır
+    satır, sonda bugünkü yanıt;  vazgeçilince ( bağlantı kapandı ) arama bir sonraki sınamada durur."""
+    if not uc_ortak.akis_isteniyor(istek):
+        return await run_in_threadpool(api_care, veri)
+    birakildi = threading.Event()
+    ilerleme = asamalar.Ilerleme(ASAMALAR, iptal=birakildi.is_set)
+    return uc_ortak.akisli_yanit(istek, lambda: json.loads(api_care(veri).body), ilerleme, birakildi)
+
+
+def api_care(veri):
     """Aktif asansörün sorunlarının çareleri.  onceki:  son temiz girdi
     ( { asansor , proje_geneli } — ön yüz gönderir;  yoksa yalnız türev )."""
     try:

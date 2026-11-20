@@ -9,6 +9,7 @@ import { Check, ChevronRight, CircleAlert, Download, FileArchive, FilePlus, Fold
 import {
   api,
   indir,
+  indirAkisli,
   paketNotu,
   type AvanCizimYaniti,
   type AvanKotBilgisi,
@@ -72,7 +73,7 @@ const Tuval = lazy(() => import("@/uygulama/Tuval").then((m) => ({ default: m.Tu
 import type { OlcuSecimi } from "@/uygulama/Tuval";
 import { OlcuKutusu } from "@/uygulama/OlcuKutusu";
 import { useAvanDegisimi } from "@/avan/AvanDegisimOnayi";
-import { AramaAsamalari, GORUNME_ESIGI, useGecenSure, type AramaDurumu } from "@/avan/AramaAsamalari";
+import { GORUNME_ESIGI, IsAsamalari, useAsamaliIs, useGecenSure, type IsDurumu } from "@/components/IsAsamalari";
 
 const ADIMLAR = [
   { yol: "trafik", ad: "Trafik hesabı" },
@@ -270,18 +271,27 @@ export function AvanCalisma() {
   const indirmeSuruyor = useRef(false);
   //  Paftanın dizileceği rulo ( 60 / 90 cm — lib/kagit;  Teslim'le aynı seçim )
   const [kagit, setKagit] = useKagitEni();
-  const paket = useMutation({
-    mutationFn: () =>
-      indir("proje-dwg", {
+  //  PAKET AKIŞLI ( 20 Kas — arayüz taslağı B2:  aranmamış asansör paketin içinde aranıyordu — 6,8 sn,
+  //  17 Kas'ta 48 sn — ekranda yalnız düğmede dönen işaret vardı ):  sunucu hesapları, her asansörün
+  //  aramasını ( adıyla ) ve paketin adımlarını akıtır;  pencerede görünür, Vazgeç aramayı ve paketi bırakır
+  const paket = useAsamaliIs((_: void, s, ilerle) =>
+    indirAkisli(
+      "proje-dwg",
+      {
         kapak: kapakVerisi,
         girdiler: { trafik: trafikGirdi, avan: avanGirdi },
         proje_dosyasi: avanDosyaGovdesi(p, sec.data!, ofis, kopru),
         kagit,
-      }),
-    onSettled: () => {
+      },
+      s,
+      ilerle,
+    ).finally(() => {
       indirmeSuruyor.current = false;
-    },
-  });
+    }),
+  );
+  const paketGecen = useGecenSure(paket.durum);
+  //  Paketin penceresi kapatılabilir ( iş sürer );  üst şeritteki düğme onu geri açar
+  const [paketGizli, setPaketGizli] = useState(false);
 
   //  PAKETİN ARAMASI ( 17 Kas — yayın öncesi denetim ):  paket çizimi istenen her asansörün
   //  seçicisini koşar;  Çizimler adımında bulunmuş olan önbellekten gelir ( sunucu:  işçiler arası
@@ -325,6 +335,7 @@ export function AvanCalisma() {
   const paketiIndir = () => {
     if (indirmeSuruyor.current) return;
     indirmeSuruyor.current = true;
+    setPaketGizli(false);
     paket.mutate();
   };
   const projeyiIndir = async () => {
@@ -507,6 +518,24 @@ export function AvanCalisma() {
                 Vazgeç
               </Dugme>
             </Pencere>
+            <Pencere
+              acik={!!paket.durum && paketGecen >= GORUNME_ESIGI && !paketGizli}
+              degisti={(a) => !a && setPaketGizli(true)}
+              baslik="Proje paketi"
+              aciklama="Pencereyi kapatabilirsiniz:  paket bitince iner."
+            >
+              {paket.durum && (
+                <IsAsamalari
+                  durum={paket.durum}
+                  gecen={paketGecen}
+                  baslik={(son) => (son && !PAKET_ADIMLARI.has(son.kod) ? "Asansör aranıyor…" : "Paket hazırlanıyor…")}
+                  sayac={(n) => `${n} yerleşim sınandı`}
+                  alt="Vazgeçerseniz arama ve paket durur;  bulunan çizimler saklanır."
+                  vazgec={paket.vazgec}
+                  className="max-w-none border-0 p-0"
+                />
+              )}
+            </Pencere>
             <Ipucu metin="Kâğıt eni ( cm ):  paket bu rulo enine dizilir">
               <span className="ml-1 shrink-0 whitespace-nowrap">
                 <KagitSecici deger={kagit} degisti={setKagit} kisa />
@@ -515,8 +544,9 @@ export function AvanCalisma() {
             <Dugme
               tur="birincil"
               className="ml-1"
-              onClick={() => void projeyiIndir()}
-              disabled={paket.isPending || soruluyor || !!paketBekleme}
+              //  Paket sürerken pencereyi geri açar ( kapatılmış olabilir )
+              onClick={() => (paket.isPending ? setPaketGizli(false) : void projeyiIndir())}
+              disabled={!paket.isPending && (soruluyor || !!paketBekleme)}
               title={paketBekleme}
             >
               {paket.isPending || soruluyor || (!sonuclarGuncel && !baglantiHatasi) ? <Loader2 className="animate-spin" /> : <FileArchive />}{" "}
@@ -1761,9 +1791,9 @@ function CizimlerAdimi({
   //  Alanların adları ( elle ayar listesi ):  seçici yanıt vermeden de okunur ad ( 17 Kas )
   const sema = useQuery({ queryKey: ["alanlar"], queryFn: api.alanlar, staleTime: Infinity });
   const alanBilgisi = (k: string) => sema.data?.gruplar.flatMap((gr) => gr.alanlar).find((a) => a.anahtar === k);
-  //  ARAMANIN AŞAMALARI ( 17 Kas ):  sunucu aramanın gerçek aşamalarını akıtır ( AramaAsamalari );
+  //  ARAMANIN AŞAMALARI ( 17 Kas ):  sunucu aramanın gerçek aşamalarını akıtır ( IsAsamalari );
   //  hangi girdinin, hangi asansörün araması olduğu da tutulur — eski aramanın aşaması görünmez
-  const [arama, setArama] = useState<(AramaDurumu & { g: unknown; i: number }) | null>(null);
+  const [arama, setArama] = useState<(IsDurumu & { g: unknown; i: number }) | null>(null);
   const cizim = useQuery({
     queryKey: ["avan-cizim", g, i],
     queryFn: ({ signal }) => {
@@ -1970,7 +2000,7 @@ function CizimlerAdimi({
           </CizimIletisi>
         ) : !r && asamalar ? (
           <div className="flex flex-1 items-center justify-center overflow-y-auto p-8">
-            <AramaAsamalari durum={asamalar} gecen={gecen} />
+            <AramaKarti durum={asamalar} gecen={gecen} />
           </div>
         ) : !r ? (
           <CizimIletisi
@@ -2064,7 +2094,7 @@ function CizimlerAdimi({
         {/*  Eski sonuç görünürken yenisi aranıyor:  aşamalar köşede  */}
         {r && asamalar && (
           <div className="pointer-events-none absolute top-14 right-3 z-20">
-            <AramaAsamalari durum={asamalar} gecen={gecen} kucuk />
+            <AramaKarti durum={asamalar} gecen={gecen} kucuk />
           </div>
         )}
       </main>
@@ -2376,5 +2406,22 @@ function IndirDugmesi({ uc, govde, kapali, bekleme }: { uc: string; govde: unkno
         </Dugme>
       </Ipucu>
     </span>
+  );
+}
+
+/**  Avan paketinin kendi adımları ( sunucu:  avan_uclari.PAKET_ASAMALARI );  öbürleri asansörün araması  */
+const PAKET_ADIMLARI = new Set(["hesaplar", "hazir", "sayfalar", "cizimler", "dwg", "pdf"]);
+
+/**  Asansör aramasının aşamaları ( Çizimler adımı ):  çizimler kurulurken başlık değişir  */
+function AramaKarti({ durum, gecen, kucuk }: { durum: IsDurumu; gecen: number; kucuk?: boolean }) {
+  return (
+    <IsAsamalari
+      durum={durum}
+      gecen={gecen}
+      kucuk={kucuk}
+      baslik={(son) => (son?.kod === "cizim" ? "Çizimler kuruluyor…" : "Asansör seçiliyor…")}
+      sayac={(n) => `${n} yerleşim sınandı`}
+      alt="Girdiyi değiştirirseniz bu arama bırakılır, yenisi başlar."
+    />
   );
 }

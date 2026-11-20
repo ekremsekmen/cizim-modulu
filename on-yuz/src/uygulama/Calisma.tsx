@@ -3,7 +3,7 @@
     Sunucuyla konuşma useSunucu'da ( gecikme, yarış, hata ve "güncel değil"
     kuralları );  burada yalnız ekranın durumu ve düzeni.                    */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
 import {
   Calculator,
@@ -50,6 +50,7 @@ import { cn, etiketBol, sayiYaz } from "@/lib/utils";
 import { AnaSayfaBaglantisi, BasvuruBaglantilari, SunucuBekleniyor, UstSerit } from "@/components/Kabuk";
 import { Bolumlu, Dugme, HukumNoktasi, Ipucu, Rozet } from "@/components/ui";
 import { HesapBelgesi } from "@/components/HesapBelgesi";
+import { GORUNME_ESIGI, IsAsamalari, birakildiMi, useAsamaliIs, useGecenSure, type IsDurumu } from "@/components/IsAsamalari";
 import { GirdiPaneli } from "./GirdiPaneli";
 import { Tuval, type OlcuSecimi, type Parca } from "./Tuval";
 import { OlcuKutusu } from "./OlcuKutusu";
@@ -211,10 +212,13 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   //  geçerlidir.  İstek bütün asansörleri taşır, sekme değişince aynı kalır:
   //  eskiden 1. asansörün çareleri 2.'nin kartında görünüyor ( sorun metni
   //  aynıysa — ikiz asansörler ), "Uygula" 2.'ye yazıyordu ( 20 Eki ).
-  const care = useMutation({
-    mutationFn: (v: { istek: UygulamaIstegi; asansor: number; onceki: OncekiGirdi | null }) =>
-      api.care(v.istek, v.asansor, v.onceki),
-  });
+  //  ARAMANIN AŞAMALARI ( 20 Kas — arayüz taslağı B5:  1,5 – 3,7 sn, en uzun vaka 13,5 sn;  ekranda yalnız
+  //  küçük "Aranıyor…" vardı ):  sunucu aşamaları ve sınama sayısını akıtır, Vazgeç aramayı bırakır
+  const care = useAsamaliIs(
+    (v: { istek: UygulamaIstegi; asansor: number; onceki: OncekiGirdi | null }, s, ilerle) =>
+      api.care(v.istek, v.asansor, v.onceki, s, ilerle),
+  );
+  const careGecen = useGecenSure(care.durum);
   //  GİRDİ DEĞİŞİNCE ( 24 Eki ):  yeni çizim gelene kadar ( 300 ms bekleme + kurulum )
   //  ekrandaki çizim ve düzeltmeleri eski girdinindir — "Uygula" eski girdide
   //  sınanmış değeri yeni girdinin üstüne yazıyordu;  bir düzeltme uygulanınca
@@ -226,7 +230,9 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   const careler = careBuGirdinin ? care.data : undefined;
   //  Yanıt gelmedi ( bağlantı, vekilin zaman aşımı ):  düğme sessizce eski hâline dönüyordu
   const careHatasi =
-    careBuGirdinin && care.error ? `Düzeltme aranamadı — sunucuya ulaşılamadı ( ${care.error.message} ).` : undefined;
+    careBuGirdinin && care.error && !birakildiMi(care.error)
+      ? `Düzeltme aranamadı — sunucuya ulaşılamadı ( ${care.error.message} ).`
+      : undefined;
   const careBul =
     s.cizimIstegi && cizimGirdisinde
       ? () => care.mutate({ istek: s.cizimIstegi!, asansor: a, onceki: s.oncekiTemiz })
@@ -317,6 +323,9 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
         seciliSorun={gecerliOdak?.sorun.metin ?? null}
         careBul={careBul}
         careYolda={care.isPending && careBuGirdinin}
+        careDurum={careBuGirdinin && careGecen >= GORUNME_ESIGI ? care.durum : null}
+        careGecen={careGecen}
+        careVazgec={care.vazgec}
         careler={careler}
         careHatasi={careHatasi}
         careUygula={careUygula}
@@ -656,6 +665,9 @@ function SorunKarti({
   seciliSorun,
   careBul,
   careYolda,
+  careDurum,
+  careGecen,
+  careVazgec,
   careler,
   careHatasi,
   careUygula,
@@ -679,6 +691,11 @@ function SorunKarti({
   /**  Çareleri iste ( ekrandaki çizimin girdisiyle );  yoksa düğme yok  */
   careBul?: () => void;
   careYolda: boolean;
+  /**  Süren aramanın aşamaları ( 1 sn'den uzun sürünce;  yoksa null )  */
+  careDurum: IsDurumu | null;
+  careGecen: number;
+  /**  Aramayı bırakır ( sunucu bir sonraki sınamada durur )  */
+  careVazgec: () => void;
   careler?: CareYanit;
   /**  Arama isteği yanıtsız kaldı  */
   careHatasi?: string;
@@ -791,6 +808,19 @@ function SorunKarti({
           </button>
         )}
       </div>
+      {careDurum && !kucuk && (
+        <div className={cn("pb-2", panel ? "px-3" : "px-4 pl-10")}>
+          <IsAsamalari
+            kucuk
+            durum={careDurum}
+            gecen={careGecen}
+            baslik="Düzeltme aranıyor…"
+            sayac={(n) => `${n} düzeltme sınandı`}
+            vazgec={careVazgec}
+            className="w-full shadow-none"
+          />
+        </div>
+      )}
       {careler && !careler.aktif && !kucuk && (
         <p className="px-4 pb-2 pl-10 text-[12px] opacity-80">{careler.hata?.join(" ") || "Düzeltme aranamadı."}</p>
       )}
@@ -805,7 +835,10 @@ function SorunKarti({
             : "Arama sınırına ulaşıldı — bütün adaylar denenmedi, düzeltmeler eksik olabilir."}
         </p>
       )}
-      <ul hidden={kucuk} className={cn("space-y-1 overflow-y-auto px-4 pb-3 pl-10", careAcik ? "max-h-96" : "max-h-52")}>
+      {/*  Panelde liste kesilmez ( 20 Kas — arayüz taslağı B4:  "Hesap durdu · 4" kartının 4. maddesi
+           iç kaydırmada gizliydi, işareti yoktu );  kart panelin kendi kaydırmasındadır.  Tuvalin
+           ortasındaki kartta ( eski sonuç yok ) ekranın yarısıyla sınırlı.  */}
+      <ul hidden={kucuk} className={cn("space-y-1 px-4 pb-3 pl-10", !panel && "max-h-[50vh] overflow-y-auto")}>
         {maddeler.map((m, i) => (
           <li key={i} className="list-disc text-[12.5px] leading-snug marker:text-current/50">
             {m.git ? (

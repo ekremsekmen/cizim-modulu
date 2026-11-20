@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { api, indir } from "./api";
+import { akisDosyasi, api, base64Bayt, indir, indirAkisli } from "./api";
 
 /**  Başlığı gelmiş, gövdesi yarıda kesilen yanıt:  bağlantı dosya inerken koptu  */
 function yaridaKesilen(tur: string) {
@@ -51,6 +51,8 @@ describe("ret iletisi ucun biçiminde gelir ( 24 Eki )", () => {
     const istek = { asansorler: [{}], proje_geneli: {}, sabitler: {} };
     await expect(api.hesap(istek)).resolves.toEqual({ hata: ["Bulunamadı"] });
     await expect(api.cizimler(istek, 0)).resolves.toEqual({ hata: ["Bulunamadı"] });
+    //  Düzeltme ( 20 Kas ) akışlı istekle — XHR;  akış vermeyen ret yine liste
+    vi.stubGlobal("XMLHttpRequest", sahteXhr(JSON.stringify({ hata: "Bulunamadı" }), 1000, { tur: "application/json", durum: 404 }));
     await expect(api.care(istek, 0, null)).resolves.toEqual({ hata: ["Bulunamadı"] });
   });
 
@@ -150,5 +152,45 @@ describe("avan çiziminin akışlı yanıtı ( 17 Kas — aramanın aşamaları 
     await expect(api.avanCizimleri({}, 0)).resolves.toEqual({ hata: "İstek çok büyük" });
     vi.stubGlobal("XMLHttpRequest", sahteXhr("kapalı", 1000, { tur: "text/plain", durum: 503 }));
     await expect(api.avanCizimleri({}, 0)).rejects.toThrow(/yanıt vermedi/);
+  });
+});
+
+describe("akışlı indirme ( 20 Kas — paketin adımları, sonda dosya )", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const satirla = (s: unknown[]) => s.map((x) => JSON.stringify(x)).join("\n") + "\n";
+  const dosya = { ad: "Proje - Uygulama Projesi.zip", tur: "application/zip", veri: btoa("PK\u0003\u0004zip") };
+
+  it("son satırın dosyası base64'ten çözülür, notlar gelir", async () => {
+    const d = akisDosyasi({ dosya, notlar: ["DXF"] }, "uygulama-dwg");
+    expect(d.blob).toBeDefined();
+    if (!d.blob) return;
+    expect(d.ad).toBe("Proje - Uygulama Projesi.zip");
+    expect(d.notlar).toEqual(["DXF"]);
+    expect(new Uint8Array(await d.blob.arrayBuffer())).toEqual(base64Bayt(dosya.veri));
+    expect(new TextDecoder().decode(base64Bayt(dosya.veri))).toBe("PK\u0003\u0004zip");
+  });
+
+  it("dosyasız sonuç ucun hatasıdır ( liste ya da metin — tek metin )", () => {
+    expect(akisDosyasi({ aktif: false, hata: ["ÇİZİMLER KURULAMADI", "x"] }, "u")).toEqual({ hata: "ÇİZİMLER KURULAMADI\nx" });
+    expect(akisDosyasi({ hata: "KÂĞIT ENİ:  75" }, "u")).toEqual({ hata: "KÂĞIT ENİ:  75" });
+    expect(akisDosyasi(null, "u")).toEqual({ hata: "Üretilemedi" });
+    expect(akisDosyasi({ dosya: { ...dosya, veri: "%%%" } }, "u")).toEqual({ hata: expect.stringMatching(/okunamadı/) });
+  });
+
+  it("hiç fırlatmaz:  vazgeç iptal, kopan bağlantı ve yarım akış ileti", async () => {
+    const ilerleme = { ilerleme: { asamalar: [{ kod: "hesap", surer: "h", bitti: "h", ayrinti: "", t: 0 }], sinama: 0, gecen: 0.2 } };
+    vi.stubGlobal("XMLHttpRequest", sahteXhr(satirla([ilerleme, { sonuc: { dosya } }]), 3));
+    const k = new AbortController();
+    const s = indirAkisli("uygulama-dwg", {}, k.signal);
+    k.abort();
+    await expect(s).resolves.toEqual({ iptal: true });
+    vi.stubGlobal("XMLHttpRequest", sahteXhr(satirla([ilerleme]), 9, { kopar: true }));
+    await expect(indirAkisli("uygulama-dwg", {})).resolves.toEqual({ hata: expect.stringMatching(/ulaşılamadı/) });
+    vi.stubGlobal("XMLHttpRequest", sahteXhr(satirla([ilerleme]), 9));
+    await expect(indirAkisli("uygulama-dwg", {})).resolves.toEqual({ hata: expect.stringMatching(/koptu/) });
+    vi.stubGlobal("XMLHttpRequest", sahteXhr("<html>bozuk</html>", 1000, { tur: "application/json" }));
+    await expect(indirAkisli("uygulama-dwg", {})).resolves.toEqual({ hata: expect.stringMatching(/okunamadı/) });
+    vi.stubGlobal("XMLHttpRequest", sahteXhr("kapalı", 1000, { tur: "text/html", durum: 502 }));
+    await expect(indirAkisli("proje-dwg", {})).resolves.toEqual({ hata: expect.stringMatching(/yanıt vermedi/) });
   });
 });

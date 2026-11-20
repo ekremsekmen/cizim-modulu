@@ -51,55 +51,65 @@ export function UygunlukPaneli({
           <h2 className="text-[13px] font-semibold">Uygunluk</h2>
           <span className="text-[12px] text-metin-3">{bolumler.length} bölüm</span>
         </div>
-        {/*  Üç sayı:  bir bakışta proje nerede  */}
-        <div className="mt-2.5 grid grid-cols-3 overflow-hidden rounded-orta border border-cizgi text-center">
+        {/*  Üç sayı:  bir bakışta proje nerede.  HESAP DURUNCA ( 20 Kas — arayüz taslağı B3 ):  sayılar
+             son geçerli girdinindir — soluk ve renksiz;  tuvalde "Uygun değil · 4 sorun" yazarken
+             burada tam renkli "0 uygun değil · 15 uygun" duruyordu  */}
+        {durdu && (
+          <p className="mt-2 flex items-start gap-1.5 text-[12px] leading-snug text-uyari">
+            <CircleAlert className="mt-px size-3.5 shrink-0" />
+            Sayılar ve hükümler son geçerli girdilerin;  güncel girdiyle hesap yapılamadı.
+          </p>
+        )}
+        <div
+          data-eski={durdu || undefined}
+          className={cn(
+            "mt-2.5 grid grid-cols-3 overflow-hidden rounded-orta border border-cizgi text-center",
+            durdu && "border-dashed opacity-50 grayscale",
+          )}
+        >
           <Sayac sayi={kalan.length} ad="uygun değil" renk={kalan.length ? "text-red" : "text-metin-3"} />
           <Sayac sayi={uygun.length} ad="uygun" renk="text-uygun" ayrac />
           <Sayac sayi={bilgi.length} ad="bilgi" renk="text-metin-2" ayrac />
         </div>
-        {durdu && (
-          <p className="mt-2.5 flex items-start gap-1.5 text-[12px] leading-snug text-uyari">
-            <CircleAlert className="mt-px size-3.5 shrink-0" />
-            Hükümler son geçerli girdilerin;  güncel girdiyle hesap yapılamadı.
-          </p>
-        )}
       </div>
 
-      <div className={cn("min-h-0 flex-1 space-y-2 overflow-y-auto p-3", durdu && "opacity-60")}>
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+        {/*  Sorunlar ( yapılacak iş ) tam renkte;  eski hükümler soluk  */}
         {sorunlar}
+        <div className={cn("space-y-2", durdu && "opacity-60")}>
+          {kalan.map((b) => (
+            <UygunDegilKarti
+              key={b.kimlik}
+              b={b}
+              secili={secili === b.kimlik}
+              sec={sec}
+              gruplar={bolumGrubu[b.kimlik] ?? []}
+              cizimdeGoster={parcali[b.kimlik]?.length ? cizimdeGoster : undefined}
+              grupAc={grupAc}
+            />
+          ))}
 
-        {kalan.map((b) => (
-          <UygunDegilKarti
-            key={b.kimlik}
-            b={b}
-            secili={secili === b.kimlik}
-            sec={sec}
-            gruplar={bolumGrubu[b.kimlik] ?? []}
-            cizimdeGoster={parcali[b.kimlik]?.length ? cizimdeGoster : undefined}
-            grupAc={grupAc}
-          />
-        ))}
+          {!bolumler.length && (
+            <p className="px-2 py-6 text-center text-[12.5px] leading-relaxed text-metin-3">
+              Henüz hüküm yok.  Hesap kurulunca bölümler burada, kalanlar en üstte listelenir.
+            </p>
+          )}
 
-        {!bolumler.length && (
-          <p className="px-2 py-6 text-center text-[12.5px] leading-relaxed text-metin-3">
-            Henüz hüküm yok.  Hesap kurulunca bölümler burada, kalanlar en üstte listelenir.
-          </p>
-        )}
+          {uyarilar.map((u) => (
+            <Uyari key={u} metin={u.replace(/^[⚠ℹ]\s*/, "")} />
+          ))}
 
-        {uyarilar.map((u) => (
-          <Uyari key={u} metin={u.replace(/^[⚠ℹ]\s*/, "")} />
-        ))}
-
-        {uygun.length + bilgi.length > 0 && (
-          <AcilirBaslik acik={uygunlarAcik} degisti={setUygunlarAcik}>
-            Uygun bölümler · {uygun.length}
-            {bilgi.length > 0 && <span className="font-normal text-metin-3">  ·  bilgi {bilgi.length}</span>}
-          </AcilirBaslik>
-        )}
-        {/*  Hükümsüz bölümler ( kuyu tabanı yükleri ) ayrı bölüm değil:  kapalı listenin sonunda
-             gri noktayla ( 6 Kas — kullanıcı:  görüntü kirliliği;  sayıları hesap belgesinde )  */}
-        {uygunlarAcik &&
-          [...uygun, ...bilgi].map((b) => <SatirBolum key={b.kimlik} b={b} secili={secili === b.kimlik} sec={sec} />)}
+          {uygun.length + bilgi.length > 0 && (
+            <AcilirBaslik acik={uygunlarAcik} degisti={setUygunlarAcik}>
+              Uygun bölümler · {uygun.length}
+              {bilgi.length > 0 && <span className="font-normal text-metin-3">  ·  bilgi {bilgi.length}</span>}
+            </AcilirBaslik>
+          )}
+          {/*  Hükümsüz bölümler ( kuyu tabanı yükleri ) ayrı bölüm değil:  kapalı listenin sonunda
+               gri noktayla ( 6 Kas — kullanıcı:  görüntü kirliliği;  sayıları hesap belgesinde )  */}
+          {uygunlarAcik &&
+            [...uygun, ...bilgi].map((b) => <SatirBolum key={b.kimlik} b={b} secili={secili === b.kimlik} sec={sec} />)}
+        </div>
       </div>
     </aside>
   );

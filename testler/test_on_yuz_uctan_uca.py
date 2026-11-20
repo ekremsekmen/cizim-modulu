@@ -1643,7 +1643,8 @@ class OnYuzUctanUca(unittest.TestCase):
         with self.sayfa.expect_download(timeout=ZAMAN) as d:
             #  Üç basış aynı anda ( ekran arada yeniden çizilmez — korumasız sürümde üç paket gidiyordu )
             indir.evaluate("b => { b.click(); b.click(); b.click(); }")
-        self.assertEqual(self.sayfa.get_by_role("dialog").count(), 0)
+        #  Soru sorulmaz ( aranmış );  uzun pakette ilerleme penceresi ( 20 Kas ) olabilir — o soru değil
+        self.assertEqual(self.sayfa.get_by_role("dialog").filter(has_text="henüz aranmadı").count(), 0)
         self.assertTrue(d.value.suggested_filename.endswith(".zip"))
         self.assertEqual(len(paket_istekleri), 1)
         #  Kâğıt eni ( 19 Kas ):  seçilmedikçe ofisin şablonu — 60 cm
@@ -2651,7 +2652,8 @@ class OnYuzUctanUca(unittest.TestCase):
             lambda r: r.url.endswith("/api/uygulama/care"), timeout=30_000
         ) as yanit:
             kart.get_by_role("button", name="Düzeltme öner").click()
-        d = yanit.value.json()
+        #  Akışlı yanıt ( 20 Kas — aramanın aşamaları ):  son satırın sonucu
+        d = yanit_govdesi(yanit.value)
         self.assertTrue(d["aktif"], d)
         oneriler = {o["anahtar"]: o["yeni"] for c in d["careler"] for o in c["oneriler"]}
         self.assertEqual((oneriler["kuyu_genisligi"], oneriler["kuyu_tavani_kotu"]), (2230, 46.52))
@@ -2674,9 +2676,15 @@ class OnYuzUctanUca(unittest.TestCase):
 
         def yama(route):
             yanit = route.fetch()
-            d = yanit.json()
-            d["careler"][0]["oneriler"][0]["hesapta_ortaya_cikan"] = ["motor_gucu"]
-            route.fulfill(response=yanit, json=d)
+            if "application/x-ndjson" not in (yanit.headers.get("content-type") or ""):
+                d = yanit.json()
+                d["careler"][0]["oneriler"][0]["hesapta_ortaya_cikan"] = ["motor_gucu"]
+                return route.fulfill(response=yanit, json=d)
+            #  Akışlı yanıt ( 20 Kas — aramanın aşamaları ):  son satırın sonucu yamalanır
+            satirlar = [json.loads(s) for s in yanit.text().splitlines() if s.strip()]
+            satirlar[-1]["sonuc"]["careler"][0]["oneriler"][0]["hesapta_ortaya_cikan"] = ["motor_gucu"]
+            govde = "".join(json.dumps(s, ensure_ascii=False) + "\n" for s in satirlar)
+            route.fulfill(status=200, content_type="application/x-ndjson", body=govde)
 
         self.sayfa.route("**/api/uygulama/care", yama)
         kart = self.sayfa.get_by_role("alert")

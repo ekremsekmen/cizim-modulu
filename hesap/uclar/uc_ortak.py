@@ -9,15 +9,21 @@ Buradaki hiçbir şey hesap YAPMAZ;  hesap motorları engine/ altındadır.
 """
 
 import asyncio
+import base64
 import json
 import logging
 import math
 import os
 import re
 import threading
+import time
+import zlib
 
-from fastapi.responses import JSONResponse, Response
-from urllib.parse import quote
+from fastapi.responses import JSONResponse, Response, StreamingResponse
+from starlette.concurrency import run_in_threadpool
+from urllib.parse import quote, unquote
+
+from cizim import asamalar
 
 #  Bağlantının kapanıp kapanmadığına bakma aralığı ( sn;  bir sınama ~0,1 – 1 sn )
 BAGLANTI_ARALIGI = 0.25
@@ -27,7 +33,7 @@ async def baglantiyi_izle(istek, birakildi):
     """İstemci bağlantıyı kapatınca ( ekran isteği bıraktı ) birakildi ( threading.Event ) kurulur:
     iş parçacığındaki uzun iş ( seçici — avan_secici.korumali ) ona bakıp durur.  Görev olarak
     koşar;  iş bitince çağıran olayı kurar ve görevi iptal eder.  AKIŞLI YANITTA KULLANILMAZ
-    ( orada Starlette kopmayı kendisi dinler — avan_cizim_uclari._akis )."""
+    ( orada Starlette kopmayı kendisi dinler — akisli_yanit )."""
     while not birakildi.is_set():
         if await istek.is_disconnected():
             birakildi.set()
@@ -305,3 +311,130 @@ def _uretilemedi(e: Exception):
     bunu bozuk bir dosya olarak indirmek yerine ekranda mesaj olarak gösterir.
     """
     return JSONResponse({"hata": hata_iletisi("DOSYA ÜRETİLEMEDİ", e, " — ")}, status_code=422)
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  AKIŞLI YANIT  —  uzun işin aşamaları satır satır, en sonda sonuç
+# ══════════════════════════════════════════════════════════════════════
+#  17 Kas avan aramasında başladı ( avan_cizim_uclari );  20 Kas genellendi:  paketler ve
+#  düzeltme önerisi aynı sözleşmeyle konuşur.  İstek Accept'te AKIS_TURU'nü isterse her satır bir
+#  JSON — { ilerleme:  { asamalar , sinama , gecen [ , plan ] } } … , sonda { sonuc:  ucun olağan
+#  yanıtı }.  İstemiyorsa uç eskisi gibi tek yanıt verir ( testler, eski istemciler ).
+#  İLERLEME AYRI BİR İSTEKLE SORULMAZ:  sunucu dört işçiyle çalışır, ikinci istek başka işçiye
+#  düşerdi ( 17 Kas ) — ilerleme ve sonuç aynı yanıtta akar.
+AKIS_TURU = "application/x-ndjson"
+#  Satırlar en çok bu aralıkta bir ( sn ), yalnız yeni bir şey varsa …
+ILERLEME_ARALIGI = 0.2
+#  … ya da bu kadar sn yazılmadıysa:  uzun tek adımda ( PDF'ler, dar kuyuda arama ) vekil
+#  sunucunun ( nginx / Caddy ) okuma zaman aşımı akışı kesmesin
+CANLI_TUT = 10.0
+
+
+def akis_isteniyor(istek):
+    """İstek akışlı yanıt istiyor mu ( Accept )."""
+    return AKIS_TURU in istek.headers.get("accept", "")
+
+
+def akisli_yanit(istek, is_, ilerleme, birakildi):
+    """is_'i ( argümansız, sonucu JSON'a dönüşen ) iş parçacığında ilerleme bağlamıyla koşar,
+    aşamalarını akıtır.  SIKIŞTIRMA BURADA ( main'deki GZipMiddleware bu türü dışlar ):  ara katman
+    küçük satırları biriktirirdi;  her satır gzip akışına yazılıp hemen boşaltılır ( Z_SYNC_FLUSH ).
+
+    BAĞLANTI KAPANINCA ( ekran isteği bıraktı ) birakildi kurulur:  StreamingResponse kopmayı
+    kendisi dinler ( ASGI 2.3 — uvicorn ) ve üreteci iptal eder.  Burada AYRICA is_disconnected
+    yoklanmaz:  akış sürerken ikinci bir dinleyici bağlantıyı bozuyordu ( 17 Kas ).  İş, bir sonraki
+    aşamada ( asamalar.Birakildi ) ya da kendi iptal yoklamasında ( seçici ) durur."""
+    gz = "gzip" in istek.headers.get("accept-encoding", "")
+
+    def calis():
+        try:
+            with asamalar.bagla(ilerleme):
+                return is_()
+        except asamalar.Birakildi:  # bağlantı kapandı:  sonucu okuyan yok
+            return None
+
+    async def satirlar():
+        sikistir = zlib.compressobj(6, zlib.DEFLATED, 31) if gz else None
+
+        def bayt(nesne, son=False):
+            b = (json.dumps(nesne, ensure_ascii=False, default=str) + "\n").encode("utf-8")
+            if sikistir is None:
+                return b
+            return sikistir.compress(b) + sikistir.flush(zlib.Z_FINISH if son else zlib.Z_SYNC_FLUSH)
+
+        is_gorevi = asyncio.ensure_future(run_in_threadpool(calis))
+        gonderilen, yazildi = -1, time.monotonic()
+        try:
+            while True:
+                await asyncio.wait({is_gorevi}, timeout=ILERLEME_ARALIGI)
+                if is_gorevi.done():
+                    break
+                surum, durum = ilerleme.durum()
+                if surum != gonderilen or time.monotonic() - yazildi >= CANLI_TUT:
+                    gonderilen, yazildi = surum, time.monotonic()
+                    yield bayt({"ilerleme": durum})
+            yield bayt({"sonuc": is_gorevi.result()}, son=True)
+        finally:
+            #  Bağlantı kapandıysa Starlette üreteci iptal eder ( buraya gelinir ):  iş durur
+            birakildi.set()
+
+    basliklar = {"Cache-Control": "no-store", "X-Accel-Buffering": "no"}
+    if gz:
+        basliklar.update({"Content-Encoding": "gzip", "Vary": "Accept-Encoding"})
+    return StreamingResponse(satirlar(), media_type=AKIS_TURU, headers=basliklar)
+
+
+def akis_sonucu(yanit):
+    """Ucun yanıtı akıştaki sonuç satırı olarak:  JSON yanıt ( ret, hata ) olduğu gibi;  DOSYA
+    { dosya:  { ad , tur , veri ( base64 ) } , notlar } — ad Content-Disposition'dan, notlar
+    X-Avan-Not'tan ( akışsız yanıtta başlıkta taşınanlar ).  Akışta dosya %33 büyür ( base64 ),
+    gzip bir kısmını geri alır;  paketler 0,6 – 1,7 MB."""
+    tur = (yanit.media_type or "").split(";")[0]
+    if tur == "application/json":
+        return json.loads(yanit.body)
+    ad = re.search(r"filename\*=UTF-8''([^;]+)", yanit.headers.get("content-disposition", ""))
+    return {
+        "dosya": {
+            "ad": unquote(ad.group(1)) if ad else "",
+            "tur": tur,
+            "veri": base64.b64encode(yanit.body).decode("ascii"),
+        },
+        "notlar": [n for n in (yanit.headers.get("x-avan-not") or "").split(",") if n],
+    }
+
+
+#  PAKETİN ADIMLARI ( uygulama ve avan paketi — dxf_cikti.proje_paketi ):  ölçüldü 20 Kas, 4 asansör
+#  10,4 sn — hesap sayfaları ( PDF + vektöre okuma + pafta DXF ) 3,6 · çizimler 2,5 · PDF'ler 3,8 sn
+PAKET_ASAMALARI = {
+    "sayfalar": ("Hesap sayfaları paftaya diziliyor", "Hesap sayfaları paftaya dizildi"),
+    "cizimler": ("Çizimler paftaya diziliyor", "Çizimler paftaya dizildi"),
+    "dwg": ("DWG'ye çevriliyor", "DWG'ye çevrildi"),
+    "pdf": ("PDF'ler hazırlanıyor", "PDF'ler hazırlandı"),
+}
+
+
+def paket_plani(cizimli, dwg, pdf):
+    """Paketin sayfalardan sonraki adımları ( asamalar.planla ):  çizimler, DWG ( çevirici kuruluysa ),
+    PDF'ler ( pypdf varsa )."""
+    return (
+        ["sayfalar"] + (["cizimler"] if cizimli else []) + (["dwg"] if dwg else []) + (["pdf"] if pdf else [])
+    )
+
+
+def asamali_islemler(son_islem, pdf_islem, dwg):
+    """dxf_cikti.proje_paketi'nin son işlemleri aşama bildirerek:  ( son_islem , pdf_islem ).
+    Paket önce çizimleri paftaya ekler ( son_islem ), hemen ardından DWG'ye çevirir ( çevirici
+    kuruluysa — dwg ), sonra PDF'leri kurar ( pdf_islem ):  aşamalar bu sırayla bildirilir."""
+
+    def son(dxf, kagit):
+        asamalar.asama("cizimler")
+        sonuc = son_islem(dxf, kagit)
+        if dwg:
+            asamalar.asama("dwg")
+        return sonuc
+
+    def pdf(dxf, kagit):
+        asamalar.asama("pdf")
+        return pdf_islem(dxf, kagit)
+
+    return (son if son_islem else None), (pdf if pdf_islem else None)

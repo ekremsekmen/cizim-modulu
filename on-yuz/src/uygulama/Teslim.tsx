@@ -6,7 +6,7 @@
 import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Check, ChevronRight, FileArchive, FileCode, FileText, Loader2, DraftingCompass, Ruler, ScrollText, Zap } from "lucide-react";
-import { indir, paketNotu, type Alan, type AlanSemasi, type CokluYanit, type Deger, type UygulamaIstegi } from "@/lib/api";
+import { indir, indirAkisli, paketNotu, type Alan, type AlanSemasi, type CokluYanit, type Deger, type UygulamaIstegi } from "@/lib/api";
 import { girilmeyenler, kotOzeti, type Ham, type UygulamaProjesi } from "@/lib/proje";
 import { DURAK_KOTLARI } from "@/lib/kotlar";
 import { dosyaGovdesi } from "@/lib/dosya";
@@ -16,6 +16,7 @@ import { cn, etiketBol, sayiYaz } from "@/lib/utils";
 import { Cekmece, Dugme, Rozet } from "@/components/ui";
 import { HukumRozeti } from "@/components/HesapBelgesi";
 import { KagitSecici } from "@/components/KagitSecici";
+import { GORUNME_ESIGI, IsAsamalari, useAsamaliIs, useGecenSure } from "@/components/IsAsamalari";
 
 export function Teslim({
   acik,
@@ -80,7 +81,11 @@ export function Teslim({
   const govde = () => ({ ...istek, kapak_sayfasi: kapak, proje_dosyasi: dosyaGovdesi(proje, sema, ofis) });
   //  Paftanın dizileceği rulo ( 60 / 90 cm ):  yalnız paket ( DXF / DWG ve şeridin PDF'i ) kâğıda dizilir
   const [kagit, setKagit] = useKagitEni();
-  const paket = useMutation({ mutationFn: () => indir("uygulama-dwg", { ...govde(), kagit }) });
+  //  PAKET AKIŞLI ( 20 Kas — arayüz taslağı B1:  1 asansörde 2,7, 4 asansörde 10,4 sn;  ekranda yalnız
+  //  dönen işaret vardı ):  sunucu adımlarını akıtır ( hesap · hesap sayfaları · çizimler · PDF'ler ),
+  //  Vazgeç isteği bırakır — sunucu bir sonraki adımda durur
+  const paket = useAsamaliIs((_: void, s, ilerle) => indirAkisli("uygulama-dwg", { ...govde(), kagit }, s, ilerle));
+  const paketGecen = useGecenSure(paket.durum);
   const pdf = useMutation({ mutationFn: () => indir("uygulama-pdf", govde()) });
   const hata = paket.data?.hata || pdf.data?.hata;
   const notlar = paket.data?.notlar ?? [];
@@ -284,26 +289,42 @@ export function Teslim({
         )}
       </div>
 
-      <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-cizgi bg-yuzey px-5 py-3.5">
-        <Dugme onClick={() => pdf.mutate()} disabled={(!!engel && !engel.yalnizPaket) || pdf.isPending}>
-          {pdf.isPending ? <Loader2 className="animate-spin" /> : <FileText />}
-          Yalnız hesap PDF'i
-        </Dugme>
-        {/*  Paket düğmesi pasifken nedeni yanında ( soluk düğme neden basılmadığını
-             söylemiyordu );  engel varsa nedeni yukarıda yazılıdır  */}
-        {!engel && (!onay || !uygunDegilOnay) && (
-          <span className="flex-1 text-right text-[12px] leading-snug text-metin-3">
-            {!onay && !uygunDegilOnay
-              ? "1. ve 2. adımdaki onayları işaretleyin"
-              : !uygunDegilOnay
-                ? "1. adımdaki onayı işaretleyin"
-                : "2. adımdaki onayı işaretleyin"}
-          </span>
+      <div className="sticky bottom-0 border-t border-cizgi bg-yuzey px-5 py-3.5">
+        {/*  Paketin adımları düğmelerin üstünde:  çekmece uzunken ( 4 asansör ) de kaydırmadan görünür  */}
+        {paket.durum && paketGecen >= GORUNME_ESIGI && (
+          <IsAsamalari
+            durum={paket.durum}
+            gecen={paketGecen}
+            baslik="Paket hazırlanıyor…"
+            alt="Vazgeçerseniz sunucu bir sonraki adımda durur."
+            vazgec={paket.vazgec}
+            className="mb-3 max-w-none"
+          />
         )}
-        <Dugme tur="birincil" boy="buyuk" onClick={() => paket.mutate()} disabled={!!engel || !onay || !uygunDegilOnay || paket.isPending}>
-          {paket.isPending ? <Loader2 className="animate-spin" /> : paket.isSuccess && !paket.data?.hata ? <Check /> : <FileArchive />}
-          Paketi indir · ZIP
-        </Dugme>
+        {paket.data?.iptal && !paket.isPending && (
+          <p className="mb-2 text-[12.5px] text-metin-3">Vazgeçildi — paket inmedi.</p>
+        )}
+        <div className="flex items-center justify-between gap-3">
+          <Dugme onClick={() => pdf.mutate()} disabled={(!!engel && !engel.yalnizPaket) || pdf.isPending}>
+            {pdf.isPending ? <Loader2 className="animate-spin" /> : <FileText />}
+            Yalnız hesap PDF'i
+          </Dugme>
+          {/*  Paket düğmesi pasifken nedeni yanında ( soluk düğme neden basılmadığını
+               söylemiyordu );  engel varsa nedeni yukarıda yazılıdır  */}
+          {!engel && (!onay || !uygunDegilOnay) && (
+            <span className="flex-1 text-right text-[12px] leading-snug text-metin-3">
+              {!onay && !uygunDegilOnay
+                ? "1. ve 2. adımdaki onayları işaretleyin"
+                : !uygunDegilOnay
+                  ? "1. adımdaki onayı işaretleyin"
+                  : "2. adımdaki onayı işaretleyin"}
+            </span>
+          )}
+          <Dugme tur="birincil" boy="buyuk" onClick={() => paket.mutate()} disabled={!!engel || !onay || !uygunDegilOnay || paket.isPending}>
+            {paket.isPending ? <Loader2 className="animate-spin" /> : paket.isSuccess && !paket.data?.hata && !paket.data?.iptal ? <Check /> : <FileArchive />}
+            Paketi indir · ZIP
+          </Dugme>
+        </div>
       </div>
     </Cekmece>
   );

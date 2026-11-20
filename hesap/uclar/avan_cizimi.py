@@ -14,7 +14,7 @@ Seçici ( uclar/avan_secici.py ) bu kuyuya doğrulanmış asansörü bulur.
 
 import copy
 
-from cizim import avan_kipi, istek_onbellegi, katlar, kopru
+from cizim import asamalar, avan_kipi, istek_onbellegi, katlar, kopru
 from motor.avan import avan_hesabi, tablolar
 from motor.ortak.adimlar import evet_mi
 from motor.uygulama import uygulama_hesabi
@@ -352,10 +352,17 @@ def paket_cizimleri(g, proje_adi, adlar):
     asansör ( eksik mimari, mimardan istenecek ölçü, sığmayan kuyu ) pakete çizimsiz
     girer ve adı döner — çağıran kullanıcıya SÖYLER."""
     gler, eksik = [], []
+    #  Ekran ( akışlı paket — avan_uclari ) her asansörün aramasını adıyla görür:  önbellekte hazır
+    #  olan "çizimi hazır", aranan seçicinin kendi aşamalarıyla ( "B · Kuyuya yerleşim deneniyor" )
+    aranacak = set(aranacaklar(g))
     for i, a in enumerate(g["asansorler"]):
         if a is None or not istendi(a):
             continue
-        r = secim(g, i)
+        ad = str(a.get("tanim") or "").strip() or f"{i + 1}. asansör"
+        with asamalar.onekle(f"{ad} · "):
+            if i not in aranacak and not _kabin_celiskisi(a, g["ortak"]):
+                asamalar.asama("hazir")
+            r = secim(g, i)
         cg = None
         if r["durum"] == "uygun":
             v = copy.deepcopy(r["istek"])
