@@ -9,6 +9,7 @@ import { Check, ChevronRight, CircleAlert, Download, FileArchive, FilePlus, Fold
 import {
   api,
   indir,
+  indirAkisli,
   paketNotu,
   type AvanCizimYaniti,
   type AvanKotBilgisi,
@@ -72,7 +73,7 @@ const Tuval = lazy(() => import("@/uygulama/Tuval").then((m) => ({ default: m.Tu
 import type { OlcuSecimi } from "@/uygulama/Tuval";
 import { OlcuKutusu } from "@/uygulama/OlcuKutusu";
 import { useAvanDegisimi } from "@/avan/AvanDegisimOnayi";
-import { AramaAsamalari, GORUNME_ESIGI, useGecenSure, type AramaDurumu } from "@/avan/AramaAsamalari";
+import { GORUNME_ESIGI, IsAsamalari, useAsamaliIs, useGecenSure, type IsDurumu } from "@/components/IsAsamalari";
 
 const ADIMLAR = [
   { yol: "trafik", ad: "Trafik hesabı" },
@@ -204,6 +205,23 @@ export function AvanCalisma() {
       enabled: false,
     })),
   });
+  //  SEKMELERİN DURUMU ( 20 Kas — arayüz taslağı B12:  A / B sekmeleri yalnız "8 kişi · 1 m/s" diyordu ):
+  //  aynı önbellekten — aranıyor, bulundu, çizilemiyor, aranmadı ( çizim istenmeyen kartta yok )
+  const cizimHalleri: Record<number, CizimHali> = Object.fromEntries(
+    cizimIstenen.map((i, j) => {
+      const q = cizimSonuclari[j];
+      const hal: CizimHali = q?.isFetching
+        ? "araniyor"
+        : q?.data && q.data.durum !== "tamamlanmadi"
+          ? q.data.durum === "uygun"
+            ? "bulundu"
+            : "cizilemiyor"
+          : "aranmadi";
+      return [i, hal];
+    }),
+  );
+  //  Çizimler adımında seçili asansör ( üstte:  paketin penceresi aranmamış asansörü açar — B11 )
+  const [cizimSecili, setCizimSecili] = useState(0);
   const cizimDurum = !cizimIstenen.length
     ? null
     : cizimSonuclari.some((q) => q.data && q.data.durum !== "uygun")
@@ -270,18 +288,27 @@ export function AvanCalisma() {
   const indirmeSuruyor = useRef(false);
   //  Paftanın dizileceği rulo ( 60 / 90 cm — lib/kagit;  Teslim'le aynı seçim )
   const [kagit, setKagit] = useKagitEni();
-  const paket = useMutation({
-    mutationFn: () =>
-      indir("proje-dwg", {
+  //  PAKET AKIŞLI ( 20 Kas — arayüz taslağı B2:  aranmamış asansör paketin içinde aranıyordu — 6,8 sn,
+  //  17 Kas'ta 48 sn — ekranda yalnız düğmede dönen işaret vardı ):  sunucu hesapları, her asansörün
+  //  aramasını ( adıyla ) ve paketin adımlarını akıtır;  pencerede görünür, Vazgeç aramayı ve paketi bırakır
+  const paket = useAsamaliIs((_: void, s, ilerle) =>
+    indirAkisli(
+      "proje-dwg",
+      {
         kapak: kapakVerisi,
         girdiler: { trafik: trafikGirdi, avan: avanGirdi },
         proje_dosyasi: avanDosyaGovdesi(p, sec.data!, ofis, kopru),
         kagit,
-      }),
-    onSettled: () => {
+      },
+      s,
+      ilerle,
+    ).finally(() => {
       indirmeSuruyor.current = false;
-    },
-  });
+    }),
+  );
+  const paketGecen = useGecenSure(paket.durum);
+  //  Paketin penceresi kapatılabilir ( iş sürer );  üst şeritteki düğme onu geri açar
+  const [paketGizli, setPaketGizli] = useState(false);
 
   //  PAKETİN ARAMASI ( 17 Kas — yayın öncesi denetim ):  paket çizimi istenen her asansörün
   //  seçicisini koşar;  Çizimler adımında bulunmuş olan önbellekten gelir ( sunucu:  işçiler arası
@@ -325,6 +352,7 @@ export function AvanCalisma() {
   const paketiIndir = () => {
     if (indirmeSuruyor.current) return;
     indirmeSuruyor.current = true;
+    setPaketGizli(false);
     paket.mutate();
   };
   const projeyiIndir = async () => {
@@ -487,6 +515,10 @@ export function AvanCalisma() {
               <Dugme
                 tur={paketSor?.hata ? "ikincil" : "birincil"}
                 onClick={() => {
+                  //  İlk aranmamış asansörün sekmesi açılır ( 20 Kas — B11:  zaten bulunmuş A seçili kalıyordu );
+                  //  arama orada aşamalarıyla başlar
+                  const ilk = paketAsansorleri.find((a) => a.hal === "aranmadi" || a.hal === "bilinmiyor");
+                  if (ilk) setCizimSecili(ilk.i);
                   setPaketSor(null);
                   git("/avan/cizimler");
                 }}
@@ -507,6 +539,24 @@ export function AvanCalisma() {
                 Vazgeç
               </Dugme>
             </Pencere>
+            <Pencere
+              acik={!!paket.durum && paketGecen >= GORUNME_ESIGI && !paketGizli}
+              degisti={(a) => !a && setPaketGizli(true)}
+              baslik="Proje paketi"
+              aciklama="Pencereyi kapatabilirsiniz:  paket bitince iner."
+            >
+              {paket.durum && (
+                <IsAsamalari
+                  durum={paket.durum}
+                  gecen={paketGecen}
+                  baslik={(son) => (son && !PAKET_ADIMLARI.has(son.kod) ? "Asansör aranıyor…" : "Paket hazırlanıyor…")}
+                  sayac={(n) => `${n} yerleşim sınandı`}
+                  alt="Vazgeçerseniz arama ve paket durur;  bulunan çizimler saklanır."
+                  vazgec={paket.vazgec}
+                  className="max-w-none border-0 p-0"
+                />
+              )}
+            </Pencere>
             <Ipucu metin="Kâğıt eni ( cm ):  paket bu rulo enine dizilir">
               <span className="ml-1 shrink-0 whitespace-nowrap">
                 <KagitSecici deger={kagit} degisti={setKagit} kisa />
@@ -515,8 +565,9 @@ export function AvanCalisma() {
             <Dugme
               tur="birincil"
               className="ml-1"
-              onClick={() => void projeyiIndir()}
-              disabled={paket.isPending || soruluyor || !!paketBekleme}
+              //  Paket sürerken pencereyi geri açar ( kapatılmış olabilir )
+              onClick={() => (paket.isPending ? setPaketGizli(false) : void projeyiIndir())}
+              disabled={!paket.isPending && (soruluyor || !!paketBekleme)}
               title={paketBekleme}
             >
               {paket.isPending || soruluyor || (!sonuclarGuncel && !baglantiHatasi) ? <Loader2 className="animate-spin" /> : <FileArchive />}{" "}
@@ -584,7 +635,18 @@ export function AvanCalisma() {
         />
       )}
       {adim === "cizimler" && (
-        <CizimlerAdimi p={p} setP={setP} kopru={kopru} girdi={avanGirdi} sonuc={avan.data} trafikUlasilamadi={!!trafik.error} geri={() => git("/avan/trafik")} />
+        <CizimlerAdimi
+          p={p}
+          setP={setP}
+          kopru={kopru}
+          girdi={avanGirdi}
+          sonuc={avan.data}
+          trafikUlasilamadi={!!trafik.error}
+          geri={() => git("/avan/trafik")}
+          secili={cizimSecili}
+          setSecili={setCizimSecili}
+          halleri={cizimHalleri}
+        />
       )}
       {adim === "kapak" && <KapakAdimi p={p} setP={setP} sec={sec.data} kapak={kapakVerisi} bekleme={bekleme} />}
     </div>
@@ -1742,6 +1804,9 @@ function CizimlerAdimi({
   sonuc,
   trafikUlasilamadi,
   geri,
+  secili,
+  setSecili,
+  halleri,
 }: {
   p: AvanProjesi;
   setP: React.Dispatch<React.SetStateAction<AvanProjesi>>;
@@ -1752,8 +1817,12 @@ function CizimlerAdimi({
   sonuc: AvanYaniti | undefined;
   trafikUlasilamadi: boolean;
   geri: () => void;
+  /**  Seçili asansör ( üstte tutulur:  paketin penceresi aranmamış asansörü açar )  */
+  secili: number;
+  setSecili: (i: number) => void;
+  /**  Asansörlerin çizim durumu ( sekmelerde;  çizim istenmeyen kartta yok )  */
+  halleri: Record<number, CizimHali>;
 }) {
-  const [secili, setSecili] = useState(0);
   const asansorler = (kopru?.asansorler ?? []).slice(0, AVAN_AZAMI);
   const i = Math.max(0, Math.min(secili, asansorler.length - 1));
   //  Seçici saniyeler sürebilir:  yazarken her tuşta istenmez
@@ -1761,9 +1830,9 @@ function CizimlerAdimi({
   //  Alanların adları ( elle ayar listesi ):  seçici yanıt vermeden de okunur ad ( 17 Kas )
   const sema = useQuery({ queryKey: ["alanlar"], queryFn: api.alanlar, staleTime: Infinity });
   const alanBilgisi = (k: string) => sema.data?.gruplar.flatMap((gr) => gr.alanlar).find((a) => a.anahtar === k);
-  //  ARAMANIN AŞAMALARI ( 17 Kas ):  sunucu aramanın gerçek aşamalarını akıtır ( AramaAsamalari );
+  //  ARAMANIN AŞAMALARI ( 17 Kas ):  sunucu aramanın gerçek aşamalarını akıtır ( IsAsamalari );
   //  hangi girdinin, hangi asansörün araması olduğu da tutulur — eski aramanın aşaması görünmez
-  const [arama, setArama] = useState<(AramaDurumu & { g: unknown; i: number }) | null>(null);
+  const [arama, setArama] = useState<(IsDurumu & { g: unknown; i: number }) | null>(null);
   const cizim = useQuery({
     queryKey: ["avan-cizim", g, i],
     queryFn: ({ signal }) => {
@@ -1915,10 +1984,16 @@ function CizimlerAdimi({
                 j === i && "bg-vurgu-acik text-vurgu-koyu hover:bg-vurgu-acik",
               )}
             >
-              <span className="block max-w-28 truncate font-medium">{ad(j)}</span>
+              <span className="flex items-center gap-1.5">
+                <span className="block max-w-28 truncate font-medium">{ad(j)}</span>
+                {halleri[j] && <CizimHaliIsareti hal={halleri[j]} />}
+              </span>
               <span className="sayi text-[11px] text-metin-3">
                 {a.P} kişi · {sayiYaz(a.V)} m/s
               </span>
+              {/*  Durum ekran okuyucuya adın SONUNDA ( işaret görsel ):  sekmenin adı "B 8 kişi …" diye
+                   başlar — uçtan uca testler de onunla seçer  */}
+              {halleri[j] && <span className="sr-only">, {HAL_METNI[halleri[j]]}</span>}
             </button>
           ))}
         </div>
@@ -1970,7 +2045,7 @@ function CizimlerAdimi({
           </CizimIletisi>
         ) : !r && asamalar ? (
           <div className="flex flex-1 items-center justify-center overflow-y-auto p-8">
-            <AramaAsamalari durum={asamalar} gecen={gecen} />
+            <AramaKarti durum={asamalar} gecen={gecen} />
           </div>
         ) : !r ? (
           <CizimIletisi
@@ -2064,7 +2139,7 @@ function CizimlerAdimi({
         {/*  Eski sonuç görünürken yenisi aranıyor:  aşamalar köşede  */}
         {r && asamalar && (
           <div className="pointer-events-none absolute top-14 right-3 z-20">
-            <AramaAsamalari durum={asamalar} gecen={gecen} kucuk />
+            <AramaKarti durum={asamalar} gecen={gecen} kucuk />
           </div>
         )}
       </main>
@@ -2375,6 +2450,60 @@ function IndirDugmesi({ uc, govde, kapali, bekleme }: { uc: string; govde: unkno
           {m.isPending ? <Loader2 className="animate-spin" /> : <Download />} PDF
         </Dugme>
       </Ipucu>
+    </span>
+  );
+}
+
+/**  Avan paketinin kendi adımları ( sunucu:  avan_uclari.PAKET_ASAMALARI );  öbürleri asansörün araması  */
+const PAKET_ADIMLARI = new Set(["hesaplar", "hazir", "sayfalar", "cizimler", "dwg", "pdf"]);
+
+/**  Asansör aramasının aşamaları ( Çizimler adımı ):  çizimler kurulurken başlık değişir  */
+function AramaKarti({ durum, gecen, kucuk }: { durum: IsDurumu; gecen: number; kucuk?: boolean }) {
+  return (
+    <IsAsamalari
+      durum={durum}
+      gecen={gecen}
+      kucuk={kucuk}
+      baslik={(son) => (son?.kod === "cizim" ? "Çizimler kuruluyor…" : "Asansör seçiliyor…")}
+      sayac={(n) => `${n} yerleşim sınandı`}
+      alt="Girdiyi değiştirirseniz bu arama bırakılır, yenisi başlar."
+    />
+  );
+}
+
+/**  Bir asansörün çizim durumu ( Çizimler adımının sekmeleri ) — seçicinin sonucundan  */
+type CizimHali = "araniyor" | "bulundu" | "cizilemiyor" | "aranmadi";
+const HAL_METNI: Record<CizimHali, string> = {
+  araniyor: "aranıyor",
+  bulundu: "bulundu",
+  cizilemiyor: "çizilemiyor",
+  aranmadi: "aranmadı",
+};
+
+/**  Sekmedeki görsel işaret ( adı HAL_METNI;  ekran okuyucu onu sekmenin sonunda okur )  */
+function CizimHaliIsareti({ hal }: { hal: CizimHali }) {
+  if (hal === "araniyor")
+    return (
+      <span aria-hidden className="inline-flex items-center gap-1 text-[11px] font-normal text-metin-3">
+        <Loader2 className="size-3 animate-spin" /> {HAL_METNI.araniyor}
+      </span>
+    );
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "inline-flex items-center gap-1 text-[11px] font-normal",
+        hal === "bulundu" ? "text-uygun" : hal === "cizilemiyor" ? "text-red" : "text-metin-3",
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          "size-1.5 rounded-full",
+          hal === "bulundu" ? "bg-uygun" : hal === "cizilemiyor" ? "bg-red" : "border border-metin-3",
+        )}
+      />
+      {HAL_METNI[hal]}
     </span>
   );
 }

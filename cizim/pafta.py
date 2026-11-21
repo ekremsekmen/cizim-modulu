@@ -37,6 +37,7 @@ import ezdxf
 from ezdxf import bbox
 from ezdxf import zoom
 
+from cizim import asamalar
 from cizim import cizimler
 from cizim import dxf
 from cizim import dusey
@@ -479,6 +480,10 @@ def _gruplu_bloklar(g, kagit=KAGIT):
     liste = [(0, c) for c in grup.pafta_cizimleri(gler, cizim_yuksekligi(kagit))]
     for i, g_ in enumerate(gler):
         coklu = len(gler) > 1
+        #  Paket çizimleri paftaya dizerken ekran hangi asansörde olduğunu görür ( uç akışlı
+        #  istekte — cizim/asamalar;  aşama kodu uclar/uc_ortak.PAKET_ASAMALARI'nın )
+        if coklu:
+            asamalar.ayrinti(f"Asansör {i + 1} / {len(gler)}", kod="cizimler")
         #  Çok asansörlü projeden yalnız biri çizilebildiyse ( avan paketi — uclar/avan_cizimi )
         #  şeritte adı yine yazar:  hangi asansörün çizimi olduğu belli olsun
         adli = coklu or g_["proje"].get("cok_asansorlu")

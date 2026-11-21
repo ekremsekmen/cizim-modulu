@@ -14,9 +14,17 @@ import zlib
 import ezdxf
 from pypdf import PdfReader
 
-from cizim import avan_kipi, kasnak_duzeni, katlar, pafta
+from cizim import asamalar, avan_kipi, kasnak_duzeni, katlar, pafta
 from motor.uygulama import uygulama_hesabi
-from uclar import avan_cizim_uclari, avan_cizimi, avan_secici, avan_uclari, cizim_uclari, uygulama_istegi
+from uclar import (
+    avan_cizim_uclari,
+    avan_cizimi,
+    avan_secici,
+    avan_uclari,
+    cizim_uclari,
+    uc_ortak,
+    uygulama_istegi,
+)
 
 T630 = avan_secici.paketler()[(630, True)]["asansor"]
 T800MD = avan_secici.paketler()[(800, False)]
@@ -622,7 +630,7 @@ def akisli_istek(g, kodlama="gzip", kes=None):
         "root_path": "",
         "headers": [
             (b"content-type", b"application/json"),
-            (b"accept", avan_cizim_uclari.AKIS_TURU.encode()),
+            (b"accept", uc_ortak.AKIS_TURU.encode()),
             (b"accept-encoding", kodlama.encode()),
             (b"content-length", str(len(govde)).encode()),
         ],
@@ -660,7 +668,7 @@ def akisli_istek(g, kodlama="gzip", kes=None):
 
 class AvanCizimAkisi(unittest.TestCase):
     """AKIŞLI YANIT ( 17 Kas — kullanıcı:  "beklerken ne yapıldığını görelim" ):  ekran aramanın
-    gerçek aşamalarını gösterir ( avan_secici.Ilerleme ).  Sonuç tek JSON'la AYNI;  aşamalar
+    gerçek aşamalarını gösterir ( asamalar.Ilerleme — avan_secici.ASAMALAR ).  Sonuç tek JSON'la AYNI;  aşamalar
     geldikleri anda açılır ( sıkıştırma biriktirmez );  aşama bildirimi seçimi etkilemez."""
 
     #  Kuyu üstü yetmeyen geniş kuyu:  ~4 sn, birkaç aşama ( yerleşim → uyarlama → küçültme → doğrulama )
@@ -682,7 +690,7 @@ class AvanCizimAkisi(unittest.TestCase):
     def test_sonuc_tek_jsonla_ayni_asamalar_aninda(self):
         g = govde(kart(T630, **self.GENIS))
         basliklar, parcalar = akisli_istek(g)
-        self.assertEqual(basliklar["content-type"], avan_cizim_uclari.AKIS_TURU)
+        self.assertEqual(basliklar["content-type"], uc_ortak.AKIS_TURU)
         self.assertEqual(basliklar.get("content-encoding"), "gzip")
         satirlar = self.satirlar(basliklar, parcalar)
         self.assertIn("sonuc", satirlar[-1])
@@ -728,8 +736,8 @@ class AvanCizimAkisi(unittest.TestCase):
 
     def test_asama_bildirimi_secimi_etkilemez(self):
         m = avan_cizimi.secim(avan_uclari.avan_girdisi(govde(kart(T630, **self.GENIS)))[0], 0)
-        i = avan_secici.Ilerleme()
-        with avan_secici.ilerleme(i):
+        i = asamalar.Ilerleme(avan_secici.ASAMALAR)
+        with asamalar.bagla(i):
             m2 = avan_cizimi.secim(avan_uclari.avan_girdisi(govde(kart(T630, **self.GENIS)))[0], 0)
         for r in (m, m2):
             r.pop("sure", None)

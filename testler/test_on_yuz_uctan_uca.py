@@ -237,7 +237,8 @@ class ArizaMatrisiKapsami(unittest.TestCase):
             if ".test." not in p
         )
         uclar = set(re.findall(r'"(/api/[a-z_/-]+)"', kaynak))
-        uclar |= {f"/api/indir/{u}" for u in re.findall(r'(?:indir\(|uc=)"([a-z-]+)"', kaynak)}
+        #  Paketler akışlı indirilir ( 20 Kas — indirAkisli, adı alt satırda olabilir )
+        uclar |= {f"/api/indir/{u}" for u in re.findall(r'(?:indir(?:Akisli)?\(\s*|uc=)"([a-z-]+)"', kaynak)}
         self.assertGreater(len(uclar), 10, uclar)
         matris = "".join(
             inspect.getsource(getattr(OnYuzUctanUca, ad))
@@ -322,11 +323,25 @@ class OnYuzUctanUca(unittest.TestCase):
         e = self.etiket[anahtar]
         return e[: e.index("(")].strip() if "(" in e else e.strip()
 
+    def serit_dugmesi(self, ad=None, baslik=None):
+        """Şeritteki çizim düğmesi ( ad:  başlığın başı;  baslik:  tam başlık ).  Şeride sığmayıp
+        "Diğer"e indiyse ( 20 Kas — B7 ) kutu açılır, oradaki düğme."""
+        serit = self.sayfa.get_by_role("navigation", name="Çizimler")
+        serit.wait_for()
+
+        def bul(yer):
+            if baslik is not None:
+                return yer.locator(f'button[title="{baslik}"]')
+            return yer.get_by_role("button", name=re.compile("^" + re.escape(ad)))
+
+        if bul(serit).count():
+            return bul(serit)
+        serit.get_by_role("button", name=re.compile(r"^Diğer çizimler")).click()
+        return bul(self.sayfa.get_by_role("dialog", name="Öteki çizimler"))
+
     def cizimi_ac(self, ad):
         """Tuvalde çizimi açar ( alttaki şerit — tuvalde bir çizim görünür ):  ad başlığın başı."""
-        self.sayfa.get_by_role("navigation", name="Çizimler").get_by_role(
-            "button", name=re.compile("^" + re.escape(ad))
-        ).click()
+        self.serit_dugmesi(ad).click()
 
     def alan_kutusu(self, anahtar):
         """Alan aramayla öne getirilir ( kapalı grup ya da Gelişmiş'te olsa da )."""
@@ -768,9 +783,7 @@ class OnYuzUctanUca(unittest.TestCase):
         )
         self._dosyadan_ac(alanlar)
         cizim = self.sayfa.locator('[data-cizim="kuyu_grubu_kuyu_dibi"]')
-        self.sayfa.get_by_role("navigation", name="Çizimler").locator(
-            f'button[title="{cizim.get_attribute("aria-label")}"]'
-        ).click()
+        self.serit_dugmesi(baslik=cizim.get_attribute("aria-label")).click()
         olculer = cizim.get_by_role("button", name=re.compile(r"^Ölçü "))
         self.assertGreater(olculer.count(), 10)
         bulundu = None
@@ -1643,7 +1656,8 @@ class OnYuzUctanUca(unittest.TestCase):
         with self.sayfa.expect_download(timeout=ZAMAN) as d:
             #  Üç basış aynı anda ( ekran arada yeniden çizilmez — korumasız sürümde üç paket gidiyordu )
             indir.evaluate("b => { b.click(); b.click(); b.click(); }")
-        self.assertEqual(self.sayfa.get_by_role("dialog").count(), 0)
+        #  Soru sorulmaz ( aranmış );  uzun pakette ilerleme penceresi ( 20 Kas ) olabilir — o soru değil
+        self.assertEqual(self.sayfa.get_by_role("dialog").filter(has_text="henüz aranmadı").count(), 0)
         self.assertTrue(d.value.suggested_filename.endswith(".zip"))
         self.assertEqual(len(paket_istekleri), 1)
         #  Kâğıt eni ( 19 Kas ):  seçilmedikçe ofisin şablonu — 60 cm
@@ -2388,7 +2402,8 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(
             serit.locator("[aria-pressed=true]").get_attribute("aria-label"), "B-B KUYU DÜŞEY KESİTİ"
         )
-        #  Bütün çizimler şeritte görünür ve tıklanır ( 6 Kas:  sağdakiler taşıp görünmüyordu )
+        #  Şeritteki düğmeler şeridin içinde ( 6 Kas:  sağdakiler taşıp görünmüyordu );  20 Kas'tan
+        #  ( B7 ) düğme adı kadar geniş, adı kesilmez — sığmayanlar sırayla "Diğer"de, eksik çizim yok
         s = serit.bounding_box()
         for d in serit.get_by_role("button").all():
             k = d.bounding_box()
@@ -2396,6 +2411,25 @@ class OnYuzUctanUca(unittest.TestCase):
                 k["x"] >= s["x"] and k["x"] + k["width"] <= s["x"] + s["width"] + 0.5,
                 d.get_attribute("aria-label"),
             )
+            self.assertTrue(
+                d.evaluate(
+                    "e => [...e.querySelectorAll('.truncate')].every(x => x.scrollWidth <= x.clientWidth)"
+                ),
+                d.get_attribute("aria-label"),
+            )
+        seritte = serit.locator("button[title]").count()
+        diger = serit.get_by_role("button", name=re.compile(r"^Diğer çizimler"))
+        inen = 0
+        if diger.count():
+            diger.click()
+            kutu = self.sayfa.get_by_role("dialog", name="Öteki çizimler")
+            inen = kutu.get_by_role("button").count()
+            #  Diğer'den açılan çizim şeride çıkar, basılı ( açık çizim hep şeritte )
+            ad = kutu.get_by_role("button").last.get_attribute("aria-label")
+            kutu.get_by_role("button").last.click()
+            self.assertEqual(serit.locator("[aria-pressed=true]").get_attribute("aria-label"), ad)
+        self.assertGreater(seritte, 2)
+        self.assertEqual(seritte + inen, self.sayfa.locator("figure[data-cizim]").count())
         serit.get_by_role("button", name="Tümü").click()
         self.assertEqual(len(gorunen()), self.sayfa.locator("figure[data-cizim]").count())
         kart = self.sayfa.locator('figure[data-cizim="kuyu_dibi"]').bounding_box()
@@ -2651,7 +2685,8 @@ class OnYuzUctanUca(unittest.TestCase):
             lambda r: r.url.endswith("/api/uygulama/care"), timeout=30_000
         ) as yanit:
             kart.get_by_role("button", name="Düzeltme öner").click()
-        d = yanit.value.json()
+        #  Akışlı yanıt ( 20 Kas — aramanın aşamaları ):  son satırın sonucu
+        d = yanit_govdesi(yanit.value)
         self.assertTrue(d["aktif"], d)
         oneriler = {o["anahtar"]: o["yeni"] for c in d["careler"] for o in c["oneriler"]}
         self.assertEqual((oneriler["kuyu_genisligi"], oneriler["kuyu_tavani_kotu"]), (2230, 46.52))
@@ -2674,9 +2709,15 @@ class OnYuzUctanUca(unittest.TestCase):
 
         def yama(route):
             yanit = route.fetch()
-            d = yanit.json()
-            d["careler"][0]["oneriler"][0]["hesapta_ortaya_cikan"] = ["motor_gucu"]
-            route.fulfill(response=yanit, json=d)
+            if "application/x-ndjson" not in (yanit.headers.get("content-type") or ""):
+                d = yanit.json()
+                d["careler"][0]["oneriler"][0]["hesapta_ortaya_cikan"] = ["motor_gucu"]
+                return route.fulfill(response=yanit, json=d)
+            #  Akışlı yanıt ( 20 Kas — aramanın aşamaları ):  son satırın sonucu yamalanır
+            satirlar = [json.loads(s) for s in yanit.text().splitlines() if s.strip()]
+            satirlar[-1]["sonuc"]["careler"][0]["oneriler"][0]["hesapta_ortaya_cikan"] = ["motor_gucu"]
+            govde = "".join(json.dumps(s, ensure_ascii=False) + "\n" for s in satirlar)
+            route.fulfill(status=200, content_type="application/x-ndjson", body=govde)
 
         self.sayfa.route("**/api/uygulama/care", yama)
         kart = self.sayfa.get_by_role("alert")
@@ -3107,6 +3148,7 @@ class OnYuzUctanUca(unittest.TestCase):
                     const okuyucu = r.body.getReader();
                     const akim = new ReadableStream({ async start(c) {
                         const { value } = await okuyucu.read();
+                        okuyucu.cancel().catch(() => {});  // bağlantı gerçekten kopar ( ARIZA_BETIGI )
                         if (value) c.enqueue(value);
                         c.error(new TypeError('network error'));
                     } });
@@ -3269,10 +3311,15 @@ class OnYuzUctanUca(unittest.TestCase):
             if (a.tur === 'ret')
                 return yanit(JSON.stringify({ aktif: false, hata: ['DENEME REDDİ'] }), 413, 'application/json');
             if (a.tur === 'bozuk') return yanit('<html>bozuk</html>', 200, 'application/json');
+            //  Yarıda kesilen yanıt:  ilk parçanın yarısı, sonra bağlantı GERÇEKTEN kopar ( 21 Kas — #159'un
+            //  CI'ı:  okuyucu kapatılmadan bırakılınca gerçek istek açık kalıyordu;  akışlı paketin son
+            //  satırı ( base64 ZIP, ~1 MB ) okunmayınca tarayıcının tamponu doluyor, istek bitmiyor,
+            //  matrisin sonraki aşaması "sayfa sakinleşmedi" diye düşüyordu )
             const r = await F(girdi, secenek);
             const okuyucu = r.body.getReader();
             return new Response(new ReadableStream({ async start(c) {
                 const { value } = await okuyucu.read();
+                okuyucu.cancel().catch(() => {});
                 if (value) c.enqueue(value.slice(0, Math.max(1, value.length >> 1)));
                 c.error(new TypeError('network error'));
             } }), { status: r.status, headers: r.headers });
@@ -3314,8 +3361,11 @@ class OnYuzUctanUca(unittest.TestCase):
                     return sahte(JSON.stringify({ aktif: false, hata: ['DENEME REDDİ'] }), 413, 'application/json');
                 if (a.tur === 'bozuk') return sahte('<html>bozuk</html>', 200, 'application/json');
                 //  Yarıda kesilen yanıt:  gerçek yanıtın ilk parçasının yarısı, sonra bağlantı kopar
+                //  ( gerçekten:  okuyucu kapatılır — fetch yolundaki not )
                 F(this.__adres, { method: this.__yontem, headers: this.__basliklar, body: govde }).then(async (r) => {
-                    const { value } = await r.body.getReader().read();
+                    const okuyucu = r.body.getReader();
+                    const { value } = await okuyucu.read();
+                    okuyucu.cancel().catch(() => {});
                     const yarim = value ? new TextDecoder().decode(value.slice(0, Math.max(1, value.length >> 1))) : '';
                     sahte(yarim, r.status, r.headers.get('Content-Type') || '', 'hata');
                 }, () => setTimeout(() => this.onerror?.(), 0));

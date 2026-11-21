@@ -36,6 +36,7 @@ from uclar.uc_ortak import (
     belirsiz_sayi_mi,
     baglantiyi_izle,
 )
+from cizim import asamalar
 from cizim import katlar
 from cizim import pafta
 from tasarim import alanlar
@@ -48,6 +49,7 @@ from ciktilar import kapak_cikti
 from uclar import avan_cizimi
 from uclar import avan_secici
 from uclar import cizim_uclari
+from uclar import uc_ortak
 from ciktilar import pdf_cikti
 
 try:
@@ -575,14 +577,40 @@ def indir_avan_pdf(veri: dict = Body(...)):
         return _uretilemedi(e)
 
 
+#  AVAN PAKETİNİN AŞAMALARI ( 20 Kas — arayüz taslağı B2 ):  hesaplar, her asansörün çizimi ( önbellekte
+#  hazır ya da seçicinin kendi aşamaları — avan_cizimi.paket_cizimleri adıyla bildirir ), sonra
+#  paketin ortak adımları ( uc_ortak.PAKET_ASAMALARI )
+PAKET_ASAMALARI = {
+    "hesaplar": ("Trafik ve avan hesapları yapılıyor", "Trafik ve avan hesapları yapıldı"),
+    "hazir": ("Çizimi hazırlanıyor", "Çizimi hazır ( önbellekte )"),
+    **avan_secici.ASAMALAR,
+    **uc_ortak.PAKET_ASAMALARI,
+}
+
+
 @router.post("/api/indir/proje-dwg")
 async def indir_proje_dwg_ucu(istek: Request, veri: dict = Body(...)):
     """/api/indir/proje-dwg ( 17 Kas — yayın öncesi denetim ):  paket çizimi istenen her asansörün
     seçicisini koşar ( önbellekte yoksa — avan_secici._Onbellek );  KULLANICI VAZGEÇİNCE ( bağlantı
     kapandı ) arama durur.  Eskiden paketin araması iptalsizdi:  indirme bırakılsa ya da vekil
     sunucu zaman aşımıyla kesse de sunucu asansör başına dakikalarca aramayı sürdürüyordu.
-    Paket iş parçacığında kurulur;  bağlantı burada izlenir ( avan_cizim_uclari gibi )."""
+    Paket iş parçacığında kurulur;  bağlantı burada izlenir ( avan_cizim_uclari gibi ).
+
+    AKIŞ ( 20 Kas — arayüz taslağı B2:  aranmamış asansör paketin içinde aranırken ekranda yalnız
+    düğmede dönen işaret vardı ):  istek uc_ortak.AKIS_TURU'nü isterse aşamalar ( PAKET_ASAMALARI )
+    satır satır, sonda dosya ( uc_ortak.akis_sonucu ).  Vazgeçince arama ( seçicinin koruması ) ve
+    paket ( bir sonraki aşama ) durur."""
     birakildi = threading.Event()
+    if uc_ortak.akis_isteniyor(istek):
+        dwg = bool(dxf_cikti is not None and dxf_cikti.donusturucu())
+        ilerleme = asamalar.Ilerleme(
+            PAKET_ASAMALARI,
+            plan=["hesaplar"] + uc_ortak.paket_plani(False, dwg, pafta_pdf is not None),
+            iptal=birakildi.is_set,
+        )
+        return uc_ortak.akisli_yanit(
+            istek, lambda: uc_ortak.akis_sonucu(indir_proje_dwg(veri, birakildi.is_set)), ilerleme, birakildi
+        )
     izleyici = asyncio.create_task(baglantiyi_izle(istek, birakildi))
     try:
         return await run_in_threadpool(indir_proje_dwg, veri, birakildi.is_set)
@@ -610,6 +638,10 @@ def _paket_cizimleri(veri, avan_ham, iptal):
     ve önbellekli ( avan_secici.korumali ):  ekranda bulunan asansör yeniden aranmaz;  güvenlik
     süresinde bitmeyen arama "çizimi yok" notuna sebebiyle girer."""
     okunan, _hata = avan_girdisi({"girdiler": avan_ham})
+    #  Çizim isteniyorsa paketin adımlarına çizimler de girer ( akışlı istekte ekran sıradakileri görür )
+    if any(k is not None and avan_cizimi.istendi(k) for k in okunan["asansorler"]):
+        dwg = bool(dxf_cikti is not None and dxf_cikti.donusturucu())
+        asamalar.planla(["hesaplar"] + uc_ortak.paket_plani(True, dwg, pafta_pdf is not None))
     #  Paftadaki ad hesap sayfasının başlığı gibi:  "1 NOLU ASANSÖR  ·  İnsan"
     adlar = [
         "  ·  ".join(t for t in (f"{i} NOLU ASANSÖR", str((k or {}).get("tanim") or "").strip()) if t)
@@ -629,6 +661,21 @@ def _kapak_verisi(gelen, t, a):
     if any(str(x).strip() for x in gelen.values()):
         return gelen
     return {**(kapak.trafikten(t) if t else {}), **(kapak.avandan(a) if a else {})}
+
+
+def _cizimsiz_eki(cizimsiz):
+    """Çizimi çıkmayan asansörler ve sebepleri pakette de yazar ( 14 Kas ):  paketi alan, ekrandaki
+    notu görmemiş olabilir.  ( dosya adı , bayt )."""
+    satirlar = [
+        "ÇİZİMİ OLMAYAN ASANSÖRLER",
+        "",
+        "Bu pakette aşağıdaki asansörlerin çizimi yoktur.  Sebebi giderilince",
+        "( programın Çizimler adımı ) paket yeniden indirilir.",
+        "",
+        *(f"  {ad}:  {sebep}" for ad, sebep in cizimsiz),
+        "",
+    ]
+    return ("ÇİZİMİ OLMAYAN ASANSÖRLER.txt", "\r\n".join(satirlar).encode("utf-8-sig"))
 
 
 def indir_proje_dwg(veri: dict, iptal=None):
@@ -657,6 +704,7 @@ def indir_proje_dwg(veri: dict, iptal=None):
             kagit = pafta.kagit_eni(veri.get("kagit"))
         except ValueError as e:
             return JSONResponse({"hata": f"KÂĞIT ENİ:  {e}"}, status_code=200)
+        asamalar.asama("hesaplar")
         paftalar = []
         t = a = None
 
@@ -697,6 +745,7 @@ def indir_proje_dwg(veri: dict, iptal=None):
             if iptal is not None and iptal():  # bırakılan indirme:  kimseye gitmez
                 return JSONResponse({"hata": "HESAP HATASI: İndirme bırakıldı."}, status_code=200)
 
+        asamalar.asama("sayfalar")
         kapak_verisi = _kapak_verisi(veri.get("kapak"), t, a)
         if kapak_verisi:
             paftalar.insert(0, ("Kapak", kapak_cikti.pdf_baytlari(kapak_verisi)))
@@ -714,25 +763,19 @@ def indir_proje_dwg(veri: dict, iptal=None):
         #  noktası aynı arşivde dursun.
         kok = os.path.splitext(ad)[0]
         ekler = list(_paket_ekleri(veri, "avan"))
-        #  Çizimi çıkmayan asansörler ve sebepleri pakette de yazar ( 14 Kas ):  paketi alan,
-        #  ekrandaki notu görmemiş olabilir
         if cizimsiz:
-            satirlar = [
-                "ÇİZİMİ OLMAYAN ASANSÖRLER",
-                "",
-                "Bu pakette aşağıdaki asansörlerin çizimi yoktur.  Sebebi giderilince",
-                "( programın Çizimler adımı ) paket yeniden indirilir.",
-                "",
-                *(f"  {ad}:  {sebep}" for ad, sebep in cizimsiz),
-                "",
-            ]
-            ekler.append(("ÇİZİMİ OLMAYAN ASANSÖRLER.txt", "\r\n".join(satirlar).encode("utf-8-sig")))
+            ekler.append(_cizimsiz_eki(cizimsiz))
+        son_islem, pdf_islem = uc_ortak.asamali_islemler(
+            cizim_uclari.paftaya_ekle(gler) if gler else None,
+            pafta_pdf.paket_pdfleri(paftalar, gler, elektrikler) if pafta_pdf else None,
+            bool(dxf_cikti.donusturucu()),
+        )
         paket, sebep, tasti = dxf_cikti.proje_paketi(
             paftalar,
             kok,
             ekler,
-            son_islem=cizim_uclari.paftaya_ekle(gler) if gler else None,
-            pdf_islem=pafta_pdf.paket_pdfleri(paftalar, gler, elektrikler) if pafta_pdf else None,
+            son_islem=son_islem,
+            pdf_islem=pdf_islem,
             elektrikler=elektrikler,
             kagit=kagit,
         )

@@ -89,6 +89,24 @@ def _ayir(ciz, olcek=20):
 OLCEKLER = {"kuyu_kesiti_yan": kuyu_kesiti.OLCEK, "kuyu_kesiti_on": kuyu_kesiti.OLCEK}
 #  Başlığında ölçek yazmayanlar ( tablo — yazıları 1/20'deki boyda )
 OLCEKSIZ = {"veriler"}
+#  EKRANIN ÇİZİM ŞERİDİNDEKİ AD ( 20 Kas — yayın öncesi arayüz taslağı B7 ):  çizimin değişmeyen
+#  kimliğinden.  Ekran adı başlıktan türetiyordu:  sorunlu kipte düşey kesitler kurulamayınca
+#  başlıklardaki seviye harfi düşer, kuyu planı · kuyu dibi · delik planı üçü de "Kuyu" oluyordu.
+#  Seviye harfi ( A-A … ) ekranda başlıktan ayrıca okunur;  tam başlık üstüne gelince.
+KISA_ADLAR = {
+    "kuyu_plani": "Kuyu planı",
+    "kabin_ustu": "Kabin üstü",
+    "kuyu_dibi": "Kuyu dibi",
+    "kuyu_ustu": "Kuyu üstü",
+    "makine_dairesi": "Makine dairesi",
+    "delik_plani": "Delik planı",
+    "kuyu_kesiti_yan": "Yan kesit",
+    "kuyu_kesiti_on": "Ön kesit",
+    "kasnak_duzeni": "Kasnak",
+    "giris": "Giriş",
+    "kapi_kesiti": "Kapı kesiti",
+    "veriler": "Veriler",
+}
 CIZIMLER = {
     ad: (dog, _ayir(ciz, OLCEKLER.get(ad, 20)), baslik) for ad, (dog, ciz, baslik) in CIZIMLER.items()
 }

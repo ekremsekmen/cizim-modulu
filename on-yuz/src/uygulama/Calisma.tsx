@@ -3,18 +3,20 @@
     Sunucuyla konuşma useSunucu'da ( gecikme, yarış, hata ve "güncel değil"
     kuralları );  burada yalnız ekranın durumu ve düzeni.                    */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router";
 import {
   Calculator,
   ChevronDown,
   CircleAlert,
   DraftingCompass,
+  FolderOpen,
   Lightbulb,
   Loader2,
   LocateFixed,
   Package,
   Plus,
+  Save,
   TriangleAlert,
   Undo2,
   X,
@@ -46,10 +48,13 @@ import {
   type UygulamaProjesi,
 } from "@/lib/proje";
 import { durumYaz, izi } from "@/lib/durum";
+import { dosyayaKaydet } from "@/lib/dosya";
+import { useDosyaAc } from "@/ekranlar/useDosyaAc";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
 import { AnaSayfaBaglantisi, BasvuruBaglantilari, SunucuBekleniyor, UstSerit } from "@/components/Kabuk";
 import { Bolumlu, Dugme, HukumNoktasi, Ipucu, Rozet } from "@/components/ui";
 import { HesapBelgesi } from "@/components/HesapBelgesi";
+import { GORUNME_ESIGI, IsAsamalari, birakildiMi, useAsamaliIs, useGecenSure, type IsDurumu } from "@/components/IsAsamalari";
 import { GirdiPaneli } from "./GirdiPaneli";
 import { Tuval, type OlcuSecimi, type Parca } from "./Tuval";
 import { OlcuKutusu } from "./OlcuKutusu";
@@ -72,6 +77,9 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   //  Katlar yalnız kotla girilir:  kotsuz proje ( yeni, eski dosya ) açılırken kotlara çevrilir
   const [proje, guncelle, sil, baskaSekmedeSilindi] = useUygulamaProjesi(kotlayaCevir(sema, baslangic));
   const [ofis] = useOfisStandardi();
+  //  Üst şeritteki dosya düğmeleri ( 20 Kas — arayüz taslağı B9:  avanda üst şeritte, uygulamada proje
+  //  bilgileri çekmecesinin dibindeydi;  proje tarayıcıda durur, dosyaya kaydetmek görünür olmalı )
+  const dosya = useDosyaAc(sema, ofis, "uygulama");
   const [params, setParams] = useSearchParams();
   const gorunum = (params.get("gorunum") as "cizim" | "hesap") ?? "cizim";
   const [asansor, setAsansor] = useState(0);
@@ -211,10 +219,13 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   //  geçerlidir.  İstek bütün asansörleri taşır, sekme değişince aynı kalır:
   //  eskiden 1. asansörün çareleri 2.'nin kartında görünüyor ( sorun metni
   //  aynıysa — ikiz asansörler ), "Uygula" 2.'ye yazıyordu ( 20 Eki ).
-  const care = useMutation({
-    mutationFn: (v: { istek: UygulamaIstegi; asansor: number; onceki: OncekiGirdi | null }) =>
-      api.care(v.istek, v.asansor, v.onceki),
-  });
+  //  ARAMANIN AŞAMALARI ( 20 Kas — arayüz taslağı B5:  1,5 – 3,7 sn, en uzun vaka 13,5 sn;  ekranda yalnız
+  //  küçük "Aranıyor…" vardı ):  sunucu aşamaları ve sınama sayısını akıtır, Vazgeç aramayı bırakır
+  const care = useAsamaliIs(
+    (v: { istek: UygulamaIstegi; asansor: number; onceki: OncekiGirdi | null }, s, ilerle) =>
+      api.care(v.istek, v.asansor, v.onceki, s, ilerle),
+  );
+  const careGecen = useGecenSure(care.durum);
   //  GİRDİ DEĞİŞİNCE ( 24 Eki ):  yeni çizim gelene kadar ( 300 ms bekleme + kurulum )
   //  ekrandaki çizim ve düzeltmeleri eski girdinindir — "Uygula" eski girdide
   //  sınanmış değeri yeni girdinin üstüne yazıyordu;  bir düzeltme uygulanınca
@@ -226,7 +237,9 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   const careler = careBuGirdinin ? care.data : undefined;
   //  Yanıt gelmedi ( bağlantı, vekilin zaman aşımı ):  düğme sessizce eski hâline dönüyordu
   const careHatasi =
-    careBuGirdinin && care.error ? `Düzeltme aranamadı — sunucuya ulaşılamadı ( ${care.error.message} ).` : undefined;
+    careBuGirdinin && care.error && !birakildiMi(care.error)
+      ? `Düzeltme aranamadı — sunucuya ulaşılamadı ( ${care.error.message} ).`
+      : undefined;
   const careBul =
     s.cizimIstegi && cizimGirdisinde
       ? () => care.mutate({ istek: s.cizimIstegi!, asansor: a, onceki: s.oncekiTemiz })
@@ -317,6 +330,9 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
         seciliSorun={gecerliOdak?.sorun.metin ?? null}
         careBul={careBul}
         careYolda={care.isPending && careBuGirdinin}
+        careDurum={careBuGirdinin && careGecen >= GORUNME_ESIGI ? care.durum : null}
+        careGecen={careGecen}
+        careVazgec={care.vazgec}
         careler={careler}
         careHatasi={careHatasi}
         careUygula={careUygula}
@@ -412,6 +428,34 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
             />
             <span className="mx-1 h-5 w-px bg-cizgi" />
             <BasvuruBaglantilari />
+            <span className="flex items-center gap-1">
+              {dosya.hata && <span className="max-w-72 text-right text-[12px] leading-snug text-red">{dosya.hata}</span>}
+              <Ipucu metin="Proje dosyasını aç ( .uygulama ) — yeni proje olarak açılır">
+                <Dugme
+                  tur="hayalet"
+                  boy="simge"
+                  className="min-[1440px]:w-auto min-[1440px]:px-2.5"
+                  aria-label="Proje dosyasını aç"
+                  onClick={dosya.sec}
+                >
+                  <FolderOpen />
+                  <span className="hidden min-[1440px]:inline">Aç</span>
+                </Dugme>
+              </Ipucu>
+              <Ipucu metin="Proje dosyası olarak kaydet ( .uygulama ) — başka bilgisayarda da açılır">
+                <Dugme
+                  tur="hayalet"
+                  boy="simge"
+                  className="min-[1440px]:w-auto min-[1440px]:px-2.5"
+                  aria-label="Proje dosyası olarak kaydet"
+                  onClick={() => dosyayaKaydet(proje, sema, ofis)}
+                >
+                  <Save />
+                  <span className="hidden min-[1440px]:inline">Kaydet</span>
+                </Dugme>
+              </Ipucu>
+              {dosya.girdi}
+            </span>
             <Dugme tur="birincil" className="ml-1" onClick={() => setTeslimAcik(true)}>
               <Package /> Teslim
             </Dugme>
@@ -656,6 +700,9 @@ function SorunKarti({
   seciliSorun,
   careBul,
   careYolda,
+  careDurum,
+  careGecen,
+  careVazgec,
   careler,
   careHatasi,
   careUygula,
@@ -679,6 +726,11 @@ function SorunKarti({
   /**  Çareleri iste ( ekrandaki çizimin girdisiyle );  yoksa düğme yok  */
   careBul?: () => void;
   careYolda: boolean;
+  /**  Süren aramanın aşamaları ( 1 sn'den uzun sürünce;  yoksa null )  */
+  careDurum: IsDurumu | null;
+  careGecen: number;
+  /**  Aramayı bırakır ( sunucu bir sonraki sınamada durur )  */
+  careVazgec: () => void;
   careler?: CareYanit;
   /**  Arama isteği yanıtsız kaldı  */
   careHatasi?: string;
@@ -791,6 +843,19 @@ function SorunKarti({
           </button>
         )}
       </div>
+      {careDurum && !kucuk && (
+        <div className={cn("pb-2", panel ? "px-3" : "px-4 pl-10")}>
+          <IsAsamalari
+            kucuk
+            durum={careDurum}
+            gecen={careGecen}
+            baslik="Düzeltme aranıyor…"
+            sayac={(n) => `${n} düzeltme sınandı`}
+            vazgec={careVazgec}
+            className="w-full shadow-none"
+          />
+        </div>
+      )}
       {careler && !careler.aktif && !kucuk && (
         <p className="px-4 pb-2 pl-10 text-[12px] opacity-80">{careler.hata?.join(" ") || "Düzeltme aranamadı."}</p>
       )}
@@ -805,7 +870,10 @@ function SorunKarti({
             : "Arama sınırına ulaşıldı — bütün adaylar denenmedi, düzeltmeler eksik olabilir."}
         </p>
       )}
-      <ul hidden={kucuk} className={cn("space-y-1 overflow-y-auto px-4 pb-3 pl-10", careAcik ? "max-h-96" : "max-h-52")}>
+      {/*  Panelde liste kesilmez ( 20 Kas — arayüz taslağı B4:  "Hesap durdu · 4" kartının 4. maddesi
+           iç kaydırmada gizliydi, işareti yoktu );  kart panelin kendi kaydırmasındadır.  Tuvalin
+           ortasındaki kartta ( eski sonuç yok ) ekranın yarısıyla sınırlı.  */}
+      <ul hidden={kucuk} className={cn("space-y-1 px-4 pb-3 pl-10", !panel && "max-h-[50vh] overflow-y-auto")}>
         {maddeler.map((m, i) => (
           <li key={i} className="list-disc text-[12.5px] leading-snug marker:text-current/50">
             {m.git ? (
@@ -856,50 +924,64 @@ function CareListesi({
     return <p className="mt-1 text-[11.5px] opacity-70">Doğrulanmış düzeltme bulunamadı — girdileri elle gözden geçirin.</p>;
   return (
     <ul aria-label="Düzeltmeler" className="mt-1 mb-1.5 space-y-1">
-      {c.oneriler.map((o) => (
-        <li
-          key={o.anahtar}
-          className={cn(
-            "flex items-center gap-2 rounded-kucuk px-2 py-1 text-[12px]",
-            koyu ? "bg-white/[0.06]" : "bg-black/[0.03]",
-          )}
-        >
-          <span className="min-w-0 flex-1">
-            <span className="font-medium">{etiketBol(o.etiket)[0]}</span>{" "}
-            <span className={cn("whitespace-nowrap", typeof o.yeni === "number" && "sayi")}>
-              {o.girilmis ? degerYaz(o.eski) : `boş ( ${degerYaz(o.eski)} )`} → <b>{degerYaz(o.yeni)}</b>
-            </span>
-            {o.gider.length > 1 && <span className="opacity-70">  ·  {o.gider.length} sorun birden gider</span>}
-            {o.yontem === "son değişiklik" && <span className="opacity-70">  ·  son değişikliğin sınırı</span>}
-            {o.ortaya_cikan.length > 0 && (
-              <span className="opacity-70" title={o.ortaya_cikan.join("\n")}>
-                {"  ·  "}sonra {o.ortaya_cikan.length} gizli sorun görünür
-              </span>
-            )}
-            {o.hesapta_ortaya_cikan.length > 0 && (
-              <span className="opacity-70" title={o.hesapta_ortaya_cikan.map(bolumAdi).join("\n")}>
-                {"  ·  "}hesapta {o.hesapta_ortaya_cikan.length} bölüm uygun değil çıkar
-              </span>
-            )}
-            {o.bina && (
-              <span className={cn("ml-1.5 rounded-full px-1.5 text-[10.5px]", koyu ? "bg-[#3a2c12] text-[#fbbf24]" : "bg-uyari-acik text-uyari")}>
-                bina ölçüsü
-              </span>
-            )}
-          </span>
-          <button
-            type="button"
-            onClick={() => uygula(o)}
-            aria-label={`${etiketBol(o.etiket)[0]} ${degerYaz(o.yeni)} yap`}
+      {c.oneriler.map((o) => {
+        //  ÜÇ SATIR ( 20 Kas — arayüz taslağı B6:  "boş ( Teleskopik Sol ) → Manuel Sağ" 324 px'lik panelde
+        //  "Uygula"nın altına giriyordu ):  alanın adı, eski → yeni, notlar;  "Uygula" sağda sabit
+        const notlar = [
+          o.gider.length > 1 && `${o.gider.length} sorun birden gider`,
+          o.yontem === "son değişiklik" && "son değişikliğin sınırı",
+        ].filter(Boolean);
+        return (
+          <li
+            key={o.anahtar}
             className={cn(
-              "shrink-0 rounded-kucuk border px-2 py-0.5 text-[11.5px] font-medium",
-              koyu ? "border-white/20 text-white hover:bg-white/10" : "border-cizgi hover:bg-black/[0.04]",
+              "flex items-center gap-2 rounded-kucuk px-2 py-1.5 text-[12px]",
+              koyu ? "bg-white/[0.06]" : "bg-black/[0.03]",
             )}
           >
-            Uygula
-          </button>
-        </li>
-      ))}
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">
+                {etiketBol(o.etiket)[0]}
+                {o.bina && (
+                  <span className={cn("ml-1.5 rounded-full px-1.5 text-[10.5px] font-normal", koyu ? "bg-[#3a2c12] text-[#fbbf24]" : "bg-uyari-acik text-uyari")}>
+                    bina ölçüsü
+                  </span>
+                )}
+              </span>
+              <span className={cn("block [overflow-wrap:anywhere]", typeof o.yeni === "number" && "sayi")}>
+                {o.girilmis ? degerYaz(o.eski) : `boş ( ${degerYaz(o.eski)} )`} → <b>{degerYaz(o.yeni)}</b>
+              </span>
+              {(notlar.length > 0 || o.ortaya_cikan.length > 0 || o.hesapta_ortaya_cikan.length > 0) && (
+                <span className="block text-[11.5px] opacity-70">
+                  {notlar.join("  ·  ")}
+                  {o.ortaya_cikan.length > 0 && (
+                    <span title={o.ortaya_cikan.join("\n")}>
+                      {notlar.length > 0 && "  ·  "}sonra {o.ortaya_cikan.length} gizli sorun görünür
+                    </span>
+                  )}
+                  {o.hesapta_ortaya_cikan.length > 0 && (
+                    <span title={o.hesapta_ortaya_cikan.map(bolumAdi).join("\n")}>
+                      {(notlar.length > 0 || o.ortaya_cikan.length > 0) && "  ·  "}hesapta {o.hesapta_ortaya_cikan.length} bölüm uygun
+                      değil çıkar
+                    </span>
+                  )}
+                </span>
+              )}
+            </span>
+            <button
+              type="button"
+              onClick={() => uygula(o)}
+              aria-label={`${etiketBol(o.etiket)[0]} ${degerYaz(o.yeni)} yap`}
+              className={cn(
+                "shrink-0 rounded-kucuk border px-2 py-0.5 text-[11.5px] font-medium",
+                koyu ? "border-white/20 text-white hover:bg-white/10" : "border-cizgi hover:bg-black/[0.04]",
+              )}
+            >
+              Uygula
+            </button>
+          </li>
+        );
+      })}
     </ul>
   );
 }

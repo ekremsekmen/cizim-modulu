@@ -20,14 +20,13 @@ import asyncio
 import json
 import logging
 import threading
-import zlib
 
 from fastapi import APIRouter, Body, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
-from cizim import avan_kipi, hesap_isareti, istek_onbellegi
-from uclar import avan_cizimi, avan_secici, avan_uclari, cizim_uclari
+from cizim import asamalar, avan_kipi, hesap_isareti, istek_onbellegi
+from uclar import avan_cizimi, avan_secici, avan_uclari, cizim_uclari, uc_ortak
 from uclar.uc_ortak import baglantiyi_izle, hata_iletisi, hata_kaydi
 
 log = logging.getLogger(__name__)
@@ -55,11 +54,18 @@ async def api_avan_cizimler_ucu(istek: Request, veri: dict = Body(...)):
     ( bütçe sınama sayısıdır ) yazarken biriken aramalar sunucuyu kilitleyebilirdi.  Arama iş
     parçacığında koşar;  bağlantı burada izlenir.
 
-    AKIŞ ( 17 Kas ):  istek Accept'te AKIS_TURU'nü isterse yanıt satır satır gelir — aramanın
-    aşamaları ( avan_secici.Ilerleme ), en sonda sonuç ( _akis ).  Yoksa eskisi gibi tek JSON."""
-    if AKIS_TURU in istek.headers.get("accept", ""):
-        return _akis(istek, veri)
+    AKIŞ ( 17 Kas ):  istek Accept'te uc_ortak.AKIS_TURU'nü isterse yanıt satır satır gelir —
+    aramanın aşamaları ( avan_secici.ASAMALAR ), en sonda sonuç ( uc_ortak.akisli_yanit ).  Yoksa
+    eskisi gibi tek JSON."""
     birakildi = threading.Event()
+    if uc_ortak.akis_isteniyor(istek):
+        ilerleme = asamalar.Ilerleme(avan_secici.ASAMALAR)
+
+        def ara_akisli():
+            with avan_secici.korumali(birakildi.is_set):
+                return avan_cizimler_sonucu(veri)
+
+        return uc_ortak.akisli_yanit(istek, ara_akisli, ilerleme, birakildi)
 
     def ara():
         with avan_secici.korumali(birakildi.is_set):
@@ -85,62 +91,6 @@ def api_avan_aranacaklar(veri: dict = Body(...)):
         return {"aranacaklar": []}
 
 
-#  AKIŞLI YANIT:  her satır bir JSON — { ilerleme:  { asamalar , sinama , gecen } } … , sonda
-#  { sonuc:  /api/avan/cizimler'in yanıtı }.  Satırlar en çok ILERLEME_ARALIGI'nda bir, yalnız
-#  yeni bir şey varsa.
-AKIS_TURU = "application/x-ndjson"
-ILERLEME_ARALIGI = 0.2
-
-
-def _akis(istek, veri):
-    """Akışlı yanıt.  SIKIŞTIRMA BURADA ( main'deki GZipMiddleware bu türü dışlar ):  çizim yanıtı
-    834 KB, gzip'le ~53 KB — ama ara katman küçük satırları biriktirir, aşamalar geç gelirdi.  Her
-    satır gzip akışına yazılıp hemen boşaltılır ( Z_SYNC_FLUSH ):  tarayıcı satırı geldiği anda
-    açar, sonuç yine sıkışık iner.
-
-    BAĞLANTI KAPANINCA ( ekran isteği bıraktı ) arama durur:  StreamingResponse kopmayı kendisi
-    dinler ( ASGI 2.3 — uvicorn ) ve üreteci iptal eder, finally aramayı bırakır.  Burada AYRICA
-    is_disconnected yoklanmaz:  akış sürerken ikinci bir dinleyici bağlantıyı bozuyordu ( tarayıcı
-    sonucu alıp isteği yine de "kesildi" sayıyordu — 17 Kas, uçtan uca testte yakalandı )."""
-    gz = "gzip" in istek.headers.get("accept-encoding", "")
-    ilerleme = avan_secici.Ilerleme()
-    birakildi = threading.Event()
-
-    def ara():
-        with avan_secici.korumali(birakildi.is_set), avan_secici.ilerleme(ilerleme):
-            return avan_cizimler_sonucu(veri)
-
-    async def satirlar():
-        sikistir = zlib.compressobj(6, zlib.DEFLATED, 31) if gz else None
-
-        def bayt(nesne, son=False):
-            b = (json.dumps(nesne, ensure_ascii=False, default=str) + "\n").encode("utf-8")
-            if sikistir is None:
-                return b
-            return sikistir.compress(b) + sikistir.flush(zlib.Z_FINISH if son else zlib.Z_SYNC_FLUSH)
-
-        arama = asyncio.ensure_future(run_in_threadpool(ara))
-        gonderilen = -1
-        try:
-            while True:
-                await asyncio.wait({arama}, timeout=ILERLEME_ARALIGI)
-                if arama.done():
-                    break
-                surum, durum = ilerleme.durum()
-                if surum != gonderilen:
-                    gonderilen = surum
-                    yield bayt({"ilerleme": durum})
-            yield bayt({"sonuc": arama.result()}, son=True)
-        finally:
-            #  Bağlantı kapandıysa Starlette üreteci iptal eder ( buraya gelinir ):  arama durur
-            birakildi.set()
-
-    basliklar = {"Cache-Control": "no-store", "X-Accel-Buffering": "no"}
-    if gz:
-        basliklar.update({"Content-Encoding": "gzip", "Vary": "Accept-Encoding"})
-    return StreamingResponse(satirlar(), media_type=AKIS_TURU, headers=basliklar)
-
-
 def api_avan_cizimler(veri):
     """Avan asansörünün çizimleri, JSON yanıtı ( avan_cizimler_sonucu )."""
     return JSONResponse(avan_cizimler_sonucu(veri))
@@ -156,7 +106,7 @@ def avan_cizimler_sonucu(veri):
         #  ortak bir önbellek sarılmaz — adaylar ayrı girdilerdir.
         r = secim(veri)
         if r["durum"] == "uygun":
-            avan_secici.asama("cizim")
+            asamalar.asama("cizim")
             #  Avan kipi ( cizim/avan_kipi.py ):  ürün yazıları ve hesap işareti yok
             with avan_kipi.etkin(r.get("avan")), istek_onbellegi.etkin():
                 r["cizim"] = json.loads(cizim_uclari.cizimler_yaniti(r["istek"]).body)

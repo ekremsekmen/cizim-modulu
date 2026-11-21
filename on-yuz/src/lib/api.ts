@@ -170,6 +170,8 @@ import type { KapiBilgisi } from "@/lib/kapiTasima";
 export interface Cizim {
   ad: string;
   baslik: string;
+  /**  Çizim şeridindeki adı ( sunucu:  cizimler.KISA_ADLAR — 20 Kas, B7 );  yoksa başlıktan  */
+  kisa?: string | null;
   olcek: number;
   olceksiz: boolean;
   svg: string;
@@ -521,12 +523,14 @@ async function gonder<T>(yol: string, govde: unknown, bicim: (h: unknown) => unk
   return j && typeof j === "object" && "hata" in j ? { ...j, hata: bicim(j.hata) } : j;
 }
 
-/**  Avan seçicisinin aşamaları ( sunucu:  avan_secici.Ilerleme — 17 Kas ):  arama sürerken
-     gerçekten hangi adımda olduğu.  t:  aşamanın başladığı an ( sn, isteğin başından )  */
+/**  Uzun işin aşamaları ( sunucu:  cizim/asamalar.Ilerleme — 17 Kas avan araması;  20 Kas paketler ve
+     düzeltme ):  iş sürerken gerçekten hangi adımda olduğu.  t:  aşamanın başladığı an ( sn, isteğin
+     başından ).  plan:  adımları baştan belli işte ( paket ) sıradaki adımlar  */
 export interface AramaIlerlemesi {
   asamalar: { kod: string; surer: string; bitti: string; ayrinti: string; t: number }[];
   sinama: number;
   gecen: number;
+  plan?: { kod: string; surer: string; bitti: string }[];
 }
 
 /**  Akışlı yanıtın tamponundan tamamlanmış satırlar ve kalan ( yarım satır )  */
@@ -618,8 +622,14 @@ export const api = {
   hesap: (i: UygulamaIstegi, s?: AbortSignal) => gonder<CokluYanit>("/api/uygulama/coklu", i, hataListe, s),
   cizimler: (i: UygulamaIstegi, asansor: number, s?: AbortSignal) =>
     gonder<CizimYanit>("/api/uygulama/cizimler", { ...i, asansor }, hataListe, s),
-  care: (i: UygulamaIstegi, asansor: number, onceki: OncekiGirdi | null) =>
-    gonder<CareYanit>("/api/uygulama/care", { ...i, asansor, onceki }, hataListe),
+  /**  ilerle:  aramanın aşamaları geldikçe ( akışlı yanıt — 20 Kas );  sinyal:  Vazgeç  */
+  care: (
+    i: UygulamaIstegi,
+    asansor: number,
+    onceki: OncekiGirdi | null,
+    s?: AbortSignal,
+    ilerle?: (d: AramaIlerlemesi) => void,
+  ) => akisla<CareYanit>("/api/uygulama/care", { ...i, asansor, onceki }, hataListe, s, ilerle),
   olcu: (i: UygulamaIstegi, asansor: number, cizim: string, olcu: number, metin: string) =>
     gonder<OlcuYanit>("/api/uygulama/olcu", { ...i, asansor, cizim, olcu, metin }, hataListe),
   olcuDegistir: (
@@ -631,9 +641,20 @@ export const api = {
     anahtar: string,
     hedef: string,
   ) => gonder<OlcuDegisikligi>("/api/uygulama/olcu_degistir", { ...i, asansor, cizim, olcu, metin, anahtar, hedef }, hataListe),
-  /**  secimler:  seçim kutularının etkisi de ( sunucu her birini dener — saniyeler )  */
-  parca: (i: UygulamaIstegi, asansor: number, cizim: string, parca: string, secimler = false) =>
-    gonder<ParcaYanit>("/api/uygulama/parca", { ...i, asansor, cizim, parca, secimler }, hataListe),
+  /**  secimler:  seçim kutularının etkisi de ( sunucu her birini dener — saniyeler ).  O arama akışlı
+       ( 20 Kas — arayüz taslağı B10 ):  denenen kutu ilerle'ye gelir;  sinyal isteği bırakır  */
+  parca: (
+    i: UygulamaIstegi,
+    asansor: number,
+    cizim: string,
+    parca: string,
+    secimler = false,
+    s?: AbortSignal,
+    ilerle?: (d: AramaIlerlemesi) => void,
+  ) =>
+    secimler
+      ? akisla<ParcaYanit>("/api/uygulama/parca", { ...i, asansor, cizim, parca, secimler }, hataListe, s, ilerle)
+      : gonder<ParcaYanit>("/api/uygulama/parca", { ...i, asansor, cizim, parca, secimler }, hataListe, s),
   secenekler: () => al<Secenekler>("/api/secenekler"),
   trafik: (girdiler: unknown, s?: AbortSignal) => gonder<TrafikYaniti>("/api/trafik", { girdiler }, hataMetin, s),
   avan: (girdiler: unknown, s?: AbortSignal) => gonder<AvanYaniti>("/api/avan", { girdiler }, hataMetin, s),
@@ -647,6 +668,8 @@ export const api = {
 
 export interface IndirmeSonucu {
   hata?: string;
+  /**  Kullanıcı vazgeçti ( akışlı indirme ):  dosya inmedi, hata değil  */
+  iptal?: boolean;
   /**  Paketin notları ( X-Avan-Not ):  DXF — DWG çevrilemedi, ZIP'te DXF var;
        TASMA — paftalar formatın çerçevesine sığmadı, baskıdan önce bakılmalı.  */
   notlar?: string[];
@@ -684,15 +707,84 @@ export async function indir(uc: string, govde: unknown): Promise<IndirmeSonucu> 
     return { hata: "Dosya inerken bağlantı koptu — dosya inmedi;  yeniden deneyin." };
   }
   const ad = /filename\*?=(?:UTF-8'')?"?([^";]+)/i.exec(r.headers.get("Content-Disposition") || "")?.[1];
+  dosyayiKaydet(veri, indirilenAd(ad, uc));
+  const notlar = (r.headers.get("X-Avan-Not") || "").split(",").filter(Boolean);
+  return notlar.length ? { notlar } : {};
+}
+
+function dosyayiKaydet(veri: Blob, ad: string) {
   const url = URL.createObjectURL(veri);
-  const a = Object.assign(document.createElement("a"), { href: url, download: indirilenAd(ad, uc) });
+  const a = Object.assign(document.createElement("a"), { href: url, download: ad });
   document.body.appendChild(a);
   a.click();
   a.remove();
   //  Hemen geri alınırsa bazı tarayıcılar indirmeyi başlatmadan keser
   setTimeout(() => URL.revokeObjectURL(url), 3000);
-  const notlar = (r.headers.get("X-Avan-Not") || "").split(",").filter(Boolean);
-  return notlar.length ? { notlar } : {};
+}
+
+/**  AKIŞLI İNDİRME ( 20 Kas — arayüz taslağı B1 · B2:  paket 4 asansörde 10,4 sn, avanda arama
+     paketin içinde;  ekranda yalnız dönen işaret vardı ):  sunucu paketin adımlarını akıtır
+     ( ilerle ), sonda dosya — { dosya:  { ad , tur , veri ( base64 ) } , notlar } ( sunucu:
+     uc_ortak.akis_sonucu ) ya da bugünkü hata yanıtı.  indir gibi HİÇ FIRLATMAZ;  vazgeçilince
+     ( sinyal ) { iptal } — sunucu bir sonraki adımda durur.  */
+export async function indirAkisli(
+  uc: string,
+  govde: unknown,
+  sinyal?: AbortSignal,
+  ilerle?: (d: AramaIlerlemesi) => void,
+): Promise<IndirmeSonucu> {
+  let sonuc: unknown;
+  try {
+    sonuc = await akisla<unknown>(`/api/indir/${uc}`, govde, (h) => h, sinyal, ilerle);
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") return { iptal: true };
+    if (e instanceof TypeError) return { hata: "Sunucuya ulaşılamadı — bağlantıyı denetleyip yeniden deneyin." };
+    if (e instanceof SyntaxError) return { hata: "Sunucunun yanıtı okunamadı — yeniden deneyin." };
+    const ileti = e instanceof Error ? e.message : String(e);
+    //  Sonuç satırı gelmeden akış bitti ( akisla:  "yarıda kesildi" )
+    if (/yarıda/.test(ileti)) return { hata: "Paket inerken bağlantı koptu — dosya inmedi;  yeniden deneyin." };
+    return { hata: `${ileti} — yeniden deneyin.` };
+  }
+  const d = akisDosyasi(sonuc, uc);
+  if (!d.blob) return { hata: d.hata };
+  dosyayiKaydet(d.blob, d.ad);
+  return d.notlar.length ? { notlar: d.notlar } : {};
+}
+
+/**  Akışın son satırındaki sonuç:  dosya ( Blob , ad , notlar ) ya da hata metni ( ucun biçimi:
+     liste / metin — indir'deki gibi tek metne )  */
+export function akisDosyasi(
+  sonuc: unknown,
+  yedekAd: string,
+): { blob: Blob; ad: string; notlar: string[] } | { blob?: undefined; hata: string } {
+  const s = (sonuc && typeof sonuc === "object" ? sonuc : {}) as {
+    dosya?: { ad?: string; tur?: string; veri?: string };
+    notlar?: unknown;
+    hata?: unknown;
+  };
+  if (!s.dosya?.veri) {
+    const h = s.hata;
+    return { hata: Array.isArray(h) ? h.map(String).join("\n") : String(h ?? "Üretilemedi") };
+  }
+  let bayt: Uint8Array<ArrayBuffer>;
+  try {
+    bayt = base64Bayt(s.dosya.veri);
+  } catch {
+    return { hata: "Sunucunun yanıtı okunamadı — yeniden deneyin." };
+  }
+  return {
+    blob: new Blob([bayt], { type: s.dosya.tur || "application/octet-stream" }),
+    ad: s.dosya.ad || yedekAd,
+    notlar: Array.isArray(s.notlar) ? s.notlar.map(String) : [],
+  };
+}
+
+/**  base64 → bayt ( akışlı indirmenin dosyası )  */
+export function base64Bayt(veri: string): Uint8Array<ArrayBuffer> {
+  const ikili = atob(veri);
+  const b = new Uint8Array(ikili.length);
+  for (let i = 0; i < ikili.length; i++) b[i] = ikili.charCodeAt(i);
+  return b;
 }
 
 /**  Content-Disposition'daki ad;  kodlaması bozuksa olduğu gibi ( decodeURIComponent fırlatır )  */

@@ -10,6 +10,7 @@ import { api, type ParcaGirdisi, type UygulamaIstegi } from "@/lib/api";
 import { kutuyaYaz } from "@/lib/denetim";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
 import { Dugme, Girdi, Secim } from "@/components/ui";
+import { sureYaz, useGecenSure, type IsDurumu } from "@/components/IsAsamalari";
 import { KUTU_UST, kutuYeri, type OlcuKonumu, type Parca } from "./Tuval";
 
 const YER: Record<string, string> = { asansor: "asansör", proje: "bina" };
@@ -42,17 +43,34 @@ export function ParcaKutusu({
   girdilerGeldi?: (anahtarlar: string[]) => void;
 }) {
   //  "Seçimleri de bul":  seçim kutularının etkisi istenince ( sunucu her birini dener —
-  //  birkaç saniye;  çizim başına bir kez, sonra önbellekte ).  Seçildikten sonra kutu
+  //  2,3 – 3,2 sn;  çizim başına bir kez, sonra önbellekte ).  Seçildikten sonra kutu
   //  açık kaldıkça seçimli liste
   const [secimler, setSecimler] = useState(false);
+  //  Seçim aramasında sunucunun denediği kutu ( akışlı yanıt — 20 Kas, arayüz taslağı B10:
+  //  ekranda yalnız "birkaç saniye" yazıyordu )
+  const [secimDurumu, setSecimDurumu] = useState<IsDurumu | null>(null);
   const sorgu = useQuery({
     queryKey: ["parca", istek, asansor, parca.cizim, parca.id, secimler],
-    queryFn: () => api.parca(istek, asansor, parca.cizim, parca.id, secimler),
+    queryFn: async (q) => {
+      if (!secimler) return api.parca(istek, asansor, parca.cizim, parca.id);
+      //  Sinyal YALNIZ burada okunur ( okunan sinyal sorguyu iptal edilir kılar ):  kutu kapanınca,
+      //  Vazgeç'te ya da girdi değişince arama bırakılır, sunucu bir sonraki kutuda durur
+      const bas = performance.now();
+      setSecimDurumu({ bas, d: null });
+      try {
+        return await api.parca(istek, asansor, parca.cizim, parca.id, true, q.signal, (d) =>
+          setSecimDurumu((x) => (x?.bas === bas ? { bas, d } : x)),
+        );
+      } finally {
+        setSecimDurumu((x) => (x?.bas === bas ? null : x));
+      }
+    },
     //  Değer yazılınca çizim yenilenir:  yeni yanıta kadar eski liste durur ( kutu sıçramasın )
     placeholderData: keepPreviousData,
   });
   const y = sorgu.data;
   const secimAraniyor = secimler && sorgu.isFetching;
+  const secimGecen = useGecenSure(secimAraniyor ? secimDurumu : null);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && kapat();
@@ -150,12 +168,47 @@ export function ParcaKutusu({
             </div>
           )}
           {secimAraniyor && (
-            <p className="flex items-center gap-2 px-4 pb-2 text-[12px] text-metin-3">
-              <Loader2 className="size-3.5 animate-spin" /> Seçimler deneniyor — birkaç saniye
-            </p>
+            <SecimAramasi durum={secimDurumu} gecen={secimGecen} vazgec={() => setSecimler(false)} />
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**  "Seçimleri de bul" sürerken:  sunucunun denediği kutu ve sırası ( "Askı oranı deneniyor · 4 / 42" —
+     sunucunun ayrıntısı "etiket · n / toplam" ).  Sayı gerçek:  42 kutunun kaçıncısı;  yüzde çubuğu
+     yok ( kısa iş ).  Vazgeç seçimsiz listeye döner  */
+function SecimAramasi({ durum, gecen, vazgec }: { durum: IsDurumu | null; gecen: number; vazgec: () => void }) {
+  const asamalar = durum?.d?.asamalar ?? [];
+  const ayrinti = asamalar[asamalar.length - 1]?.ayrinti ?? "";
+  const [, kutu, sira] = /^(.+) · (\d+ \/ \d+)$/.exec(ayrinti) ?? [];
+  const sag = [sira, gecen >= 1000 ? sureYaz(gecen / 1000) : ""].filter(Boolean).join(" · ");
+  return (
+    <div role="status" aria-live="polite" data-secim-aramasi className="mx-4 mt-1 mb-2 border-t border-cizgi pt-2">
+      <div className="flex items-center gap-2 text-[12.5px]">
+        <Loader2 className="size-3.5 shrink-0 animate-spin text-metin-3" aria-label="sürüyor" />
+        <span className="min-w-0 flex-1 truncate">
+          {kutu ? (
+            <>
+              <b className="font-medium">{kutu}</b> deneniyor
+            </>
+          ) : (
+            "Seçimler deneniyor"
+          )}
+        </span>
+        {sag && <span className="sayi shrink-0 text-[11.5px] text-metin-3">{sag}</span>}
+      </div>
+      <div className="mt-1 flex items-start gap-3 text-[11.5px] leading-snug text-metin-3">
+        <p className="min-w-0 flex-1">Her seçim kutusu bir komşu değerle denenir, çizim yeniden kurulur.</p>
+        <button
+          type="button"
+          onClick={vazgec}
+          className="shrink-0 rounded-kucuk border border-cizgi-2 px-2 py-0.5 font-medium text-metin hover:bg-black/[0.04]"
+        >
+          Vazgeç
+        </button>
+      </div>
     </div>
   );
 }

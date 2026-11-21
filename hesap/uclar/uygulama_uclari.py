@@ -10,14 +10,18 @@ uçlar ayrıdır.
 import json
 import logging
 import os
+import threading
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Request
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
+from cizim import asamalar
 from cizim import elektrik
 from cizim import istek_onbellegi
 from cizim import pafta
 from uclar import cizim_uclari
+from uclar import uc_ortak
 from uclar import uygulama_istegi
 from uclar.uc_ortak import (
     hata_iletisi,
@@ -54,6 +58,10 @@ router = APIRouter()
 
 #  Uygulama paketinin kapağının büyük başlığı ( kapak_cikti'nin varsayılanı avanınkidir )
 BASLIK = "ASANSÖR UYGULAMA PROJESİ"
+
+#  PAKETİN AŞAMALARI ( 20 Kas — arayüz taslağı B1 ):  önce hesap ( bütün asansörler ve çizim
+#  girdileri ), sonra paketin ortak adımları ( uc_ortak.PAKET_ASAMALARI )
+PAKET_ASAMALARI = {"hesap": ("Hesap yapılıyor", "Hesap yapıldı"), **uc_ortak.PAKET_ASAMALARI}
 
 
 @router.get("/api/uygulama/alanlar")
@@ -115,7 +123,23 @@ def indir_uygulama_pdf(veri: dict = Body(...)):
 
 
 @router.post("/api/indir/uygulama-dwg")
-def indir_uygulama_dwg(veri: dict = Body(...)):
+async def indir_uygulama_dwg_ucu(istek: Request, veri: dict = Body(...)):
+    """Uygulama projesi paftası — ofis tip proje formatına yerleştirilmiş CAD ( indir_uygulama_dwg ).
+
+    AKIŞ ( 20 Kas — arayüz taslağı B1:  paket 1 asansörde 2,7, 4 asansörde 10,4 sn sürüyor, ekranda
+    yalnız dönen işaret vardı ):  istek uc_ortak.AKIS_TURU'nü isterse paketin adımları satır satır,
+    sonda dosya ( uc_ortak.akis_sonucu ).  Kullanıcı vazgeçince ( bağlantı kapandı ) iş bir sonraki
+    adımda durur;  eskiden paket sonuna kadar kuruluyordu.  İstemiyorsa eskisi gibi ZIP."""
+    if not uc_ortak.akis_isteniyor(istek):
+        return await run_in_threadpool(indir_uygulama_dwg, veri)
+    birakildi = threading.Event()
+    ilerleme = asamalar.Ilerleme(PAKET_ASAMALARI, iptal=birakildi.is_set)
+    return uc_ortak.akisli_yanit(
+        istek, lambda: uc_ortak.akis_sonucu(indir_uygulama_dwg(veri)), ilerleme, birakildi
+    )
+
+
+def indir_uygulama_dwg(veri):
     """Uygulama projesi paftası — ofis tip proje formatına yerleştirilmiş CAD."""
     if dxf_cikti is None:
         return JSONResponse(
@@ -140,6 +164,11 @@ def _uygulama_paketi(veri):
         except ValueError as e:
             return JSONResponse({"aktif": False, "hata": f"KÂĞIT ENİ:  {e}"}, status_code=200)
         _p = _proje_kimligi(veri)
+        #  Adımlar ( akışlı istekte ekranda;  yoksa bildirim hiçbir şey yapmaz — asamalar )
+        dwg = bool(dxf_cikti.donusturucu())
+        asamalar.planla(["hesap"] + uc_ortak.paket_plani(True, dwg, pafta_pdf is not None))
+        adet = len(veri.get("asansorler") or []) if isinstance(veri.get("asansorler"), list) else 0
+        asamalar.asama("hesap", f"{adet} asansör" if adet > 1 else "")
         s, yanit = _coklu_sonuc(veri)
         if yanit is not None:
             return yanit
@@ -155,6 +184,7 @@ def _uygulama_paketi(veri):
             return JSONResponse(
                 {"aktif": False, "hata": "ÇİZİMLER KURULAMADI:\n· " + "\n· ".join(eksik)}, status_code=200
             )
+        asamalar.asama("sayfalar")
         paftalar = []
         #  KAPAK.  Uygulama projesinin kapağı MMO'nun ayrı kitabındadır;  ama
         #  paket bir teslim dosyasıdır ve kapaksız gitmesi için sebep yok.
@@ -180,14 +210,17 @@ def _uygulama_paketi(veri):
         )
         #  Pakete PROJE DOSYASI da girer:  teslim paketi ile geri dönüş
         #  noktası aynı arşivde dursun.
+        son_islem, pdf_islem = uc_ortak.asamali_islemler(
+            cizim_uclari.paftaya_ekle([g for g, _h in cizim]),
+            pafta_pdf.paket_pdfleri(paftalar, [g for g, _h in cizim], elektrikler) if pafta_pdf else None,
+            dwg,
+        )
         paket, sebep, tasti = dxf_cikti.proje_paketi(
             paftalar,
             os.path.splitext(ad)[0],
             list(_paket_ekleri(veri, "uygulama")),
-            son_islem=cizim_uclari.paftaya_ekle([g for g, _h in cizim]),
-            pdf_islem=(
-                pafta_pdf.paket_pdfleri(paftalar, [g for g, _h in cizim], elektrikler) if pafta_pdf else None
-            ),
+            son_islem=son_islem,
+            pdf_islem=pdf_islem,
             elektrikler=elektrikler,
             kagit=kagit,
         )
