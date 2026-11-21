@@ -373,8 +373,14 @@ class SecimAramasi(unittest.TestCase):
         _b, tek = akisli_istek("/api/uygulama/parca", govde, akis=False, kodlama="identity")
         self.assertEqual(s[-1]["sonuc"], json.loads(tek))
         self.assertIn("kabin_ray_profili", [x["anahtar"] for x in s[-1]["sonuc"]["girdiler"]])
-        for x in s[:-1]:
-            self.assertRegex(x["ilerleme"]["asamalar"][0]["ayrinti"], self.AYRINTI)
+        #  İlk satırlar aşamasız olabilir:  satır 0,2 sn'de gider, çizimin çözümlemesi o anda sürebilir
+        #  ( 21 Kas — CI'ın yavaş makinesinde ilk satırın aşama listesi boştu;  ekran onu "Seçimler
+        #  deneniyor" diye gösterir ).  Arama saniyeler sürer:  aşamalı satır mutlaka gelir.
+        asamali = [x["ilerleme"]["asamalar"] for x in s[:-1] if x["ilerleme"]["asamalar"]]
+        self.assertTrue(asamali, s[:-1])
+        for a in asamali:
+            self.assertEqual([x["kod"] for x in a], ["secim"])
+            self.assertRegex(a[0]["ayrinti"], self.AYRINTI)
         #  Seçimsiz istek akış istese de tek JSON ( anında — aranacak bir şey yok )
         b, g = akisli_istek("/api/uygulama/parca", {**govde, "secimler": False}, kodlama="identity")
         self.assertTrue(b["content-type"].startswith("application/json"))
