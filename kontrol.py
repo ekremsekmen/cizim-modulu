@@ -6,12 +6,14 @@
                                            altın çıktı dahil ), ön yüz ( tip,
                                            lint, test, derleme )  ( ~4 dk )
     .venv/bin/python kontrol.py tam        hızlı + yavaş test + sunucu + uçtan uca ( ~12 dk — yavaş test 7 dk )
+    .venv/bin/python kontrol.py testler    tam'ın uçtan uca dışındakiler ( CI'da uçtan uca ayrı işte koşar )
     .venv/bin/python kontrol.py sunucu     programı 8790'da açar, uçlarını ve kök
                                            sayfayı dener ( TEST 3 ), kapatır ( ~1 dk )
     .venv/bin/python kontrol.py uctan_uca  ön yüz gerçek tarayıcıda:  örnek proje, canlı
                                            hesap, proje dosyası, ölçü, teslim ( ~1 dk )
     .venv/bin/python kontrol.py tarama     girdi taraması ( 558 düzen;  ~8 dk )
-    .venv/bin/python kontrol.py avan_tarama  avan seçicisi taraması ( 563 kuyu;  ağır — CI'da )
+    .venv/bin/python kontrol.py avan_tarama  avan seçicisi taraması ( 563 kuyu;  ağır — CI'da;
+                                           KONTROL_PARCA="1/2" senaryoların o parçası )
     .venv/bin/python kontrol.py bicim      ruff format + ruff check --fix ( düzeltir )
 
 Çizim testleri pytest ile paralel koşar:  KONTROL_IS işçi ( varsayılan 4 —
@@ -168,8 +170,14 @@ def tarama():
 
 
 def avan_tarama():
-    """Avan seçicisi mimarın kuyularında ( araclar/avan_tarama.py ):  değişmezler ve hükümler."""
-    return _kos("avan seçicisi taraması", [PY, "-m", "araclar.avan_tarama"])
+    """Avan seçicisi mimarın kuyularında ( araclar/avan_tarama.py ):  değişmezler ve hükümler.
+    KONTROL_PARCA ( "1/2" ):  senaryoların o parçası — CI iki işte yan yana koşar ( 21 Kas:  tek
+    iş 27–49 dk sürüyordu )."""
+    parca = os.environ.get("KONTROL_PARCA")
+    return _kos(
+        "avan seçicisi taraması" + (f" ( parça {parca} )" if parca else ""),
+        [PY, "-m", "araclar.avan_tarama"] + (["--parca", parca] if parca else []),
+    )
 
 
 def main(argv):
@@ -186,6 +194,8 @@ def main(argv):
             sunucu(),
             uctan_uca(derlendi),
         ],
+        #  CI ( 21 Kas ):  uçtan uca ayrı işte, bununla yan yana koşar ( tam iş 42–61 dk sürüyordu )
+        "testler": lambda: [lint(), hesap(HESAP_TESTLERI, SUNUCUSUZ), on_yuz(), cizim(True), sunucu()],
         "bicim": lambda: [bicim()],
         "sunucu": lambda: [sunucu()],
         "uctan_uca": lambda: [uctan_uca(on_yuz())],

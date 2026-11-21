@@ -34,6 +34,8 @@ güvenlik süresini kapatır.
 
     .venv/bin/python -m araclar.avan_tarama              hepsi ( KONTROL_IS işçi, varsayılan 2 )
     .venv/bin/python -m araclar.avan_tarama --dilim 40   her 40 senaryodan biri ( deneme )
+    .venv/bin/python -m araclar.avan_tarama --parca 1/2  senaryoların birinci yarısı ( biri atlanarak —
+                                                         CI iki işte yan yana koşar )
     .venv/bin/python -m araclar.avan_tarama --yenile     hüküm kaydını yeniden yazar
 
 --yenile DAVRANIŞI DEĞİŞTİRME İZNİDİR ( altın çıktılar gibi ):  hüküm değişiklikleri tek
@@ -230,10 +232,18 @@ def _isci_sayisi():
 def main(argv):
     yenile = "--yenile" in argv
     dilim = int(argv[argv.index("--dilim") + 1]) if "--dilim" in argv else 1
+    #  PARÇA ( 21 Kas — CI'da tek iş 27–49 dk sürüyordu ):  "i/n" senaryoların i. parçası, n'de bir
+    #  atlanarak ( ağır ve hafif senaryolar parçalara dağılır )
+    parca = argv[argv.index("--parca") + 1] if "--parca" in argv else "1/1"
+    p, n_parca = (int(x) for x in parca.split("/"))
+    if not 1 <= p <= n_parca:
+        print(f"--parca {parca}:  1/2, 2/2 gibi olmalı.")
+        return 2
     hepsi = senaryolar()
-    secilen = hepsi[::dilim]
+    secilen = hepsi[::dilim][p - 1 :: n_parca]
     n = _isci_sayisi()
-    print(f"avan seçicisi taraması:  {len(secilen)} / {len(hepsi)} senaryo, {n} işçi", flush=True)
+    ek = f", parça {parca}" if n_parca > 1 else ""
+    print(f"avan seçicisi taraması:  {len(secilen)} / {len(hepsi)} senaryo{ek}, {n} işçi", flush=True)
     t0 = time.monotonic()
     sonuclar = []
     with multiprocessing.Pool(n, initializer=_kur) as havuz:
@@ -267,8 +277,8 @@ def main(argv):
         print(f"\nDEĞİŞMEZ BOZULDU:  {len(ihlalli)} senaryo ( yukarıda )")
 
     if yenile:
-        if dilim != 1:
-            print("\n--yenile yalnız tam taramayla ( --dilim olmadan ).")
+        if dilim != 1 or n_parca != 1:
+            print("\n--yenile yalnız tam taramayla ( --dilim ve --parca olmadan ).")
             return 2
         with open(HUKUMLER, "w", encoding="utf-8") as f:
             json.dump(hukumler, f, ensure_ascii=False, indent=1, sort_keys=True)
@@ -284,8 +294,12 @@ def main(argv):
             for k, h in hukumler.items()
             if kayit.get(k) != h
         ]
-        if dilim == 1:
+        if dilim == 1 and n_parca == 1:
             farklar += [f"  {k}:  kayıtta var, taramada yok" for k in kayit if k not in hukumler]
+        elif dilim == 1 and p == 1:
+            #  Parçalı koşuda kaldırılan senaryoyu birinci parça söyler ( bütün senaryoların listesinden )
+            tum = {k for k, _a, _m in hepsi}
+            farklar += [f"  {k}:  kayıtta var, senaryolarda yok" for k in kayit if k not in tum]
         if farklar:
             tamam = False
             print(f"\nHÜKÜM DEĞİŞTİ:  {len(farklar)} senaryo ( kayıt → şimdi )")

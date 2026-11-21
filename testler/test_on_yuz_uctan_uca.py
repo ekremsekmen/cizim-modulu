@@ -223,13 +223,47 @@ class IzleyiciSayaci(unittest.TestCase):
         self.assertEqual(iz.yolda, 1)
 
 
-class ArizaMatrisiKapsami(unittest.TestCase):
-    """Tarayıcısız:  ön yüzün çağırdığı her uç arıza matrisinde — yeni uç matrise
-    girmeden bu test geçmez ( 24 Eki:  sessiz hata yolları uç uç bulunuyordu )."""
+def sunucu_uclari():
+    """Sunucunun API uçları, KENDİ listesinden ( OpenAPI şeması:  FastAPI 0.141'de app.routes eklenen
+    yönlendiricileri sarar, yollarını göstermez )."""
+    import warnings
 
-    def test_on_yuzun_her_ucu_matriste(self):
-        import glob
+    import main
+
+    with warnings.catch_warnings():
+        #  /api/saglik GET ve HEAD aynı işlev:  "Duplicate Operation ID" uyarısı ( zararsız )
+        warnings.simplefilter("ignore", UserWarning)
+        yollar_ = main.app.openapi()["paths"]
+    return {y for y in yollar_ if y.startswith("/api/")}
+
+
+class ArizaMatrisiKapsami(unittest.TestCase):
+    """Tarayıcısız:  sunucunun her API ucu arıza matrisinde — yeni uç matrise girmeden bu test
+    geçmez ( 24 Eki:  sessiz hata yolları uç uç bulunuyordu ).  UÇLAR SUNUCUNUN KENDİ LİSTESİNDEN
+    ( 21 Kas ):  önce ön yüz kodunda desenle aranıyordu;  paket indirmesi indirAkisli'ye geçince iki
+    paket ucu desenden düştü, test sessizce geçmeye devam etti.  Matrise girmeyen uç ARIZA_DISI'nda,
+    sebebiyle."""
+
+    ARIZA_DISI = {"/api/saglik": "ön yüz çağırmaz — çalışma izleyicileri içindir"}
+
+    def test_sunucunun_her_ucu_matriste(self):
         import inspect
+
+        uclar = sunucu_uclari()
+        self.assertGreater(len(uclar), 15, uclar)
+        matris = "".join(
+            inspect.getsource(getattr(OnYuzUctanUca, ad))
+            for ad in ("test_ariza_matrisi_uygulama", "test_ariza_matrisi_avan", "test_ariza_matrisi_diger")
+        )
+        eksik = sorted(u for u in uclar - set(self.ARIZA_DISI) if f'"{u}"' not in matris)
+        self.assertEqual(eksik, [], "matriste olmayan uçlar")
+        #  Muafiyet eskimez:  sunucudan kalkan uç listede kalmaz
+        self.assertEqual(sorted(set(self.ARIZA_DISI) - uclar), [], "sunucuda olmayan muafiyet")
+
+    def test_on_yuzun_cagirdigi_uclar_sunucuda(self):
+        """Ön yüz kodundaki uç adları sunucuda var ( yazım hatası, kaldırılan uç ).  Desen burada
+        yalnız bir alt küme bulur:  eksik bulması bekçiyi zayıflatmaz ( kapsam sunucudan )."""
+        import glob
 
         kaynak = "".join(
             open(p, encoding="utf-8").read()
@@ -237,14 +271,9 @@ class ArizaMatrisiKapsami(unittest.TestCase):
             if ".test." not in p
         )
         uclar = set(re.findall(r'"(/api/[a-z_/-]+)"', kaynak))
-        #  Paketler akışlı indirilir ( 20 Kas — indirAkisli, adı alt satırda olabilir )
         uclar |= {f"/api/indir/{u}" for u in re.findall(r'(?:indir(?:Akisli)?\(\s*|uc=)"([a-z-]+)"', kaynak)}
         self.assertGreater(len(uclar), 10, uclar)
-        matris = "".join(
-            inspect.getsource(getattr(OnYuzUctanUca, ad))
-            for ad in ("test_ariza_matrisi_uygulama", "test_ariza_matrisi_avan", "test_ariza_matrisi_diger")
-        )
-        self.assertEqual(sorted(u for u in uclar if f'"{u}"' not in matris), [], "matriste olmayan uçlar")
+        self.assertEqual(sorted(uclar - sunucu_uclari()), [], "sunucuda olmayan uçlar")
 
 
 def katlar_metni(metin):
@@ -938,8 +967,8 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.route("**/api/uygulama/coklu", lambda r: tutulan.append(r))
         try:
             self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).first.click()
-            self.sayfa.wait_for_timeout(1500)  # girdi gecikmesi geçsin, yeni hesap tutulsun
-            self.assertTrue(tutulan, "yeni hesap istenmedi")
+            #  Girdi gecikmesinden sonra yeni hesap tutulur ( süreyle değil, olunca — 21 Kas )
+            self._bekle(lambda: tutulan, "yeni hesap istenmedi")
             metin = self.sayfa.get_by_role("complementary", name="Uygunluk").inner_text()
             m = re.search(r"(\d+)\s*uygun değil\s*(\d+)\s*uygun", metin)
             self.assertFalse(
@@ -1253,6 +1282,7 @@ class OnYuzUctanUca(unittest.TestCase):
         self.iz.sakin()
         for s in (self.sayfa, ikinci):
             s.evaluate("window.__yazma = {}")
+        #  Kasıtlı süre:  olumsuz denetim — bu sürede hiçbir sekme yazmamalı ( olay beklenemez )
         self.sayfa.wait_for_timeout(3000)
         self.assertEqual((self.sayfa.evaluate("window.__yazma"), ikinci.evaluate("window.__yazma")), ({}, {}))
         for s in (self.sayfa, ikinci):
@@ -1981,8 +2011,8 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.route("**/api/trafik", lambda r: tutulan.append(r))
         try:
             kapasite(13)
-            self.sayfa.wait_for_timeout(800)  # girdi gecikmesi geçsin, trafik yanıtı tutulsun
-            self.assertTrue(tutulan, "trafik istenmedi")
+            #  Girdi gecikmesinden sonra trafik yanıtı tutulur ( süreyle değil, olunca — 21 Kas )
+            self._bekle(lambda: tutulan, "trafik istenmedi")
             self.assertTrue(kaydet.is_disabled(), "güncel olmayan sonuçla proje dosyası kaydedilir")
             for adim in ("Avan hesapları", "Kapak"):
                 adima_git(adim)
@@ -2274,6 +2304,7 @@ class OnYuzUctanUca(unittest.TestCase):
             for r in tutulan:
                 r.continue_()
             self.sayfa.unroute("**/api/uygulama/olcu_degistir")
+        #  Kasıtlı süre:  olumsuz denetim — bırakılan yanıtlar kayda yazmamalı ( olay beklenemez )
         self.sayfa.wait_for_timeout(1500)
         self.assertEqual(self.kayitli_asansorler(), once)
 
@@ -2331,18 +2362,22 @@ class OnYuzUctanUca(unittest.TestCase):
         self.ornek_projeyi_ac()
         plan = self.sayfa.locator('figure[data-cizim="kuyu_plani"]').bounding_box()
         self.sayfa.mouse.move(plan["x"] + plan["width"] / 2, plan["y"] + plan["height"] / 2)
+        levha = "document.querySelector('figure[data-cizim]').parentElement"
+        durdu = lambda: self.sayfa.evaluate(f"{levha}.style.transform").endswith("scale(1)")
+        once = self._yakinlik()
         for _ in range(12):
             self.sayfa.mouse.wheel(0, -120)
-        self.sayfa.wait_for_timeout(500)
-        levha = "document.querySelector('figure[data-cizim]').parentElement"
-        self.assertTrue(self.sayfa.evaluate(f"{levha}.style.transform").endswith("scale(1)"))
+        #  Süreyle değil, olunca ( 21 Kas ):  yakınlaştı ve yakınlaşma durunca ( 120 ms ) ölçek 1'e döndü
+        self._bekle(
+            lambda: self._yakinlik() > once and durdu(), "yakınlaşma durunca levhanın ölçeği 1'e dönmedi"
+        )
         en = self.sayfa.evaluate(
             "(() => { const f = document.querySelector('figure[data-cizim=\"kuyu_plani\"]');"
             "  return [parseFloat(f.style.width), f.getBoundingClientRect().width] })()"
         )
         self.assertAlmostEqual(en[0], en[1], delta=1.0)
         self.sayfa.get_by_role("button", name="Sığdır").click()
-        self.sayfa.wait_for_timeout(300)
+        self._bekle(durdu, "sığdırınca levha durmadı")
         #  Kaynağı en az 6 olan bir kuyu planı ölçüsü
         tuval = self.sayfa.locator(".bg-tuval").bounding_box()
         olculer = self.sayfa.locator('figure[data-cizim="kuyu_plani"] .olcu')
@@ -2356,7 +2391,13 @@ class OnYuzUctanUca(unittest.TestCase):
             self.sayfa.keyboard.press("Escape")
         else:
             self.fail("kaynağı 6'dan çok ölçü yok")
-        self.sayfa.wait_for_timeout(300)
+
+        def sigdi():
+            k = kutu.bounding_box()
+            return k and k["y"] >= tuval["y"] + 60 and k["y"] + k["height"] <= tuval["y"] + tuval["height"]
+
+        #  Kutu boyunu ölçüp yerine oturunca ( süreyle değil, olunca — 21 Kas )
+        self._bekle(sigdi, "ölçü kutusu tuvale sığmadı")
         k = kutu.bounding_box()
         self.assertGreaterEqual(k["y"], tuval["y"] + 60)
         self.assertLessEqual(k["y"] + k["height"], tuval["y"] + tuval["height"])
@@ -2524,9 +2565,15 @@ class OnYuzUctanUca(unittest.TestCase):
         self.ornek_projeyi_ac()
         self.sayfa.get_by_role("button", name="Tam ekran").click()
         self.sayfa.wait_for_function("!!document.fullscreenElement")
-        self.sayfa.wait_for_timeout(400)
-        f = self.sayfa.locator("figure[data-cizim]:visible").bounding_box()
         en, boy = self.sayfa.viewport_size["width"], self.sayfa.viewport_size["height"]
+
+        def sigdi():
+            f = self.sayfa.locator("figure[data-cizim]:visible").bounding_box()
+            return f and abs(f["x"] + f["width"] / 2 - en / 2) < en * 0.05 and f["height"] > boy * 0.6
+
+        #  Yeni boya sığdırılınca ( süreyle değil, olunca — 21 Kas )
+        self._bekle(sigdi, "tam ekranda çizim yeni boya sığdırılmadı")
+        f = self.sayfa.locator("figure[data-cizim]:visible").bounding_box()
         self.assertLess(abs(f["x"] + f["width"] / 2 - en / 2), en * 0.05, f)
         self.assertGreater(f["height"], boy * 0.6, f)
         katmanlar = self.sayfa.get_by_role("button", name="Katmanlar")
@@ -2646,14 +2693,28 @@ class OnYuzUctanUca(unittest.TestCase):
         kart.get_by_role("button", name=sorun["metin"]).click()
         secili = self.sayfa.locator(f'figure[data-cizim="{sorun["cizim"]}"] .parca-sorun-secili')
         secili.first.wait_for(state="attached")
-        self.sayfa.wait_for_timeout(400)
         tuval = self.sayfa.locator(".bg-tuval").bounding_box()
-        #  Görünür öğeler ( boyutsuz öğenin kutusu yok )
-        kutular = [
-            k
-            for j in range(secili.count())
-            if (k := secili.nth(j).bounding_box()) and (k["width"] or k["height"])
-        ]
+
+        def gorunen():
+            #  Görünür öğeler ( boyutsuz öğenin kutusu yok )
+            return [
+                k
+                for j in range(secili.count())
+                if (k := secili.nth(j).bounding_box()) and (k["width"] or k["height"])
+            ]
+
+        def yakinlasti():
+            k = gorunen()
+            return (
+                k
+                and self._yakinlik() > 100
+                and min(x["y"] for x in k) >= tuval["y"]
+                and max(x["y"] + x["height"] for x in k) <= tuval["y"] + tuval["height"]
+            )
+
+        #  Yakınlaşma bitince ( süreyle değil, olunca — 21 Kas )
+        self._bekle(yakinlasti, "sorunun parçalarına yakınlaşılmadı")
+        kutular = gorunen()
         self.assertTrue(kutular)
         ust = min(k["y"] for k in kutular)
         alt = max(k["y"] + k["height"] for k in kutular)
@@ -2987,6 +3048,10 @@ class OnYuzUctanUca(unittest.TestCase):
             self.iz.sakin()
         #  Tarayıcı düşen isteği konsola yazar ( beklenen )
         self.iz.hatalar = [h for h in self.iz.hatalar if "503" not in h]
+
+    def _yakinlik(self):
+        """Tuvalin araç şeridindeki yakınlık ( % )."""
+        return int(re.search(r"(\d+)%", self.sayfa.locator("[data-tuval-arac]").first.inner_text()).group(1))
 
     def _bekle(self, kosul, ileti, sure=15):
         son = time.time() + sure
@@ -3472,6 +3537,28 @@ class OnYuzUctanUca(unittest.TestCase):
                 bulgular.append(f"{on}:  arıza kalkınca düzelmedi ( ekranda:  {', '.join(sorted(kalan))} )")
             del self.iz.hatalar[h0:]
 
+    def test_ariza_duzenegi_kesikte_baglantiyi_kapatir(self):
+        """Düzeneğin kendini sınaması ( 21 Kas — #159'un CI'ı ):  "kesik" arızası gerçek isteğin ilk
+        parçasını okuyup okuyucuyu kapatmadan bırakıyordu;  akışlı paketin son satırı ( ~1 MB )
+        okunmayınca istek bitmiyor, matrisin sonraki aşaması "sayfa sakinleşmedi" diye düşüyordu.
+        Kesikten sonra gerçek istek kapanmalı:  bağlantı gerçekten kopar ( sunucu da işi bırakır )."""
+        self.sayfa.add_init_script(self.ARIZA_BETIGI)
+        self.ornek_projeyi_ac()
+        self.sayfa.get_by_role("button", name="Teslim").click()
+        teslim = self.sayfa.get_by_role("dialog", name="Teslim")
+        teslim.get_by_role("checkbox").check()
+        self._ariza_kur("/api/indir/uygulama-dwg", "kesik")
+        self.sayfa.evaluate("window.__ariza = 0")
+        teslim.get_by_role("button", name=re.compile("Paketi indir")).click()
+        self._bekle(self._sozler, "kesik arıza ekranda söylenmedi")
+        self.assertEqual(self.sayfa.evaluate("window.__ariza"), 1)
+        self._ariza_kur()
+
+        def acik():
+            return [ad for ad, _t in self.iz.suren.values() if "indir/uygulama-dwg" in ad]
+
+        self._bekle(lambda: not acik(), f"kesik arıza gerçek isteği açık bıraktı:  {acik()}", sure=10)
+
     def test_ariza_matrisi_uygulama(self):
         self.sayfa.add_init_script(self.ARIZA_BETIGI)
         b = []
@@ -3785,7 +3872,11 @@ class OnYuzUctanUca(unittest.TestCase):
             self.sayfa.get_by_role("button", name="PDF", exact=True).click()
         for yol in ("/avan/trafik", "/tablolar", "/ofis-standardi", "/"):
             self._git(yol)
-        self.sayfa.wait_for_timeout(3500)  # indirmenin adresi 3 sn sonra bırakılır
+        #  İndirmenin adresi 3 sn sonra bırakılır:  süreyle değil, olunca ( 21 Kas — yavaş makinede
+        #  zamanlayıcı geç düşebilir;  hiç bırakılmazsa burada söylenir )
+        self._bekle(
+            lambda: self.sayfa.evaluate("window.__kaynak.adres") == 0, "indirmenin adresi bırakılmadı", 15
+        )
         return self.sayfa.evaluate("JSON.parse(JSON.stringify(window.__kaynak))")
 
     def test_kaynak_sayaci_tekrarda_buyumez(self):

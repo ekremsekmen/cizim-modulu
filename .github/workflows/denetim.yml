@@ -7,12 +7,17 @@
 #    PR ve elle başlatma ( Actions → Denetim → Run workflow ):
 #      tam      lint + biçim, hesap, bütün çizim testleri ( yavaş dahil ),
 #               ön yüz ( on-yuz/:  tip, lint, test, derleme ), açık programın
-#               uçları ve kök sayfası, ön yüz gerçek tarayıcıda ( uçtan uca;
-#               arıza matrisinin beş türü yalnız elle başlatınca, PR'da ikisi )
+#               uçları ve kök sayfası ( kontrol.py testler )
+#      uctan_uca  ön yüz gerçek tarayıcıda ( arıza matrisinin beş türü yalnız elle
+#               başlatınca, PR'da ikisi ) — 21 Kas'a dek tam'ın içindeydi
 #      tarama   558 düzenin hükmü kayıtla ( testler/tarama_hukumleri.json ), yazı ve fiziksel tutarlılık
-#      avan_tarama  avan seçicisi 563 kuyuda ( araclar/avan_tarama.py ):  dönen her asansör
-#               uygulamanın uçlarından temiz mi, hükümler kayıtla aynı mı
-#               ( testler/avan_tarama_hukumleri.json );  sonuç iş çıktısı olarak saklanır
+#      avan_tarama  avan seçicisi 563 kuyuda, İKİ PARÇADA yan yana ( araclar/avan_tarama.py
+#               --parca ):  dönen her asansör uygulamanın uçlarından temiz mi, hükümler kayıtla
+#               aynı mı ( testler/avan_tarama_hukumleri.json );  sonuç iş çıktısı olarak saklanır
+#
+#  İŞLER YAN YANA ( 21 Kas ):  PR'ın süresini en yavaş iş belirler.  Önce tam 42–61 dk ( içinde
+#  uçtan uca ~13 dk ), avan_tarama 27–49 dk sürüyordu;  uçtan uca ayrı işte, avan taraması iki
+#  parçada.
 #    main'e push:  yalnız hızlı denetim ( PR'da hepsi zaten koştu )
 #
 #  Dakika tasarrufu ( özel depoda Actions dakikası sınırlı ):  aynı PR'a yeni
@@ -72,8 +77,30 @@ jobs:
           cache: npm
           cache-dependency-path: on-yuz/package-lock.json
       - run: python -m pip install -r requirements-kilit.txt -r requirements-gelistirme.txt
+      - run: python kontrol.py testler
+        env:
+          KONTROL_IS: auto
+
+  uctan_uca:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    #  Tam'ın içindeyken 11–13 dk sürüyordu
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-*.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: on-yuz/package-lock.json
+      - run: python -m pip install -r requirements-kilit.txt -r requirements-gelistirme.txt
       - run: python -m playwright install --with-deps chromium
-      - run: python kontrol.py tam
+      - run: python kontrol.py uctan_uca
         env:
           KONTROL_IS: auto
           #  Arıza matrisinin beş türü yalnız elle başlatınca ( PR'da ikisi — test_on_yuz_uctan_uca )
@@ -96,6 +123,11 @@ jobs:
   avan_tarama:
     if: github.event_name != 'push'
     runs-on: ubuntu-latest
+    #  İki parça yan yana ( 21 Kas — tek iş 27–49 dk ):  senaryoların biri atlanarak yarısı
+    strategy:
+      fail-fast: false
+      matrix:
+        parca: ["1/2", "2/2"]
     #  Öbür işlerle yan yana koşar ( tam işini uzatmaz ).  Seçici saatsiz kiptedir;  ilk
     #  ölçüm:  455 senaryo CI'da 20 dk ( 4 işçi, 79 dk işlemci );  14 Kas 18 hazır asansörle 563 senaryo ( yenileri seyrek — 819 tam eksen 80 dk sürdü )
     timeout-minutes: 90
@@ -110,10 +142,12 @@ jobs:
       - run: python kontrol.py avan_tarama
         env:
           KONTROL_IS: auto
+          KONTROL_PARCA: ${{ matrix.parca }}
       #  Hükümler değiştiyse ( ya da kayıt henüz yoksa ) yeni kayıt buradan alınır
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: avan-tarama
+          #  Parça başına ayrı ad ( "/" ad içinde olamaz )
+          name: avan-tarama-${{ strategy.job-index }}
           path: cikti/avan_tarama/
           retention-days: 14
