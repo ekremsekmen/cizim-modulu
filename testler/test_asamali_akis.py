@@ -332,7 +332,9 @@ class SecimAramasi(unittest.TestCase):
     """B10:  "Seçimleri de bul" ( /api/uygulama/parca, secimler ) — denenen kutunun adı ve sırası;
     bırakılan arama önbelleğe yarım sonuç yazmaz;  akışın sonucu akışsızla aynı."""
 
-    AYRINTI = r"^[^(]+ · (\d+) / (\d+)$"
+    #  "etiket · n / toplam":  etiketin açıklaması ( "Kuyu genişliği  ( KG )"daki gibi iki boşluk + parantez )
+    #  atılır;  adın kendi parantezi kalır ( "Güvenlik tertibatı ( fren bloğu ) tipi" — 21 Kas, CI )
+    AYRINTI = r"^(?!.*  \().+ · (\d+) / (\d+)$"
 
     def cozumleme(self, **ek):
         """Önbelleksiz çözümleme ( arama baştan ) ve kuyu planındaki ilk kabin rayının kimliği."""
@@ -342,17 +344,27 @@ class SecimAramasi(unittest.TestCase):
         return v, r, f"kabin_ray-{[a for a, _k in r['ornekler']].index('kabin_ray')}"
 
     def test_kutu_kutu_ve_sirasi(self):
+        #  HER bildirim kaydedilir ( 21 Kas:  akış 0,2 sn'de bir örnekler — CI'da 20. kutunun parantezli
+        #  adına denk geldi, yerelde hiç gelmemişti;  burada 42 kutunun hepsi zamandan bağımsız denetlenir )
+        goruldu = []
+
+        class Kayitli(asamalar.Ilerleme):
+            def asama(self, kod, ayrinti=""):
+                goruldu.append((kod, ayrinti))
+                super().asama(kod, ayrinti)
+
         _v, r, _pid = self.cozumleme()
-        i = asamalar.Ilerleme(parca_uclari.ASAMALAR)
+        i = Kayitli(parca_uclari.ASAMALAR)
         with asamalar.bagla(i):
             bagli = parca_uclari._secim_kaynaklari(r)
-        d = i.durum()[1]
-        self.assertEqual(kodlar(d), ["secim"])
-        m = re.match(self.AYRINTI, d["asamalar"][0]["ayrinti"])
-        self.assertTrue(m, d)
-        #  Son bildirim son kutu:  "… · 42 / 42"
-        self.assertEqual(m.group(1), m.group(2))
-        self.assertGreater(int(m.group(2)), 10)
+        self.assertEqual(kodlar(i.durum()[1]), ["secim"])
+        self.assertEqual({k for k, _a in goruldu}, {"secim"})
+        eslesen = [re.match(self.AYRINTI, a) for _k, a in goruldu]
+        self.assertEqual([a for (_k, a), m in zip(goruldu, eslesen) if not m], [])
+        #  Kutular sırayla:  1 / 42 … 42 / 42
+        self.assertGreater(len(eslesen), 10)
+        self.assertEqual([int(m.group(1)) for m in eslesen], list(range(1, len(eslesen) + 1)))
+        self.assertEqual({int(m.group(2)) for m in eslesen}, {len(eslesen)})
         self.assertTrue(bagli)
 
     def test_birakilan_arama_onbellege_yazmaz(self):
