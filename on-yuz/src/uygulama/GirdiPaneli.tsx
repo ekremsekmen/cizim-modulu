@@ -96,7 +96,8 @@ export function GirdiPaneli({
   //  ( seçimin yapıldığı andaki hedef de saklanır:  yeni hedef gelince sekme ona uyar )
   const [sekmeler, setSekmeler] = useState<Record<string, { kip: "temel" | "gelismis"; hedef: string }>>({});
   //  Son yazılan alan:  başka bölüme geçilince başlıkta "Son değişiklik" olarak görünür
-  const [son, setSon] = useState<{ anahtar: string; grup: string } | null>(null);
+  //  ( asansörüyle:  öbür asansöre geçince o asansörün değişikliği değildir — bina alanı hariç )
+  const [son, setSon] = useState<{ anahtar: string; grup: string; asansor: number } | null>(null);
   const govde = useRef<HTMLDivElement>(null);
   const oku = (a: string) => alanOku(proje, sema, asansor, a);
 
@@ -150,14 +151,16 @@ export function GirdiPaneli({
         : [],
     [gruplar, aranan],
   );
-  const sira = gruplar.findIndex((g) => g.ad === bolum);
-  const secili = gruplar[sira >= 0 ? sira : 0];
+  //  Adresteki bölüm yoksa ( eski bağlantı, MRL'de makine dairesi ) ilk bölüm — sıra da onun:
+  //  -1 kalınca başlık "0 / 10" yazıyor, önceki / sonraki ikisi de kapanıyordu ( 22 Kas )
+  const sira = Math.max(0, gruplar.findIndex((g) => g.ad === bolum));
+  const secili = gruplar[sira];
   const girildiSay = (g: { alanlar: Alan[] }) => g.alanlar.filter((a) => oku(a.anahtar) !== undefined).length;
 
   //  Yazılanı kaydet:  "Son değişiklik" bağı için
   const yazVeAnimsa = (anahtar: string, deger: string) => {
     const g = sema.gruplar.find((x) => x.alanlar.some((a) => a.anahtar === anahtar))?.ad;
-    if (g) setSon({ anahtar, grup: g });
+    if (g) setSon({ anahtar, grup: g, asansor });
     yaz(anahtar, deger);
   };
 
@@ -346,7 +349,7 @@ export function GirdiPaneli({
                     </span>
                   )}
                 </p>
-                {son && son.grup !== secili.ad && (
+                {son && son.grup !== secili.ad && (son.asansor === asansor || sema.proje_geneli.includes(son.anahtar)) && (
                   <button
                     type="button"
                     onClick={() => sec(son.grup)}

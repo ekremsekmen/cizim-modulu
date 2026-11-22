@@ -315,6 +315,9 @@ export function Tuval({
 
   //  Görünen çizimler ( tek kipte yalnız aktif )
   const gorunen = useMemo(() => (kip === "tumu" ? yerler : yerler.filter((y) => y.c.ad === aktif)), [kip, yerler, aktif]);
+  //  Son sığdırmanın görünümü:  kullanıcı o andan beri yakınlaştırmadı / kaydırmadıysa g
+  //  hâlâ bu nesnedir ( her el hareketi yeni nesne kurar )
+  const sigdirilmis = useRef<{ x: number; y: number; k: number } | null>(null);
   const sigdir = useCallback(() => {
     const el = kap.current;
     if (!el || !gorunen.length) return;
@@ -326,7 +329,9 @@ export function Tuval({
     const Hh = el.clientHeight - serit;
     const ust = 64;
     const k = Math.min((W - 64) / (x1 - x0), (Hh - ust - 40) / (y1 - y0));
-    setG({ k, x: (W - (x1 - x0) * k) / 2 - x0 * k, y: ust + (Hh - ust - 40 - (y1 - y0) * k) / 2 - y0 * k });
+    const yeni = { k, x: (W - (x1 - x0) * k) / 2 - x0 * k, y: ust + (Hh - ust - 40 - (y1 - y0) * k) / 2 - y0 * k };
+    sigdirilmis.current = yeni;
+    setG(yeni);
   }, [gorunen, serit]);
 
   //  Levhadaki bir kutuya ( 1 px = 1 mm kâğıt ) yakınlaş:  çevresiyle ( kutunun
@@ -379,6 +384,10 @@ export function Tuval({
   //  Olay boy değişmeden önce gelir;  sığdırma yeni boyla ( boyut değişince ) yapılır.
   const sigdirilan = useRef<string | null>(null);
   const tamEkranDegisti = useRef(false);
+  //  PENCERE BOYU DEĞİŞİNCE ( 22 Kas denetimi ):  çizim eski ölçekte kalıyordu — 1440'tan 1024'e
+  //  inince %254'e çıkıp kesiliyor, büyütünce %39'da sol üstte kalıyordu.  Kullanıcı
+  //  sığdırmadan beri görünümü oynatmadıysa yeniden sığdırılır;  oynattıysa yeri korunur.
+  const sonBoyut = useRef(boyut);
   useEffect(() => {
     const f = () => {
       tamEkranDegisti.current = true;
@@ -389,11 +398,16 @@ export function Tuval({
   useLayoutEffect(() => {
     const hedef = kip === "tumu" ? "tumu" : aktif && (gecici ? `${aktif}:gecici` : aktif);
     if (!hedef || !gorunen.length || !boyut) return;
-    if (hedef === sigdirilan.current && !tamEkranDegisti.current) return;
+    const boyDegisti = sonBoyut.current !== boyut;
+    sonBoyut.current = boyut;
+    if (hedef === sigdirilan.current && !tamEkranDegisti.current) {
+      if (boyDegisti && g === sigdirilmis.current) sigdir();
+      return;
+    }
     sigdirilan.current = hedef;
     tamEkranDegisti.current = false;
     sigdir();
-  }, [kip, aktif, gecici, gorunen, boyut, sigdir]);
+  }, [kip, aktif, gecici, gorunen, boyut, sigdir, g]);
 
   //  Tekerlek:  imlecin altındaki nokta yerinde kalır
   useEffect(() => {

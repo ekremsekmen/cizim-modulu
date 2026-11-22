@@ -279,10 +279,18 @@ def asansor_girdileri(veri):
     asansorler = []
     for i, x in enumerate(ham, 1):
         h = []
+        ad = str(x.get("asansor_adi") or "").strip() or f"{i} nolu asansör"
+        once = (len(_BELIRSIZ.kalemler), len(_RED.kalemler))
         asansorler.append(_girdi_coz(x, veri, atla, h))
+        #  OKUNAMAYAN YAZIM DA ASANSÖRÜYLE ( 22 Kas denetimi ):  iki asansörlü projede
+        #  "Kabin genişliği = abc" hangi asansörde söylemiyordu ( kural dışı değer söylüyordu ).
+        #  Bina alanı ( ilk asansörde taşınıyorsa ) yukarıda adsız söylendi:  tekrarı düşer.
+        if len(ham) > 1:
+            for liste, n in zip((_BELIRSIZ, _RED), once):
+                onceki_ler = set(liste.kalemler[:n])
+                liste.kalemler[n:] = [f"{ad}:  {m}" for m in liste.kalemler[n:] if m not in onceki_ler]
         #  Binanın alanı ( ilk asansörde taşınıyorsa ) yukarıda bir kez söylendi
         h = [m for k, m in h if k not in PROJE_GENELI_ALANLAR]
-        ad = str(x.get("asansor_adi") or "").strip() or f"{i} nolu asansör"
         hatalar += [f"{ad}:  {m}" for m in h] if len(ham) > 1 else h
     hatalar += uygulama_sabitleri.ofis_hatalari(ortak["_ofis"])
     belirsiz = _belirsiz_hata()
