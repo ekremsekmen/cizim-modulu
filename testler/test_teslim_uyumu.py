@@ -36,8 +36,16 @@ def _tr(m):
     return float(m.replace(".", "").replace(",", "."))
 
 
+def _olcek(b):
+    """Çizimin ölçeği ( çizim birimi başına gerçek mm ):  ölçülerinin DIMLFAC'ı — paftada
+    çizim kâğıt boyundadır ( 23 Kas ), CAD'de ölçünün okuduğu değer kâğıttaki boy × DIMLFAC."""
+    (o,) = {round(e.override().get("dimlfac"), 9) for e in b.query("DIMENSION")}
+    return o
+
+
 def _olculer(b):
-    return {round(e.get_measurement(), 1) for e in b.query("DIMENSION")}
+    """Ölçülerin CAD'de okunan değerleri ( kâğıttaki boy × DIMLFAC )."""
+    return {round(e.get_measurement() * e.override().get("dimlfac"), 1) for e in b.query("DIMENSION")}
 
 
 def _yazilar(b):
@@ -45,9 +53,10 @@ def _yazilar(b):
 
 
 def _kirik_cevir(k):
-    """Kesit kırıktır ( aradaki katlar çizilmez ):  çizimdeki y → gerçek kot."""
+    """Kesit kırıktır ( aradaki katlar çizilmez ):  çizimdeki y → gerçek kot ( mm )."""
+    o = _olcek(k)
     kotlar = sorted(
-        (_tr(m.group(2)) * (-1000 if m.group(1) == "-" else 1000), e.dxf.insert.y)
+        (_tr(m.group(2)) * (-1000 if m.group(1) == "-" else 1000), e.dxf.insert.y * o)
         for e in k.query("MTEXT")
         if (m := re.fullmatch(r"([+-]|±)(\d+,\d\d)", e.text))
     )
@@ -56,15 +65,15 @@ def _kirik_cevir(k):
         for (k0, y0), (k1, y1) in zip(kotlar, kotlar[1:])
         if (k1 - k0) - (y1 - y0) > 50
     ]
-    return lambda y: y + sum(e for y0, e in kiriklar if y > y0)
+    return lambda y: y * o + sum(e for y0, e in kiriklar if y * o > y0)
 
 
 def _ray_boylari(k):
-    cevir, gr = _kirik_cevir(k), collections.defaultdict(list)
+    o, cevir, gr = _olcek(k), _kirik_cevir(k), collections.defaultdict(list)
     for e in disassemble.recursive_decompose(k):
         if e.dxf.layer == "RAY":
             kk = bbox.extents([e])
-            gr[round(kk.extmin.x / 40)].append(kk)
+            gr[round(kk.extmin.x * o / 40)].append(kk)
     return [
         (cevir(max(x.extmax.y for x in ks)) - cevir(min(x.extmin.y for x in ks))) / 1000 for ks in gr.values()
     ]
@@ -190,7 +199,8 @@ class TeslimUyumu(unittest.TestCase):
 
     def test_kabin_karsi_agirlik_acikligi(self):
         for ad, (_a, doc, _h) in self.S.items():
-            es = list(disassemble.recursive_decompose(self._blok(doc, "CIZIM_KUYU_PLANI")))
+            plan = self._blok(doc, "CIZIM_KUYU_PLANI")
+            es = list(disassemble.recursive_decompose(plan))
 
             def kutu(katman, es=es):
                 return bbox.extents([e for e in es if e.dxf.layer == katman and e.dxftype() != "MTEXT"])
@@ -199,7 +209,8 @@ class TeslimUyumu(unittest.TestCase):
             dx = max(g.extmin.x - k.extmax.x, k.extmin.x - g.extmax.x, 0)
             dy = max(g.extmin.y - k.extmax.y, k.extmin.y - g.extmax.y, 0)
             with self.subTest(ad):
-                self.assertGreaterEqual(max(dx, dy), 50 - 0.5)
+                #  Plan kâğıt boyunda:  açıklık × ölçek gerçek mm
+                self.assertGreaterEqual(max(dx, dy) * _olcek(plan), 50 - 0.5)
 
 
 if __name__ == "__main__":

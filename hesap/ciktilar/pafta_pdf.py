@@ -10,7 +10,7 @@ koyar:
     yerlerine vektörel gömülür ( pypdf ) — DXF'tekiler o PDF'lerden geri
     dönüştürülmüş çizgi ve yazılardır;
   · ÇİZİMLER modelden çizilir ( cizim/pdf — ekranla aynı üslup, gerçek yazı ),
-    DXF'teki blokların yerinde ve ölçeğinde.
+    DXF'teki blokların yerinde, kendi ölçeğinde ( bloklar kâğıt boyunda ).
 
 Şablonun çerçevesi, anteti ve notları DXF'ten çizilir ( LINE, LWPOLYLINE,
 TEXT, MTEXT — şablonda başka tür yok );  yazılar gerçek yazı:  Times'ın
@@ -220,18 +220,20 @@ def _mtext(c, d, m):
 
 
 def _cizimleri_ciz(c, d, cizimler):
-    """Çizimler modelden, DXF'teki blokların yerinde:  blok "CIZIM_<AD>"ın
-    taban noktası ( çizim mm'si ) INSERT'in yerine ( pafta mm'si ) 1/ölçek."""
+    """Çizimler modelden, DXF'teki blokların yerinde:  blok "CIZIM_<AD>" çizimi
+    kâğıt boyunda tutar ve ölçeksiz eklenir ( cizim/pafta._yerlestir ) — taban
+    noktası ( kâğıt mm'si ) INSERT'in yerine ( pafta mm'si ), çizim 1/ölçek."""
     ekler = {e.dxf.name: e for e in d.modelspace().query("INSERT")}
     for ad, _baslik, olcek, e in cizimler:
         ins = ekler.get(pafta.blok_adi(ad))
         if ins is None:
             raise ValueError(f"Paftada {pafta.blok_adi(ad)} bloğu yok — DXF ile çizimler ayrışmış.")
+        if any(abs(ins.dxf.get(k, 1.0) - 1.0) > 1e-9 for k in ("xscale", "yscale", "zscale")):
+            raise ValueError(f"Paftada {pafta.blok_adi(ad)} bloğu ölçekli — DXF ile çizimler ayrışmış.")
         taban = d.blocks.get(ins.dxf.name).block.dxf.base_point
         c.saveState()
-        c.translate(ins.dxf.insert.x, ins.dxf.insert.y)
+        c.translate(ins.dxf.insert.x - taban.x, ins.dxf.insert.y - taban.y)
         c.scale(1.0 / olcek, 1.0 / olcek)
-        c.translate(-taban.x, -taban.y)
         pdf.ciz(c, e, olcek)
         c.restoreState()
 

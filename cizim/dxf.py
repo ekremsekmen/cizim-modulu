@@ -2,8 +2,19 @@
 """
 ÇİZİM  →  DXF   ( CAD )
 
-SVG ile AYNI eleman listesini okur.  Birim milimetredir;  AutoCAD dosyayı
-1:1 açar, ölçek yalnız paftaya yerleştirirken kullanılır.
+SVG ile AYNI eleman listesini okur.  Birim milimetredir.  Tek başına açılan
+DXF ( belge ) GERÇEK ölçüdedir;  paftada ( cizim/pafta ) her çizim KÂĞIT
+BOYUNDA ( 1/ölçek ) yazılır, ölçüler DIMLFAC = ölçek ile gerçek mm'yi okur
+( ciz:  kagitta ).
+
+PAFTADA KÂĞIT BOYU ( 23 Kas ):  çizim gerçek mm'de bir bloğa çizilip paftaya
+( 1/ölçek , 1/ölçek , 1 ) ile küçültülüyordu.  Z 1 kaldığı için AutoCAD ölçeği
+düzgün saymıyor, ölçüler de bloğun içindeydi ( DIMSCALE ölçek ):  blok
+patlatılınca ( EXPLODE ) yazılar, oklar ve taramalar 20 – 50 kat büyüyor, ölçüler
+yeniden ölçülüp yanlış değer yazıyordu ( 2400 → 120 — kullanıcı bildirdi ).
+Artık çizimin bloğu da parça blokları da ölçeksizdir ( 1 : 1 : 1 ):  patlatmak
+hiçbir şeyin yerini ve boyunu değiştirmez.  Ofisin LiftDesigner paftaları da
+böyle:  ölçüler kâğıt boyunda, DIMLFAC 20 / 50.
 
 KATMAN DÜZENİ:  her eleman türü kendi katmanına girer ki CAD'de katman
 katman kapatılabilsin.  Renkler ACI numarasıdır.
@@ -56,8 +67,9 @@ def _cizgi_tiplerini_kur(d):
             )
 
 
-def _dikdortgen(msp, el, lt=None):
-    x, y, g, h = el["x"], el["y"], el["g"], el["d"]
+def _dikdortgen(msp, el, o=1.0, lt=None):
+    """o:  çizimin birimi ( mm ) — kâğıt boyunda ölçek, gerçek ölçüde 1."""
+    x, y, g, h = el["x"] / o, el["y"] / o, el["g"] / o, el["d"] / o
     msp.add_lwpolyline(
         [(x, y), (x + g, y), (x + g, y + h), (x, y + h)],
         close=True,
@@ -65,12 +77,12 @@ def _dikdortgen(msp, el, lt=None):
     )
 
 
-def _bicim(hedef, el, lt=None):
+def _bicim(hedef, el, o=1.0, lt=None):
     """Parçanın gerçek biçimi ( parcalar ):  LWPOLYLINE ( kapalı çokgen ya da
     açık sac profil );  "dolu" kesit katmanının renginde SOLID taramayla
-    boyanır;  "ince" ayrıntı 0,18 mm çizgi kalınlığıyla."""
+    boyanır;  "ince" ayrıntı 0,18 mm çizgi kalınlığıyla.  o:  _dikdortgen'deki gibi."""
     for p in el["bicim"]:
-        nok = [(float(x), float(y)) for x, y in p["noktalar"]]
+        nok = [(float(x) / o, float(y) / o) for x, y in p["noktalar"]]
         ek = {"lineweight": round(uslup.INCE * 100)} if p.get("ince") else {}
         hedef.add_lwpolyline(
             nok, close=p.get("kapali", True), dxfattribs={"layer": el["katman"], **(lt or {}), **ek}
@@ -80,11 +92,16 @@ def _bicim(hedef, el, lt=None):
             dolgu.paths.add_polyline_path(nok, is_closed=True)
 
 
-#  ÖLÇÜ STİLİ — ölçeğe göre adlı ( "ASANSOR-20", "ASANSOR-50" ):  boylar
-#  kâğıtta mm, DIMSCALE ölçek ( AutoCAD'in alışılmış kurulumu;  LiftDesigner'ın
-#  "LIFT" stili gibi ).  Eskiden her ölçü ezdxf'in "EZDXF" stilinde ve 11 alanlık
-#  override taşıyordu;  o stilin DIMLFAC'ı 100'dü — AutoCAD'de metni sıfırlayan
-#  2100 yerine 210000 görürdü ( 12 Eki ).
+#  ÖLÇÜ STİLİ — ölçeğe göre adlı:  boylar kâğıtta mm.
+#    "ASANSOR-20", "ASANSOR-50":  tek başına açılan DXF ( gerçek mm ) — DIMSCALE
+#    ölçek, DIMLFAC 1 ( AutoCAD'in alışılmış kurulumu ).
+#    "ASANSOR-PAFTA-20", "ASANSOR-PAFTA-50":  paftanın kâğıt boyundaki çizimleri —
+#    DIMSCALE 1, DIMLFAC ölçek:  kâğıtta 105 mm'lik ölçü 1/20'de 2100 okur
+#    ( LiftDesigner'ın paftaları gibi;  23 Kas ).  Adlar ayrı:  bir belgede ikisi
+#    karışmasın, AutoCAD'de kullanıcı hangisinin paftanın olduğunu görsün.
+#  Eskiden her ölçü ezdxf'in "EZDXF" stilinde ve 11 alanlık override taşıyordu;
+#  o stilin DIMLFAC'ı 100'dü — AutoCAD'de metni sıfırlayan 2100 yerine 210000
+#  görürdü ( 12 Eki ).
 #    dimse1 / dimse2:  uzatma çizgisi yok — kısa uzatma çizgisi ucun bloğunda
 #    ( UC_BLOGU;  uzun uzatma çizgileri planı kesiyordu — kullanıcı kararı ).
 #    dimtxsty:  çizimin Arial'i ( ezdxf'in OpenSans'ını AutoCAD bulamayıp
@@ -110,16 +127,17 @@ def _uc_blogu(d):
     b.add_line((0, -s), (0, s), dxfattribs={"lineweight": round(uslup.KATMAN["OLCU"].kalinlik * 100)})
 
 
-def olcu_stili(d, olcek):
-    """Ölçeğin ölçü stilinin adı ( yoksa kurar )."""
-    ad = f"ASANSOR-{olcek:g}"
+def olcu_stili(d, olcek, kagitta=False):
+    """Ölçeğin ölçü stilinin adı ( yoksa kurar ).  kagitta:  çizim kâğıt boyunda
+    ( paftada — ciz ):  DIMSCALE 1, DIMLFAC ölçek."""
+    ad = f"ASANSOR-PAFTA-{olcek:g}" if kagitta else f"ASANSOR-{olcek:g}"
     if ad in d.dimstyles:
         return ad
     _uc_blogu(d)
     stil = d.dimstyles.new(
         ad,
         dxfattribs={
-            "dimscale": olcek,
+            "dimscale": 1.0 if kagitta else olcek,
             "dimtxt": uslup.kagitta(uslup.NORMAL, 20),
             "dimtxsty": YAZI_TIPI,
             "dimasz": 2 * uslup.TIK,
@@ -140,12 +158,24 @@ def olcu_stili(d, olcek):
             "dimdec": OLCU_ONDALIK,
             "dimzin": 8,
             "dimdsep": ord(","),
-            "dimlfac": 1.0,
+            "dimlfac": float(olcek) if kagitta else 1.0,
             #  dimrnd yazılmaz:  AutoCAD'de 0 "yuvarlama yok", ezdxf'in çizicisi
             #  0'ı tam sayıya yuvarlıyordu ( önizlemede 1022,5 → 1022 )
         },
     )
     stil.set_arrows(blk=UC_BLOGU)
+    return ad
+
+
+def varsayilan_olcu_stili(d, olcek, kagitta=False):
+    """Belgenin varsayılan ölçü stili ( adı ):  $DIMSTYLE ve başlığın ölçü
+    değişkenleri ( $DIMSCALE, $DIMLFAC … ) o stilin değerleri.  AutoCAD yeni ölçüyü
+    başlığın değişkenleriyle çizer;  stilden farklılarsa stil "<style overrides>"
+    olur.  Paftanın şablonundan ezdxf'in "EZDXF" stilinin değerleri geliyordu
+    ( DIMLFAC 100, yazı 0,25 mm, OpenSans, ARCHTICK ):  paftaya AutoCAD'de elle
+    eklenen ölçü 100 kat okuyordu ( 23 Kas )."""
+    ad = olcu_stili(d, olcek, kagitta)
+    d.dimstyles.get(ad).copy_to_header(d)
     return ad
 
 
@@ -159,32 +189,43 @@ def _olculen(uzunluk):
     return m.replace(".", ",")
 
 
-def olcu_metni(el):
+def olcu_metni(el, o=1.0):
     """Ölçünün DXF metni:  yazıdaki sayı ölçülen değerse onun yerine "<>" —
     AutoCAD kendisi ölçer, çizim uzatılınca sayı da değişir ( LiftDesigner
-    "SW<>" ).  Değilse ( kırık kesitte "3 × 3000" ) yazı olduğu gibi."""
+    "SW<>" ).  Değilse ( kırık kesitte "3 × 3000" ) yazı olduğu gibi.
+
+    o:  ölçü kâğıt boyunda yazılıyorsa DIMLFAC ( ölçek ).  AutoCAD değeri kâğıttaki
+    boy × DIMLFAC'tan ölçer;  yuvarlama sınırındaki bir değerde ( 1022,25 ) bu
+    çarpım öbür yana düşebilir — o zaman sayı yazıyla kalır."""
     deger = _olculen(el["uzunluk"])
+    if o != 1.0:
+        i = 0 if el["yon"] == "yatay" else 1
+        if _olculen(abs(el["b"][i] / o - el["a"][i] / o) * o) != deger:
+            return el["metin"]
     for m in _SAYI.finditer(el["metin"]):
         if m.group() == deger:
             return el["metin"][: m.start()] + "<>" + el["metin"][m.end() :]
     return el["metin"]
 
 
-def _olcu(hedef, el, olcek):
-    """Gerçek DIMENSION varlığı — CAD'de ölçü olarak tanınır, metin değil."""
+def _olcu(hedef, el, olcek, kagitta=False):
+    """Gerçek DIMENSION varlığı — CAD'de ölçü olarak tanınır, metin değil.
+    kagitta:  noktalar kâğıt boyunda ( 1/ölçek ), stil DIMLFAC'lı ( olcu_stili )."""
+    o = olcek if kagitta else 1.0
     a, b, kot = el["a"], el["b"], el["kot"]
     #  Tanım noktaları ölçü çizgisinin üstünde:  geometri ölçülmeyen ekseni 0
     #  verir ( uzatma çizgileri çizilmez — dimse1/2 ).  Eskiden noktalar o 0'da
     #  kalıyordu:  kuyunun tepesindeki kasnak düzenlemesinin ölçüleri 25 m
     #  aşağıya uzanıyor, AutoCAD açılışta paftayı 1,2 m boşlukla küçültüyordu.
     if el["yon"] == "yatay":
-        p1, p2 = (a[0], kot), (b[0], kot)
+        p1, p2 = (a[0] / o, kot / o), (b[0] / o, kot / o)
         aci = 0
     else:
-        p1, p2 = (kot, a[1]), (kot, b[1])
+        p1, p2 = (kot / o, a[1] / o), (kot / o, b[1] / o)
         aci = 90
     yz = el["yazi"]
-    #  Yazı boyu stilin boyu değilse ( ölçeğin 2,5 mm'si ) yalnız o ölçüde
+    #  Yazı boyu stilin boyu değilse ( ölçeğin 2,5 mm'si ) yalnız o ölçüde:
+    #  kâğıtta mm ( gerçek ölçüde de — orada DIMSCALE ölçekle çarpar )
     ozel = {}
     if abs(yz["h"] - uslup.NORMAL * olcek / 20.0) > 1e-6:
         ozel["dimtxt"] = uslup.kagitta(yz["h"], olcek)
@@ -194,10 +235,10 @@ def _olcu(hedef, el, olcek):
         p1=p1,
         p2=p2,
         angle=aci,
-        location=(yz["x"], yz["y"]),
+        location=(yz["x"] / o, yz["y"] / o),
         text_rotation=yz["aci"],
-        text=olcu_metni(el),
-        dimstyle=olcu_stili(hedef.doc, olcek),
+        text=olcu_metni(el, o),
+        dimstyle=olcu_stili(hedef.doc, olcek, kagitta),
         dxfattribs={"layer": "OLCU"},
         override=ozel or None,
     )
@@ -222,14 +263,15 @@ def _mtext_kacis(metin):
     return cad_yazisi(metin.replace("\\", "\\\\").replace("{", "\\{").replace("}", "\\}"))
 
 
-def _etiket(hedef, el):
+def _etiket(hedef, el, o=1.0):
+    """o:  _dikdortgen'deki gibi ( yazı da kâğıt boyunda )."""
     m = hedef.add_mtext(
         _mtext_kacis(el["metin"]),
         dxfattribs={
             "layer": el["katman"],
             "style": YAZI_TIPI,
-            "char_height": el["yukseklik"] * BUYUK_HARF,
-            "insert": (el["x"], el["y"]),
+            "char_height": el["yukseklik"] * BUYUK_HARF / o,
+            "insert": (el["x"] / o, el["y"] / o),
             "rotation": el.get("aci", 0),
             "attachment_point": _MTEXT_HIZA.get(el.get("hiza"), 5),
         },
@@ -240,19 +282,20 @@ def _etiket(hedef, el):
 #  Çizgi tipi ölçeği ( varlığın ltscale'i ):  desen kâğıtta uslup.DESENLER'deki
 #  boyda olsun diye
 #  * tek başına açılan DXF gerçek ölçüde ( mm ) çizilir — desen çarpanı × ölçek;
-#  * paftada çizim 1/ölçek küçültülmüş bir BLOKTUR ve AutoCAD bloğun içindeki
-#    çizgi desenini bloğun ölçeğiyle KÜÇÜLTMEZ ( desen dünya biriminde kurulur;
-#    LiftDesigner da 0,05'lik bloklarında ltscale 1 kullanır ) — desen çarpanı.
-#    Eskiden blokta da ölçek çarpılıyordu:  desen paftada 254 mm oluyor, eksen
-#    ve gizli çizgiler AutoCAD'de DÜZ çizgi görünüyordu ( 5 Eki ).
-def _cizgi_tipi(el, olcek, blokta):
+#  * paftada çizim kâğıt boyunda yazılır ( kagitta ) — desen çarpanı.  23 Kas'a
+#    dek çizim 1/ölçek küçültülmüş bir bloktu ve AutoCAD bloğun içindeki çizgi
+#    desenini bloğun ölçeğiyle KÜÇÜLTMÜYORDU ( desen dünya biriminde kurulur;
+#    LiftDesigner da 0,05'lik bloklarında ltscale 1 kullanır ):  orada da desen
+#    çarpanıydı.  5 Eki'ye dek blokta ölçek de çarpılıyordu:  desen paftada 254 mm
+#    oluyor, eksen ve gizli çizgiler AutoCAD'de DÜZ çizgi görünüyordu.
+def _cizgi_tipi(el, olcek, kagitta):
     """Elemanın çizgi tipi ölçeği ( ve eksen elemanında tipi ) — sürekli çizgide boş."""
     ad = "EKSEN" if el["tip"] == "eksen" else uslup.KATMAN[el["katman"]].desen
     if not ad:
         return {}
     des = uslup.DESENLER[ad]
     ek = {"linetype": des.dxf} if el["tip"] == "eksen" else {}
-    return {"ltscale": des.olcek * (1 if blokta else olcek), **ek}
+    return {"ltscale": des.olcek * (1 if kagitta else olcek), **ek}
 
 
 def hazirla(d):
@@ -283,12 +326,15 @@ def _blok_adi(d, onek, ad, n):
     return f"{ad_}_{n}"
 
 
-def ciz(hedef, elemanlar, olcek=20, blokta=False):
+def ciz(hedef, elemanlar, olcek=20, kagitta=False):
     """Elemanları `hedef` yerleşimine ( model alanı ya da blok ) yazar;  adı olan
-    parçalar kendi bloklarında ( geometri.parca_ornekleri ).
+    parçalar kendi bloklarında ( geometri.parca_ornekleri ), ölçeksiz eklenir.
 
-    blokta:  hedef paftaya 1/ölçek ile eklenen bir blok ( çizgi deseni
-    küçülmez — _cizgi_tipi )."""
+    kagitta:  çizim KÂĞIT BOYUNDA ( 1/ölçek ) yazılır — paftanın çizimleri
+    ( cizim/pafta ):  koordinatlar, yazı boyları ve tarama deseni 1/ölçek, çizgi
+    deseni kâğıtta ( _cizgi_tipi ), ölçüler DIMLFAC = ölçek ( olcu_stili ).
+    Değilse gerçek ölçüde ( mm )."""
+    o = olcek if kagitta else 1.0
     d = hedef.doc
     #  Blok adının öneki çizimin adı ( paftada "CIZIM_KUYU_PLANI" → "KUYU_PLANI" )
     onek = "PARCA" if getattr(hedef, "is_modelspace", False) else re.sub(r"^CIZIM_", "", hedef.name)
@@ -303,7 +349,7 @@ def ciz(hedef, elemanlar, olcek=20, blokta=False):
     sira = {"olcu": 1, "yazi": 2}
     for el in sorted(elemanlar, key=lambda el: sira.get(el["tip"], 0)):
         if id(el) not in ornek:
-            _eleman(hedef, el, olcek, blokta)
+            _eleman(hedef, el, olcek, kagitta)
             continue
         ad, liste = ornek[id(el)]
         if id(liste) in yazilan:
@@ -311,59 +357,57 @@ def ciz(hedef, elemanlar, olcek=20, blokta=False):
         yazilan.add(id(liste))
         sayac[ad] = sayac.get(ad, 0) + 1
         x0, y0, _x1, _y1 = geometri.sinir(liste)
-        blok = d.blocks.new(name=_blok_adi(d, onek, ad, sayac[ad]), base_point=(x0, y0))
+        blok = d.blocks.new(name=_blok_adi(d, onek, ad, sayac[ad]), base_point=(x0 / o, y0 / o))
         for p in liste:
-            _eleman(blok, p, olcek, blokta)
-        hedef.add_blockref(blok.name, (x0, y0), dxfattribs={"layer": "0"})
+            _eleman(blok, p, olcek, kagitta)
+        hedef.add_blockref(blok.name, (x0 / o, y0 / o), dxfattribs={"layer": "0"})
 
 
-def _eleman(hedef, el, olcek, blokta):
-    """Tek elemanı `hedef`e yazar."""
+def _eleman(hedef, el, olcek, kagitta=False):
+    """Tek elemanı `hedef`e yazar ( kagitta:  ciz'deki gibi )."""
+    o = olcek if kagitta else 1.0
     k = olcek / 20.0  # ok ve boşluklar 1/20'ye göre
     tur, kat = el["tip"], el["katman"]
-    lt = _cizgi_tipi(el, olcek, blokta)
+    lt = _cizgi_tipi(el, olcek, kagitta)
     if tur == "dikdortgen" and "bicim" in el:
-        _bicim(hedef, el, lt)
+        _bicim(hedef, el, o, lt)
     elif tur in ("dikdortgen", "tarama", "tarama_tugla"):
-        _dikdortgen(hedef, el, lt)
+        _dikdortgen(hedef, el, o, lt)
         if tur in ("tarama", "tarama_tugla"):
-            #  Duvar kesiti taraması:  CAD'in kendi HATCH varlığı
+            #  Duvar kesiti taraması:  CAD'in kendi HATCH varlığı;  kâğıt boyunda
+            #  desen ölçeği 1/ölçek ( kâğıtta yine TARAMALAR'daki aralık )
             tarama = hedef.add_hatch(color=uslup.KATMAN[kat].aci, dxfattribs={"layer": kat})
-            tarama.set_pattern_fill(uslup.TARAMALAR[tur].dxf, scale=uslup.tarama_olcegi(tur, olcek))
-            tarama.paths.add_polyline_path(
-                [
-                    (el["x"], el["y"]),
-                    (el["x"] + el["g"], el["y"]),
-                    (el["x"] + el["g"], el["y"] + el["d"]),
-                    (el["x"], el["y"] + el["d"]),
-                ],
-                is_closed=True,
+            tarama.set_pattern_fill(
+                uslup.TARAMALAR[tur].dxf, scale=uslup.tarama_olcegi(tur, 1 if kagitta else olcek)
             )
+            x, y, g, h = el["x"] / o, el["y"] / o, el["g"] / o, el["d"] / o
+            tarama.paths.add_polyline_path([(x, y), (x + g, y), (x + g, y + h), (x, y + h)], is_closed=True)
     elif tur in ("cizgi", "eksen"):
         hedef.add_line(
-            (el["x1"], el["y1"]),
-            (el["x2"], el["y2"]),
+            (el["x1"] / o, el["y1"] / o),
+            (el["x2"] / o, el["y2"] / o),
             dxfattribs={"layer": kat, **lt},
         )
     elif tur == "daire":
-        hedef.add_circle((el["x"], el["y"]), el["r"], dxfattribs={"layer": kat, **lt})
+        hedef.add_circle((el["x"] / o, el["y"] / o), el["r"] / o, dxfattribs={"layer": kat, **lt})
     elif tur == "ok":
-        hedef.add_line((el["x1"], el["y1"]), (el["x2"], el["y2"]), dxfattribs={"layer": kat})
-        dx, dy = el["x2"] - el["x1"], el["y2"] - el["y1"]
-        boy = max((dx * dx + dy * dy) ** 0.5, 1e-6)
-        ux, uy, u = dx / boy, dy / boy, 55 * k
+        x1, y1, x2, y2 = el["x1"] / o, el["y1"] / o, el["x2"] / o, el["y2"] / o
+        hedef.add_line((x1, y1), (x2, y2), dxfattribs={"layer": kat})
+        dx, dy = x2 - x1, y2 - y1
+        boy = max((dx * dx + dy * dy) ** 0.5, 1e-6 / o)
+        ux, uy, u = dx / boy, dy / boy, 55 * k / o
         hedef.add_solid(
             [
-                (el["x2"], el["y2"]),
-                (el["x2"] - ux * u - uy * u * 0.4, el["y2"] - uy * u + ux * u * 0.4),
-                (el["x2"] - ux * u + uy * u * 0.4, el["y2"] - uy * u - ux * u * 0.4),
+                (x2, y2),
+                (x2 - ux * u - uy * u * 0.4, y2 - uy * u + ux * u * 0.4),
+                (x2 - ux * u + uy * u * 0.4, y2 - uy * u - ux * u * 0.4),
             ],
             dxfattribs={"layer": kat},
         )
     elif tur == "olcu":
-        _olcu(hedef, el, olcek)
+        _olcu(hedef, el, olcek, kagitta)
     elif tur == "yazi":
-        _etiket(hedef, el)
+        _etiket(hedef, el, o)
 
 
 def belge(elemanlar, baslik="", olcek=20):

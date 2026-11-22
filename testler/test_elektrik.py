@@ -661,7 +661,13 @@ class Pafta(unittest.TestCase):
         ((x, y),) = dxf_cikti.elektrik_yerleri(n, 1)
         self.assertAlmostEqual(ins[0].dxf.insert.x, x)
         self.assertAlmostEqual(ins[0].dxf.insert.y, y)
-        self.assertAlmostEqual(ins[0].dxf.xscale, 1 / elektrik.OLCEK)
+        #  Kâğıt boyunda, ölçeksiz ( 23 Kas — patlatınca dağılmaz:  cizim/dxf'in başı ):
+        #  çerçevesi A4 hücresinde ( altındaki asansör adı hücrenin altına taşar )
+        self.assertEqual((ins[0].dxf.xscale, ins[0].dxf.yscale, ins[0].dxf.zscale), (1, 1, 1))
+        kutu = bbox.extents([ins[0]])
+        self.assertAlmostEqual(kutu.extmin.x, x, delta=0.5)
+        self.assertAlmostEqual(kutu.extmax.x, x + elektrik.EN, delta=0.5)
+        self.assertAlmostEqual(kutu.extmax.y, y + elektrik.BOY, delta=0.5)
         #  Hesap sayfaları elektrik projesine binmez
         for k in dxf_cikti.a4_cerceveleri(msp):
             self.assertFalse(_ortusur(k, (x, y, x + elektrik.EN, y + elektrik.BOY), 0.5), k)

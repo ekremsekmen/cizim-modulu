@@ -1009,13 +1009,11 @@ def pafta_sayfalari(veriler):
 
 def paftaya_yerlestir(d, sayfalar, yerler):
     """Elektrik projelerini ( pafta_sayfalari ) paftaya blok olarak koyar:  her
-    biri yerler'deki sol alt köşeye ( pafta mm ), 1/ölçek ile — çizimlerin
-    blokları gibi ( pafta._yerlestir;  PDF şeridi bloğu adından bulur )."""
+    biri yerler'deki sol alt köşeye ( pafta mm ), kâğıt boyunda ve ölçeksiz —
+    çizimlerin blokları gibi ( pafta._yerlestir;  PDF şeridi bloğu adından bulur )."""
     dxf.hazirla(d)
     msp = d.modelspace()
     for (ad, _baslik, olcek, e), (x, y) in zip(sayfalar, yerler):
         blok = d.blocks.new(name=pafta.blok_adi(ad), base_point=(0.0, 0.0))
-        dxf.ciz(blok, e, olcek, blokta=True)
-        msp.add_blockref(
-            blok.name, (x, y), dxfattribs={"xscale": 1.0 / olcek, "yscale": 1.0 / olcek, "layer": "0"}
-        )
+        dxf.ciz(blok, e, olcek, kagitta=True)
+        msp.add_blockref(blok.name, (x, y), dxfattribs={"layer": "0"})
