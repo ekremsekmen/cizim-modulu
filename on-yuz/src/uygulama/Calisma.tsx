@@ -83,7 +83,43 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   const [params, setParams] = useSearchParams();
   const gorunum = (params.get("gorunum") as "cizim" | "hesap") ?? "cizim";
   const [asansor, setAsansor] = useState(0);
-  const [acik, setAcik] = useState<Set<string>>(() => new Set(["Asansör ve düzen"]));
+  //  Girdiler panelinde seçili bölüm ( 22 Kas:  bölüm bölüm ) — adreste durur:  sayfa
+  //  yenilense de kullanıcı kaldığı bölümde açar
+  const bolum = params.get("bolum") ?? sema.gruplar[0]?.ad ?? "";
+  const bolumSec = useCallback(
+    (g: string) =>
+      setParams(
+        (p) => {
+          if ((p.get("bolum") ?? sema.gruplar[0]?.ad) === g) return p;
+          const y = new URLSearchParams(p);
+          if (g === sema.gruplar[0]?.ad) y.delete("bolum");
+          else y.set("bolum", g);
+          return y;
+        },
+        { replace: true },
+      ),
+    [setParams, sema],
+  );
+  //  Birkaç gruba bağlı bir şey ( ölçü, hesap bölümü ) seçilince:  seçili bölüm onlardan
+  //  biriyse kalınır ( kullanıcının yerini bozma ), değilse ilkine gidilir;  öbürleri
+  //  şeritte vurgulu
+  const bolumlereGit = useCallback(
+    (gruplar: string[]) => {
+      if (!gruplar.length) return;
+      setParams(
+        (p) => {
+          if (gruplar.includes(p.get("bolum") ?? sema.gruplar[0]?.ad ?? "")) return p;
+          const y = new URLSearchParams(p);
+          if (gruplar[0] === sema.gruplar[0]?.ad) y.delete("bolum");
+          else y.set("bolum", gruplar[0]);
+          return y;
+        },
+        { replace: true },
+      );
+    },
+    [setParams, sema],
+  );
+  const [alanOdak, setAlanOdak] = useState<{ anahtar: string; n: number } | null>(null);
   const [secili, setSecili] = useState<string | null>(null);
   const [olcu, setOlcuHam] = useState<OlcuSecimi | null>(null);
   //  Ölçü kutusu açıkken ölçüyü belirleyen alanlar solda vurgulu
@@ -105,9 +141,9 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
     (anahtarlar: string[]) => {
       setOlcuAlanlari(anahtarlar);
       const gruplar = sema.gruplar.filter((g) => g.alanlar.some((x) => anahtarlar.includes(x.anahtar))).map((g) => g.ad);
-      setAcik((e) => new Set([...e, ...gruplar]));
+      bolumlereGit(gruplar);
     },
-    [sema],
+    [sema, bolumlereGit],
   );
   //  Kartta seçilen sorun:  tuval onun çizimine gider, parçaları öne çıkar
   const [sorunOdak, setSorunOdak] = useState<{ sorun: CizimSorunu; n: number } | null>(null);
@@ -194,16 +230,22 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
 
   const sec = (b: Bolum) => {
     setSecili(b.kimlik);
-    setAcik(new Set([...acik, ...(sema.bolum_grubu[b.kimlik] ?? [])]));
+    bolumlereGit(sema.bolum_grubu[b.kimlik] ?? []);
     if (gorunum === "hesap")
       requestAnimationFrame(() => document.getElementById(`bolum-${b.kimlik}`)?.scrollIntoView({ behavior: "smooth" }));
   };
 
   const gorunumSec = (g: "cizim" | "hesap") => {
-    const y = new URLSearchParams(params);
-    if (g === "cizim") y.delete("gorunum");
-    else y.set("gorunum", g);
-    setParams(y, { replace: true });
+    //  İşlevli:  aynı anda bölüm de değişebilir ( adreste ikisi birlikte )
+    setParams(
+      (p) => {
+        const y = new URLSearchParams(p);
+        if (g === "cizim") y.delete("gorunum");
+        else y.set("gorunum", g);
+        return y;
+      },
+      { replace: true },
+    );
     setOlcu(null);
   };
   //  Seçim yalnız o sorun hâlâ listedeyse geçerli ( giderilince işaret kalkar )
@@ -299,14 +341,14 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
   //  6 Kas );  açık kalsa çip ve kural maddesi hiçbir şey göstermezdi.
   const grupAc = (g: string) => {
     setKatlarAcik(false);
-    setAcik((e) => new Set([...e, g]));
-    requestAnimationFrame(() =>
-      document.querySelector(`[data-grup="${CSS.escape(g)}"]`)?.scrollIntoView({ behavior: "smooth", block: "start" }),
-    );
+    bolumSec(g);
   };
   const alanaGit = (anahtar: string) => {
     setKatlarAcik(false);
-    requestAnimationFrame(() => document.getElementById(`alan-${anahtar}`)?.focus());
+    //  Alan başka bölümdeyse önce o bölüm;  panel sekmesini açar ve kutuya odaklanır
+    const g = sema.gruplar.find((x) => x.alanlar.some((y) => y.anahtar === anahtar))?.ad;
+    if (g) bolumSec(g);
+    setAlanOdak((o) => ({ anahtar, n: (o?.n ?? 0) + 1 }));
   };
   //  SORUNLAR PANELİN BAŞINDA ( Ö3 · K3 ):  tuvali örtmez;  gösterecek eski sonuç yoksa
   //  ( ilk açılış kurulamadı ) kart eskisi gibi ortada.  Tuvaldeki hap oraya götürür.
@@ -528,8 +570,9 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
           proje={proje}
           asansor={a}
           yaz={yaz}
-          acik={acik}
-          setAcik={setAcik}
+          bolum={bolum}
+          bolumSec={bolumSec}
+          odak={alanOdak}
           vurgulu={secili ? (sema.bolum_grubu[secili] ?? []) : []}
           vurguluAlanlar={olcuAlanlari}
           grupHatasi={grupHatasi}
