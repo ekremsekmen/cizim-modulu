@@ -26,6 +26,14 @@ import { KAPAK_GRUPLARI } from "./kapak";
 import { sayiOku, type Ham, type ProjeOzeti } from "./proje";
 import { useSekmeEsitle } from "./sekme";
 
+/**  Avanın adımları ( adres /avan/:adim ) — yönlendirici bilinmeyen adımı ilkine çevirir  */
+export const AVAN_ADIMLARI = [
+  { yol: "trafik", ad: "Trafik hesabı" },
+  { yol: "hesaplar", ad: "Avan hesapları" },
+  { yol: "cizimler", ad: "Çizimler" },
+  { yol: "kapak", ad: "Kapak" },
+] as const;
+
 /**  Ek nüfus kalemi ( Tablo-1 ):  hızlı girişi olmayan bina tiplerinde nüfus buradan  */
 export interface EkNufus {
   kalem: string;

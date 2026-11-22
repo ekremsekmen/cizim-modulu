@@ -228,6 +228,12 @@ def _elektrik_bolumleri(av, asansor, eksik, uyarilar):
         #  Avanın trafik karşılaştırması uygulama projesinde
         #  anlamsızdır — burada trafik hesabı yoktur.
         if "TRAFİK" not in u.upper()
+        #  Avanın kaba kabin alanı ikazı da:  uygulamada aynı kuralı
+        #  ( TS EN 81-20 m.5.4.2 ) kapı girintisiyle birlikte ölçen
+        #  "Kullanılabilir kabin alanı" bölümü vardır.  İkisi birlikte
+        #  ekranda aynı bulguyu iki kez söylüyordu ( 22 Kas ) — girinti
+        #  katılınca ikisi çelişebilirdi de;  hüküm bölümündür.
+        and avan_hesabi.KABIN_ALANI_IKAZI not in u
     ]
     return [tum[i] for i in ELEKTRIK_BOLUMLERI if i < len(tum)]
 

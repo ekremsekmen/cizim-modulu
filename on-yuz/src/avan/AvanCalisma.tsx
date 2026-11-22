@@ -54,6 +54,7 @@ import {
   type Acilis,
   type AvanProjesi,
   type EkNufus,
+  AVAN_ADIMLARI,
 } from "@/lib/avan";
 import { avanHukmu, durumYaz } from "@/lib/durum";
 import { DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, katDilimi, kotlariOku, kotYaz } from "@/lib/kotlar";
@@ -75,12 +76,7 @@ import { OlcuKutusu } from "@/uygulama/OlcuKutusu";
 import { useAvanDegisimi } from "@/avan/AvanDegisimOnayi";
 import { GORUNME_ESIGI, IsAsamalari, useAsamaliIs, useGecenSure, type IsDurumu } from "@/components/IsAsamalari";
 
-const ADIMLAR = [
-  { yol: "trafik", ad: "Trafik hesabı" },
-  { yol: "hesaplar", ad: "Avan hesapları" },
-  { yol: "cizimler", ad: "Çizimler" },
-  { yol: "kapak", ad: "Kapak" },
-] as const;
+const ADIMLAR = AVAN_ADIMLARI;
 
 /**  Kartta çizim İSTENDİ sayılan alanlar ( sunucu:  avan_cizimi.ISTEK ) — kuyu genişliği avan
      hesabının da girdisidir, tek başına çizim isteği değildir;  durak kotları da ( binanın kot

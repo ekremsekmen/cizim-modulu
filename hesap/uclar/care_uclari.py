@@ -622,12 +622,22 @@ def api_care(veri):
         asansorler = veri.get("asansorler") or []
         if not isinstance(asansorler, list) or not asansorler:
             return JSONResponse({"aktif": False, "hata": ["Asansör yok."]})
+        #  BOZUK GÖVDE ( 22 Kas denetimi ):  asansör_girdileri sözlük olmayan asansörü atlar, ama
+        #  arama ham listeyi okur — [ 1 , 2 ] içeride TypeError'du ( genel ileti dönüyordu ).
+        #  Ön yüz böyle göndermez;  açık ileti ve proje geneli / önceki girdi yalnız sözlükse.
+        if not all(isinstance(a, dict) for a in asansorler):
+            return JSONResponse({"aktif": False, "hata": ["Asansör girdisi okunamadı."]})
+        if "proje_geneli" in veri and not isinstance(veri["proje_geneli"], dict):
+            #  Sözlük değilse yok sayılır:  istek okuyucusu da öyle sayar ( ilk asansörden )
+            veri = {k: x for k, x in veri.items() if k != "proje_geneli"}
         i = min(max(i, 0), len(asansorler) - 1)
         try:
             uygulama_istegi.asansor_girdileri(veri)
         except uygulama_istegi.GecersizGirdi as e:
             return JSONResponse({"aktif": False, "hata": e.hatalar})
         onceki = veri.get("onceki") if isinstance(veri.get("onceki"), dict) else None
+        if onceki is not None:
+            onceki = {k: x for k, x in onceki.items() if isinstance(x, dict)}
         return JSONResponse({"aktif": True, **coz(veri, i, onceki)})
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)

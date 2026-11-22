@@ -250,9 +250,10 @@ export function Teslim({
               ek={
                 Object.keys(kapak).length
                   ? `${Object.keys(kapak).length} alan dolu · asansör tabloları projeden`
-                  : "kapak alanları boş — kapak girmez"
+                  : //  Kapak her pakete girer ( 19 Kas, #153 — uygulama_uclari._uygulama_paketi );
+                    //  "kapak girmez" eski davranıştı ( 22 Kas denetimi )
+                    "kapak alanları boş · asansör tabloları projeden"
               }
-              soluk={!Object.keys(kapak).length}
             />
             <Icerik simge={<FileText />} ad="Uygulama projesi hesapları" ek={`PDF · ${hesap?.asansorler?.[0]?.bolumler?.length ?? "—"} bölüm × ${proje.asansorler.length} asansör`} />
             <Icerik simge={<DraftingCompass />} ad="Çizimler" ek={`DXF / DWG ve PDF · asansör başına ${cizimSayisi || "—"} çizim`} />

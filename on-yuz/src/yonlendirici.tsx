@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { createBrowserRouter, Navigate, useLocation, useNavigate, useParams, useRouteError } from "react-router";
 import { CircleAlert, Loader2 } from "lucide-react";
 import { Acilis } from "@/ekranlar/Acilis";
+import { AVAN_ADIMLARI } from "@/lib/avan";
 import { birKez } from "@/lib/depo";
 import { ornekProjesi, projeOku, yeniUygulama } from "@/lib/proje";
 import { taslaktanProje } from "@/lib/taslak";
@@ -62,6 +63,14 @@ function UygulamaRota() {
   const proje = projeOku(id);
   if (!proje) return <Navigate to="/" replace state={{ bulunamadi: id }} />;
   return <Calisma key={id} proje={proje} bildirim={bildirim} />;
+}
+
+/**  Bilinmeyen avan adımı ( /avan/yeni, eski bir bağlantı ) ilk adıma döner — yoksa üst şerit
+     gelir, gövde boş kalırdı ( 22 Kas )  */
+function AvanRota() {
+  const { adim = "" } = useParams();
+  if (!AVAN_ADIMLARI.some((a) => a.yol === adim)) return <Navigate to="/avan/trafik" replace />;
+  return <AvanCalisma />;
 }
 
 /*  YENİ SÜRÜM YAYINLANINCA açık sayfanın bildiği parça adları ( Tablolar-<özet>.js ) sunucuda kalmaz;
@@ -126,7 +135,7 @@ export const yonlendirici = createBrowserRouter(
         { path: "/uygulama/taslak/:kimlik", element: <TaslakAc /> },
         { path: "/uygulama/:id", element: <Bekle><UygulamaRota /></Bekle> },
         { path: "/avan", element: <Navigate to="/avan/trafik" replace /> },
-        { path: "/avan/:adim", element: <Bekle><AvanCalisma /></Bekle> },
+        { path: "/avan/:adim", element: <Bekle><AvanRota /></Bekle> },
         { path: "/ofis-standardi", element: <Bekle><OfisStandardi /></Bekle> },
         { path: "/tablolar", element: <Bekle><Tablolar /></Bekle> },
         ...(EkranDizini ? [{ path: "/ekranlar", element: <Bekle><EkranDizini /></Bekle> }] : []),
