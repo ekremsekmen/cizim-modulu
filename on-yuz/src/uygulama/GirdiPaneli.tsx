@@ -530,6 +530,13 @@ function secimDegeri(secenekler: Deger[], d: string): string {
   return s === undefined ? d : String(s);
 }
 
+/**  Dar kutuya sığan en uzun seçenek ( birimiyle, karakter )  */
+const SECIM_SIGAR = 13;
+function enUzunSecenek(a: Alan): number {
+  const birim = a.birim && a.birim !== "—" ? a.birim.length + 1 : 0;
+  return Math.max(0, ...(a.secenekler ?? []).map((s) => (a.secenek_metni?.[String(s)] ?? sayiYaz(s)).length + birim));
+}
+
 function AlanSatiri({
   a,
   sema,
@@ -612,7 +619,14 @@ function AlanSatiri({
     );
   }
 
-  const genis = a.anahtar === "mk_yok" || a.tur === "metin";
+  //  Uzun seçenekli seçim de geniş:  128 px kutuya ~13 karakter sığar ( "Altı Kesik V Kanal",
+  //  "Poliüretan ( lineer olmayan )" kesiliyordu — 22 Kas ölçümü );  kutu etiketin altına iner
+  const genis =
+    a.anahtar === "mk_yok" ||
+    a.tur === "metin" ||
+    (a.tur === "secim" && !!a.secenekler && enUzunSecenek(a) > SECIM_SIGAR) ||
+    //  Çok uzun ad ( "Dt/dh < 40 ya da …" ) dar sütunda 4–5 satır olurdu
+    ad.length > 55;
   return (
     <div
       data-alan
@@ -621,11 +635,12 @@ function AlanSatiri({
         vurgulu && "bg-olcu/15 ring-1 ring-olcu/60 hover:bg-olcu/15",
       )}
     >
-      <div className={cn("grid items-center gap-x-2", genis ? "grid-cols-1 gap-y-1" : "grid-cols-[1fr_120px]")}>
+      <div className={cn("grid items-center gap-x-2", genis ? "grid-cols-1 gap-y-1" : "grid-cols-[1fr_128px]")}>
         <div className="flex min-w-0 items-center gap-1">
           {girildi && <span aria-label="girildi" className="size-1.5 shrink-0 rounded-full bg-vurgu" />}
-          {/*  Uzun ad kesilmez, iki satıra iner ( "Kabinin kuyu ortasından sa…" )  */}
-          <label htmlFor={id} className="line-clamp-2 min-w-0 text-[12.5px] leading-tight text-metin-2" title={a.etiket}>
+          {/*  Uzun ad kesilmez, satırlara iner ( "Kabinin kuyu ortasından sa…" );  22 Kas:  sınır
+               yok — rozetli satırda ( "bina" ) üç satır da yetmiyordu  */}
+          <label htmlFor={id} className="min-w-0 text-[12.5px] leading-tight text-metin-2" title={a.etiket}>
             {a.anahtar === "mk_yok" ? "Makine dairesi" : ad}
           </label>
           {(a.bilgi || ack) && (
