@@ -325,7 +325,10 @@ class BagimsizDenetim(unittest.TestCase):
     def test_lineer_olmayan_tamponda_strok_bagintisi_yok(self):
         """m.5.8.2.1.2:  yavaşlama ölçütleri tip deneyine bırakılmıştır."""
         pol = mukavemet_tablolari.TAMPON_TIPLERI[1][0]
-        b = self._tampon(pol, 1.0, 1)  # 1 mm bile olsa bağıntı yok
+        #  Hıza bağlı bağıntı yok:  2,5 m/s'nin 0,0674·v²'si ( 421 mm ) bile aranmaz.  Strok
+        #  kurulu boyun %90'ıdır ( m.5.8.2.1.2.2 );  altı artık ret ( 22 Kas — eskiden 1 mm
+        #  deneniyordu, sığınma açıklıkları o sayıyla ölçülüyordu )
+        b = self._tampon(pol, 1.0, 90)
         self.assertTrue(b["sonuc"]["uygun"])
         self.assertIn("tip inceleme", b["sonuc"]["metin"].lower())
 
@@ -484,11 +487,12 @@ class UcDuzeltmeDenetimi(unittest.TestCase):
             self.assertAlmostEqual(b, a - 60, places=6)
 
     def test_tampon_ezilmesi_ust_bosluktan_dusulur(self):
-        #  Taban strok AÇIKÇA:  boşsa kural, 200 mm'lik poliüretanda 0,9 × 200 = 180 verir
-        taban = self._ust_acikliklar(agirlik_tampon_ezilme=90)
-        artan = self._ust_acikliklar(agirlik_tampon_ezilme=90 + 40)
+        #  Taban strok AÇIKÇA:  boşsa kural, 200 mm'lik poliüretanda 0,9 × 200 = 180 verir.
+        #  22 Kas:  %90'ın altı artık ret ( m.5.8.2.1.2.2 ) — eskiden 90 / 130 deneniyordu
+        taban = self._ust_acikliklar(agirlik_tampon_ezilme=180)
+        artan = self._ust_acikliklar(agirlik_tampon_ezilme=180 + 20)
         for a, b in zip(taban, artan):
-            self.assertAlmostEqual(b, a - 40, places=6)
+            self.assertAlmostEqual(b, a - 20, places=6)
 
     def test_hiz_payi_ust_bosluktan_dusulur(self):
         """Çizelge 2 dipnot a:  0,035·v²  ( 1,15·v'de durma yolunun yarısı )."""
@@ -503,7 +507,8 @@ class UcDuzeltmeDenetimi(unittest.TestCase):
         """Kuyu dibi ölçüleri KABİN tampon üzerindeyken alınır — ağırlık tamponu girmez."""
         s1 = mukavemet.hesapla()
         s2 = mukavemet.hesapla(
-            {"agirlik_carpma_arasi": 260, "agirlik_tampon_ezilme": 140, "agirlik_tampon_boyu": 200}
+            #  Ağırlık stroku poliüretanda boyun %90'ından az olamaz ( 22 Kas ):  200 → ≥ 180
+            {"agirlik_carpma_arasi": 260, "agirlik_tampon_ezilme": 190, "agirlik_tampon_boyu": 200}
         )
         #  Regülatör gergisi satırı yalnız gergi kabinin izdüşümündeyse çıkar
         #  ( birleşik program:  açıklıklar çizimden );  varsayılanda değil.

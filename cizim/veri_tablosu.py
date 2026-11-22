@@ -19,6 +19,7 @@ from cizim import geometri
 from cizim import katlar
 from cizim import kisaltmalar
 from cizim import sabitler
+from cizim import standart
 from cizim import uslup
 
 BASLIK = "VERİLER VE KISALTMALAR"
@@ -151,6 +152,9 @@ def ciz(g):
     t2, alt = kisaltmalar.tablo(0.0, alt - 2 * kisaltmalar.SATIR, "KISALTMALAR", kodlar, "kisaltmalar")
     kotla = "kot_ofseti" in (g.get("dusey") or {})
     ek = ((KOT_NOTU,) if kotla else ()) + ((avan_kipi.NOT,) if g["proje"].get("avan") else ())
+    #  m.5.2.2.4 a:  derin kuyu dibinde merdiven çizilmez, kapı gerekir ( 22 Kas )
+    if standart.kuyu_dibi_kapisi_gerekir((g.get("kuyu_dibi") or {}).get("derinlik")):
+        ek += (standart.KUYU_DIBI_KAPISI_NOTU,)
     notlar = [(f"{i}.", n) for i, n in enumerate(NOTLAR + ek, 1)]
     t3, _ = kisaltmalar.tablo(0.0, alt - 2 * kisaltmalar.SATIR, "NOTLAR", notlar, "notlar", sutun=120.0)
     return t1 + t2 + t3

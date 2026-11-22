@@ -24,6 +24,7 @@ from tasarim import alanlar, gorunum
 from cizim import katlar
 from cizim import kopru
 from cizim import sabitler
+from cizim import standart
 from motor.uygulama import uygulama_sabitleri
 
 
@@ -744,7 +745,18 @@ def _tampon_ezilmesi(g, atla):
     aşarsa parantez negatife döner ve a_dip fiziksel anlamını yitirir;
     ondan türeyen a · a.1 · a.2 · b açıklıkları ile Ç.4 sığınma hacmi de
     sessizce bozulur.  Denetimde 100 mm'lik tampona 5.000 mm ezilme
-    girilebiliyor ve a_dip = −3.900 mm çıkıyordu — hiçbir uyarı yoktu."""
+    girilebiliyor ve a_dip = −3.900 mm çıkıyordu — hiçbir uyarı yoktu.
+
+    LİNEER OLMAYAN TAMPONDA EN AZ KURULU BOYUN %90'I ( 22 Kas denetimi ).
+    TS EN 81-20 m.5.8.2.1.2.2 Çizelge 2'nin "tam ezilmiş" konumunu kurulu
+    yüksekliğin %90'ı diye TANIMLAR — ezilmeyi daha azıyla sınırlayabilecek
+    bağlantı elemanları DİKKATE ALINMADAN.  Eskiden daha küçük değer yalnız
+    kabinde uyarıyla kabul ediliyordu ( uyarı maddeyi ters okuyup "bağlantı
+    elemanları sınırlıyorsa değer doğrudur" diyordu ), ağırlıkta hiç
+    denetlenmiyordu:  100 mm'lik tampona 20 girilince kuyu dibi 71, kuyu üstü
+    70 mm daha az isteniyordu — emniyetsiz yön.  Gerçekçi tetik:  kataloğun
+    "strok" sütunu ( poliüretanda boyun ~%60–80'i ).  Girilen değer ya
+    kullanılır ya hesap durur:  burada durur, sebebini söyler."""
     #  Strok boş bırakılıp KURALDAN geldiyse ( tipten, hızdan — tamamla ) ileti
     #  bunu söyler:  kullanıcı o sayıyı yazmadı;  eksik olan tamponun boyudur
     #  ( ör. 1,6 m/s hidrolikte 173 mm strok, varsayılan boy 100 ) — program
@@ -762,17 +774,44 @@ def _tampon_ezilmesi(g, atla):
     #  Kabininki pozitif alandır, orada söylenir.
     elif sayi_mi(_ab) and _ab <= 0:
         return [f"Ağırlık tamponu uzunluğu:  sıfırdan büyük olmalıdır ( {_ab:g} girildi )."]
-    for anahtar, ad, boy, ek in (
+    _tip = ALAN["tampon_tipi"][5] if bos_mu(g.get("tampon_tipi")) else g.get("tampon_tipi")
+    lineer_olmayan = mukavemet_tablolari.tampon(_tip)[2] is None
+    oran = mukavemet_tablolari.TAMPON_TAM_EZILME_ORANI
+    for anahtar, ad, boy, ek, olcen in (
         (
             "kabin_tampon_ezilme",
             "Kabin",
             _tb,
             "  Kuyu dibi açıklıkları ve Ç.4 sığınma hacmi bu farktan türer.",
+            "kuyu dibi açıklıkları ( kabin tam ezilmiş tamponunda )",
         ),
-        ("agirlik_tampon_ezilme", "Ağırlık", _ab, ""),
+        (
+            "agirlik_tampon_ezilme",
+            "Ağırlık",
+            _ab,
+            "",
+            "kuyu üstü açıklıkları ( ağırlık tam ezilmiş tamponunda )",
+        ),
     ):
         ez = g.get(anahtar)
-        if not (sayi_mi(boy) and sayi_mi(ez) and float(ez) > float(boy)):
+        if not (sayi_mi(boy) and sayi_mi(ez)):
+            continue
+        if (
+            lineer_olmayan
+            and anahtar not in kural
+            and float(boy) > 0
+            and float(ez) <= float(boy)
+            and float(ez) < oran * float(boy) - 1e-6
+        ):
+            hata.append(
+                f"{ad} tamponunun ezilmesi ({ez:g} mm), kurulu boyunun %{oran * 100:.0f}'ından "
+                f"({oran * float(boy):g} mm) az olamaz:  lineer olmayan tamponda tam ezilme kurulu boyun "
+                f"%{oran * 100:.0f}'ıdır, bağlantı elemanları ezilmeyi daha azıyla sınırlasa da "
+                f"( TS EN 81-20 m.5.8.2.1.2.2 ).  {olcen[0].upper() + olcen[1:]} bu ezilmeyle ölçülür — "
+                f"alanı boş bırakın ( %{oran * 100:.0f} kullanılır ) ya da en az {oran * float(boy):g} girin."
+            )
+            continue
+        if not float(ez) > float(boy):
             continue
         if anahtar in kural:
             hata.append(
@@ -1268,7 +1307,17 @@ def uyarilar(g):
             "bağlıysa 'Makine yükünün yolu' alanından 'Kılavuz raylara' "
             "seçilmelidir — m.5.7.2.3.7 o durumda ek yük durumları ister."
         )
-    return uyari + _kucuk_sarilma_acisi_uyarisi(g) + _narinlik_uyarilari(g) + _tampon_ezilmesi_uyarisi(g)
+    #  ------------------------------------------------------------------
+    #  KUYU DİBİNE ERİŞİM ( m.5.2.2.4 ):  2,50 m'yi aşan kuyu dibinde merdiven
+    #  yetmez, erişim kapısı gerekir.  Çizim merdiveni kaldırıyor, kapı
+    #  mimarinindir — eskiden hiçbir yerde söylenmiyordu ( 22 Kas denetimi ).
+    #  VERİLER paftasının notu da aynı metni yazar.
+    #  ------------------------------------------------------------------
+    if standart.kuyu_dibi_kapisi_gerekir(g.get("kuyu_dibi")):
+        uyari.append(
+            f"KUYU DİBİNE ERİŞİM KAPISI:  kuyu dibi {g['kuyu_dibi']:g} mm. " + standart.KUYU_DIBI_KAPISI_NOTU
+        )
+    return uyari + _kucuk_sarilma_acisi_uyarisi(g) + _narinlik_uyarilari(g)
 
 
 #  Tek sarımda sarılma açısının uygulamadaki alt sınırı ( ° ).
@@ -1355,38 +1404,6 @@ def _narinlik_uyarilari(g):
                 "büyük kesitli bir ray profili seçilmelidir."
             )
     return uyari
-
-
-def _tampon_ezilmesi_uyarisi(g):
-    """TAM EZİLME = KURULU YÜKSEKLİĞİN %90'I   TS EN 81-20 m.5.8.2.1.2.2
-
-    Madde "fully compressed" terimini TANIMLAR:  Çizelge 2'nin uç
-    konumlarında tampon, kurulu yüksekliğinin %90'ı kadar ezilmiş sayılır
-    ( bağlantı elemanları daha azıyla sınırlıyorsa o kadar ).  Program bu
-    sayıyı sığınma açıklıklarında kullanır:
-        kuyu dibi açıklığı = baba + ( tampon boyu − ezilme )
-    Girilen ezilme gerçeğinden KÜÇÜKSE açıklık OLDUĞUNDAN BÜYÜK çıkar ve
-    m.5.2.5.8'in 500 mm'si yanlışlıkla sağlanmış görünür — emniyetsiz yön.
-    Lineer olmayan tamponda uyarılır;  lineer ve hidrolikte strok zaten
-    bağıntıyla denetlendiği için burada tekrarlanmaz."""
-    _tip = g.get("tampon_tipi")
-    if not (_tip and mukavemet_tablolari.tampon(_tip)[2] is None):
-        return []
-    _boy, _ez = g.get("kabin_tampon_boyu"), g.get("kabin_tampon_ezilme")
-    if not (sayi_mi(_boy) and sayi_mi(_ez) and _boy > 0):
-        return []
-    _tam = mukavemet_tablolari.TAMPON_TAM_EZILME_ORANI * _boy
-    if _ez >= _tam - 0.5:
-        return []
-    return [
-        f"Kabin tamponu ezilmesi ({_ez:g} mm), kurulu yüksekliğin "
-        f"%{mukavemet_tablolari.TAMPON_TAM_EZILME_ORANI * 100:.0f}'ından "
-        f"({_tam:.0f} mm) küçük.  TS EN 81-20 m.5.8.2.1.2.2 "
-        '"tam ezilmiş" durumu bu oranla tanımlar;  daha küçük bir '
-        "değer kuyu dibi açıklığını olduğundan BÜYÜK gösterir. "
-        "Bağlantı elemanları ezilmeyi gerçekten sınırlıyorsa değer "
-        "doğrudur, yoksa tampon boyuyla uyumlu hâle getirilmelidir."
-    ]
 
 
 def alt_duraktan_tavana(g):

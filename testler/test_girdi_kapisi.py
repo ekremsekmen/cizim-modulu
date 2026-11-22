@@ -69,6 +69,19 @@ class GecersizGirdiIsBaslatmaz(unittest.TestCase):
                     for d in degerler:
                         with self.subTest(anahtar=anahtar, deger=d):
                             v = _istek(anahtar, d, mrl)
+                            #  22 Kas:  tavanı 1200'ün altındaki alanda ( m/s, kg/m, °, mm² )
+                            #  "1.200" belirsiz değil, 1,2'dir — binlik okuması tavanı aşar
+                            #  ( uygulama_istegi._tavanla_ondalik;  test_standart_22kas )
+                            #  ( tam sayı / verim alanında 1,2 kendi kuralıyla yine kapıda durur )
+                            if (
+                                d == "1.200"
+                                and mukavemet_girdi.form_kurallari()[anahtar]["en_cok"] < 1200
+                                and mukavemet_girdi.alan_hatasi(anahtar, 1.2) is None
+                            ):
+                                asansorler, ortak = uygulama_istegi.asansor_girdileri(v)
+                                okunan = (ortak if anahtar in ortak else asansorler[0])[anahtar]
+                                self.assertAlmostEqual(okunan, 1.2, places=9)
+                                continue
                             with self.assertRaises(uygulama_istegi.GecersizGirdi) as k:
                                 uygulama_istegi.asansor_girdileri(v)
                             et = alanlar.ALAN[anahtar].etiket
