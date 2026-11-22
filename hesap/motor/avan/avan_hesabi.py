@@ -1847,6 +1847,12 @@ def _gerilim_dusumu_sonucu(h):
 # =========================================================
 #  PAFTAYA GİRMEYEN EK DENETİMLER  —  ⚠ uyarı olarak bildirilir
 # =========================================================
+#  Kabin alanı ikazının başı:  uygulama projesi bu ikazı almaz ( bkz.
+#  uygulama_hesabi._elektrik_bolumleri ) — orada aynı kuralı girintiyle
+#  birlikte ölçen "Kullanılabilir kabin alanı" bölümü vardır.
+KABIN_ALANI_IKAZI = "KABİN ALANI BEYAN YÜKÜNE GÖRE BÜYÜK"
+
+
 def _ek_denetimler(h, ikaz, engelleyici):
     for _ad, _kesit, _iz, _kesin in (
         ("S1 — kolon hattı", h["S1"], h["Iz"], h["Iz_kesin"]),
@@ -1896,7 +1902,7 @@ def _ek_denetimler(h, ikaz, engelleyici):
         _alan = (kabin_a / 1000) * (kabin_b / 1000)
         if _alan > _azami + 1e-9:
             ikaz.append(
-                f"KABİN ALANI BEYAN YÜKÜNE GÖRE BÜYÜK : {trn(Q, 0)} kg için MMO/697 "
+                f"{KABIN_ALANI_IKAZI} : {trn(Q, 0)} kg için MMO/697 "
                 f"Tablo-11 ( TS EN 81-20 ) en fazla {tr(_azami)} m² verir; girilen "
                 f"kabin {trn(kabin_a, 0)} × {trn(kabin_b, 0)} mm = {tr(_alan)} m². "
                 "Beyan yükünü büyütün ya da kabini küçültün — aksi hâlde kabin, "
