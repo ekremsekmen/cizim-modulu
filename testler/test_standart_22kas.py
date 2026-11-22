@@ -17,7 +17,7 @@ Programın kabul sınırı standardın metninden hesaplanan eşikle karşılaşt
 import json
 import unittest
 
-from testler import test_yerlesim_saglamligi as yerlesim
+from testler import test_yerlesim_saglamligi
 from uclar import cizim_uclari, uygulama_istegi, uygulama_uclari
 
 PU = "Poliüretan  ( lineer olmayan )"
@@ -25,7 +25,7 @@ HIDROLIK = "Hidrolik  ( enerji yutmalı )"
 
 
 def _istek(**asansor):
-    v = yerlesim.standart_istek(1000, True, "Sağ")
+    v = test_yerlesim_saglamligi.standart_istek(1000, True, "Sağ")
     v["asansorler"][0].update({k: str(x) for k, x in asansor.items()})
     return v
 
@@ -75,10 +75,10 @@ class LineerOlmayanTamponunTamEzilmesi(unittest.TestCase):
 class DerinKuyuDibineErisimKapisi(unittest.TestCase):
     def _kur(self, kuyu_dibi):
         v = _istek(kuyu_dibi=kuyu_dibi)
-        yerlesim.kotla(v)
+        test_yerlesim_saglamligi.kotla(v)
         return v
 
-    def test_iki_buçuk_metreyi_asinca_uyari_ve_not(self):
+    def test_iki_bucuk_metreyi_asinca_uyari_ve_not(self):
         v = self._kur(2800)
         r = _hesap(v)
         self.assertTrue(r["aktif"], r.get("hata"))
@@ -90,7 +90,7 @@ class DerinKuyuDibineErisimKapisi(unittest.TestCase):
         self.assertIn("erişim kapısı", cizim["veriler"])
         self.assertNotIn("MERDİVEN", cizim["kuyu_dibi"])
 
-    def test_iki_buçuk_metre_ve_alti_merdiven_notsuz(self):
+    def test_iki_bucuk_metre_ve_alti_merdiven_notsuz(self):
         for ky in (1600, 2500):
             with self.subTest(kuyu_dibi=ky):
                 v = self._kur(ky)

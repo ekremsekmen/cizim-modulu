@@ -75,7 +75,7 @@ class GecersizGirdiIsBaslatmaz(unittest.TestCase):
                             #  ( tam sayı / verim alanında 1,2 kendi kuralıyla yine kapıda durur )
                             if (
                                 d == "1.200"
-                                and mukavemet_girdi._kurallar()[anahtar]["en_cok"] < 1200
+                                and mukavemet_girdi.form_kurallari()[anahtar]["en_cok"] < 1200
                                 and mukavemet_girdi.alan_hatasi(anahtar, 1.2) is None
                             ):
                                 asansorler, ortak = uygulama_istegi.asansor_girdileri(v)

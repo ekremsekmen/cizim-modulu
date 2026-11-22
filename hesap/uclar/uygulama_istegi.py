@@ -156,7 +156,7 @@ def _tavanla_ondalik(anahtar, ham):
     okuma ( mm'de 1.200 ) belirsiz kalır.  Döner:  ham ya da okunmuş sayı."""
     if not belirsiz_sayi_mi(ham):
         return ham
-    ust = (mukavemet_girdi._kurallar().get(anahtar) or {}).get("en_cok")
+    ust = (mukavemet_girdi.form_kurallari().get(anahtar) or {}).get("en_cok")
     t = ham.strip().replace(" ", "").replace("\u00a0", "")
     isaret, govde = (-1.0 if t.startswith("-") else 1.0), t.lstrip("+-")
     if ust is None or int(govde.replace(".", "").replace(",", "")) <= ust:
