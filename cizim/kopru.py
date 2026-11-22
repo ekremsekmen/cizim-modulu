@@ -263,6 +263,105 @@ def _agirlik_ray_duvari(Gx, ar):
     return max(Gx / 2.0 + 50.0, parcalar.tirnak_uzanimi(*ar) if ar else 0.0)
 
 
+#  ÇİZİM KABULÜ ( 22 Kas ):  makine dairesinde YANDAKİ ağırlık ile kabin rayının ara
+#  kirişi arasının ÜST SINIRI ( mm ).  Kaynak:  programın hazır makine daireli
+#  asansörlerinin dar kuyusunda bu açıklık 1:1'de 55 – 58, 2:1'de 85 – 93 mm;  kuyu
+#  genişleyince ağırlık duvarla birlikte uzaklaşıyor, sarım açısı düşüyordu ( 1:1
+#  630-md +400:  156,3 → 146,7°;  2:1 1250-md +400:  180 → 166,3° — tahrik UYGUN
+#  DEĞİL ).  60'ta ölçülen:  1:1 156,0° ( dar kuyudaki gibi ), 2:1 180° ( 100'de
+#  178,6 ).  Alt sınır ayrıca denetlenir ( girdi._ara_kiris:  en az 20 ).
+YAN_AGIRLIK_ARA_KIRIS_AZAMI = 60.0
+
+
+def _yan_agirligi_kabine_yaklastir(g, A, h, S):
+    """MAKİNE DAİRESİNDE YANDAKİ AĞIRLIK ( 1:1 ya da kabin altı 2:1 ), rayı – duvar
+    BOŞSA:  kabin rayının ara kirişinden YAN_AGIRLIK_ARA_KIRIS_AZAMI'dan fazla
+    uzaklaşmaz — geniş kuyuda duvardan kabine doğru kayar ( arkadaki ağırlığın
+    benzeri _arka_agirlik_kabine_gore ).  Duvara yaslı kural ( _agirlik_ray_duvari )
+    alt sınırdır:  sığ kuyuda eski yer kalır.
+
+    Halat geometrisi yaklaşmayı sınırlar:
+      1:1        ağırlık halatı tahrik kasnağının öbür teğetinin İÇİNE düşemez
+                 ( makine_dairesi._saptirma:  saptırma dışarı alır, içeri alamaz ):
+                 kabin bağlantısı ile ağırlık bağlantısı arası en az D1.
+      kabin altı düşey iniş için kasnaklar arası yeniden ( _dusey_kasnak_arasi );
+      2:1        halat ya da kasnak kuyudaki bir parçaya ( kabin rayı, ara kiriş )
+                 çarpıyorsa ( kabin_ustu.yerlesim ) eski yer ve eski aralık kalır —
+                 örnek proje ( ø240, kabin 130 kaçık ):  düşey halat kabin rayına
+                 biniyordu.
+    YALNIZ SARIM AÇISI İYİLEŞİYORSA:  kaydırma bedava değildir — halatın makine
+    kirişine bindiği yer değişir ( 1275-md:  açı zaten 180°, 33 mm kaydırınca makine
+    konstrüksiyonu UYGUN DEĞİL ).  Açı büyümüyorsa ağırlık eski yerinde kalır."""
+    ag, aski = g["agirlik"], g.get("aski") or {}
+    if h["mk_yok"] or ag["yeri"] not in ("Sağ", "Sol") or not bos_mu(A.get("agirlik_ray_duvar")):
+        return
+    duzen = aski.get("duzen")
+    if duzen not in ("Doğrudan", "Kabin altı") or not (sayi_mi(h["D1"]) and h["D1"] > 0):
+        return
+    K = girdi.kabin_ve_agirlik_kutulari(g, S)
+    kr_ = g["kabin_ray"]
+    if ag["yeri"] == "Sağ":
+        bosluk = K["agirlik"][0] - (K["kx"] + kr_["arasi"] / 2.0 + kr_["h"] + S["ara_kiris_en"])
+        duvara = g["kuyu"]["genislik"] - K["kx"]
+    else:
+        bosluk = (K["kx"] - kr_["arasi"] / 2.0 - kr_["h"] - S["ara_kiris_en"]) - K["agirlik"][2]
+        duvara = K["kx"]
+    eski = ag["ray_duvar"]
+    yeni = eski + max(0.0, bosluk - YAN_AGIRLIK_ARA_KIRIS_AZAMI)
+    if duzen == "Doğrudan":
+        #  Ağırlık bağlantısı ( ekseni ) ile kabin bağlantısı ( kabin ekseni ) arası ≥ D1
+        yeni = min(yeni, duvara - h["D1"])
+    yeni = round(yeni, 1)
+    if yeni <= eski + 0.5:
+        return
+    aci0 = sarim_acisi(g)
+    if aci0 is not None and aci0 >= 180.0 - 1e-6:
+        return
+    if duzen == "Doğrudan":
+        ag["ray_duvar"] = _kural(yeni, "agirlik_ray_duvar")
+        _aci_buyumediyse_geri(g, aci0, (eski, None))
+        return
+    #  Kabin altı 2:1:  aralığı girilmişse dokunulmaz ( halat o aralıktan iner )
+    if not bos_mu(A.get("kabin_kasnak_arasi")) or not sayi_mi(aski.get("kasnak_capi")):
+        return
+    ara = _dusey_kasnak_arasi(
+        K["kx"],
+        g["kabin"]["genislik"],
+        aski["kasnak_capi"],
+        h["D1"],
+        g["kuyu"]["genislik"],
+        yeni,
+        ag["yeri"],
+        S,
+    )
+    if ara is None:
+        return
+    onceki = (ag["ray_duvar"], aski.get("kasnak_arasi"))
+    ag["ray_duvar"], aski["kasnak_arasi"] = (
+        _kural(yeni, "agirlik_ray_duvar"),
+        _kural(ara, "kabin_kasnak_arasi"),
+    )
+    try:
+        carpar = any(e.startswith(("Halat (", "Kabin kasnağı (")) for e in kabin_ustu.yerlesim(g)["hata"])
+    except sorun.BILINEN:
+        log.debug("yedek değer kullanılıyor ( çizim kurulamadı )", exc_info=True)
+        carpar = True
+    if carpar:
+        ag["ray_duvar"], aski["kasnak_arasi"] = onceki
+        return
+    _aci_buyumediyse_geri(g, aci0, onceki)
+
+
+def _aci_buyumediyse_geri(g, aci0, onceki):
+    """Kaydırılmış ağırlıkla sarım açısı büyümediyse ( ya da çizimden bulunamıyorsa )
+    eski yer ve eski kasnak aralığı ( 1:1'de None — dokunulmaz )."""
+    aci1 = sarim_acisi(g)
+    if aci1 is None or (aci0 is not None and aci1 <= aci0 + 0.05):
+        g["agirlik"]["ray_duvar"] = onceki[0]
+        if onceki[1] is not None:
+            g["aski"]["kasnak_arasi"] = onceki[1]
+
+
 def _arka_agirlik_kabine_gore(g, S):
     """MAKİNE DAİRELİ 1:1, AĞIRLIK ARKADA:  ağırlık rayı – duvar boşsa ağırlık
     duvara değil KABİNE göre konur — kabinle arası girdi.KABIN_AGIRLIK_ARALIGI.
@@ -390,6 +489,7 @@ def cizim_girdisi(A, sonuc=None, proje_adi="", sira=1):
         return None, o.hata
     if k["dusey_ara"]:
         _kasnak_arasi_sec(g, k["eski_kural"])
+    _yan_agirligi_kabine_yaklastir(g, A, h, S)
 
     if arka_aski.arkada_iki_bir(g):
         #  Arkadaki ağırlıkla 2:1:  ağırlık – duvar ölçüsü boşsa ağırlık kabine
