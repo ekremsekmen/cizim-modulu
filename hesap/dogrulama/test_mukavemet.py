@@ -697,7 +697,10 @@ def _sapmalar(r):
     for _b, _e, _bek in (
         (100, 90, True),
         (100, 100, True),
-        (200, 150, True),
+        (200, 180, True),
+        #  22 Kas:  poliüretanda ( varsayılan tip ) kurulu boyun %90'ının altı ret —
+        #  m.5.8.2.1.2.2 "tam ezilme"yi bağlantı elemanlarından bağımsız tanımlar
+        (200, 150, False),
         (100, 120, False),
         (120, 200, False),
         (100, 5000, False),

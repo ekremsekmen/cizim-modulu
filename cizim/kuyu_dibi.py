@@ -53,7 +53,7 @@ SIGINMA = {"Dik duruş": (400.0, 500.0), "Çömelme": (500.0, 700.0), "Yatarak":
 SIGINMA_YUKSEKLIK = {"Dik duruş": 2000.0, "Çömelme": 1000.0, "Yatarak": 500.0}
 #  m.5.2.2.4:  kuyu dibi 2,50 m'yi aşarsa erişim kapısı gerekir;  aşmıyorsa
 #  kuyu içinde merdiven yeterlidir.
-MERDIVEN_AZAMI_DERINLIK = 2500.0
+MERDIVEN_AZAMI_DERINLIK = standart.KUYU_DIBI_MERDIVEN_AZAMI
 #  Ek F.5 b:  saklanan merdiven ile kat girişinin kenarı arası en çok 800 mm.
 MERDIVEN_KAPI_AZAMI = 800.0
 #  Ek F.2.3:  merdivenin dikmeleri ( ya da tutamağı ) en alt durağın eşiğinin en
@@ -884,7 +884,8 @@ def _merdiven(g, kd, S, sabit, yol, hata):
     yan seçilir;  yan duvar kapıdan 800 mm'den uzaksa ( geniş kuyu ) kapının
     yanında ön duvara yaslanır — Ek F.5 b yalnız kapı kenarına uzaklığı
     sınırlar.  Kuyu dibi 2,5 m'yi aşıyorsa merdiven değil erişim kapısı
-    gerekir — çizilmez.  Kutu ya da None.
+    gerekir — çizilmez ( mimarinindir );  VERİLER'in notu ve hesabın uyarısı
+    söyler ( standart.KUYU_DIBI_KAPISI_NOTU ).  Kutu ya da None.
 
     sabit:  merdivenin binemeyeceği sabit parçalar — kuyu dibinin donanımı ve
     ( merdiven eşiğin 1,10 m üstüne uzandığı için — Ek F.2.3 ) en alt kat

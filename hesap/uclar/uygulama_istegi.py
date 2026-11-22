@@ -145,6 +145,25 @@ def _secim_oku(a, ham):
     return None, mukavemet_girdi.secim_iletisi(a.anahtar, ham)
 
 
+def _tavanla_ondalik(anahtar, ham):
+    """BELİRSİZ YAZIMI ALANIN TAVANI ÇÖZER ( 22 Kas denetimi ).
+
+    "1,850" binlik okunursa 1850, ondalık okunursa 1,85'tir;  program ikisini
+    ayıramadığı için reddeder ( uc_ortak.BELIRSIZ_SAYI — "1.200 bin iki yüz mü" ).
+    Ama alanın en çok değeri binlik okumayı İMKÂNSIZ kılıyorsa ( m/s'de 1850, kg/m'de
+    1200 olamaz ) tek okunuş ondalıktır:  regülatör plakasındaki "1,850" m/s
+    "belirsiz" diye reddediliyor, "1,85" geçiyordu.  Tavanın altında kalan binlik
+    okuma ( mm'de 1.200 ) belirsiz kalır.  Döner:  ham ya da okunmuş sayı."""
+    if not belirsiz_sayi_mi(ham):
+        return ham
+    ust = (mukavemet_girdi._kurallar().get(anahtar) or {}).get("en_cok")
+    t = ham.strip().replace(" ", "").replace("\u00a0", "")
+    isaret, govde = (-1.0 if t.startswith("-") else 1.0), t.lstrip("+-")
+    if ust is None or int(govde.replace(".", "").replace(",", "")) <= ust:
+        return ham
+    return isaret * float(govde.replace(",", "."))
+
+
 def _oku(a, ham):
     """Bir kutunun ham değeri → ( değer , hata ):  tür, okunuş, seçenek, tam
     sayı, alt sınır, tavan ( mukavemet_girdi.alan_hatasi — ön yüzün kural
@@ -166,7 +185,7 @@ def _oku(a, ham):
         _kotlar, iletiler = katlar.kotlari_oku(ham)
         return (None, katlar.iletiler_metni(a.etiket, iletiler)) if iletiler else (ham, None)
     if a.tur == "sayi":
-        d = _sayi_oku(ham, a.etiket)
+        d = _sayi_oku(_tavanla_ondalik(a.anahtar, ham), a.etiket)
         return d, (None if d is None else mukavemet_girdi.alan_hatasi(a.anahtar, d))
     if a.tur == "secim":
         return _secim_oku(a, ham)
