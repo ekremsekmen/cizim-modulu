@@ -54,7 +54,9 @@ class OkunamayanYazimAsansoruyle(unittest.TestCase):
     def test_iki_asansorde_asansor_adiyla(self):
         h = self._hata({"asansorler": [{}, {"kabin_genisligi": "abc"}], "proje_geneli": {}})
         self.assertIn("2 nolu asansör:  Kabin genişliği = abc", h)
-        h = self._hata({"asansorler": [{"asansor_adi": "A1", "kabin_genisligi": "1.200"}, {}], "proje_geneli": {}})
+        h = self._hata(
+            {"asansorler": [{"asansor_adi": "A1", "kabin_genisligi": "1.200"}, {}], "proje_geneli": {}}
+        )
         self.assertIn("A1:  Kabin genişliği = 1.200", h)
 
     def test_tek_asansorde_ad_yok(self):
