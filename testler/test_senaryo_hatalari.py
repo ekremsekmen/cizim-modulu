@@ -10,7 +10,7 @@ import copy
 import itertools
 import unittest
 
-from cizim import geometri, girdi, kabin_ustu, kuyu_ustu
+from cizim import geometri, girdi, kabin_ustu, kopru, kuyu_ustu
 from motor.ortak import adimlar
 from motor.uygulama import uygulama_hesabi
 from temel import eleman_kutusu
@@ -117,17 +117,35 @@ class KasnakVeHalatEngelleri(unittest.TestCase):
         g = self._halat_yeri(d[0] + 15, d[3] - 25)
         self.assertTrue(any(h.startswith("Halat (") and "şase dikmesi" in h for h in _hata(g)), _hata(g))
 
-    def test_dusey_kural_carpinca_eski_kural(self):
-        #  r016 ( senaryo taraması ):  düşey iniş kuralının aralığı kasnağı ara
-        #  kirişe sokuyordu;  çarpınca eski kural ( kabin genişliği + 30 )
+    def _r016(self, **ek):
         v = test_yerlesim_saglamligi.standart_istek(
-            450, False, "Sağ", aski_duzeni="Kabin altı", kabin_yana_kaciklik=-150
+            450, False, "Sağ", aski_duzeni="Kabin altı", kabin_yana_kaciklik=-150, **ek
         )
         v["asansorler"][0].update(kuyu_genisligi=2100, kuyu_derinligi=2150)
         d = test_yerlesim_saglamligi.cizim_yaniti(copy.deepcopy(v))
         self.assertTrue(d.get("aktif"), d.get("hata"))
         g, _A, _h = test_yerlesim_saglamligi.duzen_girdisi(copy.deepcopy(v))
+        return g
+
+    def test_dusey_kural_carpinca_eski_kural(self):
+        #  r016 ( senaryo taraması ):  düşey iniş kuralının aralığı kasnağı ara
+        #  kirişe sokuyordu;  çarpınca eski kural ( kabin genişliği + 30 ).  Ağırlığın
+        #  yeri GİRİLMİŞ ( duvara yaslı, kuralın 127,5'i ):  boşken 22 Kas'tan beri
+        #  ağırlık kabine yaklaşır ve düşey kural sığar ( aşağıdaki test )
+        g = self._r016(agirlik_ray_duvar=127.5)
+        self.assertEqual(g["agirlik"]["ray_duvar"], 127.5)
         self.assertEqual(g["aski"]["kasnak_arasi"], g["kabin"]["genislik"] + 30)
+        self.assertEqual(_hata(g), [])
+
+    def test_dusey_kural_agirlik_yaklasinca_sigar(self):
+        #  Aynı düzen, ağırlığın yeri boş ( 22 Kas — kopru._yan_agirligi_kabine_yaklastir ):
+        #  ağırlık kabin rayının ara kirişine YAN_AGIRLIK_ARA_KIRIS_AZAMI'ya yaklaşır, halat
+        #  düşey iner ( kasnaklar arası düşey kuraldan — eski kural 1030 değil ), sarım açısı
+        #  166,8 → 180°;  halat ve kasnak bir parçaya çarpmaz
+        g = self._r016()
+        self.assertGreater(g["agirlik"]["ray_duvar"], 127.5)
+        self.assertLess(g["aski"]["kasnak_arasi"], g["kabin"]["genislik"] + 30)
+        self.assertEqual(kopru.sarim_acisi(g), 180.0)
         self.assertEqual(_hata(g), [])
 
 
