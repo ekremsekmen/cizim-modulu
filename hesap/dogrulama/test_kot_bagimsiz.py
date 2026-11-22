@@ -544,11 +544,19 @@ def kot_yazilari(b):
 
 def olcek(b, etiket, mm):
     """Bloğun ölçeği ( çizim birimi / mm ):  kuyunun plan ölçüsünü ( SD · SW — kotla
-    ilgisi yok ) gösteren yatay ölçünün çizilen boyu / formun değeri."""
+    ilgisi yok ) gösteren yatay ölçünün çizilen boyu / formun değeri.  Paftada çizim
+    kâğıt boyundadır ( 23 Kas ):  1/50'lik kesitte 0,02 — DIMLFAC'ın tersi ( dimlfac )."""
     for e in b.query("DIMENSION"):
         if (e.dxf.get("text") or "").startswith(etiket) and abs(e.dxf.get("angle", 0.0)) % 180 < 1e-6:
             return e.get_measurement() / mm
     return None
+
+
+def dimlfac(b):
+    """Bloğun ölçülerinin DIMLFAC'ı ( hepsinde aynı ):  CAD'in okuduğu değer kâğıttaki
+    boy × DIMLFAC."""
+    (o,) = {round(e.override().get("dimlfac"), 9) for e in b.query("DIMENSION")}
+    return o
 
 
 def kiriklar(b, s):
@@ -558,13 +566,14 @@ def kiriklar(b, s):
     düzeltmesi:  giriş katı kırıkta kalınca aşan aralık eşit katlardır ) × ölçek −
     çizilen boyu.  Yer:  o ölçünün
     aralığında kuyu duvarının ( KUYU-DUVAR ) kesildiği boşluk ( yoksa ölçünün
-    aralığı )."""
+    aralığı ).  Paylar gerçekte 0,5 mm ( × s:  çizim birimi )."""
+    pay = 0.5 * s
     olcu = []
     for e in b.query("DIMENSION"):
         t = (e.dxf.get("text") or "").strip()
         m = re.fullmatch(r"(?:(\d+) × )?(\d+)", t)
         gercek = int(m.group(1) or 1) * int(m.group(2)) if m else None
-        if gercek is not None and gercek * s - e.get_measurement() > 0.5:
+        if gercek is not None and gercek * s - e.get_measurement() > pay:
             a, u = sorted((e.dxf.defpoint2.y, e.dxf.defpoint3.y))
             olcu.append((a, u, gercek * s - e.get_measurement()))
     ortu = sorted(
@@ -574,28 +583,30 @@ def kiriklar(b, s):
     )
     bosluk, ust = [], None
     for y0, y1 in ortu:
-        if ust is not None and y0 > ust + 0.5:
+        if ust is not None and y0 > ust + pay:
             bosluk.append((ust, y0))
         ust = y1 if ust is None else max(ust, y1)
     cikti = {}
     for a, u, boy in olcu:
-        ic = [(p, q) for p, q in bosluk if a - 0.5 <= p and q <= u + 0.5]
+        ic = [(p, q) for p, q in bosluk if a - pay <= p and q <= u + pay]
         k = (*ic[0], boy) if len(ic) == 1 else (a, u, boy)
         #  Aynı kırığı birden çok ölçü aşar ( kat zinciri, konsol zinciri ):  bir kez
-        cikti.setdefault((round(k[0]), round(k[1])), k)
+        cikti.setdefault((round(k[0] / s), round(k[1] / s)), k)
     return sorted(cikti.values())
 
 
-def acici(kirik):
+def acici(kirik, s):
     """Kırığı açılmış düşey koordinat ( çizim birimi ):  y + altındaki kırıkların
-    boyu.  Bir kırığın içindeki y için None."""
+    boyu.  Bir kırığın içindeki y için None.  s:  bloğun ölçeği ( olcek — pay gerçekte
+    0,5 mm )."""
+    pay = 0.5 * s
 
     def u(y):
         ek = 0.0
         for a, b, boy in kirik:
-            if y >= b - 0.5:
+            if y >= b - pay:
                 ek += boy
-            elif y > a + 0.5:
+            elif y > a + pay:
                 return None
         return y + ek
 
@@ -603,8 +614,8 @@ def acici(kirik):
 
 
 def olculer(b):
-    """Bloğun ölçü çizgileri ( DIMENSION ) — geometriden ölçülen boylar."""
-    return {round(e.get_measurement(), 1) for e in b.query("DIMENSION")}
+    """Bloğun ölçü çizgileri ( DIMENSION ) — CAD'in okuduğu boylar ( kâğıttaki boy × DIMLFAC )."""
+    return {round(e.get_measurement() * e.override().get("dimlfac"), 1) for e in b.query("DIMENSION")}
 
 
 def olcu_yazisindaki_sayilar(b):
@@ -616,20 +627,22 @@ def olcu_yazisindaki_sayilar(b):
     }
 
 
-def ray_uclari(b):
-    """RAY katmanındaki düşey çizgiler ( x'e göre gruplu, test_teslim_uyumu gibi ):
-    her grubun [( en alt y, en üst y )]."""
+def ray_uclari(b, s):
+    """RAY katmanındaki düşey çizgiler ( x'e göre gerçekte 40 mm'lik gruplarda,
+    test_teslim_uyumu gibi ):  her grubun [( en alt y, en üst y )].  s:  bloğun ölçeği."""
     gruplar = {}
     for e in disassemble.recursive_decompose(b):
         if e.dxf.layer == "RAY" and e.dxftype() not in METIN:
             k = bbox.extents([e])
             if k.has_data:
-                gruplar.setdefault(round(k.extmin.x / 40), []).append(k)
+                gruplar.setdefault(round(k.extmin.x / s / 40), []).append(k)
     return [(min(k.extmin.y for k in ks), max(k.extmax.y for k in ks)) for ks in gruplar.values()]
 
 
 def _r(x):
-    return round(float(x), 1) + 0.0
+    """Konum imzası:  0,001 birim — paftanın çizimleri kâğıt boyunda ( 23 Kas ), 1/50'de
+    gerçekte 0,05 mm ( eskiden gerçek mm'de 0,1 )."""
+    return round(float(x), 3) + 0.0
 
 
 def imza(e, ty=None):
@@ -1050,11 +1063,12 @@ class B2CizimTablo(_Ortak):
             s = olcek(b, etiket, int(self.v["asansorler"][0][alan]))
             with self.subTest(kesit, denetim="ölçek ( plan ölçüsünden )"):
                 self.assertIsNotNone(s)
-                self.assertAlmostEqual(s, 1.0, places=6)  # blok gerçek mm'de
+                #  Blok kâğıt boyunda ( 23 Kas ):  ölçek ölçülerin DIMLFAC'ının tersi
+                self.assertAlmostEqual(s * dimlfac(b), 1.0, places=6)
             kirik = kiriklar(b, s)
             with self.subTest(kesit, denetim="kesit kırık ( 71 m kuyu )"):
                 self.assertTrue(kirik)
-            u = acici(kirik)
+            u = acici(kirik, s)
             paylar = {}
             for k, _x, y, metin in kot_yazilari(b):
                 uy = u(y)
@@ -1062,7 +1076,7 @@ class B2CizimTablo(_Ortak):
                     self.assertIsNotNone(uy)
                 if uy is not None:
                     paylar[metin] = round(uy / s - (k - alt), 1)
-                    yukseklik.setdefault(metin, set()).add(round(y, 1))
+                    yukseklik.setdefault(metin, set()).add(round(y / s, 1))
             with self.subTest(kesit, denetim="bütün kot yazıları aynı payla kendi seviyesinde"):
                 self.assertTrue(paylar)
                 self.assertLessEqual(max(paylar.values()) - min(paylar.values()), 1.0, paylar)
@@ -1091,7 +1105,7 @@ class B3HesapCizim(_Ortak):
     def _kesit(self, kesit, etiket, alan):
         b = blok(self.doc, kesit)
         s = olcek(b, etiket, int(self.v["asansorler"][0][alan]))
-        u = acici(kiriklar(b, s))
+        u = acici(kiriklar(b, s), s)
         y = {k: yy for k, _x, yy, _m in kot_yazilari(b)}
         return b, s, u, y
 
@@ -1131,7 +1145,7 @@ class B3HesapCizim(_Ortak):
         alt = A_DURAKLAR[0]
         for kesit, etiket, alan in KESITLER:
             b, s, u, _y = self._kesit(kesit, etiket, alan)
-            uclar = [(u(a), u(c)) for a, c in ray_uclari(b)]
+            uclar = [(u(a), u(c)) for a, c in ray_uclari(b, s)]
             with self.subTest(kesit, denetim="ray uçları kırığın dışında"):
                 self.assertTrue(uclar)
                 self.assertTrue(all(a is not None and c is not None for a, c in uclar), uclar)

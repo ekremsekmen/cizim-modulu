@@ -443,11 +443,12 @@ class DxfCiktisi(unittest.TestCase):
         )
 
     def test_cizgi_deseni_paftada_kuculmez(self):
-        """AutoCAD bloğun içindeki çizgi desenini bloğun ölçeğiyle küçültmez:
-        paftadaki ( 1/ölçek ) blokta desen ölçeği desenin kâğıt çarpanı
-        ( uslup.DESENLER ), tek başına ( gerçek ölçüde ) açılan DXF'te × ölçek.
-        Eskiden blokta da ölçek çarpılıyordu:  eksenler AutoCAD'de düz çizgi
-        görünüyordu."""
+        """Desen kâğıtta uslup.DESENLER'deki boyda:  paftada çizim kâğıt boyunda
+        ( dxf.ciz:  kagitta ) — desen ölçeği desenin kâğıt çarpanı;  tek başına
+        ( gerçek ölçüde ) açılan DXF'te × ölçek.  23 Kas'a dek paftadaki blok
+        1/ölçek'ti ve AutoCAD bloğun içindeki deseni küçültmüyordu:  orada da kâğıt
+        çarpanıydı.  5 Eki'ye dek blokta ölçek de çarpılıyordu:  eksenler AutoCAD'de
+        düz çizgi görünüyordu."""
         des = uslup.DESENLER["EKSEN"]
         eksen = [
             e
@@ -4032,8 +4033,75 @@ class Pafta(unittest.TestCase):
         for c in self.bilgi["cizimler"]:
             with self.subTest(ad=c["ad"]):
                 i = bloklar["CIZIM_" + c["ad"].upper()]
-                self.assertAlmostEqual(i.dxf.xscale, 1.0 / c["olcek"])
+                #  Blok kâğıt boyunda, paftaya ölçeksiz ( 23 Kas — test_patlatinca_yer_ve_boy_degismez )
+                self.assertEqual((i.dxf.xscale, i.dxf.yscale, i.dxf.zscale), (1, 1, 1))
                 self.assertEqual(c["olcek"], 50 if c["ad"].startswith("kuyu_kesiti") else 20)
+
+    def test_patlatinca_yer_ve_boy_degismez(self):
+        """AutoCAD'de çizimin bloğu patlatılınca ( EXPLODE ) hiçbir şey dağılmaz ( 23 Kas —
+        kullanıcı:  "bloğunu patlattığımda her şey dağılıyor, kocaman oluyor" ).  Eskiden
+        gerçek ölçüdeki blok ( 1/ölçek , 1/ölçek , 1 ) ile küçültülüyordu:  Z 1 kaldığı için
+        ölçek düzgün değildi, ölçüler bloğun içinde DIMSCALE ölçekleydi — patlatınca yazılar
+        ve oklar 20 – 50 kat büyüyor, değerler yeniden ölçülüyordu ( 2400 → 120 ).  Şimdi her
+        blok ( çizim ve parça ) 1 : 1 : 1;  ölçü kâğıt boyunda, DIMLFAC = ölçek ( değer gerçek
+        mm ), yazılar kâğıtta 1,8 – 5 mm — LiftDesigner'ın paftaları gibi."""
+        import io
+
+        import ezdxf
+
+        #  Model uzayından inilen bütün bloklar ( çizimler ve parçaları;  ölçünün kendi
+        #  bloğundaki ok simgeleri değil — o ölçünün parçasıdır )
+        yerler, eklemeler = [self.d.modelspace()], 0
+        while yerler:
+            for i in yerler.pop().query("INSERT"):
+                eklemeler += 1
+                with self.subTest(blok=i.dxf.name):
+                    self.assertEqual((i.dxf.xscale, i.dxf.yscale, i.dxf.zscale, i.dxf.rotation), (1, 1, 1, 0))
+                yerler.append(self.d.blocks.get(i.dxf.name))
+        self.assertGreater(eklemeler, 100)
+        modelden = {pafta.blok_adi(ad): (olcek, e) for ad, _b, olcek, e in pafta.bloklar(_ornek())}
+        akis = io.StringIO()
+        self.d.write(akis)
+        akis.seek(0)
+        kopya = ezdxf.read(akis)
+        sayi = 0
+        for ins in list(kopya.modelspace().query("INSERT")):
+            if ins.dxf.name not in modelden:
+                continue
+            ad = ins.dxf.name
+            olcek, e = modelden[ad]
+            olculer = [el for el in e if el["tip"] == "olcu"]
+            yazilar = [el for el in e if el["tip"] == "yazi"]
+            acilan = ins.explode()  # ezdxf eklemeyi siler
+            with self.subTest(blok=ad):
+                dimler = list(acilan.query("DIMENSION"))
+                self.assertEqual(len(dimler), len(olculer))
+                for el, o in zip(olculer, dimler):
+                    s = o.override()
+                    self.assertEqual((s.get("dimscale"), s.get("dimlfac")), (1.0, olcek))
+                    self.assertAlmostEqual(o.get_measurement() * olcek, el["uzunluk"], places=6)
+                    self.assertAlmostEqual(s.get("dimtxt"), uslup.kagitta(el["yazi"]["h"], olcek), places=9)
+                metinler = list(acilan.query("MTEXT"))
+                self.assertEqual(len(metinler), len(yazilar))
+                for el, m in zip(yazilar, metinler):
+                    self.assertAlmostEqual(m.dxf.char_height, el["yukseklik"] * 0.716 / olcek, places=9)
+                    self.assertLess(m.dxf.char_height, 5.1)
+                sayi += len(dimler)
+        self.assertGreater(sayi, 100)
+
+    def test_varsayilan_olcu_stili_paftanin(self):
+        """AutoCAD paftaya elle eklenen ölçüyü başlığın ölçü değişkenleriyle çizer:  1/20'nin
+        kâğıt boyu stili ( DIMLFAC 20 — kâğıttaki 1/20 çizimde değer gerçek mm ).  Şablondan
+        ezdxf'in EZDXF stilinin değerleri geliyordu ( DIMLFAC 100, yazı 0,25 mm, OpenSans ):
+        elle eklenen ölçü 100 kat okuyordu ( 23 Kas )."""
+        h = self.d.header
+        self.assertEqual(h["$DIMSTYLE"], "ASANSOR-PAFTA-20")
+        stil = self.d.dimstyles.get("ASANSOR-PAFTA-20")
+        for ad in ("dimscale", "dimlfac", "dimtxt", "dimasz", "dimgap", "dimdec", "dimdsep", "dimtfill"):
+            with self.subTest(ad):
+                self.assertEqual(h["$" + ad.upper()], stil.dxf.get(ad))
+        self.assertEqual((h["$DIMSCALE"], h["$DIMLFAC"]), (1.0, 20.0))
+        self.assertEqual((h["$DIMTXSTY"], h["$DIMBLK"]), ("ASANSOR", "ASANSOR_UC"))
 
     def test_cizimler_serbest_alanda_ve_ust_uste_binmez(self):
         import itertools

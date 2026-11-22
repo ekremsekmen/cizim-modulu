@@ -5,9 +5,12 @@ PAFTA  —  çizimlerin ofisin TİP PROJE FORMATINA yerleştirilmesi
 Şablon `sablon/proje_formati.dxf`:  ofisin kendi çiziminden ( TİP PROJE
 FORMATI.dwg ) alınmış, hesap programının kullandığıyla AYNI dosya.  3.242 ×
 600 mm'lik bir şerit:  solda notlar ve antet ( A4 hücresi ), sağda serbest
-alan.  Şablonun birimi PAFTA milimetresidir;  çizimler gerçek ölçüde
-( mm ) blok olarak tanımlanır ve paftaya 1/ölçek ile yerleştirilir —
-CAD'de blok açılınca ölçüler gerçek boyundadır.
+alan.  Şablonun birimi PAFTA milimetresidir;  her çizim KÂĞIT BOYUNDA
+( 1/ölçek ) bir blok olarak tanımlanır ve paftaya ölçeksiz ( 1 : 1 : 1 )
+konur;  ölçüler DIMLFAC = ölçek ile gerçek mm'yi okur ( LiftDesigner'ın
+paftaları gibi ).  AutoCAD'de blok patlatılınca hiçbir şeyin yeri ve boyu
+değişmez ( 23 Kas — cizim/dxf'in başı;  eskiden gerçek ölçüdeki blok 1/ölçek
+ile küçültülüyordu, patlatınca yazılar ve ölçüler 20 – 50 kat büyüyordu ).
 
 YERLEŞİM ( ofisin 477-8 uygulama projesindeki düzen ):  önce düşey
 kesitler ( 1/50 ), sonra planlar ( 1/20 ) konu sırasıyla
@@ -507,7 +510,12 @@ def blok_adi(ad):
 
 
 def _yerlestir(d, g, x0=None, sag_eski=None, kagit=KAGIT):
-    """Çizimleri belgeye blok olarak yerleştirir;  çerçevenin sağı son sütuna gelir."""
+    """Çizimleri belgeye blok olarak yerleştirir;  çerçevenin sağı son sütuna gelir.
+
+    Blok "CIZIM_<AD>" çizimi KÂĞIT BOYUNDA tutar ( dxf.ciz:  kagitta — taban noktası
+    çizimin sol altı / ölçek ) ve paftaya ÖLÇEKSİZ ( 1 : 1 : 1 ) konur:  AutoCAD'de
+    patlatılınca hiçbir şeyin yeri ve boyu değişmez ( 23 Kas — cizim/dxf'in başı ).
+    PDF şeridi çizimin yerini bu bloktan bulur ( ciktilar/pafta_pdf )."""
     gruplu = _gruplu_bloklar(g, kagit)
     liste = [c for _grup, c in gruplu]
     dxf.hazirla(d)
@@ -521,11 +529,9 @@ def _yerlestir(d, g, x0=None, sag_eski=None, kagit=KAGIT):
     msp = d.modelspace()
     yerlesen = []
     for (ad, baslik, olcek, e), (bx, by), (px, py), (w, h) in zip(liste, kutular, yerler, boyutlar):
-        blok = d.blocks.new(name=blok_adi(ad), base_point=(bx, by))
-        dxf.ciz(blok, e, olcek, blokta=True)
-        msp.add_blockref(
-            blok.name, (px, py), dxfattribs={"xscale": 1.0 / olcek, "yscale": 1.0 / olcek, "layer": "0"}
-        )
+        blok = d.blocks.new(name=blok_adi(ad), base_point=(bx / olcek, by / olcek))
+        dxf.ciz(blok, e, olcek, kagitta=True)
+        msp.add_blockref(blok.name, (px, py), dxfattribs={"layer": "0"})
         yerlesen.append({"ad": ad, "baslik": baslik, "olcek": olcek, "kutu": (px, py, px + w, py + h)})
     x0_, y0_, x1_, y1_ = BANT[0], BANT[1], sag, ust_kenar(kagit)
     msp.dxf.extmin, msp.dxf.extmax = (x0_, y0_, 0), (x1_, y1_, 0)
@@ -593,7 +599,10 @@ def _kullanilmayanlari_sil(d):
     simplex.shx'e düşürüp tek tek bildiriyordu.  Kalanlar şablonun kendi antet
     yazılarınındır.  Dosyanın varsayılan stilleri ( AutoCAD'de yeni yazı ve
     ölçü bunlarla çizilir ) çizimin stilleri olur — şablonunki ezdxf'in
-    "EZDXF" ölçü stiliydi ( OpenSans yazı tipi, DIMLFAC 100 )."""
+    "EZDXF" ölçü stiliydi ( OpenSans yazı tipi, DIMLFAC 100 ).  Varsayılan ölçü
+    stili paftanın 1/20'si ( kâğıt boyundaki 1/20 çizime elle eklenen ölçü gerçek
+    mm okur );  başlığın ölçü değişkenleri de onun ( dxf.varsayilan_olcu_stili —
+    23 Kas'a dek EZDXF'inkilerdi )."""
     if dxf.YAZI_TIPI in d.styles:
         d.header["$TEXTSTYLE"] = dxf.YAZI_TIPI
     #  Şablonun stillerine yazı tipinin AİLE adı da:  AutoCAD TrueType'ı önce
@@ -603,8 +612,7 @@ def _kullanilmayanlari_sil(d):
         aile = AILELER.get(st.dxf.get("font", "").lower())
         if aile and not st.has_extended_font_data:
             st.set_extended_font_data(aile, bold=False, italic=False)
-    varsayilan = dxf.olcu_stili(d, 20)
-    d.header["$DIMSTYLE"] = varsayilan
+    dxf.varsayilan_olcu_stili(d, 20, kagitta=True)
     yazilar, olculer = set(), set()
     for yer in [d.modelspace(), *d.blocks]:
         for e in yer:
@@ -679,7 +687,9 @@ def onizleme(d) -> str:
     dokunulmaz — önizleme bir KOPYADA yalnız taramaları bloklardan çıkarır
     ( öbür parçalar blokta kalır:  bütün blok açılınca ölçü yazıları da
     yanlış ölçekleniyordu ), desenlerini adından ve ( doğru ölçeklenmiş )
-    desen ölçeğinden yeniden kurar."""
+    desen ölçeğinden yeniden kurar.  23 Kas'tan beri çizimlerin blokları
+    ölçeksiz ( _yerlestir ):  kural şablonun ya da başka bir dosyanın ölçekli
+    blokları için kalır."""
     #  Çizim eklentisi ( matplotlib'siz SVG ) yalnız önizlemede gerekir ve
     #  ağırdır:  program açılırken yüklenmesin diye burada import edilir.
     from ezdxf.addons.drawing import Frontend, RenderContext, config, layout, svg
