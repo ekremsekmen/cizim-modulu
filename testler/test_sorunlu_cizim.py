@@ -49,7 +49,8 @@ KESITLER = ("A-A KUYU DÜŞEY KESİTİ", "B-B KUYU DÜŞEY KESİTİ", "KASNAK D�
 VAKALAR = {
     (False, "kuyu_genisligi", 1600): (),
     (False, "kabin_derinligi", 2300): (),
-    (False, "kapi_genisligi", 1200): (),
+    #  Kanat cebi ( 1.200'ü 23 Kas'tan beri yerleşim kurtarması kurar — cizim/kopru )
+    (False, "kapi_genisligi", 1300): (),
     (False, "durak_adedi", 30): (),
     (False, "kuyu_dibi", 1200): (),
     (False, "son_kat_yuksekligi", 3200): (),

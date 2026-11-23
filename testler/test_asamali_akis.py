@@ -294,8 +294,10 @@ class Duzeltme(unittest.TestCase):
     """B5:  /api/uygulama/care — aramanın aşamaları ve sınama sayısı;  sonuç akışsızla aynı."""
 
     def veri(self):
-        v = uygulama_istegi(kuyu_genisligi="2100")
-        temiz = uygulama_istegi()
+        #  Kapı kaçıklığı iki istekte de GİRİLİ ( 0 ):  boşken yerleşim kurtarması ( 23 Kas,
+        #  cizim/kopru ) kanat cebini kendisi çözer, arama sınırda biter — dört aşama görünmez
+        v = uygulama_istegi(kuyu_genisligi="2100", kapi_kaciklik="0")
+        temiz = uygulama_istegi(kapi_kaciklik="0")
         return {
             **v,
             "asansor": 0,

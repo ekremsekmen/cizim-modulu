@@ -154,9 +154,7 @@ def yerlesim(g, cizim_sabitleri=None):
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     taban = geometri.plan(g, S, kapi_duzeyi=False, duvar_boslugu=kapi_gorunusu(g, S)["acik"])
     tavan = eleman_kutusu(next(el for el in taban if el.get("ad") == "kabin_dis"))
-    parcalar = [
-        eleman_kutusu(el) for el in taban if el["tip"] == "dikdortgen" and el["katman"] in _KUYU_PARCALARI
-    ]
+    parcalar = _kuyu_parcalari(taban)
     hata = []
     kenarlar = _korkuluk_kenarlari(g, tavan, parcalar, hata)
     halatlar = _halatlar(g, S, taban, hata)
@@ -385,6 +383,22 @@ def _kasnak_engelleri(g, S, taban, hata):
                     fark=sorun.ayrik(k, eleman_kutusu(p), A),
                 )
             )
+
+
+def _kuyu_parcalari(taban):
+    """Kuyuya sabit parçaların plan kutuları ( ray, konsol, karşı ağırlık )."""
+    return [
+        eleman_kutusu(el) for el in taban if el["tip"] == "dikdortgen" and el["katman"] in _KUYU_PARCALARI
+    ]
+
+
+def operator_cakismalari(ku):
+    """Kapı operatörünün değdiği kuyu parçaları:  ( operatör , parça ) kutu çiftleri —
+    yerlesim'in sonucundan ( ku ), denetimin ( _tavan_engelleri ) gördüğü sırayla.
+    Köprünün yerleşim kurtarması kapının ne kadar kayacağını buradan okur."""
+    if not isinstance(ku, dict) or "operator" not in ku or "taban" not in ku:
+        return []
+    return [(ku["operator"], p) for p in _kuyu_parcalari(ku["taban"]) if ortusur(ku["operator"], p)]
 
 
 def _tavan_engelleri(g, S, taban, tavan, parcalar, kenarlar, ic, hata):

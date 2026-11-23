@@ -70,7 +70,9 @@ VAKALAR = (
     ("ornek", "kuyu_genisligi", "2100"),
     ("ornek", "kuyu_dibi", "1000"),
     ("mrl", "kabin_yana_kaciklik", "0"),
-    ("mrl", "kapi_genisligi", "1200"),
+    #  Kanat cebi kuyuya sığmaz ( 1.200'ü 23 Kas'tan beri yerleşim kurtarması kurar:
+    #  kapı kaçıklığı boş — cizim/kopru )
+    ("mrl", "kapi_genisligi", "1300"),
     ("mrl", "durak_adedi", "30"),
     ("md", "son_kat_yuksekligi", "3200"),
     ("ornek", "agirlik_yeri", "Arka"),

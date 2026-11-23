@@ -797,6 +797,11 @@ _GRUPLAR = (
                 kaynak=GIRDI,
                 sozlesme=CIZ,
                 isaretli=True,  # konum kayması:  iki yöne de ( köprü öyle okur )
+                #  Boşsa yerleşim kurtarması ( cizim/kopru — 23 Kas )
+                cizimden=(
+                    "Boşsa 0;  ağırlık ara kirişe ya da kabine çarpıyor, kanat cebi sığmıyorsa "
+                    "çakışmayan en yakın değer — çizimden."
+                ),
                 bilgi=(
                     "Kapıya bakana göre kabin ekseninin kuyu genişliğinin ortasından uzaklığı. Karşı "
                     "ağırlık yandaysa kabin çoğunlukla öbür yana kaçar.  Kabin rayları ve kat kapısı "
@@ -891,6 +896,11 @@ _GRUPLAR = (
                 sozlesme=CIZ,
                 isaretli=True,  # konum kayması:  iki yöne de ( köprü öyle okur )
                 gelismis=True,
+                #  Boşsa yerleşim kurtarması ( cizim/kopru — 23 Kas )
+                cizimden=(
+                    "Boşsa 0 ( kapı kabinin ortasında );  kanat cebi ya da kapı operatörü duvara, "
+                    "konsola, ara kirişe çarpıyorsa çarpmayan en yakın değer — çizimden."
+                ),
                 bilgi="Kapı boşluğunun ekseni kabinin ekseninde değilse ( sola − ).",
             ),
             #  BOŞ BIRAKILIRSA OFİS TABLOSUNDAN DOLAR  ( motor/ortak/ofis.py ).

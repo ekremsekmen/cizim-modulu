@@ -800,37 +800,45 @@ _CEP_ENGELLERI = {
 }
 
 
+def kanat_cebi_cakismalari(g, cizim_sabitleri=None):
+    """Kanat cebinin çarptığı parçalar:  ( cep , engel ) eleman çiftleri — planın
+    sırasıyla.  Denetim ( kanat_cebi_carpismalari ) ve köprünün yerleşim kurtarması
+    ( kopru — kapının ne kadar kayacağını kutulardan okur ) aynı çiftleri görür."""
+    e = plan(g, cizim_sabitleri)
+    cepler = [x for x in e if x.get("ad") in ("kanat_cebi", "kabin_kanat_cebi")]
+    engeller = [x for x in e if x["tip"] == "dikdortgen" and x.get("ad") in _CEP_ENGELLERI]
+    return [
+        (c, o)
+        for c in cepler
+        for o in engeller
+        if c["x"] < o["x"] + o["g"] - 1e-6
+        and o["x"] < c["x"] + c["g"] - 1e-6
+        and c["y"] < o["y"] + o["d"] - 1e-6
+        and o["y"] < c["y"] + c["d"] - 1e-6
+    ]
+
+
 def kanat_cebi_carpismalari(g, cizim_sabitleri=None):
     """Kat ve kabin kapısının kanat cebi ( açılan kanatların durduğu yer —
     girdi.kanat_cepleri ) kuyudaki konsollara, raylara ve karşı ağırlığa
     çarpmamalı.  Kabin kapısının cebi kabinle yürür:  bütün katlarda aynı
     yerde bulunan bu parçaların hepsini geçmelidir.  İletiler ( liste )."""
-    e = plan(g, cizim_sabitleri)
-    cepler = [x for x in e if x.get("ad") in ("kanat_cebi", "kabin_kanat_cebi")]
-    engeller = [x for x in e if x["tip"] == "dikdortgen" and x.get("ad") in _CEP_ENGELLERI]
     hata = []
-    for c in cepler:
-        for o in engeller:
-            if (
-                c["x"] < o["x"] + o["g"] - 1e-6
-                and o["x"] < c["x"] + c["g"] - 1e-6
-                and c["y"] < o["y"] + o["d"] - 1e-6
-                and o["y"] < c["y"] + c["d"] - 1e-6
-            ):
-                kim = "Kabin kapısının" if c["ad"] == "kabin_kanat_cebi" else "Kat kapısının"
-                metin = sorun.Sorun(
-                    f"{kim} kanat cebi {_CEP_ENGELLERI[o['ad']]} çarpıyor:  açılan kanatlar "
-                    f"kuyuda yer bulamıyor — {girdi.RK_ONERISI}, {girdi.kapi_onerisi(g['kapi'].get('tip'))}.",
-                    (c["ad"], o["ad"]),
-                    "kuyu_plani",
-                    fark=sorun.ayrik(
-                        (c["x"], c["y"], c["x"] + c["g"], c["y"] + c["d"]),
-                        (o["x"], o["y"], o["x"] + o["g"], o["y"] + o["d"]),
-                        -1e-6,
-                    ),
-                )
-                if metin not in hata:
-                    hata.append(metin)
+    for c, o in kanat_cebi_cakismalari(g, cizim_sabitleri):
+        kim = "Kabin kapısının" if c["ad"] == "kabin_kanat_cebi" else "Kat kapısının"
+        metin = sorun.Sorun(
+            f"{kim} kanat cebi {_CEP_ENGELLERI[o['ad']]} çarpıyor:  açılan kanatlar "
+            f"kuyuda yer bulamıyor — {girdi.RK_ONERISI}, {girdi.kapi_onerisi(g['kapi'].get('tip'))}.",
+            (c["ad"], o["ad"]),
+            "kuyu_plani",
+            fark=sorun.ayrik(
+                (c["x"], c["y"], c["x"] + c["g"], c["y"] + c["d"]),
+                (o["x"], o["y"], o["x"] + o["g"], o["y"] + o["d"]),
+                -1e-6,
+            ),
+        )
+        if metin not in hata:
+            hata.append(metin)
     return hata
 
 

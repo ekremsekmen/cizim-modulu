@@ -152,12 +152,21 @@ class Denetim(unittest.TestCase):
         self.assertIn("680 mm gerekir", h)
         self.assertIn("Teleskopik 3 Kanat Sağ", h)
         self.assertNotIn("Teleskopik Sağ ·", h)
+        #  Kapı kaçıklığı girilmişse ( 0 ) cep çarpar;  boşsa yerleşim kurtarması ( 23 Kas,
+        #  cizim/kopru ) kapıyı kabinin önünde ağırlıktan uzağa kaydırır:  çizilir
         d = test_yerlesim_saglamligi.cizim_yaniti(
             test_yerlesim_saglamligi.standart_istek(
-                2000, True, "Sol", kat_kapisi_tipi="Otomatik Merkezi 4 Kanat"
+                2000, True, "Sol", kat_kapisi_tipi="Otomatik Merkezi 4 Kanat", kapi_kaciklik=0
             )
         )
         self.assertTrue(any("ara kirişine çarpıyor" in x for x in d["hata"]), d["hata"])
+        self.assertTrue(
+            test_yerlesim_saglamligi.cizim_yaniti(
+                test_yerlesim_saglamligi.standart_istek(
+                    2000, True, "Sol", kat_kapisi_tipi="Otomatik Merkezi 4 Kanat"
+                )
+            ).get("aktif")
+        )
         self.assertTrue(
             test_yerlesim_saglamligi.cizim_yaniti(
                 test_yerlesim_saglamligi.standart_istek(
