@@ -102,7 +102,8 @@ def _regulator(g, S, taban, kabin, G):
     """Hız regülatörü:  kuyu dibindeki gergi kasnağının tam üstü — seçilen
     yandaki kabin rayının hizasında, ray ekseninden regülatör kaçıklığı kadar.
     Kasnak ve gövde gerçek ölçüleriyle ( parcalar.regulator_geometrisi );
-    ayağı ( konsol ) gövdeden duvara."""
+    ayağı ( konsol ) gövdeden duvara.  Gövdesi kabinin izdüşümüne giriyorsa
+    duvara doğru kayar ( kuyu_dibi.regulator_kaymasi — gergiyle birlikte )."""
     kd = g["kuyu_dibi"]
     ry = g["kabin_ray"]["kapi_arasi"]
     raylar = sorted((eleman_kutusu(el) for el in taban if el.get("ad") == "kabin_ray"), key=lambda r: r[0])
@@ -112,6 +113,7 @@ def _regulator(g, S, taban, kabin, G):
     ray_parca = [r for r in raylar if (r[0] > kabin[2] - 1 if sag_reg else r[2] < kabin[0] + 1)]
     if ray_parca:
         rx = (min(r[0] for r in ray_parca) + max(r[2] for r in ray_parca)) / 2.0
+    rx += kuyu_dibi.regulator_kaymasi(g, kabin, rx)
     rgy = ry + kd["regulator_kaciklik"]
     rc = {
         "x": rx,
@@ -473,7 +475,7 @@ def _yandaki_agirlik(g, S, mk, ag, acil_pano):
     govde = (kmx - S["makine_en"] / 2.0, min(g0, g1), kmx + S["makine_en"] / 2.0, max(g0, g1))
 
     kab_r, sase = _yandaki_sase(S, taban, sol, G)
-    agirlik_baglanti, kabin_baglanti = _yandaki_baglantilar(S, y0, teget2, s, ex, uzak, y_)
+    agirlik_baglanti, kabin_baglanti = _yandaki_baglantilar(S, y0, teget2, s, ex, uzak, y_, kabin)
 
     #  ── REGÜLATÖR:  gergi kasnağının tam üstü ─────────────────────────
     rx, rgy, reg_kasnak, reg_govde, reg_ayak, reg_cizim = _regulator(g, S, taban, kabin, G)
@@ -637,16 +639,26 @@ def _yandaki_duvar_kirisleri(mk, G, *kutular):
     return (0.0, ic0 - b, G, ic1 + b)
 
 
-def _yandaki_baglantilar(S, y0, teget2, s, ex, uzak, y_):
+def _yandaki_baglantilar(S, y0, teget2, s, ex, uzak, y_, kabin):
     """HALAT BAĞLANTILARI ( yandaki ağırlık ):  ağırlık tarafı ağırlık
     kasnağının öbür teğetinin üstünde;  plaka halattan kabine doğru uzanır.
     Kabin tarafı kabinin uzak halatının üstünde, kabin rayının başına bağlı;
-    plaka halattan kabine doğru.  ( ağırlık bağlantısı, kabin bağlantısı )"""
+    plaka halattan kabine doğru — ama kabinin izdüşümüne girmez ( 23 Kas ):
+    kabin yanındaki kenarı kabinin kenarından kuyu_dibi.TAVAN_PARCASI_PAYI
+    dışarıda kalır, plaka halattan uzağa kayar ( halat plakanın içinde kalır ).
+    Eskiden halattan kabine 100 mm uzanıyor, kabinin üstüne taşıyordu.
+    ( ağırlık bağlantısı, kabin bağlantısı )"""
     ab_y0 = teget2 - s * S["agirlik_baglanti_y"]
     ab_y1 = ab_y0 + s * S["agirlik_baglanti_boy"]
     ab_x0 = ex + y_ * S["agirlik_baglanti_x"]
     ab_x1 = ab_x0 - y_ * S["agirlik_baglanti_en"]
+    #  y_ kabinden ağırlığa doğru:  uzak halat kabinin öbür yanında, plakanın kabin tarafı + y_ yönünde
     kb_x0 = uzak + y_ * S["kabin_baglanti_x"]
+    pay = kuyu_dibi.TAVAN_PARCASI_PAYI
+    if y_ > 0:
+        kb_x0 = min(kb_x0, max(uzak, kabin[0] - pay))
+    else:
+        kb_x0 = max(kb_x0, min(uzak, kabin[2] + pay))
     kb_x1 = kb_x0 - y_ * S["kabin_baglanti_en"]
     return (min(ab_x0, ab_x1), min(ab_y0, ab_y1), max(ab_x0, ab_x1), max(ab_y0, ab_y1)), (
         min(kb_x0, kb_x1),
