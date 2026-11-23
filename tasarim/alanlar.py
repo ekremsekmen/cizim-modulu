@@ -799,9 +799,8 @@ _GRUPLAR = (
                 isaretli=True,  # konum kayması:  iki yöne de ( köprü öyle okur )
                 #  Boşsa yerleşim kurtarması ( cizim/kopru — 23 Kas )
                 cizimden=(
-                    "Boşsa 0 ( kabin kuyunun ortasında );  bu yerleşimde karşı ağırlık kabine ya da "
-                    "kabin rayının ara kirişine çarpıyorsa, kanat cebi sığmıyorsa çakışmayan en yakın "
-                    "değer — çizimden."
+                    "Boşsa 0;  ağırlık ara kirişe ya da kabine çarpıyor, kanat cebi sığmıyorsa "
+                    "çakışmayan en yakın değer — çizimden."
                 ),
                 bilgi=(
                     "Kapıya bakana göre kabin ekseninin kuyu genişliğinin ortasından uzaklığı. Karşı "
