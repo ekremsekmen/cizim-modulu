@@ -62,8 +62,10 @@ jobs:
     runs-on: ubuntu-latest
     #  Sınır takılan işe karşıdır, bütçe değil:  iş 26 Eki'de 41–43 dk sürüyordu,
     #  kotla giriş testleriyle ( PR #70 ) 45'i aştı ve uçtan ucada kesildi;  7 Kas
-    #  PR #106'da 59:31 sürdü ( 60'a kıl payı ) — 75
-    timeout-minutes: 75
+    #  PR #106'da 59:31 sürdü ( 60'a kıl payı ) — 75.  23 Kas PR #167:  üç koşu üst üste 75'te
+    #  kesildi, düşen test yoktu.  Makine 2 kat yavaş geldi:  aynı kodla hesap testleri 216 → 413 sn,
+    #  RK'yla ilgisiz TEST 1 · 2 bile 2 kat;  yerelde main ile dal aynı hızda ( TEST 10 18 / 19 sn ) — 120
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
