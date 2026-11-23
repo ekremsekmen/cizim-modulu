@@ -327,9 +327,12 @@ def varsayilanlar():
     #  ÇİZİMDEN TÜRETİLENLER VARSAYILANDA BOŞ KALIR:  hesap varsayılanların
     #  üstüne girdiyi yazıp yeniden tamamlar;  burada doldurulsalardı
     #  varsayılan projenin kuyu dibinden, kasnaklarından türeyen sayı asıl
-    #  girdide de kalırdı ( kuyu dibi değişse de kaide 870 ).
+    #  girdide de kalırdı ( kuyu dibi değişse de kaide 870 ).  Varsayılanda olmayan
+    #  çizim alanları ( yerleşim kurtarmasının kaçıklıkları — cizim/kopru ) eklenmez:
+    #  yokken de boştur ( kurtarılırlarsa hesabın girdisine o zaman girerler ).
     for _k in gorunum.cizimden():
-        g[_k] = None
+        if _k in g:
+            g[_k] = None
     #  KURALLA DOLANLAR DA:  karşı ağırlığın genişliği ( ray arasından ),
     #  kabin paten arası ( iç yükseklikten ), tampon strokları ( tipten, hızdan
     #  ) — varsayılanda dolu kalsalardı girdi kurallarının girdisini

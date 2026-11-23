@@ -33,6 +33,7 @@ import math
 from temel import bos_mu, sayi_mi
 from cizim import sorun
 from cizim import girdi
+from cizim import geometri
 from cizim import avan_kipi
 from cizim import hesap_isareti
 from cizim import izli
@@ -1182,13 +1183,149 @@ def _cift_sarim(A):
     return "çift sarım" in str(A.get("kanal_sekli") or "").lower()
 
 
+#  ══ YERLEŞİM KURTARMASI ( 23 Kas ) ══════════════════════════════════════════
+#  Kabinin yana kaçıklığı ve kat kapısının kaçıklığı BOŞSA 0'dır ( kabin kuyunun,
+#  kapı kabinin ortasında ).  Kurulabilen düzenlerin çoğunda doğrudur;  ama yandaki
+#  ağırlıklı gerçek kuyularda ( ofisin referans projesi ve LD 4815-6:  kuyu kabinden
+#  750 geniş ) ağırlık kabin rayının ara kirişine çarpıyor, kabin kapısının kanat cebi
+#  ara kirişe ya da duvara giriyordu:  kuyu yetiyorken çizim kurulmuyor, "Düzeltme
+#  öner" iki üç adımda kuruyordu ( 23 Kas taraması — cikti/araclar/kurulamayan_23kas ).
+#  Kurtarma o adımları ilk kurulumda atar:  varsayılan yerleşim planda çakışıyorsa
+#  sorunun açığı ( Sorun.fark ) ya da çakışan kutular kadar kabini ağırlıktan, kapıyı
+#  engelden uzağa kaydırır;  her adımda yeniden kurup denetler.
+#    ·  yalnız BOŞ alanlar oynar ( girilen değer olduğu gibi kalır );
+#    ·  yalnız yerleşimin çakışmaları için ( _yerlesim_sorunlari ) — başka bir sorun
+#       varsa çalışmaz;  çözemezse varsayılanlar kalır:  kurulabilen düzen değişmez;
+#    ·  RK ( ray – kapı arası ) oynamaz:  hesabın girdisidir ( ray hesabı ):  onu
+#       "Düzeltme öner" önerir;
+#    ·  tek kuyuda çalışmaz:  komşu asansörün yeri bu denetimde yok.
+#  Değer çizimden gelir ( CIZIMDEN ):  hesap, ekran ( soluk kutu ) ve bütün çizimler
+#  aynı sayıyı okur.
+KURTARMA_ALANLARI = ("kabin_yana_kaciklik", "kapi_kaciklik")
+KURTARMA_TURU = 6
+#  girdi.dogrula'nın kurtarılabilen sorunları ( parça listeleriyle tanınır ):  ağırlık –
+#  ara kiriş ( _ara_kiris ), ağırlık – kabin 50 mm ( m.5.2.5.5.1 h ), kanat cebi – duvar
+_AGIRLIK_SORUNLARI = (("ara_kiris",) + girdi.P_AGIRLIK, girdi.P_AGIRLIK + girdi.P_KABIN)
+_CEP_SORUNU = girdi.P_KANAT
+#  Kabinle birlikte kaymayan engeller:  kabin kayınca kapı onlardan uzaklaşır
+_KABINLE_KAYMAYAN = frozenset(("agirlik_ray", "agirlik_blok"))
+
+
+def _yerlesim_sorunlari(g):
+    """Yerleşimin kurtarılabilen çakışmaları ( tür , veri ) — denetimlerin
+    sırasıyla:  girdi ( ağırlık, kanat cebi – duvar ), kanat cebi – kuyu
+    parçaları, kapı operatörü.  [] temiz;  None:  başka bir sorun var."""
+    hata = girdi.dogrula(g)
+    if hata:
+        tur = []
+        for h in hata:
+            p = sorun.parcalari(h)
+            if p in _AGIRLIK_SORUNLARI:
+                tur.append(("agirlik", h))
+            elif p == _CEP_SORUNU:
+                tur.append(("cep_duvar", h))
+            else:
+                return None
+        return tur
+    S = sabitler.sabitler(g.get("_cizim_sabitleri"))
+    cift = geometri.kanat_cebi_cakismalari(g, S)
+    if cift:
+        return [("cep_engel", c) for c in cift]
+    try:
+        ku = kabin_ustu.yerlesim(g)
+    except sorun.BILINEN:
+        log.debug("kabin üstü kurulamadı:  kurtarma operatöre bakmaz", exc_info=True)
+        return []
+    return [("operator", c) for c in kabin_ustu.operator_cakismalari(ku)]
+
+
+def _kapiyi_kaydir(g, x, serbest, kayma, kabinle):
+    """Kat kapısını kayma kadar ( + sağa ) kaydırır:  önce kabinin önünde ( kapı
+    kaçıklığı — kapı boşluğu kabinin önünden taşmaz:  girdi._sase_ve_kapi ), kalanı
+    kabinle ( kabinle:  engel kabinle kaymıyorsa ).  Tam kaydırılamıyorsa None."""
+    y, kalan = {}, kayma
+    if "kapi_kaciklik" in serbest:
+        sinir = max(0.0, (g["kabin"]["genislik"] - g["kapi"]["genislik"]) / 2.0)
+        yeni = max(-sinir, min(sinir, x["kapi_kaciklik"] + kayma))
+        if yeni != x["kapi_kaciklik"]:
+            y["kapi_kaciklik"] = yeni
+            kalan = kayma - (yeni - x["kapi_kaciklik"])
+    if kalan and kabinle and "kabin_yana_kaciklik" in serbest:
+        y["kabin_yana_kaciklik"] = x["kabin_yana_kaciklik"] + kalan
+        kalan = 0.0
+    return y if y and not kalan else None
+
+
+def _ayir(a, b):
+    """a'nın ( kapıyla kayan kutu ) b'den yatayda ayrılması için kayması ( + sağa;  tam mm )."""
+    if a[0] + a[2] < b[0] + b[2]:
+        return -float(math.ceil(a[2] - b[0] - 1e-9))
+    return float(math.ceil(b[2] - a[0] - 1e-9))
+
+
+def _kurtarma_adimi(g, x, serbest, tur, veri):
+    """Bir çakışmayı gideren kaydırma ( alan → yeni değer ) ya da None."""
+    if tur == "agirlik":
+        uzak = {"Sağ": -1.0, "Sol": 1.0}.get(g["agirlik"]["yeri"])  # ağırlıktan uzağa
+        fark = getattr(veri, "fark", None)
+        if uzak is None or "kabin_yana_kaciklik" not in serbest or not sayi_mi(fark) or fark >= 0:
+            return None
+        return {"kabin_yana_kaciklik": x["kabin_yana_kaciklik"] + uzak * math.ceil(-fark - 1e-9)}
+    if tur == "cep_duvar":
+        G, saga, sola = g["kuyu"]["genislik"], 0.0, 0.0
+        for c0, c1 in girdi.kanat_cepleri(g, sabitler.sabitler(g.get("_cizim_sabitleri"))):
+            saga = max(saga, math.ceil(-c0 - 1e-9)) if c0 < -1e-6 else saga
+            sola = max(sola, math.ceil(c1 - G - 1e-9)) if c1 > G + 1e-6 else sola
+        if (saga and sola) or not (saga or sola):
+            return None  # iki yanda da taşıyor:  kaydırmak çözmez
+        return _kapiyi_kaydir(g, x, serbest, saga or -sola, kabinle=True)
+    if tur == "cep_engel":
+        cep, engel = veri
+        a = (cep["x"], cep["y"], cep["x"] + cep["g"], cep["y"] + cep["d"])
+        b = (engel["x"], engel["y"], engel["x"] + engel["g"], engel["y"] + engel["d"])
+        return _kapiyi_kaydir(g, x, serbest, _ayir(a, b), kabinle=engel.get("ad") in _KABINLE_KAYMAYAN)
+    operator, parca = veri
+    return _kapiyi_kaydir(g, x, serbest, _ayir(operator, parca), kabinle=False)
+
+
+def _yerlesim_kurtarmasi(B):
+    """( boş kaçıklıkların kurtarılmış değerleri , varsayılan yerleşimin çizim
+    girdisi ) — yukarıdaki not.  Değerler yalnız sıfırdan farklı olanlar;  {} ise
+    yerleşim değişmez ve ikincisi aynı girdinin çizimidir ( cizimden açı ve
+    kasnaklar için yeniden kurmaz )."""
+    serbest = tuple(k for k in KURTARMA_ALANLARI if _deger(B, k) is None)
+    if not serbest or B.get("kuyu_duzeni") == "Tek kuyu":
+        return {}, None
+    g0, _hata = cizim_girdisi(B)
+    g, x, gorulen = g0, {k: 0.0 for k in serbest}, set()
+    for tur in range(KURTARMA_TURU + 1):
+        sorunlar = _yerlesim_sorunlari(g) if g is not None else None
+        if not sorunlar:
+            return ({k: v for k, v in x.items() if v} if sorunlar is not None and tur else {}), g0
+        adim = _kurtarma_adimi(g, x, serbest, *sorunlar[0]) if tur < KURTARMA_TURU else None
+        if not adim:
+            return {}, g0
+        x = {**x, **adim}
+        imza = tuple(x[k] for k in serbest)
+        if imza in gorulen:
+            return {}, g0
+        gorulen.add(imza)
+        g, _hata = cizim_girdisi({**B, **x})
+    return {}, g0
+
+
 def cizimden(A):
     """Boş bırakılmış ( None ) hesap girdilerinin çizimden gelen değerleri.
-    Sıra:  kaide ve askı kaçıklığı önce ( makine dairesindeki saptırma
-    kasnağının yeri onlarla kurulan çizime bağlı ), sarılma açısı ve
-    kasnaklar sonra."""
+    Sıra:  kaide ve askı kaçıklığı önce ( girdilerden;  makine dairesindeki
+    saptırma kasnağının yeri onlarla kurulan çizime bağlı ), sonra yerleşimin
+    kaçıklıkları ( kurtarma — çizimi kurmak kaideyi ve askıyı ister;  ikisi yanal
+    kaçıklığa bağlı değil ), sarılma açısı ve kasnaklar o yerleşimden en son."""
     d, B = {}, dict(A)
-    bos = [k for k in CIZIMDEN if k in A and A[k] is None]
+    #  Yerleşimin kaçıklıkları çizim alanıdır:  girilmemişse hesabın girdisinde hiç
+    #  yoktur ( boş kutu ) — yoksa da boştur
+    bos = [
+        k for k in CIZIMDEN if (k in A and A[k] is None) or (k in KURTARMA_ALANLARI and _deger(A, k) is None)
+    ]
     if not bos:
         return d
     if "kabin_tampon_baba" in bos:
@@ -1203,8 +1340,15 @@ def cizimden(A):
         xs = _aski_x(B)
         d["aski_kaciklik_x"] = 0.0 if xs is None else xs
     B.update(d)
+    gc = None
+    if any(k in bos for k in KURTARMA_ALANLARI):
+        y, gc = _yerlesim_kurtarmasi(B)
+        if y:
+            d.update(y)
+            B.update(y)
+            gc = None  # kurtarılmış yerleşim:  açı ve kasnaklar ondan
     kasnak = {"saptirma_kasnak_capi", "saptirma_kasnak_min_capi"} & set(bos)
-    if kasnak or "sarilma_acisi" in bos:
+    if (kasnak or "sarilma_acisi" in bos) and gc is None:
         gc, _hata = cizim_girdisi(B)
     if "sarilma_acisi" in bos and not _cift_sarim(B):
         #  Çift sarımı çizim çizmez ( tek geçiş );  açısı girilmeli.

@@ -214,10 +214,15 @@ class CizimdenTuretilen(unittest.TestCase):
             sorted(set(kopru.CIZIMDEN) - set(alan)),
             ["kabin_tampon_baba", "saptirma_kasnak_capi", "saptirma_kasnak_min_capi"],
         )
-        for a in set(kopru.CIZIMDEN) & set(alan):
+        for a in set(kopru.CIZIMDEN) & set(alan) - set(kopru.KURTARMA_ALANLARI):
             self.assertIsNone(alan[a]["varsayilan"], a)
             self.assertIn("boşsa çizimden", alan[a]["etiket"])
             self.assertEqual(alan[a]["etiket"].count("boşsa"), 1, alan[a]["etiket"])
+        #  Yerleşim kurtarmasının alanları ( 23 Kas ) varsayılanlıdır:  boşsa 0 ( kabin /
+        #  kapı ortada ), yalnız yerleşim çakışınca çizimden — kural ⓘ metninde
+        for a in kopru.KURTARMA_ALANLARI:
+            self.assertEqual(alan[a]["varsayilan"], 0, a)
+            self.assertIn("çizimden", alan[a]["bilgi"], a)
         #  Çizim alanlarının hepsi formda, makine dairesininkiler proje geneli
         for a in kopru.ALAN:
             self.assertIn(a, alan)
@@ -402,8 +407,9 @@ class Bolum11CizimdenOlculur(unittest.TestCase):
         #  Varsayılanlar türetilen değeri TAŞIMAZ:  kuyu dibi değişince kaide de değişir
         from motor.uygulama import mukavemet
 
+        #  ( yerleşim kurtarmasının çizim alanları varsayılanlarda hiç yoktur — yokken de boş )
         for k in kopru.CIZIMDEN:
-            self.assertIsNone(uygulama_girdisi.varsayilanlar()[k], k)
+            self.assertIsNone(uygulama_girdisi.varsayilanlar().get(k), k)
         a = mukavemet.hesapla({"kuyu_dibi": 1700})["girdi"]["kabin_tampon_baba"]
         b = mukavemet.hesapla({"kuyu_dibi": 1800})["girdi"]["kabin_tampon_baba"]
         self.assertEqual(b - a, 100)
