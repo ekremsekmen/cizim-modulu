@@ -146,13 +146,53 @@ class Kurtarma(unittest.TestCase):
         kx = g["kuyu"]["genislik"] / 2.0 + gi["kabin_yana_kaciklik"]
         self.assertAlmostEqual(g["kapi"]["sol_pay"], kx + gi["kapi_kaciklik"] - g["kapi"]["genislik"] / 2.0)
 
+    def test_rk_yanal_yetmeyince_kurtarilir(self):
+        #  Derin kabinde merkezi kapı ( 1000 kg, 1.100 × 2.100 ) ve ağırlığa doğru açılan kapı
+        #  ( 1275 taslağı RK'sız — BAR 2515 gibi ):  kabin kapısının cebi ara kirişe çarpar,
+        #  yana kaydırmak yetmez;  RK boşsa raylar arkaya alınır ( 650 → kabin ortasının en çok
+        #  200 arkası ), askı kaçıklığı yeni RK'yla
+        ornek = {"1000 merkezi": _merkezi("1000"), "1000-md merkezi": _merkezi("1000-md")}
+        v = istek(T["1275"])
+        for k in ("ray_kapi_arasi", "kabin_yana_kaciklik"):
+            v["asansorler"][0].pop(k)
+        ornek["1275 RK'sız"] = v
+        for ad, v in ornek.items():
+            with self.subTest(ad):
+                c = _cizim(v)
+                self.assertTrue(c.get("aktif"), c.get("hata"))
+                gi = _hesap_girdisi(v)
+                self.assertIn("ray_kapi_arasi", gi["_cizimden"])
+                self.assertGreater(gi["ray_kapi_arasi"], 650)
+                kabin_ortasi = 30 + 90 + (float(v["asansorler"][0]["kabin_derinligi"]) + 20) / 2.0
+                self.assertLessEqual(gi["ray_kapi_arasi"], kabin_ortasi + kopru.RK_KABIN_ORTASI_PAYI)
+                xs = kopru._aski_x(gi)
+                self.assertAlmostEqual(gi["aski_kaciklik_x"], 0.0 if xs is None else xs)
+
+    def test_rk_yanal_yetince_ve_kurulabilende_650(self):
+        for ad, v in (
+            ("referans proje gibi", _referans_gibi()),
+            ("630 merkezi", _merkezi("630")),
+            ("taslak 630", istek(T["630"])),
+        ):
+            with self.subTest(ad):
+                self.assertTrue(_cizim(v).get("aktif"))
+                gi = _hesap_girdisi(v)
+                self.assertEqual(gi["ray_kapi_arasi"], 650)
+                self.assertNotIn("ray_kapi_arasi", gi.get("_cizimden") or {})
+
+    def test_girilen_rk_kullanilir(self):
+        v = _merkezi("1000", ray_kapi_arasi="650")
+        c = _cizim(v)
+        self.assertFalse(c.get("aktif"))
+        self.assertIn("ara kirişine çarpıyor", c["hata"][0])
+
     def test_tek_kuyuda_kurtarma_yok(self):
         B = dict(uygulama_girdisi.varsayilanlar(), kuyu_duzeni="Tek kuyu")
-        self.assertEqual(kopru._yerlesim_kurtarmasi(B), ({}, None))
+        self.assertEqual(kopru._yerlesim_kurtarmasi(B, KACIKLIKLAR + (kopru.RK,)), ({}, None))
         v = test_grup.ikili(630, "Sağ", 630, "Sağ")
         for i in range(2):
             gi = _hesap_girdisi(dict(v, asansor=i), i)
-            for k in KACIKLIKLAR:
+            for k in KACIKLIKLAR + (kopru.RK,):
                 self.assertNotIn(k, gi.get("_cizimden") or {})
 
 

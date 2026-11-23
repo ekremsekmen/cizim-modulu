@@ -533,6 +533,10 @@ def tamamla(g):
     #  sanılmasın ).  Anahtar → kuralı.
     if _cd:
         g["_cizimden"] = {**(g.get("_cizimden") or {}), **{k: kopru.CIZIMDEN[k] for k in _cd}}
+    #  RK boşsa ve yerleşim kurtarması değiştirmediyse ofisin değeri:  işaretsiz — 23 Kas'a
+    #  dek şemanın varsayılanıydı, rapor ve hesap eskisi gibi ( yalnız kurtarılan RK çizimden )
+    if bos_mu(g.get("ray_kapi_arasi")):
+        g["ray_kapi_arasi"] = alanlar.RK_VARSAYILAN
     #  ESKİ BİÇİM:  makine yükünün yolu bir zamanlar ONAY KUTUSUYDU ve
     #  True / "EVET" olarak kaydediliyordu.  Eski .uygulama dosyaları bu
     #  değeri taşır;  seçime çevrilmezse

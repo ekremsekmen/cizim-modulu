@@ -1119,6 +1119,12 @@
     "yazi_bitisik": 1
    }
   },
+  "1000 Sağ Otomatik Merkezi": {
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   }
+  },
   "1000 Sağ Otomatik Merkezi 4 Kanat": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
@@ -1133,6 +1139,15 @@
   "1000 Sağ Teleskopik 3 Kanat Sol": {
    "kapi_kesiti": {
     "uzak_olcu": 3
+   }
+  },
+  "1000 Sağ Teleskopik Sağ": {
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_dibi": {
+    "maske_olcu_siliyor": 1
    }
   },
   "1000 Sağ Teleskopik Sol": {
@@ -1150,6 +1165,12 @@
   "1000 Sol Manuel Sol": {
    "kapi_kesiti": {
     "uzak_olcu": 4,
+    "yazi_bitisik": 1
+   }
+  },
+  "1000 Sol Otomatik Merkezi": {
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
     "yazi_bitisik": 1
    }
   },
@@ -1173,6 +1194,15 @@
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
+   }
+  },
+  "1000 Sol Teleskopik Sol": {
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_dibi": {
+    "maske_olcu_siliyor": 1
    }
   },
   "1600 Arka Manuel Sağ": {
@@ -1241,6 +1271,12 @@
     "yazi_bitisik": 1
    }
   },
+  "1600 Sağ Otomatik Merkezi": {
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   }
+  },
   "1600 Sağ Otomatik Merkezi 4 Kanat": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
@@ -1255,6 +1291,15 @@
   "1600 Sağ Teleskopik 3 Kanat Sol": {
    "kapi_kesiti": {
     "uzak_olcu": 3
+   }
+  },
+  "1600 Sağ Teleskopik Sağ": {
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_dibi": {
+    "maske_olcu_siliyor": 1
    }
   },
   "1600 Sağ Teleskopik Sol": {
@@ -1272,6 +1317,12 @@
   "1600 Sol Manuel Sol": {
    "kapi_kesiti": {
     "uzak_olcu": 4,
+    "yazi_bitisik": 1
+   }
+  },
+  "1600 Sol Otomatik Merkezi": {
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
     "yazi_bitisik": 1
    }
   },
@@ -1298,6 +1349,15 @@
    "kapi_kesiti": {
     "uzak_olcu": 3,
     "yazi_bitisik": 1
+   }
+  },
+  "1600 Sol Teleskopik Sol": {
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_dibi": {
+    "maske_olcu_siliyor": 1
    }
   },
   "2500 Arka Manuel Sağ": {
@@ -1424,6 +1484,18 @@
     "maske_olcu_siliyor": 1
    }
   },
+  "2500 Sağ Teleskopik Sağ": {
+   "giris": {
+    "uzak_olcu": 1
+   },
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_dibi": {
+    "maske_olcu_siliyor": 1
+   }
+  },
   "2500 Sağ Teleskopik Sol": {
    "giris": {
     "uzak_olcu": 1
@@ -1488,6 +1560,18 @@
     "yazi_bitisik": 1
    }
   },
+  "2500 Sol Teleskopik Sol": {
+   "giris": {
+    "uzak_olcu": 1
+   },
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_dibi": {
+    "maske_olcu_siliyor": 1
+   }
+  },
   "450 Sağ Manuel Sağ": {
    "kapi_kesiti": {
     "uzak_olcu": 4,
@@ -1504,6 +1588,12 @@
    },
    "kuyu_dibi": {
     "yazi_yanlis_aralikta": 1
+   }
+  },
+  "450 Sağ Otomatik Merkezi": {
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
    }
   },
   "450 Sağ Otomatik Merkezi 4 Kanat": {
@@ -1533,6 +1623,15 @@
     "yazi_cizgisinden_kopuk": 3
    }
   },
+  "450 Sağ Teleskopik Sağ": {
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_dibi": {
+    "maske_olcu_siliyor": 1
+   }
+  },
   "450 Sağ Teleskopik Sol": {
    "kapi_kesiti": {
     "uzak_olcu": 3,
@@ -1558,6 +1657,12 @@
    },
    "kuyu_dibi": {
     "yazi_yanlis_aralikta": 1
+   }
+  },
+  "450 Sol Otomatik Merkezi": {
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
    }
   },
   "450 Sol Otomatik Merkezi 4 Kanat": {
@@ -1594,6 +1699,15 @@
    },
    "kuyu_dibi": {
     "yazi_yanlis_aralikta": 1
+   }
+  },
+  "450 Sol Teleskopik Sol": {
+   "kapi_kesiti": {
+    "uzak_olcu": 3,
+    "yazi_bitisik": 1
+   },
+   "kuyu_dibi": {
+    "maske_olcu_siliyor": 1
    }
   },
   "800 Arka Manuel Sağ": {

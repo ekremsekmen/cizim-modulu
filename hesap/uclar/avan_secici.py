@@ -260,6 +260,14 @@ def _istek(taslak, m, ek=None):
         if k not in pg and k in taslak["proje_geneli"]:
             pg[k] = taslak["proje_geneli"][k]
     a.update({k: _metin(v) for k, v in (ek or {}).items()})
+    #  RAY – KAPI ARASI ( RK ) seçicide 650'den başlar, gerekirse seçici büyütür ( çare bulucunun
+    #  yerleşim adımı ).  23 Kas ( PR #167 ):  RK boşken köprü onu kendiliğinden büyütüyordu
+    #  ( yerleşim kurtarması — cizim/kopru ).  Bu kurtarma, kuyu büyüyünce çıkan yeni sorunu
+    #  ( korkuluk – kuyu tavanı ) ilk adımda gösteriyordu.  Çare bulucu yeni sorun açan adımı
+    #  önermediği için iki adımlı çözüm ( kuyu genişliği + tavan kotu ) kayboluyordu:
+    #  630 / 1000 kg 1100 merkezi kapıda seçici "sığmaz" deyip kapıyı daraltmayı öneriyordu.
+    #  Elle ayar ( ayarlar ) bunun üstüne yazılır ( _Sinayici ).
+    a.setdefault("ray_kapi_arasi", _metin(alanlar.RK_VARSAYILAN))
     return {"asansorler": [a], "proje_geneli": pg, "sabitler": {}, "asansor": 0}
 
 

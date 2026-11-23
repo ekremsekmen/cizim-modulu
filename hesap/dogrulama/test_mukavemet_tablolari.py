@@ -478,6 +478,11 @@ BILEREK_DEGISEN_VARSAYILAN = {
         "boşsa çizimden:  çizilen saptırma kasnaklarının ortalaması ( referans proje 240 · 240 · 400 )",
     ),
     "kabin_tampon_baba": (None, "boşsa çizimden:  kuyu dibi − tampon − çarpma arası − kabinin şase altı"),
+    "ray_kapi_arasi": (
+        None,
+        "boşsa 650 ( alanlar.RK_VARSAYILAN — eski varsayılan, hesap aynı );  kabin kapısının cebi "
+        "ara kirişe çarpıyor ve yanal kaydırma yetmiyorsa çizimden ( kullanıcı kararı 23 Kas )",
+    ),
     "son_kat_yuksekligi": (
         4200,
         "sığınma açıklıkları çizimden:  3.750'de 3.300'lük şasenin "
