@@ -250,8 +250,9 @@ class KapiOnerisi(unittest.TestCase):
         self.assertNotIn("4 kanatlı", girdi.kapi_onerisi("Otomatik Merkezi 4 Kanat"))
 
     def test_merkezi_kapi_iletisinde_obur_yan_yok(self):
+        #  Kapı kaçıklığı ve RK girili:  boşken yerleşim kurtarması kurar ( 23 Kas, cizim/kopru )
         v = test_yerlesim_saglamligi.standart_istek(
-            630, True, "Sağ", kat_kapisi_tipi="Otomatik Merkezi", kapi_kaciklik=0
+            630, True, "Sağ", kat_kapisi_tipi="Otomatik Merkezi", kapi_kaciklik=0, ray_kapi_arasi=650
         )
         v["asansorler"][0]["kuyu_genisligi"] = 2000
         h = test_yerlesim_saglamligi.cizim_yaniti(copy.deepcopy(v)).get("hata") or []

@@ -1221,8 +1221,8 @@
    "sebep": ""
   },
   "1000 Sağ Otomatik Merkezi": {
-   "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — ray – kapı arasını ( RK ) büyütün, 4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin."
+   "durum": "çizildi",
+   "sebep": ""
   },
   "1000 Sağ Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1237,8 +1237,8 @@
    "sebep": ""
   },
   "1000 Sağ Teleskopik Sağ": {
-   "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — ray – kapı arasını ( RK ) büyütün, kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "durum": "çizildi",
+   "sebep": ""
   },
   "1000 Sağ Teleskopik Sol": {
    "durum": "çizildi",
@@ -1253,8 +1253,8 @@
    "sebep": ""
   },
   "1000 Sol Otomatik Merkezi": {
-   "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — ray – kapı arasını ( RK ) büyütün, 4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin."
+   "durum": "çizildi",
+   "sebep": ""
   },
   "1000 Sol Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1273,8 +1273,8 @@
    "sebep": ""
   },
   "1000 Sol Teleskopik Sol": {
-   "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — ray – kapı arasını ( RK ) büyütün, kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "durum": "çizildi",
+   "sebep": ""
   },
   "1600 Arka Manuel Sağ": {
    "durum": "çizildi",
@@ -1317,8 +1317,8 @@
    "sebep": ""
   },
   "1600 Sağ Otomatik Merkezi": {
-   "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — ray – kapı arasını ( RK ) büyütün, 4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin."
+   "durum": "çizildi",
+   "sebep": ""
   },
   "1600 Sağ Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1333,8 +1333,8 @@
    "sebep": ""
   },
   "1600 Sağ Teleskopik Sağ": {
-   "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — ray – kapı arasını ( RK ) büyütün, kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "durum": "çizildi",
+   "sebep": ""
   },
   "1600 Sağ Teleskopik Sol": {
    "durum": "çizildi",
@@ -1349,8 +1349,8 @@
    "sebep": ""
   },
   "1600 Sol Otomatik Merkezi": {
-   "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — ray – kapı arasını ( RK ) büyütün, 4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin."
+   "durum": "çizildi",
+   "sebep": ""
   },
   "1600 Sol Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1369,8 +1369,8 @@
    "sebep": ""
   },
   "1600 Sol Teleskopik Sol": {
-   "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — ray – kapı arasını ( RK ) büyütün, kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "durum": "çizildi",
+   "sebep": ""
   },
   "2500 Arka Manuel Sağ": {
    "durum": "çizildi",
@@ -1429,8 +1429,8 @@
    "sebep": ""
   },
   "2500 Sağ Teleskopik Sağ": {
-   "durum": "ret",
-   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 2 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
+   "durum": "çizildi",
+   "sebep": ""
   },
   "2500 Sağ Teleskopik Sol": {
    "durum": "çizildi",
@@ -1465,8 +1465,8 @@
    "sebep": ""
   },
   "2500 Sol Teleskopik Sol": {
-   "durum": "ret",
-   "sebep": "Kapının kanat cebi kuyuya sığmıyor:  kapı açıldığı yanda duvara 675 mm, açılan 2 kanat için 730 mm gerekir ( bir kanat eni 700 + 30 );  sığan kapı tipi:  Teleskopik 3 Kanat Sol · Teleskopik 3 Kanat Sağ · Otomatik Merkezi 4 Kanat."
+   "durum": "çizildi",
+   "sebep": ""
   },
   "450 Arka Manuel Sağ": {
    "durum": "ret",
@@ -1509,8 +1509,8 @@
    "sebep": ""
   },
   "450 Sağ Otomatik Merkezi": {
-   "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — ray – kapı arasını ( RK ) büyütün, 4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin."
+   "durum": "çizildi",
+   "sebep": ""
   },
   "450 Sağ Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1525,8 +1525,8 @@
    "sebep": ""
   },
   "450 Sağ Teleskopik Sağ": {
-   "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — ray – kapı arasını ( RK ) büyütün, kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "durum": "çizildi",
+   "sebep": ""
   },
   "450 Sağ Teleskopik Sol": {
    "durum": "çizildi",
@@ -1541,8 +1541,8 @@
    "sebep": ""
   },
   "450 Sol Otomatik Merkezi": {
-   "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — ray – kapı arasını ( RK ) büyütün, 4 kanatlı merkezi kapı seçin, kapıyı daraltın ya da kapının yerini değiştirin."
+   "durum": "çizildi",
+   "sebep": ""
   },
   "450 Sol Otomatik Merkezi 4 Kanat": {
    "durum": "çizildi",
@@ -1561,8 +1561,8 @@
    "sebep": ""
   },
   "450 Sol Teleskopik Sol": {
-   "durum": "ret",
-   "sebep": "Kabin kapısının kanat cebi kabin rayının ara kirişine çarpıyor:  açılan kanatlar kuyuda yer bulamıyor — ray – kapı arasını ( RK ) büyütün, kapıyı öbür yana açın, kanat sayısını artırın ya da kapının yerini değiştirin."
+   "durum": "çizildi",
+   "sebep": ""
   },
   "800 Arka Manuel Sağ": {
    "durum": "çizildi",

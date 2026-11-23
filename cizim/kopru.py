@@ -539,7 +539,10 @@ def _ana_alanlar(o):
         sayi("kabin_genisligi", "Kabin genişliği"),
         sayi("kabin_derinligi", "Kabin derinliği"),
     )
-    h["RK"] = sayi("ray_kapi_arasi", "Ray – kapı arası ( RK )")
+    #  RK boşsa ofisin değeri ( hesap da onu yazar — tamamla;  kurtarılmışsa cizimden )
+    h["RK"] = sayi("ray_kapi_arasi", "Ray – kapı arası ( RK )", bos=True)
+    if h["RK"] is None:
+        h["RK"] = _kural(float(alanlar.RK_VARSAYILAN), "ray_kapi_arasi")
     h["kapi_g"] = sayi("kapi_genisligi", "Kat kapısı genişliği")
     h["Gy"], h["Gx"] = (
         sayi("agirlik_genisligi", "Karşı ağırlık genişliği ( Gy )"),
@@ -1196,13 +1199,23 @@ def _cift_sarim(A):
 #    ·  yalnız BOŞ alanlar oynar ( girilen değer olduğu gibi kalır );
 #    ·  yalnız yerleşimin çakışmaları için ( _yerlesim_sorunlari ) — başka bir sorun
 #       varsa çalışmaz;  çözemezse varsayılanlar kalır:  kurulabilen düzen değişmez;
-#    ·  RK ( ray – kapı arası ) oynamaz:  hesabın girdisidir ( ray hesabı ):  onu
-#       "Düzeltme öner" önerir;
+#    ·  İKİ TUR:  önce yalnız yanal kaydırma;  çözülmezse ve RK ( ray – kapı arası )
+#       boşsa RK da oynar — kabin kapısının cebi ya da operatörü arkasındaki ara
+#       kirişe, konsola, ağırlığa çarpıyorsa raylar ( ve yandaki ağırlık ) çakışma kadar
+#       arkaya alınır ( derin kabinde ağırlığa doğru açılan ya da merkezi kapı:  BAR
+#       2515, 1000 kg 1.100 × 2.100 — 23 Kas ).  RK hesabın girdisidir ( ray hesabı ):
+#       yalnız yanal yetmediğinde ve kabin ortasının RK_KABIN_ORTASI_PAYI arkasına dek;
+#       askı kaçıklığı ( xs — RK'dan türer ) yeniden hesaplanır;
 #    ·  tek kuyuda çalışmaz:  komşu asansörün yeri bu denetimde yok.
 #  Değer çizimden gelir ( CIZIMDEN ):  hesap, ekran ( soluk kutu ) ve bütün çizimler
 #  aynı sayıyı okur.
 KURTARMA_ALANLARI = ("kabin_yana_kaciklik", "kapi_kaciklik")
+RK = "ray_kapi_arasi"
 KURTARMA_TURU = 6
+#  ÇİZİM KABULÜ:  kurtarılan RK en çok kabin derinliğinin ortasının bu kadar arkasına
+#  ( ofisin gerçek projelerinde ray kabin ortasının 60 – 190 mm arkasında:  LD 4815-6
+#  RK 890, referans proje 1.017 — 1.400 derin kabin;  BAR 2515 1.370 — 2.100 derin )
+RK_KABIN_ORTASI_PAYI = 200.0
 #  girdi.dogrula'nın kurtarılabilen sorunları ( parça listeleriyle tanınır ):  ağırlık –
 #  ara kiriş ( _ara_kiris ), ağırlık – kabin 50 mm ( m.5.2.5.5.1 h ), kanat cebi – duvar
 _AGIRLIK_SORUNLARI = (("ara_kiris",) + girdi.P_AGIRLIK, girdi.P_AGIRLIK + girdi.P_KABIN)
@@ -1263,8 +1276,24 @@ def _ayir(a, b):
     return float(math.ceil(b[2] - a[0] - 1e-9))
 
 
-def _kurtarma_adimi(g, x, serbest, tur, veri):
-    """Bir çakışmayı gideren kaydırma ( alan → yeni değer ) ya da None."""
+def _rk_adimi(g, x, a, b):
+    """Kapıyla kayan kutuya ( a — kanat cebi, operatör ) çarpan engeli ( b ) RK'yı büyüterek
+    onun arkasına alır:  engeller ( raylar, konsollar, ara kiriş, yandaki ağırlık ) RK'yla
+    birlikte arkaya kayar — engelin önü kutunun arkasına gelene dek ( engel kutunun önünden
+    başlasa da:  ağırlık rayları arası geniş girilmişse ara kiriş cepten önde başlar ), kabin
+    ortasının RK_KABIN_ORTASI_PAYI arkasını geçmeden.  Geçiyorsa None."""
+    if RK not in x:
+        return None
+    yeni = float(x[RK] + math.ceil(a[3] - b[1] - 1e-9))
+    kb, S = g["kabin"], sabitler.sabitler(g.get("_cizim_sabitleri"))
+    hat = g["kabin_ray"]["kapi_arasi"] - x[RK]  # kapı hattı ( kapı_arasi = hat + RK )
+    tavan = kb["on_pay"] - hat + (kb["derinlik"] + S["kabin_pano_arka"]) / 2.0 + RK_KABIN_ORTASI_PAYI
+    return {RK: yeni} if yeni <= tavan else None
+
+
+def _kurtarma_adimi(g, x, serbest, tur, veri, rk_acik=False):
+    """Bir çakışmayı gideren kaydırma ( alan → yeni değer ) ya da None.  rk_acik:
+    ikinci tur — kanat cebi ve operatör çarpmasında önce RK."""
     if tur == "agirlik":
         uzak = {"Sağ": -1.0, "Sol": 1.0}.get(g["agirlik"]["yeri"])  # ağırlıktan uzağa
         fark = getattr(veri, "fark", None)
@@ -1283,35 +1312,65 @@ def _kurtarma_adimi(g, x, serbest, tur, veri):
         cep, engel = veri
         a = (cep["x"], cep["y"], cep["x"] + cep["g"], cep["y"] + cep["d"])
         b = (engel["x"], engel["y"], engel["x"] + engel["g"], engel["y"] + engel["d"])
-        return _kapiyi_kaydir(g, x, serbest, _ayir(a, b), kabinle=engel.get("ad") in _KABINLE_KAYMAYAN)
+        return (_rk_adimi(g, x, a, b) if rk_acik else None) or _kapiyi_kaydir(
+            g, x, serbest, _ayir(a, b), kabinle=engel.get("ad") in _KABINLE_KAYMAYAN
+        )
     operator, parca = veri
-    return _kapiyi_kaydir(g, x, serbest, _ayir(operator, parca), kabinle=False)
+    return (_rk_adimi(g, x, operator, parca) if rk_acik else None) or _kapiyi_kaydir(
+        g, x, serbest, _ayir(operator, parca), kabinle=False
+    )
 
 
-def _yerlesim_kurtarmasi(B):
-    """( boş kaçıklıkların kurtarılmış değerleri , varsayılan yerleşimin çizim
-    girdisi ) — yukarıdaki not.  Değerler yalnız sıfırdan farklı olanlar;  {} ise
-    yerleşim değişmez ve ikincisi aynı girdinin çizimidir ( cizimden açı ve
-    kasnaklar için yeniden kurmaz )."""
-    serbest = tuple(k for k in KURTARMA_ALANLARI if _deger(B, k) is None)
-    if not serbest or B.get("kuyu_duzeni") == "Tek kuyu":
-        return {}, None
-    g0, _hata = cizim_girdisi(B)
-    g, x, gorulen = g0, {k: 0.0 for k in serbest}, set()
+def _aday(B, x, xs_turev):
+    """Kurtarmanın denediği girdi:  RK değiştiyse ve askı kaçıklığı ( xs ) çizimden
+    geliyorsa o da yeni RK'yla ( _aski_x — cizimden'deki gibi )."""
+    A = {**B, **x}
+    if xs_turev and A.get(RK) != B.get(RK):
+        xs = _aski_x(A)
+        A["aski_kaciklik_x"] = 0.0 if xs is None else xs
+    return A
+
+
+def _kurtar(B, g0, serbest, rk_acik, xs_turev):
+    """Bir kurtarma turu:  değişen değerler ( RK değiştiyse xs de );  {} varsayılan
+    yerleşim temiz;  None çözülemedi."""
+    taban = {k: (B[k] if k == RK else 0.0) for k in serbest}
+    g, x, gorulen = g0, dict(taban), set()
     for tur in range(KURTARMA_TURU + 1):
         sorunlar = _yerlesim_sorunlari(g) if g is not None else None
+        if sorunlar is None:
+            return None
         if not sorunlar:
-            return ({k: v for k, v in x.items() if v} if sorunlar is not None and tur else {}), g0
-        adim = _kurtarma_adimi(g, x, serbest, *sorunlar[0]) if tur < KURTARMA_TURU else None
+            y = {k: v for k, v in x.items() if v != taban[k]}
+            if RK in y and xs_turev:
+                y["aski_kaciklik_x"] = _aday(B, x, True)["aski_kaciklik_x"]
+            return y
+        adim = _kurtarma_adimi(g, x, serbest, *sorunlar[0], rk_acik=rk_acik) if tur < KURTARMA_TURU else None
         if not adim:
-            return {}, g0
+            return None
         x = {**x, **adim}
         imza = tuple(x[k] for k in serbest)
         if imza in gorulen:
-            return {}, g0
+            return None
         gorulen.add(imza)
-        g, _hata = cizim_girdisi({**B, **x})
-    return {}, g0
+        g, _hata = cizim_girdisi(_aday(B, x, xs_turev))
+    return None
+
+
+def _yerlesim_kurtarmasi(B, serbest, xs_turev=False):
+    """( boş alanların kurtarılmış değerleri , varsayılan yerleşimin çizim girdisi ) —
+    yukarıdaki not.  serbest:  boş bırakılmış KURTARMA_ALANLARI ve RK ( B'de RK geçici
+    olarak ofisin değeri );  xs_turev:  askı kaçıklığı çizimden mi.  Değerler yalnız
+    değişenler;  {} ise yerleşim değişmez ve ikincisi aynı girdinin çizimidir
+    ( cizimden açı ve kasnaklar için yeniden kurmaz )."""
+    if not serbest or B.get("kuyu_duzeni") == "Tek kuyu":
+        return {}, None
+    g0, _hata = cizim_girdisi(B)
+    yanal = tuple(k for k in serbest if k != RK)
+    y = _kurtar(B, g0, yanal, False, xs_turev) if yanal else None
+    if y is None and RK in serbest:
+        y = _kurtar(B, g0, serbest, True, xs_turev)
+    return y or {}, g0
 
 
 def cizimden(A):
@@ -1322,12 +1381,18 @@ def cizimden(A):
     kaçıklığa bağlı değil ), sarılma açısı ve kasnaklar o yerleşimden en son."""
     d, B = {}, dict(A)
     #  Yerleşimin kaçıklıkları çizim alanıdır:  girilmemişse hesabın girdisinde hiç
-    #  yoktur ( boş kutu ) — yoksa da boştur
+    #  yoktur ( boş kutu ) — yoksa da boştur ( RK de:  motor doğrudan çağrılınca )
     bos = [
-        k for k in CIZIMDEN if (k in A and A[k] is None) or (k in KURTARMA_ALANLARI and _deger(A, k) is None)
+        k
+        for k in CIZIMDEN
+        if (k in A and A[k] is None) or (k in KURTARMA_ALANLARI + (RK,) and _deger(A, k) is None)
     ]
     if not bos:
         return d
+    #  RK boşsa geçici olarak ofisin değeri:  kaide, askı ve kurtarma onu okur;  kurtarma
+    #  değiştirmezse döndürülmez ( hesap eskisi gibi işaretsiz yazar — mukavemet_girdi.tamamla )
+    if RK in bos:
+        B[RK] = float(alanlar.RK_VARSAYILAN)
     if "kabin_tampon_baba" in bos:
         v = [B.get(k) for k in ("kuyu_dibi", "kabin_tampon_boyu", "kabin_carpma_arasi")]
         if all(sayi_mi(x) for x in v):
@@ -1341,8 +1406,9 @@ def cizimden(A):
         d["aski_kaciklik_x"] = 0.0 if xs is None else xs
     B.update(d)
     gc = None
-    if any(k in bos for k in KURTARMA_ALANLARI):
-        y, gc = _yerlesim_kurtarmasi(B)
+    serbest = tuple(k for k in KURTARMA_ALANLARI + (RK,) if k in bos)
+    if serbest:
+        y, gc = _yerlesim_kurtarmasi(B, serbest, "aski_kaciklik_x" in bos)
         if y:
             d.update(y)
             B.update(y)

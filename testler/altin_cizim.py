@@ -143,10 +143,11 @@ def duzenler():
         d[f"{Q} {yer} MRL duvardan duvara kiriş"] = _standart(
             Q, yer, True, makine_raya_biniyor="Bina yapısına"
         )
-    #  Reddedilenler:  kanat cebi ray ara kirişine çarpar;  tavanda çömelme alanı
-    #  yok;  ağırlık kabinin arkasına sığmaz
+    #  Reddedilenler:  kanat cebi ray ara kirişine çarpar ( RK girili — boşken yerleşim
+    #  kurtarması rayları arkaya alıp kurar, 23 Kas );  tavanda çömelme alanı yok;  ağırlık
+    #  kabinin arkasına sığmaz
     d["1000 Sağ MRL Otomatik Merkezi ( ret )"] = _standart(
-        1000, "Sağ", True, kat_kapisi_tipi="Otomatik Merkezi"
+        1000, "Sağ", True, kat_kapisi_tipi="Otomatik Merkezi", ray_kapi_arasi=650
     )
     d["320 Sağ MRL ( ret )"] = _standart(320, "Sağ", True)
     v = _arka(450)

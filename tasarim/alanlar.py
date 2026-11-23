@@ -70,6 +70,11 @@ AYIRMA_KIRISLERI = tuple(o for o in mukavemet_tablolari.NPU_OLCULERI if isinstan
 #  kiriş 140 + paten yarısı 50 ):  h = iç yükseklik + 660.  Değişken kabin
 #  yüksekliğiyle LD örneği yok ( hepsi 2.000 );  araştırma 12 Eki.
 KABIN_PATEN_PAYI = 660  # tam sayı:  2.000 + 660 = 2.660 ( eski varsayılanla aynı tip )
+#  RAY – KAPI ARASI ( RK ) BOŞSA:  ofisin eski varsayılanı 650 ( 23 Kas'a dek şemanın
+#  varsayılanıydı ).  O yerleşimde kabin kapısının kanat cebi ya da operatörü ara kirişe,
+#  ağırlık rayına çarpıyor ve kapıyı yana kaydırmak yetmiyorsa köprü çarpmayan en küçük
+#  değeri bulur ( cizim/kopru — yerleşim kurtarması );  ikisini de hesap çizimden okur.
+RK_VARSAYILAN = 650
 KAYNAKLAR = (GIRDI, KURAL, KATALOG, CIZIM, HESAP)
 MUK, ELK, CIZ = "mukavemet", "elektrik", "cizim"
 #  KAT GİRİŞİNİN İKİ KİPİ ve kipi belirleyen alan ( modülün başındaki açıklama )
@@ -1071,13 +1076,18 @@ _GRUPLAR = (
             #  kontrolde okunuyorlardı.
             A(
                 "ray_kapi_arasi",
-                "Ray - kapı arası  ( RK )",
+                "Ray - kapı arası  ( RK )  ( boşsa çizimden )",
                 "mm",
                 "sayi",
                 None,
-                650,
+                None,
                 kaynak=GIRDI,
                 sozlesme=MUK,
+                #  Boşsa RK_VARSAYILAN ya da yerleşim kurtarması ( cizim/kopru — 23 Kas )
+                cizimden=(
+                    "Boşsa 650;  kabin kapısının cebi ara kirişe çarpıyor, kapıyı kaydırmak yetmiyorsa "
+                    "çarpmayan en küçük değer."
+                ),
                 bilgi=(
                     "RK — kılavuz ray ekseninden kat kapısı düzlemine olan yatay mesafe. Kabin merkezinin"
                     " x kaçıklığı bundan türetilir: ray kabin ortasından geçmiyorsa ray kuvveti büyür."

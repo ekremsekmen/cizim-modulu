@@ -144,29 +144,28 @@ class Denetim(unittest.TestCase):
         #  kanatlının cebi ( 680 ) iki yanda da sığmaz ( 575 ) — sığan tipler
         #  söylenir.  4 kanatlı merkezinin sol cebi ağırlığın ön konsoluna ve ara
         #  kirişe çarpar ( kabinle yürür );  sağa açılan 3 kanatlı çizilir.
+        #  Yerleşim GİRİLİ ( kaçıklıklar 0, RK 650 ):  boşken yerleşim kurtarması ( 23 Kas,
+        #  cizim/kopru ) kapıyı kabinin önünde kaydırıp rayları arkaya alarak ikisini de kurar
+        girili = dict(kabin_yana_kaciklik=0, kapi_kaciklik=0, ray_kapi_arasi=650)
+        for tip in ("Teleskopik Sol", "Otomatik Merkezi 4 Kanat"):
+            v = test_yerlesim_saglamligi.standart_istek(2000, True, "Sol", kat_kapisi_tipi=tip)
+            self.assertTrue(test_yerlesim_saglamligi.cizim_yaniti(v).get("aktif"), tip)
         d = test_yerlesim_saglamligi.cizim_yaniti(
-            test_yerlesim_saglamligi.standart_istek(2000, True, "Sol", kat_kapisi_tipi="Teleskopik Sol")
+            test_yerlesim_saglamligi.standart_istek(
+                2000, True, "Sol", kat_kapisi_tipi="Teleskopik Sol", **girili
+            )
         )
         self.assertFalse(d.get("aktif"))
         h = next(x for x in d["hata"] if "kanat cebi" in x)
         self.assertIn("680 mm gerekir", h)
         self.assertIn("Teleskopik 3 Kanat Sağ", h)
         self.assertNotIn("Teleskopik Sağ ·", h)
-        #  Kapı kaçıklığı girilmişse ( 0 ) cep çarpar;  boşsa yerleşim kurtarması ( 23 Kas,
-        #  cizim/kopru ) kapıyı kabinin önünde ağırlıktan uzağa kaydırır:  çizilir
         d = test_yerlesim_saglamligi.cizim_yaniti(
             test_yerlesim_saglamligi.standart_istek(
-                2000, True, "Sol", kat_kapisi_tipi="Otomatik Merkezi 4 Kanat", kapi_kaciklik=0
+                2000, True, "Sol", kat_kapisi_tipi="Otomatik Merkezi 4 Kanat", **girili
             )
         )
         self.assertTrue(any("ara kirişine çarpıyor" in x for x in d["hata"]), d["hata"])
-        self.assertTrue(
-            test_yerlesim_saglamligi.cizim_yaniti(
-                test_yerlesim_saglamligi.standart_istek(
-                    2000, True, "Sol", kat_kapisi_tipi="Otomatik Merkezi 4 Kanat"
-                )
-            ).get("aktif")
-        )
         self.assertTrue(
             test_yerlesim_saglamligi.cizim_yaniti(
                 test_yerlesim_saglamligi.standart_istek(
