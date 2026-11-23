@@ -1145,26 +1145,12 @@
   "durum": "uygun"
  },
  "kuyu|1000-md|g-200|d+0|k0": {
-  "agirlik": "Arka",
-  "durum": "gereken",
-  "gereken": [
-   [
-    "kuyu_derinligi",
-    2645.0
-   ]
-  ],
-  "yeniden": "uygun"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|1000-md|g-200|d+0|k1": {
-  "agirlik": "Arka",
-  "durum": "gereken",
-  "gereken": [
-   [
-    "kuyu_derinligi",
-    2645.0
-   ]
-  ],
-  "yeniden": "uygun"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|1000-md|g-200|d+300|k0": {
   "agirlik": "Arka",
@@ -1175,26 +1161,12 @@
   "durum": "uygun"
  },
  "kuyu|1000-md|g-200|d-100|k0": {
-  "agirlik": "Arka",
-  "durum": "gereken",
-  "gereken": [
-   [
-    "kuyu_derinligi",
-    2645.0
-   ]
-  ],
-  "yeniden": "uygun"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|1000-md|g-200|d-100|k1": {
-  "agirlik": "Arka",
-  "durum": "gereken",
-  "gereken": [
-   [
-    "kuyu_derinligi",
-    2645.0
-   ]
-  ],
-  "yeniden": "uygun"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|1000|g+0|d+0|k0": {
   "agirlik": "Sağ",
@@ -1357,55 +1329,27 @@
  },
  "kuyu|1000|g-200|d+0|k0": {
   "agirlik": "Sağ",
-  "durum": "gereken",
-  "gereken": [
-   [
-    "kuyu_genisligi",
-    1860.0
-   ]
-  ],
-  "yeniden": "uygun"
+  "durum": "uygun"
  },
  "kuyu|1000|g-200|d+0|k1": {
   "agirlik": "Sağ",
-  "durum": "gereken",
-  "gereken": [
-   [
-    "kuyu_genisligi",
-    1860.0
-   ]
-  ],
-  "yeniden": "uygun"
+  "durum": "uygun"
  },
  "kuyu|1000|g-200|d+300|k0": {
-  "agirlik": "Arka",
+  "agirlik": "Sağ",
   "durum": "uygun"
  },
  "kuyu|1000|g-200|d+300|k1": {
-  "agirlik": "Arka",
+  "agirlik": "Sağ",
   "durum": "uygun"
  },
  "kuyu|1000|g-200|d-100|k0": {
   "agirlik": "Sağ",
-  "durum": "gereken",
-  "gereken": [
-   [
-    "kuyu_genisligi",
-    1860.0
-   ]
-  ],
-  "yeniden": "uygun"
+  "durum": "uygun"
  },
  "kuyu|1000|g-200|d-100|k1": {
   "agirlik": "Sağ",
-  "durum": "gereken",
-  "gereken": [
-   [
-    "kuyu_genisligi",
-    1860.0
-   ]
-  ],
-  "yeniden": "uygun"
+  "durum": "uygun"
  },
  "kuyu|1250-md|g+0|d+0|k0": {
   "agirlik": "Sağ",
@@ -2233,15 +2177,8 @@
   "durum": "uygun"
  },
  "kuyu|1600-md|g-200|d-100|k0": {
-  "agirlik": "Arka",
-  "durum": "gereken",
-  "gereken": [
-   [
-    "kuyu_derinligi",
-    2945.0
-   ]
-  ],
-  "yeniden": "uygun"
+  "agirlik": "Sağ",
+  "durum": "uygun"
  },
  "kuyu|1600|g+0|d+300|k0": {
   "agirlik": "Sağ",
@@ -2274,19 +2211,12 @@
   "yeniden": "uygun"
  },
  "kuyu|1600|g-200|d+300|k0": {
-  "agirlik": "Arka",
+  "agirlik": "Sağ",
   "durum": "uygun"
  },
  "kuyu|1600|g-200|d-100|k0": {
   "agirlik": "Sağ",
-  "durum": "gereken",
-  "gereken": [
-   [
-    "kuyu_genisligi",
-    2170.0
-   ]
-  ],
-  "yeniden": "uygun"
+  "durum": "uygun"
  },
  "kuyu|2000-md|g+0|d+300|k0": {
   "agirlik": "Arka",
@@ -2382,10 +2312,6 @@
   "agirlik": "Sağ",
   "durum": "gereken",
   "gereken": [
-   [
-    "kuyu_genisligi",
-    2260.0
-   ],
    [
     "kuyu_derinligi",
     3080.0
@@ -2487,10 +2413,6 @@
   "agirlik": "Sağ",
   "durum": "gereken",
   "gereken": [
-   [
-    "kuyu_genisligi",
-    2560.0
-   ],
    [
     "kuyu_derinligi",
     3080.0
