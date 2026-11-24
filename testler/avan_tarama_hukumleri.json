@@ -464,6 +464,78 @@
   ],
   "yeniden": "uygun"
  },
+ "kabin|1000": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|1000-md": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|1250": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|1250-md": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|1275": {
+  "agirlik": "Sol",
+  "durum": "uygun"
+ },
+ "kabin|1275-md": {
+  "agirlik": "Sol",
+  "durum": "uygun"
+ },
+ "kabin|1600": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|1600-md": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|2000": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|2000-md": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|2500": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|2500-md": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|450": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|450-md": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|630": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|630-md": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|800": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
+ "kabin|800-md": {
+  "agirlik": "Sağ",
+  "durum": "uygun"
+ },
  "kapi|1000-md|Otomatik Merkezi|1000": {
   "agirlik": "Sağ",
   "durum": "gereken",

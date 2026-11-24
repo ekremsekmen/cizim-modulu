@@ -227,26 +227,53 @@ class AvanCizimUcu(unittest.TestCase):
         )
 
     def test_kartin_kabini_cizimin_kabini(self):
-        """13 Kas:  çizimin kabini hazır asansörünkidir ( kapasitenin kabini — büyümez );  avan
-        hesabı kabini karttan okur.  Kartınki farklıysa çizim ÇIKMAZ ( hesap sayfası ile pafta
-        ayrı kabin göstermesin ), karta yazılacak ölçü döner;  uygulanınca çizim çıkar.  Kartta
-        kabin yoksa ( hesap henüz eksik ) çelişki yoktur."""
-        g = govde({**kart(T630), **AvanPaketi.HESAP, "kabin_boyu": "1500"})
+        """24 Kas ( kullanıcı:  "Evet, kullanılsın" ):  çizimin kabini kartınkidir — standarda
+        uyuyorsa ( avan_secici.kabin_nedenleri ).  13 Kas'tan beri hep hazır asansörünküydü, kartınki
+        farklıysa çizim çıkmıyordu.  Uymayan kabinle çizim ÇIKMAZ ( hesap sayfası ile pafta ayrı kabin
+        göstermesin;  seçici aramaz ):  sebep ve karta yazılacak hazır asansör kabini döner,
+        uygulanınca çizim çıkar.  Kartta kabin yoksa ( hesap henüz eksik ) hazır asansörünki."""
+        #  630 kg, 8 kişi:  1000 × 1550 = 1,55 m² ( Çizelge 6 en çok 1,66;  Çizelge 8 8 kişi en az 1,45 ),
+        #  kuyu da kabin farkı kadar:  100 mm dar, 150 mm derin
+        g = govde(
+            {
+                **kart(T630, kuyu_genisligi="1950", kuyu_derinligi="2000"),
+                **AvanPaketi.HESAP,
+                "kabin_boyu": "1550",
+                "kabin_genisligi": "1000",
+            }
+        )
+        r = yanit(g)
+        self.assertEqual(r["durum"], "uygun", r)
+        a = r["istek"]["asansorler"][0]
+        self.assertEqual((a["kabin_derinligi"], a["kabin_genisligi"]), ("1550", "1000"))
+        #  Ekranın kabin kutularına:  avan yanıtında çizimin kabini ( kartınki — düğme görünmez )
+        kot = json.loads(avan_uclari.api_avan(g).body)["kotlar"][0]
+        self.assertEqual(kot["kabin"], {"kabin_boyu": 1550, "kabin_genisligi": 1000})
+        #  Büyük kabin:  1100 × 1600 = 1,76 m² > 1,66 — çizim yok, kart hazır asansörün kabinine
+        g = govde({**kart(T630), **AvanPaketi.HESAP, "kabin_boyu": "1600"})
         r = yanit(g)
         self.assertEqual((r["durum"], r["beyan_turu"], r["sinama"]), ("beyan", "kabin", 0), r)
         self.assertNotIn("cizim", r)
         self.assertEqual(
             [(b["kart"], b["etiket"], b["eski_yazi"], b["yeni_yazi"], b["yeni"]) for b in r["beyan"]],
-            [("kabin_boyu", "Kabin boyu a", "1500 mm", "1400 mm", "1400")],
+            [("kabin_boyu", "Kabin boyu a", "1600 mm", "1400 mm", "1400")],
         )
+        (neden,) = r["nedenler"]
+        self.assertIn("Çizelge 6", neden)
+        self.assertIn("1,76 m²", neden)
+        self.assertIn("standarda uymuyor", avan_cizimi.cizimsiz_sebebi(r))
+        kot = json.loads(avan_uclari.api_avan(g).body)["kotlar"][0]
+        self.assertEqual(kot["kabin"], {"kabin_boyu": 1400, "kabin_genisligi": 1100})
         duzeltilmis = g["girdiler"]["asansorler"][0] | {b["kart"]: b["yeni"] for b in r["beyan"]}
         r = yanit(govde(duzeltilmis))
         self.assertEqual(r["durum"], "uygun", r)
         a = r["istek"]["asansorler"][0]
         self.assertEqual((a["kabin_derinligi"], a["kabin_genisligi"]), ("1400", "1100"))
-        #  Ekranın kabin kutularına:  avan yanıtında çizimin kabini
-        kot = json.loads(avan_uclari.api_avan(g).body)["kotlar"][0]
-        self.assertEqual(kot["kabin"], {"kabin_boyu": 1400, "kabin_genisligi": 1100})
+        #  Küçük kabin trafiğin 8 kişisini taşımaz:  1000 × 1400 = 1,40 m² < 1,45 ( Çizelge 8 )
+        r = yanit(govde({**kart(T630), "kabin_boyu": "1400", "kabin_genisligi": "1000"}))
+        self.assertEqual((r["durum"], r["beyan_turu"]), ("beyan", "kabin"), r)
+        self.assertEqual([b["kart"] for b in r["beyan"]], ["kabin_genisligi"])
+        self.assertIn("Çizelge 8", r["nedenler"][0])
         self.assertEqual(yanit(govde(kart(T630)))["durum"], "uygun")
         #  Hazır asansörü olmayan kapasite:  kabin bilinmez, sonuç eskisi gibi
         self.assertEqual(yanit(govde(kart(T630, kapasite="15", kabin_boyu="1500")))["durum"], "paket_yok")
@@ -394,7 +421,7 @@ class AvanCizimUcu(unittest.TestCase):
         self.assertIn("Ray", r["ayarlar"][0]["etiket"])
         #  Ayar yoksa liste boş
         self.assertEqual(yanit(govde(kart(T630)))["ayarlar"], [])
-        #  17 Kas:  çizim çıkmasa da ( kartın kabini çizimin kabini değil ) adlarıyla — ekranda ad
+        #  17 Kas:  çizim çıkmasa da ( kartın kabini standarda uymuyor ) adlarıyla — ekranda ad
         #  yerine "kuyu_duvar_kalinligi" yazıyordu
         r = yanit(govde(kart(T630, kabin_boyu="1700", cizim_ayarlari="kuyu_duvar_kalinligi=250")))
         self.assertEqual((r["durum"], r["beyan_turu"]), ("beyan", "kabin"), r)

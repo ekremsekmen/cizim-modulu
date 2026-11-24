@@ -11,8 +11,10 @@ yükün paketini alır, mimarın kuyusuna UYARLAR, her adayı uygulamanın hesab
 çizimiyle sınar.
 
 SÖZLEŞME ( kullanıcı, 12 Kas ):
-  · Kabin trafik hesabının kapasitesinde kalır:  paketin kabini değişmez, kuyu
-    büyükse fazlası boşluktur.
+  · Kabin trafik hesabının kapasitesinde kalır:  seçici kabini değiştirmez, kuyu
+    büyükse fazlası boşluktur.  Kabin avan kartınınkidir ( 24 Kas — KABIN ):  standarda
+    uyuyorsa paketinkinin yerine geçer, kartta boşsa paketinki;  uymuyorsa aranmaz
+    ( "beyan" — kartta paketin kabini, kabin_nedenleri ).
   · Dönen asansör DOĞRULANMIŞTIR:  çizim sorunsuz, hesabın MİMARİYİ ilgilendiren
     bölümleri ( AVAN_BOLUMLERI — sığınma alanları, kabin alanı, tamponlar ) uygun.
     Mimarın kuyusuna sığan yoksa asansör dönmez;  mimardan istenecek ölçüler
@@ -58,6 +60,8 @@ import time
 from cizim import asamalar
 from cizim import katlar
 from motor.avan import tablolar
+from motor.ortak.adimlar import tr, trn
+from motor.uygulama import mukavemet_tablolari
 from tasarim import alanlar
 from uclar import care_uclari, uygulama_istegi
 from yollar import KOK
@@ -89,6 +93,13 @@ MIMARI_GENEL = ("mk_uzunluk", "mk_genislik", "md_yukseklik")
 #  verilmişse paketinkinin yerine geçer, seçici değiştirmez
 #  ( 14 Kas ) kapı genişliği ve tipi de:  trafik hesabının kapısı ( kullanıcı kararı )
 BEYAN = ("aski_orani", "makine_tipi", "kapi_genisligi", "kat_kapisi_tipi")
+#  KARTIN KABİNİ ( 24 Kas — kullanıcı:  "Evet, kullanılsın" ):  avan hesabı kabini karttan okur
+#  ( alan, aydınlatma );  kartınki standarda uyuyorsa ( kabin_nedenleri ) çizim de onunla kurulur,
+#  boş kutu paketinkini alır.  Seçici kabini değiştirmez ( SABIT ).  Eskiden çizimin kabini hep
+#  paketinkiydi ( 13 Kas ):  kart başka kabin söyleyince çizim çıkmıyor, kart paketinkine
+#  getiriliyordu.  24 Kas ölçümü ( 800 kg, makine dairesiz, kuyu 1800 × 2700, son kat 4050 ):
+#  paketin 1350 × 1400 kabiniyle mimardan 1980, kartın 1300 × 1400 kabiniyle 1920 genişlik istenir.
+KABIN = ("kabin_genisligi", "kabin_derinligi")
 ZORUNLU = ("beyan_yuku", "beyan_hizi", "kuyu_genisligi", "kuyu_derinligi", *KOTLAR[:3])
 
 #  Avan projesini bağlayan bölümler:  kuyunun ölçülerine ( kuyu üstü, kuyu dibi ) ve
@@ -245,6 +256,51 @@ def _sayili(x):
         return False
 
 
+def _olcu(x):
+    """Girilmiş, sıfırdan büyük ölçü mü ( boş / okunamayan / 0:  girilmemiş sayılır )."""
+    return _sayili(x) and _sayi(x) > 0
+
+
+def kabin(taslak, m):
+    """Çizimin kabini ( mm ):  { kabin_genisligi , kabin_derinligi } — kartınki ( m, KABIN ), boş
+    olan paketinki.  Standarda uygunluğu ayrıca:  kabin_nedenleri."""
+    a = taslak["asansor"]
+    return {k: _sayi(m[k]) if _olcu(m.get(k)) else _sayi(a[k]) for k in KABIN}
+
+
+def kabin_nedenleri(taslak, m):
+    """KARTIN KABİNİ STANDARDA UYUYOR MU ( 24 Kas ) — uymuyorsa nedenleri ( metin listesi;  boş:
+    uygun ).  TS EN 81-20 m.5.4.2, uygulamanın kabin alanı bölümünün tablolarıyla
+    ( motor/uygulama/mukavemet — çizimin hesabı aynı tabloyla denetler ):
+      · alan, beyan yükünün Çizelge 6'daki en büyük alanını aşmaz ( büyük kabin beyan yükünün
+        üstünde yüklenebilir;  uygulamanın hesabında da UYGUN DEĞİL — avanı bağlayan bölüm );
+      · alan trafik hesabının kişisini ( m["kisi"] — verilmişse ) taşır, Çizelge 8:  pafta kartın
+        kişisini yazar ( 18 Kas ), kabin o kadar yolcuyu taşımalı ( m.5.4.2.3.1 ).
+    Paketin kabini denetlenmez:  hazır asansör o yükte doğrulanmıştır ( test_avan_paketleri ) —
+    kart paketin kabinini söylüyorsa ( ya da boşsa ) davranış 24 Kas'tan önceki gibidir.  Alana
+    kapı girintisi katılmaz:  paketlerin uzun pervazı varsayılan ( 90 mm ≤ 100 — m.5.4.2.1.3 )."""
+    k = kabin(taslak, m)
+    if all(k[x] == _sayi(taslak["asansor"][x]) for x in KABIN):
+        return []
+    q = _sayi(m["beyan_yuku"])
+    alan = k["kabin_genisligi"] * k["kabin_derinligi"] / 1e6
+    nedenler = []
+    azami = mukavemet_tablolari.kabin_azami_alan(q)
+    if azami is not None and alan > azami + 1e-9:
+        nedenler.append(
+            f"Kabin alanı {tr(alan)} m²:  {trn(q, 0)} kg için en çok {tr(azami)} m² "
+            "( TS EN 81-20 Çizelge 6 ) — büyük kabin beyan yükünün üstünde yüklenebilir."
+        )
+    kisi = m.get("kisi")
+    if _olcu(kisi) and mukavemet_tablolari.cizelge8_kisi(alan) < _sayi(kisi):
+        nedenler.append(
+            f"Kabin alanı {tr(alan)} m²:  {trn(kisi, 0)} kişi için en az "
+            f"{tr(mukavemet_tablolari.cizelge8_alan(int(_sayi(kisi))))} m² ( TS EN 81-20 Çizelge 8 ) — "
+            "kabin trafik hesabının kapasitesini taşımaz."
+        )
+    return nedenler
+
+
 def _istek(taslak, m, ek=None):
     """Paket + mimarın kuyusu ( + denenen değerler ) → uygulamanın isteği."""
     a = {k: v for k, v in taslak["asansor"].items() if k not in MIMARI}
@@ -252,6 +308,9 @@ def _istek(taslak, m, ek=None):
     for k in ("beyan_hizi", *MIMARI, *BEYAN):
         if m.get(k) not in (None, ""):
             a[k] = _metin(m[k])
+    for k in KABIN:
+        if _olcu(m.get(k)):
+            a[k] = _metin(_sayi(m[k]))
     for k in MIMARI_GENEL:
         if m.get(k) not in (None, "") and pg.get("mk_yok") != "true":
             pg[k] = _metin(m[k])
@@ -293,12 +352,15 @@ def ayarlar(m):
 
 def _kaydirma(taslak, m):
     """Kabinin yana kaçıklığı:  kabin – karşı ağırlık duvarı aralığı paketteki
-    gibi kalsın.  Ağırlık arkadaysa kabin ortada kalır ( None:  dokunma )."""
+    gibi kalsın.  Ağırlık arkadaysa kabin ortada kalır ( None:  dokunma ).
+    Kartın kabini ( KABIN ) paketinkinden darsa ağırlık yanındaki kenarı yine paketteki yerinde
+    kalır:  kabin ağırlığa doğru farkın yarısı kadar daha kayar ( geniş kabinde tersi )."""
     a = taslak["asansor"]
     yon = {"Sağ": 1, "Sol": -1}.get(a.get("agirlik_yeri", alanlar.ALAN["agirlik_yeri"].varsayilan))
     if yon is None:
         return None
     fark = _sayi(m["kuyu_genisligi"]) - _sayi(a["kuyu_genisligi"])
+    fark -= kabin(taslak, m)["kabin_genisligi"] - _sayi(a["kabin_genisligi"])
     return _sayi(a.get("kabin_yana_kaciklik") or 0) + yon * fark / 2.0
 
 
@@ -501,12 +563,24 @@ def _uyarla(v, d, sina, kapi_kilidi=False, bina_once=False, yalniz_yerlesim=Fals
     return v, d, secilen, list(gereken.values())
 
 
+#  Kuyu ölçüsü → kabinin aynı yöndeki ölçüsü ( kabin çevresindeki aralık paketteki gibi kalsın )
+KUYU_KABIN = {"kuyu_genisligi": "kabin_genisligi", "kuyu_derinligi": "kabin_derinligi"}
+
+
+def _paket_kuyusu(taslak, m):
+    """Paketin kuyusu, kabin farkı kadar ( mm ):  kartın kabini ( KABIN ) paketinkinden 50 mm darsa
+    kuyu da 50 mm dar — kabin çevresindeki aralıklar paketteki gibi.  Kabin paketinkiyse paketin
+    kuyusu."""
+    a, k = taslak["asansor"], kabin(taslak, m)
+    return {x: _sayi(a[x]) + k[y] - _sayi(a[y]) for x, y in KUYU_KABIN.items()}
+
+
 def _paket_olcusunde(taslak, m, ek, sina):
-    """Mimarın kuyusu paketinkinden dar / sığ ise aynı aday paketin kuyu ölçüsüyle ( kabin
-    yine ağırlığın yanında ).  Döner ( istek , durum , seçilenler , gereken ) ya da None:
-    kuyu paketinkinden küçük değil."""
-    a = taslak["asansor"]
-    buyuyen = {k: a[k] for k in KUCULEN if _sayi(m[k]) < _sayi(a[k])}
+    """Mimarın kuyusu paketinkinden ( _paket_kuyusu ) dar / sığ ise aynı aday paketin kuyu
+    ölçüsüyle ( kabin yine ağırlığın yanında ).  Döner ( istek , durum , seçilenler , gereken )
+    ya da None:  kuyu paketinkinden küçük değil."""
+    paketin = _paket_kuyusu(taslak, m)
+    buyuyen = {k: paketin[k] for k in KUCULEN if _sayi(m[k]) < paketin[k]}
     if not buyuyen:
         return None
     m2 = {**m, **buyuyen}
@@ -525,7 +599,7 @@ def _paket_olcusunde(taslak, m, ek, sina):
             "etiket": alanlar.ALAN[k].etiket,
             "eski": _metin(m[k]),
             "yeni": _sayi(x),
-            "sebep": "Bu kapasitenin kabini ve karşı ağırlığı daha küçük kuyuya sığmıyor.",
+            "sebep": "Bu kabin ve karşı ağırlığı daha küçük kuyuya sığmıyor.",
         }
         for k, x in buyuyen.items()
     ]
@@ -550,7 +624,7 @@ def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False, anahtarlar=KUCULEN):
         y = care_uclari.girdi_yaz(v, 0, anahtar, x)
         adaylar = [y]
         if anahtar == "kuyu_genisligi" and yanda:
-            kay = _kaydirma(taslak, {"kuyu_genisligi": x})
+            kay = _kaydirma(taslak, {**{k: v["asansorler"][0].get(k) for k in KABIN}, "kuyu_genisligi": x})
             if kay is not None:
                 adaylar.insert(0, care_uclari.girdi_yaz(y, 0, "kabin_yana_kaciklik", round(kay)))
         for i, y in enumerate(adaylar):
@@ -614,8 +688,10 @@ def sec(m):
     m:  beyan_yuku ( kg ), beyan_hizi, kuyu_genisligi, kuyu_derinligi, durak_kotlari,
         kuyu_dibi_kotu, kuyu_tavani_kotu, mk_yok;  makine dairesi varsa md_zemini_kotu,
         isteğe bağlı mk_uzunluk / mk_genislik / md_yukseklik;  isteğe bağlı avanın beyanı ( BEYAN:
-        aski_orani, makine_tipi ) — verilmişse istekte aynen durur;  isteğe bağlı ayar
-        ( { girdi:  değer } — çizimde elle ayarlanan ölçüler, ayarlar ).
+        aski_orani, makine_tipi ) — verilmişse istekte aynen durur;  isteğe bağlı kartın kabini
+        ( KABIN — boşsa paketinki ) ve kişi ( kisi — trafik hesabının kapasitesi:  kabin bunu
+        taşımalı, kabin_nedenleri );  isteğe bağlı ayar ( { girdi:  değer } — çizimde elle
+        ayarlanan ölçüler, ayarlar ).
 
     Döner { durum , … }:
       "uygun"      istek ( uygulamanın isteği — çizimi ve avanı bağlayan bölümleri temiz ),
@@ -627,7 +703,9 @@ def sec(m):
                    çıkmaz ( uygulamanın hız listesinde yok — 1,75 · 3,5 m/s )
       "eksik"      eksik [ anahtar ] — mimari girdi eksik
       "beyan"      beyan [ { anahtar , etiket , eski , yeni } ] — avanın beyanıyla asansör
-                   kurulamadı;  kartta bunlar seçilirse kurulur ( doğrulanmış, en az değişiklik )
+                   kurulamadı;  kartta bunlar seçilirse kurulur ( doğrulanmış, en az değişiklik ).
+                   beyan_turu "kabin":  kartın kabini standarda uymuyor ( aranmadı ) — nedenler
+                   [ metin ], kartta paketin kabini
     Hepsinde sinama ( sayı ) ve sure ( sn ).
 
     MAKİNE DAİRESİ KAPISI ( AYAR_GENEL — ekranda sürüklenir ):  asansörün seçimini etkilemez;
@@ -1036,8 +1114,9 @@ def _tek_seferde(m, r, t0):
 
 
 def _on_denetim(m):
-    """Aramasız sonuç:  ( durum , alanlar ) — mimari eksik, bu hızda / yükte hazır asansör yok —
-    ya da None ( seçici arar ).  _sec ve aranacak_mi aynı kuralı kullanır."""
+    """Aramasız sonuç:  ( durum , alanlar ) — mimari eksik, bu hızda / yükte hazır asansör yok,
+    kartın kabini standarda uymuyor — ya da None ( seçici arar ).  _sec ve aranacak_mi aynı
+    kuralı kullanır."""
     eksik = [k for k in ZORUNLU if m.get(k) in (None, "")]
     mk_yok = m.get("mk_yok") in (True, "true")
     if not mk_yok and m.get("md_zemini_kotu") in (None, ""):
@@ -1051,6 +1130,28 @@ def _on_denetim(m):
         return "paket_yok", {"hiz": True, "hizlar": [x for x in hizlar if _sayili(x)]}
     if (int(_sayi(m["beyan_yuku"])), mk_yok) not in paketler():
         return "paket_yok", {}
+    #  Kartın kabini standarda uymuyor ( kabin_nedenleri ):  aranmaz — o kabinle uygulamanın hesabı
+    #  ( kabin alanı ) ya da pafta ( kişi ) çelişir.  Kartta paketin kabini seçilince aranır.
+    taslak = paketler()[(int(_sayi(m["beyan_yuku"])), mk_yok)]
+    nedenler = kabin_nedenleri(taslak, m)
+    if nedenler:
+        k = kabin(taslak, m)
+        beyan = [
+            {
+                "anahtar": x,
+                "etiket": alanlar.ALAN[x].etiket,
+                "eski": _metin(k[x]),
+                "yeni": taslak["asansor"][x],
+            }
+            for x in KABIN
+            if k[x] != _sayi(taslak["asansor"][x])
+        ]
+        return "beyan", {
+            "beyan_turu": "kabin",
+            "beyan": beyan,
+            "nedenler": nedenler,
+            "paket": taslak["kimlik"],
+        }
     return None
 
 

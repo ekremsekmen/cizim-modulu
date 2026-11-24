@@ -69,44 +69,51 @@ def _kapi_beyani(a, taslak):
     return b
 
 
-#  KABİN ( 13 Kas ):  çizimin kabini trafik hesabının kapasitesinin kabinidir ( hazır asansörünki —
-#  kullanıcı kararı 12 Kas:  kabin büyümez ).  Avan hesabı kabini karttan okur ( aydınlatma,
-#  alan denetimi ):  kartınki farklıysa hesap sayfası ile pafta ayrı kabin gösterir.
-#  Kartın alanı → ( hazır asansörün alanı , ekrandaki adı ).  Boy a = derinlik, genişlik b = genişlik.
+#  KABİN ( 24 Kas — kullanıcı:  "Evet, kullanılsın" ):  çizimin kabini KARTINKİDİR — standarda
+#  uyuyorsa ( avan_secici.kabin_nedenleri:  TS EN 81-20 Çizelge 6'nın alanı, Çizelge 8'le trafiğin
+#  kişisi );  kartta boş olan hazır asansörünkini alır.  Seçici kabini değiştirmez ( büyütmez,
+#  küçültmez — 12 Kas ).  Uymayan kabinle çizim çıkmaz ( seçici aramaz ):  sebebi ve karta yazılacak
+#  hazır asansör kabini döner ( "beyan", beyan_turu "kabin" ) — hesap sayfası ile pafta aynı kabini
+#  gösterir.  13 Kas – 24 Kas:  çizimin kabini hep hazır asansörünkiydi, kartınki farklıysa çizim
+#  çıkmıyordu ( 800 kg'da 1300 × 1400 yazan kart 1350 × 1400'e getiriliyordu ).
+#  Kartın alanı → ( seçicinin / uygulamanın alanı , ekrandaki adı ).  Boy a = derinlik, genişlik b = genişlik.
 KABIN = {
     "kabin_boyu": ("kabin_derinligi", "Kabin boyu a"),
     "kabin_genisligi": ("kabin_genisligi", "Kabin genişliği b"),
 }
 
 
-def paket_kabini(a, ortak):
-    """Bu asansörün çizimde kullanılacak kabini ( mm ) — { kabin_boyu , kabin_genisligi } ya da
-    None:  bu yük / düzen için hazır asansör yok."""
-    yuk = a.get("Q_elle") if sayi_mi(a.get("Q_elle")) else tablolar.tablo7_yuk(a.get("kapasite"))
-    if not sayi_mi(yuk):
+def _yuk(a):
+    """Kartın beyan yükü ( kg ):  Q elle, yoksa kapasiteden ( MMO/697 Tablo-7 )."""
+    return a.get("Q_elle") if sayi_mi(a.get("Q_elle")) else tablolar.tablo7_yuk(a.get("kapasite"))
+
+
+def _kabin_girdisi(a, ortak):
+    """( hazır asansör , seçicinin kabin girdisi ) ya da ( None , None ):  bu yük / düzen için hazır
+    asansör yok."""
+    yuk = _yuk(a)
+    t = sayi_mi(yuk) and avan_secici.paketler().get((int(yuk), evet_mi(ortak.get("mk_yok"))))
+    if not t:
+        return None, None
+    m = {"beyan_yuku": yuk, "kisi": a.get("kapasite"), **{p: a.get(k) for k, (p, _ad) in KABIN.items()}}
+    return t, m
+
+
+def cizimin_kabini(a, ortak):
+    """Bu asansörün çiziminin kabini ( mm ) — { kabin_boyu , kabin_genisligi }:  kartınki ( boş olan
+    hazır asansörünki );  kartınki standarda uymuyorsa hazır asansörünki ( kart ona getirilince
+    çizim çıkar ) — ya da None:  bu yük / düzen için hazır asansör yok."""
+    t, m = _kabin_girdisi(a, ortak)
+    if t is None:
         return None
-    t = avan_secici.paketler().get((int(yuk), evet_mi(ortak.get("mk_yok"))))
-    return t and {k: float(t["asansor"][p]) for k, (p, _ad) in KABIN.items()}
+    k = avan_secici.kabin(t, {} if avan_secici.kabin_nedenleri(t, m) else m)
+    return {kart: k[p] for kart, (p, _ad) in KABIN.items()}
 
 
-def _kabin_celiskisi(a, ortak):
-    """Kartın kabini hazır asansörünkinden farklıysa karta yazılacaklar ( beyan biçiminde )."""
-    kabin = paket_kabini(a, ortak)
-    if not kabin:
-        return []
-    return [
-        {
-            "anahtar": k,
-            "kart": k,
-            "etiket": ad,
-            "eski": f"{a[k]:g}",
-            "yeni": f"{kabin[k]:g}",
-            "eski_yazi": f"{a[k]:g} mm",
-            "yeni_yazi": f"{kabin[k]:g} mm",
-        }
-        for k, (_p, ad) in KABIN.items()
-        if sayi_mi(a.get(k)) and a[k] != kabin[k]
-    ]
+def kabin_uymuyor(a, ortak):
+    """Kartın kabini standarda uymuyor mu ( çizimi çıkmaz, seçici aramaz — avan_secici.kabin_nedenleri )."""
+    t, m = _kabin_girdisi(a, ortak)
+    return bool(t and avan_secici.kabin_nedenleri(t, m))
 
 
 def avan_ozeti(g, i):
@@ -154,9 +161,12 @@ def _yazi(anahtar, deger):
 
 def mimari(a, ortak, sabitler=None):
     """Avan asansörü ( okunmuş kart ) + ortak panel ( + ofis standardı ) → seçicinin girdisi."""
-    yuk = a.get("Q_elle") if sayi_mi(a.get("Q_elle")) else tablolar.tablo7_yuk(a.get("kapasite"))
+    yuk = _yuk(a)
     m = {"beyan_yuku": yuk, "beyan_hizi": a.get("V"), "mk_yok": evet_mi(ortak.get("mk_yok"))}
     m.update({k: a.get(k) for k in KART})
+    #  Kartın kabini ( boşsa seçici hazır asansörünkini alır ) ve trafiğin kişisi ( kabin taşımalı )
+    m.update({p: a.get(k) for k, (p, _ad) in KABIN.items()})
+    m["kisi"] = a.get("kapasite")
     if not m["mk_yok"]:
         m.update({k: ortak.get(k) for k in avan_secici.MIMARI_GENEL})
     m.update(_beyan(a, sabitler))
@@ -216,8 +226,9 @@ def kot_bilgisi(g):
                 "adlar": katlar.ad_tablosu(a),
                 "doseme": doseme,
                 "doseme_kural": kural,
-                #  Çizimin kabini ( hazır asansörünki ) — kartın kabin kutularına
-                "kabin": paket_kabini(a, g["ortak"]),
+                #  Çizimin kabini ( kartınki;  boş olan ya da standarda uymayan kartta hazır
+                #  asansörünki ) — kartın kabin kutularına ( ekranın "Çizimin kabini" düğmesi )
+                "kabin": cizimin_kabini(a, g["ortak"]),
             }
         )
     return liste
@@ -241,23 +252,20 @@ def secim(g, i):
             "durum": "hata",
             "hata": "Avan hesabında bu asansör yok — kapasite ve hız trafik hesabından gelir.",
         }
-    #  Kartın kabini çizimin kabini değilse çizim çıkmaz ( seçici koşmadan ):  karta yazılacak
     #  Elle ayarlanan ölçüler, ekrandaki adlarıyla ( soldaki liste — kaldırılabilir ).  17 Kas:  çizim
-    #  çıkmasa da ( kabin çelişkisi ) gönderilir — ekranda ad yerine "kuyu_duvar_kalinligi" yazıyordu
+    #  çıkmasa da ( standarda uymayan kabin ) gönderilir — ekranda ad yerine "kuyu_duvar_kalinligi" yazıyordu
     ayar_listesi = ayar_adlari(asansorler[i])
-    kabin = _kabin_celiskisi(asansorler[i], g["ortak"])
-    if kabin:
-        return {
-            "durum": "beyan",
-            "beyan_turu": "kabin",
-            "beyan": kabin,
-            "sinama": 0,
-            "sure": 0.0,
-            "ayarlar": ayar_listesi,
-        }
     m = mimari(asansorler[i], g["ortak"], g.get("sabitler"))
     r = avan_secici.sec(m)
     r["ayarlar"] = ayar_listesi
+    #  Standarda uymayan kabin ( seçici aramadı ):  kartın alanları, kartın sırasıyla ( boy a, genişlik b )
+    if r.get("beyan_turu") == "kabin":
+        kartta = {p: (k, ad) for k, (p, ad) in KABIN.items()}
+        for b in r["beyan"]:
+            kart, ad = kartta[b["anahtar"]]
+            b.update(kart=kart, etiket=ad, eski_yazi=f"{b['eski']} mm", yeni_yazi=f"{b['yeni']} mm")
+        r["beyan"].sort(key=lambda b: list(KABIN).index(b["kart"]))
+        return r
     ozet = avan_ozeti(g, i)
     #  Avanın kendi motor gücü ( Nsç ):  paftanın bilgi tablosuna ( cizim/avan_kipi.py );  kuyu
     #  tabanının kuvvetleri de avanın hesabından ( 17 Kas — hesap belgesiyle aynı sayı ).  Kişi
@@ -308,10 +316,13 @@ def cizimsiz_sebebi(r):
         )
     if durum == "beyan":
         yer = "trafik hesabında" if r.get("beyan_turu") == "kapi" else "avan kartında"
-        return f"{yer} seçilecek:  " + ";  ".join(
+        secilecek = f"{yer} seçilecek:  " + ";  ".join(
             f"{b['etiket']} {b.get('eski_yazi', b['eski'])} → {b.get('yeni_yazi', b['yeni'])}"
             for b in r["beyan"]
         )
+        if r.get("beyan_turu") == "kabin":
+            return f"kartın kabini standarda uymuyor ( {' '.join(r.get('nedenler') or [])} );  {secilecek}"
+        return secilecek
     if durum == "sigmaz":
         return "bu kuyuya asansör sığmıyor:  " + (str((r.get("nedenler") or ["sebep bulunamadı"])[0]))
     if durum == "paket_yok":
@@ -324,17 +335,14 @@ def cizimsiz_sebebi(r):
 
 
 def aranacaklar(g):
-    """Paketin ŞİMDİ arama yapacağı asansörler ( sıra, 0'dan ):  çizimi istenen, kartı çizimle
-    çelişmeyen ve seçicinin sonucu sunucuda hazır olmayanlar ( avan_secici.aranacak_mi — arama
-    yapmaz ).  Ekran paketten önce sorar:  sayfa yenilenince ekranın kendi bildiği sonuçlar
+    """Paketin ŞİMDİ arama yapacağı asansörler ( sıra, 0'dan ):  çizimi istenen ve seçicinin sonucu
+    sunucuda hazır olmayanlar ( avan_secici.aranacak_mi — arama yapmaz;  kabini standarda uymayan
+    kart aranmaz ).  Ekran paketten önce sorar:  sayfa yenilenince ekranın kendi bildiği sonuçlar
     gider, sunucunun ( işçiler arası ) önbelleğindekiler kalır ( 17 Kas )."""
     return [
         i
         for i, a in enumerate(g["asansorler"])
-        if a is not None
-        and istendi(a)
-        and not _kabin_celiskisi(a, g["ortak"])
-        and avan_secici.aranacak_mi(mimari(a, g["ortak"], g.get("sabitler")))
+        if a is not None and istendi(a) and avan_secici.aranacak_mi(mimari(a, g["ortak"], g.get("sabitler")))
     ]
 
 
@@ -360,7 +368,7 @@ def paket_cizimleri(g, proje_adi, adlar):
             continue
         ad = str(a.get("tanim") or "").strip() or f"{i + 1}. asansör"
         with asamalar.onekle(f"{ad} · "):
-            if i not in aranacak and not _kabin_celiskisi(a, g["ortak"]):
+            if i not in aranacak and not kabin_uymuyor(a, g["ortak"]):
                 asamalar.asama("hazir")
             r = secim(g, i)
         cg = None

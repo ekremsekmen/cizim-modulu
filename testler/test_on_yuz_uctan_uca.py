@@ -1951,25 +1951,44 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(yanit["durum"], "uygun", yanit)
         self.sayfa.wait_for_selector("main svg", state="attached")
 
-        #  KARTIN KABİNİ ( 13 Kas ):  çizimin kabini hazır asansörünkidir ( 630 kg:  1400 × 1100 );
-        #  kartta başka kabin varsa çizim çıkmaz, "Avan kartına uygula" kartı düzeltir.  Hesaplar
-        #  adımındaki "Çizimin kabini" düğmesi de aynı ölçüleri yazar.
+        #  KARTIN KABİNİ ( 24 Kas ):  çizimin kabini kartınkidir — standarda uyuyorsa.  Uymayan kabinde
+        #  ( 1100 × 1600 = 1,76 m² > 630 kg'ın 1,66 m²'si — Çizelge 6 ) çizim çıkmaz, sebebi yazar;
+        #  "Avan kartına uygula" ya da Hesaplar adımındaki "Çizimin kabini" düğmesi kartı hazır
+        #  asansörün kabinine ( 1400 × 1100 ) getirir.
         self.sayfa.evaluate(
             """() => { const p = JSON.parse(localStorage.getItem('asansor:avan'));
-                p.avanAsansorleri[0].kabin_boyu = '1500';
+                p.avanAsansorleri[0].kabin_boyu = '1600';
                 localStorage.setItem('asansor:avan', JSON.stringify(p)); }"""
         )
         self.sayfa.reload()
         _istek, yanit = self.iz.son("/api/avan/cizimler")
         self.assertEqual((yanit["durum"], yanit.get("beyan_turu")), ("beyan", "kabin"), yanit)
-        self.sayfa.wait_for_selector("text=Avan kartındaki kabin, çizimin kabini değil")
-        self.assertIn("Kabin boyu a: 1500 mm → 1400 mm", " ".join(ana.inner_text().split()))
+        self.sayfa.wait_for_selector("text=Avan kartındaki kabin standarda uymuyor")
+        metin = " ".join(ana.inner_text().split())
+        self.assertIn("Kabin boyu a: 1600 mm → 1400 mm", metin)
+        self.assertIn("Çizelge 6", metin)
         self.sayfa.goto(self.url + "/avan/hesaplar")
         self.sayfa.get_by_role("button", name=re.compile("Çizimin kabini · 1400 × 1100 mm")).click()
         self.assertEqual(self.sayfa.get_by_label("Kabin boyu a").input_value(), "1400")
         self.sayfa.goto(self.url + "/avan/cizimler")
         _istek, yanit = self.iz.son("/api/avan/cizimler")
         self.assertEqual(yanit["durum"], "uygun", yanit)
+        #  Standarda uyan başka kabin ( 1050 × 1400 = 1,47 m² — 8 kişi en az 1,45 ) çizime girer;
+        #  Hesaplar adımında "Çizimin kabini" düğmesi görünmez ( kart çizimin kabini )
+        self.sayfa.evaluate(
+            """() => { const p = JSON.parse(localStorage.getItem('asansor:avan'));
+                p.avanAsansorleri[0].kabin_genisligi = '1050';
+                localStorage.setItem('asansor:avan', JSON.stringify(p)); }"""
+        )
+        self.sayfa.reload()
+        _istek, yanit = self.iz.son("/api/avan/cizimler")
+        self.assertEqual(yanit["durum"], "uygun", yanit)
+        self.assertEqual(yanit["istek"]["asansorler"][0]["kabin_genisligi"], "1050")
+        self.sayfa.wait_for_selector("main svg", state="attached")
+        self.sayfa.goto(self.url + "/avan/hesaplar")
+        self.sayfa.get_by_label("Kabin boyu a").wait_for()
+        self.iz.son("/api/avan")
+        self.assertEqual(self.sayfa.get_by_role("button", name=re.compile("Çizimin kabini")).count(), 0)
 
     def test_avan_belgeleri_guncel_sonucu_bekler(self):
         """25 Eki ( dış inceleme ):  avan PDF'i kartların kapasite / hızını ekrandaki
