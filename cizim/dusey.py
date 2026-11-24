@@ -38,6 +38,8 @@ STANDARDIN DENETLEDİĞİ AÇIKLIKLAR
                             acil kapı gerekir — bu çizim acil kapı çizmez, durur
 """
 
+import math
+
 from temel import eleman_kutusu, ortusur, sayi_mi
 from cizim import istek_onbellegi
 from cizim import eleman
@@ -465,8 +467,10 @@ def _kuyu_ustu_acikliklari(g, S, dy, KD, KU, M, H):
     #  REVİZYON KUTUSU ( kabin üstündeki en yüksek donanım;  çizilmez — karar 10 ):
     #  kabin tavanından revizyon_payi yukarıda, kabinin izdüşümündeki en alt tavan
     #  parçasıyla arası en az 0,50 m ( m.5.2.5.7.2 a ).  Eskiden yalnız bölüm 11
-    #  ölçüyordu:  çizim "uygun" derken hesap kalabiliyordu ( 21 Eki ).
-    ust_engel["revizyon"] = rv_engel = engel(KU["tavan"])
+    #  ölçüyordu:  çizim "uygun" derken hesap kalabiliyordu ( 21 Eki ).  Kutu
+    #  korkulukların İÇİNDEDİR ( sığınma alanının 0,30 m yakını — m.5.4.8 a ):
+    #  küpeştenin dışında, tavanın kenarındaki tavan parçasına ölçülmez ( 23 Kas ).
+    ust_engel["revizyon"] = rv_engel = engel(korkuluklarin_ici(KU))
     ust_aciklik["revizyon"] = (
         rv_engel[0] - (ust["tavan"] + S["revizyon_payi"]),
         UST_DONANIM,
@@ -502,9 +506,9 @@ def _kuyu_ustu_acikliklari(g, S, dy, KD, KU, M, H):
         ust_aciklik["baglanti"] = (bg_engel[0] - ust["baglanti_ust"], UST_PATEN, "m.5.2.5.7.2 b")
     tavan_alti = dy["son_kat"] - S["tavan_kirisi"]
     if korkuluk:
-        z, ad, asgari, k_ust = _korkuluk_engeli(KU, M, H, ust, korkuluk, tavan_alti)
+        z, ad, asgari, k_ust, madde = _korkuluk_engeli(KU, M, H, ust, korkuluk, tavan_alti)
         ust_engel["korkuluk"] = (z, ad)
-        ust_aciklik["korkuluk"] = (z - k_ust, asgari, "m.5.2.5.7.2 c")
+        ust_aciklik["korkuluk"] = (z - k_ust, asgari, madde)
     return {
         "ust": ust,
         "tavan_alti": tavan_alti,
@@ -516,21 +520,65 @@ def _kuyu_ustu_acikliklari(g, S, dy, KD, KU, M, H):
     }
 
 
+def _korkuluk_ici(tavan, kenar):
+    """Kabin tavanının bir korkuluğun KABİN TARAFINDAKİ bölümü ( kenar:  küpeşte çizgisi )."""
+    cx, cy = (tavan[0] + tavan[2]) / 2.0, (tavan[1] + tavan[3]) / 2.0
+    if abs(kenar[0] - kenar[2]) < 1e-9:  # yan korkuluk ( x sabit )
+        kx = kenar[0]
+        return (
+            (max(tavan[0], kx), tavan[1], tavan[2], tavan[3])
+            if kx < cx
+            else (tavan[0], tavan[1], min(tavan[2], kx), tavan[3])
+        )
+    ky = kenar[1]
+    return (
+        (tavan[0], max(tavan[1], ky), tavan[2], tavan[3])
+        if ky < cy
+        else (tavan[0], tavan[1], tavan[2], min(tavan[3], ky))
+    )
+
+
+def korkuluklarin_ici(KU):
+    """Kabin tavanının korkulukların içinde kalan bölümü:  kabin üstündeki donanımın ( revizyon kutusu )
+    durduğu yer — sığınma alanının 0,30 m yakınında, korkuluğun içinde ( m.5.4.8 a )."""
+    t = KU["tavan"]
+    for kenar, _yuk in kabin_ustu.korkuluklar(KU):
+        k = _korkuluk_ici(KU["tavan"], kenar)
+        t = (max(t[0], k[0]), max(t[1], k[1]), min(t[2], k[2]), min(t[3], k[3]))
+    return t
+
+
 def _korkuluk_engeli(KU, M, H, ust, korkuluk, tavan_alti):
-    """Korkuluğun 0,40 m yakınındaki tavan parçaları:  kabin izdüşümündeyse
-    0,30, dışındaysa 0,10  ( m.5.2.5.7.2 c 1 ).  Her kenar kendi
-    korkuluğunun yüksekliğiyle ( yan 0,70 · arka 1,10 olabilir — m.5.4.7.4
-    b );  kuyu tavanı en yüksek korkuluğa.  Eskiden hepsine en yüksek
-    korkuluk uygulanıyordu:  0,70'lik yan korkuluğun üstündeki halat
-    bağlantısı 1,10'luk korkulukla ölçülüyordu.
-    ( parçanın kotu, adı, asgari açıklık, korkuluğun üstü ) — en dar olanı."""
-    adaylar = [(tavan_alti, "kuyu tavanı", UST_KORKULUK, ust["tavan"] + korkuluk)]
+    """KORKULUĞUN ÇEVRESİNDEKİ TAVAN PARÇALARI ( m.5.2.5.7.2 c 1 · Şekil 5 ):
+      · İÇERİDE — kabinin izdüşümünde VE küpeştenin kabin tarafında, 0,40 m yatay uzaklık içinde
+        ( Şekil 5:  D ≥ 0,30, E ≤ 0,40 ):  küpeştenin tepesiyle arası DÜŞEY en az 0,30 m;
+      · DIŞARIDA — küpeştenin öbür yanında:  en az 0,10 m AÇIKLIK.  Parça küpeştenin tepesinden
+        alçaktaysa açıklık yataydır ( m.5.4.7.4 d:  küpeştenin dış kenarı ile kuyudaki her parça
+        arası en az 0,10 m ), yüksekteyse küpeştenin tepesinden parçaya en kısa uzaklık.
+    23 Kas:  eskiden kabinin izdüşümüne değen her parçaya 0,30, öbürlerine 0,40 m'ye dek DÜŞEY 0,10
+    aranıyordu:  korkuluğun yanında, tepesinden alçakta duran parça ( 1250 KG:  makine şasesi
+    korkuluğun 175 mm yanında ) ret sebebiydi;  izdüşümün kenarına birkaç mm değen ama küpeştenin
+    dışında kalan parça 0,30 istiyordu.  Her kenar kendi korkuluğunun yüksekliğiyle ( yan 0,70 · arka
+    1,10 olabilir — m.5.4.7.4 b );  kuyu tavanı en yüksek korkuluğa.
+    ( parçanın etkin kotu, adı, asgari açıklık, korkuluğun üstü, madde ) — en dar olanı;  etkin kot −
+    korkuluğun üstü = açıklık ( dışarıdaki parçada ölçülen en kısa uzaklık )."""
+    adaylar = [(tavan_alti, "kuyu tavanı", UST_KORKULUK, ust["tavan"] + korkuluk, "m.5.2.5.7.2 c")]
     for kenar, yuk in kabin_ustu.korkuluklar(KU):
         bolge = _genislet(kenar, YATAY_UZAKLIK)
+        ic = _korkuluk_ici(KU["tavan"], kenar)
+        k_ust = ust["tavan"] + yuk
         for ad, p, z in M["parcalar"]:
-            if ortusur(p, bolge):
-                icinde = ortusur(p, KU["tavan"])
-                adaylar.append((z - H, ad, UST_KORKULUK if icinde else UST_KORKULUK_DIS, ust["tavan"] + yuk))
+            if not ortusur(p, bolge):
+                continue
+            if ortusur(p, ic):
+                adaylar.append((z - H, ad, UST_KORKULUK, k_ust, "m.5.2.5.7.2 c"))
+                continue
+            yatay = math.hypot(
+                max(kenar[0] - p[2], p[0] - kenar[2], 0.0), max(kenar[1] - p[3], p[1] - kenar[3], 0.0)
+            )
+            dusey = z - H - k_ust
+            ara, madde = (math.hypot(yatay, dusey), "m.5.2.5.7.2 c") if dusey >= 0 else (yatay, "m.5.4.7.4 d")
+            adaylar.append((k_ust + ara, ad, UST_KORKULUK_DIS, k_ust, madde))
     return min(adaylar, key=lambda a: a[0] - a[3] - a[2])
 
 

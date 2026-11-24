@@ -100,7 +100,11 @@ class GercekProjeler(unittest.TestCase):
         tamponun stroku boş — kuraldan 0,0674·v² = 68 mm ( eskiden 90 ):  kabinin
         en üst konumu 22 mm alçaldı, bütün açıklıklar 22 mm arttı, ret aynı.  28 Eki:
         tampon boyu boş — hidrolikte YH51/80 ( 315 mm, eskiden 100 ):  ağırlık
-        kaidesi 300'de kaldığı için karşı ağırlık 215 mm yükseldi, ret aynı."""
+        kaidesi 300'de kaldığı için karşı ağırlık 215 mm yükseldi, ret aynı.
+        23 Kas ( kuyu üstü ):  korkuluğun 175 mm yanındaki makine şasesi yatay ölçülür
+        ( m.5.4.7.4 d — eskiden düşey −348 < 100 ):  korkuluk satırı kuyu tavanına
+        237 < 300.  Revizyon kutusu yine regülatöre −43 ( regülatör yerinde — gövdesi
+        küpeşteyi geçer ).  Ret aynı ( Kleemann 1275 kg için 3.800 ister )."""
         cizim, _g, b11 = self.S["1250 KG"]
         self.assertFalse(cizim["aktif"])
         self.assertEqual(
@@ -114,7 +118,7 @@ class GercekProjeler(unittest.TestCase):
                 "Revizyon kutusu – kuyu tavanı:  -43 mm < 500 mm  ( TS EN 81-20 m.5.2.5.7.2 a ).",
                 "Üst paten – kuyu tavanı:  -28 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 b ).",
                 "Üst paten – rayın üst ucu:  57 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 ).",
-                "Korkuluk – kuyu tavanı:  -348 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 c ).",
+                "Korkuluk – kuyu tavanı:  237 mm < 300 mm  ( TS EN 81-20 m.5.2.5.7.2 c ).",
                 "Karşı ağırlık üst pateni – rayın üst ucu:  -218 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 ).",
             ],
         )
@@ -125,7 +129,7 @@ class GercekProjeler(unittest.TestCase):
         )
         for parca in (
             "( -28 < 100 mm )",
-            "( -348 < 100 mm )",
+            "( 237 < 300 mm )",
             "( 57 < 100 mm )",
             "( -218 < 100 mm )",
             "( -43 < 500 mm )",

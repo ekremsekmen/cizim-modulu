@@ -131,10 +131,16 @@ class AvanSecici(unittest.TestCase):
                 self.temiz(r)
 
     def test_kuyu_ustu_yetmiyorsa_mimardan_istenir(self):
-        """Geniş kuyuda korkuluk gerekir, taslağın kuyu üstü yetmez:  asansör "uygun" dönmez;
-        mimardan istenecek kuyu tavanı kotu döner ve o kotla temizdir."""
+        """Geniş kuyuda korkuluk gerekir, kuyu üstü yetmez:  asansör "uygun" dönmez;
+        mimardan istenecek kuyu tavanı kotu döner ve o kotla temizdir.  Kuyu üstü taslağınkinden
+        200 kısa ( 24 Kas:  korkuluğun dışındaki parçaya 0,10 m açıklık — taslağın kuyu üstü
+        geniş kuyuda da artık yetiyor;  eskiden +19,38 istenirdi )."""
         t = PAKETLER[(630, True)]
-        m = mimari(t, kuyu_genisligi=int(t["asansor"]["kuyu_genisligi"]) + 300)
+        m = mimari(
+            t,
+            kuyu_genisligi=int(t["asansor"]["kuyu_genisligi"]) + 300,
+            kuyu_tavani_kotu=kot(t["asansor"]["kuyu_tavani_kotu"], -200),
+        )
         r = avan_secici.sec(m)
         self.assertEqual(r["durum"], "gereken", r)
         self.assertEqual([g["anahtar"] for g in r["gereken"]], ["kuyu_tavani_kotu"])

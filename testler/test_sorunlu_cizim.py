@@ -54,7 +54,9 @@ VAKALAR = {
     (False, "durak_adedi", 30): (),
     (False, "kuyu_dibi", 1200): (),
     (False, "son_kat_yuksekligi", 3200): (),
-    (False, "son_kat_yuksekligi", 4400): (),
+    #  Korkuluk – tavan ve revizyon kutusu ( 24 Kas:  4.400 artık kurulur — korkuluğun yanında,
+    #  tepesinden alçaktaki parça yatay ölçülür, m.5.4.7.4 d;  eskiden düşey −248 < 100 )
+    (False, "son_kat_yuksekligi", 4200): (),
     (False, "agirlik_derinligi", 70): (),
     (False, "kabin_yana_kaciklik", 0): (),
     (True, "son_kat_yuksekligi", 3200): (),
@@ -163,7 +165,7 @@ class SorunluCizim(unittest.TestCase):
             self.assertEqual(set(r), {"aktif", "hesap", "cizimler", "hesap_parcalari"})
 
     def test_paket_uygunsuz_cizimi_reddeder(self):
-        veri = _veri(False, son_kat_yuksekligi=4400)
+        veri = _veri(False, son_kat_yuksekligi=4200)
         self.assertTrue(_ekran(veri)["cizimler"])
         d = json.loads(uygulama_uclari.indir_uygulama_dwg(veri).body)
         self.assertIn("ÇİZİMLER KURULAMADI", d["hata"])
