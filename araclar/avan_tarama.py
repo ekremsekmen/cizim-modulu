@@ -11,6 +11,8 @@ test_avan_secici ) birkaç kuyuya bakar.  Tarama eksenleri geniş tutar:
     hiz    avanın hızları ( paketin kendi kuyusu )
     aski   kartın askı oranı ( 1:1 · 2:1 )
     oda    makine daireli:  mimarın makine dairesi ( paketinkinden küçük )
+    kabin  kartın kabini ( 24 Kas ):  hazır asansörünkinden KABIN_DARALMA dar, alanını koruyacak
+           kadar derin ( standarda uyan — avan_secici.kabin_nedenleri ), kuyu da kabin farkı kadar
 
 Her senaryoda iki tür denetim:
 
@@ -19,8 +21,8 @@ Her senaryoda iki tür denetim:
     · "uygun" / "gereken" isteği uygulamanın KENDİ uçlarından ( seçicinin sınamasına
       güvenilmez ) temiz çıkar:  hesap çalışır, düşen bölümler seçicinin söyledikleridir
       ve avanı bağlayan bölüm düşmez, çizim sorunsuzdur;
-    · kabin hazır asansörünkidir;  hız ve avanın beyanı ( askı, kapı ) istekte aynen durur;
-      "uygun"da mimarın ölçüleri de aynen durur.
+    · kabin kartınkidir ( verilmişse ), değilse hazır asansörünki;  hız ve avanın beyanı ( askı,
+      kapı ) istekte aynen durur;  "uygun"da mimarın ölçüleri de aynen durur.
 
   HÜKÜMLER ( testler/avan_tarama_hukumleri.json — değişirse tarama BAŞARISIZ ):
     durum, karşı ağırlığın yeri, mimardan istenen ölçüler, kartta istenen seçimler ve
@@ -45,6 +47,7 @@ tek incelenip onaylandıktan sonra.  AĞIR İŞTİR:  yerelde koşulmaz, PR'ın 
 import collections
 import copy
 import json
+import math
 import multiprocessing
 import os
 import sys
@@ -56,6 +59,7 @@ import yollar
 yollar.kur()
 
 from cizim import katlar
+from motor.avan import tablolar
 from uclar import avan_secici
 from uclar import cizim_uclari
 from uclar import uygulama_uclari
@@ -77,7 +81,9 @@ HIZLAR = (0.63, 1.6, 2, 2.5)
 ASKILAR = (1, 2)
 #  Makine dairesi ( uzunluk , genişlik ):  yeten, yetmeyen, kuyudan küçük
 ODALAR = ((3000, 2500), (2200, 2200), (1000, 1000))
-KABIN = ("beyan_yuku", "kabin_genisligi", "kabin_derinligi")
+#  Kartın kabini ( "kabin" ekseni ):  hazır asansörünkinden bu kadar dar ( mm ), derinliği alanı
+#  koruyacak kadar ( 50 mm'ye yukarı ) — dar kuyuya standarda uyan kabin
+KABIN_DARALMA = 100
 #  YALNIZ AVANIN HAZIR ASANSÖRLERİ ( uclar/avan_paketleri.json — 450 · 1600 · 2000 · 2500 kg )
 #  seyrek taranır:  hepsi tam eksenle 819 senaryo CI'da 80 dk sürdü ( 14 Kas, PR #134 — büyük
 #  asansörlerin senaryoları yavaş ).  Küçük / geniş kuyu, iki kapı, iki hız;  askı ve oda tam.
@@ -140,7 +146,32 @@ def senaryolar():
             for uzunluk, genislik in ODALAR:
                 m = _paket_mimarisi(t, mk_uzunluk=uzunluk, mk_genislik=genislik)
                 liste.append((f"oda|{ad}|{uzunluk}x{genislik}", anahtar, m))
+        liste.append((f"kabin|{ad}", anahtar, _kartin_kabiniyle(t)))
     return liste
+
+
+def _kartin_kabiniyle(t):
+    """ "kabin" ekseni ( 24 Kas ):  kartta hazır asansörünkinden KABIN_DARALMA dar, alanını koruyacak
+    kadar derin kabin;  kuyu da kabin farkı kadar ( kabin çevresindeki aralıklar paketteki gibi ) —
+    seçici o kabinle arar.  Kişi trafiğinki ( Tablo-7 ) — kabin taşımalı;  kabin standarda uyar."""
+    a = t["asansor"]
+    gen, der = int(a["kabin_genisligi"]), int(a["kabin_derinligi"])
+    g = gen - KABIN_DARALMA
+    d = math.ceil(gen * der / g / 50) * 50
+    yuk = int(a["beyan_yuku"])
+    m = _paket_mimarisi(
+        t,
+        kabin_genisligi=g,
+        kabin_derinligi=d,
+        kuyu_genisligi=int(a["kuyu_genisligi"]) - KABIN_DARALMA,
+        kuyu_derinligi=int(a["kuyu_derinligi"]) + d - der,
+    )
+    kisi = next((p for p, q in tablolar.TABLO_7.items() if q == yuk), None)
+    if kisi is not None:
+        m["kisi"] = kisi
+    if avan_secici.kabin_nedenleri(t, m):
+        raise ValueError(f"kabin ekseni:  {t['kimlik']} kabini standarda uymuyor — {m}")
+    return m
 
 
 def _metin(x):
@@ -155,9 +186,13 @@ def _ihlaller(r, m, t):
     s = []
     v = r["istek"]
     a = {**v["proje_geneli"], **v["asansorler"][0]}
-    for k in KABIN:
-        if a.get(k) != t["asansor"].get(k):
-            s.append(f"kabin {k}:  {a.get(k)} ≠ {t['asansor'].get(k)}")
+    if a.get("beyan_yuku") != t["asansor"].get("beyan_yuku"):
+        s.append(f"yük:  {a.get('beyan_yuku')} ≠ {t['asansor'].get('beyan_yuku')}")
+    #  Kabin kartınki ( verilmişse ), değilse hazır asansörünki
+    kabin = avan_secici.kabin(t, m)
+    for k in avan_secici.KABIN:
+        if a.get(k) != _metin(kabin[k]):
+            s.append(f"kabin {k}:  {a.get(k)} ≠ {_metin(kabin[k])}")
     for k in ("beyan_hizi", *avan_secici.BEYAN):
         if m.get(k) not in (None, "") and a.get(k) != _metin(m[k]):
             s.append(f"beyan {k}:  {a.get(k)} ≠ {m[k]}")

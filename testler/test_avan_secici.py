@@ -4,7 +4,8 @@ yalnız mimari var, buraya en doğru asansör" ).  Sözleşmesi:
   · "uygun" dönen istek uygulamanın kendi uçlarından TEMİZ çıkar ( çizim sorunsuz;  hesabın
     düşen bölümü varsa yalnız seçicinin "acik_bolumler"de söylediği ÜRÜN bölümleri — avanı
     bağlayan bölümler hep uygun ) — seçicinin kendi sınamasına güvenilmez, ayrı yoldan sorulur.
-  · Mimarın verdikleri ( kuyu, kotlar, yük, hız ) istekte AYNEN durur;  kabin paketinkidir.
+  · Mimarın verdikleri ( kuyu, kotlar, yük, hız ) istekte AYNEN durur;  kabin kartınkidir ( standarda
+    uyuyorsa — 24 Kas ), kartta yoksa paketinki.
   · Sığmayan kuyuda asansör dönmez:  ya mimardan istenecek ölçü ( o ölçüyle temiz ) ya da sebep.
 """
 
@@ -495,6 +496,94 @@ class AvanSecici(unittest.TestCase):
         self.assertEqual(avan_secici.sec(m)["eksik"], ["md_zemini_kotu"])
         #  Hazır asansörü olmayan yük ( 1125 kg — 15 kişi;  Tablo-7'de basılı değil )
         self.assertEqual(avan_secici.sec(mimari(t, beyan_yuku=1125))["durum"], "paket_yok")
+
+    def test_kartin_kabini(self):
+        """24 Kas ( kullanıcı:  "Evet, kullanılsın" ):  kartın kabini standarda uyuyorsa çizim onunla
+        kurulur, seçici değiştirmez.  Paketinkinden 100 mm dar, alanı koruyan derin kabin 100 mm dar
+        kuyuya sığar:  kabinin ağırlık yanındaki kenarı paketteki yerinde kalır ( kaçıklık 0 — kuyu
+        ile kabin aynı kadar daraldı;  eskiden kabin yalnız kuyunun farkıyla kayardı ).  Boş kutu
+        paketinkini alır."""
+        t = PAKETLER[(800, True)]
+        m = mimari(
+            t, kuyu_genisligi=2200, kuyu_derinligi=2000, kabin_genisligi=1250, kabin_derinligi=1550, kisi=10
+        )
+        r = avan_secici.sec(m)
+        self.assertEqual(r["durum"], "uygun", r)
+        self.mimari_aynen(m, r["istek"])
+        a = r["istek"]["asansorler"][0]
+        self.assertEqual((a["kabin_genisligi"], a["kabin_derinligi"]), ("1250", "1550"))
+        self.assertEqual(a["kabin_yana_kaciklik"], "0")
+        self.temiz(r)
+        #  Kartta yalnız genişlik:  derinlik paketinki
+        self.assertEqual(
+            avan_secici.kabin(t, {"kabin_genisligi": "1300", "kabin_derinligi": ""}),
+            {"kabin_genisligi": 1300, "kabin_derinligi": 1400},
+        )
+        #  Paketin kabini ya da boş kart:  denetlenmez, paketinki ( 24 Kas'tan önceki gibi )
+        for kabin in ({"kabin_genisligi": "1350", "kabin_derinligi": "1400"}, {"kabin_genisligi": 0}, {}):
+            with self.subTest(kabin):
+                self.assertEqual(
+                    avan_secici.kabin_nedenleri(t, {"beyan_yuku": "800", "kisi": 10, **kabin}), []
+                )
+                self.assertEqual(
+                    avan_secici.kabin(t, kabin), {"kabin_genisligi": 1350, "kabin_derinligi": 1400}
+                )
+
+    def test_kartin_dar_kabini_dar_kuyuda(self):
+        """Kullanıcının kuyusu ( 24 Kas ):  800 kg, makine dairesiz, 1800 × 2700, son kat 4050.  Paketin
+        1350 × 1400 kabiniyle genişlik isteniyordu;  kartın 1300 × 1400 kabiniyle de istenir, ama
+        paketin kuyusunun kabin farkı kadar darı ( 2250 ) başlangıçtır ve istenen ölçü onun altındadır.
+        İstenen ölçüyle çizim kartın kabiniyle temiz."""
+        t = PAKETLER[(800, True)]
+        m = mimari(
+            t,
+            kuyu_genisligi=1800,
+            kuyu_derinligi=2700,
+            kuyu_tavani_kotu="+19,05",
+            kabin_genisligi=1300,
+            kabin_derinligi=1400,
+            kisi=10,
+        )
+        r = avan_secici.sec(m)
+        self.assertEqual(r["durum"], "gereken", r)
+        self.assertEqual([g["anahtar"] for g in r["gereken"]], ["kuyu_genisligi"], r["gereken"])
+        self.assertGreater(r["gereken"][0]["yeni"], 1800)
+        self.assertLess(r["gereken"][0]["yeni"], 2250)
+        a = r["istek"]["asansorler"][0]
+        self.assertEqual((a["kabin_genisligi"], a["kabin_derinligi"]), ("1300", "1400"))
+        self.temiz(r)
+
+    def test_standarda_uymayan_kabin_aranmaz(self):
+        """Kartın kabini standarda uymuyorsa seçici aramaz ( sınama 0 ):  "beyan" — kartta paketin
+        kabini, sebebi TS EN 81-20'nin çizelgesiyle.  Büyük kabin Çizelge 6'yı aşar ( 800 kg en çok
+        2,00 m² ):  uygulamanın hesabı da reddeder.  Küçük kabin trafiğin kişisini taşımaz ( Çizelge 8:
+        10 kişi en az 1,73 m² ):  pafta kartın kişisini yazar.  Kişi verilmezse yalnız üst sınır
+        ( Çizelge 8 uygulamada ret ölçütü değildir — kabine yazılacak kişiyi verir )."""
+        t = PAKETLER[(800, True)]
+        r = avan_secici.sec(mimari(t, kabin_genisligi=1500, kisi=10))
+        self.assertEqual(
+            (r["durum"], r["beyan_turu"], r["sinama"], r["paket"]), ("beyan", "kabin", 0, "800"), r
+        )
+        self.assertEqual(
+            [(b["anahtar"], b["eski"], b["yeni"]) for b in r["beyan"]], [("kabin_genisligi", "1500", "1350")]
+        )
+        (neden,) = r["nedenler"]
+        for parca in ("2,10 m²", "800 kg", "2,00 m²", "Çizelge 6"):
+            self.assertIn(parca, neden)
+        r = avan_secici.sec(mimari(t, kabin_genisligi=1200, kabin_derinligi=1400, kisi=10))
+        self.assertEqual((r["durum"], r["beyan_turu"], r["sinama"]), ("beyan", "kabin", 0), r)
+        self.assertEqual([b["anahtar"] for b in r["beyan"]], ["kabin_genisligi"])
+        (neden,) = r["nedenler"]
+        for parca in ("1,68 m²", "10 kişi", "1,73 m²", "Çizelge 8"):
+            self.assertIn(parca, neden)
+        self.assertEqual(
+            avan_secici.kabin_nedenleri(
+                t, {"beyan_yuku": 800, "kabin_genisligi": 1200, "kabin_derinligi": 1400}
+            ),
+            [],
+        )
+        #  Aramayan sonuç sunucunun paketinde de aranmaz
+        self.assertFalse(avan_secici.aranacak_mi(mimari(t, kabin_genisligi=1500, kisi=10)))
 
 
 class MakineDairesiYuksekligi(unittest.TestCase):

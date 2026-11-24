@@ -1506,8 +1506,9 @@ function okunurAd(k: string): string {
   return s.charAt(0).toLocaleUpperCase("tr-TR") + s.slice(1);
 }
 
-/**  Çizimin kabini ( hazır asansörünki ) karttakinden farklıysa ya da kart boşsa:  tek tıkla karta.
-     Avan çizimi kartın kabini bununla aynı değilken çıkmaz ( sunucu:  avan_cizimi._kabin_celiskisi ).  */
+/**  Çizimin kabini karttakinden farklıysa ( kart boş, eksik ya da kabini standarda uymuyor ):  tek
+     tıkla karta.  Standarda uyan kart kabiniyle çizim o kabinle kurulur ve düğme görünmez;  boş kutu
+     ve uymayan kabin yerine hazır asansörünki ( sunucu:  avan_cizimi.cizimin_kabini ).  */
 function KabinDoldur({
   h,
   yaz,
@@ -2105,7 +2106,7 @@ function CizimlerAdimi({
                         kapat={() => setOlcu(null)}
                         yaz={(d) => kutudanYaz(d)}
                         kilitli={(k) => AVAN_KILITLI.has(k.anahtar) || (k.yer === "proje" && !BINA_OLCULERI.has(k.anahtar))}
-                        kilitNotu="Kabin, kapı ve hız trafik hesabından;  durak kotları Trafik hesabındaki Katlar tablosundan, kuyu kotları soldan değişir."
+                        kilitNotu="Kabin Hesaplar adımındaki avan kartından, kapı ve hız trafik hesabından;  durak kotları Trafik hesabındaki Katlar tablosundan, kuyu kotları soldan değişir."
                       />
                     )
                   }
@@ -2161,8 +2162,8 @@ const MIMARI_GIRDILERI = new Set([
      ( kalanı ) kartın elle ayarları  */
 const KART_OLCULERI = new Set(["kuyu_genisligi", "kuyu_derinligi", "tavan_dosemesi"]);
 const BINA_OLCULERI = new Set(["mk_uzunluk", "mk_genislik", "md_yukseklik"]);
-/**  Avan çiziminde ölçü kutusundan DEĞİŞMEYEN kaynaklar:  trafik hesabının kabini / kapısı / hızı,
-     kartın askısı ve makine tipi, kot tablosu  */
+/**  Avan çiziminde ölçü kutusundan DEĞİŞMEYEN kaynaklar:  kartın kabini, trafik hesabının kapısı /
+     hızı, kartın askısı ve makine tipi, kot tablosu  */
 const AVAN_KILITLI = new Set([
   "beyan_yuku",
   "beyan_hizi",
@@ -2235,7 +2236,7 @@ function CizimSonucu({ r, donuyor, kartaUygula }: { r: AvanCizimYaniti; donuyor:
       <CizimIletisi
         baslik={
           r.beyan_turu === "kabin"
-            ? "Avan kartındaki kabin, çizimin kabini değil"
+            ? "Avan kartındaki kabin standarda uymuyor"
             : r.beyan_turu === "kapi"
               ? "Trafik hesabının kapısıyla bu kuyuya asansör kurulamadı"
               : "Avan hesabının askısıyla bu kuyuya asansör kurulamadı"
@@ -2244,11 +2245,18 @@ function CizimSonucu({ r, donuyor, kartaUygula }: { r: AvanCizimYaniti; donuyor:
           r.beyan_turu === "kapi"
             ? "Çizim, trafik hesabında seçilen kapı genişliğini ve tipini kullanır;  trafik sayfası ile pafta aynı kapıyı gösterir.  Trafik hesabında aşağıdaki seçilirse çizim çıkar ( trafik hesabı da buna göre yenilenir — kapı süreleri değişir )."
             : r.beyan_turu === "kabin"
-            ? "Çizim, trafik hesabının kapasitesinin kabinini kullanır ( hazır asansörün kabini — büyütülmez ).  Avan hesabı kabini karttan okur;  hesap sayfası ile pafta aynı kabini göstersin diye kart aşağıdaki ölçülere getirilince çizim çıkar ( kabin aydınlatması hesabı da buna göre yenilenir )."
+            ? "Çizim avan kartının kabinini kullanır — kabin TS EN 81-20'ye uyuyorsa;  hesap sayfası ile pafta aynı kabini gösterir.  Kart aşağıdaki ölçülere ( hazır asansörün kabini ) ya da standarda uyan başka bir kabine getirilince çizim çıkar ( kabin aydınlatması hesabı da buna göre yenilenir )."
             : "Çizim, avan hesabındaki askı oranını ve makine tipini kullanır;  hesap sayfası ile pafta aynı asansörü gösterir.  Avan kartında aşağıdaki seçilirse çizim çıkar ( motor gücü hesabı da buna göre yenilenir )."
         }
         donuyor={donuyor}
       >
+        {r.beyan_turu === "kabin" && (r.nedenler ?? []).length > 0 && (
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-[13px] text-metin-2">
+            {(r.nedenler ?? []).map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        )}
         <div className="mt-4 overflow-hidden rounded-orta border border-uyari-cizgi">
           {(r.beyan ?? []).map((b) => (
             <div key={b.kart} className="border-b border-uyari-cizgi bg-uyari-acik px-4 py-3 last:border-b-0">
@@ -2277,7 +2285,7 @@ function CizimSonucu({ r, donuyor, kartaUygula }: { r: AvanCizimYaniti; donuyor:
     return (
       <CizimIletisi
         baslik="Mimari ölçü yetmiyor — mimardan istenecek"
-        alt="Çizim, kuyu ve makine dairesi aşağıdaki ölçülere getirilince çıkar.  Asansör trafik hesabının kapasitesindedir;  kabin küçültülmez."
+        alt="Çizim, kuyu ve makine dairesi aşağıdaki ölçülere getirilince çıkar.  Asansör trafik hesabının kapasitesindedir;  kabin avan kartınınkidir, seçici küçültmez ( kartta standarda uyan daha küçük kabinle de denenebilir )."
         donuyor={donuyor}
       >
         <div className="mt-4 overflow-hidden rounded-orta border border-uyari-cizgi">

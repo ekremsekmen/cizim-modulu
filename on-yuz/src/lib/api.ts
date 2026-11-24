@@ -247,7 +247,8 @@ export interface CizimYanit {
      gereken — mimardan istenecek ölçüler, sigmaz — sebepler, eksik — girilmemiş
      mimari alanlar, paket_yok — bu yük için hazır asansör yok, hata — girdi okunamadı,
      beyan — avan kartının askı oranı / makine tipiyle asansör kurulamadı ( çizim hesap
-     sayfasıyla çelişmesin diye kartınkini kullanır );  kartta seçilecek değerler.
+     sayfasıyla çelişmesin diye kartınkini kullanır ) ya da kartın kabini standarda uymuyor;
+     kartta seçilecek değerler.
      tamamlanmadi — arama güvenlik süresinde bitmedi ( neden "sure" ) ya da istek bırakıldı
      ( "iptal" ):  sonuç bilinmiyor, "sığmaz" değildir;  hata'da sebebi ( 16 Kas ).  */
 export interface AvanCizimYaniti {
@@ -256,8 +257,8 @@ export interface AvanCizimYaniti {
   /**  kart:  avan kartının alanı;  yeni:  karta yazılacak değer;  *_yazi:  ekrandaki yazımı  */
   /**  yer "trafik":  öneri avan kartına değil trafik hesabının sütununa yazılır ( kapı )  */
   beyan?: { kart: string; etiket: string; yeni: string; eski_yazi: string; yeni_yazi: string; yer?: "trafik" }[];
-  /**  "kabin":  kartın kabini çizimin kabininden farklı;  "kapi":  trafik hesabının kapısıyla
-       kurulamadı ( yoksa askı / makine tipi )  */
+  /**  "kabin":  kartın kabini standarda uymuyor ( nedenler'de sebebi;  öneri hazır asansörün
+       kabini );  "kapi":  trafik hesabının kapısıyla kurulamadı ( yoksa askı / makine tipi )  */
   beyan_turu?: "kabin" | "kapi";
   hata?: string;
   eksik?: string[];
@@ -468,7 +469,8 @@ export interface AvanKotBilgisi {
   /**  Tavan döşemesinin kalınlığı:  kartta girilen, boşsa kuraldan ( doseme_kural )  */
   doseme: number;
   doseme_kural: number;
-  /**  Çizimin kabini ( hazır asansörünki, mm ) — bu yük için hazır asansör yoksa null  */
+  /**  Çizimin kabini ( mm ):  kartınki — boş olan ya da standarda uymayan kartta hazır
+       asansörünki;  bu yük için hazır asansör yoksa null  */
   kabin: { kabin_boyu: number; kabin_genisligi: number } | null;
 }
 
