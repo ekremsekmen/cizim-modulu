@@ -1610,12 +1610,13 @@ class OnYuzUctanUca(unittest.TestCase):
                 avanAsansorleri: [
                     {tanim: 'A', kuyu_genisligi: '2350', kuyu_derinligi: '1850',
                      durak_kotlari: '±0,00; +3,00; +6,00; +9,00; +12,00; +15,00',
-                     kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+19,20'},
+                     kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+19,00'},
                     {}, {}, {}],
                 kapak: {project_title: 'Aşamalar'}}))"""
         )
         self.sayfa.goto(self.url + "/avan/cizimler")
-        #  Geniş kuyuda kuyu üstü yetmez:  arama birkaç saniye sürer ( yerleşim → küçültme → doğrulama )
+        #  Geniş kuyuda kuyu üstü yetmez:  arama birkaç saniye sürer ( yerleşim → küçültme → doğrulama ).
+        #  Son kat 4.000 ( 24 Kas:  4.200 artık yetiyor — test_avan_cizim_ucu.GENIS_YETMEZ )
         liste = self.sayfa.locator("[data-arama-asamalari]")
         liste.filter(has_text="Hazır asansör seçildi").wait_for()
         self.assertIn("Asansör seçiliyor", liste.inner_text())

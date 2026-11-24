@@ -27,6 +27,9 @@ from uclar import (
 )
 
 T630 = avan_secici.paketler()[(630, True)]["asansor"]
+#  Kuyu üstü yetmeyen geniş kuyu:  2350, son kat 4.000 ( 24 Kas:  korkuluğun dışındaki parçaya
+#  0,10 m açıklık — kartın 4.200'ü artık yetiyor;  eskiden yetmiyordu, kuyu tavanı +19,38 istenirdi )
+GENIS_YETMEZ = {"kuyu_genisligi": "2350", "kuyu_tavani_kotu": "+19,00"}
 T800MD = avan_secici.paketler()[(800, False)]
 
 
@@ -301,7 +304,7 @@ class AvanCizimUcu(unittest.TestCase):
 
     def test_gereken_cizim_dondurmez(self):
         """Geniş kuyuda kuyu üstü yetmez:  çizim de istek de dönmez, mimardan istenen döner."""
-        r = yanit(govde(kart(T630, kuyu_genisligi="2350")))
+        r = yanit(govde(kart(T630, **GENIS_YETMEZ)))
         self.assertEqual(r["durum"], "gereken", r)
         self.assertEqual([g["anahtar"] for g in r["gereken"]], ["kuyu_tavani_kotu"])
         self.assertNotIn("cizim", r)
@@ -593,7 +596,7 @@ class AvanPaketi(unittest.TestCase):
         yanit = self.ham_paket(eksik)
         self.assertNotEqual(yanit.media_type, "application/zip")
         self.assertIn("Kuyu tavanı kotu", json.loads(yanit.body)["hata"])
-        d, bloklar, notlar = self.paket(kart(T630, kuyu_genisligi="2350"), kart(T630, tanim="Yük"))
+        d, bloklar, notlar = self.paket(kart(T630, **GENIS_YETMEZ), kart(T630, tanim="Yük"))
         self.assertIn("CIZIM_KUYU_PLANI", bloklar)
         self.assertFalse(any(b.endswith("_2") for b in bloklar), bloklar)
         self.assertIn("CIZIM", notlar)
@@ -672,7 +675,7 @@ class AvanCizimAkisi(unittest.TestCase):
     geldikleri anda açılır ( sıkıştırma biriktirmez );  aşama bildirimi seçimi etkilemez."""
 
     #  Kuyu üstü yetmeyen geniş kuyu:  ~4 sn, birkaç aşama ( yerleşim → uyarlama → küçültme → doğrulama )
-    GENIS = {"kuyu_genisligi": "2350"}
+    GENIS = GENIS_YETMEZ
 
     def setUp(self):
         avan_secici._ONBELLEK.clear()
