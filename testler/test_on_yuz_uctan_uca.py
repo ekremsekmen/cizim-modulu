@@ -956,11 +956,11 @@ class OnYuzUctanUca(unittest.TestCase):
         """Sırayı kaydıran kaldırmada son hesap eski dizilişindir:  sonuç asansöre
         sırasıyla eşlendiği için 1.'nin ( hepsi uygun ) hükümleri 2.'nin
         sekmesinde görünüyordu ( 21 Eki ).  Yeni hesap tutulurken sonuç yok;
-        gelince 2.'nin kendi hükmü ( kuyu 2.300:  uygun değil bölüm var )."""
+        gelince 2.'nin kendi hükmü ( kuyu 2.400:  uygun değil bölüm var )."""
         self.ornek_projeyi_ac()
         self.sayfa.get_by_role("button", name="Asansör ekle").click()
         self.iz.sakin()
-        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.alan_kutusu("kuyu_genisligi").fill("2400")
         self.iz.sakin()
         self.assertGreater(self.sayaclar()[0], 0)
         tutulan = []
@@ -2604,8 +2604,8 @@ class OnYuzUctanUca(unittest.TestCase):
         geçer, kapanınca özetin düğmesine döner."""
         self.sayfa.set_viewport_size({"width": 1280, "height": 800})
         self.ornek_projeyi_ac()
-        #  Uzun hap:  çizim uygun değil ( kuyu 2300 — test_sorunlu_cizim_ekranda_parcasi_kirmizi )
-        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        #  Uzun hap:  çizim uygun değil ( kuyu 2400 — test_sorunlu_cizim_ekranda_parcasi_kirmizi )
+        self.alan_kutusu("kuyu_genisligi").fill("2400")
         self.iz.son("/api/uygulama/cizimler")
         tablo = self._katlar()
         olc = self.sayfa.evaluate(
@@ -2671,14 +2671,16 @@ class OnYuzUctanUca(unittest.TestCase):
 
     # ------------------------------------------------------------ 7 sorunlu çizim
     def test_sorunlu_cizim_ekranda_parcasi_kirmizi(self):
-        """Kuyu 2200 → 2300:  sol boşluk 500'ü aşar, korkuluk 1,10 m olur ve
-        tavana sığmaz ( 19 Eki ölçümü ).  Çizim yine gelir;  sorunun parçaları
+        """Kuyu 2200 → 2400:  sağ boşluk da 500'ü aşar, sağdaki korkuluk 1,10 m olur;
+        regülatör küpeştenin 9 mm yanında, tepesinden alçakta ( m.5.4.7.4 d;  24 Kas'a
+        dek 2300'de sol korkuluğun yanındaki şase düşey ölçülüp reddediliyordu ).
+        Çizim yine gelir;  sorunun parçaları
         kırmızı;  soruna tıklayınca tuval o çizimde parçaya yakınlaşır ( bütün
         kesit sığınca tepedeki korkuluk okunmuyordu );  düzelince işaret kalkar."""
         self.ornek_projeyi_ac()
-        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.alan_kutusu("kuyu_genisligi").fill("2400")
         istek, cizim = self.iz.son("/api/uygulama/cizimler")
-        self.assertEqual(istek["asansorler"][0]["kuyu_genisligi"], "2300")
+        self.assertEqual(istek["asansorler"][0]["kuyu_genisligi"], "2400")
         self.assertFalse(cizim["aktif"])
         self.assertEqual(self.sayfa.locator("figure[data-cizim]").count(), len(cizim["cizimler"]))
         kart = self.sayfa.get_by_role("alert")
@@ -2733,13 +2735,12 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertEqual(self.sayfa.locator(".parca-sorunlu, .parca-sorun-secili").count(), 0)
 
     def test_duzeltme_oner_ve_uygula(self):
-        """Kuyu 2200 → 2300 ( korkuluk tavana sığmaz ):  düzeltmeler gelir —
-        kuyu genişliğinin sınırı 2230 ( son değişiklik:  ön yüz son temiz
-        girdiyi gönderir ) ve kuyu tavanının kotu +46,52 ( türev;  örnek kotla —
-        ölçüyle girişte son kat 4515 idi, kot santime yukarı yuvarlanır );  "Uygula"
-        kutuya yazar, sorun kalkar ( uclar/care_uclari.py )."""
+        """Kuyu 2200 → 2400 ( regülatör sağdaki 1,10 m'lik korkuluğun 9 mm yanında ):
+        düzeltme gelir — kuyu genişliğinin sınırı 2350 ( son değişiklik:  ön yüz son
+        temiz girdiyi gönderir );  türev yok ( yatay aralık kuyu tavanıyla değişmez );
+        "Uygula" kutuya yazar, sorun kalkar ( uclar/care_uclari.py )."""
         self.ornek_projeyi_ac()
-        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.alan_kutusu("kuyu_genisligi").fill("2400")
         self.iz.sakin()
         kart = self.sayfa.get_by_role("alert")
         with self.sayfa.expect_response(
@@ -2750,22 +2751,22 @@ class OnYuzUctanUca(unittest.TestCase):
         d = yanit_govdesi(yanit.value)
         self.assertTrue(d["aktif"], d)
         oneriler = {o["anahtar"]: o["yeni"] for c in d["careler"] for o in c["oneriler"]}
-        self.assertEqual((oneriler["kuyu_genisligi"], oneriler["kuyu_tavani_kotu"]), (2230, 46.52))
+        self.assertEqual(oneriler, {"kuyu_genisligi": 2350})
         liste = kart.get_by_role("list", name="Düzeltmeler")
         liste.wait_for()
         self.assertIn("bina ölçüsü", liste.inner_text())
-        kart.get_by_role("button", name=re.compile(r"^Kuyu genişliği 2\.230 yap$")).click()
+        kart.get_by_role("button", name=re.compile(r"^Kuyu genişliği 2\.350 yap$")).click()
         self.sayfa.get_by_role("alert").wait_for(state="detached")
-        self.assertEqual(self.alan_kutusu("kuyu_genisligi").input_value(), "2230")
+        self.assertEqual(self.alan_kutusu("kuyu_genisligi").input_value(), "2350")
         istek, cizim = self.iz.son("/api/uygulama/cizimler")
-        self.assertEqual(istek["asansorler"][0]["kuyu_genisligi"], "2230")
+        self.assertEqual(istek["asansorler"][0]["kuyu_genisligi"], "2350")
         self.assertTrue(cizim["aktif"], cizim.get("hata"))
 
     def test_duzeltmenin_hesapta_cikaracagi_bolum_soylenir(self):
         """Düzeltmeden sonra hesapta uygun olmayan çıkacak bölüm önerinin yanında söylenir
         ( sunucu hesapta_ortaya_cikan — 1 Kas;  ekran göstermiyordu, 9 Kas )."""
         self.ornek_projeyi_ac()
-        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.alan_kutusu("kuyu_genisligi").fill("2400")
         self.iz.sakin()
 
         def yama(route):
@@ -2791,11 +2792,14 @@ class OnYuzUctanUca(unittest.TestCase):
         metni ikisinde aynı.  1.'nin düzeltmeleri 2.'nin kartında görünmez —
         istek bütün asansörleri taşır, sekme değişince aynı kalıyordu;  "Uygula"
         1. için bulunan değeri 2.'ye yazıyordu ( 20 Eki ).  2.'nin düzeltmeleri
-        kendisinin:  hiç temiz çizimi olmadığından son değişikliğin sınırı
-        ( kuyu 2.230 ) yok, türevden kuyu tavanının kotu +46,52 var ( örnek kotla );
-        yalnız 2.'ye yazılır."""
+        kendisinin:  hiç temiz çizimi olmadığından son değişikliğin sınırı yok
+        ( aynı kabin yüksekliğini türevden bulur ), türevden kuyu tavanının kotu
+        +46,33 var ( örnek kotla );  yalnız 2.'ye yazılır.  Sorun:  kabin iç
+        yüksekliği 2.100 → 2.200 — kabin halat bağlantısı korkuluğa 225 < 300,
+        revizyon kutusuna 425 < 500 ( 24 Kas'a dek kuyu 2.300 idi:  korkuluk
+        kuralı düzelince o düzen kurulur )."""
         self.ornek_projeyi_ac()
-        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.alan_kutusu("kabin_ic_yuksekligi").fill("2200")
         self.iz.sakin()
         self.sayfa.get_by_role("button", name="Asansör ekle").click()
         self.iz.sakin()
@@ -2809,7 +2813,8 @@ class OnYuzUctanUca(unittest.TestCase):
                 lambda r: r.url.endswith("/api/uygulama/care"), timeout=30_000
             ) as yanit:
                 kart.get_by_role("button", name="Düzeltme öner").click()
-            kart.get_by_role("list", name="Düzeltmeler").wait_for()
+            #  İki sorun ( revizyon kutusu, korkuluk ):  her birinin kendi listesi
+            kart.get_by_role("list", name="Düzeltmeler").first.wait_for()
             return yanit.value.request.post_data_json["asansor"], kart
 
         self.assertEqual(care_iste()[0], 0)
@@ -2822,15 +2827,14 @@ class OnYuzUctanUca(unittest.TestCase):
 
         asansor, kart = care_iste()
         self.assertEqual(asansor, 1)
-        self.assertEqual(
-            kart.get_by_role("button", name=re.compile(r"^Kuyu genişliği 2\.230 yap$")).count(), 0
-        )
+        self.assertNotIn("son değişikliğin sınırı", kart.inner_text())
         tavan = re.escape(self.ad("kuyu_tavani_kotu"))
-        kart.get_by_role("button", name=re.compile(rf"^{tavan} 46,52 yap$")).click()
+        #  Aynı düzeltme iki sorunun listesinde:  birine basılır, ikisi birden gider
+        kart.get_by_role("button", name=re.compile(rf"^{tavan} 46,33 yap$")).first.click()
         self.sayfa.get_by_role("alert").wait_for(state="detached")
         self.assertEqual(
-            [(a.get("kuyu_genisligi"), a.get("kuyu_tavani_kotu")) for a in self.kayitli_asansorler()],
-            [("2300", "+46,25"), ("2300", "46,52")],
+            [(a.get("kabin_ic_yuksekligi"), a.get("kuyu_tavani_kotu")) for a in self.kayitli_asansorler()],
+            [("2200", "+46,25"), ("2200", "46,33")],
         )
 
     def test_duzeltme_degisen_girdiyle_uygulanmaz(self):
@@ -2841,7 +2845,7 @@ class OnYuzUctanUca(unittest.TestCase):
         girdinin sınanmış düzeltmeleri geri gelir."""
         self.ornek_projeyi_ac()
         kuyu = self.alan_kutusu("kuyu_genisligi")
-        kuyu.fill("2300")
+        kuyu.fill("2400")
         self.iz.sakin()
         kart = self.sayfa.get_by_role("alert")
         with self.sayfa.expect_response(lambda r: r.url.endswith("/api/uygulama/care"), timeout=30_000):
@@ -2855,7 +2859,7 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.route("**/api/uygulama/cizimler", lambda r: tutulan.append(r))
         try:
             #  Girdi değişir, yeni çizim yolda tutulur:  ekranda eski çizim ve sorunu
-            kuyu.fill("2310")
+            kuyu.fill("2410")
             for _ in range(100):
                 if tutulan:
                     break
@@ -2864,7 +2868,7 @@ class OnYuzUctanUca(unittest.TestCase):
             self.assertIn("Korkuluk – kuyu tavanı", kart.inner_text())
             self.assertEqual((liste.count(), uygula.count(), arama.count()), (0, 0, 0))
             #  Ekrandaki çizimin girdisine dönüş:  onun düzeltmeleri yine geçerli
-            kuyu.fill("2300")
+            kuyu.fill("2400")
             liste.wait_for()
             self.assertGreater(uygula.count(), 0)
         finally:
@@ -2872,7 +2876,7 @@ class OnYuzUctanUca(unittest.TestCase):
                 r.continue_()
             self.sayfa.unroute("**/api/uygulama/cizimler")
         self.iz.sakin()
-        self.assertEqual(self.kayitli_asansorler()[0].get("kuyu_genisligi"), "2300")
+        self.assertEqual(self.kayitli_asansorler()[0].get("kuyu_genisligi"), "2400")
 
     # ------------------------------------------------------------ 5 teslim
     def test_teslim_onaysiz_kapali_onayli_paket_iner(self):
@@ -2964,7 +2968,7 @@ class OnYuzUctanUca(unittest.TestCase):
 
     def test_teslim_sorunlu_cizimde_paket_kapali_hesap_pdf_acik(self):
         self.ornek_projeyi_ac()
-        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.alan_kutusu("kuyu_genisligi").fill("2400")
         self.iz.sakin()
         self.sayfa.get_by_role("button", name="Teslim").click()
         teslim = self.sayfa.get_by_role("dialog", name="Teslim")
@@ -3001,7 +3005,7 @@ class OnYuzUctanUca(unittest.TestCase):
         girdi düzeltildi;  hesap görünümünde çizim istenmediği için eski sorunlu
         çizim teslimi kapatıyordu.  Teslim açılınca son girdinin çizimi istenir."""
         self.ornek_projeyi_ac()
-        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.alan_kutusu("kuyu_genisligi").fill("2400")
         self.iz.sakin()
         self.sayfa.get_by_role("radio", name="Hesap").click()
         self.iz.sakin()
@@ -3015,7 +3019,7 @@ class OnYuzUctanUca(unittest.TestCase):
         self.assertTrue(teslim.get_by_role("button", name=re.compile("Paketi indir")).is_enabled())
         #  Ters yön:  hesap görünümünde bozulan çizim teslimde yakalanır
         self.sayfa.keyboard.press("Escape")
-        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.alan_kutusu("kuyu_genisligi").fill("2400")
         self.iz.sakin()
         self.sayfa.get_by_role("button", name="Teslim").click()
         teslim.get_by_text(re.compile(r"Çizimde 1 sorun var")).wait_for()
@@ -3299,7 +3303,7 @@ class OnYuzUctanUca(unittest.TestCase):
         self.sayfa.get_by_role("button", name="Asansör ekle").click()
         self.alan_kutusu("kuyu_derinligi").fill("2750")
         self.iz.sakin()
-        self.alan_kutusu("kuyu_genisligi").fill("2300")
+        self.alan_kutusu("kuyu_genisligi").fill("2400")
         self.iz.sakin()
         self.sayfa.get_by_role("button", name=re.compile(r"asansörünü kaldır$")).first.click()
         self.iz.sakin()
@@ -3624,7 +3628,7 @@ class OnYuzUctanUca(unittest.TestCase):
 
         def sorunlu(i):
             ac(i)
-            self.alan_kutusu("kuyu_genisligi").fill(str(2300 + i))
+            self.alan_kutusu("kuyu_genisligi").fill(str(2400 + i))
             self.iz.sakin()
 
         self._arizalari_dene(

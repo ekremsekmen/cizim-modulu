@@ -2201,7 +2201,9 @@ class DuseyKesitler(unittest.TestCase):
         #  Makine şasesinin altı 5.000 − 250 − 345 − 200 = 4.205 ( referans proje ) ve
         #  şase soldaki patenin 0,40 m yakınında:  paten 4.205 − 3.095 = 1.110.
         #  Yakın kabin rayı şasede biter:  5.000 − 650 = 4.350 → 1.255.
-        #  Korkuluk ( 3.685 ) — şase korkuluğun dışında ( 0,10 m ) → 520.
+        #  Korkuluk ( 3.685 ) — şase küpeştenin dışında ( x 343 < 505 ):  0,10 m açıklık,
+        #  küpeştenin tepesinden en kısa uzaklık √( 162² + 520² ) = 545 ( 24 Kas;  eskiden
+        #  düşey 520 — m.5.2.5.7.2 c · Şekil 5 ).
         #  Karşı ağırlık en üstte:  −1.040 + 150 + 21.000 + 96 + 90 + 35 = 20.331 ( çerçeve
         #  altı ),  çerçeve 3.060 − 140 = 2.920, üst paten 20.331 + 2.920 + 140 = 23.391;
         #  ağırlık rayı 26.000 − 650 = 25.350 → 1.959.
@@ -2209,13 +2211,13 @@ class DuseyKesitler(unittest.TestCase):
         #  en alt tavan parçası kabin halat bağlantısı 5.000 − 645 = 4.355 → 1.270.
         self.assertEqual(Y["yukselme"], 275)
         self.assertEqual(
-            {k: v[0] for k, v in Y["ust_aciklik"].items()},
+            {k: round(v[0], 6) for k, v in Y["ust_aciklik"].items()},
             {
                 "siginma": 2265,
                 "revizyon": 1270,
                 "paten": 1110,
                 "ray": 1255,
-                "korkuluk": 520,
+                "korkuluk": round(math.hypot(162, 520), 6),
                 "agirlik_ray": 1959,
             },
         )
@@ -2256,10 +2258,11 @@ class DuseyKesitler(unittest.TestCase):
         self.assertTrue(any("kabinle çelişiyor" in x for x in h), h)
 
     def test_korkuluk_sinirlari(self):
-        #  Makine dairesinde kuyu tavanına 0,30:  kiriş altı − 3.685 = 300 → 4.135.
-        #  Makine dairesizde korkuluğun dışındaki şaseye 0,10:  ( SK − 795 ) −
-        #  3.685 = 100 → 4.580 ( m.5.2.5.7.2 c 1 ).
-        for yeri, sinir in (("Makine dairesi", 4135), ("Kuyu üstü", 4580)):
+        #  Kuyu tavanına 0,30:  kiriş altı − 3.685 = 300 → 4.135 — makine dairesinde de,
+        #  dairesizde de.  Dairesizde şase küpeştenin 162 mm dışında:  tepesinden alçaktaysa
+        #  yatay 162 ≥ 100 ( m.5.4.7.4 d ), yüksekteyse en kısa uzaklık — hep sağlanır
+        #  ( 24 Kas'a dek düşey 0,10 aranıyordu:  ( SK − 795 ) − 3.685 = 100 → 4.580 ).
+        for yeri, sinir in (("Makine dairesi", 4135), ("Kuyu üstü", 4135)):
             for sk, uygun in ((sinir, True), (sinir - 1, False)):
                 h = dusey.dogrula(_ornek(dusey={"son_kat": sk}, makine={"yeri": yeri}))
                 with self.subTest(yeri=yeri, son_kat=sk):

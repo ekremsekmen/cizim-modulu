@@ -606,38 +606,6 @@ def _perdeyi_uzat(perde, ag_yan, G, D, engeller, yol=()):
     return (x0, y0, x1, y1), korunan, donus
 
 
-#  KUYU TEPESİNDEKİ PARÇALAR KABİNİN İZDÜŞÜMÜNÜN DIŞINDA ( 23 Kas ):  makine dairesizde regülatör ve
-#  kabin halat bağlantısı kabinin yolunun üstüne taşmaz — LiftDesigner 4815-6 ( T-T planı:  ikisi de
-#  kabinin kenarının ~20 – 30 mm dışında ), Kleemann'ın sahadaki 900 kg projesi ve kullanıcının sahadan
-#  iki fotoğrafı ( regülatör duvarın ya da rayın yanında, mekanizması kabine bakar ).  ÇİZİM KABULÜ:
-#  kabinin kenarından bu kadar dışarıda.  Eskiden regülatörün gövdesi ray ekseninden kabine 152 mm
-#  uzanıyor, izdüşüme 36 – 41 mm giriyordu;  korkuluğun 0,30 m'si ve revizyon kutusunun 0,50 m'si ona
-#  ölçülüyor, standart yan ağırlıklı düzen 4.080 mm son kat istiyordu ( cikti/arastirma/KUYU_USTU.md ).
-TAVAN_PARCASI_PAYI = 20.0
-
-
-def regulator_kaymasi(g, kabin, rx):
-    """Makine dairesizde regülatörün halat ekseninin ray ekseninden kayması ( mm, + sağa ):  gövdesi
-    kabinin izdüşümüne giriyorsa kenardan TAVAN_PARCASI_PAYI dışarıda kalacak kadar DUVARA doğru, en
-    çok gövde duvara dayanana dek ( yer yoksa izdüşümde kalır — açıklık kuralları onu ölçer ).
-    Mekanizma kabine bakmaya devam eder ( kuyu_ustu.regulator_plani;  m.5.6.2.2.1.4 c 2:  kabin
-    tavanından muayene ).  Gergi kasnağı aynı kadar kayar:  halat düşey iner ( yerlesim ).  Makine
-    dairesinde regülatör odadadır:  0.  rx:  seçilen yandaki kabin rayının ekseni."""
-    if (g.get("makine") or {}).get("yeri") != "Kuyu üstü":
-        return 0.0
-    kd = g["kuyu_dibi"]
-    _u0, _u1, v0, v1 = parcalar.regulator_geometrisi(kd["regulator_kasnak_capi"])["zarf"]
-    if kd["regulator_yan"] == "Sağ":
-        #  Gövde [ rx − v1 , rx − v0 ]:  kabin solda, duvar G'de
-        gerek = kabin[2] + TAVAN_PARCASI_PAYI - (rx - v1)
-        oda = g["kuyu"]["genislik"] - (rx - v0)
-        return min(gerek, oda) if gerek > 0 and oda > 0 else 0.0
-    #  Gövde [ rx + v0 , rx + v1 ]:  kabin sağda, duvar 0'da
-    gerek = (rx + v1) - (kabin[0] - TAVAN_PARCASI_PAYI)
-    oda = rx + v0
-    return -min(gerek, oda) if gerek > 0 and oda > 0 else 0.0
-
-
 def gergi_yonu(g, kasnak):
     """( yon , yan ):  kolun planda doğrultusu ( y ekseninde, raydan kasnağa:  +1 /
     −1 ) ve plakanın rayın hangi yanında olduğu ( x ekseninde, duvara doğru )."""
@@ -774,8 +742,6 @@ def yerlesim(g, cizim_sabitleri=None):
     #  arkasında;  planda kasnak yandan görünür ( boyu çap, eni sabit ).
     ray = kabin_raylari[-1] if kd["regulator_yan"] == "Sağ" else kabin_raylari[0]
     gx, gy = kutu_merkezi(ray)[0], ry + kd["regulator_kaciklik"]
-    #  Makine dairesizde regülatör kabinin izdüşümünden çıkacak kadar duvara kayar;  gergi altında
-    gx += regulator_kaymasi(g, kabin, gx)
     dg_, eg = kd["regulator_kasnak_capi"] / 2.0, S["gergi_kasnak_eni"] / 2.0
     gergi = (gx - eg, gy - dg_, gx + eg, gy + dg_)
     gergi_donanim = gergi_parcalari(g, S, gergi, ray)

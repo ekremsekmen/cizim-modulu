@@ -9,9 +9,11 @@ Değişmezler:
       öneride ortaya_cikan olarak söylenir.
   2.  Sorunun açığı ( sorun.Sorun.fark ) sorun varken ≤ 0 — türevin yönü
       buna dayanır.
-  3.  Kullanıcının örnekleri ( 19 Eki ölçümü, örnek proje ):  kuyu 2300 →
-      kuyu genişliğinin sınırı 2230 ( son değişiklik — türevin göremediği
-      korkuluk sıçraması ) ve son kat 4515 ( türev );  kuyu dibi 1300 →
+  3.  Kullanıcının örnekleri ( 19 Eki ölçümü, örnek proje ):  kuyu 2400 →
+      kuyu genişliğinin sınırı 2350 ( son değişiklik — türevin göremediği
+      korkuluk sıçraması:  sağdaki korkuluk 1,10 m olur, regülatör küpeştenin
+      9 mm yanında — m.5.4.7.4 d;  24 Kas'a dek kuyu 2300'de soldaki şase
+      düşey ölçülüp reddediliyordu, sınır 2230 ve son kat 4515 );  kuyu dibi 1300 →
       kuyu dibi 1415 dört sorunu birden giderir;  kuyu dibi 1000 ( girdi
       çizime çevrilemiyor ) → kuyu dibi 1415.
 """
@@ -65,7 +67,7 @@ ORNEK = dict(
 
 #  ( taban , değişen alan , değer ) — her biri bir sorun sınıfı
 VAKALAR = (
-    ("ornek", "kuyu_genisligi", "2300"),
+    ("ornek", "kuyu_genisligi", "2400"),
     ("ornek", "kuyu_dibi", "1300"),
     ("ornek", "kuyu_genisligi", "2100"),
     ("ornek", "kuyu_dibi", "1000"),
@@ -147,11 +149,13 @@ class Care(unittest.TestCase):
                 if f is not None:
                     self.assertLessEqual(float(f), 1e-6, (vaka, str(h)))
 
-    def test_korkuluk_sicramasi_ve_son_kat(self):
-        _veri, r = self.coz("ornek", "kuyu_genisligi", "2300")
+    def test_korkuluk_sicramasi(self):
+        #  Kuyu 2.360'tan sonra sağdaki korkuluk da 1,10 m:  regülatör küpeştenin 9 mm yanında,
+        #  tepesinden alçakta ( m.5.4.7.4 d ) — yatay aralık kuyu tavanıyla değişmez, türev
+        #  göremez;  sınır son değişiklikten
+        _veri, r = self.coz("ornek", "kuyu_genisligi", "2400")
         o = _oneriler(r, "Korkuluk – kuyu tavanı")
-        self.assertEqual(o["kuyu_genisligi"][:2], (2230.0, "son değişiklik"))
-        self.assertEqual(o["son_kat_yuksekligi"][:2], (4515.0, "türev"))
+        self.assertEqual(o["kuyu_genisligi"][:2], (2350.0, "son değişiklik"))
 
     def test_kuyu_dibi_dort_sorunu_birden_giderir(self):
         _veri, r = self.coz("ornek", "kuyu_dibi", "1300")
@@ -282,7 +286,7 @@ class Care(unittest.TestCase):
     def test_butce_biterse_yanit_soyler(self):
         """Bütçeye ya da güvenlik süresine takılan arama "tamamlandı" demez;
         bulduğu çareler yine sınanmıştır."""
-        veri, onceki = _vaka("ornek", "kuyu_genisligi", "2300")
+        veri, onceki = _vaka("ornek", "kuyu_genisligi", "2400")
         r = care_uclari.coz(veri, 0, onceki, care_uclari.Butce(sinama=3))
         self.assertEqual((r["tamamlandi"], r["neden"], r["sinama"]), (False, "sinama", 3))
         r = care_uclari.coz(veri, 0, onceki, care_uclari.Butce(sure=-1.0))
