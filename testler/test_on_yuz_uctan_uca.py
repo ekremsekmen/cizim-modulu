@@ -1618,13 +1618,14 @@ class OnYuzUctanUca(unittest.TestCase):
                 avanAsansorleri: [
                     {tanim: 'A', kuyu_genisligi: '2350', kuyu_derinligi: '1850',
                      durak_kotlari: '±0,00; +3,00; +6,00; +9,00; +12,00; +15,00',
-                     kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+19,00'},
+                     kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+18,70'},
                     {}, {}, {}],
                 kapak: {project_title: 'Aşamalar'}}))"""
         )
         self.sayfa.goto(self.url + "/avan/cizimler")
         #  Geniş kuyuda kuyu üstü yetmez:  arama birkaç saniye sürer ( yerleşim → küçültme → doğrulama ).
-        #  Son kat 4.000 ( 24 Kas:  4.200 artık yetiyor — test_avan_cizim_ucu.GENIS_YETMEZ )
+        #  Son kat 3.700 ( 24 Kas:  4.200 artık yetiyor;  25 Kas küpeşte tavana asılı parçalardan da
+        #  içeri alınınca 3.800 de yetiyor — test_avan_cizim_ucu.GENIS_YETMEZ )
         liste = self.sayfa.locator("[data-arama-asamalari]")
         liste.filter(has_text="Hazır asansör seçildi").wait_for()
         self.assertIn("Asansör seçiliyor", liste.inner_text())
@@ -1640,7 +1641,8 @@ class OnYuzUctanUca(unittest.TestCase):
         Çizimler adımında bulunmamışsa ( dar kuyuda dakikalar ) önce sorulur:  Çizimlere git ·
         Yine de indir · Vazgeç.  Aranmışsa ( bulundu ya da çizilemiyor ) sormadan iner."""
         self.sayfa.goto(self.url + "/")
-        #  Kuyu bu teste özgü ( tavan +19,10 ):  başka testin araması sunucunun önbelleğinde olurdu.
+        #  Kuyu bu teste özgü ( tavan +18,60 — kuyu üstü yetmez ):  başka testin araması sunucunun
+        #  önbelleğinde olurdu.
         #  Avan hesabı eksiksiz ( kabin ):  eksik avanla paket kapalıdır ( test_eksik_avanda_paket_kapali )
         self.sayfa.evaluate(
             """() => localStorage.setItem('asansor:avan', JSON.stringify({
@@ -1651,7 +1653,7 @@ class OnYuzUctanUca(unittest.TestCase):
                 avanAsansorleri: [
                     {tanim: 'A', kuyu_genisligi: '2350', kuyu_derinligi: '1850',
                      durak_kotlari: '±0,00; +3,00; +6,00; +9,00; +12,00; +15,00',
-                     kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+19,10',
+                     kuyu_dibi_kotu: '-1,50', kuyu_tavani_kotu: '+18,60',
                      kabin_boyu: '1400', kabin_genisligi: '1100'},
                     {}, {}, {}],
                 kapak: {project_title: 'Paket'}}))"""
