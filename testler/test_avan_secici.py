@@ -136,25 +136,62 @@ class AvanSecici(unittest.TestCase):
         mimardan istenecek kuyu tavanı kotu döner ve o kotla temizdir.  Kuyu üstü taslağınkinden
         500 kısa ( 24 Kas:  korkuluğun dışındaki parçaya 0,10 m açıklık — taslağın kuyu üstü
         geniş kuyuda da artık yetiyor;  eskiden +19,38 istenirdi.  25 Kas:  küpeşte tavana asılı
-        parçalardan da içeri alınınca 200 kısası da kurulur — 400 kısası kurulur, 500 kısası değil )."""
+        parçalardan da içeri alınınca 200 kısası da kurulur — 400 kısası kurulur, 500 kısası değil ).
+
+        İSTENEN KOT EN KÜÇÜĞÜNE İNER ( 24 Kas ):  çare bulucunun türevi sorunu o an bağlayan parçaya
+        göre fazla istiyordu ( +19,37 — +19,18 yetiyordu );  seçici kotu da ikili aramayla en küçük
+        yeterli değere indirir.  400 kısası kurulduğu için istenen kot taslağınkinin en az 400
+        altındadır."""
         t = PAKETLER[(630, True)]
-        m = mimari(
-            t,
-            kuyu_genisligi=int(t["asansor"]["kuyu_genisligi"]) + 300,
-            kuyu_tavani_kotu=kot(t["asansor"]["kuyu_tavani_kotu"], -500),
+        genis = int(t["asansor"]["kuyu_genisligi"]) + 300
+        taslagin, _h = katlar.kot_oku(t["asansor"]["kuyu_tavani_kotu"])
+        #  Önkoşul:  taslağın 400 kısası bu kuyuda yetiyor
+        self.assertEqual(
+            avan_secici.sec(
+                mimari(t, kuyu_genisligi=genis, kuyu_tavani_kotu=kot(t["asansor"]["kuyu_tavani_kotu"], -400))
+            )["durum"],
+            "uygun",
         )
+        for kisa in (500,):
+            m = mimari(t, kuyu_genisligi=genis, kuyu_tavani_kotu=kot(t["asansor"]["kuyu_tavani_kotu"], -kisa))
+            r = avan_secici.sec(m)
+            self.assertEqual(r["durum"], "gereken", r)
+            self.assertEqual([g["anahtar"] for g in r["gereken"]], ["kuyu_tavani_kotu"])
+            (g,) = r["gereken"]
+            self.assertEqual(g["eski"], m["kuyu_tavani_kotu"])
+            eski, _h = katlar.kot_oku(g["eski"])
+            yeni, hata = katlar.kot_oku(g["yeni"])
+            self.assertIsNone(hata)
+            self.assertGreater(yeni, eski)
+            self.assertLessEqual(yeni, taslagin - 400, (kisa, g))
+            self.assertTrue(g["sebep"])
+            #  İstenen kotla seçici "uygun" der
+            r2 = avan_secici.sec({**m, "kuyu_tavani_kotu": g["yeni"]})
+            self.assertEqual(r2["durum"], "uygun", r2)
+            self.temiz(r2)
+
+    def test_kuyu_dibi_yetmiyorsa_en_kucugu_istenir(self):
+        """Kuyu dibi kotu da küçültülür ( 24 Kas ):  taslağın kuyusunda kuyu dibi 800 sığ ( sığınma
+        yüksekliği yetmez ) — çare bulucunun türevi kuyu dibini fazla derin istiyordu.  Küçültme
+        aşağı doğrudur ( mimarınkinden önerilene ):  istenen kot mimarınkinden derin, çare
+        bulucununkinden ( küçültmesiz seçim ) sığ, taslağınkinden derin değil;  onunla seçici "uygun" der."""
+        t = PAKETLER[(630, True)]
+        m = mimari(t, kuyu_dibi_kotu=kot(t["asansor"]["kuyu_dibi_kotu"], 800))
+
+        def istenen(r):
+            self.assertEqual(r["durum"], "gereken", r)
+            self.assertEqual([g["anahtar"] for g in r["gereken"]], ["kuyu_dibi_kotu"])
+            return katlar.kot_oku(r["gereken"][0]["yeni"])[0]
+
+        with mock.patch.object(avan_secici, "_kucult", lambda v, d, gereken, *_a, **_k: (v, d, gereken)):
+            ham = istenen(avan_secici.sec(m))
         r = avan_secici.sec(m)
-        self.assertEqual(r["durum"], "gereken", r)
-        self.assertEqual([g["anahtar"] for g in r["gereken"]], ["kuyu_tavani_kotu"])
-        (g,) = r["gereken"]
-        self.assertEqual(g["eski"], m["kuyu_tavani_kotu"])
-        eski, _h = katlar.kot_oku(g["eski"])
-        yeni, hata = katlar.kot_oku(g["yeni"])
-        self.assertIsNone(hata)
-        self.assertGreater(yeni, eski)
-        self.assertTrue(g["sebep"])
-        #  İstenen kotla seçici "uygun" der
-        r2 = avan_secici.sec({**m, "kuyu_tavani_kotu": g["yeni"]})
+        yeni = istenen(r)
+        self.assertEqual(r["gereken"][0]["eski"], m["kuyu_dibi_kotu"])
+        self.assertLess(yeni, katlar.kot_oku(m["kuyu_dibi_kotu"])[0])
+        self.assertGreater(yeni, ham)
+        self.assertGreaterEqual(yeni, katlar.kot_oku(t["asansor"]["kuyu_dibi_kotu"])[0])
+        r2 = avan_secici.sec({**m, "kuyu_dibi_kotu": r["gereken"][0]["yeni"]})
         self.assertEqual(r2["durum"], "uygun", r2)
         self.temiz(r2)
 

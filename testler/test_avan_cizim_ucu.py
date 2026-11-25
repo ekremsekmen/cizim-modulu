@@ -331,10 +331,14 @@ class AvanCizimUcu(unittest.TestCase):
         self.assertEqual([y for y in yazilar(yanit(govde(kart(T630)))["cizim"]) if "kW" in y], [])
 
     def test_gereken_cizim_dondurmez(self):
-        """Geniş kuyuda kuyu üstü yetmez:  çizim de istek de dönmez, mimardan istenen döner."""
+        """Geniş kuyuda kuyu üstü yetmez:  çizim de istek de dönmez, mimardan istenen döner.
+        İstenen kot kartın son katı 4.200'ü ( +19,20 — o kotta uygun ) aşmaz ( 24 Kas:  +19,37
+        isteniyordu — avan_secici.KUCULEN_KOT )."""
         r = yanit(govde(kart(T630, **GENIS_YETMEZ)))
         self.assertEqual(r["durum"], "gereken", r)
         self.assertEqual([g["anahtar"] for g in r["gereken"]], ["kuyu_tavani_kotu"])
+        yetiyor = katlar.kot_oku(T630["kuyu_tavani_kotu"])[0]
+        self.assertLessEqual(katlar.kot_oku(r["gereken"][0]["yeni"])[0], yetiyor, r["gereken"])
         self.assertNotIn("cizim", r)
         self.assertNotIn("istek", r)
 
