@@ -38,8 +38,6 @@ STANDARDIN DENETLEDİĞİ AÇIKLIKLAR
                             acil kapı gerekir — bu çizim acil kapı çizmez, durur
 """
 
-import math
-
 from temel import eleman_kutusu, ortusur, sayi_mi
 from cizim import istek_onbellegi
 from cizim import eleman
@@ -56,6 +54,7 @@ from cizim import kuyu_ustu
 from cizim import makine
 from cizim import sorun
 from cizim import sorunlu
+from cizim import standart
 
 #  Çizelge 3 / Çizelge 4 — sığınma alanının YÜKSEKLİĞİ ( mm )
 SIGINMA_UST_YUKSEKLIK = kabin_ustu.SIGINMA_YUKSEKLIK
@@ -66,8 +65,11 @@ DIP_RAYA_YAKIN = 100.0  # m.5.2.5.8.2 a 2) · Şekil 7  ( XH ≤ 0,15 m )
 UST_PATEN = 100.0  # m.5.2.5.7.2 b
 UST_DONANIM = 500.0  # m.5.2.5.7.2 a  kabin tavanına bağlı donanım ( revizyon kutusu, kabin üstü kasnaklar )
 DIP_SABIT = 300.0  # m.5.2.5.8.2 b  kuyuya sabit parça ( regülatör gergisi ) – kabinin en alt kısmı
-UST_KORKULUK = 300.0  # m.5.2.5.7.2 c 1)  kabin izdüşümünde
-UST_KORKULUK_DIS = 100.0  # m.5.2.5.7.2 c 1)  korkuluğun dışında
+UST_KORKULUK = standart.KORKULUK_TAVAN_IC  # m.5.2.5.7.2 c 1)  izdüşümde, küpeştenin kabin tarafında
+UST_KORKULUK_DIS = standart.KORKULUK_TAVAN_DIS  # m.5.2.5.7.2 c 1)  küpeştenin dışında
+#  m.5.4.7.4 d:  korkuluğun yanındaki parça ( küpeştenin dışında, tepesinden alçakta ) — açıklık
+#  yataydır;  iletinin ve hesabın satırının adı buna göre ( _aciklik_iletisi )
+KORKULUK_YANDA = kabin_ustu.KORKULUK_YANDA
 YATAY_UZAKLIK = 400.0  # m.5.2.5.7.2 b / c 1)  "0,40 m yatay uzaklık içinde"
 #  Şasenin kirişleri gerçek yükseklikleriyle ( Sabitler sase_ust_kiris,
 #  sase_alt_kiris — 8 Eki'ye dek 10 mm'lik simgeydi );  üst kirişin altı kabin
@@ -212,7 +214,7 @@ def yerlesim(g, cizim_sabitleri=None):
             if deger < asgari - 1e-9:
                 hata.append(
                     sorun.Sorun(
-                        f"{AD[ad]}:  {deger:g} mm < {asgari:g} mm  ( TS EN 81-20 {madde} ).",
+                        _aciklik_iletisi(yer, ad, deger, asgari, madde, ust["ust_engel"]),
                         _aciklik_parcalari(yer, ad, dip["dip_engel"], ust["ust_engel"]),
                         _aciklik_kesiti(yer, ad),
                         fark=deger - asgari,
@@ -438,8 +440,7 @@ def _kuyu_ustu_acikliklari(g, S, dy, KD, KU, M, H):
     """KUYU ÜSTÜ:  kabin en üst konumunda ( karşı ağırlık tam ezilmiş
     tamponunda + 0,035·v² — m.5.2.5.6.1 ).  Engeller son kattan ölçülür."""
     aski = g.get("aski") or {}
-    b35 = 35.0 * dy["beyan_hizi"] * dy["beyan_hizi"]  # 0,035 · v² · 1000
-    yukselme = dy["agirlik_carpma_arasi"] + dy["agirlik_tampon_ezilme"] + b35
+    yukselme = parca_kotlari.en_ust_yukselme(dy)
     ust = kabin_kotlari(dy, S, yukselme, aski, arka_aski.arkada_iki_bir(g))
 
     def engel(kutu):
@@ -470,7 +471,7 @@ def _kuyu_ustu_acikliklari(g, S, dy, KD, KU, M, H):
     #  ölçüyordu:  çizim "uygun" derken hesap kalabiliyordu ( 21 Eki ).  Kutu
     #  korkulukların İÇİNDEDİR ( sığınma alanının 0,30 m yakını — m.5.4.8 a ):
     #  küpeştenin dışında, tavanın kenarındaki tavan parçasına ölçülmez ( 23 Kas ).
-    ust_engel["revizyon"] = rv_engel = engel(korkuluklarin_ici(KU))
+    ust_engel["revizyon"] = rv_engel = engel(kabin_ustu.korkuluklarin_ici(KU))
     ust_aciklik["revizyon"] = (
         rv_engel[0] - (ust["tavan"] + S["revizyon_payi"]),
         UST_DONANIM,
@@ -520,41 +521,12 @@ def _kuyu_ustu_acikliklari(g, S, dy, KD, KU, M, H):
     }
 
 
-def _korkuluk_ici(tavan, kenar):
-    """Kabin tavanının bir korkuluğun KABİN TARAFINDAKİ bölümü ( kenar:  küpeşte çizgisi )."""
-    cx, cy = (tavan[0] + tavan[2]) / 2.0, (tavan[1] + tavan[3]) / 2.0
-    if abs(kenar[0] - kenar[2]) < 1e-9:  # yan korkuluk ( x sabit )
-        kx = kenar[0]
-        return (
-            (max(tavan[0], kx), tavan[1], tavan[2], tavan[3])
-            if kx < cx
-            else (tavan[0], tavan[1], min(tavan[2], kx), tavan[3])
-        )
-    ky = kenar[1]
-    return (
-        (tavan[0], max(tavan[1], ky), tavan[2], tavan[3])
-        if ky < cy
-        else (tavan[0], tavan[1], tavan[2], min(tavan[3], ky))
-    )
-
-
-def korkuluklarin_ici(KU):
-    """Kabin tavanının korkulukların içinde kalan bölümü:  kabin üstündeki donanımın ( revizyon kutusu )
-    durduğu yer — sığınma alanının 0,30 m yakınında, korkuluğun içinde ( m.5.4.8 a )."""
-    t = KU["tavan"]
-    for kenar, _yuk in kabin_ustu.korkuluklar(KU):
-        k = _korkuluk_ici(KU["tavan"], kenar)
-        t = (max(t[0], k[0]), max(t[1], k[1]), min(t[2], k[2]), min(t[3], k[3]))
-    return t
-
-
 def _korkuluk_engeli(KU, M, H, ust, korkuluk, tavan_alti):
-    """KORKULUĞUN ÇEVRESİNDEKİ TAVAN PARÇALARI ( m.5.2.5.7.2 c 1 · Şekil 5 ):
-      · İÇERİDE — kabinin izdüşümünde VE küpeştenin kabin tarafında, 0,40 m yatay uzaklık içinde
-        ( Şekil 5:  D ≥ 0,30, E ≤ 0,40 ):  küpeştenin tepesiyle arası DÜŞEY en az 0,30 m;
-      · DIŞARIDA — küpeştenin öbür yanında:  en az 0,10 m AÇIKLIK.  Parça küpeştenin tepesinden
-        alçaktaysa açıklık yataydır ( m.5.4.7.4 d:  küpeştenin dış kenarı ile kuyudaki her parça
-        arası en az 0,10 m ), yüksekteyse küpeştenin tepesinden parçaya en kısa uzaklık.
+    """KORKULUĞUN ÇEVRESİNDEKİ TAVAN PARÇALARI — kural kabin üstünde ( kabin_ustu.korkuluk_adaylari:
+    m.5.2.5.7.2 c 1 · Şekil 5 ve m.5.4.7.4 d ):  izdüşümde ve küpeştenin kabin tarafındaki parçaya
+    küpeştenin tepesinden DÜŞEY 0,30 m;  küpeştenin dışındakine 0,10 m açıklık ( tepesinden
+    alçaktaysa yatay ).  Küpeştenin yeri de aynı kuralla seçilir ( tavana asılı parçalardan içeri
+    alınır — kabin_ustu._asili_parcalardan_iceri ).
     23 Kas:  eskiden kabinin izdüşümüne değen her parçaya 0,30, öbürlerine 0,40 m'ye dek DÜŞEY 0,10
     aranıyordu:  korkuluğun yanında, tepesinden alçakta duran parça ( 1250 KG:  makine şasesi
     korkuluğun 175 mm yanında ) ret sebebiydi;  izdüşümün kenarına birkaç mm değen ama küpeştenin
@@ -562,24 +534,23 @@ def _korkuluk_engeli(KU, M, H, ust, korkuluk, tavan_alti):
     1,10 olabilir — m.5.4.7.4 b );  kuyu tavanı en yüksek korkuluğa.
     ( parçanın etkin kotu, adı, asgari açıklık, korkuluğun üstü, madde ) — en dar olanı;  etkin kot −
     korkuluğun üstü = açıklık ( dışarıdaki parçada ölçülen en kısa uzaklık )."""
+    asili = [(ad, p, z - H) for ad, p, z in M["parcalar"]]  # son kattan
     adaylar = [(tavan_alti, "kuyu tavanı", UST_KORKULUK, ust["tavan"] + korkuluk, "m.5.2.5.7.2 c")]
     for kenar, yuk in kabin_ustu.korkuluklar(KU):
-        bolge = _genislet(kenar, YATAY_UZAKLIK)
-        ic = _korkuluk_ici(KU["tavan"], kenar)
-        k_ust = ust["tavan"] + yuk
-        for ad, p, z in M["parcalar"]:
-            if not ortusur(p, bolge):
-                continue
-            if ortusur(p, ic):
-                adaylar.append((z - H, ad, UST_KORKULUK, k_ust, "m.5.2.5.7.2 c"))
-                continue
-            yatay = math.hypot(
-                max(kenar[0] - p[2], p[0] - kenar[2], 0.0), max(kenar[1] - p[3], p[1] - kenar[3], 0.0)
-            )
-            dusey = z - H - k_ust
-            ara, madde = (math.hypot(yatay, dusey), "m.5.2.5.7.2 c") if dusey >= 0 else (yatay, "m.5.4.7.4 d")
-            adaylar.append((k_ust + ara, ad, UST_KORKULUK_DIS, k_ust, madde))
+        adaylar += kabin_ustu.korkuluk_adaylari(KU["tavan"], kenar, yuk, ust["tavan"], asili)
     return min(adaylar, key=lambda a: a[0] - a[3] - a[2])
+
+
+def _aciklik_iletisi(yer, ad, deger, asgari, madde, ust_engel):
+    """Yetmeyen açıklığın iletisi:  "Korkuluk – tavan parçası:  makine şasesi, 80 mm < 300 mm …" —
+    engelin adı iki noktadan SONRA ( _tavan_parcasi;  çare bulucunun kimliği iki noktaya kadar ).
+    Korkuluğun yanındaki parçada ( KORKULUK_YANDA — m.5.4.7.4 d:  küpeştenin dışında, tepesinden
+    alçakta ) açıklık yataydır:  "Korkuluk – tavan parçası:  regülatör yanında, yatay 9 mm < 100 mm".
+    24 Kas'a dek "Korkuluk – kuyu tavanı:  9 mm" diyordu.  Hesabın bölüm 11'i aynı ayrımla."""
+    parca = _tavan_parcasi(yer, ad, ust_engel)
+    if yer == "ust" and ad == "korkuluk" and madde == KORKULUK_YANDA:
+        parca = parca[:-2] + " yanında, yatay "
+    return f"{AD[ad]}:  {parca}{deger:g} mm < {asgari:g} mm  ( TS EN 81-20 {madde} )."
 
 
 def _agirlik_uc_konumlari(g, S, dy, KD, M, H, taban, ust_aciklik, hata):
@@ -654,17 +625,31 @@ def _agirlik_uc_konumlari(g, S, dy, KD, M, H, taban, ust_aciklik, hata):
 AD = {
     "siginma": "Sığınma yüksekliği",
     "regulator": "Regülatör gergisi – kabinin en alt kısmı",
-    "revizyon": "Revizyon kutusu – kuyu tavanı",
+    "revizyon": "Revizyon kutusu – tavan parçası",
     "en_alt": "Kuyu tabanı – kabinin en alt kısmı",
     "etek": "Kuyu tabanı – kabin eteği",
     "sase": "Kuyu tabanı – şase / paten / fren bloğu",
-    "paten": "Üst paten – kuyu tavanı",
+    "paten": "Üst paten – tavan parçası",
     "ray": "Üst paten – rayın üst ucu",
-    "kasnak": "Kabin üstü kasnağı – kuyu tavanı",
-    "baglanti": "Kabindeki halat bağlantısı – kuyu tavanı",
-    "korkuluk": "Korkuluk – kuyu tavanı",
+    "kasnak": "Kabin üstü kasnağı – tavan parçası",
+    "baglanti": "Kabindeki halat bağlantısı – tavan parçası",
+    "korkuluk": "Korkuluk – tavan parçası",
     "agirlik_ray": "Karşı ağırlık üst pateni – rayın üst ucu",
 }
+#  KUYU ÜSTÜNDE AÇIKLIĞIN ÖBÜR YANI ( 25 Kas ):  en alçak tavan parçası ( donanim.tavan_engeli —
+#  makine şasesi, halat bağlantıları, regülatör ya da kuyu tavanı;  ust_engel ).  Eskiden etiket hep
+#  "– kuyu tavanı" diyordu:  makine şasesine 80 mm kalan korkuluk "Korkuluk – kuyu tavanı:  80 mm"
+#  görünüyordu, tavana 465 mm vardı ( 800 kg, ağırlık arkada, son kat 4050 ).  Parçanın adı iki
+#  noktadan SONRA yazılır:  çare bulucu sorunu iki noktaya kadarki metinden tanır ( care_uclari.kimlik ) —
+#  düzeltme engeli değiştirince ( makine şasesi → kuyu tavanı ) sorun yine aynı sorundur.
+TAVAN_PARCALI = ("revizyon", "paten", "kasnak", "baglanti", "korkuluk")
+
+
+def _tavan_parcasi(yer, ad, ust_engel):
+    """Kuyu üstündeki açıklığın engeli olan tavan parçasının adı, iletinin başına ( "makine şasesi, " )
+    ya da boş:  engel öbür yanda adıyla duruyor ( rayın üst ucu ) ya da açıklık kuyu dibinde."""
+    engel = ust_engel.get(ad) if yer == "ust" and ad in TAVAN_PARCALI else None
+    return f"{donanim.TAVAN_PARCASI.get(engel[1], engel[1])}, " if engel else ""
 
 
 #  Durak aralığı sorunlarında işaretlenen:  kat kapıları

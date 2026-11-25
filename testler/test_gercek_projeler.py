@@ -115,10 +115,11 @@ class GercekProjeler(unittest.TestCase):
                 "( ayrıca karşı ağırlık çerçevesi, karşı ağırlık kasnağı ).",
                 "Sığınma yüksekliği:  937 mm < 1000 mm  ( TS EN 81-20 m.5.2.5.7.1 · Çizelge 3 ).",
                 #  21 Eki:  0,50 m yalnız bölüm 11'de denetleniyordu, çizim de söyler
-                "Revizyon kutusu – kuyu tavanı:  -43 mm < 500 mm  ( TS EN 81-20 m.5.2.5.7.2 a ).",
-                "Üst paten – kuyu tavanı:  -28 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 b ).",
+                #  25 Kas:  ileti engelin gerçek adını söyler ( eskiden üçü de "– kuyu tavanı" diyordu )
+                "Revizyon kutusu – tavan parçası:  regülatör, -43 mm < 500 mm  ( TS EN 81-20 m.5.2.5.7.2 a ).",
+                "Üst paten – tavan parçası:  makine şasesi, -28 mm < 100 mm  ( TS EN 81-20 m.5.2.5.7.2 b ).",
                 "Üst paten – rayın üst ucu:  57 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 ).",
-                "Korkuluk – kuyu tavanı:  237 mm < 300 mm  ( TS EN 81-20 m.5.2.5.7.2 c ).",
+                "Korkuluk – tavan parçası:  kuyu tavanı, 237 mm < 300 mm  ( TS EN 81-20 m.5.2.5.7.2 c ).",
                 "Karşı ağırlık üst pateni – rayın üst ucu:  -218 mm < 100 mm  ( TS EN 81-20 m.5.2.5.6.2 ).",
             ],
         )

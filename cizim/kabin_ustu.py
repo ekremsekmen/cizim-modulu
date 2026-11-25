@@ -23,9 +23,10 @@ Eskiden ön duvar hep dolu çiziliyor, kapı bölgesi boş
 kalıyordu ( kullanıcı 5 Eki:  "kapının görünmemesi saçma" ).
 """
 
+import math
 from dataclasses import dataclass
 
-from temel import eleman_kutusu, kucuk, ortusur
+from temel import eleman_kutusu, kucuk, ortusur, sayi_mi
 from cizim import sorunlu
 from cizim import istek_onbellegi
 from cizim import eleman
@@ -39,6 +40,7 @@ from cizim import parca_kotlari
 from cizim import arka_aski
 from cizim import hareketli
 from cizim import parca_adlari
+from cizim import donanim
 from cizim import sorun
 
 #  TS EN 81-20 Çizelge 3 — kabin üstü sığınma alanının yatay ölçüleri ( mm ).
@@ -59,6 +61,19 @@ _ICERI = (
     "0,10 m uzak durur ( TS EN 81-20 m.5.4.7.4 d ), kenardan en çok 0,15 m "
     "içeride ( m.5.4.7.4 c )."
 )
+#  Tavana asılı parça yüzünden içeri alınan küpeştenin ölçüsü ( _asili_parcalardan_iceri ):
+#  o parça kabin üstü planında çizilmez — sebebi ölçünün kuralı söyler
+_ICERI_ASILI = (
+    "Korkuluğun kenardan içeri alınması:  tavana asılı parça ( regülatör, halat bağlantısı, "
+    "makine şasesi ) küpeştenin dışında kalır — küpeştenin kabin tarafındaki parçaya küpeştenin "
+    "tepesinden düşey 0,30 m gerekir ( TS EN 81-20 m.5.2.5.7.2 c 1 · Şekil 5 ), dışındakine "
+    "0,10 m ( m.5.4.7.4 d );  kenardan en çok 0,15 m içeride ( m.5.4.7.4 c )."
+)
+#  Korkuluğun yanındaki parça:  küpeştenin dışında, tepesinden alçakta — açıklık YATAYDIR
+#  ( korkuluk_adaylari;  dusey iletisini buna göre adlandırır )
+KORKULUK_YANDA = "m.5.4.7.4 d"
+#  Kabinin en üst konumunda tavana asılı parçaların kotu için gereken düşey girdiler
+_ASILI_ALANLAR = ("beyan_hizi", "agirlik_carpma_arasi", "agirlik_tampon_ezilme", "son_kat")
 #  Kuyuda duran ( kabinle birlikte gitmeyen ) parçaların katmanları
 _KUYU_PARCALARI = ("RAY", "KONSOL", "AGIRLIK")
 #  Kuyu planından alınan katmanlar ve adlar
@@ -144,12 +159,16 @@ def _operator(g, tavan, S):
 
 
 @istek_onbellegi.sakla
-def yerlesim(g, cizim_sabitleri=None):
+def yerlesim(g, cizim_sabitleri=None, asili=True):
     """Kabin üstünün yerleşimi — çizim de doğrulama da bunu kullanır.
 
     Dönen:  { taban ( plan elemanları ), tavan, kenarlar, operator, engeller,
               siginma ( kutu ya da None ), girinti ( Şekil 4 girintisinin yanı
               ya da None ), alcaklar ( girintiye girebilen engeller ), hata [ … ] }
+    asili=False:  küpeşte yalnız kuyudaki parçalara göre, tavana asılı parçalara bakılmaz
+    ( _asili_parcalardan_iceri ) — YALNIZ köprünün yerleşim kurtarması:  halatın, kasnağın ve
+    kapı operatörünün çakışması küpeşteye bağlı değil;  her adayda donanımı kurmak avan
+    aramasını ~%14 yavaşlatıyordu ( 24 Kas ).
     """
     S = sabitler.sabitler(g.get("_cizim_sabitleri") if cizim_sabitleri is None else cizim_sabitleri)
     taban = geometri.plan(g, S, kapi_duzeyi=False, duvar_boslugu=kapi_gorunusu(g, S)["acik"])
@@ -158,20 +177,44 @@ def yerlesim(g, cizim_sabitleri=None):
     hata = []
     kenarlar = _korkuluk_kenarlari(g, tavan, parcalar, hata)
     halatlar = _halatlar(g, S, taban, hata)
-    #  Sığınma alanı korkulukların içinde kalır
-    ic = (
+
+    def kur(k):
+        return _tavan_ustu(g, S, taban, tavan, parcalar, k)
+
+    ust, ust_hata = kur(kenarlar)
+    if asili:
+        kenarlar, (ust, ust_hata) = _asili_parcalardan_iceri(g, S, tavan, kenarlar, (ust, ust_hata), kur)
+    return {
+        "taban": taban,
+        "tavan": tavan,
+        "kenarlar": kenarlar,
+        **ust,
+        "halatlar": halatlar,
+        "hata": hata + ust_hata,
+        "S": S,
+    }
+
+
+def _ic(tavan, kenarlar):
+    """Tavanın korkulukların içinde kalan kutusu:  sığınma alanı burada durur ( her kenar
+    kendi içeri alınması kadar — gerekmeyen kenarda 0 )."""
+    return (
         tavan[0] + kenarlar["Sol"]["iceri"],
         tavan[1] + kenarlar["Ön"]["iceri"],
         tavan[2] - kenarlar["Sağ"]["iceri"],
         tavan[3] - kenarlar["Arka"]["iceri"],
     )
+
+
+def _tavan_ustu(g, S, taban, tavan, parcalar, kenarlar):
+    """Korkulukların içi, tavandaki engeller ve sığınma alanı — küpeştelerin yerine bağlı olanlar:
+    ( { ic, operator, engeller, alcaklar, siginma, siginma_tipi, girinti } , hata )."""
+    hata = []
+    ic = _ic(tavan, kenarlar)
     operator, engeller, alcaklar = _tavan_engelleri(g, S, taban, tavan, parcalar, kenarlar, ic, hata)
     tip = (g.get("kabin_ustu") or {}).get("siginma_tipi")
     siginma, girinti = _siginma_yeri(S, tip, tavan, ic, engeller, hata, alcaklar)
     return {
-        "taban": taban,
-        "tavan": tavan,
-        "kenarlar": kenarlar,
         "ic": ic,
         "operator": operator,
         "engeller": engeller,
@@ -179,10 +222,7 @@ def yerlesim(g, cizim_sabitleri=None):
         "siginma_tipi": tip,
         "girinti": girinti,
         "alcaklar": alcaklar,
-        "halatlar": halatlar,
-        "hata": hata,
-        "S": S,
-    }
+    }, hata
 
 
 def _korkuluk_kenarlari(g, tavan, parcalar, hata):
@@ -249,13 +289,123 @@ def _korkuluk_kenarlari(g, tavan, parcalar, hata):
                         "kabin_ustu",
                     )
                 )
-            k["yukseklik"] = (
-                standart.KORKULUK_ALCAK
-                if not acik and bos + k["iceri"] <= standart.KORKULUK_YUKSEKLIK_SINIRI
-                else standart.KORKULUK_YUKSEK
-            )
+            _korkuluk_yuksekligi(k)
         kenarlar[yan] = k
     return kenarlar
+
+
+def _korkuluk_yuksekligi(k):
+    """m.5.4.7.4 b:  küpeşteden duvara ( tavan kenarının boşluğu + içeri alınması ) 0,50 m'ye dek
+    0,70 m, aşarsa 1,10 m;  komşu asansörün açık yanında hep 1,10 m.  ( k, yüksekliği yazılmış )"""
+    k["yukseklik"] = (
+        standart.KORKULUK_ALCAK
+        if not k["acik"] and k["bos"] + k["iceri"] <= standart.KORKULUK_YUKSEKLIK_SINIRI
+        else standart.KORKULUK_YUKSEK
+    )
+    return k
+
+
+def _asili_parcalar(g, S):
+    """MAKİNE DAİRESİZDE TAVANA ASILI PARÇALAR ( donanim:  makine şasesi, halat bağlantıları,
+    regülatör ) — kotlar en üst durağın döşemesinden, kuyu üstünün açıklıkları gibi ( dusey ):
+    { M ( donanımın yerleşimi ), parcalar [ ( ad, plan kutusu, alt kotu ) ], k_tavan ( kabinin
+    en üst konumunda tavanı ), tavan_alti ( kuyu tavanının en alt kısmı ) }.  Makine dairesinde
+    tavanın altında parça yoktur;  girdi eksikse ya da donanım kurulamıyorsa ( bilinen sınır —
+    sorununu dusey söyler ) None:  küpeşte kuyudaki parçalara göre kalır."""
+    dy, kd = g.get("dusey") or {}, g.get("kuyu_dibi") or {}
+    if (g.get("makine") or {}).get("yeri") != "Kuyu üstü" or not all(
+        sayi_mi(v) for v in [dy.get(a) for a in _ASILI_ALANLAR] + [kd.get("derinlik")]
+    ):
+        return None
+    try:
+        M = donanim.yerlesim(g, S, 0.0, dy["son_kat"], -kd["derinlik"])
+    except sorun.BILINEN:
+        return None
+    if not M.get("parcalar"):
+        return None
+    ust = parca_kotlari.kabin_kotlari(
+        dy, S, parca_kotlari.en_ust_yukselme(dy), g.get("aski") or {}, arka_aski.arkada_iki_bir(g)
+    )
+    return {"M": M, "parcalar": M["parcalar"], "k_tavan": ust["tavan"], "tavan_alti": M["tavan_alti"]}
+
+
+def _tavan_payi(k, asili):
+    """Korkuluğun tepesiyle kuyu tavanının en alt kısmı ( kiriş payı ) arasının payı ( < 0:  yetmiyor —
+    m.5.2.5.7.2 c 1 ):  küpeştenin yerine değil yalnız korkuluğun yüksekliğine bağlıdır."""
+    return asili["tavan_alti"] - asili["k_tavan"] - k["yukseklik"] - standart.KORKULUK_TAVAN_IC
+
+
+def _yan_payi(tavan, kenarlar, operator, yan, asili):
+    """`yan`daki korkuluğun çevresindeki tavan parçalarıyla ( korkuluk_adaylari ) en dar açıklık
+    payı ( < 0:  yetmiyor;  parça yoksa sonsuz ) — dusey'in açıklık denetiminin kuralıyla."""
+    k = kenarlar[yan]
+    cizgi = _kupesteler({"ic": _ic(tavan, kenarlar), "operator": operator})[yan]
+    return min(
+        (
+            z - ku - asgari
+            for z, _ad, asgari, ku, _madde in korkuluk_adaylari(
+                tavan, cizgi, k["yukseklik"], asili["k_tavan"], asili["parcalar"]
+            )
+        ),
+        default=math.inf,
+    )
+
+
+def _sorun_artmaz(eski, yeni, asili):
+    """İçeri almak kabin üstünde yeni sorun açmıyor:  tavandaki engellerin ve sığınma alanının
+    sorunları eskilerin içinde;  sığınma alanı yine sığar ve üstündeki parçayla açıklığı
+    ( Çizelge 3 ) bozulmaz — alanın ızgarası korkulukların içine bağlıdır, birkaç mm kayabilir."""
+    (Y0, h0), (Y1, h1) = eski, yeni
+    if not {str(h) for h in h1} <= {str(h) for h in h0}:
+        return False
+    if Y0["siginma"] is None:
+        return True
+    if Y1["siginma"] is None:
+        return False
+
+    def pay(sg):
+        z, _ad = donanim.tavan_engeli(asili["M"], sg)
+        return z - asili["k_tavan"] - SIGINMA_YUKSEKLIK[Y0["siginma_tipi"]]
+
+    return pay(Y1["siginma"]) >= min(pay(Y0["siginma"]), 0.0) - 1e-9
+
+
+def _asili_parcalardan_iceri(g, S, tavan, kenarlar, ust, kur):
+    """TAVANA ASILI PARÇALARDAN İÇERİ ALMA ( m.5.4.7.4 c · d ):  küpeşte kuyudaki her parçadan 0,10 m
+    uzak durur, kenardan en çok 0,15 m içeride — montajcı korkuluğu tavana asılı parçadan
+    ( regülatör, halat bağlantısı, makine şasesi ) da içeri alır.  24 Kas'a dek yalnız plandaki
+    ray, konsol ve ağırlık sayılıyordu:  ön yüzün örnek projesinde ( kuyu 2.400 ) regülatör
+    küpeştenin 9 mm yanında kalıyor, çizim reddediliyordu.
+    Bir korkuluk yerinde bu parçalarla açıklığı sağlamıyorsa ( _yan_payi ) küpeştesi sorunu çözen
+    en az tam milimetre içeri alınır:  yüksekliği yeniden ( m.5.4.7.4 b — küpeşte – duvar 0,50'yi
+    aşarsa 1,10 m ), açıklıkları o yükseklikle yeniden sınanır;  kabin üstünde yeni sorun
+    çıkmamalı ( _sorun_artmaz ).  Çözemiyorsa küpeşte yerinde kalır, sorunu dusey söyler.  Yalnız
+    gevşetir:  korkuluğu yerinde sağlayan düzen değişmez;  içeri almak sığınma alanını ve revizyon
+    kutusunun alanını ( korkulukların içi ) daraltır, kutunun üstündeki parçalar ancak azalır.
+    ( kenarlar , ( tavanın üstü , sorunları ) ) — kur:  kenarlarla tavanın üstünü kuran."""
+    asili = _asili_parcalar(g, S)
+    if asili is None:
+        return kenarlar, ust
+    operator = ust[0]["operator"]
+    for yan in list(kenarlar):
+        k = kenarlar[yan]
+        if not k["gerekli"] or _yan_payi(tavan, kenarlar, operator, yan, asili) >= -1e-9:
+            continue
+        #  Kuyu tavanının payı küpeştenin yerine bağlı değil:  bozulmasın ( zaten yetmiyorsa
+        #  parçalar yine çözülür — çare bulucu tavan için gereken artışı doğru görür )
+        tavan0 = min(_tavan_payi(k, asili), 0.0)
+        for c in range(math.floor(k["iceri"]) + 1, int(standart.KORKULUK_KENAR_AZAMI) + 1):
+            dene = dict(kenarlar)
+            dene[yan] = _korkuluk_yuksekligi(dict(k, iceri=float(c), asili=True))
+            if _tavan_payi(dene[yan], asili) < tavan0 - 1e-9:
+                break  # 1,10 m'ye geçti, tavanın payı bozuluyor:  daha içerisi de ( yükseklik ancak artar )
+            if _yan_payi(tavan, dene, operator, yan, asili) < -1e-9:
+                continue
+            aday = kur(dene)
+            if _sorun_artmaz(ust, aday, asili):
+                kenarlar, ust = dene, aday
+            break
+    return kenarlar, ust
 
 
 HALAT_PAYI = girdi.HALAT_PAYI
@@ -580,19 +730,86 @@ def korkuluklar(Y):
     uzanıyorsa ), ön kenarda korkuluk gerekirse operatörün arkasına geçer.
     Eskiden yan korkuluk tavanın bütün derinliğince çiziliyor, ön dikmesi
     operatörün içinde duruyordu."""
+    cizgiler = _kupesteler(Y)
+    return [(cizgiler[ad], k["yukseklik"]) for ad, k in Y["kenarlar"].items() if k["gerekli"]]
+
+
+def _kupesteler(Y):
+    """Dört kenarın küpeşte çizgisi ( gerekli olsun olmasın ):  { yan:  ( x0, y0, x1, y1 ) } —
+    korkulukların içinden ( Y["ic"] ) ve kapı operatöründen."""
     x0, y0, x1, y1 = Y["ic"]
     op = Y["operator"]
 
     def on(x):
         return op[3] if op[0] - 1e-9 <= x <= op[2] + 1e-9 and op[1] - 1e-9 <= y0 < op[3] else y0
 
-    kenarlar = {
+    return {
         "Sol": (x0, on(x0), x0, y1),
         "Sağ": (x1, on(x1), x1, y1),
         "Ön": (x0, max(y0, op[3]), x1, max(y0, op[3])),
         "Arka": (x0, y1, x1, y1),
     }
-    return [(kenarlar[ad], k["yukseklik"]) for ad, k in Y["kenarlar"].items() if k["gerekli"]]
+
+
+def korkuluk_ici(tavan, kenar):
+    """Kabin tavanının bir korkuluğun KABİN TARAFINDAKİ bölümü ( kenar:  küpeşte çizgisi )."""
+    cx, cy = (tavan[0] + tavan[2]) / 2.0, (tavan[1] + tavan[3]) / 2.0
+    if abs(kenar[0] - kenar[2]) < 1e-9:  # yan korkuluk ( x sabit )
+        kx = kenar[0]
+        return (
+            (max(tavan[0], kx), tavan[1], tavan[2], tavan[3])
+            if kx < cx
+            else (tavan[0], tavan[1], min(tavan[2], kx), tavan[3])
+        )
+    ky = kenar[1]
+    return (
+        (tavan[0], max(tavan[1], ky), tavan[2], tavan[3])
+        if ky < cy
+        else (tavan[0], tavan[1], tavan[2], min(tavan[3], ky))
+    )
+
+
+def korkuluklarin_ici(Y):
+    """Kabin tavanının korkulukların içinde kalan bölümü:  kabin üstündeki donanımın ( revizyon kutusu )
+    durduğu yer — sığınma alanının 0,30 m yakınında, korkuluğun içinde ( m.5.4.8 a )."""
+    t = Y["tavan"]
+    for kenar, _yuk in korkuluklar(Y):
+        k = korkuluk_ici(Y["tavan"], kenar)
+        t = (max(t[0], k[0]), max(t[1], k[1]), min(t[2], k[2]), min(t[3], k[3]))
+    return t
+
+
+def korkuluk_adaylari(tavan, kenar, yuk, k_tavan, parcalar):
+    """BİR KORKULUĞUN ÇEVRESİNDEKİ TAVAN PARÇALARI ( m.5.2.5.7.2 c 1 · Şekil 5 ):
+      · İÇERİDE — kabinin izdüşümünde VE küpeştenin kabin tarafında, 0,40 m yatay uzaklık içinde
+        ( Şekil 5:  D ≥ 0,30, E ≤ 0,40 ):  küpeştenin tepesiyle arası DÜŞEY en az 0,30 m;
+      · DIŞARIDA — küpeştenin öbür yanında:  en az 0,10 m AÇIKLIK.  Parça küpeştenin tepesinden
+        alçaktaysa açıklık yataydır ( m.5.4.7.4 d:  küpeştenin dış kenarı ile kuyudaki her parça
+        arası en az 0,10 m — KORKULUK_YANDA ), yüksekteyse küpeştenin tepesinden parçaya en kısa
+        uzaklık.
+    kenar:  küpeşte çizgisi, yuk:  korkuluğun yüksekliği, k_tavan:  kabin tavanının kotu;  parcalar
+    [ ( ad, plan kutusu, alt kotu ) ] aynı kot ölçeğinde.  Dusey'in açıklık denetimi ve küpeştenin
+    tavana asılı parçalardan içeri alınması ( _asili_parcalardan_iceri ) bunu okur.
+    [ ( parçanın etkin kotu, adı, asgari açıklık, korkuluğun üstü, madde ) ] — etkin kot − korkuluğun
+    üstü = açıklık ( dışarıdaki parçada ölçülen en kısa uzaklık )."""
+    d = standart.KORKULUK_TAVAN_BOLGE
+    bolge = (kenar[0] - d, kenar[1] - d, kenar[2] + d, kenar[3] + d)
+    ic = korkuluk_ici(tavan, kenar)
+    k_ust = k_tavan + yuk
+    adaylar = []
+    for ad, p, z in parcalar:
+        if not ortusur(p, bolge):
+            continue
+        if ortusur(p, ic):
+            adaylar.append((z, ad, standart.KORKULUK_TAVAN_IC, k_ust, "m.5.2.5.7.2 c"))
+            continue
+        yatay = math.hypot(
+            max(kenar[0] - p[2], p[0] - kenar[2], 0.0), max(kenar[1] - p[3], p[1] - kenar[3], 0.0)
+        )
+        dusey = z - k_ust
+        ara, madde = (math.hypot(yatay, dusey), "m.5.2.5.7.2 c") if dusey >= 0 else (yatay, KORKULUK_YANDA)
+        adaylar.append((k_ust + ara, ad, standart.KORKULUK_TAVAN_DIS, k_ust, madde))
+    return adaylar
 
 
 def ciz(g, cizim_sabitleri=None):
@@ -741,6 +958,7 @@ def _iceri_olculeri(Y):
         if not (k["gerekli"] and k["iceri"] > 1e-9):
             continue
         metin = f"{k['iceri']:g}"
+        kural = _ICERI_ASILI if k.get("asili") else _ICERI
         yari = eleman.yazi_eni(metin, uslup.NORMAL) / 2.0
         if yan in ("Sol", "Sağ"):
             x1, x2 = (tavan[0], ic[0]) if yan == "Sol" else (ic[2], tavan[2])
@@ -748,7 +966,7 @@ def _iceri_olculeri(Y):
             #  kopuk bir zincir oluştururdu )
             kot = tavan[3] - (120 if yan == "Sol" else 200)
             yazi = {"x": (x2 + 30 + yari) if yan == "Sol" else (x1 - 30 - yari), "y": kot, "h": uslup.NORMAL}
-            e.append(eleman.olcu("yatay", (x1, 0), (x2, 0), kot, metin, kural=_ICERI, yazi=yazi))
+            e.append(eleman.olcu("yatay", (x1, 0), (x2, 0), kot, metin, kural=kural, yazi=yazi))
         else:
             y1, y2 = (ic[3], tavan[3]) if yan == "Arka" else (tavan[1], ic[1])
             kot = tavan[0] + (120 if yan == "Arka" else 200)
@@ -761,7 +979,7 @@ def _iceri_olculeri(Y):
             if y2 - y1 < 2 * (yari_h + KENAR_PAYI):
                 yy = y1 - yari_h - KENAR_PAYI if yan == "Arka" else y2 + yari_h + KENAR_PAYI
             yazi = {"x": kot + 30 + yari, "y": yy, "h": uslup.NORMAL}
-            e.append(eleman.olcu("dusey", (0, y1), (0, y2), kot, metin, kural=_ICERI, yazi=yazi))
+            e.append(eleman.olcu("dusey", (0, y1), (0, y2), kot, metin, kural=kural, yazi=yazi))
     #  İçerideki yazı köşede yan kenarın yazısına değiyorsa sağa kayar ( 13
     #  Eki:  arkadaki ağırlıkta "40" soldaki "45"in ucuna biniyordu )
     yanlar = [geometri.yazi_kutusu(o) for o in e if o["yon"] == "yatay"]
@@ -805,7 +1023,7 @@ def _iceri_yerleri(Y, e):
     ucundaki "165"in yerini alıyor, onu iki kat dışarı itiyordu ).  Yoksa
     yerinde kalır."""
     tavan = Y["tavan"]
-    iceri = [o for o in e if o["tip"] == "olcu" and o.get("kural") == _ICERI]
+    iceri = [o for o in e if o["tip"] == "olcu" and o.get("kural") in (_ICERI, _ICERI_ASILI)]
     kenarlar = geometri.KenarIzgarasi(geometri.parca_kenarlari(e))
     parcalar = list(Y["engeller"]) + [
         geometri.sinir([x])

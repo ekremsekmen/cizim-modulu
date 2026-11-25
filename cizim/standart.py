@@ -19,6 +19,11 @@ KORKULUK_PARCA_ASGARI = 100.0
 #  yükseklik en az 0,70 m, aşarsa en az 1,10 m.
 KORKULUK_YUKSEKLIK_SINIRI = 500.0
 KORKULUK_ALCAK, KORKULUK_YUKSEK = 700.0, 1100.0
+#  m.5.2.5.7.2 c 1 · Şekil 5:  korkuluğun en üst kısmı ile kuyu tavanının en alt kısımları
+#  ( kirişler ve tavanın altındaki parçalar ) arası — kabinin izdüşümünde, küpeştenin kabin
+#  tarafında 0,40 m yatay uzaklık içinde DÜŞEY en az 0,30 m;  küpeştenin dışındaki parçaya en
+#  az 0,10 m.  Kabin üstü ( küpeştenin yeri ) ve dusey ( açıklık denetimi ) ortak okur.
+KORKULUK_TAVAN_IC, KORKULUK_TAVAN_DIS, KORKULUK_TAVAN_BOLGE = 300.0, 100.0, 400.0
 #  m.5.2.5.5.1 b:  karşı ağırlık perdesi kuyu tabanından en az 2,0 m yükseğe uzanır
 #  ( alt ucu tabandan en çok 0,30 m — c;  kuyu dibi planı, kuyu_dibi._perdeyi_uzat ).
 AGIRLIK_PERDESI_YUKSEKLIGI = 2000.0

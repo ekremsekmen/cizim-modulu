@@ -386,7 +386,7 @@ class Bolum11CizimdenOlculur(unittest.TestCase):
         ((g, hata),), s, _a = _kur(v)
         self.assertIsNone(g)
         self.assertEqual(len(hata), 1, hata)
-        self.assertTrue(hata[0].startswith("Revizyon kutusu – kuyu tavanı:"), hata)
+        self.assertTrue(hata[0].startswith("Revizyon kutusu – tavan parçası:"), hata)
         ara = s["asansorler"][0]["ara"]
         self.assertAlmostEqual(ara["siginma.revizyon_tavan"] - 500, hata[0].fark, places=6)
 

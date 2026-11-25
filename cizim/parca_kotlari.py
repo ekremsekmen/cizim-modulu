@@ -81,6 +81,15 @@ def kabin_kotlari(dy, S, z, aski=None, tavanda=False):
     }
 
 
+def en_ust_yukselme(dy):
+    """KABİNİN EN ÜST KONUMU ( m.5.2.5.6.1 · Çizelge 2, çekişli ):  karşı ağırlık tam ezilmiş
+    tamponunda + 0,035·v².  Kabinin döşemesi en üst durağın bu kadar ( mm ) üstündedir:  ağırlığın
+    çarpma arası + tamponunun ezilmesi + 0,035·v².  Kuyu üstünün açıklıkları ( dusey ) ve küpeştenin
+    yeri ( kabin_ustu — tavana asılı parçalar ) aynı sayıyı okur."""
+    b35 = 35.0 * dy["beyan_hizi"] * dy["beyan_hizi"]  # 0,035 · v² · 1000
+    return dy["agirlik_carpma_arasi"] + dy["agirlik_tampon_ezilme"] + b35
+
+
 def agirlik_kotlari(M, alt):
     """Alt kirişi `alt` kotundaki karşı ağırlığın parça kotları.  PATENLER
     ÇERÇEVENİN DIŞINDADIR ( üstte ve altta — LiftDesigner 1022'nin kesiti:

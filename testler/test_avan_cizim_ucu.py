@@ -27,9 +27,10 @@ from uclar import (
 )
 
 T630 = avan_secici.paketler()[(630, True)]["asansor"]
-#  Kuyu üstü yetmeyen geniş kuyu:  2350, son kat 4.000 ( 24 Kas:  korkuluğun dışındaki parçaya
-#  0,10 m açıklık — kartın 4.200'ü artık yetiyor;  eskiden yetmiyordu, kuyu tavanı +19,38 istenirdi )
-GENIS_YETMEZ = {"kuyu_genisligi": "2350", "kuyu_tavani_kotu": "+19,00"}
+#  Kuyu üstü yetmeyen geniş kuyu:  2350, son kat 3.700 ( 24 Kas:  korkuluğun dışındaki parçaya
+#  0,10 m açıklık — kartın 4.200'ü artık yetiyor;  eskiden yetmiyordu, kuyu tavanı +19,38 istenirdi.
+#  Aynı gün küpeşte tavana asılı parçalardan da içeri alınınca 3.800 de yetiyor;  4.000 artık uygun )
+GENIS_YETMEZ = {"kuyu_genisligi": "2350", "kuyu_tavani_kotu": "+18,70"}
 T800MD = avan_secici.paketler()[(800, False)]
 
 
@@ -701,7 +702,7 @@ class AvanCizimAkisi(unittest.TestCase):
     gerçek aşamalarını gösterir ( asamalar.Ilerleme — avan_secici.ASAMALAR ).  Sonuç tek JSON'la AYNI;  aşamalar
     geldikleri anda açılır ( sıkıştırma biriktirmez );  aşama bildirimi seçimi etkilemez."""
 
-    #  Kuyu üstü yetmeyen geniş kuyu:  ~4 sn, birkaç aşama ( yerleşim → uyarlama → küçültme → doğrulama )
+    #  Kuyu üstü yetmeyen geniş kuyu:  ~8 sn, birkaç aşama ( yerleşim → uyarlama → küçültme → doğrulama )
     GENIS = GENIS_YETMEZ
 
     def setUp(self):
