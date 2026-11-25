@@ -698,14 +698,15 @@ class BirlesikTiklama(unittest.TestCase):
     def test_olcu_kutusunun_uyarisi_asansorun_kendi_yerinden(self):
         """Ölçü değişince sorulan "Yine de uygula"nın sebepleri asansörün kuyudaki yerinden
         kurulur:  9 Kas'a kadar sırasız kuruluyordu, sağdaki asansör soldaki sanılıyor,
-        korkuluğun sınırı ( 100 / 300 mm ) ve açıklığı öbür yanınkini söylüyordu."""
+        korkuluğun sınırı ( 100 / 300 mm ) ve açıklığı öbür yanınkini söylüyordu.  ( 24 Kas:  küpeşte
+        tavana asılı parçalardan da içeri alınınca 3.900 kurulur — sorun 3.800'de )"""
         for soldaki in (1, 2):
             v = ikili(1000, "Sağ", 800, "Sol", soldaki=soldaki)
             v["asansor"] = 1
             r = cizim_uclari._cozumleme(copy.deepcopy(v), "kuyu_plani")
-            degisiklik = [{"anahtar": "son_kat_yuksekligi", "etiket": "Son kat", "eski": 5000, "deger": 3900}]
+            degisiklik = [{"anahtar": "son_kat_yuksekligi", "etiket": "Son kat", "eski": 5000, "deger": 3800}]
             w = copy.deepcopy(v)
-            w["asansorler"][0]["son_kat_yuksekligi"] = 3900
+            w["asansorler"][0]["son_kat_yuksekligi"] = 3800
             asansorler, ortak = uygulama_istegi.asansor_girdileri(w)
             _g, gercek = cizim_uclari.asansor_girdisi(asansorler, ortak, None, "", 1)
             self.assertTrue(gercek)

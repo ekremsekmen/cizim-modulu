@@ -508,16 +508,18 @@ class Degistirme(unittest.TestCase):
         self.assertFalse(_degistir(v, "kuyu_plani", i, r, "kabin_genisligi", 2000)["aktif"])
 
     def test_cizimi_bozacak_deger_once_soylenir(self):
-        #  Varsayılan asansörde kuyu 2.400 → 2.500:  kabin – duvar 0,30 m'yi
-        #  aşar, korkuluk gerekir, korkuluk tavana sığmaz.  Uç değişikliği
-        #  verir ama sebebini de ( ekran uygulamadan önce sorar ).
+        #  Varsayılan asansörde son kat 4.200 → 3.600:  korkuluk ve revizyon kutusu
+        #  regülatöre sığmaz.  Uç değişikliği verir ama sebebini de ( ekran
+        #  uygulamadan önce sorar ).  25 Kas'a dek kuyu 2.400 → 2.500'dü ( korkuluk
+        #  gerekiyor, tavana sığmıyordu ):  küpeşte tavana asılı parçalardan da içeri
+        #  alınınca o değişiklik çizimi bozmaz.
         v = DUZENLER["formun varsayılanı"]()
-        r = cizim_uclari._cozumleme(v, "kuyu_plani")
-        i = _olcu(r, "olcu_kuyu_genisligi")
-        y = _degistir(v, "kuyu_plani", i, r, "kuyu_genisligi", r["taban"][i]["uzunluk"] + 100)
+        r = cizim_uclari._cozumleme(v, "kuyu_kesiti_yan")
+        i = _olcu(r, "OH")
+        y = _degistir(v, "kuyu_kesiti_yan", i, r, "son_kat_yuksekligi", r["taban"][i]["uzunluk"] - 600)
         self.assertTrue(y["aktif"])
-        self.assertTrue(any("Korkuluk" in u for u in y["uyarilar"]), y["uyarilar"])
-        y = _degistir(v, "kuyu_plani", i, r, "kuyu_genisligi", r["taban"][i]["uzunluk"] - 50)
+        self.assertTrue(any(u.startswith("Korkuluk") for u in y["uyarilar"]), y["uyarilar"])
+        y = _degistir(v, "kuyu_kesiti_yan", i, r, "son_kat_yuksekligi", r["taban"][i]["uzunluk"] - 50)
         self.assertEqual(y["uyarilar"], [])
 
     def test_uzunluk_secimi_olcuden_secilir(self):

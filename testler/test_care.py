@@ -67,7 +67,8 @@ ORNEK = dict(
 
 #  ( taban , değişen alan , değer ) — her biri bir sorun sınıfı
 VAKALAR = (
-    ("ornek", "kuyu_genisligi", "2400"),
+    #  Korkuluk sıçraması ( test_korkuluk_sicramasi )
+    ("ornek_alcak", "kuyu_genisligi", "2400"),
     ("ornek", "kuyu_dibi", "1300"),
     ("ornek", "kuyu_genisligi", "2100"),
     ("ornek", "kuyu_dibi", "1000"),
@@ -86,6 +87,9 @@ VAKALAR = (
 def _taban(ad):
     if ad == "ornek":
         return {"asansorler": [dict(ORNEK)], "proje_geneli": {}, "sabitler": {}}
+    if ad == "ornek_alcak":
+        #  Son kat 4.100:  iki korkuluk 0,70 m'yken kuyu üstü yeter ( en az 4.017 ), 1,10 m'ye 4.130 gerekir
+        return {"asansorler": [dict(ORNEK, son_kat_yuksekligi="4100")], "proje_geneli": {}, "sabitler": {}}
     md = ad == "md"
     return {
         "asansorler": [dict(ASANSOR_MD if md else ASANSOR, siginma_tipi_dip="Yatarak")],
@@ -150,12 +154,15 @@ class Care(unittest.TestCase):
                     self.assertLessEqual(float(f), 1e-6, (vaka, str(h)))
 
     def test_korkuluk_sicramasi(self):
-        #  Kuyu 2.360'tan sonra sağdaki korkuluk da 1,10 m:  regülatör küpeştenin 9 mm yanında,
-        #  tepesinden alçakta ( m.5.4.7.4 d ) — yatay aralık kuyu tavanıyla değişmez, türev
-        #  göremez;  sınır son değişiklikten
-        _veri, r = self.coz("ornek", "kuyu_genisligi", "2400")
-        o = _oneriler(r, "Korkuluk – kuyu tavanı")
-        self.assertEqual(o["kuyu_genisligi"][:2], (2350.0, "son değişiklik"))
+        #  Kuyu 2.230'dan sonra soldaki boşluk 500'ü aşar, korkuluk 0,70 → 1,10 m ( m.5.4.7.4 b ):
+        #  kuyu tavanına 0,30 m için son kat 4.130 gerekir.  Kuyu genişliğinde türev yok ( sıçrama ),
+        #  sınırı son değişiklikten;  kuyu tavanınınki türevden.  ( 24 Kas'a dek bu vaka son kat
+        #  4.250'de kuyu 2.400'dü:  regülatör sağ küpeştenin 9 mm yanındaydı — küpeşte tavana asılı
+        #  parçalardan da içeri alınınca o düzen kurulur )
+        _veri, r = self.coz("ornek_alcak", "kuyu_genisligi", "2400")
+        o = _oneriler(r, "Korkuluk – tavan parçası")
+        self.assertEqual(o["kuyu_genisligi"][:2], (2230.0, "son değişiklik"))
+        self.assertEqual(o["son_kat_yuksekligi"][:2], (4130.0, "türev"))
 
     def test_kuyu_dibi_dort_sorunu_birden_giderir(self):
         _veri, r = self.coz("ornek", "kuyu_dibi", "1300")
@@ -223,8 +230,9 @@ class Care(unittest.TestCase):
     def test_tek_kuyuda_ikinci_asansorde_kuyunun_ortak_girdisi_onerilir(self):
         """Kuyunun ortak girdisi 1. asansörden okunur ( kapı ):  aday yalnız seçili asansöre
         yazılınca 2. asansörde hiç etki etmiyor, "düzeltme bulunamadı" deniyordu ( 9 Kas ).
-        Öneri uygulanınca ( ön yüz ikisine birden yazar ) sorun gider."""
-        v = test_grup.ikili(1000, "Sağ", 800, "Sol", son_kat_yuksekligi=3900)
+        Öneri uygulanınca ( ön yüz ikisine birden yazar ) sorun gider.  ( 24 Kas:  küpeşte tavana
+        asılı parçalardan da içeri alınınca 3.900 kurulur — sorun 3.800'de )"""
+        v = test_grup.ikili(1000, "Sağ", 800, "Sol", son_kat_yuksekligi=3800)
         v.setdefault("sabitler", {})
         v["asansor"] = 1
         r = care_uclari.coz(json.loads(json.dumps(v)), 1)
@@ -286,7 +294,7 @@ class Care(unittest.TestCase):
     def test_butce_biterse_yanit_soyler(self):
         """Bütçeye ya da güvenlik süresine takılan arama "tamamlandı" demez;
         bulduğu çareler yine sınanmıştır."""
-        veri, onceki = _vaka("ornek", "kuyu_genisligi", "2400")
+        veri, onceki = _vaka("ornek_alcak", "kuyu_genisligi", "2400")
         r = care_uclari.coz(veri, 0, onceki, care_uclari.Butce(sinama=3))
         self.assertEqual((r["tamamlandi"], r["neden"], r["sinama"]), (False, "sinama", 3))
         r = care_uclari.coz(veri, 0, onceki, care_uclari.Butce(sure=-1.0))

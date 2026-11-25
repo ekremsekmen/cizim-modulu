@@ -5144,8 +5144,11 @@ class _Siginma:
                 "baglanti_tavan",
             )
         if "korkuluk" in ua:
+            #  Korkuluğun yanındaki parça ( m.5.4.7.4 d ):  açıklık yatay, sorun tavan değil o parça
             satir(
-                f"Korkuluk / kuyu tavanının en alt kısmı ( {parca(ue['korkuluk'])} )",
+                f"Korkuluk / yanındaki parça ( {parca(ue['korkuluk'])} ), yatay"
+                if ua["korkuluk"][2] == dusey.KORKULUK_YANDA
+                else f"Korkuluk / kuyu tavanının en alt kısmı ( {parca(ue['korkuluk'])} )",
                 *ua["korkuluk"],
                 "korkuluk_tavan",
             )

@@ -343,7 +343,9 @@ def _yan_agirligi_kabine_yaklastir(g, A, h, S):
         _kural(ara, "kabin_kasnak_arasi"),
     )
     try:
-        carpar = any(e.startswith(("Halat (", "Kabin kasnağı (")) for e in kabin_ustu.yerlesim(g)["hata"])
+        carpar = any(
+            e.startswith(("Halat (", "Kabin kasnağı (")) for e in kabin_ustu.yerlesim(g, asili=False)["hata"]
+        )
     except sorun.BILINEN:
         log.debug("yedek değer kullanılıyor ( çizim kurulamadı )", exc_info=True)
         carpar = True
@@ -1007,7 +1009,9 @@ def _kasnak_arasi_sec(g, eski_kural):
 
     try:
         #  Kasnağın kendisi de çarpabilir ( kabin_ustu._kasnak_engelleri — 15 Eki )
-        carpar = any(h.startswith(("Halat (", "Kabin kasnağı (")) for h in kabin_ustu.yerlesim(g)["hata"])
+        carpar = any(
+            h.startswith(("Halat (", "Kabin kasnağı (")) for h in kabin_ustu.yerlesim(g, asili=False)["hata"]
+        )
     except sorun.BILINEN:
         log.debug("yedek değer kullanılıyor ( çizim kurulamadı )", exc_info=True)
         carpar = True
@@ -1245,7 +1249,7 @@ def _yerlesim_sorunlari(g):
     if cift:
         return [("cep_engel", c) for c in cift]
     try:
-        ku = kabin_ustu.yerlesim(g)
+        ku = kabin_ustu.yerlesim(g, asili=False)  # operatör küpeşteye bağlı değil
     except sorun.BILINEN:
         log.debug("kabin üstü kurulamadı:  kurtarma operatöre bakmaz", exc_info=True)
         return []
