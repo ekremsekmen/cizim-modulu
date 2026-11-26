@@ -117,6 +117,13 @@ AZAMI_ADIM = 6
 KUCULEN = ("kuyu_genisligi", "kuyu_derinligi")
 KUCULTME_ADIMI = 10
 KUCULTME_YERLESIM = 3
+#  KOTLARDA YERLEŞİM ADIMLI DENEME SAYISI ( _kucult — her biri bir çare bulucu turu;  26 Kas ölçümü ):
+#  üçer denemeyle uçtan uca testin vakası ( 630 kg, 1,6 m/s, 11 durak, son kat 3400 ) 21 → 28 sn uzadı,
+#  CI'da 60 sn'yi aştı ( PR #171 ).  Kuyu tavanında TEK deneme üçüyle aynı kotu buluyor ( 2,5 m/s
+#  hazır asansörlerin 5 taramasında 15–21 cm, vakada +34,11 → +33,92 ), süre +2 sn;  hiç denemesiz
+#  1250 kg'ı ve 500 mm kısa kuyu üstünü kaçırıyor.  Kuyu dibinde küçültme üç deneme ister ( 630 MRL
+#  800 sığ:  −1,29 → −1,16;  tek denemeyle hiç inmiyor ) — yalnız kuyu dibi yetmeyen aramada çalışır.
+KUCULTME_YERLESIM_KOT = {"kuyu_tavani_kotu": 1, "kuyu_dibi_kotu": 3, "md_zemini_kotu": 1}
 #  KOTLAR DA KÜÇÜLTÜLÜR ( 24 Kas — T630, kuyu 2350, kuyu tavanı +19,00:  +19,37 isteniyordu, +19,18
 #  yetiyor ):  çare bulucu kotu türevle önerir, sorunu O AN bağlayan parçaya göre — regülatör 1,10 m
 #  korkuluğun içinde, küpeştenin 65 mm altında:  0,30 m düşey ( m.5.2.5.7.2 c ).  Regülatör öbür yana
@@ -691,7 +698,7 @@ def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False, anahtarlar=(*KUCULEN
             #  ( _tek_seferde ).  Birikince ( karşı ağırlık çarpma arası + regülatörün yanı ) iki adımlı,
             #  yeniden bulunamayan düzen çıkıyor, doğrulama turları kotu adım adım geri büyütüyordu.
             taban = (v, d) if kot else None
-            for _deneme in range(KUCULTME_YERLESIM):
+            for _deneme in range(KUCULTME_YERLESIM_KOT[g["anahtar"]] if kot else KUCULTME_YERLESIM):
                 if yuksek - dusuk <= 1:
                     break
                 k = (dusuk + yuksek) // 2
