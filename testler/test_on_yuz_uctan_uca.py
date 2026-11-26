@@ -61,6 +61,10 @@ from cizim import pafta
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIST = os.path.join(KOK, "on-yuz", "dist", "index.html")
 ZAMAN = 60_000  # ms — çizim ve paket isteği için
+#  Avan çizimi isteği ( seçici çare bulucuyu defalarca koşar ):  "mimardan istenecek kot" vakası
+#  yerelde ~23 sn, CI makinesinde ~2,5 katı — 60 sn'yi aştı ( 26 Kas, PR #171 ).  Sınır yalnız
+#  "sayfa takıldı" bekçisi;  bu istek yoldayken daha uzun beklenir.
+AVAN_ZAMAN = 120_000  # ms
 
 ATLA = None
 if os.environ.get("KONTROL_UCTAN_UCA") != "1":
@@ -154,10 +158,9 @@ class Izleyici:
     def sakin(self, sure=900):
         """Yolda istek kalmayıp `sure` ms öyle durana kadar bekler ( ön yüz girdiyi
         280 ms bekletip gönderir )."""
-        son_hareket = time.time()
-        bitis = time.time() + ZAMAN / 1000
+        son_hareket = baslangic = time.time()
         ilk_sayi = self.sayi
-        while time.time() < bitis:
+        while time.time() < baslangic + self._sinir() / 1000:
             self.sayfa.wait_for_timeout(100)
             if self.yolda > 0:
                 son_hareket = time.time()
@@ -169,6 +172,12 @@ class Izleyici:
             f"sayfa sakinleşmedi:  istekler bitmiyor — beklerken {self.sayi - ilk_sayi} istek gitti, "
             f"yolda {self.yolda}:  {yolda}"
         )
+
+    def _sinir(self):
+        """Bekleme sınırı ( ms ):  avan çizimi isteği yoldaysa AVAN_ZAMAN."""
+        if any(ad == "POST avan/cizimler" for ad, _t in self.suren.values()):
+            return AVAN_ZAMAN
+        return ZAMAN
 
     def son(self, uc):
         self.sakin()
