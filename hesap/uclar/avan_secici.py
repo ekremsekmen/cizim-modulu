@@ -117,6 +117,21 @@ AZAMI_ADIM = 6
 KUCULEN = ("kuyu_genisligi", "kuyu_derinligi")
 KUCULTME_ADIMI = 10
 KUCULTME_YERLESIM = 3
+#  KOTLARDA YERLEŞİM ADIMLI DENEME SAYISI ( _kucult — her biri bir çare bulucu turu;  26 Kas ölçümü ):
+#  üçer denemeyle uçtan uca testin vakası ( 630 kg, 1,6 m/s, 11 durak, son kat 3400 ) 21 → 28 sn uzadı,
+#  CI'da 60 sn'yi aştı ( PR #171 ).  Kuyu tavanında TEK deneme üçüyle aynı kotu buluyor ( 2,5 m/s
+#  hazır asansörlerin 5 taramasında 15–21 cm, vakada +34,11 → +33,92 ), süre +2 sn;  hiç denemesiz
+#  1250 kg'ı ve 500 mm kısa kuyu üstünü kaçırıyor.  Kuyu dibinde küçültme üç deneme ister ( 630 MRL
+#  800 sığ:  −1,29 → −1,16;  tek denemeyle hiç inmiyor ) — yalnız kuyu dibi yetmeyen aramada çalışır.
+KUCULTME_YERLESIM_KOT = {"kuyu_tavani_kotu": 1, "kuyu_dibi_kotu": 3, "md_zemini_kotu": 1}
+#  KOTLAR DA KÜÇÜLTÜLÜR ( 24 Kas — T630, kuyu 2350, kuyu tavanı +19,00:  +19,37 isteniyordu, +19,18
+#  yetiyor ):  çare bulucu kotu türevle önerir, sorunu O AN bağlayan parçaya göre — regülatör 1,10 m
+#  korkuluğun içinde, küpeştenin 65 mm altında:  0,30 m düşey ( m.5.2.5.7.2 c ).  Regülatör öbür yana
+#  alınınca bağlayan kabin halat bağlantısı olur ( korkuluğun 7,5 mm dışında:  0,10 m ) ve +19,18
+#  yeter;  ama iki adımlı bu çözümü çare bulucu görmez ( her adayın sorunu tek başına gidermesi
+#  gerekir ).  Kot da genişlik gibi küçültülür:  ikili arama, sonra yerleşim adımlı deneme ( _kucult ).
+#  Kotlar metreyle yazılır;  arama mm'de, mimarınkinden önerilene doğru ( kuyu dibi aşağı iner ).
+KUCULEN_KOT = ("kuyu_tavani_kotu", "kuyu_dibi_kotu", "md_zemini_kotu")
 #  BÜTÇE SINAMA SAYISIDIR, SAAT DEĞİL ( 16 Kas — uygulamanın "düzeltme öner"i gibi, care_uclari ):
 #  arama yalnız AZAMI_SINAMA / AZAMI_ADIM / AZAMI_YENIDEN ile sınırlıdır;  aynı girdi her makinede
 #  aynı sonucu verir ( araclar/avan_tarama kaydıyla birebir ).  Eskiden yerel saat sınırları vardı
@@ -606,22 +621,27 @@ def _paket_olcusunde(taslak, m, ek, sina):
     return v, d, secilen, gereken
 
 
-def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False, anahtarlar=KUCULEN):
-    """Mimardan istenecek kuyu ölçülerini ( KUCULEN ) temiz kalan en küçük değere indirir.
-    Döner ( istek , durum , gereken ).  Genişlik denenirken kabin de ağırlığın yanına yeniden
-    kaydırılır ( _kaydirma — uyarlamanın başındaki kaydırma mimarın ilk genişliği içindi ).
-    Mimarın kendi ölçüsü de temizse o ölçü istenmez ( listeden düşer ).
+def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False, anahtarlar=(*KUCULEN, *KUCULEN_KOT)):
+    """Mimardan istenecek kuyu ölçülerini ( KUCULEN ) ve kotları ( KUCULEN_KOT ) temiz kalan en
+    küçük değere indirir.  Döner ( istek , durum , gereken ).  Genişlik denenirken kabin de ağırlığın
+    yanına yeniden kaydırılır ( _kaydirma — uyarlamanın başındaki kaydırma mimarın ilk genişliği
+    içindi ).  Mimarın kendi ölçüsü de temizse o ölçü istenmez ( listeden düşer ).
 
     İki aşama, ikisi de saate bakmaz ( sonuç makinenin hızına göre değişmez ):
       1  ikili arama, yalnız sınama ( hızlı );
-      2  genişlikte, bulunanın altında en çok KUCULTME_YERLESIM deneme daha — her birinde bir
-         yerleşim adımı ( çare bulucu:  kapı kaçıklığı dar kuyuda kapıyı yerinde tutar )."""
+      2  genişlikte ve kotlarda, bulunanın altında en çok KUCULTME_YERLESIM deneme daha — her
+         birinde bir yerleşim adımı ( çare bulucu:  kapı kaçıklığı dar kuyuda kapıyı yerinde tutar;
+         regülatörün yanı korkuluğun yanındaki parçayı değiştirir, kuyu tavanı alçalır ).
+    Kot metreyle yazılır:  adımlar mm'de, mimarınkinden ( eski ) önerilene ( yeni ) doğru."""
     yanda = v["asansorler"][0].get("agirlik_yeri", taslak["asansor"].get("agirlik_yeri")) == taslak[
         "asansor"
     ].get("agirlik_yeri")
 
-    def dene(anahtar, x, yerlesim):
-        y = care_uclari.girdi_yaz(v, 0, anahtar, x)
+    def dene(anahtar, x, yerlesim, taban=None):
+        """( istek , durum ) ya da None.  taban:  ( istek , durum ) — deneme bundan türer ( yoksa
+        bulunan son temiz istekten )."""
+        tv, td = taban or (v, d)
+        y = care_uclari.girdi_yaz(tv, 0, anahtar, x)
         adaylar = [y]
         if anahtar == "kuyu_genisligi" and yanda:
             kay = _kaydirma(taslak, {**{k: v["asansorler"][0].get(k) for k in KABIN}, "kuyu_genisligi": x})
@@ -631,50 +651,80 @@ def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False, anahtarlar=KUCULEN):
             if not sina.var():
                 return None
             dy = sina(y)
-            if yerlesim and i == 0 and not dy["temiz"] and dy["cizim"] and not dy["engel"]:
+            #  Kotta avanı bağlayan bölüm düşse de yerleşim denenir:  kuyu üstünün açıklıkları hesabın
+            #  sığınma bölümünde de denetlenir ( korkuluk – tavan sorunu "siginma_alanlari"nı düşürür )
+            if (
+                yerlesim
+                and i == 0
+                and not dy["temiz"]
+                and dy["cizim"]
+                and (anahtar in KUCULEN_KOT or not dy["engel"])
+            ):
                 y, dy, _s, _g = _uyarla(y, dy, sina, kapi_kilidi, yalniz_yerlesim=True, adim=1)
             #  Temiz ve yeni bir ürün bölümü de düşürmüyor
-            if dy["temiz"] and set(dy["bolum"]) <= set(d["bolum"]):
+            if dy["temiz"] and set(dy["bolum"]) <= set(td["bolum"]):
                 return y, dy
         return None
 
-    #  Önce derinlik, sonra genişlik
+    #  Önce derinlik, sonra genişlik, en son kotlar ( planın ölçüsü korkuluğun yüksekliğini belirler )
     for g in sorted(
         (g for g in gereken if g["anahtar"] in anahtarlar and _sayili(g["eski"])),
-        key=lambda g: g["anahtar"] != "kuyu_derinligi",
+        key=lambda g: (g["anahtar"] != "kuyu_derinligi", g["anahtar"] in KUCULEN_KOT),
     ):
-        alt, ust = _sayi(g["eski"]), _sayi(g["yeni"])
-        n = int(-(-(ust - alt) // KUCULTME_ADIMI))
+        kot = g["anahtar"] in KUCULEN_KOT
+        if kot:
+            alt, ust = round(_sayi(g["eski"]) * 1000), round(_sayi(g["yeni"]) * 1000)
+        else:
+            alt, ust = _sayi(g["eski"]), _sayi(g["yeni"])
+        #  Kuyu dibi kotu aşağı iner:  adımlar mimarınkinden önerilene doğru
+        yon = -1 if kot and ust < alt else 1
+        n = int(-(-(yon * (ust - alt)) // KUCULTME_ADIMI))
         if n < 1:
             continue
         #  alt + k · adım:  k = n bulunan ölçü ( temiz ), k = 0 mimarınki.  En küçük temiz k aranır
         dusuk, yuksek = -1, n
         while yuksek - dusuk > 1:
             k = 0 if dusuk < 0 and yuksek == n else (dusuk + yuksek) // 2
-            sonuc = dene(g["anahtar"], alt + k * KUCULTME_ADIMI, False)
+            sonuc = dene(g["anahtar"], _adimdaki(alt, yon, k, kot), False)
             if sonuc is None:
                 dusuk = k
             else:
                 yuksek, (v, d) = k, sonuc
-        if g["anahtar"] == "kuyu_genisligi":
-            #  k = 0 ( mimarın genişliği ) yerleşimle zaten denendi ( _sec.yerlesim ) — sığmıyor
+        if g["anahtar"] == "kuyu_genisligi" or kot:
+            #  k = 0 ( mimarın ölçüsü ) yerleşimle zaten denendi ( _sec.yerlesim ) — sığmıyor
             dusuk = 0
-            for _deneme in range(KUCULTME_YERLESIM):
+            #  KOTTA DENEMELER ÜST ÜSTE BİNMEZ:  her biri aynı düzenden ( yerleşimsiz bulunan ) tek
+            #  yerleşim adımıyla — mimar o kotu girince seçici aynı düzeni uyarlamada yeniden bulur
+            #  ( _tek_seferde ).  Birikince ( karşı ağırlık çarpma arası + regülatörün yanı ) iki adımlı,
+            #  yeniden bulunamayan düzen çıkıyor, doğrulama turları kotu adım adım geri büyütüyordu.
+            taban = (v, d) if kot else None
+            for _deneme in range(KUCULTME_YERLESIM_KOT[g["anahtar"]] if kot else KUCULTME_YERLESIM):
                 if yuksek - dusuk <= 1:
                     break
                 k = (dusuk + yuksek) // 2
-                sonuc = dene(g["anahtar"], alt + k * KUCULTME_ADIMI, True)
+                sonuc = dene(g["anahtar"], _adimdaki(alt, yon, k, kot), True, taban)
                 if sonuc is None:
                     dusuk = k
                 else:
                     yuksek, (v, d) = k, sonuc
         if yuksek < n:
-            g["yeni"] = alt + yuksek * KUCULTME_ADIMI
-    return (
-        v,
-        d,
-        [g for g in gereken if not (g["anahtar"] in anahtarlar and _sayi(g["yeni"]) <= _sayi(g["eski"]))],
-    )
+            g["yeni"] = _adimdaki(alt, yon, yuksek, kot)
+
+    def istenmez(g):
+        """Mimarın kendi ölçüsü yetiyor ( kot:  önerilen mimarınkine indi )."""
+        if g["anahtar"] not in anahtarlar:
+            return False
+        if g["anahtar"] in KUCULEN_KOT:
+            return _sayi(g["yeni"]) == _sayi(g["eski"])
+        return _sayi(g["yeni"]) <= _sayi(g["eski"])
+
+    return v, d, [g for g in gereken if not istenmez(g)]
+
+
+def _adimdaki(alt, yon, k, kot):
+    """Küçültmenin k. adımındaki değer:  alt + yon · k · KUCULTME_ADIMI;  kot ( mm ) formun yazımıyla."""
+    x = alt + yon * k * KUCULTME_ADIMI
+    return katlar.kot_metni(round(x)) if kot else x
 
 
 def _kot_metni(deger):
@@ -1191,9 +1241,10 @@ def _sec(m):
     sina.oda = _oda_kurali(taslak, m)
     sina.ayar = ayarlar(m)
 
-    def yerlesim(adaylar):
+    def yerlesim(adaylar, kucult=True):
         """Adayları sırayla dener:  olduğu gibi temiz olan → uyarlananlar.  Döner
-        ( "uygun" | "gereken" | "sigmaz" , sonucun alanları )."""
+        ( "uygun" | "gereken" | "sigmaz" , sonucun alanları ).  kucult:  mimardan istenecek ölçüler
+        en küçüğe indirilir ( _kucult ) — "gereken"i kullanılmayacak yerleşimde gereksiz."""
         kalan = []
         for ek in adaylar:
             if not sina.var():
@@ -1236,7 +1287,7 @@ def _sec(m):
                 gereken = [x for x in once if x["anahtar"] not in {g["anahtar"] for g in gereken}] + gereken
                 if d2["temiz"]:
                     secilen = {**secilen, **s}
-                    if gereken:
+                    if gereken and kucult:
                         asamalar.asama("kucultme")
                         v2, d2, gereken = _kucult(v2, d2, gereken, sina, taslak, kilit)
                         secilen = {
@@ -1271,7 +1322,9 @@ def _sec(m):
     if durum != "uygun" and len(sira) > 1:
         sina.kalan = AZAMI_SINAMA
         asamalar.asama("yerlesim", yer(sira[1]))
-        durum_2, alanlar_2 = yerlesim(sira[1])
+        #  İlki mimardan ölçü istiyorsa ikincisinin yalnız "uygun"u kullanılır:  onun istediği ölçüler
+        #  küçültülmez ( 24 Kas — kot da küçültülünce boşa giden arama seçimin süresini ikiye katlıyordu )
+        durum_2, alanlar_2 = yerlesim(sira[1], kucult=durum == "sigmaz")
         if durum_2 == "uygun" or (durum_2 == "gereken" and durum == "sigmaz"):
             durum, alanlar_ = durum_2, alanlar_2
     return son(durum, paket=taslak["kimlik"], **alanlar_)
