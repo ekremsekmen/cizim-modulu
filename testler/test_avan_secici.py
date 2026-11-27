@@ -575,6 +575,23 @@ class AvanSecici(unittest.TestCase):
             [(x["yerlesim"], x["nedenler"]) for x in r["denenen"]], [("ağırlık arkada", ["arka mimarda"])]
         )
 
+    def test_beyanla_olcu_isteniyorsa_kart_once(self):
+        """K7 ( 27 Kas — kullanıcı:  "kartta 1:1 önce" ):  630 kg makine daireli pakette kartta 2:1;  2:1
+        ancak kuyu genişleyince kuruluyor ( bina taraması 2430 buluyor ), paketin 1:1'i mimarın kuyusuna
+        olduğu gibi sığıyor.  Sonuç "beyan" ( kartta 1:1 ), 2:1'in istediği seçenek ( kosul:  kartın
+        askısı kalırsa ) — mimarın binası değişmeden çözüm önce."""
+        t = PAKETLER[(630, False)]
+        r = avan_secici.sec(mimari(t, aski_orani=2))
+        self.assertEqual(r["durum"], "beyan", r)
+        self.assertEqual([(b["anahtar"], b["yeni"]) for b in r["beyan"]], [("aski_orani", "1")])
+        self.assertEqual(len(r["secenek"]), 1)
+        x = r["secenek"][0]
+        self.assertEqual(x["kosul"], [["aski_orani", "2"]])
+        self.assertEqual([g["anahtar"] for g in x["gereken"]], ["kuyu_genisligi"])
+        self.assertGreater(x["gereken"][0]["yeni"], int(t["asansor"]["kuyu_genisligi"]))
+        #  Kartın 1:1'i mimarın kuyusunda olduğu gibi uygun
+        self.assertEqual(avan_secici.sec(mimari(t, aski_orani=1))["durum"], "uygun")
+
     def test_istenen_olcu_en_kucuk(self):
         """13 Kas denetimi:  630 kg 1600 × 1600 kuyuda genişlik 2110 isteniyordu;  asansör 1800'e
         sığıyor.  İstenen ölçü paketin kuyusundan büyük olamaz ve o ölçüyle seçici "uygun" der.

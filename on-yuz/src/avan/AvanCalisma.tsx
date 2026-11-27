@@ -2237,7 +2237,9 @@ function DenenenYerlesim({ r }: { r: AvanCizimYaniti }) {
     <div className="mt-4" aria-label="Denenen öbür yerleşim">
       {(r.secenek ?? []).map((x) => (
         <div key={`s-${x.yerlesim}`} aria-label="Öbür yerleşimin isteği" className="mb-3 rounded-orta border border-cizgi px-4 py-3">
-          <p className="text-[13px] font-semibold text-metin-2">Ya da karşı {x.yerlesim}:</p>
+          <p className="text-[13px] font-semibold text-metin-2">
+            {x.kosul_yazi ? `Ya da kartta ${x.kosul_yazi} kalırsa ( karşı ${x.yerlesim} ), mimardan:` : `Ya da karşı ${x.yerlesim}:`}
+          </p>
           {x.gereken.map((g) => (
             <p key={g.anahtar} className="mt-1 text-[13px] text-metin-2">
               {g.etiket}:  <span className="sayi">{g.eski ?? "—"}</span> → <span className="sayi">{g.yeni}</span>
@@ -2301,6 +2303,7 @@ function CizimSonucu({ r, donuyor, kartaUygula }: { r: AvanCizimYaniti; donuyor:
         <Dugme className="mt-3" onClick={kartaUygula} disabled={donuyor}>
           {r.beyan_turu === "kapi" ? "Trafik hesabına uygula" : "Avan kartına uygula"}
         </Dugme>
+        <DenenenYerlesim r={r} />
       </CizimIletisi>
     );
   if (r.durum === "eksik")

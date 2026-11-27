@@ -294,6 +294,10 @@ def secim(g, i):
                 b["eski_yazi"] = asansorler[i].get("kapi_tipi") or b["eski"]
     if any(b.get("yer") == "trafik" for b in r.get("beyan") or []):
         r["beyan_turu"] = "kapi"
+    #  Kartın değeri kalırsa istenecek ölçüler ( avan_secici._sec_kapisiz — K7 ):  koşul kartın diliyle
+    for x in r.get("secenek") or []:
+        if x.get("kosul"):
+            x["kosul_yazi"] = ",  ".join(f"{BEYAN[k][1]} {_yazi(k, v)}" for k, v in x["kosul"])
     return r
 
 

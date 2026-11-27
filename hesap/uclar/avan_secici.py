@@ -1097,15 +1097,23 @@ def _kapiyi_tasi(r, kapi):
 
 
 def _sec_kapisiz(m):
-    """sec — makine dairesi kapısının elle ayarı dışında."""
+    """sec — makine dairesi kapısının elle ayarı dışında.
+
+    AVANIN BEYANI ( askı oranı, makine tipi ):  beyanla kurulamıyorsa ( sığmaz ) paketin kendi
+    değerleri denenir, kurulursa "beyan" — kartta seçilecek.  BEYANLA ÖLÇÜ İSTENİYORSA ( 27 Kas,
+    K7 — kullanıcı:  "kartta 1:1 önce" ):  paketin değerleriyle mimarın kuyusuna OLDUĞU GİBİ
+    sığıyorsa yine "beyan" önce gelir ( mimarın binası değişmez );  beyanla istenen ölçüler
+    secenek'tir ( kosul:  kartın değeri kalırsa ).  Bina taraması ( çare bulucu ) 2:1'e kuyu
+    önerince 630 / 450 kg MD'de "kartta 1:1" yerine "kuyu +380" deniyordu."""
     t0 = time.monotonic()
     r = _sec(m)
     if r["durum"] == "gereken":
         r = _tek_seferde(m, r, t0)
     r.pop("_nedenler", None)
     beyan = {k: _metin(m[k]) for k in BEYAN if m.get(k) not in (None, "")}
-    if r["durum"] != "sigmaz" or not beyan:
+    if r["durum"] not in ("sigmaz", "gereken") or not beyan:
         return r
+    gerekenle = r["durum"] == "gereken"
     taslak = paketler()[(int(_sayi(m["beyan_yuku"])), m.get("mk_yok") in (True, "true"))]
     kendi = {k: taslak["asansor"].get(k) or _metin(alanlar.ALAN[k].varsayilan) for k in beyan}
     farkli = [k for k in beyan if kendi[k] != beyan[k]]
@@ -1119,7 +1127,8 @@ def _sec_kapisiz(m):
         with asamalar.alt_is("aski"):
             r2 = _sec({**m, **{k: kendi[k] for k in degisen}})
         sinama += r2["sinama"]
-        if r2["durum"] in ("uygun", "gereken"):
+        #  Beyanla ölçü isteniyorsa kartın değişikliği ancak mimarın kuyusuna olduğu gibi sığarsa
+        if r2["durum"] in (("uygun",) if gerekenle else ("uygun", "gereken")):
             bulunan = degisen
             if i > 0:
                 break
@@ -1128,7 +1137,7 @@ def _sec_kapisiz(m):
     r["sinama"], r["sure"] = sinama, round(time.monotonic() - t0, 2)
     if bulunan is None:
         return r
-    return {
+    sonuc = {
         "durum": "beyan",
         "beyan": [
             {"anahtar": k, "etiket": alanlar.ALAN[k].etiket, "eski": beyan[k], "yeni": kendi[k]}
@@ -1138,6 +1147,11 @@ def _sec_kapisiz(m):
         "sinama": sinama,
         "sure": r["sure"],
     }
+    if gerekenle:
+        #  kosul:  kartın kalan değerleri [ [ anahtar , değer ] ] — ekranın yazısı avan_cizimi.secim'de
+        kosul = [[k, beyan[k]] for k in bulunan]
+        sonuc["secenek"] = [{"yerlesim": r.get("yerlesim"), "gereken": r["gereken"], "kosul": kosul}]
+    return sonuc
 
 
 #  İstenen ölçüyle yeniden seçim en çok bu kadar kez ( _tek_seferde )
