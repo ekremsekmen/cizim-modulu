@@ -2229,6 +2229,28 @@ function CizimIletisi({
   );
 }
 
+/**  Denenip kullanılmayan yerleşimin sorunları ( 27 Kas — ağırlık arkadaki düzeni kuyu dibi
+     merdiveni bağlıyordu;  ekran yalnız yandakinin ölçüsünü söylüyordu, sebep görünmüyordu )  */
+function DenenenYerlesim({ r }: { r: AvanCizimYaniti }) {
+  if (!r.denenen?.length) return null;
+  return (
+    <div className="mt-4" aria-label="Denenen öbür yerleşim">
+      {r.denenen.map((x) => (
+        <div key={x.yerlesim}>
+          <p className="text-[13px] font-semibold text-metin-2">
+            Karşı {x.yerlesim} de denendi — mimarın bugünkü ölçüleriyle kurulmadı:
+          </p>
+          <ul className="mt-1 list-disc space-y-1 pl-5 text-[12.5px] text-metin-2">
+            {x.nedenler.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /**  Çizim çıkmayan sonuçlar:  eksik mimari, mimardan istenecek ölçüler, sığmayan kuyu  */
 function CizimSonucu({ r, donuyor, kartaUygula }: { r: AvanCizimYaniti; donuyor: boolean; kartaUygula: () => void }) {
   if (r.durum === "beyan")
@@ -2294,20 +2316,32 @@ function CizimSonucu({ r, donuyor, kartaUygula }: { r: AvanCizimYaniti; donuyor:
               <p className="text-[13px] font-semibold text-uyari">
                 {g.etiket}:  <span className="sayi">{g.eski ?? "—"}</span> → <span className="sayi">{g.yeni}</span>
               </p>
-              {g.sebep && <p className="mt-1 text-[12.5px] text-metin-2">{g.sebep}</p>}
+              {g.sebep && (
+                <p className="mt-1 text-[12.5px] text-metin-2">
+                  {r.yerlesim ? `Karşı ${r.yerlesim}:  ` : ""}
+                  {g.sebep}
+                </p>
+              )}
             </div>
           ))}
         </div>
+        <DenenenYerlesim r={r} />
       </CizimIletisi>
     );
   if (r.durum === "sigmaz")
     return (
-      <CizimIletisi baslik="Bu kuyuya asansör sığmıyor" alt="Mimardan istenecek ölçü de bulunamadı.  Sebepler:" kirmizi donuyor={donuyor}>
+      <CizimIletisi
+        baslik="Bu kuyuya asansör sığmıyor"
+        alt={`Mimardan istenecek ölçü de bulunamadı.  Sebepler${r.yerlesim ? ` ( karşı ${r.yerlesim} )` : ""}:`}
+        kirmizi
+        donuyor={donuyor}
+      >
         <ul className="mt-3 list-disc space-y-1 pl-5 text-[13px] text-metin-2">
           {(r.nedenler ?? []).map((n) => (
             <li key={n}>{n}</li>
           ))}
         </ul>
+        <DenenenYerlesim r={r} />
       </CizimIletisi>
     );
   if (r.durum === "paket_yok" && r.hiz)

@@ -749,6 +749,11 @@ def sec(m):
       "gereken"    gereken [ { anahtar , etiket , eski , yeni , sebep } ] — mimarın
                    ölçüleri böyle olursa temiz;  istek o ölçülerle
       "sigmaz"     nedenler [ metin ] — mimardan istenecek ölçü de bulunamadı
+                   "gereken" ve "sigmaz"de ayrıca yerlesim ( sonucun yerleşimi:  "ağırlık yanda" |
+                   "ağırlık arkada" ) ve denenen [ { yerlesim , nedenler } ] — denenip
+                   kullanılmayan yerleşimin mimarın ölçülerindeki sorunları ( 27 Kas:  ağırlık
+                   arkadaki düzeni kuyu dibi merdiveni bağlıyordu, ekran yalnız yandakinin
+                   ölçüsünü söylüyordu — sebep görünmüyordu )
       "paket_yok"  bu yük / düzen için paket yok;  hiz ( True ) + hizlar:  bu hızda çizim
                    çıkmaz ( uygulamanın hız listesinde yok — 1,75 · 3,5 m/s )
       "eksik"      eksik [ anahtar ] — mimari girdi eksik
@@ -1142,8 +1147,13 @@ def _tek_seferde(m, r, t0):
     ( _kucult ) temiz bir yerleşim bulur;  ama mimar o ölçüyü girince seçim baştan yapılır ve
     aynı yerleşime varmayabilir.  İstenen ölçülerle seçim burada bir kez daha yapılır:  yine
     ölçü isteniyorsa o ölçü de listeye girer ( mimarın ilk değerinden ), en çok AZAMI_YENIDEN
-    kez.  Yeniden seçim "sığmaz" derse ilk sonuç kalır."""
+    kez.  Yeniden seçim "sığmaz" derse ilk sonuç kalır.
+
+    DENENEN ( 27 Kas ):  kullanılmayan yerleşimin sorunları ilk seçimdekidir — mimarın bugünkü
+    ölçüleriyle;  yeniden seçiminki büyütülmüş ölçülerle ölçülmüştür.  Yeniden seçimin yerleşimi
+    ( sonucun ) denenenden çıkar."""
     ilk = {g["anahtar"]: g["eski"] for g in r["gereken"]}
+    denenen = r.get("denenen")
     for _tur in range(AZAMI_YENIDEN):
         m2 = dict(m)
         for g in r["gereken"]:
@@ -1159,6 +1169,8 @@ def _tek_seferde(m, r, t0):
             ilk.setdefault(g["anahtar"], g["eski"])
             yeni[g["anahtar"]] = {**g, "eski": ilk[g["anahtar"]]}
         r = {**r2, "gereken": list(yeni.values()), "sinama": r["sinama"]}
+        if denenen is not None:
+            r["denenen"] = [x for x in denenen if x["yerlesim"] != r.get("yerlesim")]
     r["sure"] = round(time.monotonic() - t0, 2)
     return r
 
@@ -1299,10 +1311,13 @@ def _sec(m):
                         v2, d2, s = _urun_ara(v2, d2, sina)
                         secilen.update(s)
                     ortak = dict(istek=v2, secimler=secilen, acik_bolumler=d2["bolum"])
-                    return ("gereken", dict(gereken=gereken, **ortak)) if gereken else ("uygun", ortak)
+                    if not gereken:
+                        return "uygun", ortak
+                    #  Mimarın ölçülerindeki sorunlar ( ilk aday ):  bu yerleşim kullanılmazsa
+                    #  "denenen"de söylenir
+                    return "gereken", dict(gereken=gereken, _mimarda=_nedenler(kalan[0][1]), **ortak)
         _v, d, _s, _ek = kalan[0]
-        nedenler = list(d["cizim"].values()) + d["hesap"] + [f"bölüm:{b}" for b in d["engel"]]
-        return "sigmaz", dict(nedenler=nedenler)
+        return "sigmaz", dict(nedenler=_nedenler(d))
 
     #  YERLEŞİM ADAYLARI.  Yan:  kabin ağırlığın yanında ( ölçülen çare ), sonra pakette olduğu
     #  gibi.  Arka ( kullanıcı kararı 14 Kas ):  dar ve derin kuyu.  Hangisi önce ( _once_arka ):
@@ -1317,17 +1332,42 @@ def _sec(m):
     def yer(adaylar):
         return "ağırlık arkada" if adaylar[0] is arka else "ağırlık yanda"
 
-    asamalar.asama("yerlesim", yer(sira[0]))
-    durum, alanlar_ = yerlesim(sira[0])
-    if durum != "uygun" and len(sira) > 1:
+    durum, alanlar_ = _yerlesimler([(yer(x), x) for x in sira], yerlesim, sina)
+    return son(durum, paket=taslak["kimlik"], **alanlar_)
+
+
+def _yerlesimler(sira, yerlesim, sina):
+    """Yerleşimler sırayla ( _sec.yerlesim ):  ilki uygunsa o;  değilse ikincisi denenir.  sira:
+    [ ( ad , adaylar ) ].  Döner ( durum , alanlar ) — "uygun" olmayanda yerlesim ( sonucun adı ) ve
+    denenen ( kullanılmayan yerleşimin mimarın ölçülerindeki sorunları )."""
+    (ad, ilk), *kalan = sira
+    asamalar.asama("yerlesim", ad)
+    durum, alanlar_ = yerlesim(ilk)
+    denenen = []
+    if durum != "uygun" and kalan:
+        ikinci, adaylar = kalan[0]
         sina.kalan = AZAMI_SINAMA
-        asamalar.asama("yerlesim", yer(sira[1]))
+        asamalar.asama("yerlesim", ikinci)
         #  İlki mimardan ölçü istiyorsa ikincisinin yalnız "uygun"u kullanılır:  onun istediği ölçüler
         #  küçültülmez ( 24 Kas — kot da küçültülünce boşa giden arama seçimin süresini ikiye katlıyordu )
-        durum_2, alanlar_2 = yerlesim(sira[1], kucult=durum == "sigmaz")
+        durum_2, alanlar_2 = yerlesim(adaylar, kucult=durum == "sigmaz")
         if durum_2 == "uygun" or (durum_2 == "gereken" and durum == "sigmaz"):
-            durum, alanlar_ = durum_2, alanlar_2
-    return son(durum, paket=taslak["kimlik"], **alanlar_)
+            ad, ikinci = ikinci, ad
+            durum, alanlar_, alanlar_2 = durum_2, alanlar_2, alanlar_
+        #  KULLANILMAYAN YERLEŞİM ( 27 Kas ):  mimarın ölçülerinde neden olmadığı — ekran söyler
+        neden = alanlar_2.get("_mimarda") or alanlar_2.get("nedenler")
+        if durum != "uygun" and neden:
+            denenen.append({"yerlesim": ikinci, "nedenler": neden})
+    alanlar_.pop("_mimarda", None)
+    if durum != "uygun":
+        alanlar_.update(yerlesim=ad, denenen=denenen)
+    return durum, alanlar_
+
+
+def _nedenler(d):
+    """Sınamanın ( _Sinayici ) sorunları, metin listesi:  çizimin, hesabın;  geçmeyen avan
+    bölümü "bölüm:<kimlik>" ( uç ekrandaki adına çevirir )."""
+    return list(d["cizim"].values()) + d["hesap"] + [f"bölüm:{b}" for b in d["engel"]]
 
 
 def _kucuk_oda(taslak, m):
