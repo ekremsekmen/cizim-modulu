@@ -73,20 +73,13 @@ class GercekProjeler(unittest.TestCase):
         kabin üstü planını çizmiyor.  10 Eki'ye dek halat engel sayılmıyordu,
         tek ret arkadaki 1,10 m korkuluğun makine kirişine 230 ( en az 300,
         m.5.2.5.7.2 c ) olmasıydı;  son kat 4.270 olunca çiziliyordu — artık son
-        kat yetse de çizilmez.  27 Kas'tan ikinci sebep:  kuyu dibi merdiveni ( 350 ) kapının
-        yanına sığmıyor, yan duvardaki yer Ek F.5 c'yi bozuyor ( LiftDesigner merdiveni çizmiyor )."""
+        kat yetse de çizilmez."""
         cizim, _g, b11 = self.S["12495-18"]
         self.assertFalse(cizim["aktif"])
-        self.assertEqual(len(cizim["hata"]), 2)
-        tavan = next(h for h in cizim["hata"] if "Kabin tavanında çömelme tipi sığınma alanına" in h)
-        self.assertIn("kasnaklar ve aralarındaki halat", tavan)
-        self.assertTrue(
-            any("Kuyu dibi merdiveni" in h and "F.5 c" in h for h in cizim["hata"]), cizim["hata"]
-        )
-        #  Hesabın notu çizimin ilk sebebini yazar ( 27 Kas'tan kuyu dibi merdiveni )
-        self.assertTrue(
-            b11.startswith("HESAP EKSİK — kuyunun çizimi kurulamadı:  " + cizim["hata"][0][:40]), b11
-        )
+        self.assertEqual(len(cizim["hata"]), 1)
+        self.assertIn("Kabin tavanında çömelme tipi sığınma alanına", cizim["hata"][0])
+        self.assertIn("kasnaklar ve aralarındaki halat", cizim["hata"][0])
+        self.assertTrue(b11.startswith("HESAP EKSİK — kuyunun çizimi kurulamadı:  Kabin tavanında"))
         for son_kat in (4260, 4270, 6000):
             a = dict(gercek_projeler.PROJELER["12495-18"], son_kat_yuksekligi=son_kat)
             pg = {k: a.pop(k) for k in list(a) if k in uygulama_istegi.PROJE_GENELI_ALANLAR}

@@ -381,11 +381,11 @@ class AvanSecici(unittest.TestCase):
         r = avan_secici.sec(m)
         self.assertEqual(r["durum"], "gereken", r)
         #  27 Kas ( seçici doğruluk planı Adım 2 + 4 ):  çare bulucu merdivene kuyu genişliği önerir
-        #  ( bina ölçüsü taraması ), iki yerleşim de küçültülüp karşılaştırılır — arka 1850 ( merdiven
-        #  350 — K1;  330'la 1830 ), yan 1960 seçenek ( küçültme sınırın altını da dener;  önce 1980 ).
+        #  ( bina ölçüsü taraması ), iki yerleşim de küçültülüp karşılaştırılır — arka 1830, yan 1960
+        #  seçenek ( küçültme sınırın altını da dener;  önce 1980 ).
         #  Arkanın mimarın 1800'ündeki sebebi ( merdiven ) yine söylenir.
         self.assertEqual(r["yerlesim"], "ağırlık arkada")
-        self.assertEqual([(g["anahtar"], g["yeni"]) for g in r["gereken"]], [("kuyu_genisligi", 1850.0)])
+        self.assertEqual([(g["anahtar"], g["yeni"]) for g in r["gereken"]], [("kuyu_genisligi", 1830.0)])
         self.assertEqual(
             [(x["yerlesim"], [(g["anahtar"], g["yeni"]) for g in x["gereken"]]) for x in r["secenek"]],
             [("ağırlık yanda", [("kuyu_genisligi", 1960.0)])],

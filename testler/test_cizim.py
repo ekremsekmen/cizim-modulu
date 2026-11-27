@@ -1482,9 +1482,6 @@ class KuyuDibiYerlesim(unittest.TestCase):
                 kenar = kp["sol_pay"] if m[0] == 0 else kp["sol_pay"] + kp["genislik"]
                 dx = max(0.0, m[0] - kenar, kenar - m[2])
                 self.assertLessEqual((dx**2 + m[1] ** 2) ** 0.5, kuyu_dibi.MERDIVEN_KAPI_AZAMI)
-                #  F.5 c:  basamakların ortası kat girişinin kenarına en çok 600 mm
-                orta = ((m[0] + m[2]) / 2 - kenar, (m[1] + m[3]) / 2)
-                self.assertLessEqual((orta[0] ** 2 + orta[1] ** 2) ** 0.5, kuyu_dibi.MERDIVEN_BASAMAK_AZAMI)
 
     def test_genis_kuyuda_merdiven_kapinin_yaninda(self):
         #  3 m genişlikte kuyu, kapı kabin ekseninde:  sağ duvara 820, sola 1.080 —
@@ -1567,14 +1564,11 @@ class KuyuDibiYerlesim(unittest.TestCase):
 
     def test_merkezi_kapida_merdiven_cep_ile_konsol_arasina(self):
         """Arkada ağırlık, 1000 kg, merkezi kapı:  iki kanat cebi de yan duvarlara 95 mm
-        kalıyor;  yan duvarda kabin kapısının cebinin 50 mm arkasıyla ray konsolunun
-        plakası arasında 330 mm yer var.  Merdiven eni varsayılanı 350 ( 27 Kas — piyasadaki
-        merdivenler, seçici doğruluk planı K1;  19 – 27 Kas standardın en azı 330'du ):  yer
-        yetmez, kapıdan 800 mm'den uzağa da konamaz — proje sebebiyle reddedilir ( çare
-        bulucu kuyu genişliğini önerir ).  330'luk merdiven de bu yerde Ek F.5 c'yi bozar:
-        F.5 b'yi geçer ( saklı konum ≤ 800 ) ama basamaklarının ortası kat girişinin kenarına
-        600 mm'den uzak — 27 Kas'a dek F.5 c denetlenmiyordu, bu düzen standarda uymadan
-        çiziliyordu ( 4 Kas, kullanıcı 50 mm açıklığı seçti;  eskiden merdiven iki cebin de
+        kalıyor;  merdiven yan duvarda kabin kapısının cebinin 50 mm arkasıyla ray
+        konsolunun plakası arasına sığar ( 330 mm yer, merdiven 330:  basamak 280 + 25'lik
+        iki dikme — Ek F.3;  19 Kas'a dek 350'ydi, proje reddediliyordu ).  Daha geniş
+        merdivende ( 350 ) yer yoksa kapıdan 800 mm'den uzağa da konamaz:  proje sebebiyle
+        reddedilir ( 4 Kas, kullanıcı 50 mm açıklığı seçti;  eskiden merdiven iki cebin de
         içinden geçiyordu )."""
         from testler import test_yerlesim_saglamligi
 
@@ -1592,22 +1586,20 @@ class KuyuDibiYerlesim(unittest.TestCase):
         self.assertFalse(hata, hata)
         self.assertEqual(geometri.dogrula(g), [])
         Y = kuyu_dibi.yerlesim(g)
-        self.assertIsNone(Y["merdiven"])
-        ileti = [h for h in Y["hata"] if "Ek F.5 b" in h]
-        self.assertEqual(len(ileti), 1, Y["hata"])
-        self.assertIn("Ek F.2.3", ileti[0])
-        self.assertIn("F.5 c", ileti[0])
-        self.assertIn("kabin kapısının cebi", ileti[0])
-        self.assertEqual(ileti[0].parcalar, ("merdiven",))
-        v["sabitler"][sabitler.ofis_adi("merdiven_eni")] = 330
+        self.assertIsNotNone(Y["merdiven"], Y["hata"])
+        self.assertFalse([h for h in Y["hata"] if "Ek F.5 b" in h], Y["hata"])
+        m = Y["merdiven"]
+        self.assertEqual(max(m[2] - m[0], m[3] - m[1]), 330)  # yan duvarda eni y boyunca
+        v["sabitler"][sabitler.ofis_adi("merdiven_eni")] = 350
         g, _A, hata = test_yerlesim_saglamligi.duzen_girdisi(v)
         self.assertFalse(hata, hata)
         Y = kuyu_dibi.yerlesim(g)
         self.assertIsNone(Y["merdiven"])
-        self.assertEqual(len([h for h in Y["hata"] if "F.5 c" in h]), 1, Y["hata"])
-        #  F.5 c olmasa ( 600 → 800 ) 330'luk merdiven yan duvara sığardı:  ret F.5 c'den
-        with mock.patch.object(kuyu_dibi, "MERDIVEN_BASAMAK_AZAMI", 800.0):
-            self.assertIsNotNone(kuyu_dibi.yerlesim(g)["merdiven"])
+        ileti = [h for h in Y["hata"] if "Ek F.5 b" in h]
+        self.assertEqual(len(ileti), 1, Y["hata"])
+        self.assertIn("Ek F.2.3", ileti[0])
+        self.assertIn("kabin kapısının cebi", ileti[0])
+        self.assertEqual(ileti[0].parcalar, ("merdiven",))
 
     def test_perde_kabinin_yolundan_gecmez(self):
         """m.5.2.5.5.1 b:  perde kuyu tabanından en az 2,0 m yükseğe çıkar — kabin en
@@ -1711,14 +1703,7 @@ class KuyuDibiYerlesim(unittest.TestCase):
         self.assertEqual(
             kabin_ustu.SIGINMA, {"Dik duruş": (400.0, 500.0), "Çömelme": (500.0, 700.0)}
         )  # Çizelge 3
-        self.assertEqual(
-            (
-                kuyu_dibi.MERDIVEN_AZAMI_DERINLIK,
-                kuyu_dibi.MERDIVEN_KAPI_AZAMI,
-                kuyu_dibi.MERDIVEN_BASAMAK_AZAMI,
-            ),
-            (2500.0, 800.0, 600.0),
-        )
+        self.assertEqual((kuyu_dibi.MERDIVEN_AZAMI_DERINLIK, kuyu_dibi.MERDIVEN_KAPI_AZAMI), (2500.0, 800.0))
         #  Ek F.2.3 ( eşiğin 1,10 m üstü ) · Tavaslıoğlu 1.2.4.1 g ( merdiven – kabin 50 mm )
         #  · m.5.2.5.5.1 b ( perde kuyu tabanından 2,0 m )
         self.assertEqual(

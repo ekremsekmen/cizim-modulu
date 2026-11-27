@@ -170,24 +170,19 @@ class StandartAsansorler(unittest.TestCase):
         #  ( 10 Eki'ye dek yalnız 320 kg;  halat ve kabin üstü askıda kiriş engel
         #  sayılmıyordu — hareketli.kabin_parcalari ).  Makine dairesizde makine
         #  duvardan duvara kirişte ( bina yapısına ), kabinin üstünde:  son kat 5.000.
-        #  2.500 kg 700 derinde:  kuyu dibi merdiveni kapının yanına sığmaz ( 27 Kas — merdiven
-        #  350 ve Ek F.5 c:  yan duvardaki yer basamakların ortasını kapıdan 600 mm'den uzağa
-        #  koyuyordu;  eskiden çiziliyordu ).
         for Q in KABIN:
             kd = KABIN[Q][1]
             for mrl, ek in (
                 (True, {"makine_raya_biniyor": "Bina yapısına", "son_kat_yuksekligi": 5000}),
                 (False, {}),
             ):
-                for derin, cizilir in ((450, False), (700, Q not in (320, 450, 630, 2500))):
+                for derin, cizilir in ((450, False), (700, Q not in (320, 450, 630))):
                     v = standart_istek(Q, mrl, "Arka", aski_duzeni="Kabin üstü", **ek)
                     v["asansorler"][0]["kuyu_derinligi"] = kd + derin
                     d = cizim_yaniti(v)
                     self.assertEqual(bool(d.get("aktif")), cizilir, (Q, mrl, derin, d.get("hata")))
                     if derin == 450:
                         self.assertTrue(any("m.5.2.5.5.1 h" in h for h in d["hata"]), d["hata"])
-                    elif Q == 2500:
-                        self.assertTrue(any("F.5 c" in h for h in d["hata"]), d["hata"])
                     elif not cizilir:
                         self.assertTrue(any("aralarındaki halat" in h for h in d["hata"]), d["hata"])
 

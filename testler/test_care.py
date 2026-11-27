@@ -433,8 +433,7 @@ class BinaTaramasi(unittest.TestCase):
     def test_merdivenin_caresi_kuyu_genisligi(self):
         """Kullanıcının kuyusu ( 27 Kas ):  800 kg MRL, kabin 1350 × 1400, kapı 900, 1800 × 2700, ağırlık
         arkada — kuyu dibi merdiveni kapının yanına sığmıyordu ( Ek F.5 b ), çare bulucu öneri
-        bulamıyordu.  Tarama:  kuyu genişliği 1850 ( merdiven 350 — 27 Kas K1;  330'la 1830 );  bağımsız
-        sınama:  sorun gider, yeni sorun yok."""
+        bulamıyordu.  Tarama:  kuyu genişliği 1830;  bağımsız sınama:  sorun gider, yeni sorun yok."""
         t = avan_secici.paketler()[(800, True)]
         m = dict(
             beyan_yuku=800,
@@ -459,13 +458,13 @@ class BinaTaramasi(unittest.TestCase):
         oneriler = r["careler"][0]["oneriler"]
         self.assertEqual(
             [(o["anahtar"], o["yeni"], o["yontem"], o["bina"]) for o in oneriler],
-            [("kuyu_genisligi", 1850.0, "tarama", True)],
+            [("kuyu_genisligi", 1830.0, "tarama", True)],
         )
-        sonra = care_uclari.girdi_durumu(care_uclari.girdi_yaz(veri, 0, "kuyu_genisligi", 1850.0), 0)
+        sonra = care_uclari.girdi_durumu(care_uclari.girdi_yaz(veri, 0, "kuyu_genisligi", 1830.0), 0)
         self.assertEqual(sonra[0], {})
-        #  10 mm eksiği ( 1840 ) gidermiyor
+        #  10 mm eksiği ( 1820 ) gidermiyor
         self.assertTrue(
-            care_uclari.girdi_durumu(care_uclari.girdi_yaz(veri, 0, "kuyu_genisligi", 1840.0), 0)[0]
+            care_uclari.girdi_durumu(care_uclari.girdi_yaz(veri, 0, "kuyu_genisligi", 1820.0), 0)[0]
         )
 
 
