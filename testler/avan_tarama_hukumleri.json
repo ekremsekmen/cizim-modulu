@@ -4,15 +4,13 @@
   "durum": "uygun"
  },
  "aski|1000-md|2": {
-  "agirlik": "Arka",
-  "durum": "gereken",
-  "gereken": [
+  "beyan": [
    [
-    "kuyu_derinligi",
-    2645.0
+    "aski_orani",
+    "1"
    ]
   ],
-  "yeniden": "uygun"
+  "durum": "beyan"
  },
  "aski|1000|1": {
   "beyan": [
@@ -665,12 +663,12 @@
   "yeniden": "uygun"
  },
  "kapi|1250-md|Otomatik Merkezi|800": {
-  "agirlik": "Arka",
+  "agirlik": "Sağ",
   "durum": "gereken",
   "gereken": [
    [
-    "kuyu_derinligi",
-    2680.0
+    "kuyu_genisligi",
+    2030.0
    ]
   ],
   "yeniden": "uygun"
@@ -739,12 +737,12 @@
   "yeniden": "uygun"
  },
  "kapi|1250|Otomatik Merkezi|800": {
-  "agirlik": "Arka",
+  "agirlik": "Sağ",
   "durum": "gereken",
   "gereken": [
    [
-    "kuyu_derinligi",
-    2680.0
+    "kuyu_genisligi",
+    2030.0
    ]
   ],
   "yeniden": "uygun"
@@ -1531,23 +1529,23 @@
   "yeniden": "uygun"
  },
  "kuyu|1250-md|g-200|d+300|k0": {
-  "agirlik": "Sağ",
+  "agirlik": "Arka",
   "durum": "gereken",
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ]
   ],
   "yeniden": "uygun"
  },
  "kuyu|1250-md|g-200|d+300|k1": {
-  "agirlik": "Sağ",
+  "agirlik": "Arka",
   "durum": "gereken",
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ]
   ],
   "yeniden": "uygun"
@@ -1757,23 +1755,23 @@
   "yeniden": "uygun"
  },
  "kuyu|1250|g-200|d+300|k0": {
-  "agirlik": "Sağ",
+  "agirlik": "Arka",
   "durum": "gereken",
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ]
   ],
   "yeniden": "uygun"
  },
  "kuyu|1250|g-200|d+300|k1": {
-  "agirlik": "Sağ",
+  "agirlik": "Arka",
   "durum": "gereken",
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ]
   ],
   "yeniden": "uygun"
@@ -2131,12 +2129,12 @@
   "durum": "uygun"
  },
  "kuyu|2000-md|g-200|d-100|k0": {
-  "agirlik": "Arka",
+  "agirlik": "Sağ",
   "durum": "gereken",
   "gereken": [
    [
     "kuyu_derinligi",
-    3335.0
+    3080.0
    ]
   ],
   "yeniden": "uygun"
@@ -2221,12 +2219,12 @@
   "durum": "uygun"
  },
  "kuyu|2500-md|g-200|d-100|k0": {
-  "agirlik": "Arka",
+  "agirlik": "Sağ",
   "durum": "gereken",
   "gereken": [
    [
     "kuyu_derinligi",
-    3335.0
+    3080.0
    ]
   ],
   "yeniden": "uygun"
