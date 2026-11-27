@@ -574,7 +574,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    2130.0
+    2120.0
    ]
   ],
   "yeniden": "uygun"
@@ -627,7 +627,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    2130.0
+    2120.0
    ]
   ],
   "yeniden": "uygun"
@@ -657,7 +657,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    2280.0
+    2260.0
    ]
   ],
   "yeniden": "uygun"
@@ -731,7 +731,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    2280.0
+    2260.0
    ]
   ],
   "yeniden": "uygun"
@@ -984,7 +984,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    2130.0
+    2120.0
    ]
   ],
   "yeniden": "uygun"
@@ -1037,7 +1037,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    2130.0
+    2120.0
    ]
   ],
   "yeniden": "uygun"
@@ -1512,7 +1512,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ]
   ],
   "yeniden": "uygun"
@@ -1523,13 +1523,13 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ]
   ],
   "yeniden": "uygun"
  },
  "kuyu|1250-md|g-200|d+300|k0": {
-  "agirlik": "Arka",
+  "agirlik": "Sağ",
   "durum": "gereken",
   "gereken": [
    [
@@ -1540,7 +1540,7 @@
   "yeniden": "uygun"
  },
  "kuyu|1250-md|g-200|d+300|k1": {
-  "agirlik": "Arka",
+  "agirlik": "Sağ",
   "durum": "gereken",
   "gereken": [
    [
@@ -1556,7 +1556,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ],
    [
     "kuyu_derinligi",
@@ -1571,7 +1571,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ],
    [
     "kuyu_derinligi",
@@ -1738,7 +1738,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ]
   ],
   "yeniden": "uygun"
@@ -1749,13 +1749,13 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ]
   ],
   "yeniden": "uygun"
  },
  "kuyu|1250|g-200|d+300|k0": {
-  "agirlik": "Arka",
+  "agirlik": "Sağ",
   "durum": "gereken",
   "gereken": [
    [
@@ -1766,7 +1766,7 @@
   "yeniden": "uygun"
  },
  "kuyu|1250|g-200|d+300|k1": {
-  "agirlik": "Arka",
+  "agirlik": "Sağ",
   "durum": "gereken",
   "gereken": [
    [
@@ -1782,7 +1782,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ],
    [
     "kuyu_derinligi",
@@ -1797,7 +1797,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ],
    [
     "kuyu_derinligi",
