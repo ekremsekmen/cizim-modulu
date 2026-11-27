@@ -204,7 +204,7 @@ export interface CareOnerisi {
   /**  Bu değişiklikten sonra hesapta uygun olmayan çıkacak bölümler ( bugün uygun görünen — kimlikleri )  */
   hesapta_ortaya_cikan: string[];
   bina: boolean;
-  yontem: "türev" | "son değişiklik" | "seçim";
+  yontem: "türev" | "son değişiklik" | "seçim" | "tarama";
 }
 
 export interface CareYanit {
