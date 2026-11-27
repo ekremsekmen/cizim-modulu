@@ -204,7 +204,7 @@ export interface CareOnerisi {
   /**  Bu değişiklikten sonra hesapta uygun olmayan çıkacak bölümler ( bugün uygun görünen — kimlikleri )  */
   hesapta_ortaya_cikan: string[];
   bina: boolean;
-  yontem: "türev" | "son değişiklik" | "seçim";
+  yontem: "türev" | "son değişiklik" | "seçim" | "tarama";
 }
 
 export interface CareYanit {
@@ -274,6 +274,13 @@ export interface AvanCizimYaniti {
        kullanılmayan yerleşimin mimarın ölçülerindeki sorunları ( 27 Kas )  */
   yerlesim?: string;
   denenen?: { yerlesim: string; nedenler: string[] }[];
+  /**  Kullanılmayan yerleşim de ölçü istiyorsa onun isteği ( "ya da …" — 27 Kas, seçici doğruluk K3 )  */
+  /**  kosul_yazi:  kartın değeri kalırsa ( beyan sonucunda — "Askı oranı 2:1" )  */
+  secenek?: {
+    yerlesim: string;
+    gereken: { anahtar: string; etiket: string; eski: string | null; yeni: string }[];
+    kosul_yazi?: string;
+  }[];
   /**  Geçirilemeyen ürün bölümleri ( avanı bağlamaz — uygulama projesinde çözülür )  */
   acik_bolumler?: string[];
   acik_bolum_adlari?: string[];

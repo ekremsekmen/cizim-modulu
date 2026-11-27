@@ -22,8 +22,11 @@ import json
 import unittest
 from unittest import mock
 
+from cizim import katlar
+from cizim import sorun
 from testler import test_grup
 from testler import test_yerlesim_saglamligi
+from uclar import avan_secici
 from uclar import care_uclari
 from uclar import cizim_uclari
 from uclar import uygulama_istegi
@@ -317,6 +320,151 @@ class Care(unittest.TestCase):
         self.assertEqual(
             care_uclari.kimlik("-1 ile 0 katları arası 1000 mm:  kat kapısı"),
             care_uclari.kimlik("2 ile 3 katları arası 900 mm:  kat kapısı"),
+        )
+
+
+def _sahte_durum(anahtar, gider):
+    """girdi_durumu'nun sahtesi:  "M" sorunu, anahtar ölçüsü gider( değer ) olunca gider."""
+    once = ({"M": "M:  merdiven"}, True, set(), frozenset(), True)
+    temiz = ({}, True, set(), frozenset(), True)
+
+    def durum(v, _i):
+        x = v["asansorler"][0].get(anahtar, (v.get("proje_geneli") or {}).get(anahtar))
+        return temiz if x is not None and gider(float(x)) else once
+
+    return once, durum
+
+
+class BinaTaramasi(unittest.TestCase):
+    """AÇIĞI BİLİNMEYEN SORUNUN BİNA ÖLÇÜSÜ TARAMASI ( 27 Kas — seçici doğruluk planı Adım 2 ):
+    türev ve seçimden sonra çaresiz kalan sorunda sorunun çizimine göre bina ölçüleri büyüyen
+    adımlarla denenir, ikiye bölünür ( 10 mm / 1 cm );  her aday tam sınanır."""
+
+    ALAN = {a["anahtar"]: a for gr in uygulama_istegi.alanlar()["gruplar"] for a in gr["alanlar"]}
+    VERI = {"proje_geneli": {}, "asansorler": [{}]}
+
+    def tara(self, s, degerler, durum, once, gizli=frozenset(), butce=None):
+        with mock.patch.object(care_uclari, "girdi_durumu", side_effect=durum) as m:
+            r = care_uclari._taramayla(
+                self.VERI,
+                0,
+                once,
+                [s],
+                degerler,
+                set(gizli),
+                self.ALAN,
+                butce or care_uclari.Butce(sure=float("inf")),
+                set(),
+                set(),
+            )
+        return r, m.call_count
+
+    def test_buyur_ve_ikiye_boler(self):
+        """1800'de yok, 1837'den sonra gider:  1850 geçer, ikiye bölme 1840'ı bulur ( 1820, 1830 geçmez )."""
+        once, durum = _sahte_durum("kuyu_genisligi", lambda x: x >= 1837)
+        r, n = self.tara(
+            sorun.Sorun("M:  merdiven", ("merdiven",), "kuyu_dibi"), {"kuyu_genisligi": 1800.0}, durum, once
+        )
+        self.assertEqual(
+            [(c["anahtar"], c["yeni"], c["yontem"]) for c in r], [("kuyu_genisligi", 1840.0, "tarama")]
+        )
+        self.assertEqual(r[0]["gider"], ["M"])
+        self.assertLessEqual(n, care_uclari.TARAMA_SORUN_SINAMA)
+
+    def test_kuyu_dibi_kotu_asagi(self):
+        """Kot metredir ve kuyu dibi AŞAĞI iner:  −4,70 → −4,83 ( 1 cm çözünürlük )."""
+        once, durum = _sahte_durum("kuyu_dibi_kotu", lambda x: x <= -4.83 + 1e-9)
+        s = sorun.Sorun("M:  kaide", ("kabin_kaidesi",), "kuyu_kesiti_yan")
+        r, _n = self.tara(s, {"kuyu_dibi_kotu": -4.7}, durum, once)
+        self.assertEqual([(c["anahtar"], c["yeni"]) for c in r], [("kuyu_dibi_kotu", -4.83)])
+
+    def test_cozulmezse_oneri_yok_ve_pay_asilmaz(self):
+        once, durum = _sahte_durum("kuyu_genisligi", lambda x: False)
+        r, n = self.tara(
+            sorun.Sorun("M:  merdiven", ("merdiven",), "kuyu_dibi"),
+            {"kuyu_genisligi": 1800.0, "kuyu_derinligi": 2700.0},
+            durum,
+            once,
+        )
+        self.assertEqual(r, [])
+        self.assertLessEqual(n, care_uclari.TARAMA_SORUN_SINAMA)
+
+    def test_taranmayanlar(self):
+        """Açığı olan sorun ( türevin işi ), çizimi listede olmayan ( ürün / girdi sorunu ) ve formda
+        görünmeyen ölçü taranmaz;  görünmeyenin yerine sıradaki ölçü."""
+        once, durum = _sahte_durum("kuyu_derinligi", lambda x: x >= 2750)
+        degerler = {"kuyu_genisligi": 1800.0, "kuyu_derinligi": 2700.0}
+        farkli = sorun.Sorun("M:  merdiven", ("merdiven",), "kuyu_dibi", fark=-30.0)
+        self.assertEqual(self.tara(farkli, degerler, durum, once)[0], [])
+        urun = sorun.Sorun("M:  kasnak", ("tahrik_kasnagi",), "kasnak_duzeni")
+        self.assertEqual(self.tara(urun, degerler, durum, once)[0], [])
+        r, _n = self.tara(
+            sorun.Sorun("M:  merdiven", ("merdiven",), "kuyu_dibi"),
+            degerler,
+            durum,
+            once,
+            gizli={"kuyu_genisligi"},
+        )
+        self.assertEqual([(c["anahtar"], c["yeni"]) for c in r], [("kuyu_derinligi", 2750.0)])
+
+    def test_butce_biterse_durur(self):
+        once, durum = _sahte_durum("kuyu_genisligi", lambda x: x >= 1837)
+        r, n = self.tara(
+            sorun.Sorun("M:  merdiven", ("merdiven",), "kuyu_dibi"),
+            {"kuyu_genisligi": 1800.0},
+            durum,
+            once,
+            butce=care_uclari.Butce(sinama=0),
+        )
+        self.assertEqual((r, n), ([], 0))
+
+    def test_arka_mrl_kirisinin_caresi_secim(self):
+        """Arkadaki ağırlıkla makine dairesizde makine duvardan duvara kirişe oturur:  ileti
+        "yük bina yapısına" diyordu, öneri yoktu ( 27 Kas çare taraması:  6 çaresiz ) — seçim."""
+        v = test_yerlesim_saglamligi.standart_istek(800, True, "Arka", aski_duzeni="Kabin üstü")
+        v["asansorler"][0]["kuyu_derinligi"] = test_yerlesim_saglamligi.KABIN[800][1] + 700
+        v["asansorler"][0]["son_kat_yuksekligi"] = 5000
+        r = care_uclari.coz(v, 0, None, care_uclari.Butce(sure=float("inf")))
+        self.assertEqual(
+            [[(o["anahtar"], o["yeni"], o["yontem"]) for o in c["oneriler"]] for c in r["careler"]],
+            [[("makine_raya_biniyor", "Bina yapısına", "seçim")]],
+        )
+
+    def test_merdivenin_caresi_kuyu_genisligi(self):
+        """Kullanıcının kuyusu ( 27 Kas ):  800 kg MRL, kabin 1350 × 1400, kapı 900, 1800 × 2700, ağırlık
+        arkada — kuyu dibi merdiveni kapının yanına sığmıyordu ( Ek F.5 b ), çare bulucu öneri
+        bulamıyordu.  Tarama:  kuyu genişliği 1830;  bağımsız sınama:  sorun gider, yeni sorun yok."""
+        t = avan_secici.paketler()[(800, True)]
+        m = dict(
+            beyan_yuku=800,
+            beyan_hizi=1,
+            kuyu_genisligi=1800,
+            kuyu_derinligi=2700,
+            kuyu_dibi_kotu="-4,70",
+            durak_kotlari="; ".join(["-2,60"] + [katlar.kot_metni(700 + 3000 * i) for i in range(9)]),
+            kuyu_tavani_kotu="+29,00",
+            mk_yok=True,
+            aski_orani=2,
+            kisi=10,
+            kabin_genisligi=1350,
+            kabin_derinligi=1400,
+            kapi_genisligi=900,
+        )
+        veri = avan_secici._istek(t, m, avan_secici._arka_adayi(t, m))
+        once = care_uclari.girdi_durumu(veri, 0)
+        self.assertEqual(len(once[0]), 1)
+        self.assertTrue(next(iter(once[0])).startswith("Kuyu dibi merdiveni"))
+        r = care_uclari.coz(veri, 0, None, care_uclari.Butce(sure=float("inf")))
+        oneriler = r["careler"][0]["oneriler"]
+        self.assertEqual(
+            [(o["anahtar"], o["yeni"], o["yontem"], o["bina"]) for o in oneriler],
+            [("kuyu_genisligi", 1830.0, "tarama", True)],
+        )
+        sonra = care_uclari.girdi_durumu(care_uclari.girdi_yaz(veri, 0, "kuyu_genisligi", 1830.0), 0)
+        self.assertEqual(sonra[0], {})
+        #  10 mm eksiği ( 1820 ) gidermiyor
+        self.assertTrue(
+            care_uclari.girdi_durumu(care_uclari.girdi_yaz(veri, 0, "kuyu_genisligi", 1820.0), 0)[0]
         )
 
 

@@ -16,6 +16,13 @@ cevabını arıyordu.  Çare bulucu iki yoldan aday üretir:
                    seçim kutusunun öbür seçenekleri denenir ( SECIMLER — gerçek
                    projelerde düzeltmesiz kalanların çoğu buydu:  "kabin
                    tavanında çömelme tipi sığınma alanına yer yok" ).
+  TARAMA           AÇIĞI BİLİNMEYEN sorun ( sayı açığı yok:  "merdivene yer yok" ) türev ve
+                   seçimden sonra hâlâ çaresizse bina ölçüleri taranır ( 27 Kas — seçici
+                   doğruluk planı Adım 2 ):  sorunun çizimine göre ölçüler ( TARAMA_OLCULERI )
+                   büyüyen adımlarla ( TARAMA_ADIMLARI ) denenir, ilk gideren ile son
+                   gidermeyen arası ikiye bölünür ( TARAMA_COZUNURLUK ).  Her aday tam
+                   sınamadan geçer.  41 / 97 sorun yapımı açık taşımıyordu;  dar kuyuda seçici
+                   öbür yerleşime kaçıp 130 mm fazla istiyordu ( 800 kg 1800 → 1980 ).
   SON DEĞİŞİKLİK   Sorun son değişiklikle çıktıysa ( ön yüz son temiz girdiyi
                    gönderir ) değişen kutuda ikiye bölmeyle sınır aranır:
                    "kuyu genişliği 2230'a kadar bu sorun yok".  Türevin
@@ -127,6 +134,29 @@ GUVENLIK_SURESI = 60.0
 YENIDEN = (0, 1.25, 1.5, 2.0)
 #  Sorun başına gösterilen çare
 SORUN_BASINA = 4
+#  BİNA ÖLÇÜSÜ TARAMASI ( _taramayla — açığı bilinmeyen çaresiz sorunlar ):  sorunun çizimi
+#  ( sorun.Sorun.cizim ) → denenen bina ölçüleri, sırayla.  Kot / uzunluk girişinin ikisi de yazılı:
+#  formda görünmeyen ( gizli ) atlanır.  Çizimi burada olmayan sorun ( kasnak düzeni, kat adları,
+#  giriş — ürün / girdi sorunu ) bina ölçüsüyle çözülmez:  taranmaz.
+_PLAN = ("kuyu_genisligi", "kuyu_derinligi")
+TARAMA_OLCULERI = {
+    "kuyu_plani": _PLAN,
+    "kuyu_dibi": _PLAN,
+    "kuyu_kesiti_on": _PLAN,
+    "kuyu_kesiti_yan": ("kuyu_dibi_kotu", "kuyu_dibi"),
+    "kuyu_ustu": ("kuyu_tavani_kotu", "son_kat_yuksekligi", *_PLAN),
+    "kabin_ustu": ("kuyu_tavani_kotu", "son_kat_yuksekligi", *_PLAN),
+    "makine_dairesi": ("mk_uzunluk", "mk_genislik", "md_yukseklik", *_PLAN),
+    "delik_plani": ("mk_uzunluk", "mk_genislik", *_PLAN),
+}
+#  Büyüme yönü:  kuyu dibi kotu AŞAĞI iner ( daha derin );  öbürleri artar
+TARAMA_YONU = {"kuyu_dibi_kotu": -1.0}
+#  Büyüyen adımlar ( mm;  metre birimli kotta / 1000 ) ve ikiye bölmenin çözünürlüğü ( seçicinin
+#  küçültme adımı — avan_secici.KUCULTME_ADIMI — ile aynı:  10 mm, kotta 1 cm )
+TARAMA_ADIMLARI = (50, 100, 200, 400, 800)
+TARAMA_COZUNURLUK = 10
+#  Bir sorunun taramasına en çok bu kadar sınama ( bütçe ayrıca:  Butce )
+TARAMA_SORUN_SINAMA = 14
 #  SEÇİM DÜZELTMELERİ:  sorunun parçasına göre denenen seçim kutuları ( sığınma
 #  tipleri ayrıca — sorunun çizimine göre kabin üstü ya da kuyu dibi )
 SECIMLER = {
@@ -160,6 +190,9 @@ SECIMLER = {
     "md_kapi_duvar": frozenset(("oda_kapisi",)),
     "acil_pano_yani": frozenset(("acil_pano",)),
     "kapi_montaji": frozenset(("kabin_esigi", "kat_esigi", "kapi_kasasi")),
+    #  Arkadaki ağırlıkla makine dairesizde makine duvardan duvara kirişe oturur ( yük bina yapısına ):
+    #  ileti söylüyordu, öneri gelmiyordu ( 27 Kas çare taraması:  6 çaresiz sorun )
+    "makine_raya_biniyor": frozenset(("makine_sasesi",)),
     #  Kuyu – kabin eşiği 0,15 m'yi aşınca:  mekanik kilitli kabin kapısı ( m.5.2.5.3.1 c )
     "kabin_kapisi_kilidi": frozenset(("kabin_esigi",)),
 }
@@ -171,6 +204,7 @@ ASAMALAR = {
     "sinir": ("Son değişikliğin sınırı aranıyor", "Son değişikliğin sınırı arandı"),
     "turev": ("Türevin önerdiği değerler sınanıyor", "Türevin önerdiği değerler sınandı"),
     "secim": ("Seçimler deneniyor", "Seçimler denendi"),
+    "tarama": ("Bina ölçüleri taranıyor", "Bina ölçüleri tarandı"),
 }
 #  Sayı seçenekli seçim ( kapı genişliği ):  yalnız komşu seçenekler
 KOMSU_SECIM = {"kapi_genisligi": SECIMLER["kat_kapisi_tipi"]}
@@ -496,6 +530,90 @@ def _secimle(veri, i, once, sorunlar, alan, gizli, girilen, butce, oncelikli, or
     return kabul
 
 
+class _Tarama:
+    """Bir isteğin bina ölçüsü taraması ( _taramayla ):  sınama ve tek ölçünün araması."""
+
+    def __init__(self, veri, i, once, alan, butce, ortulu):
+        self.veri, self.i, self.once, self.alan, self.butce, self.ortulu = veri, i, once, alan, butce, ortulu
+
+    def sina(self, kim, k, v, sayac):
+        """( sorun gitti mi — yeni sorun yok, hesap kötüleşmedi , hüküm ) ya da None:  bütçe ya da
+        sorunun payı ( TARAMA_SORUN_SINAMA ) bitti, değer formun kuralı dışında."""
+        if not self.butce.var() or sayac[0] >= TARAMA_SORUN_SINAMA or not _form_kurali_uyar(k, v, self.alan):
+            return None
+        sayac[0] += 1
+        r = _sonucu(self.once, self.butce.durum(girdi_yaz(self.veri, self.i, k, v), self.i), self.ortulu)
+        return kim in r["gider"] and not r["yeni"] and not r["kotu"], r
+
+    def olcu(self, kim, k, bugun, sayac):
+        """k ölçüsünde sorunu gideren en küçük büyüme:  ( yeni değer , hüküm ) ya da None.  Büyüyen
+        adımlar ( TARAMA_ADIMLARI ), sonra son gidermeyenle ilk gideren arası ikiye bölme."""
+        bolen = 1000.0 if self.alan[k]["birim"] == "m" else 1.0
+        yon = TARAMA_YONU.get(k, 1.0)
+
+        def deger(n):
+            return round(bugun + yon * n * TARAMA_COZUNURLUK / bolen, 6)
+
+        alt, ust, hukum = 0, None, None
+        for adim in TARAMA_ADIMLARI:
+            n = adim // TARAMA_COZUNURLUK
+            x = self.sina(kim, k, deger(n), sayac)
+            if x is None:
+                break
+            if x[0]:
+                ust, hukum = n, x[1]
+                break
+            alt = n
+        if ust is None:
+            return None
+        while ust - alt > 1:
+            orta = (alt + ust) // 2
+            x = self.sina(kim, k, deger(orta), sayac)
+            if x is None:
+                break
+            if x[0]:
+                ust, hukum = orta, x[1]
+            else:
+                alt = orta
+        return deger(ust), hukum
+
+
+def _taramayla(veri, i, once, sorunlar, degerler, gizli, alan, butce, cozulen, ortulu):
+    """BİNA ÖLÇÜSÜ TARAMASI:  türev ve seçimden sonra hâlâ önerisi olmayan, açığı bilinmeyen
+    ( fark yok ) her sorun için sorunun çizimine göre bina ölçüleri ( TARAMA_OLCULERI ), sırayla;
+    ilk bulunan öneri olur.  Kabul türevinkiyle aynı:  sorun gider, yeni sorun yok, hesap
+    kötüleşmez.  [ { anahtar , yeni , gider , … , yontem "tarama" } ]."""
+    tarama = _Tarama(veri, i, once, alan, butce, ortulu)
+    kabul = []
+    for s in sorunlar:
+        kim = kimlik(s)
+        if kim not in once[0] or kim in cozulen or getattr(s, "fark", None) is not None:
+            continue
+        sayac = [0]
+        for k in TARAMA_OLCULERI.get(getattr(s, "cizim", None), ()):
+            a = alan.get(k)
+            if not a or k in gizli or not sayi_mi(degerler.get(k)) or a["birim"] not in ("mm", "m"):
+                continue
+            asamalar.asama("tarama", _kisa_etiket(a))
+            bulunan = tarama.olcu(kim, k, degerler[k], sayac)
+            if bulunan is None:
+                continue
+            yeni, hukum = bulunan
+            kabul.append(
+                {
+                    "anahtar": k,
+                    "yeni": yeni,
+                    "gider": hukum["gider"],
+                    "ortaya": hukum["ortaya"],
+                    "hesapta": hukum["hesapta"],
+                    "yontem": "tarama",
+                }
+            )
+            cozulen = cozulen | set(hukum["gider"])
+            break
+    return kabul
+
+
 def coz(veri, i=0, onceki=None, butce=None):
     """Aktif asansörün her sorununun doğrulanmış çareleri:
     { careler:  [ { metin , oneriler:  [ … ] } ] , sinama , tamamlandi , neden , sure }.
@@ -516,6 +634,8 @@ def coz(veri, i=0, onceki=None, butce=None):
     cozulen = {x for c in kabul for x in c["gider"]}
     oncelikli = {x for x in once[0] if x not in cozulen}
     kabul += _secimle(veri, i, once, sorunlar, alan, gizli, girilen, butce, oncelikli, ortulu)
+    cozulen = {x for c in kabul for x in c["gider"]}
+    kabul += _taramayla(veri, i, once, sorunlar, degerler, gizli, alan, butce, cozulen, ortulu)
     careler = []
     for kim, metin in once[0].items():
         oneriler = _sirala([c for c in kabul if kim in c["gider"]], degerler)
