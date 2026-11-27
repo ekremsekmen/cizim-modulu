@@ -29,6 +29,7 @@ olanlar gelir:
 """
 
 import copy
+import math
 
 from temel import cumle_basi, eleman_kutusu, kutu_merkezi, ortusur, sayi_mi
 from cizim import sorunlu
@@ -56,6 +57,11 @@ SIGINMA_YUKSEKLIK = {"Dik duruş": 2000.0, "Çömelme": 1000.0, "Yatarak": 500.0
 MERDIVEN_AZAMI_DERINLIK = standart.KUYU_DIBI_MERDIVEN_AZAMI
 #  Ek F.5 b:  saklanan merdiven ile kat girişinin kenarı arası en çok 800 mm.
 MERDIVEN_KAPI_AZAMI = 800.0
+#  Ek F.5 c:  kullanım konumunda basamakların ortası ile kat girişinin kenarı arası en çok
+#  600 mm ( kolay uzanılsın ).  Duvara yaslı dik merdiven ( saklandığı yerde kullanılır ):
+#  basamakların ortası merdivenin planda ortası.  27 Kas'a dek denetlenmiyordu ( seçici
+#  doğruluk planı K5 ):  yan duvarda kapıdan uzak merdiven F.5 b'yi geçip F.5 c'yi bozuyordu.
+MERDIVEN_BASAMAK_AZAMI = 600.0
 #  Ek F.2.3:  merdivenin dikmeleri ( ya da tutamağı ) en alt durağın eşiğinin en
 #  az 1,10 m üstüne uzanır ( mm ).  Saklı merdiven de kuyu tabanından oraya dek
 #  dikilir:  planda en alt kat kapısının ünitesine ( kasa, eşik, kanatlar, kanat
@@ -879,6 +885,12 @@ def _perde(ag_yan, blok, kabin, konsollar, kabin_raylari, agirlik_raylari):
     return (ar[0], py, ar[2], py)
 
 
+def _basamak_uzakligi(k, kenar):
+    """Ek F.5 c:  kat girişinin kenarı ( x = kenar, ön duvar y = 0 ) ile merdivenin planda
+    ortası ( basamakların ortası — dik merdiven ) arası ( mm )."""
+    return math.hypot((k[0] + k[2]) / 2.0 - kenar, (k[1] + k[3]) / 2.0)
+
+
 def _merdiven(g, kd, S, sabit, yol, hata):
     """MERDİVEN  ( m.5.2.2.4 · Ek F ):  yan duvara yaslı saklanır, kapıya yakın
     yan seçilir;  yan duvar kapıdan 800 mm'den uzaksa ( geniş kuyu ) kapının
@@ -917,10 +929,10 @@ def _merdiven(g, kd, S, sabit, yol, hata):
             k = (mx0, y, mx0 + md, y + me)
             eng = engeller(k)
             if not eng:
-                #  Ek F.5 b:  kat girişinin kenarından merdivene
+                #  Ek F.5 b:  kat girişinin kenarından merdivene;  F.5 c:  basamakların ortasına
                 dx = max(0.0, k[0] - kenar, kenar - k[2])
                 uzak = (dx**2 + k[1] ** 2) ** 0.5
-                if uzak <= MERDIVEN_KAPI_AZAMI:
+                if uzak <= MERDIVEN_KAPI_AZAMI and _basamak_uzakligi(k, kenar) <= MERDIVEN_BASAMAK_AZAMI:
                     adaylar.append((uzak, y, yan, k))
                 break
             y = max(p[3] + pay for p, pay in eng)
@@ -931,7 +943,7 @@ def _merdiven(g, kd, S, sabit, yol, hata):
             while 0.0 <= x and x + me <= G:
                 k = (x, 0.0, x + me, md)
                 uzak = max(0.0, k[0] - kenar, kenar - k[2])
-                if uzak > MERDIVEN_KAPI_AZAMI:
+                if uzak > MERDIVEN_KAPI_AZAMI or _basamak_uzakligi(k, kenar) > MERDIVEN_BASAMAK_AZAMI:
                     break
                 eng = engeller(k)
                 if not eng:
@@ -944,7 +956,8 @@ def _merdiven(g, kd, S, sabit, yol, hata):
     hata.append(
         sorun.Sorun(
             "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 "
-            "Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, "
+            "Ek F.5 b;  basamaklarının ortası en çok 600 mm — F.5 c ) ne yan duvara ne "
+            "kapının yanına yaslanabiliyor — orada tampon, "
             f"ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin {esik_ustu} m "
             "üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  "
             f"kabinden en az {KABIN_YOLU_ACIKLIGI:g} mm ) var.",
@@ -1339,7 +1352,12 @@ def _merdiven_yazisi(m, G, e):
     if yatay:
         w = eleman.yazi_eni("MERDİVEN", uslup.NORMAL) / 2.0 + 20.0
         x = min(max(cx, w), G - w)
-        yan = [eleman.yazi(x, cy + d, "MERDİVEN", uslup.NORMAL) for d in aralik]
+        #  Merdivenin hizasında, sonra kuyunun ortasına doğru kaydırılmış ( 27 Kas — Ek F.5 c ile
+        #  merdiven kapının yanına, yan duvara yakın ön duvara geçti:  dar merdivende hizadaki yazı
+        #  yan duvar boyunca inen ara kirişe biniyordu )
+        icerisi = 1.0 if x < G / 2 else -1.0
+        xs = [x] + [min(max(x + icerisi * k * w, w), G - w) for k in (0.5, 1.0)]
+        yan = [eleman.yazi(x_, cy + d, "MERDİVEN", uslup.NORMAL) for d in aralik for x_ in xs]
     else:
         yon = 1.0 if m[0] < G / 2 else -1.0
         yan = [eleman.yazi(cx + yon * d, cy, "MERDİVEN", uslup.NORMAL, aci=90) for d in aralik]
