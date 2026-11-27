@@ -1339,7 +1339,11 @@ def _merdiven_yazisi(m, G, e):
     if yatay:
         w = eleman.yazi_eni("MERDİVEN", uslup.NORMAL) / 2.0 + 20.0
         x = min(max(cx, w), G - w)
-        yan = [eleman.yazi(x, cy + d, "MERDİVEN", uslup.NORMAL) for d in aralik]
+        #  Merdivenin hizasında, sonra kuyunun ortasına doğru kaydırılmış ( 27 Kas — dar merdiven
+        #  ön duvarda yan duvara yakınsa hizadaki yazı yan duvar boyunca inen ara kirişe biniyordu )
+        icerisi = 1.0 if x < G / 2 else -1.0
+        xs = [x] + [min(max(x + icerisi * k * w, w), G - w) for k in (0.5, 1.0)]
+        yan = [eleman.yazi(x_, cy + d, "MERDİVEN", uslup.NORMAL) for d in aralik for x_ in xs]
     else:
         yon = 1.0 if m[0] < G / 2 else -1.0
         yan = [eleman.yazi(cx + yon * d, cy, "MERDİVEN", uslup.NORMAL, aci=90) for d in aralik]

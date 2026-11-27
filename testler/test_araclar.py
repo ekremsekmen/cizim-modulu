@@ -293,6 +293,30 @@ class DogrulukOlcumu(unittest.TestCase):
         with mock.patch.object(avan_secici, "sec", return_value={"durum": "gereken", "gereken": []}):
             self.assertEqual(avan_tarama.guvenceler(m, gereken), [])
 
+    def test_buyutme_guvencesi_degismez(self):
+        """G3 / G4 ( 27 Kas — planın Adım 6'sı ):  dar eksende bozulursa ihlal ( tarama BAŞARISIZ );
+        G2 rapor kalır.  Temel eksende güvence ölçülmez."""
+        self.assertEqual(avan_tarama.DEGISMEZ_GUVENCELER, ("G3", "G4"))
+        t = avan_secici.paketler()[(630, True)]
+        uygun = {"durum": "uygun", "istek": {"asansorler": [{"agirlik_yeri": "Sağ"}]}, "acik_bolumler": []}
+        with (
+            mock.patch.object(avan_secici, "sec", return_value=uygun),
+            mock.patch.object(avan_tarama, "_ihlaller", return_value=[]),
+            mock.patch.object(
+                avan_tarama, "guvenceler", return_value=[("G2", "a"), ("G3", "b"), ("G4", "c")]
+            ),
+        ):
+            dar = avan_tarama.dene(
+                ("dar|630|x", (630, True), {"kuyu_genisligi": 1800, "kuyu_derinligi": 2000})
+            )
+            temel = avan_tarama.dene(
+                ("kuyu|630|x", (630, True), {"kuyu_genisligi": 1800, "kuyu_derinligi": 2000})
+            )
+        self.assertEqual(dar["ihlal"], ["G3:  b", "G4:  c"])
+        self.assertEqual(len(dar["guvence"]), 3)
+        self.assertEqual((temel["ihlal"], temel["guvence"]), ([], []))
+        self.assertIsNotNone(t)
+
     def test_care_taramasi_onerinin_guvencesi(self):
         """Çare taraması önerinin sözünü bağımsız denetler:  sorun kalırsa, yeni sorun çıkarsa,
         hesap durursa ihlal;  söylenen ortaya çıkan sorun ihlal değil."""

@@ -40,7 +40,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1660.0
+    1650.0
    ]
   ],
   "yeniden": "uygun"
@@ -51,7 +51,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1660.0
+    1650.0
    ]
   ],
   "yeniden": "uygun"
@@ -101,7 +101,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1660.0
+    1650.0
    ]
   ],
   "yeniden": "uygun"
@@ -112,7 +112,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1660.0
+    1650.0
    ]
   ],
   "yeniden": "uygun"
@@ -167,7 +167,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ]
   ],
   "yeniden": "uygun"
@@ -178,7 +178,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ]
   ],
   "yeniden": "uygun"
@@ -277,7 +277,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ]
   ],
   "yeniden": "uygun"
@@ -288,7 +288,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1910.0
+    1900.0
    ]
   ],
   "yeniden": "uygun"
@@ -351,7 +351,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1940.0
+    1930.0
    ]
   ],
   "yeniden": "uygun"
@@ -362,7 +362,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1940.0
+    1930.0
    ]
   ],
   "yeniden": "uygun"
@@ -373,40 +373,40 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1940.0
+    1930.0
    ]
   ],
   "yeniden": "uygun"
  },
  "dar|1275-md|g-500|d+500|k+0": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "gereken",
   "gereken": [
    [
     "kuyu_genisligi",
-    1950.0
+    1930.0
    ]
   ],
   "yeniden": "uygun"
  },
  "dar|1275-md|g-500|d+850|k+0": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "gereken",
   "gereken": [
    [
     "kuyu_genisligi",
-    1950.0
+    1930.0
    ]
   ],
   "yeniden": "uygun"
  },
  "dar|1275-md|g-500|d+850|oda": {
-  "agirlik": "Arka",
+  "agirlik": "Sol",
   "durum": "gereken",
   "gereken": [
    [
     "kuyu_genisligi",
-    1950.0
+    1930.0
    ]
   ],
   "yeniden": "uygun"
@@ -447,7 +447,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1940.0
+    1930.0
    ]
   ],
   "yeniden": "uygun"
@@ -458,7 +458,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1940.0
+    1930.0
    ]
   ],
   "yeniden": "uygun"
@@ -469,7 +469,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1960.0
+    1930.0
    ]
   ],
   "yeniden": "uygun"
@@ -480,7 +480,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1960.0
+    1930.0
    ]
   ],
   "yeniden": "uygun"
@@ -670,7 +670,7 @@
   "gereken": [
    [
     "kuyu_tavani_kotu",
-    "+28,88"
+    "+28,87"
    ]
   ],
   "yeniden": "uygun"
@@ -685,7 +685,7 @@
   "gereken": [
    [
     "kuyu_genisligi",
-    1980.0
+    1960.0
    ]
   ],
   "yeniden": "uygun"
