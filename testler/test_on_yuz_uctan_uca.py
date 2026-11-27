@@ -51,6 +51,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 import urllib.request
 import zipfile
 
@@ -160,8 +161,12 @@ class Izleyici:
         280 ms bekletip gönderir )."""
         son_hareket = baslangic = time.time()
         ilk_sayi = self.sayi
-        while time.time() < baslangic + self._sinir() / 1000:
+        #  Sınır bekleme boyunca KALIR ( 27 Kas, PR #172 ):  istek 60 sn'yi geçip bitince sınır
+        #  yeniden 60'a iniyor, bitmiş isteğin arkasından "sakinleşmedi" deniyordu ( yolda 0 )
+        sinir = self._sinir()
+        while time.time() < baslangic + sinir / 1000:
             self.sayfa.wait_for_timeout(100)
+            sinir = max(sinir, self._sinir())
             if self.yolda > 0:
                 son_hareket = time.time()
             elif (time.time() - son_hareket) * 1000 >= sure:
@@ -193,6 +198,14 @@ class _SahteSayfa:
     def on(self, ad, f):
         self.olay[ad] = f
 
+    def wait_for_timeout(self, ms):
+        """Sahte saat:  bekleme saati ilerletir ( saat ve olaylar teste göre )."""
+        self.saat[0] += ms / 1000.0
+        for an, olay in list(self.zamanli):
+            if self.saat[0] >= an:
+                self.zamanli.remove((an, olay))
+                olay()
+
 
 class _SahteIstek:
     def __init__(self, sayfa, url, gezinti=False):
@@ -223,6 +236,27 @@ class IzleyiciSayaci(unittest.TestCase):
         self.assertEqual((iz.yolda, iz.suren), (0, {}))
         s.olay["requestfinished"](eski)  # geç gelen olay sayacı eksiye düşürmez
         self.assertEqual(iz.yolda, 0)
+
+    def test_avan_istegi_60_sn_yi_gecip_bitince_beklenir(self):
+        """Avan çizimi isteği ( AVAN_ZAMAN ) 70 sn sürüp biterse sakin() döner:  sınır istek bitince
+        60 sn'ye inmez ( 27 Kas — PR #172'nin uçtan uca koşusu bundan düştü )."""
+        s = _SahteSayfa()
+        s.saat, s.zamanli = [1000.0], []
+        iz = Izleyici(s)
+        istek = _SahteIstek(s, "http://x/api/avan/cizimler")
+        istek.method = "POST"
+        s.olay["request"](istek)
+        s.zamanli.append((1070.0, lambda: s.olay["requestfinished"](istek)))
+        with mock.patch.object(time, "time", lambda: s.saat[0]):
+            iz.sakin()
+        self.assertEqual(iz.yolda, 0)
+        self.assertGreater(s.saat[0], 1070.0)
+        #  120 sn'yi aşan istek yine sakinleşmez
+        uzun = _SahteIstek(s, "http://x/api/avan/cizimler")
+        uzun.method = "POST"
+        s.olay["request"](uzun)
+        with mock.patch.object(time, "time", lambda: s.saat[0]), self.assertRaises(AssertionError):
+            iz.sakin()
 
     def test_tek_sayfa_gezintisi_yoldaki_istegi_dusurmez(self):
         s = _SahteSayfa()
