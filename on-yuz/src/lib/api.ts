@@ -270,6 +270,10 @@ export interface AvanCizimYaniti {
   ayarlar?: { anahtar: string; etiket: string; deger: string; birim: string }[];
   gereken?: { anahtar: string; etiket: string; eski: string | null; yeni: string; sebep: string }[];
   nedenler?: string[];
+  /**  "gereken" / "sigmaz":  sonucun yerleşimi ( "ağırlık yanda" | "ağırlık arkada" ) ve denenip
+       kullanılmayan yerleşimin mimarın ölçülerindeki sorunları ( 27 Kas )  */
+  yerlesim?: string;
+  denenen?: { yerlesim: string; nedenler: string[] }[];
   /**  Geçirilemeyen ürün bölümleri ( avanı bağlamaz — uygulama projesinde çözülür )  */
   acik_bolumler?: string[];
   acik_bolum_adlari?: string[];

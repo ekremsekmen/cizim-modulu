@@ -113,11 +113,18 @@ def avan_cizimler_sonucu(veri):
         #  Bölümlerin ekrandaki adları ( kimlik değil )
         ad = hesap_isareti.KISA_AD
         r["acik_bolum_adlari"] = [ad.get(b, b) for b in r.get("acik_bolumler") or []]
-        if r.get("nedenler"):
-            r["nedenler"] = [
+
+        def adli(nedenler):
+            return [
                 f"{ad.get(n[6:], n[6:])}:  hesabı uygun değil" if n.startswith("bölüm:") else n
-                for n in r["nedenler"]
+                for n in nedenler
             ]
+
+        if r.get("nedenler"):
+            r["nedenler"] = adli(r["nedenler"])
+        #  Denenip kullanılmayan yerleşimin sorunları ( avan_secici.sec — "denenen" )
+        for x in r.get("denenen") or []:
+            x["nedenler"] = adli(x["nedenler"])
         #  "gereken"in isteği mimarın bugünkü ölçüleriyle değildir:  ekrana gitmez
         if r["durum"] != "uygun":
             r.pop("istek", None)
