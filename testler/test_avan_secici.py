@@ -591,6 +591,13 @@ class AvanSecici(unittest.TestCase):
         self.assertGreater(x["gereken"][0]["yeni"], int(t["asansor"]["kuyu_genisligi"]))
         #  Kartın 1:1'i mimarın kuyusunda olduğu gibi uygun
         self.assertEqual(avan_secici.sec(mimari(t, aski_orani=1))["durum"], "uygun")
+        #  Kapı trafik hesabınındır:  ölçü isteniyorsa kapıyı daraltmak önerilmez ( ilk CI'da 16 kapı
+        #  senaryosu "kuyu +" yerine "kapıyı 800'e düşürün" diyordu )
+        r = avan_secici.sec(
+            mimari(PAKETLER[(1000, True)], kat_kapisi_tipi="Otomatik Merkezi", kapi_genisligi=1000)
+        )
+        self.assertEqual(r["durum"], "gereken", r)
+        self.assertEqual([g["anahtar"] for g in r["gereken"]], ["kuyu_genisligi"])
 
     def test_istenen_olcu_en_kucuk(self):
         """13 Kas denetimi:  630 kg 1600 × 1600 kuyuda genişlik 2110 isteniyordu;  asansör 1800'e

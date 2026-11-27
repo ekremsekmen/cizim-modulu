@@ -93,6 +93,10 @@ MIMARI_GENEL = ("mk_uzunluk", "mk_genislik", "md_yukseklik")
 #  verilmişse paketinkinin yerine geçer, seçici değiştirmez
 #  ( 14 Kas ) kapı genişliği ve tipi de:  trafik hesabının kapısı ( kullanıcı kararı )
 BEYAN = ("aski_orani", "makine_tipi", "kapi_genisligi", "kat_kapisi_tipi")
+#  K7 ( 27 Kas — kullanıcı:  "kartta 1:1 önce" ):  beyanla ÖLÇÜ İSTENİYORSA yalnız bunlarda kartın
+#  değişikliği önce gelir ( _sec_kapisiz ).  Kapı trafik hesabınındır:  kapıyı daraltmak kuyuyu
+#  genişletmenin yerine önerilmez ( kapı "sığmaz"da önerilir — bugünkü gibi )
+BEYAN_ONCE = ("aski_orani", "makine_tipi")
 #  KARTIN KABİNİ ( 24 Kas — kullanıcı:  "Evet, kullanılsın" ):  avan hesabı kabini karttan okur
 #  ( alan, aydınlatma );  kartınki standarda uyuyorsa ( kabin_nedenleri ) çizim de onunla kurulur,
 #  boş kutu paketinkini alır.  Seçici kabini değiştirmez ( SABIT ).  Eskiden çizimin kabini hep
@@ -1099,9 +1103,9 @@ def _kapiyi_tasi(r, kapi):
 def _sec_kapisiz(m):
     """sec — makine dairesi kapısının elle ayarı dışında.
 
-    AVANIN BEYANI ( askı oranı, makine tipi ):  beyanla kurulamıyorsa ( sığmaz ) paketin kendi
+    AVANIN BEYANI ( askı oranı, makine tipi, kapı ):  beyanla kurulamıyorsa ( sığmaz ) paketin kendi
     değerleri denenir, kurulursa "beyan" — kartta seçilecek.  BEYANLA ÖLÇÜ İSTENİYORSA ( 27 Kas,
-    K7 — kullanıcı:  "kartta 1:1 önce" ):  paketin değerleriyle mimarın kuyusuna OLDUĞU GİBİ
+    K7 — kullanıcı:  "kartta 1:1 önce";  yalnız askı ve makine tipi — BEYAN_ONCE ):  paketin değerleriyle mimarın kuyusuna OLDUĞU GİBİ
     sığıyorsa yine "beyan" önce gelir ( mimarın binası değişmez );  beyanla istenen ölçüler
     secenek'tir ( kosul:  kartın değeri kalırsa ).  Bina taraması ( çare bulucu ) 2:1'e kuyu
     önerince 630 / 450 kg MD'de "kartta 1:1" yerine "kuyu +380" deniyordu."""
@@ -1114,6 +1118,8 @@ def _sec_kapisiz(m):
     if r["durum"] not in ("sigmaz", "gereken") or not beyan:
         return r
     gerekenle = r["durum"] == "gereken"
+    if gerekenle:
+        beyan = {k: x for k, x in beyan.items() if k in BEYAN_ONCE}
     taslak = paketler()[(int(_sayi(m["beyan_yuku"])), m.get("mk_yok") in (True, "true"))]
     kendi = {k: taslak["asansor"].get(k) or _metin(alanlar.ALAN[k].varsayilan) for k in beyan}
     farkli = [k for k in beyan if kendi[k] != beyan[k]]
