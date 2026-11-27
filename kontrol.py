@@ -14,6 +14,10 @@
     .venv/bin/python kontrol.py tarama     girdi taraması ( 558 düzen;  ~8 dk )
     .venv/bin/python kontrol.py avan_tarama  avan seçicisi taraması ( 563 kuyu;  ağır — CI'da;
                                            KONTROL_PARCA="1/2" senaryoların o parçası )
+    .venv/bin/python kontrol.py avan_dar   avan seçicisi dar kuyularda + güvenceler G2 – G4 ( rapor;
+                                           ağır — CI'da )
+    .venv/bin/python kontrol.py care_tarama  çare bulucu girdi taramasının sorunlu düzenlerinde
+                                           ( önerilerin güvencesi, çaresiz sorun sayısı;  ~4 dk, 2 işçi )
     .venv/bin/python kontrol.py bicim      ruff format + ruff check --fix ( düzeltir )
 
 Çizim testleri pytest ile paralel koşar:  KONTROL_IS işçi ( varsayılan 4 —
@@ -180,6 +184,17 @@ def avan_tarama():
     )
 
 
+def avan_dar():
+    """Avan seçicisi dar kuyularda ( araclar/avan_tarama.py --eksen dar ):  değişmezler, hükümler
+    ve güvenceler ( G2 – G4 — şimdilik rapor;  27 Kas seçici doğruluk planı )."""
+    return _kos("avan seçicisi taraması ( dar )", [PY, "-m", "araclar.avan_tarama", "--eksen", "dar"])
+
+
+def care_tarama():
+    """Çare bulucu girdi taramasının sorunlu düzenlerinde ( araclar/care_tarama.py )."""
+    return _kos("çare taraması", [PY, "-m", "araclar.care_tarama"])
+
+
 def main(argv):
     kip = argv[0] if argv else "hizli"
     adimlar = {
@@ -201,6 +216,8 @@ def main(argv):
         "uctan_uca": lambda: [uctan_uca(on_yuz())],
         "tarama": lambda: [tarama()],
         "avan_tarama": lambda: [avan_tarama()],
+        "avan_dar": lambda: [avan_dar()],
+        "care_tarama": lambda: [care_tarama()],
     }
     if kip not in adimlar:
         print(__doc__)

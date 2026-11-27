@@ -6,6 +6,10 @@ import unittest
 
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+from unittest import mock
+
+from araclar import avan_tarama
+from araclar import care_tarama
 from araclar import fiziksel
 from araclar import karne
 from araclar import kesisme
@@ -15,6 +19,8 @@ from cizim import eleman
 from cizim import girdi
 from cizim import kuyu_kesiti
 from cizim import pafta
+from uclar import avan_secici
+from uclar import care_uclari
 
 KAYIT = {"ana": {"A": {"durum": "çizildi", "sebep": ""}, "B": {"durum": "ret", "sebep": "X sığmıyor"}}}
 
@@ -239,3 +245,80 @@ class Fiziksel(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DogrulukOlcumu(unittest.TestCase):
+    """SEÇİCİ DOĞRULUK PLANI ( 27 Kas, Adım 1 ):  avan taramasının dar ekseni ve güvenceleri,
+    çare taraması.  Ölçüm yanlışsa düzeltmelerin etkisi yanlış ölçülür."""
+
+    def test_dar_eksen_senaryolari(self):
+        liste = avan_tarama.dar_senaryolari()
+        kimlikler = [k for k, _a, _m in liste]
+        self.assertEqual(len(kimlikler), len(set(kimlikler)))
+        #  10 hazır asansör × 8 kuyu + 5 makine daireli × 2 odalı + kullanıcının 4 vakası
+        self.assertEqual(len(liste), 94)
+        m = dict(next(m for k, _a, m in liste if k == "vaka|800|k900|s4050"))
+        self.assertEqual((m["kuyu_genisligi"], m["kuyu_derinligi"], m["kapi_genisligi"]), (1800, 2700, 900))
+        self.assertEqual(m["kuyu_tavani_kotu"], "+28,75")
+        self.assertTrue(m["durak_kotlari"].startswith("-2,60; +0,70; +3,70"))
+        self.assertTrue(m["durak_kotlari"].endswith("+24,70"))
+        #  Temel eksen değişmedi ( kaydı ve CI işleri aynı )
+        self.assertEqual(len(avan_tarama.senaryolar()), 581)
+
+    def test_bir_adim_geri(self):
+        """G2'nin geri adımı mimarınkine doğru;  arada bir adım yoksa ölçülmez."""
+        self.assertEqual(avan_tarama._geri({"eski": "1800", "yeni": 1980.0}), 1970)
+        self.assertEqual(avan_tarama._geri({"eski": "+28,75", "yeni": "+29,00"}), "+28,99")
+        #  Kuyu dibi aşağı iner:  geri adım yukarı
+        self.assertEqual(avan_tarama._geri({"eski": "-4,70", "yeni": "-4,95"}), "-4,94")
+        self.assertIsNone(avan_tarama._geri({"eski": "1800", "yeni": 1805.0}))
+        self.assertIsNone(avan_tarama._geri({"eski": "+28,75", "yeni": "+28,76"}))
+
+    def test_guvenceler(self):
+        """Sahte seçiciyle:  bir adım eksiği uygunsa G2;  büyütmede gereken G3, sığmaz G4."""
+        m = {"kuyu_genisligi": 1800, "kuyu_derinligi": 2700}
+        gereken = {
+            "durum": "gereken",
+            "gereken": [{"anahtar": "kuyu_genisligi", "eski": "1800", "yeni": 1980.0}],
+        }
+        uygun = {"durum": "uygun", "istek": {"asansorler": [{"agirlik_yeri": "Arka"}]}}
+        with mock.patch.object(avan_secici, "sec", return_value=uygun) as sec:
+            g = avan_tarama.guvenceler(m, gereken)
+        self.assertEqual([x[0] for x in g], ["G2"])
+        self.assertEqual(sec.call_args[0][0]["kuyu_genisligi"], 1970)
+        with mock.patch.object(avan_secici, "sec", return_value={"durum": "gereken", "gereken": []}):
+            self.assertEqual([x[0] for x in avan_tarama.guvenceler(m, uygun)], ["G3", "G3"])
+        with mock.patch.object(avan_secici, "sec", return_value={"durum": "sigmaz", "nedenler": ["x"]}):
+            self.assertEqual([x[0] for x in avan_tarama.guvenceler(m, uygun)], ["G4", "G4"])
+        with mock.patch.object(avan_secici, "sec", return_value={"durum": "gereken", "gereken": []}):
+            self.assertEqual(avan_tarama.guvenceler(m, gereken), [])
+
+    def test_care_taramasi_onerinin_guvencesi(self):
+        """Çare taraması önerinin sözünü bağımsız denetler:  sorun kalırsa, yeni sorun çıkarsa,
+        hesap durursa ihlal;  söylenen ortaya çıkan sorun ihlal değil."""
+        once = ({"A": "A:  x", "B": "B:  y"}, True, set(), frozenset(), True)
+        oneri = {"anahtar": "k", "yeni": 1, "yontem": "türev", "gider": ["A:  x"], "ortaya_cikan": ["C"]}
+        care = {
+            "careler": [{"metin": "A:  x", "oneriler": [oneri]}, {"metin": "B:  y", "oneriler": []}],
+            "tamamlandi": True,
+            "sinama": 3,
+        }
+        for sonra, beklenen in (
+            (({"B": "B:  y", "C": "C:  z"}, True), []),
+            (({"A": "A:  x", "B": "B:  y"}, True), ["gidereceği sorun kaldı"]),
+            (({"B": "B:  y", "D": "D:  w"}, True), ["yeni sorun"]),
+            (({"B": "B:  y"}, False), ["hesap durdu"]),
+        ):
+            with (
+                self.subTest(sonra),
+                mock.patch.object(
+                    care_uclari,
+                    "girdi_durumu",
+                    side_effect=[once, sonra + (set(), frozenset(), True)],
+                ),
+                mock.patch.object(care_uclari, "coz", return_value=care),
+                mock.patch.object(care_uclari, "girdi_yaz", return_value={}),
+            ):
+                r = care_tarama.dene(("x", {}))
+            self.assertEqual([i.split(":  ", 1)[1].split(" [")[0] for i in r["ihlal"]], beklenen)
+            self.assertEqual(r["caresiz"], ["B"])

@@ -14,6 +14,8 @@
 #      avan_tarama  avan seçicisi 563 kuyuda, İKİ PARÇADA yan yana ( araclar/avan_tarama.py
 #               --parca ):  dönen her asansör uygulamanın uçlarından temiz mi, hükümler kayıtla
 #               aynı mı ( testler/avan_tarama_hukumleri.json );  sonuç iş çıktısı olarak saklanır
+#      dogruluk  ( 27 Kas — seçici doğruluk planı ) yan yana iki iş:  avan_dar ( seçici dar kuyularda,
+#               güvenceler G2 – G4 rapor ) ve care_tarama ( çare bulucunun öneri güvenceleri )
 #
 #  İŞLER YAN YANA ( 21 Kas ):  PR'ın süresini en yavaş iş belirler.  Önce tam 42–61 dk ( içinde
 #  uçtan uca ~13 dk ), avan_tarama 27–49 dk sürüyordu;  uçtan uca ayrı işte, avan taraması iki
@@ -152,4 +154,34 @@ jobs:
           #  Parça başına ayrı ad ( "/" ad içinde olamaz )
           name: avan-tarama-${{ strategy.job-index }}
           path: cikti/avan_tarama/
+          retention-days: 14
+
+  dogruluk:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        is: ["avan_dar", "care_tarama"]
+    #  avan_dar yerelde 2 işçiyle ~22 dk ( 27 Kas ölçümü, 94 senaryo );  care_tarama ~4 dk
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-*.txt
+      - run: python -m pip install -r requirements-kilit.txt -r requirements-gelistirme.txt
+      - run: python kontrol.py ${{ matrix.is }}
+        env:
+          KONTROL_IS: auto
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dogruluk-${{ matrix.is }}
+          path: |
+            cikti/avan_tarama/dar/
+            cikti/care_tarama/
+          if-no-files-found: ignore
           retention-days: 14
