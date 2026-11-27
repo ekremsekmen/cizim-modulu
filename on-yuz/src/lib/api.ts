@@ -274,6 +274,8 @@ export interface AvanCizimYaniti {
        kullanılmayan yerleşimin mimarın ölçülerindeki sorunları ( 27 Kas )  */
   yerlesim?: string;
   denenen?: { yerlesim: string; nedenler: string[] }[];
+  /**  Kullanılmayan yerleşim de ölçü istiyorsa onun isteği ( "ya da …" — 27 Kas, seçici doğruluk K3 )  */
+  secenek?: { yerlesim: string; gereken: { anahtar: string; etiket: string; eski: string | null; yeni: string }[] }[];
   /**  Geçirilemeyen ürün bölümleri ( avanı bağlamaz — uygulama projesinde çözülür )  */
   acik_bolumler?: string[];
   acik_bolum_adlari?: string[];

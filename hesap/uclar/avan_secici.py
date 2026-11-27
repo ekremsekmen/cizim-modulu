@@ -750,10 +750,12 @@ def sec(m):
                    ölçüleri böyle olursa temiz;  istek o ölçülerle
       "sigmaz"     nedenler [ metin ] — mimardan istenecek ölçü de bulunamadı
                    "gereken" ve "sigmaz"de ayrıca yerlesim ( sonucun yerleşimi:  "ağırlık yanda" |
-                   "ağırlık arkada" ) ve denenen [ { yerlesim , nedenler } ] — denenip
+                   "ağırlık arkada" ), denenen [ { yerlesim , nedenler } ] — denenip
                    kullanılmayan yerleşimin mimarın ölçülerindeki sorunları ( 27 Kas:  ağırlık
                    arkadaki düzeni kuyu dibi merdiveni bağlıyordu, ekran yalnız yandakinin
-                   ölçüsünü söylüyordu — sebep görünmüyordu )
+                   ölçüsünü söylüyordu — sebep görünmüyordu ) ve secenek [ { yerlesim , gereken } ]
+                   — kullanılmayan yerleşim de ölçü istiyorsa onun isteği ( ekran "ya da" der;
+                   iki istekten küçüğü sonuç — _yerlesimler, _tek_seferde )
       "paket_yok"  bu yük / düzen için paket yok;  hiz ( True ) + hizlar:  bu hızda çizim
                    çıkmaz ( uygulamanın hız listesinde yok — 1,75 · 3,5 m/s )
       "eksik"      eksik [ anahtar ] — mimari girdi eksik
@@ -1100,6 +1102,7 @@ def _sec_kapisiz(m):
     r = _sec(m)
     if r["durum"] == "gereken":
         r = _tek_seferde(m, r, t0)
+    r.pop("_nedenler", None)
     beyan = {k: _metin(m[k]) for k in BEYAN if m.get(k) not in (None, "")}
     if r["durum"] != "sigmaz" or not beyan:
         return r
@@ -1141,26 +1144,19 @@ def _sec_kapisiz(m):
 AZAMI_YENIDEN = 2
 
 
-def _tek_seferde(m, r, t0):
-    """MİMARA SÖYLENEN ÖLÇÜ TEK SEFERDE YETER ( 14 Kas — tarama:  1250 kg makine dairelide
-    "kuyu genişliği 2020" isteniyor, 2020 girilince bu kez 2030 isteniyordu ).  Küçültme
-    ( _kucult ) temiz bir yerleşim bulur;  ama mimar o ölçüyü girince seçim baştan yapılır ve
-    aynı yerleşime varmayabilir.  İstenen ölçülerle seçim burada bir kez daha yapılır:  yine
-    ölçü isteniyorsa o ölçü de listeye girer ( mimarın ilk değerinden ), en çok AZAMI_YENIDEN
-    kez.  Yeniden seçim "sığmaz" derse ilk sonuç kalır.
-
-    DENENEN ( 27 Kas ):  kullanılmayan yerleşimin sorunları ilk seçimdekidir — mimarın bugünkü
-    ölçüleriyle;  yeniden seçiminki büyütülmüş ölçülerle ölçülmüştür.  Yeniden seçimin yerleşimi
-    ( sonucun ) denenenden çıkar."""
+def _dogrula(m, r):
+    """İstenen ölçülerle seçim bir kez daha ( _tek_seferde ):  yine ölçü isteniyorsa o ölçü de
+    listeye girer ( mimarın ilk değerinden ), en çok AZAMI_YENIDEN kez.  Döner ( sonuç , son
+    yeniden seçim ) — sonuç r'nin kopyası;  yeniden seçim "gereken" kaldıysa onun alanlarıyla."""
     ilk = {g["anahtar"]: g["eski"] for g in r["gereken"]}
-    denenen = r.get("denenen")
+    r2 = None
     for _tur in range(AZAMI_YENIDEN):
         m2 = dict(m)
         for g in r["gereken"]:
             m2[g["anahtar"]] = g["yeni"] if isinstance(g["yeni"], str) else int(round(g["yeni"]))
         with asamalar.alt_is("dogrulama"):
-            r2 = _sec(m2)
-        r["sinama"] += r2["sinama"]
+            r2 = _sec(m2, taban=m)
+        r = {**r, "sinama": r["sinama"] + r2["sinama"]}
         if r2["durum"] != "gereken":
             break
         #  Yine ölçü isteniyor:  önceki istekler geçerli kalır, yenileri eklenir / büyür
@@ -1168,11 +1164,47 @@ def _tek_seferde(m, r, t0):
         for g in r2["gereken"]:
             ilk.setdefault(g["anahtar"], g["eski"])
             yeni[g["anahtar"]] = {**g, "eski": ilk[g["anahtar"]]}
-        r = {**r2, "gereken": list(yeni.values()), "sinama": r["sinama"]}
-        if denenen is not None:
-            r["denenen"] = [x for x in denenen if x["yerlesim"] != r.get("yerlesim")]
-    r["sure"] = round(time.monotonic() - t0, 2)
-    return r
+        r = {**r2, "gereken": list(yeni.values()), "sinama": r["sinama"], "_nedenler": r.get("_nedenler")}
+    return r, r2
+
+
+def _tek_seferde(m, r, t0):
+    """MİMARA SÖYLENEN ÖLÇÜ TEK SEFERDE YETER ( 14 Kas — tarama:  1250 kg makine dairelide
+    "kuyu genişliği 2020" isteniyor, 2020 girilince bu kez 2030 isteniyordu ).  Küçültme
+    ( _kucult ) temiz bir yerleşim bulur;  ama mimar o ölçüyü girince seçim baştan yapılır ve
+    aynı yerleşime varmayabilir.  İstenen ölçülerle seçim burada bir kez daha yapılır ( _dogrula ).
+    Yeniden seçim "sığmaz" derse o ana dek bulunan kalır.
+
+    SEÇENEK DE DOĞRULANIR ( 27 Kas ):  öbür yerleşimin isteği ( secenek ) doğrulanmış seçilenden
+    küçükse o da doğrulanır;  doğrulanmış istekleri küçük olan ( _bedel ) sonuç olur.  İlk aramada
+    630 kg 1600 × 1600'de arka tek ölçü ( derinlik +345 ) görünüp yanın iki ölçüsüne ( +210 ) yeğ
+    tutuluyordu;  doğrulanınca arka genişlik de istedi ( +355 ).
+
+    DENENEN ve SEÇENEK:  kullanılmayan yerleşimin sorunları ilk seçimdekidir — mimarın bugünkü
+    ölçüleriyle ( _nedenler );  sonucun yerleşimi ikisinden de çıkar."""
+    sonuc, _r2 = _dogrula(m, r)
+    secenek = r.get("secenek") or []
+    for x in r.get("secenek") or []:
+        if _bedel(x["gereken"]) >= _bedel(sonuc["gereken"]):
+            continue
+        aday, a2 = _dogrula(
+            m, {**r, "gereken": x["gereken"], "yerlesim": x["yerlesim"], "sinama": sonuc["sinama"]}
+        )
+        sonuc["sinama"] = aday["sinama"]
+        if a2 is None or a2["durum"] not in ("gereken", "uygun"):
+            continue
+        if a2["durum"] == "uygun":
+            #  İstek seçeneğin yerleşimininki:  doğrulayan seçimden
+            aday["istek"] = a2["istek"]
+        if _bedel(aday["gereken"]) < _bedel(sonuc["gereken"]):
+            secenek = [{"yerlesim": sonuc.get("yerlesim"), "gereken": sonuc["gereken"]}]
+            sonuc = aday
+    yer = sonuc.get("yerlesim")
+    nedenler = sonuc.pop("_nedenler", None) or r.get("_nedenler") or {}
+    sonuc["denenen"] = [{"yerlesim": k, "nedenler": v} for k, v in nedenler.items() if k != yer and v]
+    sonuc["secenek"] = [x for x in secenek if x["yerlesim"] != yer]
+    sonuc["sure"] = round(time.monotonic() - t0, 2)
+    return sonuc
 
 
 def _on_denetim(m):
@@ -1228,8 +1260,9 @@ def aranacak_mi(m):
     return not kapi or _ONBELLEK.al(_anahtar(kapisiz)) is None
 
 
-def _sec(m):
-    """sec'in bir denemesi:  m'nin beyanı ( varsa ) değiştirilmeden."""
+def _sec(m, taban=None):
+    """sec'in bir denemesi:  m'nin beyanı ( varsa ) değiştirilmeden.  taban:  yerleşimler
+    karşılaştırılırken isteğin ölçüldüğü mimari ( _tek_seferde — mimarın ilk ölçüleri );  yoksa m."""
     t0 = time.monotonic()
     sina = _Sinayici()
 
@@ -1332,36 +1365,83 @@ def _sec(m):
     def yer(adaylar):
         return "ağırlık arkada" if adaylar[0] is arka else "ağırlık yanda"
 
-    durum, alanlar_ = _yerlesimler([(yer(x), x) for x in sira], yerlesim, sina)
+    durum, alanlar_ = _yerlesimler([(yer(x), x) for x in sira], yerlesim, sina, m, taban or m)
     return son(durum, paket=taslak["kimlik"], **alanlar_)
 
 
-def _yerlesimler(sira, yerlesim, sina):
-    """Yerleşimler sırayla ( _sec.yerlesim ):  ilki uygunsa o;  değilse ikincisi denenir.  sira:
-    [ ( ad , adaylar ) ].  Döner ( durum , alanlar ) — "uygun" olmayanda yerlesim ( sonucun adı ) ve
-    denenen ( kullanılmayan yerleşimin mimarın ölçülerindeki sorunları )."""
+def _yerlesimler(sira, yerlesim, sina, m=None, taban=None):
+    """Yerleşimler sırayla ( _sec.yerlesim ):  ilki uygunsa o;  değilse ikincisi de denenir.  sira:
+    [ ( ad , adaylar ) ].  Döner ( durum , alanlar ) — "uygun" olmayanda yerlesim ( sonucun adı ),
+    denenen ( kullanılmayan yerleşimin mimarın ölçülerindeki sorunları ) ve secenek ( kullanılmayan
+    yerleşim de ölçü istiyorsa onun istediği — ekran "ya da" der ).
+
+    İKİSİ DE ÖLÇÜ İSTERSE ( 27 Kas — seçici doğruluk planı Adım 4, K2 ):  ikisi de küçültülür, daha
+    az ölçü isteyen, eşitse toplam artışı küçük olan, o da eşitse sıradaki ilk seçilir ( _bedel ).
+    24 Kas'tan beri ikincinin isteği küçültülmeden atılıyordu ( süre ):  1000 kg MRL 1550 × 3050'de
+    yan 1850 istendi, arka 1650'de uygundu.  Bedel MİMARIN İLK ÖLÇÜLERİNE ( taban ) göre:  istenen
+    ölçüyle yeniden seçimde ( _tek_seferde ) m büyütülmüştür — m'ye göre ölçülünce öbür yerleşim
+    ucuz görünüp seçiliyordu ( 630 kg 1600 × 1600:  yan +210 yerine arka +355 ).
+
+    m / taban verilmezse ( testler ) istek kendi eskisine göre ölçülür."""
     (ad, ilk), *kalan = sira
     asamalar.asama("yerlesim", ad)
     durum, alanlar_ = yerlesim(ilk)
-    denenen = []
+    denenen, secenek = [], []
     if durum != "uygun" and kalan:
         ikinci, adaylar = kalan[0]
         sina.kalan = AZAMI_SINAMA
         asamalar.asama("yerlesim", ikinci)
-        #  İlki mimardan ölçü istiyorsa ikincisinin yalnız "uygun"u kullanılır:  onun istediği ölçüler
-        #  küçültülmez ( 24 Kas — kot da küçültülünce boşa giden arama seçimin süresini ikiye katlıyordu )
-        durum_2, alanlar_2 = yerlesim(adaylar, kucult=durum == "sigmaz")
-        if durum_2 == "uygun" or (durum_2 == "gereken" and durum == "sigmaz"):
+        durum_2, alanlar_2 = yerlesim(adaylar)
+        if durum_2 == "uygun" or (
+            durum_2 == "gereken"
+            and (
+                durum == "sigmaz"
+                or _bedel(alanlar_2["gereken"], m, taban) < _bedel(alanlar_["gereken"], m, taban)
+            )
+        ):
             ad, ikinci = ikinci, ad
-            durum, alanlar_, alanlar_2 = durum_2, alanlar_2, alanlar_
-        #  KULLANILMAYAN YERLEŞİM ( 27 Kas ):  mimarın ölçülerinde neden olmadığı — ekran söyler
+            durum, alanlar_, durum_2, alanlar_2 = durum_2, alanlar_2, durum, alanlar_
+        #  KULLANILMAYAN YERLEŞİM ( 27 Kas ):  mimarın ölçülerinde neden olmadığı ve — o da ölçü
+        #  istiyorsa — istediği ( ekran söyler )
         neden = alanlar_2.get("_mimarda") or alanlar_2.get("nedenler")
         if durum != "uygun" and neden:
             denenen.append({"yerlesim": ikinci, "nedenler": neden})
-    alanlar_.pop("_mimarda", None)
+        if durum != "uygun" and durum_2 == "gereken":
+            secenek.append({"yerlesim": ikinci, "gereken": alanlar_2["gereken"]})
     if durum != "uygun":
-        alanlar_.update(yerlesim=ad, denenen=denenen)
+        #  Her yerleşimin mimarın ölçülerindeki sebepleri ( _tek_seferde seçeneğe geçerse denenen
+        #  öbürününkiyle yeniden kurulur;  sonda atılır — _sec_kapisiz )
+        nedenler = {ad: alanlar_.get("_mimarda") or alanlar_.get("nedenler")}
+        nedenler.update({x["yerlesim"]: x["nedenler"] for x in denenen})
+        alanlar_.update(yerlesim=ad, denenen=denenen, secenek=secenek, _nedenler=nedenler)
+    alanlar_.pop("_mimarda", None)
     return durum, alanlar_
+
+
+def _mm(x, kot=False):
+    """Ölçü ( mm ) ya da kot ( metre — metin ya da sayı ) → mm;  okunamazsa None."""
+    if kot:
+        mm, _h = katlar.kot_oku(x if isinstance(x, str) else katlar.kot_metni(round(float(x) * 1000)))
+        return mm
+    return _sayi(x)
+
+
+def _bedel(gereken, m=None, taban=None):
+    """İki yerleşimin isteğini karşılaştırma ( K2 ):  ( değişen ölçü sayısı , toplam artış mm ) —
+    mimarın ilk ölçülerine ( taban ) göre:  sonuç ölçüleri m'dekiler, istenenlerle değişmiş;  m'nin
+    tabandan farkı ( önceki turda istenen ) da sayılır.  m / taban yoksa isteğin kendi eskisine göre."""
+    son = {g["anahtar"]: g["yeni"] for g in gereken}
+    ilk = {g["anahtar"]: g["eski"] for g in gereken}
+    if m is not None and taban is not None:
+        for k in set(m) | set(taban):
+            if k not in son and m.get(k) != taban.get(k) and _mm(m.get(k), k in KOTLAR) is not None:
+                son[k] = m[k]
+        ilk = {k: taban.get(k, ilk.get(k)) for k in son}
+    artis = []
+    for k, y in son.items():
+        a, b = _mm(y, k in KOTLAR), _mm(ilk.get(k), k in KOTLAR)
+        artis.append(abs(a - b) if a is not None and b is not None else float("inf"))
+    return sum(1 for x in artis if x > 0), sum(artis)
 
 
 def _nedenler(d):

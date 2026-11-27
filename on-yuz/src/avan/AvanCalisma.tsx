@@ -2232,13 +2232,23 @@ function CizimIletisi({
 /**  Denenip kullanılmayan yerleşimin sorunları ( 27 Kas — ağırlık arkadaki düzeni kuyu dibi
      merdiveni bağlıyordu;  ekran yalnız yandakinin ölçüsünü söylüyordu, sebep görünmüyordu )  */
 function DenenenYerlesim({ r }: { r: AvanCizimYaniti }) {
-  if (!r.denenen?.length) return null;
+  if (!r.denenen?.length && !r.secenek?.length) return null;
   return (
     <div className="mt-4" aria-label="Denenen öbür yerleşim">
-      {r.denenen.map((x) => (
+      {(r.secenek ?? []).map((x) => (
+        <div key={`s-${x.yerlesim}`} aria-label="Öbür yerleşimin isteği" className="mb-3 rounded-orta border border-cizgi px-4 py-3">
+          <p className="text-[13px] font-semibold text-metin-2">Ya da karşı {x.yerlesim}:</p>
+          {x.gereken.map((g) => (
+            <p key={g.anahtar} className="mt-1 text-[13px] text-metin-2">
+              {g.etiket}:  <span className="sayi">{g.eski ?? "—"}</span> → <span className="sayi">{g.yeni}</span>
+            </p>
+          ))}
+        </div>
+      ))}
+      {(r.denenen ?? []).map((x) => (
         <div key={x.yerlesim}>
           <p className="text-[13px] font-semibold text-metin-2">
-            Karşı {x.yerlesim} de denendi — mimarın bugünkü ölçüleriyle kurulmadı:
+            Karşı {x.yerlesim} mimarın bugünkü ölçüleriyle kurulmadı:
           </p>
           <ul className="mt-1 list-disc space-y-1 pl-5 text-[12.5px] text-metin-2">
             {x.nedenler.map((n) => (

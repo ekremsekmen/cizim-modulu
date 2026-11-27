@@ -380,14 +380,25 @@ class AvanSecici(unittest.TestCase):
         )
         r = avan_secici.sec(m)
         self.assertEqual(r["durum"], "gereken", r)
-        self.assertEqual(r["yerlesim"], "ağırlık yanda")
-        self.assertEqual([g["anahtar"] for g in r["gereken"]], ["kuyu_genisligi"])
-        self.assertEqual([x["yerlesim"] for x in r["denenen"]], ["ağırlık arkada"])
-        nedenler = r["denenen"][0]["nedenler"]
+        #  27 Kas ( seçici doğruluk planı Adım 2 + 4 ):  çare bulucu merdivene kuyu genişliği önerir
+        #  ( bina ölçüsü taraması ), iki yerleşim de küçültülüp karşılaştırılır — arka 1830, yan 1980
+        #  seçenek.  Arkanın mimarın 1800'ündeki sebebi ( merdiven ) yine söylenir.
+        self.assertEqual(r["yerlesim"], "ağırlık arkada")
+        self.assertEqual([(g["anahtar"], g["yeni"]) for g in r["gereken"]], [("kuyu_genisligi", 1830.0)])
+        self.assertEqual(
+            [(x["yerlesim"], [(g["anahtar"], g["yeni"]) for g in x["gereken"]]) for x in r["secenek"]],
+            [("ağırlık yanda", [("kuyu_genisligi", 1980.0)])],
+        )
+        self.assertEqual([x["yerlesim"] for x in r["denenen"]], ["ağırlık yanda"])
+        self.assertNotIn("_mimarda", r)
+        #  Seçilen arka da mimarın 1800'ünde kurulmuyordu:  sebebi merdiven
+        t2 = avan_secici.paketler()[(800, True)]
+        v = avan_secici._istek(t2, m, avan_secici._arka_adayi(t2, m))
+        nedenler = list(care_uclari.girdi_durumu(v, 0)[0].values())
         self.assertTrue(
             any(n.startswith("Kuyu dibi merdiveni") and "Ek F.5 b" in n for n in nedenler), nedenler
         )
-        self.assertNotIn("_mimarda", r)
+        nedenler = r["denenen"][0]["nedenler"]
         #  Uç bölüm kimliğini ekrandaki adına çevirir ( "nedenler"deki gibi )
         with mock.patch.object(avan_cizim_uclari, "secim", return_value=copy.deepcopy(r)):
             y = avan_cizim_uclari.avan_cizimler_sonucu({})
@@ -408,11 +419,14 @@ class AvanSecici(unittest.TestCase):
                 if d == "uygun":
                     return "uygun", {"istek": adaylar}
                 if d == "gereken":
-                    return "gereken", {"gereken": [adaylar], "_mimarda": [f"{adaylar} sorunu"]}
+                    g = {"anahtar": "kuyu_genisligi", "eski": "1800", "yeni": artis[adaylar] + 1800.0}
+                    return "gereken", {"gereken": [g], "_mimarda": [f"{adaylar} sorunu"]}
                 return "sigmaz", {"nedenler": [f"{adaylar} sorunu"]}
 
             return yerlesim
 
+        #  İkisi de ölçü isterse eşit istekte sıradaki ilk ( K2 — c )
+        artis = {"yan": 100.0, "arka": 100.0}
         sina = mock.Mock(kalan=0)
         sira = [("yanda", "yan"), ("arkada", "arka")]
         beklenen = {
@@ -441,21 +455,55 @@ class AvanSecici(unittest.TestCase):
                     self.assertEqual(
                         al["denenen"], [{"yerlesim": ad[oteki], "nedenler": [f"{oteki} sorunu"]}]
                     )
+                    #  Öbürü de ölçü istiyorsa isteği seçenektir
+                    oteki_durum = {"yan": yan, "arka": arka}[oteki]
+                    self.assertEqual(
+                        [x["yerlesim"] for x in al["secenek"]],
+                        [ad[oteki]] if oteki_durum == "gereken" else [],
+                    )
+        #  K2 ( b ):  ikincinin isteği küçükse o seçilir, ilki seçenek olur
+        artis = {"yan": 180.0, "arka": 30.0}
+        d, al = avan_secici._yerlesimler(sira, sahte({"yan": "gereken", "arka": "gereken"}), sina)
+        self.assertEqual(
+            (d, al["yerlesim"], [x["yerlesim"] for x in al["secenek"]]), ("gereken", "arkada", ["yanda"])
+        )
+        #  K2 ( a ):  az ölçü isteyen önce — iki ölçünün toplamı küçük olsa da
+        self.assertEqual(avan_secici._bedel([{"anahtar": "a", "eski": "1800", "yeni": 1980.0}]), (1, 180.0))
+        self.assertLess(
+            avan_secici._bedel([{"anahtar": "a", "eski": "1800", "yeni": 1980.0}]),
+            avan_secici._bedel(
+                [
+                    {"anahtar": "a", "eski": "1800", "yeni": 1830.0},
+                    {"anahtar": "kuyu_tavani_kotu", "eski": "+28,75", "yeni": "+28,88"},
+                ]
+            ),
+        )
         #  Tek yerleşim ( paketin ağırlığı zaten arkada ):  denenen boş
         d, al = avan_secici._yerlesimler(sira[:1], sahte({"yan": "sigmaz"}), sina)
         self.assertEqual((d, al["yerlesim"], al["denenen"]), ("sigmaz", "yanda", []))
 
     def test_yeniden_secimde_denenen_ilkinki(self):
         """İstenen ölçüyle yeniden seçim ( _tek_seferde ) yine ölçü isterse:  denenen ilk seçimdekidir
-        ( mimarın ölçüleriyle ), yeniden seçimin yerleşimi denenenden çıkar."""
+        ( mimarın ölçüleriyle — _nedenler ), sonucun yerleşimi denenenden ve seçenekten çıkar.
+        Seçenek doğrulanmış sonuçtan pahalıysa doğrulanmaz."""
         ilk = {
             "durum": "gereken",
             "sinama": 1,
             "gereken": [{"anahtar": "kuyu_genisligi", "eski": "1800", "yeni": 1900.0}],
             "yerlesim": "ağırlık yanda",
-            "denenen": [{"yerlesim": "ağırlık arkada", "nedenler": ["mimarın ölçüsünde"]}],
+            "denenen": [{"yerlesim": "ağırlık arkada", "nedenler": ["arka mimarda"]}],
+            "secenek": [
+                {
+                    "yerlesim": "ağırlık arkada",
+                    "gereken": [{"anahtar": "kuyu_derinligi", "eski": "2700", "yeni": 3500.0}],
+                }
+            ],
+            "_nedenler": {"ağırlık yanda": ["yan mimarda"], "ağırlık arkada": ["arka mimarda"]},
         }
-        for yerlesim, kalan in (("ağırlık yanda", 1), ("ağırlık arkada", 0)):
+        for yerlesim, denenen, secenek in (
+            ("ağırlık yanda", [("ağırlık arkada", ["arka mimarda"])], ["ağırlık arkada"]),
+            ("ağırlık arkada", [("ağırlık yanda", ["yan mimarda"])], []),
+        ):
             with self.subTest(yerlesim):
                 ikinci = {
                     "durum": "gereken",
@@ -463,12 +511,69 @@ class AvanSecici(unittest.TestCase):
                     "gereken": [{"anahtar": "kuyu_genisligi", "eski": "1900", "yeni": 1950.0}],
                     "yerlesim": yerlesim,
                     "denenen": [{"yerlesim": "başka", "nedenler": ["büyütülmüş ölçüde"]}],
+                    "secenek": [{"yerlesim": "başka", "gereken": []}],
                 }
-                with mock.patch.object(avan_secici, "_sec", return_value=copy.deepcopy(ikinci)):
+                with mock.patch.object(avan_secici, "_sec", return_value=copy.deepcopy(ikinci)) as sec:
                     r = avan_secici._tek_seferde({}, copy.deepcopy(ilk), time.monotonic())
                 self.assertEqual(r["yerlesim"], yerlesim)
-                self.assertEqual(r["denenen"], ilk["denenen"][:kalan])
+                self.assertEqual([(x["yerlesim"], x["nedenler"]) for x in r["denenen"]], denenen)
+                self.assertEqual([x["yerlesim"] for x in r["secenek"]], secenek)
                 self.assertEqual(r["gereken"][0]["eski"], "1800")
+                self.assertNotIn("_nedenler", r)
+                #  Seçenek ( +800 ) sonuçtan ( +150 ) pahalı:  doğrulanmadı ( AZAMI_YENIDEN tur )
+                self.assertEqual(sec.call_count, avan_secici.AZAMI_YENIDEN)
+
+    def test_secenek_dogrulaninca_ucuzsa_secilir(self):
+        """630 kg 1600 × 1600 ( 27 Kas ):  arka ilk aramada tek ölçü ( derinlik +345 ) görünüp yanın iki
+        ölçüsüne ( +210 ) yeğ tutuluyordu;  doğrulanınca genişlik de istedi ( +355 ).  Seçenek
+        doğrulanır, doğrulanmış istekleri küçük olan sonuç olur ( sahte seçim — hızlı )."""
+        ilk = {
+            "durum": "gereken",
+            "sinama": 1,
+            "istek": "arka istek",
+            "yerlesim": "ağırlık arkada",
+            "gereken": [{"anahtar": "kuyu_derinligi", "eski": "1600", "yeni": 1945.0}],
+            "secenek": [
+                {
+                    "yerlesim": "ağırlık yanda",
+                    "gereken": [
+                        {"anahtar": "kuyu_genisligi", "eski": "1600", "yeni": 1720.0},
+                        {"anahtar": "kuyu_derinligi", "eski": "1600", "yeni": 1690.0},
+                    ],
+                }
+            ],
+            "_nedenler": {"ağırlık arkada": ["arka mimarda"], "ağırlık yanda": ["yan mimarda"]},
+        }
+
+        def sec(m2, taban=None):
+            self.assertEqual(taban, {"kuyu_genisligi": 1600, "kuyu_derinligi": 1600})
+            if m2["kuyu_derinligi"] == 1945 and m2["kuyu_genisligi"] == 1600:
+                return {
+                    "durum": "gereken",
+                    "sinama": 1,
+                    "yerlesim": "ağırlık arkada",
+                    "istek": "arka istek",
+                    "gereken": [{"anahtar": "kuyu_genisligi", "eski": "1600", "yeni": 1610.0}],
+                }
+            return {"durum": "uygun", "sinama": 1, "istek": f"istek {m2['kuyu_genisligi']}"}
+
+        with mock.patch.object(avan_secici, "_sec", side_effect=sec):
+            r = avan_secici._tek_seferde(
+                {"kuyu_genisligi": 1600, "kuyu_derinligi": 1600}, copy.deepcopy(ilk), time.monotonic()
+            )
+        self.assertEqual(r["yerlesim"], "ağırlık yanda")
+        self.assertEqual(
+            [(g["anahtar"], g["yeni"]) for g in r["gereken"]],
+            [("kuyu_genisligi", 1720.0), ("kuyu_derinligi", 1690.0)],
+        )
+        self.assertEqual(r["istek"], "istek 1720")
+        self.assertEqual(
+            [(x["yerlesim"], [(g["anahtar"], g["yeni"]) for g in x["gereken"]]) for x in r["secenek"]],
+            [("ağırlık arkada", [("kuyu_derinligi", 1945.0), ("kuyu_genisligi", 1610.0)])],
+        )
+        self.assertEqual(
+            [(x["yerlesim"], x["nedenler"]) for x in r["denenen"]], [("ağırlık arkada", ["arka mimarda"])]
+        )
 
     def test_istenen_olcu_en_kucuk(self):
         """13 Kas denetimi:  630 kg 1600 × 1600 kuyuda genişlik 2110 isteniyordu;  asansör 1800'e
