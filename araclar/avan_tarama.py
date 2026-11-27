@@ -40,6 +40,18 @@ güvenlik süresini kapatır.
                                                          CI iki işte yan yana koşar )
     .venv/bin/python -m araclar.avan_tarama --yenile     hüküm kaydını yeniden yazar
 
+DAR EKSEN ( --eksen dar;  27 Kas — seçici doğruluk planı, cikti/devir/SECICI_DOGRULUK_PLANI.md ):
+hazır asansörün kuyusundan çok dar ve derin kuyular ( karşı ağırlık arkaya zorlanır ) ve kullanıcının
+gerçek vakası;  kendi hüküm kaydı ( testler/avan_tarama_dar_hukumleri.json ).  Bu eksende ayrıca
+GÜVENCELER ölçülür ( şimdilik RAPOR — taramayı başarısız saymaz ):
+
+    G2  bir adım eksiği kurulmaz:  "gereken"de istenen her ölçü bir adım ( 10 mm, kot 0,01 m )
+        mimarınkine doğru geri alınınca seçici "uygun" demez;
+    G3  fazla yer zarar vermez:  "uygun"da kuyu 100 mm geniş / derin olunca yine "uygun";
+    G4  sığmaz yalnız gerçek imkânsızlıkta:  G3'ün büyütmesi "sığmaz" çıkmaz.
+
+    .venv/bin/python -m araclar.avan_tarama --eksen dar
+
 --yenile DAVRANIŞI DEĞİŞTİRME İZNİDİR ( altın çıktılar gibi ):  hüküm değişiklikleri tek
 tek incelenip onaylandıktan sonra.  AĞIR İŞTİR:  yerelde koşulmaz, PR'ın CI'ında koşar.
 """
@@ -67,6 +79,8 @@ from uclar import uygulama_uclari
 KOK = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CIKTI = os.path.join(KOK, "cikti", "avan_tarama")
 HUKUMLER = os.path.join(KOK, "testler", "avan_tarama_hukumleri.json")
+#  Eksenin hüküm kaydı ve çıktı klasörü ( dar eksen ayrı:  temel kaydı ve CI işleri değişmez )
+EKSEN_HUKUMLERI = {"temel": HUKUMLER, "dar": os.path.join(KOK, "testler", "avan_tarama_dar_hukumleri.json")}
 DURUMLAR = ("uygun", "gereken", "sigmaz", "beyan")
 
 #  Kuyu ekseni:  paketin kuyusuna göre fark ( mm )
@@ -92,6 +106,63 @@ SEYREK_DERINLIK = (-100, 300)
 SEYREK_KATLAR = KATLAR[:1]
 SEYREK_KAPILAR = (("Otomatik Merkezi", 900), ("Teleskopik Sol", 1000))
 SEYREK_HIZLAR = (0.63, 1.6)
+
+
+#  DAR EKSEN ( 27 Kas taraması, cikti/arastirma/caresiz_27kas ):  hazır asansörün kuyusuna göre fark
+#  ( genişlik , derinlik , kapı genişliği farkı ) — 1. tur hafif dar, 2. tur kullanıcının kuyusu
+#  kadar dar ( 800 kg:  2300 × 1850 → 1800 × 2700 )
+DAR_KUYULAR = tuple((dg, 500, dk) for dg in (-150, -250) for dk in (0, 100)) + tuple(
+    (dg, dd, 0) for dg in (-400, -500) for dd in (500, 850)
+)
+#  Makine daireli 2. turda mimarın verdiği oda ( hazır asansörünki ):  kuyu derinleşince aynı oda
+#  kuyuya göre kısa kalır ( 1000-md 1650 × 3400 "sığmaz" — S3 )
+DAR_ODALI = tuple((dg, 850, 0) for dg in (-400, -500))
+#  KULLANICININ VAKASI ( 24 – 27 Kas ):  800 kg MRL, 1800 × 2700, durak −2,60 … +24,70 ( 10 ),
+#  kuyu dibi −4,70;  ( kapı , son kat )
+VAKA_KOTLARI = "; ".join(["-2,60"] + [katlar.kot_metni(700 + 3000 * i) for i in range(9)])
+VAKALAR = tuple((kapi, son) for kapi in (800, 900) for son in (4050, 4300))
+#  Güvencelerin adımı ( G2 ) ve büyütmesi ( G3 )
+GERI_ADIM = 10
+BUYUTME = 100
+
+
+def _dar_kuyu(a, dg, dd):
+    """Hazır asansörün ( a ) kuyusundan dg / dd farklı kuyu."""
+    return {"kuyu_genisligi": int(a["kuyu_genisligi"]) + dg, "kuyu_derinligi": int(a["kuyu_derinligi"]) + dd}
+
+
+def dar_senaryolari():
+    """Dar eksen:  [ ( kimlik , paketin anahtarı , mimari ) ] — sırası sabittir.  Yalnız
+    açılışın hazır asansörleri ( yalnız-avan olanlar 27 Kas taramasında yoktu )."""
+    liste = []
+    for anahtar, t in avan_secici.paketler().items():
+        if "acik_bolumler" in t:
+            continue
+        a, ad = t["asansor"], t["kimlik"]
+        for dg, dd, dk in DAR_KUYULAR:
+            m = _paket_mimarisi(t, **_dar_kuyu(a, dg, dd), kapi_genisligi=int(a["kapi_genisligi"]) + dk)
+            liste.append((f"dar|{ad}|g{dg:+d}|d{dd:+d}|k{dk:+d}", anahtar, m))
+        if not anahtar[1]:
+            pg = t["proje_geneli"]
+            for dg, dd, _dk in DAR_ODALI:
+                m = _paket_mimarisi(
+                    t, **_dar_kuyu(a, dg, dd), mk_uzunluk=pg["mk_uzunluk"], mk_genislik=pg["mk_genislik"]
+                )
+                liste.append((f"dar|{ad}|g{dg:+d}|d{dd:+d}|oda", anahtar, m))
+    t = avan_secici.paketler()[(800, True)]
+    for kapi, son in VAKALAR:
+        m = _paket_mimarisi(
+            t,
+            kuyu_genisligi=1800,
+            kuyu_derinligi=2700,
+            durak_kotlari=VAKA_KOTLARI,
+            kuyu_dibi_kotu="-4,70",
+            kuyu_tavani_kotu=katlar.kot_metni(24700 + son),
+            kisi=10,
+            kapi_genisligi=kapi,
+        )
+        liste.append((f"vaka|800|k{kapi}|s{son}", (800, True), m))
+    return liste
 
 
 def _paket_mimarisi(t, **degisen):
@@ -228,13 +299,66 @@ def _yeniden(m, gereken):
     return avan_secici.sec(m2)["durum"]
 
 
+def _mm(x):
+    """Mimarın uzunluğu ( mm ) ya da None — "1800", 1800.0."""
+    try:
+        return float(str(x).replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+
+
+def _geri(g):
+    """G2:  istenen ölçünün bir adım mimarınkine doğru geri alınmışı ( yazımıyla ) ya da None —
+    aradaki fark bir adımdan küçükse ( geri adım mimarın kendi ölçüsüdür, o zaten "uygun" değil )."""
+    eski, yeni = g["eski"], g["yeni"]
+    if isinstance(yeni, str):
+        y, _h = katlar.kot_oku(yeni)
+        e, _h2 = katlar.kot_oku(eski) if isinstance(eski, str) else (None, None)
+        if y is None or e is None or abs(y - e) <= GERI_ADIM:
+            return None
+        return katlar.kot_metni(y - math.copysign(GERI_ADIM, y - e))
+    e = _mm(eski)
+    if e is None or abs(yeni - e) <= GERI_ADIM:
+        return None
+    return int(round(yeni - math.copysign(GERI_ADIM, yeni - e)))
+
+
+def guvenceler(m, r):
+    """G2 – G4 ölçümü ( dar eksen;  RAPOR ):  [ ( güvence , metin ) ] — bozulanlar."""
+    out = []
+    if r["durum"] == "gereken":
+        tam = {
+            g["anahtar"]: (g["yeni"] if isinstance(g["yeni"], str) else int(round(g["yeni"])))
+            for g in r["gereken"]
+        }
+        for g in r["gereken"]:
+            x = _geri(g)
+            if x is None:
+                continue
+            r2 = avan_secici.sec({**m, **tam, g["anahtar"]: x})
+            if r2["durum"] == "uygun":
+                a = r2["istek"]["asansorler"][0].get("agirlik_yeri")
+                out.append(("G2", f"{g['anahtar']} {g['yeni']} istendi, {x} ile uygun ( ağırlık {a} )"))
+    if r["durum"] == "uygun":
+        for k in ("kuyu_genisligi", "kuyu_derinligi"):
+            r2 = avan_secici.sec({**m, k: int(_mm(m[k])) + BUYUTME})
+            if r2["durum"] == "sigmaz":
+                out.append(("G4", f"{k} +{BUYUTME}:  sığmaz — {(r2.get('nedenler') or [''])[0][:120]}"))
+            elif r2["durum"] != "uygun":
+                istenen = [[g["anahtar"], g["yeni"]] for g in r2.get("gereken") or []]
+                out.append(("G3", f"{k} +{BUYUTME}:  {r2['durum']} {istenen}"))
+    return out
+
+
 def _kur():
     avan_secici.SAATSIZ = True
 
 
 def dene(senaryo):
-    """Bir senaryo → { kimlik , hukum , ihlal , sure } ( işçi süreçte koşar )."""
+    """Bir senaryo → { kimlik , hukum , ihlal , guvence , sure } ( işçi süreçte koşar ).  guvence
+    yalnız dar eksende ( kimliği "dar|" / "vaka|" ile başlar ) ölçülür."""
     kimlik, anahtar, m = senaryo
+    guvence = []
     t0 = time.monotonic()
     t = avan_secici.paketler()[anahtar]
     try:
@@ -252,9 +376,17 @@ def dene(senaryo):
             hukum["beyan"] = [[b["anahtar"], b["yeni"]] for b in r["beyan"]]
         if durum == "sigmaz" and not r.get("nedenler"):
             ihlal.append("sığmaz ama sebep yok")
+        if kimlik.split("|", 1)[0] in ("dar", "vaka"):
+            guvence = guvenceler(m, r)
     except Exception:  # noqa: BLE001 — çökme de bulgudur
         hukum, ihlal = {"durum": "ÇÖKME"}, [traceback.format_exc(limit=4).strip().splitlines()[-1]]
-    return {"kimlik": kimlik, "hukum": hukum, "ihlal": ihlal, "sure": round(time.monotonic() - t0, 1)}
+    return {
+        "kimlik": kimlik,
+        "hukum": hukum,
+        "ihlal": ihlal,
+        "guvence": guvence,
+        "sure": round(time.monotonic() - t0, 1),
+    }
 
 
 def _isci_sayisi():
@@ -266,6 +398,12 @@ def _isci_sayisi():
 
 def main(argv):
     yenile = "--yenile" in argv
+    eksen = argv[argv.index("--eksen") + 1] if "--eksen" in argv else "temel"
+    if eksen not in EKSEN_HUKUMLERI:
+        print(f"--eksen {eksen}:  {' · '.join(EKSEN_HUKUMLERI)} olmalı.")
+        return 2
+    kayit_yolu = EKSEN_HUKUMLERI[eksen]
+    cikti = CIKTI if eksen == "temel" else os.path.join(CIKTI, eksen)
     dilim = int(argv[argv.index("--dilim") + 1]) if "--dilim" in argv else 1
     #  PARÇA ( 21 Kas — CI'da tek iş 27–49 dk sürüyordu ):  "i/n" senaryoların i. parçası, n'de bir
     #  atlanarak ( ağır ve hafif senaryolar parçalara dağılır )
@@ -274,11 +412,14 @@ def main(argv):
     if not 1 <= p <= n_parca:
         print(f"--parca {parca}:  1/2, 2/2 gibi olmalı.")
         return 2
-    hepsi = senaryolar()
+    hepsi = senaryolar() if eksen == "temel" else dar_senaryolari()
     secilen = hepsi[::dilim][p - 1 :: n_parca]
     n = _isci_sayisi()
     ek = f", parça {parca}" if n_parca > 1 else ""
-    print(f"avan seçicisi taraması:  {len(secilen)} / {len(hepsi)} senaryo{ek}, {n} işçi", flush=True)
+    print(
+        f"avan seçicisi taraması ( {eksen} ):  {len(secilen)} / {len(hepsi)} senaryo{ek}, {n} işçi",
+        flush=True,
+    )
     t0 = time.monotonic()
     sonuclar = []
     with multiprocessing.Pool(n, initializer=_kur) as havuz:
@@ -286,14 +427,16 @@ def main(argv):
             sonuclar.append(s)
             if s["ihlal"]:
                 print(f"  İHLAL  {s['kimlik']}:  {' · '.join(s['ihlal'])}", flush=True)
+            for g, metin in s["guvence"]:
+                print(f"  {g}  {s['kimlik']}:  {metin}", flush=True)
             if i % 25 == 0:
                 print(f"  {i} / {len(secilen)}  ·  {(time.monotonic() - t0) / 60:.1f} dk", flush=True)
 
     hukumler = {s["kimlik"]: s["hukum"] for s in sonuclar}
-    os.makedirs(CIKTI, exist_ok=True)
-    with open(os.path.join(CIKTI, "sonuc.json"), "w", encoding="utf-8") as f:
+    os.makedirs(cikti, exist_ok=True)
+    with open(os.path.join(cikti, "sonuc.json"), "w", encoding="utf-8") as f:
         json.dump(sonuclar, f, ensure_ascii=False, indent=1)
-    with open(os.path.join(CIKTI, "hukumler.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(cikti, "hukumler.json"), "w", encoding="utf-8") as f:
         json.dump(hukumler, f, ensure_ascii=False, indent=1, sort_keys=True)
 
     sayim = collections.Counter(s["hukum"]["durum"] for s in sonuclar)
@@ -306,6 +449,14 @@ def main(argv):
         f"en uzun {sureler[-1]} sn  ·  duvar saati {(time.monotonic() - t0) / 60:.1f} dk"
     )
 
+    if eksen != "temel":
+        guv = collections.Counter(g for s in sonuclar for g, _m in s["guvence"])
+        print(
+            "güvenceler ( rapor ):  "
+            + "  ·  ".join(f"{g} bozuk {guv.get(g, 0)}" for g in ("G2", "G3", "G4"))
+            + f"  —  ayrıntı {os.path.relpath(os.path.join(cikti, 'sonuc.json'), KOK)}"
+        )
+
     ihlalli = [s for s in sonuclar if s["ihlal"]]
     tamam = not ihlalli
     if ihlalli:
@@ -315,14 +466,17 @@ def main(argv):
         if dilim != 1 or n_parca != 1:
             print("\n--yenile yalnız tam taramayla ( --dilim ve --parca olmadan ).")
             return 2
-        with open(HUKUMLER, "w", encoding="utf-8") as f:
+        with open(kayit_yolu, "w", encoding="utf-8") as f:
             json.dump(hukumler, f, ensure_ascii=False, indent=1, sort_keys=True)
             f.write("\n")
-        print(f"\nhüküm kaydı yenilendi:  {os.path.relpath(HUKUMLER, KOK)}")
-    elif not os.path.exists(HUKUMLER):
-        print("\nhüküm kaydı yok — karşılaştırma atlandı;  sonuç cikti/avan_tarama/hukumler.json'da.")
+        print(f"\nhüküm kaydı yenilendi:  {os.path.relpath(kayit_yolu, KOK)}")
+    elif not os.path.exists(kayit_yolu):
+        print(
+            "\nhüküm kaydı yok — karşılaştırma atlandı;  sonuç "
+            f"{os.path.relpath(os.path.join(cikti, 'hukumler.json'), KOK)}'da."
+        )
     else:
-        with open(HUKUMLER, encoding="utf-8") as f:
+        with open(kayit_yolu, encoding="utf-8") as f:
             kayit = json.load(f)
         farklar = [
             f"  {k}:  {json.dumps(kayit.get(k), ensure_ascii=False)}  →  {json.dumps(h, ensure_ascii=False)}"
@@ -340,7 +494,9 @@ def main(argv):
             print(f"\nHÜKÜM DEĞİŞTİ:  {len(farklar)} senaryo ( kayıt → şimdi )")
             print("\n".join(farklar[:60]))
             if len(farklar) > 60:
-                print(f"  … {len(farklar) - 60} tane daha ( cikti/avan_tarama/hukumler.json )")
+                print(
+                    f"  … {len(farklar) - 60} tane daha ( {os.path.relpath(os.path.join(cikti, 'hukumler.json'), KOK)} )"
+                )
             print("Değişiklik bilerek yapıldıysa incelenip --yenile ile kayıt yenilenir.")
         else:
             print("\nhükümler kayıtla aynı.")
