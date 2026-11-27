@@ -128,6 +128,11 @@ KUCULTME_YERLESIM = 3
 #  1250 kg'ı ve 500 mm kısa kuyu üstünü kaçırıyor.  Kuyu dibinde küçültme üç deneme ister ( 630 MRL
 #  800 sığ:  −1,29 → −1,16;  tek denemeyle hiç inmiyor ) — yalnız kuyu dibi yetmeyen aramada çalışır.
 KUCULTME_YERLESIM_KOT = {"kuyu_tavani_kotu": 1, "kuyu_dibi_kotu": 3, "md_zemini_kotu": 1}
+#  SINIRIN ALTI ( 27 Kas — dar eksenin G2 ölçümü:  22 senaryoda istenenin 10 mm eksiği de kuruluyordu ):
+#  ikiye bölmeli yerleşim denemeleri bulunanın bir adım altına çoğu kez varmıyordu ( kullanıcının kuyusu:
+#  1980 istendi, 1970 kabin rayları arası 1540 ile temiz ).  Bölmeden sonra bulunanın altı adım adım,
+#  en çok bu kadar kez yerleşimle denenir;  ilk tutmayan durdurur.
+KUCULTME_SON_ADIM = 3
 #  KOTLAR DA KÜÇÜLTÜLÜR ( 24 Kas — T630, kuyu 2350, kuyu tavanı +19,00:  +19,37 isteniyordu, +19,18
 #  yetiyor ):  çare bulucu kotu türevle önerir, sorunu O AN bağlayan parçaya göre — regülatör 1,10 m
 #  korkuluğun içinde, küpeştenin 65 mm altında:  0,30 m düşey ( m.5.2.5.7.2 c ).  Regülatör öbür yana
@@ -711,6 +716,13 @@ def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False, anahtarlar=(*KUCULEN
                     dusuk = k
                 else:
                     yuksek, (v, d) = k, sonuc
+            for _son in range(KUCULTME_SON_ADIM):
+                if yuksek - dusuk <= 1:
+                    break
+                sonuc = dene(g["anahtar"], _adimdaki(alt, yon, yuksek - 1, kot), True, taban)
+                if sonuc is None:
+                    break
+                yuksek, (v, d) = yuksek - 1, sonuc
         if yuksek < n:
             g["yeni"] = _adimdaki(alt, yon, yuksek, kot)
 
