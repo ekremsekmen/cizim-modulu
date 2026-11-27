@@ -37,12 +37,28 @@ PERDE_TABANDAN = 300.0
 PERDE_DURAK_USTU = 2500.0
 #  m.5.2.2.4:  kuyu dibine erişim — derinlik 2,50 m'yi AŞARSA erişim kapısı ( a;  kapı
 #  m.5.2.3'e uyar ), aşmıyorsa kuyu içinde merdiven ( b, Ek F ) ya da kapı.  Merdiven kuyu
-#  dibi planında çizilir ( kuyu_dibi._merdiven );  kapı mimarinindir — çizilmez, VERİLER'in
+#  dibi planında çizilir ( kuyu_dibi.merdiven_adaylari );  kapı mimarinindir — çizilmez, VERİLER'in
 #  notunda ve hesabın uyarısında söylenir ( 22 Kas denetimi:  eskiden hiçbir yerde yoktu ).
 KUYU_DIBI_MERDIVEN_AZAMI = 2500.0
 KUYU_DIBI_KAPISI_NOTU = (
     "Kuyu dibi 2,50 m'yi aştığı için kuyu dibine merdiven değil erişim kapısı gerekir "
     "( TS EN 81-20 m.5.2.2.4 a · kapı m.5.2.3 ) — mimari projede gösterilir."
+)
+#  MERDİVEN ÇİZİME ENGEL DEĞİLDİR ( 27 Kas, kullanıcı:  "merdiven hiç bir türlü çizime engel
+#  olmamalı … gerçekten kuyuya sığan bir asansörü reddetmek fazla sert" ):  m.5.2.2.4 b bir ürün
+#  değil şart koyar — erişim kapısı YA DA Ek F'ye uyan merdiven ( altı tip:  sabit, sürgülü,
+#  eğik konan, tabanda saklanan, katlanır ).  Program yalnız sabit merdiveni ( Tip 1 — saklıyken
+#  de eşiğin 1,10 m üstüne uzanır ) yerleştirir ( kuyu_dibi.merdiven_adaylari );  yeri yoksa
+#  merdiven çizilmez ( öbür tiplerin yeri ürüne bağlı — uydurulmaz ), bu not söyler:  VERİLER'in
+#  NOTLAR'ında ( veri_tablosu ) ve ekranda ( çizim yanıtının "notlar"ı ).  Piyasada:  eşiğe takılan
+#  eğik, kollu katlanır, katlanır basamaklı merdivenler ( W+W Typ 5 / 7B, StufiKlapp — kontaklı ).
+KUYU_DIBI_MERDIVEN_NOTU = (
+    "Kuyu dibinde sabit merdivene ( TS EN 81-20 Ek F Tip 1 ) kat girişine 800 mm içinde, kabinin "
+    "yolu ve sığınma alanı dışında yer yok.  Erişim kapısı ya da Ek F'ye uyan başka bir merdiven "
+    "( katlanır, tabanda saklanan, duvar nişinde ) seçilir ( m.5.2.2.4 b ):  saklı konumu kat "
+    "girişine en çok 800 mm ( F.5 b ), kullanımda basamakların ortası en çok 600 mm ( F.5 c );  "
+    "açıkken hareketli parçalara çarpabilecekse elektrik güvenlik kontağı, tabanda saklanıyorsa "
+    "sığınma alanları korunur ( m.5.2.2.4 )."
 )
 
 

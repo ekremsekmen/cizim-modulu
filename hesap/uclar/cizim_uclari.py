@@ -34,6 +34,7 @@ from cizim import hesap_isareti
 from cizim import istek_onbellegi
 from cizim import izli
 from cizim import katlar
+from cizim import kuyu_dibi
 from cizim import makine_dairesi
 from cizim import kopru
 from cizim import olcu_kaynagi
@@ -219,6 +220,7 @@ def cizimler_yaniti(veri):
         #  Hesabın uygun bulmadığı bölümlerin parçaları ( ekrandaki adlarıyla ):
         #  tuval turuncu işaretler, Uygunluk panelinde seçilen bölümünkini vurgular
         hesap_parcalari = {b["kimlik"]: b["parcalar"] for b in g["proje"]["hesap_uygun_degil"]}
+        notlar = cizim_notlari(g, hata)
         #  Projenin aktif olması en az bir hesabın yapıldığını söyler;
         #  bu çizimdeki kuvvetlerin durumu seçili asansöre aittir.
         if not hata:
@@ -228,6 +230,7 @@ def cizimler_yaniti(veri):
                     "hesap": bool(s["asansorler"][i].get("aktif")),
                     "cizimler": cizimler_,
                     "hesap_parcalari": hesap_parcalari,
+                    "notlar": notlar,
                 }
             )
         #  SORUNLU ÇİZİM:  "aktif" bugünkü anlamında kalır ( çizim uygun değil —
@@ -244,11 +247,25 @@ def cizimler_yaniti(veri):
                 "cizimler": cizimler_,
                 "kurulamayan": kurulamayan,
                 "hesap_parcalari": hesap_parcalari,
+                "notlar": notlar,
             }
         )
     except Exception as e:  # noqa: BLE001
         hata_kaydi(log, e)
         return JSONResponse({"aktif": False, "hata": [hata_iletisi("ÇİZİM HATASI", e, ": ")]})
+
+
+def cizim_notlari(g, hata):
+    """Çizimi DURDURMAYAN notlar ( ekran bilgi olarak gösterir;  paftada VERİLER'in
+    NOTLAR'ında ):  kuyu dibinde sabit merdivene yer yoksa ( 27 Kas — merdiven
+    çizime engel değil:  kuyu_dibi.yerlesim'in merdiven_notu ).  Sorunlu çizimde
+    yerleşim sorunlu kipte kurulur ( ekranın çizimleri gibi — _ekran_cizimleri )."""
+    with sorunlu.kip(bool(hata)):
+        try:
+            Y = kuyu_dibi.yerlesim(g)
+        except sorun.BILINEN:  # kuyu dibi bu düzende kurulamıyor:  sorunu kendi çizimi söyler
+            return []
+    return [Y["merdiven_notu"]] if isinstance(Y, dict) and Y.get("merdiven_notu") else []
 
 
 def _ekran_cizimleri(g, hata):

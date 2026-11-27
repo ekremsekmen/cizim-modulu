@@ -416,6 +416,8 @@ class _Sinayici:
         return {
             "cizim": cizim,
             "hesap": sorted(hesap),
+            #  { kimlik:  metin } — ekran metni yazar ( _nedenler )
+            "hesap_metni": dict(hesap),
             "bolum": bolum,
             #  avanı bağlayanlar ( AVAN_BOLUMLERI ) — "temiz" bunlara bakar
             "engel": engel,
@@ -1477,9 +1479,14 @@ def _bedel(gereken, m=None, taban=None):
 
 
 def _nedenler(d):
-    """Sınamanın ( _Sinayici ) sorunları, metin listesi:  çizimin, hesabın;  geçmeyen avan
-    bölümü "bölüm:<kimlik>" ( uç ekrandaki adına çevirir )."""
-    return list(d["cizim"].values()) + d["hesap"] + [f"bölüm:{b}" for b in d["engel"]]
+    """Sınamanın ( _Sinayici ) sorunları, metin listesi:  çizimin, hesabın ( çizimde aynı
+    sorun yoksa — hesap çoğu kez çizimin sebebiyle durur );  geçmeyen avan bölümü
+    "bölüm:<kimlik>" ( uç ekrandaki adına çevirir ).  27 Kas'a dek hesabınki KİMLİK
+    biçimiyle ( sayılar "#", ilk iki noktadan sonrası yok ) ve çizimdekinin ikinci kopyası
+    olarak ekrana gidiyordu ( "Kabin rayı sol duvara # mm giriyor" )."""
+    hesap = d.get("hesap_metni") or {}
+    metinler = list(d["cizim"].values()) + [hesap.get(k, k) for k in d["hesap"] if k not in d["cizim"]]
+    return list(dict.fromkeys(metinler)) + [f"bölüm:{b}" for b in d["engel"]]
 
 
 def _kucuk_oda(taslak, m):

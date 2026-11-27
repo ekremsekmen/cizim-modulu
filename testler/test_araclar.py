@@ -17,8 +17,10 @@ from araclar import tarama
 from cizim import cizimler
 from cizim import eleman
 from cizim import girdi
+from cizim import kuyu_dibi
 from cizim import kuyu_kesiti
 from cizim import pafta
+from testler import test_yerlesim_saglamligi
 from uclar import avan_secici
 from uclar import care_uclari
 
@@ -346,3 +348,37 @@ class DogrulukOlcumu(unittest.TestCase):
                 r = care_tarama.dene(("x", {}))
             self.assertEqual([i.split(":  ", 1)[1].split(" [")[0] for i in r["ihlal"]], beklenen)
             self.assertEqual(r["caresiz"], ["B"])
+
+
+class MerdivenRetinSebebiDegil(unittest.TestCase):
+    """M-G1 ( 27 Kas — cikti/devir/MERDIVEN_PLANI.md ):  çizim taraması reddedilen düzeni bir kez
+    de kuyu dibi merdiveni hiç yokken çizer;  sorunlar farklıysa düzen sorunludur ( tarama
+    BAŞARISIZ ).  Denetim boşuna "geçti" demesin."""
+
+    def test_sorunlar_ayniysa_sessiz_farkliysa_sorun(self):
+        for merdivensiz, sorunlu in ((["X sığmıyor"], False), ([], True), (["Y sığmıyor"], True)):
+
+            def yanit(_v, merdivensiz=merdivensiz):
+                #  Merdiven hiç yok:  kuyu dibinin merdiven yerleri boş
+                self.assertEqual(kuyu_dibi.merdiven_adaylari(None, None, None, None, None), [])
+                return {"aktif": not merdivensiz, "hata": merdivensiz}
+
+            with (
+                self.subTest(merdivensiz=merdivensiz),
+                mock.patch.object(test_yerlesim_saglamligi, "cizim_yaniti", side_effect=yanit),
+            ):
+                r = tarama.merdiven_sebep_mi({}, ["X sığmıyor"])
+            self.assertEqual(bool(r), sorunlu, r)
+            if sorunlu:
+                self.assertTrue(r[0].startswith("M-G1:  merdiven retin sebebi"), r)
+
+    def test_reddedilen_duzende_denetlenir(self):
+        """tarama.duzen:  ret + merdivensiz farklı → sorun;  karşılaştırma onu bildirir."""
+        yanitlar = [{"aktif": False, "hata": ["X sığmıyor"]}, {"aktif": True}]
+        with mock.patch.object(test_yerlesim_saglamligi, "cizim_yaniti", side_effect=yanitlar):
+            r = tarama.duzen("A", {})
+        self.assertEqual(r["durum"], "ret")
+        self.assertTrue(r["sorun"][0].startswith("M-G1"), r)
+        farklar = tarama.karsilastir("ana", [r], {"ana": {"A": {"durum": "ret", "sebep": "X sığmıyor"}}})
+        self.assertEqual(len(farklar), 1)
+        self.assertTrue(farklar[0].startswith("SORUN  A:  M-G1"), farklar)

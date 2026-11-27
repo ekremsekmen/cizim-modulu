@@ -16,7 +16,9 @@ cevabını arıyordu.  Çare bulucu iki yoldan aday üretir:
                    seçim kutusunun öbür seçenekleri denenir ( SECIMLER — gerçek
                    projelerde düzeltmesiz kalanların çoğu buydu:  "kabin
                    tavanında çömelme tipi sığınma alanına yer yok" ).
-  TARAMA           AÇIĞI BİLİNMEYEN sorun ( sayı açığı yok:  "merdivene yer yok" ) türev ve
+  TARAMA           AÇIĞI BİLİNMEYEN sorun ( sayı açığı yok:  "kuyu dibinde sığınma alanına
+                   yer yok";  ilk örneği kuyu dibi merdiveniydi — 27 Kas'tan beri merdiven
+                   sorun değil, kuyu_dibi.merdiven_adaylari ) türev ve
                    seçimden sonra hâlâ çaresizse bina ölçüleri taranır ( 27 Kas — seçici
                    doğruluk planı Adım 2 ):  sorunun çizimine göre ölçüler ( TARAMA_OLCULERI )
                    büyüyen adımlarla ( TARAMA_ADIMLARI ) denenir, ilk gideren ile son
@@ -226,16 +228,19 @@ def kimlik(metin):
 
 def girdi_durumu(veri, i):
     """Bir girdinin hükmü:  ( çizim sorunları { kimlik:  metin } , hesap
-    çalıştı mı , hesabın sorun kimlikleri , uygun olmayan bölümlerin kimlikleri ,
-    hesap çizimin bütün ölçülerini aldı mı ).  Çizim kurulamayınca hesabın
-    bazı denetimleri eksik kalır ( uygulama_girdisi.yerlesim_olculeri ):  o
-    hâldeki "uygun değil" sayısı düzeltmeden sonrakiyle denk değildir."""
+    çalıştı mı , hesabın sorunları { kimlik:  metin } , uygun olmayan bölümlerin
+    kimlikleri , hesap çizimin bütün ölçülerini aldı mı ).  Çizim kurulamayınca
+    hesabın bazı denetimleri eksik kalır ( uygulama_girdisi.yerlesim_olculeri ):  o
+    hâldeki "uygun değil" sayısı düzeltmeden sonrakiyle denk değildir.
+
+    Hesabın sorunları 27 Kas'a dek yalnız kimlikti ( sayılar "#" ):  avan seçicisi
+    onları ekrana metin diye yazıyordu ( avan_secici._nedenler )."""
     try:
         asansorler, ortak = uygulama_istegi.asansor_girdileri(veri)
     except uygulama_istegi.GecersizGirdi as e:
         #  Aday kapıdan geçmiyor:  hesap durur, kapının iletileri yeni sorun
         hk = {kimlik(h): h for h in e.hatalar}
-        return hk, False, set(hk), frozenset(), False
+        return hk, False, dict(hk), frozenset(), False
     with istek_onbellegi.etkin():
         s = uygulama_hesabi.hesapla_coklu(asansorler, ortak)
         _g, hata = cizim_uclari.asansor_girdisi(asansorler, ortak, s if s.get("aktif") else None, "", i)
@@ -246,7 +251,7 @@ def girdi_durumu(veri, i):
     return (
         {kimlik(h): str(h) for h in hata},
         bool(a.get("aktif")),
-        {kimlik(h) for h in a.get("hata") or []},
+        {kimlik(h): str(h) for h in a.get("hata") or []},
         uygun_degil,
         bool(a.get("aktif")) and not (a.get("girdi") or {}).get("_cizim_olcmedi"),
     )
@@ -311,7 +316,7 @@ def _sonucu(once, sonra, ortulu=frozenset()):
     s1, h1, hk1, u1, _tam1 = sonra
     kotu = (
         (h0 and not h1)
-        or (not h0 and not h1 and not hk1 <= hk0 | ortulu)
+        or (not h0 and not h1 and not set(hk1) <= set(hk0) | ortulu)
         or (h0 and h1 and tam0 and len(u1) > len(u0))
     )
     return {

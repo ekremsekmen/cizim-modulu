@@ -357,49 +357,63 @@ class AvanSecici(unittest.TestCase):
         else:
             self.assertTrue(r["nedenler"])
 
-    def test_kullanilmayan_yerlesimin_sebebi(self):
-        """27 Kas ( kullanıcı:  "merdivenin sığmama senaryosunu program açıkça söylüyor mu" ):
-        800 kg makine dairesiz, 1350 × 1400 kabin, 900 kapı, kuyu 1800 × 2700, son kat 4300.
-        Önce yan denenir ( 13 Kas ):  1980 genişlik ister.  Ağırlık arkada mimarın kuyusunda
-        kuyu dibi merdivenine yer yok ( Ek F.5 b — kapının yanında 300 mm, merdiven 330 ).  Ekran
-        eskiden yalnız 1980'i ve "kabin ve karşı ağırlığı sığmıyor"u söylüyordu;  arkadaki
-        düzenin neden olmadığı görünmüyordu.  Şimdi sonuç yerleşimini ve denenenin sebebini taşır."""
+    def _kullanicinin_kuyusu(self, son_kat):
+        """Kullanıcının kuyusu ( 24 – 27 Kas ):  800 kg makine dairesiz, 1350 × 1400 kabin, 900 kapı,
+        kuyu 1800 × 2700, durak −2,60 … +24,70 ( 10 ), kuyu dibi −4,70;  son kat yüksekliği ( mm )."""
         t = PAKETLER[(800, True)]
         kotlar = "; ".join(["-2,60"] + [kot("+0,70", 3000 * i) for i in range(9)])
-        m = mimari(
+        return mimari(
             t,
             kuyu_genisligi=1800,
             kuyu_derinligi=2700,
             durak_kotlari=kotlar,
             kuyu_dibi_kotu="-4,70",
-            kuyu_tavani_kotu="+29,00",
+            kuyu_tavani_kotu=kot("+24,70", son_kat),
             kisi=10,
             kabin_genisligi=1350,
             kabin_derinligi=1400,
             kapi_genisligi=900,
         )
+
+    def test_merdiven_kuyu_istetmez(self):
+        """Kullanıcının sorusu ( 24 – 27 Kas ):  1350 × 1400 kabin, ağırlık arkada, 1800 × 2700
+        kuyuya sığmalı — son kat 4300'de tek engel kuyu dibi merdiveniydi ( Ek F.5 b — kapının
+        yanında 300 mm, merdiven 330 );  seçici önce 1980, sonra 1830 istiyordu.  Merdiven
+        çizime engel değil ( 27 Kas, cikti/devir/MERDIVEN_PLANI.md ):  mimarın kuyusu yeter."""
+        r = avan_secici.sec(self._kullanicinin_kuyusu(4300))
+        self.assertEqual(r["durum"], "uygun", r)
+        self.assertEqual(r["istek"]["asansorler"][0]["agirlik_yeri"], "Arka")
+
+    def test_kullanilmayan_yerlesimin_sebebi(self):
+        """27 Kas ( kullanıcı:  "merdivenin sığmama senaryosunu program açıkça söylüyor mu" ):
+        kullanıcının kuyusu, son kat 4050.  Önce yan denenir ( 13 Kas ):  1980 genişlik ister.
+        Ekran eskiden yalnız onu ve "kabin ve karşı ağırlığı sığmıyor"u söylüyordu;  arkadaki
+        düzenin neden olmadığı görünmüyordu.  Şimdi sonuç yerleşimini, denenenin sebebini ve
+        öbür yerleşimin isteğini ( seçenek ) taşır.  ( Son kat 4300'de 27 Kas'a dek arkanın
+        sebebi kuyu dibi merdiveniydi — artık sorun değil:  test_merdiven_kuyu_istetmez. )"""
+        m = self._kullanicinin_kuyusu(4050)
         r = avan_secici.sec(m)
         self.assertEqual(r["durum"], "gereken", r)
-        #  27 Kas ( seçici doğruluk planı Adım 2 + 4 ):  çare bulucu merdivene kuyu genişliği önerir
-        #  ( bina ölçüsü taraması ), iki yerleşim de küçültülüp karşılaştırılır — arka 1830, yan 1960
-        #  seçenek ( küçültme sınırın altını da dener;  önce 1980 ).
-        #  Arkanın mimarın 1800'ündeki sebebi ( merdiven ) yine söylenir.
+        #  Ağırlık arkada mimarın 1800'ü yeter, korkuluk – tavan parçası için kuyu tavanı yükselir
+        #  ( sınırın altı da denenir — seçici doğruluk planı Adım 4 );  yan 1960 seçenek.
         self.assertEqual(r["yerlesim"], "ağırlık arkada")
-        self.assertEqual([(g["anahtar"], g["yeni"]) for g in r["gereken"]], [("kuyu_genisligi", 1830.0)])
+        self.assertEqual([(g["anahtar"], g["yeni"]) for g in r["gereken"]], [("kuyu_tavani_kotu", "+28,87")])
         self.assertEqual(
             [(x["yerlesim"], [(g["anahtar"], g["yeni"]) for g in x["gereken"]]) for x in r["secenek"]],
             [("ağırlık yanda", [("kuyu_genisligi", 1960.0)])],
         )
         self.assertEqual([x["yerlesim"] for x in r["denenen"]], ["ağırlık yanda"])
         self.assertNotIn("_mimarda", r)
-        #  Seçilen arka da mimarın 1800'ünde kurulmuyordu:  sebebi merdiven
+        #  Seçilen arka mimarın kotunda kurulmuyor:  sebebi korkuluk ile tavan parçası ( merdiven değil )
         t2 = avan_secici.paketler()[(800, True)]
         v = avan_secici._istek(t2, m, avan_secici._arka_adayi(t2, m))
         nedenler = list(care_uclari.girdi_durumu(v, 0)[0].values())
-        self.assertTrue(
-            any(n.startswith("Kuyu dibi merdiveni") and "Ek F.5 b" in n for n in nedenler), nedenler
-        )
+        self.assertTrue(any(n.startswith("Korkuluk – tavan parçası") for n in nedenler), nedenler)
+        self.assertFalse([n for n in nedenler if "merdiven" in n.lower()], nedenler)
         nedenler = r["denenen"][0]["nedenler"]
+        #  Hesabın sorunu metniyle, çizimdeki ikinci kez yazılmaz ( test_hesabin_sorunu_metniyle )
+        self.assertFalse([n for n in nedenler if "#" in n], nedenler)
+        self.assertEqual(len(nedenler), len(set(nedenler)), nedenler)
         #  Uç bölüm kimliğini ekrandaki adına çevirir ( "nedenler"deki gibi )
         with mock.patch.object(avan_cizim_uclari, "secim", return_value=copy.deepcopy(r)):
             y = avan_cizim_uclari.avan_cizimler_sonucu({})
@@ -407,6 +421,33 @@ class AvanSecici(unittest.TestCase):
         self.assertFalse(
             any(n.startswith("bölüm:") for x in y["denenen"] for n in x["nedenler"]), y["denenen"]
         )
+
+    def test_hesabin_sorunu_metniyle(self):
+        """27 Kas ( kullanıcı onayı:  "Önce düzelt, sonra PR" ):  sınamanın hesap sorunları
+        metniyle gelir ( care_uclari.girdi_durumu — { kimlik:  metin } );  _nedenler hesabın
+        sorununu çizimde aynısı yoksa METNİYLE yazar.  Eskiden kimliği yazıyordu ( sayılar "#",
+        ilk iki noktadan sonrası yok ) ve hesap çoğu kez çizimin sebebiyle durduğu için aynı
+        ileti ikinci kez çıkıyordu:  "Kabin rayı sol duvara # mm giriyor ( … ≥ # olmalı )"."""
+        t = PAKETLER[(630, True)]
+        v = avan_secici._istek(t, mimari(t, kuyu_genisligi=1600, kuyu_derinligi=1600))
+        _cizim, aktif, hesap, _bolum, _olctu = care_uclari.girdi_durumu(v, 0)
+        self.assertFalse(aktif)
+        self.assertTrue(any("#" in k for k in hesap), hesap)  # sayılı ileti var
+        self.assertEqual(set(hesap), {care_uclari.kimlik(x) for x in hesap.values()})
+        self.assertFalse([x for x in hesap.values() if "#" in x], hesap)
+        d = avan_secici._Sinayici()(v)
+        nedenler = avan_secici._nedenler(d)
+        self.assertTrue(nedenler)
+        self.assertFalse([x for x in nedenler if "#" in x], nedenler)
+        self.assertEqual(len(nedenler), len(set(nedenler)), nedenler)
+        #  Çizimde olmayan hesap sorunu metniyle yazılır ( kimliği değil )
+        d = {
+            "cizim": {},
+            "hesap": ["A # mm"],
+            "hesap_metni": {"A # mm": "A 5 mm:  x"},
+            "engel": ["kabin_alani"],
+        }
+        self.assertEqual(avan_secici._nedenler(d), ["A 5 mm:  x", "bölüm:kabin_alani"])
 
     def test_denenen_her_birlesimde(self):
         """Yerleşimlerin bütün sonuç birleşimleri ( _yerlesimler;  sahte yerlesim — hızlı ):  sonuç
@@ -602,24 +643,37 @@ class AvanSecici(unittest.TestCase):
 
     def test_istenen_olcu_en_kucuk(self):
         """13 Kas denetimi:  630 kg 1600 × 1600 kuyuda genişlik 2110 isteniyordu;  asansör 1800'e
-        sığıyor.  İstenen ölçü paketin kuyusundan büyük olamaz ve o ölçüyle seçici "uygun" der.
-        ( Kanıtlı en küçük değildir:  eşik aralığı gibi başka yerleşim ayarları birkaç cm daha
-        kazandırabilir — o kuyu girilirse seçici yine "uygun" der. )"""
+        sığıyor.  Paketin yerleşiminde ( ağırlık yanda ) istenen ölçü paketin kuyusundan büyük
+        olamaz;  istenen ölçüyle seçici "uygun" der.  ( Kanıtlı en küçük değildir:  eşik aralığı
+        gibi başka yerleşim ayarları birkaç cm daha kazandırabilir — o kuyu girilirse seçici yine
+        "uygun" der. )
+
+        27 Kas ( merdiven çizime engel değil — cikti/devir/MERDIVEN_PLANI.md ):  ağırlık arkada
+        genişlik 1600 kalır, yalnız derinlik istenir — tek ölçü ( seçici doğruluk planı K2 a:  az
+        ölçü isteyen önce ) seçilir, yan seçenek olur.  Eskiden arka genişliği de 1610'a
+        çıkarıyordu ( aramada kuyu dibi merdiveni;  aynı arka isteği eski kodda da temiz ), iki
+        ölçüde toplam artışı büyük kalıyor, yan seçiliyordu.  Arka paketin derinliğini aşabilir:
+        ağırlık arkada kuyu derinleşir, genişlik kazanılır."""
         t = PAKETLER[(630, True)]
         m = mimari(t, kuyu_genisligi=1600, kuyu_derinligi=1600)
         r = avan_secici.sec(m)
         self.assertEqual(r["durum"], "gereken", r)
-        yeni = {g["anahtar"]: g for g in r["gereken"]}
+        self.assertEqual(r["yerlesim"], "ağırlık arkada")
+        self.assertEqual([(g["anahtar"], g["eski"]) for g in r["gereken"]], [("kuyu_derinligi", "1600")])
+        self.assertGreater(r["gereken"][0]["yeni"], 1600)
+        self.assertTrue(r["gereken"][0]["sebep"])
+        #  Paketin yerleşimi seçenek:  paketin kuyusundan büyük değil;  çare bulucunun topladığı
+        #  2110'un çok altında ( kabin 1100 + ağırlık yanda )
+        self.assertEqual([x["yerlesim"] for x in r["secenek"]], ["ağırlık yanda"])
+        yeni = {g["anahtar"]: g for g in r["secenek"][0]["gereken"]}
         self.assertEqual(sorted(yeni), ["kuyu_derinligi", "kuyu_genisligi"])
         for k, g in yeni.items():
             self.assertEqual(g["eski"], "1600")
             self.assertGreater(g["yeni"], 1600)
             self.assertLessEqual(g["yeni"], int(t["asansor"][k]))
-            self.assertTrue(g["sebep"])
-        #  Çare bulucunun topladığı 2110'un çok altında:  kabin 1100 + ağırlık yanda
         self.assertLessEqual(yeni["kuyu_genisligi"]["yeni"], 1800)
         self.temiz(r)
-        m2 = {**m, **{k: int(g["yeni"]) for k, g in yeni.items()}}
+        m2 = {**m, "kuyu_derinligi": int(r["gereken"][0]["yeni"])}
         r2 = avan_secici.sec(m2)
         self.assertEqual(r2["durum"], "uygun", r2)
         self.temiz(r2)
@@ -696,14 +750,21 @@ class AvanSecici(unittest.TestCase):
     def test_istenen_olcu_tek_seferde_yeter(self):
         """Tarama ( 14 Kas ):  1250 kg makine dairelide trafiğin 900 mm kapısıyla "kuyu genişliği
         2020" isteniyor, 2020 girilince bu kez 2030 isteniyordu.  Mimara söylenen ölçüyle seçici
-        "uygun" der."""
+        "uygun" der.
+
+        27 Kas:  o 2020'yi yalnız kuyu dibi merdiveni istetiyordu ( paketin kuyusunda tek sorun —
+        eski kodla sınandı );  merdiven çizime engel değil ( cikti/devir/MERDIVEN_PLANI.md ),
+        paketin kuyusu yeter.  Tek seferde yetme 150 mm dar kuyuda sınanır ( 1900 istenir )."""
         t = PAKETLER[(1250, False)]
         m = mimari(t, kat_kapisi_tipi="Teleskopik Sol", kapi_genisligi=900)
+        r = avan_secici.sec(m)
+        self.assertEqual(r["durum"], "uygun", r)
+        m = {**m, "kuyu_genisligi": int(t["asansor"]["kuyu_genisligi"]) - 150}
         r = avan_secici.sec(m)
         self.assertEqual(r["durum"], "gereken", r)
         self.assertEqual([g["anahtar"] for g in r["gereken"]], ["kuyu_genisligi"])
         (g,) = r["gereken"]
-        self.assertEqual(g["eski"], m["kuyu_genisligi"])
+        self.assertEqual(g["eski"], str(m["kuyu_genisligi"]))
         self.temiz(r)
         r2 = avan_secici.sec({**m, "kuyu_genisligi": int(g["yeni"])})
         self.assertEqual(r2["durum"], "uygun", r2)

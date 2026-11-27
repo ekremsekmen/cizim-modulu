@@ -165,6 +165,12 @@ export function useSunucu(
     () => (cizimEski ? {} : (sonCizim?.yanit.hesap_parcalari ?? {})),
     [cizimEski, sonCizim],
   );
+  //  Çizimi durdurmayan notları ( 27 Kas — kuyu dibinde sabit merdivene yer yok ) — ekrandaki
+  //  çizim bu girdininse;  Uygunluk paneli hesabın uyarılarıyla birlikte gösterir
+  const cizimNotlari = useMemo<string[]>(
+    () => (cizimEski ? [] : (sonCizim?.yanit.notlar ?? [])),
+    [cizimEski, sonCizim],
+  );
 
   let sorun: Sorun | null = null;
   if (hatalar.length) sorun = { tur: "kural", maddeler: hatalar };
@@ -243,6 +249,8 @@ export function useSunucu(
     sorunluParcalar,
     /**  Hesabın uygun bulmadığı bölümlerin parçaları ( bölüm kimliği → data-ad ) — tuval turuncu  */
     hesapParcalari,
+    /**  Ekrandaki ( güncel ) çizimin durdurmayan notları ( kuyu dibi merdiveni )  */
+    cizimNotlari,
     /**  Bu asansörün son temiz çiziminin girdisi ( yoksa null )  */
     oncekiTemiz: temiz.girdiler[asansor] ?? null,
     sorun,
