@@ -43,7 +43,8 @@ güvenlik süresini kapatır.
 DAR EKSEN ( --eksen dar;  27 Kas — seçici doğruluk planı, cikti/devir/SECICI_DOGRULUK_PLANI.md ):
 hazır asansörün kuyusundan çok dar ve derin kuyular ( karşı ağırlık arkaya zorlanır ) ve kullanıcının
 gerçek vakası;  kendi hüküm kaydı ( testler/avan_tarama_dar_hukumleri.json ).  Bu eksende ayrıca
-GÜVENCELER ölçülür ( şimdilik RAPOR — taramayı başarısız saymaz ):
+GÜVENCELER ölçülür — G3 ve G4 DEĞİŞMEZDİR ( bozulursa BAŞARISIZ;  27 Kas, planın Adım 6'sı — dar
+eksende ikisi de sıfırdı );  G2 RAPOR ( küçültmenin bilinen 10 mm'lik iki istisnası — KUCULTME_SON_ADIM ):
 
     G2  bir adım eksiği kurulmaz:  "gereken"de istenen her ölçü bir adım ( 10 mm, kot 0,01 m )
         mimarınkine doğru geri alınınca seçici "uygun" demez;
@@ -121,6 +122,8 @@ DAR_ODALI = tuple((dg, 850, 0) for dg in (-400, -500))
 #  kuyu dibi −4,70;  ( kapı , son kat )
 VAKA_KOTLARI = "; ".join(["-2,60"] + [katlar.kot_metni(700 + 3000 * i) for i in range(9)])
 VAKALAR = tuple((kapi, son) for kapi in (800, 900) for son in (4050, 4300))
+#  Bozulunca taramayı başarısız sayan güvenceler ( öbürleri rapor )
+DEGISMEZ_GUVENCELER = ("G3", "G4")
 #  Güvencelerin adımı ( G2 ) ve büyütmesi ( G3 )
 GERI_ADIM = 10
 BUYUTME = 100
@@ -378,6 +381,7 @@ def dene(senaryo):
             ihlal.append("sığmaz ama sebep yok")
         if kimlik.split("|", 1)[0] in ("dar", "vaka"):
             guvence = guvenceler(m, r)
+            ihlal += [f"{g}:  {metin}" for g, metin in guvence if g in DEGISMEZ_GUVENCELER]
     except Exception:  # noqa: BLE001 — çökme de bulgudur
         hukum, ihlal = {"durum": "ÇÖKME"}, [traceback.format_exc(limit=4).strip().splitlines()[-1]]
     return {
