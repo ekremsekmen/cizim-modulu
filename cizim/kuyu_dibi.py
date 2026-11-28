@@ -15,6 +15,8 @@ olanlar gelir:
   · regülatör gergi kasnağı
   · SIĞINMA ALANI                                     m.5.2.5.8.1 · Çizelge 4
   · MERDİVEN  ( kuyu dibi 2,5 m'yi aşmıyorsa )         m.5.2.2.4 · Ek F
+    — sabit merdivene ( Tip 1 ) yer yoksa çizilmez, VERİLER'in notu söyler:
+    çizime engel değildir ( 27 Kas — merdiven_adaylari )
   · kuyu tabanına yük aktaran noktalar ( LiftDesigner "View of Pit" gibi ):
     her rayın ve tamponun ortasına ok, çerçeveli kutuda adı ve değeri —
     FKR ( bir kabin rayı ) · FAR ( bir ağırlık rayı ) · Fkt ( kabin tamponu;
@@ -787,13 +789,12 @@ def yerlesim(g, cizim_sabitleri=None):
         + list(gergi_donanim.values())
         + korunan
     )
-    merdiven = _merdiven(
+    merdivenler = merdiven_adaylari(
         g,
         kd,
         S,
         sabit + kapi_unitesi + [esik_alti_saci_izi(g, S)],
         kabinin_yolu(g, S, taban, MERDIVEN_ESIK_USTU),
-        hata,
     )
     hata += _cakismalar(
         G,
@@ -809,8 +810,8 @@ def yerlesim(g, cizim_sabitleri=None):
         gergi_donanim,
     )
     tip = kd["siginma_tipi"]
-    siginma = _siginma_yeri(
-        g, S, taban, tip, kabin, perde, ag_yan, sabit + ([merdiven] if merdiven else []), hata
+    merdiven, siginma = _merdiven_ve_siginma(
+        merdivenler, lambda ek, h: _siginma_yeri(g, S, taban, tip, kabin, perde, ag_yan, sabit + ek, h), hata
     )
     return {
         "taban": taban,
@@ -825,6 +826,7 @@ def yerlesim(g, cizim_sabitleri=None):
         "gergi": gergi,
         "gergi_donanim": gergi_donanim,
         "merdiven": merdiven,
+        "merdiven_notu": _merdiven_notu(kd, merdiven),
         "siginma": siginma,
         "siginma_tipi": tip,
         "hata": hata,
@@ -879,13 +881,14 @@ def _perde(ag_yan, blok, kabin, konsollar, kabin_raylari, agirlik_raylari):
     return (ar[0], py, ar[2], py)
 
 
-def _merdiven(g, kd, S, sabit, yol, hata):
-    """MERDİVEN  ( m.5.2.2.4 · Ek F ):  yan duvara yaslı saklanır, kapıya yakın
-    yan seçilir;  yan duvar kapıdan 800 mm'den uzaksa ( geniş kuyu ) kapının
-    yanında ön duvara yaslanır — Ek F.5 b yalnız kapı kenarına uzaklığı
-    sınırlar.  Kuyu dibi 2,5 m'yi aşıyorsa merdiven değil erişim kapısı
-    gerekir — çizilmez ( mimarinindir );  VERİLER'in notu ve hesabın uyarısı
-    söyler ( standart.KUYU_DIBI_KAPISI_NOTU ).  Kutu ya da None.
+def merdiven_adaylari(g, kd, S, sabit, yol):
+    """MERDİVEN  ( m.5.2.2.4 · Ek F ):  sabit merdivenin ( Tip 1 ) yerleri, tercih
+    sırasıyla — yan duvara yaslı ( kapıya yakın yan önce ), sonra kapının yanında
+    ön duvara yaslı ( yan duvar kapıdan 800 mm'den uzaksa — geniş kuyu;  Ek F.5 b
+    yalnız kapı kenarına uzaklığı sınırlar ).  Çizilen, sığınma alanının yerini
+    kapatmayan ilkidir ( _merdiven_ve_siginma ).  Kuyu dibi 2,5 m'yi aşıyorsa
+    merdiven değil erişim kapısı gerekir — çizilmez ( mimarinindir );  VERİLER'in
+    notu ve hesabın uyarısı söyler ( standart.KUYU_DIBI_KAPISI_NOTU ).  Kutular.
 
     sabit:  merdivenin binemeyeceği sabit parçalar — kuyu dibinin donanımı ve
     ( merdiven eşiğin 1,10 m üstüne uzandığı için — Ek F.2.3 ) en alt kat
@@ -893,9 +896,19 @@ def _merdiven(g, kd, S, sabit, yol, hata):
     merdiven ondan en az KABIN_YOLU_ACIKLIGI uzakta durur.  Eskiden ikisi de
     engel değildi:  223 çizilen standart düzenin 60'ında merdiven en alt kapının
     kanat cebine, kasasına, eşik altı sacına giriyordu;  48'inde kabin kapısının
-    cebi ( kabinle iner ) merdivenin içinden geçiyordu."""
+    cebi ( kabinle iner ) merdivenin içinden geçiyordu.
+
+    YERİ YOKSA ÇİZİM REDDEDİLMEZ ( 27 Kas — kullanıcı:  "merdiven hiç bir türlü
+    çizime engel olmamalı … gerçekten kuyuya sığan bir asansörü reddetmek fazla
+    sert" ):  m.5.2.2.4 b erişim kapısı YA DA Ek F'nin altı tipinden birini ister,
+    program yalnız Tip 1'i bilir ( saklıyken de eşiğin 1,10 m üstüne uzanır ).
+    Boş listede merdiven çizilmez, not söyler ( _merdiven_notu — katlanır, tabanda
+    saklanan merdiven ya da kapı sahada seçilir;  yeri ürüne bağlı, uydurulmaz ).
+    Eskiden sorundu:  kullanıcının kuyusu ( 800 kg, kabin 1350 × 1400, kapı 900,
+    1800 × 2700, ağırlık arkada ) yalnız bu yüzden reddediliyor, seçici 1830
+    istiyordu."""
     if kd["derinlik"] > MERDIVEN_AZAMI_DERINLIK:
-        return None
+        return []
     G, D = g["kuyu"]["genislik"], g["kuyu"]["derinlik"]
     kp = g["kapi"]
     x0, x1 = kp["sol_pay"], kp["sol_pay"] + kp["genislik"]
@@ -910,7 +923,7 @@ def _merdiven(g, kd, S, sabit, yol, hata):
     #  Kapıya en yakın boş yer:  merdiven binen parçanın öbür kenarına atlar ( ona
     #  yaslanır ).  Eskiden 25 mm adımla aranıyordu:  kasaya yaslanınca tam sığan
     #  yer ( örnek, regülatör sağda −440:  kasa ile duvar arası 350 ) atlanıyordu.
-    adaylar = []
+    yanlar = []
     for yan, mx0, kenar in (("Sol", 0.0, x0), ("Sağ", G - md, x1)):
         y = 0.0
         while y + me <= D:
@@ -921,38 +934,57 @@ def _merdiven(g, kd, S, sabit, yol, hata):
                 dx = max(0.0, k[0] - kenar, kenar - k[2])
                 uzak = (dx**2 + k[1] ** 2) ** 0.5
                 if uzak <= MERDIVEN_KAPI_AZAMI:
-                    adaylar.append((uzak, y, yan, k))
+                    yanlar.append((uzak, y, yan, k))
                 break
             y = max(p[3] + pay for p, pay in eng)
-    if not adaylar:
-        #  Ön duvarda, kapı boşluğunun iki yanında ( eni ön duvar boyunca )
-        for yon, kenar in ((-1.0, x0), (1.0, x1)):
-            x = kenar if yon > 0 else kenar - me
-            while 0.0 <= x and x + me <= G:
-                k = (x, 0.0, x + me, md)
-                uzak = max(0.0, k[0] - kenar, kenar - k[2])
-                if uzak > MERDIVEN_KAPI_AZAMI:
-                    break
-                eng = engeller(k)
-                if not eng:
-                    adaylar.append((uzak, 0.0, "Ön", k))
-                    break
-                x = max(p[2] + pay for p, pay in eng) if yon > 0 else min(p[0] - pay for p, pay in eng) - me
-    if adaylar:
-        return min(adaylar)[3]
-    esik_ustu = f"{MERDIVEN_ESIK_USTU / 1000:.2f}".replace(".", ",")
-    hata.append(
-        sorun.Sorun(
-            "Kuyu dibi merdiveni kat girişine en çok 800 mm uzakta ( TS EN 81-20 "
-            "Ek F.5 b ) ne yan duvara ne kapının yanına yaslanabiliyor — orada tampon, "
-            f"ray, konsol, en alt kat kapısının ünitesi ( merdiven eşiğin {esik_ustu} m "
-            "üstüne uzanır — Ek F.2.3 ) ya da kabinin yolu ( kabin kapısının cebi;  "
-            f"kabinden en az {KABIN_YOLU_ACIKLIGI:g} mm ) var.",
-            ("merdiven",),
-            "kuyu_dibi",
-        )
-    )
-    return None
+    #  Ön duvarda, kapı boşluğunun iki yanında ( eni ön duvar boyunca ) — yan duvarlardan
+    #  sonra ( 27 Kas'a dek yalnız yan duvarda yer yokken aranırdı:  ilk aday aynı )
+    onler = []
+    for yon, kenar in ((-1.0, x0), (1.0, x1)):
+        x = kenar if yon > 0 else kenar - me
+        while 0.0 <= x and x + me <= G:
+            k = (x, 0.0, x + me, md)
+            uzak = max(0.0, k[0] - kenar, kenar - k[2])
+            if uzak > MERDIVEN_KAPI_AZAMI:
+                break
+            eng = engeller(k)
+            if not eng:
+                onler.append((uzak, 0.0, "Ön", k))
+                break
+            x = max(p[2] + pay for p, pay in eng) if yon > 0 else min(p[0] - pay for p, pay in eng) - me
+    return [a[3] for a in sorted(yanlar)] + [a[3] for a in sorted(onler)]
+
+
+def _merdiven_ve_siginma(merdivenler, siginma_yeri, hata):
+    """MERDİVEN SIĞINMA ALANININ YERİNİ KAPATMAZ ( 27 Kas — merdiven çizime engel
+    değildir ):  merdivenin yerleri ( merdiven_adaylari ) sırayla denenir,
+    sığınma alanının yer bulduğu ilki çizilir.  Hiçbiriyle yer yoksa ama
+    merdivensiz varsa merdiven çizilmez ( _merdiven_notu söyler );  merdivensiz de
+    yoksa ret gerçektir:  merdiven bugünkü gibi ilk yerinde, sorun sığınmanındır.
+    Merdiven kabinin yolundan ( gövdesi dahil ) en az KABIN_YOLU_ACIKLIGI uzak
+    durduğu için kabinin altındaki sığınmaya binmez;  yalnız sığınma kuyu
+    tabanının başka yerine kayınca ( _siginma_yeri ) karşılaşırlar.
+
+    siginma_yeri( ek engeller , hata listesi ):  _siginma_yeri'nin çağrısı.
+    Döner ( merdiven ya da None , sığınma ya da None )."""
+    for m in merdivenler:
+        h = []
+        s = siginma_yeri([m], h)
+        if s is not None:
+            return m, s
+    h = []
+    s = siginma_yeri([], h)
+    hata += h
+    return (merdivenler[0] if s is None and merdivenler else None), s
+
+
+def _merdiven_notu(kd, merdiven):
+    """Merdiven çizilmediyse ( yeri yok — merdiven_adaylari ) VERİLER'in ve ekranın
+    notu ( standart.KUYU_DIBI_MERDIVEN_NOTU );  çizildiyse ya da kuyu dibi 2,50 m'yi
+    aşıyorsa ( erişim kapısı notu — standart.KUYU_DIBI_KAPISI_NOTU ) None."""
+    if merdiven is not None or standart.kuyu_dibi_kapisi_gerekir(kd["derinlik"]):
+        return None
+    return standart.KUYU_DIBI_MERDIVEN_NOTU
 
 
 def _cakismalar(
@@ -1127,9 +1159,10 @@ def _siginma_yeri(g, S, taban, tip, kabin, perde, ag_yan, engel, hata):
     hata.append(
         sorun.Sorun(
             f"Kuyu dibinde {tip.lower()} tipi sığınma alanına ( {a:g} × {b:g} mm, "
-            "TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi, merdiven ve karşı "
+            "TS EN 81-20 Çizelge 4 ) yer yok — tamponlar, gergi ve karşı "
             "ağırlığın şeridi dışında kalmalı.",
-            ("siginma", "kabin_tamponu", "agirlik_tamponu", "gergi", "merdiven"),
+            #  Merdiven yok:  sığınmanın yerini kapatamaz ( _merdiven_ve_siginma — 27 Kas )
+            ("siginma", "kabin_tamponu", "agirlik_tamponu", "gergi"),
             "kuyu_dibi",
         )
     )

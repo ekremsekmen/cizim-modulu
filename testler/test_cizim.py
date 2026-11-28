@@ -1068,6 +1068,28 @@ def _dip_projeler():
     yield "Derin kuyu · dik duruş", _ornek(kuyu_dibi={"derinlik": 2600, "siginma_tipi": "Dik duruş"})
 
 
+def _merkezi_kapi_1000(merdiven_eni=None):
+    """Arkada ağırlık, 1000 kg, merkezi kapı:  iki kanat cebi yan duvarlara 95 mm,
+    merdivenin yan duvardaki yeri 330 mm — merdiven_eni 350 ile sabit merdivene yer
+    yok.  ( g , kopru'nun hatası )."""
+    from testler import test_yerlesim_saglamligi
+
+    v = test_yerlesim_saglamligi.standart_istek(
+        1000,
+        True,
+        "Arka",
+        kat_kapisi_tipi="Otomatik Merkezi",
+        aski_duzeni="Kabin üstü",
+        son_kat_yuksekligi=5000,
+        makine_raya_biniyor="Bina yapısına",
+    )
+    v["asansorler"][0]["kuyu_derinligi"] = test_yerlesim_saglamligi.KABIN[1000][1] + 700
+    if merdiven_eni:
+        v["sabitler"][sabitler.ofis_adi("merdiven_eni")] = merdiven_eni
+    g, _A, hata = test_yerlesim_saglamligi.duzen_girdisi(v)
+    return g, hata
+
+
 class KuyuDibiSozlesme(unittest.TestCase):
     def test_ornekler_gecerli(self):
         for ad, g in _dip_projeler():
@@ -1474,6 +1496,8 @@ class KuyuDibiYerlesim(unittest.TestCase):
             Y = kuyu_dibi.yerlesim(g)
             m = Y["merdiven"]
             with self.subTest(proje=ad):
+                #  Merdiven çizildiyse ya da kuyu dibi 2,5 m'yi aşıyorsa ( erişim kapısı notu ) not yok
+                self.assertIsNone(Y["merdiven_notu"])
                 if g["kuyu_dibi"]["derinlik"] > kuyu_dibi.MERDIVEN_AZAMI_DERINLIK:
                     self.assertIsNone(m)
                     continue
@@ -1567,39 +1591,104 @@ class KuyuDibiYerlesim(unittest.TestCase):
         kalıyor;  merdiven yan duvarda kabin kapısının cebinin 50 mm arkasıyla ray
         konsolunun plakası arasına sığar ( 330 mm yer, merdiven 330:  basamak 280 + 25'lik
         iki dikme — Ek F.3;  19 Kas'a dek 350'ydi, proje reddediliyordu ).  Daha geniş
-        merdivende ( 350 ) yer yoksa kapıdan 800 mm'den uzağa da konamaz:  proje sebebiyle
-        reddedilir ( 4 Kas, kullanıcı 50 mm açıklığı seçti;  eskiden merdiven iki cebin de
-        içinden geçiyordu )."""
-        from testler import test_yerlesim_saglamligi
-
-        v = test_yerlesim_saglamligi.standart_istek(
-            1000,
-            True,
-            "Arka",
-            kat_kapisi_tipi="Otomatik Merkezi",
-            aski_duzeni="Kabin üstü",
-            son_kat_yuksekligi=5000,
-            makine_raya_biniyor="Bina yapısına",
-        )
-        v["asansorler"][0]["kuyu_derinligi"] = test_yerlesim_saglamligi.KABIN[1000][1] + 700
-        g, _A, hata = test_yerlesim_saglamligi.duzen_girdisi(v)
+        merdivende ( 350 ) yer yoksa kapıdan 800 mm'den uzağa da konamaz ( 4 Kas, kullanıcı
+        50 mm açıklığı seçti;  eskiden merdiven iki cebin de içinden geçiyordu ):  27 Kas'a
+        dek proje bu sebeple reddediliyordu — artık merdiven çizilmez, not söyler
+        ( merdiven çizime engel değildir )."""
+        g, hata = _merkezi_kapi_1000()
         self.assertFalse(hata, hata)
         self.assertEqual(geometri.dogrula(g), [])
         Y = kuyu_dibi.yerlesim(g)
         self.assertIsNotNone(Y["merdiven"], Y["hata"])
-        self.assertFalse([h for h in Y["hata"] if "Ek F.5 b" in h], Y["hata"])
+        self.assertEqual(Y["hata"], [])
+        self.assertIsNone(Y["merdiven_notu"])
         m = Y["merdiven"]
         self.assertEqual(max(m[2] - m[0], m[3] - m[1]), 330)  # yan duvarda eni y boyunca
-        v["sabitler"][sabitler.ofis_adi("merdiven_eni")] = 350
-        g, _A, hata = test_yerlesim_saglamligi.duzen_girdisi(v)
+        g, hata = _merkezi_kapi_1000(merdiven_eni=350)
         self.assertFalse(hata, hata)
         Y = kuyu_dibi.yerlesim(g)
         self.assertIsNone(Y["merdiven"])
-        ileti = [h for h in Y["hata"] if "Ek F.5 b" in h]
-        self.assertEqual(len(ileti), 1, Y["hata"])
-        self.assertIn("Ek F.2.3", ileti[0])
-        self.assertIn("kabin kapısının cebi", ileti[0])
-        self.assertEqual(ileti[0].parcalar, ("merdiven",))
+        self.assertEqual(Y["hata"], [])
+        self.assertEqual(Y["merdiven_notu"], standart.KUYU_DIBI_MERDIVEN_NOTU)
+
+    def test_merdiven_engel_degil(self):
+        """M-G1 ( 27 Kas — cikti/devir/MERDIVEN_PLANI.md ):  kuyu dibinin sorunları
+        merdiven hiç yokken ( merdiven_adaylari boş ) de aynı — sabit merdivene yer olsa
+        da olmasa da.  Çizim taraması bütün reddedilen düzenlerde denetler
+        ( araclar/tarama.merdiven_sebep_mi )."""
+        projeler = list(_dip_projeler()) + [("merkezi kapı, merdiven 350", _merkezi_kapi_1000(350)[0])]
+        for ad, g in projeler:
+            with self.subTest(proje=ad):
+                once = kuyu_dibi.yerlesim(g)
+                with mock.patch.object(kuyu_dibi, "merdiven_adaylari", return_value=[]):
+                    merdivensiz = kuyu_dibi.yerlesim(g)
+                self.assertEqual(once["hata"], merdivensiz["hata"])
+                self.assertEqual(once["siginma"] is None, merdivensiz["siginma"] is None)
+
+    def test_merdiven_siginmayi_kapatmaz(self):
+        """_merdiven_ve_siginma ( 27 Kas ):  sığınma alanının yer bulduğu ilk merdiven
+        yeri çizilir;  hiçbiriyle yoksa merdiven düşer, sığınma merdivensiz yerindedir;
+        merdivensiz de yoksa ret sığınmanındır ( merdiven bugünkü gibi ilk yerinde )."""
+        A, B, S = (0.0, 0.0, 100.0, 330.0), (900.0, 0.0, 1000.0, 330.0), (300.0, 300.0, 1000.0, 1300.0)
+
+        def siginma(kapatan, merdivensiz_yok=False):
+            def yer(ek, h):
+                if (ek and ek[0] in kapatan) or (not ek and merdivensiz_yok):
+                    h.append("sığınmaya yer yok")
+                    return None
+                return S
+
+            return yer
+
+        for adaylar, yer, beklenen, sorun_ in (
+            ([A, B], siginma(()), (A, S), []),
+            ([A, B], siginma((A,)), (B, S), []),
+            ([A, B], siginma((A, B)), (None, S), []),
+            ([A, B], siginma((A, B), True), (A, None), ["sığınmaya yer yok"]),
+            ([], siginma(()), (None, S), []),
+            ([], siginma((), True), (None, None), ["sığınmaya yer yok"]),
+        ):
+            hata = []
+            with self.subTest(adaylar=adaylar, beklenen=beklenen):
+                self.assertEqual(kuyu_dibi._merdiven_ve_siginma(adaylar, yer, hata), beklenen)
+                self.assertEqual(hata, sorun_)
+
+    def test_merdivensiz_kuyu_dibinin_veriler_notu(self):
+        """M-G3 ( 27 Kas ):  sabit merdivene yer yoksa VERİLER'in NOTLAR'ında not —
+        tablonun enine sarılı ( tek satırda blok iki katından geniş olurdu );  merdiven
+        çizildiyse not yok."""
+        g, _hata = _merkezi_kapi_1000(merdiven_eni=350)
+        e = veri_tablosu.ciz(g)
+        notlar = [el for el in e if el.get("ad") == "notlar" and el["tip"] == "yazi"]
+        metinler = [el["metin"] for el in notlar]
+        bas = next(i for i, x in enumerate(metinler) if x.startswith("Kuyu dibinde sabit merdivene"))
+        satirlar = metinler[bas:]
+        self.assertGreater(len(satirlar), 1)
+        self.assertEqual(" ".join(satirlar).split(), standart.KUYU_DIBI_MERDIVEN_NOTU.split())
+        #  Notun numarası sıradaki;  devam satırlarında numara da boş yazı da yok
+        numaralar = [x for x in metinler[:bas] if re.fullmatch(r"\d+\.", x)]
+        self.assertEqual(metinler[bas - 1], f"{len(numaralar)}.")
+        self.assertFalse([x for x in satirlar if re.fullmatch(r"\d+\.", x) or not x.strip()], satirlar)
+        #  Ayraç sözcüğünden ayrılmaz, kısa ayraç bölünmez ( tarayıcıda görüldü:  satır ");" ile,
+        #  sonra "c );" ile başlıyordu )
+        self.assertFalse([x for x in satirlar if x.startswith(")") or x.endswith("(")], satirlar)
+        self.assertFalse([x for x in satirlar if re.match(r"mm\b", x)], satirlar)  # "800 mm" ayrılmaz
+        for ayrac in ("( F.5 b )", "( F.5 c )", "( m.5.2.2.4 b )", "( m.5.2.2.4 )"):
+            self.assertTrue(any(ayrac in x for x in satirlar), (ayrac, satirlar))
+
+        def sag(ad):
+            return max(
+                el["x"] + eleman.yazi_eni(el["metin"], el["yukseklik"])
+                for el in e
+                if el.get("ad") == ad and el["tip"] == "yazi"
+            )
+
+        self.assertLessEqual(sag("notlar"), max(sag("veriler"), sag("kisaltmalar")) + 1e-6)
+        g, _hata = _merkezi_kapi_1000()
+        metinler = [
+            el["metin"] for el in veri_tablosu.ciz(g) if el.get("ad") == "notlar" and el["tip"] == "yazi"
+        ]
+        self.assertFalse([x for x in metinler if "merdiven" in x], metinler)
 
     def test_perde_kabinin_yolundan_gecmez(self):
         """m.5.2.5.5.1 b:  perde kuyu tabanından en az 2,0 m yükseğe çıkar — kabin en
@@ -1735,6 +1824,8 @@ class KuyuDibiYerlesim(unittest.TestCase):
             Y = kuyu_dibi.yerlesim(_ornek(kuyu_dibi={"derinlik": derinlik}))
             with self.subTest(derinlik=derinlik):
                 self.assertEqual(Y["merdiven"] is not None, var)
+                #  2501:  merdiven değil erişim kapısı — merdiven notu değil kapı notu ( VERİLER )
+                self.assertIsNone(Y["merdiven_notu"])
 
     def test_yuk_noktalari_hesap_paftasi_adlariyla(self):
         e = kuyu_dibi.ciz(_ornek(kuyu_dibi={"kabin_tampon_adedi": 2, "kabin_tampon_arasi": 600}))

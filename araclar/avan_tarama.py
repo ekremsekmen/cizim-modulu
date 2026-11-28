@@ -22,7 +22,8 @@ Her senaryoda iki tür denetim:
       güvenilmez ) temiz çıkar:  hesap çalışır, düşen bölümler seçicinin söyledikleridir
       ve avanı bağlayan bölüm düşmez, çizim sorunsuzdur;
     · kabin kartınkidir ( verilmişse ), değilse hazır asansörünki;  hız ve avanın beyanı ( askı,
-      kapı ) istekte aynen durur;  "uygun"da mimarın ölçüleri de aynen durur.
+      kapı ) istekte aynen durur;  "uygun"da mimarın ölçüleri de aynen durur;
+    · ( G1, 28 Kas ) "gereken"de istenen ölçüler girilince seçici "uygun" der — tek seferde yeter.
 
   HÜKÜMLER ( testler/avan_tarama_hukumleri.json — değişirse tarama BAŞARISIZ ):
     durum, karşı ağırlığın yeri, mimardan istenen ölçüler, kartta istenen seçimler ve
@@ -375,6 +376,10 @@ def dene(senaryo):
         if durum == "gereken":
             hukum["gereken"] = [[g["anahtar"], g["yeni"]] for g in r["gereken"]]
             hukum["yeniden"] = _yeniden(m, r["gereken"])
+            #  G1 DEĞİŞMEZ ( 28 Kas ):  mimara söylenen ölçü tek seferde yeter — kayıtta "gereken"
+            #  137 senaryonun hepsi "uygun"du;  küçültmenin sürünmesi ( 1870 → 1880 ) kayda giriyordu
+            if hukum["yeniden"] != "uygun":
+                ihlal.append(f'G1:  istenen ölçüyle seçici yine "{hukum["yeniden"]}" diyor')
         if durum == "beyan":
             hukum["beyan"] = [[b["anahtar"], b["yeni"]] for b in r["beyan"]]
         if durum == "sigmaz" and not r.get("nedenler"):

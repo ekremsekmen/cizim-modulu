@@ -14,6 +14,11 @@ maskenin sildiği kenar, ölçünün üstünden geçen ölçü, kopuk ölçü ya
 geçen halat — bugün sıfır değiller ) kayıtla ( testler/tarama_karnesi.json )
 karşılaştırılır:  sayı artarsa ya da azalırsa ( kayıt yenilenmeli ) BAŞARISIZ.
 
+MERDİVEN RETİN SEBEBİ DEĞİLDİR ( M-G1 — 27 Kas, cikti/devir/MERDIVEN_PLANI.md ):  reddedilen
+her düzen bir kez de kuyu dibi merdiveni hiç yokken çizilir ( kuyu_dibi.merdiven_adaylari
+boş );  sorunlar aynı değilse ( merdiven bir sorunu doğurdu ya da değiştirdi ) BAŞARISIZ.
+Çizilen düzende sorun yoktur:  merdiven ona sorun katmamıştır.
+
     .venv/bin/python -m araclar.tarama                 beş grup ( ana · kapi · diger · oda · tek_kuyu )
     .venv/bin/python -m araclar.tarama kapi            tek grup
     .venv/bin/python -m araclar.tarama --yenile        hüküm ve karne kaydını yeniden yazar
@@ -30,6 +35,7 @@ import os
 import sys
 import time
 import traceback
+from unittest import mock
 
 import yollar
 
@@ -42,6 +48,7 @@ from araclar import kesisme
 from cizim import cizimler
 from cizim import geometri
 import cizim.grup
+from cizim import kuyu_dibi
 from cizim import pafta
 from testler import test_yerlesim_saglamligi
 
@@ -212,7 +219,11 @@ def duzen(ad, v):
     except Exception:  # noqa: BLE001 — çöküş de bir bulgu
         return {"ad": ad, "durum": "çöktü", "ayrinti": traceback.format_exc()[-600:]}
     if not d.get("aktif"):
-        return {"ad": ad, "durum": "ret", "hata": d.get("hata")}
+        r = {"ad": ad, "durum": "ret", "hata": d.get("hata")}
+        farkli = merdiven_sebep_mi(v, d.get("hata") or [])
+        if farkli:
+            r["sorun"] = farkli
+        return r
     karneler = {}
     try:
         if tek_kuyu_mu(v):
@@ -223,6 +234,22 @@ def duzen(ad, v):
     except Exception:  # noqa: BLE001
         s = ["DENETİM ÇÖKTÜ " + traceback.format_exc()[-400:]]
     return {"ad": ad, "durum": "çizildi", "sorun": s, "karne": karneler, "sure": round(time.time() - t, 1)}
+
+
+def merdiven_sebep_mi(v, hata):
+    """M-G1 ( 27 Kas ):  reddedilen düzenin sorunları kuyu dibi merdiveni hiç yokken
+    de aynı mı.  [ ileti ] — boşsa aynı ( merdiven retin sebebi değil )."""
+    with mock.patch.object(kuyu_dibi, "merdiven_adaylari", return_value=[]):
+        d = test_yerlesim_saglamligi.cizim_yaniti(v)
+    merdivensiz = d.get("hata") or []
+    if merdivensiz == hata:
+        return []
+    return [
+        "M-G1:  merdiven retin sebebi — merdivenle "
+        + " | ".join(x[:80] for x in hata if x not in merdivensiz)
+        + "  ·  merdivensiz "
+        + (" | ".join(x[:80] for x in merdivensiz if x not in hata) or "( sorun yok )")
+    ]
 
 
 def duzenler(grup):

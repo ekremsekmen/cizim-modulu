@@ -669,7 +669,8 @@ function CalismaIc({ sema, baslangic, bildirim }: { sema: AlanSemasi; baslangic:
 
         <UygunlukPaneli
           bolumler={bolumler}
-          uyarilar={sonuc?.uyarilar ?? []}
+          //  Hesabın uyarıları ve çizimin durdurmayan notları ( kuyu dibi merdiveni — 27 Kas )
+          uyarilar={[...(sonuc?.uyarilar ?? []), ...s.cizimNotlari]}
           bolumGrubu={sema.bolum_grubu}
           secili={secili}
           sec={sec}
