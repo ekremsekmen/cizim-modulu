@@ -30,6 +30,19 @@ export function alanHatasi(sema: AlanSemasi, anahtar: string, ham: string | unde
   return null;
 }
 
+/**  OLAĞAN DIŞI DEĞER ( 28 Kas — kullanıcı:  "duvar kalınlığını 300 cm yapmıştım, pratikte olamaz" ):
+     kural dışı değil ( kutu kırmızı olmaz, istek gider ), yalnız sorulur.  Kuralın hatası varsa o
+     söylenir, bu değil.  null:  olağan ya da aralık yok.  */
+export function alanUyarisi(sema: AlanSemasi, anahtar: string, ham: string | undefined): string | null {
+  if (ham === undefined || ham.trim() === "" || alanHatasi(sema, anahtar, ham)) return null;
+  const k = sema.kurallar[anahtar];
+  if (!k || k.olagan_alt == null || k.olagan_ust == null) return null;
+  const n = sayiOku(ham);
+  if (n === null || (n >= k.olagan_alt && n <= k.olagan_ust)) return null;
+  const yaz = (x: number) => x.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
+  return `Olağan dışı — olağan ${yaz(k.olagan_alt)} – ${yaz(k.olagan_ust)};  doğru mu?`;
+}
+
 /**  Sunucunun döndürdüğü sayıyı kutuya yazar.  Ondalık virgülle;  "123,456"
      gibi üç ondalıklı yazım sunucuda BELİRSİZ sayılır ( binlik mi ondalık mı ) —
      sona sıfır eklenir, değer aynı kalır.  */

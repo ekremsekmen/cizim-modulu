@@ -3278,6 +3278,157 @@ def azami_asimi(anahtar, d):
     return f"en çok {ust_}{'' if birim == '—' else ' ' + birim} olabilir ( {d:g} girildi )."
 
 
+#  OLAĞAN ARALIK ( 28 Kas — kullanıcı:  "devasa değerler girilebiliyor … duvar kalınlığını 300 cm
+#  yapmıştım, pratikte olamayacak bir şey";  plan cikti/devir/GIRDI_SINIRLARI_PLANI.md, tablo
+#  GIRDI_ARALIK_TABLOSU.md — onaylı ).  Kesin tavandan ( AZAMI — çökme koruması, ret ) ayrı:  dışındaki
+#  değer REDDEDİLMEZ, ekran sorar ( "olağan dışı — doğru mu?" ) ve teslim listeler;  pafta değişmez.
+#  Kural tek:  dayanak ÷ OLAGAN_KAT … dayanak × OLAGAN_KAT.  Dayanak ofisin varsayılanı;  varsayılanı
+#  olmayan alanda ofis projelerindeki gözlemlerin ortancası ( OLAGAN_GOZLEM — 6 gerçek proje, örnek
+#  proje, 18 paket, hesabın test girdisi;  en az 3 gözlem ).  k = 5:  bilinen gerçek girdilerin hiçbiri
+#  uyarı almaz ( k = 3'te 15 kW'lık motor alıyordu ), bir sıfırın fazla / eksik yazılması ( × 10 ) her
+#  alanda yakalanır.  Sayı uydurulmaz:  dayanağı olmayan alan bilerek aralıksızdır ( OLAGAN_YOK ).
+OLAGAN_KAT = 5
+OLAGAN_GOZLEM = {
+    "kuyu_duvar_on": 200.0,
+    "kuyu_duvar_arka": 200.0,
+    "kuyu_duvar_sol": 200.0,
+    "kuyu_duvar_sag": 225.0,
+    "ray_kapi_arasi": 1057.5,
+    "kabin_ray_arasi": 1540.0,
+    "agirlik_ray_arasi": 1200.0,
+    "agirlik_ray_duvar": 177.5,
+    "mk_uzunluk": 4100.0,
+    "mk_genislik": 2600.0,
+    "kabin_tampon_boyu": 630.0,
+    "kabin_tampon_ezilme": 180.0,
+    "agirlik_tampon_ezilme": 180.0,
+}
+#  Standardın alt sınırı ( TS EN 81-20 ) varsa olağan aralığın alt ucu odur
+OLAGAN_STANDART_ALT = {
+    "kapi_yuksekligi": 2000.0,  # m.5.3.2.1 — girişin net yüksekliği en az 2 m
+    "kabin_ic_yuksekligi": 2000.0,  # m.5.4.1
+    "md_yukseklik": 2100.0,  # m.5.2.6.3.2.1 — çalışma alanında net yükseklik
+    "md_kapi_yukseklik": 2000.0,  # m.5.2.3.2 a
+    "md_kapi_genislik": 600.0,  # m.5.2.3.2 a
+}
+#  Adetler tek tek:  program yalnız 1 ve 2 tamponu çizer ( cizim/kuyu_dibi.TAMPON_ADETLERI )
+OLAGAN_ADET = {"kabin_tampon_adedi": (1.0, 2.0), "agirlik_tampon_adedi": (1.0, 2.0)}
+#  Bilerek aralıksız ( sebebiyle ) — yeni sayı alanı ya aralık ya da burada sebep alır ( _denetle )
+_KONUM = "konum / kot / bina düzeni — büyüklüğü kuyuya ve binaya bağlı, taşanı çizim söyler"
+_KENDI = "kendi aralığı var ( açı / katalog — kesin kural )"
+_SORULACAK = "dayanak yok ( varsayılan yok, ofis projelerinde 3'ten az gözlem ) — değer verilirse eklenir"
+OLAGAN_YOK = {
+    **dict.fromkeys(
+        (
+            "seyir_mesafesi",
+            "kuyu_dibi_kotu",
+            "kuyu_tavani_kotu",
+            "md_zemini_kotu",
+            "kabin_yana_kaciklik",
+            "kapi_kaciklik",
+            "kabin_agirlik_merkezi_x",
+            "kabin_agirlik_merkezi_y",
+            "kabin_kaciklik",
+            "kabin_merkezi_x",
+            "esik_x",
+            "agirlik_eksen_kaciklik",
+            "aski_kaciklik_x",
+            "aski_kaciklik_y",
+            "md_x",
+            "md_y",
+            "regulator_kaciklik",
+            "durak_adedi",
+            "giris_duragi",
+        ),
+        _KONUM,
+    ),
+    **dict.fromkeys(
+        (
+            "sarilma_acisi",
+            "reg_kanal_acisi",
+            "halat_birim_kutle",
+            "halat_kopma_kN",
+            "reg_halat_birim_kutle",
+            "reg_halat_kopma_kN",
+            "kablo_birim_kutle",
+            "makine_tst",
+            "makine_verimi",
+        ),
+        _KENDI,
+    ),
+    **dict.fromkeys(
+        (
+            "halat_adedi",
+            "kabin_ray_sayisi",
+            "agirlik_ray_sayisi",
+            "kasnak_tek_yon",
+            "kasnak_ters_yon",
+            "kasnak_kabin_adedi",
+            "kasnak_agirlik_adedi",
+            "tavan_dosemesi",
+            "kabin_paten_arasi",
+            "paten_balata_boyu",
+            "klips_itme_kuvveti",
+            "yapi_sehim_x",
+            "yapi_sehim_y",
+            "kabin_ray_boyu",
+            "agirlik_ray_boyu",
+            "agirlik_genisligi",
+            "agirlik_dolgu_yuksekligi",
+            "kabin_kasnak_arasi",
+            "kasnak_gama",
+            "kasnak_beta",
+            "saptirma_kasnak_capi",
+            "saptirma_kasnak_min_capi",
+            "aski_halat_boyu",
+            "saptirma_agirlik_capi",
+            "makine_yuku_x",
+            "agirlik_baglanti_x",
+            "kabin_tampon_arasi",
+            "agirlik_tampon_arasi",
+            "agirlik_tampon_boyu",
+            "kabin_tampon_baba",
+            "guvenlik_devreye_kuvvet",
+            "reg_devreye_hizi",
+            "reg_halat_boyu",
+            "temel_a",
+            "temel_b",
+        ),
+        _SORULACAK,
+    ),
+}
+
+
+def _olagan(a):
+    """( alt , üst ) ya da None ( OLAGAN_YOK )."""
+    if a.anahtar in OLAGAN_YOK:
+        return None
+    if a.anahtar in OLAGAN_ADET:
+        return OLAGAN_ADET[a.anahtar]
+    d = OLAGAN_GOZLEM.get(a.anahtar, a.varsayilan)
+    alt = max(d / OLAGAN_KAT, OLAGAN_STANDART_ALT.get(a.anahtar, 0.0))
+    #  Üst uç kesin tavanı aşamaz ( son kat 4.200 × 5 = 21.000 > 20.000 — tavan zaten reddeder )
+    return (alt, min(d * OLAGAN_KAT, azami(a)))
+
+
+OLAGAN = {a.anahtar: r for a in ALANLAR if a.tur == "sayi" and (r := _olagan(a)) is not None}
+
+
+def olagan_disi(anahtar, d):
+    """Olağan aralığın dışındaki değerin iletisi ( "kuyu duvarı kalınlığı 3.000 mm — olağan
+    30 – 750 mm" ) ya da None.  Ret değil:  ekran sorar."""
+    r = OLAGAN.get(anahtar)
+    if r is None or r[0] <= d <= r[1]:
+        return None
+    a = ALAN[anahtar]
+    birim = "" if a.birim == "—" else " " + a.birim
+
+    def yaz(x):
+        return f"{x:,.0f}".replace(",", ".") if abs(x) >= 100 else f"{x:g}".replace(".", ",")
+
+    return f"{a.etiket.split('  (')[0]} {yaz(d)}{birim} — olağan {yaz(r[0])} – {yaz(r[1])}{birim}"
+
+
 def _denetle():
     """Şemanın kendi tutarlılığı — içe aktarılırken bir kez."""
     gorulen = set()
@@ -3307,6 +3458,19 @@ def _denetle():
         #  imkânsız değeri ( 10¹² ) çizime kadar taşır
         if a.tur == "sayi":
             assert azami(a) is not None, f"fiziksel tavanı yok ( BIRIM_AZAMI ): {a.anahtar} [{a.birim}]"
+            #  S-G1 / S-G2 ( olağan aralık ):  her sayı alanı ya aralık ya da bilinçli sebep alır;
+            #  aralık tavanın içinde, varsayılan aralığın içinde
+            r = OLAGAN.get(a.anahtar)
+            assert (r is None) == (a.anahtar in OLAGAN_YOK), f"olağan aralığı belirsiz: {a.anahtar}"
+            assert r is not None or a.anahtar in OLAGAN_YOK, a.anahtar
+            if r is not None:
+                assert 0 < r[0] <= r[1] <= azami(a), f"olağan aralık tavanı aşıyor: {a.anahtar} {r}"
+                v = a.varsayilan
+                assert v is None or r[0] <= v <= r[1], f"varsayılan olağan aralığın dışında: {a.anahtar}"
+    assert set(OLAGAN_YOK) <= set(AZAMI), set(OLAGAN_YOK) - set(AZAMI)
+    assert set(OLAGAN_GOZLEM) | set(OLAGAN_STANDART_ALT) | set(OLAGAN_ADET) <= set(OLAGAN), (
+        "aralıksız dayanak"
+    )
 
 
 _denetle()
