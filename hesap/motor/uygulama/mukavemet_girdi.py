@@ -888,8 +888,9 @@ def form_kurallari():
     ( konsol boyu, yığın, kuyu ) sunucuda kalır.  Uyum testi:
     testler/test_on_yuz_denetimi.py.
 
-    { anahtar:  { en_az, en_az_dahil, en_cok, tam_sayi } } — en_az / en_cok
-    None:  sınır yok."""
+    { anahtar:  { en_az, en_az_dahil, en_cok, tam_sayi, olagan_alt, olagan_ust } } — en_az /
+    en_cok None:  sınır yok.  olagan_alt / olagan_ust ( 28 Kas ):  REDDETMEZ — aralık dışındaki
+    değeri ekran "olağan dışı" diye sorar ( tasarim/alanlar.OLAGAN );  None:  aralık yok."""
     kurallar = {}
     for a in alanlar.ALANLAR:
         if a.tur != "sayi" or not a.formda:
@@ -904,11 +905,15 @@ def form_kurallari():
         if muk and a.anahtar in KATALOG_ARALIKLARI:
             k_alt, k_ust = KATALOG_ARALIKLARI[a.anahtar]
             alt, dahil, ust = k_alt, True, min(ust, k_ust) if ust is not None else k_ust
+        olagan = alanlar.OLAGAN.get(a.anahtar)
         kurallar[a.anahtar] = {
             "en_az": alt,
             "en_az_dahil": dahil,
             "en_cok": ust,
             "tam_sayi": a.tam_sayi,
+            #  OLAĞAN ARALIK ( 28 Kas — alanlar.OLAGAN ):  ret değil, ekran sorar;  None:  aralık yok
+            "olagan_alt": olagan[0] if olagan else None,
+            "olagan_ust": olagan[1] if olagan else None,
         }
     return kurallar
 

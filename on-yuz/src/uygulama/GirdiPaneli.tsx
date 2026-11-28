@@ -32,7 +32,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { Alan, AlanSemasi, Deger } from "@/lib/api";
-import { agirligaGoreGizli, alanHatasi, alanOku, gizliAlanlar, kipGizlileri, kuyununOrtaklari, mrlMi, sayiOku, secenekKapali, type Ham, type UygulamaProjesi } from "@/lib/proje";
+import { agirligaGoreGizli, alanHatasi, alanOku, alanUyarisi, gizliAlanlar, kipGizlileri, kuyununOrtaklari, mrlMi, sayiOku, secenekKapali, type Ham, type UygulamaProjesi } from "@/lib/proje";
 import { DURAK_ADLARI, DURAK_KOTLARI, GIRIS_DURAGI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, MD_ZEMINI_KOTU, kotYaz, kotlariOku } from "@/lib/kotlar";
 import { KatGirisi } from "./KotTablosu";
 import { cn, etiketBol, sayiYaz } from "@/lib/utils";
@@ -561,6 +561,7 @@ function AlanSatiri({
 }) {
   const [ad, ack] = etiketBol(a.etiket);
   const hata = alanHatasi(sema, a.anahtar, ham);
+  const uyari = alanUyarisi(sema, a.anahtar, ham);
   const girildi = ham !== undefined;
   const geneli = sema.proje_geneli.includes(a.anahtar);
   const id = `alan-${a.anahtar}`;
@@ -689,6 +690,12 @@ function AlanSatiri({
       {hata && (
         <p id={`${id}-hata`} className="mt-1 text-right text-[11.5px] font-medium text-red">
           {hata}
+        </p>
+      )}
+      {/*  Olağan dışı değer ( 28 Kas ):  kural dışı değil — istek gider, yalnız sorulur  */}
+      {uyari && (
+        <p data-olagan-disi className="mt-1 text-right text-[11.5px] font-medium text-uyari">
+          {uyari}
         </p>
       )}
     </div>

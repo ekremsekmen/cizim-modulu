@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Check, ChevronRight, FileArchive, FileCode, FileText, Loader2, DraftingCompass, Ruler, ScrollText, Zap } from "lucide-react";
 import { indir, indirAkisli, paketNotu, type Alan, type AlanSemasi, type CokluYanit, type Deger, type UygulamaIstegi } from "@/lib/api";
-import { girilmeyenler, kotOzeti, type Ham, type UygulamaProjesi } from "@/lib/proje";
+import { girilmeyenler, kotOzeti, olaganDisilar, type Ham, type UygulamaProjesi } from "@/lib/proje";
 import { DURAK_KOTLARI } from "@/lib/kotlar";
 import { dosyaGovdesi } from "@/lib/dosya";
 import { kapakSayfasi } from "@/lib/kapak";
@@ -74,6 +74,9 @@ export function Teslim({
     [sema, proje, hesap],
   );
   const toplam = girilmeyen.reduce((t, l) => t + l.length, 0);
+  //  Olağan aralığın dışında yazılan değerler ( 28 Kas ):  paketi durdurmaz, gözden geçirilir
+  const olaganDisi = useMemo(() => proje.asansorler.map((_, i) => olaganDisilar(sema, proje, i)), [sema, proje]);
+  const olaganDisiSayisi = olaganDisi.reduce((t, l) => t + l.length, 0);
 
   //  Paketin içindeki .uygulama eski arayüzün biçimindedir:  iki arayüzde de açılır
   //  Kapak sayfası:  dolu alan varsa sunucu paketin başına koyar ( eski arayüz gibi )
@@ -222,6 +225,25 @@ export function Teslim({
               </div>
             )}
           </div>
+          {olaganDisiSayisi > 0 && (
+            <div data-olagan-disilar className="mt-3 rounded-orta border border-uyari-cizgi bg-uyari-acik px-3.5 py-3 text-[12.5px]">
+              <p className="font-medium text-uyari">Olağan dışı değerler · {olaganDisiSayisi}</p>
+              <p className="mt-0.5 text-metin-2">Ofisin olağan aralığının dışında yazıldı;  yanlış yazım değilse olduğu gibi kalabilir.</p>
+              <ul className="mt-1.5 space-y-0.5">
+                {olaganDisi.flatMap((liste, i) =>
+                  liste.map(({ alan: a, deger }) => (
+                    <li key={`${i}:${a.anahtar}`} className="flex gap-2">
+                      {proje.asansorler.length > 1 && <span className="text-metin-3">Asansör {i + 1}</span>}
+                      <span className="flex-1 text-metin">{etiketBol(a.etiket)[0]}</span>
+                      <span className="sayi whitespace-nowrap">
+                        {deger} {a.birim && a.birim !== "—" && <span className="text-metin-3">{a.birim}</span>}
+                      </span>
+                    </li>
+                  )),
+                )}
+              </ul>
+            </div>
+          )}
           <label className="mt-3 flex cursor-pointer items-start gap-2.5">
             <input
               type="checkbox"

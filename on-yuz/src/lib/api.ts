@@ -38,6 +38,10 @@ export interface Kural {
   en_az_dahil?: boolean;
   en_cok?: number | null;
   tam_sayi?: boolean;
+  /**  Olağan aralık ( sunucu:  tasarim/alanlar.OLAGAN — 28 Kas ):  REDDETMEZ, dışındaki değeri
+       ekran "olağan dışı" diye sorar;  null:  aralık yok  */
+  olagan_alt?: number | null;
+  olagan_ust?: number | null;
 }
 
 export interface Tablo {

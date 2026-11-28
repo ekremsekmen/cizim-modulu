@@ -25,6 +25,7 @@ import shutil
 import subprocess
 import unittest
 
+from tasarim import alanlar
 from testler import test_yerlesim_saglamligi
 from uclar import cizim_uclari, uygulama_istegi, uygulama_uclari
 
@@ -48,6 +49,18 @@ const { eskiOnayIsaretli, evetMi } = await import(pathToFileURL(process.argv[1])
 const durumlar = JSON.parse(require('fs').readFileSync(0, 'utf8'));
 const m = (h) => (typeof h === 'boolean' ? String(h) : h);
 process.stdout.write(JSON.stringify(durumlar.map(([h, i]) => [eskiOnayIsaretli(m(h), i), evetMi(m(h))])));
+"""
+
+
+#  Olağan dışı değer ( 28 Kas ):  [ [ anahtar , kural , ham ] ] → [ [ uyarı | null , hata | null ] ]
+_NODE_UYARI = r"""
+const { pathToFileURL } = require('url');
+const { alanHatasi, alanUyarisi } = await import(pathToFileURL(process.argv[1]).href);
+const durumlar = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+process.stdout.write(JSON.stringify(durumlar.map(([a, k, h]) => {
+  const s = { kurallar: { [a]: k } };
+  return [alanUyarisi(s, a, h), alanHatasi(s, a, h)];
+})));
 """
 
 
@@ -156,6 +169,33 @@ class OnYuzDenetimi(unittest.TestCase):
             f"{a} {ne}:  {ileti!r}" for (a, ne, red), ileti in zip(beklenen, iletiler) if bool(ileti) != red
         ]
         self.assertEqual(yanlis, [], "\n".join(yanlis))
+
+    def test_olagan_disi_sunucuyla_ayni_ve_reddedilmez(self):
+        """OLAĞAN ARALIK ( 28 Kas — tasarim/alanlar.OLAGAN ):  ön yüzün uyarısı sunucunun hükmüyle
+        aynı ( aralığın içi, hemen altı, hemen üstü );  olağan dışı değer kural dışı DEĞİLDİR
+        ( kutu kırmızı olmaz, istek gider — ret yalnız kesin tavanda )."""
+        durumlar, beklenen = [], []
+        for a, k in self.kurallar.items():
+            if k.get("olagan_alt") is None:
+                continue
+            alt, ust = k["olagan_alt"], k["olagan_ust"]
+            for d in ((alt + ust) / 2, alt * 0.9, ust * 1.1):
+                if (k["en_cok"] is not None and d > k["en_cok"]) or (k["tam_sayi"] and d != int(d)):
+                    continue
+                durumlar.append([a, k, _tr(d)])
+                beklenen.append((a, d, alanlar.olagan_disi(a, d) is not None))
+        self.assertTrue(any(b[2] for b in beklenen), "hiç olağan dışı değer denenmedi")
+        sonuc = on_yuz(durumlar, _NODE_UYARI)
+        yanlis = [
+            f"{a} = {d:g}:  ön yüz {u!r}, sunucu {'uyarır' if s else 'uyarmaz'}{'  · KURAL DIŞI ' + h if h else ''}"
+            for (a, d, s), (u, h) in zip(beklenen, sonuc)
+            if bool(u) != s or h
+        ]
+        self.assertEqual(yanlis, [], "\n".join(yanlis))
+        #  Kullanıcının örneği:  300 cm duvar
+        k = self.kurallar["kuyu_duvar_kalinligi"]
+        self.assertEqual(on_yuz([["kuyu_duvar_kalinligi", k, "3000"]], _NODE_UYARI)[0][1], None)
+        self.assertTrue(on_yuz([["kuyu_duvar_kalinligi", k, "3000"]], _NODE_UYARI)[0][0])
 
     def test_okunamayan_yazimin_karari_sunucunun(self):
         k = {"en_az": 0, "en_az_dahil": True, "en_cok": 20000, "tam_sayi": False}

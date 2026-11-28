@@ -5,7 +5,7 @@
     Ekran o değeri soluk gösterir ( "siz girmediniz" ).                       */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Alan, AlanSemasi, Deger, UygulamaIstegi } from "./api";
-import { alanHatasi, sayiOku } from "./denetim";
+import { alanHatasi, alanUyarisi, sayiOku } from "./denetim";
 import { DURAK_KOTLARI, KUYU_DIBI_KOTU, KUYU_TAVANI_KOTU, TURETILEN, kotlaGecis, kotlaMi, kotlariOku, kotYaz } from "./kotlar";
 import { depoOku, depoSil, depoYaz } from "./depo";
 import { durumSil, girdininDurumu, izi, type ProjeDurumu } from "./durum";
@@ -390,6 +390,18 @@ export function kotOzeti(h: Ham | undefined): string {
      girişte durak adedi, seyir, kat yükseklikleri, kuyu dibi, son kat ve tabliye
      kotlardan türer;  2 Kas'a kadar "girmediğiniz değer" sayılıp onaylatılıyordu
      ( formun kendisi ve formHatalari kipe bakıyordu, Teslim bakmıyordu ).  */
+/**  OLAĞAN DIŞI DEĞERLER ( 28 Kas ):  asansörün görünür alanlarından olağan aralığın dışında
+     yazılanlar ( alanUyarisi ) — teslim ekranı listeler;  paketi durdurmaz.  */
+export function olaganDisilar(sema: AlanSemasi, p: UygulamaProjesi, asansor: number): { alan: Alan; deger: string }[] {
+  const gizli = new Set([...gizliAlanlar(sema, p), ...kipGizlileri(sema, p.asansorler[asansor])]);
+  const ham: Ham = { ...p.proje_geneli, ...p.asansorler[asansor] };
+  return sema.gruplar.flatMap((g) =>
+    g.alanlar
+      .filter((a) => !gizli.has(a.anahtar) && alanUyarisi(sema, a.anahtar, ham[a.anahtar]))
+      .map((a) => ({ alan: a, deger: ham[a.anahtar] as string })),
+  );
+}
+
 export function girilmeyenler(sema: AlanSemasi, p: UygulamaProjesi, asansor: number): { grup: string; alan: Alan }[] {
   const gizli = new Set([...gizliAlanlar(sema, p), ...kipGizlileri(sema, p.asansorler[asansor])]);
   const varsayilanKot = varsayilanKotlarMi(sema, p, asansor);
@@ -443,7 +455,7 @@ export function ayniGirdi(a: UygulamaIstegi | null, b: UygulamaIstegi | null) {
 
 /* ───────────────────────────── Ön yüz denetimi:  saf işlevler lib/denetim.ts'te
     ( bağımlılıksız — testler/test_on_yuz_denetimi.py onu Node ile doğrudan koşar ) */
-export { alanHatasi, kutuyaYaz, sayiOku } from "./denetim";
+export { alanHatasi, alanUyarisi, kutuyaYaz, sayiOku } from "./denetim";
 
 export interface FormHatasi {
   anahtar: string;
