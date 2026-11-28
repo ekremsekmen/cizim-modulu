@@ -702,8 +702,12 @@ def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False, anahtarlar=(*KUCULEN
             else:
                 yuksek, (v, d) = k, sonuc
         if g["anahtar"] == "kuyu_genisligi" or kot:
-            #  k = 0 ( mimarın ölçüsü ) yerleşimle zaten denendi ( _sec.yerlesim ) — sığmıyor
-            dusuk = 0
+            #  k = 0 ( MİMARIN ÖLÇÜSÜ ) DE DENENİR ( 28 Kas ):  _sec.yerlesim onu taze adayla denedi,
+            #  bulunan düzenle değil.  Atlanınca her seçim en iyi ihtimalle girilenin bir adım üstünü
+            #  buluyordu:  1275 kg MD 1700 → 1850, 1850 girilince 1860, 1860 → 1870 … ( doğrulama
+            #  turları 10'ar mm sürünüyor, AZAMI_YENIDEN dolunca doğrulanmamış ölçü dönüyordu — dar
+            #  taramada üç senaryo, kuyu dibi merdiveni engel olmaktan çıkınca görüldü )
+            dusuk = -1
             #  KOTTA DENEMELER ÜST ÜSTE BİNMEZ:  her biri aynı düzenden ( yerleşimsiz bulunan ) tek
             #  yerleşim adımıyla — mimar o kotu girince seçici aynı düzeni uyarlamada yeniden bulur
             #  ( _tek_seferde ).  Birikince ( karşı ağırlık çarpma arası + regülatörün yanı ) iki adımlı,

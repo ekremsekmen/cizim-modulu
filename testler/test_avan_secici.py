@@ -770,6 +770,20 @@ class AvanSecici(unittest.TestCase):
         self.assertEqual(r2["durum"], "uygun", r2)
         self.temiz(r2)
 
+    def test_kucultme_mimarin_olcusunu_de_dener(self):
+        """28 Kas ( PR #176'nın dar taraması ):  1275 kg makine daireli, kuyu 500 mm dar — 1870
+        isteniyor, 1870 girilince 1880 isteniyordu.  Küçültme mimarın değerini ( k = 0 ) "denendi"
+        diye atlıyordu;  oysa _sec.yerlesim onu taze adayla denemişti, bulunan düzenle değil:  her
+        seçim girilenin bir adım üstünü buluyor, doğrulama turları 10'ar mm sürünüyordu."""
+        t = PAKETLER[(1275, False)]
+        m = {**mimari(t), "kuyu_genisligi": int(t["asansor"]["kuyu_genisligi"]) - 500}
+        m["kuyu_derinligi"] = int(t["asansor"]["kuyu_derinligi"]) + 500
+        r = avan_secici.sec(m)
+        self.assertEqual(r["durum"], "gereken", r)
+        self.assertEqual([g["anahtar"] for g in r["gereken"]], ["kuyu_genisligi"])
+        r2 = avan_secici.sec({**m, "kuyu_genisligi": int(r["gereken"][0]["yeni"])})
+        self.assertEqual(r2["durum"], "uygun", r2)
+
     def test_elle_ayarlanan_olcu(self):
         """Kullanıcı ( 14 Kas ):  "ölçüye tıklayınca değiştirebilmem lazım — ray – kapı, karşı
         ağırlık – duvar".  Elle ayar ( m["ayar"] ) istekte AYNEN durur, sonuç yine doğrulanır;
