@@ -416,6 +416,8 @@ class _Sinayici:
         return {
             "cizim": cizim,
             "hesap": sorted(hesap),
+            #  { kimlik:  metin } — ekran metni yazar ( _nedenler )
+            "hesap_metni": dict(hesap),
             "bolum": bolum,
             #  avanı bağlayanlar ( AVAN_BOLUMLERI ) — "temiz" bunlara bakar
             "engel": engel,
@@ -700,7 +702,7 @@ def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False, anahtarlar=(*KUCULEN
             else:
                 yuksek, (v, d) = k, sonuc
         if g["anahtar"] == "kuyu_genisligi" or kot:
-            #  k = 0 ( mimarın ölçüsü ) yerleşimle zaten denendi ( _sec.yerlesim ) — sığmıyor
+            #  k = 0 ( mimarın ölçüsü ) ikiye bölmede denenmez:  _sec.yerlesim onu yerleşimle denedi
             dusuk = 0
             #  KOTTA DENEMELER ÜST ÜSTE BİNMEZ:  her biri aynı düzenden ( yerleşimsiz bulunan ) tek
             #  yerleşim adımıyla — mimar o kotu girince seçici aynı düzeni uyarlamada yeniden bulur
@@ -716,6 +718,15 @@ def _kucult(v, d, gereken, sina, taslak, kapi_kilidi=False, anahtarlar=(*KUCULEN
                     dusuk = k
                 else:
                     yuksek, (v, d) = k, sonuc
+            #  AMA SON ADIMLAR k = 0'A DEK İNER ( 28 Kas ):  _sec.yerlesim onu taze adayla denedi,
+            #  bulunan düzenle değil.  Atlanınca her seçim en iyi ihtimalle girilenin bir adım üstünü
+            #  buluyordu:  1275 kg MD 1700 → 1850, 1850 girilince 1860, 1860 → 1870 … ( doğrulama
+            #  turları 10'ar mm sürünüyor, AZAMI_YENIDEN dolunca doğrulanmamış ölçü dönüyordu — dar
+            #  taramada üç senaryo, kuyu dibi merdiveni engel olmaktan çıkınca görüldü ).  İkiye
+            #  bölmenin noktaları değişmez:  alt sınır baştan −1 olunca kayan noktalar 2,5 m/s
+            #  1250 kg'da kuyu tavanını +19,35'ten +19,47'ye çıkarıyordu.
+            if dusuk == 0:
+                dusuk = -1
             for _son in range(KUCULTME_SON_ADIM):
                 if yuksek - dusuk <= 1:
                     break
@@ -1477,9 +1488,14 @@ def _bedel(gereken, m=None, taban=None):
 
 
 def _nedenler(d):
-    """Sınamanın ( _Sinayici ) sorunları, metin listesi:  çizimin, hesabın;  geçmeyen avan
-    bölümü "bölüm:<kimlik>" ( uç ekrandaki adına çevirir )."""
-    return list(d["cizim"].values()) + d["hesap"] + [f"bölüm:{b}" for b in d["engel"]]
+    """Sınamanın ( _Sinayici ) sorunları, metin listesi:  çizimin, hesabın ( çizimde aynı
+    sorun yoksa — hesap çoğu kez çizimin sebebiyle durur );  geçmeyen avan bölümü
+    "bölüm:<kimlik>" ( uç ekrandaki adına çevirir ).  27 Kas'a dek hesabınki KİMLİK
+    biçimiyle ( sayılar "#", ilk iki noktadan sonrası yok ) ve çizimdekinin ikinci kopyası
+    olarak ekrana gidiyordu ( "Kabin rayı sol duvara # mm giriyor" )."""
+    hesap = d.get("hesap_metni") or {}
+    metinler = list(d["cizim"].values()) + [hesap.get(k, k) for k in d["hesap"] if k not in d["cizim"]]
+    return list(dict.fromkeys(metinler)) + [f"bölüm:{b}" for b in d["engel"]]
 
 
 def _kucuk_oda(taslak, m):

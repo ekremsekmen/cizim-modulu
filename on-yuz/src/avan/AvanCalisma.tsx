@@ -2058,6 +2058,14 @@ function CizimlerAdimi({
                 Uygulama projesinde çözülecek:  {r.acik_bolum_adlari.join(" · ")} ( ürün seçimi — avan çizimini etkilemez ).
               </p>
             )}
+            {/*  Çizimi durdurmayan notlar ( 27 Kas — kuyu dibinde sabit merdivene yer yok:  hangi merdivenin
+                 seçileceği;  paftada VERİLER'in NOTLAR'ında da )  */}
+            {(r.cizim.notlar ?? []).map((n) => (
+              <p key={n} data-cizim-notu className="border-b border-cizgi bg-yuzey px-4 py-1.5 text-[12px] text-metin-2">
+                <Info className="mr-1 inline size-3.5 align-[-2px]" />
+                {n}
+              </p>
+            ))}
             {olcu && kaynak.data && mimari && (
               <p role="status" className="border-b border-cizgi bg-yuzey px-4 py-1.5 text-[12px] text-metin-2">
                 <Info className="mr-1 inline size-3.5 align-[-2px]" />

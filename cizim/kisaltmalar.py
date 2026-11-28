@@ -83,14 +83,17 @@ def tablo(x, y, baslik, satirlar, ad, k=1.0, sutun=KOD_SUTUNU):
     h, adim = uslup.NORMAL * k, SATIR * k
     e = [eleman.ad(eleman.yazi(x, y - adim / 2.0, baslik, h, hiza="sol"), ad)]
     yy = y - adim
-    e.append(eleman.ad(eleman.cizgi("YAZI", x, yy, x + _tablo_eni(baslik, satirlar, k, sutun), yy), ad))
+    e.append(eleman.ad(eleman.cizgi("YAZI", x, yy, x + tablo_eni(baslik, satirlar, k, sutun), yy), ad))
     for sol, sag in satirlar:
         yy -= adim
-        e.append(eleman.ad(eleman.yazi(x, yy + adim / 2.0, sol, h, hiza="sol"), ad))
+        #  Sol sütunu boş satır:  önceki satırın devamı ( sarılan uzun not — veri_tablosu )
+        if sol:
+            e.append(eleman.ad(eleman.yazi(x, yy + adim / 2.0, sol, h, hiza="sol"), ad))
         e.append(eleman.ad(eleman.yazi(x + sutun * k, yy + adim / 2.0, sag, h, hiza="sol"), ad))
     return e, yy
 
 
-def _tablo_eni(baslik, satirlar, k, sutun):
+def tablo_eni(baslik, satirlar, k=1.0, sutun=KOD_SUTUNU):
+    """tablo'nun eni ( başlığın altındaki çizginin boyu ) — veri tablosu uzun notu ona sarar."""
     h = uslup.NORMAL * k
     return max([eleman.yazi_eni(baslik, h)] + [sutun * k + eleman.yazi_eni(sag, h) for _sol, sag in satirlar])

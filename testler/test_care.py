@@ -24,6 +24,7 @@ from unittest import mock
 
 from cizim import katlar
 from cizim import sorun
+from cizim import standart
 from testler import test_grup
 from testler import test_yerlesim_saglamligi
 from uclar import avan_secici
@@ -430,10 +431,12 @@ class BinaTaramasi(unittest.TestCase):
             [[("makine_raya_biniyor", "Bina yapısına", "seçim")]],
         )
 
-    def test_merdivenin_caresi_kuyu_genisligi(self):
+    def test_merdiven_olcu_istetmez(self):
         """Kullanıcının kuyusu ( 27 Kas ):  800 kg MRL, kabin 1350 × 1400, kapı 900, 1800 × 2700, ağırlık
-        arkada — kuyu dibi merdiveni kapının yanına sığmıyordu ( Ek F.5 b ), çare bulucu öneri
-        bulamıyordu.  Tarama:  kuyu genişliği 1830;  bağımsız sınama:  sorun gider, yeni sorun yok."""
+        arkada — kuyu dibi merdiveni kapının yanına sığmıyordu ( Ek F.5 b );  çare bulucu bina
+        taramasıyla kuyu genişliği 1830 öneriyordu.  Merdiven çizime engel değil ( 27 Kas,
+        cikti/devir/MERDIVEN_PLANI.md ):  düzen sorunsuz, çizim kurulur, çare aranmaz;  sabit
+        merdivenin yerine not ( çizim yanıtının notlar'ı — ekran;  paftada VERİLER )."""
         t = avan_secici.paketler()[(800, True)]
         m = dict(
             beyan_yuku=800,
@@ -451,21 +454,10 @@ class BinaTaramasi(unittest.TestCase):
             kapi_genisligi=900,
         )
         veri = avan_secici._istek(t, m, avan_secici._arka_adayi(t, m))
-        once = care_uclari.girdi_durumu(veri, 0)
-        self.assertEqual(len(once[0]), 1)
-        self.assertTrue(next(iter(once[0])).startswith("Kuyu dibi merdiveni"))
-        r = care_uclari.coz(veri, 0, None, care_uclari.Butce(sure=float("inf")))
-        oneriler = r["careler"][0]["oneriler"]
-        self.assertEqual(
-            [(o["anahtar"], o["yeni"], o["yontem"], o["bina"]) for o in oneriler],
-            [("kuyu_genisligi", 1830.0, "tarama", True)],
-        )
-        sonra = care_uclari.girdi_durumu(care_uclari.girdi_yaz(veri, 0, "kuyu_genisligi", 1830.0), 0)
-        self.assertEqual(sonra[0], {})
-        #  10 mm eksiği ( 1820 ) gidermiyor
-        self.assertTrue(
-            care_uclari.girdi_durumu(care_uclari.girdi_yaz(veri, 0, "kuyu_genisligi", 1820.0), 0)[0]
-        )
+        self.assertEqual(care_uclari.girdi_durumu(veri, 0)[0], {})
+        y = json.loads(cizim_uclari.api_cizimler(veri).body)
+        self.assertTrue(y["aktif"], y.get("hata"))
+        self.assertEqual(y["notlar"], [standart.KUYU_DIBI_MERDIVEN_NOTU])
 
 
 if __name__ == "__main__":

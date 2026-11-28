@@ -10,6 +10,8 @@ yazmıyordu.  Değerlerin hepsi girdiden ( g ) ya da hesabın özetinden
 ( g["veri"] — kopru ):  boş olan satır yazılmaz, sayı uydurulmaz.
 """
 
+import re
+
 from cizim import arka_aski
 from cizim import avan_kipi
 from cizim import donanim
@@ -18,6 +20,7 @@ from cizim import eleman
 from cizim import geometri
 from cizim import katlar
 from cizim import kisaltmalar
+from cizim import kuyu_dibi
 from cizim import sabitler
 from cizim import standart
 from cizim import uslup
@@ -28,6 +31,8 @@ BASLIK = "VERİLER VE KISALTMALAR"
 NOTLAR = ("Ölçüler mm, kotlar m.",)
 #  Kotla girişte ( g["dusey"]["kot_ofseti"] ) kotlar mimarinindir:  ±0,00 onun datumu
 KOT_NOTU = "Kotlar bitmiş döşeme kotlarıdır."
+#  NOTLAR tablosunda notun sola uzaklığı ( 1/20'de;  solda sıra numarası )
+NOT_SUTUNU = 120.0
 
 
 def dogrula(g):
@@ -156,5 +161,61 @@ def ciz(g):
     if standart.kuyu_dibi_kapisi_gerekir((g.get("kuyu_dibi") or {}).get("derinlik")):
         ek += (standart.KUYU_DIBI_KAPISI_NOTU,)
     notlar = [(f"{i}.", n) for i, n in enumerate(NOTLAR + ek, 1)]
-    t3, _ = kisaltmalar.tablo(0.0, alt - 2 * kisaltmalar.SATIR, "NOTLAR", notlar, "notlar", sutun=120.0)
+    #  Kuyu dibinde sabit merdivene yer yok ( 27 Kas — merdiven çizime engel değil:  kuyu_dibi ).
+    #  Uzun not tablonun enine sarılır:  tek satırda blok iki katından geniş olurdu
+    merdiven = _merdiven_notu(g)
+    if merdiven:
+        en = max(
+            kisaltmalar.tablo_eni("ASANSÖR VERİLERİ", veri, sutun=sutun),
+            kisaltmalar.tablo_eni("KISALTMALAR", kodlar),
+            kisaltmalar.tablo_eni("NOTLAR", notlar, sutun=NOT_SUTUNU),
+        )
+        s = _sar(merdiven, en - NOT_SUTUNU, uslup.NORMAL)
+        notlar += [(f"{len(notlar) + 1}.", s[0])] + [("", x) for x in s[1:]]
+    t3, _ = kisaltmalar.tablo(0.0, alt - 2 * kisaltmalar.SATIR, "NOTLAR", notlar, "notlar", sutun=NOT_SUTUNU)
     return t1 + t2 + t3
+
+
+def _merdiven_notu(g):
+    """Kuyu dibinde sabit merdivene yer yoksa notu ( kuyu_dibi.yerlesim — istekte
+    önbellekli;  standart.KUYU_DIBI_MERDIVEN_NOTU ), yoksa None."""
+    Y = kuyu_dibi.yerlesim(g)
+    return Y.get("merdiven_notu") if isinstance(Y, dict) else None
+
+
+#  Sarılan notta bölünmeyen kısa ayracın en çok sözcüğü ( "( F.5 c )" )
+KISA_AYRAC = 3
+
+
+def _parcalar(metin):
+    """Notun bölünmez parçaları ( sözcük, ardındaki boşlukla ):  kısa ayraç ( KISA_AYRAC )
+    tek parça;  uzun ayraçta ")" önceki, tek başına "(" sonraki sözcüğe yapışık — satır ")"
+    ile başlamaz, "(" ile bitmez ( tarayıcıda görüldü:  satır ");" ile başlıyordu )."""
+    sozcukler, out, i = re.findall(r"\S+\s*", metin), [], 0
+    while i < len(sozcukler):
+        p = sozcukler[i]
+        if p.strip() == "(":
+            j = next((k for k in range(i + 1, len(sozcukler)) if sozcukler[k].startswith(")")), None)
+            if j is not None and j - i - 1 <= KISA_AYRAC:
+                out.append("".join(sozcukler[i : j + 1]))
+                i = j + 1
+                continue
+        #  Birim sayısından ayrılmaz ( "800 mm" — satır "mm" ile başlıyordu )
+        birim = re.match(r"(mm|cm|m|kg)\b", p) and re.search(r"\d\s*$", out[-1] if out else "")
+        if out and (p.startswith(")") or out[-1].strip() == "(" or birim):
+            out[-1] += p
+        else:
+            out.append(p)
+        i += 1
+    return out
+
+
+def _sar(metin, en, h):
+    """Notu en'e sığan satırlara böler ( _parcalar'dan;  boşluklar korunur )."""
+    satirlar, s = [], ""
+    for p in _parcalar(metin):
+        if s and eleman.yazi_eni((s + p).rstrip(), h) > en:
+            satirlar.append(s.rstrip())
+            s = ""
+        s += p
+    return satirlar + ([s.rstrip()] if s.strip() else [])

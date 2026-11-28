@@ -240,6 +240,9 @@ export interface CizimYanit {
   /**  Hesabın uygun bulmadığı bölümlerin parçaları ( bölüm kimliği → data-ad;
        sunucu:  cizim/hesap_isareti.py ) — tuval turuncu işaretler  */
   hesap_parcalari?: Record<string, string[]>;
+  /**  Çizimi DURDURMAYAN notlar ( sunucu:  cizim_uclari.cizim_notlari ) — 27 Kas:  kuyu dibinde
+       sabit merdivene yer yok, hangi merdivenin seçileceği ( paftada VERİLER'in NOTLAR'ında da )  */
+  notlar?: string[];
 }
 
 /**  Avan asansörünün çizimleri ( sunucu:  uclar/avan_cizim_uclari.py ).  Seçici mimarın
